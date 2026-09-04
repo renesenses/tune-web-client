@@ -268,7 +268,10 @@ describe('Playlists — les cinq actions', () => {
     // Sans ce seau, le cœur repart éteint à chaque changement de profil :
     // écrit côté serveur, jamais relu.
     const src = lire('../api.ts');
-    expect(src.includes("settle(ids('playlist'), getPlaylist)"), 'les playlists ne sont plus relues').toBe(true);
+    // FUSION 04/09/2026 : `main` a renomme l'aide `ids(…)` en `lignes(…)`, qui
+    // rend les LIGNES et non plus les seuls identifiants — il lui fallait la
+    // date de mise en favori (#2001). Le seau des playlists est inchange.
+    expect(src.includes("settle(lignes('playlist'), getPlaylist)"), 'les playlists ne sont plus relues').toBe(true);
     expect(
       lire('../stores/profile.ts').includes('favoritePlaylistIds.set(new Set((favs.playlists'),
       'le magasin n’est plus rempli au chargement du profil.',
@@ -338,9 +341,14 @@ describe('Collections — deux sortes, deux identités', () => {
     // Favoris. Les collections n'y figurent pas : une requête par collection
     // ne servirait à rien.
     const src = lire('../api.ts');
-    expect(src.includes("collectionIds: ids('collection')"), 'les ids ne sont plus rendus').toBe(true);
+    // Meme renommage : `lignes(…)` rend les lignes, dont on ne garde ici que
+    // l'identifiant — c'est precisement ce que ce test protege.
     expect(
-      src.includes("smartCollectionIds: ids('smart_collection')"),
+      src.includes("collectionIds: lignes('collection').map((r) => r.item_id)"),
+      'les ids ne sont plus rendus',
+    ).toBe(true);
+    expect(
+      src.includes("smartCollectionIds: lignes('smart_collection').map((r) => r.item_id)"),
       'les ids des smart ne sont plus rendus.',
     ).toBe(true);
   });

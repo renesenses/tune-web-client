@@ -26,7 +26,7 @@ export type AlbumGridDensity = 'detail' | 'wall';
 // browses by (direct tracks columns; server column_facet). `folder` is special:
 // a hierarchical drill-down (breadcrumb + child folders) backed by
 // /library/folder-facet, rendered by OxygenFolderFacet — not a flat value list.
-export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
 /** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs.
  *  `untagged` en était sorti par `bf46fad7` (« only offer facets the rail can
  *  render ») en même temps que collection/folder/rating, faute d'un rendu. Les
@@ -35,7 +35,7 @@ export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year'
 const OXYGEN_FACETS_REMOVED: string[] = [];
 /** Révision courante de la liste de facettes livrée. À incrémenter en même
  *  temps qu'on ajoute une entrée à ADDED_BY_REV ci-dessous. */
-const OXYGEN_FACETS_REV = 3;
+const OXYGEN_FACETS_REV = 4;
 /** Facettes apparues à chaque révision : elles sont ajoutées une fois aux
  *  préférences déjà enregistrées, puis le choix de l'utilisateur fait foi. */
 const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
@@ -48,6 +48,13 @@ const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
   // L'année d'ENREGISTREMENT, distincte de celle d'édition déjà offerte par
   // `year`. Sur du jazz ou du classique, l'écart se compte en décennies.
   3: ['original_year'],
+  // Dynamic Range (#2144, #3196). Le serveur sert la facette sous
+  // `fields=…,dr` depuis la v0.9.130, mais aucun client ne la demandait :
+  // les notes de version l'annonçaient et elle n'existait nulle part
+  // (JeromeQ, fil 1640). Activée une fois chez ceux qui ont déjà des
+  // préférences enregistrées, sans quoi le correctif resterait invisible
+  // pour eux — ce sont précisément les testeurs qui l'ont réclamée.
+  4: ['dr'],
 };
 
 export interface Preferences {

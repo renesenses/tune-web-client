@@ -222,6 +222,13 @@ describe('critical endpoint URLs', () => {
     expect(fetchCalls[0].url).toBe('/api/v1/system/diagnostics');
   });
 
+  it('rearmAsioWarmScan() calls the protected rearm endpoint', async () => {
+    mockFetch({ status: 'rearmed', retry: 'next_restart', asio_warm_scan: {} });
+    await api.rearmAsioWarmScan();
+    expect(fetchCalls[0].url).toBe('/api/v1/system/audio/asio-warm-scan/rearm');
+    expect(fetchCalls[0].init?.method).toBe('POST');
+  });
+
   it('getStats() calls /api/v1/system/stats', async () => {
     mockFetch({ tracks: 1000, albums: 100, artists: 50 });
     await api.getStats();
@@ -269,6 +276,32 @@ describe('critical endpoint URLs', () => {
 
     expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
       fixed_volume: true,
+      confirm_full_volume: true,
+    });
+  });
+
+  it('setAudiophileVolumeLock distingue surcharge et héritage par zone', async () => {
+    mockFetch({ enabled: true, lock_volume: false, effective_lock_volume: false });
+    await api.setAudiophileVolumeLock(7, false);
+    expect(fetchCalls[0].url).toBe('/api/v1/zones/7/audiophile');
+    expect(fetchCalls[0].init?.method).toBe('POST');
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      lock_volume: false,
+    });
+
+    fetchCalls = [];
+    mockFetch({ enabled: true, lock_volume: null, effective_lock_volume: true });
+    await api.setAudiophileVolumeLock(7, null);
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      lock_volume: null,
+    });
+  });
+
+  it('setAudiophileVolumeLock ne transmet l’accord qu’après confirmation', async () => {
+    mockFetch({ enabled: true, lock_volume: true, effective_lock_volume: true });
+    await api.setAudiophileVolumeLock(7, true, true);
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      lock_volume: true,
       confirm_full_volume: true,
     });
   });
@@ -495,5 +528,125 @@ describe('withTimeout', () => {
   it('rejects if promise takes longer than timeout', async () => {
     const slow = new Promise((resolve) => setTimeout(resolve, 5000));
     await expect(api.withTimeout(slow, 10, 'test')).rejects.toThrow(/timed out/);
+  });
+});
+
+// =========================================================================
+// Tranche de Dynamic Range (#2144)
+// =========================================================================
+
+/**
+ * Le filtre par DR est appliqué par le SERVEUR : la liste d'albums ne porte
+ * pas la valeur de DR, un filtrage local ne verrait donc rien. Si les bornes
+ * n'atteignent pas l'URL, la commande se règle à l'écran et la grille ne
+ * change pas — le mode de panne exact de la facette DR, restée un an côté
+ * serveur sans qu'aucun client ne la demande (#3196).
+ */
+describe('tranche de Dynamic Range', () => {
+  it('pose dr_min et dr_max dans l\'URL quand la tranche est réglée', async () => {
+    mockFetch({ items: [], total: 0 });
+    await api.getAllAlbums(100, 'dynamic_range', 'desc', 1, 100, { min: 12, max: 20 });
+
+    expect(fetchCalls.length).toBe(1);
+    expect(fetchCalls[0].url).toContain('dr_min=12');
+    expect(fetchCalls[0].url).toContain('dr_max=20');
+    expect(fetchCalls[0].url).toContain('sort=dynamic_range');
+  });
+
+  it('ne pose QUE la borne réglée — les deux sont indépendantes', async () => {
+    mockFetch({ items: [], total: 0 });
+    await api.getAllAlbums(100, 'title', 'asc', 1, 100, { min: 14, max: null });
+
+    expect(fetchCalls[0].url).toContain('dr_min=14');
+    expect(fetchCalls[0].url).not.toContain('dr_max');
+  });
+
+  it('sans tranche, l\'URL est EXACTEMENT celle d\'avant', async () => {
+    mockFetch({ items: [], total: 0 });
+    await api.getAllAlbums(100, 'title', 'asc', 1, 100);
+
+    expect(fetchCalls[0].url).not.toContain('dr_min');
+    expect(fetchCalls[0].url).not.toContain('dr_max');
+  });
+
+  it('ne rend aucune valeur de DR quand le serveur ne connaît pas la clé', async () => {
+    // Serveur antérieur à la v0.9.130 : `filters` répond sans
+    // `dynamic_ranges`. Le client ne doit alors dessiner aucune commande.
+    mockFetch({ formats: ['flac'], sample_rates: [44100] });
+    expect(await api.getAlbumDynamicRanges()).toEqual([]);
+  });
+
+  it('rend les valeurs de DR décroissantes', async () => {
+    mockFetch({ formats: [], sample_rates: [], dynamic_ranges: [8, 14, 11] });
+    expect(await api.getAlbumDynamicRanges()).toEqual([14, 11, 8]);
+  });
+});
+
+// =========================================================================
+// Tri aléatoire et sa graine (#3074)
+// =========================================================================
+
+/**
+ * Le contrat serveur : `sort=random` sans `seed` en fait tirer une et la
+ * renvoie ; l'appelant DOIT la repasser sur les pages suivantes. La vue
+ * Bibliothèque charge ses albums en plusieurs requêtes — sans graine
+ * partagée, chaque `offset` re-tire, et la grille montre des albums en double
+ * tout en en cachant d'autres. C'est la panne que ces tests interdisent.
+ */
+describe('tri aléatoire : la graine', () => {
+  it('ne pose aucune graine quand on n\'en fournit pas', async () => {
+    mockFetch({ items: [], total: 0, seed: 4242 });
+    await api.getAllAlbumsSeeded(100, 'random', 'asc', 1, 100);
+
+    expect(fetchCalls[0].url).toContain('sort=random');
+    expect(fetchCalls[0].url).not.toContain('seed=');
+  });
+
+  it('rend la graine que le serveur a tirée', async () => {
+    mockFetch({ items: [], total: 0, seed: 4242 });
+    const draw = await api.getAllAlbumsSeeded(100, 'random', 'asc', 1, 100);
+    expect(draw.seed).toBe(4242);
+  });
+
+  it('repasse la graine fournie', async () => {
+    mockFetch({ items: [], total: 0, seed: 4242 });
+    await api.getAllAlbumsSeeded(100, 'random', 'asc', 1, 100, undefined, 777);
+    expect(fetchCalls[0].url).toContain('seed=777');
+  });
+
+  it('réutilise sur les lots suivants la graine apprise au premier', async () => {
+    // Deux lots : le premier plein (donc suivi d'un second), le second court.
+    let appel = 0;
+    const fn = vi.fn(async (url: string, init?: RequestInit) => {
+      fetchCalls.push({ url, init });
+      const items = appel++ === 0 ? [{ id: 1 }, { id: 2 }] : [{ id: 3 }];
+      // `fetchJSON` lit `text()` puis `JSON.parse` — jamais `json()`.
+      const corps = JSON.stringify({ items, total: 3, seed: 99 });
+      return {
+        ok: true, status: 200, statusText: 'OK',
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => JSON.parse(corps),
+        text: async () => corps,
+        blob: async () => new Blob([corps]),
+      } as unknown as Response;
+    });
+    vi.stubGlobal('fetch', fn);
+
+    const draw = await api.getAllAlbumsSeeded(2, 'random', 'asc');
+
+    expect(fetchCalls.length).toBe(2);
+    expect(fetchCalls[0].url).not.toContain('seed=');
+    // Le point du test : le SECOND lot lit le même tirage que le premier.
+    expect(fetchCalls[1].url).toContain('seed=99');
+    expect(draw.seed).toBe(99);
+    expect(draw.albums.length).toBe(3);
+  });
+
+  it('getAllAlbums reste inchangée pour ses autres appelants', async () => {
+    mockFetch({ items: [{ id: 1 }], total: 1 });
+    const albums = await api.getAllAlbums(100, 'title', 'asc', 1, 100);
+
+    expect(Array.isArray(albums)).toBe(true);
+    expect(fetchCalls[0].url).not.toContain('seed=');
   });
 });

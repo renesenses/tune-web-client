@@ -14,6 +14,7 @@
   import * as api from '../lib/api';
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
   import { favoritesFirst, toggleFavoriteId, type DeviceFavPrefix } from '../lib/deviceFavorites';
+  import { deviceHasBoundZone, deviceZoneActionKey, deviceZoneTargetId } from '../lib/hiddenZoneRecovery';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
@@ -59,6 +60,11 @@
   // infinite API-call loop that starves the main thread and blocks
   // sidebar click events (same class of bug fixed in DiagnosticsView).
   let serverVersion = $state<string | null>(null);
+  // Nom de la machine qui répond (#2110). Deux serveurs Tune donnaient deux
+  // interfaces indiscernables : Philippe et Alain ont conclu à une mise à jour
+  // ratée en regardant deux machines différentes. Le nom voyage dans la même
+  // réponse que la version, juste au-dessus.
+  let serverName = $state<string | null>(null);
   let sidebarDestroyed = false;
   onMount(() => {
     // L'état acoustique décide de l'affichage de l'entrée Ambiance.
@@ -68,7 +74,11 @@
     refreshBandcampPlugin();
     // Primary: get version from /system/health (always available)
     api.getHealth()
-      .then((r) => { if (!sidebarDestroyed && r?.version) serverVersion = r.version; })
+      .then((r) => {
+        if (sidebarDestroyed) return;
+        if (r?.version) serverVersion = r.version;
+        if (r?.server_name) serverName = r.server_name;
+      })
       .catch(() => {
         // Fallback: try checkForUpdate
         api.checkForUpdate()
@@ -98,11 +108,10 @@
   let newZoneName = $state('');
   let newZoneOutputType = $state<OutputType>('local');
   let newZoneDeviceId = $state<string | undefined>(undefined);
-  // v0.8.0 multi-room — Snapcast/Sonos device pickers fetched lazily
+  // v0.8.0 multi-room — Snapcast device picker fetched lazily
   // when the user opens the modal and picks the matching type. Kept
   // local to the component so we don't spam the API on every render.
   let snapcastClients = $state<{id: string; name: string; connected: boolean}[]>([]);
-  let sonosSpeakers = $state<{uid: string; name: string; ip: string}[]>([]);
   let multiroomLoading = $state(false);
 
   let configZone = $state<Zone | null>(null);
@@ -295,17 +304,22 @@
   }
 
   // v0.8.0 multi-room — load device candidates when the user picks
-  // a Snapcast / Sonos type in the create-zone modal. Lazy so we
+  // a Snapcast type in the create-zone modal. Lazy so we
   // don't hit the API for every Sidebar render.
+  //
+  // Plus de branche « sonos » : ce type n'est PAS une sortie que le serveur
+  // sache router. `OutputType` (tune-core) ne comporte aucune variante Sonos,
+  // et `TYPES_DE_SORTIE` (routes/zones.rs) — la liste que le PATCH d'une zone
+  // accepte — vaut exactement local, browser, dlna, openhome, chromecast,
+  // bluos, squeezebox, oaat. Une zone créée en « sonos » était donc persistée
+  // par le POST (qui ne valide pas) puis refusée par tout PATCH ultérieur, et
+  // ne jouait nulle part. Une enceinte Sonos se choisit sous **DLNA**, où la
+  // découverte la fait effectivement apparaître et où elle joue déjà.
   async function loadMultiroomDevices(type: OutputType) {
-    if (type !== 'snapcast' && type !== 'sonos') return;
+    if (type !== 'snapcast') return;
     multiroomLoading = true;
     try {
-      if (type === 'snapcast') {
-        snapcastClients = await api.listSnapcastClients();
-      } else {
-        sonosSpeakers = await api.listSonosSpeakers();
-      }
+      snapcastClients = await api.listSnapcastClients();
     } catch (e) {
       console.error('multiroom_devices_load_failed', e);
     } finally {
@@ -340,7 +354,7 @@
 
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
-      const zone = await api.createZone(device.name, device.type, device.id);
+      const zone = await api.createZone(device.name, device.type, deviceZoneTargetId(device));
       zones.update((zs) => [...zs, zone]);
       if (zone.id !== null) currentZoneId.set(zone.id);
     } catch (e: any) {
@@ -684,6 +698,20 @@
         <span class="health-dot" class:health-warning={$healthStatus === 'warning'} class:health-critical={$healthStatus === 'critical'} title="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>
       {/if}
     </div>
+    <!--
+      À QUELLE MACHINE parle-t-on (#2110) — à ne pas confondre avec la zone.
+      La puce de zone vit en bas à droite, dans la barre de transport : verte,
+      cliquable, ornée d'une icône d'appareil, elle répond à « qu'est-ce qui
+      joue ? ». Celle-ci vit en haut à gauche : grise, inerte, sans icône, et
+      porte le mot « Serveur » en toutes lettres. Deux coins opposés, deux
+      formulations, deux traitements : rien à confondre.
+    -->
+    {#if serverName}
+      <div class="server-identity" title={$t('sidebar.serverIdentityTitle')}>
+        <span class="server-identity-label">{$t('sidebar.serverIdentityLabel')}</span>
+        <span class="server-identity-name truncate">{serverName}</span>
+      </div>
+    {/if}
   </div>
 
   <ProfileSelector />
@@ -973,7 +1001,6 @@
           <option value="dlna">DLNA</option>
           <option value="airplay">AirPlay</option>
           <option value="snapcast">Snapcast</option>
-          <option value="sonos">Sonos</option>
         </select>
         {#if newZoneOutputType === 'dlna' || newZoneOutputType === 'airplay'}
           <select class="create-zone-device" bind:value={newZoneDeviceId}>
@@ -987,13 +1014,6 @@
             <option value={undefined}>{multiroomLoading ? '…' : $t('zone.selectDevice')}</option>
             {#each snapcastClients as cli}
               <option value={cli.id}>{cli.name}{cli.connected ? '' : ' (offline)'}</option>
-            {/each}
-          </select>
-        {:else if newZoneOutputType === 'sonos'}
-          <select class="create-zone-device" bind:value={newZoneDeviceId}>
-            <option value={undefined}>{multiroomLoading ? '…' : $t('zone.selectDevice')}</option>
-            {#each sonosSpeakers as sp}
-              <option value={sp.uid}>{sp.name} ({sp.ip})</option>
             {/each}
           </select>
         {/if}
@@ -1122,6 +1142,9 @@
           {/if}
           <span class="device-name truncate">{device.name}</span>
           {@render favoriteStar('net', device.id)}
+          {#if device.zone_hidden}
+            <span class="device-hidden-zone">{$t('zone.deletedZone')}</span>
+          {/if}
           <span class="device-type-tag">{deviceTypeIcon(device.type)}</span>
           {#if device.available}
             {#if device.type === 'airplay' && !pairedDeviceIds.has(device.id)}
@@ -1151,8 +1174,8 @@
                 </button>
               {/if}
             {/if}
-            {#if !$zones.some(z => z.output_device_id === device.id)}
-            <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title={$t('zone.createZone')}>
+            {#if !deviceHasBoundZone(device, new Set($zones.flatMap(z => z.output_device_id ? [z.output_device_id] : [])))}
+            <button class="device-add-btn" onclick={() => createZoneFromDevice(device)} title={$t(deviceZoneActionKey(device))}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
             {:else}
@@ -1255,6 +1278,11 @@
   .logo-img {
     height: 28px;
     width: auto;
+    /* Le logo ne se laisse pas écraser quand la ligne se resserre : c'est le
+       texte de version, à côté, qui doit céder en premier. Sans cela, l'image
+       est un élément flexible comme un autre et se réduit sous sa taille
+       intrinsèque. */
+    flex-shrink: 0;
   }
 
   .version {
@@ -1293,6 +1321,38 @@
     font-family: var(--font-body);
     font-size: 12px;
     color: var(--tune-text-secondary);
+  }
+
+  /*
+    Étiquette « quel serveur » (#2110). Volontairement à l'opposé de la puce de
+    zone (barre de transport, en bas à droite) : pas d'accent coloré, pas
+    d'icône, pas de survol, pas de curseur cliquable. Du texte gris, discret,
+    dans l'en-tête de la barre latérale, sous l'état de connexion.
+  */
+  .server-identity {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    margin-top: 2px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    line-height: 1.3;
+    color: var(--tune-text-muted);
+    min-width: 0;
+  }
+
+  .server-identity-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 9.5px;
+    opacity: 0.75;
+    flex-shrink: 0;
+  }
+
+  .server-identity-name {
+    font-weight: 500;
+    color: var(--tune-text-secondary);
+    min-width: 0;
   }
 
   .state-dot {
@@ -1855,6 +1915,14 @@
     flex-shrink: 0;
   }
 
+  .device-hidden-zone {
+    color: var(--tune-warning, #d97706);
+    font-family: var(--font-label);
+    font-size: 9px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   .device-add-btn {
     background: none;
     border: 1px solid var(--tune-border);
@@ -2138,12 +2206,34 @@
     }
     .sidebar-header { padding: var(--space-md) 0; align-items: center; }
     .logo { justify-content: center; }
-    .logo span, .version, .connection-status .state-text { display: none; }
+    /* Barre latérale réduite aux icônes : le nom du serveur n'y tiendrait pas.
+       Il reste lisible dans Réglages → Système, comme la version. */
+    .logo span, .version, .connection-status .state-text, .server-identity { display: none; }
     .section-label { display: none; }
     .nav-item { justify-content: center; padding: 12px 0; font-size: 0; }
     .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
     /* Hide text badges in icon-only mode to prevent overflow */
     .badge-update { display: none; }
+    /*
+      Le logo était rogné à gauche (#1394). Mesuré sur la vue réelle, à 1024px :
+      la barre fait 64px, moins 1px de bordure et 11px de barre de défilement
+      (`scrollbar-width: thin`), il reste 52px de contenu. La ligne du logo en
+      réclamait 56 — image 29,3 + espace 8 + bouton 18. `justify-content: center`
+      répartit ce débordement des DEUX côtés, et `overflow-x: hidden` rend les
+      3,6px de gauche définitivement inatteignables : on ne peut pas défiler
+      vers eux.
+
+      Ce n'est pas une divergence de moteur : Firefox 154 et Chrome rendent des
+      chiffres IDENTIQUES (débordement 4px, image à -3,6px). Le rapport disait
+      « firefox ? » avec un point d'interrogation ; c'est bien ce palier-ci, pas
+      le navigateur. Un écran Windows 1366×768 à 150 % d'échelle vaut 911px CSS
+      et tombe donc dedans.
+
+      « Quoi de neuf » reste atteignable dans Réglages → Système, où vit déjà
+      son second point d'entrée — comme la version et le nom du serveur, cachés
+      juste au-dessus pour la même raison.
+    */
+    .whatsnew-btn { display: none; }
     /* Icon-only : la pastille support devient un point discret superposable */
     .support-unread-badge { min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; margin-left: -4px; }
     .connected-dot { display: none; }

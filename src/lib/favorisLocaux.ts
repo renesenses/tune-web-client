@@ -131,7 +131,7 @@ export async function basculerFavoriLocal(ref: RefLocale): Promise<boolean | nul
 
   bascule(!avant);
   try {
-    const params = { [m.champ]: m.id } as api.FavItem;
+    const params = { [m.champ]: m.id } as api.FavoriteRef;
     if (avant) await api.removeFavorite(pid, params);
     else await api.addFavorite(pid, params);
     return !avant;

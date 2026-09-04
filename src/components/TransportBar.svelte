@@ -8,8 +8,10 @@
   import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
   import * as api from '../lib/api';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import * as controls from '../lib/playback-controls';
   import { suivantDesactive } from '../lib/boutonSuivant';
+  import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
@@ -30,7 +32,7 @@
     audiophileLockVolume,
     refreshAudiophile,
     refreshVolumeLock,
-    setVolumeLock,
+    setZoneVolumeLock,
     volumeLocked,
   } from '../lib/stores/audiophile';
 
@@ -314,11 +316,17 @@
           const favs = await api.apiFetch('/radio-favorites?limit=500');
           const match = favs.find((f: any) => f.title === track?.title && f.artist === track?.artist_name);
           if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          forgetRadioFavListenAt(track?.title, track?.artist_name);
           isFavorite = false;
         } else {
           const zid = $currentZoneId;
           if (zid != null) {
             await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            rememberRadioFavListenAt(
+              track?.title,
+              track?.artist_name,
+              isoFromMetadataChangedAt(track?.metadata_changed_at),
+            );
             isFavorite = true;
           }
         }
@@ -476,7 +484,8 @@
   }
 
   async function toggleVolumeLock() {
-    if (lockLoading) return;
+    const z = $currentZone;
+    if (!z?.id || lockLoading) return;
     lockLoading = true;
     const enabled = !$audiophileLockVolume;
     const confirmationRequired = fullVolumeConfirmationRequired('volume-lock', {
@@ -494,17 +503,16 @@
       }
     }
     try {
-      await setVolumeLock(enabled, fullVolumeConfirmed);
-      if ($audiophileLockVolume && $audiophileEnabled) {
-        const z = $currentZone;
-        if (z?.id) {
-          mutedVolume.set(null);
-          zoneVolume.set(1);
-          await api.setVolume(z.id, 1);
-        }
+      const res = await setZoneVolumeLock(z.id, enabled, fullVolumeConfirmed);
+      audiophileLockVolume.set(res.effective_lock_volume ?? enabled);
+      if ((res.effective_lock_volume ?? enabled) && $audiophileEnabled) {
+        // Le serveur a déjà envoyé la commande à 100 % avant de répondre.
+        mutedVolume.set(null);
+        zoneVolume.set(1);
       }
     } catch {
-      // setVolumeLock a déjà remis le store dans son état d'origine.
+      // Le serveur est la source de vérité : relire la zone restaure le toggle.
+      await refreshAudiophile(z.id);
     }
     lockLoading = false;
   }
@@ -548,6 +556,28 @@
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${m}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  /**
+   * Le texte de la seconde ligne de la barre, en clair — pour l'infobulle.
+   *
+   * Cette ligne est la plus étroite de l'interface et la plus souvent coupée
+   * (#2411). Elle ne se laisse pas recopier telle quelle dans un `title=` :
+   * son balisage mêle la donnée à des pastilles (badge YT, badge de qualité,
+   * pictogramme d'antenne) qui n'ont rien à faire dans une bulle. On refait
+   * donc le texte, et lui seul : l'artiste, ou — sur une radio — l'artiste
+   * suivi de la station.
+   */
+  function miniArtistLabel(t: typeof displayTrack): string {
+    if (!t) return '';
+    if (t.source === 'radio') {
+      const nom =
+        t.artist_name && t.artist_name !== t.album_title
+          ? t.artist_name
+          : t.album_title || 'Live Radio';
+      return `${nom} · ${t.album_title || 'Radio'}`;
+    }
+    return t.artist_name ?? '';
   }
 
   // Remember the current track's duration so a transient duration_ms=0 during
@@ -607,13 +637,13 @@
              l'envoie pas) : on ne le passe que quand la piste vient de la file. -->
         <AlbumArt coverPath={displayTrack.cover_path} albumId={'album_id' in displayTrack ? displayTrack.album_id : null} size={56} alt={displayTrack.title} />
         <div class="track-mini">
-          <span class="mini-title truncate">
+          <span class="mini-title truncate" title={displayTrack.title}>
             {displayTrack.title}
             {#if displayTrack.source === 'radio'}
               <span class="live-badge"><span class="live-dot"></span>LIVE</span>
             {/if}
           </span>
-          <span class="mini-artist truncate">
+          <span class="mini-artist truncate" title={miniArtistLabel(displayTrack)}>
             {#if ytActive}<span class="yt-badge">YT</span>{/if}
             {#if displayTrack.source === 'radio'}
               {displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title
@@ -666,11 +696,16 @@
   </div>
 
   <div class="transport-controls">
+    <!-- Le libellé porte le nom ET l'état : la couleur n'est plus le seul
+         indice (#2733). La règle vit dans lib/etatTransport, partagée avec le
+         panneau « Lecture en cours » et avec le bouton Répéter ci-dessous. -->
     <button
       class="control-btn small"
       class:active={$shuffleEnabled}
       onclick={toggleShuffle}
-      title={$t('transport.shuffle')}
+      aria-pressed={$shuffleEnabled}
+      aria-label={libelleAleatoire($t, $shuffleEnabled)}
+      title={libelleAleatoire($t, $shuffleEnabled)}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
@@ -739,6 +774,7 @@
           upNextCount: $upNextCount,
           repeat: $repeatMode,
           shuffle: $shuffleEnabled,
+          canSkipNext: zone?.can_skip_next,
         })}
         onclick={handleNext}
         title={$t('transport.next')}
@@ -749,11 +785,15 @@
       </button>
     {/if}
 
+    <!-- Trois états, deux apparences : `active` ne dit pas si l'on répète la
+         piste ou la file. Le libellé le dit. Pas d'`aria-pressed` ici — le
+         pourquoi est écrit dans lib/etatTransport. -->
     <button
       class="control-btn small"
       class:active={$repeatMode !== 'off'}
       onclick={cycleRepeat}
-      title={$t('transport.repeat')}
+      aria-label={libelleRepetition($t, $repeatMode)}
+      title={libelleRepetition($t, $repeatMode)}
     >
       {#if $repeatMode === 'one'}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -937,9 +977,9 @@
                    elles jouent, et c'est la question posée. La seconde ligne
                    ne s'affiche que si elle apporte autre chose que le nom. -->
               <span class="zone-popover-labels">
-                <span class="zone-popover-name truncate">{z.name}</span>
+                <span class="zone-popover-name truncate" title={z.name}>{z.name}</span>
                 {#if zoneDeviceName(z) && zoneDeviceName(z) !== z.name}
-                  <span class="zone-popover-device truncate">{zoneDeviceName(z)}</span>
+                  <span class="zone-popover-device truncate" title={zoneDeviceName(z)}>{zoneDeviceName(z)}</span>
                 {/if}
               </span>
               <span class="zone-popover-meta">
@@ -1000,8 +1040,8 @@
            un défaut — d'où l'interrupteur, inactif au départ. -->
       <div class="sp-audiophile sp-ap-sub-row">
         <div class="sp-ap-text">
-          <span class="sp-ap-title">{$t('audiophile.lockVolume' as any)}</span>
-          <span class="sp-ap-sub">{$t('audiophile.lockVolumeHelp' as any)}</span>
+          <span class="sp-ap-title">{$t('audiophile.lockVolumeZone' as any)}</span>
+          <span class="sp-ap-sub">{$t('audiophile.lockVolumeZoneHelp' as any)}</span>
         </div>
         <button
           class="sp-ap-switch"
@@ -1010,7 +1050,7 @@
           disabled={lockLoading}
           role="switch"
           aria-checked={$audiophileLockVolume}
-          aria-label={$t('audiophile.lockVolume' as any)}
+          aria-label={$t('audiophile.lockVolumeZone' as any)}
         >
           <span class="sp-ap-knob"></span>
         </button>

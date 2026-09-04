@@ -11,8 +11,16 @@
     serverFacets: Record<string, FacetValue[]>;       // full-library counts from the server index
     facets: string[];                                 // which facets to show (preferences.oxygenFacets)
     limit?: number;                                   // max values per facet; 0 = no limit
-    selected: Record<string, string>;
-    onSelect: (field: string, value: string | null) => void;
+    /** Les valeurs COCHÉES par facette (#2168). Plusieurs valeurs dans une
+     *  même facette se combinent en OU côté serveur ; deux facettes en ET. */
+    selected: Record<string, string[]>;
+    /** Coche ou décoche UNE valeur. Le parent tient la liste : le rail ne sait
+     *  pas si la facette est mono- ou multivaluée, il signale seulement le
+     *  geste — c'est ainsi que `folder` et `collection` restent monovaluées
+     *  sans que le rail ait à le savoir. */
+    onSelect: (field: string, value: string) => void;
+    /** Décoche toute une facette d'un geste. */
+    onClearFacet?: (field: string) => void;
     // Folder facet (drill-down) — supplied by OxygenView from /library/folder-facet.
     folderCrumbs?: FolderCrumb[];
     folderChildren?: FolderChild[];
@@ -20,9 +28,14 @@
     onFolderDrill?: (path: string | null) => void;
   }
   let {
-    tracks, serverFacets, facets, limit = 200, selected, onSelect,
+    tracks, serverFacets, facets, limit = 200, selected, onSelect, onClearFacet = () => {},
     folderCrumbs = [], folderChildren = [], folderLoading = false, onFolderDrill = () => {},
   }: Props = $props();
+
+  /** Cette valeur est-elle cochée ? */
+  const estCochee = (field: string, value: string) => (selected[field] ?? []).includes(value);
+  /** Combien de valeurs cochées dans cette facette. */
+  const nbCochees = (field: string) => (selected[field] ?? []).length;
 
   // Fields computable client-side from Track columns (fallback when the server
   // index is unavailable). k/v fields (country/mood/source) need the server.
@@ -45,6 +58,10 @@
       return Number.isFinite(n) && n > 0 ? `${(n / 1000).toLocaleString('fr')} kHz` : value;
     }
     if (field === 'bit_depth') return `${value} bit`;
+    // Le serveur rend le DR brut (« 14 ») : la pastille l'écrit comme
+    // l'écrivent les analyseurs et MinimServer, DR14, sans quoi une
+    // colonne de nombres nus ne se rattache à rien.
+    if (field === 'dr') return `DR${value}`;
     if (field === 'rating') {
       const n = Math.max(0, Math.min(5, Number(value) || 0));
       return '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -124,7 +141,7 @@
     if (modeOf(field) === 'alpha') {
       return out.sort((a, b) => a.value.localeCompare(b.value, 'fr', { numeric: true }));
     }
-    if (field === 'year' || field === 'sample_rate' || field === 'bit_depth' || field === 'rating')
+    if (field === 'year' || field === 'sample_rate' || field === 'bit_depth' || field === 'rating' || field === 'dr')
       return out.sort((a, b) => Number(b.value) - Number(a.value));
     return out.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'fr'));
   }
@@ -190,7 +207,7 @@
           <span class="gn">{folderChildren.length}</span>
         </div>
         {#if isOpen(f)}
-          <OxygenFolderFacet crumbs={folderCrumbs} folders={folderChildren} selected={selected.folder ?? null} loading={folderLoading} onDrill={onFolderDrill} />
+          <OxygenFolderFacet crumbs={folderCrumbs} folders={folderChildren} selected={selected.folder?.[0] ?? null} loading={folderLoading} onDrill={onFolderDrill} />
         {/if}
       </div>
     {:else if (groups[f] ?? []).length}
@@ -206,6 +223,12 @@
                D'où « classement alphabétique absent » alors que le tri existait
                (retour Stéphane Villerio, 08/08/2026). -->
           <button class="sortbtn" title={modeOf(f) === 'count' ? $t('oxygen.sortAlpha') : $t('oxygen.sortCount')} onclick={() => cycleSort(f)}>{modeOf(f) === 'count' ? 'A→Z' : '#'}</button>
+          <!-- Combien de valeurs cochées ici, et de quoi tout décocher d'un
+               geste : sans ce repère, une facette repliée cache sa sélection
+               et l'on ne comprend plus pourquoi la liste est si courte. -->
+          {#if nbCochees(f)}
+            <button class="clearbtn" title={$t('oxygen.facetClear')} aria-label={$t('oxygen.facetClear')} onclick={() => onClearFacet(f)}>{nbCochees(f)} <span class="x">×</span></button>
+          {/if}
           <span class="gn">{alphaOf(f) ? `${rowsOf(f).length}/${(groups[f] ?? []).length}` : (groups[f] ?? []).length}</span>
         </div>
         {#if isOpen(f)}
@@ -220,9 +243,17 @@
             {/if}
           {/if}
           <div class="values">
+            <!-- Cases à cocher : c'est le geste que la demande décrit (« une
+                 capture d'Audirvana pour mieux me faire comprendre »). La
+                 coche rend la sélection multiple DÉCOUVRABLE ; sans elle, rien
+                 ne dit qu'un second clic ajoute au lieu de remplacer. -->
             {#each rowsOf(f) as row (row.value)}
-              <button class="val" class:active={selected[f] === row.value}
-                onclick={() => onSelect(f, selected[f] === row.value ? null : row.value)}>
+              {@const coche = estCochee(f, row.value)}
+              <button class="val" class:active={coche} role="checkbox" aria-checked={coche}
+                onclick={() => onSelect(f, row.value)}>
+                <span class="box" class:on={coche} aria-hidden="true">
+                  {#if coche}<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.5"><path d="m5 12 5 5L19 7"/></svg>{/if}
+                </span>
                 <span class="vl" title={row.value}>{fmtValue(f, row.value)}</span>
                 <span class="vc">{row.count.toLocaleString('fr')}</span>
               </button>
@@ -256,6 +287,15 @@
   .ghtitle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: none; border: 0; color: var(--tune-text); font: inherit; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 0; cursor: pointer; text-align: left; }
   .sortbtn { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 10px; font-weight: 700; letter-spacing: .02em; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; }
   .sortbtn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }
+  /* Nombre de valeurs cochées + « tout décocher ». Discret tant qu'on ne le
+     survole pas : c'est un repère, pas une action qu'on veut déclencher par
+     mégarde. */
+  .clearbtn { display: flex; align-items: center; gap: 3px; background: var(--tune-accent); border: 0; color: #1a1206; font: inherit; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; cursor: pointer; flex: none; }
+  .clearbtn:hover { filter: brightness(1.12); }
+  .clearbtn .x { font-size: 11px; line-height: 1; }
+  /* La case à cocher d'une valeur de facette. */
+  .box { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border: 1.5px solid var(--tune-border); border-radius: 3px; color: #1a1206; }
+  .box.on { background: var(--tune-accent); border-color: var(--tune-accent); }
   .chev { transition: transform .12s; color: var(--tune-text-muted); }
   .chev.closed { transform: rotate(-90deg); }
   .gn { margin-left: auto; font-size: 10px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { audioLevels, levelsForZone, type AudioLevels } from '../lib/stores/audioLevels';
+  import { freqLabel, spectrumIsoTicks } from '../lib/spectrumScale';
+  import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../lib/waveformHistory';
 
   interface Props {
     playing: boolean;
@@ -35,9 +37,8 @@
   let animId: number | null = null;
   let visible = $state(false);
 
-  // Simulated bar values (32 bars for spectrum, 64 points for waveform)
+  // Simulated bar values (32 bars for spectrum)
   let barCount = $derived(mini ? 16 : 32);
-  const WAVE_POINTS = 64;
   let barValues: number[] = Array(32).fill(0);
   let barTargets: number[] = Array(32).fill(0);
   // Maintien de crête : la valeur haute atteinte par chaque bande, figée un
@@ -56,8 +57,22 @@
   // linéaire écrase tout (−20 dBFS ne ferait que 10 % de hauteur) alors qu'un
   // vu-mètre se lit en dB.
   const FLOOR_DB = -60;
-  let waveValues: number[] = Array(WAVE_POINTS).fill(0);
-  let waveTargets: number[] = Array(WAVE_POINTS).fill(0);
+  /**
+   * Nombre de bandes de la DERNIÈRE trame réellement mesurée. 0 = rien de
+   * mesuré, donc rien à dessiner et rien à graduer : l'échelle des fréquences
+   * n'apparaît que sous des barres qui existent.
+   */
+  let serverBandCount = 0;
+  /** Hauteur réservée sous les barres pour l'échelle, en px CSS. */
+  const AXIS_H = 12;
+  /** Même corps que la grille de l'égaliseur (`.grid-label`, ParametricEq). */
+  const AXIS_FONT = 9;
+  // `waveValues` / `waveTargets` ont disparu avec la sinusoide fabriquee
+  // (#2182) : le dessin lit desormais `waveHistory`.
+  // Mode « forme d'onde » : l'enveloppe de crête RÉELLEMENT mesurée par le
+  // serveur, empilée trame par trame. Voir ../lib/waveformHistory.ts pour le
+  // détail et pour ce que ce mode dessinait avant #2182 (des sinusoïdes).
+  const waveHistory = new WaveformHistory();
   let lastFrame = 0;
   let lastTargetUpdate = 0;
   const TARGET_INTERVAL = 120; // ms between new random targets (~8 Hz)
@@ -65,16 +80,39 @@
 
   let realLevels: AudioLevels | null = $state(null);
   let lastRealUpdate = 0;
+  // FUSION 04/09/2026 : la source PAR ZONE vient de la ligne du client v2 (la
+  // bande « Zones d'écoute actives » en affiche plusieurs côte à côte), le
+  // garde-fou d'empilement vient de `main`. Les deux sont nécessaires.
   const source = zoneId != null ? levelsForZone(zoneId) : audioLevels;
+  // Dernière trame EMPILÉE, par identité d'objet. Le store est `derived` : il
+  // ré-émet le même objet quand la zone courante change ou qu'une autre zone
+  // publie. Sans ce garde-fou, une même fenêtre de 40 ms serait comptée
+  // plusieurs fois et le tracé avancerait plus vite que le son.
+  let lastPushed: AudioLevels | null = null;
+  let historyZone: number | null = null;
   const unsub = source.subscribe((l) => {
     if (l.rms_left_db > -90 || l.rms_right_db > -90) {
       realLevels = l;
       lastRealUpdate = performance.now();
     }
+    // `zone_id === 0` est le placeholder du store (aucune trame reçue pour la
+    // zone choisie) : il ne décrit aucun signal, on ne l'empile pas.
+    if (l.zone_id === 0) return;
+    if (historyZone !== l.zone_id) {
+      // Changement de zone : le passé appartenait à une autre pièce.
+      waveHistory.clear();
+      historyZone = l.zone_id;
+    }
+    if (l === lastPushed) return;
+    lastPushed = l;
+    // Les trames silencieuses comptent : un blanc entre deux mouvements est
+    // une information, il doit apparaître plat et non être sauté.
+    waveHistory.push(l.peak_left_db, l.peak_right_db);
   });
 
   // Cache accent color (avoid getComputedStyle per frame)
   let cachedAccent = '#6B6ED9';
+  let cachedMuted = 'rgba(255, 255, 255, 0.4)';
   let accentCacheTime = 0;
 
   // Derive energy profile from audio metadata
@@ -108,101 +146,102 @@
     return Math.min(1, (db - FLOOR_DB) / -FLOOR_DB);
   }
 
+  /**
+   * Les cibles du mode « spectre ». N'écrit QUE ce que le serveur a mesuré.
+   *
+   * Rend le nombre de bandes de la trame lue — 0 quand il n'y a rien de
+   * mesuré, auquel cas toutes les barres retombent à zéro.
+   *
+   * ## Ce qui a été retiré, et pourquoi (#2081)
+   *
+   * Deux replis fabriquaient les barres quand le serveur ne fournissait pas
+   * de bandes :
+   *
+   *  - niveaux sans spectre : la hauteur venait du seul RMS gauche/droite,
+   *    multipliée par `0.85 + Math.random() * 0.3` et par un roll-off décidé
+   *    à la main. Toutes les barres montaient et descendaient ensemble : ce
+   *    n'était pas un spectre, c'était un VU-mètre coupé en 32 morceaux ;
+   *  - aucun niveau : la hauteur venait de `getEnergyProfile()`, qui devine
+   *    « grave / médium / aigu » d'après la fréquence d'échantillonnage, la
+   *    profondeur et le format — les MÉTADONNÉES du fichier, jamais le son.
+   *    Plus un tirage aléatoire par bande et par image.
+   *
+   * Ce second repli était bien dans le paquet publié 0.9.118, pas seulement
+   * dans les sources. Il s'affichait notamment au démarrage d'une lecture,
+   * avant la première trame de niveaux.
+   *
+   * On ne pouvait pas graduer ça. Un repère de fréquence posé sur une barre
+   * tirée au sort ne rend pas l'affichage lisible : il rend crédible quelque
+   * chose de faux. Même contrat que le mode « forme d'onde » (#2182) : sans
+   * donnée, on ne dessine rien.
+   */
+  function spectrumTargets(levels: AudioLevels | null): number {
+    for (let i = 0; i < barCount; i++) barTargets[i] = 0;
+    if (!levels) return 0;
+
+    // Préféré quand le serveur le fournit : niveau absolu par bande.
+    if (levels.spectrum_db && levels.spectrum_db.length > 0) {
+      // Serveur ≥ 0.9.63 : chaque bande porte son niveau ABSOLU en dBFS. Plus
+      // rien à reconstituer — on mappe directement sur l'échelle d'affichage.
+      const spec = levels.spectrum_db;
+      for (let i = 0; i < barCount; i++) {
+        const from = Math.floor((i * spec.length) / barCount);
+        const to = Math.max(from + 1, Math.floor(((i + 1) * spec.length) / barCount));
+        let db = -Infinity;
+        for (let k = from; k < to && k < spec.length; k++) {
+          db = Math.max(db, spec[k] ?? -Infinity);
+        }
+        barTargets[i] = dbToDisplay(db);
+      }
+      return spec.length;
+    }
+
+    if (levels.spectrum && levels.spectrum.length > 0) {
+      const spec = levels.spectrum;
+      // Le serveur renvoie une FORME normalisée trame par trame (chaque
+      // trame est divisée par sa bande la plus forte, `compute_spectrum`) :
+      // telle quelle, la bande dominante vaut toujours 1,0 et un pianissimo
+      // dessine la même hauteur qu'un tutti. On rend l'échelle absolue en
+      // pesant la forme par le niveau réel de la trame.
+      const level = dbToDisplay(Math.max(levels.rms_left_db, levels.rms_right_db));
+      for (let i = 0; i < barCount; i++) {
+        // AGRÉGER, pas échantillonner : avec 16 barres pour 32 bandes,
+        // `spec[i * 32 / 16]` jetait une bande sur deux, et un pic tombé
+        // dans une bande écartée disparaissait purement et simplement.
+        const from = Math.floor((i * spec.length) / barCount);
+        const to = Math.max(from + 1, Math.floor(((i + 1) * spec.length) / barCount));
+        let band = 0;
+        for (let k = from; k < to && k < spec.length; k++) {
+          band = Math.max(band, spec[k] ?? 0);
+        }
+        barTargets[i] = Math.min(1, band * level);
+      }
+      return spec.length;
+    }
+
+    // Des niveaux, mais pas de bandes (serveur antérieur à `spectrum`) : on
+    // ne sait rien de la répartition en fréquence. Rien à montrer.
+    return 0;
+  }
+
+  // NOTE : ne concerne QUE le mode « spectre ». Le mode « forme d'onde » ne
+  // passe plus par des cibles fabriquées — il lit `waveHistory`, alimenté par
+  // les crêtes du serveur.
   function generateTargets() {
     if (!playing) {
       for (let i = 0; i < barCount; i++) barTargets[i] = 0;
-      for (let i = 0; i < WAVE_POINTS; i++) waveTargets[i] = 0;
+      serverBandCount = 0;
       return;
     }
-    const profile = getEnergyProfile();
     const useReal = realLevels && (performance.now() - lastRealUpdate < 500);
-    const hasSpectrum = useReal && realLevels!.spectrum && realLevels!.spectrum.length > 0;
-    // Préféré quand le serveur le fournit : niveau absolu par bande.
-    const hasSpectrumDb = useReal && realLevels!.spectrum_db && realLevels!.spectrum_db.length > 0;
 
     if (mode === 'spectrum') {
-      if (hasSpectrumDb) {
-        // Serveur ≥ 0.9.63 : chaque bande porte son niveau ABSOLU en dBFS. Plus
-        // rien à reconstituer — on mappe directement sur l'échelle d'affichage.
-        const spec = realLevels!.spectrum_db;
-        for (let i = 0; i < barCount; i++) {
-          const from = Math.floor((i * spec.length) / barCount);
-          const to = Math.max(from + 1, Math.floor(((i + 1) * spec.length) / barCount));
-          let db = -Infinity;
-          for (let k = from; k < to && k < spec.length; k++) {
-            db = Math.max(db, spec[k] ?? -Infinity);
-          }
-          barTargets[i] = dbToDisplay(db);
-        }
-      } else if (hasSpectrum) {
-        const spec = realLevels!.spectrum;
-        // Le serveur renvoie une FORME normalisée trame par trame (chaque
-        // trame est divisée par sa bande la plus forte, `compute_spectrum`) :
-        // telle quelle, la bande dominante vaut toujours 1,0 et un pianissimo
-        // dessine la même hauteur qu'un tutti. On rend l'échelle absolue en
-        // pesant la forme par le niveau réel de la trame.
-        const level = dbToDisplay(Math.max(realLevels!.rms_left_db, realLevels!.rms_right_db));
-        for (let i = 0; i < barCount; i++) {
-          // AGRÉGER, pas échantillonner : avec 16 barres pour 32 bandes,
-          // `spec[i * 32 / 16]` jetait une bande sur deux, et un pic tombé
-          // dans une bande écartée disparaissait purement et simplement.
-          const from = Math.floor((i * spec.length) / barCount);
-          const to = Math.max(from + 1, Math.floor(((i + 1) * spec.length) / barCount));
-          let band = 0;
-          for (let k = from; k < to && k < spec.length; k++) {
-            band = Math.max(band, spec[k] ?? 0);
-          }
-          barTargets[i] = Math.min(1, band * level);
-        }
-      } else if (useReal) {
-        const left = dbToLinear(realLevels!.rms_left_db);
-        const right = dbToLinear(realLevels!.rms_right_db);
-        const avg = (left + right) / 2;
-        for (let i = 0; i < barCount; i++) {
-          const pos = i / barCount;
-          const side = pos < 0.5 ? left : right;
-          const base = side * (0.6 + avg * 0.4);
-          const variation = 0.85 + Math.random() * 0.3;
-          const rolloff = pos < 0.25 ? 1.0 : pos < 0.6 ? 0.9 : 0.7 * (1 - (pos - 0.6));
-          barTargets[i] = Math.min(1, Math.max(0.02, base * variation * rolloff));
-        }
-      } else {
-        for (let i = 0; i < barCount; i++) {
-          const pos = i / barCount;
-          let energy: number;
-          if (pos < 0.25) {
-            energy = profile.bass * (0.5 + Math.random() * 0.5);
-          } else if (pos < 0.6) {
-            energy = profile.mid * (0.4 + Math.random() * 0.6);
-          } else {
-            energy = profile.treble * (0.3 + Math.random() * 0.5) * (1 - (pos - 0.6) * 0.8);
-          }
-          if (Math.random() < 0.15) energy *= 1.3;
-          barTargets[i] = Math.min(1, Math.max(0.02, energy));
-        }
-      }
-    } else {
-      if (useReal) {
-        const left = dbToLinear(realLevels!.rms_left_db);
-        const right = dbToLinear(realLevels!.rms_right_db);
-        const phase = performance.now() * 0.001;
-        for (let i = 0; i < WAVE_POINTS; i++) {
-          const x = i / WAVE_POINTS;
-          const side = x < 0.5 ? left : right;
-          waveTargets[i] = side * Math.sin(x * Math.PI * 4 + phase) * 0.8
-            + (Math.random() - 0.5) * side * 0.15;
-        }
-      } else {
-        const phase = performance.now() * 0.001 * profile.speed;
-        for (let i = 0; i < WAVE_POINTS; i++) {
-          const x = i / WAVE_POINTS;
-          waveTargets[i] =
-            Math.sin(x * Math.PI * 4 + phase) * profile.bass * 0.4 +
-            Math.sin(x * Math.PI * 8 + phase * 1.7) * profile.mid * 0.25 +
-            Math.sin(x * Math.PI * 16 + phase * 2.3) * profile.treble * 0.15 +
-            (Math.random() - 0.5) * 0.08;
-        }
-      }
+      const bandes = spectrumTargets(useReal ? realLevels : null);
+      // Une trame en retard ne change pas l'échelle des fréquences : on garde
+      // la graduation tant que la lecture dure. La remettre à zéro à chaque
+      // hoquet ferait clignoter l'axe et sauter les barres de 12 px. Elle est
+      // effacée à l'arrêt, dans la branche `!playing` ci-dessus.
+      if (bandes > 0) serverBandCount = bandes;
     }
   }
 
@@ -212,6 +251,9 @@
       accentCacheTime = timestamp;
       const style = getComputedStyle(canvas);
       cachedAccent = style.getPropertyValue('--tune-accent').trim() || '#6B6ED9';
+      // Le canevas ne peut pas hériter d'une variable CSS : on la lit ici,
+      // au même rythme, pour que l'échelle suive le thème comme le reste.
+      cachedMuted = style.getPropertyValue('--tune-text-muted').trim() || 'rgba(255,255,255,0.4)';
     }
     return cachedAccent;
   }
@@ -233,6 +275,9 @@
     // When not playing, clear real levels and decay to zero
     if (!playing) {
       realLevels = null;
+      // Le signal a cessé : on efface la forme d'onde au lieu de laisser un
+      // tracé figé qui décrirait un son qu'on n'entend plus.
+      waveHistory.clear();
       generateTargets();
     }
 
@@ -268,9 +313,10 @@
       const maxVal = Math.max(
         ...barValues.slice(0, barCount),
         ...peakValues.slice(0, barCount),
-        ...waveValues,
       );
-      if (maxVal < 0.005) {
+      // La forme d'onde ne « retombe » pas : elle est vidée à l'arrêt (le
+      // signal a cessé, il n'y a plus rien de mesuré à montrer).
+      if (maxVal < 0.005 && waveHistory.length === 0) {
         return;
       }
     }
@@ -280,7 +326,7 @@
     if (mode === 'spectrum') {
       drawSpectrum(ctx, w, h, dpr, accent, decayRate, timestamp);
     } else {
-      drawWaveform(ctx, w, h, dpr, accent, smoothing, decayRate);
+      drawWaveform(ctx, w, h, dpr, accent);
     }
 
     if (visible) {
@@ -299,7 +345,23 @@
     const barWidth = Math.max(2, (w - gap * (count - 1)) / count);
     const radius = mini ? 1 * dpr : 2 * dpr;
 
-    const grad = ctx.createLinearGradient(0, h, 0, 0);
+    // Les repères de fréquence. Deux conditions, toutes deux nécessaires :
+    //  - pas en mode mini (24 px dans la barre de transport : aucune place) ;
+    //  - des bandes RÉELLEMENT reçues à la dernière trame — pas de graduation
+    //    sur un analyseur vide, et pas de graduation sur des barres inventées
+    //    puisqu'il n'y en a plus.
+    // `spectrumIsoTicks` rejoue l'échelle exacte du serveur et n'en garde que
+    // ce qu'il sait distinguer : dans le grave, sa FFT de 2048 points ne
+    // résout pas ses propres bandes, et un repère y serait à côté de la barre
+    // qui s'allume. Voir ../lib/spectrumScale.ts.
+    const ticks = mini ? [] : spectrumIsoTicks(sampleRate, serverBandCount);
+    const axisH = ticks.length > 0 ? AXIS_H * dpr : 0;
+    // Les barres ne descendent plus jusqu'au bas du canevas quand l'échelle
+    // est là : elles s'arrêtent au-dessus, sinon les libellés se poseraient
+    // par-dessus le signal.
+    const plotH = h - axisH;
+
+    const grad = ctx.createLinearGradient(0, plotH, 0, 0);
     grad.addColorStop(0, accent);
     grad.addColorStop(0.5, adjustAlpha(accent, 0.85));
     grad.addColorStop(1, adjustAlpha(accent, 0.5));
@@ -322,18 +384,18 @@
         peakValues[i] *= PEAK_FALL;
       }
 
-      const barH = Math.max(radius * 2, barValues[i] * h * 0.9);
+      const barH = Math.max(radius * 2, barValues[i] * plotH * 0.9);
       const x = i * (barWidth + gap);
-      const y = h - barH;
+      const y = plotH - barH;
 
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.moveTo(x, h);
+      ctx.moveTo(x, plotH);
       ctx.lineTo(x, y + radius);
       ctx.quadraticCurveTo(x, y, x + radius, y);
       ctx.lineTo(x + barWidth - radius, y);
       ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + radius);
-      ctx.lineTo(x + barWidth, h);
+      ctx.lineTo(x + barWidth, plotH);
       ctx.closePath();
       ctx.fill();
 
@@ -341,81 +403,115 @@
       // transport), plus lisible en grand (Lecture en cours).
       if (peakValues[i] > 0.03) {
         const capH = Math.max(1, (mini ? 1 : 2) * dpr);
-        const capY = Math.min(h - capH, h - peakValues[i] * h * 0.9);
+        const capY = Math.min(plotH - capH, plotH - peakValues[i] * plotH * 0.9);
         ctx.fillStyle = adjustAlpha(accent, mini ? 0.55 : 0.8);
         ctx.fillRect(x, capY, barWidth, capH);
       }
     }
+
+    drawFreqAxis(ctx, w, plotH, axisH, dpr, ticks);
   }
 
+  /**
+   * L'échelle des fréquences, sous les barres (#2081).
+   *
+   * Reprend la façon de faire de l'égaliseur — grille ISO à l'octave, mêmes
+   * libellés (`31`, `1k`, `16k`), même corps de 9 px, trait de grille discret
+   * plus étiquette — pour que les deux écrans se lisent l'un contre l'autre.
+   * C'était la demande : un égaliseur gradué en ISO à côté d'un spectre nu,
+   * ce sont deux instruments qui parlent de la même chose sans partager
+   * d'échelle.
+   */
+  function drawFreqAxis(
+    ctx: CanvasRenderingContext2D,
+    w: number, plotH: number, axisH: number,
+    dpr: number,
+    ticks: ReturnType<typeof spectrumIsoTicks>,
+  ) {
+    if (axisH <= 0 || ticks.length === 0) return;
+
+    ctx.save();
+    ctx.font = `${Math.max(8, Math.round(AXIS_FONT * dpr))}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+
+    for (const { hz, pos } of ticks) {
+      const x = pos * w;
+      // Trait de grille sur toute la hauteur du tracé : c'est lui qui permet
+      // de lire à quelle fréquence est une barre, l'étiquette seule ne suffit
+      // pas sur 32 barres.
+      ctx.strokeStyle = adjustAlpha(cachedMuted, 0.25);
+      ctx.lineWidth = Math.max(1, dpr);
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, plotH);
+      ctx.stroke();
+
+      // L'étiquette est recentrée si elle dépasserait d'un bord.
+      const label = `${freqLabel(hz)}Hz`;
+      const halfText = ctx.measureText(label).width / 2;
+      const cx = Math.min(w - halfText, Math.max(halfText, x));
+      ctx.fillStyle = cachedMuted;
+      ctx.fillText(label, cx, plotH + axisH);
+    }
+    ctx.restore();
+  }
+
+  /**
+   * Trace l'enveloppe de crête RÉELLEMENT mesurée (#2182).
+   *
+   * Abscisse = le temps, la trame la plus récente collée au bord droit ; le
+   * tracé entre par la droite et s'écoule vers la gauche, comme la tête de
+   * lecture d'un éditeur audio. Ordonnée = la crête mesurée, voie gauche
+   * au-dessus de l'axe, voie droite en dessous : le stéréo réel, et non un
+   * miroir décoratif.
+   *
+   * Aucune valeur n'est inventée. Tant que rien n'est arrivé, on ne dessine
+   * rien — pas de repli animé.
+   */
   function drawWaveform(
     ctx: CanvasRenderingContext2D,
     w: number, h: number, dpr: number,
     accent: string,
-    smoothing: number, decayRate: number
   ) {
-    const midY = h / 2;
-    const amplitude = h * 0.4;
+    const samples = waveHistory.samples();
+    if (samples.length === 0) return;
 
-    for (let i = 0; i < WAVE_POINTS; i++) {
-      if (playing) {
-        waveValues[i] += (waveTargets[i] - waveValues[i]) * smoothing;
-      } else {
-        waveValues[i] *= decayRate;
-      }
-    }
+    const midY = h / 2;
+    const amplitude = h * 0.45;
+    // Pas fixe : une colonne = une fenêtre de 40 ms, quelle que soit la
+    // quantité déjà reçue. Sinon le tracé se dilaterait en se remplissant,
+    // et l'échelle de temps mentirait.
+    const step = w / (WAVE_HISTORY_SLOTS - 1);
+    const xAt = (i: number) => w - (samples.length - 1 - i) * step;
 
     const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, adjustAlpha(accent, 0.3));
-    grad.addColorStop(0.5, adjustAlpha(accent, 0.6));
-    grad.addColorStop(1, adjustAlpha(accent, 0.3));
+    grad.addColorStop(0, adjustAlpha(accent, 0.75));
+    grad.addColorStop(0.5, adjustAlpha(accent, 0.35));
+    grad.addColorStop(1, adjustAlpha(accent, 0.75));
 
     ctx.fillStyle = grad;
     ctx.beginPath();
-
-    // Top wave
-    for (let i = 0; i < WAVE_POINTS; i++) {
-      const x = (i / (WAVE_POINTS - 1)) * w;
-      const y = midY - waveValues[i] * amplitude;
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        const prevX = ((i - 1) / (WAVE_POINTS - 1)) * w;
-        const cpX = (prevX + x) / 2;
-        ctx.quadraticCurveTo(cpX, midY - waveValues[i - 1] * amplitude, x, y);
-      }
+    // Bord supérieur : voie gauche, de la plus ancienne à la plus récente.
+    for (let i = 0; i < samples.length; i++) {
+      const x = xAt(i);
+      const y = midY - samples[i].left * amplitude;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
-
-    // Bottom wave (mirror, slightly smaller)
-    for (let i = WAVE_POINTS - 1; i >= 0; i--) {
-      const x = (i / (WAVE_POINTS - 1)) * w;
-      const y = midY + waveValues[i] * amplitude * 0.8;
-      if (i === WAVE_POINTS - 1) {
-        ctx.lineTo(x, y);
-      } else {
-        const nextX = ((i + 1) / (WAVE_POINTS - 1)) * w;
-        const cpX = (nextX + x) / 2;
-        ctx.quadraticCurveTo(cpX, midY + waveValues[i + 1] * amplitude * 0.8, x, y);
-      }
+    // Bord inférieur : voie droite, en revenant.
+    for (let i = samples.length - 1; i >= 0; i--) {
+      ctx.lineTo(xAt(i), midY + samples[i].right * amplitude);
     }
-
     ctx.closePath();
     ctx.fill();
 
-    // Center stroke line
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = mini ? 1 * (window.devicePixelRatio || 1) : 1.5 * (window.devicePixelRatio || 1);
+    // Ligne d'axe : repère du zéro, indispensable pour lire une enveloppe.
+    ctx.strokeStyle = adjustAlpha(accent, 0.9);
+    ctx.lineWidth = Math.max(1, (mini ? 1 : 1.5) * dpr);
     ctx.beginPath();
-    for (let i = 0; i < WAVE_POINTS; i++) {
-      const x = (i / (WAVE_POINTS - 1)) * w;
-      const y = midY - waveValues[i] * amplitude;
-      if (i === 0) ctx.moveTo(x, y);
-      else {
-        const prevX = ((i - 1) / (WAVE_POINTS - 1)) * w;
-        const cpX = (prevX + x) / 2;
-        ctx.quadraticCurveTo(cpX, midY - waveValues[i - 1] * amplitude, x, y);
-      }
-    }
+    ctx.moveTo(xAt(0), midY);
+    ctx.lineTo(xAt(samples.length - 1), midY);
     ctx.stroke();
   }
 
@@ -467,8 +563,7 @@
     if (!playing) {
       const timeout = setTimeout(() => {
         const maxBar = Math.max(...barValues);
-        const maxWave = Math.max(...waveValues.map(Math.abs));
-        if (maxBar < 0.01 && maxWave < 0.01) visible = false;
+        if (maxBar < 0.01 && waveHistory.length === 0) visible = false;
       }, 2500);
       return () => clearTimeout(timeout);
     }

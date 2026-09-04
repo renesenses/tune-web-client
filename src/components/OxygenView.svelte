@@ -4,7 +4,7 @@
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import HeartButton from './HeartButton.svelte';
-  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue, type FolderFacet, type AlbumDetailed } from '../lib/api';
+  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
@@ -100,20 +100,61 @@
   let extLoading = $state(false);
   let categories = $state<MetadataCategory[]>([]);
   let serverFacets = $state<Record<string, FacetValue[]>>({});
-  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
-  // Multi-facet: one active value per field, combinable (Bertrand :
-  // « filtrer simultanément par Genre, year et label »). Chaque champ garde
-  // au plus une valeur ; les champs actifs se cumulent côté serveur.
+  const SERVER_FACET_FIELDS = ['genre', 'label', 'year', 'artist', 'composer', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year'];
+  // Facettes cumulatives, DANS un champ et ENTRE les champs (#2168, fil forum
+  // 1513, Cyrille Moutia : « je sélectionne aiff + flac »).
+  //
+  //   • plusieurs valeurs DANS une facette  → OU   (format = aiff ou flac)
+  //   • deux facettes différentes           → ET   (format flac ET genre jazz)
+  //
+  // C'est la convention d'Audirvana, de Helium et de tout navigateur à
+  // facettes : cocher une case de plus ÉLARGIT, ouvrir une facette de plus
+  // RESTREINT. Chaque champ porte donc une LISTE ; un champ absent (ou de
+  // liste vide) n'est pas un filtre.
+  //
+  // Deux exceptions, monovaluées par nature et non par oubli :
+  //   • `folder`     — un fil d'Ariane est une position dans un arbre ;
+  //   • `collection` — un ensemble enregistré, résolu côté serveur par deux
+  //                    moteurs distincts (manuel / intelligent).
   // A folder path handed over from the Répertoires view ("open in library"
   // button, pendingOxygenFolder) pre-filters Oxygen on that folder + its
   // subfolders. Consumed once at init so the first data fetch is already scoped
   // (no empty-then-filtered double load). Shows as a removable folder crumb.
-  function takePendingOxygenFolder(): Record<string, string> {
+  function takePendingOxygenFolder(): Record<string, string[]> {
     const pf = get(pendingOxygenFolder);
-    if (pf) { pendingOxygenFolder.set(null); return { folder: pf }; }
+    if (pf) { pendingOxygenFolder.set(null); return { folder: [pf] }; }
     return {};
   }
-  let facetSels = $state<Record<string, string>>(takePendingOxygenFolder());
+  let facetSels = $state<Record<string, string[]>>(takePendingOxygenFolder());
+  /** Les facettes qui n'acceptent QU'UNE valeur (voir la note ci-dessus). */
+  const SINGLE_VALUE_FACETS = new Set(['folder', 'collection']);
+  /** Coche / décoche une valeur. Sur une facette monovaluée, elle remplace.
+   *  Une facette qui n'a plus aucune valeur disparaît de `facetSels` — elle ne
+   *  doit surtout pas y rester sous forme de liste vide, qui partirait au
+   *  serveur comme un paramètre vide. */
+  function toggleFacet(field: string, value: string) {
+    const courant = facetSels[field] ?? [];
+    const next = { ...facetSels };
+    if (SINGLE_VALUE_FACETS.has(field)) {
+      if (courant[0] === value) delete next[field]; else next[field] = [value];
+    } else if (courant.includes(value)) {
+      const reste = courant.filter(v => v !== value);
+      if (reste.length) next[field] = reste; else delete next[field];
+    } else {
+      next[field] = [...courant, value];
+    }
+    facetSels = next;
+  }
+  /** Décoche TOUTE une facette d'un geste. */
+  function clearFacet(field: string) {
+    const next = { ...facetSels };
+    delete next[field];
+    facetSels = next;
+  }
+  /** Retire UNE valeur (jeton du fil d'Ariane). */
+  function removeFacetValue(field: string, value: string) {
+    toggleFacet(field, value);
+  }
   // Folder facet (drill-down): the current path lives in facetSels.folder (so it
   // flows to /tracks and /facets like any other filter); folderData holds the
   // breadcrumb + child folders fetched from /library/folder-facet for that path.
@@ -153,29 +194,27 @@
 
   // A selected facet maps to a server track-filter param (server-side filtering,
   // full library — not just the loaded window).
-  function facetParam(sels: Record<string, string>): Record<string, string | number> {
-    const out: Record<string, string | number> = {};
-    for (const [field, value] of Object.entries(sels)) {
-      switch (field) {
-        case 'genre': out.genre = value; break;
-        case 'label': out.label = value; break;
-        case 'year': out.year = Number(value); break;
-        case 'original_year': out.original_year = Number(value); break;
-        case 'artist': out.artist = value; break;
-        case 'composer': out.composer = value; break;
-        case 'format': out.format = value; break;
-        case 'sample_rate': out.sample_rate = Number(value); break;
-        case 'bit_depth': out.bit_depth = Number(value); break;
-        case 'country': out.country = value; break;
-        case 'mood': out.mood = value; break;
-        case 'source': out.source_media = value; break;
-        case 'rating': out.rating = Number(value); break;
-        case 'collection': out.collection = value; break;
-        case 'favorite': out.favorite = value; break;
-        case 'playlist': out.playlist = value; break;
-        case 'untagged': out.untagged = value; break;
-        case 'folder': out.folder = value; break;
-      }
+  // Le nom du paramètre serveur pour chaque facette (identique sauf `source`,
+  // qui interroge la clé `source_media` du magasin d'étiquettes étendues).
+  const FACET_PARAM: Record<string, string> = {
+    genre: 'genre', label: 'label', year: 'year', original_year: 'original_year',
+    artist: 'artist', composer: 'composer', format: 'format',
+    sample_rate: 'sample_rate', bit_depth: 'bit_depth', dr: 'dr', country: 'country',
+    mood: 'mood', source: 'source_media', rating: 'rating',
+    collection: 'collection', favorite: 'favorite', playlist: 'playlist',
+    untagged: 'untagged', folder: 'folder',
+  };
+  /** Facettes dont la valeur part en NOMBRE (le serveur les lit typées). */
+  const NUMERIC_FACETS = new Set(['year', 'original_year', 'sample_rate', 'bit_depth', 'rating', 'dr']);
+  /** Traduit la sélection en paramètres serveur. Chaque valeur d'une facette
+   *  part en clé RÉPÉTÉE (`format=aiff&format=flac`) : voir `appendFacetParam`.
+   *  Une facette vide ne produit AUCUN paramètre. */
+  function facetParam(sels: Record<string, string[]>): Record<string, FacetParam> {
+    const out: Record<string, FacetParam> = {};
+    for (const [field, values] of Object.entries(sels)) {
+      const key = FACET_PARAM[field];
+      if (!key || !values?.length) continue;
+      out[key] = NUMERIC_FACETS.has(field) ? values.map(Number) : [...values];
     }
     return out;
   }
@@ -272,9 +311,15 @@
     if (albumFilter != null) { clearAlbum(); return; }
     const keys = Object.keys(facetSels);
     if (keys.length) {
-      const next = { ...facetSels };
-      delete next[keys[keys.length - 1]];
-      facetSels = next;
+      // On défait la DERNIÈRE valeur cochée, pas la facette entière : avec
+      // plusieurs valeurs par facette, tout perdre d'un clic serait brutal.
+      const dernier = keys[keys.length - 1];
+      const valeurs = facetSels[dernier] ?? [];
+      // Une facette vidée est retirée de `facetSels`, donc `valeurs` n'est
+      // jamais vide ici ; on retire quand même la clé plutôt que de cocher
+      // `undefined` si l'invariant venait à céder.
+      if (valeurs.length) removeFacetValue(dernier, valeurs[valeurs.length - 1]);
+      else clearFacet(dernier);
       return;
     }
     activeView.set('library');
@@ -466,7 +511,7 @@
   async function loadFolder() {
     if (!folderEnabled) return;
     folderLoading = true;
-    try { folderData = await getFolderFacet(facetSels.folder ?? null, facetParam(facetSels), $preferences.oxygenFacetLimit); }
+    try { folderData = await getFolderFacet(facetSels.folder?.[0] ?? null, facetParam(facetSels), $preferences.oxygenFacetLimit); }
     catch { /* keep the previous folder listing on transient failure */ }
     finally { folderLoading = false; }
   }
@@ -474,7 +519,7 @@
   // Drill into (and filter by) a folder; null returns to the library roots.
   function drillFolder(path: string | null) {
     const next = { ...facetSels };
-    if (path == null) delete next.folder; else next.folder = path;
+    if (path == null) delete next.folder; else next.folder = [path];
     facetSels = next; // triggers loadTracks + loadFacets + loadFolder via effects
   }
 
@@ -581,8 +626,12 @@
 
   {#if Object.keys(facetSels).length || albumFilter != null}
     <div class="crumbs">
-      {#each Object.entries(facetSels) as [field, value] (field)}
-        <button class="crumb" title={value} onclick={() => { const next = { ...facetSels }; delete next[field]; facetSels = next; }}>{field === 'folder' ? (value.split(/[/\\]/).filter(Boolean).pop() ?? value) : value} <span class="x">×</span></button>
+      <!-- Un jeton par VALEUR, pas par facette : avec « aiff » et « flac »
+           cochés, chacun doit pouvoir se retirer seul. -->
+      {#each Object.entries(facetSels) as [field, values] (field)}
+        {#each values as value (value)}
+          <button class="crumb" title={value} onclick={() => removeFacetValue(field, value)}>{field === 'folder' ? (value.split(/[/\\]/).filter(Boolean).pop() ?? value) : value} <span class="x">×</span></button>
+        {/each}
       {/each}
       {#if albumFilter != null}<button class="crumb" onclick={clearAlbum}>{albumFilterLabel} <span class="x">×</span></button>{/if}
     </div>
@@ -590,7 +639,11 @@
 
   <div class="body" class:noinsp={inspectorCollapsed} class:norail={railCollapsed}>
     <aside class="railwrap" class:open={mobileRail}>
-      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { const next = { ...facetSels }; if (value == null) { delete next[field]; } else { next[field] = value; } facetSels = next; mobileRail = false; }} />
+      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { toggleFacet(field, value); }} onClearFacet={clearFacet} />
+      <!-- Le tiroir mobile ne se referme PLUS à chaque clic : depuis #2168 on
+           coche plusieurs valeurs de suite, et le refermer entre deux cases
+           rendrait la sélection multiple inutilisable au doigt. Il se ferme
+           par son propre bouton. -->
     </aside>
 
     <section class="main">

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { doitReinitialiserLesParoles } from '../lib/nowPlayingLyricsReset';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
@@ -8,6 +9,7 @@
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -18,6 +20,7 @@
   import { estRefusPremium } from '../lib/premiumRefus';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
+  import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery } from '../lib/stores/navigation';
@@ -37,6 +40,12 @@
   let npCreditsTrackId: number | null = $state(null);
   let creditsEnriching = $state(false);
   let showLyrics = $state(false);
+  // Témoin de « la zone paroles a été remise à zéro pour cette piste ». DISTINCT
+  // de npLyricsTrackId, qui dit « les paroles de cette piste sont chargées ».
+  // Les confondre rouvrirait #2555 dans un sens ou dans l'autre : soit la garde
+  // ne se referme jamais (boucle d'effet), soit ouvrir le panneau ne charge
+  // plus rien. Voir lib/nowPlayingLyricsReset.ts.
+  let npLyricsResetPourId = $state<number | null>(null);
   let npLyrics: string | null = $state(null);
   /** Provenance annoncée par le serveur pour les paroles affichées ("lrc",
    *  "tag" ou "lrclib"). Elle traversait déjà la normalisation et s'arrêtait
@@ -63,10 +72,6 @@
   let showSleepMenu = $state(false);
   let sleepActive = $state(false);
   let sleepMinutes = $state(0);
-
-  // Crossfade
-  let crossfadeEnabled = $state(false);
-  let crossfadeDuration = $state(3);
 
   // Normalization
   let normEnabled = $state(false);
@@ -254,18 +259,6 @@
     } catch {}
   }
 
-  async function toggleCrossfade() {
-    if (zone?.id == null) return;
-    try {
-      const next = !crossfadeEnabled;
-      await api.setCrossfade(zone.id, next, crossfadeDuration);
-      crossfadeEnabled = next;
-      notifications.success(next ? `Crossfade: ${crossfadeDuration}s` : 'Crossfade off');
-    } catch (e) {
-      console.error('Crossfade error:', e);
-    }
-  }
-
   async function toggleNormalization() {
     if (zone?.id == null) return;
     try {
@@ -370,9 +363,12 @@
     if (trackId === npCreditsTrackId) return;
     npCreditsTrackId = trackId;
     try {
-      npCredits = await api.getTrackCredits(trackId);
+      const credits = await api.getTrackCredits(trackId);
+      // Une réponse lente de la piste précédente ne doit pas remplacer les
+      // crédits de celle qui joue maintenant.
+      if (npCreditsTrackId === trackId) npCredits = credits;
     } catch {
-      npCredits = [];
+      if (npCreditsTrackId === trackId) npCredits = [];
     }
   }
 
@@ -495,8 +491,8 @@
   }
 
   async function enrichCurrentTrackCredits() {
-    const tr = displayTrack;
-    if (!tr?.id || creditsEnriching) return;
+    const tr = normalizedTrack;
+    if (tr?.id == null || creditsEnriching) return;
     creditsEnriching = true;
     try {
       await api.enrichTrackCredits(tr.id);
@@ -564,23 +560,52 @@
 
   // Auto-load credits and lyrics when track changes (progressive enhancement)
   $effect(() => {
-    const tr = displayTrack;
-    const q = tr && !nowPlayingToTrack(tr).id ? metaLyricsQuery(tr) : null;
+    const tr = normalizedTrack;
+    const id = tr?.id ?? null;
+    const q = tr && id == null ? metaLyricsQuery(tr) : null;
     if (q) {
       // Piste sans id (radio/streaming) : paroles par métadonnées.
       const key = `${q.artist}|${q.title}|${q.album ?? ''}`;
+      if (npCreditsTrackId !== null || npCredits.length > 0) {
+        npCredits = [];
+        npCreditsTrackId = null;
+      }
+      if (key !== npLyricsRadioKey) {
+        npLyrics = null; npLyricsSource = null;
+        syncedLines = [];
+        karaokeMode = false;
+      }
       if (showLyrics) loadMetaLyrics(q);
-      if (key !== npLyricsRadioKey) { npLyrics = null; npLyricsSource = null; syncedLines = []; karaokeMode = false; }
       return;
     }
-    if (!tr?.id) return;
-    // Always pre-load credits for the inline summary
-    loadNpCredits(tr.id);
-    // Auto-load lyrics if panel is open
-    if (showLyrics) loadNpLyrics(tr.id);
-    // Reset when track changes
-    if (tr?.id !== npCreditsTrackId) { npCredits = []; npCreditsTrackId = null; }
-    if (tr?.id !== npLyricsTrackId) { npLyrics = null; npLyricsSource = null; syncedLines = []; npLyricsTrackId = null; karaokeMode = false; }
+    if (id == null) {
+      npCredits = [];
+      npCreditsTrackId = null;
+      npLyrics = null; npLyricsSource = null;
+      syncedLines = [];
+      npLyricsTrackId = null;
+      npLyricsRadioKey = null;
+      npLyricsResetPourId = null;
+      karaokeMode = false;
+      return;
+    }
+    // Vider d'abord l'ancienne piste : loadNpCredits/loadNpLyrics mémorisent
+    // immédiatement le nouvel id pour neutraliser les réponses obsolètes.
+    if (id !== npCreditsTrackId) {
+      npCredits = [];
+      loadNpCredits(id);
+    }
+    if (doitReinitialiserLesParoles(id, npLyricsTrackId, npLyricsResetPourId)) {
+      npLyrics = null; npLyricsSource = null;
+      syncedLines = [];
+      npLyricsRadioKey = null;
+      karaokeMode = false;
+      // Referme la garde AVANT tout chargement : sans ce témoin elle restait
+      // vraie à chaque passage tant que le panneau était fermé, et l'effet
+      // réécrivait `syncedLines` — un tableau neuf — sans jamais converger.
+      npLyricsResetPourId = id;
+      if (showLyrics) loadNpLyrics(id);
+    }
   });
 
   // Compact inline credits summary: "Piano: K. Jarrett / Bass: G. Peacock / Drums: J. DeJohnette"
@@ -663,7 +688,7 @@
   }
 
   $effect(() => {
-    const tr = track;
+    const tr = normalizedTrack;
     if (tr?.source === 'radio' && tr.title && tr.artist_name) {
       api.apiFetch(`/radio-favorites/is-favorite?title=${encodeURIComponent(tr.title)}&artist=${encodeURIComponent(tr.artist_name)}`)
         .then((r: any) => { isFavorite = r.is_favorite; })
@@ -681,17 +706,19 @@
     if (favChecking) return;
     favChecking = true;
     try {
-      const tr = track;
+      const tr = normalizedTrack;
       if (tr?.source === 'radio') {
         if (isFavorite) {
           const favs = await api.apiFetch('/radio-favorites?limit=500');
           const match = favs.find((f: any) => f.title === tr.title && f.artist === tr.artist_name);
           if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          forgetRadioFavListenAt(tr.title, tr.artist_name);
           isFavorite = false;
         } else {
           const zid = zone?.id;
           if (zid != null) {
             await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            rememberRadioFavListenAt(tr.title, tr.artist_name, isoFromMetadataChangedAt(metadataChangedAtOf(displayTrack)));
             isFavorite = true;
           }
         }
@@ -767,18 +794,27 @@
     t && 'channels' in t ? t.channels : undefined;
   const filePathOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'file_path' in t ? (t.file_path ?? null) : null;
+  /** L'instant ou le flux a annonce ce titre. Il vit sur l'enveloppe
+   *  `NowPlaying`, PAS sur `Track` : c'est un fait de la LECTURE, pas du
+   *  morceau. `nowPlayingToTrack` etale l'objet (`{...t}`) donc la valeur
+   *  survit a l'execution — mais le type de retour est `Track`, qui l'efface.
+   *  La lire sur `normalizedTrack` compilait par accident hier et faisait
+   *  echouer `check-svelte` des que le socle a ete regenere. On la lit donc
+   *  a sa source, avec la meme garde `in` que `albumIdOf` et ses voisines. */
+  const metadataChangedAtOf = (t: Track | NowPlaying | null | undefined) =>
+    t && 'metadata_changed_at' in t ? t.metadata_changed_at : undefined;
 
 
   // Play count for the current local track (Progman, #1056). Fetched on demand;
   // guarded to the exact track id so a race doesn't show a stale count.
   let trackPlays = $state<number | null>(null);
   $effect(() => {
-    const dt = displayTrack;
-    const id = dt?.id;
+    const dt = normalizedTrack;
+    const id = dt?.id ?? null;
     trackPlays = null;
-    if (id && dt?.source === 'local') {
+    if (id != null && dt?.source === 'local') {
       api.getTrackPlays(id)
-        .then((r) => { if (displayTrack?.id === id) trackPlays = r.plays; })
+        .then((r) => { if (normalizedTrack?.id === id) trackPlays = r.plays; })
         .catch(() => {});
     }
   });
@@ -1389,10 +1425,10 @@
               </svg>
               {$t('nowplaying.liveNow')}
             </div>
-            <p class="radio-station-name truncate">{displayTrack.album_title || zone?.name || 'Radio'}</p>
+            <p class="radio-station-name truncate" title={displayTrack.album_title || zone?.name || 'Radio'}>{displayTrack.album_title || zone?.name || 'Radio'}</p>
           {/if}
           <div class="track-title-row">
-            <h2 class="track-title truncate">{displayTrack.title}</h2>
+            <h2 class="track-title truncate" title={displayTrack.title}>{displayTrack.title}</h2>
             {#if isRadio}
               <button class="np-fav-btn" class:is-fav={isFavorite} onclick={toggleFav} use:tip={'tip.favorite'}>
                 <svg viewBox="0 0 24 24" fill={isFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="22" height="22">
@@ -1404,15 +1440,15 @@
           {#if displayTrack.artist_name && displayTrack.artist_name !== displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-artist truncate clickable" onclick={() => navigateToArtist(artistIdOf(displayTrack), displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
+            <p class="track-artist truncate clickable" title={displayTrack.artist_name} onclick={() => navigateToArtist(artistIdOf(displayTrack), displayTrack.artist_name!)}>{displayTrack.artist_name}</p>
           {/if}
           {#if !isRadio && inlineCredits}
-            <p class="inline-credits">{inlineCredits}</p>
+            <p class="inline-credits" title={inlineCredits}>{inlineCredits}</p>
           {/if}
           {#if !isRadio && displayTrack.album_title}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <p class="track-album truncate clickable" onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
+            <p class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
           {/if}
           {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
             <p class="track-tech-info">
@@ -1434,8 +1470,8 @@
                (Bandcamp, ajout par URL) — exactement l'auditeur qui veut
                corriger son grave. Garde : src/lib/__tests__/npEqButton.test.ts -->
           <div class="np-extra-btns">
-            {#if !isRadio && displayTrack.id}
-              <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && displayTrack.id) loadNpCredits(displayTrack.id); }}>
+            {#if !isRadio && normalizedTrack?.id != null}
+              <button class="np-credits-btn" class:active={showCredits} onclick={() => { showCredits = !showCredits; showLyrics = false; if (showCredits && normalizedTrack?.id != null) loadNpCredits(normalizedTrack.id); }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                 {$t('artist.credits')}
               </button>
@@ -1491,7 +1527,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
               EQ
             </button>
-            {#if !isRadio && displayTrack.id}
+            {#if !isRadio && normalizedTrack?.id != null}
               <button class="np-credits-btn" onclick={handleShare}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                 {$t('nowplaying.share')}
@@ -1524,7 +1560,7 @@
               </button>
             {/if}
           </div>
-          {#if showAlarm && !isRadio && displayTrack.id}
+          {#if showAlarm && !isRadio && normalizedTrack?.id != null}
             <div class="np-alarm-panel">
               <div class="alarm-row">
                 <input type="time" class="alarm-time-input" bind:value={alarmTime} />
@@ -1677,7 +1713,7 @@
             bitDepth={displayTrack.bit_depth}
             format={displayTrack.format}
           />
-          <button class="viz-toggle-btn" onclick={() => vizMode = vizMode === 'spectrum' ? 'waveform' : 'spectrum'} title={vizMode === 'spectrum' ? 'Waveform' : 'Spectrum'}>
+          <button class="viz-toggle-btn" onclick={() => vizMode = vizMode === 'spectrum' ? 'waveform' : 'spectrum'} title={vizMode === 'spectrum' ? $t('player.showWaveform') : $t('player.showSpectrum')}>
             {#if vizMode === 'spectrum'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12c4 0 6-6 10-6s6 6 10 6" /></svg>
             {:else}
@@ -1698,12 +1734,17 @@
 
         <!-- Settings row: shuffle, repeat -->
         <div class="settings-row" class:center={!isWide}>
-          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} title={$t('transport.shuffle')}>
+          <!-- Même règle d'affichage que la barre de lecture (#2733) : le
+               libellé porte le nom ET l'état, et il vient de lib/etatTransport
+               pour que les deux points d'entrée ne divergent pas. -->
+          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} aria-pressed={$shuffleEnabled} aria-label={libelleAleatoire($t, $shuffleEnabled)} title={libelleAleatoire($t, $shuffleEnabled)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
             </svg>
           </button>
-          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} title={$t('transport.repeat')}>
+          <!-- Trois états : pas d'`aria-pressed`, le nom accessible porte
+               l'état. Justification dans lib/etatTransport. -->
+          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} aria-label={libelleRepetition($t, $repeatMode)} title={libelleRepetition($t, $repeatMode)}>
             {#if $repeatMode === 'one'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
@@ -1728,11 +1769,6 @@
             </button>
           {/if}
 
-          <button class="setting-btn" class:active={crossfadeEnabled} onclick={toggleCrossfade} title="Crossfade">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-              <path d="M2 6c4 0 6 6 10 6s6-6 10-6" /><path d="M2 18c4 0 6-6 10-6s6 6 10 6" />
-            </svg>
-          </button>
           <button class="setting-btn" class:active={normEnabled} onclick={toggleNormalization} title={$t('nowplaying.normalization')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" /><line x1="8" y1="8" x2="8" y2="16" /><line x1="12" y1="6" x2="12" y2="18" /><line x1="16" y1="9" x2="16" y2="15" />
@@ -1838,8 +1874,8 @@
                 <button class="up-next-item" onclick={() => jumpToUpNext(nextTrack, i)}>
                   <AlbumArt coverPath={nextTrack.cover_path} albumId={nextTrack.album_id} size={32} alt={nextTrack.title} />
                   <div class="up-next-info">
-                    <span class="up-next-title truncate">{nextTrack.title}</span>
-                    <span class="up-next-artist truncate">{nextTrack.artist_name ?? ''}</span>
+                    <span class="up-next-title truncate" title={nextTrack.title}>{nextTrack.title}</span>
+                    <span class="up-next-artist truncate" title={nextTrack.artist_name ?? ''}>{nextTrack.artist_name ?? ''}</span>
                   </div>
                   <ServiceBadge source={nextTrack.source} compact />
                   {#if nextTrack.format}
@@ -1999,9 +2035,9 @@
                 <AlbumArt albumId={queueTrack.album_id} size={36} alt={queueTrack.title} />
               {/if}
               <div class="qs-track-info">
-                <span class="qs-track-title truncate">{queueTrack.title || $t('nowplaying.unknownTrack')}</span>
+                <span class="qs-track-title truncate" title={queueTrack.title || $t('nowplaying.unknownTrack')}>{queueTrack.title || $t('nowplaying.unknownTrack')}</span>
                 {#if queueTrack.artist_name}
-                  <span class="qs-track-artist truncate">{queueTrack.artist_name}</span>
+                  <span class="qs-track-artist truncate" title={queueTrack.artist_name}>{queueTrack.artist_name}</span>
                 {/if}
                 <MetadataChips track={queueTrack} fields={$displayFields} />
               </div>
@@ -2329,6 +2365,54 @@
 
   .content-layout.wide .info-column {
     max-width: 420px;
+  }
+
+  /* Très grands écrans — TV 4K utilisée comme écran de PC musique (Alain,
+     forum fil 1077 ; renesenses/tune-server-rust#2249). Sans ces paliers,
+     l'îlot de contenu reste plafonné à 1200 px et la pochette à 640 px : sur
+     une dalle 3840 px, la pochette ne fait que 17 % de la largeur, et tout le
+     reste de l'écran n'est que fond flouté.
+
+     On agrandit ENSEMBLE la pochette, la largeur de l'îlot et la colonne
+     titres. Cette dernière est ce qui règle le blocage d'Alain : en mode large
+     la pochette et la tracklist sont côte à côte, donc une grande pochette ne
+     masque plus la liste des titres.
+
+     Paliers additifs : les points de rupture existants (<= 1800px) ne bougent
+     pas. Rétablis depuis d0b5d74c, perdu à une résolution de fusion vers la
+     ligne v0.9 alors que le commit en reste ancêtre.
+
+     PLACEMENT : ce bloc doit rester APRÈS `.content-layout.wide .info-column`
+     ci-dessus. Une requête de média n'ajoute aucune spécificité ; à
+     spécificité égale c'est l'ordre de la feuille qui tranche. Dans d0b5d74c
+     les paliers étaient placés plus haut, avant cette règle — la colonne
+     titres restait donc figée à 420px et la promesse « colonne titres
+     comprise » n'a jamais été tenue. Couvert par
+     `src/lib/__tests__/paliersGrandsEcrans.test.ts`. */
+  @media (min-width: 2400px) {
+    .content-layout.wide {
+      max-width: 1720px;
+    }
+    .artwork-container,
+    .content-layout.wide .artwork-container {
+      max-width: 900px;
+    }
+    .content-layout.wide .info-column {
+      max-width: 720px;
+    }
+  }
+
+  @media (min-width: 3200px) {
+    .content-layout.wide {
+      max-width: 2200px;
+    }
+    .artwork-container,
+    .content-layout.wide .artwork-container {
+      max-width: 1160px;
+    }
+    .content-layout.wide .info-column {
+      max-width: 960px;
+    }
   }
 
   .track-info {

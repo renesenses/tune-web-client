@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import * as api from '../api';
+import type { StreamingItemType } from '../streamingFavorites';
 
 export interface Profile {
   id: number;
@@ -66,6 +67,11 @@ export const favoriteArtistIds = writable<Set<number>>(new Set());
 /**
  * Playlists en favori.
  *
+ * NOTE DE FUSION (04/09/2026) : `main` déclarait aussi ce magasin, en une
+ * ligne, dans le même commit #2442 qui apporte les favoris de facette. Les
+ * deux versions sont identiques dans le code — on garde celle-ci pour sa
+ * documentation, et les facettes de `main` suivent juste en dessous.
+ *
  * Le serveur sait déjà les stocker : `LOCAL_ITEM_TYPES` inclut `playlist`, et
  * l'instantané d'identité est figé à l'ajout — sans quoi le cœur s'éteindrait
  * dès que l'id change (import M3U rejoué, playlist recréée, bascule
@@ -83,6 +89,15 @@ export const favoritePlaylistIds = writable<Set<number>>(new Set());
 export const favoriteCollectionIds = writable<Set<number>>(new Set());
 export const favoriteSmartCollectionIds = writable<Set<number>>(new Set());
 
+// Favoris de FACETTE — le label d'abord (#2442). Des CHAÎNES, pas des ids : un
+// label n'a pas d'identifiant côté serveur, il est désigné par sa valeur telle
+// que la facette la sélectionne. Clé = `${facet}:${value}`.
+export const favoriteFacetKeys = writable<Set<string>>(new Set());
+
+export function facetFavKey(facet: string, value: string): string {
+  return `${facet}:${value.trim()}`;
+}
+
 // Streaming favorites (Qobuz/Tidal/… items hearted in Tune, stored per-profile
 // with metadata). Keyed by `${item_type}:${service}:${service_id}` so a shared
 // HeartButton on every streaming row answers 'is X favorited?' in O(1) without
@@ -90,7 +105,7 @@ export const favoriteSmartCollectionIds = writable<Set<number>>(new Set());
 export const favoriteStreamingKeys = writable<Set<string>>(new Set());
 
 export function streamingFavKey(
-  itemType: 'track' | 'album' | 'artist',
+  itemType: StreamingItemType,
   service: string,
   serviceId: string,
 ): string {
@@ -105,6 +120,7 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoritePlaylistIds.set(new Set());
     favoriteCollectionIds.set(new Set());
     favoriteSmartCollectionIds.set(new Set());
+    favoriteFacetKeys.set(new Set());
     favoriteStreamingKeys.set(new Set());
     return;
   }
@@ -118,6 +134,14 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteSmartCollectionIds.set(new Set(favs.smartCollectionIds ?? []));
   } catch (e) {
     console.error('Load favorite ids error:', e);
+  }
+  try {
+    // Un échec ici ne doit pas vider les ensembles d'ids déjà chargés : chaque
+    // famille de favoris a son propre appel, et son propre try.
+    const facets = await api.getFacetFavorites(profileId);
+    favoriteFacetKeys.set(new Set(facets.map((f) => facetFavKey(f.facet, f.value))));
+  } catch (e) {
+    console.error('Load facet favorites error:', e);
   }
   try {
     const sfavs = await api.getProfileStreamingFavorites(profileId);

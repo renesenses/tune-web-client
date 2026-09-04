@@ -598,22 +598,17 @@
     } catch { /* setVolumeLock a deja restaure le store */ }
   }
 
-  // Crossfade — reglage PAR ZONE, meme divergence assumee que la qualite
-  // streaming : on vise la zone courante et non `zones[0]`.
-  let xfEnabled = $state(false);
-  let xfDuration = $state(3);
-  $effect(() => {
-    const zid = qualityZoneId;
-    if (zid == null) return;
-    api.getCrossfade(zid)
-      .then((r) => { xfEnabled = r.enabled ?? false; xfDuration = r.duration ?? 3; })
-      .catch(() => {});
-  });
-  async function applyCrossfade() {
-    const zid = qualityZoneId;
-    if (zid == null) return;
-    try { await api.setCrossfade(zid, xfEnabled, xfDuration); } catch { /* ignore */ }
-  }
+  // FONDU ENCHAINE : RETIRE le 04/09/2026, a la fusion avec `main`.
+  //
+  // JP l'a supprime du client actuel le 28/08 (aece01e6, refs #2211) : le
+  // reglage etait INERTE. `GET /zones/{id}/crossfade` repond bien 200 —
+  // mesure sur le .18 — mais le vrai mixeur PCM a deux producteurs n'est pas
+  // livre, et #2211 reste ouverte. Un interrupteur qui s'enregistre sans rien
+  // changer au son est pire qu'un interrupteur absent.
+  //
+  // L'ecran v2 avait ete ecrit AVANT cette suppression et la reproduisait. Le
+  // garde `crossfadeUnavailable.test.ts`, arrive avec `main`, ne visait que
+  // les deux ecrans du client actuel : il est etendu a celui-ci.
 
   // ── Tune Voice AI ──────────────────────────────────────────────────────
   // Preference purement locale (pas de config serveur) : le micro appartient
@@ -1455,23 +1450,6 @@
                     </span>
                     <span>{$t('audiophile.lockVolumeConfirm' as any)}</span>
                   </label>
-                </div>
-              {/if}
-
-              <div class="row">
-                <div class="lbl">
-                  <span>Fondu enchaîné</span>
-                  <span class="hint">{$t('settings.crossfadeHint' as any)}{qualityZoneName ? ` — zone ${qualityZoneName}` : ''}</span>
-                </div>
-                <label class="sw">
-                  <input type="checkbox" bind:checked={xfEnabled} onchange={applyCrossfade} disabled={qualityZoneId == null} />
-                  <span class="slider"></span>
-                </label>
-              </div>
-              {#if xfEnabled}
-                <div class="row">
-                  <div class="lbl"><span>{$t('settings.duration' as any)} : {xfDuration} s</span></div>
-                  <input class="rng" type="range" min="1" max="12" step="1" bind:value={xfDuration} onchange={applyCrossfade} />
                 </div>
               {/if}
 

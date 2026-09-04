@@ -7,18 +7,41 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
+  import { radioFavDisplayAt, formatRadioFavDate, forgetRadioFavListenAt, clearRadioFavListenAt } from '../lib/radioFavListenAt';
   import { tuneWS } from '../lib/websocket';
   import { onMount } from 'svelte';
   import type { RadioStation } from '../lib/types';
+  import { radioGenreShelf, radioGenreShelves, radioGenreLabel } from '../lib/radioGenres';
 
   type Tab = 'stations' | 'saved';
   let activeTab = $state<Tab>('stations');
 
   let radios = $state<RadioStation[]>([]);
   let loading = $state(true);
+  /**
+   * Le filtre porte sur la CLÉ de rayon, jamais sur le libellé affiché.
+   *
+   * Il portait sur la chaîne brute, et c'est ce qui fabriquait les rayons en
+   * double : `eclectic` et `Éclectique` sont le même genre, mais deux chaînes,
+   * donc deux boutons, donc la moitié des stations manquante à chaque clic.
+   * Une clé de rayon est stable — même casse, même accents, même langue
+   * d'affichage.
+   */
   let filterGenre = $state<string | null>(null);
   let filterFavorite = $state(false);
-  let genres = $derived([...new Set(radios.map(r => r.genre).filter(Boolean))].sort());
+  /**
+   * Les rayons présents, triés sur le LIBELLÉ traduit : un lecteur japonais
+   * doit voir ses genres dans l'ordre du japonais, pas dans l'ordre
+   * alphabétique de clés anglaises. Le tri dépend donc de `$t`, ce qui le
+   * garde ici et hors du module de vocabulaire.
+   */
+  let genres = $derived(
+    radioGenreShelves(radios).sort((a, b) =>
+      radioGenreLabel(a, $t).localeCompare(radioGenreLabel(b, $t), undefined, {
+        sensitivity: 'base',
+      }),
+    ),
+  );
 
   // Radio favorites (saved tracks)
   interface RadioFav { id: number; title: string; artist: string; station_name: string; cover_url?: string; stream_url?: string; saved_at: string; }
@@ -38,6 +61,7 @@
   async function removeSavedTrack(fav: RadioFav) {
     try {
       await api.apiDelete(`/radio-favorites/${fav.id}`);
+      forgetRadioFavListenAt(fav.title, fav.artist);
       savedTracks = savedTracks.filter(f => f.id !== fav.id);
       savedCount = savedTracks.length;
     } catch (e) { console.error('Delete radio fav:', e); }
@@ -47,6 +71,7 @@
     if (!(await dialogs.confirm($t('radio.clearConfirm'), { danger: true }))) return;
     try {
       await api.apiDelete('/radio-favorites');
+      clearRadioFavListenAt();
       savedTracks = [];
       savedCount = 0;
     } catch (e) {
@@ -55,9 +80,8 @@
     }
   }
 
-  function formatDate(iso: string): string {
-    try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
-    catch { return iso; }
+  function formatDate(fav: RadioFav): string {
+    return formatRadioFavDate(radioFavDisplayAt(fav.title, fav.artist, fav.saved_at));
   }
 
   function switchTab(tab: Tab) {
@@ -68,7 +92,10 @@
   let filtered = $derived.by(() => {
     let list = radios;
     if (filterFavorite) list = list.filter(r => r.favorite);
-    if (filterGenre) list = list.filter(r => r.genre === filterGenre);
+    // Comparaison sur la clé de rayon. L'égalité stricte des chaînes brutes
+    // laissait dehors toutes les stations dont l'orthographe différait d'un
+    // accent ou d'une majuscule.
+    if (filterGenre) list = list.filter(r => radioGenreShelf(r.genre)?.key === filterGenre);
     return list;
   });
 
@@ -77,6 +104,8 @@
   let newUrl = $state('');
   let newGenre = $state('');
   let importMessage = $state('');
+  /** Refus du serveur sur le formulaire d'ajout, affiché sous les champs. */
+  let addError = $state('');
 
   // Edit modal state
   let editRadio = $state<RadioStation | null>(null);
@@ -86,6 +115,8 @@
   let editDragOver = $state(false);
   let editUploading = $state(false);
   let editCoverMsg = $state('');
+  /** Refus du serveur sur la fiche de modification. */
+  let editError = $state('');
 
   function openEdit(radio: RadioStation) {
     editRadio = radio;
@@ -93,17 +124,20 @@
     editUrl = radio.stream_url;
     editGenre = radio.genre || '';
     editCoverMsg = '';
+    editError = '';
   }
 
   function closeEdit() {
     editRadio = null;
     editCoverMsg = '';
+    editError = '';
     editUploading = false;
     editDragOver = false;
   }
 
   async function saveEdit() {
     if (!editRadio?.id) return;
+    editError = '';
     try {
       const updated = await api.updateRadio(editRadio.id, {
         name: editName.trim(),
@@ -113,7 +147,9 @@
       radios = radios.map(r => r.id === updated.id ? updated : r);
       editRadio = updated;
     } catch (e) {
+      // Même dette que l'ajout : « Appliquer » ne faisait rien de visible.
       console.error('Update radio error:', e);
+      editError = messageDErreur(e);
     }
   }
 
@@ -199,6 +235,7 @@
 
   async function addRadio() {
     if (!newName.trim() || !newUrl.trim()) return;
+    addError = '';
     try {
       const created = await api.createRadio({
         name: newName.trim(),
@@ -211,8 +248,20 @@
       newGenre = '';
       showAdd = false;
     } catch (e) {
+      // Le refus était avalé dans la console : le formulaire se contentait de
+      // ne rien faire, et l'utilisateur ne savait pas pourquoi. Le serveur
+      // renvoie désormais un message qui NOMME le défaut (« après http il
+      // faut deux-points »), déjà dans la langue de l'interface — on l'affiche
+      // tel quel plutôt que d'en fabriquer un moins précis ici (#2097).
       console.error('Add radio error:', e);
+      addError = messageDErreur(e);
     }
+  }
+
+  /** Le message du serveur, ou son défaut si la requête n'a même pas abouti. */
+  function messageDErreur(e: unknown): string {
+    const message = e instanceof Error ? e.message.trim() : String(e ?? '').trim();
+    return message || get(t)('common.error');
   }
 
   const MAX_IMPORT_MB = 25;
@@ -300,6 +349,9 @@
       <button class="btn-confirm" onclick={addRadio}>{$t('common.create')}</button>
       <button class="btn-cancel" onclick={() => showAdd = false}>{$t('common.cancel')}</button>
     </div>
+    {#if addError}
+      <div class="url-error" role="alert">{addError}</div>
+    {/if}
   {/if}
 
   <div class="filters">
@@ -310,9 +362,9 @@
       <svg viewBox="0 0 24 24" fill={filterFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
       {$t('radio.favorites')}
     </button>
-    {#each genres as g}
-      <button class="filter-chip" class:active={filterGenre === g} onclick={() => { filterGenre = filterGenre === g ? null : g; filterFavorite = false; }}>
-        {g}
+    {#each genres as rayon (rayon.key)}
+      <button class="filter-chip" class:active={filterGenre === rayon.key} onclick={() => { filterGenre = filterGenre === rayon.key ? null : rayon.key; filterFavorite = false; }}>
+        {radioGenreLabel(rayon, $t)}
       </button>
     {/each}
   </div>
@@ -324,6 +376,7 @@
   {:else}
     <div class="radios-grid">
       {#each filtered as radio}
+        {@const rayon = radioGenreShelf(radio.genre)}
         <div class="radio-card">
           <button class="radio-icon" onclick={() => playRadio(radio)} title={$t('radio.play')} disabled={!$currentZoneId}>
             {#if coverUrl(radio)}
@@ -334,8 +387,12 @@
           </button>
           <div class="radio-info">
             <button class="radio-name-btn" onclick={() => playRadio(radio)} disabled={!$currentZoneId}>{radio.name}</button>
-            {#if radio.genre}
-              <button class="radio-genre radio-genre-btn" onclick={() => { filterGenre = filterGenre === radio.genre ? null : radio.genre!; filterFavorite = false; }}>{radio.genre}</button>
+            {#if rayon}
+              <!-- La pastille affiche le libellé traduit et filtre sur la clé
+                   du rayon. Elle affichait la chaîne brute et filtrait dessus :
+                   cliquer sur « jazz » n'ouvrait donc pas le même rayon que
+                   cliquer sur « Jazz ». -->
+              <button class="radio-genre radio-genre-btn" onclick={() => { filterGenre = filterGenre === rayon.key ? null : rayon.key; filterFavorite = false; }}>{radioGenreLabel(rayon, $t)}</button>
             {/if}
             <button class="radio-url radio-url-btn" onclick={() => playRadio(radio)} disabled={!$currentZoneId}>{radio.stream_url}</button>
           </div>
@@ -394,7 +451,7 @@
           <div class="saved-info">
             <span class="saved-title">{fav.title}</span>
             <span class="saved-artist">{fav.artist}</span>
-            <span class="saved-station">{fav.station_name} · {formatDate(fav.saved_at)}</span>
+            <span class="saved-station">{fav.station_name} · {formatDate(fav)}</span>
           </div>
           <button class="action-btn delete-btn" onclick={() => removeSavedTrack(fav)} title={$t('common.delete')}>
             <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
@@ -467,6 +524,9 @@
               {$t('radio.genre')}
               <input type="text" bind:value={editGenre} />
             </label>
+            {#if editError}
+              <div class="url-error" role="alert">{editError}</div>
+            {/if}
           </div>
         </div>
 
@@ -613,6 +673,26 @@
 
   .add-form input:focus {
     border-color: var(--tune-accent);
+  }
+
+  /* Le refus du serveur, montré là où l'utilisateur vient de taper. Il tient
+     sur plusieurs lignes : le message NOMME le caractère fautif, il est donc
+     plus long qu'un « URL invalide » — et c'est tout son intérêt. */
+  .url-error {
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-lg);
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-error, #f87171);
+    border-radius: var(--radius-md);
+    color: var(--tune-error, #f87171);
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .edit-fields .url-error {
+    margin-bottom: 0;
   }
 
   .btn-confirm {

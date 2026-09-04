@@ -3,7 +3,10 @@
   import SettingHint from './SettingHint.svelte';
   import { dateSimple } from '../lib/dates';
   import { tip } from '../lib/tooltip';
+  import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { backendSelectionne, choixDeBackend, libelleBackend, modeWasapiPertinent, type ChoixBackend } from '../lib/audioBackends';
+  import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
@@ -11,9 +14,16 @@
   import AcousticProgress from './AcousticProgress.svelte';
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
-  import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../lib/stores/audiophile';
+  import { audiophileEnabled, audiophileGlobalLockVolume, audiophileLockVolume, setVolumeLock, refreshAudiophile, refreshVolumeLock } from '../lib/stores/audiophile';
   import { loopByDefault } from '../lib/stores/loopByDefault';
   import { devices } from '../lib/stores/devices';
+  import {
+    detailAppareilIgnore,
+    libelleAppareilIgnore,
+    sansAppareils,
+    transportAppareilIgnore,
+    type AppareilIgnore,
+  } from '../lib/appareilsIgnores';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
   import { SETTING_LEVELS, SETTINGS_LEVELS, isSettingVisible, hiddenCountByTab, nextLevel, type SettingKey, type SettingsLevel } from '../lib/settingLevels';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
@@ -23,7 +33,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { copyText, errText } from '../lib/utils';
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
-  import { licenseState, isPremium, loadLicense } from '../lib/stores/license';
+  import { licenseState, isPremium, loadLicense, offlineGrace } from '../lib/stores/license';
   import SmbWizard from './SmbWizard.svelte';
   import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
@@ -305,16 +315,23 @@ function setSettingsLevel(level: SettingsLevel) {
    *
    * On ne remet PAS le bouton à son état initial ensuite : la machine
    * s'arrête, et proposer de recommencer donnerait à croire que ça n'a pas
-   * marché. L'erreur du `catch` est ATTENDUE — le serveur meurt avant de
-   * répondre.
+   * marché. Une coupure réseau est attendue — le serveur peut mourir avant de
+   * répondre. Une réponse HTTP d'erreur, elle, prouve que la machine n'a pas
+   * accepté l'ordre : le bouton doit redevenir utilisable et le dire.
    */
   async function eteindreLaMachine() {
     if (!(await dialogs.confirm(get(t)('diagnostics.confirmShutdown' as any), { danger: true }))) return;
     extinctionEnCours = true;
     try {
       await api.applianceShutdown();
-    } catch {
-      /* attendu : la machine s'éteint, la réponse peut ne jamais revenir */
+    } catch (e) {
+      const msg = errText(e);
+      if (msg !== null) {
+        extinctionEnCours = false;
+        notifications.error(msg);
+      }
+      // `null` désigne la coupure de transport générique du navigateur : le
+      // serveur a pu disparaître pendant l'extinction, comportement attendu.
     }
   }
 
@@ -541,6 +558,26 @@ function setSettingsLevel(level: SettingsLevel) {
   let cloudTelemetryEnabled = $state(false);
   let cloudTelemetryLoading = $state(false);
   let cloudTelemetryInstanceId = $state<string | null>(null);
+  let cloudRateLimits = $state<Array<{
+    scope: string;
+    until_epoch: number;
+    retry_after_seconds: number;
+  }>>([]);
+
+  function longestCloudBackoffSeconds(): number {
+    return cloudRateLimits.reduce(
+      (longest, limit) => Math.max(longest, Number(limit.retry_after_seconds) || 0),
+      0,
+    );
+  }
+
+  function formatBackoffDuration(seconds: number): string {
+    const minutes = Math.max(1, Math.ceil(seconds / 60));
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+  }
 
   /// Relit l'etat cloud jusqu'a ce que la connexion apparaisse, ou abandon.
   ///
@@ -582,7 +619,12 @@ function setSettingsLevel(level: SettingsLevel) {
       const tel = await api.apiFetch('/cloud/telemetry/status');
       cloudTelemetryEnabled = !!tel?.enabled;
       cloudTelemetryInstanceId = tel?.instance_id || tel?.server_id || null;
-    } catch { /* endpoint may not exist */ }
+      cloudRateLimits = Array.isArray(tel?.rate_limits) ? tel.rate_limits : [];
+    } catch {
+      // The endpoint may not exist on older servers. Never retain a stale
+      // warning after a failed refresh.
+      cloudRateLimits = [];
+    }
   }
 
   async function loadBridgeStatus() {
@@ -658,6 +700,26 @@ function setSettingsLevel(level: SettingsLevel) {
   }
 
   // License / Premium
+  // --- Grâce hors ligne (#1999) -------------------------------------------
+  // Tune tolère une coupure réseau prolongée avant de suspendre le Premium.
+  // Jusqu'ici cette tolérance n'existait que dans le code : ni compte à
+  // rebours, ni explication le jour où les fonctions disparaissaient. Ces
+  // quelques lignes ne changent rien à la règle — elles la rendent lisible.
+
+  /** Date courte dans la langue de l'interface, jamais figée en fr-FR. */
+  function graceDate(iso: string | null): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString($locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  /** « 1 jour » / « 3 jours » — le pluriel se choisit dans la locale. */
+  function graceDays(n: number): string {
+    return $t(n === 1 ? 'settings.licenseGraceDayOne' : 'settings.licenseGraceDayOther')
+      .replace('{days}', String(n));
+  }
+
   let licenseKeyInput = $state('');
   let licenseActivating = $state(false);
   let licenseDeactivating = $state(false);
@@ -813,8 +875,13 @@ function setSettingsLevel(level: SettingsLevel) {
   // Diagnostics bundle download
   let diagDownloading = $state(false);
 
-  // Audio backend
-  let audioBackend = $state('wasapi');
+  // Audio backend — la liste des choix vient du SERVEUR, jamais d'ici (#1268).
+  // Elle était écrite en dur (Auto/WASAPI/ASIO) et proposait donc deux
+  // technologies Windows sur Debian et Fedora ; `supported_audio_backends` de
+  // `GET /system/config` dit ce que la plateforme du serveur sait vraiment
+  // faire. Vide = pas de sortie locale : on masque le réglage.
+  let choixBackends = $state<ChoixBackend[]>([]);
+  let audioBackend = $state('auto');
   let exclusiveMode = $state(false);
   // DSD → network renderer: stream the transcode instead of a blocking temp
   // file (fixes DSD 256/512 timeouts/silence on some DLNA renderers).
@@ -839,7 +906,8 @@ function setSettingsLevel(level: SettingsLevel) {
     try {
       const resp = await fetch('/api/v1/system/config');
       const data = await resp.json();
-      audioBackend = data.audio_backend ?? data.local_audio_backend ?? 'wasapi';
+      choixBackends = choixDeBackend(data);
+      audioBackend = backendSelectionne(data, choixBackends);
       exclusiveMode = data.local_exclusive_mode ?? false;
       dsdLpcmStream = data.dsd_lpcm_stream ?? false;
       replayGainMode = data.replaygain_mode ?? 'off';
@@ -884,6 +952,10 @@ function setSettingsLevel(level: SettingsLevel) {
   async function changeAudioBackend(backend: string) {
     audioBackend = backend;
     const newExclusive = backend === 'asio' ? true : exclusiveMode;
+    // Le nom annoncé est le LIBELLÉ du serveur : `backend.toUpperCase()`
+    // annonçait « AUTO », un mot que le sélecteur n'affiche nulle part.
+    const choisi = choixBackends.find((c) => c.value === backend);
+    const nom = choisi ? libelleBackend(choisi, get(t)) : backend.toUpperCase();
     try {
       await fetch('/api/v1/system/config', {
         method: 'PATCH',
@@ -891,7 +963,7 @@ function setSettingsLevel(level: SettingsLevel) {
         body: JSON.stringify({ local_audio_backend: backend, local_exclusive_mode: newExclusive }),
       });
       exclusiveMode = newExclusive;
-      notifications.success(`${get(t)('settings.audioBackend')}: ${backend.toUpperCase()}. ${get(t)('settings.restartServerNeeded')}`);
+      notifications.success(`${get(t)('settings.audioBackend')}: ${nom}. ${get(t)('settings.restartServerNeeded')}`);
     } catch {
       notifications.error(get(t)('settings.audioBackendError'));
     }
@@ -1039,6 +1111,30 @@ function setSettingsLevel(level: SettingsLevel) {
       hqplayerStatusMessage = '';
     }
     hqplayerChecking = false;
+  }
+
+  // Nom de CE serveur (#2110) — « à quelle machine je parle ? », distinct de
+  // « quelle zone j'écoute ? ». Le serveur renvoie toujours une valeur : le nom
+  // choisi, ou à défaut le nom d'hôte de la machine.
+  let serverNameInput = $state('');
+  let serverNameSaving = $state(false);
+
+  async function saveServerName() {
+    const nom = serverNameInput.trim();
+    serverNameSaving = true;
+    try {
+      await api.updateConfig({ server_name: nom });
+      // Relire plutôt que supposer : vider le champ ne laisse pas une étiquette
+      // vide, le serveur retombe sur le nom d'hôte et c'est CE nom qu'il faut
+      // réafficher.
+      const frais = await api.getConfig();
+      config = frais;
+      serverNameInput = frais?.server_name ?? nom;
+      notifications.success(get(t)('settings.serverNameSaved' as any));
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    serverNameSaving = false;
   }
 
   // Squeezebox / Lyrion
@@ -1216,33 +1312,6 @@ function setSettingsLevel(level: SettingsLevel) {
     pairingAwaitingPin = false;
     pairingPin = '';
     pairingMessage = null;
-  }
-
-  // Crossfade
-  let crossfadeEnabled = $state(false);
-  let crossfadeDuration = $state(3);
-  let crossfadeLoading = $state(false);
-
-  async function loadCrossfade() {
-    // `zones[0].id` est nullable dans le type : on l'extrait une fois plutôt que
-    // de supposer sa présence à chaque appel.
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    try {
-      const res = await api.getCrossfade(zoneId);
-      crossfadeEnabled = res.enabled ?? false;
-      crossfadeDuration = res.duration ?? 3;
-    } catch {}
-  }
-
-  async function applyCrossfade() {
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    crossfadeLoading = true;
-    try {
-      await api.setCrossfade(zoneId, crossfadeEnabled, crossfadeDuration);
-    } catch {}
-    crossfadeLoading = false;
   }
 
   // Streaming auth state
@@ -1872,6 +1941,9 @@ function setSettingsLevel(level: SettingsLevel) {
       musicRoots = val(rBrowse, { roots: [] as any[] }).roots;
       loadSmbMounts();
       config = val(rConfig, null);
+      // Pré-remplir le champ « nom de ce serveur » avec ce que le serveur
+      // répond — nom choisi ou nom d'hôte (#2110).
+      serverNameInput = config?.server_name ?? '';
       backups = val(rBackups, []);
       // Log individual failures for debugging
       for (const [i, r] of results.entries()) {
@@ -2011,6 +2083,17 @@ function setSettingsLevel(level: SettingsLevel) {
       wifiLoaded = true;
       loadWifiStatus();
       scanWifi();
+    }
+  });
+
+  // #1280 — la liste des appareils ignorés est chargée à l'ouverture de
+  // l'onglet Réseau, une seule fois : c'est le seul endroit d'où un appareil
+  // ignoré peut être retrouvé, puisqu'il n'est plus annoncé nulle part.
+  let ignoredLoaded = $state(false);
+  $effect(() => {
+    if (settingsTab === 'network' && !ignoredLoaded) {
+      ignoredLoaded = true;
+      loadIgnoredDevices();
     }
   });
 
@@ -2165,13 +2248,60 @@ function setSettingsLevel(level: SettingsLevel) {
     }));
   }
 
-  async function handleDeleteDevice(deviceId: string, deviceName: string) {
+  /* --- Ignorer un appareil, DURABLEMENT (#1280) ---------------------------
+   *
+   * Cette croix appelait `DELETE /devices/{id}` : la sortie quittait le
+   * registre en mémoire, et rien de plus. La découverte la ré-enregistrait au
+   * passage suivant — « ils disparaissent bien sur le coup mais réapparaissent
+   * rapidement » (Patatorz). La route durable est `POST /devices/{id}/ignore` :
+   * elle fige l'identité (l'appareil ne revient sous AUCUNE de ses identités
+   * jumelles), retire la sortie tout de suite, et masque sa zone s'il en a une.
+   */
+  let ignoredDevices = $state<AppareilIgnore[]>([]);
+  let ignoreBusy = $state(false);
+
+  async function loadIgnoredDevices() {
     try {
-      await api.deleteDevice(deviceId);
-      devices.update(list => list.filter(d => d.id !== deviceId));
-      notifications.success(get(t)('settings.deviceDeleted').replace('{name}', deviceName));
+      const r = await api.listIgnoredDevices();
+      ignoredDevices = r.items ?? [];
+    } catch {
+      // Serveur plus ancien que la route, ou hors ligne : pas de liste, pas
+      // d'erreur — la section reste simplement vide.
+      ignoredDevices = [];
+    }
+  }
+
+  async function handleIgnoreDevice(deviceId: string, deviceName: string) {
+    ignoreBusy = true;
+    try {
+      const r = await api.ignoreDevice(deviceId);
+      // Le serveur a déjà retiré l'appareil de `GET /devices` ; la liste
+      // affichée, elle, a été chargée AVANT le geste. Sans ce retrait local la
+      // ligne resterait à l'écran et le clic aurait l'air sans effet.
+      devices.update(list => sansAppareils(list, [deviceId, r.ignored?.device_id ?? '']));
+      await loadIgnoredDevices();
+      notifications.success(get(t)('settings.deviceIgnored').replace('{name}', deviceName));
     } catch (e: any) {
       notifications.error(e?.message || get(t)('common.error'));
+    } finally {
+      ignoreBusy = false;
+    }
+  }
+
+  async function handleUnignoreDevice(d: AppareilIgnore) {
+    ignoreBusy = true;
+    try {
+      await api.unignoreDevice(d.device_id);
+      await loadIgnoredDevices();
+      // L'appareil ne revient qu'au prochain passage de découverte : on le dit,
+      // plutôt que de laisser croire à un échec devant une liste inchangée.
+      notifications.success(
+        get(t)('settings.deviceUnignored').replace('{name}', libelleAppareilIgnore(d)),
+      );
+    } catch (e: any) {
+      notifications.error(e?.message || get(t)('common.error'));
+    } finally {
+      ignoreBusy = false;
     }
   }
 
@@ -2451,18 +2581,34 @@ function setSettingsLevel(level: SettingsLevel) {
   // real activity, and cap total polls so a stuck job can't spin forever.
   let artistImgSawActivity = false;
   let artistImgPolls = 0;
+  // The forced pass re-fetches artists that already have an image, so
+  // `artists_without_image` is 0 for the whole run. Using it as a completion
+  // signal (as the normal pass does) would close the banner on the first poll.
+  let artistImgForced = false;
 
-  async function startEnrichArtistImages() {
+  async function startEnrichArtistImages(mode: ModeEnrichissementImages = 'manquantes') {
     if (artistImgTimer) { clearInterval(artistImgTimer); artistImgTimer = null; }
     artistImgRunning = true;
     artistImgProcessed = 0;
     artistImgTotal = 0;
     artistImgSawActivity = false;
     artistImgPolls = 0;
+    artistImgForced = mode === 'forcé';
     try {
+      if (mode === 'forcé') {
+        // The forced pass targets EVERY artist, including those the normal pass
+        // skips because they already "have" an image — so `artists_without_image`
+        // is not its measure of work, and the bail-out below must never apply.
+        const res = await api.forceRefetchArtistImages();
+        artistImgTotal = res.artists ?? 0;
+        enrichMsg = get(t)('settings.enrichArtistImagesStarted');
+        setTimeout(() => (enrichMsg = ''), 5000);
+        pollEnrichArtistImages();
+        return;
+      }
       const res = await api.enrichArtistImages();
       artistImgRemaining = res.artists_without_image ?? 0;
-      if (artistImgRemaining === 0) {
+      if (doitSArreterFauteDImagesManquantes(mode, artistImgRemaining)) {
         // Nothing missing → the job finishes instantly; don't imply work.
         artistImgRunning = false;
         notifications.info(get(t)('settings.enrichArtistImagesNoneMissing' as any));
@@ -2500,7 +2646,7 @@ function setSettingsLevel(level: SettingsLevel) {
         }
         const done =
           (artistImgSawActivity && phase === 'done') ||
-          artistImgRemaining === 0 ||
+          (!artistImgForced && artistImgRemaining === 0) ||
           artistImgPolls > 300; // ~30 min safety cap at 6s
         if (done) {
           artistImgRunning = false;
@@ -2682,7 +2828,6 @@ function setSettingsLevel(level: SettingsLevel) {
     fetchTunePeers();
     fetchServerVersion();
     checkForUpdate();
-    loadCrossfade();
     loadStreamingQuality();
     loadScanSchedule();
     loadMetadataFields();
@@ -2741,13 +2886,19 @@ function setSettingsLevel(level: SettingsLevel) {
         scanProgress = null;
         scanningPath = null;
         const d = event.data ?? {};
-        // The server event uses total_files/inserted; older builds sent
-        // scanned/added — accept both so the toast never shows "?".
-        scanMessage = get(t)('settings.scanCompleted')
+        // Ce que la purge a retiré — ou `null` si le serveur ne le dit pas.
+        // On n'annonce JAMAIS « 0 supprimés » faute d'information : c'est ce
+        // que faisait `String(d.removed ?? 0)`, et le bandeau affichait donc
+        // toujours zéro, quoi que la purge ait fait
+        // (renesenses/tune-server-rust#2146).
+        const supprimees = compteSupprimees(d);
+        // Sans compte, un libellé SANS le segment « N supprimés » : une phrase
+        // à trou ne peut pas se taire, il faut une autre phrase.
+        scanMessage = get(t)(cleLibelleFinDeScan(supprimees) as any)
           .replace('{scanned}', String(d.total_files ?? d.scanned ?? '?'))
           .replace('{added}', String(d.inserted ?? d.added ?? 0))
           .replace('{updated}', String(d.updated ?? 0))
-          .replace('{removed}', String(d.removed ?? 0));
+          .replace('{removed}', String(supprimees ?? 0));
         notifications.success(scanMessage);
         if (!d.cancelled && !d.no_dirs && d.total_files != null) {
           scanReport = d;
@@ -2789,11 +2940,63 @@ function setSettingsLevel(level: SettingsLevel) {
   // Volume 100 % : le premier geste arme, le second applique (double
   // bascule). L'armement ne survit pas à la page — c'est voulu.
   let lockVolumeArme = $state(false);
+  type ZoneLockChoice = 'inherit' | 'on' | 'off';
+  let zoneLockChoices = $state<Record<number, ZoneLockChoice>>({});
+  const zoneLocksRequested = new Set<number>();
+
+  // Le mode PURE vit hors de la ligne `zones`; on charge donc sa petite
+  // surcharge par zone une seule fois quand une zone apparaît (#2526).
+  $effect(() => {
+    for (const zone of $zones) {
+      if (zone.id == null || zoneLocksRequested.has(zone.id)) continue;
+      zoneLocksRequested.add(zone.id);
+      void api.getAudiophileMode(zone.id).then((state) => {
+        zoneLockChoices = {
+          ...zoneLockChoices,
+          [zone.id!]: state.lock_volume == null
+            ? 'inherit'
+            : (state.lock_volume ? 'on' : 'off'),
+        };
+      }).catch(() => {
+        zoneLocksRequested.delete(zone.id!);
+      });
+    }
+  });
+
+  async function saveZoneLock(
+    zone: { id?: number | null },
+    choice: ZoneLockChoice,
+    select: HTMLSelectElement,
+  ) {
+    if (zone.id == null) return;
+    const previous = zoneLockChoices[zone.id] ?? 'inherit';
+    let confirmed = false;
+    if (choice === 'on') {
+      confirmed = await dialogs.confirm($t('audiophile.lockVolumeWarn' as any), {
+        danger: true,
+      });
+      if (!confirmed) {
+        select.value = previous;
+        return;
+      }
+    }
+    try {
+      const requested = choice === 'inherit' ? null : choice === 'on';
+      const state = await api.setAudiophileVolumeLock(zone.id, requested, confirmed);
+      zoneLockChoices = {
+        ...zoneLockChoices,
+        [zone.id]: state.lock_volume == null
+          ? 'inherit'
+          : (state.lock_volume ? 'on' : 'off'),
+      };
+      if (zone.id === $currentZoneId) await refreshAudiophile(zone.id);
+    } catch {
+      select.value = previous;
+    }
+  }
 
   const settingModified = $derived.by((): Partial<Record<SettingKey, boolean>> => ({
-    'general.lockVolume': $audiophileLockVolume,
-    'general.crossfade': crossfadeEnabled,
-    'general.crossfadeDuration': crossfadeDuration !== 3,
+    'general.lockVolume': $audiophileGlobalLockVolume,
     'general.volumeDisplay': $preferences.volumeDisplay !== 'percent',
     'general.voiceCommand': (() => { try { return localStorage.getItem('tune_voice_ai_enabled') === 'true'; } catch { return false; } })(),
     'library.folderPlaylists': config?.scan_folder_playlists === true || config?.scan_folder_playlists === 'true',
@@ -2814,11 +3017,6 @@ function setSettingsLevel(level: SettingsLevel) {
     'services.spotifyConnect': !!spotifyConnect?.enabled,
     'services.zoneAutoCreate': config?.zone_auto_create === false,
     'services.followMe': $followMe,
-    'services.perZoneLyricsOffset': $zones.some((z) => (z.lyrics_offset_ms ?? 0) !== 0),
-    'services.perZoneFixedVolume': $zones.some((z) => !!z.fixed_volume),
-    'services.perZoneDsdMode': $zones.some((z) => (z.dsd_mode ?? 'auto') !== 'auto'),
-    'services.perZoneMaxSampleRate': $zones.some((z) => (z.max_sample_rate ?? 0) > 0),
-    'services.zoneAdvanced': $zones.some((z) => !!z.alac_passthrough || !!z.aac_passthrough || !!z.dlna_lpcm),
     'services.squeezebox': !!config?.squeezebox_enabled,
     'services.hqplayer': hqplayerEnabled,
     'network.tuneServers': tunePeers.length > 0,
@@ -2831,6 +3029,11 @@ function setSettingsLevel(level: SettingsLevel) {
     'network.dsdNetwork': dsdLpcmStream,
     'network.eqBands': eqExpertBands !== 10,
     'network.tuneBridge': bridgeEnabled,
+    'network.perZoneLyricsOffset': $zones.some((z) => (z.lyrics_offset_ms ?? 0) !== 0),
+    'network.perZoneFixedVolume': $zones.some((z) => !!z.fixed_volume),
+    'network.perZoneDsdMode': $zones.some((z) => (z.dsd_mode ?? 'auto') !== 'auto'),
+    'network.perZoneMaxSampleRate': $zones.some((z) => (z.max_sample_rate ?? 0) > 0),
+    'network.zoneAdvanced': $zones.some((z) => !!z.alac_passthrough || !!z.aac_passthrough || !!z.dlna_lpcm),
     'system.telemetry': cloudTelemetryEnabled,
     'system.communitySync': config?.community_sync_enabled === true || config?.community_sync_enabled === 'true',
     'system.logLevel': logLevel !== 'info',
@@ -2842,11 +3045,11 @@ function setSettingsLevel(level: SettingsLevel) {
     'system.dataLocation': !!config?.appliance,
     'network.applianceWifi': !!config?.appliance,
     'services.spotifyConnect': !!spotifyConnect,
-    'services.perZoneLyricsOffset': $zones.length > 0,
-    'services.perZoneFixedVolume': $zones.length > 0,
-    'services.perZoneDsdMode': $zones.length > 0,
-    'services.perZoneMaxSampleRate': $zones.length > 0,
-    'services.zoneAdvanced': $zones.length > 0,
+    'network.perZoneLyricsOffset': $zones.length > 0,
+    'network.perZoneFixedVolume': $zones.length > 0,
+    'network.perZoneDsdMode': $zones.length > 0,
+    'network.perZoneMaxSampleRate': $zones.length > 0,
+    'network.zoneAdvanced': $zones.length > 0,
   }));
 
   /** Visibilité d'un réglage : niveau ≤ niveau choisi, OU valeur ≠ défaut. */
@@ -2994,6 +3197,33 @@ function setSettingsLevel(level: SettingsLevel) {
     </section>
     {/if}
 
+    {#if settingsTab === 'system'}
+    <!--
+      Ce serveur (#2110). En tête de l'onglet Système : la première question à
+      laquelle cet écran doit répondre est « de quelle machine me parle-t-on ? »,
+      avant la version, avant la mise à jour, avant la base.
+    -->
+    <section class="settings-section">
+      <h3>{$t('settings.serverIdentity')}</h3>
+      <p class="diag-hint">{$t('settings.serverIdentityHint')}</p>
+      <div class="squeezebox-host-row">
+        <input
+          type="text"
+          class="auth-input"
+          aria-label={$t('settings.serverNameLabel')}
+          placeholder={$t('settings.serverNamePlaceholder')}
+          bind:value={serverNameInput}
+          disabled={serverNameSaving}
+          onkeydown={(e) => { if (e.key === 'Enter') saveServerName(); }}
+          style="max-width: 260px;"
+        />
+        <button class="scan-btn small" onclick={saveServerName} disabled={serverNameSaving}>
+          {serverNameSaving ? $t('settings.squeezeboxSaving' as any) : $t('common.save' as any)}
+        </button>
+      </div>
+    </section>
+    {/if}
+
     {#if settingsTab === 'system' && (config?.server_urls?.length ?? 0) > 0}
     <!-- Accès depuis un autre appareil (Android ne résout pas .local → IP) -->
     <section class="settings-section">
@@ -3122,6 +3352,17 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="update-text">
             {$t('settings.updateAvailable')} : <strong>v{updateInfo.latest_version}</strong>
             ({$t('settings.current')} : v{updateInfo.current_version})
+            <!--
+              Nommer la MACHINE mise à jour (#2110). C'est ici que l'ambiguïté
+              coûte le plus cher : Philippe a lancé la mise à jour depuis
+              l'interface qu'il avait sous les yeux en croyant viser sa Fedora,
+              et a mis à jour l'autre machine. Le bouton doit dire laquelle.
+            -->
+            {#if config?.server_name}
+              <span class="update-target">
+                {$t('settings.updateTarget').replace('{server}', config.server_name)}
+              </span>
+            {/if}
           </span>
           {#if updateDmgReady}
             <span class="update-done">{$t('settings.dmgReady')}</span>
@@ -3322,7 +3563,7 @@ function setSettingsLevel(level: SettingsLevel) {
     {/if}
 
     {#if settingsTab === 'general'}
-    <!-- Playback / Crossfade -->
+    <!-- Playback -->
     <section class="settings-section">
       <h3>{$t('settings.playback')}</h3>
       <!-- Miroir du réglage du panneau « Chemin du signal » : le même état,
@@ -3338,8 +3579,8 @@ function setSettingsLevel(level: SettingsLevel) {
              volume part à 100 % sur l'ampli — un seul clic ne suffit pas.
              Désactiver, lui, est immédiat : couper n'a rien de dangereux. -->
         <label class="toggle">
-          <input type="checkbox" checked={$audiophileLockVolume || lockVolumeArme} onchange={async () => {
-            if ($audiophileLockVolume) {
+          <input type="checkbox" checked={$audiophileGlobalLockVolume || lockVolumeArme} onchange={async () => {
+            if ($audiophileGlobalLockVolume) {
               lockVolumeArme = false;
               try { await setVolumeLock(false); } catch { /* store restauré */ }
               return;
@@ -3349,7 +3590,7 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="toggle-slider"></span>
         </label>
       </div>
-      {#if lockVolumeArme && !$audiophileLockVolume}
+      {#if lockVolumeArme && !$audiophileGlobalLockVolume}
         <div class="setting-warn-rouge" class:lv-hidden={!lvOk('general.lockVolume')}>
           <p>{$t('audiophile.lockVolumeWarn' as any)}</p>
           <label class="toggle-confirm">
@@ -3374,29 +3615,34 @@ function setSettingsLevel(level: SettingsLevel) {
           </label>
         </div>
       {/if}
-      <div class="setting-row" class:lv-hidden={!lvOk('general.crossfade')}>
-        <div class="setting-label">
-          <span>Crossfade</span>
-          <span class="setting-hint">{$t('settings.crossfadeHint')}</span>
+      {#if $zones.length > 0}
+        <div class="setting-label" style="margin-top: 12px;">
+          <span>{$t('audiophile.zoneOverrides' as any)}</span>
+          <span class="setting-hint">{$t('audiophile.zoneOverridesHelp' as any)}</span>
         </div>
-        <label class="toggle">
-          <input type="checkbox" bind:checked={crossfadeEnabled} onchange={() => applyCrossfade()} />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-      {#if crossfadeEnabled}
-        <div class="setting-row" class:lv-hidden={!lvOk('general.crossfadeDuration')}>
-          <div class="setting-label">
-            <span>{$t('settings.duration')} : {crossfadeDuration}s</span>
-          </div>
-          <input
-            type="range"
-            min="1" max="12" step="1"
-            bind:value={crossfadeDuration}
-            onchange={() => applyCrossfade()}
-            style="flex: 1; max-width: 200px; accent-color: var(--tune-accent, #007AFF);"
-          />
-        </div>
+        {#each $zones as zone (zone.id)}
+          {#if zone.id != null}
+            <div class="setting-row">
+              <div class="setting-label">
+                <span>{zone.name}</span>
+                <span class="setting-hint">{zoneDeviceHint(zone)}</span>
+              </div>
+              <select
+                class="pref-select"
+                value={zoneLockChoices[zone.id] ?? 'inherit'}
+                onchange={(e) => saveZoneLock(
+                  zone,
+                  (e.target as HTMLSelectElement).value as ZoneLockChoice,
+                  e.target as HTMLSelectElement,
+                )}
+              >
+                <option value="inherit">{$t('audiophile.lockInherit' as any)}</option>
+                <option value="on">{$t('audiophile.lockAlways' as any)}</option>
+                <option value="off">{$t('audiophile.lockNever' as any)}</option>
+              </select>
+            </div>
+          {/if}
+        {/each}
       {/if}
       <div class="setting-row">
         <div class="setting-label">
@@ -4253,7 +4499,7 @@ function setSettingsLevel(level: SettingsLevel) {
                 </button>
               {/if}
             {/if}
-            <button class="device-delete-btn" onclick={() => handleDeleteDevice(device.id, device.name)} title={$t('settings.deleteDevice')}>
+            <button class="device-delete-btn" disabled={ignoreBusy} onclick={() => handleIgnoreDevice(device.id, device.name)} title={$t('settings.ignoreDevice')} aria-label={$t('settings.ignoreDevice')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </label>
@@ -4264,20 +4510,57 @@ function setSettingsLevel(level: SettingsLevel) {
       </div>
     </section>
 
+    <!-- Appareils ignorés (#1280). Sans cet écran, l'utilisateur se piège
+         lui-même : un appareil ignoré n'est plus annoncé NULLE PART — ni dans
+         la liste ci-dessus, ni dans le sélecteur de création de zone — et il
+         n'aurait plus aucun moyen de le retrouver. C'est la seule vue depuis
+         laquelle le geste est réversible. -->
+    <section class="settings-section">
+      <h3>{$t('settings.ignoredDevices')}</h3>
+      <p class="muted">{$t('settings.ignoredDevicesIntro')}</p>
+      <div class="ignored-device-list">
+        {#each ignoredDevices as d (d.device_id)}
+          <div class="ignored-device-item">
+            <span class="ignored-device-name">{libelleAppareilIgnore(d)}</span>
+            {#if transportAppareilIgnore(d)}
+              <span class="ignored-device-tag">{transportAppareilIgnore(d)}</span>
+            {/if}
+            {#if detailAppareilIgnore(d)}
+              <span class="ignored-device-detail">{detailAppareilIgnore(d)}</span>
+            {/if}
+            <button
+              class="scan-btn small"
+              disabled={ignoreBusy}
+              onclick={() => handleUnignoreDevice(d)}
+            >
+              {$t('settings.unignoreDevice')}
+            </button>
+          </div>
+        {/each}
+        {#if ignoredDevices.length === 0}
+          <p class="muted">{$t('settings.noIgnoredDevices')}</p>
+        {/if}
+      </div>
+    </section>
+
     <!-- Local Audio Outputs -->
     <section class="settings-section">
       <h3>{$t('settings.localAudio')}</h3>
+      <!-- Les options viennent de `supported_audio_backends` (#1268). Une
+           liste vide = build sans sortie locale : pas de réglage à proposer. -->
+      {#if choixBackends.length > 0}
       <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.audioBackend')}>
         <span class="about-label">{$t('settings.audioBackend')}</span>
         <select class="log-level-select" value={audioBackend} onchange={(e) => changeAudioBackend((e.target as HTMLSelectElement).value)}>
-          <option value="auto">{$t('settings.autoDefault')}</option>
-          <option value="wasapi">WASAPI</option>
-          <option value="asio">ASIO (bit-perfect)</option>
+          {#each choixBackends as choix (choix.value)}
+            <option value={choix.value}>{libelleBackend(choix, $t)}</option>
+          {/each}
         </select>
       </div>
-      {#if audioBackend === 'wasapi'}
+      {/if}
+      {#if modeWasapiPertinent(choixBackends, audioBackend)}
       <div class="about-row" style="margin-bottom: 0.75rem" class:lv-hidden={!lvOk('network.wasapiMode')}>
-        <span class="about-label">Mode WASAPI</span>
+        <span class="about-label">{$t('settings.wasapiMode')}</span>
         <select class="log-level-select" value={exclusiveMode ? 'exclusive' : 'shared'} onchange={(e) => { const v = (e.target as HTMLSelectElement).value; if ((v === 'exclusive') !== exclusiveMode) toggleExclusiveMode(); }}>
           <option value="shared">{$t('settings.sharedDefault')}</option>
           <option value="exclusive">{$t('settings.exclusiveBitPerfect')}</option>
@@ -4363,6 +4646,228 @@ function setSettingsLevel(level: SettingsLevel) {
         </button>
       </div>
     </section>
+
+    <!-- #2171 — ce bloc vivait dans l'onglet « Services ». Un réglage PAR
+         ZONE qui agit sur la restitution (mode DSD, décalage des paroles,
+         fréquence maximale, volume fixe) n'a rien à faire avec les comptes et
+         les connexions extérieures : il appartient à « Réseau / Audio », aux
+         côtés d'« Audio local ». Bilou l'avait demandé pour le seul décalage
+         des paroles (forum #1376) ; couper la carte de zone en deux onglets
+         aurait été pire que le mal, donc la carte entière déménage. Les clés
+         de niveau suivent : `network.perZone*` / `network.zoneAdvanced` —
+         c'est le champ `tab` du registre qui alimente le compteur « n
+         réglages masqués » de l'onglet.
+         Gardé par src/lib/__tests__/reglagesParZoneOngletAudio.test.ts. -->
+    <!-- Réglages audio par zone : mode DSD, décalage des paroles, fréquence
+         maximale, volume fixe (+ le volet « Avancé » des rendus DLNA/OpenHome).
+         Ce commentaire annonçait « gapless », et l'intitulé affiché sous le
+         titre le répétait dans les onze langues — alors qu'aucun contrôle de
+         gapless n'a jamais existé ici (#2260). Le champ `gapless_enabled` EST
+         géré par le serveur, mais il ne vaut pas la même chose partout : la
+         sortie ne l'honore que si `supports_internal_gapless()` rend vrai —
+         DLNA, BluOS, pont, OpenHome avec service `playlist`, OAAT et la sortie
+         locale PARTAGÉE. Il est inerte sur Chromecast, SlimProto,
+         Squeezebox/LMS et sur une sortie locale en mode EXCLUSIF (ASIO /
+         WASAPI exclusif), où le poller n'arme jamais l'enchaînement. Une case
+         « Gapless » indifférenciée serait donc un nouveau réglage muet sur ces
+         zones-là — le défaut voisin de #2154. Tant que la capacité réelle
+         n'est pas exposée par zone de façon fiable (`output_capabilities` vaut
+         `null` dès que la sortie n'est pas ouverte), on ne promet pas.
+         Gardé par src/lib/__tests__/perZoneGaplessPromise.i18n.test.ts. -->
+    {#if $zones.length > 0}
+      <section class="settings-section" class:lv-hidden={!lvAny('network.perZoneLyricsOffset', 'network.perZoneFixedVolume', 'network.perZoneDsdMode', 'network.perZoneMaxSampleRate', 'network.zoneAdvanced')}>
+        <h3>{$t('settings.perZoneSettings')}</h3>
+        <p class="section-hint">{$t('settings.perZoneHint')}</p>
+        <div class="zone-settings-list">
+          {#each [{ key: 'local', label: $t('settings.zoneGroupLocal') }, { key: 'network', label: $t('settings.zoneGroupNetwork') }] as grp (grp.key)}
+            {@const groupZones = $zones.filter((z) => (grp.key === 'local' ? isLocalZone(z) : !isLocalZone(z)))}
+            {#if groupZones.length}
+              <div class="zone-group-header">{grp.label}</div>
+              {#each groupZones as z (z.id)}
+                {@const badge = zoneBadge(z.output_type)}
+                {@const hint = zoneDeviceHint(z)}
+                <div class="zone-card">
+                  <div class="zone-card-head">
+                    <span class="zone-card-name">{z.name}</span>
+                    <span class="zone-badge zone-badge-{badge.cls}">{badge.label}</span>
+                    {#if hint}<span class="zone-card-dev">{hint}</span>{/if}
+                    {#if !isLocalZone(z)}
+                      <span class="zone-online" class:offline={z.online === false}>
+                        <span class="zone-online-dot"></span>{z.online === false ? $t('settings.zoneOffline') : $t('settings.zoneOnline')}
+                      </span>
+                    {/if}
+                  </div>
+                  <div class="zone-card-row">
+                    <label class="zone-setting-label" class:lv-hidden={!lvOk('network.perZoneDsdMode')}>
+                      <span>DSD</span>
+                      <select
+                        class="zone-select"
+                        value={z.dsd_mode ?? 'auto'}
+                        onchange={async (e) => {
+                          const mode = (e.target as HTMLSelectElement).value;
+                          if (z.id == null) return;
+                          await api.updateZoneDsdMode(z.id, mode);
+                        }}
+                      >
+                        <option value="auto">Auto</option>
+                        <option value="native">{$t('settings.dsdNative')}</option>
+                        <option value="dop">DoP</option>
+                        <option value="pcm">{$t('settings.dsdPcm')}</option>
+                      </select>
+                    </label>
+                    <label class="zone-setting-label" class:lv-hidden={!lvOk('network.perZoneLyricsOffset')} title={$t('settings.lyricsOffsetHint' as any)}>
+                      <span>{$t('settings.lyricsOffset' as any)}</span>
+                      <select
+                        class="zone-select"
+                        value={String(z.lyrics_offset_ms ?? 0)}
+                        onchange={async (e) => {
+                          const ms = Number((e.target as HTMLSelectElement).value);
+                          if (z.id == null) return;
+                          z.lyrics_offset_ms = ms;
+                          await api.updateZoneLyricsOffset(z.id, ms);
+                        }}
+                      >
+                        {#each [0, 1000, 2000, 3000, 4000, 5000, 7000, 10000, 15000, 20000] as ms}
+                          <option value={String(ms)}>{ms === 0 ? $t('settings.lyricsOffsetNone' as any) : `+${ms / 1000} s`}</option>
+                        {/each}
+                      </select>
+                    </label>
+                    <label class="zone-setting-label" class:lv-hidden={!lvOk('network.perZoneMaxSampleRate')} title={$t('settings.maxSampleRateHint')}>
+                      <span>{$t('settings.maxSampleRate')}</span>
+                      <select
+                        class="zone-select"
+                        value={String(z.max_sample_rate ?? 0)}
+                        onchange={async (e) => {
+                          const v = Number((e.target as HTMLSelectElement).value);
+                          if (z.id == null) return;
+                          await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
+                        }}
+                      >
+                        <option value="0">{$t('settings.maxSampleRateNone')}</option>
+                        <option value="48000">48 kHz</option>
+                        <option value="88200">88.2 kHz</option>
+                        <option value="96000">96 kHz</option>
+                        <option value="176400">176.4 kHz</option>
+                        <option value="192000">192 kHz</option>
+                        <option value="352800">352.8 kHz</option>
+                        <option value="384000">384 kHz</option>
+                        <option value="705600">705.6 kHz</option>
+                        <option value="1411200">1411.2 kHz</option>
+                      </select>
+                    </label>
+                    <!-- Le serveur gérait ce réglage depuis toujours, mais
+                         aucun écran ne l'exposait : le commentaire du bloc le
+                         promettait, le contrôle n'existait pas. Or c'est LA
+                         condition du DoP qui survit — sans lui, un volume à
+                         100 % est rabaissé à 20 % à chaque redémarrage par le
+                         garde-fou anti-réveil (tune-server-rust#1616, Cyrille
+                         forum 1320). Activer épingle aussi le volume à 100 %
+                         en base : on le reflète localement sans attendre. -->
+                    <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.fixedVolumeHint')}>
+                      <input
+                        type="checkbox"
+                        checked={z.fixed_volume ?? false}
+                        onchange={async (e) => {
+                          const input = e.target as HTMLInputElement;
+                          const enabled = input.checked;
+                          if (z.id == null) return;
+                          let fullVolumeConfirmed = false;
+                          // Sur une zone RÉSEAU, activer envoie 100 % à
+                          // l'appareil lui-même (SetVolume au renderer) :
+                          // l'ampli part à fond — vécu par Cyrille sur son
+                          // Yamaha (forum 1320, réponse #21), très
+                          // désagréable et risqué pour les enceintes. On
+                          // demande confirmation AVANT, en nommant la
+                          // conséquence. Sur une zone locale, rien à
+                          // confirmer : 100 % logiciel est justement le but.
+                          if (enabled && !isLocalZone(z)) {
+                            // Même sécurité que l'installation Tune OS sur un
+                            // disque : un simple « OK » se clique sans lire.
+                            // Ici l'ampli part à fond — on exige de TAPER 100,
+                            // comme on exige de taper EFFACER avant d'écraser
+                            // un disque (Bertrand, 25/08).
+                            const typed = await dialogs.prompt($t('settings.fixedVolumeNetConfirm'));
+                            if (typed !== '100') {
+                              input.checked = false;
+                              return;
+                            }
+                            fullVolumeConfirmed = true;
+                          }
+                          try {
+                            await api.updateZoneFixedVolume(z.id, enabled, fullVolumeConfirmed);
+                            z.fixed_volume = enabled;
+                            if (enabled) z.volume = 100;
+                          } catch {
+                            // Refus serveur ou réseau : ne jamais afficher le
+                            // plein volume comme armé quand rien n'a été écrit.
+                            input.checked = z.fixed_volume ?? false;
+                          }
+                        }}
+                      />
+                      <span>{$t('settings.fixedVolume')}</span>
+                    </label>
+                  </div>
+                  {#if dopCappedToPcm(z)}
+                    <p class="zone-warn">{$t('settings.maxSampleRateDsdCap')}</p>
+                  {/if}
+                  {#if dsdVolumeInerte(z)}
+                    <p class="zone-note">{$t('settings.dsdVolumeNeutralised')}</p>
+                  {/if}
+                  {#if zoneHasAdvanced(z)}
+                    <details class="zone-adv" class:lv-hidden={!lvOk('network.zoneAdvanced')}>
+                      <summary class="zone-adv-summary">{$t('settings.zoneAdvanced')}</summary>
+                      <div class="zone-adv-body">
+                        {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
+                          <!-- Coherent per-renderer panel: discovery check + format
+                               overrides (FLAC/WAV/LPCM/16-bit) with the server's
+                               precedence. Owns LPCM + 16-bit, so no standalone
+                               duplicate checkboxes here. -->
+                          <RendererConfig zone={z} />
+                        {:else}
+                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
+                            <input
+                              type="checkbox"
+                              checked={z.alac_passthrough ?? false}
+                              onchange={async (e) => {
+                                if (z.id == null) return;
+                                await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                              }}
+                            />
+                            <span>{$t('settings.alacPassthrough')}</span>
+                          </label>
+                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.aacPassthroughHint')}>
+                            <input
+                              type="checkbox"
+                              checked={z.aac_passthrough ?? false}
+                              onchange={async (e) => {
+                                if (z.id == null) return;
+                                await api.updateZoneAacPassthrough(z.id, (e.target as HTMLInputElement).checked);
+                              }}
+                            />
+                            <span>{$t('settings.aacPassthrough')}</span>
+                          </label>
+                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
+                            <input
+                              type="checkbox"
+                              checked={z.dlna_lpcm ?? false}
+                              onchange={async (e) => {
+                                if (z.id == null) return;
+                                await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
+                              }}
+                            />
+                            <span>{$t('settings.dlnaLpcm')}</span>
+                          </label>
+                        {/if}
+                      </div>
+                    </details>
+                  {/if}
+                </div>
+              {/each}
+            {/if}
+          {/each}
+        </div>
+      </section>
+    {/if}
 
     <!-- DSD streaming to network (DLNA) renderers -->
     <section class="settings-section" class:lv-hidden={!lvOk('network.dsdNetwork')}>
@@ -4470,14 +4975,22 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label">{$t('settings.enrichOnScan')}<SettingHint k="settings.enrichOnScanHelp" labelKey="settings.enrichOnScan" /></label>
-        <label class="toggle-switch">
+        <!-- Chaque ligne porte DÉSORMAIS sa propre garde de niveau. Elles n'en
+             avaient pas : seule la section en portait une, et `lvAny` la rend
+             visible dès qu'UN de ses réglages l'est. Tant que les trois lignes
+             partageaient le même niveau, l'omission ne se voyait pas ; le jour
+             où « Paroles en ligne » descend au niveau débutant (#2859), elle
+             ouvrirait « Enrichir pendant le scan » — un réglage intermédiaire —
+             à tous les débutants. La garde par ligne est ce qui rend le
+             registre des niveaux réellement souverain. -->
+        <label class="pref-label" class:lv-hidden={!lvOk('library.enrichOnScan')}>{$t('settings.enrichOnScan')}<SettingHint k="settings.enrichOnScanHelp" labelKey="settings.enrichOnScan" /></label>
+        <label class="toggle-switch" class:lv-hidden={!lvOk('library.enrichOnScan')}>
           <input type="checkbox" checked={config.enrich_on_scan !== false && config.enrich_on_scan !== 'false'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.enrich_on_scan = val; await api.updateConfig({ enrich_on_scan: val }); }} />
           <span class="toggle-slider"></span>
         </label>
 
-        <label class="pref-label">{$t('settings.lyricsLrclib')}<SettingHint k="settings.lyricsLrclibHelp" labelKey="settings.lyricsLrclib" /></label>
-        <label class="toggle-switch">
+        <label class="pref-label" class:lv-hidden={!lvOk('library.lyricsLrclib')}>{$t('settings.lyricsLrclib')}<SettingHint k="settings.lyricsLrclibHelp" labelKey="settings.lyricsLrclib" /></label>
+        <label class="toggle-switch" class:lv-hidden={!lvOk('library.lyricsLrclib')}>
           <input type="checkbox" checked={config.lyrics_lrclib_enabled === true || config.lyrics_lrclib_enabled === 'true'} onchange={async (e) => { const val = (e.target as HTMLInputElement).checked; if (!config) return; config.lyrics_lrclib_enabled = val; await api.updateConfig({ lyrics_lrclib_enabled: val }); }} />
           <span class="toggle-slider"></span>
         </label>
@@ -4578,8 +5091,17 @@ function setSettingsLevel(level: SettingsLevel) {
         <button class="action-btn" onclick={async () => { await api.triggerEnrich(); enrichMsg = $t('settings.enrichStarted'); setTimeout(() => enrichMsg = '', 3000); }}>
           {$t('settings.enrichNow')}
         </button>
-        <button class="action-btn" style="margin-left: 8px;" onclick={startEnrichArtistImages} disabled={artistImgRunning}>
+        <button class="action-btn" style="margin-left: 8px;" onclick={() => startEnrichArtistImages('manquantes')} disabled={artistImgRunning}>
           {$t('settings.enrichArtistImages')}
+        </button>
+        <button
+          class="action-btn"
+          style="margin-left: 8px;"
+          onclick={() => startEnrichArtistImages('forcé')}
+          disabled={artistImgRunning}
+          use:tip={'settings.forceRefetchArtistImagesHint'}
+        >
+          {$t('settings.forceRefetchArtistImages')}
         </button>
         {#if enrichMsg}<span class="action-feedback">{enrichMsg}</span>{/if}
       </div>
@@ -4589,10 +5111,12 @@ function setSettingsLevel(level: SettingsLevel) {
             <div class="enrich-progress-fill" style="width: {artistImgTotal > 0 ? Math.min(100, Math.round((artistImgProcessed / artistImgTotal) * 100)) : 8}%"></div>
           </div>
           <span class="enrich-progress-text">
+            <!-- Le passage forcé retraite TOUT le monde : « n restants » y
+                 vaudrait toujours 0 et laisserait croire à un travail fini. -->
             {#if artistImgTotal > 0}
-              {artistImgProcessed} / {artistImgTotal} · {$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}
+              {artistImgProcessed} / {artistImgTotal}{artistImgForced ? '' : ` · ${$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}`}
             {:else}
-              {$t('settings.enrichArtistImagesWorking')} · {$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}
+              {$t('settings.enrichArtistImagesWorking')}{artistImgForced ? '' : ` · ${$t('settings.enrichArtistImagesRemaining').replace('{n}', String(artistImgRemaining))}`}
             {/if}
           </span>
         </div>
@@ -5081,202 +5605,6 @@ function setSettingsLevel(level: SettingsLevel) {
       </div>
     </section>
 
-    <!-- Zone audio settings (DSD mode, gapless, fixed volume) -->
-    {#if $zones.length > 0}
-      <section class="settings-section" class:lv-hidden={!lvAny('services.perZoneLyricsOffset', 'services.perZoneFixedVolume', 'services.perZoneDsdMode', 'services.perZoneMaxSampleRate', 'services.zoneAdvanced')}>
-        <h3>{$t('settings.perZoneSettings')}</h3>
-        <p class="section-hint">{$t('settings.perZoneHint')}</p>
-        <div class="zone-settings-list">
-          {#each [{ key: 'local', label: $t('settings.zoneGroupLocal') }, { key: 'network', label: $t('settings.zoneGroupNetwork') }] as grp (grp.key)}
-            {@const groupZones = $zones.filter((z) => (grp.key === 'local' ? isLocalZone(z) : !isLocalZone(z)))}
-            {#if groupZones.length}
-              <div class="zone-group-header">{grp.label}</div>
-              {#each groupZones as z (z.id)}
-                {@const badge = zoneBadge(z.output_type)}
-                {@const hint = zoneDeviceHint(z)}
-                <div class="zone-card">
-                  <div class="zone-card-head">
-                    <span class="zone-card-name">{z.name}</span>
-                    <span class="zone-badge zone-badge-{badge.cls}">{badge.label}</span>
-                    {#if hint}<span class="zone-card-dev">{hint}</span>{/if}
-                    {#if !isLocalZone(z)}
-                      <span class="zone-online" class:offline={z.online === false}>
-                        <span class="zone-online-dot"></span>{z.online === false ? $t('settings.zoneOffline') : $t('settings.zoneOnline')}
-                      </span>
-                    {/if}
-                  </div>
-                  <div class="zone-card-row">
-                    <label class="zone-setting-label" class:lv-hidden={!lvOk('services.perZoneDsdMode')}>
-                      <span>DSD</span>
-                      <select
-                        class="zone-select"
-                        value={z.dsd_mode ?? 'auto'}
-                        onchange={async (e) => {
-                          const mode = (e.target as HTMLSelectElement).value;
-                          if (z.id == null) return;
-                          await api.updateZoneDsdMode(z.id, mode);
-                        }}
-                      >
-                        <option value="auto">Auto</option>
-                        <option value="native">{$t('settings.dsdNative')}</option>
-                        <option value="dop">DoP</option>
-                        <option value="pcm">{$t('settings.dsdPcm')}</option>
-                      </select>
-                    </label>
-                    <label class="zone-setting-label" class:lv-hidden={!lvOk('services.perZoneLyricsOffset')} title={$t('settings.lyricsOffsetHint' as any)}>
-                      <span>{$t('settings.lyricsOffset' as any)}</span>
-                      <select
-                        class="zone-select"
-                        value={String(z.lyrics_offset_ms ?? 0)}
-                        onchange={async (e) => {
-                          const ms = Number((e.target as HTMLSelectElement).value);
-                          if (z.id == null) return;
-                          z.lyrics_offset_ms = ms;
-                          await api.updateZoneLyricsOffset(z.id, ms);
-                        }}
-                      >
-                        {#each [0, 1000, 2000, 3000, 4000, 5000, 7000, 10000, 15000, 20000] as ms}
-                          <option value={String(ms)}>{ms === 0 ? $t('settings.lyricsOffsetNone' as any) : `+${ms / 1000} s`}</option>
-                        {/each}
-                      </select>
-                    </label>
-                    <label class="zone-setting-label" class:lv-hidden={!lvOk('services.perZoneMaxSampleRate')} title={$t('settings.maxSampleRateHint')}>
-                      <span>{$t('settings.maxSampleRate')}</span>
-                      <select
-                        class="zone-select"
-                        value={String(z.max_sample_rate ?? 0)}
-                        onchange={async (e) => {
-                          const v = Number((e.target as HTMLSelectElement).value);
-                          if (z.id == null) return;
-                          await api.updateZoneMaxSampleRate(z.id, v > 0 ? v : null);
-                        }}
-                      >
-                        <option value="0">{$t('settings.maxSampleRateNone')}</option>
-                        <option value="48000">48 kHz</option>
-                        <option value="88200">88.2 kHz</option>
-                        <option value="96000">96 kHz</option>
-                        <option value="176400">176.4 kHz</option>
-                        <option value="192000">192 kHz</option>
-                        <option value="352800">352.8 kHz</option>
-                        <option value="384000">384 kHz</option>
-                        <option value="705600">705.6 kHz</option>
-                        <option value="1411200">1411.2 kHz</option>
-                      </select>
-                    </label>
-                    <!-- Le serveur gérait ce réglage depuis toujours, mais
-                         aucun écran ne l'exposait : le commentaire du bloc le
-                         promettait, le contrôle n'existait pas. Or c'est LA
-                         condition du DoP qui survit — sans lui, un volume à
-                         100 % est rabaissé à 20 % à chaque redémarrage par le
-                         garde-fou anti-réveil (tune-server-rust#1616, Cyrille
-                         forum 1320). Activer épingle aussi le volume à 100 %
-                         en base : on le reflète localement sans attendre. -->
-                    <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.fixedVolumeHint')}>
-                      <input
-                        type="checkbox"
-                        checked={z.fixed_volume ?? false}
-                        onchange={async (e) => {
-                          const input = e.target as HTMLInputElement;
-                          const enabled = input.checked;
-                          if (z.id == null) return;
-                          let fullVolumeConfirmed = false;
-                          // Sur une zone RÉSEAU, activer envoie 100 % à
-                          // l'appareil lui-même (SetVolume au renderer) :
-                          // l'ampli part à fond — vécu par Cyrille sur son
-                          // Yamaha (forum 1320, réponse #21), très
-                          // désagréable et risqué pour les enceintes. On
-                          // demande confirmation AVANT, en nommant la
-                          // conséquence. Sur une zone locale, rien à
-                          // confirmer : 100 % logiciel est justement le but.
-                          if (enabled && !isLocalZone(z)) {
-                            // Même sécurité que l'installation Tune OS sur un
-                            // disque : un simple « OK » se clique sans lire.
-                            // Ici l'ampli part à fond — on exige de TAPER 100,
-                            // comme on exige de taper EFFACER avant d'écraser
-                            // un disque (Bertrand, 25/08).
-                            const typed = await dialogs.prompt($t('settings.fixedVolumeNetConfirm'));
-                            if (typed !== '100') {
-                              input.checked = false;
-                              return;
-                            }
-                            fullVolumeConfirmed = true;
-                          }
-                          try {
-                            await api.updateZoneFixedVolume(z.id, enabled, fullVolumeConfirmed);
-                            z.fixed_volume = enabled;
-                            if (enabled) z.volume = 100;
-                          } catch {
-                            // Refus serveur ou réseau : ne jamais afficher le
-                            // plein volume comme armé quand rien n'a été écrit.
-                            input.checked = z.fixed_volume ?? false;
-                          }
-                        }}
-                      />
-                      <span>{$t('settings.fixedVolume')}</span>
-                    </label>
-                  </div>
-                  {#if dopCappedToPcm(z)}
-                    <p class="zone-warn">{$t('settings.maxSampleRateDsdCap')}</p>
-                  {/if}
-                  {#if dsdVolumeInerte(z)}
-                    <p class="zone-note">{$t('settings.dsdVolumeNeutralised')}</p>
-                  {/if}
-                  {#if zoneHasAdvanced(z)}
-                    <details class="zone-adv" class:lv-hidden={!lvOk('services.zoneAdvanced')}>
-                      <summary class="zone-adv-summary">{$t('settings.zoneAdvanced')}</summary>
-                      <div class="zone-adv-body">
-                        {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
-                          <!-- Coherent per-renderer panel: discovery check + format
-                               overrides (FLAC/WAV/LPCM/16-bit) with the server's
-                               precedence. Owns LPCM + 16-bit, so no standalone
-                               duplicate checkboxes here. -->
-                          <RendererConfig zone={z} />
-                        {:else}
-                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.alacPassthroughHint')}>
-                            <input
-                              type="checkbox"
-                              checked={z.alac_passthrough ?? false}
-                              onchange={async (e) => {
-                                if (z.id == null) return;
-                                await api.updateZoneAlacPassthrough(z.id, (e.target as HTMLInputElement).checked);
-                              }}
-                            />
-                            <span>{$t('settings.alacPassthrough')}</span>
-                          </label>
-                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.aacPassthroughHint')}>
-                            <input
-                              type="checkbox"
-                              checked={z.aac_passthrough ?? false}
-                              onchange={async (e) => {
-                                if (z.id == null) return;
-                                await api.updateZoneAacPassthrough(z.id, (e.target as HTMLInputElement).checked);
-                              }}
-                            />
-                            <span>{$t('settings.aacPassthrough')}</span>
-                          </label>
-                          <label class="zone-setting-label zone-setting-checkbox" title={$t('settings.dlnaLpcmHint')}>
-                            <input
-                              type="checkbox"
-                              checked={z.dlna_lpcm ?? false}
-                              onchange={async (e) => {
-                                if (z.id == null) return;
-                                await api.updateZoneDlnaLpcm(z.id, (e.target as HTMLInputElement).checked);
-                              }}
-                            />
-                            <span>{$t('settings.dlnaLpcm')}</span>
-                          </label>
-                        {/if}
-                      </div>
-                    </details>
-                  {/if}
-                </div>
-              {/each}
-            {/if}
-          {/each}
-        </div>
-      </section>
-    {/if}
-
     <!-- Squeezebox / Lyrion Music Server -->
     {#if config}
       <section class="settings-section" class:lv-hidden={!lvOk('services.squeezebox')}>
@@ -5656,6 +5984,15 @@ function setSettingsLevel(level: SettingsLevel) {
         {#if cloudTelemetryInstanceId}
           <div class="cloud-instance-id">{$t('settings.instance')} : <code>{cloudTelemetryInstanceId}</code></div>
         {/if}
+        {#if cloudRateLimits.length > 0}
+          <div class="cloud-rate-limit-notice" role="status">
+            <span aria-hidden="true">⏳</span>
+            <span>
+              {$t('settings.cloudRateLimitPaused')}
+              {$t('settings.cloudRetryIn')} {formatBackoffDuration(longestCloudBackoffSeconds())}.
+            </span>
+          </div>
+        {/if}
       </div>
 
       <!-- Community metadata sync (opt-in). The server-side loop (resolve
@@ -5720,6 +6057,47 @@ function setSettingsLevel(level: SettingsLevel) {
             </span>
           </div>
         </div>
+      {/if}
+
+      {#if $offlineGrace}
+        <!-- Grâce hors ligne (#1999) : dire ce qui se passe, sans alarmer. -->
+        <div
+          class="license-grace-banner"
+          class:lapsed={$offlineGrace.phase === 'expired'}
+          role="status"
+        >
+          <svg class="license-grace-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 15 14" />
+          </svg>
+          <div class="license-grace-text">
+            {#if $offlineGrace.phase === 'grace'}
+              <strong>{$t('settings.licenseGraceTitle')}</strong>
+              <span>
+                {$t('settings.licenseGraceBody')
+                  .replace('{since}', graceDate($offlineGrace.since))
+                  .replace('{until}', graceDate($offlineGrace.until))
+                  .replace('{remaining}', graceDays($offlineGrace.days_remaining))}
+              </span>
+            {:else if $offlineGrace.since}
+              <strong>{$t('settings.licenseGraceLapsedTitle')}</strong>
+              <span>
+                {$t('settings.licenseGraceLapsedBody')
+                  .replace('{since}', graceDate($offlineGrace.since))
+                  .replace('{days}', String($offlineGrace.total_days))}
+              </span>
+            {:else}
+              <strong>{$t('settings.licenseGraceNeverTitle')}</strong>
+              <span>{$t('settings.licenseGraceNeverBody')}</span>
+            {/if}
+          </div>
+        </div>
+      {/if}
+
+      {#if $licenseState.offlineGrace}
+        <!-- La règle, écrite noir sur blanc, avec le chiffre du serveur. -->
+        <p class="license-grace-rule">
+          {$t('settings.licenseOfflineRule').replace('{days}', String($licenseState.offlineGrace.total_days))}
+        </p>
       {/if}
 
       {#if $licenseState.licenseKey}
@@ -6734,6 +7112,54 @@ function setSettingsLevel(level: SettingsLevel) {
     flex-shrink: 0;
   }
 
+  /* Appareils ignorés (#1280) — même grammaire que la liste au-dessus, sans
+     la case à cocher : ces appareils ne sont plus proposés du tout, il n'y a
+     rien à afficher/masquer, seulement à débloquer. */
+  .ignored-device-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .ignored-device-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--tune-text);
+  }
+
+  .ignored-device-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ignored-device-tag {
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tune-text-muted);
+    background: var(--tune-bg);
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+
+  .ignored-device-detail {
+    font-family: var(--font-label);
+    font-size: 10px;
+    color: var(--tune-text-muted);
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
   .pairing-pin-input {
     width: 80px;
     padding: 3px 8px;
@@ -6970,6 +7396,15 @@ function setSettingsLevel(level: SettingsLevel) {
   .update-text {
     flex: 1;
     font-size: 13px;
+  }
+
+  /* La machine visée par la mise à jour (#2110), sur sa propre ligne pour
+     qu'on la lise avant d'appuyer sur le bouton. */
+  .update-target {
+    display: block;
+    margin-top: 3px;
+    font-size: 12px;
+    opacity: 0.85;
   }
 
   .update-btn {
@@ -7869,6 +8304,20 @@ function setSettingsLevel(level: SettingsLevel) {
     font-size: 10px;
   }
 
+  .cloud-rate-limit-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px solid color-mix(in srgb, var(--tune-warning, #d89b2b) 45%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text);
+    background: color-mix(in srgb, var(--tune-warning, #d89b2b) 10%, transparent);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
   /* License / Premium section */
   .license-tier-row {
     display: flex;
@@ -7974,6 +8423,54 @@ function setSettingsLevel(level: SettingsLevel) {
     font-size: 13px;
     line-height: 1.4;
     color: var(--tune-text);
+  }
+
+  /* Grâce hors ligne (#1999). Bleu informatif tant que le Premium tient : la
+     tolérance EXISTE pour couvrir une coupure, l'annoncer en rouge serait un
+     contresens. Le ton ne passe à l'avertissement qu'une fois la fenêtre
+     écoulée, quand quelque chose a réellement changé pour l'utilisateur. */
+  .license-grace-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+    border: 1px solid var(--tune-accent, #3b82f6);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--tune-accent, #3b82f6) 10%, transparent);
+  }
+
+  .license-grace-banner.lapsed {
+    border-color: var(--tune-warning, #f59e0b);
+    background: color-mix(in srgb, var(--tune-warning, #f59e0b) 12%, transparent);
+  }
+
+  .license-grace-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--tune-accent, #3b82f6);
+  }
+
+  .license-grace-banner.lapsed .license-grace-icon {
+    color: var(--tune-warning, #f59e0b);
+  }
+
+  .license-grace-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--tune-text);
+  }
+
+  .license-grace-rule {
+    margin: 0 0 var(--space-md);
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--tune-text-muted, #888888);
   }
 
   .license-conflict-text strong {

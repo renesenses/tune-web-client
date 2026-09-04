@@ -2,7 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
-  import { t } from '../lib/i18n';
+  import { t, locale } from '../lib/i18n';
+  import { messageErreurSupport } from '../lib/supportErrors';
   import { zones, currentZone } from '../lib/stores/zones';
   import { copyText } from '../lib/utils';
   import { licenseState, isPremium } from '../lib/stores/license';
@@ -34,20 +35,11 @@
 
   let error = $state<string | null>(null);
 
-  // apiPost lève Error(status) ; on traduit les cas utiles (cf. #1267 : toujours
-  // exposer le statut HTTP non mappé plutôt qu'un générique aveugle).
+  // apiPost lève Error(status) ; la traduction vit dans `lib/supportErrors.ts`,
+  // pur et testé (cf. #1267 : toujours exposer le statut HTTP non mappé plutôt
+  // qu'un générique aveugle ; #2178 : un 429 doit dire QUOI et QUAND).
   function friendlyError(e: unknown): string {
-    const msg = e instanceof Error ? e.message : String(e);
-    const tr = get(t);
-    const httpStatus = (e as { status?: number })?.status;
-    // Erreurs de pièces jointes (400 type/nombre, 413 trop gros) : le serveur
-    // renvoie déjà un message FR explicite — on l'affiche tel quel.
-    if ((httpStatus === 400 || httpStatus === 413) && msg && !/^\d{3}$/.test(msg)) return msg;
-    if (msg.includes('412')) return tr('support.errorNotConnected');
-    if (msg.includes('403')) return tr('support.errorPremiumOnly');
-    if (msg.includes('401')) return tr('support.errorSessionExpired');
-    const status = msg.match(/\b(\d{3})\b/)?.[1];
-    return status ? `${tr('support.errorGeneric')} (${status})` : tr('support.errorGeneric');
+    return messageErreurSupport(e, tr1, get(locale));
   }
 
   function fmtDate(iso: string | null | undefined): string {
@@ -198,7 +190,7 @@
     }
 
     // Espace disque — uniquement si l'API existante y donne accès.
-    if (adminHealth && adminHealth.disk_total_gb > 0) {
+    if (adminHealth?.disk_free_gb != null && adminHealth.disk_total_gb != null && adminHealth.disk_total_gb > 0) {
       const free = adminHealth.disk_free_gb;
       const total = adminHealth.disk_total_gb;
       const ratio = free / total;
@@ -272,7 +264,8 @@
       replies = data?.replies ?? [];
       // Marquer lu (silencieux) et rafraîchir la pastille sidebar.
       if (currentTicket && currentTicket.unread_count > 0) {
-        api.markSupportTicketRead(id, key).then(() => refreshSupportUnread()).catch(() => {});
+        // Sans la clé : le relais local la résout depuis ses réglages (#2559).
+        api.markSupportTicketRead(id).then(() => refreshSupportUnread()).catch(() => {});
         tickets = tickets.map((tk) => (tk.id === id ? { ...tk, unread_count: 0 } : tk));
       }
     } catch {

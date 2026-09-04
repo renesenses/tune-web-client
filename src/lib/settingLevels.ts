@@ -39,9 +39,13 @@ export interface SettingLevelEntry {
  * Registre central : clé de réglage → { onglet, niveau }.
  *
  * Les niveaux viennent de l'inventaire du ticket #1617 ; les clés suivent
- * l'implantation RÉELLE des blocs dans SettingsView (certains réglages que le
- * ticket rangeait dans « Réseau & Audio » vivent aujourd'hui dans l'onglet
- * Services : par-zone, Squeezebox, HQPlayer…).
+ * l'implantation RÉELLE des blocs dans SettingsView. Le préfixe de la clé et le
+ * champ `tab` disent la même chose et doivent le rester : c'est `tab` qui
+ * alimente le compteur « n réglages masqués » de l'onglet, et une clé qui ment
+ * sur son onglet fait compter les réglages du mauvais côté. Les réglages
+ * par-zone ont ainsi suivi leur bloc de « Services » vers « Réseau & Audio »
+ * (#2171). Restent dans Services des blocs que l'inventaire #1617 rangeait
+ * ailleurs : Squeezebox et HQPlayer, qui sont bien des serveurs extérieurs.
  */
 export const SETTING_LEVELS = {
   // ── Général ──────────────────────────────────────────────────────────
@@ -53,8 +57,6 @@ export const SETTING_LEVELS = {
   'general.streamingQuality': { tab: 'general', level: 'beginner' },
   'general.loopByDefault': { tab: 'general', level: 'beginner' },
   'general.lockVolume': { tab: 'general', level: 'intermediate' },
-  'general.crossfade': { tab: 'general', level: 'intermediate' },
-  'general.crossfadeDuration': { tab: 'general', level: 'intermediate', sub: true },
   'general.volumeDisplay': { tab: 'general', level: 'intermediate' },
   'general.voiceCommand': { tab: 'general', level: 'intermediate' },
 
@@ -69,7 +71,18 @@ export const SETTING_LEVELS = {
   'library.scanSchedule': { tab: 'library', level: 'intermediate' },
   'library.scanScheduleTime': { tab: 'library', level: 'intermediate', sub: true },
   'library.enrichOnScan': { tab: 'library', level: 'intermediate' },
-  'library.lyricsLrclib': { tab: 'library', level: 'intermediate' },
+  // Débutant, et non intermédiaire (arbitrage Bertrand, 30/08, #2859).
+  //
+  // La récupération en ligne est la SEULE source de paroles qu'un utilisateur
+  // puisse obtenir sans poser lui-même un `.lrc` à côté de chaque morceau, et
+  // le serveur la garde désactivée par défaut (`lyrics_lrclib_enabled`). Tant
+  // que cette entrée valait `intermediate`, le seul interrupteur qui l'allume
+  // était invisible au niveau par défaut : l'option existait, personne ne
+  // pouvait l'atteindre sans savoir qu'il fallait d'abord changer de niveau
+  // d'affichage. Pierre M l'a vécu comme une panne (fil forum 1617) — et une
+  // fonction qu'on ne peut pas trouver ne se distingue pas d'une fonction
+  // absente.
+  'library.lyricsLrclib': { tab: 'library', level: 'beginner' },
   'library.replaygainAnalysis': { tab: 'library', level: 'intermediate' },
   'library.oxygenEnable': { tab: 'library', level: 'intermediate' },
   'library.oxygenView': { tab: 'library', level: 'intermediate' },
@@ -95,12 +108,7 @@ export const SETTING_LEVELS = {
   'services.spotifyConnect': { tab: 'services', level: 'intermediate' },
   'services.zoneAutoCreate': { tab: 'services', level: 'intermediate' },
   'services.followMe': { tab: 'services', level: 'intermediate' },
-  'services.perZoneLyricsOffset': { tab: 'services', level: 'intermediate' },
-  'services.perZoneFixedVolume': { tab: 'services', level: 'intermediate' },
   'services.deezerArl': { tab: 'services', level: 'expert', sub: true },
-  'services.perZoneDsdMode': { tab: 'services', level: 'expert' },
-  'services.perZoneMaxSampleRate': { tab: 'services', level: 'expert' },
-  'services.zoneAdvanced': { tab: 'services', level: 'expert' },
   'services.squeezebox': { tab: 'services', level: 'expert' },
   'services.hqplayer': { tab: 'services', level: 'expert' },
 
@@ -114,11 +122,16 @@ export const SETTING_LEVELS = {
   'network.wasapiMode': { tab: 'network', level: 'intermediate', sub: true },
   'network.eqBands': { tab: 'network', level: 'intermediate' },
   'network.tuneBridge': { tab: 'network', level: 'intermediate' },
+  'network.perZoneLyricsOffset': { tab: 'network', level: 'intermediate' },
+  'network.perZoneFixedVolume': { tab: 'network', level: 'intermediate' },
   'network.multiroomOffsets': { tab: 'network', level: 'expert' },
   'network.audioBackend': { tab: 'network', level: 'expert' },
   'network.replayGainPreamp': { tab: 'network', level: 'expert', sub: true },
   'network.replayGainAntiClip': { tab: 'network', level: 'expert', sub: true },
   'network.dsdNetwork': { tab: 'network', level: 'expert' },
+  'network.perZoneDsdMode': { tab: 'network', level: 'expert' },
+  'network.perZoneMaxSampleRate': { tab: 'network', level: 'expert' },
+  'network.zoneAdvanced': { tab: 'network', level: 'expert' },
 
   // ── Système ──────────────────────────────────────────────────────────
   'system.accessFromDevice': { tab: 'system', level: 'beginner' },

@@ -97,6 +97,10 @@ export interface Track {
   album_artist?: string | null;
   disc_number?: number;
   disc_subtitle?: string | null;
+  /** Tag GROUPING / TIT1 / ©grp — découpe les pistes en sections À L'INTÉRIEUR
+   *  d'un disque (mouvements, bonus, ensembles), là où `disc_subtitle` nomme le
+   *  disque entier. Absent de la réponse quand la piste n'en porte pas (#2130). */
+  grouping?: string | null;
   track_number?: number;
   duration_ms?: number;
   file_path?: string | null;
@@ -224,6 +228,15 @@ export interface Zone {
   current_track?: NowPlaying | null;
   position_ms?: number;
   queue_length?: number;
+  /** Index de la piste en cours dans la file. Porté par `GET /zones/{id}` (pas
+   *  par la liste `/zones`) et par les événements `playback.started` /
+   *  `playback.track_changed` : il évite de retélécharger la file entière à
+   *  chaque avance de piste (#1096). Absent des serveurs plus anciens. */
+  queue_position?: number;
+  /** Décision autoritaire de l'endpoint « suivant ». Elle suit la permutation
+   *  réelle sous aléatoire, contrairement à `queue_position` et à l'ordre brut
+   *  de la file. Absente avec un serveur antérieur à #2337. */
+  can_skip_next?: boolean;
   signal_path?: SignalPath | null;
   stereo_pair_id?: string | null;
   stereo_channel?: 'left' | 'right' | null;
@@ -388,6 +401,10 @@ export interface DiscoveredDevice {
   port: number;
   available?: boolean;
   capabilities?: Record<string, any>;
+  /** A matching zone exists but was soft-deleted by the user. */
+  zone_hidden?: boolean;
+  /** Exact primary or alternative identity that owns the hidden zone. */
+  hidden_zone_device_id?: string;
   /** Marque : description UPnP/mDNS, sinon dérivée de l'OUI de la MAC. */
   manufacturer?: string | null;
   model?: string | null;
@@ -502,6 +519,10 @@ export interface SystemHealth {
   // Server /system/health does not currently send a components map; keep optional
   // so the Diagnostics view degrades gracefully instead of crashing on render.
   components?: Record<string, boolean>;
+  version?: string;
+  /** Nom lisible de la machine qui répond (#2110). Optionnel : un serveur plus
+   *  ancien que le correctif ne l'envoie pas, et l'étiquette s'efface alors. */
+  server_name?: string;
 }
 
 /** Réglage booléen tel que /system/config peut réellement le renvoyer.
@@ -552,6 +573,10 @@ export interface SystemConfig {
   appliance?: boolean;
   // Access URLs from another device (IP + .local) — shown in Settings
   server_urls?: string[];
+  /** Nom lisible de CETTE machine (#2110), réglable, par défaut le nom d'hôte.
+   *  Répond à « à quel serveur je parle ? » — à ne pas confondre avec la zone,
+   *  qui répond à « quelle enceinte joue ? ». */
+  server_name?: string;
   // Database
   db_engine: string;
   db_path?: string | null;
@@ -569,21 +594,6 @@ export interface SystemStats {
   artists: number;
   zones: number;
   devices: number;
-}
-
-export interface AudioCheckIssue {
-  code: string;
-  message: string;
-  severity: 'error' | 'warning';
-}
-
-export interface AudioCheckResult {
-  zones: number;
-  zones_with_output: number;
-  local_outputs: { id: number; name: string; channels: number; default: boolean }[];
-  network_renderers: { id: string; name: string; type: string }[];
-  has_audio: boolean;
-  issues: AudioCheckIssue[];
 }
 
 export interface ZoneGroupResponse {
@@ -623,6 +633,37 @@ export interface CompletenessStats {
 export interface ArtworkRescanResult {
   status: 'found' | 'not_found';
   cover_path: string | null;
+}
+
+/** Résultat d'une ré-identification d'album (`POST /library/albums/{id}/reidentify`).
+ *
+ *  Le `verdict` est délibérément explicite : « retomber sur le même pressage »
+ *  n'est pas un échec mais ce n'est pas non plus une correction, et l'utilisateur
+ *  doit pouvoir faire la différence — sans quoi il recommence indéfiniment. */
+export interface ReidentifyResult {
+  album_id: number;
+  /** `reidentified` : nouveau pressage. `unchanged` : le même qu'avant, la
+   *  source en ligne confirme. `not_found` : rien trouvé, l'identification
+   *  précédente a été reposée. `no_tracks` : rien à ré-identifier. */
+  verdict: 'reidentified' | 'unchanged' | 'not_found' | 'no_tracks';
+  tracks_total: number;
+  tracks_matched?: number;
+  tracks_unmatched?: number;
+  was_identified_before?: boolean;
+  previous_release_id?: string | null;
+  release_id?: string;
+  release_group_id?: string | null;
+  release_title?: string;
+  release_artist?: string;
+  release_date?: string | null;
+  release_country?: string | null;
+  release_disambiguation?: string | null;
+  match_score?: number;
+  /** Champs que Tune a refusé d'écraser parce qu'ils portaient déjà une valeur. */
+  fields_left_as_is?: string[];
+  previous_identification_restored?: boolean;
+  searched_title?: string;
+  searched_artist?: string;
 }
 
 export interface BrowseRootEntry {
@@ -668,7 +709,12 @@ export interface MediaServer {
   port: number;
   manufacturer: string;
   model: string;
-  available: boolean;
+  /** État publié par `/network/media-servers` depuis Tune Server 0.9.118.
+   *  Optionnel pour rester compatible avec un serveur plus ancien : une
+   *  absence est un état inconnu, jamais la preuve d'une indisponibilité. */
+  reachable?: boolean;
+  /** Secondes depuis la dernière annonce SSDP reçue. */
+  last_seen_secs?: number;
 }
 
 export interface MediaServerContainer {
@@ -768,12 +814,6 @@ export interface StreamingTrackInfo {
   bit_depth?: number | null;
   channels?: number;
   cover_path?: string | null;
-}
-
-// Unified playlist manager
-export interface UnifiedPlaylistsResponse {
-  local: Playlist[];
-  services: Record<string, StreamingPlaylist[]>;
 }
 
 export interface PlaylistImportResponse {

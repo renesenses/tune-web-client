@@ -22,6 +22,7 @@
   import * as api from '../lib/api';
   import { connectionState } from '../lib/stores/connection';
   import { t } from '../lib/i18n';
+  import { suiviOuverture } from '../lib/ouvertureFlux.svelte';
   import AlbumArt from './AlbumArt.svelte';
   import type { Track } from '../lib/types';
 
@@ -29,6 +30,32 @@
   let track = $derived($currentTrack);
   let playState = $derived($playbackState);
   let playing = $derived(playState === 'playing');
+
+  // ── Ouverture du flux (#2267, second volet) ──────────────────────────────
+  //
+  // Le mini-lecteur est ce qui reste sous les yeux pendant qu'on fait autre
+  // chose. Quand un flux met du temps à s'ouvrir — NAS en WiFi, renderer
+  // réseau, extraction YouTube mesurée à 32 s chez un testeur (#1359) — il
+  // affichait « Aucune lecture » : littéralement le contraire de ce qui se
+  // passe, puisque la demande a été acceptée. DEvir l'avait demandé en juin
+  // (stub forum #164) dans ces termes : « le titre affiche "Chargement..."
+  // avec une animation subtile au lieu de rester figé ».
+  //
+  // Le premier volet (la barre de lecture, v0.9.114) a établi que le serveur
+  // sait déjà : `ZoneState.resolving` (`tune-core/src/playback/mod.rs:132`)
+  // arrive jusqu'ici sans une ligne de Rust à écrire. Décision et câblage sont
+  // partagés avec la barre — voir lib/ouvertureFlux[.svelte].
+  const ouvertureFlux = suiviOuverture(() => zone);
+  let ouverture = $derived(ouvertureFlux.visible);
+
+  // Réemploi de `zone.buffering` — « Chargement » en français, traduite dans
+  // les onze langues et jusqu'ici référencée NULLE PART. Elle avait été posée
+  // par anticipation pour cette demande précise, puis oubliée ; le corps de
+  // l'issue la relevait comme morte. Elle reprend ici son emploi, et aucune
+  // clé n'est inventée.
+  let titreAffiche = $derived(
+    ouverture ? $t('zone.buffering') : (track?.title ?? $t('nowplaying.noPlayback')),
+  );
 
   let volume = $state(1);
   $effect(() => {
@@ -130,8 +157,8 @@
   </div>
 
   <div class="mini-meta">
-    <span class="mini-title truncate">{track?.title ?? $t('nowplaying.noPlayback')}</span>
-    <span class="mini-artist truncate">{track?.artist_name ?? ''}</span>
+    <span class="mini-title truncate" class:ouverture aria-busy={ouverture} title={titreAffiche}>{titreAffiche}</span>
+    <span class="mini-artist truncate" title={track?.artist_name ?? ''}>{track?.artist_name ?? ''}</span>
   </div>
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -168,6 +195,7 @@
         upNextCount: $upNextCount,
         repeat: $repeatMode,
         shuffle: $shuffleEnabled,
+        canSkipNext: zone?.can_skip_next,
       })}
       onclick={() => controls.skipNext(zone)}
       aria-label={$t('transport.next')}
@@ -189,8 +217,8 @@
         {#each results as r}
           <li>
             <button onclick={() => playResult(r)}>
-              <span class="truncate">{r.title}</span>
-              <small class="truncate">{r.artist_name ?? ''}</small>
+              <span class="truncate" title={r.title}>{r.title}</span>
+              <small class="truncate" title={r.artist_name ?? ''}>{r.artist_name ?? ''}</small>
             </button>
           </li>
         {/each}
@@ -231,6 +259,22 @@
   .mini-cover { display: flex; justify-content: center; }
   .mini-meta { display: flex; flex-direction: column; text-align: center; gap: 2px; }
   .mini-title { font-weight: 600; font-size: 14px; }
+  /* « Animation subtile », mot pour mot la demande : une respiration lente sur
+     le texte, rien qui se déplace. Le mini-lecteur tient dans 320 px et reste
+     ouvert des heures — un mouvement franc y deviendrait insupportable. */
+  .mini-title.ouverture {
+    color: var(--tune-text-muted);
+    animation: mini-ouverture 1.6s ease-in-out infinite;
+  }
+  @keyframes mini-ouverture {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+  }
+  /* Une animation qui boucle sans fin est précisément ce que ce réglage
+     système existe pour éteindre. L'état reste lisible sans elle. */
+  @media (prefers-reduced-motion: reduce) {
+    .mini-title.ouverture { animation: none; opacity: 0.7; }
+  }
   .mini-artist { font-size: 12px; color: var(--tune-text-muted); }
   .mini-seek {
     height: 4px;

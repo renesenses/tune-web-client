@@ -6,8 +6,10 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { deviceHasBoundZone, deviceZoneActionKey, deviceZoneSuccessKey, deviceZoneTargetId } from '../lib/hiddenZoneRecovery';
   import OaatGroupsPanel from './OaatGroupsPanel.svelte';
   import AirplayPairingModal from './AirplayPairingModal.svelte';
+  import OutputModuleBanner from './OutputModuleBanner.svelte';
   import type { Zone, ZoneGroupResponse, OutputType, DiscoveredDevice, StereoPairInfo, LocalAudioDevice } from '../lib/types';
 
   // --- State ---
@@ -36,11 +38,6 @@
   // Latency measurement
   let measuringLatency = $state<number | null>(null);
   let latencyResults = $state<Record<number, number>>({});
-
-  // Group calibration
-  let calibratingGroupId = $state<string | null>(null);
-  // group_id -> { zone_id -> sync_delay_ms }
-  let calibrationResults = $state<Record<string, Record<number, number>>>({});
 
   // Change output
   let changingOutputId = $state<number | null>(null);
@@ -79,6 +76,36 @@
 
   $effect(() => {
     loadData();
+  });
+
+  /** L'instantané `output_providers` de `/system/diagnostics` (#2392).
+   *
+   *  Il est chargé ICI, sur l'écran des Zones, et pas seulement dans
+   *  Diagnostics. Diagnostics est l'endroit logique ; ce n'est pas celui où
+   *  l'utilisateur va quand aucun appareil n'apparaît. Le bêta-testeur du
+   *  module Diretta a réinstallé son système d'exploitation sans jamais ouvrir
+   *  Diagnostics — il est venu ici, a vu une liste vide, et n'a rien appris.
+   */
+  let instantaneFournisseurs = $state<unknown>(null);
+
+  /** Chargement délibérément SÉPARÉ de `loadData`.
+   *
+   *  Une panne de `/system/diagnostics` ne doit pas priver l'écran de ses
+   *  zones, et une panne des zones ne doit pas priver l'utilisateur de
+   *  l'explication qu'il est venu chercher. Un échec laisse simplement
+   *  l'instantané à `null`, donc aucun bandeau : on n'invente aucun refus.
+   */
+  async function loadStatutFournisseurs() {
+    try {
+      const diag = await api.getServerDiagnostics();
+      instantaneFournisseurs = diag?.output_providers ?? null;
+    } catch {
+      instantaneFournisseurs = null;
+    }
+  }
+
+  $effect(() => {
+    loadStatutFournisseurs();
   });
 
   // --- Zone helpers ---
@@ -392,24 +419,13 @@
     try {
       const result = await api.measureLatency();
       const entry = (result.latencies ?? []).find((l: any) => l.zone_id === zoneId);
-      latencyResults = { ...latencyResults, [zoneId]: entry?.estimated_latency_ms ?? entry?.rtt_ms ?? null };
+      const controlRtt = entry?.control_rtt?.p50_ms;
+      if (typeof controlRtt !== 'number') throw new Error(entry?.status ?? 'probe_failed');
+      latencyResults = { ...latencyResults, [zoneId]: controlRtt };
     } catch (e: any) {
       notifications.error('Latency: ' + e.message);
     } finally {
       measuringLatency = null;
-    }
-  }
-
-  async function handleCalibrateGroup(group: ZoneGroupResponse) {
-    calibratingGroupId = group.group_id;
-    try {
-      const result = await api.calibrateGroup(group.group_id);
-      calibrationResults = { ...calibrationResults, [group.group_id]: result.calibration ?? {} };
-      notifications.success($t('zone.calibrate') + ' OK');
-    } catch (e: any) {
-      notifications.error('Calibration: ' + e.message);
-    } finally {
-      calibratingGroupId = null;
     }
   }
 
@@ -426,9 +442,9 @@
 
   async function createZoneFromDevice(device: DiscoveredDevice) {
     try {
-      const zone = await api.createZone(device.name, device.type, device.id);
+      const zone = await api.createZone(device.name, device.type, deviceZoneTargetId(device));
       if (zone.id !== null) currentZoneId.set(zone.id);
-      notifications.success($t('zone.zoneCreated'));
+      notifications.success($t(deviceZoneSuccessKey(device)));
     } catch (e: any) {
       notifications.error(e.message || 'Failed to create zone');
     }
@@ -438,7 +454,8 @@
   let unboundDevices = $derived(
     $devices.filter(dev => {
       if (!dev.available) return false;
-      return !$zones.some(z => z.output_device_id === dev.id);
+      const boundIds = new Set($zones.flatMap(z => z.output_device_id ? [z.output_device_id] : []));
+      return !deviceHasBoundZone(dev, boundIds);
     })
   );
 
@@ -507,9 +524,9 @@
   async function quickCreateZone(device: DiscoveredDevice) {
     quickCreateLoading = device.id;
     try {
-      const zone = await api.createZone(device.name, device.type, device.id);
+      const zone = await api.createZone(device.name, device.type, deviceZoneTargetId(device));
       if (zone.id !== null) currentZoneId.set(zone.id);
-      notifications.success($t('zone.zoneCreated'));
+      notifications.success($t(deviceZoneSuccessKey(device)));
     } catch (e: any) {
       notifications.error(e.message || 'Failed to create zone');
     }
@@ -597,6 +614,16 @@
       </button>
     </div>
   </header>
+
+  <!-- Un module de sortie payant qui n'affiche aucun appareil, et pourquoi
+       (#2392). Volontairement HORS du bloc « aucune zone » : un utilisateur
+       qui a déjà un Sonos a une liste non vide et reste pourtant privé de son
+       module Diretta en silence. Masquer l'avertissement dès qu'une zone
+       existe rejouerait le défaut sur lui — c'est la faute déjà commise par le
+       bloc de correction FIR, qui se cachait sur les zones incompatibles et
+       avait fait conclure à un abonné Premium que la fonction n'existait pas.
+       On prévient, on ne masque pas. -->
+  <OutputModuleBanner instantane={instantaneFournisseurs} />
 
   <!-- Stereo pair creation form -->
   {#if showStereoPairForm}
@@ -834,7 +861,7 @@
           {/if}
         </button>
         {#if zone.id !== null && latencyResults[zone.id] !== undefined}
-          <span class="latency-tag">{latencyResults[zone.id]}ms</span>
+          <span class="latency-tag">RTT {latencyResults[zone.id]}ms</span>
         {/if}
 
         <!-- Change output -->
@@ -952,21 +979,6 @@
                 {/if}
               </div>
               <div class="cluster-header-right">
-                {#if !item.group.auto_synced}
-                  <button
-                    class="btn btn-ghost-sm"
-                    onclick={() => handleCalibrateGroup(item.group)}
-                    disabled={calibratingGroupId === item.group.group_id}
-                  >
-                    {#if calibratingGroupId === item.group.group_id}
-                      <span class="spinner-sm"></span>
-                      {$t('zone.calibrating')}
-                    {:else}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                      {$t('zone.calibrate')}
-                    {/if}
-                  </button>
-                {/if}
                 <button class="btn btn-ghost-sm" onclick={() => handleUngroupZone(item.group)}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /><line x1="3" y1="3" x2="21" y2="21" /></svg>
                   {$t('zone.ungroup')}
@@ -1020,6 +1032,9 @@
                 {/if}
               </span>
               <span class="device-name">{device.name}</span>
+              {#if device.zone_hidden}
+                <span class="device-detail">{$t('zone.deletedZone')}</span>
+              {/if}
               {#if device.type === 'local' && device.capabilities}
                 <span class="device-detail">{device.capabilities.channels}ch {device.capabilities.sample_rate ? `${device.capabilities.sample_rate / 1000}kHz` : ''}</span>
               {/if}
@@ -1029,14 +1044,14 @@
               class="btn btn-primary quick-create-btn"
               onclick={() => quickCreateZone(device)}
               disabled={quickCreateLoading === device.id}
-              title={$t('zone.createZone')}
+              title={$t(deviceZoneActionKey(device))}
             >
               {#if quickCreateLoading === device.id}
                 <span class="spinner-sm"></span>
               {:else}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
               {/if}
-              {$t('zone.createZone')}
+              {$t(deviceZoneActionKey(device))}
             </button>
           </div>
         {/each}

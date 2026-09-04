@@ -52,3 +52,8 @@ jobs:
       - run: npm ci
 
       - run: npm test
+
+      # Les tests et le garde svelte-check ne construisent pas l'artefact que
+      # les releases embarquent. Garder ce build dans le meme job reutilise
+      # l'installation ci-dessus et evite une nouvelle file de CI.
+      - run: npm run build

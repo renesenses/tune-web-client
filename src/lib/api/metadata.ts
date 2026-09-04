@@ -7,6 +7,14 @@
 // Importé via la barrel `lib/api`.
 
 import { BASE, fetchJSON } from './_client';
+import type { PaireDistincte } from '../albumsDistincts';
+import {
+  flattenLibraryDuplicates,
+  pairesAudioDabord,
+  type PaireDoublon,
+} from './duplicate-pairs';
+
+export type { PaireDoublon } from './duplicate-pairs';
 
 // --- Update single album/track ---
 
@@ -98,20 +106,6 @@ export function getAutoFixStatus() {
   return fetchJSON<AutoFixStatus>(`${BASE}/metadata/auto-fix/status`);
 }
 
-/** Une paire de doublons, telle que le PANNEAU l'attend : deux copies `a` et
- *  `b`, chacune portant son `track_id`.
- *
- *  Le serveur, lui, rend `{track_a, track_b}` sous `/library/`. L'écart n'était
- *  pas qu'un préfixe : c'est un modèle différent, et c'est pour ça qu'aucune
- *  correction d'URL seule n'aurait suffi. L'adaptation vit ici plutôt que dans
- *  le panneau — l'interface n'a pas à connaître la forme du serveur. */
-export interface PaireDoublon {
-  id: number;
-  a: Record<string, unknown> & { track_id: number };
-  b: Record<string, unknown> & { track_id: number };
-  type: 'track';
-}
-
 /** Le chemin réel des doublons.
  *
  *  Tout l'écran appelait `/metadata/duplicates…` — quatre routes qui n'ont
@@ -121,27 +115,21 @@ export interface PaireDoublon {
  *  l'adresse qui était fausse. */
 const DUP = `${BASE}/library/duplicates`;
 
-/** `duplicates/smart` compare par empreinte (durée, titre, artiste) là où
- *  `duplicates` ne trouve que les exacts — sur une bibliothèque réelle, le
- *  premier rend des résultats quand le second rend une liste vide. */
+/** `duplicates/smart` compare titre + artiste + durée (±3 s). Rapide.
+ *  Ce n'est pas le même compteur que le scan (empreinte audio). */
 async function paires(limit = 200): Promise<PaireDoublon[]> {
   const r = await fetchJSON<{ count?: number; duplicates?: unknown[] }>(
     `${DUP}/smart?limit=${limit}`,
   );
-  return (r.duplicates ?? []).map((d) => {
-    const p = d as { track_a?: Record<string, unknown>; track_b?: Record<string, unknown> };
-    const a = (p.track_a ?? {}) as Record<string, unknown>;
-    const b = (p.track_b ?? {}) as Record<string, unknown>;
-    return {
-      // Pas d'identité de PAIRE côté serveur : celle de la copie `a` la
-      // désigne sans ambiguïté, deux paires ne partageant pas leur première
-      // copie dans un même lot.
-      id: Number(a.id ?? 0),
-      a: { ...a, track_id: Number(a.id ?? 0) },
-      b: { ...b, track_id: Number(b.id ?? 0) },
-      type: 'track' as const,
-    };
-  });
+  return flattenLibraryDuplicates(r);
+}
+
+/** `GET /library/duplicates` — hash / métadonnées / fingerprint.
+ *  Le scan écrit `audio_hash` ; cette liste est celle des 9 « trouvés ».
+ *  Lent : chaque paire hash est relue sur disque (octet à octet). */
+export async function listExactDuplicatePairs(limit = 200): Promise<PaireDoublon[]> {
+  const r = await fetchJSON<unknown>(`${DUP}?limit=${limit}`);
+  return flattenLibraryDuplicates(r);
 }
 
 /** Le scan est désormais une VRAIE opération serveur.
@@ -173,6 +161,18 @@ export function listDuplicates(): Promise<PaireDoublon[]> {
   return paires();
 }
 
+/** Après le toast du scan : montrer tout de suite les paires `smart`, puis
+ *  remplacer par les empreintes audio si `GET /library/duplicates` en trouve
+ *  (c'est ce compteur-là que le scan annonce — 9, pas les 300 homonymes). */
+export async function refineDuplicatePairs(smart: PaireDoublon[]): Promise<PaireDoublon[]> {
+  try {
+    const exact = await listExactDuplicatePairs(500);
+    return pairesAudioDabord(exact, smart);
+  } catch {
+    return smart;
+  }
+}
+
 /** Résoudre : garder une copie, supprimer l'autre.
  *
  *  Le serveur attend `{keep_id, delete_id}` dans le CORPS — deux identifiants
@@ -184,21 +184,6 @@ export function resolveDuplicate(keepTrackId: number, deleteTrackId: number) {
     method: 'POST',
     body: JSON.stringify({ keep_id: keepTrackId, delete_id: deleteTrackId }),
   });
-}
-
-/** ⚠️ Sans équivalent serveur, à ce jour.
- *
- *  `/metadata/duplicates/move-album` n'existe nulle part, et aucune route
- *  voisine ne fait ce qu'elle promet : `/library/albums/merge-duplicates`
- *  FUSIONNE des albums, ce qui n'est pas « déplacer vers les doublons ».
- *
- *  Plutôt que de laisser un bouton partir en 404 silencieux, on échoue avec un
- *  message que l'appelant peut montrer. Écrire la route ou retirer le bouton
- *  est une décision produit, pas une correction (#1893). */
-export function moveAlbumToDuplicates(_albumId: number): Promise<never> {
-  return Promise.reject(
-    new Error("Déplacer un album vers les doublons n'est pas encore disponible côté serveur."),
-  );
 }
 
 /** Ne renvoie qu'un **compteur**, pas la liste : `{ pending: n }` (routes/
@@ -274,6 +259,42 @@ export function mergeDuplicateAlbums() {
   return fetchJSON<MetadataFixResult>(`${BASE}/library/albums/merge-duplicates`, { method: 'POST' });
 }
 
+// --- « Ces albums ne sont pas des doublons » (#1276) -----------------------
+//
+// L'arbitrage est PERSISTÉ par identité (titre + artiste des deux côtés) dans
+// une table sans clé étrangère : il survit au rescan, au déplacement de racine
+// et à la mort/renaissance d'une ligne `albums`. Il vaut pour les DEUX chemins
+// qui rapprochent des albums : `GET /library/albums/grouped` cesse de signaler
+// la paire, et `POST /library/albums/merge-duplicates` refuse de la fusionner
+// (elle est comptée dans `protected`).
+//
+// Les deux écritures sont idempotentes et insensibles à l'ordre des deux ids.
+/** `GET /library/albums/distinct` — la liste de révision, instantanés compris,
+ *  donc y compris les paires momentanément orphelines. C'est de là qu'un
+ *  arbitrage posé par erreur se retrouve et se révoque. */
+export function listDistinctAlbumPairs() {
+  return fetchJSON<{ total: number; items: PaireDistincte[] }>(`${BASE}/library/albums/distinct`);
+}
+
+/** `POST /library/albums/{id}/distinct/{other}` — « ce ne sont pas des
+ *  doublons ». 400 si les deux ids sont identiques, 404 si l'un des albums
+ *  n'existe pas. */
+export function declareAlbumsDistinct(albumId: number, otherId: number) {
+  return fetchJSON<{ album_a_id: number; album_b_id: number; distinct: boolean }>(
+    `${BASE}/library/albums/${albumId}/distinct/${otherId}`,
+    { method: 'POST' },
+  );
+}
+
+/** `DELETE …/distinct/…` — revenir sur l'arbitrage : la paire redevient
+ *  candidate au rapprochement. Idempotent. */
+export function revokeAlbumsDistinct(albumId: number, otherId: number) {
+  return fetchJSON<{ album_a_id: number; album_b_id: number; distinct: boolean }>(
+    `${BASE}/library/albums/${albumId}/distinct/${otherId}`,
+    { method: 'DELETE' },
+  );
+}
+
 export function fixGenresByArtist(minCoherence = 0.7) {
   return fetchJSON<MetadataFixResult>(`${BASE}/metadata/fix-genres-by-artist?min_coherence=${minCoherence}`, { method: 'POST' });
 }
@@ -336,8 +357,112 @@ export interface TrackAllTags {
   audio_info: Record<string, any>;
 }
 
-export function getTrackAllTags(trackId: number): Promise<TrackAllTags> {
-  return fetchJSON(`${BASE}/library/tracks/${trackId}/all-tags`);
+const ALL_TAGS_NESTED = new Set([
+  'db_fields', 'db_credits', 'file_tags', 'audio_info', 'track_id', 'file_exists',
+]);
+
+const ALL_TAGS_AUDIO = [
+  'format', 'sample_rate', 'bit_depth', 'channels', 'duration_ms', 'file_size',
+] as const;
+
+function formatTagLeaf(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/** The Rust `/all-tags` handler returns the Track row plus `file_tags` as
+ *  `[{tag_type, items: string[]}]`. The drawer expects `db_fields` +
+ *  `file_tags: Record<string, string[]>`. Rendering the raw array with
+ *  `vals.join()` threw and Svelte kept the first "Chargement…" frame. */
+export function normalizeTrackAllTags(raw: unknown, trackId: number): TrackAllTags {
+  const src = raw && typeof raw === 'object' ? raw as Record<string, any> : {};
+
+  const nestedDb = src.db_fields && typeof src.db_fields === 'object' && !Array.isArray(src.db_fields)
+    ? { ...src.db_fields }
+    : null;
+
+  const db_fields: Record<string, any> = nestedDb ?? {};
+  if (!nestedDb) {
+    for (const [key, value] of Object.entries(src)) {
+      if (ALL_TAGS_NESTED.has(key)) continue;
+      db_fields[key] = value;
+    }
+  }
+
+  if (db_fields.comment == null && db_fields.comments != null) {
+    db_fields.comment = db_fields.comments;
+  }
+  if (db_fields.mtime == null && db_fields.file_mtime != null) {
+    db_fields.mtime = db_fields.file_mtime;
+  }
+  if (db_fields.mb_recording_id == null && db_fields.musicbrainz_recording_id != null) {
+    db_fields.mb_recording_id = db_fields.musicbrainz_recording_id;
+  }
+
+  let audio_info: Record<string, any> =
+    src.audio_info && typeof src.audio_info === 'object' && !Array.isArray(src.audio_info)
+      ? { ...src.audio_info }
+      : {};
+  if (Object.keys(audio_info).length === 0) {
+    for (const key of ALL_TAGS_AUDIO) {
+      if (src[key] != null) audio_info[key] = src[key];
+    }
+  }
+
+  return {
+    track_id: src.track_id ?? src.id ?? db_fields.id ?? trackId,
+    file_path: src.file_path ?? db_fields.file_path ?? null,
+    file_exists: typeof src.file_exists === 'boolean' ? src.file_exists : src.file_exists !== false,
+    db_fields,
+    db_credits: Array.isArray(src.db_credits) ? src.db_credits : [],
+    file_tags: normalizeFileTags(src.file_tags),
+    audio_info,
+  };
+}
+
+export function normalizeFileTags(raw: unknown): Record<string, string[]> {
+  if (!raw) return {};
+  if (Array.isArray(raw)) {
+    const out: Record<string, string[]> = {};
+    for (const entry of raw) {
+      if (!entry || typeof entry !== 'object') {
+        const leaf = formatTagLeaf(entry);
+        if (leaf) (out['tag'] ??= []).push(leaf);
+        continue;
+      }
+      const rec = entry as Record<string, unknown>;
+      const tagType = String(rec.tag_type ?? rec.tagType ?? 'tag');
+      const items = rec.items;
+      const vals = Array.isArray(items)
+        ? items.map(formatTagLeaf).filter(Boolean)
+        : [formatTagLeaf(entry)].filter(Boolean);
+      if (vals.length) out[tagType] = [...(out[tagType] ?? []), ...vals];
+    }
+    return out;
+  }
+  if (typeof raw === 'object') {
+    const out: Record<string, string[]> = {};
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (Array.isArray(value)) out[key] = value.map(formatTagLeaf).filter(Boolean);
+      else {
+        const leaf = formatTagLeaf(value);
+        if (leaf) out[key] = [leaf];
+      }
+    }
+    return out;
+  }
+  return {};
+}
+
+export async function getTrackAllTags(trackId: number): Promise<TrackAllTags> {
+  const raw = await fetchJSON<unknown>(`${BASE}/library/tracks/${trackId}/all-tags`);
+  return normalizeTrackAllTags(raw, trackId);
 }
 
 // --- Service tokens (Discogs/Last.fm/etc.) ---

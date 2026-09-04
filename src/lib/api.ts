@@ -5,6 +5,10 @@ import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
 import { locale, t } from './i18n';
 import { profileHeader } from './profileHeader';
+// `import type` : effacé à la compilation, donc aucun cycle à l'exécution
+// (`streamingFavorites` importe ce module-ci pour ses fonctions).
+import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
+import type { AppareilIgnore } from './appareilsIgnores';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -52,6 +56,7 @@ import type {
   LocalAudioDevice,
   CompletenessStats,
   ArtworkRescanResult,
+  ReidentifyResult,
   Source,
   RepeatMode,
   OutputType,
@@ -103,12 +108,14 @@ export function authHeaders(extra: Record<string, string> = {}): Record<string, 
  */
 export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   let detail = '';
+  let corps: unknown = null;
   try {
     const texte = await resp.text();
     const t = texte.trim();
     if (t) {
       try {
         const j = JSON.parse(t);
+        corps = j;
         if (typeof j === 'string') detail = j;
         else detail = j?.error ?? j?.message ?? j?.detail ?? '';
       } catch {
@@ -123,7 +130,37 @@ export async function erreurDepuisReponse(resp: Response): Promise<Error> {
   detail = String(detail ?? '').trim();
   // Un stderr de mount.cifs peut etre long ; l'interface doit rester lisible.
   if (detail.length > 300) detail = detail.slice(0, 300) + '…';
-  return detail ? new Error(`${resp.status} — ${detail}`) : new Error(`${resp.status}`);
+  const err = (detail
+    ? new Error(`${resp.status} — ${detail}`)
+    : new Error(`${resp.status}`)) as ApiError;
+  // Le statut et le delai de reprise voyagent aussi en PROPRIETES : les lire
+  // dans le texte du message est fragile (un detail contenant « 403 » suffisait
+  // a detourner la traduction) et le `retry_after` d'un 429 s'y perdait
+  // entierement (#2178).
+  err.status = resp.status;
+  err.retryAfter = retryAfterDe(resp, corps);
+  return err;
+}
+
+/**
+ * Delai avant nouvelle tentative annonce sur un 429, en secondes.
+ *
+ * Deux sources, dans cet ordre : le champ `retry_after` du corps JSON — pose
+ * par le serveur Tune, qui l'a lu chez mozaiklabs — puis l'en-tete standard
+ * `Retry-After`. Le corps passe en premier parce qu'un en-tete de reponse n'est
+ * lisible en JavaScript que s'il est expose par CORS, ce qui n'est pas garanti
+ * derriere le relais.
+ *
+ * Rend `undefined` si rien n'est exploitable : l'interface dira « reessaie plus
+ * tard » plutot qu'un delai invente.
+ */
+function retryAfterDe(resp: Response, corps: unknown): number | undefined {
+  const duCorps = (corps as { retry_after?: unknown } | null)?.retry_after;
+  const secs =
+    typeof duCorps === 'number'
+      ? duCorps
+      : Number.parseInt(String(duCorps ?? resp.headers.get('Retry-After') ?? ''), 10);
+  return Number.isFinite(secs) && secs > 0 ? secs : undefined;
 }
 
 // Generic helpers for radio favorites and custom endpoints
@@ -201,6 +238,8 @@ export async function apiDelete(path: string): Promise<any> {
 export interface ApiError extends Error {
   code?: string;
   status?: number;
+  /** Secondes avant nouvelle tentative, sur un 429 qui l'annonce (#2178). */
+  retryAfter?: number;
 }
 
 async function apiError(response: Response): Promise<ApiError> {
@@ -579,9 +618,64 @@ export function clearDevices() {
   return fetchJSON<{ cleared: number }>(`${BASE}/devices/clear`, { method: 'POST' });
 }
 
+/**
+ * Oubli **non durable** : la sortie quitte le registre en mémoire et la liste
+ * des appareils manuels persistés, rien de plus.
+ *
+ * L'appareil REVIENT au scan suivant, parce que rien n'empêche la découverte
+ * de le ré-enregistrer — c'est exactement le « ils disparaissent bien sur le
+ * coup mais réapparaissent rapidement » du ticket #1280. Pour faire taire
+ * durablement un appareil, c'est [`ignoreDevice`] qu'il faut appeler.
+ */
 export function deleteDevice(deviceId: string) {
   // Server returns 204 No Content, use fetchVoid to avoid JSON parse error on empty body
   return fetchVoid(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+// --- Appareils ignorés (#1280) --------------------------------------------
+//
+// Le serveur porte une table `ignored_devices` SANS clé étrangère, avec un
+// instantané d'identité figé à l'insertion (device_id, MAC, hôte + nom
+// annoncé). Le blocage porte sur la PROPOSITION — enregistrement de sortie,
+// création de zone, liste d'appareils — jamais sur l'écoute SSDP/mDNS
+// elle-même, et il survit à la purge des zones comme à la bascule
+// SQLite → PostgreSQL.
+
+/**
+ * `POST /devices/{id}/ignore` — faire taire un appareil, **durablement**.
+ *
+ * Trois effets côté serveur, et les trois comptent : l'identité est figée
+ * (l'appareil ne revient à aucun scan, sous aucune de ses identités
+ * jumelles), sa sortie quitte le registre TOUT DE SUITE, et sa zone est
+ * masquée si elle existe. Rend l'instantané figé et les zones masquées.
+ */
+export function ignoreDevice(deviceId: string) {
+  return fetchJSON<{ ignored: AppareilIgnore; hidden_zone_ids: number[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}/ignore`,
+    { method: 'POST' },
+  );
+}
+
+/**
+ * `DELETE /devices/{id}/ignore` — débloquer.
+ *
+ * Libère TOUTES les identités du même appareil : sans cela, qui a fait taire
+ * son Sonos devrait deviner l'UUID jumeau pour le récupérer. Idempotent —
+ * débloquer ce qui ne l'était pas rend `released: []`. L'appareil ne
+ * réapparaît qu'au prochain passage de découverte.
+ */
+export function unignoreDevice(deviceId: string) {
+  return fetchJSON<{ released: string[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}/ignore`,
+    { method: 'DELETE' },
+  );
+}
+
+/** `GET /devices/ignored` — la liste de révision. C'est la SEULE vue depuis
+ *  laquelle un appareil ignoré peut être débloqué : il n'est plus annoncé
+ *  ailleurs. */
+export function listIgnoredDevices() {
+  return fetchJSON<{ total: number; items: AppareilIgnore[] }>(`${BASE}/devices/ignored`);
 }
 
 export function getDevice(id: string) {
@@ -767,18 +861,14 @@ export function deleteZoneProfile(profileId: number) {
   return fetchVoid(`${BASE}/zone-manager/profiles/${profileId}`, { method: 'DELETE' });
 }
 
-// Server-side `POST /zone-manager/measure-latency` measures RTT to EVERY zone's
-// output in one call and returns `{ latencies: [{ zone_id, rtt_ms,
-// estimated_latency_ms, ... }] }`. The old client hit a non-existent
+// Server-side `POST /zone-manager/measure-latency` measures the control RTT to
+// EVERY zone's output and returns p50/p95/p99 without relabelling half that
+// value as audio latency (#2215). The old client hit a non-existent
 // `/zone-manager/zones/{id}/measure-latency` (404) and read a non-existent
 // `latency_ms` field (Pascal: latency button → 404). Call the real route; the
 // caller picks its zone's entry out of the array.
 export function measureLatency() {
   return fetchJSON<any>(`${BASE}/zone-manager/measure-latency`, { method: 'POST' });
-}
-
-export function calibrateGroup(groupId: string) {
-  return fetchJSON<any>(`${BASE}/zone-manager/groups/${encodeURIComponent(groupId)}/calibrate`, { method: 'POST' });
 }
 
 export function getZoneHealth(zoneId: number) {
@@ -873,6 +963,22 @@ export function setVolume(zoneId: number, volume: number) {
   });
 }
 
+/**
+ * Le volume demandé en dB, pas en pour-cent (#1274).
+ *
+ * `PUT /zones/{id}/volume` accepte `volume_db` depuis la v0.9.127, et les deux
+ * champs y sont EXCLUSIFS : envoyer les deux fait répondre 400
+ * `invalid_volume`. On n'envoie donc que celui-là. Le serveur refuse aussi
+ * tout dB strictement positif — `analyserDb` l'écarte déjà côté saisie.
+ * Réponse : 204, comme `setVolume`.
+ */
+export function setVolumeDb(zoneId: number, volumeDb: number) {
+  return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
+    method: 'PUT',
+    body: JSON.stringify({ volume_db: volumeDb }),
+  });
+}
+
 export function setShuffle(zoneId: number, enabled: boolean) {
   return fetchJSON<{ shuffle: boolean }>(`${BASE}/zones/${zoneId}/shuffle?enabled=${enabled}`, {
     method: 'POST',
@@ -885,15 +991,23 @@ export function setRepeat(zoneId: number, mode: RepeatMode) {
   });
 }
 
+// `folder` est la portée de RÉPERTOIRE — le même `folder=<chemin absolu>` que
+// `/library/tracks`, appliqué au sous-arbre entier. Il manquait, et c'était tout
+// le défaut de #2801 : la pastille de répertoire de la Bibliothèque n'avait
+// aucun champ où se transmettre, l'appel partait donc SANS filtre, et le
+// serveur tirait au hasard dans toute la table `tracks` (Marco Polo : « il
+// semble s'alimenter de toute la bibliothèque, pas seulement de la sélection à
+// l'écran »).
 export function shuffleAll(
   zoneId: number,
-  opts?: { search_query?: string; album_id?: number; artist_id?: number; genre?: string },
+  opts?: { search_query?: string; album_id?: number; artist_id?: number; genre?: string; folder?: string },
 ) {
   const params = new URLSearchParams({ zone_id: String(zoneId) });
   if (opts?.search_query) params.set('search_query', opts.search_query);
   if (opts?.album_id != null) params.set('album_id', String(opts.album_id));
   if (opts?.artist_id != null) params.set('artist_id', String(opts.artist_id));
   if (opts?.genre) params.set('genre', opts.genre);
+  if (opts?.folder) params.set('folder', opts.folder);
   return fetchJSON<{ status: string; track_count: number }>(`${BASE}/playback/shuffle-all?${params}`, {
     method: 'POST',
   });
@@ -915,7 +1029,34 @@ export function getQueue(zoneId: number) {
 // (`Option<String>`). Sans le `| null`, tout appelant qui les a FACULTATIFS —
 // une piste distante, typiquement, dont le type `Track` les déclare
 // `string | null` — devait les blanchir en `undefined` avant d'appeler.
-export function addToQueue(zoneId: number, body: { album_id?: number; track_id?: number; track_ids?: number[]; source?: Source | 'upload'; source_id?: string; file_path?: string; position?: number; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number }) {
+export interface StreamingQueueItem {
+  source: Source | 'upload';
+  source_id: string;
+  title?: string | null;
+  artist_name?: string | null;
+  album_title?: string | null;
+  cover_path?: string | null;
+  duration_ms?: number;
+}
+
+export interface AddToQueueRequest {
+  album_id?: number;
+  track_id?: number;
+  track_ids?: number[];
+  source?: Source | 'upload';
+  source_id?: string;
+  file_path?: string;
+  position?: number;
+  title?: string | null;
+  artist_name?: string | null;
+  album_title?: string | null;
+  cover_path?: string | null;
+  duration_ms?: number;
+  /** Ordered streaming rows, supported by QueueAddRequest on the server. */
+  tracks?: StreamingQueueItem[];
+}
+
+export function addToQueue(zoneId: number, body: AddToQueueRequest) {
   return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
     method: 'POST',
     body: JSON.stringify(body),
@@ -958,25 +1099,86 @@ export function getRecentAlbums(limit = 50) {
   return fetchJSON<Album[]>(`${BASE}/library/albums/recent?limit=${limit}`);
 }
 
-export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number): Promise<Album[]> {
+/** Tranche de Dynamic Range, bornes INCLUSES (#2144). Les deux sont
+ *  facultatives et indépendantes, exactement comme côté serveur :
+ *  `{ min: 14 }` = « DR14 et au-dessus », `{ max: 7 }` = « DR7 et en dessous ».
+ *  Une borne nulle ou absente ne produit AUCUN paramètre — la réponse est
+ *  alors identique à celle d'avant. */
+export interface DrRange { min?: number | null; max?: number | null }
+
+/** Les bornes en paramètres d'URL, ou la chaîne vide. Le filtre est appliqué
+ *  par le SERVEUR : la liste d'albums ne porte pas la valeur de DR, un tri ou
+ *  un filtre côté client ne pourrait donc pas la voir. */
+function drParams(dr?: DrRange): string {
+  let out = '';
+  if (dr?.min != null) out += `&dr_min=${dr.min}`;
+  if (dr?.max != null) out += `&dr_max=${dr.max}`;
+  return out;
+}
+
+/** Un tirage d'albums : les albums, et la graine qui les a ordonnés (#3074).
+ *  `seed` n'est renseignée qu'en tri aléatoire. */
+export interface AlbumsDraw { albums: Album[]; seed?: number }
+
+/** Comme [`getAllAlbums`], mais rend AUSSI la graine du tri aléatoire.
+ *
+ *  Le contrat serveur (#3074) : `sort=random` sans `seed` en fait tirer une et
+ *  la renvoie dans la réponse ; l'appelant DOIT la repasser sur les pages
+ *  suivantes. Sans ça, chaque `offset` re-tire — la grille montre des albums
+ *  en double tout en en cachant d'autres, et la vue Bibliothèque charge ses
+ *  albums en plusieurs requêtes.
+ *
+ *  Le bouton de re-tirage n'est donc rien d'autre que « redemander sans
+ *  graine ».
+ */
+export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange, seed?: number | null): Promise<AlbumsDraw> {
+  const drq = drParams(dr);
+  // Une graine absente ne produit AUCUN paramètre : la réponse est alors
+  // exactement celle d'avant #3074 pour tous les autres tris.
+  const seedq = (g?: number | null) => (g == null ? '' : `&seed=${g}`);
   // When page is specified, fetch a single page (for future pagination support)
   if (page !== undefined) {
     const limit = perPage ?? 100;
     const offset = (page - 1) * limit;
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}`);
-    return Array.isArray(raw) ? raw : (raw.items ?? []);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}${drq}${seedq(seed)}`);
+    const albums: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
+    return { albums, seed: typeof raw?.seed === 'number' ? raw.seed : (seed ?? undefined) };
   }
   // Default: fetch all albums in batches
   const all: Album[] = [];
   let offset = 0;
+  // La graine du LOT : celle qu'on nous a passée, sinon celle que la première
+  // réponse nous apprend. Les lots suivants la repassent, sinon ils tirent
+  // chacun leur propre ordre et le résultat n'est plus une liste.
+  let graine: number | null | undefined = seed;
   while (true) {
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}${drq}${seedq(graine)}`);
+    if (graine == null && typeof raw?.seed === 'number') graine = raw.seed;
     const batch: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
   }
-  return all;
+  return { albums: all, seed: graine ?? undefined };
+}
+
+export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange): Promise<Album[]> {
+  return (await getAllAlbumsSeeded(pageSize, sort, order, page, perPage, dr)).albums;
+}
+
+/** Les valeurs de Dynamic Range RÉELLEMENT présentes dans la bibliothèque,
+ *  décroissantes. Vide sur une bibliothèque non taguée — et le client ne doit
+ *  alors dessiner AUCUNE commande, plutôt qu'une commande sans effet. */
+export async function getAlbumDynamicRanges(): Promise<number[]> {
+  try {
+    const raw = await fetchJSON<any>(`${BASE}/library/albums/filters`);
+    const vals = Array.isArray(raw?.dynamic_ranges) ? raw.dynamic_ranges : [];
+    return vals.map(Number).filter((n: number) => Number.isFinite(n)).sort((a: number, b: number) => b - a);
+  } catch {
+    // Un serveur antérieur à la v0.9.130 ne connaît pas la clé : pas de
+    // commande, pas d'erreur à l'écran.
+    return [];
+  }
 }
 
 export function getAlbum(id: number) {
@@ -1287,47 +1489,62 @@ export async function getTracks(limit = 100, offset = 0) {
   return Array.isArray(raw) ? raw : (raw.items ?? []) as Track[];
 }
 
+/** Une valeur de facette : une seule, ou plusieurs combinées en OU (#2168). */
+export type FacetParam = string | number | (string | number)[];
+
+/** Ajoute un paramètre de facette à une requête.
+ *
+ *  ⚠️ Plusieurs valeurs = la clé RÉPÉTÉE (`format=aiff&format=flac`), jamais une
+ *  liste séparée par des virgules : un genre « Jazz, Blues », un label ou un
+ *  chemin de dossier contenant une virgule seraient coupés en deux, et le
+ *  filtre cesserait de rendre ce qu'il annonce. `append` est donc obligatoire
+ *  ici — `set` écraserait la valeur précédente et on retomberait sur le défaut
+ *  que #2168 corrige.
+ *
+ *  Une liste vide n'écrit RIEN : une facette sans valeur ne doit pas devenir un
+ *  paramètre vide, que le serveur ignorerait en rendant toute la bibliothèque.
+ */
+export function appendFacetParam(params: URLSearchParams, key: string, value: FacetParam | null | undefined): void {
+  if (value == null) return;
+  const values = Array.isArray(value) ? value : [value];
+  for (const v of values) {
+    const s = String(v);
+    if (s !== '') params.append(key, s);
+  }
+}
+
 export async function getFilteredTracks(opts: {
-  genre?: string;
-  format?: string;
-  sample_rate?: number;
-  bit_depth?: number;
-  year?: number;
-  source?: string;
-  label?: string;
-  composer?: string;
+  genre?: FacetParam;
+  format?: FacetParam;
+  sample_rate?: FacetParam;
+  bit_depth?: FacetParam;
+  year?: FacetParam;
+  source?: FacetParam;
+  label?: FacetParam;
+  composer?: FacetParam;
   q?: string;
-  artist?: string;
-  country?: string;       // release_country (track_metadata k/v)
-  mood?: string;          // mood (track_metadata k/v)
-  source_media?: string;  // source_media (track_metadata k/v)
-  folder?: string;        // Oxygen folder facet: absolute dir prefix (subtree)
-  rating?: number;        // Oxygen rating facet: album rating 1-5 (profile 1)
-  collection?: string;    // Oxygen collection facet: manual collection name
-  favorite?: string;      // Oxygen favorite facet: 'track' | 'album' (profile 1)
-  playlist?: string;      // Oxygen playlist facet: playlist name
-  untagged?: string;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
-  original_year?: number; // Oxygen recording-year facet (albums.original_year)
+  artist?: FacetParam;
+  country?: FacetParam;       // release_country (track_metadata k/v)
+  mood?: FacetParam;          // mood (track_metadata k/v)
+  source_media?: FacetParam;  // source_media (track_metadata k/v)
+  folder?: string;            // Oxygen folder facet: absolute dir prefix (subtree) — MONOVALUÉ
+  rating?: FacetParam;        // Oxygen rating facet: album rating 1-5 (profile 1)
+  collection?: string;        // Oxygen collection facet: manual collection name — MONOVALUÉ
+  favorite?: FacetParam;      // Oxygen favorite facet: 'track' | 'album' (profile 1)
+  playlist?: FacetParam;      // Oxygen playlist facet: playlist name
+  untagged?: FacetParam;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
+  original_year?: FacetParam; // Oxygen recording-year facet (albums.original_year)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
   const params = new URLSearchParams();
-  if (opts.folder) params.set('folder', opts.folder);
-  if (opts.rating != null) params.set('rating', String(opts.rating));
-  if (opts.collection) params.set('collection', opts.collection);
-  if (opts.genre) params.set('genre', opts.genre);
-  if (opts.format) params.set('format', opts.format);
-  if (opts.sample_rate != null) params.set('sample_rate', String(opts.sample_rate));
-  if (opts.bit_depth != null) params.set('bit_depth', String(opts.bit_depth));
-  if (opts.year != null) params.set('year', String(opts.year));
-  if (opts.source) params.set('source', opts.source);
-  if (opts.label) params.set('label', opts.label);
-  if (opts.composer) params.set('composer', opts.composer);
-  if (opts.artist) params.set('artist', opts.artist);
-  if (opts.country) params.set('country', opts.country);
-  if (opts.mood) params.set('mood', opts.mood);
-  if (opts.source_media) params.set('source_media', opts.source_media);
-  if (opts.q) params.set('q', opts.q);
+  for (const key of [
+    'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
+    'year', 'source', 'label', 'composer', 'artist', 'country', 'mood', 'source_media',
+    'favorite', 'playlist', 'untagged', 'original_year', 'q',
+  ] as const) {
+    appendFacetParam(params, key, (opts as Record<string, FacetParam | undefined>)[key]);
+  }
   params.set('limit', String(opts.limit ?? 200));
   if (opts.offset) params.set('offset', String(opts.offset));
   const raw = await fetchJSON<any>(`${BASE}/library/tracks?${params}`);
@@ -1345,11 +1562,11 @@ export interface FacetValue { value: string; count: number; }
  *  alternatives stay visible. */
 export async function getLibraryFacets(
   fields: string[],
-  filters?: Record<string, string | number>,
+  filters?: Record<string, FacetParam>,
   limit?: number,
 ): Promise<Record<string, FacetValue[]>> {
   const params = new URLSearchParams({ fields: fields.join(',') });
-  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (filters) for (const [k, v] of Object.entries(filters)) appendFacetParam(params, k, v);
   // limit=0 means "no limit" (show every value); pass it through so the server
   // drops the LIMIT clause.
   if (limit != null) params.set('limit', String(limit));
@@ -1378,12 +1595,12 @@ export interface AlbumDetailed {
 /** Albums agrégés pour la vue cartes. `filters` = les mêmes paramètres de
  *  facette que /library/tracks et /library/facets. */
 export async function getAlbumsDetailed(
-  filters?: Record<string, string | number>,
+  filters?: Record<string, FacetParam>,
   limit = 500,
   offset = 0,
 ): Promise<{ items: AlbumDetailed[]; total: number }> {
   const params = new URLSearchParams();
-  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (filters) for (const [k, v] of Object.entries(filters)) appendFacetParam(params, k, v);
   params.set('limit', String(limit));
   params.set('offset', String(offset));
   return fetchJSON<{ items: AlbumDetailed[]; total: number }>(`${BASE}/library/albums-detailed?${params}`);
@@ -1398,12 +1615,12 @@ export interface FolderFacet { path: string | null; crumbs: FolderCrumb[]; child
  *  Selecting a child folder means filtering /library/tracks?folder=<child.path>. */
 export async function getFolderFacet(
   path?: string | null,
-  filters?: Record<string, string | number>,
+  filters?: Record<string, FacetParam>,
   folderLimit?: number,
 ): Promise<FolderFacet> {
   const params = new URLSearchParams();
   if (path) params.set('path', path);
-  if (filters) for (const [k, v] of Object.entries(filters)) params.set(k, String(v));
+  if (filters) for (const [k, v] of Object.entries(filters)) appendFacetParam(params, k, v);
   if (folderLimit != null) params.set('folder_limit', String(folderLimit));
   const raw = await fetchJSON<any>(`${BASE}/library/folder-facet?${params}`);
   return {
@@ -1552,6 +1769,19 @@ export async function uploadAlbumArtwork(albumId: number, file: File): Promise<A
 
 export function rescanAlbumArtwork(albumId: number) {
   return fetchJSON<ArtworkRescanResult>(`${BASE}/library/albums/${albumId}/artwork/rescan`, {
+    method: 'POST',
+  });
+}
+
+/** Refait l'identification d'UN album : efface ses clés MusicBrainz et
+ *  relance la correspondance pour cet album seul (#2128).
+ *
+ *  Aucun scan n'est déclenché, aucune passe de bibliothèque : l'effet est borné
+ *  à cet album, et rien de ce que l'utilisateur a saisi n'est écrasé. Compter
+ *  quelques secondes — deux allers-retours MusicBrainz, dont un délai de
+ *  courtoisie imposé par leur limite de débit. */
+export function reidentifyAlbum(albumId: number) {
+  return fetchJSON<ReidentifyResult>(`${BASE}/library/albums/${albumId}/reidentify`, {
     method: 'POST',
   });
 }
@@ -2042,10 +2272,6 @@ export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
 
-export function audioCheck() {
-  return fetchJSON<import('./types').AudioCheckResult>(`${BASE}/system/audio-check`);
-}
-
 export function getDatabaseStatus() {
   return fetchJSON<any>(`${BASE}/system/database/status`);
 }
@@ -2187,6 +2413,15 @@ export function cancelScan() {
   return fetchVoid(`${BASE}/system/scan/cancel`, { method: 'POST' });
 }
 
+/** Instantané des tâches de fond en cours (enrichissements, pochettes, images
+ *  d'artistes…). Le direct arrive par l'événement WS `system.background_tasks` ;
+ *  cet appel sert au chargement, quand une passe tourne déjà (#2227). */
+export function getBackgroundTasks() {
+  return fetchJSON<{ tasks: import('./tachesDeFond').TacheDeFond[] }>(
+    `${BASE}/system/background-tasks`
+  );
+}
+
 export function getBackups() {
   return fetchJSON<import('./types').BackupInfo[]>(`${BASE}/system/backups`);
 }
@@ -2247,13 +2482,12 @@ export function getStreamingServiceStatus(service: string) {
 
 export interface SpotifyConnectStatus {
   enabled: boolean;
-  available: boolean;
   device_name: string | null;
   zone_id: number | null;
   binary_available: boolean;
-  stream_url: string | null;
   active: boolean;
   reason?: string;
+  error?: string;
 }
 
 export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filename: string }> {
@@ -2389,11 +2623,11 @@ export function getStreamingFavorites(service: string, type: 'tracks' | 'albums'
     });
 }
 
-export function addStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+export function addStreamingFavorite(service: string, type: ServiceFavType, itemId: string) {
   return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'POST' });
 }
 
-export function removeStreamingFavorite(service: string, type: 'tracks' | 'albums' | 'artists', itemId: string) {
+export function removeStreamingFavorite(service: string, type: ServiceFavType, itemId: string) {
   return fetchJSON<{ok: boolean}>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}/${encodeURIComponent(itemId)}`, { method: 'DELETE' });
 }
 
@@ -2405,7 +2639,7 @@ export function removeStreamingFavorite(service: string, type: 'tracks' | 'album
 export interface StreamingFavorite {
   id: number;
   profile_id: number;
-  item_type: 'track' | 'album' | 'artist';
+  item_type: StreamingItemType;
   service: string;
   service_id: string;
   title?: string | null;
@@ -2413,7 +2647,7 @@ export interface StreamingFavorite {
   album?: string | null;
   cover_url?: string | null;
   /**
-   * Quand le cœur a été posé, en ISO — « 2026-09-03T21:59:50Z ».
+   * Quand le cœur a été posé, en ISO — « 2026-09-03T21:59:50Z » (#2001).
    *
    * Le serveur le renvoyait déjà ; le type l'ignorait, donc le champ arrivait
    * et se perdait à la conversion. C'est la SEULE date que porte un favori de
@@ -2425,7 +2659,7 @@ export interface StreamingFavorite {
 
 export function getProfileStreamingFavorites(
   profileId: number,
-  type?: 'track' | 'album' | 'artist',
+  type?: StreamingItemType,
 ): Promise<StreamingFavorite[]> {
   const q = type ? `?item_type=${type}` : '';
   return fetchJSON<StreamingFavorite[]>(`${BASE}/profiles/${profileId}/favorites/streaming${q}`);
@@ -2434,7 +2668,7 @@ export function getProfileStreamingFavorites(
 export function addProfileStreamingFavorite(
   profileId: number,
   fav: {
-    item_type: 'track' | 'album' | 'artist';
+    item_type: StreamingItemType;
     service: string;
     service_id: string;
     title?: string;
@@ -2451,7 +2685,7 @@ export function addProfileStreamingFavorite(
 
 export function removeProfileStreamingFavorite(
   profileId: number,
-  params: { item_type: 'track' | 'album' | 'artist'; service: string; service_id: string },
+  params: { item_type: StreamingItemType; service: string; service_id: string },
 ) {
   return fetchVoid(`${BASE}/profiles/${profileId}/favorites/streaming/remove`, {
     method: 'POST',
@@ -2460,10 +2694,6 @@ export function removeProfileStreamingFavorite(
 }
 
 // --- Unified Playlist Manager ---
-
-export function getAllPlaylists() {
-  return fetchJSON<import('./types').UnifiedPlaylistsResponse>(`${BASE}/playlists/all`);
-}
 
 export function importPlaylist(service: string, playlistId: string, name?: string) {
   return fetchJSON<import('./types').PlaylistImportResponse>(`${BASE}/playlists/import`, {
@@ -2818,15 +3048,23 @@ export function deleteProfile(id: number) {
 // --- Favorites ---
 
 // Server favorites API is keyed by {item_type, item_id}; the web callers pass
-// {track_id|album_id|artist_id}. Normalise here so callers stay ergonomic.
-/**
- * `playlist` est un type de favori de plein droit côté serveur : il figure
- * dans `LOCAL_ITEM_TYPES`, donc son identité est figée à l'ajout comme celle
- * d'un album. Sans cet instantané, le cœur s'éteindrait au premier changement
- * d'id — import M3U rejoué, playlist recréée, bascule SQLite→PostgreSQL.
- * Seul le client ne le proposait pas.
- */
-export type FavItem = {
+// {track_id|album_id|artist_id|playlist_id|collection_id|smart_collection_id}.
+// Normalise here so callers stay ergonomic.
+//
+// `playlist_id` : une playlist LOCALE porte un id entier (`playlists.id`), elle
+// entre donc dans la même table que les titres, albums et artistes, sans
+// migration (#2442, FabienM fil 1557). Un LABEL, lui, n'a pas d'identifiant :
+// il passe par les favoris de facette, plus bas.
+//
+// `playlist` est un type de favori de plein droit côté serveur : il figure dans
+// `LOCAL_ITEM_TYPES`, donc son identité est figée à l'ajout comme celle d'un
+// album. Sans cet instantané, le cœur s'éteindrait au premier changement d'id —
+// import M3U rejoué, playlist recréée, bascule SQLite→PostgreSQL.
+//
+// NOTE DE FUSION (04/09/2026) : ce type s'appelait `FavItem` sur la ligne du
+// client v2 et `FavoriteRef` sur `main`. On garde le nom de `main`, plus
+// explicite, et on lui ajoute les deux champs de collection.
+export interface FavoriteRef {
   track_id?: number;
   album_id?: number;
   artist_id?: number;
@@ -2838,14 +3076,21 @@ export type FavItem = {
    */
   collection_id?: number;
   smart_collection_id?: number;
-};
+}
 
-function favItem(
-  p: FavItem,
-): {
-  item_type: 'track' | 'album' | 'artist' | 'playlist' | 'collection' | 'smart_collection';
-  item_id: number;
-} | null {
+/** Les quatre types INTERROGEABLES par `getFavorites`. */
+export type LocalFavoriteType = 'track' | 'album' | 'artist' | 'playlist';
+
+/**
+ * Ce que `favItem` sait produire.
+ *
+ * Les collections s'ajoutent aux quatre ci-dessus mais ne les rejoignent PAS
+ * dans `LocalFavoriteType` : ce dernier sert de paramètre de requête à
+ * `getFavorites`, et le serveur n'y accepte que ces quatre-là.
+ */
+type FavoriteItemType = LocalFavoriteType | 'collection' | 'smart_collection';
+
+function favItem(p: FavoriteRef): { item_type: FavoriteItemType; item_id: number } | null {
   if (p.track_id != null) return { item_type: 'track', item_id: p.track_id };
   if (p.album_id != null) return { item_type: 'album', item_id: p.album_id };
   if (p.artist_id != null) return { item_type: 'artist', item_id: p.artist_id };
@@ -2866,9 +3111,16 @@ export function getTrack(id: number) {
 // `{ tracks: Track[], albums: Album[], artists: Artist[] }`. Adapt here: group
 // the ids by type, then expand each via its by-id endpoint. Failed lookups
 // (e.g. a favorited item since deleted) are dropped rather than breaking the set.
+//
+// ⚠️ La ligne de favori porte un `created_at` que la ré-hydratation laissait
+// tomber : l'écran ne recevait que l'objet de bibliothèque, dont le
+// `created_at` — quand il en a un — est la date d'IMPORT du morceau, pas celle
+// de la mise en favori. Impossible, dans ces conditions, de trier par date
+// d'ajout (#2001). Elle est donc reportée sur chaque objet sous le nom
+// `favorite_added_at`, qui ne peut se confondre avec rien.
 export async function getFavorites(
   profileId: number,
-  type?: 'track' | 'album' | 'artist' | 'playlist',
+  type?: LocalFavoriteType,
 ): Promise<{
   tracks: import('./types').Track[];
   albums: import('./types').Album[];
@@ -2886,29 +3138,42 @@ export async function getFavorites(
   smartCollectionIds: number[];
 }> {
   const q = type ? `?item_type=${type}` : '';
-  const rows = await fetchJSON<Array<{ item_type: string; item_id: number }>>(
-    `${BASE}/profiles/${profileId}/favorites${q}`,
-  );
+  const rows = await fetchJSON<
+    Array<{ item_type: string; item_id: number; created_at?: string | null }>
+  >(`${BASE}/profiles/${profileId}/favorites${q}`);
 
-  const ids = (t: string) => rows.filter((r) => r.item_type === t).map((r) => r.item_id);
-  const settle = async <T>(vals: number[], fetchOne: (id: number) => Promise<T>): Promise<T[]> => {
-    const res = await Promise.allSettled(vals.map(fetchOne));
-    return res.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+  const lignes = (t: string) => rows.filter((r) => r.item_type === t);
+  // La date est prélevée sur la ligne d'INDEX i, celle-là même dont la
+  // relecture vient d'aboutir. Un `map` sur deux listes parallèles aurait
+  // décalé toutes les dates d'un cran dès la première relecture en échec — un
+  // favori supprimé suffit, et rien ne l'aurait signalé.
+  const settle = async <T>(
+    rs: Array<{ item_id: number; created_at?: string | null }>,
+    fetchOne: (id: number) => Promise<T>,
+  ): Promise<T[]> => {
+    const res = await Promise.allSettled(rs.map((r) => fetchOne(r.item_id)));
+    return res.flatMap((r, i) =>
+      r.status === 'fulfilled'
+        ? [{ ...r.value, favorite_added_at: rs[i].created_at ?? null }]
+        : [],
+    );
   };
 
   const [tracks, albums, artists, playlists] = await Promise.all([
-    settle(ids('track'), getTrack),
-    settle(ids('album'), getAlbum),
-    settle(ids('artist'), getArtist),
-    settle(ids('playlist'), getPlaylist),
+    settle(lignes('track'), getTrack),
+    settle(lignes('album'), getAlbum),
+    settle(lignes('artist'), getArtist),
+    settle(lignes('playlist'), getPlaylist),
   ]);
+  // Les collections n'ont besoin que de leur identifiant — on ne passe donc pas
+  // par `settle`, qui relit chaque objet un par un.
   return {
     tracks,
     albums,
     artists,
     playlists,
-    collectionIds: ids('collection'),
-    smartCollectionIds: ids('smart_collection'),
+    collectionIds: lignes('collection').map((r) => r.item_id),
+    smartCollectionIds: lignes('smart_collection').map((r) => r.item_id),
   };
 }
 
@@ -2934,7 +3199,7 @@ export function setProfilePreferences(profileId: number, patch: Record<string, a
   });
 }
 
-export function addFavorite(profileId: number, body: FavItem) {
+export function addFavorite(profileId: number, body: FavoriteRef) {
   const it = favItem(body);
   if (!it) return Promise.reject(new Error('addFavorite: no item id'));
   return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/add`, {
@@ -2943,7 +3208,7 @@ export function addFavorite(profileId: number, body: FavItem) {
   });
 }
 
-export function removeFavorite(profileId: number, params: FavItem) {
+export function removeFavorite(profileId: number, params: FavoriteRef) {
   const it = favItem(params);
   if (!it) return Promise.reject(new Error('removeFavorite: no item id'));
   return fetchVoid(`${BASE}/profiles/${profileId}/favorites/remove`, {
@@ -2952,7 +3217,40 @@ export function removeFavorite(profileId: number, params: FavItem) {
   });
 }
 
-export async function checkFavorite(profileId: number, params: FavItem) {
+// --- Favoris de FACETTE (label, et demain genre / format / année) ----------
+//
+// Un label n'est pas un objet : il n'a ni table, ni identifiant, ni route
+// bibliothèque — l'onglet Labels lit une facette et sélectionne par CHAÎNE.
+// `favorites.item_id` étant un entier, ces favoris vivent dans leur propre
+// table côté serveur (`favorite_facets`), et sont désignés par leur VALEUR
+// (#2442, FabienM fil 1557).
+export interface FacetFavorite {
+  profile_id: number;
+  facet: string;
+  value: string;
+  created_at?: string | null;
+}
+
+export function getFacetFavorites(profileId: number, facet?: string) {
+  const q = facet ? `?facet=${encodeURIComponent(facet)}` : '';
+  return fetchJSON<FacetFavorite[]>(`${BASE}/profiles/${profileId}/favorites/facets${q}`);
+}
+
+export function addFacetFavorite(profileId: number, facet: string, value: string) {
+  return fetchJSON<any>(`${BASE}/profiles/${profileId}/favorites/facets/add`, {
+    method: 'POST',
+    body: JSON.stringify({ facet, value }),
+  });
+}
+
+export function removeFacetFavorite(profileId: number, facet: string, value: string) {
+  return fetchVoid(`${BASE}/profiles/${profileId}/favorites/facets/remove`, {
+    method: 'POST',
+    body: JSON.stringify({ facet, value }),
+  });
+}
+
+export async function checkFavorite(profileId: number, params: FavoriteRef) {
   const it = favItem(params);
   if (!it) return { is_favorite: false };
   // Server exposes a batch check (POST {item_type, item_ids}) returning an
@@ -3236,16 +3534,6 @@ export function saveQueueAsPlaylist(zoneId: number, name?: string) {
   return fetchJSON<any>(`${BASE}/zones/${zoneId}/queue/save-as-playlist`, { method: 'POST', body: JSON.stringify({ name }) });
 }
 
-// --- Crossfade ---
-
-export function getCrossfade(zoneId: number) {
-  return fetchJSON<{ enabled: boolean; duration: number }>(`${BASE}/zones/${zoneId}/crossfade`);
-}
-
-export function setCrossfade(zoneId: number, enabled: boolean, duration = 3.0) {
-  return fetchJSON<any>(`${BASE}/zones/${zoneId}/crossfade`, { method: 'POST', body: JSON.stringify({ enabled, duration }) });
-}
-
 // --- Volume Normalization ---
 
 export function setNormalization(zoneId: number, enabled: boolean, targetLufs = -14.0) {
@@ -3321,7 +3609,9 @@ export function createCollection(name: string, description?: string, icon?: stri
 }
 export function updateCollection(id: number, data: any) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
 export function deleteCollection(id: number) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'DELETE' }); }
-export function getCollectionAlbums(id: number) { return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums`); }
+export function getCollectionAlbums(id: number, sort: 'artist' | 'title' | 'year' | 'added' = 'artist') {
+  return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums?sort=${sort}`);
+}
 export function addAlbumToCollection(collectionId: number, albumId: number) {
   // Server route is POST /collections/{id}/albums/{album_id} (album_id in the
   // path, like the DELETE below). POSTing to /albums with the id in the body
@@ -3551,8 +3841,17 @@ export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', '
 
 // --- Audiophile Mode ---
 
+export interface AudiophileModeState {
+  enabled: boolean;
+  /** null = héritage du réglage global, booléen = surcharge de cette zone. */
+  lock_volume?: boolean | null;
+  /** Valeur réellement appliquée après héritage. */
+  effective_lock_volume?: boolean;
+  applied_live?: boolean;
+}
+
 export function getAudiophileMode(zoneId: number) {
-  return fetchJSON<{ enabled: boolean }>(`${BASE}/zones/${zoneId}/audiophile`);
+  return fetchJSON<AudiophileModeState>(`${BASE}/zones/${zoneId}/audiophile`);
 }
 
 /**
@@ -3571,7 +3870,7 @@ export function setAudiophileMode(
   enabled: boolean,
   confirmFullVolume = false,
 ) {
-  return fetchJSON<{ enabled: boolean; applied_live?: boolean }>(
+  return fetchJSON<AudiophileModeState>(
     `${BASE}/zones/${zoneId}/audiophile`,
     {
       method: 'POST',
@@ -3581,6 +3880,24 @@ export function setAudiophileMode(
       }),
     },
   );
+}
+
+/**
+ * Surcharger le verrou PURE pour une zone. `null` retire la surcharge et
+ * rétablit l'héritage du réglage global (#2526).
+ */
+export function setAudiophileVolumeLock(
+  zoneId: number,
+  lockVolume: boolean | null,
+  confirmFullVolume = false,
+) {
+  return fetchJSON<AudiophileModeState>(`${BASE}/zones/${zoneId}/audiophile`, {
+    method: 'POST',
+    body: JSON.stringify({
+      lock_volume: lockVolume,
+      ...(confirmFullVolume ? { confirm_full_volume: true } : {}),
+    }),
+  });
 }
 
 // --- Streaming Quality ---
@@ -3643,6 +3960,18 @@ export function enrichArtistImages() {
   );
 }
 
+// Force re-fetch of EVERY artist's image, ignoring the "already has an image"
+// guard — for libraries where image_path points at stale entries that never
+// render, so the normal pass above skips them forever (Fabien: full scan, still
+// no artist images). Same background task and same status endpoint as the
+// normal pass, so the progress polling below covers this run too.
+export function forceRefetchArtistImages() {
+  return fetchJSON<{ status: string; message?: string; artists?: number }>(
+    `${BASE}/library/artwork/enrich-artists/force`,
+    { method: 'POST' }
+  );
+}
+
 // Progress of the (async, background) artist-image enrichment. The POST above
 // returns 202 immediately; the real work — MBID matching then image fetch —
 // runs for minutes. `result` mirrors the `artist_artwork_enrich_result` setting
@@ -3696,6 +4025,17 @@ export function setScanSchedule(time: string, enabled: boolean) {
 
 // --- Server Diagnostics Dashboard ---
 
+export interface AsioWarmScanStatus {
+  supported: boolean;
+  state: 'unsupported' | 'disabled_by_env' | 'blocked_after_crash' | 'ready';
+  blocked_after_crash: boolean;
+  disabled_by_env: boolean;
+  can_rearm: boolean;
+  retry: 'none' | 'remove_environment_override' | 'rearm_then_restart' | 'next_restart';
+  sentinel_path: string;
+  message: string;
+}
+
 export function getServerDiagnostics() {
   return fetchJSON<{
     // Server uses "server_version" — client normalises via DiagnosticsView
@@ -3710,6 +4050,24 @@ export function getServerDiagnostics() {
     connectors: string[];
     // Memory: server uses "memory_rss_mb"
     memory_rss_mb: number | null;
+    // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
+    // compatible with older servers during rolling client/server updates.
+    asio_warm_scan?: AsioWarmScanStatus;
+    // Added by tune-server-rust #2392 (`discovery_setup::provider_status_snapshot`).
+    // Pourquoi un fournisseur de sortie hors-arbre est inerte : absent de la
+    // liste = non compilé ; présent avec un `refusal` = droit manquant, et le
+    // refus dit lequel et quoi faire ; présent sans refus et `devices: 0` = il
+    // cherche vraiment et ne trouve rien. Ces trois cas donnaient le même écran
+    // vide, et un bêta-testeur Diretta a réinstallé son OS pour rien.
+    //
+    // `unknown` est délibéré. Déclarer la forme ici ne la vérifierait pas —
+    // `SmartCollection.max_albums` et `TrackAllTags.db_fields` étaient déclarés
+    // et absents du JSON servi, et l'écran gelait sur « Chargement ». Le seul
+    // lecteur est `lib/refusModuleSortie.ts`, qui sonde tout à l'exécution.
+    // Optionnel ET nullable : un serveur antérieur à #2392 n'envoie rien, et le
+    // serveur écrit `null` tant qu'aucune passe de découverte n'a eu lieu —
+    // y compris quand le binaire n'embarque aucun fournisseur hors-arbre.
+    output_providers?: unknown;
     // Scan info embedded under scan_status.*
     scan_status: {
       status: string;
@@ -3718,6 +4076,15 @@ export function getServerDiagnostics() {
       last_result: Record<string, unknown> | null;
     } | null;
   }>(`${BASE}/system/diagnostics`);
+}
+
+export function rearmAsioWarmScan() {
+  return fetchJSON<{
+    status: 'rearmed' | 'already_ready';
+    retry: 'next_restart';
+    message: string;
+    asio_warm_scan: AsioWarmScanStatus;
+  }>(`${BASE}/system/audio/asio-warm-scan/rearm`, { method: 'POST' });
 }
 
 // --- Library Import (Roon / Plex / Playlists) ---
@@ -3988,16 +4355,17 @@ export function getHealthAlerts(): Promise<HealthAlert[]> {
 // --- Admin Dashboard ---
 
 export interface AdminHealth {
-  cpu_percent: number;
-  ram_mb: number;
-  ram_total_mb: number;
-  disk_free_gb: number;
-  disk_total_gb: number;
+  status: string;
   uptime_seconds: number;
-  uptime_formatted: string;
-  open_fds: number;
-  pid: number;
-  python_threads: number;
+  engine: string;
+  version: string;
+  database: { tracks: number; albums: number; engine: string };
+  playback: { zones_total: number; zones_playing: number };
+  outputs: number;
+  streaming_services: number;
+  scan_status: string;
+  disk_free_gb: number | null;
+  disk_total_gb: number | null;
 }
 
 export interface AdminZone {
@@ -4023,7 +4391,8 @@ export interface AdminError {
 
 export interface AdminConnections {
   websocket_connections: number;
-  http_streamer_sessions: number;
+  active_streams: number;
+  registered_outputs: number;
 }
 
 export interface AdminDiscoveryDevice {
@@ -4031,14 +4400,10 @@ export interface AdminDiscoveryDevice {
   name: string;
   type: string;
   host: string;
-  port: number;
-  available: boolean;
-  capabilities: Record<string, unknown>;
 }
 
 export interface AdminDiscovery {
   devices: AdminDiscoveryDevice[];
-  protocols: Record<string, boolean>;
   device_count: number;
 }
 
@@ -4195,6 +4560,33 @@ export function getOtherVersions(limit = 20) {
   return fetchJSON<OtherVersionGroup[]>(`${BASE}/home/other-versions?limit=${limit}`);
 }
 
+/**
+ * Les autres versions d'UNE piste, rendues par `/library/tracks/{id}/versions`.
+ *
+ * Meme forme qu'un groupe de `getOtherVersions()` — le serveur reutilise le
+ * meme rapprochement (`routes/versions.rs`) —, plus le `track_id` de depart.
+ */
+export interface TrackVersions extends OtherVersionGroup {
+  track_id: number;
+}
+
+/**
+ * Les autres versions d'une piste DESIGNEE, bibliotheque et streaming.
+ *
+ * La section d'accueil part de l'historique d'ecoute : un morceau jamais
+ * ecoute recemment n'y apparait jamais (#2372). Cette route part de la piste
+ * elle-meme.
+ *
+ * `streaming: false` rend la reponse immediate en n'interrogeant que la
+ * bibliotheque locale — les services sont interroges par defaut, avec un
+ * cache de six heures partage avec la section d'accueil.
+ */
+export function getTrackVersions(id: number, streaming = true) {
+  return fetchJSON<TrackVersions>(
+    `${BASE}/library/tracks/${id}/versions?streaming=${streaming}`,
+  );
+}
+
 export function getHomeRecommendations() {
   return fetchJSON<any[]>(`${BASE}/home/recommendations`);
 }
@@ -4331,6 +4723,27 @@ export interface LicenseSessionConflict {
   active_since: string | null;
 }
 
+/**
+ * Grâce hors ligne (#1999). Tune tolère une coupure réseau prolongée avant de
+ * suspendre le Premium ; ce bloc dit à l'utilisateur qu'il est couvert, depuis
+ * quand et jusqu'à quand. Purement descriptif — le serveur n'a rien durci.
+ * `null` quand la question ne se pose pas (Free, ou abonnement réellement échu).
+ * Ne contient jamais la clé ni un identifiant d'achat.
+ */
+export interface LicenseOfflineGrace {
+  /** `ok` = vérifié récemment · `grace` = hors ligne, Premium intact · `expired` = Premium en pause. */
+  phase: 'ok' | 'grace' | 'expired';
+  source: 'key' | 'account';
+  /** Dernière vérification en ligne réussie (ISO-8601). `null` = jamais. */
+  since: string | null;
+  /** Fin de la fenêtre de tolérance (ISO-8601). */
+  until: string | null;
+  days_remaining: number;
+  /** Durée totale de la tolérance, en jours — le chiffre à afficher. */
+  total_days: number;
+  days_since_validation: number;
+}
+
 export interface LicenseStatus {
   tier: string;
   license_key: string | null;
@@ -4340,6 +4753,8 @@ export interface LicenseStatus {
   hardware_fingerprint: string | null;
   /** Null unless the licence is active on another server right now. */
   session_conflict?: LicenseSessionConflict | null;
+  /** Null unless premium entitlements are in play — see LicenseOfflineGrace. */
+  offline_grace?: LicenseOfflineGrace | null;
 }
 
 export interface LicenseActivateResponse {
@@ -4379,13 +4794,30 @@ export function ssoDisconnect(): Promise<{ status?: string }> {
 
 // --- Support Premium v2 (fil de tickets hébergé sur mozaiklabs.fr) ---
 //
-// Le suivi de conversation parle directement à mozaiklabs.fr (contrat en cours
-// de déploiement côté serveur) ; la CRÉATION de ticket, elle, passe toujours
-// par le serveur Tune local (POST /support/tickets), qui joint la licence.
-// Tant que le serveur mozaiklabs n'est pas déployé, ces appels échouent
-// (404/CORS) : les appelants doivent dégrader en douceur, jamais casser l'écran.
-
-export const MOZAIKLABS_API = 'https://mozaiklabs.fr/api/v1';
+// TOUT passe par le RELAIS du serveur Tune local (#2559) — y compris, depuis
+// ce correctif, le « marquer lu », qui était le dernier appel encore adressé
+// en direct au site. Le contournement historique — parler en direct à
+// mozaiklabs.fr « tant que le contrat n'est pas déployé côté serveur » — n'a
+// plus lieu d'être : `tune-server` expose les routes depuis
+// `routes/support.rs`, et la CRÉATION de ticket les empruntait déjà.
+//
+// Trois raisons de ne plus jamais appeler mozaiklabs.fr depuis la page :
+//
+//  1. **CORS.** Une page servie depuis `http://192.168.1.18:8888` n'est pas de
+//     la même origine que `https://mozaiklabs.fr` : le navigateur refuse de
+//     lire la réponse. C'est l'usage NORMAL — ouvrir Tune par l'adresse de son
+//     serveur — donc le suivi des tickets ne s'affichait jamais.
+//
+//  2. **La clé de licence circulait dans l'URL** (`?license_key=…`) : barre
+//     d'adresse, historique, journaux d'accès. Le relais local n'en a pas
+//     besoin, il résout la licence depuis ses propres réglages (`auth()` dans
+//     `routes/support.rs`).
+//
+//  3. **Le compteur de débit de mozaiklabs était consommé pour rien.** CORS
+//     s'applique APRÈS la réponse : la requête atteignait Laravel et y était
+//     traitée — la console affichait `net::ERR_FAILED 200 (OK)`, donc un
+//     statut 200. Chaque client du parc rejouait cet appel à chaque changement
+//     d'écran.
 
 export type SupportTicketStatus = 'open' | 'answered' | 'resolved';
 
@@ -4407,47 +4839,51 @@ export interface SupportTicketReply {
   created_at: string;
 }
 
-async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
-  const resp = await fetch(`${MOZAIKLABS_API}${path}`, {
-    headers: {
-      Accept: 'application/json',
-      ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    ...options,
-  });
-  if (!resp.ok) {
-    const err = new Error(`${resp.status}`) as ApiError;
-    err.status = resp.status;
-    throw err;
-  }
-  const text = await resp.text();
-  if (!text.trim()) return null;
-  return JSON.parse(text);
-}
-
-export function getSupportTickets(licenseKey: string): Promise<{ tickets: SupportTicketSummary[] }> {
-  return mozaikFetch(`/support/tickets?license_key=${encodeURIComponent(licenseKey)}`);
+export function getSupportTickets(_licenseKey?: string): Promise<{ tickets: SupportTicketSummary[] }> {
+  // La clé n'est plus transmise : le relais local la résout lui-même. Le
+  // paramètre reste accepté pour ne pas casser les appelants, et ignoré.
+  return fetchJSON<{ tickets: SupportTicketSummary[] }>(`${BASE}/support/tickets`);
 }
 
 export function getSupportTicket(
   id: number,
-  licenseKey: string,
+  _licenseKey?: string,
 ): Promise<{ ticket: SupportTicketSummary; replies: SupportTicketReply[] }> {
-  return mozaikFetch(`/support/tickets/${id}?license_key=${encodeURIComponent(licenseKey)}`);
+  return fetchJSON<{ ticket: SupportTicketSummary; replies: SupportTicketReply[] }>(
+    `${BASE}/support/tickets/${id}`,
+  );
 }
 
-export function postSupportTicketReply(id: number, licenseKey: string, body: string): Promise<any> {
-  return mozaikFetch(`/support/tickets/${id}/replies`, {
+export function postSupportTicketReply(id: number, _licenseKey: string, body: string): Promise<any> {
+  // `/reply` au singulier : c'est le chemin exposé par le relais local
+  // (`routes/support.rs`). L'ancien `/replies` était celui de mozaiklabs.
+  return fetchJSON<any>(`${BASE}/support/tickets/${id}/reply`, {
     method: 'POST',
-    body: JSON.stringify({ license_key: licenseKey, body }),
+    body: JSON.stringify({ body }),
   });
 }
 
-export function markSupportTicketRead(id: number, licenseKey: string): Promise<any> {
-  return mozaikFetch(`/support/tickets/${id}/read`, {
-    method: 'POST',
-    body: JSON.stringify({ license_key: licenseKey }),
-  });
+/**
+ * Marque un fil comme lu — dernier appel du support qui partait encore en
+ * direct vers mozaiklabs.fr, la clé de licence dans le corps (#2559).
+ *
+ * Il ne pouvait pas aboutir : depuis une page servie par le serveur Tune —
+ * `http://192.168.1.18:8888`, `http://localhost:8888` — l'origine n'est jamais
+ * `https://mozaiklabs.fr`, et `localhost` ne bénéficie d'aucune exception CORS.
+ * Trois testeurs sur deux moteurs de navigateur ont produit le même refus.
+ * L'échec étant avalé par l'appelant, le seul symptôme était une pastille de
+ * non-lus qui ne redescendait jamais.
+ *
+ * Le relais expose désormais `POST /support/tickets/{id}/read`
+ * (`tune-server/src/routes/support.rs`) : même origine, et la clé ne quitte
+ * plus le serveur. Le paramètre reste accepté pour ne pas casser les
+ * appelants, et il est ignoré.
+ *
+ * Serveur antérieur au relais : 404, avalé comme l'était le refus CORS — aucun
+ * comportement ne se dégrade par rapport à l'existant.
+ */
+export function markSupportTicketRead(id: number, _licenseKey?: string): Promise<any> {
+  return fetchJSON<any>(`${BASE}/support/tickets/${id}/read`, { method: 'POST' });
 }
 
 /** Crée un ticket support en `multipart/form-data` (avec pièces jointes). Poste
@@ -4472,12 +4908,17 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
   if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
   if (!resp.ok) {
     let message = `${resp.status}`;
+    let corps: unknown = null;
     try {
-      const data = await resp.json();
+      corps = await resp.json();
+      const data = corps as { message?: string } | null;
       if (data?.message) message = data.message;
     } catch { /* pas de corps JSON exploitable */ }
     const err = new Error(message) as ApiError;
     err.status = resp.status;
+    // Limite d'envoi atteinte : le délai remonté par le serveur doit survivre
+    // jusqu'au message affiché, sinon l'écran ne sait pas quand réessayer (#2178).
+    err.retryAfter = retryAfterDe(resp, corps);
     throw err;
   }
   const text = await resp.text();

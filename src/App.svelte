@@ -5,12 +5,21 @@
   import { devices } from './lib/stores/devices';
   import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './lib/stores/browserAudio';
   import { seekPositionMs, startSeekTimer, stopSeekTimer, shuffleEnabled, repeatMode, nowPlayingToTrack } from './lib/stores/nowPlaying';
-  import { mergeTransport, type TransportState } from './lib/transportSync';
+  import { mergeTransport, transportDeLEvenement, type TransportState } from './lib/transportSync';
+  import {
+    positionFileAnnoncee,
+    doitRechargerLaFileEntiere,
+    doitReessayerCheminSignal,
+    delaiEssaiCheminSignal,
+  } from './lib/suiviPisteEnCours';
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
   import { activeView, focusMode, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
-  import { selectedAlbum, selectedArtist, libraryTab } from './lib/stores/library';
+  import { selectedAlbum, selectedArtist, albumTracks, artistAlbums, libraryTab } from './lib/stores/library';
+  import { reconcilierFiche } from './lib/reconciliationFiche';
+  import { CANDIDATS_DEFILEMENT, conteneurDefilant, restaurerQuandPret } from './lib/defilementReel';
+  import { finDuRetourProgrammatique, opPourFiche } from './lib/historiqueNavigation';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { syncDisplayFieldsFromServer } from './lib/stores/displayFields';
   import { locale } from './lib/i18n';
@@ -23,6 +32,8 @@
   import { get } from 'svelte/store';
   import { t } from './lib/i18n';
   import * as api from './lib/api';
+  import { libelleBanniereEnrichissement, enrichissementImagesTermine, type TacheDeFond } from './lib/tachesDeFond';
+  import { cleBanniereEnrichissementApresScan } from './lib/enrichissementApresScan';
   import { urlFlux } from './lib/bridge';
   import Sidebar from './components/Sidebar.svelte';
   import NowPlaying from './components/NowPlaying.svelte';
@@ -100,13 +111,17 @@ import AlarmsView from './components/AlarmsView.svelte';
   // plus et chaque événement est traité N fois.
   let unsubWsEvents: (() => void) | null = null;
   let scanIndicator = $state(false);
+  // Tâches de fond en cours (pochettes, images d'artistes, biographies…), telles
+  // que le serveur les publie par `system.background_tasks`. Sans cet état, un
+  // enrichissement qui dure des minutes est parfaitement invisible (#2227).
+  let backgroundTasks = $state<TacheDeFond[]>([]);
   let playlistModalTrack = $state<Track | null>(null);
   let showOnboarding = $state(false);
   let onboardingChecked = $state(false);
   let showWhatsNew = $state(false);
 
   // Status banner state
-  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready';
+  type BannerStatus = 'idle' | 'scan' | 'streaming' | 'ready' | 'enrichment' | 'notice';
   let bannerStatus = $state<BannerStatus>('idle');
   let bannerMessage = $state('');
   let bannerFadeout = $state(false);
@@ -132,6 +147,76 @@ import AlarmsView from './components/AlarmsView.svelte';
         bannerFadeTimer = null;
       }, 600);
     }, 1500);
+  }
+
+  function showScanCompletedBanner(autoEnrichment: unknown) {
+    const key = cleBanniereEnrichissementApresScan(
+      autoEnrichment && typeof autoEnrichment === 'object'
+        ? autoEnrichment as { started?: boolean; skipped_reason?: string | null }
+        : undefined,
+    );
+    if (key === null) {
+      showReadyBanner();
+      return;
+    }
+
+    if (bannerFadeTimer) clearTimeout(bannerFadeTimer);
+    bannerStatus = 'notice';
+    bannerMessage = get(t)(key);
+    bannerFadeout = false;
+    // Le motif et le geste manuel doivent rester lisibles, contrairement au
+    // bref « Prêt » de fin de scan.
+    bannerFadeTimer = setTimeout(() => {
+      bannerFadeout = true;
+      bannerFadeTimer = setTimeout(() => {
+        bannerStatus = 'idle';
+        bannerFadeout = false;
+        bannerFadeTimer = null;
+      }, 600);
+    }, 8000);
+  }
+
+  /**
+   * Reporter les tâches de fond du serveur dans le bandeau d'état.
+   *
+   * Le scan a son propre bandeau et reste prioritaire ; l'enrichissement ne
+   * s'affiche que lorsqu'aucun scan ne tourne, et rend la main à « Prêt »
+   * quand la dernière tâche s'achève.
+   */
+  function applyEnrichmentBanner() {
+    if (scanIndicator) return; // ne pas écraser le bandeau de scan
+    const libelle = libelleBanniereEnrichissement(backgroundTasks, get(t)('app.enrichmentRunning'));
+    if (libelle !== null) {
+      showBanner('enrichment', libelle);
+    } else if (bannerStatus === 'enrichment') {
+      showReadyBanner();
+    }
+  }
+
+  /**
+   * Afficher le bilan de l'enrichissement des images d'artistes qui vient de
+   * finir.
+   *
+   * Sans lui, le bandeau disparaît sans un mot : « la progression tourne […]
+   * mais à la fin, la fenêtre se ferme » (Jean Valjean, #2227 / fil 1108).
+   *
+   * La relance manuelle tourne pour tout le monde : un résultat à 0 veut dire
+   * « rien trouvé », jamais « il faut Premium » — ce garde-fou-là ne concerne
+   * que la passe automatique d'après-scan. Purement additif : en cas d'erreur
+   * on se tait plutôt que d'inventer un chiffre.
+   */
+  async function showArtistEnrichSummary() {
+    try {
+      const s = await api.enrichArtistImagesStatus();
+      const enriched = s?.result?.enriched ?? 0;
+      const missing = s?.artists_without_image ?? 0;
+      const msg = get(t)('settings.enrichArtistImagesResult')
+        .replace('{enriched}', String(enriched))
+        .replace('{missing}', String(missing));
+      notifications.info(msg, 6000);
+    } catch {
+      /* serveur muet : on n'affiche pas de bilan inventé */
+    }
   }
 
   // Kiosk mode: ?kiosk=true forces NowPlaying view on small touchscreen
@@ -240,6 +325,17 @@ import AlarmsView from './components/AlarmsView.svelte';
         if (target?.id != null) currentZoneId.set(target.id);
       }
 
+      // Recaler l'aléatoire et la répétition sur ce que le serveur vient de
+      // dire (#2092). APRÈS la sélection de zone, sinon `syncTransportFromZone`
+      // comparerait à une zone courante qui n'est pas encore la bonne et ne
+      // poserait rien à l'écran.
+      //
+      // `fetchZones` est le chemin du CHARGEMENT DE PAGE et de la REPRISE DE
+      // CONNEXION : c'est ici que se joue « un aléatoire allumé la semaine
+      // dernière doit se voir dès l'ouverture ». Il couvre aussi le repli par
+      // sondage, où aucun instantané WebSocket n'arrive jamais.
+      for (const z of zoneList) syncTransportFromZone(z);
+
       // Restore seek state for the selected zone from the already-fetched data.
       // Only on initial load or WS reconnect — not on zone.* events, which would
       // reset the seek position and break the seek timer on every volume change etc.
@@ -281,6 +377,22 @@ import AlarmsView from './components/AlarmsView.svelte';
     }
   }
 
+  /**
+   * Vrai dès qu'on a vu le serveur annoncer la position dans la file —
+   * l'événement de lecture la porte, et `GET /zones/{id}` aussi. Tant qu'on ne
+   * l'a pas vue, un changement de piste continue de recharger la file entière,
+   * pour qu'un serveur plus ancien garde une surbrillance juste quel que soit
+   * l'ordre de déploiement (#1096).
+   */
+  let serveurPorteLaPositionDeFile = false;
+
+  /**
+   * Génération courante de la chaîne de rattrapage du chemin du signal, par
+   * zone. Sauter dix pistes d'affilée empilerait sinon dix chaînes de six
+   * requêtes ; seule la dernière a encore un badge à réparer.
+   */
+  const generationCheminSignal = new Map<number, number>();
+
   async function fetchQueue() {
     let zoneId: number | null = null;
     currentZone.subscribe((z) => (zoneId = z?.id ?? null))();
@@ -310,10 +422,10 @@ import AlarmsView from './components/AlarmsView.svelte';
   /**
    * Dernière répétition / lecture aléatoire connues du serveur, par zone.
    *
-   * Ces deux champs ne voyagent que dans les instantanés WebSocket ; la liste
-   * REST des zones ne les porte pas. On les retient donc au passage, pour
-   * pouvoir recaler les commandes de transport au moment où l'on change de
-   * zone, sans requête supplémentaire.
+   * On retient au passage tout ce qui les porte — instantané WebSocket, liste
+   * REST des zones, zone REST isolée, annonce en direct — pour pouvoir recaler
+   * les commandes de transport au moment où l'on change de zone, sans requête
+   * supplémentaire. Voir `lib/transportSync.ts` pour le détail du contrat.
    */
   const transportByZone = new Map<number, TransportState>();
 
@@ -347,6 +459,11 @@ import AlarmsView from './components/AlarmsView.svelte';
   async function syncZoneState(zoneId: number) {
     try {
       const zone = await api.getZone(zoneId);
+      // `GET /zones/{id}` porte le transport depuis #2153 — et c'est la charge
+      // utile relue après CHAQUE événement de lecture. La lire ici, c'est la
+      // dernière chance de rattraper un écart avant que l'utilisateur ne le
+      // voie (#2092).
+      syncTransportFromZone(zone);
       zones.update((zs) =>
         zs.map((z) => {
           if (z.id !== zoneId) return z;
@@ -376,6 +493,15 @@ import AlarmsView from './components/AlarmsView.svelte';
         curZone?.id === zoneId ||
         (zone.group_id != null && curZone?.group_id === zone.group_id);
       if (isCurrentOrGroupMember) {
+        // Second porteur de la position : la réponse REST. Elle sert de filet
+        // quand l'événement ne l'a pas portée (piste lancée depuis une autre
+        // télécommande, reprise après reconnexion) et fait tomber le
+        // rechargement complet dès la première réponse (#1096).
+        const positionZone = positionFileAnnoncee(zone);
+        if (positionZone !== null) {
+          serveurPorteLaPositionDeFile = true;
+          queuePosition.set(positionZone);
+        }
         if (zone.state === 'playing') {
           startSeekTimer();
           // Apply drift filter: only correct the interpolated position when
@@ -544,7 +670,10 @@ import AlarmsView from './components/AlarmsView.svelte';
       if (!_pushingState && typeof window !== 'undefined') {
         // Save scroll position of the view we're leaving
         if (_previousViewForScroll && _previousViewForScroll !== view) {
-          const mainEl = document.querySelector('.view-scroller');
+          // Le conteneur qui defile n'est PAS `.view-scroller` : mesure faite
+          // dans Chrome sur .18, il a scrollHeight === clientHeight === 745 et
+          // rendait donc 0 a chaque fois. Voir `lib/defilementReel.ts`.
+          const mainEl = conteneurDefilant(CANDIDATS_DEFILEMENT);
           if (mainEl) saveScrollPosition(_previousViewForScroll, mainEl.scrollTop);
         }
         _previousViewForScroll = view;
@@ -563,10 +692,13 @@ import AlarmsView from './components/AlarmsView.svelte';
         }
 
         // Restore scroll position of the view we're entering
-        requestAnimationFrame(() => {
-          const mainEl = document.querySelector('.view-scroller');
-          if (mainEl) mainEl.scrollTop = getScrollPosition(view);
-        });
+        // Une seule frame ne suffit pas quand la liste est virtualisee : sa
+        // hauteur totale n'est connue qu'apres plusieurs frames, et un
+        // scrollTop trop grand est ramene a 0 par le navigateur (#1024).
+        restaurerQuandPret(
+          getScrollPosition(view),
+          () => conteneurDefilant(CANDIDATS_DEFILEMENT),
+        );
       }
     });
 
@@ -583,11 +715,21 @@ import AlarmsView from './components/AlarmsView.svelte';
             artistId: $selectedArtist?.id ?? null,
             tab: $libraryTab ?? null,
           };
-          if (album !== null) {
-            // Entering detail: push so back returns to grid
-            window.history.pushState(ctx, '', `#${view}`);
-          } else {
-            // Returning to grid (programmatic, not via popstate): update current entry
+          const op = opPourFiche(album !== null);
+          if (album !== null && op === 'push') {
+            // Entering detail: push so back returns to grid. La fiche reçoit sa
+            // PROPRE adresse (`#album/{id}`) au lieu de réutiliser `#library`,
+            // pour que la barre d'adresse reflète la vue et que précédent /
+            // suivant soient sans ambiguïté (demande testeur, 5c420af).
+            // Aucune régression de routage : rien ne lit ce fragment au
+            // démarrage — le seul lu est `#tv` (voir `isTvHash` plus haut), et
+            // l'aiguillage se fait sur `history.state`, inchangé.
+            window.history.pushState(ctx, '', `#album/${album.id}`);
+          } else if (op === 'replace') {
+            // Fermeture a la main (clic ailleurs, changement d'onglet) : l'entree
+            // courante suit l'etat. Sur un RETOUR, `opPourFiche` rend 'aucune' :
+            // reecrire ici detruisait l'entree `#album/{id}` juste avant de
+            // reculer, et « suivant » ne pouvait plus y revenir.
             window.history.replaceState(ctx, '', `#${view}`);
           }
         }
@@ -605,17 +747,72 @@ import AlarmsView from './components/AlarmsView.svelte';
             artistId: artist?.id ?? null,
             tab: $libraryTab ?? null,
           };
-          if (artist !== null) {
-            window.history.pushState(ctx, '', `#${view}`);
-          } else {
+          const op = opPourFiche(artist !== null);
+          if (artist !== null && op === 'push') {
+            // Adresse propre à la fiche artiste (`#artist/{id}`) ; voir le cas
+            // album ci-dessus.
+            window.history.pushState(ctx, '', `#artist/${artist.id}`);
+          } else if (op === 'replace') {
             window.history.replaceState(ctx, '', `#${view}`);
           }
         }
       }
     });
 
+    /**
+     * Rouvre la fiche que portait l'entrée d'historique atteinte.
+     *
+     * L'entrée sait QUOI rouvrir (`albumId` / `artistId`) mais pas avec quoi :
+     * la fiche album veut son album complet et ses pistes, la fiche artiste ses
+     * albums. C'est ici, et non dans `LibraryView`, parce que c'est ici que
+     * l'historique est tenu — et que le drapeau `_pushingState` doit couvrir les
+     * `set`, sans quoi chaque retour empilerait une entrée de plus.
+     */
+    let _jetonRestauration = 0;
+    async function rechargerFicheDepuisHistorique(album: number | null, artiste: number | null) {
+      const jeton = ++_jetonRestauration;
+      // L'entrée visée peut avoir changé pendant les requêtes (appuis répétés,
+      // clic ailleurs) : on ne plaque pas une fiche périmée sur l'écran courant.
+      const toujoursDActualite = (attendu: number, champ: 'albumId' | 'artistId') =>
+        jeton === _jetonRestauration && window.history.state?.[champ] === attendu;
+      try {
+        if (artiste != null) {
+          const [fiche, disques] = await Promise.all([
+            api.getArtist(artiste),
+            api.getArtistAlbums(artiste),
+          ]);
+          if (toujoursDActualite(artiste, 'artistId')) {
+            _pushingState = true;
+            selectedArtist.set(fiche);
+            artistAlbums.set(disques);
+            _pushingState = false;
+          }
+        }
+        if (album != null) {
+          const [fiche, pistes] = await Promise.all([
+            api.getAlbum(album),
+            api.getAlbumTracks(album),
+          ]);
+          if (toujoursDActualite(album, 'albumId')) {
+            _pushingState = true;
+            selectedAlbum.set(fiche);
+            albumTracks.set(pistes);
+            _pushingState = false;
+          }
+        }
+      } catch (err) {
+        // Une fiche qu'on n'arrive pas à relire laisse la grille : c'est le
+        // comportement d'avant, pas une régression.
+        console.error('history detail restore error', err);
+        _pushingState = false;
+      }
+    }
+
     window.addEventListener('popstate', (e) => {
       const ctx = e.state;
+      // Le retour annonce par `reculerAvecIntention` est consomme : les
+      // fermetures de fiche suivantes redeviennent des `replace`.
+      finDuRetourProgrammatique();
       _pushingState = true;
       if (ctx?.view) {
         activeView.set(ctx.view);
@@ -623,13 +820,29 @@ import AlarmsView from './components/AlarmsView.svelte';
           if (ctx.tab) libraryTab.set(ctx.tab);
         }
       }
-      // Always reconcile detail state: if the history entry has no albumId/artistId
-      // (or state is null, e.g. Safari initial entry), clear any active detail view.
-      // This fixes Safari where navigating back to the grid could leave stale state
-      // preventing subsequent album clicks from opening detail.
-      if (!ctx?.albumId) selectedAlbum.set(null);
-      if (!ctx?.artistId) selectedArtist.set(null);
+      // Réconcilier l'état de fiche avec l'entrée atteinte. Le gestionnaire se
+      // contentait de NETTOYER (`if (!ctx?.albumId) selectedAlbum.set(null)`),
+      // ce qui reste indispensable — Safari, dont l'entrée initiale a un `state`
+      // nul, gardait sinon une fiche fantôme qui bloquait les clics suivants.
+      // Mais il ne RÉTABLISSAIT jamais rien, alors que l'entrée porte un
+      // instantané fidèle de la fiche ouverte : revenir sur une entrée qui
+      // portait un album déposait sur la GRILLE, un écran par lequel
+      // l'utilisateur n'était pas passé, et le niveau de la fiche était sauté
+      // (renesenses/tune-server-rust#2252 : collection → fiche album → artiste,
+      // dont le retour doit revenir à la fiche album avant la collection).
+      const plan = reconcilierFiche(ctx, {
+        album: $selectedAlbum?.id ?? null,
+        artiste: $selectedArtist?.id ?? null,
+      });
+      if (plan.album === 'vider') selectedAlbum.set(null);
+      if (plan.artiste === 'vider') selectedArtist.set(null);
       _pushingState = false;
+      if (typeof plan.album === 'number' || typeof plan.artiste === 'number') {
+        void rechargerFicheDepuisHistorique(
+          typeof plan.album === 'number' ? plan.album : null,
+          typeof plan.artiste === 'number' ? plan.artiste : null,
+        );
+      }
     });
 
     connectionState.set('connecting');
@@ -641,6 +854,11 @@ import AlarmsView from './components/AlarmsView.svelte';
     loadLicense();
     checkOnboarding();
     checkWhatsNew();
+    // État initial des tâches de fond, au cas où un enrichissement tourne déjà
+    // au chargement ; le direct arrive ensuite par le WebSocket (#2227).
+    api.getBackgroundTasks()
+      .then((r) => { backgroundTasks = r?.tasks ?? []; applyEnrichmentBanner(); })
+      .catch(() => {});
 
     // Keep polling aware of the active zone so it can fetch the queue
     unsubZoneForPolling = currentZoneId.subscribe((zoneId) => {
@@ -686,13 +904,30 @@ import AlarmsView from './components/AlarmsView.svelte';
       }
 
       // Instantané d'ouverture de connexion. Le serveur l'envoie pour que le
-      // client « ait la vérité tout de suite » (routes/ws.rs), et il est le
-      // seul endroit d'où la répétition et la lecture aléatoire arrivent :
-      // ni /zones ni /zones/{id} ne les portent. On ne s'en sert que pour
-      // cela — la liste des zones reste servie par fetchZones, inchangée.
+      // client « ait la vérité tout de suite » (routes/ws.rs). On ne s'en sert
+      // que pour le transport — la liste des zones reste servie par
+      // fetchZones, inchangée.
       if (type === 'snapshot' && Array.isArray(event.data?.zones)) {
         for (const z of event.data.zones) syncTransportFromZone(z);
         return;
+      }
+
+      // Bascule d'aléatoire ou de répétition annoncée EN DIRECT (#2092).
+      //
+      // C'est le seul chemin par lequel un changement fait AILLEURS —
+      // application mobile, seconde fenêtre, Siri, widget, appel d'API —
+      // atteint cet écran sans rechargement. Sans lui, deux télécommandes
+      // ouvertes côte à côte affichent deux vérités différentes, et celle qui
+      // n'a pas cliqué a tort.
+      //
+      // Placé AVANT le bloc générique `playback.*`, et sans `return` : c'est un
+      // AJOUT, pas un détournement. Le bloc générique continue de faire ce
+      // qu'il faisait pour ces deux événements (un `syncZoneState` de
+      // rattrapage) ; le court-circuiter aurait échangé un défaut contre le
+      // risque d'un autre.
+      {
+        const direct = transportDeLEvenement(type, event.data);
+        if (direct) syncTransportFromZone({ id: direct.zoneId, ...direct.transport });
       }
 
       // Polling bulk zone update — replace all zones at once
@@ -877,11 +1112,45 @@ import AlarmsView from './components/AlarmsView.svelte';
               seekPositionMs.set(0);
               startSeekTimer();
             }
-            // Refresh queue on playback start / track change so the queue
-            // view shows the full list and the correct current position.
-            // The server does not emit playback.queue_changed when a
-            // streaming playlist begins or advances to the next track.
-            fetchQueue();
+            // Surbrillance de la file. Le serveur pose l'index AVANT d'émettre,
+            // pour que l'événement le porte : on le prend tel quel, sans le
+            // moindre aller-retour. Ce n'est qu'à défaut — démarrage de
+            // lecture, où le contenu peut être neuf, ou serveur qui ne porte
+            // pas la position — qu'on redemande la file ENTIÈRE, dont le
+            // rechargement à chaque avance figeait l'écran sous une grande file
+            // aléatoire (#1096).
+            const positionEvenement = positionFileAnnoncee(event.data);
+            if (positionEvenement !== null) {
+              serveurPorteLaPositionDeFile = true;
+              if (isCurrentZoneEvent) queuePosition.set(positionEvenement);
+            }
+            if (doitRechargerLaFileEntiere(type, serveurPorteLaPositionDeFile)) {
+              fetchQueue();
+            }
+
+            // Badge bit-perfect de la PREMIÈRE piste d'une zone démarrée à
+            // froid : la réponse autoritaire peut arriver avant que la zone ait
+            // fini de passer en lecture, et `signal_path` revient nul (#72). On
+            // relance la synchro tant qu'il manque, sans renoncer sur un état
+            // transitoire — c'était le défaut du premier correctif sur un
+            // démarrage lent (#75). Sans effet dès que le chemin est là, donc
+            // gratuit dans le cas courant (2ᵉ piste et suivantes).
+            const generation = (generationCheminSignal.get(zoneId) ?? 0) + 1;
+            generationCheminSignal.set(zoneId, generation);
+            let essaisCheminSignal = 0;
+            const assurerCheminSignal = () => {
+              // Une piste plus récente a pris la main : cette chaîne-ci n'a plus
+              // rien à réparer, et l'empiler reviendrait à lancer six requêtes
+              // par piste sautée.
+              if (generationCheminSignal.get(zoneId) !== generation) return;
+              const z = get(zones).find((zz) => zz.id === zoneId);
+              if (!doitReessayerCheminSignal(z, essaisCheminSignal)) return;
+              essaisCheminSignal++;
+              setTimeout(() => {
+                syncZoneState(zoneId).then(assurerCheminSignal);
+              }, delaiEssaiCheminSignal(essaisCheminSignal));
+            };
+            assurerCheminSignal();
           }
           // Fetch full zone state from API (authoritative update)
           syncZoneState(zoneId).then(() => {
@@ -1037,8 +1306,21 @@ import AlarmsView from './components/AlarmsView.svelte';
           }
         } else if (type === 'library.scan.completed') {
           scanIndicator = false;
-          showReadyBanner();
+          showScanCompletedBanner(event.data?.auto_enrichment);
         }
+        return;
+      }
+
+      // Tâches de fond : pochettes, images d'artistes, biographies, métadonnées.
+      // Le serveur publie l'avancement fin (`bg_tasks.update_progress`) ; plus
+      // personne ne le lisait depuis la fusion `f14553f6` (#2227).
+      if (type === 'system.background_tasks') {
+        const tasks: TacheDeFond[] = Array.isArray(event.data?.tasks) ? event.data.tasks : [];
+        const venaitDeFinir = enrichissementImagesTermine(backgroundTasks, tasks);
+        backgroundTasks = tasks;
+        applyEnrichmentBanner();
+        // La fenêtre se referme — mais sur un bilan, plus sur du vide.
+        if (venaitDeFinir) showArtistEnrichSummary();
         return;
       }
 
@@ -1182,11 +1464,13 @@ import AlarmsView from './components/AlarmsView.svelte';
     {/if}
 
     {#if bannerStatus !== 'idle'}
-      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--fadeout={bannerFadeout}>
-        {#if bannerStatus === 'scan' || bannerStatus === 'streaming'}
+      <div class="status-banner" class:status-banner--scan={bannerStatus === 'scan'} class:status-banner--streaming={bannerStatus === 'streaming'} class:status-banner--enrichment={bannerStatus === 'enrichment'} class:status-banner--ready={bannerStatus === 'ready'} class:status-banner--notice={bannerStatus === 'notice'} class:status-banner--fadeout={bannerFadeout}>
+        {#if bannerStatus === 'scan' || bannerStatus === 'streaming' || bannerStatus === 'enrichment'}
           <span class="status-banner-spinner"></span>
         {:else if bannerStatus === 'ready'}
           <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>
+        {:else if bannerStatus === 'notice'}
+          <svg class="status-banner-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         {/if}
         <span class="status-banner-text">{bannerMessage}</span>
       </div>
@@ -1484,10 +1768,31 @@ import AlarmsView from './components/AlarmsView.svelte';
     border-bottom-color: rgba(34, 197, 94, 0.2);
   }
 
+  /* Enrichissement en fond : même famille visuelle que le scan, teinte plus
+     discrète — c'est une tâche d'arrière-plan, pas une opération demandée. */
+  .status-banner--enrichment {
+    background: rgba(107, 110, 217, 0.1);
+    color: var(--tune-accent, #6b6ed9);
+    border-bottom-color: rgba(107, 110, 217, 0.18);
+  }
+
   .status-banner--ready {
     background: rgba(34, 197, 94, 0.08);
     color: #4ade80;
     border-bottom-color: rgba(34, 197, 94, 0.15);
+  }
+
+  .status-banner--notice {
+    background: rgba(245, 158, 11, 0.1);
+    color: #fbbf24;
+    border-bottom-color: rgba(245, 158, 11, 0.22);
+  }
+
+  .status-banner--notice .status-banner-text {
+    white-space: normal;
+    max-width: 90vw;
+    text-align: center;
+    line-height: 1.35;
   }
 
   .status-banner--fadeout {

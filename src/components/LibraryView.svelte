@@ -3,6 +3,7 @@
   import { formatAnneeAlbum } from '../lib/formats';
   import { dialogs } from '../lib/stores/dialogs';
   import { trierAlbumsParAnnee } from '../lib/trierAlbums';
+  import { doitMemoriserPositionListe } from '../lib/libraryNavScroll';
   import { tip } from '../lib/tooltip';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
@@ -18,6 +19,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { groupCreditsByRole, uniqueInstruments } from '../lib/library/credits';
   import { bioDisplayText } from '../lib/library/bio';
+  import { sectionHeads } from '../lib/library/grouping';
 import { observeHeight, observeWidth } from '../lib/actions/observeSize';
 import { formatTime, formatDuration,  fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
@@ -36,6 +38,8 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import { streamingServices, activeStreamingService, pendingStreamingAlbum } from '../lib/stores/streaming';
   import { get } from 'svelte/store';
   import { activeView, pendingSearchQuery, pendingLibraryFolder } from '../lib/stores/navigation';
+  import { CANDIDATS_DEFILEMENT, conteneurDefilant } from '../lib/defilementReel';
+  import { reculerAvecIntention } from '../lib/historiqueNavigation';
   import ServiceBadge from './ServiceBadge.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ImportWizard from './ImportWizard.svelte';
@@ -139,6 +143,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let editingTrack = $state<Track | null>(null);
   let writingAlbumTags = $state(false);
   let writeTagsMessage = $state<string | null>(null);
+  let reidentifyingAlbum = $state(false);
 
   // Track context menu ("...")
   let trackMenuOpenId = $state<number | null>(null);
@@ -186,6 +191,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let expandedTrackCredits = $state<number | null>(null);
   let trackCreditsMap = $state<Record<number, TrackCredit[]>>({});
   let trackCreditsLoading = $state<number | null>(null);
+
+  // « Autres versions de ce titre » (#2372). Meme mecanique que les credits :
+  // une ligne depliee SOUS la piste, un cache par piste, un seul deplie a la
+  // fois. Pas de nouvel ecran — la creation d'ecran revient au designer.
+  let expandedTrackVersions = $state<number | null>(null);
+  let trackVersionsMap = $state<Record<number, api.TrackVersions | null>>({});
+  let trackVersionsLoading = $state<number | null>(null);
 
   // Artist credits
   let artistCredits = $state<TrackCredit[] | null>(null);
@@ -245,6 +257,60 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     trackCreditsLoading = null;
   }
 
+  /**
+   * Deplie « Autres versions » sous la piste, et charge le resultat.
+   *
+   * Le serveur fait TOUT le rapprochement — bibliotheque et services — dans
+   * `GET /library/tracks/{id}/versions` : l'ecran ne fait que dessiner. Le
+   * resultat est garde par piste, parce qu'une recherche streaming coute des
+   * appels reseau et que replier/deplier ne doit pas les refacturer.
+   */
+  async function toggleTrackVersions(trackId: number) {
+    if (expandedTrackVersions === trackId) {
+      expandedTrackVersions = null;
+      return;
+    }
+    expandedTrackVersions = trackId;
+    if (trackVersionsMap[trackId] !== undefined) return;
+    trackVersionsLoading = trackId;
+    try {
+      const versions = await api.getTrackVersions(trackId);
+      trackVersionsMap = { ...trackVersionsMap, [trackId]: versions };
+    } catch (e) {
+      console.error('Load track versions error:', e);
+      // `null` distingue l'echec du « rien trouve » : les deux affichent le
+      // meme message, mais l'echec ne doit pas etre mis en cache comme un
+      // resultat definitif.
+      trackVersionsMap = { ...trackVersionsMap, [trackId]: null };
+    }
+    trackVersionsLoading = null;
+  }
+
+  /** Une version STREAMING : on ouvre son album dans la vue du service —
+   *  exactement la porte qu'emprunte deja la grille d'albums de streaming. */
+  function ouvrirVersionStreaming(v: {
+    service: string;
+    source_id?: string | null;
+    album_id?: string | null;
+    album_title?: string | null;
+    title: string;
+    artist_name?: string | null;
+    cover_path?: string | null;
+  }) {
+    const albumId = v.album_id ?? v.source_id;
+    if (!albumId) return;
+    activeStreamingService.set(v.service);
+    pendingStreamingAlbum.set({
+      id: albumId,
+      source_id: albumId,
+      source: v.service,
+      title: v.album_title ?? v.title,
+      artist_name: v.artist_name ?? null,
+      cover_path: v.cover_path ?? null,
+    } as any);
+    activeView.set('streaming');
+  }
+
   async function loadArtistCredits(artistId: number) {
     artistCreditsLoading = true;
     try {
@@ -280,6 +346,57 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     writingAlbumTags = false;
   }
 
+  /** Refait l'identification de l'album affiché (#2128).
+   *
+   *  Le verdict est rendu tel quel à l'utilisateur, y compris quand il est
+   *  décevant : « même pressage » et « rien trouvé » sont des réponses, pas des
+   *  échecs à masquer. Sans elles, on renvoie l'utilisateur enquêter à
+   *  l'aveugle — c'est précisément ce que décrivait le fil forum #1455. */
+  async function handleReidentifyAlbum(albumId: number) {
+    reidentifyingAlbum = true;
+    const tid = notifications.info($tr('library.reidentifying'), 0);
+    try {
+      const r = await api.reidentifyAlbum(albumId);
+      notifications.dismiss(tid);
+
+      if (r.verdict === 'no_tracks') {
+        notifications.error($tr('library.reidentifyNoTracks'));
+        return;
+      }
+      if (r.verdict === 'not_found') {
+        notifications.error(
+          $tr('library.reidentifyNotFound').replace('{title}', r.searched_title ?? '')
+        );
+        return;
+      }
+      if (r.verdict === 'unchanged') {
+        // Le cas le plus instructif : la source en ligne confirme, donc
+        // l'erreur est ailleurs. Le dire évite de recommencer pour rien.
+        notifications.info($tr('library.reidentifyUnchanged'), 9000);
+        return;
+      }
+
+      let msg = $tr('library.reidentifySuccess')
+        .replace('{title}', r.release_title ?? '')
+        .replace('{matched}', String(r.tracks_matched ?? 0))
+        .replace('{total}', String(r.tracks_total ?? 0));
+      if (r.fields_left_as_is?.length) {
+        msg += ` — ${$tr('library.reidentifyKept').replace('{fields}', r.fields_left_as_is.join(', '))}`;
+      }
+      notifications.success(msg, 9000);
+      // Relire la fiche pour que l'écran montre ce qui vient d'être écrit. On
+      // ne rappelle pas `selectAlbumDetail`, qui remettrait la navigation et le
+      // défilement à zéro : seule la fiche a changé, pas la liste des pistes.
+      const full = await api.getAlbum(albumId);
+      selectedAlbum.set(full);
+    } catch (e: any) {
+      notifications.dismiss(tid);
+      notifications.error(`${$tr('library.reidentifyFailed')} : ${e?.message || e}`);
+    } finally {
+      reidentifyingAlbum = false;
+    }
+  }
+
   function openAlbumEdit(e: MouseEvent, album: Album) {
     e.stopPropagation();
     editingAlbum = album;
@@ -297,7 +414,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   function handleTrackSaved(updated: Track) {
     tracks.update(list => list.map(t => t.id === updated.id ? updated : t));
-    albumTracks.update(list => list.map(t => t.id === updated.id ? updated : t));
+    // GROUPING vit dans `track_metadata`, pas dans la table `tracks` : la
+    // réponse de PATCH /metadata/tracks/{id} ne le porte donc jamais. Sans ce
+    // report, renommer une piste effacerait son en-tête de section jusqu'au
+    // prochain chargement de l'album (#2130).
+    albumTracks.update(list => list.map(t =>
+      t.id === updated.id ? { ...updated, grouping: updated.grouping ?? t.grouping } : t
+    ));
   }
 
   let zone = $derived($currentZone);
@@ -415,6 +538,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       .catch(() => {})
       .finally(() => genreTreeLoaded = true);
     loadUserTags();
+    // Les DR réellement présents (#2144). Un échec ou un serveur antérieur à
+    // la v0.9.130 rend une liste vide : la commande n'est simplement pas
+    // dessinée, aucune erreur à l'écran.
+    api.getAlbumDynamicRanges().then(v => drValues = v).catch(() => {});
   });
   let formatFilter = $state<string | null>(null);
   let qualityFilter = $state<string | null>(null);
@@ -502,13 +629,23 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   });
 
   // Sort options
-  type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date';
+  type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date' | 'dynamic_range' | 'random';
   const ALBUM_SORT_OPTIONS: { key: AlbumSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
     { key: 'title', label: 'library.sortTitle', defaultOrder: 'asc' },
     { key: 'artist', label: 'library.sortArtist', defaultOrder: 'asc' },
     { key: 'release_date', label: 'library.sortReleaseDate', defaultOrder: 'desc' },
     { key: 'original_year', label: 'library.sortOriginalYear', defaultOrder: 'desc' },
     { key: 'added_date', label: 'library.sortAddedDate', defaultOrder: 'desc' },
+    // Dynamic Range (#2144). Décroissant par défaut : on trie par DR pour
+    // remonter ses disques les PLUS dynamiques, pas les plus écrasés. Les
+    // albums sans tag sortent en dernier (`NULLS LAST` côté serveur) — les
+    // annoncer à DR0 serait un mensonge.
+    { key: 'dynamic_range', label: 'library.sortDynamicRange', defaultOrder: 'desc' },
+    // Tri aléatoire (#3074, Steve Taylor, fil 1635) : « sort by random and have
+    // something I have not played for years come out on top ». Redécouvrir sa
+    // propre bibliothèque, pas écouter — d'où un TRI, distinct du bouton
+    // « Play all shuffled » qui, lui, lance la lecture.
+    { key: 'random', label: 'library.sortRandom', defaultOrder: 'asc' },
   ];
   // Album sort lives in the server-synced preferences store (#1134) so the
   // chosen order follows the user across sessions/devices, not just this browser.
@@ -543,6 +680,47 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // Persist through the preferences store (localStorage + server ui_preferences),
     // so the order is remembered per profile across devices (#1134).
     preferences.update(p => ({ ...p, albumSort: key, albumSortOrder: order }));
+    // Chaque passage AU tri aléatoire est un nouveau tirage : garder l'ancienne
+    // graine rendrait exactement la même grille, et le tri paraîtrait cassé.
+    if (key === 'random') albumRandomSeed = null;
+    albumsLoaded = false;
+    loadAlbums();
+  }
+
+  // Tranche de Dynamic Range (#2144), bornes INCLUSES et indépendantes.
+  //
+  // Le filtre part au SERVEUR (`dr_min`/`dr_max`) et non au client : la liste
+  // d'albums ne porte pas la valeur de DR, un filtrage local ne verrait donc
+  // rien. `drValues` liste ce qui existe réellement — vide sur une
+  // bibliothèque non taguée, et la commande n'est alors pas dessinée du tout
+  // plutôt que d'offrir un menu qui ne filtrerait rien.
+  // Graine du tri aléatoire (#3074). `null` = « tire-m'en une » : le serveur
+  // en fabrique une, la renvoie, et on la garde pour les pages suivantes —
+  // sinon chaque requête re-tire et la grille montre des albums en double tout
+  // en en cachant d'autres. Le bouton de re-tirage la remet simplement à
+  // `null`.
+  let albumRandomSeed = $state<number | null>(null);
+  function retirerAleatoire() {
+    albumRandomSeed = null;
+    albumsLoaded = false;
+    loadAlbums();
+  }
+
+  let albumDrMin = $state<number | null>(null);
+  let albumDrMax = $state<number | null>(null);
+  let drValues = $state<number[]>([]);
+  let drRange = $derived(
+    albumDrMin == null && albumDrMax == null ? undefined : { min: albumDrMin, max: albumDrMax },
+  );
+  function setAlbumDr(borne: 'min' | 'max', valeur: string) {
+    const n = valeur === '' ? null : Number(valeur);
+    if (borne === 'min') albumDrMin = n; else albumDrMax = n;
+    albumsLoaded = false;
+    loadAlbums();
+  }
+  function clearAlbumDr() {
+    if (albumDrMin == null && albumDrMax == null) return;
+    albumDrMin = null; albumDrMax = null;
     albumsLoaded = false;
     loadAlbums();
   }
@@ -602,6 +780,34 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       if (albumTagFilter === tag.id) applyTagFilter(null);
       await loadUserTags();
     } catch (e) { console.error('deleteTag error:', e); }
+  }
+
+  /**
+   * Création d'une étiquette SANS passer par la fiche d'un album (#2256,
+   * point 1/3).
+   *
+   * Le défaut vécu, signalé par bluevelvet (Pascal) le 06/07/2026 : « Je n'ai
+   * pas retrouvé la manière de créer une troisième étiquette. » Il avait
+   * raison de ne pas la trouver — jusqu'ici `api.createTag` n'avait qu'un seul
+   * appelant, `handleCreateAndAssignTag`, lui-même déclenché depuis le seul
+   * champ ouvert par le bouton « + Tag » de la fiche d'un album. La barre de
+   * filtres, elle, savait filtrer, renommer et supprimer une étiquette, mais
+   * jamais en créer : la gestion était là, la création ailleurs.
+   *
+   * Cette fonction complète l'affordance existante au même endroit que le
+   * renommage, avec le même dialogue. Elle ne crée QUE l'étiquette : aucun
+   * album n'est assigné, puisqu'aucun n'est sélectionné ici.
+   */
+  async function handleCreateTag() {
+    const saisi = await dialogs.prompt($tr('library.createTagPrompt' as any), '');
+    if (saisi === null) return;
+    const name = saisi.trim();
+    if (!name) return;
+    const color = TAG_COLORS[Math.floor(Math.random() * TAG_COLORS.length)];
+    try {
+      await api.createTag(name, color);
+      await loadUserTags();
+    } catch (e) { console.error('createTag error:', e); }
   }
 
   async function applyTagFilter(tagId: number | null) {
@@ -931,6 +1137,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   // Alpha index for albums (years + months when sorted by date, letters otherwise)
   let albumIndexEntries = $derived.by(() => {
+    // Trié par DR, une bande de lettres A→Z ne désigne plus rien : elle
+    // sauterait à un titre au hasard dans une grille ordonnée par dynamique.
+    // Pas de repère plutôt qu'un faux repère — la liste d'albums ne porte pas
+    // la valeur de DR, on ne peut donc pas en dessiner un vrai ici.
+    if (albumSort === 'dynamic_range' || albumSort === 'random') return [];
     if (albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date') {
       const keys = [...new Set(filteredAlbums.map(albumDateKey))];
       return albumSortOrder === 'desc' ? keys.sort((a, b) => b.localeCompare(a)) : keys.sort();
@@ -1175,6 +1386,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   let hasMultipleDiscs = $derived(tracksByDisc.length > 1);
 
+  // GROUPING (#2130) — en-têtes de section À L'INTÉRIEUR d'un disque
+  // (mouvements, bonus, ensembles), là où DISCSUBTITLE nomme le disque entier.
+  // La règle, et pourquoi elle s'efface d'elle-même quand le tag n'apprend
+  // rien, sont dans `lib/library/grouping.ts` (couvert par ses tests).
+  let groupingHeads = $derived(sectionHeads(tracksByDisc.map(([, tracks]) => tracks)));
+
   function selectGenreInTab(name: string) {
     // If the user clicked on a genre name that's a parent in the tree,
     // treat it as a branch view. Otherwise it's a leaf — also resolve
@@ -1323,13 +1540,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (scopedFolder) { await loadScopedAlbums(); return; }
     libraryLoading.set(true);
     try {
-      const first = await api.getAllAlbums(100, albumSort, albumSortOrder, 1, 100);
-      albums.set(first);
+      const premier = await api.getAllAlbumsSeeded(100, albumSort, albumSortOrder, 1, 100, drRange, albumRandomSeed);
+      // La graine du premier tirage vaut pour TOUTE la grille : on la retient
+      // avant la seconde requête, qui doit lire le même ordre.
+      if (albumSort === 'random' && premier.seed != null) albumRandomSeed = premier.seed;
+      albums.set(premier.albums);
       albumsLoaded = true;
       libraryLoading.set(false);
-      if (first.length >= 100) {
-        const rest = await api.getAllAlbums(2000, albumSort, albumSortOrder);
-        albums.set(rest);
+      if (premier.albums.length >= 100) {
+        const reste = await api.getAllAlbumsSeeded(2000, albumSort, albumSortOrder, undefined, undefined, drRange, albumRandomSeed);
+        albums.set(reste.albums);
       }
     } catch (e) {
       console.error('Load albums error:', e);
@@ -1370,13 +1590,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (!album.id) return;
     savedAlbumScrollTop = albumScrollTop;
     if ($libraryTab === 'genres') {
-      const scrollEl = document.querySelector('.library-scroller');
+      const scrollEl = conteneurDefilant(CANDIDATS_DEFILEMENT);
       savedGenreScrollTop = scrollEl ? scrollEl.scrollTop : 0;
     }
     // NE PAS vider selectedArtist ici : le garder permet à goBack() de revenir à
     // la page de l'artiste quand l'album a été ouvert depuis celle-ci (bug Fabien-1).
     expandedTrackCredits = null;
     trackCreditsMap = {};
+    expandedTrackVersions = null;
     albumBio = null;
     albumBioAlbumId = null;
     showAlbumBio = false;
@@ -1404,7 +1625,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       ]);
       selectedAlbum.set(full);
       albumTracks.set(result);
-      window.history.pushState({ view: 'library', albumId: album.id, tab: $libraryTab }, '', '#library');
+      // Pas de `pushState` ici : l'abonnement `selectedAlbum` d'App.svelte en a
+      // DÉJÀ empilé une, et il en est la seule source de vérité. Empiler la
+      // sienne en plus déposait deux entrées jumelles pour une seule
+      // navigation, si bien que le premier appui sur « Précédent » retombait
+      // sur la jumelle — qui porte encore `albumId`, donc que le gestionnaire
+      // `popstate` laisse en fiche. L'utilisateur voyait un appui sans effet et
+      // devait appuyer deux fois (5c420af, reperdu par la fusion f14553f).
+      // Cette entrée-là omettait de surcroît `artistId`, que l'abonnement
+      // reporte, lui — voir le cas « album ouvert depuis une fiche artiste ».
     } catch (e) {
       console.error('Load album tracks error:', e);
       selectedAlbum.set(album);
@@ -1451,11 +1680,27 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // auto), NOT `.main-content` — whose child fills it exactly, so its scrollTop
     // stays 0. Reading `.main-content` here always captured 0, so Back landed at
     // the top of the artist list instead of the viewed artist (#1118, #870).
-    const scrollEl = document.querySelector('.library-scroller');
-    if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
-    if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
+    //
+    // …mais seulement si l'on quitte réellement une LISTE. `selectArtistDetail`
+    // est aussi appelée depuis une fiche déjà ouverte : lien artiste d'un album,
+    // pastilles de crédits, liens artiste des pistes, fil des « artistes
+    // similaires », et `goBack()` lui-même quand ce fil se dépile. Dans ces
+    // cas-là `.library-scroller` porte le défilement d'une page de DÉTAIL —
+    // pratiquement toujours 0 — et l'écrire ici écrasait la position de la liste
+    // mémorisée à l'entrée. Comme `restoreArtistScrollWhenReady` ne fait rien
+    // pour une cible <= 0, le retour final laissait la liste tout en haut :
+    // « le retour ramène toujours en début de liste » (Pierre M, fil 1177,
+    // renesenses/tune-server-rust#2253). La grille d'albums avait déjà sa garde
+    // (`if (!$selectedAlbum)` ci-dessus) ; l'artiste ne l'avait jamais eue.
+    if (doitMemoriserPositionListe({ albumOuvert: $selectedAlbum != null, artisteOuvert: $selectedArtist != null })) {
+      const scrollEl = conteneurDefilant(CANDIDATS_DEFILEMENT);
+      if (scrollEl) savedArtistScrollTop = scrollEl.scrollTop;
+      if ($libraryTab === 'genres' && scrollEl) savedGenreScrollTop = scrollEl.scrollTop;
+    }
     selectedArtist.set(artist);
-    window.history.pushState({ view: 'library', artistId: artist.id, tab: $libraryTab }, '', '#library');
+    // Même raison qu'en fiche album : l'abonnement `selectedArtist` d'App.svelte
+    // est la seule source de vérité de l'historique. Un second `pushState` ici
+    // rendait le premier appui sur « Précédent » sans effet.
     selectedAlbum.set(null);
     artistMetadata = null;
     artistMetadataError = false;
@@ -1665,9 +1910,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     if (target <= 0) return;
     let attempts = 0;
     const tick = () => {
-      // Restore on the real scroll container `.library-scroller` (see the capture
-      // in selectArtistDetail) — not `.main-content`, which never scrolls.
-      const el = document.querySelector('.library-scroller') as HTMLElement | null;
+      // Meme regle qu'a la capture : on vise le conteneur qui defile pour de
+      // bon, pas un nom fige (`lib/defilementReel.ts`).
+      const el = conteneurDefilant(CANDIDATS_DEFILEMENT);
       const ready = el && el.scrollHeight >= target + el.clientHeight;
       if (ready || attempts >= 30) {
         if (el) el.scrollTop = target;
@@ -1692,24 +1937,29 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // pas à la grille complète des artistes (bug Fabien-1). selectedArtist est
     // conservé par selectAlbumDetail exactement pour ça.
     if ($selectedAlbum != null && $selectedArtist != null) {
-      selectedAlbum.set(null);
-      albumTracks.set([]);
-      window.history.back();
+      // Les `set(null)` tournent DANS la fenetre d'intention : ce sont eux qui
+      // reveillent les souscriptions d'App.svelte, lesquelles reecrivaient
+      // l'entree de la fiche juste avant de reculer.
+      reculerAvecIntention(() => {
+        selectedAlbum.set(null);
+        albumTracks.set([]);
+      });
       return;
     }
     const restoreAlbumScroll = savedAlbumScrollTop;
     const restoreArtistScroll = savedArtistScrollTop;
     const wasArtistTab = $libraryTab === 'artists';
     restoringScroll = restoreAlbumScroll > 0;
-    selectedAlbum.set(null);
-    selectedArtist.set(null);
-    albumTracks.set([]);
-    artistAlbums.set([]);
-    streamingArtistAlbums = [];
-    artistMetadata = null;
-    artistMetadataError = false;
-    artistMetadataLoading = false;
-    window.history.back();
+    reculerAvecIntention(() => {
+      selectedAlbum.set(null);
+      selectedArtist.set(null);
+      albumTracks.set([]);
+      artistAlbums.set([]);
+      streamingArtistAlbums = [];
+      artistMetadata = null;
+      artistMetadataError = false;
+      artistMetadataLoading = false;
+    });
     // Poll until the re-rendered grid/list is tall enough before restoring
     // scroll — a fixed 2-frame wait clamped to 0 on large libraries (#1024).
     // Running the album restore here sets restoringScroll first, so the
@@ -1739,6 +1989,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   let shuffleAllLoading = $state(false);
 
+  // Le bouton doit DIRE ce qu'il va faire. `scopedFolder` manquait de cette
+  // liste : pastille de répertoire active, le bouton continuait d'annoncer
+  // « Tout lire en aléatoire » — ce que la capture de Marco Polo montre, et ce
+  // qui rendait le défaut invisible (#2801). La condition était par ailleurs
+  // recopiée à l'identique dans le libellé ET dans l'infobulle : une seule
+  // expression, pour qu'elles ne puissent plus diverger.
+  let shuffleEstPorte = $derived(
+    !!(scopedFolder || searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre),
+  );
+
   async function shuffleAllLibrary() {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
@@ -1753,7 +2013,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // and the "no genre" bucket have no single server-side genre string. For
       // those, gather the visible albums' tracks and shuffle them client-side
       // (same pattern as SmartCollectionsView) so only the chosen genre plays.
-      if (!searchQuery.trim() && (selectedParent || selectedNoGenre) && !selectedGenre) {
+      //
+      // `!scopedFolder` : quand la pastille de répertoire est active, les trois
+      // onglets ne chargent QUE le sous-arbre (`loadScopedAlbums/Artists/Tracks`)
+      // et `genreAlbums` n'est plus ce qui est à l'écran. Sans cette garde, ce
+      // retour anticipé DÉSARMERAIT la portée de répertoire ajoutée six lignes
+      // plus bas : la lecture partirait des albums d'un genre qui n'est plus
+      // affiché.
+      if (!scopedFolder && !searchQuery.trim() && (selectedParent || selectedNoGenre) && !selectedGenre) {
         const albumIds = genreAlbums.map((a) => a.id).filter((id): id is number => id != null);
         // Bounded-concurrency fetch with one retry per album (getAlbumTracksBatch)
         // instead of a single Promise.all burst that silently dropped albums whose
@@ -1779,9 +2046,21 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         return;
       }
       // Pass current search/filter context so shuffle applies to visible results
-      const opts: { search_query?: string; genre?: string } = {};
+      //
+      // `folder` (#2801) : la pastille de répertoire est la portée EXTÉRIEURE
+      // de cet écran — elle remplace le contenu des trois onglets par le seul
+      // sous-arbre, et la zone de recherche ne fait ensuite que le restreindre.
+      // Les deux partent donc ENSEMBLE, et le serveur les intersecte ; le genre
+      // ne l'accompagne pas, parce qu'il vit dans l'onglet Genres, qui n'a pas
+      // de pastille.
+      //
+      // Sans ce champ, `opts` restait VIDE dans le cas de Marco Polo (un
+      // répertoire, ni recherche ni genre) : l'appel partait avec `undefined`
+      // et le serveur tirait dans toute la bibliothèque.
+      const opts: { search_query?: string; genre?: string; folder?: string } = {};
+      if (scopedFolder) opts.folder = scopedFolder;
       if (searchQuery.trim()) opts.search_query = searchQuery.trim();
-      else if (selectedGenre) opts.genre = selectedGenre;
+      else if (selectedGenre && !scopedFolder) opts.genre = selectedGenre;
       const result = await api.shuffleAll(zone.id, Object.keys(opts).length ? opts : undefined);
       notifications.success($tr('library.shufflePlaying').replace('{count}', String(result.track_count)));
     } catch (e) {
@@ -2121,9 +2400,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <span class="folder-scope-x">×</span>
           </button>
         {/if}
-        <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-          {shuffleAllLoading ? $tr('common.loading') : (searchQuery.trim() || selectedGenre || selectedParent || selectedNoGenre ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
+        <button class="shuffle-all-btn" onclick={shuffleAllLibrary} disabled={shuffleAllLoading} title={shuffleEstPorte ? $tr('library.shuffleResults') : $tr('library.shuffleAll')}>
+          <!-- Ce bouton DECLENCHE une lecture ; la bascule de la barre de transport
+               ACTIVE un mode. Les deux portaient le meme glyphe de fleches croisees,
+               et un testeur a cliqué ici en croyant eteindre le mode aleatoire
+               (renesenses/tune-server-rust#2261). Le triangle de lecture accolé est
+               ce qui distingue « demarrer » de « activer » : ne pas le retirer, et
+               ne pas l'ajouter a la bascule de TransportBar.svelte. -->
+          <svg viewBox="0 0 36 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="16" aria-hidden="true"><polygon class="shuffle-all-play" points="1 5 1 19 10 12" fill="currentColor" stroke="none"/><g transform="translate(13,0)"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></g></svg>
+          {shuffleAllLoading ? $tr('common.loading') : (shuffleEstPorte ? $tr('library.shuffle') : $tr('library.shuffleAll'))}
         </button>
         <button class="add-content-btn" onclick={() => (showImportWizard = true)} title={$tr('library.addContent')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -2220,6 +2505,17 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 {writingAlbumTags ? $tr('library.writingTags') : $tr('library.writeTags')}
               </button>
             {/if}
+            {#if !$selectedAlbum.source || $selectedAlbum.source === 'local'}
+              <button
+                class="edit-btn"
+                onclick={() => $selectedAlbum?.id && handleReidentifyAlbum($selectedAlbum.id)}
+                disabled={reidentifyingAlbum}
+                title={$tr('library.reidentifyTip')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                {reidentifyingAlbum ? $tr('library.reidentifying') : $tr('library.reidentify')}
+              </button>
+            {/if}
             {#if $selectedAlbum.cover_path && $selectedAlbum.id}
               <ReportButton
                 entity="cover"
@@ -2254,30 +2550,54 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <!-- User tags -->
           {#if $selectedAlbum?.id}
             {@const albumId = $selectedAlbum.id}
-            {#key albumTagsKey}
-              {#await api.getTagsForItem('album', albumId) then albumTags}
-                <div class="album-tags-row">
+            <!-- #2256 (bluevelvet, fil 451) : la zone de création s'ouvrait
+                 « en bas de l'écran, juste au-dessus de la barre de lecture,
+                 partiellement masquée par celle-ci ». `.tag-picker` est
+                 `position: absolute; top: 100%` et n'avait aucun ancêtre
+                 positionné : son bloc de référence remontait jusqu'à
+                 `.view-scroller` (App.svelte, `position: relative`), qui
+                 occupe toute la hauteur de la vue — `top: 100%` tombait donc
+                 au ras du lecteur. La règle `.tag-add-wrap { position:
+                 relative }` existait depuis l'origine mais n'était employée
+                 nulle part ; c'est elle, ici, qui ancre la zone sous son
+                 bouton. Le bouton sort du bloc `{#await}` pour rester avec
+                 elle dans le même conteneur : il reste ainsi visible pendant
+                 le chargement des étiquettes au lieu d'apparaître après. -->
+            <div class="album-tags-row">
+              {#key albumTagsKey}
+                {#await api.getTagsForItem('album', albumId) then albumTags}
                   {#each albumTags as tag}
                     <span class="album-tag-chip" style="background:{tag.color}">
                       {tag.name}
                       <button class="tag-remove" onclick={async () => { await api.untagItem(tag.id!, 'album', albumId); await loadUserTags(); albumTagsKey++; }}>×</button>
                     </span>
                   {/each}
-                  <button class="tag-add-btn" onclick={() => showTagPicker = !showTagPicker}>+ Tag</button>
-                </div>
-              {/await}
-            {/key}
-            {#if showTagPicker}
-              <div class="tag-picker">
-                <input class="tag-picker-input" type="text" placeholder={$tr('library.newTagPlaceholder')} bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
-                {#each userTags as tag}
-                  <button class="tag-picker-option" onclick={async () => { await api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; await loadUserTags(); albumTagsKey++; }}>
-                    <span class="tag-dot" style="background:{tag.color}"></span>
-                    {tag.name}
-                  </button>
-                {/each}
-              </div>
-            {/if}
+                {/await}
+              {/key}
+              <span class="tag-add-wrap">
+                <button class="tag-add-btn" onclick={() => showTagPicker = !showTagPicker}>+ Tag</button>
+                {#if showTagPicker}
+                  <div class="tag-picker">
+                    <!-- La touche Entrée était le SEUL moyen de valider : un
+                         nom saisi puis un clic ailleurs, et la saisie
+                         disparaissait sans un mot. Le bouton rend la
+                         validation visible ; Entrée continue de marcher. -->
+                    <div class="tag-picker-create">
+                      <input class="tag-picker-input" type="text" placeholder={$tr('library.newTagPlaceholder')} bind:value={newTagName} onkeydown={(e) => { if (e.key === 'Enter' && newTagName.trim()) handleCreateAndAssignTag(albumId); }} />
+                      <button class="tag-picker-submit" disabled={!newTagName.trim()} title={$tr('library.createTag' as any)} aria-label={$tr('library.createTag' as any)} onclick={() => handleCreateAndAssignTag(albumId)}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>
+                      </button>
+                    </div>
+                    {#each userTags as tag}
+                      <button class="tag-picker-option" onclick={async () => { await api.tagItem(tag.id!, 'album', albumId); showTagPicker = false; await loadUserTags(); albumTagsKey++; }}>
+                        <span class="tag-dot" style="background:{tag.color}"></span>
+                        {tag.name}
+                      </button>
+                    {/each}
+                  </div>
+                {/if}
+              </span>
+            </div>
           {/if}
           <button class="bio-toggle-btn" onclick={() => { showAlbumBio = !showAlbumBio; if (showAlbumBio && $selectedAlbum?.id) loadAlbumBio($selectedAlbum.id); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg>
@@ -2315,6 +2635,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="disc-header">{$tr('library.disc').replace('{num}', String(discNum))}{#if discSubtitle} — {discSubtitle}{/if}</div>
           <div class="track-list">
             {#each discTracks as t, index}
+              {#if t.id != null && groupingHeads.has(t.id)}
+                <div class="grouping-header">{groupingHeads.get(t.id)}</div>
+              {/if}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
               <!-- `t.id != null` d'abord : sans ce garde, deux pistes sans
@@ -2370,6 +2693,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                       onPlay={() => t.id && playTrack(t.id)}
                       onAddToQueue={() => addTrackToQueue(t)}
                       onPlaySimilar={() => playSimilar(t)}
+                      onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                       onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
                       onGoToArtist={t.artist_name
                         ? () => { const a = $artists.find(ar => ar.name === t.artist_name); if (a) selectArtistDetail(a); }
@@ -2400,12 +2724,65 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   {/if}
                 </div>
               {/if}
+              {#if expandedTrackVersions === t.id}
+                <!--
+                  « Autres versions de ce titre » (#2372). La MEME surface que les
+                  crédits : une ligne dépliée sous la piste. Pas de modale, pas de vue
+                  neuve — la création d'écran revient au designer.
+                -->
+                <div class="track-versions-row">
+                  {#if trackVersionsLoading === t.id}
+                    <div class="spinner-sm"></div>
+                  {:else}
+                    {@const g = trackVersionsMap[t.id!] ?? null}
+                    {@const locales = g?.versions ?? []}
+                    {@const flux = g?.streaming ?? []}
+                    {#if locales.length === 0 && flux.length === 0}
+                      <span class="credits-empty">{$tr('library.noOtherVersions')}</span>
+                    {:else}
+                      <div class="versions-tuiles">
+                        {#each locales as v}
+                          <button class="version-tuile" onclick={(e) => { e.stopPropagation(); if (v.track_id) playTrack(v.track_id); }} title={v.album_title ?? ''}>
+                            <AlbumArt coverPath={v.cover_path} albumId={v.album_id} size={48} alt={v.album_title ?? ''} />
+                            <span class="version-tuile-texte">
+                              <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
+                              <span class="version-tuile-sub">
+                                {#if v.duration_ms}{formatTime(v.duration_ms)}{/if}
+                              </span>
+                            </span>
+                          </button>
+                        {/each}
+                        {#each flux as v}
+                          <button
+                            class="version-tuile"
+                            class:reprise={v.kind === 'reprise'}
+                            class:inerte={!(v.album_id ?? v.source_id)}
+                            onclick={(e) => { e.stopPropagation(); ouvrirVersionStreaming(v); }}
+                            title={v.album_title ?? v.title}
+                          >
+                            <AlbumArt coverPath={v.cover_path} size={48} alt={v.album_title ?? v.title} />
+                            <span class="version-tuile-texte">
+                              <span class="version-tuile-titre truncate">{v.kind === 'reprise' ? (v.artist_name ?? v.title) : (v.album_title ?? v.title)}</span>
+                              <span class="version-tuile-sub">
+                                <ServiceBadge source={v.service} compact />
+                              </span>
+                            </span>
+                          </button>
+                        {/each}
+                      </div>
+                    {/if}
+                  {/if}
+                </div>
+              {/if}
             {/each}
           </div>
         {/each}
       {:else}
         <div class="track-list">
           {#each $albumTracks as t, index}
+            {#if t.id != null && groupingHeads.has(t.id)}
+              <div class="grouping-header">{groupingHeads.get(t.id)}</div>
+            {/if}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <!-- Voir .track-item.playing — même garde `t.id != null`. -->
@@ -2460,11 +2837,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
                       onPlaySimilar={() => playSimilar(t)}
+                      onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                     onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
                     onGoToArtist={t.artist_name
                       ? () => { const a = $artists.find(ar => ar.id === t.artist_id) ?? $artists.find(ar => ar.name === t.artist_name) ?? (t.artist_id != null ? { id: t.artist_id, name: t.artist_name ?? '' } as Artist : undefined); if (a?.id != null) selectArtistDetail(a as Artist); }
                       : undefined}
-                    onGoToAlbum={() => selectAlbumDetail($selectedAlbum!)}
                   />
                 {/if}
               </div>
@@ -2488,6 +2865,56 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   {/each}
                 {:else}
                   <span class="credits-empty">{$tr('artist.noMetadata')}</span>
+                {/if}
+              </div>
+            {/if}
+            {#if expandedTrackVersions === t.id}
+              <!--
+                « Autres versions de ce titre » (#2372). La MEME surface que les
+                crédits : une ligne dépliée sous la piste. Pas de modale, pas de vue
+                neuve — la création d'écran revient au designer.
+              -->
+              <div class="track-versions-row">
+                {#if trackVersionsLoading === t.id}
+                  <div class="spinner-sm"></div>
+                {:else}
+                  {@const g = trackVersionsMap[t.id!] ?? null}
+                  {@const locales = g?.versions ?? []}
+                  {@const flux = g?.streaming ?? []}
+                  {#if locales.length === 0 && flux.length === 0}
+                    <span class="credits-empty">{$tr('library.noOtherVersions')}</span>
+                  {:else}
+                    <div class="versions-tuiles">
+                      {#each locales as v}
+                        <button class="version-tuile" onclick={(e) => { e.stopPropagation(); if (v.track_id) playTrack(v.track_id); }} title={v.album_title ?? ''}>
+                          <AlbumArt coverPath={v.cover_path} albumId={v.album_id} size={48} alt={v.album_title ?? ''} />
+                          <span class="version-tuile-texte">
+                            <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
+                            <span class="version-tuile-sub">
+                              {#if v.duration_ms}{formatTime(v.duration_ms)}{/if}
+                            </span>
+                          </span>
+                        </button>
+                      {/each}
+                      {#each flux as v}
+                        <button
+                          class="version-tuile"
+                          class:reprise={v.kind === 'reprise'}
+                          class:inerte={!(v.album_id ?? v.source_id)}
+                          onclick={(e) => { e.stopPropagation(); ouvrirVersionStreaming(v); }}
+                          title={v.album_title ?? v.title}
+                        >
+                          <AlbumArt coverPath={v.cover_path} size={48} alt={v.album_title ?? v.title} />
+                          <span class="version-tuile-texte">
+                            <span class="version-tuile-titre truncate">{v.kind === 'reprise' ? (v.artist_name ?? v.title) : (v.album_title ?? v.title)}</span>
+                            <span class="version-tuile-sub">
+                              <ServiceBadge source={v.service} compact />
+                            </span>
+                          </span>
+                        </button>
+                      {/each}
+                    </div>
+                  {/if}
                 {/if}
               </div>
             {/if}
@@ -2883,9 +3310,21 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {$tr('library.duplicates')} ({duplicateAlbumCount})
           </button>
         {/if}
+        <!-- #2256, point 1/3 : le point d'entrée de création. Cette section
+             n'était montée que `{#if userTags.length > 0}` et n'offrait que
+             filtrer / renommer / supprimer — jamais créer. Une bibliothèque
+             sans aucune étiquette n'affichait donc RIEN ici, et la seule
+             création possible se cachait derrière « + Tag » sur la fiche d'un
+             album. C'est ce que Pascal n'a pas retrouvé. La barre est
+             désormais montée en permanence et porte la création à côté de la
+             gestion. -->
+        <span class="filter-sep">|</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:0.5;flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <button class="quality-chip tag-create" title={$tr('library.createTag' as any)} onclick={handleCreateTag}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          {$tr('library.createTag' as any)}
+        </button>
         {#if userTags.length > 0}
-          <span class="filter-sep">|</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="opacity:0.5;flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
           {#each userTags as tag}
             <span class="user-tag-wrap">
               <button
@@ -2931,6 +3370,34 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {/if}
           </button>
         {/if}
+        <!-- Tranche de Dynamic Range (#2144). Dessinée SEULEMENT si la
+             bibliothèque porte des tags DR : ailleurs, ce serait une commande
+             qui ne filtre rien. Deux bornes indépendantes — « DR12 et
+             au-dessus » se règle en ne touchant qu'au minimum. -->
+        {#if drValues.length > 0}
+          <span class="filter-sep">|</span>
+          <span class="dr-range" class:active={albumDrMin != null || albumDrMax != null}>
+            <span class="dr-label">{$tr('library.drRange')}</span>
+            <select class="dr-select" aria-label={$tr('library.drMin')} title={$tr('library.drMin')}
+              value={albumDrMin == null ? '' : String(albumDrMin)}
+              onchange={(e) => setAlbumDr('min', (e.currentTarget as HTMLSelectElement).value)}>
+              <option value="">{$tr('library.drAny')}</option>
+              {#each drValues as v}<option value={String(v)}>{v}</option>{/each}
+            </select>
+            <span class="dr-dash">–</span>
+            <select class="dr-select" aria-label={$tr('library.drMax')} title={$tr('library.drMax')}
+              value={albumDrMax == null ? '' : String(albumDrMax)}
+              onchange={(e) => setAlbumDr('max', (e.currentTarget as HTMLSelectElement).value)}>
+              <option value="">{$tr('library.drAny')}</option>
+              {#each drValues as v}<option value={String(v)}>{v}</option>{/each}
+            </select>
+            {#if albumDrMin != null || albumDrMax != null}
+              <button class="dr-clear" onclick={clearAlbumDr} title={$tr('library.drClear')} aria-label={$tr('library.drClear')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            {/if}
+          </span>
+        {/if}
         <span class="filter-sep">|</span>
         <span class="sort-control">
           <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 6h18M3 12h12M3 18h6" /></svg>
@@ -2939,13 +3406,23 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <option value={opt.key}>{$tr(opt.label)}</option>
             {/each}
           </select>
-          <button class="sort-order-btn" onclick={() => { albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_album_sort_order', albumSortOrder); loadAlbums(); }} title={albumSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}>
-            {#if albumSortOrder === 'asc'}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
-            {:else}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>
-            {/if}
-          </button>
+          <!-- Tri aléatoire : croissant/décroissant ne veut plus rien dire, et
+               retourner un tirage n'est pas le re-tirer. La flèche cède donc la
+               place au bouton de re-tirage demandé au fil 1635 — qui n'est rien
+               d'autre que « redemander sans graine ». -->
+          {#if albumSort === 'random'}
+            <button class="sort-order-btn" onclick={retirerAleatoire} title={$tr('library.reshuffle')} aria-label={$tr('library.reshuffle')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+            </button>
+          {:else}
+            <button class="sort-order-btn" onclick={() => { albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_album_sort_order', albumSortOrder); loadAlbums(); }} title={albumSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}>
+              {#if albumSortOrder === 'asc'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>
+              {/if}
+            </button>
+          {/if}
           <!-- Mur de pochettes : pochettes seules, grille plus dense. On choisit
                un album de mémoire visuelle, et le texte court-circuite ce
                mécanisme (demande Alex Campbell). -->
@@ -3144,6 +3621,32 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
                 </button>
               {/if}
+              <!-- Le même menu que la fiche d'album (#2574). Sans lui, cet
+                   onglet n'offrait RIEN au doigt : les règles @media
+                   (max-width:640px) et (hover:none) plus bas mettent en
+                   `display:none` tous les boutons de la ligne et renvoient sur
+                   le « ··· » — qui n'existait pas ici.
+                   « Autres versions » reste volontairement absente : son
+                   résultat s'affiche dans `track-versions-row`, qui n'est
+                   rendue que dans la fiche d'album. -->
+              <div class="track-more-wrap">
+                <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
+                {#if trackMenuOpenId === t.id}
+                  <TrackContextMenu
+                    onClose={closeTrackMenu}
+                    onPlay={() => t.id && playTrack(t.id)}
+                    onAddToQueue={() => addTrackToQueue(t)}
+                    onPlaySimilar={() => playSimilar(t)}
+                    onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
+                    onGoToArtist={t.artist_id != null && t.artist_name
+                      ? () => selectArtistDetail({ id: t.artist_id!, name: t.artist_name! })
+                      : undefined}
+                    onGoToAlbum={t.album_id != null && t.album_title
+                      ? () => selectAlbumDetail({ id: t.album_id!, title: t.album_title!, artist_name: t.artist_name } as Album)
+                      : undefined}
+                  />
+                {/if}
+              </div>
             </div>
           {/each}
         </div>
@@ -3330,6 +3833,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {$tr('common.back')}
           </button>
           <h2 class="label-detail-name">{nomLabelPropre(selectedLabel)}</h2>
+          <HeartButton facet={{ facet: 'label', value: selectedLabel }} size={20} />
           <span class="label-detail-count">{labelAlbums.length} {labelAlbums.length > 1 ? $tr('library.albumPlural') : $tr('library.album')}</span>
         </div>
         {#if labelAlbumsLoading}
@@ -3368,10 +3872,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       {:else}
         <div class="genres-grid">
           {#each labelsList as l (l.value)}
-            <button class="genre-card" onclick={() => selectLabel(l.value)}>
-              <span class="genre-card-name">{nomLabelPropre(l.value)}</span>
-              <span class="genre-card-count">{l.count} {$tr('home.tracks').toLowerCase()}</span>
-            </button>
+            <!-- Le coeur vit A COTE du bouton, jamais dedans : un bouton dans un
+                 bouton est du HTML invalide, et le clic du coeur ouvrirait le
+                 label. #2442 -->
+            <div class="label-card-wrap">
+              <button class="genre-card" onclick={() => selectLabel(l.value)}>
+                <span class="genre-card-name">{nomLabelPropre(l.value)}</span>
+                <span class="genre-card-count">{l.count} {$tr('home.tracks').toLowerCase()}</span>
+              </button>
+              <span class="label-card-heart">
+                <HeartButton facet={{ facet: 'label', value: l.value }} size={16} />
+              </span>
+            </div>
           {/each}
         </div>
       {/if}
@@ -3767,9 +4279,19 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     text-decoration: underline;
   }
 
+  /* La rangee d'actions doit passer a la ligne. Elle porte jusqu'a sept
+     boutons (lecture, file, edition, gravure des tags, re-identification,
+     signalement, Collection) dont les libelles sont plus longs en francais
+     qu'en anglais. Sans `flex-wrap`, elle restait sur une seule ligne : sur un
+     portable 1366x768 le dernier bouton — « Collection » — depassait de 53 px
+     le bord de `.library-scroller`, qui est en `overflow-x: hidden` et le
+     rognait sans laisser aucun defilement horizontal pour aller le chercher
+     (#2510, releve par Lulu sur un Asus 15,6"). Le bouton n'etait donc pas
+     seulement malcommode : il etait inatteignable. */
   .detail-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--space-sm);
     margin-top: var(--space-md);
   }
@@ -4026,6 +4548,18 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     margin-top: 0;
   }
 
+  /* Section GROUPING (#2130) : subordonnée à l'en-tête de disque — pas de
+     filet, pas de capitales, décalée sur la gauche des numéros de piste, pour
+     qu'on lise « disque 2 » puis « les bonus » et jamais l'inverse. */
+  .grouping-header {
+    font-family: var(--font-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text-secondary);
+    padding: var(--space-sm) 28px var(--space-xs);
+    letter-spacing: 0.2px;
+  }
+
   .play-all-btn {
     display: inline-flex;
     align-items: center;
@@ -4142,6 +4676,16 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   .quality-chip.user-tag {
     gap: 4px;
   }
+  /* La création (#2256) : même puce que ses voisines, en pointillé, pour se
+     lire comme une action et non comme un filtre de plus. */
+  .quality-chip.tag-create {
+    gap: 4px;
+    border-style: dashed;
+  }
+  .quality-chip.tag-create:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
   .quality-chip.user-tag.active {
     background: var(--tag-color, #808080);
     border-color: var(--tag-color, #808080);
@@ -4212,7 +4756,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     line-height: 1;
   }
   .tag-remove:hover { color: white; }
-  .tag-add-wrap { position: relative; }
+  /* Bloc de référence de `.tag-picker` (#2256). Sans lui, `top: 100%` s'ancre
+     sur `.view-scroller` et la zone de création tombe contre la barre de
+     lecture. Règle load-bearing : la garde
+     `etiquetteZoneCreationAncree.test.ts` la tient. */
+  .tag-add-wrap { position: relative; display: inline-flex; }
   .tag-add-btn {
     background: none;
     border: 1px dashed var(--tune-border);
@@ -4253,6 +4801,36 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     margin-bottom: 4px;
   }
   .tag-picker-input:focus { border-color: var(--tune-accent); }
+  /* Champ + bouton de validation sur une seule ligne (#2256) : sans le
+     bouton, Entrée était la seule issue et un clic ailleurs perdait la
+     saisie sans message. */
+  .tag-picker-create {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .tag-picker-create .tag-picker-input { margin-bottom: 0; }
+  .tag-picker-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 5px;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    background: var(--tune-bg);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+  }
+  .tag-picker-submit:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+  .tag-picker-submit:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
   .tag-picker-option {
     display: flex;
     align-items: center;
@@ -4293,6 +4871,48 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     color: var(--tune-text-muted);
     flex-shrink: 0;
   }
+
+  /* Tranche de Dynamic Range (#2144). Mêmes jetons que le tri voisin : la
+     commande appartient à la même barre, elle ne doit pas s'en distinguer. */
+  .dr-range {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .dr-label {
+    color: var(--tune-text-muted);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .dr-range.active .dr-label { color: var(--tune-accent, #6c5ce7); }
+  .dr-select {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+  .dr-select:focus { border-color: var(--tune-accent); }
+  .dr-range.active .dr-select { border-color: var(--tune-accent, #6c5ce7); }
+  .dr-dash {
+    color: var(--tune-text-muted);
+    font-size: 12px;
+  }
+  .dr-clear {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    padding: 2px;
+    cursor: pointer;
+  }
+  .dr-clear:hover { color: var(--tune-text, #e8e8ea); }
 
   .wall-toggle {
     display: inline-flex;
@@ -4440,6 +5060,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     justify-content: center;
     background: rgba(0, 0, 0, 0.5);
     opacity: 0;
+    /* `inset: 0` recouvre TOUTE la pochette. Invisible mais cliquable, la
+       pastille avalait l'appui et lançait la lecture au lieu d'ouvrir la fiche
+       — criant sur un album SANS pochette (p. ex. DSF), dont l'<img> est
+       masquée par `onerror` et qui n'offre qu'un aplat gris (Thibaud, #55).
+       Elle ne capte donc le pointeur qu'une fois révélée par le survol ; un
+       appui simple sur la pochette remonte alors à la carte → fiche de
+       l'album. Supprime aussi les lectures déclenchées par mégarde au toucher,
+       où il n'y a pas de survol du tout. */
+    pointer-events: none;
     transition: opacity 0.15s ease-out;
     border: none;
     cursor: pointer;
@@ -4448,6 +5077,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   .album-card-art:hover .play-overlay {
     opacity: 1;
+    pointer-events: auto;
   }
 
   .edit-overlay {
@@ -5172,6 +5802,26 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     background: var(--tune-surface-hover);
   }
 
+  /* Carte de label : le cœur se pose PAR-DESSUS la carte, sans jamais être
+     imbriqué dans son bouton (#2442). */
+  .label-card-wrap {
+    position: relative;
+    display: flex;
+  }
+
+  .label-card-wrap .genre-card {
+    flex: 1;
+    /* De la place pour le cœur, sinon un nom long passe dessous. */
+    padding-right: calc(var(--space-lg) + 20px);
+  }
+
+  .label-card-heart {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    display: flex;
+  }
+
   .genre-card-name {
     font-family: var(--font-label);
     font-size: 16px;
@@ -5362,7 +6012,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     color: var(--tune-text-muted);
     cursor: pointer;
     border-radius: 4px;
-    opacity: 0;
+    /* Toujours visible, discrètement — et non révélée au seul survol : sans
+       souris, l'icône était introuvable, donc l'édition d'un artiste
+       inatteignable au doigt sur tablette et téléphone (#1081). Même parti que
+       HeartButton. */
+    opacity: 0.55;
     transition: opacity 0.15s, color 0.15s;
   }
 
@@ -5723,6 +6377,80 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     flex-wrap: wrap;
     gap: var(--space-md);
     align-items: flex-start;
+  }
+
+  /*
+    « Autres versions » (#2372) : la MÊME ligne dépliée que les crédits, aux
+    mêmes marges, pour que l'œil reconnaisse le geste. Seul le contenu change
+    — des tuiles au lieu de puces.
+  */
+  .track-versions-row {
+    padding: var(--space-sm) 28px var(--space-sm) 56px;
+    background: var(--tune-surface);
+    border-bottom: 1px solid var(--tune-border);
+  }
+
+  .versions-tuiles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .version-tuile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 4px;
+    border: 1px solid var(--tune-border);
+    border-radius: 10px;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    max-width: 240px;
+    transition: all 0.12s ease-out;
+  }
+
+  .version-tuile:hover {
+    background: var(--tune-surface-hover);
+    border-color: var(--tune-accent);
+  }
+
+  /* Une tuile qu'on ne sait pas ouvrir ne doit pas se donner l'air cliquable. */
+  .version-tuile.inerte {
+    cursor: default;
+    opacity: 0.75;
+  }
+
+  .version-tuile.inerte:hover {
+    background: none;
+    border-color: var(--tune-border);
+  }
+
+  .version-tuile-texte {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .version-tuile-titre {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tune-text);
+  }
+
+  .version-tuile-sub {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+  }
+
+  .version-tuile.reprise .version-tuile-titre {
+    font-style: italic;
   }
 
   .credits-role-group {
