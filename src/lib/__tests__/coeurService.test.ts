@@ -222,3 +222,31 @@ describe('Voir les métadonnées d’un album de service', () => {
     expect(streaming().includes('onEditer'), 'un crayon est apparu sur une pochette de service').toBe(false);
   });
 });
+
+describe('Lire une PISTE de service (#720)', () => {
+  /**
+   * L'onglet « Favoris → Titres » jouait une piste par `streaming_album_id`.
+   * Mesure sur le .18 (v0.9.132) le 04/09/2026 : la première piste favorite
+   * Qobuz vaut `source_id='52528016'` quand son album vaut `'eyx2hkl5rxofa'`.
+   * Demander l'album « 52528016 » rend 502 (Qobuz : 404, « No result matching
+   * given argument ») — la lecture échouait à tous les coups.
+   */
+  it('la vignette d’une piste n’emprunte plus le chemin des albums', () => {
+    const src = streaming();
+    expect(
+      src.includes("{@render tile(tr, () => playTrack(tr), 'track')}"),
+      'une piste favorite repasse par playAlbum : elle partirait en streaming_album_id',
+    ).toBe(true);
+  });
+
+  it('une piste part par la PAIRE {source, source_id}', () => {
+    // Le champ compte : `streaming_album_id` sur une piste ne résout rien, et
+    // un identifiant SANS `source` fait retomber le serveur sur « reprendre la
+    // lecture en cours » — le défaut relevé sur les playlists en août.
+    const bloc = /function playTrack\(t: any\)[\s\S]*?\n  \}/.exec(streaming());
+    expect(bloc, 'playTrack a disparu').not.toBeNull();
+    expect(bloc![0].includes('streaming_album_id'), 'playTrack envoie encore un identifiant d’album').toBe(false);
+    expect(/source: svc as any, source_id: String\(sid\)/.test(bloc![0]),
+      'la paire source + source_id n’est plus envoyée ensemble').toBe(true);
+  });
+});

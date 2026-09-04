@@ -333,6 +333,37 @@
     const sid = a?.source_id ?? a?.id;
     if (sid) api.play(zid, { streaming_album_id: String(sid), source: active as any }).catch(() => { error = 'Lecture impossible.'; });
   }
+  /**
+   * Lecture d'une PISTE de service.
+   *
+   * L'onglet « Favoris → Titres » passait par `playAlbum`, qui envoie
+   * `streaming_album_id`. Or l'identifiant d'une piste et celui d'un album ne
+   * vivent pas dans le meme espace. Mesure sur le .18 (v0.9.132) le
+   * 04/09/2026, premiere piste favorite Qobuz du compte :
+   *
+   *     source_id = '52528016'      (la piste, « Lovely Day »)
+   *     album_id  = 'eyx2hkl5rxofa' (son album, « Lean On Me »)
+   *
+   *     GET /streaming/qobuz/albums/52528016      -> 502, qobuz 404
+   *       {"status":"error","code":404,"message":"No result matching given argument"}
+   *     GET /streaming/qobuz/albums/eyx2hkl5rxofa -> 200, Jose James, 12 titres
+   *
+   * Le serveur ne pouvait donc rien resoudre : la lecture echouait a tous les
+   * coups. `api.play` accepte la paire `{source, source_id}` pour une piste —
+   * c'est ce que fait deja `FavoritesV2`. Voir issue #720.
+   *
+   * 🔴 `source` va TOUJOURS avec l'identifiant : le serveur n'apparie les deux
+   * qu'ensemble, et un identifiant seul le fait retomber sur « reprendre la
+   * lecture en cours ».
+   */
+  function playTrack(t: any) {
+    const zid = $currentZoneId;
+    const svc = t?.source ?? active;
+    const sid = t?.source_id ?? t?.id;
+    if (zid == null || !svc || svc === BANDCAMP || !sid) return;
+    api.play(zid, { source: svc as any, source_id: String(sid) })
+      .catch(() => { error = 'Lecture impossible.'; });
+  }
   function playPlaylist(p: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
@@ -581,7 +612,7 @@
       {/if}
       {#if favTracks.length}
         <section class="sec"><h2>Titres</h2>
-          <div class="grid">{#each favTracks as tr, i ((tr.source_id ?? tr.id ?? i))}{@render tile(tr, () => playAlbum(tr), 'track')}{/each}</div>
+          <div class="grid">{#each favTracks as tr, i ((tr.source_id ?? tr.id ?? i))}{@render tile(tr, () => playTrack(tr), 'track')}{/each}</div>
         </section>
       {/if}
       {#if !favAlbums.length && !favArtists.length && !favTracks.length}
