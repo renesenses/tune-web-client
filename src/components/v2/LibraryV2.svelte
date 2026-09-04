@@ -704,6 +704,39 @@
     </div>
   {/if}
 
+  <!--
+    Quelle annee, et dans quel sens.
+
+    ELLE VIT ICI, dans la zone de filtres, et PAS dans le corps : `.body` est
+    un conteneur flex, et un bloc pose a cote de `.facets` en devient une
+    colonne — la barre partait a gauche, a mi-hauteur, la grille serree a
+    droite. Bertrand, 04/09/2026 : « horrible ». Sa place est avec les autres
+    reglages de navigation, sous A–Z / Annees.
+
+    Visible des que le choix compte : la frise chronologique ET l'onglet
+    Annees lisent la meme annee.
+
+    La couverture est ANNONCEE a cote de chaque mode : « origine » ne concerne
+    que 90 albums sur 4255 ici, et basculer dessus sans le savoir donne une
+    frise presque vide qui se lit comme une panne.
+  -->
+  {#if tab === 'years' || (showTimeline && navMode === 'years')}
+    <div class="anbar">
+      <span class="ancl">{$tr('v2.lib.yearBasis' as any)}</span>
+      <div class="anmodes">
+        {#each MODES_ANNEE as m (m.k)}
+          {@const n = couvertureAnnees(src, m.k)}
+          <button class:on={modeAnnee === m.k} onclick={() => (modeAnnee = m.k)}>
+            {$tr(m.cle as any)}<span class="anc">{n}</span>
+          </button>
+        {/each}
+      </div>
+      <button class="anord" onclick={() => (ordreAnnee = ordreAnnee === 'desc' ? 'asc' : 'desc')}>
+        {ordreAnnee === 'desc' ? $tr('v2.lib.yearNewestFirst' as any) : $tr('v2.lib.yearOldestFirst' as any)}
+      </button>
+    </div>
+  {/if}
+
   {#if showTimeline && navMode === 'years' && histogram.bars.length}
     <div class="frise">
       <!-- Peigne d'annees facon regle graduee (maquette Levente, v3) : CHAQUE
@@ -789,28 +822,6 @@
         </div>
 
       {:else if tab !== 'albums'}
-        <!--
-          Quelle annee, et dans quel sens. La couverture est ANNONCEE a cote de
-          chaque mode : « origine » ne concerne que 90 albums sur 4255 ici, et
-          basculer dessus sans le savoir donne une frise presque vide qui se
-          lit comme une panne.
-        -->
-        {#if tab === 'years'}
-          <div class="anbar">
-            <span class="ancl">{$tr('v2.lib.yearBasis' as any)}</span>
-            <div class="anmodes">
-              {#each MODES_ANNEE as m (m.k)}
-                {@const n = couvertureAnnees(src, m.k)}
-                <button class:on={modeAnnee === m.k} onclick={() => (modeAnnee = m.k)}>
-                  {$tr(m.cle as any)}<span class="anc">{n}</span>
-                </button>
-              {/each}
-            </div>
-            <button class="anord" onclick={() => (ordreAnnee = ordreAnnee === 'desc' ? 'asc' : 'desc')}>
-              {ordreAnnee === 'desc' ? $tr('v2.lib.yearNewestFirst' as any) : $tr('v2.lib.yearOldestFirst' as any)}
-            </button>
-          </div>
-        {/if}
         <div class="facets">
           {#each groups as g (g.key)}
             <section class="facet">
@@ -916,7 +927,9 @@
 </section>
 
 <style>
-  .anbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:0 0 16px}
+  /* Meme gouttiere que la ligne de filtres juste au-dessus : la barre s'aligne
+     avec elle au lieu de flotter. */
+  .anbar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:2px 30px 12px}
   .ancl{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .anmodes{display:flex; gap:7px; flex-wrap:wrap}
   .anmodes button, .anord{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);
