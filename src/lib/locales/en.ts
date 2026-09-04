@@ -3532,6 +3532,7 @@ export default {
   "v2.sup.reply": "Reply",
   "v2.sup.resolved": "This ticket is resolved.",
   "v2.stream.allSubgenres": "All",
+  "v2.lib.trackCount": "{count} tracks",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -35,7 +35,7 @@
   import { activeView, type View } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { getQualityTier, fold, formatDuration, type QualityTier } from '../../lib/utils';
+  import { getQualityTier, fold, formatDuration, formatNumber, type QualityTier } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import { anneeAlbum, couvertureAnnees, comparerAnnees, type ModeAnnee } from '../../lib/anneeAlbum';
   import * as api from '../../lib/api';
@@ -409,7 +409,21 @@
    *
    * La RECHERCHE, elle, reste : elle filtre bien les artistes.
    */
-  const showFilters = $derived(tab !== 'artists');
+  /**
+   * Les filtres d'ALBUM ne s'affichent pas la ou ils n'agissent pas.
+   *
+   * `visibleTracks` ne filtre que sur la recherche : ni la qualite, ni le
+   * format, ni la profondeur, ni l'annee ne touchent la liste des titres. Les
+   * puces restaient pourtant affichees sur l'onglet Titres, et le compteur
+   * « Tout (n) » y annoncait un nombre d'ALBUMS — 55 albums de 2026 au-dessus
+   * de 46 877 titres. En passant d'Albums a Titres, l'ecran gardait donc
+   * l'habillage du precedent : « la vue n'est pas bien rafraichie »
+   * (Bertrand, 04/09/2026).
+   *
+   * Le tri etait deja masque ici par `showTools && tab !== 'tracks'` : la
+   * regle existait, elle n'etait appliquee qu'a un controle sur cinq.
+   */
+  const showFilters = $derived(tab !== 'artists' && tab !== 'tracks');
 
   /** Tri et bascule grille/liste : outils de confort, pas de recherche. */
   /** Tri et bascule grille/liste : outils de confort, pas de recherche.
@@ -419,7 +433,9 @@
 
   /** A–Z / Années : une navigation dans les ALBUMS. La vue Artistes a son
    *  propre rail A–Z, et « Années » n'a aucun sens sur un artiste. */
-  const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists');
+  /** Frise, rail A–Z et choix de l'annee : une navigation dans les ALBUMS.
+   *  Elle n'a pas plus de sens sur les titres que sur les artistes. */
+  const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks');
 
 
   /** Facette d'un album pour l'onglet courant. `null` = non renseigne, et on
@@ -610,6 +626,11 @@
   {#if erreurD}<div class="derr">{erreurD}</div>{/if}
 
   <div class="filters">
+    {#if tab === 'tracks'}
+      <!-- Un compteur qui compte CE QU'ON REGARDE. La recherche, elle, agit
+           bien sur les titres : c'est le seul filtre qu'on garde ici. -->
+      <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', formatNumber(tracks.length))}</span>
+    {/if}
     {#if showFilters}
       <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
       <div class="drop" class:open={ddOpen === 'quality'}>
