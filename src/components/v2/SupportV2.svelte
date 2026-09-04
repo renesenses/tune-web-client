@@ -18,6 +18,7 @@
   import * as api from '../../lib/api';
   import type { SupportTicketSummary, SupportTicketReply } from '../../lib/api';
   import { licenseState } from '../../lib/stores/license';
+  import { dateEtHeure } from '../../lib/dates';
   import '../../styles/tune-v2.css';
 
   const licenseKey = $derived($licenseState.licenseKey);
@@ -83,8 +84,7 @@
     resolved: { t: 'résolu', c: 'res' },
   };
   function when(iso: string): string {
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? '' : d.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return $dateEtHeure(iso);
   }
 </script>
 

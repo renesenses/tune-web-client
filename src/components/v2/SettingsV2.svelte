@@ -33,6 +33,7 @@
   import { loopByDefault } from '../../lib/stores/loopByDefault';
   import { licenseState, loadLicense } from '../../lib/stores/license';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
+  import { dateSimple } from '../../lib/dates';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
@@ -54,6 +55,29 @@
    * quelle, et le pont de thème de `tune-v2.css` est fait pour ça.
    */
   import RendererConfig from '../RendererConfig.svelte';
+  /**
+   * Marque et modele de l'appareil, REPRIS du client actuel.
+   *
+   * Meme raisonnement que `RendererConfig` : le composant existe, il ne
+   * s'habille qu'en variables `--tune-*` que `tune-v2.css` ponte deja, et le
+   * dupliquer en version v2 imposerait de corriger deux fois le catalogue
+   * d'appareils.
+   */
+  import ZoneDeviceEditor from '../ZoneDeviceEditor.svelte';
+
+  /**
+   * Trim de gain — ecrit ici plutot que repris : c'est un curseur et une
+   * valeur, et la version du client actuel vit au milieu de la mise en page
+   * de `DevicesSettings`, dont on ne veut pas le reste.
+   *
+   * Sans effet quand le volume est fixe : la zone sort en bit-perfect, et
+   * toucher le gain reecrirait chaque echantillon. L'ecran le DIT au lieu de
+   * laisser un curseur qui ne fait rien.
+   */
+  let trims = $state<Record<number, number>>({});
+  function trimDe(z: any): number {
+    return trims[z.id ?? -1] ?? z.gain_trim_db ?? 0;
+  }
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -1984,6 +2008,11 @@
                           <span>Volume fixe</span>
                         </label>
                         <label class="zf chk">
+                          <input type="checkbox" checked={z.upnp_renderer ?? false}
+                            onchange={(e) => setZoneField(z, () => api.updateZoneUpnpRenderer(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                          <span>{$t('devices.upnpRenderer' as any)}</span>
+                        </label>
+                        <label class="zf chk">
                           <input type="checkbox" checked={z.mono_downmix ?? false}
                             onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
                           <span>{$t('zoneConfig.monoTitle' as any)}</span>
@@ -2010,6 +2039,20 @@
                       {#if (z.output_type ?? '') !== 'local'}
                         <p class="monote">{$t('zoneConfig.monoLocalOnly' as any)}</p>
                       {/if}
+
+                      <div class="trim">
+                        <span class="tl">{$t('devices.gainTrim' as any)}</span>
+                        <input type="range" min="-12" max="12" step="0.5" value={trimDe(z)}
+                          disabled={z.fixed_volume || z.id == null}
+                          aria-label={$t('devices.gainTrim' as any)}
+                          oninput={(e) => { trims = { ...trims, [z.id ?? -1]: Number((e.currentTarget as HTMLInputElement).value) }; }}
+                          onchange={() => setZoneField(z, () => api.updateZoneGainTrim(z.id as number, trimDe(z)))} />
+                        <span class="tv" class:neutre={trimDe(z) === 0}>{trimDe(z) > 0 ? '+' : ''}{trimDe(z).toFixed(1)} dB</span>
+                        {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
+                      </div>
+                      <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
+
+                      <div class="zde"><ZoneDeviceEditor zone={z} onSaved={(maj) => zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...maj } : x)))} /></div>
 
                       <!-- Renderers réseau SEULEMENT : ces réglages décrivent ce
                            qu'on envoie sur le fil (protocole, conteneur, profondeur).
@@ -2211,7 +2254,7 @@
                   <div class="kv"><span>Clé</span><b class="mono">{maskKey(lic.licenseKey)}</b></div>
                 {/if}
                 {#if lic.expiresAt}
-                  <div class="kv"><span>{$t('settings.expiresOn' as any)}</span><b>{new Date(lic.expiresAt).toLocaleDateString('fr-FR')}</b></div>
+                  <div class="kv"><span>{$t('settings.expiresOn' as any)}</span><b>{$dateSimple(lic.expiresAt)}</b></div>
                 {/if}
                 <div class="kv"><span>{$t('settings.allowedZones' as any)}</span><b>{lic.zoneLimit}</b></div>
               </div>
@@ -2858,6 +2901,13 @@
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
   .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
+  .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:13px}
+  .trim .tl{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
+  .trim input[type=range]{flex:1; min-width:150px; max-width:320px; accent-color:var(--v2-acc1)}
+  .trim .tv{font:12px var(--v2-mono); color:var(--v2-acc1); min-width:62px}
+  .trim .tv.neutre{color:var(--v2-txt3)}
+  .trim .tf{font-size:11.5px; color:var(--v2-txt3)}
+  .zde{margin-top:13px}
   .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}
   .radv summary{cursor:pointer; font:600 12px var(--v2-mono); letter-spacing:.05em;
     color:var(--v2-acc1); list-style:none}

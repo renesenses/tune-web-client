@@ -23,6 +23,7 @@
   import PochetteActions from './PochetteActions.svelte';
   import { PODCAST_GENRES, sousCategories } from '../../lib/podcast-genres';
   import { t } from '../../lib/i18n';
+  import { dateCourte } from '../../lib/dates';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -396,8 +397,10 @@
   function epDate(ep: any): string {
     const d = ep?.published_at ?? ep?.pub_date ?? ep?.published;
     if (!d) return '';
-    const t = typeof d === 'number' ? new Date(d * (d < 1e12 ? 1000 : 1)) : new Date(d);
-    return isNaN(t.getTime()) ? '' : t.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    // Le flux donne parfois un epoch en SECONDES : sans ce facteur, tous les
+    // episodes se dateraient de janvier 1970.
+    const t = typeof d === 'number' ? new Date(d * (d < 1e12 ? 1000 : 1)) : d;
+    return $dateCourte(t);
   }
 </script>
 

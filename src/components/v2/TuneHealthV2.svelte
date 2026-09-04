@@ -19,6 +19,7 @@
   import * as api from '../../lib/api';
   import { activeView } from '../../lib/stores/navigation';
   import { formatNumber } from '../../lib/utils';
+  import { heureSeule } from '../../lib/dates';
   import '../../styles/tune-v2.css';
 
   type Card = {
@@ -156,7 +157,7 @@
     }
 
     cards = out;
-    lastAt = new Date().toLocaleTimeString('fr-FR');
+    lastAt = $heureSeule(new Date());
     loading = false;
     refreshing = false;
   }
