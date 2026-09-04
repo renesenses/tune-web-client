@@ -3222,7 +3222,7 @@ export default {
   "v2.col.eyebrow": "La tua libreria, in ordine",
   "v2.col.smart": "Intelligente",
   "v2.col.manual": "Manuale",
-  "v2.col.none": "Nessuna raccolta. Creane una dalla schermata Raccolte attuale.",
+  "v2.col.none": "Nessuna raccolta. Creane una con il pulsante qui sopra.",
   "v2.col.emptyCollection": "Questa raccolta non contiene alcun album.",
   "v2.col.noZone": "Nessuna zona attiva — seleziona una zona per riprodurre.",
   "v2.stream.genresTab": "Generi",
@@ -3249,7 +3249,7 @@ export default {
   "settings.facetsNavHint": "Navigazione per sfaccettature — genere, artista, anno, formato… — per esplorare una grande discoteca.",
   "settings.copyTokenNowWarning": "Copialo ora: non verrà più mostrato. Riavvia il server per attivarlo.",
   "settings.acousticPassesHint": "Queste passate durano diversi minuti. Il loro avanzamento si segue in *Processing*.",
-  "settings.cloudScopeHint": "Il backup della configurazione e il relay di accesso remoto sono gestiti dal client attuale. L'*accesso remoto* (Tune Bridge) si imposta invece qui, nella scheda *Audio*.",
+  "settings.cloudScopeHint": "L'*accesso remoto* (Tune Bridge) si imposta nella scheda *Audio*. Il backup e il ripristino della configurazione vivono nella scheda *Sistema*.",
   "settings.configBackupHint": "Backup della configurazione del server — cartelle, zone, impostazioni audio. Non contiene *alcun file musicale* né *alcuna password di servizio*.",
   "settings.fixedVolumeWarning": "Attivare il volume fisso su questa zona di *rete* invia *100 %* all'apparecchio: l'amplificatore va al massimo. Digita *100* per confermare.",
   "settings.removeFolderHint": "Togliere una cartella non elimina *alcun file*: esce semplicemente dalla libreria.",
@@ -3533,7 +3533,7 @@ export default {
   "v2.queue.remove": "Togli dalla coda",
   "v2.radio.searchPlaceholder": "Cerca una stazione",
   "v2.radio.loading": "Caricamento delle stazioni…",
-  "v2.radio.none": "Nessuna stazione. Aggiungine dalla schermata Radio attuale.",
+  "v2.radio.none": "Nessuna stazione. Aggiungine una con il pulsante qui sopra.",
   "v2.radio.noMatch": "Nessuna stazione corrisponde.",
   "v2.radio.allStations": "Tutte le stazioni",
   "v2.sc.searchPlaceholder": "Cerca un album, un brano, un artista…",
@@ -3549,6 +3549,10 @@ export default {
   "v2.nav.collapse": "Riduci",
   "v2.health.eyebrow": "Stato del server",
   "v2.health.noProgress": "Nessun avanzamento numerico per questa elaborazione.",
+  "v2.col.create": "Nuova raccolta",
+  "v2.radio.eyebrow": "In diretta",
+  "v2.radio.title": "Radio",
+  "v2.radio.create": "Nuova stazione",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

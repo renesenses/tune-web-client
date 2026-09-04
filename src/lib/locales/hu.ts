@@ -3180,7 +3180,7 @@ export default {
   "v2.col.eyebrow": "A könyvtára, rendezve",
   "v2.col.smart": "Intelligens",
   "v2.col.manual": "Kézi",
-  "v2.col.none": "Nincs gyűjtemény. Hozzon létre egyet a jelenlegi Gyűjtemények képernyőn.",
+  "v2.col.none": "Nincs gyűjtemény. Hozzon létre egyet a fenti gombbal.",
   "v2.col.emptyCollection": "Ez a gyűjtemény egyetlen albumot sem tartalmaz.",
   "v2.col.noZone": "Nincs aktív zóna — válasszon zónát a lejátszáshoz.",
   "v2.stream.genresTab": "Műfajok",
@@ -3207,7 +3207,7 @@ export default {
   "settings.facetsNavHint": "Szempontok szerinti böngészés — műfaj, előadó, év, formátum… — nagy lemeztár bejárásához.",
   "settings.copyTokenNowWarning": "Másolja most: többé nem jelenik meg. Indítsa újra a kiszolgálót az aktiváláshoz.",
   "settings.acousticPassesHint": "Ezek a menetek több percig tartanak. Előrehaladásuk a *Processing* alatt követhető.",
-  "settings.cloudScopeHint": "A beállításmentést és a távoli elérés reléjét a jelenlegi kliensből kezelik. A *távoli elérés* (Tune Bridge) viszont itt állítható be, az *Audio* fülön.",
+  "settings.cloudScopeHint": "A *távoli elérés* (Tune Bridge) az *Audio* fülön állítható be. A beállítások mentése és visszaállítása a *Rendszer* fülön található.",
   "settings.configBackupHint": "A kiszolgáló beállításainak mentése — mappák, zónák, hangbeállítások. *Egyetlen zenefájlt* és *egyetlen szolgáltatásjelszót sem* tartalmaz.",
   "settings.fixedVolumeWarning": "A fix hangerő bekapcsolása ezen a *hálózati* zónán *100 %*-ot küld a készüléknek: az erősítő teljes hangerőre megy. Írja be: *100* a megerősítéshez.",
   "settings.removeFolderHint": "Egy mappa eltávolítása *egyetlen fájlt sem* töröl: csak kikerül a könyvtárból.",
@@ -3491,7 +3491,7 @@ export default {
   "v2.queue.remove": "Eltávolítás a sorból",
   "v2.radio.searchPlaceholder": "Adó keresése",
   "v2.radio.loading": "Adók betöltése…",
-  "v2.radio.none": "Nincs adó. Adjon hozzá a jelenlegi Rádió képernyőről.",
+  "v2.radio.none": "Nincs adó. Adjon hozzá egyet a fenti gombbal.",
   "v2.radio.noMatch": "Egy adó sem felel meg.",
   "v2.radio.allStations": "Összes adó",
   "v2.sc.searchPlaceholder": "Keressen albumot, számot, előadót…",
@@ -3507,6 +3507,10 @@ export default {
   "v2.nav.collapse": "Összecsukás",
   "v2.health.eyebrow": "A kiszolgáló állapota",
   "v2.health.noProgress": "Ehhez a feldolgozáshoz nincs számszerű előrehaladás.",
+  "v2.col.create": "Új gyűjtemény",
+  "v2.radio.eyebrow": "Élő",
+  "v2.radio.title": "Rádió",
+  "v2.radio.create": "Új adó",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

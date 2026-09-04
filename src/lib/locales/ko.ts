@@ -3222,7 +3222,7 @@ export default {
   "v2.col.eyebrow": "정리된 라이브러리",
   "v2.col.smart": "스마트",
   "v2.col.manual": "수동",
-  "v2.col.none": "컬렉션이 없습니다. 현재의 컬렉션 화면에서 만드세요.",
+  "v2.col.none": "컬렉션이 없습니다. 위의 버튼으로 만드세요.",
   "v2.col.emptyCollection": "이 컬렉션에는 앨범이 없습니다.",
   "v2.col.noZone": "활성 존이 없습니다 — 재생할 존을 선택하세요.",
   "v2.stream.genresTab": "장르",
@@ -3249,7 +3249,7 @@ export default {
   "settings.facetsNavHint": "패싯 탐색 — 장르, 아티스트, 연도, 형식… — 큰 음반 라이브러리를 살펴보기 위한 기능입니다.",
   "settings.copyTokenNowWarning": "지금 복사하세요. 다시는 표시되지 않습니다. 활성화하려면 서버를 다시 시작하세요.",
   "settings.acousticPassesHint": "이 처리는 몇 분이 걸립니다. 진행 상황은 *Processing* 에서 확인합니다.",
-  "settings.cloudScopeHint": "설정 백업과 원격 접속 릴레이는 현재 클라이언트에서 관리합니다. 반면 *원격 접속*(Tune Bridge)은 여기 *Audio* 탭에서 설정합니다.",
+  "settings.cloudScopeHint": "*원격 접속*(Tune Bridge)은 *Audio* 탭에서 설정합니다. 설정의 백업과 복원은 *시스템* 탭에 있습니다.",
   "settings.configBackupHint": "서버 설정의 백업 — 폴더, 존, 오디오 설정. *음악 파일* 도 *서비스 비밀번호* 도 포함하지 않습니다.",
   "settings.fixedVolumeWarning": "이 *네트워크* 존에서 고정 음량을 켜면 기기에 *100 %* 가 전달됩니다. 앰프가 최대로 올라갑니다. 확인하려면 *100* 을 입력하세요.",
   "settings.removeFolderHint": "폴더를 제거해도 *파일은 삭제되지 않습니다*. 라이브러리에서 빠질 뿐입니다.",
@@ -3533,7 +3533,7 @@ export default {
   "v2.queue.remove": "대기열에서 제거",
   "v2.radio.searchPlaceholder": "방송국 검색",
   "v2.radio.loading": "방송국을 불러오는 중…",
-  "v2.radio.none": "방송국이 없습니다. 현재의 라디오 화면에서 추가하세요.",
+  "v2.radio.none": "방송국이 없습니다. 위의 버튼으로 추가하세요.",
   "v2.radio.noMatch": "일치하는 방송국이 없습니다.",
   "v2.radio.allStations": "모든 방송국",
   "v2.sc.searchPlaceholder": "앨범, 곡, 아티스트 검색…",
@@ -3549,6 +3549,10 @@ export default {
   "v2.nav.collapse": "접기",
   "v2.health.eyebrow": "서버 상태",
   "v2.health.noProgress": "이 처리에는 수치로 표시할 진행률이 없습니다.",
+  "v2.col.create": "새 컬렉션",
+  "v2.radio.eyebrow": "실시간",
+  "v2.radio.title": "라디오",
+  "v2.radio.create": "새 방송국",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

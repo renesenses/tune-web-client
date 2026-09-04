@@ -3222,7 +3222,7 @@ export default {
   "v2.col.eyebrow": "整理好的音乐库",
   "v2.col.smart": "智能",
   "v2.col.manual": "手动",
-  "v2.col.none": "没有收藏集。请在当前的「收藏集」界面创建。",
+  "v2.col.none": "没有收藏集。请用上方的按钮创建。",
   "v2.col.emptyCollection": "此收藏集不含任何专辑。",
   "v2.col.noZone": "没有活动区域 — 请选择一个区域进行播放。",
   "v2.stream.genresTab": "类型",
@@ -3249,7 +3249,7 @@ export default {
   "settings.facetsNavHint": "分面浏览 — 类型、艺人、年份、格式… — 用于探索大型唱片库。",
   "settings.copyTokenNowWarning": "请立即复制：它不会再次显示。重启服务器以启用它。",
   "settings.acousticPassesHint": "这些处理需要几分钟。进度可在 *Processing* 中查看。",
-  "settings.cloudScopeHint": "配置备份和远程访问中继由当前客户端管理。而*远程访问*（Tune Bridge）在这里、*Audio* 标签页中设置。",
+  "settings.cloudScopeHint": "*远程访问*（Tune Bridge）在 *Audio* 标签页中设置。配置的备份与恢复位于 *系统* 标签页。",
   "settings.configBackupHint": "服务器配置的备份 — 文件夹、区域、音频设置。*不含任何音乐文件*，也*不含任何服务密码*。",
   "settings.fixedVolumeWarning": "在此*网络*区域启用固定音量会向设备发送 *100 %*：功放会开到最大。请输入 *100* 以确认。",
   "settings.removeFolderHint": "移除文件夹*不会删除任何文件*：它只是离开音乐库。",
@@ -3533,7 +3533,7 @@ export default {
   "v2.queue.remove": "从队列中移除",
   "v2.radio.searchPlaceholder": "搜索电台",
   "v2.radio.loading": "正在加载电台…",
-  "v2.radio.none": "没有电台。请从当前的「电台」界面添加。",
+  "v2.radio.none": "没有电台。请用上方的按钮添加。",
   "v2.radio.noMatch": "没有匹配的电台。",
   "v2.radio.allStations": "全部电台",
   "v2.sc.searchPlaceholder": "搜索专辑、曲目、艺人…",
@@ -3549,6 +3549,10 @@ export default {
   "v2.nav.collapse": "收起",
   "v2.health.eyebrow": "服务器状态",
   "v2.health.noProgress": "此处理没有可量化的进度。",
+  "v2.col.create": "新建收藏集",
+  "v2.radio.eyebrow": "直播",
+  "v2.radio.title": "电台",
+  "v2.radio.create": "新建电台",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

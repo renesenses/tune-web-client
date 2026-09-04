@@ -3222,7 +3222,7 @@ export default {
   "v2.col.eyebrow": "Ihre Bibliothek, geordnet",
   "v2.col.smart": "Intelligent",
   "v2.col.manual": "Manuell",
-  "v2.col.none": "Noch keine Sammlung. Erstellen Sie eine im aktuellen Sammlungen-Bildschirm.",
+  "v2.col.none": "Noch keine Sammlung. Erstellen Sie eine mit der Schaltfläche oben.",
   "v2.col.emptyCollection": "Diese Sammlung enthält kein Album.",
   "v2.col.noZone": "Keine aktive Zone — wählen Sie eine Zone zum Abspielen.",
   "v2.stream.genresTab": "Genres",
@@ -3249,7 +3249,7 @@ export default {
   "settings.facetsNavHint": "Navigation nach Facetten — Genre, Künstler, Jahr, Format… — um eine große Sammlung zu erkunden.",
   "settings.copyTokenNowWarning": "Kopieren Sie ihn jetzt: er wird nie wieder angezeigt. Starten Sie den Server neu, um ihn zu aktivieren.",
   "settings.acousticPassesHint": "Diese Durchläufe dauern mehrere Minuten. Ihr Fortschritt wird unter *Processing* verfolgt.",
-  "settings.cloudScopeHint": "Konfigurationssicherung und Fernzugriffs-Relais werden vom aktuellen Client aus verwaltet. Der *Fernzugriff* (Tune Bridge) wird hingegen hier eingestellt, im Reiter *Audio*.",
+  "settings.cloudScopeHint": "Der *Fernzugriff* (Tune Bridge) wird im Reiter *Audio* eingestellt. Sichern und Wiederherstellen der Konfiguration finden sich im Reiter *System*.",
   "settings.configBackupHint": "Sicherung der Serverkonfiguration — Ordner, Zonen, Audio-Einstellungen. Enthält *keine Musikdatei* und *kein Dienstpasswort*.",
   "settings.fixedVolumeWarning": "Festen Pegel für diese *Netzwerk*-Zone einzuschalten sendet *100 %* an das Gerät: der Verstärker geht voll auf. Tippen Sie *100*, um zu bestätigen.",
   "settings.removeFolderHint": "Einen Ordner zu entfernen löscht *keine Datei*: er verlässt lediglich die Bibliothek.",
@@ -3533,7 +3533,7 @@ export default {
   "v2.queue.remove": "Aus der Warteschlange entfernen",
   "v2.radio.searchPlaceholder": "Einen Sender suchen",
   "v2.radio.loading": "Sender werden geladen…",
-  "v2.radio.none": "Keine Sender. Fügen Sie welche über den aktuellen Radio-Bildschirm hinzu.",
+  "v2.radio.none": "Keine Sender. Fügen Sie einen mit der Schaltfläche oben hinzu.",
   "v2.radio.noMatch": "Kein Sender passt.",
   "v2.radio.allStations": "Alle Sender",
   "v2.sc.searchPlaceholder": "Ein Album, einen Titel, einen Künstler suchen…",
@@ -3549,6 +3549,10 @@ export default {
   "v2.nav.collapse": "Einklappen",
   "v2.health.eyebrow": "Serverstatus",
   "v2.health.noProgress": "Für diese Verarbeitung gibt es keinen bezifferten Fortschritt.",
+  "v2.col.create": "Neue Sammlung",
+  "v2.radio.eyebrow": "Live",
+  "v2.radio.title": "Radio",
+  "v2.radio.create": "Neuer Sender",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

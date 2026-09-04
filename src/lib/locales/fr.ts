@@ -2062,7 +2062,7 @@ export default {
   "v2.col.eyebrow": "Votre bibliothèque, rangée",
   "v2.col.smart": "Intelligente",
   "v2.col.manual": "Manuelle",
-  "v2.col.none": "Aucune collection. Créez-en une depuis l'écran Collections actuel.",
+  "v2.col.none": "Aucune collection. Créez-en une avec le bouton ci-dessus.",
   "v2.col.emptyCollection": "Cette collection ne contient aucun album.",
   "v2.col.noZone": "Aucune zone active — sélectionnez une zone pour lire.",
   "v2.stream.genresTab": "Genres",
@@ -2089,7 +2089,7 @@ export default {
   "settings.facetsNavHint": "Navigation par facettes — genre, artiste, année, format… — pour explorer une grosse discothèque.",
   "settings.copyTokenNowWarning": "Copiez-le maintenant : il ne sera plus jamais affiché. Redémarrez le serveur pour l'activer.",
   "settings.acousticPassesHint": "Ces passes durent plusieurs minutes. Leur avancement se suit dans *Processing*.",
-  "settings.cloudScopeHint": "Sauvegarde de configuration et relais d'accès distant sont gérés depuis le client actuel. L'*accès distant* (Tune Bridge) se règle en revanche ici, dans l'onglet *Audio*.",
+  "settings.cloudScopeHint": "L'*accès distant* (Tune Bridge) se règle dans l'onglet *Audio*. La sauvegarde et la restauration de la configuration vivent dans l'onglet *Système*.",
   "settings.configBackupHint": "Sauvegarde de la configuration du serveur — dossiers, zones, réglages audio. Ne contient *aucun fichier de musique* et *aucun mot de passe de service*.",
   "settings.fixedVolumeWarning": "Activer le volume fixe sur cette zone *réseau* envoie *100 %* à l'appareil : l'ampli part à fond. Tapez *100* pour confirmer.",
   "settings.removeFolderHint": "Retirer un dossier ne supprime *aucun fichier* : il sort simplement de la bibliothèque.",
@@ -3554,7 +3554,7 @@ export default {
   "v2.queue.remove": "Retirer de la file",
   "v2.radio.searchPlaceholder": "Rechercher une station",
   "v2.radio.loading": "Chargement des stations…",
-  "v2.radio.none": "Aucune station. Ajoutez-en depuis l'écran Radio actuel.",
+  "v2.radio.none": "Aucune station. Ajoutez-en une avec le bouton ci-dessus.",
   "v2.radio.noMatch": "Aucune station ne correspond.",
   "v2.radio.allStations": "Toutes les stations",
   "v2.sc.searchPlaceholder": "Rechercher un album, un titre, un artiste…",
@@ -3570,6 +3570,10 @@ export default {
   "v2.nav.collapse": "Replier",
   "v2.health.eyebrow": "État du serveur",
   "v2.health.noProgress": "Pas d'avancement chiffré pour ce traitement.",
+  "v2.col.create": "Nouvelle collection",
+  "v2.radio.eyebrow": "En direct",
+  "v2.radio.title": "Radio",
+  "v2.radio.create": "Nouvelle station",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

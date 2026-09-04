@@ -2059,7 +2059,7 @@ export default {
   "v2.col.eyebrow": "Your library, arranged",
   "v2.col.smart": "Smart",
   "v2.col.manual": "Manual",
-  "v2.col.none": "No collection yet. Create one from the current Collections screen.",
+  "v2.col.none": "No collection yet. Create one with the button above.",
   "v2.col.emptyCollection": "This collection contains no album.",
   "v2.col.noZone": "No active zone — select a zone to play.",
   "v2.stream.genresTab": "Genres",
@@ -2086,7 +2086,7 @@ export default {
   "settings.facetsNavHint": "Faceted browsing — genre, artist, year, format… — to explore a large collection.",
   "settings.copyTokenNowWarning": "Copy it now: it will never be shown again. Restart the server to activate it.",
   "settings.acousticPassesHint": "These passes take several minutes. Their progress is followed in *Processing*.",
-  "settings.cloudScopeHint": "Configuration backup and the remote-access relay are managed from the current client. *Remote access* (Tune Bridge), however, is set here, in the *Audio* tab.",
+  "settings.cloudScopeHint": "*Remote access* (Tune Bridge) is set in the *Audio* tab. Backing up and restoring the configuration live in the *System* tab.",
   "settings.configBackupHint": "Backup of the server configuration — folders, zones, audio settings. Contains *no music file* and *no service password*.",
   "settings.fixedVolumeWarning": "Turning on fixed volume for this *network* zone sends *100 %* to the device: the amplifier goes full scale. Type *100* to confirm.",
   "settings.removeFolderHint": "Removing a folder deletes *no file*: it simply leaves the library.",
@@ -3552,7 +3552,7 @@ export default {
   "v2.queue.remove": "Remove from the queue",
   "v2.radio.searchPlaceholder": "Search for a station",
   "v2.radio.loading": "Loading stations…",
-  "v2.radio.none": "No stations. Add some from the current Radio screen.",
+  "v2.radio.none": "No stations. Add one with the button above.",
   "v2.radio.noMatch": "No station matches.",
   "v2.radio.allStations": "All stations",
   "v2.sc.searchPlaceholder": "Search for an album, a track, an artist…",
@@ -3568,6 +3568,10 @@ export default {
   "v2.nav.collapse": "Collapse",
   "v2.health.eyebrow": "Server status",
   "v2.health.noProgress": "No numeric progress for this task.",
+  "v2.col.create": "New collection",
+  "v2.radio.eyebrow": "Live",
+  "v2.radio.title": "Radio",
+  "v2.radio.create": "New station",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

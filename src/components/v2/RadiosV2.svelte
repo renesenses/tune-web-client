@@ -71,6 +71,19 @@
   /** Station en cours d'édition — le bouton haut-droit de la pochette. */
   let enEdition = $state<RadioStation | null>(null);
 
+  /**
+   * Gabarit de création : la même modale, sans `id`.
+   *
+   * L'écran renvoyait au client actuel pour ajouter une station, alors que le
+   * formulaire — nom, flux, logo, genre, pays, site — existait déjà ici pour
+   * la modification. Il ne manquait que le bouton et l'appel.
+   */
+  function nouvelleStation() {
+    enEdition = {
+      id: null, name: '', stream_url: '', logo_url: '', genre: '', country: '', homepage_url: '',
+    } as unknown as RadioStation;
+  }
+
   async function play(r: RadioStation) {
     const zid = $currentZoneId;
     if (r.id == null || zid == null) return;
@@ -102,9 +115,13 @@
 <section class="v2-radios tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">En direct</div>
-      <h1>Radio</h1>
+      <div class="eyebrow">{$t('v2.radio.eyebrow' as any)}</div>
+      <h1>{$t('v2.radio.title' as any)}</h1>
     </div>
+    <button class="neuve" onclick={nouvelleStation}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      {$t('v2.radio.create' as any)}
+    </button>
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <input placeholder={$t('v2.radio.searchPlaceholder' as any)} bind:value={q} />
@@ -164,7 +181,12 @@
       radio={cible}
       onClose={() => (enEdition = null)}
       onSaved={(maj) => {
-        radios = radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x));
+        // Une station CRÉÉE n'est dans aucune ligne à remplacer : elle rejoint
+        // la liste. Sans ce cas, le `map` ne trouverait rien et la nouvelle
+        // station n'apparaîtrait qu'au prochain chargement de l'écran.
+        radios = cible.id == null
+          ? [...radios, maj]
+          : radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x));
         enEdition = null;
       }}
     />
@@ -203,6 +225,11 @@
   .v2-radios{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px; padding-right:96px}
+  .neuve{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
+    border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent;
+    color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans); white-space:nowrap}
+  .neuve:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .neuve svg{width:16px; height:16px}
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .search{position:relative; display:flex; align-items:center; width:300px; flex:0 0 auto}

@@ -3222,7 +3222,7 @@ export default {
   "v2.col.eyebrow": "Su biblioteca, ordenada",
   "v2.col.smart": "Inteligente",
   "v2.col.manual": "Manual",
-  "v2.col.none": "Ninguna colección. Cree una desde la pantalla Colecciones actual.",
+  "v2.col.none": "Ninguna colección. Cree una con el botón de arriba.",
   "v2.col.emptyCollection": "Esta colección no contiene ningún álbum.",
   "v2.col.noZone": "Ninguna zona activa — seleccione una zona para reproducir.",
   "v2.stream.genresTab": "Géneros",
@@ -3249,7 +3249,7 @@ export default {
   "settings.facetsNavHint": "Navegación por facetas — género, artista, año, formato… — para explorar una discoteca grande.",
   "settings.copyTokenNowWarning": "Cópielo ahora: no se volverá a mostrar. Reinicie el servidor para activarlo.",
   "settings.acousticPassesHint": "Estas pasadas duran varios minutos. Su avance se sigue en *Processing*.",
-  "settings.cloudScopeHint": "La copia de configuración y el relé de acceso remoto se gestionan desde el cliente actual. El *acceso remoto* (Tune Bridge), en cambio, se ajusta aquí, en la pestaña *Audio*.",
+  "settings.cloudScopeHint": "El *acceso remoto* (Tune Bridge) se ajusta en la pestaña *Audio*. La copia y la restauración de la configuración están en la pestaña *Sistema*.",
   "settings.configBackupHint": "Copia de la configuración del servidor — carpetas, zonas, ajustes de audio. No contiene *ningún archivo de música* ni *ninguna contraseña de servicio*.",
   "settings.fixedVolumeWarning": "Activar el volumen fijo en esta zona de *red* envía *100 %* al aparato: el amplificador va a tope. Escriba *100* para confirmar.",
   "settings.removeFolderHint": "Quitar una carpeta no borra *ningún archivo*: simplemente sale de la biblioteca.",
@@ -3533,7 +3533,7 @@ export default {
   "v2.queue.remove": "Quitar de la cola",
   "v2.radio.searchPlaceholder": "Buscar una emisora",
   "v2.radio.loading": "Cargando las emisoras…",
-  "v2.radio.none": "Ninguna emisora. Añada alguna desde la pantalla Radio actual.",
+  "v2.radio.none": "Ninguna emisora. Añada una con el botón de arriba.",
   "v2.radio.noMatch": "Ninguna emisora coincide.",
   "v2.radio.allStations": "Todas las emisoras",
   "v2.sc.searchPlaceholder": "Buscar un álbum, un título, un artista…",
@@ -3549,6 +3549,10 @@ export default {
   "v2.nav.collapse": "Plegar",
   "v2.health.eyebrow": "Estado del servidor",
   "v2.health.noProgress": "Sin avance numérico para este procesamiento.",
+  "v2.col.create": "Nueva colección",
+  "v2.radio.eyebrow": "En directo",
+  "v2.radio.title": "Radio",
+  "v2.radio.create": "Nueva emisora",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

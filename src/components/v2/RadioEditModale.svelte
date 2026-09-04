@@ -21,7 +21,21 @@
   import { notifications } from '../../lib/stores/notifications';
   import type { RadioStation } from '../../lib/types';
 
+  /**
+   * La MÊME modale sert à créer et à modifier (Bertrand, 04/09/2026).
+   *
+   * `radio.id == null` veut dire « nouvelle station ». Les six champs, la
+   * validation et le traitement d'erreur sont identiques dans les deux cas :
+   * une seconde modale de création aurait divergé de celle-ci dès la première
+   * correction — c'est le raisonnement qui a déjà fait reprendre `TransportBar`
+   * et `RendererConfig` telles quelles.
+   *
+   * L'écran v2 ne savait pas créer de station et renvoyait au client actuel
+   * (« Ajoutez-en depuis l'écran Radio actuel »), alors que `api.createRadio`
+   * existe et n'avait qu'un appelant, en v1.
+   */
   interface Props {
+    /** Station à modifier, ou un gabarit sans `id` pour en créer une. */
     radio: RadioStation;
     onClose: () => void;
     onSaved?: (maj: RadioStation) => void;
@@ -36,6 +50,8 @@
   let site = $state(radio.homepage_url ?? '');
   let travail = $state(false);
 
+  const creation = $derived(radio.id == null);
+
   const modifie = $derived(
     nom !== (radio.name ?? '') ||
       flux !== (radio.stream_url ?? '') ||
@@ -47,17 +63,22 @@
 
   async function valider(e: Event) {
     e.preventDefault();
-    if (!nom.trim() || !flux.trim() || travail || radio.id == null) return;
+    if (!nom.trim() || !flux.trim() || travail) return;
     travail = true;
     try {
-      const maj = await api.updateRadio(radio.id, {
+      // Le nom et le flux suffisent à créer ; les quatre autres champs sont
+      // envoyés vides plutôt qu'omis, comme à la modification.
+      const champs = {
         name: nom.trim(),
         stream_url: flux.trim(),
         logo_url: logo.trim(),
         genre: genre.trim(),
         country: pays.trim(),
         homepage_url: site.trim(),
-      });
+      };
+      const maj = creation
+        ? await api.createRadio(champs)
+        : await api.updateRadio(radio.id as number, champs);
       onSaved?.(maj);
       onClose();
     } catch (err: any) {
@@ -75,9 +96,9 @@
 <svelte:window onkeydown={auClavier} />
 
 <div class="fond tune-v2" role="presentation" use:portail onclick={onClose}>
-  <div class="panneau" role="dialog" aria-modal="true" aria-label={$t('v2.radio.edit' as any)}
+  <div class="panneau" role="dialog" aria-modal="true" aria-label={creation ? $t('v2.radio.create' as any) : $t('v2.radio.edit' as any)}
     onclick={(e) => e.stopPropagation()}>
-    <h2>{$t('v2.radio.edit' as any)}</h2>
+    <h2>{creation ? $t('v2.radio.create' as any) : $t('v2.radio.edit' as any)}</h2>
     <button class="fermer" aria-label={$t('common.close' as any)} onclick={onClose}>×</button>
 
     <form onsubmit={valider}>

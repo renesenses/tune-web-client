@@ -92,6 +92,27 @@
   let albums = $state<any[]>([]);
   let albumsChargement = $state(false);
 
+  /**
+   * Créer une collection — le geste manquait (Bertrand, 04/09/2026).
+   *
+   * `api.createCollection` existe depuis toujours et n'avait qu'un appelant :
+   * `CollectionsView.svelte`, dans le client actuel. L'écran v2 savait
+   * afficher, ouvrir, lire, modifier et étiqueter une collection — pas en
+   * créer une. Il renvoyait donc l'utilisateur au client qu'il remplace
+   * (« Créez-en une depuis l'écran Collections actuel »), ce qu'un client
+   * livrable seul ne peut pas faire.
+   *
+   * On réutilise `RenommerModale` : nom + description, exactement les deux
+   * champs que prend la route. Une modale de création qui ne serait pas celle
+   * de la modification divergerait à la première correction.
+   *
+   * SEULEMENT sur l'onglet manuel : une collection INTELLIGENTE se définit par
+   * des règles, pas par un nom — elle a son propre éditeur, non repris ici.
+   * Proposer le même bouton sur les deux onglets promettrait une création qui
+   * ne produirait pas ce qu'on regarde.
+   */
+  let creation = $state(false);
+
   async function charger() {
     chargement = true;
     const [n, s] = await Promise.allSettled([
@@ -214,6 +235,12 @@
     <header class="top">
       <div class="eyebrow">{$t('v2.col.eyebrow' as any)}</div>
       <h1>{$t('v2.col.title' as any)}</h1>
+      {#if onglet === 'manuelle'}
+        <button class="neuve" onclick={() => (creation = true)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          {$t('v2.col.create' as any)}
+        </button>
+      {/if}
     </header>
 
     <nav class="tabs" role="tablist">
@@ -228,7 +255,12 @@
     {:else if !visibles.length}
       <!-- Vide de CET onglet : l'autre peut fort bien être plein, la phrase ne
            doit donc pas dire « aucune collection » tout court. -->
-      <div class="state">{$t('v2.col.noneInTab' as any)}</div>
+      <div class="state">
+        {$t('v2.col.noneInTab' as any)}
+        {#if onglet === 'manuelle'}
+          <button class="lnkcrea" onclick={() => (creation = true)}>{$t('v2.col.create' as any)}</button>
+        {/if}
+      </div>
     {:else}
       <div class="grid">
         {#each visibles as e (e.sorte + ':' + e.id)}
@@ -275,11 +307,30 @@
       onSaved={charger}
     />
   {/if}
+
+  {#if creation}
+    <RenommerModale
+      titre={$t('v2.col.create' as any)}
+      nom=""
+      description=""
+      enregistrer={(v) => api.createCollection(v.name, v.description)}
+      onClose={() => (creation = false)}
+      onSaved={() => { creation = false; charger(); }}
+    />
+  {/if}
 </section>
 
 <style>
   .v2-collections{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
-  .top{padding:24px 30px 12px}
+  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px}
+  .neuve{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
+    border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent;
+    color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans); white-space:nowrap}
+  .neuve:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .neuve svg{width:16px; height:16px}
+  .lnkcrea{display:block; margin-top:12px; border:1px solid var(--v2-line2); background:transparent;
+    color:var(--v2-txt2); cursor:pointer; border-radius:999px; padding:6px 14px; font:600 11.5px var(--v2-sans)}
+  .lnkcrea:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .sub{color:var(--v2-txt2); font-size:13.5px; margin-top:6px; max-width:60ch}

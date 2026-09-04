@@ -3222,7 +3222,7 @@ export default {
   "v2.col.eyebrow": "Biblioteca dumneavoastră, aranjată",
   "v2.col.smart": "Inteligentă",
   "v2.col.manual": "Manuală",
-  "v2.col.none": "Nicio colecție. Creați una din ecranul Colecții actual.",
+  "v2.col.none": "Nicio colecție. Creați una cu butonul de mai sus.",
   "v2.col.emptyCollection": "Această colecție nu conține niciun album.",
   "v2.col.noZone": "Nicio zonă activă — selectați o zonă pentru redare.",
   "v2.stream.genresTab": "Genuri",
@@ -3249,7 +3249,7 @@ export default {
   "settings.facetsNavHint": "Navigare pe fațete — gen, artist, an, format… — pentru a explora o discotecă mare.",
   "settings.copyTokenNowWarning": "Copiați-l acum: nu va mai fi afișat niciodată. Reporniți serverul pentru a-l activa.",
   "settings.acousticPassesHint": "Aceste treceri durează câteva minute. Progresul lor se urmărește în *Processing*.",
-  "settings.cloudScopeHint": "Copia de configurație și releul de acces la distanță sunt gestionate din clientul actual. *Accesul la distanță* (Tune Bridge) se reglează însă aici, în fila *Audio*.",
+  "settings.cloudScopeHint": "*Accesul la distanță* (Tune Bridge) se reglează în fila *Audio*. Salvarea și restaurarea configurației se află în fila *Sistem*.",
   "settings.configBackupHint": "Copie a configurației serverului — dosare, zone, setări audio. Nu conține *niciun fișier de muzică* și *nicio parolă de serviciu*.",
   "settings.fixedVolumeWarning": "Activarea volumului fix pe această zonă de *rețea* trimite *100 %* către aparat: amplificatorul merge la maximum. Tastați *100* pentru a confirma.",
   "settings.removeFolderHint": "Scoaterea unui dosar nu șterge *niciun fișier*: acesta doar iese din bibliotecă.",
@@ -3533,7 +3533,7 @@ export default {
   "v2.queue.remove": "Scoate din coadă",
   "v2.radio.searchPlaceholder": "Căutați un post",
   "v2.radio.loading": "Se încarcă posturile…",
-  "v2.radio.none": "Niciun post. Adăugați din ecranul Radio actual.",
+  "v2.radio.none": "Niciun post. Adăugați unul cu butonul de mai sus.",
   "v2.radio.noMatch": "Niciun post nu corespunde.",
   "v2.radio.allStations": "Toate posturile",
   "v2.sc.searchPlaceholder": "Căutați un album, o piesă, un artist…",
@@ -3549,6 +3549,10 @@ export default {
   "v2.nav.collapse": "Restrânge",
   "v2.health.eyebrow": "Starea serverului",
   "v2.health.noProgress": "Niciun progres numeric pentru această prelucrare.",
+  "v2.col.create": "Colecție nouă",
+  "v2.radio.eyebrow": "În direct",
+  "v2.radio.title": "Radio",
+  "v2.radio.create": "Post nou",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

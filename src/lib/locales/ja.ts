@@ -3222,7 +3222,7 @@ export default {
   "v2.col.eyebrow": "整理されたライブラリ",
   "v2.col.smart": "スマート",
   "v2.col.manual": "手動",
-  "v2.col.none": "コレクションがありません。現在のコレクション画面から作成してください。",
+  "v2.col.none": "コレクションがありません。上のボタンで作成してください。",
   "v2.col.emptyCollection": "このコレクションにはアルバムがありません。",
   "v2.col.noZone": "有効なゾーンがありません — 再生するゾーンを選んでください。",
   "v2.stream.genresTab": "ジャンル",
@@ -3249,7 +3249,7 @@ export default {
   "settings.facetsNavHint": "ファセット閲覧 — ジャンル、アーティスト、年、形式… — 大規模なコレクションを探索するために。",
   "settings.copyTokenNowWarning": "今コピーしてください。二度と表示されません。有効にするにはサーバーを再起動してください。",
   "settings.acousticPassesHint": "これらの処理には数分かかります。進行状況は *Processing* で確認できます。",
-  "settings.cloudScopeHint": "設定のバックアップとリモートアクセスの中継は現在のクライアントから管理します。一方 *リモートアクセス*（Tune Bridge）はここ、*Audio* タブで設定します。",
+  "settings.cloudScopeHint": "*リモートアクセス*（Tune Bridge）は *Audio* タブで設定します。設定のバックアップと復元は *システム* タブにあります。",
   "settings.configBackupHint": "サーバー設定のバックアップ — フォルダ、ゾーン、オーディオ設定。*音楽ファイル* も *サービスのパスワード* も含みません。",
   "settings.fixedVolumeWarning": "この *ネットワーク* ゾーンで固定音量を有効にすると機器に *100 %* が送られます。アンプは最大になります。確認のため *100* と入力してください。",
   "settings.removeFolderHint": "フォルダを外してもファイルは *一切削除されません*。ライブラリから外れるだけです。",
@@ -3533,7 +3533,7 @@ export default {
   "v2.queue.remove": "キューから削除",
   "v2.radio.searchPlaceholder": "放送局を検索",
   "v2.radio.loading": "放送局を読み込み中…",
-  "v2.radio.none": "放送局がありません。現在のラジオ画面から追加してください。",
+  "v2.radio.none": "放送局がありません。上のボタンで追加してください。",
   "v2.radio.noMatch": "該当する放送局はありません。",
   "v2.radio.allStations": "すべての放送局",
   "v2.sc.searchPlaceholder": "アルバム、曲、アーティストを検索…",
@@ -3549,6 +3549,10 @@ export default {
   "v2.nav.collapse": "折りたたむ",
   "v2.health.eyebrow": "サーバーの状態",
   "v2.health.noProgress": "この処理には数値的な進捗がありません。",
+  "v2.col.create": "新しいコレクション",
+  "v2.radio.eyebrow": "ライブ",
+  "v2.radio.title": "ラジオ",
+  "v2.radio.create": "新しい放送局",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
