@@ -39,6 +39,21 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
+  /**
+   * Bloc « Avancé · renderer » du client actuel, REPRIS tel quel.
+   *
+   * L'onglet Appareils du v2 n'affichait que quatre champs (DSD, fréquence
+   * max, décalage paroles, volume fixe) là où le client actuel en propose
+   * sept de plus : test de découverte, FLAC natif, ALAC direct, AAC direct,
+   * WAV forcé 16/24 bits, plafond 16 bits, retard au démarrage.
+   *
+   * Rien de tout cela n'était à écrire : `RendererConfig` existe, ses appels
+   * d'API aussi. Le composant n'était simplement pas monté ici. Le dupliquer
+   * en version v2 imposerait de corriger deux fois chaque défaut du DLNA —
+   * c'est le raisonnement qui a déjà fait reprendre `TransportBar` telle
+   * quelle, et le pont de thème de `tune-v2.css` est fait pour ça.
+   */
+  import RendererConfig from '../RendererConfig.svelte';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -1970,6 +1985,17 @@
                         </label>
                       </div>
 
+                      <!-- Renderers réseau SEULEMENT : ces réglages décrivent ce
+                           qu'on envoie sur le fil (protocole, conteneur, profondeur).
+                           Une sortie locale ne négocie rien — le bloc n'y aurait pas
+                           de sens, et `probeRendererCapabilities` n'a rien à interroger. -->
+                      {#if ['dlna', 'openhome'].includes(z.output_type ?? '')}
+                        <details class="radv">
+                          <summary>{$t('devices.rendererConfig' as any)}</summary>
+                          <RendererConfig zone={z} />
+                        </details>
+                      {/if}
+
                       {#if fvAsk === z.id}
                         <div class="fvbox">
                           <p>{#each emphaseParts($t('settings.fixedVolumeWarning' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
@@ -2803,6 +2829,15 @@
   .zf.chk input{accent-color:var(--v2-acc1); width:15px; height:15px; cursor:pointer}
   .zf.chk span{font:12px var(--v2-sans); text-transform:none; letter-spacing:0; color:var(--v2-txt2)}
   .sel.sm{min-width:130px; height:32px; font-size:12.5px}
+  /* Repliable, comme dans le client actuel : sept réglages de plus déployés
+     en permanence sur chacune des 14 zones noieraient les quatre courants. */
+  .radv{margin-top:13px; border-top:1px solid var(--v2-line); padding-top:11px}
+  .radv summary{cursor:pointer; font:600 12px var(--v2-mono); letter-spacing:.05em;
+    color:var(--v2-acc1); list-style:none}
+  .radv summary::-webkit-details-marker{display:none}
+  .radv summary::before{content:'▸ '; display:inline-block; transition:transform .12s}
+  .radv[open] summary::before{content:'▾ '}
+  .radv > :global(.rc){margin-top:11px}
   .fvbox{margin-top:13px; padding:12px 14px; border-radius:10px; border:1px solid var(--v2-danger-bd)}
   .fvbox p{font-size:12.5px; line-height:1.55; color:var(--v2-txt2)}
   .fvbox b{color:var(--v2-txt)}

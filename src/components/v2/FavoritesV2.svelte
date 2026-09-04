@@ -23,6 +23,8 @@
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import AlbumEditModal from '../AlbumEditModal.svelte';
+  import RenommerModale from './RenommerModale.svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
@@ -50,6 +52,17 @@
   let error = $state<string | null>(null);
   let busy = $state(false);
   let opened = $state<Album | null>(null);
+  /**
+   * Édition depuis les favoris. Le commentaire de la vignette annonçait déjà
+   * l'édition parmi les cinq gestes, mais `onEditer` n'était pas passé : le
+   * crayon manquait, ici comme sur l'accueil et la recherche.
+   *
+   * Seuls les objets de la BIBLIOTHÈQUE s'éditent — `id != null`. Les favoris
+   * de service arrivent d'une autre table et n'ont pas d'identifiant numérique
+   * à donner à `PUT /library/albums/{id}`.
+   */
+  let albumEnEdition = $state<Album | null>(null);
+  let artisteEnEdition = $state<Artist | null>(null);
 
   /**
    * Un favori de SERVICE, dans la forme que rendent déjà les trois onglets.
@@ -334,6 +347,7 @@
                   favori={a.id != null ? { albumId: a.id } : null}
                   favoriExterne={coeurService(a, 'album')}
                   etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                  onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                   onLire={() => playAlbum(a)}
                   onOuvrir={() => (opened = a)}
                   menu={a.id != null ? [{ libelle: $t('queue.addToQueue' as any), faire: () => queueAlbum(a.id) }] : []}
@@ -388,6 +402,7 @@
                   favori={a.id != null ? { artistId: a.id } : null}
                   favoriExterne={coeurService(a, 'artist')}
                   etiquettes={a.id != null ? { itemType: 'artist', itemId: a.id } : null}
+                  onEditer={a.id != null ? () => (artisteEnEdition = a) : null}
                   nom={a.name}
                 >
                   <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name}
@@ -474,6 +489,39 @@
          chercherait les pistes d'un album distant par un `id` qui n'existe pas. -->
     <AlbumDetailV2 album={opened} service={opened.id == null ? ((opened as any).source ?? null) : null}
       onClose={() => (opened = null)} />
+  {/if}
+
+  {#if albumEnEdition}
+    <AlbumEditModal
+      album={albumEnEdition}
+      onClose={() => (albumEnEdition = null)}
+      onSaved={(maj) => {
+        // La grille tire ses albums de cet état local, pas du magasin de la
+        // bibliothèque : c'est LUI qu'il faut reporter, sinon le titre corrigé
+        // ne réapparaîtrait qu'au prochain passage sur l'écran.
+        albums = albums.map((x) => (x.id === maj.id ? { ...x, ...maj } : x));
+        albumEnEdition = null;
+      }}
+    />
+  {/if}
+
+  {#if artisteEnEdition}
+    {@const cible = artisteEnEdition}
+    <RenommerModale
+      titre={$t('v2.edit.artist' as any)}
+      nom={cible.name}
+      description={cible.bio ?? ''}
+      enregistrer={async (v) => {
+        // `PUT /library/artists/{id}` prend `bio`, pas `description` : la
+        // modale est générique, la traduction se fait ici — comme dans
+        // ArtistesV2, d'où ce bloc est repris à l'identique.
+        await api.updateArtist(cible.id!, { name: v.name, bio: v.description });
+        artists = artists.map((x) =>
+          x.id === cible.id ? { ...x, name: v.name, bio: v.description } : x,
+        );
+      }}
+      onClose={() => (artisteEnEdition = null)}
+    />
   {/if}
 </section>
 

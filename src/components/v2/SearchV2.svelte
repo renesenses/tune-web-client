@@ -25,6 +25,10 @@
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import AlbumEditModal from '../AlbumEditModal.svelte';
+  import RenommerModale from './RenommerModale.svelte';
+  import { t } from '../../lib/i18n';
+  import type { Artist } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
   const showAdvanced = $derived(atLeast($preferences.settingsLevel, 'intermediate'));
@@ -53,6 +57,17 @@
   let acousticAvailable = $state(false);
   let busy = $state(false);
   let opened = $state<Album | null>(null);
+  /**
+   * Édition depuis les résultats. Le crayon existait dans Bibliothèque et pas
+   * ici : le même disque changeait de gestes selon l'écran par lequel on
+   * l'atteignait.
+   *
+   * Seuls les résultats LOCAUX s'éditent. Les résultats fédérés (Qobuz, Tidal)
+   * n'ont pas d'identifiant de bibliothèque, et leur vignette ne porte déjà ni
+   * cœur local ni étiquettes.
+   */
+  let albumEnEdition = $state<Album | null>(null);
+  let artisteEnEdition = $state<Artist | null>(null);
   let seq = 0;
 
   // Disponibilité de la brique acoustique (Expert seulement, une fois).
@@ -195,6 +210,7 @@
                   <PochetteActions
                     favori={ar.id != null ? { artistId: ar.id } : null}
                     etiquettes={ar.id != null ? { itemType: 'artist', itemId: ar.id } : null}
+                    onEditer={ar.id != null ? () => (artisteEnEdition = ar) : null}
                     onOuvrir={() => (q = ar.name)}
                     nom={ar.name}
                   >
@@ -221,6 +237,7 @@
                   <PochetteActions
                     favori={a.id != null ? { albumId: a.id } : null}
                     etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                    onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                     onLire={a.id != null ? () => lireAlbum(a.id!) : null}
                     onOuvrir={() => (opened = a)}
                     nom={a.title}
@@ -288,6 +305,34 @@
 
   {#if opened}
     <AlbumDetailV2 album={opened} onClose={() => (opened = null)} />
+  {/if}
+
+  {#if albumEnEdition}
+    <AlbumEditModal
+      album={albumEnEdition}
+      onClose={() => (albumEnEdition = null)}
+      onSaved={(maj) => {
+        // La grille lit `local.albums` : sans ce report, le titre corrigé ne
+        // reviendrait qu'en relançant la recherche.
+        if (local) local = { ...local, albums: local.albums.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)) };
+        albumEnEdition = null;
+      }}
+    />
+  {/if}
+
+  {#if artisteEnEdition}
+    {@const cible = artisteEnEdition}
+    <RenommerModale
+      titre={$t('v2.edit.artist' as any)}
+      nom={cible.name}
+      description={cible.bio ?? ''}
+      enregistrer={async (v) => {
+        // `PUT /library/artists/{id}` prend `bio`, pas `description`.
+        await api.updateArtist(cible.id!, { name: v.name, bio: v.description });
+        if (local) local = { ...local, artists: local.artists.map((x) => (x.id === cible.id ? { ...x, name: v.name, bio: v.description } : x)) };
+      }}
+      onClose={() => (artisteEnEdition = null)}
+    />
   {/if}
 </section>
 

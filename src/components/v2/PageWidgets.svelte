@@ -51,6 +51,7 @@
   import AlbumArt from '../AlbumArt.svelte';
   import AudioVisualizer from '../AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import AlbumEditModal from '../AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
@@ -303,6 +304,16 @@
   }
 
   /** Fiche album ouverte par-dessus la page, comme sur les autres écrans. */
+  /**
+   * Album en cours d'édition. Le crayon manquait sur l'accueil alors que
+   * Bertrand avait demandé « les 5 boutons a toutes les covers » : le même
+   * disque portait un crayon dans Bibliothèque et pas ici.
+   *
+   * Uniquement un disque de la BIBLIOTHÈQUE : `AlbumEditModal` écrit par
+   * `PUT /library/albums/{id}`, qui prend un identifiant numérique. Un album
+   * Qobuz n'en a pas — d'où la même garde `idLocal` que le cœur local.
+   */
+  let enEdition = $state<any | null>(null);
   let ficheOuverte = $state<any | null>(null);
   let serviceOuvert = $state<string | null>(null);
 
@@ -564,6 +575,7 @@
                             })
                           : null}
                         etiquettes={idLocal != null ? { itemType: 'album', itemId: idLocal } : null}
+                        onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
                         onLire={el.jouer ? () => jouer(el) : null}
                         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
                         nom={el.titre}
@@ -596,6 +608,19 @@
 
 {#if ficheOuverte}
   <AlbumDetailV2 album={ficheOuverte} service={serviceOuvert} onClose={() => { ficheOuverte = null; serviceOuvert = null; }} />
+{/if}
+
+{#if enEdition}
+  <AlbumEditModal
+    album={enEdition}
+    onClose={() => (enEdition = null)}
+    onSaved={(maj) => {
+      // Report dans le MAGASIN, d'où les widgets tirent leurs albums : sans
+      // lui, le titre corrigé ne réapparaîtrait qu'au prochain chargement.
+      albums.update((liste) => liste.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)));
+      enEdition = null;
+    }}
+  />
 {/if}
 
 <style>
