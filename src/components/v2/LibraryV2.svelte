@@ -47,6 +47,7 @@
   import { currentZoneId } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import PisteActions from './PisteActions.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
@@ -862,11 +863,14 @@
             <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             {#each visibleTracks as t, i (t.id ?? i)}
-              <button class="trk" onclick={() => playTrack(t)}>
-                <span class="tn">{i + 1}</span>
-                <span class="tt">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
+              <div class="trk">
+                <button class="tclick" onclick={() => playTrack(t)}>
+                  <span class="tn">{i + 1}</span>
+                  <span class="tt">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
+                </button>
                 <span class="td">{formatDuration(t.duration_ms ?? 0)}</span>
-              </button>
+                <PisteActions piste={t} />
+              </div>
             {/each}
             {#if tracks.length > visibleTracks.length}
               <div class="state">{visibleTracks.length} titres affichés sur {tracks.length} — affinez la recherche.</div>
@@ -1156,9 +1160,12 @@
   /* Onglet Titres. */
   .tracklist{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
   .tracklist::-webkit-scrollbar{width:9px}.tracklist::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .trk{display:grid; grid-template-columns:40px 1fr auto; align-items:center; gap:14px; width:100%;
-    padding:8px 10px; border:0; border-radius:9px; background:transparent; color:var(--v2-txt2);
-    cursor:pointer; text-align:left}
+  .trk{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:14px; width:100%;
+    padding:0 10px; border-radius:9px; color:var(--v2-txt2)}
+  /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
+     n'etant plus qu'un conteneur depuis qu'elle accueille la barre d'actions. */
+  .tclick{display:grid; grid-template-columns:40px 1fr; align-items:center; gap:14px; min-width:0;
+    padding:8px 0; border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; font-family:inherit}
   .trk:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .trk .tn{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .trk .tt{min-width:0; font-size:13.5px; font-weight:500; display:flex; flex-direction:column; gap:2px;

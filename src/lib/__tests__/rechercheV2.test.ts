@@ -1,0 +1,92 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { fusionnerParType, meilleurResultat } from '../rechercheClassement';
+import type { SearchResult } from '../types';
+
+const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
+const sansCommentaires = (s: string) =>
+  s.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+const vide = (): SearchResult => ({ tracks: [], albums: [], artists: [] });
+const res = (o: Partial<SearchResult>): SearchResult => ({ ...vide(), ...o }) as SearchResult;
+
+describe('Recherche v2 (retours Bertrand, 05/09/2026)', () => {
+  const src = sansCommentaires(lire('src/components/v2/SearchV2.svelte'));
+
+  it("les SERVICES ne sont plus derrière un niveau d'interface", () => {
+    // Le défaut : `if (advanced) { federatedSearch(...) } else { fed = {} }`.
+    expect(src).toContain('api.federatedSearch(query)');
+    expect(src).not.toMatch(/if\s*\(\s*advanced\s*\)/);
+    expect(src).not.toContain("atLeast($preferences.settingsLevel, 'intermediate')");
+  });
+
+  it('les résultats sont groupés par TYPE, plus par source', () => {
+    expect(src).toContain('fusionnerParType(local, fed)');
+    // Le bloc « Sur les services » et son sous-découpage par service ont
+    // disparu : c'était le regroupement par source.
+    expect(src).not.toContain('v2.sc.onServices');
+    expect(src).not.toContain('fedEntries');
+    expect(src).not.toContain('class="svcn"');
+  });
+
+  it("l'écran vide propose une découverte, pas une loupe grise", () => {
+    expect(src).toContain('v2.rech.recent');
+    expect(src).toContain("$t('search.topArtists')");
+    expect(src).toContain('v2.rech.recentAdds');
+    expect(src).toContain('api.getTopArtists(');
+    expect(src).toContain('api.getRecentAlbums(');
+  });
+
+  it('le meilleur résultat et les playlists existent', () => {
+    expect(src).toContain('meilleurResultat(q, groupes)');
+    expect(src).toContain('v2.rech.best');
+    expect(src).toContain('api.getStreamingPlaylists(');
+    expect(src).toContain('lirePlaylist');
+  });
+
+  it('les filtres par type sont TOUS allumés au départ', () => {
+    for (const f of ['voirArtistes', 'voirAlbums', 'voirTitres', 'voirPlaylists']) {
+      expect(src).toContain(`let ${f} = $state(true)`);
+    }
+  });
+
+  it('la fusion met le local devant et marque la provenance', () => {
+    const g = fusionnerParType(
+      res({ albums: [{ id: 1, title: 'A' } as any] }),
+      { qobuz: res({ albums: [{ source_id: 'x', title: 'B' } as any] }) },
+    );
+    expect(g.albums.map((a) => a.title)).toEqual(['A', 'B']);
+    expect(g.albums.map((a) => a.source)).toEqual(['local', 'qobuz']);
+  });
+
+  it("une source déjà portée par la ligne n'est pas écrasée par le nom du service", () => {
+    const g = fusionnerParType(null, { qobuz: res({ tracks: [{ title: 'T', source: 'tidal' } as any] }) });
+    expect(g.pistes[0].source).toBe('tidal');
+  });
+
+  it('le meilleur résultat préfère une correspondance exacte à un préfixe', () => {
+    const g = fusionnerParType(res({
+      albums: [{ id: 1, title: 'Blue Train' } as any, { id: 2, title: 'Blue' } as any],
+    }), {});
+    const m = meilleurResultat('blue', g);
+    expect(m).toEqual({ genre: 'album', album: expect.objectContaining({ id: 2 }) });
+  });
+
+  it("un artiste avec portrait passe devant un album au même score de texte", () => {
+    const g = fusionnerParType(res({
+      artists: [{ id: 1, name: 'Miles', image_path: '/p.jpg' } as any],
+      albums: [{ id: 2, title: 'Miles' } as any],
+    }), {});
+    expect(meilleurResultat('miles', g)?.genre).toBe('artiste');
+  });
+
+  it('rien de correspondant : on propose quand même la première ligne rendue', () => {
+    const g = fusionnerParType(res({ albums: [{ id: 9, title: 'Zzz' } as any] }), {});
+    expect(meilleurResultat('quelque chose', g)).toEqual({ genre: 'album', album: expect.objectContaining({ id: 9 }) });
+  });
+
+  it('une requête vide ne désigne rien', () => {
+    expect(meilleurResultat('  ', fusionnerParType(res({ albums: [{ id: 1, title: 'A' } as any] }), {}))).toBeNull();
+  });
+});

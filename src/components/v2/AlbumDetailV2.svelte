@@ -14,6 +14,7 @@
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import PisteActions from './PisteActions.svelte';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
 
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -160,12 +161,18 @@
       <div class="state err">{error}</div>
     {:else}
       {#each tracks as t, i (t.id ?? i)}
-        <button class="trk" class:np={t.id != null && t.id === $currentTrackId} onclick={() => playAlbum(i)}>
-          <span class="n">{t.track_number || i + 1}</span>
-          <span class="ti">{t.title}</span>
+        <!-- La ligne etait UN bouton. `PisteActions` en pose cinq : elle
+             devient un conteneur neutre, et le titre garde le sien — un bouton
+             dans un bouton est du balisage invalide. -->
+        <div class="trk" class:np={t.id != null && t.id === $currentTrackId}>
+          <button class="tclick" onclick={() => playAlbum(i)}>
+            <span class="n">{t.track_number || i + 1}</span>
+            <span class="ti">{t.title}</span>
+          </button>
           {#if showExpert}<span class="tk">{trackTech(t)}</span>{/if}
           <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
-        </button>
+          <PisteActions piste={t} />
+        </div>
       {/each}
     {/if}
   </div>
@@ -197,8 +204,12 @@
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
-  .trk{display:grid; grid-template-columns:34px 1fr auto auto; align-items:center; gap:14px; width:100%;
-    padding:11px 12px; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; text-align:left; border-radius:8px}
+  .trk{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; width:100%;
+    padding:0 12px; color:var(--v2-txt2); border-radius:8px}
+  /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
+     n'etant plus qu'un conteneur depuis qu'elle accueille la barre d'actions. */
+  .tclick{display:grid; grid-template-columns:34px 1fr; align-items:center; gap:14px; min-width:0;
+    padding:11px 0; border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; font-family:inherit}
   .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .trk.np{color:var(--v2-acc1)}
   .trk .n{font:12px var(--v2-mono); color:var(--v2-txt3); text-align:right}

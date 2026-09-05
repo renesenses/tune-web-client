@@ -16,6 +16,7 @@
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import PisteActions from './PisteActions.svelte';
 
   type Item =
     | { kind: 'local'; pl: Playlist }
@@ -149,6 +150,7 @@
           </button>
           {#if showExpert}<span class="tk">{trackTech(t)}</span>{/if}
           <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
+          <PisteActions piste={t} />
           {#if showExpert && isLocal}
             <button class="rm" onclick={() => removeAt(i)} aria-label="Retirer">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
@@ -192,7 +194,7 @@
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
-  .trk{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; width:100%;
+  .trk{display:grid; grid-template-columns:1fr auto auto auto auto; align-items:center; gap:14px; width:100%;
     padding:0 8px; border-radius:8px; color:var(--v2-txt2)}
   .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .trk.np{color:var(--v2-acc1)}

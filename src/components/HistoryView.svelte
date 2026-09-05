@@ -1,6 +1,6 @@
 <script lang="ts">
   import { playbackHistory, type HistoryEntry } from '../lib/stores/history';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentZone } from '../lib/stores/zones';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -9,7 +9,19 @@
   import AlbumArt from './AlbumArt.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
-  import { rememberRadioFavListenAt, forgetRadioFavListenAt } from '../lib/radioFavListenAt';
+  // Fusion, déduplication et rejeu vivent dans `lib/historiqueLecture` depuis
+  // le 05/09/2026 : le nouveau client a son propre écran d'historique, et deux
+  // copies de ce rejeu à quatre chemins auraient divergé à la première
+  // correction.
+  import {
+    entreesDepuisServeur,
+    fusionnerHistorique,
+    estRadioEnregistrable,
+    rejouerEntree,
+    cleFavoriRadio,
+    chargerFavorisRadio,
+    basculerFavoriRadio,
+  } from '../lib/historiqueLecture';
 
   let playingIndex = $state<number | null>(null);
   let serverHistory = $state<HistoryEntry[]>([]);
@@ -19,74 +31,19 @@
   let zone = $derived($currentZone);
 
   // Merge local + server history
-  let mergedHistory = $derived.by(() => {
-    const local = $playbackHistory;
-    let combined: HistoryEntry[];
-    if (serverHistory.length === 0) combined = local;
-    else if (local.length === 0) combined = serverHistory;
-    else {
-      // Merge: local first (most recent), then server entries not in local
-      const localTitles = new Set(local.map(e => e.track.title + e.playedAt));
-      const extra = serverHistory.filter(e => !localTitles.has(e.track.title + e.playedAt));
-      combined = [...local, ...extra];
-    }
-    // Show each track only once — its most recent listen (Elie). The list is
-    // ordered most-recent-first, so keep the first occurrence per track.
-    const seen = new Set<string>();
-    const deduped: HistoryEntry[] = [];
-    for (const e of combined) {
-      const t = e.track;
-      const key = t.id != null
-        ? `id:${t.id}`
-        : `s:${t.source ?? ''}:${t.source_id ?? ''}:${(t.title || '').toLowerCase()}:${(t.artist_name || '').toLowerCase()}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      deduped.push(e);
-    }
-    return deduped.slice(0, 200);
-  });
+  let mergedHistory = $derived(fusionnerHistorique($playbackHistory, serverHistory));
 
   // Load server history on mount
   $effect(() => {
     api.getPlaybackHistory(100).then(res => {
-      const entries = res?.items ?? [];
-      serverHistory = entries.map((e: any) => ({
-        track: {
-          id: e.track_id,
-          title: e.title,
-          artist_name: e.artist_name,
-          album_title: e.album_title,
-          duration_ms: e.duration_ms,
-          source: e.source,
-          source_id: e.source_id,
-          album_id: e.album_id ?? null,
-          cover_path: e.cover_url ?? null,
-        },
-        playedAt: e.listened_at,
-        zoneName: `Zone ${e.zone_id ?? '?'}`,
-      }));
+      serverHistory = entreesDepuisServeur(res?.items ?? []);
     }).catch((err) => { console.error('HistoryView: fetch error', err); });
-    api.apiFetch('/radio-favorites?limit=500').then((favs: any[]) => {
-      radioFavKeys = new Set((favs ?? []).map((f: any) => radioFavKey(f.title, f.artist)));
-    }).catch(() => { radioFavKeys = new Set(); });
+    chargerFavorisRadio().then((s) => { radioFavKeys = s; });
   });
 
-  function radioFavKey(title: string | null | undefined, artist: string | null | undefined): string {
-    return `${title ?? ''}\n${artist ?? ''}`;
-  }
+  const radioFavKey = cleFavoriRadio;
 
-  /** Snapshot usable as a radio-favourite song (not the station name, not the
-   *  orchestrator "Episode" fallback). */
-  function isSavableRadio(track: HistoryEntry['track']): boolean {
-    if (track.source !== 'radio') return false;
-    const title = (track.title || '').trim();
-    if (!title) return false;
-    if (title.toLowerCase() === 'episode') return false;
-    const station = (track.album_title || '').trim();
-    const artist = (track.artist_name || '').trim();
-    if (station && title.toLowerCase() === station.toLowerCase() && !artist) return false;
-    return true;
-  }
+  const isSavableRadio = estRadioEnregistrable;
 
   function isRadioFav(track: HistoryEntry['track']): boolean {
     return radioFavKeys.has(radioFavKey(track.title, track.artist_name));
@@ -101,33 +58,11 @@
     if (favBusyKey) return;
     favBusyKey = key;
     try {
-      if (radioFavKeys.has(key)) {
-        const favs = await api.apiFetch('/radio-favorites?limit=500');
-        const match = (favs ?? []).find(
-          (f: any) => f.title === track.title && (f.artist ?? '') === (track.artist_name ?? ''),
-        );
-        if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
-        forgetRadioFavListenAt(track.title, track.artist_name);
-        const next = new Set(radioFavKeys);
-        next.delete(key);
-        radioFavKeys = next;
-        notifications.success($t('history.radioFavRemoved'));
-      } else {
-        const sourceId = track.source_id ?? '';
-        await api.apiPost('/radio-favorites', {
-          title: track.title,
-          artist: track.artist_name ?? '',
-          station_name: track.album_title ?? '',
-          cover_url: track.cover_path ?? null,
-          stream_url: /^https?:\/\//i.test(sourceId) ? sourceId : null,
-          saved_at: entry.playedAt || undefined,
-        });
-        rememberRadioFavListenAt(track.title, track.artist_name, entry.playedAt);
-        const next = new Set(radioFavKeys);
-        next.add(key);
-        radioFavKeys = next;
-        notifications.success($t('history.radioFavAdded'));
-      }
+      const desormais = await basculerFavoriRadio(entry, radioFavKeys.has(key));
+      const next = new Set(radioFavKeys);
+      if (desormais) next.add(key); else next.delete(key);
+      radioFavKeys = next;
+      notifications.success($t(desormais ? 'history.radioFavAdded' : 'history.radioFavRemoved'));
     } catch (e) {
       console.error('HistoryView: radio fav error', e);
       notifications.error($t('history.radioFavError'));
@@ -158,16 +93,6 @@
     }
   }
 
-  function replayMeta(track: HistoryEntry['track']) {
-    return {
-      ...(track.title ? { title: track.title } : {}),
-      ...(track.artist_name ? { artist_name: track.artist_name } : {}),
-      ...(track.album_title ? { album_title: track.album_title } : {}),
-      ...(track.cover_path ? { cover_path: track.cover_path } : {}),
-      ...(track.duration_ms ? { duration_ms: track.duration_ms } : {}),
-    };
-  }
-
   async function replay(entry: HistoryEntry, index: number) {
     if (!zone?.id) {
       notifications.error($t('queue.noZoneSelected'));
@@ -175,58 +100,8 @@
     }
     playingIndex = index;
     try {
-      if (entry.track.source === 'radio' && entry.track.source_id) {
-        const radioId = parseInt(entry.track.source_id, 10);
-        // A numeric station id can use /radios/{id}/play; a stream URL (the
-        // usual now-playing snapshot) must go through play() WITH the history
-        // title/artist/cover, otherwise the orchestrator defaults to "Episode"
-        // and drops the artwork the list is already showing.
-        if (!isNaN(radioId) && String(radioId) === entry.track.source_id) {
-          await api.playRadio(radioId, zone.id);
-          notifications.success(`Radio : ${entry.track.album_title || entry.track.title}`);
-        } else {
-          await playAndSync(zone.id, {
-            source: 'radio',
-            source_id: entry.track.source_id,
-            ...replayMeta(entry.track),
-          });
-          notifications.success(`Radio : ${entry.track.album_title || entry.track.title}`);
-        }
-      } else if (entry.track.id) {
-        await playAndSync(zone.id, { track_id: entry.track.id });
-        notifications.success(`Lecture : ${entry.track.title}`);
-      } else if (entry.track.source && entry.track.source !== 'local' && entry.track.source_id) {
-        await playAndSync(zone.id, {
-          source: entry.track.source,
-          source_id: entry.track.source_id,
-          ...replayMeta(entry.track),
-        });
-        notifications.success(`Lecture : ${entry.track.title}`);
-      } else {
-        const title = entry.track.album_title || entry.track.title;
-        if (title) {
-          const results = await api.searchLibrary(title);
-          if (results.tracks && results.tracks.length > 0) {
-            const match = results.tracks.find((t: any) => t.album_id);
-            if (match?.album_id) {
-              await playAndSync(zone.id, { album_id: match.album_id });
-              notifications.success(`Lecture : ${title}`);
-              return;
-            }
-            if (results.tracks[0].id) {
-              await playAndSync(zone.id, { track_id: results.tracks[0].id });
-              notifications.success(`Lecture : ${results.tracks[0].title}`);
-              return;
-            }
-          }
-        }
-        if (entry.track.file_path) {
-          await playAndSync(zone.id, { file_path: entry.track.file_path });
-          notifications.success(`Lecture : ${entry.track.title}`);
-        } else {
-          notifications.error('Impossible de relancer cette piste');
-        }
-      }
+      const fait = await rejouerEntree(zone.id, entry);
+      notifications.success(`${fait.genre === 'radio' ? 'Radio' : 'Lecture'} : ${fait.libelle}`);
     } catch (e) {
       console.error('Replay error:', e);
       notifications.error('Erreur de lecture');

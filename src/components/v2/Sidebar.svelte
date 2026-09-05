@@ -40,6 +40,13 @@
     // Signalé par Bertrand le 02/09/2026 : « il manque l'écran Lecture en
     // cours ».
     { view: 'nowplaying', label: 'Lecture en cours', icon: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0m12-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0' },
+    // HISTORIQUE dans le NOYAU (Bertrand, 05/09/2026 : « manque Historique »).
+    // Il forme une paire avec « Lecture en cours » — ce qui joue, ce qui a
+    // joué — et c'est le chemin par lequel on retrouve un titre entendu à la
+    // radio dont on n'a pas noté le nom. Le mettre dans « Avancé » l'aurait
+    // laissé invisible au niveau Essentiel, ce qui est exactement le défaut
+    // signalé : l'écran existait, la vue était déclarée, rien n'y menait.
+    { view: 'history', label: 'Historique', icon: 'M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2' },
     { view: 'library', label: 'Bibliothèque', icon: 'M4 5v14M9 5v14M14 6l5 13' },
     { view: 'radios', label: 'Radio en direct', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
     { view: 'podcasts', label: 'Podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },

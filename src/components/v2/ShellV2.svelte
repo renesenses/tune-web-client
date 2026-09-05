@@ -29,6 +29,7 @@
   import DeclickV2 from './DeclickV2.svelte';
   import PluginsV2 from './PluginsV2.svelte';
   import CollectionsV2 from './CollectionsV2.svelte';
+  import HistoriqueV2 from './HistoriqueV2.svelte';
   import MetadataV2 from './MetadataV2.svelte';
   import SupportV2 from './SupportV2.svelte';
   // Barre de transport : celle du client actuel, telle quelle. On ne la FORKE
@@ -65,7 +66,7 @@
   const LABELS: Partial<Record<View, string>> = {
     home: 'Accueil', radios: 'Radio', playlists: 'Playlists', search: 'Recherche',
     podcasts: 'Podcasts', streaming: 'Streaming', queue: "File d'attente", favorites: 'Favoris',
-    zonemanager: 'Zones', mediaservers: 'Serveurs multimédia',
+    zonemanager: 'Zones', mediaservers: 'Serveurs multimédia', history: 'Historique',
     equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
     declick: 'Dé-ploc', metadata: 'Métadonnées', plugins: 'Extensions',
     diagnostics: 'Processing', settings: 'Réglages', support: 'Support', genres: 'Genres',
@@ -268,6 +269,8 @@
         <MetadataV2 />
       {:else if $activeView === 'support'}
         <SupportV2 />
+      {:else if $activeView === 'history'}
+        <HistoriqueV2 />
       {:else if $activeView === 'collections'}
         <CollectionsV2 />
       {:else if $activeView === 'nowplaying'}
