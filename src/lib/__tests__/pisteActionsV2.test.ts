@@ -41,14 +41,24 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
   });
 
   it('les icônes portent la couleur du THÈME, pas le gris de texte', () => {
-    expect(src).toMatch(/\.pa\{[^}]*color:var\(--v2-acc1\)/);
+    expect(src).toMatch(/\.pa\{[^}]*color:var\(--v2-acc1,/);
     expect(src).not.toMatch(/\.pa\{[^}]*color:var\(--v2-txt3\)/);
     // Le cœur ACTIF fait exception : c'est un état, et il reste rouge.
-    expect(src).toContain('.coeur.on{color:var(--v2-danger)}');
+    expect(src).toContain('.coeur.on{color:var(--v2-danger, #ef4444)}');
+  });
+
+  it('chaque couleur porte un REPLI vers le jeton du client actuel', () => {
+    // Le composant vit maintenant aussi dans des écrans de l'ancien client
+    // montés par la coquille v2 — Ambiance, Oxygen, Répertoires — où les jetons
+    // `--v2-*` ne sont pas définis. Sans repli, la déclaration y est invalide
+    // et l'icône prend une couleur héritée au hasard.
+    for (const m of src.matchAll(/var\(--v2-[a-z0-9-]+(,[^)]*)?\)/g)) {
+      expect(m[1], `sans repli : ${m[0]}`).toBeTruthy();
+    }
   });
 
   it('le survol RENFORCE le bouton visé, il ne le révèle plus', () => {
-    expect(src).toContain('.pa:hover:not(:disabled){color:var(--v2-acc-tint)');
+    expect(src).toContain('.pa:hover:not(:disabled){color:var(--v2-acc-tint,');
   });
 
   it("« lire ensuite » insère APRÈS la piste en cours, pas à la fin", () => {

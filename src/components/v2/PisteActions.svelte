@@ -221,15 +221,24 @@
   /* La couleur du THEME. En gris de texte, les icones se confondaient avec la
      duree et le badge de qualite juste a cote : ce sont des ACTIONS, pas de
      l'information. */
+  /* 🔴 Chaque couleur porte un REPLI vers le jeton du client actuel.
+     Ce composant vit maintenant aussi dans des ecrans de l'ancien client
+     montes par la coquille v2 — Ambiance, Oxygen, Repertoires — ou les jetons
+     `--v2-*` ne sont pas definis. Sans repli, `color:var(--v2-acc1)` y est
+     invalide et l'icone prend une couleur heritee au hasard. */
   .pa{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
-    color:var(--v2-acc1); cursor:pointer; display:grid; place-items:center; padding:0}
-  .pa:hover:not(:disabled){color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
+    color:var(--v2-acc1, var(--tune-accent, currentColor)); cursor:pointer;
+    display:grid; place-items:center; padding:0}
+  .pa:hover:not(:disabled){color:var(--v2-acc-tint, var(--tune-accent, currentColor));
+    border-color:var(--v2-acc2, var(--tune-border, transparent));
+    background:var(--v2-acc-soft, var(--tune-surface-hover, transparent))}
   .pa:disabled{opacity:.4; cursor:default}
   .pa svg{width:14px; height:14px}
 
   /* Le coeur ACTIF garde le rouge : c'est un ETAT, pas une action. Aux
      couleurs du theme il ne se distinguerait plus des quatre autres, et on ne
      saurait plus d'un coup d'oeil quels titres sont en favori. */
-  .coeur.on{color:var(--v2-danger)}
-  .coeur.on:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger-bd); background:transparent}
+  .coeur.on{color:var(--v2-danger, #ef4444)}
+  .coeur.on:hover:not(:disabled){color:var(--v2-danger, #ef4444);
+    border-color:var(--v2-danger-bd, #ef4444); background:transparent}
 </style>
