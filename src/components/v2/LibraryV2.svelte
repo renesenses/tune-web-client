@@ -150,7 +150,9 @@
   function matches(a: Album): boolean {
     if (fQuality && !tierMatches(a, fQuality)) return false;
     if (fRate && (a.sample_rate ?? 0) !== fRate) return false; // exact
-    if (fYear != null && albumYear(a) !== fYear) return false;
+    // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
+    // filtre la grille en direct. Voir `anneeEffective`.
+    if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     if (fFormat && (a.format?.trim().toUpperCase() ?? '') !== fFormat) return false;
     if (fDepth != null && (a.bit_depth ?? 0) !== fDepth) return false;
     if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
@@ -257,6 +259,14 @@
    * Chaque facette se compte SANS elle-meme — sinon choisir FLAC mettrait tous
    * les autres formats a zero et le menu deviendrait un cul-de-sac.
    */
+  /**
+   * ⚠️ Les compteurs de FACETTES restent sur l'annee CHOISIE, pas sur le survol.
+   *
+   * Ils decrivent le jeu de filtres que l'utilisateur a pose ; les recalculer a
+   * chaque annee traversee ferait clignoter toute la rangee de pastilles
+   * pendant qu'on balaye, et couterait un parcours complet de la bibliotheque
+   * par cran. La grille suit le curseur ; les pastilles suivent les choix.
+   */
   const filtresActifs = $derived<FiltresBibliotheque>({
     qualite: fQuality, frequence: fRate, annee: fYear,
     format: fFormat, profondeur: fDepth, recherche: q,
@@ -273,6 +283,24 @@
   /** Annee SURVOLEE dans la frise. Le curseur suit la souris : c'est ce qui
    *  fait qu'il « parcourt les annees » au lieu d'attendre un clic. */
   let hoverYear = $state<number | null>(null);
+
+  /**
+   * L'annee qui commande la GRILLE.
+   *
+   * Bertrand, 05/09/2026 : il veut que la grille suive le curseur. Jusqu'ici la
+   * frise ne filtrait qu'au clic ; le survol ne bougeait que le curseur, et
+   * balayer cinquante ans ne montrait rien.
+   *
+   * Le survol l'emporte tant qu'il dure — c'est un APERCU. Quitter la frise
+   * remet `hoverYear` a `null`, et la grille retombe sur l'annee choisie, ou
+   * sur rien. Le clic, lui, FIGE : `fYear` survit a la sortie de la frise, et
+   * le curseur se marque « fige ».
+   *
+   * Ordre voulu : survol AVANT choix. Sans cela, une annee figee empecherait
+   * d'en previsualiser une autre — la frise deviendrait morte des le premier
+   * clic, ce qui est exactement l'inverse de ce qu'on veut.
+   */
+  const anneeEffective = $derived(hoverYear ?? fYear);
 
   /** Mois survole dans l'annee, 0..11.
    *
@@ -350,7 +378,7 @@
     if (!bars.length) return null;
     return bars.reduce((best, b) => (b.n > best.n ? b : best), bars[0]).year;
   });
-  const cursorYear = $derived(fYear ?? hoverYear ?? busiestYear);
+  const cursorYear = $derived(hoverYear ?? fYear ?? busiestYear);
   /** Position en %, au CENTRE du trait de cette annee. */
   const cursorPct = $derived.by(() => {
     const { bars } = histogram;
@@ -825,7 +853,7 @@
             style="--h:{histogram.max ? 34 + Math.round((b.n / histogram.max) * 66) : 34}%"
             onmouseenter={() => (hoverYear = b.year)}
             onmousemove={(e) => surveille(e, b.year)}
-            onfocus={() => { hoverYear = b.year; hoverMonth = null; }}
+            onfocus={() => { hoverMonth = null; }}
             onclick={() => (fYear = fYear === b.year ? null : b.year)}
           ></button>
         {/each}
