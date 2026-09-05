@@ -24,7 +24,7 @@
   import PisteActions from './PisteActions.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { formatDuration, getQualityTier } from '../../lib/utils';
+  import { formatDuration, formatTime, getQualityTier } from '../../lib/utils';
   import type { Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import '../../styles/tune-v2.css';
@@ -113,7 +113,7 @@
               <div class="na">{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
               {#if showExpert && tech(current)}<div class="ntk">{tech(current)}</div>{/if}
             </div>
-            <span class="ndur">{formatDuration(current.duration_ms ?? 0)}</span>
+            <span class="ndur">{formatTime(current.duration_ms ?? 0)}</span>
           </div>
         </section>
       {/if}
@@ -130,7 +130,7 @@
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
-              <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
+              <span class="dur">{formatTime(t.duration_ms ?? 0)}</span>
               <!-- Les memes actions que partout ailleurs (Bertrand, 05/09/2026 :
                    « Sur file d'attente, il manque des boutons d'action ! »). Les
                    fleches et la croix restent : monter, descendre et retirer

@@ -3782,6 +3782,9 @@ export default {
   "v2.sup.sysFallback": "Tartalék ábra: a Mermaid megjelenítőt nem sikerült betölteni.",
   "v2.lib.recent": "Nemrég hozzáadva",
   "v2.lib.recentHint": "Rendezés a hozzáadás dátuma szerint, a legújabbtól",
+  "v2.rech.where": "Hol",
+  "v2.rech.srcLocal": "Könyvtár",
+  "v2.rech.allSources": "Mindenhol",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

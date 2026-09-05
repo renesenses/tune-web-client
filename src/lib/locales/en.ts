@@ -3844,6 +3844,9 @@ export default {
   "v2.sup.sysFallback": "Fallback diagram: the Mermaid renderer could not be loaded.",
   "v2.lib.recent": "Recently added",
   "v2.lib.recentHint": "Sort by date added, newest first",
+  "v2.rech.where": "Where",
+  "v2.rech.srcLocal": "Library",
+  "v2.rech.allSources": "Everywhere",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

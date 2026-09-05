@@ -3824,6 +3824,9 @@ export default {
   "v2.sup.sysFallback": "Schema di riserva: non è stato possibile caricare il renderer Mermaid.",
   "v2.lib.recent": "Aggiunti di recente",
   "v2.lib.recentHint": "Ordina per data di aggiunta, dal più recente",
+  "v2.rech.where": "Dove",
+  "v2.rech.srcLocal": "Libreria",
+  "v2.rech.allSources": "Ovunque",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

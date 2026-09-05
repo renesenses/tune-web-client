@@ -3823,4 +3823,7 @@ export default {
   "v2.sup.sysFallback": "Reservdiagram: Mermaid-renderaren kunde inte laddas.",
   "v2.lib.recent": "Nyligen tillagda",
   "v2.lib.recentHint": "Sortera efter tillagt datum, senaste först",
+  "v2.rech.where": "Var",
+  "v2.rech.srcLocal": "Bibliotek",
+  "v2.rech.allSources": "Överallt",
 } as const;

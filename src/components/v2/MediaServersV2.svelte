@@ -40,7 +40,7 @@
   import { depotDistant } from '../../lib/tuneRemote';
   import LibraryV2 from './LibraryV2.svelte';
   import { filtrerLocalement } from '../../lib/rechercheServeurMedia';
-  import { decoderEntitesXml, formatDuration } from '../../lib/utils';
+  import { decoderEntitesXml, formatTime } from '../../lib/utils';
   import type {
     MediaServer,
     MediaServerBrowseResult,
@@ -453,7 +453,7 @@
                 </button>
                 <span class="ti">{txt(it.title)}</span>
                 <span class="tar">{[it.artist, it.album].filter(Boolean).map(txt).join(' · ')}</span>
-                <span class="td">{it.duration_ms ? formatDuration(it.duration_ms) : ''}</span>
+                <span class="td">{it.duration_ms ? formatTime(it.duration_ms) : ''}</span>
                 <button class="tq" onclick={() => enfiler(it)} aria-label={$t('v2.ms.addToQueue' as any)}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>
                 </button>

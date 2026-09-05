@@ -4319,8 +4319,39 @@ export async function getStorePlugins(search?: string, category?: string): Promi
 }
 
 /** Fetch merged plugin list (catalog + local) from the Tune server. */
+/**
+ * 🔴 `compatible` ABSENT vaut COMPATIBLE.
+ *
+ * Signalé par Querite sur le forum le 05/09/2026, capture à l'appui : toutes
+ * ses extensions portaient le badge « INCOMPATIBLE », et le bouton Installer
+ * du catalogue était grisé.
+ *
+ * Mesure sur le .18 — la réponse de `/plugins` ne contient tout simplement pas
+ * le champ :
+ *
+ *     xtune     : author, description, display_name, enabled, icon, installed,
+ *                 name, type, url, version
+ *     bandcamp  : config_schema, description, display_name, enabled, installed,
+ *                 name, type, url, version
+ *     recorder  : author, description, display_name, enabled, installed,
+ *                 loaded, name, restart_required, type, url, version
+ *
+ * L'écran du client actuel le normalisait à `true` avant d'afficher ; le
+ * nouveau lisait la réponse telle quelle et testait `!p.compatible`. Un champ
+ * absent est faux : tout passait en incompatible.
+ *
+ * La normalisation vit ICI, à la frontière où l'on sait ce que le serveur omet,
+ * et non dans un écran — c'est ce qui a permis au défaut de revenir sur le
+ * second. `?? true` et non `= true` : un `false` explicite du serveur, lui,
+ * doit être respecté.
+ *
+ * Issue serveur ouverte pour qu'il émette le champ, ce qui protègera aussi les
+ * clients déjà publiés.
+ */
 export function getMergedPlugins(): Promise<MergedPlugin[]> {
-  return fetchJSON<MergedPlugin[]>(`${BASE}/plugins`);
+  return fetchJSON<MergedPlugin[]>(`${BASE}/plugins`).then((liste) =>
+    (liste ?? []).map((p) => ({ ...p, compatible: (p as any).compatible ?? true })),
+  );
 }
 
 export interface MarketplaceCatalogPlugin {

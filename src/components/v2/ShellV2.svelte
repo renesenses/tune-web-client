@@ -54,6 +54,12 @@
   // est un chantier a part, et le laisser absent en attendant privait d'une
   // fonction entiere. Mieux vaut l'ecran d'hier que pas d'ecran.
   import OxygenView from '../OxygenView.svelte';
+  // AMBIANCE et REPERTOIRES, montes de la meme facon. Signales manquants par
+  // Querite sur le forum le 05/09/2026 : « manque les onglets : Ambiance,
+  // Repertoires, Oxygen ». Les trois vues existaient et etaient declarees ;
+  // la coquille n'en montait aucune.
+  import AmbianceView from '../AmbianceView.svelte';
+  import BrowseView from '../BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
   import { addShortcut } from '../../lib/stores/shortcuts';
@@ -75,6 +81,7 @@
     home: 'Accueil', radios: 'Radio', playlists: 'Playlists', search: 'Recherche',
     podcasts: 'Podcasts', streaming: 'Streaming', queue: "File d'attente", favorites: 'Favoris',
     zonemanager: 'Zones', mediaservers: 'Serveurs multimédia', history: 'Historique', oxygen: 'Oxygen',
+    ambiance: 'Ambiance', browse: 'Répertoires',
     equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
     declick: 'Dé-ploc', metadata: 'Métadonnées', plugins: 'Extensions',
     diagnostics: 'Processing', settings: 'Réglages', support: 'Support', genres: 'Genres',
@@ -294,6 +301,13 @@
         <HistoriqueV2 />
       {:else if $activeView === 'oxygen'}
         <OxygenView />
+      {:else if $activeView === 'ambiance'}
+        <AmbianceView />
+      {:else if $activeView === 'browse'}
+        <!-- `onAddToPlaylist` non fournie : le bouton reste masque tant que la
+             coquille v2 n'a pas sa propre fenetre de playlists. Mieux vaut un
+             bouton absent qu'un bouton mort. -->
+        <BrowseView />
       {:else if $activeView === 'collections'}
         <CollectionsV2 />
       {:else if $activeView === 'nowplaying'}

@@ -3824,6 +3824,9 @@ export default {
   "v2.sup.sysFallback": "备用图示：无法加载 Mermaid 渲染器。",
   "v2.lib.recent": "最近添加",
   "v2.lib.recentHint": "按添加日期排序，最新在前",
+  "v2.rech.where": "范围",
+  "v2.rech.srcLocal": "音乐库",
+  "v2.rech.allSources": "全部",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -21,7 +21,7 @@
   } from '../../lib/favorisTriFiltre';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { fold, formatDuration, getQualityTier } from '../../lib/utils';
+  import { fold, formatTime, getQualityTier } from '../../lib/utils';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PisteActions from './PisteActions.svelte';
@@ -451,7 +451,7 @@
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
-              <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
+              <span class="dur">{formatTime(t.duration_ms ?? 0)}</span>
               <PisteActions piste={t} />
               <!--
                 Le retrait passe par la table qui PORTE le favori : une piste

@@ -3846,6 +3846,9 @@ export default {
   "v2.sup.sysFallback": "Schéma de secours : le rendu Mermaid n'a pas pu être chargé.",
   "v2.lib.recent": "Derniers ajouts",
   "v2.lib.recentHint": "Trier par date d’ajout, du plus récent au plus ancien",
+  "v2.rech.where": "Où",
+  "v2.rech.srcLocal": "Bibliothèque",
+  "v2.rech.allSources": "Tout le périmètre",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

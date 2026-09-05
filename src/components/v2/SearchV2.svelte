@@ -250,7 +250,6 @@
    * `source`, et la vignette porte son badge.
    */
   const groupes = $derived(fusionnerParType(local, fed));
-  const meilleur = $derived(meilleurResultat(q, groupes));
 
   // Filtres par type. Rien n'est masqué par défaut : ils servent à ÉCARTER
   // quand une requête ramène trop, pas à révéler.
@@ -259,10 +258,59 @@
   let voirTitres = $state(true);
   let voirPlaylists = $state(true);
 
-  const artistes = $derived(voirArtistes ? groupes.artistes : []);
-  const albums = $derived(voirAlbums ? groupes.albums : []);
-  const titres = $derived(voirTitres ? groupes.pistes : []);
+  /**
+   * PÉRIMÈTRE — où l'on a cherché, et où l'on veut chercher.
+   *
+   * Bertrand, 05/09/2026 : « il manque les services de streaming dans le
+   * périmètre de la recherche ». Les résultats de service ARRIVAIENT bien —
+   * mesuré sur le .18, « miles davis » rend 20 entrées locales, 20 Bandcamp,
+   * 20 Qobuz et 20 Tidal — mais rien à l'écran ne le disait : groupés par type,
+   * ils se fondaient dans les mêmes listes que la bibliothèque. On ne savait
+   * donc ni où l'on avait cherché, ni comment s'y restreindre.
+   *
+   * La rangée n'apparaît qu'à partir de DEUX sources : sur un serveur sans
+   * abonnement, un « périmètre » à une seule case ne choisit rien.
+   */
+  const sourcesTrouvees = $derived.by(() => {
+    const n = new Map<string, number>();
+    for (const l of [groupes.artistes, groupes.albums, groupes.pistes]) {
+      for (const x of l) n.set(x.source ?? 'local', (n.get(x.source ?? 'local') ?? 0) + 1);
+    }
+    // Le LOCAL en tête : c'est ce que l'utilisateur possède déjà.
+    return [...n.entries()].sort((a, b) =>
+      (a[0] === 'local' ? -1 : b[0] === 'local' ? 1 : a[0].localeCompare(b[0])));
+  });
+
+  /** Vide = tout le périmètre. On ne coche donc rien au départ. */
+  let sourcesActives = $state(new Set<string>());
+  function basculerSource(cle: string) {
+    const s2 = new Set(sourcesActives);
+    if (s2.has(cle)) s2.delete(cle); else s2.add(cle);
+    sourcesActives = s2;
+  }
+  // Changer de requête remet le périmètre à zéro : un filtre hérité d'une
+  // recherche précédente masquerait des résultats sans qu'on sache pourquoi.
+  $effect(() => { void q; sourcesActives = new Set(); });
+
+  const dansLePerimetre = (x: any) =>
+    sourcesActives.size === 0 || sourcesActives.has(x?.source ?? 'local');
+
+  const nomSource = (k: string) =>
+    k === 'local' ? $t('v2.rech.srcLocal' as any) : k.charAt(0).toUpperCase() + k.slice(1);
+
+  const artistes = $derived(voirArtistes ? groupes.artistes.filter(dansLePerimetre) : []);
+  const albums = $derived(voirAlbums ? groupes.albums.filter(dansLePerimetre) : []);
+  const titres = $derived(voirTitres ? groupes.pistes.filter(dansLePerimetre) : []);
   const lesPlaylists = $derived(voirPlaylists ? playlists : []);
+
+  // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
+  // sortir du périmètre choisi, sinon on met en avant un album d'un service
+  // qu'on vient justement d'écarter.
+  const meilleur = $derived(meilleurResultat(q, {
+    artistes: groupes.artistes.filter(dansLePerimetre),
+    albums: groupes.albums.filter(dansLePerimetre),
+    pistes: groupes.pistes.filter(dansLePerimetre),
+  }));
 
   /** Une ligne locale porte un identifiant de bibliothèque ; une ligne de
    *  service n'en a pas — c'est ce qui décide du cœur, du crayon et du geste
@@ -325,15 +373,30 @@
     {/if}
   </header>
 
+  {#if q.trim().length >= 2 && sourcesTrouvees.length > 1}
+    <div class="pills">
+      <span class="pl">{$t('v2.rech.where' as any)}</span>
+      {#each sourcesTrouvees as [cle, n] (cle)}
+        <button class="pill src" class:on={sourcesActives.size === 0 || sourcesActives.has(cle)}
+          onclick={() => basculerSource(cle)}>{nomSource(cle)} <b>{n}</b></button>
+      {/each}
+      {#if sourcesActives.size}
+        <button class="pill raz" onclick={() => (sourcesActives = new Set())}>{$t('v2.rech.allSources' as any)}</button>
+      {/if}
+    </div>
+  {/if}
+
   {#if q.trim().length >= 2}
     <div class="pills">
       <span class="pl">{$t('v2.rech.show' as any)}</span>
+      <!-- Les compteurs suivent le PÉRIMÈTRE : annoncer 152 albums alors qu'on
+           s'est restreint à la bibliothèque serait un chiffre qui ment. -->
       <button class="pill" class:on={voirArtistes} onclick={() => (voirArtistes = !voirArtistes)}
-        >{$t('v2.rech.artists' as any)} <b>{groupes.artistes.length}</b></button>
+        >{$t('v2.rech.artists' as any)} <b>{groupes.artistes.filter(dansLePerimetre).length}</b></button>
       <button class="pill" class:on={voirAlbums} onclick={() => (voirAlbums = !voirAlbums)}
-        >{$t('v2.rech.albums' as any)} <b>{groupes.albums.length}</b></button>
+        >{$t('v2.rech.albums' as any)} <b>{groupes.albums.filter(dansLePerimetre).length}</b></button>
       <button class="pill" class:on={voirTitres} onclick={() => (voirTitres = !voirTitres)}
-        >{$t('v2.rech.tracks' as any)} <b>{groupes.pistes.length}</b></button>
+        >{$t('v2.rech.tracks' as any)} <b>{groupes.pistes.filter(dansLePerimetre).length}</b></button>
       <button class="pill" class:on={voirPlaylists} onclick={() => (voirPlaylists = !voirPlaylists)}
         >{$t('v2.rech.playlists' as any)} <b>{playlists.length}</b></button>
     </div>
@@ -663,6 +726,11 @@
   .pill b{font:700 10px var(--v2-mono); margin-left:5px; opacity:.75}
   .pill:hover{color:var(--v2-txt)}
   .pill.on{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
+  /* Le PÉRIMÈTRE se lit d'un coup d'œil : ses pastilles portent le nom de la
+     source, pas un type. */
+  .pill.src{font-family:var(--v2-mono); font-size:11.5px; letter-spacing:.02em}
+  .pill.raz{border-style:dashed; color:var(--v2-txt3)}
+  .pill.raz:hover{color:var(--v2-txt)}
 
   /* Recherches recentes */
   .grp h2 .lnk{margin-left:auto; border:0; background:transparent; color:var(--v2-txt3); cursor:pointer;

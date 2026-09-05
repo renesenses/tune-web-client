@@ -38,7 +38,7 @@
   import { displayFields } from '../../lib/stores/displayFields';
   import { champsUtiles } from '../../lib/champsLigne';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
-  import { formatDuration } from '../../lib/utils';
+  import { formatTime } from '../../lib/utils';
   import type { Track } from '../../lib/types';
 
   interface Props {
@@ -107,7 +107,7 @@
 
   <span class="qb"><QualityBadge format={piste.format} sampleRate={piste.sample_rate}
     bitDepth={piste.bit_depth} source={piste.source} /></span>
-  <span class="dur">{piste.duration_ms ? formatDuration(piste.duration_ms) : ''}</span>
+  <span class="dur">{piste.duration_ms ? formatTime(piste.duration_ms) : ''}</span>
   <PisteActions {piste} />
 </div>
 

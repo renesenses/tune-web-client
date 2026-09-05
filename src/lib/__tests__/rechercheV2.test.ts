@@ -39,10 +39,42 @@ describe('Recherche v2 (retours Bertrand, 05/09/2026)', () => {
   });
 
   it('le meilleur résultat et les playlists existent', () => {
-    expect(src).toContain('meilleurResultat(q, groupes)');
+    // Il sort du PÉRIMÈTRE choisi, pas de tous les résultats : mettre en avant
+    // un album d'un service qu'on vient d'écarter n'aurait pas de sens.
+    expect(src).toContain('meilleurResultat(q, {');
+    expect(src).toContain('artistes: groupes.artistes.filter(dansLePerimetre)');
     expect(src).toContain('v2.rech.best');
     expect(src).toContain('api.getStreamingPlaylists(');
     expect(src).toContain('lirePlaylist');
+  });
+
+  it('le PÉRIMÈTRE de la recherche est visible et réglable', () => {
+    // Bertrand, 05/09/2026 : « il manque les services de streaming dans le
+    // périmètre de la recherche ». Les résultats arrivaient — mesuré sur le
+    // .18 : 20 locaux, 20 Bandcamp, 20 Qobuz, 20 Tidal — mais groupés par type
+    // ils se fondaient dans les mêmes listes, et rien ne disait où l'on
+    // cherchait.
+    expect(src).toContain('sourcesTrouvees');
+    expect(src).toContain('v2.rech.where');
+    expect(src).toContain('basculerSource');
+    // La rangée n'apparaît qu'à partir de DEUX sources : à une seule case, un
+    // périmètre ne choisit rien.
+    expect(src).toContain('sourcesTrouvees.length > 1');
+    // Le local passe en tête : c'est ce que l'utilisateur possède déjà.
+    expect(src).toContain("a[0] === 'local' ? -1");
+  });
+
+  it('changer de requête remet le périmètre à zéro', () => {
+    // Un filtre hérité d'une recherche précédente masquerait des résultats sans
+    // qu'on sache pourquoi.
+    expect(src).toContain('$effect(() => { void q; sourcesActives = new Set(); })');
+  });
+
+  it('les compteurs de type suivent le périmètre', () => {
+    // Annoncer 152 albums alors qu'on s'est restreint à la bibliothèque serait
+    // un chiffre qui ment.
+    expect(src).toContain('groupes.albums.filter(dansLePerimetre).length');
+    expect(src).toContain('groupes.pistes.filter(dansLePerimetre).length');
   });
 
   it('les filtres par type sont TOUS allumés au départ', () => {

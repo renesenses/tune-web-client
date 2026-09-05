@@ -65,6 +65,11 @@
     // une autre facon de parcourir ce que la Bibliotheque montre en grille :
     // sa place est aupres d'elle, pas dans le Studio, qui traite le SON.
     { view: 'oxygen', label: 'Oxygen', icon: 'M4 5h16M4 10h16M4 15h10M4 20h10M14 17l3 3 3-5' },
+    // REPERTOIRES : parcourir les DOSSIERS, quand on sait ou une piste vit sur
+    // le disque et que les balises ne le disent pas.
+    { view: 'browse', label: 'Répertoires', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
+    // AMBIANCE : choisir par l'humeur plutot que par le nom.
+    { view: 'ambiance', label: 'Ambiance', icon: 'M4 9v6M9 5v14M14 8v8M19 11v2' },
     { view: 'queue', label: "File d'attente", icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
     { view: 'zonemanager', label: 'Zones', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
     // SERVEURS MULTIMEDIA en Avance (Bertrand, 28/08). Parcourir la
