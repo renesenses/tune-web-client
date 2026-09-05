@@ -3827,6 +3827,9 @@ export default {
   "v2.rech.where": "Dove",
   "v2.rech.srcLocal": "Libreria",
   "v2.rech.allSources": "Ovunque",
+  "favorites.addAlbum": "Aggiungi ai preferiti",
+  "favorites.removeAlbum": "Rimuovi dai preferiti",
+  "favorites.inFavorites": "Nei preferiti",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

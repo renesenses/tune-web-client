@@ -3827,6 +3827,9 @@ export default {
   "v2.rech.where": "範囲",
   "v2.rech.srcLocal": "ライブラリ",
   "v2.rech.allSources": "すべて",
+  "favorites.addAlbum": "お気に入りに追加",
+  "favorites.removeAlbum": "お気に入りから削除",
+  "favorites.inFavorites": "お気に入り済み",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

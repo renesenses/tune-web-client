@@ -25,6 +25,7 @@
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
+  import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import RenommerModale from './RenommerModale.svelte';
@@ -462,6 +463,7 @@
                 <button class="meta" onclick={() => (opened = a)}>
                   <span class="ct" title={a.title}>{a.title}</span>
                   <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                  <QualiteAlbum objet={a} />
                 </button>
               </div>
             {/each}
@@ -582,10 +584,15 @@
                   <button class="meta" onclick={() => (opened = a)}>
                     <span class="ct" title={a.title}>{a.title}</span>
                     <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                    <QualiteAlbum objet={a} />
                   </button>
                 {:else}
                   <span class="ct" title={a.title}>{a.title}</span>
-                  <span class="ca" title={(a.artist_name ?? '') + (a.source ? ' · ' + a.source : '')}>{a.artist_name ?? ''}{a.source ? ' · ' + a.source : ''}</span>
+                  <!-- La source quitte la ligne de l'artiste : elle est nommee
+                       sur la troisieme, avec la qualite, et de la meme facon
+                       que pour un album local. -->
+                  <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                  <QualiteAlbum objet={a} />
                 {/if}
               </div>
             {/each}

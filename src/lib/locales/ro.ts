@@ -3827,6 +3827,9 @@ export default {
   "v2.rech.where": "Unde",
   "v2.rech.srcLocal": "Bibliotecă",
   "v2.rech.allSources": "Peste tot",
+  "favorites.addAlbum": "Adaugă la favorite",
+  "favorites.removeAlbum": "Elimină din favorite",
+  "favorites.inFavorites": "La favorite",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

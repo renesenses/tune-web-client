@@ -3827,6 +3827,9 @@ export default {
   "v2.rech.where": "范围",
   "v2.rech.srcLocal": "音乐库",
   "v2.rech.allSources": "全部",
+  "favorites.addAlbum": "添加到收藏",
+  "favorites.removeAlbum": "从收藏中移除",
+  "favorites.inFavorites": "已收藏",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

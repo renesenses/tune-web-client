@@ -48,6 +48,7 @@
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
+  import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
@@ -908,6 +909,7 @@
                     <button class="meta" onclick={() => opened = a}>
                       <div class="ct" title={a.title}>{a.title}</div>
                       <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+                      <QualiteAlbum objet={a} />
                     </button>
                   </div>
                 {/each}
@@ -959,6 +961,7 @@
               <button class="meta" onclick={() => opened = a}>
                 <div class="ct" title={a.title}>{a.title}</div>
                 <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+                <QualiteAlbum objet={a} />
                 {#if showTech}<div class="cq">{tech(a)}</div>{/if}
               </button>
             </div>

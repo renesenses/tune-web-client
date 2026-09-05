@@ -119,3 +119,44 @@ describe('Les trois écrans que la coquille ne montait pas', () => {
     for (const k of ['oxygen:', 'ambiance:', 'browse:']) expect(shell).toContain(k);
   });
 });
+
+describe('Vignettes et fiche album (Bertrand, 05/09/2026)', () => {
+  it('la qualité et la source passent sur une TROISIÈME ligne', () => {
+    // « Badge qualité masqué : mets-le sur une troisième ligne » — il était
+    // posé SUR la pochette, masqué par la barre d'actions au survol et perdu
+    // sur les pochettes claires. Il ne s'affichait d'ailleurs qu'à partir du
+    // niveau Avancé, et seulement pour le hi-res et le DSD.
+    const q = sansCommentaires(lire('src/components/v2/QualiteAlbum.svelte'));
+    expect(q).toContain("import ServiceBadge from '../ServiceBadge.svelte'");
+    for (const f of ['LibraryV2', 'SearchV2']) {
+      const src = sansCommentaires(lire(`src/components/v2/${f}.svelte`));
+      expect(src, f).toContain("import QualiteAlbum from './QualiteAlbum.svelte'");
+      expect(src, f).toContain('<QualiteAlbum objet=');
+    }
+  });
+
+  it('la source est TOUJOURS nommée, `local` compris', () => {
+    // « avec Local d'ailleurs ! ». `AlbumArt` exclut explicitement `local` de
+    // son badge de pochette : on savait qu'un disque venait de Bandcamp, jamais
+    // qu'il était chez soi.
+    const q = sansCommentaires(lire('src/components/v2/QualiteAlbum.svelte'));
+    expect(q).toContain("const s = objet?.source ?? 'local'");
+    expect(q).toContain("s === 'radio' ? null : s");
+    expect(q, "`local` ne doit pas être écarté").not.toMatch(/!==\s*'local'/);
+    // Le libellé existe déjà côté ServiceBadge.
+    expect(lire('src/components/ServiceBadge.svelte')).toContain("local:");
+  });
+
+  it("la fiche d'un album porte enfin un FAVORI", () => {
+    // « En vue Album, où se trouve l'icône favori ? » — nulle part. Le cœur
+    // vivait sur la pochette dans la grille ; en ouvrant l'album on le perdait.
+    const det = sansCommentaires(lire('src/components/v2/AlbumDetailV2.svelte'));
+    expect(det).toContain('basculerFavori');
+    // Les deux espaces d'identifiants sont distincts : le chemin local sur un
+    // album de service ne retirerait rien, en silence (#1478).
+    expect(det).toContain('basculerFavoriLocal({ albumId: album.id })');
+    expect(det).toContain('toggleStreamingFavorite({');
+    // Absent quand l'album n'est désignable ni d'un côté ni de l'autre.
+    expect(det).toContain('{#if album.id != null || (service && sidDistant)}');
+  });
+});

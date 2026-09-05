@@ -3785,6 +3785,9 @@ export default {
   "v2.rech.where": "Hol",
   "v2.rech.srcLocal": "Könyvtár",
   "v2.rech.allSources": "Mindenhol",
+  "favorites.addAlbum": "Hozzáadás a kedvencekhez",
+  "favorites.removeAlbum": "Eltávolítás a kedvencekből",
+  "favorites.inFavorites": "Kedvencek között",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

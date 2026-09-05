@@ -15,6 +15,9 @@
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
+  import { favoriteAlbumIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
+  import { basculerFavoriLocal } from '../../lib/favorisLocaux';
+  import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
 
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -68,6 +71,41 @@
       .catch((e) => { error = errText(e) ?? 'Chargement impossible'; })
       .finally(() => { loading = false; });
   });
+
+  /**
+   * FAVORI. Bertrand, 05/09/2026 : « En vue Album, où se trouve l'icône
+   * favori ? » — nulle part. Le cœur vivait sur la pochette dans la grille,
+   * posé par `PochetteActions` ; en ouvrant l'album on le perdait, et il
+   * fallait refermer la fiche pour mettre un disque en favori.
+   *
+   * Les deux espaces d'identifiants sont distincts : un album local est
+   * désigné par son `id`, un album de service par la paire service +
+   * `source_id`, et ils vivent dans deux tables. Le premier chemin sur le
+   * second ne retirerait rien, en silence (#1478).
+   */
+  const cleService = $derived(
+    service && sidDistant ? streamingFavKey('album', service, String(sidDistant)) : null,
+  );
+  const enFavori = $derived(
+    album.id != null ? $favoriteAlbumIds.has(album.id)
+      : cleService != null && $favoriteStreamingKeys.has(cleService),
+  );
+  let bascule = $state(false);
+  async function basculerFavori() {
+    if (bascule) return;
+    bascule = true;
+    try {
+      if (album.id != null) await basculerFavoriLocal({ albumId: album.id });
+      else if (service && sidDistant) {
+        await toggleStreamingFavorite({
+          itemType: 'album', service, serviceId: String(sidDistant),
+          title: album.title, artist: album.artist_name ?? undefined,
+          coverUrl: album.cover_path ?? undefined,
+        });
+      }
+    } catch { /* le cœur reprend son état au prochain relevé */ }
+    bascule = false;
+  }
 
   const totalMs = $derived(tracks.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
   const tier = $derived(getQualityTier(album));
@@ -177,6 +215,18 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>Ajouter à la file
           </button>
         {/if}
+        <!-- Le cœur n'apparaît que si l'album est DÉSIGNABLE : un album
+             Bandcamp, identifié par une URL, n'entre dans aucune des deux
+             tables de favoris. Un bouton absent ne promet rien. -->
+        {#if album.id != null || (service && sidDistant)}
+          <button class="ghost coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
+            aria-pressed={enFavori}
+            title={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}
+            aria-label={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
+            <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+          </button>
+        {/if}
       </div>
     </div>
   </div>
@@ -220,6 +270,11 @@
   .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  /* Le cœur ACTIF garde le rouge : c'est un ÉTAT, pas une action — la même
+     règle que sur les lignes de piste. */
+  .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+  .coeur.on:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+  .coeur:disabled{opacity:.55; cursor:default}
   .play svg,.ghost svg{width:16px; height:16px}
 
   .tracks{display:flex; flex-direction:column; gap:1px}

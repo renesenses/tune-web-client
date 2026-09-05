@@ -3827,6 +3827,9 @@ export default {
   "v2.rech.where": "Dónde",
   "v2.rech.srcLocal": "Biblioteca",
   "v2.rech.allSources": "En todas partes",
+  "favorites.addAlbum": "Añadir a favoritos",
+  "favorites.removeAlbum": "Quitar de favoritos",
+  "favorites.inFavorites": "En favoritos",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

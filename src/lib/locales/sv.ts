@@ -3826,4 +3826,7 @@ export default {
   "v2.rech.where": "Var",
   "v2.rech.srcLocal": "Bibliotek",
   "v2.rech.allSources": "Överallt",
+  "favorites.addAlbum": "Lägg till i favoriter",
+  "favorites.removeAlbum": "Ta bort från favoriter",
+  "favorites.inFavorites": "I favoriter",
 } as const;

@@ -14,50 +14,33 @@ describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
     expect(bar).not.toContain("$t('common.stop')");
   });
 
-  it("le stop passe par le bouton lecture, sans `ondblclick`", () => {
-    // `ondblclick` obligerait à retarder le premier clic de ~300 ms pour
-    // distinguer un clic d'un double : sur une barre de transport, une pause
-    // qui répond en un tiers de seconde se sent.
+  it("le stop utilise le double-clic DU SYSTÈME, pas un chronomètre maison", () => {
+    // Deux réglages maison ont été faux : 350 ms avalait un re-clic délibéré,
+    // 250 ms rendait le double-clic trop difficile — « Pas de stop sur double
+    // click !! ». La bonne valeur n'est pas la mienne, c'est celle que
+    // l'utilisateur a réglée dans son système. On la lit là où elle est.
     expect(bar).toContain('onclick={clicLecture}');
-    expect(bar).not.toContain('ondblclick');
+    expect(bar).toContain('ondblclick={doubleClicLecture}');
+    expect(bar, 'un chronomètre maison est revenu').not.toContain('FENETRE_DOUBLE_CLIC');
+    expect(bar).not.toContain('dernierClicLecture');
   });
 
-  it('le PREMIER clic agit tout de suite, il n’est pas retardé', () => {
-    const i = bar.indexOf('async function clicLecture()');
+  it('le SECOND clic ne rebascule pas — sinon la musique repart entre les deux', () => {
+    // `event.detail` vaut le rang du clic DANS l'intervalle du système.
+    const i = bar.indexOf('async function clicLecture(');
     expect(i).toBeGreaterThan(-1);
-    const corps = bar.slice(i, i + 700);
-    expect(corps).not.toContain('setTimeout');
-    // Le chemin normal reste la bascule immédiate.
-    expect(corps).toContain('await togglePlayPause()');
+    const corps = bar.slice(i, i + 260);
+    expect(corps).toContain('if (e.detail >= 2) return;');
+    expect(corps).toContain('await togglePlayPause();');
+    expect(corps, 'le premier clic ne doit pas être retardé').not.toContain('setTimeout');
   });
 
-  it('le SECOND clic arrête au lieu de rebasculer en lecture', () => {
-    // Sans ce garde, `onclick` se déclencherait deux fois et la musique
-    // repartirait entre les deux — un sursaut audible.
-    const i = bar.indexOf('async function clicLecture()');
-    const corps = bar.slice(i, i + 700);
-    expect(corps).toContain('maintenant - dernierClicLecture < FENETRE_DOUBLE_CLIC');
-    expect(corps).toContain('await stopAndSync(zone.id)');
-    expect(corps).toContain('return;');
-  });
-
-  it("la fenêtre est remise à zéro après un stop", () => {
-    // Sinon un troisième clic rapide serait pris pour un second et renverrait
-    // un stop au lieu de relancer la lecture.
-    const i = bar.indexOf('async function clicLecture()');
-    const corps = bar.slice(i, i + 700);
-    expect(corps).toContain('dernierClicLecture = 0;');
-  });
-
-  it('le double-clic arrête depuis PAUSE comme depuis PLAY', () => {
-    // Bertrand, 05/09/2026 : « Stop sur pause : double click. Stop sur Play :
-    // double click. » La condition d'arrêt ne regarde donc PAS l'état de
-    // lecture — seulement la zone et la source. Depuis Play, le premier clic
-    // lance et le second arrête : le résultat net est l'arrêt.
-    const i = bar.indexOf('async function clicLecture()');
-    const corps = bar.slice(i, i + 700);
-    expect(corps).toContain('if (second && stopPossible && zone?.id)');
-    expect(corps, "l'arrêt ne doit pas dépendre de l'état de lecture").not.toContain('isPlaying');
+  it("au clavier, Entrée bascule et n'arrête pas", () => {
+    // Entrée sur un bouton donne `detail: 0` : la garde `>= 2` la laisse
+    // passer. La touche `S` reste le chemin d'arrêt au clavier.
+    const i = bar.indexOf('async function clicLecture(');
+    expect(bar.slice(i, i + 260)).toContain('>= 2');
+    expect(lire('src/lib/keyboard.ts')).toContain("case 'KeyS':");
   });
 
   it("l'arrêt REPORTE l'état de la zone", () => {
@@ -73,12 +56,6 @@ describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
     for (const f of ['src/components/TransportBar.svelte', 'src/lib/keyboard.ts']) {
       expect(sansCommentaires(lire(f)), f).not.toContain('api.stop(');
     }
-  });
-
-  it('la fenêtre du double-clic ne mange pas un re-clic délibéré', () => {
-    // Mettre en pause puis relancer aussitôt est courant : à 350 ms ce second
-    // clic passait pour un double et arrêtait la lecture.
-    expect(bar).toContain('const FENETRE_DOUBLE_CLIC = 250;');
   });
 
   it("la RADIO n'a pas de stop", () => {

@@ -3827,6 +3827,9 @@ export default {
   "v2.rech.where": "범위",
   "v2.rech.srcLocal": "라이브러리",
   "v2.rech.allSources": "전체",
+  "favorites.addAlbum": "즐겨찾기에 추가",
+  "favorites.removeAlbum": "즐겨찾기에서 제거",
+  "favorites.inFavorites": "즐겨찾기에 있음",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

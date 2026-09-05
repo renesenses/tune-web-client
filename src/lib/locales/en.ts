@@ -3847,6 +3847,9 @@ export default {
   "v2.rech.where": "Where",
   "v2.rech.srcLocal": "Library",
   "v2.rech.allSources": "Everywhere",
+  "favorites.addAlbum": "Add to favourites",
+  "favorites.removeAlbum": "Remove from favourites",
+  "favorites.inFavorites": "In favourites",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

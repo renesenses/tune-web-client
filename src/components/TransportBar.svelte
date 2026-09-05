@@ -401,57 +401,47 @@
    * Un clic : pause. Deux clics : STOP.
    *
    * Idée de Bertrand (05/09/2026), en remplacement du bouton stop autonome. Le
-   * stop n'est pas une commande de MUSIQUE — la position et la file sont
-   * conservées de part et d'autre, vérifié sur le .18 — c'est une commande
-   * d'APPAREIL : `orchestrator.stop(zone, device)` envoie un STOP au
-   * périphérique, ce qui libère un renderer DLNA ou AirPlay là où la pause le
-   * garde. Une sixième icône dans la barre pour cela seul était trop cher.
+   * stop n'est pas une commande de MUSIQUE — position et file sont conservées
+   * de part et d'autre, vérifié sur le .18 — c'est une commande d'APPAREIL :
+   * `orchestrator.stop(zone, device)` envoie un STOP au périphérique, ce qui
+   * libère un renderer DLNA ou AirPlay là où la pause le garde.
    *
-   * ## Pourquoi ce n'est PAS un `ondblclick`
+   * ## Le double-clic du SYSTÈME, pas le mien
    *
-   * Le piège du double-clic est la latence : pour distinguer un clic d'un
-   * double, on retarde d'ordinaire le premier de 250 à 300 ms. Sur une barre de
-   * transport, une pause qui répond en un tiers de seconde se sent — c'est le
-   * geste le plus utilisé de toute l'interface.
+   * Première version : un chronomètre maison, 350 ms. Il avalait un re-clic
+   * délibéré — mettre en pause puis relancer aussitôt arrêtait la lecture. Je
+   * l'ai baissé à 250 ms, et le double-clic est devenu trop difficile à
+   * déclencher : « Pas de stop sur double click !! ».
    *
-   * On ne retarde donc RIEN. Le premier clic met en pause tout de suite ; si un
-   * second arrive dans la fenêtre, il envoie le stop au lieu de rebasculer en
-   * lecture. Mettre en pause puis arrêter est exactement ce qu'on voulait
-   * faire, et l'ordre n'a aucune conséquence : le serveur garde `position_ms`
-   * dans les deux cas.
+   * Les deux réglages étaient faux parce que la bonne valeur n'est pas la
+   * mienne : c'est celle que l'utilisateur a réglée dans son système. On la lit
+   * donc là où elle est.
    *
-   * Sans le garde du second clic, `onclick` se déclencherait deux fois et la
-   * musique repartirait entre les deux — un sursaut audible.
+   *  - `event.detail` vaut le rang du clic DANS l'intervalle du système : 1 au
+   *    premier, 2 au second. Le second ne rebascule donc pas — sans quoi la
+   *    musique repartirait entre les deux, un sursaut audible ;
+   *  - `dblclick`, que le navigateur émet ensuite avec ce même intervalle,
+   *    arrête.
+   *
+   * Au clavier, Entrée sur le bouton donne `detail: 0` : la bascule passe, et
+   * la touche `S` reste le chemin d'arrêt.
    */
-  /**
-   * 250 ms, et non 350.
-   *
-   * La fenêtre doit couvrir un vrai double-clic sans avaler un geste
-   * DÉLIBÉRÉ : mettre en pause puis relancer aussitôt est courant, et à 350 ms
-   * il arrivait que ce second clic soit pris pour un double et arrête la
-   * lecture. 250 ms reste confortable pour un double-clic et laisse passer le
-   * re-clic volontaire.
-   */
-  const FENETRE_DOUBLE_CLIC = 250;
-  let dernierClicLecture = 0;
 
   // La RADIO n'a pas de stop : le bouton autonome l'excluait déjà, un flux en
   // direct ne se met pas en pause pour reprendre où l'on était.
   const stopPossible = $derived(!!zone?.id && displayTrack?.source !== 'radio');
 
-  async function clicLecture() {
-    const maintenant = Date.now();
-    const second = maintenant - dernierClicLecture < FENETRE_DOUBLE_CLIC;
-    dernierClicLecture = maintenant;
-    if (second && stopPossible && zone?.id) {
-      // On ne rebascule pas : on arrête.
-      dernierClicLecture = 0;
-      // `stopAndSync` et non `api.stop` : sans report d'état, la zone restait
-      // « playing » dans le magasin et le bouton devenait inerte.
-      await stopAndSync(zone.id);
-      return;
-    }
+  async function clicLecture(e: MouseEvent) {
+    // Le second clic d'un double ne bascule pas : `dblclick` va arrêter.
+    if (e.detail >= 2) return;
     await togglePlayPause();
+  }
+
+  async function doubleClicLecture() {
+    if (!stopPossible || !zone?.id) return;
+    // `stopAndSync` et non `api.stop` : sans report d'état, la zone restait
+    // « playing » dans le magasin et le bouton devenait inerte.
+    await stopAndSync(zone.id);
   }
 
   async function handlePrevious() {
@@ -787,6 +777,7 @@
       class:loading={ytLoadingState}
       disabled={hasNoZone && !ytActive}
       onclick={clicLecture}
+      ondblclick={doubleClicLecture}
       title={hasNoZone && !ytActive
         ? $t('zone.playDisabledNoZone' as any)
         : (isPlaying ? $t('common.pause') : $t('common.play')) + (stopPossible ? ` · ${$t('transport.dblClickStop' as any)}` : '')}
