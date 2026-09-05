@@ -19,24 +19,23 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     }
   });
 
-  it("la barre est MASQUÉE tant que la ligne n'est pas survolée", () => {
-    expect(src).toMatch(/\.pactions\{[^}]*opacity:0/);
-    expect(src).toContain(':global(.trk:hover) .pactions');
-    expect(src).toContain(':global(.row:hover) .pactions');
+  it('les icônes sont VISIBLES, elles ne se cachent plus', () => {
+    // Bertrand a d'abord voulu le survol seul, puis a demandé de coloriser les
+    // icônes — et n'a rien vu, deux fois. Coloriser ce qu'on ne voit pas n'a
+    // pas de sens : la barre reste affichée.
+    expect(src).not.toMatch(/\.pactions\{[^}]*opacity:0/);
+    expect(src).not.toContain(':global(.trk:hover) .pactions');
   });
 
   it('les icônes portent la couleur du THÈME, pas le gris de texte', () => {
-    // Bertrand, 05/09/2026. En gris, elles se confondaient avec la durée et le
-    // badge de qualité juste à côté : ce sont des actions, pas de l'information.
     expect(src).toMatch(/\.pa\{[^}]*color:var\(--v2-acc1\)/);
     expect(src).not.toMatch(/\.pa\{[^}]*color:var\(--v2-txt3\)/);
     // Le cœur ACTIF fait exception : c'est un état, et il reste rouge.
     expect(src).toContain('.coeur.on{color:var(--v2-danger)}');
   });
 
-  it('un cœur actif reste visible, et le tactile montre tout', () => {
-    expect(src).toContain('.pactions.a-favori{opacity:1}');
-    expect(src).toContain('@media (hover:none)');
+  it('le survol RENFORCE le bouton visé, il ne le révèle plus', () => {
+    expect(src).toContain('.pa:hover:not(:disabled){color:var(--v2-acc-tint)');
   });
 
   it("« lire ensuite » insère APRÈS la piste en cours, pas à la fin", () => {

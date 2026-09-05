@@ -182,40 +182,33 @@
 {/if}
 
 <style>
-  .pactions{display:inline-flex; align-items:center; gap:2px; flex:0 0 auto;
-    opacity:0; transition:opacity .12s}
-  /* Le survol de la LIGNE révèle la barre — c'est la ligne qui est survolée,
-     pas la barre, sinon il faudrait viser des icônes invisibles. */
-  :global(.trk:hover) .pactions,
-  :global(.row:hover) .pactions,
-  :global(.tr:hover) .pactions,
-  .pactions:focus-within{opacity:1}
-  /* Un cœur ACTIF ne se cache pas : sans lui on ne peut plus lire quels titres
-     sont en favori sans les survoler un par un. */
-  .pactions.a-favori{opacity:1}
-  .pactions.a-favori .pa:not(.coeur){opacity:0; transition:opacity .12s}
-  :global(.trk:hover) .pactions.a-favori .pa,
-  :global(.row:hover) .pactions.a-favori .pa,
-  :global(.tr:hover) .pactions.a-favori .pa{opacity:1}
+  /*
+    🔴 VISIBLES EN PERMANENCE (Bertrand, 05/09/2026).
 
-  /* Les icones portent la couleur du THEME (Bertrand, 05/09/2026). En gris de
-     texte, elles se confondaient avec la ligne qu'elles surmontent : ce sont
-     des ACTIONS, pas de l'information, et rien ne les distinguait de la duree
-     ou du badge de qualite juste a cote. */
+    La regle d'origine etait la sienne — « ces boutons ne s'affichent qu'au
+    survol de la piste avec la souris » — et elle a ete appliquee. Il est
+    revenu deux fois : « PAs de boutons au survol !! », puis « Ma demande de
+    coloriser les icones !! ». Coloriser des icones qu'on ne voit pas n'a
+    aucun sens : la consigne de couleur a rendu la consigne de survol
+    intenable, et c'est la couleur qui gagne.
+
+    Ce que le survol garde : le RENFORCEMENT de chaque bouton — cadre et fond
+    — au moment ou on le vise. Il revele plus rien.
+  */
+  .pactions{display:inline-flex; align-items:center; gap:2px; flex:0 0 auto}
+
+  /* La couleur du THEME. En gris de texte, les icones se confondaient avec la
+     duree et le badge de qualite juste a cote : ce sont des ACTIONS, pas de
+     l'information. */
   .pa{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
     color:var(--v2-acc1); cursor:pointer; display:grid; place-items:center; padding:0}
   .pa:hover:not(:disabled){color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
   .pa:disabled{opacity:.4; cursor:default}
   .pa svg{width:14px; height:14px}
+
   /* Le coeur ACTIF garde le rouge : c'est un ETAT, pas une action. Aux
-     couleurs du theme, il ne se distinguerait plus des quatre autres, et on ne
+     couleurs du theme il ne se distinguerait plus des quatre autres, et on ne
      saurait plus d'un coup d'oeil quels titres sont en favori. */
   .coeur.on{color:var(--v2-danger)}
   .coeur.on:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger-bd); background:transparent}
-
-  /* Sans survol possible, rien ne peut rester en réserve : c'est le tactile
-     qui paierait le plus cher une affordance pensée à la souris. */
-  @media (hover:none){
-    .pactions, .pactions.a-favori .pa{opacity:1}
-  }
 </style>

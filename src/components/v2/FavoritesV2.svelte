@@ -24,6 +24,7 @@
   import { fold, formatDuration, getQualityTier } from '../../lib/utils';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import PisteActions from './PisteActions.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
@@ -451,6 +452,7 @@
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
               <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
+              <PisteActions piste={t} />
               <!--
                 Le retrait passe par la table qui PORTE le favori : une piste
                 de la bibliothèque par `removeFavorite`, une piste de service
@@ -673,7 +675,7 @@
   .hot:disabled{opacity:.5; cursor:default}
 
   .list{display:flex; flex-direction:column; gap:1px}
-  .row{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; padding:0 8px;
+  .row{display:grid; grid-template-columns:1fr auto auto auto auto; align-items:center; gap:14px; padding:0 8px;
     border-radius:9px; color:var(--v2-txt2)}
   .row:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .row.np{color:var(--v2-acc1)}

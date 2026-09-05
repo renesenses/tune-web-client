@@ -33,6 +33,22 @@ describe("Historique dans le nouveau client (Bertrand, 05/09/2026)", () => {
     expect(shell).toContain('<HistoriqueV2 />');
   });
 
+  it("l'écran passe par la ligne PARTAGÉE, comme les autres listes de pistes", () => {
+    // « Historique : pas bô » (05/09/2026). L'écran rangeait titre à gauche et
+    // tout le reste collé au bord droit — un grand vide au milieu, et des
+    // informations si éloignées du titre qu'il fallait suivre la ligne des
+    // yeux. C'est le défaut de l'écran du client actuel, recopié.
+    const v2 = sansCommentaires(lire('src/components/v2/HistoriqueV2.svelte'));
+    expect(v2).toContain("import LignePisteV2 from './LignePisteV2.svelte'");
+    expect(v2).toContain('<LignePisteV2 piste={e.track}');
+    // Il ne redessine plus ni pochette, ni durée, ni fiche technique.
+    expect(v2).not.toContain('formatDuration');
+    expect(v2).not.toContain('AlbumArt');
+    // Ne restent que les deux colonnes qui lui sont propres.
+    expect(v2).toContain('depuis(e.playedAt)');
+    expect(v2).toContain('basculerFav');
+  });
+
   it('la logique est PARTAGÉE avec le client actuel, pas recopiée', () => {
     const v1 = sansCommentaires(lire('src/components/HistoryView.svelte'));
     const v2 = sansCommentaires(lire('src/components/v2/HistoriqueV2.svelte'));
