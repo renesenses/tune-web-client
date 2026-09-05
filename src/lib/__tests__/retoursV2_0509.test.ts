@@ -55,7 +55,16 @@ describe('Retours Bertrand du 05/09/2026', () => {
     // Chaque piste Bandcamp porte son propre flux : il n'y a pas d'album à
     // désigner au serveur.
     expect(det).toContain('if (bandcamp) {');
-    expect(det).toContain('file_path: t.file_path');
+    // 🔴 La PAIRE `source` + `source_id`, pas `file_path`. Mesuré sur le .18 :
+    // avec `file_path`, le serveur répond 200 et relance la piste DÉJÀ dans la
+    // zone (« Lachrimae Antiquae » au lieu de « Codex VI ») — c'est le repli
+    // « reprendre la lecture en cours ».
+    expect(det).toContain("source: 'bandcamp', source_id: t.stream_url");
+    expect(det).toContain('corpsDeLecture(tracks[startIndex])');
+    expect(det, 'file_path est revenu').not.toContain('file_path: t.file_path');
+    // Et la vignette de découverte envoie la même paire.
+    expect(str).toContain("source: 'bandcamp' as any, source_id: String(it.extrait)");
+    expect(str, 'file_path est revenu sur la vignette').not.toContain('file_path: it.extrait');
   });
 
   it('Bandcamp : les genres ont QUITTÉ « Découvrir »', () => {

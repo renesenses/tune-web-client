@@ -700,6 +700,22 @@
               <span class="radio-antenna">&#x1F4E1;</span>{displayTrack.album_title || 'Radio'}
             {:else}
               {displayTrack.artist_name ?? ''}
+            {/if}
+          </span>
+          <!--
+            TROISIEME LIGNE. Bertrand, 05/09/2026 : « transport bar : badges
+            source et qualité sur une troisième ligne !! Je me répète ! ».
+
+            Ils vivaient DANS `.mini-artist`, qui porte `truncate` : un nom
+            d'artiste un peu long les rognait, et sa capture montrait un badge
+            « F… » coupé net. Une ligne à eux, et ils ne dépendent plus de la
+            longueur du nom.
+
+            La RADIO est exclue : sa deuxième ligne porte déjà la station, et
+            un flux en direct n'a ni service ni fiche technique à annoncer.
+          -->
+          {#if displayTrack.source !== 'radio'}
+            <span class="mini-badges">
               <ServiceBadge source={displayTrack.source} compact />
               {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || zone?.signal_path}
                 {@const sourceStep = zone?.signal_path?.steps?.find((s: any) => s.name === 'Source')?.description ?? ''}
@@ -716,9 +732,9 @@
                   onkeydown={(e) => { if (zone?.signal_path && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
                   title={hasTrackFormat ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
                 >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || ((zone?.signal_path?.lossless ?? zone?.signal_path?.bit_perfect) ? 'Lossless' : 'Lossy'))}</span>
-              {/if}
             {/if}
-          </span>
+            </span>
+          {/if}
         </div>
       </div>
       {#if getFavKind(displayTrack) !== 'none'}
@@ -1303,6 +1319,17 @@
     display: flex;
     align-items: center;
     gap: 5px;
+  }
+
+  /* TROISIEME LIGNE : les badges ne dependent plus de la longueur du nom
+     d'artiste. Ils ne s'elident pas — ils sont courts et se lisent entiers ou
+     pas du tout. */
+  .mini-badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    flex-wrap: wrap;
   }
 
   .yt-badge {

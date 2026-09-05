@@ -47,6 +47,24 @@
   // l'écran n'avait pas disparu, il n'avait jamais été branché.
   import NowPlaying from '../NowPlaying.svelte';
   import TvView from '../TvView.svelte';
+  /**
+   * 🔴 SANS LUI, TOUT DIALOGUE RESTE SANS REPONSE POUR TOUJOURS.
+   *
+   * Bertrand, 05/09/2026 : « suppression d'un raccourci ne marche pas ». Elle
+   * demande confirmation par `dialogs.confirm()`, qui pose la demande dans une
+   * file et attend qu'un conteneur la rende. Ce conteneur etait monte « une
+   * seule fois, dans App.svelte » — que le mode `?v2` ne monte JAMAIS.
+   *
+   * La promesse ne se resolvait donc pas : le clic ne faisait rien, sans
+   * message, sans erreur de console. Exactement le defaut que ce composant
+   * avait ete ecrit pour corriger — les dialogues natifs qui n'ouvrent pas
+   * dans une vue embarquee (#166) — reproduit d'un cran plus haut.
+   *
+   * Trois ecrans etaient touches, quatre gestes en tout : supprimer un
+   * raccourci, vider les favoris radio, et deux confirmations des Reglages
+   * dont la deconnexion d'un service.
+   */
+  import DialogContainer from '../DialogContainer.svelte';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
   // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
   // « Il manque Oxygen dans la v2 !! ». Il pese 1 400 lignes avec son rail de
@@ -325,6 +343,11 @@
     </main>
   </div>
   <TransportBar />
+
+  <!-- Le conteneur de dialogues : il ne dessine rien tant que personne ne
+       demande. Place ICI, au premier niveau de la coquille, pour couvrir tous
+       les ecrans qu'elle monte. -->
+  <DialogContainer />
 
   <!-- Voie MOBILE : la barre pose ce drapeau au lieu de changer de vue.
        Personne ne l'écoutait ici. -->

@@ -491,8 +491,15 @@
     const zid = $currentZoneId;
     if (zid == null) return;
     if (!it?.extrait) { error = 'Aucun extrait disponible pour ce titre.'; return; }
-    api.play(zid, { file_path: it.extrait, title: it.titre, artist_name: it.artiste ?? null, cover_path: it.pochette ?? null })
-      .catch(() => { error = 'Lecture impossible.'; });
+    // 🔴 La PAIRE `source` + `source_id`, pas `file_path` : c'est ce que le
+    // serveur apparie. Avec `file_path`, il ne reconnaissait rien et retombait
+    // sur « reprendre la lecture en cours » (Bertrand, 05/09/2026). L'ecran
+    // Bandcamp du client actuel envoie cette paire depuis toujours.
+    api.play(zid, {
+      source: 'bandcamp' as any, source_id: String(it.extrait),
+      title: it.titre, artist_name: it.artiste ?? null,
+      cover_path: it.pochette ?? null,
+    }).catch(() => { error = 'Lecture impossible.'; });
   }
 
   async function linkBandcamp() {

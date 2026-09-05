@@ -15,6 +15,7 @@
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
+  import { corpsDeLecture } from '../../lib/pisteFile';
   import { favoriteAlbumIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
@@ -55,12 +56,23 @@
       // Le plugin rend ses propres champs : on les traduit dans la forme d'une
       // piste, en gardant `stream_url` comme chemin de lecture — c'est ce que
       // fait deja l'ecran Bandcamp du client actuel.
+      // 🔴 `source_id`, PAS `file_path`.
+      //
+      // Bertrand, 05/09/2026 : « bouton play sur un album Bandcamp ne lance
+      // pas la lecture mais relance la lecture en cours ». C'est la signature
+      // d'un corps que le serveur ne sait pas apparier : il retombe alors sur
+      // « reprendre ». L'ecran Bandcamp du client actuel, lui, marche — il
+      // envoie la PAIRE `source: 'bandcamp'` + `source_id: <url du flux>`.
+      //
+      // Porter l'URL dans `source_id` repare la lecture ET rend la piste
+      // designable : la barre d'actions, qui se retirait faute de pouvoir la
+      // nommer, revient sur chaque ligne.
       ? api.bandcampAlbum(bc).then((d2) => (d2?.tracks ?? []).map((t, i) => ({
           id: null, track_number: t.num ?? i + 1, title: t.title,
           artist_name: t.artist ?? album.artist_name ?? null,
           album_title: album.title, duration_ms: (t.duration_s ?? 0) * 1000,
-          file_path: t.stream_url, cover_path: album.cover_path ?? null,
-          format: 'MP3', source: 'bandcamp',
+          source: 'bandcamp', source_id: t.stream_url,
+          cover_path: album.cover_path ?? null, format: 'MP3',
         })) as unknown as Track[])
       : svc && sid
       ? api.getStreamingAlbumTracks(svc, String(sid))
@@ -140,12 +152,12 @@
       return;
     }
     // Bandcamp : chaque piste porte son propre flux, il n'y a pas d'album a
-    // designer au serveur. On lance celle qu'on a choisie.
+    // designer au serveur. On lance celle qu'on a choisie, par le MEME chemin
+    // que partout ailleurs — `corpsDeLecture` sait former la paire.
     if (bandcamp) {
-      const t = tracks[startIndex];
-      if (!t?.file_path) return;
-      api.play(zid, { file_path: t.file_path, title: t.title,
-        artist_name: t.artist_name ?? null, cover_path: t.cover_path ?? null }).catch(() => {});
+      const corps = corpsDeLecture(tracks[startIndex]);
+      if (!corps) return;
+      api.play(zid, corps as any).catch(() => {});
       return;
     }
     if (album.id == null) return;
