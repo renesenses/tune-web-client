@@ -3662,7 +3662,6 @@ export default {
   "v2.sc.acousticHintA": "Experttips: aktivera",
   "v2.sc.acousticHintBold": "Akustik",
   "v2.sc.acousticHintB": "för att söka efter stämning — ”varm analog jazz”, ”hypnotisk techno”.",
-  "v2.sc.onServices": "På tjänsterna",
   "v2.shell.soon": "Kommer snart",
   "v2.shell.soonHint": "Den här skärmen kommer att ritas om i Leventes riktning. Navigeringen, det nivåindelade sidofältet och spelaren finns redan på plats runt omkring.",
   "v2.nav.expandAria": "Fäll ut sidofältet",

@@ -3663,7 +3663,6 @@ export default {
   "v2.sc.acousticHintA": "Experten-Tipp: aktivieren Sie",
   "v2.sc.acousticHintBold": "Akustik",
   "v2.sc.acousticHintB": "um nach Stimmung zu suchen — „warmer analoger Jazz“, „hypnotischer Techno“.",
-  "v2.sc.onServices": "Bei den Diensten",
   "v2.shell.soon": "Demnächst",
   "v2.shell.soonHint": "Dieser Bildschirm wird in Leventes Richtung neu gestaltet. Navigation, gestufte Seitenleiste und Player sind bereits darum herum vorhanden.",
   "v2.nav.expandAria": "Seitenleiste ausklappen",

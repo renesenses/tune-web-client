@@ -3663,7 +3663,6 @@ export default {
   "v2.sc.acousticHintA": "エキスパート向けのヒント：",
   "v2.sc.acousticHintBold": "アコースティック",
   "v2.sc.acousticHintB": "を有効にすると雰囲気で検索できます — 「温かいアナログジャズ」「催眠的なテクノ」。",
-  "v2.sc.onServices": "サービス上",
   "v2.shell.soon": "近日公開",
   "v2.shell.soonHint": "この画面は Levente の方向性で描き直されます。ナビゲーション、段階的なサイドバー、プレーヤーはすでに周囲に用意されています。",
   "v2.nav.expandAria": "サイドバーを展開",

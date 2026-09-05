@@ -3621,7 +3621,6 @@ export default {
   "v2.sc.acousticHintA": "Szakértői tipp: kapcsolja be az",
   "v2.sc.acousticHintBold": "Akusztika",
   "v2.sc.acousticHintB": "funkciót a hangulat szerinti kereséshez — „meleg analóg jazz”, „hipnotikus techno”.",
-  "v2.sc.onServices": "A szolgáltatásokon",
   "v2.shell.soon": "Hamarosan",
   "v2.shell.soonHint": "Ezt a képernyőt Levente irányában rajzoljuk újra. A navigáció, a szintezett oldalsáv és a lejátszó már a helyén van körülötte.",
   "v2.nav.expandAria": "Oldalsáv kinyitása",

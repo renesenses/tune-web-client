@@ -3663,7 +3663,6 @@ export default {
   "v2.sc.acousticHintA": "专家提示：启用",
   "v2.sc.acousticHintBold": "声学分析",
   "v2.sc.acousticHintB": "即可按氛围搜索 — 「温暖的模拟爵士」「催眠般的电子」。",
-  "v2.sc.onServices": "在各服务上",
   "v2.shell.soon": "即将推出",
   "v2.shell.soonHint": "此界面将按 Levente 的方向重新设计。导航、分级侧边栏和播放器已经在它周围就位。",
   "v2.nav.expandAria": "展开侧边栏",

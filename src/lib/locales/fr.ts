@@ -3685,7 +3685,6 @@ export default {
   "v2.sc.acousticHintA": "Astuce Expert : activez",
   "v2.sc.acousticHintBold": "Acoustique",
   "v2.sc.acousticHintB": "pour chercher par ambiance — « jazz analogique chaleureux », « techno hypnotique ».",
-  "v2.sc.onServices": "Sur les services",
   "v2.shell.soon": "À venir",
   "v2.shell.soonHint": "Cet écran sera redessiné dans la direction Levente. La navigation, la barre latérale à niveaux et le lecteur sont déjà en place autour de lui.",
   "v2.nav.expandAria": "Déplier la barre latérale",

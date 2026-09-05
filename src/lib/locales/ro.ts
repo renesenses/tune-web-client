@@ -3663,7 +3663,6 @@ export default {
   "v2.sc.acousticHintA": "Sfat Expert: activați",
   "v2.sc.acousticHintBold": "Acustică",
   "v2.sc.acousticHintB": "pentru a căuta după atmosferă — „jazz analogic cald”, „techno hipnotic”.",
-  "v2.sc.onServices": "Pe servicii",
   "v2.shell.soon": "În curând",
   "v2.shell.soonHint": "Acest ecran va fi redesenat în direcția lui Levente. Navigarea, bara laterală pe niveluri și playerul sunt deja în jurul lui.",
   "v2.nav.expandAria": "Extinde bara laterală",

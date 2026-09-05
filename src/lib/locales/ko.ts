@@ -3663,7 +3663,6 @@ export default {
   "v2.sc.acousticHintA": "전문가 팁:",
   "v2.sc.acousticHintBold": "음향 분석",
   "v2.sc.acousticHintB": "을(를) 켜면 분위기로 검색할 수 있습니다 — 「따뜻한 아날로그 재즈」, 「최면적인 테크노」.",
-  "v2.sc.onServices": "서비스에서",
   "v2.shell.soon": "곧 제공",
   "v2.shell.soonHint": "이 화면은 Levente의 방향으로 다시 그려집니다. 내비게이션, 단계별 사이드바, 플레이어는 이미 주변에 준비되어 있습니다.",
   "v2.nav.expandAria": "사이드바 펼치기",

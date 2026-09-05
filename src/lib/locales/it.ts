@@ -3663,7 +3663,6 @@ export default {
   "v2.sc.acousticHintA": "Consiglio Esperto: attiva",
   "v2.sc.acousticHintBold": "Acustica",
   "v2.sc.acousticHintB": "per cercare per atmosfera — «jazz analogico caldo», «techno ipnotica».",
-  "v2.sc.onServices": "Sui servizi",
   "v2.shell.soon": "In arrivo",
   "v2.shell.soonHint": "Questa schermata sarà ridisegnata nella direzione di Levente. La navigazione, la barra laterale a livelli e il lettore sono già al loro posto attorno ad essa.",
   "v2.nav.expandAria": "Espandi la barra laterale",

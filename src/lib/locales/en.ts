@@ -3683,7 +3683,6 @@ export default {
   "v2.sc.acousticHintA": "Expert tip: enable",
   "v2.sc.acousticHintBold": "Acoustic",
   "v2.sc.acousticHintB": "to search by mood — “warm analogue jazz”, “hypnotic techno”.",
-  "v2.sc.onServices": "On the services",
   "v2.shell.soon": "Coming soon",
   "v2.shell.soonHint": "This screen will be redrawn in Levente's direction. The navigation, the levelled sidebar and the player are already in place around it.",
   "v2.nav.expandAria": "Expand the sidebar",
