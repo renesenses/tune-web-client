@@ -49,6 +49,17 @@ describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
     expect(corps).toContain('dernierClicLecture = 0;');
   });
 
+  it('le double-clic arrête depuis PAUSE comme depuis PLAY', () => {
+    // Bertrand, 05/09/2026 : « Stop sur pause : double click. Stop sur Play :
+    // double click. » La condition d'arrêt ne regarde donc PAS l'état de
+    // lecture — seulement la zone et la source. Depuis Play, le premier clic
+    // lance et le second arrête : le résultat net est l'arrêt.
+    const i = bar.indexOf('async function clicLecture()');
+    const corps = bar.slice(i, i + 700);
+    expect(corps).toContain('if (second && stopPossible && zone?.id)');
+    expect(corps, "l'arrêt ne doit pas dépendre de l'état de lecture").not.toContain('isPlaying');
+  });
+
   it("la RADIO n'a pas de stop", () => {
     // Un flux en direct ne se met pas en pause pour reprendre où l'on était.
     // Le bouton autonome l'excluait déjà.

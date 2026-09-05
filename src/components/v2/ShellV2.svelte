@@ -67,6 +67,7 @@
   } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { bootstrapV2 } from '../../lib/v2Bootstrap';
+  import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import '../../styles/tune-v2.css';
 
@@ -110,6 +111,19 @@
     startUpdatePolling();
     return () => stopUpdatePolling();
   });
+
+  /**
+   * 🔴 Les raccourcis clavier n'etaient branches NULLE PART en `?v2`.
+   *
+   * `setupKeyboardShortcuts` n'etait appele que par `App.svelte`, que ce mode
+   * ne monte jamais. Espace, les fleches, N, P et M ne faisaient donc rien du
+   * tout dans le nouveau client — ecrit, pas branche, comme l'annonce de mise
+   * a jour avant elle.
+   *
+   * Constate le 05/09/2026 en cherchant ou poser la touche « arreter » que
+   * Bertrand demandait : il n'y avait pas d'endroit ou la poser.
+   */
+  $effect(() => setupKeyboardShortcuts());
 
   /** La bannière n'occupe la place que si elle a quelque chose à dire. */
   const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);
