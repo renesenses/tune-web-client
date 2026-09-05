@@ -3843,6 +3843,7 @@ export default {
   "v2.sup.sysCopy": "Copier le schéma (Mermaid)",
   "v2.sup.sysCopied": "Schéma copié",
   "transport.dblClickStop": "double-clic pour arrêter",
+  "v2.sup.sysFallback": "Schéma de secours : le rendu Mermaid n'a pas pu être chargé.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

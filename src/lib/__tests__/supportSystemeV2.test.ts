@@ -30,16 +30,35 @@ describe('Support v2 : diagnostic et « Mon système » (Bertrand, 05/09/2026)',
     expect((sup.match(/\.catch\(\(\) => null\)/g) ?? []).length).toBeGreaterThanOrEqual(4);
   });
 
-  it('le schéma est DESSINÉ, sans embarquer Mermaid', () => {
-    expect(sup).toContain('planSysteme');
-    expect(sup).toContain('<svg viewBox=');
-    // La bibliothèque pèse un demi-Mo sur un paquet de 4,6 Mo, pour un graphe
-    // à trois niveaux.
+  it('le schéma est rendu par MERMAID, charge en import differe', () => {
+    // Bertrand a demande le vrai rendu apres que je lui aie propose le dessin
+    // fait main pour eviter le poids. `mermaid` pese plus que tout le reste du
+    // client reuni : un `import` en tete de fichier l'aurait mis dans le paquet
+    // principal, que tout le monde telecharge au premier ecran.
+    expect(sup).toContain("await import('mermaid')");
+    expect(sup).not.toMatch(/^\s*import mermaid from/m);
+    // Le paquet est bien declare — un import differe d'une dependance absente
+    // echouerait a la construction.
     const pkg = JSON.parse(lire('package.json'));
-    const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
-    expect(Object.keys(deps)).not.toContain('mermaid');
-    // Mais le TEXTE Mermaid reste copiable : c'est la forme que le support attend.
-    expect(sup).toContain('mermaidSysteme(schema)');
+    expect(Object.keys(pkg.dependencies ?? {})).toContain('mermaid');
+    expect(sup).toContain('securityLevel:');
+  });
+
+  it('le dessin fait main RESTE, en secours', () => {
+    // Reseau coupe, morceau absent : on montre le schema plutot qu'un vide.
+    expect(sup).toContain('planSysteme');
+    expect(sup).toContain('{:else}');
+    expect(sup).toContain('mermaidEchec');
+    expect(sup).toContain('v2.sup.sysFallback');
+  });
+
+  it("le rendu suit le theme et ne se marche pas dessus", () => {
+    // Un schema clair sur fond sombre serait une tache blanche au milieu de
+    // l'ecran ; et deux rendus sous le meme identifiant se corrompent, Mermaid
+    // posant des `id` dans le SVG.
+    expect(sup).toContain("theme: sombre ? 'dark' : 'default'");
+    expect(sup).toContain('`sys${mien}`');
+    expect(sup).toContain('mien === mermaidSeq');
   });
 
   it('les deux écrans partagent le MÊME générateur', () => {

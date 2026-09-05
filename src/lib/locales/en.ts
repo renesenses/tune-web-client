@@ -3841,6 +3841,7 @@ export default {
   "v2.sup.sysCopy": "Copy diagram (Mermaid)",
   "v2.sup.sysCopied": "Diagram copied",
   "transport.dblClickStop": "double-click to stop",
+  "v2.sup.sysFallback": "Fallback diagram: the Mermaid renderer could not be loaded.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -3779,6 +3779,7 @@ export default {
   "v2.sup.sysCopy": "Ábra másolása (Mermaid)",
   "v2.sup.sysCopied": "Ábra másolva",
   "transport.dblClickStop": "dupla kattintás a leállításhoz",
+  "v2.sup.sysFallback": "Tartalék ábra: a Mermaid megjelenítőt nem sikerült betölteni.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

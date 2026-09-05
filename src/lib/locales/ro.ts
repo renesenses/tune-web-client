@@ -3821,6 +3821,7 @@ export default {
   "v2.sup.sysCopy": "Copiază schema (Mermaid)",
   "v2.sup.sysCopied": "Schemă copiată",
   "transport.dblClickStop": "dublu clic pentru oprire",
+  "v2.sup.sysFallback": "Schemă de rezervă: randarea Mermaid nu a putut fi încărcată.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -3820,4 +3820,5 @@ export default {
   "v2.sup.sysCopy": "Kopiera schemat (Mermaid)",
   "v2.sup.sysCopied": "Schemat kopierat",
   "transport.dblClickStop": "dubbelklicka för att stoppa",
+  "v2.sup.sysFallback": "Reservdiagram: Mermaid-renderaren kunde inte laddas.",
 } as const;

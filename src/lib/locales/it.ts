@@ -3821,6 +3821,7 @@ export default {
   "v2.sup.sysCopy": "Copia lo schema (Mermaid)",
   "v2.sup.sysCopied": "Schema copiato",
   "transport.dblClickStop": "doppio clic per fermare",
+  "v2.sup.sysFallback": "Schema di riserva: non è stato possibile caricare il renderer Mermaid.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

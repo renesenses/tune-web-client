@@ -3821,6 +3821,7 @@ export default {
   "v2.sup.sysCopy": "复制图示 (Mermaid)",
   "v2.sup.sysCopied": "已复制图示",
   "transport.dblClickStop": "双击停止",
+  "v2.sup.sysFallback": "备用图示：无法加载 Mermaid 渲染器。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

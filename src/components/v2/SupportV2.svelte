@@ -72,6 +72,50 @@
   const schema = $derived(modeleSysteme($zones, String($currentVersion ?? '')));
   const plan = $derived(planSysteme(schema));
   let copie = $state(false);
+
+  /**
+   * RENDU MERMAID, demandé par Bertrand le 05/09/2026 après que je lui aie
+   * proposé le dessin fait main pour éviter le poids de la bibliothèque.
+   *
+   * 🔴 Chargée en IMPORT DIFFÉRÉ, et c'est ce qui rend la demande tenable :
+   * `mermaid` pèse plus que tout le reste du client réuni. Un `import` en tête
+   * de fichier l'aurait mise dans le paquet principal, que tout le monde
+   * télécharge au premier écran. En `await import(…)`, l'outil de construction
+   * la met dans un morceau à part, chargé le jour où l'on ouvre cet onglet — et
+   * jamais avant.
+   *
+   * Le dessin fait main RESTE, en secours : si la bibliothèque ne se charge pas
+   * — réseau coupé, morceau absent — on montre le schéma plutôt qu'un vide.
+   */
+  let svgMermaid = $state<string | null>(null);
+  let mermaidEchec = $state(false);
+  let mermaidSeq = 0;
+
+  $effect(() => {
+    if (volet !== 'systeme' || !plan.boites.length) return;
+    const texte = mermaidSysteme(schema);
+    const sombre = document.documentElement.getAttribute('data-theme') !== 'light';
+    const mien = ++mermaidSeq;
+    (async () => {
+      try {
+        const m = (await import('mermaid')).default;
+        m.initialize({
+          startOnLoad: false,
+          securityLevel: 'strict',
+          // Le thème suit celui du client : un schéma clair sur fond sombre
+          // serait une tache blanche au milieu de l'écran.
+          theme: sombre ? 'dark' : 'default',
+          flowchart: { curve: 'basis', htmlLabels: false },
+        });
+        // L'identifiant doit être unique : Mermaid pose des `id` dans le SVG,
+        // et deux rendus successifs sous le même nom se marchent dessus.
+        const { svg } = await m.render(`sys${mien}`, texte);
+        if (mien === mermaidSeq) { svgMermaid = svg; mermaidEchec = false; }
+      } catch {
+        if (mien === mermaidSeq) { svgMermaid = null; mermaidEchec = true; }
+      }
+    })();
+  });
   async function copierSchema() {
     try {
       await copyText(mermaidSysteme(schema));
@@ -302,6 +346,14 @@
                à trois niveaux. Le texte Mermaid reste copiable ci-dessous —
                c'est la forme que le support attend, et les deux sortent du
                même modèle. -->
+          {#if svgMermaid}
+            <!-- Rendu par Mermaid. `@html` sur une chaîne que NOUS produisons :
+                 elle sort de `mermaidSysteme`, qui échappe déjà les libellés en
+                 entités numériques, et Mermaid tourne en `securityLevel:
+                 strict`. Aucune entrée de l'utilisateur n'y arrive telle
+                 quelle. -->
+            <div class="schema mermaid">{@html svgMermaid}</div>
+          {:else}
           <div class="schema">
             <svg viewBox="0 0 {plan.largeur} {plan.hauteur}" width={plan.largeur} height={plan.hauteur}
               role="img" aria-label={$t('v2.sup.tabSystem' as any)}>
@@ -317,6 +369,8 @@
               {/each}
             </svg>
           </div>
+          {#if mermaidEchec}<p class="sub">{$t('v2.sup.sysFallback' as any)}</p>{/if}
+          {/if}
           <button class="lnk" onclick={copierSchema}>
             {copie ? $t('v2.sup.sysCopied' as any) : $t('v2.sup.sysCopy' as any)}
           </button>
@@ -565,6 +619,9 @@
   .sys .sub{font-size:13px; color:var(--v2-txt3); max-width:620px; line-height:1.5}
   .schema{width:100%; overflow-x:auto; padding:6px 0}
   .schema svg{max-width:none}
+  /* Mermaid pose ses propres couleurs : on ne lui impose que la place. */
+  .schema.mermaid{display:flex; justify-content:flex-start}
+  .schema.mermaid :global(svg){max-width:none; height:auto}
   .schema .lien{fill:none; stroke:var(--v2-line2); stroke-width:1.6}
   .schema .lien.off{stroke-dasharray:4 4}
   .schema .bx rect{fill:var(--v2-surface2); stroke:var(--v2-line2); stroke-width:1}
