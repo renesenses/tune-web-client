@@ -5,7 +5,6 @@
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
-  import HeartButton from './HeartButton.svelte';
   /**
    * Les cinq actions par piste (Bertrand, 05/09/2026 : « et les boutons
    * d'action sur une piste dans cet écran ? »). Cet écran est celui du client
@@ -457,9 +456,6 @@
             <span class="track-duration">{formatTime(track.duration_ms)}</span>
             <span class="track-actions" onclick={(e) => e.stopPropagation()}>
               <PisteActions piste={track} />
-            </span>
-            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-              {#if track.id}<HeartButton trackId={track.id} size={14} />{/if}
             </span>
           </div>
         {/each}

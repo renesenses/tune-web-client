@@ -26,6 +26,17 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     expect(src).toContain('M18 15V8l3 .6');
   });
 
+  it("un ecran qui porte la barre n'a plus son PROPRE cœur", () => {
+    // Bertrand, 05/09/2026 : « ok mais un cœur en trop à la fin ! ». La barre
+    // porte deja le favori ; le cœur d'origine de la ligne faisait doublon.
+    // Celui de la barre couvre en outre les pistes de SERVICE, que
+    // `HeartButton trackId=…` ne pouvait pas atteindre faute d'identifiant
+    // local.
+    const amb = sansCommentaires(lire('src/components/AmbianceView.svelte'));
+    expect(amb).toContain('<PisteActions piste={track} />');
+    expect(amb, 'deux cœurs sur la même ligne').not.toContain('HeartButton');
+  });
+
   it('les cinq boutons de la palette sont là', () => {
     for (const cle of ['v2.pa.play', 'v2.pa.next', 'v2.pa.queue', 'v2.pa.playlist', 'v2.pa.fav']) {
       expect(src).toContain(cle);
