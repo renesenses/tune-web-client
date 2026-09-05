@@ -3849,8 +3849,6 @@ export default {
   "v2.smart.and": "și",
   "v2.smart.addRule": "Adaugă o regulă",
   "v2.smart.removeRule": "Elimină această regulă",
-  "v2.smart.yes": "Da",
-  "v2.smart.no": "Nu",
   "v2.smart.previewing": "Se generează previzualizarea…",
   "v2.smart.previewNone": "Adăugați o regulă pentru a vedea ce selectează",
   "v2.smart.previewCount": "{n} albume corespund",

@@ -308,9 +308,21 @@
               </optgroup>
             </select>
           {:else if type === 'favorite'}
-            <select class="sel" value={String(r.value)} onchange={(e) => changerValeur(i, e.currentTarget.value === 'true')}>
-              <option value="true">{$t('v2.smart.yes' as any)}</option>
-              <option value="false">{$t('v2.smart.no' as any)}</option>
+            <!-- 🔴 La valeur d'un FAVORI est sa SORTE, pas un oui/non.
+                 Bertrand, 05/09/2026 : « pourquoi 0 album ? » sur « Favori est
+                 Oui ». J'envoyais `true`, que le serveur ne sait pas apparier.
+                 Mesure sur le .18, meme regle :
+                     value=true     -> 0
+                     value="album"  -> 3
+                     value="track"  -> 0
+                     value="artist" -> 0
+                 Ce sont les trois sortes que `smart_refs` connait, et les
+                 libelles existaient deja pour l'editeur du client actuel. -->
+            <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
+              <option value="" disabled>{$t('smartCollection.refPick')}</option>
+              <option value="track">{$t('smartCollection.favTrack')}</option>
+              <option value="album">{$t('smartCollection.favAlbum')}</option>
+              <option value="artist">{$t('smartCollection.favArtist')}</option>
             </select>
           {:else}
             <input class="txt"

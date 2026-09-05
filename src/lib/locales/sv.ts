@@ -3848,8 +3848,6 @@ export default {
   "v2.smart.and": "och",
   "v2.smart.addRule": "Lägg till en regel",
   "v2.smart.removeRule": "Ta bort den här regeln",
-  "v2.smart.yes": "Ja",
-  "v2.smart.no": "Nej",
   "v2.smart.previewing": "Förhandsgranskar…",
   "v2.smart.previewNone": "Lägg till en regel för att se vad den ger",
   "v2.smart.previewCount": "{n} album matchar",

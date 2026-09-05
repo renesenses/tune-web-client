@@ -3871,8 +3871,6 @@ export default {
   "v2.smart.and": "et",
   "v2.smart.addRule": "Ajouter une règle",
   "v2.smart.removeRule": "Retirer cette règle",
-  "v2.smart.yes": "Oui",
-  "v2.smart.no": "Non",
   "v2.smart.previewing": "Aperçu en cours…",
   "v2.smart.previewNone": "Ajoutez une règle pour voir ce qu'elle retient",
   "v2.smart.previewCount": "{n} albums correspondent",

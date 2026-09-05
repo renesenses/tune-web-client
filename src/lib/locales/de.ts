@@ -3849,8 +3849,6 @@ export default {
   "v2.smart.and": "und",
   "v2.smart.addRule": "Regel hinzufügen",
   "v2.smart.removeRule": "Diese Regel entfernen",
-  "v2.smart.yes": "Ja",
-  "v2.smart.no": "Nein",
   "v2.smart.previewing": "Vorschau läuft…",
   "v2.smart.previewNone": "Fügen Sie eine Regel hinzu, um das Ergebnis zu sehen",
   "v2.smart.previewCount": "{n} Alben stimmen überein",

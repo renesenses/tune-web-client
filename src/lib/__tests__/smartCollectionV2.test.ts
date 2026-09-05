@@ -53,7 +53,10 @@ describe('Grammaire des règles : une seule, partagée', () => {
     expect(valeurInitiale('between', 'timestamp')).toEqual(['', '']);
     expect(valeurInitiale('=', 'int')).toBe(0);
     expect(valeurInitiale('contains', 'text')).toBe('');
-    expect(valeurInitiale('is', 'favorite')).toBe(true);
+    // Un FAVORI se qualifie par sa SORTE, pas par un oui/non : partir sur
+    // `true` produisait une regle que le serveur ne sait pas apparier — zero
+    // album, sans rien dire.
+    expect(valeurInitiale('is', 'favorite')).toBe('');
   });
 });
 
@@ -85,6 +88,17 @@ describe("L'éditeur v2 de collection intelligente", () => {
     // Zéro règle retiendrait toute la bibliothèque, ce que personne ne demande
     // sciemment.
     expect(ed).toContain('if (regles.length <= 1) return;');
+  });
+
+  it('un FAVORI se qualifie par sa SORTE', () => {
+    // Mesure sur le .18, meme regle : `true` -> 0 album, `"album"` -> 3.
+    expect(ed).toContain('<option value="track">');
+    expect(ed).toContain('<option value="album">');
+    expect(ed).toContain('<option value="artist">');
+    expect(ed, 'le oui/non est revenu').not.toContain("e.currentTarget.value === 'true'");
+    // Et une sorte non choisie n'est pas une regle complete.
+    expect(regleComplete({ field: 'favorite', op: 'is', value: '' })).toBe(false);
+    expect(regleComplete({ field: 'favorite', op: 'is', value: 'album' })).toBe(true);
   });
 
   it('les RÉFÉRENCES ont chacune leur sélecteur', () => {

@@ -140,7 +140,12 @@ export function valeurInitiale(op: string, type: TypeChamp): any {
   if (sansValeur(op)) return null;
   if (op === 'between') return type === 'timestamp' ? ['', ''] : [0, 0];
   if (type === 'int' || type === 'count') return 0;
-  if (type === 'favorite') return true;
+  // 🔴 Un FAVORI se qualifie par sa SORTE — `track`, `album`, `artist` — et non
+  // par un oui/non. Partir sur `true` produisait une regle que le serveur ne
+  // sait pas apparier : elle rendait ZERO album sans rien dire (mesure sur le
+  // .18 : `true` -> 0, `"album"` -> 3). On part donc vide, et `regleComplete`
+  // refuse tant que rien n'est choisi.
+  if (type === 'favorite') return '';
   // Une REFERENCE part vide : le selecteur affiche « choisir… », et
   // `regleComplete` la refuse tant que rien n'est choisi. Sans cela on
   // enregistrerait une reference vide, que le serveur rejette.

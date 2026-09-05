@@ -3849,8 +3849,6 @@ export default {
   "v2.smart.and": "かつ",
   "v2.smart.addRule": "条件を追加",
   "v2.smart.removeRule": "この条件を削除",
-  "v2.smart.yes": "はい",
-  "v2.smart.no": "いいえ",
   "v2.smart.previewing": "プレビュー中…",
   "v2.smart.previewNone": "条件を追加すると結果が表示されます",
   "v2.smart.previewCount": "{n} 枚のアルバムが一致します",

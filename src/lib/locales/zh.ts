@@ -3849,8 +3849,6 @@ export default {
   "v2.smart.and": "且",
   "v2.smart.addRule": "添加条件",
   "v2.smart.removeRule": "移除此条件",
-  "v2.smart.yes": "是",
-  "v2.smart.no": "否",
   "v2.smart.previewing": "正在预览…",
   "v2.smart.previewNone": "添加条件即可查看结果",
   "v2.smart.previewCount": "{n} 张专辑符合条件",

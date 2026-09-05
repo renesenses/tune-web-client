@@ -3807,8 +3807,6 @@ export default {
   "v2.smart.and": "és",
   "v2.smart.addRule": "Szabály hozzáadása",
   "v2.smart.removeRule": "Szabály eltávolítása",
-  "v2.smart.yes": "Igen",
-  "v2.smart.no": "Nem",
   "v2.smart.previewing": "Előnézet készül…",
   "v2.smart.previewNone": "Adjon hozzá egy szabályt, hogy lássa az eredményt",
   "v2.smart.previewCount": "{n} album egyezik",
