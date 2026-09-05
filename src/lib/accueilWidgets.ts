@@ -178,9 +178,17 @@ function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {})
  */
 function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | 'aucun') {
   if (genre !== 'album') return {};
-  const sid = champ(o, 'source_id');
-  const idLocal = o?.album_id ?? (sid ? null : o?.id);
-  if (idLocal == null && !(service && sid)) return {};
+  const dist = idDistant(o);
+  // 🔴 `0` n'est pas un identifiant local : c'est le remplissage de
+  // `/home/continue-listening`. Le prendre pour vrai faisait passer des albums
+  // Qobuz pour des albums de la bibliothèque — d'où le crayon et les
+  // étiquettes sur les uns et pas sur les autres.
+  const idLocal = idLocalValide(o?.album_id) ?? (dist ? null : idLocalValide(o?.id));
+  if (idLocal == null && !(service && dist)) return {};
+  // Un identifiant qui désigne une PLAYLIST n'ouvre pas plus un album qu'un
+  // identifiant de piste.
+  if (idLocal == null && dist && dist.genre !== 'album') return {};
+  const sid = dist?.id ?? null;
 
   /**
    * 🔴 Un identifiant de PISTE n'ouvre pas un album.
@@ -247,20 +255,66 @@ function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | '
  * les deux qu'ensemble, et un identifiant seul le fait retomber sur
  * « reprendre la lecture en cours » — le même défaut que sur les playlists.
  */
+/**
+ * 🔴 L'identifiant DISTANT et ce qu'il désigne.
+ *
+ * Bertrand, 05/09/2026 : « et donc Play ne marche pas ! », et « certains albums
+ * Qobuz ont les CTA edit et tag et d'autres non ». Une seule cause pour les
+ * deux. Une entrée de `/home/continue-listening` vaut :
+ *
+ *     {"id": 0, "album_id": null, "context_id": "58698608",
+ *      "context_type": "playlist", "source": "qobuz", …}
+ *
+ * Elle ne porte AUCUN `source_id` : son identifiant est dans `context_id`, et
+ * ce qu'il désigne est dans `context_type`. Les deux étaient ignorés.
+ *
+ * Conséquences mesurées :
+ *  - la lecture retombait sur `{album_id: 0}` — `0 != null` est vrai — que le
+ *    serveur ne peut apparier ;
+ *  - la fiche prenait ce même `0` pour un identifiant LOCAL, d'où le crayon et
+ *    les étiquettes sur des albums Qobuz, et seulement sur ceux-là.
+ */
+function idDistant(o: any): { id: string; genre: string } | null {
+  const sid = champ(o, 'source_id');
+  if (sid) return { id: String(sid), genre: 'album' };
+  const ctx = champ(o, 'context_id');
+  if (ctx) return { id: String(ctx), genre: String(o?.context_type ?? 'album') };
+  return null;
+}
+
+/** Un identifiant local VALIDE. `0` n'en est pas un — c'est le remplissage que
+ *  le serveur pose quand il n'en a pas. */
+function idLocalValide(v: any): number | null {
+  return typeof v === 'number' && v > 0 ? v : null;
+}
+
 export function geste(o: any, service: string | null, genre: 'album' | 'playlist' | 'aucun') {
   if (genre === 'aucun') return undefined;
-  if (o?.album_id != null) return (z: number) => api.play(z, { album_id: o.album_id });
+  const local = idLocalValide(o?.album_id);
+  if (local != null) return (z: number) => api.play(z, { album_id: local });
   if (o?.track_id != null) return (z: number) => api.play(z, { track_id: o.track_id });
-  const sid = champ(o, 'source_id');
-  if (service && sid) {
-    return genre === 'playlist'
-      ? (z: number) => api.play(z, { streaming_playlist_id: sid, source: service as any })
-      : (z: number) => api.play(z, { streaming_album_id: sid, source: service as any });
+
+  const dist = idDistant(o);
+  if (service && dist) {
+    // Ce que l'identifiant DÉSIGNE prime sur le genre déclaré par le widget :
+    // une entrée d'historique dont le contexte est une playlist ne se joue pas
+    // comme un album.
+    const quoi = dist.genre === 'playlist' || genre === 'playlist' ? 'playlist'
+      : dist.genre === 'track' ? 'track' : 'album';
+    if (quoi === 'playlist') {
+      return (z: number) => api.play(z, { streaming_playlist_id: dist.id, source: service as any });
+    }
+    if (quoi === 'track') {
+      return (z: number) => api.play(z, { source: service as any, source_id: dist.id });
+    }
+    return (z: number) => api.play(z, { streaming_album_id: dist.id, source: service as any });
   }
+
   // Un identifiant NU n'est un album que si l'appelant le dit. Sinon on ne
   // prétend pas savoir ce qu'il désigne.
-  if (o?.id != null && genre === 'album' && !sid) {
-    return (z: number) => api.play(z, { album_id: o.id });
+  const nu = idLocalValide(o?.id);
+  if (nu != null && genre === 'album' && !dist) {
+    return (z: number) => api.play(z, { album_id: nu });
   }
   return undefined;
 }
