@@ -36,6 +36,7 @@
   import QualityBadge from '../QualityBadge.svelte';
   import PisteActions from './PisteActions.svelte';
   import { displayFields } from '../../lib/stores/displayFields';
+  import { champsUtiles } from '../../lib/champsLigne';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { formatDuration } from '../../lib/utils';
   import type { Track } from '../../lib/types';
@@ -58,9 +59,30 @@
   const sousTitre = $derived(
     [piste.artist_name, avecAlbum ? piste.album_title : null].filter(Boolean).join(' · '),
   );
-  /** Les puces ne s'affichent que si le profil en demande ET que la piste en
-   *  porte : une rangée de puces vides vaut moins qu'aucune rangée. */
-  const puces = $derived($displayFields ?? []);
+  /**
+   * 🔴 Les puces ne REDISENT pas ce que la ligne montre déjà.
+   *
+   * Bertrand, 05/09/2026 : « Évite la duplication d'info et cela doit résoudre
+   * le problème ». Sur une piste réelle, sept des quinze puces répétaient
+   * l'artiste, le numéro, le format, la fréquence, la durée, le genre en JSON
+   * brut et le nom de fichier — tous déjà à l'écran, à quelques pixels de là.
+   *
+   * Ce n'est pas un plafond : rien n'est caché, rien n'est tronqué. Ce qui
+   * reste apprend quelque chose.
+   *
+   * Les drapeaux décrivent CETTE ligne : si un jour elle cesse d'afficher le
+   * badge de qualité, le format redeviendra une information utile et
+   * reviendra tout seul.
+   */
+  const puces = $derived(
+    champsUtiles($displayFields ?? [], {
+      artiste: true,   // écrit sous le titre
+      album: avecAlbum, // idem, quand on l'affiche
+      duree: true,     // sa propre colonne, à droite
+      qualite: true,   // le badge, juste avant la durée
+      numero: numero != null,
+    }),
+  );
 </script>
 
 <div class="trk" class:np={enLecture}>
