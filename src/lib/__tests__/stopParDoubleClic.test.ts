@@ -37,7 +37,7 @@ describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
     const i = bar.indexOf('async function clicLecture()');
     const corps = bar.slice(i, i + 700);
     expect(corps).toContain('maintenant - dernierClicLecture < FENETRE_DOUBLE_CLIC');
-    expect(corps).toContain('await api.stop(zone.id)');
+    expect(corps).toContain('await stopAndSync(zone.id)');
     expect(corps).toContain('return;');
   });
 
@@ -58,6 +58,27 @@ describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
     const corps = bar.slice(i, i + 700);
     expect(corps).toContain('if (second && stopPossible && zone?.id)');
     expect(corps, "l'arrêt ne doit pas dépendre de l'état de lecture").not.toContain('isPlaying');
+  });
+
+  it("l'arrêt REPORTE l'état de la zone", () => {
+    // Bertrand, 05/09/2026 : « Play - Pause - Stop me semble mal géré ». Après
+    // un `api.stop` nu, la zone restait « playing » dans le magasin : le bouton
+    // gardait l'icône pause, et le clic suivant envoyait une pause à une zone
+    // déjà arrêtée — le bouton paraissait mort.
+    const zones = lire('src/lib/stores/zones.ts');
+    expect(zones).toContain('export async function stopAndSync(zoneId: number)');
+    expect(zones.slice(zones.indexOf('export async function stopAndSync'), zones.indexOf('export async function stopAndSync') + 300))
+      .toContain('syncZone(zone)');
+    // Plus personne n'appelle `api.stop` sans reporter l'état.
+    for (const f of ['src/components/TransportBar.svelte', 'src/lib/keyboard.ts']) {
+      expect(sansCommentaires(lire(f)), f).not.toContain('api.stop(');
+    }
+  });
+
+  it('la fenêtre du double-clic ne mange pas un re-clic délibéré', () => {
+    // Mettre en pause puis relancer aussitôt est courant : à 350 ms ce second
+    // clic passait pour un double et arrêtait la lecture.
+    expect(bar).toContain('const FENETRE_DOUBLE_CLIC = 250;');
   });
 
   it("la RADIO n'a pas de stop", () => {

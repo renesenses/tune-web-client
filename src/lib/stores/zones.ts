@@ -192,6 +192,28 @@ export async function previousAndSync(zoneId: number): Promise<Zone> {
   return zone;
 }
 
+/**
+ * ARRÊTER, et reporter l'état.
+ *
+ * 🔴 `api.stop()` seul ne met pas le magasin à jour. Bertrand, 05/09/2026 :
+ * « Play - Pause - Stop me semble mal géré ». Le défaut était là : après un
+ * arrêt, la zone restait « playing » dans le magasin, le bouton gardait donc
+ * l'icône pause, et le clic suivant envoyait `api.pause()` à une zone déjà
+ * arrêtée — rien ne se passait, le bouton paraissait mort jusqu'au prochain
+ * relevé.
+ *
+ * Toutes les autres commandes de transport ont leur `…AndSync` depuis
+ * longtemps ; le stop n'en avait pas parce qu'il vivait dans un bouton qui
+ * n'appelait que l'API. En le déplaçant sur le double-clic, j'ai déplacé le
+ * trou avec.
+ */
+export async function stopAndSync(zoneId: number): Promise<Zone> {
+  const zone = await api.stop(zoneId);
+  syncZone(zone);
+  handleBrowserPlayback(zone);
+  return zone;
+}
+
 export async function resumeAndSync(zoneId: number): Promise<Zone> {
   const zone = await api.resume(zoneId);
   checkPlayError(zone);

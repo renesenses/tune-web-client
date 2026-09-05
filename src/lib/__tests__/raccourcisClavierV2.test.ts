@@ -20,7 +20,9 @@ describe('Raccourcis clavier (Bertrand, 05/09/2026)', () => {
   it('S arrête, et la touche média matérielle aussi', () => {
     expect(clavier).toContain("case 'KeyS':");
     expect(clavier).toContain("case 'MediaStop':");
-    expect(clavier).toContain('api.stop(zone.id)');
+    // Par `stopAndSync` : sans report d'état, la zone resterait « playing »
+    // dans le magasin et le transport deviendrait inerte.
+    expect(clavier).toContain('stopAndSync(zone.id)');
   });
 
   it("S ne marche pas sur les frappes de saisie ni avec Cmd/Ctrl", () => {

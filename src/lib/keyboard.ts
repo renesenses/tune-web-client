@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { currentZone, nextAndSync, previousAndSync, resumeAndSync } from './stores/zones';
+import { currentZone, nextAndSync, previousAndSync, resumeAndSync, stopAndSync } from './stores/zones';
 import { playbackState, seekPositionMs, mutedVolume, currentTrack } from './stores/nowPlaying';
 import * as api from './api';
 
@@ -73,7 +73,9 @@ export function setupKeyboardShortcuts(): () => void {
         if (e.metaKey || e.ctrlKey) break;
         if (get(currentTrack)?.source === 'radio') break;
         e.preventDefault();
-        api.stop(zone.id);
+        // Report d'etat, comme le bouton : sans lui la zone resterait
+        // « playing » dans le magasin et le transport deviendrait inerte.
+        stopAndSync(zone.id);
         break;
       }
       case 'KeyN':

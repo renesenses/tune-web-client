@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, stopAndSync } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { upNextCount } from '../lib/stores/queue';
   import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
@@ -423,7 +423,16 @@
    * Sans le garde du second clic, `onclick` se déclencherait deux fois et la
    * musique repartirait entre les deux — un sursaut audible.
    */
-  const FENETRE_DOUBLE_CLIC = 350;
+  /**
+   * 250 ms, et non 350.
+   *
+   * La fenêtre doit couvrir un vrai double-clic sans avaler un geste
+   * DÉLIBÉRÉ : mettre en pause puis relancer aussitôt est courant, et à 350 ms
+   * il arrivait que ce second clic soit pris pour un double et arrête la
+   * lecture. 250 ms reste confortable pour un double-clic et laisse passer le
+   * re-clic volontaire.
+   */
+  const FENETRE_DOUBLE_CLIC = 250;
   let dernierClicLecture = 0;
 
   // La RADIO n'a pas de stop : le bouton autonome l'excluait déjà, un flux en
@@ -437,7 +446,9 @@
     if (second && stopPossible && zone?.id) {
       // On ne rebascule pas : on arrête.
       dernierClicLecture = 0;
-      await api.stop(zone.id);
+      // `stopAndSync` et non `api.stop` : sans report d'état, la zone restait
+      // « playing » dans le magasin et le bouton devenait inerte.
+      await stopAndSync(zone.id);
       return;
     }
     await togglePlayPause();
