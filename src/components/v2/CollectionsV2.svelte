@@ -58,7 +58,49 @@
   let entrees = $state<Entree[]>([]);
   /** Ce que l'onglet courant montre. Le chargement, lui, reste COMMUN : les
    *  deux listes partent ensemble, sinon changer d'onglet relancerait tout. */
-  const visibles = $derived(entrees.filter((e) => (onglet === 'smart' ? e.sorte === 'smart' : e.sorte === 'normale')));
+  /**
+   * Rangees par ORDRE ALPHABETIQUE (Lulu, forum, 05/09/2026). Elles arrivaient
+   * dans l'ordre du serveur — celui de creation — ce qui rend une liste
+   * imprevisible des qu'elle depasse une poignee d'entrees.
+   *
+   * `sensitivity: 'base'` : « Ete » et « ete » se suivent, et les accents ne
+   * rejettent pas un nom en fin de liste. `numeric` pour que « Best 2 » vienne
+   * avant « Best 10 ».
+   */
+  const visibles = $derived(
+    entrees
+      .filter((e) => (onglet === 'smart' ? e.sorte === 'smart' : e.sorte === 'normale'))
+      .sort((a, b) => a.nom.localeCompare(b.nom, undefined, { sensitivity: 'base', numeric: true })),
+  );
+
+  /**
+   * Le total d'ALBUMS de l'onglet courant (Lulu : « rajouter le nombre total
+   * d'albums de cet onglet »). `null` tant qu'une collection n'a pas rendu son
+   * compte : annoncer une somme partielle serait pire que ne rien annoncer.
+   */
+  const totalAlbums = $derived(
+    visibles.some((e) => e.albums == null)
+      ? null
+      : visibles.reduce((n, e) => n + (e.albums ?? 0), 0),
+  );
+
+  /**
+   * La teinte d'une collection, DERIVEE de son nom.
+   *
+   * Lulu : « encadrer de couleurs differentes chaque dossier pour une meilleure
+   * lisibilite ». Le serveur porte bien un champ `color`, mais il est vide sur
+   * les collections existantes — mesure sur le .18. On en derive donc une,
+   * stable : la meme collection garde sa couleur d'une session a l'autre et
+   * d'un appareil a l'autre, sans rien stocker ni demander a personne.
+   *
+   * Saturation et clarte fixes pour que deux teintes voisines restent
+   * distinguables sans devenir criardes.
+   */
+  function teinte(nom: string): string {
+    let h = 0;
+    for (let i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) % 360;
+    return `hsl(${h} 62% 58%)`;
+  }
   let chargement = $state(true);
   let ouverte = $state<Entree | null>(null);
   /** Collection en cours de renommage — le bouton haut-droit de la pochette. */
@@ -94,6 +136,33 @@
   }
   let albums = $state<any[]>([]);
   let albumsChargement = $state(false);
+
+  /* ---------------- Ascenseur alphabetique d'une collection ouverte -------- */
+  /**
+   * Lulu, forum, 05/09/2026 : « il manque dans chaque dossier cree l'ascenseur
+   * alphabetique a gauche de la fenetre ». La Bibliotheque en a un ; une
+   * collection ouverte, non — alors que c'est exactement la meme grille
+   * d'albums, et qu'une collection de deux cents disques se parcourt aussi mal
+   * sans repere.
+   *
+   * Meme regle que la Bibliotheque : les lettres ABSENTES sont grisees et
+   * inertes. Un rail qui propose des lettres ne menant nulle part est pire
+   * qu'un rail absent.
+   */
+  const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+  function lettreDe(a: any): string {
+    const c = (a?.title ?? '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .charAt(0).toUpperCase();
+    return c >= 'A' && c <= 'Z' ? c : '#';
+  }
+  const lettresPresentes = $derived(new Set(albums.map(lettreDe)));
+  let grilleEl: HTMLDivElement | undefined = $state();
+  function sauterA(L: string) {
+    grilleEl?.querySelector<HTMLElement>(`[data-lettre="${L}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
 
   /**
    * Créer une collection — le geste manquait (Bertrand, 04/09/2026).
@@ -284,13 +353,22 @@
     {:else if !albums.length}
       <div class="state">{$t('v2.col.emptyCollection' as any)}</div>
     {:else}
-      <div class="grid">
+      <!-- Le rail et la grille sont FRERES : le rail est collant, la grille
+           defile. Les imbriquer ferait defiler le rail avec elle. -->
+      <div class="aveclettres">
+        <div class="rail">
+          {#each ALPHA as L (L)}
+            <button class="rl" class:hot={lettresPresentes.has(L)} disabled={!lettresPresentes.has(L)}
+              onclick={() => sauterA(L)}>{L}</button>
+          {/each}
+        </div>
+        <div class="grid" bind:this={grilleEl}>
         {#each albums as a (a.id)}
           <!-- Meme carte que la Bibliotheque : les cinq gestes sur la
                pochette, le texte cliquable, et la troisieme ligne. La carte
                n'est plus un bouton — `PochetteActions` en pose cinq, et un
                bouton dans un bouton est du balisage invalide. -->
-          <div class="card">
+          <div class="card" data-lettre={lettreDe(a)}>
             <span class="cv">
               <PochetteActions
                 favori={a.id != null ? { albumId: a.id } : null}
@@ -310,6 +388,7 @@
             <QualiteAlbum objet={a} />
           </div>
         {/each}
+        </div>
       </div>
     {/if}
 
@@ -338,6 +417,11 @@
         aria-selected={onglet === 'smart'} onclick={() => (onglet = 'smart')}>{$t('v2.col.tabSmart' as any)}</button>
       <button class="tab" class:active={onglet === 'manuelle'} role="tab"
         aria-selected={onglet === 'manuelle'} onclick={() => (onglet = 'manuelle')}>{$t('v2.col.tabManual' as any)}</button>
+      <!-- Le total de l'onglet COURANT. Absent tant qu'une collection n'a pas
+           rendu son compte : une somme partielle serait pire que rien. -->
+      {#if totalAlbums != null}
+        <span class="totalonglet">{$t('v2.col.tabTotal' as any).replace('{n}', String(totalAlbums))}</span>
+      {/if}
     </nav>
 
     {#if chargement}
@@ -356,8 +440,10 @@
     {:else}
       <div class="grid">
         {#each visibles as e (e.sorte + ':' + e.id)}
-          <div class="card">
-            <span class="cv">
+          <!-- Un LISERE de couleur, pas un fond : une pochette doit rester
+               lisible. -->
+          <div class="card" style="--teinte:{teinte(e.nom)}">
+            <span class="cv teintee">
               <!-- Les deux sortes portent des `item_type` DISTINCTS : leurs
                    identifiants se recouvrent (l'id 1 est à la fois la
                    collection « favorites » et l'intelligente « Audiophile »
@@ -465,6 +551,21 @@
   .state{padding:30px; color:var(--v2-txt3); font-size:13.5px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:18px; padding:12px 30px 30px}
   .card{display:flex; flex-direction:column; gap:6px; background:transparent; border:0; padding:0; text-align:left; color:inherit}
+  .cv.teintee{box-shadow:0 0 0 2px var(--teinte); border-radius:var(--v2-r-card)}
+  /* Ascenseur alphabetique, repris a l'identique de la Bibliotheque pour que
+     les deux ecrans se parcourent de la meme facon. */
+  .aveclettres{display:flex; min-height:0; flex:1}
+  .aveclettres .grid{flex:1; min-width:0}
+  .rail{display:flex; flex-direction:column; justify-content:center; gap:2px;
+    padding:10px 12px 10px 4px; margin-right:6px; position:sticky; top:0; align-self:flex-start;
+    border-right:1px solid var(--v2-line)}
+  .rl{width:22px; height:20px; display:grid; place-items:center; border:0; background:transparent;
+    font:600 11px var(--v2-mono); color:var(--v2-txt3); cursor:pointer; border-radius:5px; transition:.12s}
+  .rl:disabled{opacity:.22; cursor:default}
+  .rl.hot{color:var(--v2-txt2)}
+  .rl.hot:hover{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .rl:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
+  .totalonglet{margin-left:auto; align-self:center; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
   /* La carte n'est plus un `<button>` : elle contient les cinq boutons
      d'action de la pochette, et des boutons imbriqués sont du HTML invalide. */
   .meta{display:flex; flex-direction:column; gap:6px; width:100%; border:0; background:transparent;

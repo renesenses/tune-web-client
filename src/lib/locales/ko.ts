@@ -3855,6 +3855,7 @@ export default {
   "v2.smart.save": "저장",
   "v2.smart.saved": "컬렉션을 저장했습니다",
   "v2.smart.previewOne": "{n}개 앨범이 일치합니다",
+  "v2.col.tabTotal": "총 {n}개 앨범",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

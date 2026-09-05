@@ -3854,4 +3854,5 @@ export default {
   "v2.smart.save": "Spara",
   "v2.smart.saved": "Samlingen sparad",
   "v2.smart.previewOne": "{n} album matchar",
+  "v2.col.tabTotal": "{n} album totalt",
 } as const;

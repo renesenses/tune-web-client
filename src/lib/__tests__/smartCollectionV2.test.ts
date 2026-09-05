@@ -181,7 +181,10 @@ describe("Les albums d'une collection ouverte", () => {
     // Elle contient cinq boutons : des boutons imbriqués sont du HTML invalide.
     const grille = col.slice(col.indexOf('{#each albums as a'), col.indexOf('{/each}', col.indexOf('{#each albums as a')));
     expect(grille).not.toContain('<button class="card"');
-    expect(grille).toContain('<div class="card">');
+    // La carte porte desormais sa lettre, pour l'ascenseur alphabetique (Lulu,
+    // 05/09/2026) : on verifie la BALISE, pas l'attribut.
+    expect(grille).toMatch(/<div class="card"[^>]*>/);
+    expect(grille).toContain('data-lettre={lettreDe(a)}');
   });
 
   it("la fiche d'album et l'édition sont montées", () => {

@@ -3877,6 +3877,7 @@ export default {
   "v2.smart.save": "Enregistrer",
   "v2.smart.saved": "Collection enregistrée",
   "v2.smart.previewOne": "{n} album correspond",
+  "v2.col.tabTotal": "{n} albums au total",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

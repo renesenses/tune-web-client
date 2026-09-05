@@ -160,10 +160,14 @@ describe('Collections — l’écran', () => {
     // Charger par onglet relancerait tout a chaque bascule, pour des donnees
     // deja en main.
     const src = ecran();
+    // La forme a change le 05/09/2026 — le filtre est desormais suivi d'un tri
+    // alphabetique (Lulu) — mais l'exigence est la meme : on FILTRE une liste
+    // deja en main, on ne recharge pas par onglet.
     expect(
-      src.includes('const visibles = $derived(entrees.filter('),
+      /const visibles = \$derived\(\s*entrees\s*\.filter\(/.test(src),
       'l’onglet filtre une liste déjà chargée : ne pas le remplacer par un chargement par onglet.',
     ).toBe(true);
+    expect(src, 'un chargement par onglet est apparu').not.toMatch(/charger\((onglet|'smart')/);
   });
 
   it('un onglet vide ne dit pas « aucune collection » tout court', () => {

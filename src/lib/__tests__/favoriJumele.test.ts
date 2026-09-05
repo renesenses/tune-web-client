@@ -63,3 +63,37 @@ describe('Favori jumelé : streaming ↔ local (Bertrand, 05/09/2026)', () => {
     expect(store.slice(i, i + 600)).toContain('favoriteStreamingTrackKeys.set(new Set())');
   });
 });
+
+describe('Reprise des favoris posés CHEZ les services', () => {
+  const store = sansCommentaires(lire('src/lib/stores/profile.ts'));
+
+  it('les favoris du service alimentent les DEUX index', () => {
+    // Bertrand, 05/09/2026 : « le cœur ne rougit toujours pas sur Get Lucky ».
+    // Ce titre est dans ses favoris Qobuz (`source_id 9140031`, parmi 14) mais
+    // pas dans `streaming_favorites`, qui ne reçoit que les cœurs cliqués DANS
+    // Tune.
+    expect(store).toContain('reprendreFavorisDesServices');
+    expect(store).toContain('api.getStreamingFavorites(svc, route)');
+    // Les clés `type:service:id` — pour le cœur d'un objet de service.
+    expect(store).toContain('set.add(streamingFavKey(type, svc, String(sid)))');
+    // Les clés titre+artiste — pour le jumelage avec une piste locale.
+    expect(store).toContain('set.add(clePisteJumelee(titre, it?.artist_name ?? it?.artist))');
+  });
+
+  it("elle ne RETARDE pas l'affichage des favoris locaux", () => {
+    // Un service lent ne doit pas bloquer les ensembles principaux.
+    expect(store).toContain('void reprendreFavorisDesServices();');
+    expect(store).not.toContain('await reprendreFavorisDesServices()');
+  });
+
+  it('un service en échec ne prive pas des autres', () => {
+    expect(store).toContain('Promise.allSettled(');
+    expect(store).toContain('.filter(([, st]: [string, any]) => st?.authenticated)');
+  });
+
+  it('les ensembles sont RECOPIÉS, jamais mutés en place', () => {
+    // Un `Set` mute en place ne notifie pas ses abonnés : les cœurs ne se
+    // mettraient à jour qu'au prochain changement de profil.
+    expect((store.match(/return new Set\(set\);/g) ?? []).length).toBe(2);
+  });
+});

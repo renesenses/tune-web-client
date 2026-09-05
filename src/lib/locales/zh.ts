@@ -3855,6 +3855,7 @@ export default {
   "v2.smart.save": "保存",
   "v2.smart.saved": "已保存合集",
   "v2.smart.previewOne": "{n} 张专辑符合条件",
+  "v2.col.tabTotal": "共 {n} 张专辑",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

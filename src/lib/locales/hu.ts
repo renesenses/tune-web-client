@@ -3813,6 +3813,7 @@ export default {
   "v2.smart.save": "Mentés",
   "v2.smart.saved": "Gyűjtemény elmentve",
   "v2.smart.previewOne": "{n} album egyezik",
+  "v2.col.tabTotal": "összesen {n} album",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

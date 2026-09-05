@@ -48,6 +48,7 @@
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
@@ -197,7 +198,8 @@
   // Disponible à partir d'Avancé : en Essentiel, le rail A–Z suffit et reste
   // le seul repère, conformément au principe « seulement le plus pertinent ».
   type NavMode = 'alpha' | 'years';
-  let navMode = $state<NavMode>('alpha');
+  let navMode = $state<NavMode>(lireChoix('lib.nav', ['alpha', 'years'] as const, 'alpha'));
+  $effect(() => ecrireChoix('lib.nav', navMode));
   /** La frise est un second repere de navigation : elle vient s'ajouter au
    *  rail A-Z, elle ne le remplace pas. On la propose des l'Avance. */
 
@@ -331,13 +333,20 @@
     { k: 'title', l: 'Titre' }, { k: 'artist', l: 'Artiste' },
     { k: 'year', l: 'Année' }, { k: 'added', l: 'Ajout récent' },
   ];
-  let sortKey = $state<SortKey>('title');
+  /**
+   * 🔴 RETENU d'une visite à l'autre (Lulu, forum, 05/09/2026 : « figer le
+   * choix de l'organisation de la bibliothèque »). Il repartait sur « Titre »
+   * à chaque retour, quel que soit le choix précédent.
+   */
+  let sortKey = $state<SortKey>(lireChoix('lib.sort', SORTS.map((s2) => s2.k), 'title'));
+  $effect(() => ecrireChoix('lib.sort', sortKey));
   const hasAddedAt = $derived(src.some((a) => (a.added_at ?? 0) > 0));
   const availableSorts = $derived(SORTS.filter((s2) => s2.k !== 'added' || hasAddedAt));
 
   // ── Affichage grille / liste ──────────────────────────────────────────
   type Display = 'grid' | 'list';
-  let display = $state<Display>('grid');
+  let display = $state<Display>(lireChoix('lib.display', ['grid', 'list'] as const, 'grid'));
+  $effect(() => ecrireChoix('lib.display', display));
 
   /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
    *  bibliothèque — pas une plage fixe, qui laisserait des décennies vides
@@ -443,7 +452,10 @@
     { id: 'years', label: 'Années', adv: true },
     { id: 'labels', label: 'Labels', adv: true },
   ];
-  let tab = $state<Tab>('albums');
+  // L'ONGLET aussi : revenir à la Bibliothèque après avoir consulté les Titres
+  // pour retomber sur les Albums est le même agacement, d'un cran plus haut.
+  let tab = $state<Tab>(lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'));
+  $effect(() => ecrireChoix('lib.tab', tab));
 
   /**
    * Les filtres portent sur les ALBUMS — qualité, fréquence, format,

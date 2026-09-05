@@ -197,6 +197,75 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
   } catch (e) {
     console.error('Load streaming favorite keys error:', e);
   }
+
+  // Sans `await` : les favoris locaux sont deja affiches, ceux des services les
+  // rejoignent quand ils arrivent.
+  void reprendreFavorisDesServices();
+}
+
+/**
+ * 🔴 REPRISE des favoris poses CHEZ les services.
+ *
+ * Bertrand, 05/09/2026 : « le cœur ne rougit toujours pas sur Get Lucky ». Ce
+ * titre EST dans ses favoris Qobuz — mesure sur le .18, `source_id 9140031`,
+ * parmi 14 pistes — mais il n'est pas dans `streaming_favorites`, la table de
+ * Tune, qui ne recoit que les cœurs cliques DANS Tune. Le cœur restait donc
+ * vide, et les regles ne les comptaient pas non plus (issue serveur #3419).
+ *
+ * On lit donc aussi ce que disent les services eux-memes, et on le verse dans
+ * les deux index : les cles `type:service:id` — pour le cœur d'un objet DE
+ * service — et les cles titre+artiste — pour le jumelage avec une piste locale.
+ *
+ * ⚠️ Ce que ce contournement NE fait PAS : les collections intelligentes sont
+ * evaluees en SQL par le serveur, sur `streaming_favorites`. Elles resteront
+ * aveugles a ces favoris tant que la reprise n'existera pas cote serveur.
+ *
+ * Le cout est un appel par service authentifie. Il part APRES les ensembles
+ * principaux et ne les bloque pas : un service lent ne doit pas retarder
+ * l'affichage des favoris locaux. Chaque service tolere l'echec pour lui seul.
+ */
+async function reprendreFavorisDesServices(): Promise<void> {
+  let services: Record<string, any> = {};
+  try {
+    services = (await api.getStreamingServices()) ?? {};
+  } catch {
+    return;
+  }
+  const connectes = Object.entries(services)
+    .filter(([, st]: [string, any]) => st?.authenticated)
+    .map(([nom]) => nom);
+  if (!connectes.length) return;
+
+  await Promise.allSettled(
+    connectes.map(async (svc) => {
+      const types: Array<['tracks' | 'albums' | 'artists', StreamingItemType]> = [
+        ['tracks', 'track'], ['albums', 'album'], ['artists', 'artist'],
+      ];
+      for (const [route, type] of types) {
+        try {
+          const d: any = await api.getStreamingFavorites(svc, route);
+          const items: any[] = d?.[route] ?? d?.items ?? (Array.isArray(d) ? d : []);
+          if (!items.length) continue;
+          favoriteStreamingKeys.update((set) => {
+            for (const it of items) {
+              const sid = it?.source_id ?? it?.id;
+              if (sid) set.add(streamingFavKey(type, svc, String(sid)));
+            }
+            return new Set(set);
+          });
+          if (type === 'track') {
+            favoriteStreamingTrackKeys.update((set) => {
+              for (const it of items) {
+                const titre = it?.title;
+                if (titre) set.add(clePisteJumelee(titre, it?.artist_name ?? it?.artist));
+              }
+              return new Set(set);
+            });
+          }
+        } catch { /* ce service, ce type : tant pis, les autres continuent */ }
+      }
+    }),
+  );
 }
 
 // Reload favorites whenever the active profile changes.
