@@ -113,6 +113,15 @@
    * ne produirait pas ce qu'on regarde.
    */
   let creation = $state(false);
+  /**
+   * Editeur de collection INTELLIGENTE : creation quand il vaut `true`,
+   * modification quand il porte la collection.
+   *
+   * Bertrand, 05/09/2026 : « et comment ajouter une smart collection ? ». On ne
+   * pouvait pas — cet ecran savait creer une collection manuelle, mais une
+   * intelligente exige des REGLES, donc un editeur.
+   */
+  let editeurSmart = $state<{ id: number | null } | null>(null);
 
   async function charger() {
     chargement = true;
@@ -276,10 +285,18 @@
     <header class="top">
       <div class="eyebrow">{$t('v2.col.eyebrow' as any)}</div>
       <h1>{$t('v2.col.title' as any)}</h1>
+      <!-- Le bouton suit l'ONGLET : creer une collection manuelle et en creer
+           une intelligente ne demandent pas la meme chose, et un seul bouton
+           qui change de sens serait un piege. -->
       {#if onglet === 'manuelle'}
         <button class="neuve" onclick={() => (creation = true)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           {$t('v2.col.create' as any)}
+        </button>
+      {:else}
+        <button class="neuve" onclick={() => (editeurSmart = { id: null })}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          {$t('v2.smart.newTitle' as any)}
         </button>
       {/if}
     </header>
@@ -300,6 +317,8 @@
         {$t('v2.col.noneInTab' as any)}
         {#if onglet === 'manuelle'}
           <button class="lnkcrea" onclick={() => (creation = true)}>{$t('v2.col.create' as any)}</button>
+        {:else}
+          <button class="lnkcrea" onclick={() => (editeurSmart = { id: null })}>{$t('v2.smart.newTitle' as any)}</button>
         {/if}
       </div>
     {:else}
@@ -315,7 +334,9 @@
               <PochetteActions
                 favori={e.sorte === 'smart' ? { smartCollectionId: e.id } : { collectionId: e.id }}
                 etiquettes={{ itemType: e.sorte === 'smart' ? 'smart_collection' : 'collection', itemId: e.id }}
-                onEditer={e.sorte === 'normale' ? () => (enEdition = e) : null}
+                onEditer={e.sorte === 'normale'
+                  ? () => (enEdition = e)
+                  : () => (editeurSmart = { id: e.id })}
                 onLire={() => lireCollection(e)}
                 onOuvrir={() => ouvrir(e)}
                 nom={e.nom}
@@ -345,6 +366,16 @@
       onClose={() => (enEdition = null)}
       onSaved={charger}
     />
+  {/if}
+
+  {#if editeurSmart}
+    {#await import('./CollectionSmartEditeurV2.svelte') then m}
+      <m.default
+        id={editeurSmart.id}
+        onClose={() => (editeurSmart = null)}
+        onSaved={charger}
+      />
+    {/await}
   {/if}
 
   {#if creation}
