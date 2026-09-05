@@ -23,6 +23,7 @@
   import PochetteActions from './PochetteActions.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
+  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import '../../styles/tune-v2.css';
 
   const showAdvanced = $derived(atLeast($preferences.settingsLevel, 'intermediate'));
@@ -37,6 +38,45 @@
     | { kind: 'streaming'; service: string; pl: StreamingPlaylist }
     | null
   >(null);
+
+  /**
+   * RACCOURCI vers UNE playlist.
+   *
+   * Bertrand, 05/09/2026 : « bug du raccourci sur la mauvaise cible pas
+   * traite ». Le mecanisme generique existait — publier la cible a
+   * l'ouverture, la rouvrir sur `tune:shortcut-restore` — mais aucun ecran du
+   * nouveau client n'y participait : le raccourci posait la vue et s'arretait
+   * la, sur la liste.
+   *
+   * La cle distingue les deux origines : une playlist locale par son
+   * identifiant, celle d'un service par son `source_id` prefixe du service.
+   * Sans cela, la playlist locale 12 et la playlist Qobuz 12 partageraient un
+   * raccourci.
+   */
+  const clePl = (it: NonNullable<typeof opened>) =>
+    it.kind === 'local' ? `playlists:${it.pl.id}` : `streamingplaylists:${it.service}:${it.pl.source_id}`;
+
+  function ouvrirPl(it: NonNullable<typeof opened>) {
+    opened = it;
+    setShortcutTarget({ key: clePl(it), restore: it, label: it.pl.name });
+  }
+
+  $effect(() => {
+    const auRetour = (ev: Event) => {
+      const cible = (ev as CustomEvent).detail?.target;
+      const cle: string | undefined = cible?.key;
+      if (!cle || !/^(streaming)?playlists:/.test(cle)) return;
+      // `restore` porte l'element complet : on le rouvre tel quel, sans avoir
+      // a le retrouver dans une liste peut-etre pas encore chargee.
+      if (cible.restore?.pl) ouvrirPl(cible.restore);
+    };
+    window.addEventListener('tune:shortcut-restore', auRetour);
+    return () => window.removeEventListener('tune:shortcut-restore', auRetour);
+  });
+
+  // Quitter l'ecran oublie la cible : sinon le raccourci suivant capturerait
+  // une playlist qu'on ne regarde plus.
+  $effect(() => () => clearShortcutTarget());
 
   /**
    * Pochettes de mosaïque, par playlist locale.
@@ -452,7 +492,7 @@
               <span class="cv img">
                 <PochetteActions
                   onLire={() => playStreaming(source, pl)}
-                  onOuvrir={() => (opened = { kind: 'streaming', service: source, pl })}
+                  onOuvrir={() => ouvrirPl({ kind: 'streaming', service: source, pl })}
                   nom={pl.name}
                 >
                   <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} source={source} fallbackInitials={pl.name?.slice(0,1)} />
@@ -518,7 +558,7 @@
                     etiquettes={pl.id != null ? { itemType: 'playlist', itemId: pl.id } : null}
                     onEditer={pl.id != null ? () => (enEdition = pl) : null}
                     onLire={() => playLocal(pl)}
-                    onOuvrir={() => (opened = { kind: 'local', pl })}
+                    onOuvrir={() => ouvrirPl({ kind: 'local', pl })}
                     menu={pl.id != null
                       ? [{ libelle: $t('v2.pl.share' as any), danger: true, faire: () => partager(pl) }]
                       : []}
@@ -533,7 +573,7 @@
                     {/if}
                   </PochetteActions>
                 </span>
-                <button class="meta" onclick={() => (opened = { kind: 'local', pl })}>
+                <button class="meta" onclick={() => ouvrirPl({ kind: 'local', pl })}>
                   <span class="ct" title={pl.name}>{pl.name}</span>
                   <span class="ca" title={`${pl.track_count ?? 0} titre${(pl.track_count ?? 0) > 1 ? 's' : ''}`}>{pl.track_count ?? 0} titre{(pl.track_count ?? 0) > 1 ? 's' : ''}</span>
                 </button>
@@ -549,7 +589,7 @@
   </div>
 
   {#if opened}
-    <PlaylistDetailV2 item={opened} onClose={() => (opened = null)} onChanged={load} />
+    <PlaylistDetailV2 item={opened} onClose={() => { opened = null; clearShortcutTarget(); }} onChanged={load} />
   {/if}
 
   {#if enEdition}

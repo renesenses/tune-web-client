@@ -30,6 +30,7 @@
    * jusque-là, l'écran fonctionne contre les deux.
    */
   import { onMount } from 'svelte';
+  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { currentZoneId } from '../../lib/stores/zones';
@@ -172,8 +173,48 @@
     );
   }
 
+  /**
+   * CLE D'UN RACCOURCI vers une collection.
+   *
+   * Bertrand, 05/09/2026 : « bug du raccourci sur la mauvaise cible pas
+   * traite ». Poser un raccourci sur une collection precise ramenait sur la
+   * LISTE : le mecanisme generique existait — `setShortcutTarget` a
+   * l'ouverture, `tune:shortcut-restore` au retour — mais AUCUN ecran du
+   * nouveau client n'y participait. Le raccourci ne pouvait donc que poser la
+   * vue et s'arreter la.
+   *
+   * `smartcollections:` est la meme cle que l'ecran du client actuel : un
+   * raccourci pose d'un cote se rouvre de l'autre.
+   */
+  const cleCible = (e: Entree) =>
+    `${e.sorte === 'smart' ? 'smartcollections' : 'collections'}:${e.id}`;
+
+  $effect(() => {
+    const auRetour = async (ev: Event) => {
+      const cible = (ev as CustomEvent).detail?.target;
+      const cle: string | undefined = cible?.key;
+      if (!cle || !/^(smart)?collections:/.test(cle)) return;
+      const id = cible.restore?.id;
+      if (id == null) return;
+      const smart = cle.startsWith('smartcollections:');
+      // L'onglet doit suivre, sinon on rouvrirait une fiche sous un onglet qui
+      // ne la contient pas — et la fermer retomberait sur la mauvaise liste.
+      onglet = smart ? 'smart' : 'manuelle';
+      let e = entrees.find((x) => x.id === id && (x.sorte === 'smart') === smart);
+      if (!e) { await charger(); e = entrees.find((x) => x.id === id && (x.sorte === 'smart') === smart); }
+      if (e) ouvrir(e);
+    };
+    window.addEventListener('tune:shortcut-restore', auRetour);
+    return () => window.removeEventListener('tune:shortcut-restore', auRetour);
+  });
+
+  // Quitter l'ecran doit oublier la cible : sinon le raccourci suivant
+  // capturerait une collection qu'on ne regarde plus.
+  $effect(() => () => clearShortcutTarget());
+
   async function ouvrir(e: Entree) {
     ouverte = e;
+    setShortcutTarget({ key: cleCible(e), restore: { id: e.id, name: e.nom }, label: e.nom });
     albums = [];
     albumsChargement = true;
     try {
@@ -209,7 +250,7 @@
 <section class="v2-collections tune-v2">
   {#if ouverte}
     <header class="top">
-      <button class="back" onclick={() => (ouverte = null)}>← {$t('common.back' as any)}</button>
+      <button class="back" onclick={() => { ouverte = null; clearShortcutTarget(); }}>← {$t('common.back' as any)}</button>
       <div class="eyebrow">{ouverte.sorte === 'smart' ? $t('v2.col.smart' as any) : $t('v2.col.manual' as any)}</div>
       <h1>{ouverte.nom}</h1>
       {#if ouverte.description}<p class="sub">{ouverte.description}</p>{/if}
