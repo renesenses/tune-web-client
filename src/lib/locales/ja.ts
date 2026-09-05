@@ -3830,6 +3830,14 @@ export default {
   "favorites.addAlbum": "お気に入りに追加",
   "favorites.removeAlbum": "お気に入りから削除",
   "favorites.inFavorites": "お気に入り済み",
+  "v2.pl.edit": "編集",
+  "v2.pl.editDone": "完了",
+  "v2.pl.rename": "名前を変更",
+  "v2.pl.delete": "削除",
+  "v2.pl.remoteHint": "このプレイリストは {service} 上にあり、Tune から名前の変更も編集もできません。",
+  "v2.pl.export": "書き出す",
+  "v2.pl.exported": "{file} を書き出しました",
+  "v2.pl.exportError": "書き出しに失敗しました",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

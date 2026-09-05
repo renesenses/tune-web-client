@@ -11,12 +11,14 @@
   import { t as tr } from '../../lib/i18n';
   import { currentZoneId } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
-  import { preferences } from '../../lib/stores/preferences';
-  import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
+  import { favoritePlaylistIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
+  import { basculerFavoriLocal } from '../../lib/favorisLocaux';
+  import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
+  import { notifications } from '../../lib/stores/notifications';
 
   type Item =
     | { kind: 'local'; pl: Playlist }
@@ -29,7 +31,67 @@
   let error = $state<string | null>(null);
   let renaming = $state(false);
   let draft = $state('');
-  const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
+  /**
+   * MODE ÉDITION. Bertrand, 05/09/2026 : « il faudrait aussi un bouton éditer
+   * playlist pour modifier son titre et le contenu ».
+   *
+   * Renommer, supprimer et retirer une piste existaient — mais tous derrière
+   * le niveau EXPERT, et sans rien pour les annoncer. Modifier sa propre
+   * playlist n'est pas une opération d'expert : c'est le geste ordinaire de
+   * qui en tient une.
+   *
+   * Un mode, et non trois boutons permanents : la suppression et les croix de
+   * retrait sont destructrices, elles n'ont pas leur place dans l'écran de
+   * lecture. On y entre, on modifie, on en sort.
+   */
+  let edition = $state(false);
+
+  /* ---------------- Favori ---------------- */
+  /**
+   * Bertrand, 05/09/2026 : « ET bouton favori sur la playlist ?? ». Il n'y en
+   * avait pas — ni pour une playlist locale, ni pour une playlist de service,
+   * alors que les deux tables savent les stocker.
+   */
+  const cleService = $derived(
+    item.kind === 'streaming'
+      ? streamingFavKey('playlist', item.service, String(item.pl.source_id))
+      : null,
+  );
+  const enFavori = $derived(
+    item.kind === 'local' && item.pl.id != null
+      ? $favoritePlaylistIds.has(item.pl.id)
+      : cleService != null && $favoriteStreamingKeys.has(cleService),
+  );
+  let bascule = $state(false);
+  async function basculerFavori() {
+    if (bascule) return;
+    bascule = true;
+    try {
+      if (item.kind === 'local' && item.pl.id != null) {
+        await basculerFavoriLocal({ playlistId: item.pl.id });
+      } else if (item.kind === 'streaming') {
+        await toggleStreamingFavorite({
+          itemType: 'playlist', service: item.service, serviceId: String(item.pl.source_id),
+          title: item.pl.name, coverUrl: item.pl.cover_path ?? undefined,
+        });
+      }
+    } catch { /* le cœur reprend son état au prochain relevé */ }
+    bascule = false;
+  }
+
+  /* ---------------- Export ---------------- */
+  let exportEnCours = $state(false);
+  async function exporter() {
+    if (item.kind !== 'local' || item.pl.id == null || exportEnCours) return;
+    exportEnCours = true;
+    try {
+      const nom = await api.exportPlaylist(item.pl.id, 'm3u');
+      notifications.success($tr('v2.pl.exported' as any).replace('{file}', nom));
+    } catch {
+      notifications.error($tr('v2.pl.exportError' as any));
+    }
+    exportEnCours = false;
+  }
   const isLocal = $derived(item.kind === 'local');
   const title = $derived(item.pl.name);
 
@@ -126,9 +188,45 @@
         <button class="ghost" onclick={addQueue}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>Ajouter à la file
         </button>
-        {#if showExpert && isLocal}
-          <button class="ghost sm" onclick={() => { draft = item.pl.name; renaming = true; }}>Renommer</button>
-          <button class="ghost sm danger" onclick={() => { if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {}); }}>Supprimer</button>
+        <!-- Le CŒUR d'abord : il vaut pour les deux sortes de playlist, la
+             locale par son identifiant, celle d'un service par la paire
+             service + `source_id`. Deux tables, deux chemins. -->
+        <button class="ghost sm coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
+          aria-pressed={enFavori}
+          title={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
+          <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+        </button>
+
+        <!-- EXPORT : la route ne connaît que les playlists locales, une playlist
+             de service n'ayant pas d'identifiant chez nous. -->
+        {#if isLocal}
+          <button class="ghost sm" onclick={exporter} disabled={exportEnCours}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            {$tr('v2.pl.export' as any)}
+          </button>
+        {/if}
+
+        <!-- Une playlist de SERVICE ne s'édite pas : elle vit chez Qobuz ou
+             Tidal, et nos routes d'écriture ne la connaissent pas. -->
+        {#if isLocal}
+          <button class="ghost sm" class:on={edition} onclick={() => { edition = !edition; renaming = false; }}
+            aria-pressed={edition}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+            {$tr(edition ? 'v2.pl.editDone' as any : 'v2.pl.edit' as any)}
+          </button>
+        {/if}
+        {#if edition && isLocal}
+          <button class="ghost sm" onclick={() => { draft = item.pl.name; renaming = true; }}>{$tr('v2.pl.rename' as any)}</button>
+          <button class="ghost sm danger" onclick={() => { if (item.kind === 'local' && item.pl.id != null) api.deletePlaylist(item.pl.id).then(() => { onChanged?.(); onClose(); }).catch(() => {}); }}>{$tr('v2.pl.delete' as any)}</button>
+        {/if}
+        <!-- On DIT pourquoi il n'y a pas de bouton, au lieu de laisser chercher.
+             Le client porte bien une fonction `importPlaylist`, mais elle vise
+             `POST /playlists/import`, qui n'existe pas : le serveur n'a que
+             `/import/m3u`, `/import/m3u-url` et `/import/linn`. Personne ne
+             l'appelle. Proposer « Importer » serait un bouton mort. -->
+        {#if !isLocal}
+          <span class="chez">{$tr('v2.pl.remoteHint' as any).replace('{service}', item.kind === 'streaming' ? item.service : '')}</span>
         {/if}
       </div>
     </div>
@@ -145,7 +243,7 @@
       {#each tracks as t, i (t.id ?? i)}
         <div class="lp">
           <LignePisteV2 piste={t} numero={i + 1} onLire={() => playFrom(i)} />
-          {#if showExpert && isLocal}
+          {#if edition && isLocal}
             <button class="rm" onclick={() => removeAt(i)} aria-label={$tr('v2.pl.remove' as any)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
             </button>
@@ -182,6 +280,12 @@
   .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  /* Le mode ÉDITION se voit : sinon on ne sait pas pourquoi des croix sont
+     apparues au bout des lignes. */
+  .ghost.on{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
+  .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+  .coeur.on:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+  .chez{align-self:center; font:11.5px var(--v2-mono); color:var(--v2-txt3); max-width:44ch; line-height:1.4}
   .ghost.sm{height:44px; padding:0 14px; font-size:13px}
   .ghost.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .play svg,.ghost svg{width:16px; height:16px}

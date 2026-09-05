@@ -3830,6 +3830,14 @@ export default {
   "favorites.addAlbum": "Añadir a favoritos",
   "favorites.removeAlbum": "Quitar de favoritos",
   "favorites.inFavorites": "En favoritos",
+  "v2.pl.edit": "Editar",
+  "v2.pl.editDone": "Listo",
+  "v2.pl.rename": "Renombrar",
+  "v2.pl.delete": "Eliminar",
+  "v2.pl.remoteHint": "Esta lista está en {service}: no se puede renombrar ni editar desde Tune.",
+  "v2.pl.export": "Exportar",
+  "v2.pl.exported": "{file} exportado",
+  "v2.pl.exportError": "No se pudo exportar",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

@@ -3830,6 +3830,14 @@ export default {
   "favorites.addAlbum": "Adaugă la favorite",
   "favorites.removeAlbum": "Elimină din favorite",
   "favorites.inFavorites": "La favorite",
+  "v2.pl.edit": "Editează",
+  "v2.pl.editDone": "Gata",
+  "v2.pl.rename": "Redenumește",
+  "v2.pl.delete": "Șterge",
+  "v2.pl.remoteHint": "Acest playlist se află la {service}: nu poate fi redenumit sau modificat din Tune.",
+  "v2.pl.export": "Exportă",
+  "v2.pl.exported": "{file} exportat",
+  "v2.pl.exportError": "Exportul a eșuat",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

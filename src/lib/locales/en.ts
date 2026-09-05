@@ -3850,6 +3850,14 @@ export default {
   "favorites.addAlbum": "Add to favourites",
   "favorites.removeAlbum": "Remove from favourites",
   "favorites.inFavorites": "In favourites",
+  "v2.pl.edit": "Edit",
+  "v2.pl.editDone": "Done",
+  "v2.pl.rename": "Rename",
+  "v2.pl.delete": "Delete",
+  "v2.pl.remoteHint": "This playlist lives at {service}: it cannot be renamed or edited from Tune.",
+  "v2.pl.export": "Export",
+  "v2.pl.exported": "{file} exported",
+  "v2.pl.exportError": "Export failed",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

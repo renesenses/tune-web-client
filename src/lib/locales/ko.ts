@@ -3830,6 +3830,14 @@ export default {
   "favorites.addAlbum": "즐겨찾기에 추가",
   "favorites.removeAlbum": "즐겨찾기에서 제거",
   "favorites.inFavorites": "즐겨찾기에 있음",
+  "v2.pl.edit": "편집",
+  "v2.pl.editDone": "완료",
+  "v2.pl.rename": "이름 바꾸기",
+  "v2.pl.delete": "삭제",
+  "v2.pl.remoteHint": "이 재생목록은 {service}에 있으며 Tune에서 이름을 바꾸거나 편집할 수 없습니다.",
+  "v2.pl.export": "내보내기",
+  "v2.pl.exported": "{file}을(를) 내보냈습니다",
+  "v2.pl.exportError": "내보내기에 실패했습니다",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

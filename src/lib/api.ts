@@ -2202,8 +2202,39 @@ function mapStreamingQuality(track: any): Track {
   return track as Track;
 }
 
-function mapStreamingTracks(tracks: any[]): Track[] {
-  return (tracks ?? []).map(mapStreamingQuality);
+/**
+ * 🔴 On POSE la source quand le serveur ne la donne pas.
+ *
+ * Bertrand, 05/09/2026, capture d'une playlist Qobuz : « où sont les boutons
+ * d'action par piste ? ». Nulle part — les cinq avaient disparu de TOUTES les
+ * pistes de service.
+ *
+ * Mesure sur le .18, première piste de la playlist Qobuz 69142842 :
+ *
+ *     id        = null
+ *     source    = null      ← le serveur ne l'écrit pas
+ *     source_id = '55816716'
+ *
+ * Le serveur l'omet parce qu'elle est implicite dans la ROUTE —
+ * `/streaming/qobuz/playlists/…` — mais la piste, une fois détachée de sa
+ * requête, ne sait plus d'où elle vient. Or une piste distante se désigne par
+ * la PAIRE `source` + `source_id` : sans la source, elle n'est ni jouable, ni
+ * enfilable, ni favorisable. La barre d'actions se retirait donc entièrement,
+ * ce qu'elle est censée faire pour une piste qu'on ne sait pas désigner —
+ * elle avait raison, c'est la donnée qui était incomplète.
+ *
+ * On la pose ICI, à la frontière où le service est connu, et jamais dans un
+ * écran : trois écrans lisent ces routes.
+ *
+ * `??` et non `=` : une piste qui porte déjà sa source garde la sienne — un
+ * agrégateur peut rendre du Tidal sous une route Qobuz.
+ */
+function mapStreamingTracks(tracks: any[], service?: string): Track[] {
+  return (tracks ?? []).map((t) => {
+    const p = mapStreamingQuality(t);
+    if (service && !(p as any).source) (p as any).source = service;
+    return p;
+  });
 }
 
 function mapStreamingAlbums(albums: any[]): Album[] {
@@ -2559,7 +2590,7 @@ export function getStreamingAlbum(service: string, albumId: string) {
 
 export function getStreamingAlbumTracks(service: string, albumId: string) {
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/tracks`)
-    .then(mapStreamingTracks);
+    .then((t) => mapStreamingTracks(t, service));
 }
 
 export function getStreamingArtist(service: string, artistId: string) {
@@ -2629,7 +2660,7 @@ export function getStreamingFavorites(service: string, type: 'tracks' | 'albums'
     .then(data => {
       // Map quality sub-object on favorite tracks
       if (type === 'tracks' && data?.tracks) {
-        data.tracks = mapStreamingTracks(data.tracks);
+        data.tracks = mapStreamingTracks(data.tracks, service);
       }
       return data;
     });
@@ -2723,7 +2754,7 @@ export function matchTrack(title: string, artistName: string, services?: string[
 
 export function getStreamingPlaylistTracks(service: string, playlistId: string) {
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`)
-    .then(mapStreamingTracks);
+    .then((t) => mapStreamingTracks(t, service));
 }
 
 // --- YouTube Music OAuth ---
@@ -3887,6 +3918,43 @@ async function downloadCsv(path: string, filename: string) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Exporter une playlist LOCALE dans un fichier.
+ *
+ * Demande de Bertrand le 05/09/2026. La route existe cote serveur et etait
+ * inutilisee par le client — mesure sur le .18 :
+ *
+ *     GET /playlists/13/export            -> 200
+ *       content-type: audio/x-mpegurl
+ *       content-disposition: attachment; filename="00._Genesis_-_Genesis.m3u"
+ *     ?format=json -> 200   ?format=csv -> 200   ?format=m3u8 -> 400
+ *
+ * Le M3U est le defaut : c'est le format qu'un autre lecteur saura relire.
+ *
+ * ⚠️ Le nom de fichier vient du SERVEUR, pas de nous : il l'assainit deja
+ * (« 00._Genesis_-_Genesis.m3u »), et un nom de playlist peut contenir des
+ * caracteres qu'un systeme de fichiers refuse. On le lit dans l'en-tete plutot
+ * que de le recomposer.
+ */
+export async function exportPlaylist(playlistId: number, format: 'm3u' | 'json' | 'csv' = 'm3u') {
+  const url = `${BASE}/playlists/${playlistId}/export${format === 'm3u' ? '' : `?format=${format}`}`;
+  const res = await fetch(url, { headers: authHeaders() });
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const dispo = res.headers.get('content-disposition') ?? '';
+  const trouve = /filename="?([^";]+)"?/i.exec(dispo);
+  const nom = trouve?.[1]?.trim() || `playlist.${format}`;
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = nom;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+  return nom;
 }
 
 export function exportAlbumsCsv() { return downloadCsv('/export/albums.csv', 'albums.csv'); }
