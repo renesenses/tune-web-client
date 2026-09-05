@@ -135,3 +135,45 @@ describe("L'éditeur v2 de collection intelligente", () => {
     expect(col).toContain("import('./CollectionSmartEditeurV2.svelte')");
   });
 });
+
+describe("Les albums d'une collection ouverte", () => {
+  const col = sansCommentaires(lire('src/components/v2/CollectionsV2.svelte'));
+
+  it('leurs pochettes portent les CINQ gestes', () => {
+    // Bertrand, 05/09/2026 : « smart collection, aucun CTA sur les covers
+    // d'album. Pas normal ! ». La grille était un simple bouton avec une
+    // pochette nue.
+    const grille = col.slice(col.indexOf('{#each albums as a'), col.indexOf('{/each}', col.indexOf('{#each albums as a')));
+    expect(grille).toContain('<PochetteActions');
+    expect(grille).toContain('favori={a.id != null ? { albumId: a.id } : null}');
+    expect(grille).toContain("etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}");
+    expect(grille).toContain('onLire={() => lireAlbum(a)}');
+    expect(grille).toContain('onOuvrir={() => (fiche = a)}');
+  });
+
+  it("cliquer une carte OUVRE l'album, il ne le lance plus", () => {
+    // Toutes les autres grilles du nouveau client ouvrent et laissent les
+    // gestes à la pochette : lancer sur un simple clic était l'exception.
+    const grille = col.slice(col.indexOf('{#each albums as a'), col.indexOf('{/each}', col.indexOf('{#each albums as a')));
+    expect(grille, 'la carte lance encore la lecture').not.toContain('onclick={(ev) => lireAlbum(a, ev)}');
+    expect(grille).toContain('<button class="meta" onclick={() => (fiche = a)}>');
+  });
+
+  it("la carte n'est plus un <button>", () => {
+    // Elle contient cinq boutons : des boutons imbriqués sont du HTML invalide.
+    const grille = col.slice(col.indexOf('{#each albums as a'), col.indexOf('{/each}', col.indexOf('{#each albums as a')));
+    expect(grille).not.toContain('<button class="card"');
+    expect(grille).toContain('<div class="card">');
+  });
+
+  it("la fiche d'album et l'édition sont montées", () => {
+    expect(col).toContain('<AlbumDetailV2 album={fiche}');
+    expect(col).toContain("import('../AlbumEditModal.svelte')");
+    // Le titre corrigé doit revenir dans la grille sans rouvrir la collection.
+    expect(col).toContain('albums = albums.map((x: any) => (x.id === maj.id ? { ...x, ...maj } : x))');
+  });
+
+  it('la troisième ligne y est comme ailleurs', () => {
+    expect(col).toContain('<QualiteAlbum objet={a} />');
+  });
+});

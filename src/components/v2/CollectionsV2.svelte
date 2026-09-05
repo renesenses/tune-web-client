@@ -38,6 +38,8 @@
   import { quatreDistinctes } from '../../lib/mosaique';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import QualiteAlbum from './QualiteAlbum.svelte';
+  import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import AlbumArt from '../AlbumArt.svelte';
 
@@ -237,8 +239,20 @@
     albumsChargement = false;
   }
 
-  async function lireAlbum(a: any, ev: MouseEvent) {
-    ev.stopPropagation();
+  /**
+   * Fiche d'un album ouvert DEPUIS une collection, et album en cours d'edition.
+   *
+   * Bertrand, 05/09/2026 : « smart collection, aucun CTA sur les covers
+   * d'album. Pas normal ! ». La grille d'une collection ouverte etait un simple
+   * bouton avec une pochette nue : ni lecture, ni favori, ni etiquettes, ni
+   * ouverture. Et le clic LANCAIT la lecture, la ou toutes les autres grilles
+   * du nouveau client ouvrent l'album et laissent les gestes a la pochette.
+   */
+  let fiche = $state<any | null>(null);
+  let albumEnEdition = $state<any | null>(null);
+
+  async function lireAlbum(a: any, ev?: MouseEvent) {
+    ev?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null) {
       notifications.error($t('v2.col.noZone' as any));
@@ -272,11 +286,29 @@
     {:else}
       <div class="grid">
         {#each albums as a (a.id)}
-          <button class="card" onclick={(ev) => lireAlbum(a, ev)}>
-            <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} /></span>
-            <span class="ct" title={a.title}>{a.title}</span>
-            <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
-          </button>
+          <!-- Meme carte que la Bibliotheque : les cinq gestes sur la
+               pochette, le texte cliquable, et la troisieme ligne. La carte
+               n'est plus un bouton — `PochetteActions` en pose cinq, et un
+               bouton dans un bouton est du balisage invalide. -->
+          <div class="card">
+            <span class="cv">
+              <PochetteActions
+                favori={a.id != null ? { albumId: a.id } : null}
+                etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                onEditer={a.id != null ? () => (albumEnEdition = a) : null}
+                onLire={() => lireAlbum(a)}
+                onOuvrir={() => (fiche = a)}
+                nom={a.title}
+              >
+                <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
+              </PochetteActions>
+            </span>
+            <button class="meta" onclick={() => (fiche = a)}>
+              <span class="ct" title={a.title}>{a.title}</span>
+              <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+            </button>
+            <QualiteAlbum objet={a} />
+          </div>
         {/each}
       </div>
     {/if}
@@ -366,6 +398,25 @@
       onClose={() => (enEdition = null)}
       onSaved={charger}
     />
+  {/if}
+
+  {#if fiche}
+    <AlbumDetailV2 album={fiche} onClose={() => (fiche = null)} />
+  {/if}
+
+  {#if albumEnEdition}
+    {#await import('../AlbumEditModal.svelte') then m}
+      <m.default
+        album={albumEnEdition}
+        onClose={() => (albumEnEdition = null)}
+        onSaved={(maj: any) => {
+          // La grille lit `albums` : sans ce report, le titre corrige ne
+          // reviendrait qu'en rouvrant la collection.
+          albums = albums.map((x: any) => (x.id === maj.id ? { ...x, ...maj } : x));
+          albumEnEdition = null;
+        }}
+      />
+    {/await}
   {/if}
 
   {#if editeurSmart}
