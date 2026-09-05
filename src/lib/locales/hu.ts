@@ -3778,6 +3778,7 @@ export default {
   "v2.sup.sysEmpty": "Nincs beállított zóna: nincs mit ábrázolni.",
   "v2.sup.sysCopy": "Ábra másolása (Mermaid)",
   "v2.sup.sysCopied": "Ábra másolva",
+  "transport.dblClickStop": "dupla kattintás a leállításhoz",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

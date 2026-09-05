@@ -3820,6 +3820,7 @@ export default {
   "v2.sup.sysEmpty": "ゾーンが設定されていないため、表示するものがありません。",
   "v2.sup.sysCopy": "図をコピー (Mermaid)",
   "v2.sup.sysCopied": "図をコピーしました",
+  "transport.dblClickStop": "ダブルクリックで停止",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

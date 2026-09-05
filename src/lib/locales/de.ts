@@ -3820,6 +3820,7 @@ export default {
   "v2.sup.sysEmpty": "Keine Zone eingerichtet: Es gibt nichts darzustellen.",
   "v2.sup.sysCopy": "Schema kopieren (Mermaid)",
   "v2.sup.sysCopied": "Schema kopiert",
+  "transport.dblClickStop": "Doppelklick zum Stoppen",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -3820,6 +3820,7 @@ export default {
   "v2.sup.sysEmpty": "구성된 존이 없어 표시할 내용이 없습니다.",
   "v2.sup.sysCopy": "도식 복사 (Mermaid)",
   "v2.sup.sysCopied": "도식을 복사했습니다",
+  "transport.dblClickStop": "두 번 클릭하면 정지",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

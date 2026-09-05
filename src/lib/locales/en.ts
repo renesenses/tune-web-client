@@ -3840,6 +3840,7 @@ export default {
   "v2.sup.sysEmpty": "No zone configured: there is nothing to draw.",
   "v2.sup.sysCopy": "Copy diagram (Mermaid)",
   "v2.sup.sysCopied": "Diagram copied",
+  "transport.dblClickStop": "double-click to stop",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

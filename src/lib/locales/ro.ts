@@ -3820,6 +3820,7 @@ export default {
   "v2.sup.sysEmpty": "Nicio zonă configurată: nu există nimic de reprezentat.",
   "v2.sup.sysCopy": "Copiază schema (Mermaid)",
   "v2.sup.sysCopied": "Schemă copiată",
+  "transport.dblClickStop": "dublu clic pentru oprire",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

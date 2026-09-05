@@ -3842,6 +3842,7 @@ export default {
   "v2.sup.sysEmpty": "Aucune zone configurée : il n'y a rien à représenter.",
   "v2.sup.sysCopy": "Copier le schéma (Mermaid)",
   "v2.sup.sysCopied": "Schéma copié",
+  "transport.dblClickStop": "double-clic pour arrêter",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

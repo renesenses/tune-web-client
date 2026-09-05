@@ -3819,4 +3819,5 @@ export default {
   "v2.sup.sysEmpty": "Ingen zon konfigurerad: det finns inget att visa.",
   "v2.sup.sysCopy": "Kopiera schemat (Mermaid)",
   "v2.sup.sysCopied": "Schemat kopierat",
+  "transport.dblClickStop": "dubbelklicka för att stoppa",
 } as const;

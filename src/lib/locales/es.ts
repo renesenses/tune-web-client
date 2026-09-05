@@ -3820,6 +3820,7 @@ export default {
   "v2.sup.sysEmpty": "Ninguna zona configurada: no hay nada que representar.",
   "v2.sup.sysCopy": "Copiar el esquema (Mermaid)",
   "v2.sup.sysCopied": "Esquema copiado",
+  "transport.dblClickStop": "doble clic para detener",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

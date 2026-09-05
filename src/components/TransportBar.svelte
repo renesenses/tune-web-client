@@ -397,6 +397,52 @@
     await controls.togglePlayPause(zone, track, playState);
   }
 
+  /**
+   * Un clic : pause. Deux clics : STOP.
+   *
+   * Idée de Bertrand (05/09/2026), en remplacement du bouton stop autonome. Le
+   * stop n'est pas une commande de MUSIQUE — la position et la file sont
+   * conservées de part et d'autre, vérifié sur le .18 — c'est une commande
+   * d'APPAREIL : `orchestrator.stop(zone, device)` envoie un STOP au
+   * périphérique, ce qui libère un renderer DLNA ou AirPlay là où la pause le
+   * garde. Une sixième icône dans la barre pour cela seul était trop cher.
+   *
+   * ## Pourquoi ce n'est PAS un `ondblclick`
+   *
+   * Le piège du double-clic est la latence : pour distinguer un clic d'un
+   * double, on retarde d'ordinaire le premier de 250 à 300 ms. Sur une barre de
+   * transport, une pause qui répond en un tiers de seconde se sent — c'est le
+   * geste le plus utilisé de toute l'interface.
+   *
+   * On ne retarde donc RIEN. Le premier clic met en pause tout de suite ; si un
+   * second arrive dans la fenêtre, il envoie le stop au lieu de rebasculer en
+   * lecture. Mettre en pause puis arrêter est exactement ce qu'on voulait
+   * faire, et l'ordre n'a aucune conséquence : le serveur garde `position_ms`
+   * dans les deux cas.
+   *
+   * Sans le garde du second clic, `onclick` se déclencherait deux fois et la
+   * musique repartirait entre les deux — un sursaut audible.
+   */
+  const FENETRE_DOUBLE_CLIC = 350;
+  let dernierClicLecture = 0;
+
+  // La RADIO n'a pas de stop : le bouton autonome l'excluait déjà, un flux en
+  // direct ne se met pas en pause pour reprendre où l'on était.
+  const stopPossible = $derived(!!zone?.id && displayTrack?.source !== 'radio');
+
+  async function clicLecture() {
+    const maintenant = Date.now();
+    const second = maintenant - dernierClicLecture < FENETRE_DOUBLE_CLIC;
+    dernierClicLecture = maintenant;
+    if (second && stopPossible && zone?.id) {
+      // On ne rebascule pas : on arrête.
+      dernierClicLecture = 0;
+      await api.stop(zone.id);
+      return;
+    }
+    await togglePlayPause();
+  }
+
   async function handlePrevious() {
     await controls.skipPrevious(zone);
   }
@@ -729,8 +775,10 @@
       class="control-btn play-btn"
       class:loading={ytLoadingState}
       disabled={hasNoZone && !ytActive}
-      onclick={togglePlayPause}
-      title={hasNoZone && !ytActive ? $t('zone.playDisabledNoZone' as any) : (isPlaying ? $t('common.pause') : $t('common.play'))}
+      onclick={clicLecture}
+      title={hasNoZone && !ytActive
+        ? $t('zone.playDisabledNoZone' as any)
+        : (isPlaying ? $t('common.pause') : $t('common.play')) + (stopPossible ? ` · ${$t('transport.dblClickStop' as any)}` : '')}
     >
       {#if ytLoadingState}
         <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -748,17 +796,6 @@
       {/if}
     </button>
 
-    {#if playState !== 'stopped' && zone?.id && displayTrack?.source !== 'radio'}
-      <button
-        class="control-btn stop-btn"
-        onclick={async () => { if (zone?.id) await api.stop(zone.id); }}
-        title={$t('common.stop') ?? 'Stop'}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <rect x="6" y="6" width="12" height="12" rx="1.5" />
-        </svg>
-      </button>
-    {/if}
 
     {#if displayTrack?.source !== 'radio'}
       <!-- La règle vit dans lib/boutonSuivant : le mini-lecteur porte le même
@@ -2377,8 +2414,7 @@
 
   .transport-bar.compact .control-btn.small,
   .transport-bar.compact .signal-dot-btn,
-  .transport-bar.compact .audiophile-btn,
-  .transport-bar.compact .stop-btn {
+  .transport-bar.compact .audiophile-btn {
     display: none;
   }
 

@@ -3820,6 +3820,7 @@ export default {
   "v2.sup.sysEmpty": "未配置任何区域，没有可显示的内容。",
   "v2.sup.sysCopy": "复制图示 (Mermaid)",
   "v2.sup.sysCopied": "已复制图示",
+  "transport.dblClickStop": "双击停止",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
