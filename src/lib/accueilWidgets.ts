@@ -181,6 +181,39 @@ function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | '
   const sid = champ(o, 'source_id');
   const idLocal = o?.album_id ?? (sid ? null : o?.id);
   if (idLocal == null && !(service && sid)) return {};
+
+  /**
+   * 🔴 Un identifiant de PISTE n'ouvre pas un album.
+   *
+   * Bertrand, 05/09/2026 : « pourquoi cet écran incomplet ? » — capture d'une
+   * fiche « Random Access Memories » annonçant « 0 titre ». Elle venait d'une
+   * tuile « Get Lucky », et la ligne d'historique dit tout :
+   *
+   *     {"source":"qobuz", "source_id":"9140031", "context_type":"track",
+   *      "album_id":null, "album_title":"Random Access Memories",
+   *      "title":"Get Lucky"}
+   *
+   * `source_id` designe la PISTE. L'album, lui, n'a aucun identifiant dans
+   * cette ligne — et les deux espaces sont disjoints chez Qobuz. La fiche
+   * demandait donc `/streaming/qobuz/albums/9140031/tracks`, qui rend 502
+   * (Qobuz 404). Mesure sur le .18.
+   *
+   * On ne peut pas le deviner : on n'offre donc PAS l'ouverture. La tuile
+   * garde sa lecture, qui elle marche — elle passe la paire service +
+   * identifiant de piste. Mieux vaut un geste absent qu'un ecran vide.
+   *
+   * Deux signaux, du plus sur au plus general :
+   *  - `context_type === 'track'`, que l'historique ecrit explicitement ;
+   *  - un `album_title` different du `title` : le titre de l'objet est celui
+   *    d'une piste, pas d'un album.
+   */
+  if (idLocal == null) {
+    const titre = champ(o, 'title');
+    const titreAlbum = champ(o, 'album_title');
+    const estUnePiste =
+      o?.context_type === 'track' || (!!titreAlbum && !!titre && titreAlbum !== titre);
+    if (estUnePiste) return {};
+  }
   return {
     ouvrir: 'album' as const,
     fiche: {
