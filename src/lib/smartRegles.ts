@@ -141,5 +141,9 @@ export function valeurInitiale(op: string, type: TypeChamp): any {
   if (op === 'between') return type === 'timestamp' ? ['', ''] : [0, 0];
   if (type === 'int' || type === 'count') return 0;
   if (type === 'favorite') return true;
+  // Une REFERENCE part vide : le selecteur affiche « choisir… », et
+  // `regleComplete` la refuse tant que rien n'est choisi. Sans cela on
+  // enregistrerait une reference vide, que le serveur rejette.
+  if (type === 'collection_ref' || type === 'playlist_ref') return '';
   return '';
 }

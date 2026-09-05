@@ -19,14 +19,23 @@
    * `/smart-collections/preview` à chaque changement et ANNONCE le nombre
    * d'albums retenus. On n'enregistre pas à l'aveugle.
    *
-   * ## Ce que cet éditeur ne fait pas
+   * ## Les RÉFÉRENCES
    *
-   * Les champs `credit` (rôle + nom) et les références à une autre collection
-   * ou playlist demandent chacun leur propre sélecteur. Ils restent dans la
-   * grammaire — une collection qui les utilise s'ouvre et s'enregistre sans
-   * les perdre — mais on ne peut pas en CRÉER ici. Proposer un champ de texte
-   * libre y produirait des règles invalides, refusées par le serveur après
-   * coup ; mieux vaut ne pas les offrir que les offrir cassés.
+   * « Dans la collection X », « dans la playlist Y », « en favori » — demandé
+   * par Bertrand le 05/09/2026. Ce ne sont pas des champs de texte : la valeur
+   * est `classic:<id>` ou `smart:<id>` (module serveur `smart_refs`), et une
+   * saisie libre y produirait des règles que le serveur refuse APRÈS coup.
+   * Chacune a donc son sélecteur, alimenté par les quatre listes réelles.
+   *
+   * ⚠️ La collection en cours d'édition est ÉCARTÉE de la liste des
+   * intelligentes : une règle qui se référence elle-même est refusée côté
+   * serveur, et la proposer serait promettre une chose impossible.
+   *
+   * ## Ce que cet éditeur ne fait toujours pas
+   *
+   * Le champ `credit` (rôle + nom) demande un contrôle à deux valeurs. Il
+   * reste dans la grammaire — une collection qui l'utilise s'ouvre et
+   * s'enregistre sans le perdre — mais on ne peut pas en créer ici.
    */
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
@@ -71,7 +80,38 @@
   });
 
   /** Les champs que CET éditeur sait saisir. Voir l'en-tête. */
-  const SAISISSABLES: TypeChamp[] = ['text', 'int', 'nullable', 'timestamp', 'count', 'favorite'];
+  const SAISISSABLES: TypeChamp[] = [
+    'text', 'int', 'nullable', 'timestamp', 'count', 'favorite',
+    'collection_ref', 'playlist_ref',
+  ];
+
+  /**
+   * Les quatre listes qui alimentent les sélecteurs de référence.
+   *
+   * Chargées une fois, en parallèle, et chacune tolère l'échec : un serveur
+   * sans playlists intelligentes ne doit pas priver des trois autres.
+   */
+  let refs = $state<{ collections: any[]; smartCollections: any[]; playlists: any[]; smartPlaylists: any[] }>(
+    { collections: [], smartCollections: [], playlists: [], smartPlaylists: [] },
+  );
+
+  $effect(() => {
+    const moi = id;
+    Promise.all([
+      api.getCollections().catch(() => []),
+      api.listSmartCollections().catch(() => []),
+      api.getPlaylists(500).catch(() => []),
+      api.getSmartPlaylists().catch(() => []),
+    ]).then(([c, sc, p, sp]) => {
+      refs = {
+        collections: c ?? [],
+        // Une règle qui se référence elle-même est refusée par le serveur.
+        smartCollections: (sc ?? []).filter((x: any) => x.id !== moi),
+        playlists: p ?? [],
+        smartPlaylists: sp ?? [],
+      };
+    });
+  });
   const champsOfferts = $derived(
     [...CHAMPS.filter((c) => SAISISSABLES.includes(c.type))]
       .sort((a, b) => $t(a.labelKey as any).localeCompare($t(b.labelKey as any))),
@@ -228,6 +268,26 @@
                 value={Array.isArray(r.value) ? r.value[1] : ''}
                 oninput={(e) => changerBorne(i, 1, e.currentTarget.value)} />
             </span>
+          {:else if type === 'collection_ref'}
+            <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
+              <option value="" disabled>{$t('smartCollection.refPick')}</option>
+              <optgroup label={$t('smartCollection.groupCollections')}>
+                {#each refs.collections as c (c.id)}<option value={`classic:${c.id}`}>{c.name}</option>{/each}
+              </optgroup>
+              <optgroup label={$t('smartCollection.groupSmartCollections')}>
+                {#each refs.smartCollections as c (c.id)}<option value={`smart:${c.id}`}>{c.name}</option>{/each}
+              </optgroup>
+            </select>
+          {:else if type === 'playlist_ref'}
+            <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
+              <option value="" disabled>{$t('smartCollection.refPick')}</option>
+              <optgroup label={$t('smartCollection.groupPlaylists')}>
+                {#each refs.playlists as p (p.id)}<option value={`classic:${p.id}`}>{p.name}</option>{/each}
+              </optgroup>
+              <optgroup label={$t('smartCollection.groupSmartPlaylists')}>
+                {#each refs.smartPlaylists as p (p.id)}<option value={`smart:${p.id}`}>{p.name}</option>{/each}
+              </optgroup>
+            </select>
           {:else if type === 'favorite'}
             <select class="sel" value={String(r.value)} onchange={(e) => changerValeur(i, e.currentTarget.value === 'true')}>
               <option value="true">{$t('v2.smart.yes' as any)}</option>

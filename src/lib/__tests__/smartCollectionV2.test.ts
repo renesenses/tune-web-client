@@ -83,12 +83,44 @@ describe("L'éditeur v2 de collection intelligente", () => {
     expect(ed).toContain('if (regles.length <= 1) return;');
   });
 
-  it("il n'offre que les champs qu'il sait saisir correctement", () => {
-    // `credit` (rôle + nom) et les références demandent chacun leur sélecteur.
-    // Un champ de texte libre y produirait des règles invalides, refusées par
-    // le serveur après coup.
+  it('les RÉFÉRENCES ont chacune leur sélecteur', () => {
+    // Bertrand, 05/09/2026 : « améliorer la gestion dans les règles de :
+    // collections, playlists et favoris ». La valeur est `classic:<id>` ou
+    // `smart:<id>` — une saisie libre y produirait des règles refusées après
+    // coup.
+    expect(ed).toContain("'collection_ref', 'playlist_ref'");
+    expect(ed).toContain('`classic:${c.id}`');
+    expect(ed).toContain('`smart:${c.id}`');
+    expect(ed).toContain('`classic:${p.id}`');
+    expect(ed).toContain('`smart:${p.id}`');
+    // Les quatre listes réelles, chacune tolérant l'échec : un serveur sans
+    // playlists intelligentes ne doit pas priver des trois autres.
+    for (const a of ['api.getCollections()', 'api.listSmartCollections()',
+                     'api.getPlaylists(500)', 'api.getSmartPlaylists()']) {
+      expect(ed, a).toContain(a);
+    }
+    expect((ed.match(/\.catch\(\(\) => \[\]\)/g) ?? []).length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("la collection editee ne peut pas se referencer elle-meme", () => {
+    // Le serveur refuse l'auto-reference : la proposer serait promettre une
+    // chose impossible.
+    expect(ed).toContain('.filter((x: any) => x.id !== moi)');
+  });
+
+  it('une reference part VIDE, et une reference vide n’est pas complete', () => {
+    // Sans quoi on enregistrerait « dans la collection <rien> ».
+    expect(valeurInitiale('in', 'collection_ref')).toBe('');
+    expect(regleComplete({ field: 'in_collection', op: 'in', value: '' })).toBe(false);
+    expect(regleComplete({ field: 'in_collection', op: 'in', value: 'classic:3' })).toBe(true);
+  });
+
+  it("le seul champ encore hors de portee est `credit`", () => {
+    // Il demande un controle a DEUX valeurs (role + nom). Il reste dans la
+    // grammaire : une collection qui l'utilise s'ouvre sans le perdre.
     expect(ed).toContain('SAISISSABLES');
-    expect(ed).toContain("['text', 'int', 'nullable', 'timestamp', 'count', 'favorite']");
+    expect(ed).not.toContain("'credit'");
+    expect(CHAMPS.some((c) => c.type === 'credit')).toBe(true);
   });
 
   it('il va CHERCHER la collection à modifier', () => {
