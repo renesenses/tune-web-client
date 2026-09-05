@@ -259,7 +259,7 @@
      tracé : il occupe la même case que les pictogrammes pour que la colonne
      reste alignée. */
   .emo{width:17px; height:17px; display:grid; place-items:center; font-size:14px; line-height:1; flex:none}
-  .brand{position:relative; display:flex; align-items:center; gap:11px; padding:4px 8px 22px}
+  .brand{position:relative; display:flex; align-items:center; gap:11px; padding:2px 8px 14px}
   .collapse{margin-left:auto; width:26px; height:26px; border-radius:8px; border:0; cursor:pointer;
     background:transparent; color:var(--v2-txt3); display:grid; place-items:center; transition:.15s}
   .collapse:hover{color:var(--v2-txt); background:var(--v2-hover)}
@@ -273,19 +273,28 @@
   .navscroll{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px}
   .navscroll::-webkit-scrollbar{width:6px}
   .navscroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .grp{display:flex; flex-direction:column; gap:4px}
+  .grp{display:flex; flex-direction:column; gap:1px}
   .reveal{max-height:0; opacity:0; overflow:hidden; transition:max-height .34s ease, opacity .26s ease}
   .reveal.show{max-height:440px; opacity:1}
-  .grp-label{font-family:var(--v2-mono); font-size:10px; letter-spacing:.18em; color:var(--v2-txt3);
-    padding:16px 14px 8px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
+  .grp-label{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.18em; color:var(--v2-txt3);
+    padding:11px 14px 5px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
   .grp-label::after{content:""; flex:1; height:1px; background:var(--v2-line)}
 
-  .nav{display:flex; align-items:center; gap:13px; width:100%; padding:11px 14px; border:0; cursor:pointer;
+  /* COMPACTE. Bilou, forum, 05/09/2026 : « menu de gauche a rendre plus
+     compact, trop d'espace entre les lignes, ce qui oblige a scroller »
+     (Windows 11 / Firefox). Vingt-deux entrees a 42 px en faisaient 924, plus
+     que la hauteur utile d'un ecran d'ordinateur portable : la barre defilait
+     chez tout le monde. A 32 px, elle en fait 704 et tient.
+
+     Le confort de visee reste correct : 32 px est au-dessus du minimum
+     confortable pour un pointeur, et le tactile ne rencontre pas cette barre —
+     elle est repliee en icones sous 1100 px. */
+  .nav{display:flex; align-items:center; gap:12px; width:100%; padding:6px 14px; border:0; cursor:pointer;
     border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2);
-    font-family:inherit; font-size:14.5px; font-weight:500; text-align:left; transition:.15s}
-  .nav svg{width:19px; height:19px; flex:0 0 auto}
+    font-family:inherit; font-size:13.5px; font-weight:500; text-align:left; transition:.15s}
+  .nav svg{width:17px; height:17px; flex:0 0 auto}
   .nav:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nav.active{color:var(--v2-txt); background:linear-gradient(90deg,var(--v2-active1),var(--v2-active2)); box-shadow:inset 0 0 0 1px var(--v2-line2)}
   .nav.active svg{color:var(--v2-acc1)}
-  .support{margin-top:8px}
+  .support{margin-top:6px}
 </style>

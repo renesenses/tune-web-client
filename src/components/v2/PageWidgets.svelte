@@ -585,8 +585,8 @@
                       </PochetteActions>
                     </div>
                     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
-                      <span class="ct">{el.titre}</span>
-                      {#if el.sous}<span class="ca">{el.sous}</span>{/if}
+                      <span class="ct" title={el.titre}>{el.titre}</span>
+                      {#if el.sous}<span class="ca" title={el.sous}>{el.sous}</span>{/if}
                     </button>
                     {#if el.zoneId != null}
                       <!-- Le mini-analyseur de la version actuelle, sous la

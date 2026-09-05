@@ -3822,6 +3822,8 @@ export default {
   "v2.sup.sysCopied": "図をコピーしました",
   "transport.dblClickStop": "ダブルクリックで停止",
   "v2.sup.sysFallback": "代替の図です。Mermaid の描画を読み込めませんでした。",
+  "v2.lib.recent": "最近追加された項目",
+  "v2.lib.recentHint": "追加日の新しい順に並べ替えます",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

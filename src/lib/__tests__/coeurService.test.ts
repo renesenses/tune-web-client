@@ -216,7 +216,7 @@ describe('Voir les métadonnées d’un album de service', () => {
     expect(src.includes('onOuvrir={ouvre ?? onPlay}'),
       'cliquer une pochette relance la lecture au lieu d’ouvrir la fiche').toBe(true);
     // Et le TITRE porte le même geste : il n'était cliquable nulle part.
-    expect(src.includes('<button class="ct" onclick={ouvre ?? onPlay}>'),
+    expect(/<button class="ct"[^>]*onclick=\{ouvre \?\? onPlay\}>/.test(src),
       'le titre d’une vignette n’est plus cliquable').toBe(true);
     // La fiche doit être ouverte EN TANT QUE service : sans le drapeau, elle
     // chercherait les pistes par un `id` local qui n'existe pas.

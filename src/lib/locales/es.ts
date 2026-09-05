@@ -3822,6 +3822,8 @@ export default {
   "v2.sup.sysCopied": "Esquema copiado",
   "transport.dblClickStop": "doble clic para detener",
   "v2.sup.sysFallback": "Esquema de reserva: no se pudo cargar el renderizador Mermaid.",
+  "v2.lib.recent": "Añadidos recientemente",
+  "v2.lib.recentHint": "Ordenar por fecha de incorporación, del más reciente al más antiguo",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

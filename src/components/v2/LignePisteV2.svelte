@@ -95,8 +95,10 @@
       </span>
     {/if}
     <span class="ti">
-      <span class="tt">{piste.title}</span>
-      {#if sousTitre}<em>{sousTitre}</em>{/if}
+      <!-- `title` : ces deux lignes s'elident. Sans lui, un titre long est
+           illisible et rien ne permet d'en lire la fin (Bilou, forum). -->
+      <span class="tt" title={piste.title}>{piste.title}</span>
+      {#if sousTitre}<em title={sousTitre}>{sousTitre}</em>{/if}
       {#if puces.length}
         <span class="puces"><MetadataChips track={piste} fields={puces} /></span>
       {/if}

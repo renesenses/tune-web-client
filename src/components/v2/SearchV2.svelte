@@ -371,7 +371,7 @@
                 <span class="acv">
                   <AlbumArt coverPath={a.image_path} albumId={null} size={0} alt={a.nom} fallbackInitials={a.nom?.slice(0,1)} />
                 </span>
-                <button class="meta" onclick={() => (q = a.nom)}><span class="an">{a.nom}</span></button>
+                <button class="meta" onclick={() => (q = a.nom)}><span class="an" title={a.nom}>{a.nom}</span></button>
               </div>
             {/each}
           </div>
@@ -397,8 +397,8 @@
                   </PochetteActions>
                 </span>
                 <button class="meta" onclick={() => (opened = a)}>
-                  <span class="ct">{a.title}</span>
-                  <span class="ca">{a.artist_name ?? ''}</span>
+                  <span class="ct" title={a.title}>{a.title}</span>
+                  <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
                 </button>
               </div>
             {/each}
@@ -484,7 +484,7 @@
                         <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
                       </PochetteActions>
                     </span>
-                    <button class="meta" onclick={() => (q = ar.name)}><span class="an">{ar.name}</span></button>
+                    <button class="meta" onclick={() => (q = ar.name)}><span class="an" title={ar.name}>{ar.name}</span></button>
                   </div>
                 {/each}
               </div>
@@ -517,12 +517,12 @@
                 </span>
                 {#if local_}
                   <button class="meta" onclick={() => (opened = a)}>
-                    <span class="ct">{a.title}</span>
-                    <span class="ca">{a.artist_name ?? ''}</span>
+                    <span class="ct" title={a.title}>{a.title}</span>
+                    <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
                   </button>
                 {:else}
-                  <span class="ct">{a.title}</span>
-                  <span class="ca">{a.artist_name ?? ''}{a.source ? ' · ' + a.source : ''}</span>
+                  <span class="ct" title={a.title}>{a.title}</span>
+                  <span class="ca" title={(a.artist_name ?? '') + (a.source ? ' · ' + a.source : '')}>{a.artist_name ?? ''}{a.source ? ' · ' + a.source : ''}</span>
                 {/if}
               </div>
             {/each}

@@ -3822,6 +3822,8 @@ export default {
   "v2.sup.sysCopied": "도식을 복사했습니다",
   "transport.dblClickStop": "두 번 클릭하면 정지",
   "v2.sup.sysFallback": "대체 도식입니다. Mermaid 렌더러를 불러오지 못했습니다.",
+  "v2.lib.recent": "최근 추가됨",
+  "v2.lib.recentHint": "추가된 날짜순으로 최신부터 정렬",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

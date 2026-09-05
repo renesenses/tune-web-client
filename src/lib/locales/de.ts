@@ -3822,6 +3822,8 @@ export default {
   "v2.sup.sysCopied": "Schema kopiert",
   "transport.dblClickStop": "Doppelklick zum Stoppen",
   "v2.sup.sysFallback": "Ersatzdiagramm: Der Mermaid-Renderer konnte nicht geladen werden.",
+  "v2.lib.recent": "Zuletzt hinzugefügt",
+  "v2.lib.recentHint": "Nach Hinzufügedatum sortieren, neueste zuerst",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

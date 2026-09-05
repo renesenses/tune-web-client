@@ -414,7 +414,7 @@
                       {/if}
                     </button>
                   </span>
-                  <span class="ct">{txt(c.title)}</span>
+                  <span class="ct" title={txt(c.title)}>{txt(c.title)}</span>
                   <span class="ca">{c.artist ? txt(c.artist) : (c.child_count ? `${c.child_count} éléments` : '')}</span>
                 </div>
               {/each}

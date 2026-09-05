@@ -432,8 +432,8 @@
                   <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                 </PochetteActions>
               </span>
-              <span class="ct">{a.title}</span>
-              <span class="ca">{a.artist_name ?? ''}</span>
+              <span class="ct" title={a.title}>{a.title}</span>
+              <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
             </div>
           {/each}
         </div>
@@ -486,7 +486,7 @@
                     source={(a as any).source} fallbackInitials={a.name?.slice(0,1)} />
                 </PochetteActions>
               </span>
-              <span class="an">{a.name}</span>
+              <span class="an" title={a.name}>{a.name}</span>
             </div>
           {/each}
         </div>

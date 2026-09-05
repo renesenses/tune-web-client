@@ -815,7 +815,7 @@
           source={ar?.source ?? active} fallbackInitials={ar.name?.slice(0,1)} />
       </PochetteActions>
     </span>
-    <span class="an">{ar.name}</span>
+    <span class="an" title={ar.name}>{ar.name}</span>
   </div>
 {/snippet}
 
@@ -873,8 +873,8 @@
          nulle part : seule la pochette portait un geste, et rien ne le disait.
          Faute d'une fiche a ouvrir — une piste —, le titre lance la lecture
          plutot que de ne rien faire du tout. -->
-    <button class="ct" onclick={ouvre ?? onPlay}>{pTitle(p)}</button>
-    {#if pSub(p)}<span class="ca">{pSub(p)}</span>{/if}
+    <button class="ct" title={pTitle(p)} onclick={ouvre ?? onPlay}>{pTitle(p)}</button>
+    {#if pSub(p)}<span class="ca" title={pSub(p)}>{pSub(p)}</span>{/if}
   </div>
 {/snippet}
 

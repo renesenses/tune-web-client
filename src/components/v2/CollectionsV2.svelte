@@ -224,8 +224,8 @@
         {#each albums as a (a.id)}
           <button class="card" onclick={(ev) => lireAlbum(a, ev)}>
             <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} /></span>
-            <span class="ct">{a.title}</span>
-            <span class="ca">{a.artist_name ?? ''}</span>
+            <span class="ct" title={a.title}>{a.title}</span>
+            <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
           </button>
         {/each}
       </div>
@@ -283,12 +283,10 @@
               </PochetteActions>
             </span>
             <button class="meta" onclick={() => ouvrir(e)}>
-              <span class="ct">{e.nom}</span>
-              <span class="ca">
-                <!-- Plus d'étiquette « Intelligente » par carte : l'onglet le dit
-                     déjà, et la répéter sur chaque vignette serait du bruit. -->
-                {e.albums ?? 0}
-              </span>
+              <span class="ct" title={e.nom}>{e.nom}</span>
+              <!-- Plus d'étiquette « Intelligente » par carte : l'onglet le dit
+                   déjà, et la répéter sur chaque vignette serait du bruit. -->
+              <span class="ca" title={String(e.albums ?? 0)}>{e.albums ?? 0}</span>
             </button>
           </div>
         {/each}

@@ -458,8 +458,8 @@
                   <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} source={source} fallbackInitials={pl.name?.slice(0,1)} />
                 </PochetteActions>
               </span>
-              <span class="ct">{pl.name}</span>
-              <span class="ca">{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
+              <span class="ct" title={pl.name}>{pl.name}</span>
+              <span class="ca" title={`${pl.track_count} titres${pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}`}>{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
             </div>
           {/each}
         </div>
@@ -488,8 +488,8 @@
                     {/if}
                   </PochetteActions>
                 </span>
-                <span class="ct">{sp.name}</span>
-                <span class="ca">{$t('v2.pl.rule' as any)}</span>
+                <span class="ct" title={sp.name}>{sp.name}</span>
+                <span class="ca" title={$t('v2.pl.rule' as any)}>{$t('v2.pl.rule' as any)}</span>
               </div>
             {/each}
           </div>
@@ -534,8 +534,8 @@
                   </PochetteActions>
                 </span>
                 <button class="meta" onclick={() => (opened = { kind: 'local', pl })}>
-                  <span class="ct">{pl.name}</span>
-                  <span class="ca">{pl.track_count ?? 0} titre{(pl.track_count ?? 0) > 1 ? 's' : ''}</span>
+                  <span class="ct" title={pl.name}>{pl.name}</span>
+                  <span class="ca" title={`${pl.track_count ?? 0} titre${(pl.track_count ?? 0) > 1 ? 's' : ''}`}>{pl.track_count ?? 0} titre{(pl.track_count ?? 0) > 1 ? 's' : ''}</span>
                 </button>
               </div>
             {/each}

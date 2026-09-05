@@ -648,6 +648,19 @@
     {/if}
     {#if showFilters}
       <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
+      <!--
+        DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
+        en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
+        ce qu'on veut voir en arrivant ne doit pas se chercher dans un menu.
+
+        Ce n'est pas un filtre : le chip bascule le TRI, et se rallume quand
+        c'est lui qui est actif. On ne cache donc rien de la bibliothèque.
+      -->
+      {#if hasAddedAt}
+        <button class="chip" class:active={sortKey === 'added'}
+          onclick={() => (sortKey = sortKey === 'added' ? 'title' : 'added')}
+          title={$tr('v2.lib.recentHint' as any)}>{$tr('v2.lib.recent' as any)}</button>
+      {/if}
       <div class="drop" class:open={ddOpen === 'quality'}>
         <button class="chip" class:active={fQuality !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -893,8 +906,8 @@
                       {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
                     </div>
                     <button class="meta" onclick={() => opened = a}>
-                      <div class="ct">{a.title}</div>
-                      <div class="ca">{a.artist_name ?? ''}</div>
+                      <div class="ct" title={a.title}>{a.title}</div>
+                      <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
                     </button>
                   </div>
                 {/each}
@@ -944,8 +957,8 @@
                 {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
               </div>
               <button class="meta" onclick={() => opened = a}>
-                <div class="ct">{a.title}</div>
-                <div class="ca">{a.artist_name ?? ''}</div>
+                <div class="ct" title={a.title}>{a.title}</div>
+                <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
                 {#if showTech}<div class="cq">{tech(a)}</div>{/if}
               </button>
             </div>

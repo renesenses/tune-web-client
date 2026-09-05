@@ -3822,6 +3822,8 @@ export default {
   "v2.sup.sysCopied": "Schemă copiată",
   "transport.dblClickStop": "dublu clic pentru oprire",
   "v2.sup.sysFallback": "Schemă de rezervă: randarea Mermaid nu a putut fi încărcată.",
+  "v2.lib.recent": "Adăugate recent",
+  "v2.lib.recentHint": "Sortează după data adăugării, de la cele mai noi",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

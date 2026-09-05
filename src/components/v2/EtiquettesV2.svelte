@@ -101,8 +101,8 @@
               </PochetteActions>
             </div>
             <button class="meta" onclick={() => (albumOuvert = a)}>
-              <span class="ct">{a.title}</span>
-              <span class="ca">{a.artist_name ?? ''}</span>
+              <span class="ct" title={a.title}>{a.title}</span>
+              <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
             </button>
           </div>
         {/each}

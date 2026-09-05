@@ -26,7 +26,9 @@ describe('Retours Bertrand du 05/09/2026', () => {
   });
 
   it('Streaming : le titre d’une vignette est cliquable', () => {
-    expect(str).toContain('<button class="ct" onclick={ouvre ?? onPlay}>');
+    // On ne fige pas l'ORDRE des attributs : le titre en porte un de plus
+    // depuis que les étiquettes élidées annoncent leur texte complet.
+    expect(str).toMatch(/<button class="ct"[^>]*onclick=\{ouvre \?\? onPlay\}>/);
     // Et la playlist a désormais un geste d'ouverture propre.
     expect(str).toContain('fichePlaylist = p');
     expect(str).toContain("kind: 'streaming'");

@@ -10,9 +10,35 @@
    Règle : aucune couleur codée en dur dans les composants. Deux thèmes sont
    clairs — un fond de survol sombre en dur y serait une tache noire. */
 
+/* `--v2-surface2` est la SURFACE DE CHOIX : champs de saisie, puces, volets,
+   listes d'options. Elle doit se détacher du fond — c'est tout son objet.
+
+   Signalé par Bilou sur le forum le 05/09/2026 : « la couleur de fond des
+   sous-menus / listes de choix devrait être légèrement différente de celle du
+   fond d'écran, plus claire sans doute, afin de mieux se détacher ». Mesuré :
+   le rapport de contraste avec le fond valait 1,00 à 1,04 sur les quatre
+   thèmes sombres — autrement dit, aucune différence.
+
+   Trois plans, désormais séparés et dans cet ordre :
+
+     fond            1,00
+     surface de choix  1,07 à 1,13   champs, puces, volets, listes d'options
+     surface flottante 1,19 à 1,21   menus déroulants, cartes posées au-dessus
+
+   Les deux premiers thèmes voyaient aussi leur surface FLOTTANTE à 1,11 du
+   fond, à peine plus haut que le plan qu'elle devait dominer : un menu ouvert
+   ne se détachait pas davantage. Elle monte à 1,20, comme les deux autres
+   thèmes sombres l'avaient déjà.
+
+   Les deux thèmes clairs ne changent pas : leur surface de choix y est plus
+   sombre que le fond, ce qui est le bon sens dans ce sens-là, et elle s'en
+   détachait déjà.
+
+*/
+
 /* ── 1. Noir / Vert — thème par défaut, la base de Levente ─────────────── */
 .tune-v2{
-  --v2-bg:#071418; --v2-bg2:#0A1A1F; --v2-surface:#161D2A; --v2-surface2:#0C111A;
+  --v2-bg:#071418; --v2-bg2:#0A1A1F; --v2-surface:#1B2432; --v2-surface2:#101B23;
   --v2-line:#1C2634; --v2-line2:#243040;
   --v2-txt:#FFFFFF; --v2-txt2:#8E9AA8; --v2-txt3:#4F5D6D;
   --v2-acc1:#00D4AA; --v2-acc2:#50AD6F; --v2-acc-tint:#DFFFEF; --v2-on-acc:#04121A;
@@ -29,7 +55,7 @@
 
 /* ── 2. Noir / Bleu ─────────────────────────────────────────────────── */
 :root[data-v2-theme="black-blue"] .tune-v2{
-  --v2-bg:#06111A; --v2-bg2:#0A1822; --v2-surface:#141C2A; --v2-surface2:#0B1019;
+  --v2-bg:#06111A; --v2-bg2:#0A1822; --v2-surface:#1A2333; --v2-surface2:#0F1A26;
   --v2-line:#1A2434; --v2-line2:#223044;
   --v2-txt:#FFFFFF; --v2-txt2:#8C99AA; --v2-txt3:#4D5B70;
   --v2-acc1:#00BCD4; --v2-acc2:#2E7DF6; --v2-acc-tint:#DFF4FF; --v2-on-acc:#04121A;
@@ -44,7 +70,7 @@
 
 /* ── 3. Minuit / Orange ─────────────────────────────────────────────────── */
 :root[data-v2-theme="midnight-orange"] .tune-v2{
-  --v2-bg:#0B1020; --v2-bg2:#10162B; --v2-surface:#1A2138; --v2-surface2:#0E1428;
+  --v2-bg:#0B1020; --v2-bg2:#10162B; --v2-surface:#1A2138; --v2-surface2:#151C33;
   --v2-line:#212A44; --v2-line2:#2C3654;
   --v2-txt:#F5F7FF; --v2-txt2:#9AA3C0; --v2-txt3:#5D6788;
   --v2-acc1:#FF8A3D; --v2-acc2:#FFB347; --v2-acc-tint:#FFE3C7; --v2-on-acc:#1A0E02;
@@ -58,7 +84,7 @@
 
 /* ── 4. Brun ─────────────────────────────────────────────────── */
 :root[data-v2-theme="brown"] .tune-v2{
-  --v2-bg:#17110D; --v2-bg2:#1F1712; --v2-surface:#2A211A; --v2-surface2:#1C1510;
+  --v2-bg:#17110D; --v2-bg2:#1F1712; --v2-surface:#2A211A; --v2-surface2:#251D16;
   --v2-line:#2E2419; --v2-line2:#3D3024;
   --v2-txt:#F7EFE6; --v2-txt2:#B49E88; --v2-txt3:#7A6753;
   --v2-acc1:#D89A63; --v2-acc2:#B5744A; --v2-acc-tint:#FFE2C4; --v2-on-acc:#1A0F06;

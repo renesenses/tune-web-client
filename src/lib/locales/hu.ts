@@ -3780,6 +3780,8 @@ export default {
   "v2.sup.sysCopied": "Ábra másolva",
   "transport.dblClickStop": "dupla kattintás a leállításhoz",
   "v2.sup.sysFallback": "Tartalék ábra: a Mermaid megjelenítőt nem sikerült betölteni.",
+  "v2.lib.recent": "Nemrég hozzáadva",
+  "v2.lib.recentHint": "Rendezés a hozzáadás dátuma szerint, a legújabbtól",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
