@@ -71,6 +71,10 @@ describe("L'éditeur v2 de collection intelligente", () => {
     // discothèque de jazz peut ne rien rendre.
     expect(ed).toContain('api.previewSmartCollection(');
     expect(ed).toContain('v2.smart.previewCount');
+    // 🔴 Sans `max_limit` : le serveur calcule `total` comme la LONGUEUR de la
+    // liste rendue, donc le plafonner plafonne le compteur. Mesuré sur le .18,
+    // même règle : `max_limit: 1` -> total 1 ; sans limite -> total 1853.
+    expect(ed, 'le compteur est de nouveau plafonne').not.toContain('max_limit');
     // Débouncé : on tape dans un champ, pas la peine d'interroger à chaque
     // lettre.
     expect(ed).toContain('setTimeout(');

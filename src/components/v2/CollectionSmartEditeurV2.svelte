@@ -182,7 +182,26 @@
     // Débounce : on tape dans un champ de texte, pas la peine d'interroger le
     // serveur à chaque lettre.
     const minuteur = setTimeout(() => {
-      api.previewSmartCollection({ rules: r, match_mode: m, max_limit: 1 })
+      // 🔴 AUCUN `max_limit`.
+      //
+      // Bertrand, 05/09/2026 : « un bug dans l'évaluation des albums » —
+      // capture d'une règle qui annonçait « 1 albums correspondent ». C'était
+      // moi : j'envoyais `max_limit: 1` pour alléger la réponse, or le serveur
+      // calcule `total` comme la LONGUEUR de la liste rendue. Le compteur
+      // disait donc « 1 » dès qu'au moins un album correspondait.
+      //
+      // Mesuré sur le .18, même règle (`year > 2000`) :
+      //
+      //     max_limit: 1     -> total = 1
+      //     sans max_limit   -> total = 1853
+      //     max_limit: 5000  -> total = 1853
+      //
+      // Le commentaire de `SmartCollectionPreview` le disait déjà, mot pour
+      // mot. Il n'y a pas de route qui ne rende que le compte : la seule
+      // réponse juste coûte la liste entière. Elle est débouncée à 400 ms et
+      // ne part que sur des règles complètes — c'est le prix d'un compteur qui
+      // ne ment pas.
+      api.previewSmartCollection({ rules: r, match_mode: m })
         .then((p) => { if (mien === seq) apercu = p?.total ?? 0; })
         .catch(() => { if (mien === seq) apercu = null; })
         .finally(() => { if (mien === seq) apercuEnCours = false; });
@@ -318,7 +337,9 @@
       {:else if apercu == null}
         {$t('v2.smart.previewNone' as any)}
       {:else}
-        {$t('v2.smart.previewCount' as any).replace('{n}', String(apercu))}
+        <!-- Le singulier a sa phrase : « 1 albums correspondent » se lit comme
+             une erreur, et l'etait effectivement il y a cinq minutes. -->
+        {$t((apercu === 1 ? 'v2.smart.previewOne' : 'v2.smart.previewCount') as any).replace('{n}', String(apercu))}
       {/if}
     </div>
   </div>

@@ -3856,6 +3856,7 @@ export default {
   "v2.smart.previewCount": "{n} albume corespund",
   "v2.smart.save": "Salvează",
   "v2.smart.saved": "Colecție salvată",
+  "v2.smart.previewOne": "{n} album corespunde",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

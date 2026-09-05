@@ -3855,4 +3855,5 @@ export default {
   "v2.smart.previewCount": "{n} album matchar",
   "v2.smart.save": "Spara",
   "v2.smart.saved": "Samlingen sparad",
+  "v2.smart.previewOne": "{n} album matchar",
 } as const;

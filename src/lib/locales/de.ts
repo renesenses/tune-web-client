@@ -3856,6 +3856,7 @@ export default {
   "v2.smart.previewCount": "{n} Alben stimmen überein",
   "v2.smart.save": "Speichern",
   "v2.smart.saved": "Sammlung gespeichert",
+  "v2.smart.previewOne": "{n} Album stimmt überein",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

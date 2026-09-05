@@ -3856,6 +3856,7 @@ export default {
   "v2.smart.previewCount": "{n} 枚のアルバムが一致します",
   "v2.smart.save": "保存",
   "v2.smart.saved": "コレクションを保存しました",
+  "v2.smart.previewOne": "{n} 枚のアルバムが一致します",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

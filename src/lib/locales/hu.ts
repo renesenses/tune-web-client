@@ -3814,6 +3814,7 @@ export default {
   "v2.smart.previewCount": "{n} album egyezik",
   "v2.smart.save": "Mentés",
   "v2.smart.saved": "Gyűjtemény elmentve",
+  "v2.smart.previewOne": "{n} album egyezik",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
