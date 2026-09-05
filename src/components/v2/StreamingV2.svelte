@@ -31,6 +31,7 @@
   import type { StreamingServiceStatus, StreamingPlaylist, SearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import QualiteAlbum from './QualiteAlbum.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
@@ -882,6 +883,16 @@
          plutot que de ne rien faire du tout. -->
     <button class="ct" title={pTitle(p)} onclick={ouvre ?? onPlay}>{pTitle(p)}</button>
     {#if pSub(p)}<span class="ca" title={pSub(p)}>{pSub(p)}</span>{/if}
+    <!-- TROISIEME LIGNE, comme dans la Bibliotheque : d'ou vient le disque et
+         en quelle qualite. `p.quality` est la forme que rendent les services
+         (`{codec, sample_rate, bit_depth}`) ; on la traduit dans celle que le
+         composant attend, sans quoi il n'annoncerait que la source. -->
+    <QualiteAlbum objet={{
+      source: p?.source ?? active,
+      format: p?.quality?.codec ?? p?.format ?? null,
+      sample_rate: p?.quality?.sample_rate ?? p?.sample_rate ?? null,
+      bit_depth: p?.quality?.bit_depth ?? p?.bit_depth ?? null,
+    }} />
   </div>
 {/snippet}
 
@@ -985,7 +996,19 @@
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
-  .ct{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* 🔴 `.ct` est un <button> depuis que le titre est cliquable : sans remise a
+     zero, il garde le FOND, la bordure, le rembourrage et le centrage que le
+     navigateur donne aux boutons. Sur une grille Bandcamp, cela dessinait une
+     bande grise sous chaque titre (Bertrand, 05/09/2026, capture a l'appui).
+
+     Les valeurs sont alignees sur la Bibliotheque — meme corps, meme
+     interligne — pour que les deux grilles se lisent pareil. */
+  .ct{display:block; width:100%; margin-top:9px; padding:0; border:0; background:transparent;
+    color:inherit; text-align:left; cursor:pointer;
+    font:600 12.5px var(--v2-sans); line-height:1.25;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct:hover{color:var(--v2-acc-tint)}
+  .ct:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px; border-radius:4px}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
   .arow{display:flex; gap:22px; overflow-x:auto; padding-bottom:6px; scrollbar-width:none}

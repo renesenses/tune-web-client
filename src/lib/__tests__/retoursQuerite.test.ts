@@ -160,3 +160,37 @@ describe('Vignettes et fiche album (Bertrand, 05/09/2026)', () => {
     expect(det).toContain('{#if album.id != null || (service && sidDistant)}');
   });
 });
+
+describe("Vignettes de streaming : harmonisées avec la Bibliothèque", () => {
+  const str = sansCommentaires(lire('src/components/v2/StreamingV2.svelte'));
+  const lib = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
+
+  it("le titre cliquable ne garde pas l'allure d'un bouton", () => {
+    // Bertrand, 05/09/2026, capture d'une grille Bandcamp : « fond sous le
+    // titre ». En rendant le titre cliquable, `.ct` est devenu un <button> —
+    // qui conserve le fond, la bordure, le rembourrage et le CENTRAGE que le
+    // navigateur donne aux boutons.
+    const regle = /\.ct\{[^}]*\}/.exec(str)?.[0] ?? '';
+    expect(regle).toContain('border:0');
+    expect(regle).toContain('background:transparent');
+    expect(regle).toContain('padding:0');
+    expect(regle).toContain('text-align:left');
+  });
+
+  it('les deux grilles se lisent pareil', () => {
+    // Même corps et même interligne des deux côtés : c'est ce qui fait
+    // l'harmonie, plus que la couleur.
+    const ct = (src: string) => /\.ct\{[^}]*font:([^;]*);/.exec(src)?.[1]?.trim();
+    expect(ct(str)).toBe(ct(lib));
+    expect(/\.ct\{[^}]*line-height:1\.25/.test(str)).toBe(true);
+  });
+
+  it('la troisième ligne y est aussi', () => {
+    expect(str).toContain("import QualiteAlbum from './QualiteAlbum.svelte'");
+    expect(str).toContain('<QualiteAlbum objet={{');
+    // Les services rendent la qualité dans un sous-objet `quality` : sans
+    // cette traduction, la ligne n'annoncerait que la source.
+    expect(str).toContain('p?.quality?.codec');
+    expect(str).toContain('p?.quality?.sample_rate');
+  });
+});
