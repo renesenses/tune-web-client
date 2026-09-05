@@ -9,6 +9,8 @@
     favoriteFacetKeys,
     facetFavKey,
     favoriteStreamingKeys,
+    favoriteStreamingTrackKeys,
+    clePisteJumelee,
     streamingFavKey,
     loadProfiles,
   } from '../lib/stores/profile';
@@ -59,6 +61,10 @@
     /** Valeur de facette (label…) ; exclusive des ids ci-dessus. */
     facet?: FacetItem | null;
     size?: number;
+    /** Titre et artiste de la piste, pour le rapprochement avec un favori de
+     *  streaming. Facultatifs : sans eux, seul le favori local compte. */
+    titre?: string | null;
+    artiste?: string | null;
   }
   let {
     trackId = null,
@@ -68,6 +74,8 @@
     streaming = null,
     facet = null,
     size = 16,
+    titre = null,
+    artiste = null,
   }: Props = $props();
 
   let facetKey = $derived(facet ? facetFavKey(facet.facet, facet.value) : null);
@@ -80,7 +88,13 @@
   let isFavorite = $derived.by(() => {
     if (streaming) return isStreamingFavorite($favoriteStreamingKeys, streaming);
     if (facetKey) return $favoriteFacetKeys.has(facetKey);
-    if (trackId)  return $favoriteTrackIds.has(trackId);
+    // Une piste locale dont le JUMEAU distant est en favori l'est aussi —
+    // c'est ce que fait le serveur pour les regles (Bertrand, 05/09/2026).
+    // Sans titre passe au bouton, le rapprochement est impossible : on
+    // retombe alors sur le seul favori local.
+    if (trackId)
+      return $favoriteTrackIds.has(trackId)
+        || (!!titre && $favoriteStreamingTrackKeys.has(clePisteJumelee(titre, artiste)));
     if (albumId)  return $favoriteAlbumIds.has(albumId);
     if (artistId) return $favoriteArtistIds.has(artistId);
     if (playlistId) return $favoritePlaylistIds.has(playlistId);
