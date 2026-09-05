@@ -155,10 +155,24 @@
    */
   const selectionDisponible = $derived(pays === 'fr');
 
-  // Changer de pays alors qu'on est SUR la sélection doit mener quelque part :
-  // on bascule sur le classement, qui lui répond au pays choisi.
+  /**
+   * RADIO FRANCE suit la même règle (Bertrand, 05/09/2026 : « onglet Radio
+   * France que pour France ! »). C'est un producteur français : sous un
+   * sélecteur réglé sur les États-Unis, son onglet n'a pas plus de sens que la
+   * sélection française d'à côté.
+   *
+   * Le MÊME drapeau commande les deux : ce sont deux faces d'une seule règle —
+   * ce qui est propre à la France ne s'affiche qu'en France — et deux
+   * conditions séparées auraient fini par diverger.
+   */
+  const franceUniquement = $derived(selectionDisponible);
+
+  // Changer de pays alors qu'on est SUR l'un de ces volets doit mener quelque
+  // part : on bascule sur le classement, qui lui répond au pays choisi.
   $effect(() => {
-    if (!selectionDisponible && section === 'selection') section = 'populaires';
+    if (!franceUniquement && (section === 'selection' || section === 'radiofrance')) {
+      section = 'populaires';
+    }
   });
   const sousGenres = $derived(sousCategories(genre));
   /**
@@ -287,7 +301,9 @@
   let radioFrance = $state<any[]>([]);
   let rfLoaded = false;
   $effect(() => {
-    if (tab !== 'discover' || rfLoaded) return;
+    // Hors de France, on ne demande meme pas : c'est un appel reseau pour un
+    // onglet qui ne s'affichera pas.
+    if (tab !== 'discover' || rfLoaded || !franceUniquement) return;
     rfLoaded = true;
     api
       .getRadioFrancePodcasts()
@@ -525,7 +541,7 @@
           onclick={() => (section = 'populaires')}>{$t('v2.pod.secPopular' as any)}</button>
         <button class:on={section === 'tous'} role="tab" aria-selected={section === 'tous'}
           onclick={() => (section = 'tous')}>{$t('v2.pod.secAll' as any)}</button>
-        {#if radioFrance.length}
+        {#if franceUniquement && radioFrance.length}
           <button class:on={section === 'radiofrance'} role="tab" aria-selected={section === 'radiofrance'}
             onclick={() => (section = 'radiofrance')}>Radio France</button>
         {/if}
@@ -555,7 +571,7 @@
           <div class="grid">{#each populaires.filter(match) as p, i (feedOf(p) ?? `d${i}`)}{@render tile(p, false)}{/each}</div>
         {/if}
 
-      {:else if section === 'radiofrance'}
+      {:else if section === 'radiofrance' && franceUniquement}
         <div class="grid">{#each radioFrance.filter(match) as p, i (feedOf(p) ?? `r${i}`)}{@render tile(p, false)}{/each}</div>
 
       {:else}

@@ -20,9 +20,22 @@ describe('Retours Bertrand du 05/09/2026', () => {
     expect(pod).toMatch(/\{#if selectionDisponible\}\s*\n\s*<button class:on=\{section === 'selection'\}/);
   });
 
+  it("Podcasts : Radio France ne s'affiche QU'EN France", () => {
+    // Bertrand, 05/09/2026 : « onglet Radio France que pour France ! ». C'est
+    // un producteur français : sous un sélecteur réglé sur les États-Unis, son
+    // onglet n'a pas plus de sens que la sélection française d'à côté.
+    expect(pod).toContain('const franceUniquement = $derived(selectionDisponible)');
+    expect(pod).toContain('{#if franceUniquement && radioFrance.length}');
+    expect(pod).toContain("{:else if section === 'radiofrance' && franceUniquement}");
+    // Hors de France on ne demande meme pas : un appel reseau pour un onglet
+    // qui ne s'affichera pas.
+    expect(pod).toContain('rfLoaded || !franceUniquement');
+  });
+
   it('Podcasts : changer de pays depuis la Sélection MÈNE quelque part', () => {
     // Sinon on resterait sur un volet vide, ce qui se lit comme une panne.
-    expect(pod).toContain("if (!selectionDisponible && section === 'selection') section = 'populaires'");
+    // Les DEUX volets français sont couverts par la même bascule.
+    expect(pod).toContain("if (!franceUniquement && (section === 'selection' || section === 'radiofrance'))");
   });
 
   it('Streaming : le titre d’une vignette est cliquable', () => {
