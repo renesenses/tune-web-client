@@ -131,6 +131,35 @@
    */
   type Section = 'selection' | 'populaires' | 'tous' | 'radiofrance';
   let section = $state<Section>('selection');
+
+  /**
+   * 🔴 « Sélection » est une liste FRANÇAISE, et elle ne dépend pas du pays.
+   *
+   * Bertrand, 05/09/2026 : « le switch vers USA ne change rien ». Mesuré sur
+   * le .18 : `GET /podcasts/discover?country=us` et `?country=fr` rendent la
+   * MÊME réponse, octet pour octet. Lu dans `main` du serveur, la cause est
+   * dans la signature du gestionnaire — il ne prend pas de `Query` :
+   *
+   *     async fn discover_podcasts(State(state): State<AppState>) … {
+   *         let curated = PodcastService::curated_french_podcasts();
+   *         let top = svc.top_podcasts(None, "us").await…
+   *
+   * `?country=` n'est donc pas mal utilisé : il n'est jamais lu. Issue serveur
+   * #3395 ouverte. #3207 avait corrigé `/top`, pas `/discover`.
+   *
+   * En attendant, on ne sert plus du contenu français sous un drapeau
+   * américain : hors de France la section DISPARAÎT, au lieu de rester là,
+   * inerte, à faire croire que le sélecteur est cassé. Les deux autres
+   * sections, elles, passent par `/podcasts/top`, qui respecte le pays —
+   * vérifié : `fr` rend Les Grosses Têtes, `us` rend The Daily.
+   */
+  const selectionDisponible = $derived(pays === 'fr');
+
+  // Changer de pays alors qu'on est SUR la sélection doit mener quelque part :
+  // on bascule sur le classement, qui lui répond au pays choisi.
+  $effect(() => {
+    if (!selectionDisponible && section === 'selection') section = 'populaires';
+  });
   const sousGenres = $derived(sousCategories(genre));
   /**
    * Titre du palmarès : le nom du genre choisi, « Tendances » sinon.
@@ -488,8 +517,10 @@
       <!-- SECOND NIVEAU : les quatre sections deviennent des onglets. Empilées,
            il fallait défiler pour savoir ce qu'il y avait plus bas. -->
       <nav class="sections" role="tablist">
-        <button class:on={section === 'selection'} role="tab" aria-selected={section === 'selection'}
-          onclick={() => (section = 'selection')}>{$t('v2.pod.secSelection' as any)}</button>
+        {#if selectionDisponible}
+          <button class:on={section === 'selection'} role="tab" aria-selected={section === 'selection'}
+            onclick={() => (section = 'selection')}>{$t('v2.pod.secSelection' as any)}</button>
+        {/if}
         <button class:on={section === 'populaires'} role="tab" aria-selected={section === 'populaires'}
           onclick={() => (section = 'populaires')}>{$t('v2.pod.secPopular' as any)}</button>
         <button class:on={section === 'tous'} role="tab" aria-selected={section === 'tous'}
@@ -500,7 +531,7 @@
         {/if}
       </nav>
 
-      {#if section === 'selection'}
+      {#if section === 'selection' && selectionDisponible}
         {#if discoverLoading && !discover}
           <div class="state">{$t('v2.pod.loadingSelection' as any)}</div>
         {:else if !discover?.curated.length}

@@ -101,9 +101,30 @@ describe('Accueil — la configuration', () => {
 
   it('l’écriture FUSIONNE, elle n’écrase pas', () => {
     // Un écran qui n'envoie que sa clé ne doit pas effacer celles des autres.
+    //
+    // 🔴 Ce garde était un FAUX VERT : il vérifiait `method: 'PUT'` sur une
+    // route — `/profiles/{id}/preferences` — qui n'existe pas côté serveur.
+    // Il tenait donc sur la seule source du client, et rien n'était jamais
+    // enregistré (Bertrand, 05/09/2026).
+    //
+    // Mesuré sur le .18 : POST /profiles/{id}/settings REMPLACE l'objet
+    // entier. La fusion doit donc être faite par le client, en relisant avant
+    // d'écrire — c'est ce que le garde vérifie désormais.
     const api = lire('../api.ts');
-    const i = api.indexOf('export function setProfilePreferences');
-    expect(api.slice(i, i + 300).includes("method: 'PUT'"), 'la méthode a changé').toBe(true);
+    const i = api.indexOf('export async function setProfilePreferences');
+    expect(i, 'setProfilePreferences a disparu').toBeGreaterThan(-1);
+    const corps = api.slice(i, i + 900);
+    expect(corps.includes('/settings`'), 'la route n’est pas /settings').toBe(true);
+    expect(corps.includes('/preferences`'), 'la route inexistante est revenue').toBe(false);
+    expect(corps.includes("method: 'POST'"), 'la méthode n’est pas POST').toBe(true);
+    expect(corps.includes('await getProfilePreferences(profileId)'), 'on n’relit plus avant d’écrire').toBe(true);
+    expect(corps.includes('{ ...actuel, ...patch }'), 'la fusion a disparu').toBe(true);
+  });
+
+  it('la LECTURE vise elle aussi /settings', () => {
+    const api = lire('../api.ts');
+    const i = api.indexOf('export function getProfilePreferences');
+    expect(api.slice(i, i + 200).includes('/settings`'), 'la lecture vise encore /preferences').toBe(true);
   });
 
   it('un identifiant inconnu est IGNORÉ', () => {

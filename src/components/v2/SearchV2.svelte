@@ -24,7 +24,7 @@
   import type { Album, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import PisteActions from './PisteActions.svelte';
+  import LignePisteV2 from './LignePisteV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import RenommerModale from './RenommerModale.svelte';
@@ -423,14 +423,11 @@
           <h2>Ambiance <span class="tag">acoustique</span></h2>
           <div class="list">
             {#each acoustic.tracks as t, i (t.id ?? i)}
-              <div class="trk" class:np={t.id != null && t.id === $currentTrackId}>
-                <button class="tclick" onclick={() => playTrack(t)}>
-                  <span class="cvsm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
-                  <span class="ti">{t.title}<em>{t.artist_name ?? ''}</em></span>
-                </button>
+              <!-- L'AMBIANCE garde son pourcentage de proximite : c'est la
+                   seule colonne que la ligne partagee ne connait pas. -->
+              <div class="lp">
+                <LignePisteV2 piste={t as any} avecAlbum={false} onLire={() => playTrack(t)} />
                 {#if t.similarity != null}<span class="sim">{Math.round(t.similarity * 100)}%</span>{/if}
-                <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
-                <PisteActions piste={t as any} />
               </div>
             {/each}
           </div>
@@ -538,15 +535,7 @@
           <h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="list">
             {#each titres.slice(0, 40) as t, i (String(t.source ?? 'local') + ':' + String(t.id ?? t.source_id ?? i))}
-              <div class="trk" class:np={t.id != null && t.id === $currentTrackId}>
-                <button class="tclick" onclick={() => lirePiste(t)}>
-                  <span class="cvsm"><AlbumArt coverPath={t.cover_path} albumId={estLocal(t) ? (t.album_id ?? null) : null} size={0} alt={t.title} source={t.source as any} fallbackInitials={t.title?.slice(0,1)} /></span>
-                  <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
-                </button>
-                {#if showExpert && trackRate(t)}<span class="tk">{trackRate(t)}</span>{/if}
-                <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
-                <PisteActions piste={t as any} />
-              </div>
+              <LignePisteV2 piste={t as any} onLire={() => lirePiste(t)} />
             {/each}
           </div>
         </section>
@@ -708,8 +697,10 @@
   .plg svg{width:19px; height:19px}
 
   .list{display:flex; flex-direction:column; gap:1px}
-  .trk{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; width:100%;
-    padding:0 10px; color:var(--v2-txt2); border-radius:8px}
+  /* Enveloppe : la ligne partagee, plus le pourcentage de proximite propre a
+     l'ambiance acoustique. */
+  .lp{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px}
+  .lp .sim{font:11px var(--v2-mono); color:var(--v2-acc-tint); padding-right:10px}
   /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
      n'etant plus qu'un conteneur depuis qu'elle accueille la barre d'actions. */
   .tclick{display:grid; grid-template-columns:44px 1fr; align-items:center; gap:14px; min-width:0;

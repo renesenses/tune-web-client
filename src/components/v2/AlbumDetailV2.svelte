@@ -14,7 +14,7 @@
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import PisteActions from './PisteActions.svelte';
+  import LignePisteV2 from './LignePisteV2.svelte';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
 
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -24,8 +24,15 @@
   // d'identifiant local — son identite est `source_id` AVEC le service, et le
   // serveur n'apparie que la paire. Meme forme que `depot` : une origine qui
   // change ou l'on va chercher les pistes et comment on les joue.
-  let { album, depot = null, service = null, onClose }:
-    { album: Album; depot?: DepotDistant | null; service?: string | null; onClose: () => void } = $props();
+  // `bandcamp` : la fiche d'un album BANDCAMP. Quatrieme origine, et la plus
+  // etrangere des quatre — un album Bandcamp n'a ni identifiant local, ni
+  // `source_id` de service : il est designe par l'URL de sa page publique, et
+  // ses pistes se lisent par leur `stream_url`. Demande par Bertrand le
+  // 05/09/2026 : « Click sur un album doit ouvrir l'album ! ». Jusque-la, un
+  // clic LANCAIT l'extrait, sans jamais montrer ce que l'album contenait.
+  let { album, depot = null, service = null, bandcamp = null, onClose }:
+    { album: Album; depot?: DepotDistant | null; service?: string | null;
+      bandcamp?: string | null; onClose: () => void } = $props();
 
   /** Identifiant distant de l'album, quand il vient d'un service. */
   const sidDistant = $derived(service ? ((album as any).source_id ?? null) : null);
@@ -36,12 +43,23 @@
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
 
   $effect(() => {
-    const id = album.id, d = depot, svc = service, sid = sidDistant;
+    const id = album.id, d = depot, svc = service, sid = sidDistant, bc = bandcamp;
     // Un album de service n'a pas d'`id` local : sans cette branche, la garde
     // sortait aussitot et la fiche restait sur « Chargement… » pour toujours.
-    if (id == null && !(svc && sid)) return;
+    if (id == null && !(svc && sid) && !bc) return;
     loading = true; error = null;
-    const p = svc && sid
+    const p = bc
+      // Le plugin rend ses propres champs : on les traduit dans la forme d'une
+      // piste, en gardant `stream_url` comme chemin de lecture — c'est ce que
+      // fait deja l'ecran Bandcamp du client actuel.
+      ? api.bandcampAlbum(bc).then((d2) => (d2?.tracks ?? []).map((t, i) => ({
+          id: null, track_number: t.num ?? i + 1, title: t.title,
+          artist_name: t.artist ?? album.artist_name ?? null,
+          album_title: album.title, duration_ms: (t.duration_s ?? 0) * 1000,
+          file_path: t.stream_url, cover_path: album.cover_path ?? null,
+          format: 'MP3', source: 'bandcamp',
+        })) as unknown as Track[])
+      : svc && sid
       ? api.getStreamingAlbumTracks(svc, String(sid))
       : d
         ? pistesAlbumDistant(d, id as number)
@@ -81,6 +99,15 @@
     // lecture en cours » — le defaut releve sur les playlists Qobuz.
     if (service && sidDistant) {
       api.play(zid, { streaming_album_id: String(sidDistant), source: service as any, start_index: startIndex }).catch(() => {});
+      return;
+    }
+    // Bandcamp : chaque piste porte son propre flux, il n'y a pas d'album a
+    // designer au serveur. On lance celle qu'on a choisie.
+    if (bandcamp) {
+      const t = tracks[startIndex];
+      if (!t?.file_path) return;
+      api.play(zid, { file_path: t.file_path, title: t.title,
+        artist_name: t.artist_name ?? null, cover_path: t.cover_path ?? null }).catch(() => {});
       return;
     }
     if (album.id == null) return;
@@ -161,18 +188,11 @@
       <div class="state err">{error}</div>
     {:else}
       {#each tracks as t, i (t.id ?? i)}
-        <!-- La ligne etait UN bouton. `PisteActions` en pose cinq : elle
-             devient un conteneur neutre, et le titre garde le sien — un bouton
-             dans un bouton est du balisage invalide. -->
-        <div class="trk" class:np={t.id != null && t.id === $currentTrackId}>
-          <button class="tclick" onclick={() => playAlbum(i)}>
-            <span class="n">{t.track_number || i + 1}</span>
-            <span class="ti">{t.title}</span>
-          </button>
-          {#if showExpert}<span class="tk">{trackTech(t)}</span>{/if}
-          <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
-          <PisteActions piste={t} />
-        </div>
+        <!-- Ligne PARTAGEE : meme richesse et memes gestes que partout
+             ailleurs. Sans pochette — les vingt lignes porteraient la meme —
+             et sans le titre de l'album, qui est deja en tete d'ecran. -->
+        <LignePisteV2 piste={t} numero={t.track_number || i + 1}
+          pochette={false} avecAlbum={false} onLire={() => playAlbum(i)} />
       {/each}
     {/if}
   </div>

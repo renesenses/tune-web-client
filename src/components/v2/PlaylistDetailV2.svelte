@@ -16,7 +16,7 @@
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import PisteActions from './PisteActions.svelte';
+  import LignePisteV2 from './LignePisteV2.svelte';
 
   type Item =
     | { kind: 'local'; pl: Playlist }
@@ -143,16 +143,10 @@
       <div class="state">{$tr('v2.pl.empty' as any)}</div>
     {:else}
       {#each tracks as t, i (t.id ?? i)}
-        <div class="trk" class:np={t.id != null && t.id === $currentTrackId}>
-          <button class="pl" onclick={() => playFrom(i)}>
-            <span class="n">{i + 1}</span>
-            <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
-          </button>
-          {#if showExpert}<span class="tk">{trackTech(t)}</span>{/if}
-          <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
-          <PisteActions piste={t} />
+        <div class="lp">
+          <LignePisteV2 piste={t} numero={i + 1} onLire={() => playFrom(i)} />
           {#if showExpert && isLocal}
-            <button class="rm" onclick={() => removeAt(i)} aria-label="Retirer">
+            <button class="rm" onclick={() => removeAt(i)} aria-label={$tr('v2.pl.remove' as any)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
             </button>
           {/if}
@@ -194,8 +188,9 @@
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
-  .trk{display:grid; grid-template-columns:1fr auto auto auto auto; align-items:center; gap:14px; width:100%;
-    padding:0 8px; border-radius:8px; color:var(--v2-txt2)}
+  /* La ligne est PARTAGEE : cette enveloppe ne fait que lui adjoindre le
+     bouton « retirer », propre a la playlist. */
+  .lp{display:grid; grid-template-columns:1fr auto; align-items:center; gap:6px}
   .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .trk.np{color:var(--v2-acc1)}
   .trk .pl{display:grid; grid-template-columns:34px 1fr; align-items:center; gap:14px; border:0; background:transparent;

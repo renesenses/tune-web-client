@@ -1131,8 +1131,20 @@ export interface AlbumsDraw { albums: Album[]; seed?: number }
  *  Le bouton de re-tirage n'est donc rien d'autre que « redemander sans
  *  graine ».
  */
-export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange, seed?: number | null): Promise<AlbumsDraw> {
+/**
+ * `sort` a `null` n'envoie AUCUN parametre de tri — ce n'est pas la meme chose
+ * que le tri par defaut.
+ *
+ * Mesure sur le .18 le 05/09/2026 : le chemin TRIE du serveur perd `added_at`,
+ * quelle que soit la cle. Sans tri, la donnee est la ; avec `sort=title`, elle
+ * est `null` sur les 2000 albums. Les ecrans du nouveau client triant
+ * eux-memes, ne rien demander leur rend la date d'ajout.
+ */
+export async function getAllAlbumsSeeded(pageSize = 2000, sort: string | null = 'title', order: string | null = 'asc', page?: number, perPage?: number, dr?: DrRange, seed?: number | null): Promise<AlbumsDraw> {
   const drq = drParams(dr);
+  // Chaine VIDE, pas `&sort=null` : un parametre pose avec une valeur qui n'en
+  // est pas une remettrait le serveur sur son chemin trie.
+  const triq = sort == null ? '' : `&sort=${sort}${order == null ? '' : `&order=${order}`}`;
   // Une graine absente ne produit AUCUN paramètre : la réponse est alors
   // exactement celle d'avant #3074 pour tous les autres tris.
   const seedq = (g?: number | null) => (g == null ? '' : `&seed=${g}`);
@@ -1140,7 +1152,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order 
   if (page !== undefined) {
     const limit = perPage ?? 100;
     const offset = (page - 1) * limit;
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}${drq}${seedq(seed)}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}${triq}${drq}${seedq(seed)}`);
     const albums: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     return { albums, seed: typeof raw?.seed === 'number' ? raw.seed : (seed ?? undefined) };
   }
@@ -1152,7 +1164,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order 
   // chacun leur propre ordre et le résultat n'est plus une liste.
   let graine: number | null | undefined = seed;
   while (true) {
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}${drq}${seedq(graine)}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}${triq}${drq}${seedq(graine)}`);
     if (graine == null && typeof raw?.seed === 'number') graine = raw.seed;
     const batch: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     all.push(...batch);
@@ -1162,7 +1174,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order 
   return { albums: all, seed: graine ?? undefined };
 }
 
-export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange): Promise<Album[]> {
+export async function getAllAlbums(pageSize = 2000, sort: string | null = 'title', order: string | null = 'asc', page?: number, perPage?: number, dr?: DrRange): Promise<Album[]> {
   return (await getAllAlbumsSeeded(pageSize, sort, order, page, perPage, dr)).albums;
 }
 
@@ -3188,15 +3200,57 @@ export async function getFavorites(
  * L'écriture FUSIONNE : un écran qui n'envoie que sa clé n'efface pas celles
  * des autres. Envoyer `null` pour une clé la supprime.
  */
+/**
+ * Preferences d'un profil.
+ *
+ * 🔴 La route est `/settings`, pas `/preferences`.
+ *
+ * Bertrand, 05/09/2026 : « la configuration avec les widgets n'est pas
+ * sauvegardee avec le profil de l'utilisateur ». Ces deux fonctions visaient
+ * `/profiles/{id}/preferences` en PUT — une route qui n'existe pas. Mesure sur
+ * le .18 :
+ *
+ *     GET  /api/v1/profiles/1/preferences  -> 404 {"error":"not found"}
+ *     PUT  /api/v1/profiles/1/preferences  -> 404
+ *     GET  /api/v1/profiles/1/settings     -> 200 {}
+ *     PUT  /api/v1/profiles/1/settings     -> 405
+ *     POST /api/v1/profiles/1/settings     -> 204, et la relecture rend l'objet
+ *
+ * La lecture echouait donc en silence — l'ecran gardait sa disposition par
+ * defaut — et l'ecriture levait a chaque deplacement de widget. Rien n'etait
+ * jamais retenu.
+ */
 export function getProfilePreferences(profileId: number) {
-  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/preferences`);
+  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/settings`);
 }
 
-export function setProfilePreferences(profileId: number, patch: Record<string, any>) {
-  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/preferences`, {
-    method: 'PUT',
-    body: JSON.stringify(patch),
+/**
+ * Ecrit en FUSIONNANT : un ecran qui n'envoie que sa cle ne doit pas effacer
+ * celles des autres.
+ *
+ * 🔴 La fusion se fait ICI parce que le serveur ne la fait pas. Mesure :
+ * poster `{cle_a}` puis `{cle_b}` laisse `{"cle_b":…}` seul — `cle_a` a
+ * disparu. `POST /settings` REMPLACE l'objet entier. On relit donc avant
+ * d'ecrire.
+ *
+ * La course entre deux ecrans qui enregistrent en meme temps reste possible ;
+ * elle l'etait deja, et le cas ne se presente pas — un seul ecran ecrit ces
+ * reglages a la fois.
+ */
+export async function setProfilePreferences(profileId: number, patch: Record<string, any>) {
+  let actuel: Record<string, any> = {};
+  try {
+    actuel = (await getProfilePreferences(profileId)) ?? {};
+  } catch {
+    // Reglages illisibles : on ecrit quand meme le correctif plutot que de
+    // perdre le geste de l'utilisateur.
+  }
+  const fusion = { ...actuel, ...patch };
+  await fetchJSON<unknown>(`${BASE}/profiles/${profileId}/settings`, {
+    method: 'POST',
+    body: JSON.stringify(fusion),
   });
+  return fusion;
 }
 
 export function addFavorite(profileId: number, body: FavoriteRef) {
@@ -5412,9 +5466,18 @@ export function bandcampTags() {
   return fetchJSON<{ tags: string[]; genres?: BandcampGenre[] }>(`${BASE}/ext/bandcamp/tags`);
 }
 
-/** Parcourir un genre, éventuellement restreint à l'un de ses sous-genres. */
-export function bandcampDiscover(tag: string, sort = 'top', page = 0, subgenre?: string) {
-  const p = new URLSearchParams({ tag, sort, page: String(page) });
+/**
+ * Parcourir Bandcamp, éventuellement par genre et sous-genre.
+ *
+ * `tag` est OPTIONNEL depuis le 05/09/2026 : sans lui, la route rend la
+ * découverte générale — mesuré sur le .18, 48 entrées. C'est ce que montre
+ * désormais l'onglet « Découvrir », les genres ayant leur propre onglet.
+ * Envoyer `tag=` vide n'est pas la même chose que ne pas l'envoyer : le
+ * paramètre n'est ajouté que s'il porte une valeur.
+ */
+export function bandcampDiscover(tag?: string, sort = 'top', page = 0, subgenre?: string) {
+  const p = new URLSearchParams({ sort, page: String(page) });
+  if (tag) p.set('tag', tag);
   if (subgenre) p.set('subgenre', subgenre);
   return fetchJSON<BandcampDecouverte>(`${BASE}/ext/bandcamp/discover?${p}`);
 }

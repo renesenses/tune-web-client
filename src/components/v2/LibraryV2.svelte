@@ -47,7 +47,7 @@
   import { currentZoneId } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import PisteActions from './PisteActions.svelte';
+  import LignePisteV2 from './LignePisteV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
@@ -863,14 +863,7 @@
             <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             {#each visibleTracks as t, i (t.id ?? i)}
-              <div class="trk">
-                <button class="tclick" onclick={() => playTrack(t)}>
-                  <span class="tn">{i + 1}</span>
-                  <span class="tt">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
-                </button>
-                <span class="td">{formatDuration(t.duration_ms ?? 0)}</span>
-                <PisteActions piste={t} />
-              </div>
+              <LignePisteV2 piste={t} numero={i + 1} onLire={() => playTrack(t)} />
             {/each}
             {#if tracks.length > visibleTracks.length}
               <div class="state">{visibleTracks.length} titres affichés sur {tracks.length} — affinez la recherche.</div>

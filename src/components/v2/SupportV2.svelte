@@ -21,7 +21,64 @@
   import { currentZone } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
   import { dateEtHeure } from '../../lib/dates';
+  import { zones } from '../../lib/stores/zones';
+  import { currentVersion } from '../../lib/stores/updates';
+  import { copyText } from '../../lib/utils';
+  import { modeleSysteme, mermaidSysteme, planSysteme } from '../../lib/schemaSysteme';
   import '../../styles/tune-v2.css';
+
+  /**
+   * TROIS volets, comme l'écran du client actuel.
+   *
+   * Bertrand, 05/09/2026 : « Vue support incomplète comparée à la v0, et
+   * onglet visualiser son système (avec le schéma mermaid affiché) ». Le
+   * nouvel écran n'avait QUE les tickets : ni diagnostic, ni fiche système.
+   * Or c'est le diagnostic qu'on regarde en premier quand quelque chose ne va
+   * pas, et la fiche que le support demande ensuite.
+   */
+  type Volet = 'diagnostic' | 'tickets' | 'systeme';
+  let volet = $state<Volet>('diagnostic');
+
+  /* ---------------- Diagnostic ---------------- */
+  let diagEnCours = $state(true);
+  let baseEtat = $state<any | null>(null);
+  let baseMuette = $state(false);
+  let analyse = $state<boolean | null>(null);
+  let sante = $state<any | null>(null);
+  let versionServeur = $state<string | null>(null);
+
+  async function diagnostiquer() {
+    diagEnCours = true;
+    const T = 8_000;
+    // Quatre sondes INDÉPENDANTES : celle qui échoue ne prive pas des autres.
+    // Une seule `await` en chaîne aurait fait d'un serveur sans tableau de bord
+    // administrateur un écran vide.
+    const [db, scan, admin, health] = await Promise.all([
+      api.withTimeout(api.getDatabaseStatus(), T, 'db-status').catch(() => null),
+      api.withTimeout(api.getScanStatus(), T, 'scan-status').catch(() => null),
+      api.withTimeout(api.getAdminHealth(), T, 'admin-health').catch(() => null),
+      api.withTimeout(api.getHealth(), T, 'health').catch(() => null),
+    ]);
+    baseEtat = db;
+    baseMuette = db === null;
+    analyse = scan ? !!(scan as any).scanning : null;
+    sante = admin;
+    versionServeur = (health as any)?.version ?? null;
+    diagEnCours = false;
+  }
+  $effect(() => { if (volet === 'diagnostic') void diagnostiquer(); });
+
+  /* ---------------- Mon système ---------------- */
+  const schema = $derived(modeleSysteme($zones, String($currentVersion ?? '')));
+  const plan = $derived(planSysteme(schema));
+  let copie = $state(false);
+  async function copierSchema() {
+    try {
+      await copyText(mermaidSysteme(schema));
+      copie = true;
+      setTimeout(() => (copie = false), 2000);
+    } catch { /* presse-papiers indisponible */ }
+  }
 
   const licenseKey = $derived($licenseState.licenseKey);
   const tier = $derived($licenseState.tier);
@@ -195,10 +252,78 @@
     {/if}
   </header>
 
+  <nav class="volets" role="tablist">
+    <button class:on={volet === 'diagnostic'} role="tab" aria-selected={volet === 'diagnostic'}
+      onclick={() => (volet = 'diagnostic')}>{$t('v2.sup.tabDiag' as any)}</button>
+    <button class:on={volet === 'tickets'} role="tab" aria-selected={volet === 'tickets'}
+      onclick={() => (volet = 'tickets')}>{$t('v2.sup.tabTickets' as any)}</button>
+    <button class:on={volet === 'systeme'} role="tab" aria-selected={volet === 'systeme'}
+      onclick={() => (volet = 'systeme')}>{$t('v2.sup.tabSystem' as any)}</button>
+  </nav>
+
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
   <div class="scroll">
-    {#if !licenseKey}
+    {#if volet === 'diagnostic'}
+      <div class="diag">
+        <div class="dl">
+          <div class="dr"><span class="dk">{$t('v2.sup.diagServer' as any)}</span>
+            <span class="dv" class:ok={!!versionServeur} class:ko={!diagEnCours && !versionServeur}>
+              {diagEnCours ? '…' : versionServeur ? `v${versionServeur}` : $t('v2.sup.diagUnreachable' as any)}</span></div>
+          <div class="dr"><span class="dk">{$t('v2.sup.diagDb' as any)}</span>
+            <span class="dv" class:ok={!!baseEtat} class:ko={baseMuette}>
+              {diagEnCours ? '…' : baseMuette ? $t('v2.sup.diagUnreachable' as any) : $t('v2.sup.diagOk' as any)}</span></div>
+          <div class="dr"><span class="dk">{$t('v2.sup.diagScan' as any)}</span>
+            <span class="dv">
+              {diagEnCours ? '…' : analyse === null ? '—' : analyse ? $t('v2.sup.diagScanning' as any) : $t('v2.sup.diagIdle' as any)}</span></div>
+          <div class="dr"><span class="dk">{$t('v2.sup.diagZones' as any)}</span>
+            <span class="dv">{$zones.length}</span></div>
+          {#if sante}
+            <!-- L'espace disque ne vient QUE du tableau de bord administrateur :
+                 absent sur un serveur qui ne l'expose pas, et une ligne vide y
+                 vaudrait mieux qu'un zéro qui ressemble à un disque plein. -->
+            <div class="dr"><span class="dk">{$t('v2.sup.diagDisk' as any)}</span>
+              <span class="dv">{(sante as any)?.disk?.free_human ?? (sante as any)?.disk_free ?? '—'}</span></div>
+          {/if}
+        </div>
+        <button class="lnk" onclick={diagnostiquer} disabled={diagEnCours}>
+          {diagEnCours ? $t('v2.sup.diagChecking' as any) : $t('v2.sup.diagRefresh' as any)}
+        </button>
+      </div>
+
+    {:else if volet === 'systeme'}
+      <div class="sys">
+        <p class="sub">{$t('v2.sup.sysHint' as any)}</p>
+        {#if !plan.boites.length}
+          <div class="notice"><p>{$t('v2.sup.sysEmpty' as any)}</p></div>
+        {:else}
+          <!-- Le schéma est DESSINÉ, pas rendu par Mermaid : la bibliothèque
+               pèse environ un demi-Mo sur un paquet de 4,6 Mo, pour un graphe
+               à trois niveaux. Le texte Mermaid reste copiable ci-dessous —
+               c'est la forme que le support attend, et les deux sortent du
+               même modèle. -->
+          <div class="schema">
+            <svg viewBox="0 0 {plan.largeur} {plan.hauteur}" width={plan.largeur} height={plan.hauteur}
+              role="img" aria-label={$t('v2.sup.tabSystem' as any)}>
+              {#each plan.traits as tr, i (i)}
+                <path d="M{tr.x1} {tr.y1} C{tr.x1 + 36} {tr.y1}, {tr.x2 - 36} {tr.y2}, {tr.x2} {tr.y2}"
+                  class="lien" class:off={tr.horsLigne} />
+              {/each}
+              {#each plan.boites as b, i (i)}
+                <g class="bx {b.genre}" class:off={b.horsLigne}>
+                  <rect x={b.x} y={b.y} width={b.l} height={b.h} rx="10" />
+                  <text x={b.x + b.l / 2} y={b.y + b.h / 2 + 4} text-anchor="middle">{b.texte}</text>
+                </g>
+              {/each}
+            </svg>
+          </div>
+          <button class="lnk" onclick={copierSchema}>
+            {copie ? $t('v2.sup.sysCopied' as any) : $t('v2.sup.sysCopy' as any)}
+          </button>
+        {/if}
+      </div>
+
+    {:else if !licenseKey}
       <div class="notice">
         <p>
           Le suivi des tickets est lié à votre <b>clé de licence</b>. Aucune clé n'est
@@ -415,4 +540,38 @@
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.4; cursor:default}
   .closed{padding-top:16px; border-top:1px solid var(--v2-line); font-size:12.5px; color:var(--v2-txt3)}
+
+  /* Volets — meme barre que Podcasts et Streaming. */
+  .volets{display:flex; gap:2px; padding:0 30px; border-bottom:1px solid var(--v2-line); margin-bottom:14px}
+  .volets button{position:relative; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer;
+    padding:10px 14px; font:600 13px var(--v2-sans)}
+  .volets button:hover{color:var(--v2-txt)}
+  .volets button.on{color:var(--v2-txt)}
+  .volets button.on::after{content:""; position:absolute; left:10px; right:10px; bottom:-1px; height:2px;
+    background:linear-gradient(90deg,var(--v2-acc1),var(--v2-acc2))}
+
+  /* Diagnostic */
+  .diag{padding:6px 30px 30px; display:flex; flex-direction:column; align-items:flex-start; gap:16px}
+  .dl{width:100%; max-width:560px; display:flex; flex-direction:column; gap:1px}
+  .dr{display:flex; align-items:center; justify-content:space-between; gap:16px; padding:11px 14px;
+    border-radius:9px; background:var(--v2-surface2)}
+  .dk{font-size:13.5px; color:var(--v2-txt2)}
+  .dv{font:12px var(--v2-mono); color:var(--v2-txt)}
+  .dv.ok{color:var(--v2-acc1)}
+  .dv.ko{color:var(--v2-danger)}
+
+  /* Mon systeme */
+  .sys{padding:6px 30px 30px; display:flex; flex-direction:column; align-items:flex-start; gap:16px}
+  .sys .sub{font-size:13px; color:var(--v2-txt3); max-width:620px; line-height:1.5}
+  .schema{width:100%; overflow-x:auto; padding:6px 0}
+  .schema svg{max-width:none}
+  .schema .lien{fill:none; stroke:var(--v2-line2); stroke-width:1.6}
+  .schema .lien.off{stroke-dasharray:4 4}
+  .schema .bx rect{fill:var(--v2-surface2); stroke:var(--v2-line2); stroke-width:1}
+  .schema .bx text{fill:var(--v2-txt); font:12px var(--v2-sans)}
+  .schema .bx.serveur rect{fill:var(--v2-acc-soft); stroke:var(--v2-acc2)}
+  .schema .bx.appareil rect{fill:transparent}
+  /* Hors ligne : pointilles, comme le `stroke-dasharray` du Mermaid d'origine. */
+  .schema .bx.off rect{stroke-dasharray:4 4}
+  .schema .bx.off text{fill:var(--v2-txt3)}
 </style>

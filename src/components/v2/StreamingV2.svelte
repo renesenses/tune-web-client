@@ -168,6 +168,8 @@
   let bcTag = $state<string>('');
   let bcSub = $state<string>('');
   let bcItems = $state<any[]>([]);
+  /** La decouverte GENERALE de Bandcamp — sans genre, propre a « Decouvrir ». */
+  let bcDecouverte = $state<any[]>([]);
   // Collection : le serveur repond 428 tant qu'aucun compte n'est relie.
   // C'est un NOM D'UTILISATEUR public, pas un identifiant de connexion.
   let bcNeedsLink = $state(false);
@@ -285,15 +287,17 @@
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
     paneLoading = true;
-    featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcCollection = [];
+    featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcDecouverte = []; bcCollection = [];
     const done = () => { paneLoading = false; };
 
     if (svc === BANDCAMP) {
-      // Les deux volets lisent la MEME source : « Decouvrir » montre les albums
-      // du genre courant, « Genres » ajoute l'arbre pour en changer. Un seul
-      // etat (`bcTag` / `bcSub`), deux surfaces — choisir un genre dans l'un
-      // se voit dans l'autre.
-      if (view === 'editorial' || view === 'genres') {
+      // Les deux volets sont desormais DISTINCTS : « Decouvrir » ne connait pas
+      // les genres, « Genres » les porte seul. Ils ne partagent plus d'etat.
+      if (view === 'editorial') {
+        api.bandcampDiscover(undefined, 'top', 0)
+          .then((d: any) => { bcDecouverte = d?.items ?? []; })
+          .catch(() => { bcDecouverte = []; }).finally(done);
+      } else if (view === 'genres') {
         if (!tag) { done(); return; }
         api.bandcampDiscover(tag, 'top', 0, sg || undefined)
           .then((d: any) => { bcItems = d?.items ?? []; }).catch(() => { bcItems = []; }).finally(done);
@@ -403,11 +407,28 @@
   let fiche = $state<any | null>(null);
   let ficheService = $state<string | null>(null);
 
-  /** `null` quand l'objet n'a pas de fiche : une playlist, un objet Bandcamp
-   *  (identifie par une URL, pas par un `source_id`), une piste. */
+  /** La fiche d'un album BANDCAMP : il n'a pas de `source_id`, son identite
+   *  est l'URL de sa page publique. */
+  let ficheBc = $state<any | null>(null);
+  /** La fiche d'une PLAYLIST de service. */
+  let fichePlaylist = $state<any | null>(null);
+
+  /** `null` quand l'objet n'a pas de fiche : une piste, ou un objet sans
+   *  identifiant exploitable. */
   function ouvrirFiche(p: any, type: 'track' | 'album' | 'artist' | null) {
     const svc = p?.source ?? active;
     const sid = p?.source_id;
+    // 🔴 BANDCAMP s'ouvre, lui aussi (Bertrand, 05/09/2026 : « Click sur un
+    // album doit ouvrir l'album ! »). Un clic lancait l'extrait sans jamais
+    // montrer la liste des titres. Son identite est l'URL, pas un identifiant.
+    if (type === 'album' && svc === BANDCAMP && p?.url) {
+      return () => {
+        ficheBc = {
+          id: null, title: pTitle(p), artist_name: p?.artiste ?? p?.artist ?? '',
+          cover_path: pCover(p), url: String(p.url),
+        };
+      };
+    }
     if (type !== 'album' || !sid || !svc || svc === BANDCAMP) return null;
     return () => {
       fiche = {
@@ -584,24 +605,18 @@
 
     {:else if sub === 'editorial'}
       {#if isBc}
-        {#if bcGenres.length}
-          <div class="chips">
-            {#each bcGenres as g (g.slug)}
-              <button class="chip" class:active={bcTag === g.slug}
-                onclick={() => { bcTag = g.slug; bcSub = ''; }}>{g.label}</button>
-            {/each}
-          </div>
-          {#if currentSous.length}
-            <div class="chips sous">
-              <button class="chip" class:active={!bcSub} onclick={() => (bcSub = '')}>{$t('v2.stream.allSubgenres' as any)}</button>
-              {#each currentSous as sg2 (sg2.slug)}
-                <button class="chip" class:active={bcSub === sg2.slug} onclick={() => (bcSub = sg2.slug)}>{sg2.label}</button>
-              {/each}
-            </div>
-          {/if}
-        {/if}
-        {#if bcItems.length}
-          <div class="grid">{#each bcItems as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
+        <!-- 🔴 Les genres ont QUITTE « Decouvrir » (Bertrand, 05/09/2026 :
+             « mettre l'onglet genres : ok, mais enlever les genres de l'onglet
+             decouvrir »). Les memes puces vivaient dans les deux volets, sur le
+             meme etat : deux surfaces pour un seul geste, et l'onglet Genres
+             n'avait plus de raison d'etre.
+
+             Decouvrir montre desormais la decouverte GENERALE, sans genre —
+             `/ext/bandcamp/discover` sans `tag` rend bien un flux (48 entrees
+             mesurees sur le .18). Le tri par genre est l'affaire de l'onglet
+             Genres, et de lui seul. -->
+        {#if bcDecouverte.length}
+          <div class="grid">{#each bcDecouverte as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
         {:else}
           <div class="state">{$t('v2.stream.nothingForGenre' as any)}</div>
         {/if}
@@ -740,7 +755,7 @@
 
     {:else if sub === 'playlists'}
       {#if myPlaylists.length}
-        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), null)}{/each}</div>
+        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), null, () => (fichePlaylist = p))}{/each}</div>
       {:else}
         <div class="state">Aucune playlist dans votre compte {label(active ?? '')}.</div>
       {/if}
@@ -831,12 +846,13 @@
   `onOuvrir` LIT, comme avant — cliquer la pochette lancait deja la lecture, et
   cet ecran n'a pas de fiche distante a ouvrir.
 -->
-{#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | null = 'album')}
+{#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | null = 'album', ouvrir: (() => void) | null = null)}
+  {@const ouvre = ouvrir ?? ouvrirFiche(p, type)}
   <div class="card">
     <span class="cv">
       <PochetteActions
         onLire={onPlay}
-        onOuvrir={ouvrirFiche(p, type) ?? onPlay}
+        onOuvrir={ouvre ?? onPlay}
         nom={pTitle(p)}
         favoriExterne={type
           ? favoriExterneService($favoriteStreamingKeys, {
@@ -852,13 +868,31 @@
         <AlbumArt coverPath={pCover(p)} albumId={null} size={0} alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />
       </PochetteActions>
     </span>
-    <span class="ct">{pTitle(p)}</span>
+    <!-- 🔴 Le TITRE est cliquable (Bertrand, 05/09/2026 : « le titre des
+         playlists doit etre cliquable et ouvrir la playlist »). Il ne l'etait
+         nulle part : seule la pochette portait un geste, et rien ne le disait.
+         Faute d'une fiche a ouvrir — une piste —, le titre lance la lecture
+         plutot que de ne rien faire du tout. -->
+    <button class="ct" onclick={ouvre ?? onPlay}>{pTitle(p)}</button>
     {#if pSub(p)}<span class="ca">{pSub(p)}</span>{/if}
   </div>
 {/snippet}
 
 {#if fiche}
   <AlbumDetailV2 album={fiche} service={ficheService} onClose={() => { fiche = null; ficheService = null; }} />
+{/if}
+
+{#if ficheBc}
+  <AlbumDetailV2 album={ficheBc} bandcamp={ficheBc.url} onClose={() => (ficheBc = null)} />
+{/if}
+
+{#if fichePlaylist}
+  {#await import('./PlaylistDetailV2.svelte') then m}
+    <m.default
+      item={{ kind: 'streaming', service: (fichePlaylist.source ?? active ?? ''), pl: fichePlaylist }}
+      onClose={() => (fichePlaylist = null)}
+    />
+  {/await}
 {/if}
 
 <style>

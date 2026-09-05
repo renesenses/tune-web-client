@@ -25,6 +25,15 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     expect(src).toContain(':global(.row:hover) .pactions');
   });
 
+  it('les icônes portent la couleur du THÈME, pas le gris de texte', () => {
+    // Bertrand, 05/09/2026. En gris, elles se confondaient avec la durée et le
+    // badge de qualité juste à côté : ce sont des actions, pas de l'information.
+    expect(src).toMatch(/\.pa\{[^}]*color:var\(--v2-acc1\)/);
+    expect(src).not.toMatch(/\.pa\{[^}]*color:var\(--v2-txt3\)/);
+    // Le cœur ACTIF fait exception : c'est un état, et il reste rouge.
+    expect(src).toContain('.coeur.on{color:var(--v2-danger)}');
+  });
+
   it('un cœur actif reste visible, et le tactile montre tout', () => {
     expect(src).toContain('.pactions.a-favori{opacity:1}');
     expect(src).toContain('@media (hover:none)');
@@ -36,20 +45,27 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     expect(src).toContain("await enfiler(undefined, 'v2.pa.queued')");
   });
 
-  it('les quatre listes de titres du nouveau client la portent', () => {
+  it('les quatre listes de titres passent par la ligne PARTAGEE', () => {
     for (const f of ['AlbumDetailV2', 'PlaylistDetailV2', 'LibraryV2', 'SearchV2']) {
       const ecran = sansCommentaires(lire(`src/components/v2/${f}.svelte`));
-      expect(ecran, f).toContain("import PisteActions from './PisteActions.svelte'");
-      expect(ecran, f).toContain('<PisteActions piste=');
+      expect(ecran, f).toContain("import LignePisteV2 from './LignePisteV2.svelte'");
+      expect(ecran, f).toContain('<LignePisteV2 piste=');
+      // Et aucun n'a garde sa propre ligne : quatre copies auraient diverge.
+      expect(ecran, f).not.toContain('<button class="trk"');
+      expect(ecran, f).not.toContain('<PisteActions piste=');
     }
   });
 
-  it("aucune ligne n'est restée un bouton : un bouton dans un bouton est invalide", () => {
-    for (const f of ['AlbumDetailV2', 'LibraryV2', 'SearchV2']) {
-      const ecran = sansCommentaires(lire(`src/components/v2/${f}.svelte`));
-      expect(ecran, f).not.toContain('<button class="trk"');
-      expect(ecran, f).toContain('<button class="tclick"');
-    }
+  it('la ligne partagee porte la richesse du client actuel', () => {
+    const ligne = sansCommentaires(lire('src/components/v2/LignePisteV2.svelte'));
+    // Ce que Bertrand a demande le 05/09/2026 : la v0 PLUS le survol.
+    expect(ligne).toContain("import AlbumArt from '../AlbumArt.svelte'");
+    expect(ligne).toContain("import MetadataChips from '../MetadataChips.svelte'");
+    expect(ligne).toContain("import QualityBadge from '../QualityBadge.svelte'");
+    expect(ligne).toContain("import PisteActions from './PisteActions.svelte'");
+    // Les puces suivent le REGLAGE du profil, la ligne n'en decide pas.
+    expect(ligne).toContain('$displayFields');
+    expect(ligne).toContain('<button class="tclick"');
   });
 
   it('une piste locale se désigne par son identifiant, et rien de plus', () => {

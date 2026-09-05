@@ -198,13 +198,20 @@
   :global(.row:hover) .pactions.a-favori .pa,
   :global(.tr:hover) .pactions.a-favori .pa{opacity:1}
 
+  /* Les icones portent la couleur du THEME (Bertrand, 05/09/2026). En gris de
+     texte, elles se confondaient avec la ligne qu'elles surmontent : ce sont
+     des ACTIONS, pas de l'information, et rien ne les distinguait de la duree
+     ou du badge de qualite juste a cote. */
   .pa{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
-    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; padding:0}
-  .pa:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-line2); background:var(--v2-surface2)}
+    color:var(--v2-acc1); cursor:pointer; display:grid; place-items:center; padding:0}
+  .pa:hover:not(:disabled){color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
   .pa:disabled{opacity:.4; cursor:default}
   .pa svg{width:14px; height:14px}
+  /* Le coeur ACTIF garde le rouge : c'est un ETAT, pas une action. Aux
+     couleurs du theme, il ne se distinguerait plus des quatre autres, et on ne
+     saurait plus d'un coup d'oeil quels titres sont en favori. */
   .coeur.on{color:var(--v2-danger)}
-  .coeur.on:hover:not(:disabled){color:var(--v2-danger)}
+  .coeur.on:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger-bd); background:transparent}
 
   /* Sans survol possible, rien ne peut rester en réserve : c'est le tactile
      qui paierait le plus cher une affordance pensée à la souris. */
