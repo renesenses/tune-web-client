@@ -151,19 +151,40 @@
     <button class="pa" onclick={lire} title={$t('v2.pa.play' as any)} aria-label={$t('v2.pa.play' as any)}>
       <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4l14 8-14 8z"/></svg>
     </button>
+    <!-- Une LISTE dont la lecture entre en tete. L'icone precedente etait
+         `skip-forward` — celle de « piste suivante » de la barre de transport :
+         deux gestes tres differents sous le meme dessin. -->
     <button class="pa" onclick={ensuite} disabled={occupe}
             title={$t('v2.pa.next' as any)} aria-label={$t('v2.pa.next' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M4 7h9M4 12h9M4 17h6"/>
+        <path d="M16 5.6l4.8 2.9-4.8 2.9z" fill="currentColor" stroke="none"/>
+      </svg>
     </button>
     <button class="pa" onclick={aLaFile} disabled={occupe}
             title={$t('v2.pa.queue' as any)} aria-label={$t('v2.pa.queue' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h12M3 12h12M3 18h8M18 15v6M15 18h6"/></svg>
+      <!-- La MEME liste, un plus a la fin : c'est l'accent qui distingue les
+           deux gestes, pas le dessin. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M4 7h11M4 12h11M4 17h7"/>
+        <path d="M18 14.5v6M15 17.5h6"/>
+      </svg>
     </button>
   {/if}
   {#if jouable}
     <button class="pa" onclick={(e) => { stop(e); modalePlaylist = true; }}
             title={$t('v2.pa.playlist' as any)} aria-label={$t('v2.pa.playlist' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+      <!-- 🔴 Le glyphe des PLAYLISTS, celui de la barre laterale — pas une
+           disquette. Bertrand, 05/09/2026 : « l'icone enregistrer pas
+           adaptee ». Une disquette dit « enregistrer un fichier », ce qui n'est
+           pas le geste : on range un titre dans une liste. Reprendre le dessin
+           que la barre laterale porte deja pour « Playlists » le rend lisible
+           sans legende. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 7h11M4 12h11M4 17h7"/>
+        <path d="M18 15V8l3 .6"/>
+        <circle cx="16" cy="16" r="2"/>
+      </svg>
     </button>
   {/if}
   {#if coeurPossible}

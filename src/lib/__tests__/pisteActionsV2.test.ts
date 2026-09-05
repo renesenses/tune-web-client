@@ -13,6 +13,19 @@ const p = (o: Partial<Track>) => o as Track;
 describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
   const src = sansCommentaires(lire('src/components/v2/PisteActions.svelte'));
 
+  it("aucune icône ne dit autre chose que son geste", () => {
+    // Bertrand, 05/09/2026 : « l'icône enregistrer pas adaptée ». Une disquette
+    // dit « enregistrer un fichier » ; le geste est « ranger un titre dans une
+    // liste ». Et « lire ensuite » portait `skip-forward`, l'icône de « piste
+    // suivante » de la barre de transport — deux gestes très différents sous le
+    // même dessin.
+    expect(src, 'la disquette est revenue').not.toContain('M19 21H5a2 2 0 0 1-2-2V5');
+    expect(src, 'skip-forward est revenu sur « lire ensuite »').not.toContain('<path d="M19 5v14"/>');
+    // « Ajouter à une playlist » reprend le glyphe des Playlists de la barre
+    // latérale : lisible sans légende parce qu'on le voit déjà chaque jour.
+    expect(src).toContain('M18 15V8l3 .6');
+  });
+
   it('les cinq boutons de la palette sont là', () => {
     for (const cle of ['v2.pa.play', 'v2.pa.next', 'v2.pa.queue', 'v2.pa.playlist', 'v2.pa.fav']) {
       expect(src).toContain(cle);
