@@ -47,6 +47,13 @@
   // l'écran n'avait pas disparu, il n'avait jamais été branché.
   import NowPlaying from '../NowPlaying.svelte';
   import TvView from '../TvView.svelte';
+  // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
+  // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
+  // « Il manque Oxygen dans la v2 !! ». Il pese 1 400 lignes avec son rail de
+  // facettes et son inspecteur ; le reecrire aux couleurs du nouveau client
+  // est un chantier a part, et le laisser absent en attendant privait d'une
+  // fonction entiere. Mieux vaut l'ecran d'hier que pas d'ecran.
+  import OxygenView from '../OxygenView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
   import { addShortcut } from '../../lib/stores/shortcuts';
@@ -66,7 +73,7 @@
   const LABELS: Partial<Record<View, string>> = {
     home: 'Accueil', radios: 'Radio', playlists: 'Playlists', search: 'Recherche',
     podcasts: 'Podcasts', streaming: 'Streaming', queue: "File d'attente", favorites: 'Favoris',
-    zonemanager: 'Zones', mediaservers: 'Serveurs multimédia', history: 'Historique',
+    zonemanager: 'Zones', mediaservers: 'Serveurs multimédia', history: 'Historique', oxygen: 'Oxygen',
     equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
     declick: 'Dé-ploc', metadata: 'Métadonnées', plugins: 'Extensions',
     diagnostics: 'Processing', settings: 'Réglages', support: 'Support', genres: 'Genres',
@@ -271,6 +278,8 @@
         <SupportV2 />
       {:else if $activeView === 'history'}
         <HistoriqueV2 />
+      {:else if $activeView === 'oxygen'}
+        <OxygenView />
       {:else if $activeView === 'collections'}
         <CollectionsV2 />
       {:else if $activeView === 'nowplaying'}

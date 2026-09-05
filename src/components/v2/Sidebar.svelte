@@ -61,6 +61,10 @@
     { view: 'search', label: 'Recherche', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
   ];
   const ADVANCED: Item[] = [
+    // OXYGEN — l'exploration de la bibliotheque par facettes, en table. C'est
+    // une autre facon de parcourir ce que la Bibliotheque montre en grille :
+    // sa place est aupres d'elle, pas dans le Studio, qui traite le SON.
+    { view: 'oxygen', label: 'Oxygen', icon: 'M4 5h16M4 10h16M4 15h10M4 20h10M14 17l3 3 3-5' },
     { view: 'queue', label: "File d'attente", icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
     { view: 'zonemanager', label: 'Zones', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
     // SERVEURS MULTIMEDIA en Avance (Bertrand, 28/08). Parcourir la
