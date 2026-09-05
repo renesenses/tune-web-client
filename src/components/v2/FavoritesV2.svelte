@@ -21,9 +21,10 @@
   } from '../../lib/favorisTriFiltre';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { fold, formatDuration, getQualityTier } from '../../lib/utils';
+  import { fold, formatTime, getQualityTier } from '../../lib/utils';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import PisteActions from './PisteActions.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
@@ -431,8 +432,8 @@
                   <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                 </PochetteActions>
               </span>
-              <span class="ct">{a.title}</span>
-              <span class="ca">{a.artist_name ?? ''}</span>
+              <span class="ct" title={a.title}>{a.title}</span>
+              <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
             </div>
           {/each}
         </div>
@@ -450,7 +451,8 @@
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
-              <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
+              <span class="dur">{formatTime(t.duration_ms ?? 0)}</span>
+              <PisteActions piste={t} />
               <!--
                 Le retrait passe par la table qui PORTE le favori : une piste
                 de la bibliothèque par `removeFavorite`, une piste de service
@@ -484,7 +486,7 @@
                     source={(a as any).source} fallbackInitials={a.name?.slice(0,1)} />
                 </PochetteActions>
               </span>
-              <span class="an">{a.name}</span>
+              <span class="an" title={a.name}>{a.name}</span>
             </div>
           {/each}
         </div>
@@ -673,7 +675,7 @@
   .hot:disabled{opacity:.5; cursor:default}
 
   .list{display:flex; flex-direction:column; gap:1px}
-  .row{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; padding:0 8px;
+  .row{display:grid; grid-template-columns:1fr auto auto auto auto; align-items:center; gap:14px; padding:0 8px;
     border-radius:9px; color:var(--v2-txt2)}
   .row:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .row.np{color:var(--v2-acc1)}

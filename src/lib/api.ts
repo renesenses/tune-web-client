@@ -1131,8 +1131,20 @@ export interface AlbumsDraw { albums: Album[]; seed?: number }
  *  Le bouton de re-tirage n'est donc rien d'autre que « redemander sans
  *  graine ».
  */
-export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange, seed?: number | null): Promise<AlbumsDraw> {
+/**
+ * `sort` a `null` n'envoie AUCUN parametre de tri — ce n'est pas la meme chose
+ * que le tri par defaut.
+ *
+ * Mesure sur le .18 le 05/09/2026 : le chemin TRIE du serveur perd `added_at`,
+ * quelle que soit la cle. Sans tri, la donnee est la ; avec `sort=title`, elle
+ * est `null` sur les 2000 albums. Les ecrans du nouveau client triant
+ * eux-memes, ne rien demander leur rend la date d'ajout.
+ */
+export async function getAllAlbumsSeeded(pageSize = 2000, sort: string | null = 'title', order: string | null = 'asc', page?: number, perPage?: number, dr?: DrRange, seed?: number | null): Promise<AlbumsDraw> {
   const drq = drParams(dr);
+  // Chaine VIDE, pas `&sort=null` : un parametre pose avec une valeur qui n'en
+  // est pas une remettrait le serveur sur son chemin trie.
+  const triq = sort == null ? '' : `&sort=${sort}${order == null ? '' : `&order=${order}`}`;
   // Une graine absente ne produit AUCUN paramètre : la réponse est alors
   // exactement celle d'avant #3074 pour tous les autres tris.
   const seedq = (g?: number | null) => (g == null ? '' : `&seed=${g}`);
@@ -1140,7 +1152,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order 
   if (page !== undefined) {
     const limit = perPage ?? 100;
     const offset = (page - 1) * limit;
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}${drq}${seedq(seed)}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}${triq}${drq}${seedq(seed)}`);
     const albums: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     return { albums, seed: typeof raw?.seed === 'number' ? raw.seed : (seed ?? undefined) };
   }
@@ -1152,7 +1164,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order 
   // chacun leur propre ordre et le résultat n'est plus une liste.
   let graine: number | null | undefined = seed;
   while (true) {
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}${drq}${seedq(graine)}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}${triq}${drq}${seedq(graine)}`);
     if (graine == null && typeof raw?.seed === 'number') graine = raw.seed;
     const batch: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     all.push(...batch);
@@ -1162,7 +1174,7 @@ export async function getAllAlbumsSeeded(pageSize = 2000, sort = 'title', order 
   return { albums: all, seed: graine ?? undefined };
 }
 
-export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number, dr?: DrRange): Promise<Album[]> {
+export async function getAllAlbums(pageSize = 2000, sort: string | null = 'title', order: string | null = 'asc', page?: number, perPage?: number, dr?: DrRange): Promise<Album[]> {
   return (await getAllAlbumsSeeded(pageSize, sort, order, page, perPage, dr)).albums;
 }
 
@@ -2190,8 +2202,39 @@ function mapStreamingQuality(track: any): Track {
   return track as Track;
 }
 
-function mapStreamingTracks(tracks: any[]): Track[] {
-  return (tracks ?? []).map(mapStreamingQuality);
+/**
+ * 🔴 On POSE la source quand le serveur ne la donne pas.
+ *
+ * Bertrand, 05/09/2026, capture d'une playlist Qobuz : « où sont les boutons
+ * d'action par piste ? ». Nulle part — les cinq avaient disparu de TOUTES les
+ * pistes de service.
+ *
+ * Mesure sur le .18, première piste de la playlist Qobuz 69142842 :
+ *
+ *     id        = null
+ *     source    = null      ← le serveur ne l'écrit pas
+ *     source_id = '55816716'
+ *
+ * Le serveur l'omet parce qu'elle est implicite dans la ROUTE —
+ * `/streaming/qobuz/playlists/…` — mais la piste, une fois détachée de sa
+ * requête, ne sait plus d'où elle vient. Or une piste distante se désigne par
+ * la PAIRE `source` + `source_id` : sans la source, elle n'est ni jouable, ni
+ * enfilable, ni favorisable. La barre d'actions se retirait donc entièrement,
+ * ce qu'elle est censée faire pour une piste qu'on ne sait pas désigner —
+ * elle avait raison, c'est la donnée qui était incomplète.
+ *
+ * On la pose ICI, à la frontière où le service est connu, et jamais dans un
+ * écran : trois écrans lisent ces routes.
+ *
+ * `??` et non `=` : une piste qui porte déjà sa source garde la sienne — un
+ * agrégateur peut rendre du Tidal sous une route Qobuz.
+ */
+function mapStreamingTracks(tracks: any[], service?: string): Track[] {
+  return (tracks ?? []).map((t) => {
+    const p = mapStreamingQuality(t);
+    if (service && !(p as any).source) (p as any).source = service;
+    return p;
+  });
 }
 
 function mapStreamingAlbums(albums: any[]): Album[] {
@@ -2547,7 +2590,7 @@ export function getStreamingAlbum(service: string, albumId: string) {
 
 export function getStreamingAlbumTracks(service: string, albumId: string) {
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/tracks`)
-    .then(mapStreamingTracks);
+    .then((t) => mapStreamingTracks(t, service));
 }
 
 export function getStreamingArtist(service: string, artistId: string) {
@@ -2617,7 +2660,7 @@ export function getStreamingFavorites(service: string, type: 'tracks' | 'albums'
     .then(data => {
       // Map quality sub-object on favorite tracks
       if (type === 'tracks' && data?.tracks) {
-        data.tracks = mapStreamingTracks(data.tracks);
+        data.tracks = mapStreamingTracks(data.tracks, service);
       }
       return data;
     });
@@ -2711,7 +2754,7 @@ export function matchTrack(title: string, artistName: string, services?: string[
 
 export function getStreamingPlaylistTracks(service: string, playlistId: string) {
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`)
-    .then(mapStreamingTracks);
+    .then((t) => mapStreamingTracks(t, service));
 }
 
 // --- YouTube Music OAuth ---
@@ -3188,15 +3231,57 @@ export async function getFavorites(
  * L'écriture FUSIONNE : un écran qui n'envoie que sa clé n'efface pas celles
  * des autres. Envoyer `null` pour une clé la supprime.
  */
+/**
+ * Preferences d'un profil.
+ *
+ * 🔴 La route est `/settings`, pas `/preferences`.
+ *
+ * Bertrand, 05/09/2026 : « la configuration avec les widgets n'est pas
+ * sauvegardee avec le profil de l'utilisateur ». Ces deux fonctions visaient
+ * `/profiles/{id}/preferences` en PUT — une route qui n'existe pas. Mesure sur
+ * le .18 :
+ *
+ *     GET  /api/v1/profiles/1/preferences  -> 404 {"error":"not found"}
+ *     PUT  /api/v1/profiles/1/preferences  -> 404
+ *     GET  /api/v1/profiles/1/settings     -> 200 {}
+ *     PUT  /api/v1/profiles/1/settings     -> 405
+ *     POST /api/v1/profiles/1/settings     -> 204, et la relecture rend l'objet
+ *
+ * La lecture echouait donc en silence — l'ecran gardait sa disposition par
+ * defaut — et l'ecriture levait a chaque deplacement de widget. Rien n'etait
+ * jamais retenu.
+ */
 export function getProfilePreferences(profileId: number) {
-  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/preferences`);
+  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/settings`);
 }
 
-export function setProfilePreferences(profileId: number, patch: Record<string, any>) {
-  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/preferences`, {
-    method: 'PUT',
-    body: JSON.stringify(patch),
+/**
+ * Ecrit en FUSIONNANT : un ecran qui n'envoie que sa cle ne doit pas effacer
+ * celles des autres.
+ *
+ * 🔴 La fusion se fait ICI parce que le serveur ne la fait pas. Mesure :
+ * poster `{cle_a}` puis `{cle_b}` laisse `{"cle_b":…}` seul — `cle_a` a
+ * disparu. `POST /settings` REMPLACE l'objet entier. On relit donc avant
+ * d'ecrire.
+ *
+ * La course entre deux ecrans qui enregistrent en meme temps reste possible ;
+ * elle l'etait deja, et le cas ne se presente pas — un seul ecran ecrit ces
+ * reglages a la fois.
+ */
+export async function setProfilePreferences(profileId: number, patch: Record<string, any>) {
+  let actuel: Record<string, any> = {};
+  try {
+    actuel = (await getProfilePreferences(profileId)) ?? {};
+  } catch {
+    // Reglages illisibles : on ecrit quand meme le correctif plutot que de
+    // perdre le geste de l'utilisateur.
+  }
+  const fusion = { ...actuel, ...patch };
+  await fetchJSON<unknown>(`${BASE}/profiles/${profileId}/settings`, {
+    method: 'POST',
+    body: JSON.stringify(fusion),
   });
+  return fusion;
 }
 
 export function addFavorite(profileId: number, body: FavoriteRef) {
@@ -3835,6 +3920,43 @@ async function downloadCsv(path: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Exporter une playlist LOCALE dans un fichier.
+ *
+ * Demande de Bertrand le 05/09/2026. La route existe cote serveur et etait
+ * inutilisee par le client — mesure sur le .18 :
+ *
+ *     GET /playlists/13/export            -> 200
+ *       content-type: audio/x-mpegurl
+ *       content-disposition: attachment; filename="00._Genesis_-_Genesis.m3u"
+ *     ?format=json -> 200   ?format=csv -> 200   ?format=m3u8 -> 400
+ *
+ * Le M3U est le defaut : c'est le format qu'un autre lecteur saura relire.
+ *
+ * ⚠️ Le nom de fichier vient du SERVEUR, pas de nous : il l'assainit deja
+ * (« 00._Genesis_-_Genesis.m3u »), et un nom de playlist peut contenir des
+ * caracteres qu'un systeme de fichiers refuse. On le lit dans l'en-tete plutot
+ * que de le recomposer.
+ */
+export async function exportPlaylist(playlistId: number, format: 'm3u' | 'json' | 'csv' = 'm3u') {
+  const url = `${BASE}/playlists/${playlistId}/export${format === 'm3u' ? '' : `?format=${format}`}`;
+  const res = await fetch(url, { headers: authHeaders() });
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const dispo = res.headers.get('content-disposition') ?? '';
+  const trouve = /filename="?([^";]+)"?/i.exec(dispo);
+  const nom = trouve?.[1]?.trim() || `playlist.${format}`;
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = nom;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+  return nom;
+}
+
 export function exportAlbumsCsv() { return downloadCsv('/export/albums.csv', 'albums.csv'); }
 export function exportTracksCsv() { return downloadCsv('/export/tracks.csv', 'tracks.csv'); }
 export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', 'artists.csv'); }
@@ -4265,8 +4387,39 @@ export async function getStorePlugins(search?: string, category?: string): Promi
 }
 
 /** Fetch merged plugin list (catalog + local) from the Tune server. */
+/**
+ * 🔴 `compatible` ABSENT vaut COMPATIBLE.
+ *
+ * Signalé par Querite sur le forum le 05/09/2026, capture à l'appui : toutes
+ * ses extensions portaient le badge « INCOMPATIBLE », et le bouton Installer
+ * du catalogue était grisé.
+ *
+ * Mesure sur le .18 — la réponse de `/plugins` ne contient tout simplement pas
+ * le champ :
+ *
+ *     xtune     : author, description, display_name, enabled, icon, installed,
+ *                 name, type, url, version
+ *     bandcamp  : config_schema, description, display_name, enabled, installed,
+ *                 name, type, url, version
+ *     recorder  : author, description, display_name, enabled, installed,
+ *                 loaded, name, restart_required, type, url, version
+ *
+ * L'écran du client actuel le normalisait à `true` avant d'afficher ; le
+ * nouveau lisait la réponse telle quelle et testait `!p.compatible`. Un champ
+ * absent est faux : tout passait en incompatible.
+ *
+ * La normalisation vit ICI, à la frontière où l'on sait ce que le serveur omet,
+ * et non dans un écran — c'est ce qui a permis au défaut de revenir sur le
+ * second. `?? true` et non `= true` : un `false` explicite du serveur, lui,
+ * doit être respecté.
+ *
+ * Issue serveur ouverte pour qu'il émette le champ, ce qui protègera aussi les
+ * clients déjà publiés.
+ */
 export function getMergedPlugins(): Promise<MergedPlugin[]> {
-  return fetchJSON<MergedPlugin[]>(`${BASE}/plugins`);
+  return fetchJSON<MergedPlugin[]>(`${BASE}/plugins`).then((liste) =>
+    (liste ?? []).map((p) => ({ ...p, compatible: (p as any).compatible ?? true })),
+  );
 }
 
 export interface MarketplaceCatalogPlugin {
@@ -5412,9 +5565,18 @@ export function bandcampTags() {
   return fetchJSON<{ tags: string[]; genres?: BandcampGenre[] }>(`${BASE}/ext/bandcamp/tags`);
 }
 
-/** Parcourir un genre, éventuellement restreint à l'un de ses sous-genres. */
-export function bandcampDiscover(tag: string, sort = 'top', page = 0, subgenre?: string) {
-  const p = new URLSearchParams({ tag, sort, page: String(page) });
+/**
+ * Parcourir Bandcamp, éventuellement par genre et sous-genre.
+ *
+ * `tag` est OPTIONNEL depuis le 05/09/2026 : sans lui, la route rend la
+ * découverte générale — mesuré sur le .18, 48 entrées. C'est ce que montre
+ * désormais l'onglet « Découvrir », les genres ayant leur propre onglet.
+ * Envoyer `tag=` vide n'est pas la même chose que ne pas l'envoyer : le
+ * paramètre n'est ajouté que s'il porte une valeur.
+ */
+export function bandcampDiscover(tag?: string, sort = 'top', page = 0, subgenre?: string) {
+  const p = new URLSearchParams({ sort, page: String(page) });
+  if (tag) p.set('tag', tag);
   if (subgenre) p.set('subgenre', subgenre);
   return fetchJSON<BandcampDecouverte>(`${BASE}/ext/bandcamp/discover?${p}`);
 }

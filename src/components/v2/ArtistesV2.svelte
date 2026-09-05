@@ -201,8 +201,8 @@
             </PochetteActions>
           </div>
           <button class="meta" onclick={() => (albumOuvert = al)}>
-            <span class="ct">{al.title}</span>
-            <span class="ca">{al.year ?? ''}</span>
+            <span class="ct" title={al.title}>{al.title}</span>
+            <span class="ca" title={String(al.year ?? '')}>{al.year ?? ''}</span>
           </button>
         </div>
       {/each}
@@ -248,7 +248,7 @@
                demanderait une requête par artiste, et en inventer un serait
                pire que de n'en montrer aucun. -->
           <button class="meta centre" onclick={() => ouvrir(a)}>
-            <span class="ct">{a.name}</span>
+            <span class="ct" title={a.name}>{a.name}</span>
           </button>
         </div>
       {/each}

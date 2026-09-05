@@ -31,31 +31,18 @@
   import type { StreamingServiceStatus, StreamingPlaylist, SearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import QualiteAlbum from './QualiteAlbum.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
+  import { aUnOngletGenres, normaliserGenres, ouvertureGenre, sousGenresUtiles } from '../../lib/streamingGenres';
+  import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
   const BANDCAMP = '__bandcamp__';
-  /**
-   * Services dont la navigation par genre fonctionne DE BOUT EN BOUT.
-   *
-   * Mesuré contre un serveur réel (192.168.1.18, v0.9.130) le 01/09/2026 :
-   *   qobuz   -> 13 genres, et les albums d'un genre remontent ;
-   *   tidal   -> 20 genres, et les albums d'un genre remontent ;
-   *   deezer  -> 26 genres, mais ZÉRO album (le premier genre porte l'id « 0 »,
-   *              qui sent le « Tous » que l'API ne sait pas décliner) ;
-   *   youtube -> aucun genre.
-   *
-   * Les deux derniers auraient donné un onglet qui s'ouvre sur du vide. Le jour
-   * où le serveur les sert, ajouter le nom ici suffit — c'est la seule ligne à
-   * toucher.
-   */
-  const GENRES_SERVIS = ['qobuz', 'tidal'];
-
   let services = $state<Record<string, StreamingServiceStatus>>({});
   let bandcampLive = $state(false);
   let loading = $state(true);
@@ -98,10 +85,83 @@
   // la section reviendra d'elle-même.
   let featured = $state<any[]>([]);
   let newRel = $state<any[]>([]);
-  let genres = $state<any[]>([]);
+  /**
+   * La liste des genres du service, chargee UNE fois par service.
+   *
+   * C'est ELLE qui decide si l'onglet Genres existe : il faut donc la connaitre
+   * avant que l'utilisateur ouvre l'onglet, et ne pas la perdre quand il passe
+   * sur Playlists. Rangee dans l'effet du volet, elle etait remise a zero a
+   * chaque changement de vue et l'onglet clignotait.
+   */
+  let svcGenres = $state<StreamingGenre[]>([]);
+  /** Fil d'Ariane : vide (racine) ou un genre. Deux niveaux — c'est tout ce que
+   *  le serveur sert. */
+  let genrePath = $state<StreamingGenre[]>([]);
+  let subGenres = $state<StreamingGenre[]>([]);
   let genreId = $state<string>('');
   let genreAlbums = $state<any[]>([]);
   let genreLoading = $state(false);
+
+  /** Liste des genres du service : UN seul appel par service, HORS de l'effet
+   * du volet.
+   *
+   * C'est elle qui decide si l'onglet Genres existe : il faut donc la connaitre
+   * AVANT que l'utilisateur ouvre l'onglet, et ne pas la perdre quand il passe
+   * sur Playlists — rangee dans l'effet du volet, l'onglet clignotait puis
+   * disparaissait au changement de vue.
+   */
+  $effect(() => {
+    const svc = active;
+    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = [];
+    // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
+    if (!svc || svc === BANDCAMP) return;
+    let vivant = true;
+    api.getStreamingGenres(svc)
+      .then((g) => { if (vivant) svcGenres = normaliserGenres(g); })
+      .catch(() => { if (vivant) svcGenres = []; });
+    return () => { vivant = false; };
+  });
+
+  /**
+   * Clic sur un genre de premier niveau.
+   *
+   * `has_children` decide, et rien d'autre : la ou le serveur annonce un second
+   * niveau (Qobuz sert `/genre/list?parent_id=…`), on l'ouvre ; partout
+   * ailleurs, le clic mene DIRECTEMENT aux albums. Aucune liste de services en
+   * dur — le jour ou un service se met a annoncer des enfants, l'ecran suit.
+   */
+  let sousSeq = 0;
+  async function ouvrirGenre(g: StreamingGenre) {
+    const svc = active;
+    if (!svc || svc === BANDCAMP) return;
+    genrePath = [g]; subGenres = []; genreAlbums = [];
+    if (ouvertureGenre(g) === 'albums') { genreId = g.id; return; }
+    genreId = '';
+    const mien = ++sousSeq;
+    genreLoading = true;
+    try {
+      const rendus = normaliserGenres(await api.getStreamingGenres(svc, g.id));
+      if (mien !== sousSeq) return;
+      // Tidal ignore `parent_id` et re-sert la RACINE : sans ce filtre, derouler
+      // un genre y affichait toute la liste de depart comme ses propres enfants.
+      const sous = sousGenresUtiles(g, svcGenres, rendus);
+      subGenres = sous;
+      // Un parent qui ANNONCE des enfants et n'en sert aucun est le « 200 pour
+      // rien » deplace d'un cran : plutot qu'un ecran vide, on retombe sur ses
+      // propres albums, ce que le clic promettait de toute facon.
+      if (!sous.length) genreId = g.id;
+    } catch {
+      if (mien !== sousSeq) return;
+      subGenres = []; genreId = g.id;
+    } finally {
+      if (mien === sousSeq) genreLoading = false;
+    }
+  }
+
+  function retourGenres() {
+    sousSeq++;
+    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; genreLoading = false;
+  }
   // Genres Bandcamp : le serveur rend `genres` (libelle + sous-genres) ET
   // `tags` (liste plate) — on prend le premier, on retombe sur le second pour
   // les serveurs qui ne servent que lui.
@@ -109,6 +169,8 @@
   let bcTag = $state<string>('');
   let bcSub = $state<string>('');
   let bcItems = $state<any[]>([]);
+  /** La decouverte GENERALE de Bandcamp — sans genre, propre a « Decouvrir ». */
+  let bcDecouverte = $state<any[]>([]);
   // Collection : le serveur repond 428 tant qu'aucun compte n'est relie.
   // C'est un NOM D'UTILISATEUR public, pas un identifiant de connexion.
   let bcNeedsLink = $state(false);
@@ -128,14 +190,29 @@
   );
   const tabs = $derived([...connected, ...(bandcampLive ? [BANDCAMP] : [])]);
   const isBc = $derived(active === BANDCAMP);
+
+  /**
+   * Pas de genres, pas d'onglet — et c'est la DONNEE qui tranche, pas un nom
+   * de service.
+   *
+   * Une liste `GENRES_SERVIS = ['qobuz', 'tidal']` figeait deux mesures du
+   * 01/09/2026 : Deezer rendait 26 genres et zero album, YouTube aucun genre.
+   * Le jour ou l'un des deux se met a servir, l'ecran devait etre modifie pour
+   * s'en apercevoir. Desormais il suit la reponse (#709).
+   *
+   * Bandcamp est HORS SUJET ici : sa decouverte par genre passe par
+   * `/ext/bandcamp/tags`, pas par `/streaming/…`, et elle a son propre onglet.
+   */
+  const ongletGenres = $derived(!isBc && aUnOngletGenres(svcGenres));
   const SUBS = $derived<{ id: Sub; label: string }[]>(
     isBc
       // BANDCAMP A SON ONGLET GENRES, par une AUTRE route (Bertrand, 04/09/2026).
       //
-      // Il n'entre pas dans `GENRES_SERVIS` : ce tableau commande l'appel a
-      // `/streaming/{svc}/genres`, qui repond 404 « unknown service » pour
-      // Bandcamp — mesure sur le .18 le 04/09. Ses genres viennent de
-      // `/ext/bandcamp/tags`, deja charge au montage de l'ecran.
+      // Il ne passe PAS par `/streaming/{svc}/genres`, qui repond 404 « unknown
+      // service » pour lui — mesure sur le .18 le 04/09. Ses genres viennent de
+      // `/ext/bandcamp/tags`, deja charge au montage de l'ecran. C'est aussi
+      // pourquoi `ongletGenres` l'exclut : les deux onglets Genres existent,
+      // mais ils ne lisent pas la meme source.
       //
       // Et il en sert PLUS que les autres : 27 genres et 237 sous-genres
       // (mesure, meme jour), contre 13 pour Qobuz et 20 pour Tidal. Tout cela
@@ -150,7 +227,7 @@
          // genres. Les genres avaient une section tout EN BAS de l'éditorial :
          // il fallait dérouler la page entière pour tomber dessus. C'est une
          // navigation, pas un complément de fin de page (Bertrand, 01/09/2026).
-         ...(GENRES_SERVIS.includes(active ?? '') ? [{ id: 'genres' as Sub, label: 'Genres' }] : [])]
+         ...(ongletGenres ? [{ id: 'genres' as Sub, label: $t('common.genres' as any) }] : [])]
   );
   const label = (k: string) => (k === BANDCAMP ? 'Bandcamp' : k.charAt(0).toUpperCase() + k.slice(1));
 
@@ -211,15 +288,17 @@
     const svc = active, view = sub, tag = bcTag, sg = bcSub;
     if (!svc) return;
     paneLoading = true;
-    featured = []; newRel = []; genres = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcCollection = [];
+    featured = []; newRel = []; myPlaylists = []; favAlbums = []; favArtists = []; favTracks = []; bcItems = []; bcDecouverte = []; bcCollection = [];
     const done = () => { paneLoading = false; };
 
     if (svc === BANDCAMP) {
-      // Les deux volets lisent la MEME source : « Decouvrir » montre les albums
-      // du genre courant, « Genres » ajoute l'arbre pour en changer. Un seul
-      // etat (`bcTag` / `bcSub`), deux surfaces — choisir un genre dans l'un
-      // se voit dans l'autre.
-      if (view === 'editorial' || view === 'genres') {
+      // Les deux volets sont desormais DISTINCTS : « Decouvrir » ne connait pas
+      // les genres, « Genres » les porte seul. Ils ne partagent plus d'etat.
+      if (view === 'editorial') {
+        api.bandcampDiscover(undefined, 'top', 0)
+          .then((d: any) => { bcDecouverte = d?.items ?? []; })
+          .catch(() => { bcDecouverte = []; }).finally(done);
+      } else if (view === 'genres') {
         if (!tag) { done(); return; }
         api.bandcampDiscover(tag, 'top', 0, sg || undefined)
           .then((d: any) => { bcItems = d?.items ?? []; }).catch(() => { bcItems = []; }).finally(done);
@@ -238,18 +317,20 @@
       return;
     }
 
-    if (view === 'editorial' || view === 'genres') {
-      // Les trois sources partent ensemble et echouent separement : une route
+    // L'onglet Genres n'a RIEN a charger ici : sa liste est deja la, chargee
+    // par son propre effet, et ses niveaux inferieurs partent au clic. Sans ce
+    // retour, le volet resterait sur « Chargement… » indefiniment.
+    if (view === 'genres') { done(); return; }
+
+    if (view === 'editorial') {
+      // Les deux sources partent ensemble et echouent separement : une route
       // morte ne doit plus vider tout l'ecran, seulement sa propre section.
-      genreId = ''; genreAlbums = [];
       Promise.allSettled([
         api.getStreamingFeaturedPlaylists(svc),
         api.getStreamingNewReleases(svc, 30),
-        api.getStreamingGenres(svc),
-      ]).then(([f, n, g]) => {
+      ]).then(([f, n]) => {
         featured = f.status === 'fulfilled' ? ((f.value as any) ?? []) : [];
         newRel = n.status === 'fulfilled' ? ((n.value as any) ?? []) : [];
-        genres = g.status === 'fulfilled' ? ((g.value as any) ?? []) : [];
       }).finally(done);
 
     } else if (view === 'playlists') {
@@ -277,7 +358,10 @@
    *  changement de puce. */
   $effect(() => {
     const svc = active, gid = genreId;
-    if (!svc || svc === BANDCAMP || (sub !== 'editorial' && sub !== 'genres') || !gid) { genreAlbums = []; return; }
+    // Les genres ont QUITTE l'editorial : ils n'y sont plus une section de fin
+    // de page (#709). L'y laisser aussi aurait fait deux chemins pour un seul
+    // geste, et l'effet editorial rechargeait la liste a chaque puce.
+    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; return; }
     genreLoading = true;
     api.getStreamingGenreAlbums(svc, gid, 40)
       .then((a: any) => { if (genreId === gid) genreAlbums = a ?? []; })
@@ -324,11 +408,28 @@
   let fiche = $state<any | null>(null);
   let ficheService = $state<string | null>(null);
 
-  /** `null` quand l'objet n'a pas de fiche : une playlist, un objet Bandcamp
-   *  (identifie par une URL, pas par un `source_id`), une piste. */
+  /** La fiche d'un album BANDCAMP : il n'a pas de `source_id`, son identite
+   *  est l'URL de sa page publique. */
+  let ficheBc = $state<any | null>(null);
+  /** La fiche d'une PLAYLIST de service. */
+  let fichePlaylist = $state<any | null>(null);
+
+  /** `null` quand l'objet n'a pas de fiche : une piste, ou un objet sans
+   *  identifiant exploitable. */
   function ouvrirFiche(p: any, type: 'track' | 'album' | 'artist' | null) {
     const svc = p?.source ?? active;
     const sid = p?.source_id;
+    // 🔴 BANDCAMP s'ouvre, lui aussi (Bertrand, 05/09/2026 : « Click sur un
+    // album doit ouvrir l'album ! »). Un clic lancait l'extrait sans jamais
+    // montrer la liste des titres. Son identite est l'URL, pas un identifiant.
+    if (type === 'album' && svc === BANDCAMP && p?.url) {
+      return () => {
+        ficheBc = {
+          id: null, title: pTitle(p), artist_name: p?.artiste ?? p?.artist ?? '',
+          cover_path: pCover(p), url: String(p.url),
+        };
+      };
+    }
     if (type !== 'album' || !sid || !svc || svc === BANDCAMP) return null;
     return () => {
       fiche = {
@@ -391,8 +492,15 @@
     const zid = $currentZoneId;
     if (zid == null) return;
     if (!it?.extrait) { error = 'Aucun extrait disponible pour ce titre.'; return; }
-    api.play(zid, { file_path: it.extrait, title: it.titre, artist_name: it.artiste ?? null, cover_path: it.pochette ?? null })
-      .catch(() => { error = 'Lecture impossible.'; });
+    // 🔴 La PAIRE `source` + `source_id`, pas `file_path` : c'est ce que le
+    // serveur apparie. Avec `file_path`, il ne reconnaissait rien et retombait
+    // sur « reprendre la lecture en cours » (Bertrand, 05/09/2026). L'ecran
+    // Bandcamp du client actuel envoie cette paire depuis toujours.
+    api.play(zid, {
+      source: 'bandcamp' as any, source_id: String(it.extrait),
+      title: it.titre, artist_name: it.artiste ?? null,
+      cover_path: it.pochette ?? null,
+    }).catch(() => { error = 'Lecture impossible.'; });
   }
 
   async function linkBandcamp() {
@@ -505,24 +613,18 @@
 
     {:else if sub === 'editorial'}
       {#if isBc}
-        {#if bcGenres.length}
-          <div class="chips">
-            {#each bcGenres as g (g.slug)}
-              <button class="chip" class:active={bcTag === g.slug}
-                onclick={() => { bcTag = g.slug; bcSub = ''; }}>{g.label}</button>
-            {/each}
-          </div>
-          {#if currentSous.length}
-            <div class="chips sous">
-              <button class="chip" class:active={!bcSub} onclick={() => (bcSub = '')}>{$t('v2.stream.allSubgenres' as any)}</button>
-              {#each currentSous as sg2 (sg2.slug)}
-                <button class="chip" class:active={bcSub === sg2.slug} onclick={() => (bcSub = sg2.slug)}>{sg2.label}</button>
-              {/each}
-            </div>
-          {/if}
-        {/if}
-        {#if bcItems.length}
-          <div class="grid">{#each bcItems as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
+        <!-- 🔴 Les genres ont QUITTE « Decouvrir » (Bertrand, 05/09/2026 :
+             « mettre l'onglet genres : ok, mais enlever les genres de l'onglet
+             decouvrir »). Les memes puces vivaient dans les deux volets, sur le
+             meme etat : deux surfaces pour un seul geste, et l'onglet Genres
+             n'avait plus de raison d'etre.
+
+             Decouvrir montre desormais la decouverte GENERALE, sans genre —
+             `/ext/bandcamp/discover` sans `tag` rend bien un flux (48 entrees
+             mesurees sur le .18). Le tri par genre est l'affaire de l'onglet
+             Genres, et de lui seul. -->
+        {#if bcDecouverte.length}
+          <div class="grid">{#each bcDecouverte as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
         {:else}
           <div class="state">{$t('v2.stream.nothingForGenre' as any)}</div>
         {/if}
@@ -622,32 +724,46 @@
       {/if}
 
     {:else if sub === 'genres'}
-      <!-- Volet GENRES : la liste, puis les albums du genre choisi. Rien
-           d'autre — c'est ce qui le distingue de la section de fin de page
-           qu'il remplace, noyée sous l'éditorial. -->
-      {#if !genres.length}
-        <div class="state">{$t('v2.stream.noGenre' as any)}</div>
-      {:else}
+      <!-- Volet GENRES a DEUX niveaux, la ou le service en a deux (#709).
+           L'onglet n'existe que si la liste est pleine ; ce garde-fou couvre le
+           seul cas restant — la liste videe sous les pieds de l'ecran. -->
+      {#if !svcGenres.length}
+        <div class="state">{$t('streaming.genresEmpty')}</div>
+      {:else if !genrePath.length}
         <div class="chips">
-          {#each genres as g (g.id)}
-            <button class="chip" class:active={genreId === g.id}
-              onclick={() => (genreId = genreId === g.id ? '' : g.id)}>{g.name}</button>
+          {#each svcGenres as g (g.id)}
+            <button class="chip" onclick={() => ouvrirGenre(g)}>{g.name}</button>
           {/each}
         </div>
-        {#if !genreId}
-          <div class="state">{$t('v2.stream.pickGenre' as any)}</div>
-        {:else if genreLoading}
+        <div class="state">{$t('streaming.pickGenre')}</div>
+      {:else}
+        <div class="crumb">
+          <button class="lnk" onclick={retourGenres}>← {$t('streaming.allGenres')}</button>
+          <span class="cur">{genrePath[0].name}</span>
+        </div>
+        {#if subGenres.length}
+          <!-- Second niveau : affiche LA OU IL EXISTE, jamais ailleurs. -->
+          <div class="chips sous">
+            {#each subGenres as sg2 (sg2.id)}
+              <button class="chip" class:active={genreId === sg2.id}
+                onclick={() => (genreId = sg2.id)}>{sg2.name}</button>
+            {/each}
+          </div>
+        {/if}
+        {#if genreLoading}
           <div class="state">{$t('common.loading' as any)}</div>
         {:else if genreAlbums.length}
           <div class="grid">{#each genreAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+        {:else if genreId}
+          <div class="state">{$t('streaming.genreNoAlbums')}</div>
         {:else}
-          <div class="state">{$t('v2.stream.noAlbumInGenre' as any)}</div>
+          <div class="state">{$t('streaming.pickGenre')}</div>
         {/if}
       {/if}
 
     {:else if sub === 'playlists'}
       {#if myPlaylists.length}
-        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), null)}{/each}</div>
+        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), null, () => (fichePlaylist = p))}{/each}</div>
       {:else}
         <div class="state">Aucune playlist dans votre compte {label(active ?? '')}.</div>
       {/if}
@@ -707,7 +823,7 @@
           source={ar?.source ?? active} fallbackInitials={ar.name?.slice(0,1)} />
       </PochetteActions>
     </span>
-    <span class="an">{ar.name}</span>
+    <span class="an" title={ar.name}>{ar.name}</span>
   </div>
 {/snippet}
 
@@ -738,12 +854,13 @@
   `onOuvrir` LIT, comme avant — cliquer la pochette lancait deja la lecture, et
   cet ecran n'a pas de fiche distante a ouvrir.
 -->
-{#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | null = 'album')}
+{#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | null = 'album', ouvrir: (() => void) | null = null)}
+  {@const ouvre = ouvrir ?? ouvrirFiche(p, type)}
   <div class="card">
     <span class="cv">
       <PochetteActions
         onLire={onPlay}
-        onOuvrir={ouvrirFiche(p, type) ?? onPlay}
+        onOuvrir={ouvre ?? onPlay}
         nom={pTitle(p)}
         favoriExterne={type
           ? favoriExterneService($favoriteStreamingKeys, {
@@ -759,13 +876,41 @@
         <AlbumArt coverPath={pCover(p)} albumId={null} size={0} alt={pTitle(p)} source={p?.source ?? active} fallbackInitials={pTitle(p).slice(0,1)} />
       </PochetteActions>
     </span>
-    <span class="ct">{pTitle(p)}</span>
-    {#if pSub(p)}<span class="ca">{pSub(p)}</span>{/if}
+    <!-- 🔴 Le TITRE est cliquable (Bertrand, 05/09/2026 : « le titre des
+         playlists doit etre cliquable et ouvrir la playlist »). Il ne l'etait
+         nulle part : seule la pochette portait un geste, et rien ne le disait.
+         Faute d'une fiche a ouvrir — une piste —, le titre lance la lecture
+         plutot que de ne rien faire du tout. -->
+    <button class="ct" title={pTitle(p)} onclick={ouvre ?? onPlay}>{pTitle(p)}</button>
+    {#if pSub(p)}<span class="ca" title={pSub(p)}>{pSub(p)}</span>{/if}
+    <!-- TROISIEME LIGNE, comme dans la Bibliotheque : d'ou vient le disque et
+         en quelle qualite. `p.quality` est la forme que rendent les services
+         (`{codec, sample_rate, bit_depth}`) ; on la traduit dans celle que le
+         composant attend, sans quoi il n'annoncerait que la source. -->
+    <QualiteAlbum objet={{
+      source: p?.source ?? active,
+      format: p?.quality?.codec ?? p?.format ?? null,
+      sample_rate: p?.quality?.sample_rate ?? p?.sample_rate ?? null,
+      bit_depth: p?.quality?.bit_depth ?? p?.bit_depth ?? null,
+    }} />
   </div>
 {/snippet}
 
 {#if fiche}
   <AlbumDetailV2 album={fiche} service={ficheService} onClose={() => { fiche = null; ficheService = null; }} />
+{/if}
+
+{#if ficheBc}
+  <AlbumDetailV2 album={ficheBc} bandcamp={ficheBc.url} onClose={() => (ficheBc = null)} />
+{/if}
+
+{#if fichePlaylist}
+  {#await import('./PlaylistDetailV2.svelte') then m}
+    <m.default
+      item={{ kind: 'streaming', service: (fichePlaylist.source ?? active ?? ''), pl: fichePlaylist }}
+      onClose={() => (fichePlaylist = null)}
+    />
+  {/await}
 {/if}
 
 <style>
@@ -832,6 +977,10 @@
     font:600 11.5px var(--v2-sans); padding:6px 13px; border-radius:var(--v2-r-pill); text-transform:capitalize}
   .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .chip.active{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  /* Fil d'Ariane des genres a deux niveaux (#709) : il dit OU l'on est et
+     comment remonter — sans lui, le second niveau est un cul-de-sac. */
+  .crumb{display:flex; align-items:center; gap:10px; padding:0 0 14px}
+  .crumb .cur{font-size:13px; font-weight:600; color:var(--v2-txt)}
   .chips.sous{padding-top:0; margin-top:-8px}
   .chips.sous .chip{font-size:11px; padding:5px 11px; opacity:.9}
   .inline{display:flex; align-items:center; gap:9px; flex-wrap:wrap}
@@ -847,7 +996,19 @@
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}
-  .ct{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* 🔴 `.ct` est un <button> depuis que le titre est cliquable : sans remise a
+     zero, il garde le FOND, la bordure, le rembourrage et le centrage que le
+     navigateur donne aux boutons. Sur une grille Bandcamp, cela dessinait une
+     bande grise sous chaque titre (Bertrand, 05/09/2026, capture a l'appui).
+
+     Les valeurs sont alignees sur la Bibliotheque — meme corps, meme
+     interligne — pour que les deux grilles se lisent pareil. */
+  .ct{display:block; width:100%; margin-top:9px; padding:0; border:0; background:transparent;
+    color:inherit; text-align:left; cursor:pointer;
+    font:600 12.5px var(--v2-sans); line-height:1.25;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ct:hover{color:var(--v2-acc-tint)}
+  .ct:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px; border-radius:4px}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
   .arow{display:flex; gap:22px; overflow-x:auto; padding-bottom:6px; scrollbar-width:none}

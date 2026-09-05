@@ -47,6 +47,9 @@
   import { currentZoneId } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import LignePisteV2 from './LignePisteV2.svelte';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
@@ -148,7 +151,9 @@
   function matches(a: Album): boolean {
     if (fQuality && !tierMatches(a, fQuality)) return false;
     if (fRate && (a.sample_rate ?? 0) !== fRate) return false; // exact
-    if (fYear != null && albumYear(a) !== fYear) return false;
+    // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
+    // filtre la grille en direct. Voir `anneeEffective`.
+    if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     if (fFormat && (a.format?.trim().toUpperCase() ?? '') !== fFormat) return false;
     if (fDepth != null && (a.bit_depth ?? 0) !== fDepth) return false;
     if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
@@ -193,7 +198,8 @@
   // Disponible à partir d'Avancé : en Essentiel, le rail A–Z suffit et reste
   // le seul repère, conformément au principe « seulement le plus pertinent ».
   type NavMode = 'alpha' | 'years';
-  let navMode = $state<NavMode>('alpha');
+  let navMode = $state<NavMode>(lireChoix('lib.nav', ['alpha', 'years'] as const, 'alpha'));
+  $effect(() => ecrireChoix('lib.nav', navMode));
   /** La frise est un second repere de navigation : elle vient s'ajouter au
    *  rail A-Z, elle ne le remplace pas. On la propose des l'Avance. */
 
@@ -255,6 +261,14 @@
    * Chaque facette se compte SANS elle-meme — sinon choisir FLAC mettrait tous
    * les autres formats a zero et le menu deviendrait un cul-de-sac.
    */
+  /**
+   * ⚠️ Les compteurs de FACETTES restent sur l'annee CHOISIE, pas sur le survol.
+   *
+   * Ils decrivent le jeu de filtres que l'utilisateur a pose ; les recalculer a
+   * chaque annee traversee ferait clignoter toute la rangee de pastilles
+   * pendant qu'on balaye, et couterait un parcours complet de la bibliotheque
+   * par cran. La grille suit le curseur ; les pastilles suivent les choix.
+   */
   const filtresActifs = $derived<FiltresBibliotheque>({
     qualite: fQuality, frequence: fRate, annee: fYear,
     format: fFormat, profondeur: fDepth, recherche: q,
@@ -271,6 +285,24 @@
   /** Annee SURVOLEE dans la frise. Le curseur suit la souris : c'est ce qui
    *  fait qu'il « parcourt les annees » au lieu d'attendre un clic. */
   let hoverYear = $state<number | null>(null);
+
+  /**
+   * L'annee qui commande la GRILLE.
+   *
+   * Bertrand, 05/09/2026 : il veut que la grille suive le curseur. Jusqu'ici la
+   * frise ne filtrait qu'au clic ; le survol ne bougeait que le curseur, et
+   * balayer cinquante ans ne montrait rien.
+   *
+   * Le survol l'emporte tant qu'il dure — c'est un APERCU. Quitter la frise
+   * remet `hoverYear` a `null`, et la grille retombe sur l'annee choisie, ou
+   * sur rien. Le clic, lui, FIGE : `fYear` survit a la sortie de la frise, et
+   * le curseur se marque « fige ».
+   *
+   * Ordre voulu : survol AVANT choix. Sans cela, une annee figee empecherait
+   * d'en previsualiser une autre — la frise deviendrait morte des le premier
+   * clic, ce qui est exactement l'inverse de ce qu'on veut.
+   */
+  const anneeEffective = $derived(hoverYear ?? fYear);
 
   /** Mois survole dans l'annee, 0..11.
    *
@@ -301,13 +333,20 @@
     { k: 'title', l: 'Titre' }, { k: 'artist', l: 'Artiste' },
     { k: 'year', l: 'Année' }, { k: 'added', l: 'Ajout récent' },
   ];
-  let sortKey = $state<SortKey>('title');
+  /**
+   * 🔴 RETENU d'une visite à l'autre (Lulu, forum, 05/09/2026 : « figer le
+   * choix de l'organisation de la bibliothèque »). Il repartait sur « Titre »
+   * à chaque retour, quel que soit le choix précédent.
+   */
+  let sortKey = $state<SortKey>(lireChoix('lib.sort', SORTS.map((s2) => s2.k), 'title'));
+  $effect(() => ecrireChoix('lib.sort', sortKey));
   const hasAddedAt = $derived(src.some((a) => (a.added_at ?? 0) > 0));
   const availableSorts = $derived(SORTS.filter((s2) => s2.k !== 'added' || hasAddedAt));
 
   // ── Affichage grille / liste ──────────────────────────────────────────
   type Display = 'grid' | 'list';
-  let display = $state<Display>('grid');
+  let display = $state<Display>(lireChoix('lib.display', ['grid', 'list'] as const, 'grid'));
+  $effect(() => ecrireChoix('lib.display', display));
 
   /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
    *  bibliothèque — pas une plage fixe, qui laisserait des décennies vides
@@ -348,7 +387,7 @@
     if (!bars.length) return null;
     return bars.reduce((best, b) => (b.n > best.n ? b : best), bars[0]).year;
   });
-  const cursorYear = $derived(fYear ?? hoverYear ?? busiestYear);
+  const cursorYear = $derived(hoverYear ?? fYear ?? busiestYear);
   /** Position en %, au CENTRE du trait de cette annee. */
   const cursorPct = $derived.by(() => {
     const { bars } = histogram;
@@ -413,7 +452,10 @@
     { id: 'years', label: 'Années', adv: true },
     { id: 'labels', label: 'Labels', adv: true },
   ];
-  let tab = $state<Tab>('albums');
+  // L'ONGLET aussi : revenir à la Bibliothèque après avoir consulté les Titres
+  // pour retomber sur les Albums est le même agacement, d'un cran plus haut.
+  let tab = $state<Tab>(lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'));
+  $effect(() => ecrireChoix('lib.tab', tab));
 
   /**
    * Les filtres portent sur les ALBUMS — qualité, fréquence, format,
@@ -647,6 +689,19 @@
     {/if}
     {#if showFilters}
       <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
+      <!--
+        DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
+        en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
+        ce qu'on veut voir en arrivant ne doit pas se chercher dans un menu.
+
+        Ce n'est pas un filtre : le chip bascule le TRI, et se rallume quand
+        c'est lui qui est actif. On ne cache donc rien de la bibliothèque.
+      -->
+      {#if hasAddedAt}
+        <button class="chip" class:active={sortKey === 'added'}
+          onclick={() => (sortKey = sortKey === 'added' ? 'title' : 'added')}
+          title={$tr('v2.lib.recentHint' as any)}>{$tr('v2.lib.recent' as any)}</button>
+      {/if}
       <div class="drop" class:open={ddOpen === 'quality'}>
         <button class="chip" class:active={fQuality !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -810,7 +865,7 @@
             style="--h:{histogram.max ? 34 + Math.round((b.n / histogram.max) * 66) : 34}%"
             onmouseenter={() => (hoverYear = b.year)}
             onmousemove={(e) => surveille(e, b.year)}
-            onfocus={() => { hoverYear = b.year; hoverMonth = null; }}
+            onfocus={() => { hoverMonth = null; }}
             onclick={() => (fYear = fYear === b.year ? null : b.year)}
           ></button>
         {/each}
@@ -862,11 +917,7 @@
             <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             {#each visibleTracks as t, i (t.id ?? i)}
-              <button class="trk" onclick={() => playTrack(t)}>
-                <span class="tn">{i + 1}</span>
-                <span class="tt">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
-                <span class="td">{formatDuration(t.duration_ms ?? 0)}</span>
-              </button>
+              <LignePisteV2 piste={t} numero={i + 1} onLire={() => playTrack(t)} />
             {/each}
             {#if tracks.length > visibleTracks.length}
               <div class="state">{visibleTracks.length} titres affichés sur {tracks.length} — affinez la recherche.</div>
@@ -896,8 +947,9 @@
                       {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
                     </div>
                     <button class="meta" onclick={() => opened = a}>
-                      <div class="ct">{a.title}</div>
-                      <div class="ca">{a.artist_name ?? ''}</div>
+                      <div class="ct" title={a.title}>{a.title}</div>
+                      <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+                      <QualiteAlbum objet={a} />
                     </button>
                   </div>
                 {/each}
@@ -947,8 +999,9 @@
                 {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
               </div>
               <button class="meta" onclick={() => opened = a}>
-                <div class="ct">{a.title}</div>
-                <div class="ca">{a.artist_name ?? ''}</div>
+                <div class="ct" title={a.title}>{a.title}</div>
+                <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+                <QualiteAlbum objet={a} />
                 {#if showTech}<div class="cq">{tech(a)}</div>{/if}
               </button>
             </div>
@@ -1156,9 +1209,12 @@
   /* Onglet Titres. */
   .tracklist{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
   .tracklist::-webkit-scrollbar{width:9px}.tracklist::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .trk{display:grid; grid-template-columns:40px 1fr auto; align-items:center; gap:14px; width:100%;
-    padding:8px 10px; border:0; border-radius:9px; background:transparent; color:var(--v2-txt2);
-    cursor:pointer; text-align:left}
+  .trk{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:14px; width:100%;
+    padding:0 10px; border-radius:9px; color:var(--v2-txt2)}
+  /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
+     n'etant plus qu'un conteneur depuis qu'elle accueille la barre d'actions. */
+  .tclick{display:grid; grid-template-columns:40px 1fr; align-items:center; gap:14px; min-width:0;
+    padding:8px 0; border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; font-family:inherit}
   .trk:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .trk .tn{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .trk .tt{min-width:0; font-size:13.5px; font-weight:500; display:flex; flex-direction:column; gap:2px;

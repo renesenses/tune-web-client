@@ -5,7 +5,19 @@
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
-  import HeartButton from './HeartButton.svelte';
+  /**
+   * Les cinq actions par piste (Bertrand, 05/09/2026 : « et les boutons
+   * d'action sur une piste dans cet écran ? »). Cet écran est celui du client
+   * ACTUEL, monté tel quel par la coquille v2 : ses lignes n'avaient qu'un
+   * cœur, là où toutes les autres listes du nouveau client portent Lire, Lire
+   * ensuite, Ajouter à la file, Ajouter à une playlist et Favori.
+   *
+   * Le composant a reçu des replis de couleur pour rester lisible ici comme
+   * là-bas ; réécrire tout l'écran aux couleurs du nouveau client — 948 lignes,
+   * ambiances enregistrées et indexation acoustique comprises — est un chantier
+   * à part.
+   */
+  import PisteActions from './v2/PisteActions.svelte';
   import { formatTime } from '../lib/utils';
   import type { Track } from '../lib/types';
   import { acousticStatus, acousticEnabled, acousticProgress, refreshAcousticStatus } from '../lib/stores/acoustic';
@@ -442,8 +454,8 @@
               <span class="match-badge" title="Similarité acoustique">{track.similarity.toFixed(2)}</span>
             {/if}
             <span class="track-duration">{formatTime(track.duration_ms)}</span>
-            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-              {#if track.id}<HeartButton trackId={track.id} size={14} />{/if}
+            <span class="track-actions" onclick={(e) => e.stopPropagation()}>
+              <PisteActions piste={track} />
             </span>
           </div>
         {/each}
@@ -819,6 +831,14 @@
 
   .track-row:hover {
     background: var(--tune-surface-hover);
+  }
+
+  /* La barre d'actions ne s'étire pas : la ligne est un `flex`, et sans cela
+     elle prendrait la place laissée par le titre. */
+  .track-actions {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
   }
 
   .track-row.loading {

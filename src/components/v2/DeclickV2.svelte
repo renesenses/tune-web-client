@@ -189,8 +189,8 @@
         {#each shown as a (a.id)}
           <button class="card" class:sel={a.id != null && picked.has(a.id)} onclick={() => toggle(a.id)}>
             <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
-            <span class="ct">{a.title}</span>
-            <span class="ca">{a.artist_name ?? ''}</span>
+            <span class="ct" title={a.title}>{a.title}</span>
+            <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
             {#if a.id != null && picked.has(a.id)}
               <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>
             {/if}

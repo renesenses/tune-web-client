@@ -114,8 +114,11 @@ describe('Les écrans qui portent des pochettes de service', () => {
   it('une playlist de service n’a pas de cœur', () => {
     // `streaming_favorites.item_type` ne connaît que piste, album et artiste.
     // Un cœur sur une playlist serait un bouton qui échoue en silence.
+    // Le TYPE passé à la vignette reste `null` : c'est lui qui commande le
+    // cœur. Depuis le 05/09/2026 la playlist reçoit en plus un geste
+    // d'ouverture — quatrième argument — mais toujours pas de type.
     expect(
-      streaming().includes('{@render tile(p, () => playPlaylist(p), null)}'),
+      /\{@render tile\(p, \(\) => playPlaylist\(p\), null[,)]/.test(streaming()),
       'les playlists de service redemandent un cœur que le serveur ne stocke pas',
     ).toBe(true);
   });
@@ -205,8 +208,16 @@ describe('Voir les métadonnées d’un album de service', () => {
     const src = streaming();
     expect(src.includes("import AlbumDetailV2 from './AlbumDetailV2.svelte';"),
       'l’écran Streaming a reperdu la fiche album').toBe(true);
-    expect(src.includes('onOuvrir={ouvrirFiche(p, type) ?? onPlay}'),
+    // Le geste d'ouverture est calculé une fois, en tête de vignette, parce
+    // que le TITRE le partage désormais avec la pochette (Bertrand,
+    // 05/09/2026). La pochette continue de l'appeler.
+    expect(src.includes('{@const ouvre = ouvrir ?? ouvrirFiche(p, type)}'),
+      'la vignette ne calcule plus son geste d’ouverture').toBe(true);
+    expect(src.includes('onOuvrir={ouvre ?? onPlay}'),
       'cliquer une pochette relance la lecture au lieu d’ouvrir la fiche').toBe(true);
+    // Et le TITRE porte le même geste : il n'était cliquable nulle part.
+    expect(/<button class="ct"[^>]*onclick=\{ouvre \?\? onPlay\}>/.test(src),
+      'le titre d’une vignette n’est plus cliquable').toBe(true);
     // La fiche doit être ouverte EN TANT QUE service : sans le drapeau, elle
     // chercherait les pistes par un `id` local qui n'existe pas.
     expect(/<AlbumDetailV2[^>]*service=\{ficheService\}/.test(src),

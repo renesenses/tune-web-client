@@ -29,6 +29,7 @@
   import DeclickV2 from './DeclickV2.svelte';
   import PluginsV2 from './PluginsV2.svelte';
   import CollectionsV2 from './CollectionsV2.svelte';
+  import HistoriqueV2 from './HistoriqueV2.svelte';
   import MetadataV2 from './MetadataV2.svelte';
   import SupportV2 from './SupportV2.svelte';
   // Barre de transport : celle du client actuel, telle quelle. On ne la FORKE
@@ -46,6 +47,37 @@
   // l'écran n'avait pas disparu, il n'avait jamais été branché.
   import NowPlaying from '../NowPlaying.svelte';
   import TvView from '../TvView.svelte';
+  /**
+   * 🔴 SANS LUI, TOUT DIALOGUE RESTE SANS REPONSE POUR TOUJOURS.
+   *
+   * Bertrand, 05/09/2026 : « suppression d'un raccourci ne marche pas ». Elle
+   * demande confirmation par `dialogs.confirm()`, qui pose la demande dans une
+   * file et attend qu'un conteneur la rende. Ce conteneur etait monte « une
+   * seule fois, dans App.svelte » — que le mode `?v2` ne monte JAMAIS.
+   *
+   * La promesse ne se resolvait donc pas : le clic ne faisait rien, sans
+   * message, sans erreur de console. Exactement le defaut que ce composant
+   * avait ete ecrit pour corriger — les dialogues natifs qui n'ouvrent pas
+   * dans une vue embarquee (#166) — reproduit d'un cran plus haut.
+   *
+   * Trois ecrans etaient touches, quatre gestes en tout : supprimer un
+   * raccourci, vider les favoris radio, et deux confirmations des Reglages
+   * dont la deconnexion d'un service.
+   */
+  import DialogContainer from '../DialogContainer.svelte';
+  // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
+  // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
+  // « Il manque Oxygen dans la v2 !! ». Il pese 1 400 lignes avec son rail de
+  // facettes et son inspecteur ; le reecrire aux couleurs du nouveau client
+  // est un chantier a part, et le laisser absent en attendant privait d'une
+  // fonction entiere. Mieux vaut l'ecran d'hier que pas d'ecran.
+  import OxygenView from '../OxygenView.svelte';
+  // AMBIANCE et REPERTOIRES, montes de la meme facon. Signales manquants par
+  // Querite sur le forum le 05/09/2026 : « manque les onglets : Ambiance,
+  // Repertoires, Oxygen ». Les trois vues existaient et etaient declarees ;
+  // la coquille n'en montait aucune.
+  import AmbianceView from '../AmbianceView.svelte';
+  import BrowseView from '../BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
   import { addShortcut } from '../../lib/stores/shortcuts';
@@ -53,14 +85,21 @@
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
+  import {
+    startUpdatePolling, stopUpdatePolling,
+    updateAvailable, latestVersion, updateBannerDismissed, dismissUpdateBanner,
+  } from '../../lib/stores/updates';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { bootstrapV2 } from '../../lib/v2Bootstrap';
+  import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import '../../styles/tune-v2.css';
 
   const LABELS: Partial<Record<View, string>> = {
     home: 'Accueil', radios: 'Radio', playlists: 'Playlists', search: 'Recherche',
     podcasts: 'Podcasts', streaming: 'Streaming', queue: "File d'attente", favorites: 'Favoris',
-    zonemanager: 'Zones', mediaservers: 'Serveurs multimédia',
+    zonemanager: 'Zones', mediaservers: 'Serveurs multimédia', history: 'Historique', oxygen: 'Oxygen',
+    ambiance: 'Ambiance', browse: 'Répertoires',
     equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
     declick: 'Dé-ploc', metadata: 'Métadonnées', plugins: 'Extensions',
     diagnostics: 'Processing', settings: 'Réglages', support: 'Support', genres: 'Genres',
@@ -80,6 +119,50 @@
   // de transport reste figée sur l'état du montage — elle n'est pas mal
   // branchée, personne ne l'alimente. Le retour arrête tout au démontage.
   $effect(() => demarrerTransportV2());
+
+  /**
+   * L'ANNONCE DE MISE A JOUR, que la coquille v2 ne portait pas.
+   *
+   * Le sondage, les stores et la bannière existaient depuis longtemps — dans
+   * `App.svelte`, que `?v2` ne monte jamais. Personne n'appelait donc
+   * `startUpdatePolling()` sur cette voie : `updateAvailable` restait `false`
+   * pour toujours, et la pastille de la barre latérale v2, elle aussi branchée
+   * sur ce store, ne s'allumait jamais. Écrit, mais pas branché.
+   *
+   * Le sondage s'arrête au démontage : sans le retour, une coquille remontée
+   * (bascule d'interface) en laisserait un second derrière elle.
+   */
+  $effect(() => {
+    startUpdatePolling();
+    return () => stopUpdatePolling();
+  });
+
+  /**
+   * 🔴 Les raccourcis clavier n'etaient branches NULLE PART en `?v2`.
+   *
+   * `setupKeyboardShortcuts` n'etait appele que par `App.svelte`, que ce mode
+   * ne monte jamais. Espace, les fleches, N, P et M ne faisaient donc rien du
+   * tout dans le nouveau client — ecrit, pas branche, comme l'annonce de mise
+   * a jour avant elle.
+   *
+   * Constate le 05/09/2026 en cherchant ou poser la touche « arreter » que
+   * Bertrand demandait : il n'y avait pas d'endroit ou la poser.
+   */
+  $effect(() => setupKeyboardShortcuts());
+
+  /** La bannière n'occupe la place que si elle a quelque chose à dire. */
+  const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);
+
+  /**
+   * Le clic MENE quelque part : Réglages → Système, section « À propos », d'où
+   * la mise à jour s'installe. Une bannière qui annonce sans conduire oblige à
+   * chercher soi-même l'écran — et c'est le même geste que la version de la
+   * barre latérale, qui vise déjà cet onglet.
+   */
+  function ouvrirMaj() {
+    v2SettingsTarget.set({ tab: 'system', section: 'about' });
+    activeView.set('settings');
+  }
 
   /** Bascule vers le mode TV — plein écran puis vue dédiée, comme l'écran actuel. */
   function modeTv() {
@@ -110,7 +193,7 @@
   }
 </script>
 
-<div class="v2-shell tune-v2">
+<div class="v2-shell tune-v2" class:avec-maj={annonceMaj}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -159,6 +242,22 @@
           onkeydown={(e) => { if (e.key === 'Escape') poseRaccourci = false; }} />
         <button type="submit" disabled={pose || !nomRaccourci.trim()}>{$t('common.save' as any)}</button>
       </form>
+    </div>
+  {/if}
+
+  {#if annonceMaj}
+    <!--
+      Dans le FLUX, en premier enfant — pas en absolu par-dessus la coquille :
+      une bannière qui recouvre mange la première ligne de chaque écran, et la
+      grappe avatar/signet est déjà pincée en haut à droite. Ici elle décale
+      tout, y compris la grappe (`.avec-maj .av-tr`).
+    -->
+    <div class="maj">
+      <button class="maj-txt" onclick={ouvrirMaj}>
+        {$t('app.updateAvailable').replace('{version}', String($latestVersion ?? ''))}
+      </button>
+      <button class="maj-x" onclick={dismissUpdateBanner}
+        aria-label={$t('app.dismiss')} title={$t('app.dismiss')}>&times;</button>
     </div>
   {/if}
 
@@ -216,6 +315,17 @@
         <MetadataV2 />
       {:else if $activeView === 'support'}
         <SupportV2 />
+      {:else if $activeView === 'history'}
+        <HistoriqueV2 />
+      {:else if $activeView === 'oxygen'}
+        <OxygenView />
+      {:else if $activeView === 'ambiance'}
+        <AmbianceView />
+      {:else if $activeView === 'browse'}
+        <!-- `onAddToPlaylist` non fournie : le bouton reste masque tant que la
+             coquille v2 n'a pas sa propre fenetre de playlists. Mieux vaut un
+             bouton absent qu'un bouton mort. -->
+        <BrowseView />
       {:else if $activeView === 'collections'}
         <CollectionsV2 />
       {:else if $activeView === 'nowplaying'}
@@ -234,6 +344,11 @@
   </div>
   <TransportBar />
 
+  <!-- Le conteneur de dialogues : il ne dessine rien tant que personne ne
+       demande. Place ICI, au premier niveau de la coquille, pour couvrir tous
+       les ecrans qu'elle monte. -->
+  <DialogContainer />
+
   <!-- Voie MOBILE : la barre pose ce drapeau au lieu de changer de vue.
        Personne ne l'écoutait ici. -->
   {#if $mobileNowPlayingOpen}
@@ -247,10 +362,28 @@
 </div>
 
 <style>
-  .v2-shell{position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
+  .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
   .av-tr{position:absolute; top:20px; right:30px; z-index:80; display:flex; align-items:center; gap:10px}
+  /* La grappe est en ABSOLU : la bannière du flux ne la pousse pas toute
+     seule, il faut le lui dire — sinon les trois ronds se posent dessus. */
+  .avec-maj .av-tr{top:calc(20px + var(--maj-h))}
+  /* Bannière de mise à jour. Les deux moitiés sont des BOUTONS : le texte mène
+     aux Réglages, la croix masque l'annonce pour cette version-là. */
+  .maj{flex:0 0 var(--maj-h); display:flex; align-items:center; gap:10px;
+    padding:0 30px; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2));
+    color:var(--v2-on-acc); font-family:var(--v2-sans)}
+  .maj-txt{flex:1; min-width:0; border:0; background:transparent; color:inherit; cursor:pointer;
+    text-align:left; font:600 13px var(--v2-sans);
+    /* La grappe avatar/signet vit au-dessus du bord droit : le texte s'arrête
+       avant, sinon la fin de la phrase passe sous les ronds. */
+    padding:0 150px 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .maj-txt:hover{text-decoration:underline}
+  .maj-x{flex:0 0 auto; width:26px; height:26px; border:0; border-radius:50%; cursor:pointer;
+    background:rgba(255,255,255,.18); color:inherit; font-size:18px; line-height:1;
+    display:grid; place-items:center}
+  .maj-x:hover{background:rgba(255,255,255,.32)}
   /* Le bouton d'origine de « Lecture en cours » est MASQUÉ ici : la grappe
      ci-dessus le porte, aligné avec le signet et l'avatar. L'écran actuel, lui,
      garde le sien — il n'a rien à cet endroit. */

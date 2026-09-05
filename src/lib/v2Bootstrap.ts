@@ -44,11 +44,33 @@ async function loadZones(): Promise<void> {
 async function loadAlbums(): Promise<void> {
   libraryLoading.set(true);
   try {
-    const first = await api.getAllAlbums(100, 'title', 'asc', 1, 100);
+    // 🔴 AUCUN tri demandé au serveur — et ce n'est pas un oubli.
+    //
+    // Signalé sur le forum le 05/09/2026 : « je n'ai pas vu de possibilité de
+    // tri des albums par date d'ajout dans la nouvelle interface ». L'option
+    // « Ajout récent » existe pourtant dans la Bibliothèque ; elle ne s'affiche
+    // que si la donnée est là, et elle ne l'était jamais.
+    //
+    // Mesuré sur le .18, même bibliothèque, même limite :
+    //
+    //     GET /library/albums?limit=50&offset=0                  -> 50/50 avec added_at
+    //     GET /library/albums?limit=50&offset=0&sort=title&…      ->  0/50
+    //     …&sort=artist / &sort=year / &sort=added               ->  0/50
+    //
+    // Le serveur a deux chemins, et le chemin TRIÉ perd `added_at` — quelle
+    // que soit la clé demandée, y compris `added` lui-même. Issue serveur
+    // ouverte.
+    //
+    // Ne rien demander suffit ici : tous les écrans du nouveau client trient
+    // eux-mêmes ce qu'ils affichent, l'ordre du serveur ne sert à personne.
+    // Vérifié que la pagination non triée reste stable sur cette base — deux
+    // lectures des pages 0 et 1 rendent la même chose, sans recouvrement,
+    // 200 identifiants distincts pour 200 attendus.
+    const first = await api.getAllAlbums(100, null, null, 1, 100);
     albums.set(first);
     libraryLoading.set(false);
     if (first.length >= 100) {
-      const rest = await api.getAllAlbums(2000, 'title', 'asc');
+      const rest = await api.getAllAlbums(2000, null, null);
       albums.set(rest);
     }
   } finally {

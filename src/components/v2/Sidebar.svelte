@@ -40,6 +40,13 @@
     // Signalé par Bertrand le 02/09/2026 : « il manque l'écran Lecture en
     // cours ».
     { view: 'nowplaying', label: 'Lecture en cours', icon: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0m12-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0' },
+    // HISTORIQUE dans le NOYAU (Bertrand, 05/09/2026 : « manque Historique »).
+    // Il forme une paire avec « Lecture en cours » — ce qui joue, ce qui a
+    // joué — et c'est le chemin par lequel on retrouve un titre entendu à la
+    // radio dont on n'a pas noté le nom. Le mettre dans « Avancé » l'aurait
+    // laissé invisible au niveau Essentiel, ce qui est exactement le défaut
+    // signalé : l'écran existait, la vue était déclarée, rien n'y menait.
+    { view: 'history', label: 'Historique', icon: 'M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2' },
     { view: 'library', label: 'Bibliothèque', icon: 'M4 5v14M9 5v14M14 6l5 13' },
     { view: 'radios', label: 'Radio en direct', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
     { view: 'podcasts', label: 'Podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },
@@ -54,6 +61,15 @@
     { view: 'search', label: 'Recherche', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
   ];
   const ADVANCED: Item[] = [
+    // OXYGEN — l'exploration de la bibliotheque par facettes, en table. C'est
+    // une autre facon de parcourir ce que la Bibliotheque montre en grille :
+    // sa place est aupres d'elle, pas dans le Studio, qui traite le SON.
+    { view: 'oxygen', label: 'Oxygen', icon: 'M4 5h16M4 10h16M4 15h10M4 20h10M14 17l3 3 3-5' },
+    // REPERTOIRES : parcourir les DOSSIERS, quand on sait ou une piste vit sur
+    // le disque et que les balises ne le disent pas.
+    { view: 'browse', label: 'Répertoires', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
+    // AMBIANCE : choisir par l'humeur plutot que par le nom.
+    { view: 'ambiance', label: 'Ambiance', icon: 'M4 9v6M9 5v14M14 8v8M19 11v2' },
     { view: 'queue', label: "File d'attente", icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
     { view: 'zonemanager', label: 'Zones', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
     // SERVEURS MULTIMEDIA en Avance (Bertrand, 28/08). Parcourir la
@@ -248,7 +264,7 @@
      tracé : il occupe la même case que les pictogrammes pour que la colonne
      reste alignée. */
   .emo{width:17px; height:17px; display:grid; place-items:center; font-size:14px; line-height:1; flex:none}
-  .brand{position:relative; display:flex; align-items:center; gap:11px; padding:4px 8px 22px}
+  .brand{position:relative; display:flex; align-items:center; gap:11px; padding:2px 8px 14px}
   .collapse{margin-left:auto; width:26px; height:26px; border-radius:8px; border:0; cursor:pointer;
     background:transparent; color:var(--v2-txt3); display:grid; place-items:center; transition:.15s}
   .collapse:hover{color:var(--v2-txt); background:var(--v2-hover)}
@@ -262,19 +278,28 @@
   .navscroll{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px}
   .navscroll::-webkit-scrollbar{width:6px}
   .navscroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .grp{display:flex; flex-direction:column; gap:4px}
+  .grp{display:flex; flex-direction:column; gap:1px}
   .reveal{max-height:0; opacity:0; overflow:hidden; transition:max-height .34s ease, opacity .26s ease}
   .reveal.show{max-height:440px; opacity:1}
-  .grp-label{font-family:var(--v2-mono); font-size:10px; letter-spacing:.18em; color:var(--v2-txt3);
-    padding:16px 14px 8px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
+  .grp-label{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.18em; color:var(--v2-txt3);
+    padding:11px 14px 5px; text-transform:uppercase; display:flex; align-items:center; gap:10px}
   .grp-label::after{content:""; flex:1; height:1px; background:var(--v2-line)}
 
-  .nav{display:flex; align-items:center; gap:13px; width:100%; padding:11px 14px; border:0; cursor:pointer;
+  /* COMPACTE. Bilou, forum, 05/09/2026 : « menu de gauche a rendre plus
+     compact, trop d'espace entre les lignes, ce qui oblige a scroller »
+     (Windows 11 / Firefox). Vingt-deux entrees a 42 px en faisaient 924, plus
+     que la hauteur utile d'un ecran d'ordinateur portable : la barre defilait
+     chez tout le monde. A 32 px, elle en fait 704 et tient.
+
+     Le confort de visee reste correct : 32 px est au-dessus du minimum
+     confortable pour un pointeur, et le tactile ne rencontre pas cette barre —
+     elle est repliee en icones sous 1100 px. */
+  .nav{display:flex; align-items:center; gap:12px; width:100%; padding:6px 14px; border:0; cursor:pointer;
     border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2);
-    font-family:inherit; font-size:14.5px; font-weight:500; text-align:left; transition:.15s}
-  .nav svg{width:19px; height:19px; flex:0 0 auto}
+    font-family:inherit; font-size:13.5px; font-weight:500; text-align:left; transition:.15s}
+  .nav svg{width:17px; height:17px; flex:0 0 auto}
   .nav:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nav.active{color:var(--v2-txt); background:linear-gradient(90deg,var(--v2-active1),var(--v2-active2)); box-shadow:inset 0 0 0 1px var(--v2-line2)}
   .nav.active svg{color:var(--v2-acc1)}
-  .support{margin-top:8px}
+  .support{margin-top:6px}
 </style>

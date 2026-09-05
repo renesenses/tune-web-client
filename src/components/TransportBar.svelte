@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, stopAndSync } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { upNextCount } from '../lib/stores/queue';
   import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
@@ -397,6 +397,53 @@
     await controls.togglePlayPause(zone, track, playState);
   }
 
+  /**
+   * Un clic : pause. Deux clics : STOP.
+   *
+   * Idée de Bertrand (05/09/2026), en remplacement du bouton stop autonome. Le
+   * stop n'est pas une commande de MUSIQUE — position et file sont conservées
+   * de part et d'autre, vérifié sur le .18 — c'est une commande d'APPAREIL :
+   * `orchestrator.stop(zone, device)` envoie un STOP au périphérique, ce qui
+   * libère un renderer DLNA ou AirPlay là où la pause le garde.
+   *
+   * ## Le double-clic du SYSTÈME, pas le mien
+   *
+   * Première version : un chronomètre maison, 350 ms. Il avalait un re-clic
+   * délibéré — mettre en pause puis relancer aussitôt arrêtait la lecture. Je
+   * l'ai baissé à 250 ms, et le double-clic est devenu trop difficile à
+   * déclencher : « Pas de stop sur double click !! ».
+   *
+   * Les deux réglages étaient faux parce que la bonne valeur n'est pas la
+   * mienne : c'est celle que l'utilisateur a réglée dans son système. On la lit
+   * donc là où elle est.
+   *
+   *  - `event.detail` vaut le rang du clic DANS l'intervalle du système : 1 au
+   *    premier, 2 au second. Le second ne rebascule donc pas — sans quoi la
+   *    musique repartirait entre les deux, un sursaut audible ;
+   *  - `dblclick`, que le navigateur émet ensuite avec ce même intervalle,
+   *    arrête.
+   *
+   * Au clavier, Entrée sur le bouton donne `detail: 0` : la bascule passe, et
+   * la touche `S` reste le chemin d'arrêt.
+   */
+
+  // La RADIO n'a pas de stop : le bouton autonome l'excluait déjà, un flux en
+  // direct ne se met pas en pause pour reprendre où l'on était.
+  const stopPossible = $derived(!!zone?.id && displayTrack?.source !== 'radio');
+
+  async function clicLecture(e: MouseEvent) {
+    // Le second clic d'un double ne bascule pas : `dblclick` va arrêter.
+    if (e.detail >= 2) return;
+    await togglePlayPause();
+  }
+
+  async function doubleClicLecture() {
+    if (!stopPossible || !zone?.id) return;
+    // `stopAndSync` et non `api.stop` : sans report d'état, la zone restait
+    // « playing » dans le magasin et le bouton devenait inerte.
+    await stopAndSync(zone.id);
+  }
+
   async function handlePrevious() {
     await controls.skipPrevious(zone);
   }
@@ -653,6 +700,22 @@
               <span class="radio-antenna">&#x1F4E1;</span>{displayTrack.album_title || 'Radio'}
             {:else}
               {displayTrack.artist_name ?? ''}
+            {/if}
+          </span>
+          <!--
+            TROISIEME LIGNE. Bertrand, 05/09/2026 : « transport bar : badges
+            source et qualité sur une troisième ligne !! Je me répète ! ».
+
+            Ils vivaient DANS `.mini-artist`, qui porte `truncate` : un nom
+            d'artiste un peu long les rognait, et sa capture montrait un badge
+            « F… » coupé net. Une ligne à eux, et ils ne dépendent plus de la
+            longueur du nom.
+
+            La RADIO est exclue : sa deuxième ligne porte déjà la station, et
+            un flux en direct n'a ni service ni fiche technique à annoncer.
+          -->
+          {#if displayTrack.source !== 'radio'}
+            <span class="mini-badges">
               <ServiceBadge source={displayTrack.source} compact />
               {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || zone?.signal_path}
                 {@const sourceStep = zone?.signal_path?.steps?.find((s: any) => s.name === 'Source')?.description ?? ''}
@@ -669,9 +732,9 @@
                   onkeydown={(e) => { if (zone?.signal_path && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
                   title={hasTrackFormat ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
                 >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || ((zone?.signal_path?.lossless ?? zone?.signal_path?.bit_perfect) ? 'Lossless' : 'Lossy'))}</span>
-              {/if}
             {/if}
-          </span>
+            </span>
+          {/if}
         </div>
       </div>
       {#if getFavKind(displayTrack) !== 'none'}
@@ -729,8 +792,11 @@
       class="control-btn play-btn"
       class:loading={ytLoadingState}
       disabled={hasNoZone && !ytActive}
-      onclick={togglePlayPause}
-      title={hasNoZone && !ytActive ? $t('zone.playDisabledNoZone' as any) : (isPlaying ? $t('common.pause') : $t('common.play'))}
+      onclick={clicLecture}
+      ondblclick={doubleClicLecture}
+      title={hasNoZone && !ytActive
+        ? $t('zone.playDisabledNoZone' as any)
+        : (isPlaying ? $t('common.pause') : $t('common.play')) + (stopPossible ? ` · ${$t('transport.dblClickStop' as any)}` : '')}
     >
       {#if ytLoadingState}
         <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -748,17 +814,6 @@
       {/if}
     </button>
 
-    {#if playState !== 'stopped' && zone?.id && displayTrack?.source !== 'radio'}
-      <button
-        class="control-btn stop-btn"
-        onclick={async () => { if (zone?.id) await api.stop(zone.id); }}
-        title={$t('common.stop') ?? 'Stop'}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <rect x="6" y="6" width="12" height="12" rx="1.5" />
-        </svg>
-      </button>
-    {/if}
 
     {#if displayTrack?.source !== 'radio'}
       <!-- La règle vit dans lib/boutonSuivant : le mini-lecteur porte le même
@@ -1264,6 +1319,17 @@
     display: flex;
     align-items: center;
     gap: 5px;
+  }
+
+  /* TROISIEME LIGNE : les badges ne dependent plus de la longueur du nom
+     d'artiste. Ils ne s'elident pas — ils sont courts et se lisent entiers ou
+     pas du tout. */
+  .mini-badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    flex-wrap: wrap;
   }
 
   .yt-badge {
@@ -2377,8 +2443,7 @@
 
   .transport-bar.compact .control-btn.small,
   .transport-bar.compact .signal-dot-btn,
-  .transport-bar.compact .audiophile-btn,
-  .transport-bar.compact .stop-btn {
+  .transport-bar.compact .audiophile-btn {
     display: none;
   }
 

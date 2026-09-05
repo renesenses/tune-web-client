@@ -21,9 +21,10 @@
   import { currentZoneId } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { queueTracks, queuePosition } from '../../lib/stores/queue';
+  import PisteActions from './PisteActions.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { formatDuration, getQualityTier } from '../../lib/utils';
+  import { formatDuration, formatTime, getQualityTier } from '../../lib/utils';
   import type { Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import '../../styles/tune-v2.css';
@@ -112,7 +113,7 @@
               <div class="na">{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
               {#if showExpert && tech(current)}<div class="ntk">{tech(current)}</div>{/if}
             </div>
-            <span class="ndur">{formatDuration(current.duration_ms ?? 0)}</span>
+            <span class="ndur">{formatTime(current.duration_ms ?? 0)}</span>
           </div>
         </section>
       {/if}
@@ -129,7 +130,13 @@
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
               </button>
               {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
-              <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
+              <span class="dur">{formatTime(t.duration_ms ?? 0)}</span>
+              <!-- Les memes actions que partout ailleurs (Bertrand, 05/09/2026 :
+                   « Sur file d'attente, il manque des boutons d'action ! »). Les
+                   fleches et la croix restent : monter, descendre et retirer
+                   sont propres a la FILE, elles n'ont de sens nulle part
+                   ailleurs. -->
+              <PisteActions piste={t} />
               {#if showExpert}
                 <span class="ord">
                   <button onclick={() => move(idx, idx - 1)} disabled={busy || idx <= pos + 1} aria-label="Monter">
@@ -183,7 +190,7 @@
   .ndur{font:12px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
 
   .list{display:flex; flex-direction:column; gap:1px}
-  .row{display:grid; grid-template-columns:1fr auto auto auto auto; align-items:center; gap:12px;
+  .row{display:grid; grid-template-columns:1fr auto auto auto auto auto; align-items:center; gap:12px;
     padding:0 8px; border-radius:9px; color:var(--v2-txt2)}
   .row:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .row.np{color:var(--v2-acc1)}

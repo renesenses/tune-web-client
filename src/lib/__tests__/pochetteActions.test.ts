@@ -353,13 +353,22 @@ describe('Collections — deux sortes, deux identités', () => {
     ).toBe(true);
   });
 
-  it('seule la collection NORMALE s’édite', () => {
-    // `PUT /library/collections/{id}` n'existe que pour elles. Une
-    // intelligente est une RÈGLE : la renommer ne se fait pas par là.
-    expect(
-      ecran().includes("onEditer={e.sorte === 'normale' ? () => (enEdition = e) : null}"),
-      'le crayon est proposé sur une collection intelligente, où il n’a pas de route.',
-    ).toBe(true);
+  it('le crayon mène à l’éditeur qui CONVIENT à chaque sorte', () => {
+    // Le crayon était réservé aux collections manuelles : `PUT
+    // /library/collections/{id}` n'existe que pour elles, et une intelligente
+    // est une RÈGLE — la renommer ne se fait pas par là.
+    //
+    // Depuis le 05/09/2026 elle a son propre éditeur (Bertrand : « et comment
+    // ajouter une smart collection ? »), donc son propre chemin : la modale de
+    // renommage d'un côté, l'éditeur de règles de l'autre. Ce qui reste
+    // interdit, c'est de les CONFONDRE.
+    const src = ecran();
+    expect(src.includes("onEditer={e.sorte === 'normale'"), 'le crayon ne distingue plus les deux sortes').toBe(true);
+    expect(src.includes('? () => (enEdition = e)'), 'la manuelle n’ouvre plus la modale de renommage').toBe(true);
+    expect(src.includes(': () => (editeurSmart = { id: e.id })}'), 'l’intelligente n’ouvre pas l’éditeur de règles').toBe(true);
+    // Et l'intelligente ne passe JAMAIS par la modale de renommage, qui
+    // écrirait sur une route qui ne la connaît pas.
+    expect(src.includes("e.sorte === 'smart' ? () => (enEdition = e)"), 'une intelligente passe par la modale de renommage').toBe(false);
   });
 });
 

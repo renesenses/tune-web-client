@@ -650,3 +650,46 @@ describe('tri aléatoire : la graine', () => {
     expect(fetchCalls[0].url).not.toContain('seed=');
   });
 });
+
+// =========================================================================
+// Preferences de profil : la ROUTE, mesuree contre le serveur
+// =========================================================================
+
+describe('preferences de profil (Bertrand, 05/09/2026)', () => {
+  /**
+   * Le garde precedent ne lisait que la source du client et affirmait
+   * `method: 'PUT'` sur `/profiles/{id}/preferences` — une route qui n'existe
+   * pas cote serveur (404 mesure sur le .18). Il etait vert contre rien.
+   *
+   * Ces trois tests observent les appels REELLEMENT emis.
+   */
+  it('la lecture vise /settings', async () => {
+    mockFetch({ home_widgets: ['a'] });
+    await api.getProfilePreferences(7);
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].url).toContain('/profiles/7/settings');
+    expect(fetchCalls[0].url).not.toContain('/preferences');
+  });
+
+  it("l'ecriture RELIT puis POSTe sur /settings", async () => {
+    mockFetch({ autre_cle: 'gardee' });
+    await api.setProfilePreferences(7, { home_widgets: ['a', 'b'] });
+    expect(fetchCalls).toHaveLength(2);
+    // 1. relecture
+    expect(fetchCalls[0].url).toContain('/profiles/7/settings');
+    expect(fetchCalls[0].init?.method ?? 'GET').toBe('GET');
+    // 2. ecriture
+    expect(fetchCalls[1].url).toContain('/profiles/7/settings');
+    expect(fetchCalls[1].init?.method).toBe('POST');
+  });
+
+  it("l'ecriture FUSIONNE : les cles des autres ecrans survivent", async () => {
+    // POST /settings REMPLACE l'objet cote serveur — mesure : poster {cle_b}
+    // apres {cle_a} laisse cle_b seule. Sans relecture, cet ecran effacerait
+    // les reglages de tous les autres.
+    mockFetch({ autre_cle: 'gardee', home_widgets: ['ancien'] });
+    await api.setProfilePreferences(7, { home_widgets: ['neuf'] });
+    const envoye = JSON.parse(String(fetchCalls[1].init?.body));
+    expect(envoye).toEqual({ autre_cle: 'gardee', home_widgets: ['neuf'] });
+  });
+});

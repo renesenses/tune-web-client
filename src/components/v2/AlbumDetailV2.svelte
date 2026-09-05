@@ -14,6 +14,11 @@
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import LignePisteV2 from './LignePisteV2.svelte';
+  import { corpsDeLecture } from '../../lib/pisteFile';
+  import { favoriteAlbumIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
+  import { basculerFavoriLocal } from '../../lib/favorisLocaux';
+  import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
 
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -23,8 +28,15 @@
   // d'identifiant local — son identite est `source_id` AVEC le service, et le
   // serveur n'apparie que la paire. Meme forme que `depot` : une origine qui
   // change ou l'on va chercher les pistes et comment on les joue.
-  let { album, depot = null, service = null, onClose }:
-    { album: Album; depot?: DepotDistant | null; service?: string | null; onClose: () => void } = $props();
+  // `bandcamp` : la fiche d'un album BANDCAMP. Quatrieme origine, et la plus
+  // etrangere des quatre — un album Bandcamp n'a ni identifiant local, ni
+  // `source_id` de service : il est designe par l'URL de sa page publique, et
+  // ses pistes se lisent par leur `stream_url`. Demande par Bertrand le
+  // 05/09/2026 : « Click sur un album doit ouvrir l'album ! ». Jusque-la, un
+  // clic LANCAIT l'extrait, sans jamais montrer ce que l'album contenait.
+  let { album, depot = null, service = null, bandcamp = null, onClose }:
+    { album: Album; depot?: DepotDistant | null; service?: string | null;
+      bandcamp?: string | null; onClose: () => void } = $props();
 
   /** Identifiant distant de l'album, quand il vient d'un service. */
   const sidDistant = $derived(service ? ((album as any).source_id ?? null) : null);
@@ -35,12 +47,34 @@
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
 
   $effect(() => {
-    const id = album.id, d = depot, svc = service, sid = sidDistant;
+    const id = album.id, d = depot, svc = service, sid = sidDistant, bc = bandcamp;
     // Un album de service n'a pas d'`id` local : sans cette branche, la garde
     // sortait aussitot et la fiche restait sur « Chargement… » pour toujours.
-    if (id == null && !(svc && sid)) return;
+    if (id == null && !(svc && sid) && !bc) return;
     loading = true; error = null;
-    const p = svc && sid
+    const p = bc
+      // Le plugin rend ses propres champs : on les traduit dans la forme d'une
+      // piste, en gardant `stream_url` comme chemin de lecture — c'est ce que
+      // fait deja l'ecran Bandcamp du client actuel.
+      // 🔴 `source_id`, PAS `file_path`.
+      //
+      // Bertrand, 05/09/2026 : « bouton play sur un album Bandcamp ne lance
+      // pas la lecture mais relance la lecture en cours ». C'est la signature
+      // d'un corps que le serveur ne sait pas apparier : il retombe alors sur
+      // « reprendre ». L'ecran Bandcamp du client actuel, lui, marche — il
+      // envoie la PAIRE `source: 'bandcamp'` + `source_id: <url du flux>`.
+      //
+      // Porter l'URL dans `source_id` repare la lecture ET rend la piste
+      // designable : la barre d'actions, qui se retirait faute de pouvoir la
+      // nommer, revient sur chaque ligne.
+      ? api.bandcampAlbum(bc).then((d2) => (d2?.tracks ?? []).map((t, i) => ({
+          id: null, track_number: t.num ?? i + 1, title: t.title,
+          artist_name: t.artist ?? album.artist_name ?? null,
+          album_title: album.title, duration_ms: (t.duration_s ?? 0) * 1000,
+          source: 'bandcamp', source_id: t.stream_url,
+          cover_path: album.cover_path ?? null, format: 'MP3',
+        })) as unknown as Track[])
+      : svc && sid
       ? api.getStreamingAlbumTracks(svc, String(sid))
       : d
         ? pistesAlbumDistant(d, id as number)
@@ -49,6 +83,41 @@
       .catch((e) => { error = errText(e) ?? 'Chargement impossible'; })
       .finally(() => { loading = false; });
   });
+
+  /**
+   * FAVORI. Bertrand, 05/09/2026 : « En vue Album, où se trouve l'icône
+   * favori ? » — nulle part. Le cœur vivait sur la pochette dans la grille,
+   * posé par `PochetteActions` ; en ouvrant l'album on le perdait, et il
+   * fallait refermer la fiche pour mettre un disque en favori.
+   *
+   * Les deux espaces d'identifiants sont distincts : un album local est
+   * désigné par son `id`, un album de service par la paire service +
+   * `source_id`, et ils vivent dans deux tables. Le premier chemin sur le
+   * second ne retirerait rien, en silence (#1478).
+   */
+  const cleService = $derived(
+    service && sidDistant ? streamingFavKey('album', service, String(sidDistant)) : null,
+  );
+  const enFavori = $derived(
+    album.id != null ? $favoriteAlbumIds.has(album.id)
+      : cleService != null && $favoriteStreamingKeys.has(cleService),
+  );
+  let bascule = $state(false);
+  async function basculerFavori() {
+    if (bascule) return;
+    bascule = true;
+    try {
+      if (album.id != null) await basculerFavoriLocal({ albumId: album.id });
+      else if (service && sidDistant) {
+        await toggleStreamingFavorite({
+          itemType: 'album', service, serviceId: String(sidDistant),
+          title: album.title, artist: album.artist_name ?? undefined,
+          coverUrl: album.cover_path ?? undefined,
+        });
+      }
+    } catch { /* le cœur reprend son état au prochain relevé */ }
+    bascule = false;
+  }
 
   const totalMs = $derived(tracks.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
   const tier = $derived(getQualityTier(album));
@@ -80,6 +149,15 @@
     // lecture en cours » — le defaut releve sur les playlists Qobuz.
     if (service && sidDistant) {
       api.play(zid, { streaming_album_id: String(sidDistant), source: service as any, start_index: startIndex }).catch(() => {});
+      return;
+    }
+    // Bandcamp : chaque piste porte son propre flux, il n'y a pas d'album a
+    // designer au serveur. On lance celle qu'on a choisie, par le MEME chemin
+    // que partout ailleurs — `corpsDeLecture` sait former la paire.
+    if (bandcamp) {
+      const corps = corpsDeLecture(tracks[startIndex]);
+      if (!corps) return;
+      api.play(zid, corps as any).catch(() => {});
       return;
     }
     if (album.id == null) return;
@@ -149,6 +227,18 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>Ajouter à la file
           </button>
         {/if}
+        <!-- Le cœur n'apparaît que si l'album est DÉSIGNABLE : un album
+             Bandcamp, identifié par une URL, n'entre dans aucune des deux
+             tables de favoris. Un bouton absent ne promet rien. -->
+        {#if album.id != null || (service && sidDistant)}
+          <button class="ghost coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
+            aria-pressed={enFavori}
+            title={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}
+            aria-label={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
+            <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+          </button>
+        {/if}
       </div>
     </div>
   </div>
@@ -160,12 +250,11 @@
       <div class="state err">{error}</div>
     {:else}
       {#each tracks as t, i (t.id ?? i)}
-        <button class="trk" class:np={t.id != null && t.id === $currentTrackId} onclick={() => playAlbum(i)}>
-          <span class="n">{t.track_number || i + 1}</span>
-          <span class="ti">{t.title}</span>
-          {#if showExpert}<span class="tk">{trackTech(t)}</span>{/if}
-          <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
-        </button>
+        <!-- Ligne PARTAGEE : meme richesse et memes gestes que partout
+             ailleurs. Sans pochette — les vingt lignes porteraient la meme —
+             et sans le titre de l'album, qui est deja en tete d'ecran. -->
+        <LignePisteV2 piste={t} numero={t.track_number || i + 1}
+          pochette={false} avecAlbum={false} onLire={() => playAlbum(i)} />
       {/each}
     {/if}
   </div>
@@ -193,12 +282,21 @@
   .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  /* Le cœur ACTIF garde le rouge : c'est un ÉTAT, pas une action — la même
+     règle que sur les lignes de piste. */
+  .coeur.on{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+  .coeur.on:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+  .coeur:disabled{opacity:.55; cursor:default}
   .play svg,.ghost svg{width:16px; height:16px}
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
-  .trk{display:grid; grid-template-columns:34px 1fr auto auto; align-items:center; gap:14px; width:100%;
-    padding:11px 12px; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; text-align:left; border-radius:8px}
+  .trk{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; width:100%;
+    padding:0 12px; color:var(--v2-txt2); border-radius:8px}
+  /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
+     n'etant plus qu'un conteneur depuis qu'elle accueille la barre d'actions. */
+  .tclick{display:grid; grid-template-columns:34px 1fr; align-items:center; gap:14px; min-width:0;
+    padding:11px 0; border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; font-family:inherit}
   .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .trk.np{color:var(--v2-acc1)}
   .trk .n{font:12px var(--v2-mono); color:var(--v2-txt3); text-align:right}

@@ -24,14 +24,25 @@
   import type { Album, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import LignePisteV2 from './LignePisteV2.svelte';
+  import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import { t } from '../../lib/i18n';
-  import type { Artist } from '../../lib/types';
+  import type { Artist, Playlist, StreamingPlaylist } from '../../lib/types';
+  import { streamingServices } from '../../lib/stores/streaming';
+  import {
+    fusionnerParType,
+    meilleurResultat,
+    chargerRecherchesRecentes,
+    retenirRecherche,
+    oublierRecherche,
+    viderRecherchesRecentes,
+    type RechercheRecente,
+  } from '../../lib/rechercheClassement';
   import '../../styles/tune-v2.css';
 
-  const showAdvanced = $derived(atLeast($preferences.settingsLevel, 'intermediate'));
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
 
   let q = $state('');
@@ -78,10 +89,19 @@
       .catch(() => { acousticAvailable = false; });
   });
 
-  // Recherche débouncée sur la frappe / le niveau.
+  /**
+   * Recherche débouncée sur la frappe.
+   *
+   * 🔴 Les SERVICES ne sont plus derrière un niveau d'interface (Bertrand,
+   * 05/09/2026 : « Recherche ne travaille que sur la bibliothèque et pas sur
+   * les streamings »). La recherche fédérée était réservée à Intermédiaire :
+   * au niveau Essentiel, l'écran cherchait en silence dans la seule
+   * bibliothèque locale, sans jamais dire qu'il laissait Qobuz et Tidal de
+   * côté. Or il n'y a rien à protéger ici : un service non connecté ne rend
+   * simplement rien, et qui a branché son abonnement veut ses résultats.
+   */
   $effect(() => {
     const query = q.trim();
-    const advanced = showAdvanced;
     if (query.length < 2) { local = null; fed = {}; acoustic = null; busy = false; return; }
     const mine = ++seq;
     busy = true;
@@ -90,15 +110,95 @@
         .then((r) => { if (mine === seq) local = r; })
         .catch(() => { if (mine === seq) local = null; })
         .finally(() => { if (mine === seq) busy = false; });
-      if (advanced) {
-        api.federatedSearch(query)
-          .then((r: FederatedSearchResult) => { if (mine === seq) fed = r.services ?? {}; })
-          .catch(() => { if (mine === seq) fed = {}; });
-      } else {
-        fed = {};
-      }
+      api.federatedSearch(query)
+        .then((r: FederatedSearchResult) => { if (mine === seq) fed = r.services ?? {}; })
+        .catch(() => { if (mine === seq) fed = {}; });
+      chercherPlaylists(query, mine);
+      recentes = retenirRecherche(query);
     }, 240);
     return () => clearTimeout(t);
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* Playlists — absentes du nouvel écran, présentes dans l'actuel     */
+  /* ---------------------------------------------------------------- */
+
+  /** Une playlist trouvée, locale ou d'un service. */
+  interface PlaylistTrouvee {
+    nom: string;
+    pistes: number;
+    source: string;
+    idLocal?: number;
+    idService?: string;
+    serviceSource?: string;
+  }
+  let playlists = $state<PlaylistTrouvee[]>([]);
+
+  /**
+   * Le serveur ne cherche pas dans les playlists : ni `/library/search` ni la
+   * recherche fédérée ne les couvrent. On les liste et on filtre ici — c'est
+   * ce que fait déjà l'écran du client actuel.
+   */
+  async function chercherPlaylists(query: string, mine: number) {
+    const bas = query.toLowerCase();
+    const trouvees: PlaylistTrouvee[] = [];
+    const locales: Playlist[] = await api.getPlaylists().catch(() => [] as Playlist[]);
+    for (const pl of locales) {
+      if (pl.name?.toLowerCase().includes(bas)) {
+        trouvees.push({ nom: pl.name, pistes: pl.track_count ?? 0, source: 'Local', idLocal: pl.id ?? undefined });
+      }
+    }
+    // `get` et non `$store` : l'abonnement automatique n'existe qu'au premier
+    // niveau du composant, et cette fonction n'y est pas.
+    const services = get(streamingServices);
+    await Promise.all(
+      Object.entries(services)
+        .filter(([, st]: [string, any]) => st?.authenticated)
+        .map(([svc]) =>
+          api.getStreamingPlaylists(svc)
+            .then((pls: StreamingPlaylist[]) => {
+              for (const pl of pls) {
+                if (pl.name?.toLowerCase().includes(bas)) {
+                  trouvees.push({
+                    nom: pl.name, pistes: pl.track_count, source: svc.charAt(0).toUpperCase() + svc.slice(1),
+                    idService: pl.source_id, serviceSource: pl.source,
+                  });
+                }
+              }
+            })
+            .catch(() => {}),
+        ),
+    );
+    if (mine === seq) playlists = trouvees;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Découverte — ce que montre l'écran AVANT la première frappe       */
+  /* ---------------------------------------------------------------- */
+
+  let recentes = $state<RechercheRecente[]>([]);
+  let tetesAffiche = $state<any[]>([]);
+  let ajoutsRecents = $state<Album[]>([]);
+
+  $effect(() => {
+    recentes = chargerRecherchesRecentes();
+    // Les portraits d'artistes ne viennent pas de l'historique d'écoute : on
+    // les récupère dans la bibliothèque, par NOM, sinon la rangée n'affiche
+    // que des initiales.
+    Promise.all([
+      api.getTopArtists(12).catch(() => [] as any[]),
+      api.getRecentAlbums(18).catch(() => [] as Album[]),
+      api.getArtists(5000, 0).catch(() => [] as Artist[]),
+    ]).then(([tetes, recents, tous]) => {
+      const parNom = new Map<string, Artist>();
+      for (const a of tous) if (a.name) parNom.set(a.name.toLowerCase(), a);
+      tetesAffiche = (tetes ?? []).map((a: any) => {
+        const nom = (a.artist_name || a.name || '');
+        const fiche = parNom.get(nom.toLowerCase());
+        return { nom, image_path: fiche?.image_path ?? null, id: fiche?.id ?? null, plays: a.plays ?? a.play_count ?? null };
+      }).filter((a: any) => a.nom);
+      ajoutsRecents = recents ?? [];
+    });
   });
 
   function runAcoustic() {
@@ -139,14 +239,116 @@
     return t.sample_rate ? `${Math.round(t.sample_rate / 100) / 10} kHz` : '';
   }
 
-  const localAlbums = $derived(local?.albums ?? []);
-  const localTracks = $derived(local?.tracks ?? []);
-  const localArtists = $derived(local?.artists ?? []);
-  const fedEntries = $derived(Object.entries(fed).filter(([, r]) => (r.albums?.length || r.tracks?.length)));
+  /**
+   * 🔴 Regroupé par TYPE, plus par source.
+   *
+   * L'écran rangeait les résultats locaux en trois sections et rejetait tout
+   * le streaming dans un bloc « Sur les services », lui-même redécoupé par
+   * service. C'est le découpage par source qu'on avait explicitement écarté :
+   * chercher « Kind of Blue », c'est chercher un disque, pas un marchand.
+   *
+   * La provenance n'est pas perdue pour autant — chaque ligne garde sa
+   * `source`, et la vignette porte son badge.
+   */
+  const groupes = $derived(fusionnerParType(local, fed));
+
+  // Filtres par type. Rien n'est masqué par défaut : ils servent à ÉCARTER
+  // quand une requête ramène trop, pas à révéler.
+  let voirArtistes = $state(true);
+  let voirAlbums = $state(true);
+  let voirTitres = $state(true);
+  let voirPlaylists = $state(true);
+
+  /**
+   * PÉRIMÈTRE — où l'on a cherché, et où l'on veut chercher.
+   *
+   * Bertrand, 05/09/2026 : « il manque les services de streaming dans le
+   * périmètre de la recherche ». Les résultats de service ARRIVAIENT bien —
+   * mesuré sur le .18, « miles davis » rend 20 entrées locales, 20 Bandcamp,
+   * 20 Qobuz et 20 Tidal — mais rien à l'écran ne le disait : groupés par type,
+   * ils se fondaient dans les mêmes listes que la bibliothèque. On ne savait
+   * donc ni où l'on avait cherché, ni comment s'y restreindre.
+   *
+   * La rangée n'apparaît qu'à partir de DEUX sources : sur un serveur sans
+   * abonnement, un « périmètre » à une seule case ne choisit rien.
+   */
+  const sourcesTrouvees = $derived.by(() => {
+    const n = new Map<string, number>();
+    for (const l of [groupes.artistes, groupes.albums, groupes.pistes]) {
+      for (const x of l) n.set(x.source ?? 'local', (n.get(x.source ?? 'local') ?? 0) + 1);
+    }
+    // Le LOCAL en tête : c'est ce que l'utilisateur possède déjà.
+    return [...n.entries()].sort((a, b) =>
+      (a[0] === 'local' ? -1 : b[0] === 'local' ? 1 : a[0].localeCompare(b[0])));
+  });
+
+  /** Vide = tout le périmètre. On ne coche donc rien au départ. */
+  let sourcesActives = $state(new Set<string>());
+  function basculerSource(cle: string) {
+    const s2 = new Set(sourcesActives);
+    if (s2.has(cle)) s2.delete(cle); else s2.add(cle);
+    sourcesActives = s2;
+  }
+  // Changer de requête remet le périmètre à zéro : un filtre hérité d'une
+  // recherche précédente masquerait des résultats sans qu'on sache pourquoi.
+  $effect(() => { void q; sourcesActives = new Set(); });
+
+  const dansLePerimetre = (x: any) =>
+    sourcesActives.size === 0 || sourcesActives.has(x?.source ?? 'local');
+
+  const nomSource = (k: string) =>
+    k === 'local' ? $t('v2.rech.srcLocal' as any) : k.charAt(0).toUpperCase() + k.slice(1);
+
+  const artistes = $derived(voirArtistes ? groupes.artistes.filter(dansLePerimetre) : []);
+  const albums = $derived(voirAlbums ? groupes.albums.filter(dansLePerimetre) : []);
+  const titres = $derived(voirTitres ? groupes.pistes.filter(dansLePerimetre) : []);
+  const lesPlaylists = $derived(voirPlaylists ? playlists : []);
+
+  // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
+  // sortir du périmètre choisi, sinon on met en avant un album d'un service
+  // qu'on vient justement d'écarter.
+  const meilleur = $derived(meilleurResultat(q, {
+    artistes: groupes.artistes.filter(dansLePerimetre),
+    albums: groupes.albums.filter(dansLePerimetre),
+    pistes: groupes.pistes.filter(dansLePerimetre),
+  }));
+
+  /** Une ligne locale porte un identifiant de bibliothèque ; une ligne de
+   *  service n'en a pas — c'est ce qui décide du cœur, du crayon et du geste
+   *  de lecture. */
+  const estLocal = (x: any) => (x?.source ?? 'local') === 'local' && x?.id != null;
+
   const nothing = $derived(
-    q.trim().length >= 2 && !busy && !localAlbums.length && !localTracks.length &&
-    !localArtists.length && !fedEntries.length && !(acoustic?.tracks.length)
+    q.trim().length >= 2 && !busy && !groupes.albums.length && !groupes.pistes.length &&
+    !groupes.artistes.length && !playlists.length && !(acoustic?.tracks.length)
   );
+
+  function lirePlaylist(pl: PlaylistTrouvee) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    if (pl.idLocal != null) { api.play(zid, { playlist_id: pl.idLocal }).catch(() => {}); return; }
+    if (pl.idService && pl.serviceSource) {
+      api.play(zid, { streaming_playlist_id: pl.idService, source: pl.serviceSource as any }).catch(() => {});
+    }
+  }
+
+  /** Lit une ligne d'album, locale ou de service — le geste diffère, pas l'intention. */
+  function ouvrirOuLire(a: any) {
+    if (estLocal(a)) lireAlbum(a.id);
+    else lireDistant(a);
+  }
+
+  function lirePiste(t: any) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    if (estLocal(t)) { api.play(zid, { track_id: t.id }).catch(() => {}); return; }
+    if (t?.source && t?.source_id) {
+      api.play(zid, { source: t.source, source_id: String(t.source_id),
+        title: t.title ?? null, artist_name: t.artist_name ?? null,
+        album_title: t.album_title ?? null, cover_path: t.cover_path ?? null,
+        duration_ms: t.duration_ms }).catch(() => {});
+    }
+  }
 </script>
 
 <section class="v2-search tune-v2">
@@ -172,66 +374,79 @@
     {/if}
   </header>
 
+  {#if q.trim().length >= 2 && sourcesTrouvees.length > 1}
+    <div class="pills">
+      <span class="pl">{$t('v2.rech.where' as any)}</span>
+      {#each sourcesTrouvees as [cle, n] (cle)}
+        <button class="pill src" class:on={sourcesActives.size === 0 || sourcesActives.has(cle)}
+          onclick={() => basculerSource(cle)}>{nomSource(cle)} <b>{n}</b></button>
+      {/each}
+      {#if sourcesActives.size}
+        <button class="pill raz" onclick={() => (sourcesActives = new Set())}>{$t('v2.rech.allSources' as any)}</button>
+      {/if}
+    </div>
+  {/if}
+
+  {#if q.trim().length >= 2}
+    <div class="pills">
+      <span class="pl">{$t('v2.rech.show' as any)}</span>
+      <!-- Les compteurs suivent le PÉRIMÈTRE : annoncer 152 albums alors qu'on
+           s'est restreint à la bibliothèque serait un chiffre qui ment. -->
+      <button class="pill" class:on={voirArtistes} onclick={() => (voirArtistes = !voirArtistes)}
+        >{$t('v2.rech.artists' as any)} <b>{groupes.artistes.filter(dansLePerimetre).length}</b></button>
+      <button class="pill" class:on={voirAlbums} onclick={() => (voirAlbums = !voirAlbums)}
+        >{$t('v2.rech.albums' as any)} <b>{groupes.albums.filter(dansLePerimetre).length}</b></button>
+      <button class="pill" class:on={voirTitres} onclick={() => (voirTitres = !voirTitres)}
+        >{$t('v2.rech.tracks' as any)} <b>{groupes.pistes.filter(dansLePerimetre).length}</b></button>
+      <button class="pill" class:on={voirPlaylists} onclick={() => (voirPlaylists = !voirPlaylists)}
+        >{$t('v2.rech.playlists' as any)} <b>{playlists.length}</b></button>
+    </div>
+  {/if}
+
   <div class="scroll">
     {#if q.trim().length < 2}
-      <div class="hint">
-        <div class="glyph">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        </div>
-        <p>Tapez au moins deux caractères pour explorer votre bibliothèque{showAdvanced ? ' et les services' : ''}.</p>
-        {#if showExpert && acousticAvailable}<p class="sub">{$t('v2.sc.acousticHintA' as any)} <b>{$t('v2.sc.acousticHintBold' as any)}</b> {$t('v2.sc.acousticHintB' as any)}</p>{/if}
-      </div>
-    {:else if nothing}
-      <div class="hint"><p>Aucun résultat pour « {q.trim()} ».</p></div>
-    {:else}
-      {#if showExpert && acoustic && acoustic.tracks.length}
+      <!-- DÉCOUVERTE : un écran de recherche vide ne doit pas être une page
+           blanche. Trois entrées — ce qu'on a déjà cherché, ce qu'on écoute le
+           plus, ce qui vient d'arriver. Le client actuel les a, le nouveau
+           n'avait qu'une loupe grise (Bertrand, 05/09/2026). -->
+      {#if recentes.length}
         <section class="grp">
-          <h2>Ambiance <span class="tag">acoustique</span></h2>
-          <div class="list">
-            {#each acoustic.tracks as t, i (t.id ?? i)}
-              <button class="trk" class:np={t.id != null && t.id === $currentTrackId} onclick={() => playTrack(t)}>
-                <span class="cvsm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
-                <span class="ti">{t.title}<em>{t.artist_name ?? ''}</em></span>
-                {#if t.similarity != null}<span class="sim">{Math.round(t.similarity * 100)}%</span>{/if}
-                <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
-              </button>
+          <h2>{$t('v2.rech.recent' as any)}
+            <button class="lnk" onclick={() => (recentes = viderRecherchesRecentes())}>{$t('v2.rech.clearRecent' as any)}</button>
+          </h2>
+          <div class="chips">
+            {#each recentes as r (r.query)}
+              <span class="chip">
+                <button class="chq" onclick={() => (q = r.query)}>{r.query}</button>
+                <button class="chx" onclick={() => (recentes = oublierRecherche(r.query))}
+                  aria-label={$t('v2.rech.forget' as any)} title={$t('v2.rech.forget' as any)}>&times;</button>
+              </span>
             {/each}
           </div>
         </section>
       {/if}
 
-      {#if showAdvanced && localArtists.length}
+      {#if tetesAffiche.length}
         <section class="grp">
-          <h2>Artistes</h2>
+          <h2>{$t('search.topArtists')}</h2>
           <div class="arow">
-            {#each localArtists.slice(0, 12) as ar (ar.id ?? ar.name)}
+            {#each tetesAffiche as a (a.nom)}
               <div class="artile">
                 <span class="acv">
-                  <PochetteActions
-                    favori={ar.id != null ? { artistId: ar.id } : null}
-                    etiquettes={ar.id != null ? { itemType: 'artist', itemId: ar.id } : null}
-                    onEditer={ar.id != null ? () => (artisteEnEdition = ar) : null}
-                    onOuvrir={() => (q = ar.name)}
-                    nom={ar.name}
-                  >
-                    <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
-                  </PochetteActions>
+                  <AlbumArt coverPath={a.image_path} albumId={null} size={0} alt={a.nom} fallbackInitials={a.nom?.slice(0,1)} />
                 </span>
-                <button class="meta" onclick={() => (q = ar.name)}><span class="an">{ar.name}</span></button>
+                <button class="meta" onclick={() => (q = a.nom)}><span class="an" title={a.nom}>{a.nom}</span></button>
               </div>
             {/each}
           </div>
         </section>
       {/if}
 
-      {#if localAlbums.length}
+      {#if ajoutsRecents.length}
         <section class="grp">
-          <h2>Albums</h2>
+          <h2>{$t('v2.rech.recentAdds' as any)}</h2>
           <div class="grid">
-            {#each localAlbums as a (a.id)}
-              <!-- La carte etait UN bouton englobant. `PochetteActions` en pose
-                   cinq : elle devient un conteneur neutre, et le texte garde
-                   son propre bouton d'ouverture. -->
+            {#each ajoutsRecents as a (a.id)}
               <div class="card">
                 <span class="cv">
                   <PochetteActions
@@ -246,8 +461,9 @@
                   </PochetteActions>
                 </span>
                 <button class="meta" onclick={() => (opened = a)}>
-                  <span class="ct">{a.title}</span>
-                  <span class="ca">{a.artist_name ?? ''}</span>
+                  <span class="ct" title={a.title}>{a.title}</span>
+                  <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                  <QualiteAlbum objet={a} />
                 </button>
               </div>
             {/each}
@@ -255,49 +471,160 @@
         </section>
       {/if}
 
-      {#if localTracks.length}
+      {#if !recentes.length && !tetesAffiche.length && !ajoutsRecents.length}
+        <div class="hint">
+          <div class="glyph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          </div>
+          <p>{$t('v2.rech.hint' as any)}</p>
+          {#if showExpert && acousticAvailable}<p class="sub">{$t('v2.sc.acousticHintA' as any)} <b>{$t('v2.sc.acousticHintBold' as any)}</b> {$t('v2.sc.acousticHintB' as any)}</p>{/if}
+        </div>
+      {/if}
+    {:else if nothing}
+      <div class="hint"><p>{$t('v2.rech.none' as any).replace('{q}', q.trim())}</p></div>
+    {:else}
+      {#if showExpert && acoustic && acoustic.tracks.length}
         <section class="grp">
-          <h2>Titres</h2>
+          <h2>Ambiance <span class="tag">acoustique</span></h2>
           <div class="list">
-            {#each localTracks.slice(0, 30) as t, i (t.id ?? i)}
-              <button class="trk" class:np={t.id != null && t.id === $currentTrackId} onclick={() => playTrack(t)}>
-                <span class="cvsm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
-                <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
-                {#if showExpert && trackRate(t)}<span class="tk">{trackRate(t)}</span>{/if}
-                <span class="dur">{formatDuration(t.duration_ms ?? 0)}</span>
-              </button>
+            {#each acoustic.tracks as t, i (t.id ?? i)}
+              <!-- L'AMBIANCE garde son pourcentage de proximite : c'est la
+                   seule colonne que la ligne partagee ne connait pas. -->
+              <div class="lp">
+                <LignePisteV2 piste={t as any} avecAlbum={false} onLire={() => playTrack(t)} />
+                {#if t.similarity != null}<span class="sim">{Math.round(t.similarity * 100)}%</span>{/if}
+              </div>
             {/each}
           </div>
         </section>
       {/if}
 
-      {#if showAdvanced && fedEntries.length}
-        <section class="grp">
-          <h2>{$t('v2.sc.onServices' as any)}</h2>
-          {#each fedEntries as [svc, r] (svc)}
-            {#if r.albums?.length}
-              <div class="svc"><span class="svcn">{svc}</span></div>
-              <div class="grid">
-                {#each r.albums.slice(0, 12) as a (a.source_id ?? a.id)}
-                  <div class="card static">
-                    <span class="cv">
-                      <!-- Album de SERVICE : ni coeur ni etiquettes, tous deux
-                           adosses a un identifiant de la bibliotheque qu'il n'a
-                           pas. Lire exige la paire service + identifiant. -->
+      <!-- BANDEAU DE TÊTE : le meilleur résultat à gauche, les artistes en
+           rangée à droite. Un point focal, puis le balayage — c'est la mise en
+           page validée pour la recherche, et elle manquait ici. -->
+      {#if meilleur || artistes.length}
+        <section class="grp tete">
+          {#if meilleur}
+            <div class="best">
+              <h2>{$t('v2.rech.best' as any)}</h2>
+              {#if meilleur.genre === 'artiste'}
+                {@const a = meilleur.artiste}
+                <button class="bcard" onclick={() => (q = a.name)}>
+                  <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
+                  <span class="bt">{a.name}</span>
+                  <span class="bk">{$t('v2.rech.kindArtist' as any)}</span>
+                </button>
+              {:else if meilleur.genre === 'album'}
+                {@const a = meilleur.album}
+                <button class="bcard" onclick={() => (estLocal(a) ? (opened = a) : ouvrirOuLire(a))}>
+                  <span class="bcv"><AlbumArt coverPath={a.cover_path} albumId={estLocal(a) ? a.id : null} size={0} alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} /></span>
+                  <span class="bt">{a.title}</span>
+                  <span class="bk">{$t('v2.rech.kindAlbum' as any)} · {a.artist_name ?? ''}</span>
+                </button>
+              {:else}
+                {@const pi = meilleur.piste}
+                <button class="bcard" onclick={() => lirePiste(pi)}>
+                  <span class="bcv"><AlbumArt coverPath={pi.cover_path} albumId={estLocal(pi) ? (pi.album_id ?? null) : null} size={0} alt={pi.title} source={pi.source as any} fallbackInitials={pi.title?.slice(0,1)} /></span>
+                  <span class="bt">{pi.title}</span>
+                  <span class="bk">{$t('v2.rech.kindTrack' as any)} · {pi.artist_name ?? ''}</span>
+                </button>
+              {/if}
+            </div>
+          {/if}
+
+          {#if artistes.length}
+            <div class="basartistes">
+              <h2>{$t('v2.rech.artists' as any)}</h2>
+              <div class="arow">
+                {#each artistes.slice(0, 12) as ar, i (String(ar.id ?? '') + ':' + ar.name + ':' + i)}
+                  <div class="artile">
+                    <span class="acv">
                       <PochetteActions
-                        onLire={a.source && a.source_id ? () => lireDistant(a) : null}
-                        nom={a.title}
+                        favori={estLocal(ar) ? { artistId: ar.id! } : null}
+                        etiquettes={estLocal(ar) ? { itemType: 'artist', itemId: ar.id! } : null}
+                        onEditer={estLocal(ar) ? () => (artisteEnEdition = ar) : null}
+                        onOuvrir={() => (q = ar.name)}
+                        nom={ar.name}
                       >
-                        <AlbumArt coverPath={a.cover_path} albumId={null} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                        <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
                       </PochetteActions>
                     </span>
-                    <span class="ct">{a.title}</span>
-                    <span class="ca">{a.artist_name ?? ''}</span>
+                    <button class="meta" onclick={() => (q = ar.name)}><span class="an" title={ar.name}>{ar.name}</span></button>
                   </div>
                 {/each}
               </div>
-            {/if}
-          {/each}
+            </div>
+          {/if}
+        </section>
+      {/if}
+
+      {#if albums.length}
+        <section class="grp">
+          <h2>{$t('v2.rech.albums' as any)}</h2>
+          <div class="grid">
+            {#each albums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
+              {@const local_ = estLocal(a)}
+              <div class="card" class:static={!local_}>
+                <span class="cv">
+                  <!-- Un album de SERVICE n'a ni coeur ni etiquettes : les deux
+                       sont adosses a un identifiant de bibliotheque qu'il n'a
+                       pas. Il se LIT, avec la paire service + identifiant. -->
+                  <PochetteActions
+                    favori={local_ ? { albumId: a.id! } : null}
+                    etiquettes={local_ ? { itemType: 'album', itemId: a.id! } : null}
+                    onEditer={local_ ? () => (albumEnEdition = a) : null}
+                    onLire={local_ || (a.source && a.source_id) ? () => ouvrirOuLire(a) : null}
+                    onOuvrir={local_ ? () => (opened = a) : null}
+                    nom={a.title}
+                  >
+                    <AlbumArt coverPath={a.cover_path} albumId={local_ ? a.id : null} size={0} alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} />
+                  </PochetteActions>
+                </span>
+                {#if local_}
+                  <button class="meta" onclick={() => (opened = a)}>
+                    <span class="ct" title={a.title}>{a.title}</span>
+                    <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                    <QualiteAlbum objet={a} />
+                  </button>
+                {:else}
+                  <span class="ct" title={a.title}>{a.title}</span>
+                  <!-- La source quitte la ligne de l'artiste : elle est nommee
+                       sur la troisieme, avec la qualite, et de la meme facon
+                       que pour un album local. -->
+                  <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                  <QualiteAlbum objet={a} />
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </section>
+      {/if}
+
+      {#if titres.length}
+        <section class="grp">
+          <h2>{$t('v2.rech.tracks' as any)}</h2>
+          <div class="list">
+            {#each titres.slice(0, 40) as t, i (String(t.source ?? 'local') + ':' + String(t.id ?? t.source_id ?? i))}
+              <LignePisteV2 piste={t as any} onLire={() => lirePiste(t)} />
+            {/each}
+          </div>
+        </section>
+      {/if}
+
+      {#if lesPlaylists.length}
+        <section class="grp">
+          <h2>{$t('v2.rech.playlists' as any)}</h2>
+          <div class="list">
+            {#each lesPlaylists as pl, i (pl.source + ':' + (pl.idLocal ?? pl.idService ?? i))}
+              <button class="trk pl-row" onclick={() => lirePlaylist(pl)}>
+                <span class="plg" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h11M4 12h11M4 17h7M18 15V8l3 .6"/></svg>
+                </span>
+                <span class="ti">{pl.nom}<em>{pl.source}</em></span>
+                <span class="dur">{String(pl.pistes)}</span>
+              </button>
+            {/each}
+          </div>
         </section>
       {/if}
     {/if}
@@ -397,12 +724,62 @@
   .ct{margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
-  .svc{padding:6px 0 4px}
-  .svcn{font:600 11px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3)}
+  /* Pastilles de filtre par type — elles ECARTENT, elles ne revelent pas :
+     tout est allume au depart. */
+  .pills{display:flex; align-items:center; gap:9px; flex-wrap:wrap; padding:2px 30px 10px}
+  .pl{font:600 10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
+  .pill{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt3); cursor:pointer;
+    border-radius:var(--v2-r-pill); padding:6px 13px; font:600 12px var(--v2-sans)}
+  .pill b{font:700 10px var(--v2-mono); margin-left:5px; opacity:.75}
+  .pill:hover{color:var(--v2-txt)}
+  .pill.on{color:var(--v2-acc-tint); border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
+  /* Le PÉRIMÈTRE se lit d'un coup d'œil : ses pastilles portent le nom de la
+     source, pas un type. */
+  .pill.src{font-family:var(--v2-mono); font-size:11.5px; letter-spacing:.02em}
+  .pill.raz{border-style:dashed; color:var(--v2-txt3)}
+  .pill.raz:hover{color:var(--v2-txt)}
+
+  /* Recherches recentes */
+  .grp h2 .lnk{margin-left:auto; border:0; background:transparent; color:var(--v2-txt3); cursor:pointer;
+    font:600 11px var(--v2-sans)}
+  .grp h2 .lnk:hover{color:var(--v2-danger)}
+  .chips{display:flex; flex-wrap:wrap; gap:9px}
+  .chip{display:inline-flex; align-items:center; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
+    background:var(--v2-surface2); overflow:hidden}
+  .chq{border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; font:13px var(--v2-sans); padding:7px 4px 7px 14px}
+  .chip:hover .chq{color:var(--v2-txt)}
+  .chx{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:15px; line-height:1; padding:7px 12px 8px 6px}
+  .chx:hover{color:var(--v2-danger)}
+
+  /* Bandeau de tete : point focal a gauche, balayage a droite. */
+  .tete{display:grid; grid-template-columns:minmax(240px,1fr) 2fr; gap:26px; align-items:start}
+  @media (max-width:900px){ .tete{grid-template-columns:1fr} }
+  .basartistes{min-width:0}
+  .best h2, .basartistes h2{font-size:18px; font-weight:700; padding-bottom:12px}
+  .bcard{display:flex; flex-direction:column; gap:4px; width:100%; text-align:left; cursor:pointer;
+    border:1px solid var(--v2-line); border-radius:var(--v2-r-card); background:var(--v2-surface2); padding:18px; color:inherit}
+  .bcard:hover{border-color:var(--v2-acc2); background:var(--v2-acc-soft)}
+  .bcv{display:block; width:132px; height:132px; border-radius:10px; overflow:hidden; box-shadow:var(--v2-sh-card); margin-bottom:12px}
+  .bcv.rond{border-radius:50%}
+  .bt{font-size:21px; font-weight:800; letter-spacing:-.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .bk{font:600 11px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+  .pl-row{grid-template-columns:44px 1fr auto; padding:8px 10px; border:0; background:transparent;
+    cursor:pointer; text-align:left; font-family:inherit; color:inherit}
+  .plg{width:44px; height:44px; border-radius:6px; display:grid; place-items:center;
+    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt3)}
+  .plg svg{width:19px; height:19px}
 
   .list{display:flex; flex-direction:column; gap:1px}
-  .trk{display:grid; grid-template-columns:44px 1fr auto auto; align-items:center; gap:14px; width:100%;
-    padding:8px 10px; border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; text-align:left; border-radius:8px}
+  /* Enveloppe : la ligne partagee, plus le pourcentage de proximite propre a
+     l'ambiance acoustique. */
+  .lp{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px}
+  .lp .sim{font:11px var(--v2-mono); color:var(--v2-acc-tint); padding-right:10px}
+  /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
+     n'etant plus qu'un conteneur depuis qu'elle accueille la barre d'actions. */
+  .tclick{display:grid; grid-template-columns:44px 1fr; align-items:center; gap:14px; min-width:0;
+    padding:8px 0; border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; font-family:inherit}
   .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
   .trk.np{color:var(--v2-acc1)}
   .cvsm{width:44px; height:44px; border-radius:6px; overflow:hidden}
