@@ -7,7 +7,7 @@
   import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs } from '../lib/stores/queue';
   import { currentZoneId, zones } from '../lib/stores/zones';
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
-  import { isMiddlePressWheel } from '../lib/npWheelGesture';
+  import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
@@ -1091,6 +1091,14 @@
     // remonter l'écran mais ouvre quand même la file d'attente", 0.9.49).
     if (isMiddlePressWheel(e.buttons, performance.now() - npMiddlePressTs)) {
       npWheelAccum = 0; // a press must not leave a half-armed gesture behind
+      return;
+    }
+    // Fil 1619 (Jean Valjean, 0.9.126, Firefox) : la molette qui déroule les
+    // paroles — ou tout autre cadre défilant de l'écran — n'est pas le geste de
+    // découverte de la file. L'événement remonte jusqu'ici quand même ; on le
+    // laisse au cadre, sans laisser de geste à moitié armé derrière lui.
+    if (isInnerScrollerWheel(e.target)) {
+      npWheelAccum = 0;
       return;
     }
 
