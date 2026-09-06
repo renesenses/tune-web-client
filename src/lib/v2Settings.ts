@@ -83,6 +83,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'hqplayer',      title: 'HQPlayer',                        from: 'services', min: 'expert',   keywords: ['upsampling', 'naa'] },
       { id: 'bridge',        title: 'Tune Bridge',                     from: 'network', min: 'expert',   keywords: ['pont', 'relais'] },
       { id: 'dsd',           titleKey: 'settings.dsdNetworkTitle',     from: 'network', min: 'expert',   keywords: ['dsd', 'dop', 'sacd'] },
+      { id: 'dspProgressif', titleKey: 'settings.dspProgressifTitle', from: 'network', min: 'expert',   keywords: ['dsp', 'eq', 'égaliseur', 'convolveur', 'replaygain', 'dlna', 'wav', 'latence', 'silence'] },
       { id: 'eqBands',       titleKey: 'settings.eqBandsTitle',        from: 'network', min: 'expert',   keywords: ['égaliseur', 'bandes'] },
       { id: 'audioDiag',     titleKey: 'settings.audioDiagnostic',     from: 'network', min: 'expert',   keywords: ['diagnostic', 'dépannage'] },
       { id: 'tuneServers',   titleKey: 'settings.tuneServersOnNetwork', from: 'network', min: 'expert',  keywords: ['serveurs', 'découverte'] },

@@ -344,11 +344,19 @@
   // un fichier temporaire bloquant (corrige les silences/delais en DSD
   // 256/512 sur certains renderers DLNA).
   let dsdStream = $state(false);
+  // LAT-F1 (phase 1) : avec un traitement actif (égaliseur, convolveur,
+  // ReplayGain), un lecteur réseau qui lit le LPCM reçoit un WAV traité au
+  // fil de l'eau au lieu d'attendre le fichier entier. Opt-in : à froid rien
+  // ne change de format.
+  let dspProgressif = $state(false);
   // « Resolution de l'egaliseur Expert » — cle serveur partagee par tous les
   // clients ; la vue Egaliseur la relit a l'ouverture.
   let eqBands = $state(10);
   $effect(() => {
-    api.getConfig().then((c: any) => { dsdStream = c?.dsd_lpcm_stream ?? false; }).catch(() => {});
+    api.getConfig().then((c: any) => {
+      dsdStream = c?.dsd_lpcm_stream ?? false;
+      dspProgressif = c?.dsp_progressif_reseau ?? false;
+    }).catch(() => {});
     api.getEqExpertSettings()
       .then((r) => { eqBands = r.expert_bands; })
       .catch(() => {});   // serveur anterieur : on garde la valeur par defaut
@@ -357,6 +365,11 @@
     const before = dsdStream; dsdStream = v;
     patch({ dsd_lpcm_stream: v }, () => { dsdStream = before; },
       $t((v ? 'settings.dsdStreamOn' : 'settings.dsdStreamOff') as any));
+  }
+  function setDspProgressif(v: boolean) {
+    const before = dspProgressif; dspProgressif = v;
+    patch({ dsp_progressif_reseau: v }, () => { dspProgressif = before; },
+      $t((v ? 'settings.dspProgressifOn' : 'settings.dspProgressifOff') as any));
   }
   async function setEqBands(n: number) {
     const before = eqBands; eqBands = n;
@@ -2637,6 +2650,18 @@
                 <div class="seg4">
                   <button class:on={!dsdStream} onclick={() => setDsdStream(false)}>{$t('settings.dsdOptionFile' as any)}</button>
                   <button class:on={dsdStream} onclick={() => setDsdStream(true)}>{$t('settings.dsdOptionStream' as any)}</button>
+                </div>
+              </div>
+
+            {:else if s.id === 'dspProgressif'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.dspProgressifLabel' as any)}</span>
+                  <span class="hint">{$t('settings.dspProgressifHint' as any)}</span>
+                </div>
+                <div class="seg4">
+                  <button class:on={!dspProgressif} onclick={() => setDspProgressif(false)}>{$t('settings.dspOptionFile' as any)}</button>
+                  <button class:on={dspProgressif} onclick={() => setDspProgressif(true)}>{$t('settings.dspOptionStream' as any)}</button>
                 </div>
               </div>
 
