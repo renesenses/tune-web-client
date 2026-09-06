@@ -16,7 +16,7 @@
   } from '../lib/stores/profile';
   import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
   import * as api from '../lib/api';
-  import { basculerFavoriLocal } from '../lib/favorisLocaux';
+  import { basculerFavoriLocal, basculerFavoriFacette } from '../lib/favorisLocaux';
   import type { StreamingItemType } from '../lib/streamingFavorites';
 
   /** A streaming item (Qobuz/Tidal/…) to favorite, instead of a local id.
@@ -136,19 +136,13 @@
     // calcule plus haut, avant les deux chemins uniques. Ceux-ci n'en ont plus
     // besoin — ils gerent l'etat eux-memes — on le lit donc ICI, au seul
     // endroit qui s'en sert encore.
+    //
+    // EXTRACTION 06/09/2026 : la mécanique (écriture optimiste, retour en
+    // arrière sur échec) est partie dans `lib/favorisLocaux`, avec la bascule
+    // locale, parce que la Bibliothèque du nouveau client pose le même cœur
+    // sur les genres et les années. Deux corps auraient donné deux vérités.
     if (facet && facetKey) {
-      const wasFav = isFavorite;
-      const key = facetKey;
-      const flipFacet = (add: boolean) =>
-        favoriteFacetKeys.update((s) => { add ? s.add(key) : s.delete(key); return s; });
-      flipFacet(!wasFav);
-      try {
-        if (wasFav) await api.removeFacetFavorite(pid, facet.facet, facet.value);
-        else await api.addFacetFavorite(pid, facet.facet, facet.value);
-      } catch (e) {
-        flipFacet(wasFav);  // revert
-        console.error('Toggle facet favorite error:', e);
-      }
+      await basculerFavoriFacette(facet.facet, facet.value);
       toggling = false;
       return;
     }

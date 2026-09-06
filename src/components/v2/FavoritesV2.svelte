@@ -17,6 +17,7 @@
     currentProfileId, loadFavoriteIds, favoriteStreamingKeys,
     favoriteAlbumIds, favoriteTrackIds, favoriteArtistIds, favoritePlaylistIds,
     favoriteStreamingTrackKeys, clePisteJumelee, streamingFavKey,
+    favoriteFacetKeys, facetFavKey,
   } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import {
@@ -46,7 +47,7 @@
    * actuel n'était atteignable que par une entrée de barre latérale qui
    * n'existe pas en v2 — donc invisible.
    */
-  type Tab = 'albums' | 'tracks' | 'artists' | 'playlists' | 'collections' | 'radio';
+  type Tab = 'albums' | 'tracks' | 'artists' | 'playlists' | 'collections' | 'facettes' | 'radio';
   let tab = $state<Tab>('albums');
   let q = $state('');
 
@@ -65,6 +66,11 @@
    */
   let playlists = $state<any[]>([]);
   let collections = $state<any[]>([]);
+  // Les favoris de FACETTE (genre, annee, label) : ni un objet ni un
+  // identifiant, une VALEUR. Leur propre table cote serveur, donc leur propre
+  // appel — et leur propre onglet, sans quoi l'ecran Favoris n'en montrait
+  // aucun alors que la Bibliotheque sait maintenant en creer.
+  let facettes = $state<api.FacetFavorite[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
   let busy = $state(false);
@@ -145,6 +151,9 @@
         api.getFavorites(pid),
         api.getProfileStreamingFavorites(pid).catch(() => [] as api.StreamingFavorite[]),
       ]);
+      // Au mieux, comme les services : un serveur plus ancien ne sert pas la
+      // route, et cela ne doit pas vider le reste de l'ecran.
+      facettes = await api.getFacetFavorites(pid).catch(() => [] as api.FacetFavorite[]);
       albums = [...(f.albums ?? []), ...s.filter((x) => x.item_type === 'album').map(versAlbum)];
       tracks = [...(f.tracks ?? []), ...s.filter((x) => x.item_type === 'track').map(versPiste)];
       artists = [...(f.artists ?? []), ...s.filter((x) => x.item_type === 'artist').map(versArtiste)];
@@ -245,6 +254,12 @@
     playlists.filter((p) => (p?.id == null || $favoritePlaylistIds.has(p.id)) && match(p?.name)),
   );
   const vCollections = $derived(collections.filter((c) => match(c?.name)));
+
+  // Meme regle que les playlists : le magasin porte la verite, donc une
+  // facette qu'on vient de decocher quitte l'ecran sans rechargement.
+  const vFacettes = $derived(
+    facettes.filter((f) => $favoriteFacetKeys.has(facetFavKey(f.facet, f.value)) && match(f.value)),
+  );
 
   const vAlbums = $derived(trierEtFiltrer(fAlbums, sourceFiltre, tri));
   const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri));
@@ -351,12 +366,38 @@
     c?.id != null &&
     ouvrirAilleurs('collections', `${c.smart ? 'smartcollections' : 'collections'}:${c.id}`, c.id, c.name);
 
+  /**
+   * Ouvrir une facette : meme principe, autre ecran et autre evenement.
+   *
+   * La Bibliotheque n'ecoute pas `tune:shortcut-restore` — elle n'a pas de
+   * raccourcis — et une facette n'a pas d'identifiant a restaurer. Elle ecoute
+   * donc `tune:v2-facette`, qui porte l'ONGLET et la VALEUR, et fait defiler
+   * jusqu'a la section correspondante.
+   */
+  const ONGLET_FACETTE: Record<string, string> = {
+    genre: 'genres', year: 'years', label: 'labels',
+  };
+  /** Libelle d'une facette. Le pluriel de l'onglet Bibliotheque, pas la cle. */
+  const NOM_FACETTE: Record<string, string> = {
+    genre: 'Genre', year: 'Annee', label: 'Label',
+  };
+  async function ouvrirFacette(f: api.FacetFavorite) {
+    const onglet = ONGLET_FACETTE[f.facet];
+    if (!onglet) return;
+    activeView.set('library');
+    await tick();
+    window.dispatchEvent(
+      new CustomEvent('tune:v2-facette', { detail: { onglet, valeur: f.value } }),
+    );
+  }
+
   const TABS: { id: Tab; label: string; n: number }[] = $derived([
     { id: 'albums', label: 'Albums', n: vAlbums.length },
     { id: 'tracks', label: 'Titres', n: vTracks.length },
     { id: 'artists', label: 'Artistes', n: vArtists.length },
     { id: 'playlists', label: 'Playlists', n: vPlaylists.length },
     { id: 'collections', label: 'Collections', n: vCollections.length },
+    { id: 'facettes', label: 'Facettes', n: vFacettes.length },
     { id: 'radio', label: 'Radio', n: vRadio.length },
   ]);
 
@@ -586,6 +627,27 @@
         </div>
       {/if}
 
+    {:else if tab === 'facettes'}
+      {#if !vFacettes.length}
+        <div class="state">{facettes.length ? 'Aucune facette ne correspond.' : 'Aucune facette en favori. Le cœur est sur les onglets Genres, Années et Labels de la Bibliothèque.'}</div>
+      {:else}
+        <div class="simples">
+          {#each vFacettes as f (facetFavKey(f.facet, f.value))}
+            <button class="simple" onclick={() => ouvrirFacette(f)} disabled={!ONGLET_FACETTE[f.facet]}>
+              <span class="si" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/>
+                  <circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/>
+                </svg>
+              </span>
+              <span class="sn" title={f.value}>{f.value}</span>
+              <span class="sc">{NOM_FACETTE[f.facet] ?? f.facet}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
+
     {:else if tab === 'collections'}
       {#if !vCollections.length}
         <div class="state">{collections.length ? 'Aucune collection ne correspond.' : 'Aucune collection en favori.'}</div>
@@ -777,6 +839,10 @@
   .simple .si svg{width:17px; height:17px}
   .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px}
   .simple .sc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  /* Une facette d'un type que la Bibliotheque n'expose pas encore reste
+     LISIBLE mais inerte : mieux vaut la montrer inactive que la cacher. */
+  .simple:disabled{cursor:default; opacity:.55}
+  .simple:disabled:hover{background:transparent; color:var(--v2-txt2)}
 
   .tabs{display:flex; gap:4px}
   .tabs button{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--v2-line2); background:transparent;

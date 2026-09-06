@@ -1,6 +1,7 @@
 <script lang="ts">
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
+  import { tick } from 'svelte';
   import { t as tr } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
   /**
@@ -44,6 +45,8 @@
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
+  import { favoriteFacetKeys, facetFavKey } from '../../lib/stores/profile';
+  import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -530,6 +533,63 @@
   const FACET_EMPTY: Record<string, string> = {
     artists: 'Artiste inconnu', genres: 'Sans genre', labels: 'Sans label', years: 'Année inconnue' };
 
+  /**
+   * Le nom de la facette COTE SERVEUR pour l'onglet courant.
+   *
+   * L'onglet s'appelle « Genres », la table s'appelle `genre` : le pluriel est
+   * un libelle d'interface, pas une cle. Les ecrire au singulier ici evite
+   * d'ecrire des favoris que `/library/facets` ne saura jamais relire.
+   *
+   * `artists` n'y figure pas : un artiste a un IDENTIFIANT, son coeur passe
+   * donc par la table des favoris normale, pas par celle des facettes.
+   */
+  const FACETTE_SERVEUR: Partial<Record<Tab, string>> = {
+    genres: 'genre', years: 'year', labels: 'label',
+  };
+
+  /** Un depot distant n'a pas de facettes chez nous : ses genres viennent de
+   *  SON catalogue, et un favori local ne saurait pas les reselectionner. */
+  const facetteCourante = $derived(depot ? null : (FACETTE_SERVEUR[tab] ?? null));
+
+  function estFacetteFavorite(valeur: string): boolean {
+    const f = facetteCourante;
+    return f ? $favoriteFacetKeys.has(facetFavKey(f, valeur)) : false;
+  }
+
+  async function basculerFacette(valeur: string) {
+    const f = facetteCourante;
+    if (f) await basculerFavoriFacette(f, valeur);
+  }
+
+  /**
+   * Sauter sur une valeur de facette depuis l'ecran Favoris.
+   *
+   * La recherche `q` ne conviendrait pas : elle porte sur le titre et
+   * l'artiste, pas sur le genre — chercher « Jazz » dans l'onglet Genres
+   * n'aurait rien rendu. On change donc d'onglet, on VIDE la recherche (une
+   * recherche en cours ferait disparaitre la section visee) et on fait
+   * defiler jusqu'a la section, retrouvee par son `data-facette`.
+   */
+  $effect(() => {
+    const surFacette = (e: Event) => {
+      const d: any = (e as CustomEvent).detail ?? {};
+      if (!TABS.some((t2) => t2.id === d.onglet)) return;
+      // Les onglets de facette sont reserves au niveau intermediaire : y
+      // envoyer un debutant le poserait sur un onglet qu'il ne voit pas.
+      if (!atLeast(level, 'intermediate')) return;
+      tab = d.onglet;
+      q = '';
+      const valeur = String(d.valeur ?? '');
+      tick().then(() => {
+        const cible = [...document.querySelectorAll<HTMLElement>('.facet[data-facette]')]
+          .find((el) => el.dataset.facette === valeur);
+        cible?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      });
+    };
+    window.addEventListener('tune:v2-facette', surFacette);
+    return () => window.removeEventListener('tune:v2-facette', surFacette);
+  });
+
   /** Regroupement pour les onglets facettes : une entree par valeur, avec ses
    *  albums, triee par nom — sauf les annees, triees chronologiquement. */
   const groups = $derived.by(() => {
@@ -537,14 +597,22 @@
     // table des artistes. Le laisser ici calculerait un regroupement que plus
     // personne n'affiche, sur chaque frappe de la recherche.
     if (tab === 'albums' || tab === 'tracks' || tab === 'artists')
-      return [] as { key: string; albums: Album[] }[];
+      return [] as { key: string; albums: Album[]; reel: boolean }[];
     const m = new Map<string, Album[]>();
+    // 🔴 Une valeur RENSEIGNEE et le libelle de remplacement (« Sans genre »)
+    // ne se distinguent plus une fois dans la cle : on note ici, a la source,
+    // laquelle est reelle. C'est ce qui decide si le coeur est propose — mettre
+    // « Annee inconnue » en favori ecrirait une facette que le serveur ne
+    // saurait pas selectionner.
+    const reels = new Set<string>();
     for (const a of sorted) {
       if (!matches(a)) continue;
-      const k = facetOf(a, tab) ?? FACET_EMPTY[tab];
+      const brut = facetOf(a, tab);
+      const k = brut ?? FACET_EMPTY[tab];
+      if (brut != null) reels.add(k);
       const arr = m.get(k); if (arr) arr.push(a); else m.set(k, [a]);
     }
-    const out = [...m.entries()].map(([key, albums]) => ({ key, albums }));
+    const out = [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
     if (tab === 'years') {
       out.sort((x, z) => {
         // « Annee inconnue » n'est pas un nombre : il part en dernier quel que
@@ -950,8 +1018,38 @@
       {:else if tab !== 'albums'}
         <div class="facets">
           {#each groups as g (g.key)}
-            <section class="facet">
-              <h2>{g.key}<span class="fc">{g.albums.length}</span></h2>
+            <section class="facet" data-facette={g.key}>
+              <h2>
+                <span class="fk">{g.key}</span><span class="fc">{g.albums.length}</span>
+                <!--
+                  Le coeur de FACETTE. Il n'existait que dans l'ancien client, et
+                  seulement sur les labels (#2442) : mettre un genre ou une annee
+                  en favori etait impossible depuis la v2, ce qui laissait
+                  l'ecran Favoris vide de facettes faute de surface pour en
+                  creer une (Bertrand, 05/09/2026).
+
+                  Absent sur les valeurs de remplacement (`g.reel`) et sur les
+                  depots distants : ni « Sans label » ni le genre d'un catalogue
+                  tiers ne se reselectionnent chez nous.
+                -->
+                {#if facetteCourante && g.reel}
+                  {@const fav = estFacetteFavorite(g.key)}
+                  <button
+                    class="fcoeur"
+                    class:on={fav}
+                    aria-pressed={fav}
+                    title={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
+                    aria-label={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
+                    onclick={() => basculerFacette(g.key)}
+                  >
+                    {#if fav}
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    {:else}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    {/if}
+                  </button>
+                {/if}
+              </h2>
               <div class="grid facetgrid" class:expert={showExpert}>
                 {#each g.albums as a (a.id)}
                   <div class="card">
@@ -1220,8 +1318,20 @@
   .facet{padding-bottom:26px}
   .facet h2{display:flex; align-items:center; gap:10px; font-size:17px; font-weight:700; padding:6px 0 14px;
     position:sticky; top:0; background:var(--v2-bg); z-index:2}
+  .facet .fk{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .facet .fc{font:10px var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2);
-    border-radius:999px; padding:2px 8px}
+    border-radius:999px; padding:2px 8px; flex:none}
+  /* Le coeur reste discret tant qu'il est vide : c'est un titre de section,
+     pas une barre d'actions. Une fois plein, il prend la couleur d'accent et
+     ne s'efface plus — c'est l'etat, pas une decoration au survol. */
+  .facet .fcoeur{flex:none; display:flex; align-items:center; justify-content:center;
+    width:26px; height:26px; padding:0; border:0; border-radius:8px; cursor:pointer;
+    background:transparent; color:var(--v2-txt3); opacity:.45;
+    transition:opacity .12s ease, color .12s ease, background .12s ease}
+  .facet h2:hover .fcoeur{opacity:1}
+  .facet .fcoeur:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .facet .fcoeur:focus-visible{opacity:1; outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .facet .fcoeur.on{opacity:1; color:var(--v2-acc1)}
   .facetgrid{overflow:visible; padding:0}
 
   /* Affichage liste : même données, densité maximale. */

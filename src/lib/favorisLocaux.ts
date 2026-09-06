@@ -33,6 +33,8 @@ import {
   favoritePlaylistIds,
   favoriteCollectionIds,
   favoriteSmartCollectionIds,
+  favoriteFacetKeys,
+  facetFavKey,
   loadProfiles,
 } from './stores/profile';
 
@@ -138,6 +140,62 @@ export async function basculerFavoriLocal(ref: RefLocale): Promise<boolean | nul
   } catch (e) {
     bascule(avant); // retour en arrière : le magasin ne doit pas mentir
     console.error('Bascule du favori local :', e);
+    return avant;
+  }
+}
+
+/**
+ * Bascule un favori de FACETTE (genre, année, label…). Rend le nouvel état,
+ * ou `null` si aucun profil n'a pu être obtenu.
+ *
+ * Sa propre table côté serveur (`favorite_facets`), sa propre route : une
+ * facette est désignée par sa VALEUR, pas par un identifiant — un label n'en a
+ * pas. `basculerFavoriLocal` ne peut donc pas la porter, d'où cette seconde
+ * fonction dans le même module plutôt qu'une troisième copie de la mécanique.
+ *
+ * Elle vivait dans le corps de `HeartButton`, exactement comme la bascule
+ * locale avant son extraction : la Bibliothèque du nouveau client est la
+ * DEUXIÈME surface à vouloir ce cœur, et c'est le moment de ne pas la
+ * réécrire (#1478 avait commencé ainsi).
+ *
+ * La valeur est ROGNÉE avant l'appel, comme `facetFavKey` rogne la clé : sans
+ * cela, une valeur bordée d'espaces s'écrirait au serveur sous une forme que
+ * le magasin ne saurait jamais rapprocher — cœur vide sur une facette pourtant
+ * en favori.
+ */
+export async function basculerFavoriFacette(
+  facette: string,
+  valeur: string,
+): Promise<boolean | null> {
+  const cle = facetFavKey(facette, valeur);
+
+  let pid = get(currentProfileId);
+  if (!pid) {
+    try {
+      await loadProfiles();
+    } catch {
+      /* le profil reste absent : traité juste après */
+    }
+    pid = get(currentProfileId);
+  }
+  if (!pid) return null;
+
+  const avant = get(favoriteFacetKeys).has(cle);
+  const bascule = (ajouter: boolean) =>
+    favoriteFacetKeys.update((s) => {
+      if (ajouter) s.add(cle);
+      else s.delete(cle);
+      return s;
+    });
+
+  bascule(!avant);
+  try {
+    if (avant) await api.removeFacetFavorite(pid, facette, valeur.trim());
+    else await api.addFacetFavorite(pid, facette, valeur.trim());
+    return !avant;
+  } catch (e) {
+    bascule(avant); // retour en arrière : le magasin ne doit pas mentir
+    console.error('Bascule du favori de facette :', e);
     return avant;
   }
 }
