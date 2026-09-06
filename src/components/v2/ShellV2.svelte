@@ -82,7 +82,7 @@
   import AvatarMenu from './AvatarMenu.svelte';
   import { addShortcut } from '../../lib/stores/shortcuts';
   import { notifications } from '../../lib/stores/notifications';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { applyV2Theme } from '../../lib/v2Theme';
   import {
@@ -90,7 +90,7 @@
     updateAvailable, latestVersion, updateBannerDismissed, dismissUpdateBanner,
   } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
-  import { bootstrapV2 } from '../../lib/v2Bootstrap';
+  import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import '../../styles/tune-v2.css';
@@ -125,10 +125,41 @@
   // racines .tune-v2, y compris celles imbriquées dans les vues.
   $effect(() => { applyV2Theme($preferences.v2Theme); });
 
+  /**
+   * 🔴 LA LANGUE ENREGISTRÉE, que personne n'appliquait.
+   *
+   * Onzième « écrit mais pas branché », et de loin le plus visible depuis la
+   * traduction du client : `main.ts` monte `ShellV2` OU `App`, jamais les
+   * deux, et la seule ligne qui applique la préférence au démarrage vivait
+   * dans `App.svelte` :
+   *
+   *     preferences.subscribe((prefs) => { applyTheme(prefs.theme);
+   *                                        locale.set(prefs.language ?? 'fr'); });
+   *
+   * Conséquence exacte : on choisissait sa langue dans les Réglages, l'écran
+   * changeait — `SettingsV2` appelle `locale.set` lui-même — puis le premier
+   * rechargement ramenait tout en français. « Sur .18, les traductions ne
+   * marchent plus du tout » (Bertrand, 06/09/2026) : elles marchaient, elles
+   * ne SURVIVAIENT pas.
+   *
+   * C'est le même oubli que celui décrit trois lignes plus bas pour les
+   * magasins partagés, et pour la même raison. Il n'était simplement pas vu,
+   * parce que le client était en français partout — la passe de traduction du
+   * jour l'a rendu visible.
+   *
+   * ⚠️ Pas de boucle : `locale` n'écrit jamais dans `preferences`. Le seul
+   * autre écrivain est le sélecteur des Réglages, qui met les deux à jour.
+   */
+  $effect(() => { locale.set($preferences.language ?? 'fr'); });
+
   // Les stores partagés sont alimentés par App.svelte, que `?v2` ne monte
   // jamais : sans cet appel, zones/albums/appareils restent vides et toute
   // la coquille affiche des écrans vides trompeurs. Voir lib/v2Bootstrap.
   $effect(() => { bootstrapV2(); });
+  // Et le RESTE DU TEMPS : le serveur annonce ses scans et ses imports, encore
+  // faut-il les écouter. Sans cela, `albums` était rempli au montage et plus
+  // jamais — trois testeurs ont signalé qu'il fallait recharger la page.
+  $effect(() => suivreLaBibliotheque());
   // Le VIVANT, que `bootstrapV2` ne fait pas : WebSocket, rafraîchissement des
   // zones, minuteur de progression, répétition et aléatoire. Sans lui, la barre
   // de transport reste figée sur l'état du montage — elle n'est pas mal

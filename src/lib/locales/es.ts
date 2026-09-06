@@ -4039,6 +4039,14 @@ export default {
   "v2.meta.foot": "La edición campo a campo y el enriquecimiento por lotes no están aquí: siguen en el cliente actual, fuera del indicador ?v2. El progreso del enriquecimiento se sigue en {p}.",
   "v2.home.wZonesCards": "Sonando ahora",
   "v2.home.zoneOf": "en {z}",
+  "v2.lib.scopedFolder": "Carpeta: {d}",
+  "v2.lib.scopedClear": "Ver toda la biblioteca",
+  "favorites.noAddedDate": "El servicio no proporciona fecha de adición para estos favoritos.",
+  "settings.zonesUnlimited": "Ilimitado",
+  "v2.nav.updateTo": "Actualización disponible: v{v}",
+  "settings.tabDisplay": "Visualización",
+  "settings.collectionsMosaic": "Mosaico de portadas en las colecciones",
+  "settings.collectionsMosaicHint": "Cuatro portadas por colección. Desmarca para una sola portada, como en el cliente anterior.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

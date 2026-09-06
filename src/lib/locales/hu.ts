@@ -3997,6 +3997,14 @@ export default {
   "v2.meta.foot": "A mezőnkénti szerkesztés és a kötegelt gazdagítás itt nem szerepel: a jelenlegi kliensben maradnak, a ?v2 kapcsolón kívül. A gazdagítás előrehaladása itt követhető: {p}.",
   "v2.home.wZonesCards": "Most szól",
   "v2.home.zoneOf": "itt: {z}",
+  "v2.lib.scopedFolder": "Mappa: {d}",
+  "v2.lib.scopedClear": "A teljes könyvtár megjelenítése",
+  "favorites.noAddedDate": "A szolgáltatás nem ad meg hozzáadási dátumot ezekhez a kedvencekhez.",
+  "settings.zonesUnlimited": "Korlátlan",
+  "v2.nav.updateTo": "Frissítés érhető el: v{v}",
+  "settings.tabDisplay": "Megjelenítés",
+  "settings.collectionsMosaic": "Borítómozaik a gyűjteményeken",
+  "settings.collectionsMosaicHint": "Négy borító gyűjteményenként. Vegye ki a pipát az egyetlen borítóhoz, mint a korábbi kliensben.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

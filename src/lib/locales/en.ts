@@ -4059,6 +4059,14 @@ export default {
   "v2.meta.foot": "Field-by-field editing and batch enrichment are not covered here: they stay in the current client, outside the ?v2 flag. Enrichment progress is followed in {p}.",
   "v2.home.wZonesCards": "Now listening",
   "v2.home.zoneOf": "on {z}",
+  "v2.lib.scopedFolder": "Folder: {d}",
+  "v2.lib.scopedClear": "Show the whole library",
+  "favorites.noAddedDate": "The service provides no date added for these favorites.",
+  "settings.zonesUnlimited": "Unlimited",
+  "v2.nav.updateTo": "Update available: v{v}",
+  "settings.tabDisplay": "Display",
+  "settings.collectionsMosaic": "Cover mosaic on collections",
+  "settings.collectionsMosaicHint": "Four covers assembled per collection. Uncheck for a single cover, like the previous client’s screen.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

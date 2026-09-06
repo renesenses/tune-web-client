@@ -4061,6 +4061,14 @@ export default {
   "v2.meta.foot": "L’édition champ par champ et l’enrichissement par lot ne sont pas repris ici : ils restent dans le client actuel, hors du drapeau ?v2. L’avancement de l’enrichissement se suit dans {p}.",
   "v2.home.wZonesCards": "En écoute",
   "v2.home.zoneOf": "sur {z}",
+  "v2.lib.scopedFolder": "Répertoire : {d}",
+  "v2.lib.scopedClear": "Voir toute la bibliothèque",
+  "favorites.noAddedDate": "Le service ne fournit pas de date d’ajout pour ces favoris.",
+  "settings.zonesUnlimited": "Illimité",
+  "v2.nav.updateTo": "Mise à jour disponible : v{v}",
+  "settings.tabDisplay": "Affichage",
+  "settings.collectionsMosaic": "Mosaïque de pochettes sur les collections",
+  "settings.collectionsMosaicHint": "Quatre pochettes assemblées par collection. Décochez pour une pochette unique, comme l’écran de l’ancien client.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

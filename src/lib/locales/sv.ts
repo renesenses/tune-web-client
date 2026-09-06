@@ -4038,4 +4038,12 @@ export default {
   "v2.meta.foot": "Fältvis redigering och batchberikning finns inte här: de stannar i den nuvarande klienten, utanför ?v2-flaggan. Berikningens förlopp följs i {p}.",
   "v2.home.wZonesCards": "Spelas nu",
   "v2.home.zoneOf": "på {z}",
+  "v2.lib.scopedFolder": "Mapp: {d}",
+  "v2.lib.scopedClear": "Visa hela biblioteket",
+  "favorites.noAddedDate": "Tjänsten anger inget tillagt-datum för de här favoriterna.",
+  "settings.zonesUnlimited": "Obegränsat",
+  "v2.nav.updateTo": "Uppdatering tillgänglig: v{v}",
+  "settings.tabDisplay": "Visning",
+  "settings.collectionsMosaic": "Omslagsmosaik på samlingar",
+  "settings.collectionsMosaicHint": "Fyra omslag per samling. Avmarkera för ett enda omslag, som i den tidigare klienten.",
 } as const;

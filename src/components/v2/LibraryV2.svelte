@@ -2,6 +2,7 @@
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick } from 'svelte';
+  import { get } from 'svelte/store';
   import { t as tr } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
   /**
@@ -34,7 +35,7 @@
    * un serveur UPnP tiers.
    */
   import { albums, libraryLoading } from '../../lib/stores/library';
-  import { activeView, type View } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryFolder, type View } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, fold, formatDuration,  type QualityTier } from '../../lib/utils';
@@ -80,10 +81,73 @@
     return () => ctrl.abort();
   });
 
+  /**
+   * PORTÉE À UN RÉPERTOIRE — le bouton « ouvrir dans la bibliothèque » de
+   * l'écran Répertoires.
+   *
+   * 🔴 Dixième « écrit mais pas branché » de ce client. `BrowseView` pose
+   * `pendingLibraryFolder` et change de vue ; le SEUL consommateur était
+   * `LibraryView`, l'écran de l'ancien client. En v2, la Bibliothèque ne
+   * lisait rien : on arrivait sur la bibliothèque ENTIÈRE, sans que rien ne
+   * dise que la portée avait été perdue.
+   *
+   * Deux témoins, indépendamment : « Lorsque je sélectionne un répertoire
+   * celui-ci apparaît dans bibliothèque mais c'est l'entièreté de la
+   * bibliothèque en cours qui s'affiche » (Sevy Tabroc, forum 1637,
+   * 01/09/2026) et « Répertoires vue en Bibliothèque : filtre non appliqué »
+   * (Bertrand, 06/09/2026).
+   *
+   * ## Pourquoi les identifiants, et pas une reconstruction
+   *
+   * L'ancien client refait les albums à partir de 5 000 pistes et ÉCRASE le
+   * magasin partagé `albums` — la portée survivait donc à l'écran qui l'avait
+   * posée. Ici on demande au serveur les albums du dossier, on n'en garde que
+   * les IDENTIFIANTS, et on filtre. Le magasin n'est pas touché, les pochettes
+   * et les badges continuent de venir d'où ils venaient.
+   *
+   * Mesuré sur le .18 le 06/09/2026 : `/library/albums-detailed` rend 4 255
+   * albums sans filtre, 1 440 pour `/data/music`, 1 306 pour son sous-dossier
+   * `NEW_FLAC` — les sous-dossiers sont donc bien inclus.
+   */
+  function prendreDossierEnAttente(): string | null {
+    const d = get(pendingLibraryFolder);
+    if (d) { pendingLibraryFolder.set(null); return d; }
+    return null;
+  }
+  const dossierPortee = prendreDossierEnAttente();
+  const nomPortee = dossierPortee
+    ? (dossierPortee.split(/[/\\]/).filter(Boolean).pop() ?? dossierPortee)
+    : '';
+  /** `null` tant qu'on ne sait pas encore : l'écran attend plutôt que de
+   *  montrer tout, ce qui serait exactement le défaut signalé. */
+  let idsPortee = $state<Set<number> | null>(null);
+  let porteeActive = $state(!!dossierPortee);
+  $effect(() => {
+    if (!dossierPortee || !porteeActive) return;
+    api.getAlbumsDetailed({ folder: dossierPortee }, 5000, 0)
+      .then((r) => {
+        idsPortee = new Set(
+          (r.items ?? []).map((a: any) => a.album_id).filter((x: any) => typeof x === 'number'),
+        );
+      })
+      .catch(() => { idsPortee = new Set(); });
+  });
+  function retirerPortee() {
+    porteeActive = false;
+    idsPortee = null;
+  }
+
   /** LA source d'albums de l'ecran. Tout le reste lit `src`, jamais `$albums`
    *  ni `albumsD` : c'est ce qui rend la vue identique des deux cotes. */
-  const src = $derived<Album[]>(depot ? albumsD : $albums);
-  const enCharge = $derived(depot ? chargementD : $libraryLoading);
+  const src = $derived<Album[]>(
+    depot ? albumsD
+      : !porteeActive ? $albums
+      : idsPortee == null ? []
+      : $albums.filter((a) => a.id != null && idsPortee!.has(a.id)),
+  );
+  const enCharge = $derived(
+    depot ? chargementD : (porteeActive && idsPortee == null) || $libraryLoading,
+  );
 
   const level = $derived($preferences.settingsLevel);
   // FILTRER FAIT PARTIE DU GESTE DE BASE (Bertrand, 28/08 : « ou sont passes
@@ -439,11 +503,39 @@
   );
 
   const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+
+  /**
+   * 🔴 Le rail suit le TRI, il ne suppose plus le titre.
+   *
+   * « L'utilisation de l'ascenseur alpha pourrait-il tenir compte du choix
+   * fait dans l'onglet Bibliothèque sur le tri des albums : Titre / Artiste /
+   * Année / Ajout récent » — et, plus tôt, « l'ascenseur alphabétique de la
+   * Bibliothèque ne fonctionne pas normalement » (Lulu, forum 1671, 05 et
+   * 06/09/2026).
+   *
+   * Il lisait `a.title` en toutes circonstances. Trié par artiste, cliquer
+   * « M » cherchait donc le premier album dont le TITRE commence par M —
+   * quelque part au milieu de la liste, sans rapport avec l'ordre affiché.
+   * Ce n'était pas un rail imprécis, c'était un rail qui visait autre chose.
+   */
   function firstLetter(a: Album): string {
-    const c = fold(a.title).charAt(0).toUpperCase();
+    const source = sortKey === 'artist' ? (a.artist_name ?? '') : (a.title ?? '');
+    const c = fold(source).charAt(0).toUpperCase();
     return c >= 'A' && c <= 'Z' ? c : '#';
   }
-  const present = $derived(new Set(affiches.map(firstLetter)));
+
+  /**
+   * ⚠️ Et sur un tri CHRONOLOGIQUE, on le retire.
+   *
+   * Trié par année ou par ajout récent, aucune lettre ne peut correspondre à
+   * une position : les initiales sont dispersées dans toute la liste. Un rail
+   * qui promet un saut et atterrit au hasard est pire qu'un rail absent — et
+   * c'est précisément ce que Lulu décrivait. La frise des années, elle, reste :
+   * c'est le bon repère pour ces deux tris, et elle existe déjà.
+   */
+  const railUtile = $derived(sortKey === 'title' || sortKey === 'artist');
+
+  const present = $derived(railUtile ? new Set(affiches.map(firstLetter)) : new Set<string>());
   let gridEl: HTMLDivElement | undefined = $state();
   function jump(L: string) {
     gridEl?.querySelector<HTMLElement>(`[data-letter="${L}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -636,6 +728,30 @@
     return out;
   });
 
+  /**
+   * 🔴 Les onglets de FACETTE s'ouvrent sur une LISTE, pas sur des pochettes.
+   *
+   * « Dans la biblio, après avoir cliqué sur "Genres", la présentation par
+   * ordre alphabétique avec les pochettes d'album affichées oblige à scroller
+   * longuement pour atteindre le genre souhaité. Une simple liste cliquable
+   * est beaucoup plus rapide, quitte à afficher les pochettes après le choix »
+   * (eric, forum 1671, 06/09/2026).
+   *
+   * Sur cette bibliothèque, l'onglet Genres empilait toutes les valeurs avec
+   * leurs grilles : atteindre « Rock » demandait de traverser tous les albums
+   * de tous les genres précédents. La liste tient en un écran ; les pochettes
+   * arrivent au clic.
+   *
+   * ⚠️ Remis à zéro quand on change d'onglet ou de recherche : rester sur un
+   * genre en passant aux Labels montrerait une valeur qui n'existe pas dans la
+   * nouvelle famille — un écran vide sans explication.
+   */
+  let facetteOuverte = $state<string | null>(null);
+  $effect(() => { void tab; void q; facetteOuverte = null; });
+  const groupeOuvert = $derived(
+    facetteOuverte == null ? null : (groups.find((g) => g.key === facetteOuverte) ?? null),
+  );
+
   // ── Onglet « Titres » : charge la liste des pistes une seule fois ───────
   let tracks = $state<Track[]>([]);
   let tracksLoading = $state(false);
@@ -819,6 +935,22 @@
        moyen de chercher en Essentiel depuis que la Recherche a quitte la
        barre laterale. Seules les PUCES de filtrage sont reservees a Avance. -->
   {#if erreurD}<div class="derr">{erreurD}</div>{/if}
+
+  <!-- 🔴 La portée se VOIT et se RETIRE.
+       Une bibliothèque amputée sans explication est le défaut inverse de celui
+       qu'on corrige : on ne saurait plus si le reste manque ou s'il est
+       simplement filtré. La puce nomme le dossier et le clic la retire. -->
+  {#if porteeActive}
+    <div class="portee">
+      <span class="pchip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        {$tr('v2.lib.scopedFolder' as any).replace('{d}', nomPortee)}
+        <button onclick={retirerPortee} aria-label={$tr('v2.lib.scopedClear' as any)}
+          title={$tr('v2.lib.scopedClear' as any)}>×</button>
+      </span>
+    </div>
+  {/if}
 
   <div class="filters">
     {#if tab === 'tracks'}
@@ -1043,7 +1175,10 @@
           ? $tr('v2.lib.emptyDepot' as any).replace('{nom}', depot.nom).replace('{hote}', depot.hote)
           : $tr('v2.lib.emptyLibrary' as any)}</div>
     {:else}
-      {#if navMode === 'alpha' && tab === 'albums'}
+      <!-- `railUtile` : sur un tri chronologique, le rail est RETIRÉ plutôt
+           que laissé à promettre un saut qui atterrirait au hasard. La frise
+           des années reste le repère de ces deux tris. -->
+      {#if navMode === 'alpha' && tab === 'albums' && railUtile}
         <div class="rail">
           {#each ALPHA as L (L)}
             <button class="rl" class:hot={present.has(L)} disabled={!present.has(L)} onclick={() => jump(L)}>{L}</button>
@@ -1069,8 +1204,46 @@
         </div>
 
       {:else if tab !== 'albums'}
+        <!-- 🔴 D'abord la LISTE, les pochettes après le choix (eric, forum
+             1671). L'onglet empilait toutes les valeurs avec leurs grilles :
+             atteindre « Rock » demandait de traverser tous les albums des
+             genres précédents. -->
+        {#if groupeOuvert == null}
+          <div class="fliste">
+            {#if !groups.length}
+              <div class="state">{$tr('v2.lib.nothingToGroup' as any)}</div>
+            {:else}
+              {#each groups as g (g.key)}
+                {@const fav = g.reel && facetteCourante ? estFacetteFavorite(g.key) : false}
+                <div class="fl">
+                  <button class="flnom" onclick={() => (facetteOuverte = g.key)}>
+                    <span class="fk">{g.key}</span>
+                    <span class="fc">{g.albums.length}</span>
+                  </button>
+                  {#if facetteCourante && g.reel}
+                    <button class="fcoeur" class:on={fav} aria-pressed={fav}
+                      title={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
+                      aria-label={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
+                      onclick={() => basculerFacette(g.key)}>
+                      {#if fav}
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                      {:else}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                      {/if}
+                    </button>
+                  {/if}
+                </div>
+              {/each}
+            {/if}
+          </div>
+        {:else}
         <div class="facets">
-          {#each groups as g (g.key)}
+          <button class="fretour" onclick={() => (facetteOuverte = null)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+            {$tr('common.back' as any)}
+          </button>
+          {#each [groupeOuvert] as g (g.key)}
             <section class="facet" data-facette={g.key}>
               <h2>
                 <span class="fk">{g.key}</span><span class="fc">{g.albums.length}</span>
@@ -1128,10 +1301,9 @@
                 {/each}
               </div>
             </section>
-          {:else}
-            <div class="state">{$tr('v2.lib.nothingToGroup' as any)}</div>
           {/each}
         </div>
+        {/if}
 
       {:else if display === 'list'}
         {#if !affiches.length}
@@ -1368,6 +1540,43 @@
   /* Vues par facette : une section par valeur (artiste, genre, année, label). */
   .facets{flex:1; overflow-y:auto; padding:8px 30px 40px}
   .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  /* La puce de portée : visible sans crier, et son × est la seule action. */
+  .portee{padding:2px 30px 6px}
+  .pchip{display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px;
+    border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans);
+    color:var(--v2-acc1); background:var(--v2-acc-soft);
+    border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
+  .pchip svg{width:14px; height:14px; flex:none}
+  .pchip button{display:flex; align-items:center; justify-content:center; width:18px; height:18px;
+    padding:0; border:0; border-radius:50%; cursor:pointer; font:600 14px var(--v2-sans);
+    background:transparent; color:inherit; line-height:1}
+  .pchip button:hover{background:color-mix(in srgb, var(--v2-acc1) 22%, transparent)}
+  .pchip button:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+
+  /* La LISTE des valeurs de facette : un écran, pas un déroulé de grilles.
+     Deux colonnes dès qu'il y a la place — une bibliothèque compte souvent
+     plus de cinquante genres, et une colonne unique redemanderait à faire
+     défiler ce qu'on venait d'éviter (eric, forum 1671). */
+  .fliste{display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    gap:2px 18px; padding:6px 30px 40px; align-content:start; overflow-y:auto}
+  .fl{display:flex; align-items:center; gap:6px; border-radius:9px}
+  .fl:hover{background:var(--v2-hover)}
+  .flnom{display:flex; align-items:center; gap:10px; flex:1; min-width:0;
+    padding:10px 12px; border:0; background:transparent; cursor:pointer;
+    color:var(--v2-txt2); font:inherit; text-align:left}
+  .fl:hover .flnom{color:var(--v2-txt)}
+  .flnom:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:-2px; border-radius:9px}
+  .flnom .fk{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-size:14px}
+  /* Le retour vers la liste. Sans lui, on serait entré dans un genre sans
+     pouvoir en sortir autrement qu'en changeant d'onglet. */
+  .fretour{display:inline-flex; align-items:center; gap:6px; margin:0 30px 8px;
+    padding:7px 12px 7px 8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
+    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans)}
+  .fretour:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .fretour:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .fretour svg{width:15px; height:15px}
+
   .facet{padding-bottom:26px}
   .facet h2{display:flex; align-items:center; gap:10px; font-size:17px; font-weight:700; padding:6px 0 14px;
     position:sticky; top:0; background:var(--v2-bg); z-index:2}

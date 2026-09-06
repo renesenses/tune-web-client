@@ -4039,6 +4039,14 @@ export default {
   "v2.meta.foot": "逐字段编辑和批量补全不在此处：它们仍留在当前客户端，位于 ?v2 标记之外。补全进度可在 {p} 中查看。",
   "v2.home.wZonesCards": "正在收听",
   "v2.home.zoneOf": "在 {z} 播放",
+  "v2.lib.scopedFolder": "文件夹：{d}",
+  "v2.lib.scopedClear": "显示整个音乐库",
+  "favorites.noAddedDate": "该服务不提供这些收藏的添加日期。",
+  "settings.zonesUnlimited": "无限制",
+  "v2.nav.updateTo": "有可用更新：v{v}",
+  "settings.tabDisplay": "显示",
+  "settings.collectionsMosaic": "合辑显示封面拼贴",
+  "settings.collectionsMosaicHint": "每个合辑显示四张封面。取消勾选可只显示一张封面，与旧客户端一致。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

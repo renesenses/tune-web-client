@@ -4039,6 +4039,14 @@ export default {
   "v2.meta.foot": "Feldweise Bearbeitung und Stapelanreicherung sind hier nicht enthalten: Sie bleiben im aktuellen Client, außerhalb des ?v2-Flags. Den Fortschritt der Anreicherung verfolgen Sie unter {p}.",
   "v2.home.wZonesCards": "Läuft gerade",
   "v2.home.zoneOf": "auf {z}",
+  "v2.lib.scopedFolder": "Ordner: {d}",
+  "v2.lib.scopedClear": "Ganze Bibliothek anzeigen",
+  "favorites.noAddedDate": "Der Dienst liefert für diese Favoriten kein Hinzufügedatum.",
+  "settings.zonesUnlimited": "Unbegrenzt",
+  "v2.nav.updateTo": "Update verfügbar: v{v}",
+  "settings.tabDisplay": "Anzeige",
+  "settings.collectionsMosaic": "Cover-Mosaik auf Sammlungen",
+  "settings.collectionsMosaicHint": "Vier Cover je Sammlung. Abwählen für ein einzelnes Cover, wie im bisherigen Client.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

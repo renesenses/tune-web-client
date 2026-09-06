@@ -115,3 +115,75 @@ describe('fil 1683 — la facette Dynamic Range ne filtre rien', () => {
     expect(oxy).toMatch(/NUMERIC_FACETS = new Set\(\[[^\]]*'dr'/);
   });
 });
+
+describe('fil 1637 + Bertrand — un répertoire ouvert dans la Bibliothèque', () => {
+  const v2 = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
+
+  it('la v2 CONSOMME enfin `pendingLibraryFolder`', () => {
+    // 🔴 Dixième « écrit mais pas branché » : `BrowseView` posait la portée et
+    // le seul consommateur était `LibraryView`, l'écran de l'ANCIEN client.
+    // « c'est l'entièreté de la bibliothèque en cours qui s'affiche »
+    // (Sevy Tabroc, forum 1637) — même défaut que « Répertoires vue en
+    // Bibliothèque : filtre non appliqué » (Bertrand, 06/09).
+    expect(v2).toContain('pendingLibraryFolder');
+    // 🔴 L'APPEL, pas la définition. Une première version de cette garde
+    // vérifiait que la fonction existait : remplacer son appel par `null`
+    // laissait la garde verte et la portée morte. Un test qui réplique le
+    // code ne le garde pas.
+    expect(v2).toMatch(/const dossierPortee = prendreDossierEnAttente\(\);/);
+    expect(v2).toMatch(/function prendreDossierEnAttente\(\): string \| null/);
+    // Une seule fois : la portée ne doit pas se réappliquer à chaque retour.
+    expect(v2).toMatch(/pendingLibraryFolder\.set\(null\); return d;/);
+    // Et elle doit vraiment ATTEINDRE la source d'albums.
+    expect(v2).toMatch(/porteeActive = \$state\(!!dossierPortee\)/);
+  });
+
+  it('elle filtre par IDENTIFIANTS, sans toucher au magasin partagé', () => {
+    // L'ancien client refait les albums depuis 5 000 pistes et ÉCRASE
+    // `albums` : la portée survivait à l'écran qui l'avait posée.
+    expect(v2).toContain('api.getAlbumsDetailed({ folder: dossierPortee }');
+    expect(v2).toMatch(/\$albums\.filter\(\(a\) => a\.id != null && idsPortee!\.has\(a\.id\)\)/);
+    const i = v2.indexOf('const src = $derived<Album[]>');
+    expect(v2.slice(i, i + 400), 'le magasin ne doit jamais être réécrit').not.toMatch(/albums\.set\(/);
+  });
+
+  it("elle n'affiche pas TOUT pendant qu'elle charge la portée", () => {
+    // Montrer la bibliothèque entière une fraction de seconde, c'est rejouer
+    // le défaut qu'on corrige.
+    expect(v2).toMatch(/idsPortee == null \? \[\]/);
+    expect(v2).toMatch(/\(porteeActive && idsPortee == null\) \|\| \$libraryLoading/);
+  });
+
+  it('la portée se VOIT et se RETIRE', () => {
+    // Une bibliothèque amputée sans explication est le défaut inverse.
+    expect(v2).toContain("$tr('v2.lib.scopedFolder' as any)");
+    expect(v2).toContain('onclick={retirerPortee}');
+    expect(v2).toMatch(/function retirerPortee\(\)[\s\S]{0,120}idsPortee = null/);
+  });
+});
+
+describe('fil 1647 — le périmètre de la recherche', () => {
+  const api = sansCommentaires(lire('src/lib/api.ts'));
+
+  it('les QUATRE familles reçoivent le tampon de source', () => {
+    // Mesuré sur le .18 : `/search?q=miles` ne porte `source` sur AUCUNE
+    // famille. Le client n'en tamponnait que deux ; artistes et playlists
+    // passaient donc pour locaux.
+    const i = api.indexOf('for (const fam of [');
+    expect(i, 'le tampon de source a changé de forme').toBeGreaterThan(-1);
+    const bloc = api.slice(i, i + 300);
+    for (const f of ['tracks', 'albums', 'artists', 'playlists'])
+      expect(bloc, `${f} n'est pas tamponné`).toContain(`'${f}'`);
+    expect(bloc).toContain("if (x && !x.source) x.source = key;");
+  });
+
+  it('un artiste de service ne peut plus passer pour LOCAL', () => {
+    // `estLocal` vaut `(x.source ?? 'local') === 'local' && x.id != null`.
+    // Sans tampon, un artiste Qobuz `{id: "6760"}` était LOCAL : l'écran lui
+    // offrait le cœur, les étiquettes et l'édition de la bibliothèque, et le
+    // cœur écrivait `artist_id: "6760"` dans la table des favoris locaux.
+    const sv = sansCommentaires(lire('src/components/v2/SearchV2.svelte'));
+    expect(sv).toContain("const estLocal = (x: any) => (x?.source ?? 'local') === 'local' && x?.id != null;");
+    expect(sv).toContain('favori={estLocal(ar) ? { artistId: ar.id! } : null}');
+  });
+});

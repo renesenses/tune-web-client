@@ -4039,6 +4039,14 @@ export default {
   "v2.meta.foot": "項目ごとの編集と一括補完はここには含まれません。現行クライアントの、?v2 フラグの外に残ります。補完の進捗は {p} で確認できます。",
   "v2.home.wZonesCards": "再生中",
   "v2.home.zoneOf": "{z} で再生中",
+  "v2.lib.scopedFolder": "フォルダー：{d}",
+  "v2.lib.scopedClear": "ライブラリ全体を表示",
+  "favorites.noAddedDate": "このサービスはこれらのお気に入りの追加日を提供していません。",
+  "settings.zonesUnlimited": "無制限",
+  "v2.nav.updateTo": "アップデートがあります：v{v}",
+  "settings.tabDisplay": "表示",
+  "settings.collectionsMosaic": "コレクションにジャケットのモザイクを表示",
+  "settings.collectionsMosaicHint": "コレクションごとに4枚のジャケット。チェックを外すと、以前のクライアントと同じ1枚表示になります。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

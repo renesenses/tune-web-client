@@ -4039,6 +4039,14 @@ export default {
   "v2.meta.foot": "필드별 편집과 일괄 보강은 여기에 포함되지 않습니다. 현재 클라이언트의 ?v2 플래그 밖에 남아 있습니다. 보강 진행률은 {p}에서 확인합니다.",
   "v2.home.wZonesCards": "지금 재생 중",
   "v2.home.zoneOf": "{z}에서 재생 중",
+  "v2.lib.scopedFolder": "폴더: {d}",
+  "v2.lib.scopedClear": "라이브러리 전체 보기",
+  "favorites.noAddedDate": "이 서비스는 해당 즐겨찾기의 추가 날짜를 제공하지 않습니다.",
+  "settings.zonesUnlimited": "무제한",
+  "v2.nav.updateTo": "업데이트 사용 가능: v{v}",
+  "settings.tabDisplay": "표시",
+  "settings.collectionsMosaic": "컬렉션에 커버 모자이크 표시",
+  "settings.collectionsMosaicHint": "컬렉션마다 커버 4장. 체크를 해제하면 이전 클라이언트처럼 커버 한 장만 표시합니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

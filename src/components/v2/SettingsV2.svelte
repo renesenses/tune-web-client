@@ -1515,6 +1515,26 @@
                 </label>
               </div>
 
+            {:else if s.id === 'displayPrefs'}
+              <!-- Premier pensionnaire de l'onglet Affichage : un GOÛT, donc
+                   un interrupteur, et un défaut qui ne bouge pas. « Les 4
+                   pochettes accolées, ce n'est pas ma préférence. J'aimais
+                   beaucoup l'écran collection de l'ancienne version, épuré,
+                   compact » (Gros Bidon, forum 1671, 05/09/2026). -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.collectionsMosaic' as any)}</span>
+                  <span class="hint">{$t('settings.collectionsMosaicHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.v2CollectionsMosaique}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, v2CollectionsMosaique: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
             {:else if s.id === 'interface'}
               <div class="row">
                 <div class="lbl">
@@ -2280,7 +2300,8 @@
                 {#if lic.expiresAt}
                   <div class="kv"><span>{$t('settings.expiresOn' as any)}</span><b>{$dateSimple(lic.expiresAt)}</b></div>
                 {/if}
-                <div class="kv"><span>{$t('settings.allowedZones' as any)}</span><b>{lic.zoneLimit}</b></div>
+                <div class="kv"><span>{$t('settings.allowedZones' as any)}</span><b
+                  >{lic.zoneLimit == null ? $t('settings.zonesUnlimited' as any) : lic.zoneLimit}</b></div>
               </div>
 
               {#if lic.sessionConflict}

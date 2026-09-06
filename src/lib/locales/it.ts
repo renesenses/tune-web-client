@@ -4039,6 +4039,14 @@ export default {
   "v2.meta.foot": "La modifica campo per campo e l’arricchimento in blocco non sono ripresi qui: restano nel client attuale, fuori dal flag ?v2. L’avanzamento dell’arricchimento si segue in {p}.",
   "v2.home.wZonesCards": "In ascolto",
   "v2.home.zoneOf": "su {z}",
+  "v2.lib.scopedFolder": "Cartella: {d}",
+  "v2.lib.scopedClear": "Mostra tutta la libreria",
+  "favorites.noAddedDate": "Il servizio non fornisce una data di aggiunta per questi preferiti.",
+  "settings.zonesUnlimited": "Illimitato",
+  "v2.nav.updateTo": "Aggiornamento disponibile: v{v}",
+  "settings.tabDisplay": "Visualizzazione",
+  "settings.collectionsMosaic": "Mosaico di copertine sulle raccolte",
+  "settings.collectionsMosaicHint": "Quattro copertine per raccolta. Deseleziona per una sola copertina, come nel client precedente.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

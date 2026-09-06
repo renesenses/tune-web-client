@@ -4039,6 +4039,14 @@ export default {
   "v2.meta.foot": "Editarea câmp cu câmp și îmbogățirea pe loturi nu sunt preluate aici: rămân în clientul actual, în afara indicatorului ?v2. Progresul îmbogățirii se urmărește în {p}.",
   "v2.home.wZonesCards": "Se ascultă acum",
   "v2.home.zoneOf": "pe {z}",
+  "v2.lib.scopedFolder": "Dosar: {d}",
+  "v2.lib.scopedClear": "Vezi toată biblioteca",
+  "favorites.noAddedDate": "Serviciul nu furnizează o dată a adăugării pentru aceste favorite.",
+  "settings.zonesUnlimited": "Nelimitat",
+  "v2.nav.updateTo": "Actualizare disponibilă: v{v}",
+  "settings.tabDisplay": "Afișare",
+  "settings.collectionsMosaic": "Mozaic de coperte pe colecții",
+  "settings.collectionsMosaicHint": "Patru coperte pe colecție. Debifați pentru o singură copertă, ca în clientul anterior.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

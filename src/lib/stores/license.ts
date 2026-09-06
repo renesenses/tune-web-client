@@ -8,7 +8,24 @@ export interface LicenseState {
   licenseKey: string | null;
   expiresAt: string | null;
   features: Record<string, { enabled: boolean; display_name: string; available?: boolean }>;
-  zoneLimit: number;
+  /**
+   * 🔴 `null` veut dire ILLIMITÉ, et c'est ce que le serveur envoie.
+   *
+   * Mesuré sur le .18 le 06/09/2026, `GET /cloud/license/status` avec
+   * `tier: "premium"` : `zone_limit` vaut `null`. Le champ existe, il est
+   * simplement vide — c'est ainsi que le serveur dit « pas de plafond ».
+   *
+   * Ce magasin lisait `status.zone_limit ?? 3` : il traduisait donc
+   * « illimité » par **3**, le plafond du palier GRATUIT. L'écran Réglages
+   * annonçait « Zones autorisées : 3 » sur un serveur premium qui en portait
+   * quatorze. « En premium, Zones autorisées est illimité !! » (Bertrand,
+   * 06/09/2026).
+   *
+   * ⚠️ Purement de l'AFFICHAGE : le plafond réel est appliqué côté serveur,
+   * au point d'étranglement de la lecture (`enforce_zone_cap` dans
+   * `orchestrator.play()`). Rien ici ne l'assouplit.
+   */
+  zoneLimit: number | null;
   hardwareFingerprint: string | null;
   /** Non-null while the licence is active on another of the user's servers. */
   sessionConflict: LicenseSessionConflict | null;
@@ -31,6 +48,11 @@ const defaultState: LicenseState = {
   sessionConflict: null,
   offlineGrace: null,
 };
+
+/** Les deux paliers qui n'ont pas de plafond de zones. */
+function estPremium(t: string | null | undefined): boolean {
+  return t === 'premium' || t === 'pro';
+}
 
 export const licenseState = writable<LicenseState>(defaultState);
 
@@ -59,7 +81,10 @@ export async function loadLicense(): Promise<void> {
       licenseKey: status.license_key ?? null,
       expiresAt: status.expires_at ?? null,
       features: status.features ?? {},
-      zoneLimit: status.zone_limit ?? 3,
+      // Un serveur ANCIEN n'envoie pas le champ du tout : on retombe alors
+      // sur le plafond du palier, pas sur « illimité » — accorder l'illimité
+      // à un gratuit par défaut serait le défaut symétrique.
+      zoneLimit: status.zone_limit ?? (estPremium(status.tier) ? null : 3),
       hardwareFingerprint: status.hardware_fingerprint ?? null,
       sessionConflict: status.session_conflict ?? null,
       offlineGrace: status.offline_grace ?? null,
