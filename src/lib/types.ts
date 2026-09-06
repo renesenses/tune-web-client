@@ -990,18 +990,21 @@ export interface SmartCollection {
   id: number;
   name: string;
   description: string | null;
-  icon: string;
-  color: string;
-  rules: string;            // JSON-encoded SmartRule[]
+  icon: string | null;
+  color: string | null;
+  // Le routeur renvoie le tableau JSON decode ; les anciennes reponses
+  // portaient la chaine encodee (#2732).
+  rules: SmartRule[] | string;
   match_mode: 'all' | 'any';
-  sort_by: string;
+  sort_by: string | null;
   sort_order: 'asc' | 'desc';
-  max_albums: number;
-  auto_refresh: number;
+  // Nom persistant et servi : `max_limit`. `max_albums` n'a jamais ete dans
+  // la reponse Rust (#2732).
+  max_limit: number | null;
   album_count?: number;
   created_at: string;
-  updated_at: string;
 }
+
 
 export interface SmartCollectionPreview {
   // Server returns {"albums": [...], "total": albums.len()} — total is the

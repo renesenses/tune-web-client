@@ -20,7 +20,7 @@
   let matchMode = $state<'all' | 'any'>(collection?.match_mode ?? 'all');
   let sortBy = $state(collection?.sort_by ?? 'added_at');
   let sortOrder = $state<'asc' | 'desc'>(collection?.sort_order ?? 'desc');
-  let maxAlbums = $state(collection?.max_albums ?? 500);
+  let maxAlbums = $state(collection?.max_limit ?? 500);
 
   // Parse the JSON-encoded rules (server stores as text); fall back
   // to a single empty rule for the create flow.
