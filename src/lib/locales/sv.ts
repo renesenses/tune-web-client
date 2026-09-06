@@ -156,6 +156,7 @@ export default {
   'common.pause': 'Pausa',
   'common.stop': 'Stoppa',
   'common.loading': 'Laddar...',
+  'transport.preparing': 'Förbereder uppspelning…',
   'common.cancel': 'Avbryt',
   'common.delete': 'Ta bort',
   'common.back': 'Tillbaka',

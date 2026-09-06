@@ -184,6 +184,7 @@ export default {
   'common.pause': '일시 중지',
   'common.stop': '정지',
   'common.loading': '로딩 중...',
+  'transport.preparing': '재생을 준비하는 중…',
   'common.cancel': '취소',
   'common.delete': '삭제',
   'common.back': '뒤로',

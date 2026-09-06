@@ -10,7 +10,7 @@
    * Le clic ouvre l'overlay PlaylistDetailV2 (la section est `position:relative`).
    */
   import * as api from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration } from '../../lib/utils';
@@ -182,7 +182,7 @@
     e?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null || pl.id == null) return;
-    api.play(zid, { playlist_id: pl.id }).catch(() => {});
+    playAndSync(zid, { playlist_id: pl.id }).catch(() => {});
   }
   /**
    * DEUX ONGLETS, comme les collections.
@@ -268,7 +268,7 @@
       .getSmartPlaylistTracks(sp.id)
       .then((pistes) => {
         const ids = (pistes ?? []).map((t: any) => t.id).filter((x: any) => x != null);
-        if (ids.length) return api.play(zid, { track_ids: ids.slice(0, 500) });
+        if (ids.length) return playAndSync(zid, { track_ids: ids.slice(0, 500) });
       })
       .catch(() => {});
   }
@@ -375,7 +375,7 @@
     // `service`, PAS `pl.source` : voir `PlaylistDetailV2`. Le champ n'existe
     // pas sur ces objets, et son absence faisait reprendre la lecture en cours
     // au lieu de lancer la playlist.
-    api.play(zid, { streaming_playlist_id: pl.source_id, source: service as any }).catch(() => {});
+    playAndSync(zid, { streaming_playlist_id: pl.source_id, source: service as any }).catch(() => {});
   }
   function create() {
     const name = newName.trim();

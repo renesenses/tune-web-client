@@ -184,6 +184,7 @@ export default {
   'common.pause': 'Pausa',
   'common.stop': 'Detener',
   'common.loading': 'Cargando...',
+  'transport.preparing': 'Preparando la reproducción…',
   'common.cancel': 'Cancelar',
   'common.delete': 'Eliminar',
   'common.back': 'Atrás',

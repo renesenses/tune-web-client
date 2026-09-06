@@ -184,6 +184,7 @@ export default {
   'common.pause': 'Pauză',
   'common.stop': 'Oprește',
   'common.loading': 'Se încarcă...',
+  'transport.preparing': 'Se pregătește redarea…',
   'common.cancel': 'Anulează',
   'common.delete': 'Șterge',
   'common.back': 'Înapoi',

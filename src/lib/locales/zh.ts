@@ -184,6 +184,7 @@ export default {
   'common.pause': '暂停',
   'common.stop': '停止',
   'common.loading': '加载中...',
+  'transport.preparing': '正在准备播放…',
   'common.cancel': '取消',
   'common.delete': '删除',
   'common.back': '返回',

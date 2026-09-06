@@ -33,7 +33,7 @@
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { quatreDistinctes } from '../../lib/mosaique';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
@@ -129,7 +129,7 @@
         notifications.error($t('v2.col.emptyCollection' as any));
         return;
       }
-      await api.play(zid, { album_id: premier.id });
+      await playAndSync(zid, { album_id: premier.id });
     } catch (err: any) {
       notifications.error(err?.message ?? $t('common.error' as any));
     }
@@ -328,7 +328,7 @@
       return;
     }
     try {
-      await api.play(zid, { album_id: a.id });
+      await playAndSync(zid, { album_id: a.id });
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }

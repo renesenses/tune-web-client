@@ -44,7 +44,7 @@
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
@@ -562,7 +562,7 @@
     // Un `track_id` n'a de sens que pour le serveur LOCAL : celui d'un serveur
     // distant designerait un tout autre morceau ici. On passe donc par son URL
     // de flux, jouee en `source: upnp`.
-    api.play(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(() => {});
+    playAndSync(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(() => {});
   }
   let opened = $state<Album | null>(null);
 
@@ -592,7 +592,7 @@
     }
     const zid = $currentZoneId;
     if (zid == null || a.id == null) return;
-    api.play(zid, { album_id: a.id }).catch(() => {});
+    playAndSync(zid, { album_id: a.id }).catch(() => {});
   }
 
   function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; }
@@ -636,7 +636,7 @@
     if (!choix?.id) return;
     const pistes = (await pistesAlbumDistant(d, choix.id)).filter((t) => t.id != null);
     if (!pistes.length) return;
-    await api.play(zid, corpsLecture(d, pistes[0]) as any);
+    await playAndSync(zid, corpsLecture(d, pistes[0]) as any);
     for (let i = 1; i < pistes.length; i++) {
       await api.addToQueue(zid, corpsLecture(d, pistes[i]) as any);
     }

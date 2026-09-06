@@ -184,6 +184,7 @@ export default {
   'common.pause': '一時停止',
   'common.stop': '停止',
   'common.loading': '読み込み中...',
+  'transport.preparing': '再生を準備しています…',
   'common.cancel': 'キャンセル',
   'common.delete': '削除',
   'common.back': '戻る',

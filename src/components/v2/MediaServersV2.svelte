@@ -35,7 +35,7 @@
    *     ferait conclure à une absence là où il n'y a qu'un serveur muet.
    */
   import * as api from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { estUnServeurTune, ouvertureParDefaut, RAYONS_TUNE } from '../../lib/mediaServerHome';
   import { depotDistant } from '../../lib/tuneRemote';
   import LibraryV2 from './LibraryV2.svelte';
@@ -236,7 +236,7 @@
   async function lire(it: MediaServerItem) {
     const zid = $currentZoneId;
     if (zid == null || !it.res_url) return;
-    try { await api.play(zid, corps(it) as any); }
+    try { await playAndSync(zid, corps(it) as any); }
     catch { error = 'Lecture impossible.'; }
   }
 

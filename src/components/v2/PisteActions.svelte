@@ -48,7 +48,7 @@
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { queuePosition } from '../../lib/stores/queue';
   import {
     favoriteTrackIds, favoriteStreamingKeys, streamingFavKey,
@@ -110,7 +110,7 @@
     const zid = $currentZoneId;
     const corps = corpsDeLecture(piste);
     if (zid == null || !corps) return;
-    api.play(zid, corps as any).catch(() => notifications.error($t('v2.pa.playError' as any)));
+    playAndSync(zid, corps as any).catch(() => notifications.error($t('v2.pa.playError' as any)));
   }
 
   /**

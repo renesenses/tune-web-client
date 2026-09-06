@@ -7,7 +7,7 @@
   import * as api from '../../lib/api';
   import { t as tr } from '../../lib/i18n';
   import { formatAnneeAlbum } from '../../lib/formats';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -137,7 +137,7 @@
     if (zid == null || !d) return;
     const suite = liste.slice(depuis).filter((t) => t.id != null);
     if (!suite.length) return;
-    await api.play(zid, corpsLecture(d, suite[0]) as any);
+    await playAndSync(zid, corpsLecture(d, suite[0]) as any);
     for (let i = 1; i < suite.length; i++) await api.addToQueue(zid, corpsLecture(d, suite[i]) as any);
   }
 
@@ -148,7 +148,7 @@
     // ne designe rien pour le serveur, qui retombe alors sur « reprendre la
     // lecture en cours » — le defaut releve sur les playlists Qobuz.
     if (service && sidDistant) {
-      api.play(zid, { streaming_album_id: String(sidDistant), source: service as any, start_index: startIndex }).catch(() => {});
+      playAndSync(zid, { streaming_album_id: String(sidDistant), source: service as any, start_index: startIndex }).catch(() => {});
       return;
     }
     // Bandcamp : chaque piste porte son propre flux, il n'y a pas d'album a
@@ -157,12 +157,12 @@
     if (bandcamp) {
       const corps = corpsDeLecture(tracks[startIndex]);
       if (!corps) return;
-      api.play(zid, corps as any).catch(() => {});
+      playAndSync(zid, corps as any).catch(() => {});
       return;
     }
     if (album.id == null) return;
     if (depot) { enchainerDistant(tracks, startIndex).catch(() => {}); return; }
-    api.play(zid, { album_id: album.id, start_index: startIndex }).catch(() => {});
+    playAndSync(zid, { album_id: album.id, start_index: startIndex }).catch(() => {});
   }
   function shuffle() {
     const zid = $currentZoneId;
@@ -175,7 +175,7 @@
     }
     const ids = tracks.map((t) => t.id).filter((x): x is number => x != null);
     for (let i = ids.length - 1; i > 0; i--) { const j = (i * 7 + 3) % (i + 1); [ids[i], ids[j]] = [ids[j], ids[i]]; }
-    api.play(zid, { track_ids: ids }).catch(() => {});
+    playAndSync(zid, { track_ids: ids }).catch(() => {});
   }
   function addQueue() {
     const zid = $currentZoneId, d = depot;

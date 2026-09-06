@@ -20,7 +20,7 @@
   import { onMount } from 'svelte';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import type { Album, UserTag } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -59,7 +59,7 @@
   function lireAlbum(a: Album) {
     const zid = $currentZoneId;
     if (zid == null || a.id == null) return;
-    api.play(zid, { album_id: a.id }).catch(() => {});
+    playAndSync(zid, { album_id: a.id }).catch(() => {});
   }
 
   onMount(() => {

@@ -12,7 +12,7 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { currentProfileId, loadFavoriteIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
@@ -282,7 +282,7 @@
       ? { streaming_album_id: String(a.source_id), source: a.source as any }
       : null;
     if (!corps) return;
-    api.play(zid, corps).catch(() => { error = 'Lecture impossible.'; });
+    playAndSync(zid, corps).catch(() => { error = 'Lecture impossible.'; });
   }
   function playTrack(t: any) {
     const zid = $currentZoneId;
@@ -293,7 +293,7 @@
       ? { source: t.source as any, source_id: String(t.source_id) }
       : null;
     if (!corps) return;
-    api.play(zid, corps).catch(() => { error = 'Lecture impossible.'; });
+    playAndSync(zid, corps).catch(() => { error = 'Lecture impossible.'; });
   }
   // `e` optionnel : appelee depuis la carte historique (qui propage) ET depuis
   // le menu de `PochetteActions`, qui a deja arrete le geste.

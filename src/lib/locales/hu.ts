@@ -363,6 +363,7 @@ export default {
   "common.pause": "Szünet",
   "common.stop": "Leállítás",
   "common.loading": "Betöltés...",
+  "transport.preparing": "Lejátszás előkészítése…",
   "common.cancel": "Mégse",
   "common.delete": "Törlés",
   "common.back": "Vissza",

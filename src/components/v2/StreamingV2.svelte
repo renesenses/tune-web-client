@@ -26,7 +26,7 @@
    *     collection d'achats.
    */
   import * as api from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { activeView } from '../../lib/stores/navigation';
   import type { StreamingServiceStatus, StreamingPlaylist, SearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
@@ -448,7 +448,7 @@
     const zid = $currentZoneId;
     if (zid == null || !active || active === BANDCAMP) return;
     const sid = a?.source_id ?? a?.id;
-    if (sid) api.play(zid, { streaming_album_id: String(sid), source: active as any }).catch(() => { error = 'Lecture impossible.'; });
+    if (sid) playAndSync(zid, { streaming_album_id: String(sid), source: active as any }).catch(() => { error = 'Lecture impossible.'; });
   }
   /**
    * Lecture d'une PISTE de service.
@@ -478,13 +478,13 @@
     const svc = t?.source ?? active;
     const sid = t?.source_id ?? t?.id;
     if (zid == null || !svc || svc === BANDCAMP || !sid) return;
-    api.play(zid, { source: svc as any, source_id: String(sid) })
+    playAndSync(zid, { source: svc as any, source_id: String(sid) })
       .catch(() => { error = 'Lecture impossible.'; });
   }
   function playPlaylist(p: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    api.play(zid, { streaming_playlist_id: String(p.source_id ?? p.id), source: (p.source ?? active) as any })
+    playAndSync(zid, { streaming_playlist_id: String(p.source_id ?? p.id), source: (p.source ?? active) as any })
       .catch(() => { error = 'Lecture impossible.'; });
   }
   /** Bandcamp ne sert qu'un extrait mp3-128 : on le lit tel quel. */
@@ -496,7 +496,7 @@
     // serveur apparie. Avec `file_path`, il ne reconnaissait rien et retombait
     // sur « reprendre la lecture en cours » (Bertrand, 05/09/2026). L'ecran
     // Bandcamp du client actuel envoie cette paire depuis toujours.
-    api.play(zid, {
+    playAndSync(zid, {
       source: 'bandcamp' as any, source_id: String(it.extrait),
       title: it.titre, artist_name: it.artiste ?? null,
       cover_path: it.pochette ?? null,

@@ -16,7 +16,7 @@
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import type { AcousticSearchResult } from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -215,7 +215,7 @@
   function lireAlbum(id: number) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    api.play(zid, { album_id: id }).catch(() => {});
+    playAndSync(zid, { album_id: id }).catch(() => {});
   }
 
   /**
@@ -226,13 +226,13 @@
   function lireDistant(a: any) {
     const zid = $currentZoneId;
     if (zid == null || !a?.source || !a?.source_id) return;
-    api.play(zid, { streaming_album_id: String(a.source_id), source: a.source }).catch(() => {});
+    playAndSync(zid, { streaming_album_id: String(a.source_id), source: a.source }).catch(() => {});
   }
 
   function playTrack(t: Track) {
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
-    api.play(zid, { track_id: t.id }).catch(() => {});
+    playAndSync(zid, { track_id: t.id }).catch(() => {});
   }
   function trackRate(t: Track): string {
     if (getQualityTier(t) === 'dsd') return 'DSD';
@@ -326,9 +326,9 @@
   function lirePlaylist(pl: PlaylistTrouvee) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    if (pl.idLocal != null) { api.play(zid, { playlist_id: pl.idLocal }).catch(() => {}); return; }
+    if (pl.idLocal != null) { playAndSync(zid, { playlist_id: pl.idLocal }).catch(() => {}); return; }
     if (pl.idService && pl.serviceSource) {
-      api.play(zid, { streaming_playlist_id: pl.idService, source: pl.serviceSource as any }).catch(() => {});
+      playAndSync(zid, { streaming_playlist_id: pl.idService, source: pl.serviceSource as any }).catch(() => {});
     }
   }
 
@@ -341,9 +341,9 @@
   function lirePiste(t: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    if (estLocal(t)) { api.play(zid, { track_id: t.id }).catch(() => {}); return; }
+    if (estLocal(t)) { playAndSync(zid, { track_id: t.id }).catch(() => {}); return; }
     if (t?.source && t?.source_id) {
-      api.play(zid, { source: t.source, source_id: String(t.source_id),
+      playAndSync(zid, { source: t.source, source_id: String(t.source_id),
         title: t.title ?? null, artist_name: t.artist_name ?? null,
         album_title: t.album_title ?? null, cover_path: t.cover_path ?? null,
         duration_ms: t.duration_ms }).catch(() => {});

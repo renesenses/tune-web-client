@@ -9,7 +9,7 @@
    */
   import * as api from '../../lib/api';
   import { t as tr } from '../../lib/i18n';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
@@ -112,7 +112,7 @@
     const zid = $currentZoneId;
     if (zid == null) return;
     if (item.kind === 'local') {
-      api.play(zid, { playlist_id: item.pl.id as number, start_index: startIndex }).catch(() => {});
+      playAndSync(zid, { playlist_id: item.pl.id as number, start_index: startIndex }).catch(() => {});
     } else {
       // `item.service`, PAS `item.pl.source` : les playlists rendues par
       // `/streaming/{service}/playlists` ne portent aucun champ `source` —
@@ -125,7 +125,7 @@
       // lecture en cours » — cliquer Lire relançait le morceau du moment.
       // Bertrand, 02/09/2026. Le service est deja celui avec lequel on a
       // charge les pistes deux lignes plus haut.
-      api.play(zid, { streaming_playlist_id: item.pl.source_id, source: item.service as any, start_index: startIndex }).catch(() => {});
+      playAndSync(zid, { streaming_playlist_id: item.pl.source_id, source: item.service as any, start_index: startIndex }).catch(() => {});
     }
   }
   function addQueue() {

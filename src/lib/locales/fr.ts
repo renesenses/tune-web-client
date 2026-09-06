@@ -381,6 +381,7 @@ export default {
   'common.pause': 'Pause',
   'common.stop': 'Arrêter',
   'common.loading': 'Chargement...',
+  'transport.preparing': 'Préparation de la lecture…',
   'common.cancel': 'Annuler',
   'common.delete': 'Supprimer',
   'common.back': 'Retour',
