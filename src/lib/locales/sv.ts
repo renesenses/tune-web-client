@@ -3868,4 +3868,5 @@ export default {
   "v2.album.addQueue": "Lägg i kön",
   "v2.album.queued": "”{title}” lades till i kön.",
   "v2.album.queuedNext": "”{title}” spelas härnäst.",
+  "v2.lib.openAlbum": "Öppna albumet",
 } as const;

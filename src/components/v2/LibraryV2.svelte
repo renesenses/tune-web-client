@@ -630,16 +630,54 @@
   let tracks = $state<Track[]>([]);
   let tracksLoading = $state(false);
   let tracksLoaded = false;
+  /**
+   * Le nombre de pistes ANNONCÉ pendant que la liste charge.
+   *
+   * `/stats` le rend tout de suite ; `getAllTracks()` met plusieurs secondes
+   * sur 46 000 titres. Le compteur affichait donc « 0 titres » tout ce temps —
+   * un écran qui annonce zéro pendant qu'il charge se lit comme une
+   * bibliothèque vide. « Affichage dès le début du chargement du nb de
+   * pistes » (Bertrand, 06/09/2026).
+   *
+   * Il ne sert QUE pendant le chargement : une fois la liste là, c'est elle
+   * qui fait foi — un total du serveur et une liste qui ne coïncideraient pas
+   * seraient pires que l'attente.
+   */
+  let nbPistesServeur = $state<number | null>(null);
   $effect(() => {
     const d = depot;
     if (tab !== 'tracks' || tracksLoaded) return;
     tracksLoaded = true;
     tracksLoading = true;
+    // Un dépôt distant compte SES pistes, pas les nôtres : on ne lui prête pas
+    // le total local, on n'annonce simplement rien.
+    // `/library/stats`, pas `/system/stats` : c'est un écran de bibliothèque.
+    // Les deux rendent `tracks` (46 877 sur le .18, mesuré le 06/09/2026), le
+    // premier sans traîner l'inventaire des zones et des sorties.
+    if (!d) api.getLibraryStats().then((st) => { nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
     (d ? pistesDistantes(d) : api.getAllTracks())
       .then((t) => { tracks = t ?? []; })
       .catch(() => { tracks = []; })
       .finally(() => { tracksLoading = false; });
   });
+  const nbPistesAnnonce = $derived(
+    tracksLoading && nbPistesServeur != null ? nbPistesServeur : tracks.length,
+  );
+
+  /**
+   * Ouvrir l'album d'une piste depuis l'onglet Titres.
+   *
+   * On rouvre la fiche par l'ALBUM chargé, pas par un objet reconstruit à
+   * partir de la piste : la fiche lit `cover_path`, `format`, `sample_rate`,
+   * l'année — une piste ne les porte pas tous, et la fiche s'ouvrirait
+   * amputée. Sans album correspondant (une piste de service, un dépôt), pas
+   * de loupe : un bouton qui ne fait rien est pire qu'un bouton absent.
+   */
+  function albumDeLaPiste(t: Track): Album | null {
+    const aid = (t as any).album_id;
+    if (aid == null || depot) return null;
+    return $albums.find((a) => a.id === aid) ?? null;
+  }
   const visibleTracks = $derived.by(() => {
     const needle = fold(q);
     return tracks.filter((t) =>
@@ -775,7 +813,7 @@
     {#if tab === 'tracks'}
       <!-- Un compteur qui compte CE QU'ON REGARDE. La recherche, elle, agit
            bien sur les titres : c'est le seul filtre qu'on garde ici. -->
-      <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(tracks.length))}</span>
+      <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
       <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
@@ -1007,7 +1045,9 @@
             <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             {#each visibleTracks as t, i (t.id ?? i)}
-              <LignePisteV2 piste={t} numero={i + 1} onLire={() => playTrack(t)} />
+              {@const alb = albumDeLaPiste(t)}
+              <LignePisteV2 piste={t} numero={i + 1} onLire={() => playTrack(t)}
+                onOuvrirAlbum={alb ? () => (opened = alb) : null} />
             {/each}
             {#if tracks.length > visibleTracks.length}
               <div class="state">{visibleTracks.length} titres affichés sur {tracks.length} — affinez la recherche.</div>

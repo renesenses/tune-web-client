@@ -3869,6 +3869,7 @@ export default {
   "v2.album.addQueue": "Adaugă în coadă",
   "v2.album.queued": "„{title}” adăugat în coadă.",
   "v2.album.queuedNext": "„{title}” va fi redat în continuare.",
+  "v2.lib.openAlbum": "Deschide albumul",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

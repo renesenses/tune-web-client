@@ -3869,6 +3869,7 @@ export default {
   "v2.album.addQueue": "대기열에 추가",
   "v2.album.queued": "\"{title}\"을(를) 대기열에 추가했습니다.",
   "v2.album.queuedNext": "\"{title}\"을(를) 다음에 재생합니다.",
+  "v2.lib.openAlbum": "앨범 열기",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

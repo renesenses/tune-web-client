@@ -3869,6 +3869,7 @@ export default {
   "v2.album.addQueue": "Añadir a la cola",
   "v2.album.queued": "«{title}» añadido a la cola.",
   "v2.album.queuedNext": "«{title}» se reproducirá a continuación.",
+  "v2.lib.openAlbum": "Abrir el álbum",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

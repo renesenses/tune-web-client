@@ -31,6 +31,7 @@
    * album — `playAlbum(i)`, pas `play(track)` — et une piste de file saute au
    * rang. Ce composant ne peut pas le deviner, il le reçoit.
    */
+  import { t } from '../../lib/i18n';
   import AlbumArt from '../AlbumArt.svelte';
   import MetadataChips from '../MetadataChips.svelte';
   import QualityBadge from '../QualityBadge.svelte';
@@ -52,8 +53,35 @@
     pochette?: boolean;
     /** Affiche l'album à côté de l'artiste. Faux sur un écran d'album. */
     avecAlbum?: boolean;
+    /**
+     * Ce que fait un clic sur la POCHETTE, quand il y a autre chose à faire
+     * que lire. Absent = la pochette reste décorative.
+     *
+     * « Bibliothèque Pistes : loupe sur la cover au survol de la souris ;
+     * associer CTA modale album » (Bertrand, 06/09/2026). Depuis l'onglet
+     * Titres, on voyait la pochette d'un album sans pouvoir l'ouvrir : il
+     * fallait retourner à l'onglet Albums et l'y retrouver à la main.
+     */
+    onOuvrirAlbum?: (() => void) | null;
   }
-  let { piste, onLire, numero = null, pochette = true, avecAlbum = true }: Props = $props();
+  let { piste, onLire, numero = null, pochette = true, avecAlbum = true,
+        onOuvrirAlbum = null }: Props = $props();
+
+  /**
+   * 🔴 Les colonnes sont CALCULÉES, pas figées dans la feuille.
+   *
+   * Le numéro et la pochette sont facultatifs, et ils viennent de sortir du
+   * bouton de lecture — un bouton dans un bouton est du balisage invalide, et
+   * la loupe EST un bouton. Une `grid-template-columns` fixe placerait alors
+   * le `1fr` sur la mauvaise colonne dès qu'un des deux manque : c'est
+   * exactement le défaut d'alignement relevé sur la vue Liste de la
+   * Bibliothèque le 05/09.
+   */
+  const colonnes = $derived(
+    [numero != null ? '26px' : null, pochette ? '44px' : null, 'minmax(0,1fr)', 'auto', 'auto', 'auto']
+      .filter(Boolean)
+      .join(' '),
+  );
 
   const enLecture = $derived(piste.id != null && piste.id === $currentTrackId);
   const sousTitre = $derived(
@@ -85,15 +113,30 @@
   );
 </script>
 
-<div class="trk" class:np={enLecture}>
-  <button class="tclick" onclick={onLire}>
-    {#if numero != null}<span class="n">{numero}</span>{/if}
-    {#if pochette}
+<div class="trk" class:np={enLecture} style="--tcols:{colonnes}">
+  {#if numero != null}<span class="n">{numero}</span>{/if}
+  {#if pochette}
+    <!-- La pochette est SŒUR du bouton de lecture, jamais dedans : la loupe
+         est un bouton, et un bouton dans un bouton est du balisage invalide.
+         Sans loupe, elle reste un simple conteneur. -->
+    {#if onOuvrirAlbum}
+      <button class="cvsm cvbtn" onclick={onOuvrirAlbum}
+        title={$t('v2.lib.openAlbum' as any)} aria-label={$t('v2.lib.openAlbum' as any)}>
+        <AlbumArt coverPath={piste.cover_path} albumId={piste.album_id ?? null} size={0}
+          alt={piste.title} source={piste.source} fallbackInitials={piste.title?.slice(0, 1)} />
+        <span class="loupe" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        </span>
+      </button>
+    {:else}
       <span class="cvsm">
         <AlbumArt coverPath={piste.cover_path} albumId={piste.album_id ?? null} size={0}
           alt={piste.title} source={piste.source} fallbackInitials={piste.title?.slice(0, 1)} />
       </span>
     {/if}
+  {/if}
+  <button class="tclick" onclick={onLire}>
     <span class="ti">
       <!-- `title` : ces deux lignes s'elident. Sans lui, un titre long est
            illisible et rien ne permet d'en lire la fin (Bilou, forum). -->
@@ -112,7 +155,8 @@
 </div>
 
 <style>
-  .trk{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; width:100%;
+  .trk{display:grid; grid-template-columns:var(--tcols, minmax(0,1fr) auto auto auto);
+    align-items:center; gap:14px; width:100%;
     padding:0 10px; border-radius:9px; color:var(--v2-txt2)}
   .trk:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .trk.np{color:var(--v2-acc1)}
@@ -120,13 +164,24 @@
   /* Le clic de LECTURE porte la grille du titre : la ligne n'est plus un
      bouton depuis qu'elle accueille la barre d'actions, et un bouton dans un
      bouton est du balisage invalide. */
-  .tclick{display:flex; align-items:center; gap:14px; min-width:0; width:100%;
+  .tclick{display:flex; align-items:center; min-width:0; width:100%;
     padding:8px 0; border:0; background:transparent; color:inherit; cursor:pointer;
     text-align:left; font-family:inherit}
 
-  .n{flex:0 0 26px; font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
+  .n{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .trk.np .n{color:var(--v2-acc1)}
-  .cvsm{flex:0 0 auto; width:44px; height:44px; border-radius:6px; overflow:hidden}
+  .cvsm{position:relative; width:44px; height:44px; border-radius:6px; overflow:hidden}
+  .cvsm :global(img){width:100%; height:100%; object-fit:cover; display:block}
+
+  /* La loupe ne se montre qu'au survol — et au clavier, sans quoi la fonction
+     n'existerait que pour ceux qui ont une souris. */
+  .cvbtn{padding:0; border:0; background:transparent; cursor:pointer; display:block}
+  .loupe{position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:var(--v2-scrim); color:#fff; opacity:0; transition:opacity .12s ease}
+  .loupe svg{width:19px; height:19px}
+  .cvbtn:hover .loupe, .cvbtn:focus-visible .loupe{opacity:1}
+  .cvbtn:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){ .loupe{transition:none} }
 
   .ti{min-width:0; flex:1; display:flex; flex-direction:column; gap:2px}
   .tt{font-size:13.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
