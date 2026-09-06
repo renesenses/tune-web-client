@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import * as api from '../api';
+import { normaliserVerificationMaj } from '../miseAJour';
 
 export const updateAvailable = writable(false);
 export const latestVersion = writable<string | null>(null);
@@ -26,9 +27,13 @@ function isNewer(a: string, b: string): boolean {
 async function poll() {
   try {
     // Try the server's own update check first
-    const info = await api.checkForUpdate();
-    const cur = info?.current_version ?? info?.current ?? null;
-    const lat = info?.latest_version ?? info?.latest ?? null;
+    // Même traduction que l'écran Réglages, au même endroit : les deux noms
+    // du serveur (`current`/`latest`) vers ceux du client. Elle était recopiée
+    // ici et dans `SettingsView`, et ABSENTE de `SettingsV2` — c'est ainsi que
+    // le bouton de mise à jour du nouveau client avait disparu.
+    const info = normaliserVerificationMaj(await api.checkForUpdate());
+    const cur = info?.current_version ?? null;
+    const lat = info?.latest_version ?? null;
     if (cur) currentVersion.set(cur);
     if (lat) latestVersion.set(lat);
     const hasUpdate = !!info?.update_available || (cur && lat && isNewer(cur, lat));

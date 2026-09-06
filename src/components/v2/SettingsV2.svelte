@@ -26,6 +26,7 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { notifications } from '../../lib/stores/notifications';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
@@ -755,7 +756,14 @@
     api.apiFetch('/system/update/check')
       .then((d: any) => {
         serverVersion = d?.current_version ?? d?.current ?? null;
-        updateInfo = d?.update_available ? d : null;
+        // 🔴 NORMALISATION, et pas un raffinement : le serveur envoie
+        // `latest`/`current`, cet écran lit `latest_version`/`current_version`,
+        // et tout le bloc de mise à jour vit sous `{#if
+        // updateInfo?.latest_version}`. La condition était donc TOUJOURS
+        // fausse et le bouton d'installation inatteignable — « manque le
+        // bouton de maj » (Bertrand, 06/09/2026). Voir `lib/miseAJour`.
+        const v = normaliserVerificationMaj(d);
+        updateInfo = v?.update_available ? v : null;
       })
       .catch(() => { serverVersion = null; });
     api.getHealth().then((h) => { health = h; }).catch(() => { health = null; });
