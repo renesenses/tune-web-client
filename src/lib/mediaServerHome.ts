@@ -7,7 +7,7 @@ import type { MediaServer } from './types';
  * un serveur tiers : on ne sait pas ce qu'il expose ni comment il l'appelle.
  *
  * Mais un **autre serveur Tune** n'est pas un inconnu. Sa racine est
- * `Artists / Albums / Genres / All Tracks / Radio`, dans cet ordre et sous ces
+ * `Artists / Albums / Genres / Years / All Tracks / Radio / Playlists`, dans cet ordre et sous ces
  * identifiants — c'est `ROOT_CONTAINERS` dans `tune-core/src/upnp_server.rs`,
  * qui s'en déclare la seule source de vérité. Faire cliquer l'utilisateur une
  * fois de plus pour arriver aux albums, c'est lui faire redécouvrir à chaque
@@ -52,7 +52,13 @@ export function ouvertureParDefaut(
  * Les rayons d'un serveur Tune, tels que sa racine les expose.
  *
  * `ROOT_CONTAINERS` dans `tune-core/src/upnp_server.rs` — ordre et
- * identifiants compris, ce fichier s'en déclare la seule source de vérité.
+ * identifiants compris, ce fichier s'en declare la seule source de verite.
+ * Il en publie SEPT : `artists, albums, genres, years, tracks, radios,
+ * playlists`. `years` (#1789) et `playlists` (#1802) ont ete ajoutes cote
+ * serveur sans que cette liste suive : Jean Valjean (forum 1625, #2971) ne
+ * voyait que cinq raccourcis et devait revenir a la racine pour atteindre
+ * Annees et Playlists. Le serveur verrouille les sept sur la reponse SOAP
+ * (`f47ed045`) ; `mediaServerHome.test.ts` les verrouille ici.
  *
  * Les afficher en onglets evite l'aller-retour par la racine : c'est ce qui
  * separait « une grille d'albums » de « la vue bibliotheque ». On ne les
@@ -63,6 +69,8 @@ export const RAYONS_TUNE: { objectId: string; cle: string }[] = [
   { objectId: 'artists', cle: 'favorites.artists' },
   { objectId: 'albums', cle: 'favorites.albums' },
   { objectId: 'genres', cle: 'nav.genres' },
+  { objectId: 'years', cle: 'common.years' },
   { objectId: 'tracks', cle: 'favorites.tracks' },
   { objectId: 'radios', cle: 'nav.radios' },
+  { objectId: 'playlists', cle: 'nav.playlists' },
 ];
