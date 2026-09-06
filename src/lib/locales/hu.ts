@@ -3969,6 +3969,8 @@ export default {
   "v2.meta.foot": "A mezőnkénti szerkesztés és a kötegelt gazdagítás itt nem szerepel: a jelenlegi kliensben maradnak, a ?v2 kapcsolón kívül. A gazdagítás előrehaladása itt követhető: {p}.",
   "v2.home.wZonesCards": "Most szól",
   "v2.home.zoneOf": "itt: {z}",
+  "v2.lib.scopedFolder": "Mappa: {d}",
+  "v2.lib.scopedClear": "A teljes könyvtár megjelenítése",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

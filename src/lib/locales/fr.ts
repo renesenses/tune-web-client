@@ -4033,6 +4033,8 @@ export default {
   "v2.meta.foot": "L’édition champ par champ et l’enrichissement par lot ne sont pas repris ici : ils restent dans le client actuel, hors du drapeau ?v2. L’avancement de l’enrichissement se suit dans {p}.",
   "v2.home.wZonesCards": "En écoute",
   "v2.home.zoneOf": "sur {z}",
+  "v2.lib.scopedFolder": "Répertoire : {d}",
+  "v2.lib.scopedClear": "Voir toute la bibliothèque",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -4011,6 +4011,8 @@ export default {
   "v2.meta.foot": "逐字段编辑和批量补全不在此处：它们仍留在当前客户端，位于 ?v2 标记之外。补全进度可在 {p} 中查看。",
   "v2.home.wZonesCards": "正在收听",
   "v2.home.zoneOf": "在 {z} 播放",
+  "v2.lib.scopedFolder": "文件夹：{d}",
+  "v2.lib.scopedClear": "显示整个音乐库",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

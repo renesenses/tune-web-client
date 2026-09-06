@@ -4011,6 +4011,8 @@ export default {
   "v2.meta.foot": "Feldweise Bearbeitung und Stapelanreicherung sind hier nicht enthalten: Sie bleiben im aktuellen Client, außerhalb des ?v2-Flags. Den Fortschritt der Anreicherung verfolgen Sie unter {p}.",
   "v2.home.wZonesCards": "Läuft gerade",
   "v2.home.zoneOf": "auf {z}",
+  "v2.lib.scopedFolder": "Ordner: {d}",
+  "v2.lib.scopedClear": "Ganze Bibliothek anzeigen",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

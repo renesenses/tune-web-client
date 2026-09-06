@@ -4011,6 +4011,8 @@ export default {
   "v2.meta.foot": "필드별 편집과 일괄 보강은 여기에 포함되지 않습니다. 현재 클라이언트의 ?v2 플래그 밖에 남아 있습니다. 보강 진행률은 {p}에서 확인합니다.",
   "v2.home.wZonesCards": "지금 재생 중",
   "v2.home.zoneOf": "{z}에서 재생 중",
+  "v2.lib.scopedFolder": "폴더: {d}",
+  "v2.lib.scopedClear": "라이브러리 전체 보기",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

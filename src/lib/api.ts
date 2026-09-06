@@ -2330,12 +2330,30 @@ export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PA
       for (const key of Object.keys(result.services)) {
         result.services[key].tracks = mapStreamingTracks(result.services[key].tracks);
         result.services[key].albums = mapStreamingAlbums(result.services[key].albums);
-        // The server's StreamTrack/StreamAlbum carry no `source` field, so a
-        // track played from global search had no source and did nothing
-        // (DEvir). Stamp the service key as the source so play/queue actions
-        // can route these streaming results.
-        for (const t of result.services[key].tracks ?? []) if (t && !t.source) t.source = key;
-        for (const a of result.services[key].albums ?? []) if (a && !a.source) a.source = key;
+        // 🔴 Le serveur ne tamponne AUCUNE source — vérifié sur le .18 le
+        // 06/09/2026, `/search?q=miles` : ni les pistes, ni les albums, ni les
+        // artistes, ni les playlists de `services.qobuz` ne portent `source`.
+        // Sans ce tampon, une piste jouée depuis la recherche globale n'avait
+        // pas de source et ne faisait rien (DEvir).
+        //
+        // Les ARTISTES et les PLAYLISTS y échappaient, et le défaut ne se
+        // limitait pas à l'affichage. `estLocal(x)` vaut
+        // `(x.source ?? 'local') === 'local' && x.id != null` : un artiste
+        // Qobuz, sans source et avec `id: "6760"`, passait donc pour LOCAL.
+        // L'écran de recherche lui offrait alors le cœur, les étiquettes et
+        // l'édition de la bibliothèque — et le cœur écrivait
+        // `artist_id: "6760"` dans la table des favoris LOCAUX.
+        //
+        // Côté périmètre, ils étaient comptés sous « Local » et disparaissaient
+        // quand on choisissait le service : « si on clique sur Qobuz, c'est le
+        // même résultat que Tous » (Reivax66, forum 1647).
+        //
+        // Les quatre familles, donc, et pas trois.
+        for (const fam of ['tracks', 'albums', 'artists', 'playlists'] as const) {
+          for (const x of (result.services[key] as any)[fam] ?? []) {
+            if (x && !x.source) x.source = key;
+          }
+        }
       }
     }
     return result;

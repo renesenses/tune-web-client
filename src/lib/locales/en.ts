@@ -4031,6 +4031,8 @@ export default {
   "v2.meta.foot": "Field-by-field editing and batch enrichment are not covered here: they stay in the current client, outside the ?v2 flag. Enrichment progress is followed in {p}.",
   "v2.home.wZonesCards": "Now listening",
   "v2.home.zoneOf": "on {z}",
+  "v2.lib.scopedFolder": "Folder: {d}",
+  "v2.lib.scopedClear": "Show the whole library",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

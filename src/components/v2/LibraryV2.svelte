@@ -2,6 +2,7 @@
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick } from 'svelte';
+  import { get } from 'svelte/store';
   import { t as tr } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
   /**
@@ -34,7 +35,7 @@
    * un serveur UPnP tiers.
    */
   import { albums, libraryLoading } from '../../lib/stores/library';
-  import { activeView, type View } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryFolder, type View } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, fold, formatDuration,  type QualityTier } from '../../lib/utils';
@@ -80,10 +81,73 @@
     return () => ctrl.abort();
   });
 
+  /**
+   * PORTÉE À UN RÉPERTOIRE — le bouton « ouvrir dans la bibliothèque » de
+   * l'écran Répertoires.
+   *
+   * 🔴 Dixième « écrit mais pas branché » de ce client. `BrowseView` pose
+   * `pendingLibraryFolder` et change de vue ; le SEUL consommateur était
+   * `LibraryView`, l'écran de l'ancien client. En v2, la Bibliothèque ne
+   * lisait rien : on arrivait sur la bibliothèque ENTIÈRE, sans que rien ne
+   * dise que la portée avait été perdue.
+   *
+   * Deux témoins, indépendamment : « Lorsque je sélectionne un répertoire
+   * celui-ci apparaît dans bibliothèque mais c'est l'entièreté de la
+   * bibliothèque en cours qui s'affiche » (Sevy Tabroc, forum 1637,
+   * 01/09/2026) et « Répertoires vue en Bibliothèque : filtre non appliqué »
+   * (Bertrand, 06/09/2026).
+   *
+   * ## Pourquoi les identifiants, et pas une reconstruction
+   *
+   * L'ancien client refait les albums à partir de 5 000 pistes et ÉCRASE le
+   * magasin partagé `albums` — la portée survivait donc à l'écran qui l'avait
+   * posée. Ici on demande au serveur les albums du dossier, on n'en garde que
+   * les IDENTIFIANTS, et on filtre. Le magasin n'est pas touché, les pochettes
+   * et les badges continuent de venir d'où ils venaient.
+   *
+   * Mesuré sur le .18 le 06/09/2026 : `/library/albums-detailed` rend 4 255
+   * albums sans filtre, 1 440 pour `/data/music`, 1 306 pour son sous-dossier
+   * `NEW_FLAC` — les sous-dossiers sont donc bien inclus.
+   */
+  function prendreDossierEnAttente(): string | null {
+    const d = get(pendingLibraryFolder);
+    if (d) { pendingLibraryFolder.set(null); return d; }
+    return null;
+  }
+  const dossierPortee = prendreDossierEnAttente();
+  const nomPortee = dossierPortee
+    ? (dossierPortee.split(/[/\\]/).filter(Boolean).pop() ?? dossierPortee)
+    : '';
+  /** `null` tant qu'on ne sait pas encore : l'écran attend plutôt que de
+   *  montrer tout, ce qui serait exactement le défaut signalé. */
+  let idsPortee = $state<Set<number> | null>(null);
+  let porteeActive = $state(!!dossierPortee);
+  $effect(() => {
+    if (!dossierPortee || !porteeActive) return;
+    api.getAlbumsDetailed({ folder: dossierPortee }, 5000, 0)
+      .then((r) => {
+        idsPortee = new Set(
+          (r.items ?? []).map((a: any) => a.album_id).filter((x: any) => typeof x === 'number'),
+        );
+      })
+      .catch(() => { idsPortee = new Set(); });
+  });
+  function retirerPortee() {
+    porteeActive = false;
+    idsPortee = null;
+  }
+
   /** LA source d'albums de l'ecran. Tout le reste lit `src`, jamais `$albums`
    *  ni `albumsD` : c'est ce qui rend la vue identique des deux cotes. */
-  const src = $derived<Album[]>(depot ? albumsD : $albums);
-  const enCharge = $derived(depot ? chargementD : $libraryLoading);
+  const src = $derived<Album[]>(
+    depot ? albumsD
+      : !porteeActive ? $albums
+      : idsPortee == null ? []
+      : $albums.filter((a) => a.id != null && idsPortee!.has(a.id)),
+  );
+  const enCharge = $derived(
+    depot ? chargementD : (porteeActive && idsPortee == null) || $libraryLoading,
+  );
 
   const level = $derived($preferences.settingsLevel);
   // FILTRER FAIT PARTIE DU GESTE DE BASE (Bertrand, 28/08 : « ou sont passes
@@ -820,6 +884,22 @@
        barre laterale. Seules les PUCES de filtrage sont reservees a Avance. -->
   {#if erreurD}<div class="derr">{erreurD}</div>{/if}
 
+  <!-- 🔴 La portée se VOIT et se RETIRE.
+       Une bibliothèque amputée sans explication est le défaut inverse de celui
+       qu'on corrige : on ne saurait plus si le reste manque ou s'il est
+       simplement filtré. La puce nomme le dossier et le clic la retire. -->
+  {#if porteeActive}
+    <div class="portee">
+      <span class="pchip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        {$tr('v2.lib.scopedFolder' as any).replace('{d}', nomPortee)}
+        <button onclick={retirerPortee} aria-label={$tr('v2.lib.scopedClear' as any)}
+          title={$tr('v2.lib.scopedClear' as any)}>×</button>
+      </span>
+    </div>
+  {/if}
+
   <div class="filters">
     {#if tab === 'tracks'}
       <!-- Un compteur qui compte CE QU'ON REGARDE. La recherche, elle, agit
@@ -1368,6 +1448,19 @@
   /* Vues par facette : une section par valeur (artiste, genre, année, label). */
   .facets{flex:1; overflow-y:auto; padding:8px 30px 40px}
   .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  /* La puce de portée : visible sans crier, et son × est la seule action. */
+  .portee{padding:2px 30px 6px}
+  .pchip{display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px;
+    border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans);
+    color:var(--v2-acc1); background:var(--v2-acc-soft);
+    border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
+  .pchip svg{width:14px; height:14px; flex:none}
+  .pchip button{display:flex; align-items:center; justify-content:center; width:18px; height:18px;
+    padding:0; border:0; border-radius:50%; cursor:pointer; font:600 14px var(--v2-sans);
+    background:transparent; color:inherit; line-height:1}
+  .pchip button:hover{background:color-mix(in srgb, var(--v2-acc1) 22%, transparent)}
+  .pchip button:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+
   .facet{padding-bottom:26px}
   .facet h2{display:flex; align-items:center; gap:10px; font-size:17px; font-weight:700; padding:6px 0 14px;
     position:sticky; top:0; background:var(--v2-bg); z-index:2}
