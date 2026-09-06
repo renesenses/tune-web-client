@@ -97,8 +97,47 @@
   }
 
   async function refresh() {
-    try { zones.set(await api.getZones()); error = null; }
+    try { zones.set(await api.getZones()); error = null; chargerDoublons(); }
     catch { error = 'Zones indisponibles.'; }
+  }
+
+  // DUP-1 : deux zones pour un même appareil. Le diagnostic les nomme (phase
+  // 0) ; l'écran propose de fusionner la zone hors ligne dans sa jumelle en
+  // ligne (phase 1), et dit depuis quand une zone ne répond plus (phase 2).
+  let doublons = $state<import('../../lib/api').ZonesDoublon[]>([]);
+  let confirmMerge = $state<number | null>(null);
+  async function chargerDoublons() {
+    try { doublons = await api.getZonesDoublons(); } catch { doublons = []; }
+  }
+  /** La zone EN LIGNE qui porte déjà l'appareil de `z`, si `z` est hors ligne. */
+  function jumelle(z: Zone): { id: number; name: string } | null {
+    if (z.id == null || z.online !== false) return null;
+    for (const g of doublons) {
+      const zs = g.zones ?? [];
+      if (!zs.some((x) => x.id === z.id)) continue;
+      const cible = zs.find((x) => x.id !== z.id && x.online);
+      if (cible) return { id: cible.id, name: cible.name };
+    }
+    return null;
+  }
+  function presenceTxt(z: Zone): string | null {
+    switch (z.presence) {
+      case 'eteinte_recemment': return $t('v2.zone.presenceRecent' as any);
+      case 'absente_depuis':
+        return $t('v2.zone.presenceAbsent' as any).replace('{days}', String(z.jours_absente ?? '?'));
+      case 'jamais_vue': return $t('v2.zone.presenceNever' as any);
+      default: return null;
+    }
+  }
+  function fusionner(z: Zone, cible: { id: number; name: string }, e: MouseEvent) {
+    e.stopPropagation();
+    if (confirmMerge !== z.id) { confirmMerge = z.id ?? null; return; }
+    confirmMerge = null;
+    act(async () => {
+      await api.mergeZoneInto(z.id as number, cible.id);
+      if ($currentZoneId === z.id) currentZoneId.set(cible.id);
+      await chargerDoublons();
+    });
   }
 
   async function act(fn: () => Promise<unknown>) {
@@ -215,6 +254,7 @@
                   {#if z.current_track?.title}<span class="np">♪ {z.current_track.title}</span>{/if}
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
                   {#if r}<span class="rc {r.cls}">{r.txt}</span>{/if}
+                  {#if presenceTxt(z)}<span class="rc warn">{presenceTxt(z)}</span>{/if}
                 </span>
               </span>
             </button>
@@ -236,6 +276,12 @@
             {/if}
 
             <span class="zacts">
+              {#if jumelle(z)}
+                {@const j = jumelle(z)}
+                <button class="merge" class:armed={confirmMerge === z.id} onclick={(e) => fusionner(z, j!, e)} disabled={busy}>
+                  {confirmMerge === z.id ? $t('v2.zone.mergeConfirm' as any) : $t('v2.zone.mergeInto' as any).replace('{name}', j!.name)}
+                </button>
+              {/if}
               <button onclick={(e) => startRename(z, e)} disabled={busy} aria-label="Renommer">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
               </button>
@@ -408,4 +454,5 @@
   .zacts .danger:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .zacts .armed{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .zacts svg{width:14px; height:14px}
+  .zacts .merge{padding:0 10px; font-size:12px; white-space:nowrap}
 </style>

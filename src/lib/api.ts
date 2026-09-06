@@ -393,6 +393,33 @@ export function createZone(name: string, outputType: OutputType = 'local', outpu
   });
 }
 
+/** Un groupe de zones qui désignent le même appareil (DUP-1 phase 0,
+ *  `zones_doublons` de `/system/diagnostics`). `remplacee_probable` n'est vrai
+ *  que pour une zone hors ligne dont une jumelle est en ligne. */
+export interface ZonesDoublon {
+  motif?: string;
+  cle?: string;
+  en_ligne?: number;
+  zones: {
+    id: number;
+    name: string;
+    output_type?: string;
+    output_device_id?: string | null;
+    online?: boolean;
+    remplacee_probable?: boolean;
+  }[];
+}
+export function getZonesDoublons() {
+  return fetchJSON<{ zones_doublons?: ZonesDoublon[] }>(`${BASE}/system/diagnostics`)
+    .then((d) => d?.zones_doublons ?? []);
+}
+/** DUP-1 phase 1 : la zone `doublon` disparaît dans `cible`, qui hérite de ce
+ *  qu'elle réglait (égaliseur, profils, file si vide, alarmes, historique,
+ *  groupes). Le serveur refuse (409) si les deux zones ne désignent pas le
+ *  même appareil, ou si l'une joue. */
+export function mergeZoneInto(doublon: number, cible: number) {
+  return fetchJSON<unknown>(`${BASE}/zones/${doublon}/fusionner-dans/${cible}`, { method: 'POST' });
+}
 export function renameZone(id: number, name: string) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
