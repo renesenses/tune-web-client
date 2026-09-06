@@ -615,6 +615,9 @@ export default {
   'search.searching': 'Searching...',
   'search.noResults': 'No results for "{query}"',
   'search.hint': 'Type a search term to begin',
+  'search.shownOf': '{shown} of {total}',
+  'search.shownOfAtLeast': '{shown} of at least {total}',
+  'search.loadMore': 'Show more',
 
   // Streaming
   'streaming.selectService': 'Select a streaming service',

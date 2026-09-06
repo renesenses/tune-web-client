@@ -410,6 +410,9 @@ export default {
   'search.searching': '搜索中...',
   'search.noResults': '未找到 "{query}" 的结果',
   'search.hint': '输入搜索词开始',
+  'search.shownOf': '{shown} / {total}',
+  'search.shownOfAtLeast': '{shown} / 至少 {total}',
+  'search.loadMore': '查看更多',
 
   // Streaming
   'streaming.selectService': '选择流媒体服务',

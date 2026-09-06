@@ -410,6 +410,9 @@ export default {
   'search.searching': '검색 중...',
   'search.noResults': '"{query}"에 대한 결과 없음',
   'search.hint': '검색을 시작하려면 검색어를 입력하세요',
+  'search.shownOf': '{total}개 중 {shown}개',
+  'search.shownOfAtLeast': '{shown}개 ({total}개 이상)',
+  'search.loadMore': '더 보기',
 
   // Streaming
   'streaming.selectService': '스트리밍 서비스를 선택하세요',

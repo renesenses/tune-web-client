@@ -5,6 +5,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { activeView, pendingSearchQuery, saveViewContext, loadViewContext } from '../lib/stores/navigation';
   import { requeteAuMontage } from '../lib/rechercheContexte';
+  import { totalPistes, libelleComptePistes, laSuiteExiste, rangDeLaSuite, fusionnerLaSuite } from '../lib/rechercheTotaux';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading, albums, artists, tracks as libraryTracks, genres as libraryGenres } from '../lib/stores/library';
   import { get } from 'svelte/store';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices } from '../lib/stores/streaming';
@@ -135,6 +136,35 @@
   // Filtered versions
   let filteredAlbums = $derived(qualityFilter === 'all' ? groupedAlbums : groupedAlbums.filter(a => matchesQuality(a)));
   let filteredTracks = $derived(qualityFilter === 'all' ? groupedTracks : groupedTracks.filter(t => matchesQuality(t)));
+
+  // #3189 — le compteur disait la longueur de la liste reçue (50, le plafond
+  // de page), pas le nombre de correspondances : « Pistes 50 » pour plus de
+  // cent « Autumn Leaves » (jfpaquet, forum 1644). Le serveur rend `totals`,
+  // `totals_capped` et `has_more` depuis la 0.9.132 ; on les lit ici, et la
+  // suite de la bibliothèque locale se demande par `offset`. Avec un filtre
+  // de qualité actif, le total serveur ne décrit plus la liste affichée : on
+  // retombe sur le compte affiché.
+  let libellePistes = $derived(libelleComptePistes(
+    filteredTracks.length,
+    qualityFilter === 'all' ? totalPistes(results) : null,
+    { sur: $t('search.shownOf'), surAuMoins: $t('search.shownOfAtLeast') },
+  ));
+  let chargementSuite = $state(false);
+  async function voirPlusDePistes() {
+    if (!results || chargementSuite) return;
+    chargementSuite = true;
+    try {
+      // `local` seul : les services ne sont pas paginés côté serveur et
+      // rendraient une seconde fois leur première page.
+      const page = await api.federatedSearch(searchQuery.trim(), ['local'], api.SEARCH_PAGE_LIMIT, rangDeLaSuite(results));
+      results = fusionnerLaSuite(results, page);
+    } catch (e) {
+      console.error('search load more error', e);
+      notifications.error($t('common.error'));
+    } finally {
+      chargementSuite = false;
+    }
+  }
 
   // --- Discovery content ---
   let topArtists = $state<any[]>([]);
@@ -1123,7 +1153,7 @@
             {:else if sec === 'tracks' && showTracks && filteredTracks.length > 0}
               <section class="section">
                 <div class="section-head">
-                  <h3 class="section-title">Pistes <span class="count">{filteredTracks.length}</span></h3>
+                  <h3 class="section-title">Pistes <span class="count">{libellePistes}</span></h3>
                   {#if filteredTracks.filter(t => t.id).length > 1}
                     <div class="track-actions-bar">
                       <button class="action-pill" onclick={() => playAllTracks(filteredTracks)}>
@@ -1225,6 +1255,15 @@
                     </div>
                   </div>
                 {/each}
+                {#if laSuiteExiste(results)}
+                  <!-- #3189 : la liste est une page ; sans ce bouton, rien ne
+                       disait qu'il y avait une suite. -->
+                  <div class="voir-plus">
+                    <button class="action-pill" onclick={voirPlusDePistes} disabled={chargementSuite}>
+                      {chargementSuite ? $t('common.loading') : $t('search.loadMore')}
+                    </button>
+                  </div>
+                {/if}
               </section>
             {:else if sec === 'playlists' && showPlaylists && playlistMatches.length > 0}
               <section class="section">
@@ -2036,6 +2075,7 @@
     transition: all 0.15s;
   }
   .action-pill:hover { background: var(--tune-accent); color: white; }
+  .voir-plus { display: flex; justify-content: center; padding: 12px 0 4px; }
 
   .track-list {
     display: flex;
