@@ -121,7 +121,7 @@
         // service connecte.
         if (actif == null && servers.length) actif = servers[0].id;
       })
-      .catch(() => { error = 'Découverte réseau indisponible.'; })
+      .catch(() => { error = $t('v2.ms.discoveryUnavail' as any); })
       .finally(() => { loadingServers = false; });
   });
 
@@ -169,7 +169,7 @@
         const t = decoderEntitesXml(titre);
         pile = remplacer ? [{ objectId, titre: t }] : [...pile, { objectId, titre: t }];
       }
-    } catch { error = 'Ce dossier n’a pas répondu.'; }
+    } catch { error = $t('v2.ms.folderNoAnswer' as any); }
     busy = false;
   }
 
@@ -278,7 +278,7 @@
     try {
       const r = await api.browseMediaServer(open.id, c.id);
       await enchainer(r.items ?? [], c.id);
-    } catch { error = 'Ce dossier n’a pas répondu.'; }
+    } catch { error = $t('v2.ms.folderNoAnswer' as any); }
     action = null;
   }
 
@@ -463,7 +463,7 @@
         {/if}
 
         {#if !vue.containers.length && !vue.items.length}
-          <div class="state">{q.trim() ? 'Aucun résultat.' : 'Ce dossier est vide.'}</div>
+          <div class="state">{$t((q.trim() ? 'v2.common.noResult' : 'v2.ms.folderEmpty') as any)}</div>
         {/if}
       {/if}
     {/if}

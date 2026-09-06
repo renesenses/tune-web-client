@@ -29,7 +29,7 @@
 
   async function reload() {
     try { plugins = (await api.getMergedPlugins()) ?? []; error = null; }
-    catch { error = 'Extensions indisponibles sur ce serveur.'; }
+    catch { error = $t('v2.plug.unavailable' as any); }
     loading = false;
   }
   $effect(() => { reload(); });
@@ -93,7 +93,7 @@
     {#if loading}
       <div class="state">Chargement…</div>
     {:else if !filtered.length}
-      <div class="state">{tab === 'installed' ? 'Aucune extension installée.' : 'Aucune extension.'}</div>
+      <div class="state">{$t((tab === 'installed' ? 'v2.plug.emptyInstalled' : 'v2.plug.empty') as any)}</div>
     {:else}
       <div class="list">
         {#each filtered as p (key(p))}

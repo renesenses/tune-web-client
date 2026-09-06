@@ -70,8 +70,12 @@ describe('Favoris — les onglets manquants', () => {
   it('Playlists et Collections sont des onglets', () => {
     expect(src).toContain("'playlists'");
     expect(src).toContain("'collections'");
-    expect(src).toContain("label: 'Playlists'");
-    expect(src).toContain("label: 'Collections'");
+    // 🔴 RÉORIENTÉE le 06/09/2026 : les libellés sont passés par `$t()`. La
+    // garde exigeait la chaîne française, ce qui interdisait de traduire les
+    // onglets — le défaut même que Bertrand signalait ce jour-là. Ce qu'elle
+    // protège reste entier : les deux onglets existent et sont nommés.
+    expect(src).toContain("{ id: 'playlists', label: $t('favorites.playlists'");
+    expect(src).toContain("{ id: 'collections', label: $t('v2.nav.collections'");
   });
 
   it('les deux familles de collections sont lues', () => {

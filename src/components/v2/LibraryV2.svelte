@@ -128,9 +128,12 @@
     { v: 96000, l: '96' }, { v: 176400, l: '176,4' }, { v: 192000, l: '192' },
     { v: 352800, l: '352,8' }, { v: 384000, l: '384' },
   ];
-  const QUALITIES: { key: QualityTier | 'hires'; label: string }[] = [
+  // DSD, Hi-Res et CD sont des NOMS de format : ils s'écrivent pareil dans
+  // toutes les langues. « Compressé » est un mot, et porte donc une clé —
+  // d'où `cle`, qui distingue les deux sans que le rendu ait à deviner.
+  const QUALITIES: { key: QualityTier | 'hires'; label: string; cle?: string }[] = [
     { key: 'dsd', label: 'DSD' }, { key: 'hires', label: 'Hi-Res' },
-    { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé' },
+    { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé', cle: 'v2.lib.qualityLossy' },
   ];
 
   let fQuality = $state<string | null>(null);
@@ -354,9 +357,11 @@
   // bibliotheque importee d'un ancien serveur, `added_at` est souvent vide,
   // et un tri qui ne trie rien est pire qu'un tri absent.
   type SortKey = 'title' | 'artist' | 'year' | 'added';
+  // `l` porte une CLÉ, pas un libellé : le menu de tri restait en français
+  // quelle que soit la langue (Bertrand, 06/09/2026).
   const SORTS: { k: SortKey; l: string }[] = [
-    { k: 'title', l: 'Titre' }, { k: 'artist', l: 'Artiste' },
-    { k: 'year', l: 'Année' }, { k: 'added', l: 'Ajout récent' },
+    { k: 'title', l: 'v2.lib.sortTitle' }, { k: 'artist', l: 'v2.lib.sortArtist' },
+    { k: 'year', l: 'v2.lib.sortYear' }, { k: 'added', l: 'v2.fav.sortRecent' },
   ];
   /**
    * 🔴 RETENU d'une visite à l'autre (Lulu, forum, 05/09/2026 : « figer le
@@ -469,13 +474,15 @@
   // « Titres » est le seul a demander autre chose : il charge la liste des
   // pistes, une fois, a la premiere ouverture de l'onglet.
   type Tab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels';
+  // Mêmes clés que les onglets des Favoris : ce sont les mêmes familles, et
+  // les traduire deux fois les ferait diverger.
   const TABS: { id: Tab; label: string; adv?: boolean }[] = [
-    { id: 'albums', label: 'Albums' },
-    { id: 'artists', label: 'Artistes' },
-    { id: 'tracks', label: 'Titres' },
-    { id: 'genres', label: 'Genres', adv: true },
-    { id: 'years', label: 'Années', adv: true },
-    { id: 'labels', label: 'Labels', adv: true },
+    { id: 'albums', label: 'favorites.albums' },
+    { id: 'artists', label: 'favorites.artists' },
+    { id: 'tracks', label: 'favorites.tracks' },
+    { id: 'genres', label: 'nav.genres', adv: true },
+    { id: 'years', label: 'v2.lib.tabYears', adv: true },
+    { id: 'labels', label: 'v2.lib.tabLabels', adv: true },
   ];
   // L'ONGLET aussi : revenir à la Bibliothèque après avoir consulté les Titres
   // pour retomber sur les Albums est le même agacement, d'un cran plus haut.
@@ -530,8 +537,11 @@
     if (t === 'years') { const y = albumYear(a); return y == null ? null : String(y); }
     return null;
   }
-  const FACET_EMPTY: Record<string, string> = {
-    artists: 'Artiste inconnu', genres: 'Sans genre', labels: 'Sans label', years: 'Année inconnue' };
+  // ⚠️ Ces libellés servent AUSSI de clé de regroupement : ils sont résolus
+  // ici, une fois, et `groups` compare ensuite des chaînes déjà rendues.
+  const FACET_EMPTY: Record<string, string> = $derived({
+    artists: $tr('v2.lib.unknownArtist' as any), genres: $tr('v2.lib.noGenre' as any),
+    labels: $tr('v2.lib.noLabel' as any), years: $tr('v2.lib.unknownYear' as any) });
 
   /**
    * Le nom de la facette COTE SERVEUR pour l'onglet courant.
@@ -779,12 +789,13 @@
 <svelte:window onclick={ddDehors} onkeydown={ddEchap} />
 <section class="v2-lib tune-v2">
   <header class="top">
-    <h1>{depot ? depot.nom : 'Bibliothèque'}</h1>
+    <h1>{depot ? depot.nom : $tr('library.title' as any)}</h1>
     {#if depot}<span class="dist">{depot.hote}</span>{/if}
     <button class="btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null}
-      title={$currentZoneId == null ? 'Aucune zone active'
-        : depot ? `Lire un album au hasard de ${depot.nom}` : 'Lire toute la bibliothèque au hasard'}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 20 4M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>{shuffling ? 'Lancement…' : 'Aléatoire'}
+      title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
+        : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)
+        : $tr('v2.lib.shuffleAll' as any)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 20 4M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>{shuffling ? $tr('v2.lib.starting' as any) : $tr('v2.album.shuffle' as any)}
     </button>
     {#if !depot}
       <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
@@ -797,7 +808,7 @@
     <nav class="tabs">
       {#each TABS as t (t.id)}
         {#if !t.adv || atLeast(level, 'intermediate')}
-          <button class="tab" class:active={tab === t.id} onclick={() => (tab = t.id)}>{t.label}</button>
+          <button class="tab" class:active={tab === t.id} onclick={() => (tab = t.id)}>{$tr(t.label as any)}</button>
         {/if}
       {/each}
     </nav>
@@ -840,7 +851,7 @@
           {#each QUALITIES as it (it.key)}
             {@const n = nQualite.get(it.key) ?? 0}
             <button class:on={fQuality === it.key} disabled={n === 0 && fQuality !== it.key}
-              onclick={() => { fQuality = fQuality === it.key ? null : (it.key as string); ddClose(); }}>{it.label} <em>{n}</em></button>
+              onclick={() => { fQuality = fQuality === it.key ? null : (it.key as string); ddClose(); }}>{it.cle ? $tr(it.cle as any) : it.label} <em>{n}</em></button>
           {/each}
         </div>
       </div>
@@ -885,7 +896,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
       <input placeholder={$tr('v2.lib.searchPlaceholder' as any)} bind:value={q} />
       {#if q}
-        <button class="clr" onclick={() => (q = '')} aria-label="Effacer">
+        <button class="clr" onclick={() => (q = '')} aria-label={$tr('common.clear' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       {/if}
@@ -895,18 +906,18 @@
       <div class="drop right">
         <button class="chip plain">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h7M4 18h4M17 5v14M14 16l3 3 3-3"/></svg>
-          {SORTS.find(x => x.k === sortKey)?.l}
+          {$tr((SORTS.find(x => x.k === sortKey)?.l ?? 'v2.lib.sortTitle') as any)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="menu">
           {#each availableSorts as o (o.k)}
-            <button class:on={sortKey === o.k} onclick={() => (sortKey = o.k)}>{o.l}</button>
+            <button class:on={sortKey === o.k} onclick={() => (sortKey = o.k)}>{$tr(o.l as any)}</button>
           {/each}
         </div>
       </div>
       <button class="viewtog" onclick={() => (display = display === 'grid' ? 'list' : 'grid')}
-        aria-label={display === 'grid' ? 'Affichage liste' : 'Affichage grille'}
-        title={display === 'grid' ? 'Affichage liste' : 'Affichage grille'}>
+        aria-label={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}
+        title={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}>
         {#if display === 'grid'}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         {:else}
@@ -1028,7 +1039,9 @@
       <!-- « Votre » serait faux sur la bibliotheque d'une autre machine : on
            nomme le serveur, sinon un catalogue distant vide se lirait comme
            un defaut de la sienne. Mesure : 192.168.1.16 rend `[]`. -->
-      <div class="state">{depot ? `${depot.nom} (${depot.hote}) n’expose aucun album.` : 'Votre bibliothèque est vide.'}</div>
+      <div class="state">{depot
+          ? $tr('v2.lib.emptyDepot' as any).replace('{nom}', depot.nom).replace('{hote}', depot.hote)
+          : $tr('v2.lib.emptyLibrary' as any)}</div>
     {:else}
       {#if navMode === 'alpha' && tab === 'albums'}
         <div class="rail">

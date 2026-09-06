@@ -891,7 +891,7 @@
 
   // ── Reglages par zone ─────────────────────────────────────────────────
   const RATES: { v: number; l: string }[] = [
-    { v: 0, l: 'Aucune limite' }, { v: 48000, l: '48 kHz' }, { v: 88200, l: '88,2 kHz' },
+    { v: 0, l: $t('v2.set.noLimit' as any) }, { v: 48000, l: '48 kHz' }, { v: 88200, l: '88,2 kHz' },
     { v: 96000, l: '96 kHz' }, { v: 176400, l: '176,4 kHz' }, { v: 192000, l: '192 kHz' },
     { v: 352800, l: '352,8 kHz' }, { v: 384000, l: '384 kHz' }, { v: 705600, l: '705,6 kHz' },
     { v: 1411200, l: '1411,2 kHz' },
@@ -1575,27 +1575,24 @@
                    les listes ici, c'est garantir qu'elles divergeront. -->
               <p class="hint">
                 {#if $devices.length || $zones.length}
-                  <b>{$formatNombre($devices.length)}</b> appareil{$devices.length > 1 ? 's' : ''} découvert{$devices.length > 1 ? 's' : ''}
-                  sur le réseau, <b>{$formatNombre($zones.length)}</b> zone{$zones.length > 1 ? 's' : ''} configurée{$zones.length > 1 ? 's' : ''}.
+                  <!-- Le gras est parti avec l'accord en nombre : une phrase
+                       découpée autour de deux <b> ne se traduit pas — chaque
+                       langue met le pluriel et l'ordre des mots ailleurs. -->
+                  {$t('v2.set.devicesFound' as any)
+                    .replace('{d}', $formatNombre($devices.length))
+                    .replace('{z}', $formatNombre($zones.length))}
                 {:else}
-                  Aucun appareil découvert, aucune zone configurée.
+                  {$t('v2.set.nothingFound' as any)}
                 {/if}
               </p>
-              <p class="hint">
-                Les zones se créent et se règlent dans l'écran <b>Zones</b>. La visibilité des
-                appareils réseau et des sorties locales se règle dans <b>Audio</b>.
-              </p>
+              <p class="hint">{$t('v2.set.zonesHint' as any)}</p>
               <div class="inline" style="margin-top:12px">
                 <button class="lnk" onclick={() => activeView.set('zonemanager')}>{$t('settings.openZones' as any)}</button>
                 <button class="lnk" onclick={() => (tabId = 'audio')}>{$t('settings.goToAudio' as any)}</button>
               </div>
 
             {:else if s.id === 'metadata'}
-              <p class="hint">
-                Les champs affichés dans la bibliothèque et l'ordre des colonnes se règlent
-                dans l'écran <b>{$t('metadata.title' as any)}</b> du Studio — c'est là que vivent aussi les
-                propositions de la communauté et les albums douteux.
-              </p>
+              <p class="hint">{$t('v2.set.metadataHint' as any).replace('{e}', $t('metadata.title' as any))}</p>
 
             {:else if s.id === 'enrichment'}
               <div class="row">
@@ -1653,7 +1650,8 @@
                 <div class="row">
                   <div class="lbl">
                     <span>Dossier de destination</span>
-                    <span class="hint">Vide = {ingest.effective_dest_root ?? 'le premier dossier de musique'}.</span>
+                    <span class="hint">{$t('v2.set.emptyMeansDefault' as any).replace('{d}',
+                  ingest.effective_dest_root ?? $t('v2.set.firstMusicFolder' as any))}</span>
                   </div>
                   <input class="txt wide" type="text" placeholder={ingest.effective_dest_root ?? ''}
                     value={ingest.dest_root ?? ''}
@@ -1709,10 +1707,7 @@
               <div class="row">
                 <div class="lbl">
                   <span>Notifications</span>
-                  <span class="hint">
-                    Fin d'analyse, erreurs de lecture. Réglage propre à <b>ce navigateur</b> —
-                    il ne suit pas votre profil d'un appareil à l'autre.
-                  </span>
+                  <span class="hint">{$t('v2.set.pushHint' as any)}</span>
                 </div>
                 <label class="sw">
                   <input type="checkbox" checked={pushOn}
@@ -1821,7 +1816,7 @@
                   {#each serverUrls as u (u)}
                     <div class="url">
                       <span class="up">{u}</span>
-                      <button class="lnk" onclick={() => copyUrl(u)}>{copied === u ? 'Copiée' : 'Copier'}</button>
+                      <button class="lnk" onclick={() => copyUrl(u)}>{$t((copied === u ? 'v2.set.copied' : 'v2.set.copy') as any)}</button>
                     </div>
                   {/each}
                 </div>
@@ -1961,7 +1956,7 @@
                     <div class="zc">
                       <div class="zch">
                         <span class="zn">{z.name}</span>
-                        <span class="zt">{isLocalZone(z) ? 'sortie locale' : 'sortie réseau'}</span>
+                        <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
                       </div>
                       <div class="zr">
                         <label class="zf">
@@ -1985,7 +1980,7 @@
                           <select class="sel sm" value={String(z.lyrics_offset_ms ?? 0)}
                             onchange={(e) => { const ms = Number((e.currentTarget as HTMLSelectElement).value);
                               setZoneField(z, () => api.updateZoneLyricsOffset(z.id as number, ms)); }}>
-                            {#each OFFSETS as ms (ms)}<option value={String(ms)}>{ms === 0 ? 'Aucun' : `+${ms / 1000} s`}</option>{/each}
+                            {#each OFFSETS as ms (ms)}<option value={String(ms)}>{ms === 0 ? $t('v2.set.none' as any) : `+${ms / 1000} s`}</option>{/each}
                           </select>
                         </label>
                         <label class="zf chk">
@@ -2310,7 +2305,7 @@
                       <div class="sname">
                         {name}
                         <span class="sst" class:ok={st.authenticated} class:off={!st.enabled}>
-                          {!st.enabled ? 'désactivé' : st.authenticated ? 'connecté' : 'non connecté'}
+                          {$t((!st.enabled ? 'v2.set.stDisabled' : st.authenticated ? 'v2.set.stConnected' : 'v2.set.stNotConnected') as any)}
                         </span>
                         {#if st.username}<em>{st.username}</em>{/if}
                         {#if st.subscription}<em class="sub">{st.subscription}</em>{/if}
@@ -2418,7 +2413,7 @@
               {#if brEnabled}
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.status' as any)}</span></div>
-                  <span class="badge" class:up={brConnected}>{brConnected ? 'Connecté' : 'Déconnecté'}</span>
+                  <span class="badge" class:up={brConnected}>{$t((brConnected ? 'v2.set.connectedCap' : 'v2.set.disconnectedCap') as any)}</span>
                 </div>
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.serverIdLabel' as any)}</span></div>
@@ -2743,14 +2738,14 @@
                     <span class="dt">{etiquetteCaracteristiques(d)}</span>
                   </label>
                 {:else}
-                  <p class="hint">{devicesLoaded ? $t('settings.noAudioDevices' as any) : 'Recherche des sorties…'}</p>
+                  <p class="hint">{devicesLoaded ? $t('settings.noAudioDevices' as any) : $t('v2.set.searchingOutputs' as any)}</p>
                 {/each}
               </div>
 
               <div class="foot">
                 <span class="hint">{$t('settings.playHereHint' as any)}</span>
                 <button class="lnk" onclick={createBrowserZoneHere} disabled={creatingBrowserZone}>
-                  {creatingBrowserZone ? 'Création…' : $t('settings.createBrowserZone' as any)}
+                  {creatingBrowserZone ? $t('v2.set.creating' as any) : $t('settings.createBrowserZone' as any)}
                 </button>
               </div>
 

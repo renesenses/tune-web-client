@@ -57,21 +57,24 @@
       const scanning = !!scan.value?.scanning;
       const r = report.status === 'fulfilled' ? report.value : null;
       const bits: string[] = [];
-      if (r?.inserted != null) bits.push(`${$formatNombre(r.inserted)} ajoutés`);
-      if (r?.updated != null) bits.push(`${$formatNombre(r.updated)} mis à jour`);
-      if (r?.skipped != null) bits.push(`${$formatNombre(r.skipped)} ignorés`);
+      const n = (k: string, v: number) => $t(k as any).replace('{n}', $formatNombre(v));
+      if (r?.inserted != null) bits.push(n('v2.health.added', r.inserted));
+      if (r?.updated != null) bits.push(n('v2.health.updated', r.updated));
+      if (r?.skipped != null) bits.push(n('v2.health.skipped', r.skipped));
       const failures = (r?.failed_paths?.length ?? 0) + (r?.error_dirs?.length ?? 0);
       out.push({
-        id: 'scan', titre: 'Analyse de la bibliothèque',
-        sous: 'Lecture des fichiers et des tags',
+        id: 'scan', titre: $t('v2.health.cardScan' as any),
+        sous: $t('v2.health.cardScanSub' as any),
         etat: scanning ? 'running' : 'idle',
-        ligne: scanning ? 'Analyse en cours…' : (bits.length ? `Dernière passe — ${bits.join(', ')}` : 'Aucune analyse enregistrée'),
-        detail: failures ? `${failures} chemin${failures > 1 ? 's' : ''} en échec` : undefined,
+        ligne: scanning ? $t('v2.health.scanning' as any)
+          : (bits.length ? $t('v2.health.lastPass' as any).replace('{d}', bits.join(', '))
+             : $t('v2.health.noScan' as any)),
+        detail: failures ? $t('v2.health.pathsFailed' as any).replace('{n}', String(failures)) : undefined,
         sansJauge: true,   // le serveur signale « en cours », pas un pourcentage
       });
     } else {
-      out.push({ id: 'scan', titre: 'Analyse de la bibliothèque', sous: 'Lecture des fichiers et des tags',
-        etat: 'inconnu', ligne: 'État indisponible', sansJauge: true });
+      out.push({ id: 'scan', titre: $t('v2.health.cardScan' as any), sous: $t('v2.health.cardScanSub' as any),
+        etat: 'inconnu', ligne: $t('v2.health.unavailable' as any), sansJauge: true });
     }
 
     // ── Analyse acoustique (CLAP) ─────────────────────────────────────────
@@ -80,23 +83,24 @@
       const s = ac[0].value;
       const done = s?.analysed_tracks ?? 0;
       if (!s?.available) {
-        out.push({ id: 'clap', titre: 'Analyse acoustique', sous: 'Recherche par ambiance (CLAP)',
-          etat: 'off', ligne: "Ce serveur n'embarque pas la brique acoustique." });
+        out.push({ id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
+          etat: 'off', ligne: $t('v2.health.clapAbsent' as any) });
       } else if (!s.enabled) {
-        out.push({ id: 'clap', titre: 'Analyse acoustique', sous: 'Recherche par ambiance (CLAP)',
-          etat: 'off', ligne: 'Désactivée sur ce serveur.', detail: `${$formatNombre(done)} titres déjà analysés` });
+        out.push({ id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
+          etat: 'off', ligne: $t('v2.health.clapDisabled' as any),
+          detail: $t('v2.health.clapAnalysed' as any).replace('{n}', $formatNombre(done)) });
       } else {
         out.push({
-          id: 'clap', titre: 'Analyse acoustique', sous: 'Recherche par ambiance (CLAP)',
+          id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
           etat: totalTracks && done >= totalTracks ? 'done' : done > 0 ? 'running' : 'idle',
           ligne: totalTracks
-            ? `${$formatNombre(done)} titres analysés sur ${$formatNombre(totalTracks)}`
-            : `${$formatNombre(done)} titres analysés`,
+            ? $t('v2.health.clapProgress' as any).replace('{n}', $formatNombre(done)).replace('{t}', $formatNombre(totalTracks))
+            : $t('v2.health.clapDone' as any).replace('{n}', $formatNombre(done)),
           fait: done, total: totalTracks || undefined });
       }
     } else {
-      out.push({ id: 'clap', titre: 'Analyse acoustique', sous: 'Recherche par ambiance (CLAP)',
-        etat: 'inconnu', ligne: 'État indisponible' });
+      out.push({ id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
+        etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
     }
 
     // ── ReplayGain ────────────────────────────────────────────────────────
@@ -107,16 +111,18 @@
       const c: any = cfg[0].value;
       const mode = c?.replaygain_mode ?? 'off';
       const analysis = c?.replaygain_analysis_enabled !== false && c?.replaygain_analysis_enabled !== 'false';
-      const modeLabel = mode === 'off' ? 'Désactivé' : mode === 'track' ? 'Par piste' : 'Par album';
+      const modeLabel = mode === 'off' ? $t('v2.health.rgOff' as any)
+        : mode === 'track' ? $t('v2.health.rgTrack' as any) : $t('v2.health.rgAlbum' as any);
       out.push({
-        id: 'rg', titre: 'ReplayGain', sous: 'Normalisation du niveau',
+        id: 'rg', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
         etat: mode === 'off' ? 'off' : 'idle',
-        ligne: `${modeLabel} — source : ${analysis ? 'tags des fichiers + analyse' : 'tags des fichiers seuls'}`,
-        detail: "Le serveur n'expose pas l'avancement du calcul.",
+        ligne: $t('v2.health.rgLine' as any).replace('{m}', modeLabel)
+          .replace('{s}', analysis ? $t('v2.health.rgSourceBoth' as any) : $t('v2.health.rgSourceTags' as any)),
+        detail: $t('v2.health.rgNoProgress' as any),
         sansJauge: true });
     } else {
-      out.push({ id: 'rg', titre: 'ReplayGain', sous: 'Normalisation du niveau',
-        etat: 'inconnu', ligne: 'État indisponible', sansJauge: true });
+      out.push({ id: 'rg', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
+        etat: 'inconnu', ligne: $t('v2.health.unavailable' as any), sansJauge: true });
     }
 
     // ── Enrichissement des métadonnées ────────────────────────────────────
@@ -125,14 +131,16 @@
       const s = en[0].value;
       const done = s?.enriched ?? 0, total = s?.total ?? 0;
       out.push({
-        id: 'enrich', titre: 'Enrichissement des métadonnées', sous: 'Complément depuis les bases publiques',
+        id: 'enrich', titre: $t('v2.health.cardEnrich' as any), sous: $t('v2.health.cardEnrichSub' as any),
         etat: s?.status === 'running' ? 'running' : s?.status === 'done' ? 'done' : 'idle',
-        ligne: total ? `${$formatNombre(done)} sur ${$formatNombre(total)}` : `${$formatNombre(done)} enrichis`,
+        ligne: total
+          ? $t('v2.health.enrichProgress' as any).replace('{n}', $formatNombre(done)).replace('{t}', $formatNombre(total))
+          : $t('v2.health.enrichDone' as any).replace('{n}', $formatNombre(done)),
         fait: done, total: total || undefined,
-        detail: s?.errors ? `${$formatNombre(s.errors)} en échec` : undefined });
+        detail: s?.errors ? $t('v2.health.enrichErrors' as any).replace('{n}', $formatNombre(s.errors)) : undefined });
     } else {
-      out.push({ id: 'enrich', titre: 'Enrichissement des métadonnées', sous: 'Complément depuis les bases publiques',
-        etat: 'inconnu', ligne: 'État indisponible' });
+      out.push({ id: 'enrich', titre: $t('v2.health.cardEnrich' as any), sous: $t('v2.health.cardEnrichSub' as any),
+        etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
     }
 
     // ── Pochettes d'artistes ──────────────────────────────────────────────
@@ -142,16 +150,17 @@
       const r = s?.result;
       const manquantes = s?.artists_without_image ?? 0;
       out.push({
-        id: 'covers', titre: "Pochettes d'artistes", sous: 'Recherche des portraits manquants',
+        id: 'covers', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
         etat: r?.phase && r.phase !== 'done' ? 'running' : r ? 'done' : 'idle',
         ligne: r?.total
-          ? `${$formatNombre(r.processed ?? 0)} traités sur ${$formatNombre(r.total)} — ${$formatNombre(r.enriched ?? 0)} trouvés`
-          : 'Aucune passe enregistrée',
+          ? $t('v2.health.coversLine' as any).replace('{n}', $formatNombre(r.processed ?? 0))
+              .replace('{t}', $formatNombre(r.total)).replace('{f}', $formatNombre(r.enriched ?? 0))
+          : $t('v2.health.coversNone' as any),
         fait: r?.processed, total: r?.total,
-        detail: manquantes ? `${$formatNombre(manquantes)} artistes encore sans portrait` : undefined });
+        detail: manquantes ? $t('v2.health.coversMissing' as any).replace('{n}', $formatNombre(manquantes)) : undefined });
     } else {
-      out.push({ id: 'covers', titre: "Pochettes d'artistes", sous: 'Recherche des portraits manquants',
-        etat: 'inconnu', ligne: 'État indisponible' });
+      out.push({ id: 'covers', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
+        etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
     }
 
     cards = out;
@@ -171,12 +180,12 @@
     return () => clearInterval(h);
   });
 
-  const ETATS: Record<string, { txt: string; cls: string }> = {
-    running: { txt: 'en cours', cls: 'run' },
-    done: { txt: 'terminé', cls: 'ok' },
-    idle: { txt: 'au repos', cls: 'idle' },
-    off: { txt: 'inactif', cls: 'off' },
-    inconnu: { txt: 'inconnu', cls: 'unk' } };
+  const ETATS: Record<string, { txt: string; cls: string }> = $derived({
+    running: { txt: $t('v2.health.stRunning' as any), cls: 'run' },
+    done: { txt: $t('v2.health.stDone' as any), cls: 'ok' },
+    idle: { txt: $t('v2.health.stIdle' as any), cls: 'idle' },
+    off: { txt: $t('v2.health.stOff' as any), cls: 'off' },
+    inconnu: { txt: $t('v2.health.stUnknown' as any), cls: 'unk' } });
   const pct = (c: Card) => (c.total && c.fait != null ? Math.min(100, Math.round((c.fait / c.total) * 100)) : null);
 </script>
 
@@ -184,20 +193,20 @@
   <header class="top">
     <div>
       <div class="eyebrow">{$t('v2.health.eyebrow' as any)}</div>
-      <h1>Processing</h1>
+      <h1>{$t('v2.nav.processing' as any)}</h1>
     </div>
     <div class="meta">
-      {#if lastAt}<span>relevé à {lastAt}</span>{/if}
-      {#if anyRunning}<span class="live">suivi automatique</span>{/if}
+      {#if lastAt}<span>{$t('v2.health.readAt' as any).replace('{h}', lastAt)}</span>{/if}
+      {#if anyRunning}<span class="live">{$t('v2.health.autoFollow' as any)}</span>{/if}
     </div>
     <button class="lnk" onclick={() => collect()} disabled={refreshing}>
-      {refreshing ? 'Relevé…' : 'Actualiser'}
+      {$t((refreshing ? 'v2.health.refreshing' : 'v2.health.refresh') as any)}
     </button>
   </header>
 
   <div class="scroll">
     {#if loading}
-      <div class="state">Relevé en cours…</div>
+      <div class="state">{$t('v2.health.loading' as any)}</div>
     {:else}
       <div class="cards">
         {#each cards as c (c.id)}

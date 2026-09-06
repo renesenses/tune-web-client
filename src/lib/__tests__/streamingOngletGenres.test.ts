@@ -42,7 +42,11 @@ const source = () => readFileSync(ECRAN, 'utf8');
 function branchesSubs(): { bandcamp: string; autres: string } {
   const src = source();
   const bloc = src.slice(src.indexOf('const SUBS'), src.indexOf('const label'));
-  const separateur = "      : [{ id: 'editorial', label: 'Éditorial' }";
+  // 🔴 Le séparateur suivait le LIBELLÉ français, qui est devenu une clé le
+  // 06/09/2026 (« Traductions incomplètes », Bertrand). Il suit désormais la
+  // forme de la branche — ce qui est stable — et non le texte affiché, qui ne
+  // l'a jamais été.
+  const separateur = "      : [{ id: 'editorial', label: $t(";
   const i = bloc.indexOf(separateur);
   if (i < 0) throw new Error('la forme de SUBS a changé : le découpage des deux branches est à revoir');
   return { bandcamp: bloc.slice(0, i), autres: bloc.slice(i) };

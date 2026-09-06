@@ -43,7 +43,7 @@
       const r = await api.listMetadataProposals();
       proposals = r?.proposals ?? []; pending = r?.pending ?? 0; autoApply = !!r?.auto_apply;
       error = null;
-    } catch { error = 'Propositions indisponibles sur ce serveur.'; }
+    } catch { error = $t('v2.meta.suggestUnavail' as any); }
     pLoading = false;
   }
   $effect(() => { loadProposals(); });
@@ -65,22 +65,25 @@
       await api.decideMetadataProposal(p.id, accept);
       proposals = proposals.filter((x) => x.id !== p.id);
       pending = Math.max(0, pending - 1);
-    } catch { error = 'Décision non enregistrée.'; }
+    } catch { error = $t('v2.meta.decisionNotSaved' as any); }
     busy = null;
   }
   async function toggleAuto() {
     const next = !autoApply;
     autoApply = next;
     try { await api.setMetadataProposalsAutoApply(next); }
-    catch { autoApply = !next; error = 'Réglage non enregistré.'; }
+    catch { autoApply = !next; error = $t('v2.meta.settingNotSaved' as any); }
   }
 
-  const FIELDS: Record<string, string> = {
-    title: 'Titre', artist: 'Artiste', album: 'Album', genre: 'Genre',
-    year: 'Année', label: 'Label', composer: 'Compositeur' };
-  const REASONS: Record<string, string> = {
-    no_year: 'Année manquante', no_genre: 'Genre manquant', no_cover: 'Pochette manquante',
-    no_artist: 'Artiste manquant', unknown_artist: 'Artiste inconnu' };
+  const FIELDS: Record<string, string> = $derived({
+    title: $t('v2.lib.sortTitle' as any), artist: $t('v2.lib.sortArtist' as any),
+    album: 'Album', genre: $t('v2.fav.facetGenre' as any),
+    year: $t('v2.lib.sortYear' as any), label: $t('v2.fav.facetLabel' as any),
+    composer: $t('v2.meta.fComposer' as any) });
+  const REASONS: Record<string, string> = $derived({
+    no_year: $t('v2.meta.rNoYear' as any), no_genre: $t('v2.meta.rNoGenre' as any),
+    no_cover: $t('v2.meta.rNoCover' as any), no_artist: $t('v2.meta.rNoArtist' as any),
+    unknown_artist: $t('v2.lib.unknownArtist' as any) });
 </script>
 
 <section class="v2-meta tune-v2">
@@ -181,11 +184,7 @@
          désormais, un lien y renverrait sur lui-même. On dit où c'est, sans
          promettre un raccourci qui tourne en rond. -->
     {#if tab !== 'genres'}
-      <p class="foot">
-        L'édition champ par champ et l'enrichissement par lot ne sont pas repris ici :
-        ils restent dans le client actuel, hors du drapeau <code>?v2</code>.
-        L'avancement de l'enrichissement se suit dans <b>Processing</b>.
-      </p>
+      <p class="foot">{$t('v2.meta.foot' as any).replace('{p}', $t('v2.nav.processing' as any))}</p>
     {/if}
   </div>
 </section>

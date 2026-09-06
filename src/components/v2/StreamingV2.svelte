@@ -217,10 +217,10 @@
       // Et il en sert PLUS que les autres : 27 genres et 237 sous-genres
       // (mesure, meme jour), contre 13 pour Qobuz et 20 pour Tidal. Tout cela
       // tenait dans une rangee de puces au-dessus des albums.
-      ? [{ id: 'editorial', label: 'Découvrir' },
+      ? [{ id: 'editorial', label: $t('v2.str.discover' as any) },
          { id: 'genres', label: 'Genres' },
          { id: 'mine', label: 'Ma collection' }]
-      : [{ id: 'editorial', label: 'Éditorial' },
+      : [{ id: 'editorial', label: $t('v2.str.editorial' as any) },
          { id: 'playlists', label: 'Playlists' },
          { id: 'favorites', label: 'Favoris' },
          // QUATRIÈME onglet, et seulement là où le serveur sert vraiment des
@@ -491,7 +491,7 @@
   function playBc(it: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    if (!it?.extrait) { error = 'Aucun extrait disponible pour ce titre.'; return; }
+    if (!it?.extrait) { error = $t('v2.str.noPreview' as any); return; }
     // 🔴 La PAIRE `source` + `source_id`, pas `file_path` : c'est ce que le
     // serveur apparie. Avec `file_path`, il ne reconnaissait rien et retombait
     // sur « reprendre la lecture en cours » (Bertrand, 05/09/2026). L'ecran
@@ -512,12 +512,12 @@
       bcNeedsLink = false;
       const d: any = await api.bandcampCollection();
       bcCollection = d?.items ?? d?.collection ?? [];
-    } catch { error = "Compte introuvable — vérifiez le nom d'utilisateur Bandcamp."; }
+    } catch { error = $t('v2.str.bandcampNotFound' as any); }
     bcLinking = false;
   }
   const currentSous = $derived(bcGenres.find((g) => g.slug === bcTag)?.sous ?? []);
 
-  const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? 'Sans titre';
+  const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? $t('v2.common.untitled' as any);
   const pCover = (p: any) => p?.cover_path ?? p?.image ?? p?.picture ?? p?.pochette ?? null;
   const pSub = (p: any) => p?.artist_name ?? p?.artiste ?? (p?.track_count != null ? `${p.track_count} titres` : '');
 </script>
@@ -654,7 +654,7 @@
       {:else if catalogueEnCours}
         <div class="state">Chargement…</div>
       {:else}
-        <div class="state">{label(active ?? '')} ne propose aucune sélection éditoriale pour l'instant. Utilisez la recherche.</div>
+        <div class="state">{$t('v2.str.noEditorial' as any).replace('{s}', label(active ?? ''))}</div>
       {/if}
 
     {:else if sub === 'mine'}

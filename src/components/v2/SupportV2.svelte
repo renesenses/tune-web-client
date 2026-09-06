@@ -233,7 +233,7 @@
     loading = true;
     api.getSupportTickets(key)
       .then((r) => { tickets = r?.tickets ?? []; error = null; })
-      .catch(() => { error = 'Tickets indisponibles — le service de support est injoignable.'; })
+      .catch(() => { error = $t('v2.sup.unavailable' as any); })
       .finally(() => { loading = false; });
   });
 
@@ -273,8 +273,8 @@
 
   const STATUS: Record<string, { t: string; c: string }> = {
     open: { t: 'ouvert', c: 'open' },
-    answered: { t: 'réponse reçue', c: 'ans' },
-    resolved: { t: 'résolu', c: 'res' },
+    answered: { t: $t('v2.sup.stAnswered' as any), c: 'ans' },
+    resolved: { t: $t('v2.sup.stResolved' as any), c: 'res' },
   };
   function when(iso: string): string {
     return $dateEtHeure(iso);
@@ -487,7 +487,7 @@
         {:else}
           {#each replies as r (r.id)}
             <div class="msg" class:team={r.author === 'team'}>
-              <div class="mh">{r.author === 'team' ? 'Équipe Tune' : 'Vous'}<span>{when(r.created_at)}</span></div>
+              <div class="mh">{$t((r.author === 'team' ? 'v2.sup.team' : 'v2.sup.you') as any)}<span>{when(r.created_at)}</span></div>
               <div class="mb">{r.body}</div>
             </div>
           {/each}

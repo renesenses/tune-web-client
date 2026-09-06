@@ -42,7 +42,15 @@ describe("Tri « Ajout récent » (forum, 05/09/2026)", () => {
 
   it("l'option reste proposée dès que la donnée existe", () => {
     const lib = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
-    expect(lib).toContain("{ k: 'added', l: 'Ajout récent' }");
+    // 🔴 RÉORIENTÉE le 06/09/2026 : le libellé est devenu une CLÉ. La garde
+    // vérifiait la chaîne française, ce qui interdisait de traduire le menu
+    // de tri — exactement ce que Bertrand demandait ce jour-là. Ce qu'elle
+    // protège vraiment, c'est que l'option `added` soit toujours proposée.
+    expect(lib).toContain("{ k: 'added', l: 'v2.fav.sortRecent' }");
+    expect(
+      / l: '[A-ZÀ-Ü]/.test(lib),
+      'un libellé en clair est revenu dans SORTS : il ne se traduira pas',
+    ).toBe(false);
     expect(lib).toContain("const hasAddedAt = $derived(src.some((a) => (a.added_at ?? 0) > 0))");
     expect(lib).toContain("(b.added_at ?? 0) - (a.added_at ?? 0)");
   });

@@ -332,7 +332,7 @@
       nomPlaylist = '';
       creationPlaylist = false;
     } catch (e: any) {
-      error = e?.message ?? 'Création impossible.';
+      error = e?.message ?? $t('v2.fav.createFailed' as any);
     }
     creation = false;
   }
@@ -378,9 +378,10 @@
     genre: 'genres', year: 'years', label: 'labels',
   };
   /** Libelle d'une facette. Le pluriel de l'onglet Bibliotheque, pas la cle. */
-  const NOM_FACETTE: Record<string, string> = {
-    genre: 'Genre', year: 'Annee', label: 'Label',
-  };
+  const NOM_FACETTE: Record<string, string> = $derived({
+    genre: $t('v2.fav.facetGenre' as any), year: $t('v2.fav.facetYear' as any),
+    label: $t('v2.fav.facetLabel' as any),
+  });
   async function ouvrirFacette(f: api.FacetFavorite) {
     const onglet = ONGLET_FACETTE[f.facet];
     if (!onglet) return;
@@ -392,13 +393,13 @@
   }
 
   const TABS: { id: Tab; label: string; n: number }[] = $derived([
-    { id: 'albums', label: 'Albums', n: vAlbums.length },
-    { id: 'tracks', label: 'Titres', n: vTracks.length },
-    { id: 'artists', label: 'Artistes', n: vArtists.length },
-    { id: 'playlists', label: 'Playlists', n: vPlaylists.length },
-    { id: 'collections', label: 'Collections', n: vCollections.length },
-    { id: 'facettes', label: 'Facettes', n: vFacettes.length },
-    { id: 'radio', label: 'Radio', n: vRadio.length },
+    { id: 'albums', label: $t('favorites.albums' as any), n: vAlbums.length },
+    { id: 'tracks', label: $t('favorites.tracks' as any), n: vTracks.length },
+    { id: 'artists', label: $t('favorites.artists' as any), n: vArtists.length },
+    { id: 'playlists', label: $t('favorites.playlists' as any), n: vPlaylists.length },
+    { id: 'collections', label: $t('v2.nav.collections' as any), n: vCollections.length },
+    { id: 'facettes', label: $t('v2.fav.tabFacets' as any), n: vFacettes.length },
+    { id: 'radio', label: $t('v2.nav.radioShort' as any), n: vRadio.length },
   ]);
 
 
@@ -513,7 +514,7 @@
       <div class="state">{$t('v2.fav.loading' as any)}</div>
     {:else if tab === 'albums'}
       {#if !vAlbums.length}
-        <div class="state">{albums.length ? 'Aucun album ne correspond.' : 'Aucun album en favori.'}</div>
+        <div class="state">{albums.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyAlbums' as any)}</div>
       {:else}
         <div class="grid">
           {#each vAlbums as a, i (clef(a, i))}
@@ -555,7 +556,7 @@
 
     {:else if tab === 'tracks'}
       {#if !vTracks.length}
-        <div class="state">{tracks.length ? 'Aucun titre ne correspond.' : 'Aucun titre en favori.'}</div>
+        <div class="state">{tracks.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyTracks' as any)}</div>
       {:else}
         <!--
           LA MÊME ligne que partout ailleurs. Bertrand, 05/09/2026 : « manquent
@@ -584,7 +585,7 @@
 
     {:else if tab === 'artists'}
       {#if !vArtists.length}
-        <div class="state">{artists.length ? 'Aucun artiste ne correspond.' : 'Aucun artiste en favori.'}</div>
+        <div class="state">{artists.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyArtists' as any)}</div>
       {:else}
         <div class="arow">
           {#each vArtists as a, i (clef(a, i))}
@@ -609,7 +610,7 @@
 
     {:else if tab === 'playlists'}
       {#if !vPlaylists.length}
-        <div class="state">{playlists.length ? 'Aucune playlist ne correspond.' : 'Aucune playlist en favori.'}</div>
+        <div class="state">{playlists.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyPlaylists' as any)}</div>
       {:else}
         <div class="simples">
           {#each vPlaylists as pl (pl.id ?? pl.name)}
@@ -629,7 +630,7 @@
 
     {:else if tab === 'facettes'}
       {#if !vFacettes.length}
-        <div class="state">{facettes.length ? 'Aucune facette ne correspond.' : 'Aucune facette en favori. Le cœur est sur les onglets Genres, Années et Labels de la Bibliothèque.'}</div>
+        <div class="state">{facettes.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyFacets' as any)}</div>
       {:else}
         <div class="simples">
           {#each vFacettes as f (facetFavKey(f.facet, f.value))}
@@ -650,7 +651,7 @@
 
     {:else if tab === 'collections'}
       {#if !vCollections.length}
-        <div class="state">{collections.length ? 'Aucune collection ne correspond.' : 'Aucune collection en favori.'}</div>
+        <div class="state">{collections.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyCollections' as any)}</div>
       {:else}
         <div class="simples">
           {#each vCollections as c (`${c.smart ? 's' : 'c'}-${c.id}`)}

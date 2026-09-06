@@ -161,7 +161,7 @@
     // Absent = `ok` : ne pas inventer une panne sur un serveur < 0.9.70.
     const r = z.output_reach ?? 'ok';
     if (r === 'no_output') return { cls: 'bad', txt: 'Aucune sortie — la lecture sera refusée' };
-    if (r === 'browser_unattended') return { cls: 'warn', txt: 'Zone navigateur : aucun onglet n’écoute' };
+    if (r === 'browser_unattended') return { cls: 'warn', txt: $t('v2.zones.browserUnattended' as any) };
     if (z.online === false) return { cls: 'bad', txt: 'Hors ligne' };
     return null;
   }
