@@ -4016,6 +4016,9 @@ export default {
   "favorites.noAddedDate": "Der Dienst liefert für diese Favoriten kein Hinzufügedatum.",
   "settings.zonesUnlimited": "Unbegrenzt",
   "v2.nav.updateTo": "Update verfügbar: v{v}",
+  "settings.tabDisplay": "Anzeige",
+  "settings.collectionsMosaic": "Cover-Mosaik auf Sammlungen",
+  "settings.collectionsMosaicHint": "Vier Cover je Sammlung. Abwählen für ein einzelnes Cover, wie im bisherigen Client.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

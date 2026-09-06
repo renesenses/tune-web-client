@@ -3974,6 +3974,9 @@ export default {
   "favorites.noAddedDate": "A szolgáltatás nem ad meg hozzáadási dátumot ezekhez a kedvencekhez.",
   "settings.zonesUnlimited": "Korlátlan",
   "v2.nav.updateTo": "Frissítés érhető el: v{v}",
+  "settings.tabDisplay": "Megjelenítés",
+  "settings.collectionsMosaic": "Borítómozaik a gyűjteményeken",
+  "settings.collectionsMosaicHint": "Négy borító gyűjteményenként. Vegye ki a pipát az egyetlen borítóhoz, mint a korábbi kliensben.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

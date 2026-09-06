@@ -43,6 +43,7 @@
   import RenommerModale from './RenommerModale.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import AlbumArt from '../AlbumArt.svelte';
+  import { preferences } from '../../lib/stores/preferences';
 
   type Sorte = 'normale' | 'smart';
   interface Entree {
@@ -510,7 +511,17 @@
                 onOuvrir={() => ouvrir(e)}
                 nom={e.nom}
               >
-                <MosaiquePochettes pochettes={e.covers} initiales={e.nom?.slice(0, 1)} alt={e.nom} />
+                <!-- Mosaïque ou pochette UNIQUE, au choix (Réglages →
+                     Affichage). Gros Bidon préférait l'écran compact de
+                     l'ancien client ; c'est un goût, donc un interrupteur.
+                     `covers[0]` : la mosaïque cycle déjà sur cette liste, on
+                     prend simplement sa première case. -->
+                {#if $preferences.v2CollectionsMosaique}
+                  <MosaiquePochettes pochettes={e.covers} initiales={e.nom?.slice(0, 1)} alt={e.nom} />
+                {:else}
+                  <AlbumArt coverPath={e.covers[0] ?? null} albumId={null} size={0} alt={e.nom}
+                    fallbackInitials={e.nom?.slice(0, 1)} />
+                {/if}
               </PochetteActions>
             </span>
             <button class="meta" onclick={() => ouvrir(e)}>

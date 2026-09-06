@@ -4038,6 +4038,9 @@ export default {
   "favorites.noAddedDate": "Le service ne fournit pas de date d’ajout pour ces favoris.",
   "settings.zonesUnlimited": "Illimité",
   "v2.nav.updateTo": "Mise à jour disponible : v{v}",
+  "settings.tabDisplay": "Affichage",
+  "settings.collectionsMosaic": "Mosaïque de pochettes sur les collections",
+  "settings.collectionsMosaicHint": "Quatre pochettes assemblées par collection. Décochez pour une pochette unique, comme l’écran de l’ancien client.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

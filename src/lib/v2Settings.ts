@@ -30,7 +30,8 @@ import type { SettingsLevel } from './uiLevel';
 import { fold } from './utils';
 
 export type V2SettingsTabId =
-  | 'general' | 'audio' | 'library' | 'zones' | 'devices' | 'extensions' | 'access' | 'system' | 'clap';
+  | 'general' | 'audio' | 'library' | 'zones' | 'devices' | 'display'
+  | 'extensions' | 'access' | 'system' | 'clap' | 'license';
 
 export interface V2SettingsSection {
   /** Identifiant stable, utilisé pour l'ancrage et la navigation. */
@@ -120,6 +121,28 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     ],
   },
   {
+    /**
+     * AFFICHAGE — entre Appareils et Extensions, demandé par Bertrand le
+     * 06/09/2026.
+     *
+     * Les réglages qui décident de la FORME des écrans étaient dispersés :
+     * densité de la grille, ligne technique, thème du nouveau client. Le
+     * premier pensionnaire vient du forum — « l'affichage des collections me
+     * paraît moins agréable dans la V1. Les 4 pochettes accolées, ce n'est pas
+     * ma préférence. J'aimais beaucoup l'écran collection de l'ancienne
+     * version, épuré, compact » (Gros Bidon, fil 1671, 05/09/2026).
+     *
+     * Un goût, pas un défaut : d'où un interrupteur plutôt qu'un changement
+     * imposé. Le réglage par défaut ne bouge pas.
+     */
+    id: 'display', labelKey: 'settings.tabDisplay', min: 'beginner',
+    icon: 'M3 5h18v11H3zM8 20h8M12 16v4',
+    sections: [
+      { id: 'displayPrefs', titleKey: 'settings.tabDisplay', from: 'general', min: 'beginner',
+        keywords: ['affichage', 'pochettes', 'mosaïque', 'collections', 'densité', 'grille'] },
+    ],
+  },
+  {
     // Extensions : elles vivaient dans la barre latérale, section Studio. Elles
     // rejoignent les Réglages (Bertrand, 01/09/2026) et QUITTENT la barre — un
     // réglage à deux endroits finit par diverger, et la barre s'allège d'autant.
@@ -144,7 +167,6 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     icon: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1',
     sections: [
       { id: 'about',      titleKey: 'settings.about',             from: 'system', min: 'beginner', keywords: ['version', 'à propos'] },
-      { id: 'license',    titleKey: 'settings.tunePremiumLicense', from: 'system', min: 'beginner', keywords: ['licence', 'premium'] },
       { id: 'health',     titleKey: 'settings.serverHealth',      from: 'system', min: 'intermediate', keywords: ['santé', 'état serveur'] },
       { id: 'push',       titleKey: 'settings.pushNotifications', from: 'system', min: 'intermediate', keywords: ['notifications'] },
       { id: 'cloud',      title: 'Cloud',                         from: 'system', min: 'intermediate', keywords: ['sauvegarde', 'relais'] },
@@ -160,6 +182,26 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     icon: 'M2 12h2l2-7 3 14 3-10 2 5 2-2h6',
     sections: [
       { id: 'clap', titleKey: 'settings.tabClap', from: 'clap', min: 'expert', keywords: ['acoustique', 'analyse', 'ambiance'] },
+    ],
+  },
+  {
+    /**
+     * LICENCE — après CLAP, demandé par Bertrand le 06/09/2026.
+     *
+     * La section vivait dans « Système », entre la base de données et
+     * l'emplacement des fichiers : on la cherchait là où l'on ne pense pas à
+     * regarder. Elle DÉMÉNAGE, elle n'est pas dupliquée — un réglage à deux
+     * endroits finit par diverger, c'est la règle déjà écrite pour les
+     * Extensions juste au-dessus.
+     *
+     * `min: 'beginner'` : savoir ce qu'on a payé n'est pas un réglage
+     * d'expert.
+     */
+    id: 'license', labelKey: 'settings.tunePremiumLicense', min: 'beginner',
+    icon: 'M12 2l7 4v6c0 5-3 8-7 10-4-2-7-5-7-10V6zM9 12l2 2 4-4',
+    sections: [
+      { id: 'license', titleKey: 'settings.tunePremiumLicense', from: 'system', min: 'beginner',
+        keywords: ['licence', 'premium', 'abonnement', 'clé'] },
     ],
   },
 ];

@@ -4016,6 +4016,9 @@ export default {
   "favorites.noAddedDate": "Il servizio non fornisce una data di aggiunta per questi preferiti.",
   "settings.zonesUnlimited": "Illimitato",
   "v2.nav.updateTo": "Aggiornamento disponibile: v{v}",
+  "settings.tabDisplay": "Visualizzazione",
+  "settings.collectionsMosaic": "Mosaico di copertine sulle raccolte",
+  "settings.collectionsMosaicHint": "Quattro copertine per raccolta. Deseleziona per una sola copertina, come nel client precedente.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

@@ -4016,6 +4016,9 @@ export default {
   "favorites.noAddedDate": "このサービスはこれらのお気に入りの追加日を提供していません。",
   "settings.zonesUnlimited": "無制限",
   "v2.nav.updateTo": "アップデートがあります：v{v}",
+  "settings.tabDisplay": "表示",
+  "settings.collectionsMosaic": "コレクションにジャケットのモザイクを表示",
+  "settings.collectionsMosaicHint": "コレクションごとに4枚のジャケット。チェックを外すと、以前のクライアントと同じ1枚表示になります。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

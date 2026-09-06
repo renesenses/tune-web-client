@@ -4016,6 +4016,9 @@ export default {
   "favorites.noAddedDate": "Serviciul nu furnizează o dată a adăugării pentru aceste favorite.",
   "settings.zonesUnlimited": "Nelimitat",
   "v2.nav.updateTo": "Actualizare disponibilă: v{v}",
+  "settings.tabDisplay": "Afișare",
+  "settings.collectionsMosaic": "Mozaic de coperte pe colecții",
+  "settings.collectionsMosaicHint": "Patru coperte pe colecție. Debifați pentru o singură copertă, ca în clientul anterior.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

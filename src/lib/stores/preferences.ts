@@ -111,6 +111,19 @@ export interface Preferences {
    *  d'interface, donc imposée à tout utilisateur Expert. Or « Expert » dit
    *  ce qu'on sait faire, pas ce qu'on veut voir sous chaque vignette. */
   v2AlbumTechLine: boolean;
+  /**
+   * Mosaïque de quatre pochettes sur les cartes de collection, ou pochette
+   * UNIQUE — l'écran compact de l'ancien client.
+   *
+   * « L'affichage des collections me paraît moins agréable dans la V1. Les
+   * 4 pochettes accolées, ce n'est pas ma préférence. J'aimais beaucoup
+   * l'écran collection de l'ancienne version, épuré, compact » (Gros Bidon,
+   * forum 1671, 05/09/2026).
+   *
+   * Un GOÛT, pas un défaut : d'où un interrupteur, et un défaut qui ne bouge
+   * pas — personne ne doit voir son écran changer sans l'avoir demandé.
+   */
+  v2CollectionsMosaique: boolean;
   settingsLevel: SettingsLevel;
 }
 
@@ -135,6 +148,7 @@ const defaults: Preferences = {
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
+  v2CollectionsMosaique: true,
   // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
   // Ne s'applique qu'aux installations SANS niveau enregistre : un choix
   // explicite fait toujours foi, et la migration `legacySettingsLevel()`

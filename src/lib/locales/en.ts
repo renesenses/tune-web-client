@@ -4036,6 +4036,9 @@ export default {
   "favorites.noAddedDate": "The service provides no date added for these favorites.",
   "settings.zonesUnlimited": "Unlimited",
   "v2.nav.updateTo": "Update available: v{v}",
+  "settings.tabDisplay": "Display",
+  "settings.collectionsMosaic": "Cover mosaic on collections",
+  "settings.collectionsMosaicHint": "Four covers assembled per collection. Uncheck for a single cover, like the previous client’s screen.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

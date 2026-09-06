@@ -4016,6 +4016,9 @@ export default {
   "favorites.noAddedDate": "이 서비스는 해당 즐겨찾기의 추가 날짜를 제공하지 않습니다.",
   "settings.zonesUnlimited": "무제한",
   "v2.nav.updateTo": "업데이트 사용 가능: v{v}",
+  "settings.tabDisplay": "표시",
+  "settings.collectionsMosaic": "컬렉션에 커버 모자이크 표시",
+  "settings.collectionsMosaicHint": "컬렉션마다 커버 4장. 체크를 해제하면 이전 클라이언트처럼 커버 한 장만 표시합니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

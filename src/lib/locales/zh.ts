@@ -4016,6 +4016,9 @@ export default {
   "favorites.noAddedDate": "该服务不提供这些收藏的添加日期。",
   "settings.zonesUnlimited": "无限制",
   "v2.nav.updateTo": "有可用更新：v{v}",
+  "settings.tabDisplay": "显示",
+  "settings.collectionsMosaic": "合辑显示封面拼贴",
+  "settings.collectionsMosaicHint": "每个合辑显示四张封面。取消勾选可只显示一张封面，与旧客户端一致。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

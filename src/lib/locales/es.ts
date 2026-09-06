@@ -4016,6 +4016,9 @@ export default {
   "favorites.noAddedDate": "El servicio no proporciona fecha de adición para estos favoritos.",
   "settings.zonesUnlimited": "Ilimitado",
   "v2.nav.updateTo": "Actualización disponible: v{v}",
+  "settings.tabDisplay": "Visualización",
+  "settings.collectionsMosaic": "Mosaico de portadas en las colecciones",
+  "settings.collectionsMosaicHint": "Cuatro portadas por colección. Desmarca para una sola portada, como en el cliente anterior.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];
