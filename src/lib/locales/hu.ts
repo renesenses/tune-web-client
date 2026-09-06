@@ -3971,6 +3971,9 @@ export default {
   "v2.home.zoneOf": "itt: {z}",
   "v2.lib.scopedFolder": "Mappa: {d}",
   "v2.lib.scopedClear": "A teljes könyvtár megjelenítése",
+  "favorites.noAddedDate": "A szolgáltatás nem ad meg hozzáadási dátumot ezekhez a kedvencekhez.",
+  "settings.zonesUnlimited": "Korlátlan",
+  "v2.nav.updateTo": "Frissítés érhető el: v{v}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

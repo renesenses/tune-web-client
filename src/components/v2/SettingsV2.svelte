@@ -2237,7 +2237,8 @@
                 {#if lic.expiresAt}
                   <div class="kv"><span>{$t('settings.expiresOn' as any)}</span><b>{$dateSimple(lic.expiresAt)}</b></div>
                 {/if}
-                <div class="kv"><span>{$t('settings.allowedZones' as any)}</span><b>{lic.zoneLimit}</b></div>
+                <div class="kv"><span>{$t('settings.allowedZones' as any)}</span><b
+                  >{lic.zoneLimit == null ? $t('settings.zonesUnlimited' as any) : lic.zoneLimit}</b></div>
               </div>
 
               {#if lic.sessionConflict}

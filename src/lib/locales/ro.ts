@@ -4013,6 +4013,9 @@ export default {
   "v2.home.zoneOf": "pe {z}",
   "v2.lib.scopedFolder": "Dosar: {d}",
   "v2.lib.scopedClear": "Vezi toată biblioteca",
+  "favorites.noAddedDate": "Serviciul nu furnizează o dată a adăugării pentru aceste favorite.",
+  "settings.zonesUnlimited": "Nelimitat",
+  "v2.nav.updateTo": "Actualizare disponibilă: v{v}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

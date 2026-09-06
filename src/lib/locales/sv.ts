@@ -4012,4 +4012,7 @@ export default {
   "v2.home.zoneOf": "på {z}",
   "v2.lib.scopedFolder": "Mapp: {d}",
   "v2.lib.scopedClear": "Visa hela biblioteket",
+  "favorites.noAddedDate": "Tjänsten anger inget tillagt-datum för de här favoriterna.",
+  "settings.zonesUnlimited": "Obegränsat",
+  "v2.nav.updateTo": "Uppdatering tillgänglig: v{v}",
 } as const;

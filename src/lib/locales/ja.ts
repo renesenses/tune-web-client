@@ -4013,6 +4013,9 @@ export default {
   "v2.home.zoneOf": "{z} で再生中",
   "v2.lib.scopedFolder": "フォルダー：{d}",
   "v2.lib.scopedClear": "ライブラリ全体を表示",
+  "favorites.noAddedDate": "このサービスはこれらのお気に入りの追加日を提供していません。",
+  "settings.zonesUnlimited": "無制限",
+  "v2.nav.updateTo": "アップデートがあります：v{v}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -4013,6 +4013,9 @@ export default {
   "v2.home.zoneOf": "{z}에서 재생 중",
   "v2.lib.scopedFolder": "폴더: {d}",
   "v2.lib.scopedClear": "라이브러리 전체 보기",
+  "favorites.noAddedDate": "이 서비스는 해당 즐겨찾기의 추가 날짜를 제공하지 않습니다.",
+  "settings.zonesUnlimited": "무제한",
+  "v2.nav.updateTo": "업데이트 사용 가능: v{v}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

@@ -13,6 +13,8 @@
    * l'autre — les groupes se révèlent en place, jamais de réorganisation.
    */
   import { activeView, type View } from '../../lib/stores/navigation';
+  import { updateAvailable, latestVersion, currentVersion } from '../../lib/stores/updates';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
@@ -148,6 +150,31 @@
 
   function go(v: View) { activeView.set(v); }
 
+  /**
+   * 🔴 LE BOUTON DE MISE À JOUR, à côté du logo — comme dans le client actuel.
+   *
+   * « MAJ v2 : toujours pas de bouton comme dans la version actuelle »
+   * (Bertrand, 06/09/2026).
+   *
+   * La v2 n'avait qu'un BANDEAU, en haut de la coquille, et il se ferme. Son
+   * rejet est retenu par version (`tune_update_dismissed_version`) : une fois
+   * fermé, plus rien n'annonçait la mise à jour jusqu'à la suivante. Mesuré
+   * dans son navigateur le 06/09 — `update_available: true`, la clé de rejet
+   * renseignée, et aucun `.maj` dans le DOM.
+   *
+   * L'ancien client, lui, transforme le numéro de version de sa barre latérale
+   * en bouton (`Sidebar.svelte`, `.version-link`) : toujours là, jamais
+   * rejetable. C'est ce chemin-ci qu'on porte.
+   *
+   * ⚠️ Il ne lit PAS `updateBannerDismissed` : c'est tout l'intérêt. Fermer le
+   * bandeau met de côté une annonce, pas le moyen de mettre à jour.
+   */
+  const versionCourante = $derived($currentVersion ?? (globalThis as any).__APP_VERSION__ ?? '');
+  function ouvrirMaj() {
+    v2SettingsTarget.set({ tab: 'system', section: 'about' });
+    activeView.set('settings');
+  }
+
   // Les raccourcis vivent dans la configuration serveur : sans ce chargement,
   // la barre en montrerait zéro pour toujours.
   $effect(() => {
@@ -173,7 +200,22 @@
     <div class="txt">
       <div class="name">Tune</div>
       <div class="sub">MOZAIKLABS</div>
+      {#if $updateAvailable}
+        <button class="maj-lien" onclick={ouvrirMaj}
+          title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}>
+          <span class="pt"></span>v{versionCourante} → v{$latestVersion}
+        </button>
+      {:else if versionCourante}
+        <div class="ver">v{versionCourante}</div>
+      {/if}
     </div>
+    {#if collapsed && $updateAvailable}
+      <!-- Repliée, `.txt` est masqué : sans ce point, l'annonce disparaîtrait
+           entièrement dès qu'on replie la barre. -->
+      <button class="maj-point" onclick={ouvrirMaj}
+        aria-label={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}
+        title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}></button>
+    {/if}
     <button class="collapse" onclick={toggleCollapse}
       aria-label={collapsed ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}
       title={collapsed ? $t('v2.nav.expand' as any) : $t('v2.nav.collapse' as any)}>
@@ -268,9 +310,19 @@
   .v2-sidebar.collapsed .txt,
   .v2-sidebar.collapsed .nav span,
   .v2-sidebar.collapsed .grp-label{display:none}
-  .v2-sidebar.collapsed .brand{justify-content:center; gap:0}
+  /* 🔴 REPLIÉE, la marque s'EMPILE.
+     Le bouton était posé en absolu à `right:8px` d'une barre de 72 px : moins
+     les 20 px de marges, il reste 52 px de large, le logo en occupe 40 centrés
+     (x ≈ 6→46) et le bouton 26 (x ≈ 18→44). Il tombait donc entièrement SUR le
+     logo — « the icon to extend the sidebar is hidden by Tune logo »
+     (Bertrand, 06/09/2026). Mesuré, pas estimé.
+     Empilés, les deux tiennent dans les 52 px sans se croiser. */
+  .v2-sidebar.collapsed .brand{flex-direction:column; align-items:center;
+    justify-content:center; gap:8px; padding-bottom:12px}
   .v2-sidebar.collapsed .nav{justify-content:center; padding-left:0; padding-right:0}
-  .v2-sidebar.collapsed .collapse{position:absolute; top:8px; right:8px; transform:rotate(180deg)}
+  /* `position:static` : il reprend sa place dans la colonne, sous le logo. En
+     absolu il resterait au-dessus, quel que soit l'ordre d'empilement. */
+  .v2-sidebar.collapsed .collapse{position:static; margin-left:0; transform:rotate(180deg)}
 
   /* L'icône d'un raccourci est un EMOJI choisi par l'utilisateur, pas un
      tracé : il occupe la même case que les pictogrammes pour que la colonne
@@ -286,6 +338,22 @@
   .logo img{width:56%; height:auto; display:block}
   .brand .name{font-weight:700; font-size:18px; line-height:1}
   .brand .sub{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
+  /* La version, et son bouton quand une mise à jour attend. Il vit à côté du
+     logo comme dans le client actuel, et NE se ferme pas : fermer le bandeau
+     met de côté une annonce, pas le moyen de mettre à jour. */
+  .brand .ver{font:9.5px var(--v2-mono); color:var(--v2-txt3); margin-top:4px}
+  .maj-lien{display:inline-flex; align-items:center; gap:5px; margin-top:4px; padding:2px 7px;
+    border-radius:var(--v2-r-pill); cursor:pointer; font:9.5px var(--v2-mono);
+    color:var(--v2-acc1); background:var(--v2-acc-soft);
+    border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
+  .maj-lien:hover{background:color-mix(in srgb, var(--v2-acc1) 20%, transparent)}
+  .maj-lien:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .maj-lien .pt{width:6px; height:6px; border-radius:50%; background:var(--v2-acc1); flex:none}
+  /* Repliée : le texte est masqué, le point reste. */
+  .maj-point{position:absolute; top:0; right:6px; width:9px; height:9px; padding:0;
+    border-radius:50%; border:2px solid var(--v2-bg); cursor:pointer;
+    background:var(--v2-acc1)}
+  .maj-point:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
 
   .navscroll{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px}
   .navscroll::-webkit-scrollbar{width:6px}

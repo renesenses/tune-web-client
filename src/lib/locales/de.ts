@@ -4013,6 +4013,9 @@ export default {
   "v2.home.zoneOf": "auf {z}",
   "v2.lib.scopedFolder": "Ordner: {d}",
   "v2.lib.scopedClear": "Ganze Bibliothek anzeigen",
+  "favorites.noAddedDate": "Der Dienst liefert für diese Favoriten kein Hinzufügedatum.",
+  "settings.zonesUnlimited": "Unbegrenzt",
+  "v2.nav.updateTo": "Update verfügbar: v{v}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -4013,6 +4013,9 @@ export default {
   "v2.home.zoneOf": "在 {z} 播放",
   "v2.lib.scopedFolder": "文件夹：{d}",
   "v2.lib.scopedClear": "显示整个音乐库",
+  "favorites.noAddedDate": "该服务不提供这些收藏的添加日期。",
+  "settings.zonesUnlimited": "无限制",
+  "v2.nav.updateTo": "有可用更新：v{v}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

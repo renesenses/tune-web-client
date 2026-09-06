@@ -2,7 +2,7 @@
   import { currentProfileId, favoritePlaylistIds, favoriteFacetKeys, facetFavKey, favoriteStreamingKeys, streamingFavKey } from '../lib/stores/profile';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playFromHere } from '../lib/playback';
-  import { trier, clesPourOnglet, type CleDeTri } from '../lib/favoritesSort';
+  import { trier, clesPourOnglet, dateDeTri, type CleDeTri } from '../lib/favoritesSort';
   import { melangee } from '../lib/shuffle';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
@@ -170,6 +170,39 @@
           : activeTab === 'playlists'
             ? favPlaylists
             : favLabels,
+  );
+
+  /**
+   * 🔴 Aucune entrée de la liste courante ne porte de date d'ajout.
+   *
+   * « L'ordre n'est pas respecté [...] je change le sens du tri : rien ne
+   * change [...] "Par défaut" et "Date d'ajout" affichent la même chose »
+   * (Didier, forum 1666, 04/09/2026).
+   *
+   * Les trois symptômes n'en font qu'un. Mesuré le 06/09/2026 :
+   * `GET /streaming/{service}/favorites/{type}` ne transporte AUCUNE date —
+   * huit clés sur les albums, quatorze sur les pistes, pas une seule
+   * temporelle — là où `/profiles/{id}/favorites/streaming` porte bien
+   * `created_at`. La clé de tri vaut donc la chaîne vide pour toutes les
+   * entrées : le comparateur rend 0 partout, le sens n'est jamais atteint, et
+   * « Date d'ajout » rend exactement ce que rend « Par défaut ».
+   *
+   * Le client ne peut pas trier ce qu'il n'a pas — c'est l'affaire du serveur
+   * (renesenses/tune-server-rust#3489). Ce qu'il peut, et doit, c'est cesser
+   * de le PROMETTRE : la clé se grise, le bouton de sens disparaît, et
+   * l'écran dit pourquoi.
+   *
+   * ⚠️ Calculé sur `currentList`, la liste NON TRIÉE. La calculer sur la liste
+   * affichée la ferait dépendre de `tri`, et tout effet qui en tirerait `tri`
+   * boucherait — le piège exact du champ de recherche (forum 1686).
+   */
+  let listeDuFiltre = $derived(
+    ongletAvecSources && sourceFilter !== 'all'
+      ? currentList.filter((x: any) => srcOf(x) === sourceFilter)
+      : currentList,
+  );
+  let aucuneDateDAjout = $derived(
+    listeDuFiltre.length > 0 && !listeDuFiltre.some((x: any) => dateDeTri(x).trim()),
   );
 
   // Les pastilles de filtre listent les sources dont l'utilisateur DISPOSE, pas
@@ -766,7 +799,14 @@
     <div class="filter-bar tri-bar">
       <span class="tri-label">{$tr('favorites.sortBy')}</span>
       {#each clesDeTri as cle (cle)}
-        <button class="chip" class:active={tri === cle} onclick={() => (tri = cle)}>
+        <button
+          class="chip"
+          class:active={tri === cle}
+          class:inerte={cle === 'ajout' && aucuneDateDAjout}
+          disabled={cle === 'ajout' && aucuneDateDAjout}
+          title={cle === 'ajout' && aucuneDateDAjout ? $tr('favorites.noAddedDate') : undefined}
+          onclick={() => (tri = cle)}
+        >
           <!-- `defaut` ne trie RIEN : il rend la liste telle que le serveur
                l'a donnée. L'appeler « Date d'ajout » était le nœud du
                malentendu — la pastille promettait une date, et le bouton de
@@ -787,13 +827,19 @@
            plutôt que de le griser, un bouton grisé faisant croire à un défaut.
            Sur « Date d'ajout », il est là — et ↑ donne le plus ancien d'abord,
            l'ordre séquentiel que Tades cherchait. -->
-      {#if tri !== 'defaut'}
+      <!-- Le sens disparaît aussi quand la date manque : le laisser, c'est
+           promettre un geste sans effet — « je change le sens du tri : rien ne
+           change » (Didier, forum 1666). -->
+      {#if tri !== 'defaut' && !(tri === 'ajout' && aucuneDateDAjout)}
         <button
           class="chip"
           onclick={() => (triDescendant = !triDescendant)}
           title={triDescendant ? $tr('common.descending') : $tr('common.ascending')}
           aria-label={triDescendant ? $tr('common.descending') : $tr('common.ascending')}
         >{triDescendant ? '↓' : '↑'}</button>
+      {/if}
+      {#if aucuneDateDAjout}
+        <span class="tri-note">{$tr('favorites.noAddedDate')}</span>
       {/if}
     </div>
   {/if}
@@ -1051,6 +1097,14 @@
   .tri-label {
     align-self: center; font-size: 0.8125rem; color: var(--text-muted, #888);
     margin-right: 0.15rem;
+  }
+  /* Une clé de tri INERTE reste LISIBLE : la cacher ferait croire qu'elle
+     n'existe pas, alors qu'elle reviendra dès que le service donnera la date.
+     Elle est grisée, elle ne se clique pas, et la note dit pourquoi. */
+  .chip.inerte { opacity: 0.45; cursor: default; }
+  .tri-note {
+    align-self: center; font-size: 0.75rem; color: var(--text-muted, #888);
+    margin-left: 0.35rem; max-width: 42ch;
   }
   .filter-bar {
     display: flex;
