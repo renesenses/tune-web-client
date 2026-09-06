@@ -4047,6 +4047,23 @@ export default {
   "settings.tabDisplay": "표시",
   "settings.collectionsMosaic": "컬렉션에 커버 모자이크 표시",
   "settings.collectionsMosaicHint": "컬렉션마다 커버 4장. 체크를 해제하면 이전 클라이언트처럼 커버 한 장만 표시합니다.",
+  "diagnostics.outputModules": "출력 모듈",
+  "diagnostics.outputModulesHint": "서버가 인식한 외부 출력 공급자: 필요한 모듈, 발견된 기기 수, 거부된 경우 그 이유.",
+  "diagnostics.outputProvider": "공급자",
+  "diagnostics.outputRequiredModule": "필요한 모듈",
+  "diagnostics.outputDevices": "기기",
+  "diagnostics.outputStatus": "상태",
+  "diagnostics.outputNoModuleRequired": "없음 (포함)",
+  "diagnostics.outputActive": "활성",
+  "diagnostics.outputRefusedNotLinked": "거부됨 — 계정 미연결",
+  "diagnostics.outputRefusedNotOwned": "거부됨 — 모듈 미보유",
+  "diagnostics.outputRefusedUnknown": "거부됨",
+  "diagnostics.outputAccountLinked": "Mozaiklabs 계정 연결됨",
+  "diagnostics.outputAccountNotLinked": "연결된 Mozaiklabs 계정 없음",
+  "diagnostics.outputLicensedModules": "보유 모듈: {list}",
+  "diagnostics.outputNoLicensedModules": "보유한 모듈 없음",
+  "diagnostics.outputNoProviders": "이 서버에는 외부 출력 공급자가 컴파일되어 있지 않습니다.",
+  "diagnostics.outputOpenLicense": "내 라이선스 보기",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

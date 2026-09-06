@@ -219,3 +219,79 @@ export function refusAAfficher(instantane: unknown): RefusAffichable[] {
     upgradeUrl,
   }));
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Le panneau « Modules de sortie » de Diagnostics — arbitrage du 01/09/2026.
+//
+// Le bandeau ci-dessus ne lit que les REFUS. Le panneau montre l'instantané
+// ENTIER : chaque fournisseur, son module, ses appareils, son refus éventuel
+// avec le code brut. Même prudence qu'au-dessus : rien n'est tenu pour acquis,
+// tout est sondé.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Une ligne du panneau : un fournisseur tel que le serveur l'a vu. */
+export interface LigneFournisseur {
+  /** Nom du fournisseur (`provider`), replié sur `required_module`. `''` si rien. */
+  provider: string;
+  /** Module payant exigé, ou `null` pour un fournisseur libre (inclus). */
+  requiredModule: string | null;
+  /** Appareils vus à la dernière passe, `null` si le serveur n'a pas dit. */
+  devices: number | null;
+  /** Le refus, ou `null` si le fournisseur va bien. */
+  refus: {
+    code: CodeRefusModule;
+    /** Le code tel que le serveur l'écrit, montré à l'écran : c'est Diagnostics. */
+    codeBrut: string | null;
+    upgradeUrl: string | null;
+  } | null;
+}
+
+/** L'instantané prêt à afficher. */
+export interface TableauFournisseurs {
+  /** `null` si le serveur ne l'a pas dit (champ absent ou d'un autre type). */
+  accountLinked: boolean | null;
+  licensedModules: string[];
+  lignes: LigneFournisseur[];
+}
+
+/**
+ * L'instantané `output_providers` prêt à afficher, ou `null` si l'écran ne
+ * doit PAS montrer le panneau :
+ *
+ * - champ absent : serveur antérieur à #2392 (v0.9.115), rien à montrer ;
+ * - `null` côté serveur : aucune passe de découverte encore publiée.
+ *
+ * Un instantané présent avec zéro fournisseur rend un tableau VIDE, et le
+ * panneau le dit : « aucun fournisseur externe compilé » est une information,
+ * pas une absence.
+ */
+export function tableauFournisseurs(instantane: unknown): TableauFournisseurs | null {
+  if (!instantane || typeof instantane !== 'object') return null;
+  const brut = instantane as InstantaneFournisseurs;
+  const accountLinked = typeof brut.account_linked === 'boolean' ? brut.account_linked : null;
+  const licensedModules = Array.isArray(brut.licensed_modules)
+    ? brut.licensed_modules.map(texte).filter((m): m is string => m !== null)
+    : [];
+  const lignes: LigneFournisseur[] = [];
+  if (Array.isArray(brut.providers)) {
+    for (const p of brut.providers) {
+      if (!p || typeof p !== 'object') continue;
+      const f = p as FournisseurSortie;
+      const requiredModule = texte(f.required_module);
+      const refusServeur = f.refusal && typeof f.refusal === 'object' ? f.refusal : null;
+      lignes.push({
+        provider: texte(f.provider) ?? requiredModule ?? '',
+        requiredModule,
+        devices: typeof f.devices === 'number' && Number.isFinite(f.devices) ? f.devices : null,
+        refus: refusServeur
+          ? {
+              code: codeDuRefus(refusServeur),
+              codeBrut: texte(refusServeur.code),
+              upgradeUrl: texte(refusServeur.upgrade_url),
+            }
+          : null,
+      });
+    }
+  }
+  return { accountLinked, licensedModules, lignes };
+}
