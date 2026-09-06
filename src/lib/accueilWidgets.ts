@@ -62,7 +62,12 @@ export interface Element {
   enLecture?: boolean;
 }
 
-export type Forme = 'bande' | 'chiffres';
+/**
+ * `zones-cartes` : une CARTE large par zone, deux fois la largeur d'une
+ * vignette de bande. C'est la troisième forme, ajoutée le 06/09/2026 —
+ * « Créé un deuxième widget ! » (Bertrand), après la maquette Figma.
+ */
+export type Forme = 'bande' | 'chiffres' | 'zones-cartes';
 
 export interface Widget {
   id: string;
@@ -380,6 +385,58 @@ export const WIDGETS: Widget[] = [
     },
   },
   {
+    id: 'zones-cartes',
+    cleTitre: 'v2.home.wZonesCards',
+    forme: 'zones-cartes',
+    /**
+     * DEUXIÈME widget des zones — « Créé un deuxième widget ! » (Bertrand,
+     * 06/09/2026), sur la maquette Figma.
+     *
+     * Le premier reste tel quel : une bande de vignettes, une par zone. Il ne
+     * tient qu'une pochette, un titre et un nom de zone. Celui-ci prend deux
+     * fois la place et montre ce qui ne rentrait pas — le format, la
+     * fréquence, la profondeur, l'année, et où l'on en est dans le morceau.
+     *
+     * ## ⚠️ Aucun appel réseau
+     *
+     * Tout vient de `/zones`, que la coquille tient déjà dans `ctx.zones` :
+     * `current_track` y porte `title`, `artist_name`, `cover_path`, `format`,
+     * `sample_rate`, `bit_depth`, `year`, `duration_ms` et `album_id`, et la
+     * zone porte `name`, `state` et `position_ms` (mesuré sur le .18 le
+     * 06/09/2026). Un widget de plus ne coûte donc pas une requête de plus.
+     *
+     * ## Il ne rend que des IDENTIFIANTS de zone
+     *
+     * Le rendu relit le magasin VIVANT. `charger` ne s'exécute qu'une fois :
+     * en recopiant ici la position et le titre, la barre de progression
+     * resterait figée à l'instant du chargement, et la carte continuerait
+     * d'annoncer le morceau précédent.
+     *
+     * ## Qui s'affiche
+     *
+     * Les zones qui JOUENT ou sont en PAUSE. Pas celles qui sont à l'arrêt :
+     * sur le .18, « Cet ordinateur » est `stopped` et porte pourtant un
+     * `current_track` à la position 0 — la retenir remplirait le widget de
+     * cartes muettes.
+     *
+     * `utiles()` ne s'applique pas non plus : une radio sans titre donne
+     * « — », mais la carte reste utile — c'est la ZONE qu'elle annonce, et son
+     * nom est là.
+     */
+    charger: async (ctx) =>
+      (ctx.zones ?? [])
+        .filter((z: any) => z?.current_track && (z.state === 'playing' || z.state === 'paused'))
+        .map((z: any, i: number) => ({
+          id: `zcarte${i}-${z?.id ?? ''}`,
+          titre: champ(z?.current_track, 'title') ?? '—',
+          sous: z?.name ?? '',
+          cover: champ(z?.current_track, 'cover_path', 'cover_url') ?? null,
+          source: champ(z?.current_track, 'source') ?? null,
+          zoneId: z?.id ?? null,
+          enLecture: z?.state === 'playing',
+        })),
+  },
+  {
     id: 'reprendre',
     cleTitre: 'v2.home.wResume',
     forme: 'bande',
@@ -602,6 +659,17 @@ export const WIDGETS: Widget[] = [
  *
  * Choix de Bertrand : personne ne doit voir son écran changer sans l'avoir
  * demandé. Ce sont exactement les quatre sections que `HomeV2` affichait.
+ */
+/**
+ * ⚠️ `zones-cartes` n'y figure PAS, et c'est délibéré.
+ *
+ * J'avais commencé par l'y mettre. La garde d'`accueilConfigurable` me l'a
+ * refusé, avec sa raison écrite noir sur blanc : « personne ne doit voir son
+ * écran changer sans l'avoir demandé ». C'est la règle de Bertrand, et elle
+ * vaut aussi quand c'est lui qui demande le widget : il a demandé qu'il
+ * EXISTE, pas qu'il s'impose sur l'accueil de tout le monde.
+ *
+ * Il s'ajoute depuis le mode édition, comme les dix-neuf autres.
  */
 export const DISPOSITION_DEFAUT = [
   'reprendre',

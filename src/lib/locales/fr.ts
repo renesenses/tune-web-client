@@ -4031,6 +4031,8 @@ export default {
   "v2.set.metadataHint": "Les champs affichés dans la bibliothèque et l’ordre des colonnes se règlent dans l’écran {e} du Studio — c’est là que vivent aussi les propositions de la communauté et les albums douteux.",
   "v2.set.pushHint": "Fin d’analyse, erreurs de lecture. Réglage propre à ce navigateur — il ne suit pas votre profil d’un appareil à l’autre.",
   "v2.meta.foot": "L’édition champ par champ et l’enrichissement par lot ne sont pas repris ici : ils restent dans le client actuel, hors du drapeau ?v2. L’avancement de l’enrichissement se suit dans {p}.",
+  "v2.home.wZonesCards": "En écoute",
+  "v2.home.zoneOf": "sur {z}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -4009,6 +4009,8 @@ export default {
   "v2.set.metadataHint": "Los campos mostrados en la biblioteca y el orden de las columnas se ajustan en la pantalla {e} del Estudio: ahí también están las sugerencias de la comunidad y los álbumes dudosos.",
   "v2.set.pushHint": "Fin del análisis, errores de reproducción. Este ajuste es propio de este navegador: no sigue a tu perfil de un dispositivo a otro.",
   "v2.meta.foot": "La edición campo a campo y el enriquecimiento por lotes no están aquí: siguen en el cliente actual, fuera del indicador ?v2. El progreso del enriquecimiento se sigue en {p}.",
+  "v2.home.wZonesCards": "Sonando ahora",
+  "v2.home.zoneOf": "en {z}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

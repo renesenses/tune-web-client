@@ -37,7 +37,9 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { albums } from '../../lib/stores/library';
-  import { currentZoneId, zones } from '../../lib/stores/zones';
+  import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
+  import { togglePlayPause } from '../../lib/playback-controls';
+  import { formatTime } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
   import { salutation } from '../../lib/salutation';
@@ -163,6 +165,45 @@
   }
 
   const disponibles = $derived(catalogue.filter((w) => !disposition.includes(w.id)));
+
+  // ── Carte de zone (widget « En écoute ») ────────────────────────────────
+  //
+  // Tout se lit dans le magasin VIVANT : l'élément rendu par le widget ne
+  // porte que l'identifiant de zone. Sans cela, la barre de progression
+  // resterait figée à l'instant du chargement et la carte annoncerait encore
+  // le morceau précédent.
+  const zoneVivante = (id: number | null | undefined) =>
+    id == null ? null : ($zones.find((z: any) => z.id === id) ?? null);
+
+  /** « 44 kHz · 16 bit » — les deux chiffres que la maquette met en pastille. */
+  function techPiste(ct: any): string {
+    if (!ct) return '';
+    const hz = ct.sample_rate ? `${Math.round(ct.sample_rate / 100) / 10} kHz` : '';
+    const bits = ct.bit_depth ? `${ct.bit_depth} bit` : '';
+    return [hz, bits].filter(Boolean).join(' · ');
+  }
+
+  /** Avancement en pourcentage, borné : une position au-delà de la durée
+   *  arrive sur un flux dont la durée annoncée est fausse, et la barre
+   *  déborderait de sa boîte. */
+  function avancement(z: any): number {
+    const d = z?.current_track?.duration_ms ?? 0;
+    if (!d) return 0;
+    return Math.max(0, Math.min(100, ((z?.position_ms ?? 0) / d) * 100));
+  }
+
+  /**
+   * Le bouton de la carte passe par le chemin PARTAGÉ.
+   *
+   * `api.pause()` seul ne remet pas le magasin à jour, et une zone à l'arrêt
+   * demande de relancer la piste avec le bon corps selon son origine — radio,
+   * service ou bibliothèque. `playback-controls` sait tout cela ; le réécrire
+   * ici donnerait une deuxième vérité (#1478, déjà vécu sur le cœur).
+   */
+  async function basculerZone(z: any) {
+    if (!z?.id) return;
+    await togglePlayPause(z, z.current_track ?? null, z.state);
+  }
 
   async function charger() {
     const pid = $currentProfileId;
@@ -514,6 +555,72 @@
               </div>
             {:else if !et.elements.length}
               <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>
+
+            {:else if w.forme === 'zones-cartes'}
+              <!-- La CARTE de zone, d'après la maquette Levente : pochette à
+                   gauche, pastilles techniques en haut, titre et artiste en
+                   gros, puis la ligne de transport. Deux ajouts demandés par
+                   Bertrand le 06/09/2026 : le NOM DE LA ZONE, qui manquait, et
+                   le spectrogramme, déjà présent sur la bande.
+
+                   Le premier widget « Zones d'écoute actives » ne bouge pas :
+                   celui-ci s'ajoute à côté, il ne le remplace pas. -->
+              <div class="zcartes">
+                {#each et.elements as el (el.id)}
+                  {@const z = zoneVivante(el.zoneId)}
+                  {#if z}
+                    {@const ct = (z as any).current_track}
+                    <article class="zcarte" class:joue={z.state === 'playing'}>
+                      <div class="zcv">
+                        <AlbumArt coverPath={ct?.cover_path ?? el.cover} albumId={ct?.album_id ?? null}
+                          size={0} alt={ct?.title ?? ''} source={ct?.source ?? el.source}
+                          fallbackInitials={(ct?.title ?? el.titre)?.slice(0, 1)} />
+                      </div>
+
+                      <div class="zinfo">
+                        <div class="zhaut">
+                          {#if ct?.format}<span class="zpill fmt">{String(ct.format).toUpperCase()}</span>{/if}
+                          {#if techPiste(ct)}<span class="zpill tech">{techPiste(ct)}</span>{/if}
+                          {#if ct?.year}<span class="zannee">{ct.year}</span>{/if}
+                        </div>
+
+                        <h3 class="ztitre" title={ct?.title ?? ''}>{ct?.title ?? '—'}</h3>
+                        {#if ct?.artist_name}<div class="zartiste" title={ct.artist_name}>{ct.artist_name}</div>{/if}
+
+                        <!-- Le nom de la ZONE. Il manquait sur la maquette, et
+                             c'est pourtant ce qui distingue deux cartes. -->
+                        <button class="zzone" onclick={() => z.id != null && switchZone(z.id)}
+                          title={$t('v2.home.zoneOf' as any).replace('{z}', z.name ?? '')}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                               stroke-linecap="round"><path d="M4 10a8 8 0 0 1 16 0M7.5 13a4.5 4.5 0 0 1 9 0"/><circle cx="12" cy="18" r="1.6"/></svg>
+                          {z.name ?? ''}
+                        </button>
+
+                        <div class="zviz">
+                          <AudioVisualizer playing={z.state === 'playing'} mode="spectrum"
+                            height={26} zoneId={z.id ?? null} />
+                        </div>
+
+                        <div class="ztransport">
+                          <button class="zplay" onclick={() => basculerZone(z)}
+                            aria-label={$t((z.state === 'playing' ? 'common.pause' : 'common.play') as any)}
+                            title={$t((z.state === 'playing' ? 'common.pause' : 'common.play') as any)}>
+                            {#if z.state === 'playing'}
+                              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+                            {:else}
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M8 5l11 7-11 7z"/></svg>
+                            {/if}
+                          </button>
+                          <span class="zt">{formatTime(z.position_ms ?? 0)}</span>
+                          <div class="zprog"><i style="width:{avancement(z)}%"></i></div>
+                          <span class="zt">{ct?.duration_ms ? formatTime(ct.duration_ms) : '--:--'}</span>
+                        </div>
+                      </div>
+                    </article>
+                  {/if}
+                {/each}
+              </div>
+
             {:else}
               <div class="bande">
                 {#each et.elements as el (el.id)}
@@ -670,6 +777,66 @@
   /* TOUS les widgets sont des bandes horizontales — décision de Bertrand.
      Mêler grilles et bandes rendrait la hauteur de la page imprévisible. */
   .bande{display:flex; gap:16px; overflow-x:auto; padding:0 30px 10px; scrollbar-width:thin}
+
+  /* ── Cartes de zone (widget « En écoute ») ─────────────────────────────
+     La carte vaut DEUX vignettes de bande : 148 px × 2 + les 16 px de
+     gouttière = 312 px. C'est la règle que Bertrand a posée le 06/09/2026
+     (« dans ce cas la card = 2 anciennes cards »), et elle se lit ici en
+     clair plutôt qu'en nombre magique. */
+  .zcartes{display:flex; flex-wrap:wrap; gap:16px; padding:0 30px 10px}
+  .zcarte{flex:0 1 calc(148px * 2 + 16px); min-width:0; display:grid;
+    grid-template-columns:132px minmax(0,1fr); gap:16px; padding:14px;
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-card);
+    background:var(--v2-surface2)}
+  /* La zone qui JOUE se distingue à l'œil : c'est l'information principale
+     d'un widget qui en montre plusieurs. */
+  .zcarte.joue{border-color:color-mix(in srgb, var(--v2-acc1) 45%, transparent)}
+  .zcv{aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; background:var(--v2-hover)}
+  .zcv :global(img){width:100%; height:100%; object-fit:cover; display:block}
+
+  .zinfo{min-width:0; display:flex; flex-direction:column; gap:6px}
+  .zhaut{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .zpill{font:10.5px var(--v2-mono); padding:3px 9px; border-radius:var(--v2-r-pill);
+    border:1px solid var(--v2-line2); white-space:nowrap}
+  .zpill.fmt{color:var(--v2-acc1); border-color:color-mix(in srgb, var(--v2-acc1) 45%, transparent)}
+  .zpill.tech{color:var(--v2-acc2); border-color:color-mix(in srgb, var(--v2-acc2) 45%, transparent)}
+  .zannee{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+
+  .ztitre{font:700 21px var(--v2-sans); letter-spacing:-.01em; margin:2px 0 0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .zartiste{font:13.5px var(--v2-sans); color:var(--v2-txt2);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+  .zzone{display:inline-flex; align-items:center; gap:6px; align-self:flex-start;
+    padding:0; border:0; background:transparent; cursor:pointer;
+    font:11px var(--v2-mono); color:var(--v2-txt3); max-width:100%;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .zzone:hover{color:var(--v2-acc1)}
+  .zzone:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:4px}
+  .zzone svg{width:13px; height:13px; flex:none}
+
+  .zviz{margin-top:auto; opacity:.85}
+
+  .ztransport{display:grid; grid-template-columns:auto auto minmax(0,1fr) auto;
+    align-items:center; gap:10px}
+  .zplay{display:flex; align-items:center; justify-content:center; width:34px; height:34px;
+    padding:0; border:0; border-radius:50%; cursor:pointer;
+    background:transparent; color:var(--v2-txt)}
+  .zplay:hover{background:var(--v2-hover)}
+  .zplay:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .zplay svg{width:22px; height:22px}
+  /* Les deux durées s'alignent : sans chiffres tabulaires, la barre sautait
+     d'un pixel à chaque seconde. */
+  .zt{font:11px var(--v2-mono); color:var(--v2-txt3); font-variant-numeric:tabular-nums}
+  .zprog{height:4px; border-radius:999px; background:var(--v2-line2); overflow:hidden}
+  .zprog i{display:block; height:100%; border-radius:999px;
+    background:linear-gradient(90deg, var(--v2-acc1), var(--v2-acc2))}
+
+  /* Sous 620 px la pochette et le texte ne tiennent plus côte à côte. */
+  @media (max-width: 620px){
+    .zcarte{grid-template-columns:minmax(0,1fr)}
+    .zcv{max-width:180px}
+  }
   /*
     `min-width: 0` — sans lui, la vignette DÉBORDE.
 

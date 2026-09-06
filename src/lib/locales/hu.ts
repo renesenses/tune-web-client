@@ -3967,6 +3967,8 @@ export default {
   "v2.set.metadataHint": "A könyvtárban megjelenő mezők és az oszlopsorrend a Stúdió {e} képernyőjén állítható be — itt találhatók a közösségi javaslatok és a kétes albumok is.",
   "v2.set.pushHint": "Az elemzés vége, lejátszási hibák. Ez a beállítás ehhez a böngészőhöz tartozik — nem követi a profilját eszközről eszközre.",
   "v2.meta.foot": "A mezőnkénti szerkesztés és a kötegelt gazdagítás itt nem szerepel: a jelenlegi kliensben maradnak, a ?v2 kapcsolón kívül. A gazdagítás előrehaladása itt követhető: {p}.",
+  "v2.home.wZonesCards": "Most szól",
+  "v2.home.zoneOf": "itt: {z}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

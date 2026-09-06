@@ -4009,6 +4009,8 @@ export default {
   "v2.set.metadataHint": "音乐库中显示的字段和列顺序在工作室的“{e}”界面中设置——社区建议和存疑专辑也在那里。",
   "v2.set.pushHint": "分析结束、播放错误。此设置仅属于当前浏览器——不会随您的配置文件跨设备同步。",
   "v2.meta.foot": "逐字段编辑和批量补全不在此处：它们仍留在当前客户端，位于 ?v2 标记之外。补全进度可在 {p} 中查看。",
+  "v2.home.wZonesCards": "正在收听",
+  "v2.home.zoneOf": "在 {z} 播放",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

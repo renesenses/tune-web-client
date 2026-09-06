@@ -4009,6 +4009,8 @@ export default {
   "v2.set.metadataHint": "Die in der Bibliothek angezeigten Felder und die Spaltenreihenfolge werden im Studio-Bildschirm {e} eingestellt — dort liegen auch die Community-Vorschläge und die zweifelhaften Alben.",
   "v2.set.pushHint": "Ende der Analyse, Wiedergabefehler. Diese Einstellung gilt nur für diesen Browser — sie folgt Ihrem Profil nicht von Gerät zu Gerät.",
   "v2.meta.foot": "Feldweise Bearbeitung und Stapelanreicherung sind hier nicht enthalten: Sie bleiben im aktuellen Client, außerhalb des ?v2-Flags. Den Fortschritt der Anreicherung verfolgen Sie unter {p}.",
+  "v2.home.wZonesCards": "Läuft gerade",
+  "v2.home.zoneOf": "auf {z}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

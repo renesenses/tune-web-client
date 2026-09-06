@@ -4009,6 +4009,8 @@ export default {
   "v2.set.metadataHint": "ライブラリに表示される項目と列の順序は、スタジオの{e}画面で設定します。コミュニティの提案や疑わしいアルバムもそこにあります。",
   "v2.set.pushHint": "スキャン完了、再生エラー。この設定はこのブラウザー固有で、端末をまたいでプロフィールには追随しません。",
   "v2.meta.foot": "項目ごとの編集と一括補完はここには含まれません。現行クライアントの、?v2 フラグの外に残ります。補完の進捗は {p} で確認できます。",
+  "v2.home.wZonesCards": "再生中",
+  "v2.home.zoneOf": "{z} で再生中",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

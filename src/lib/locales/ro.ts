@@ -4009,6 +4009,8 @@ export default {
   "v2.set.metadataHint": "Câmpurile afișate în bibliotecă și ordinea coloanelor se reglează în ecranul {e} din Studio — acolo se află și sugestiile comunității și albumele îndoielnice.",
   "v2.set.pushHint": "Sfârșitul analizei, erori de redare. Setare proprie acestui browser — nu vă urmează profilul de la un dispozitiv la altul.",
   "v2.meta.foot": "Editarea câmp cu câmp și îmbogățirea pe loturi nu sunt preluate aici: rămân în clientul actual, în afara indicatorului ?v2. Progresul îmbogățirii se urmărește în {p}.",
+  "v2.home.wZonesCards": "Se ascultă acum",
+  "v2.home.zoneOf": "pe {z}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
