@@ -45,7 +45,28 @@
 
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
 
-  let q = $state('');
+  /**
+   * 🔴 La reprise se fait À L'INITIALISATION, pas dans un effet.
+   *
+   * « Dans la fonction recherche, la première lettre dans la fenêtre de
+   * recherche ne s'efface pas » (Patatorz, 06/09/2026, fil 1686).
+   *
+   * Elle vivait dans un `$effect` qui RELISAIT ce que son voisin écrivait :
+   *
+   *     $effect(() => { const f = get(currentSearchCriteria); if (f?.q && !q) q = f.q; });
+   *     $effect(() => { setSearchCriteria(q.trim() ? { q } : null); });
+   *
+   * Le premier dépend de `q` — il le lit dans `!q`. En effaçant le dernier
+   * caractère, `q` devient vide, l'effet se réveille, trouve l'ancien critère
+   * encore dans le magasin, et le RÉÉCRIT. La lettre revient toute seule, et
+   * le champ paraît collé.
+   *
+   * Le magasin est rempli AVANT le changement de vue — `navigateToShortcut` le
+   * dit dans son propre commentaire : « l'écran de recherche lit le magasin à
+   * son montage ». C'était donc bien une lecture au montage qu'il fallait, pas
+   * un effet ; l'effet ne rattrapait rien et cassait l'effacement.
+   */
+  let q = $state(get(currentSearchCriteria)?.q ?? '');
 
   /**
    * Publier ce qu'on cherche, et repartir de ce qu'un raccourci a figé.
@@ -54,10 +75,6 @@
    * 02/09/2026) : sans cela il ramenait sur un écran vide et il fallait
    * retaper.
    */
-  $effect(() => {
-    const fige = get(currentSearchCriteria);
-    if (fige?.q && !q) q = fige.q;
-  });
   $effect(() => {
     setSearchCriteria(q.trim() ? { q } : null);
   });
@@ -399,6 +416,17 @@
         autofocus
         onkeydown={(e) => { if (e.key === 'Enter' && acousticOn) runAcoustic(); }}
       />
+      <!-- La CROIX. `type="search"` en pose une d'office sous WebKit, aucune
+           sous Firefox — et Patatorz est sous Linux : « pas de croix pour tout
+           effacer » (06/09/2026). La Bibliothèque avait la sienne depuis
+           toujours ; cet écran-ci n'en avait jamais eu. -->
+      {#if q}
+        <button class="vider" onclick={() => (q = '')}
+          aria-label={$t('common.clear' as any)} title={$t('common.clear' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      {/if}
       {#if busy}<span class="spin" aria-hidden="true"></span>{/if}
     </div>
 
@@ -730,7 +758,16 @@
     background:var(--v2-surface2); color:var(--v2-txt); font:15px var(--v2-sans); padding:0 18px 0 46px; outline:none}
   .field input::placeholder{color:var(--v2-txt3)}
   .field input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  /* La croix native de WebKit est retirée : on pose la nôtre, identique dans
+     tous les navigateurs — sans quoi Firefox et Chrome n'offrent pas le même
+     geste sur le même écran. */
   .field input::-webkit-search-cancel-button{-webkit-appearance:none}
+  .field .vider{position:absolute; right:14px; display:flex; align-items:center; justify-content:center;
+    width:26px; height:26px; padding:0; border:0; border-radius:50%; cursor:pointer;
+    background:transparent; color:var(--v2-txt3)}
+  .field .vider:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .field .vider:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .field .vider svg{width:15px; height:15px}
   .spin{position:absolute; right:16px; width:15px; height:15px; border:2px solid var(--v2-line2);
     border-top-color:var(--v2-acc1); border-radius:50%; animation:sp .7s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
