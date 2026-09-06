@@ -97,6 +97,28 @@
    *  or « Expert » dit ce qu'on sait faire, pas ce qu'on veut voir. Défaut OFF. */
   const showTech = $derived(showExpert && $preferences.v2AlbumTechLine);
 
+  /**
+   * 🔴 Le gabarit de colonnes est calculé UNE fois, pour toutes les lignes.
+   *
+   * Bertrand, 05/09/2026 : « vue Library : alignement des textes ».
+   *
+   * Chaque `.lrow` était sa propre grille. `minmax(0,2fr)`, `1.4fr` et `auto`
+   * se résolvent alors sur le contenu de CETTE ligne seule : l'artiste, l'année
+   * et la fiche technique commençaient à une abscisse différente d'une ligne à
+   * l'autre. Sur sa capture, l'année de « Norah Jones » et celle de « Charlie
+   * Parker » ne sont pas à la même place, alors qu'elles se suivent.
+   *
+   * Les colonnes de queue passent en largeurs FIXES : ce sont des champs de
+   * longueur bornée (une année, un badge, « FLAC · 96 kHz · 24-bit »), et une
+   * largeur intrinsèque les ferait respirer différemment à chaque ligne.
+   */
+  const colonnesListe = $derived(
+    ['44px', 'minmax(0,2fr)', 'minmax(0,1.4fr)', '52px']
+      .concat(showBadges ? ['46px'] : [])
+      .concat(showTech ? ['150px'] : [])
+      .join(' '),
+  );
+
   // Fréquences en VALEURS EXACTES (jamais un seuil « ≥ »).
   const RATES: { v: number; l: string }[] = [
     { v: 44100, l: '44,1' }, { v: 48000, l: '48' }, { v: 88200, l: '88,2' },
@@ -964,14 +986,24 @@
         {#if !affiches.length}
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
         {:else}
-        <div class="rows" bind:this={gridEl}>
+        <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
           {#each affiches as a (a.id)}
             <button class="lrow" data-letter={firstLetter(a)} onclick={() => opened = a}>
               <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
               <span class="lt">{a.title}</span>
               <span class="la">{a.artist_name ?? ''}</span>
               <span class="ly">{albumYear(a) ?? ''}</span>
-              {#if showBadges && badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}
+              <!--
+                🔴 Ces deux cellules sont TOUJOURS présentes quand leur mode
+                est actif, vides s'il n'y a rien à y mettre.
+
+                Elles étaient posées sous `{#if}` : une ligne sans badge n'avait
+                que cinq cellules, et sa fiche technique tombait donc dans la
+                colonne du badge. C'est la moitié du désalignement que Bertrand
+                a photographié le 05/09/2026 ; l'autre moitié est que chaque
+                ligne était sa PROPRE grille (voir `--lcols` plus bas).
+              -->
+              {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
               {#if showTech}<span class="lq">{tech(a)}</span>{/if}
             </button>
           {/each}
@@ -1195,15 +1227,20 @@
   /* Affichage liste : même données, densité maximale. */
   .rows{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
   .rows::-webkit-scrollbar{width:9px}.rows::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .lrow{display:grid; grid-template-columns:44px minmax(0,2fr) minmax(0,1.4fr) 56px auto auto; align-items:center;
+  .lrow{display:grid; grid-template-columns:var(--lcols, 44px minmax(0,2fr) minmax(0,1.4fr) 52px 46px 150px); align-items:center;
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
     color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s}
   .lrow:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}
   .lrow .lt{font-size:13.5px; font-weight:600; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lrow .la{font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lrow .ly{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
-  .lrow .lq{font:10px var(--v2-mono); color:var(--v2-acc2)}
+  .lrow .ly{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right; font-variant-numeric:tabular-nums}
+  /* La cellule du badge existe meme vide : c'est elle qui tient la colonne. */
+  .lrow .lb{display:flex; justify-content:center; min-width:0}
+  /* Ferre a DROITE : les fiches techniques n'ont pas la meme longueur, et
+     c'est leur bord droit qui doit s'aligner d'une ligne a l'autre. */
+  .lrow .lq{font:10px var(--v2-mono); color:var(--v2-acc2); text-align:right;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums}
   .bdg.flat{position:static; align-self:center}
 
   /* Onglet Titres. */

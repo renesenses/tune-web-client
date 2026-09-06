@@ -184,6 +184,8 @@ export default {
   'common.pause': 'Pauză',
   'common.stop': 'Oprește',
   'common.loading': 'Se încarcă...',
+  'v2.pl.searchPlaceholder': 'Caută playlist',
+  'common.clear': 'Șterge',
   'transport.preparing': 'Se pregătește redarea…',
   'common.cancel': 'Anulează',
   'common.delete': 'Șterge',

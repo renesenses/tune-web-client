@@ -381,6 +381,8 @@ export default {
   'common.pause': 'Pause',
   'common.stop': 'Stop',
   'common.loading': 'Loading...',
+  'v2.pl.searchPlaceholder': 'Search playlists',
+  'common.clear': 'Clear',
   'transport.preparing': 'Getting playback ready…',
   'common.cancel': 'Cancel',
   'common.delete': 'Delete',

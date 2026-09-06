@@ -184,6 +184,8 @@ export default {
   'common.pause': 'Pause',
   'common.stop': 'Stopp',
   'common.loading': 'Wird geladen...',
+  'v2.pl.searchPlaceholder': 'Playlists durchsuchen',
+  'common.clear': 'Leeren',
   'transport.preparing': 'Wiedergabe wird vorbereitet…',
   'common.cancel': 'Abbrechen',
   'common.delete': 'Löschen',

@@ -177,13 +177,28 @@ describe('L’écran Favoris montre AUSSI les favoris de service', () => {
   });
 
   it('le retrait vise la table qui PORTE le favori', () => {
-    // `removeFavorite({track_id: undefined})` sur une piste de service ne
-    // retire rien, et ne le dit pas.
-    expect(favoris().includes('async function retirerPiste('), 'le retrait est redevenu unique').toBe(true);
+    /*
+     * L'invariant n'a pas bougé : `removeFavorite({track_id: undefined})` sur
+     * une piste de service ne retire rien, et ne le dit pas.
+     *
+     * Son ADRESSE, si. Le 05/09/2026 l'écran Favoris portait DEUX cœurs par
+     * ligne — celui de `PisteActions` et un bouton de retrait dessiné à côté,
+     * dont cette garde décrivait le corps (`retirerPiste`). Le second a été
+     * retiré et la ligne est devenue `LignePisteV2` ; le tri entre les deux
+     * tables vit désormais dans le cœur unique. On vise donc là, plutôt que
+     * d'affaiblir la garde en la supprimant.
+     */
+    const pa = lire('../../components/v2/PisteActions.svelte');
     expect(
-      /retirerPiste[\s\S]{0,700}?coeurService\(t, 'track'\)/.test(favoris()),
-      'le retrait d’une piste de service ne passe plus par le cœur qui l’avait posée',
+      /if \(local\) await basculerFavoriLocal\(/.test(pa),
+      'une piste de la bibliothèque ne passe plus par le chemin local',
     ).toBe(true);
+    expect(
+      /await toggleStreamingFavorite\(/.test(pa),
+      'une piste de service ne passe plus par le cœur qui l’avait posée',
+    ).toBe(true);
+    // Et l'écran Favoris ne redessine pas un second cœur à côté du premier.
+    expect(favoris().includes('retirerPiste'), 'le double cœur est revenu').toBe(false);
   });
 
   it('la fiche d’un album de service est ouverte EN TANT QUE service', () => {

@@ -156,6 +156,8 @@ export default {
   'common.pause': 'Pausa',
   'common.stop': 'Stoppa',
   'common.loading': 'Laddar...',
+  'v2.pl.searchPlaceholder': 'Sök spellistor',
+  'common.clear': 'Rensa',
   'transport.preparing': 'Förbereder uppspelning…',
   'common.cancel': 'Avbryt',
   'common.delete': 'Ta bort',

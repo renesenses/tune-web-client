@@ -184,6 +184,8 @@ export default {
   'common.pause': '일시 중지',
   'common.stop': '정지',
   'common.loading': '로딩 중...',
+  'v2.pl.searchPlaceholder': '재생목록 검색',
+  'common.clear': '지우기',
   'transport.preparing': '재생을 준비하는 중…',
   'common.cancel': '취소',
   'common.delete': '삭제',
