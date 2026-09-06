@@ -21,7 +21,19 @@ describe('Retours de Querite (forum, 05/09/2026)', () => {
     for (const f of ['LignePisteV2', 'QueueV2', 'FavoritesV2', 'MediaServersV2']) {
       const src = sansCommentaires(lire(`src/components/v2/${f}.svelte`));
       const lignes = src.split('\n').filter((l) => /class="(dur|ndur|td)"/.test(l));
-      expect(lignes.length, `${f} : aucune colonne de durée trouvée`).toBeGreaterThan(0);
+
+      /*
+       * Un écran tient la promesse de DEUX façons : il dessine sa propre
+       * colonne de durée, ou il délègue à `LignePisteV2`, qui la dessine pour
+       * lui. Le 05/09/2026 `FavoritesV2` est passé du premier cas au second —
+       * sa ligne maison affichait « FLAC · 88.2 kHz » sans la profondeur et
+       * portait deux cœurs. La garde suit la délégation plutôt que de perdre
+       * un écran de vue.
+       */
+      if (!lignes.length) {
+        expect(src, `${f} : ni colonne de durée, ni délégation à LignePisteV2`).toContain('LignePisteV2');
+        continue;
+      }
       for (const l of lignes) {
         expect(l, `${f} : une durée de piste passe encore par formatDuration`).not.toContain('formatDuration(');
         expect(l).toContain('formatTime(');

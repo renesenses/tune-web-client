@@ -16,7 +16,7 @@
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import type { AcousticSearchResult } from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -45,7 +45,28 @@
 
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
 
-  let q = $state('');
+  /**
+   * 🔴 La reprise se fait À L'INITIALISATION, pas dans un effet.
+   *
+   * « Dans la fonction recherche, la première lettre dans la fenêtre de
+   * recherche ne s'efface pas » (Patatorz, 06/09/2026, fil 1686).
+   *
+   * Elle vivait dans un `$effect` qui RELISAIT ce que son voisin écrivait :
+   *
+   *     $effect(() => { const f = get(currentSearchCriteria); if (f?.q && !q) q = f.q; });
+   *     $effect(() => { setSearchCriteria(q.trim() ? { q } : null); });
+   *
+   * Le premier dépend de `q` — il le lit dans `!q`. En effaçant le dernier
+   * caractère, `q` devient vide, l'effet se réveille, trouve l'ancien critère
+   * encore dans le magasin, et le RÉÉCRIT. La lettre revient toute seule, et
+   * le champ paraît collé.
+   *
+   * Le magasin est rempli AVANT le changement de vue — `navigateToShortcut` le
+   * dit dans son propre commentaire : « l'écran de recherche lit le magasin à
+   * son montage ». C'était donc bien une lecture au montage qu'il fallait, pas
+   * un effet ; l'effet ne rattrapait rien et cassait l'effacement.
+   */
+  let q = $state(get(currentSearchCriteria)?.q ?? '');
 
   /**
    * Publier ce qu'on cherche, et repartir de ce qu'un raccourci a figé.
@@ -54,10 +75,6 @@
    * 02/09/2026) : sans cela il ramenait sur un écran vide et il fallait
    * retaper.
    */
-  $effect(() => {
-    const fige = get(currentSearchCriteria);
-    if (fige?.q && !q) q = fige.q;
-  });
   $effect(() => {
     setSearchCriteria(q.trim() ? { q } : null);
   });
@@ -215,7 +232,7 @@
   function lireAlbum(id: number) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    api.play(zid, { album_id: id }).catch(() => {});
+    playAndSync(zid, { album_id: id }).catch(() => {});
   }
 
   /**
@@ -226,13 +243,13 @@
   function lireDistant(a: any) {
     const zid = $currentZoneId;
     if (zid == null || !a?.source || !a?.source_id) return;
-    api.play(zid, { streaming_album_id: String(a.source_id), source: a.source }).catch(() => {});
+    playAndSync(zid, { streaming_album_id: String(a.source_id), source: a.source }).catch(() => {});
   }
 
   function playTrack(t: Track) {
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
-    api.play(zid, { track_id: t.id }).catch(() => {});
+    playAndSync(zid, { track_id: t.id }).catch(() => {});
   }
   function trackRate(t: Track): string {
     if (getQualityTier(t) === 'dsd') return 'DSD';
@@ -302,6 +319,42 @@
   const artistes = $derived(voirArtistes ? groupes.artistes.filter(dansLePerimetre) : []);
   const albums = $derived(voirAlbums ? groupes.albums.filter(dansLePerimetre) : []);
   const titres = $derived(voirTitres ? groupes.pistes.filter(dansLePerimetre) : []);
+
+  /**
+   * « Voir plus » — le RÉVÉLATEUR, pas un nouvel appel.
+   *
+   * « Résultats de recherche : ne pas limiter sur les services de streaming
+   * => bouton voir plus » (Bertrand, 06/09/2026).
+   *
+   * Deux plafonds vivaient en dur dans le balisage : `artistes.slice(0, 12)`
+   * et `titres.slice(0, 40)`. Ce qui dépassait était reçu, gardé en mémoire —
+   * et jeté à l'affichage, sans que rien ne dise qu'il existait. Un écran qui
+   * cache silencieusement se lit comme un écran qui n'a pas trouvé.
+   *
+   * ⚠️ Il RÉVÈLE ce qui est déjà là ; il ne va pas chercher la suite chez le
+   * service. Le serveur le dit lui-même (`routes/search.rs`) : « Les services
+   * de streaming ne sont PAS paginés ici : `limit` continue de leur être passé
+   * tel quel, sans `offset` ». Et 50 est le plafond de page de l'API Qobuz —
+   * demander davantage ne rend pas davantage. Promettre « voir plus » comme un
+   * chargement serait promettre ce que la chaîne ne sait pas faire.
+   */
+  const PAS_ARTISTES = 12, PAS_ALBUMS = 24, PAS_TITRES = 40;
+  let montreArtistes = $state(PAS_ARTISTES);
+  let montreAlbums = $state(PAS_ALBUMS);
+  let montreTitres = $state(PAS_TITRES);
+  // Une nouvelle recherche REPLIE : sans cela, une requête large laissait la
+  // suivante ouverte sur des centaines de vignettes.
+  $effect(() => {
+    void q;
+    montreArtistes = PAS_ARTISTES; montreAlbums = PAS_ALBUMS; montreTitres = PAS_TITRES;
+  });
+  const vusArtistes = $derived(artistes.slice(0, montreArtistes));
+  const vusAlbums = $derived(albums.slice(0, montreAlbums));
+  const vusTitres = $derived(titres.slice(0, montreTitres));
+  const resteArtistes = $derived(artistes.length - vusArtistes.length);
+  const resteAlbums = $derived(albums.length - vusAlbums.length);
+  const resteTitres = $derived(titres.length - vusTitres.length);
+  const libelleVoirPlus = (n: number) => $t('v2.rech.seeMore' as any).replace('{n}', String(n));
   const lesPlaylists = $derived(voirPlaylists ? playlists : []);
 
   // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
@@ -326,9 +379,9 @@
   function lirePlaylist(pl: PlaylistTrouvee) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    if (pl.idLocal != null) { api.play(zid, { playlist_id: pl.idLocal }).catch(() => {}); return; }
+    if (pl.idLocal != null) { playAndSync(zid, { playlist_id: pl.idLocal }).catch(() => {}); return; }
     if (pl.idService && pl.serviceSource) {
-      api.play(zid, { streaming_playlist_id: pl.idService, source: pl.serviceSource as any }).catch(() => {});
+      playAndSync(zid, { streaming_playlist_id: pl.idService, source: pl.serviceSource as any }).catch(() => {});
     }
   }
 
@@ -341,9 +394,9 @@
   function lirePiste(t: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    if (estLocal(t)) { api.play(zid, { track_id: t.id }).catch(() => {}); return; }
+    if (estLocal(t)) { playAndSync(zid, { track_id: t.id }).catch(() => {}); return; }
     if (t?.source && t?.source_id) {
-      api.play(zid, { source: t.source, source_id: String(t.source_id),
+      playAndSync(zid, { source: t.source, source_id: String(t.source_id),
         title: t.title ?? null, artist_name: t.artist_name ?? null,
         album_title: t.album_title ?? null, cover_path: t.cover_path ?? null,
         duration_ms: t.duration_ms }).catch(() => {});
@@ -363,6 +416,17 @@
         autofocus
         onkeydown={(e) => { if (e.key === 'Enter' && acousticOn) runAcoustic(); }}
       />
+      <!-- La CROIX. `type="search"` en pose une d'office sous WebKit, aucune
+           sous Firefox — et Patatorz est sous Linux : « pas de croix pour tout
+           effacer » (06/09/2026). La Bibliothèque avait la sienne depuis
+           toujours ; cet écran-ci n'en avait jamais eu. -->
+      {#if q}
+        <button class="vider" onclick={() => (q = '')}
+          aria-label={$t('common.clear' as any)} title={$t('common.clear' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      {/if}
       {#if busy}<span class="spin" aria-hidden="true"></span>{/if}
     </div>
 
@@ -536,7 +600,7 @@
             <div class="basartistes">
               <h2>{$t('v2.rech.artists' as any)}</h2>
               <div class="arow">
-                {#each artistes.slice(0, 12) as ar, i (String(ar.id ?? '') + ':' + ar.name + ':' + i)}
+                {#each vusArtistes as ar, i (String(ar.id ?? '') + ':' + ar.name + ':' + i)}
                   <div class="artile">
                     <span class="acv">
                       <PochetteActions
@@ -553,6 +617,10 @@
                   </div>
                 {/each}
               </div>
+              {#if resteArtistes > 0}
+                <button class="voirplus" onclick={() => (montreArtistes += PAS_ARTISTES)}
+                  >{libelleVoirPlus(resteArtistes)}</button>
+              {/if}
             </div>
           {/if}
         </section>
@@ -562,7 +630,7 @@
         <section class="grp">
           <h2>{$t('v2.rech.albums' as any)}</h2>
           <div class="grid">
-            {#each albums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
+            {#each vusAlbums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
               {@const local_ = estLocal(a)}
               <div class="card" class:static={!local_}>
                 <span class="cv">
@@ -597,6 +665,10 @@
               </div>
             {/each}
           </div>
+          {#if resteAlbums > 0}
+            <button class="voirplus" onclick={() => (montreAlbums += PAS_ALBUMS)}
+              >{libelleVoirPlus(resteAlbums)}</button>
+          {/if}
         </section>
       {/if}
 
@@ -604,10 +676,14 @@
         <section class="grp">
           <h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="list">
-            {#each titres.slice(0, 40) as t, i (String(t.source ?? 'local') + ':' + String(t.id ?? t.source_id ?? i))}
+            {#each vusTitres as t, i (String(t.source ?? 'local') + ':' + String(t.id ?? t.source_id ?? i))}
               <LignePisteV2 piste={t as any} onLire={() => lirePiste(t)} />
             {/each}
           </div>
+          {#if resteTitres > 0}
+            <button class="voirplus" onclick={() => (montreTitres += PAS_TITRES)}
+              >{libelleVoirPlus(resteTitres)}</button>
+          {/if}
         </section>
       {/if}
 
@@ -664,6 +740,14 @@
 </section>
 
 <style>
+  /* « Voir plus » : une action de LISTE, pas un bouton d'action principale —
+     il ne doit pas rivaliser avec les pochettes qu'il découvre. */
+  .voirplus{display:block; margin:14px auto 0; padding:9px 18px; cursor:pointer;
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
+    background:transparent; color:var(--v2-txt2); font:600 12.5px var(--v2-sans)}
+  .voirplus:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .voirplus:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+
   .v2-search{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
 
@@ -674,7 +758,16 @@
     background:var(--v2-surface2); color:var(--v2-txt); font:15px var(--v2-sans); padding:0 18px 0 46px; outline:none}
   .field input::placeholder{color:var(--v2-txt3)}
   .field input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  /* La croix native de WebKit est retirée : on pose la nôtre, identique dans
+     tous les navigateurs — sans quoi Firefox et Chrome n'offrent pas le même
+     geste sur le même écran. */
   .field input::-webkit-search-cancel-button{-webkit-appearance:none}
+  .field .vider{position:absolute; right:14px; display:flex; align-items:center; justify-content:center;
+    width:26px; height:26px; padding:0; border:0; border-radius:50%; cursor:pointer;
+    background:transparent; color:var(--v2-txt3)}
+  .field .vider:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .field .vider:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .field .vider svg{width:15px; height:15px}
   .spin{position:absolute; right:16px; width:15px; height:15px; border:2px solid var(--v2-line2);
     border-top-color:var(--v2-acc1); border-radius:50%; animation:sp .7s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}

@@ -10,10 +10,10 @@
    * Le clic ouvre l'overlay PlaylistDetailV2 (la section est `position:relative`).
    */
   import * as api from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { formatDuration } from '../../lib/utils';
+  import { formatDuration, fold } from '../../lib/utils';
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
@@ -29,6 +29,19 @@
   const showAdvanced = $derived(atLeast($preferences.settingsLevel, 'intermediate'));
 
   let local = $state<Playlist[]>([]);
+  /**
+   * Zone de recherche. Bertrand, 05/09/2026 : « Playlists : manque une zone de
+   * recherche ».
+   *
+   * Elle porte sur les QUATRE listes de l'écran — locales, intelligentes,
+   * celles des services et les sauvegardes. Filtrer une seule d'entre elles
+   * aurait laissé croire que les autres ne contiennent rien qui corresponde.
+   *
+   * `fold` ignore la casse et les accents : « brel » doit trouver « Brel ».
+   */
+  let recherche = $state('');
+  const correspond = (v: string | null | undefined) =>
+    !recherche.trim() || fold(v ?? '').includes(fold(recherche));
   let services = $state<Record<string, StreamingPlaylist[]>>({});
   let loading = $state(true);
   let creating = $state(false);
@@ -182,7 +195,7 @@
     e?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null || pl.id == null) return;
-    api.play(zid, { playlist_id: pl.id }).catch(() => {});
+    playAndSync(zid, { playlist_id: pl.id }).catch(() => {});
   }
   /**
    * DEUX ONGLETS, comme les collections.
@@ -268,7 +281,7 @@
       .getSmartPlaylistTracks(sp.id)
       .then((pistes) => {
         const ids = (pistes ?? []).map((t: any) => t.id).filter((x: any) => x != null);
-        if (ids.length) return api.play(zid, { track_ids: ids.slice(0, 500) });
+        if (ids.length) return playAndSync(zid, { track_ids: ids.slice(0, 500) });
       })
       .catch(() => {});
   }
@@ -375,7 +388,7 @@
     // `service`, PAS `pl.source` : voir `PlaylistDetailV2`. Le champ n'existe
     // pas sur ces objets, et son absence faisait reprendre la lecture en cours
     // au lieu de lancer la playlist.
-    api.play(zid, { streaming_playlist_id: pl.source_id, source: service as any }).catch(() => {});
+    playAndSync(zid, { streaming_playlist_id: pl.source_id, source: service as any }).catch(() => {});
   }
   function create() {
     const name = newName.trim();
@@ -392,6 +405,15 @@
       <div class="eyebrow">Vos collections</div>
       <h1>Playlists</h1>
     </div>
+    <label class="chercher">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" bind:value={recherche} placeholder={$t('v2.pl.searchPlaceholder' as any)}
+             aria-label={$t('v2.pl.searchPlaceholder' as any)} />
+      {#if recherche}
+        <button class="vider" onclick={() => (recherche = '')} aria-label={$t('common.clear' as any)}>×</button>
+      {/if}
+    </label>
     {#if showAdvanced}
       {#if creating}
         <div class="newp">
@@ -461,7 +483,7 @@
         <p class="sauv-vide">{$t('v2.pl.noBackup' as any)}</p>
       {:else}
         <ul class="sauv-liste">
-          {#each instantanes as snap (snap.id)}
+          {#each instantanes.filter((snap) => correspond(snap?.name ?? snap?.playlist_name)) as snap (snap.id)}
             <li>
               <span class="sn">{snap.name ?? snap.playlist_name ?? `#${snap.id}`}</span>
               <span class="sd">{snap.created_at ?? ''}</span>
@@ -479,7 +501,7 @@
     {#if source !== LOCAL}
       <!-- Un service : ses playlists seules, sans en-tête de groupe — la
            pastille active dit déjà de qui il s'agit. -->
-      {@const liste = services[source] ?? []}
+      {@const liste = (services[source] ?? []).filter((pl) => correspond(pl?.name))}
       {#if !liste.length}
         <div class="state">{$t('v2.pl.noneHere' as any)}</div>
       {:else}
@@ -512,7 +534,7 @@
       {:else}
         <section class="grp">
           <div class="grid">
-            {#each smart as sp (sp.id)}
+            {#each smart.filter((sp) => correspond(sp?.name)) as sp (sp.id)}
               {@const mos = sp.id != null ? smartMosaiques[sp.id] : undefined}
               <div class="card local">
                 <span class="cv" class:img={!!mos}>
@@ -539,9 +561,9 @@
       <div class="state">{$t('v2.pl.loading' as any)}</div>
     {:else}
       <section class="grp">
-        {#if local.length}
+        {#if local.filter((pl) => correspond(pl?.name)).length}
           <div class="grid">
-            {#each local as pl (pl.id)}
+            {#each local.filter((pl) => correspond(pl?.name)) as pl (pl.id)}
               <!-- `pl.id` est nullable dans le type : on résout la mosaïque UNE
                    fois ici, plutôt que d'indexer trois fois avec un garde. -->
               {@const mos = pl.id != null ? mosaiques[pl.id] : undefined}
@@ -617,6 +639,20 @@
   .add svg{width:16px; height:16px}
   .add:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .newp{display:flex; gap:8px}
+  /* La recherche vit dans l'en-tete, a cote des outils : elle porte sur tout
+     l'ecran, pas sur une seule de ses quatre listes. */
+  .chercher{display:inline-flex; align-items:center; gap:8px; height:36px; padding:0 12px; margin-left:auto;
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:var(--v2-surface2);
+    color:var(--v2-txt3); min-width:210px}
+  .chercher:focus-within{border-color:var(--v2-acc2); color:var(--v2-txt2)}
+  .chercher svg{width:15px; height:15px; flex-shrink:0}
+  .chercher input{flex:1; min-width:0; border:0; background:transparent; color:var(--v2-txt);
+    font:13.5px/1 inherit; outline:none}
+  .chercher input::-webkit-search-cancel-button{display:none}
+  .vider{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:17px;
+    line-height:1; padding:0 2px}
+  .vider:hover{color:var(--v2-txt)}
+
   .newp input{height:42px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
     color:var(--v2-txt); font:14px var(--v2-sans); padding:0 16px; outline:none; width:240px}
   .mk{height:42px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 13px var(--v2-sans);

@@ -354,7 +354,7 @@
   });
 
   function title(p: any): string {
-    return p?.name ?? p?.title ?? p?.collectionName ?? 'Sans titre';
+    return p?.name ?? p?.title ?? p?.collectionName ?? $t('v2.common.untitled' as any);
   }
   function cover(p: any): string | null {
     return p?.cover_url ?? p?.image_url ?? p?.artworkUrl600 ?? p?.artworkUrl100 ?? null;
@@ -391,14 +391,14 @@
     try {
       episodes = await api.getPodcastEpisodes(feed, 50, undefined, p?.id ?? p?.subscription_id, p?.source_id);
     } catch {
-      error = 'Épisodes indisponibles.';
+      error = $t('v2.pod.episodesUnavail' as any);
     }
     epLoading = false;
   }
 
   async function playEpisode(ep: any) {
     const zid = $currentZoneId;
-    if (zid == null) { error = 'Aucune zone active.'; return; }
+    if (zid == null) { error = $t('v2.lib.noActiveZone' as any); return; }
     playingUrl = ep.audio_url;
     try {
       await api.playPodcastEpisode(zid, {
@@ -668,7 +668,7 @@
           {#if author(opened)}<div class="dau">{author(opened)}</div>{/if}
           <div class="dact">
             <button class="lnk" onclick={(e) => toggleSub(opened, e)}>
-              {isSubscribed(opened) ? 'Se désabonner' : "S'abonner"}
+              {$t((isSubscribed(opened) ? 'v2.pod.unsubscribe' : 'v2.pod.subscribe') as any)}
             </button>
           </div>
         </div>

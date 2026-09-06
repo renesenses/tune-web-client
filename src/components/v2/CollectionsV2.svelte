@@ -33,7 +33,7 @@
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { quatreDistinctes } from '../../lib/mosaique';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
@@ -41,6 +41,7 @@
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import AlbumArt from '../AlbumArt.svelte';
 
   type Sorte = 'normale' | 'smart';
@@ -51,6 +52,8 @@
     description?: string | null;
     albums: number | null;
     covers: string[];
+    /** Date de création, pour le tri par date. Les DEUX familles la portent. */
+    creee: string | null;
   }
 
   type Onglet = 'smart' | 'manuelle';
@@ -67,10 +70,45 @@
    * rejettent pas un nom en fin de liste. `numeric` pour que « Best 2 » vienne
    * avant « Best 10 ».
    */
+  /**
+   * Tri au CHOIX. Bertrand, 05/09/2026 : « toutes les collections peuvent être
+   * filtrées selon différents critères (dates, alpha croissant / décroissant) ».
+   *
+   * L'ordre alphabétique croissant reste le défaut — c'est celui que Lulu
+   * avait demandé, et le seul qui rende une liste prévisible quand on la
+   * découvre. Le choix est mémorisé par écran : y revenir ne le rejoue pas.
+   *
+   * Une collection sans date se range TOUJOURS en fin de liste, dans les deux
+   * sens : la mettre en tête d'un tri « plus ancien » ferait passer une
+   * absence de donnée pour une ancienneté.
+   */
+  const TRIS = ['alpha', 'alphaInverse', 'recent', 'ancien'] as const;
+  type Tri = (typeof TRIS)[number];
+  let tri = $state<Tri>(lireChoix<Tri>('v2.collections.tri', TRIS, 'alpha'));
+  $effect(() => { ecrireChoix('v2.collections.tri', tri); });
+
+  function parNom(a: Entree, b: Entree): number {
+    return a.nom.localeCompare(b.nom, undefined, { sensitivity: 'base', numeric: true });
+  }
+  function parDate(a: Entree, b: Entree, recentDabord: boolean): number {
+    const ta = a.creee ? Date.parse(a.creee) : NaN;
+    const tb = b.creee ? Date.parse(b.creee) : NaN;
+    const va = Number.isNaN(ta), vb = Number.isNaN(tb);
+    if (va && vb) return parNom(a, b);
+    if (va) return 1;
+    if (vb) return -1;
+    return recentDabord ? tb - ta : ta - tb;
+  }
+
   const visibles = $derived(
     entrees
       .filter((e) => (onglet === 'smart' ? e.sorte === 'smart' : e.sorte === 'normale'))
-      .sort((a, b) => a.nom.localeCompare(b.nom, undefined, { sensitivity: 'base', numeric: true })),
+      .slice()
+      .sort((a, b) =>
+        tri === 'alpha' ? parNom(a, b)
+        : tri === 'alphaInverse' ? -parNom(a, b)
+        : parDate(a, b, tri === 'recent'),
+      ),
   );
 
   /**
@@ -129,7 +167,7 @@
         notifications.error($t('v2.col.emptyCollection' as any));
         return;
       }
-      await api.play(zid, { album_id: premier.id });
+      await playAndSync(zid, { album_id: premier.id });
     } catch (err: any) {
       notifications.error(err?.message ?? $t('common.error' as any));
     }
@@ -211,6 +249,7 @@
           description: c.description,
           albums: Array.isArray(c.album_ids) ? c.album_ids.length : null,
           covers: Array.isArray(c.covers) ? c.covers : [],
+          creee: c.created_at ?? null,
         });
       }
     }
@@ -223,6 +262,7 @@
           description: c.description,
           albums: typeof c.album_count === 'number' ? c.album_count : null,
           covers: Array.isArray((c as any).covers) ? (c as any).covers : [],
+          creee: (c as any).created_at ?? null,
         });
       }
     }
@@ -328,7 +368,7 @@
       return;
     }
     try {
-      await api.play(zid, { album_id: a.id });
+      await playAndSync(zid, { album_id: a.id });
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }
@@ -422,6 +462,17 @@
       {#if totalAlbums != null}
         <span class="totalonglet">{$t('v2.col.tabTotal' as any).replace('{n}', String(totalAlbums))}</span>
       {/if}
+      <!-- Le tri porte sur les DEUX onglets : ce sont deux vues d'une même
+           liste, et changer d'onglet ne doit pas changer l'ordre sous l'œil. -->
+      <label class="tricol">
+        <span>{$t('v2.fav.sortBy' as any)}</span>
+        <select bind:value={tri} aria-label={$t('v2.fav.sortBy' as any)}>
+          <option value="alpha">{$t('v2.fav.sortAlpha' as any)}</option>
+          <option value="alphaInverse">{$t('v2.fav.sortAlphaDesc' as any)}</option>
+          <option value="recent">{$t('v2.fav.sortRecent' as any)}</option>
+          <option value="ancien">{$t('v2.fav.sortOldest' as any)}</option>
+        </select>
+      </label>
     </nav>
 
     {#if chargement}
@@ -543,6 +594,14 @@
   .sub{color:var(--v2-txt2); font-size:13.5px; margin-top:6px; max-width:60ch}
   .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 8px}
   .back:hover{color:var(--v2-txt)}
+  /* Le tri se range a DROITE de la barre d'onglets : il commande la liste
+     entiere, pas l'un des deux onglets. */
+  .tricol{display:inline-flex; align-items:center; gap:8px; margin-left:auto}
+  .tricol span{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .tricol select{height:30px; padding:0 8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
+    background:var(--v2-surface2); color:var(--v2-txt2); font:12.5px inherit; cursor:pointer}
+  .tricol select:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
+
   .tabs{display:flex; gap:4px; padding:4px 30px 0}
   .tab{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;
     color:var(--v2-txt3); font:600 13.5px var(--v2-sans); padding:10px 12px}

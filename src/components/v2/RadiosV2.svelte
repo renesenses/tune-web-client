@@ -41,7 +41,7 @@
     loading = true; error = null;
     api.getRadios({ limit: 500 })
       .then((r) => { radios = r ?? []; })
-      .catch(() => { error = 'Impossible de charger les stations.'; })
+      .catch(() => { error = $t('v2.radio.loadFailed' as any); })
       .finally(() => { loading = false; });
   });
 

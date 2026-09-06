@@ -24,9 +24,24 @@
    * | save | ajouter à une playlist |
    * | heart | favori (bascule) |
    *
+   * | tag | étiqueter |
+   *
    * `PochetteActions` en pose cinq sur une pochette ; en poser huit sur une
    * ligne de titre ferait de chaque ligne un tableau de bord. Ce qui manque —
-   * aller à l'album, étiqueter — se fait déjà depuis la pochette.
+   * aller à l'album — se fait déjà depuis la pochette.
+   *
+   * 🔴 L'ÉTIQUETTE a rejoint la liste le 05/09/2026. Bertrand : « on doit
+   * pouvoir tagger tous les objets audio, pas uniquement les albums ».
+   *
+   * Elle en était exclue au motif qu'« étiqueter se fait déjà depuis la
+   * pochette ». Ce raisonnement vaut pour un album, qui A une pochette
+   * porteuse de gestes ; il ne vaut pas pour une piste, dont la vignette de
+   * ligne n'est qu'une image. Le serveur, lui, accepte `track` sur
+   * `/tags/for/{type}/{id}` depuis toujours — mesuré sur le .18 : HTTP 200,
+   * comme `album` et `artist`. C'est le client qui ne le proposait pas.
+   *
+   * Elle n'apparaît que sur une piste de la BIBLIOTHÈQUE : une piste de
+   * service n'a pas d'identifiant numérique à donner à la route.
    *
    * ## Ce qui ne s'applique pas est ABSENT, pas grisé
    *
@@ -48,7 +63,7 @@
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { queuePosition } from '../../lib/stores/queue';
   import {
     favoriteTrackIds, favoriteStreamingKeys, streamingFavKey,
@@ -69,6 +84,7 @@
    *  écran qui pose la barre l'aurait sinon recopiée, avec son état et son
    *  import. C'est ce que fait déjà `PochetteActions` pour les étiquettes. */
   let modalePlaylist = $state(false);
+  let panneauEtiquettes = $state(false);
 
   const local = $derived(estPisteLocale(piste));
   const cleService = $derived(
@@ -110,7 +126,7 @@
     const zid = $currentZoneId;
     const corps = corpsDeLecture(piste);
     if (zid == null || !corps) return;
-    api.play(zid, corps as any).catch(() => notifications.error($t('v2.pa.playError' as any)));
+    playAndSync(zid, corps as any).catch(() => notifications.error($t('v2.pa.playError' as any)));
   }
 
   /**
@@ -206,6 +222,16 @@
       </svg>
     </button>
   {/if}
+  {#if local && piste.id != null}
+    <button class="pa" class:on={panneauEtiquettes} aria-expanded={panneauEtiquettes}
+            onclick={(e) => { e.stopPropagation(); panneauEtiquettes = !panneauEtiquettes; }}
+            title={$t('v2.cover.tags' as any)} aria-label={$t('v2.cover.tags' as any)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/>
+        <circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/>
+      </svg>
+    </button>
+  {/if}
   {#if coeurPossible}
     <button class="pa coeur" class:on={favori} onclick={basculerCoeur} disabled={occupe}
             title={$t(favori ? 'v2.pa.unfav' as any : 'v2.pa.fav' as any)}
@@ -214,6 +240,13 @@
   </button>
   {/if}
 </span>
+
+{#if panneauEtiquettes && piste.id != null}
+  {#await import('./EtiquettesPanneau.svelte') then m}
+    <m.default itemType="track" itemId={piste.id} nom={piste.title}
+      onClose={() => (panneauEtiquettes = false)} />
+  {/await}
+{/if}
 
 {#if modalePlaylist}
   {#await import('../AddToPlaylistModal.svelte') then m}

@@ -95,16 +95,31 @@
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import '../../styles/tune-v2.css';
 
+  /**
+   * 🔴 Des CLÉS, pas des libellés.
+   *
+   * Le titre de l'en-tête est la première chose qu'on lit sur chaque écran, et
+   * il restait en français quelle que soit la langue choisie — même dette que
+   * la barre latérale, soldée en même temps (Bertrand, 06/09/2026 :
+   * « Traductions incomplètes : merci de tout vérifier »).
+   *
+   * Une vue sans entrée retombe sur son propre nom : c'est un identifiant
+   * technique, mais il vaut mieux qu'un titre vide, et cela se voit tout de
+   * suite quand il en manque une.
+   */
   const LABELS: Partial<Record<View, string>> = {
-    home: 'Accueil', radios: 'Radio', playlists: 'Playlists', search: 'Recherche',
-    podcasts: 'Podcasts', streaming: 'Streaming', queue: "File d'attente", favorites: 'Favoris',
-    zonemanager: 'Zones', mediaservers: 'Serveurs multimédia', history: 'Historique', oxygen: 'Oxygen',
-    ambiance: 'Ambiance', browse: 'Répertoires',
-    equalizer: 'Égaliseur', crossfeed: 'Crossfeed', converter: 'Convertisseur',
-    declick: 'Dé-ploc', metadata: 'Métadonnées', plugins: 'Extensions',
-    diagnostics: 'Processing', settings: 'Réglages', support: 'Support', genres: 'Genres',
+    home: 'nav.home', radios: 'v2.nav.radioShort', playlists: 'v2.nav.playlists',
+    search: 'nav.search', podcasts: 'v2.nav.podcasts', streaming: 'v2.nav.streaming',
+    queue: 'nav.queue', favorites: 'v2.nav.favorites', zonemanager: 'nav.zonemanager',
+    mediaservers: 'nav.mediaservers', history: 'nav.history', oxygen: 'v2.nav.oxygen',
+    ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
+    crossfeed: 'v2.nav.crossfeed', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
+    metadata: 'metadata.title', plugins: 'v2.nav.plugins', diagnostics: 'v2.nav.processing',
+    settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
   };
-  const label = $derived(LABELS[$activeView] ?? $activeView);
+  const label = $derived(
+    LABELS[$activeView] ? $t(LABELS[$activeView] as any) : $activeView,
+  );
 
   // Le thème est posé sur <html> : les tokens s'appliquent alors à toutes les
   // racines .tune-v2, y compris celles imbriquées dans les vues.

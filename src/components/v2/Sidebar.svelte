@@ -20,7 +20,19 @@
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
 
-  type Item = { view: View; label: string; icon: string };
+  /**
+   * 🔴 `labelKey`, PAS `label`.
+   *
+   * La barre portait ses libellés en clair — « Bibliothèque », « Répertoires »,
+   * « Égaliseur »… — et le commentaire des Sélections l'assumait comme une
+   * « dette connue ». C'est le chrome PERMANENT du client : quelle que soit la
+   * langue choisie, la navigation restait en français.
+   *
+   * « Traductions incomplètes : merci de tout vérifier » (Bertrand,
+   * 06/09/2026). La dette est soldée ici ; le type ne laisse plus la place
+   * d'en reprendre, puisqu'il n'y a plus de champ où écrire du texte.
+   */
+  type Item = { view: View; labelKey: string; icon: string };
 
   // Noyau aligné sur le brouillon v3 de Levente (26/08) : cinq entrées, pas
   // plus. Deux ecarts assumes avec notre version precedente :
@@ -33,50 +45,50 @@
   //    acoustique) reste atteignable, mais a partir d'Avance : il fait bien
   //    plus que filtrer une grille, et son cout d'attention le justifie.
   const CORE: Item[] = [
-    { view: 'home', label: 'Accueil', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
+    { view: 'home', labelKey: 'nav.home', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
     // LECTURE EN COURS dans le noyau. L'écran existait et était monté, mais
     // rien dans la barre n'y menait : on ne l'atteignait qu'en cliquant la
     // piste dans la barre de transport — un geste que personne ne devine.
     // Signalé par Bertrand le 02/09/2026 : « il manque l'écran Lecture en
     // cours ».
-    { view: 'nowplaying', label: 'Lecture en cours', icon: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0m12-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0' },
+    { view: 'nowplaying', labelKey: 'nav.nowplaying', icon: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0m12-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0' },
     // HISTORIQUE dans le NOYAU (Bertrand, 05/09/2026 : « manque Historique »).
     // Il forme une paire avec « Lecture en cours » — ce qui joue, ce qui a
     // joué — et c'est le chemin par lequel on retrouve un titre entendu à la
     // radio dont on n'a pas noté le nom. Le mettre dans « Avancé » l'aurait
     // laissé invisible au niveau Essentiel, ce qui est exactement le défaut
     // signalé : l'écran existait, la vue était déclarée, rien n'y menait.
-    { view: 'history', label: 'Historique', icon: 'M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2' },
-    { view: 'library', label: 'Bibliothèque', icon: 'M4 5v14M9 5v14M14 6l5 13' },
-    { view: 'radios', label: 'Radio en direct', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
-    { view: 'podcasts', label: 'Podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },
+    { view: 'history', labelKey: 'nav.history', icon: 'M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2' },
+    { view: 'library', labelKey: 'nav.library', icon: 'M4 5v14M9 5v14M14 6l5 13' },
+    { view: 'radios', labelKey: 'v2.nav.radios', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
+    { view: 'podcasts', labelKey: 'v2.nav.podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },
     // STREAMING dans le noyau (Bertrand, 28/08) : pour qui ecoute surtout en
     // ligne, c'est la porte d'entree principale — la reserver a l'Avance
     // rendait le client inutilisable en Essentiel sur une petite bibliotheque.
-    { view: 'streaming', label: 'Streaming', icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0' },
+    { view: 'streaming', labelKey: 'v2.nav.streaming', icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0' },
     // RECHERCHE dans le noyau (Bertrand, 28/08 : « important »). Le champ de
     // la Bibliotheque ne cherche QUE dans les albums locaux ; cet ecran-ci
     // couvre aussi les services et l'acoustique. Le reserver a l'Avance,
     // c'etait cacher la fonction que l'on cherche en premier.
-    { view: 'search', label: 'Recherche', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
+    { view: 'search', labelKey: 'nav.search', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
   ];
   const ADVANCED: Item[] = [
     // OXYGEN — l'exploration de la bibliotheque par facettes, en table. C'est
     // une autre facon de parcourir ce que la Bibliotheque montre en grille :
     // sa place est aupres d'elle, pas dans le Studio, qui traite le SON.
-    { view: 'oxygen', label: 'Oxygen', icon: 'M4 5h16M4 10h16M4 15h10M4 20h10M14 17l3 3 3-5' },
+    { view: 'oxygen', labelKey: 'v2.nav.oxygen', icon: 'M4 5h16M4 10h16M4 15h10M4 20h10M14 17l3 3 3-5' },
     // REPERTOIRES : parcourir les DOSSIERS, quand on sait ou une piste vit sur
     // le disque et que les balises ne le disent pas.
-    { view: 'browse', label: 'Répertoires', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
+    { view: 'browse', labelKey: 'nav.browse', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
     // AMBIANCE : choisir par l'humeur plutot que par le nom.
-    { view: 'ambiance', label: 'Ambiance', icon: 'M4 9v6M9 5v14M14 8v8M19 11v2' },
+    { view: 'ambiance', labelKey: 'nav.ambiance', icon: 'M4 9v6M9 5v14M14 8v8M19 11v2' },
     { view: 'queue', label: "File d'attente", icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
-    { view: 'zonemanager', label: 'Zones', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
+    { view: 'zonemanager', labelKey: 'nav.zonemanager', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
     // SERVEURS MULTIMEDIA en Avance (Bertrand, 28/08). Parcourir la
     // bibliotheque d'une AUTRE machine suppose de savoir qu'il y a un reseau
     // et autre chose dessus — ce n'est pas un geste de premier contact. Mais
     // on y ECOUTE de la musique : ce n'est pas non plus du reglage d'expert.
-    { view: 'mediaservers', label: 'Serveurs multimédia', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
+    { view: 'mediaservers', labelKey: 'nav.mediaservers', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
   ] as unknown as Item[];
   /**
    * SÉLECTIONS — ce que l'utilisateur a mis de côté lui-même.
@@ -102,15 +114,15 @@
   ];
 
   const STUDIO: Item[] = [
-    { view: 'equalizer', label: 'Égaliseur', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
+    { view: 'equalizer', labelKey: 'nav.equalizer', icon: 'M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3' },
     // Crossfeed sorti de l'Egaliseur (Bertrand, 27/08) : c'est un reglage de
     // CASQUE, pas une correction de courbe. Melange a l'egaliseur il etait
     // introuvable pour qui le cherche.
-    { view: 'crossfeed', label: 'Crossfeed', icon: 'M8 6a6 6 0 0 0 0 12M16 6a6 6 0 0 1 0 12M4 12h4M16 12h4' },
-    { view: 'converter', label: 'Convertisseur', icon: 'M4 8h13l-3-3M20 16H7l3 3' },
-    { view: 'declick', label: 'Dé-ploc', icon: 'M3 12h4l3-8 4 16 3-8h4' },
-    { view: 'metadata', label: 'Métadonnées', icon: 'M20 12l-8 8-9-9V4h7zM8 8h.01' },
-    { view: 'diagnostics', label: 'Processing', icon: 'M3 12h4l2 6 4-14 2 8h6' },
+    { view: 'crossfeed', labelKey: 'v2.nav.crossfeed', icon: 'M8 6a6 6 0 0 0 0 12M16 6a6 6 0 0 1 0 12M4 12h4M16 12h4' },
+    { view: 'converter', labelKey: 'v2.nav.converter', icon: 'M4 8h13l-3-3M20 16H7l3 3' },
+    { view: 'declick', labelKey: 'v2.nav.declick', icon: 'M3 12h4l3-8 4 16 3-8h4' },
+    { view: 'metadata', labelKey: 'metadata.title', icon: 'M20 12l-8 8-9-9V4h7zM8 8h.01' },
+    { view: 'diagnostics', labelKey: 'v2.nav.processing', icon: 'M3 12h4l2 6 4-14 2 8h6' },
   ];
 
   /**
@@ -172,18 +184,18 @@
   <div class="navscroll">
     <nav class="grp">
       {#each CORE as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} title={collapsed ? it.label : undefined}>
+        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} title={collapsed ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{it.label}</span>
+          <span>{$t(it.labelKey as any)}</span>
         </button>
       {/each}
     </nav>
 
     <nav class="grp reveal" class:show={showAdvanced} aria-hidden={!showAdvanced}>
       {#each ADVANCED as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={collapsed ? it.label : undefined}>
+        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={collapsed ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{it.label}</span>
+          <span>{$t(it.labelKey as any)}</span>
         </button>
       {/each}
     </nav>
@@ -229,11 +241,11 @@
     </nav>
 
     <nav class="grp reveal" class:show={showStudio} aria-hidden={!showStudio}>
-      <div class="grp-label">Studio</div>
+      <div class="grp-label">{$t('v2.nav.studio' as any)}</div>
       {#each STUDIO as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={collapsed ? it.label : undefined}>
+        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={collapsed ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{it.label}</span>
+          <span>{$t(it.labelKey as any)}</span>
         </button>
       {/each}
     </nav>

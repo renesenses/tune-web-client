@@ -46,13 +46,31 @@ describe('Accueil — le registre', () => {
     }
   });
 
-  it('tous les widgets sont HORIZONTAUX, sauf les chiffres', () => {
+  it('chaque forme autre que la bande est NOMMÉE, une par une', () => {
     // Décision de Bertrand : une bande qui défile, pour tous. Mêler grilles et
     // bandes rendrait la hauteur de la page imprévisible.
+    //
+    // 🔴 RÉORIENTÉE le 06/09/2026. Bertrand a demandé un deuxième widget de
+    // zones, en carte large, d'après la maquette Figma : « Créé un deuxième
+    // widget ! ». La règle n'est donc plus « deux formes et pas trois » —
+    // elle est qu'aucune forme nouvelle n'arrive SANS DÉCISION. Chaque
+    // exception est donc énumérée ici, et une quatrième fera rougir la garde.
     for (const w of WIDGETS) {
-      expect(['bande', 'chiffres']).toContain(w.forme);
+      expect(['bande', 'chiffres', 'zones-cartes']).toContain(w.forme);
     }
     expect(WIDGETS.filter((w) => w.forme === 'chiffres').map((w) => w.id)).toEqual(['statistiques']);
+    expect(WIDGETS.filter((w) => w.forme === 'zones-cartes').map((w) => w.id)).toEqual(['zones-cartes']);
+  });
+
+  it('le premier widget des zones n’a PAS été remplacé', () => {
+    // « Créé un deuxième widget » : le premier reste. Les deux montrent la
+    // même chose sous deux densités — une bande de vignettes pour balayer,
+    // une carte large pour lire le détail — et l'un ne rend pas l'autre
+    // inutile.
+    const ids = WIDGETS.map((w) => w.id);
+    expect(ids).toContain('zones');
+    expect(ids).toContain('zones-cartes');
+    expect(widgetParId('zones')?.forme).toBe('bande');
   });
 
   it('la disposition par défaut est celle de l’accueil ACTUEL', () => {

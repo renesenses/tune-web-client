@@ -1,6 +1,7 @@
 <script lang="ts">
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
+  import { tick } from 'svelte';
   import { t as tr } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
   /**
@@ -44,7 +45,9 @@
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { favoriteFacetKeys, facetFavKey } from '../../lib/stores/profile';
+  import { basculerFavoriFacette } from '../../lib/favorisLocaux';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
@@ -97,15 +100,40 @@
    *  or « Expert » dit ce qu'on sait faire, pas ce qu'on veut voir. Défaut OFF. */
   const showTech = $derived(showExpert && $preferences.v2AlbumTechLine);
 
+  /**
+   * 🔴 Le gabarit de colonnes est calculé UNE fois, pour toutes les lignes.
+   *
+   * Bertrand, 05/09/2026 : « vue Library : alignement des textes ».
+   *
+   * Chaque `.lrow` était sa propre grille. `minmax(0,2fr)`, `1.4fr` et `auto`
+   * se résolvent alors sur le contenu de CETTE ligne seule : l'artiste, l'année
+   * et la fiche technique commençaient à une abscisse différente d'une ligne à
+   * l'autre. Sur sa capture, l'année de « Norah Jones » et celle de « Charlie
+   * Parker » ne sont pas à la même place, alors qu'elles se suivent.
+   *
+   * Les colonnes de queue passent en largeurs FIXES : ce sont des champs de
+   * longueur bornée (une année, un badge, « FLAC · 96 kHz · 24-bit »), et une
+   * largeur intrinsèque les ferait respirer différemment à chaque ligne.
+   */
+  const colonnesListe = $derived(
+    ['44px', 'minmax(0,2fr)', 'minmax(0,1.4fr)', '52px']
+      .concat(showBadges ? ['46px'] : [])
+      .concat(showTech ? ['150px'] : [])
+      .join(' '),
+  );
+
   // Fréquences en VALEURS EXACTES (jamais un seuil « ≥ »).
   const RATES: { v: number; l: string }[] = [
     { v: 44100, l: '44,1' }, { v: 48000, l: '48' }, { v: 88200, l: '88,2' },
     { v: 96000, l: '96' }, { v: 176400, l: '176,4' }, { v: 192000, l: '192' },
     { v: 352800, l: '352,8' }, { v: 384000, l: '384' },
   ];
-  const QUALITIES: { key: QualityTier | 'hires'; label: string }[] = [
+  // DSD, Hi-Res et CD sont des NOMS de format : ils s'écrivent pareil dans
+  // toutes les langues. « Compressé » est un mot, et porte donc une clé —
+  // d'où `cle`, qui distingue les deux sans que le rendu ait à deviner.
+  const QUALITIES: { key: QualityTier | 'hires'; label: string; cle?: string }[] = [
     { key: 'dsd', label: 'DSD' }, { key: 'hires', label: 'Hi-Res' },
-    { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé' },
+    { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé', cle: 'v2.lib.qualityLossy' },
   ];
 
   let fQuality = $state<string | null>(null);
@@ -329,9 +357,11 @@
   // bibliotheque importee d'un ancien serveur, `added_at` est souvent vide,
   // et un tri qui ne trie rien est pire qu'un tri absent.
   type SortKey = 'title' | 'artist' | 'year' | 'added';
+  // `l` porte une CLÉ, pas un libellé : le menu de tri restait en français
+  // quelle que soit la langue (Bertrand, 06/09/2026).
   const SORTS: { k: SortKey; l: string }[] = [
-    { k: 'title', l: 'Titre' }, { k: 'artist', l: 'Artiste' },
-    { k: 'year', l: 'Année' }, { k: 'added', l: 'Ajout récent' },
+    { k: 'title', l: 'v2.lib.sortTitle' }, { k: 'artist', l: 'v2.lib.sortArtist' },
+    { k: 'year', l: 'v2.lib.sortYear' }, { k: 'added', l: 'v2.fav.sortRecent' },
   ];
   /**
    * 🔴 RETENU d'une visite à l'autre (Lulu, forum, 05/09/2026 : « figer le
@@ -444,13 +474,15 @@
   // « Titres » est le seul a demander autre chose : il charge la liste des
   // pistes, une fois, a la premiere ouverture de l'onglet.
   type Tab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels';
+  // Mêmes clés que les onglets des Favoris : ce sont les mêmes familles, et
+  // les traduire deux fois les ferait diverger.
   const TABS: { id: Tab; label: string; adv?: boolean }[] = [
-    { id: 'albums', label: 'Albums' },
-    { id: 'artists', label: 'Artistes' },
-    { id: 'tracks', label: 'Titres' },
-    { id: 'genres', label: 'Genres', adv: true },
-    { id: 'years', label: 'Années', adv: true },
-    { id: 'labels', label: 'Labels', adv: true },
+    { id: 'albums', label: 'favorites.albums' },
+    { id: 'artists', label: 'favorites.artists' },
+    { id: 'tracks', label: 'favorites.tracks' },
+    { id: 'genres', label: 'nav.genres', adv: true },
+    { id: 'years', label: 'v2.lib.tabYears', adv: true },
+    { id: 'labels', label: 'v2.lib.tabLabels', adv: true },
   ];
   // L'ONGLET aussi : revenir à la Bibliothèque après avoir consulté les Titres
   // pour retomber sur les Albums est le même agacement, d'un cran plus haut.
@@ -505,8 +537,68 @@
     if (t === 'years') { const y = albumYear(a); return y == null ? null : String(y); }
     return null;
   }
-  const FACET_EMPTY: Record<string, string> = {
-    artists: 'Artiste inconnu', genres: 'Sans genre', labels: 'Sans label', years: 'Année inconnue' };
+  // ⚠️ Ces libellés servent AUSSI de clé de regroupement : ils sont résolus
+  // ici, une fois, et `groups` compare ensuite des chaînes déjà rendues.
+  const FACET_EMPTY: Record<string, string> = $derived({
+    artists: $tr('v2.lib.unknownArtist' as any), genres: $tr('v2.lib.noGenre' as any),
+    labels: $tr('v2.lib.noLabel' as any), years: $tr('v2.lib.unknownYear' as any) });
+
+  /**
+   * Le nom de la facette COTE SERVEUR pour l'onglet courant.
+   *
+   * L'onglet s'appelle « Genres », la table s'appelle `genre` : le pluriel est
+   * un libelle d'interface, pas une cle. Les ecrire au singulier ici evite
+   * d'ecrire des favoris que `/library/facets` ne saura jamais relire.
+   *
+   * `artists` n'y figure pas : un artiste a un IDENTIFIANT, son coeur passe
+   * donc par la table des favoris normale, pas par celle des facettes.
+   */
+  const FACETTE_SERVEUR: Partial<Record<Tab, string>> = {
+    genres: 'genre', years: 'year', labels: 'label',
+  };
+
+  /** Un depot distant n'a pas de facettes chez nous : ses genres viennent de
+   *  SON catalogue, et un favori local ne saurait pas les reselectionner. */
+  const facetteCourante = $derived(depot ? null : (FACETTE_SERVEUR[tab] ?? null));
+
+  function estFacetteFavorite(valeur: string): boolean {
+    const f = facetteCourante;
+    return f ? $favoriteFacetKeys.has(facetFavKey(f, valeur)) : false;
+  }
+
+  async function basculerFacette(valeur: string) {
+    const f = facetteCourante;
+    if (f) await basculerFavoriFacette(f, valeur);
+  }
+
+  /**
+   * Sauter sur une valeur de facette depuis l'ecran Favoris.
+   *
+   * La recherche `q` ne conviendrait pas : elle porte sur le titre et
+   * l'artiste, pas sur le genre — chercher « Jazz » dans l'onglet Genres
+   * n'aurait rien rendu. On change donc d'onglet, on VIDE la recherche (une
+   * recherche en cours ferait disparaitre la section visee) et on fait
+   * defiler jusqu'a la section, retrouvee par son `data-facette`.
+   */
+  $effect(() => {
+    const surFacette = (e: Event) => {
+      const d: any = (e as CustomEvent).detail ?? {};
+      if (!TABS.some((t2) => t2.id === d.onglet)) return;
+      // Les onglets de facette sont reserves au niveau intermediaire : y
+      // envoyer un debutant le poserait sur un onglet qu'il ne voit pas.
+      if (!atLeast(level, 'intermediate')) return;
+      tab = d.onglet;
+      q = '';
+      const valeur = String(d.valeur ?? '');
+      tick().then(() => {
+        const cible = [...document.querySelectorAll<HTMLElement>('.facet[data-facette]')]
+          .find((el) => el.dataset.facette === valeur);
+        cible?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      });
+    };
+    window.addEventListener('tune:v2-facette', surFacette);
+    return () => window.removeEventListener('tune:v2-facette', surFacette);
+  });
 
   /** Regroupement pour les onglets facettes : une entree par valeur, avec ses
    *  albums, triee par nom — sauf les annees, triees chronologiquement. */
@@ -515,14 +607,22 @@
     // table des artistes. Le laisser ici calculerait un regroupement que plus
     // personne n'affiche, sur chaque frappe de la recherche.
     if (tab === 'albums' || tab === 'tracks' || tab === 'artists')
-      return [] as { key: string; albums: Album[] }[];
+      return [] as { key: string; albums: Album[]; reel: boolean }[];
     const m = new Map<string, Album[]>();
+    // 🔴 Une valeur RENSEIGNEE et le libelle de remplacement (« Sans genre »)
+    // ne se distinguent plus une fois dans la cle : on note ici, a la source,
+    // laquelle est reelle. C'est ce qui decide si le coeur est propose — mettre
+    // « Annee inconnue » en favori ecrirait une facette que le serveur ne
+    // saurait pas selectionner.
+    const reels = new Set<string>();
     for (const a of sorted) {
       if (!matches(a)) continue;
-      const k = facetOf(a, tab) ?? FACET_EMPTY[tab];
+      const brut = facetOf(a, tab);
+      const k = brut ?? FACET_EMPTY[tab];
+      if (brut != null) reels.add(k);
       const arr = m.get(k); if (arr) arr.push(a); else m.set(k, [a]);
     }
-    const out = [...m.entries()].map(([key, albums]) => ({ key, albums }));
+    const out = [...m.entries()].map(([key, albums]) => ({ key, albums, reel: reels.has(key) }));
     if (tab === 'years') {
       out.sort((x, z) => {
         // « Annee inconnue » n'est pas un nombre : il part en dernier quel que
@@ -540,16 +640,54 @@
   let tracks = $state<Track[]>([]);
   let tracksLoading = $state(false);
   let tracksLoaded = false;
+  /**
+   * Le nombre de pistes ANNONCÉ pendant que la liste charge.
+   *
+   * `/stats` le rend tout de suite ; `getAllTracks()` met plusieurs secondes
+   * sur 46 000 titres. Le compteur affichait donc « 0 titres » tout ce temps —
+   * un écran qui annonce zéro pendant qu'il charge se lit comme une
+   * bibliothèque vide. « Affichage dès le début du chargement du nb de
+   * pistes » (Bertrand, 06/09/2026).
+   *
+   * Il ne sert QUE pendant le chargement : une fois la liste là, c'est elle
+   * qui fait foi — un total du serveur et une liste qui ne coïncideraient pas
+   * seraient pires que l'attente.
+   */
+  let nbPistesServeur = $state<number | null>(null);
   $effect(() => {
     const d = depot;
     if (tab !== 'tracks' || tracksLoaded) return;
     tracksLoaded = true;
     tracksLoading = true;
+    // Un dépôt distant compte SES pistes, pas les nôtres : on ne lui prête pas
+    // le total local, on n'annonce simplement rien.
+    // `/library/stats`, pas `/system/stats` : c'est un écran de bibliothèque.
+    // Les deux rendent `tracks` (46 877 sur le .18, mesuré le 06/09/2026), le
+    // premier sans traîner l'inventaire des zones et des sorties.
+    if (!d) api.getLibraryStats().then((st) => { nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
     (d ? pistesDistantes(d) : api.getAllTracks())
       .then((t) => { tracks = t ?? []; })
       .catch(() => { tracks = []; })
       .finally(() => { tracksLoading = false; });
   });
+  const nbPistesAnnonce = $derived(
+    tracksLoading && nbPistesServeur != null ? nbPistesServeur : tracks.length,
+  );
+
+  /**
+   * Ouvrir l'album d'une piste depuis l'onglet Titres.
+   *
+   * On rouvre la fiche par l'ALBUM chargé, pas par un objet reconstruit à
+   * partir de la piste : la fiche lit `cover_path`, `format`, `sample_rate`,
+   * l'année — une piste ne les porte pas tous, et la fiche s'ouvrirait
+   * amputée. Sans album correspondant (une piste de service, un dépôt), pas
+   * de loupe : un bouton qui ne fait rien est pire qu'un bouton absent.
+   */
+  function albumDeLaPiste(t: Track): Album | null {
+    const aid = (t as any).album_id;
+    if (aid == null || depot) return null;
+    return $albums.find((a) => a.id === aid) ?? null;
+  }
   const visibleTracks = $derived.by(() => {
     const needle = fold(q);
     return tracks.filter((t) =>
@@ -562,7 +700,7 @@
     // Un `track_id` n'a de sens que pour le serveur LOCAL : celui d'un serveur
     // distant designerait un tout autre morceau ici. On passe donc par son URL
     // de flux, jouee en `source: upnp`.
-    api.play(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(() => {});
+    playAndSync(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(() => {});
   }
   let opened = $state<Album | null>(null);
 
@@ -592,7 +730,7 @@
     }
     const zid = $currentZoneId;
     if (zid == null || a.id == null) return;
-    api.play(zid, { album_id: a.id }).catch(() => {});
+    playAndSync(zid, { album_id: a.id }).catch(() => {});
   }
 
   function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; }
@@ -636,7 +774,7 @@
     if (!choix?.id) return;
     const pistes = (await pistesAlbumDistant(d, choix.id)).filter((t) => t.id != null);
     if (!pistes.length) return;
-    await api.play(zid, corpsLecture(d, pistes[0]) as any);
+    await playAndSync(zid, corpsLecture(d, pistes[0]) as any);
     for (let i = 1; i < pistes.length; i++) {
       await api.addToQueue(zid, corpsLecture(d, pistes[i]) as any);
     }
@@ -651,12 +789,13 @@
 <svelte:window onclick={ddDehors} onkeydown={ddEchap} />
 <section class="v2-lib tune-v2">
   <header class="top">
-    <h1>{depot ? depot.nom : 'Bibliothèque'}</h1>
+    <h1>{depot ? depot.nom : $tr('library.title' as any)}</h1>
     {#if depot}<span class="dist">{depot.hote}</span>{/if}
     <button class="btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null}
-      title={$currentZoneId == null ? 'Aucune zone active'
-        : depot ? `Lire un album au hasard de ${depot.nom}` : 'Lire toute la bibliothèque au hasard'}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 20 4M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>{shuffling ? 'Lancement…' : 'Aléatoire'}
+      title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
+        : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)
+        : $tr('v2.lib.shuffleAll' as any)}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20 20 4M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>{shuffling ? $tr('v2.lib.starting' as any) : $tr('v2.album.shuffle' as any)}
     </button>
     {#if !depot}
       <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
@@ -669,7 +808,7 @@
     <nav class="tabs">
       {#each TABS as t (t.id)}
         {#if !t.adv || atLeast(level, 'intermediate')}
-          <button class="tab" class:active={tab === t.id} onclick={() => (tab = t.id)}>{t.label}</button>
+          <button class="tab" class:active={tab === t.id} onclick={() => (tab = t.id)}>{$tr(t.label as any)}</button>
         {/if}
       {/each}
     </nav>
@@ -685,7 +824,7 @@
     {#if tab === 'tracks'}
       <!-- Un compteur qui compte CE QU'ON REGARDE. La recherche, elle, agit
            bien sur les titres : c'est le seul filtre qu'on garde ici. -->
-      <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(tracks.length))}</span>
+      <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
       <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
@@ -712,7 +851,7 @@
           {#each QUALITIES as it (it.key)}
             {@const n = nQualite.get(it.key) ?? 0}
             <button class:on={fQuality === it.key} disabled={n === 0 && fQuality !== it.key}
-              onclick={() => { fQuality = fQuality === it.key ? null : (it.key as string); ddClose(); }}>{it.label} <em>{n}</em></button>
+              onclick={() => { fQuality = fQuality === it.key ? null : (it.key as string); ddClose(); }}>{it.cle ? $tr(it.cle as any) : it.label} <em>{n}</em></button>
           {/each}
         </div>
       </div>
@@ -757,7 +896,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
       <input placeholder={$tr('v2.lib.searchPlaceholder' as any)} bind:value={q} />
       {#if q}
-        <button class="clr" onclick={() => (q = '')} aria-label="Effacer">
+        <button class="clr" onclick={() => (q = '')} aria-label={$tr('common.clear' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       {/if}
@@ -767,18 +906,18 @@
       <div class="drop right">
         <button class="chip plain">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h7M4 18h4M17 5v14M14 16l3 3 3-3"/></svg>
-          {SORTS.find(x => x.k === sortKey)?.l}
+          {$tr((SORTS.find(x => x.k === sortKey)?.l ?? 'v2.lib.sortTitle') as any)}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="menu">
           {#each availableSorts as o (o.k)}
-            <button class:on={sortKey === o.k} onclick={() => (sortKey = o.k)}>{o.l}</button>
+            <button class:on={sortKey === o.k} onclick={() => (sortKey = o.k)}>{$tr(o.l as any)}</button>
           {/each}
         </div>
       </div>
       <button class="viewtog" onclick={() => (display = display === 'grid' ? 'list' : 'grid')}
-        aria-label={display === 'grid' ? 'Affichage liste' : 'Affichage grille'}
-        title={display === 'grid' ? 'Affichage liste' : 'Affichage grille'}>
+        aria-label={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}
+        title={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}>
         {#if display === 'grid'}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         {:else}
@@ -900,7 +1039,9 @@
       <!-- « Votre » serait faux sur la bibliotheque d'une autre machine : on
            nomme le serveur, sinon un catalogue distant vide se lirait comme
            un defaut de la sienne. Mesure : 192.168.1.16 rend `[]`. -->
-      <div class="state">{depot ? `${depot.nom} (${depot.hote}) n’expose aucun album.` : 'Votre bibliothèque est vide.'}</div>
+      <div class="state">{depot
+          ? $tr('v2.lib.emptyDepot' as any).replace('{nom}', depot.nom).replace('{hote}', depot.hote)
+          : $tr('v2.lib.emptyLibrary' as any)}</div>
     {:else}
       {#if navMode === 'alpha' && tab === 'albums'}
         <div class="rail">
@@ -917,7 +1058,9 @@
             <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
             {#each visibleTracks as t, i (t.id ?? i)}
-              <LignePisteV2 piste={t} numero={i + 1} onLire={() => playTrack(t)} />
+              {@const alb = albumDeLaPiste(t)}
+              <LignePisteV2 piste={t} numero={i + 1} onLire={() => playTrack(t)}
+                onOuvrirAlbum={alb ? () => (opened = alb) : null} />
             {/each}
             {#if tracks.length > visibleTracks.length}
               <div class="state">{visibleTracks.length} titres affichés sur {tracks.length} — affinez la recherche.</div>
@@ -928,8 +1071,38 @@
       {:else if tab !== 'albums'}
         <div class="facets">
           {#each groups as g (g.key)}
-            <section class="facet">
-              <h2>{g.key}<span class="fc">{g.albums.length}</span></h2>
+            <section class="facet" data-facette={g.key}>
+              <h2>
+                <span class="fk">{g.key}</span><span class="fc">{g.albums.length}</span>
+                <!--
+                  Le coeur de FACETTE. Il n'existait que dans l'ancien client, et
+                  seulement sur les labels (#2442) : mettre un genre ou une annee
+                  en favori etait impossible depuis la v2, ce qui laissait
+                  l'ecran Favoris vide de facettes faute de surface pour en
+                  creer une (Bertrand, 05/09/2026).
+
+                  Absent sur les valeurs de remplacement (`g.reel`) et sur les
+                  depots distants : ni « Sans label » ni le genre d'un catalogue
+                  tiers ne se reselectionnent chez nous.
+                -->
+                {#if facetteCourante && g.reel}
+                  {@const fav = estFacetteFavorite(g.key)}
+                  <button
+                    class="fcoeur"
+                    class:on={fav}
+                    aria-pressed={fav}
+                    title={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
+                    aria-label={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
+                    onclick={() => basculerFacette(g.key)}
+                  >
+                    {#if fav}
+                      <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    {:else}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    {/if}
+                  </button>
+                {/if}
+              </h2>
               <div class="grid facetgrid" class:expert={showExpert}>
                 {#each g.albums as a (a.id)}
                   <div class="card">
@@ -964,14 +1137,24 @@
         {#if !affiches.length}
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
         {:else}
-        <div class="rows" bind:this={gridEl}>
+        <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
           {#each affiches as a (a.id)}
             <button class="lrow" data-letter={firstLetter(a)} onclick={() => opened = a}>
               <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
               <span class="lt">{a.title}</span>
               <span class="la">{a.artist_name ?? ''}</span>
               <span class="ly">{albumYear(a) ?? ''}</span>
-              {#if showBadges && badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}
+              <!--
+                🔴 Ces deux cellules sont TOUJOURS présentes quand leur mode
+                est actif, vides s'il n'y a rien à y mettre.
+
+                Elles étaient posées sous `{#if}` : une ligne sans badge n'avait
+                que cinq cellules, et sa fiche technique tombait donc dans la
+                colonne du badge. C'est la moitié du désalignement que Bertrand
+                a photographié le 05/09/2026 ; l'autre moitié est que chaque
+                ligne était sa PROPRE grille (voir `--lcols` plus bas).
+              -->
+              {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
               {#if showTech}<span class="lq">{tech(a)}</span>{/if}
             </button>
           {/each}
@@ -1188,22 +1371,39 @@
   .facet{padding-bottom:26px}
   .facet h2{display:flex; align-items:center; gap:10px; font-size:17px; font-weight:700; padding:6px 0 14px;
     position:sticky; top:0; background:var(--v2-bg); z-index:2}
+  .facet .fk{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .facet .fc{font:10px var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2);
-    border-radius:999px; padding:2px 8px}
+    border-radius:999px; padding:2px 8px; flex:none}
+  /* Le coeur reste discret tant qu'il est vide : c'est un titre de section,
+     pas une barre d'actions. Une fois plein, il prend la couleur d'accent et
+     ne s'efface plus — c'est l'etat, pas une decoration au survol. */
+  .facet .fcoeur{flex:none; display:flex; align-items:center; justify-content:center;
+    width:26px; height:26px; padding:0; border:0; border-radius:8px; cursor:pointer;
+    background:transparent; color:var(--v2-txt3); opacity:.45;
+    transition:opacity .12s ease, color .12s ease, background .12s ease}
+  .facet h2:hover .fcoeur{opacity:1}
+  .facet .fcoeur:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .facet .fcoeur:focus-visible{opacity:1; outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .facet .fcoeur.on{opacity:1; color:var(--v2-acc1)}
   .facetgrid{overflow:visible; padding:0}
 
   /* Affichage liste : même données, densité maximale. */
   .rows{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
   .rows::-webkit-scrollbar{width:9px}.rows::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
-  .lrow{display:grid; grid-template-columns:44px minmax(0,2fr) minmax(0,1.4fr) 56px auto auto; align-items:center;
+  .lrow{display:grid; grid-template-columns:var(--lcols, 44px minmax(0,2fr) minmax(0,1.4fr) 52px 46px 150px); align-items:center;
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
     color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s}
   .lrow:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}
   .lrow .lt{font-size:13.5px; font-weight:600; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lrow .la{font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .lrow .ly{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
-  .lrow .lq{font:10px var(--v2-mono); color:var(--v2-acc2)}
+  .lrow .ly{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right; font-variant-numeric:tabular-nums}
+  /* La cellule du badge existe meme vide : c'est elle qui tient la colonne. */
+  .lrow .lb{display:flex; justify-content:center; min-width:0}
+  /* Ferre a DROITE : les fiches techniques n'ont pas la meme longueur, et
+     c'est leur bord droit qui doit s'aligner d'une ligne a l'autre. */
+  .lrow .lq{font:10px var(--v2-mono); color:var(--v2-acc2); text-align:right;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums}
   .bdg.flat{position:static; align-self:center}
 
   /* Onglet Titres. */

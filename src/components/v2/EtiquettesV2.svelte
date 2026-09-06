@@ -7,31 +7,61 @@
    * détail d'un album, jamais retrouver ce qu'on avait étiqueté. Un rangement
    * qu'on ne peut pas relire ne sert à rien.
    *
-   * ## Ce que le serveur sait rendre, et pas plus
+   * ## 🔴 Une croyance fausse, corrigée le 06/09/2026
    *
-   * `GET /tags/{id}/albums` est la SEULE route qui liste par étiquette. Les
-   * étiquettes acceptent pourtant quatre sortes d'objets — album, artiste,
-   * playlist, piste — plus les deux sortes de collection depuis la PR #3194.
+   * Cet en-tête affirmait : « `GET /tags/{id}/albums` est la SEULE route qui
+   * liste par étiquette ». C'était faux, et l'écran s'en tenait à cette
+   * croyance — d'où « pas de prise en compte des tags artistes » (Bertrand).
    *
-   * Cet écran montre donc les ALBUMS d'une étiquette, et le dit. Afficher un
-   * compte global qui ne correspondrait pas à ce qu'on voit serait pire que de
-   * ne rien annoncer.
+   * Mesuré sur le .18, les quatre routes existent et rendent la même forme :
+   *
+   *   /tags/1/albums     200  {albums:[…],    count, tag_id}
+   *   /tags/1/artists    200  {artists:[…],   count, tag_id}
+   *   /tags/1/tracks     200  {tracks:[…],    count, tag_id}
+   *   /tags/1/playlists  200  {playlists:[…], count, tag_id}
+   *
+   * On pouvait donc DÉJÀ étiqueter un artiste depuis sa pochette (ArtistesV2,
+   * Favoris) — seul cet écran ne savait pas le relire. Une phrase de
+   * commentaire tenait la moitié de la fonction hors service : c'est pourquoi
+   * une garde vérifie maintenant que les quatre appels sont bien là.
+   *
+   * ⚠️ Les deux sortes de COLLECTION (#3194) restent hors de cet écran : le
+   * serveur ne les liste pas par étiquette. On ne les annonce donc pas.
    */
   import { onMount } from 'svelte';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { currentZoneId } from '../../lib/stores/zones';
-  import type { Album, UserTag } from '../../lib/types';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import type { Album, Artist, Track, UserTag } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import LignePisteV2 from './LignePisteV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
 
   let etiquettes = $state<UserTag[]>([]);
   let chargement = $state(true);
   let ouverte = $state<UserTag | null>(null);
   let albums = $state<Album[]>([]);
+  let artistes = $state<Artist[]>([]);
+  let pistes = $state<Track[]>([]);
+  let listes = $state<any[]>([]);
   let albumsChargement = $state(false);
   let albumOuvert = $state<Album | null>(null);
+
+  type Famille = 'albums' | 'artistes' | 'pistes' | 'listes';
+  let famille = $state<Famille>('albums');
+
+  const ONGLETS: { id: Famille; cle: string }[] = [
+    { id: 'albums', cle: 'favorites.albums' },
+    { id: 'artistes', cle: 'favorites.artists' },
+    { id: 'pistes', cle: 'favorites.tracks' },
+    { id: 'listes', cle: 'favorites.playlists' },
+  ];
+  const compte = $derived<Record<Famille, number>>({
+    albums: albums.length, artistes: artistes.length,
+    pistes: pistes.length, listes: listes.length,
+  });
+  const total = $derived(albums.length + artistes.length + pistes.length + listes.length);
 
   async function charger() {
     chargement = true;
@@ -45,21 +75,40 @@
 
   async function ouvrir(tag: UserTag) {
     ouverte = tag;
-    albums = [];
+    albums = []; artistes = []; pistes = []; listes = [];
+    famille = 'albums';
     albumsChargement = true;
-    try {
-      const r = await api.getTagAlbums(tag.id!);
-      albums = r?.albums ?? [];
-    } catch {
-      albums = [];
-    }
+    // Les quatre EN PARALLÈLE, chacune au mieux : une famille qui échoue ne
+    // doit pas vider les trois autres, et les compteurs des onglets doivent
+    // être justes dès l'ouverture — un onglet « Artistes » sans nombre
+    // n'invite pas à cliquer, donc ne serait pas trouvé.
+    const [a, ar, p, l] = await Promise.all([
+      api.getTagAlbums(tag.id!).catch(() => null),
+      api.getTagArtists(tag.id!).catch(() => null),
+      api.getTagTracks(tag.id!).catch(() => null),
+      api.getTagPlaylists(tag.id!).catch(() => null),
+    ]);
+    albums = a?.albums ?? [];
+    artistes = ar?.artists ?? [];
+    pistes = p?.tracks ?? [];
+    listes = l?.playlists ?? [];
+    // On se pose sur la première famille NON VIDE : ouvrir une étiquette qui
+    // ne porte que des artistes sur un onglet Albums vide se lit comme une
+    // panne, et c'est exactement le défaut signalé.
+    famille = ONGLETS.find((o) => compte[o.id] > 0)?.id ?? 'albums';
     albumsChargement = false;
+  }
+
+  function lirePiste(t: Track) {
+    const zid = $currentZoneId;
+    if (zid == null || t.id == null) return;
+    playAndSync(zid, { track_id: t.id }).catch(() => {});
   }
 
   function lireAlbum(a: Album) {
     const zid = $currentZoneId;
     if (zid == null || a.id == null) return;
-    api.play(zid, { album_id: a.id }).catch(() => {});
+    playAndSync(zid, { album_id: a.id }).catch(() => {});
   }
 
   onMount(() => {
@@ -74,39 +123,104 @@
       <button class="back" onclick={() => (ouverte = null)}>← {$t('common.back' as any)}</button>
       <div class="eyebrow">{$t('v2.tags.eyebrow' as any)}</div>
       <h1><span class="pastille" style={tag.color ? `--c:${tag.color}` : ''}></span>{tag.name}</h1>
-      <!-- On annonce des ALBUMS, pas un total : le serveur ne liste par
-           étiquette que ceux-là, alors qu'une étiquette peut aussi porter des
-           artistes, des playlists et des pistes. -->
-      <p class="sub">{albums.length} {$t('v2.tags.albumsWithTag' as any)}</p>
+      <!-- Le total porte sur les QUATRE familles, et chaque onglet porte le
+           sien : le compte annoncé correspond toujours à ce qu'on voit. -->
+      <p class="sub">{total} {$t('v2.tags.itemsWithTag' as any)}</p>
     </header>
 
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
-    {:else if !albums.length}
-      <div class="etat">{$t('v2.tags.noAlbumWithTag' as any)}</div>
     {:else}
-      <div class="grille">
-        {#each albums as a (a.id)}
-          <div class="carte">
-            <div class="cv">
-              <PochetteActions
-                favori={a.id != null ? { albumId: a.id } : null}
-                etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
-                onLire={() => lireAlbum(a)}
-                onOuvrir={() => (albumOuvert = a)}
-                nom={a.title}
-              >
-                <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title}
-                  fallbackInitials={a.title?.slice(0, 1)} />
-              </PochetteActions>
-            </div>
-            <button class="meta" onclick={() => (albumOuvert = a)}>
-              <span class="ct" title={a.title}>{a.title}</span>
-              <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
-            </button>
-          </div>
+      <nav class="onglets">
+        {#each ONGLETS as o (o.id)}
+          <button class:on={famille === o.id} onclick={() => (famille = o.id)}>
+            {$t(o.cle as any)}<span>{compte[o.id]}</span>
+          </button>
         {/each}
-      </div>
+      </nav>
+
+      {#if famille === 'albums'}
+        {#if !albums.length}
+          <div class="etat">{$t('v2.tags.noAlbumWithTag' as any)}</div>
+        {:else}
+          <div class="grille">
+            {#each albums as a (a.id)}
+              <div class="carte">
+                <div class="cv">
+                  <PochetteActions
+                    favori={a.id != null ? { albumId: a.id } : null}
+                    etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                    onLire={() => lireAlbum(a)}
+                    onOuvrir={() => (albumOuvert = a)}
+                    nom={a.title}
+                  >
+                    <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title}
+                      fallbackInitials={a.title?.slice(0, 1)} />
+                  </PochetteActions>
+                </div>
+                <button class="meta" onclick={() => (albumOuvert = a)}>
+                  <span class="ct" title={a.title}>{a.title}</span>
+                  <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                </button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+      {:else if famille === 'artistes'}
+        {#if !artistes.length}
+          <div class="etat">{$t('v2.tags.noArtistWithTag' as any)}</div>
+        {:else}
+          <div class="grille">
+            {#each artistes as ar (ar.id)}
+              <div class="carte">
+                <div class="cv rond">
+                  <PochetteActions
+                    favori={ar.id != null ? { artistId: ar.id } : null}
+                    etiquettes={ar.id != null ? { itemType: 'artist', itemId: ar.id } : null}
+                    nom={ar.name}
+                  >
+                    <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name}
+                      fallbackInitials={ar.name?.slice(0, 1)} />
+                  </PochetteActions>
+                </div>
+                <span class="ct" title={ar.name}>{ar.name}</span>
+              </div>
+            {/each}
+          </div>
+        {/if}
+
+      {:else if famille === 'pistes'}
+        {#if !pistes.length}
+          <div class="etat">{$t('v2.tags.noTrackWithTag' as any)}</div>
+        {:else}
+          <div class="pistes">
+            {#each pistes as pi, i (pi.id ?? i)}
+              <LignePisteV2 piste={pi} numero={i + 1} onLire={() => lirePiste(pi)} />
+            {/each}
+          </div>
+        {/if}
+
+      {:else}
+        {#if !listes.length}
+          <div class="etat">{$t('v2.tags.noPlaylistWithTag' as any)}</div>
+        {:else}
+          <div class="simples">
+            {#each listes as pl (pl.id ?? pl.name)}
+              <div class="simple">
+                <span class="si" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                       stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 6h11M4 12h11M4 18h7"/><path d="M18 9v9"/><circle cx="16" cy="18" r="2"/>
+                  </svg>
+                </span>
+                <span class="sn" title={pl.name}>{pl.name}</span>
+                {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
+              </div>
+            {/each}
+          </div>
+        {/if}
+      {/if}
     {/if}
 
     {#if albumOuvert}
@@ -161,6 +275,30 @@
   }
   .tag:hover{background:color-mix(in srgb, var(--c) 24%, transparent)}
   .pastille{--c:var(--v2-acc1); width:9px; height:9px; border-radius:50%; background:var(--c); flex:none}
+
+  .onglets{display:flex; gap:4px; padding:4px 30px 0; flex-wrap:wrap}
+  .onglets button{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--v2-line2);
+    background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans);
+    padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
+  .onglets button span{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
+  .onglets button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .onglets button.on{color:var(--v2-on-acc); border-color:transparent;
+    background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
+  .onglets button.on span{color:var(--v2-on-acc); opacity:.75}
+
+  .pistes{display:flex; flex-direction:column; gap:1px; padding:12px 30px 40px}
+
+  .simples{display:flex; flex-direction:column; gap:2px; padding:12px 24px 40px}
+  .simple{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px;
+    padding:9px 12px; border-radius:9px; color:var(--v2-txt2)}
+  .simple .si{display:inline-flex; color:var(--v2-acc1)}
+  .simple .si svg{width:17px; height:17px}
+  .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px}
+  .simple .sc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+
+  /* L'artiste garde la pochette RONDE de partout ailleurs : la même personne
+     ne doit pas changer de forme selon l'écran qui la montre. */
+  .cv.rond{border-radius:50%}
 
   .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(148px, 1fr)); gap:22px 18px; padding:12px 30px 40px}
   .carte{display:flex; flex-direction:column; content-visibility:auto; contain-intrinsic-size:auto 210px}

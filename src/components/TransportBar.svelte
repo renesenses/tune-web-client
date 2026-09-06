@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZone, currentZoneId, stopAndSync } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, stopAndSync, lectureEnAttente } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { upNextCount } from '../lib/stores/queue';
   import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
@@ -665,9 +665,28 @@
     // otherwise the bar snaps back and playback doesn't move (Elie, local speakers).
     if (isBrowserZone(zone)) browserSeek(posMs);
   }
+  /*
+    Témoin d'attente. Bertrand, 05/09/2026 : « l'ui ne repond plus aux demandes
+    de play un autre album ou piste !! ».
+
+    Le journal du .18 montre que la demande PARTAIT bien — 24 mises en file
+    reçues — mais qu'un pré-transcodage `Aac -> Flac` de 102 s tenait la zone.
+    L'écran, lui, ne montrait rien : c'est ce silence qui a fait recliquer huit
+    fois. Serveur : renesenses/tune-server-rust#3444.
+
+    Le témoin ne vaut que pour la zone AFFICHÉE : une attente sur une autre
+    zone ne doit pas clignoter ici.
+  */
+  const enAttente = $derived($lectureEnAttente != null && $lectureEnAttente === $currentZoneId);
+
 </script>
 
 <div class="transport-bar" class:compact style="--compact-progress: {progressPercent}%" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
+  {#if enAttente}
+    <div class="tb-attente" role="status" aria-live="polite">
+      <span class="tb-attente-point"></span>{$t('transport.preparing')}
+    </div>
+  {/if}
   {#if displayTrack && displayTrack.source !== 'radio' && effectiveDurationMs}
     <div class="transport-progress">
       <span class="progress-time">{formatTime($seekPositionMs)}</span>
@@ -1185,6 +1204,40 @@
 {/if}
 
 <style>
+  /* Posé en absolu sur le bord haut : la barre est une grille, un enfant dans
+     le flux en aurait décalé les trois colonnes. */
+  .tb-attente {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 2px 0 3px;
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+    color: var(--tune-accent);
+    background: var(--tune-footer);
+    border-bottom: 1px solid var(--tune-border);
+    pointer-events: none;
+    z-index: 3;
+  }
+  .tb-attente-point {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: tb-attente-battement 1.1s ease-in-out infinite;
+  }
+  @keyframes tb-attente-battement {
+    0%, 100% { opacity: 0.25; transform: scale(0.8); }
+    50%      { opacity: 1;    transform: scale(1.15); }
+  }
+  /* Sans mouvement, le témoin reste LISIBLE : on éteint l'animation, pas le
+     point — l'information ne doit pas disparaître avec elle. */
+  @media (prefers-reduced-motion: reduce) {
+    .tb-attente-point { animation: none; opacity: 1; }
+  }
+
   .transport-bar {
     grid-column: 1 / -1;
     grid-row: 2;

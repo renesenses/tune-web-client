@@ -41,7 +41,7 @@
   import { onMount } from 'svelte';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import type { Album, Artist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
@@ -131,7 +131,7 @@
         notifications.error($t('v2.art.noAlbum' as any));
         return;
       }
-      await api.play(zid, { album_id: premier.id! });
+      await playAndSync(zid, { album_id: premier.id! });
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }
@@ -140,7 +140,7 @@
   function lireAlbum(al: Album) {
     const zid = $currentZoneId;
     if (zid == null || al.id == null) return;
-    api.play(zid, { album_id: al.id }).catch(() => {});
+    playAndSync(zid, { album_id: al.id }).catch(() => {});
   }
 
   /**

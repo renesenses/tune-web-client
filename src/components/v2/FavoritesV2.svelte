@@ -12,29 +12,31 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
-  import { currentZoneId } from '../../lib/stores/zones';
-  import { currentTrackId } from '../../lib/stores/nowPlaying';
-  import { currentProfileId, loadFavoriteIds, favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import {
+    currentProfileId, loadFavoriteIds, favoriteStreamingKeys,
+    favoriteAlbumIds, favoriteTrackIds, favoriteArtistIds, favoritePlaylistIds,
+    favoriteStreamingTrackKeys, clePisteJumelee, streamingFavKey,
+    favoriteFacetKeys, facetFavKey,
+  } from '../../lib/stores/profile';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import {
     trierEtFiltrer, sourcesPresentes, SOURCE_BIBLIOTHEQUE, type TriFavoris,
   } from '../../lib/favorisTriFiltre';
-  import { preferences } from '../../lib/stores/preferences';
-  import { atLeast } from '../../lib/uiLevel';
-  import { fold, formatTime, getQualityTier } from '../../lib/utils';
+  import { fold } from '../../lib/utils';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import PisteActions from './PisteActions.svelte';
+  import LignePisteV2 from './LignePisteV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { tick } from 'svelte';
+  import { activeView } from '../../lib/stores/navigation';
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
-  const level = $derived($preferences.settingsLevel);
-  const showExpert = $derived(atLeast(level, 'expert'));
 
   /**
    * RADIO rejoint les Favoris — demandé par Bertrand le 02/09/2026.
@@ -45,13 +47,30 @@
    * actuel n'était atteignable que par une entrée de barre latérale qui
    * n'existe pas en v2 — donc invisible.
    */
-  type Tab = 'albums' | 'tracks' | 'artists' | 'radio';
+  type Tab = 'albums' | 'tracks' | 'artists' | 'playlists' | 'collections' | 'facettes' | 'radio';
   let tab = $state<Tab>('albums');
   let q = $state('');
 
   let albums = $state<Album[]>([]);
   let tracks = $state<Track[]>([]);
   let artists = $state<Artist[]>([]);
+  /**
+   * Playlists et collections en favori. Bertrand, 05/09/2026 : « il manque les
+   * playlists, les collections ».
+   *
+   * `getFavorites` les RENDAIT déjà — l'écran n'en lisait que trois seaux sur
+   * cinq. Les playlists sortent développées ; les collections ne sortent
+   * qu'en identifiants (le commentaire de l'API le dit : leur seul usage
+   * était le cœur sur la vignette), on les apparie donc ici avec la liste des
+   * collections pour en obtenir les noms.
+   */
+  let playlists = $state<any[]>([]);
+  let collections = $state<any[]>([]);
+  // Les favoris de FACETTE (genre, annee, label) : ni un objet ni un
+  // identifiant, une VALEUR. Leur propre table cote serveur, donc leur propre
+  // appel — et leur propre onglet, sans quoi l'ecran Favoris n'en montrait
+  // aucun alors que la Bibliotheque sait maintenant en creer.
+  let facettes = $state<api.FacetFavorite[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
   let busy = $state(false);
@@ -65,13 +84,6 @@
    * de service arrivent d'une autre table et n'ont pas d'identifiant numérique
    * à donner à `PUT /library/albums/{id}`.
    */
-  /**
-   * Calcule EN DEHORS de la boucle : `{#each vTracks as t}` masque le store
-   * `t`, et `$t(…)` dans le corps de la boucle ne s'abonne plus a rien.
-   * Svelte le refuse — « Cannot subscribe to stores that are not declared at
-   * the top level of the component ».
-   */
-  const labelRetirerFavori = $derived($t('v2.fav.remove' as any));
   let albumEnEdition = $state<Album | null>(null);
   let artisteEnEdition = $state<Artist | null>(null);
 
@@ -139,9 +151,29 @@
         api.getFavorites(pid),
         api.getProfileStreamingFavorites(pid).catch(() => [] as api.StreamingFavorite[]),
       ]);
+      // Au mieux, comme les services : un serveur plus ancien ne sert pas la
+      // route, et cela ne doit pas vider le reste de l'ecran.
+      facettes = await api.getFacetFavorites(pid).catch(() => [] as api.FacetFavorite[]);
       albums = [...(f.albums ?? []), ...s.filter((x) => x.item_type === 'album').map(versAlbum)];
       tracks = [...(f.tracks ?? []), ...s.filter((x) => x.item_type === 'track').map(versPiste)];
       artists = [...(f.artists ?? []), ...s.filter((x) => x.item_type === 'artist').map(versArtiste)];
+      playlists = f.playlists ?? [];
+      // Les deux familles de collections au mieux : une seule qui manque ne
+      // doit pas vider l'onglet de l'autre.
+      const ids = new Set(f.collectionIds ?? []);
+      const idsSmart = new Set(f.smartCollectionIds ?? []);
+      if (ids.size || idsSmart.size) {
+        const [cs, ss2] = await Promise.all([
+          ids.size ? api.getCollections().catch(() => [] as any[]) : Promise.resolve([] as any[]),
+          idsSmart.size ? api.listSmartCollections().catch(() => [] as any[]) : Promise.resolve([] as any[]),
+        ]);
+        collections = [
+          ...(cs ?? []).filter((c: any) => ids.has(c.id)).map((c: any) => ({ ...c, smart: false })),
+          ...(ss2 ?? []).filter((c: any) => idsSmart.has(c.id)).map((c: any) => ({ ...c, smart: true })),
+        ];
+      } else {
+        collections = [];
+      }
       error = null;
     } catch {
       error = 'Favoris indisponibles.';
@@ -168,9 +200,44 @@
   let sourceFiltre = $state<string | null>(null);
   let tri = $state<TriFavoris>('recent');
 
-  const fAlbums = $derived(albums.filter((a) => match(a.title) || match(a.artist_name)));
-  const fTracks = $derived(tracks.filter((t) => match(t.title) || match(t.artist_name)));
-  const fArtists = $derived(artists.filter((a) => match(a.name)));
+  /**
+   * 🔴 Un objet dont on retire le cœur DISPARAÎT de l'écran.
+   *
+   * Bertrand, 05/09/2026 : « après avoir enlevé le favori, l'objet ne disparaît
+   * pas de l'écran favoris : voulu ? ». Non, c'était un défaut.
+   *
+   * Les trois seaux sont chargés UNE fois au montage, puis affichés tels
+   * quels. Tant que le retrait passait par un bouton de cet écran, celui-ci
+   * rechargeait derrière lui et l'illusion tenait. Le cœur de `PisteActions`,
+   * lui, écrit dans les magasins de profil sans rien savoir de cette liste :
+   * l'objet restait affiché, cœur éteint, jusqu'au prochain montage.
+   *
+   * On filtre donc sur les magasins, qui sont la VÉRITÉ du moment. Un objet
+   * qu'on ne sait pas juger — ni identifiant local, ni clef de service — est
+   * gardé : le faire disparaître au doute serait pire que de le laisser.
+   */
+  function encoreFavori(o: any, type: 'album' | 'track' | 'artist'): boolean {
+    const idLocal = typeof o?.id === 'number' ? o.id : null;
+    if (idLocal != null) {
+      if (type === 'album') return $favoriteAlbumIds.has(idLocal);
+      if (type === 'artist') return $favoriteArtistIds.has(idLocal);
+      // Une piste locale reste favorite par son JUMEAU distant — même règle
+      // que le cœur de `PisteActions`, sans quoi la ligne s'effacerait sous
+      // un cœur resté rouge.
+      return (
+        $favoriteTrackIds.has(idLocal) ||
+        (!!o?.title && $favoriteStreamingTrackKeys.has(clePisteJumelee(o.title, o.artist_name)))
+      );
+    }
+    const service = o?.source ?? '';
+    const sid = o?.source_id;
+    if (!service || sid == null) return true;
+    return $favoriteStreamingKeys.has(streamingFavKey(type, service, String(sid)));
+  }
+
+  const fAlbums = $derived(albums.filter((a) => encoreFavori(a, 'album') && (match(a.title) || match(a.artist_name))));
+  const fTracks = $derived(tracks.filter((t) => encoreFavori(t, 'track') && (match(t.title) || match(t.artist_name))));
+  const fArtists = $derived(artists.filter((a) => encoreFavori(a, 'artist') && match(a.name)));
 
   const sourcesOnglet = $derived(
     sourcesPresentes(
@@ -180,6 +247,19 @@
   $effect(() => {
     if (sourceFiltre && !sourcesOnglet.includes(sourceFiltre)) sourceFiltre = null;
   });
+
+  // Une playlist retirée des favoris disparaît elle aussi : même règle que
+  // les trois autres seaux, sur le magasin qui porte la vérité.
+  const vPlaylists = $derived(
+    playlists.filter((p) => (p?.id == null || $favoritePlaylistIds.has(p.id)) && match(p?.name)),
+  );
+  const vCollections = $derived(collections.filter((c) => match(c?.name)));
+
+  // Meme regle que les playlists : le magasin porte la verite, donc une
+  // facette qu'on vient de decocher quitte l'ecran sans rechargement.
+  const vFacettes = $derived(
+    facettes.filter((f) => $favoriteFacetKeys.has(facetFavKey(f.facet, f.value)) && match(f.value)),
+  );
 
   const vAlbums = $derived(trierEtFiltrer(fAlbums, sourceFiltre, tri));
   const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri));
@@ -252,16 +332,74 @@
       nomPlaylist = '';
       creationPlaylist = false;
     } catch (e: any) {
-      error = e?.message ?? 'Création impossible.';
+      error = e?.message ?? $t('v2.fav.createFailed' as any);
     }
     creation = false;
   }
 
+  /**
+   * Ouvrir une playlist ou une collection depuis les Favoris.
+   *
+   * On ne se contente PAS d'aller sur la liste : c'est exactement le défaut
+   * que Bertrand avait signalé le 05/09 pour les raccourcis (« je sélectionne
+   * une smart collection et le raccourci me renvoie sur la liste »). Les deux
+   * écrans savent déjà rouvrir un élément précis — ils écoutent
+   * `tune:shortcut-restore`. On rejoue ce chemin plutôt que d'en inventer un
+   * second.
+   *
+   * `tick()` est nécessaire : l'écran cible n'est pas encore monté au moment
+   * du changement de vue, et son écouteur n'existe donc pas encore. Émettre
+   * tout de suite ne toucherait personne.
+   */
+  async function ouvrirAilleurs(vue: 'playlists' | 'collections', cle: string, id: number, nom: string) {
+    activeView.set(vue as any);
+    await tick();
+    window.dispatchEvent(
+      new CustomEvent('tune:shortcut-restore', {
+        detail: { target: { key: cle, restore: { id, name: nom }, label: nom } },
+      }),
+    );
+  }
+  const ouvrirPlaylist = (pl: any) =>
+    pl?.id != null && ouvrirAilleurs('playlists', `playlists:${pl.id}`, pl.id, pl.name);
+  const ouvrirCollection = (c: any) =>
+    c?.id != null &&
+    ouvrirAilleurs('collections', `${c.smart ? 'smartcollections' : 'collections'}:${c.id}`, c.id, c.name);
+
+  /**
+   * Ouvrir une facette : meme principe, autre ecran et autre evenement.
+   *
+   * La Bibliotheque n'ecoute pas `tune:shortcut-restore` — elle n'a pas de
+   * raccourcis — et une facette n'a pas d'identifiant a restaurer. Elle ecoute
+   * donc `tune:v2-facette`, qui porte l'ONGLET et la VALEUR, et fait defiler
+   * jusqu'a la section correspondante.
+   */
+  const ONGLET_FACETTE: Record<string, string> = {
+    genre: 'genres', year: 'years', label: 'labels',
+  };
+  /** Libelle d'une facette. Le pluriel de l'onglet Bibliotheque, pas la cle. */
+  const NOM_FACETTE: Record<string, string> = $derived({
+    genre: $t('v2.fav.facetGenre' as any), year: $t('v2.fav.facetYear' as any),
+    label: $t('v2.fav.facetLabel' as any),
+  });
+  async function ouvrirFacette(f: api.FacetFavorite) {
+    const onglet = ONGLET_FACETTE[f.facet];
+    if (!onglet) return;
+    activeView.set('library');
+    await tick();
+    window.dispatchEvent(
+      new CustomEvent('tune:v2-facette', { detail: { onglet, valeur: f.value } }),
+    );
+  }
+
   const TABS: { id: Tab; label: string; n: number }[] = $derived([
-    { id: 'albums', label: 'Albums', n: vAlbums.length },
-    { id: 'tracks', label: 'Titres', n: vTracks.length },
-    { id: 'artists', label: 'Artistes', n: vArtists.length },
-    { id: 'radio', label: 'Radio', n: vRadio.length },
+    { id: 'albums', label: $t('favorites.albums' as any), n: vAlbums.length },
+    { id: 'tracks', label: $t('favorites.tracks' as any), n: vTracks.length },
+    { id: 'artists', label: $t('favorites.artists' as any), n: vArtists.length },
+    { id: 'playlists', label: $t('favorites.playlists' as any), n: vPlaylists.length },
+    { id: 'collections', label: $t('v2.nav.collections' as any), n: vCollections.length },
+    { id: 'facettes', label: $t('v2.fav.tabFacets' as any), n: vFacettes.length },
+    { id: 'radio', label: $t('v2.nav.radioShort' as any), n: vRadio.length },
   ]);
 
 
@@ -282,7 +420,7 @@
       ? { streaming_album_id: String(a.source_id), source: a.source as any }
       : null;
     if (!corps) return;
-    api.play(zid, corps).catch(() => { error = 'Lecture impossible.'; });
+    playAndSync(zid, corps).catch(() => { error = 'Lecture impossible.'; });
   }
   function playTrack(t: any) {
     const zid = $currentZoneId;
@@ -293,7 +431,7 @@
       ? { source: t.source as any, source_id: String(t.source_id) }
       : null;
     if (!corps) return;
-    api.play(zid, corps).catch(() => { error = 'Lecture impossible.'; });
+    playAndSync(zid, corps).catch(() => { error = 'Lecture impossible.'; });
   }
   // `e` optionnel : appelee depuis la carte historique (qui propage) ET depuis
   // le menu de `PochetteActions`, qui a deja arrete le geste.
@@ -307,23 +445,6 @@
   /** Retrait d'un favori. On recharge aussi les ENSEMBLES d'identifiants du
    *  store : sans ça, les boutons cœur des autres écrans continueraient
    *  d'afficher l'élément comme favori jusqu'au prochain rechargement. */
-  /**
-   * Retrait d'un titre, quelle que soit la table qui le porte.
-   *
-   * Une piste de service n'a pas d'`id` local : `removeFavorite({track_id:
-   * undefined})` ne retirerait rien et n'en dirait rien. Le cœur passe donc
-   * par l'unique `toggleStreamingFavorite`, celui-là même qui l'avait posé.
-   */
-  async function retirerPiste(t: any, e: MouseEvent) {
-    if (t?.id != null) { await unfav({ track_id: t.id }, e); return; }
-    e.stopPropagation();
-    const c = coeurService(t, 'track');
-    if (!c || busy) return;
-    busy = true;
-    try { await c.basculer(); await reload(); } catch { error = 'Retrait impossible.'; }
-    busy = false;
-  }
-
   async function unfav(body: { track_id?: number; album_id?: number; artist_id?: number }, e: MouseEvent) {
     e.stopPropagation();
     const pid = $currentProfileId;
@@ -335,12 +456,6 @@
       await loadFavoriteIds(pid);
     } catch { error = 'Retrait impossible.'; }
     busy = false;
-  }
-
-  function tech(t: Track): string {
-    if (getQualityTier(t) === 'dsd') return 'DSD';
-    const r = t.sample_rate ? `${Math.round(t.sample_rate / 100) / 10} kHz` : '';
-    return [t.format?.toUpperCase(), r].filter(Boolean).join(' · ');
   }
 </script>
 
@@ -368,7 +483,7 @@
     Les puces de source n'apparaissent qu'a partir de DEUX sources : avec une
     seule, le filtre ne peut rien retirer — c'est un bouton qui ne fait rien.
   -->
-  {#if tab !== 'radio'}
+  {#if tab === 'albums' || tab === 'tracks' || tab === 'artists'}
     <div class="barre">
       {#if sourcesOnglet.length > 1}
         <div class="puces">
@@ -399,7 +514,7 @@
       <div class="state">{$t('v2.fav.loading' as any)}</div>
     {:else if tab === 'albums'}
       {#if !vAlbums.length}
-        <div class="state">{albums.length ? 'Aucun album ne correspond.' : 'Aucun album en favori.'}</div>
+        <div class="state">{albums.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyAlbums' as any)}</div>
       {:else}
         <div class="grid">
           {#each vAlbums as a, i (clef(a, i))}
@@ -441,35 +556,36 @@
 
     {:else if tab === 'tracks'}
       {#if !vTracks.length}
-        <div class="state">{tracks.length ? 'Aucun titre ne correspond.' : 'Aucun titre en favori.'}</div>
+        <div class="state">{tracks.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyTracks' as any)}</div>
       {:else}
+        <!--
+          LA MÊME ligne que partout ailleurs. Bertrand, 05/09/2026 : « manquent
+          format - rate - bit sur entrées Streaming et bit sur local ! ».
+
+          Cet écran avait sa ligne à lui, et cette ligne mentait sur deux
+          points. Sa fonction `tech()` assemblait `[format, fréquence]` et
+          n'allait JAMAIS chercher la profondeur — d'où « FLAC · 88.2 kHz »
+          quand la barre de lecture disait « FLAC 44.1/16 » pour la même
+          piste. Et elle n'était montrée qu'au niveau Expert.
+
+          Elle portait aussi DEUX cœurs : celui de `PisteActions` et un bouton
+          de retrait dessiné à côté, tous deux sur la même piste.
+
+          `LignePisteV2` porte le badge de qualité complet (format, fréquence
+          ET profondeur), les cinq gestes, et un seul cœur qui bascule dans les
+          deux sens. Le retrait passe par lui : il sait déjà distinguer une
+          piste de la bibliothèque d'une piste de service.
+        -->
         <div class="list">
           {#each vTracks as t, i (clef(t, i))}
-            <div class="row" class:np={t.id != null && t.id === $currentTrackId}>
-              <button class="play" onclick={() => playTrack(t)}>
-                <span class="cv sm"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
-                <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
-              </button>
-              {#if showExpert && tech(t)}<span class="tk">{tech(t)}</span>{/if}
-              <span class="dur">{formatTime(t.duration_ms ?? 0)}</span>
-              <PisteActions piste={t} />
-              <!--
-                Le retrait passe par la table qui PORTE le favori : une piste
-                de la bibliothèque par `removeFavorite`, une piste de service
-                par le chemin unique de `toggleStreamingFavorite`. Le premier
-                sur la seconde ne retirerait rien, en silence.
-              -->
-              <button class="hot flat" onclick={(e) => retirerPiste(t, e)} disabled={busy} aria-label={labelRetirerFavori}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z"/></svg>
-              </button>
-            </div>
+            <LignePisteV2 piste={t} onLire={() => playTrack(t)} />
           {/each}
         </div>
       {/if}
 
     {:else if tab === 'artists'}
       {#if !vArtists.length}
-        <div class="state">{artists.length ? 'Aucun artiste ne correspond.' : 'Aucun artiste en favori.'}</div>
+        <div class="state">{artists.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyArtists' as any)}</div>
       {:else}
         <div class="arow">
           {#each vArtists as a, i (clef(a, i))}
@@ -488,6 +604,76 @@
               </span>
               <span class="an" title={a.name}>{a.name}</span>
             </div>
+          {/each}
+        </div>
+      {/if}
+
+    {:else if tab === 'playlists'}
+      {#if !vPlaylists.length}
+        <div class="state">{playlists.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyPlaylists' as any)}</div>
+      {:else}
+        <div class="simples">
+          {#each vPlaylists as pl (pl.id ?? pl.name)}
+            <button class="simple" onclick={() => ouvrirPlaylist(pl)}>
+              <span class="si" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h13M3 12h13M3 18h9"/><path d="M19 8v9.5"/><circle cx="17" cy="18" r="2"/>
+                </svg>
+              </span>
+              <span class="sn" title={pl.name}>{pl.name}</span>
+              {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
+            </button>
+          {/each}
+        </div>
+      {/if}
+
+    {:else if tab === 'facettes'}
+      {#if !vFacettes.length}
+        <div class="state">{facettes.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyFacets' as any)}</div>
+      {:else}
+        <div class="simples">
+          {#each vFacettes as f (facetFavKey(f.facet, f.value))}
+            <button class="simple" onclick={() => ouvrirFacette(f)} disabled={!ONGLET_FACETTE[f.facet]}>
+              <span class="si" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/>
+                  <circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/>
+                </svg>
+              </span>
+              <span class="sn" title={f.value}>{f.value}</span>
+              <span class="sc">{NOM_FACETTE[f.facet] ?? f.facet}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
+
+    {:else if tab === 'collections'}
+      {#if !vCollections.length}
+        <div class="state">{collections.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyCollections' as any)}</div>
+      {:else}
+        <div class="simples">
+          {#each vCollections as c (`${c.smart ? 's' : 'c'}-${c.id}`)}
+            <button class="simple" onclick={() => ouvrirCollection(c)}>
+              <span class="si" aria-hidden="true">
+                {#if c.smart}
+                  <!-- La collection INTELLIGENTE se distingue à l'œil : son
+                       contenu est une règle, pas une liste posée à la main. -->
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                       stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
+                  </svg>
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                       stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>
+                  </svg>
+                {/if}
+              </span>
+              <span class="sn" title={c.name}>{c.name}</span>
+              {#if c.album_count != null}<span class="sc">{c.album_count}</span>{/if}
+            </button>
           {/each}
         </div>
       {/if}
@@ -642,6 +828,23 @@
   .top{display:flex; align-items:flex-end; gap:22px; padding:24px 30px 14px; padding-right:96px}
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
+  /* Playlists et collections : une liste sobre. Ni pochette ni grille — une
+     playlist n'a pas d'image, et une grille de cartes vides mentirait sur la
+     richesse de ce qu'elle contient. */
+  .simples{display:flex; flex-direction:column; gap:2px}
+  .simple{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; width:100%;
+    padding:9px 12px; border:0; border-radius:9px; background:transparent; color:var(--v2-txt2);
+    text-align:left; cursor:pointer; font:inherit}
+  .simple:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .simple .si{display:inline-flex; color:var(--v2-acc1)}
+  .simple .si svg{width:17px; height:17px}
+  .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px}
+  .simple .sc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  /* Une facette d'un type que la Bibliotheque n'expose pas encore reste
+     LISIBLE mais inerte : mieux vaut la montrer inactive que la cacher. */
+  .simple:disabled{cursor:default; opacity:.55}
+  .simple:disabled:hover{background:transparent; color:var(--v2-txt2)}
+
   .tabs{display:flex; gap:4px}
   .tabs button{display:inline-flex; align-items:center; gap:7px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}

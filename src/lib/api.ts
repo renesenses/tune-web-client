@@ -1546,14 +1546,31 @@ export async function getFilteredTracks(opts: {
   playlist?: FacetParam;      // Oxygen playlist facet: playlist name
   untagged?: FacetParam;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
   original_year?: FacetParam; // Oxygen recording-year facet (albums.original_year)
+  dr?: FacetParam;            // Oxygen Dynamic Range facet (#2144, #3196)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
   const params = new URLSearchParams();
+  // 🔴 CETTE LISTE EST LA VÉRITÉ : une facette absente d'ici est affichée dans
+  // le rail, se clique, se coche — et ne filtre RIEN.
+  //
+  // C'est ce qui est arrivé au Dynamic Range. La facette a rejoint le rail à
+  // la révision 4 des préférences (#2144, #3196) et son paramètre n'a jamais
+  // été ajouté ici : « Vue Oxygen : pas de refresh des albums quand on
+  // choisit un Dynamic Range » (Patatorz, forum 1683, 06/09/2026).
+  //
+  // Mesuré sur le .18 le même jour — le serveur, lui, filtre bien :
+  //
+  //   /library/tracks?limit=1            → total 46877
+  //   /library/tracks?dr=10&limit=1      → total 0
+  //   /library/tracks?zzzbidon=10&limit=1 → total 46877  (paramètre ignoré)
+  //
+  // Une garde compare désormais cette liste à la carte `FACET_PARAM`
+  // d'`OxygenView` : la prochaine facette ne pourra plus être livrée à moitié.
   for (const key of [
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
     'year', 'source', 'label', 'composer', 'artist', 'country', 'mood', 'source_media',
-    'favorite', 'playlist', 'untagged', 'original_year', 'q',
+    'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
   ] as const) {
     appendFacetParam(params, key, (opts as Record<string, FacetParam | undefined>)[key]);
   }
@@ -1923,6 +1940,30 @@ export function getTagsForItem(itemType: string, itemId: number) {
 
 export function getTagAlbums(tagId: number) {
   return fetchJSON<{ albums: import('./types').Album[]; count: number }>(`${BASE}/tags/${tagId}/albums`);
+}
+
+// 🔴 Les TROIS autres routes de listage par étiquette.
+//
+// `EtiquettesV2` portait ceci en commentaire : « `GET /tags/{id}/albums` est la
+// SEULE route qui liste par étiquette ». C'était faux, et l'écran s'en tenait à
+// cette croyance — on pouvait étiqueter un artiste depuis sa pochette sans
+// jamais le retrouver. « Pas de prise en compte des tags artistes »
+// (Bertrand, 06/09/2026).
+//
+// Mesuré sur le .18 le même jour, les quatre répondent 200 avec la même forme
+// (`{<famille>: [...], count, tag_id}`) :
+//
+//   /tags/1/albums  /tags/1/artists  /tags/1/tracks  /tags/1/playlists
+export function getTagArtists(tagId: number) {
+  return fetchJSON<{ artists: import('./types').Artist[]; count: number }>(`${BASE}/tags/${tagId}/artists`);
+}
+
+export function getTagTracks(tagId: number) {
+  return fetchJSON<{ tracks: import('./types').Track[]; count: number }>(`${BASE}/tags/${tagId}/tracks`);
+}
+
+export function getTagPlaylists(tagId: number) {
+  return fetchJSON<{ playlists: any[]; count: number }>(`${BASE}/tags/${tagId}/playlists`);
 }
 
 // --- Playlists ---
@@ -2330,18 +2371,47 @@ export function updateConfig(fields: Record<string, unknown>) {
   });
 }
 
-export function addMusicDir(path: string) {
-  return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs`, {
-    method: 'POST',
-    body: JSON.stringify({ path }),
-  });
+/**
+ * 🔴 Le serveur répond `dirs`, pas `music_dirs`.
+ *
+ * Mesuré sur le .18 le 06/09/2026 :
+ *
+ *     GET /system/music-dirs → {"dirs":["/data/music", …]}
+ *
+ * et les handlers `add_music_dir` / `remove_music_dir` rendent eux aussi
+ * `Json(json!({ "dirs": dirs }))` (tune-server, `routes/system/config.rs`).
+ *
+ * Le client lisait `r?.music_dirs`, donc toujours `undefined` : l'écran
+ * gardait son ancienne liste après un ajout, et il fallait recharger la page
+ * pour voir le dossier — `/system/config`, lui, porte bien `music_dirs`, d'où
+ * le fait que F5 « répare ».
+ *
+ * « L'affichage de l'ajout de répertoires dans la bibliothèque ne fonctionne
+ * pas [...] Il faut rafraîchir le navigateur pour les voir » (Patatorz, forum
+ * 1680, 06/09/2026, TuneOS 0.9.138).
+ *
+ * La traduction se fait ICI, au bord : les deux clients appellent ces routes,
+ * et le reste du corps (`purge_refused`, `orphelines`) est conservé tel quel.
+ */
+function listeDossiers(r: any): string[] {
+  const l = r?.dirs ?? r?.music_dirs;
+  return Array.isArray(l) ? l : [];
 }
 
-export function removeMusicDir(path: string) {
-  return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs/remove`, {
+export async function addMusicDir(path: string): Promise<{ music_dirs: string[] }> {
+  const r = await fetchJSON<any>(`${BASE}/system/music-dirs`, {
     method: 'POST',
     body: JSON.stringify({ path }),
   });
+  return { ...r, music_dirs: listeDossiers(r) };
+}
+
+export async function removeMusicDir(path: string): Promise<{ music_dirs: string[] }> {
+  const r = await fetchJSON<any>(`${BASE}/system/music-dirs/remove`, {
+    method: 'POST',
+    body: JSON.stringify({ path }),
+  });
+  return { ...r, music_dirs: listeDossiers(r) };
 }
 
 export function triggerScan(path?: string, full = false) {

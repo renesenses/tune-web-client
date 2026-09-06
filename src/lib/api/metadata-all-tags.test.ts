@@ -5,7 +5,7 @@ vi.mock('../stores/notifications', () => ({
 }));
 vi.mock('../auth', () => ({ getToken: () => null, clearToken: () => {} }));
 
-const { normalizeFileTags, normalizeTrackAllTags } = await import('./metadata');
+const { normalizeFileTags, normalizeTrackAllTags, parseTagItemRust } = await import('./metadata');
 
 /** Payload actually returned by GET /library/tracks/{id}/all-tags on 0.9.119. */
 const SERVER_FLAT = {
@@ -51,8 +51,24 @@ describe('normalizeTrackAllTags', () => {
   it('turns the server file_tags array into Record<string, string[]> (vals.join-safe)', () => {
     const out = normalizeTrackAllTags(SERVER_FLAT, 48702);
     expect(Array.isArray(out.file_tags)).toBe(false);
-    expect(out.file_tags.Id3v2.length).toBe(2);
-    expect(out.file_tags.Id3v2.join(' / ')).toContain('Oye Como Va');
+    expect(() => Object.entries(out.file_tags).map(([, v]) => v.join(' / '))).not.toThrow();
+  });
+
+  it('LIT la paire du fichier : une ligne par balise, pas un pavé de Debug Rust', () => {
+    // 🔴 RÉORIENTÉE le 06/09/2026. Le correctif de #661 avait arrêté le
+    // plantage en groupant tout sous le nom du CONTENEUR (`Id3v2`) : le
+    // tiroir affichait alors UNE ligne contenant quatorze chaînes de débogage
+    // Rust collées bout à bout. Mesuré sur le .18 :
+    //
+    //   TagItem { lang: [88, 88, 88], description: "", item_key: TrackArtist,
+    //             item_value: Text("Paco de Lucia") }
+    //
+    // « Tous les champs piste » ne montrait donc aucun champ. La garde
+    // vérifie maintenant ce qu'on peut LIRE, pas seulement que rien n'explose.
+    const out = normalizeTrackAllTags(SERVER_FLAT, 48702);
+    expect(out.file_tags.TrackTitle).toEqual(['Oye Como Va']);
+    expect(out.file_tags.Genre).toEqual(['Salsa']);
+    expect(out.file_tags.Id3v2, 'plus de pavé sous le nom du conteneur').toBeUndefined();
   });
 
   it('keeps an already-nested contract intact', () => {
@@ -78,5 +94,51 @@ describe('normalizeFileTags', () => {
   it('does not throw when given the raw server array (the pre-fix crash)', () => {
     const tags = normalizeFileTags(SERVER_FLAT.file_tags);
     expect(() => Object.entries(tags).map(([, vals]) => vals.join(' / '))).not.toThrow();
+  });
+});
+
+describe('parseTagItemRust — le Debug de TagItem, mesuré sur le .18', () => {
+  it('lit la paire clé / valeur', () => {
+    const p = parseTagItemRust(
+      'TagItem { lang: [88, 88, 88], description: "", item_key: TrackArtist, item_value: Text("Paco de Lucia") }',
+    );
+    expect(p).toEqual({ cle: 'TrackArtist', valeur: 'Paco de Lucia' });
+  });
+
+  it('dénude les guillemets échappés', () => {
+    const p = parseTagItemRust('TagItem { item_key: Comment, item_value: Text("dit \\"salut\\"") }');
+    expect(p?.valeur).toBe('dit "salut"');
+  });
+
+  it('garde la variante quand elle porte une information', () => {
+    // `Text` et `Locator` sont des enveloppes : leur nom n'apprend rien. Une
+    // valeur binaire, si — la masquer ferait croire à un champ vide.
+    expect(parseTagItemRust('TagItem { item_key: Cover, item_value: Binary([1, 2, 3]) }')?.valeur)
+      .toBe('Binary([1, 2, 3])');
+  });
+
+  it("rend null sur une forme inattendue, plutôt que de découper de travers", () => {
+    expect(parseTagItemRust('quelque chose d autre')).toBeNull();
+    expect(parseTagItemRust('')).toBeNull();
+  });
+});
+
+describe('les doublons du fichier ne sont pas affichés deux fois', () => {
+  it('AlbumArtist déclaré deux fois avec la même valeur ne donne qu’une ligne', () => {
+    // Mesuré sur le .18 : le fichier de Paco de Lucia porte deux fois le même
+    // `AlbumArtist`. Les afficher tous les deux n'apprend rien.
+    const tags = normalizeFileTags([
+      { tag_type: 'VorbisComments', items: [
+        'TagItem { item_key: AlbumArtist, item_value: Text("Paco de Lucia") }',
+        'TagItem { item_key: AlbumArtist, item_value: Text("Paco de Lucia") }',
+        'TagItem { item_key: AlbumArtist, item_value: Text("Un autre") }',
+      ] },
+    ]);
+    expect(tags.AlbumArtist).toEqual(['Paco de Lucia', 'Un autre']);
+  });
+
+  it("une ligne illisible est GARDÉE, sous le nom de son conteneur", () => {
+    const tags = normalizeFileTags([{ tag_type: 'Id3v2', items: ['charabia sans paire'] }]);
+    expect(tags.Id3v2).toEqual(['charabia sans paire']);
   });
 });

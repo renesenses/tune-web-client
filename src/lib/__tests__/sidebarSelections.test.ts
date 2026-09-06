@@ -127,14 +127,26 @@ describe('Barre latérale — les sélections', () => {
     expect(shell().includes("$activeView === 'tags'"), 'la route a disparu').toBe(true);
   });
 
-  it('l’écran Étiquettes annonce des ALBUMS, pas un total', () => {
-    // `GET /tags/{id}/albums` est la seule route qui liste par étiquette, alors
-    // qu'une étiquette porte aussi artistes, playlists, pistes et collections.
-    // Annoncer un total qui ne correspond pas à ce qu'on voit serait pire que
-    // de ne rien annoncer.
+  it('l’écran Étiquettes annonce ce qu’il MONTRE, ni plus ni moins', () => {
+    // 🔴 Cette garde figeait une croyance fausse, corrigée le 06/09/2026 :
+    // « `GET /tags/{id}/albums` est la seule route qui liste par étiquette ».
+    // Les quatre existent (mesuré sur le .18), et l'écran les lit désormais
+    // toutes. Elle est donc RÉORIENTÉE, pas retirée — son intérêt reste
+    // entier : le nombre annoncé doit correspondre à ce qu'on voit.
+    //
+    // Le détail des quatre familles est tenu par
+    // `etiquettesQuatreFamilles.test.ts` ; ici on ne garde que la règle
+    // d'affichage.
     const src = lire('../../components/v2/EtiquettesV2.svelte');
-    expect(src.includes('v2.tags.albumsWithTag'), 'la mention « albums » a disparu').toBe(true);
     expect(src.includes('api.getTagAlbums('), 'la lecture des albums a disparu').toBe(true);
+    expect(
+      src.includes('v2.tags.itemsWithTag'),
+      'le total annoncé doit porter sur les quatre familles affichées',
+    ).toBe(true);
+    expect(
+      src.includes('v2.tags.albumsWithTag'),
+      'annoncer « albums » au-dessus de quatre onglets ferait mentir l’en-tête',
+    ).toBe(false);
   });
 
   it('un écran sans étiquette DIT où en poser une', () => {
