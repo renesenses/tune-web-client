@@ -3883,6 +3883,12 @@ export default {
   "v2.tags.noArtistWithTag": "No artist has this tag.",
   "v2.tags.noTrackWithTag": "No track has this tag.",
   "v2.tags.noPlaylistWithTag": "No playlist has this tag.",
+  "v2.album.play": "Play",
+  "v2.album.shuffle": "Shuffle",
+  "v2.album.playNext": "Play next",
+  "v2.album.addQueue": "Add to queue",
+  "v2.album.queued": "“{title}” added to the queue.",
+  "v2.album.queuedNext": "“{title}” will play next.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -3863,6 +3863,12 @@ export default {
   "v2.tags.noArtistWithTag": "Kein Interpret trägt dieses Tag.",
   "v2.tags.noTrackWithTag": "Kein Titel trägt dieses Tag.",
   "v2.tags.noPlaylistWithTag": "Keine Playlist trägt dieses Tag.",
+  "v2.album.play": "Abspielen",
+  "v2.album.shuffle": "Zufall",
+  "v2.album.playNext": "Als Nächstes",
+  "v2.album.addQueue": "Zur Warteschlange",
+  "v2.album.queued": "„{title}“ zur Warteschlange hinzugefügt.",
+  "v2.album.queuedNext": "„{title}“ wird als Nächstes gespielt.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

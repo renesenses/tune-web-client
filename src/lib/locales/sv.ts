@@ -3862,4 +3862,10 @@ export default {
   "v2.tags.noArtistWithTag": "Ingen artist har den här taggen.",
   "v2.tags.noTrackWithTag": "Inget spår har den här taggen.",
   "v2.tags.noPlaylistWithTag": "Ingen spellista har den här taggen.",
+  "v2.album.play": "Spela",
+  "v2.album.shuffle": "Slumpa",
+  "v2.album.playNext": "Spela härnäst",
+  "v2.album.addQueue": "Lägg i kön",
+  "v2.album.queued": "”{title}” lades till i kön.",
+  "v2.album.queuedNext": "”{title}” spelas härnäst.",
 } as const;

@@ -3821,6 +3821,12 @@ export default {
   "v2.tags.noArtistWithTag": "Egyetlen előadó sem hordozza ezt a címkét.",
   "v2.tags.noTrackWithTag": "Egyetlen szám sem hordozza ezt a címkét.",
   "v2.tags.noPlaylistWithTag": "Egyetlen lejátszási lista sem hordozza ezt a címkét.",
+  "v2.album.play": "Lejátszás",
+  "v2.album.shuffle": "Véletlenszerű",
+  "v2.album.playNext": "Következőként",
+  "v2.album.addQueue": "Sorhoz adás",
+  "v2.album.queued": "A(z) „{title}” a sorhoz adva.",
+  "v2.album.queuedNext": "A(z) „{title}” következik.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

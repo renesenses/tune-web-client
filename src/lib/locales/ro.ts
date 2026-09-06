@@ -3863,6 +3863,12 @@ export default {
   "v2.tags.noArtistWithTag": "Niciun artist nu are această etichetă.",
   "v2.tags.noTrackWithTag": "Nicio piesă nu are această etichetă.",
   "v2.tags.noPlaylistWithTag": "Nicio listă nu are această etichetă.",
+  "v2.album.play": "Redă",
+  "v2.album.shuffle": "Aleatoriu",
+  "v2.album.playNext": "Redă în continuare",
+  "v2.album.addQueue": "Adaugă în coadă",
+  "v2.album.queued": "„{title}” adăugat în coadă.",
+  "v2.album.queuedNext": "„{title}” va fi redat în continuare.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

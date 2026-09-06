@@ -3863,6 +3863,12 @@ export default {
   "v2.tags.noArtistWithTag": "このタグを持つアーティストはありません。",
   "v2.tags.noTrackWithTag": "このタグを持つ曲はありません。",
   "v2.tags.noPlaylistWithTag": "このタグを持つプレイリストはありません。",
+  "v2.album.play": "再生",
+  "v2.album.shuffle": "シャッフル",
+  "v2.album.playNext": "次に再生",
+  "v2.album.addQueue": "キューに追加",
+  "v2.album.queued": "「{title}」をキューに追加しました。",
+  "v2.album.queuedNext": "「{title}」を次に再生します。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -3863,6 +3863,12 @@ export default {
   "v2.tags.noArtistWithTag": "이 태그를 가진 아티스트가 없습니다.",
   "v2.tags.noTrackWithTag": "이 태그를 가진 트랙이 없습니다.",
   "v2.tags.noPlaylistWithTag": "이 태그를 가진 재생목록이 없습니다.",
+  "v2.album.play": "재생",
+  "v2.album.shuffle": "셔플",
+  "v2.album.playNext": "다음에 재생",
+  "v2.album.addQueue": "대기열에 추가",
+  "v2.album.queued": "\"{title}\"을(를) 대기열에 추가했습니다.",
+  "v2.album.queuedNext": "\"{title}\"을(를) 다음에 재생합니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

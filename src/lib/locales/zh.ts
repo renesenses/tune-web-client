@@ -3863,6 +3863,12 @@ export default {
   "v2.tags.noArtistWithTag": "没有艺术家带有此标签。",
   "v2.tags.noTrackWithTag": "没有曲目带有此标签。",
   "v2.tags.noPlaylistWithTag": "没有播放列表带有此标签。",
+  "v2.album.play": "播放",
+  "v2.album.shuffle": "随机播放",
+  "v2.album.playNext": "下一首播放",
+  "v2.album.addQueue": "加入队列",
+  "v2.album.queued": "已将《{title}》加入队列。",
+  "v2.album.queuedNext": "《{title}》将下一首播放。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

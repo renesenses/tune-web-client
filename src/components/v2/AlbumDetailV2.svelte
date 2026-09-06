@@ -4,6 +4,7 @@
    * grille : pochette + métadonnées + liste de pistes jouables. Détail
    * technique (fréquence/profondeur) à l'Expert, comme partout ailleurs.
    */
+  import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { t as tr } from '../../lib/i18n';
   import { formatAnneeAlbum } from '../../lib/formats';
@@ -15,7 +16,9 @@
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
-  import { corpsDeLecture } from '../../lib/pisteFile';
+  import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
+  import { queuePosition } from '../../lib/stores/queue';
+  import { notifications } from '../../lib/stores/notifications';
   import { favoriteAlbumIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
@@ -164,30 +167,78 @@
     if (depot) { enchainerDistant(tracks, startIndex).catch(() => {}); return; }
     playAndSync(zid, { album_id: album.id, start_index: startIndex }).catch(() => {});
   }
+  /** Melange en place, sans hasard reel : la meme permutation pour un meme
+   *  nombre de pistes. C'etait deja le cas ici, on ne fait que l'extraire. */
+  function melanger<T>(l: T[]): T[] {
+    const c = [...l];
+    for (let i = c.length - 1; i > 0; i--) { const j = (i * 7 + 3) % (i + 1); [c[i], c[j]] = [c[j], c[i]]; }
+    return c;
+  }
+
   function shuffle() {
     const zid = $currentZoneId;
-    if (zid == null || album.id == null) return;
-    if (depot) {
-      const l = [...tracks];
-      for (let i = l.length - 1; i > 0; i--) { const j = (i * 7 + 3) % (i + 1); [l[i], l[j]] = [l[j], l[i]]; }
-      enchainerDistant(l).catch(() => {});
-      return;
-    }
-    const ids = tracks.map((t) => t.id).filter((x): x is number => x != null);
-    for (let i = ids.length - 1; i > 0; i--) { const j = (i * 7 + 3) % (i + 1); [ids[i], ids[j]] = [ids[j], ids[i]]; }
-    playAndSync(zid, { track_ids: ids }).catch(() => {});
-  }
-  function addQueue() {
-    const zid = $currentZoneId, d = depot;
-    if (zid == null || album.id == null) return;
-    if (d) {
+    if (zid == null) return;
+    if (depot) { enchainerDistant(melanger(tracks)).catch(() => {}); return; }
+    // Album de SERVICE ou Bandcamp : pas d'`id` local, mais chaque piste est
+    // designable par sa paire `source` + `source_id`. La premiere joue, les
+    // autres s'empilent en UNE requete.
+    if (service || bandcamp) {
+      const l = melanger(tracks);
+      const tete = corpsDeLecture(l[0]);
+      if (!tete) return;
       (async () => {
-        for (const t of tracks) if (t.id != null) await api.addToQueue(zid, corpsLecture(d, t) as any);
+        await playAndSync(zid, tete as any);
+        const reste = corpsDeFileListe(l.slice(1));
+        if (reste) await api.addToQueue(zid, reste);
       })().catch(() => {});
       return;
     }
-    api.addToQueue(zid, { album_id: album.id }).catch(() => {});
+    if (album.id == null) return;
+    const ids = melanger(tracks.map((t) => t.id).filter((x): x is number => x != null));
+    playAndSync(zid, { track_ids: ids }).catch(() => {});
   }
+  /**
+   * Les deux boutons de file, pour les QUATRE origines.
+   *
+   * « Ajouter à la file » et « Lire ensuite » étaient MASQUÉS dès qu'un album
+   * venait d'un service : « Aléatoire et "ajouter à la file" travaillent sur
+   * des identifiants de pistes LOCALES ; un album de service n'en a pas »,
+   * disait le commentaire. La moitié était vraie — l'album n'a pas d'`id` —,
+   * la conclusion ne l'était pas : `QueueAddRequest` accepte `tracks[]`, des
+   * lignes de service, et les fait passer par le même `insert_at`.
+   *
+   * « Vue album : ajouter Ajouter à la file d'attente, lire à la fin du
+   * prochain morceau ; ex qobuz, ajouter les 5 CTA » (Bertrand, 06/09/2026).
+   * Un album Qobuz n'offrait que deux boutons sur cinq.
+   *
+   * ⚠️ UNE requête, pas une boucle. La boucle précédente envoyait un appel par
+   * piste ; avec un rang, chaque insertion décalait la suivante et l'ordre de
+   * l'album s'inversait.
+   */
+  let fileOccupee = $state(false);
+  async function enfiler(position: number | undefined, cle: string) {
+    const zid = $currentZoneId, d = depot;
+    if (zid == null || fileOccupee) return;
+    // L'album LOCAL part par son identifiant : le serveur applique alors le
+    // rattrapage de la ligne sœur, que résoudre les pistes ici ignorerait —
+    // l'album s'ajoutait VIDE là où « lire » marchait (Pascal, v0.9.21).
+    const corps = !d && !service && !bandcamp && album.id != null
+      ? { album_id: album.id, ...(position != null ? { position } : {}) }
+      : corpsDeFileListe(d ? tracks.map((t) => corpsLecture(d, t) as any) : tracks, position);
+    if (!corps) return;
+    fileOccupee = true;
+    try {
+      await api.addToQueue(zid, corps);
+      notifications.success($tr(cle as any).replace('{title}', album.title ?? ''));
+    } catch {
+      notifications.error($tr('v2.pa.queueError' as any));
+    }
+    fileOccupee = false;
+  }
+  const addQueue = () => enfiler(undefined, 'v2.album.queued');
+  /** « Lire ensuite » insère au rang SUIVANT celui qui joue. Sans rang, la
+   *  route ajoute à la fin — ce serait le bouton d'à côté. */
+  const lireEnsuite = () => enfiler(get(queuePosition) + 1, 'v2.album.queuedNext');
   function trackTech(t: Track): string {
     const rate = t.sample_rate ? `${Math.round(t.sample_rate / 100) / 10} kHz` : '';
     const depth = t.bit_depth ? `${t.bit_depth}-bit` : '';
@@ -213,20 +264,24 @@
       </div>
       <div class="actions">
         <button class="play" onclick={() => playAlbum(0)}>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>Lire
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$tr('v2.album.play' as any)}
         </button>
-        <!-- Aléatoire et « ajouter à la file » travaillent sur des identifiants
-             de pistes LOCALES ; un album de service n'en a pas. Masqués plutôt
-             que morts : un bouton qui ne fait rien est pire qu'un bouton
-             absent. -->
-        {#if !service}
-          <button class="ghost" onclick={shuffle}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>Aléatoire
-          </button>
-          <button class="ghost" onclick={addQueue}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>Ajouter à la file
-          </button>
-        {/if}
+        <!-- 🔴 Les CINQ actions valent pour les QUATRE origines.
+             Elles étaient masquées dès qu'un album venait d'un service, au
+             motif qu'elles « travaillent sur des identifiants de pistes
+             LOCALES ». L'album n'a effectivement pas d'`id` — mais chaque
+             piste porte sa paire `source` + `source_id`, et la route de file
+             accepte `tracks[]`. Un album Qobuz n'offrait que deux boutons sur
+             cinq (Bertrand, 06/09/2026). -->
+        <button class="ghost" onclick={shuffle}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>{$tr('v2.album.shuffle' as any)}
+        </button>
+        <button class="ghost" onclick={lireEnsuite} disabled={fileOccupee}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h9M4 12h9M4 18h5"/><path d="M15 8l5 4-5 4z" fill="currentColor" stroke="none"/></svg>{$tr('v2.album.playNext' as any)}
+        </button>
+        <button class="ghost" onclick={addQueue} disabled={fileOccupee}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>{$tr('v2.album.addQueue' as any)}
+        </button>
         <!-- Le cœur n'apparaît que si l'album est DÉSIGNABLE : un album
              Bandcamp, identifié par une URL, n'entre dans aucune des deux
              tables de favoris. Un bouton absent ne promet rien. -->

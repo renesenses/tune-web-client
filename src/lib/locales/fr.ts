@@ -3885,6 +3885,12 @@ export default {
   "v2.tags.noArtistWithTag": "Aucun artiste ne porte cette étiquette.",
   "v2.tags.noTrackWithTag": "Aucun titre ne porte cette étiquette.",
   "v2.tags.noPlaylistWithTag": "Aucune playlist ne porte cette étiquette.",
+  "v2.album.play": "Lire",
+  "v2.album.shuffle": "Aléatoire",
+  "v2.album.playNext": "Lire ensuite",
+  "v2.album.addQueue": "Ajouter à la file",
+  "v2.album.queued": "« {title} » ajouté à la file.",
+  "v2.album.queuedNext": "« {title} » sera lu ensuite.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

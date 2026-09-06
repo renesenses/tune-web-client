@@ -3863,6 +3863,12 @@ export default {
   "v2.tags.noArtistWithTag": "Nessun artista ha questa etichetta.",
   "v2.tags.noTrackWithTag": "Nessun brano ha questa etichetta.",
   "v2.tags.noPlaylistWithTag": "Nessuna playlist ha questa etichetta.",
+  "v2.album.play": "Riproduci",
+  "v2.album.shuffle": "Casuale",
+  "v2.album.playNext": "Riproduci dopo",
+  "v2.album.addQueue": "Aggiungi alla coda",
+  "v2.album.queued": "«{title}» aggiunto alla coda.",
+  "v2.album.queuedNext": "«{title}» verrà riprodotto dopo.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];
