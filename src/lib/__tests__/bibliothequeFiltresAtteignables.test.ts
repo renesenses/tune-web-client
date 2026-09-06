@@ -142,10 +142,21 @@ describe('Bibliothèque — les filtres retirent, ils n’atténuent pas', () =>
   it('le rail A–Z suit ce qui est AFFICHÉ', () => {
     // Sinon il propose des lettres qui ne mènent nulle part : on clique « M »
     // et la vue ne bouge pas, parce qu'aucun album filtré ne commence par M.
+    const src = source();
+    // 🔴 RÉORIENTÉE le 06/09/2026. La garde figeait l'expression EXACTE ; le
+    // rail suit désormais le tri et disparaît sur un tri chronologique
+    // (Lulu, forum 1671). Ce qu'elle protège reste entier : les lettres sont
+    // calculées sur ce qui est AFFICHÉ, jamais sur la liste complète.
     expect(
-      source().includes('const present = $derived(new Set(affiches.map(firstLetter)))'),
+      /const present = \$derived\([^;]*affiches\.map\(firstLetter\)/.test(src),
       'le rail A–Z est recalculé sur la liste complète : il proposerait des lettres vides.',
     ).toBe(true);
+    expect(
+      /const present = \$derived\([^;]*\b(sorted|src)\.map\(firstLetter\)/.test(src),
+      'le rail lit une liste NON filtrée',
+    ).toBe(false);
+    // Et il vise la même chose que le tri : sinon « M » atterrit ailleurs.
+    expect(src).toMatch(/sortKey === 'artist' \? \(a\.artist_name \?\? ''\) : \(a\.title \?\? ''\)/);
   });
 
   it('un filtre sans résultat le DIT, au lieu d’une page blanche', () => {
