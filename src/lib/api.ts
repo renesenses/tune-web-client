@@ -5507,6 +5507,45 @@ export interface MetadataProposal {
   fetched_at: string;
 }
 
+// ---------------------------------------------------------------------------
+// Doublons de la bibliothèque : ce que le serveur sait nommer et réparer
+// (BIB-A2, BIB-C1, BIB-B3 — v0.9.137 à v0.9.140).
+// ---------------------------------------------------------------------------
+export interface AlbumEclate { id: number; title: string; artist?: string | null; year?: number | null; track_count: number; track_numbers?: number[] }
+export interface GroupeAlbumsEclates { numeros_complementaires?: boolean; meme_annee?: boolean; pistes?: number; albums: AlbumEclate[]; [k: string]: unknown }
+/** Un album coupé en plusieurs fiches (`GET /library/albums/eclates`). */
+export function getAlbumsEclates() {
+  return fetchJSON<{ count: number; groups: GroupeAlbumsEclates[] }>(`${BASE}/library/albums/eclates`).then((r) => r?.groups ?? []);
+}
+/** L'album `cible` absorbe `doublon` : pistes, favoris, notes, étiquettes, dossiers,
+ *  historique. 409 si les deux n'ont aucun dossier commun, pas le même titre, ou
+ *  ont été déclarés distincts. */
+export function absorbAlbum(cible: number, doublon: number) {
+  return fetchJSON<unknown>(`${BASE}/library/albums/${cible}/absorber/${doublon}`, { method: 'POST' });
+}
+export interface ArtisteHomographe { id: number; name: string; musicbrainz_id?: string | null; albums: number }
+export interface GroupeArtistes { cle: string; mbid_distincts?: boolean; albums?: number; artistes: ArtisteHomographe[] }
+/** Deux fiches d'un même artiste sous deux graphies (`GET /library/artists/doublons`). */
+export function getArtistsDoublons() {
+  return fetchJSON<{ count: number; groups: GroupeArtistes[] }>(`${BASE}/library/artists/doublons`).then((r) => r?.groups ?? []);
+}
+export function absorbArtist(cible: number, doublon: number) {
+  return fetchJSON<unknown>(`${BASE}/library/artists/${cible}/absorber/${doublon}`, { method: 'POST' });
+}
+export interface CopieDoublon { id: number; title?: string; artist_name?: string | null; file_path?: string; duration_ms?: number; format?: string | null; sample_rate?: number | null; bit_depth?: number | null }
+export interface PaireDoublonNommee { critere: string; suppression_sure: boolean; a: CopieDoublon; b: CopieDoublon; recommandation: { garder: number | null; raison: string } }
+/** BIB-B3 : les paires de pistes en double, une forme unique — critère nommé,
+ *  recommandation « garder » par la règle de qualité partagée. */
+export function getPairesDoublons(critere?: string) {
+  const q = critere ? `?critere=${encodeURIComponent(critere)}` : '';
+  return fetchJSON<{ paires?: PaireDoublonNommee[] }>(`${BASE}/library/duplicates${q}`).then((r) => r?.paires ?? []);
+}
+/** Garde `keep`, retire `del` de la bibliothèque (playlists, file, historique et
+ *  favoris repointés sur `keep`). Le fichier n'est pas touché. */
+export function resolveTrackDuplicate(keep: number, del: number) {
+  return fetchJSON<unknown>(`${BASE}/library/duplicates/resolve`, { method: 'POST', body: JSON.stringify({ keep_id: keep, delete_id: del }) });
+}
+
 export function listMetadataProposals(
   limit = 100,
 ): Promise<{ proposals: MetadataProposal[]; pending: number; auto_apply: boolean }> {
