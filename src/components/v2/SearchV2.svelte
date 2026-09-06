@@ -302,6 +302,42 @@
   const artistes = $derived(voirArtistes ? groupes.artistes.filter(dansLePerimetre) : []);
   const albums = $derived(voirAlbums ? groupes.albums.filter(dansLePerimetre) : []);
   const titres = $derived(voirTitres ? groupes.pistes.filter(dansLePerimetre) : []);
+
+  /**
+   * « Voir plus » — le RÉVÉLATEUR, pas un nouvel appel.
+   *
+   * « Résultats de recherche : ne pas limiter sur les services de streaming
+   * => bouton voir plus » (Bertrand, 06/09/2026).
+   *
+   * Deux plafonds vivaient en dur dans le balisage : `artistes.slice(0, 12)`
+   * et `titres.slice(0, 40)`. Ce qui dépassait était reçu, gardé en mémoire —
+   * et jeté à l'affichage, sans que rien ne dise qu'il existait. Un écran qui
+   * cache silencieusement se lit comme un écran qui n'a pas trouvé.
+   *
+   * ⚠️ Il RÉVÈLE ce qui est déjà là ; il ne va pas chercher la suite chez le
+   * service. Le serveur le dit lui-même (`routes/search.rs`) : « Les services
+   * de streaming ne sont PAS paginés ici : `limit` continue de leur être passé
+   * tel quel, sans `offset` ». Et 50 est le plafond de page de l'API Qobuz —
+   * demander davantage ne rend pas davantage. Promettre « voir plus » comme un
+   * chargement serait promettre ce que la chaîne ne sait pas faire.
+   */
+  const PAS_ARTISTES = 12, PAS_ALBUMS = 24, PAS_TITRES = 40;
+  let montreArtistes = $state(PAS_ARTISTES);
+  let montreAlbums = $state(PAS_ALBUMS);
+  let montreTitres = $state(PAS_TITRES);
+  // Une nouvelle recherche REPLIE : sans cela, une requête large laissait la
+  // suivante ouverte sur des centaines de vignettes.
+  $effect(() => {
+    void q;
+    montreArtistes = PAS_ARTISTES; montreAlbums = PAS_ALBUMS; montreTitres = PAS_TITRES;
+  });
+  const vusArtistes = $derived(artistes.slice(0, montreArtistes));
+  const vusAlbums = $derived(albums.slice(0, montreAlbums));
+  const vusTitres = $derived(titres.slice(0, montreTitres));
+  const resteArtistes = $derived(artistes.length - vusArtistes.length);
+  const resteAlbums = $derived(albums.length - vusAlbums.length);
+  const resteTitres = $derived(titres.length - vusTitres.length);
+  const libelleVoirPlus = (n: number) => $t('v2.rech.seeMore' as any).replace('{n}', String(n));
   const lesPlaylists = $derived(voirPlaylists ? playlists : []);
 
   // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
@@ -536,7 +572,7 @@
             <div class="basartistes">
               <h2>{$t('v2.rech.artists' as any)}</h2>
               <div class="arow">
-                {#each artistes.slice(0, 12) as ar, i (String(ar.id ?? '') + ':' + ar.name + ':' + i)}
+                {#each vusArtistes as ar, i (String(ar.id ?? '') + ':' + ar.name + ':' + i)}
                   <div class="artile">
                     <span class="acv">
                       <PochetteActions
@@ -553,6 +589,10 @@
                   </div>
                 {/each}
               </div>
+              {#if resteArtistes > 0}
+                <button class="voirplus" onclick={() => (montreArtistes += PAS_ARTISTES)}
+                  >{libelleVoirPlus(resteArtistes)}</button>
+              {/if}
             </div>
           {/if}
         </section>
@@ -562,7 +602,7 @@
         <section class="grp">
           <h2>{$t('v2.rech.albums' as any)}</h2>
           <div class="grid">
-            {#each albums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
+            {#each vusAlbums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
               {@const local_ = estLocal(a)}
               <div class="card" class:static={!local_}>
                 <span class="cv">
@@ -597,6 +637,10 @@
               </div>
             {/each}
           </div>
+          {#if resteAlbums > 0}
+            <button class="voirplus" onclick={() => (montreAlbums += PAS_ALBUMS)}
+              >{libelleVoirPlus(resteAlbums)}</button>
+          {/if}
         </section>
       {/if}
 
@@ -604,10 +648,14 @@
         <section class="grp">
           <h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="list">
-            {#each titres.slice(0, 40) as t, i (String(t.source ?? 'local') + ':' + String(t.id ?? t.source_id ?? i))}
+            {#each vusTitres as t, i (String(t.source ?? 'local') + ':' + String(t.id ?? t.source_id ?? i))}
               <LignePisteV2 piste={t as any} onLire={() => lirePiste(t)} />
             {/each}
           </div>
+          {#if resteTitres > 0}
+            <button class="voirplus" onclick={() => (montreTitres += PAS_TITRES)}
+              >{libelleVoirPlus(resteTitres)}</button>
+          {/if}
         </section>
       {/if}
 
@@ -664,6 +712,14 @@
 </section>
 
 <style>
+  /* « Voir plus » : une action de LISTE, pas un bouton d'action principale —
+     il ne doit pas rivaliser avec les pochettes qu'il découvre. */
+  .voirplus{display:block; margin:14px auto 0; padding:9px 18px; cursor:pointer;
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
+    background:transparent; color:var(--v2-txt2); font:600 12.5px var(--v2-sans)}
+  .voirplus:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .voirplus:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+
   .v2-search{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
 

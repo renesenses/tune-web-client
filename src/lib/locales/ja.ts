@@ -3870,6 +3870,7 @@ export default {
   "v2.album.queued": "「{title}」をキューに追加しました。",
   "v2.album.queuedNext": "「{title}」を次に再生します。",
   "v2.lib.openAlbum": "アルバムを開く",
+  "v2.rech.seeMore": "さらに表示（{n}）",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

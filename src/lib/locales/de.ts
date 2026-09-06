@@ -3870,6 +3870,7 @@ export default {
   "v2.album.queued": "„{title}“ zur Warteschlange hinzugefügt.",
   "v2.album.queuedNext": "„{title}“ wird als Nächstes gespielt.",
   "v2.lib.openAlbum": "Album öffnen",
+  "v2.rech.seeMore": "Mehr anzeigen ({n})",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

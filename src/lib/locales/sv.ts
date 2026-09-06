@@ -3869,4 +3869,5 @@ export default {
   "v2.album.queued": "”{title}” lades till i kön.",
   "v2.album.queuedNext": "”{title}” spelas härnäst.",
   "v2.lib.openAlbum": "Öppna albumet",
+  "v2.rech.seeMore": "Visa fler ({n})",
 } as const;

@@ -3892,6 +3892,7 @@ export default {
   "v2.album.queued": "« {title} » ajouté à la file.",
   "v2.album.queuedNext": "« {title} » sera lu ensuite.",
   "v2.lib.openAlbum": "Ouvrir l'album",
+  "v2.rech.seeMore": "Voir plus ({n})",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

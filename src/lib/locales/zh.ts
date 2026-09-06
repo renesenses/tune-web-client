@@ -3870,6 +3870,7 @@ export default {
   "v2.album.queued": "已将《{title}》加入队列。",
   "v2.album.queuedNext": "《{title}》将下一首播放。",
   "v2.lib.openAlbum": "打开专辑",
+  "v2.rech.seeMore": "显示更多（{n}）",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

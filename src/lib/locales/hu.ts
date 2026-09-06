@@ -3828,6 +3828,7 @@ export default {
   "v2.album.queued": "A(z) „{title}” a sorhoz adva.",
   "v2.album.queuedNext": "A(z) „{title}” következik.",
   "v2.lib.openAlbum": "Album megnyitása",
+  "v2.rech.seeMore": "Több megjelenítése ({n})",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];
