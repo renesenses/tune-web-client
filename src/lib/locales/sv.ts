@@ -1893,6 +1893,7 @@ export default {
   "settings.install": "Installera",
   "settings.updates": "Uppdateringar",
   "settings.upToDate": "Uppdaterad",
+  "settings.checkUpdatesNow": "Sök efter uppdateringar",
   "settings.clientServerMismatch": "Klient och server är inte synkade — uppdatera servern",
   "settings.downloadDiagTitle": "Laddar ned en ZIP med loggar + diagnostik + konfiguration (uppgifter maskerade) att skicka till supporten",
   "settings.preparing": "Förbereder…",

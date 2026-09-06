@@ -762,8 +762,12 @@
         // updateInfo?.latest_version}`. La condition était donc TOUJOURS
         // fausse et le bouton d'installation inatteignable — « manque le
         // bouton de maj » (Bertrand, 06/09/2026). Voir `lib/miseAJour`.
-        const v = normaliserVerificationMaj(d);
-        updateInfo = v?.update_available ? v : null;
+        // Et le résultat est GARDÉ même sans mise à jour : le bloc dit
+        // « À jour » et offre de revérifier, comme l'ancien client — « MAJ v2
+        // toujours pas de bouton comme dans la version actuelle » (Bertrand,
+        // 06/09/2026, v0.9.139). Le bouton d'installation, lui, n'apparaît
+        // que si `update_available` est vrai.
+        updateInfo = normaliserVerificationMaj(d);
       })
       .catch(() => { serverVersion = null; });
     api.getHealth().then((h) => { health = h; }).catch(() => { health = null; });
@@ -1085,6 +1089,20 @@
     return brut || get(t)('settings.updateBlockedUnknown');
   }
 
+  // Revérifier à la demande : même route, même normalisation, et l'écran
+  // rend compte (« À jour » ou le bloc d'installation) au lieu de se taire.
+  let majVerif = $state<'repos' | 'en_cours' | 'fait'>('repos');
+  async function verifierMaj() {
+    majVerif = 'en_cours';
+    try {
+      const d: any = await api.apiFetch('/system/update/check');
+      serverVersion = d?.current_version ?? d?.current ?? serverVersion;
+      updateInfo = normaliserVerificationMaj(d);
+      majVerif = 'fait';
+    } catch {
+      majVerif = 'repos';
+    }
+  }
   async function installerMaj() {
     updBusy = true; updRefus = ''; updDone = false; updDmg = null;
     const versionAvant = updateInfo?.current_version ?? serverVersion;
@@ -2207,7 +2225,7 @@
                   release a bien reconstruit le client web.
                 </div>
               {/if}
-              {#if updateInfo?.latest_version}
+              {#if updateInfo?.update_available}
                 <div class="okbox">
                   {$t('settings.updateAvailable' as any)} : <b>v{updateInfo.latest_version}</b>
                   (v{updateInfo.current_version ?? serverVersion})
@@ -2223,6 +2241,18 @@
                 {#if updRefus}<div class="warnbox">{updRefus}</div>{/if}
                 {#if updDmg}<div class="okbox">{updDmg}</div>{/if}
                 {#if updDone}<div class="okbox">{$t('settings.updateDoneReloading' as any)}</div>{/if}
+              {:else}
+                <div class="rows">
+                  <div class="kv">
+                    <span>{$t('settings.updates' as any)}</span>
+                    <b>{updateInfo ? '\u2713 ' + $t('settings.upToDate' as any) : '\u2026'}</b>
+                  </div>
+                </div>
+                <div class="inline">
+                  <button class="lnk" disabled={majVerif === 'en_cours'} onclick={verifierMaj}>
+                    {majVerif === 'en_cours' ? $t('common.loading' as any) : $t('settings.checkUpdatesNow' as any)}
+                  </button>
+                </div>
               {/if}
 
             {:else if s.id === 'license'}

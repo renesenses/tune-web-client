@@ -74,10 +74,11 @@ describe('les écrans passent tous par cette traduction', () => {
   it("l'écran Réglages du nouveau client", () => {
     const src = sansCommentaires(lire('src/components/v2/SettingsV2.svelte'));
     expect(src).toContain('normaliserVerificationMaj(d)');
-    // 🔴 La garde qui compte : la condition d'affichage lit un champ que SEULE
-    // la normalisation produit. Sans elle, le bouton est invisible pour
-    // toujours, et aucun test de rendu ne le dirait.
-    expect(src).toContain('{#if updateInfo?.latest_version}');
+    // 🔴 La garde qui compte : le bouton d'installation dépend d'un champ que
+    // SEULE la normalisation produit (`update_available`, un vrai booléen).
+    // Sans elle, le bouton est invisible pour toujours, et aucun test de rendu
+    // ne le dirait. Le bloc lui-même, depuis la v0.9.139, est toujours visible.
+    expect(src).toContain('{#if updateInfo?.update_available}');
     expect(src, "la réponse brute ne doit plus être posée telle quelle").not.toMatch(
       /updateInfo = d\?\.update_available \? d : null/,
     );
@@ -93,5 +94,38 @@ describe('les écrans passent tous par cette traduction', () => {
     // correction en trop, qui casserait la détection du redémarrage.
     const src = sansCommentaires(lire('src/components/v2/SettingsV2.svelte'));
     expect(src).toMatch(/st\?\.current_version/);
+  });
+});
+
+/**
+ * « MAJ v2 toujours pas de bouton comme dans la version actuelle » (Bertrand,
+ * 06/09/2026, v0.9.139). Corriger le nom du champ ne suffisait pas : le bloc
+ * entier restait sous « une mise à jour est disponible », donc un serveur à
+ * jour n'affichait RIEN — ni « À jour », ni moyen de revérifier. L'ancien
+ * client montre « ✓ À jour » ; le nouveau le montre aussi, avec un bouton.
+ */
+describe('le bloc de mise à jour de SettingsV2 est toujours visible', () => {
+  const src = sansCommentaires(lire('src/components/v2/SettingsV2.svelte'));
+
+  it('n efface plus le résultat quand aucune mise à jour n est disponible', () => {
+    expect(src).not.toContain("updateInfo = v?.update_available ? v : null");
+    expect(src).toContain('updateInfo = normaliserVerificationMaj(d)');
+  });
+
+  it('conditionne le bloc d installation sur update_available, et rien d autre', () => {
+    expect(src).toContain('{#if updateInfo?.update_available}');
+    expect(src).not.toContain('{#if updateInfo?.latest_version}');
+  });
+
+  it('dit « à jour » et offre de revérifier', () => {
+    expect(src).toContain("settings.upToDate");
+    expect(src).toContain("settings.checkUpdatesNow");
+    expect(src).toContain('onclick={verifierMaj}');
+  });
+
+  it('la clé du bouton existe dans les onze langues', () => {
+    for (const l of ['fr', 'en', 'de', 'es', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh']) {
+      expect(lire(`src/lib/locales/${l}.ts`)).toContain('"settings.checkUpdatesNow"');
+    }
   });
 });
