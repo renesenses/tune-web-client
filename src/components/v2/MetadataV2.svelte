@@ -13,7 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
-  import type { MetadataProposal, DoubtfulAlbum } from '../../lib/api';
+  import type { MetadataProposal, DoubtfulAlbum, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon } from '../../lib/api';
   import { } from '../../lib/utils';
   import AlbumArt from '../AlbumArt.svelte';
   // L'arbre des genres du client actuel, REPRIS tel quel plutôt que réécrit :
@@ -24,7 +24,7 @@
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
-  type Tab = 'proposals' | 'doubtful' | 'genres';
+  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres';
   let tab = $state<Tab>('proposals');
 
   let proposals = $state<MetadataProposal[]>([]);
@@ -45,6 +45,57 @@
       error = null;
     } catch { error = $t('v2.meta.suggestUnavail' as any); }
     pLoading = false;
+  }
+  // Onglet « Doublons » : ce que le serveur sait nommer ET réparer — albums
+  // éclatés (BIB-A2), artistes en double (BIB-C1), paires de pistes à critère
+  // nommé (BIB-B3). Chargé à l'ouverture de l'onglet, jamais avant.
+  let dblAlbums = $state<GroupeAlbumsEclates[]>([]);
+  let dblArtistes = $state<GroupeArtistes[]>([]);
+  let dblPaires = $state<PaireDoublonNommee[]>([]);
+  let dblLoading = $state(false);
+  let dblLoaded = false;
+  let arme = $state<string | null>(null);
+  async function chargerDoublons() {
+    dblLoading = true;
+    const [al, ar, pa] = await Promise.all([
+      api.getAlbumsEclates().catch(() => [] as GroupeAlbumsEclates[]),
+      api.getArtistsDoublons().catch(() => [] as GroupeArtistes[]),
+      api.getPairesDoublons().catch(() => [] as PaireDoublonNommee[]),
+    ]);
+    dblAlbums = al; dblArtistes = ar; dblPaires = pa;
+    dblLoading = false;
+  }
+  $effect(() => {
+    if (tab !== 'doublons' || dblLoaded) return;
+    dblLoaded = true;
+    chargerDoublons();
+  });
+  /** La fiche à garder : celle qui porte le plus (pistes, albums). */
+  function cibleAlbum(g: GroupeAlbumsEclates): AlbumEclate | null {
+    return g.albums?.reduce<AlbumEclate | null>((m, a) => (!m || a.track_count > m.track_count ? a : m), null) ?? null;
+  }
+  function cibleArtiste(g: GroupeArtistes): ArtisteHomographe | null {
+    return g.artistes?.reduce<ArtisteHomographe | null>((m, a) => (!m || a.albums > m.albums ? a : m), null) ?? null;
+  }
+  function nomCopie(c: CopieDoublon): string {
+    const q = [c.format?.toUpperCase(), c.sample_rate ? `${Math.round(c.sample_rate / 100) / 10} kHz` : null, c.bit_depth ? `${c.bit_depth} bit` : null].filter(Boolean).join(' · ');
+    return q || (c.file_path?.split('/').pop() ?? String(c.id));
+  }
+  function libelleCritere(code: string): string {
+    switch (code) {
+      case 'fichier_identique': return $t('v2.meta.critereFichier' as any);
+      case 'contenu_identique': return $t('v2.meta.critereContenu' as any);
+      case 'empreinte_identique': return $t('v2.meta.critereEmpreinte' as any);
+      case 'etiquettes_identiques': return $t('v2.meta.critereEtiquettes' as any);
+      default: return code;
+    }
+  }
+  /** Deux clics : le premier arme, le second agit — comme la suppression d'une zone. */
+  async function agir(cle: string, fn: () => Promise<unknown>) {
+    if (arme !== cle) { arme = cle; return; }
+    arme = null;
+    try { await fn(); await chargerDoublons(); error = null; }
+    catch (e: any) { error = e?.message ?? $t('v2.meta.decisionNotSaved' as any); }
   }
   $effect(() => { loadProposals(); });
 
@@ -95,6 +146,7 @@
     <nav class="tabs">
       <button class:on={tab === 'proposals'} onclick={() => (tab = 'proposals')}>{$t('v2.meta.tabProposals' as any)}<span>{$formatNombre(pending)}</span></button>
       <button class:on={tab === 'doubtful'} onclick={() => (tab = 'doubtful')}>{$t('v2.meta.tabDoubtful' as any)}{#if dLoaded}<span>{$formatNombre(doubtful.length)}</span>{/if}</button>
+      <button class:on={tab === 'doublons'} onclick={() => (tab = 'doublons')}>{$t('v2.meta.tabDoublons' as any)}{#if dblLoaded && !dblLoading}<span>{$formatNombre(dblAlbums.length + dblArtistes.length + dblPaires.length)}</span>{/if}</button>
       <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>{$t('v2.meta.tabGenres' as any)}</button>
     </nav>
   </header>
@@ -142,6 +194,81 @@
             </article>
           {/each}
         </div>
+      {/if}
+
+    {:else if tab === 'doublons'}
+      {#if dblLoading}
+        <div class="state">{$t('v2.tool.loading' as any)}</div>
+      {:else if !dblAlbums.length && !dblArtistes.length && !dblPaires.length}
+        <div class="state">{$t('v2.meta.noDup' as any)}</div>
+      {:else}
+        {#if dblAlbums.length}
+          <div class="dh">{$t('v2.meta.dupAlbums' as any)} <span>{$formatNombre(dblAlbums.length)}</span></div>
+          <div class="list">
+            {#each dblAlbums as g, gi (gi)}
+              {@const cible = cibleAlbum(g)}
+              <article class="prop grp">
+                <div class="pw">
+                  <div class="pt">{cible?.title ?? '—'}{#if cible?.artist}<em>{cible.artist}</em>{/if}</div>
+                  <div class="sub">{$t('v2.meta.recoKeep' as any).replace('{name}', `${cible?.title ?? ''} (${cible?.track_count ?? 0})`)}</div>
+                  <div class="pa wrap">
+                    {#each (g.albums ?? []).filter((a) => a.id !== cible?.id) as a (a.id)}
+                      <button class="lnk" class:armed={arme === `album:${a.id}`} onclick={() => cible && agir(`album:${a.id}`, () => api.absorbAlbum(cible.id, a.id))}>
+                        {arme === `album:${a.id}` ? $t('v2.meta.confirm' as any) : $t('v2.meta.regroupIn' as any).replace('{name}', `${a.title} (${a.track_count})`)}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              </article>
+            {/each}
+          </div>
+        {/if}
+        {#if dblArtistes.length}
+          <div class="dh">{$t('v2.meta.dupArtists' as any)} <span>{$formatNombre(dblArtistes.length)}</span></div>
+          <div class="list">
+            {#each dblArtistes as g (g.cle)}
+              {@const cible = cibleArtiste(g)}
+              <article class="prop grp">
+                <div class="pw">
+                  <div class="pt">{cible?.name ?? g.cle}</div>
+                  {#if g.mbid_distincts}<div class="sub">{$t('v2.meta.mbidDistinct' as any)}</div>{/if}
+                  <div class="pa wrap">
+                    {#each (g.artistes ?? []).filter((x) => x.id !== cible?.id) as x (x.id)}
+                      <button class="lnk" class:armed={arme === `artiste:${x.id}`} disabled={!!g.mbid_distincts} onclick={() => cible && agir(`artiste:${x.id}`, () => api.absorbArtist(cible.id, x.id))}>
+                        {arme === `artiste:${x.id}` ? $t('v2.meta.confirm' as any) : $t('v2.meta.absorbIn' as any).replace('{name}', `${x.name} (${x.albums})`)}
+                      </button>
+                    {/each}
+                  </div>
+                </div>
+              </article>
+            {/each}
+          </div>
+        {/if}
+        {#if dblPaires.length}
+          <div class="dh">{$t('v2.meta.dupTracks' as any)} <span>{$formatNombre(dblPaires.length)}</span></div>
+          <div class="list">
+            {#each dblPaires as p, pi (pi)}
+              <article class="prop grp">
+                <div class="pw">
+                  <div class="pt">{p.a.title ?? '—'}{#if p.a.artist_name}<em>{p.a.artist_name}</em>{/if}</div>
+                  <div class="pf">{libelleCritere(p.critere)}</div>
+                  <div class="sub">A · {nomCopie(p.a)} — B · {nomCopie(p.b)}</div>
+                  {#if p.recommandation?.garder != null}
+                    <div class="sub">{$t('v2.meta.recoKeep' as any).replace('{name}', p.recommandation.garder === p.a.id ? 'A' : 'B')}</div>
+                  {/if}
+                  <div class="pa wrap">
+                    <button class="lnk" class:armed={arme === `piste:${p.a.id}:${p.b.id}`} onclick={() => agir(`piste:${p.a.id}:${p.b.id}`, () => api.resolveTrackDuplicate(p.a.id, p.b.id))}>
+                      {arme === `piste:${p.a.id}:${p.b.id}` ? $t('v2.meta.confirm' as any) : $t('v2.meta.keepThis' as any).replace('{name}', 'A')}
+                    </button>
+                    <button class="lnk" class:armed={arme === `piste:${p.b.id}:${p.a.id}`} onclick={() => agir(`piste:${p.b.id}:${p.a.id}`, () => api.resolveTrackDuplicate(p.b.id, p.a.id))}>
+                      {arme === `piste:${p.b.id}:${p.a.id}` ? $t('v2.meta.confirm' as any) : $t('v2.meta.keepThis' as any).replace('{name}', 'B')}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            {/each}
+          </div>
+        {/if}
       {/if}
 
     {:else if tab === 'genres'}
@@ -260,6 +387,11 @@
   .new{font-size:13px; font-weight:600; color:var(--v2-acc-tint)}
   .src{margin-top:7px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
   .pa{display:flex; gap:8px; flex:0 0 auto}
+  .pa.wrap{flex-wrap:wrap; margin-top:8px}
+  .dh{margin:18px 0 8px; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3)}
+  .dh span{margin-left:6px; opacity:.7}
+  .sub{margin-top:4px; font-size:12px; color:var(--v2-txt3)}
+  .grp .lnk.armed{font-weight:700}
   .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;

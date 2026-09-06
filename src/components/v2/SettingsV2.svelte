@@ -344,11 +344,19 @@
   // un fichier temporaire bloquant (corrige les silences/delais en DSD
   // 256/512 sur certains renderers DLNA).
   let dsdStream = $state(false);
+  // LAT-F1 (phase 1) : avec un traitement actif (égaliseur, convolveur,
+  // ReplayGain), un lecteur réseau qui lit le LPCM reçoit un WAV traité au
+  // fil de l'eau au lieu d'attendre le fichier entier. Opt-in : à froid rien
+  // ne change de format.
+  let dspProgressif = $state(false);
   // « Resolution de l'egaliseur Expert » — cle serveur partagee par tous les
   // clients ; la vue Egaliseur la relit a l'ouverture.
   let eqBands = $state(10);
   $effect(() => {
-    api.getConfig().then((c: any) => { dsdStream = c?.dsd_lpcm_stream ?? false; }).catch(() => {});
+    api.getConfig().then((c: any) => {
+      dsdStream = c?.dsd_lpcm_stream ?? false;
+      dspProgressif = c?.dsp_progressif_reseau ?? false;
+    }).catch(() => {});
     api.getEqExpertSettings()
       .then((r) => { eqBands = r.expert_bands; })
       .catch(() => {});   // serveur anterieur : on garde la valeur par defaut
@@ -357,6 +365,11 @@
     const before = dsdStream; dsdStream = v;
     patch({ dsd_lpcm_stream: v }, () => { dsdStream = before; },
       $t((v ? 'settings.dsdStreamOn' : 'settings.dsdStreamOff') as any));
+  }
+  function setDspProgressif(v: boolean) {
+    const before = dspProgressif; dspProgressif = v;
+    patch({ dsp_progressif_reseau: v }, () => { dspProgressif = before; },
+      $t((v ? 'settings.dspProgressifOn' : 'settings.dspProgressifOff') as any));
   }
   async function setEqBands(n: number) {
     const before = eqBands; eqBands = n;
@@ -762,8 +775,12 @@
         // updateInfo?.latest_version}`. La condition était donc TOUJOURS
         // fausse et le bouton d'installation inatteignable — « manque le
         // bouton de maj » (Bertrand, 06/09/2026). Voir `lib/miseAJour`.
-        const v = normaliserVerificationMaj(d);
-        updateInfo = v?.update_available ? v : null;
+        // Et le résultat est GARDÉ même sans mise à jour : le bloc dit
+        // « À jour » et offre de revérifier, comme l'ancien client — « MAJ v2
+        // toujours pas de bouton comme dans la version actuelle » (Bertrand,
+        // 06/09/2026, v0.9.139). Le bouton d'installation, lui, n'apparaît
+        // que si `update_available` est vrai.
+        updateInfo = normaliserVerificationMaj(d);
       })
       .catch(() => { serverVersion = null; });
     api.getHealth().then((h) => { health = h; }).catch(() => { health = null; });
@@ -1085,6 +1102,20 @@
     return brut || get(t)('settings.updateBlockedUnknown');
   }
 
+  // Revérifier à la demande : même route, même normalisation, et l'écran
+  // rend compte (« À jour » ou le bloc d'installation) au lieu de se taire.
+  let majVerif = $state<'repos' | 'en_cours' | 'fait'>('repos');
+  async function verifierMaj() {
+    majVerif = 'en_cours';
+    try {
+      const d: any = await api.apiFetch('/system/update/check');
+      serverVersion = d?.current_version ?? d?.current ?? serverVersion;
+      updateInfo = normaliserVerificationMaj(d);
+      majVerif = 'fait';
+    } catch {
+      majVerif = 'repos';
+    }
+  }
   async function installerMaj() {
     updBusy = true; updRefus = ''; updDone = false; updDmg = null;
     const versionAvant = updateInfo?.current_version ?? serverVersion;
@@ -2227,7 +2258,7 @@
                   release a bien reconstruit le client web.
                 </div>
               {/if}
-              {#if updateInfo?.latest_version}
+              {#if updateInfo?.update_available}
                 <div class="okbox">
                   {$t('settings.updateAvailable' as any)} : <b>v{updateInfo.latest_version}</b>
                   (v{updateInfo.current_version ?? serverVersion})
@@ -2243,6 +2274,18 @@
                 {#if updRefus}<div class="warnbox">{updRefus}</div>{/if}
                 {#if updDmg}<div class="okbox">{updDmg}</div>{/if}
                 {#if updDone}<div class="okbox">{$t('settings.updateDoneReloading' as any)}</div>{/if}
+              {:else}
+                <div class="rows">
+                  <div class="kv">
+                    <span>{$t('settings.updates' as any)}</span>
+                    <b>{updateInfo ? '\u2713 ' + $t('settings.upToDate' as any) : '\u2026'}</b>
+                  </div>
+                </div>
+                <div class="inline">
+                  <button class="lnk" disabled={majVerif === 'en_cours'} onclick={verifierMaj}>
+                    {majVerif === 'en_cours' ? $t('common.loading' as any) : $t('settings.checkUpdatesNow' as any)}
+                  </button>
+                </div>
               {/if}
 
             {:else if s.id === 'license'}
@@ -2628,6 +2671,18 @@
                 <div class="seg4">
                   <button class:on={!dsdStream} onclick={() => setDsdStream(false)}>{$t('settings.dsdOptionFile' as any)}</button>
                   <button class:on={dsdStream} onclick={() => setDsdStream(true)}>{$t('settings.dsdOptionStream' as any)}</button>
+                </div>
+              </div>
+
+            {:else if s.id === 'dspProgressif'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.dspProgressifLabel' as any)}</span>
+                  <span class="hint">{$t('settings.dspProgressifHint' as any)}</span>
+                </div>
+                <div class="seg4">
+                  <button class:on={!dspProgressif} onclick={() => setDspProgressif(false)}>{$t('settings.dspOptionFile' as any)}</button>
+                  <button class:on={dspProgressif} onclick={() => setDspProgressif(true)}>{$t('settings.dspOptionStream' as any)}</button>
                 </div>
               </div>
 

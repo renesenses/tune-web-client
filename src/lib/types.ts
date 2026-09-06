@@ -244,6 +244,10 @@ export interface Zone {
   error?: string | null;
   stream_url?: string | null;
   online?: boolean;
+  /** DUP-1 phase 2 : à côté de `online`, DEPUIS QUAND l'appareil ne répond
+   *  plus. `absente_depuis` s'accompagne de `jours_absente`. */
+  presence?: 'en_ligne' | 'eteinte_recemment' | 'absente_depuis' | 'jamais_vue';
+  jours_absente?: number;
   /**
    * Où va réellement le son de cette zone (#1499). `online` répond « la sortie
    * répond-elle ? », pas « y a-t-il une sortie ? », et vaut toujours `true`
