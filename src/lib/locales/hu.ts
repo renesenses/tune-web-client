@@ -2150,6 +2150,7 @@ export default {
   "settings.install": "Telepítés",
   "settings.updates": "Frissítések",
   "settings.upToDate": "Naprakész",
+  "settings.checkUpdatesNow": "Frissítések keresése",
   "settings.clientServerMismatch": "A kliens és a szerver nincs szinkronban — frissítsd a szervert",
   "settings.downloadDiagTitle": "Letölt egy ZIP-et naplókkal, diagnosztikával és konfigurációval (a belépési adatok kitakarva), amelyet elküldhetsz a támogatásnak",
   "settings.preparing": "Előkészítés…",

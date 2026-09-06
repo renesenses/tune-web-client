@@ -1917,6 +1917,7 @@ export default {
   "settings.install": "Instalar",
   "settings.updates": "Actualizaciones",
   "settings.upToDate": "Actualizado",
+  "settings.checkUpdatesNow": "Buscar actualizaciones",
   "settings.clientServerMismatch": "Cliente y servidor desincronizados — actualiza el servidor",
   "settings.downloadDiagTitle": "Descarga un ZIP con registros + diagnósticos + configuración (credenciales enmascaradas) para enviar a soporte",
   "settings.preparing": "Preparando…",
