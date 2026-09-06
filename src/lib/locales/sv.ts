@@ -3858,4 +3858,8 @@ export default {
   "v2.smart.saved": "Samlingen sparad",
   "v2.smart.previewOne": "{n} album matchar",
   "v2.col.tabTotal": "{n} album totalt",
+  "v2.tags.itemsWithTag": "objekt har den här taggen",
+  "v2.tags.noArtistWithTag": "Ingen artist har den här taggen.",
+  "v2.tags.noTrackWithTag": "Inget spår har den här taggen.",
+  "v2.tags.noPlaylistWithTag": "Ingen spellista har den här taggen.",
 } as const;

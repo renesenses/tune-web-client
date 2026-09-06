@@ -3859,6 +3859,10 @@ export default {
   "v2.smart.saved": "已保存合集",
   "v2.smart.previewOne": "{n} 张专辑符合条件",
   "v2.col.tabTotal": "共 {n} 张专辑",
+  "v2.tags.itemsWithTag": "个项目带有此标签",
+  "v2.tags.noArtistWithTag": "没有艺术家带有此标签。",
+  "v2.tags.noTrackWithTag": "没有曲目带有此标签。",
+  "v2.tags.noPlaylistWithTag": "没有播放列表带有此标签。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

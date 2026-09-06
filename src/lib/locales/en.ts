@@ -3879,6 +3879,10 @@ export default {
   "v2.smart.saved": "Collection saved",
   "v2.smart.previewOne": "{n} album matches",
   "v2.col.tabTotal": "{n} albums in total",
+  "v2.tags.itemsWithTag": "items have this tag",
+  "v2.tags.noArtistWithTag": "No artist has this tag.",
+  "v2.tags.noTrackWithTag": "No track has this tag.",
+  "v2.tags.noPlaylistWithTag": "No playlist has this tag.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

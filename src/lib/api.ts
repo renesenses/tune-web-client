@@ -1925,6 +1925,30 @@ export function getTagAlbums(tagId: number) {
   return fetchJSON<{ albums: import('./types').Album[]; count: number }>(`${BASE}/tags/${tagId}/albums`);
 }
 
+// 🔴 Les TROIS autres routes de listage par étiquette.
+//
+// `EtiquettesV2` portait ceci en commentaire : « `GET /tags/{id}/albums` est la
+// SEULE route qui liste par étiquette ». C'était faux, et l'écran s'en tenait à
+// cette croyance — on pouvait étiqueter un artiste depuis sa pochette sans
+// jamais le retrouver. « Pas de prise en compte des tags artistes »
+// (Bertrand, 06/09/2026).
+//
+// Mesuré sur le .18 le même jour, les quatre répondent 200 avec la même forme
+// (`{<famille>: [...], count, tag_id}`) :
+//
+//   /tags/1/albums  /tags/1/artists  /tags/1/tracks  /tags/1/playlists
+export function getTagArtists(tagId: number) {
+  return fetchJSON<{ artists: import('./types').Artist[]; count: number }>(`${BASE}/tags/${tagId}/artists`);
+}
+
+export function getTagTracks(tagId: number) {
+  return fetchJSON<{ tracks: import('./types').Track[]; count: number }>(`${BASE}/tags/${tagId}/tracks`);
+}
+
+export function getTagPlaylists(tagId: number) {
+  return fetchJSON<{ playlists: any[]; count: number }>(`${BASE}/tags/${tagId}/playlists`);
+}
+
 // --- Playlists ---
 
 // --- Smart Playlists ---

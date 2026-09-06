@@ -3817,6 +3817,10 @@ export default {
   "v2.smart.saved": "Gyűjtemény elmentve",
   "v2.smart.previewOne": "{n} album egyezik",
   "v2.col.tabTotal": "összesen {n} album",
+  "v2.tags.itemsWithTag": "elem hordozza ezt a címkét",
+  "v2.tags.noArtistWithTag": "Egyetlen előadó sem hordozza ezt a címkét.",
+  "v2.tags.noTrackWithTag": "Egyetlen szám sem hordozza ezt a címkét.",
+  "v2.tags.noPlaylistWithTag": "Egyetlen lejátszási lista sem hordozza ezt a címkét.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

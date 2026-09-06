@@ -3859,6 +3859,10 @@ export default {
   "v2.smart.saved": "コレクションを保存しました",
   "v2.smart.previewOne": "{n} 枚のアルバムが一致します",
   "v2.col.tabTotal": "合計 {n} 枚",
+  "v2.tags.itemsWithTag": "件がこのタグを持っています",
+  "v2.tags.noArtistWithTag": "このタグを持つアーティストはありません。",
+  "v2.tags.noTrackWithTag": "このタグを持つ曲はありません。",
+  "v2.tags.noPlaylistWithTag": "このタグを持つプレイリストはありません。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

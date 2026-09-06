@@ -3859,6 +3859,10 @@ export default {
   "v2.smart.saved": "Colecție salvată",
   "v2.smart.previewOne": "{n} album corespunde",
   "v2.col.tabTotal": "{n} albume în total",
+  "v2.tags.itemsWithTag": "elemente au această etichetă",
+  "v2.tags.noArtistWithTag": "Niciun artist nu are această etichetă.",
+  "v2.tags.noTrackWithTag": "Nicio piesă nu are această etichetă.",
+  "v2.tags.noPlaylistWithTag": "Nicio listă nu are această etichetă.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -3859,6 +3859,10 @@ export default {
   "v2.smart.saved": "Raccolta salvata",
   "v2.smart.previewOne": "{n} album corrisponde",
   "v2.col.tabTotal": "{n} album in totale",
+  "v2.tags.itemsWithTag": "elementi hanno questa etichetta",
+  "v2.tags.noArtistWithTag": "Nessun artista ha questa etichetta.",
+  "v2.tags.noTrackWithTag": "Nessun brano ha questa etichetta.",
+  "v2.tags.noPlaylistWithTag": "Nessuna playlist ha questa etichetta.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];
