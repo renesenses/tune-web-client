@@ -1693,7 +1693,7 @@ export default {
   "settings.importPlaylistFiles": "Importar archivos .m3u y .pls",
   "settings.importPlaylistFilesHelp": "El escaneo recorre todas las carpetas de música configuradas, no solo la que acaba de añadir: archivos .m3u olvidados pueden hacer reaparecer listas antiguas. Desmarque para dejar de importarlos.",
   "settings.serviceTokensBridgeHelp": "Tokens de API para el enriquecimiento de metadatos (Discogs, Genius, MusicBrainz) y scrobbling (Last.fm, ListenBrainz): entrada, validación y ayuda paso a paso.",
-  "settings.scanReportTitle": "Ãltimo informe de escaneo",
+  "settings.scanReportTitle": "Último informe de escaneo",
   "settings.scanReportUnchanged": "sin cambios",
   "settings.scanReportDuplicates": "duplicados omitidos",
   "settings.scanReportTimeouts": "indexados sin etiquetas (almacenamiento lento)",
