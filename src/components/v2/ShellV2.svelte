@@ -90,7 +90,7 @@
     updateAvailable, latestVersion, updateBannerDismissed, dismissUpdateBanner,
   } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
-  import { bootstrapV2 } from '../../lib/v2Bootstrap';
+  import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import '../../styles/tune-v2.css';
@@ -156,6 +156,10 @@
   // jamais : sans cet appel, zones/albums/appareils restent vides et toute
   // la coquille affiche des écrans vides trompeurs. Voir lib/v2Bootstrap.
   $effect(() => { bootstrapV2(); });
+  // Et le RESTE DU TEMPS : le serveur annonce ses scans et ses imports, encore
+  // faut-il les écouter. Sans cela, `albums` était rempli au montage et plus
+  // jamais — trois testeurs ont signalé qu'il fallait recharger la page.
+  $effect(() => suivreLaBibliotheque());
   // Le VIVANT, que `bootstrapV2` ne fait pas : WebSocket, rafraîchissement des
   // zones, minuteur de progression, répétition et aléatoire. Sans lui, la barre
   // de transport reste figée sur l'état du montage — elle n'est pas mal

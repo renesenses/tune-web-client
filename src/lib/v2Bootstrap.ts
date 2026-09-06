@@ -20,6 +20,7 @@ import { get } from 'svelte/store';
 import * as api from './api';
 import { zones, currentZoneId } from './stores/zones';
 import { albums, libraryLoading } from './stores/library';
+import { tuneWS } from './websocket';
 import { devices } from './stores/devices';
 import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
 import { loadLicense } from './stores/license';
@@ -99,6 +100,41 @@ async function loadProfile(): Promise<void> {
 /** Charge tout ce dont la coquille v2 dépend. Ne rejette jamais : chaque
  *  chargement échoue isolément, pour qu'une panne de découverte réseau ne
  *  vide pas la bibliothèque. */
+/**
+ * 🔴 RECHARGER la bibliothèque quand le serveur dit qu'elle a changé.
+ *
+ * DOUZIÈME « écrit mais pas branché » de ce client. Les événements existent et
+ * sont émis depuis longtemps ; `library.scan.completed` et `library.updated`
+ * sont traités dans SEPT fichiers de l'ancien client — `App`, `LibraryView`,
+ * `HomeView`, `MetadataView`, `OnboardingWizard`, `SettingsView` — et dans
+ * AUCUN de la v2. Le magasin `albums` était donc rempli une fois, au montage,
+ * et plus jamais.
+ *
+ * Trois témoins pour le même symptôme :
+ *
+ *  - « pas de rafraîchissement de la vue bibliothèque après ajout d'albums »
+ *    (Patatorz, forum 1517, 22/08/2026) ;
+ *  - « après une indexation, les albums n'apparaissent pas immédiatement dans
+ *    la fenêtre Bibliothèque » (Gros Bidon, forum 1688, 06/09/2026) ;
+ *  - « il faut rafraîchir le navigateur pour les voir » (Patatorz, forum 1680,
+ *    à propos des répertoires — même famille).
+ *
+ * `LibraryView` porte d'ailleurs le commentaire qui nomme le premier : « il
+ * fallait changer d'onglet puis revenir pour voir arriver les albums qu'on
+ * venait de déposer (Patatorz, fil #1517) ». Corrigé là-bas, jamais porté ici.
+ *
+ * On recharge la LISTE seulement : les écrans dérivent tout de `albums`, et
+ * `libraryLoading` fait le reste. Rendre l'abonnement permet de le couper au
+ * démontage de la coquille.
+ */
+export function suivreLaBibliotheque(): () => void {
+  return tuneWS.onEvent((event: { type?: string }) => {
+    if (event?.type === 'library.scan.completed' || event?.type === 'library.updated') {
+      void loadAlbums();
+    }
+  });
+}
+
 export async function bootstrapV2(): Promise<void> {
   // `loadLicense()` ne vit lui aussi que dans App.svelte. Sans lui, le palier
   // reste 'free' et la CLE de licence nulle : le Support ne peut pas lister
