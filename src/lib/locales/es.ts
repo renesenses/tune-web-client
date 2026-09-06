@@ -410,6 +410,9 @@ export default {
   'search.searching': 'Buscando...',
   'search.noResults': 'Sin resultados para "{query}"',
   'search.hint': 'Escribe un término de búsqueda para comenzar',
+  'search.shownOf': '{shown} de {total}',
+  'search.shownOfAtLeast': '{shown} de al menos {total}',
+  'search.loadMore': 'Ver más',
 
   // Streaming
   'streaming.selectService': 'Selecciona un servicio de streaming',
