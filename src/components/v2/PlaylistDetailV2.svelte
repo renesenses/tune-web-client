@@ -8,6 +8,7 @@
    * Détail technique (fréquence/profondeur) réservé à l'Expert, comme ailleurs.
    */
   import * as api from '../../lib/api';
+  import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t as tr } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
@@ -108,6 +109,30 @@
 
   const totalMs = $derived(tracks.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
 
+  /**
+   * « Lecture aleatoire » de la liste — #1947.
+   *
+   * Aucune portee serveur ici : `api.shuffleAll` connait album, artiste, genre
+   * et repertoire, pas les listes de lecture. On melange donc la liste qu'on a,
+   * avec le SEUL melange du depot (`lib/shuffle`, Fisher-Yates), et on l'envoie.
+   * Le drapeau `shuffle` de la zone n'est pas touche.
+   */
+  let melangeEnCours = $state(false);
+  async function lireAleatoire() {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    melangeEnCours = true;
+    try {
+      const n = await lireListeAleatoire(tracks, {
+        lire: (c: any) => playAndSync(zid, c),
+        enfiler: (c: any) => api.addToQueue(zid, c),
+      });
+      if (!n) notifications.error($tr('library.noTracks'));
+    } catch (e) {
+      notifications.error(errText(e) ?? $tr('common.error'));
+    }
+    melangeEnCours = false;
+  }
   function playFrom(startIndex = 0) {
     const zid = $currentZoneId;
     if (zid == null) return;
@@ -184,6 +209,10 @@
       <div class="actions">
         <button class="play" onclick={() => playFrom(0)}>
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>Lire
+        </button>
+        <button class="ghost" onclick={lireAleatoire} disabled={melangeEnCours}
+          title={$tr('library.shuffle')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$tr('library.shuffle')}
         </button>
         <button class="ghost" onclick={addQueue}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>Ajouter à la file

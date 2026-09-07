@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { shuffleAll } from '../lib/api';
   import { tip } from '../lib/tooltip';
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
@@ -341,6 +342,29 @@
   let L_PLAY_NEXT = $derived($t('library.playNext'));
   let L_ADD_QUEUE = $derived($t('queue.addToQueue'));
   let L_NOW_PLAYING = $derived($t('nav.nowplaying'));
+  /**
+   * « Lecture aleatoire » du REPERTOIRE ouvert — #1947.
+   *
+   * `api.shuffleAll` porte la portee `folder` depuis #2801 ; Oxygene, qui est
+   * pourtant l'ecran des repertoires, n'avait aucun bouton pour l'appeler. Le
+   * tirage porte sur le SOUS-ARBRE ENTIER, la ou `tracks` s'arrete a
+   * `LOAD_LIMIT` : c'est la seule voie fidele quand la vue est tronquee.
+   *
+   * Pas de « tout lire » symetrique : il n'existe pas de route qui lise un
+   * repertoire entier dans l'ordre, et le batir sur `tracks` mentirait des que
+   * `truncated` est vrai. Mieux vaut un bouton absent qu'un bouton qui ne lit
+   * qu'un morceau de ce qu'il annonce.
+   */
+  const dossierOuvert = $derived(facetSels.folder?.[0] ?? null);
+  async function tirerDansLeDossier() {
+    if (!zone?.id || !dossierOuvert) return;
+    try {
+      const r = await shuffleAll(zone.id, { folder: dossierOuvert });
+      notifications.success($t('library.shufflePlaying').replace('{count}', String(r.track_count)));
+    } catch (e) {
+      notifications.error($t('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
+    }
+  }
   async function playTracks(ids: number[]) {
     if (!zone?.id) { notifications.error($t('library.noZoneSelected')); return; }
     if (!ids.length) return;
@@ -612,6 +636,12 @@
     <div class="count" class:partial={truncated} title={truncated ? $t('oxygen.truncated') : ''}>
       {visible.length.toLocaleString('fr')}{#if truncated}<span class="cslash">/</span>{total.toLocaleString('fr')}{/if}
     </div>
+    {#if dossierOuvert}
+      <button class="icnbtn" onclick={tirerDansLeDossier}
+              title={$t('library.shuffle')} aria-label={$t('library.shuffle')}>
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+      </button>
+    {/if}
     <button class="icnbtn" onclick={() => focusMode.set(!$focusMode)}
             title={$focusMode ? $t('oxygen.exitFocus') : $t('oxygen.enterFocus')}
             aria-label={$focusMode ? $t('oxygen.exitFocus') : $t('oxygen.enterFocus')}
