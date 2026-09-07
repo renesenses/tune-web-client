@@ -2038,6 +2038,7 @@ export default {
   "trackTags.groupClassical": "Klassik / Credits",
   "trackTags.groupAudio": "Audio",
   "trackTags.groupSystem": "System",
+  "trackTags.groupOther": "Weitere Felder",
   "trackTags.trackCredits": "Titel-Credits",
   "trackTags.audioInfoFromFile": "Audio-Info (aus Datei)",
   "trackTags.rawFileTags": "Rohe Datei-Tags",

@@ -2602,6 +2602,7 @@ export default {
   "trackTags.groupClassical": "Classical / credits",
   "trackTags.groupAudio": "Audio",
   "trackTags.groupSystem": "System",
+  "trackTags.groupOther": "Other fields",
   "trackTags.trackCredits": "Track credits",
   "trackTags.audioInfoFromFile": "Audio info (from file)",
   "trackTags.rawFileTags": "Raw file tags",

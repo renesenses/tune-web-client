@@ -2013,6 +2013,7 @@ export default {
   "trackTags.groupClassical": "클래식 / 크레딧",
   "trackTags.groupAudio": "오디오",
   "trackTags.groupSystem": "시스템",
+  "trackTags.groupOther": "기타 필드",
   "trackTags.trackCredits": "트랙 크레딧",
   "trackTags.audioInfoFromFile": "오디오 정보 (파일에서)",
   "trackTags.rawFileTags": "원본 파일 태그",
