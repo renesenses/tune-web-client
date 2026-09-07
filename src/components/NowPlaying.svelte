@@ -23,7 +23,7 @@
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery } from '../lib/stores/navigation';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum } from '../lib/stores/navigation';
   import VolumeControl from './VolumeControl.svelte';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
   import MetadataChips from './MetadataChips.svelte';
@@ -464,6 +464,11 @@
         selectedAlbum.set({ id: albumId, title: albumTitle ?? '' } as any);
       }
       libraryTab.set('albums');
+      // Le NOUVEAU client ne lit pas `selectedAlbum` : il consomme
+      // `pendingLibraryAlbum` au montage de sa Bibliothèque. On alimente les
+      // deux contrats plutôt que de deviner quelle coquille tourne (Fabien,
+      // v0.9.140 : « les hyperliens renvoient vers la page d'accueil »).
+      pendingLibraryAlbum.set(albumId);
       activeView.set('library');
     } else if (albumTitle) {
       try {

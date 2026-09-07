@@ -4041,6 +4041,8 @@ export default {
   "v2.tcol.hash": "Ujjlenyomat",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "A(z) {m} módtól érhető el.",
+  "v2.str.myCollection": "Gyűjteményem",
+  "v2.pod.subscribeFailed": "A feliratkozás nem sikerült.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

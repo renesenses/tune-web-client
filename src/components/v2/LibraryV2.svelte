@@ -35,7 +35,7 @@
    * un serveur UPnP tiers.
    */
   import { albums, libraryLoading } from '../../lib/stores/library';
-  import { activeView, pendingLibraryFolder, type View } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryFolder, pendingLibraryAlbum, type View } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, fold, formatDuration,  type QualityTier } from '../../lib/utils';
@@ -819,6 +819,30 @@
     playAndSync(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(() => {});
   }
   let opened = $state<Album | null>(null);
+
+  /**
+   * 🔴 L'album demandé par « Lecture en cours ».
+   *
+   * « Les hyperliens de l'album et de l'artiste renvoient vers la page
+   * d'accueil » (Fabien, v0.9.140, 07/09/2026). `NowPlaying` posait
+   * `selectedAlbum`, que douze composants de l'ANCIEN client lisent et
+   * qu'aucun de la v2 ne lit : on changeait d'écran sans rien ouvrir.
+   *
+   * Consommé UNE fois, comme le dossier : le laisser dans le magasin
+   * rouvrirait la fiche à chaque retour sur la Bibliothèque.
+   *
+   * L'album peut ne pas être dans `$albums` — une piste de service, une
+   * bibliothèque encore en cours de chargement. On le demande alors au
+   * serveur plutôt que d'abandonner en silence.
+   */
+  $effect(() => {
+    const id = get(pendingLibraryAlbum);
+    if (id == null) return;
+    pendingLibraryAlbum.set(null);
+    const connu = $albums.find((a) => a.id === id);
+    if (connu) { opened = connu; return; }
+    api.getAlbum(id).then((a) => { if (a) opened = a; }).catch(() => {});
+  });
 
   /**
    * Album en cours d'édition — le bouton haut-droit de la pochette.

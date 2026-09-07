@@ -555,7 +555,7 @@
                  seule colonne que la liste partagee ne connait pas, et elle
                  passe donc par le suffixe. -->
             <ListePistesV2 pistes={acoustic.tracks as any} numerotation="aucune"
-              avecAlbum={false} onLire={(p) => playTrack(p as any)} apres={proximite} />
+              avecAlbum={false} onLire={(p) => playTrack(p as any)} apres={proximite} largeurApres="52px" />
             {#snippet proximite(p: any)}
               {#if p.similarity != null}<span class="sim">{Math.round(p.similarity * 100)}%</span>{/if}
             {/snippet}

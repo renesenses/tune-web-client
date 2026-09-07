@@ -4082,4 +4082,6 @@ export default {
   "v2.tcol.hash": "Fingeravtryck",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "Tillgänglig från läget {m} och uppåt.",
+  "v2.str.myCollection": "Min samling",
+  "v2.pod.subscribeFailed": "Det gick inte att prenumerera.",
 } as const;

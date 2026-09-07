@@ -4083,6 +4083,8 @@ export default {
   "v2.tcol.hash": "Amprentă",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "Disponibilă începând cu modul {m}.",
+  "v2.str.myCollection": "Colecția mea",
+  "v2.pod.subscribeFailed": "Abonarea nu a reușit.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

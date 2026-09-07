@@ -240,7 +240,7 @@
     {:else if !tracks.length}
       <div class="state">{$tr('v2.pl.empty' as any)}</div>
     {:else}
-      <ListePistesV2 pistes={tracks} onLire={(_p, i) => playFrom(i)} apres={suffixe} />
+      <ListePistesV2 pistes={tracks} onLire={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="40px" />
       {#snippet suffixe(_t: any, i: number)}
         <!-- Le bouton « retirer » devient une COLONNE de la ligne. Le fragment
              est compilé ici : ses styles le suivent. -->

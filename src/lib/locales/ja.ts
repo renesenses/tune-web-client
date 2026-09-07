@@ -4083,6 +4083,8 @@ export default {
   "v2.tcol.hash": "フィンガープリント",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "{m} モード以上で利用できます。",
+  "v2.str.myCollection": "マイコレクション",
+  "v2.pod.subscribeFailed": "登録できませんでした。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

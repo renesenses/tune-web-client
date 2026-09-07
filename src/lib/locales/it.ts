@@ -4083,6 +4083,8 @@ export default {
   "v2.tcol.hash": "Impronta",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "Disponibile dalla modalità {m} in su.",
+  "v2.str.myCollection": "La mia raccolta",
+  "v2.pod.subscribeFailed": "Iscrizione non riuscita.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

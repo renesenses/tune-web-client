@@ -4105,6 +4105,8 @@ export default {
   "v2.tcol.hash": "Empreinte",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "Proposée à partir du mode {m}.",
+  "v2.str.myCollection": "Ma collection",
+  "v2.pod.subscribeFailed": "Abonnement impossible.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

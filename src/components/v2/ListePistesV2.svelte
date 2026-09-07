@@ -89,11 +89,19 @@
      * Par défaut `id`, replié sur le rang. Un écran qui sait mieux le dit.
      */
     clef?: (piste: Track, index: number) => string | number;
+    /**
+     * Largeur de la colonne du suffixe. Une longueur CSS, jamais `auto`.
+     *
+     * Voir le commentaire du gabarit : une colonne dimensionnée par son
+     * contenu se résout dans CHAQUE grille séparément, donc différemment dans
+     * l'en-tête (vide) et dans les lignes.
+     */
+    largeurApres?: string;
   }
   let {
     pistes, onLire, numerotation = 'rang',
     avecAlbum = true, pochette = true, ouvertureAlbum = null, apres,
-    clef = (p, i) => p.id ?? i,
+    clef = (p, i) => p.id ?? i, largeurApres = '96px',
   }: Props = $props();
 
   const mode = $derived($preferences.settingsLevel);
@@ -102,10 +110,31 @@
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
   const colonnes = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
-  // Les colonnes, PLUS celle des actions, PLUS celle du suffixe quand un écran
-  // en fournit un. L'en-tête et les lignes lisent le même gabarit : c'est ce
-  // qui les garde alignés.
-  const gabarit = $derived(`${gabaritGrille(colonnes)} auto${apres ? ' auto' : ''}`);
+  /**
+   * 🔴 AUCUN `auto` dans ce gabarit. C'est la règle, et elle a une raison.
+   *
+   * L'en-tête et les lignes sont des grilles SÉPARÉES qui partagent le même
+   * `grid-template-columns`. Une colonne dimensionnée par son contenu — `auto`,
+   * `max-content` — se résout donc dans chacune indépendamment : à zéro dans
+   * l'en-tête, où la cellule d'actions est vide, et à ~178 px dans les lignes.
+   * Les colonnes en `fr` absorbent l'écart, et TOUS les en-têtes dérivent vers
+   * la droite. Signalé par Bertrand le 07/09/2026, capture à l'appui : « TIME »
+   * deux cents pixels à droite de « 5:24 ».
+   *
+   * Pire : les actions sont CONDITIONNELLES — playlist et étiquettes ne sont
+   * offertes que sur une piste locale. En `auto`, deux lignes voisines
+   * n'auraient donc pas la même largeur d'actions, et se désaligneraient entre
+   * elles.
+   *
+   * C'est la leçon de la vue Liste de la Bibliothèque, écrite le 05/09 et que
+   * j'ai réintroduite ici. Une garde la tient désormais.
+   *
+   * 178 px = six boutons de 28 px + cinq gouttières de 2 px, la barre pleine.
+   */
+  const LARGEUR_ACTIONS = '178px';
+  const gabarit = $derived(
+    `${gabaritGrille(colonnes)} ${LARGEUR_ACTIONS}${apres ? ` ${largeurApres}` : ''}`,
+  );
 
   function numero(p: Track, i: number): string | null {
     if (numerotation === 'aucune') return null;
@@ -218,7 +247,10 @@
   .trow.np .titre{color:var(--v2-acc1)}
   .titre:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:4px}
 
-  .act{overflow:visible}
+  /* Les actions sont calées à DROITE : une piste sans playlist ni étiquettes
+     en montre quatre au lieu de six, et l'alignement se ferait sinon sur la
+     gauche — les cœurs ne seraient plus l'un sous l'autre. */
+  .act{overflow:visible; display:flex; align-items:center; justify-content:flex-end}
 
   /* Le suffixe en mode LIGNES : la même grille que les écrans avaient chez
      eux (`1fr auto`), pour que rien ne bouge à leurs yeux. */

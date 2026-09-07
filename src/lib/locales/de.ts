@@ -4083,6 +4083,8 @@ export default {
   "v2.tcol.hash": "Prüfsumme",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "Ab dem Modus {m} verfügbar.",
+  "v2.str.myCollection": "Meine Sammlung",
+  "v2.pod.subscribeFailed": "Abonnement nicht möglich.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

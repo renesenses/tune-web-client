@@ -137,6 +137,7 @@
           onLire={(_p, i) => rejouer(entrees[i], i)}
           clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + entrees[i].playedAt}
           apres={suffixe}
+          largeurApres="124px"
         />
         {#snippet suffixe(_p: any, i: number)}
           {@const e = entrees[i]}

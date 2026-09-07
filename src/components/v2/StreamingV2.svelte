@@ -218,11 +218,11 @@
       // (mesure, meme jour), contre 13 pour Qobuz et 20 pour Tidal. Tout cela
       // tenait dans une rangee de puces au-dessus des albums.
       ? [{ id: 'editorial', label: $t('v2.str.discover' as any) },
-         { id: 'genres', label: 'Genres' },
-         { id: 'mine', label: 'Ma collection' }]
+         { id: 'genres', label: $t('common.genres' as any) },
+         { id: 'mine', label: $t('v2.str.myCollection' as any) }]
       : [{ id: 'editorial', label: $t('v2.str.editorial' as any) },
-         { id: 'playlists', label: 'Playlists' },
-         { id: 'favorites', label: 'Favoris' },
+         { id: 'playlists', label: $t('v2.nav.playlists' as any) },
+         { id: 'favorites', label: $t('v2.nav.favorites' as any) },
          // QUATRIÈME onglet, et seulement là où le serveur sert vraiment des
          // genres. Les genres avaient une section tout EN BAS de l'éditorial :
          // il fallait dérouler la page entière pour tomber dessus. C'est une

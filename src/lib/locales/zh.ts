@@ -4083,6 +4083,8 @@ export default {
   "v2.tcol.hash": "指纹",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "从{m}模式起可用。",
+  "v2.str.myCollection": "我的收藏",
+  "v2.pod.subscribeFailed": "无法订阅。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

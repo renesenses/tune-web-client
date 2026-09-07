@@ -4083,6 +4083,8 @@ export default {
   "v2.tcol.hash": "지문",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "{m} 모드 이상에서 제공됩니다.",
+  "v2.str.myCollection": "내 컬렉션",
+  "v2.pod.subscribeFailed": "구독할 수 없습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

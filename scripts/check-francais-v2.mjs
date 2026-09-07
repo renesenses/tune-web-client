@@ -43,7 +43,7 @@ function fichiers(dir) {
 
 /** Les mêmes marqueurs que `check-i18n`, pour que les deux gardes s'accordent. */
 const FRANCAIS =
-  /(è|é\w|ê|à |ù|ç|œ|\b(?:le|la|les|des|une|un|du|dans|pour|avec|sans|sur|par|est|sont|vers|aucun|aucune|aux)\b)/i;
+  /(è|é\w|ê|à |ù|ç|œ|\b(?:le|la|les|des|une|un|du|dans|pour|avec|sans|sur|par|est|sont|vers|aucun|aucune|aux|ma|mon|mes|ta|ton|tes|sa|son|ses|notre|nos|votre|vos|leur|leurs)\b)/i;
 const CLE = /^[a-z0-9]+(\.[A-Za-z0-9_]+)+$/;
 const LITTERAL = /'([^'\\\n]{4,})'|"([^"\\\n]{4,})"/g;
 const CONSOLE = /console\.\w+\([^)]*\)/g;
@@ -82,6 +82,31 @@ for (const f of fichiers('src/components/v2')) {
     if (/^[a-z]{1,12}$/.test(texte)) continue;
     const ligne = src.slice(0, m.index).split('\n').length;
     fautes.push(`${f}:${ligne}  ${texte.slice(0, 90)}`);
+  }
+}
+
+/**
+ * 🔴 Une garde de FORME, en plus de celle des mots.
+ *
+ * « Label "File d'attente" du menu absent » (Fabien, v0.9.140, 07/09/2026).
+ * La conversion de la barre latérale en clés de traduction avait laissé une
+ * entrée derrière : `label: "File d'attente"`. Le remplacement automatique
+ * lisait `label: (['"])([^'"]+)\1`, et l'apostrophe DANS des guillemets
+ * doubles a fait échouer l'appariement sur cette seule ligne.
+ *
+ * Le rendu appelle `$t(it.labelKey)` : avec `labelKey` indéfini, l'entrée
+ * s'affichait SANS AUCUN libellé. Ni la garde des mots — « File d'attente »
+ * n'a ni accent ni article — ni `check-i18n` ne pouvaient le voir.
+ *
+ * On ne cherche donc plus un mot français ici : on interdit la FORME. Dans
+ * les fichiers de navigation, une entrée porte `labelKey`, jamais `label`.
+ */
+const NAVIGATION = ['src/components/v2/Sidebar.svelte', 'src/components/v2/ShellV2.svelte'];
+for (const f of NAVIGATION) {
+  const src = sansCommentaires(readFileSync(f, 'utf8'));
+  for (const m of src.matchAll(/\blabel:\s*['"]/g)) {
+    const ligne = src.slice(0, m.index).split('\n').length;
+    fautes.push(`${f}:${ligne}  entree de navigation avec 'label:' au lieu de 'labelKey:'`);
   }
 }
 

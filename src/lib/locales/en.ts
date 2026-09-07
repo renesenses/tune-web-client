@@ -4103,6 +4103,8 @@ export default {
   "v2.tcol.hash": "Fingerprint",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "Offered from the {m} mode upwards.",
+  "v2.str.myCollection": "My collection",
+  "v2.pod.subscribeFailed": "Could not subscribe.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

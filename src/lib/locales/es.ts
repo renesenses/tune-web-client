@@ -4083,6 +4083,8 @@ export default {
   "v2.tcol.hash": "Huella",
   "v2.tcol.dr": "DR",
   "settings.colLevelOnly": "Disponible a partir del modo {m}.",
+  "v2.str.myCollection": "Mi colección",
+  "v2.pod.subscribeFailed": "No se ha podido suscribir.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

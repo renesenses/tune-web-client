@@ -84,7 +84,7 @@
     { view: 'browse', labelKey: 'nav.browse', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
     // AMBIANCE : choisir par l'humeur plutot que par le nom.
     { view: 'ambiance', labelKey: 'nav.ambiance', icon: 'M4 9v6M9 5v14M14 8v8M19 11v2' },
-    { view: 'queue', label: "File d'attente", icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
+    { view: 'queue', labelKey: 'nav.queue', icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
     { view: 'zonemanager', labelKey: 'nav.zonemanager', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
     // SERVEURS MULTIMEDIA en Avance (Bertrand, 28/08). Parcourir la
     // bibliotheque d'une AUTRE machine suppose de savoir qu'il y a un reseau

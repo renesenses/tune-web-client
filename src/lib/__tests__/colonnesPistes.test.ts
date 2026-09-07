@@ -295,7 +295,10 @@ describe('les huit listes passent par le rendu partagé', () => {
     // ne tomberaient plus en face — le défaut d'alignement qu'on vient de
     // corriger ailleurs.
     const liste = lire2('src/components/v2/ListePistesV2.svelte');
-    expect(liste).toMatch(/gabaritGrille\(colonnes\)\} auto\$\{apres \? ' auto' : ''\}/);
+    // La largeur du suffixe est FIXE, comme celle des actions : voir le bloc
+    // « l'alignement de l'en-tête et des lignes » plus bas.
+    expect(liste).toMatch(/gabaritGrille\(colonnes\)\} \$\{LARGEUR_ACTIONS\}/);
+    expect(liste).toMatch(/apres \? ` \$\{largeurApres\}` : ''/);
     expect(liste).toMatch(/\{#if apres\}<span class="td act" role="cell">\{@render apres\(p, i\)\}<\/span>\{\/if\}/);
   });
 
@@ -309,5 +312,49 @@ describe('les huit listes passent par le rendu partagé', () => {
       expect(src, `${f} a perdu ${quoi}`).toMatch(/apres=\{[a-zA-Zé]+\}/);
       expect(src, `${f} : le fragment doit exister`).toMatch(/\{#snippet [a-zA-Zé]+\(/);
     }
+  });
+});
+
+describe('🔴 l’alignement de l’en-tête et des lignes', () => {
+  const liste = () =>
+    readFileSync(resolve(process.cwd(), 'src/components/v2/ListePistesV2.svelte'), 'utf-8');
+
+  it('AUCUNE colonne dimensionnée par son contenu', () => {
+    // Signalé par Bertrand le 07/09/2026, capture à l'appui : « TIME » deux
+    // cents pixels à droite de « 5:24 ».
+    //
+    // L'en-tête et les lignes sont des grilles SÉPARÉES qui partagent le même
+    // `grid-template-columns`. Une colonne en `auto` ou `max-content` s'y
+    // résout indépendamment — zéro dans l'en-tête, où la cellule d'actions est
+    // vide, ~178 px dans les lignes — et les colonnes en `fr` absorbent
+    // l'écart. C'est la leçon de la vue Liste, écrite le 05/09 et réintroduite
+    // ici deux jours plus tard.
+    const src = liste().replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '');
+    const i = src.indexOf('const gabarit = $derived(');
+    expect(i).toBeGreaterThan(-1);
+    const expr = src.slice(i, src.indexOf(');', i));
+    expect(expr, 'un `auto` est revenu dans le gabarit').not.toMatch(/\bauto\b/);
+    expect(expr, 'un `max-content` est revenu dans le gabarit').not.toMatch(/max-content/);
+  });
+
+  it('la colonne d’actions a une largeur FIXE', () => {
+    // Les actions sont conditionnelles : playlist et étiquettes ne sont
+    // offertes que sur une piste locale. Dimensionnée par son contenu, la
+    // colonne différerait d'une LIGNE à l'autre, pas seulement de l'en-tête.
+    expect(liste()).toMatch(/const LARGEUR_ACTIONS = '\d+px';/);
+  });
+
+  it('le suffixe aussi, et chaque écran donne la sienne', () => {
+    expect(liste()).toMatch(/largeurApres = '\d+px'/);
+    for (const f of ['PlaylistDetailV2', 'HistoriqueV2', 'SearchV2']) {
+      const src = readFileSync(resolve(process.cwd(), `src/components/v2/${f}.svelte`), 'utf-8');
+      expect(src, `${f} laisse la largeur par défaut`).toMatch(/largeurApres="\d+px"/);
+    }
+  });
+
+  it('les actions sont calées à DROITE', () => {
+    // Sinon, sur une piste sans playlist ni étiquettes, les quatre icônes
+    // restantes glissent à gauche et les cœurs ne sont plus l'un sous l'autre.
+    expect(liste()).toMatch(/\.act\{[^}]*justify-content:flex-end/);
   });
 });
