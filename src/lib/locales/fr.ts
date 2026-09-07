@@ -1373,11 +1373,6 @@ export default {
   'audiophile.volumeLockedHint': "Volume figé à 100 % par le mode Audiophile",
 
   // Streaming Quality
-  'settings.streamingQuality': 'Qualite streaming',
-  'settings.qualityMax': 'Maximum',
-  'settings.qualityHires': 'Hi-Res',
-  'settings.qualityCd': 'CD (16/44.1)',
-  'settings.qualityLow': 'Economique',
 
   // Config Export/Import
   'settings.configSection': 'Configuration',

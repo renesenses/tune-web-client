@@ -1125,11 +1125,6 @@ export default {
   'audiophile.volumeLockedHint': "Volum fixat la 100 % de modul Audiofil",
 
   // Streaming Quality
-  'settings.streamingQuality': 'Calitate streaming',
-  'settings.qualityMax': 'Maximă',
-  'settings.qualityHires': 'Hi-Res',
-  'settings.qualityCd': 'CD (16/44.1)',
-  'settings.qualityLow': 'Economică',
 
   // Config Export/Import
   'settings.configSection': 'Configurație',

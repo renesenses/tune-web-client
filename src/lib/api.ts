@@ -4141,19 +4141,6 @@ export function setAudiophileVolumeLock(
   });
 }
 
-// --- Streaming Quality ---
-
-export function getStreamingQuality(zoneId: number) {
-  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`);
-}
-
-export function setStreamingQuality(zoneId: number, quality: string) {
-  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`, {
-    method: 'POST',
-    body: JSON.stringify({ quality }),
-  });
-}
-
 // --- Config Export/Import ---
 
 export async function exportConfig(): Promise<void> {

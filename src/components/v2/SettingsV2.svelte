@@ -123,41 +123,6 @@
     finally { autoCreateBusy = false; }
   }
 
-  // « Qualite streaming » — reglage PAR ZONE.
-  //
-  // Divergence assumee avec l'ecran actuel, qui applique toujours a
-  // `zones[0]` : sur une installation multi-room, regler la qualite depuis
-  // les Reglages touchait donc une zone au hasard plutot que celle qu'on
-  // ecoute. On vise ici la zone COURANTE (repli sur la premiere), et on
-  // affiche son nom pour qu'il n'y ait aucun doute sur la cible.
-  const qualityZoneId = $derived($currentZoneId ?? $zones[0]?.id ?? null);
-  const qualityZoneName = $derived($zones.find((z) => z.id === qualityZoneId)?.name ?? null);
-  const QUALITIES = [
-    { v: 'max',   k: 'settings.qualityMax' },
-    { v: 'hires', k: 'settings.qualityHires' },
-    { v: 'cd',    k: 'settings.qualityCd' },
-    { v: 'low',   k: 'settings.qualityLow' },
-  ];
-  let quality = $state<string>('max');
-  let qualityBusy = $state(false);
-  $effect(() => {
-    const zid = qualityZoneId;
-    if (zid == null) return;
-    api.getStreamingQuality(zid)
-      .then((r) => { quality = r.quality ?? 'max'; })
-      .catch(() => {});
-  });
-  async function setQuality(v: string) {
-    const zid = qualityZoneId;
-    if (zid == null) return;
-    const before = quality;
-    quality = v;
-    qualityBusy = true;
-    try { await api.setStreamingQuality(zid, v); }
-    catch { quality = before; }
-    finally { qualityBusy = false; }
-  }
-
   // « Sorties audio locales » — plusieurs reglages serveur + la liste des
   // peripheriques. Meme cles de config que l'ecran actuel, donc partage.
   //
@@ -2840,26 +2805,6 @@
                     <span class="slider"></span>
                   </label>
                 {/if}
-              </div>
-
-            {:else if s.id === 'streamQuality'}
-              <div class="row">
-                <div class="lbl">
-                  <span>{$t('settings.streamingQuality' as any)}</span>
-                  <span class="hint">
-                    {#if qualityZoneName}
-                      S'applique à la zone <b>{qualityZoneName}</b>. Chaque zone a sa propre qualité.
-                    {:else}
-                      Aucune zone active — sélectionnez une zone pour régler sa qualité.
-                    {/if}
-                  </span>
-                </div>
-                <div class="seg4">
-                  {#each QUALITIES as opt (opt.v)}
-                    <button class:on={quality === opt.v} disabled={qualityBusy || qualityZoneId == null}
-                      onclick={() => setQuality(opt.v)}>{$t(opt.k as any)}</button>
-                  {/each}
-                </div>
               </div>
 
             {:else if s.id === 'followMe'}
