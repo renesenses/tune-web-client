@@ -1996,6 +1996,7 @@ export default {
   "trackTags.groupClassical": "Klassiskt / medverkande",
   "trackTags.groupAudio": "Ljud",
   "trackTags.groupSystem": "System",
+  "trackTags.groupOther": "Övriga fält",
   "trackTags.trackCredits": "Spårmedverkande",
   "trackTags.audioInfoFromFile": "Ljudinfo (från fil)",
   "trackTags.rawFileTags": "Råa filtaggar",

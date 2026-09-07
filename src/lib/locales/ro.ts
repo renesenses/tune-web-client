@@ -2048,6 +2048,7 @@ export default {
   "trackTags.groupClassical": "Clasic / credite",
   "trackTags.groupAudio": "Audio",
   "trackTags.groupSystem": "Sistem",
+  "trackTags.groupOther": "Alte câmpuri",
   "trackTags.trackCredits": "Credite piesă",
   "trackTags.audioInfoFromFile": "Info audio (din fișier)",
   "trackTags.rawFileTags": "Etichete brute din fișier",
