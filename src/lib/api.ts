@@ -2021,12 +2021,14 @@ export function getSimilarTracks(trackId: number, limit = 50) {
   );
 }
 
-export function setEqualizer(zoneId: number, preset: string) {
-  return fetchJSON<any>(`${BASE}/zones/${zoneId}/eq`, {
-    method: 'POST',
-    body: JSON.stringify({ preset }),
-  });
-}
+// `setEqualizer(zoneId, preset)` — écrire l'égaliseur en n'envoyant QU'UN NOM
+// — a été retirée (#532). Elle ne pouvait pas tenir sa promesse : avant
+// `eq_presets.rs`, `set_eq` recopiait `body.preset` dans sa réponse sans
+// jamais l'appliquer (200, et aucune bande modifiée) ; depuis, un nom que le
+// serveur ne connaît pas est refusé en 400. `setEq` ci-dessous envoie les
+// bandes, ce qui agit sur toutes les versions — les bandes explicites sont
+// prioritaires (`prereglage_a_appliquer`, routes/playback.rs). Les courbes des
+// sept préréglages vivent dans `lib/eqPrereglages`.
 
 export interface EqBand {
   freq: number;

@@ -22,6 +22,7 @@
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { isPremium, licenseState } from '../lib/stores/license';
   import { estRefusPremium } from '../lib/premiumRefus';
+  import { bandesDuPrereglage, prereglageDesBandes } from '../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
@@ -325,11 +326,17 @@
       .then((r) => {
         eqBands = r.bands ?? [];
         eqEnabled = r.enabled !== false;
-        // Des gains tous nuls SONT un egaliseur plat — on peut le dire. Toute
-        // autre courbe reste sans nom : le serveur ne memorise pas quel
-        // prereglage l'a produite, et deviner serait retomber dans le defaut.
+        // Le serveur ne memorise pas quel prereglage a produit cette courbe :
+        // il ne garde que les bandes. La comparer aux sept courbes connues est
+        // la seule facon honnete de retrouver un nom, et `null` quand rien ne
+        // correspond evite d'en inventer un. C'est ce qui permet au panneau de
+        // montrer « Rock » comme actif apres un clic, au lieu de retomber sur
+        // « personnalise » a la relecture.
+        // Une courbe entierement nulle EST plate, quelle que soit sa
+        // resolution : on peut le dire meme quand ce n'est pas la grille a dix
+        // bandes des prereglages.
         const plat = eqBands.length > 0 && eqBands.every((b) => (b.gain ?? 0) === 0);
-        currentEqPreset = plat ? 'flat' : '';
+        currentEqPreset = prereglageDesBandes(eqBands) ?? (plat ? 'flat' : '');
       })
       .catch(() => { eqBands = []; eqEnabled = true; currentEqPreset = ''; });
   });
@@ -348,9 +355,29 @@
 
   async function setEqPreset(preset: string) {
     if (zone?.id == null) return;
+    // Le panneau envoyait un NOM. `set_eq` ne l'appliquait pas : il le
+    // recopiait dans sa reponse (`"preset": body.preset…`), repondait 200, et
+    // n'altérait aucune bande — donc aucun son (#532). Le serveur sait le
+    // resoudre depuis `eq_presets.rs`, mais un binaire anterieur ne le sait
+    // pas, et les bandes explicites restent PRIORITAIRES sur toutes les
+    // versions (`prereglage_a_appliquer`). On envoie donc la courbe, comme
+    // l'ecran Egaliseur complet : c'est le seul chemin qui agisse partout.
+    const bands = bandesDuPrereglage(preset);
+    if (bands === null) {
+      // Un nom que la table ne connait pas : envoyer une courbe vide
+      // remettrait l'egaliseur a plat en croyant appliquer un prereglage.
+      notifications.error($t('nowplaying.eqError'));
+      return;
+    }
     try {
-      await api.setEqualizer(zone.id, preset);
+      await api.setEq(zone.id, { bands, enabled: true });
       currentEqPreset = preset;
+      // La courbe affichee vient du serveur, jamais d'une supposition. Ici on
+      // vient de l'ecrire : on la montre sans attendre une relecture, sinon le
+      // panneau garderait l'ancienne courbe jusqu'au prochain changement de
+      // zone.
+      eqBands = bands;
+      eqEnabled = true;
       eqRefusePremium = false;
     } catch (e) {
       // Un refus d'offre n'est pas une panne. Il ne meurt plus dans la
@@ -1485,7 +1512,7 @@
           <!-- La barre d'actions. Ce qui a besoin d'un identifiant de piste
                (crédits, paroles, partage) reste conditionné ; l'ÉGALISEUR, non.
                Il se lit par api.getEq(zone.id) et s'écrit par
-               api.setEqualizer(zone.id, ...) : c'est un réglage de ZONE, qui
+               api.setEq(zone.id, ...) : c'est un réglage de ZONE, qui
                ne touche jamais displayTrack. Enfermé ici avec les crédits, il
                disparaissait sur une radio et sur toute piste hors bibliothèque
                (Bandcamp, ajout par URL) — exactement l'auditeur qui veut
