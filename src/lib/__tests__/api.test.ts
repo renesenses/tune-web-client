@@ -516,6 +516,53 @@ describe('API exports exist', () => {
 });
 
 // =========================================================================
+// Recherche fédérée (#3189) : la suite de la bibliothèque locale
+// =========================================================================
+
+describe('federatedSearch pagination (#3189)', () => {
+  const vide = { local: { artists: [], albums: [], tracks: [] }, services: {} };
+
+  it("n'ajoute pas d'offset à l'appel par défaut : l'URL des appels existants ne change pas", async () => {
+    mockFetch(vide);
+    await api.federatedSearch('autumn leaves');
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].url).toContain('/search?q=autumn%20leaves&limit=50');
+    expect(fetchCalls[0].url).not.toContain('offset=');
+  });
+
+  it('demande la suite par offset, sur la bibliothèque locale seule', async () => {
+    // Les services ne sont pas paginés côté serveur : sans `sources=local`,
+    // ils rendraient une seconde fois leur première page.
+    mockFetch(vide);
+    await api.federatedSearch('autumn leaves', ['local'], api.SEARCH_PAGE_LIMIT, 50);
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].url).toContain('&offset=50');
+    expect(fetchCalls[0].url).toContain('&sources=local');
+  });
+});
+
+// =========================================================================
+// Smart Collections (#2732) : un seul nom de contrat, max_limit
+// =========================================================================
+
+describe('Smart Collections contract', () => {
+  it('envoie la borne de prévisualisation sous le nom persistant max_limit', async () => {
+    // L'éditeur relit `collection.max_limit` (garde dans
+    // smartCollectionLimite.test.ts) ; la prévisualisation doit parler le
+    // même nom, sinon la borne prévisualisée n'est pas celle enregistrée.
+    mockFetch({ total: 0, albums: [] });
+
+    await api.previewSmartCollection({ rules: [], max_limit: 1 });
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(JSON.parse(String(fetchCalls[0].init?.body))).toEqual({
+      rules: [],
+      max_limit: 1,
+    });
+  });
+});
+
+// =========================================================================
 // 6. withTimeout helper
 // =========================================================================
 

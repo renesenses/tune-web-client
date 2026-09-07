@@ -47,6 +47,7 @@ import type {
   QueueStateResponse,
   SearchResult,
   StreamingSearchResult,
+  CataloguePlaylist,
   FederatedSearchResult,
   FeaturedSection,
   SystemHealth,
@@ -2126,6 +2127,31 @@ export interface CrossfeedSettings {
   delay_ms: number; // 0.0 .. 5.0
 }
 
+/** Ce que le crossfeed VAUT sur CETTE zone, publié par `GET` et `PUT
+ *  /zones/{id}/dsp` depuis la 0.9.132 (tune-server-rust `1aad45e1`).
+ *
+ *  `unavailable` se lève même case décochée : la question n'est pas « le
+ *  réglage a-t-il changé ? » mais « ce réglage a-t-il encore un sens ici ? ».
+ *  C'est donc lui qui VERROUILLE le contrôle. `reason` porte un code stable,
+ *  `detail` la même chose en clair — mais en français seulement, côté serveur :
+ *  l'écran traduit par `reason` et ne sert jamais `detail` tel quel.
+ *
+ *  Absent d'un serveur antérieur, et `null` sur un `PUT` dont le corps ne
+ *  portait pas de `crossfeed` : ne rien affirmer alors, se replier sur le type
+ *  de sortie de la zone (voir `lib/crossfeed`). */
+export interface CrossfeedStatus {
+  /** La case telle qu'elle est persistée. */
+  requested: boolean;
+  /** Ce qui sera réellement appliqué au son. */
+  effective: boolean;
+  /** La contrainte s'applique — verrouille le contrôle. */
+  unavailable: boolean;
+  /** `non_local_output` | `pure_mode` ; `null` quand le réglage est honoré. */
+  reason: string | null;
+  /** Phrase serveur, en français uniquement. Non affichée par l'écran web. */
+  detail: string | null;
+}
+
 // GET /zones/{id}/dsp returns the whole DSP chain for the zone. Fields are
 // optional because the server fills in defaults and callers PUT partial
 // updates (e.g. only eq_profile, or only crossfeed). Kept open-ended so
@@ -2133,6 +2159,8 @@ export interface CrossfeedSettings {
 export interface DspSettings {
   eq_profile?: any;
   crossfeed?: CrossfeedSettings;
+  /** #2742 — verdict du serveur sur cette zone. Voir CrossfeedStatus. */
+  crossfeed_status?: CrossfeedStatus | null;
   [key: string]: any;
 }
 
@@ -2332,7 +2360,11 @@ function mapStreamingAlbums(albums: any[]): Album[] {
  *
  * `??` et non `=` : un agrégateur peut rendre du Tidal sous une route Qobuz.
  */
-function mapStreamingSearchResult<T extends SearchResult>(result: T, service?: string): T {
+type QuatreFamilles = {
+  tracks: Track[]; albums: Album[]; artists: Artist[]; playlists?: CataloguePlaylist[];
+};
+
+function mapStreamingSearchResult<T extends QuatreFamilles>(result: T, service?: string): T {
   const poser = <U,>(xs: U[] | undefined): U[] =>
     (xs ?? []).map((x: any) => (service && !x?.source ? { ...x, source: service } : x));
   return {
@@ -2365,8 +2397,12 @@ function mapZoneQuality(zone: any): Zone {
  */
 export const SEARCH_PAGE_LIMIT = 50;
 
-export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PAGE_LIMIT) {
+export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PAGE_LIMIT, offset = 0) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
+  // #3189 — la suite de la bibliothèque locale (le serveur ne pagine que
+  // celle-là). Absent = 0 = la page d'avant : l'URL des appels existants ne
+  // change pas.
+  if (offset > 0) url += `&offset=${offset}`;
   if (sources && sources.length > 0) {
     url += `&sources=${sources.join(',')}`;
   }
@@ -4169,19 +4205,6 @@ export function setAudiophileVolumeLock(
   });
 }
 
-// --- Streaming Quality ---
-
-export function getStreamingQuality(zoneId: number) {
-  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`);
-}
-
-export function setStreamingQuality(zoneId: number, quality: string) {
-  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`, {
-    method: 'POST',
-    body: JSON.stringify({ quality }),
-  });
-}
-
 // --- Config Export/Import ---
 
 export async function exportConfig(): Promise<void> {
@@ -5079,10 +5102,18 @@ export function deactivateLicense(): Promise<LicenseActivateResponse> {
   });
 }
 
-export function validateLicense(): Promise<{ status: string }> {
-  return fetchJSON<{ status: string }>(`${BASE}/cloud/license/validate`, {
-    method: 'POST',
-  });
+/**
+ * 🔴 Répond HTTP 200 même quand la validation a ÉCHOUÉ : le verdict est dans
+ * le corps, jamais dans le statut HTTP. Le corps entier est donc rendu, et
+ * `verdictValidationLicence` (src/lib/licenceValidation.ts) le lit — #570.
+ */
+export function validateLicense(): Promise<
+  import('./licenceValidation').ReponseValidationLicence
+> {
+  return fetchJSON<import('./licenceValidation').ReponseValidationLicence>(
+    `${BASE}/cloud/license/validate`,
+    { method: 'POST' },
+  );
 }
 
 // Log out of the mozaiklabs.fr cloud account (server drops the stored SSO token).

@@ -1,16 +1,20 @@
 <script lang="ts">
   import { doitReinitialiserLesParoles } from '../lib/nowPlayingLyricsReset';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentZone } from '../lib/stores/zones';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../lib/stores/nowPlaying';
   import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs } from '../lib/stores/queue';
   import { currentZoneId, zones } from '../lib/stores/zones';
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
-  import { isMiddlePressWheel } from '../lib/npWheelGesture';
+  import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
+  import { lireOuAjouter } from '../lib/playback';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
-  import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
+  import {
+    CF_PRESETS, presetActif, reglagesCrossfeed,
+    indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
+  } from '../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import SeekBar from './SeekBar.svelte';
@@ -106,13 +110,15 @@
         moodLoading = null;
         return;
       }
-      if ($queueTracks.length === 0) {
-        await playAndSync(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('nowplaying.tracksPlaying')}`);
-      } else {
-        await api.addToQueue(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('nowplaying.tracksAdded')}`);
-      }
+      // #528 — jouer ou ajouter se décide sur l'état RÉEL de la file, jamais
+      // sur `$queueTracks` : ce cache est vide tant que rien ne l'a hydraté et
+      // périmé dès qu'un autre client a enfilé des titres, et `POST /play`
+      // REMPLACE la file. Voir `lireOuAjouter`.
+      const decision = await lireOuAjouter(zone.id, ids);
+      const libelle = decision === 'lecture'
+        ? $t('nowplaying.tracksPlaying')
+        : $t('nowplaying.tracksAdded');
+      notifications.success(`${mood.label} Mix : ${ids.length} ${libelle}`);
       // Refresh queue
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
@@ -188,6 +194,11 @@
   let cfAmount = $state(0.3);
   let cfDelay = $state(0.3);
   let cfPorteeLive = $state<boolean | null>(null);
+  // Ce que le SERVEUR dit du crossfeed sur cette zone (`crossfeed_status`,
+  // GET/PUT /zones/{id}/dsp depuis la 0.9.132). `unavailable` verrouille le
+  // controle ; a defaut du champ, le type de sortie de la zone tranche.
+  let cfStatut = $state<api.CrossfeedStatus | null>(null);
+  let cfIndispo = $derived(indisponibiliteCrossfeed(cfStatut, $currentZone?.output_type));
   let cfTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function chargerCrossfeed() {
@@ -195,6 +206,7 @@
     try {
       const dsp = await api.getDsp(zone.id);
       const cf = dsp?.crossfeed;
+      cfStatut = dsp?.crossfeed_status ?? null;
       if (cf) {
         cfEnabled = !!cf.enabled;
         cfAmount = cf.amount ?? 0.3;
@@ -222,6 +234,7 @@
       // Le serveur dit si le reglage a atteint le flux EN COURS. Sans ca, on
       // pousse le curseur, rien ne change a l'oreille, et ca se raconte
       // ensuite comme « le crossfeed ne marche pas ».
+      cfStatut = res?.crossfeed_status ?? cfStatut;
       cfPorteeLive = res?.crossfeed_applied_live ?? null;
     } catch (e) {
       if ((e as Error)?.message !== 'premium_required') {
@@ -1098,6 +1111,14 @@
       npWheelAccum = 0; // a press must not leave a half-armed gesture behind
       return;
     }
+    // Fil 1619 (Jean Valjean, 0.9.126, Firefox) : la molette qui déroule les
+    // paroles — ou tout autre cadre défilant de l'écran — n'est pas le geste de
+    // découverte de la file. L'événement remonte jusqu'ici quand même ; on le
+    // laisse au cadre, sans laisser de geste à moitié armé derrière lui.
+    if (isInnerScrollerWheel(e.target)) {
+      npWheelAccum = 0;
+      return;
+    }
 
     // Normalize deltaMode (0=pixels, 1=lines, 2=pages) to pixels.
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
@@ -1537,35 +1558,48 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                 {$t('nowplaying.share')}
               </button>
-              <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
-                <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-                  Sleep
-                </button>
-                {#if showSleepMenu}
-                  <div class="np-sleep-dropdown">
-                    {#each [15, 30, 45, 60] as m}
-                      <button class="sleep-option" class:active={sleepActive && sleepMinutes === m} onclick={() => handleSleepTimer(m)}>{m} min</button>
-                    {/each}
-                    <button class="sleep-option sleep-off" onclick={() => handleSleepTimer(0)}>Off</button>
-                  </div>
-                {/if}
-              </div>
-              <button
-                class="np-credits-btn"
-                class:active={cfEnabled}
-                onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
-                {$t('dsp.crossfeedTitle')}
-              </button>
-              <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
-                {$t('nowplaying.alarm')}
-              </button>
             {/if}
+            <!-- Sleep, DSP et Réveil sont des réglages de ZONE, comme l'EQ
+                 juste au-dessus (#534). Leurs trois gestionnaires ne prennent
+                 que `zone.id` — `api.setSleepTimer`, `api.setDSP`,
+                 `api.setAlarm` / `api.cancelAlarm` — et aucun ne lit
+                 `displayTrack`. Enfermés avec les crédits, ils disparaissaient
+                 sur une radio et sur toute piste hors bibliothèque, en privant
+                 précisément l'auditeur de radio des deux réglages qui ont le
+                 plus de sens pour lui : s'endormir dessus, et se réveiller
+                 dessus. Garde : src/lib/__tests__/npReglagesDeZone.test.ts -->
+            <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
+              <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                Sleep
+              </button>
+              {#if showSleepMenu}
+                <div class="np-sleep-dropdown">
+                  {#each [15, 30, 45, 60] as m}
+                    <button class="sleep-option" class:active={sleepActive && sleepMinutes === m} onclick={() => handleSleepTimer(m)}>{m} min</button>
+                  {/each}
+                  <button class="sleep-option sleep-off" onclick={() => handleSleepTimer(0)}>Off</button>
+                </div>
+              {/if}
+            </div>
+            <button
+              class="np-credits-btn"
+              class:active={cfEnabled}
+              onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
+              {$t('dsp.crossfeedTitle')}
+            </button>
+            <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
+              {$t('nowplaying.alarm')}
+            </button>
           </div>
-          {#if showAlarm && !isRadio && normalizedTrack?.id != null}
+          <!-- Le panneau du réveil garde sa propre condition, `showAlarm`, et
+               elle seule : le bouton qui l'ouvre n'est plus gardé par la piste,
+               laisser le panneau l'être aurait rendu ce bouton sans effet sur
+               une radio — un silence de plus, à la place de celui qu'on répare. -->
+          {#if showAlarm}
             <div class="np-alarm-panel">
               <div class="alarm-row">
                 <input type="time" class="alarm-time-input" bind:value={alarmTime} />
@@ -1602,6 +1636,7 @@
                     type="checkbox"
                     bind:checked={cfEnabled}
                     onchange={() => void enregistrerCrossfeed()}
+                    disabled={cfIndispo.indisponible}
                   />
                   <span>{cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
                 </label>
@@ -1610,6 +1645,7 @@
                     <button
                       class="cf-preset"
                       class:actif={cfEnabled && presetActif(cfAmount, cfDelay) === p.key}
+                      disabled={cfIndispo.indisponible}
                       onclick={() => appliquerPreset(p)}>{$t(p.labelKey as any)}</button
                     >
                   {/each}
@@ -1625,7 +1661,7 @@
                   step="0.01"
                   bind:value={cfAmount}
                   oninput={planifierCrossfeed}
-                  disabled={!cfEnabled}
+                  disabled={!cfEnabled || cfIndispo.indisponible}
                 />
                 <output>{cfAmount.toFixed(2)}</output>
               </label>
@@ -1639,13 +1675,19 @@
                   step="0.1"
                   bind:value={cfDelay}
                   oninput={planifierCrossfeed}
-                  disabled={!cfEnabled}
+                  disabled={!cfEnabled || cfIndispo.indisponible}
                 />
                 <output>{cfDelay.toFixed(1)} ms</output>
               </label>
 
               <p class="cf-note">{$t('dsp.crossfeedDesc')}</p>
-              {#if cfPorteeLive === false}
+              {#if cfIndispo.indisponible}
+                <!-- Le serveur (ou, a defaut, le type de sortie) dit que le
+                     crossfeed n'a AUCUN chemin sur cette zone. Promettre la
+                     piste suivante y serait faux : il ne prendra jamais
+                     (tune-server-rust#2742). -->
+                <p class="cf-note cf-note-alerte">{$t(cleIndisponibiliteCrossfeed(cfIndispo.motif) as any)}</p>
+              {:else if cfPorteeLive === false}
                 <!-- Le serveur dit que le reglage n'a pas atteint le flux en
                      cours : le taire, c'est laisser croire a une panne. -->
                 <p class="cf-note cf-note-alerte">{$t('eq.effectNextTrack')}</p>

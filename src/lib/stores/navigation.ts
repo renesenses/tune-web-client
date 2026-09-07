@@ -89,9 +89,6 @@ export const pendingSearchQuery = writable<string>('');
 // its subfolders (facetSels.folder). Consumed once on Oxygen mount.
 export const pendingOxygenFolder = writable<string | null>(null);
 
-// One-shot: same idea for the classic LibraryView — scope its Albums/Artists/
-// Tracks/Genres tabs to a folder + subfolders. Consumed once on Library mount.
-export const pendingLibraryFolder = writable<string | null>(null);
 
 /**
  * 🔴 L'ALBUM à ouvrir en arrivant sur la Bibliothèque du nouveau client.

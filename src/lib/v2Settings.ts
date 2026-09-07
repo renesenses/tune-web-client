@@ -78,7 +78,6 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0',
     sections: [
       { id: 'localAudio',    titleKey: 'settings.localAudio',          from: 'network', min: 'beginner', keywords: ['sortie', 'carte son', 'dac'] },
-      { id: 'streamQuality', titleKey: 'settings.streamingQuality',    from: 'general', min: 'beginner', keywords: ['qualité', 'débit', 'flac'] },
       { id: 'netDevices',    titleKey: 'settings.networkDevices',      from: 'network', min: 'intermediate', keywords: ['dlna', 'upnp', 'chromecast'] },
       { id: 'squeezebox',    titleKey: 'settings.squeezebox',          from: 'services', min: 'intermediate', keywords: ['lyrion', 'lms', 'slimproto'] },
       { id: 'hqplayer',      title: 'HQPlayer',                        from: 'services', min: 'expert',   keywords: ['upsampling', 'naa'] },
@@ -179,7 +178,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     ],
   },
   {
-    id: 'clap', label: 'CLAP', min: 'expert',
+    /* #2104 : « CLAP » est le nom du modele d'apprentissage, pas celui d'une
+     * fonction. L'onglet a ete cree parce que le bloc etait introuvable ; il
+     * l'est reste, et le texte d'aide d'Ambiance interpole precisement ce
+     * libelle. Il prend donc une cle i18n comme les dix autres onglets. */
+    id: 'clap', labelKey: 'settings.tabClap', min: 'expert',
     icon: 'M2 12h2l2-7 3 14 3-10 2 5 2-2h6',
     sections: [
       { id: 'clap', titleKey: 'settings.tabClap', from: 'clap', min: 'expert', keywords: ['acoustique', 'analyse', 'ambiance'] },

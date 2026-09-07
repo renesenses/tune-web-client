@@ -8,7 +8,8 @@
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { activeView, pendingOxygenFolder, pendingLibraryFolder } from '../lib/stores/navigation';
+  import { activeView, pendingOxygenFolder } from '../lib/stores/navigation';
+  import { libraryFolderScope } from '../lib/stores/library';
   import { preferences } from '../lib/stores/preferences';
   import ImportWizard from './ImportWizard.svelte';
 
@@ -179,10 +180,11 @@
   }
 
   // Open the current folder in the classic Library view (Albums/Artists/Tracks/
-  // Genres tabs) scoped to this folder + subfolders, via pendingLibraryFolder.
+  // Genres tabs) scoped to this folder + subfolders, via libraryFolderScope —
+  // a store both Library screens READ (not a one-shot handoff, #3101).
   function openInLibrary() {
     if (!browseResult?.path) return;
-    pendingLibraryFolder.set(browseResult.path);
+    libraryFolderScope.set(browseResult.path);
     activeView.set('library');
   }
 

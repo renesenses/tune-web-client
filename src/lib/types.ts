@@ -473,6 +473,19 @@ export interface SearchResult {
    * 0.9.71 ne renvoie pas le champ.
    */
   playlists?: CataloguePlaylist[];
+  /**
+   * #3189 — ce que la liste ne disait pas. Rendus par le serveur depuis la
+   * 0.9.132 (`routes/search.rs`), pour la bibliothèque LOCALE seulement ;
+   * optionnels : un serveur plus ancien ne les envoie pas et l'écran retombe
+   * sur le compte affiché. `totals` est un COUNT sur le même prédicat que la
+   * liste ; `totals_capped` dit que ce total est une borne inférieure (« au
+   * moins N ») ; `has_more` dit qu'une suite existe, à demander par `offset`.
+   */
+  totals?: { artists: number; albums: number; tracks: number; tracks_via_metadata?: number };
+  totals_capped?: { artists?: boolean; albums?: boolean; tracks?: boolean };
+  has_more?: { artists?: boolean; albums?: boolean; tracks?: boolean };
+  limit?: number;
+  offset?: number;
 }
 
 /**
@@ -491,9 +504,24 @@ export interface SearchResult {
  * l'existence du bouton « voir plus », pas le compte d'une famille.
  *
  * Fabien, sur la v0.9.140 : « la recherche globale ne retourne que 50
- * résultats ». La route FÉDÉRÉE (`/search`) ne pagine pas ; celle-ci, si.
+ * résultats ». Cette route-ci pagine, et le client ne le lui demandait pas.
+ *
+ * 🔴 ELLE N'ÉTEND PAS `SearchResult`, et c'est délibéré : les deux routes
+ * emploient les MÊMES NOMS pour des formes DIFFÉRENTES.
+ *
+ *     /search                  has_more: { artists?, albums?, tracks? }   (#3189)
+ *                              totals:   { artists, albums, tracks, … }
+ *     /streaming/{svc}/search  has_more: true                (un seul booléen)
+ *                              totals:   { albums, artists, tracks, playlists }
+ *
+ * Les faire hériter l'une de l'autre revenait à promettre au compilateur une
+ * compatibilité que le serveur ne tient pas. Deux contrats, deux types.
  */
-export interface StreamingSearchResult extends SearchResult {
+export interface StreamingSearchResult {
+  tracks: Track[];
+  albums: Album[];
+  artists: Artist[];
+  playlists?: CataloguePlaylist[];
   /** Vrai tant que le service a encore des résultats après cette page. */
   has_more?: boolean;
   /** Décalage de CETTE page — ce que le serveur a réellement appliqué. */
@@ -1018,18 +1046,21 @@ export interface SmartCollection {
   id: number;
   name: string;
   description: string | null;
-  icon: string;
-  color: string;
-  rules: string;            // JSON-encoded SmartRule[]
+  icon: string | null;
+  color: string | null;
+  // Le routeur renvoie le tableau JSON decode ; les anciennes reponses
+  // portaient la chaine encodee (#2732).
+  rules: SmartRule[] | string;
   match_mode: 'all' | 'any';
-  sort_by: string;
+  sort_by: string | null;
   sort_order: 'asc' | 'desc';
-  max_albums: number;
-  auto_refresh: number;
+  // Nom persistant et servi : `max_limit`. `max_albums` n'a jamais ete dans
+  // la reponse Rust (#2732).
+  max_limit: number | null;
   album_count?: number;
   created_at: string;
-  updated_at: string;
 }
+
 
 export interface SmartCollectionPreview {
   // Server returns {"albums": [...], "total": albums.len()} — total is the

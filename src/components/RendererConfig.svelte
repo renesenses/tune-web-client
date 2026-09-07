@@ -3,6 +3,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { rendererProbeErrorKey } from '../lib/rendererProbe';
+  import { etatWav24, wav24Disponible } from '../lib/wav24Gate';
   import type { Zone, RendererCapabilities } from '../lib/types';
 
   // Coherent per-renderer output config for a DLNA/OpenHome zone: a discovery
@@ -98,23 +99,28 @@
     cap16 = v;
     if (zone.id != null) save(() => api.updateZoneDlnaCap16bit(zone.id!, v));
   }
-  // 24-bit WAV is unlocked once a probe confirms the renderer advertises audio/L24
-  // OR generic audio/wav: the dlna_wav24 server path sends a real WAV file WITHOUT
-  // the LPCM PN, so any WAV-capable renderer parses the 24-bit header (a genuine
-  // 24-bit DAC like the darTZeel LHC-208 accepts WAV but never announces L24). It
-  // stays an explicit per-zone opt-in, so a renderer that claims WAV yet can't do
-  // 24-bit is the user's call — and it would choke on any 24-bit WAV regardless.
+  // 24-bit WAV is unlocked once the discovery check confirms the renderer
+  // advertises audio/L24 OR generic audio/wav: the dlna_wav24 server path sends a
+  // real WAV file WITHOUT the LPCM PN, so any WAV-capable renderer parses the
+  // 24-bit header (a genuine 24-bit DAC like the darTZeel LHC-208 accepts WAV but
+  // never announces L24). It stays an explicit per-zone opt-in.
   // If the zone already had it saved (dlna_wav24), keep it selectable even before a
   // fresh probe so the current state isn't silently downgraded.
-  let wav24Available = $derived(!!caps?.lpcm24 || !!caps?.wav || forceWav === '24');
-
-  // Le bouton « 24 bits » dépend de `caps`, qui reste null tant que le test de
-  // découverte n'a pas tourné : il est donc grisé sur TOUS les renderers à
-  // l'ouverture de l'écran, y compris ceux qui savent le faire. Yves en a conclu
-  // que le 24 bits ne marchait sur aucun de ses appareils. La raison vivait dans
-  // une infobulle posée sur un bouton désactivé — que plusieurs navigateurs
-  // n'affichent pas. On invite donc explicitement à lancer le test.
-  let wav24NeedsProbe = $derived(caps === null && forceWav !== '24');
+  //
+  // Ce qui change (#303) : une sonde qui n'a pas répondu n'est PLUS un refus.
+  // `caps` reste `null` tant que le test de découverte n'a pas abouti — le
+  // bouton était donc grisé sur TOUS les renderers à l'ouverture de l'écran, et
+  // à jamais sur ceux dont la sonde échoue. Le darTZeel LHC-208 d'Yves Corbat
+  // est lent à acquitter ses commandes SOAP : le réglage lui restait
+  // inatteignable, sans contournement. Le serveur qualifie lui-même ce cas
+  // d'« inconclusive » ; aucun autre réglage de cet écran n'exige de preuve.
+  //
+  // Le garde-fou reste, mais il repose désormais sur une PREUVE : une sonde qui
+  // a répondu et n'annonce ni audio/L24 ni audio/wav décrit un appareil qui ne
+  // saura pas le faire. La règle et ses justifications vivent dans
+  // `lib/wav24Gate.ts`, où elles se testent.
+  let wav24Etat = $derived(etatWav24(caps, forceWav === '24'));
+  let wav24Available = $derived(wav24Disponible(caps, forceWav === '24'));
 
   function setForceWav(mode: 'off' | '16' | '24') {
     if (mode === '24' && !wav24Available) return;
@@ -188,8 +194,10 @@
         <button class:active={forceWav === '24'} disabled={!wav24Available} title={$t('renderer.wav24Hint')} onclick={() => setForceWav('24')}>{$t('renderer.wav24')}</button>
       </div>
     </div>
-    {#if wav24NeedsProbe}
-      <p class="rc-warn">{$t('renderer.wav24NeedsProbe')}</p>
+    {#if wav24Etat === 'sans_preuve'}
+      <p class="rc-warn">{$t('renderer.wav24Unproven')}</p>
+    {:else if wav24Etat === 'refuse'}
+      <p class="rc-warn">{$t('renderer.wav24Refused')}</p>
     {/if}
 
     <label class="rc-toggle" title={$t('settings.dlnaCap16bitHint')}>

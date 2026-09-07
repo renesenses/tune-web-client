@@ -119,23 +119,20 @@ describe('fil 1683 — la facette Dynamic Range ne filtre rien', () => {
 describe('fil 1637 + Bertrand — un répertoire ouvert dans la Bibliothèque', () => {
   const v2 = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
 
-  it('la v2 CONSOMME enfin `pendingLibraryFolder`', () => {
+  it('la v2 LIT la portée partagée, en dérivé', () => {
     // 🔴 Dixième « écrit mais pas branché » : `BrowseView` posait la portée et
     // le seul consommateur était `LibraryView`, l'écran de l'ANCIEN client.
     // « c'est l'entièreté de la bibliothèque en cours qui s'affiche »
     // (Sevy Tabroc, forum 1637) — même défaut que « Répertoires vue en
     // Bibliothèque : filtre non appliqué » (Bertrand, 06/09).
-    expect(v2).toContain('pendingLibraryFolder');
-    // 🔴 L'APPEL, pas la définition. Une première version de cette garde
-    // vérifiait que la fonction existait : remplacer son appel par `null`
-    // laissait la garde verte et la portée morte. Un test qui réplique le
-    // code ne le garde pas.
-    expect(v2).toMatch(/const dossierPortee = prendreDossierEnAttente\(\);/);
-    expect(v2).toMatch(/function prendreDossierEnAttente\(\): string \| null/);
-    // Une seule fois : la portée ne doit pas se réappliquer à chaque retour.
-    expect(v2).toMatch(/pendingLibraryFolder\.set\(null\); return d;/);
+    //
+    // Depuis renesenses/tune-server-rust#3101, la portée n'est plus un dépôt
+    // consommé une fois à l'initialisation : c'est le magasin
+    // `libraryFolderScope`, lu en dérivé par les DEUX clients — voir
+    // porteeRepertoire3101.test.ts, qui rejoue les deux gestes.
+    expect(v2).toMatch(/const dossierPortee = \$derived\(\$libraryFolderScope\)/);
     // Et elle doit vraiment ATTEINDRE la source d'albums.
-    expect(v2).toMatch(/porteeActive = \$state\(!!dossierPortee\)/);
+    expect(v2).toMatch(/const porteeActive = \$derived\(!!dossierPortee\)/);
   });
 
   it('elle filtre par IDENTIFIANTS, sans toucher au magasin partagé', () => {
@@ -158,7 +155,7 @@ describe('fil 1637 + Bertrand — un répertoire ouvert dans la Bibliothèque', 
     // Une bibliothèque amputée sans explication est le défaut inverse.
     expect(v2).toContain("$tr('v2.lib.scopedFolder' as any)");
     expect(v2).toContain('onclick={retirerPortee}');
-    expect(v2).toMatch(/function retirerPortee\(\)[\s\S]{0,120}idsPortee = null/);
+    expect(v2).toMatch(/function retirerPortee\(\)[\s\S]{0,120}libraryFolderScope\.set\(null\)/);
   });
 });
 

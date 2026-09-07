@@ -2,6 +2,11 @@
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick } from 'svelte';
+  // 🔴 Repose APRÈS fusion : `main` a supprimé le seul autre lecteur de `get`
+  // (`prendreDossierEnAttente`, remplacé par le magasin `libraryFolderScope`)
+  // et la ligne d'import est partie avec, sans conflit. `check-svelte` l'a
+  // arrêté — sans lui l'écran Bibliothèque levait à l'exécution, comme la
+  // 0.9.62 avec `albumWall`.
   import { get } from 'svelte/store';
   import { t as tr } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
@@ -34,8 +39,16 @@
    * Voir `lib/tuneRemote` pour pourquoi c'est possible chez Tune et pas chez
    * un serveur UPnP tiers.
    */
-  import { albums, libraryLoading } from '../../lib/stores/library';
-  import { activeView, pendingLibraryFolder, pendingLibraryAlbum, type View } from '../../lib/stores/navigation';
+  import { albums, libraryLoading, libraryFolderScope } from '../../lib/stores/library';
+  // 🔴 `pendingLibraryFolder` n'existe PLUS : `main` l'a remplacé par le
+  // magasin `libraryFolderScope` (voir `lib/porteeBibliotheque`) parce qu'un
+  // dépôt consommé UNE fois dans l'initialiseur d'un `$state` n'était jamais
+  // lu quand la Bibliothèque était déjà montée. On prend sa version.
+  // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
+  // lecture en cours (Fabien), et il est toujours consommé plus bas.
+  import { activeView, pendingLibraryAlbum, type View } from '../../lib/stores/navigation';
+  import { nomDeDossier } from '../../lib/porteeBibliotheque';
+  import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, fold, formatDuration,  type QualityTier } from '../../lib/utils';
@@ -85,17 +98,15 @@
    * PORTÉE À UN RÉPERTOIRE — le bouton « ouvrir dans la bibliothèque » de
    * l'écran Répertoires.
    *
-   * 🔴 Dixième « écrit mais pas branché » de ce client. `BrowseView` pose
-   * `pendingLibraryFolder` et change de vue ; le SEUL consommateur était
-   * `LibraryView`, l'écran de l'ancien client. En v2, la Bibliothèque ne
-   * lisait rien : on arrivait sur la bibliothèque ENTIÈRE, sans que rien ne
-   * dise que la portée avait été perdue.
-   *
-   * Deux témoins, indépendamment : « Lorsque je sélectionne un répertoire
-   * celui-ci apparaît dans bibliothèque mais c'est l'entièreté de la
-   * bibliothèque en cours qui s'affiche » (Sevy Tabroc, forum 1637,
-   * 01/09/2026) et « Répertoires vue en Bibliothèque : filtre non appliqué »
-   * (Bertrand, 06/09/2026).
+   * UNE source de vérité : `libraryFolderScope` (stores/library), lu ici et
+   * par l'ancien client, écrit par BrowseView et par la croix de la puce. Il
+   * remplace `pendingLibraryFolder`, un dépôt « consommé une fois à
+   * l'initialisation » : posé pendant que la Bibliothèque était montée, il
+   * n'était jamais lu, et l'écran montrait TOUT sous une puce qui annonçait un
+   * répertoire — « c'est l'entièreté de la bibliothèque en cours qui
+   * s'affiche » (Sevy Tabroc, forum 1637, renesenses/tune-server-rust#3101),
+   * « Répertoires vue en Bibliothèque : filtre non appliqué » (Bertrand,
+   * 06/09/2026). Lu en dérivé, il est suivi tant que l'écran vit.
    *
    * ## Pourquoi les identifiants, et pas une reconstruction
    *
@@ -109,32 +120,36 @@
    * albums sans filtre, 1 440 pour `/data/music`, 1 306 pour son sous-dossier
    * `NEW_FLAC` — les sous-dossiers sont donc bien inclus.
    */
-  function prendreDossierEnAttente(): string | null {
-    const d = get(pendingLibraryFolder);
-    if (d) { pendingLibraryFolder.set(null); return d; }
-    return null;
-  }
-  const dossierPortee = prendreDossierEnAttente();
-  const nomPortee = dossierPortee
-    ? (dossierPortee.split(/[/\\]/).filter(Boolean).pop() ?? dossierPortee)
-    : '';
+  const dossierPortee = $derived($libraryFolderScope);
+  const nomPortee = $derived(nomDeDossier(dossierPortee));
   /** `null` tant qu'on ne sait pas encore : l'écran attend plutôt que de
    *  montrer tout, ce qui serait exactement le défaut signalé. */
   let idsPortee = $state<Set<number> | null>(null);
-  let porteeActive = $state(!!dossierPortee);
+  const porteeActive = $derived(!!dossierPortee);
   $effect(() => {
-    if (!dossierPortee || !porteeActive) return;
+    // Toute nouvelle portée repart de « je ne sais pas » ; une réponse arrivée
+    // après un changement de portée est ignorée (`perime`).
+    const d = dossierPortee;
+    idsPortee = null;
+    if (!d) return;
+    let perime = false;
     api.getAlbumsDetailed({ folder: dossierPortee }, 5000, 0)
       .then((r) => {
+        if (perime) return;
         idsPortee = new Set(
           (r.items ?? []).map((a: any) => a.album_id).filter((x: any) => typeof x === 'number'),
         );
       })
-      .catch(() => { idsPortee = new Set(); });
+      .catch(() => {
+        if (perime) return;
+        // Échec : on ne montre RIEN plutôt que tout, et on le DIT.
+        idsPortee = new Set();
+        notifications.error($tr('library.scopeLoadError').replace('{d}', nomDeDossier(d)));
+      });
+    return () => { perime = true; };
   });
   function retirerPortee() {
-    porteeActive = false;
-    idsPortee = null;
+    libraryFolderScope.set(null);
   }
 
   /** LA source d'albums de l'ecran. Tout le reste lit `src`, jamais `$albums`

@@ -54,7 +54,6 @@ export const SETTING_LEVELS = {
   'general.startupView': { tab: 'general', level: 'beginner' },
   'general.defaultZone': { tab: 'general', level: 'beginner' },
   'general.tooltips': { tab: 'general', level: 'beginner' },
-  'general.streamingQuality': { tab: 'general', level: 'beginner' },
   'general.loopByDefault': { tab: 'general', level: 'beginner' },
   'general.lockVolume': { tab: 'general', level: 'intermediate' },
   'general.volumeDisplay': { tab: 'general', level: 'intermediate' },

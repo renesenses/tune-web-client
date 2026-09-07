@@ -36,3 +36,32 @@ const MIDDLE_BUTTON_BIT = 4;
 export function isMiddlePressWheel(buttons: number, msSinceMiddlePress: number): boolean {
   return (buttons & MIDDLE_BUTTON_BIT) !== 0 || msSinceMiddlePress < NP_MIDDLE_PRESS_GUARD_MS;
 }
+
+/**
+ * Fil 1619 (Jean Valjean, 0.9.126, Firefox) : faire dérouler les PAROLES à la
+ * molette ouvrait la file d'attente par-dessus le texte.
+ *
+ * Le geste de découverte est posé sur la racine de la vue, et un `wheel` émis
+ * dans un cadre qui défile lui-même (paroles, crédits, fiche du chemin du
+ * signal, liste de la file) remonte jusqu'à elle — que le cadre ait consommé
+ * le défilement ou non. Or un défilement qui agit DANS un cadre n'est pas un
+ * défilement de la page : il ne doit ni armer ni déclencher le geste.
+ *
+ * Chaque sélecteur ci-dessous désigne un bloc `overflow-y: auto` de l'écran ;
+ * la garde `parolesMoletteEtHautDePage.test.ts` vérifie que la liste et le
+ * CSS ne divergent pas. Le conteneur `.np-scroll` n'y figure PAS : c'est le
+ * défilement de la page elle-même sur un petit écran, celui que le geste doit
+ * justement accompagner.
+ */
+export const NP_INNER_SCROLLER_SELECTOR = '.np-lyrics, .np-credits, .signal-path-card, .qs-track-list';
+
+/**
+ * La molette agit-elle dans un cadre défilant interne plutôt que sur la page ?
+ *
+ * @param target  `WheelEvent.target` — l'élément le plus profond sous le curseur.
+ */
+export function isInnerScrollerWheel(target: EventTarget | null): boolean {
+  const el = target as Element | null;
+  if (!el || typeof el.closest !== 'function') return false;
+  return el.closest(NP_INNER_SCROLLER_SELECTOR) !== null;
+}

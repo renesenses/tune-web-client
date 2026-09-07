@@ -13,6 +13,8 @@
 
   import { t } from '../lib/i18n';
   import OutputModuleBanner from './OutputModuleBanner.svelte';
+  import OutputModulesPanel from './OutputModulesPanel.svelte';
+  import { tableauFournisseurs } from '../lib/refusModuleSortie';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus } from '../lib/types';
 
   // « Services actifs » affichait `serverDiag.connectors`, c'est-a-dire la
@@ -73,6 +75,11 @@
       last_result: Record<string, unknown> | null;
     } | null;
   } | null>(null);
+
+  // #2392 — le panneau « Modules de sortie » : `null` tant que le serveur
+  // n'envoie pas `output_providers` (antérieur à v0.9.115), et alors rien
+  // n'est monté. La lecture est celle de `refusModuleSortie.ts`, sondée.
+  const tableauModules = $derived(tableauFournisseurs(serverDiag?.output_providers));
 
   async function fetchServerVersion() {
     try {
@@ -867,6 +874,18 @@
       </section>
     {/if}
 
+    <!-- #2392 — Modules de sortie (arbitrage du 01/09/2026). Le bandeau du
+         haut dit le refus en langage courant ; ce panneau montre l'état
+         complet que sert le serveur, code de refus compris : c'est l'écran
+         qu'on envoie au support. Absent sur un serveur antérieur à v0.9.115. -->
+    {#if tableauModules}
+      <section class="diag-section">
+        <h3>{$t('diagnostics.outputModules')}</h3>
+        <p class="diag-hint">{$t('diagnostics.outputModulesHint')}</p>
+        <OutputModulesPanel tableau={tableauModules} />
+      </section>
+    {/if}
+
     <!-- Active Zones -->
     <section class="diag-section">
       <h3>{$t('diagnostics.activeZones')}</h3>
@@ -1158,6 +1177,13 @@
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
+  }
+
+  .diag-hint {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin: 0 0 var(--space-sm);
   }
 
   .diag-section h3 {

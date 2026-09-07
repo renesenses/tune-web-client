@@ -35,6 +35,7 @@
   import { copyText, errText } from '../lib/utils';
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
   import { licenseState, isPremium, loadLicense, offlineGrace } from '../lib/stores/license';
+  import { verdictValidationLicence } from '../lib/licenceValidation';
   import SmbWizard from './SmbWizard.svelte';
   import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
@@ -797,13 +798,37 @@ function setSettingsLevel(level: SettingsLevel) {
     licenseDeactivating = false;
   }
 
+  // 🔴 `POST /cloud/license/validate` répond HTTP 200 dans TOUS ses cas
+  // d'échec : rien ne lève, et le verdict vit dans le champ `status` du corps.
+  // Ce code annonçait donc « Licence validée » dès que l'appel local avait
+  // abouti. Bruno Lescarret l'a lu trois fois en deux jours, sur une ligne de
+  // licence que le serveur n'a jamais touchée — et il est resté en gratuit
+  // seize jours en cherchant la panne ailleurs (#570).
+  //
+  // Le succès demande maintenant deux choses : que le serveur dise avoir posé
+  // le palier, ET que l'état relu derrière montre bien le premium. Sinon on
+  // affiche le motif exact, jamais un message positif.
   async function handleValidateLicense() {
     licenseValidating = true;
     try {
-      await api.validateLicense();
+      const reponse = await api.validateLicense();
       await refreshLicense();
-      notifications.success(get(t)('settings.licenseValidated'));
+      const etat = get(licenseState);
+      const verdict = verdictValidationLicence(reponse, {
+        tier: etat.tier,
+        conflitDeSession: etat.sessionConflict != null,
+      });
+      const texte =
+        verdict.statutDistant === null
+          ? get(t)(verdict.cle)
+          : get(t)(verdict.cle).replace('{code}', String(verdict.statutDistant));
+      if (verdict.succes) notifications.success(texte);
+      else notifications.error(texte);
+      // Le plafond de requêtes est un refus du serveur DISTANT, traduit en 200
+      // par la route locale : le `catch` ci-dessous ne pouvait pas le voir.
+      if (verdict.repos) startLicenseCooldown();
     } catch (e: any) {
+      // Reste utile : la route LOCALE a son propre garde-fou de débit.
       if (e?.status === 429) {
         notifications.error(get(t)('settings.licenseRateLimited'));
         startLicenseCooldown();
@@ -2445,29 +2470,6 @@ function setSettingsLevel(level: SettingsLevel) {
     }
   }
 
-  // --- Streaming Quality ---
-  let streamingQuality = $state<string>('max');
-  let qualityLoading = $state(false);
-
-  async function loadStreamingQuality() {
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    try {
-      const res = await api.getStreamingQuality(zoneId);
-      streamingQuality = res.quality ?? 'max';
-    } catch {}
-  }
-
-  async function applyStreamingQuality() {
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    qualityLoading = true;
-    try {
-      await api.setStreamingQuality(zoneId, streamingQuality);
-    } catch {}
-    qualityLoading = false;
-  }
-
   // --- Config Export/Import ---
   let configExporting = $state(false);
   let configImporting = $state(false);
@@ -2829,7 +2831,6 @@ function setSettingsLevel(level: SettingsLevel) {
     fetchTunePeers();
     fetchServerVersion();
     checkForUpdate();
-    loadStreamingQuality();
     loadScanSchedule();
     loadMetadataFields();
     loadLogLevel();
@@ -5785,24 +5786,6 @@ function setSettingsLevel(level: SettingsLevel) {
     {/if}
     {/if}
 
-    {#if settingsTab === 'general'}
-    <!-- Streaming Quality -->
-    <section class="settings-section">
-      <h3>{$t('settings.streamingQuality' as any)}</h3>
-      <div class="setting-row">
-        <div class="setting-label">
-          <span>{$t('settings.streamingQuality' as any)}</span>
-        </div>
-        <select class="quality-select" bind:value={streamingQuality} onchange={() => applyStreamingQuality()} disabled={qualityLoading}>
-          <option value="max">{$t('settings.qualityMax' as any)}</option>
-          <option value="hires">{$t('settings.qualityHires' as any)}</option>
-          <option value="cd">{$t('settings.qualityCd' as any)}</option>
-          <option value="low">{$t('settings.qualityLow' as any)}</option>
-        </select>
-      </div>
-    </section>
-    {/if}
-
     {#if settingsTab === 'system'}
     <!-- Config Export/Import -->
     <section class="settings-section" class:lv-hidden={!lvOk('system.configExportImport')}>
@@ -7824,21 +7807,6 @@ function setSettingsLevel(level: SettingsLevel) {
     background: rgba(255, 59, 48, 0.12);
     color: #ff3b30;
   }
-
-  /* Streaming Quality */
-  .quality-select {
-    background: var(--tune-bg);
-    color: var(--tune-text);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    padding: 6px 12px;
-    font-family: var(--font-body);
-    font-size: 13px;
-    cursor: pointer;
-    min-width: 160px;
-  }
-
-  .quality-select:disabled { opacity: 0.5; }
 
   /* Batch Enrich Progress */
   .enrich-group-title {

@@ -37,7 +37,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import { t as tr, locale } from '../lib/i18n';
   import { streamingServices, activeStreamingService, pendingStreamingAlbum } from '../lib/stores/streaming';
   import { get } from 'svelte/store';
-  import { activeView, pendingSearchQuery, pendingLibraryFolder } from '../lib/stores/navigation';
+  import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
+  import { libraryFolderScope } from '../lib/stores/library';
+  import {
+    listeARecharger, marquerListeChargee, viderListesHorsPortee, echecChargementPortee, nomDeDossier,
+    type ListePartagee,
+  } from '../lib/porteeBibliotheque';
   import { CANDIDATS_DEFILEMENT, conteneurDefilant } from '../lib/defilementReel';
   import { reculerAvecIntention } from '../lib/historiqueNavigation';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -1460,32 +1465,42 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let artistsLoaded = $state(false);
   let tracksLoaded = $state(false);
 
-  // --- Folder-scoped mode (from the Répertoires view's "View in library"
-  // button, pendingLibraryFolder). Scope Albums/Artists/Tracks/Genres to a
-  // folder + subfolders by deriving them client-side from that folder's tracks
-  // (/library/tracks?folder=), so no server change is needed. Genres follow for
-  // free (the genres store is derived from `albums`). Consumed once at init so
-  // the first tab load is already scoped.
-  function takePendingLibraryFolder(): string | null {
-    const pf = get(pendingLibraryFolder);
-    if (pf) { pendingLibraryFolder.set(null); return pf; }
-    return null;
-  }
-  let scopedFolder = $state<string | null>(takePendingLibraryFolder());
-  let scopedFolderName = $derived(scopedFolder ? (scopedFolder.split(/[/\\]/).filter(Boolean).pop() ?? scopedFolder) : '');
+  // --- Portée à un répertoire (bouton « Voir en bibliothèque » de l'écran
+  // Répertoires). UNE source de vérité : le magasin `libraryFolderScope`, lu
+  // ici par la pastille ET par les chargeurs, écrit par BrowseView et par la
+  // croix de la pastille. Ce n'est plus un dépôt « consommé une fois à
+  // l'initialisation » : posé pendant que l'écran était monté, ou lu à un
+  // remontage alors que le magasin `albums` était déjà plein, il laissait la
+  // bibliothèque ENTIÈRE sous une pastille qui annonçait un répertoire (Sevy
+  // Tabroc, forum 1637, renesenses/tune-server-rust#3101). Les onglets se
+  // dérivent côté client des pistes du dossier (/library/tracks?folder=) ; les
+  // genres suivent (le magasin `genres` dérive de `albums`).
+  let scopedFolder = $derived($libraryFolderScope);
+  let scopedFolderName = $derived(nomDeDossier(scopedFolder));
   let scopedTracksCache: Track[] | null = null;
 
-  async function ensureScopedTracks(): Promise<Track[]> {
+  async function ensureScopedTracks(portee: string): Promise<Track[]> {
     if (scopedTracksCache) return scopedTracksCache;
-    const res = await api.getFilteredTracks({ folder: scopedFolder!, limit: 5000 });
-    scopedTracksCache = res.items;
-    return scopedTracksCache;
+    const res = await api.getFilteredTracks({ folder: portee, limit: 5000 });
+    // La portée a changé pendant la requête : ce résultat ne se garde pas.
+    if (scopedFolder === portee) scopedTracksCache = res.items;
+    return res.items;
+  }
+  /** Le chargement de `liste` sous `portee` a échoué : la liste est VIDÉE et
+   *  l'utilisateur prévenu — l'ancienne liste (la bibliothèque entière) ne
+   *  reste plus à l'écran sous la pastille. Rien si la portée a changé entre
+   *  temps : le résultat ne concernait plus cet écran. */
+  function echecPortee(liste: ListePartagee, portee: string, e: unknown) {
+    console.error(`Load scoped ${liste} error:`, e);
+    if (scopedFolder !== portee) return;
+    echecChargementPortee(liste, portee);
+    notifications.error($tr('library.scopeLoadError').replace('{d}', nomDeDossier(portee)));
   }
 
-  async function loadScopedAlbums() {
+  async function loadScopedAlbums(portee: string) {
     libraryLoading.set(true);
     try {
-      const ts = await ensureScopedTracks();
+      const ts = await ensureScopedTracks(portee);
       const map = new Map<number, Album>();
       for (const t of ts) {
         if (t.album_id == null) continue;
@@ -1497,59 +1512,71 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           year: t.year ?? null, genre: t.genre ?? null, cover_path: t.cover_path ?? null,
           track_count: 1, format: t.format ?? null, sample_rate: t.sample_rate ?? null, bit_depth: t.bit_depth ?? null } as Album);
       }
-      albums.set([...map.values()].sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')));
-      albumsLoaded = true;
-    } catch (e) { console.error('Load scoped albums error:', e); albumsLoaded = true; }
+      if (scopedFolder === portee) {
+        albums.set([...map.values()].sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')));
+        marquerListeChargee('albums', portee);
+        albumsLoaded = true;
+      }
+    } catch (e) { echecPortee('albums', portee, e); albumsLoaded = true; }
     libraryLoading.set(false);
   }
 
-  async function loadScopedArtists() {
+  async function loadScopedArtists(portee: string) {
     libraryLoading.set(true);
     try {
-      const ts = await ensureScopedTracks();
+      const ts = await ensureScopedTracks(portee);
       const map = new Map<number, Artist>();
       for (const t of ts) {
         if (t.artist_id == null) continue;
         if (!map.has(t.artist_id)) map.set(t.artist_id, { id: t.artist_id, name: t.artist_name ?? t.album_artist ?? '', image_path: null } as Artist);
       }
-      artists.set([...map.values()].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')));
-      artistsLoaded = true;
-    } catch (e) { console.error('Load scoped artists error:', e); artistsLoaded = true; }
+      if (scopedFolder === portee) {
+        artists.set([...map.values()].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')));
+        marquerListeChargee('artists', portee);
+        artistsLoaded = true;
+      }
+    } catch (e) { echecPortee('artists', portee, e); artistsLoaded = true; }
     libraryLoading.set(false);
   }
 
-  async function loadScopedTracks() {
+  async function loadScopedTracks(portee: string) {
     libraryLoading.set(true);
     try {
-      tracks.set(await ensureScopedTracks());
-      tracksLoaded = true;
-    } catch (e) { console.error('Load scoped tracks error:', e); tracksLoaded = true; }
+      const ts = await ensureScopedTracks(portee);
+      if (scopedFolder === portee) {
+        tracks.set(ts);
+        marquerListeChargee('tracks', portee);
+        tracksLoaded = true;
+      }
+    } catch (e) { echecPortee('tracks', portee, e); tracksLoaded = true; }
     libraryLoading.set(false);
   }
 
+  // La croix de la pastille. Le rechargement suit dans l'effet de chargement
+  // automatique, qui lit le magasin : une seule voie, quelle que soit l'origine
+  // du changement de portée.
   function clearFolderScope() {
-    scopedFolder = null;
-    scopedTracksCache = null;
-    albumsLoaded = false; artistsLoaded = false; tracksLoaded = false;
-    if ($libraryTab === 'artists') loadArtists();
-    else if ($libraryTab === 'tracks') loadTracks();
-    else loadAlbums();
+    libraryFolderScope.set(null);
   }
 
   async function loadAlbums() {
-    if (scopedFolder) { await loadScopedAlbums(); return; }
+    if (scopedFolder) { await loadScopedAlbums(scopedFolder); return; }
     libraryLoading.set(true);
     try {
       const premier = await api.getAllAlbumsSeeded(100, albumSort, albumSortOrder, 1, 100, drRange, albumRandomSeed);
+      // Une portée posée pendant la requête : cette liste entière n'est plus
+      // celle de l'écran, le chargement scopé est déjà parti.
+      if (scopedFolder) { libraryLoading.set(false); return; }
       // La graine du premier tirage vaut pour TOUTE la grille : on la retient
       // avant la seconde requête, qui doit lire le même ordre.
       if (albumSort === 'random' && premier.seed != null) albumRandomSeed = premier.seed;
       albums.set(premier.albums);
+      marquerListeChargee('albums', null);
       albumsLoaded = true;
       libraryLoading.set(false);
       if (premier.albums.length >= 100) {
         const reste = await api.getAllAlbumsSeeded(2000, albumSort, albumSortOrder, undefined, undefined, drRange, albumRandomSeed);
-        albums.set(reste.albums);
+        if (!scopedFolder) albums.set(reste.albums);
       }
     } catch (e) {
       console.error('Load albums error:', e);
@@ -1559,12 +1586,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   async function loadArtists() {
-    if (scopedFolder) { await loadScopedArtists(); return; }
+    if (scopedFolder) { await loadScopedArtists(scopedFolder); return; }
     libraryLoading.set(true);
     try {
       const result = await api.getAllArtists();
-      artists.set(result);
-      artistsLoaded = true;
+      if (!scopedFolder) {
+        artists.set(result);
+        marquerListeChargee('artists', null);
+        artistsLoaded = true;
+      }
     } catch (e) {
       console.error('Load artists error:', e);
       artistsLoaded = true;
@@ -1573,12 +1603,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   async function loadTracks() {
-    if (scopedFolder) { await loadScopedTracks(); return; }
+    if (scopedFolder) { await loadScopedTracks(scopedFolder); return; }
     libraryLoading.set(true);
     try {
       const result = await api.getAllTracks();
-      tracks.set(result);
-      tracksLoaded = true;
+      if (!scopedFolder) {
+        tracks.set(result);
+        marquerListeChargee('tracks', null);
+        tracksLoaded = true;
+      }
     } catch (e) {
       console.error('Load tracks error:', e);
       tracksLoaded = true;
@@ -2372,15 +2405,32 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     });
   });
 
-  // Auto-load on tab switch
+  // Chargement automatique : au changement d'onglet ET au changement de
+  // portée. `porteeVue` est la portée sous laquelle CET écran a posé ses
+  // drapeaux `*Loaded` : si elle change — dépôt depuis Répertoires pendant
+  // que l'écran est monté, croix de la pastille, clic latéral —, tout est à
+  // recharger, et ce qui a été rempli sous l'autre portée est vidé sur-le-champ.
+  //
+  // 🔴 Et une liste déjà pleine ne dispense de rien si elle a été remplie sous
+  // une AUTRE portée (`listeARecharger`). C'était le trou : « `$albums.length
+  // === 0` » tenait un magasin rempli par une visite précédente pour « déjà
+  // chargé », et la bibliothèque entière restait à l'écran sous la pastille
+  // du répertoire (renesenses/tune-server-rust#3101).
+  let porteeVue: string | null | undefined;
   $effect(() => {
     const tab = $libraryTab;
+    const portee = $libraryFolderScope;
     untrack(() => {
-      if (tab === 'albums' && !albumsLoaded && $albums.length === 0) loadAlbums();
-      if (tab === 'artists' && !artistsLoaded && $artists.length === 0) loadArtists();
-      if (tab === 'tracks' && !tracksLoaded && $tracks.length === 0) loadTracks();
-      if (tab === 'genres' && !albumsLoaded && $albums.length === 0) loadAlbums();
-      if (tab === 'years' && !albumsLoaded && $albums.length === 0) loadAlbums();
+      if (portee !== porteeVue) {
+        porteeVue = portee;
+        scopedTracksCache = null;
+        albumsLoaded = false; artistsLoaded = false; tracksLoaded = false;
+        viderListesHorsPortee(portee);
+      }
+      const albumsARecharger = !albumsLoaded && listeARecharger('albums', portee, $albums.length);
+      if ((tab === 'albums' || tab === 'genres' || tab === 'years') && albumsARecharger) loadAlbums();
+      if (tab === 'artists' && !artistsLoaded && listeARecharger('artists', portee, $artists.length)) loadArtists();
+      if (tab === 'tracks' && !tracksLoaded && listeARecharger('tracks', portee, $tracks.length)) loadTracks();
       if (tab === 'labels' && !labelsLoaded) loadLabels();
     });
   });
