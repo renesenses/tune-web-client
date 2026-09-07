@@ -11,7 +11,6 @@
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t as tr } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
-  import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
