@@ -162,3 +162,60 @@ describe('L’ouverture du tiroir est ATTEIGNABLE', () => {
     expect(/\.v2-sidebar\.tiroir \.collapse\{display:none\}/.test(barre())).toBe(true);
   });
 });
+
+/**
+ * PETITE HAUTEUR — l'autre moitié du « petit écran ».
+ *
+ * Capture d'un testeur (bluevelvet, Windows, v0.9.140, fenêtre 1356 x 622) :
+ * le menu du compte est coupé par le bas de l'écran, « Réglages » et
+ * « Se déconnecter » sont inatteignables.
+ *
+ * Mesuré dans un cadre de 1356 x 622 le 07/09/2026 :
+ *
+ *     hauteur du panneau : 592 px
+ *     haut               :  72 px   ->  bas à 664, soit 42 px hors écran
+ *     max-height : none      overflow-y : visible
+ *
+ * Ce n'est pas un cas limite : le panneau GRANDIT avec le produit — les thèmes
+ * y sont arrivés le 05/09 — quand une fenêtre de portable, elle, ne grandit
+ * pas.
+ */
+describe('Le menu du compte tient dans la fenêtre', () => {
+  const menu = () => lire('src/components/v2/AvatarMenu.svelte');
+
+  it('🔴 il est PLAFONNÉ et il défile', () => {
+    const src = menu();
+    const bloc = /\.avmenu\{[\s\S]*?\n    overscroll-behavior:contain\}/.exec(src)?.[0] ?? '';
+    expect(bloc, '`.avmenu` n’a plus de bloc reconnaissable').not.toBe('');
+    expect(/max-height:calc\(100dvh - 132px\)/.test(bloc),
+      'le panneau n’a plus de plafond : il repassera sous le bord de l’écran').toBe(true);
+    expect(/overflow-y:auto/.test(bloc),
+      'plafonné sans défilement, le bas du panneau serait simplement COUPÉ').toBe(true);
+  });
+
+  it('le repli `vh` précède `dvh`, jamais l’inverse', () => {
+    // Un navigateur qui ignore `dvh` garde la dernière déclaration qu'il
+    // comprend : mettre `vh` en second annulerait `dvh` partout ailleurs.
+    const src = menu();
+    const iVh = src.indexOf('max-height:calc(100vh - 132px)');
+    const iDvh = src.indexOf('max-height:calc(100dvh - 132px)');
+    expect(iVh).toBeGreaterThan(-1);
+    expect(iDvh).toBeGreaterThan(iVh);
+  });
+
+  it('la marge tient compte de la BANNIÈRE de mise à jour', () => {
+    // La grappe descend de `--maj-h` (42 px) quand la bannière est là, et le
+    // panneau descend avec elle : 92 px de marge suffiraient sans bannière et
+    // laisseraient déborder avec.
+    const majH = /--maj-h:\s*(\d+)px/.exec(lire('src/components/v2/ShellV2.svelte'))?.[1];
+    expect(majH, 'la hauteur de bannière n’est plus déclarée').toBe('42');
+    const marge = Number(/max-height:calc\(100dvh - (\d+)px\)/.exec(menu())?.[1]);
+    // haut sans bannière 72, avec bannière 114 ; il faut de la marge sous le
+    // panneau dans les deux cas.
+    expect(marge).toBeGreaterThanOrEqual(114 + 12);
+  });
+
+  it('la molette ne fait pas défiler l’écran derrière le panneau', () => {
+    expect(/overscroll-behavior:contain/.test(menu())).toBe(true);
+  });
+});
