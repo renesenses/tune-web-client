@@ -35,6 +35,7 @@
   import { copyText, errText } from '../lib/utils';
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
   import { licenseState, isPremium, loadLicense, offlineGrace } from '../lib/stores/license';
+  import { verdictValidationLicence } from '../lib/licenceValidation';
   import SmbWizard from './SmbWizard.svelte';
   import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
@@ -797,13 +798,37 @@ function setSettingsLevel(level: SettingsLevel) {
     licenseDeactivating = false;
   }
 
+  // 🔴 `POST /cloud/license/validate` répond HTTP 200 dans TOUS ses cas
+  // d'échec : rien ne lève, et le verdict vit dans le champ `status` du corps.
+  // Ce code annonçait donc « Licence validée » dès que l'appel local avait
+  // abouti. Bruno Lescarret l'a lu trois fois en deux jours, sur une ligne de
+  // licence que le serveur n'a jamais touchée — et il est resté en gratuit
+  // seize jours en cherchant la panne ailleurs (#570).
+  //
+  // Le succès demande maintenant deux choses : que le serveur dise avoir posé
+  // le palier, ET que l'état relu derrière montre bien le premium. Sinon on
+  // affiche le motif exact, jamais un message positif.
   async function handleValidateLicense() {
     licenseValidating = true;
     try {
-      await api.validateLicense();
+      const reponse = await api.validateLicense();
       await refreshLicense();
-      notifications.success(get(t)('settings.licenseValidated'));
+      const etat = get(licenseState);
+      const verdict = verdictValidationLicence(reponse, {
+        tier: etat.tier,
+        conflitDeSession: etat.sessionConflict != null,
+      });
+      const texte =
+        verdict.statutDistant === null
+          ? get(t)(verdict.cle)
+          : get(t)(verdict.cle).replace('{code}', String(verdict.statutDistant));
+      if (verdict.succes) notifications.success(texte);
+      else notifications.error(texte);
+      // Le plafond de requêtes est un refus du serveur DISTANT, traduit en 200
+      // par la route locale : le `catch` ci-dessous ne pouvait pas le voir.
+      if (verdict.repos) startLicenseCooldown();
     } catch (e: any) {
+      // Reste utile : la route LOCALE a son propre garde-fou de débit.
       if (e?.status === 429) {
         notifications.error(get(t)('settings.licenseRateLimited'));
         startLicenseCooldown();
