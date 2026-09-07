@@ -194,7 +194,7 @@
 
   function ruleSummary(col: SmartCollection): string {
     try {
-      const rules = JSON.parse(col.rules ?? '[]');
+      const rules: any[] = Array.isArray(col.rules) ? col.rules : JSON.parse(col.rules ?? '[]');
       if (!rules.length) return $t('smartCollection.noRule');
       const parts = rules.slice(0, 2).map((r: any) => {
         if (r.field === 'credit') {
