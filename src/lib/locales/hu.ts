@@ -1320,11 +1320,6 @@ export default {
   "audiophile.lockNever": "Soha ne állítsa 100%-ra",
   "audiophile.volumeLockedHint": "A hangerőt az audiofil mód 100%-on rögzítette",
   // Streaming minősége
-  "settings.streamingQuality": "Streaming minősége",
-  "settings.qualityMax": "Maximális",
-  "settings.qualityHires": "Hi-Res",
-  "settings.qualityCd": "CD (16/44,1)",
-  "settings.qualityLow": "Takarékos",
   // Konfiguráció exportálása/importálása
   "settings.configSection": "Konfiguráció",
   "settings.exportConfig": "Konfiguráció exportálása",

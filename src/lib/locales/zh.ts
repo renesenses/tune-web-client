@@ -1116,11 +1116,6 @@ export default {
   'audiophile.volumeLockedHint': "音量已由发烧模式固定在 100 %",
 
   // Streaming Quality
-  'settings.streamingQuality': '流媒体质量',
-  'settings.qualityMax': '最高',
-  'settings.qualityHires': 'Hi-Res',
-  'settings.qualityCd': 'CD (16/44.1)',
-  'settings.qualityLow': '节省流量',
 
   // Config Export/Import
   'settings.configSection': '配置',
