@@ -420,6 +420,9 @@ export default {
   'search.searching': 'Se caută...',
   'search.noResults': 'Niciun rezultat pentru „{query}”',
   'search.hint': 'Introdu un termen pentru a începe căutarea',
+  'search.shownOf': '{shown} din {total}',
+  'search.shownOfAtLeast': '{shown} din cel puțin {total}',
+  'search.loadMore': 'Vezi mai mult',
 
   // Streaming
   'streaming.selectService': 'Selectează un serviciu de streaming',

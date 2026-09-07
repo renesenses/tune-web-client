@@ -380,6 +380,9 @@ export default {
   'search.searching': 'Söker...',
   'search.noResults': 'Inga resultat för "{query}"',
   'search.hint': 'Skriv en sökterm för att börja',
+  'search.shownOf': '{shown} av {total}',
+  'search.shownOfAtLeast': '{shown} av minst {total}',
+  'search.loadMore': 'Visa fler',
 
   // Streaming
   'streaming.selectService': 'Välj en streamingtjänst',

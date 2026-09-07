@@ -410,6 +410,9 @@ export default {
   'search.searching': '検索中...',
   'search.noResults': '"{query}"の検索結果がありません',
   'search.hint': '検索語を入力して開始してください',
+  'search.shownOf': '{total}件中{shown}件',
+  'search.shownOfAtLeast': '{shown}件（{total}件以上）',
+  'search.loadMore': 'もっと見る',
 
   // Streaming
   'streaming.selectService': 'ストリーミングサービスを選択してください',

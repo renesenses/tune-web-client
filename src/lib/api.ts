@@ -2346,8 +2346,12 @@ function mapZoneQuality(zone: any): Zone {
  */
 export const SEARCH_PAGE_LIMIT = 50;
 
-export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PAGE_LIMIT) {
+export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PAGE_LIMIT, offset = 0) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
+  // #3189 — la suite de la bibliothèque locale (le serveur ne pagine que
+  // celle-là). Absent = 0 = la page d'avant : l'URL des appels existants ne
+  // change pas.
+  if (offset > 0) url += `&offset=${offset}`;
   if (sources && sources.length > 0) {
     url += `&sources=${sources.join(',')}`;
   }

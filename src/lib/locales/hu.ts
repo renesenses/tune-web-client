@@ -593,6 +593,9 @@ export default {
   "search.searching": "Keresés...",
   "search.noResults": "Nincs találat erre: „{query}”",
   "search.hint": "Írj be egy keresőkifejezést a kezdéshez",
+  "search.shownOf": "{shown} / {total}",
+  "search.shownOfAtLeast": "{shown} / legalább {total}",
+  "search.loadMore": "Továbbiak",
   // Streaming
   "streaming.selectService": "Válassz streamingszolgáltatást",
   "streaming.searchOn": "Keresés itt: {service}...",
