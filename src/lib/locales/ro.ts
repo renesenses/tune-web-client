@@ -3236,6 +3236,8 @@ export default {
   "v2.pod.trends": "Tendințe",
   "v2.pod.noneInGenre": "Niciun podcast din acest gen în această țară.",
   "v2.pod.searchPlaceholder": "Numele unui podcast, al unei emisiuni…",
+  "v2.pod.filterSubs": "Filtrează abonamentele mele",
+  "v2.pod.country": "Țară",
   "v2.pod.searchAction": "Caută",
   "v2.pod.searching": "Se caută…",
   "v2.pod.searchHint": "Căutați un podcast în catalogul din",

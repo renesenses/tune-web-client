@@ -3236,6 +3236,8 @@ export default {
   "v2.pod.trends": "Trends",
   "v2.pod.noneInGenre": "Kein Podcast dieses Genres in diesem Land.",
   "v2.pod.searchPlaceholder": "Name eines Podcasts, einer Sendung…",
+  "v2.pod.filterSubs": "Meine Abos filtern",
+  "v2.pod.country": "Land",
   "v2.pod.searchAction": "Suchen",
   "v2.pod.searching": "Suche läuft…",
   "v2.pod.searchHint": "Durchsuchen Sie das Verzeichnis von",

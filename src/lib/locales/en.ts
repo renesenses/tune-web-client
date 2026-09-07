@@ -2022,6 +2022,8 @@ export default {
   "v2.pod.trends": "Trending",
   "v2.pod.noneInGenre": "No podcast in this genre for this country.",
   "v2.pod.searchPlaceholder": "A podcast or show name…",
+  "v2.pod.filterSubs": "Filter my subscriptions",
+  "v2.pod.country": "Country",
   "v2.pod.searchAction": "Search",
   "v2.pod.searching": "Searching…",
   "v2.pod.searchHint": "Search the directory of",

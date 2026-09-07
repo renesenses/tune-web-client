@@ -109,3 +109,37 @@ describe('« si on reclique ça fait planter l’appli » (podcasts)', () => {
     expect(pod()).toContain('{#each visibleSubs as p (p.id ?? feedOf(p))}');
   });
 });
+
+describe('« la barre de recherche ne fonctionne pas et fait doublon » (podcasts)', () => {
+  const pod = () => sansCommentaires(lire('src/components/v2/PodcastsV2.svelte'));
+
+  /**
+   * Les deux moitiés du constat n'en font qu'une : `q` ne commande QUE
+   * `visibleSubs`, et la barre était affichée en permanence. Sur « Découvrir »
+   * et « Recherche », taper dedans ne produisait rien ; sur « Recherche », elle
+   * se tenait à côté du champ qui, lui, interroge le catalogue.
+   */
+  it('🔴 la barre du bandeau ne paraît QUE là où elle agit', () => {
+    const src = pod();
+    const bloc = /\{#if tab === 'subs'\}\s*<div class="search">[\s\S]*?<\/div>\s*\{\/if\}/.exec(src);
+    expect(bloc, 'la barre de filtre n’est plus réservée à l’onglet des abonnements').not.toBeNull();
+    expect(bloc![0].includes('bind:value={q}'), 'ce n’est plus `q` qu’elle pilote').toBe(true);
+  });
+
+  it('`q` ne filtre TOUJOURS que les abonnements — c’est ce qui justifie de la cacher ailleurs', () => {
+    const src = pod();
+    // Si `q` se mettait à commander autre chose, la cacher deviendrait faux :
+    // la garde ci-dessus perdrait sa raison d'être sans le dire.
+    // `q${i}` est une clé de repli des RÉSULTATS, pas une lecture du filtre :
+    // on l'écarte, sans quoi le compte parlerait d'autre chose que du filtre.
+    const usages = (src.replace(/`q\$\{/g, '`X${').match(/\bq\b/g) ?? []).length;
+    expect(/function match\(p: any\): boolean \{\s*if \(!q\) return true;/.test(src),
+      '`q` n’est plus le filtre des abonnements').toBe(true);
+    expect(usages, '`q` a de nouveaux usages : vérifier qu’ils vivent bien dans l’onglet des abonnements')
+      .toBeLessThanOrEqual(4);
+  });
+
+  it('son invite dit FILTRER, elle ne promet plus de chercher', () => {
+    expect(pod()).toContain("placeholder={$t('v2.pod.filterSubs' as any)}");
+  });
+});

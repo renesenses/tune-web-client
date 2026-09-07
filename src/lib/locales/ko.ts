@@ -3236,6 +3236,8 @@ export default {
   "v2.pod.trends": "인기 급상승",
   "v2.pod.noneInGenre": "이 나라의 이 장르에는 팟캐스트가 없습니다.",
   "v2.pod.searchPlaceholder": "팟캐스트나 방송의 이름…",
+  "v2.pod.filterSubs": "구독 필터",
+  "v2.pod.country": "국가",
   "v2.pod.searchAction": "검색",
   "v2.pod.searching": "검색 중…",
   "v2.pod.searchHint": "다음 디렉터리에서 팟캐스트를 검색:",

@@ -3194,6 +3194,8 @@ export default {
   "v2.pod.trends": "Trendek",
   "v2.pod.noneInGenre": "Nincs ilyen műfajú podcast ebben az országban.",
   "v2.pod.searchPlaceholder": "Egy podcast, egy műsor neve…",
+  "v2.pod.filterSubs": "Feliratkozásaim szűrése",
+  "v2.pod.country": "Ország",
   "v2.pod.searchAction": "Keresés",
   "v2.pod.searching": "Keresés…",
   "v2.pod.searchHint": "Keressen podcastot a következő katalógusában:",

@@ -3236,6 +3236,8 @@ export default {
   "v2.pod.trends": "趋势",
   "v2.pod.noneInGenre": "该国家的此类型下没有播客。",
   "v2.pod.searchPlaceholder": "播客或节目的名称…",
+  "v2.pod.filterSubs": "筛选我的订阅",
+  "v2.pod.country": "国家/地区",
   "v2.pod.searchAction": "搜索",
   "v2.pod.searching": "搜索中…",
   "v2.pod.searchHint": "在以下目录中搜索播客：",

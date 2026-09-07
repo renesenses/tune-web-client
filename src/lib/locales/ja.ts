@@ -3236,6 +3236,8 @@ export default {
   "v2.pod.trends": "トレンド",
   "v2.pod.noneInGenre": "この国のこのジャンルにポッドキャストはありません。",
   "v2.pod.searchPlaceholder": "ポッドキャストや番組の名前…",
+  "v2.pod.filterSubs": "登録番組を絞り込む",
+  "v2.pod.country": "国",
   "v2.pod.searchAction": "検索",
   "v2.pod.searching": "検索中…",
   "v2.pod.searchHint": "次のディレクトリからポッドキャストを検索：",

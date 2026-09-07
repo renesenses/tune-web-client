@@ -3235,6 +3235,8 @@ export default {
   "v2.pod.trends": "Trender",
   "v2.pod.noneInGenre": "Ingen podd i den här genren i det här landet.",
   "v2.pod.searchPlaceholder": "Namn på en podd, ett program…",
+  "v2.pod.filterSubs": "Filtrera mina prenumerationer",
+  "v2.pod.country": "Land",
   "v2.pod.searchAction": "Sök",
   "v2.pod.searching": "Söker…",
   "v2.pod.searchHint": "Sök en podd i katalogen för",
