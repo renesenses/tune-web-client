@@ -4047,6 +4047,19 @@ export default {
   "settings.tabDisplay": "显示",
   "settings.collectionsMosaic": "合辑显示封面拼贴",
   "settings.collectionsMosaicHint": "每个合辑显示四张封面。取消勾选可只显示一张封面，与旧客户端一致。",
+  "v2.tcol.num": "#",
+  "v2.tcol.title": "标题",
+  "v2.tcol.artist": "艺术家",
+  "v2.tcol.composer": "作曲者",
+  "v2.tcol.time": "时长",
+  "v2.tcol.year": "年份",
+  "v2.tcol.plays": "播放次数",
+  "v2.tcol.lastPlayed": "上次播放",
+  "v2.tcol.channels": "声道",
+  "v2.tcol.bpm": "BPM",
+  "v2.tcol.genre": "流派",
+  "v2.tcol.quality": "音质",
+  "v2.tcol.actions": "操作",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

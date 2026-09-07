@@ -78,15 +78,35 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     expect(src).toContain("await enfiler(undefined, 'v2.pa.queued')");
   });
 
-  it('les quatre listes de titres passent par la ligne PARTAGEE', () => {
+  it('les quatre listes de titres passent par un rendu PARTAGE', () => {
+    // 🔴 REORIENTEE le 07/09/2026. La garde exigeait un import direct de
+    // `LignePisteV2`. Le chantier du tableau (maquette Levente) introduit
+    // `ListePistesV2`, un CONTENEUR qui rend soit le tableau du mode
+    // Essentiel, soit ces memes lignes aux deux autres modes — il fallait un
+    // conteneur parce qu'un tableau a un en-tete et un gabarit de grille que
+    // la ligne ne peut pas porter seule.
+    //
+    // Ce que la garde protege ne change pas, et se renforce meme : aucun ecran
+    // ne roule sa propre ligne ni sa propre barre d'actions. Quatre copies
+    // auraient diverge — c'est toute la raison de cette garde.
     for (const f of ['AlbumDetailV2', 'PlaylistDetailV2', 'LibraryV2', 'SearchV2']) {
       const ecran = sansCommentaires(lire(`src/components/v2/${f}.svelte`));
-      expect(ecran, f).toContain("import LignePisteV2 from './LignePisteV2.svelte'");
-      expect(ecran, f).toContain('<LignePisteV2 piste=');
-      // Et aucun n'a garde sa propre ligne : quatre copies auraient diverge.
+      const parLaLigne = ecran.includes('<LignePisteV2 piste=');
+      const parLaListe = ecran.includes('<ListePistesV2');
+      expect(parLaLigne || parLaListe, `${f} ne delegue a aucun rendu partage`).toBe(true);
       expect(ecran, f).not.toContain('<button class="trk"');
       expect(ecran, f).not.toContain('<PisteActions piste=');
     }
+  });
+
+  it('le conteneur partage delegue lui-meme, il ne recopie rien', () => {
+    // `ListePistesV2` est le seul endroit ou les deux formes coexistent : aux
+    // modes Avance et Expert il rend `LignePisteV2` tel quel — « pour le
+    // moment les deux autres modes restent inchanges » (Bertrand, 07/09/2026).
+    const liste = sansCommentaires(lire('src/components/v2/ListePistesV2.svelte'));
+    expect(liste).toContain("import LignePisteV2 from './LignePisteV2.svelte'");
+    expect(liste).toContain('<LignePisteV2');
+    expect(liste).toContain("import PisteActions from './PisteActions.svelte'");
   });
 
   it('la ligne partagee porte la richesse du client actuel', () => {

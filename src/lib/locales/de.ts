@@ -4047,6 +4047,19 @@ export default {
   "settings.tabDisplay": "Anzeige",
   "settings.collectionsMosaic": "Cover-Mosaik auf Sammlungen",
   "settings.collectionsMosaicHint": "Vier Cover je Sammlung. Abwählen für ein einzelnes Cover, wie im bisherigen Client.",
+  "v2.tcol.num": "#",
+  "v2.tcol.title": "Titel",
+  "v2.tcol.artist": "Interpret",
+  "v2.tcol.composer": "Komponist",
+  "v2.tcol.time": "Dauer",
+  "v2.tcol.year": "Jahr",
+  "v2.tcol.plays": "Wiedergaben",
+  "v2.tcol.lastPlayed": "Zuletzt gespielt",
+  "v2.tcol.channels": "Kanäle",
+  "v2.tcol.bpm": "BPM",
+  "v2.tcol.genre": "Genre",
+  "v2.tcol.quality": "Qualität",
+  "v2.tcol.actions": "Aktionen",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

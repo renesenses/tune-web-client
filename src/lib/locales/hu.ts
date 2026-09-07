@@ -4005,6 +4005,19 @@ export default {
   "settings.tabDisplay": "Megjelenítés",
   "settings.collectionsMosaic": "Borítómozaik a gyűjteményeken",
   "settings.collectionsMosaicHint": "Négy borító gyűjteményenként. Vegye ki a pipát az egyetlen borítóhoz, mint a korábbi kliensben.",
+  "v2.tcol.num": "#",
+  "v2.tcol.title": "Cím",
+  "v2.tcol.artist": "Előadó",
+  "v2.tcol.composer": "Zeneszerző",
+  "v2.tcol.time": "Idő",
+  "v2.tcol.year": "Év",
+  "v2.tcol.plays": "Lejátszások",
+  "v2.tcol.lastPlayed": "Utoljára játszva",
+  "v2.tcol.channels": "Csatornák",
+  "v2.tcol.bpm": "BPM",
+  "v2.tcol.genre": "Műfaj",
+  "v2.tcol.quality": "Minőség",
+  "v2.tcol.actions": "Műveletek",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

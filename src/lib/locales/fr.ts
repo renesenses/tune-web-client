@@ -4069,6 +4069,19 @@ export default {
   "settings.tabDisplay": "Affichage",
   "settings.collectionsMosaic": "Mosaïque de pochettes sur les collections",
   "settings.collectionsMosaicHint": "Quatre pochettes assemblées par collection. Décochez pour une pochette unique, comme l’écran de l’ancien client.",
+  "v2.tcol.num": "#",
+  "v2.tcol.title": "Titre",
+  "v2.tcol.artist": "Artiste",
+  "v2.tcol.composer": "Compositeur",
+  "v2.tcol.time": "Durée",
+  "v2.tcol.year": "Année",
+  "v2.tcol.plays": "Écoutes",
+  "v2.tcol.lastPlayed": "Dernière écoute",
+  "v2.tcol.channels": "Canaux",
+  "v2.tcol.bpm": "BPM",
+  "v2.tcol.genre": "Genre",
+  "v2.tcol.quality": "Qualité",
+  "v2.tcol.actions": "Actions",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

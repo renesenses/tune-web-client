@@ -65,6 +65,21 @@ for (const f of fichiers('src/components/v2')) {
     const texte = (m[1] ?? m[2] ?? '').trim();
     if (!FRANCAIS.test(texte)) continue;
     if (CLE.test(texte) || texte.startsWith('.') || texte.startsWith('#')) continue;
+    // Un IDENTIFIANT, pas une phrase.
+    //
+    // Ce dépôt nomme en français : `'aucune'` comme membre d'une union de type
+    // (`numerotation?: 'piste' | 'rang' | 'aucune'`) n'atteint aucun écran.
+    // Un seul mot, en minuscules, sans espace et SANS ACCENT est donc écarté.
+    //
+    // L'accent est le discriminant qui compte : « désactivé », « connecté »,
+    // « résolu » sont des mots isolés bel et bien affichés — ils portent tous
+    // un accent et restent attrapés. Une phrase, elle, porte un espace.
+    //
+    // Risque résiduel assumé : un mot affiché, isolé, en minuscules et sans
+    // accent (« sans », « aucun ») passerait. On le prend : la garde reste
+    // utile, et le mot nu affiché est rare — la traduction du 06/09 n'en a pas
+    // rencontré un seul sur 105 chaînes.
+    if (/^[a-z]{1,12}$/.test(texte)) continue;
     const ligne = src.slice(0, m.index).split('\n').length;
     fautes.push(`${f}:${ligne}  ${texte.slice(0, 90)}`);
   }

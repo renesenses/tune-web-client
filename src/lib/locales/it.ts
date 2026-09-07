@@ -4047,6 +4047,19 @@ export default {
   "settings.tabDisplay": "Visualizzazione",
   "settings.collectionsMosaic": "Mosaico di copertine sulle raccolte",
   "settings.collectionsMosaicHint": "Quattro copertine per raccolta. Deseleziona per una sola copertina, come nel client precedente.",
+  "v2.tcol.num": "#",
+  "v2.tcol.title": "Titolo",
+  "v2.tcol.artist": "Artista",
+  "v2.tcol.composer": "Compositore",
+  "v2.tcol.time": "Durata",
+  "v2.tcol.year": "Anno",
+  "v2.tcol.plays": "Riproduzioni",
+  "v2.tcol.lastPlayed": "Ultimo ascolto",
+  "v2.tcol.channels": "Canali",
+  "v2.tcol.bpm": "BPM",
+  "v2.tcol.genre": "Genere",
+  "v2.tcol.quality": "Qualità",
+  "v2.tcol.actions": "Azioni",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

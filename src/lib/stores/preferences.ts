@@ -2,6 +2,9 @@ import { writable } from 'svelte/store';
 import type { Locale } from '../i18n';
 import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
 import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
+import {
+  DEFAUTS as DEFAUTS_COLONNES, PAR_CLE as COLONNES_PAR_CLE, type CleColonne,
+} from '../colonnesPistes';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
@@ -124,6 +127,20 @@ export interface Preferences {
    * pas — personne ne doit voir son écran changer sans l'avoir demandé.
    */
   v2CollectionsMosaique: boolean;
+  /**
+   * Les COLONNES du tableau de pistes, par mode d'interface.
+   *
+   * Chantier du 07/09/2026 (maquette Levente) : en mode Essentiel, une liste
+   * de pistes devient un tableau dont l'utilisateur choisit les colonnes.
+   *
+   * ⚠️ Distinct de `displayFields`, et volontairement. Celui-ci décrit les
+   * PUCES d'une ligne, il est partagé avec l'ancien client et persiste par
+   * profil côté serveur (`metadata_visible_fields:{pid}`). Élargir son
+   * contrat pour y loger trois listes casserait la v0. Les deux se
+   * rejoindront quand la v0 s'effacera ; d'ici là, deux surfaces, deux
+   * réglages, et ce commentaire pour qu'on sache pourquoi.
+   */
+  v2Colonnes: Record<SettingsLevel, CleColonne[]>;
   settingsLevel: SettingsLevel;
 }
 
@@ -149,6 +166,7 @@ const defaults: Preferences = {
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
   v2CollectionsMosaique: true,
+  v2Colonnes: { ...DEFAUTS_COLONNES },
   // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
   // Ne s'applique qu'aux installations SANS niveau enregistre : un choix
   // explicite fait toujours foi, et la migration `legacySettingsLevel()`
@@ -204,6 +222,31 @@ function loadPrefs(): Preferences {
       } else {
         const cleaned = facets.filter((f) => supported.includes(f));
         p.oxygenFacets = cleaned.length ? cleaned : [...defaults.oxygenFacets];
+      }
+      /**
+       * 🔴 Les colonnes se fusionnent MODE PAR MODE.
+       *
+       * `{ ...defaults, ...raw }` est une fusion PLATE : un `v2Colonnes` venu
+       * du stockage remplace l'objet entier. Un navigateur qui n'aurait connu
+       * qu'Essentiel effacerait donc les défauts d'Avancé et d'Expert, et le
+       * jour où ces modes passeront au tableau ils s'ouvriraient sans aucune
+       * colonne. On refusionne ici, mode par mode.
+       *
+       * Au passage, les clés inconnues sont écartées : un réglage écrit par
+       * une version future ne doit pas produire une grille trouée.
+       */
+      const colonnes = (raw as Record<string, unknown>)?.v2Colonnes;
+      p.v2Colonnes = { ...DEFAUTS_COLONNES };
+      if (colonnes && typeof colonnes === 'object') {
+        for (const mode of Object.keys(DEFAUTS_COLONNES) as SettingsLevel[]) {
+          const liste = (colonnes as Record<string, unknown>)[mode];
+          if (!Array.isArray(liste)) continue;
+          const propres = liste.filter(
+            (c): c is CleColonne => typeof c === 'string' && !!COLONNES_PAR_CLE[c as CleColonne],
+          );
+          // Une liste VIDE est un choix : on ne la remplace pas par le défaut.
+          p.v2Colonnes[mode] = propres;
+        }
       }
       // Facettes ajoutées depuis la dernière version connue de ce navigateur :
       // les activer une fois, dans l'ordre canonique du rail.

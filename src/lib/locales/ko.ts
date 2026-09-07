@@ -4047,6 +4047,19 @@ export default {
   "settings.tabDisplay": "표시",
   "settings.collectionsMosaic": "컬렉션에 커버 모자이크 표시",
   "settings.collectionsMosaicHint": "컬렉션마다 커버 4장. 체크를 해제하면 이전 클라이언트처럼 커버 한 장만 표시합니다.",
+  "v2.tcol.num": "#",
+  "v2.tcol.title": "제목",
+  "v2.tcol.artist": "아티스트",
+  "v2.tcol.composer": "작곡가",
+  "v2.tcol.time": "시간",
+  "v2.tcol.year": "연도",
+  "v2.tcol.plays": "재생 수",
+  "v2.tcol.lastPlayed": "마지막 재생",
+  "v2.tcol.channels": "채널",
+  "v2.tcol.bpm": "BPM",
+  "v2.tcol.genre": "장르",
+  "v2.tcol.quality": "음질",
+  "v2.tcol.actions": "작업",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

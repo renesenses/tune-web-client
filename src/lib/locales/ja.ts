@@ -4047,6 +4047,19 @@ export default {
   "settings.tabDisplay": "表示",
   "settings.collectionsMosaic": "コレクションにジャケットのモザイクを表示",
   "settings.collectionsMosaicHint": "コレクションごとに4枚のジャケット。チェックを外すと、以前のクライアントと同じ1枚表示になります。",
+  "v2.tcol.num": "#",
+  "v2.tcol.title": "タイトル",
+  "v2.tcol.artist": "アーティスト",
+  "v2.tcol.composer": "作曲者",
+  "v2.tcol.time": "時間",
+  "v2.tcol.year": "年",
+  "v2.tcol.plays": "再生回数",
+  "v2.tcol.lastPlayed": "最終再生",
+  "v2.tcol.channels": "チャンネル",
+  "v2.tcol.bpm": "BPM",
+  "v2.tcol.genre": "ジャンル",
+  "v2.tcol.quality": "音質",
+  "v2.tcol.actions": "操作",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

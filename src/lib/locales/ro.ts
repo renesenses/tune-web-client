@@ -4047,6 +4047,19 @@ export default {
   "settings.tabDisplay": "Afișare",
   "settings.collectionsMosaic": "Mozaic de coperte pe colecții",
   "settings.collectionsMosaicHint": "Patru coperte pe colecție. Debifați pentru o singură copertă, ca în clientul anterior.",
+  "v2.tcol.num": "#",
+  "v2.tcol.title": "Titlu",
+  "v2.tcol.artist": "Artist",
+  "v2.tcol.composer": "Compozitor",
+  "v2.tcol.time": "Durată",
+  "v2.tcol.year": "An",
+  "v2.tcol.plays": "Redări",
+  "v2.tcol.lastPlayed": "Ultima redare",
+  "v2.tcol.channels": "Canale",
+  "v2.tcol.bpm": "BPM",
+  "v2.tcol.genre": "Gen",
+  "v2.tcol.quality": "Calitate",
+  "v2.tcol.actions": "Acțiuni",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
