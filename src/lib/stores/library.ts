@@ -22,11 +22,28 @@ export const tracks = writable<Track[]>([]);
 // Cross-view filters (set from NowPlaying, consumed by LibraryView)
 export const yearFilter = writable<number | null>(null);
 
+/**
+ * Portée de répertoire de la Bibliothèque — LA source de vérité, pour les deux
+ * clients. `null` = toute la bibliothèque. Écrite par l'écran Répertoires
+ * (« Voir en bibliothèque ») et par la croix de la pastille ; lue par la
+ * pastille ET par les chargeurs, en dérivé, donc suivie tant que l'écran vit.
+ *
+ * Elle remplace `pendingLibraryFolder`, un dépôt consommé UNE fois dans
+ * l'initialiseur d'un `$state` : posé alors que la Bibliothèque était déjà
+ * montée, il n'était jamais lu, et les listes déjà pleines passaient pour
+ * « chargées » — l'écran montrait la bibliothèque entière sous la pastille du
+ * répertoire (renesenses/tune-server-rust#3101). Voir `lib/porteeBibliotheque`.
+ */
+export const libraryFolderScope = writable<string | null>(null);
+
 // Reset library sub-navigation (artist detail, album detail) to root view.
 // Call this whenever the user explicitly navigates to the Library from the sidebar/tabbar.
 export function resetLibraryNavigation() {
   selectedArtist.set(null);
   selectedAlbum.set(null);
+  // Un clic délibéré sur « Bibliothèque » demande TOUTE la bibliothèque : la
+  // portée de répertoire tombe avec le reste de la sous-navigation.
+  libraryFolderScope.set(null);
 }
 
 // Genres (derived from albums)
