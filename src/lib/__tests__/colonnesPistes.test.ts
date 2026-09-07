@@ -74,10 +74,16 @@ describe('le catalogue', () => {
     // remontée en Essentiel sans que rien ne le dise. Un test qui compte ne
     // garde pas ce qui est réparti.
     const par = (m: string) => COLONNES.filter((c) => c.min === m).map((c) => c.cle).sort();
-    expect(par('intermediate')).toEqual(['album', 'albumArtist', 'disc', 'label']);
+    // « D'Album à bit depth accessible aussi en mode advanced » (Bertrand,
+    // 07/09/2026) : format, fréquence et profondeur sont descendues d'Expert.
+    // La pastille Qualité les résume déjà en Essentiel ; ces colonnes servent
+    // à TRIER, ce qui n'est pas un geste d'expert.
+    expect(par('intermediate')).toEqual(
+      ['album', 'albumArtist', 'bitDepth', 'disc', 'format', 'label', 'sampleRate'].sort(),
+    );
+    // Expert ne garde que ce qui décrit le FICHIER plutôt que la musique.
     expect(par('expert')).toEqual(
-      ['bitDepth', 'comments', 'discSubtitle', 'dr', 'format', 'hash',
-       'isrc', 'mbid', 'modified', 'path', 'sampleRate', 'size', 'source'].sort(),
+      ['comments', 'discSubtitle', 'dr', 'hash', 'isrc', 'mbid', 'modified', 'path', 'size', 'source'].sort(),
     );
   });
 

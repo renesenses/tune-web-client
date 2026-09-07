@@ -97,18 +97,24 @@ export const COLONNES: Colonne[] = [
   { cle: 'quality',    cleI18n: 'v2.tcol.quality',    largeur: '132px' },
 
   // ── À partir d'AVANCÉ ────────────────────────────────────────────────────
-  // Des métadonnées de catalogue : utiles, pas techniques.
+  //
+  // Des métadonnées de catalogue, puis les trois chiffres du fichier que tout
+  // auditeur attentif lit : format, fréquence, profondeur. « D'Album à bit
+  // depth accessible aussi en mode advanced » (Bertrand, 07/09/2026) — elles
+  // étaient à Expert, et c'était trop haut : la pastille Qualité les résume
+  // déjà en Essentiel, ces colonnes servent à TRIER et comparer.
   { cle: 'album',       cleI18n: 'v2.tcol.album',       largeur: 'minmax(0,1.4fr)', min: 'intermediate' },
   { cle: 'albumArtist', cleI18n: 'v2.tcol.albumArtist', largeur: 'minmax(0,1.2fr)', min: 'intermediate' },
   { cle: 'disc',        cleI18n: 'v2.tcol.disc',        largeur: '56px',  align: 'droite', min: 'intermediate' },
   { cle: 'label',       cleI18n: 'v2.tcol.label',       largeur: 'minmax(0,1fr)',   min: 'intermediate' },
 
+  { cle: 'format',      cleI18n: 'v2.tcol.format',      largeur: '76px',  min: 'intermediate' },
+  { cle: 'sampleRate',  cleI18n: 'v2.tcol.sampleRate',  largeur: '86px',  align: 'droite', min: 'intermediate' },
+  { cle: 'bitDepth',    cleI18n: 'v2.tcol.bitDepth',    largeur: '68px',  align: 'droite', min: 'intermediate' },
+
   // ── À partir d'EXPERT ────────────────────────────────────────────────────
-  // Le détail du fichier. `quality` en dit déjà l'essentiel en une pastille ;
-  // ces trois-là existent pour qui veut TRIER ou comparer colonne par colonne.
-  { cle: 'format',      cleI18n: 'v2.tcol.format',      largeur: '76px',  min: 'expert' },
-  { cle: 'sampleRate',  cleI18n: 'v2.tcol.sampleRate',  largeur: '86px',  align: 'droite', min: 'expert' },
-  { cle: 'bitDepth',    cleI18n: 'v2.tcol.bitDepth',    largeur: '68px',  align: 'droite', min: 'expert' },
+  // Ce qui décrit le FICHIER plutôt que la musique : taille, identifiants,
+  // chemin, empreinte. On ne les cherche que quand on sait ce qu'on cherche.
   { cle: 'size',        cleI18n: 'v2.tcol.size',        largeur: '84px',  align: 'droite', min: 'expert' },
   { cle: 'isrc',        cleI18n: 'v2.tcol.isrc',        largeur: '124px', min: 'expert' },
   { cle: 'mbid',        cleI18n: 'v2.tcol.mbid',        largeur: '150px', min: 'expert' },
