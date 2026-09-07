@@ -1717,7 +1717,7 @@ export default {
   "settings.scanReportErrorDirs": "Erori la parcurgerea acestor foldere — piesele lor au fost păstrate",
   "settings.scanReportFailedPaths": "fișiere cu erori",
   "settings.tabGeneral": "General",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "Analiză acustică",
   "settings.tabDevices": "Dispozitive",
   "devices.intro": "Configurați aici fiecare dispozitiv de ieșire: identitate (marcă și model), nivel și format.",
   "devices.none": "Nicio zonă nu este legată de un dispozitiv de ieșire.",

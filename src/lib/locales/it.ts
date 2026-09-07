@@ -1707,7 +1707,7 @@ export default {
   "settings.scanReportErrorDirs": "Errori nell’esplorazione di queste cartelle — le loro tracce sono state conservate",
   "settings.scanReportFailedPaths": "file in errore",
   "settings.tabGeneral": "Generale",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "Analisi acustica",
   "settings.tabDevices": "Dispositivi",
   "devices.intro": "Configura qui ogni dispositivo di uscita: identità (marca e modello), livello e formato.",
   "devices.none": "Nessuna zona è collegata a un dispositivo di uscita.",

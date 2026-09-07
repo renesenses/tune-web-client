@@ -1707,7 +1707,7 @@ export default {
   "settings.scanReportErrorDirs": "フォルダの走査エラー — トラックは保持されました",
   "settings.scanReportFailedPaths": "件のエラーファイル",
   "settings.tabGeneral": "一般",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "音響解析",
   "settings.tabDevices": "デバイス",
   "devices.intro": "各出力デバイスをここで設定します：識別情報（ブランドとモデル）、レベル、フォーマット。",
   "devices.none": "出力デバイスに接続されたゾーンはありません。",

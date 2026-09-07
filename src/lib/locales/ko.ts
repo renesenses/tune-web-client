@@ -1682,7 +1682,7 @@ export default {
   "settings.scanReportErrorDirs": "폴더 탐색 오류 — 해당 트랙은 유지됨",
   "settings.scanReportFailedPaths": "개 오류 파일",
   "settings.tabGeneral": "일반",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "음향 분석",
   "settings.tabDevices": "기기",
   "devices.intro": "각 출력 기기를 여기서 설정하세요: 식별 정보(브랜드 및 모델), 레벨, 포맷.",
   "devices.none": "출력 기기에 연결된 존이 없습니다.",
