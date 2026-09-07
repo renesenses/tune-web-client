@@ -2241,6 +2241,28 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
   }
 
+  /**
+   * « Lecture aleatoire » de l'album ouvert — #1947.
+   *
+   * Le tirage est le SERVEUR qui le fait : `album_id` figurait deja dans la
+   * signature de `api.shuffleAll` et dans la route, sans aucun appelant. On ne
+   * melange donc rien ici, et surtout on n'arme pas le drapeau `shuffle` de la
+   * zone — c'est une ACTION, pas une bascule (garde d'affordance, #2261).
+   */
+  async function lireAlbumAleatoire() {
+    if (!zone?.id) {
+      notifications.error($tr('library.noZoneSelected'));
+      return;
+    }
+    const id = $selectedAlbum?.id;
+    if (id == null) return;
+    try {
+      const r = await api.shuffleAll(zone.id, { album_id: id });
+      notifications.success($tr('library.shufflePlaying').replace('{count}', String(r.track_count)));
+    } catch (e) {
+      notifications.error($tr('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
+    }
+  }
   async function playAlbumDetail() {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
@@ -2535,6 +2557,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="detail-actions">
             <button class="play-all-btn" onclick={() => playAlbumDetail()} title={$tr('library.playAlbum')}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z" /></svg>
+            </button>
+            <!-- #1947 : la fiche d'album n'avait pas de « lecture aleatoire ».
+                 Le bouton de l'en-tete de la Bibliotheque est enferme dans
+                 `{#if !$selectedAlbum && !$selectedArtist}` : des qu'un album
+                 est ouvert, il disparait. -->
+            <button class="play-all-btn shuffle-album-btn" onclick={() => lireAlbumAleatoire()}
+              disabled={$selectedAlbum?.id == null}
+              title={$tr('library.shuffle')} aria-label={$tr('library.shuffle')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
             </button>
             <button
               class="queue-album-btn"
@@ -6952,4 +6983,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
   }
 
+  /* #1947 — meme pastille que « lire l'album », en creux : c'est une action
+     voisine, pas une action primaire de plus. */
+  .shuffle-album-btn {
+    background: transparent;
+    border: 1px solid var(--tune-accent);
+    color: var(--tune-accent);
+  }
+  .shuffle-album-btn:disabled { opacity: 0.4; cursor: default; }
 </style>
