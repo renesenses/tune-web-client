@@ -2036,6 +2036,7 @@ export default {
   "trackTags.groupClassical": "クラシック／クレジット",
   "trackTags.groupAudio": "オーディオ",
   "trackTags.groupSystem": "システム",
+  "trackTags.groupOther": "その他の項目",
   "trackTags.trackCredits": "トラッククレジット",
   "trackTags.audioInfoFromFile": "オーディオ情報（ファイルから）",
   "trackTags.rawFileTags": "生のファイルタグ",
