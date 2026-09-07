@@ -3742,6 +3742,7 @@ export default {
   "v2.shell.soon": "À venir",
   "v2.shell.soonHint": "Cet écran sera redessiné dans la direction Levente. La navigation, la barre latérale à niveaux et le lecteur sont déjà en place autour de lui.",
   "v2.nav.expandAria": "Déplier la barre latérale",
+  "v2.nav.menu": "Menu",
   "v2.nav.collapseAria": "Replier la barre latérale",
   "v2.nav.expand": "Déplier",
   "v2.nav.collapse": "Replier",

@@ -3720,6 +3720,7 @@ export default {
   "v2.shell.soon": "Próximamente",
   "v2.shell.soonHint": "Esta pantalla se rediseñará en la dirección de Levente. La navegación, la barra lateral por niveles y el reproductor ya están en su sitio a su alrededor.",
   "v2.nav.expandAria": "Desplegar la barra lateral",
+  "v2.nav.menu": "Menú",
   "v2.nav.collapseAria": "Plegar la barra lateral",
   "v2.nav.expand": "Desplegar",
   "v2.nav.collapse": "Plegar",

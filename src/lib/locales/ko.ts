@@ -3720,6 +3720,7 @@ export default {
   "v2.shell.soon": "곧 제공",
   "v2.shell.soonHint": "이 화면은 Levente의 방향으로 다시 그려집니다. 내비게이션, 단계별 사이드바, 플레이어는 이미 주변에 준비되어 있습니다.",
   "v2.nav.expandAria": "사이드바 펼치기",
+  "v2.nav.menu": "메뉴",
   "v2.nav.collapseAria": "사이드바 접기",
   "v2.nav.expand": "펼치기",
   "v2.nav.collapse": "접기",

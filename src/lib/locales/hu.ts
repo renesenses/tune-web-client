@@ -3678,6 +3678,7 @@ export default {
   "v2.shell.soon": "Hamarosan",
   "v2.shell.soonHint": "Ezt a képernyőt Levente irányában rajzoljuk újra. A navigáció, a szintezett oldalsáv és a lejátszó már a helyén van körülötte.",
   "v2.nav.expandAria": "Oldalsáv kinyitása",
+  "v2.nav.menu": "Menü",
   "v2.nav.collapseAria": "Oldalsáv összecsukása",
   "v2.nav.expand": "Kinyitás",
   "v2.nav.collapse": "Összecsukás",

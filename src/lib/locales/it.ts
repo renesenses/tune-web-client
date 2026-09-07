@@ -3720,6 +3720,7 @@ export default {
   "v2.shell.soon": "In arrivo",
   "v2.shell.soonHint": "Questa schermata sarà ridisegnata nella direzione di Levente. La navigazione, la barra laterale a livelli e il lettore sono già al loro posto attorno ad essa.",
   "v2.nav.expandAria": "Espandi la barra laterale",
+  "v2.nav.menu": "Menu",
   "v2.nav.collapseAria": "Riduci la barra laterale",
   "v2.nav.expand": "Espandi",
   "v2.nav.collapse": "Riduci",

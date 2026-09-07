@@ -3720,6 +3720,7 @@ export default {
   "v2.shell.soon": "近日公開",
   "v2.shell.soonHint": "この画面は Levente の方向性で描き直されます。ナビゲーション、段階的なサイドバー、プレーヤーはすでに周囲に用意されています。",
   "v2.nav.expandAria": "サイドバーを展開",
+  "v2.nav.menu": "メニュー",
   "v2.nav.collapseAria": "サイドバーを折りたたむ",
   "v2.nav.expand": "展開",
   "v2.nav.collapse": "折りたたむ",

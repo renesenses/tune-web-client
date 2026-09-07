@@ -3720,6 +3720,7 @@ export default {
   "v2.shell.soon": "În curând",
   "v2.shell.soonHint": "Acest ecran va fi redesenat în direcția lui Levente. Navigarea, bara laterală pe niveluri și playerul sunt deja în jurul lui.",
   "v2.nav.expandAria": "Extinde bara laterală",
+  "v2.nav.menu": "Meniu",
   "v2.nav.collapseAria": "Restrânge bara laterală",
   "v2.nav.expand": "Extinde",
   "v2.nav.collapse": "Restrânge",

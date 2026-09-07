@@ -9,6 +9,7 @@
    * à une, sans jamais casser la navigation.
    */
   import { activeView, type View } from '../../lib/stores/navigation';
+  import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
   import HomeV2 from './HomeV2.svelte';
@@ -252,7 +253,35 @@
     un seul endroit à tenir, et l'icône ne bouge pas d'un écran à l'autre.
     `captureCurrentView` fige la vue courante quelle qu'elle soit.
   -->
+  <!--
+    🔴 L'OUVERTURE DU TIROIR vit ICI, pas dans la barre latérale.
+
+    Au palier « tiroir » (≤ 760 px) la barre est hors champ : son propre bouton
+    de repli est inatteignable. Sans ce bouton, la navigation entière
+    disparaîtrait sur un téléphone.
+  -->
   <div class="av-tr">
+    <!--
+      🔴 L'OUVERTURE DU TIROIR vit ICI, pas dans la barre latérale.
+
+      Au palier « tiroir » (≤ 760 px) la barre est hors champ : son propre
+      bouton de repli est inatteignable, et sans celui-ci la navigation
+      entière disparaîtrait sur un téléphone.
+
+      Dans la GRAPPE haut-droite, et non en haut à gauche comme le veut
+      l'usage : c'est le seul endroit que les vingt-cinq écrans réservent
+      déjà (leur en-tête porte `padding-right:96px` pour l'avatar). Posé à
+      gauche, il se serait couché sur le titre de chaque écran.
+    -->
+    {#if $formatEcran === 'tiroir'}
+      <button class="raccourci" onclick={() => tiroirOuvert.update((v) => !v)}
+        aria-expanded={$tiroirOuvert}
+        aria-label={$t('v2.nav.menu' as any)} title={$t('v2.nav.menu' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 7h16M4 12h16M4 17h16"/>
+        </svg>
+      </button>
+    {/if}
     <!--
       Le mode TV entre DANS la grappe.
 
@@ -469,6 +498,20 @@
      perdus a droite. `:global` parce que l'ecran est un composant enfant :
      le style scope de la coquille ne l'atteindrait pas. */
   .main{min-width:0; overflow:hidden; display:flex}
+
+  /* ---- PETIT ÉCRAN ----------------------------------------------------
+     La rangée n'a plus qu'UNE colonne : la barre latérale est passée en
+     `position:fixed` (voir `Sidebar`), elle ne prend donc plus de place dans
+     la grille. Sans cette règle, la colonne `auto` resterait à sa largeur et
+     laisserait un vide à gauche de la vue. */
+  @media (max-width: 760px){
+    .v2-row{grid-template-columns:1fr}
+  }
+  /* La grappe passe AU-DESSUS du voile : le bouton qui ouvre le tiroir doit
+     rester atteignable pour le refermer. */
+  @media (max-width: 760px){
+    .av-tr{z-index:121; top:14px; right:14px}
+  }
   /* `min-height:0` est INDISPENSABLE, pas cosmetique : un element flex a
      `min-height:auto` par defaut et refuse de retrecir sous la taille de son
      contenu. Sans lui, la section debordait de 60 px sous sa ligne et sa

@@ -3740,6 +3740,7 @@ export default {
   "v2.shell.soon": "Coming soon",
   "v2.shell.soonHint": "This screen will be redrawn in Levente's direction. The navigation, the levelled sidebar and the player are already in place around it.",
   "v2.nav.expandAria": "Expand the sidebar",
+  "v2.nav.menu": "Menu",
   "v2.nav.collapseAria": "Collapse the sidebar",
   "v2.nav.expand": "Expand",
   "v2.nav.collapse": "Collapse",

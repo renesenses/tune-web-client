@@ -3719,6 +3719,7 @@ export default {
   "v2.shell.soon": "Kommer snart",
   "v2.shell.soonHint": "Den här skärmen kommer att ritas om i Leventes riktning. Navigeringen, det nivåindelade sidofältet och spelaren finns redan på plats runt omkring.",
   "v2.nav.expandAria": "Fäll ut sidofältet",
+  "v2.nav.menu": "Meny",
   "v2.nav.collapseAria": "Fäll ihop sidofältet",
   "v2.nav.expand": "Fäll ut",
   "v2.nav.collapse": "Fäll ihop",

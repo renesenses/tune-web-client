@@ -3720,6 +3720,7 @@ export default {
   "v2.shell.soon": "即将推出",
   "v2.shell.soonHint": "此界面将按 Levente 的方向重新设计。导航、分级侧边栏和播放器已经在它周围就位。",
   "v2.nav.expandAria": "展开侧边栏",
+  "v2.nav.menu": "菜单",
   "v2.nav.collapseAria": "收起侧边栏",
   "v2.nav.expand": "展开",
   "v2.nav.collapse": "收起",

@@ -3720,6 +3720,7 @@ export default {
   "v2.shell.soon": "Demnächst",
   "v2.shell.soonHint": "Dieser Bildschirm wird in Leventes Richtung neu gestaltet. Navigation, gestufte Seitenleiste und Player sind bereits darum herum vorhanden.",
   "v2.nav.expandAria": "Seitenleiste ausklappen",
+  "v2.nav.menu": "Menü",
   "v2.nav.collapseAria": "Seitenleiste einklappen",
   "v2.nav.expand": "Ausklappen",
   "v2.nav.collapse": "Einklappen",
