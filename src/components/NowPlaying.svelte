@@ -1553,35 +1553,48 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                 {$t('nowplaying.share')}
               </button>
-              <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
-                <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-                  Sleep
-                </button>
-                {#if showSleepMenu}
-                  <div class="np-sleep-dropdown">
-                    {#each [15, 30, 45, 60] as m}
-                      <button class="sleep-option" class:active={sleepActive && sleepMinutes === m} onclick={() => handleSleepTimer(m)}>{m} min</button>
-                    {/each}
-                    <button class="sleep-option sleep-off" onclick={() => handleSleepTimer(0)}>Off</button>
-                  </div>
-                {/if}
-              </div>
-              <button
-                class="np-credits-btn"
-                class:active={cfEnabled}
-                onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
-                {$t('dsp.crossfeedTitle')}
-              </button>
-              <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
-                {$t('nowplaying.alarm')}
-              </button>
             {/if}
+            <!-- Sleep, DSP et Réveil sont des réglages de ZONE, comme l'EQ
+                 juste au-dessus (#534). Leurs trois gestionnaires ne prennent
+                 que `zone.id` — `api.setSleepTimer`, `api.setDSP`,
+                 `api.setAlarm` / `api.cancelAlarm` — et aucun ne lit
+                 `displayTrack`. Enfermés avec les crédits, ils disparaissaient
+                 sur une radio et sur toute piste hors bibliothèque, en privant
+                 précisément l'auditeur de radio des deux réglages qui ont le
+                 plus de sens pour lui : s'endormir dessus, et se réveiller
+                 dessus. Garde : src/lib/__tests__/npReglagesDeZone.test.ts -->
+            <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
+              <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                Sleep
+              </button>
+              {#if showSleepMenu}
+                <div class="np-sleep-dropdown">
+                  {#each [15, 30, 45, 60] as m}
+                    <button class="sleep-option" class:active={sleepActive && sleepMinutes === m} onclick={() => handleSleepTimer(m)}>{m} min</button>
+                  {/each}
+                  <button class="sleep-option sleep-off" onclick={() => handleSleepTimer(0)}>Off</button>
+                </div>
+              {/if}
+            </div>
+            <button
+              class="np-credits-btn"
+              class:active={cfEnabled}
+              onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
+              {$t('dsp.crossfeedTitle')}
+            </button>
+            <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
+              {$t('nowplaying.alarm')}
+            </button>
           </div>
-          {#if showAlarm && !isRadio && normalizedTrack?.id != null}
+          <!-- Le panneau du réveil garde sa propre condition, `showAlarm`, et
+               elle seule : le bouton qui l'ouvre n'est plus gardé par la piste,
+               laisser le panneau l'être aurait rendu ce bouton sans effet sur
+               une radio — un silence de plus, à la place de celui qu'on répare. -->
+          {#if showAlarm}
             <div class="np-alarm-panel">
               <div class="alarm-row">
                 <input type="time" class="alarm-time-input" bind:value={alarmTime} />
