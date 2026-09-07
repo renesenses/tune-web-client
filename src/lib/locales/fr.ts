@@ -4153,6 +4153,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Aucun module possédé",
   "diagnostics.outputNoProviders": "Aucun fournisseur de sortie externe n'est compilé dans ce serveur.",
   "diagnostics.outputOpenLicense": "Voir ma licence",
+  "v2.album.compilation": "Compilation",
+  "v2.album.compilationHint": "Disque marqué comme compilation par le serveur au moment du scan.",
+  "v2.lib.compilations": "Compilations",
+  "v2.lib.compilationsHint": "N’afficher que les compilations. Le drapeau est posé au scan : un album indexé avant la mise à jour ne le portera qu’au prochain scan.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

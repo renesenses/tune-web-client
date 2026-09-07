@@ -4130,4 +4130,8 @@ export default {
   "diagnostics.outputNoLicensedModules": "Ingen modul ägs",
   "diagnostics.outputNoProviders": "Ingen extern utgångsleverantör är inkompilerad i den här servern.",
   "diagnostics.outputOpenLicense": "Visa min licens",
+  "v2.album.compilation": "Samlingsalbum",
+  "v2.album.compilationHint": "Album som servern markerade som samlingsalbum vid genomsökningen.",
+  "v2.lib.compilations": "Samlingsalbum",
+  "v2.lib.compilationsHint": "Visa endast samlingsalbum. Markeringen sätts vid genomsökningen: ett album som indexerades före uppdateringen får den först vid nästa genomsökning.",
 } as const;

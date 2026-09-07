@@ -4131,6 +4131,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "未拥有任何模块",
   "diagnostics.outputNoProviders": "此服务器未编译任何外部输出提供方。",
   "diagnostics.outputOpenLicense": "查看我的许可证",
+  "v2.album.compilation": "合辑",
+  "v2.album.compilationHint": "服务器在扫描时将此专辑标记为合辑。",
+  "v2.lib.compilations": "合辑",
+  "v2.lib.compilationsHint": "仅显示合辑。该标记在扫描时写入：更新前已索引的专辑要到下次扫描才会有此标记。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -4089,6 +4089,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Nincs megvásárolt modul",
   "diagnostics.outputNoProviders": "Ebbe a kiszolgálóba nincs külső kimeneti szolgáltató beépítve.",
   "diagnostics.outputOpenLicense": "Licencem megtekintése",
+  "v2.album.compilation": "Válogatás",
+  "v2.album.compilationHint": "A kiszolgáló a beolvasáskor válogatásként jelölte meg ezt az albumot.",
+  "v2.lib.compilations": "Válogatások",
+  "v2.lib.compilationsHint": "Csak a válogatások megjelenítése. A jelölés a beolvasáskor kerül fel: a frissítés előtt indexelt album csak a következő beolvasáskor kapja meg.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

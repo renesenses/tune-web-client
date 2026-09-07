@@ -4131,6 +4131,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "所有モジュールなし",
   "diagnostics.outputNoProviders": "このサーバーには外部出力プロバイダーが組み込まれていません。",
   "diagnostics.outputOpenLicense": "ライセンスを見る",
+  "v2.album.compilation": "コンピレーション",
+  "v2.album.compilationHint": "スキャン時にサーバーがコンピレーションとして印を付けたアルバムです。",
+  "v2.lib.compilations": "コンピレーション",
+  "v2.lib.compilationsHint": "コンピレーションのみを表示します。この印はスキャン時に付きます。更新前にインデックスされたアルバムは、次回のスキャンで初めて印が付きます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

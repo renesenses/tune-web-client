@@ -4131,6 +4131,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Ningún módulo adquirido",
   "diagnostics.outputNoProviders": "Ningún proveedor de salida externo está compilado en este servidor.",
   "diagnostics.outputOpenLicense": "Ver mi licencia",
+  "v2.album.compilation": "Recopilación",
+  "v2.album.compilationHint": "Álbum marcado como recopilación por el servidor durante el escaneo.",
+  "v2.lib.compilations": "Recopilaciones",
+  "v2.lib.compilationsHint": "Mostrar solo las recopilaciones. La marca se establece durante el escaneo: un álbum indexado antes de la actualización solo la recibirá en el próximo escaneo.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];
