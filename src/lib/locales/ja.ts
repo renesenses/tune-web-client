@@ -1116,11 +1116,6 @@ export default {
   'audiophile.volumeLockedHint': "オーディオファイルモードにより音量は 100 % に固定されています",
 
   // Streaming Quality
-  'settings.streamingQuality': 'ストリーミング品質',
-  'settings.qualityMax': '最高品質',
-  'settings.qualityHires': 'Hi-Res',
-  'settings.qualityCd': 'CD（16/44.1）',
-  'settings.qualityLow': 'エコノミー',
 
   // Config Export/Import
   'settings.configSection': '設定',

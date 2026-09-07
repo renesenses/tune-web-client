@@ -2445,29 +2445,6 @@ function setSettingsLevel(level: SettingsLevel) {
     }
   }
 
-  // --- Streaming Quality ---
-  let streamingQuality = $state<string>('max');
-  let qualityLoading = $state(false);
-
-  async function loadStreamingQuality() {
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    try {
-      const res = await api.getStreamingQuality(zoneId);
-      streamingQuality = res.quality ?? 'max';
-    } catch {}
-  }
-
-  async function applyStreamingQuality() {
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    qualityLoading = true;
-    try {
-      await api.setStreamingQuality(zoneId, streamingQuality);
-    } catch {}
-    qualityLoading = false;
-  }
-
   // --- Config Export/Import ---
   let configExporting = $state(false);
   let configImporting = $state(false);
@@ -2829,7 +2806,6 @@ function setSettingsLevel(level: SettingsLevel) {
     fetchTunePeers();
     fetchServerVersion();
     checkForUpdate();
-    loadStreamingQuality();
     loadScanSchedule();
     loadMetadataFields();
     loadLogLevel();
@@ -5785,24 +5761,6 @@ function setSettingsLevel(level: SettingsLevel) {
     {/if}
     {/if}
 
-    {#if settingsTab === 'general'}
-    <!-- Streaming Quality -->
-    <section class="settings-section">
-      <h3>{$t('settings.streamingQuality' as any)}</h3>
-      <div class="setting-row">
-        <div class="setting-label">
-          <span>{$t('settings.streamingQuality' as any)}</span>
-        </div>
-        <select class="quality-select" bind:value={streamingQuality} onchange={() => applyStreamingQuality()} disabled={qualityLoading}>
-          <option value="max">{$t('settings.qualityMax' as any)}</option>
-          <option value="hires">{$t('settings.qualityHires' as any)}</option>
-          <option value="cd">{$t('settings.qualityCd' as any)}</option>
-          <option value="low">{$t('settings.qualityLow' as any)}</option>
-        </select>
-      </div>
-    </section>
-    {/if}
-
     {#if settingsTab === 'system'}
     <!-- Config Export/Import -->
     <section class="settings-section" class:lv-hidden={!lvOk('system.configExportImport')}>
@@ -7824,21 +7782,6 @@ function setSettingsLevel(level: SettingsLevel) {
     background: rgba(255, 59, 48, 0.12);
     color: #ff3b30;
   }
-
-  /* Streaming Quality */
-  .quality-select {
-    background: var(--tune-bg);
-    color: var(--tune-text);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    padding: 6px 12px;
-    font-family: var(--font-body);
-    font-size: 13px;
-    cursor: pointer;
-    min-width: 160px;
-  }
-
-  .quality-select:disabled { opacity: 0.5; }
 
   /* Batch Enrich Progress */
   .enrich-group-title {
