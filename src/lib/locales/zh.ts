@@ -4050,6 +4050,23 @@ export default {
   "settings.tabDisplay": "显示",
   "settings.collectionsMosaic": "合辑显示封面拼贴",
   "settings.collectionsMosaicHint": "每个合辑显示四张封面。取消勾选可只显示一张封面，与旧客户端一致。",
+  "diagnostics.outputModules": "输出模块",
+  "diagnostics.outputModulesHint": "服务器识别到的外部输出提供方：所需模块、发现的设备数，以及被拒绝时的原因。",
+  "diagnostics.outputProvider": "提供方",
+  "diagnostics.outputRequiredModule": "所需模块",
+  "diagnostics.outputDevices": "设备",
+  "diagnostics.outputStatus": "状态",
+  "diagnostics.outputNoModuleRequired": "无（已包含）",
+  "diagnostics.outputActive": "已启用",
+  "diagnostics.outputRefusedNotLinked": "已拒绝 — 账户未关联",
+  "diagnostics.outputRefusedNotOwned": "已拒绝 — 未拥有该模块",
+  "diagnostics.outputRefusedUnknown": "已拒绝",
+  "diagnostics.outputAccountLinked": "已关联 Mozaiklabs 账户",
+  "diagnostics.outputAccountNotLinked": "未关联 Mozaiklabs 账户",
+  "diagnostics.outputLicensedModules": "已拥有的模块：{list}",
+  "diagnostics.outputNoLicensedModules": "未拥有任何模块",
+  "diagnostics.outputNoProviders": "此服务器未编译任何外部输出提供方。",
+  "diagnostics.outputOpenLicense": "查看我的许可证",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

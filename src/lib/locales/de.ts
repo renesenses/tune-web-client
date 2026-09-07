@@ -4050,6 +4050,23 @@ export default {
   "settings.tabDisplay": "Anzeige",
   "settings.collectionsMosaic": "Cover-Mosaik auf Sammlungen",
   "settings.collectionsMosaicHint": "Vier Cover je Sammlung. Abwählen für ein einzelnes Cover, wie im bisherigen Client.",
+  "diagnostics.outputModules": "Ausgabemodule",
+  "diagnostics.outputModulesHint": "Externe Ausgabeanbieter aus Sicht des Servers: benötigtes Modul, gefundene Geräte und, falls abgelehnt, der Grund.",
+  "diagnostics.outputProvider": "Anbieter",
+  "diagnostics.outputRequiredModule": "Benötigtes Modul",
+  "diagnostics.outputDevices": "Geräte",
+  "diagnostics.outputStatus": "Status",
+  "diagnostics.outputNoModuleRequired": "Keines (enthalten)",
+  "diagnostics.outputActive": "Aktiv",
+  "diagnostics.outputRefusedNotLinked": "Abgelehnt — Konto nicht verknüpft",
+  "diagnostics.outputRefusedNotOwned": "Abgelehnt — Modul nicht erworben",
+  "diagnostics.outputRefusedUnknown": "Abgelehnt",
+  "diagnostics.outputAccountLinked": "Mozaiklabs-Konto verknüpft",
+  "diagnostics.outputAccountNotLinked": "Kein Mozaiklabs-Konto verknüpft",
+  "diagnostics.outputLicensedModules": "Erworbene Module: {list}",
+  "diagnostics.outputNoLicensedModules": "Kein Modul erworben",
+  "diagnostics.outputNoProviders": "In diesen Server ist kein externer Ausgabeanbieter einkompiliert.",
+  "diagnostics.outputOpenLicense": "Meine Lizenz anzeigen",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -17,6 +17,8 @@
    * en cours : un écran de santé ne doit pas être lui-même une charge.
    */
   import * as api from '../../lib/api';
+  import OutputModulesPanel from '../OutputModulesPanel.svelte';
+  import { tableauFournisseurs, type TableauFournisseurs } from '../../lib/refusModuleSortie';
   import { formatNombre } from '../../lib/formats';
   import { activeView } from '../../lib/stores/navigation';
   import { } from '../../lib/utils';
@@ -41,6 +43,8 @@
   let loading = $state(true);
   let lastAt = $state<string | null>(null);
   let refreshing = $state(false);
+  /** #2392 — l'instantané `output_providers` ; `null` = serveur antérieur à v0.9.115, pas de panneau. */
+  let modulesSortie = $state<TableauFournisseurs | null>(null);
 
   const anyRunning = $derived(cards.some((c) => c.etat === 'running'));
 
@@ -163,6 +167,14 @@
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
     }
 
+    // ── Modules de sortie (#2392) ─────────────────────────────────────────
+    // Un seul appel, celui de Diagnostics ; un serveur qui n'envoie pas
+    // `output_providers` ne fait apparaître aucun panneau.
+    const diag = await Promise.allSettled([api.getServerDiagnostics()]);
+    modulesSortie = diag[0].status === 'fulfilled'
+      ? tableauFournisseurs(diag[0].value?.output_providers)
+      : null;
+
     cards = out;
     lastAt = $heureSeule(new Date());
     loading = false;
@@ -234,6 +246,14 @@
         {/each}
       </div>
 
+      {#if modulesSortie}
+        <section class="modules">
+          <h2>{$t('diagnostics.outputModules' as any)}</h2>
+          <div class="sub">{$t('diagnostics.outputModulesHint' as any)}</div>
+          <OutputModulesPanel tableau={modulesSortie} variante="v2" />
+        </section>
+      {/if}
+
       <p class="foot">
         Les traitements se lancent depuis les Réglages — Bibliothèque et Métadonnées.
         <button class="lnk sm" onclick={() => activeView.set('settings')}>{$t('v2.eq.openSettings' as any)}</button>
@@ -280,4 +300,7 @@
   .nogauge{margin-top:11px; font:10.5px var(--v2-mono); color:var(--v2-txt3); font-style:italic}
   .detail{margin-top:9px; font-size:11.5px; color:var(--v2-txt3)}
   .foot{margin-top:22px; font-size:12.5px; color:var(--v2-txt3)}
+  .modules{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
+  .modules h2{font-size:15px; font-weight:700}
+  .modules .sub{margin-bottom:12px}
 </style>

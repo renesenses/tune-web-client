@@ -4050,6 +4050,23 @@ export default {
   "settings.tabDisplay": "Visualizzazione",
   "settings.collectionsMosaic": "Mosaico di copertine sulle raccolte",
   "settings.collectionsMosaicHint": "Quattro copertine per raccolta. Deseleziona per una sola copertina, come nel client precedente.",
+  "diagnostics.outputModules": "Moduli di uscita",
+  "diagnostics.outputModulesHint": "Fornitori di uscita esterni visti dal server: modulo richiesto, dispositivi trovati e, se rifiutato, il motivo.",
+  "diagnostics.outputProvider": "Fornitore",
+  "diagnostics.outputRequiredModule": "Modulo richiesto",
+  "diagnostics.outputDevices": "Dispositivi",
+  "diagnostics.outputStatus": "Stato",
+  "diagnostics.outputNoModuleRequired": "Nessuno (incluso)",
+  "diagnostics.outputActive": "Attivo",
+  "diagnostics.outputRefusedNotLinked": "Rifiutato — account non collegato",
+  "diagnostics.outputRefusedNotOwned": "Rifiutato — modulo non posseduto",
+  "diagnostics.outputRefusedUnknown": "Rifiutato",
+  "diagnostics.outputAccountLinked": "Account Mozaiklabs collegato",
+  "diagnostics.outputAccountNotLinked": "Nessun account Mozaiklabs collegato",
+  "diagnostics.outputLicensedModules": "Moduli posseduti: {list}",
+  "diagnostics.outputNoLicensedModules": "Nessun modulo posseduto",
+  "diagnostics.outputNoProviders": "Nessun fornitore di uscita esterno è compilato in questo server.",
+  "diagnostics.outputOpenLicense": "Vedi la mia licenza",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

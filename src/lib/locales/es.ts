@@ -4050,6 +4050,23 @@ export default {
   "settings.tabDisplay": "Visualización",
   "settings.collectionsMosaic": "Mosaico de portadas en las colecciones",
   "settings.collectionsMosaicHint": "Cuatro portadas por colección. Desmarca para una sola portada, como en el cliente anterior.",
+  "diagnostics.outputModules": "Módulos de salida",
+  "diagnostics.outputModulesHint": "Proveedores de salida externos vistos por el servidor: módulo requerido, dispositivos encontrados y, si se rechaza, el motivo.",
+  "diagnostics.outputProvider": "Proveedor",
+  "diagnostics.outputRequiredModule": "Módulo requerido",
+  "diagnostics.outputDevices": "Dispositivos",
+  "diagnostics.outputStatus": "Estado",
+  "diagnostics.outputNoModuleRequired": "Ninguno (incluido)",
+  "diagnostics.outputActive": "Activo",
+  "diagnostics.outputRefusedNotLinked": "Rechazado — cuenta no vinculada",
+  "diagnostics.outputRefusedNotOwned": "Rechazado — módulo no adquirido",
+  "diagnostics.outputRefusedUnknown": "Rechazado",
+  "diagnostics.outputAccountLinked": "Cuenta Mozaiklabs vinculada",
+  "diagnostics.outputAccountNotLinked": "Ninguna cuenta Mozaiklabs vinculada",
+  "diagnostics.outputLicensedModules": "Módulos adquiridos: {list}",
+  "diagnostics.outputNoLicensedModules": "Ningún módulo adquirido",
+  "diagnostics.outputNoProviders": "Ningún proveedor de salida externo está compilado en este servidor.",
+  "diagnostics.outputOpenLicense": "Ver mi licencia",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

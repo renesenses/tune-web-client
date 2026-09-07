@@ -4008,6 +4008,23 @@ export default {
   "settings.tabDisplay": "Megjelenítés",
   "settings.collectionsMosaic": "Borítómozaik a gyűjteményeken",
   "settings.collectionsMosaicHint": "Négy borító gyűjteményenként. Vegye ki a pipát az egyetlen borítóhoz, mint a korábbi kliensben.",
+  "diagnostics.outputModules": "Kimeneti modulok",
+  "diagnostics.outputModulesHint": "A kiszolgáló által látott külső kimeneti szolgáltatók: szükséges modul, talált eszközök és elutasítás esetén annak oka.",
+  "diagnostics.outputProvider": "Szolgáltató",
+  "diagnostics.outputRequiredModule": "Szükséges modul",
+  "diagnostics.outputDevices": "Eszközök",
+  "diagnostics.outputStatus": "Állapot",
+  "diagnostics.outputNoModuleRequired": "Nincs (beépített)",
+  "diagnostics.outputActive": "Aktív",
+  "diagnostics.outputRefusedNotLinked": "Elutasítva — a fiók nincs összekapcsolva",
+  "diagnostics.outputRefusedNotOwned": "Elutasítva — a modul nincs megvásárolva",
+  "diagnostics.outputRefusedUnknown": "Elutasítva",
+  "diagnostics.outputAccountLinked": "Mozaiklabs-fiók összekapcsolva",
+  "diagnostics.outputAccountNotLinked": "Nincs összekapcsolt Mozaiklabs-fiók",
+  "diagnostics.outputLicensedModules": "Megvásárolt modulok: {list}",
+  "diagnostics.outputNoLicensedModules": "Nincs megvásárolt modul",
+  "diagnostics.outputNoProviders": "Ebbe a kiszolgálóba nincs külső kimeneti szolgáltató beépítve.",
+  "diagnostics.outputOpenLicense": "Licencem megtekintése",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

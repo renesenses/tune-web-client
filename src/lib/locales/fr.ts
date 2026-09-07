@@ -4072,6 +4072,23 @@ export default {
   "settings.tabDisplay": "Affichage",
   "settings.collectionsMosaic": "Mosaïque de pochettes sur les collections",
   "settings.collectionsMosaicHint": "Quatre pochettes assemblées par collection. Décochez pour une pochette unique, comme l’écran de l’ancien client.",
+  "diagnostics.outputModules": "Modules de sortie",
+  "diagnostics.outputModulesHint": "Fournisseurs de sortie externes vus par le serveur : module requis, appareils trouvés et, en cas de refus, la raison.",
+  "diagnostics.outputProvider": "Fournisseur",
+  "diagnostics.outputRequiredModule": "Module requis",
+  "diagnostics.outputDevices": "Appareils",
+  "diagnostics.outputStatus": "État",
+  "diagnostics.outputNoModuleRequired": "Aucun (inclus)",
+  "diagnostics.outputActive": "Actif",
+  "diagnostics.outputRefusedNotLinked": "Refusé — compte non relié",
+  "diagnostics.outputRefusedNotOwned": "Refusé — module non possédé",
+  "diagnostics.outputRefusedUnknown": "Refusé",
+  "diagnostics.outputAccountLinked": "Compte Mozaiklabs relié",
+  "diagnostics.outputAccountNotLinked": "Aucun compte Mozaiklabs relié",
+  "diagnostics.outputLicensedModules": "Modules possédés : {list}",
+  "diagnostics.outputNoLicensedModules": "Aucun module possédé",
+  "diagnostics.outputNoProviders": "Aucun fournisseur de sortie externe n'est compilé dans ce serveur.",
+  "diagnostics.outputOpenLicense": "Voir ma licence",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

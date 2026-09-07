@@ -4050,6 +4050,23 @@ export default {
   "settings.tabDisplay": "Afișare",
   "settings.collectionsMosaic": "Mozaic de coperte pe colecții",
   "settings.collectionsMosaicHint": "Patru coperte pe colecție. Debifați pentru o singură copertă, ca în clientul anterior.",
+  "diagnostics.outputModules": "Module de ieșire",
+  "diagnostics.outputModulesHint": "Furnizorii de ieșire externi văzuți de server: modulul necesar, dispozitivele găsite și, dacă este refuzat, motivul.",
+  "diagnostics.outputProvider": "Furnizor",
+  "diagnostics.outputRequiredModule": "Modul necesar",
+  "diagnostics.outputDevices": "Dispozitive",
+  "diagnostics.outputStatus": "Stare",
+  "diagnostics.outputNoModuleRequired": "Niciunul (inclus)",
+  "diagnostics.outputActive": "Activ",
+  "diagnostics.outputRefusedNotLinked": "Refuzat — cont neconectat",
+  "diagnostics.outputRefusedNotOwned": "Refuzat — modul nedeținut",
+  "diagnostics.outputRefusedUnknown": "Refuzat",
+  "diagnostics.outputAccountLinked": "Cont Mozaiklabs conectat",
+  "diagnostics.outputAccountNotLinked": "Niciun cont Mozaiklabs conectat",
+  "diagnostics.outputLicensedModules": "Module deținute: {list}",
+  "diagnostics.outputNoLicensedModules": "Niciun modul deținut",
+  "diagnostics.outputNoProviders": "Niciun furnizor de ieșire extern nu este compilat în acest server.",
+  "diagnostics.outputOpenLicense": "Vezi licența mea",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

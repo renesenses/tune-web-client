@@ -4070,6 +4070,23 @@ export default {
   "settings.tabDisplay": "Display",
   "settings.collectionsMosaic": "Cover mosaic on collections",
   "settings.collectionsMosaicHint": "Four covers assembled per collection. Uncheck for a single cover, like the previous client’s screen.",
+  "diagnostics.outputModules": "Output modules",
+  "diagnostics.outputModulesHint": "External output providers as seen by the server: required module, devices found and, when refused, why.",
+  "diagnostics.outputProvider": "Provider",
+  "diagnostics.outputRequiredModule": "Required module",
+  "diagnostics.outputDevices": "Devices",
+  "diagnostics.outputStatus": "Status",
+  "diagnostics.outputNoModuleRequired": "None (included)",
+  "diagnostics.outputActive": "Active",
+  "diagnostics.outputRefusedNotLinked": "Refused — account not linked",
+  "diagnostics.outputRefusedNotOwned": "Refused — module not owned",
+  "diagnostics.outputRefusedUnknown": "Refused",
+  "diagnostics.outputAccountLinked": "Mozaiklabs account linked",
+  "diagnostics.outputAccountNotLinked": "No Mozaiklabs account linked",
+  "diagnostics.outputLicensedModules": "Owned modules: {list}",
+  "diagnostics.outputNoLicensedModules": "No module owned",
+  "diagnostics.outputNoProviders": "No external output provider is compiled into this server.",
+  "diagnostics.outputOpenLicense": "See my licence",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

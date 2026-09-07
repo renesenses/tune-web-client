@@ -4050,6 +4050,23 @@ export default {
   "settings.tabDisplay": "表示",
   "settings.collectionsMosaic": "コレクションにジャケットのモザイクを表示",
   "settings.collectionsMosaicHint": "コレクションごとに4枚のジャケット。チェックを外すと、以前のクライアントと同じ1枚表示になります。",
+  "diagnostics.outputModules": "出力モジュール",
+  "diagnostics.outputModulesHint": "サーバーが認識している外部出力プロバイダー：必要なモジュール、検出されたデバイス数、拒否された場合はその理由。",
+  "diagnostics.outputProvider": "プロバイダー",
+  "diagnostics.outputRequiredModule": "必要なモジュール",
+  "diagnostics.outputDevices": "デバイス",
+  "diagnostics.outputStatus": "状態",
+  "diagnostics.outputNoModuleRequired": "なし（同梱）",
+  "diagnostics.outputActive": "有効",
+  "diagnostics.outputRefusedNotLinked": "拒否 — アカウント未連携",
+  "diagnostics.outputRefusedNotOwned": "拒否 — モジュール未購入",
+  "diagnostics.outputRefusedUnknown": "拒否",
+  "diagnostics.outputAccountLinked": "Mozaiklabs アカウント連携済み",
+  "diagnostics.outputAccountNotLinked": "Mozaiklabs アカウントが未連携",
+  "diagnostics.outputLicensedModules": "所有モジュール：{list}",
+  "diagnostics.outputNoLicensedModules": "所有モジュールなし",
+  "diagnostics.outputNoProviders": "このサーバーには外部出力プロバイダーが組み込まれていません。",
+  "diagnostics.outputOpenLicense": "ライセンスを見る",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
