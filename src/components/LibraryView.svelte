@@ -2742,6 +2742,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                       onClose={closeTrackMenu}
                       onPlay={() => t.id && playTrack(t.id)}
                       onAddToQueue={() => addTrackToQueue(t)}
+                      onPlayNext={() => playNext(t)}
                       onPlaySimilar={() => playSimilar(t)}
                       onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                       onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
@@ -2886,6 +2887,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onClose={closeTrackMenu}
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
+                    onPlayNext={() => playNext(t)}
                       onPlaySimilar={() => playSimilar(t)}
                       onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                     onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
@@ -3686,6 +3688,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onClose={closeTrackMenu}
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
+                    onPlayNext={() => playNext(t)}
                     onPlaySimilar={() => playSimilar(t)}
                     onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
                     onGoToArtist={t.artist_id != null && t.artist_name
