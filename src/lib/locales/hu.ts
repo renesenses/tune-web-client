@@ -2250,6 +2250,7 @@ export default {
   "trackTags.groupClassical": "Klasszikus / közreműködők",
   "trackTags.groupAudio": "Hang",
   "trackTags.groupSystem": "Rendszer",
+  "trackTags.groupOther": "Egyéb mezők",
   "trackTags.trackCredits": "A szám közreműködői",
   "trackTags.audioInfoFromFile": "Hanginformáció (a fájlból)",
   "trackTags.rawFileTags": "Nyers fájlcímkék",

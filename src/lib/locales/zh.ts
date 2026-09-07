@@ -2028,6 +2028,7 @@ export default {
   "trackTags.groupClassical": "古典 / 演职人员",
   "trackTags.groupAudio": "音频",
   "trackTags.groupSystem": "系统",
+  "trackTags.groupOther": "其他字段",
   "trackTags.trackCredits": "曲目演职人员",
   "trackTags.audioInfoFromFile": "音频信息（来自文件）",
   "trackTags.rawFileTags": "原始文件标签",
