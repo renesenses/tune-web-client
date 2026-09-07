@@ -4060,6 +4060,11 @@ export default {
   "v2.tcol.genre": "Genre",
   "v2.tcol.quality": "Qualität",
   "v2.tcol.actions": "Aktionen",
+  "settings.trackColumns": "Spalten der Titellisten",
+  "settings.trackColumnsHint": "Wählen Sie die angezeigten Spalten je Oberflächenmodus.",
+  "settings.colModeNotWired": "Dieser Modus zeigt noch keine Tabelle: Die Auswahl wird gespeichert, wirkt aber noch nicht.",
+  "settings.colNoData": "Der Server liefert diese Daten für Albumtitel noch nicht.",
+  "settings.colAlwaysShown": "Immer angezeigt",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

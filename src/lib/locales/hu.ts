@@ -4018,6 +4018,11 @@ export default {
   "v2.tcol.genre": "Műfaj",
   "v2.tcol.quality": "Minőség",
   "v2.tcol.actions": "Műveletek",
+  "settings.trackColumns": "A számlisták oszlopai",
+  "settings.trackColumnsHint": "Válassza ki a megjelenített oszlopokat, felületi módonként.",
+  "settings.colModeNotWired": "Ez a mód még nem jelenít meg táblázatot: a választás mentve, de egyelőre nincs hatása.",
+  "settings.colNoData": "A kiszolgáló ezt az adatot még nem adja meg egy album számaihoz.",
+  "settings.colAlwaysShown": "Mindig látható",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

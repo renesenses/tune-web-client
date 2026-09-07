@@ -4060,6 +4060,11 @@ export default {
   "v2.tcol.genre": "流派",
   "v2.tcol.quality": "音质",
   "v2.tcol.actions": "操作",
+  "settings.trackColumns": "曲目列表的列",
+  "settings.trackColumnsHint": "按界面模式选择要显示的列。",
+  "settings.colModeNotWired": "此模式尚无表格：选择会被保存，但目前不会生效。",
+  "settings.colNoData": "服务器尚未为专辑曲目提供此数据。",
+  "settings.colAlwaysShown": "始终显示",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

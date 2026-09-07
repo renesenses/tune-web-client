@@ -4060,6 +4060,11 @@ export default {
   "v2.tcol.genre": "장르",
   "v2.tcol.quality": "음질",
   "v2.tcol.actions": "작업",
+  "settings.trackColumns": "트랙 목록 열",
+  "settings.trackColumnsHint": "인터페이스 모드별로 표시할 열을 선택합니다.",
+  "settings.colModeNotWired": "이 모드에는 아직 표가 없습니다. 선택은 저장되지만 현재는 적용되지 않습니다.",
+  "settings.colNoData": "서버가 앨범 트랙에 대해 이 데이터를 아직 제공하지 않습니다.",
+  "settings.colAlwaysShown": "항상 표시",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

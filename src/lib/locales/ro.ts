@@ -4060,6 +4060,11 @@ export default {
   "v2.tcol.genre": "Gen",
   "v2.tcol.quality": "Calitate",
   "v2.tcol.actions": "Acțiuni",
+  "settings.trackColumns": "Coloanele listelor de piese",
+  "settings.trackColumnsHint": "Alegeți coloanele afișate, pe mod de interfață.",
+  "settings.colModeNotWired": "Acest mod nu afișează încă un tabel: alegerea este salvată, dar deocamdată fără efect.",
+  "settings.colNoData": "Serverul nu furnizează încă acest date pentru piesele unui album.",
+  "settings.colAlwaysShown": "Afișată întotdeauna",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

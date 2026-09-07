@@ -4080,6 +4080,11 @@ export default {
   "v2.tcol.genre": "Genre",
   "v2.tcol.quality": "Quality",
   "v2.tcol.actions": "Actions",
+  "settings.trackColumns": "Track list columns",
+  "settings.trackColumnsHint": "Choose the columns shown, per interface mode.",
+  "settings.colModeNotWired": "This mode has no table yet: the choice is saved but has no effect for now.",
+  "settings.colNoData": "The server does not yet provide this data for an album’s tracks.",
+  "settings.colAlwaysShown": "Always shown",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

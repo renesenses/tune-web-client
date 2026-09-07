@@ -27,6 +27,9 @@
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
+  import { LEVEL_LABEL_KEYS } from '../../lib/uiLevel';
+  import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
+  import { COLONNES, MODES_BRANCHES, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
@@ -652,6 +655,32 @@
   // qui pilote l'app historique : le proposer ici donnerait un reglage sans
   // effet visible: exactement le genre de piege qu'on veut eviter.
   function setV2Theme(t: V2Theme) { preferences.update((pr) => ({ ...pr, v2Theme: t })); }
+
+  /**
+   * La MATRICE des colonnes : une ligne par métadonnée, une colonne par mode.
+   *
+   * Demandée par Bertrand le 07/09/2026 : « dans les settings il faudrait un
+   * tableau avec sur la première ligne les modes et sur la première colonne
+   * les metadatas ».
+   *
+   * ⚠️ Option A, retenue par lui : les trois modes sont montrés, mais seuls
+   * ceux de `MODES_BRANCHES` changent réellement l'écran. Les autres sont
+   * grisés ET le disent. Les afficher actifs sans effet serait exactement le
+   * défaut que ce client passe son temps à corriger.
+   */
+  const modeBranche = (m: SettingsLevel) => MODES_BRANCHES.includes(m);
+  const colonneCochee = (m: SettingsLevel, c: CleColonne) =>
+    ($preferences.v2Colonnes?.[m] ?? []).includes(c);
+
+  function basculerColonne(m: SettingsLevel, c: CleColonne) {
+    preferences.update((pr) => {
+      const actuel = pr.v2Colonnes?.[m] ?? [];
+      const suivant = actuel.includes(c) ? actuel.filter((x) => x !== c) : [...actuel, c];
+      // On réécrit l'objet ENTIER : muter la liste en place ne réveillerait
+      // pas les abonnés, et le magasin ne se sauvegarderait pas.
+      return { ...pr, v2Colonnes: { ...pr.v2Colonnes, [m]: suivant } };
+    });
+  }
   const STARTUP: { v: StartupView; k: string }[] = [
     { v: 'home', k: 'nav.home' }, { v: 'nowplaying', k: 'nav.nowplaying' },
     { v: 'library', k: 'nav.library' }, { v: 'queue', k: 'nav.queue' },
@@ -1516,6 +1545,52 @@
               </div>
 
             {:else if s.id === 'displayPrefs'}
+              <!-- LA MATRICE. Première ligne : les modes. Première colonne :
+                   les métadonnées. Une case à chaque intersection. -->
+              <div class="row rowcol">
+                <div class="lbl">
+                  <span>{$t('settings.trackColumns' as any)}</span>
+                  <span class="hint">{$t('settings.trackColumnsHint' as any)}</span>
+                </div>
+              </div>
+              <div class="matrice" role="table" aria-label={$t('settings.trackColumns' as any)}>
+                <div class="mrow mhead" role="row">
+                  <span class="mcell mnom" role="columnheader"></span>
+                  {#each SETTINGS_LEVELS as m (m)}
+                    <span class="mcell" role="columnheader" class:inerte={!modeBranche(m)}
+                      title={modeBranche(m) ? undefined : $t('settings.colModeNotWired' as any)}>
+                      {$t(LEVEL_LABEL_KEYS[m] as any)}
+                    </span>
+                  {/each}
+                </div>
+
+                {#each COLONNES as c (c.cle)}
+                  {@const sansDonnee = !!c.indisponible}
+                  <div class="mrow" role="row" class:inerte={sansDonnee}>
+                    <span class="mcell mnom" role="rowheader"
+                      title={sansDonnee ? $t('settings.colNoData' as any)
+                        : c.verrouillee ? $t('settings.colAlwaysShown' as any) : undefined}>
+                      {$t(c.cleI18n as any)}
+                      {#if sansDonnee}<em class="mnote">{$t('settings.colNoData' as any)}</em>{/if}
+                    </span>
+                    {#each SETTINGS_LEVELS as m (m)}
+                      <span class="mcell" role="cell">
+                        <!-- Verrouillée : cochée et non décochable — une liste
+                             de pistes sans titre n'est plus une liste. -->
+                        <input type="checkbox"
+                          checked={c.verrouillee || colonneCochee(m, c.cle)}
+                          disabled={c.verrouillee || sansDonnee || !modeBranche(m)}
+                          aria-label={`${$t(c.cleI18n as any)} — ${$t(LEVEL_LABEL_KEYS[m] as any)}`}
+                          onchange={() => basculerColonne(m, c.cle)} />
+                      </span>
+                    {/each}
+                  </div>
+                {/each}
+              </div>
+              {#if SETTINGS_LEVELS.some((m) => !modeBranche(m))}
+                <p class="hint">{$t('settings.colModeNotWired' as any)}</p>
+              {/if}
+
               <!-- Premier pensionnaire de l'onglet Affichage : un GOÛT, donc
                    un interrupteur, et un défaut qui ne bouge pas. « Les 4
                    pochettes accolées, ce n'est pas ma préférence. J'aimais
@@ -2888,6 +2963,28 @@
 </section>
 
 <style>
+  /* LA MATRICE des colonnes. Une grille unique : l'en-tête et les lignes
+     partagent le même gabarit, sinon les cases ne tombent pas sous leur mode.
+     C'est la même règle que le tableau de pistes lui-même. */
+  .matrice{display:flex; flex-direction:column; gap:1px; margin:2px 0 4px;
+    border:1px solid var(--v2-line2); border-radius:10px; overflow:hidden}
+  .mrow{display:grid; grid-template-columns:minmax(0,1fr) repeat(3, 92px);
+    align-items:center; gap:8px; padding:8px 12px}
+  .mrow:not(.mhead):hover{background:var(--v2-hover)}
+  .mhead{background:var(--v2-surface2); border-bottom:1px solid var(--v2-line2)}
+  .mhead .mcell{font:600 11px var(--v2-sans); letter-spacing:.04em;
+    text-transform:uppercase; color:var(--v2-txt3); text-align:center}
+  .mcell{display:flex; align-items:center; justify-content:center; min-width:0}
+  .mnom{justify-content:flex-start; flex-direction:column; align-items:flex-start;
+    gap:1px; font-size:13px; color:var(--v2-txt2); min-width:0}
+  .mnote{font:10.5px var(--v2-mono); font-style:normal; color:var(--v2-txt3);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%}
+  /* Grisé ET dit : une case inerte qui ressemble à une case active serait
+     exactement le défaut qu'on corrige ailleurs. */
+  .mrow.inerte, .mcell.inerte{opacity:.45}
+  .matrice input[type="checkbox"]{cursor:pointer}
+  .matrice input[type="checkbox"]:disabled{cursor:default}
+
   .v2-settings{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .top{padding:24px 30px 12px; padding-right:96px}

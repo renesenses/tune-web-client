@@ -4060,6 +4060,11 @@ export default {
   "v2.tcol.genre": "Genere",
   "v2.tcol.quality": "Qualità",
   "v2.tcol.actions": "Azioni",
+  "settings.trackColumns": "Colonne degli elenchi di brani",
+  "settings.trackColumnsHint": "Scegli le colonne mostrate, per modalità dell’interfaccia.",
+  "settings.colModeNotWired": "Questa modalità non mostra ancora una tabella: la scelta è salvata ma per ora non ha effetto.",
+  "settings.colNoData": "Il server non fornisce ancora questo dato per i brani di un album.",
+  "settings.colAlwaysShown": "Sempre mostrata",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

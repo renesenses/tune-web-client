@@ -4082,6 +4082,11 @@ export default {
   "v2.tcol.genre": "Genre",
   "v2.tcol.quality": "Qualité",
   "v2.tcol.actions": "Actions",
+  "settings.trackColumns": "Colonnes des listes de pistes",
+  "settings.trackColumnsHint": "Choisissez les colonnes affichées, par mode d’interface.",
+  "settings.colModeNotWired": "Ce mode n’affiche pas encore de tableau : son choix est enregistré mais sans effet pour l’instant.",
+  "settings.colNoData": "Le serveur ne fournit pas encore cette donnée sur les pistes d’un album.",
+  "settings.colAlwaysShown": "Toujours affichée",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

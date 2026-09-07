@@ -4060,6 +4060,11 @@ export default {
   "v2.tcol.genre": "ジャンル",
   "v2.tcol.quality": "音質",
   "v2.tcol.actions": "操作",
+  "settings.trackColumns": "曲リストの列",
+  "settings.trackColumnsHint": "インターフェースのモードごとに表示する列を選びます。",
+  "settings.colModeNotWired": "このモードにはまだ表がありません。選択は保存されますが、現時点では反映されません。",
+  "settings.colNoData": "サーバーはアルバムの曲に対してこのデータをまだ提供していません。",
+  "settings.colAlwaysShown": "常に表示",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

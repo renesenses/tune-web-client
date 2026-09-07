@@ -4059,4 +4059,9 @@ export default {
   "v2.tcol.genre": "Genre",
   "v2.tcol.quality": "Kvalitet",
   "v2.tcol.actions": "Åtgärder",
+  "settings.trackColumns": "Kolumner i spårlistor",
+  "settings.trackColumnsHint": "Välj vilka kolumner som visas, per gränssnittsläge.",
+  "settings.colModeNotWired": "Det här läget visar ingen tabell ännu: valet sparas men har ingen effekt just nu.",
+  "settings.colNoData": "Servern tillhandahåller ännu inte dessa data för ett albums spår.",
+  "settings.colAlwaysShown": "Visas alltid",
 } as const;
