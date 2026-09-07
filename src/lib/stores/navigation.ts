@@ -109,6 +109,21 @@ export const pendingOxygenFolder = writable<string | null>(null);
  */
 export const pendingLibraryAlbum = writable<number | null>(null);
 
+/**
+ * L'ARTISTE à ouvrir en arrivant sur la Bibliothèque du nouveau client.
+ *
+ * Même contrat que `pendingLibraryAlbum` juste au-dessus, pour le geste
+ * « Aller à l'artiste » du menu « … » d'une piste (Bertrand, 07/09/2026 :
+ * « je veux à minima le contenu de la v0 »).
+ *
+ * On y range l'IDENTIFIANT, pas le nom. Le client actuel retrouve l'artiste
+ * en cherchant son nom dans `$artists` — un rapprochement par chaîne qui échoue
+ * dès qu'une piste porte « M » quand la table porte « -M- ». Une piste de la
+ * bibliothèque porte `artist_id` (mesuré sur le .18 : `artist_id: 125` pour
+ * « M »), et c'est cet identifiant que la table des artistes emploie.
+ */
+export const pendingLibraryArtist = writable<number | null>(null);
+
 export interface NavContext {
   view: View;
   albumId?: number | null;

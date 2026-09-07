@@ -72,7 +72,10 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
+  import { activeView, pendingLibraryAlbum, pendingLibraryArtist } from '../../lib/stores/navigation';
   import { t } from '../../lib/i18n';
+  import MenuPisteV2 from './MenuPisteV2.svelte';
+  import { entreesMenuPiste } from '../../lib/menuPiste';
   import type { Track } from '../../lib/types';
 
   interface Props {
@@ -85,6 +88,9 @@
    *  import. C'est ce que fait déjà `PochetteActions` pour les étiquettes. */
   let modalePlaylist = $state(false);
   let panneauEtiquettes = $state(false);
+  let panneauVersions = $state(false);
+  /** L'ancre du menu « … » : sa position ÉCRAN, relevée au clic. */
+  let ancreMenu = $state<DOMRect | null>(null);
 
   const local = $derived(estPisteLocale(piste));
   const cleService = $derived(
@@ -179,6 +185,92 @@
     }
     occupe = false;
   }
+
+  /* ------------------------------------------------------------------ *
+   * Le menu « … » — les gestes que la barre d'icônes ne porte pas.
+   *
+   * Bertrand, 07/09/2026, capture du client ACTUEL à l'appui : « continue sur
+   * le bouton … je veux à minima le contenu de la v0 ». Le client actuel a ce
+   * menu depuis longtemps (`TrackContextMenu`) ; trois de ses gestes n'avaient
+   * AUCUNE porte ici — « Plus comme ça », « Autres versions » et « Aller à
+   * l'artiste ».
+   * ------------------------------------------------------------------ */
+
+  /**
+   * « Plus comme ça » — une file de titres acoustiquement voisins.
+   *
+   * Le rapprochement est le SERVEUR qui le fait (`/library/tracks/{id}/similar`,
+   * mesuré sur le .18 : 5 voisins rendus pour la piste 2450). Sans empreinte
+   * audio calculée, la réponse est VIDE : on le dit, plutôt que de ne rien
+   * faire en silence — c'est déjà la règle du client actuel.
+   */
+  async function plusCommeCa() {
+    const zid = $currentZoneId;
+    if (zid == null || piste.id == null) return;
+    try {
+      const res = await api.getSimilarTracks(piste.id, 50);
+      const ids = (res.items ?? [])
+        .map((x: any) => x.id)
+        .filter((x: any): x is number => typeof x === 'number');
+      if (ids.length === 0) { notifications.info($t('library.noSimilar' as any)); return; }
+      await playAndSync(zid, { track_ids: ids } as any);
+    } catch {
+      notifications.error($t('library.similarError' as any));
+    }
+  }
+
+  /**
+   * « Aller à l'artiste » / « Aller à l'album » : on POSE la cible puis on
+   * change de vue — le même contrat que les liens de la lecture en cours.
+   * Le composant ne sait pas naviguer, et n'a pas à le savoir.
+   */
+  function allerArtiste() {
+    if (piste.artist_id == null) return;
+    pendingLibraryArtist.set(piste.artist_id);
+    activeView.set('library');
+  }
+  function allerAlbum() {
+    if (piste.album_id == null) return;
+    pendingLibraryAlbum.set(piste.album_id);
+    activeView.set('library');
+  }
+
+  /**
+   * Le CONTENU du menu est décidé par `lib/menuPiste`, pas ici.
+   *
+   * Une garde écrite contre ce composant ne pourrait que lire son texte, et un
+   * texte présent ne prouve pas qu'il s'exécute : la première version de la
+   * garde restait verte quand on préfixait une entrée d'un `if (false)`
+   * (contre-épreuve n° 1, 07/09/2026). Le module, lui, s'appelle.
+   */
+  const entrees = $derived(
+    entreesMenuPiste(
+      {
+        jouable,
+        // Les trois routes de bibliothèque prennent un `i64` : une piste de
+        // service n'a ni voisins acoustiques, ni versions, ni étiquettes.
+        idBibliotheque: local && piste.id != null ? piste.id : null,
+        artistId: piste.artist_id ?? null,
+        albumId: piste.album_id ?? null,
+      },
+      {
+        lire: () => lire(new MouseEvent('click')),
+        ensuite: () => void ensuite(new MouseEvent('click')),
+        aLaFile: () => void aLaFile(new MouseEvent('click')),
+        plusCommeCa: () => void plusCommeCa(),
+        autresVersions: () => (panneauVersions = true),
+        ajouterAPlaylist: () => (modalePlaylist = true),
+        allerArtiste,
+        allerAlbum,
+        etiqueter: () => (panneauEtiquettes = true),
+      },
+    ),
+  );
+
+  function ouvrirMenu(e: MouseEvent) {
+    stop(e);
+    ancreMenu = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  }
 </script>
 
 <span class="pactions" class:a-favori={favori}>
@@ -239,7 +331,31 @@
       <svg viewBox="0 0 24 24" fill={favori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
   </button>
   {/if}
+  <!-- 🔴 Le « … », dernier de la barre, comme dans le client actuel. Il NOMME
+       ce que les icônes font sans le dire, et il porte les gestes qu'aucune
+       icône ne porte. Absent quand il n'aurait rien à offrir — une piste qu'on
+       ne sait pas désigner. -->
+  {#if entrees.length}
+    <button class="pa" class:on={ancreMenu != null} aria-haspopup="menu" aria-expanded={ancreMenu != null}
+            onclick={ouvrirMenu} title={$t('library.moreOptions' as any)}
+            aria-label={$t('library.moreOptions' as any)}>
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/>
+      </svg>
+    </button>
+  {/if}
 </span>
+
+{#if ancreMenu}
+  <MenuPisteV2 ancre={ancreMenu} {entrees} onClose={() => (ancreMenu = null)} />
+{/if}
+
+{#if panneauVersions && piste.id != null}
+  {#await import('./VersionsPistePanneau.svelte') then m}
+    <m.default trackId={piste.id} titre={piste.title}
+      onClose={() => (panneauVersions = false)} />
+  {/await}
+{/if}
 
 {#if panneauEtiquettes && piste.id != null}
   {#await import('./EtiquettesPanneau.svelte') then m}

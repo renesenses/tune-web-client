@@ -407,7 +407,11 @@ describe('Artistes — la vue est celle des artistes, pas des albums', () => {
 
   it('l’onglet ne repasse plus par le regroupement par facette', () => {
     const src = bib();
-    expect(src.includes('<ArtistesV2 {q} />'), 'la vue n’est plus montée').toBe(true);
+    // La forme exacte des PROPRIÉTÉS n'est pas figée ici : la vue en a reçu
+    // deux de plus (« Aller à l'artiste »), et une garde qui épingle une chaîne
+    // de balisage casse au premier ajout sans rien protéger de réel. Ce qui
+    // compte est que la vue soit MONTÉE, et qu'elle reçoive le filtre.
+    expect(/<ArtistesV2 \{q\}[\s/]/.test(src), 'la vue n’est plus montée').toBe(true);
     expect(
       src.includes("tab === 'albums' || tab === 'tracks' || tab === 'artists'"),
       'le regroupement par facette est recalculé pour un onglet qui ne l’affiche plus.',

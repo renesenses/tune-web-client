@@ -52,8 +52,34 @@
   interface Props {
     /** Filtre texte partagé avec le reste de l'écran. */
     q?: string;
+    /**
+     * L'artiste à OUVRIR dès que la liste est là — « Aller à l'artiste » du
+     * menu « … » d'une piste (Bertrand, 07/09/2026).
+     *
+     * Par IDENTIFIANT, pas par nom : le client actuel cherche l'artiste par
+     * son nom dans la table, un rapprochement qui échoue dès qu'une piste
+     * porte « M » quand la table porte « -M- ». Une piste de la bibliothèque
+     * porte `artist_id`, et c'est la clé de cette table.
+     */
+    ouvrirId?: number | null;
+    /** Acquitté une fois la fiche ouverte — sinon elle se rouvrirait à chaque
+     *  retour sur l'onglet. */
+    onOuvert?: () => void;
   }
-  let { q = '' }: Props = $props();
+  let { q = '', ouvrirId = null, onOuvert }: Props = $props();
+
+  /**
+   * 🔴 On attend que la LISTE soit chargée : `artistes` est vide au montage, et
+   * chercher dedans tout de suite ne rendrait rien — l'effet se rejoue quand
+   * elle arrive.
+   */
+  $effect(() => {
+    const id = ouvrirId;
+    if (id == null || artistes.length === 0) return;
+    const cible = artistes.find((a) => a.id === id);
+    onOuvert?.();
+    if (cible) void ouvrir(cible);
+  });
 
   let artistes = $state<Artist[]>([]);
   let chargement = $state(true);
