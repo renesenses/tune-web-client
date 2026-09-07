@@ -17,6 +17,7 @@
   } from '../lib/crossfeed';
   import type { EqBand, EqSettings, CrossfeedSettings, CrossfeedStatus } from '../lib/api';
   import { NEUTRAL_PARAMETRIC_BAND, resetParametricBands } from '../lib/eqReset';
+  import { PREREGLAGES_EQ } from '../lib/eqPrereglages';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
   import {
@@ -247,16 +248,14 @@
   const MIN_GAIN = -12;
   const MAX_GAIN = 12;
 
-  // Preset gain arrays (10 values, one per band)
-  const PRESETS: Record<string, { label: string; gains: number[] }> = {
-    flat:         { label: 'Flat',          gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-    bass_boost:   { label: 'Bass Boost',    gains: [8, 6, 4, 2, 0, 0, 0, 0, 0, 0] },
-    treble_boost: { label: 'Treble Boost',  gains: [0, 0, 0, 0, 0, 1, 3, 5, 7, 8] },
-    loudness:     { label: 'Loudness',      gains: [6, 4, 0, -2, -1, 0, 2, 4, 5, 6] },
-    rock:         { label: 'Rock',          gains: [5, 3, 0, -2, -1, 2, 4, 5, 5, 4] },
-    jazz:         { label: 'Jazz',          gains: [3, 2, 0, 2, -1, -1, 0, 2, 4, 5] },
-    classical:    { label: 'Classical',     gains: [0, 0, 0, 0, 0, 0, -2, -3, -2, -1] },
-  };
+  // Les courbes des préréglages (dix gains, un par bande de la grille à
+  // l'octave) viennent de `lib/eqPrereglages`. Elles vivaient ici, en dur, et
+  // le panneau EQ de « En écoute » en tenait une seconde, réduite aux
+  // libellés : c'est comme ça qu'un « Vocal » que le serveur n'a jamais connu
+  // a pu y vivre des mois (#532). Une seule table, deux lecteurs.
+  const PRESETS: Record<string, { label: string; gains: number[] }> = Object.fromEntries(
+    PREREGLAGES_EQ.map((p) => [p.cle, { label: p.label, gains: [...p.gains] }]),
+  );
 
   let gains = $state<number[]>(Array(10).fill(0)); // redimensionné par la résolution au mount
   // Courbe du canal DROIT. `null` = courbes liées, et c'est le défaut : une
