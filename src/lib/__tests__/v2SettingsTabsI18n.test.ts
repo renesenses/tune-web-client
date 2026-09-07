@@ -13,8 +13,9 @@
  *
  * Il vérifie trois choses, et la troisième est celle qui mord vraiment :
  *  1. chaque onglet porte `labelKey` OU `label` — jamais rien ;
- *  2. `label` littéral n'est toléré QUE pour un nom produit (« CLAP »), qui ne
- *     se traduit pas ;
+ *  2. `label` littéral n'est toléré QUE pour un nom produit, qui ne se traduit
+ *     pas — la liste est VIDE depuis #2104, où « CLAP » a pris le nom de sa
+ *     fonction ;
  *  3. toute `labelKey` déclarée existe dans `fr.ts` ET dans `en.ts`. Sans ce
  *     point, une clé mal orthographiée passerait inaperçue : `$t()` retombe sur
  *     la clé elle-même, donc l'onglet afficherait « settings.tabAudio » sans
@@ -25,8 +26,9 @@ import { V2_SETTINGS, tabLabel } from '../v2Settings';
 import fr from '../locales/fr';
 import en from '../locales/en';
 
-/** Noms produit admis en dur : ils ne se traduisent dans aucune langue. */
-const NOMS_PRODUIT = new Set(['CLAP']);
+/** Noms produit admis en dur : ils ne se traduisent dans aucune langue.
+ *  Vide depuis #2104 — « CLAP » est devenu « Analyse acoustique », traduit. */
+const NOMS_PRODUIT = new Set<string>([]);
 
 describe('Réglages v2 — libellés d’onglets', () => {
   it('chaque onglet porte une clé i18n, ou un nom produit assumé', () => {
@@ -59,8 +61,9 @@ describe('Réglages v2 — libellés d’onglets', () => {
     expect(tabLabel(general, (k) => (fr as Record<string, string>)[k] ?? k)).toBe('Général');
     expect(tabLabel(general, (k) => (en as Record<string, string>)[k] ?? k)).toBe('General');
 
+    // #2104 : l'onglet acoustique porte desormais une cle, comme les autres.
     const clap = V2_SETTINGS.find((t) => t.id === 'clap');
-    if (clap) expect(tabLabel(clap, (k) => k)).toBe('CLAP');
+    if (clap) expect(tabLabel(clap, (k) => k)).toBe('settings.tabClap');
   });
 
   it('la résolution ne rend jamais la clé technique elle-même', () => {
