@@ -1889,7 +1889,7 @@ export default {
   "settings.scanReportErrorDirs": "Hiba e mappák bejárása közben — a számaik megmaradtak",
   "settings.scanReportFailedPaths": "hibás fájl",
   "settings.tabGeneral": "Általános",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "Akusztikai elemzés",
   "settings.tabDevices": "Eszközök",
   "devices.intro": "Itt állíthatod be az egyes kimeneti eszközöket: azonosítás (márka és típus), szint és formátum.",
   "devices.none": "Egyetlen zóna sincs kimeneti eszközhöz kötve.",

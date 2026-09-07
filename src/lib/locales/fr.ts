@@ -1960,7 +1960,7 @@ export default {
   "settings.scanReportErrorDirs": "Erreurs de parcours dans ces dossiers — leurs pistes ont été conservées",
   "settings.scanReportFailedPaths": "fichiers en erreur",
   "settings.tabGeneral": "Général",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "Analyse acoustique",
   "settings.tabDevices": "Appareils",
   "devices.intro": "Réglez ici chaque appareil de sortie : identité (marque et modèle), niveau et format.",
   "devices.none": "Aucune zone n'est reliée à un appareil de sortie.",

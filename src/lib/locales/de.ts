@@ -1702,7 +1702,7 @@ export default {
   "settings.scanReportErrorDirs": "Fehler beim Durchsuchen dieser Ordner — ihre Titel wurden behalten",
   "settings.scanReportFailedPaths": "fehlerhafte Dateien",
   "settings.tabGeneral": "Allgemein",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "Akustische Analyse",
   "settings.tabDevices": "Geräte",
   "devices.intro": "Konfigurieren Sie hier jedes Ausgabegerät: Identität (Marke und Modell), Pegel und Format.",
   "devices.none": "Keine Zone ist mit einem Ausgabegerät verbunden.",

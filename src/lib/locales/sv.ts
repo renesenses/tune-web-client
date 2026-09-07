@@ -1654,7 +1654,7 @@ export default {
   "settings.scanReportErrorDirs": "Fel vid genomsökning av dessa mappar — deras spår behölls",
   "settings.scanReportFailedPaths": "filer med fel",
   "settings.tabGeneral": "Allmänt",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "Akustisk analys",
   "settings.tabDevices": "Enheter",
   "devices.intro": "Ställ in varje utenhet här: identitet (märke och modell), nivå och format.",
   "devices.none": "Ingen zon är kopplad till en utenhet.",

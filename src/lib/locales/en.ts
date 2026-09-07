@@ -1957,7 +1957,7 @@ export default {
   "settings.scanReportErrorDirs": "Errors while browsing these folders — their tracks were kept",
   "settings.scanReportFailedPaths": "files in error",
   "settings.tabGeneral": "General",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "Acoustic analysis",
   "settings.tabDevices": "Devices",
   "devices.intro": "Configure each output device here: identity (brand and model), level and format.",
   "devices.none": "No zone is linked to an output device.",
