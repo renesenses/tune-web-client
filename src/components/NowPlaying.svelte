@@ -1,6 +1,6 @@
 <script lang="ts">
   import { doitReinitialiserLesParoles } from '../lib/nowPlayingLyricsReset';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentZone } from '../lib/stores/zones';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../lib/stores/nowPlaying';
@@ -9,6 +9,7 @@
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
+  import { lireOuAjouter } from '../lib/playback';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import {
     CF_PRESETS, presetActif, reglagesCrossfeed,
@@ -109,13 +110,15 @@
         moodLoading = null;
         return;
       }
-      if ($queueTracks.length === 0) {
-        await playAndSync(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('nowplaying.tracksPlaying')}`);
-      } else {
-        await api.addToQueue(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('nowplaying.tracksAdded')}`);
-      }
+      // #528 — jouer ou ajouter se décide sur l'état RÉEL de la file, jamais
+      // sur `$queueTracks` : ce cache est vide tant que rien ne l'a hydraté et
+      // périmé dès qu'un autre client a enfilé des titres, et `POST /play`
+      // REMPLACE la file. Voir `lireOuAjouter`.
+      const decision = await lireOuAjouter(zone.id, ids);
+      const libelle = decision === 'lecture'
+        ? $t('nowplaying.tracksPlaying')
+        : $t('nowplaying.tracksAdded');
+      notifications.success(`${mood.label} Mix : ${ids.length} ${libelle}`);
       // Refresh queue
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
