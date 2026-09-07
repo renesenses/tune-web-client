@@ -63,7 +63,9 @@
   const mode = $derived($preferences.settingsLevel);
   const enTableau = $derived(mode === 'beginner');
 
-  const colonnes = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? []));
+  // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
+  // si un réglage plus ancien la coche pour un mode inférieur.
+  const colonnes = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
   const gabarit = $derived(`${gabaritGrille(colonnes)} auto`); // + la colonne d'actions
 
   function numero(p: Track, i: number): string | null {

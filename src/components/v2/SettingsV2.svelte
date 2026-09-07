@@ -29,7 +29,7 @@
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { LEVEL_LABEL_KEYS } from '../../lib/uiLevel';
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
-  import { COLONNES, MODES_BRANCHES, type CleColonne } from '../../lib/colonnesPistes';
+  import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
@@ -1566,20 +1566,30 @@
 
                 {#each COLONNES as c (c.cle)}
                   {@const sansDonnee = !!c.indisponible}
+                  {@const depuis = c.min ? $t(LEVEL_LABEL_KEYS[c.min] as any) : null}
                   <div class="mrow" role="row" class:inerte={sansDonnee}>
                     <span class="mcell mnom" role="rowheader"
                       title={sansDonnee ? $t('settings.colNoData' as any)
                         : c.verrouillee ? $t('settings.colAlwaysShown' as any) : undefined}>
                       {$t(c.cleI18n as any)}
-                      {#if sansDonnee}<em class="mnote">{$t('settings.colNoData' as any)}</em>{/if}
+                      {#if sansDonnee}
+                        <em class="mnote">{$t('settings.colNoData' as any)}</em>
+                      {:else if depuis}
+                        <!-- « Je voudrai ajouter des metadata pour Advanced et
+                             Expert, et donc grisé en Essential » : la ligne dit
+                             à partir d'où elle est proposée, plutôt que de
+                             laisser une case grise sans explication. -->
+                        <em class="mnote">{$t('settings.colLevelOnly' as any).replace('{m}', depuis)}</em>
+                      {/if}
                     </span>
                     {#each SETTINGS_LEVELS as m (m)}
-                      <span class="mcell" role="cell">
+                      {@const offerte = offerteAu(c, m)}
+                      <span class="mcell" role="cell" class:inerte={!offerte}>
                         <!-- Verrouillée : cochée et non décochable — une liste
                              de pistes sans titre n'est plus une liste. -->
                         <input type="checkbox"
-                          checked={c.verrouillee || colonneCochee(m, c.cle)}
-                          disabled={c.verrouillee || sansDonnee || !modeBranche(m)}
+                          checked={offerte && (c.verrouillee || colonneCochee(m, c.cle))}
+                          disabled={c.verrouillee || sansDonnee || !offerte || !modeBranche(m)}
                           aria-label={`${$t(c.cleI18n as any)} — ${$t(LEVEL_LABEL_KEYS[m] as any)}`}
                           onchange={() => basculerColonne(m, c.cle)} />
                       </span>

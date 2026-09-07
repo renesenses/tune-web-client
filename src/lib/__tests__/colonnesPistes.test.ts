@@ -12,7 +12,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   COLONNES, DEFAUTS, MODES_BRANCHES, PAR_CLE,
-  colonnesRetenues, gabaritGrille, valeurColonne, type CleColonne,
+  colonnesRetenues, gabaritGrille, offerteAu, valeurColonne, type CleColonne,
 } from '../colonnesPistes';
 import type { Track } from '../types';
 
@@ -25,11 +25,19 @@ const piste = (o: Partial<Track> = {}) => ({
 }) as unknown as Track;
 
 describe('le catalogue', () => {
-  it('couvre les douze colonnes de la maquette', () => {
-    expect(COLONNES.map((c) => c.cle)).toEqual([
+  it('les douze colonnes de la maquette ouvrent le catalogue, dans l’ordre', () => {
+    // 🔴 RÉORIENTÉE le 07/09/2026. La garde figeait la liste ENTIÈRE ; le
+    // catalogue s'est enrichi le jour même — « je voudrai ajouter des metadata
+    // pour Advanced et Expert », puis « en expert, il les faut toutes comme
+    // Dynamic Range » (Bertrand). Ce qu'elle protège reste : les douze de la
+    // maquette existent, dans son ordre, et ouvrent le tableau.
+    expect(COLONNES.slice(0, 12).map((c) => c.cle)).toEqual([
       'num', 'title', 'artist', 'composer', 'time', 'year',
       'plays', 'lastPlayed', 'channels', 'bpm', 'genre', 'quality',
     ]);
+    // Les douze de la maquette sont offertes DÈS Essentiel : c'est le mode
+    // qu'elle décrit.
+    for (const c of COLONNES.slice(0, 12)) expect(c.min, c.cle).toBeUndefined();
   });
 
   it('chaque colonne porte une CLÉ de traduction, pas un libellé', () => {
@@ -43,12 +51,54 @@ describe('le catalogue', () => {
     expect(COLONNES.filter((c) => c.verrouillee).map((c) => c.cle)).toEqual(['title']);
   });
 
-  it('🔴 « # Plays » et « Last Played » sont déclarées SANS DONNÉE', () => {
-    // Mesuré sur le .18 : `/library/albums/{id}/tracks` rend 31 champs, ni
-    // `play_count` ni `last_played_at`. La maquette les coche pourtant. Les
-    // proposer sans le dire remplirait la colonne de vide.
+  it('🔴 trois colonnes sont déclarées SANS DONNÉE', () => {
+    // Mesuré sur le .18 le 07/09/2026 : `/library/albums/{id}/tracks` rend
+    // 31 champs, et ni `play_count`, ni `last_played_at`, ni `dr` n'en font
+    // partie — aucune clé ne contient même `dr`, `replay`, `gain`, `loudness`
+    // ou `peak`. Les trois sont pourtant demandées. Les proposer sans le dire
+    // remplirait la colonne de vide.
     expect(COLONNES.filter((c) => c.indisponible).map((c) => c.cle))
-      .toEqual(['plays', 'lastPlayed']);
+      .toEqual(['plays', 'lastPlayed', 'dr']);
+  });
+
+  it('🔴 EXPERT propose TOUT le catalogue', () => {
+    // « En expert, il les faut toutes comme Dynamic Range » (Bertrand).
+    // Aucune colonne ne doit exiger plus qu'Expert, et rien ne doit rester
+    // hors de portée d'Expert.
+    for (const c of COLONNES) expect(offerteAu(c, 'expert'), c.cle).toBe(true);
+  });
+
+  it('🔴 la RÉPARTITION par niveau est figée, colonne par colonne', () => {
+    // Une première version comptait seulement les colonnes expertes. Retirer
+    // `min: 'expert'` de « Fichier » la laissait VERTE — la colonne serait
+    // remontée en Essentiel sans que rien ne le dise. Un test qui compte ne
+    // garde pas ce qui est réparti.
+    const par = (m: string) => COLONNES.filter((c) => c.min === m).map((c) => c.cle).sort();
+    expect(par('intermediate')).toEqual(['album', 'albumArtist', 'disc', 'label']);
+    expect(par('expert')).toEqual(
+      ['bitDepth', 'comments', 'discSubtitle', 'dr', 'format', 'hash',
+       'isrc', 'mbid', 'modified', 'path', 'sampleRate', 'size', 'source'].sort(),
+    );
+  });
+
+  it('le mode d’une colonne ne remonte jamais au-dessus de son niveau', () => {
+    for (const c of COLONNES.filter((x) => x.min === 'expert')) {
+      expect(offerteAu(c, 'beginner'), c.cle).toBe(false);
+      expect(offerteAu(c, 'intermediate'), c.cle).toBe(false);
+    }
+    for (const c of COLONNES.filter((x) => x.min === 'intermediate')) {
+      expect(offerteAu(c, 'beginner'), c.cle).toBe(false);
+      expect(offerteAu(c, 'intermediate'), c.cle).toBe(true);
+    }
+  });
+
+  it('🔴 le tableau applique le minimum du MODE COURANT', () => {
+    // Un réglage plus ancien peut cocher une colonne experte pour Essentiel :
+    // elle ne doit pas réapparaître.
+    expect(colonnesRetenues(['path', 'artist'], 'beginner').map((c) => c.cle))
+      .toEqual(['title', 'artist']);
+    expect(colonnesRetenues(['path', 'artist'], 'expert').map((c) => c.cle))
+      .toEqual(['title', 'artist', 'path']);
   });
 });
 
@@ -170,7 +220,7 @@ describe('la matrice des Réglages', () => {
     // Option A. Une case cochable sans effet serait précisément le défaut que
     // ce client passe son temps à corriger.
     const s = src();
-    expect(s).toMatch(/disabled=\{c\.verrouillee \|\| sansDonnee \|\| !modeBranche\(m\)\}/);
+    expect(s).toMatch(/disabled=\{c\.verrouillee \|\| sansDonnee \|\| !offerte \|\| !modeBranche\(m\)\}/);
     expect(s).toContain("$t('settings.colModeNotWired' as any)");
     expect(s).toMatch(/class:inerte=\{!modeBranche\(m\)\}/);
   });
@@ -183,7 +233,17 @@ describe('la matrice des Réglages', () => {
 
   it('le titre est coché et non décochable', () => {
     const s = src();
-    expect(s).toMatch(/checked=\{c\.verrouillee \|\| colonneCochee\(m, c\.cle\)\}/);
+    expect(s).toMatch(/checked=\{offerte && \(c\.verrouillee \|\| colonneCochee\(m, c\.cle\)\)\}/);
+  });
+
+  it('🔴 une ligne sous son niveau est grisée ET dit à partir d’où', () => {
+    // « Je voudrai ajouter des metadata pour Advanced et Expert, et donc grisé
+    // en Essential » (Bertrand). Une case grise sans explication laisserait
+    // croire à une panne.
+    const s = src();
+    expect(s).toMatch(/\{@const offerte = offerteAu\(c, m\)\}/);
+    expect(s).toContain("$t('settings.colLevelOnly' as any).replace('{m}', depuis)");
+    expect(s).toMatch(/class:inerte=\{!offerte\}/);
   });
 
   it("la bascule réécrit l'objet ENTIER", () => {
