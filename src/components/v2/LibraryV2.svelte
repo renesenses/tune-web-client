@@ -46,7 +46,7 @@
   // lu quand la Bibliothèque était déjà montée. On prend sa version.
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
-  import { activeView, pendingLibraryAlbum, type View } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryAlbum, pendingLibraryArtist, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
@@ -850,6 +850,27 @@
    * bibliothèque encore en cours de chargement. On le demande alors au
    * serveur plutôt que d'abandonner en silence.
    */
+  /**
+   * L'ARTISTE demandé de l'extérieur — « Aller à l'artiste » du menu « … »
+   * d'une piste (Bertrand, 07/09/2026).
+   *
+   * 🔴 DEUX gestes, pas un : basculer sur l'onglet Artistes ne suffit pas, il
+   * faut encore OUVRIR la fiche. C'est la moitié qu'on oublie — poser un
+   * magasin que personne ne lit est le défaut le plus fréquent de ce client.
+   *
+   * L'identifiant est consommé ICI puis passé à `ArtistesV2` en propriété :
+   * deux consommateurs d'un même dépôt se le voleraient selon l'ordre de
+   * montage, et l'onglet n'est monté que quand on l'a choisi.
+   */
+  let artisteADemande = $state<number | null>(null);
+  $effect(() => {
+    const id = get(pendingLibraryArtist);
+    if (id == null) return;
+    pendingLibraryArtist.set(null);
+    artisteADemande = id;
+    tab = 'artists';
+  });
+
   $effect(() => {
     const id = get(pendingLibraryAlbum);
     if (id == null) return;
@@ -1203,7 +1224,7 @@
            déduction depuis les albums chargés. Ils ne passent donc pas par les
            gardes « bibliothèque vide » ci-dessous : une bibliothèque dont les
            albums ne sont pas encore arrivés a déjà ses artistes. -->
-      <ArtistesV2 {q} />
+      <ArtistesV2 {q} ouvrirId={artisteADemande} onOuvert={() => (artisteADemande = null)} />
     {:else if enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
     {:else if sorted.length === 0}
