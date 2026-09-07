@@ -372,6 +372,7 @@ export default {
 
   // Library
   'library.title': 'ライブラリ',
+  'library.scopeLoadError': 'フォルダー {d} を読み込めませんでした。リストは空のままです。',
   'library.searchPlaceholder': '検索...',
   'library.noAlbums': 'ライブラリにアルバムがありません',
   'library.noArtists': 'ライブラリにアーティストがありません',

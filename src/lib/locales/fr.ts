@@ -592,6 +592,7 @@ export default {
 
   // Library
   'library.title': 'Bibliothèque',
+  'library.scopeLoadError': 'Impossible de charger le répertoire {d} : la liste reste vide.',
   'library.playSimilar': 'Plus comme ça',
   'library.noSimilar': 'Aucun titre acoustiquement similaire pour l’instant (la Smart Radio acoustique doit être activée et la bibliothèque analysée).',
   'library.similarError': 'Impossible de récupérer les titres similaires.',
