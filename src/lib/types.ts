@@ -473,6 +473,19 @@ export interface SearchResult {
    * 0.9.71 ne renvoie pas le champ.
    */
   playlists?: CataloguePlaylist[];
+  /**
+   * #3189 — ce que la liste ne disait pas. Rendus par le serveur depuis la
+   * 0.9.132 (`routes/search.rs`), pour la bibliothèque LOCALE seulement ;
+   * optionnels : un serveur plus ancien ne les envoie pas et l'écran retombe
+   * sur le compte affiché. `totals` est un COUNT sur le même prédicat que la
+   * liste ; `totals_capped` dit que ce total est une borne inférieure (« au
+   * moins N ») ; `has_more` dit qu'une suite existe, à demander par `offset`.
+   */
+  totals?: { artists: number; albums: number; tracks: number; tracks_via_metadata?: number };
+  totals_capped?: { artists?: boolean; albums?: boolean; tracks?: boolean };
+  has_more?: { artists?: boolean; albums?: boolean; tracks?: boolean };
+  limit?: number;
+  offset?: number;
 }
 
 /** Miroir exact de `StreamPlaylist` côté serveur : `id` y est sérialisé en
