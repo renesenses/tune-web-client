@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { perimetreApresRequete } from '../perimetreRecherche';
+import { doitViderLePerimetre } from '../perimetreRecherche';
 import { fusionnerParType, meilleurResultat } from '../rechercheClassement';
 import type { SearchResult } from '../types';
 
@@ -76,24 +76,28 @@ describe('Recherche v2 (retours Bertrand, 05/09/2026)', () => {
   it('changer de requête remet le périmètre à zéro', () => {
     // Un filtre hérité d'une recherche précédente masquerait des résultats sans
     // qu'on sache pourquoi.
-    expect([...perimetreApresRequete('abba', 'beatles', new Set(['qobuz']))]).toEqual([]);
+    expect(doitViderLePerimetre('abba', 'beatles')).toBe(true);
   });
 
   it('le MONTAGE n’est pas un changement de requête', () => {
     // Cliquer l'artiste d'une piste de service ouvre la recherche AVEC ce
     // service coché : l'effet s'exécutant aussi au premier passage, il
     // effaçait ce périmètre avant le premier rendu.
-    expect([...perimetreApresRequete(null, 'beatles', new Set(['qobuz']))]).toEqual(['qobuz']);
+    expect(doitViderLePerimetre(null, 'beatles')).toBe(false);
   });
 
   it('retaper la MÊME requête ne vide pas le périmètre', () => {
     // L'effet se rejoue à chaque rendu ; ne réagir qu'au changement réel évite
     // que la puce se décoche toute seule sous les doigts.
-    expect([...perimetreApresRequete('beatles', 'beatles', new Set(['tidal']))]).toEqual(['tidal']);
+    expect(doitViderLePerimetre('beatles', 'beatles')).toBe(false);
   });
 
   it('l’écran emploie bien cette règle, et pas une copie', () => {
-    expect(src).toContain('perimetreApresRequete(requetePrecedente, actuelle, sourcesActives)');
+    expect(src).toContain('doitViderLePerimetre(requetePrecedente, actuelle)');
+    // 🔴 L'effet ne doit RIEN lire de ce qu'il écrit — c'est la boucle qui a
+    // avorté la passe d'effets entière et tué la recherche.
+    expect(/let requetePrecedente: string \| null = null;/.test(src),
+      '`requetePrecedente` est redevenue du `$state` : l’effet s’invalide lui-même').toBe(true);
     // Le périmètre demandé par l'écran appelant est lu AU MONTAGE, comme `q` :
     // dans un effet, la remise à zéro le reprendrait.
     expect(src).toContain("get(currentSearchCriteria)?.source");

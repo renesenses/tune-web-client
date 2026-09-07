@@ -15,7 +15,7 @@
   import * as api from '../../lib/api';
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
-  import { perimetreApresRequete } from '../../lib/perimetreRecherche';
+  import { doitViderLePerimetre } from '../../lib/perimetreRecherche';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
@@ -324,10 +324,18 @@
   // effaçait donc la source demandée par l'écran appelant avant même le
   // premier rendu — le périmètre naissait vide, le geste paraissait sans
   // effet. On ne remet à zéro qu'à un CHANGEMENT réel de requête.
-  let requetePrecedente = $state<string | null>(null);
+  // 🔴 `let` NU, surtout pas `$state` : cette variable est lue ET écrite par
+  // l'effet ci-dessous. En `$state`, elle s'invalidait elle-même et Svelte
+  // avortait la PASSE D'EFFETS ENTIÈRE
+  // (`effect_update_depth_exceeded`) — l'effet de recherche ne partait plus et
+  // l'écran restait à zéro résultat. `npm test` n'en voyait rien : seul le
+  // navigateur le dit.
+  let requetePrecedente: string | null = null;
   $effect(() => {
     const actuelle = q;
-    sourcesActives = perimetreApresRequete(requetePrecedente, actuelle, sourcesActives);
+    // On n'ÉCRIT `sourcesActives` que pour le vider — on ne le lit jamais ici,
+    // sous peine de rouvrir la même boucle.
+    if (doitViderLePerimetre(requetePrecedente, actuelle)) sourcesActives = new Set();
     requetePrecedente = actuelle;
   });
 
