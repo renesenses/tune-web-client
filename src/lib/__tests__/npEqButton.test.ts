@@ -10,7 +10,7 @@ import { conditionsA } from './pileDeBlocs';
  * displayTrack.id}` qui garde les crédits et les paroles, il disparaissait sur
  * une radio et sur toute piste absente de la bibliothèque (Bandcamp, ajout par
  * URL, streaming selon les cas). Or l'égaliseur est un réglage de ZONE :
- * `api.getEq(zone.id)` le lit, `api.setEqualizer(zone.id, ...)` l'écrit, et
+ * `api.getEq(zone.id)` le lit, `api.setEq(zone.id, ...)` l'écrit, et
  * côté serveur `GET/POST /api/v1/zones/{id}/eq` ne connaît aucun identifiant
  * de piste. La condition n'avait donc rien à garder — sinon l'auditeur de
  * radio, celui qui a le plus besoin de corriger son grave.
@@ -86,7 +86,12 @@ describe('le bouton EQ de l’écran « En écoute »', () => {
     const start = SOURCE.indexOf('async function setEqPreset');
     expect(start).toBeGreaterThan(-1);
     const body = SOURCE.slice(start, SOURCE.indexOf('\n  }', start));
-    expect(body).toContain('api.setEqualizer(zone.id');
+    // `api.setEqualizer(zone.id, preset)` a été retirée (#532) : elle
+    // n'envoyait qu'un NOM, que le serveur recopiait dans sa réponse sans
+    // jamais l'appliquer. L'écriture passe par les BANDES, comme l'écran
+    // Égaliseur complet. Ce qui compte ici est inchangé : c'est la ZONE qui
+    // est écrite, jamais la piste.
+    expect(body).toContain('api.setEq(zone.id');
     expect(body).not.toContain('displayTrack');
     // La lecture aussi : `api.getEq(id)` où `id` vient de `zone?.id`.
     expect(SOURCE).toMatch(/const id = zone\?\.id;[\s\S]{0,400}api\.getEq\(id\)/);
