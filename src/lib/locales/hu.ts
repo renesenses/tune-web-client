@@ -3626,6 +3626,14 @@ export default {
   "v2.sup.reply": "Válasz",
   "v2.sup.resolved": "Ez a jegy megoldva.",
   "v2.stream.allSubgenres": "Mind",
+  "v2.stream.services": "Szolgáltatások",
+  "v2.stream.searchIn": "Keresés itt: {service}",
+  "v2.stream.noResultIn": "Nincs találat itt: {service}.",
+  "v2.stream.seeMore": "További találatok betöltése",
+  "v2.stream.loadingMore": "Betöltés…",
+  "v2.stream.playFailed": "A lejátszás nem sikerült.",
+  "v2.common.loading": "Betöltés…",
+  "v2.common.close": "Bezárás",
   "v2.lib.trackCount": "{count} szám",
   "album.yearReissue": "{origine} (újrakiadás {edition})",
   "v2.lib.yearDiffer": "{count} album éve változik a választott alap szerint.",
@@ -4043,6 +4051,12 @@ export default {
   "settings.colLevelOnly": "A(z) {m} módtól érhető el.",
   "v2.str.myCollection": "Gyűjteményem",
   "v2.pod.subscribeFailed": "A feliratkozás nem sikerült.",
+  "v2.set.stConnectedOff": "bejelentkezve, de kikapcsolva",
+  "v2.fav.queueFailed": "A sorhoz adás nem sikerült.",
+  "v2.set.running": "Folyamatban…",
+  "v2.set.start": "Indítás",
+  "settings.scanModesHint": "A gyors elemzés csak a változásokat olvassa újra. A teljes elemzés mindent újraolvas — a felosztási beállítás módosítása után szükséges.",
+  "v2.stream.bcHowTo": "Adja meg a Bandcamp felhasználónevét — azt, amely a bandcamp.com/azonnev címben szerepel. Ez nyilvános azonosító: jelszót nem kérünk.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

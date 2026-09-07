@@ -3668,6 +3668,14 @@ export default {
   "v2.sup.reply": "返信",
   "v2.sup.resolved": "このチケットは解決済みです。",
   "v2.stream.allSubgenres": "すべて",
+  "v2.stream.services": "サービス",
+  "v2.stream.searchIn": "{service} 内を検索",
+  "v2.stream.noResultIn": "{service} に結果はありません。",
+  "v2.stream.seeMore": "さらに読み込む",
+  "v2.stream.loadingMore": "読み込み中…",
+  "v2.stream.playFailed": "再生できません。",
+  "v2.common.loading": "読み込み中…",
+  "v2.common.close": "閉じる",
   "v2.lib.trackCount": "{count} 曲",
   "album.yearReissue": "{origine}（再発 {edition}）",
   "v2.lib.yearDiffer": "選んだ基準によって {count} 枚のアルバムの年が変わります。",
@@ -4085,6 +4093,12 @@ export default {
   "settings.colLevelOnly": "{m} モード以上で利用できます。",
   "v2.str.myCollection": "マイコレクション",
   "v2.pod.subscribeFailed": "登録できませんでした。",
+  "v2.set.stConnectedOff": "ログイン済みだが無効",
+  "v2.fav.queueFailed": "キューに追加できませんでした。",
+  "v2.set.running": "実行中…",
+  "v2.set.start": "開始",
+  "settings.scanModesHint": "クイックスキャンは変更点のみを読み直します。フルスキャンはすべてを読み直します — 分割オプションを変更した後に必要です。",
+  "v2.stream.bcHowTo": "Bandcamp のユーザー名を入力してください — bandcamp.com/あなたの名前 のアドレスにあるものです。公開の識別子であり、パスワードは不要です。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

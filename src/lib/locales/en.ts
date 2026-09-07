@@ -3687,6 +3687,14 @@ export default {
   "v2.sup.reply": "Reply",
   "v2.sup.resolved": "This ticket is resolved.",
   "v2.stream.allSubgenres": "All",
+  "v2.stream.services": "Services",
+  "v2.stream.searchIn": "Search in {service}",
+  "v2.stream.noResultIn": "No results in {service}.",
+  "v2.stream.seeMore": "Load more results",
+  "v2.stream.loadingMore": "Loading…",
+  "v2.stream.playFailed": "Playback failed.",
+  "v2.common.loading": "Loading…",
+  "v2.common.close": "Close",
   "v2.lib.trackCount": "{count} tracks",
   "album.yearReissue": "{origine} (reissued {edition})",
   "v2.lib.yearDiffer": "{count} albums change year depending on the basis chosen.",
@@ -4105,6 +4113,12 @@ export default {
   "settings.colLevelOnly": "Offered from the {m} mode upwards.",
   "v2.str.myCollection": "My collection",
   "v2.pod.subscribeFailed": "Could not subscribe.",
+  "v2.set.stConnectedOff": "signed in, but disabled",
+  "v2.fav.queueFailed": "Could not add to the queue.",
+  "v2.set.running": "Running…",
+  "v2.set.start": "Start",
+  "settings.scanModesHint": "The quick scan only re-reads what changed. The full scan re-reads everything — needed after changing a splitting option.",
+  "v2.stream.bcHowTo": "Enter your Bandcamp username — the one in the address bandcamp.com/yourname. It is a public identifier: no password is asked for.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

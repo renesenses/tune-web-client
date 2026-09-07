@@ -3668,6 +3668,14 @@ export default {
   "v2.sup.reply": "回复",
   "v2.sup.resolved": "此工单已解决。",
   "v2.stream.allSubgenres": "全部",
+  "v2.stream.services": "服务",
+  "v2.stream.searchIn": "在 {service} 中搜索",
+  "v2.stream.noResultIn": "{service} 中没有结果。",
+  "v2.stream.seeMore": "加载更多结果",
+  "v2.stream.loadingMore": "加载中…",
+  "v2.stream.playFailed": "无法播放。",
+  "v2.common.loading": "加载中…",
+  "v2.common.close": "关闭",
   "v2.lib.trackCount": "{count} 首曲目",
   "album.yearReissue": "{origine}（再版 {edition}）",
   "v2.lib.yearDiffer": "根据所选依据，有 {count} 张专辑的年份会改变。",
@@ -4085,6 +4093,12 @@ export default {
   "settings.colLevelOnly": "从{m}模式起可用。",
   "v2.str.myCollection": "我的收藏",
   "v2.pod.subscribeFailed": "无法订阅。",
+  "v2.set.stConnectedOff": "已登录，但已停用",
+  "v2.fav.queueFailed": "无法加入队列。",
+  "v2.set.running": "进行中…",
+  "v2.set.start": "开始",
+  "settings.scanModesHint": "快速扫描只重新读取已更改的内容。完整扫描重新读取全部——更改拆分选项后需要执行。",
+  "v2.stream.bcHowTo": "请输入您的 Bandcamp 用户名——即地址 bandcamp.com/您的名称 中的那个。这是公开标识符，无需密码。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

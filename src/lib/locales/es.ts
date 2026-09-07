@@ -3668,6 +3668,14 @@ export default {
   "v2.sup.reply": "Responder",
   "v2.sup.resolved": "Este ticket está resuelto.",
   "v2.stream.allSubgenres": "Todo",
+  "v2.stream.services": "Servicios",
+  "v2.stream.searchIn": "Buscar en {service}",
+  "v2.stream.noResultIn": "Sin resultados en {service}.",
+  "v2.stream.seeMore": "Cargar más resultados",
+  "v2.stream.loadingMore": "Cargando…",
+  "v2.stream.playFailed": "No se puede reproducir.",
+  "v2.common.loading": "Cargando…",
+  "v2.common.close": "Cerrar",
   "v2.lib.trackCount": "{count} títulos",
   "album.yearReissue": "{origine} (reed. {edition})",
   "v2.lib.yearDiffer": "{count} álbumes cambian de año según el criterio elegido.",
@@ -4085,6 +4093,12 @@ export default {
   "settings.colLevelOnly": "Disponible a partir del modo {m}.",
   "v2.str.myCollection": "Mi colección",
   "v2.pod.subscribeFailed": "No se ha podido suscribir.",
+  "v2.set.stConnectedOff": "conectado, pero desactivado",
+  "v2.fav.queueFailed": "No se ha podido añadir a la cola.",
+  "v2.set.running": "En curso…",
+  "v2.set.start": "Iniciar",
+  "settings.scanModesHint": "El análisis rápido solo relee lo que ha cambiado. El análisis completo relee todo: necesario tras cambiar una opción de división.",
+  "v2.stream.bcHowTo": "Indica tu nombre de usuario de Bandcamp: el de la dirección bandcamp.com/tunombre. Es un identificador público: no se pide ninguna contraseña.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

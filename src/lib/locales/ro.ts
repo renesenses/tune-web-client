@@ -3668,6 +3668,14 @@ export default {
   "v2.sup.reply": "Răspunde",
   "v2.sup.resolved": "Acest tichet este rezolvat.",
   "v2.stream.allSubgenres": "Tot",
+  "v2.stream.services": "Servicii",
+  "v2.stream.searchIn": "Caută în {service}",
+  "v2.stream.noResultIn": "Niciun rezultat în {service}.",
+  "v2.stream.seeMore": "Încarcă mai multe rezultate",
+  "v2.stream.loadingMore": "Se încarcă…",
+  "v2.stream.playFailed": "Redare imposibilă.",
+  "v2.common.loading": "Se încarcă…",
+  "v2.common.close": "Închide",
   "v2.lib.trackCount": "{count} piese",
   "album.yearReissue": "{origine} (reed. {edition})",
   "v2.lib.yearDiffer": "{count} albume își schimbă anul în funcție de criteriul ales.",
@@ -4085,6 +4093,12 @@ export default {
   "settings.colLevelOnly": "Disponibilă începând cu modul {m}.",
   "v2.str.myCollection": "Colecția mea",
   "v2.pod.subscribeFailed": "Abonarea nu a reușit.",
+  "v2.set.stConnectedOff": "conectat, dar dezactivat",
+  "v2.fav.queueFailed": "Adăugarea în coadă nu a reușit.",
+  "v2.set.running": "În curs…",
+  "v2.set.start": "Pornește",
+  "settings.scanModesHint": "Analiza rapidă recitește doar ce s-a schimbat. Analiza completă recitește tot — necesară după schimbarea unei opțiuni de împărțire.",
+  "v2.stream.bcHowTo": "Indicați numele dvs. de utilizator Bandcamp — cel din adresa bandcamp.com/numele-dvs. Este un identificator public: nu se cere nicio parolă.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -46,6 +46,7 @@ import type {
   DiscoveredDevice,
   QueueStateResponse,
   SearchResult,
+  StreamingSearchResult,
   FederatedSearchResult,
   FeaturedSection,
   SystemHealth,
@@ -2317,11 +2318,29 @@ function mapStreamingAlbums(albums: any[]): Album[] {
   });
 }
 
-function mapStreamingSearchResult(result: SearchResult): SearchResult {
+/**
+ * 🔴 La SOURCE est posée sur les QUATRE familles, pas seulement sur les pistes.
+ *
+ * Mesure sur le .18 le 07/09/2026, `/streaming/qobuz/search?q=somebody` :
+ * AUCUN objet rendu ne porte `source` — ni album, ni artiste, ni piste, ni
+ * playlist. Le serveur l'omet parce qu'elle est implicite dans la route ; une
+ * fois l'objet détaché de sa requête, plus rien ne dit d'où il vient.
+ *
+ * Sans elle, une piste de résultat n'est ni enfilable ni favorisable et
+ * `PisteActions` retire toute sa barre — exactement le défaut corrigé en août
+ * sur les playlists. La recherche par service le rouvrait pour ses résultats.
+ *
+ * `??` et non `=` : un agrégateur peut rendre du Tidal sous une route Qobuz.
+ */
+function mapStreamingSearchResult<T extends SearchResult>(result: T, service?: string): T {
+  const poser = <U,>(xs: U[] | undefined): U[] =>
+    (xs ?? []).map((x: any) => (service && !x?.source ? { ...x, source: service } : x));
   return {
     ...result,
-    tracks: mapStreamingTracks(result.tracks),
-    albums: mapStreamingAlbums(result.albums),
+    tracks: poser(mapStreamingTracks(result.tracks, service)),
+    albums: poser(mapStreamingAlbums(result.albums)),
+    artists: poser(result.artists),
+    playlists: poser(result.playlists),
   };
 }
 
@@ -2694,9 +2713,22 @@ export function triggerEnrich() {
 
 // --- Streaming ---
 
-export function searchStreaming(service: string, q: string, limit = SEARCH_PAGE_LIMIT) {
-  return fetchJSON<SearchResult>(`${BASE}/streaming/${encodeURIComponent(service)}/search?q=${encodeURIComponent(q)}&limit=${limit}`)
-    .then(mapStreamingSearchResult);
+/**
+ * Recherche dans UN service — la seule des deux qui pagine.
+ *
+ * `offset` existe côté serveur et fonctionne (mesure du 07/09/2026, voir
+ * `StreamingSearchResult`) ; le client ne l'envoyait pas, si bien qu'aucun
+ * écran ne pouvait dépasser la première page de 50. C'est le plafond que
+ * Fabien a mesuré sur « Somebody » (v0.9.140).
+ *
+ * Le plafond de PAGE reste 50 : c'est celui de l'API Qobuz, demander plus ne
+ * rend pas plus. On en demande une AUTRE, on n'agrandit pas celle-ci.
+ */
+export function searchStreaming(service: string, q: string, limit = SEARCH_PAGE_LIMIT, offset = 0) {
+  const p = new URLSearchParams({ q, limit: String(limit) });
+  if (offset) p.set('offset', String(offset));
+  return fetchJSON<StreamingSearchResult>(`${BASE}/streaming/${encodeURIComponent(service)}/search?${p.toString()}`)
+    .then((r) => mapStreamingSearchResult(r, service));
 }
 
 export function getStreamingAlbum(service: string, albumId: string) {

@@ -282,7 +282,10 @@ describe('Lire une PISTE de service (#720)', () => {
     // Le champ compte : `streaming_album_id` sur une piste ne résout rien, et
     // un identifiant SANS `source` fait retomber le serveur sur « reprendre la
     // lecture en cours » — le défaut relevé sur les playlists en août.
-    const bloc = /function playTrack\(t: any\)[\s\S]*?\n  \}/.exec(streaming());
+    // Le NOM du paramètre n'est pas figé ici : il a dû changer (`t` masquait
+    // le magasin de traduction `$t`), et une garde qui épingle un nom
+    // d'argument casse au premier renommage sans rien protéger de réel.
+    const bloc = /function playTrack\([^)]*\)[\s\S]*?\n  \}/.exec(streaming());
     expect(bloc, 'playTrack a disparu').not.toBeNull();
     expect(bloc![0].includes('streaming_album_id'), 'playTrack envoie encore un identifiant d’album').toBe(false);
     expect(/source: svc as any, source_id: String\(sid\)/.test(bloc![0]),

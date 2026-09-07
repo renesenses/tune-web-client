@@ -475,6 +475,34 @@ export interface SearchResult {
   playlists?: CataloguePlaylist[];
 }
 
+/**
+ * Ce que rend la recherche d'UN service — `/streaming/{svc}/search`.
+ *
+ * Elle rend les mêmes quatre familles que `SearchResult`, plus de quoi
+ * PAGINER : mesure sur le .18 le 07/09/2026, `q=somebody` sur Qobuz —
+ *
+ *     limit=50&offset=0   -> 50 albums, 50 artistes, 50 titres, 50 playlists
+ *     limit=50&offset=50  -> 50/50/50/50, tous différents
+ *     limit=50&offset=120 -> 50 albums, 14 artistes (la famille s'épuise)
+ *     has_more: true      totals: {albums:1000, artists:134, tracks:1000, …}
+ *
+ * `has_more` est GLOBAL — il reste vrai tant qu'une seule famille a encore de
+ * la matière, même quand les artistes sont épuisés. C'est lui qui décide de
+ * l'existence du bouton « voir plus », pas le compte d'une famille.
+ *
+ * Fabien, sur la v0.9.140 : « la recherche globale ne retourne que 50
+ * résultats ». La route FÉDÉRÉE (`/search`) ne pagine pas ; celle-ci, si.
+ */
+export interface StreamingSearchResult extends SearchResult {
+  /** Vrai tant que le service a encore des résultats après cette page. */
+  has_more?: boolean;
+  /** Décalage de CETTE page — ce que le serveur a réellement appliqué. */
+  offset?: number;
+  /** Nombre total par famille, quand le service le connaît. */
+  totals?: Record<string, number>;
+  truncated?: boolean;
+}
+
 /** Miroir exact de `StreamPlaylist` côté serveur : `id` y est sérialisé en
  *  `source_id`. Le service d'origine n'est pas dans l'objet — c'est la clé de
  *  `FederatedSearchResult.services` qui le porte. */

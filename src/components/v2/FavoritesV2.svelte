@@ -439,7 +439,7 @@
     e?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null || id == null) return;
-    api.addToQueue(zid, { album_id: id }).catch(() => { error = 'Mise en file impossible.'; });
+    api.addToQueue(zid, { album_id: id }).catch(() => { error = $t('v2.fav.queueFailed' as any); });
   }
 
   /** Retrait d'un favori. On recharge aussi les ENSEMBLES d'identifiants du

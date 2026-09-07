@@ -1737,7 +1737,7 @@
                   <span class="hint">{$t('settings.enrichMetadataHint' as any)}</span>
                 </div>
                 <button class="lnk" disabled={enrichRunning} onclick={startEnrich}>
-                  {enrichRunning ? 'En cours…' : 'Lancer'}
+                  {$t((enrichRunning ? 'v2.set.running' : 'v2.set.start') as any)}
                 </button>
               </div>
               {#if enrichRunning && enrichTotal > 0}
@@ -2237,10 +2237,7 @@
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>
-                  <span class="hint">
-                    L'analyse rapide ne relit que ce qui a changé. L'analyse complète relit
-                    tout — nécessaire après un changement d'option de découpage.
-                  </span>
+                  <span class="hint">{$t('settings.scanModesHint' as any)}</span>
                 </div>
                 <div class="inline">
                   {#if scanning}
@@ -2453,8 +2450,23 @@
                     <div class="svc">
                       <div class="sname">
                         {name}
+                        <!-- 🔴 DEUX faits, pas un.
+                             `enabled` (le service est actif) et `authenticated`
+                             (on y est connecté) sont indépendants. Le badge ne
+                             lisait que le premier : Bandcamp s'affichait
+                             « Désactivé » juste à côté du pseudo de son
+                             propriétaire — mesuré sur le .18 le 07/09/2026,
+                             `enabled=false, authenticated=true,
+                             username='berthos'`. « Bandcamp apparaît avec un
+                             label Désactivé alors qu'il est bien activé avec
+                             mon pseudo à côté » (Fabien, v0.9.140).
+                             Le quatrième cas dit les deux au lieu d'en taire un. -->
                         <span class="sst" class:ok={st.authenticated} class:off={!st.enabled}>
-                          {$t((!st.enabled ? 'v2.set.stDisabled' : st.authenticated ? 'v2.set.stConnected' : 'v2.set.stNotConnected') as any)}
+                          {$t((
+                            st.enabled
+                              ? (st.authenticated ? 'v2.set.stConnected' : 'v2.set.stNotConnected')
+                              : (st.authenticated ? 'v2.set.stConnectedOff' : 'v2.set.stDisabled')
+                          ) as any)}
                         </span>
                         {#if st.username}<em>{st.username}</em>{/if}
                         {#if st.subscription}<em class="sub">{st.subscription}</em>{/if}

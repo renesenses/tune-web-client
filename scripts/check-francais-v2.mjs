@@ -43,18 +43,30 @@ function fichiers(dir) {
 
 /** Les mêmes marqueurs que `check-i18n`, pour que les deux gardes s'accordent. */
 const FRANCAIS =
-  /(è|é\w|ê|à |ù|ç|œ|\b(?:le|la|les|des|une|un|du|dans|pour|avec|sans|sur|par|est|sont|vers|aucun|aucune|aux|ma|mon|mes|ta|ton|tes|sa|son|ses|notre|nos|votre|vos|leur|leurs)\b)/i;
+  /(è|é\w|ê|à |ù|ç|œ|\b(?:le|la|les|des|une|un|du|dans|pour|avec|sans|sur|par|est|sont|vers|aucun|aucune|aux|ma|mon|mes|ta|ton|tes|sa|son|ses|notre|nos|votre|vos|leur|leurs|de|au|en|et|ou|ce|cet|cette|ces|que|qui|quoi|pas|plus|tout|toute|tous|toutes|puis|donc|car|mais|chez|entre|selon|depuis|jusqu)\b)/i;
 const CLE = /^[a-z0-9]+(\.[A-Za-z0-9_]+)+$/;
 const LITTERAL = /'([^'\\\n]{4,})'|"([^"\\\n]{4,})"/g;
 const CONSOLE = /console\.\w+\([^)]*\)/g;
 
 /** Le CODE, sans ce qu'on a écrit pour l'expliquer. */
+/**
+ * Le CODE, sans ce qu'on a écrit pour l'expliquer — et sans décaler les lignes.
+ *
+ * 🔴 Les retours à la ligne sont PRÉSERVÉS. La première version remplaçait un
+ * commentaire par des espaces de même longueur, ce qui mangeait ses sauts de
+ * ligne : tout ce qui suivait était rapporté au mauvais numéro, et j'ai
+ * cherché quatre chaînes aux mauvais endroits avant de m'en apercevoir
+ * (07/09/2026). Une garde qui désigne la mauvaise ligne coûte plus de temps
+ * qu'elle n'en fait gagner.
+ */
+const blanchir = (m) => m.replace(/[^\n]/g, ' ');
+
 function sansCommentaires(src) {
   return src
-    .replace(/<!--[\s\S]*?-->/g, (m) => ' '.repeat(m.length))
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length))
-    .replace(/(^|[^:])\/\/.*$/gm, (m, p1) => p1 + ' '.repeat(m.length - p1.length))
-    .replace(CONSOLE, (m) => ' '.repeat(m.length));
+    .replace(/<!--[\s\S]*?-->/g, blanchir)
+    .replace(/\/\*[\s\S]*?\*\//g, blanchir)
+    .replace(/(^|[^:])\/\/.*$/gm, (m, p1) => p1 + blanchir(m.slice(p1.length)))
+    .replace(CONSOLE, blanchir);
 }
 
 const fautes = [];
@@ -80,6 +92,9 @@ for (const f of fichiers('src/components/v2')) {
     // utile, et le mot nu affiché est rare — la traduction du 06/09 n'en a pas
     // rencontré un seul sur 105 chaînes.
     if (/^[a-z]{1,12}$/.test(texte)) continue;
+    // Une valeur de `class=` n'atteint pas l'écran : `class="nav tous"`
+    // contient « tous » sans rien afficher.
+    if (new RegExp(`class=["']${texte.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`).test(src)) continue;
     const ligne = src.slice(0, m.index).split('\n').length;
     fautes.push(`${f}:${ligne}  ${texte.slice(0, 90)}`);
   }

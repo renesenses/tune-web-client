@@ -3668,6 +3668,14 @@ export default {
   "v2.sup.reply": "Rispondi",
   "v2.sup.resolved": "Questo ticket è risolto.",
   "v2.stream.allSubgenres": "Tutto",
+  "v2.stream.services": "Servizi",
+  "v2.stream.searchIn": "Cerca in {service}",
+  "v2.stream.noResultIn": "Nessun risultato in {service}.",
+  "v2.stream.seeMore": "Carica altri risultati",
+  "v2.stream.loadingMore": "Caricamento…",
+  "v2.stream.playFailed": "Riproduzione non riuscita.",
+  "v2.common.loading": "Caricamento…",
+  "v2.common.close": "Chiudi",
   "v2.lib.trackCount": "{count} brani",
   "album.yearReissue": "{origine} (rist. {edition})",
   "v2.lib.yearDiffer": "{count} album cambiano anno secondo il criterio adottato.",
@@ -4085,6 +4093,12 @@ export default {
   "settings.colLevelOnly": "Disponibile dalla modalità {m} in su.",
   "v2.str.myCollection": "La mia raccolta",
   "v2.pod.subscribeFailed": "Iscrizione non riuscita.",
+  "v2.set.stConnectedOff": "connesso, ma disattivato",
+  "v2.fav.queueFailed": "Impossibile aggiungere alla coda.",
+  "v2.set.running": "In corso…",
+  "v2.set.start": "Avvia",
+  "settings.scanModesHint": "L’analisi rapida rilegge solo ciò che è cambiato. L’analisi completa rilegge tutto — necessaria dopo aver modificato un’opzione di suddivisione.",
+  "v2.stream.bcHowTo": "Indica il tuo nome utente Bandcamp — quello dell’indirizzo bandcamp.com/tuonome. È un identificatore pubblico: non viene chiesta alcuna password.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

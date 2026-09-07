@@ -3668,6 +3668,14 @@ export default {
   "v2.sup.reply": "답변",
   "v2.sup.resolved": "이 티켓은 해결되었습니다.",
   "v2.stream.allSubgenres": "전체",
+  "v2.stream.services": "서비스",
+  "v2.stream.searchIn": "{service}에서 검색",
+  "v2.stream.noResultIn": "{service}에 결과가 없습니다.",
+  "v2.stream.seeMore": "결과 더 불러오기",
+  "v2.stream.loadingMore": "불러오는 중…",
+  "v2.stream.playFailed": "재생할 수 없습니다.",
+  "v2.common.loading": "불러오는 중…",
+  "v2.common.close": "닫기",
   "v2.lib.trackCount": "{count} 곡",
   "album.yearReissue": "{origine} (재발매 {edition})",
   "v2.lib.yearDiffer": "선택한 기준에 따라 앨범 {count} 장의 연도가 달라집니다.",
@@ -4085,6 +4093,12 @@ export default {
   "settings.colLevelOnly": "{m} 모드 이상에서 제공됩니다.",
   "v2.str.myCollection": "내 컬렉션",
   "v2.pod.subscribeFailed": "구독할 수 없습니다.",
+  "v2.set.stConnectedOff": "로그인됨, 그러나 비활성화됨",
+  "v2.fav.queueFailed": "대기열에 추가할 수 없습니다.",
+  "v2.set.running": "진행 중…",
+  "v2.set.start": "시작",
+  "settings.scanModesHint": "빠른 분석은 변경된 것만 다시 읽습니다. 전체 분석은 모두 다시 읽습니다 — 분할 옵션을 변경한 뒤에 필요합니다.",
+  "v2.stream.bcHowTo": "Bandcamp 사용자 이름을 입력하세요 — bandcamp.com/이름 주소에 있는 것입니다. 공개 식별자이며 비밀번호는 요구하지 않습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
