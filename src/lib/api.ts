@@ -5067,10 +5067,18 @@ export function deactivateLicense(): Promise<LicenseActivateResponse> {
   });
 }
 
-export function validateLicense(): Promise<{ status: string }> {
-  return fetchJSON<{ status: string }>(`${BASE}/cloud/license/validate`, {
-    method: 'POST',
-  });
+/**
+ * 🔴 Répond HTTP 200 même quand la validation a ÉCHOUÉ : le verdict est dans
+ * le corps, jamais dans le statut HTTP. Le corps entier est donc rendu, et
+ * `verdictValidationLicence` (src/lib/licenceValidation.ts) le lit — #570.
+ */
+export function validateLicense(): Promise<
+  import('./licenceValidation').ReponseValidationLicence
+> {
+  return fetchJSON<import('./licenceValidation').ReponseValidationLicence>(
+    `${BASE}/cloud/license/validate`,
+    { method: 'POST' },
+  );
 }
 
 // Log out of the mozaiklabs.fr cloud account (server drops the stored SSO token).
