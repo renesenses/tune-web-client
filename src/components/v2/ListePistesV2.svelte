@@ -27,6 +27,7 @@
    * (certaines réservées aux pistes locales). On le pose tel quel plutôt que
    * de réécrire une barre d'actions qui divergerait de l'autre.
    */
+  import type { Snippet } from 'svelte';
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
@@ -53,11 +54,46 @@
     /** Transmis tel quel au rendu en LIGNES (modes Avancé et Expert). */
     avecAlbum?: boolean;
     pochette?: boolean;
-    onOuvrirAlbum?: ((piste: Track, index: number) => void) | null;
+    /**
+     * 🔴 Une FABRIQUE, pas un gestionnaire.
+     *
+     * Seul l'appelant sait si l'album de CETTE piste est chargé : la
+     * Bibliothèque n'ouvre la fiche que pour un album présent dans son
+     * magasin. Un gestionnaire unique montrerait la loupe sur toutes les
+     * lignes, y compris celles qu'elle ne peut pas ouvrir — un bouton qui ne
+     * fait rien est pire qu'un bouton absent.
+     *
+     * Rendre `null` pour une piste, c'est dire « pas de loupe ici ».
+     * Sans objet au mode tableau, qui n'a pas de pochette.
+     */
+    ouvertureAlbum?: ((piste: Track, index: number) => (() => void) | null) | null;
+    /**
+     * Contenu propre à un écran, rendu APRÈS chaque ligne.
+     *
+     * La playlist y met son bouton « retirer », l'historique l'instant et le
+     * cœur d'un titre radio. Il devient une COLONNE de la grille, pas une
+     * enveloppe : enveloppé, la ligne serait plus étroite que l'en-tête et
+     * les colonnes ne tomberaient plus en face.
+     *
+     * Le fragment est compilé chez l'appelant : ses styles le suivent.
+     */
+    apres?: Snippet<[Track, number]>;
+    /**
+     * 🔴 La clé de liste, quand `id` ne suffit pas.
+     *
+     * L'Historique peut afficher DEUX FOIS la même piste — écoutée deux fois.
+     * Deux clés identiques et Svelte s'arrête sur `each_key_duplicate` : la
+     * liste entière disparaît. C'est le piège déjà documenté dans les Favoris,
+     * où toute piste de service porte `id: null`.
+     *
+     * Par défaut `id`, replié sur le rang. Un écran qui sait mieux le dit.
+     */
+    clef?: (piste: Track, index: number) => string | number;
   }
   let {
     pistes, onLire, numerotation = 'rang',
-    avecAlbum = true, pochette = true, onOuvrirAlbum = null,
+    avecAlbum = true, pochette = true, ouvertureAlbum = null, apres,
+    clef = (p, i) => p.id ?? i,
   }: Props = $props();
 
   const mode = $derived($preferences.settingsLevel);
@@ -66,7 +102,10 @@
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
   const colonnes = $derived(colonnesRetenues($preferences.v2Colonnes?.[mode] ?? [], mode));
-  const gabarit = $derived(`${gabaritGrille(colonnes)} auto`); // + la colonne d'actions
+  // Les colonnes, PLUS celle des actions, PLUS celle du suffixe quand un écran
+  // en fournit un. L'en-tête et les lignes lisent le même gabarit : c'est ce
+  // qui les garde alignés.
+  const gabarit = $derived(`${gabaritGrille(colonnes)} auto${apres ? ' auto' : ''}`);
 
   function numero(p: Track, i: number): string | null {
     if (numerotation === 'aucune') return null;
@@ -82,16 +121,32 @@
 </script>
 
 {#if !enTableau}
-  <!-- Modes Avancé et Expert : inchangés, à la virgule près. -->
-  {#each pistes as p, i (p.id ?? i)}
-    <LignePisteV2
-      piste={p}
-      numero={numerotation === 'aucune' ? null : Number(numero(p, i))}
-      onLire={() => onLire(p, i)}
-      {avecAlbum}
-      {pochette}
-      onOuvrirAlbum={onOuvrirAlbum ? () => onOuvrirAlbum(p, i) : null}
-    />
+  <!-- Modes Avancé et Expert : inchangés, à la virgule près. Le suffixe garde
+       la même enveloppe en grille que les écrans avaient chez eux. -->
+  {#each pistes as p, i (clef(p, i))}
+    {@const ouvrir = ouvertureAlbum?.(p, i) ?? null}
+    {#if apres}
+      <div class="avecSuffixe">
+        <LignePisteV2
+          piste={p}
+          numero={numerotation === 'aucune' ? null : Number(numero(p, i))}
+          onLire={() => onLire(p, i)}
+          {avecAlbum}
+          {pochette}
+          onOuvrirAlbum={ouvrir}
+        />
+        {@render apres(p, i)}
+      </div>
+    {:else}
+      <LignePisteV2
+        piste={p}
+        numero={numerotation === 'aucune' ? null : Number(numero(p, i))}
+        onLire={() => onLire(p, i)}
+        {avecAlbum}
+        {pochette}
+        onOuvrirAlbum={ouvrir}
+      />
+    {/if}
   {/each}
 {:else}
   <div class="tbl" style="--tcols:{gabarit}" role="table">
@@ -103,9 +158,10 @@
       <!-- La colonne d'actions n'a pas d'en-tête : son contenu se lit seul, et
            un libellé y serait répété sur chaque ligne pour rien. -->
       <span class="th" role="columnheader" aria-label={$t('v2.tcol.actions' as any)}></span>
+      {#if apres}<span class="th" role="columnheader"></span>{/if}
     </div>
 
-    {#each pistes as p, i (p.id ?? i)}
+    {#each pistes as p, i (clef(p, i))}
       <div class="trow" class:np={p.id != null && p.id === $currentTrackId} role="row">
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
@@ -128,6 +184,7 @@
           {/if}
         {/each}
         <span class="td act" role="cell"><PisteActions piste={p} /></span>
+        {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>
     {/each}
   </div>
@@ -162,6 +219,11 @@
   .titre:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:4px}
 
   .act{overflow:visible}
+
+  /* Le suffixe en mode LIGNES : la même grille que les écrans avaient chez
+     eux (`1fr auto`), pour que rien ne bouge à leurs yeux. */
+  .avecSuffixe{display:grid; grid-template-columns:minmax(0,1fr) auto;
+    align-items:center; gap:8px}
 
   /* Sous 720 px les colonnes ne tiennent plus : l'en-tête se retire et les
      lignes redeviennent lisibles en pile plutôt que d'être rognées. */

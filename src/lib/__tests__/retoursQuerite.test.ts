@@ -31,7 +31,14 @@ describe('Retours de Querite (forum, 05/09/2026)', () => {
        * un écran de vue.
        */
       if (!lignes.length) {
-        expect(src, `${f} : ni colonne de durée, ni délégation à LignePisteV2`).toContain('LignePisteV2');
+        // 🔴 RÉORIENTÉE le 07/09/2026 : les écrans délèguent désormais à
+    // `ListePistesV2`, qui rend le TABLEAU du mode Essentiel ou ces mêmes
+    // lignes au-dessus. Ce que la garde protège ne bouge pas — aucun écran
+    // ne roule sa propre ligne — et le conteneur le renforce.
+    expect(
+          src.includes('LignePisteV2') || src.includes('ListePistesV2'),
+          `${f} : ni colonne de durée, ni délégation au rendu partagé`,
+        ).toBe(true);
         continue;
       }
       for (const l of lignes) {

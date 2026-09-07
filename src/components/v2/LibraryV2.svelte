@@ -51,7 +51,7 @@
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import LignePisteV2 from './LignePisteV2.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
@@ -1192,11 +1192,18 @@
           {:else if !visibleTracks.length}
             <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
-            {#each visibleTracks as t, i (t.id ?? i)}
-              {@const alb = albumDeLaPiste(t)}
-              <LignePisteV2 piste={t} numero={i + 1} onLire={() => playTrack(t)}
-                onOuvrirAlbum={alb ? () => (opened = alb) : null} />
-            {/each}
+            <!-- `ouvertureAlbum` est une FABRIQUE : seule la Bibliothèque sait
+                 si l'album de CETTE piste est dans son magasin. Un gestionnaire
+                 unique montrerait la loupe sur toutes les lignes, y compris
+                 celles qu'elle ne peut pas ouvrir. -->
+            <ListePistesV2
+              pistes={visibleTracks}
+              onLire={(p) => playTrack(p)}
+              ouvertureAlbum={(p) => {
+                const alb = albumDeLaPiste(p);
+                return alb ? () => (opened = alb) : null;
+              }}
+            />
             {#if tracks.length > visibleTracks.length}
               <div class="state">{visibleTracks.length} titres affichés sur {tracks.length} — affinez la recherche.</div>
             {/if}

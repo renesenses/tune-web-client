@@ -86,7 +86,11 @@ describe("l'écran Étiquettes lit les quatre familles", () => {
   });
 
   it('les pistes passent par la ligne partagée, pas par un rendu maison', () => {
-    expect(src).toContain('LignePisteV2');
+    // 🔴 RÉORIENTÉE le 07/09/2026 : les écrans délèguent désormais à
+    // `ListePistesV2`, qui rend le TABLEAU du mode Essentiel ou ces mêmes
+    // lignes au-dessus. Ce que la garde protège ne bouge pas — aucun écran
+    // ne roule sa propre ligne — et le conteneur le renforce.
+    expect(src.includes('LignePisteV2') || src.includes('ListePistesV2')).toBe(true);
   });
 
   it("l'en-tête documente les QUATRE routes, mesure à l'appui", () => {

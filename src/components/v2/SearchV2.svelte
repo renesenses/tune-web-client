@@ -24,7 +24,7 @@
   import type { Album, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import LignePisteV2 from './LignePisteV2.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
@@ -551,14 +551,14 @@
         <section class="grp">
           <h2>Ambiance <span class="tag">acoustique</span></h2>
           <div class="list">
-            {#each acoustic.tracks as t, i (t.id ?? i)}
-              <!-- L'AMBIANCE garde son pourcentage de proximite : c'est la
-                   seule colonne que la ligne partagee ne connait pas. -->
-              <div class="lp">
-                <LignePisteV2 piste={t as any} avecAlbum={false} onLire={() => playTrack(t)} />
-                {#if t.similarity != null}<span class="sim">{Math.round(t.similarity * 100)}%</span>{/if}
-              </div>
-            {/each}
+            <!-- L'AMBIANCE garde son pourcentage de proximite : c'est la
+                 seule colonne que la liste partagee ne connait pas, et elle
+                 passe donc par le suffixe. -->
+            <ListePistesV2 pistes={acoustic.tracks as any} numerotation="aucune"
+              avecAlbum={false} onLire={(p) => playTrack(p as any)} apres={proximite} />
+            {#snippet proximite(p: any)}
+              {#if p.similarity != null}<span class="sim">{Math.round(p.similarity * 100)}%</span>{/if}
+            {/snippet}
           </div>
         </section>
       {/if}
@@ -676,9 +676,9 @@
         <section class="grp">
           <h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="list">
-            {#each vusTitres as t, i (String(t.source ?? 'local') + ':' + String(t.id ?? t.source_id ?? i))}
-              <LignePisteV2 piste={t as any} onLire={() => lirePiste(t)} />
-            {/each}
+            <ListePistesV2 pistes={vusTitres as any} numerotation="aucune"
+              onLire={(p) => lirePiste(p as any)}
+              clef={(p, i) => String((p as any).source ?? 'local') + ':' + String(p.id ?? (p as any).source_id ?? i)} />
           </div>
           {#if resteTitres > 0}
             <button class="voirplus" onclick={() => (montreTitres += PAS_TITRES)}

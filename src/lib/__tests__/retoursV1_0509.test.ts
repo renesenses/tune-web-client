@@ -23,8 +23,12 @@ const sansCommentaires = (src: string) =>
 describe('Favoris — la ligne de piste est la ligne PARTAGÉE', () => {
   const src = sansCommentaires(lire('src/components/v2/FavoritesV2.svelte'));
 
-  it('utilise LignePisteV2 au lieu de sa ligne maison', () => {
-    expect(src).toContain('LignePisteV2');
+  it('utilise le rendu PARTAGÉ au lieu de sa ligne maison', () => {
+    // 🔴 RÉORIENTÉE le 07/09/2026 : les écrans délèguent désormais à
+    // `ListePistesV2`, qui rend le TABLEAU du mode Essentiel ou ces mêmes
+    // lignes au-dessus. Ce que la garde protège ne bouge pas — aucun écran
+    // ne roule sa propre ligne — et le conteneur le renforce.
+    expect(src.includes('LignePisteV2') || src.includes('ListePistesV2')).toBe(true);
     // La fonction qui omettait la profondeur ne doit pas revenir.
     expect(src).not.toContain('function tech(');
   });

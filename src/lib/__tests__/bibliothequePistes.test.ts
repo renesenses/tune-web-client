@@ -115,6 +115,11 @@ describe("l'ouverture depuis l'onglet Titres", () => {
 
   it('pas de loupe sans album correspondant', () => {
     expect(src).toMatch(/if \(aid == null \|\| depot\) return null/);
-    expect(src).toContain('onOuvrirAlbum={alb ? () => (opened = alb) : null}');
+    // 🔴 RÉORIENTÉE le 07/09/2026. La liste passe par `ListePistesV2`, et
+    // `ouvertureAlbum` est une FABRIQUE : seule la Bibliothèque sait si
+    // l'album de CETTE piste est chargé. Ce qu'on protège est identique — la
+    // loupe n'apparaît pas là où elle ne pourrait rien ouvrir.
+    expect(src).toMatch(/ouvertureAlbum=\{\(p\) => \{/);
+    expect(src).toMatch(/return alb \? \(\) => \(opened = alb\) : null;/);
   });
 });

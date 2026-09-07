@@ -16,7 +16,7 @@
   import { currentZoneId } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { t as tr } from '../../lib/i18n';
-  import LignePisteV2 from './LignePisteV2.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
   import {
     entreesDepuisServeur,
     fusionnerHistorique,
@@ -123,38 +123,38 @@
       <div class="state">{$tr('history.noHistory')}</div>
     {:else}
       <div class="list">
-        {#each entrees as e, i (String(e.track.id ?? e.track.source_id ?? '') + '@' + e.playedAt)}
+        <!-- LISTE partagée : tableau au mode Essentiel, mêmes lignes qu'avant
+             au-dessus. Les deux colonnes propres à cet écran — l'instant, et le
+             cœur d'un titre entendu à la radio — passent par le suffixe.
+
+             ⚠️ `clef` : la même piste peut figurer deux fois, écoutée deux
+             fois. `id` seul donnerait deux clés identiques, et Svelte
+             s'arrêterait sur `each_key_duplicate` — la liste entière
+             disparaîtrait. -->
+        <ListePistesV2
+          pistes={entrees.map((x) => x.track)}
+          numerotation="aucune"
+          onLire={(_p, i) => rejouer(entrees[i], i)}
+          clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + entrees[i].playedAt}
+          apres={suffixe}
+        />
+        {#snippet suffixe(_p: any, i: number)}
+          {@const e = entrees[i]}
           {@const radio = estRadioEnregistrable(e.track)}
           {@const cle = cleFavoriRadio(e.track.title, e.track.artist_name)}
-          <!--
-            LIGNE PARTAGEE (Bertrand, 05/09/2026 : « Historique : pas bo »).
-
-            L'ecran rangeait titre a gauche, puis zone, duree et instant colles
-            au bord droit : un grand vide au milieu, et des informations si
-            eloignees du titre qu'il fallait suivre la ligne des yeux pour
-            savoir de quoi elles parlaient. C'est le defaut de l'ecran du
-            client actuel, et je l'avais recopie.
-
-            La ligne partagee range l'artiste et les puces SOUS le titre. Ne
-            restent a droite que les deux colonnes propres a cet ecran :
-            l'instant, et le coeur d'un titre entendu a la radio.
-          -->
-          <div class="lh" class:busy={enCours === i}>
-            <LignePisteV2 piste={e.track} onLire={() => rejouer(e, i)} />
-            <span class="when">{depuis(e.playedAt)}</span>
-            {#if radio}
-              <button class="fav" class:on={favorisRadio.has(cle)} disabled={occupe === cle}
-                      onclick={(ev) => basculerFav(e, ev)}
-                      title={$tr(favorisRadio.has(cle) ? 'history.removeRadioFav' : 'history.saveRadioFav')}
-                      aria-label={$tr(favorisRadio.has(cle) ? 'history.removeRadioFav' : 'history.saveRadioFav')}>
-                <svg viewBox="0 0 24 24" fill={favorisRadio.has(cle) ? 'currentColor' : 'none'}
-                     stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              </button>
-            {:else}
-              <span class="fav-vide" aria-hidden="true"></span>
-            {/if}
-          </div>
-        {/each}
+          <span class="when" class:busy={enCours === i}>{depuis(e.playedAt)}</span>
+          {#if radio}
+            <button class="fav" class:on={favorisRadio.has(cle)} disabled={occupe === cle}
+                    onclick={(ev) => basculerFav(e, ev)}
+                    title={$tr(favorisRadio.has(cle) ? 'history.removeRadioFav' : 'history.saveRadioFav')}
+                    aria-label={$tr(favorisRadio.has(cle) ? 'history.removeRadioFav' : 'history.saveRadioFav')}>
+              <svg viewBox="0 0 24 24" fill={favorisRadio.has(cle) ? 'currentColor' : 'none'}
+                   stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+          {:else}
+            <span class="fav-vide" aria-hidden="true"></span>
+          {/if}
+        {/snippet}
       </div>
     {/if}
   </div>

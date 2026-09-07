@@ -258,3 +258,56 @@ describe('la matrice des Réglages', () => {
     expect(src()).toMatch(/aria-label=\{`\$\{\$t\(c\.cleI18n as any\)\} — \$\{\$t\(LEVEL_LABEL_KEYS\[m\] as any\)\}`\}/);
   });
 });
+
+describe('les huit listes passent par le rendu partagé', () => {
+  const lire2 = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
+
+  const ECRANS = [
+    'AlbumDetailV2', 'PlaylistDetailV2', 'LibraryV2', 'SearchV2',
+    'FavoritesV2', 'EtiquettesV2', 'HistoriqueV2',
+  ];
+
+  it('🔴 aucun écran n’appelle plus la ligne directement', () => {
+    // Le conteneur est le seul endroit où les deux formes coexistent. Un écran
+    // qui court-circuiterait vers `LignePisteV2` garderait ses lignes au mode
+    // Essentiel, et le tableau serait absent d'un écran sur huit sans que rien
+    // ne le dise.
+    for (const f of ECRANS) {
+      const src = lire2(`src/components/v2/${f}.svelte`);
+      expect(src, `${f} appelle encore LignePisteV2 en direct`).not.toContain('<LignePisteV2');
+      expect(src, `${f} ne délègue pas`).toContain('<ListePistesV2');
+    }
+  });
+
+  it('🔴 les listes où `id` peut manquer transmettent une CLÉ', () => {
+    // `id` est nul sur toute piste de SERVICE, et l'Historique peut afficher
+    // deux fois la même piste. Deux clés identiques arrêtent Svelte sur
+    // `each_key_duplicate` : l'écran entier disparaît. La première version de
+    // cette délégation avait perdu la clé des Favoris — une garde l'a vu.
+    for (const f of ['FavoritesV2', 'HistoriqueV2', 'SearchV2']) {
+      const src = lire2(`src/components/v2/${f}.svelte`);
+      expect(/<ListePistesV2[\s\S]{0,400}clef=\{/.test(src), `${f} ne transmet pas de clé`).toBe(true);
+    }
+  });
+
+  it('le suffixe reste une COLONNE, pas une enveloppe', () => {
+    // Enveloppée, la ligne serait plus étroite que l'en-tête et les colonnes
+    // ne tomberaient plus en face — le défaut d'alignement qu'on vient de
+    // corriger ailleurs.
+    const liste = lire2('src/components/v2/ListePistesV2.svelte');
+    expect(liste).toMatch(/gabaritGrille\(colonnes\)\} auto\$\{apres \? ' auto' : ''\}/);
+    expect(liste).toMatch(/\{#if apres\}<span class="td act" role="cell">\{@render apres\(p, i\)\}<\/span>\{\/if\}/);
+  });
+
+  it('les trois écrans à suffixe le fournissent', () => {
+    for (const [f, quoi] of [
+      ['PlaylistDetailV2', 'le bouton retirer'],
+      ['HistoriqueV2', "l'instant et le cœur radio"],
+      ['SearchV2', 'le pourcentage de proximité'],
+    ] as [string, string][]) {
+      const src = lire2(`src/components/v2/${f}.svelte`);
+      expect(src, `${f} a perdu ${quoi}`).toMatch(/apres=\{[a-zA-Zé]+\}/);
+      expect(src, `${f} : le fragment doit exister`).toMatch(/\{#snippet [a-zA-Zé]+\(/);
+    }
+  });
+});

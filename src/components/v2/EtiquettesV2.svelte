@@ -35,7 +35,7 @@
   import type { Album, Artist, Track, UserTag } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import LignePisteV2 from './LignePisteV2.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
 
   let etiquettes = $state<UserTag[]>([]);
@@ -195,9 +195,7 @@
           <div class="etat">{$t('v2.tags.noTrackWithTag' as any)}</div>
         {:else}
           <div class="pistes">
-            {#each pistes as pi, i (pi.id ?? i)}
-              <LignePisteV2 piste={pi} numero={i + 1} onLire={() => lirePiste(pi)} />
-            {/each}
+            <ListePistesV2 pistes={pistes} onLire={(p) => lirePiste(p)} />
           </div>
         {/if}
 
