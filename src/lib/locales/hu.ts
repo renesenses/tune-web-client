@@ -1269,6 +1269,8 @@ export default {
   "dsp.crossfeedPresetStrong": "Erős",
   "dsp.crossfeedUnavailableNetwork": "Ebben a zónában hatástalan (hálózati kimenet): a crossfeed csak a szerver helyi kimenetén érvényesül.",
   "dsp.crossfeedUnavailablePure": "Hatástalan, amíg a PURE mód aktív: a beállítás megmarad, és a PURE kikapcsolásakor újra érvényesül.",
+  "dsp.crossfeedUnavailableProgressiveOff": "Egyelőre hatástalan: hálózati zónában a crossfeed a folyamatosan feldolgozott adatfolyammal utazik. Állítsa a „Hangszínszabályzó és feldolgozás → hálózat” beállítást „Folyamatosan” értékre a Beállításokban, hogy hallja.",
+  "dsp.crossfeedUnavailableNoLpcm": "Hatástalan: ez a hálózati lejátszó nem jelzi, hogy tudna tömörítetlen PCM-et olvasni, pedig csak az a formátum viszi a crossfeedet. A beállítás megmarad, és egy másik kimenetnél érvényesül.",
   "dsp.crossfeedUnavailable": "Ebben a zónában hatástalan.",
   // Bevezető
   "onboarding.welcomeTitle": "Üdvözöl a Tune Server",
@@ -2165,7 +2167,7 @@ export default {
   "settings.checkUpdatesNow": "Frissítések keresése",
   "settings.dspProgressifTitle": "Feldolgozás hálózati lejátszókon",
   "settings.dspProgressifLabel": "Hangszínszabályzó és feldolgozás → hálózat",
-  "settings.dspProgressifHint": "Aktív hangszínszabályzó, konvolúció vagy ReplayGain esetén az LPCM-et olvasó hálózati lejátszók folyamatosan feldolgozott WAV-folyamot kapnak, ahelyett hogy a teljes fájlra várnának. Kikapcsolva: semmi sem változik.",
+  "settings.dspProgressifHint": "Aktív hangszínszabályzó, konvolúció, ReplayGain vagy crossfeed esetén az LPCM-et olvasó hálózati lejátszók folyamatosan feldolgozott WAV-folyamot kapnak, ahelyett hogy a teljes fájlra várnának. Kikapcsolva: semmi sem változik.",
   "settings.dspOptionFile": "Teljes fájl (alapértelmezett)",
   "settings.dspOptionStream": "Folyamatosan",
   "settings.dspProgressifOn": "Folyamatos feldolgozás bekapcsolva",

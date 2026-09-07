@@ -90,13 +90,28 @@ export function indisponibiliteCrossfeed(
 }
 
 /** La clé i18n qui explique le motif. Le `detail` du serveur n'existe qu'en
- *  français : c'est la raison pour laquelle on traduit par `reason`. */
+ *  français : c'est la raison pour laquelle on traduit par `reason`.
+ *
+ *  `network_progressive_off` et `network_renderer_no_lpcm` sont les deux motifs
+ *  apparus avec LAT-F1 : une zone réseau PEUT désormais entendre le crossfeed,
+ *  via le flux traité au fil de l'eau. Ils remplacent `non_local_output` sur
+ *  ces zones — mais celui-ci reste servi par les serveurs antérieurs, et par le
+ *  repli de `indisponibiliteCrossfeed` quand le statut n'est pas publié : sa
+ *  traduction ne bouge donc pas.
+ *
+ *  Le `default` n'est pas décoratif. Un client à jour parle à des serveurs qui
+ *  ne le sont pas, et l'inverse : un motif inconnu doit donner une phrase
+ *  honnête, pas une clé manquante affichée telle quelle. */
 export function cleIndisponibiliteCrossfeed(motif: string): string {
   switch (motif) {
     case 'non_local_output':
       return 'dsp.crossfeedUnavailableNetwork';
     case 'pure_mode':
       return 'dsp.crossfeedUnavailablePure';
+    case 'network_progressive_off':
+      return 'dsp.crossfeedUnavailableProgressiveOff';
+    case 'network_renderer_no_lpcm':
+      return 'dsp.crossfeedUnavailableNoLpcm';
     default:
       return 'dsp.crossfeedUnavailable';
   }

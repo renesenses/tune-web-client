@@ -1322,6 +1322,8 @@ export default {
   'dsp.crossfeedPresetStrong': 'Fort',
   "dsp.crossfeedUnavailableNetwork": "Sans effet sur cette zone (sortie réseau) : le crossfeed n'est appliqué que par une sortie locale du serveur.",
   "dsp.crossfeedUnavailablePure": "Sans effet tant que le mode PURE est actif : le réglage est conservé et reprendra dès sa désactivation.",
+  "dsp.crossfeedUnavailableProgressiveOff": "Sans effet pour l'instant : sur une zone réseau, le crossfeed voyage avec le flux traité au fil de l'eau. Réglez « Égaliseur et traitements → réseau » sur « Au fil de l'eau » dans les Réglages pour l'entendre.",
+  "dsp.crossfeedUnavailableNoLpcm": "Sans effet : ce lecteur réseau n'annonce pas savoir lire le PCM non compressé, le seul format qui transporte le crossfeed. Le réglage est conservé et vaudra pour une autre sortie.",
   "dsp.crossfeedUnavailable": "Sans effet sur cette zone.",
 
   // Onboarding
@@ -2512,7 +2514,7 @@ export default {
   "settings.checkUpdatesNow": "Vérifier les mises à jour",
   "settings.dspProgressifTitle": "Traitement sur les lecteurs réseau",
   "settings.dspProgressifLabel": "Égaliseur et traitements → réseau",
-  "settings.dspProgressifHint": "Avec un égaliseur, un convolveur ou le ReplayGain actif, envoie aux lecteurs réseau qui lisent le LPCM un flux WAV traité au fil de l'eau, au lieu d'attendre le fichier entier. Désactivé, rien ne change.",
+  "settings.dspProgressifHint": "Avec un égaliseur, un convolveur, le ReplayGain ou le crossfeed actif, envoie aux lecteurs réseau qui lisent le LPCM un flux WAV traité au fil de l'eau, au lieu d'attendre le fichier entier. Désactivé, rien ne change.",
   "settings.dspOptionFile": "Fichier entier (défaut)",
   "settings.dspOptionStream": "Au fil de l'eau",
   "settings.dspProgressifOn": "Traitement au fil de l'eau activé",

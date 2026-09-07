@@ -1311,6 +1311,8 @@ export default {
   'dsp.crossfeedPresetStrong': 'Strong',
   "dsp.crossfeedUnavailableNetwork": "No effect on this zone (network output): crossfeed is only applied by a local output of the server.",
   "dsp.crossfeedUnavailablePure": "No effect while PURE mode is on: the setting is kept and resumes once PURE is off.",
+  "dsp.crossfeedUnavailableProgressiveOff": "No effect for now: on a network zone, crossfeed travels with the stream processed as it goes. Set “EQ and processing → network” to “Streamed” in Settings to hear it.",
+  "dsp.crossfeedUnavailableNoLpcm": "No effect: this network player does not advertise that it can read uncompressed PCM, the only format that carries crossfeed. The setting is kept and will apply to another output.",
   "dsp.crossfeedUnavailable": "No effect on this zone.",
 
   // Onboarding
@@ -2509,7 +2511,7 @@ export default {
   "settings.checkUpdatesNow": "Check for updates",
   "settings.dspProgressifTitle": "Processing on network players",
   "settings.dspProgressifLabel": "EQ and processing → network",
-  "settings.dspProgressifHint": "With an equaliser, a convolver or ReplayGain active, sends network players that accept LPCM a processed WAV stream as it is produced, instead of waiting for the whole file. Off: nothing changes.",
+  "settings.dspProgressifHint": "With an equaliser, a convolver, ReplayGain or crossfeed active, sends network players that accept LPCM a processed WAV stream as it is produced, instead of waiting for the whole file. Off: nothing changes.",
   "settings.dspOptionFile": "Whole file (default)",
   "settings.dspOptionStream": "Streamed",
   "settings.dspProgressifOn": "Streamed processing enabled",
