@@ -90,6 +90,25 @@ export const pendingSearchQuery = writable<string>('');
 export const pendingOxygenFolder = writable<string | null>(null);
 
 
+/**
+ * 🔴 L'ALBUM à ouvrir en arrivant sur la Bibliothèque du nouveau client.
+ *
+ * « Page lecture en cours d'un titre : les hyperliens de l'album et de
+ * l'artiste renvoient vers la page d'accueil et non vers la page de l'artiste
+ * ou de l'album » (Fabien, v0.9.140, 07/09/2026).
+ *
+ * TREIZIÈME « écrit mais pas branché » de ce client. `NowPlaying` pose
+ * `selectedAlbum` / `selectedArtist` puis change de vue. Ces deux magasins
+ * sont lus par DOUZE composants de l'ancien client et par AUCUN de la v2 : le
+ * clic changeait donc d'écran sans rien ouvrir.
+ *
+ * Même forme que `pendingLibraryFolder` juste au-dessus : posé avant le
+ * changement de vue, consommé UNE fois au montage. `NowPlaying` alimente les
+ * deux contrats — l'ancien pour l'ancien client, celui-ci pour le nouveau —
+ * plutôt que de deviner lequel tourne.
+ */
+export const pendingLibraryAlbum = writable<number | null>(null);
+
 export interface NavContext {
   view: View;
   albumId?: number | null;

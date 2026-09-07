@@ -135,8 +135,12 @@ describe('Streaming — onglet Genres', () => {
      * Bertrand, 04/09/2026 : « ajoute un onglet Genres à bandcamp ! »
      */
     const { bandcamp } = branchesSubs();
+    // 🔴 RÉORIENTÉE le 07/09/2026 : le libellé était en dur, et échappait aux
+    // deux gardes de traduction — ni accent, ni article. Il passe par une clé
+    // comme le reste de la barre. Ce que ce test protège est intact :
+    // l'onglet EXISTE chez Bandcamp.
     expect(
-      bandcamp.includes("{ id: 'genres', label: 'Genres' }"),
+      bandcamp.includes("{ id: 'genres', label: $t('common.genres' as any) }"),
       'l’onglet Genres a disparu de Bandcamp',
     ).toBe(true);
   });

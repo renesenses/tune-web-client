@@ -39,8 +39,14 @@ describe("Historique dans le nouveau client (Bertrand, 05/09/2026)", () => {
     // informations si éloignées du titre qu'il fallait suivre la ligne des
     // yeux. C'est le défaut de l'écran du client actuel, recopié.
     const v2 = sansCommentaires(lire('src/components/v2/HistoriqueV2.svelte'));
-    expect(v2).toContain("import LignePisteV2 from './LignePisteV2.svelte'");
-    expect(v2).toContain('<LignePisteV2 piste={e.track}');
+// 🔴 RÉORIENTÉE le 07/09/2026 : les écrans délèguent désormais à
+    // `ListePistesV2`, qui rend le TABLEAU du mode Essentiel ou ces mêmes
+    // lignes au-dessus. Ce que la garde protège ne bouge pas — aucun écran
+    // ne roule sa propre ligne — et le conteneur le renforce.
+    expect(v2).toContain("import ListePistesV2 from './ListePistesV2.svelte'");
+    expect(v2).toContain('<ListePistesV2');
+    // Et la piste vient bien de l'entrée d'historique, pas d'ailleurs.
+    expect(v2).toContain('entrees.map((x) => x.track)');
     // Il ne redessine plus ni pochette, ni durée, ni fiche technique.
     expect(v2).not.toContain('formatDuration');
     expect(v2).not.toContain('AlbumArt');

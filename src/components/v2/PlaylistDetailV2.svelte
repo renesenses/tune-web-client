@@ -14,7 +14,7 @@
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import LignePisteV2 from './LignePisteV2.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
   import { favoritePlaylistIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
@@ -240,16 +240,16 @@
     {:else if !tracks.length}
       <div class="state">{$tr('v2.pl.empty' as any)}</div>
     {:else}
-      {#each tracks as t, i (t.id ?? i)}
-        <div class="lp">
-          <LignePisteV2 piste={t} numero={i + 1} onLire={() => playFrom(i)} />
-          {#if edition && isLocal}
-            <button class="rm" onclick={() => removeAt(i)} aria-label={$tr('v2.pl.remove' as any)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
-            </button>
-          {/if}
-        </div>
-      {/each}
+      <ListePistesV2 pistes={tracks} onLire={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="40px" />
+      {#snippet suffixe(_t: any, i: number)}
+        <!-- Le bouton « retirer » devient une COLONNE de la ligne. Le fragment
+             est compilé ici : ses styles le suivent. -->
+        {#if edition && isLocal}
+          <button class="rm" onclick={() => removeAt(i)} aria-label={$tr('v2.pl.remove' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
+          </button>
+        {/if}
+      {/snippet}
     {/if}
   </div>
 </div>

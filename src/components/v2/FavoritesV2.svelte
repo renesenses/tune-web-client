@@ -26,7 +26,7 @@
   import { fold } from '../../lib/utils';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import LignePisteV2 from './LignePisteV2.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
@@ -439,7 +439,7 @@
     e?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null || id == null) return;
-    api.addToQueue(zid, { album_id: id }).catch(() => { error = 'Mise en file impossible.'; });
+    api.addToQueue(zid, { album_id: id }).catch(() => { error = $t('v2.fav.queueFailed' as any); });
   }
 
   /** Retrait d'un favori. On recharge aussi les ENSEMBLES d'identifiants du
@@ -577,9 +577,12 @@
           piste de la bibliothèque d'une piste de service.
         -->
         <div class="list">
-          {#each vTracks as t, i (clef(t, i))}
-            <LignePisteV2 piste={t} onLire={() => playTrack(t)} />
-          {/each}
+          <!-- ⚠️ `clef` : `id` est NUL sur toute piste de service. Deux entrées
+               de clé `null` arrêtent Svelte sur `each_key_duplicate`, et
+               l'écran entier disparaît. `clef()` existe ici pour ça. -->
+          <ListePistesV2 pistes={vTracks} numerotation="aucune"
+            clef={(p, i) => clef(p, i)}
+            onLire={(p) => playTrack(p)} />
         </div>
       {/if}
 

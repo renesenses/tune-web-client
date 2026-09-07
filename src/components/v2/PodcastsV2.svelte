@@ -41,6 +41,8 @@
   let q = $state('');
 
   let subs = $state<any[]>([]);
+  /** Un double clic rapide lançait deux abonnements avant la première réponse. */
+  let basculeEnCours = $state(false);
   let subsLoading = $state(true);
   let discover = $state<{ curated: any[]; top: any[] } | null>(null);
   let discoverLoading = $state(false);
@@ -420,13 +422,44 @@
     return (p: any) => { const f = feedOf(p); return !!f && feeds.has(f); };
   });
 
+  /**
+   * 🔴 S'abonner, puis se DÉSABONNER, sans faire tomber l'écran.
+   *
+   * « Quand on clique sur le bouton + on s'abonne, mais si on reclique ça fait
+   * planter l'appli. Obligé de rafraîchir la page » (Fabien, v0.9.140,
+   * 07/09/2026).
+   *
+   * L'enchaînement exact :
+   *
+   *  1. l'abonnement réussissait mais la réponse pouvait ne pas porter d'`id` ;
+   *     on rangeait alors une entrée locale `{ id: null, … }` ;
+   *  2. au second clic, `existing?.id != null` valait FAUX — `null` — donc on
+   *     repartait dans la branche « s'abonner » au lieu de « se désabonner » ;
+   *  3. le flux se retrouvait deux fois dans `subs`, et la liste est clé par
+   *     `p.id ?? feedOf(p)` : deux clés identiques arrêtent Svelte sur
+   *     `each_key_duplicate`. L'écran entier disparaît, et seul F5 le ramène.
+   *
+   * Trois corrections, chacune nécessaire :
+   *
+   *  - une entrée SANS identifiant n'est plus inventée : si la réponse n'en
+   *    porte pas, on relit la liste au serveur, qui est la seule vérité ;
+   *  - on ne range jamais un flux DÉJÀ présent, quel que soit le chemin ;
+   *  - un désabonnement sans identifiant recharge au lieu d'échouer en
+   *    silence.
+   */
   async function toggleSub(p: any, e: MouseEvent) {
     e.stopPropagation();
     const feed = feedOf(p);
-    if (!feed) return;
+    if (!feed || basculeEnCours) return;
+    basculeEnCours = true;
     const existing = subs.find((s) => feedOf(s) === feed);
     try {
-      if (existing?.id != null) {
+      if (existing) {
+        if (existing.id == null) {
+          // On ne sait pas quoi supprimer : le serveur tranche.
+          subs = (await api.getPodcastSubscriptions()) ?? [];
+          return;
+        }
         await api.unsubscribePodcast(existing.id);
         subs = subs.filter((s) => s.id !== existing.id);
       } else {
@@ -434,9 +467,20 @@
           title: title(p), feed_url: feed, author: author(p) || undefined,
           image_url: cover(p) ?? undefined, source_id: p?.source_id ?? undefined,
         });
-        subs = [...subs, created ?? { id: null, title: title(p), feed_url: feed }];
+        if (created?.id != null) {
+          // Ceinture ET bretelles : même avec un identifiant, on refuse un
+          // flux déjà listé — deux entrées du même flux se disputeraient la
+          // clé de repli.
+          subs = subs.some((s) => feedOf(s) === feed) ? subs : [...subs, created];
+        } else {
+          subs = (await api.getPodcastSubscriptions()) ?? [];
+        }
       }
-    } catch { error = 'Abonnement impossible.'; }
+    } catch {
+      error = $t('v2.pod.subscribeFailed' as any);
+    } finally {
+      basculeEnCours = false;
+    }
   }
 
   function epDate(ep: any): string {
@@ -476,19 +520,35 @@
           <option value={l.code}>{l.nom}</option>
         {/each}
       </select>
-      <select class="pays" bind:value={pays} aria-label="Pays">
+      <select class="pays" bind:value={pays} aria-label={$t('v2.pod.country' as any)}>
         {#each PAYS as c (c.code)}
           <option value={c.code}>{c.drapeau} {c.nom}</option>
         {/each}
       </select>
     {/if}
-    <div class="search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input placeholder="Rechercher" bind:value={q} />
-    </div>
+    <!--
+      🔴 Cette barre FILTRE les abonnements, elle ne cherche rien.
+
+      Fabien, sur la v0.9.140 : « la barre de recherche ne fonctionne pas et
+      fait doublon avec le sous-menu Recherche ». Les deux constats étaient
+      exacts et n'en faisaient qu'un : elle était affichée en PERMANENCE alors
+      que `q` ne commande que `visibleSubs`. Sur « Découvrir » et sur
+      « Recherche », taper dedans ne produisait donc rien — « ne fonctionne
+      pas » —, et sur « Recherche » elle se tenait à côté du champ qui, lui,
+      interroge le catalogue — « fait doublon ».
+
+      Elle ne paraît plus que là où elle agit, et son invite dit ce qu'elle
+      fait plutôt que de promettre une recherche.
+    -->
+    {#if tab === 'subs'}
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input placeholder={$t('v2.pod.filterSubs' as any)} aria-label={$t('v2.pod.filterSubs' as any)} bind:value={q} />
+      </div>
+    {/if}
   </header>
 
-  {#if error}<div class="err" role="status">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
+  {#if error}<div class="err" role="status">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div>{/if}
 
   <div class="scroll">
     {#if tab === 'subs'}

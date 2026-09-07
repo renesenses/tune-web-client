@@ -16,7 +16,7 @@
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import HeartButton from './HeartButton.svelte';
-  import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
+  import type { Album, Artist, Track, StreamingSearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { fusionnerPage } from '../lib/pagination';
   import { notifications } from '../lib/stores/notifications';
@@ -44,7 +44,10 @@
   let tab = $state<StreamingTab>('search');
   let searchQuery = $state('');
   let searching = $state(false);
-  let results: SearchResult | null = $state(null);
+  // `searchStreaming` rend la forme de la route PAR SERVICE, pas celle de la
+  // route fédérée : `has_more` y est un booléen et `totals` une table libre.
+  // Voir `StreamingSearchResult` — les deux contrats ne s'héritent pas.
+  let results: StreamingSearchResult | null = $state(null);
 
   let selectedAlbum = $state<Album | null>(null);
   let albumTracks = $state<Track[]>([]);

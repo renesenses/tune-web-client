@@ -15,7 +15,7 @@
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
-  import LignePisteV2 from './LignePisteV2.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { queuePosition } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
@@ -304,13 +304,20 @@
     {:else if error}
       <div class="state err">{error}</div>
     {:else}
-      {#each tracks as t, i (t.id ?? i)}
-        <!-- Ligne PARTAGEE : meme richesse et memes gestes que partout
-             ailleurs. Sans pochette — les vingt lignes porteraient la meme —
-             et sans le titre de l'album, qui est deja en tete d'ecran. -->
-        <LignePisteV2 piste={t} numero={t.track_number || i + 1}
-          pochette={false} avecAlbum={false} onLire={() => playAlbum(i)} />
-      {/each}
+      <!-- LISTE partagée, et non plus une boucle de lignes.
+           Au mode Essentiel elle rend un TABLEAU à colonnes choisies (maquette
+           Levente, 07/09/2026) ; aux deux autres modes, exactement les mêmes
+           lignes qu'avant — sans pochette, les vingt porteraient la même, et
+           sans le titre de l'album, déjà en tête d'écran.
+           `numerotation="piste"` : c'est le rang DANS L'ALBUM qui compte ici,
+           pas la position dans la liste affichée. -->
+      <ListePistesV2
+        pistes={tracks}
+        numerotation="piste"
+        pochette={false}
+        avecAlbum={false}
+        onLire={(_p, i) => playAlbum(i)}
+      />
     {/if}
   </div>
 </div>

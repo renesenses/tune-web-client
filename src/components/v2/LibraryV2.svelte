@@ -2,6 +2,12 @@
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick } from 'svelte';
+  // 🔴 Repose APRÈS fusion : `main` a supprimé le seul autre lecteur de `get`
+  // (`prendreDossierEnAttente`, remplacé par le magasin `libraryFolderScope`)
+  // et la ligne d'import est partie avec, sans conflit. `check-svelte` l'a
+  // arrêté — sans lui l'écran Bibliothèque levait à l'exécution, comme la
+  // 0.9.62 avec `albumWall`.
+  import { get } from 'svelte/store';
   import { t as tr } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
   /**
@@ -34,7 +40,13 @@
    * un serveur UPnP tiers.
    */
   import { albums, libraryLoading, libraryFolderScope } from '../../lib/stores/library';
-  import { activeView, type View } from '../../lib/stores/navigation';
+  // 🔴 `pendingLibraryFolder` n'existe PLUS : `main` l'a remplacé par le
+  // magasin `libraryFolderScope` (voir `lib/porteeBibliotheque`) parce qu'un
+  // dépôt consommé UNE fois dans l'initialiseur d'un `$state` n'était jamais
+  // lu quand la Bibliothèque était déjà montée. On prend sa version.
+  // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
+  // lecture en cours (Fabien), et il est toujours consommé plus bas.
+  import { activeView, pendingLibraryAlbum, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
@@ -52,7 +64,7 @@
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import LignePisteV2 from './LignePisteV2.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
@@ -824,6 +836,30 @@
   let opened = $state<Album | null>(null);
 
   /**
+   * 🔴 L'album demandé par « Lecture en cours ».
+   *
+   * « Les hyperliens de l'album et de l'artiste renvoient vers la page
+   * d'accueil » (Fabien, v0.9.140, 07/09/2026). `NowPlaying` posait
+   * `selectedAlbum`, que douze composants de l'ANCIEN client lisent et
+   * qu'aucun de la v2 ne lit : on changeait d'écran sans rien ouvrir.
+   *
+   * Consommé UNE fois, comme le dossier : le laisser dans le magasin
+   * rouvrirait la fiche à chaque retour sur la Bibliothèque.
+   *
+   * L'album peut ne pas être dans `$albums` — une piste de service, une
+   * bibliothèque encore en cours de chargement. On le demande alors au
+   * serveur plutôt que d'abandonner en silence.
+   */
+  $effect(() => {
+    const id = get(pendingLibraryAlbum);
+    if (id == null) return;
+    pendingLibraryAlbum.set(null);
+    const connu = $albums.find((a) => a.id === id);
+    if (connu) { opened = connu; return; }
+    api.getAlbum(id).then((a) => { if (a) opened = a; }).catch(() => {});
+  });
+
+  /**
    * Album en cours d'édition — le bouton haut-droit de la pochette.
    *
    * `AlbumEditModal` vient du client actuel : c'est la MÊME modale, pas une
@@ -1195,11 +1231,18 @@
           {:else if !visibleTracks.length}
             <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
-            {#each visibleTracks as t, i (t.id ?? i)}
-              {@const alb = albumDeLaPiste(t)}
-              <LignePisteV2 piste={t} numero={i + 1} onLire={() => playTrack(t)}
-                onOuvrirAlbum={alb ? () => (opened = alb) : null} />
-            {/each}
+            <!-- `ouvertureAlbum` est une FABRIQUE : seule la Bibliothèque sait
+                 si l'album de CETTE piste est dans son magasin. Un gestionnaire
+                 unique montrerait la loupe sur toutes les lignes, y compris
+                 celles qu'elle ne peut pas ouvrir. -->
+            <ListePistesV2
+              pistes={visibleTracks}
+              onLire={(p) => playTrack(p)}
+              ouvertureAlbum={(p) => {
+                const alb = albumDeLaPiste(p);
+                return alb ? () => (opened = alb) : null;
+              }}
+            />
             {#if tracks.length > visibleTracks.length}
               <div class="state">{visibleTracks.length} titres affichés sur {tracks.length} — affinez la recherche.</div>
             {/if}

@@ -28,7 +28,7 @@
   import * as api from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { activeView } from '../../lib/stores/navigation';
-  import type { StreamingServiceStatus, StreamingPlaylist, SearchResult } from '../../lib/types';
+  import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import QualiteAlbum from './QualiteAlbum.svelte';
@@ -36,6 +36,7 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import ListePistesV2 from './ListePistesV2.svelte';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
   import { aUnOngletGenres, normaliserGenres, ouvertureGenre, sousGenresUtiles } from '../../lib/streamingGenres';
@@ -57,10 +58,93 @@
   let sub = $state<Sub>('editorial');
 
   let q = $state('');
-  let results = $state<SearchResult | null>(null);
+  /**
+   * Les resultats CUMULES des pages deja chargees — pas la derniere page.
+   *
+   * Fabien, sur la v0.9.140 : « la recherche ne retourne que 50 resultats ».
+   * C'etait exact et c'etait ICI : `searchStreaming` n'envoyait aucun
+   * `offset`, si bien qu'aucun geste ne pouvait aller chercher la page
+   * suivante — alors que le serveur la sert (mesure du 07/09/2026 :
+   * `q=somebody` rend 1000 albums et 1000 titres sur Qobuz, par pages de 50).
+   */
+  let results = $state<StreamingSearchResult | null>(null);
+  /** Decalage de la DERNIERE page obtenue. */
+  let rechOffset = $state(0);
+  /** Une page suivante est en route — le bouton se desarme le temps qu'elle vienne. */
+  let rechSuite = $state(false);
   let bcSearch = $state<any | null>(null);
   let searching = $state(false);
   let seq = 0;
+
+  /**
+   * La clef d'une entree de resultat, la MEME pour le dedoublonnage et pour
+   * `{#each}`.
+   *
+   * Deux clefs identiques arretent Svelte (`each_key_duplicate`) et l'ecran
+   * entier disparait. En empilant des pages, le risque devient reel : un
+   * service peut rendre le meme album sur deux pages. On dedoublonne donc avec
+   * exactement la clef que le balisage utilisera — l'unicite est acquise par
+   * construction, pas esperee.
+   *
+   * Sans identifiant, on ne dedoublonne pas : on garde l'entree et le rang la
+   * distingue. Perdre un resultat serait pire que d'en montrer deux.
+   */
+  const cleItem = (x: any, i: number) => {
+    const id = x?.source_id ?? x?.id ?? '';
+    return id === '' || id == null ? `#${i}` : `${x?.source ?? active ?? ''}:${id}`;
+  };
+
+  function empiler(a: any[] | undefined, b: any[] | undefined): any[] {
+    const out = [...(a ?? [])];
+    const vus = new Set(out.map((x, i) => cleItem(x, i)));
+    for (const x of b ?? []) {
+      const k = cleItem(x, -1);
+      if (k.startsWith('#') || !vus.has(k)) { vus.add(k); out.push(x); }
+    }
+    return out;
+  }
+
+  /** Y a-t-il quoi que ce soit a montrer, toutes familles confondues ? */
+  const aDesResultats = $derived(
+    !!(results?.albums?.length || results?.tracks?.length
+       || results?.artists?.length || results?.playlists?.length),
+  );
+
+  /**
+   * La page SUIVANTE, empilee sous celle qu'on regarde deja.
+   *
+   * `has_more` est GLOBAL : il reste vrai tant qu'une seule famille a encore
+   * de la matiere. C'est lui qui decide, et non le compte d'une famille — les
+   * artistes s'epuisent (134 sur « somebody ») bien avant les titres (1000).
+   */
+  async function chargerPlus() {
+    const svc = active, needle = q.trim();
+    if (!svc || svc === BANDCAMP || !results || rechSuite || !results.has_more) return;
+    const mien = seq;
+    const suivant = rechOffset + api.SEARCH_PAGE_LIMIT;
+    rechSuite = true;
+    try {
+      const page = await api.searchStreaming(svc, needle, api.SEARCH_PAGE_LIMIT, suivant);
+      // La recherche a change pendant l'aller-retour : cette page n'est plus
+      // celle de l'ecran, on la jette.
+      if (mien !== seq || !results) return;
+      rechOffset = suivant;
+      results = {
+        ...results,
+        albums: empiler(results.albums, page.albums),
+        artists: empiler(results.artists, page.artists),
+        tracks: empiler(results.tracks, page.tracks),
+        playlists: empiler(results.playlists, page.playlists),
+        has_more: page.has_more,
+        totals: page.totals ?? results.totals,
+      };
+    } catch {
+      // On garde ce qui est deja affiche : une page manquee ne doit pas vider
+      // l'ecran.
+    } finally {
+      if (mien === seq) rechSuite = false;
+    }
+  }
 
   // Éditorial
   //
@@ -218,11 +302,11 @@
       // (mesure, meme jour), contre 13 pour Qobuz et 20 pour Tidal. Tout cela
       // tenait dans une rangee de puces au-dessus des albums.
       ? [{ id: 'editorial', label: $t('v2.str.discover' as any) },
-         { id: 'genres', label: 'Genres' },
-         { id: 'mine', label: 'Ma collection' }]
+         { id: 'genres', label: $t('common.genres' as any) },
+         { id: 'mine', label: $t('v2.str.myCollection' as any) }]
       : [{ id: 'editorial', label: $t('v2.str.editorial' as any) },
-         { id: 'playlists', label: 'Playlists' },
-         { id: 'favorites', label: 'Favoris' },
+         { id: 'playlists', label: $t('v2.nav.playlists' as any) },
+         { id: 'favorites', label: $t('v2.nav.favorites' as any) },
          // QUATRIÈME onglet, et seulement là où le serveur sert vraiment des
          // genres. Les genres avaient une section tout EN BAS de l'éditorial :
          // il fallait dérouler la page entière pour tomber dessus. C'est une
@@ -372,9 +456,10 @@
   // Recherche dans le service courant.
   $effect(() => {
     const svc = active, needle = q.trim();
-    if (!svc || needle.length < 2) { results = null; bcSearch = null; searching = false; return; }
+    if (!svc || needle.length < 2) { results = null; bcSearch = null; searching = false; rechOffset = 0; rechSuite = false; return; }
     const mine = ++seq;
     searching = true;
+    rechOffset = 0; rechSuite = false;
     const t = setTimeout(() => {
       if (svc === BANDCAMP) {
         api.bandcampSearch(needle).then((r) => { if (mine === seq) bcSearch = r; })
@@ -448,7 +533,7 @@
     const zid = $currentZoneId;
     if (zid == null || !active || active === BANDCAMP) return;
     const sid = a?.source_id ?? a?.id;
-    if (sid) playAndSync(zid, { streaming_album_id: String(sid), source: active as any }).catch(() => { error = 'Lecture impossible.'; });
+    if (sid) playAndSync(zid, { streaming_album_id: String(sid), source: active as any }).catch(() => { error = $t('v2.stream.playFailed' as any); });
   }
   /**
    * Lecture d'une PISTE de service.
@@ -473,19 +558,23 @@
    * qu'ensemble, et un identifiant seul le fait retomber sur « reprendre la
    * lecture en cours ».
    */
-  function playTrack(t: any) {
+  // Le parametre s'appelle `piste`, PAS `t` : `t` est le magasin de
+  // traduction importe en tete de fichier, et le nommer ainsi le masquait —
+  // `$t(...)` dans le corps ne traduisait plus rien mais s'abonnait a un
+  // parametre. `check-svelte` l'a arrete (07/09/2026).
+  function playTrack(piste: any) {
     const zid = $currentZoneId;
-    const svc = t?.source ?? active;
-    const sid = t?.source_id ?? t?.id;
+    const svc = piste?.source ?? active;
+    const sid = piste?.source_id ?? piste?.id;
     if (zid == null || !svc || svc === BANDCAMP || !sid) return;
     playAndSync(zid, { source: svc as any, source_id: String(sid) })
-      .catch(() => { error = 'Lecture impossible.'; });
+      .catch(() => { error = $t('v2.stream.playFailed' as any); });
   }
   function playPlaylist(p: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
     playAndSync(zid, { streaming_playlist_id: String(p.source_id ?? p.id), source: (p.source ?? active) as any })
-      .catch(() => { error = 'Lecture impossible.'; });
+      .catch(() => { error = $t('v2.stream.playFailed' as any); });
   }
   /** Bandcamp ne sert qu'un extrait mp3-128 : on le lit tel quel. */
   function playBc(it: any) {
@@ -500,7 +589,7 @@
       source: 'bandcamp' as any, source_id: String(it.extrait),
       title: it.titre, artist_name: it.artiste ?? null,
       cover_path: it.pochette ?? null,
-    }).catch(() => { error = 'Lecture impossible.'; });
+    }).catch(() => { error = $t('v2.stream.playFailed' as any); });
   }
 
   async function linkBandcamp() {
@@ -519,25 +608,29 @@
 
   const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? $t('v2.common.untitled' as any);
   const pCover = (p: any) => p?.cover_path ?? p?.image ?? p?.picture ?? p?.pochette ?? null;
-  const pSub = (p: any) => p?.artist_name ?? p?.artiste ?? (p?.track_count != null ? `${p.track_count} titres` : '');
+  const pSub = (p: any) =>
+    p?.artist_name ?? p?.artiste
+    ?? (p?.track_count != null
+        ? $t('v2.lib.trackCount' as any).replace('{count}', String(p.track_count))
+        : '');
 </script>
 
 <section class="v2-str tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Services</div>
-      <h1>Streaming</h1>
+      <div class="eyebrow">{$t('v2.stream.services' as any)}</div>
+      <h1>{$t('v2.nav.streaming' as any)}</h1>
     </div>
     {#if active}
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={`Rechercher dans ${label(active)}`} bind:value={q} />
+        <input placeholder={$t('v2.stream.searchIn' as any).replace('{service}', label(active))} bind:value={q} />
         {#if searching}<span class="spin" aria-hidden="true"></span>{/if}
       </div>
     {/if}
   </header>
 
-  {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
+  {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div>{/if}
 
   {#if tabs.length}
     <nav class="svcs">
@@ -576,12 +669,12 @@
     {:else if results || bcSearch}
       {#if bcSearch}
         {#if bcSearch.albums?.length}
-          <section class="sec"><h2>Albums</h2>
+          <section class="sec"><h2>{$t('v2.rech.albums' as any)}</h2>
             <div class="grid">{#each bcSearch.albums as a, i (a.url ?? i)}{@render tile(a, () => playBc(a))}{/each}</div>
           </section>
         {/if}
         {#if bcSearch.pistes?.length}
-          <section class="sec"><h2>Titres</h2>
+          <section class="sec"><h2>{$t('v2.rech.tracks' as any)}</h2>
             <div class="grid">{#each bcSearch.pistes as a, i (a.url ?? i)}{@render tile(a, () => playBc(a), 'track')}{/each}</div>
           </section>
         {/if}
@@ -589,27 +682,62 @@
           <div class="state">{$t('v2.stream.bcNoResult' as any)}</div>
         {/if}
       {:else if results}
+        <!--
+          LES QUATRE FAMILLES, chacune sous son titre.
+
+          Fabien, sur la v0.9.140 : « albums et titres sont melanges, artistes
+          en 1 seule ligne (impossible de tout voir) ». Les deux constats
+          avaient la meme cause, ici : cet ecran ne rendait QUE deux des quatre
+          familles servies. Les titres n'avaient pas de section — les singles
+          apparaissaient donc parmi les albums, d'ou le « melange » ; les
+          playlists n'apparaissaient pas du tout ; et les artistes tenaient sur
+          une rangee a defilement horizontal SANS barre de defilement visible
+          (`scrollbar-width:none`), tronquee a quatorze par-dessus le marche.
+        -->
         {#if results.albums?.length}
-          <section class="sec"><h2>Albums</h2>
-            <div class="grid">{#each results.albums as a (a.source_id ?? a.id)}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          <section class="sec"><h2>{$t('v2.rech.albums' as any)}</h2>
+            <div class="grid">{#each results.albums as a, i (cleItem(a, i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+          </section>
+        {/if}
+        {#if results.tracks?.length}
+          <section class="sec"><h2>{$t('v2.rech.tracks' as any)}</h2>
+            <div class="liste">
+              <ListePistesV2 pistes={results.tracks as any} numerotation="aucune" avecAlbum
+                onLire={(pi) => playTrack(pi as any)}
+                clef={(pi, i) => cleItem(pi as any, i)} />
+            </div>
           </section>
         {/if}
         {#if results.artists?.length}
-          <section class="sec"><h2>Artistes</h2>
-            <div class="arow">
-              {#each results.artists.slice(0, 14) as ar (ar.source_id ?? ar.name)}
+          <section class="sec"><h2>{$t('v2.rech.artists' as any)}</h2>
+            <!-- Une GRILLE qui va a la ligne, pas une rangee : un resultat de
+                 recherche se parcourt, il ne se feuillette pas. -->
+            <div class="agrid">
+              {#each results.artists as ar, i (cleItem(ar, i))}
                 {@render artiste(ar)}
               {/each}
             </div>
           </section>
         {/if}
-        {#if !results.albums?.length && !results.artists?.length}
-          <div class="state">Aucun résultat dans {label(active ?? '')}.</div>
+        {#if results.playlists?.length}
+          <section class="sec"><h2>{$t('v2.rech.playlists' as any)}</h2>
+            <div class="grid">{#each results.playlists as pl, i (cleItem(pl, i))}{@render tile(pl, () => playPlaylist(pl), null)}{/each}</div>
+          </section>
+        {/if}
+        {#if !aDesResultats}
+          <div class="state">{$t('v2.stream.noResultIn' as any).replace('{service}', label(active ?? ''))}</div>
+        {:else if results.has_more}
+          <!-- « Voir plus » CHARGE, il ne devoile pas : la recherche globale
+               range tout d'un coup et n'en montre qu'une part, celle-ci va
+               chercher la page suivante au service. -->
+          <button class="voirplus" onclick={chargerPlus} disabled={rechSuite}>
+            {rechSuite ? $t('v2.stream.loadingMore' as any) : $t('v2.stream.seeMore' as any)}
+          </button>
         {/if}
       {/if}
 
     {:else if paneLoading}
-      <div class="state">Chargement…</div>
+      <div class="state">{$t('v2.common.loading' as any)}</div>
 
     {:else if sub === 'editorial'}
       {#if isBc}
@@ -652,7 +780,7 @@
         {/key}
 
       {:else if catalogueEnCours}
-        <div class="state">Chargement…</div>
+        <div class="state">{$t('v2.common.loading' as any)}</div>
       {:else}
         <div class="state">{$t('v2.str.noEditorial' as any).replace('{s}', label(active ?? ''))}</div>
       {/if}
@@ -662,11 +790,10 @@
       {#if bcNeedsLink}
         <div class="notice">
           <p>{$t('v2.stream.bcNoAccount' as any)}</p>
-          <p class="sub">
-            Indiquez votre <b>nom d'utilisateur Bandcamp</b> — celui de l'adresse
-            <code>bandcamp.com/<b>votrenom</b></code>. C'est un identifiant public :
-            aucun mot de passe n'est demandé.
-          </p>
+          <!-- Le gras et le `<code>` partent avec la traduction : une phrase
+               découpée autour d'eux ne se traduit pas — chaque langue place
+               l'incise ailleurs. -->
+          <p class="sub">{$t('v2.stream.bcHowTo' as any)}</p>
           <div class="inline">
             <input class="txt" type="text" placeholder="votrenom" bind:value={bcUser} disabled={bcLinking}
               onkeydown={(e) => { if (e.key === 'Enter') linkBandcamp(); }} />
@@ -770,12 +897,12 @@
 
     {:else}
       {#if favAlbums.length}
-        <section class="sec"><h2>Albums</h2>
+        <section class="sec"><h2>{$t('v2.rech.albums' as any)}</h2>
           <div class="grid">{#each favAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
         </section>
       {/if}
       {#if favArtists.length}
-        <section class="sec"><h2>Artistes</h2>
+        <section class="sec"><h2>{$t('v2.rech.artists' as any)}</h2>
           <div class="arow">
             {#each favArtists as ar, i ((ar.source_id ?? ar.name ?? i))}
               {@render artiste(ar)}
@@ -784,7 +911,7 @@
         </section>
       {/if}
       {#if favTracks.length}
-        <section class="sec"><h2>Titres</h2>
+        <section class="sec"><h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="grid">{#each favTracks as tr, i ((tr.source_id ?? tr.id ?? i))}{@render tile(tr, () => playTrack(tr), 'track')}{/each}</div>
         </section>
       {/if}
@@ -814,7 +941,12 @@
         favoriExterne={favoriExterneService($favoriteStreamingKeys, {
           itemType: 'artist',
           service: ar?.source ?? active ?? '',
-          serviceId: String(ar?.source_id ?? ''),
+          // 🔴 `id` COMPTE ici : la recherche d'un service rend ses artistes
+          // avec `id`, pas `source_id` (mesure .18, 07/09/2026 —
+          // `{id:'4626308', name:"Somebody's Child", image_path:…}`). Avec le
+          // seul `source_id`, la clef était vide et le cœur disparaissait de
+          // tous les artistes trouvés.
+          serviceId: String(ar?.source_id ?? ar?.id ?? ''),
           title: ar?.name ?? undefined,
           coverUrl: ar?.image_path ?? ar?.picture ?? undefined,
         })}
@@ -1012,6 +1144,25 @@
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
   .arow{display:flex; gap:22px; overflow-x:auto; padding-bottom:6px; scrollbar-width:none}
+  /* La grille d'artistes des RESULTATS de recherche : elle va a la ligne.
+     `.arow` defile horizontalement et cache sa barre de defilement — parfait
+     pour une rangee editoriale de dix noms, illisible pour cinquante
+     resultats (Fabien, v0.9.140 : « artistes en 1 seule ligne, impossible de
+     tout voir »). */
+  .agrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:22px 16px;
+    justify-items:center}
+  .agrid .art{width:110px}
+  /* La liste de titres prend toute la largeur : c'est un TABLEAU en mode
+     essentiel, ses colonnes ont besoin de la place. */
+  .liste{width:100%}
+  /* « Voir plus » : une action de LISTE. Le meme dessin que dans la recherche
+     globale — c'est le meme geste, il ne doit pas se presenter autrement. */
+  .voirplus{display:block; margin:6px auto 22px; padding:9px 18px; cursor:pointer;
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
+    background:transparent; color:var(--v2-txt2); font:600 12.5px var(--v2-sans)}
+  .voirplus:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .voirplus:disabled{opacity:.55; cursor:default}
+  .voirplus:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .arow::-webkit-scrollbar{display:none}
   .art{flex:0 0 auto; width:110px; text-align:center}
   /* Carrée comme un album — voir `ArtistesV2`. */

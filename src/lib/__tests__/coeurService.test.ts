@@ -170,10 +170,18 @@ describe('L’écran Favoris montre AUSSI les favoris de service', () => {
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/^\s*(\/\/|\*).*$/gm, '');
     const cles = src.match(/\{#each v(?:Albums|Tracks|Artists) as [^}]*\}/g) ?? [];
-    expect(cles.length, 'les trois listes n’ont plus leur clé').toBe(3);
     for (const c of cles) {
       expect(c.includes('clef('), `une liste garde une clé qui vaut null deux fois : ${c}`).toBe(true);
     }
+    // 🔴 RÉORIENTÉE le 07/09/2026. La liste des TITRES est passée au rendu
+    // partagé (`ListePistesV2`) : elle n'a plus sa boucle ici. Le piège, lui,
+    // est intact — et cette garde vient justement de l'attraper, la première
+    // version de la délégation ayant perdu la clé en chemin.
+    expect(cles.length, 'une liste a perdu sa clé').toBe(2);
+    expect(
+      /<ListePistesV2[\s\S]{0,240}clef=\{\(p, i\) => clef\(p, i\)\}/.test(src),
+      'la liste déléguée doit transmettre la clé : id est nul sur toute piste de service',
+    ).toBe(true);
   });
 
   it('le retrait vise la table qui PORTE le favori', () => {
@@ -274,7 +282,10 @@ describe('Lire une PISTE de service (#720)', () => {
     // Le champ compte : `streaming_album_id` sur une piste ne résout rien, et
     // un identifiant SANS `source` fait retomber le serveur sur « reprendre la
     // lecture en cours » — le défaut relevé sur les playlists en août.
-    const bloc = /function playTrack\(t: any\)[\s\S]*?\n  \}/.exec(streaming());
+    // Le NOM du paramètre n'est pas figé ici : il a dû changer (`t` masquait
+    // le magasin de traduction `$t`), et une garde qui épingle un nom
+    // d'argument casse au premier renommage sans rien protéger de réel.
+    const bloc = /function playTrack\([^)]*\)[\s\S]*?\n  \}/.exec(streaming());
     expect(bloc, 'playTrack a disparu').not.toBeNull();
     expect(bloc![0].includes('streaming_album_id'), 'playTrack envoie encore un identifiant d’album').toBe(false);
     expect(/source: svc as any, source_id: String\(sid\)/.test(bloc![0]),
