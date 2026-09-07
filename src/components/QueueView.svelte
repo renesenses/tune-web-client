@@ -2,9 +2,10 @@
   import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs, queueTotalMs, jumpAndSync } from '../lib/stores/queue';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
-  import { currentZone, currentZoneId, zones, playAndSync, syncZone } from '../lib/stores/zones';
+  import { currentZone, currentZoneId, zones, syncZone } from '../lib/stores/zones';
   import { currentTrack, seekPositionMs, stopSeekTimer } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
+  import { lireOuAjouter } from '../lib/playback';
   import { formatTime, formatDuration, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -292,14 +293,15 @@
         moodLoading = null;
         return;
       }
-      // If queue is empty, play directly; otherwise add to queue
-      if ($queueTracks.length === 0) {
-        await playAndSync(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('queue.tracksPlaying')}`);
-      } else {
-        await api.addToQueue(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('queue.tracksAdded')}`);
-      }
+      // #528 — jouer ou ajouter se décide sur l'état RÉEL de la file, jamais
+      // sur `$queueTracks` : ce cache est vide tant que rien ne l'a hydraté et
+      // périmé dès qu'un autre client a enfilé des titres, et `POST /play`
+      // REMPLACE la file. Voir `lireOuAjouter`.
+      const decision = await lireOuAjouter(zone.id, ids);
+      const libelle = decision === 'lecture'
+        ? $t('queue.tracksPlaying')
+        : $t('queue.tracksAdded');
+      notifications.success(`${mood.label} Mix : ${ids.length} ${libelle}`);
       // Refresh queue
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
