@@ -1263,6 +1263,9 @@ export default {
   "dsp.crossfeedPresetLight": "Enyhe",
   "dsp.crossfeedPresetStandard": "Normál",
   "dsp.crossfeedPresetStrong": "Erős",
+  "dsp.crossfeedUnavailableNetwork": "Ebben a zónában hatástalan (hálózati kimenet): a crossfeed csak a szerver helyi kimenetén érvényesül.",
+  "dsp.crossfeedUnavailablePure": "Hatástalan, amíg a PURE mód aktív: a beállítás megmarad, és a PURE kikapcsolásakor újra érvényesül.",
+  "dsp.crossfeedUnavailable": "Ebben a zónában hatástalan.",
   // Bevezető
   "onboarding.welcomeTitle": "Üdvözöl a Tune Server",
   "onboarding.welcomeDesc": "A Tune a te többszobás zeneszervered. Streameld a helyi gyűjteményedet és a streamingszolgáltatásaidat minden eszközödre, kiváló minőségben.",
@@ -3473,8 +3476,6 @@ export default {
   "v2.cf.leadFront": "Ön elé",
   "v2.cf.leadB": "kerül, ahelyett hogy a fejében maradna — ezt teszi természetesen egy hangfalpár.",
   "v2.cf.noZone": "Nincs aktív zóna — válasszon zónát a crossfeed beállításához.",
-  "v2.cf.notLocalA": "A(z)",
-  "v2.cf.notLocalB": "zóna nem helyi kimenet. A crossfeed a helyi lejátszásra hat; hálózati kimeneten a beállítás hallható hatás nélkül maradhat.",
   "v2.cf.enable": "Crossfeed bekapcsolása",
   "v2.cf.perZoneA": "A zónához tartozó beállítás:",
   "v2.cf.perZoneB": ".",

@@ -10,7 +10,10 @@
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
-  import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
+  import {
+    CF_PRESETS, presetActif, reglagesCrossfeed,
+    indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
+  } from '../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import SeekBar from './SeekBar.svelte';
@@ -188,6 +191,11 @@
   let cfAmount = $state(0.3);
   let cfDelay = $state(0.3);
   let cfPorteeLive = $state<boolean | null>(null);
+  // Ce que le SERVEUR dit du crossfeed sur cette zone (`crossfeed_status`,
+  // GET/PUT /zones/{id}/dsp depuis la 0.9.132). `unavailable` verrouille le
+  // controle ; a defaut du champ, le type de sortie de la zone tranche.
+  let cfStatut = $state<api.CrossfeedStatus | null>(null);
+  let cfIndispo = $derived(indisponibiliteCrossfeed(cfStatut, $currentZone?.output_type));
   let cfTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function chargerCrossfeed() {
@@ -195,6 +203,7 @@
     try {
       const dsp = await api.getDsp(zone.id);
       const cf = dsp?.crossfeed;
+      cfStatut = dsp?.crossfeed_status ?? null;
       if (cf) {
         cfEnabled = !!cf.enabled;
         cfAmount = cf.amount ?? 0.3;
@@ -222,6 +231,7 @@
       // Le serveur dit si le reglage a atteint le flux EN COURS. Sans ca, on
       // pousse le curseur, rien ne change a l'oreille, et ca se raconte
       // ensuite comme « le crossfeed ne marche pas ».
+      cfStatut = res?.crossfeed_status ?? cfStatut;
       cfPorteeLive = res?.crossfeed_applied_live ?? null;
     } catch (e) {
       if ((e as Error)?.message !== 'premium_required') {
@@ -1605,6 +1615,7 @@
                     type="checkbox"
                     bind:checked={cfEnabled}
                     onchange={() => void enregistrerCrossfeed()}
+                    disabled={cfIndispo.indisponible}
                   />
                   <span>{cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
                 </label>
@@ -1613,6 +1624,7 @@
                     <button
                       class="cf-preset"
                       class:actif={cfEnabled && presetActif(cfAmount, cfDelay) === p.key}
+                      disabled={cfIndispo.indisponible}
                       onclick={() => appliquerPreset(p)}>{$t(p.labelKey as any)}</button
                     >
                   {/each}
@@ -1628,7 +1640,7 @@
                   step="0.01"
                   bind:value={cfAmount}
                   oninput={planifierCrossfeed}
-                  disabled={!cfEnabled}
+                  disabled={!cfEnabled || cfIndispo.indisponible}
                 />
                 <output>{cfAmount.toFixed(2)}</output>
               </label>
@@ -1642,13 +1654,19 @@
                   step="0.1"
                   bind:value={cfDelay}
                   oninput={planifierCrossfeed}
-                  disabled={!cfEnabled}
+                  disabled={!cfEnabled || cfIndispo.indisponible}
                 />
                 <output>{cfDelay.toFixed(1)} ms</output>
               </label>
 
               <p class="cf-note">{$t('dsp.crossfeedDesc')}</p>
-              {#if cfPorteeLive === false}
+              {#if cfIndispo.indisponible}
+                <!-- Le serveur (ou, a defaut, le type de sortie) dit que le
+                     crossfeed n'a AUCUN chemin sur cette zone. Promettre la
+                     piste suivante y serait faux : il ne prendra jamais
+                     (tune-server-rust#2742). -->
+                <p class="cf-note cf-note-alerte">{$t(cleIndisponibiliteCrossfeed(cfIndispo.motif) as any)}</p>
+              {:else if cfPorteeLive === false}
                 <!-- Le serveur dit que le reglage n'a pas atteint le flux en
                      cours : le taire, c'est laisser croire a une panne. -->
                 <p class="cf-note cf-note-alerte">{$t('eq.effectNextTrack')}</p>
