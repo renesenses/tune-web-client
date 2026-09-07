@@ -89,8 +89,43 @@ describe('#2742 — le verdict d’indisponibilité du crossfeed', () => {
   it('chaque motif a sa clé, et un motif inconnu ne casse pas l’écran', () => {
     expect(cleIndisponibiliteCrossfeed('non_local_output')).toBe('dsp.crossfeedUnavailableNetwork');
     expect(cleIndisponibiliteCrossfeed('pure_mode')).toBe('dsp.crossfeedUnavailablePure');
+    // LAT-F1 — une zone réseau peut désormais entendre le crossfeed, via le
+    // flux traité au fil de l'eau. Deux motifs distincts, et non deux façons
+    // de dire non : l'opt-in est un réglage que l'utilisateur change, le LPCM
+    // du lecteur ne se négocie pas. Les confondre l'enverrait modifier un
+    // réglage déjà bon.
+    expect(cleIndisponibiliteCrossfeed('network_progressive_off')).toBe(
+      'dsp.crossfeedUnavailableProgressiveOff',
+    );
+    expect(cleIndisponibiliteCrossfeed('network_renderer_no_lpcm')).toBe(
+      'dsp.crossfeedUnavailableNoLpcm',
+    );
     // Une contrainte ajoutée côté serveur ne doit pas afficher son code brut.
     expect(cleIndisponibiliteCrossfeed('contrainte_future')).toBe('dsp.crossfeedUnavailable');
+  });
+
+  it('les cinq clés existent dans les onze langues du dépôt', async () => {
+    // La porte i18n vérifie qu'aucune langue ne DIVERGE des autres ; elle ne
+    // dit pas qu'une clé rendue par ce module existe quelque part. Une faute
+    // de frappe dans le `switch` ci-dessus donnerait donc une porte verte et
+    // un écran qui affiche `dsp.crossfeedUnavailableNoLcpm` en toutes lettres.
+    const CLES = [
+      'dsp.crossfeedUnavailableNetwork',
+      'dsp.crossfeedUnavailablePure',
+      'dsp.crossfeedUnavailableProgressiveOff',
+      'dsp.crossfeedUnavailableNoLpcm',
+      'dsp.crossfeedUnavailable',
+    ];
+    const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
+    for (const langue of LANGUES) {
+      const source = readFileSync(
+        resolve(__dirname, `../locales/${langue}.ts`),
+        'utf-8',
+      );
+      for (const cle of CLES) {
+        expect(source, `${langue}.ts ne porte pas ${cle}`).toContain(`"${cle}"`);
+      }
+    }
   });
 });
 
