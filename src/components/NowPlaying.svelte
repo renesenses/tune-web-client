@@ -28,7 +28,9 @@
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum } from '../lib/stores/navigation';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist } from '../lib/stores/navigation';
+  import { destinationArtiste } from '../lib/routageArtiste';
+  import { setSearchCriteria } from '../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
   import MetadataChips from './MetadataChips.svelte';
@@ -457,37 +459,75 @@
     });
   }
 
-  async function navigateToArtist(artistId: number | undefined, artistName: string) {
+  /**
+   * Le nom d'artiste de la lecture en cours ne mène pas au même endroit selon
+   * D'OÙ vient la piste (Bertrand, 07/09/2026 : « click sur l'artiste ne
+   * renvoie pas là où il faut. Si local : page artiste. Si radio : écran
+   * recherche/résultats avec les bons paramètres »).
+   *
+   * La DÉCISION vit dans `lib/routageArtiste`, pas ici : une garde écrite
+   * contre ce composant ne pourrait que lire son texte. On n'exécute ici que
+   * ce que le module a décidé.
+   *
+   * 🔴 LES DEUX CONTRATS SONT ALIMENTÉS, comme le fait déjà `navigateToAlbum`.
+   * Cet écran est monté par les DEUX coquilles : l'ancienne lit
+   * `selectedArtist` + `libraryTab`, la nouvelle ne lit ni l'un ni l'autre —
+   * elle consomme `pendingLibraryArtist`. Poser les seuls magasins de
+   * l'ancienne, c'est le défaut que Fabien a signalé sur la v0.9.140 : le clic
+   * changeait d'écran sans rien ouvrir.
+   */
+  async function ouvrirFicheArtiste(artistId: number, artistName: string) {
     selectedAlbum.set(null);
-    if (artistId) {
-      try {
-        const [artist, albums] = await Promise.all([
-          api.getArtist(artistId).catch(() => null),
-          api.getArtistAlbums(artistId).catch(() => []),
-        ]);
-        selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
-        artistAlbums.set(albums ?? []);
-      } catch {
-        selectedArtist.set({ id: artistId, name: artistName } as any);
-      }
-      libraryTab.set('artists');
-      activeView.set('library');
-    } else if (artistName) {
-      try {
-        const results = await api.searchLibrary(artistName);
-        const match = results?.artists?.[0];
-        if (match?.id) {
-          const albums = await api.getArtistAlbums(match.id).catch(() => []);
-          selectedArtist.set(match);
-          artistAlbums.set(albums);
-          libraryTab.set('artists');
-          activeView.set('library');
-          return;
-        }
-      } catch { /* fallthrough to search */ }
-      pendingSearchQuery.set(artistName);
-      activeView.set('search');
+    try {
+      const [artist, albums] = await Promise.all([
+        api.getArtist(artistId).catch(() => null),
+        api.getArtistAlbums(artistId).catch(() => []),
+      ]);
+      selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
+      artistAlbums.set(albums ?? []);
+    } catch {
+      selectedArtist.set({ id: artistId, name: artistName } as any);
     }
+    libraryTab.set('artists');           // contrat du client ACTUEL
+    pendingLibraryArtist.set(artistId);  // contrat du NOUVEAU client
+    activeView.set('library');
+  }
+
+  /** Vers la Recherche, avec la requête ET le périmètre demandés. */
+  function ouvrirRecherche(requete: string, source: string | null) {
+    pendingSearchQuery.set(requete);                       // contrat du client ACTUEL
+    setSearchCriteria({ q: requete, source: source ?? null }); // contrat du NOUVEAU
+    activeView.set('search');
+  }
+
+  async function navigateToArtist(artistId: number | undefined, artistName: string) {
+    // `artistId` prime quand l'appelant en tient un (les crédits en ont un que
+    // la piste n'a pas) ; sinon le module tranche sur la piste écoutée.
+    const dest = artistId
+      ? ({ type: 'artiste', artistId } as const)
+      : destinationArtiste({
+          source: displayTrack?.source ?? null,
+          artist_id: artistIdOf(displayTrack) ?? null,
+          artist_name: artistName,
+        });
+    if (!dest) return;
+
+    if (dest.type === 'artiste') { await ouvrirFicheArtiste(dest.artistId, artistName); return; }
+
+    if (dest.type === 'artiste-par-nom') {
+      // Une piste locale d'un serveur antérieur à la 0.9.102 n'a pas
+      // d'`artist_id` : l'artiste EST en bibliothèque, il ne manque que son
+      // numéro. On le résout, et on ne retombe sur la recherche que s'il est
+      // introuvable.
+      try {
+        const match = (await api.searchLibrary(dest.nom))?.artists?.[0];
+        if (match?.id) { await ouvrirFicheArtiste(match.id, match.name ?? dest.nom); return; }
+      } catch { /* on retombe sur la recherche */ }
+      ouvrirRecherche(dest.nom, null);
+      return;
+    }
+
+    ouvrirRecherche(dest.requete, dest.source);
   }
 
   async function navigateToAlbum(albumId: number | undefined, albumTitle?: string) {
@@ -523,8 +563,10 @@
           return;
         }
       } catch { /* fallthrough to search */ }
-      pendingSearchQuery.set(albumTitle);
-      activeView.set('search');
+      // Même repli que pour l'artiste : `pendingSearchQuery` n'est lu QUE par
+      // l'écran de recherche du client actuel. Sans `setSearchCriteria`, le
+      // nouveau client atterrissait sur une recherche VIDE (radio, streaming).
+      ouvrirRecherche(albumTitle, null);
     }
   }
 

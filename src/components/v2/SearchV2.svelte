@@ -15,6 +15,7 @@
   import * as api from '../../lib/api';
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
+  import { perimetreApresRequete } from '../../lib/perimetreRecherche';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
@@ -299,8 +300,18 @@
       (a[0] === 'local' ? -1 : b[0] === 'local' ? 1 : a[0].localeCompare(b[0])));
   });
 
-  /** Vide = tout le périmètre. On ne coche donc rien au départ. */
-  let sourcesActives = $state(new Set<string>());
+  /**
+   * Vide = tout le périmètre. On ne coche donc rien au départ — SAUF quand
+   * l'écran d'où l'on vient a demandé une source.
+   *
+   * Bertrand, 07/09/2026 : cliquer l'artiste d'une piste de service depuis la
+   * lecture en cours doit ouvrir la recherche SUR ce service. Lu au montage,
+   * comme `q` juste au-dessus, et pour la même raison : dans un effet, la
+   * remise à zéro ci-dessous le reprendrait aussitôt.
+   */
+  let sourcesActives = $state(
+    get(currentSearchCriteria)?.source ? new Set([get(currentSearchCriteria)!.source!]) : new Set<string>(),
+  );
   function basculerSource(cle: string) {
     const s2 = new Set(sourcesActives);
     if (s2.has(cle)) s2.delete(cle); else s2.add(cle);
@@ -308,7 +319,17 @@
   }
   // Changer de requête remet le périmètre à zéro : un filtre hérité d'une
   // recherche précédente masquerait des résultats sans qu'on sache pourquoi.
-  $effect(() => { void q; sourcesActives = new Set(); });
+  //
+  // 🔴 PAS au premier passage. L'effet s'exécute aussi au montage, et il
+  // effaçait donc la source demandée par l'écran appelant avant même le
+  // premier rendu — le périmètre naissait vide, le geste paraissait sans
+  // effet. On ne remet à zéro qu'à un CHANGEMENT réel de requête.
+  let requetePrecedente = $state<string | null>(null);
+  $effect(() => {
+    const actuelle = q;
+    sourcesActives = perimetreApresRequete(requetePrecedente, actuelle, sourcesActives);
+    requetePrecedente = actuelle;
+  });
 
   const dansLePerimetre = (x: any) =>
     sourcesActives.size === 0 || sourcesActives.has(x?.source ?? 'local');
