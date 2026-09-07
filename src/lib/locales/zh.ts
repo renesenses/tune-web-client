@@ -1707,7 +1707,7 @@ export default {
   "settings.scanReportErrorDirs": "遍历这些文件夹时出错 — 其曲目已保留",
   "settings.scanReportFailedPaths": "个出错文件",
   "settings.tabGeneral": "通用",
-  "settings.tabClap": "CLAP",
+  "settings.tabClap": "声学分析",
   "settings.tabDevices": "设备",
   "devices.intro": "在此配置每个输出设备：识别信息（品牌和型号）、电平和格式。",
   "devices.none": "没有区域连接到输出设备。",
