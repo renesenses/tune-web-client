@@ -12,8 +12,10 @@
     CF_MIN_DELAY,
     CF_PRESETS,
     reglagesCrossfeed,
+    indisponibiliteCrossfeed,
+    cleIndisponibiliteCrossfeed,
   } from '../lib/crossfeed';
-  import type { EqBand, EqSettings, CrossfeedSettings } from '../lib/api';
+  import type { EqBand, EqSettings, CrossfeedSettings, CrossfeedStatus } from '../lib/api';
   import { NEUTRAL_PARAMETRIC_BAND, resetParametricBands } from '../lib/eqReset';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
@@ -633,6 +635,11 @@
   let cfEnabled = $state(false);
   let cfAmount = $state(0.30);
   let cfDelay = $state(0.30);
+  // Ce que le SERVEUR dit du crossfeed sur cette zone (`crossfeed_status`,
+  // GET/PUT /zones/{id}/dsp depuis la 0.9.132). `unavailable` verrouille le
+  // contrôle ; à défaut du champ, le type de sortie de la zone tranche.
+  let cfStatut = $state<CrossfeedStatus | null>(null);
+  let cfIndispo = $derived(indisponibiliteCrossfeed(cfStatut, $currentZone?.output_type));
 
   // amount/delay per preset. Same save path as the EQ (debounced PUT), never
   // one request per slider tick.
@@ -661,7 +668,11 @@
       // pas — zone réseau, mode PURE — et qu'on écoute, on bouge le curseur
       // et rien ne change. C'est le silence qui se raconte ensuite comme
       // « le crossfeed ne marche pas ».
-      signalerPortee(res?.crossfeed_applied_live);
+      cfStatut = res?.crossfeed_status ?? cfStatut;
+      // Là où la contrainte est structurelle, « prendra effet à la piste
+      // suivante » est faux : le serveur vient de dire « jamais ». Le message
+      // permanent affiché sous le titre le dit à la place (#2742).
+      if (!cfIndispo.indisponible) signalerPortee(res?.crossfeed_applied_live);
     } catch (e) {
       // fetchJSON already surfaced the Premium popup on a 402 — don't stack.
       if ((e as Error)?.message !== 'premium_required') {
@@ -769,6 +780,7 @@
     try {
       const dsp = await api.getDsp(zoneId);
       const cf = dsp?.crossfeed;
+      cfStatut = dsp?.crossfeed_status ?? null;
       if (cf) {
         cfEnabled = !!cf.enabled;
         if (typeof cf.amount === 'number') cfAmount = cf.amount;
@@ -1124,6 +1136,7 @@
           class:active={cfEnabled}
           onclick={toggleCrossfeed}
           aria-pressed={cfEnabled}
+          disabled={cfIndispo.indisponible}
         >
           {cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}
         </button>
@@ -1131,11 +1144,18 @@
 
       <p class="crossfeed-desc">{$t('dsp.crossfeedDesc')}</p>
 
+      {#if cfIndispo.indisponible}
+        <!-- Le serveur dit que le crossfeed n'a aucun chemin sur cette zone :
+             le contrôle est verrouillé et la raison est écrite (#2742). -->
+        <p class="crossfeed-desc crossfeed-indispo">{$t(cleIndisponibiliteCrossfeed(cfIndispo.motif) as any)}</p>
+      {/if}
+
       <div class="crossfeed-presets">
         {#each CF_PRESETS as preset}
           <button
             class="crossfeed-preset-btn"
             class:active={cfActivePreset === preset.key}
+            disabled={cfIndispo.indisponible}
             onclick={() => applyCrossfeedPreset(preset.amount, preset.delay)}
           >
             {$t(preset.labelKey)}
@@ -1143,7 +1163,7 @@
         {/each}
       </div>
 
-      <div class="crossfeed-sliders" class:disabled={!cfEnabled}>
+      <div class="crossfeed-sliders" class:disabled={!cfEnabled || cfIndispo.indisponible}>
         <div class="crossfeed-slider">
           <div class="crossfeed-slider-header">
             <span class="crossfeed-slider-label">{$t('dsp.crossfeedAmount')}</span>
@@ -1156,7 +1176,7 @@
             step="0.01"
             value={cfAmount}
             oninput={onCrossfeedAmount}
-            disabled={!cfEnabled}
+            disabled={!cfEnabled || cfIndispo.indisponible}
           />
         </div>
 
@@ -1172,7 +1192,7 @@
             step="0.05"
             value={cfDelay}
             oninput={onCrossfeedDelay}
-            disabled={!cfEnabled}
+            disabled={!cfEnabled || cfIndispo.indisponible}
           />
         </div>
       </div>
@@ -1883,6 +1903,14 @@
     background: var(--tune-accent, #6366f1);
     color: white;
     border-color: var(--tune-accent, #6366f1);
+  }
+  .crossfeed-indispo {
+    color: var(--tune-accent, #6366f1);
+  }
+  .crossfeed-toggle:disabled,
+  .crossfeed-preset-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
   .crossfeed-desc {
     margin: 0 0 1rem;

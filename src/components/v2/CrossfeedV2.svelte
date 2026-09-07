@@ -23,6 +23,7 @@
   import {
     CF_PRESETS, CF_MAX_AMOUNT, CF_MAX_DELAY,
     reglagesCrossfeed, presetActif,
+    indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../../lib/crossfeed';
   import '../../styles/tune-v2.css';
 
@@ -34,9 +35,13 @@
 
   const zoneName = $derived($currentZone?.name ?? null);
   const active = $derived(presetActif(amount, delay));
-  /** Le crossfeed ne s'applique qu'à une sortie locale : sur une zone réseau
-   *  le curseur bougerait sans que rien ne change à l'oreille. On le dit. */
-  const localOutput = $derived(($currentZone?.output_type ?? 'local') === 'local');
+  /** Ce que le SERVEUR dit du crossfeed sur cette zone (`crossfeed_status`,
+   *  GET/PUT /zones/{id}/dsp depuis la 0.9.132) : `unavailable` VERROUILLE le
+   *  contrôle, case cochée ou non. À défaut du champ (serveur antérieur), le
+   *  type de sortie tranche : hors sortie locale, le crossfeed n'a aucun
+   *  chemin de code (tune-server-rust#2742). */
+  let status = $state<api.CrossfeedStatus | null>(null);
+  const indispo = $derived(indisponibiliteCrossfeed(status, $currentZone?.output_type));
 
   $effect(() => {
     const zid = $currentZoneId;
@@ -45,6 +50,7 @@
     api.getDsp(zid)
       .then((d) => {
         const cf = d?.crossfeed;
+        status = d?.crossfeed_status ?? null;
         if (cf) { enabled = !!cf.enabled; amount = cf.amount ?? 0.3; delay = cf.delay_ms ?? 0.5; }
         error = null;
       })
@@ -81,7 +87,10 @@
     amount = crossfeed.amount; delay = crossfeed.delay_ms;
     try {
       const res: any = await api.setDsp(zid, { crossfeed });
-      reportReach(res?.crossfeed_applied_live);
+      status = res?.crossfeed_status ?? status;
+      // « Prendra effet à la piste suivante » serait faux là où le serveur
+      // vient de dire « jamais » (tune-server-rust#2742).
+      if (!indispo.indisponible) reportReach(res?.crossfeed_applied_live);
       error = null;
     } catch (e: any) {
       if (e?.message !== 'premium_required') error = $t('v2.cf.errSave' as any);
@@ -115,9 +124,9 @@
     {:else if $currentZoneId == null}
       <div class="state">{$t('v2.cf.noZone' as any)}</div>
     {:else}
-      {#if !localOutput}
+      {#if indispo.indisponible}
         <div class="warn">
-          {$t('v2.cf.notLocalA' as any)} <b>{zoneName}</b> {$t('v2.cf.notLocalB' as any)}
+          {#if zoneName}<b>{zoneName}</b> — {/if}{$t(cleIndisponibiliteCrossfeed(indispo.motif) as any)}
         </div>
       {/if}
 
@@ -128,14 +137,14 @@
             {#if zoneName}<span class="hint">{$t('v2.cf.perZoneA' as any)} <b>{zoneName}</b>{$t('v2.cf.perZoneB' as any)}</span>{/if}
           </div>
           <label class="sw">
-            <input type="checkbox" checked={enabled} onchange={toggle} />
+            <input type="checkbox" checked={enabled} onchange={toggle} disabled={indispo.indisponible} />
             <span class="slider"></span>
           </label>
         </div>
 
         <div class="presets" class:off={!enabled}>
           {#each CF_PRESETS as p (p.key)}
-            <button class:on={active === p.key} disabled={!enabled} onclick={() => applyPreset(p)}>
+            <button class:on={active === p.key} disabled={!enabled || indispo.indisponible} onclick={() => applyPreset(p)}>
               {$t(p.labelKey as any)}
             </button>
           {/each}
@@ -148,7 +157,7 @@
           </div>
           <div class="sl">
             <input type="range" min="0" max={CF_MAX_AMOUNT} step="0.01" bind:value={amount}
-              disabled={!enabled} oninput={queueSave} aria-label={$t('v2.cf.amountAria' as any)} />
+              disabled={!enabled || indispo.indisponible} oninput={queueSave} aria-label={$t('v2.cf.amountAria' as any)} />
             <span class="val">{Math.round(amount * 100)} %</span>
           </div>
         </div>
@@ -160,7 +169,7 @@
           </div>
           <div class="sl">
             <input type="range" min="0" max={CF_MAX_DELAY} step="0.1" bind:value={delay}
-              disabled={!enabled} oninput={queueSave} aria-label={$t('v2.cf.delayAria' as any)} />
+              disabled={!enabled || indispo.indisponible} oninput={queueSave} aria-label={$t('v2.cf.delayAria' as any)} />
             <span class="val">{delay.toFixed(1)} ms</span>
           </div>
         </div>

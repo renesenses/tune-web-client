@@ -1316,6 +1316,9 @@ export default {
   'dsp.crossfeedPresetLight': 'Léger',
   'dsp.crossfeedPresetStandard': 'Standard',
   'dsp.crossfeedPresetStrong': 'Fort',
+  "dsp.crossfeedUnavailableNetwork": "Sans effet sur cette zone (sortie réseau) : le crossfeed n'est appliqué que par une sortie locale du serveur.",
+  "dsp.crossfeedUnavailablePure": "Sans effet tant que le mode PURE est actif : le réglage est conservé et reprendra dès sa désactivation.",
+  "dsp.crossfeedUnavailable": "Sans effet sur cette zone.",
 
   // Onboarding
   'onboarding.welcomeTitle': 'Bienvenue sur Tune Server',
@@ -3535,8 +3538,6 @@ export default {
   "v2.cf.leadFront": "devant vous",
   "v2.cf.leadB": "au lieu de rester dans votre tête — ce que fait naturellement une paire d'enceintes.",
   "v2.cf.noZone": "Aucune zone active — sélectionnez une zone pour régler son crossfeed.",
-  "v2.cf.notLocalA": "La zone",
-  "v2.cf.notLocalB": "n'est pas une sortie locale. Le crossfeed s'applique au rendu local ; sur une sortie réseau, le réglage peut rester sans effet audible.",
   "v2.cf.enable": "Activer le crossfeed",
   "v2.cf.perZoneA": "Réglage propre à la zone",
   "v2.cf.perZoneB": ".",
