@@ -66,4 +66,14 @@ describe('fetchJSON with an empty body', () => {
     vi.stubGlobal('fetch', respond('', { status: 400 }));
     await expect(fetchJSON('/api/v1/anything')).rejects.toThrow();
   });
+
+  it('surfaces AppError.error instead of a naked 400 Bad Request', async () => {
+    vi.stubGlobal(
+      'fetch',
+      respond('{"error":"no audio files found in sources"}', { status: 400 }),
+    );
+    await expect(fetchJSON('/api/v1/converter/start', { method: 'POST' })).rejects.toThrow(
+      'no audio files found in sources',
+    );
+  });
 });
