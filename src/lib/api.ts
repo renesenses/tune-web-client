@@ -285,6 +285,25 @@ function erreurSentinelle(message: string, status: number, code?: string): ApiEr
   return err;
 }
 
+/**
+ * Le `code` stable porte par un refus 402, ou `null`.
+ *
+ * Depuis #2392/#2419 le serveur nomme ses refus par un TERME, `message`
+ * n'etant qu'un repli : c'est ce terme qui permet a l'interface de porter sa
+ * propre traduction. Le lire coute une lecture du corps — la seule autorisee,
+ * un `Response` ne se lit qu'une fois — et un corps illisible n'est jamais une
+ * raison de perdre le refus : on retombe sur le message generique.
+ */
+async function codeDuRefus(response: Response): Promise<Refus | null> {
+  try {
+    return (await response.json()) as Refus;
+  } catch {
+    return null;
+  }
+}
+
+type Refus = { code?: string; zone_limit?: number; zones_actives?: number };
+
 export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   let response: Response;
   try {
@@ -310,12 +329,28 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       clearToken();
       throw erreurSentinelle('Session expired', 401);
     }
+    // Ni le message du serveur ni le repli ne parlaient la langue de
+    // l'interface : `premium_guard.rs` compose le sien avec
+    // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
+    // en anglais — et le repli etait du francais code en dur, montre tel
+    // quel a un anglophone. Les deux sont le meme defaut (#2419).
+    //
+    // Depuis #3672, tous les 402 ne disent plus la meme chose. Le plafond de
+    // zones du palier gratuit n'est PAS une fonction payante : l'utilisateur a
+    // simplement consomme ses zones, et aucun protocole (DLNA, AirPlay 2,
+    // BluOS, Chromecast, OpenHome) n'est reserve au Premium. Servir
+    // « Cette fonctionnalite fait partie de Tune Premium » a quelqu'un qui
+    // vient de cliquer sur son enceinte BluOS lui fait conclure l'inverse —
+    // c'est exactement ce qu'a ecrit Claudio Osorio le 08/09/2026. Le serveur
+    // distingue desormais les deux par un `code` stable ; l'interface porte sa
+    // propre phrase pour chacun.
     if (response.status === 402) {
-      // Ni le message du serveur ni le repli ne parlaient la langue de
-      // l'interface : `premium_guard.rs` compose le sien avec
-      // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
-      // en anglais — et le repli etait du francais code en dur, montre tel
-      // quel a un anglophone. Les deux sont le meme defaut (#2419).
+      const refus = await codeDuRefus(response);
+      if (refus?.code === 'free_zone_cap_reached') {
+        const n = String(refus.zone_limit ?? '');
+        notifications.error(get(t)('zone.freeCapReached').replace('{n}', n));
+        throw erreurSentinelle('premium_required', 402, refus.code);
+      }
       notifications.error(get(t)('premium.required'));
       throw erreurSentinelle('premium_required', 402, 'premium_required');
     }
