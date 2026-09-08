@@ -150,9 +150,10 @@
       if (genre !== (track.genre ?? '')) data.genre = genre || undefined;
       if (year !== (track.year?.toString() ?? '')) data.year = year || undefined;
 
+      let quelqueChoseAChange = false;
       if (Object.keys(data).length > 0) {
-        const updated = await api.updateTrack(track.id, data);
-        onSaved?.(updated);
+        await api.updateTrack(track.id, data);
+        quelqueChoseAChange = true;
       }
 
       // Save extended metadata (only changed fields)
@@ -168,6 +169,32 @@
       }
       if (Object.keys(extChanged).length > 0) {
         await api.updateTrackExtendedMetadata(track.id, extChanged);
+        quelqueChoseAChange = true;
+      }
+
+      // On RELIT la piste plutôt que de croire la réponse de l'écriture.
+      //
+      // `PUT /library/tracks/{id}` — comme `PATCH /metadata/tracks/{id}` et
+      // `POST /metadata/tracks/{id}/edit`, servis par le même gestionnaire —
+      // rend `{ "status": "ok", "track_id": <id> }`. Le client la déclarait
+      // `Track` et `LibraryView.handleTrackSaved` appariait sa liste sur
+      // `updated.id` : `undefined` n'égale l'`id` d'aucune piste, les deux
+      // `map` recopiaient la liste à l'identique, et la ligne que l'on venait
+      // de corriger gardait son ancien affichage jusqu'au rechargement de
+      // l'écran (#3638).
+      //
+      // La relecture ferme aussi deux trous que la réponse d'écriture ne
+      // pouvait pas combler : les métadonnées étendues, enregistrées par une
+      // AUTRE route et après celle-ci, et tout champ recalculé par le serveur
+      // au moment de réécrire les balises.
+      if (quelqueChoseAChange && onSaved) {
+        try {
+          onSaved(await api.getTrack(track.id));
+        } catch (e) {
+          // L'enregistrement, lui, a réussi : un rafraîchissement manqué ne
+          // doit pas s'annoncer comme un échec de sauvegarde.
+          console.error('Reload track error:', e);
+        }
       }
 
       success = true;
