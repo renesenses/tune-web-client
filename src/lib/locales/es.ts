@@ -4221,6 +4221,20 @@ export default {
   "v2.hint.tracksAnalysed": "{n} pistas analizadas. El avance se sigue en **{tab}**.",
   "v2.set.browserZoneExists": "Esa zona ya existe: «{nom}» es ahora la zona activa.",
   "v2.set.browserZoneDuplicates": "Ya existen {n} zonas de navegador. Son intercambiables: basta con una.",
+  "v2.set.peakMeter": "Medidor de picos",
+  "v2.set.peakMeterHint": "Solo visualización: la señal no cambia. La barra de reproducción muestra solo las lámparas; los dos gráficos de barras son demasiado anchos.",
+  "v2.set.peakOff": "Ninguno",
+  "v2.set.peakLamps": "Lámparas",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "La pantalla con la que se abre Tune. Nada más cambia.",
+  "v2.hint.defaultZone": "La zona seleccionada al abrir, cuando no había ninguna. Una pista lanzada sin pensarlo va allí.",
+  "v2.hint.volumeDisplay": "Cómo se escribe el volumen. Los decibelios indican la ganancia real; el porcentaje es una escala de visualización, no una medida.",
+  "v2.hint.ingestMode": "🔴 «Mover» quita el archivo de su ubicación original. «Copiar» lo deja allí y ocupa el doble de espacio.",
+  "v2.hint.audioBackend": "El controlador por el que sale el sonido. ASIO necesita un controlador del fabricante; sin él, la salida permanece muda.",
+  "v2.hint.wasapiMode": "En modo exclusivo, Tune toma la tarjeta de sonido para sí: el flujo sale bit-perfect, pero las demás aplicaciones enmudecen.",
+  "v2.hint.replayGainPreamp": "Un desplazamiento aplicado además del ReplayGain. Subir el nivel acerca los picos a la saturación: para eso sirve el antisaturación.",
+  "v2.hint.replayGainPreventClipping": "Baja la ganancia lo justo para que ningún pico se pase. Sin él, un preamplificador positivo puede saturar una pista ya alta.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

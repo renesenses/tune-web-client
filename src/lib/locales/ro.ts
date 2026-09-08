@@ -4221,6 +4221,20 @@ export default {
   "v2.hint.tracksAnalysed": "{n} piese analizate. Progresul se urmărește în **{tab}**.",
   "v2.set.browserZoneExists": "Această zonă există deja: „{nom}” este acum zona activă.",
   "v2.set.browserZoneDuplicates": "Există deja {n} zone de browser. Sunt interschimbabile — una singură este de ajuns.",
+  "v2.set.peakMeter": "Indicator de vârf",
+  "v2.set.peakMeterHint": "Doar afișare — semnalul nu se schimbă. Bara de redare arată doar lămpile: cele două bargrafuri sunt prea late.",
+  "v2.set.peakOff": "Niciunul",
+  "v2.set.peakLamps": "Lămpi",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "Ecranul cu care se deschide Tune. Nimic altceva nu se schimbă.",
+  "v2.hint.defaultZone": "Zona selectată la deschidere, când nu era niciuna. O piesă pornită fără să te gândești ajunge acolo.",
+  "v2.hint.volumeDisplay": "Cum se scrie volumul. Decibelii spun câștigul real; procentul este o scară de afișare, nu o măsurătoare.",
+  "v2.hint.ingestMode": "🔴 „Mută” scoate fișierul din locul lui de origine. „Copiază” îl lasă acolo și ocupă de două ori spațiul.",
+  "v2.hint.audioBackend": "Driverul prin care iese sunetul. ASIO cere un driver furnizat de producător; fără el, ieșirea rămâne mută.",
+  "v2.hint.wasapiMode": "În mod exclusiv, Tune ia placa de sunet doar pentru el: fluxul iese bit-perfect, dar celelalte aplicații amuțesc.",
+  "v2.hint.replayGainPreamp": "Un decalaj aplicat peste ReplayGain. Creșterea nivelului apropie vârfurile de saturație — la asta servește protecția la tăiere.",
+  "v2.hint.replayGainPreventClipping": "Coboară câștigul exact atât cât nicio vârf să nu depășească. Fără el, un preamplificator pozitiv poate satura o piesă deja tare.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -4179,6 +4179,20 @@ export default {
   "v2.hint.tracksAnalysed": "{n} szám elemezve. A haladás itt követhető: **{tab}**.",
   "v2.set.browserZoneExists": "Ez a zóna már létezik: „{nom}” mostantól az aktív zóna.",
   "v2.set.browserZoneDuplicates": "Már {n} böngészőzóna létezik. Egymással felcserélhetők — egy is elég.",
+  "v2.set.peakMeter": "Csúcsszintmérő",
+  "v2.set.peakMeterHint": "Csak megjelenítés — a jel nem változik. A lejátszássáv csak a lámpákat mutatja: a két oszlopdiagram túl széles hozzá.",
+  "v2.set.peakOff": "Nincs",
+  "v2.set.peakLamps": "Lámpák",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "Az a képernyő, amellyel a Tune indul. Semmi más nem változik.",
+  "v2.hint.defaultZone": "Az indításkor kiválasztott zóna, ha egyik sem volt az. Egy meggondolatlanul elindított szám oda megy.",
+  "v2.hint.volumeDisplay": "Hogyan írjuk ki a hangerőt. A decibel a valódi erősítést mondja meg; a százalék csak megjelenítési skála, nem mérés.",
+  "v2.hint.ingestMode": "🔴 Az „Áthelyezés” elviszi a fájlt az eredeti helyéről. A „Másolás” ott hagyja, és kétszeres helyet foglal.",
+  "v2.hint.audioBackend": "Az illesztőprogram, amelyen a hang kimegy. Az ASIO a gyártó illesztőprogramját igényli; enélkül a kimenet néma marad.",
+  "v2.hint.wasapiMode": "Kizárólagos módban a Tune egyedül veszi birtokba a hangkártyát: a jel bit-perfect módon megy ki, de a többi alkalmazás elnémul.",
+  "v2.hint.replayGainPreamp": "A ReplayGain fölé alkalmazott eltolás. A szint emelése közelebb viszi a csúcsokat a torzításhoz — erre való a torzításvédelem.",
+  "v2.hint.replayGainPreventClipping": "Épp annyival csökkenti az erősítést, hogy egyetlen csúcs se lépje túl. Nélküle egy pozitív előerősítés torzíthat egy amúgy is hangos számot.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

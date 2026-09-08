@@ -4221,6 +4221,20 @@ export default {
   "v2.hint.tracksAnalysed": "{n} brani analizzati. L'avanzamento si segue in **{tab}**.",
   "v2.set.browserZoneExists": "Questa zona esiste già: «{nom}» è ora la zona attiva.",
   "v2.set.browserZoneDuplicates": "Esistono già {n} zone browser. Sono intercambiabili — ne basta una.",
+  "v2.set.peakMeter": "Misuratore di picco",
+  "v2.set.peakMeterHint": "Solo visualizzazione — il segnale non cambia. La barra di riproduzione mostra solo le lampade: i due bargraph vi sono troppo larghi.",
+  "v2.set.peakOff": "Nessuno",
+  "v2.set.peakLamps": "Lampade",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "La schermata con cui Tune si apre. Nient'altro cambia.",
+  "v2.hint.defaultZone": "La zona selezionata all'apertura, quando nessuna lo era. Un brano avviato senza pensarci finisce lì.",
+  "v2.hint.volumeDisplay": "Come si scrive il volume. I decibel dicono il guadagno reale; la percentuale è una scala di visualizzazione, non una misura.",
+  "v2.hint.ingestMode": "🔴 «Sposta» toglie il file dalla sua posizione d'origine. «Copia» lo lascia lì e occupa il doppio dello spazio.",
+  "v2.hint.audioBackend": "Il driver attraverso cui esce il suono. ASIO richiede un driver fornito dal costruttore; senza, l'uscita resta muta.",
+  "v2.hint.wasapiMode": "In modalità esclusiva Tune prende per sé la scheda audio: il flusso esce bit-perfect, ma le altre applicazioni ammutoliscono.",
+  "v2.hint.replayGainPreamp": "Uno scostamento applicato oltre al ReplayGain. Alzare il livello avvicina i picchi alla saturazione — è a questo che serve l'anti-clipping.",
+  "v2.hint.replayGainPreventClipping": "Abbassa il guadagno quel tanto che basta perché nessun picco superi. Senza, un preamplificatore positivo può saturare un brano già forte.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

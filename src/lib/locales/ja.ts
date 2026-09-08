@@ -4221,6 +4221,20 @@ export default {
   "v2.hint.tracksAnalysed": "{n} 曲を解析しました。進捗は **{tab}** で確認できます。",
   "v2.set.browserZoneExists": "このゾーンはすでにあります。「{nom}」を有効なゾーンにしました。",
   "v2.set.browserZoneDuplicates": "ブラウザーのゾーンがすでに {n} 個あります。どれも同じ働きで、1 つで足ります。",
+  "v2.set.peakMeter": "ピークメーター",
+  "v2.set.peakMeterHint": "表示のみで、音は変わりません。再生バーにはランプだけを表示します。バーグラフは幅が足りません。",
+  "v2.set.peakOff": "なし",
+  "v2.set.peakLamps": "ランプ",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "Tune を開いたときに表示する画面です。ほかは何も変わりません。",
+  "v2.hint.defaultZone": "起動時に選ばれるゾーンです（何も選ばれていない場合）。何気なく再生した曲はここに流れます。",
+  "v2.hint.volumeDisplay": "音量の表記です。デシベルは実際のゲインを示します。パーセントは表示用の目盛りで、測定値ではありません。",
+  "v2.hint.ingestMode": "🔴「移動」は元の場所からファイルを取り除きます。「コピー」は元の場所に残し、容量を二倍使います。",
+  "v2.hint.audioBackend": "音が出ていくドライバーです。ASIO はメーカー提供のドライバーが必要で、なければ出力は無音のままです。",
+  "v2.hint.wasapiMode": "排他モードでは Tune がサウンドカードを占有します。信号はビットパーフェクトで出ますが、ほかのアプリは無音になります。",
+  "v2.hint.replayGainPreamp": "ReplayGain に加えて適用されるオフセットです。レベルを上げるとピークが飽和に近づきます。クリップ防止はそのためにあります。",
+  "v2.hint.replayGainPreventClipping": "どのピークも超えない程度にゲインを下げます。これがないと、正のプリアンプ値は元から大きい曲を歪ませます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
