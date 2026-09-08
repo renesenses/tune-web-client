@@ -27,6 +27,7 @@
    */
   import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
+  import { corpsVersionLocale, corpsVersionService, type VersionService } from '../../lib/versionsPiste';
   import { t } from '../../lib/i18n';
   import { formatTime } from '../../lib/utils';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -63,22 +64,33 @@
 
   function lireLocale(v: { track_id: number | null }) {
     const zid = $currentZoneId;
-    if (zid == null || v.track_id == null) return;
-    playAndSync(zid, { track_id: v.track_id } as any)
+    const corps = corpsVersionLocale(v);
+    if (zid == null || !corps) return;
+    playAndSync(zid, corps as any)
       .then(onClose)
       .catch(() => notifications.error($t('v2.pa.playError' as any)));
   }
 
-  /** Une version de SERVICE : on ouvre son album là où il vit. */
-  function ouvrirFlux(v: { service: string; album_id: string | null; source_id: string | null }) {
+  /**
+   * Une version de SERVICE : on lit LA CHANSON, pas son album.
+   *
+   * Bertrand, 07/09/2026 : « Autres versions : le click sur la cover ne doit
+   * pas lancer l'album mais la chanson ! ». C'était le cas — la première
+   * version envoyait `streaming_album_id` dès qu'un album était connu, et
+   * `source_id` (la PISTE chez le service) ne servait que de repli. On
+   * demandait une autre version d'un morceau et on obtenait un disque entier,
+   * qui ne commençait même pas par lui.
+   *
+   * L'ordre est donc inversé : la paire `source` + `source_id` d'abord — le
+   * chemin de `corpsDeLecture` pour toute piste distante —, et l'album
+   * seulement quand le service ne nomme pas la piste. Les métadonnées
+   * accompagnent la paire, sans quoi la barre de lecture n'aurait ni titre ni
+   * pochette le temps que le service réponde.
+   */
+  function lireFlux(v: VersionService) {
     const zid = $currentZoneId;
-    if (zid == null) return;
-    const corps = v.album_id
-      ? { streaming_album_id: String(v.album_id), source: v.service }
-      : v.source_id
-        ? { source: v.service, source_id: String(v.source_id) }
-        : null;
-    if (!corps) return;
+    const corps = corpsVersionService(v);
+    if (zid == null || !corps) return;
     playAndSync(zid, corps as any)
       .then(onClose)
       .catch(() => notifications.error($t('v2.pa.playError' as any)));
@@ -132,10 +144,10 @@
           </div>
         {/each}
         {#each flux as v, i ((v.service ?? '') + ':' + (v.source_id ?? v.album_id ?? `s${i}`))}
-          {@const destination = v.album_id ?? v.source_id}
+          {@const destination = v.source_id ?? v.album_id}
           <div class="tuile" class:inerte={!destination}>
-            <button class="cv" onclick={() => ouvrirFlux(v)} disabled={!destination}
-              title={v.album_title ?? v.title}>
+            <button class="cv" onclick={() => lireFlux(v)} disabled={!destination}
+              title={$t('common.play' as any)}>
               <AlbumArt coverPath={v.cover_path} size={48} alt={v.album_title ?? v.title} />
             </button>
             <span class="txt">

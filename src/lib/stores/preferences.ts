@@ -8,6 +8,7 @@ import {
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
+import { STYLE_CRETE_DEFAUT, type StyleCreteMetre } from '../peakMetre';
 export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings';
 
 /** Layout mode for the Oxygen library view. */
@@ -90,6 +91,17 @@ export interface Preferences {
   albumSortOrder: 'asc' | 'desc';
   /** Densité de la grille d'albums — voir AlbumGridDensity. */
   albumGridDensity: AlbumGridDensity;
+  /**
+   * Le crête-mètre affiché — #452, spécifié par Xavijol.
+   *
+   * AFFICHAGE seulement : rien ici ne touche à l'audio. `off` n'affiche rien,
+   * `lamps` deux témoins compacts, `dat` le bargraphe VFD type Sony DAT
+   * PCM-7030, `iec` le même format à l'échelle IEC 268-18.
+   *
+   * La barre de lecture ne montre JAMAIS `dat` ni `iec` — trop larges — mais
+   * elle honore l'extinction. Voir `lib/peakMetre.styleSurLaBarre`.
+   */
+  peakMeterStyle: StyleCreteMetre;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -166,6 +178,7 @@ const defaults: Preferences = {
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
   v2CollectionsMosaique: true,
+  peakMeterStyle: STYLE_CRETE_DEFAUT,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
   // Ne s'applique qu'aux installations SANS niveau enregistre : un choix

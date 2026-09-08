@@ -463,7 +463,7 @@
   <header class="top">
     <div>
       <div class="eyebrow">{$t('v2.fav.eyebrow' as any)}</div>
-      <h1>Favoris</h1>
+      <h1>{$t('nav.favorites' as any)}</h1>
     </div>
     <nav class="tabs">
       {#each TABS as t (t.id)}

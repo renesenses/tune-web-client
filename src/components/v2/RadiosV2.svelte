@@ -154,7 +154,7 @@
     {:else}
       {#if favorites.length}
         <section class="sec">
-          <h2>Favoris</h2>
+          <h2>{$t('nav.favorites' as any)}</h2>
           <div class="grid">
             {#each favorites as r (r.id)}
               {@render tile(r)}
@@ -213,7 +213,7 @@
       >
         <AlbumArt coverPath={r.logo_url ?? null} albumId={null} size={0} alt={r.name} fallbackInitials={r.name?.slice(0,1)} />
       </PochetteActions>
-      {#if playingId === r.id}<span class="onair">EN DIRECT</span>{/if}
+      {#if playingId === r.id}<span class="onair">{$t('v2.lbl.liveNow' as any)}</span>{/if}
     </span>
     <span class="nm">{r.name}</span>
     {#if r.genre}<span class="gn">{r.genre}</span>{/if}

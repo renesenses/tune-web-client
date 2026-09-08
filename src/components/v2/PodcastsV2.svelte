@@ -15,6 +15,7 @@
    * réseau dont deux ne seront jamais regardés.
    */
   import * as api from '../../lib/api';
+  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { currentZoneId } from '../../lib/stores/zones';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -386,10 +387,44 @@
   }
   const visibleSubs = $derived(subs.filter(match));
 
+  /**
+   * #729 — un raccourci posé sur un podcast doit rouvrir CE podcast.
+   *
+   * La clef porte le FLUX, pas l'identifiant d'abonnement : le même podcast
+   * peut arriver par le palmarès (sans `id`) ou par les abonnements, et un
+   * raccourci posé depuis l'un doit se rouvrir depuis l'autre. C'est aussi ce
+   * qui identifie un podcast partout ailleurs dans cet écran (`feedOf`).
+   */
+  const cleCible = (p: any) => `podcasts:${feedOf(p)}`;
+
+  $effect(() => {
+    const auRetour = async (ev: Event) => {
+      const cible = (ev as CustomEvent).detail?.target;
+      const cle: string | undefined = cible?.key;
+      if (!cle || !cle.startsWith('podcasts:')) return;
+      const flux: string | undefined = cible.restore?.feed;
+      if (!flux) return;
+      // On rouvre depuis les abonnements quand on l'y trouve — la fiche y est
+      // plus complète —, sinon depuis le seul flux mémorisé.
+      const connu = subs.find((s2: any) => feedOf(s2) === flux);
+      openPodcast(connu ?? { feed_url: flux, title: cible.restore?.name });
+    };
+    window.addEventListener('tune:shortcut-restore', auRetour);
+    return () => window.removeEventListener('tune:shortcut-restore', auRetour);
+  });
+
+  // Quitter l'écran oublie la cible.
+  $effect(() => () => clearShortcutTarget());
+
   async function openPodcast(p: any) {
     const feed = feedOf(p);
     if (!feed) return;
     opened = p; episodes = []; epLoading = true;
+    setShortcutTarget({
+      key: cleCible(p),
+      restore: { feed, name: p?.title ?? p?.name ?? null },
+      label: p?.title ?? p?.name ?? undefined,
+    });
     try {
       episodes = await api.getPodcastEpisodes(feed, 50, undefined, p?.id ?? p?.subscription_id, p?.source_id);
     } catch {

@@ -27,7 +27,29 @@ function sansCommentaires(src: string): string {
 }
 
 describe('la bibliothèque se recharge quand le serveur le dit', () => {
-  it('les deux événements sont écoutés', async () => {
+  /**
+   * 🔴 Délai relevé à vingt secondes, et ce n'est pas une complaisance.
+   *
+   * Ce cas fait `vi.resetModules()` puis `await import('../v2Bootstrap')` : il
+   * force donc la RETRANSFORMATION de tout le graphe d'imports du démarrage —
+   * `api.ts` et ses quatre mille lignes, les magasins, la couche websocket.
+   * Le défaut de cinq secondes de vitest est une convention, pas une exigence
+   * de ce test : ce qu'il vérifie est un COMPORTEMENT (deux événements
+   * rechargent, un troisième non), jamais une vitesse.
+   *
+   * Constaté le 08/09/2026 : vert en isolation, rouge dans la passe complète —
+   * sur le Mac à charge 150 comme sur Shrek à charge 17, dès que la suite a
+   * grossi de neuf cas. Un garde qui tombe au hasard n'apprend plus à
+   * personne à croire le rouge.
+   *
+   * 🔴 Vingt secondes n'ont pas suffi. Le coût n'est pas le test, c'est la
+   * TRANSFORMATION du graphe : mesuré sur Shrek, la même suite affiche
+   * « transform 646 s » à froid et une fraction de cela ensuite. Une CI part
+   * toujours à froid. Soixante secondes, donc — ce cas vérifie un
+   * COMPORTEMENT, jamais une vitesse, et le plafond n'est là que pour empêcher
+   * un blocage réel de durer.
+   */
+  it('les deux événements sont écoutés', { timeout: 60_000 }, async () => {
     let recu: ((e: any) => void) | null = null;
     const desabonner = vi.fn();
     vi.resetModules();
