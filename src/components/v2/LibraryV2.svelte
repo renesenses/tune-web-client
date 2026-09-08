@@ -861,14 +861,32 @@
    * L'identifiant est consommé ICI puis passé à `ArtistesV2` en propriété :
    * deux consommateurs d'un même dépôt se le voleraient selon l'ordre de
    * montage, et l'onglet n'est monté que quand on l'a choisi.
+   *
+   * 🔴 `$pendingLibraryArtist`, PAS `get(pendingLibraryArtist)` — #3708.
+   *
+   * `get()` lit la valeur et se désabonne aussitôt : sous les runes il
+   * n'inscrit AUCUNE dépendance, et l'effet ne tournait donc qu'au montage.
+   * Mesuré le 09/09/2026 avec un composant sonde (un `$effect` lisant
+   * `get(store)`, journal après `store.set(42)` : `[null]` — une seule
+   * passe). Cela suffisait tant que la cible n'était posée que depuis une
+   * AUTRE vue : `ShellV2` monte `{#if $activeView === 'library'}<LibraryV2/>`,
+   * donc changer de vue remontait l'écran et rejouait l'effet. Depuis la fiche
+   * d'album, on est DÉJÀ dans la Bibliothèque : rien n'était remonté, et poser
+   * le magasin n'aurait rien fait à l'écran.
+   *
+   * L'effet écrit ce qu'il lit (`set(null)`), ce qui le rejoue une fois : la
+   * seconde passe sort sur `id == null` sans rien écraser.
    */
   let artisteADemande = $state<number | null>(null);
   $effect(() => {
-    const id = get(pendingLibraryArtist);
+    const id = $pendingLibraryArtist;
     if (id == null) return;
     pendingLibraryArtist.set(null);
     artisteADemande = id;
     tab = 'artists';
+    // La fiche d'album est un CALQUE par-dessus la grille : la laisser
+    // ouverte cacherait l'onglet Artistes qu'on vient d'ouvrir.
+    opened = null;
   });
 
   $effect(() => {
