@@ -24,6 +24,8 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
+  import { tip } from '../../lib/tooltip';
+  import { afficherDynamicRange } from '../../lib/dynamicRange';
 
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
@@ -87,6 +89,37 @@
       .catch((e) => { error = errText(e) ?? 'Chargement impossible'; })
       .finally(() => { loading = false; });
   });
+
+  /**
+   * DYNAMIC RANGE (#1388). La fiche v2 n'en affichait AUCUN — et elle n'aurait
+   * rien pu en afficher : `album` lui vient de la GRILLE, servie par la route
+   * de liste, qui ne porte pas la clé. Seul `GET /library/albums/{id}` rend
+   * `dynamic_range` et `dynamic_range_source`. Il faut donc aller la lire, ce
+   * que la fiche de l'ancienne interface fait depuis toujours.
+   *
+   * Requête SÉPARÉE, et non ajoutée au `Promise.all` des pistes : le DR est
+   * une décoration. Son échec ne doit ni retarder la liste des pistes, ni
+   * allumer le bandeau d'erreur de la fiche.
+   *
+   * Un album distant, de service ou Bandcamp n'a pas d'identifiant local :
+   * aucune requête n'est tentée pour lui, et le badge reste absent.
+   *
+   * L'effet ÉCRIT `fiche` et ne la LIT jamais — sans quoi il se relancerait
+   * lui-même sans fin. Le drapeau `vivant` évite qu'une réponse tardive
+   * n'écrase le DR de l'album suivant.
+   */
+  let fiche = $state<Album | null>(null);
+  $effect(() => {
+    const id = album.id, d = depot, svc = service, bc = bandcamp;
+    fiche = null;
+    if (id == null || d || svc || bc) return;
+    let vivant = true;
+    api.getAlbum(id).then((a) => { if (vivant) fiche = a; }).catch(() => {});
+    return () => { vivant = false; };
+  });
+
+  /** Le badge DR, et ce qu'il doit dire de sa provenance. */
+  const dr = $derived(afficherDynamicRange(fiche));
 
   /**
    * FAVORI. Bertrand, 05/09/2026 : « En vue Album, où se trouve l'icône
@@ -329,6 +362,10 @@
         {#if $formatAnneeAlbum(album)}<span>{$formatAnneeAlbum(album)}</span>{/if}
         <span>{tracks.length} titre{tracks.length > 1 ? 's' : ''}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
+        <!-- #1388 : `DR 12` pour une mesure inscrite dans le fichier,
+             `DR ~12` souligné en pointillés pour la moyenne des pistes. Même
+             valeur, provenance différente — voir `lib/dynamicRange.ts`. -->
+        {#if dr}<span class="dr" class:deduit={dr.deduit} use:tip={dr.cleInfobulle}>DR {dr.texte}</span>{/if}
       </div>
       <div class="actions">
         <button class="play" onclick={() => playAlbum(0)}>
@@ -430,6 +467,11 @@
   .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}
   .artist{font-size:18px; color:var(--v2-txt2)}
   .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
+  /* Le DR DÉDUIT (moyenne des pistes) : tilde dans le texte, soulignement
+     pointillé en `currentColor` — donc lisible dans les deux thèmes sans
+     jeton de couleur, et sans peser sur la ligne. Une mesure d'album ne porte
+     aucune marque : c'est la valeur nue. */
+  .dr.deduit{text-decoration:underline dotted currentColor; text-underline-offset:3px; text-decoration-thickness:1px}
   .actions{display:flex; gap:12px; margin-top:8px}
   .play,.ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
     font:700 14px var(--v2-sans); cursor:pointer; border:0}

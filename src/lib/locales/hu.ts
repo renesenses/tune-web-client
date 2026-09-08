@@ -1753,6 +1753,7 @@ export default {
   "library.sortYear": "Év",
   "library.writingTags": "Írás...",
   "library.dynamicRangeTip": "Dinamikatartomány (DR), a fájlcímkékből olvasva — minél nagyobb az érték, annál kevésbé tömörített a mastering.",
+  "library.dynamicRangeAverageTip": "Dinamikatartomány (DR), a számok címkéinek kerekített átlaga — ennek az albumnak nincs saját ALBUM DYNAMIC RANGE címkéje, ezért a Tune vezette le az értéket. Minél nagyobb az érték, annál kevésbé tömörített a mastering.",
   "library.writeTags": "Címkék beírása",
   "library.noCollections": "Nincs gyűjtemény",
   "library.newTagPlaceholder": "Új címke...",
