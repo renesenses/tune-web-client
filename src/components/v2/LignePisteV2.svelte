@@ -38,7 +38,9 @@
   import PisteActions from './PisteActions.svelte';
   import { displayFields } from '../../lib/stores/displayFields';
   import { champsUtiles } from '../../lib/champsLigne';
-  import { currentTrackId } from '../../lib/stores/nowPlaying';
+  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
+    from '../../lib/stores/nowPlaying';
+  import IndicateurLecture from './IndicateurLecture.svelte';
   import { formatTime } from '../../lib/utils';
   import type { Track } from '../../lib/types';
 
@@ -83,7 +85,20 @@
       .join(' '),
   );
 
-  const enLecture = $derived(piste.id != null && piste.id === $currentTrackId);
+  /**
+   * 🔴 La reconnaissance passe par `etatDeLaLigne`, pas par une comparaison
+   * d'identifiants écrite ici (#1845).
+   *
+   * `piste.id === $currentTrackId` ne voyait QUE les pistes de bibliothèque :
+   * une piste Qobuz, Tidal ou Bandcamp n'a pas d'identifiant local, et aucune
+   * ligne n'était donc marquée dans les résultats de recherche d'un service ni
+   * dans une playlist de service. Et l'état du transport n'entrait pas dans le
+   * calcul : une piste en PAUSE s'affichait comme si elle jouait.
+   */
+  const etatLigne = $derived(
+    etatDeLaLigne(piste, $currentTrackId, $currentTrack, $playbackState),
+  );
+  const enLecture = $derived(etatLigne != null);
   const sousTitre = $derived(
     [piste.artist_name, avecAlbum ? piste.album_title : null].filter(Boolean).join(' · '),
   );
@@ -113,7 +128,10 @@
   );
 </script>
 
-<div class="trk" class:np={enLecture} style="--tcols:{colonnes}">
+<!-- `aria-current` : un lecteur d'écran annonce « élément courant » sur cette
+     ligne. La couleur, elle, ne lui dit rien du tout. -->
+<div class="trk" class:np={enLecture} aria-current={enLecture ? 'true' : undefined}
+  style="--tcols:{colonnes}">
   {#if numero != null}<span class="n">{numero}</span>{/if}
   {#if pochette}
     <!-- La pochette est SŒUR du bouton de lecture, jamais dedans : la loupe
@@ -140,7 +158,10 @@
     <span class="ti">
       <!-- `title` : ces deux lignes s'elident. Sans lui, un titre long est
            illisible et rien ne permet d'en lire la fin (Bilou, forum). -->
-      <span class="tt" title={piste.title}>{piste.title}</span>
+      <span class="tl">
+        <IndicateurLecture etat={etatLigne} />
+        <span class="tt" title={piste.title}>{piste.title}</span>
+      </span>
       {#if sousTitre}<em title={sousTitre}>{sousTitre}</em>{/if}
       {#if puces.length}
         <span class="puces"><MetadataChips track={piste} fields={puces} /></span>
@@ -184,7 +205,12 @@
   @media (prefers-reduced-motion: reduce){ .loupe{transition:none} }
 
   .ti{min-width:0; flex:1; display:flex; flex-direction:column; gap:2px}
-  .tt{font-size:13.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* L'indicateur est SŒUR du titre et de largeur fixe ; c'est le titre qui
+     s'élide. Sans `min-width:0` sur lui, un titre long pousserait
+     l'indicateur hors de la ligne au lieu de se laisser couper. */
+  .tl{display:flex; align-items:center; gap:7px; min-width:0}
+  .tt{min-width:0; font-size:13.5px; font-weight:500;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ti em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Les puces vivent dans le client actuel avec leurs propres couleurs : on
