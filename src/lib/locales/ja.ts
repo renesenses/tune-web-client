@@ -1812,6 +1812,8 @@ export default {
   "settings.fullScan": "フルスキャン",
   "settings.deleting": "削除中...",
   "settings.clearLibrary": "ライブラリをクリア",
+  "settings.clearLibraryV2Hint": "インデックス（曲、アルバム、アーティスト）を消去してやり直します。ファイルは削除されません。フル解析ですべて再構築されます。",
+  "settings.clearLibraryBusyHint": "解析が実行中です。終了してからライブラリを空にしてください。",
   "settings.scanOptions": "スキャンオプション",
   "settings.qualitySplit": "品質別にアルバムを分割",
   "settings.qualitySplitHint": "同じアルバムが CD と Hi-Res で存在する場合、2つの別エントリを作成します（例:「Album (96kHz/24bit)」）",

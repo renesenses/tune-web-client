@@ -1766,6 +1766,8 @@ export default {
   "settings.fullScan": "Fullständig skanning",
   "settings.deleting": "Tar bort...",
   "settings.clearLibrary": "Rensa biblioteket",
+  "settings.clearLibraryV2Hint": "Rensar indexet (spår, album, artister) så att du kan börja om. Ingen fil raderas: en fullständig genomsökning bygger upp allt igen.",
+  "settings.clearLibraryBusyHint": "En genomsökning pågår: vänta tills den är klar innan du tömmer biblioteket.",
   "settings.scanOptions": "Skanningsalternativ",
   "settings.qualitySplit": "Dela album efter kvalitet",
   "settings.qualitySplitHint": "Om samma album finns i CD och Hi-Res, skapa två separata poster (t.ex. \"Album (96kHz/24bit)\")",

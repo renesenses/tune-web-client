@@ -2349,6 +2349,8 @@ export default {
   "settings.fullScan": "Full scan",
   "settings.deleting": "Deleting...",
   "settings.clearLibrary": "Clear library",
+  "settings.clearLibraryV2Hint": "Clears the index (tracks, albums, artists) so you can start clean. No file is deleted: a full scan rebuilds everything.",
+  "settings.clearLibraryBusyHint": "A scan is running: wait for it to finish before clearing the library.",
   "settings.scanOptions": "Scan options",
   "settings.qualitySplit": "Split albums by quality",
   "settings.qualitySplitHint": "If the same album exists in CD and Hi-Res, create two separate entries (e.g. \"Album (96kHz/24bit)\")",

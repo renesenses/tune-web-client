@@ -1814,6 +1814,8 @@ export default {
   "settings.fullScan": "Análisis completo",
   "settings.deleting": "Eliminando...",
   "settings.clearLibrary": "Vaciar biblioteca",
+  "settings.clearLibraryV2Hint": "Borra el índice (pistas, álbumes, artistas) para empezar de cero. No se elimina ningún archivo: un análisis completo lo reconstruye todo.",
+  "settings.clearLibraryBusyHint": "Hay un análisis en curso: espere a que termine antes de vaciar la biblioteca.",
   "settings.scanOptions": "Opciones de análisis",
   "settings.qualitySplit": "Separar álbumes por calidad",
   "settings.qualitySplitHint": "Si el mismo álbum existe en CD y Hi-Res, crea dos entradas separadas (p. ej. \"Álbum (96kHz/24bit)\")",

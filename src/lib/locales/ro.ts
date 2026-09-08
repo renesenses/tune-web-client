@@ -1824,6 +1824,8 @@ export default {
   "settings.fullScan": "Scanare completă",
   "settings.deleting": "Se șterge...",
   "settings.clearLibrary": "Golește biblioteca",
+  "settings.clearLibraryV2Hint": "Șterge indexul (piese, albume, artiști) pentru a reporni curat. Niciun fișier nu este șters: o analiză completă reconstruiește totul.",
+  "settings.clearLibraryBusyHint": "O analiză este în curs: așteptați să se termine înainte de a goli biblioteca.",
   "settings.scanOptions": "Opțiuni de scanare",
   "settings.qualitySplit": "Împarte albumele pe calitate",
   "settings.qualitySplitHint": "Dacă același album există în CD și Hi-Res, creează două intrări separate (ex. „Album (96kHz/24bit)”)",
