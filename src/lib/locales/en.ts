@@ -4241,6 +4241,12 @@ export default {
   "v2.hint.tracksAnalysed": "{n} tracks analysed. Progress is followed in **{tab}**.",
   "v2.set.browserZoneExists": "That zone already exists: “{nom}” is now the active zone.",
   "v2.set.browserZoneDuplicates": "{n} browser zones already exist. They are interchangeable — one is enough.",
+  "v2.set.peakMeter": "Peak meter",
+  "v2.set.peakMeterHint": "Display only — the signal is unchanged. The playback bar shows the lamps only: the two bargraphs are too wide for it.",
+  "v2.set.peakOff": "None",
+  "v2.set.peakLamps": "Lamps",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

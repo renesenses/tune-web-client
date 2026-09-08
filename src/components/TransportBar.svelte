@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { preferences } from '../lib/stores/preferences';
+  import CreteMetre from './CreteMetre.svelte';
+  import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
@@ -818,6 +821,14 @@
           </svg>
         </button>
       {/if}
+      <!-- #452 — le crête-mètre. `styleSurLaBarre` impose les LAMPES : « la
+           barre de lecture n'affiche jamais DAT ni IEC (trop large) », et elle
+           honore l'extinction. La règle vit dans `lib/peakMetre`, pas ici. -->
+      {#if styleSurLaBarre($preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT) !== 'off'}
+        <div class="tb-crete">
+          <CreteMetre style="lamps" hauteur={22} largeur={56} joue={isPlaying} />
+        </div>
+      {/if}
       <div class="tb-mini-viz">
         <AudioVisualizer
           playing={isPlaying}
@@ -1279,6 +1290,7 @@
 {/if}
 
 <style>
+  .tb-crete { display: flex; align-items: center; margin-right: 6px; }
   /* Posé en absolu sur le bord haut : la barre est une grille, un enfant dans
      le flux en aurait décalé les trois colonnes. */
   .tb-attente {

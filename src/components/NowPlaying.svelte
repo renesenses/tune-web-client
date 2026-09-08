@@ -12,6 +12,9 @@
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
   import { lireOuAjouter } from '../lib/playback';
+  import CreteMetre from './CreteMetre.svelte';
+  import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../lib/peakMetre';
+  import { preferences } from '../lib/stores/preferences';
   import { texteDePartage, partageUtilisable } from '../lib/partageEcoute';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import {
@@ -882,6 +885,11 @@
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
   let playState = $derived($playbackState);
+
+  /** #452 — le visuel choisi, replié sur le défaut si le réglage est illisible. */
+  let styleCrete = $derived(
+    estStyleCrete($preferences.peakMeterStyle) ? $preferences.peakMeterStyle : STYLE_CRETE_DEFAUT,
+  );
   let isRadio = $derived(track?.source === 'radio' || (track == null && $ytPlayerState.track?.source === 'radio'));
 
   // ─── #719 : le temps qui passe sur une RADIO ──────────────────────────
@@ -1496,6 +1504,13 @@
               </div>
             {/if}
           </div>
+          <!-- #452 — ici, le visuel CHOISI : la fiche a la place que la barre
+               de lecture n'a pas. -->
+          {#if styleCrete !== 'off'}
+            <div class="np-crete">
+              <CreteMetre style={styleCrete} hauteur={26} joue={playState === 'playing'} />
+            </div>
+          {/if}
           {#if ytActive}
             <button class="eye-btn" onclick={handleShowVideo} title={$t('youtube.showVideo')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -2304,6 +2319,7 @@
 {/if}
 
 <style>
+  .np-crete { margin-top: 10px; width: 100%; max-width: 440px; }
   .now-playing {
     display: flex;
     align-items: center;

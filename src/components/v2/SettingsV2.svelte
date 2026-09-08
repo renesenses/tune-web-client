@@ -47,6 +47,8 @@
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
+  import CreteMetre from '../CreteMetre.svelte';
+  import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
@@ -1727,6 +1729,30 @@
                 </div>
               </div>
 
+              <!-- #452 — le crête-mètre, avec son aperçu VIVANT à côté du
+                   choix. Trois visuels décrits par des mots ne se départagent
+                   pas : « DAT PCM-7030 » ne dit rien tant qu'on ne l'a pas vu
+                   bouger. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('v2.set.peakMeter' as any)}</span>
+                  <span class="hint">{$t('v2.set.peakMeterHint' as any)}</span>
+                </div>
+                <div class="creterow">
+                  <select class="sel" value={$preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT}
+                    onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                      if (estStyleCrete(v)) preferences.update((pr) => ({ ...pr, peakMeterStyle: v })); }}>
+                    <option value="off">{$t('v2.set.peakOff' as any)}</option>
+                    <option value="lamps">{$t('v2.set.peakLamps' as any)}</option>
+                    <option value="dat">{$t('v2.set.peakDat' as any)}</option>
+                    <option value="iec">{$t('v2.set.peakIec' as any)}</option>
+                  </select>
+                  <span class="apercu">
+                    <CreteMetre style={$preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT} hauteur={22} largeur={150} />
+                  </span>
+                </div>
+              </div>
+
               <div class="row">
                 <div class="lbl"><span>{$t('settings.language' as any)}</span></div>
                 <select class="sel" value={$preferences.language ?? 'fr'}
@@ -3181,6 +3207,8 @@
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   /* Badge « Tune tested » : discret. Une zone sur quatorze le porte, et il
      dit une validation, pas une alerte. */
+  .creterow{display:flex; align-items:center; gap:14px}
+  .apercu{display:inline-block; min-width:150px}
   .svcon{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
   .tt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase;

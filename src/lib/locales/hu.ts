@@ -4179,6 +4179,12 @@ export default {
   "v2.hint.tracksAnalysed": "{n} szám elemezve. A haladás itt követhető: **{tab}**.",
   "v2.set.browserZoneExists": "Ez a zóna már létezik: „{nom}” mostantól az aktív zóna.",
   "v2.set.browserZoneDuplicates": "Már {n} böngészőzóna létezik. Egymással felcserélhetők — egy is elég.",
+  "v2.set.peakMeter": "Csúcsszintmérő",
+  "v2.set.peakMeterHint": "Csak megjelenítés — a jel nem változik. A lejátszássáv csak a lámpákat mutatja: a két oszlopdiagram túl széles hozzá.",
+  "v2.set.peakOff": "Nincs",
+  "v2.set.peakLamps": "Lámpák",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

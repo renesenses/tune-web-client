@@ -4221,6 +4221,12 @@ export default {
   "v2.hint.tracksAnalysed": "{n} piese analizate. Progresul se urmărește în **{tab}**.",
   "v2.set.browserZoneExists": "Această zonă există deja: „{nom}” este acum zona activă.",
   "v2.set.browserZoneDuplicates": "Există deja {n} zone de browser. Sunt interschimbabile — una singură este de ajuns.",
+  "v2.set.peakMeter": "Indicator de vârf",
+  "v2.set.peakMeterHint": "Doar afișare — semnalul nu se schimbă. Bara de redare arată doar lămpile: cele două bargrafuri sunt prea late.",
+  "v2.set.peakOff": "Niciunul",
+  "v2.set.peakLamps": "Lămpi",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -4220,4 +4220,10 @@ export default {
   "v2.hint.tracksAnalysed": "{n} spår analyserade. Förloppet följs i **{tab}**.",
   "v2.set.browserZoneExists": "Den zonen finns redan: ”{nom}” är nu den aktiva zonen.",
   "v2.set.browserZoneDuplicates": "Det finns redan {n} webbläsarzoner. De är utbytbara — en räcker.",
+  "v2.set.peakMeter": "Toppmätare",
+  "v2.set.peakMeterHint": "Endast visning — signalen ändras inte. Uppspelningsraden visar bara lamporna: de två stapelmätarna är för breda där.",
+  "v2.set.peakOff": "Ingen",
+  "v2.set.peakLamps": "Lampor",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
 } as const;

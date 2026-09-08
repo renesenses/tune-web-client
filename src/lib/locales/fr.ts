@@ -4243,6 +4243,12 @@ export default {
   "v2.hint.tracksAnalysed": "{n} titres analysés. L'avancement se suit dans **{tab}**.",
   "v2.set.browserZoneExists": "Cette zone existe déjà : « {nom} » est maintenant la zone active.",
   "v2.set.browserZoneDuplicates": "{n} zones navigateur existent déjà. Elles sont interchangeables — une seule suffit.",
+  "v2.set.peakMeter": "Crête-mètre",
+  "v2.set.peakMeterHint": "Affichage seulement — le signal ne change pas. La barre de lecture n’affiche que les lampes : les deux bargraphes y sont trop larges.",
+  "v2.set.peakOff": "Aucun",
+  "v2.set.peakLamps": "Lampes",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

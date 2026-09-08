@@ -4221,6 +4221,12 @@ export default {
   "v2.hint.tracksAnalysed": "{n} Titel analysiert. Der Fortschritt wird in **{tab}** verfolgt.",
   "v2.set.browserZoneExists": "Diese Zone gibt es bereits: „{nom}“ ist jetzt die aktive Zone.",
   "v2.set.browserZoneDuplicates": "Es gibt bereits {n} Browser-Zonen. Sie sind austauschbar — eine genügt.",
+  "v2.set.peakMeter": "Spitzenpegelmesser",
+  "v2.set.peakMeterHint": "Nur Anzeige — das Signal bleibt unverändert. Die Wiedergabeleiste zeigt nur die Lampen: Die beiden Bargraphen sind dort zu breit.",
+  "v2.set.peakOff": "Keiner",
+  "v2.set.peakLamps": "Lampen",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

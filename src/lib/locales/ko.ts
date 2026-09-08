@@ -4221,6 +4221,12 @@ export default {
   "v2.hint.tracksAnalysed": "{n}곡을 분석했습니다. 진행 상황은 **{tab}**에서 확인합니다.",
   "v2.set.browserZoneExists": "해당 존은 이미 있습니다. 이제 「{nom}」이(가) 활성 존입니다.",
   "v2.set.browserZoneDuplicates": "브라우저 존이 이미 {n}개 있습니다. 서로 같은 역할이며 하나면 충분합니다.",
+  "v2.set.peakMeter": "피크 미터",
+  "v2.set.peakMeterHint": "표시 전용이며 신호는 바뀌지 않습니다. 재생 바에는 램프만 표시합니다. 막대 그래프는 너무 넓습니다.",
+  "v2.set.peakOff": "없음",
+  "v2.set.peakLamps": "램프",
+  "v2.set.peakDat": "DAT PCM-7030",
+  "v2.set.peakIec": "IEC 268-18",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
