@@ -27,6 +27,7 @@ import {
   indexer,
   oublierCatalogue,
   URL_CATALOGUE,
+  URL_PAGE_PUBLIQUE,
   DUREE_CACHE_MS,
   type CatalogueTuneTested,
 } from '../tuneTested';
@@ -161,6 +162,15 @@ describe('Le badge d’une zone', () => {
   it('un appareil hors catalogue n’a pas de badge', () => {
     expect(appareilTuneTeste(index, { brand: 'WiiM', model: 'Pro' })).toBeNull();
     expect(appareilTuneTeste(new Map(), { brand: 'Sonos', model: 'Play:1' })).toBeNull();
+  });
+});
+
+describe('Le lien vers la page publique', () => {
+  it('🔴 pointe la PAGE, pas la route JSON', () => {
+    // Les deux adresses ne diffèrent que par un suffixe : les confondre
+    // ouvrirait un fichier JSON dans l'onglet de l'utilisateur.
+    expect(URL_PAGE_PUBLIQUE).toBe('https://mozaiklabs.fr/tune-tested');
+    expect(URL_CATALOGUE).toBe(`${URL_PAGE_PUBLIQUE}.json`);
   });
 });
 

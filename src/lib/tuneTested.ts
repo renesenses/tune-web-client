@@ -53,6 +53,16 @@ export interface CatalogueTuneTested {
 }
 
 export const URL_CATALOGUE = 'https://mozaiklabs.fr/tune-tested.json';
+/**
+ * La page publique, celle qu'on OUVRE — à ne pas confondre avec la route JSON
+ * ci-dessus, qu'on APPELLE.
+ *
+ * Un lien n'est pas un appel : aucune des trois raisons qui interdisent
+ * d'appeler mozaiklabs.fr depuis la page ne le concerne. Il ne coûte rien tant
+ * que personne ne clique, et il répond à la seule question que pose un badge
+ * — « ça veut dire quoi ? ».
+ */
+export const URL_PAGE_PUBLIQUE = 'https://mozaiklabs.fr/tune-tested';
 const CLE_CACHE = 'tune_v2_catalogue_tune_tested';
 /** Une requête par navigateur et par jour, au plus. Voir la raison 3 ci-dessus. */
 export const DUREE_CACHE_MS = 24 * 60 * 60 * 1000;
