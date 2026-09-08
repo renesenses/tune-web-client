@@ -380,6 +380,7 @@ export default {
   'library.noRecentAlbums': 'この期間に追加されたアルバムはありません。',
   'library.recentLoadError': '最近追加された項目を読み込めませんでした。リストは空のままです。',
   'library.scopeLoadError': 'フォルダー {d} を読み込めませんでした。リストは空のままです。',
+  'library.albumTracksLoadError': 'このアルバムのトラックを読み込めませんでした。リストは空のままです。',
   'library.searchPlaceholder': '検索...',
   'library.noAlbums': 'ライブラリにアルバムがありません',
   'library.noArtists': 'ライブラリにアーティストがありません',

@@ -380,6 +380,7 @@ export default {
   'library.noRecentAlbums': '이 기간에 추가된 앨범이 없습니다.',
   'library.recentLoadError': '최근 추가된 항목을 불러올 수 없습니다. 목록은 비어 있습니다.',
   'library.scopeLoadError': '폴더 {d}을(를) 불러올 수 없습니다. 목록은 비어 있습니다.',
+  'library.albumTracksLoadError': '이 앨범의 트랙을 불러올 수 없습니다. 목록은 비어 있습니다.',
   'library.searchPlaceholder': '검색...',
   'library.noAlbums': '라이브러리에 앨범 없음',
   'library.noArtists': '라이브러리에 아티스트 없음',

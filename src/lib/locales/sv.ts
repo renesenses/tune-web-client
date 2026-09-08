@@ -350,6 +350,7 @@ export default {
   'library.noRecentAlbums': 'Inget album tillagt under denna period.',
   'library.recentLoadError': 'De senaste tilläggen kunde inte läsas in: listan förblir tom.',
   'library.scopeLoadError': 'Mappen {d} kunde inte läsas in: listan förblir tom.',
+  'library.albumTracksLoadError': 'Albumets spår kunde inte läsas in: listan förblir tom.',
   'library.searchPlaceholder': 'Sök...',
   'library.noAlbums': 'Inga album i biblioteket',
   'library.noArtists': 'Inga artister i biblioteket',

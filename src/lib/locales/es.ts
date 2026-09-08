@@ -380,6 +380,7 @@ export default {
   'library.noRecentAlbums': 'Ningún álbum añadido en este periodo.',
   'library.recentLoadError': 'No se pudieron cargar los añadidos recientes: la lista queda vacía.',
   'library.scopeLoadError': 'No se pudo cargar la carpeta {d}: la lista queda vacía.',
+  'library.albumTracksLoadError': 'No se pudieron cargar las pistas de este álbum: la lista queda vacía.',
   'library.searchPlaceholder': 'Buscar...',
   'library.noAlbums': 'Sin álbumes en la biblioteca',
   'library.noArtists': 'Sin artistas en la biblioteca',

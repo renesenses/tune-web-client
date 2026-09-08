@@ -603,6 +603,7 @@ export default {
   'library.noRecentAlbums': 'Aucun album ajouté sur cette période.',
   'library.recentLoadError': 'Impossible de charger les ajouts récents : la liste reste vide.',
   'library.scopeLoadError': 'Impossible de charger le répertoire {d} : la liste reste vide.',
+  'library.albumTracksLoadError': 'Impossible de charger les pistes de cet album : la liste reste vide.',
   'library.playSimilar': 'Plus comme ça',
   'library.noSimilar': 'Aucun titre acoustiquement similaire pour l’instant (la Smart Radio acoustique doit être activée et la bibliothèque analysée).',
   'library.similarError': 'Impossible de récupérer les titres similaires.',

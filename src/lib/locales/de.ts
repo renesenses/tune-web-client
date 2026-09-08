@@ -380,6 +380,7 @@ export default {
   'library.noRecentAlbums': 'In diesem Zeitraum wurde kein Album hinzugefügt.',
   'library.recentLoadError': 'Die letzten Neuzugänge konnten nicht geladen werden: die Liste bleibt leer.',
   'library.scopeLoadError': 'Ordner {d} konnte nicht geladen werden: die Liste bleibt leer.',
+  'library.albumTracksLoadError': 'Die Titel dieses Albums konnten nicht geladen werden: die Liste bleibt leer.',
   'library.searchPlaceholder': 'Suchen...',
   'library.noAlbums': 'Keine Alben in der Musikbibliothek',
   'library.noArtists': 'Keine Künstler in der Musikbibliothek',

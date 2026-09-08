@@ -562,6 +562,7 @@ export default {
   "library.noRecentAlbums": "Ebben az időszakban nem került album hozzáadásra.",
   "library.recentLoadError": "A legutóbbi hozzáadások nem tölthetők be: a lista üres marad.",
   "library.scopeLoadError": "A(z) {d} mappa nem tölthető be: a lista üres marad.",
+  "library.albumTracksLoadError": "Az album számai nem tölthetők be: a lista üres marad.",
   "library.playSimilar": "Még ilyet",
   "library.noSimilar": "Egyelőre nincs akusztikailag hasonló szám (az akusztikus Okos rádiót be kell kapcsolni, és a gyűjteményt elemezni kell).",
   "library.similarError": "Nem sikerült lekérni a hasonló számokat.",

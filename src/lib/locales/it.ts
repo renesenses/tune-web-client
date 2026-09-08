@@ -380,6 +380,7 @@ export default {
   'library.noRecentAlbums': 'Nessun album aggiunto in questo periodo.',
   'library.recentLoadError': 'Impossibile caricare le aggiunte recenti: l’elenco resta vuoto.',
   'library.scopeLoadError': 'Impossibile caricare la cartella {d}: l’elenco resta vuoto.',
+  'library.albumTracksLoadError': 'Impossibile caricare i brani di questo album: l’elenco resta vuoto.',
   'library.searchPlaceholder': 'Ricerca...',
   'library.noAlbums': 'Nessun album nella libreria',
   'library.noArtists': 'Nessun artista nella libreria',
