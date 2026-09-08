@@ -204,7 +204,7 @@
 <style>
   .v2-dec{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:18px; padding:24px 30px 12px; padding-right:96px}
+  .top{display:flex; align-items:flex-end; gap:18px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .cnt{font:11.5px var(--v2-mono); color:var(--v2-acc-tint)}

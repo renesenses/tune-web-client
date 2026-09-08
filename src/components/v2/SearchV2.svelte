@@ -845,7 +845,7 @@
   .v2-search{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
 
-  .top{display:flex; align-items:center; gap:14px; padding:24px 30px 12px; padding-right:96px}
+  .top{display:flex; align-items:center; gap:14px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
   .field{position:relative; flex:1; max-width:640px; display:flex; align-items:center}
   .field .mag{position:absolute; left:16px; width:19px; height:19px; color:var(--v2-txt3); pointer-events:none}
   .field input{width:100%; height:50px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);

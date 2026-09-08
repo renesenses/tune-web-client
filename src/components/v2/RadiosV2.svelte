@@ -224,7 +224,7 @@
 <style>
   .v2-radios{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px; padding-right:96px}
+  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
   .neuve{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
     border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans); white-space:nowrap}

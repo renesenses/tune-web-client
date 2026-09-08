@@ -367,7 +367,7 @@
 <style>
   .v2-smart{position:absolute; inset:0; z-index:40; display:flex; flex-direction:column;
     background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
-  .entete{display:flex; align-items:flex-start; gap:20px; padding:24px 30px 12px}
+  .entete{display:flex; align-items:flex-start; gap:20px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .entete h1{font-size:26px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .fermer{margin-left:auto; width:36px; height:36px; border-radius:10px; cursor:pointer;
