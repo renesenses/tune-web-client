@@ -526,7 +526,10 @@ describe('federatedSearch pagination (#3189)', () => {
     mockFetch(vide);
     await api.federatedSearch('autumn leaves');
     expect(fetchCalls).toHaveLength(1);
-    expect(fetchCalls[0].url).toContain('/search?q=autumn%20leaves&limit=50');
+    // Le NOMBRE est pinné ailleurs (#764) : ce test-ci porte sur l'absence
+    // d'`offset`, et le figer à cinquante l'a fait tomber pour une raison qui
+    // n'est pas la sienne le jour où le plafond fédéré est monté à cent.
+    expect(fetchCalls[0].url).toContain(`/search?q=autumn%20leaves&limit=${api.SEARCH_FEDEREE_LIMIT}`);
     expect(fetchCalls[0].url).not.toContain('offset=');
   });
 

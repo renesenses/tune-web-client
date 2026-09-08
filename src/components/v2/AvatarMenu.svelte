@@ -283,7 +283,35 @@
 
   .avmenu{position:absolute; right:0; top:52px; width:250px; z-index:60;
     background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:16px; padding:12px;
-    box-shadow:var(--v2-sh-menu); color:var(--v2-txt)}
+    box-shadow:var(--v2-sh-menu); color:var(--v2-txt);
+    /*
+      🔴 IL DOIT TENIR DANS LA FENÊTRE.
+
+      Capture d'un testeur (bluevelvet, Windows, v0.9.140) : « Réglages » et
+      « Se déconnecter » coupés par le bas de l'écran. Mesuré dans un cadre de
+      1356 x 622 le 07/09/2026 :
+
+          hauteur du panneau : 592 px
+          haut               :  72 px   ->  bas à 664, soit 42 px hors écran
+          max-height : none      overflow-y : visible
+
+      Le panneau GRANDIT avec le produit — les thèmes sont arrivés le 05/09 —
+      alors qu'une fenêtre de portable, elle, ne grandit pas. Sans plafond, le
+      défaut revient au prochain réglage ajouté.
+
+      132 px de marge et non 92 : la grappe descend de `--maj-h` (42 px) quand
+      la bannière de mise à jour est là, et le panneau descend avec elle. Le
+      plafond doit tenir dans les DEUX cas.
+
+      `dvh` d'abord pour les navigateurs mobiles, dont la barre d'adresse
+      rétracte `vh` sans le dire ; `vh` reste en repli pour les plus anciens.
+    */
+    max-height:calc(100vh - 132px);
+    max-height:calc(100dvh - 132px);
+    overflow-y:auto;
+    /* Arrivé en bout de liste, la molette ne doit pas se mettre à faire
+       défiler l'écran DERRIÈRE le panneau. */
+    overscroll-behavior:contain}
   .avhead{display:flex; align-items:center; gap:11px; padding:6px 6px 10px}
   /* Le bloc d'identité doit pouvoir RÉTRÉCIR : sans `min-width:0`, une adresse
      longue pousse la largeur du menu au lieu de s'élider. */
