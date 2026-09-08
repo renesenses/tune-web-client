@@ -38,7 +38,8 @@
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
-  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles } from '../lib/lyrics';
+  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../lib/lyrics';
+  import { chargerParolesEnLigne } from '../lib/lyricsOnline';
   import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -61,6 +62,11 @@
    *  "tag" ou "lrclib"). Elle traversait déjà la normalisation et s'arrêtait
    *  là (renesenses/tune-server-rust#2432). */
   let npLyricsSource: string | null = $state(null);
+  /** Motif de l'absence de paroles ('none' / 'error'), ou `null` tant que rien
+   *  n'a été demandé. Sans lui, le panneau ne pouvait rien dire : les trois
+   *  situations arrivaient ici sous la même forme, `npLyrics === null`
+   *  (renesenses/tune-server-rust#3577). */
+  let npLyricsMiss: LyricsMiss | null = $state(null);
   let npLyricsTrackId: number | null = $state(null);
   /** Clé `artist|title` des paroles radio chargées (piste sans track id). */
   let npLyricsRadioKey: string | null = $state(null);
@@ -616,11 +622,13 @@
     npLyricsRadioKey = null;
     lyricsLoading = true;
     // `fetchTrackLyrics` (lib/lyrics) normalise les deux formes de réponse
-    // serveur (historique et `{synced, lines}`) et avale toute erreur en null.
-    const data = await fetchTrackLyrics(trackId);
+    // serveur (historique et `{synced, lines}`) et NOMME l'absence : `miss`
+    // vaut 'none' (le serveur n'a rien) ou 'error' (la requête a échoué).
+    const { data, miss } = await fetchTrackLyrics(trackId);
     if (npLyricsTrackId === trackId) {
       npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
       npLyricsSource = data?.source ?? null;
+      npLyricsMiss = miss;
       syncedLines = data?.synced
         ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
         : [];
@@ -638,10 +646,11 @@
     npLyricsRadioKey = key;
     npLyricsTrackId = null;
     lyricsLoading = true;
-    const data = await fetchLyricsByMeta(q);
+    const { data, miss } = await fetchLyricsByMeta(q);
     if (npLyricsRadioKey === key) {
       npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
       npLyricsSource = data?.source ?? null;
+      npLyricsMiss = miss;
       syncedLines =
         !q.radio && data?.synced
           ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
@@ -652,6 +661,10 @@
 
   /** Charge les paroles adaptées à la piste affichée (bibliothèque ou méta). */
   function loadLyricsFor(tr: Track | NowPlaying | null) {
+    // Lit `lyrics_lrclib_enabled` en même temps : sans lui, un panneau vide ne
+    // peut pas dire QUEL des deux verrous s'est refermé. Une seule fois par
+    // session (le module met en cache), et jamais bloquant.
+    chargerParolesEnLigne();
     if (!tr) return;
     const id = nowPlayingToTrack(tr).id;
     if (id != null) { loadNpLyrics(id); return; }
@@ -672,7 +685,7 @@
         npCreditsTrackId = null;
       }
       if (key !== npLyricsRadioKey) {
-        npLyrics = null; npLyricsSource = null;
+        npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
         syncedLines = [];
         karaokeMode = false;
       }
@@ -682,7 +695,7 @@
     if (id == null) {
       npCredits = [];
       npCreditsTrackId = null;
-      npLyrics = null; npLyricsSource = null;
+      npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
       syncedLines = [];
       npLyricsTrackId = null;
       npLyricsRadioKey = null;
@@ -697,7 +710,7 @@
       loadNpCredits(id);
     }
     if (doitReinitialiserLesParoles(id, npLyricsTrackId, npLyricsResetPourId)) {
-      npLyrics = null; npLyricsSource = null;
+      npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
       syncedLines = [];
       npLyricsRadioKey = null;
       karaokeMode = false;
@@ -1738,6 +1751,7 @@
               loading={lyricsLoading}
               lyrics={npLyrics}
               source={npLyricsSource}
+              miss={npLyricsMiss}
               {syncedLines}
               {karaokeMode}
               positionMs={isRadio ? positionRadio : null}

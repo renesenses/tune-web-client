@@ -1,6 +1,7 @@
 <script lang="ts">
   import { seekPositionMs } from '../lib/stores/nowPlaying';
-  import { lyricsSourceKind } from '../lib/lyrics';
+  import { lyricsSourceKind, type LyricsMiss } from '../lib/lyrics';
+  import { parolesEnLigneActives } from '../lib/lyricsOnline';
   import { t } from '../lib/i18n';
 
   interface Props {
@@ -17,11 +18,45 @@
     positionMs?: number | null;
     /** Provenance annoncée par le serveur : "lrc", "tag" ou "lrclib". */
     source: string | null;
+    /** Motif de l'absence de paroles, quand il n'y en a pas. `null` tant que
+     *  rien n'a encore été demandé pour cette piste. */
+    miss?: LyricsMiss | null;
     onToggleKaraoke: () => void;
   }
-  let { loading, lyrics, syncedLines, karaokeMode, source, onToggleKaraoke, positionMs = null }: Props = $props();
+  // Fusion 08/09 : `miss` vient de main (#3577, le panneau qui s'ouvrait
+  // blanc), `positionMs` de cette branche (#719, le karaoké sur une radio).
+  // Les deux sont nécessaires — l'un dit POURQUOI il n'y a pas de paroles,
+  // l'autre OÙ en est celle qu'on a.
+  let { loading, lyrics, syncedLines, karaokeMode, source, miss = null, onToggleKaraoke, positionMs = null }: Props =
+    $props();
 
   let karaokePanel = $state<HTMLElement | null>(null);
+
+  /**
+   * L'état vide, et son motif.
+   *
+   * Le panneau s'ouvrait BLANC : la branche finale portait
+   * `<!-- No lyrics: show nothing (no empty state) -->` et la règle
+   * `.lyrics-empty` survivait, débranchée. Belkadi Yacine a ouvert Paroles sur
+   * 49 618 fichiers sans `.lrc` ni étiquette et n'a rien vu — ni texte, ni
+   * motif, ni le fait que la recherche en ligne est éteinte par défaut
+   * (renesenses/tune-server-rust#3577, fil forum 1703).
+   *
+   * Trois cas, trois phrases :
+   *  - `error` : la requête a échoué. C'est le seul cas où l'on parle de panne.
+   *  - `none` + recherche en ligne éteinte (mesurée) : on nomme le réglage ET
+   *    son chemin, parce que la case est dans Réglages › Bibliothèque, à
+   *    l'autre bout de l'application.
+   *  - `none` : « pas de paroles pour ce titre », tout court.
+   *
+   * `$parolesEnLigneActives === null` (config pas lue) retombe sur la dernière
+   * phrase : on n'accuse pas un réglage qu'on n'a pas lu.
+   */
+  let motifVide = $derived.by(() => {
+    if (miss === 'error') return 'error' as const;
+    if (miss !== 'none') return null;
+    return $parolesEnLigneActives === false ? ('onlineOff' as const) : ('none' as const);
+  });
 
   /** `null` tant que la provenance est absente ou inconnue : on ne nomme que
    *  ce que le contrat serveur nomme. */
@@ -99,8 +134,13 @@
     {:else if sourceKind === 'lrclib'}
       <p class="lyrics-source">{$t('lyrics.source.lrclib')}</p>
     {/if}
-  {:else}
-    <!-- No lyrics: show nothing (no empty state) -->
+  {:else if motifVide === 'error'}
+    <p class="lyrics-empty">{$t('lyrics.empty.error')}</p>
+  {:else if motifVide === 'onlineOff'}
+    <p class="lyrics-empty">{$t('lyrics.empty.none')}</p>
+    <p class="lyrics-empty lyrics-empty-hint">{$t('lyrics.empty.onlineOff')}</p>
+  {:else if motifVide === 'none'}
+    <p class="lyrics-empty">{$t('lyrics.empty.none')}</p>
   {/if}
 </div>
 
@@ -156,6 +196,11 @@
     font-style: italic;
     text-align: center;
     margin: 12px 0;
+  }
+  /* Le chemin du réglage : une ligne de service sous la phrase principale. */
+  .lyrics-empty-hint {
+    margin-top: -6px;
+    font-size: 12px;
   }
   .spinner-sm {
     width: 18px;

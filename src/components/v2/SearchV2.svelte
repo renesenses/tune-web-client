@@ -18,6 +18,8 @@
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import { doitViderLePerimetre } from '../../lib/perimetreRecherche';
+  import { pendingSearchQuery } from '../../lib/stores/navigation';
+  import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { preferences } from '../../lib/stores/preferences';
@@ -69,6 +71,36 @@
    * un effet ; l'effet ne rattrapait rien et cassait l'effacement.
    */
   let q = $state(get(currentSearchCriteria)?.q ?? '');
+
+  /**
+   * 🔴 LA REQUÊTE DÉPOSÉE PAR UN AUTRE ÉCRAN, que cet écran ne lisait pas.
+   *
+   * `GlobalSearchBar.goToFullSearch()` fait deux gestes : `pendingSearchQuery
+   * .set(q)` puis `activeView.set('search')`. L'écran de l'ancien client
+   * consomme le premier (`SearchView.svelte:248`) ; `SearchV2` ne connaissait
+   * que `currentSearchCriteria`, rempli par les RACCOURCIS. Monter la loupe
+   * dans la coquille v2 sans ceci aurait donc ouvert un écran de recherche
+   * VIDE — ou, pire, rejoué la recherche d'un raccourci par-dessus celle qu'on
+   * vient de taper.
+   *
+   * Un EFFET, et non une lecture au montage comme pour `currentSearchCriteria`
+   * juste au-dessus : depuis la loupe, l'écran Recherche peut déjà être monté
+   * (`ShellV2` ne le détruit pas si `activeView` y est déjà). Une lecture au
+   * montage ne verrait alors jamais la seconde requête.
+   *
+   * ⚠️ Il ne lit PAS `q` — c'est ce qui distingue cet effet de celui que
+   * Patatorz avait fait rougir (fil 1686) : là, l'effet relisait ce que son
+   * voisin écrivait et ressuscitait la lettre effacée. Ici la seule dépendance
+   * est le magasin, et la remise à vide qui le CONSOMME le fait retomber dans
+   * la sortie anticipée dès le tour suivant. Sans cette consommation, revenir
+   * plus tard sur l'écran rejouerait une recherche qu'on n'a pas demandée.
+   */
+  $effect(() => {
+    const demande = requeteAuMontage($pendingSearchQuery, null);
+    if (!demande) return;
+    pendingSearchQuery.set('');
+    q = demande;
+  });
 
   /**
    * Publier ce qu'on cherche, et repartir de ce qu'un raccourci a figé.

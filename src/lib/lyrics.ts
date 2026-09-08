@@ -3,9 +3,13 @@
 // L'endpoint serveur `GET /library/tracks/{id}/lyrics` existe sous deux formes :
 //   - historique : `{ lyrics: string|null, synced: string|null (LRC brut), source }`
 //   - nouvelle   : `{ synced: bool, source: string, lines: [{ t_ms: number|null, text }] }`
-// Ce module accepte les deux et rend une forme unique. Toute erreur (404 piste
-// sans paroles, 405 endpoint absent, réseau) est avalée et rend `null` : côté
-// affichage, « pas de paroles » n'est jamais une erreur.
+// Ce module accepte les deux et rend une forme unique.
+//
+// 🔴 Il AVALAIT toute erreur en `null` (404 piste sans paroles, 405 endpoint
+// absent, 500, coupure réseau) : à l'écran, « ce titre n'a pas de paroles » et
+// « le serveur n'a pas répondu » étaient le même rien. C'est la moitié de
+// renesenses/tune-server-rust#3577. Les appels rendent désormais un
+// `LyricsOutcome` qui NOMME le motif ; c'est l'écran qui décide quoi en dire.
 //
 // Pour les pistes RADIO (titre+artiste fournis par le flux, pas de track id),
 // `fetchLyricsByMeta` interroge `GET /lyrics/by-meta` — même contrat de
@@ -23,6 +27,35 @@ export interface LyricsData {
   synced: boolean;
   source: string | null;
   lines: LyricLine[];
+}
+
+/** Pourquoi il n'y a rien à afficher.
+ *
+ *  - `none`  : le serveur a répondu, il n'a pas de paroles pour ce titre
+ *              (`404 {"error":"no_lyrics"}` — la cascade `.lrc` → étiquette →
+ *              LRCLIB n'a rien rendu), ou l'endpoint n'existe pas sur ce
+ *              serveur (405) ;
+ *  - `error` : la requête a échoué (5xx, coupure réseau, JSON illisible).
+ *
+ *  Les deux étaient `null` indifféremment. */
+export type LyricsMiss = 'none' | 'error';
+
+/** Résultat d'un appel paroles : le texte, OU le motif de son absence.
+ *  `miss` est `null` si et seulement si `data` ne l'est pas. */
+export interface LyricsOutcome {
+  data: LyricsData | null;
+  miss: LyricsMiss | null;
+}
+
+/** Classe l'échec d'un appel paroles à partir de l'erreur remontée par
+ *  `fetchJSON` (`ApiError` porte `status`).
+ *
+ *  404/405 = le serveur a parlé et n'a rien ; tout le reste est une panne.
+ *  Confondre les deux est précisément ce que #3577 reproche : sans ça,
+ *  débrancher le serveur produit le même écran qu'un instrumental. */
+export function classifyLyricsError(e: unknown): LyricsMiss {
+  const status = (e as { status?: number } | null | undefined)?.status;
+  return status === 404 || status === 405 ? 'none' : 'error';
 }
 
 /** Parse un texte LRC brut (`[mm:ss.xx] paroles`) en lignes horodatées. */
@@ -71,14 +104,19 @@ export function normalizeLyricsResponse(r: any): LyricsData | null {
   return null;
 }
 
-/** Charge et normalise les paroles d'une piste ; `null` = pas de paroles. */
-export async function fetchTrackLyrics(trackId: number): Promise<LyricsData | null> {
+/** Charge et normalise les paroles d'une piste. `data` nul ⇒ `miss` dit
+ *  pourquoi (`'none'` : le serveur n'en a pas ; `'error'` : la requête a
+ *  échoué). L'appelant n'a plus le droit de confondre les deux. */
+export async function fetchTrackLyrics(trackId: number): Promise<LyricsOutcome> {
   try {
-    return normalizeLyricsResponse(await fetchJSON<any>(`${BASE}/library/tracks/${trackId}/lyrics`));
-  } catch {
-    // 404 (pas de paroles), 405 (endpoint pas encore déployé), réseau… :
-    // comportement silencieux, l'affichage retombe sur « pochette seule ».
-    return null;
+    const data = normalizeLyricsResponse(
+      await fetchJSON<any>(`${BASE}/library/tracks/${trackId}/lyrics`),
+    );
+    // Une réponse 200 dont la normalisation ne tire aucune ligne est un
+    // « rien » du serveur, pas une panne.
+    return { data, miss: data ? null : 'none' };
+  } catch (e) {
+    return { data: null, miss: classifyLyricsError(e) };
   }
 }
 
@@ -95,11 +133,13 @@ export interface MetaLyricsQuery {
 
 /** Paroles par métadonnées seules (pas d'id de bibliothèque) : radio (titre +
  *  artiste du flux) ou streaming Qobuz/Tidal (titre + artiste + album + durée).
- *  Serveur : cascade LRCLIB opt-in + cache — `null` = pas de paroles. */
-export async function fetchLyricsByMeta(q: MetaLyricsQuery): Promise<LyricsData | null> {
+ *  Serveur : cascade LRCLIB opt-in + cache. Même contrat de motif que
+ *  `fetchTrackLyrics`. */
+export async function fetchLyricsByMeta(q: MetaLyricsQuery): Promise<LyricsOutcome> {
   const t = q.title.trim();
   const a = q.artist.trim();
-  if (!t || !a) return null;
+  // Sans titre ni artiste, il n'y a rien à demander : ce n'est pas une panne.
+  if (!t || !a) return { data: null, miss: 'none' };
   let url = `${BASE}/lyrics/by-meta?title=${encodeURIComponent(t)}&artist=${encodeURIComponent(a)}`;
   const album = q.album?.trim();
   if (album) url += `&album=${encodeURIComponent(album)}`;
@@ -107,9 +147,10 @@ export async function fetchLyricsByMeta(q: MetaLyricsQuery): Promise<LyricsData 
     url += `&duration=${Math.round(q.durationSecs)}`;
   }
   try {
-    return normalizeLyricsResponse(await fetchJSON<any>(url));
-  } catch {
-    return null;
+    const data = normalizeLyricsResponse(await fetchJSON<any>(url));
+    return { data, miss: data ? null : 'none' };
+  } catch (e) {
+    return { data: null, miss: classifyLyricsError(e) };
   }
 }
 

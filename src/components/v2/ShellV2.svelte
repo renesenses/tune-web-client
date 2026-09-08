@@ -81,6 +81,24 @@
   import BrowseView from '../BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
+  /**
+   * 🔴 LA RECHERCHE GLOBALE, écrite et montée nulle part ici.
+   *
+   * Sandro, fil 1718 (08/09/2026) : « Dans l'ancienne interface, le bouton
+   * situé en haut à droite déclenchait une recherche globale et unifiée. […]
+   * ai-je raté une option/un raccourci ? » — il n'a rien raté : le composant
+   * existe (475 lignes, `federatedSearch` local + services, aperçu instantané)
+   * et `App.svelte:1485` est son SEUL montage. `main.ts` monte `ShellV2` OU
+   * `App`, jamais les deux : en v2 la loupe n'existait donc pas, et
+   * `src/lib/keyboard.ts` ne porte aucun raccourci de recherche — ni ici ni
+   * dans l'ancienne coquille. Il n'y avait aucun repli.
+   *
+   * Posée dans la MÊME grappe que le signet et l'avatar, comme
+   * `App.svelte:1482-1484` pose la paire : un seul endroit, la même place d'un
+   * écran à l'autre. La barre reste escamotée en une icône ronde tant qu'on ne
+   * clique pas — la grappe ne gagne donc qu'un rond de 32 px.
+   */
+  import GlobalSearchBar from '../GlobalSearchBar.svelte';
   import { addShortcut } from '../../lib/stores/shortcuts';
   import { notifications } from '../../lib/stores/notifications';
   import { t, locale } from '../../lib/i18n';
@@ -298,6 +316,14 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       </button>
     {/if}
+    <!--
+      La LOUPE, à gauche du signet — l'ordre de `App.svelte`, inversé : là-bas
+      le signet précède la recherche dans le flux, mais la grappe y est ancrée
+      à droite comme ici, et Sandro décrit « le bouton situé en haut à droite ».
+      On garde la recherche la plus à gauche pour que son champ, en s'ouvrant,
+      pousse vers la gauche sans jamais recouvrir l'avatar.
+    -->
+    <GlobalSearchBar />
     <button class="raccourci" onclick={() => (poseRaccourci = !poseRaccourci)}
       aria-label={$t('v2.nav.addShortcut' as any)} title={$t('v2.nav.addShortcut' as any)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><!-- Le SIGNET de l'ecran actuel, et non une etoile : c'est le pictogramme
@@ -467,6 +493,19 @@
     color:var(--v2-txt3); display:grid; place-items:center; cursor:pointer; transition:.15s}
   .raccourci:hover{color:var(--v2-acc1); background:var(--v2-hover)}
   .raccourci svg{width:16px; height:16px}
+  /* La loupe reprise du client actuel se dessine en 36 px sur fond
+     transparent. Dans la grappe elle voisinerait deux ronds pleins de 32 px :
+     on l'aligne sur eux plutôt que de la laisser dépasser. */
+  .av-tr :global(.search-icon-btn){width:32px; height:32px; background:var(--v2-surface2);
+    color:var(--v2-txt3)}
+  .av-tr :global(.search-icon-btn:hover){color:var(--v2-acc1); background:var(--v2-hover)}
+  .av-tr :global(.search-icon-btn svg){width:16px; height:16px}
+  /* Le voile d'arrière-plan part de `--sidebar-width` (280 px), la largeur de
+     la barre latérale du client ACTUEL. Celle du v2 fait 236 px, et 72 px une
+     fois repliée : le voile laisserait une bande claire au milieu de l'écran.
+     La recherche est globale, le voile l'est aussi — `left:0`, sans nombre à
+     tenir à jour quand la barre se replie. */
+  .av-tr :global(.search-overlay){left:0}
   .rc-fond{position:fixed; inset:0; z-index:90; background:rgba(0,0,0,.45); display:grid; place-items:center; padding:20px}
   .rc{display:flex; flex-direction:column; gap:10px; width:min(360px,100%); padding:20px;
     background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:var(--v2-r-card)}
