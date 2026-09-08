@@ -1558,6 +1558,7 @@ export default {
   "library.sortYear": "Anno",
   "library.writingTags": "Scrittura...",
   "library.dynamicRangeTip": "Gamma dinamica (DR), letta dai tag dei file: più alto è il valore, meno è compresso il mastering.",
+  "library.dynamicRangeAverageTip": "Gamma dinamica (DR), media arrotondata dei tag delle tracce: questo album non ha un tag ALBUM DYNAMIC RANGE proprio, quindi Tune ha dedotto il valore. Più alto è il valore, meno è compresso il mastering.",
   "library.writeTags": "Scrivi i tag",
   "library.noCollections": "Nessuna collezione",
   "library.newTagPlaceholder": "Nuovo tag...",
