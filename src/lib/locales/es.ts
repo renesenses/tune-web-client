@@ -4143,6 +4143,25 @@ export default {
   // toucher aux lignes voisines.
   "settings.hiddenHere": "{n} ajuste(s) ocultos aquí en tu nivel de visualización.",
   "settings.hiddenHereReveal": "Mostrarlos",
+  "v2.dev.tuneTested": "Tune tested",
+  "v2.dev.tuneTestedTip": "Configuración validada por MozAIk Labs para este dispositivo.",
+  "v2.dev.backupTitle": "Copia de los ajustes",
+  "v2.dev.backupIntro": "Los ajustes de sus dispositivos en un archivo que usted conserva. No incluye volumen, cola ni grupos.",
+  "v2.dev.backupSave": "Guardar en un archivo",
+  "v2.dev.backupOpen": "Abrir una copia…",
+  "v2.dev.backupPaste": "O pegue aquí el contenido de una copia",
+  "v2.dev.backupRead": "Examinar",
+  "v2.dev.backupFrom": "Copia del {date}",
+  "v2.dev.backupSummary": "{found} de {total} zona(s) encontrada(s), {changes} ajuste(s) por cambiar.",
+  "v2.dev.backupNothing": "Nada que cambiar: estos ajustes ya son los suyos.",
+  "v2.dev.backupByName": "reconocida por su nombre",
+  "v2.dev.backupAbsent": "ausente en esta instalación",
+  "v2.dev.backupManual": "Volumen fijo: actívelo a mano. Pone el dispositivo al 100 %.",
+  "v2.dev.backupApplied": "{n} zona(s) actualizada(s).",
+  "v2.dev.backupErrUnreadable": "Archivo ilegible.",
+  "v2.dev.backupErrNotTune": "Este archivo no es una copia de Tune.",
+  "v2.dev.backupErrFuture": "Copia creada por una versión más reciente de Tune.",
+  "v2.dev.backupErrEmpty": "Esta copia no contiene ninguna zona.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

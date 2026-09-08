@@ -4143,6 +4143,25 @@ export default {
   // toucher aux lignes voisines.
   "settings.hiddenHere": "表示レベルにより、ここでは {n} 件の設定が非表示です。",
   "settings.hiddenHereReveal": "表示する",
+  "v2.dev.tuneTested": "Tune tested",
+  "v2.dev.tuneTestedTip": "この機器について MozAIk Labs が検証した設定です。",
+  "v2.dev.backupTitle": "設定のバックアップ",
+  "v2.dev.backupIntro": "お使いの機器の設定を、手元に残せるファイルにまとめます。音量・再生待ち・グループは含まれません。",
+  "v2.dev.backupSave": "ファイルに保存",
+  "v2.dev.backupOpen": "バックアップを開く…",
+  "v2.dev.backupPaste": "またはバックアップの内容をここに貼り付けてください",
+  "v2.dev.backupRead": "内容を確認",
+  "v2.dev.backupFrom": "{date} のバックアップ",
+  "v2.dev.backupSummary": "{total} 個中 {found} 個のゾーンが見つかりました。変更する設定は {changes} 件です。",
+  "v2.dev.backupNothing": "変更点はありません。これらの設定はすでに適用済みです。",
+  "v2.dev.backupByName": "名前で照合",
+  "v2.dev.backupAbsent": "この環境には存在しません",
+  "v2.dev.backupManual": "固定音量：手動で有効にしてください。機器を 100 % にします。",
+  "v2.dev.backupApplied": "{n} 個のゾーンを更新しました。",
+  "v2.dev.backupErrUnreadable": "ファイルを読み取れません。",
+  "v2.dev.backupErrNotTune": "このファイルは Tune のバックアップではありません。",
+  "v2.dev.backupErrFuture": "より新しいバージョンの Tune が書き出したバックアップです。",
+  "v2.dev.backupErrEmpty": "このバックアップにはゾーンが含まれていません。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

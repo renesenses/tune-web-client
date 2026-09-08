@@ -4143,6 +4143,25 @@ export default {
   // toucher aux lignes voisines.
   "settings.hiddenHere": "{n} setare/setări ascunse aici la nivelul tău de afișare.",
   "settings.hiddenHereReveal": "Afișează-le",
+  "v2.dev.tuneTested": "Tune tested",
+  "v2.dev.tuneTestedTip": "Configurație validată de MozAIk Labs pentru acest dispozitiv.",
+  "v2.dev.backupTitle": "Salvarea setărilor",
+  "v2.dev.backupIntro": "Setările dispozitivelor dumneavoastră într-un fișier pe care îl păstrați. Volumul, coada și grupurile nu sunt incluse.",
+  "v2.dev.backupSave": "Salvează într-un fișier",
+  "v2.dev.backupOpen": "Deschide o salvare…",
+  "v2.dev.backupPaste": "Sau lipiți aici conținutul unei salvări",
+  "v2.dev.backupRead": "Examinează",
+  "v2.dev.backupFrom": "Salvare din {date}",
+  "v2.dev.backupSummary": "{found} din {total} zonă(e) găsită(e), {changes} setare/setări de schimbat.",
+  "v2.dev.backupNothing": "Nimic de schimbat: aceste setări sunt deja ale dumneavoastră.",
+  "v2.dev.backupByName": "identificată după nume",
+  "v2.dev.backupAbsent": "absentă din această instalare",
+  "v2.dev.backupManual": "Volum fix: activați-l manual. Trimite aparatul la 100 %.",
+  "v2.dev.backupApplied": "{n} zonă(e) actualizată(e).",
+  "v2.dev.backupErrUnreadable": "Fișier ilizibil.",
+  "v2.dev.backupErrNotTune": "Acest fișier nu este o salvare Tune.",
+  "v2.dev.backupErrFuture": "Salvare scrisă de o versiune mai nouă de Tune.",
+  "v2.dev.backupErrEmpty": "Această salvare nu conține nicio zonă.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

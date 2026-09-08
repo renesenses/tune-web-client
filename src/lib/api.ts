@@ -598,6 +598,33 @@ export function updateZoneDlnaPlayDelay(id: number, ms: number) {
   });
 }
 
+/**
+ * Récupération d'une sauvegarde locale : plusieurs réglages d'appareil en UN
+ * seul PATCH.
+ *
+ * Le serveur traite chaque clé indépendamment (`routes/zones.rs`, un
+ * `if let Some(...)` par champ), donc un corps composite équivaut à la suite
+ * d'appels unitaires ci-dessus. Mais 🔴 L'ORDRE COMPTE, et c'est pour cela que
+ * cette fonction existe.
+ *
+ * `routes/zones/ecriture.rs` (lu sur `origin/main`) persiste le PATCH, PUIS —
+ * si et seulement si le corps portait `brand` ou `model` — pousse le préréglage
+ * communautaire, dont la charge utile est relue en base à ce moment-là
+ * (`renderer_settings_snapshot`). Envoyer l'identité et les réglages en DEUX
+ * PATCH ferait donc partir la poussée sur une zone encore neutre : le snapshot
+ * serait vide, la poussée abandonnée, et le consensus n'apprendrait jamais la
+ * configuration qu'on vient de restaurer.
+ *
+ * Le corps est construit par `reglagesAppareilLocal.corpsPatch`, qui n'y met
+ * que ce qui change et écarte `fixed_volume`.
+ */
+export function updateZoneReglages(id: number, corps: Record<string, unknown>) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(corps),
+  });
+}
+
 /** Catalogue statique marque→modèles (+ quirks) pour la config d'une zone. */
 export function getDeviceCatalog() {
   return fetchJSON<import('./types').DeviceCatalog>(`${BASE}/devices/catalog`);

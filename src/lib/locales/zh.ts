@@ -4143,6 +4143,25 @@ export default {
   // toucher aux lignes voisines.
   "settings.hiddenHere": "在当前显示级别下，此处隐藏了 {n} 项设置。",
   "settings.hiddenHereReveal": "显示它们",
+  "v2.dev.tuneTested": "Tune tested",
+  "v2.dev.tuneTestedTip": "MozAIk Labs 已为此设备验证的配置。",
+  "v2.dev.backupTitle": "设置备份",
+  "v2.dev.backupIntro": "把您的设备设置存成一个由您保管的文件。不含音量、播放队列和分组。",
+  "v2.dev.backupSave": "保存为文件",
+  "v2.dev.backupOpen": "打开备份…",
+  "v2.dev.backupPaste": "或在此粘贴备份内容",
+  "v2.dev.backupRead": "查看",
+  "v2.dev.backupFrom": "{date} 的备份",
+  "v2.dev.backupSummary": "在 {total} 个区域中找到 {found} 个，需更改 {changes} 项设置。",
+  "v2.dev.backupNothing": "无需更改：这些设置已经是您当前的设置。",
+  "v2.dev.backupByName": "按名称匹配",
+  "v2.dev.backupAbsent": "此安装中不存在",
+  "v2.dev.backupManual": "固定音量：请手动开启。它会把设备调到 100 %。",
+  "v2.dev.backupApplied": "已更新 {n} 个区域。",
+  "v2.dev.backupErrUnreadable": "文件无法读取。",
+  "v2.dev.backupErrNotTune": "此文件不是 Tune 备份。",
+  "v2.dev.backupErrFuture": "该备份由更新版本的 Tune 写入。",
+  "v2.dev.backupErrEmpty": "该备份不含任何区域。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

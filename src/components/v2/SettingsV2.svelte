@@ -45,6 +45,32 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
+  import { tip } from '../../lib/tooltip';
+  import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  /**
+   * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
+   *
+   * Le catalogue vient de mozaiklabs.fr, mis en cache une fois par jour et par
+   * navigateur — voir `lib/tuneTested.ts` pour ce que cet appel sortant coûte
+   * et pourquoi il est acceptable ICI et nulle part ailleurs.
+   *
+   * L'appareil est cherché sur l'identité CHOISIE (`brand`/`model`) puis, à
+   * défaut, sur celle DÉTECTÉE. Mesuré sur le .18 le 08/09/2026 : une zone sur
+   * quatorze porte une marque choisie, et le Sonos ne se reconnaît que par sa
+   * détection — « Sonos, Inc. », raison sociale comprise, que `clefAppareil`
+   * sait retirer.
+   */
+  import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
+  let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
+  // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
+  $effect(() => {
+    chargerCatalogueTuneTested()
+      .then((c) => { indexTuneTested = indexer(c); })
+      .catch(() => { /* le badge se tait, l'écran s'affiche */ });
+  });
+  // La règle vit dans `lib/tuneTested.ts`, pour qu'un test l'APPELLE au lieu
+  // de relire ce fichier.
+  const tuneTestedDe = (z: any): AppareilTuneTested | null => appareilTuneTeste(indexTuneTested, z);
   /**
    * Bloc « Avancé · renderer » du client actuel, REPRIS tel quel.
    *
@@ -2047,6 +2073,8 @@
                 {#if spcErr}<div class="errline">{spcErr}</div>{/if}
               {/if}
 
+            {:else if s.id === 'sauvegardeReglages'}
+              <SauvegardeReglagesV2 />
             {:else if s.id === 'perZone'}
               {#if !$zones.length}
                 <p class="hint">{$t('settings.noZoneCreateOne' as any)}</p>
@@ -2058,6 +2086,9 @@
                       <div class="zch">
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
+                        {#if tuneTestedDe(z)}
+                          <span class="tt" use:tip={'v2.dev.tuneTestedTip'}>{$t('v2.dev.tuneTested' as any)}</span>
+                        {/if}
                       </div>
                       <div class="zr">
                         <label class="zf">
@@ -3012,6 +3043,11 @@
   .zch{display:flex; align-items:baseline; gap:11px}
   .zn{font-size:14px; font-weight:700}
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  /* Badge « Tune tested » : discret. Une zone sur quatorze le porte, et il
+     dit une validation, pas une alerte. */
+  .tt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase;
+      color:var(--v2-acc1); border:1px solid var(--v2-acc1); border-radius:3px;
+      padding:1px 5px; white-space:nowrap}
   .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
   .zf{display:flex; flex-direction:column; gap:5px}
   .zf > span{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}

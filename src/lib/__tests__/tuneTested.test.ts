@@ -21,6 +21,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
+  appareilTuneTeste,
   chargerCatalogueTuneTested,
   clefAppareil,
   indexer,
@@ -122,6 +123,44 @@ describe('L’index', () => {
 
   it('un catalogue absent donne un index vide, jamais une erreur', () => {
     expect(indexer(null).size).toBe(0);
+  });
+});
+
+describe('Le badge d’une zone', () => {
+  const index = indexer(CATALOGUE);
+
+  it('reconnaît l’appareil par l’identité CHOISIE', () => {
+    // L'Eversolo, tel qu'il est sur le .18 : marque et modèle posés à la main.
+    const z = {
+      brand: 'Eversolo', model: 'DMP-A8',
+      detected_manufacturer: 'EVERSOLO', detected_model: 'AV Renderer Device',
+    };
+    expect(appareilTuneTeste(index, z)?.model).toBe('DMP-A8');
+  });
+
+  it('🔴 se rabat sur l’identité DÉTECTÉE — sans quoi le Sonos n’aurait jamais son badge', () => {
+    // Mesuré sur le .18 : ce Sonos ne porte AUCUNE marque choisie. Treize des
+    // quatorze zones sont dans ce cas.
+    const z = {
+      brand: null, model: null,
+      detected_manufacturer: 'Sonos, Inc.', detected_model: 'Play:1',
+    };
+    expect(appareilTuneTeste(index, z)?.brand).toBe('Sonos');
+  });
+
+  it('🔴 ne CROISE jamais les deux identités', () => {
+    // « Eversolo » (choisi) + « AV Renderer Device » (détecté) ne désigne
+    // aucun appareil. Une marque choisie seule ne doit pas rendre un badge.
+    const z = {
+      brand: 'Eversolo', model: null,
+      detected_manufacturer: 'EVERSOLO', detected_model: 'AV Renderer Device',
+    };
+    expect(appareilTuneTeste(index, z)).toBeNull();
+  });
+
+  it('un appareil hors catalogue n’a pas de badge', () => {
+    expect(appareilTuneTeste(index, { brand: 'WiiM', model: 'Pro' })).toBeNull();
+    expect(appareilTuneTeste(new Map(), { brand: 'Sonos', model: 'Play:1' })).toBeNull();
   });
 });
 

@@ -4101,6 +4101,25 @@ export default {
   // toucher aux lignes voisines.
   "settings.hiddenHere": "{n} beállítás rejtve itt a jelenlegi megjelenítési szinten.",
   "settings.hiddenHereReveal": "Megjelenítés",
+  "v2.dev.tuneTested": "Tune tested",
+  "v2.dev.tuneTestedTip": "A MozAIk Labs által jóváhagyott beállítás ehhez az eszközhöz.",
+  "v2.dev.backupTitle": "Beállítások mentése",
+  "v2.dev.backupIntro": "Az eszközbeállításai egy fájlban, amelyet Ön őriz. A hangerő, a lejátszási sor és a csoportok nem kerülnek bele.",
+  "v2.dev.backupSave": "Mentés fájlba",
+  "v2.dev.backupOpen": "Mentés megnyitása…",
+  "v2.dev.backupPaste": "Vagy illessze be ide egy mentés tartalmát",
+  "v2.dev.backupRead": "Megvizsgálás",
+  "v2.dev.backupFrom": "{date} keltezésű mentés",
+  "v2.dev.backupSummary": "{total} zónából {found} megtalálva, {changes} beállítás módosul.",
+  "v2.dev.backupNothing": "Nincs mit módosítani: ezek a beállítások már az Önéi.",
+  "v2.dev.backupByName": "név alapján azonosítva",
+  "v2.dev.backupAbsent": "ezen a telepítésen nincs meg",
+  "v2.dev.backupManual": "Rögzített hangerő: kézzel kell bekapcsolni. Az eszközt 100 %-ra állítja.",
+  "v2.dev.backupApplied": "{n} zóna frissítve.",
+  "v2.dev.backupErrUnreadable": "A fájl olvashatatlan.",
+  "v2.dev.backupErrNotTune": "Ez a fájl nem Tune-mentés.",
+  "v2.dev.backupErrFuture": "A mentést a Tune egy újabb változata írta.",
+  "v2.dev.backupErrEmpty": "Ez a mentés egyetlen zónát sem tartalmaz.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

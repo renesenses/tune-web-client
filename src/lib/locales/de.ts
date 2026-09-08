@@ -4143,6 +4143,25 @@ export default {
   // toucher aux lignes voisines.
   "settings.hiddenHere": "{n} Einstellung(en) hier auf Ihrer Anzeigestufe ausgeblendet.",
   "settings.hiddenHereReveal": "Anzeigen",
+  "v2.dev.tuneTested": "Tune tested",
+  "v2.dev.tuneTestedTip": "Von MozAIk Labs für dieses Gerät geprüfte Konfiguration.",
+  "v2.dev.backupTitle": "Sicherung der Einstellungen",
+  "v2.dev.backupIntro": "Ihre Geräteeinstellungen in einer Datei, die Sie behalten. Lautstärke, Warteschlange und Gruppen sind nicht enthalten.",
+  "v2.dev.backupSave": "In einer Datei sichern",
+  "v2.dev.backupOpen": "Sicherung öffnen…",
+  "v2.dev.backupPaste": "Oder fügen Sie hier den Inhalt einer Sicherung ein",
+  "v2.dev.backupRead": "Prüfen",
+  "v2.dev.backupFrom": "Sicherung vom {date}",
+  "v2.dev.backupSummary": "{found} von {total} Zone(n) gefunden, {changes} Einstellung(en) zu ändern.",
+  "v2.dev.backupNothing": "Nichts zu ändern: Diese Einstellungen sind bereits Ihre.",
+  "v2.dev.backupByName": "über den Namen zugeordnet",
+  "v2.dev.backupAbsent": "auf dieser Installation nicht vorhanden",
+  "v2.dev.backupManual": "Feste Lautstärke: von Hand aktivieren. Sie stellt das Gerät auf 100 %.",
+  "v2.dev.backupApplied": "{n} Zone(n) aktualisiert.",
+  "v2.dev.backupErrUnreadable": "Datei nicht lesbar.",
+  "v2.dev.backupErrNotTune": "Diese Datei ist keine Tune-Sicherung.",
+  "v2.dev.backupErrFuture": "Sicherung wurde von einer neueren Tune-Version geschrieben.",
+  "v2.dev.backupErrEmpty": "Diese Sicherung enthält keine Zone.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

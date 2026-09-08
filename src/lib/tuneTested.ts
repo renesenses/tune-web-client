@@ -110,6 +110,35 @@ export function indexer(catalogue: CatalogueTuneTested | null): Map<string, Appa
   return index;
 }
 
+/**
+ * L'appareil « Tune tested » d'une zone, s'il y en a un.
+ *
+ * 🔴 L'identité CHOISIE d'abord, la DÉTECTÉE ensuite — et jamais un mélange
+ * des deux. Mesuré sur le .18 le 08/09/2026 : le Sonos ne porte aucune marque
+ * choisie et n'est reconnaissable que par sa détection (« Sonos, Inc. » /
+ * « Sonos Play:1 »), tandis que l'Eversolo porte « Eversolo / DMP-A8 » à la
+ * main là où sa détection dit « EVERSOLO / AV Renderer Device » — un modèle
+ * qui n'en est pas un. Croiser la marque choisie avec le modèle détecté
+ * fabriquerait « Eversolo / AV Renderer Device », qui ne désigne rien.
+ */
+export function appareilTuneTeste(
+  index: Map<string, AppareilTuneTested>,
+  zone: {
+    brand?: string | null; model?: string | null;
+    detected_manufacturer?: string | null; detected_model?: string | null;
+  },
+): AppareilTuneTested | null {
+  for (const [marque, modele] of [
+    [zone.brand, zone.model],
+    [zone.detected_manufacturer, zone.detected_model],
+  ] as const) {
+    const clef = clefAppareil(marque, modele);
+    const trouve = clef ? index.get(clef) : undefined;
+    if (trouve) return trouve;
+  }
+  return null;
+}
+
 interface Cache {
   at: number;
   catalogue: CatalogueTuneTested;

@@ -4143,6 +4143,25 @@ export default {
   // toucher aux lignes voisines.
   "settings.hiddenHere": "표시 수준에 따라 여기에서 {n}개 설정이 숨겨져 있습니다.",
   "settings.hiddenHereReveal": "표시하기",
+  "v2.dev.tuneTested": "Tune tested",
+  "v2.dev.tuneTestedTip": "MozAIk Labs가 이 기기에 대해 검증한 설정입니다.",
+  "v2.dev.backupTitle": "설정 백업",
+  "v2.dev.backupIntro": "기기 설정을 직접 보관하는 파일로 저장합니다. 볼륨, 재생 목록, 그룹은 포함되지 않습니다.",
+  "v2.dev.backupSave": "파일로 저장",
+  "v2.dev.backupOpen": "백업 열기…",
+  "v2.dev.backupPaste": "또는 백업 내용을 여기에 붙여넣으세요",
+  "v2.dev.backupRead": "확인",
+  "v2.dev.backupFrom": "{date} 백업",
+  "v2.dev.backupSummary": "{total}개 중 {found}개 존을 찾았습니다. 변경할 설정 {changes}개.",
+  "v2.dev.backupNothing": "변경할 것이 없습니다. 이미 동일한 설정입니다.",
+  "v2.dev.backupByName": "이름으로 일치",
+  "v2.dev.backupAbsent": "이 설치에는 없습니다",
+  "v2.dev.backupManual": "고정 볼륨: 직접 켜세요. 기기를 100 %로 올립니다.",
+  "v2.dev.backupApplied": "존 {n}개를 업데이트했습니다.",
+  "v2.dev.backupErrUnreadable": "파일을 읽을 수 없습니다.",
+  "v2.dev.backupErrNotTune": "이 파일은 Tune 백업이 아닙니다.",
+  "v2.dev.backupErrFuture": "더 새로운 버전의 Tune이 만든 백업입니다.",
+  "v2.dev.backupErrEmpty": "이 백업에는 존이 없습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

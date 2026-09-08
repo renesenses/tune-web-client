@@ -4143,6 +4143,25 @@ export default {
   // toucher aux lignes voisines.
   "settings.hiddenHere": "{n} impostazione/i nascoste qui al tuo livello di visualizzazione.",
   "settings.hiddenHereReveal": "Mostrale",
+  "v2.dev.tuneTested": "Tune tested",
+  "v2.dev.tuneTestedTip": "Configurazione convalidata da MozAIk Labs per questo dispositivo.",
+  "v2.dev.backupTitle": "Backup delle impostazioni",
+  "v2.dev.backupIntro": "Le impostazioni dei vostri dispositivi in un file che conservate. Volume, coda e gruppi non sono inclusi.",
+  "v2.dev.backupSave": "Salva in un file",
+  "v2.dev.backupOpen": "Apri un backup…",
+  "v2.dev.backupPaste": "Oppure incollate qui il contenuto di un backup",
+  "v2.dev.backupRead": "Esamina",
+  "v2.dev.backupFrom": "Backup del {date}",
+  "v2.dev.backupSummary": "{found} zona/e su {total} ritrovate, {changes} impostazione/i da modificare.",
+  "v2.dev.backupNothing": "Niente da cambiare: queste impostazioni sono già le vostre.",
+  "v2.dev.backupByName": "riconosciuta dal nome",
+  "v2.dev.backupAbsent": "assente in questa installazione",
+  "v2.dev.backupManual": "Volume fisso: da attivare a mano. Porta l’apparecchio al 100 %.",
+  "v2.dev.backupApplied": "{n} zona/e aggiornate.",
+  "v2.dev.backupErrUnreadable": "File illeggibile.",
+  "v2.dev.backupErrNotTune": "Questo file non è un backup Tune.",
+  "v2.dev.backupErrFuture": "Backup scritto da una versione più recente di Tune.",
+  "v2.dev.backupErrEmpty": "Questo backup non contiene alcuna zona.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

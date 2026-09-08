@@ -4163,6 +4163,25 @@ export default {
   // toucher aux lignes voisines.
   "settings.hiddenHere": "{n} setting(s) hidden here at your display level.",
   "settings.hiddenHereReveal": "Show them",
+  "v2.dev.tuneTested": "Tune tested",
+  "v2.dev.tuneTestedTip": "Configuration validated by MozAIk Labs for this device.",
+  "v2.dev.backupTitle": "Settings backup",
+  "v2.dev.backupIntro": "Your device settings in a file you keep. Volume, queue and groups are not included.",
+  "v2.dev.backupSave": "Save to a file",
+  "v2.dev.backupOpen": "Open a backup…",
+  "v2.dev.backupPaste": "Or paste the contents of a backup here",
+  "v2.dev.backupRead": "Review",
+  "v2.dev.backupFrom": "Backup from {date}",
+  "v2.dev.backupSummary": "{found} of {total} zone(s) found, {changes} setting(s) to change.",
+  "v2.dev.backupNothing": "Nothing to change: these settings are already yours.",
+  "v2.dev.backupByName": "matched by name",
+  "v2.dev.backupAbsent": "not on this installation",
+  "v2.dev.backupManual": "Fixed volume: arm it by hand. It sends the device to 100%.",
+  "v2.dev.backupApplied": "{n} zone(s) updated.",
+  "v2.dev.backupErrUnreadable": "Unreadable file.",
+  "v2.dev.backupErrNotTune": "This file is not a Tune backup.",
+  "v2.dev.backupErrFuture": "Backup written by a newer version of Tune.",
+  "v2.dev.backupErrEmpty": "This backup contains no zones.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
