@@ -415,6 +415,7 @@ export default {
   'search.shownOf': '{shown} / {total}',
   'search.shownOfAtLeast': '{shown} / 至少 {total}',
   'search.loadMore': '查看更多',
+  'search.durationShown': '已显示 {d}',
 
   // Streaming
   'streaming.selectService': '选择流媒体服务',

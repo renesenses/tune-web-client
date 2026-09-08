@@ -415,6 +415,7 @@ export default {
   'search.shownOf': '{total}개 중 {shown}개',
   'search.shownOfAtLeast': '{shown}개 ({total}개 이상)',
   'search.loadMore': '더 보기',
+  'search.durationShown': '표시된 {d}',
 
   // Streaming
   'streaming.selectService': '스트리밍 서비스를 선택하세요',

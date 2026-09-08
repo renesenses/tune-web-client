@@ -415,6 +415,7 @@ export default {
   'search.shownOf': '{total}件中{shown}件',
   'search.shownOfAtLeast': '{shown}件（{total}件以上）',
   'search.loadMore': 'もっと見る',
+  'search.durationShown': '表示中 {d}',
 
   // Streaming
   'streaming.selectService': 'ストリーミングサービスを選択してください',

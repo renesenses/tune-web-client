@@ -385,6 +385,7 @@ export default {
   'search.shownOf': '{shown} av {total}',
   'search.shownOfAtLeast': '{shown} av minst {total}',
   'search.loadMore': 'Visa fler',
+  'search.durationShown': '{d} visade',
 
   // Streaming
   'streaming.selectService': 'Välj en streamingtjänst',
