@@ -7,7 +7,7 @@
   import { trier, clesPourOnglet, dateDeTri, type CleDeTri } from '../lib/favoritesSort';
   import { melangee } from '../lib/shuffle';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
-  import { selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
+  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
   import { pendingPlaylistId } from '../lib/stores/playlists';
   import * as api from '../lib/api';
@@ -731,7 +731,12 @@
     if (!album.id) return;
     selectedArtist.set(null);
     selectedAlbum.set(album);
-    api.getAlbumTracks(album.id).then(tracks => albumTracks.set(tracks));
+    // La liste de la fiche precedente tombe AVANT la requete, et la reponse ne
+    // s'ecrit que si c'est toujours cet album qui est ouvert (#3178).
+    const idFiche = commencerFicheAlbum(album.id);
+    api.getAlbumTracks(album.id)
+      .then(tracks => poserPistesAlbum(idFiche, tracks))
+      .catch(e => console.error('Load album tracks error:', e));
     activeView.set('library');
   }
 
