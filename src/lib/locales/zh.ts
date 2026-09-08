@@ -4164,6 +4164,7 @@ export default {
   "v2.dev.backupErrEmpty": "该备份不含任何区域。",
   "v2.set.svcActive": "启用",
   "v2.set.svcActiveHint": "已停用的服务不会再出现在搜索和流媒体界面中。",
+  "nowplaying.shareError": "无法分享正在播放的内容。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

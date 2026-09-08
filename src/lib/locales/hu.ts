@@ -4122,6 +4122,7 @@ export default {
   "v2.dev.backupErrEmpty": "Ez a mentés egyetlen zónát sem tartalmaz.",
   "v2.set.svcActive": "Aktív",
   "v2.set.svcActiveHint": "A kikapcsolt szolgáltatás nem jelenik meg sem a keresésben, sem a streaming képernyőkön.",
+  "nowplaying.shareError": "Nem sikerült megosztani, ami éppen szól.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

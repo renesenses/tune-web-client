@@ -4164,6 +4164,7 @@ export default {
   "v2.dev.backupErrEmpty": "Esta copia no contiene ninguna zona.",
   "v2.set.svcActive": "Activo",
   "v2.set.svcActiveHint": "Un servicio desactivado ya no aparece en la búsqueda ni en las pantallas de streaming.",
+  "nowplaying.shareError": "No se ha podido compartir lo que suena.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

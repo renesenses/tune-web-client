@@ -4164,6 +4164,7 @@ export default {
   "v2.dev.backupErrEmpty": "このバックアップにはゾーンが含まれていません。",
   "v2.set.svcActive": "有効",
   "v2.set.svcActiveHint": "無効にしたサービスは、検索にもストリーミング画面にも表示されなくなります。",
+  "nowplaying.shareError": "再生中の曲を共有できませんでした。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

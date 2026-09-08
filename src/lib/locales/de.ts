@@ -4164,6 +4164,7 @@ export default {
   "v2.dev.backupErrEmpty": "Diese Sicherung enthält keine Zone.",
   "v2.set.svcActive": "Aktiv",
   "v2.set.svcActiveHint": "Ein deaktivierter Dienst erscheint weder in der Suche noch auf den Streaming-Seiten.",
+  "nowplaying.shareError": "Die laufende Wiedergabe konnte nicht geteilt werden.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -2208,8 +2208,19 @@ export function getListeningStats() {
   return fetchJSON<any>(`${BASE}/system/stats/listening`);
 }
 
+/**
+ * #533 — la route est déclarée en **POST** (`routes/playback.rs:760`), et elle
+ * rend `{ token, url, track }`, pas `{ title, artist, album, text, cover_url }`.
+ *
+ * L'appel en GET rendait 405 et le champ `text` attendu n'a jamais existé :
+ * c'est `undefined` qui partait au presse-papiers. Le texte se compose côté
+ * client, voir `lib/partageEcoute.ts`.
+ */
 export function shareNowPlaying(zoneId: number) {
-  return fetchJSON<{ title: string; artist: string; album: string; text: string; cover_url: string | null }>(`${BASE}/zones/${zoneId}/share`);
+  return fetchJSON<import('./partageEcoute').CartePartage>(
+    `${BASE}/zones/${zoneId}/share`,
+    { method: 'POST' },
+  );
 }
 
 export function transferPlayback(fromZoneId: number, toZoneId: number) {

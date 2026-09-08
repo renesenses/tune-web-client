@@ -12,6 +12,7 @@
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
   import { lireOuAjouter } from '../lib/playback';
+  import { texteDePartage, partageUtilisable } from '../lib/partageEcoute';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import {
     CF_PRESETS, presetActif, reglagesCrossfeed,
@@ -397,10 +398,21 @@
   async function handleShare() {
     if (zone?.id == null) return;
     try {
-      const card = await api.shareNowPlaying(zone.id);
-      await navigator.clipboard.writeText(card.text);
+      const carte = await api.shareNowPlaying(zone.id);
+      // #533 : le serveur ne rend PAS de champ `text` — c'est `undefined` qui
+      // partait au presse-papiers. Le texte se compose ici.
+      if (!partageUtilisable(carte)) {
+        notifications.error($t('nowplaying.shareError' as any));
+        return;
+      }
+      await navigator.clipboard.writeText(texteDePartage(carte, location.origin));
       notifications.success($t('nowplaying.copiedToClipboard'));
-    } catch (e) { console.error('Share error:', e); }
+    } catch (e) {
+      // L'échec ne meurt plus dans la console : le bouton disait « rien »
+      // depuis que la route est passée en POST.
+      console.error('Share error:', e);
+      notifications.error($t('nowplaying.shareError' as any));
+    }
   }
 
   async function loadNpCredits(trackId: number) {

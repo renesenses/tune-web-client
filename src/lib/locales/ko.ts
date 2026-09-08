@@ -4164,6 +4164,7 @@ export default {
   "v2.dev.backupErrEmpty": "이 백업에는 존이 없습니다.",
   "v2.set.svcActive": "사용",
   "v2.set.svcActiveHint": "사용 안 함으로 설정한 서비스는 검색에도 스트리밍 화면에도 나타나지 않습니다.",
+  "nowplaying.shareError": "재생 중인 곡을 공유할 수 없습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
