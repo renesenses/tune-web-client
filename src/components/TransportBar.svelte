@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZone, currentZoneId, stopAndSync, lectureEnAttente } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { upNextCount } from '../lib/stores/queue';
   import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
@@ -372,6 +372,61 @@
   let playState = $derived($playbackState);
   let showZoneDropdown = $state(false);
   let configZone = $state<typeof zone | null>(null);
+
+  /* ------------------------------------------------------------------ */
+  /* TRANSFÉRER LA LECTURE VERS UNE AUTRE ZONE                          */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * 🔴 La route est complète, le geste avait disparu de l'interface.
+   *
+   * FabienM, fil 1715 (08/09/2026) : « Dans la bottom bar de lecture, prévoir
+   * un bouton pour transférer la lecture en cours du titre vers une autre
+   * zone. »
+   *
+   * `POST /api/v1/zones/{id}/transfer/{cible}` reporte la file locale, la file
+   * streaming, l'index de la piste ET l'offset temporel ; une source en pause
+   * reste en pause sur la cible. `api.transferPlayback` l'enveloppe depuis
+   * toujours — mais son UNIQUE appelant vivait dans `Sidebar.svelte:44`, la
+   * barre latérale de l'ANCIENNE coquille. `ShellV2` monte `v2/Sidebar.svelte`,
+   * qui ne liste aucune zone : en v2 le transfert était donc inatteignable.
+   *
+   * Posé ICI plutôt que dans un écran v2 : la barre de lecture est montée par
+   * les DEUX coquilles, c'est l'endroit que FabienM désigne, et la liste de
+   * zones y existe déjà. Un seul geste ajouté solde les deux défauts.
+   *
+   * ⚠️ Le popover COMMUTE la zone pilotée (`currentZoneId.set`), il ne déplace
+   * rien : c'est précisément la confusion à lever. Les deux actions cohabitent
+   * donc sur la même ligne, la seconde explicitement nommée.
+   */
+  let transferringTo = $state<number | null>(null);
+
+  /**
+   * Même garde que la barre latérale (`Sidebar.svelte:34-37`) : sans lecture en
+   * cours le serveur répond `400 nothing playing to transfer`. On ne propose
+   * pas un geste dont on sait qu'il échouera. La PAUSE compte — le serveur la
+   * reporte telle quelle sur la cible.
+   */
+  let currentZonePlaying = $derived(zone?.state === 'playing' || zone?.state === 'paused');
+
+  async function transfererVers(cibleId: number | null, e: Event) {
+    e.stopPropagation();
+    const depuis = $currentZoneId;
+    if (depuis == null || cibleId == null || depuis === cibleId || transferringTo !== null) return;
+    transferringTo = cibleId;
+    try {
+      await api.transferPlayback(depuis, cibleId);
+      // Suivre sur la cible, comme `Sidebar.svelte:45` : sans cela l'écran
+      // continuerait de piloter une zone devenue silencieuse.
+      await switchZone(cibleId);
+      zones.set(await api.getZones());
+      showZoneDropdown = false;
+    } catch (err: any) {
+      notifications.error(err?.message || String(err));
+    } finally {
+      transferringTo = null;
+    }
+  }
   let hasNoZone = $derived($zones.length === 0);
   // « Précédent » reste toujours actif quand une piste est chargée : le
   // serveur gère les bords (il reboucle ou relance la piste). « Suivant », lui,
@@ -1039,6 +1094,13 @@
             <span class="zone-popover-count">{$zones.length}</span>
           </div>
           {#each $zones.filter((z, i, arr) => !z.output_device_id || arr.findIndex(x => x.output_device_id === z.output_device_id) === i).slice(0, 50) as z (z.id)}
+            <!--
+              Une RANGÉE, et non un seul bouton : le transfert est une seconde
+              action sur la même zone, et un bouton ne s'imbrique pas dans un
+              bouton. La rangée porte le fond au survol, les deux boutons
+              restent distincts au clavier comme à la souris.
+            -->
+            <div class="zone-popover-row" class:active={z.id === $currentZoneId}>
             <button
               class="zone-popover-item"
               class:active={z.id === $currentZoneId}
@@ -1071,6 +1133,19 @@
                 {/if}
               </span>
             </button>
+            {#if currentZonePlaying && z.id !== $currentZoneId}
+              <button
+                class="zone-transfer-btn"
+                class:busy={transferringTo === z.id}
+                disabled={transferringTo !== null}
+                onclick={(e) => transfererVers(z.id, e)}
+                title={$t('zone.transferHere')}
+                aria-label={$t('zone.transferHere')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </button>
+            {/if}
+            </div>
           {/each}
         </div>
       {/if}
@@ -1930,6 +2005,25 @@
     border-radius: 8px;
   }
 
+  /* La rangée porte les DEUX actions de la zone : commuter (le corps) et
+     transférer la lecture (la flèche). Le fond au survol est posé sur elle,
+     sinon la moitié droite resterait éteinte quand la souris passe. */
+  .zone-popover-row {
+    display: flex;
+    align-items: stretch;
+    transition: background 0.1s;
+  }
+  .zone-popover-row:hover {
+    background: var(--tune-surface-hover);
+  }
+  .zone-popover-row.active {
+    background: rgba(124, 58, 237, 0.06);
+  }
+  .zone-popover-row:last-child {
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+  }
+
   .zone-popover-item {
     display: flex;
     align-items: center;
@@ -1943,6 +2037,39 @@
     cursor: pointer;
     text-align: left;
     transition: background 0.1s;
+    /* Le corps prend la place restante : sans cela il se dimensionne sur son
+       contenu et la flèche viendrait se coller au nom de la zone au lieu de
+       tenir le bord droit. */
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* La flèche « Transférer la lecture ici ». Elle n'apparaît que lorsque la
+     zone courante joue ou est en pause : sinon le serveur répond
+     `400 nothing playing to transfer`. */
+  .zone-transfer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 34px;
+    background: none;
+    border: none;
+    border-left: 1px solid var(--tune-border);
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    transition: color 0.12s, background 0.12s;
+  }
+  .zone-transfer-btn:hover:not(:disabled) {
+    color: var(--tune-accent);
+    background: var(--tune-surface-hover);
+  }
+  .zone-transfer-btn:disabled {
+    cursor: default;
+  }
+  .zone-transfer-btn.busy {
+    color: var(--tune-accent);
+    opacity: 0.6;
   }
 
   /* Le bloc de texte porte désormais deux lignes (nom de zone, appareil) :
@@ -1977,9 +2104,6 @@
     background: rgba(124, 58, 237, 0.06);
   }
 
-  .zone-popover-item:last-child {
-    border-radius: 0 0 12px 12px;
-  }
 
   /* Online/offline dot in the popover */
   .zone-dot {
