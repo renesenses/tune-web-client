@@ -4135,6 +4135,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "Niciun modul deținut",
   "diagnostics.outputNoProviders": "Niciun furnizor de ieșire extern nu este compilat în acest server.",
   "diagnostics.outputOpenLicense": "Vezi licența mea",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "{n} setare/setări ascunse aici la nivelul tău de afișare.",
+  "settings.hiddenHereReveal": "Afișează-le",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

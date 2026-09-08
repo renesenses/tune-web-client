@@ -4135,6 +4135,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "所有モジュールなし",
   "diagnostics.outputNoProviders": "このサーバーには外部出力プロバイダーが組み込まれていません。",
   "diagnostics.outputOpenLicense": "ライセンスを見る",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "表示レベルにより、ここでは {n} 件の設定が非表示です。",
+  "settings.hiddenHereReveal": "表示する",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

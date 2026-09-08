@@ -4134,4 +4134,11 @@ export default {
   "diagnostics.outputNoLicensedModules": "Ingen modul ägs",
   "diagnostics.outputNoProviders": "Ingen extern utgångsleverantör är inkompilerad i den här servern.",
   "diagnostics.outputOpenLicense": "Visa min licens",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "{n} inställning(ar) dolda här på din visningsnivå.",
+  "settings.hiddenHereReveal": "Visa dem",
 } as const;

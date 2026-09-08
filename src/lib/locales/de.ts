@@ -4135,6 +4135,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "Kein Modul erworben",
   "diagnostics.outputNoProviders": "In diesen Server ist kein externer Ausgabeanbieter einkompiliert.",
   "diagnostics.outputOpenLicense": "Meine Lizenz anzeigen",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "{n} Einstellung(en) hier auf Ihrer Anzeigestufe ausgeblendet.",
+  "settings.hiddenHereReveal": "Anzeigen",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
