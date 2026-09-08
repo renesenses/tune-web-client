@@ -41,8 +41,15 @@ describe('la bibliothèque se recharge quand le serveur le dit', () => {
    * sur le Mac à charge 150 comme sur Shrek à charge 17, dès que la suite a
    * grossi de neuf cas. Un garde qui tombe au hasard n'apprend plus à
    * personne à croire le rouge.
+   *
+   * 🔴 Vingt secondes n'ont pas suffi. Le coût n'est pas le test, c'est la
+   * TRANSFORMATION du graphe : mesuré sur Shrek, la même suite affiche
+   * « transform 646 s » à froid et une fraction de cela ensuite. Une CI part
+   * toujours à froid. Soixante secondes, donc — ce cas vérifie un
+   * COMPORTEMENT, jamais une vitesse, et le plafond n'est là que pour empêcher
+   * un blocage réel de durer.
    */
-  it('les deux événements sont écoutés', { timeout: 20_000 }, async () => {
+  it('les deux événements sont écoutés', { timeout: 60_000 }, async () => {
     let recu: ((e: any) => void) | null = null;
     const desabonner = vi.fn();
     vi.resetModules();
