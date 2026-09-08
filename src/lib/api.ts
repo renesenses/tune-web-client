@@ -978,7 +978,26 @@ export function listStereoPairs() {
 // Comme `addToQueue` : les champs descriptifs acceptent `null`, que le serveur
 // reçoit en `Option<String>`. Le type `Track` les déclare `string | null`, et
 // sans cela chaque appelant devait les blanchir en `undefined`.
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number }) {
+/**
+ * Lance une lecture sur une zone.
+ *
+ * `context_type` / `context_id` disent CE QUE l'auditeur a demandé, et non ce
+ * qui part dans la file. Le serveur les enregistre dans `listen_history` et
+ * s'en sert pour « Continuer l'écoute » — c'est la règle posée par FabienM
+ * (fil forum 1557) : « le type pris en compte dans ces rubriques dépend de
+ * l'endroit où l'utilisateur a cliqué sur Lire ».
+ *
+ * Il sait DÉDUIRE `album`, `playlist` et `track` du reste du corps
+ * (`tune-server/src/routes/playback.rs:544-611`). Mais `artist` et `label` ne
+ * s'y devinent pas : une discographie part en liste nue de `track_ids`, que
+ * rien ne distingue d'une sélection quelconque. Les annoncer est la SEULE
+ * voie, et le serveur l'attendait sans qu'aucun client la prenne (#2442).
+ *
+ * Le serveur refuse toute valeur hors des cinq qu'il connaît (`track`,
+ * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
+ * libre se remplir de variantes.
+ */
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1833,8 +1852,13 @@ export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string;
   });
 }
 
+/** ⚠️ Le serveur rend `{ "status": "ok", "track_id": <id> }`, PAS un `Track` —
+ *  `tune-server/src/routes/metadata.rs:607`. Le type de retour dit ce qui
+ *  arrive vraiment : il était déclaré `Track`, et l'appelant appariait sa
+ *  liste sur `updated.id`, un champ jamais envoyé (#3638). Pour rafraîchir un
+ *  affichage, relire la piste avec `getTrack`. */
 export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number; genre?: string; year?: string }) {
-  return fetchJSON<Track>(`${BASE}/library/tracks/${id}`, {
+  return fetchJSON<{ status: string; track_id: number }>(`${BASE}/library/tracks/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -3410,6 +3434,12 @@ function favItem(p: FavoriteRef): { item_type: FavoriteItemType; item_id: number
   return null;
 }
 
+/** La piste relue depuis la base. C'est la SEULE route qui rende un `Track`
+ *  complet : les trois points d'entrée d'édition (`PUT /library/tracks/{id}`,
+ *  `PATCH /metadata/tracks/{id}`, `POST /metadata/tracks/{id}/edit`) sont
+ *  servis par le même gestionnaire `edit_track` et ne rendent qu'un accusé de
+ *  réception. Un écran se rafraîchit donc en relisant, jamais en croyant la
+ *  réponse de l'écriture (#3638). */
 export function getTrack(id: number) {
   return fetchJSON<import('./types').Track>(`${BASE}/library/tracks/${id}`);
 }

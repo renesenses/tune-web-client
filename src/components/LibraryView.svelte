@@ -2168,7 +2168,20 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           [trackIds[i], trackIds[j]] = [trackIds[j], trackIds[i]];
         }
       }
-      await api.play(zone.id, { track_ids: trackIds });
+      // On ANNONCE l'artiste. Une discographie part en liste nue de
+      // `track_ids`, que rien ne distingue d'une sélection quelconque : le
+      // serveur ne peut pas la deviner, il enregistrait donc un contexte vide
+      // et l'écoute retombait dans le repli « albums » de « Continuer
+      // l'écoute ». C'est la règle de FabienM — le type dépend de l'endroit où
+      // l'on a cliqué sur Lire — et le serveur l'attendait depuis #2441 sans
+      // qu'aucun client la prenne (#2442).
+      const artisteId = $selectedArtist?.id;
+      await api.play(zone.id, {
+        track_ids: trackIds,
+        ...(artisteId != null
+          ? { context_type: 'artist' as const, context_id: String(artisteId) }
+          : {}),
+      });
       notifications.success($tr('library.shufflePlaying').replace('{count}', String(trackIds.length)));
     } catch (e) {
       console.error('Play artist library error:', e);
