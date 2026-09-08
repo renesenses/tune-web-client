@@ -373,6 +373,12 @@ export default {
 
   // Library
   'library.title': '라이브러리',
+  'library.recentlyAdded': '최근 추가됨',
+  'library.recentlyAddedRule': '최근 {d}일 동안 로컬 라이브러리에 추가된 트랙과 앨범',
+  'library.recentWindowDays': '{d}일',
+  'library.recentCounts': '앨범 {a}개 · 트랙 {t}개 · {h}',
+  'library.noRecentAlbums': '이 기간에 추가된 앨범이 없습니다.',
+  'library.recentLoadError': '최근 추가된 항목을 불러올 수 없습니다. 목록은 비어 있습니다.',
   'library.scopeLoadError': '폴더 {d}을(를) 불러올 수 없습니다. 목록은 비어 있습니다.',
   'library.searchPlaceholder': '검색...',
   'library.noAlbums': '라이브러리에 앨범 없음',

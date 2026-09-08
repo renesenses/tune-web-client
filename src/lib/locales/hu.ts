@@ -555,6 +555,12 @@ export default {
   "history.radioFavError": "Nem sikerült frissíteni a rádiókedvenceket",
   // Gyűjtemény
   "library.title": "Gyűjtemény",
+  "library.recentlyAdded": "Nemrég hozzáadva",
+  "library.recentlyAddedRule": "Az elmúlt {d} napban a helyi könyvtárhoz adott számok és albumok",
+  "library.recentWindowDays": "{d} nap",
+  "library.recentCounts": "{a} album · {t} szám · {h}",
+  "library.noRecentAlbums": "Ebben az időszakban nem került album hozzáadásra.",
+  "library.recentLoadError": "A legutóbbi hozzáadások nem tölthetők be: a lista üres marad.",
   "library.scopeLoadError": "A(z) {d} mappa nem tölthető be: a lista üres marad.",
   "library.playSimilar": "Még ilyet",
   "library.noSimilar": "Egyelőre nincs akusztikailag hasonló szám (az akusztikus Okos rádiót be kell kapcsolni, és a gyűjteményt elemezni kell).",

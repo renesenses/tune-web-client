@@ -584,6 +584,12 @@ export default {
 
   // Library
   'library.title': 'Library',
+  'library.recentlyAdded': 'Recently added',
+  'library.recentlyAddedRule': 'Tracks and albums added to the local library over the last {d} days',
+  'library.recentWindowDays': '{d} days',
+  'library.recentCounts': '{a} albums · {t} tracks · {h}',
+  'library.noRecentAlbums': 'No album added in this period.',
+  'library.recentLoadError': 'Could not load recent additions: the list stays empty.',
   'library.scopeLoadError': 'Could not load folder {d}: the list stays empty.',
   'library.playSimilar': 'More like this',
   'library.noSimilar': 'No acoustically similar tracks yet (acoustic Smart Radio must be enabled and the library analyzed).',

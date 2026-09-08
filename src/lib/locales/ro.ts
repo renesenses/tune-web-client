@@ -383,6 +383,12 @@ export default {
 
   // Library
   'library.title': 'Bibliotecă',
+  'library.recentlyAdded': 'Adăugate recent',
+  'library.recentlyAddedRule': 'Piese și albume adăugate în biblioteca locală în ultimele {d} zile',
+  'library.recentWindowDays': '{d} zile',
+  'library.recentCounts': '{a} albume · {t} piese · {h}',
+  'library.noRecentAlbums': 'Niciun album adăugat în această perioadă.',
+  'library.recentLoadError': 'Adăugările recente nu au putut fi încărcate: lista rămâne goală.',
   'library.scopeLoadError': 'Dosarul {d} nu a putut fi încărcat: lista rămâne goală.',
   'library.searchPlaceholder': 'Căutare...',
   'library.noAlbums': 'Niciun album în bibliotecă',

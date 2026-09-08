@@ -373,6 +373,12 @@ export default {
 
   // Library
   'library.title': 'ライブラリ',
+  'library.recentlyAdded': '最近追加',
+  'library.recentlyAddedRule': '過去 {d} 日間にローカルライブラリへ追加されたトラックとアルバム',
+  'library.recentWindowDays': '{d} 日',
+  'library.recentCounts': '{a} アルバム · {t} トラック · {h}',
+  'library.noRecentAlbums': 'この期間に追加されたアルバムはありません。',
+  'library.recentLoadError': '最近追加された項目を読み込めませんでした。リストは空のままです。',
   'library.scopeLoadError': 'フォルダー {d} を読み込めませんでした。リストは空のままです。',
   'library.searchPlaceholder': '検索...',
   'library.noAlbums': 'ライブラリにアルバムがありません',

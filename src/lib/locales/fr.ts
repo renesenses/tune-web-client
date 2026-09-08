@@ -596,6 +596,12 @@ export default {
 
   // Library
   'library.title': 'Bibliothèque',
+  'library.recentlyAdded': 'Ajouts récents',
+  'library.recentlyAddedRule': 'Pistes et albums ajoutés à la bibliothèque locale au cours des {d} derniers jours',
+  'library.recentWindowDays': '{d} jours',
+  'library.recentCounts': '{a} albums · {t} pistes · {h}',
+  'library.noRecentAlbums': 'Aucun album ajouté sur cette période.',
+  'library.recentLoadError': 'Impossible de charger les ajouts récents : la liste reste vide.',
   'library.scopeLoadError': 'Impossible de charger le répertoire {d} : la liste reste vide.',
   'library.playSimilar': 'Plus comme ça',
   'library.noSimilar': 'Aucun titre acoustiquement similaire pour l’instant (la Smart Radio acoustique doit être activée et la bibliothèque analysée).',
