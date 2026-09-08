@@ -1816,6 +1816,8 @@ export default {
   "settings.fullScan": "Scansione completa",
   "settings.deleting": "Eliminazione...",
   "settings.clearLibrary": "Svuota la libreria",
+  "settings.clearLibraryV2Hint": "Cancella l'indice (brani, album, artisti) per ripartire da zero. Nessun file viene eliminato: una scansione completa ricostruisce tutto.",
+  "settings.clearLibraryBusyHint": "È in corso una scansione: attendere la fine prima di svuotare la libreria.",
   "settings.scanOptions": "Opzioni di scansione",
   "settings.qualitySplit": "Dividi gli album per qualità",
   "settings.qualitySplitHint": "Se lo stesso album esiste in CD e Hi-Res, crea due voci separate (es. \"Album (96kHz/24bit)\")",

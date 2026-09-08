@@ -1816,6 +1816,8 @@ export default {
   "settings.fullScan": "Vollständiger Scan",
   "settings.deleting": "Wird gelöscht…",
   "settings.clearLibrary": "Bibliothek leeren",
+  "settings.clearLibraryV2Hint": "Löscht den Index (Titel, Alben, Interpreten), um sauber neu zu beginnen. Es wird keine Datei gelöscht: eine vollständige Analyse baut alles wieder auf.",
+  "settings.clearLibraryBusyHint": "Eine Analyse läuft: warten Sie deren Ende ab, bevor Sie die Bibliothek leeren.",
   "settings.scanOptions": "Scan-Optionen",
   "settings.qualitySplit": "Alben nach Qualität aufteilen",
   "settings.qualitySplitHint": "Wenn dasselbe Album als CD und Hi-Res vorliegt, zwei separate Einträge erstellen (z. B. „Album (96kHz/24bit)“)",

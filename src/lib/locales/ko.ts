@@ -1791,6 +1791,8 @@ export default {
   "settings.fullScan": "전체 스캔",
   "settings.deleting": "삭제 중...",
   "settings.clearLibrary": "라이브러리 지우기",
+  "settings.clearLibraryV2Hint": "색인(트랙, 앨범, 아티스트)을 지워 처음부터 다시 시작합니다. 파일은 삭제되지 않으며, 전체 분석으로 모두 다시 만들어집니다.",
+  "settings.clearLibraryBusyHint": "분석이 진행 중입니다. 끝난 뒤에 라이브러리를 비우세요.",
   "settings.scanOptions": "스캔 옵션",
   "settings.qualitySplit": "품질별로 앨범 분리",
   "settings.qualitySplitHint": "동일한 앨범이 CD와 Hi-Res로 존재하면 두 개의 별도 항목을 만듭니다 (예: \"Album (96kHz/24bit)\")",

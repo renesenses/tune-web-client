@@ -886,6 +886,53 @@
   async function stopScan() {
     try { await api.cancelScan(); scanning = false; } catch { /* deja finie */ }
   }
+
+  /**
+   * REPARTIR A ZERO — renesenses/tune-server-rust#3585, volet 1.
+   *
+   * Louis Bertin essaie Tune avec une cle USB de 15 albums, les voit ressortir
+   * melanges, et demande « comment tout reinitialiser et tout effacer cette
+   * bibliotheque et partir sur une base saine ? ». La fonction EXISTE
+   * (`POST /system/library/clear`, handler `scan::library_clear`) et le
+   * nouveau client ne l'exposait NULLE PART : `git grep "library/clear"` sur
+   * `src/components/v2/` ne rendait rien. Elle ne vivait que dans l'ecran
+   * Reglages actuel, et masquee sous le niveau Expert.
+   *
+   * 🔴 Ce que la route fait, verifie et non suppose. `library_clear` appelle
+   * `TrackRepo::delete_all`, qui, dans UNE transaction, vide `tracks`,
+   * `albums`, `artists`, `track_credits` et les entrees de file adossees a une
+   * piste. AUCUN fichier n'est touche : c'est l'INDEX qu'on efface, pas la
+   * musique, et l'« Analyse complete » deux lignes plus haut le reconstruit.
+   * C'est ce qui justifie de la rendre atteignable — voir le corps de la PR.
+   *
+   * Le serveur repond HTTP 200 MEME en cas d'echec, avec `{ ok: false, error }`
+   * : tester la verite de l'objet ne suffit pas, `{ ok: false }` est truthy.
+   * Ce piege a deja fait annoncer « videe » sur un echec (#1715) — l'ecran
+   * actuel le tient, celui-ci le tient aussi.
+   */
+  let clearingLibrary = $state(false);
+  let clearMessage = $state<string | null>(null);
+  async function clearLibrary() {
+    if (clearingLibrary) return;
+    // `dialogs.confirm`, jamais `window.confirm` : les dialogues natifs ne
+    // s'ouvrent pas dans les webviews (#166), et scripts/check-native-dialogs
+    // le garde.
+    if (!(await dialogs.confirm(get(t)('settings.clearLibraryConfirm'), { danger: true }))) return;
+    clearingLibrary = true; clearMessage = null; libErr = null;
+    try {
+      const r = await api.clearLibrary();
+      if (r?.ok) {
+        clearMessage = get(t)('settings.libraryCleared');
+        scanReport = null;
+        await refreshLibrary();
+      } else {
+        libErr = `${get(t)('settings.deletionError')}${r?.error ? ` : ${r.error}` : ''}`;
+      }
+    } catch (e: any) {
+      libErr = `${get(t)('common.error')}: ${e?.message || e}`;
+    }
+    clearingLibrary = false;
+  }
   async function setQualitySplit(v: boolean) {
     const before = qualitySplit; qualitySplit = v;
     try { await api.updateConfig({ quality_split: v }); notifications.success(get(t)('settings.savedNeedsFullScan')); }
@@ -2254,6 +2301,26 @@
               {:else}
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
               {/if}
+              {#if libErr}<div class="errline">{libErr}</div>{/if}
+
+            {:else if s.id === 'clearLibrary'}
+              <!-- « Repartir à zéro » (#3585). La fonction existait côté
+                   serveur et n'était exposée nulle part ici. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.clearLibrary')}</span>
+                  <span class="hint">{$t('settings.clearLibraryV2Hint' as any)}</span>
+                </div>
+                <div class="inline">
+                  <button class="lnk danger" onclick={clearLibrary} disabled={clearingLibrary || scanning}>
+                    {clearingLibrary ? $t('settings.deleting') : $t('settings.clearLibrary')}
+                  </button>
+                </div>
+              </div>
+              {#if scanning}
+                <p class="hint">{$t('settings.clearLibraryBusyHint' as any)}</p>
+              {/if}
+              {#if clearMessage}<div class="okbox">{clearMessage}</div>{/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
 
             {:else if s.id === 'scanOpts'}

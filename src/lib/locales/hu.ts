@@ -2011,6 +2011,8 @@ export default {
   "settings.fullScan": "Teljes beolvasás",
   "settings.deleting": "Törlés...",
   "settings.clearLibrary": "Gyűjtemény ürítése",
+  "settings.clearLibraryV2Hint": "Törli az indexet (számok, albumok, előadók), hogy tiszta lappal indulhasson. Egyetlen fájl sem törlődik: a teljes elemzés mindent újraépít.",
+  "settings.clearLibraryBusyHint": "Elemzés van folyamatban: várja meg a végét, mielőtt kiüríti a könyvtárat.",
   "settings.scanOptions": "Beolvasási beállítások",
   "settings.qualitySplit": "Albumok szétválasztása minőség szerint",
   "settings.qualitySplitHint": "Ha ugyanaz az album létezik CD- és Hi-Res változatban, két külön bejegyzés készül (pl. „Album (96kHz/24bit)”)",

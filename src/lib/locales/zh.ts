@@ -1816,6 +1816,8 @@ export default {
   "settings.fullScan": "完整扫描",
   "settings.deleting": "删除中…",
   "settings.clearLibrary": "清空音乐库",
+  "settings.clearLibraryV2Hint": "清除索引（曲目、专辑、艺人）以便重新开始。不会删除任何文件：完整扫描会重建全部内容。",
+  "settings.clearLibraryBusyHint": "扫描正在进行中：请等待其结束后再清空音乐库。",
   "settings.scanOptions": "扫描选项",
   "settings.qualitySplit": "按质量拆分专辑",
   "settings.qualitySplitHint": "如果同一专辑同时存在 CD 和 Hi-Res 版本，创建两个独立条目（例如“Album (96kHz/24bit)”）",
