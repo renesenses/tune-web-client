@@ -1533,6 +1533,7 @@ export default {
   "library.sortYear": "연도",
   "library.writingTags": "쓰는 중...",
   "library.dynamicRangeTip": "다이내믹 레인지(DR). 파일 태그에서 읽은 값이며, 값이 클수록 마스터링 압축이 적습니다.",
+  "library.dynamicRangeAverageTip": "다이내믹 레인지(DR). 트랙 태그의 반올림 평균값입니다. 이 앨범에는 자체 ALBUM DYNAMIC RANGE 태그가 없어 Tune이 값을 추정했습니다. 값이 클수록 마스터링 압축이 적습니다.",
   "library.writeTags": "태그 쓰기",
   "library.noCollections": "컬렉션 없음",
   "library.newTagPlaceholder": "새 태그...",

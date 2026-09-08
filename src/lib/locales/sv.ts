@@ -1511,6 +1511,7 @@ export default {
   "library.sortYear": "År",
   "library.writingTags": "Skriver...",
   "library.dynamicRangeTip": "Dynamiskt omfång (DR), avläst från filernas taggar – ju högre värde, desto mindre komprimerad mastring.",
+  "library.dynamicRangeAverageTip": "Dynamiskt omfång (DR), avrundat medelvärde av spårens taggar – albumet saknar egen ALBUM DYNAMIC RANGE-tagg, så Tune har härlett värdet. Ju högre värde, desto mindre komprimerad mastring.",
   "library.writeTags": "Skriv taggar",
   "library.noCollections": "Ingen samling",
   "library.newTagPlaceholder": "Ny tagg...",

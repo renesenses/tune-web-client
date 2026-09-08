@@ -1558,6 +1558,7 @@ export default {
   "library.sortYear": "年份",
   "library.writingTags": "写入中…",
   "library.dynamicRangeTip": "动态范围（DR），读取自文件标签——数值越高，母带压缩越少。",
+  "library.dynamicRangeAverageTip": "动态范围（DR），由各音轨标签取平均并四舍五入得出——该专辑没有自己的 ALBUM DYNAMIC RANGE 标签，因此由 Tune 推算。数值越高，母带压缩越少。",
   "library.writeTags": "写入标签",
   "library.noCollections": "无收藏集",
   "library.newTagPlaceholder": "新标签…",

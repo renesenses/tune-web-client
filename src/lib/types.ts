@@ -85,6 +85,12 @@ export interface Album {
    *  Servi uniquement par `GET /library/albums/{id}`, et absent de la réponse
    *  quand aucune piste ne porte le tag — ce qui est le cas courant. */
   dynamic_range?: string | null;
+  /** D'OÙ sort ce Dynamic Range (#1388, serveur v0.9.142) : `album_tag` quand
+   *  une piste porte `ALBUM DYNAMIC RANGE`, `track_average` quand Tune l'a
+   *  déduite de la moyenne arrondie des `DYNAMIC RANGE` des pistes. Apparaît
+   *  et disparaît AVEC `dynamic_range` ; absente d'un serveur plus ancien.
+   *  Voir `lib/dynamicRange.ts` pour la règle d'affichage. */
+  dynamic_range_source?: string | null;
 }
 
 export interface Track {

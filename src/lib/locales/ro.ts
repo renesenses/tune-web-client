@@ -1568,6 +1568,7 @@ export default {
   "library.sortYear": "An",
   "library.writingTags": "Se scrie...",
   "library.dynamicRangeTip": "Gama dinamică (DR), citită din etichetele fișierelor — cu cât valoarea e mai mare, cu atât masterizarea e mai puțin comprimată.",
+  "library.dynamicRangeAverageTip": "Gama dinamică (DR), media rotunjită a etichetelor pieselor — acest album nu are propria etichetă ALBUM DYNAMIC RANGE, așa că Tune a dedus valoarea. Cu cât valoarea e mai mare, cu atât masterizarea e mai puțin comprimată.",
   "library.writeTags": "Scrie etichete",
   "library.noCollections": "Nicio colecție",
   "library.newTagPlaceholder": "Etichetă nouă...",

@@ -1821,6 +1821,7 @@ export default {
   "library.sortYear": "Year",
   "library.writingTags": "Writing...",
   "library.dynamicRangeTip": "Dynamic Range (DR), read from the file tags — the higher the value, the less compressed the mastering.",
+  "library.dynamicRangeAverageTip": "Dynamic Range (DR), averaged from the per-track tags — this album carries no ALBUM DYNAMIC RANGE tag of its own, so Tune rounded the average of its tracks. The higher the value, the less compressed the mastering.",
   "library.writeTags": "Write tags",
   "library.noCollections": "No collection",
   "library.newTagPlaceholder": "New tag...",

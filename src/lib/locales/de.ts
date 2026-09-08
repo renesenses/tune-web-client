@@ -1558,6 +1558,7 @@ export default {
   "library.sortYear": "Jahr",
   "library.writingTags": "Wird geschrieben…",
   "library.dynamicRangeTip": "Dynamikumfang (DR), aus den Datei-Tags gelesen — je höher, desto weniger komprimiert das Mastering.",
+  "library.dynamicRangeAverageTip": "Dynamikumfang (DR), gerundeter Mittelwert der Titel-Tags — dieses Album hat kein eigenes ALBUM-DYNAMIC-RANGE-Tag, Tune hat den Wert daher abgeleitet. Je höher, desto weniger komprimiert das Mastering.",
   "library.writeTags": "Tags schreiben",
   "library.noCollections": "Keine Sammlung",
   "library.newTagPlaceholder": "Neuer Tag…",
