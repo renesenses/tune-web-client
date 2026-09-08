@@ -425,6 +425,12 @@ export default {
   'search.shownOf': '{shown} din {total}',
   'search.shownOfAtLeast': '{shown} din cel puțin {total}',
   'search.loadMore': 'Vezi mai mult',
+  'search.createPlaylist': 'Creează o listă de redare',
+  'search.playlistNamePrompt': 'Numele noii liste de redare',
+  'search.playlistCreated': 'Lista „{name}” a fost creată cu {n} piese.',
+  'search.playlistCreatedPartial': 'Lista „{name}” a fost creată cu cele {n} piese afișate, din {total} potriviri.',
+  'search.playlistNoLocalTracks': 'Nicio piesă din biblioteca locală în aceste rezultate.',
+  'search.playlistError': 'Lista de redare nu a putut fi creată.',
 
   // Streaming
   'streaming.selectService': 'Selectează un serviciu de streaming',

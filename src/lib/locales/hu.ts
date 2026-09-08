@@ -601,6 +601,12 @@ export default {
   "search.shownOf": "{shown} / {total}",
   "search.shownOfAtLeast": "{shown} / legalább {total}",
   "search.loadMore": "Továbbiak",
+  "search.createPlaylist": "Lejátszási lista létrehozása",
+  "search.playlistNamePrompt": "Az új lejátszási lista neve",
+  "search.playlistCreated": "A(z) „{name}” lista {n} számmal létrejött.",
+  "search.playlistCreatedPartial": "A(z) „{name}” lista a megjelenített {n} számmal jött létre, {total} találatból.",
+  "search.playlistNoLocalTracks": "Nincs helyi könyvtárbeli szám ezekben a találatokban.",
+  "search.playlistError": "A lejátszási lista nem hozható létre.",
   // Streaming
   "streaming.selectService": "Válassz streamingszolgáltatást",
   "streaming.searchOn": "Keresés itt: {service}...",

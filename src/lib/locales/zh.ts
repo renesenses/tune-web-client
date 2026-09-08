@@ -415,6 +415,12 @@ export default {
   'search.shownOf': '{shown} / {total}',
   'search.shownOfAtLeast': '{shown} / 至少 {total}',
   'search.loadMore': '查看更多',
+  'search.createPlaylist': '创建播放列表',
+  'search.playlistNamePrompt': '新播放列表的名称',
+  'search.playlistCreated': '播放列表「{name}」已创建，包含 {n} 首曲目。',
+  'search.playlistCreatedPartial': '播放列表「{name}」已创建，包含已显示的 {n} 首曲目，共 {total} 条匹配。',
+  'search.playlistNoLocalTracks': '这些结果中没有本地媒体库的曲目。',
+  'search.playlistError': '无法创建播放列表。',
 
   // Streaming
   'streaming.selectService': '选择流媒体服务',
