@@ -1001,7 +1001,7 @@
            le proposer sur la bibliotheque d'une autre machine promettrait
            d'agir sur elle, ce qu'on ne fait pas. -->
       <button class="btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Ajouter
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>{$tr('v2.tags.add' as any)}
       </button>
     {/if}
     <nav class="tabs">

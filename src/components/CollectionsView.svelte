@@ -4,7 +4,7 @@
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
+  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
   import AlbumArt from './AlbumArt.svelte';
@@ -223,8 +223,9 @@
       stashViewState('collections-manual', { id: selectedCollection.id });
     }
     selectedAlbum.set(album);
+    const idFiche = commencerFicheAlbum(album.id);
     api.getAlbumTracks(album.id).then(tracks => {
-      albumTracks.set(tracks);
+      poserPistesAlbum(idFiche, tracks);
       libraryTab.set('albums');
       activeView.set('library');
     });

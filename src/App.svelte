@@ -16,7 +16,7 @@
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
   import { activeView, focusMode, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
-  import { selectedAlbum, selectedArtist, albumTracks, artistAlbums, libraryTab } from './lib/stores/library';
+  import { selectedAlbum, selectedArtist, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab } from './lib/stores/library';
   import { reconcilierFiche } from './lib/reconciliationFiche';
   import { CANDIDATS_DEFILEMENT, conteneurDefilant, restaurerQuandPret } from './lib/defilementReel';
   import { finDuRetourProgrammatique, opPourFiche } from './lib/historiqueNavigation';
@@ -30,6 +30,7 @@
   import { startSupportPolling, stopSupportPolling } from './lib/stores/support';
   import { ytPlayerState, ytLoading, playVideo, pauseVideo, resumeVideo, stopVideo, clearYTLoading } from './lib/stores/ytPlayer';
   import { get } from 'svelte/store';
+  import { concerneLaZoneRegardee } from './lib/zoneRegardee';
   import { t } from './lib/i18n';
   import * as api from './lib/api';
   import { libelleBanniereEnrichissement, enrichissementImagesTermine, type TacheDeFond } from './lib/tachesDeFond';
@@ -796,7 +797,10 @@ import AlarmsView from './components/AlarmsView.svelte';
           if (toujoursDActualite(album, 'albumId')) {
             _pushingState = true;
             selectedAlbum.set(fiche);
-            albumTracks.set(pistes);
+            // La liste porte la CLÉ de son album (#3178) : reposée telle
+            // quelle, elle ne pourrait plus s'afficher sous une autre fiche.
+            commencerFicheAlbum(album);
+            poserPistesAlbum(album, pistes);
             _pushingState = false;
           }
         }
@@ -1060,15 +1064,21 @@ import AlarmsView from './components/AlarmsView.svelte';
                 return { ...z, current_track: null, state: 'stopped' as const, position_ms: 0 };
               })
             );
-            const curZone = get(currentZone);
-            if (curZone?.id === zoneId || (curZone?.group_id != null && curZone.group_id === get(zones).find(z => z.id === zoneId)?.group_id)) {
+            if (concerneLaZoneRegardee(zoneId, get(currentZone), get(zones))) {
               stopSeekTimer();
               seekPositionMs.set(0);
             }
           }
-          queueTracks.set([]);
-          queuePosition.set(0);
-          queueLength.set(0);
+          // 🔴 #753 : ces trois lignes s'exécutaient SANS filtre, alors que
+          // tout le reste de la branche filtre sur la zone. Vider la file du
+          // Sonos effaçait l'affichage de la file de l'Eversolo, qui n'avait
+          // pas bougé — et rien ne la rechargeait, `fetchQueue` ne partant que
+          // sur `playback.queue_changed`.
+          if (concerneLaZoneRegardee(zoneId, get(currentZone), get(zones))) {
+            queueTracks.set([]);
+            queuePosition.set(0);
+            queueLength.set(0);
+          }
         } else if (zoneId) {
           // Optimistic update: apply track metadata from the WS event
           // immediately so the UI updates without waiting for the API call.

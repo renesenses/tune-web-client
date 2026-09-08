@@ -6,7 +6,7 @@
   import * as api from '../lib/api';
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
-  import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
+  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab } from '../lib/stores/library';
   import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
@@ -22,8 +22,9 @@
       stashViewState('smartcollections', { id: selected.id });
     }
     selectedAlbum.set(album);
+    const idFiche = commencerFicheAlbum(album.id);
     api.getAlbumTracks(album.id).then(tracks => {
-      albumTracks.set(tracks);
+      poserPistesAlbum(idFiche, tracks);
       libraryTab.set('albums');
       activeView.set('library');
     });
@@ -299,7 +300,7 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" role="button" tabindex="0" onclick={() => navigateToAlbum(alb)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigateToAlbum(alb); }}>
               <div class="album-card-art">
-                <img class="album-cover-img" src={api.artworkUrl(alb.cover_path, 200)} alt={alb.title} loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.display='none')} />
+                <img class="album-cover-img" src={api.artworkSrc(alb.cover_path, 200)} alt={alb.title} loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.display='none')} />
               </div>
               <span class="album-card-title truncate" title={alb.title}>{alb.title}</span>
               {#if alb.artist_name}

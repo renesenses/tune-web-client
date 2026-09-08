@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import type { Album, Artist, Track } from '../types';
 
 export type LibraryTab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels' | 'folders';
@@ -10,6 +10,77 @@ export const libraryLoading = writable<boolean>(false);
 export const albums = writable<Album[]>([]);
 export const selectedAlbum = writable<Album | null>(null);
 export const albumTracks = writable<Track[]>([]);
+
+/**
+ * De QUEL album `albumTracks` porte les pistes — `null` quand la liste ne
+ * représente aucune fiche.
+ *
+ * ## Pourquoi cette clé existe
+ *
+ * renesenses/tune-server-rust#3178 (jfpaquet, 0.9.130 Windows) : en ouvrant un
+ * album, la liste de pistes affichée était celle d'un AUTRE album — pleine,
+ * cohérente, dans l'ordre, et le compteur de l'entête (« 12 tracks » puis
+ * « 8 tracks » pour le même disque de 9 pistes) la suivait, puisqu'il en
+ * dérive. La lecture, elle, restait juste.
+ *
+ * Le serveur a été écarté par la mesure : `album_tracks` lie l'identifiant en
+ * paramètre et rend `list_by_album_filtered(id, …).unwrap_or_default()` — une
+ * panne y rend une liste VIDE, jamais une liste fausse et pleine.
+ *
+ * `albumTracks` est un magasin PARTAGÉ, écrit depuis sept écrans (Bibliothèque,
+ * Favoris, Collections, Collections intelligentes, Tableau de bord, Lecture en
+ * cours, restauration d'historique). Aucun ne le vidait avant de charger, et
+ * plusieurs laissaient la liste précédente en place quand la requête échouait —
+ * dont `LibraryView.selectAlbumDetail`, dont le `catch` posait le NOUVEL album
+ * (`selectedAlbum.set(album)`) sans toucher aux pistes de l'ANCIEN. C'est
+ * exactement l'entête juste au-dessus d'une liste étrangère.
+ *
+ * La clé referme les deux moitiés d'un coup :
+ *  - `commencerFicheAlbum` la pose et VIDE la liste, avant toute requête ;
+ *  - `poserPistesAlbum` refuse d'écrire une réponse en retard ;
+ *  - et l'écran ne montre `albumTracks` que si la clé désigne l'album affiché,
+ *    si bien qu'un écrivain qui l'oublierait rendrait une liste vide — honnête —
+ *    plutôt qu'une liste fausse et pleine.
+ */
+export const albumTracksOwner = writable<number | null>(null);
+
+/**
+ * On ouvre la fiche de `albumId` : la liste de la fiche précédente tombe
+ * immédiatement, avant même que la requête parte.
+ *
+ * N'écrit PAS `selectedAlbum` : l'abonnement d'App.svelte empile une entrée
+ * d'historique à chaque écriture non nulle, et deux écritures pour une seule
+ * navigation redonneraient le « premier appui sur Précédent sans effet ».
+ */
+export function commencerFicheAlbum(albumId: number | null | undefined): number | null {
+  const id = albumId ?? null;
+  albumTracksOwner.set(id);
+  albumTracks.set([]);
+  return id;
+}
+
+/**
+ * Pose les pistes reçues pour `albumId`. Rend `false` — et n'écrit RIEN — si la
+ * fiche ouverte n'est plus celle-là : une réponse en retard ne repeint pas
+ * l'album suivant.
+ */
+export function poserPistesAlbum(albumId: number | null | undefined, list: Track[]): boolean {
+  if ((albumId ?? null) !== get(albumTracksOwner)) return false;
+  albumTracks.set(list);
+  return true;
+}
+
+/** La fiche courante est-elle toujours celle de `albumId` ? */
+export function ficheAlbumToujoursOuverte(albumId: number | null | undefined): boolean {
+  return (albumId ?? null) === get(albumTracksOwner);
+}
+
+/** Referme la fiche : plus d'album affiché, plus de liste, plus de clé. */
+export function fermerFicheAlbum(): void {
+  selectedAlbum.set(null);
+  albumTracksOwner.set(null);
+  albumTracks.set([]);
+}
 
 // Artists
 export const artists = writable<Artist[]>([]);

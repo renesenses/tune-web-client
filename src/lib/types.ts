@@ -108,6 +108,12 @@ export interface Album {
    * que la base ne sait pas encore.
    */
   is_compilation?: boolean;
+  /** D'OÙ sort ce Dynamic Range (#1388, serveur v0.9.142) : `album_tag` quand
+   *  une piste porte `ALBUM DYNAMIC RANGE`, `track_average` quand Tune l'a
+   *  déduite de la moyenne arrondie des `DYNAMIC RANGE` des pistes. Apparaît
+   *  et disparaît AVEC `dynamic_range` ; absente d'un serveur plus ancien.
+   *  Voir `lib/dynamicRange.ts` pour la règle d'affichage. */
+  dynamic_range_source?: string | null;
 }
 
 export interface Track {
@@ -978,9 +984,49 @@ export interface PlaylistRecoverResponse {
   tracks: RecoverTrackResult[];
 }
 
+/** Réponse de `POST /playlists/{id}/recover/apply`.
+ *
+ *  #3662 — le client déclarait `{replaced, failed}` : deux champs que le
+ *  serveur n'a jamais rendus. `apply_recovery`
+ *  (`tune-server/src/routes/playlists.rs:1479-1512`) rend
+ *  `{playlist_id, total_tracks, recovered, still_missing}`.
+ *
+ *  ⚠️ Le nom trompe, et le type ne le rattrape pas : ce handler ne prend AUCUN
+ *  corps de requête. Il RECOMPTE les pistes de la playlist ; il n'applique
+ *  aucun remplacement. La liste `replacements` envoyée par le client est donc
+ *  reçue puis ignorée. C'est un défaut de fond distinct de l'alignement de type
+ *  fait ici — voir la note portée à #3662. */
 export interface RecoverApplyResponse {
-  replaced: number;
-  failed: number;
+  playlist_id: number;
+  total_tracks: number;
+  recovered: number;
+  still_missing: number;
+}
+
+/** Réponse de `POST /plugins/{name}/enable` et `/disable`
+ *  (`tune-server/src/routes/plugins.rs:538-556`).
+ *
+ *  `restart_required` compare l'état DEMANDÉ à ce qui tourne réellement :
+ *  réactiver un greffon déjà chargé, ou désactiver un greffon déjà absent, ne
+ *  demande aucun redémarrage. */
+export interface PluginToggleResult {
+  name: string;
+  enabled: boolean;
+  restart_required: boolean;
+}
+
+/** Réponse de `POST /radios/{id}/play/{zone_id}`
+ *  (`tune-server/src/routes/radios.rs:937-982`). Ce n'est pas une `Zone` :
+ *  l'identifiant s'appelle `zone_id`, et `radio` porte le NOM de la station. */
+export interface RadioPlayResult {
+  zone_id: number;
+  radio: string;
+  output_sent: boolean;
+  error?: string | null;
+  state?: unknown;
+  /** Adresse du flux — servie aux seules zones navigateur (#3164), donc
+   *  absente ou nulle ailleurs. */
+  stream_url?: string | null;
 }
 
 export interface StereoPairResponse {

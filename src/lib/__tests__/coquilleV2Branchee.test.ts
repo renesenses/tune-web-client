@@ -16,6 +16,15 @@ const sansCommentaires = (s: string) =>
  *
  * Ce fichier tient la liste de ce que la coquille DOIT monter, pour que le
  * sixième soit rattrapé par un test et non par Bertrand.
+ *
+ * ⚠️ LIMITE ASSUMÉE, ET POURQUOI ON NE L'ÉTEND PLUS.
+ *
+ * Ces assertions LISENT le source de `ShellV2.svelte`. Elles attrapent
+ * l'oubli pur — un composant jamais importé — et rien de plus : un montage
+ * présent mais débranché les laisserait vertes. Pour le septième cas
+ * (`GlobalSearchBar`, #3629), le témoin MONTE la coquille, clique la loupe et
+ * vérifie l'URL que `fetch` a reçue : `rechercheGlobaleV2_3629.test.ts`.
+ * C'est la forme à reprendre pour le huitième.
  */
 describe('La coquille v2 monte tout ce que App.svelte monte', () => {
   const shell = sansCommentaires(lire('src/components/v2/ShellV2.svelte'));

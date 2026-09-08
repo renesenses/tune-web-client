@@ -102,6 +102,27 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
+      /**
+       * REPARTIR À ZÉRO (#3585, volet 1) — `min: 'beginner'`, et c'est un
+       * choix, pas un oubli.
+       *
+       * L'écran actuel range `library.clearLibrary` en `expert`
+       * (`lib/settingLevels.ts:109`), et cette PR n'y touche pas. Mais le
+       * ticket dit précisément ce que cette barrière produit : Louis Bertin,
+       * premier essai avec une clé USB de 15 albums qui ressortent mélangés,
+       * ne trouve pas comment recommencer — « on ne peut même pas tout
+       * effacer et recommencer à zéro ». Le niveau Expert cache la fonction
+       * au moment exact où elle sert le plus, et à la seule personne qui en a
+       * besoin : celle dont le premier essai a raté.
+       *
+       * Ce qui rend le pari tenable : `library_clear` efface l'INDEX
+       * (tracks/albums/artists/credits), jamais un fichier — l'« Analyse
+       * complète », dans le même onglet, le reconstruit. La protection reste
+       * la confirmation danger, qui est explicite, pas un niveau d'affichage,
+       * qui ne l'est pas.
+       */
+      { id: 'clearLibrary', titleKey: 'settings.clearLibrary', from: 'library', min: 'beginner',
+        keywords: ['vider', 'effacer', 'réinitialiser', 'repartir', 'zéro', 'remise à zéro'] },
     ],
   },
   {
@@ -118,6 +139,15 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'devices',    titleKey: 'settings.tabDevices',       from: 'devices',  min: 'intermediate' },
       { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'intermediate', keywords: ['par zone', 'gapless', 'volume fixe'] },
+      /**
+       * Sauvegarde et récupération des réglages d'appareil — Bertrand,
+       * 08/09/2026 : « Et je veux un bouton sur l'UI de Tune sauvegarder mes
+       * réglages en local ! »
+       *
+       * Sous « Réglages par zone », parce que c'est CE qu'elle sauvegarde.
+       */
+      { id: 'sauvegardeReglages', titleKey: 'v2.dev.backupTitle', from: 'devices', min: 'intermediate',
+        keywords: ['sauvegarde', 'backup', 'export', 'import', 'restaurer', 'récupérer', 'fichier'] },
     ],
   },
   {
