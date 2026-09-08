@@ -16,13 +16,31 @@
   const totalSteps = 4;
 
   // Step 1: Network scan
+  //
+  // `shares` est FACULTATIF, et c'est tout le défaut #3637 : un hôte trouvé par
+  // la découverte mDNS (`GET /network/shares`) n'en porte jamais. Le serveur
+  // rend, pour chacun, `{id, name, host, hostname, port, protocol, available}`
+  // et rien d'autre — le champ était déclaré obligatoire ici, si bien que
+  // `share.shares.length` lisait une propriété de `undefined` au clic comme au
+  // rendu. Seul le chemin « adresse saisie à la main » remplit `shares`, parce
+  // qu'il passe par `scan-host` ; c'est pourquoi le défaut a survécu.
   interface NetworkShareInfo {
     id: string;
     name: string;
     host: string;
     protocol: string;
-    shares: string[];
+    shares?: string[];
     available: boolean;
+  }
+
+  /** Les partages rendus par le serveur sont tantôt des chaînes, tantôt des
+   *  objets `{name, type, host, protocol, path}` (`scan-host`) : on ne garde
+   *  que le nom, sans quoi la liste affiche « [object Object] » (Dominique). */
+  function nomsDePartages(brut: unknown): string[] {
+    if (!Array.isArray(brut)) return [];
+    return brut
+      .map((s: any) => (typeof s === 'string' ? s : s?.name))
+      .filter((n: any): n is string => typeof n === 'string' && n.length > 0);
   }
   let networkShares = $state<NetworkShareInfo[]>([]);
   let scanning = $state(false);
@@ -88,7 +106,15 @@
       const scanUser = showScanCredentials && username !== 'guest' ? username : undefined;
       const scanPass = showScanCredentials && password ? password : undefined;
       const result = await api.scanHost(adresse.host, 'smb', scanUser, scanPass);
-      const shares = result.shares ?? (Array.isArray(result) ? result : []);
+      // `scan-host` rend un TABLEAU NU d'objets `{name, type, host, protocol,
+      // path}` — jamais des chaînes. On normalise ICI, une fois : la
+      // comparaison de pré-sélection plus bas appelait `nom.toLowerCase()` sur
+      // ces objets et levait, si bien que le message d'erreur BRUT de
+      // JavaScript s'affichait dans l'assistant alors que le balayage avait
+      // réussi, et que le partage cité dans l'adresse n'était jamais
+      // pré-sélectionné (#1846 restait donc à moitié mort). Même famille que
+      // #3637 : la forme rendue n'est pas celle qu'on lit.
+      const shares = nomsDePartages(Array.isArray(result) ? result : result?.shares);
       if (shares.length > 0) {
         const share: NetworkShareInfo = {
           id: `smb://${adresse.host}`,
@@ -107,12 +133,13 @@
         // distingue pas et l'utilisateur recopie ce qu'il a sous les yeux.
         if (adresse.share) {
           const trouve = shares.find(
-            (nom: string) => nom.toLowerCase() === adresse.share!.toLowerCase(),
+            (nom) => nom.toLowerCase() === adresse.share!.toLowerCase(),
           );
           if (trouve) selectShare(trouve);
         }
       } else {
-        const errMsg = result.error || $t('smb.noSharesOnHost').replace('{host}', adresse.host);
+        const errMsg = (!Array.isArray(result) && result?.error)
+          || $t('smb.noSharesOnHost').replace('{host}', adresse.host);
         scanError = errMsg;
         if (errMsg.includes('refusé') || errMsg.includes('auth') || errMsg.includes('Authentication') || errMsg.includes('ACCESS_DENIED')) {
           showScanCredentials = true;
@@ -130,22 +157,30 @@
   async function selectHost(share: NetworkShareInfo) {
     selectedHost = share;
     selectedShare = null;
-    if (share.shares.length > 0) {
-      // May hold share objects (manual-host path stores scan_host results) or
-      // bare strings — normalise to names so the list doesn't show [object Object].
-      hostShares = (share.shares as any[])
-        .map((s: any) => (typeof s === 'string' ? s : s?.name))
-        .filter((n: any): n is string => typeof n === 'string' && n.length > 0);
+    const dejaConnus = nomsDePartages(share.shares);
+    if (dejaConnus.length > 0) {
+      // Chemin « adresse saisie à la main » : les partages sont déjà là.
+      hostShares = dejaConnus;
     } else {
+      // Hôte venu de la découverte mDNS : il n'annonce que son adresse. On
+      // interroge donc le même point d'entrée que la saisie manuelle,
+      // `GET /network/scan-host`, avec l'HÔTE.
+      //
+      // On appelait jusqu'ici `GET /network/shares/{id}` avec `share.id`, qui
+      // vaut `smb://192.168.x.y` — or cette route extrait un `Path<i64>` et
+      // rend, quand elle aboutit, la ligne d'un MONTAGE enregistré en base
+      // (`network_mounts`), jamais la liste des partages d'un hôte. L'appel
+      // était donc rejeté avant même d'entrer dans le gestionnaire, le `catch`
+      // ramenait une liste vide, et l'assistant annonçait « aucun partage ».
+      // Deux notions distinctes portaient le même préfixe : c'est la collision
+      // de nommage qui a produit l'erreur (#3637).
       loadingShares = true;
       try {
-        const result = await api.listHostShares(share.id);
-        // scan_host returns share OBJECTS ({name,type,host,protocol,path}), not
-        // bare strings — rendering them directly showed "[object Object]"
-        // (Dominique). Normalise to the share name (tolerate either shape).
-        hostShares = (result.shares || [])
-          .map((s: any) => (typeof s === 'string' ? s : s?.name))
-          .filter((n: any): n is string => typeof n === 'string' && n.length > 0);
+        const scanUser = showScanCredentials && username !== 'guest' ? username : undefined;
+        const scanPass = showScanCredentials && password ? password : undefined;
+        const result = await api.scanHost(share.host, share.protocol || 'smb', scanUser, scanPass);
+        // `scan-host` rend un TABLEAU nu ; on tolère aussi `{shares: […]}`.
+        hostShares = nomsDePartages(Array.isArray(result) ? result : result?.shares);
       } catch {
         hostShares = [];
       }
@@ -363,8 +398,8 @@
                   <span class="share-name">{share.name}</span>
                   <span class="share-host">{share.host}</span>
                 </div>
-                {#if share.shares.length > 0}
-                  <span class="share-count">{$t('smb.shareCount').replace('{count}', String(share.shares.length))}</span>
+                {#if (share.shares?.length ?? 0) > 0}
+                  <span class="share-count">{$t('smb.shareCount').replace('{count}', String(share.shares!.length))}</span>
                 {/if}
               </button>
             {/each}
