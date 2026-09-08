@@ -23,7 +23,7 @@
  * Et dans les trois : `scrollWidth === clientWidth`, aucun défilement
  * horizontal de page.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { formatPour, SEUIL_ICONES, SEUIL_TIROIR } from '../largeurEcran';
@@ -217,5 +217,39 @@ describe('Le menu du compte tient dans la fenêtre', () => {
 
   it('la molette ne fait pas défiler l’écran derrière le panneau', () => {
     expect(/overscroll-behavior:contain/.test(menu())).toBe(true);
+  });
+});
+
+describe('🔴 Un environnement SANS `matchMedia`', () => {
+  it('ne fait pas tomber le montage du composant', async () => {
+    // Tester `typeof window === "undefined"` ne suffit pas : un environnement
+    // qui monte un composant, ou une vieille webview, offre un `window` SANS
+    // `matchMedia`. L'appel jetait — et c'est le MONTAGE ENTIER qui tombait,
+    // pas seulement la mesure de largeur.
+    //
+    // Constaté le 08/09/2026 en fusionnant `main` : le test de la recherche
+    // globale (#3629) monte `ShellV2` et échouait sur « window.matchMedia is
+    // not a function », alors qu'il ne parle pas de largeur d'écran. Un défaut
+    // de robustesse se paie toujours dans le test de quelqu'un d'autre.
+    const vrai = (globalThis as any).window;
+    const ecoutes: string[] = [];
+    (globalThis as any).window = {
+      innerWidth: 1400,
+      addEventListener: (t: string) => ecoutes.push(t),
+      removeEventListener: () => {},
+    };
+    try {
+      vi.resetModules();
+      const { formatEcran } = await import('../largeurEcran');
+      let vu: string | undefined;
+      const stop = formatEcran.subscribe((f) => { vu = f; });
+      expect(vu, "l'abonnement n'a rien produit").toBe('large');
+      // Le repli doit écouter QUELQUE CHOSE, sinon la largeur ne suivrait plus.
+      expect(ecoutes).toContain('resize');
+      stop();
+    } finally {
+      (globalThis as any).window = vrai;
+      vi.resetModules();
+    }
   });
 });

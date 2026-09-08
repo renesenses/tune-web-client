@@ -55,17 +55,38 @@ export function formatPour(largeur: number): FormatEcran {
  * `matchMedia` plutôt qu'un écouteur `resize` : le navigateur ne réveille alors
  * le client qu'aux DEUX franchissements de seuil, pas à chaque pixel d'un
  * redimensionnement à la souris.
+ *
+ * 🔴 Mais `matchMedia` peut MANQUER là où `window` existe. Tester
+ * `typeof window === 'undefined'` ne suffit pas : un environnement de test qui
+ * monte un composant, ou une vieille webview, offre un `window` sans
+ * `matchMedia` — et l'appel jette, ce qui fait tomber le montage entier du
+ * composant, pas seulement la mesure de largeur.
+ *
+ * Constaté le 08/09/2026 en fusionnant `main` : le test de la recherche
+ * globale (#3629) monte `ShellV2` et échouait sur
+ * « window.matchMedia is not a function », alors qu'il ne parle pas du tout de
+ * largeur d'écran. Le repli sur `resize` rend le même service, un peu plus
+ * souvent.
  */
 export const formatEcran = readable<FormatEcran>(
   typeof window === 'undefined' ? 'large' : formatPour(window.innerWidth),
   (set) => {
     if (typeof window === 'undefined') return;
+    const relire = () => set(formatPour(window.innerWidth));
+    relire();
+
+    if (typeof window.matchMedia !== 'function') {
+      // Repli : on est réveillé à chaque pixel au lieu des deux seuils. C'est
+      // le prix d'un environnement qui n'a pas `matchMedia` — et il n'y a
+      // personne pour redimensionner, dans un test.
+      window.addEventListener('resize', relire);
+      return () => window.removeEventListener('resize', relire);
+    }
+
     const icones = window.matchMedia(`(max-width: ${SEUIL_ICONES}px)`);
     const tiroir = window.matchMedia(`(max-width: ${SEUIL_TIROIR}px)`);
-    const relire = () => set(formatPour(window.innerWidth));
     icones.addEventListener('change', relire);
     tiroir.addEventListener('change', relire);
-    relire();
     return () => {
       icones.removeEventListener('change', relire);
       tiroir.removeEventListener('change', relire);
