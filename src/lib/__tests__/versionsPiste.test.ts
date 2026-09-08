@@ -1,4 +1,11 @@
-import { describe, expect, it } from 'vitest';
+// @vitest-environment jsdom
+//
+// jsdom depuis le 07/09/2026 : les trois premieres gardes MONTENT le menu au
+// lieu de lire son texte (voir plus bas). Le reste du fichier est de la donnee
+// pure et ne s'en trouve pas change.
+import { afterEach, describe, expect, it } from 'vitest';
+import { flushSync, mount, unmount } from 'svelte';
+import TrackContextMenu from '../../components/TrackContextMenu.svelte';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -57,33 +64,63 @@ const LANGUES: [string, Dict][] = [
 /** Les clés que ce lot introduit. */
 const CLES = ['library.otherVersions', 'library.noOtherVersions'] as const;
 
-describe('menu « … » d\'une piste — entrée « Autres versions »', () => {
+/**
+ * 🔴 RÉORIENTÉ le 07/09/2026 par `renesenses/tune-server-rust#1848`.
+ *
+ * Ces trois gardes lisaient le TEXTE de `TrackContextMenu` — le littéral
+ * `$tr('library.otherVersions')`, la garde `{#if onOtherVersions}`, l'appel
+ * `run(onOtherVersions, e)`. Le menu ne porte plus sa liste en dur : il rend ce
+ * que `lib/menuPiste` produit, le même module que le nouveau client. Les trois
+ * motifs ont disparu du fichier SANS que l'entrée disparaisse de l'écran.
+ *
+ * Une garde de texte serait donc passée au rouge pour rien — et, dans l'autre
+ * sens, serait restée verte si l'entrée avait été neutralisée. On monte le
+ * composant. Ce qui est gardé ne change pas d'un pouce : l'entrée est rendue,
+ * elle est facultative, et elle ferme le menu avant d'agir.
+ */
+describe('menu contextuel d\u2019une piste — entrée « Autres versions »', () => {
+  let monte: any = null;
+  let hote: HTMLElement | null = null;
+  afterEach(() => {
+    if (monte) unmount(monte, { outro: false });
+    monte = null;
+    if (hote) hote.remove();
+    hote = null;
+  });
+  function poser(props: any) {
+    hote = document.createElement('div');
+    document.body.appendChild(hote);
+    monte = mount(TrackContextMenu, { target: hote, props });
+    flushSync();
+    return hote;
+  }
+  const libelles = (r: HTMLElement) =>
+    [...r.querySelectorAll('.track-menu-item')].map((b) => (b.textContent ?? '').trim());
+  const LIBELLE = (fr as Dict)['library.otherVersions'] as string;
+  const rien = () => {};
   it('le menu porte une entrée « Autres versions »', () => {
-    expect(
-      MENU.includes("$tr('library.otherVersions')"),
-      "TrackContextMenu ne rend aucune entrée « Autres versions »",
-    ).toBe(true);
+    const r = poser({ onClose: rien, onPlay: rien, onAddToQueue: rien, onOtherVersions: rien });
+    expect(libelles(r), 'le menu ne rend aucune entrée « Autres versions »').toContain(LIBELLE);
   });
-
-  it('l\'entrée est facultative — un appelant qui ne la fournit pas ne la voit pas', () => {
-    expect(
-      /onOtherVersions\?\s*:\s*\(\)\s*=>\s*void/.test(MENU),
-      'la prop onOtherVersions doit être optionnelle, comme onPlaySimilar',
-    ).toBe(true);
-    const item = MENU.indexOf("$tr('library.otherVersions')");
-    const garde = MENU.lastIndexOf('{#if onOtherVersions}', item);
-    expect(garde, "l'entrée n'est pas gardée par `{#if onOtherVersions}`").toBeGreaterThan(-1);
-    expect(
-      item - garde,
-      'la garde trouvée est trop loin : c\'est celle d\'une autre entrée',
-    ).toBeLessThan(500);
+  it('l\u2019entrée est facultative : un appelant qui ne la fournit pas ne la voit pas', () => {
+    const r = poser({ onClose: rien, onPlay: rien, onAddToQueue: rien });
+    expect(libelles(r), 'entrée rendue sans geste : elle ouvrirait sur rien').not.toContain(LIBELLE);
   });
-
-  it('l\'entrée passe par `run()` — elle ferme le menu avant d\'agir', () => {
-    expect(
-      MENU.includes('run(onOtherVersions, e)'),
-      "l'action ne passe pas par run() : le menu resterait ouvert par-dessus le résultat",
-    ).toBe(true);
+  it('l\u2019entrée ferme le menu AVANT d\u2019agir', () => {
+    // Sans cela le menu resterait ouvert par-dessus le résultat.
+    const ordre: string[] = [];
+    const r = poser({
+      onClose: () => ordre.push('fermeture'),
+      onPlay: rien,
+      onAddToQueue: rien,
+      onOtherVersions: () => ordre.push('action'),
+    });
+    const item = [...r.querySelectorAll('.track-menu-item')]
+      .find((b) => (b.textContent ?? '').trim() === LIBELLE) as HTMLElement;
+    expect(item, 'entrée introuvable').toBeTruthy();
+    item.click();
+    flushSync();
+    expect(ordre).toEqual(['fermeture', 'action']);
   });
 });
 

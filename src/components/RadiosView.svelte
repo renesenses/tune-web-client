@@ -443,7 +443,7 @@
         <div class="saved-row">
           <div class="saved-cover">
             {#if fav.cover_url}
-              <img src={api.artworkUrl(fav.cover_url)} alt="" loading="lazy" />
+              <img src={api.artworkSrc(fav.cover_url)} alt="" loading="lazy" />
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><circle cx="12" cy="12" r="10" /><path d="M9 12l2 2 4-4" /></svg>
             {/if}

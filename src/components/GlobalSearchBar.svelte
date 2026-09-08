@@ -51,7 +51,9 @@
   async function runQuickSearch() {
     if (!query.trim()) return;
     try {
-      const results = await api.federatedSearch(query.trim());
+      // Plafond explicite : cette barre part à chaque frappe, elle n'a pas
+      // besoin du plafond élargi des écrans de recherche complets (#764).
+      const results = await api.federatedSearch(query.trim(), undefined, api.SEARCH_PAGE_LIMIT);
       quickResults = results;
     } catch (e) {
       console.error('Global search error:', e);

@@ -5,6 +5,7 @@
   import { trierAlbumsParAnnee } from '../lib/trierAlbums';
   import { doitMemoriserPositionListe } from '../lib/libraryNavScroll';
   import { tip } from '../lib/tooltip';
+  import { afficherDynamicRange } from '../lib/dynamicRange';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { preferences } from '../lib/stores/preferences';
@@ -1377,6 +1378,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     $albumTracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
   );
 
+  /** Le badge DR de la fiche, et ce qu'il doit dire de sa provenance (#1388). */
+  let drAffiche = $derived(afficherDynamicRange($selectedAlbum));
+
   let tracksByDisc = $derived.by(() => {
     const map = new Map<number, typeof $albumTracks>();
     const subtitles = new Map<number, string | null>();
@@ -2132,7 +2136,20 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           [trackIds[i], trackIds[j]] = [trackIds[j], trackIds[i]];
         }
       }
-      await api.play(zone.id, { track_ids: trackIds });
+      // On ANNONCE l'artiste. Une discographie part en liste nue de
+      // `track_ids`, que rien ne distingue d'une sélection quelconque : le
+      // serveur ne peut pas la deviner, il enregistrait donc un contexte vide
+      // et l'écoute retombait dans le repli « albums » de « Continuer
+      // l'écoute ». C'est la règle de FabienM — le type dépend de l'endroit où
+      // l'on a cliqué sur Lire — et le serveur l'attendait depuis #2441 sans
+      // qu'aucun client la prenne (#2442).
+      const artisteId = $selectedArtist?.id;
+      await api.play(zone.id, {
+        track_ids: trackIds,
+        ...(artisteId != null
+          ? { context_type: 'artist' as const, context_id: String(artisteId) }
+          : {}),
+      });
       notifications.success($tr('library.shufflePlaying').replace('{count}', String(trackIds.length)));
     } catch (e) {
       console.error('Play artist library error:', e);
@@ -2546,9 +2563,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <!-- Dynamic Range, quand les fichiers portent le tag (#303, #1418).
                  Rien n'est affiché sinon : la plupart des bibliothèques ne sont
                  pas taguées, et une mention vide sur chaque album serait pire
-                 que l'absence. -->
-            {#if $selectedAlbum.dynamic_range}
-              <span class="dr-badge" use:tip={'library.dynamicRangeTip'}>DR {$selectedAlbum.dynamic_range}</span>
+                 que l'absence.
+                 #1388 : la valeur DIT désormais d'où elle sort. Une mesure
+                 d'album reste `DR 12` ; une moyenne des pistes s'écrit
+                 `DR ~12`, souligné en pointillés, et porte sa propre
+                 infobulle. Même valeur, provenance différente — la règle et
+                 son pourquoi sont dans `lib/dynamicRange.ts`. -->
+            {#if drAffiche}
+              <span class="dr-badge" class:dr-deduit={drAffiche.deduit} use:tip={drAffiche.cleInfobulle}>DR {drAffiche.texte}</span>
             {/if}
           </div>
           {#if $selectedAlbum.source && $selectedAlbum.source !== 'local'}
@@ -2773,6 +2795,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                       onClose={closeTrackMenu}
                       onPlay={() => t.id && playTrack(t.id)}
                       onAddToQueue={() => addTrackToQueue(t)}
+                      onPlayNext={() => playNext(t)}
                       onPlaySimilar={() => playSimilar(t)}
                       onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                       onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
@@ -2917,6 +2940,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onClose={closeTrackMenu}
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
+                    onPlayNext={() => playNext(t)}
                       onPlaySimilar={() => playSimilar(t)}
                       onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                     onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
@@ -3239,7 +3263,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" onclick={() => selectAlbumDetail(album)}>
               <div class="album-card-art">
-                <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
@@ -3547,7 +3571,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 <div class="album-card" class:album-card-wall={albumWall} onclick={() => selectAlbumDetail(album)}
                      title={albumWall ? album.title + (album.artist_name ? " — " + album.artist_name : "") : undefined}>
                   <div class="album-card-art">
-                    <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                    <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                     <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                       <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                     </button>
@@ -3717,6 +3741,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onClose={closeTrackMenu}
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
+                    onPlayNext={() => playNext(t)}
                     onPlaySimilar={() => playSimilar(t)}
                     onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
                     onGoToArtist={t.artist_id != null && t.artist_name
@@ -3804,7 +3829,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" onclick={() => selectAlbumDetail(album)}>
               <div class="album-card-art">
-                <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
@@ -3929,7 +3954,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <div class="album-card" onclick={() => selectAlbumDetail({ id: a.album_id, title: a.title ?? '', cover_path: a.cover_path } as any)}>
                 <div class="album-card-art">
                   {#if a.cover_path}
-                    <img class="album-cover-img" src={api.artworkUrl(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
+                    <img class="album-cover-img" src={api.artworkSrc(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
                   {/if}
                   <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playAlbum(a.album_id); }} title={$tr('library.playAlbum')}>
                     <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
@@ -4001,7 +4026,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div class="album-card" onclick={() => selectAlbumDetail(album)}>
                       <div class="album-card-art">
-                        <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                        <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                         <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                           <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                         </button>
@@ -4595,6 +4620,17 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     margin-left: var(--space-md);
     color: var(--tune-text-muted);
     opacity: 0.5;
+  }
+
+  /* #1388 : un DR DÉDUIT de la moyenne des pistes porte, en plus de son tilde,
+     un soulignement pointillé — la convention de « valeur approchée, une
+     explication au survol ». Tracé en `currentColor`, il suit la couleur du
+     texte et reste donc lisible dans les deux thèmes sans jeton dédié. Une
+     mesure d'album, elle, garde exactement le badge d'avant. */
+  .dr-badge.dr-deduit {
+    text-decoration: underline dotted currentColor;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
   }
 
   .source-badge {
