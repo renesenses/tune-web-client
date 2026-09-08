@@ -252,16 +252,25 @@
     updating = s2;
   }
 
+  // #3662 — la bannière annonçait un redémarrage nécessaire APRÈS CHAQUE
+  // bascule, sans jamais demander au serveur si c'en était un. Le serveur, lui,
+  // le dit : `restart_required` compare l'état demandé à ce qui tourne vraiment
+  // (`routes/plugins.rs:538-556`). Réactiver un greffon déjà chargé, ou
+  // désactiver un greffon jamais chargé, ne coupe rien — et le prétendre envoie
+  // arrêter la musique pour rien. Le type déclaré côté client (`{status}`)
+  // rendait ce champ illisible : c'est la divergence de contrat qui tenait le
+  // défaut en place. `PluginsV2` lisait déjà `restart_required`, mais via `any`.
   async function handleToggle(plugin: MergedPlugin) {
     try {
+      let result: { restart_required: boolean };
       if (plugin.status === 'active') {
-        await api.disablePlugin(plugin.name);
+        result = await api.disablePlugin(plugin.name);
         notifications.success(`${plugin.display_name || plugin.name} disabled`);
       } else {
-        await api.enablePlugin(plugin.name);
+        result = await api.enablePlugin(plugin.name);
         notifications.success(`${plugin.display_name || plugin.name} enabled`);
       }
-      showRestartBanner = true;
+      if (result?.restart_required) showRestartBanner = true;
       await fetchPlugins();
     } catch (e: any) {
       notifications.error(e?.message || 'Error toggling plugin');

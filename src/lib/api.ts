@@ -1005,8 +1005,13 @@ export function previous(zoneId: number) {
   return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' });
 }
 
+/** #3662 — le serveur rend `{position_ms}`, PAS une `Zone`
+ *  (`tune-server/src/routes/playback.rs:2339-2352`). La déclaration `Zone`
+ *  promettait `id`, `name` et l'état complet de la zone : trois choses
+ *  absentes de la réponse. Aucun appelant ne lisait le retour ; c'est
+ *  précisément ce qui a laissé le mensonge s'installer. */
 export function seek(zoneId: number, positionMs: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/seek`, {
+  return fetchJSON<{ position_ms: number }>(`${BASE}/zones/${zoneId}/seek`, {
     method: 'POST',
     body: JSON.stringify({ position_ms: positionMs }),
   });
@@ -1132,8 +1137,12 @@ export function jumpInQueue(zoneId: number, position: number) {
   });
 }
 
+/** #3662 — le serveur répond **204 No Content**
+ *  (`tune-server/src/routes/playback.rs:2953-2977`) : il n'y a pas de corps du
+ *  tout, donc pas de `queue_length`. `fetchJSON` rendait `undefined` sur corps
+ *  vide, ce qui masquait la promesse fausse ; `fetchVoid` la dit. */
 export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number) {
-  return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/move`, {
+  return fetchVoid(`${BASE}/zones/${zoneId}/queue/move`, {
     method: 'POST',
     body: JSON.stringify({ from_position: fromPosition, to_position: toPosition }),
   });
@@ -1924,18 +1933,15 @@ export function searchMediaServer(serverId: string, query: string, container: st
   );
 }
 
-export function getMediaServerItemStreamUrl(serverId: string, itemId: string) {
-  return fetchJSON<{ url: string }>(
-    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/stream-url`
-  );
-}
-
-export function playMediaServerItem(serverId: string, itemId: string, zoneId: number) {
-  return fetchJSON<import('./types').Zone>(
-    `${BASE}/network/media-servers/${serverId}/item/${itemId}/play/${zoneId}`,
-    { method: 'POST' }
-  );
-}
+// #3662 — `getMediaServerItemStreamUrl` et `playMediaServerItem` ont été
+// retirées : deux contrats MORTS. Aucun appelant dans ce dépôt, et le serveur
+// ne les implémente pas — `media_server_stream_url` rend
+// `{server_id, item_id, stream_url: null, message: "…not yet implemented"}`
+// et `play_media_server_item` rend `{status: "not_implemented"}`
+// (`tune-server/src/routes/network.rs:1578-1596`). Les déclarations promettaient
+// `{url}` et `Zone` : deux types que rien ne peut honorer. Même geste que pour
+// `/playlists/all` et `/system/audio-check` — on retire la promesse, on ne
+// fabrique pas côté serveur une réponse que personne n'attend.
 
 // --- User Tags ---
 
@@ -2613,8 +2619,10 @@ export function albumBetterQuality(id: number) {
   return fetchJSON<{ better: BetterQuality | null }>(`${BASE}/library/albums/${id}/better-quality`);
 }
 
+/** #3662 — le serveur rend `{status: "restarting"}` et rien d'autre
+ *  (`tune-server/src/routes/system/config.rs:2244-2320`) : pas de `message`. */
 export function restartServer() {
-  return fetchJSON<{ status: string; message: string }>(`${BASE}/system/restart`, { method: 'POST' });
+  return fetchJSON<{ status: string }>(`${BASE}/system/restart`, { method: 'POST' });
 }
 
 /** Arrêter le PROCESSUS serveur (pas la machine). L'erreur réseau qui suit
@@ -3060,17 +3068,15 @@ export function getYouTubeLibrary(limit = 100) {
   return fetchJSON<Track[]>(`${BASE}/streaming/youtube/library?limit=${limit}`);
 }
 
-export function transferPlaylist(sourceService: string, sourceId: string, targetService: string, targetName?: string) {
-  return fetchJSON<import('./types').PlaylistTransferResponse>(`${BASE}/playlists/transfer`, {
-    method: 'POST',
-    body: JSON.stringify({
-      source_service: sourceService,
-      source_playlist_id: sourceId,
-      target_service: targetService,
-      target_name: targetName || undefined,
-    }),
-  });
-}
+// #3662 — `transferPlaylist` a été retirée : contrat MORT. Aucun appelant — les
+// sept sites de transfert du client passent tous par `transferPlaylistV2`
+// (`/playlist-manager/transfer`). La déclaration promettait
+// `PlaylistTransferResponse` (sept champs) là où
+// `tune-server/src/routes/playlists.rs:1296-1318` rend `{transferred}` — et ne
+// transfère RIEN vers un service : il verse les pistes d'une playlist locale
+// dans la file d'une zone, à partir d'un corps `{playlist_id, zone_id}` que
+// cette fonction n'envoyait même pas. Le type, le corps et l'intention étaient
+// faux tous les trois.
 
 export function diffPlaylists(sourceService: string, sourceId: string, targetService: string, targetId: string) {
   return fetchJSON<import('./types').PlaylistDiffResponse>(`${BASE}/playlists/diff`, {
@@ -3280,8 +3286,16 @@ export function deleteRadio(id: number) {
   return fetchVoid(`${BASE}/radios/${id}`, { method: 'DELETE' });
 }
 
+/** #3662 — le serveur ne rend PAS une `Zone` mais un compte rendu de lecture
+ *  (`tune-server/src/routes/radios.rs:937-982`) : `zone_id` — et non `id` —,
+ *  le NOM de la radio dans `radio`, et l'état de la zone dans `state`. Les
+ *  appelants ne lisent que `stream_url`, qui existe bien ; tout le reste de
+ *  `Zone` était promis à vide. */
 export function playRadio(radioId: number, zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/radios/${radioId}/play/${zoneId}`, { method: 'POST' });
+  return fetchJSON<import('./types').RadioPlayResult>(
+    `${BASE}/radios/${radioId}/play/${zoneId}`,
+    { method: 'POST' },
+  );
 }
 
 export async function uploadRadioCover(radioId: number, file: File): Promise<import('./types').RadioStation> {
@@ -4641,15 +4655,23 @@ export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
   return fetchJSON<InstalledPlugin[]>(`${BASE}/plugins`);
 }
 
-export function enablePlugin(name: string): Promise<{ status: string }> {
+/** #3662 — le serveur ne rend AUCUN champ `status`
+ *  (`tune-server/src/routes/plugins.rs:538-556`) : il rend
+ *  `{name, enabled, restart_required}`. Et `restart_required` n'est pas
+ *  décoratif — il compare l'état demandé à ce qui tourne réellement, donc il
+ *  dit s'il faut vraiment couper la musique. Le type faux empêchait un
+ *  appelant typé de le lire. */
+export function enablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
   // The server mounts enable/disable under /plugins (routes/plugins.rs), same
   // as install/uninstall/update — not under /system, which only aliases the
   // list. The old /system/plugins/… path 404'd, so the toggle never took.
-  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
+  return fetchJSON<import('./types').PluginToggleResult>(
+    `${BASE}/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
 }
 
-export function disablePlugin(name: string): Promise<{ status: string }> {
-  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
+export function disablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
+  return fetchJSON<import('./types').PluginToggleResult>(
+    `${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
 }
 
 export async function getStorePlugins(search?: string, category?: string): Promise<StorePlugin[]> {
