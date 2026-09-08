@@ -5,6 +5,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { tip } from '../lib/tooltip';
+  import { bulleTexte } from '../lib/infobulleTexte';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import MetadataChips from './MetadataChips.svelte';
@@ -140,12 +141,12 @@
             </div>
             <AlbumArt coverPath={entry.track.cover_path} albumId={entry.track.album_id} size={44} alt={entry.track.title} />
             <div class="history-info">
-              <span class="history-title truncate">{entry.track.title}</span>
-              <span class="history-artist truncate">{entry.track.artist_name ?? ''}</span>
+              <span class="history-title truncate" use:bulleTexte>{entry.track.title}</span>
+              <span class="history-artist truncate" use:bulleTexte>{entry.track.artist_name ?? ''}</span>
               <MetadataChips track={entry.track} fields={$displayFields} />
             </div>
             <div class="history-meta">
-              <span class="history-zone truncate">{entry.zoneName}</span>
+              <span class="history-zone truncate" use:bulleTexte>{entry.zoneName}</span>
               <span class="history-time">{relativeTime(entry.playedAt)}</span>
             </div>
             {#if entry.track.format}<span class="audio-format">{formatAudioBadge(entry.track)}</span>{/if}

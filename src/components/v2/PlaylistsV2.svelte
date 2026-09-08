@@ -402,7 +402,7 @@
 <section class="v2-playlists tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Vos collections</div>
+      <div class="eyebrow">{$t('v2.lbl.yourCollections' as any)}</div>
       <h1>Playlists</h1>
     </div>
     <label class="chercher">
@@ -426,7 +426,7 @@
         <div class="outils">
           <button class="add" onclick={() => (creating = true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            Nouvelle playlist
+            {$t('v2.lbl.newPlaylist' as any)}
           </button>
           <!-- Import M3U. Le bouton pointe vers `POST /playlists/import/m3u`,
                la route qui lit vraiment un fichier — l'ancienne fonction du

@@ -4,7 +4,7 @@
   import { t } from '../lib/i18n';
   import { activeView } from '../lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab, albumTracks, artistAlbums } from '../lib/stores/library';
-  import { artworkUrl } from '../lib/api';
+  import { artworkUrl, artworkSrc } from '../lib/api';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import DashboardHighlights from './DashboardHighlights.svelte';
   import HeartButton from './HeartButton.svelte';
@@ -380,7 +380,7 @@
             {#each data.top_artists as a}
               <li>
                 {#if a.cover_path}
-                  <img class="rank-cover rank-clickable" src={artworkUrl(a.cover_path, 80)} alt="" loading="lazy" onclick={() => openArtist(a.artist_name)} />
+                  <img class="rank-cover rank-clickable" src={artworkSrc(a.cover_path, 80)} alt="" loading="lazy" onclick={() => openArtist(a.artist_name)} />
                 {:else}
                   <div class="rank-cover-empty rank-clickable" onclick={() => openArtist(a.artist_name)}>🎤</div>
                 {/if}
@@ -400,7 +400,7 @@
               <li>
                 <div class="rank-cover-wrap" onclick={() => playTopAlbum(a)}>
                   {#if a.cover_path}
-                    <img class="rank-cover rank-clickable" src={artworkUrl(a.cover_path, 80)} alt="" loading="lazy" />
+                    <img class="rank-cover rank-clickable" src={artworkSrc(a.cover_path, 80)} alt="" loading="lazy" />
                   {:else}
                     <div class="rank-cover-empty rank-clickable">💿</div>
                   {/if}
@@ -424,7 +424,7 @@
               <li>
                 <div class="rank-cover-wrap" onclick={() => playTopTrack(tk)}>
                   {#if tk.cover_path}
-                    <img class="rank-cover rank-clickable" src={artworkUrl(tk.cover_path, 80)} alt="" loading="lazy" />
+                    <img class="rank-cover rank-clickable" src={artworkSrc(tk.cover_path, 80)} alt="" loading="lazy" />
                   {:else}
                     <div class="rank-cover-empty rank-clickable">🎵</div>
                   {/if}
@@ -454,7 +454,7 @@
               <li>
                 <div class="rank-cover-wrap" onclick={() => r.radio_id && playRadioById(r.radio_id)}>
                   {#if r.cover_path}
-                    <img class="rank-cover rank-clickable" src={artworkUrl(r.cover_path, 80)} alt="" loading="lazy" />
+                    <img class="rank-cover rank-clickable" src={artworkSrc(r.cover_path, 80)} alt="" loading="lazy" />
                   {:else if r.cover_url}
                     <img class="rank-cover rank-clickable" src={r.cover_url} alt="" loading="lazy" />
                   {:else}

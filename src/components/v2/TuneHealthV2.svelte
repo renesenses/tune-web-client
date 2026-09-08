@@ -255,7 +255,7 @@
       {/if}
 
       <p class="foot">
-        Les traitements se lancent depuis les Réglages — Bibliothèque et Métadonnées.
+        {$t('v2.hint.processingFromSettings' as any)}
         <button class="lnk sm" onclick={() => activeView.set('settings')}>{$t('v2.eq.openSettings' as any)}</button>
       </p>
     {/if}
