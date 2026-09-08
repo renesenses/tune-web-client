@@ -598,6 +598,33 @@ export function updateZoneDlnaPlayDelay(id: number, ms: number) {
   });
 }
 
+/**
+ * Récupération d'une sauvegarde locale : plusieurs réglages d'appareil en UN
+ * seul PATCH.
+ *
+ * Le serveur traite chaque clé indépendamment (`routes/zones.rs`, un
+ * `if let Some(...)` par champ), donc un corps composite équivaut à la suite
+ * d'appels unitaires ci-dessus. Mais 🔴 L'ORDRE COMPTE, et c'est pour cela que
+ * cette fonction existe.
+ *
+ * `routes/zones/ecriture.rs` (lu sur `origin/main`) persiste le PATCH, PUIS —
+ * si et seulement si le corps portait `brand` ou `model` — pousse le préréglage
+ * communautaire, dont la charge utile est relue en base à ce moment-là
+ * (`renderer_settings_snapshot`). Envoyer l'identité et les réglages en DEUX
+ * PATCH ferait donc partir la poussée sur une zone encore neutre : le snapshot
+ * serait vide, la poussée abandonnée, et le consensus n'apprendrait jamais la
+ * configuration qu'on vient de restaurer.
+ *
+ * Le corps est construit par `reglagesAppareilLocal.corpsPatch`, qui n'y met
+ * que ce qui change et écarte `fixed_volume`.
+ */
+export function updateZoneReglages(id: number, corps: Record<string, unknown>) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(corps),
+  });
+}
+
 /** Catalogue statique marque→modèles (+ quirks) pour la config d'une zone. */
 export function getDeviceCatalog() {
   return fetchJSON<import('./types').DeviceCatalog>(`${BASE}/devices/catalog`);
@@ -978,8 +1005,13 @@ export function previous(zoneId: number) {
   return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' });
 }
 
+/** #3662 — le serveur rend `{position_ms}`, PAS une `Zone`
+ *  (`tune-server/src/routes/playback.rs:2339-2352`). La déclaration `Zone`
+ *  promettait `id`, `name` et l'état complet de la zone : trois choses
+ *  absentes de la réponse. Aucun appelant ne lisait le retour ; c'est
+ *  précisément ce qui a laissé le mensonge s'installer. */
 export function seek(zoneId: number, positionMs: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/seek`, {
+  return fetchJSON<{ position_ms: number }>(`${BASE}/zones/${zoneId}/seek`, {
     method: 'POST',
     body: JSON.stringify({ position_ms: positionMs }),
   });
@@ -1105,8 +1137,12 @@ export function jumpInQueue(zoneId: number, position: number) {
   });
 }
 
+/** #3662 — le serveur répond **204 No Content**
+ *  (`tune-server/src/routes/playback.rs:2953-2977`) : il n'y a pas de corps du
+ *  tout, donc pas de `queue_length`. `fetchJSON` rendait `undefined` sur corps
+ *  vide, ce qui masquait la promesse fausse ; `fetchVoid` la dit. */
 export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number) {
-  return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/move`, {
+  return fetchVoid(`${BASE}/zones/${zoneId}/queue/move`, {
     method: 'POST',
     body: JSON.stringify({ from_position: fromPosition, to_position: toPosition }),
   });
@@ -1897,18 +1933,15 @@ export function searchMediaServer(serverId: string, query: string, container: st
   );
 }
 
-export function getMediaServerItemStreamUrl(serverId: string, itemId: string) {
-  return fetchJSON<{ url: string }>(
-    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/stream-url`
-  );
-}
-
-export function playMediaServerItem(serverId: string, itemId: string, zoneId: number) {
-  return fetchJSON<import('./types').Zone>(
-    `${BASE}/network/media-servers/${serverId}/item/${itemId}/play/${zoneId}`,
-    { method: 'POST' }
-  );
-}
+// #3662 — `getMediaServerItemStreamUrl` et `playMediaServerItem` ont été
+// retirées : deux contrats MORTS. Aucun appelant dans ce dépôt, et le serveur
+// ne les implémente pas — `media_server_stream_url` rend
+// `{server_id, item_id, stream_url: null, message: "…not yet implemented"}`
+// et `play_media_server_item` rend `{status: "not_implemented"}`
+// (`tune-server/src/routes/network.rs:1578-1596`). Les déclarations promettaient
+// `{url}` et `Zone` : deux types que rien ne peut honorer. Même geste que pour
+// `/playlists/all` et `/system/audio-check` — on retire la promesse, on ne
+// fabrique pas côté serveur une réponse que personne n'attend.
 
 // --- User Tags ---
 
@@ -2181,8 +2214,19 @@ export function getListeningStats() {
   return fetchJSON<any>(`${BASE}/system/stats/listening`);
 }
 
+/**
+ * #533 — la route est déclarée en **POST** (`routes/playback.rs:760`), et elle
+ * rend `{ token, url, track }`, pas `{ title, artist, album, text, cover_url }`.
+ *
+ * L'appel en GET rendait 405 et le champ `text` attendu n'a jamais existé :
+ * c'est `undefined` qui partait au presse-papiers. Le texte se compose côté
+ * client, voir `lib/partageEcoute.ts`.
+ */
 export function shareNowPlaying(zoneId: number) {
-  return fetchJSON<{ title: string; artist: string; album: string; text: string; cover_url: string | null }>(`${BASE}/zones/${zoneId}/share`);
+  return fetchJSON<import('./partageEcoute').CartePartage>(
+    `${BASE}/zones/${zoneId}/share`,
+    { method: 'POST' },
+  );
 }
 
 export function transferPlayback(fromZoneId: number, toZoneId: number) {
@@ -2399,7 +2443,36 @@ function mapZoneQuality(zone: any): Zone {
  */
 export const SEARCH_PAGE_LIMIT = 50;
 
-export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PAGE_LIMIT, offset = 0) {
+/**
+ * Le plafond de la recherche FÉDÉRÉE — distinct du précédent, et plus haut.
+ *
+ * #764 : le serveur n'active `recherche_paginee(plafond)` **qu'au-delà de
+ * cinquante**. À cinquante pile, la pagination ne se déclenchait jamais, et le
+ * plafond était donc posé par le client sans que personne l'ait décidé.
+ *
+ * Mesuré sur le .18 le 08/09/2026, `/search?q=miles` :
+ *
+ *   | limite | local (pistes / albums) | qobuz | tidal |
+ *   |--------|-------------------------|-------|-------|
+ *   | 50     | 50 / 50                 | 50    | 50    |
+ *   | 100    | 100 / **92**            | 100   | 100   |
+ *   | 200    | 200 / 92                | 200   | 200   |
+ *
+ * Le ticket réservait sa conclusion à un seul service : la mesure la lève,
+ * Qobuz ET Tidal suivent. Et à cent, le nombre d'albums atteint son total réel
+ * (92) au lieu d'être tronqué — ce que cinquante cachait.
+ *
+ * Pourquoi cent et pas deux cents : cent suffit à déclencher la pagination et
+ * à découvrir les totaux, sans doubler une seconde fois le poids d'un écran
+ * qui rend déjà quatre familles pour quatre sources.
+ *
+ * 🔴 Ne PAS confondre avec `SEARCH_PAGE_LIMIT` juste au-dessus : cinquante est
+ * le plafond de page de l'API Qobuz, et il reste juste pour la recherche
+ * service par service, qui pagine, elle, par `offset`.
+ */
+export const SEARCH_FEDEREE_LIMIT = 100;
+
+export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FEDEREE_LIMIT, offset = 0) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
   // #3189 — la suite de la bibliothèque locale (le serveur ne pagine que
   // celle-là). Absent = 0 = la page d'avant : l'URL des appels existants ne
@@ -2546,8 +2619,10 @@ export function albumBetterQuality(id: number) {
   return fetchJSON<{ better: BetterQuality | null }>(`${BASE}/library/albums/${id}/better-quality`);
 }
 
+/** #3662 — le serveur rend `{status: "restarting"}` et rien d'autre
+ *  (`tune-server/src/routes/system/config.rs:2244-2320`) : pas de `message`. */
 export function restartServer() {
-  return fetchJSON<{ status: string; message: string }>(`${BASE}/system/restart`, { method: 'POST' });
+  return fetchJSON<{ status: string }>(`${BASE}/system/restart`, { method: 'POST' });
 }
 
 /** Arrêter le PROCESSUS serveur (pas la machine). L'erreur réseau qui suit
@@ -2993,17 +3068,15 @@ export function getYouTubeLibrary(limit = 100) {
   return fetchJSON<Track[]>(`${BASE}/streaming/youtube/library?limit=${limit}`);
 }
 
-export function transferPlaylist(sourceService: string, sourceId: string, targetService: string, targetName?: string) {
-  return fetchJSON<import('./types').PlaylistTransferResponse>(`${BASE}/playlists/transfer`, {
-    method: 'POST',
-    body: JSON.stringify({
-      source_service: sourceService,
-      source_playlist_id: sourceId,
-      target_service: targetService,
-      target_name: targetName || undefined,
-    }),
-  });
-}
+// #3662 — `transferPlaylist` a été retirée : contrat MORT. Aucun appelant — les
+// sept sites de transfert du client passent tous par `transferPlaylistV2`
+// (`/playlist-manager/transfer`). La déclaration promettait
+// `PlaylistTransferResponse` (sept champs) là où
+// `tune-server/src/routes/playlists.rs:1296-1318` rend `{transferred}` — et ne
+// transfère RIEN vers un service : il verse les pistes d'une playlist locale
+// dans la file d'une zone, à partir d'un corps `{playlist_id, zone_id}` que
+// cette fonction n'envoyait même pas. Le type, le corps et l'intention étaient
+// faux tous les trois.
 
 export function diffPlaylists(sourceService: string, sourceId: string, targetService: string, targetId: string) {
   return fetchJSON<import('./types').PlaylistDiffResponse>(`${BASE}/playlists/diff`, {
@@ -3213,8 +3286,16 @@ export function deleteRadio(id: number) {
   return fetchVoid(`${BASE}/radios/${id}`, { method: 'DELETE' });
 }
 
+/** #3662 — le serveur ne rend PAS une `Zone` mais un compte rendu de lecture
+ *  (`tune-server/src/routes/radios.rs:937-982`) : `zone_id` — et non `id` —,
+ *  le NOM de la radio dans `radio`, et l'état de la zone dans `state`. Les
+ *  appelants ne lisent que `stream_url`, qui existe bien ; tout le reste de
+ *  `Zone` était promis à vide. */
 export function playRadio(radioId: number, zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/radios/${radioId}/play/${zoneId}`, { method: 'POST' });
+  return fetchJSON<import('./types').RadioPlayResult>(
+    `${BASE}/radios/${radioId}/play/${zoneId}`,
+    { method: 'POST' },
+  );
 }
 
 export async function uploadRadioCover(radioId: number, file: File): Promise<import('./types').RadioStation> {
@@ -3550,6 +3631,27 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
   return `${BASE}/library/artwork/${encodeURIComponent(filename)}${sizeParam}`;
 }
 
+/**
+ * 🔴 La même adresse, mais `undefined` quand il n'y a pas de pochette — #201.
+ *
+ * `artworkUrl` rend la **chaîne vide** quand le chemin est absent. C'est utile
+ * pour un `{#if}`, et catastrophique dans un attribut : `<img src="">` fait
+ * **redemander la page courante** au navigateur. C'est exactement ce que
+ * l'exploration automatique rapportait — « Image(s) injoignable(s) sous
+ * localhost:8888// — ex. `/` », vue Bibliothèque, deux occurrences par
+ * passage — et il y avait DIX-HUIT `<img src={artworkUrl(…)}>` sans garde dans
+ * le dépôt.
+ *
+ * Svelte omet un attribut dont la valeur est `undefined` : la balise part alors
+ * sans `src`, et le navigateur ne demande rien du tout.
+ *
+ * Le placeholder, lui, reste l'affaire de l'appelant — `AlbumArt` le fait déjà
+ * proprement, avec en plus un `onerror` pour les pochettes qui répondent 404.
+ */
+export function artworkSrc(coverPath: string | null | undefined, size?: number): string | undefined {
+  return artworkUrl(coverPath, size) || undefined;
+}
+
 // --- Album cover cache ---
 
 const albumCoverCache = new Map<number, string | null>();
@@ -3624,8 +3726,22 @@ export async function getUpdateStatus(): Promise<any> {
 
 // --- Network / SMB ---
 
+/** Un hôte annoncé en mDNS par `GET /network/shares`. C'est un HÔTE, pas un
+ *  partage : le serveur ne sait rien de ses partages à ce stade et n'en pose
+ *  donc aucune liste. Le type était `any[]`, ce qui a laissé passer #3637 —
+ *  l'assistant SMB croyait y lire un champ `shares`. */
+export interface HoteReseauDecouvert {
+  id: string;
+  name: string;
+  host: string;
+  hostname?: string;
+  port?: number;
+  protocol: string;
+  available: boolean;
+}
+
 export function discoverSmbShares() {
-  return fetchJSON<any[]>(`${BASE}/network/shares`);
+  return fetchJSON<HoteReseauDecouvert[]>(`${BASE}/network/shares`);
 }
 
 export function scanHost(host: string, protocol?: string, username?: string, password?: string) {
@@ -3636,9 +3752,12 @@ export function scanHost(host: string, protocol?: string, username?: string, pas
   return fetchJSON<any>(url);
 }
 
-export function listHostShares(hostId: string) {
-  return fetchJSON<{ shares: string[] }>(`${BASE}/network/shares/${encodeURIComponent(hostId)}`);
-}
+// `listHostShares` a été retirée (#3637). Elle appelait
+// `GET /network/shares/{id}` en lui passant l'identifiant d'un hôte découvert
+// (`smb://192.168.x.y`) et en attendant `{ shares: string[] }`. Cette route
+// extrait un `Path<i64>` et rend la ligne d'un MONTAGE enregistré
+// (`network_mounts`) : elle ne pouvait ni recevoir cet identifiant, ni
+// répondre cette forme. Les partages d'un hôte s'obtiennent par `scanHost`.
 
 export function testSmbConnection(host: string, share: string, username?: string, password?: string, _domain?: string) {
   return fetchJSON<{ ok: boolean; message?: string; error?: string }>(`${BASE}/network/smb/mount`, {
@@ -4536,15 +4655,23 @@ export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
   return fetchJSON<InstalledPlugin[]>(`${BASE}/plugins`);
 }
 
-export function enablePlugin(name: string): Promise<{ status: string }> {
+/** #3662 — le serveur ne rend AUCUN champ `status`
+ *  (`tune-server/src/routes/plugins.rs:538-556`) : il rend
+ *  `{name, enabled, restart_required}`. Et `restart_required` n'est pas
+ *  décoratif — il compare l'état demandé à ce qui tourne réellement, donc il
+ *  dit s'il faut vraiment couper la musique. Le type faux empêchait un
+ *  appelant typé de le lire. */
+export function enablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
   // The server mounts enable/disable under /plugins (routes/plugins.rs), same
   // as install/uninstall/update — not under /system, which only aliases the
   // list. The old /system/plugins/… path 404'd, so the toggle never took.
-  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
+  return fetchJSON<import('./types').PluginToggleResult>(
+    `${BASE}/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
 }
 
-export function disablePlugin(name: string): Promise<{ status: string }> {
-  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
+export function disablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
+  return fetchJSON<import('./types').PluginToggleResult>(
+    `${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
 }
 
 export async function getStorePlugins(search?: string, category?: string): Promise<StorePlugin[]> {

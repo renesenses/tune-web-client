@@ -284,8 +284,8 @@
 <section class="v2-sup tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Assistance</div>
-      <h1>Support</h1>
+      <div class="eyebrow">{$t('v2.lbl.assistance' as any)}</div>
+      <h1>{$t('v2.nav.support' as any)}</h1>
     </div>
     {#if tier && tier !== 'free'}<span class="tier">{tier}</span>{/if}
     {#if licenseKey && !redaction}
@@ -380,8 +380,7 @@
     {:else if !licenseKey}
       <div class="notice">
         <p>
-          Le suivi des tickets est lié à votre <b>clé de licence</b>. Aucune clé n'est
-          enregistrée sur ce serveur, il n'y a donc aucun fil à afficher.
+          {$t('v2.hint.ticketsAccount' as any)} <b>{$t('v2.lbl.licenseKey' as any)}</b>{$t('v2.hint.noKeyNoTickets' as any)}
         </p>
         <p class="sub">
           {$t('v2.sup.licenceA' as any)} <b>{$t('v2.sup.licenceWhere' as any)}</b>.
@@ -463,8 +462,7 @@
     {/if}
 
     <p class="foot">
-      Ouvrir un nouveau ticket, avec pièces jointes, se fait depuis le client actuel —
-      ce formulaire n'est pas encore repris ici.
+      {$t('v2.hint.newTicketElsewhere' as any)}
     </p>
   </div>
 

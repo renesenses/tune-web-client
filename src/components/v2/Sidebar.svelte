@@ -13,6 +13,7 @@
    * l'autre — les groupes se révèlent en place, jamais de réorganisation.
    */
   import { activeView, type View } from '../../lib/stores/navigation';
+  import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import { updateAvailable, latestVersion, currentVersion } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { preferences } from '../../lib/stores/preferences';
@@ -148,7 +149,10 @@
   const showAdvanced = $derived(atLeast(level, 'intermediate'));
   const showStudio = $derived(atLeast(level, 'expert'));
 
-  function go(v: View) { activeView.set(v); }
+  // 🔴 Naviguer REFERME le tiroir. Sans cela, au palier « tiroir » la barre
+  // reste par-dessus l'écran qu'on vient de demander : on choisit une vue et
+  // on ne la voit pas.
+  function go(v: View) { activeView.set(v); tiroirOuvert.set(false); }
 
   /**
    * 🔴 LE BOUTON DE MISE À JOUR, à côté du logo — comme dans le client actuel.
@@ -192,9 +196,40 @@
     collapsed = !collapsed;
     try { localStorage.setItem('tune_v2_sidebar_collapsed', collapsed ? '1' : '0'); } catch { /* ignore */ }
   }
+
+  /**
+   * Ce que la LARGEUR impose, par-dessus le choix de l'utilisateur.
+   *
+   * Le choix manuel ne vaut qu'au palier « large » : sous 1100 px on replie
+   * d'office, sous 760 px la barre sort du flux et retrouve ses libellés — un
+   * tiroir posé PAR-DESSUS la vue a toute la place, il n'a aucune raison de se
+   * réduire à des icônes.
+   *
+   * Il n'est jamais ÉCRASÉ pour autant : rien n'est écrit dans le stockage
+   * ici. Rendre la fenêtre à sa taille rend son état à l'utilisateur.
+   */
+  const enTiroir = $derived($formatEcran === 'tiroir');
+  const enIcones = $derived($formatEcran === 'etroit' || (collapsed && !enTiroir));
+
+  function fermerTiroir() { tiroirOuvert.set(false); }
+  function auClavier(e: KeyboardEvent) {
+    if (e.key === 'Escape' && $tiroirOuvert) { e.stopPropagation(); fermerTiroir(); }
+  }
 </script>
 
-<aside class="v2-sidebar tune-v2" class:collapsed>
+<svelte:window onkeydown={auClavier} />
+
+<!-- Le VOILE n'existe qu'au palier tiroir, et seulement ouvert : partout
+     ailleurs il couvrirait la vue. -->
+{#if enTiroir && $tiroirOuvert}
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div class="voile-tiroir" onclick={fermerTiroir}></div>
+{/if}
+
+<aside class="v2-sidebar tune-v2" class:collapsed={enIcones}
+  class:tiroir={enTiroir} class:ouvert={enTiroir && $tiroirOuvert}
+  aria-hidden={enTiroir && !$tiroirOuvert}>
   <div class="brand">
     <div class="logo"><img src={glyph} alt="Tune" /></div>
     <div class="txt">
@@ -295,7 +330,7 @@
 
   <button class="nav support" onclick={() => go('support')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-    <span>Support</span>
+    <span>{$t('v2.nav.support' as any)}</span>
   </button>
 </aside>
 
@@ -307,6 +342,48 @@
     box-sizing:border-box; width:236px;
   }
   .v2-sidebar.collapsed{width:72px; padding-left:10px; padding-right:10px}
+
+  /* ---- PETIT ÉCRAN ----------------------------------------------------
+     Sous 760 px, la barre SORT DU FLUX : aucune largeur ne se partage plus,
+     même 72 px de rail mangeraient un cinquième d'un écran de 390 px.
+     Elle redevient large, avec ses libellés — un tiroir posé par-dessus la
+     vue a toute la place.
+     Mesure avant correction, cadre de 390 px : barre 236 px, vue 154 px,
+     40 éléments débordant de leur conteneur. */
+  .v2-sidebar.tiroir{
+    position:fixed; top:0; left:0; bottom:0; z-index:120; width:min(280px, 86vw);
+    padding-left:16px; padding-right:16px;
+    box-shadow:0 0 40px rgba(0,0,0,.5);
+  }
+  /*
+    🔴 `display:none` — PAS un glissement.
+
+    Deux tentatives d'animation ont échoué, et la mesure dit pourquoi. Avec
+    `transform:translateX(-100%)` levé par une classe, Chrome laissait une
+    `CSSTransition` BLOQUÉE : `playState: "running"`, `currentTime: 0` pendant
+    quinze secondes, le tiroir restant hors champ. La cascade était pourtant
+    juste — un clone privé de transition calculait bien `transform: none`.
+    Chrome ne fait pas avancer une transition démarrée sur un élément non
+    rendu, et faire entrer `visibility` dans la transition (le remède connu)
+    n'y a rien changé ici.
+
+    On retire donc la cause au lieu de la contourner une troisième fois : plus
+    de `transform`, plus de `transition`. `display:none` n'est pas animable,
+    donc rien ne peut rester bloqué — et il retire l'élément de l'ordre de
+    tabulation, ce que `transform` seul ne faisait pas.
+
+    Le tiroir paraît d'un coup. C'est moins joli qu'un glissement ; c'est
+    surtout ce que voient déjà les utilisateurs en `prefers-reduced-motion`,
+    et un tiroir qui s'ouvre vaut mieux qu'un tiroir qui glisse en théorie.
+  */
+  .v2-sidebar.tiroir:not(.ouvert){display:none}
+  /* Son propre bouton de repli n'a plus d'objet : la largeur commande. */
+  .v2-sidebar.tiroir .collapse{display:none}
+  .voile-tiroir{position:fixed; inset:0; z-index:119; background:rgba(0,0,0,.5)}
+  @media (prefers-reduced-motion: reduce){
+    .v2-sidebar.tiroir,
+    .v2-sidebar.tiroir.ouvert{transition:none}
+  }
   .v2-sidebar.collapsed .txt,
   .v2-sidebar.collapsed .nav span,
   .v2-sidebar.collapsed .grp-label{display:none}

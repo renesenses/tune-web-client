@@ -29,6 +29,7 @@
    * serveur ne les liste pas par étiquette. On ne les annonce donc pas.
    */
   import { onMount } from 'svelte';
+  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -73,8 +74,42 @@
     chargement = false;
   }
 
+  /**
+   * #729 — un raccourci posé sur une étiquette doit rouvrir CETTE étiquette.
+   *
+   * Le mécanisme générique existait — `setShortcutTarget` à l'ouverture,
+   * `tune:shortcut-restore` au retour — et aucun écran du nouveau client n'y
+   * participait, sinon Collections et Playlists. Le raccourci ne pouvait donc
+   * que poser la vue et retomber sur la liste.
+   *
+   * La clef reste stable (`tags:12`) : c'est elle qui sert à la reconnaissance
+   * ET à la déduplication.
+   */
+  const cleCible = (tag: UserTag) => `tags:${tag.id}`;
+
+  $effect(() => {
+    const auRetour = async (ev: Event) => {
+      const cible = (ev as CustomEvent).detail?.target;
+      const cle: string | undefined = cible?.key;
+      if (!cle || !cle.startsWith('tags:')) return;
+      const id = cible.restore?.id;
+      if (id == null) return;
+      let tag = etiquettes.find((x) => x.id === id);
+      // La liste peut n'être pas encore chargée : on la demande une fois.
+      if (!tag) { await charger(); tag = etiquettes.find((x) => x.id === id); }
+      if (tag) ouvrir(tag);
+    };
+    window.addEventListener('tune:shortcut-restore', auRetour);
+    return () => window.removeEventListener('tune:shortcut-restore', auRetour);
+  });
+
+  // Quitter l'écran oublie la cible : sinon le raccourci suivant capturerait
+  // une étiquette qu'on ne regarde plus.
+  $effect(() => () => clearShortcutTarget());
+
   async function ouvrir(tag: UserTag) {
     ouverte = tag;
+    setShortcutTarget({ key: cleCible(tag), restore: { id: tag.id, name: tag.name }, label: tag.name });
     albums = []; artistes = []; pistes = []; listes = [];
     famille = 'albums';
     albumsChargement = true;
