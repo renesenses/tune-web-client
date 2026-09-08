@@ -1605,7 +1605,7 @@
   .viewtog svg{width:16px; height:16px}
 
   /* Vues par facette : une section par valeur (artiste, genre, année, label). */
-  .facets{flex:1; overflow-y:auto; padding:8px 30px 40px}
+  .facets{flex:1; overflow-y:auto; padding:8px 30px 40px; min-height:0}
   .facets::-webkit-scrollbar{width:9px}.facets::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   /* La puce de portée : visible sans crier, et son × est la seule action. */
   .portee{padding:2px 30px 6px}
@@ -1664,7 +1664,7 @@
   .facetgrid{overflow:visible; padding:0}
 
   /* Affichage liste : même données, densité maximale. */
-  .rows{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
+  .rows{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px; min-height:0}
   .rows::-webkit-scrollbar{width:9px}.rows::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .lrow{display:grid; grid-template-columns:var(--lcols, 44px minmax(0,2fr) minmax(0,1.4fr) 52px 46px 150px); align-items:center;
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
@@ -1683,7 +1683,7 @@
   .bdg.flat{position:static; align-self:center}
 
   /* Onglet Titres. */
-  .tracklist{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
+  .tracklist{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px; min-height:0}
   .tracklist::-webkit-scrollbar{width:9px}.tracklist::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .trk{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:14px; width:100%;
     padding:0 10px; border-radius:9px; color:var(--v2-txt2)}
@@ -1699,7 +1699,7 @@
   .trk .td{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
 
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
-    gap:22px 18px; align-content:start; padding:8px 30px 40px}
+    gap:22px 18px; align-content:start; padding:8px 30px 40px; min-height:0}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .card{border:0; background:transparent; text-align:left; padding:0; transition:.18s; opacity:1; color:inherit;
     /*

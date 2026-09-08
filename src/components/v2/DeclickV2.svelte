@@ -210,7 +210,7 @@
   .cnt{font:11.5px var(--v2-mono); color:var(--v2-acc-tint)}
   .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:12.5px;
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
-  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
+  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; min-height:0}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:26px 0; color:var(--v2-txt3)}
   .lead{font-size:13.5px; line-height:1.6; color:var(--v2-txt2); max-width:64ch; padding:2px 0 18px}

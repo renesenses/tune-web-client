@@ -865,7 +865,7 @@
     font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
 
-  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
+  .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px; min-height:0}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
 

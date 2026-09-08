@@ -872,7 +872,7 @@
   .acoustic:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .acoustic.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
-  .scroll{flex:1; overflow-y:auto; padding:8px 0 40px}
+  .scroll{flex:1; overflow-y:auto; padding:8px 0 40px; min-height:0}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
 
   .hint{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center;

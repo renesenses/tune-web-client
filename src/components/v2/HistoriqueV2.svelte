@@ -173,7 +173,7 @@
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .lnk:disabled{opacity:.45; cursor:default}
 
-  .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
+  .scroll{flex:1; overflow-y:auto; padding:4px 0 40px; min-height:0}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)}
 

@@ -511,7 +511,7 @@
   .chip.active{color:var(--v2-on-acc); border-color:transparent;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
-  .scroll{flex:1; overflow-y:auto; padding:4px 30px 40px}
+  .scroll{flex:1; overflow-y:auto; padding:4px 30px 40px; min-height:0}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:26px 2px; color:var(--v2-txt3); font-size:14px}
   .notice{display:flex; flex-direction:column; gap:8px; padding:34px 2px; max-width:560px}

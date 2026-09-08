@@ -536,7 +536,13 @@
      1990 px : zone principale 1754 px, ecran Bibliotheque 1139 px — 615 px
      perdus a droite. `:global` parce que l'ecran est un composant enfant :
      le style scope de la coquille ne l'atteindrait pas. */
-  .main{min-width:0; overflow:hidden; display:flex}
+  /* 🔴 `min-height:0` — sans lui, Firefox laisse cet enfant de flex GRANDIR au
+     lieu de se contenter de sa part. Le `height:100%` des écrans se résout
+     alors contre un parent trop haut, et leur en-tête part vers le haut au
+     défilement au lieu de rester en place (#307, même mécanisme que #1282).
+     Chrome tolère l'absence, Firefox applique la règle. Les ENFANTS l'avaient
+     déjà (ligne suivante) ; c'est le conteneur lui-même qui manquait. */
+  .main{min-width:0; min-height:0; overflow:hidden; display:flex}
 
   /* ---- PETIT ÉCRAN ----------------------------------------------------
      La rangée n'a plus qu'UNE colonne : la barre latérale est passée en

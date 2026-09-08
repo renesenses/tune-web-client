@@ -199,7 +199,7 @@
   .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
   .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .sub{color:var(--v2-txt2); font-size:13px; margin-top:6px; max-width:64ch}
-  .scroll{flex:1; min-width:0; overflow-y:auto; padding:8px 30px 40px}
+  .scroll{flex:1; min-width:0; overflow-y:auto; padding:8px 30px 40px; min-height:0}
   .etat{padding:26px 0; color:var(--v2-txt3); font-size:13.5px}
 
   .liste{list-style:none; display:flex; flex-direction:column; gap:6px; max-width:760px}

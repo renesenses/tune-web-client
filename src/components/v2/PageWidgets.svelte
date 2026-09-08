@@ -754,7 +754,7 @@
   /* `min-width: 0` : sans lui, une bande large POUSSE la colonne au lieu de
      défiler dans son cadre, et c'est la page entière qui prend une barre de
      défilement horizontale — visible sur la capture du 02/09/2026. */
-  .scroll{flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; padding:4px 0 40px}
+  .scroll{flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; padding:4px 0 40px; min-height:0}
   .bloc{min-width:0}
   .state{padding:26px 30px; color:var(--v2-txt3); font-size:13.5px}
   .state.mince{padding:8px 30px 18px}
