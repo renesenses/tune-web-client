@@ -94,8 +94,8 @@
 <section class="v2-queue tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Zone courante</div>
-      <h1>File d'attente</h1>
+      <div class="eyebrow">{$tr('v2.lbl.currentZone' as any)}</div>
+      <h1>{$tr('nav.queue' as any)}</h1>
     </div>
     {#if tracks.length}
       <div class="meta">
@@ -118,7 +118,7 @@
     {:else}
       {#if current}
         <section class="sec">
-          <h2>En cours</h2>
+          <h2>{$tr('v2.lbl.inProgress' as any)}</h2>
           <div class="now" aria-current={etatCourant ? 'true' : undefined}>
             <span class="ncv"><AlbumArt coverPath={current.cover_path} albumId={current.album_id ?? null} size={0} alt={current.title} source={current.source} fallbackInitials={current.title?.slice(0,1)} /></span>
             <div class="nmeta">
