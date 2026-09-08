@@ -157,9 +157,15 @@
    * `api.shuffleAll` sans aucun appelant. Il tire sur la discographie entiere,
    * la ou une liste chargee cote client s'arreterait a ce qui est affiche.
    */
+  //
+  // `contexte` dit au serveur CE QUE l'auditeur a demandé — ici un ARTISTE. Il
+  // sait déduire album, playlist et piste du corps ; une discographie, non :
+  // elle part en liste nue de `track_ids`. Sans cette annonce l'écoute
+  // s'enregistrait sans contexte et retombait dans le repli « albums » de
+  // « Continuer l'écoute », jamais sous le nom de l'artiste (#2442).
   let masseEnCours = $state(false);
-  const gestesMasse = (zid: number) => ({
-    lire: (c: any) => playAndSync(zid, c),
+  const gestesMasse = (zid: number, contexte?: Record<string, unknown>) => ({
+    lire: (c: any) => playAndSync(zid, contexte ? { ...c, ...contexte } : c),
     enfiler: (c: any) => api.addToQueue(zid, c),
   });
   async function lireToutArtiste(a: Artist) {
@@ -171,7 +177,10 @@
     masseEnCours = true;
     try {
       const pistes = (await api.getArtistTracks(a.id)) ?? [];
-      const n = await lireListe(pistes, gestesMasse(zid));
+      const n = await lireListe(
+        pistes,
+        gestesMasse(zid, { context_type: 'artist', context_id: String(a.id) }),
+      );
       if (!n) notifications.error($t('library.noTracks' as any));
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
