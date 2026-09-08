@@ -634,6 +634,12 @@ export default {
   'search.shownOf': '{shown} sur {total}',
   'search.shownOfAtLeast': '{shown} sur au moins {total}',
   'search.loadMore': 'Voir plus',
+  'search.createPlaylist': 'Créer une liste de lecture',
+  'search.playlistNamePrompt': 'Nom de la nouvelle liste de lecture',
+  'search.playlistCreated': 'Liste « {name} » créée avec {n} pistes.',
+  'search.playlistCreatedPartial': 'Liste « {name} » créée avec les {n} pistes affichées, sur {total} correspondances.',
+  'search.playlistNoLocalTracks': 'Aucune piste de la bibliothèque locale dans ces résultats.',
+  'search.playlistError': 'Impossible de créer la liste de lecture.',
   'search.durationShown': '{d} affichées',
 
   // Streaming

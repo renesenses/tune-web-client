@@ -416,6 +416,12 @@ export default {
   'search.shownOf': '{total}件中{shown}件',
   'search.shownOfAtLeast': '{shown}件（{total}件以上）',
   'search.loadMore': 'もっと見る',
+  'search.createPlaylist': 'プレイリストを作成',
+  'search.playlistNamePrompt': '新しいプレイリストの名前',
+  'search.playlistCreated': 'プレイリスト「{name}」を {n} 曲で作成しました。',
+  'search.playlistCreatedPartial': 'プレイリスト「{name}」を表示中の {n} 曲で作成しました（全 {total} 件中）。',
+  'search.playlistNoLocalTracks': 'この検索結果にローカルライブラリのトラックはありません。',
+  'search.playlistError': 'プレイリストを作成できませんでした。',
   'search.durationShown': '表示中 {d}',
 
   // Streaming

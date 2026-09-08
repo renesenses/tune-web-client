@@ -624,6 +624,12 @@ export default {
   'search.shownOf': '{shown} of {total}',
   'search.shownOfAtLeast': '{shown} of at least {total}',
   'search.loadMore': 'Show more',
+  'search.createPlaylist': 'Create a playlist',
+  'search.playlistNamePrompt': 'Name of the new playlist',
+  'search.playlistCreated': 'Playlist “{name}” created with {n} tracks.',
+  'search.playlistCreatedPartial': 'Playlist “{name}” created with the {n} shown tracks, out of {total} matches.',
+  'search.playlistNoLocalTracks': 'No local library track in these results.',
+  'search.playlistError': 'Could not create the playlist.',
   'search.durationShown': '{d} shown',
 
   // Streaming

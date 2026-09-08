@@ -416,6 +416,12 @@ export default {
   'search.shownOf': '{shown} di {total}',
   'search.shownOfAtLeast': '{shown} di almeno {total}',
   'search.loadMore': 'Mostra altro',
+  'search.createPlaylist': 'Crea una playlist',
+  'search.playlistNamePrompt': 'Nome della nuova playlist',
+  'search.playlistCreated': 'Playlist «{name}» creata con {n} brani.',
+  'search.playlistCreatedPartial': 'Playlist «{name}» creata con i {n} brani mostrati, su {total} corrispondenze.',
+  'search.playlistNoLocalTracks': 'Nessun brano della libreria locale in questi risultati.',
+  'search.playlistError': 'Impossibile creare la playlist.',
   'search.durationShown': '{d} mostrati',
 
   // Streaming

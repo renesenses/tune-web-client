@@ -416,6 +416,12 @@ export default {
   'search.shownOf': '{shown} de {total}',
   'search.shownOfAtLeast': '{shown} de al menos {total}',
   'search.loadMore': 'Ver más',
+  'search.createPlaylist': 'Crear una lista de reproducción',
+  'search.playlistNamePrompt': 'Nombre de la nueva lista de reproducción',
+  'search.playlistCreated': 'Lista «{name}» creada con {n} pistas.',
+  'search.playlistCreatedPartial': 'Lista «{name}» creada con las {n} pistas mostradas, de {total} coincidencias.',
+  'search.playlistNoLocalTracks': 'Ninguna pista de la biblioteca local en estos resultados.',
+  'search.playlistError': 'No se pudo crear la lista de reproducción.',
   'search.durationShown': '{d} mostradas',
 
   // Streaming

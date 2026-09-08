@@ -386,6 +386,12 @@ export default {
   'search.shownOf': '{shown} av {total}',
   'search.shownOfAtLeast': '{shown} av minst {total}',
   'search.loadMore': 'Visa fler',
+  'search.createPlaylist': 'Skapa en spellista',
+  'search.playlistNamePrompt': 'Namn på den nya spellistan',
+  'search.playlistCreated': 'Spellistan ”{name}” skapades med {n} spår.',
+  'search.playlistCreatedPartial': 'Spellistan ”{name}” skapades med de {n} visade spåren, av {total} träffar.',
+  'search.playlistNoLocalTracks': 'Inget spår från det lokala biblioteket i dessa resultat.',
+  'search.playlistError': 'Spellistan kunde inte skapas.',
   'search.durationShown': '{d} visade',
 
   // Streaming

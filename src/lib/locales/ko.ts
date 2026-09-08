@@ -416,6 +416,12 @@ export default {
   'search.shownOf': '{total}개 중 {shown}개',
   'search.shownOfAtLeast': '{shown}개 ({total}개 이상)',
   'search.loadMore': '더 보기',
+  'search.createPlaylist': '재생목록 만들기',
+  'search.playlistNamePrompt': '새 재생목록 이름',
+  'search.playlistCreated': '재생목록 “{name}”을(를) {n}개 트랙으로 만들었습니다.',
+  'search.playlistCreatedPartial': '재생목록 “{name}”을(를) 표시된 {n}개 트랙으로 만들었습니다. 전체 일치 {total}개.',
+  'search.playlistNoLocalTracks': '이 결과에는 로컬 라이브러리 트랙이 없습니다.',
+  'search.playlistError': '재생목록을 만들 수 없습니다.',
   'search.durationShown': '표시된 {d}',
 
   // Streaming
