@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': 'Keine Unterordner hier.',
   'oxygen.facetsTitle': 'Facetten',
   'oxygen.facetClear': 'Alle abwählen',
+  'oxygen.facetShowAll': 'Alle anzeigen',
   'oxygen.collapseAll': 'Alle einklappen',
   'oxygen.expandAll': 'Alle ausklappen',
   'oxygen.facetsServer': 'Vollständige Zählung (Server-Index).',

@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': '하위 폴더가 없습니다.',
   'oxygen.facetsTitle': '패싯',
   'oxygen.facetClear': '모두 해제',
+  'oxygen.facetShowAll': '모두 표시',
   'oxygen.collapseAll': '모두 접기',
   'oxygen.expandAll': '모두 펼치기',
   'oxygen.facetsServer': '전체 집계 (서버 인덱스).',

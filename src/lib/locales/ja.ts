@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': 'サブフォルダーはありません。',
   'oxygen.facetsTitle': 'ファセット',
   'oxygen.facetClear': 'すべて解除',
+  'oxygen.facetShowAll': 'すべて表示',
   'oxygen.collapseAll': 'すべて折りたたむ',
   'oxygen.expandAll': 'すべて展開',
   'oxygen.facetsServer': '完全なカウント（サーバーインデックス）。',
