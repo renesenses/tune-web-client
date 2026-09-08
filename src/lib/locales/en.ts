@@ -1827,6 +1827,7 @@ export default {
   "library.bioLevelComplete": "Complete",
   "library.bioLevelFull": "Detailed",
   "library.noAlbumNote": "No note available for this album",
+  "library.bioLoadError": "Could not load the album notes.",
   "library.ratingNotePlaceholder": "Personal note...",
   "library.ratingNoteNeedsStars": "Rate the album to add a note",
   "library.quickFav": "Quick favorite",

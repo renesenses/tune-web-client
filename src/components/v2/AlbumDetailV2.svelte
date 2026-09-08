@@ -15,6 +15,7 @@
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import ClampedText from '../ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { queuePosition } from '../../lib/stores/queue';
@@ -239,6 +240,73 @@
   /** « Lire ensuite » insère au rang SUIVANT celui qui joue. Sans rang, la
    *  route ajoute à la fin — ce serait le bouton d'à côté. */
   const lireEnsuite = () => enfiler(get(queuePosition) + 1, 'v2.album.queuedNext');
+  /**
+   * PRÉSENTATION DE L'ALBUM — renesenses/tune-server-rust#3586, FabienM,
+   * fil forum 1697 : « Les artistes ont leur biographie, il serait également
+   * intéressant d'afficher les infos de l'album sur la page album ».
+   *
+   * La donnée existe (`Album.bio`, servie par `/library/albums`, écrite par
+   * `album_repo::update_bio`) et l'interface actuelle l'affiche déjà
+   * (`LibraryView.svelte`, `.album-bio-section`). Cette fiche-ci n'en portait
+   * AUCUNE trace : `grep bio src/components/v2/AlbumDetailV2.svelte` ne rendait
+   * rien.
+   *
+   * 🔴 POURQUOI DERRIÈRE UN BOUTON, et non chargée à l'ouverture de la fiche.
+   *
+   * `GET /library/albums/{id}/bio` n'est pas une lecture locale. Quand la bio
+   * stockée est vide (ou dans une autre langue que celle demandée), le
+   * handler `albums::album_bio` sort sur le réseau :
+   *
+   *     state.http_client.get("https://mozaiklabs.fr/api/v1/albums/bio")
+   *
+   * et il ne met en cache que les réponses NON VIDES
+   * (`if out.bio non nul { api_cache_set(...) }`). Un album sans notice
+   * relance donc l'appel sortant à chaque consultation. Charger d'office
+   * ferait partir une requête vers mozaiklabs.fr chaque fois qu'on ouvre un
+   * album — sur une bibliothèque dont le taux de remplissage n'est pas établi.
+   *
+   * L'interface actuelle a tranché pareil : `loadAlbumBio` n'y est appelée que
+   * par le clic sur « Notes / Bio ». On reprend son bouton, son état vide
+   * (`library.noAlbumNote`) et ses trois clés — donc aucune nouvelle clé, et
+   * les onze langues sont déjà servies.
+   *
+   * Un album de service, Bandcamp ou distant n'a pas d'`id` local : la route
+   * ne le désigne pas, le bouton ne s'affiche pas. Un bouton absent ne promet
+   * rien.
+   */
+  let bioOuverte = $state(false);
+  let bio = $state<string | null>(null);
+  let bioChargement = $state(false);
+  let bioErreur = $state(false);
+  /** Album dont la bio est en mémoire — la fiche est réutilisée d'un album à
+   *  l'autre, et resservir la notice du précédent serait un mensonge. */
+  let bioAlbumId = $state<number | null>(null);
+
+  $effect(() => {
+    const id = album.id ?? null;
+    if (id === bioAlbumId) return;
+    bioAlbumId = id;
+    bioOuverte = false;
+    bio = null;
+    bioErreur = false;
+  });
+
+  async function basculerBio() {
+    bioOuverte = !bioOuverte;
+    const id = album.id;
+    if (!bioOuverte || id == null || bio !== null || bioChargement) return;
+    bioChargement = true;
+    bioErreur = false;
+    try {
+      const r = await api.getAlbumBio(id);
+      // Course : l'utilisateur a pu changer d'album pendant la requête.
+      if (album.id === id) bio = r.bio ?? '';
+    } catch {
+      if (album.id === id) bioErreur = true;
+    }
+    bioChargement = false;
+  }
+
   function trackTech(t: Track): string {
     const rate = t.sample_rate ? `${Math.round(t.sample_rate / 100) / 10} kHz` : '';
     const depth = t.bit_depth ? `${t.bit_depth}-bit` : '';
@@ -298,6 +366,30 @@
     </div>
   </div>
 
+  <!-- Présentation de l'album (#3586). Voir le commentaire de `basculerBio`
+       pour la raison du bouton : la route sort sur le réseau. -->
+  {#if album.id != null}
+    <div class="bio">
+      <button class="bio-toggle" onclick={basculerBio} aria-expanded={bioOuverte}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        {bioOuverte ? $tr('library.hideNotes') : $tr('library.notesBio')}
+      </button>
+      {#if bioOuverte}
+        {#if bioChargement}
+          <p class="bio-state">{$tr('v2.common.loading' as any)}</p>
+        {:else if bioErreur}
+          <p class="bio-state err">{$tr('library.bioLoadError' as any)}</p>
+        {:else if bio}
+          <ClampedText lines={4} resetKey={bio}>
+            <p class="bio-text">{bio}</p>
+          </ClampedText>
+        {:else}
+          <p class="bio-state">{$tr('library.noAlbumNote')}</p>
+        {/if}
+      {/if}
+    </div>
+  {/if}
+
   <div class="tracks">
     {#if loading}
       <div class="state">{$tr('v2.common.loadingTracks' as any)}</div>
@@ -353,6 +445,18 @@
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
+
+  /* Présentation de l'album (#3586) — repliée par défaut, comme dans
+     l'interface actuelle : la route sort sur le réseau quand la notice
+     manque, cf. `basculerBio`. */
+  .bio{margin:18px 0 4px; display:flex; flex-direction:column; gap:10px; align-items:flex-start}
+  .bio-toggle{display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+    border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2);
+    border-radius:10px; padding:6px 12px; font-family:var(--v2-sans); font-size:13px}
+  .bio-toggle:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .bio-text{margin:0; color:var(--v2-txt2); font-size:14px; line-height:1.65; max-width:70ch}
+  .bio-state{margin:0; color:var(--v2-txt3); font-size:13px; font-style:italic}
+  .bio-state.err{color:var(--v2-danger)}
   .trk{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; width:100%;
     padding:0 12px; color:var(--v2-txt2); border-radius:8px}
   /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne

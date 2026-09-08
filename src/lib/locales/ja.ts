@@ -1567,6 +1567,7 @@ export default {
   "library.bioLevelComplete": "完全",
   "library.bioLevelFull": "詳細",
   "library.noAlbumNote": "このアルバムのメモはありません",
+  "library.bioLoadError": "アルバムの紹介を読み込めませんでした。",
   "library.ratingNotePlaceholder": "個人メモ...",
   "library.ratingNoteNeedsStars": "メモを追加するにはアルバムを評価してください",
   "library.quickFav": "クイックお気に入り",
