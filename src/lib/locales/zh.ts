@@ -4135,6 +4135,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "未拥有任何模块",
   "diagnostics.outputNoProviders": "此服务器未编译任何外部输出提供方。",
   "diagnostics.outputOpenLicense": "查看我的许可证",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "在当前显示级别下，此处隐藏了 {n} 项设置。",
+  "settings.hiddenHereReveal": "显示它们",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

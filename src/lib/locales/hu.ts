@@ -4093,6 +4093,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "Nincs megvásárolt modul",
   "diagnostics.outputNoProviders": "Ebbe a kiszolgálóba nincs külső kimeneti szolgáltató beépítve.",
   "diagnostics.outputOpenLicense": "Licencem megtekintése",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "{n} beállítás rejtve itt a jelenlegi megjelenítési szinten.",
+  "settings.hiddenHereReveal": "Megjelenítés",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

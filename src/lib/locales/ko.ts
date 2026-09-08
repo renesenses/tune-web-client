@@ -4135,6 +4135,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "보유한 모듈 없음",
   "diagnostics.outputNoProviders": "이 서버에는 외부 출력 공급자가 컴파일되어 있지 않습니다.",
   "diagnostics.outputOpenLicense": "내 라이선스 보기",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "표시 수준에 따라 여기에서 {n}개 설정이 숨겨져 있습니다.",
+  "settings.hiddenHereReveal": "표시하기",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
