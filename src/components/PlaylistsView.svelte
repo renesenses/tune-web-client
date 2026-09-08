@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../lib/infobulleTexte';
   import { rangeableEnPlaylist } from '../lib/pisteFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
   import { get } from 'svelte/store';
@@ -475,8 +476,8 @@
             <button class="track-play" onclick={() => t.id && playTrack(t.id)}>
               <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
               <div class="track-info">
-                <span class="track-title truncate">{t.title}</span>
-                <span class="track-artist truncate">{t.artist_name ?? ''}</span>
+                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
+                <span class="track-artist truncate" use:bulleTexte>{t.artist_name ?? ''}</span>
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
@@ -547,8 +548,8 @@
             <button class="track-play" onclick={() => selectedStreamingPl ? playStreamingPlaylist(selectedStreamingPl, index) : playStreamingTrack(t)}>
               <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
               <div class="track-info">
-                <span class="track-title truncate">{t.title}</span>
-                {#if t.artist_name}<span class="track-artist truncate">{t.artist_name}</span>{/if}
+                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
+                {#if t.artist_name}<span class="track-artist truncate" use:bulleTexte>{t.artist_name}</span>{/if}
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
