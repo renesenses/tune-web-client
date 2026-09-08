@@ -4227,6 +4227,14 @@ export default {
   "v2.set.peakLamps": "指示灯",
   "v2.set.peakDat": "DAT PCM-7030",
   "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "Tune 启动时打开的界面。其他都不变。",
+  "v2.hint.defaultZone": "启动时选中的区域（若此前没有选中）。随手播放的曲目会送到这里。",
+  "v2.hint.volumeDisplay": "音量的表示方式。分贝表示真实增益；百分比只是显示刻度，不是测量值。",
+  "v2.hint.ingestMode": "🔴「移动」会把文件从原位置移走。「复制」保留原文件，占用双倍空间。",
+  "v2.hint.audioBackend": "声音输出所经的驱动。ASIO 需要厂商提供的驱动，否则输出将没有声音。",
+  "v2.hint.wasapiMode": "独占模式下 Tune 独享声卡：信号以 bit-perfect 输出，但其他应用会没有声音。",
+  "v2.hint.replayGainPreamp": "在 ReplayGain 之上再施加的偏移。提高电平会让峰值更接近削波 —— 防削波正是为此而设。",
+  "v2.hint.replayGainPreventClipping": "把增益压低到刚好没有峰值溢出。没有它，正的前置增益会让本就很响的曲目削波。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -4247,6 +4247,14 @@ export default {
   "v2.set.peakLamps": "Lamps",
   "v2.set.peakDat": "DAT PCM-7030",
   "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "The screen Tune opens on. Nothing else changes.",
+  "v2.hint.defaultZone": "The zone selected at startup, when none was. A track played without thinking goes there.",
+  "v2.hint.volumeDisplay": "How the volume is written. Decibels state the real gain; the percentage is a display scale, not a measurement.",
+  "v2.hint.ingestMode": "🔴 “Move” removes the file from where it was. “Copy” leaves it there and uses twice the space.",
+  "v2.hint.audioBackend": "The driver the sound goes out through. ASIO needs a driver supplied by the maker; without it the output stays silent.",
+  "v2.hint.wasapiMode": "In exclusive mode Tune takes the sound card for itself: the stream goes out bit-perfect, but other applications fall silent.",
+  "v2.hint.replayGainPreamp": "An offset applied on top of ReplayGain. Raising the level brings peaks closer to clipping — that is what the anti-clipping guard is for.",
+  "v2.hint.replayGainPreventClipping": "Lowers the gain just enough that no peak goes over. Without it, a positive pre-amp can clip a track that is already loud.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

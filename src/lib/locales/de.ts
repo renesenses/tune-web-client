@@ -4227,6 +4227,14 @@ export default {
   "v2.set.peakLamps": "Lampen",
   "v2.set.peakDat": "DAT PCM-7030",
   "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "Der Bildschirm, mit dem Tune startet. Sonst ändert sich nichts.",
+  "v2.hint.defaultZone": "Die beim Start gewählte Zone, wenn keine gewählt war. Ein gedankenlos gestarteter Titel landet dort.",
+  "v2.hint.volumeDisplay": "Wie die Lautstärke geschrieben wird. Dezibel nennen den echten Pegel; das Prozent ist eine Anzeigeskala, keine Messung.",
+  "v2.hint.ingestMode": "🔴 „Verschieben“ entfernt die Datei von ihrem ursprünglichen Ort. „Kopieren“ lässt sie dort und belegt doppelten Platz.",
+  "v2.hint.audioBackend": "Der Treiber, über den der Ton ausgegeben wird. ASIO benötigt einen Treiber des Herstellers; ohne ihn bleibt die Ausgabe stumm.",
+  "v2.hint.wasapiMode": "Im Exklusivmodus beansprucht Tune die Soundkarte allein: Der Stream geht bit-perfekt hinaus, andere Anwendungen verstummen.",
+  "v2.hint.replayGainPreamp": "Ein Versatz zusätzlich zum ReplayGain. Ein höherer Pegel rückt die Spitzen näher an die Übersteuerung — dafür ist der Übersteuerungsschutz da.",
+  "v2.hint.replayGainPreventClipping": "Senkt den Pegel gerade so weit, dass keine Spitze übersteuert. Ohne ihn kann ein positiver Vorverstärker einen ohnehin lauten Titel verzerren.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -4249,6 +4249,14 @@ export default {
   "v2.set.peakLamps": "Lampes",
   "v2.set.peakDat": "DAT PCM-7030",
   "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "L'écran sur lequel Tune s'ouvre. Rien d'autre ne change.",
+  "v2.hint.defaultZone": "La zone sélectionnée à l'ouverture, quand aucune ne l'était. Un titre lancé sans y penser part sur celle-là.",
+  "v2.hint.volumeDisplay": "Comment le volume s'écrit. Les décibels disent le gain réel ; le pourcentage est une échelle d'affichage, pas une mesure.",
+  "v2.hint.ingestMode": "🔴 « Déplacer » retire le fichier de son emplacement d'origine. « Copier » le laisse en place et occupe deux fois l'espace.",
+  "v2.hint.audioBackend": "Le pilote par lequel le son sort. ASIO demande un pilote fourni par le fabricant ; sans lui, la sortie reste muette.",
+  "v2.hint.wasapiMode": "En exclusif, Tune prend la carte son pour lui seul : le flux part bit-perfect, mais les autres applications deviennent muettes.",
+  "v2.hint.replayGainPreamp": "Décalage appliqué en plus du ReplayGain. Monter le niveau rapproche les crêtes de la saturation — c'est à cela que sert l'anti-écrêtage.",
+  "v2.hint.replayGainPreventClipping": "Abaisse le gain juste assez pour qu'aucune crête ne dépasse. Sans lui, un préamplificateur positif peut faire saturer un morceau déjà fort.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -4227,6 +4227,14 @@ export default {
   "v2.set.peakLamps": "램프",
   "v2.set.peakDat": "DAT PCM-7030",
   "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "Tune을 열 때 표시할 화면입니다. 그 밖에는 아무것도 바뀌지 않습니다.",
+  "v2.hint.defaultZone": "시작할 때 선택되는 존입니다(선택된 것이 없을 때). 무심코 재생한 곡이 여기로 갑니다.",
+  "v2.hint.volumeDisplay": "볼륨 표기 방식입니다. 데시벨은 실제 게인을 나타냅니다. 퍼센트는 표시용 눈금이며 측정값이 아닙니다.",
+  "v2.hint.ingestMode": "🔴 「이동」은 원래 위치에서 파일을 없앱니다. 「복사」는 그대로 두고 공간을 두 배로 씁니다.",
+  "v2.hint.audioBackend": "소리가 나가는 드라이버입니다. ASIO는 제조사가 제공하는 드라이버가 필요하며, 없으면 출력이 무음입니다.",
+  "v2.hint.wasapiMode": "단독 모드에서는 Tune이 사운드 카드를 독점합니다. 신호는 비트 퍼펙트로 나가지만 다른 앱은 소리가 나지 않습니다.",
+  "v2.hint.replayGainPreamp": "ReplayGain에 더해 적용되는 보정값입니다. 레벨을 올리면 피크가 포화에 가까워집니다. 클리핑 방지는 그래서 있습니다.",
+  "v2.hint.replayGainPreventClipping": "어떤 피크도 넘지 않을 만큼만 게인을 낮춥니다. 이것이 없으면 양의 프리앰프 값이 이미 큰 곡을 왜곡시킬 수 있습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

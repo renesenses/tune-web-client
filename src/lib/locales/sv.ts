@@ -4226,4 +4226,12 @@ export default {
   "v2.set.peakLamps": "Lampor",
   "v2.set.peakDat": "DAT PCM-7030",
   "v2.set.peakIec": "IEC 268-18",
+  "v2.hint.startupView": "Skärmen Tune öppnas på. Inget annat ändras.",
+  "v2.hint.defaultZone": "Zonen som väljs vid start, när ingen var vald. Ett spår du startar utan att tänka hamnar där.",
+  "v2.hint.volumeDisplay": "Hur volymen skrivs. Decibel anger den verkliga förstärkningen; procenten är en visningsskala, inte en mätning.",
+  "v2.hint.ingestMode": "🔴 ”Flytta” tar bort filen från dess ursprungliga plats. ”Kopiera” lämnar den kvar och tar dubbelt så mycket plats.",
+  "v2.hint.audioBackend": "Drivrutinen ljudet går ut genom. ASIO kräver en drivrutin från tillverkaren; utan den förblir utgången tyst.",
+  "v2.hint.wasapiMode": "I exklusivt läge tar Tune ljudkortet för sig själv: strömmen går ut bit-perfekt, men andra program tystnar.",
+  "v2.hint.replayGainPreamp": "En förskjutning utöver ReplayGain. Högre nivå för topparna närmare klippning — det är vad klippskyddet är till för.",
+  "v2.hint.replayGainPreventClipping": "Sänker förstärkningen precis så mycket att ingen topp går över. Utan det kan en positiv förförstärkning klippa ett redan starkt spår.",
 } as const;

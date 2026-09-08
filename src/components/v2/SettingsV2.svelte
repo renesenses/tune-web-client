@@ -1765,7 +1765,10 @@
               </div>
 
               <div class="row">
-                <div class="lbl"><span>{$t('settings.startupView' as any)}</span></div>
+                <div class="lbl">
+                    <span>{$t('settings.startupView' as any)}</span>
+                    <span class="hint">{$t('v2.hint.startupView' as any)}</span>
+                  </div>
                 <select class="sel" value={$preferences.startupView}
                   onchange={(e) => preferences.update((pr) => ({ ...pr, startupView: (e.currentTarget as HTMLSelectElement).value as StartupView }))}>
                   {#each STARTUP as o (o.v)}<option value={o.v}>{$t(o.k as any)}</option>{/each}
@@ -1773,7 +1776,10 @@
               </div>
 
               <div class="row">
-                <div class="lbl"><span>{$t('settings.defaultZone' as any)}</span></div>
+                <div class="lbl">
+                    <span>{$t('settings.defaultZone' as any)}</span>
+                    <span class="hint">{$t('v2.hint.defaultZone' as any)}</span>
+                  </div>
                 <select class="sel" value={$preferences.defaultZoneId ?? ''}
                   onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
                     const dz = v ? Number(v) : null;
@@ -1786,7 +1792,10 @@
 
               {#if atLeast(level, 'intermediate')}
                 <div class="row">
-                  <div class="lbl"><span>{$t('settings.volumeDisplay' as any)}</span></div>
+                  <div class="lbl">
+                    <span>{$t('settings.volumeDisplay' as any)}</span>
+                    <span class="hint">{$t('v2.hint.volumeDisplay' as any)}</span>
+                  </div>
                   <div class="seg4">
                     <button class:on={$preferences.volumeDisplay === 'percent'}
                       onclick={() => preferences.update((pr) => ({ ...pr, volumeDisplay: 'percent' as VolumeDisplay }))}>{$t('settings.percent' as any)}</button>
@@ -1882,7 +1891,10 @@
                   {$t('v2.hint.ingestRule' as any)}
                 </p>
                 <div class="row">
-                  <div class="lbl"><span>{$t('settings.ingestMode' as any)}</span></div>
+                  <div class="lbl">
+                    <span>{$t('settings.ingestMode' as any)}</span>
+                    <span class="hint">{$t('v2.hint.ingestMode' as any)}</span>
+                  </div>
                   <div class="seg4">
                     <button class:on={ingest.mode === 'copy'} onclick={() => saveIngest({ mode: 'copy' })}>{$t('v2.set.copy' as any)}</button>
                     <button class:on={ingest.mode === 'move'} onclick={() => saveIngest({ mode: 'move' })}>{$t('ingest.move' as any)}</button>
@@ -2993,7 +3005,10 @@
             {:else if s.id === 'localAudio'}
               {#if atLeast(level, 'expert')}
                 <div class="row">
-                  <div class="lbl"><span>{$t('settings.audioBackend' as any)}</span></div>
+                  <div class="lbl">
+                    <span>{$t('settings.audioBackend' as any)}</span>
+                    <span class="hint">{$t('v2.hint.audioBackend' as any)}</span>
+                  </div>
                   <div class="seg4">
                     <button class:on={audioBackend === 'auto'} onclick={() => setBackend('auto')}>{$t('settings.autoDefault' as any)}</button>
                     <button class:on={audioBackend === 'wasapi'} onclick={() => setBackend('wasapi')}>WASAPI</button>
@@ -3002,7 +3017,10 @@
                 </div>
                 {#if audioBackend === 'wasapi'}
                   <div class="row">
-                    <div class="lbl"><span>{$t('settings.wasapiMode' as any)}</span></div>
+                    <div class="lbl">
+                    <span>{$t('settings.wasapiMode' as any)}</span>
+                    <span class="hint">{$t('v2.hint.wasapiMode' as any)}</span>
+                  </div>
                     <div class="seg4">
                       <button class:on={!exclusiveMode} onclick={() => setExclusive(false)}>{$t('settings.sharedDefault' as any)}</button>
                       <button class:on={exclusiveMode} onclick={() => setExclusive(true)}>{$t('settings.exclusiveBitPerfect' as any)}</button>
@@ -3025,7 +3043,10 @@
                 </div>
                 {#if rgMode !== 'off' && atLeast(level, 'expert')}
                   <div class="row">
-                    <div class="lbl"><span>{$t('settings.replayGainPreamp' as any)}</span></div>
+                    <div class="lbl">
+                    <span>{$t('settings.replayGainPreamp' as any)}</span>
+                    <span class="hint">{$t('v2.hint.replayGainPreamp' as any)}</span>
+                  </div>
                     <div class="seg4">
                       {#each [-6, -3, 0, 3, 6] as db (db)}
                         <button class:on={rgPreamp === db} onclick={() => setRgPreamp(db)}>{db > 0 ? `+${db}` : db} dB</button>
@@ -3033,7 +3054,10 @@
                     </div>
                   </div>
                   <div class="row">
-                    <div class="lbl"><span>{$t('settings.replayGainPreventClipping' as any)}</span></div>
+                    <div class="lbl">
+                    <span>{$t('settings.replayGainPreventClipping' as any)}</span>
+                    <span class="hint">{$t('v2.hint.replayGainPreventClipping' as any)}</span>
+                  </div>
                     <label class="sw">
                       <input type="checkbox" checked={rgAntiClip} onchange={(e) => setRgAntiClip((e.currentTarget as HTMLInputElement).checked)} />
                       <span class="slider"></span>
