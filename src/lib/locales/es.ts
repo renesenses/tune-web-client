@@ -374,6 +374,7 @@ export default {
   // Library
   'library.title': 'Biblioteca',
   'library.scopeLoadError': 'No se pudo cargar la carpeta {d}: la lista queda vacía.',
+  'library.albumTracksLoadError': 'No se pudieron cargar las pistas de este álbum: la lista queda vacía.',
   'library.searchPlaceholder': 'Buscar...',
   'library.noAlbums': 'Sin álbumes en la biblioteca',
   'library.noArtists': 'Sin artistas en la biblioteca',
@@ -421,6 +422,7 @@ export default {
   'search.playlistCreatedPartial': 'Lista «{name}» creada con las {n} pistas mostradas, de {total} coincidencias.',
   'search.playlistNoLocalTracks': 'Ninguna pista de la biblioteca local en estos resultados.',
   'search.playlistError': 'No se pudo crear la lista de reproducción.',
+  'search.durationShown': '{d} mostradas',
 
   // Streaming
   'streaming.selectService': 'Selecciona un servicio de streaming',

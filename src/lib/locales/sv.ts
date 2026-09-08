@@ -344,6 +344,7 @@ export default {
   // Library
   'library.title': 'Bibliotek',
   'library.scopeLoadError': 'Mappen {d} kunde inte läsas in: listan förblir tom.',
+  'library.albumTracksLoadError': 'Albumets spår kunde inte läsas in: listan förblir tom.',
   'library.searchPlaceholder': 'Sök...',
   'library.noAlbums': 'Inga album i biblioteket',
   'library.noArtists': 'Inga artister i biblioteket',
@@ -391,6 +392,7 @@ export default {
   'search.playlistCreatedPartial': 'Spellistan ”{name}” skapades med de {n} visade spåren, av {total} träffar.',
   'search.playlistNoLocalTracks': 'Inget spår från det lokala biblioteket i dessa resultat.',
   'search.playlistError': 'Spellistan kunde inte skapas.',
+  'search.durationShown': '{d} visade',
 
   // Streaming
   'streaming.selectService': 'Välj en streamingtjänst',

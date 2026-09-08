@@ -16,7 +16,7 @@
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
   import { activeView, focusMode, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
-  import { selectedAlbum, selectedArtist, albumTracks, artistAlbums, libraryTab } from './lib/stores/library';
+  import { selectedAlbum, selectedArtist, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab } from './lib/stores/library';
   import { reconcilierFiche } from './lib/reconciliationFiche';
   import { CANDIDATS_DEFILEMENT, conteneurDefilant, restaurerQuandPret } from './lib/defilementReel';
   import { finDuRetourProgrammatique, opPourFiche } from './lib/historiqueNavigation';
@@ -797,7 +797,10 @@ import AlarmsView from './components/AlarmsView.svelte';
           if (toujoursDActualite(album, 'albumId')) {
             _pushingState = true;
             selectedAlbum.set(fiche);
-            albumTracks.set(pistes);
+            // La liste porte la CLÉ de son album (#3178) : reposée telle
+            // quelle, elle ne pourrait plus s'afficher sous une autre fiche.
+            commencerFicheAlbum(album);
+            poserPistesAlbum(album, pistes);
             _pushingState = false;
           }
         }

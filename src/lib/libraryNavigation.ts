@@ -13,7 +13,8 @@ import { activeView } from './stores/navigation';
 import {
   libraryTab,
   selectedAlbum,
-  albumTracks,
+  commencerFicheAlbum,
+  poserPistesAlbum,
   selectedArtist,
   artistAlbums,
   libraryLoading,
@@ -50,17 +51,25 @@ export function trouverArtisteExact(
   return typeof trouve?.id === 'number' ? trouve.id : null;
 }
 
-/** Ouvre la fiche d'un album, pistes comprises. */
+/**
+ * Ouvre la fiche d'un album, pistes comprises.
+ *
+ * Huitième écrivain d'`albumTracks` (#3178) : les classements de l'Accueil, du
+ * Tableau de bord et des recommandations passent tous par ici. Sans la clé, la
+ * fiche s'ouvrirait avec une liste VIDE, puisque l'écran ne rend les pistes que
+ * si `albumTracksOwner` désigne l'album affiché.
+ */
 export async function ouvrirAlbum(albumId: number): Promise<void> {
   selectedArtist.set(null);
   libraryLoading.set(true);
+  const id = commencerFicheAlbum(albumId);
   try {
     const [album, tracks] = await Promise.all([
       api.getAlbum(albumId),
       api.getAlbumTracks(albumId),
     ]);
     selectedAlbum.set(album);
-    albumTracks.set(tracks);
+    poserPistesAlbum(id, tracks);
     libraryTab.set('albums');
     activeView.set('library');
   } catch (e) {

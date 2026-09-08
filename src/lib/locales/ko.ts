@@ -374,6 +374,7 @@ export default {
   // Library
   'library.title': '라이브러리',
   'library.scopeLoadError': '폴더 {d}을(를) 불러올 수 없습니다. 목록은 비어 있습니다.',
+  'library.albumTracksLoadError': '이 앨범의 트랙을 불러올 수 없습니다. 목록은 비어 있습니다.',
   'library.searchPlaceholder': '검색...',
   'library.noAlbums': '라이브러리에 앨범 없음',
   'library.noArtists': '라이브러리에 아티스트 없음',
@@ -421,6 +422,7 @@ export default {
   'search.playlistCreatedPartial': '재생목록 “{name}”을(를) 표시된 {n}개 트랙으로 만들었습니다. 전체 일치 {total}개.',
   'search.playlistNoLocalTracks': '이 결과에는 로컬 라이브러리 트랙이 없습니다.',
   'search.playlistError': '재생목록을 만들 수 없습니다.',
+  'search.durationShown': '표시된 {d}',
 
   // Streaming
   'streaming.selectService': '스트리밍 서비스를 선택하세요',

@@ -597,6 +597,7 @@ export default {
   // Library
   'library.title': 'Bibliothèque',
   'library.scopeLoadError': 'Impossible de charger le répertoire {d} : la liste reste vide.',
+  'library.albumTracksLoadError': 'Impossible de charger les pistes de cet album : la liste reste vide.',
   'library.playSimilar': 'Plus comme ça',
   'library.noSimilar': 'Aucun titre acoustiquement similaire pour l’instant (la Smart Radio acoustique doit être activée et la bibliothèque analysée).',
   'library.similarError': 'Impossible de récupérer les titres similaires.',
@@ -639,6 +640,7 @@ export default {
   'search.playlistCreatedPartial': 'Liste « {name} » créée avec les {n} pistes affichées, sur {total} correspondances.',
   'search.playlistNoLocalTracks': 'Aucune piste de la bibliothèque locale dans ces résultats.',
   'search.playlistError': 'Impossible de créer la liste de lecture.',
+  'search.durationShown': '{d} affichées',
 
   // Streaming
   'streaming.selectService': 'Sélectionnez un service de streaming',

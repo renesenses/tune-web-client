@@ -8,12 +8,12 @@
   import { dialogs } from '../lib/stores/dialogs';
   import { activeView, pendingSearchQuery, saveViewContext, loadViewContext } from '../lib/stores/navigation';
   import { requeteAuMontage } from '../lib/rechercheContexte';
-  import { totalPistes, libelleComptePistes, laSuiteExiste, rangDeLaSuite, fusionnerLaSuite } from '../lib/rechercheTotaux';
+  import { totalFamille, totalPistes, libelleComptePistes, suiteExiste, rangDeLaSuite, fusionnerLaSuiteFamille, type FamilleRecherche } from '../lib/rechercheTotaux';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading, albums, artists, tracks as libraryTracks, genres as libraryGenres } from '../lib/stores/library';
   import { get } from 'svelte/store';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatDuration } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -147,10 +147,11 @@
   // suite de la bibliothèque locale se demande par `offset`. Avec un filtre
   // de qualité actif, le total serveur ne décrit plus la liste affichée : on
   // retombe sur le compte affiché.
+  let gabaritsCompte = $derived({ sur: $t('search.shownOf'), surAuMoins: $t('search.shownOfAtLeast') });
   let libellePistes = $derived(libelleComptePistes(
     filteredTracks.length,
-    qualityFilter === 'all' ? totalPistes(results) : null,
-    { sur: $t('search.shownOf'), surAuMoins: $t('search.shownOfAtLeast') },
+    qualityFilter === 'all' ? totalFamille(results, 'tracks') : null,
+    gabaritsCompte,
   ));
   /**
    * #3191 — jfpaquet (forum 1644) : « il serait utile […] de pouvoir créer une
@@ -225,20 +226,98 @@
     }
   }
 
-  let chargementSuite = $state(false);
-  async function voirPlusDePistes() {
+
+  /**
+   * #3190 — jfpaquet (forum 1644) : « il serait utile que Tune affiche, en plus
+   * de "pistes", la durée totale, comme le fait Spotify ».
+   *
+   * Le serveur ne publie AUCUNE durée sur `/search` : `totals` porte les trois
+   * comptes et `tracks_via_metadata`, rien d'autre. La somme se fait donc ici,
+   * sur ce qui est RÉELLEMENT affiché — chaque piste rendue porte son
+   * `duration_ms`.
+   *
+   * 🔴 Et c'est tout le piège du ticket : la liste est une PAGE. Écrire « 3 h
+   * 12 » sous un compteur qui dit déjà « 50 sur 2451 » publierait un second
+   * chiffre faux, avec l'autorité d'une durée. Quand tout n'est pas montré, la
+   * durée le DIT (`search.durationShown`) ; quand tout l'est, elle s'écrit nue.
+   */
+  let dureePistesAffichees = $derived(
+    filteredTracks.reduce((somme, t) => somme + (t.duration_ms ?? 0), 0),
+  );
+  let toutesLesPistesSontAffichees = $derived.by(() => {
+    const t = qualityFilter === 'all' ? totalFamille(results, 'tracks') : null;
+    // Sans total serveur (version antérieure à la 0.9.132, ou filtre actif),
+    // on ne sait pas s'il en manque : on ne l'affirme donc pas.
+    return t == null ? !suiteExiste(results, 'tracks') : t.total <= filteredTracks.length;
+  });
+  let libelleDureePistes = $derived(
+    dureePistesAffichees <= 0
+      ? ''
+      : toutesLesPistesSontAffichees
+        ? formatDuration(dureePistesAffichees)
+        : $t('search.durationShown').replace('{d}', formatDuration(dureePistesAffichees)),
+  );
+
+
+  // #3623 — la moitié ALBUMS n'avait jamais été réparée : le titre affichait
+  // `filteredAlbums.length`, c'est-à-dire la longueur de la page reçue,
+  // plafonnée à SEARCH_PAGE_LIMIT (50). Le serveur rend `totals.albums`,
+  // `totals_capped.albums` et `has_more.albums` depuis la MÊME 0.9.132 que
+  // pour les pistes. Même lecture, même bouton.
+  let libelleAlbums = $derived(libelleComptePistes(
+    filteredAlbums.length,
+    qualityFilter === 'all' ? totalFamille(results, 'albums') : null,
+    gabaritsCompte,
+  ));
+
+  // ARTISTES — tranché ici, faute d'être tranché ailleurs. Ils n'affichaient
+  // AUCUN compte et se coupaient à douze (`slice(0, 12)`), sans que rien ne
+  // dise qu'il y en avait davantage : pas un chiffre faux, mais un écran qui
+  // tronque en silence. Ils reçoivent donc le même traitement que les deux
+  // autres familles : le vrai total à côté du titre, et un bouton qui
+  // découvre d'abord ce qui est DÉJÀ reçu, puis va chercher la page suivante.
+  const PAS_ARTISTES = 12;
+  let montreArtistes = $state(PAS_ARTISTES);
+
+  /**
+   * Le rang de la page suivante, PAR FAMILLE.
+   *
+   * Le serveur n'a qu'un `offset`, partagé par les trois familles : dès qu'une
+   * avance seule, `offset + limit` relu dans la réponse ne décrit plus les deux
+   * autres, et charger la suite des albums après celle des pistes sauterait
+   * cinquante albums sans que rien ne le dise.
+   */
+  let rangSuite = $state<Record<FamilleRecherche, number>>({ artists: 0, albums: 0, tracks: 0 });
+  /** La famille dont la suite est en cours de chargement, `null` sinon. */
+  let chargementSuite = $state<FamilleRecherche | null>(null);
+
+  /** Reste-t-il quelque chose à montrer pour cette famille ? */
+  function ilResteAVoir(famille: FamilleRecherche): boolean {
+    if (famille === 'artists' && resteArtistesRecus > 0) return true;
+    return suiteExiste(results, famille);
+  }
+
+  async function voirPlus(famille: FamilleRecherche) {
     if (!results || chargementSuite) return;
-    chargementSuite = true;
+    // Les artistes reçus mais masqués se découvrent sans rien demander au
+    // serveur : le bouton ne doit pas promettre un aller-retour inutile.
+    if (famille === 'artists' && resteArtistesRecus > 0) {
+      montreArtistes += PAS_ARTISTES;
+      return;
+    }
+    chargementSuite = famille;
     try {
       // `local` seul : les services ne sont pas paginés côté serveur et
       // rendraient une seconde fois leur première page.
-      const page = await api.federatedSearch(searchQuery.trim(), ['local'], api.SEARCH_PAGE_LIMIT, rangDeLaSuite(results));
-      results = fusionnerLaSuite(results, page);
+      const page = await api.federatedSearch(searchQuery.trim(), ['local'], api.SEARCH_PAGE_LIMIT, rangSuite[famille]);
+      results = fusionnerLaSuiteFamille(results, page, famille);
+      rangSuite = { ...rangSuite, [famille]: rangSuite[famille] + api.SEARCH_PAGE_LIMIT };
+      if (famille === 'artists') montreArtistes += PAS_ARTISTES;
     } catch (e) {
       console.error('search load more error', e);
       notifications.error($t('common.error'));
     } finally {
-      chargementSuite = false;
+      chargementSuite = null;
     }
   }
 
@@ -403,6 +482,13 @@
         includeLocal ? api.getPlaylists().catch(() => [] as Playlist[]) : Promise.resolve([] as Playlist[]),
       ]);
       results = federated;
+      // Une nouvelle recherche remet les trois rangs sur la première page, et
+      // replie la liste d'artistes : sans cela, une requête large laissait la
+      // suivante ouverte sur des centaines de vignettes, et la « suite »
+      // repartait au rang de la recherche précédente.
+      const rang = rangDeLaSuite(federated);
+      rangSuite = { artists: rang, albums: rang, tracks: rang };
+      montreArtistes = PAS_ARTISTES;
 
       addToSearchHistory(searchQuery.trim());
 
@@ -850,6 +936,25 @@
     return null;
   });
 
+  /**
+   * #3623 — les artistes RÉELLEMENT proposés par la liste, et ce qu'il en
+   * reste. Quand le meilleur résultat est un artiste, la liste ne le répète
+   * pas : le compte doit suivre la même règle, sans quoi il annoncerait une
+   * vignette de plus que celles qu'on peut atteindre.
+   */
+  let artistesListables = $derived(
+    topResult?.type === 'artist'
+      ? enrichedArtists.filter((a) => a.name !== topResult?.artist?.name)
+      : enrichedArtists,
+  );
+  let artistesVus = $derived(artistesListables.slice(0, montreArtistes));
+  let resteArtistesRecus = $derived(artistesListables.length - artistesVus.length);
+  let libelleArtistes = $derived(libelleComptePistes(
+    artistesVus.length,
+    totalFamille(results, 'artists'),
+    gabaritsCompte,
+  ));
+
   // Section order: put the most relevant category first
   let sectionOrder = $derived.by(() => {
     if (!topResult) return ['artists', 'albums', 'tracks', 'playlists'] as const;
@@ -1117,9 +1222,9 @@
               <!-- Secondary: artists scroll if top is artist, or first non-top section -->
               {#if topResult.type === 'artist' && showArtists && enrichedArtists.length > 1}
                 <section class="artists-section">
-                  <h3 class="section-title">Artistes</h3>
+                  <h3 class="section-title">{$t('common.artists')} <span class="count">{libelleArtistes}</span></h3>
                   <div class="artists-scroll">
-                    {#each enrichedArtists.filter(a => a.name !== topResult?.artist?.name).slice(0, 12) as artist}
+                    {#each artistesVus as artist}
                       <div class="artist-card">
                         <button class="artist-card-main" onclick={() => selectArtist(artist)}>
                           {#if artist.image_path}
@@ -1147,12 +1252,23 @@
                       </div>
                     {/each}
                   </div>
+                  {#if ilResteAVoir('artists')}
+                    <!-- #3623 : la liste s'arrêtait à douze vignettes, sans
+                         compte ni moyen d'aller plus loin. Le bouton découvre
+                         d'abord ce qui est DÉJÀ reçu, puis demande la page
+                         suivante au serveur. -->
+                    <div class="voir-plus">
+                      <button class="action-pill" onclick={() => voirPlus('artists')} disabled={chargementSuite !== null}>
+                        {chargementSuite === 'artists' ? $t('common.loading') : $t('search.loadMore')}
+                      </button>
+                    </div>
+                  {/if}
                 </section>
               {:else if topResult.type !== 'artist' && showArtists && enrichedArtists.length > 0}
                 <section class="artists-section">
-                  <h3 class="section-title">Artistes</h3>
+                  <h3 class="section-title">{$t('common.artists')} <span class="count">{libelleArtistes}</span></h3>
                   <div class="artists-scroll">
-                    {#each enrichedArtists.slice(0, 12) as artist}
+                    {#each artistesVus as artist}
                       <div class="artist-card">
                         <button class="artist-card-main" onclick={() => selectArtist(artist)}>
                           {#if artist.image_path}
@@ -1180,6 +1296,17 @@
                       </div>
                     {/each}
                   </div>
+                  {#if ilResteAVoir('artists')}
+                    <!-- #3623 : la liste s'arrêtait à douze vignettes, sans
+                         compte ni moyen d'aller plus loin. Le bouton découvre
+                         d'abord ce qui est DÉJÀ reçu, puis demande la page
+                         suivante au serveur. -->
+                    <div class="voir-plus">
+                      <button class="action-pill" onclick={() => voirPlus('artists')} disabled={chargementSuite !== null}>
+                        {chargementSuite === 'artists' ? $t('common.loading') : $t('search.loadMore')}
+                      </button>
+                    </div>
+                  {/if}
                 </section>
               {/if}
             </div>
@@ -1190,7 +1317,7 @@
             {#if sec === 'albums' && showAlbums && filteredAlbums.length > 0}
               <section class="section">
                 <div class="section-head">
-                  <h3 class="section-title">Albums <span class="count">{filteredAlbums.length}</span></h3>
+                  <h3 class="section-title">Albums <span class="count">{libelleAlbums}</span></h3>
                   {#if localAlbums.length > 1}
                     <div class="track-actions-bar">
                       <button class="action-pill" onclick={() => playAllAlbums()}>
@@ -1225,11 +1352,21 @@
                     </div>
                   {/each}
                 </div>
+                {#if ilResteAVoir('albums')}
+                  <!-- #3623 : la grille est une PAGE. Sans ce bouton, rien ne
+                       disait qu'il y avait une suite — et le compteur, lui,
+                       annonçait 50 pour des milliers d'albums. -->
+                  <div class="voir-plus">
+                    <button class="action-pill" onclick={() => voirPlus('albums')} disabled={chargementSuite !== null}>
+                      {chargementSuite === 'albums' ? $t('common.loading') : $t('search.loadMore')}
+                    </button>
+                  </div>
+                {/if}
               </section>
             {:else if sec === 'tracks' && showTracks && filteredTracks.length > 0}
               <section class="section">
                 <div class="section-head">
-                  <h3 class="section-title">Pistes <span class="count">{libellePistes}</span></h3>
+                  <h3 class="section-title">Pistes <span class="count">{libellePistes}</span>{#if libelleDureePistes}<span class="section-duration">{libelleDureePistes}</span>{/if}</h3>
                   {#if filteredTracks.filter(t => t.id).length > 1}
                     <div class="track-actions-bar">
                       <button class="action-pill" onclick={() => playAllTracks(filteredTracks)}>
@@ -1341,12 +1478,12 @@
                     </div>
                   </div>
                 {/each}
-                {#if laSuiteExiste(results)}
+                {#if ilResteAVoir('tracks')}
                   <!-- #3189 : la liste est une page ; sans ce bouton, rien ne
                        disait qu'il y avait une suite. -->
                   <div class="voir-plus">
-                    <button class="action-pill" onclick={voirPlusDePistes} disabled={chargementSuite}>
-                      {chargementSuite ? $t('common.loading') : $t('search.loadMore')}
+                    <button class="action-pill" onclick={() => voirPlus('tracks')} disabled={chargementSuite !== null}>
+                      {chargementSuite === 'tracks' ? $t('common.loading') : $t('search.loadMore')}
                     </button>
                   </div>
                 {/if}
@@ -1577,6 +1714,15 @@
     font-weight: 400;
     color: var(--tune-text-muted);
     font-size: 16px;
+  }
+
+  /* #3190 — la durée des pistes affichées, en retrait du compteur : elle le
+     complète, elle ne le concurrence pas. */
+  .section-duration {
+    font-weight: 400;
+    color: var(--tune-text-muted);
+    font-size: 14px;
+    margin-left: 10px;
   }
 
   .link-btn {

@@ -585,6 +585,7 @@ export default {
   // Library
   'library.title': 'Library',
   'library.scopeLoadError': 'Could not load folder {d}: the list stays empty.',
+  'library.albumTracksLoadError': 'Could not load this album’s tracks: the list stays empty.',
   'library.playSimilar': 'More like this',
   'library.noSimilar': 'No acoustically similar tracks yet (acoustic Smart Radio must be enabled and the library analyzed).',
   'library.similarError': 'Could not fetch similar tracks.',
@@ -629,6 +630,7 @@ export default {
   'search.playlistCreatedPartial': 'Playlist “{name}” created with the {n} shown tracks, out of {total} matches.',
   'search.playlistNoLocalTracks': 'No local library track in these results.',
   'search.playlistError': 'Could not create the playlist.',
+  'search.durationShown': '{d} shown',
 
   // Streaming
   'streaming.selectService': 'Select a streaming service',

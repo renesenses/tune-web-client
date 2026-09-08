@@ -374,6 +374,7 @@ export default {
   // Library
   'library.title': '媒体库',
   'library.scopeLoadError': '无法加载文件夹 {d}：列表保持为空。',
+  'library.albumTracksLoadError': '无法加载该专辑的曲目：列表保持为空。',
   'library.searchPlaceholder': '搜索...',
   'library.noAlbums': '媒体库中无专辑',
   'library.noArtists': '媒体库中无艺术家',
@@ -421,6 +422,7 @@ export default {
   'search.playlistCreatedPartial': '播放列表「{name}」已创建，包含已显示的 {n} 首曲目，共 {total} 条匹配。',
   'search.playlistNoLocalTracks': '这些结果中没有本地媒体库的曲目。',
   'search.playlistError': '无法创建播放列表。',
+  'search.durationShown': '已显示 {d}',
 
   // Streaming
   'streaming.selectService': '选择流媒体服务',

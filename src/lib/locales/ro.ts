@@ -384,6 +384,7 @@ export default {
   // Library
   'library.title': 'Bibliotecă',
   'library.scopeLoadError': 'Dosarul {d} nu a putut fi încărcat: lista rămâne goală.',
+  'library.albumTracksLoadError': 'Piesele acestui album nu au putut fi încărcate: lista rămâne goală.',
   'library.searchPlaceholder': 'Căutare...',
   'library.noAlbums': 'Niciun album în bibliotecă',
   'library.noArtists': 'Niciun artist în bibliotecă',
@@ -431,6 +432,7 @@ export default {
   'search.playlistCreatedPartial': 'Lista „{name}” a fost creată cu cele {n} piese afișate, din {total} potriviri.',
   'search.playlistNoLocalTracks': 'Nicio piesă din biblioteca locală în aceste rezultate.',
   'search.playlistError': 'Lista de redare nu a putut fi creată.',
+  'search.durationShown': '{d} afișate',
 
   // Streaming
   'streaming.selectService': 'Selectează un serviciu de streaming',

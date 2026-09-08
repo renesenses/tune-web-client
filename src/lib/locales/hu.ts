@@ -556,6 +556,7 @@ export default {
   // Gyűjtemény
   "library.title": "Gyűjtemény",
   "library.scopeLoadError": "A(z) {d} mappa nem tölthető be: a lista üres marad.",
+  "library.albumTracksLoadError": "Az album számai nem tölthetők be: a lista üres marad.",
   "library.playSimilar": "Még ilyet",
   "library.noSimilar": "Egyelőre nincs akusztikailag hasonló szám (az akusztikus Okos rádiót be kell kapcsolni, és a gyűjteményt elemezni kell).",
   "library.similarError": "Nem sikerült lekérni a hasonló számokat.",
@@ -607,6 +608,7 @@ export default {
   "search.playlistCreatedPartial": "A(z) „{name}” lista a megjelenített {n} számmal jött létre, {total} találatból.",
   "search.playlistNoLocalTracks": "Nincs helyi könyvtárbeli szám ezekben a találatokban.",
   "search.playlistError": "A lejátszási lista nem hozható létre.",
+  "search.durationShown": "{d} megjelenítve",
   // Streaming
   "streaming.selectService": "Válassz streamingszolgáltatást",
   "streaming.searchOn": "Keresés itt: {service}...",

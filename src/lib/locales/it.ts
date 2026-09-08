@@ -374,6 +374,7 @@ export default {
   // Library
   'library.title': 'Libreria',
   'library.scopeLoadError': 'Impossibile caricare la cartella {d}: l’elenco resta vuoto.',
+  'library.albumTracksLoadError': 'Impossibile caricare i brani di questo album: l’elenco resta vuoto.',
   'library.searchPlaceholder': 'Ricerca...',
   'library.noAlbums': 'Nessun album nella libreria',
   'library.noArtists': 'Nessun artista nella libreria',
@@ -421,6 +422,7 @@ export default {
   'search.playlistCreatedPartial': 'Playlist «{name}» creata con i {n} brani mostrati, su {total} corrispondenze.',
   'search.playlistNoLocalTracks': 'Nessun brano della libreria locale in questi risultati.',
   'search.playlistError': 'Impossibile creare la playlist.',
+  'search.durationShown': '{d} mostrati',
 
   // Streaming
   'streaming.selectService': 'Seleziona un servizio di streaming',

@@ -374,6 +374,7 @@ export default {
   // Library
   'library.title': 'ライブラリ',
   'library.scopeLoadError': 'フォルダー {d} を読み込めませんでした。リストは空のままです。',
+  'library.albumTracksLoadError': 'このアルバムのトラックを読み込めませんでした。リストは空のままです。',
   'library.searchPlaceholder': '検索...',
   'library.noAlbums': 'ライブラリにアルバムがありません',
   'library.noArtists': 'ライブラリにアーティストがありません',
@@ -421,6 +422,7 @@ export default {
   'search.playlistCreatedPartial': 'プレイリスト「{name}」を表示中の {n} 曲で作成しました（全 {total} 件中）。',
   'search.playlistNoLocalTracks': 'この検索結果にローカルライブラリのトラックはありません。',
   'search.playlistError': 'プレイリストを作成できませんでした。',
+  'search.durationShown': '表示中 {d}',
 
   // Streaming
   'streaming.selectService': 'ストリーミングサービスを選択してください',
