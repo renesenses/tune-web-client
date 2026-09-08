@@ -1558,6 +1558,7 @@ export default {
   "library.sortYear": "Año",
   "library.writingTags": "Escribiendo...",
   "library.dynamicRangeTip": "Rango dinámico (DR), leído de las etiquetas del archivo: cuanto más alto, menos comprimida está la masterización.",
+  "library.dynamicRangeAverageTip": "Rango dinámico (DR), media redondeada de las etiquetas de las pistas: este álbum no tiene su propia etiqueta ALBUM DYNAMIC RANGE, así que Tune ha deducido el valor. Cuanto más alto, menos comprimida está la masterización.",
   "library.writeTags": "Escribir etiquetas",
   "library.noCollections": "Sin colección",
   "library.newTagPlaceholder": "Nueva etiqueta...",

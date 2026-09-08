@@ -1558,6 +1558,7 @@ export default {
   "library.sortYear": "年",
   "library.writingTags": "書き込み中...",
   "library.dynamicRangeTip": "ダイナミックレンジ（DR）。ファイルのタグから読み取った値で、大きいほどマスタリングの圧縮が少ないことを示します。",
+  "library.dynamicRangeAverageTip": "ダイナミックレンジ（DR）。各トラックのタグの平均値（四捨五入）です。このアルバムには ALBUM DYNAMIC RANGE タグがないため、Tune が値を推定しました。値が大きいほどマスタリングの圧縮が少ないことを示します。",
   "library.writeTags": "タグを書き込む",
   "library.noCollections": "コレクションなし",
   "library.newTagPlaceholder": "新しいタグ...",

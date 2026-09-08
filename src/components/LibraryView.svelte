@@ -5,6 +5,7 @@
   import { trierAlbumsParAnnee } from '../lib/trierAlbums';
   import { doitMemoriserPositionListe } from '../lib/libraryNavScroll';
   import { tip } from '../lib/tooltip';
+  import { afficherDynamicRange } from '../lib/dynamicRange';
   import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { preferences } from '../lib/stores/preferences';
@@ -1377,6 +1378,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     $albumTracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
   );
 
+  /** Le badge DR de la fiche, et ce qu'il doit dire de sa provenance (#1388). */
+  let drAffiche = $derived(afficherDynamicRange($selectedAlbum));
+
   let tracksByDisc = $derived.by(() => {
     const map = new Map<number, typeof $albumTracks>();
     const subtitles = new Map<number, string | null>();
@@ -2546,9 +2550,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <!-- Dynamic Range, quand les fichiers portent le tag (#303, #1418).
                  Rien n'est affiché sinon : la plupart des bibliothèques ne sont
                  pas taguées, et une mention vide sur chaque album serait pire
-                 que l'absence. -->
-            {#if $selectedAlbum.dynamic_range}
-              <span class="dr-badge" use:tip={'library.dynamicRangeTip'}>DR {$selectedAlbum.dynamic_range}</span>
+                 que l'absence.
+                 #1388 : la valeur DIT désormais d'où elle sort. Une mesure
+                 d'album reste `DR 12` ; une moyenne des pistes s'écrit
+                 `DR ~12`, souligné en pointillés, et porte sa propre
+                 infobulle. Même valeur, provenance différente — la règle et
+                 son pourquoi sont dans `lib/dynamicRange.ts`. -->
+            {#if drAffiche}
+              <span class="dr-badge" class:dr-deduit={drAffiche.deduit} use:tip={drAffiche.cleInfobulle}>DR {drAffiche.texte}</span>
             {/if}
           </div>
           {#if $selectedAlbum.source && $selectedAlbum.source !== 'local'}
@@ -4598,6 +4607,17 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     margin-left: var(--space-md);
     color: var(--tune-text-muted);
     opacity: 0.5;
+  }
+
+  /* #1388 : un DR DÉDUIT de la moyenne des pistes porte, en plus de son tilde,
+     un soulignement pointillé — la convention de « valeur approchée, une
+     explication au survol ». Tracé en `currentColor`, il suit la couleur du
+     texte et reste donc lisible dans les deux thèmes sans jeton dédié. Une
+     mesure d'album, elle, garde exactement le badge d'avant. */
+  .dr-badge.dr-deduit {
+    text-decoration: underline dotted currentColor;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
   }
 
   .source-badge {
