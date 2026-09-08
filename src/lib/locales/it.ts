@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': 'Nessuna sottocartella qui.',
   'oxygen.facetsTitle': 'Sfaccettature',
   'oxygen.facetClear': 'Deseleziona tutto',
+  'oxygen.facetShowAll': 'Mostra tutto',
   'oxygen.collapseAll': 'Comprimi tutto',
   'oxygen.expandAll': 'Espandi tutto',
   'oxygen.facetsServer': 'Conteggio completo (indice server).',
