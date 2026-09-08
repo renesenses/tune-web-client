@@ -4219,6 +4219,8 @@ export default {
   "v2.hint.processingFromSettings": "Le elaborazioni si avviano dalle Impostazioni — Libreria e Metadati.",
   "v2.hint.serverUnreachableDot": "Server irraggiungibile.",
   "v2.hint.tracksAnalysed": "{n} brani analizzati. L'avanzamento si segue in **{tab}**.",
+  "v2.set.browserZoneExists": "Questa zona esiste già: «{nom}» è ora la zona attiva.",
+  "v2.set.browserZoneDuplicates": "Esistono già {n} zone browser. Sono intercambiabili — ne basta una.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

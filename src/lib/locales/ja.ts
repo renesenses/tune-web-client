@@ -4219,6 +4219,8 @@ export default {
   "v2.hint.processingFromSettings": "処理は「設定 — ライブラリ」および「メタデータ」から開始します。",
   "v2.hint.serverUnreachableDot": "サーバーに接続できません。",
   "v2.hint.tracksAnalysed": "{n} 曲を解析しました。進捗は **{tab}** で確認できます。",
+  "v2.set.browserZoneExists": "このゾーンはすでにあります。「{nom}」を有効なゾーンにしました。",
+  "v2.set.browserZoneDuplicates": "ブラウザーのゾーンがすでに {n} 個あります。どれも同じ働きで、1 つで足ります。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

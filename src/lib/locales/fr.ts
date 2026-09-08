@@ -4241,6 +4241,8 @@ export default {
   "v2.hint.processingFromSettings": "Les traitements se lancent depuis les Réglages — Bibliothèque et Métadonnées.",
   "v2.hint.serverUnreachableDot": "Serveur injoignable.",
   "v2.hint.tracksAnalysed": "{n} titres analysés. L'avancement se suit dans **{tab}**.",
+  "v2.set.browserZoneExists": "Cette zone existe déjà : « {nom} » est maintenant la zone active.",
+  "v2.set.browserZoneDuplicates": "{n} zones navigateur existent déjà. Elles sont interchangeables — une seule suffit.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

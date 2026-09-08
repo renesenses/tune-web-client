@@ -34,6 +34,7 @@
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
+  import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
   import { licenseState, loadLicense } from '../../lib/stores/license';
@@ -235,16 +236,39 @@
       return { ...pr, hiddenDeviceIds: hidden ? ids.filter((i) => i !== prefixedId) : [...ids, prefixedId] };
     });
   }
+  /**
+   * Alex Campbell, 08/09/2026 : six zones « This computer » identiques.
+   *
+   * Deux défauts, et le second explique le premier : le bouton ne détectait
+   * pas la zone déjà là, et il ne montrait pas ce qu'il venait de faire — la
+   * nouvelle zone apparaît PLUS BAS dans la liste, hors du champ du bouton.
+   * Devant un écran qui ne change pas, on reclique.
+   *
+   * La règle vit dans `lib/zoneNavigateur.ts`, pour qu'un test l'APPELLE.
+   */
   async function createBrowserZoneHere() {
     creatingBrowserZone = true;
     try {
+      const deja = zoneNavigateurExistante($zones);
+      if (deja?.id != null) {
+        // On ne crée pas : on SÉLECTIONNE celle qui existe, et on le dit.
+        currentZoneId.set(deja.id);
+        notifications.info(
+          $t('v2.set.browserZoneExists' as any).replace('{nom}', deja.name ?? ''),
+        );
+        return;
+      }
       const zone: any = await api.createZone($t('settings.thisComputer' as any), 'browser');
       if (zone?.id != null) currentZoneId.set(zone.id);
+      // La liste des zones doit suivre : sans cela l'écran reste identique et
+      // le bouton semble n'avoir rien fait.
+      try { zones.set(await api.getZones()); } catch { /* l'essentiel est créé */ }
       notifications.success($t('settings.browserZoneCreated' as any));
     } catch (err: any) {
       notifications.error(err?.message ?? 'Erreur');
+    } finally {
+      creatingBrowserZone = false;
     }
-    creatingBrowserZone = false;
   }
 
   // « Appareils reseau » — liste decouverte (DLNA, AirPlay, Cast, BluOS,
@@ -3020,6 +3044,14 @@
                 <button class="lnk" onclick={createBrowserZoneHere} disabled={creatingBrowserZone}>
                   {creatingBrowserZone ? $t('v2.set.creating' as any) : $t('settings.createBrowserZone' as any)}
                 </button>
+                <!-- Ce qui EXISTE déjà, dit à côté du bouton. Alex Campbell en
+                     avait six : la nouvelle zone apparaît plus bas dans la
+                     liste des sorties, hors du champ du bouton, et rien ne le
+                     lui disait. -->
+                {#if zonesNavigateurEnDouble($zones) > 0}
+                  <p class="monote">{$t('v2.set.browserZoneDuplicates' as any)
+                    .replace('{n}', String(zonesNavigateurEnDouble($zones) + 1))}</p>
+                {/if}
               </div>
 
             {:else if s.id === 'zoneAutoCreate'}

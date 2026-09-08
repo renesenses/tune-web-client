@@ -4219,6 +4219,8 @@ export default {
   "v2.hint.processingFromSettings": "Verarbeitungen werden über die Einstellungen gestartet — Bibliothek und Metadaten.",
   "v2.hint.serverUnreachableDot": "Server nicht erreichbar.",
   "v2.hint.tracksAnalysed": "{n} Titel analysiert. Der Fortschritt wird in **{tab}** verfolgt.",
+  "v2.set.browserZoneExists": "Diese Zone gibt es bereits: „{nom}“ ist jetzt die aktive Zone.",
+  "v2.set.browserZoneDuplicates": "Es gibt bereits {n} Browser-Zonen. Sie sind austauschbar — eine genügt.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

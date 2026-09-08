@@ -4219,6 +4219,8 @@ export default {
   "v2.hint.processingFromSettings": "Los procesos se lanzan desde los Ajustes — Biblioteca y Metadatos.",
   "v2.hint.serverUnreachableDot": "Servidor inaccesible.",
   "v2.hint.tracksAnalysed": "{n} pistas analizadas. El avance se sigue en **{tab}**.",
+  "v2.set.browserZoneExists": "Esa zona ya existe: «{nom}» es ahora la zona activa.",
+  "v2.set.browserZoneDuplicates": "Ya existen {n} zonas de navegador. Son intercambiables: basta con una.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

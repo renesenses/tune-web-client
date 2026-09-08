@@ -4239,6 +4239,8 @@ export default {
   "v2.hint.processingFromSettings": "Processing runs are started from Settings — Library and Metadata.",
   "v2.hint.serverUnreachableDot": "Server unreachable.",
   "v2.hint.tracksAnalysed": "{n} tracks analysed. Progress is followed in **{tab}**.",
+  "v2.set.browserZoneExists": "That zone already exists: “{nom}” is now the active zone.",
+  "v2.set.browserZoneDuplicates": "{n} browser zones already exist. They are interchangeable — one is enough.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

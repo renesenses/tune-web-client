@@ -4219,6 +4219,8 @@ export default {
   "v2.hint.processingFromSettings": "Procesările se lansează din Setări — Bibliotecă și Metadate.",
   "v2.hint.serverUnreachableDot": "Serverul nu poate fi contactat.",
   "v2.hint.tracksAnalysed": "{n} piese analizate. Progresul se urmărește în **{tab}**.",
+  "v2.set.browserZoneExists": "Această zonă există deja: „{nom}” este acum zona activă.",
+  "v2.set.browserZoneDuplicates": "Există deja {n} zone de browser. Sunt interschimbabile — una singură este de ajuns.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

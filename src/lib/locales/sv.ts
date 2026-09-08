@@ -4218,4 +4218,6 @@ export default {
   "v2.hint.processingFromSettings": "Bearbetningar startas från Inställningar — Bibliotek och Metadata.",
   "v2.hint.serverUnreachableDot": "Servern kan inte nås.",
   "v2.hint.tracksAnalysed": "{n} spår analyserade. Förloppet följs i **{tab}**.",
+  "v2.set.browserZoneExists": "Den zonen finns redan: ”{nom}” är nu den aktiva zonen.",
+  "v2.set.browserZoneDuplicates": "Det finns redan {n} webbläsarzoner. De är utbytbara — en räcker.",
 } as const;

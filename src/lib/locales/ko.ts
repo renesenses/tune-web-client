@@ -4219,6 +4219,8 @@ export default {
   "v2.hint.processingFromSettings": "처리 작업은 설정 — 라이브러리 및 메타데이터에서 시작합니다.",
   "v2.hint.serverUnreachableDot": "서버에 연결할 수 없습니다.",
   "v2.hint.tracksAnalysed": "{n}곡을 분석했습니다. 진행 상황은 **{tab}**에서 확인합니다.",
+  "v2.set.browserZoneExists": "해당 존은 이미 있습니다. 이제 「{nom}」이(가) 활성 존입니다.",
+  "v2.set.browserZoneDuplicates": "브라우저 존이 이미 {n}개 있습니다. 서로 같은 역할이며 하나면 충분합니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

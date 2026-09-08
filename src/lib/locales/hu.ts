@@ -4177,6 +4177,8 @@ export default {
   "v2.hint.processingFromSettings": "A feldolgozások a Beállításokból indíthatók — Gyűjtemény és Metaadatok.",
   "v2.hint.serverUnreachableDot": "A kiszolgáló nem érhető el.",
   "v2.hint.tracksAnalysed": "{n} szám elemezve. A haladás itt követhető: **{tab}**.",
+  "v2.set.browserZoneExists": "Ez a zóna már létezik: „{nom}” mostantól az aktív zóna.",
+  "v2.set.browserZoneDuplicates": "Már {n} böngészőzóna létezik. Egymással felcserélhetők — egy is elég.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

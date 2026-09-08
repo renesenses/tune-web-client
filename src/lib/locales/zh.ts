@@ -4219,6 +4219,8 @@ export default {
   "v2.hint.processingFromSettings": "处理任务从「设置 — 音乐库」和「元数据」中启动。",
   "v2.hint.serverUnreachableDot": "无法连接服务器。",
   "v2.hint.tracksAnalysed": "已分析 {n} 首曲目。进度可在 **{tab}** 中查看。",
+  "v2.set.browserZoneExists": "该区域已存在：「{nom}」现在是活动区域。",
+  "v2.set.browserZoneDuplicates": "已存在 {n} 个浏览器区域。它们可以互换 —— 一个就够了。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
