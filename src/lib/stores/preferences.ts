@@ -5,6 +5,7 @@ import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
 import {
   DEFAUTS as DEFAUTS_COLONNES, PAR_CLE as COLONNES_PAR_CLE, type CleColonne,
 } from '../colonnesPistes';
+import { chainesUniques } from '../clesUniques';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
@@ -220,7 +221,25 @@ function loadPrefs(): Preferences {
       if (facets.some((f) => OXYGEN_FACETS_REMOVED.includes(f))) {
         p.oxygenFacets = [...defaults.oxygenFacets];
       } else {
-        const cleaned = facets.filter((f) => supported.includes(f));
+        // 🔴 `chainesUniques` referme la porte d'entrée du défaut #1775.
+        //
+        // Ce filtre écartait les facettes inconnues sans jamais retirer un
+        // DOUBLON : une liste enregistrée portant deux fois « genre »
+        // ressortait telle quelle, et le rail la donnait à un
+        // `{#each shown as f (f)}`, qui refuse deux clés identiques. Tout
+        // Oxygen tombait alors — page figée, F5 obligatoire — et le sélecteur
+        // de niveau devenait inerte au passage, faute de gestionnaires
+        // attachés après l'erreur.
+        //
+        // La migration de révision (plus bas) produisait bien une liste unique,
+        // mais par accident — elle repart de `supported`, déjà unique — et elle
+        // ne se joue qu'UNE fois. Un blob enregistré à la révision courante
+        // n'était plus jamais assaini.
+        //
+        // Le magasin est `localStorage`, donc PAR NAVIGATEUR : c'est la seule
+        // hypothèse compatible avec « Edge oui, Chrome non » sans invoquer une
+        // différence de moteur — Edge et Chrome partagent Blink. Non démontré.
+        const cleaned = chainesUniques(facets.filter((f) => supported.includes(f)));
         p.oxygenFacets = cleaned.length ? cleaned : [...defaults.oxygenFacets];
       }
       /**
