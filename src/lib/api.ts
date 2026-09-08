@@ -1852,8 +1852,13 @@ export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string;
   });
 }
 
+/** ⚠️ Le serveur rend `{ "status": "ok", "track_id": <id> }`, PAS un `Track` —
+ *  `tune-server/src/routes/metadata.rs:607`. Le type de retour dit ce qui
+ *  arrive vraiment : il était déclaré `Track`, et l'appelant appariait sa
+ *  liste sur `updated.id`, un champ jamais envoyé (#3638). Pour rafraîchir un
+ *  affichage, relire la piste avec `getTrack`. */
 export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number; genre?: string; year?: string }) {
-  return fetchJSON<Track>(`${BASE}/library/tracks/${id}`, {
+  return fetchJSON<{ status: string; track_id: number }>(`${BASE}/library/tracks/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -3429,6 +3434,12 @@ function favItem(p: FavoriteRef): { item_type: FavoriteItemType; item_id: number
   return null;
 }
 
+/** La piste relue depuis la base. C'est la SEULE route qui rende un `Track`
+ *  complet : les trois points d'entrée d'édition (`PUT /library/tracks/{id}`,
+ *  `PATCH /metadata/tracks/{id}`, `POST /metadata/tracks/{id}/edit`) sont
+ *  servis par le même gestionnaire `edit_track` et ne rendent qu'un accusé de
+ *  réception. Un écran se rafraîchit donc en relisant, jamais en croyant la
+ *  réponse de l'écriture (#3638). */
 export function getTrack(id: number) {
   return fetchJSON<import('./types').Track>(`${BASE}/library/tracks/${id}`);
 }
