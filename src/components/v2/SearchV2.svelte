@@ -522,7 +522,7 @@
     {#if showExpert && acousticAvailable}
       <button class="acoustic" class:on={acousticOn} onclick={() => { acousticOn = !acousticOn; if (acousticOn) runAcoustic(); else acoustic = null; }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M6 8v8M18 8v8M3 11v2M21 11v2"/></svg>
-        Acoustique
+        {$t('v2.sc.acousticHintBold' as any)}
       </button>
     {/if}
   </header>
@@ -638,7 +638,7 @@
     {:else}
       {#if showExpert && acoustic && acoustic.tracks.length}
         <section class="grp">
-          <h2>Ambiance <span class="tag">acoustique</span></h2>
+          <h2>{$t('nav.ambiance' as any)} <span class="tag">{$t('v2.lbl.acousticLower' as any)}</span></h2>
           <div class="list">
             <!-- L'AMBIANCE garde son pourcentage de proximite : c'est la
                  seule colonne que la liste partagee ne connait pas, et elle

@@ -330,7 +330,7 @@
 
   <button class="nav support" onclick={() => go('support')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-    <span>Support</span>
+    <span>{$t('v2.nav.support' as any)}</span>
   </button>
 </aside>
 

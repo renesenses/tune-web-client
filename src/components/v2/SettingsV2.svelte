@@ -1531,7 +1531,7 @@
 <section class="v2-settings tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Configuration</div>
+      <div class="eyebrow">{$t('settings.configSection' as any)}</div>
       <h1>{$t('settings.titleV2' as any)}</h1>
     </div>
   </header>
@@ -1814,12 +1814,12 @@
 
               <div class="row">
                 <div class="lbl">
-                  <span>Portraits d'artistes</span>
+                  <span>{$t('v2.lbl.artistPortraits' as any)}</span>
                   <span class="hint">
                     {#if coversMissing != null}{$formatNombre(coversMissing)} artistes sans portrait.{:else}Recherche les portraits manquants.{/if}
                   </span>
                 </div>
-                <button class="lnk" onclick={startCovers}>Lancer</button>
+                <button class="lnk" onclick={startCovers}>{$t('v2.set.start' as any)}</button>
               </div>
               <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
@@ -1829,30 +1829,29 @@
                 <p class="hint">{$t('settings.ingestUnavailable' as any)}</p>
               {:else}
                 <p class="hint">
-                  Comment Tune range les fichiers que vous importez. Ne concerne PAS les
-                  dossiers déjà déclarés : ceux-là sont lus sur place, jamais déplacés.
+                  {$t('v2.hint.ingestRule' as any)}
                 </p>
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.ingestMode' as any)}</span></div>
                   <div class="seg4">
-                    <button class:on={ingest.mode === 'copy'} onclick={() => saveIngest({ mode: 'copy' })}>Copier</button>
+                    <button class:on={ingest.mode === 'copy'} onclick={() => saveIngest({ mode: 'copy' })}>{$t('v2.set.copy' as any)}</button>
                     <button class:on={ingest.mode === 'move'} onclick={() => saveIngest({ mode: 'move' })}>{$t('ingest.move' as any)}</button>
                   </div>
                 </div>
                 <div class="row">
                   <div class="lbl">
-                    <span>En cas de conflit</span>
+                    <span>{$t('settings.ingestConflict' as any)}</span>
                     <span class="hint">{$t('settings.ingestConflictHint' as any)}</span>
                   </div>
                   <div class="seg4">
-                    <button class:on={ingest.conflict_policy === 'skip'} onclick={() => saveIngest({ conflict_policy: 'skip' })}>Ignorer</button>
-                    <button class:on={ingest.conflict_policy === 'rename'} onclick={() => saveIngest({ conflict_policy: 'rename' })}>Renommer</button>
+                    <button class:on={ingest.conflict_policy === 'skip'} onclick={() => saveIngest({ conflict_policy: 'skip' })}>{$t('v2.lbl.ignore' as any)}</button>
+                    <button class:on={ingest.conflict_policy === 'rename'} onclick={() => saveIngest({ conflict_policy: 'rename' })}>{$t('v2.pl.rename' as any)}</button>
                     <button class:on={ingest.conflict_policy === 'overwrite'} onclick={() => saveIngest({ conflict_policy: 'overwrite' })}>{$t('settings.ingestOverwrite' as any)}</button>
                   </div>
                 </div>
                 <div class="row">
                   <div class="lbl">
-                    <span>Dossier de destination</span>
+                    <span>{$t('v2.lbl.targetFolder' as any)}</span>
                     <span class="hint">{$t('v2.set.emptyMeansDefault' as any).replace('{d}',
                   ingest.effective_dest_root ?? $t('v2.set.firstMusicFolder' as any))}</span>
                   </div>
@@ -1885,7 +1884,7 @@
             {:else if s.id === 'oxygen'}
               <div class="row">
                 <div class="lbl">
-                  <span>Vue Oxygen</span>
+                  <span>{$t('v2.lbl.oxygenView' as any)}</span>
                   <span class="hint">{$t('settings.facetsNavHint' as any)}</span>
                 </div>
                 <label class="sw">
@@ -1909,7 +1908,7 @@
             {:else if s.id === 'push'}
               <div class="row">
                 <div class="lbl">
-                  <span>Notifications</span>
+                  <span>{$t('v2.lbl.notifications' as any)}</span>
                   <span class="hint">{$t('v2.set.pushHint' as any)}</span>
                 </div>
                 <label class="sw">
@@ -1923,30 +1922,25 @@
               <p class="hint">{#each emphaseParts($t('settings.cloudScopeHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
 
             {:else if s.id === 'import'}
-              <p class="hint">
-                L'import d'une bibliothèque existante (Roon, Plex, dossiers structurés) reste
-                dans le client actuel : c'est un assistant en plusieurs étapes, et le reprendre
-                à moitié exposerait à des imports partiels difficiles à défaire.
-              </p>
+              <p class="hint">{$t('v2.hint.importWizard' as any)}</p>
 
             {:else if s.id === 'database'}
               <div class="rows">
                 <div class="kv">
-                  <span>Moteur</span>
+                  <span>{$t('settings.dbEngine' as any)}</span>
                   <b>{dbEngine === 'sqlite' ? 'SQLite' : dbEngine === 'postgres' || dbEngine === 'postgresql' ? 'PostgreSQL' : (dbEngine ?? '—')}</b>
                 </div>
                 <div class="kv">
-                  <span>Connexion</span>
+                  <span>{$t('settings.connect' as any)}</span>
                   <b class="hs" class:ok={dbConnected === true}>{dbConnected === null ? '—' : dbConnected ? 'établie' : 'rompue'}</b>
                 </div>
                 {#if dbPath}
-                  <div class="kv"><span>Fichier</span><b class="mono">{dbPath}</b></div>
+                  <div class="kv"><span>{$t('v2.tcol.path' as any)}</span><b class="mono">{dbPath}</b></div>
                 {/if}
               </div>
               {#if dbConnected === false}
                 <div class="warnbox">
-                  La base n'est pas jointe : la bibliothèque et les zones ne peuvent ni être lues
-                  ni écrites. C'est la première chose à régler avant tout autre diagnostic.
+                  {$t('v2.hint.dbNotAttached' as any)}
                 </div>
               {/if}
 
@@ -1958,8 +1952,7 @@
 
             {:else if s.id === 'exportCsv'}
               <p class="hint">
-                Un instantané de la bibliothèque en CSV, pour un tableur ou un inventaire.
-                L'export ne modifie rien.
+                {$t('v2.hint.csvExport' as any)}
               </p>
               <div class="inline" style="margin-top:12px">
                 <button class="lnk" disabled={csvBusy !== null} onclick={() => exportCsv('albums')}>
@@ -2009,8 +2002,7 @@
 
             {:else if s.id === 'accessFrom'}
               <p class="hint">
-                Ces adresses ouvrent Tune depuis un autre appareil du même réseau — téléphone,
-                tablette, autre ordinateur. Elles ne sortent pas de votre réseau local.
+                {$t('v2.hint.lanAddresses' as any)}
               </p>
               {#if !serverUrls.length}
                 <p class="hint">{$t('settings.noPublishedAddress' as any)}</p>
@@ -2033,8 +2025,8 @@
 
             {:else if s.id === 'tokens'}
               <p class="hint">
-                Les jetons <b>MusicBrainz</b>, <b>Discogs</b>, <b>Last.fm</b>, <b>Genius</b> et
-                <b>ListenBrainz</b> servent à l'enrichissement des métadonnées et au scrobbling.
+                {$t('v2.lbl.theTokens' as any)} <b>MusicBrainz</b>, <b>Discogs</b>, <b>Last.fm</b>, <b>Genius</b> {$t('v2.smart.and' as any)}
+                <b>ListenBrainz</b> {$t('v2.hint.tokensUse' as any)}
               </p>
 
               {#if stkLoading}
@@ -2116,8 +2108,7 @@
                 </p>
               {:else}
                 <p class="hint">
-                  Expose une zone comme enceinte dans l'application Spotify : elle apparaît
-                  dans la liste des appareils, et la lecture arrive sur cette zone.
+                  {$t('v2.hint.spotifyConnect' as any)}
                 </p>
                 <div class="row">
                   <div class="lbl">
@@ -2141,7 +2132,7 @@
                     </select>
                   </div>
                   <div class="row">
-                    <div class="lbl"><span>Nom affiché</span>
+                    <div class="lbl"><span>{$t('v2.lbl.displayName' as any)}</span>
                       <span class="hint">{$t('settings.blankForDefaultName' as any)}</span></div>
                     <input class="txt" type="text" placeholder="Tune — Salon" bind:value={spcName} />
                   </div>
@@ -2175,7 +2166,7 @@
                           <span>DSD</span>
                           <select class="sel sm" value={z.dsd_mode ?? 'auto'}
                             onchange={(e) => setZoneField(z, () => api.updateZoneDsdMode(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
-                            <option value="auto">Auto</option><option value="native">Natif</option>
+                            <option value="auto">Auto</option><option value="native">{$t('v2.lbl.native' as any)}</option>
                             <option value="dop">DoP</option><option value="pcm">PCM</option>
                           </select>
                         </label>
@@ -2198,7 +2189,7 @@
                         <label class="zf chk">
                           <input type="checkbox" checked={z.fixed_volume ?? false}
                             onchange={(e) => askFixedVolume(z, (e.currentTarget as HTMLInputElement).checked)} />
-                          <span>Volume fixe</span>
+                          <span>{$t('v2.lbl.fixedVolume' as any)}</span>
                         </label>
                         <label class="zf chk">
                           <input type="checkbox" checked={z.upnp_renderer ?? false}
@@ -2264,8 +2255,8 @@
                           <div class="inline">
                             <input class="txt time" type="text" placeholder="100" bind:value={fvTyped}
                               onkeydown={(e) => { if (e.key === 'Enter') confirmFixedVolume(z); if (e.key === 'Escape') fvAsk = null; }} />
-                            <button class="lnk danger" disabled={fvTyped.trim() !== '100'} onclick={() => confirmFixedVolume(z)}>Confirmer</button>
-                            <button class="lnk" onclick={() => { fvAsk = null; fvTyped = ''; }}>Annuler</button>
+                            <button class="lnk danger" disabled={fvTyped.trim() !== '100'} onclick={() => confirmFixedVolume(z)}>{$t('v2.meta.confirm' as any)}</button>
+                            <button class="lnk" onclick={() => { fvAsk = null; fvTyped = ''; }}>{$t('common.cancel' as any)}</button>
                           </div>
                         </div>
                       {/if}
@@ -2295,8 +2286,7 @@
                     <div class="lbl">
                       <span>{$t('acoustic.throttle' as any)}</span>
                       <span class="hint">
-                        L'analyse décode dix secondes par piste et y fait tourner un réseau.
-                        Sur un Raspberry Pi, ou sur le serveur qui sert aussi la musique, la cadence se remarque.
+                        {$t('v2.hint.analysisCost' as any)}
                       </span>
                     </div>
                     <div class="seg4">
@@ -2305,7 +2295,12 @@
                       <button class:on={clapThrottle === 'rapide'} onclick={() => setThrottle('rapide')}>{$t('acoustic.throttleFast' as any)}</button>
                     </div>
                   </div>
-                  <p class="hint">{$formatNombre(clapAnalysed)} titres analysés. L'avancement se suit dans <b>Processing</b>.</p>
+                  <!-- Une phrase, une clé : la couper autour du <b> laissait
+                       « titres analysés. L'avancement se suit dans » en dur, et
+                       aucune langue ne place ses mots dans cet ordre-là. -->
+                  <p class="hint">{#each emphaseParts($t('v2.hint.tracksAnalysed' as any)
+                    .replace('{n}', $formatNombre(clapAnalysed))
+                    .replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
                 {/if}
               {/if}
 
@@ -2317,10 +2312,10 @@
                 </div>
                 <div class="inline">
                   {#if scanning}
-                    <span class="badge up">analyse en cours</span>
+                    <span class="badge up">{$t('v2.lbl.analysisRunning' as any)}</span>
                     <button class="lnk danger" onclick={stopScan}>{$t('common.stop' as any)}</button>
                   {:else}
-                    <button class="lnk" onclick={() => scan(false)}>Analyse rapide</button>
+                    <button class="lnk" onclick={() => scan(false)}>{$t('v2.lbl.quickAnalysis' as any)}</button>
                     <button class="lnk" onclick={() => scan(true)}>{$t('settings.fullScanV2' as any)}</button>
                   {/if}
                 </div>
@@ -2346,7 +2341,7 @@
                 <div class="inline">
                   <input class="txt wide" type="text" placeholder="/Volumes/Musique" bind:value={newDir}
                     disabled={dirBusy} onkeydown={(e) => { if (e.key === 'Enter') addDir(); }} />
-                  <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>Ajouter</button>
+                  <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>{$t('v2.tags.add' as any)}</button>
                 </div>
               </div>
               {#if musicDirs.length}
@@ -2404,7 +2399,7 @@
             {:else if s.id === 'scanSched'}
               <div class="row">
                 <div class="lbl">
-                  <span>Analyse automatique</span>
+                  <span>{$t('v2.lbl.autoAnalysis' as any)}</span>
                   <span class="hint">{$t('settings.scanScheduleHint' as any)}</span>
                 </div>
                 <label class="sw">
@@ -2414,10 +2409,10 @@
               </div>
               {#if schedOn}
                 <div class="row">
-                  <div class="lbl"><span>Heure</span></div>
+                  <div class="lbl"><span>{$t('v2.lbl.time' as any)}</span></div>
                   <input class="txt time" type="time" bind:value={schedTime} onchange={saveSchedule} disabled={schedBusy} />
                 </div>
-                <p class="hint">Prochaine analyse à <b>{schedTime}</b>.</p>
+                <p class="hint">{$t('v2.lbl.nextAnalysisAt' as any)} <b>{schedTime}</b>.</p>
               {:else}
                 <p class="hint">{$t('settings.noScanScheduled' as any)}</p>
               {/if}
@@ -2469,11 +2464,11 @@
             {:else if s.id === 'license'}
               <div class="rows">
                 <div class="kv">
-                  <span>Palier</span>
+                  <span>{$t('v2.lbl.tier' as any)}</span>
                   <b class="tierb" class:prem={lic.tier !== 'free'}>{lic.tier}</b>
                 </div>
                 {#if lic.licenseKey}
-                  <div class="kv"><span>Clé</span><b class="mono">{maskKey(lic.licenseKey)}</b></div>
+                  <div class="kv"><span>{$t('v2.lbl.key' as any)}</span><b class="mono">{maskKey(lic.licenseKey)}</b></div>
                 {/if}
                 {#if lic.expiresAt}
                   <div class="kv"><span>{$t('settings.expiresOn' as any)}</span><b>{$dateSimple(lic.expiresAt)}</b></div>
@@ -2487,8 +2482,7 @@
                      ailleurs : le dire, sinon l'utilisateur croit avoir perdu
                      ses fonctions. -->
                 <div class="warnbox">
-                  Cette licence est actuellement active sur un autre serveur. Les fonctions
-                  premium sont suspendues ici tant qu'elle y reste ouverte.
+                  {$t('v2.hint.licenseElsewhere' as any)}
                 </div>
               {/if}
 
@@ -2520,11 +2514,11 @@
                   <b class="hs" class:ok={health?.status === 'ok' || health?.status === 'healthy'}>{health?.status ?? 'inconnu'}</b>
                 </div>
                 {#if stats}
-                  <div class="kv"><span>Titres</span><b>{$formatNombre(stats.tracks)}</b></div>
-                  <div class="kv"><span>Albums</span><b>{$formatNombre(stats.albums)}</b></div>
-                  <div class="kv"><span>Artistes</span><b>{$formatNombre(stats.artists)}</b></div>
-                  <div class="kv"><span>Zones</span><b>{$formatNombre(stats.zones)}</b></div>
-                  <div class="kv"><span>Appareils</span><b>{$formatNombre(stats.devices)}</b></div>
+                  <div class="kv"><span>{$t('v2.rech.tracks' as any)}</span><b>{$formatNombre(stats.tracks)}</b></div>
+                  <div class="kv"><span>{$t('common.albums' as any)}</span><b>{$formatNombre(stats.albums)}</b></div>
+                  <div class="kv"><span>{$t('common.artists' as any)}</span><b>{$formatNombre(stats.artists)}</b></div>
+                  <div class="kv"><span>{$t('nav.zonemanager' as any)}</span><b>{$formatNombre(stats.zones)}</b></div>
+                  <div class="kv"><span>{$t('settings.devices' as any)}</span><b>{$formatNombre(stats.devices)}</b></div>
                 {/if}
               </div>
               {#if health?.components && Object.keys(health.components).length}
@@ -2587,8 +2581,8 @@
                         <div class="flow">
                           {#if flow.code}<code class="ucode">{flow.code}</code>{/if}
                           <a class="lnk" href={flow.url} target="_blank" rel="noopener">{$t('settings.openSignInPage' as any)}</a>
-                          <span class="waiting">En attente de confirmation…</span>
-                          <button class="lnk" onclick={() => cancelFlow(name)}>Annuler</button>
+                          <span class="waiting">{$t('v2.lbl.awaitingConfirm' as any)}</span>
+                          <button class="lnk" onclick={() => cancelFlow(name)}>{$t('common.cancel' as any)}</button>
                         </div>
 
                       {:else if usesPassword(name) && cred[name]}
@@ -2617,7 +2611,7 @@
               {#if isAppliance === false}
                 <p class="hint">{$t('settings.wifiApplianceOnly' as any)}</p>
               {:else if isAppliance === null}
-                <p class="hint">Serveur injoignable.</p>
+                <p class="hint">{$t('v2.hint.serverUnreachableDot' as any)}</p>
               {:else}
                 <p class="hint">
                   {#if wifiStatus?.wifi_connected}
@@ -2694,7 +2688,7 @@
                 {/if}
                 {#if brToken}
                   <div class="tok">
-                    <span class="tlab">Jeton</span>
+                    <span class="tlab">{$t('v2.lbl.token' as any)}</span>
                     <code>{brToken}</code>
                     <span class="warnline">{$t('settings.copyTokenNowWarning' as any)}</span>
                   </div>
@@ -2958,7 +2952,7 @@
                 </div>
                 {#if audioBackend === 'wasapi'}
                   <div class="row">
-                    <div class="lbl"><span>Mode WASAPI</span></div>
+                    <div class="lbl"><span>{$t('settings.wasapiMode' as any)}</span></div>
                     <div class="seg4">
                       <button class:on={!exclusiveMode} onclick={() => setExclusive(false)}>{$t('settings.sharedDefault' as any)}</button>
                       <button class:on={exclusiveMode} onclick={() => setExclusive(true)}>{$t('settings.exclusiveBitPerfect' as any)}</button>
@@ -3035,7 +3029,7 @@
                   <span class="hint">{$t('settings.zoneAutoCreateHint' as any)}</span>
                 </div>
                 {#if autoCreate === null}
-                  <span class="unavail">Serveur injoignable</span>
+                  <span class="unavail">{$t('v2.lbl.serverUnreachable' as any)}</span>
                 {:else}
                   <label class="sw">
                     <input type="checkbox" checked={autoCreate} disabled={autoCreateBusy}
