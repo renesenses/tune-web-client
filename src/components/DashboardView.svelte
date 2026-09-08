@@ -3,7 +3,7 @@
   import type { DashboardData, DashboardPeriod, SlotTrack } from '../lib/api';
   import { t } from '../lib/i18n';
   import { activeView } from '../lib/stores/navigation';
-  import { selectedAlbum, selectedArtist, libraryTab, albumTracks, artistAlbums } from '../lib/stores/library';
+  import { selectedAlbum, selectedArtist, libraryTab, commencerFicheAlbum, poserPistesAlbum, fermerFicheAlbum, artistAlbums } from '../lib/stores/library';
   import { artworkUrl, artworkSrc } from '../lib/api';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import DashboardHighlights from './DashboardHighlights.svelte';
@@ -54,8 +54,7 @@
       const results = await api.searchLibrary(name, 5);
       const hit = results.artists?.find((a: any) => (a.name || '').toLowerCase() === name.toLowerCase());
       if (hit?.id) {
-        selectedAlbum.set(null);
-        albumTracks.set([]);
+        fermerFicheAlbum();
         selectedArtist.set(hit);
         const albums = await api.getArtistAlbums(hit.id);
         artistAlbums.set(albums);
@@ -77,8 +76,9 @@
       if (hit?.id) {
         selectedArtist.set(null);
         selectedAlbum.set(hit);
+        const idFiche = commencerFicheAlbum(hit.id);
         const tracks = await api.getAlbumTracks(hit.id);
-        albumTracks.set(tracks);
+        poserPistesAlbum(idFiche, tracks);
         libraryTab.set('albums');
         activeView.set('library');
       }
@@ -99,8 +99,9 @@
           || { id: hit.album_id, title: hit.album_title ?? '', artist_name: hit.artist_name ?? '' };
         selectedArtist.set(null);
         selectedAlbum.set(album);
+        const idFiche = commencerFicheAlbum(hit.album_id);
         const tracks = await api.getAlbumTracks(hit.album_id);
-        albumTracks.set(tracks);
+        poserPistesAlbum(idFiche, tracks);
         libraryTab.set('albums');
         activeView.set('library');
         return;

@@ -384,6 +384,7 @@ export default {
   // Library
   'library.title': 'Bibliotecă',
   'library.scopeLoadError': 'Dosarul {d} nu a putut fi încărcat: lista rămâne goală.',
+  'library.albumTracksLoadError': 'Piesele acestui album nu au putut fi încărcate: lista rămâne goală.',
   'library.searchPlaceholder': 'Căutare...',
   'library.noAlbums': 'Niciun album în bibliotecă',
   'library.noArtists': 'Niciun artist în bibliotecă',

@@ -374,6 +374,7 @@ export default {
   // Library
   'library.title': 'Musikbibliothek',
   'library.scopeLoadError': 'Ordner {d} konnte nicht geladen werden: die Liste bleibt leer.',
+  'library.albumTracksLoadError': 'Die Titel dieses Albums konnten nicht geladen werden: die Liste bleibt leer.',
   'library.searchPlaceholder': 'Suchen...',
   'library.noAlbums': 'Keine Alben in der Musikbibliothek',
   'library.noArtists': 'Keine Künstler in der Musikbibliothek',
