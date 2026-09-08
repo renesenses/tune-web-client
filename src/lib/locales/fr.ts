@@ -256,6 +256,9 @@ export default {
   'lyrics.source.lrc': 'Source : fichier .lrc',
   'lyrics.source.tag': 'Source : étiquette du fichier',
   'lyrics.source.lrclib': 'Source : LRCLIB (en ligne)',
+  'lyrics.empty.none': 'Aucune parole trouvée pour ce titre.',
+  'lyrics.empty.onlineOff': 'La recherche en ligne est désactivée : Paramètres › Bibliothèque › Paroles en ligne (LRCLIB).',
+  'lyrics.empty.error': 'Impossible de récupérer les paroles.',
   'plugins.docFallback': '# Documentation du plugin\n\nConsultez la documentation complète sur [mozaiklabs.fr]({url}).',
   // AI chat (assistant Tune AI)
   'ai.fabTitle': 'Glissez pour déplacer · cliquez pour demander à Tune…',

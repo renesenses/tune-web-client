@@ -15,7 +15,9 @@
     radioAnchorFrom,
     lyricsSourceKind,
     type LyricsData,
+    type LyricsMiss,
   } from '../lib/lyrics';
+  import { chargerParolesEnLigne, parolesEnLigneActives } from '../lib/lyricsOnline';
   import { formatTime } from '../lib/utils';
   import { skipNext, skipPrevious } from '../lib/playback-controls';
   import * as api from '../lib/api';
@@ -222,6 +224,10 @@
   // métadonnées (endpoint /lyrics/by-meta). Pas de métadonnée exploitable ou
   // 404 → rien (comportement antérieur).
   let lyrics = $state<LyricsData | null>(null);
+  /** Motif de l'absence, quand `lyrics` est nul. Le mode Grand écran ne rendait
+   *  PAS le bloc du tout : une panne serveur y était indiscernable d'un
+   *  instrumental (renesenses/tune-server-rust#3577). */
+  let lyricsMiss = $state<LyricsMiss | null>(null);
   let lyricsKey: string | null = null;
   $effect(() => {
     const id = $currentTrackId;
@@ -230,14 +236,37 @@
     if (key === lyricsKey) return;
     lyricsKey = key;
     lyrics = null;
+    lyricsMiss = null;
     if (key == null) return;
+    chargerParolesEnLigne();
     const pending = id != null ? fetchTrackLyrics(id) : fetchLyricsByMeta(q!);
-    pending.then((data) => {
+    pending.then(({ data, miss }) => {
       // Garde anti-course : n'applique que si la piste n'a pas changé entre-temps.
-      if (lyricsKey === key) lyrics = data;
+      if (lyricsKey === key) { lyrics = data; lyricsMiss = miss; }
     });
   });
   let showLyrics = $derived(settings.lyrics && lyrics !== null && lyrics.lines.length > 0);
+  /**
+   * L'état vide du Grand écran.
+   *
+   * Choix ÉCRIT, et volontairement plus avare que celui du panneau « En
+   * écoute » : le Grand écran est un affichage d'ambiance qu'on regarde de
+   * loin, et l'utilisateur ne l'ouvre pas pour lire des paroles — il coche
+   * « Paroles » une fois et les oublie. Une phrase permanente sous chaque
+   * instrumental y serait une gêne, là où elle est une réponse dans le
+   * panneau qu'on vient d'ouvrir exprès.
+   *
+   * Restent les deux cas où le silence MENT :
+   *  - la requête a échoué ;
+   *  - il n'y a rien ET la recherche en ligne est éteinte (mesurée).
+   * Ceux-là s'affichent, une ligne, dans le même bloc que les paroles.
+   */
+  let motifVideTv = $derived.by(() => {
+    if (!settings.lyrics || lyrics !== null) return null;
+    if (lyricsMiss === 'error') return 'error' as const;
+    if (lyricsMiss === 'none' && $parolesEnLigneActives === false) return 'onlineOff' as const;
+    return null;
+  });
   /** Provenance annoncée par le serveur ("lrc" / "tag" / "lrclib"). Le mode
    *  Grand écran tenait la réponse entière et n'en montrait rien
    *  (renesenses/tune-server-rust#2432). */
@@ -407,6 +436,14 @@
           {:else if lyricsSource === 'lrclib'}
             <p class="tv-lyrics-source">{$t('lyrics.source.lrclib')}</p>
           {/if}
+        </div>
+      {:else if motifVideTv}
+        <!-- Le bloc EXISTE maintenant sur Grand écran, mais seulement pour les
+             deux cas où se taire ment (voir `motifVideTv`). -->
+        <div class="tv-lyrics">
+          <p class="tv-lyrics-empty">
+            {motifVideTv === 'error' ? $t('lyrics.empty.error') : $t('lyrics.empty.onlineOff')}
+          </p>
         </div>
       {/if}
     </div>
@@ -651,6 +688,13 @@
   .tv-lyrics-source {
     margin: 2.5vh 0 0;
     font-size: clamp(11px, 0.85vw, 16px);
+    opacity: 0.45;
+  }
+  /* Une ligne, discrète : un affichage d'ambiance ne crie pas. */
+  .tv-lyrics-empty {
+    margin: 0;
+    font-size: clamp(12px, 1vw, 18px);
+    font-style: italic;
     opacity: 0.45;
   }
   .tv-line {
