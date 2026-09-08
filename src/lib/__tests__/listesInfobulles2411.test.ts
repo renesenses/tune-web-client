@@ -20,7 +20,7 @@
 //   • le clavier ouvre la bulle là où un ancêtre focalisable existe ;
 //   • et là où il n'en existe pas, on n'invente AUCUN arrêt de tabulation.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount, unmount, flushSync } from 'svelte';
+import { mount, unmount, flushSync, type Component } from 'svelte';
 import HistoryView from '../../components/HistoryView.svelte';
 import PlaylistsView from '../../components/PlaylistsView.svelte';
 import FavoritesView from '../../components/FavoritesView.svelte';
@@ -132,9 +132,9 @@ async function souffler(n = 3) {
   }
 }
 
-async function monter(
-  Vue: Parameters<typeof mount>[0],
-  props: Record<string, unknown> = {},
+async function monter<P extends Record<string, unknown>>(
+  Vue: Component<P>,
+  props: P,
 ): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
@@ -209,7 +209,7 @@ afterEach(() => {
 
 describe('#2411 — Historique', () => {
   it('🔴 le titre coupé porte son infobulle DANS LE DOCUMENT, et elle dit la DONNÉE', async () => {
-    const el = await monter(HistoryView);
+    const el = await monter(HistoryView, {});
 
     expect(el.querySelectorAll('.history-item').length, 'aucune ligne peinte').toBe(1);
     const titre = el.querySelector('.history-title') as HTMLElement;
@@ -222,7 +222,7 @@ describe('#2411 — Historique', () => {
   });
 
   it('🔴 le focus AU CLAVIER ouvre la bulle — ce que le `title` natif ne fait jamais', async () => {
-    const el = await monter(HistoryView);
+    const el = await monter(HistoryView, {});
 
     // La ligne EST un `<button class="history-main">` : la tabulation
     // l'atteint, et jusqu'ici elle n'apprenait rien de plus que la colonne.
@@ -238,7 +238,7 @@ describe('#2411 — Historique', () => {
   });
 
   it('🔴 le focus pris à la SOURIS n’ouvre rien — pas de doublon avec la bulle native', async () => {
-    const el = await monter(HistoryView);
+    const el = await monter(HistoryView, {});
     const ligne = el.querySelector('button.history-main') as HTMLButtonElement;
 
     document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
@@ -248,7 +248,7 @@ describe('#2411 — Historique', () => {
   });
 
   it('aucun `tabindex` n’a été fabriqué sur les textes eux-mêmes', async () => {
-    const el = await monter(HistoryView);
+    const el = await monter(HistoryView, {});
 
     for (const s of ['.history-title', '.history-artist', '.history-zone']) {
       const n = el.querySelector(s) as HTMLElement;
