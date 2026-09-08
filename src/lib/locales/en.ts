@@ -348,6 +348,7 @@ export default {
   'oxygen.facetsTitle': 'Facets',
   // #2168: several values ticked within one facet combine with OR.
   'oxygen.facetClear': 'Clear all',
+  'oxygen.facetShowAll': 'Show all',
   'oxygen.collapseAll': 'Collapse all',
   'oxygen.expandAll': 'Expand all',
   'oxygen.facetsServer': 'Full counts (server index).',
@@ -3937,6 +3938,9 @@ export default {
   "v2.album.play": "Play",
   "v2.album.shuffle": "Shuffle",
   "v2.album.playNext": "Play next",
+  "v2.piste.enLecture": "Now playing",
+  "v2.piste.enPause": "Paused",
+  "v2.piste.arretee": "Playback stopped",
   "v2.album.addQueue": "Add to queue",
   "v2.album.queued": "“{title}” added to the queue.",
   "v2.album.queuedNext": "“{title}” will play next.",

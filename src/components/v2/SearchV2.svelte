@@ -19,7 +19,6 @@
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
-  import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, getQualityTier } from '../../lib/utils';
