@@ -3654,6 +3654,7 @@ export default {
   "v2.lib.nothingToGroup": "Nothing to group with these filters.",
   "v2.ms.eyebrow": "Network",
   "v2.ms.title": "Media servers",
+  "v2.ms.searchIn": "Search in {name}",
   "v2.ms.searching": "Looking for servers on the network…",
   "v2.ms.none": "No media server found on the network.",
   "v2.ms.noneHint": "Discovery uses UPnP/DLNA: the remote server must be switched on, on the same local network, with UPnP sharing enabled.",

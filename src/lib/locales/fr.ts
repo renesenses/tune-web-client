@@ -3656,6 +3656,7 @@ export default {
   "v2.lib.nothingToGroup": "Rien à regrouper avec ces filtres.",
   "v2.ms.eyebrow": "Réseau",
   "v2.ms.title": "Serveurs multimédia",
+  "v2.ms.searchIn": "Rechercher dans {name}",
   "v2.ms.searching": "Recherche des serveurs sur le réseau…",
   "v2.ms.none": "Aucun serveur multimédia détecté sur le réseau.",
   "v2.ms.noneHint": "La découverte se fait en UPnP/DLNA : le serveur distant doit être allumé, sur le même réseau local, et sa diffusion UPnP activée.",

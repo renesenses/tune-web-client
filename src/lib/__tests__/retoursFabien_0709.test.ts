@@ -121,7 +121,11 @@ describe('« la barre de recherche ne fonctionne pas et fait doublon » (podcast
    */
   it('🔴 la barre du bandeau ne paraît QUE là où elle agit', () => {
     const src = pod();
-    const bloc = /\{#if tab === 'subs'\}\s*<div class="search">[\s\S]*?<\/div>\s*\{\/if\}/.exec(src);
+    // `v2-rech` depuis le 09/09/2026 : le champ de recherche a UN dessin pour
+    // toute l'application (`styles/tune-v2.css`), au lieu de 300 px ici, 260 là
+    // et 240 ailleurs. Ce qui est gardé n'a pas changé — la barre reste bornée
+    // à l'onglet des abonnements —, seule la classe a bougé.
+    const bloc = /\{#if tab === 'subs'\}\s*<div class="v2-rech">[\s\S]*?<\/div>\s*\{\/if\}/.exec(src);
     expect(bloc, 'la barre de filtre n’est plus réservée à l’onglet des abonnements').not.toBeNull();
     expect(bloc![0].includes('bind:value={q}'), 'ce n’est plus `q` qu’elle pilote').toBe(true);
   });

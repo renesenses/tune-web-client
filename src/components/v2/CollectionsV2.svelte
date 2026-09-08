@@ -427,12 +427,14 @@
 
 <section class="v2-collections tune-v2">
   {#if ouverte}
-    <header class="top">
-      <button class="back" onclick={() => { ouverte = null; clearShortcutTarget(); }}>← {$t('common.back' as any)}</button>
-      <div class="eyebrow">{ouverte.sorte === 'smart' ? $t('v2.col.smart' as any) : $t('v2.col.manual' as any)}</div>
-      <h1>{ouverte.nom}</h1>
-      {#if ouverte.description}<p class="sub">{ouverte.description}</p>{/if}
-      <div class="fa">
+    <header class="v2-top detail">
+      <div class="v2-titres">
+        <button class="back" onclick={() => { ouverte = null; clearShortcutTarget(); }}>← {$t('common.back' as any)}</button>
+        <div class="v2-eyebrow">{ouverte.sorte === 'smart' ? $t('v2.col.smart' as any) : $t('v2.col.manual' as any)}</div>
+        <h1>{ouverte.nom}</h1>
+        {#if ouverte.description}<p class="v2-sous">{ouverte.description}</p>{/if}
+      </div>
+      <div class="v2-actions fa">
         <button class="fab" onclick={() => lireCollectionEntiere(false)}
           disabled={masseEnCours || !albums.length} title={$t('collections.playAll' as any)}>
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('collections.playAll' as any)}
@@ -489,23 +491,27 @@
     {/if}
 
   {:else}
-    <header class="top">
-      <div class="eyebrow">{$t('v2.col.eyebrow' as any)}</div>
+    <header class="v2-top">
+      <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.col.eyebrow' as any)}</div>
       <h1>{$t('v2.col.title' as any)}</h1>
+      </div>
+      <div class="v2-actions">
       <!-- Le bouton suit l'ONGLET : creer une collection manuelle et en creer
            une intelligente ne demandent pas la meme chose, et un seul bouton
            qui change de sens serait un piege. -->
       {#if onglet === 'manuelle'}
-        <button class="neuve" onclick={() => (creation = true)}>
+        <button class="v2-btn primaire" onclick={() => (creation = true)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           {$t('v2.col.create' as any)}
         </button>
       {:else}
-        <button class="neuve" onclick={() => (editeurSmart = { id: null })}>
+        <button class="v2-btn primaire" onclick={() => (editeurSmart = { id: null })}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           {$t('v2.smart.newTitle' as any)}
         </button>
       {/if}
+      </div>
     </header>
 
     <nav class="tabs" role="tablist">
@@ -646,18 +652,9 @@
 
 <style>
   .v2-collections{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
-  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
-  .neuve{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
-    border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans); white-space:nowrap}
-  .neuve:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .neuve svg{width:16px; height:16px}
   .lnkcrea{display:block; margin-top:12px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; border-radius:999px; padding:6px 14px; font:600 11.5px var(--v2-sans)}
   .lnkcrea:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .sub{color:var(--v2-txt2); font-size:13.5px; margin-top:6px; max-width:60ch}
   .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 8px}
   .back:hover{color:var(--v2-txt)}
   /* Le tri se range a DROITE de la barre d'onglets : il commande la liste

@@ -3634,6 +3634,7 @@ export default {
   "v2.lib.nothingToGroup": "Inget att gruppera med de här filtren.",
   "v2.ms.eyebrow": "Nätverk",
   "v2.ms.title": "Mediaservrar",
+  "v2.ms.searchIn": "Sök i {name}",
   "v2.ms.searching": "Söker servrar i nätverket…",
   "v2.ms.none": "Ingen mediaserver hittades i nätverket.",
   "v2.ms.noneHint": "Upptäckten sker via UPnP/DLNA: fjärrservern måste vara påslagen, i samma lokala nätverk, med UPnP-delning aktiverad.",

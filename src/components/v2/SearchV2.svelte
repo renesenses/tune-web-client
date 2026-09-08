@@ -494,7 +494,10 @@
 </script>
 
 <section class="v2-search tune-v2">
-  <header class="top">
+  <!-- L'en-tête partagé, avec une nuance : ici le champ EST l'écran, il garde
+       donc sa taille propre (`.field`, 50 px de haut) au lieu du `.v2-rech` des
+       barres de filtre. Ce qu'il partage, c'est la gouttière et l'alignement. -->
+  <header class="v2-top champ-large">
     <div class="field">
       <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       <!-- svelte-ignore a11y_autofocus -->
@@ -845,7 +848,9 @@
   .v2-search{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
 
-  .top{display:flex; align-items:center; gap:14px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
+  /* Le champ est haut de 50 px : on le centre, là où les autres écrans
+     alignent leur titre sur la ligne de base. */
+  .champ-large{align-items:center}
   .field{position:relative; flex:1; max-width:640px; display:flex; align-items:center}
   .field .mag{position:absolute; left:16px; width:19px; height:19px; color:var(--v2-txt3); pointer-events:none}
   .field input{width:100%; height:50px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);

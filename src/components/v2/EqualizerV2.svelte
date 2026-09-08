@@ -229,17 +229,19 @@
 </script>
 
 <section class="v2-eq tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.eq.eyebrow' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.eq.eyebrow' as any)}</div>
       <h1>{$t('v2.eq.title' as any)}</h1>
     </div>
-    <label class="sw">
-      <input type="checkbox" checked={enabled} onchange={toggle} />
-      <span class="slider"></span>
-    </label>
-    <span class="onoff">{enabled ? $t('v2.eq.on' as any) : $t('v2.eq.off' as any)}</span>
-    <button class="lnk" onclick={reset}>{$t('v2.eq.reset' as any)}</button>
+    <div class="v2-actions">
+      <label class="sw">
+        <input type="checkbox" checked={enabled} onchange={toggle} />
+        <span class="slider"></span>
+      </label>
+      <span class="onoff">{enabled ? $t('v2.eq.on' as any) : $t('v2.eq.off' as any)}</span>
+      <button class="v2-btn" onclick={reset}>{$t('v2.eq.reset' as any)}</button>
+    </div>
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
@@ -335,9 +337,6 @@
 <style>
   .v2-eq{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:16px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .onoff{font:11px var(--v2-mono); color:var(--v2-txt3); margin-right:auto}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     border-radius:var(--v2-r-pill); padding:8px 15px; font:600 12px var(--v2-sans)}

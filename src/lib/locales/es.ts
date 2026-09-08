@@ -3635,6 +3635,7 @@ export default {
   "v2.lib.nothingToGroup": "Nada que agrupar con estos filtros.",
   "v2.ms.eyebrow": "Red",
   "v2.ms.title": "Servidores multimedia",
+  "v2.ms.searchIn": "Buscar en {name}",
   "v2.ms.searching": "Buscando servidores en la red…",
   "v2.ms.none": "Ningún servidor multimedia detectado en la red.",
   "v2.ms.noneHint": "El descubrimiento se hace por UPnP/DLNA: el servidor remoto debe estar encendido, en la misma red local, y con su difusión UPnP activada.",

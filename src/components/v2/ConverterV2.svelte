@@ -110,9 +110,9 @@
 </script>
 
 <section class="v2-conv tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.tool.eyebrow' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.tool.eyebrow' as any)}</div>
       <h1>{$t('v2.conv.title' as any)}</h1>
     </div>
     {#if picked.size}<span class="cnt">{(picked.size > 1 ? $t('v2.tool.pickedMany' as any) : $t('v2.tool.pickedOne' as any)).replace('{count}', String(picked.size))}</span>{/if}
@@ -180,9 +180,13 @@
       <div class="pick">
         <div class="ph">
           <span class="cl">{$t('v2.conv.albumsToConvert' as any)}</span>
-          <div class="search">
+          <!-- Même champ que sur tous les autres écrans : `.v2-rech`. Il
+               faisait 240 px de large et 36 px de haut ici, 230 × 38 sur les
+               Extensions, 320 × 40 sur le Streaming — trois dessins pour un
+               seul geste. -->
+          <div class="v2-rech">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input placeholder={$t('v2.tool.filter' as any)} bind:value={q} />
+            <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
           </div>
           <button class="go" disabled={!picked.size || !preset || !supported || starting} onclick={start}>
             {starting ? $t('v2.tool.starting' as any) : $t('v2.conv.start' as any)}
@@ -215,9 +219,6 @@
 <style>
   .v2-conv{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:18px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .cnt{font:11.5px var(--v2-mono); color:var(--v2-acc-tint)}
   .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:12.5px;
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
@@ -254,10 +255,6 @@
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
 
   .ph{display:flex; align-items:center; gap:14px; padding:0 0 14px}
-  .search{position:relative; display:flex; align-items:center; width:240px; margin-left:auto}
-  .search svg{position:absolute; left:13px; width:15px; height:15px; color:var(--v2-txt3); pointer-events:none}
-  .search input{width:100%; height:36px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:12.5px var(--v2-sans); padding:0 12px 0 36px; outline:none}
   .go{height:36px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 13px var(--v2-sans);
     color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .go:disabled{opacity:.4; cursor:default}

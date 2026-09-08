@@ -295,22 +295,29 @@
 </script>
 
 <section class="v2-ms tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.ms.eyebrow' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.ms.eyebrow' as any)}</div>
       <h1>{$t('v2.ms.title' as any)}</h1>
     </div>
+    <div class="v2-actions">
     {#if open && !estTune}
       <!-- Un serveur Tune a le champ de recherche de la Bibliotheque, dans la
            page, a cote de ses filtres : en ajouter un second ici poserait deux
            recherches concurrentes sur le meme ecran. -->
-      <div class="search">
+      <!-- L'invite et le libellé du bouton étaient en FRANÇAIS EN DUR :
+           « Rechercher dans … » et « Effacer » s'affichaient tels quels dans
+           une interface anglaise — le défaut qu'Alex Campbell a signalé le
+           08/09/2026. -->
+      <div class="v2-rech">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={`Rechercher dans ${open.name}`} bind:value={q} />
+        <input placeholder={$t('v2.ms.searchIn' as any).replace('{name}', open.name)}
+          aria-label={$t('v2.ms.searchIn' as any).replace('{name}', open.name)} bind:value={q} />
         {#if cherche}<span class="spin" aria-hidden="true"></span>
-        {:else if q}<button class="clr" onclick={viderRecherche} aria-label="Effacer">×</button>{/if}
+        {:else if q}<button class="clr" onclick={viderRecherche} aria-label={$t('common.clear' as any)}>×</button>{/if}
       </div>
     {/if}
+    </div>
   </header>
 
   {#if servers.length}
@@ -474,14 +481,6 @@
 <style>
   .v2-ms{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .search{position:relative; display:flex; align-items:center; width:320px; flex:0 0 auto}
-  .search > svg{position:absolute; left:14px; width:16px; height:16px; color:var(--v2-txt3); pointer-events:none}
-  .search input{width:100%; height:40px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 34px 0 38px; outline:none}
-  .search input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .clr{position:absolute; right:10px; width:20px; height:20px; border:0; background:transparent; cursor:pointer;
     color:var(--v2-txt3); font-size:16px; line-height:1}
   .spin{position:absolute; right:13px; width:13px; height:13px; border:2px solid var(--v2-line2);

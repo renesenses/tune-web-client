@@ -92,17 +92,19 @@
 </script>
 
 <section class="v2-queue tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$tr('v2.lbl.currentZone' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$tr('v2.lbl.currentZone' as any)}</div>
       <h1>{$tr('nav.queue' as any)}</h1>
     </div>
     {#if tracks.length}
-      <div class="meta">
-        <span>{upNext.length} à suivre</span>
-        {#if remainingMs}<span>{formatDuration(remainingMs)} restantes</span>{/if}
+      <div class="v2-actions">
+        <div class="meta">
+          <span>{upNext.length} à suivre</span>
+          {#if remainingMs}<span>{formatDuration(remainingMs)} restantes</span>{/if}
+        </div>
+        <button class="v2-btn danger" onclick={clear} disabled={busy}>{$tr('v2.queue.clear' as any)}</button>
       </div>
-      <button class="lnk danger" onclick={clear} disabled={busy}>{$tr('v2.queue.clear' as any)}</button>
     {/if}
   </header>
 
@@ -174,14 +176,7 @@
 <style>
   .v2-queue{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:20px; padding:24px 30px 14px; padding-right:var(--v2-grappe-w)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
-  .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:8px 15px; font:600 12px var(--v2-sans)}
-  .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
-  .lnk:disabled{opacity:.45; cursor:default}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
     font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}

@@ -3635,6 +3635,7 @@ export default {
   "v2.lib.nothingToGroup": "在这些筛选条件下没有可分组的内容。",
   "v2.ms.eyebrow": "网络",
   "v2.ms.title": "媒体服务器",
+  "v2.ms.searchIn": "在 {name} 中搜索",
   "v2.ms.searching": "正在网络中搜索服务器…",
   "v2.ms.none": "网络中未发现媒体服务器。",
   "v2.ms.noneHint": "发现通过 UPnP/DLNA 进行：远程服务器必须开机、位于同一局域网，并已启用 UPnP 共享。",

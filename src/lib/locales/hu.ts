@@ -3593,6 +3593,7 @@ export default {
   "v2.lib.nothingToGroup": "Ezekkel a szűrőkkel nincs mit csoportosítani.",
   "v2.ms.eyebrow": "Hálózat",
   "v2.ms.title": "Médiakiszolgálók",
+  "v2.ms.searchIn": "Keresés itt: {name}",
   "v2.ms.searching": "Kiszolgálók keresése a hálózaton…",
   "v2.ms.none": "Nem található médiakiszolgáló a hálózaton.",
   "v2.ms.noneHint": "A felderítés UPnP/DLNA útján történik: a távoli kiszolgálónak bekapcsolva kell lennie, ugyanazon a helyi hálózaton, bekapcsolt UPnP-megosztással.",

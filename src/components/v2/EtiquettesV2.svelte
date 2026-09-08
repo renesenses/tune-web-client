@@ -154,13 +154,15 @@
 <section class="v2-tags tune-v2">
   {#if ouverte}
     {@const tag = ouverte}
-    <header class="top">
-      <button class="back" onclick={() => (ouverte = null)}>← {$t('common.back' as any)}</button>
-      <div class="eyebrow">{$t('v2.tags.eyebrow' as any)}</div>
-      <h1><span class="pastille" style={tag.color ? `--c:${tag.color}` : ''}></span>{tag.name}</h1>
-      <!-- Le total porte sur les QUATRE familles, et chaque onglet porte le
-           sien : le compte annoncé correspond toujours à ce qu'on voit. -->
-      <p class="sub">{total} {$t('v2.tags.itemsWithTag' as any)}</p>
+    <header class="v2-top detail">
+      <div class="v2-titres">
+        <button class="back" onclick={() => (ouverte = null)}>← {$t('common.back' as any)}</button>
+        <div class="v2-eyebrow">{$t('v2.tags.eyebrow' as any)}</div>
+        <h1><span class="pastille" style={tag.color ? `--c:${tag.color}` : ''}></span>{tag.name}</h1>
+        <!-- Le total porte sur les QUATRE familles, et chaque onglet porte le
+             sien : le compte annoncé correspond toujours à ce qu'on voit. -->
+        <p class="v2-sous">{total} {$t('v2.tags.itemsWithTag' as any)}</p>
+      </div>
     </header>
 
     {#if albumsChargement}
@@ -261,9 +263,11 @@
     {/if}
 
   {:else}
-    <header class="top">
-      <div class="eyebrow">{$t('v2.tags.eyebrow' as any)}</div>
-      <h1>{$t('v2.cover.tags' as any)}</h1>
+    <header class="v2-top">
+      <div class="v2-titres">
+        <div class="v2-eyebrow">{$t('v2.tags.eyebrow' as any)}</div>
+        <h1>{$t('v2.cover.tags' as any)}</h1>
+      </div>
     </header>
 
     {#if chargement}
@@ -288,11 +292,11 @@
 </section>
 
 <style>
+  /* Le titre d'une étiquette porte sa PASTILLE de couleur : il aligne donc son
+     texte sur elle, là où les autres écrans se contentent du réglage partagé. */
+  .detail h1{display:flex; align-items:center; gap:10px}
+
   .v2-tags{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
-  .top{padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{display:flex; align-items:center; gap:10px; font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .sub{color:var(--v2-txt2); font-size:13.5px; margin-top:6px}
   .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 8px}
   .back:hover{color:var(--v2-txt)}
   .etat{padding:30px; color:var(--v2-txt3); font-size:13.5px; max-width:60ch}

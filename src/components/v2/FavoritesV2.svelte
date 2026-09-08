@@ -460,19 +460,21 @@
 </script>
 
 <section class="v2-fav tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.fav.eyebrow' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.fav.eyebrow' as any)}</div>
       <h1>{$t('nav.favorites' as any)}</h1>
     </div>
-    <nav class="tabs">
-      {#each TABS as t (t.id)}
-        <button class:on={tab === t.id} onclick={() => (tab = t.id)}>{t.label}<span>{t.n}</span></button>
-      {/each}
-    </nav>
-    <div class="search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input placeholder={$t('v2.tool.filter' as any)} bind:value={q} />
+    <div class="v2-actions">
+      <div class="v2-rech">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input placeholder={$t('v2.tool.filter' as any)} aria-label={$t('v2.tool.filter' as any)} bind:value={q} />
+      </div>
+      <nav class="tabs">
+        {#each TABS as t (t.id)}
+          <button class:on={tab === t.id} onclick={() => (tab = t.id)}>{t.label}<span>{t.n}</span></button>
+        {/each}
+      </nav>
     </div>
   </header>
 
@@ -828,9 +830,6 @@
   .rf-pied{display:flex; justify-content:flex-end; gap:8px}
   .v2-fav{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:22px; padding:24px 30px 14px; padding-right:var(--v2-grappe-w)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   /* Playlists et collections : une liste sobre. Ni pochette ni grille — une
      playlist n'a pas d'image, et une grille de cartes vides mentirait sur la
      richesse de ce qu'elle contient. */
@@ -855,11 +854,6 @@
   .tabs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .tabs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .tabs button.on span{color:var(--v2-on-acc); opacity:.75}
-  .search{position:relative; margin-left:auto; display:flex; align-items:center; width:240px; flex:0 0 auto}
-  .search svg{position:absolute; left:14px; width:16px; height:16px; color:var(--v2-txt3); pointer-events:none}
-  .search input{width:100%; height:40px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 14px 0 38px; outline:none}
-  .search input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
     font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}

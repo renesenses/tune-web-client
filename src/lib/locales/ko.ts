@@ -3635,6 +3635,7 @@ export default {
   "v2.lib.nothingToGroup": "이 필터로는 묶을 것이 없습니다.",
   "v2.ms.eyebrow": "네트워크",
   "v2.ms.title": "미디어 서버",
+  "v2.ms.searchIn": "{name}에서 검색",
   "v2.ms.searching": "네트워크에서 서버를 찾는 중…",
   "v2.ms.none": "네트워크에서 미디어 서버를 찾지 못했습니다.",
   "v2.ms.noneHint": "검색은 UPnP/DLNA로 이루어집니다. 원격 서버가 켜져 있고, 같은 로컬 네트워크에 있으며, UPnP 공유가 켜져 있어야 합니다.",

@@ -3635,6 +3635,7 @@ export default {
   "v2.lib.nothingToGroup": "Nulla da raggruppare con questi filtri.",
   "v2.ms.eyebrow": "Rete",
   "v2.ms.title": "Server multimediali",
+  "v2.ms.searchIn": "Cerca in {name}",
   "v2.ms.searching": "Ricerca dei server sulla rete…",
   "v2.ms.none": "Nessun server multimediale rilevato sulla rete.",
   "v2.ms.noneHint": "Il rilevamento avviene tramite UPnP/DLNA: il server remoto deve essere acceso, sulla stessa rete locale, con la diffusione UPnP attivata.",

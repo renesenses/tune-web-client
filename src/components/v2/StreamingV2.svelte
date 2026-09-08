@@ -616,18 +616,20 @@
 </script>
 
 <section class="v2-str tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.stream.services' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.stream.services' as any)}</div>
       <h1>{$t('v2.nav.streaming' as any)}</h1>
     </div>
+    <div class="v2-actions">
     {#if active}
-      <div class="search">
+      <div class="v2-rech">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
         <input placeholder={$t('v2.stream.searchIn' as any).replace('{service}', label(active))} bind:value={q} />
         {#if searching}<span class="spin" aria-hidden="true"></span>{/if}
       </div>
     {/if}
+    </div>
   </header>
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div>{/if}
@@ -1048,14 +1050,6 @@
 <style>
   .v2-str{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px; padding-right:var(--v2-grappe-w)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .search{position:relative; display:flex; align-items:center; width:320px; flex:0 0 auto}
-  .search > svg{position:absolute; left:14px; width:16px; height:16px; color:var(--v2-txt3); pointer-events:none}
-  .search input{width:100%; height:40px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 34px 0 38px; outline:none}
-  .search input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .spin{position:absolute; right:13px; width:13px; height:13px; border:2px solid var(--v2-line2);
     border-top-color:var(--v2-acc1); border-radius:50%; animation:sp .7s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}

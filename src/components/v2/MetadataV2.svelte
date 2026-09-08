@@ -138,12 +138,12 @@
 </script>
 
 <section class="v2-meta tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.meta.eyebrow' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.meta.eyebrow' as any)}</div>
       <h1>{$t('v2.meta.title' as any)}</h1>
     </div>
-    <nav class="tabs">
+    <nav class="tabs v2-actions">
       <button class:on={tab === 'proposals'} onclick={() => (tab = 'proposals')}>{$t('v2.meta.tabProposals' as any)}<span>{$formatNombre(pending)}</span></button>
       <button class:on={tab === 'doubtful'} onclick={() => (tab = 'doubtful')}>{$t('v2.meta.tabDoubtful' as any)}{#if dLoaded}<span>{$formatNombre(doubtful.length)}</span>{/if}</button>
       <button class:on={tab === 'doublons'} onclick={() => (tab = 'doublons')}>{$t('v2.meta.tabDoublons' as any)}{#if dblLoaded && !dblLoading}<span>{$formatNombre(dblAlbums.length + dblArtistes.length + dblPaires.length)}</span>{/if}</button>
@@ -341,9 +341,6 @@
   }
   .v2-meta{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:22px; padding:24px 30px 14px; padding-right:var(--v2-grappe-w)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .tabs{display:flex; gap:4px}
   .tabs button{display:inline-flex; align-items:center; gap:8px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
