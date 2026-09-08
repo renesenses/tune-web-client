@@ -12,6 +12,10 @@
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
   import { lireOuAjouter } from '../lib/playback';
+  import CreteMetre from './CreteMetre.svelte';
+  import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../lib/peakMetre';
+  import { preferences } from '../lib/stores/preferences';
+  import { texteDePartage, partageUtilisable } from '../lib/partageEcoute';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import {
     CF_PRESETS, presetActif, reglagesCrossfeed,
@@ -30,12 +34,14 @@
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum } from '../lib/stores/navigation';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist } from '../lib/stores/navigation';
+  import { destinationArtiste } from '../lib/routageArtiste';
+  import { setSearchCriteria } from '../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
-  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, type LyricsMiss } from '../lib/lyrics';
+  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../lib/lyrics';
   import { chargerParolesEnLigne } from '../lib/lyricsOnline';
   import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../lib/types';
 
@@ -401,10 +407,21 @@
   async function handleShare() {
     if (zone?.id == null) return;
     try {
-      const card = await api.shareNowPlaying(zone.id);
-      await navigator.clipboard.writeText(card.text);
+      const carte = await api.shareNowPlaying(zone.id);
+      // #533 : le serveur ne rend PAS de champ `text` — c'est `undefined` qui
+      // partait au presse-papiers. Le texte se compose ici.
+      if (!partageUtilisable(carte)) {
+        notifications.error($t('nowplaying.shareError' as any));
+        return;
+      }
+      await navigator.clipboard.writeText(texteDePartage(carte, location.origin));
       notifications.success($t('nowplaying.copiedToClipboard'));
-    } catch (e) { console.error('Share error:', e); }
+    } catch (e) {
+      // L'échec ne meurt plus dans la console : le bouton disait « rien »
+      // depuis que la route est passée en POST.
+      console.error('Share error:', e);
+      notifications.error($t('nowplaying.shareError' as any));
+    }
   }
 
   async function loadNpCredits(trackId: number) {
@@ -465,37 +482,75 @@
     });
   }
 
-  async function navigateToArtist(artistId: number | undefined, artistName: string) {
+  /**
+   * Le nom d'artiste de la lecture en cours ne mène pas au même endroit selon
+   * D'OÙ vient la piste (Bertrand, 07/09/2026 : « click sur l'artiste ne
+   * renvoie pas là où il faut. Si local : page artiste. Si radio : écran
+   * recherche/résultats avec les bons paramètres »).
+   *
+   * La DÉCISION vit dans `lib/routageArtiste`, pas ici : une garde écrite
+   * contre ce composant ne pourrait que lire son texte. On n'exécute ici que
+   * ce que le module a décidé.
+   *
+   * 🔴 LES DEUX CONTRATS SONT ALIMENTÉS, comme le fait déjà `navigateToAlbum`.
+   * Cet écran est monté par les DEUX coquilles : l'ancienne lit
+   * `selectedArtist` + `libraryTab`, la nouvelle ne lit ni l'un ni l'autre —
+   * elle consomme `pendingLibraryArtist`. Poser les seuls magasins de
+   * l'ancienne, c'est le défaut que Fabien a signalé sur la v0.9.140 : le clic
+   * changeait d'écran sans rien ouvrir.
+   */
+  async function ouvrirFicheArtiste(artistId: number, artistName: string) {
     selectedAlbum.set(null);
-    if (artistId) {
-      try {
-        const [artist, albums] = await Promise.all([
-          api.getArtist(artistId).catch(() => null),
-          api.getArtistAlbums(artistId).catch(() => []),
-        ]);
-        selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
-        artistAlbums.set(albums ?? []);
-      } catch {
-        selectedArtist.set({ id: artistId, name: artistName } as any);
-      }
-      libraryTab.set('artists');
-      activeView.set('library');
-    } else if (artistName) {
-      try {
-        const results = await api.searchLibrary(artistName);
-        const match = results?.artists?.[0];
-        if (match?.id) {
-          const albums = await api.getArtistAlbums(match.id).catch(() => []);
-          selectedArtist.set(match);
-          artistAlbums.set(albums);
-          libraryTab.set('artists');
-          activeView.set('library');
-          return;
-        }
-      } catch { /* fallthrough to search */ }
-      pendingSearchQuery.set(artistName);
-      activeView.set('search');
+    try {
+      const [artist, albums] = await Promise.all([
+        api.getArtist(artistId).catch(() => null),
+        api.getArtistAlbums(artistId).catch(() => []),
+      ]);
+      selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
+      artistAlbums.set(albums ?? []);
+    } catch {
+      selectedArtist.set({ id: artistId, name: artistName } as any);
     }
+    libraryTab.set('artists');           // contrat du client ACTUEL
+    pendingLibraryArtist.set(artistId);  // contrat du NOUVEAU client
+    activeView.set('library');
+  }
+
+  /** Vers la Recherche, avec la requête ET le périmètre demandés. */
+  function ouvrirRecherche(requete: string, source: string | null) {
+    pendingSearchQuery.set(requete);                       // contrat du client ACTUEL
+    setSearchCriteria({ q: requete, source: source ?? null }); // contrat du NOUVEAU
+    activeView.set('search');
+  }
+
+  async function navigateToArtist(artistId: number | undefined, artistName: string) {
+    // `artistId` prime quand l'appelant en tient un (les crédits en ont un que
+    // la piste n'a pas) ; sinon le module tranche sur la piste écoutée.
+    const dest = artistId
+      ? ({ type: 'artiste', artistId } as const)
+      : destinationArtiste({
+          source: displayTrack?.source ?? null,
+          artist_id: artistIdOf(displayTrack) ?? null,
+          artist_name: artistName,
+        });
+    if (!dest) return;
+
+    if (dest.type === 'artiste') { await ouvrirFicheArtiste(dest.artistId, artistName); return; }
+
+    if (dest.type === 'artiste-par-nom') {
+      // Une piste locale d'un serveur antérieur à la 0.9.102 n'a pas
+      // d'`artist_id` : l'artiste EST en bibliothèque, il ne manque que son
+      // numéro. On le résout, et on ne retombe sur la recherche que s'il est
+      // introuvable.
+      try {
+        const match = (await api.searchLibrary(dest.nom))?.artists?.[0];
+        if (match?.id) { await ouvrirFicheArtiste(match.id, match.name ?? dest.nom); return; }
+      } catch { /* on retombe sur la recherche */ }
+      ouvrirRecherche(dest.nom, null);
+      return;
+    }
+
+    ouvrirRecherche(dest.requete, dest.source);
   }
 
   async function navigateToAlbum(albumId: number | undefined, albumTitle?: string) {
@@ -536,8 +591,10 @@
           return;
         }
       } catch { /* fallthrough to search */ }
-      pendingSearchQuery.set(albumTitle);
-      activeView.set('search');
+      // Même repli que pour l'artiste : `pendingSearchQuery` n'est lu QUE par
+      // l'écran de recherche du client actuel. Sans `setSearchCriteria`, le
+      // nouveau client atterrissait sur une recherche VIDE (radio, streaming).
+      ouvrirRecherche(albumTitle, null);
     }
   }
 
@@ -833,7 +890,47 @@
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
   let playState = $derived($playbackState);
+
+  /** #452 — le visuel choisi, replié sur le défaut si le réglage est illisible. */
+  let styleCrete = $derived(
+    estStyleCrete($preferences.peakMeterStyle) ? $preferences.peakMeterStyle : STYLE_CRETE_DEFAUT,
+  );
   let isRadio = $derived(track?.source === 'radio' || (track == null && $ytPlayerState.track?.source === 'radio'));
+
+  // ─── #719 : le temps qui passe sur une RADIO ──────────────────────────
+  //
+  // Une radio n'a pas de position de lecture : `position_ms` vaut zéro en
+  // permanence (mesuré sur le .18, zone 10, deux relevés à huit secondes
+  // d'écart). Le surlignage karaoké restait donc figé sur la première ligne,
+  // alors que le serveur rend bien des paroles horodatées.
+  //
+  // Le serveur donne l'âge de la métadonnée du flux — l'instant où il a vu le
+  // morceau changer. `radioAnchorFrom` en fait un repère LOCAL
+  // (`performance.now() − âge`), sans jamais comparer deux horloges. Le
+  // mécanisme existait, et n'était utilisé que par `TvView`.
+  let ancrageRadio = $state<number | null>(null);
+  $effect(() => {
+    // Lit la piste, écrit l'ancrage : jamais l'inverse.
+    if (!isRadio || !track) { ancrageRadio = null; return; }
+    ancrageRadio = radioAnchorFrom(track.metadata_age_ms, performance.now());
+  });
+
+  let positionRadio = $state(0);
+  $effect(() => {
+    if (!isRadio || !showLyrics || !karaokeMode) return;
+    let raf = 0;
+    const battre = () => {
+      positionRadio = positionParoles({
+        estRadio: true,
+        positionZoneMs: null,
+        ancrageRadioMs: ancrageRadio,
+        maintenantMs: performance.now(),
+      });
+      raf = requestAnimationFrame(battre);
+    };
+    raf = requestAnimationFrame(battre);
+    return () => cancelAnimationFrame(raf);
+  });
 
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
   let ytState = $derived($ytPlayerState);
@@ -1412,6 +1509,13 @@
               </div>
             {/if}
           </div>
+          <!-- #452 — ici, le visuel CHOISI : la fiche a la place que la barre
+               de lecture n'a pas. -->
+          {#if styleCrete !== 'off'}
+            <div class="np-crete">
+              <CreteMetre style={styleCrete} hauteur={26} joue={playState === 'playing'} />
+            </div>
+          {/if}
           {#if ytActive}
             <button class="eye-btn" onclick={handleShowVideo} title={$t('youtube.showVideo')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -1670,6 +1774,7 @@
               miss={npLyricsMiss}
               {syncedLines}
               {karaokeMode}
+              positionMs={isRadio ? positionRadio : null}
               onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
             />
           {/if}
@@ -2125,7 +2230,7 @@
             <button class="qs-item-play" onclick={() => qsPlayFromPosition(index)}>
               <span class="qs-index">{index + 1}</span>
               {#if queueTrack.cover_path}
-                <img src={api.artworkUrl(queueTrack.cover_path)} alt="" width="36" height="36" loading="lazy" style="border-radius:5px;object-fit:cover;flex-shrink:0" />
+                <img src={api.artworkSrc(queueTrack.cover_path)} alt="" width="36" height="36" loading="lazy" style="border-radius:5px;object-fit:cover;flex-shrink:0" />
               {:else}
                 <AlbumArt albumId={queueTrack.album_id} size={36} alt={queueTrack.title} />
               {/if}
@@ -2219,6 +2324,7 @@
 {/if}
 
 <style>
+  .np-crete { margin-top: 10px; width: 100%; max-width: 440px; }
   .now-playing {
     display: flex;
     align-items: center;

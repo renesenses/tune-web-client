@@ -3282,7 +3282,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" onclick={() => selectAlbumDetail(album)}>
               <div class="album-card-art">
-                <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
@@ -3590,7 +3590,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 <div class="album-card" class:album-card-wall={albumWall} onclick={() => selectAlbumDetail(album)}
                      title={albumWall ? album.title + (album.artist_name ? " — " + album.artist_name : "") : undefined}>
                   <div class="album-card-art">
-                    <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                    <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                     <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                       <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                     </button>
@@ -3848,7 +3848,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" onclick={() => selectAlbumDetail(album)}>
               <div class="album-card-art">
-                <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
@@ -3973,7 +3973,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <div class="album-card" onclick={() => selectAlbumDetail({ id: a.album_id, title: a.title ?? '', cover_path: a.cover_path } as any)}>
                 <div class="album-card-art">
                   {#if a.cover_path}
-                    <img class="album-cover-img" src={api.artworkUrl(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
+                    <img class="album-cover-img" src={api.artworkSrc(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
                   {/if}
                   <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playAlbum(a.album_id); }} title={$tr('library.playAlbum')}>
                     <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
@@ -4045,7 +4045,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div class="album-card" onclick={() => selectAlbumDetail(album)}>
                       <div class="album-card-art">
-                        <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                        <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                         <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                           <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                         </button>

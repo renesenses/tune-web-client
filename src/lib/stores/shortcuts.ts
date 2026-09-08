@@ -50,6 +50,16 @@ export interface CritereRecherche {
   q: string;
   /** Portée ou onglet actif de l'écran, s'il en a un. */
   scope?: string;
+  /**
+   * La SOURCE sur laquelle ouvrir le périmètre — `'qobuz'`, `'tidal'`,
+   * `'local'`… `null` ou absent : tout le périmètre.
+   *
+   * Posé par la lecture en cours quand on clique l'artiste d'une piste de
+   * service : c'est là que l'utilisateur écoutait, la recherche doit s'y
+   * ouvrir. Les autres sources restent à une puce de distance
+   * (Bertrand, 07/09/2026).
+   */
+  source?: string | null;
 }
 export const currentSearchCriteria = writable<CritereRecherche | null>(null);
 

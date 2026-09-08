@@ -101,6 +101,61 @@ for (const f of fichiers('src/components/v2')) {
 }
 
 /**
+ * 🔴 TROISIÈME passe : le TEXTE NU du balisage.
+ *
+ * Les deux passes précédentes lisent des chaînes entre guillemets. Or un
+ * libellé écrit directement entre deux balises n'en est pas une :
+ *
+ *     <button ...><svg .../>Ajouter</button>
+ *
+ * Elles ne pouvaient pas le voir. Et le détecteur de français ne l'aurait pas
+ * reconnu non plus : « Ajouter » n'a ni accent ni mot-outil.
+ *
+ * Alex Campbell l'a photographié le 08/09/2026 — « Ajouter », « Tout (39) »,
+ * « Qualité », « Fréquence » au milieu de « Library, Shuffle, Albums,
+ * Artists » — après trois signalements de « traductions incomplètes ». Le
+ * balayage a trouvé **103 textes nus** dans `components/v2`, dont 58 dans les
+ * seuls Réglages.
+ *
+ * On ne cherche donc plus du français : on interdit **tout texte visible qui
+ * ne passe pas par `$t()`**. C'est plus large et c'est plus sûr — un libellé
+ * anglais en dur ne se traduirait pas davantage.
+ *
+ * Ce qui est écarté : la ponctuation, les nombres, les unités et les noms
+ * propres (`FLAC`, `Qobuz`, `WASAPI`…). Ils ne se traduisent pas, et exiger
+ * une clé pour « dB » ferait fuir la garde.
+ */
+const INTRADUISIBLE = new RegExp(
+  '^(?:[\\W\\d\\s]|dB|kHz|Hz|FLAC|DSD|MP3|WAV|ALAC|AAC|DLNA|UPnP|AirPlay|OK|ID|URL|IP|MAC|EQ|DSP|PCM|LPCM|'
+  + 'CSS|HTML|JSON|API|CPU|RAM|Tune|Qobuz|Tidal|Spotify|Deezer|Bandcamp|YouTube|Sonos|BluOS|Chromecast|Roon|'
+  + 'Plex|SMB|NAS|USB|bit|kbps|ms|Wi-Fi|Discogs|Last\\.fm|Genius|ListenBrainz|MusicBrainz|WASAPI|ASIO|DoP|Auto|'
+  + 'MOZAIKLABS|Radio France|Crossfeed|Podcasts|Playlists|Studio|Oxygen)+$',
+);
+
+for (const f of fichiers('src/components/v2')) {
+  const src = sansCommentaires(readFileSync(f, 'utf8'));
+  const i = src.indexOf('</script>');
+  if (i < 0) continue;
+  let balisage = src.slice(i + 9);
+  // Le bloc <style> ne s'affiche pas.
+  const j = balisage.indexOf('<style');
+  const fin = j > 0 ? balisage.slice(0, j) : balisage;
+  for (const m of fin.matchAll(/>([^<>{}]+)</g)) {
+    // Les entités HTML décodées AVANT l'examen : `&times;` n'est pas un mot,
+    // et `&lt; 15 m²` est une mesure. Les réclamer en traduction ferait fuir
+    // la garde pour rien.
+    const texte = m[1]
+      .replace(/&(?:times|lt|gt|amp|nbsp|hellip|mdash|ndash|middot|deg|laquo|raquo|times|divide|plusmn|le|ge|ne|rarr|larr|check|bull);/g, ' ')
+      .trim();
+    if (texte.length < 2) continue;
+    if (INTRADUISIBLE.test(texte)) continue;
+    if (!/[A-Za-zÀ-ÿ]{2}/.test(texte)) continue;
+    const ligne = src.slice(0, i + 9 + m.index).split('\n').length;
+    fautes.push(`${f}:${ligne}  texte nu (hors $t) : ${texte.replace(/\s+/g, ' ').slice(0, 80)}`);
+  }
+}
+
+/**
  * 🔴 Une garde de FORME, en plus de celle des mots.
  *
  * « Label "File d'attente" du menu absent » (Fabien, v0.9.140, 07/09/2026).
