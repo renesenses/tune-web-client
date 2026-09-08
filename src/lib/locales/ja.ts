@@ -4162,6 +4162,8 @@ export default {
   "v2.dev.backupErrNotTune": "このファイルは Tune のバックアップではありません。",
   "v2.dev.backupErrFuture": "より新しいバージョンの Tune が書き出したバックアップです。",
   "v2.dev.backupErrEmpty": "このバックアップにはゾーンが含まれていません。",
+  "v2.set.svcActive": "有効",
+  "v2.set.svcActiveHint": "無効にしたサービスは、検索にもストリーミング画面にも表示されなくなります。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

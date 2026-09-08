@@ -4120,6 +4120,8 @@ export default {
   "v2.dev.backupErrNotTune": "Ez a fájl nem Tune-mentés.",
   "v2.dev.backupErrFuture": "A mentést a Tune egy újabb változata írta.",
   "v2.dev.backupErrEmpty": "Ez a mentés egyetlen zónát sem tartalmaz.",
+  "v2.set.svcActive": "Aktív",
+  "v2.set.svcActiveHint": "A kikapcsolt szolgáltatás nem jelenik meg sem a keresésben, sem a streaming képernyőkön.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

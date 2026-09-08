@@ -4162,6 +4162,8 @@ export default {
   "v2.dev.backupErrNotTune": "Acest fișier nu este o salvare Tune.",
   "v2.dev.backupErrFuture": "Salvare scrisă de o versiune mai nouă de Tune.",
   "v2.dev.backupErrEmpty": "Această salvare nu conține nicio zonă.",
+  "v2.set.svcActive": "Activ",
+  "v2.set.svcActiveHint": "Un serviciu dezactivat nu mai apare în căutare și nici în ecranele de streaming.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

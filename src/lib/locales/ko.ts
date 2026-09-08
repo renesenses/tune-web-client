@@ -4162,6 +4162,8 @@ export default {
   "v2.dev.backupErrNotTune": "이 파일은 Tune 백업이 아닙니다.",
   "v2.dev.backupErrFuture": "더 새로운 버전의 Tune이 만든 백업입니다.",
   "v2.dev.backupErrEmpty": "이 백업에는 존이 없습니다.",
+  "v2.set.svcActive": "사용",
+  "v2.set.svcActiveHint": "사용 안 함으로 설정한 서비스는 검색에도 스트리밍 화면에도 나타나지 않습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

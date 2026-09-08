@@ -758,6 +758,35 @@
       svcBusy = null;
     }
   }
+  /**
+   * #762 — activer ou désactiver un service.
+   *
+   * La fonction existait dans `api.ts` et n'était appelée QUE par l'ancien
+   * écran et l'assistant de première configuration : dans le nouveau client,
+   * un service arrivé désactivé — Bandcamp — le restait à vie. Et le bouton
+   * « Se connecter » étant lui-même désarmé quand `enabled` est faux, c'était
+   * une impasse complète.
+   *
+   * L'état local suit tout de suite, puis la liste est relue : si le serveur
+   * refuse, l'écran ne garde pas une valeur menteuse.
+   */
+  async function basculerSvc(name: string, actif: boolean) {
+    svcBusy = name;
+    svcErr = { ...svcErr, [name]: null };
+    const avant = svcs[name]?.enabled;
+    svcs = { ...svcs, [name]: { ...svcs[name], enabled: actif } };
+    try {
+      if (actif) await api.enableStreamingService(name);
+      else await api.disableStreamingService(name);
+      svcs = (await api.getStreamingServices()) ?? svcs;
+    } catch {
+      svcs = { ...svcs, [name]: { ...svcs[name], enabled: avant } };
+      svcErr = { ...svcErr, [name]: get(t)('settings.errConnectFailed') };
+    } finally {
+      svcBusy = null;
+    }
+  }
+
   async function disconnectSvc(name: string) {
     stopPoll(name);
     deviceFlow = { ...deviceFlow, [name]: undefined };
@@ -2472,6 +2501,16 @@
                         {#if st.subscription}<em class="sub">{st.subscription}</em>{/if}
                       </div>
 
+                      <!-- #762 : le geste qui manquait. Sans lui, un service
+                           arrivé désactivé le restait à vie — et « Se
+                           connecter » est lui-même désarmé quand `enabled` est
+                           faux, donc l'impasse était complète. -->
+                      <label class="svcon" use:tip={'v2.set.svcActiveHint'}>
+                        <input type="checkbox" checked={!!st.enabled} disabled={svcBusy === name}
+                          onchange={(e) => basculerSvc(name, (e.currentTarget as HTMLInputElement).checked)} />
+                        <span>{$t('v2.set.svcActive' as any)}</span>
+                      </label>
+
                       {#if st.authenticated}
                         <button class="lnk danger" onclick={() => disconnectSvc(name)}>{$t('settings.signOut' as any)}</button>
 
@@ -3049,6 +3088,8 @@
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   /* Badge « Tune tested » : discret. Une zone sur quatorze le porte, et il
      dit une validation, pas une alerte. */
+  .svcon{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); cursor:pointer}
+  .svcon input{cursor:pointer}
   .tt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase;
       color:var(--v2-acc1); border:1px solid var(--v2-acc1); border-radius:3px;
       padding:1px 5px; white-space:nowrap; text-decoration:none; cursor:pointer}

@@ -4162,6 +4162,8 @@ export default {
   "v2.dev.backupErrNotTune": "此文件不是 Tune 备份。",
   "v2.dev.backupErrFuture": "该备份由更新版本的 Tune 写入。",
   "v2.dev.backupErrEmpty": "该备份不含任何区域。",
+  "v2.set.svcActive": "启用",
+  "v2.set.svcActiveHint": "已停用的服务不会再出现在搜索和流媒体界面中。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

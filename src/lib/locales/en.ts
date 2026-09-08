@@ -4182,6 +4182,8 @@ export default {
   "v2.dev.backupErrNotTune": "This file is not a Tune backup.",
   "v2.dev.backupErrFuture": "Backup written by a newer version of Tune.",
   "v2.dev.backupErrEmpty": "This backup contains no zones.",
+  "v2.set.svcActive": "Active",
+  "v2.set.svcActiveHint": "A disabled service no longer appears in search or on the streaming screens.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

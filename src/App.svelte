@@ -30,6 +30,7 @@
   import { startSupportPolling, stopSupportPolling } from './lib/stores/support';
   import { ytPlayerState, ytLoading, playVideo, pauseVideo, resumeVideo, stopVideo, clearYTLoading } from './lib/stores/ytPlayer';
   import { get } from 'svelte/store';
+  import { concerneLaZoneRegardee } from './lib/zoneRegardee';
   import { t } from './lib/i18n';
   import * as api from './lib/api';
   import { libelleBanniereEnrichissement, enrichissementImagesTermine, type TacheDeFond } from './lib/tachesDeFond';
@@ -1060,15 +1061,21 @@ import AlarmsView from './components/AlarmsView.svelte';
                 return { ...z, current_track: null, state: 'stopped' as const, position_ms: 0 };
               })
             );
-            const curZone = get(currentZone);
-            if (curZone?.id === zoneId || (curZone?.group_id != null && curZone.group_id === get(zones).find(z => z.id === zoneId)?.group_id)) {
+            if (concerneLaZoneRegardee(zoneId, get(currentZone), get(zones))) {
               stopSeekTimer();
               seekPositionMs.set(0);
             }
           }
-          queueTracks.set([]);
-          queuePosition.set(0);
-          queueLength.set(0);
+          // 🔴 #753 : ces trois lignes s'exécutaient SANS filtre, alors que
+          // tout le reste de la branche filtre sur la zone. Vider la file du
+          // Sonos effaçait l'affichage de la file de l'Eversolo, qui n'avait
+          // pas bougé — et rien ne la rechargeait, `fetchQueue` ne partant que
+          // sur `playback.queue_changed`.
+          if (concerneLaZoneRegardee(zoneId, get(currentZone), get(zones))) {
+            queueTracks.set([]);
+            queuePosition.set(0);
+            queueLength.set(0);
+          }
         } else if (zoneId) {
           // Optimistic update: apply track metadata from the WS event
           // immediately so the UI updates without waiting for the API call.

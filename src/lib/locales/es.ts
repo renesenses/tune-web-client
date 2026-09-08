@@ -4162,6 +4162,8 @@ export default {
   "v2.dev.backupErrNotTune": "Este archivo no es una copia de Tune.",
   "v2.dev.backupErrFuture": "Copia creada por una versión más reciente de Tune.",
   "v2.dev.backupErrEmpty": "Esta copia no contiene ninguna zona.",
+  "v2.set.svcActive": "Activo",
+  "v2.set.svcActiveHint": "Un servicio desactivado ya no aparece en la búsqueda ni en las pantallas de streaming.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

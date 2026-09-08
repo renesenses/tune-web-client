@@ -4161,4 +4161,6 @@ export default {
   "v2.dev.backupErrNotTune": "Filen är inte en Tune-säkerhetskopia.",
   "v2.dev.backupErrFuture": "Säkerhetskopian skrevs av en nyare version av Tune.",
   "v2.dev.backupErrEmpty": "Säkerhetskopian innehåller inga zoner.",
+  "v2.set.svcActive": "Aktiv",
+  "v2.set.svcActiveHint": "En avaktiverad tjänst visas varken i sökningen eller på streamingsidorna.",
 } as const;

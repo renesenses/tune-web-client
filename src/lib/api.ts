@@ -2426,7 +2426,36 @@ function mapZoneQuality(zone: any): Zone {
  */
 export const SEARCH_PAGE_LIMIT = 50;
 
-export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PAGE_LIMIT, offset = 0) {
+/**
+ * Le plafond de la recherche FÉDÉRÉE — distinct du précédent, et plus haut.
+ *
+ * #764 : le serveur n'active `recherche_paginee(plafond)` **qu'au-delà de
+ * cinquante**. À cinquante pile, la pagination ne se déclenchait jamais, et le
+ * plafond était donc posé par le client sans que personne l'ait décidé.
+ *
+ * Mesuré sur le .18 le 08/09/2026, `/search?q=miles` :
+ *
+ *   | limite | local (pistes / albums) | qobuz | tidal |
+ *   |--------|-------------------------|-------|-------|
+ *   | 50     | 50 / 50                 | 50    | 50    |
+ *   | 100    | 100 / **92**            | 100   | 100   |
+ *   | 200    | 200 / 92                | 200   | 200   |
+ *
+ * Le ticket réservait sa conclusion à un seul service : la mesure la lève,
+ * Qobuz ET Tidal suivent. Et à cent, le nombre d'albums atteint son total réel
+ * (92) au lieu d'être tronqué — ce que cinquante cachait.
+ *
+ * Pourquoi cent et pas deux cents : cent suffit à déclencher la pagination et
+ * à découvrir les totaux, sans doubler une seconde fois le poids d'un écran
+ * qui rend déjà quatre familles pour quatre sources.
+ *
+ * 🔴 Ne PAS confondre avec `SEARCH_PAGE_LIMIT` juste au-dessus : cinquante est
+ * le plafond de page de l'API Qobuz, et il reste juste pour la recherche
+ * service par service, qui pagine, elle, par `offset`.
+ */
+export const SEARCH_FEDEREE_LIMIT = 100;
+
+export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FEDEREE_LIMIT, offset = 0) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
   // #3189 — la suite de la bibliothèque locale (le serveur ne pagine que
   // celle-là). Absent = 0 = la page d'avant : l'URL des appels existants ne
