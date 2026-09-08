@@ -189,3 +189,36 @@ export function lyricsSourceKind(source: string | null | undefined): LyricsSourc
 export function radioAnchorFrom(ageMs: number | null | undefined, nowMs: number): number {
   return typeof ageMs === 'number' && ageMs >= 0 ? nowMs - ageMs : nowMs;
 }
+
+/**
+ * La position à laquelle le surlignage karaoké doit se caler — #719.
+ *
+ * 🔴 Une radio n'a PAS de position de lecture. Mesuré sur le .18 le
+ * 04/09/2026, zone 10 en cours d'écoute, deux relevés à huit secondes
+ * d'intervalle :
+ *
+ *     position_ms = 0   state = playing   metadata_age_ms = 247323   duration_ms = 0
+ *     position_ms = 0   state = playing   metadata_age_ms = 255—     duration_ms = 0
+ *
+ * `seekPositionMs` reste donc à zéro pour toujours, et la ligne surlignée ne
+ * bougeait jamais — alors que le serveur rend bien des paroles HORODATÉES
+ * depuis le début du morceau (`/lyrics/by-meta`).
+ *
+ * L'ancrage existait déjà (`radioAnchorFrom`) et n'était utilisé QUE par
+ * `TvView`. C'est le même mécanisme, appliqué là où l'auditeur regarde.
+ *
+ * Précision attendue : ±5 à 15 s, la latence de détection ICY/livemeta. Ce
+ * n'est pas parfait, et c'est incomparablement mieux qu'une ligne figée.
+ */
+export function positionParoles(etat: {
+  estRadio: boolean;
+  positionZoneMs: number | null | undefined;
+  ancrageRadioMs: number | null | undefined;
+  maintenantMs: number;
+}): number {
+  if (!etat.estRadio) return Math.max(0, etat.positionZoneMs ?? 0);
+  // Sans ancrage — la piste vient d'arriver par un événement optimiste — on ne
+  // devine pas : zéro, et la première ligne s'allumera au prochain calage.
+  if (typeof etat.ancrageRadioMs !== 'number') return 0;
+  return Math.max(0, etat.maintenantMs - etat.ancrageRadioMs);
+}

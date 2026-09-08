@@ -38,7 +38,7 @@
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
-  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery } from '../lib/lyrics';
+  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles } from '../lib/lyrics';
   import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -870,6 +870,41 @@
   let track = $derived($currentTrack);
   let playState = $derived($playbackState);
   let isRadio = $derived(track?.source === 'radio' || (track == null && $ytPlayerState.track?.source === 'radio'));
+
+  // ─── #719 : le temps qui passe sur une RADIO ──────────────────────────
+  //
+  // Une radio n'a pas de position de lecture : `position_ms` vaut zéro en
+  // permanence (mesuré sur le .18, zone 10, deux relevés à huit secondes
+  // d'écart). Le surlignage karaoké restait donc figé sur la première ligne,
+  // alors que le serveur rend bien des paroles horodatées.
+  //
+  // Le serveur donne l'âge de la métadonnée du flux — l'instant où il a vu le
+  // morceau changer. `radioAnchorFrom` en fait un repère LOCAL
+  // (`performance.now() − âge`), sans jamais comparer deux horloges. Le
+  // mécanisme existait, et n'était utilisé que par `TvView`.
+  let ancrageRadio = $state<number | null>(null);
+  $effect(() => {
+    // Lit la piste, écrit l'ancrage : jamais l'inverse.
+    if (!isRadio || !track) { ancrageRadio = null; return; }
+    ancrageRadio = radioAnchorFrom(track.metadata_age_ms, performance.now());
+  });
+
+  let positionRadio = $state(0);
+  $effect(() => {
+    if (!isRadio || !showLyrics || !karaokeMode) return;
+    let raf = 0;
+    const battre = () => {
+      positionRadio = positionParoles({
+        estRadio: true,
+        positionZoneMs: null,
+        ancrageRadioMs: ancrageRadio,
+        maintenantMs: performance.now(),
+      });
+      raf = requestAnimationFrame(battre);
+    };
+    raf = requestAnimationFrame(battre);
+    return () => cancelAnimationFrame(raf);
+  });
 
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
   let ytState = $derived($ytPlayerState);
@@ -1705,6 +1740,7 @@
               source={npLyricsSource}
               {syncedLines}
               {karaokeMode}
+              positionMs={isRadio ? positionRadio : null}
               onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
             />
           {/if}
