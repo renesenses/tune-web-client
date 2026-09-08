@@ -12,7 +12,7 @@
   import { get } from 'svelte/store';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatDuration } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -152,6 +152,37 @@
     qualityFilter === 'all' ? totalFamille(results, 'tracks') : null,
     gabaritsCompte,
   ));
+  /**
+   * #3190 — jfpaquet (forum 1644) : « il serait utile que Tune affiche, en plus
+   * de "pistes", la durée totale, comme le fait Spotify ».
+   *
+   * Le serveur ne publie AUCUNE durée sur `/search` : `totals` porte les trois
+   * comptes et `tracks_via_metadata`, rien d'autre. La somme se fait donc ici,
+   * sur ce qui est RÉELLEMENT affiché — chaque piste rendue porte son
+   * `duration_ms`.
+   *
+   * 🔴 Et c'est tout le piège du ticket : la liste est une PAGE. Écrire « 3 h
+   * 12 » sous un compteur qui dit déjà « 50 sur 2451 » publierait un second
+   * chiffre faux, avec l'autorité d'une durée. Quand tout n'est pas montré, la
+   * durée le DIT (`search.durationShown`) ; quand tout l'est, elle s'écrit nue.
+   */
+  let dureePistesAffichees = $derived(
+    filteredTracks.reduce((somme, t) => somme + (t.duration_ms ?? 0), 0),
+  );
+  let toutesLesPistesSontAffichees = $derived.by(() => {
+    const t = qualityFilter === 'all' ? totalFamille(results, 'tracks') : null;
+    // Sans total serveur (version antérieure à la 0.9.132, ou filtre actif),
+    // on ne sait pas s'il en manque : on ne l'affirme donc pas.
+    return t == null ? !suiteExiste(results, 'tracks') : t.total <= filteredTracks.length;
+  });
+  let libelleDureePistes = $derived(
+    dureePistesAffichees <= 0
+      ? ''
+      : toutesLesPistesSontAffichees
+        ? formatDuration(dureePistesAffichees)
+        : $t('search.durationShown').replace('{d}', formatDuration(dureePistesAffichees)),
+  );
+
 
   // #3623 — la moitié ALBUMS n'avait jamais été réparée : le titre affichait
   // `filteredAlbums.length`, c'est-à-dire la longueur de la page reçue,
@@ -1260,7 +1291,7 @@
             {:else if sec === 'tracks' && showTracks && filteredTracks.length > 0}
               <section class="section">
                 <div class="section-head">
-                  <h3 class="section-title">Pistes <span class="count">{libellePistes}</span></h3>
+                  <h3 class="section-title">Pistes <span class="count">{libellePistes}</span>{#if libelleDureePistes}<span class="section-duration">{libelleDureePistes}</span>{/if}</h3>
                   {#if filteredTracks.filter(t => t.id).length > 1}
                     <div class="track-actions-bar">
                       <button class="action-pill" onclick={() => playAllTracks(filteredTracks)}>
@@ -1599,6 +1630,15 @@
     font-weight: 400;
     color: var(--tune-text-muted);
     font-size: 16px;
+  }
+
+  /* #3190 — la durée des pistes affichées, en retrait du compteur : elle le
+     complète, elle ne le concurrence pas. */
+  .section-duration {
+    font-weight: 400;
+    color: var(--tune-text-muted);
+    font-size: 14px;
+    margin-left: 10px;
   }
 
   .link-btn {

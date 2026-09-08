@@ -416,6 +416,7 @@ export default {
   'search.shownOf': '{shown} von {total}',
   'search.shownOfAtLeast': '{shown} von mindestens {total}',
   'search.loadMore': 'Mehr anzeigen',
+  'search.durationShown': '{d} angezeigt',
 
   // Streaming
   'streaming.selectService': 'Wählen Sie einen Streaming-Dienst',

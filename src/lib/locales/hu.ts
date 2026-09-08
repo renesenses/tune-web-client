@@ -602,6 +602,7 @@ export default {
   "search.shownOf": "{shown} / {total}",
   "search.shownOfAtLeast": "{shown} / legalább {total}",
   "search.loadMore": "Továbbiak",
+  "search.durationShown": "{d} megjelenítve",
   // Streaming
   "streaming.selectService": "Válassz streamingszolgáltatást",
   "streaming.searchOn": "Keresés itt: {service}...",

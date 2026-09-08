@@ -426,6 +426,7 @@ export default {
   'search.shownOf': '{shown} din {total}',
   'search.shownOfAtLeast': '{shown} din cel puțin {total}',
   'search.loadMore': 'Vezi mai mult',
+  'search.durationShown': '{d} afișate',
 
   // Streaming
   'streaming.selectService': 'Selectează un serviciu de streaming',
