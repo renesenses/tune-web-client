@@ -3643,8 +3643,22 @@ export async function getUpdateStatus(): Promise<any> {
 
 // --- Network / SMB ---
 
+/** Un hôte annoncé en mDNS par `GET /network/shares`. C'est un HÔTE, pas un
+ *  partage : le serveur ne sait rien de ses partages à ce stade et n'en pose
+ *  donc aucune liste. Le type était `any[]`, ce qui a laissé passer #3637 —
+ *  l'assistant SMB croyait y lire un champ `shares`. */
+export interface HoteReseauDecouvert {
+  id: string;
+  name: string;
+  host: string;
+  hostname?: string;
+  port?: number;
+  protocol: string;
+  available: boolean;
+}
+
 export function discoverSmbShares() {
-  return fetchJSON<any[]>(`${BASE}/network/shares`);
+  return fetchJSON<HoteReseauDecouvert[]>(`${BASE}/network/shares`);
 }
 
 export function scanHost(host: string, protocol?: string, username?: string, password?: string) {
@@ -3655,9 +3669,12 @@ export function scanHost(host: string, protocol?: string, username?: string, pas
   return fetchJSON<any>(url);
 }
 
-export function listHostShares(hostId: string) {
-  return fetchJSON<{ shares: string[] }>(`${BASE}/network/shares/${encodeURIComponent(hostId)}`);
-}
+// `listHostShares` a été retirée (#3637). Elle appelait
+// `GET /network/shares/{id}` en lui passant l'identifiant d'un hôte découvert
+// (`smb://192.168.x.y`) et en attendant `{ shares: string[] }`. Cette route
+// extrait un `Path<i64>` et rend la ligne d'un MONTAGE enregistré
+// (`network_mounts`) : elle ne pouvait ni recevoir cet identifiant, ni
+// répondre cette forme. Les partages d'un hôte s'obtiennent par `scanHost`.
 
 export function testSmbConnection(host: string, share: string, username?: string, password?: string, _domain?: string) {
   return fetchJSON<{ ok: boolean; message?: string; error?: string }>(`${BASE}/network/smb/mount`, {
