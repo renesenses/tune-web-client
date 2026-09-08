@@ -24,6 +24,39 @@
   import { t } from '../../lib/i18n';
   import { zonesAppairables, parametresPaire, voieDeLaZone } from '../../lib/pairesStereo';
   import '../../styles/tune-v2.css';
+  import { appareilDeLaZone, lireVueZones, ecrireVueZones, type VueZones } from '../../lib/vueZones';
+  import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
+  import BadgeTuneTested from './BadgeTuneTested.svelte';
+
+  /**
+   * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
+   * liste reste disponible : elle porte la densité experte (drapeaux de zone,
+   * volume fin) que des cartes de 230 px ne tiennent pas.
+   */
+  let vue = $state<VueZones>('grille');
+  $effect(() => { vue = lireVueZones(); });
+  function choisirVue(v: VueZones) { vue = v; ecrireVueZones(v); }
+
+  // Le catalogue Tune tested : une requête par navigateur et par jour, cache
+  // compris. L'effet ne lit RIEN de ce qu'il écrit.
+  let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
+  $effect(() => {
+    chargerCatalogueTuneTested()
+      .then((c) => { indexTuneTested = indexer(c); })
+      .catch(() => { /* le badge se tait, l'écran s'affiche */ });
+  });
+  const tuneTestedDe = (z: Zone): AppareilTuneTested | null => appareilTuneTeste(indexTuneTested, z);
+
+  /** La ligne « appareil » d'une carte, ou le type de sortie à défaut. Mesuré
+   *  sur le .18 : neuf zones sur quatorze n'ont aucune identité. */
+  function appareilOuSortie(z: Zone): string {
+    return appareilDeLaZone(z) ?? (OUTPUTS[z.output_type ?? 'local'] ?? String(z.output_type ?? ''));
+  }
+  /** Le type de sortie en surtitre, seulement quand l'appareil est nommé —
+   *  sinon la carte écrirait deux fois la même chose. */
+  function sortieSecondaire(z: Zone): string | null {
+    return appareilDeLaZone(z) ? (OUTPUTS[z.output_type ?? 'local'] ?? null) : null;
+  }
 
   const level = $derived($preferences.settingsLevel);
   const showExpert = $derived(atLeast(level, 'expert'));
@@ -207,24 +240,42 @@
 </script>
 
 <section class="v2-zones tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.lbl.audioOutputs' as any)}</div>
+  <!-- En-tête harmonisé : `.v2-top` / `.v2-actions` / `.v2-btn` vivent dans
+       `styles/tune-v2.css`, une seule fois pour tous les écrans. L'ordre est
+       le même partout : titre, puis actions secondaires, puis L'action
+       primaire — une seule pleine par écran. -->
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.lbl.audioOutputs' as any)}</div>
       <h1>{$t('nav.zonemanager' as any)}</h1>
     </div>
-    {#if creating}
-      <div class="newz">
-        <!-- svelte-ignore a11y_autofocus -->
-        <input bind:value={newName} placeholder={$t('v2.zone.namePlaceholder' as any)} autofocus
-          onkeydown={(e) => { if (e.key === 'Enter') create(); if (e.key === 'Escape') { creating = false; newName = ''; } }} />
-        <button class="mk" onclick={create}>{$t('v2.zone.create' as any)}</button>
+    <div class="v2-actions">
+      <div class="bascule" role="group" aria-label={$t('v2.zones.viewSwitch' as any)}>
+        <button class="v2-btn" class:on={vue === 'grille'} aria-pressed={vue === 'grille'}
+          onclick={() => choisirVue('grille')} title={$t('v2.zones.viewGrid' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+          {$t('v2.zones.viewGrid' as any)}
+        </button>
+        <button class="v2-btn" class:on={vue === 'liste'} aria-pressed={vue === 'liste'}
+          onclick={() => choisirVue('liste')} title={$t('v2.zones.viewList' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+          {$t('v2.zones.viewList' as any)}
+        </button>
       </div>
-    {:else}
-      <button class="add" onclick={() => (creating = true)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        {$t('zone.newZone' as any)}
-      </button>
-    {/if}
+      {#if creating}
+        <div class="newz">
+          <!-- svelte-ignore a11y_autofocus -->
+          <input bind:value={newName} placeholder={$t('v2.zone.namePlaceholder' as any)} autofocus
+            onkeydown={(e) => { if (e.key === 'Enter') create(); if (e.key === 'Escape') { creating = false; newName = ''; } }} />
+          <button class="v2-btn primaire" onclick={create}>{$t('v2.zone.create' as any)}</button>
+        </div>
+      {:else}
+        <button class="v2-btn primaire" onclick={() => (creating = true)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          {$t('zone.newZone' as any)}
+        </button>
+      {/if}
+    </div>
   </header>
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
@@ -232,6 +283,53 @@
   <div class="scroll">
     {#if !$zones.length}
       <div class="state">{$t('v2.zone.none' as any)}</div>
+    {:else if vue === 'grille'}
+      <!--
+        Vue GRILLE — quatre colonnes, de grosses cartes.
+
+        Ce qu'une carte porte, et dans cet ordre : l'état (le point), le NOM,
+        l'APPAREIL, le badge Tune tested, ce qui joue, l'avertissement s'il y
+        en a un, puis le volume. Les gestes destructifs (renommer, supprimer,
+        fusionner) restent à la LISTE : une carte qu'on clique pour activer une
+        zone ne doit pas porter une corbeille à portée de pouce.
+
+        Mesuré sur le .18 avant de dessiner : neuf zones sur quatorze n'ont
+        aucune identité d'appareil. La carte retombe alors sur le type de
+        sortie — c'est `appareilOuSortie`, dans `lib/vueZones`.
+      -->
+      <div class="grille">
+        {#each $zones as z (z.id)}
+          {@const r = reach(z)}
+          {@const teste = tuneTestedDe(z)}
+          <div class="carte" class:active={z.id === $currentZoneId} class:offline={z.online === false}>
+            <button class="cpick" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
+              <span class="chaut">
+                <span class="dot" class:on={z.id === $currentZoneId}></span>
+                {#if sortieSecondaire(z)}<span class="cot">{sortieSecondaire(z)}</span>{/if}
+                {#if z.is_default}<span class="cdef">{$t('v2.zone.default' as any)}</span>{/if}
+              </span>
+              <span class="cnom">{z.name}</span>
+              <span class="cappareil" class:muet={!appareilDeLaZone(z)}>{appareilOuSortie(z)}</span>
+              {#if teste}<span class="cbadge"><BadgeTuneTested taille="md" /></span>{/if}
+              <span class="cetat">
+                {#if z.current_track?.title}
+                  <span class="cnp">♪ {z.current_track.title}</span>
+                {/if}
+                {#if r}<span class="rc {r.cls}">{r.txt}</span>{/if}
+                {#if presenceTxt(z)}<span class="rc warn">{presenceTxt(z)}</span>{/if}
+                {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
+              </span>
+            </button>
+            <div class="cvol">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
+              <input type="range" min="0" max="100" step="1" value={Math.round((z.volume ?? 0) * 100)}
+                oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
+                aria-label={`Volume de ${z.name}`} />
+              <span class="vn">{Math.round((z.volume ?? 0) * 100)}</span>
+            </div>
+          </div>
+        {/each}
+      </div>
     {:else}
       <div class="list">
         {#each $zones as z (z.id)}
@@ -299,8 +397,13 @@
           </div>
         {/each}
       </div>
+    {/if}
 
-      <!--
+    <!--
+      Les paires stéréo valent pour LES DEUX vues : elles sont sorties de la
+      branche « liste » quand la grille est arrivée, sinon la vue par défaut
+      les aurait fait disparaître sans que rien ne le dise.
+
         Les paires stéréo vivent SOUS la liste, pas dans la carte d'une zone :
         une paire n'appartient à aucune des deux, elle les relie. La poser dans
         l'une des cartes obligerait à choisir laquelle, et à mentir sur l'autre.
@@ -313,7 +416,7 @@
           <div class="ph">
             <span class="cl">{$t('v2.zone.stereoPairs' as any)}</span>
             {#if !formPaire && appairables.length >= 2}
-              <button class="lnk" onclick={() => (formPaire = true)}>{$t('v2.zone.pairCreate' as any)}</button>
+              <button class="v2-btn" onclick={() => (formPaire = true)}>{$t('v2.zone.pairCreate' as any)}</button>
             {/if}
           </div>
           <p class="phint">{$t('v2.zone.pairHint' as any)}</p>
@@ -338,8 +441,8 @@
                 <span>{$t('v2.zone.pairName' as any)}</span>
                 <input class="txt" bind:value={nomPaire} placeholder={$t('v2.zone.pairName' as any)} />
               </label>
-              <button class="mk" disabled={!params || busy} onclick={creerPaire}>{$t('v2.zone.create' as any)}</button>
-              <button class="lnk" onclick={() => { formPaire = false; nomPaire = ''; zoneGauche = null; zoneDroite = null; }}>{$t('v2.zone.cancel' as any)}</button>
+              <button class="v2-btn primaire" disabled={!params || busy} onclick={creerPaire}>{$t('v2.zone.create' as any)}</button>
+              <button class="v2-btn" onclick={() => { formPaire = false; nomPaire = ''; zoneGauche = null; zoneDroite = null; }}>{$t('v2.zone.cancel' as any)}</button>
             </div>
           {/if}
 
@@ -352,14 +455,13 @@
                     <span class="plus">+</span>
                     <b>{p.right_zone?.name ?? '—'}</b> <em>{$t('v2.zone.rightChannel' as any)}</em>
                   </span>
-                  <button class="lnk danger" disabled={busy} onclick={() => defairePaire(p.stereo_pair_id)}>{$t('v2.zone.pairDissolve' as any)}</button>
+                  <button class="v2-btn danger" disabled={busy} onclick={() => defairePaire(p.stereo_pair_id)}>{$t('v2.zone.pairDissolve' as any)}</button>
                 </div>
               {/each}
             </div>
           {/if}
         </section>
       {/if}
-    {/if}
   </div>
 </section>
 
@@ -388,25 +490,11 @@
   .txt{height:34px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
     color:var(--v2-txt); font:13px var(--v2-sans); padding:0 11px; outline:none; width:100%}
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
-  .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:999px; padding:6px 13px; font:600 11.5px var(--v2-sans)}
-  .lnk:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .lnk.danger{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
-  .lnk:disabled{opacity:.5; cursor:default}
   .v2-zones{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 14px; padding-right:var(--v2-grappe-w)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .add{display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 16px; border-radius:var(--v2-r-pill);
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:600 13px var(--v2-sans); cursor:pointer}
-  .add svg{width:16px; height:16px}
-  .add:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .newz{display:flex; gap:8px}
   .newz input{height:40px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
     color:var(--v2-txt); font:14px var(--v2-sans); padding:0 16px; outline:none; width:230px}
-  .mk{height:40px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 13px var(--v2-sans);
-    color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
     font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
@@ -416,6 +504,60 @@
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
   .list{display:flex; flex-direction:column; gap:8px}
+
+  /* ── Vue GRILLE ────────────────────────────────────────────────────────
+     « grille du genre 4 colonnes » : quatre, littéralement, et non un
+     `auto-fill` qui en donnerait six sur un 27 pouces et deux sur le portable.
+     Le nombre de colonnes descend par paliers, la carte garde sa taille.
+     Mesuré sur l'écran de Bertrand (viewport ≈ 1314 px, barre latérale 270) :
+     quatre colonnes de ~234 px. */
+  .grille{display:grid; gap:16px; grid-template-columns:repeat(4, minmax(0, 1fr))}
+  @media (max-width:1200px){ .grille{grid-template-columns:repeat(3, minmax(0, 1fr))} }
+  @media (max-width:900px){ .grille{grid-template-columns:repeat(2, minmax(0, 1fr))} }
+  @media (max-width:620px){ .grille{grid-template-columns:1fr} }
+
+  .carte{display:flex; flex-direction:column; border-radius:var(--v2-r-md);
+    border:1px solid var(--v2-line); background:var(--v2-surface2); overflow:hidden;
+    transition:border-color .15s, box-shadow .15s}
+  .carte:hover{border-color:var(--v2-line2)}
+  .carte.active{border-color:var(--v2-acc1); box-shadow:0 0 0 1px var(--v2-acc1) inset, 0 0 22px var(--v2-glow)}
+  /* Hors ligne : la carte s'efface, mais son texte reste lisible — on ne cache
+     pas une zone en panne, on la montre éteinte. */
+  .carte.offline .cnom, .carte.offline .cappareil{opacity:.6}
+
+  .cpick{display:flex; flex-direction:column; align-items:flex-start; gap:0;
+    padding:15px 16px 12px; border:0; background:transparent; color:inherit;
+    text-align:left; cursor:pointer; width:100%; flex:1; min-width:0}
+  .cpick:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-3px}
+
+  .chaut{display:flex; align-items:center; gap:9px; width:100%; min-height:18px}
+  .cot{font:600 9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .cdef{margin-left:auto; font:600 9.5px var(--v2-mono); letter-spacing:.06em;
+    text-transform:uppercase; color:var(--v2-acc1)}
+
+  .cnom{margin-top:9px; font:700 17px var(--v2-sans); line-height:1.25; color:var(--v2-txt);
+    width:100%; overflow-wrap:anywhere}
+  /* L'appareil, la ligne demandée. `muet` = on n'a que le type de sortie :
+     neuf zones sur quatorze sur le .18. On le dit en gris, sans le déguiser
+     en modèle. */
+  .cappareil{margin-top:4px; font:12.5px var(--v2-sans); color:var(--v2-txt2); width:100%; overflow-wrap:anywhere}
+  .cappareil.muet{color:var(--v2-txt3)}
+  .cbadge{margin-top:9px; display:flex}
+
+  .cetat{margin-top:10px; display:flex; flex-direction:column; gap:5px; width:100%; min-width:0}
+  .cnp{font:12px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+  .cvol{display:flex; align-items:center; gap:10px; padding:10px 16px 13px;
+    border-top:1px solid var(--v2-line)}
+  .cvol svg{width:15px; height:15px; color:var(--v2-txt3); flex:0 0 auto}
+  .cvol input[type=range]{flex:1; min-width:0; accent-color:var(--v2-acc1); cursor:pointer}
+  .cvol .vn{font:11.5px var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
+
+  /* La bascule grille / liste : deux boutons d'action ordinaires, celui qui
+     est actif porte la teinte. Pas un troisième dessin de bouton. */
+  .bascule{display:flex; gap:6px}
+  .bascule .v2-btn.on{border-color:var(--v2-acc2); color:var(--v2-acc-tint); background:var(--v2-acc-soft)}
+  @media (max-width:820px){ .bascule .v2-btn{padding:0 11px} }
 
   .zone{display:grid; grid-template-columns:minmax(0,1fr) auto auto auto; align-items:center; gap:18px;
     padding:12px 16px; border-radius:13px; border:1px solid var(--v2-line); background:var(--v2-surface2)}

@@ -1,18 +1,29 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { arretPossible } from '../arretTransport';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const sansCommentaires = (s: string) =>
   s.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
+/**
+ * ⚠️ MISE À JOUR DU 08/09/2026 — le bouton Stop est REVENU.
+ *
+ * Le 05/09, Bertrand a remplacé le bouton autonome par un double-clic sur
+ * Lecture. Le 08/09 : « Et le bouton Stop de la transport barre !! ?? !! ».
+ * Les deux chemins cohabitent désormais et appellent le MÊME `arreter` — le
+ * double-clic pour qui l'a pris en main, le bouton pour qui ne peut pas le
+ * deviner.
+ *
+ * Ce fichier garde donc le double-clic, tel qu'il a été mis au point ; le
+ * bouton, sa condition et l'unicité de l'appel sont gardés par
+ * `arretTransport.test.ts`. Le cas retiré ci-dessous — « le bouton autonome a
+ * disparu » — a été supprimé parce qu'il affirmait une décision que Bertrand a
+ * révoquée, et non parce qu'il gênait.
+ */
 describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
   const bar = sansCommentaires(lire('src/components/TransportBar.svelte'));
-
-  it('le bouton stop autonome a disparu de la barre', () => {
-    expect(bar).not.toContain('control-btn stop-btn');
-    expect(bar).not.toContain("$t('common.stop')");
-  });
 
   it("le stop utilise le double-clic DU SYSTÈME, pas un chronomètre maison", () => {
     // Deux réglages maison ont été faux : 350 ms avalait un re-clic délibéré,
@@ -43,6 +54,13 @@ describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
     expect(lire('src/lib/keyboard.ts')).toContain("case 'KeyS':");
   });
 
+  it('le double-clic passe par le même arrêt que le bouton', () => {
+    // Une seconde implémentation serait un second comportement.
+    expect(bar).toContain('async function doubleClicLecture() {');
+    expect(bar.slice(bar.indexOf('async function doubleClicLecture() {'), bar.indexOf('async function doubleClicLecture() {') + 90))
+      .toContain('await arreter();');
+  });
+
   it("l'arrêt REPORTE l'état de la zone", () => {
     // Bertrand, 05/09/2026 : « Play - Pause - Stop me semble mal géré ». Après
     // un `api.stop` nu, la zone restait « playing » dans le magasin : le bouton
@@ -60,8 +78,13 @@ describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
 
   it("la RADIO n'a pas de stop", () => {
     // Un flux en direct ne se met pas en pause pour reprendre où l'on était.
-    // Le bouton autonome l'excluait déjà.
-    expect(bar).toContain("const stopPossible = $derived(!!zone?.id && displayTrack?.source !== 'radio')");
+    // La condition était écrite en dur ici ; elle vit dans
+    // `lib/arretTransport` depuis que le bouton est revenu, pour que le bouton
+    // et le double-clic ne puissent pas diverger. Un test l'APPELLE désormais
+    // (`arretTransport.test.ts`) au lieu de relire ce fichier.
+    expect(bar).toContain('arretPossible(zone?.id, displayTrack?.source)');
+    expect(arretPossible(10, 'radio')).toBe(false);
+    expect(arretPossible(10, 'local')).toBe(true);
   });
 
   it("l'infobulle ANNONCE le geste, sinon personne ne le devine", () => {

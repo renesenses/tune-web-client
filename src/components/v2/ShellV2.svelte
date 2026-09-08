@@ -463,18 +463,14 @@
 </div>
 
 <style>
-  .v2-shell{--maj-h:42px;
-    /* 🔴 LA GOUTTIÈRE DE LA GRAPPE, définie UNE fois.
-       `.av-tr` est en position absolue en haut à droite : elle flotte au-dessus
-       des écrans, qui doivent donc lui réserver la place. Cette réserve était
-       recopiée en dur — `padding-right:var(--v2-grappe-w)` — dans VINGT-QUATRE en-têtes.
-       Quand la recherche globale a rejoint la grappe (#3629), aucune des
-       vingt-quatre copies n'a suivi : le bouton « Modifier » de l'accueil s'est
-       retrouvé collé à la loupe, et l'Historique avec lui (Bertrand, 08/09/2026).
-       Le compte : loupe 36 + 10 + signet 32 + 10 + avatar 40 + marge 30 = 158.
-       172 laisse un peu d'air, et un seul nombre à changer le jour où la grappe
-       gagne un bouton. */
-    --v2-grappe-w:172px; position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
+  /* 🔴 `--v2-grappe-w` — la gouttière de la grappe — vit dans
+     `src/styles/tune-v2.css`, avec les autres jetons. Elle était ici, dans un
+     style de COMPOSANT : `check-jetons-css` ne balaie que `src/styles/` et
+     déclarait donc le jeton « défini nulle part » pour les vingt-quatre écrans
+     qui l'emploient. Un jeton absent n'échoue pas — la déclaration est ignorée
+     en silence — c'est-à-dire exactement la panne qu'on vient de corriger, et
+     que la porte savait annoncer. */
+  .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */
   .av-tr{position:absolute; top:20px; right:30px; z-index:80; display:flex; align-items:center; gap:10px}

@@ -63,7 +63,8 @@
    * détection — « Sonos, Inc. », raison sociale comprise, que `clefAppareil`
    * sait retirer.
    */
-  import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, URL_PAGE_PUBLIQUE, type AppareilTuneTested } from '../../lib/tuneTested';
+  import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
+  import BadgeTuneTested from './BadgeTuneTested.svelte';
   let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
   // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
   $effect(() => {
@@ -2215,13 +2216,10 @@
                       <div class="zch">
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
-                        {#if tuneTestedDe(z)}
-                          <!-- Cliquable : un badge qui n'explique pas ce qu'il
-                               affirme n'est qu'une décoration. Il mène à la
-                               liste publique des appareils validés. -->
-                          <a class="tt" href={URL_PAGE_PUBLIQUE} target="_blank" rel="noopener noreferrer"
-                             use:tip={'v2.dev.tuneTestedTip'}>{$t('v2.dev.tuneTested' as any)}</a>
-                        {/if}
+                        <!-- Le badge vit dans `BadgeTuneTested` : la carte de
+                             zone en vue grille porte le même, et deux copies
+                             auraient divergé. -->
+                        {#if tuneTestedDe(z)}<BadgeTuneTested />{/if}
                       </div>
                       <div class="zr">
                         <label class="zf">
@@ -3235,10 +3233,6 @@
   .apercu{display:inline-block; min-width:150px}
   .svcon{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
-  .tt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase;
-      color:var(--v2-acc1); border:1px solid var(--v2-acc1); border-radius:3px;
-      padding:1px 5px; white-space:nowrap; text-decoration:none; cursor:pointer}
-  .tt:hover{background:var(--v2-acc-soft)}
   .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
   .zf{display:flex; flex-direction:column; gap:5px}
   .zf > span{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
