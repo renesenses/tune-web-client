@@ -1,6 +1,9 @@
 <script lang="ts">
+  import { preferences } from '../lib/stores/preferences';
+  import CreteMetre from './CreteMetre.svelte';
+  import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZone, currentZoneId } from '../lib/stores/zones';
+  import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../lib/stores/zones';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { upNextCount } from '../lib/stores/queue';
   import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
@@ -372,6 +375,61 @@
   let playState = $derived($playbackState);
   let showZoneDropdown = $state(false);
   let configZone = $state<typeof zone | null>(null);
+
+  /* ------------------------------------------------------------------ */
+  /* TRANSFÉRER LA LECTURE VERS UNE AUTRE ZONE                          */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * 🔴 La route est complète, le geste avait disparu de l'interface.
+   *
+   * FabienM, fil 1715 (08/09/2026) : « Dans la bottom bar de lecture, prévoir
+   * un bouton pour transférer la lecture en cours du titre vers une autre
+   * zone. »
+   *
+   * `POST /api/v1/zones/{id}/transfer/{cible}` reporte la file locale, la file
+   * streaming, l'index de la piste ET l'offset temporel ; une source en pause
+   * reste en pause sur la cible. `api.transferPlayback` l'enveloppe depuis
+   * toujours — mais son UNIQUE appelant vivait dans `Sidebar.svelte:44`, la
+   * barre latérale de l'ANCIENNE coquille. `ShellV2` monte `v2/Sidebar.svelte`,
+   * qui ne liste aucune zone : en v2 le transfert était donc inatteignable.
+   *
+   * Posé ICI plutôt que dans un écran v2 : la barre de lecture est montée par
+   * les DEUX coquilles, c'est l'endroit que FabienM désigne, et la liste de
+   * zones y existe déjà. Un seul geste ajouté solde les deux défauts.
+   *
+   * ⚠️ Le popover COMMUTE la zone pilotée (`currentZoneId.set`), il ne déplace
+   * rien : c'est précisément la confusion à lever. Les deux actions cohabitent
+   * donc sur la même ligne, la seconde explicitement nommée.
+   */
+  let transferringTo = $state<number | null>(null);
+
+  /**
+   * Même garde que la barre latérale (`Sidebar.svelte:34-37`) : sans lecture en
+   * cours le serveur répond `400 nothing playing to transfer`. On ne propose
+   * pas un geste dont on sait qu'il échouera. La PAUSE compte — le serveur la
+   * reporte telle quelle sur la cible.
+   */
+  let currentZonePlaying = $derived(zone?.state === 'playing' || zone?.state === 'paused');
+
+  async function transfererVers(cibleId: number | null, e: Event) {
+    e.stopPropagation();
+    const depuis = $currentZoneId;
+    if (depuis == null || cibleId == null || depuis === cibleId || transferringTo !== null) return;
+    transferringTo = cibleId;
+    try {
+      await api.transferPlayback(depuis, cibleId);
+      // Suivre sur la cible, comme `Sidebar.svelte:45` : sans cela l'écran
+      // continuerait de piloter une zone devenue silencieuse.
+      await switchZone(cibleId);
+      zones.set(await api.getZones());
+      showZoneDropdown = false;
+    } catch (err: any) {
+      notifications.error(err?.message || String(err));
+    } finally {
+      transferringTo = null;
+    }
+  }
   let hasNoZone = $derived($zones.length === 0);
   // « Précédent » reste toujours actif quand une piste est chargée : le
   // serveur gère les bords (il reboucle ou relance la piste). « Suivant », lui,
@@ -395,6 +453,53 @@
   // (radio arretee, zone navigateur, iframe YouTube).
   async function togglePlayPause() {
     await controls.togglePlayPause(zone, track, playState);
+  }
+
+  /**
+   * Un clic : pause. Deux clics : STOP.
+   *
+   * Idée de Bertrand (05/09/2026), en remplacement du bouton stop autonome. Le
+   * stop n'est pas une commande de MUSIQUE — position et file sont conservées
+   * de part et d'autre, vérifié sur le .18 — c'est une commande d'APPAREIL :
+   * `orchestrator.stop(zone, device)` envoie un STOP au périphérique, ce qui
+   * libère un renderer DLNA ou AirPlay là où la pause le garde.
+   *
+   * ## Le double-clic du SYSTÈME, pas le mien
+   *
+   * Première version : un chronomètre maison, 350 ms. Il avalait un re-clic
+   * délibéré — mettre en pause puis relancer aussitôt arrêtait la lecture. Je
+   * l'ai baissé à 250 ms, et le double-clic est devenu trop difficile à
+   * déclencher : « Pas de stop sur double click !! ».
+   *
+   * Les deux réglages étaient faux parce que la bonne valeur n'est pas la
+   * mienne : c'est celle que l'utilisateur a réglée dans son système. On la lit
+   * donc là où elle est.
+   *
+   *  - `event.detail` vaut le rang du clic DANS l'intervalle du système : 1 au
+   *    premier, 2 au second. Le second ne rebascule donc pas — sans quoi la
+   *    musique repartirait entre les deux, un sursaut audible ;
+   *  - `dblclick`, que le navigateur émet ensuite avec ce même intervalle,
+   *    arrête.
+   *
+   * Au clavier, Entrée sur le bouton donne `detail: 0` : la bascule passe, et
+   * la touche `S` reste le chemin d'arrêt.
+   */
+
+  // La RADIO n'a pas de stop : le bouton autonome l'excluait déjà, un flux en
+  // direct ne se met pas en pause pour reprendre où l'on était.
+  const stopPossible = $derived(!!zone?.id && displayTrack?.source !== 'radio');
+
+  async function clicLecture(e: MouseEvent) {
+    // Le second clic d'un double ne bascule pas : `dblclick` va arrêter.
+    if (e.detail >= 2) return;
+    await togglePlayPause();
+  }
+
+  async function doubleClicLecture() {
+    if (!stopPossible || !zone?.id) return;
+    // `stopAndSync` et non `api.stop` : sans report d'état, la zone restait
+    // « playing » dans le magasin et le bouton devenait inerte.
+    await stopAndSync(zone.id);
   }
 
   async function handlePrevious() {
@@ -618,9 +723,28 @@
     // otherwise the bar snaps back and playback doesn't move (Elie, local speakers).
     if (isBrowserZone(zone)) browserSeek(posMs);
   }
+  /*
+    Témoin d'attente. Bertrand, 05/09/2026 : « l'ui ne repond plus aux demandes
+    de play un autre album ou piste !! ».
+
+    Le journal du .18 montre que la demande PARTAIT bien — 24 mises en file
+    reçues — mais qu'un pré-transcodage `Aac -> Flac` de 102 s tenait la zone.
+    L'écran, lui, ne montrait rien : c'est ce silence qui a fait recliquer huit
+    fois. Serveur : renesenses/tune-server-rust#3444.
+
+    Le témoin ne vaut que pour la zone AFFICHÉE : une attente sur une autre
+    zone ne doit pas clignoter ici.
+  */
+  const enAttente = $derived($lectureEnAttente != null && $lectureEnAttente === $currentZoneId);
+
 </script>
 
 <div class="transport-bar" class:compact style="--compact-progress: {progressPercent}%" onclick={handleBarClick} role="button" tabindex={0} aria-label="Transport bar">
+  {#if enAttente}
+    <div class="tb-attente" role="status" aria-live="polite">
+      <span class="tb-attente-point"></span>{$t('transport.preparing')}
+    </div>
+  {/if}
   {#if displayTrack && displayTrack.source !== 'radio' && effectiveDurationMs}
     <div class="transport-progress">
       <span class="progress-time">{formatTime($seekPositionMs)}</span>
@@ -653,6 +777,22 @@
               <span class="radio-antenna">&#x1F4E1;</span>{displayTrack.album_title || 'Radio'}
             {:else}
               {displayTrack.artist_name ?? ''}
+            {/if}
+          </span>
+          <!--
+            TROISIEME LIGNE. Bertrand, 05/09/2026 : « transport bar : badges
+            source et qualité sur une troisième ligne !! Je me répète ! ».
+
+            Ils vivaient DANS `.mini-artist`, qui porte `truncate` : un nom
+            d'artiste un peu long les rognait, et sa capture montrait un badge
+            « F… » coupé net. Une ligne à eux, et ils ne dépendent plus de la
+            longueur du nom.
+
+            La RADIO est exclue : sa deuxième ligne porte déjà la station, et
+            un flux en direct n'a ni service ni fiche technique à annoncer.
+          -->
+          {#if displayTrack.source !== 'radio'}
+            <span class="mini-badges">
               <ServiceBadge source={displayTrack.source} compact />
               {#if displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || zone?.signal_path}
                 {@const sourceStep = zone?.signal_path?.steps?.find((s: any) => s.name === 'Source')?.description ?? ''}
@@ -669,9 +809,9 @@
                   onkeydown={(e) => { if (zone?.signal_path && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); showSignalPath = true; } }}
                   title={hasTrackFormat ? formatQualityTooltip(displayTrack) : (zone?.signal_path?.summary ?? '')}
                 >{hasTrackFormat ? formatCompactQuality(displayTrack) : (spDetail || ((zone?.signal_path?.lossless ?? zone?.signal_path?.bit_perfect) ? 'Lossless' : 'Lossy'))}</span>
-              {/if}
             {/if}
-          </span>
+            </span>
+          {/if}
         </div>
       </div>
       {#if getFavKind(displayTrack) !== 'none'}
@@ -680,6 +820,14 @@
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
         </button>
+      {/if}
+      <!-- #452 — le crête-mètre. `styleSurLaBarre` impose les LAMPES : « la
+           barre de lecture n'affiche jamais DAT ni IEC (trop large) », et elle
+           honore l'extinction. La règle vit dans `lib/peakMetre`, pas ici. -->
+      {#if styleSurLaBarre($preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT) !== 'off'}
+        <div class="tb-crete">
+          <CreteMetre style="lamps" hauteur={22} largeur={56} joue={isPlaying} />
+        </div>
       {/if}
       <div class="tb-mini-viz">
         <AudioVisualizer
@@ -729,8 +877,11 @@
       class="control-btn play-btn"
       class:loading={ytLoadingState}
       disabled={hasNoZone && !ytActive}
-      onclick={togglePlayPause}
-      title={hasNoZone && !ytActive ? $t('zone.playDisabledNoZone' as any) : (isPlaying ? $t('common.pause') : $t('common.play'))}
+      onclick={clicLecture}
+      ondblclick={doubleClicLecture}
+      title={hasNoZone && !ytActive
+        ? $t('zone.playDisabledNoZone' as any)
+        : (isPlaying ? $t('common.pause') : $t('common.play')) + (stopPossible ? ` · ${$t('transport.dblClickStop' as any)}` : '')}
     >
       {#if ytLoadingState}
         <svg class="spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -748,17 +899,6 @@
       {/if}
     </button>
 
-    {#if playState !== 'stopped' && zone?.id && displayTrack?.source !== 'radio'}
-      <button
-        class="control-btn stop-btn"
-        onclick={async () => { if (zone?.id) await api.stop(zone.id); }}
-        title={$t('common.stop') ?? 'Stop'}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <rect x="6" y="6" width="12" height="12" rx="1.5" />
-        </svg>
-      </button>
-    {/if}
 
     {#if displayTrack?.source !== 'radio'}
       <!-- La règle vit dans lib/boutonSuivant : le mini-lecteur porte le même
@@ -965,6 +1105,13 @@
             <span class="zone-popover-count">{$zones.length}</span>
           </div>
           {#each $zones.filter((z, i, arr) => !z.output_device_id || arr.findIndex(x => x.output_device_id === z.output_device_id) === i).slice(0, 50) as z (z.id)}
+            <!--
+              Une RANGÉE, et non un seul bouton : le transfert est une seconde
+              action sur la même zone, et un bouton ne s'imbrique pas dans un
+              bouton. La rangée porte le fond au survol, les deux boutons
+              restent distincts au clavier comme à la souris.
+            -->
+            <div class="zone-popover-row" class:active={z.id === $currentZoneId}>
             <button
               class="zone-popover-item"
               class:active={z.id === $currentZoneId}
@@ -997,6 +1144,19 @@
                 {/if}
               </span>
             </button>
+            {#if currentZonePlaying && z.id !== $currentZoneId}
+              <button
+                class="zone-transfer-btn"
+                class:busy={transferringTo === z.id}
+                disabled={transferringTo !== null}
+                onclick={(e) => transfererVers(z.id, e)}
+                title={$t('zone.transferHere')}
+                aria-label={$t('zone.transferHere')}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </button>
+            {/if}
+            </div>
           {/each}
         </div>
       {/if}
@@ -1130,6 +1290,41 @@
 {/if}
 
 <style>
+  .tb-crete { display: flex; align-items: center; margin-right: 6px; }
+  /* Posé en absolu sur le bord haut : la barre est une grille, un enfant dans
+     le flux en aurait décalé les trois colonnes. */
+  .tb-attente {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 2px 0 3px;
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+    color: var(--tune-accent);
+    background: var(--tune-footer);
+    border-bottom: 1px solid var(--tune-border);
+    pointer-events: none;
+    z-index: 3;
+  }
+  .tb-attente-point {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: tb-attente-battement 1.1s ease-in-out infinite;
+  }
+  @keyframes tb-attente-battement {
+    0%, 100% { opacity: 0.25; transform: scale(0.8); }
+    50%      { opacity: 1;    transform: scale(1.15); }
+  }
+  /* Sans mouvement, le témoin reste LISIBLE : on éteint l'animation, pas le
+     point — l'information ne doit pas disparaître avec elle. */
+  @media (prefers-reduced-motion: reduce) {
+    .tb-attente-point { animation: none; opacity: 1; }
+  }
+
   .transport-bar {
     grid-column: 1 / -1;
     grid-row: 2;
@@ -1264,6 +1459,17 @@
     display: flex;
     align-items: center;
     gap: 5px;
+  }
+
+  /* TROISIEME LIGNE : les badges ne dependent plus de la longueur du nom
+     d'artiste. Ils ne s'elident pas — ils sont courts et se lisent entiers ou
+     pas du tout. */
+  .mini-badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 3px;
+    flex-wrap: wrap;
   }
 
   .yt-badge {
@@ -1811,6 +2017,25 @@
     border-radius: 8px;
   }
 
+  /* La rangée porte les DEUX actions de la zone : commuter (le corps) et
+     transférer la lecture (la flèche). Le fond au survol est posé sur elle,
+     sinon la moitié droite resterait éteinte quand la souris passe. */
+  .zone-popover-row {
+    display: flex;
+    align-items: stretch;
+    transition: background 0.1s;
+  }
+  .zone-popover-row:hover {
+    background: var(--tune-surface-hover);
+  }
+  .zone-popover-row.active {
+    background: rgba(124, 58, 237, 0.06);
+  }
+  .zone-popover-row:last-child {
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+  }
+
   .zone-popover-item {
     display: flex;
     align-items: center;
@@ -1824,6 +2049,39 @@
     cursor: pointer;
     text-align: left;
     transition: background 0.1s;
+    /* Le corps prend la place restante : sans cela il se dimensionne sur son
+       contenu et la flèche viendrait se coller au nom de la zone au lieu de
+       tenir le bord droit. */
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* La flèche « Transférer la lecture ici ». Elle n'apparaît que lorsque la
+     zone courante joue ou est en pause : sinon le serveur répond
+     `400 nothing playing to transfer`. */
+  .zone-transfer-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 34px;
+    background: none;
+    border: none;
+    border-left: 1px solid var(--tune-border);
+    color: var(--tune-text-muted);
+    cursor: pointer;
+    transition: color 0.12s, background 0.12s;
+  }
+  .zone-transfer-btn:hover:not(:disabled) {
+    color: var(--tune-accent);
+    background: var(--tune-surface-hover);
+  }
+  .zone-transfer-btn:disabled {
+    cursor: default;
+  }
+  .zone-transfer-btn.busy {
+    color: var(--tune-accent);
+    opacity: 0.6;
   }
 
   /* Le bloc de texte porte désormais deux lignes (nom de zone, appareil) :
@@ -1858,9 +2116,6 @@
     background: rgba(124, 58, 237, 0.06);
   }
 
-  .zone-popover-item:last-child {
-    border-radius: 0 0 12px 12px;
-  }
 
   /* Online/offline dot in the popover */
   .zone-dot {
@@ -2377,8 +2632,7 @@
 
   .transport-bar.compact .control-btn.small,
   .transport-bar.compact .signal-dot-btn,
-  .transport-bar.compact .audiophile-btn,
-  .transport-bar.compact .stop-btn {
+  .transport-bar.compact .audiophile-btn {
     display: none;
   }
 

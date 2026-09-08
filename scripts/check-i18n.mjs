@@ -129,6 +129,23 @@ console.log('i18n check: no hardcoded French in visible text.');
 
 const KEY_CALL = /\$?t\(\s*'([a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9_]+)+)'/g;
 
+/**
+ * 🔴 Une clé RANGÉE dans une table, pas appelée sur place.
+ *
+ * `KEY_CALL` ne voit que `$t('…')`. Or la barre latérale, les colonnes de
+ * pistes et les onglets de réglages déclarent leurs libellés dans un tableau —
+ * `{ view: 'queue', labelKey: 'nav.queue', … }` — et c'est le rendu, ailleurs,
+ * qui fait `$t(it.labelKey)`. La clé n'est donc jamais VUE par le contrôle.
+ *
+ * C'est ce trou qui a laissé partir « File d'attente » sans libellé
+ * (Fabien puis Bertrand, 07/09/2026) : la passe i18n avait remplacé un libellé
+ * littéral par une clé, et rien ne vérifiait que la clé existait. Contre-
+ * épreuve faite le 07/09 : `labelKey: 'nav.queueXYZ'` passait au VERT.
+ *
+ * Une clé morte ici ne lève pas : elle affiche son propre nom, ou rien.
+ */
+const KEY_FIELD = /\b(?:labelKey|cleI18n|titreCle|cleTitre)\s*:\s*'([a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9_]+)+)'/g;
+
 function localeKeys(locale) {
   const src = readFileSync(join('src', 'lib', 'locales', `${locale}.ts`), 'utf8');
   return new Set([...src.matchAll(/^\s*['"]([^'"]+)['"]\s*:/gm)].map((m) => m[1]));
@@ -151,7 +168,7 @@ const unknown = new Map();
 for (const file of sourceFiles('src')) {
   const lines = readFileSync(file, 'utf8').split('\n');
   lines.forEach((line, idx) => {
-    for (const m of line.matchAll(KEY_CALL)) {
+    for (const m of [...line.matchAll(KEY_CALL), ...line.matchAll(KEY_FIELD)]) {
       const key = m[1];
       const missing = [];
       if (!fr.has(key)) missing.push('fr');

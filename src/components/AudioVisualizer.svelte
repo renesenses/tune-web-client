@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { audioLevels, type AudioLevels } from '../lib/stores/audioLevels';
+  import { audioLevels, levelsForZone, type AudioLevels } from '../lib/stores/audioLevels';
   import { freqLabel, spectrumIsoTicks } from '../lib/spectrumScale';
   import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../lib/waveformHistory';
 
@@ -12,6 +12,14 @@
     sampleRate?: number | null;
     bitDepth?: number | null;
     format?: string | null;
+    /**
+     * Zone à suivre. Absent = la zone SÉLECTIONNÉE, comportement d'origine de
+     * la barre de transport et de « Lecture en cours ».
+     *
+     * Nommée, on suit CETTE zone : la bande « Zones d'écoute actives » en
+     * affiche plusieurs côte à côte, et elles ne jouent pas la même chose.
+     */
+    zoneId?: number | null;
   }
 
   let {
@@ -22,6 +30,7 @@
     sampleRate = null,
     bitDepth = null,
     format = null,
+    zoneId = null,
   }: Props = $props();
 
   let canvas: HTMLCanvasElement | undefined = $state();
@@ -71,13 +80,17 @@
 
   let realLevels: AudioLevels | null = $state(null);
   let lastRealUpdate = 0;
+  // FUSION 04/09/2026 : la source PAR ZONE vient de la ligne du client v2 (la
+  // bande « Zones d'écoute actives » en affiche plusieurs côte à côte), le
+  // garde-fou d'empilement vient de `main`. Les deux sont nécessaires.
+  const source = zoneId != null ? levelsForZone(zoneId) : audioLevels;
   // Dernière trame EMPILÉE, par identité d'objet. Le store est `derived` : il
   // ré-émet le même objet quand la zone courante change ou qu'une autre zone
   // publie. Sans ce garde-fou, une même fenêtre de 40 ms serait comptée
   // plusieurs fois et le tracé avancerait plus vite que le son.
   let lastPushed: AudioLevels | null = null;
   let historyZone: number | null = null;
-  const unsub = audioLevels.subscribe((l) => {
+  const unsub = source.subscribe((l) => {
     if (l.rms_left_db > -90 || l.rms_right_db > -90) {
       realLevels = l;
       lastRealUpdate = performance.now();

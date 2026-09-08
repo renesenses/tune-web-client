@@ -61,7 +61,7 @@ describe('garde plein volume transversale (#2445)', () => {
   });
 
   it('le POST PURE ne transmet le témoin que sur confirmation', () => {
-    const method = bodyOf(api, 'export function setAudiophileMode(', '// --- Streaming Quality ---');
+    const method = bodyOf(api, 'export function setAudiophileMode(', '// --- Config Export/Import ---');
     expect(method).toContain('confirmFullVolume ? { confirm_full_volume: true } : {}');
   });
 });

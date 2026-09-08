@@ -1,16 +1,13 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
   import type { EqBand } from '../lib/api';
+  import { PREREGLAGES_EQ, libellePrereglage } from '../lib/eqPrereglages';
 
-  const PRESETS = [
-    { value: 'flat', label: 'Flat' },
-    { value: 'bass_boost', label: 'Bass Boost' },
-    { value: 'treble_boost', label: 'Treble Boost' },
-    { value: 'vocal', label: 'Vocal' },
-    { value: 'rock', label: 'Rock' },
-    { value: 'jazz', label: 'Jazz' },
-    { value: 'classical', label: 'Classical' },
-  ];
+  // La table vient de `lib/eqPrereglages`, partagée avec l'écran Égaliseur et
+  // alignée sur `eq_presets::noms()` côté serveur. Celle qui vivait ici
+  // proposait « Vocal », un nom que le serveur n'a JAMAIS connu : inerte sur un
+  // ancien binaire, refusé en 400 par un récent (#532).
+  const PRESETS = PREREGLAGES_EQ;
 
   interface Props {
     /** Préréglage actif, ou '' quand aucun nom ne peut être affirmé. */
@@ -105,7 +102,7 @@
       {:else if isFlat}
         {$t('nowplaying.eqFlat')}
       {:else if current}
-        {PRESETS.find((p) => p.value === current)?.label ?? current}
+        {libellePrereglage(current)}
       {:else}
         <!-- Le serveur ne mémorise pas QUEL préréglage a produit cette courbe.
              Nommer au hasard serait retomber exactement dans le défaut qu'on
@@ -116,13 +113,13 @@
   {/if}
 
   <div class="eq-presets">
-    {#each PRESETS as preset}
+    {#each PRESETS as preset (preset.cle)}
       <button
         class="eq-preset"
-        class:active={current === preset.value}
+        class:active={current === preset.cle}
         disabled={locked}
         title={locked ? $t('nowplaying.eqPremium') : undefined}
-        onclick={() => onSelect(preset.value)}
+        onclick={() => onSelect(preset.cle)}
       >
         {preset.label}
       </button>

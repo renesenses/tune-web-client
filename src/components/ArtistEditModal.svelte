@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import { tip } from '../lib/tooltip';
-  import { artworkUrl } from '../lib/api';
+  import { artworkUrl, artworkSrc } from '../lib/api';
   import type { Artist } from '../lib/types';
   import { t } from '../lib/i18n';
 
@@ -142,7 +142,7 @@
             onkeydown={(e) => e.key === 'Enter' && openFileDialog()}
           >
             {#if imagePath}
-              <img src={artworkUrl(imagePath)} alt={artist.name} class="cover-preview round" />
+              <img src={artworkSrc(imagePath)} alt={artist.name} class="cover-preview round" />
             {:else}
               <div class="cover-placeholder round">
                 <span class="artist-initials">{initials(name)}</span>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { conditionsA } from './pileDeBlocs';
 
 /**
  * Le bouton EQ de l'écran « En écoute » ne doit JAMAIS dépendre de la piste.
@@ -9,7 +10,7 @@ import { resolve } from 'node:path';
  * displayTrack.id}` qui garde les crédits et les paroles, il disparaissait sur
  * une radio et sur toute piste absente de la bibliothèque (Bandcamp, ajout par
  * URL, streaming selon les cas). Or l'égaliseur est un réglage de ZONE :
- * `api.getEq(zone.id)` le lit, `api.setEqualizer(zone.id, ...)` l'écrit, et
+ * `api.getEq(zone.id)` le lit, `api.setEq(zone.id, ...)` l'écrit, et
  * côté serveur `GET/POST /api/v1/zones/{id}/eq` ne connaît aucun identifiant
  * de piste. La condition n'avait donc rien à garder — sinon l'auditeur de
  * radio, celui qui a le plus besoin de corriger son grave.
@@ -26,57 +27,13 @@ const SOURCE = readFileSync(
   'utf-8',
 );
 
-/** Lit l'expression d'un bloc à partir de `start`, jusqu'à son `}` fermant. */
-function readExpression(source: string, start: number): string {
-  let depth = 1;
-  for (let i = start; i < source.length; i++) {
-    const c = source[i];
-    if (c === '{') depth++;
-    else if (c === '}') {
-      depth--;
-      if (depth === 0) return source.slice(start, i).trim();
-    }
-  }
-  return source.slice(start).trim();
-}
-
 /**
- * Les conditions des blocs `{#if}` encore ouverts à l'indice `index`.
- * `{#each}` / `{#await}` / `{#key}` / `{#snippet}` sont empilés eux aussi :
- * sans ça, leur `{/each}` dépilerait un `{#if}` et la pile mentirait.
+ * L'analyseur de pile de blocs vit désormais dans `./pileDeBlocs`. Il a été
+ * écrit ici, puis extrait quand le même défaut a été retrouvé sur Sleep, DSP
+ * et Réveil (#534) : deux copies auraient dérivé, et la seconde aurait fini
+ * par garantir autre chose que celle-ci.
  */
-function conditionsAt(source: string, index: number): string[] {
-  const template = source.indexOf('</script>');
-  const from = template === -1 ? 0 : template;
-  const stack: { kind: string; condition: string }[] = [];
-  const re = /\{#(if|each|await|key|snippet)\b|\{:else if\b|\{:else\}|\{\/(if|each|await|key|snippet)\}/g;
-  re.lastIndex = from;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(source)) !== null) {
-    if (m.index >= index) break;
-    const token = m[0];
-    if (token.startsWith('{#')) {
-      const kind = m[1];
-      stack.push({
-        kind,
-        condition: kind === 'if' ? readExpression(source, m.index + token.length) : '',
-      });
-    } else if (token.startsWith('{:else if')) {
-      // Être dans cette branche, c'est ne PAS être dans la précédente : la
-      // condition précédente reste une garde, niée.
-      const top = stack[stack.length - 1];
-      if (top) {
-        top.condition = `!(${top.condition}) && ${readExpression(source, m.index + token.length)}`;
-      }
-    } else if (token === '{:else}') {
-      const top = stack[stack.length - 1];
-      if (top) top.condition = `!(${top.condition})`;
-    } else {
-      stack.pop();
-    }
-  }
-  return stack.map((b) => b.condition).filter((c) => c.length > 0);
-}
+const conditionsAt = conditionsA;
 
 /** Indice unique d'un repère dans la source, ou échec explicite. */
 function onlyIndexOf(needle: string): number {
@@ -129,7 +86,12 @@ describe('le bouton EQ de l’écran « En écoute »', () => {
     const start = SOURCE.indexOf('async function setEqPreset');
     expect(start).toBeGreaterThan(-1);
     const body = SOURCE.slice(start, SOURCE.indexOf('\n  }', start));
-    expect(body).toContain('api.setEqualizer(zone.id');
+    // `api.setEqualizer(zone.id, preset)` a été retirée (#532) : elle
+    // n'envoyait qu'un NOM, que le serveur recopiait dans sa réponse sans
+    // jamais l'appliquer. L'écriture passe par les BANDES, comme l'écran
+    // Égaliseur complet. Ce qui compte ici est inchangé : c'est la ZONE qui
+    // est écrite, jamais la piste.
+    expect(body).toContain('api.setEq(zone.id');
     expect(body).not.toContain('displayTrack');
     // La lecture aussi : `api.getEq(id)` où `id` vient de `zone?.id`.
     expect(SOURCE).toMatch(/const id = zone\?\.id;[\s\S]{0,400}api\.getEq\(id\)/);

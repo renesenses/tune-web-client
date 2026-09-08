@@ -1,0 +1,201 @@
+/**
+ * Favoris d'un objet LOCAL (album, piste, artiste) — le SEUL chemin.
+ *
+ * Le pendant de `streamingFavorites` pour la bibliothèque locale. Ce module
+ * existe pour la même raison, et pour éviter la même panne : `HeartButton`
+ * portait cette bascule dans son propre corps, si bien que toute autre surface
+ * voulant un cœur devait la réécrire.
+ *
+ * C'est exactement ce qui avait produit le défaut #1478 côté streaming — deux
+ * boutons, deux vérités, un cœur plein dans la barre et vide dans la liste.
+ * Le chantier des cinq icônes sur la pochette ajoute une deuxième surface :
+ * l'extraction se fait AVANT qu'elle diverge, pas après.
+ *
+ * ## Ce que fait la bascule
+ *
+ * Elle écrit d'abord dans le magasin, puis appelle l'API, et REVIENT en
+ * arrière si l'appel échoue. L'inverse — attendre le serveur avant de bouger —
+ * laisserait le cœur inerte le temps d'un aller-retour, et l'utilisateur
+ * cliquerait deux fois.
+ *
+ * Les magasins sont des `Set` en mémoire, remplis une fois par profil : sans
+ * eux, ouvrir la bibliothèque déclenchait un appel `/favorites/check` par
+ * ligne — 30 000 requêtes, et Chrome refusait avec
+ * `ERR_INSUFFICIENT_RESOURCES`.
+ */
+import { get } from 'svelte/store';
+import * as api from './api';
+import {
+  currentProfileId,
+  favoriteTrackIds,
+  favoriteAlbumIds,
+  favoriteArtistIds,
+  favoritePlaylistIds,
+  favoriteCollectionIds,
+  favoriteSmartCollectionIds,
+  favoriteFacetKeys,
+  facetFavKey,
+  loadProfiles,
+} from './stores/profile';
+
+/** Un objet local favorisable. Exactement UN champ est renseigné. */
+export interface RefLocale {
+  trackId?: number | null;
+  albumId?: number | null;
+  artistId?: number | null;
+  /**
+   * Le serveur traite la playlist comme un favori de plein droit : elle figure
+   * dans `LOCAL_ITEM_TYPES`, donc son identité est figée à l'ajout. Seul le
+   * client ne la proposait pas.
+   */
+  playlistId?: number | null;
+  /**
+   * DEUX champs, parce que les deux sortes de collection ont des espaces
+   * d'identifiants indépendants qui se recouvrent.
+   */
+  collectionId?: number | null;
+  smartCollectionId?: number | null;
+}
+
+/** Le magasin concerné, ou `null` si la référence est vide. */
+function magasin(ref: RefLocale) {
+  if (ref.trackId) return { store: favoriteTrackIds, id: ref.trackId, champ: 'track_id' as const };
+  if (ref.albumId) return { store: favoriteAlbumIds, id: ref.albumId, champ: 'album_id' as const };
+  if (ref.artistId)
+    return { store: favoriteArtistIds, id: ref.artistId, champ: 'artist_id' as const };
+  if (ref.playlistId)
+    return { store: favoritePlaylistIds, id: ref.playlistId, champ: 'playlist_id' as const };
+  if (ref.collectionId)
+    return { store: favoriteCollectionIds, id: ref.collectionId, champ: 'collection_id' as const };
+  if (ref.smartCollectionId)
+    return {
+      store: favoriteSmartCollectionIds,
+      id: ref.smartCollectionId,
+      champ: 'smart_collection_id' as const,
+    };
+  return null;
+}
+
+/**
+ * Cet objet est-il en favori ?
+ *
+ * Les trois ensembles sont passés par l'appelant, qui les lit avec `$` : c'est
+ * ce qui rend la réponse RÉACTIVE. Les lire ici avec `get()` donnerait une
+ * réponse juste une fois, puis figée.
+ */
+export function estFavoriLocal(
+  ref: RefLocale,
+  pistes: Set<number>,
+  albums: Set<number>,
+  artistes: Set<number>,
+  playlists: Set<number> = new Set(),
+  collections: Set<number> = new Set(),
+  collectionsSmart: Set<number> = new Set(),
+): boolean {
+  if (ref.trackId) return pistes.has(ref.trackId);
+  if (ref.albumId) return albums.has(ref.albumId);
+  if (ref.artistId) return artistes.has(ref.artistId);
+  if (ref.playlistId) return playlists.has(ref.playlistId);
+  if (ref.collectionId) return collections.has(ref.collectionId);
+  if (ref.smartCollectionId) return collectionsSmart.has(ref.smartCollectionId);
+  return false;
+}
+
+/**
+ * Bascule le favori. Rend le nouvel état, ou `null` si rien n'a pu être fait.
+ *
+ * Sans profil chargé, on en provoque un : `loadProfiles` crée « Default » s'il
+ * n'en existe aucun. Sans cela, le cœur était un clic sans effet et sans
+ * message — signalé par Elie.
+ */
+export async function basculerFavoriLocal(ref: RefLocale): Promise<boolean | null> {
+  const m = magasin(ref);
+  if (!m) return null;
+
+  let pid = get(currentProfileId);
+  if (!pid) {
+    try {
+      await loadProfiles();
+    } catch {
+      /* le profil reste absent : traité juste après */
+    }
+    pid = get(currentProfileId);
+  }
+  if (!pid) return null;
+
+  const avant = get(m.store).has(m.id);
+  const bascule = (ajouter: boolean) =>
+    m.store.update((s) => {
+      if (ajouter) s.add(m.id);
+      else s.delete(m.id);
+      return s;
+    });
+
+  bascule(!avant);
+  try {
+    const params = { [m.champ]: m.id } as api.FavoriteRef;
+    if (avant) await api.removeFavorite(pid, params);
+    else await api.addFavorite(pid, params);
+    return !avant;
+  } catch (e) {
+    bascule(avant); // retour en arrière : le magasin ne doit pas mentir
+    console.error('Bascule du favori local :', e);
+    return avant;
+  }
+}
+
+/**
+ * Bascule un favori de FACETTE (genre, année, label…). Rend le nouvel état,
+ * ou `null` si aucun profil n'a pu être obtenu.
+ *
+ * Sa propre table côté serveur (`favorite_facets`), sa propre route : une
+ * facette est désignée par sa VALEUR, pas par un identifiant — un label n'en a
+ * pas. `basculerFavoriLocal` ne peut donc pas la porter, d'où cette seconde
+ * fonction dans le même module plutôt qu'une troisième copie de la mécanique.
+ *
+ * Elle vivait dans le corps de `HeartButton`, exactement comme la bascule
+ * locale avant son extraction : la Bibliothèque du nouveau client est la
+ * DEUXIÈME surface à vouloir ce cœur, et c'est le moment de ne pas la
+ * réécrire (#1478 avait commencé ainsi).
+ *
+ * La valeur est ROGNÉE avant l'appel, comme `facetFavKey` rogne la clé : sans
+ * cela, une valeur bordée d'espaces s'écrirait au serveur sous une forme que
+ * le magasin ne saurait jamais rapprocher — cœur vide sur une facette pourtant
+ * en favori.
+ */
+export async function basculerFavoriFacette(
+  facette: string,
+  valeur: string,
+): Promise<boolean | null> {
+  const cle = facetFavKey(facette, valeur);
+
+  let pid = get(currentProfileId);
+  if (!pid) {
+    try {
+      await loadProfiles();
+    } catch {
+      /* le profil reste absent : traité juste après */
+    }
+    pid = get(currentProfileId);
+  }
+  if (!pid) return null;
+
+  const avant = get(favoriteFacetKeys).has(cle);
+  const bascule = (ajouter: boolean) =>
+    favoriteFacetKeys.update((s) => {
+      if (ajouter) s.add(cle);
+      else s.delete(cle);
+      return s;
+    });
+
+  bascule(!avant);
+  try {
+    if (avant) await api.removeFacetFavorite(pid, facette, valeur.trim());
+    else await api.addFacetFavorite(pid, facette, valeur.trim());
+    return !avant;
+  } catch (e) {
+    bascule(avant); // retour en arrière : le magasin ne doit pas mentir
+    console.error('Bascule du favori de facette :', e);
+    return avant;
+  }
+}

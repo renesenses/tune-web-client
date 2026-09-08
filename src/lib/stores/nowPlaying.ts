@@ -64,6 +64,48 @@ export function estLaPisteEnLecture(
   return false;
 }
 
+/**
+ * Ce qu'une LIGNE de liste doit annoncer pour la piste `t` (#1845).
+ *
+ * `null` : cette ligne n'est pas la lecture en cours, elle ne dit rien.
+ */
+export type EtatLigne = 'lecture' | 'pause' | 'arret' | null;
+
+/**
+ * L'état à afficher sur la ligne de `t` — reconnaissance ET état du transport.
+ *
+ * ## Pourquoi une fonction, et pas `id === $currentTrackId`
+ *
+ * Le nouveau client comparait les identifiants à la main, à quatre endroits.
+ * Deux conséquences, toutes deux visibles :
+ *
+ *  - une piste de STREAMING n'a pas d'identifiant local : aucune ligne n'était
+ *    marquée dans les résultats de recherche Qobuz ou Tidal, ni dans une
+ *    playlist de service. `estLaPisteEnLecture` connaît la seconde clé, la
+ *    paire `source` + `source_id` ;
+ *  - l'état du transport n'entrait pas dans le calcul : une piste MISE EN
+ *    PAUSE restait affichée comme si elle jouait. C'est précisément le cas que
+ *    demandait #1845 — « prévois le cas d'une piste en pause ».
+ *
+ * ## Pourquoi `stopped` reste marqué
+ *
+ * Une zone arrêtée pointe toujours sur sa piste, et c'est là que l'utilisateur
+ * a laissé son écoute. Retirer le repère à l'arrêt lui ferait perdre sa place
+ * au moment même où il la cherche — le défaut que ce ticket corrige. On le
+ * garde donc, mais on le NOMME autrement : « arrêtée », pas « en pause ».
+ */
+export function etatDeLaLigne(
+  t: { id?: number | null; source?: Source | null; source_id?: string | null },
+  currentId: number | null,
+  np: NowPlaying | null,
+  etat: PlaybackState | null | undefined,
+): EtatLigne {
+  if (!estLaPisteEnLecture(t, currentId, np)) return null;
+  if (etat === 'playing') return 'lecture';
+  if (etat === 'paused') return 'pause';
+  return 'arret';
+}
+
 /** Convertit le now-playing d'une zone en `Track` de bibliothèque.
  *
  *  À passer à tout code qui attend un `Track` : le serveur nomme l'id
