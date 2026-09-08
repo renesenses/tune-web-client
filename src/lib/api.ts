@@ -171,7 +171,7 @@ export async function apiFetch(path: string): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -190,7 +190,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -209,7 +209,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -223,7 +223,7 @@ export async function apiDelete(path: string): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   // Tolerate empty bodies (e.g. HTTP 204 No Content from delete_radio_favorite):
@@ -247,8 +247,10 @@ export interface ApiError extends Error {
 async function apiError(response: Response): Promise<ApiError> {
   let detail = `${response.status} ${response.statusText}`;
   let code: string | undefined;
+  let corps: unknown = null;
   try {
     const body = await response.json();
+    corps = body;
     if (body.detail) detail = body.detail;
     else if (body.message) detail = body.message;
     code = body.error;
@@ -256,6 +258,30 @@ async function apiError(response: Response): Promise<ApiError> {
   const err = new Error(detail) as ApiError;
   err.code = code;
   err.status = response.status;
+  // Le delai d'un 429 doit survivre jusqu'a l'ecran. `erreurDepuisReponse` le
+  // portait deja, pas ce chemin-ci : les LECTURES du support (liste des
+  // tickets, fil, reponse, marquage lu) passent par `fetchJSON`, et elles
+  // partagent le compteur d'envoi de mozaiklabs. Un 429 sur l'une d'elles
+  // arrivait donc sans `retry_after`, et l'ecran disait « reessaie plus tard »
+  // alors que le serveur avait nomme le delai (#2178).
+  err.retryAfter = retryAfterDe(response, corps);
+  return err;
+}
+
+/**
+ * Erreur sentinelle des aides de `fetch` — « Session expired », « premium_required ».
+ *
+ * Ces deux-la sont levees AVANT `apiError`, et l'etaient en `Error` nue : ni
+ * `status`, ni `code`. Un refus premium arrivait au magasin indistinguable
+ * d'une panne reseau, et chaque ecran devait le rattraper sur la CHAINE du
+ * message (`premiumRefus.ts`, `motifEchecEq.ts`). Le message reste identique —
+ * les appelants qui le comparent continuent de fonctionner — mais le statut
+ * et le code voyagent desormais avec (#2178).
+ */
+function erreurSentinelle(message: string, status: number, code?: string): ApiError {
+  const err = new Error(message) as ApiError;
+  err.status = status;
+  if (code) err.code = code;
   return err;
 }
 
@@ -282,7 +308,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();
-      throw new Error('Session expired');
+      throw erreurSentinelle('Session expired', 401);
     }
     if (response.status === 402) {
       // Ni le message du serveur ni le repli ne parlaient la langue de
@@ -291,7 +317,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       // en anglais — et le repli etait du francais code en dur, montre tel
       // quel a un anglophone. Les deux sont le meme defaut (#2419).
       notifications.error(get(t)('premium.required'));
-      throw new Error('premium_required');
+      throw erreurSentinelle('premium_required', 402, 'premium_required');
     }
     const err = await apiError(response);
     if (response.status >= 500) {
@@ -357,7 +383,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();
-      throw new Error('Session expired');
+      throw erreurSentinelle('Session expired', 401);
     }
     const err = await apiError(response);
     if (response.status >= 500) {
@@ -978,7 +1004,26 @@ export function listStereoPairs() {
 // Comme `addToQueue` : les champs descriptifs acceptent `null`, que le serveur
 // reçoit en `Option<String>`. Le type `Track` les déclare `string | null`, et
 // sans cela chaque appelant devait les blanchir en `undefined`.
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number }) {
+/**
+ * Lance une lecture sur une zone.
+ *
+ * `context_type` / `context_id` disent CE QUE l'auditeur a demandé, et non ce
+ * qui part dans la file. Le serveur les enregistre dans `listen_history` et
+ * s'en sert pour « Continuer l'écoute » — c'est la règle posée par FabienM
+ * (fil forum 1557) : « le type pris en compte dans ces rubriques dépend de
+ * l'endroit où l'utilisateur a cliqué sur Lire ».
+ *
+ * Il sait DÉDUIRE `album`, `playlist` et `track` du reste du corps
+ * (`tune-server/src/routes/playback.rs:544-611`). Mais `artist` et `label` ne
+ * s'y devinent pas : une discographie part en liste nue de `track_ids`, que
+ * rien ne distingue d'une sélection quelconque. Les annoncer est la SEULE
+ * voie, et le serveur l'attendait sans qu'aucun client la prenne (#2442).
+ *
+ * Le serveur refuse toute valeur hors des cinq qu'il connaît (`track`,
+ * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
+ * libre se remplir de variantes.
+ */
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1833,8 +1878,13 @@ export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string;
   });
 }
 
+/** ⚠️ Le serveur rend `{ "status": "ok", "track_id": <id> }`, PAS un `Track` —
+ *  `tune-server/src/routes/metadata.rs:607`. Le type de retour dit ce qui
+ *  arrive vraiment : il était déclaré `Track`, et l'appelant appariait sa
+ *  liste sur `updated.id`, un champ jamais envoyé (#3638). Pour rafraîchir un
+ *  affichage, relire la piste avec `getTrack`. */
 export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number; genre?: string; year?: string }) {
-  return fetchJSON<Track>(`${BASE}/library/tracks/${id}`, {
+  return fetchJSON<{ status: string; track_id: number }>(`${BASE}/library/tracks/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -3410,6 +3460,12 @@ function favItem(p: FavoriteRef): { item_type: FavoriteItemType; item_id: number
   return null;
 }
 
+/** La piste relue depuis la base. C'est la SEULE route qui rende un `Track`
+ *  complet : les trois points d'entrée d'édition (`PUT /library/tracks/{id}`,
+ *  `PATCH /metadata/tracks/{id}`, `POST /metadata/tracks/{id}/edit`) sont
+ *  servis par le même gestionnaire `edit_track` et ne rendent qu'un accusé de
+ *  réception. Un écran se rafraîchit donc en relisant, jamais en croyant la
+ *  réponse de l'écriture (#3638). */
 export function getTrack(id: number) {
   return fetchJSON<import('./types').Track>(`${BASE}/library/tracks/${id}`);
 }
@@ -5365,7 +5421,7 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}/support/tickets`, { method: 'POST', headers, body: form });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) {
     let message = `${resp.status}`;
     let corps: unknown = null;
@@ -5587,7 +5643,7 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   let json: any = null;
   try { json = await resp.json(); } catch { /* non-JSON body */ }
   if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
