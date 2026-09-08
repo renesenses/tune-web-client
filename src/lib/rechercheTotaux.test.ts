@@ -116,10 +116,18 @@ describe('#3189 — la vue lit ces champs', () => {
   });
 
   it('un « voir plus » demande la suite locale par offset', () => {
-    expect(vue).toMatch(/laSuiteExiste\(results\)/);
+    // #3623 : le bouton s'est généralisé aux TROIS familles, et le rang est
+    // tenu par famille (`rangSuite`) — le serveur n'ayant qu'un `offset`
+    // partagé, le relire dans la réponse ferait sauter une page entière à la
+    // deuxième famille chargée.
+    //
+    // 🔴 La forme exacte du câblage ne se lit plus ici :
+    // `rechercheComptesAlbumsArtistes3623.test.ts` MONTE l'écran et vérifie
+    // l'URL RÉELLEMENT demandée, ce qu'une garde textuelle ne sait pas faire.
+    expect(vue).toMatch(/ilResteAVoir\('tracks'\)/);
     expect(vue).toMatch(/\$t\('search\.loadMore'\)/);
     expect(vue).toMatch(
-      /api\.federatedSearch\(searchQuery\.trim\(\), \['local'\], api\.SEARCH_PAGE_LIMIT, rangDeLaSuite\(results\)\)/,
+      /api\.federatedSearch\(searchQuery\.trim\(\), \['local'\], api\.SEARCH_PAGE_LIMIT, rangSuite\[famille\]\)/,
     );
   });
 });
