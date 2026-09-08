@@ -256,6 +256,9 @@ export default {
   'lyrics.source.lrc': 'Source: .lrc file',
   'lyrics.source.tag': 'Source: file tag',
   'lyrics.source.lrclib': 'Source: LRCLIB (online)',
+  'lyrics.empty.none': 'No lyrics found for this track.',
+  'lyrics.empty.onlineOff': 'Online lookup is off: Settings › Library › Online lyrics (LRCLIB).',
+  'lyrics.empty.error': 'Could not fetch the lyrics.',
   'plugins.docFallback': '# Plugin documentation\n\nSee the full documentation at [mozaiklabs.fr]({url}).',
   // AI chat (Tune AI assistant)
   'ai.fabTitle': 'Drag to move · click to ask Tune…',

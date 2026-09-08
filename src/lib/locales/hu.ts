@@ -241,6 +241,9 @@ export default {
   "lyrics.source.lrc": "Forrás: .lrc fájl",
   "lyrics.source.tag": "Forrás: fájlcímke",
   "lyrics.source.lrclib": "Forrás: LRCLIB (online)",
+  "lyrics.empty.none": "Nem található dalszöveg ehhez a számhoz.",
+  "lyrics.empty.onlineOff": "Az online keresés ki van kapcsolva: Beállítások › Könyvtár › Online dalszövegek (LRCLIB).",
+  "lyrics.empty.error": "A dalszöveget nem sikerült lekérni.",
   "plugins.docFallback": "# Bővítmény dokumentációja\n\nA teljes dokumentáció itt olvasható: [mozaiklabs.fr]({url}).",
   // MI-csevegés (Tune MI-asszisztens)
   "ai.fabTitle": "Húzd a mozgatáshoz · kattints, és kérdezd a Tune-t…",
