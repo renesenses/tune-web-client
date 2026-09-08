@@ -207,14 +207,14 @@
       </div>
       <div class="actions">
         <button class="play" onclick={() => playFrom(0)}>
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>Lire
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$tr('common.play' as any)}
         </button>
         <button class="ghost" onclick={lireAleatoire} disabled={melangeEnCours}
           title={$tr('library.shuffle')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$tr('library.shuffle')}
         </button>
         <button class="ghost" onclick={addQueue}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>Ajouter à la file
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>{$tr('v2.ms.addToQueue' as any)}
         </button>
         <!-- Le CŒUR d'abord : il vaut pour les deux sortes de playlist, la
              locale par son identifiant, celle d'un service par la paire
