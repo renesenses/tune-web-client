@@ -1578,6 +1578,7 @@ export default {
   "library.bioLevelComplete": "Complet",
   "library.bioLevelFull": "Detaliat",
   "library.noAlbumNote": "Nicio notă disponibilă pentru acest album",
+  "library.bioLoadError": "Nu s-au putut încărca notele albumului.",
   "library.ratingNotePlaceholder": "Notă personală...",
   "library.ratingNoteNeedsStars": "Evaluează albumul pentru a adăuga o notă",
   "library.quickFav": "Favorit rapid",

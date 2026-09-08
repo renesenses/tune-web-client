@@ -1568,6 +1568,7 @@ export default {
   "library.bioLevelComplete": "Vollständig",
   "library.bioLevelFull": "Detailliert",
   "library.noAlbumNote": "Keine Notiz für dieses Album verfügbar",
+  "library.bioLoadError": "Die Albumnotizen konnten nicht geladen werden.",
   "library.ratingNotePlaceholder": "Persönliche Notiz…",
   "library.ratingNoteNeedsStars": "Album bewerten, um eine Notiz hinzuzufügen",
   "library.quickFav": "Schnellfavorit",

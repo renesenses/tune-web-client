@@ -1763,6 +1763,7 @@ export default {
   "library.bioLevelComplete": "Teljes",
   "library.bioLevelFull": "Részletes",
   "library.noAlbumNote": "Nincs elérhető jegyzet ehhez az albumhoz",
+  "library.bioLoadError": "Az album ismertetője nem tölthető be.",
   "library.ratingNotePlaceholder": "Személyes jegyzet...",
   "library.ratingNoteNeedsStars": "Értékeld az albumot a jegyzet hozzáadásához",
   "library.quickFav": "Gyors kedvenc",
