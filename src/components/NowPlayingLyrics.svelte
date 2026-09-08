@@ -9,6 +9,13 @@
     lyrics: string | null;
     syncedLines: { time: number; text: string }[];
     karaokeMode: boolean;
+    /**
+     * #719 — la position à utiliser pour le surlignage, quand la zone n'en
+     * fournit pas. Sur une RADIO, `seekPositionMs` reste à zéro pour toujours
+     * (mesuré sur le .18) : la ligne ne bougeait jamais. Le parent calcule
+     * alors la position depuis l'ancrage `metadata_age_ms`.
+     */
+    positionMs?: number | null;
     /** Provenance annoncée par le serveur : "lrc", "tag" ou "lrclib". */
     source: string | null;
     /** Motif de l'absence de paroles, quand il n'y en a pas. `null` tant que
@@ -16,7 +23,11 @@
     miss?: LyricsMiss | null;
     onToggleKaraoke: () => void;
   }
-  let { loading, lyrics, syncedLines, karaokeMode, source, miss = null, onToggleKaraoke }: Props =
+  // Fusion 08/09 : `miss` vient de main (#3577, le panneau qui s'ouvrait
+  // blanc), `positionMs` de cette branche (#719, le karaoké sur une radio).
+  // Les deux sont nécessaires — l'un dit POURQUOI il n'y a pas de paroles,
+  // l'autre OÙ en est celle qu'on a.
+  let { loading, lyrics, syncedLines, karaokeMode, source, miss = null, onToggleKaraoke, positionMs = null }: Props =
     $props();
 
   let karaokePanel = $state<HTMLElement | null>(null);
@@ -53,7 +64,9 @@
 
   let currentLine = $derived.by(() => {
     if (!karaokeMode || syncedLines.length === 0) return -1;
-    const pos = $seekPositionMs ?? 0;
+    // #719 : `positionMs` l'emporte quand le parent en fournit un — c'est le
+    // cas sur une radio, où la position de zone vaut zéro en permanence.
+    const pos = positionMs ?? $seekPositionMs ?? 0;
     let idx = -1;
     for (let i = 0; i < syncedLines.length; i++) {
       if (syncedLines[i].time <= pos) idx = i;

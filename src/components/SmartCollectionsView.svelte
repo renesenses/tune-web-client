@@ -299,7 +299,7 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" role="button" tabindex="0" onclick={() => navigateToAlbum(alb)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigateToAlbum(alb); }}>
               <div class="album-card-art">
-                <img class="album-cover-img" src={api.artworkUrl(alb.cover_path, 200)} alt={alb.title} loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.display='none')} />
+                <img class="album-cover-img" src={api.artworkSrc(alb.cover_path, 200)} alt={alb.title} loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.display='none')} />
               </div>
               <span class="album-card-title truncate" title={alb.title}>{alb.title}</span>
               {#if alb.artist_name}
