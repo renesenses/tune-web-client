@@ -44,7 +44,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
       </div>
       <div class="meta">
-        <div class="ti idle">Rien en lecture</div>
+        <div class="ti idle">{$tr('v2.lbl.nothingPlaying' as any)}</div>
         <div class="ar">{$tr('v2.player.pickSomething' as any)}</div>
       </div>
     {:else}

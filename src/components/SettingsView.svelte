@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { nomFonctionnalite } from '../lib/nomFonctionnaliteLicence';
   import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
   import { dateSimple } from '../lib/dates';
@@ -6205,7 +6206,10 @@ function setSettingsLevel(level: SettingsLevel) {
                 onkeydown={(e) => { if (clickable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openFeature(key); } }}
               >
                 <span class="license-feature-icon">{state === 'avail' ? '✓' : state === 'unavail' ? '✕' : '🔒'}</span>
-                <span class="license-feature-name">{feat.display_name}</span>
+                <!-- #798 — le NOM traduit par le code, `display_name` en repli.
+                     Un prospect a conclu que DLNA et AirPlay 2 étaient payants
+                     devant vingt-cinq lignes anglaises frappées d'un cadenas. -->
+                <span class="license-feature-name">{nomFonctionnalite(key, feat.display_name, $t as any)}</span>
               </div>
             {/each}
           </div>

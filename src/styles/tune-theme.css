@@ -323,3 +323,30 @@ body {
   grid-column: 1 / -1 !important;
   margin-bottom: 0 !important;
 }
+
+/* La bulle qu'ouvre `use:bulleTexte` (lib/infobulleTexte.ts) quand un texte
+   coupé prend le focus AU CLAVIER. L'infobulle native, elle, ne s'ouvre qu'au
+   survol : sans cette bulle, un utilisateur voyant qui navigue au clavier n'a
+   aucun geste pour lire la fin d'un titre tronqué.
+   Elle est posée sur `<body>` — un ancêtre en `overflow: hidden` la couperait
+   sinon exactement comme le texte qu'elle vient réparer. Fond OPAQUE, pour la
+   raison déjà établie par SettingHint (tune-server-rust#1875). */
+.bulle-texte-coupe {
+  position: fixed;
+  z-index: 2000;
+  max-width: min(520px, 80vw);
+  padding: 6px 10px;
+  background: var(--tune-surface, #2a2a35);
+  color: var(--tune-text, #f0f0f5);
+  border: 1px solid var(--tune-border, #3a3a45);
+  border-radius: var(--radius-sm, 6px);
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  line-height: 1.4;
+  /* `pre-line` : une ligne de liste porte souvent deux textes coupés (le titre
+     et l'artiste). La bulle les dit tous les deux, un par ligne, plutôt que de
+     laisser le second chasser le premier. */
+  white-space: pre-line;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}

@@ -209,8 +209,8 @@
 <section class="v2-zones tune-v2">
   <header class="top">
     <div>
-      <div class="eyebrow">Destinations sonores</div>
-      <h1>Zones</h1>
+      <div class="eyebrow">{$t('v2.lbl.audioOutputs' as any)}</div>
+      <h1>{$t('nav.zonemanager' as any)}</h1>
     </div>
     {#if creating}
       <div class="newz">
@@ -222,7 +222,7 @@
     {:else}
       <button class="add" onclick={() => (creating = true)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        Nouvelle zone
+        {$t('zone.newZone' as any)}
       </button>
     {/if}
   </header>
@@ -269,7 +269,7 @@
 
             {#if showExpert}
               <span class="flags">
-                {#if z.fixed_volume}<span class="fl">Volume fixe</span>{/if}
+                {#if z.fixed_volume}<span class="fl">{$t('v2.lbl.fixedVolume' as any)}</span>{/if}
                 {#if z.max_sample_rate}<span class="fl">≤ {Math.round(z.max_sample_rate / 100) / 10} kHz</span>{/if}
                 {#if z.dsd_mode && z.dsd_mode !== 'auto'}<span class="fl">DSD {z.dsd_mode}</span>{/if}
               </span>
@@ -286,7 +286,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
               </button>
               {#if confirmDelete === z.id}
-                <button class="danger armed" onclick={(e) => doDelete(z, e)} disabled={busy}>Confirmer</button>
+                <button class="danger armed" onclick={(e) => doDelete(z, e)} disabled={busy}>{$t('v2.meta.confirm' as any)}</button>
                 <button onclick={(e) => askDelete(z, e)} aria-label="Annuler">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                 </button>
