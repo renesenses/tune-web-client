@@ -374,6 +374,7 @@ export default {
   // Library
   'library.title': 'Biblioteca',
   'library.scopeLoadError': 'No se pudo cargar la carpeta {d}: la lista queda vacía.',
+  'library.albumTracksLoadError': 'No se pudieron cargar las pistas de este álbum: la lista queda vacía.',
   'library.searchPlaceholder': 'Buscar...',
   'library.noAlbums': 'Sin álbumes en la biblioteca',
   'library.noArtists': 'Sin artistas en la biblioteca',

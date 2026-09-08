@@ -374,6 +374,7 @@ export default {
   // Library
   'library.title': '媒体库',
   'library.scopeLoadError': '无法加载文件夹 {d}：列表保持为空。',
+  'library.albumTracksLoadError': '无法加载该专辑的曲目：列表保持为空。',
   'library.searchPlaceholder': '搜索...',
   'library.noAlbums': '媒体库中无专辑',
   'library.noArtists': '媒体库中无艺术家',
