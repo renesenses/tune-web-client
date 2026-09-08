@@ -139,6 +139,15 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'devices',    titleKey: 'settings.tabDevices',       from: 'devices',  min: 'intermediate' },
       { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'intermediate', keywords: ['par zone', 'gapless', 'volume fixe'] },
+      /**
+       * Sauvegarde et récupération des réglages d'appareil — Bertrand,
+       * 08/09/2026 : « Et je veux un bouton sur l'UI de Tune sauvegarder mes
+       * réglages en local ! »
+       *
+       * Sous « Réglages par zone », parce que c'est CE qu'elle sauvegarde.
+       */
+      { id: 'sauvegardeReglages', titleKey: 'v2.dev.backupTitle', from: 'devices', min: 'intermediate',
+        keywords: ['sauvegarde', 'backup', 'export', 'import', 'restaurer', 'récupérer', 'fichier'] },
     ],
   },
   {
