@@ -2196,7 +2196,7 @@
             <button class="qs-item-play" onclick={() => qsPlayFromPosition(index)}>
               <span class="qs-index">{index + 1}</span>
               {#if queueTrack.cover_path}
-                <img src={api.artworkUrl(queueTrack.cover_path)} alt="" width="36" height="36" loading="lazy" style="border-radius:5px;object-fit:cover;flex-shrink:0" />
+                <img src={api.artworkSrc(queueTrack.cover_path)} alt="" width="36" height="36" loading="lazy" style="border-radius:5px;object-fit:cover;flex-shrink:0" />
               {:else}
                 <AlbumArt albumId={queueTrack.album_id} size={36} alt={queueTrack.title} />
               {/if}

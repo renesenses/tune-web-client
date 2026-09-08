@@ -3617,6 +3617,27 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
   return `${BASE}/library/artwork/${encodeURIComponent(filename)}${sizeParam}`;
 }
 
+/**
+ * 🔴 La même adresse, mais `undefined` quand il n'y a pas de pochette — #201.
+ *
+ * `artworkUrl` rend la **chaîne vide** quand le chemin est absent. C'est utile
+ * pour un `{#if}`, et catastrophique dans un attribut : `<img src="">` fait
+ * **redemander la page courante** au navigateur. C'est exactement ce que
+ * l'exploration automatique rapportait — « Image(s) injoignable(s) sous
+ * localhost:8888// — ex. `/` », vue Bibliothèque, deux occurrences par
+ * passage — et il y avait DIX-HUIT `<img src={artworkUrl(…)}>` sans garde dans
+ * le dépôt.
+ *
+ * Svelte omet un attribut dont la valeur est `undefined` : la balise part alors
+ * sans `src`, et le navigateur ne demande rien du tout.
+ *
+ * Le placeholder, lui, reste l'affaire de l'appelant — `AlbumArt` le fait déjà
+ * proprement, avec en plus un `onerror` pour les pochettes qui répondent 404.
+ */
+export function artworkSrc(coverPath: string | null | undefined, size?: number): string | undefined {
+  return artworkUrl(coverPath, size) || undefined;
+}
+
 // --- Album cover cache ---
 
 const albumCoverCache = new Map<number, string | null>();
