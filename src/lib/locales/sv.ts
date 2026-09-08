@@ -1521,6 +1521,7 @@ export default {
   "library.bioLevelComplete": "Fullständig",
   "library.bioLevelFull": "Detaljerad",
   "library.noAlbumNote": "Ingen anteckning tillgänglig för det här albumet",
+  "library.bioLoadError": "Det gick inte att läsa in albumets noter.",
   "library.ratingNotePlaceholder": "Personlig anteckning...",
   "library.ratingNoteNeedsStars": "Betygsätt albumet för att lägga till en anteckning",
   "library.quickFav": "Snabbfavorit",

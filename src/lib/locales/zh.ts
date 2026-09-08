@@ -1568,6 +1568,7 @@ export default {
   "library.bioLevelComplete": "完整",
   "library.bioLevelFull": "详细",
   "library.noAlbumNote": "此专辑没有可用的笔记",
+  "library.bioLoadError": "无法加载专辑简介。",
   "library.ratingNotePlaceholder": "个人笔记…",
   "library.ratingNoteNeedsStars": "为专辑评分后即可添加笔记",
   "library.quickFav": "快速收藏",

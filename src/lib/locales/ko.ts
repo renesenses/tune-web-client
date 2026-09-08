@@ -1543,6 +1543,7 @@ export default {
   "library.bioLevelComplete": "전체",
   "library.bioLevelFull": "상세",
   "library.noAlbumNote": "이 앨범에 사용할 수 있는 메모 없음",
+  "library.bioLoadError": "앨범 소개를 불러올 수 없습니다.",
   "library.ratingNotePlaceholder": "개인 메모...",
   "library.ratingNoteNeedsStars": "메모를 추가하려면 앨범을 평가하세요",
   "library.quickFav": "빠른 즐겨찾기",
