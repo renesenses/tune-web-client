@@ -147,7 +147,7 @@
     // d'un raccourci, fiche déjà ouverte. La position lue serait alors celle
     // d'une fiche (~0) et écraserait celle de la liste — le piège relevé par
     // la PR #615 sur `selectArtistDetail`.
-    if (!selectedPlaylist && !selectedStreamingPl) saveDetailScroll('playlists', viewEl);
+    if (!selectedPlaylist && !selectedStreamingPl) saveDetailScroll('playlists', () => viewEl);
     selectedPlaylist = pl;
     loading = true;
     try {
@@ -159,7 +159,7 @@
   }
 
   async function selectStreamingPlaylist(service: string, pl: StreamingPlaylist) {
-    if (!selectedPlaylist && !selectedStreamingPl) saveDetailScroll('playlists', viewEl);
+    if (!selectedPlaylist && !selectedStreamingPl) saveDetailScroll('playlists', () => viewEl);
     selectedStreamingPl = pl;
     selectedService = service;
     loading = true;
@@ -177,7 +177,7 @@
     playlistTracks = [];
     streamingPlTracks = [];
     selectedService = '';
-    restoreDetailScroll('playlists', viewEl);
+    restoreDetailScroll('playlists', () => viewEl);
   }
 
   // Shortcut capture/restore for a SPECIFIC playlist (Elie): expose the open
@@ -416,7 +416,15 @@
   }
 </script>
 
-<div class="playlists-view" bind:this={viewEl}>
+<!--
+  Même règle que Paramètres (#1282) et Diagnostics (#463) : l'en-tête est un
+  FRÈRE du conteneur qui défile (`.playlists-body`), jamais son enfant. Ici
+  rien n'était épinglé — d'où « Playlists idem Firefox » chez Jean Valjean, ET
+  le même symptôme sous Edge, moteur Chromium (#2112). Un `position: sticky`
+  n'aurait rien réglé sous Firefox de toute façon : cette vue est un scroller
+  `flex-direction: column`.
+-->
+<div class="playlists-view">
   {#if selectedPlaylist}
     <!-- Local playlist detail -->
     <div class="detail-header">
@@ -447,6 +455,7 @@
         </button>
       {/if}
     </div>
+    <div class="playlists-body">
     {#if loading}
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
     {:else}
@@ -494,6 +503,7 @@
         {/each}
       </div>
     {/if}
+    </div>
 
   {:else if selectedStreamingPl}
     <!-- Streaming playlist detail -->
@@ -526,6 +536,7 @@
         </button>
       {/if}
     </div>
+    <div class="playlists-body">
     {#if selectedStreamingPl.cover_path}
       <div class="streaming-pl-cover">
         <AlbumArt coverPath={selectedStreamingPl.cover_path} size={200} alt={selectedStreamingPl.name} />
@@ -560,6 +571,7 @@
         {/each}
       </div>
     {/if}
+    </div>
 
   {:else}
     <!-- Source icons bar + playlist list -->
@@ -582,6 +594,7 @@
       </div>
     </div>
 
+    <div class="playlists-body" bind:this={viewEl}>
     {#if showCreate}
       <div class="create-form">
         <input type="text" placeholder={$tr('playlist.name')} bind:value={newName} />
@@ -695,11 +708,15 @@
         </div>
       {/if}
     {/if}
+    </div>
   {/if}
 </div>
 
 <style>
-  .playlists-view { height: 100%; display: flex; flex-direction: column; padding: var(--space-lg) 28px; overflow-y: auto; }
+  /* La vue borne la hauteur, `.playlists-body` porte l'ascenseur : l'en-tête
+     posé au-dessus est hors de ce qui défile, il ne peut plus partir. */
+  .playlists-view { height: 100%; display: flex; flex-direction: column; padding: var(--space-lg) 28px; overflow: hidden; }
+  .playlists-body { flex: 1; min-height: 0; overflow-y: auto; }
   .playlists-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); }
   .playlists-header h2 { font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; }
   .playlists-header-right { display: flex; align-items: center; gap: var(--space-md); }

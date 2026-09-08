@@ -111,26 +111,32 @@ describe('PlaylistsView mémorise et rétablit la position de sa liste', () => {
     );
   });
 
-  it('le conteneur `.playlists-view` est référencé', () => {
-    expect(source).toMatch(/class="playlists-view"[^>]*bind:this=\{viewEl\}/);
+  // #2112 : le conteneur qui défile n'est plus la RACINE de la vue mais
+  // `.playlists-body`, pour que l'en-tête soit hors de sa portée et ne parte
+  // plus au défilement. Il naît donc avec la branche « liste » — d'où la cible
+  // passée en FONCTION, résolue au moment où l'élément existe. Ce que la
+  // position de la liste doit vraiment tenir est monté et joué dans
+  // `enTetesAncres2112.test.ts`.
+  it('le conteneur `.playlists-body` est référencé', () => {
+    expect(source).toMatch(/class="playlists-body"[^>]*bind:this=\{viewEl\}/);
   });
 
   it('`selectPlaylist` mémorise, sous garde', () => {
     const corps = corpsDe(source, 'async function selectPlaylist');
     expect(corps).toContain('api.getPlaylistTracks');
-    expect(corps).toMatch(/if\s*\(!selectedPlaylist[^)]*\)\s*saveDetailScroll\('playlists', viewEl\)/);
+    expect(corps).toMatch(/if\s*\(!selectedPlaylist[^)]*\)\s*saveDetailScroll\('playlists', \(\) => viewEl\)/);
   });
 
   it('`selectStreamingPlaylist` mémorise, sous garde', () => {
     const corps = corpsDe(source, 'async function selectStreamingPlaylist');
     expect(corps).toContain('api.getStreamingPlaylistTracks');
-    expect(corps).toMatch(/saveDetailScroll\('playlists', viewEl\)/);
+    expect(corps).toMatch(/saveDetailScroll\('playlists', \(\) => viewEl\)/);
   });
 
   it('`goBack` rétablit', () => {
     const corps = corpsDe(source, 'function goBack');
     expect(corps).toContain('selectedPlaylist = null');
-    expect(corps).toContain("restoreDetailScroll('playlists', viewEl)");
+    expect(corps).toContain("restoreDetailScroll('playlists', () => viewEl)");
   });
 });
 
