@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { rangeableEnPlaylist } from '../lib/pisteFile';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, pendingStreamingPlaylist, streamingAlbumOrigin, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
   import { formatAnneeAlbum } from '../lib/formats';
   import { tip } from '../lib/tooltip';
@@ -1150,11 +1152,12 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-            {#if onAddToPlaylist && (t.id || t.source_id)}
+            {#if onAddToPlaylist && rangeableEnPlaylist(t)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
               </button>
             {/if}
+            <MenuPisteV1 piste={t} />
           </div>
         {/each}
       </div>
@@ -1232,11 +1235,12 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-            {#if onAddToPlaylist && (t.id || t.source_id)}
+            {#if onAddToPlaylist && rangeableEnPlaylist(t)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
               </button>
             {/if}
+            <MenuPisteV1 piste={t} />
           </div>
         {/each}
       </div>
@@ -1389,6 +1393,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+                <MenuPisteV1 piste={t} />
               </div>
             {/each}
           </div>
@@ -1413,6 +1418,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+                <MenuPisteV1 piste={t} />
               </div>
             {/each}
           </div>
@@ -1437,6 +1443,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+                <MenuPisteV1 piste={t} />
               </div>
             {/each}
           </div>
@@ -1608,11 +1615,12 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-              {#if onAddToPlaylist && (t.id || t.source_id)}
+              {#if onAddToPlaylist && rangeableEnPlaylist(t)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
                 </button>
               {/if}
+              <MenuPisteV1 piste={t} />
             </div>
           {/each}
         </div>

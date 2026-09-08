@@ -107,3 +107,24 @@ export function corpsDeFileListe(liste: Track[], position?: number): AddToQueueR
     ...rang,
   };
 }
+/**
+ * Cette piste peut-elle entrer dans une liste de lecture LOCALE ?
+ *
+ * 🔴 `renesenses/tune-server-rust#1848`. La reponse est NON pour une piste de
+ * service, et le serveur ne peut pas en decider autrement :
+ * `tune-server/src/routes/playlists.rs` declare, sur la tete de
+ * `renesenses/tune-server-rust` au 07/09/2026,
+ *
+ *     struct AddTracks { track_ids: Vec<i64>, position: Option<i64> }
+ *
+ * et `add_tracks` ne lit que `body.track_ids`. Le client envoie pourtant
+ * `streaming_tracks` (`api.addPlaylistTracks`) : serde l'ecarte en silence, la
+ * route repond **201 Created**, et le modal annonce « ajoutee » sur une liste
+ * restee vide. Ce n'est pas non plus reparable en stockant la piste —
+ * `playlist_tracks.track_id` est `NOT NULL REFERENCES tracks(id)`.
+ *
+ * Le geste est donc ABSENT, pas grise : c'est ce que #1848 tranche.
+ */
+export function rangeableEnPlaylist(t: Pick<Track, 'id' | 'source'>): boolean {
+  return estPisteLocale(t);
+}
