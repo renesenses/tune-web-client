@@ -22,6 +22,12 @@
     onSelect: (field: string, value: string) => void;
     /** Décoche toute une facette d'un geste. */
     onClearFacet?: (field: string) => void;
+    /** Facettes dont le plafond de valeurs a été levé pour cette session
+     *  (#2131). Le rail ne décide pas : il signale le geste, le parent
+     *  redemande la facette entière au serveur. */
+    sansPlafond?: string[];
+    /** « Tout afficher » sur une facette tronquée par le plafond. */
+    onToutAfficher?: (field: string) => void;
     // Folder facet (drill-down) — supplied by OxygenView from /library/folder-facet.
     folderCrumbs?: FolderCrumb[];
     folderChildren?: FolderChild[];
@@ -30,8 +36,52 @@
   }
   let {
     tracks, serverFacets, facets, limit = 200, selected, onSelect, onClearFacet = () => {},
+    sansPlafond = [], onToutAfficher = () => {},
     folderCrumbs = [], folderChildren = [], folderLoading = false, onFolderDrill = () => {},
   }: Props = $props();
+
+  // ---- Plafond de valeurs (#2131) -----------------------------------------
+  //
+  // LE CHEMIN QU'ON RACCOURCIT ICI, geste par geste.
+  //
+  // `preferences.oxygenFacetLimit` vaut 200 par défaut, et c'est le serveur qui
+  // tronque : sur la bibliothèque de Bertrand — 8 873 artistes — la facette
+  // Artistes rend les 200 plus fournis, et RIEN d'autre. La bande A→Z ne
+  // rattrape pas : elle est construite à partir de ce que le rail a reçu, donc
+  // une lettre absente des 200 n'existe même pas comme bouton. La valeur
+  // cherchée n'est pas « loin dans la liste », elle est INATTEIGNABLE depuis
+  // le rail.
+  //
+  // Pour l'atteindre, le seul chemin qui existait passait par les Réglages :
+  //
+  //   1. barre latérale → Paramètres
+  //   2. onglet Bibliothèque
+  //   3. si le niveau d'affichage n'est pas « expert », le réglage est MASQUÉ
+  //      (`settingLevels`: 'library.oxygenFacetLimit' → expert) : Général →
+  //      Niveau → Expert, puis revenir à Bibliothèque — trois gestes de plus
+  //   4. descendre jusqu'à la section Oxygen
+  //   5. « Valeurs par facette » → Sans limite
+  //   6. barre latérale → Oxygen
+  //   7. rouvrir la facette, chercher la valeur
+  //
+  // Soit une dizaine de gestes, et un réglage GLOBAL et PERMANENT changé pour
+  // une recherche ponctuelle. Patatorz, 16/08/2026 : « il faut faire une
+  // dizaine de clics pour charger une bibliothèque de 50k titres et accéder
+  // aux filtres ».
+  //
+  // Le bouton ci-dessous remplace ces sept étapes par UNE, à l'endroit même où
+  // la troncature se voit, sans rien changer aux réglages. Les facettes ne sont
+  // pas réinventées : c'est leur accès qui change.
+  //
+  // ⚠️ Le chemin exact de Patatorz reste inconnu — il n'a jamais répondu à la
+  // question posée le 17/08. Ce qui est mesuré ici, c'est le chemin QUI EXISTE
+  // dans le code, pas le sien.
+  const plafondDe = (f: string) => (sansPlafond.includes(f) ? 0 : limit);
+  /** La liste est-elle butée sur le plafond ? Alors il manque des valeurs. */
+  const tronquee = (f: string) => {
+    const p = plafondDe(f);
+    return p > 0 && (groups[f] ?? []).length >= p;
+  };
 
   /** Cette valeur est-elle cochée ? */
   const estCochee = (field: string, value: string) => (selected[field] ?? []).includes(value);
@@ -135,7 +185,10 @@
     const m = new Map<string, number>();
     for (const t of tracks) { const v = get(t); if (v == null || v === '') continue; m.set(v, (m.get(v) ?? 0) + 1); }
     const all = sortFacet(field, [...m.entries()].map(([value, count]) => ({ value, count })));
-    return limit > 0 ? all.slice(0, limit) : all;
+    // Le plafond levé vaut aussi pour le repli client : sinon « Tout afficher »
+    // ne ferait rien sur une facette que le serveur ne sert pas.
+    const p = plafondDe(field);
+    return p > 0 ? all.slice(0, p) : all;
   }
   // Per-facet sort mode. Default 'count' (years = chronological desc, so 2026
   // stays on top — Bertrand: "pas facile de trouver 2026 !"). Dominique wanted
@@ -240,6 +293,14 @@
           {#if nbCochees(f)}
             <button class="clearbtn" title={$t('oxygen.facetClear')} aria-label={$t('oxygen.facetClear')} onclick={() => onClearFacet(f)}>{nbCochees(f)} <span class="x">×</span></button>
           {/if}
+          <!-- La facette bute sur le plafond : il manque des valeurs, et
+               jusqu'ici seul un détour par les Réglages permettait de les
+               voir (#2131). Le bouton n'apparaît QUE dans ce cas — sur une
+               facette complète il n'aurait rien à offrir. -->
+          {#if tronquee(f)}
+            <button class="allvals" title={$t('oxygen.facetShowAll')} aria-label={$t('oxygen.facetShowAll')}
+                    onclick={() => onToutAfficher(f)}>{$t('oxygen.facetShowAll')}</button>
+          {/if}
           <span class="gn">{alphaOf(f) ? `${rowsOf(f).length}/${(groups[f] ?? []).length}` : (groups[f] ?? []).length}</span>
         </div>
         {#if isOpen(f)}
@@ -309,6 +370,10 @@
   .box.on { background: var(--tune-accent); border-color: var(--tune-accent); }
   .chev { transition: transform .12s; color: var(--tune-text-muted); }
   .chev.closed { transform: rotate(-90deg); }
+  /* Discret comme `.sortbtn` : c'est une issue, pas l'action principale de la
+     ligne. Il ne s'affiche que sur une facette réellement tronquée. */
+  .allvals { background: none; border: 0; color: var(--tune-accent); font: inherit; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; white-space: nowrap; }
+  .allvals:hover { background: var(--tune-surface-hover); }
   .gn { margin-left: auto; font-size: 10px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
   .values { display: flex; flex-direction: column; }
   .val { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; color: var(--tune-text-secondary); font: inherit; text-align: left; padding: 5px 8px; border-radius: 7px; cursor: pointer; }
