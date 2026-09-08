@@ -1,9 +1,14 @@
 <script lang="ts">
-  import { untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import * as api from '../lib/api';
   import type { TrackAllTags } from '../lib/api';
   import { notifications } from '../lib/stores/notifications';
   import { t } from '../lib/i18n';
+  import {
+    CHAMPS_MODIFIABLES,
+    champModifiable,
+    grouperChampsPiste,
+  } from '../lib/champsPiste';
 
   interface Props {
     trackId: number;
@@ -22,21 +27,22 @@
   async function load() {
     loading = true;
     try {
-      data = await api.getTrackAllTags(trackId);
+      // Bound: a hung lofty read of a NAS file used to leave this drawer on
+      // "Chargement…" until F5 (same family as TrackEditModal #1079).
+      data = await api.withTimeout(api.getTrackAllTags(trackId), 12000, 'track-all-tags');
       originalDb = { ...(data.db_fields ?? {}) };
       dbEdits = { ...originalDb };
     } catch (e: any) {
+      data = null;
       notifications.error(`${$t('trackTags.loadError')} : ${e?.message || e}`);
     }
     loading = false;
   }
 
-  // Fields the PUT /tracks/{id} route accepts (writable).
-  const WRITABLE_DB = new Set([
-    'title', 'artist_id', 'album_id', 'track_number', 'disc_number',
-    'composer', 'genre', 'year', 'bpm', 'label', 'comment',
-    'custom_tags',
-  ]);
+  // Les champs que PATCH /metadata/tracks/{id} accepte vraiment — établi en
+  // lisant `TrackEdit` côté serveur. La liste et sa justification vivent dans
+  // `lib/champsPiste`, avec sa garde.
+  const WRITABLE_DB = CHAMPS_MODIFIABLES;
 
   let dirtyFields = $derived.by(() => {
     const out: Record<string, any> = {};
@@ -82,38 +88,32 @@
     if (e.key === 'Escape') onClose();
   }
 
-  $effect(() => { untrack(() => load()); });
+  // Use onMount (not $effect+untrack). That empty-dependency pattern can
+  // re-trigger on Svelte 5 batch flushes and freeze the UI until F5
+  // (DiagnosticsView / Sidebar / MetadataView).
+  onMount(() => {
+    void load();
+  });
 
-  // Group DB fields for nicer rendering: Identification / Classique / Audio / Système.
-  const FIELD_GROUPS: Record<string, string[]> = {
-    'Identification': ['title', 'artist_name', 'album_title', 'track_number', 'disc_number'],
-    'Classique / crédits': ['composer', 'genre', 'year', 'label', 'comment', 'custom_tags', 'bpm'],
-    'Audio': ['format', 'sample_rate', 'bit_depth', 'channels', 'duration_ms', 'file_path'],
-    'Système': ['id', 'album_id', 'artist_id', 'source', 'source_id', 'audio_hash',
-                'mtime', 'created_at', 'updated_at',
-                'mb_recording_id', 'acoustid', 'waveform_data', 'waveform_generated_at',
-                'cover_path'],
-  };
-
-  function visibleDbFields(group: string): string[] {
-    if (!data?.db_fields) return [];
-    return FIELD_GROUPS[group].filter(k => k in data!.db_fields);
+  function formatTagVals(vals: unknown): string {
+    if (Array.isArray(vals)) return vals.map((v) => (v == null ? '' : String(v))).filter(Boolean).join(' / ');
+    if (vals && typeof vals === 'object' && Array.isArray((vals as { items?: unknown }).items)) {
+      return formatTagVals((vals as { items: unknown[] }).items);
+    }
+    return vals == null || vals === '' ? '—' : String(vals);
   }
+
+  // Les groupes affichés. La répartition — et surtout le groupe fourre-tout
+  // qui empêche un champ servi de disparaître sans un mot — vit dans
+  // `lib/champsPiste`, où elle est éprouvée contre la charge utile réelle du
+  // serveur. La table écrite ici visait des noms qui n'existent pas côté Rust
+  // (`custom_tags`, `acoustid`, `created_at`…), et laissait cinq champs bien
+  // réels hors de tout groupe : `album_artist`, `disc_subtitle`, `file_size`,
+  // `isrc`, `genres`.
+  let groupesAffiches = $derived(grouperChampsPiste(data?.db_fields));
 
   function isWritable(field: string): boolean {
-    return WRITABLE_DB.has(field);
-  }
-
-  // Group keys stay as stable identifiers (used to index FIELD_GROUPS);
-  // only the displayed label is localized.
-  function groupLabel(group: string): string {
-    const labels: Record<string, string> = {
-      'Identification': $t('trackTags.groupIdentification'),
-      'Classique / crédits': $t('trackTags.groupClassical'),
-      'Audio': $t('trackTags.groupAudio'),
-      'Système': $t('trackTags.groupSystem'),
-    };
-    return labels[group] ?? group;
+    return champModifiable(field);
   }
 </script>
 
@@ -134,29 +134,24 @@
     {:else}
       <div class="drawer-body">
         <!-- DB fields, grouped -->
-        {#each Object.keys(FIELD_GROUPS) as group}
-          {@const fields = visibleDbFields(group)}
-          {#if fields.length > 0}
-            <div class="group">
-              <h4>{groupLabel(group)}</h4>
-              <div class="kv">
-                {#each fields as field}
-                  <div class="row">
-                    <span class="key">{field}</span>
-                    {#if isWritable(field) && (field === 'comment' || field === 'custom_tags')}
-                      <textarea class="val val-text" bind:value={dbEdits[field]} rows="2"></textarea>
-                    {:else if isWritable(field) && (field === 'year' || field === 'bpm' || field === 'track_number' || field === 'disc_number')}
-                      <input type="number" class="val val-num" bind:value={dbEdits[field]} />
-                    {:else if isWritable(field)}
-                      <input type="text" class="val" bind:value={dbEdits[field]} />
-                    {:else}
-                      <span class="val val-readonly">{data.db_fields[field] ?? '—'}</span>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
+        {#each groupesAffiches as groupe (groupe.nom)}
+          <div class="group">
+            <h4>{$t(groupe.cleI18n as any)}</h4>
+            <div class="kv">
+              {#each groupe.champs as field}
+                <div class="row">
+                  <span class="key">{field}</span>
+                  {#if isWritable(field) && (field === 'year' || field === 'track_number' || field === 'disc_number' || field === 'album_id')}
+                    <input type="number" class="val val-num" bind:value={dbEdits[field]} />
+                  {:else if isWritable(field)}
+                    <input type="text" class="val" bind:value={dbEdits[field]} />
+                  {:else}
+                    <span class="val val-readonly">{formatTagVals(data.db_fields[field])}</span>
+                  {/if}
+                </div>
+              {/each}
             </div>
-          {/if}
+          </div>
         {/each}
 
         <!-- Track credits -->
@@ -202,7 +197,7 @@
               {#each Object.entries(data.file_tags) as [k, vals]}
                 <div class="row">
                   <span class="key key-tag">{k}</span>
-                  <span class="val val-readonly">{vals.join(' / ')}</span>
+                  <span class="val val-readonly">{formatTagVals(vals)}</span>
                 </div>
               {/each}
             </div>
@@ -299,7 +294,6 @@
     min-width: 0;
   }
   .val:focus { border-color: var(--tune-accent); outline: none; }
-  .val-text { resize: vertical; min-height: 32px; font-family: inherit; }
   .val-num { width: 100px; }
   .val-readonly {
     background: transparent;

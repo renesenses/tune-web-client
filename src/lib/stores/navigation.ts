@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 
-export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'plugins' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'oxygen' | 'support' | 'tv' | 'bandcamp';
+export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'crossfeed' | 'plugins' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'tags' | 'oxygen' | 'support' | 'tv' | 'bandcamp';
 export const activeView = writable<View>('home');
 export const previousView = writable<View | null>(null);
 
@@ -89,9 +89,40 @@ export const pendingSearchQuery = writable<string>('');
 // its subfolders (facetSels.folder). Consumed once on Oxygen mount.
 export const pendingOxygenFolder = writable<string | null>(null);
 
-// One-shot: same idea for the classic LibraryView — scope its Albums/Artists/
-// Tracks/Genres tabs to a folder + subfolders. Consumed once on Library mount.
-export const pendingLibraryFolder = writable<string | null>(null);
+
+/**
+ * 🔴 L'ALBUM à ouvrir en arrivant sur la Bibliothèque du nouveau client.
+ *
+ * « Page lecture en cours d'un titre : les hyperliens de l'album et de
+ * l'artiste renvoient vers la page d'accueil et non vers la page de l'artiste
+ * ou de l'album » (Fabien, v0.9.140, 07/09/2026).
+ *
+ * TREIZIÈME « écrit mais pas branché » de ce client. `NowPlaying` pose
+ * `selectedAlbum` / `selectedArtist` puis change de vue. Ces deux magasins
+ * sont lus par DOUZE composants de l'ancien client et par AUCUN de la v2 : le
+ * clic changeait donc d'écran sans rien ouvrir.
+ *
+ * Même forme que `pendingLibraryFolder` juste au-dessus : posé avant le
+ * changement de vue, consommé UNE fois au montage. `NowPlaying` alimente les
+ * deux contrats — l'ancien pour l'ancien client, celui-ci pour le nouveau —
+ * plutôt que de deviner lequel tourne.
+ */
+export const pendingLibraryAlbum = writable<number | null>(null);
+
+/**
+ * L'ARTISTE à ouvrir en arrivant sur la Bibliothèque du nouveau client.
+ *
+ * Même contrat que `pendingLibraryAlbum` juste au-dessus, pour le geste
+ * « Aller à l'artiste » du menu « … » d'une piste (Bertrand, 07/09/2026 :
+ * « je veux à minima le contenu de la v0 »).
+ *
+ * On y range l'IDENTIFIANT, pas le nom. Le client actuel retrouve l'artiste
+ * en cherchant son nom dans `$artists` — un rapprochement par chaîne qui échoue
+ * dès qu'une piste porte « M » quand la table porte « -M- ». Une piste de la
+ * bibliothèque porte `artist_id` (mesuré sur le .18 : `artist_id: 125` pour
+ * « M »), et c'est cet identifiant que la table des artistes emploie.
+ */
+export const pendingLibraryArtist = writable<number | null>(null);
 
 export interface NavContext {
   view: View;

@@ -108,11 +108,10 @@
   let newZoneName = $state('');
   let newZoneOutputType = $state<OutputType>('local');
   let newZoneDeviceId = $state<string | undefined>(undefined);
-  // v0.8.0 multi-room — Snapcast/Sonos device pickers fetched lazily
+  // v0.8.0 multi-room — Snapcast device picker fetched lazily
   // when the user opens the modal and picks the matching type. Kept
   // local to the component so we don't spam the API on every render.
   let snapcastClients = $state<{id: string; name: string; connected: boolean}[]>([]);
-  let sonosSpeakers = $state<{uid: string; name: string; ip: string}[]>([]);
   let multiroomLoading = $state(false);
 
   let configZone = $state<Zone | null>(null);
@@ -305,17 +304,22 @@
   }
 
   // v0.8.0 multi-room — load device candidates when the user picks
-  // a Snapcast / Sonos type in the create-zone modal. Lazy so we
+  // a Snapcast type in the create-zone modal. Lazy so we
   // don't hit the API for every Sidebar render.
+  //
+  // Plus de branche « sonos » : ce type n'est PAS une sortie que le serveur
+  // sache router. `OutputType` (tune-core) ne comporte aucune variante Sonos,
+  // et `TYPES_DE_SORTIE` (routes/zones.rs) — la liste que le PATCH d'une zone
+  // accepte — vaut exactement local, browser, dlna, openhome, chromecast,
+  // bluos, squeezebox, oaat. Une zone créée en « sonos » était donc persistée
+  // par le POST (qui ne valide pas) puis refusée par tout PATCH ultérieur, et
+  // ne jouait nulle part. Une enceinte Sonos se choisit sous **DLNA**, où la
+  // découverte la fait effectivement apparaître et où elle joue déjà.
   async function loadMultiroomDevices(type: OutputType) {
-    if (type !== 'snapcast' && type !== 'sonos') return;
+    if (type !== 'snapcast') return;
     multiroomLoading = true;
     try {
-      if (type === 'snapcast') {
-        snapcastClients = await api.listSnapcastClients();
-      } else {
-        sonosSpeakers = await api.listSonosSpeakers();
-      }
+      snapcastClients = await api.listSnapcastClients();
     } catch (e) {
       console.error('multiroom_devices_load_failed', e);
     } finally {
@@ -997,7 +1001,6 @@
           <option value="dlna">DLNA</option>
           <option value="airplay">AirPlay</option>
           <option value="snapcast">Snapcast</option>
-          <option value="sonos">Sonos</option>
         </select>
         {#if newZoneOutputType === 'dlna' || newZoneOutputType === 'airplay'}
           <select class="create-zone-device" bind:value={newZoneDeviceId}>
@@ -1011,13 +1014,6 @@
             <option value={undefined}>{multiroomLoading ? '…' : $t('zone.selectDevice')}</option>
             {#each snapcastClients as cli}
               <option value={cli.id}>{cli.name}{cli.connected ? '' : ' (offline)'}</option>
-            {/each}
-          </select>
-        {:else if newZoneOutputType === 'sonos'}
-          <select class="create-zone-device" bind:value={newZoneDeviceId}>
-            <option value={undefined}>{multiroomLoading ? '…' : $t('zone.selectDevice')}</option>
-            {#each sonosSpeakers as sp}
-              <option value={sp.uid}>{sp.name} ({sp.ip})</option>
             {/each}
           </select>
         {/if}
@@ -1282,6 +1278,11 @@
   .logo-img {
     height: 28px;
     width: auto;
+    /* Le logo ne se laisse pas écraser quand la ligne se resserre : c'est le
+       texte de version, à côté, qui doit céder en premier. Sans cela, l'image
+       est un élément flexible comme un autre et se réduit sous sa taille
+       intrinsèque. */
+    flex-shrink: 0;
   }
 
   .version {
@@ -2213,6 +2214,26 @@
     .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
     /* Hide text badges in icon-only mode to prevent overflow */
     .badge-update { display: none; }
+    /*
+      Le logo était rogné à gauche (#1394). Mesuré sur la vue réelle, à 1024px :
+      la barre fait 64px, moins 1px de bordure et 11px de barre de défilement
+      (`scrollbar-width: thin`), il reste 52px de contenu. La ligne du logo en
+      réclamait 56 — image 29,3 + espace 8 + bouton 18. `justify-content: center`
+      répartit ce débordement des DEUX côtés, et `overflow-x: hidden` rend les
+      3,6px de gauche définitivement inatteignables : on ne peut pas défiler
+      vers eux.
+
+      Ce n'est pas une divergence de moteur : Firefox 154 et Chrome rendent des
+      chiffres IDENTIQUES (débordement 4px, image à -3,6px). Le rapport disait
+      « firefox ? » avec un point d'interrogation ; c'est bien ce palier-ci, pas
+      le navigateur. Un écran Windows 1366×768 à 150 % d'échelle vaut 911px CSS
+      et tombe donc dedans.
+
+      « Quoi de neuf » reste atteignable dans Réglages → Système, où vit déjà
+      son second point d'entrée — comme la version et le nom du serveur, cachés
+      juste au-dessus pour la même raison.
+    */
+    .whatsnew-btn { display: none; }
     /* Icon-only : la pastille support devient un point discret superposable */
     .support-unread-badge { min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; margin-left: -4px; }
     .connected-dot { display: none; }

@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { suivantDesactive } from './boutonSuivant';
 
 /**
@@ -46,6 +48,30 @@ describe('suivantDesactive — file séquentielle (aléatoire éteint)', () => {
 });
 
 describe('suivantDesactive — aléatoire actif', () => {
+  it('désactive à la fin RÉELLE du tirage, même loin de la fin brute', () => {
+    // La file visible ne suffit pas : il reste trois positions brutes, mais le
+    // serveur sait que la permutation est épuisée.
+    expect(
+      suivantDesactive({
+        ...base,
+        upNextCount: 3,
+        shuffle: true,
+        canSkipNext: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('reste actif sur la dernière position BRUTE si le tirage a une suite', () => {
+    expect(
+      suivantDesactive({
+        ...base,
+        upNextCount: 0,
+        shuffle: true,
+        canSkipNext: true,
+      }),
+    ).toBe(false);
+  });
+
   it('NE désactive PAS sur la dernière piste de l\'ordre BRUT', () => {
     // Le défaut corrigé ici. Sous aléatoire, le serveur ne suit pas l'ordre
     // brut de la file mais `shuffle_order` : la suite dépend de
@@ -63,6 +89,34 @@ describe('suivantDesactive — aléatoire actif', () => {
   it('reste actif au milieu du tirage', () => {
     expect(suivantDesactive({ ...base, upNextCount: 3, shuffle: true })).toBe(false);
   });
+});
+
+describe('suivantDesactive — contrat serveur prioritaire', () => {
+  it('ne laisse pas playState réactiver un bouton sans suite', () => {
+    expect(
+      suivantDesactive({
+        ...base,
+        playState: 'playing',
+        upNextCount: 12,
+        shuffle: true,
+        canSkipNext: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('conserve le repli historique quand le serveur ne porte pas le champ', () => {
+    expect(suivantDesactive({ ...base, upNextCount: 0 })).toBe(true);
+    expect(suivantDesactive({ ...base, upNextCount: 2 })).toBe(false);
+  });
+});
+
+describe('le contrat autoritaire est branché sur les deux surfaces', () => {
+  for (const composant of ['TransportBar.svelte', 'MiniPlayer.svelte']) {
+    it(`${composant} transmet can_skip_next à la règle partagée`, () => {
+      const source = readFileSync(resolve(__dirname, `../components/${composant}`), 'utf8');
+      expect(source).toMatch(/canSkipNext:\s*zone\?\.can_skip_next/);
+    });
+  }
 });
 
 describe('suivantDesactive — cas hors file', () => {

@@ -642,15 +642,16 @@
               <span class="server-name">{server.name}</span>
               <span class="server-detail truncate">{server.manufacturer} &middot; {server.host}:{server.port}</span>
             </div>
-            <!-- The /media-servers endpoint returns discovered servers and does
-                 not send an availability flag, so `available` is usually
-                 undefined. A listed server was just discovered = reachable;
-                 only flag "unavailable" when the server EXPLICITLY says false,
-                 otherwise every media server wrongly showed "indisponible"
-                 (rc3 regression #1122). -->
-            <span class="server-status" class:available={server.available !== false} class:unavailable={server.available === false}>
-              {server.available === false ? $tr('mediaservers.unavailable') : ''}
-            </span>
+            <!-- Depuis le serveur 0.9.118, le contrat s'appelle `reachable`.
+                 `false` est le seul signal qui autorise « indisponible » ; un
+                 champ absent vient d'un ancien serveur et reste inconnu. Ne
+                 pas le rabattre sur l'ancien `available`, qui n'a jamais été
+                 émis par cette route (#2139, garde de régression #1122). -->
+            {#if server.reachable === true}
+              <span class="server-status available" aria-hidden="true"></span>
+            {:else if server.reachable === false}
+              <span class="server-status unavailable">{$tr('mediaservers.unavailable')}</span>
+            {/if}
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
           </button>
         {/each}

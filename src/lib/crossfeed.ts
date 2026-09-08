@@ -1,4 +1,4 @@
-import type { CrossfeedSettings } from './api';
+import type { CrossfeedSettings, CrossfeedStatus } from './api';
 
 /** Bornes acceptées par le serveur (`/zones/{id}/dsp`). Au-delà, il rogne
  *  lui-même — on le fait avant d'envoyer pour que l'écran montre la valeur
@@ -49,4 +49,70 @@ export function presetActif(amount: number, delay_ms: number): string | null {
   return (
     CF_PRESETS.find((p) => proche(p.amount, amount) && proche(p.delay, delay_ms))?.key ?? null
   );
+}
+
+/** Le verdict, unique pour les trois écrans (« En écoute », Égaliseur,
+ *  Crossfeed v2). */
+export type IndisponibiliteCrossfeed =
+  | { indisponible: true; motif: string }
+  | { indisponible: false; motif: null };
+
+/** Le crossfeed a-t-il le moindre chemin sur cette zone ?
+ *
+ *  SOURCE DE VÉRITÉ : `crossfeed_status`, publié par `GET`/`PUT
+ *  /zones/{id}/dsp` (serveur ≥ 0.9.132). `unavailable` se lève même case
+ *  décochée, et prime toujours sur ce que le client croit savoir de la zone —
+ *  il couvre des contraintes que le client ne voit pas, le mode PURE d'abord.
+ *
+ *  REPLI, quand le serveur ne publie pas le champ (version antérieure, ou
+ *  `PUT` dont le corps ne portait pas de `crossfeed`) : le type de sortie. Le
+ *  crossfeed n'est installé que derrière `device_id.starts_with("local:")`
+ *  aux trois sites de l'orchestrateur ; une zone DLNA, AirPlay, Chromecast ou
+ *  OpenHome n'a aucun chemin de code pour lui. C'est le cas de Tades
+ *  (tune-server-rust#2742) : 31 zones, pas une seule sortie locale, six essais
+ *  en quatre minutes pendant que l'écran promettait « la piste suivante ».
+ *
+ *  Type de sortie inconnu ⇒ on n'affirme rien : mieux vaut se taire que
+ *  verrouiller un contrôle qui marche. */
+export function indisponibiliteCrossfeed(
+  status: CrossfeedStatus | null | undefined,
+  outputType: string | null | undefined,
+): IndisponibiliteCrossfeed {
+  if (status && typeof status.unavailable === 'boolean') {
+    return status.unavailable
+      ? { indisponible: true, motif: status.reason ?? 'unknown' }
+      : { indisponible: false, motif: null };
+  }
+  if (outputType && outputType !== 'local') {
+    return { indisponible: true, motif: 'non_local_output' };
+  }
+  return { indisponible: false, motif: null };
+}
+
+/** La clé i18n qui explique le motif. Le `detail` du serveur n'existe qu'en
+ *  français : c'est la raison pour laquelle on traduit par `reason`.
+ *
+ *  `network_progressive_off` et `network_renderer_no_lpcm` sont les deux motifs
+ *  apparus avec LAT-F1 : une zone réseau PEUT désormais entendre le crossfeed,
+ *  via le flux traité au fil de l'eau. Ils remplacent `non_local_output` sur
+ *  ces zones — mais celui-ci reste servi par les serveurs antérieurs, et par le
+ *  repli de `indisponibiliteCrossfeed` quand le statut n'est pas publié : sa
+ *  traduction ne bouge donc pas.
+ *
+ *  Le `default` n'est pas décoratif. Un client à jour parle à des serveurs qui
+ *  ne le sont pas, et l'inverse : un motif inconnu doit donner une phrase
+ *  honnête, pas une clé manquante affichée telle quelle. */
+export function cleIndisponibiliteCrossfeed(motif: string): string {
+  switch (motif) {
+    case 'non_local_output':
+      return 'dsp.crossfeedUnavailableNetwork';
+    case 'pure_mode':
+      return 'dsp.crossfeedUnavailablePure';
+    case 'network_progressive_off':
+      return 'dsp.crossfeedUnavailableProgressiveOff';
+    case 'network_renderer_no_lpcm':
+      return 'dsp.crossfeedUnavailableNoLpcm';
+    default:
+      return 'dsp.crossfeedUnavailable';
+  }
 }

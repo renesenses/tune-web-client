@@ -176,6 +176,22 @@ export function classesDe(attrs: string): string[] {
   return m ? m[1].split(/\s+/).filter(Boolean) : [];
 }
 
+/**
+ * L'élément confie-t-il sa bulle à `use:bulleTexte` (`lib/infobulleTexte.ts`) ?
+ *
+ * Le lot 3 a remplacé le `title=` écrit à la main par une action, pour deux
+ * raisons qu'aucun balisage ne peut traiter : ne PAS poser de bulle sur un
+ * texte qui n'est pas réellement coupé (seule la mise en page le sait), et
+ * ouvrir le texte au CLAVIER, ce que l'infobulle native ne fait jamais.
+ *
+ * Cette garde-ci lit la source ; elle ne peut donc que constater que l'action
+ * est branchée. C'est ce que vérifient, en la montant pour de bon, les témoins
+ * de `infobulleTexteMecanisme2411.test.ts` et `listesInfobulles2411.test.ts`.
+ */
+export function porteLActionBulle(attrs: string): boolean {
+  return /(?:^|\s)use:bulleTexte(?:=|\s|$)/.test(attrs);
+}
+
 /** L'expression écrite dans `title=`, ou `null` s'il n'y en a pas. */
 export function expressionTitre(attrs: string): string | null {
   const accolade = /(?:^|\s)title=\{/.exec(attrs);
@@ -229,6 +245,7 @@ export function sansInfobulle(analyses: Analyse[]): string[] {
   for (const a of analyses) {
     for (const { b, classes } of a.coupables) {
       if (expressionTitre(b.attrs) !== null || b.titreHerite) continue;
+      if (porteLActionBulle(b.attrs)) continue;
       nus.push(`${a.nom}.svelte:${b.ligne} — <${b.tag} class="${classes.join(' ')}"> sans title=`);
     }
   }
@@ -258,6 +275,7 @@ export function infobullesCreuses(analyses: Analyse[]): string[] {
   const creux: string[] = [];
   for (const a of analyses) {
     for (const { b, classes } of a.coupables) {
+      if (porteLActionBulle(b.attrs)) continue;
       const propre = expressionTitre(b.attrs);
       const expr = propre ?? b.titreAncetre;
       if (expr === null || !estCreuse(expr)) continue;

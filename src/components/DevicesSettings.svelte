@@ -10,6 +10,13 @@
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
   import RendererConfig from './RendererConfig.svelte';
   import type { Zone } from '../lib/types';
+  import { audiophileGlobalLockVolume } from '../lib/stores/audiophile';
+  import {
+    volumeLockBadge,
+    volumeLockLabelKey,
+    volumeLockOriginKey,
+    type VolumeLockBadge,
+  } from '../lib/audiophileLockBadge';
 
   // Zones avec un appareil de sortie — les zones « fantômes » sans device
   // n'ont rien à configurer ici.
@@ -96,6 +103,37 @@
     }
   });
 
+  // ─── Badge « verrou de volume » (#2395, #2506) ──────────────────────────
+  //
+  // LECTURE SEULE. Le verrou se règle là où il vit déjà (Réglages → Général →
+  // Lecture, global + surcharge par zone) ; la carte ne fait que dire ce qui
+  // s'applique. Deux points de commande pour un même réglage, c'est ainsi
+  // qu'on finit par en armer un sans le savoir — et le volume part à 100 %.
+  //
+  // La valeur affichée est `effective_lock_volume`, RÉSOLUE PAR LE SERVEUR
+  // (`override.unwrap_or(global)`). Le client ne rejoue pas l'héritage : il
+  // n'aurait pas de moyen de vérifier qu'il tombe juste.
+  let lockBadges = $state<Record<number, VolumeLockBadge | null>>({});
+
+  // Rechargé quand la liste des zones change ET quand le défaut global change :
+  // une zone en héritage voit alors son badge suivre, sans recalcul local.
+  $effect(() => {
+    void $audiophileGlobalLockVolume;
+    for (const z of deviceZones) {
+      const id = z.id;
+      if (id == null) continue;
+      void api
+        .getAudiophileMode(id)
+        .then((state) => {
+          lockBadges = { ...lockBadges, [id]: volumeLockBadge(state) };
+        })
+        .catch(() => {
+          // Injoignable : on retire le badge plutôt que d'en garder un périmé.
+          lockBadges = { ...lockBadges, [id]: null };
+        });
+    }
+  });
+
   async function applyPreset(z: Zone) {
     const id = z.id;
     if (id == null) return;
@@ -125,6 +163,21 @@
         <h3>{z.name}</h3>
         <span class="transport">{transportLabel(z)}</span>
       </header>
+
+      <!-- Badge en LECTURE SEULE : aucun contrôle, aucun clic. Absent tant que
+           le serveur n'a pas dit l'état effectif — se taire vaut mieux que
+           risquer de l'annoncer à l'envers. -->
+      {#if z.id != null && lockBadges[z.id]}
+        {@const badge = lockBadges[z.id]!}
+        <p
+          class="vol-lock"
+          class:on={badge.locked}
+          use:tip={'devices.volumeLockHint'}
+        >
+          <span class="vol-lock-state">{$t(volumeLockLabelKey(badge) as any)}</span>
+          <span class="vol-lock-origin">{$t(volumeLockOriginKey(badge) as any)}</span>
+        </p>
+      {/if}
 
       <ZoneDeviceEditor zone={z} onSaved={() => refreshZones()} />
 
@@ -205,6 +258,23 @@
     padding: 2px 8px; border-radius: 999px;
     background: var(--tune-surface-hover); color: var(--tune-text-muted);
   }
+  /* Badge informatif : pas de curseur « cliquable », pas d'affordance de
+     contrôle — il dit un état, il n'en propose pas le changement. */
+  .vol-lock {
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    margin: 0; font-size: 12px;
+    padding: 5px 10px; border-radius: 8px;
+    border: 1px solid var(--tune-border);
+    background: var(--tune-surface-hover);
+    color: var(--tune-text-muted);
+  }
+  .vol-lock.on {
+    border-color: rgba(224, 82, 82, 0.55);
+    background: color-mix(in srgb, rgb(224, 82, 82) 10%, transparent);
+    color: var(--tune-text);
+  }
+  .vol-lock-state { font-weight: 600; }
+  .vol-lock-origin { color: var(--tune-text-muted); }
   .trim-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .trim-row label { font-size: 13px; color: var(--tune-text); }
   .trim-row input[type='range'] { flex: 1; min-width: 140px; accent-color: var(--tune-accent); }

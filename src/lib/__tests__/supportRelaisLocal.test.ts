@@ -13,19 +13,29 @@ import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vite
  *  2. la CLÉ DE LICENCE ne circule pas dans l'URL — elle finissait sinon dans la
  *     barre d'adresse, l'historique et les journaux d'accès ;
  *  3. l'envoi d'une réponse vise `/reply` (le chemin du relais) et non
- *     `/replies` (celui de mozaiklabs).
+ *     `/replies` (celui de mozaiklabs) ;
+ *  4. le « marquer lu » passe lui aussi par le relais — c'était le DERNIER
+ *     appel encore adressé en direct au site, la clé de licence dans le corps.
  */
 
 const appels: { url: string; init?: RequestInit }[] = [];
 
 // Le chargement du module d'API est lent (gros fichier, effets de module). On le
 // paie UNE fois ici, sinon son coût est imputé au premier test qui déborde.
+//
+// Budget à 120 s, pas 30 : sous la suite complète — une centaine de fichiers en
+// parallèle — cet import dépassait les 30 s d'origine et le fichier échouait sur
+// « Hook timed out in 30000ms », sans qu'aucune assertion soit en cause.
+// Reproduit sur un arbre IDENTIQUE à `origin/main` (donc antérieur à ce
+// correctif) : deux passes de la suite complète, deux échecs, alors que le même
+// fichier lancé seul passe en moins de 30 s. Ce n'est pas un défaut du relais,
+// c'est une échéance trop courte pour la charge réelle.
 let api: typeof import('../api');
 beforeAll(async () => {
   vi.stubGlobal('fetch', () => Promise.resolve(new Response('{}', { status: 200 })));
   api = await import('../api');
   vi.unstubAllGlobals();
-}, 30000);
+}, 120000);
 
 beforeEach(() => {
   appels.length = 0;
@@ -58,9 +68,29 @@ describe('support premium : passage par le relais local (#2559)', () => {
   it('la clé de licence ne circule JAMAIS dans l\'URL', async () => {
     await api.getSupportTickets(CLE);
     await api.getSupportTicket(7, CLE);
+    await api.markSupportTicketRead(7);
     for (const a of appels) {
       expect(a.url, `clé exposée dans ${a.url}`).not.toContain(CLE);
       expect(a.url).not.toContain('license_key');
+    }
+  });
+
+  it('« marquer lu » vise le relais local, pas mozaiklabs.fr', async () => {
+    await api.markSupportTicketRead(42);
+    expect(appels[0].url).toMatch(/\/support\/tickets\/42\/read$/);
+    expect(appels[0].url).not.toContain('mozaiklabs.fr');
+    expect(String(appels[0].init?.method ?? '').toUpperCase()).toBe('POST');
+  });
+
+  it('« marquer lu » n\'emporte plus la clé de licence dans son CORPS', async () => {
+    // Le défaut n'était pas seulement dans l'URL : l'ancien appel postait
+    // `{"license_key":"TUNE-…"}` vers mozaiklabs.fr. Le relais résout la
+    // licence lui-même ; rien de secret ne doit plus partir de la page.
+    await api.markSupportTicketRead(42, CLE);
+    for (const a of appels) {
+      const corps = typeof a.init?.body === 'string' ? a.init.body : '';
+      expect(corps, `clé dans le corps de ${a.url}`).not.toContain(CLE);
+      expect(corps).not.toContain('license_key');
     }
   });
 
