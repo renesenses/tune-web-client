@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': 'Niciun subdosar aici.',
   'oxygen.facetsTitle': 'Fațete',
   'oxygen.facetClear': 'Deselectează tot',
+  'oxygen.facetShowAll': 'Afișează tot',
   'oxygen.collapseAll': 'Restrânge tot',
   'oxygen.expandAll': 'Extinde tot',
   'oxygen.facetsServer': 'Numărătoare completă (index server).',

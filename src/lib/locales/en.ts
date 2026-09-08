@@ -348,6 +348,7 @@ export default {
   'oxygen.facetsTitle': 'Facets',
   // #2168: several values ticked within one facet combine with OR.
   'oxygen.facetClear': 'Clear all',
+  'oxygen.facetShowAll': 'Show all',
   'oxygen.collapseAll': 'Collapse all',
   'oxygen.expandAll': 'Expand all',
   'oxygen.facetsServer': 'Full counts (server index).',

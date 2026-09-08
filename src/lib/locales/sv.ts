@@ -123,6 +123,7 @@ export default {
   'oxygen.facet.dr': 'Dynamikomfång',
   'oxygen.facetsTitle': 'Facetter',
   'oxygen.facetClear': 'Avmarkera alla',
+  'oxygen.facetShowAll': 'Visa alla',
   'oxygen.collapseAll': 'Fäll ihop alla',
   'oxygen.expandAll': 'Fäll ut alla',
   'oxygen.facetsServer': 'Fullständiga antal (serverindex).',

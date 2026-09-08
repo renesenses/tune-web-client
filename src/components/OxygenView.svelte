@@ -524,10 +524,53 @@
   // Cumulative: recompute facet counts over the active filter set so selecting a
   // genre narrows the labels/artists/… lists (Dominique). A facet excludes its
   // own field server-side, keeping its alternatives visible.
+  // Facettes dont on a levé le plafond de valeurs pour cette session (#2131).
+  //
+  // Le plafond (`preferences.oxygenFacetLimit`, 200 par défaut) est appliqué
+  // PAR LE SERVEUR : sur 8 873 artistes, la facette Artistes n'en rend que 200
+  // et la bande A→Z, construite sur ce qui est reçu, ne peut pas mener aux
+  // autres. Le seul chemin qui existait pour les atteindre passait par
+  // Paramètres → Bibliothèque → Valeurs par facette, réglage de niveau EXPERT
+  // donc souvent masqué : une dizaine de gestes, pour changer un réglage
+  // GLOBAL et PERMANENT au profit d'une recherche ponctuelle.
+  //
+  // On garde donc la liste des facettes « ouvertes en grand » ici, et non dans
+  // les préférences : c'est un geste de navigation, pas un réglage. Il ne
+  // survit pas au départ d'Oxygen, exactement comme le repli d'une facette
+  // dans le rail.
+  let sansPlafond = $state<string[]>([]);
+
+  /** « Tout afficher » sur une facette tronquée : redemande CETTE facette
+   *  seule, sans limite, et fusionne le résultat. Les autres gardent leur
+   *  plafond — c'est lui qui tient le rail lisible. */
+  function toutAfficher(field: string) {
+    if (sansPlafond.includes(field)) return;
+    sansPlafond = [...sansPlafond, field];
+    // Une facette servie côté client (hors `SERVER_FACET_FIELDS`) n'a rien à
+    // redemander : le rail cesse simplement de tronquer sa propre agrégation.
+    if (SERVER_FACET_FIELDS.includes(field)) void chargerFacetteEntiere(field);
+  }
+
+  /** Une facette, sans plafond, fusionnée dans `serverFacets`. */
+  async function chargerFacetteEntiere(field: string) {
+    try {
+      const res = await getLibraryFacets([field], facetParam(facetSels), 0);
+      const rows = res[field];
+      if (rows) serverFacets = { ...serverFacets, [field]: rows };
+    } catch { /* échec passager : la facette garde ses 200 valeurs */ }
+  }
+
   async function loadFacets() {
     if (!serverFacetFields.length) return;
     try { serverFacets = await getLibraryFacets(serverFacetFields, facetParam(facetSels), $preferences.oxygenFacetLimit); }
     catch { /* keep the previous facet counts on transient failure */ }
+    // Cocher une valeur relance ce chargement : sans ce rappel, une facette
+    // ouverte en grand se retrouverait retronquée au premier clic, et le
+    // détour par les Réglages serait à refaire. C'est le piège « écrit mais
+    // pas branché » appliqué à un état qui doit SURVIVRE au rechargement.
+    for (const f of sansPlafond) {
+      if (serverFacetFields.includes(f)) await chargerFacetteEntiere(f);
+    }
   }
 
   // Fetch the child folders of the current path (facetSels.folder), narrowed by
@@ -669,7 +712,7 @@
 
   <div class="body" class:noinsp={inspectorCollapsed} class:norail={railCollapsed}>
     <aside class="railwrap" class:open={mobileRail}>
-      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { toggleFacet(field, value); }} onClearFacet={clearFacet} />
+      <OxygenFacetRail tracks={tracks} serverFacets={serverFacets} facets={$preferences.oxygenFacets} limit={$preferences.oxygenFacetLimit} selected={facetSels} folderCrumbs={folderData.crumbs} folderChildren={folderData.children} folderLoading={folderLoading} onFolderDrill={drillFolder} onSelect={(field, value) => { toggleFacet(field, value); }} onClearFacet={clearFacet} sansPlafond={sansPlafond} onToutAfficher={toutAfficher} />
       <!-- Le tiroir mobile ne se referme PLUS à chaque clic : depuis #2168 on
            coche plusieurs valeurs de suite, et le refermer entre deux cases
            rendrait la sélection multiple inutilisable au doigt. Il se ferme
