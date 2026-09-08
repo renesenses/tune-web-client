@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { rangeableEnPlaylist } from '../lib/pisteFile';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { tip } from '../lib/tooltip';
   import { playFromHere } from '../lib/playback';
@@ -1243,11 +1245,12 @@
                               <button class="icon-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(track); }} title={$t('search.addToQueue')}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                               </button>
-                              {#if onAddToPlaylist && (track.id || track.source_id)}
+                              {#if onAddToPlaylist && rangeableEnPlaylist(track)}
                                 <button class="icon-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(track); }} title={addToPlaylistLabel}>
                                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
                                 </button>
                               {/if}
+                              <MenuPisteV1 piste={track} />
                             </div>
                           </div>
                         </div>

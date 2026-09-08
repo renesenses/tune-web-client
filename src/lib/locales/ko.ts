@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': '하위 폴더가 없습니다.',
   'oxygen.facetsTitle': '패싯',
   'oxygen.facetClear': '모두 해제',
+  'oxygen.facetShowAll': '모두 표시',
   'oxygen.collapseAll': '모두 접기',
   'oxygen.expandAll': '모두 펼치기',
   'oxygen.facetsServer': '전체 집계 (서버 인덱스).',
@@ -3918,6 +3919,9 @@ export default {
   "v2.album.play": "재생",
   "v2.album.shuffle": "셔플",
   "v2.album.playNext": "다음에 재생",
+  "v2.piste.enLecture": "재생 중",
+  "v2.piste.enPause": "일시정지됨",
+  "v2.piste.arretee": "재생 중지됨",
   "v2.album.addQueue": "대기열에 추가",
   "v2.album.queued": "\"{title}\"을(를) 대기열에 추가했습니다.",
   "v2.album.queuedNext": "\"{title}\"을(를) 다음에 재생합니다.",
@@ -4132,6 +4136,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "보유한 모듈 없음",
   "diagnostics.outputNoProviders": "이 서버에는 외부 출력 공급자가 컴파일되어 있지 않습니다.",
   "diagnostics.outputOpenLicense": "내 라이선스 보기",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "표시 수준에 따라 여기에서 {n}개 설정이 숨겨져 있습니다.",
+  "settings.hiddenHereReveal": "표시하기",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

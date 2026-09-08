@@ -123,6 +123,7 @@ export default {
   'oxygen.facet.dr': 'Dynamikomfång',
   'oxygen.facetsTitle': 'Facetter',
   'oxygen.facetClear': 'Avmarkera alla',
+  'oxygen.facetShowAll': 'Visa alla',
   'oxygen.collapseAll': 'Fäll ihop alla',
   'oxygen.expandAll': 'Fäll ut alla',
   'oxygen.facetsServer': 'Fullständiga antal (serverindex).',
@@ -3917,6 +3918,9 @@ export default {
   "v2.album.play": "Spela",
   "v2.album.shuffle": "Slumpa",
   "v2.album.playNext": "Spela härnäst",
+  "v2.piste.enLecture": "Spelas nu",
+  "v2.piste.enPause": "Pausad",
+  "v2.piste.arretee": "Uppspelning stoppad",
   "v2.album.addQueue": "Lägg i kön",
   "v2.album.queued": "”{title}” lades till i kön.",
   "v2.album.queuedNext": "”{title}” spelas härnäst.",
@@ -4131,4 +4135,11 @@ export default {
   "diagnostics.outputNoLicensedModules": "Ingen modul ägs",
   "diagnostics.outputNoProviders": "Ingen extern utgångsleverantör är inkompilerad i den här servern.",
   "diagnostics.outputOpenLicense": "Visa min licens",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "{n} inställning(ar) dolda här på din visningsnivå.",
+  "settings.hiddenHereReveal": "Visa dem",
 } as const;

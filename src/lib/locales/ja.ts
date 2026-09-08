@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': 'サブフォルダーはありません。',
   'oxygen.facetsTitle': 'ファセット',
   'oxygen.facetClear': 'すべて解除',
+  'oxygen.facetShowAll': 'すべて表示',
   'oxygen.collapseAll': 'すべて折りたたむ',
   'oxygen.expandAll': 'すべて展開',
   'oxygen.facetsServer': '完全なカウント（サーバーインデックス）。',
@@ -3918,6 +3919,9 @@ export default {
   "v2.album.play": "再生",
   "v2.album.shuffle": "シャッフル",
   "v2.album.playNext": "次に再生",
+  "v2.piste.enLecture": "再生中",
+  "v2.piste.enPause": "一時停止中",
+  "v2.piste.arretee": "再生停止",
   "v2.album.addQueue": "キューに追加",
   "v2.album.queued": "「{title}」をキューに追加しました。",
   "v2.album.queuedNext": "「{title}」を次に再生します。",
@@ -4132,6 +4136,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "所有モジュールなし",
   "diagnostics.outputNoProviders": "このサーバーには外部出力プロバイダーが組み込まれていません。",
   "diagnostics.outputOpenLicense": "ライセンスを見る",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "表示レベルにより、ここでは {n} 件の設定が非表示です。",
+  "settings.hiddenHereReveal": "表示する",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

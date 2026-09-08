@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': 'Niciun subdosar aici.',
   'oxygen.facetsTitle': 'Fațete',
   'oxygen.facetClear': 'Deselectează tot',
+  'oxygen.facetShowAll': 'Afișează tot',
   'oxygen.collapseAll': 'Restrânge tot',
   'oxygen.expandAll': 'Extinde tot',
   'oxygen.facetsServer': 'Numărătoare completă (index server).',
@@ -3918,6 +3919,9 @@ export default {
   "v2.album.play": "Redă",
   "v2.album.shuffle": "Aleatoriu",
   "v2.album.playNext": "Redă în continuare",
+  "v2.piste.enLecture": "În redare",
+  "v2.piste.enPause": "În pauză",
+  "v2.piste.arretee": "Redare oprită",
   "v2.album.addQueue": "Adaugă în coadă",
   "v2.album.queued": "„{title}” adăugat în coadă.",
   "v2.album.queuedNext": "„{title}” va fi redat în continuare.",
@@ -4132,6 +4136,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "Niciun modul deținut",
   "diagnostics.outputNoProviders": "Niciun furnizor de ieșire extern nu este compilat în acest server.",
   "diagnostics.outputOpenLicense": "Vezi licența mea",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "{n} setare/setări ascunse aici la nivelul tău de afișare.",
+  "settings.hiddenHereReveal": "Afișează-le",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

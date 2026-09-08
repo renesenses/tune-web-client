@@ -348,6 +348,7 @@ export default {
   'oxygen.facetsTitle': 'Facettes',
   // #2168 : plusieurs valeurs cochées dans une même facette se combinent en OU.
   'oxygen.facetClear': 'Tout décocher',
+  'oxygen.facetShowAll': 'Tout afficher',
   'oxygen.collapseAll': 'Tout replier',
   'oxygen.expandAll': 'Tout déplier',
   'oxygen.facetsServer': 'Comptage complet (index serveur).',
@@ -3940,6 +3941,9 @@ export default {
   "v2.album.play": "Lire",
   "v2.album.shuffle": "Aléatoire",
   "v2.album.playNext": "Lire ensuite",
+  "v2.piste.enLecture": "En lecture",
+  "v2.piste.enPause": "En pause",
+  "v2.piste.arretee": "Lecture arrêtée",
   "v2.album.addQueue": "Ajouter à la file",
   "v2.album.queued": "« {title} » ajouté à la file.",
   "v2.album.queuedNext": "« {title} » sera lu ensuite.",
@@ -4154,6 +4158,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "Aucun module possédé",
   "diagnostics.outputNoProviders": "Aucun fournisseur de sortie externe n'est compilé dans ce serveur.",
   "diagnostics.outputOpenLicense": "Voir ma licence",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "{n} réglage(s) masqué(s) ici à votre niveau d'affichage.",
+  "settings.hiddenHereReveal": "Les afficher",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

@@ -19,7 +19,9 @@
   import * as api from '../../lib/api';
   import { t as tr } from '../../lib/i18n';
   import { currentZoneId } from '../../lib/stores/zones';
-  import { currentTrackId } from '../../lib/stores/nowPlaying';
+  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
+    from '../../lib/stores/nowPlaying';
+  import IndicateurLecture from './IndicateurLecture.svelte';
   import { queueTracks, queuePosition } from '../../lib/stores/queue';
   import PisteActions from './PisteActions.svelte';
   import { preferences } from '../../lib/stores/preferences';
@@ -56,6 +58,17 @@
   const pos = $derived($queuePosition);
   const current = $derived(tracks[pos] ?? null);
   const upNext = $derived(tracks.slice(pos + 1));
+  /**
+   * L'état de la piste en tête de file (#1845).
+   *
+   * La file MONTRAIT déjà laquelle joue — un encadré teinté, à part — mais
+   * jamais si elle joue VRAIMENT : mise en pause, l'écran était identique.
+   * C'est le cas que demande le ticket, et c'est ici qu'il se voit le plus,
+   * puisque la file est l'écran où l'on vient justement voir où on en est.
+   */
+  const etatCourant = $derived(
+    current ? etatDeLaLigne(current, $currentTrackId, $currentTrack, $playbackState) : null,
+  );
   const remainingMs = $derived(upNext.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
 
   async function act(fn: () => Promise<unknown>) {
@@ -106,10 +119,10 @@
       {#if current}
         <section class="sec">
           <h2>En cours</h2>
-          <div class="now">
+          <div class="now" aria-current={etatCourant ? 'true' : undefined}>
             <span class="ncv"><AlbumArt coverPath={current.cover_path} albumId={current.album_id ?? null} size={0} alt={current.title} source={current.source} fallbackInitials={current.title?.slice(0,1)} /></span>
             <div class="nmeta">
-              <div class="nt">{current.title}</div>
+              <div class="nt"><IndicateurLecture etat={etatCourant} />{current.title}</div>
               <div class="na">{current.artist_name ?? ''}{current.album_title ? ' · ' + current.album_title : ''}</div>
               {#if showExpert && tech(current)}<div class="ntk">{tech(current)}</div>{/if}
             </div>
@@ -184,7 +197,8 @@
     border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .ncv{width:72px; height:72px; flex:0 0 auto; border-radius:8px; overflow:hidden; box-shadow:var(--v2-sh-card)}
   .nmeta{min-width:0; flex:1}
-  .nt{font-size:16px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .nt{display:flex; align-items:center; gap:8px; min-width:0;
+    font-size:16px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .na{margin-top:3px; font-size:13px; color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ntk{margin-top:4px; font:10px var(--v2-mono); color:var(--v2-acc2)}
   .ndur{font:12px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}

@@ -1,11 +1,47 @@
 <script lang="ts">
+  /**
+   * Le menu « … » d'une ligne de piste, côté client ACTUEL.
+   *
+   * 🔴 `renesenses/tune-server-rust#1848` — 07/09/2026. Ce composant portait sa
+   * liste EN DUR : sept entrées, dans son propre ordre, avec ses propres
+   * tracés. Le nouveau client en porte une autre depuis le 07/09 (#765), et
+   * elles avaient déjà divergé — « Lire ensuite » et « Étiquettes » n'existaient
+   * que dans le nouveau. C'est mot pour mot ce que Dominique Comet signale :
+   * deux chemins d'accès à la même chose n'offrent pas les mêmes gestes.
+   *
+   * Le CONTENU est désormais décidé par `lib/menuPiste`, le même module que
+   * `PisteActions`. Ce fichier ne décide plus que de l'apparence.
+   *
+   * ## Les props ne changent pas de forme
+   *
+   * Chaque geste reste un `on…` facultatif, et une entrée n'apparaît que si son
+   * geste est fourni : l'onglet « Titres » n'a pas la ligne dépliante des
+   * autres versions, il ne passe donc pas `onOtherVersions` et l'entrée
+   * disparaît — au lieu d'ouvrir sur rien (garde #2574).
+   *
+   * ## `capacites` : ce que la PISTE permet
+   *
+   * Par défaut, toutes les capacités tiennent et c'est la présence du geste qui
+   * décide — c'est le contrat qu'avaient déjà les appelants de la Bibliothèque,
+   * où toute piste porte un identifiant. Une surface qui montre des pistes de
+   * SERVICE passe ses vraies capacités (`MenuPisteV1`), et les entrées qui
+   * prennent un `i64` côté serveur s'effacent d'elles-mêmes.
+   */
   import { t as tr } from '../lib/i18n';
-
+  import { entreesMenuPiste, type CapacitesPiste } from '../lib/menuPiste';
   interface Props {
     /** Dismiss the menu (also invoked before every action). */
     onClose: () => void;
     onPlay: () => void;
     onAddToQueue: () => void;
+    /**
+     * Omit to hide "play next" — insère au rang SUIVANT celui qui joue.
+     *
+     * Ajouté par #1848 : le nouveau client le porte depuis le 05/09, celui-ci
+     * ne l'avait que sous forme de bouton d'icône, et seulement sur certains
+     * écrans.
+     */
+    onPlayNext?: () => void;
     /** Omit to hide the "more like this" (acoustic radio) item. */
     onPlaySimilar?: () => void;
     /**
@@ -23,26 +59,43 @@
     onGoToArtist?: () => void;
     /** Omit to hide the "go to album" item. */
     onGoToAlbum?: () => void;
+    /** Omit to hide the "tags" item — les étiquettes de l'utilisateur. */
+    onTag?: () => void;
+    /** Ce que la PISTE permet. Par défaut : tout, le geste seul décide. */
+    capacites?: CapacitesPiste;
   }
-
   let {
     onClose,
     onPlay,
     onAddToQueue,
+    onPlayNext,
     onPlaySimilar,
     onOtherVersions,
     onAddToPlaylist,
     onGoToArtist,
     onGoToAlbum,
+    onTag,
+    capacites = { jouable: true, idBibliotheque: 1, artistId: 1, albumId: 1 },
   }: Props = $props();
-
+  const entrees = $derived(
+    entreesMenuPiste(capacites, {
+      lire: onPlay,
+      ensuite: onPlayNext,
+      aLaFile: onAddToQueue,
+      plusCommeCa: onPlaySimilar,
+      autresVersions: onOtherVersions,
+      ajouterAPlaylist: onAddToPlaylist,
+      allerArtiste: onGoToArtist,
+      allerAlbum: onGoToAlbum,
+      etiqueter: onTag,
+    }),
+  );
   // Every item stops propagation, closes the menu, then runs its action.
   function run(fn: () => void, e: MouseEvent) {
     e.stopPropagation();
     onClose();
     fn();
   }
-
   // Le fond est rendu dans la ligne de piste, dont le clic lance la lecture.
   // Fermer le menu doit donc consommer l'événement exactement comme ses items.
   function dismiss(e: MouseEvent) {
@@ -50,58 +103,26 @@
     onClose();
   }
 </script>
-
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="track-menu-backdrop" onclick={dismiss}></div>
-<div class="track-menu">
-  <button class="track-menu-item" onclick={(e) => run(onPlay, e)}>
-    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M8 5v14l11-7z"/></svg>
-    {$tr('common.play')}
-  </button>
-  <button class="track-menu-item" onclick={(e) => run(onAddToQueue, e)}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-    {$tr('queue.addToQueue')}
-  </button>
-  {#if onPlaySimilar}
-    <button class="track-menu-item" onclick={(e) => run(onPlaySimilar, e)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 12a8 8 0 0 1 8-8"/><path d="M20 12a8 8 0 0 1-8 8"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/></svg>
-      {$tr('library.playSimilar')}
+<div class="track-menu" role="menu">
+  {#each entrees as entree (entree.cle)}
+    <button class="track-menu-item" role="menuitem" onclick={(e) => run(entree.faire, e)}>
+      <svg viewBox="0 0 24 24" width="14" height="14"
+        fill={entree.plein ? 'currentColor' : 'none'}
+        stroke={entree.plein ? 'none' : 'currentColor'}
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={entree.icone}/></svg>
+      {$tr(entree.cle as any)}
     </button>
-  {/if}
-  {#if onOtherVersions}
-    <button class="track-menu-item" onclick={(e) => run(onOtherVersions, e)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="7" y="7" width="14" height="14" rx="2"/><path d="M3 17V5a2 2 0 0 1 2-2h12"/></svg>
-      {$tr('library.otherVersions')}
-    </button>
-  {/if}
-  {#if onAddToPlaylist}
-    <button class="track-menu-item" onclick={(e) => run(onAddToPlaylist, e)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5"/><line x1="16" y1="3" x2="16" y2="11"/><line x1="12" y1="7" x2="20" y2="7"/></svg>
-      {$tr('nowplaying.addToPlaylist')}
-    </button>
-  {/if}
-  {#if onGoToArtist}
-    <button class="track-menu-item" onclick={(e) => run(onGoToArtist, e)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      {$tr('library.goToArtist')}
-    </button>
-  {/if}
-  {#if onGoToAlbum}
-    <button class="track-menu-item" onclick={(e) => run(onGoToAlbum, e)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 13h4"/></svg>
-      {$tr('library.goToAlbum')}
-    </button>
-  {/if}
+  {/each}
 </div>
-
 <style>
   .track-menu-backdrop {
     position: fixed;
     inset: 0;
     z-index: 99;
   }
-
   .track-menu {
     position: absolute;
     right: 0;
@@ -118,7 +139,6 @@
     min-width: 190px;
     white-space: nowrap;
   }
-
   .track-menu-item {
     display: flex;
     align-items: center;
@@ -135,7 +155,6 @@
     text-align: left;
     width: 100%;
   }
-
   .track-menu-item:hover {
     background: var(--tune-surface-hover);
     color: var(--tune-text);

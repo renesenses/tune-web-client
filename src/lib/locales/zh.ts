@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': '此处没有子文件夹。',
   'oxygen.facetsTitle': '分面',
   'oxygen.facetClear': '全部取消选择',
+  'oxygen.facetShowAll': '显示全部',
   'oxygen.collapseAll': '全部折叠',
   'oxygen.expandAll': '全部展开',
   'oxygen.facetsServer': '完整计数（服务器索引）。',
@@ -3918,6 +3919,9 @@ export default {
   "v2.album.play": "播放",
   "v2.album.shuffle": "随机播放",
   "v2.album.playNext": "下一首播放",
+  "v2.piste.enLecture": "正在播放",
+  "v2.piste.enPause": "已暂停",
+  "v2.piste.arretee": "已停止播放",
   "v2.album.addQueue": "加入队列",
   "v2.album.queued": "已将《{title}》加入队列。",
   "v2.album.queuedNext": "《{title}》将下一首播放。",
@@ -4132,6 +4136,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "未拥有任何模块",
   "diagnostics.outputNoProviders": "此服务器未编译任何外部输出提供方。",
   "diagnostics.outputOpenLicense": "查看我的许可证",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "在当前显示级别下，此处隐藏了 {n} 项设置。",
+  "settings.hiddenHereReveal": "显示它们",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

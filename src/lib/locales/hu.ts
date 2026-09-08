@@ -331,6 +331,7 @@ export default {
   "oxygen.folder.empty": "Itt nincs almappa.",
   "oxygen.facetsTitle": "Szempontok",
   "oxygen.facetClear": "Összes törlése",
+  "oxygen.facetShowAll": "Összes megjelenítése",
   "oxygen.collapseAll": "Összes összecsukása",
   "oxygen.expandAll": "Összes kibontása",
   "oxygen.facetsServer": "Teljes darabszámok (szerverindex).",
@@ -3876,6 +3877,9 @@ export default {
   "v2.album.play": "Lejátszás",
   "v2.album.shuffle": "Véletlenszerű",
   "v2.album.playNext": "Következőként",
+  "v2.piste.enLecture": "Most szól",
+  "v2.piste.enPause": "Szüneteltetve",
+  "v2.piste.arretee": "Lejátszás leállítva",
   "v2.album.addQueue": "Sorhoz adás",
   "v2.album.queued": "A(z) „{title}” a sorhoz adva.",
   "v2.album.queuedNext": "A(z) „{title}” következik.",
@@ -4090,6 +4094,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "Nincs megvásárolt modul",
   "diagnostics.outputNoProviders": "Ebbe a kiszolgálóba nincs külső kimeneti szolgáltató beépítve.",
   "diagnostics.outputOpenLicense": "Licencem megtekintése",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "{n} beállítás rejtve itt a jelenlegi megjelenítési szinten.",
+  "settings.hiddenHereReveal": "Megjelenítés",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

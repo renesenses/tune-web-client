@@ -1,5 +1,5 @@
 /**
- * Le contenu du menu « … » d'une ligne de piste.
+ * Le contenu du menu « … » d'une ligne de piste — pour les DEUX clients.
  *
  * Bertrand, 07/09/2026, capture du client ACTUEL à l'appui : « continue sur le
  * bouton … je veux à minima le contenu de la v0 ».
@@ -12,13 +12,30 @@
  * (constaté le 07/09/2026, contre-épreuve n° 1). En sortant la liste ici, la
  * garde appelle la fonction et regarde ce qui en sort.
  *
+ * ## Deux clients, une seule liste — `renesenses/tune-server-rust#1848`
+ *
+ * « Le menu contextuel n'existe que dans la bibliothèque, jamais sur une piste
+ * de service » (Dominique Comet). Le fond de sa remarque : deux chemins
+ * d'accès à la même chose n'offrent pas les mêmes gestes. Depuis le 07/09/2026
+ * ce module sert AUSSI `TrackContextMenu` (client actuel), qui rendait sa
+ * liste en dur, dans un autre ordre, sans « Lire ensuite » ni « Étiquettes ».
+ * L'ordre, les libellés et les conditions ne vivent plus qu'ici.
+ *
+ * ## Capacités et gestes : deux questions différentes
+ *
+ * Les CAPACITÉS disent ce que la PISTE permet — elle porte, ou non, un
+ * identifiant de bibliothèque. Les GESTES disent ce que la SURFACE sait faire
+ * — l'onglet « Titres » du client actuel n'a pas la ligne dépliante qui
+ * affiche les autres versions, et y brancher l'entrée donnerait un geste MUET,
+ * « pire qu'une entrée absente » (garde #2574). Une entrée n'apparaît donc que
+ * si sa capacité tient ET que l'appelant a fourni le geste.
+ *
  * ## Ce qui ne s'applique pas est ABSENT, pas grisé
  *
  * La règle déjà tenue par la barre d'icônes. Une piste de service n'a pas
  * d'identifiant de bibliothèque : ni voisins acoustiques, ni autres versions,
  * ni étiquettes — les trois routes prennent un `i64`.
  */
-
 export interface EntreeMenuPiste {
   /** Clé i18n du libellé. Jamais un texte : voir `check-i18n`. */
   cle: string;
@@ -28,7 +45,6 @@ export interface EntreeMenuPiste {
   plein?: boolean;
   faire: () => void;
 }
-
 /** Les tracés, dans une boîte 24×24. */
 export const ICONES = {
   play: 'M8 5v14l11-7z',
@@ -41,7 +57,6 @@ export const ICONES = {
   album: 'M3 3h18v18H3zM9 9h6M9 13h4',
   tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z',
 } as const;
-
 /** Ce que la piste permet, décidé par l'appelant qui seul connaît le contexte. */
 export interface CapacitesPiste {
   /** La piste sait se désigner pour la lecture. */
@@ -51,39 +66,66 @@ export interface CapacitesPiste {
   artistId: number | null;
   albumId: number | null;
 }
-
-/** Les gestes, fournis par le composant : le module ne sait pas les faire. */
+/**
+ * Les gestes, fournis par le composant : le module ne sait pas les faire.
+ *
+ * 🔴 Tous FACULTATIFS depuis le 07/09/2026 (#1848). Voir « Capacités et
+ * gestes » plus haut : une surface qui ne sait pas tenir un geste ne le fournit
+ * pas, et l'entrée disparaît — au lieu d'ouvrir sur rien.
+ */
 export interface GestesPiste {
-  lire: () => void;
-  ensuite: () => void;
-  aLaFile: () => void;
-  plusCommeCa: () => void;
-  autresVersions: () => void;
-  ajouterAPlaylist: () => void;
-  allerArtiste: () => void;
-  allerAlbum: () => void;
-  etiqueter: () => void;
+  lire?: () => void;
+  ensuite?: () => void;
+  aLaFile?: () => void;
+  plusCommeCa?: () => void;
+  autresVersions?: () => void;
+  ajouterAPlaylist?: () => void;
+  allerArtiste?: () => void;
+  allerAlbum?: () => void;
+  etiqueter?: () => void;
 }
-
 export function entreesMenuPiste(
   c: CapacitesPiste,
   g: GestesPiste,
 ): EntreeMenuPiste[] {
   const e: EntreeMenuPiste[] = [];
-  if (c.jouable) {
-    e.push({ cle: 'common.play', icone: ICONES.play, plein: true, faire: g.lire });
-    e.push({ cle: 'v2.pa.next', icone: ICONES.next, faire: g.ensuite });
-    e.push({ cle: 'queue.addToQueue', icone: ICONES.queue, faire: g.aLaFile });
-  }
-  if (c.idBibliotheque != null) {
-    e.push({ cle: 'library.playSimilar', icone: ICONES.similar, faire: g.plusCommeCa });
-    e.push({ cle: 'library.otherVersions', icone: ICONES.versions, faire: g.autresVersions });
-  }
-  if (c.jouable) {
-    e.push({ cle: 'nowplaying.addToPlaylist', icone: ICONES.playlist, faire: g.ajouterAPlaylist });
-  }
-  if (c.artistId != null) e.push({ cle: 'library.goToArtist', icone: ICONES.artist, faire: g.allerArtiste });
-  if (c.albumId != null) e.push({ cle: 'library.goToAlbum', icone: ICONES.album, faire: g.allerAlbum });
-  if (c.idBibliotheque != null) e.push({ cle: 'v2.cover.tags', icone: ICONES.tag, faire: g.etiqueter });
+  const pousser = (
+    possible: boolean,
+    cle: string,
+    icone: string,
+    faire: (() => void) | undefined,
+    plein = false,
+  ) => {
+    if (!possible || !faire) return;
+    e.push(plein ? { cle, icone, plein: true, faire } : { cle, icone, faire });
+  };
+  const deLaBibliotheque = c.idBibliotheque != null;
+  pousser(c.jouable, 'common.play', ICONES.play, g.lire, true);
+  pousser(c.jouable, 'v2.pa.next', ICONES.next, g.ensuite);
+  pousser(c.jouable, 'queue.addToQueue', ICONES.queue, g.aLaFile);
+  pousser(deLaBibliotheque, 'library.playSimilar', ICONES.similar, g.plusCommeCa);
+  pousser(deLaBibliotheque, 'library.otherVersions', ICONES.versions, g.autresVersions);
+  /**
+   * 🔴 « Ajouter à une liste de lecture » : réservé à la BIBLIOTHÈQUE.
+   *
+   * Elle était proposée sur toute piste jouable, pistes de service comprises.
+   * Le serveur ne peut pas la tenir : `tune-server/src/routes/playlists.rs`
+   * déclare, sur la tête de `renesenses/tune-server-rust` au 07/09/2026,
+   *
+   *     struct AddTracks { track_ids: Vec<i64>, position: Option<i64> }
+   *
+   * Le client envoie pourtant `streaming_tracks` (`api.addPlaylistTracks`) :
+   * serde l'écarte en silence, la route répond **201 Created**, et le modal
+   * annonce « ajoutée » sur une liste restée vide. Ce n'est pas non plus
+   * réparable en stockant la piste — `playlist_tracks.track_id` est
+   * `NOT NULL REFERENCES tracks(id)` dans les trois définitions de schéma.
+   *
+   * #1848 tranche : « Cette action doit donc être ABSENTE du menu pour une
+   * piste de service, pas grisée. »
+   */
+  pousser(deLaBibliotheque, 'nowplaying.addToPlaylist', ICONES.playlist, g.ajouterAPlaylist);
+  pousser(c.artistId != null, 'library.goToArtist', ICONES.artist, g.allerArtiste);
+  pousser(c.albumId != null, 'library.goToAlbum', ICONES.album, g.allerAlbum);
+  pousser(deLaBibliotheque, 'v2.cover.tags', ICONES.tag, g.etiqueter);
   return e;
 }

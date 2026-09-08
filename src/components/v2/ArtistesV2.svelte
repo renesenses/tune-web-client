@@ -39,6 +39,7 @@
    * pas d'`artist_id`. Même compromis que pour les collections.
    */
   import { onMount } from 'svelte';
+  import { lireListe } from '../../lib/lectureEnMasse';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -144,6 +145,54 @@
     albumsChargement = false;
   }
 
+  /**
+   * « Toutes les pistes » et « Lecture aleatoire » de l'artiste — #1947.
+   *
+   * `lireArtiste`, ci-dessous, ne joue que le PREMIER album de l'artiste : la
+   * vignette de la grille lance un album, pas une discographie. La fiche, elle,
+   * n'avait aucun bouton de lecture. Les deux gestes que le client actuel
+   * porte depuis longtemps (`playArtistLibrary`) n'existaient pas ici.
+   *
+   * L'aleatoire passe par le SERVEUR : `artist_id` figurait deja dans
+   * `api.shuffleAll` sans aucun appelant. Il tire sur la discographie entiere,
+   * la ou une liste chargee cote client s'arreterait a ce qui est affiche.
+   */
+  let masseEnCours = $state(false);
+  const gestesMasse = (zid: number) => ({
+    lire: (c: any) => playAndSync(zid, c),
+    enfiler: (c: any) => api.addToQueue(zid, c),
+  });
+  async function lireToutArtiste(a: Artist) {
+    const zid = $currentZoneId;
+    if (zid == null || a.id == null) {
+      notifications.error($t('v2.art.noZone' as any));
+      return;
+    }
+    masseEnCours = true;
+    try {
+      const pistes = (await api.getArtistTracks(a.id)) ?? [];
+      const n = await lireListe(pistes, gestesMasse(zid));
+      if (!n) notifications.error($t('library.noTracks' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+    masseEnCours = false;
+  }
+  async function lireArtisteAleatoire(a: Artist) {
+    const zid = $currentZoneId;
+    if (zid == null || a.id == null) {
+      notifications.error($t('v2.art.noZone' as any));
+      return;
+    }
+    masseEnCours = true;
+    try {
+      const r = await api.shuffleAll(zid, { artist_id: a.id });
+      if (!r.track_count) notifications.error($t('library.noTracks' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+    masseEnCours = false;
+  }
   async function lireArtiste(a: Artist) {
     const zid = $currentZoneId;
     if (zid == null) {
@@ -203,6 +252,16 @@
         <h1>{artiste.name}</h1>
         <p class="cpt">{albums.length} {$t('v2.art.albums' as any)}</p>
       </div>
+    </div>
+    <div class="fa">
+      <button class="fab" onclick={() => lireToutArtiste(artiste)} disabled={masseEnCours}
+        title={$t('library.playAllArtist' as any)}>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('library.playAllArtist' as any)}
+      </button>
+      <button class="fab creux" onclick={() => lireArtisteAleatoire(artiste)} disabled={masseEnCours}
+        title={$t('library.shuffleArtist' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('library.shuffleArtist' as any)}
+      </button>
     </div>
   </header>
 
@@ -412,4 +471,14 @@
   .av :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
   .fiche h1 { font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
   .cpt { font: 11px var(--v2-mono); color: var(--v2-txt3); margin-top: 4px; }
+  .fa{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+  .fab{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
+    border:0; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
+    font:700 13px var(--v2-sans, inherit); color:var(--v2-on-acc, #14110a);
+    background:linear-gradient(135deg, var(--v2-acc1, #d9a441), var(--v2-acc2, #b8862b))}
+  .fab.creux{background:transparent; color:var(--v2-txt, inherit);
+    border:1px solid var(--v2-line2, rgba(255,255,255,.16))}
+  .fab.creux:hover:not(:disabled){border-color:var(--v2-acc2, #b8862b); color:var(--v2-acc-tint, #e6c176)}
+  .fab:disabled{opacity:.5; cursor:default}
+  .fab svg{width:15px; height:15px}
 </style>

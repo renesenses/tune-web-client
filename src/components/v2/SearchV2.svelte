@@ -13,12 +13,13 @@
    * nom — tout reste dans cet écran, sans navigation cassée.
    */
   import * as api from '../../lib/api';
+  import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
+  import { notifications } from '../../lib/stores/notifications';
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import { doitViderLePerimetre } from '../../lib/perimetreRecherche';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
-  import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, getQualityTier } from '../../lib/utils';
@@ -420,6 +421,33 @@
     else lireDistant(a);
   }
 
+  /**
+   * « Tout lire » et « Lire les resultats en aleatoire » — #1947.
+   *
+   * Le client actuel les porte sur ses resultats (`SearchView.playAllTracks`) ;
+   * le nouveau n'avait que des lectures unitaires. La portee est la liste
+   * FILTREE complete (`titres`), pas la tranche affichee (`vusTitres`) : le
+   * « voir plus » ne doit pas changer ce que « tout lire » lit.
+   */
+  let masseEnCours = $state(false);
+  async function lireTousLesTitres(aleatoire: boolean) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    masseEnCours = true;
+    try {
+      const gestes = {
+        lire: (c: any) => playAndSync(zid, c),
+        enfiler: (c: any) => api.addToQueue(zid, c),
+      };
+      const n = aleatoire
+        ? await lireListeAleatoire(titres as any, gestes)
+        : await lireListe(titres as any, gestes);
+      if (!n) notifications.error($t('library.noTracks' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+    masseEnCours = false;
+  }
   function lirePiste(t: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
@@ -703,7 +731,12 @@
 
       {#if titres.length}
         <section class="grp">
-          <h2>{$t('v2.rech.tracks' as any)}</h2>
+          <h2>{$t('v2.rech.tracks' as any)}
+            <button class="lnk" onclick={() => lireTousLesTitres(false)} disabled={masseEnCours}
+              title={$t('browse.playAll' as any)}>{$t('browse.playAll' as any)}</button>
+            <button class="lnk" onclick={() => lireTousLesTitres(true)} disabled={masseEnCours}
+              title={$t('library.shuffleResults' as any)}>{$t('library.shuffleResults' as any)}</button>
+          </h2>
           <div class="list">
             <ListePistesV2 pistes={vusTitres as any} numerotation="aucune"
               onLire={(p) => lirePiste(p as any)}

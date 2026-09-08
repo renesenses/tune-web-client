@@ -30,7 +30,9 @@
   import type { Snippet } from 'svelte';
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
-  import { currentTrackId } from '../../lib/stores/nowPlaying';
+  import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
+    from '../../lib/stores/nowPlaying';
+  import IndicateurLecture from './IndicateurLecture.svelte';
   import {
     colonnesRetenues, gabaritGrille, valeurColonne, type CleColonne,
   } from '../../lib/colonnesPistes';
@@ -136,6 +138,19 @@
     `${gabaritGrille(colonnes)} ${LARGEUR_ACTIONS}${apres ? ` ${largeurApres}` : ''}`,
   );
 
+  /**
+   * L'état de lecture d'une ligne, en mode TABLEAU (#1845).
+   *
+   * Le mode lignes délègue à `LignePisteV2`, qui le calcule chez lui ; le
+   * tableau rend ses cellules lui-même et doit donc le faire ici. Les trois
+   * magasins sont lus UNE fois, dans des `$derived` : lus dans la fonction,
+   * ils seraient réabonnés à chaque ligne de chaque rendu.
+   */
+  const npId = $derived($currentTrackId);
+  const npPiste = $derived($currentTrack);
+  const npEtat = $derived($playbackState);
+  const etatDe = (p: Track) => etatDeLaLigne(p, npId, npPiste, npEtat);
+
   function numero(p: Track, i: number): string | null {
     if (numerotation === 'aucune') return null;
     if (numerotation === 'rang') return String(i + 1);
@@ -191,7 +206,9 @@
     </div>
 
     {#each pistes as p, i (clef(p, i))}
-      <div class="trow" class:np={p.id != null && p.id === $currentTrackId} role="row">
+      {@const etat = etatDe(p)}
+      <div class="trow" class:np={etat != null} aria-current={etat ? 'true' : undefined}
+        role="row">
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
             <span class="td" role="cell">
@@ -202,7 +219,11 @@
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus
                  large et la plus évidente de la ligne. -->
             <button class="td titre" onclick={() => onLire(p, i)} title={p.title}>
-              {cellule(p, i, c.cle) ?? ''}
+              <!-- L'indicateur est DANS la cellule du titre : une colonne de plus
+                   décalerait l'en-tête, et la règle de ce composant est qu'un
+                   seul gabarit vaut pour l'en-tête et pour les lignes. -->
+              <IndicateurLecture {etat} />
+              <span class="ttxt">{cellule(p, i, c.cle) ?? ''}</span>
             </button>
           {:else}
             {@const v = cellule(p, i, c.cle)}
@@ -241,9 +262,12 @@
   .th.d, .td.d{text-align:right; font-variant-numeric:tabular-nums}
   .th.c, .td.c{text-align:center}
 
-  .titre{padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
-    font:600 13.5px var(--v2-sans); color:var(--v2-txt); min-width:0;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .titre{display:flex; align-items:center; gap:7px;
+    padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
+    font:600 13.5px var(--v2-sans); color:var(--v2-txt); min-width:0}
+  /* C'est le TEXTE qui s'élide, jamais l'indicateur : un repère tronqué ne
+     repère plus rien. */
+  .ttxt{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .trow.np .titre{color:var(--v2-acc1)}
   .titre:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px; border-radius:4px}
 

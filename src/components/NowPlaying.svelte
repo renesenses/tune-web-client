@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { rangeableEnPlaylist } from '../lib/pisteFile';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { doitReinitialiserLesParoles } from '../lib/nowPlayingLyricsReset';
   import { currentZone } from '../lib/stores/zones';
   import { dialogs } from '../lib/stores/dialogs';
@@ -1877,7 +1879,7 @@
           <!-- Le garde testait `displayTrack?.id`, absent du now-playing de la zone
                (le champ y est `track_id`) : le bouton n'apparaissait donc jamais
                pour une piste locale en plein écran. -->
-          {#if onAddToPlaylist && (normalizedTrack?.id || normalizedTrack?.source_id)}
+          {#if onAddToPlaylist && normalizedTrack && rangeableEnPlaylist(normalizedTrack)}
             <button class="setting-btn" onclick={() => onAddToPlaylist!(normalizedTrack!)} title={$t('nowplaying.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" />
@@ -2164,11 +2166,12 @@
               {/if}
               <span class="qs-duration">{formatTime(queueTrack.duration_ms)}</span>
             </button>
-            {#if onAddToPlaylist && (queueTrack.id || queueTrack.source_id)}
+            {#if onAddToPlaylist && rangeableEnPlaylist(queueTrack)}
               <button class="qs-btn qs-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
               </button>
             {/if}
+            <MenuPisteV1 piste={queueTrack} />
             <button class="qs-btn qs-remove-btn" onclick={(e) => { e.stopPropagation(); qsRemoveFromQueue(index); }} title={$t('queue.removeFromQueue')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>

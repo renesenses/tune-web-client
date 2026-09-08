@@ -43,19 +43,35 @@ function gestesTemoins() {
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const actions = () => lire('src/components/v2/PisteActions.svelte');
 const menu = () => lire('src/components/v2/MenuPisteV2.svelte');
-const v0 = () => lire('src/components/TrackContextMenu.svelte');
-
-/** Les clés i18n que le menu du client ACTUEL affiche. */
+/**
+ * Les sept gestes que le menu du client ACTUEL offrait — la borne basse.
+ *
+ * 🔴 Ils étaient LUS dans `TrackContextMenu.svelte`, tant que ce fichier
+ * portait sa liste en dur. `renesenses/tune-server-rust#1848` la lui a retirée :
+ * les deux menus rendent désormais `entreesMenuPiste`, et relire la source du
+ * client actuel ne renverrait plus rien — la garde serait devenue tautologique.
+ *
+ * Le plancher est donc GELÉ ici. C'est légitime : c'est un fait historique, il
+ * ne bouge plus. Ce qu'il empêche reste entier — qu'un remaniement redescende
+ * sous ce que l'utilisateur avait déjà.
+ */
+const PLANCHER_V0 = [
+  'common.play',
+  'queue.addToQueue',
+  'library.playSimilar',
+  'library.otherVersions',
+  'nowplaying.addToPlaylist',
+  'library.goToArtist',
+  'library.goToAlbum',
+];
 function clesDuClientActuel(): string[] {
-  return [...v0().matchAll(/\$tr\('([^']+)'\)/g)].map((m) => m[1]);
+  return PLANCHER_V0;
 }
 
 describe('« je veux à minima le contenu de la v0 »', () => {
-  it('la borne basse est LUE dans le client actuel, pas recopiée ici', () => {
-    // Une liste écrite en dur dans le test se démoderait sans bruit le jour où
-    // le client actuel gagnerait une entrée. On la relit à la source.
-    const cles = clesDuClientActuel();
-    expect(cles.length, 'le menu du client actuel n’a plus d’entrées lisibles').toBeGreaterThanOrEqual(7);
+  it('le plancher du client actuel porte bien ses sept gestes, sans doublon', () => {
+    expect(clesDuClientActuel()).toHaveLength(7);
+    expect(new Set(clesDuClientActuel()).size, 'un geste compté deux fois').toBe(7);
   });
 
   /**
@@ -97,7 +113,25 @@ describe('« je veux à minima le contenu de la v0 »', () => {
         .not.toContain(morte);
     }
     expect(rendues).toContain('common.play');
-    expect(rendues).toContain('nowplaying.addToPlaylist');
+    /**
+     * 🔴 RETOURNÉ le 07/09/2026 par #1848.
+     *
+     * « Ajouter à une liste de lecture » était proposée sur une piste de service,
+     * et le serveur ne peut pas la tenir. `tune-server/src/routes/playlists.rs`,
+     * tête de `renesenses/tune-server-rust` au 07/09/2026 :
+     *
+     *     struct AddTracks { track_ids: Vec<i64>, position: Option<i64> }
+     *
+     * et `add_tracks` ne lit que `body.track_ids`. Le client envoyait pourtant
+     * `streaming_tracks` : serde l'écartait en silence, la route répondait
+     * **201 Created**, et le modal annonçait « ajoutée » sur une liste restée
+     * vide. Ce n'est pas réparable en stockant la piste —
+     * `playlist_tracks.track_id` est `NOT NULL REFERENCES tracks(id)`.
+     *
+     * #1848 tranche : ABSENTE, pas grisée.
+     */
+    expect(rendues, 'une piste de service ne peut pas entrer dans une liste locale')
+      .not.toContain('nowplaying.addToPlaylist');
   });
 
   it('une piste qu’on ne sait pas jouer ne rend AUCUNE entrée', () => {

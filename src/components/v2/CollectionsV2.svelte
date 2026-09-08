@@ -32,6 +32,7 @@
   import { onMount } from 'svelte';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import * as api from '../../lib/api';
+  import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
@@ -153,6 +154,50 @@
    * moyen de faire autrement sans une route serveur, et une pochette sans
    * bouton de lecture serait la seule de l'écran à ne pas en avoir.
    */
+  /**
+   * « Tout lire » et « Aleatoire » d'une collection ouverte — #1947.
+   *
+   * `lireCollection`, ci-dessous, ne joue que le PREMIER album : c'est le geste
+   * de la vignette, pas celui de la fiche. Le client actuel (`CollectionsView`)
+   * porte les deux boutons depuis longtemps ; la fiche du nouveau n'en avait
+   * aucun.
+   *
+   * `api.shuffleAll` ne connait pas les collections : on melange donc la liste
+   * cote client. Les pistes viennent de `getAlbumTracksBatch`, a concurrence
+   * bornee et avec un reessai par album — un `Promise.all` nu tronquait la file
+   * en silence (Sevy, 19 pistes sur 325).
+   */
+  let masseEnCours = $state(false);
+  async function pistesDeLaCollection(): Promise<any[]> {
+    const ids = albums.map((a) => a?.id).filter((x): x is number => x != null);
+    if (!ids.length) return [];
+    const { tracks, failedAlbums } = await api.getAlbumTracksBatch(ids);
+    if (failedAlbums) notifications.error($t('collections.playError' as any));
+    return tracks;
+  }
+  async function lireCollectionEntiere(aleatoire: boolean) {
+    const zid = $currentZoneId;
+    if (zid == null) {
+      notifications.error($t('v2.col.noZone' as any));
+      return;
+    }
+    masseEnCours = true;
+    try {
+      const pistes = await pistesDeLaCollection();
+      const gestes = {
+        lire: (c: any) => playAndSync(zid, c),
+        enfiler: (c: any) => api.addToQueue(zid, c),
+      };
+      const n = aleatoire
+        ? await lireListeAleatoire(pistes as any, gestes)
+        : await lireListe(pistes as any, gestes);
+      if (!n) notifications.error($t('collections.noTracks' as any));
+      else notifications.success($t('collections.playingAll' as any).replace('{count}', String(n)));
+    } catch (err: any) {
+      notifications.error(err?.message ?? $t('common.error' as any));
+    }
+    masseEnCours = false;
+  }
   async function lireCollection(e: Entree) {
     const zid = $currentZoneId;
     if (zid == null) {
@@ -387,6 +432,16 @@
       <div class="eyebrow">{ouverte.sorte === 'smart' ? $t('v2.col.smart' as any) : $t('v2.col.manual' as any)}</div>
       <h1>{ouverte.nom}</h1>
       {#if ouverte.description}<p class="sub">{ouverte.description}</p>{/if}
+      <div class="fa">
+        <button class="fab" onclick={() => lireCollectionEntiere(false)}
+          disabled={masseEnCours || !albums.length} title={$t('collections.playAll' as any)}>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('collections.playAll' as any)}
+        </button>
+        <button class="fab creux" onclick={() => lireCollectionEntiere(true)}
+          disabled={masseEnCours || !albums.length} title={$t('collections.shuffleAll' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('collections.shuffleAll' as any)}
+        </button>
+      </div>
     </header>
 
     {#if albumsChargement}
@@ -646,4 +701,14 @@
   .ct{font-weight:600; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ca{font:11px var(--v2-mono); color:var(--v2-txt3); display:flex; align-items:center; gap:6px}
   .tag{font-style:normal; padding:1px 6px; border-radius:var(--v2-r-pill); background:var(--v2-surface2); color:var(--v2-txt2)}
+  .fa{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+  .fab{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
+    border:0; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
+    font:700 13px var(--v2-sans, inherit); color:var(--v2-on-acc, #14110a);
+    background:linear-gradient(135deg, var(--v2-acc1, #d9a441), var(--v2-acc2, #b8862b))}
+  .fab.creux{background:transparent; color:var(--v2-txt, inherit);
+    border:1px solid var(--v2-line2, rgba(255,255,255,.16))}
+  .fab.creux:hover:not(:disabled){border-color:var(--v2-acc2, #b8862b); color:var(--v2-acc-tint, #e6c176)}
+  .fab:disabled{opacity:.5; cursor:default}
+  .fab svg{width:15px; height:15px}
 </style>

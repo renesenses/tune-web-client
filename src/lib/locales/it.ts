@@ -151,6 +151,7 @@ export default {
   'oxygen.folder.empty': 'Nessuna sottocartella qui.',
   'oxygen.facetsTitle': 'Sfaccettature',
   'oxygen.facetClear': 'Deseleziona tutto',
+  'oxygen.facetShowAll': 'Mostra tutto',
   'oxygen.collapseAll': 'Comprimi tutto',
   'oxygen.expandAll': 'Espandi tutto',
   'oxygen.facetsServer': 'Conteggio completo (indice server).',
@@ -3918,6 +3919,9 @@ export default {
   "v2.album.play": "Riproduci",
   "v2.album.shuffle": "Casuale",
   "v2.album.playNext": "Riproduci dopo",
+  "v2.piste.enLecture": "In riproduzione",
+  "v2.piste.enPause": "In pausa",
+  "v2.piste.arretee": "Riproduzione interrotta",
   "v2.album.addQueue": "Aggiungi alla coda",
   "v2.album.queued": "«{title}» aggiunto alla coda.",
   "v2.album.queuedNext": "«{title}» verrà riprodotto dopo.",
@@ -4132,6 +4136,13 @@ export default {
   "diagnostics.outputNoLicensedModules": "Nessun modulo posseduto",
   "diagnostics.outputNoProviders": "Nessun fornitore di uscita esterno è compilato in questo server.",
   "diagnostics.outputOpenLicense": "Vedi la mia licenza",
+
+  // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
+  // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
+  // ces onze fichiers en meme temps, un ajout groupe ici se fusionne sans
+  // toucher aux lignes voisines.
+  "settings.hiddenHere": "{n} impostazione/i nascoste qui al tuo livello di visualizzazione.",
+  "settings.hiddenHereReveal": "Mostrale",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

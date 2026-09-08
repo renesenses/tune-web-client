@@ -81,7 +81,13 @@ describe("#2574 — l'onglet « Titres » ouvre le même menu que la fiche d'alb
     ).toBe(true);
   });
 
-  it('le menu de l\'onglet « Titres » offre les six actions praticables', () => {
+  /**
+   * 🔴 `onPlayNext` a rejoint la liste le 07/09/2026 (#1848). « Lire ensuite »
+   * n'existait que dans le nouveau client et, ici, sous forme de bouton
+   * d'icône sur certains écrans seulement — exactement l'écart que ce ticket
+   * nomme. Les trois menus de la Bibliothèque le portent maintenant.
+   */
+  it('le menu de l\'onglet « Titres » offre les sept actions praticables', () => {
     expect(propsDuMenu(ONGLET_TITRES)).toEqual([
       'onAddToPlaylist',
       'onAddToQueue',
@@ -89,6 +95,7 @@ describe("#2574 — l'onglet « Titres » ouvre le même menu que la fiche d'alb
       'onGoToAlbum',
       'onGoToArtist',
       'onPlay',
+      'onPlayNext',
       'onPlaySimilar',
     ]);
   });

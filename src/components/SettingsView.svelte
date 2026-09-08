@@ -26,7 +26,8 @@
   } from '../lib/appareilsIgnores';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
   import { choisirInterface } from '../lib/interfaceChoisie';
-  import { SETTING_LEVELS, SETTINGS_LEVELS, isSettingVisible, hiddenCountByTab, nextLevel, type SettingKey, type SettingsLevel } from '../lib/settingLevels';
+  import { SETTING_LEVELS, SETTINGS_LEVELS, isSettingVisible, hiddenKeysByTab, hiddenKeysAmong, revealLevel, type SettingKey, type SettingsLevel } from '../lib/settingLevels';
+  import SettingsLevelNote from './SettingsLevelNote.svelte';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
@@ -3011,6 +3012,12 @@ function setSettingsLevel(level: SettingsLevel) {
     'library.replaygainAnalysis': config?.replaygain_analysis_enabled === false || config?.replaygain_analysis_enabled === 'false',
     'library.oxygenEnable': $preferences.oxygenEnabled,
     'library.oxygenView': $preferences.oxygenView !== 'detail',
+    // Les deux sous-reglages d'Oxygen n'avaient AUCUNE entree ici : un
+    // plafond de facettes deja porte a 500, ou une liste de facettes
+    // remaniee, restait masque sous le niveau expert alors que la regle
+    // d'or aurait du le laisser a l'ecran. C'est le levier de #2131.
+    'library.oxygenFacetLimit': $preferences.oxygenFacetLimit !== 200,
+    'library.oxygenFacets': OXYGEN_FACETS_ALL.some((f) => !$preferences.oxygenFacets.includes(f)),
     'library.metadataReadonly': !!config?.metadata_readonly,
     'library.ingestTemplate': !!ingestSettings?.template && ingestSettings.template !== ingestSettings.default_template,
     'library.discogsToken': !!config?.discogs_token_set,
@@ -3063,16 +3070,45 @@ function setSettingsLevel(level: SettingsLevel) {
     return keys.some(lvOk);
   }
 
-  const hiddenCounts = $derived(hiddenCountByTab(
+  // Sous-reglages dont le PARENT est allume : la ligne se rend donc pour de
+  // bon, et si le niveau la masque elle doit compter et se dire. Parent
+  // eteint, elle n'est nulle part et il n'y a rien a annoncer.
+  const settingParentOn = $derived.by((): Partial<Record<SettingKey, boolean>> => ({
+    'library.scanScheduleTime': scanScheduleEnabled,
+    'library.oxygenFacets': $preferences.oxygenEnabled && $isPremium,
+    'library.oxygenFacetLimit': $preferences.oxygenEnabled && $isPremium,
+    'network.wasapiMode': modeWasapiPertinent(choixBackends, audioBackend),
+    'network.replayGainPreamp': replayGainMode !== 'off',
+    'network.replayGainAntiClip': replayGainMode !== 'off',
+    'services.deezerArl': !!$streamingServicesStore['deezer'],
+  }));
+
+  /** Reglages masques dans une section donnee — pour la note posee sur place. */
+  function lvHidden(...keys: SettingKey[]): SettingKey[] {
+    return hiddenKeysAmong(
+      keys,
+      settingsLevel,
+      (k) => !!settingModified[k],
+      (k) => settingPresent[k] !== false,
+      (k) => settingParentOn[k] === true,
+    );
+  }
+
+  const hiddenKeys = $derived(hiddenKeysByTab(
     settingsLevel,
     (k) => !!settingModified[k],
     (k) => settingPresent[k] !== false,
+    (k) => settingParentOn[k] === true,
   ));
   const hiddenInCurrentTab = $derived(
     settingsTab === 'general' || settingsTab === 'library' || settingsTab === 'services'
       || settingsTab === 'network' || settingsTab === 'system'
-      ? hiddenCounts[settingsTab] : 0,
+      ? hiddenKeys[settingsTab] : [],
   );
+  // Le niveau qui revele VRAIMENT quelque chose, jamais « un cran » a
+  // l'aveugle : d'un niveau debutant dont les seuls masques sont experts,
+  // monter d'un cran ne montrerait rien et le bouton mentirait.
+  const raiseTarget = $derived(revealLevel(hiddenInCurrentTab, settingsLevel));
 
   const LEVEL_LABEL_KEYS: Record<SettingsLevel, string> = {
     beginner: 'settings.levelBeginner',
@@ -4595,6 +4631,11 @@ function setSettingsLevel(level: SettingsLevel) {
           </select>
         </div>
       {/if}
+      <SettingsLevelNote
+        hidden={lvHidden('network.wasapiMode', 'network.replayGainPreamp', 'network.replayGainAntiClip')}
+        current={settingsLevel}
+        onRaise={setSettingsLevel}
+      />
       <!-- Source du gain (#1627) : l'interrupteur d'analyse vivait dans la
            section Métadonnées, à un écran d'ici — le lien entre les deux était
            invisible (question de Bebelalu55, #1382 : « Tune utilise-t-il mes
@@ -5055,6 +5096,11 @@ function setSettingsLevel(level: SettingsLevel) {
           <option value="0">{$t('oxygen.facetAll')}</option>
         </select>
       </div>
+      <SettingsLevelNote
+        hidden={lvHidden('library.oxygenFacets', 'library.oxygenFacetLimit')}
+        current={settingsLevel}
+        onRaise={setSettingsLevel}
+      />
       <div class="settings-actions">
         <button class="action-btn" onclick={() => activeView.set('oxygen')}>{$t('oxygen.open')}</button>
       </div>
@@ -5444,6 +5490,15 @@ function setSettingsLevel(level: SettingsLevel) {
                     {/if}
                   </div>
                 {:else if name === 'deezer'}
+                  <!-- La saisie de l'ARL est le SEUL chemin de connexion a
+                       Deezer, et elle est de niveau expert : masquee sans
+                       trace, le service se lit comme casse. La note dit
+                       qu'il y a quelque chose, et comment l'atteindre. -->
+                  <SettingsLevelNote
+                    hidden={lvHidden('services.deezerArl')}
+                    current={settingsLevel}
+                    onRaise={setSettingsLevel}
+                  />
                   <div class="service-auth-form" class:lv-hidden={!lvOk('services.deezerArl')}>
                     <p class="auth-hint">{$t('settings.deezerArlHint')}</p>
                     <input
@@ -6318,10 +6373,10 @@ function setSettingsLevel(level: SettingsLevel) {
     <!-- Indice de découvrabilité (#1617) : ce que le niveau courant masque
          dans CET onglet, avec le geste pour le révéler. Les réglages modifiés
          ne comptent pas — la règle d'or les laisse visibles. -->
-    {#if hiddenInCurrentTab > 0 && settingsLevel !== 'expert'}
+    {#if hiddenInCurrentTab.length > 0 && raiseTarget}
       <p class="hidden-settings-hint">
-        {$t('settings.hiddenSettingsCount' as any).replace('{n}', String(hiddenInCurrentTab))}
-        <button class="hidden-settings-raise" onclick={() => setSettingsLevel(nextLevel(settingsLevel))}>
+        {$t('settings.hiddenSettingsCount' as any).replace('{n}', String(hiddenInCurrentTab.length))}
+        <button class="hidden-settings-raise" onclick={() => setSettingsLevel(raiseTarget)}>
           {$t('settings.hiddenSettingsRaise' as any)}
         </button>
       </p>
