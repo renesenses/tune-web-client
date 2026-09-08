@@ -4159,6 +4159,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "보유한 모듈 없음",
   "diagnostics.outputNoProviders": "이 서버에는 외부 출력 공급자가 컴파일되어 있지 않습니다.",
   "diagnostics.outputOpenLicense": "내 라이선스 보기",
+  "v2.album.compilation": "컴필레이션",
+  "v2.album.compilationHint": "스캔 중에 서버가 컴필레이션으로 표시한 앨범입니다.",
+  "v2.lib.compilations": "컴필레이션",
+  "v2.lib.compilationsHint": "컴필레이션만 표시합니다. 이 표시는 스캔 중에 설정됩니다. 업데이트 전에 색인된 앨범은 다음 스캔에서야 표시됩니다.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent

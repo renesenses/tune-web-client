@@ -17,6 +17,7 @@
   import AlbumArt from '../AlbumArt.svelte';
   import ClampedText from '../ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { queuePosition } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
@@ -355,7 +356,15 @@
   <div class="head">
     <div class="art"><AlbumArt coverPath={album.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
     <div class="meta">
-      <div class="qbadge">{qLabel}</div>
+      <!-- 🔴 La pastille « compilation » vit À CÔTÉ du badge de qualité, pas
+           dans la ligne de faits : c'est une NATURE de disque, pas une mesure,
+           et c'est la première chose que Didier et Bertrand cherchaient sur
+           cette fiche (#1957). Absente quand le drapeau est faux ou absent —
+           voir `PastilleCompilation`. -->
+      <div class="qrow">
+        <div class="qbadge">{qLabel}</div>
+        <PastilleCompilation compilation={album.is_compilation} />
+      </div>
       <h1>{album.title}</h1>
       <div class="artist">{album.artist_name ?? ''}</div>
       <div class="facts">
@@ -462,7 +471,11 @@
   .head{display:flex; gap:30px; padding:6px 0 26px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg)}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px}
-  .qbadge{align-self:flex-start; font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
+  /* Le badge de qualité et la pastille « compilation » sur la MÊME ligne, et
+     non deux blocs empilés : ce sont deux étiquettes de même rang, et empilées
+     elles pousseraient le titre de l'album hors du premier coup d'œil. */
+  .qrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .qbadge{font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}
   .artist{font-size:18px; color:var(--v2-txt2)}
@@ -487,6 +500,10 @@
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
+  /* Les regles de LIGNE ont disparu avec la boucle qu'elles habillaient :
+     la fiche monte `ListePistesV2`, qui porte les siennes. Le compilateur
+     Svelte les signalait toutes les neuf en « Unused CSS selector » des que
+     ce composant etait compile (#1957, garde de montage). */
 
   /* Présentation de l'album (#3586) — repliée par défaut, comme dans
      l'interface actuelle : la route sort sur le réseau quand la notice
@@ -499,17 +516,4 @@
   .bio-text{margin:0; color:var(--v2-txt2); font-size:14px; line-height:1.65; max-width:70ch}
   .bio-state{margin:0; color:var(--v2-txt3); font-size:13px; font-style:italic}
   .bio-state.err{color:var(--v2-danger)}
-  .trk{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; width:100%;
-    padding:0 12px; color:var(--v2-txt2); border-radius:8px}
-  /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
-     n'etant plus qu'un conteneur depuis qu'elle accueille la barre d'actions. */
-  .tclick{display:grid; grid-template-columns:34px 1fr; align-items:center; gap:14px; min-width:0;
-    padding:11px 0; border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; font-family:inherit}
-  .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
-  .trk.np{color:var(--v2-acc1)}
-  .trk .n{font:12px var(--v2-mono); color:var(--v2-txt3); text-align:right}
-  .trk.np .n{color:var(--v2-acc1)}
-  .trk .ti{font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .trk .tk{font:10px var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em}
-  .trk .dur{font:12px var(--v2-mono); color:var(--v2-txt3)}
 </style>

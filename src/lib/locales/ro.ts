@@ -4159,6 +4159,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Niciun modul deținut",
   "diagnostics.outputNoProviders": "Niciun furnizor de ieșire extern nu este compilat în acest server.",
   "diagnostics.outputOpenLicense": "Vezi licența mea",
+  "v2.album.compilation": "Compilație",
+  "v2.album.compilationHint": "Album marcat drept compilație de către server în timpul scanării.",
+  "v2.lib.compilations": "Compilații",
+  "v2.lib.compilationsHint": "Afișează doar compilațiile. Marcajul este pus în timpul scanării: un album indexat înainte de actualizare îl va primi abia la următoarea scanare.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent

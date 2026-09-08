@@ -4179,6 +4179,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "No module owned",
   "diagnostics.outputNoProviders": "No external output provider is compiled into this server.",
   "diagnostics.outputOpenLicense": "See my licence",
+  "v2.album.compilation": "Compilation",
+  "v2.album.compilationHint": "Album flagged as a compilation by the server during the scan.",
+  "v2.lib.compilations": "Compilations",
+  "v2.lib.compilationsHint": "Show compilations only. The flag is set during the scan: an album indexed before the update only gets it on the next scan.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
