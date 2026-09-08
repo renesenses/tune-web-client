@@ -171,7 +171,7 @@ export async function apiFetch(path: string): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -190,7 +190,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -209,7 +209,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -223,7 +223,7 @@ export async function apiDelete(path: string): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   // Tolerate empty bodies (e.g. HTTP 204 No Content from delete_radio_favorite):
@@ -247,8 +247,10 @@ export interface ApiError extends Error {
 async function apiError(response: Response): Promise<ApiError> {
   let detail = `${response.status} ${response.statusText}`;
   let code: string | undefined;
+  let corps: unknown = null;
   try {
     const body = await response.json();
+    corps = body;
     if (body.detail) detail = body.detail;
     else if (body.message) detail = body.message;
     code = body.error;
@@ -256,6 +258,30 @@ async function apiError(response: Response): Promise<ApiError> {
   const err = new Error(detail) as ApiError;
   err.code = code;
   err.status = response.status;
+  // Le delai d'un 429 doit survivre jusqu'a l'ecran. `erreurDepuisReponse` le
+  // portait deja, pas ce chemin-ci : les LECTURES du support (liste des
+  // tickets, fil, reponse, marquage lu) passent par `fetchJSON`, et elles
+  // partagent le compteur d'envoi de mozaiklabs. Un 429 sur l'une d'elles
+  // arrivait donc sans `retry_after`, et l'ecran disait « reessaie plus tard »
+  // alors que le serveur avait nomme le delai (#2178).
+  err.retryAfter = retryAfterDe(response, corps);
+  return err;
+}
+
+/**
+ * Erreur sentinelle des aides de `fetch` — « Session expired », « premium_required ».
+ *
+ * Ces deux-la sont levees AVANT `apiError`, et l'etaient en `Error` nue : ni
+ * `status`, ni `code`. Un refus premium arrivait au magasin indistinguable
+ * d'une panne reseau, et chaque ecran devait le rattraper sur la CHAINE du
+ * message (`premiumRefus.ts`, `motifEchecEq.ts`). Le message reste identique —
+ * les appelants qui le comparent continuent de fonctionner — mais le statut
+ * et le code voyagent desormais avec (#2178).
+ */
+function erreurSentinelle(message: string, status: number, code?: string): ApiError {
+  const err = new Error(message) as ApiError;
+  err.status = status;
+  if (code) err.code = code;
   return err;
 }
 
@@ -282,7 +308,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();
-      throw new Error('Session expired');
+      throw erreurSentinelle('Session expired', 401);
     }
     if (response.status === 402) {
       // Ni le message du serveur ni le repli ne parlaient la langue de
@@ -291,7 +317,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       // en anglais — et le repli etait du francais code en dur, montre tel
       // quel a un anglophone. Les deux sont le meme defaut (#2419).
       notifications.error(get(t)('premium.required'));
-      throw new Error('premium_required');
+      throw erreurSentinelle('premium_required', 402, 'premium_required');
     }
     const err = await apiError(response);
     if (response.status >= 500) {
@@ -357,7 +383,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();
-      throw new Error('Session expired');
+      throw erreurSentinelle('Session expired', 401);
     }
     const err = await apiError(response);
     if (response.status >= 500) {
@@ -5395,7 +5421,7 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}/support/tickets`, { method: 'POST', headers, body: form });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) {
     let message = `${resp.status}`;
     let corps: unknown = null;
@@ -5617,7 +5643,7 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   let json: any = null;
   try { json = await resp.json(); } catch { /* non-JSON body */ }
   if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
