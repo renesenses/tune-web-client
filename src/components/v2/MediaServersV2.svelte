@@ -388,7 +388,7 @@
       {/if}
 
       {#if busy && !vue.containers.length && !vue.items.length}
-        <div class="state">Chargement…</div>
+        <div class="state">{$t('v2.tool.loading' as any)}</div>
       {:else}
         {#if vue.containers.length}
           {#if enGrille}
@@ -438,10 +438,10 @@
             <h2>{vue.items.length} titre{vue.items.length > 1 ? 's' : ''}</h2>
             <div class="acts">
               <button class="pill" disabled={!!action} onclick={() => enchainer(vue.items, 'all')}>
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>Tout lire
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$t('v2.lbl.playAll' as any)}
               </button>
               <button class="pill ghost" disabled={!!action} onclick={() => enchainer(melanger(vue.items), 'shuffle')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>Aléatoire
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3l5 5-5 5M3 8h18M8 21l-5-5 5-5M21 16H3"/></svg>{$t('v2.album.shuffle' as any)}
               </button>
             </div>
           </div>

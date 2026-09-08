@@ -598,6 +598,33 @@ export function updateZoneDlnaPlayDelay(id: number, ms: number) {
   });
 }
 
+/**
+ * Récupération d'une sauvegarde locale : plusieurs réglages d'appareil en UN
+ * seul PATCH.
+ *
+ * Le serveur traite chaque clé indépendamment (`routes/zones.rs`, un
+ * `if let Some(...)` par champ), donc un corps composite équivaut à la suite
+ * d'appels unitaires ci-dessus. Mais 🔴 L'ORDRE COMPTE, et c'est pour cela que
+ * cette fonction existe.
+ *
+ * `routes/zones/ecriture.rs` (lu sur `origin/main`) persiste le PATCH, PUIS —
+ * si et seulement si le corps portait `brand` ou `model` — pousse le préréglage
+ * communautaire, dont la charge utile est relue en base à ce moment-là
+ * (`renderer_settings_snapshot`). Envoyer l'identité et les réglages en DEUX
+ * PATCH ferait donc partir la poussée sur une zone encore neutre : le snapshot
+ * serait vide, la poussée abandonnée, et le consensus n'apprendrait jamais la
+ * configuration qu'on vient de restaurer.
+ *
+ * Le corps est construit par `reglagesAppareilLocal.corpsPatch`, qui n'y met
+ * que ce qui change et écarte `fixed_volume`.
+ */
+export function updateZoneReglages(id: number, corps: Record<string, unknown>) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(corps),
+  });
+}
+
 /** Catalogue statique marque→modèles (+ quirks) pour la config d'une zone. */
 export function getDeviceCatalog() {
   return fetchJSON<import('./types').DeviceCatalog>(`${BASE}/devices/catalog`);
@@ -2181,8 +2208,19 @@ export function getListeningStats() {
   return fetchJSON<any>(`${BASE}/system/stats/listening`);
 }
 
+/**
+ * #533 — la route est déclarée en **POST** (`routes/playback.rs:760`), et elle
+ * rend `{ token, url, track }`, pas `{ title, artist, album, text, cover_url }`.
+ *
+ * L'appel en GET rendait 405 et le champ `text` attendu n'a jamais existé :
+ * c'est `undefined` qui partait au presse-papiers. Le texte se compose côté
+ * client, voir `lib/partageEcoute.ts`.
+ */
 export function shareNowPlaying(zoneId: number) {
-  return fetchJSON<{ title: string; artist: string; album: string; text: string; cover_url: string | null }>(`${BASE}/zones/${zoneId}/share`);
+  return fetchJSON<import('./partageEcoute').CartePartage>(
+    `${BASE}/zones/${zoneId}/share`,
+    { method: 'POST' },
+  );
 }
 
 export function transferPlayback(fromZoneId: number, toZoneId: number) {
@@ -2399,7 +2437,36 @@ function mapZoneQuality(zone: any): Zone {
  */
 export const SEARCH_PAGE_LIMIT = 50;
 
-export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PAGE_LIMIT, offset = 0) {
+/**
+ * Le plafond de la recherche FÉDÉRÉE — distinct du précédent, et plus haut.
+ *
+ * #764 : le serveur n'active `recherche_paginee(plafond)` **qu'au-delà de
+ * cinquante**. À cinquante pile, la pagination ne se déclenchait jamais, et le
+ * plafond était donc posé par le client sans que personne l'ait décidé.
+ *
+ * Mesuré sur le .18 le 08/09/2026, `/search?q=miles` :
+ *
+ *   | limite | local (pistes / albums) | qobuz | tidal |
+ *   |--------|-------------------------|-------|-------|
+ *   | 50     | 50 / 50                 | 50    | 50    |
+ *   | 100    | 100 / **92**            | 100   | 100   |
+ *   | 200    | 200 / 92                | 200   | 200   |
+ *
+ * Le ticket réservait sa conclusion à un seul service : la mesure la lève,
+ * Qobuz ET Tidal suivent. Et à cent, le nombre d'albums atteint son total réel
+ * (92) au lieu d'être tronqué — ce que cinquante cachait.
+ *
+ * Pourquoi cent et pas deux cents : cent suffit à déclencher la pagination et
+ * à découvrir les totaux, sans doubler une seconde fois le poids d'un écran
+ * qui rend déjà quatre familles pour quatre sources.
+ *
+ * 🔴 Ne PAS confondre avec `SEARCH_PAGE_LIMIT` juste au-dessus : cinquante est
+ * le plafond de page de l'API Qobuz, et il reste juste pour la recherche
+ * service par service, qui pagine, elle, par `offset`.
+ */
+export const SEARCH_FEDEREE_LIMIT = 100;
+
+export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FEDEREE_LIMIT, offset = 0) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
   // #3189 — la suite de la bibliothèque locale (le serveur ne pagine que
   // celle-là). Absent = 0 = la page d'avant : l'URL des appels existants ne
@@ -3548,6 +3615,27 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
   const filename = coverPath.split('/').pop() ?? coverPath;
   const sizeParam = size ? `?size=${size}` : '';
   return `${BASE}/library/artwork/${encodeURIComponent(filename)}${sizeParam}`;
+}
+
+/**
+ * 🔴 La même adresse, mais `undefined` quand il n'y a pas de pochette — #201.
+ *
+ * `artworkUrl` rend la **chaîne vide** quand le chemin est absent. C'est utile
+ * pour un `{#if}`, et catastrophique dans un attribut : `<img src="">` fait
+ * **redemander la page courante** au navigateur. C'est exactement ce que
+ * l'exploration automatique rapportait — « Image(s) injoignable(s) sous
+ * localhost:8888// — ex. `/` », vue Bibliothèque, deux occurrences par
+ * passage — et il y avait DIX-HUIT `<img src={artworkUrl(…)}>` sans garde dans
+ * le dépôt.
+ *
+ * Svelte omet un attribut dont la valeur est `undefined` : la balise part alors
+ * sans `src`, et le navigateur ne demande rien du tout.
+ *
+ * Le placeholder, lui, reste l'affaire de l'appelant — `AlbumArt` le fait déjà
+ * proprement, avec en plus un `onerror` pour les pochettes qui répondent 404.
+ */
+export function artworkSrc(coverPath: string | null | undefined, size?: number): string | undefined {
+  return artworkUrl(coverPath, size) || undefined;
 }
 
 // --- Album cover cache ---

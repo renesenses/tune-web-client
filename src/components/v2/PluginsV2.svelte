@@ -72,11 +72,11 @@
   <header class="top">
     <div>
       <div class="eyebrow">Studio</div>
-      <h1>Extensions</h1>
+      <h1>{$t('v2.nav.plugins' as any)}</h1>
     </div>
     <nav class="tabs">
       <button class:on={tab === 'installed'} onclick={() => (tab = 'installed')}>{$t('v2.plug.installedTab' as any)}<span>{installedCount}</span></button>
-      <button class:on={tab === 'all'} onclick={() => (tab = 'all')}>Catalogue<span>{plugins.length}</span></button>
+      <button class:on={tab === 'all'} onclick={() => (tab = 'all')}>{$t('v2.lbl.catalogue' as any)}<span>{plugins.length}</span></button>
     </nav>
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -91,7 +91,7 @@
 
   <div class="scroll">
     {#if loading}
-      <div class="state">Chargement…</div>
+      <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !filtered.length}
       <div class="state">{$t((tab === 'installed' ? 'v2.plug.emptyInstalled' : 'v2.plug.empty') as any)}</div>
     {:else}
@@ -104,7 +104,7 @@
                 <span class="ver">v{p.installed_version ?? p.version}</span>
                 {#if p.category}<span class="cat">{p.category}</span>{/if}
                 {#if p.update_available}<span class="upd">{$t('v2.plug.updateAvailable' as any)}</span>{/if}
-                {#if !p.compatible}<span class="ko">incompatible</span>{/if}
+                {#if !p.compatible}<span class="ko">{$t('v2.lbl.incompatible' as any)}</span>{/if}
               </div>
               <p class="pd">{p.description}</p>
               {#if p.author}<div class="pa">{p.author}</div>{/if}
