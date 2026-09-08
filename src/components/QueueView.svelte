@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { rangeableEnPlaylist } from '../lib/pisteFile';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs, queueTotalMs, jumpAndSync } from '../lib/stores/queue';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
@@ -433,7 +435,7 @@
           <button class="queue-item-play" onclick={() => playFromPosition(index)}>
             <span class="queue-index">{index + 1}</span>
             {#if queueTrack.cover_path}
-              <img src={api.artworkUrl(queueTrack.cover_path)} alt="" width="40" height="40" loading="lazy" style="border-radius:6px;object-fit:cover;flex-shrink:0" />
+              <img src={api.artworkSrc(queueTrack.cover_path)} alt="" width="40" height="40" loading="lazy" style="border-radius:6px;object-fit:cover;flex-shrink:0" />
             {:else}
               <AlbumArt albumId={queueTrack.album_id} size={40} alt={queueTrack.title} />
             {/if}
@@ -461,11 +463,12 @@
               <HeartButton trackId={queueTrack.id} size={14} />
             {/if}
           </span>
-          {#if onAddToPlaylist && (queueTrack.id || queueTrack.source_id)}
+          {#if onAddToPlaylist && rangeableEnPlaylist(queueTrack)}
             <button class="action-btn playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
           {/if}
+          <MenuPisteV1 piste={queueTrack} />
           <button class="action-btn remove-btn" onclick={(e) => { e.stopPropagation(); removeFromQueue(index); }} title={$t('queue.removeFromQueue')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>

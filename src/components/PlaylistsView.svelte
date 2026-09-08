@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { bulleTexte } from '../lib/infobulleTexte';
+  import { rangeableEnPlaylist } from '../lib/pisteFile';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { get } from 'svelte/store';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../lib/stores/nowPlaying';
@@ -482,8 +485,8 @@
             <button class="track-play" onclick={() => t.id && playTrack(t.id)}>
               <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
               <div class="track-info">
-                <span class="track-title truncate">{t.title}</span>
-                <span class="track-artist truncate">{t.artist_name ?? ''}</span>
+                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
+                <span class="track-artist truncate" use:bulleTexte>{t.artist_name ?? ''}</span>
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
@@ -491,11 +494,12 @@
             <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(playlistTracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="10" y2="18"/><path d="M16 8v8l6-4z" fill="currentColor" stroke="none"/></svg>
             </button>
-            {#if onAddToPlaylist && (t.id || t.source_id)}
+            {#if onAddToPlaylist && rangeableEnPlaylist(t)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
               </button>
             {/if}
+            <MenuPisteV1 piste={t} />
             <button class="remove-btn" onclick={() => removeTrack(index)} title={$tr('playlist.remove')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
@@ -555,18 +559,19 @@
             <button class="track-play" onclick={() => selectedStreamingPl ? playStreamingPlaylist(selectedStreamingPl, index) : playStreamingTrack(t)}>
               <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
               <div class="track-info">
-                <span class="track-title truncate">{t.title}</span>
-                {#if t.artist_name}<span class="track-artist truncate">{t.artist_name}</span>{/if}
+                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
+                {#if t.artist_name}<span class="track-artist truncate" use:bulleTexte>{t.artist_name}</span>{/if}
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
             </button>
             <button class="add-queue-btn" onclick={() => addStreamingTrackToQueue(t)} title={$tr('queue.addToQueue')}>+</button>
-            {#if onAddToPlaylist && (t.id || t.source_id)}
+            {#if onAddToPlaylist && rangeableEnPlaylist(t)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
               </button>
             {/if}
+            <MenuPisteV1 piste={t} />
           </div>
         {/each}
       </div>

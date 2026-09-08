@@ -3,16 +3,15 @@
  *
  * Le serveur garde ses fonctions payantes avec `require_premium` et répond
  * **402 Payment Required**, corps `{"error":"premium_required", …}`
- * (`tune-server/src/premium_guard.rs`). Côté client, ce refus arrive sous
- * DEUX formes selon le chemin emprunté dans `api.ts` :
+ * (`tune-server/src/premium_guard.rs`). Côté client, tous les chemins d'`api.ts`
+ * lèvent désormais un `ApiError` portant `status: 402` ET `code:
+ * 'premium_required'` : `fetchJSON` interceptait le 402 avant `apiError()` et
+ * levait un `Error` NU — ni `status`, ni `code` — ce qui rendait le refus
+ * indistinguable d'une panne réseau ; corrigé à la source (#2178).
  *
- *  - `fetchJSON` intercepte le 402 avant `apiError()` et lève un `Error` NU :
- *    ni `status`, ni `code`, seul le message `premium_required` le distingue ;
- *  - les autres chemins construisent un `ApiError` portant `status: 402` et
- *    `code: 'premium_required'`.
- *
- * Un appelant qui n'en lirait qu'une traiterait la moitié des refus comme des
- * pannes. D'où cette fonction, unique et partagée.
+ * Le test sur le message reste : c'est la forme que portent les clients
+ * déjà installés et les appelants qui comparent la chaîne. Les trois lectures
+ * décrivent le même refus, aucune n'est redondante avec certitude.
  */
 export function estRefusPremium(e: unknown): boolean {
   if (!(e instanceof Error)) return false;

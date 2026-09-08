@@ -17,6 +17,9 @@
   import { notifications } from '../../lib/stores/notifications';
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
+  import { doitViderLePerimetre } from '../../lib/perimetreRecherche';
+  import { pendingSearchQuery } from '../../lib/stores/navigation';
+  import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { preferences } from '../../lib/stores/preferences';
@@ -68,6 +71,36 @@
    * un effet ; l'effet ne rattrapait rien et cassait l'effacement.
    */
   let q = $state(get(currentSearchCriteria)?.q ?? '');
+
+  /**
+   * 🔴 LA REQUÊTE DÉPOSÉE PAR UN AUTRE ÉCRAN, que cet écran ne lisait pas.
+   *
+   * `GlobalSearchBar.goToFullSearch()` fait deux gestes : `pendingSearchQuery
+   * .set(q)` puis `activeView.set('search')`. L'écran de l'ancien client
+   * consomme le premier (`SearchView.svelte:248`) ; `SearchV2` ne connaissait
+   * que `currentSearchCriteria`, rempli par les RACCOURCIS. Monter la loupe
+   * dans la coquille v2 sans ceci aurait donc ouvert un écran de recherche
+   * VIDE — ou, pire, rejoué la recherche d'un raccourci par-dessus celle qu'on
+   * vient de taper.
+   *
+   * Un EFFET, et non une lecture au montage comme pour `currentSearchCriteria`
+   * juste au-dessus : depuis la loupe, l'écran Recherche peut déjà être monté
+   * (`ShellV2` ne le détruit pas si `activeView` y est déjà). Une lecture au
+   * montage ne verrait alors jamais la seconde requête.
+   *
+   * ⚠️ Il ne lit PAS `q` — c'est ce qui distingue cet effet de celui que
+   * Patatorz avait fait rougir (fil 1686) : là, l'effet relisait ce que son
+   * voisin écrivait et ressuscitait la lettre effacée. Ici la seule dépendance
+   * est le magasin, et la remise à vide qui le CONSOMME le fait retomber dans
+   * la sortie anticipée dès le tour suivant. Sans cette consommation, revenir
+   * plus tard sur l'écran rejouerait une recherche qu'on n'a pas demandée.
+   */
+  $effect(() => {
+    const demande = requeteAuMontage($pendingSearchQuery, null);
+    if (!demande) return;
+    pendingSearchQuery.set('');
+    q = demande;
+  });
 
   /**
    * Publier ce qu'on cherche, et repartir de ce qu'un raccourci a figé.
@@ -300,8 +333,18 @@
       (a[0] === 'local' ? -1 : b[0] === 'local' ? 1 : a[0].localeCompare(b[0])));
   });
 
-  /** Vide = tout le périmètre. On ne coche donc rien au départ. */
-  let sourcesActives = $state(new Set<string>());
+  /**
+   * Vide = tout le périmètre. On ne coche donc rien au départ — SAUF quand
+   * l'écran d'où l'on vient a demandé une source.
+   *
+   * Bertrand, 07/09/2026 : cliquer l'artiste d'une piste de service depuis la
+   * lecture en cours doit ouvrir la recherche SUR ce service. Lu au montage,
+   * comme `q` juste au-dessus, et pour la même raison : dans un effet, la
+   * remise à zéro ci-dessous le reprendrait aussitôt.
+   */
+  let sourcesActives = $state(
+    get(currentSearchCriteria)?.source ? new Set([get(currentSearchCriteria)!.source!]) : new Set<string>(),
+  );
   function basculerSource(cle: string) {
     const s2 = new Set(sourcesActives);
     if (s2.has(cle)) s2.delete(cle); else s2.add(cle);
@@ -309,7 +352,25 @@
   }
   // Changer de requête remet le périmètre à zéro : un filtre hérité d'une
   // recherche précédente masquerait des résultats sans qu'on sache pourquoi.
-  $effect(() => { void q; sourcesActives = new Set(); });
+  //
+  // 🔴 PAS au premier passage. L'effet s'exécute aussi au montage, et il
+  // effaçait donc la source demandée par l'écran appelant avant même le
+  // premier rendu — le périmètre naissait vide, le geste paraissait sans
+  // effet. On ne remet à zéro qu'à un CHANGEMENT réel de requête.
+  // 🔴 `let` NU, surtout pas `$state` : cette variable est lue ET écrite par
+  // l'effet ci-dessous. En `$state`, elle s'invalidait elle-même et Svelte
+  // avortait la PASSE D'EFFETS ENTIÈRE
+  // (`effect_update_depth_exceeded`) — l'effet de recherche ne partait plus et
+  // l'écran restait à zéro résultat. `npm test` n'en voyait rien : seul le
+  // navigateur le dit.
+  let requetePrecedente: string | null = null;
+  $effect(() => {
+    const actuelle = q;
+    // On n'ÉCRIT `sourcesActives` que pour le vider — on ne le lit jamais ici,
+    // sous peine de rouvrir la même boucle.
+    if (doitViderLePerimetre(requetePrecedente, actuelle)) sourcesActives = new Set();
+    requetePrecedente = actuelle;
+  });
 
   const dansLePerimetre = (x: any) =>
     sourcesActives.size === 0 || sourcesActives.has(x?.source ?? 'local');
@@ -461,7 +522,7 @@
     {#if showExpert && acousticAvailable}
       <button class="acoustic" class:on={acousticOn} onclick={() => { acousticOn = !acousticOn; if (acousticOn) runAcoustic(); else acoustic = null; }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M6 8v8M18 8v8M3 11v2M21 11v2"/></svg>
-        Acoustique
+        {$t('v2.sc.acousticHintBold' as any)}
       </button>
     {/if}
   </header>
@@ -577,7 +638,7 @@
     {:else}
       {#if showExpert && acoustic && acoustic.tracks.length}
         <section class="grp">
-          <h2>Ambiance <span class="tag">acoustique</span></h2>
+          <h2>{$t('nav.ambiance' as any)} <span class="tag">{$t('v2.lbl.acousticLower' as any)}</span></h2>
           <div class="list">
             <!-- L'AMBIANCE garde son pourcentage de proximite : c'est la
                  seule colonne que la liste partagee ne connait pas, et elle

@@ -5,7 +5,7 @@
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import HeartButton from './HeartButton.svelte';
-  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkUrl, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../lib/api';
+  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkUrl, artworkSrc, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
@@ -738,7 +738,7 @@
                 onclick={() => openAlbumById(a.album_id)}
                 onkeydown={(e) => e.key === 'Enter' && openAlbumById(a.album_id)}>
                 <div class="acover">
-                  {#if a.cover_path}<img src={artworkUrl(a.cover_path)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="ph">♪</div>{/if}
+                  {#if a.cover_path}<img src={artworkSrc(a.cover_path)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="ph">♪</div>{/if}
                 </div>
                 <div class="ainfo">
                   <div class="aartist">{a.album_artist ?? ''}</div>
@@ -761,7 +761,7 @@
           {#each albums as g (g.key)}
             <div class="card" role="button" tabindex="0" onclick={() => openAlbum(g)} ondblclick={() => playAlbumGroup(g)} onkeydown={(e) => e.key === 'Enter' && openAlbum(g)}>
               <div class="cwrap">
-                {#if g.cover}<img class="cvr" src={artworkUrl(g.cover)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="cvr ph">♪</div>{/if}
+                {#if g.cover}<img class="cvr" src={artworkSrc(g.cover)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="cvr ph">♪</div>{/if}
                 <span class="qov"><QualityBadge format={g.format} sampleRate={g.sr} bitDepth={g.bd} source={g.source} /></span>
                 {#if typeof g.key === 'number'}<span class="hov" onclick={(e) => e.stopPropagation()}><HeartButton albumId={g.key} size={14} /></span>{/if}
                 <button class="pov" title={$t('library.playAlbum')} onclick={(e) => { e.stopPropagation(); playAlbumGroup(g); }}>
@@ -778,7 +778,7 @@
           {#each albums as g (g.key)}
             <div class="album">
               <div class="aart">
-                {#if g.cover}<img class="cvr" src={artworkUrl(g.cover)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="cvr ph">♪</div>{/if}
+                {#if g.cover}<img class="cvr" src={artworkSrc(g.cover)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="cvr ph">♪</div>{/if}
               </div>
               <div class="abody">
                 <div class="ahead">
