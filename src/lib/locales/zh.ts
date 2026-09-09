@@ -572,6 +572,8 @@ export default {
   'settings.library': '媒体库',
   'settings.tracks': '歌曲',
   'settings.albums': '专辑',
+  'settings.tracksLocal': '本地曲目',
+  'settings.albumsLocal': '本地专辑',
   'settings.artists': '艺术家',
   'settings.zones': '区域',
   'settings.devices': '设备',

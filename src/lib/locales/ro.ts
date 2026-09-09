@@ -582,6 +582,8 @@ export default {
   'settings.library': 'Bibliotecă',
   'settings.tracks': 'Piese',
   'settings.albums': 'Albume',
+  'settings.tracksLocal': 'Piese locale',
+  'settings.albumsLocal': 'Albume locale',
   'settings.artists': 'Artiști',
   'settings.zones': 'Zone',
   'settings.devices': 'Dispozitive',

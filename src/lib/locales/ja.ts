@@ -572,6 +572,8 @@ export default {
   'settings.library': 'ライブラリ',
   'settings.tracks': 'トラック',
   'settings.albums': 'アルバム',
+  'settings.tracksLocal': 'ローカルのトラック',
+  'settings.albumsLocal': 'ローカルのアルバム',
   'settings.artists': 'アーティスト',
   'settings.zones': 'ゾーン',
   'settings.devices': 'デバイス',

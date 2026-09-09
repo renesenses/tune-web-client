@@ -737,6 +737,19 @@ export interface SystemStats {
   artists: number;
   zones: number;
   devices: number;
+  /** Ventilation par source, servie depuis #3277 (`/system/stats` et
+   *  `/library/stats`). Optionnels : un serveur antérieur ne les envoie pas,
+   *  et l'écran doit rester lisible sans eux.
+   *
+   *  `tracks` compte TOUTES les sources ; `total_files` du rapport de scan ne
+   *  compte que les fichiers trouvés sur le disque. Les deux nombres sont
+   *  affichés côte à côte sur l'onglet Bibliothèque et ne portent pas sur la
+   *  même population — c'est l'écart de 142 de #2147. `tracks_local` est le
+   *  seul des deux qui soit comparable au rapport. */
+  tracks_local?: number;
+  albums_local?: number;
+  tracks_by_source?: Record<string, number>;
+  albums_by_source?: Record<string, number>;
 }
 
 export interface ZoneGroupResponse {

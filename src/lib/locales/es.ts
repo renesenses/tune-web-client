@@ -572,6 +572,8 @@ export default {
   'settings.library': 'Biblioteca',
   'settings.tracks': 'Pistas',
   'settings.albums': 'Álbumes',
+  'settings.tracksLocal': 'Pistas locales',
+  'settings.albumsLocal': 'Álbumes locales',
   'settings.artists': 'Artistas',
   'settings.zones': 'Zonas',
   'settings.devices': 'Dispositivos',

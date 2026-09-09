@@ -572,6 +572,8 @@ export default {
   'settings.library': '라이브러리',
   'settings.tracks': '곡',
   'settings.albums': '앨범',
+  'settings.tracksLocal': '로컬 트랙',
+  'settings.albumsLocal': '로컬 앨범',
   'settings.artists': '아티스트',
   'settings.zones': '존',
   'settings.devices': '기기',
