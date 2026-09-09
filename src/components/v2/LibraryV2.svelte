@@ -2,12 +2,11 @@
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick } from 'svelte';
-  // 🔴 Repose APRÈS fusion : `main` a supprimé le seul autre lecteur de `get`
-  // (`prendreDossierEnAttente`, remplacé par le magasin `libraryFolderScope`)
-  // et la ligne d'import est partie avec, sans conflit. `check-svelte` l'a
-  // arrêté — sans lui l'écran Bibliothèque levait à l'exécution, comme la
-  // 0.9.62 avec `albumWall`.
-  import { get } from 'svelte/store';
+  // 🔴 PLUS d'import de `get` : ce fichier n'a plus AUCUN lecteur de magasin
+  // par `get()`. Les deux derniers étaient les effets `pendingLibraryArtist`
+  // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
+  // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
+  // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
   import { t as tr } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
   /**
@@ -912,8 +911,25 @@
     opened = null;
   });
 
+  /**
+   * L'ALBUM demandé de l'extérieur — jumeau exact de l'effet ci-dessus.
+   *
+   * 🔴 `$pendingLibraryAlbum`, PAS `get(pendingLibraryAlbum)` — #3717.
+   *
+   * Même faute, même mesure : `get()` n'inscrit aucune dépendance sous les
+   * runes, l'effet ne tournait qu'au montage. Le piège est qu'il PARAISSAIT
+   * marcher, parce que ses premiers émetteurs vivaient tous hors de la
+   * Bibliothèque (`NowPlaying`, `MenuPisteV1`) : changer de vue remonte
+   * l'écran, donc l'effet rejouait. Ses émetteurs INTERNES —
+   * `v2/PisteActions.allerAlbum` et `v2/VersionsPistePanneau.ouvrirAlbum`,
+   * atteints alors qu'on est déjà dans la Bibliothèque — ne remontaient rien :
+   * le magasin était posé, et la fiche ne s'ouvrait pas.
+   *
+   * Comme son jumeau, l'effet écrit ce qu'il lit (`set(null)`) et se rejoue
+   * une fois : la seconde passe sort sur `id == null` sans rien écraser.
+   */
   $effect(() => {
-    const id = get(pendingLibraryAlbum);
+    const id = $pendingLibraryAlbum;
     if (id == null) return;
     pendingLibraryAlbum.set(null);
     const connu = $albums.find((a) => a.id === id);
