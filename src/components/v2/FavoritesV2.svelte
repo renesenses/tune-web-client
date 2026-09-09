@@ -13,6 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import { notifications } from '../../lib/stores/notifications';
   import {
     currentProfileId, loadFavoriteIds, favoriteStreamingKeys,
     favoriteAlbumIds, favoriteTrackIds, favoriteArtistIds, favoritePlaylistIds,
@@ -272,6 +273,22 @@
 
   // ── Favoris RADIO : les titres captés à l'antenne ────────────────────────
   let radio = $state<any[]>([]);
+  /**
+   * Les STATIONS mises en favori — ce que Fabien cherchait.
+   *
+   * FabienM, fil 1739, 09/09/2026 : « Radio mis en favori n'apparaît pas dans
+   * le menu favoris ». Cet onglet ne montrait que les titres CAPTÉS à
+   * l'antenne, qui sont une autre chose : le favori d'une station est la
+   * colonne `radios.favorite`, et il n'était affiché que dans l'écran Radios.
+   * Rien ne le ramenait ici.
+   *
+   * ⚠️ Le filtre serveur `?favorite=true` est IGNORÉ — mesuré sur le .18 le
+   * 09/09/2026 : `radios?favorite=true` et `radios` rendent les MÊMES 46
+   * lignes, dont 5 seulement portent `favorite`. On filtre donc ici, et la
+   * correction serveur part à part. Se fier au filtre afficherait 46 stations
+   * dont 41 ne sont pas en favori.
+   */
+  let stations = $state<any[]>([]);
   let radioCharge = false;
   let radioLoading = $state(false);
   let creationPlaylist = $state(false);
@@ -279,19 +296,48 @@
   let creation = $state(false);
 
   const vRadio = $derived(radio.filter((f) => match(f.title) || match(f.artist)));
+  const vStations = $derived(stations.filter((r) => match(r.name) || match(r.genre)));
 
+  /** Lancer une station depuis l'écran Favoris, comme depuis l'écran Radios. */
+  async function lireStation(r: any) {
+    const zid = $currentZoneId;
+    if (zid == null) { notifications.error($t('queue.noZoneSelected' as any)); return; }
+    try {
+      await api.playRadio(r.id, zid);
+    } catch {
+      notifications.error($t('v2.pa.playError' as any));
+    }
+  }
+
+  /**
+   * 🔴 CHARGÉ AU MONTAGE, plus seulement en arrivant sur l'onglet.
+   *
+   * Le compteur de l'onglet lit `vRadio` / `vStations`. Tant que le contenu
+   * n'était chargé qu'au clic, l'onglet annonçait « 0 » — donc personne ne
+   * cliquait, et l'absence se confirmait toute seule. C'est la moitié du
+   * constat de Fabien : il ne « voyait pas » ses favoris radio, et l'onglet
+   * lui disait qu'il n'y en avait aucun.
+   */
   $effect(() => {
-    if (tab !== 'radio' || radioCharge) return;
+    if (radioCharge) return;
     radioCharge = true;
     radioLoading = true;
-    api
-      .apiFetch('/radio-favorites?limit=500')
-      .then((r: any) => {
-        radio = r?.items ?? r ?? [];
-      })
-      .catch(() => {
-        error = 'Favoris radio indisponibles.';
-        radio = [];
+    Promise.allSettled([
+      api.apiFetch('/radio-favorites?limit=500'),
+      api.getRadios({ favorite: true, limit: 500 }),
+    ])
+      .then(([titres, sts]) => {
+        radio =
+          titres.status === 'fulfilled'
+            ? ((titres.value as any)?.items ?? (titres.value as any) ?? [])
+            : [];
+        const brut =
+          sts.status === 'fulfilled' ? ((sts.value as any)?.items ?? (sts.value as any) ?? []) : [];
+        // Le filtre est refait ICI : voir le commentaire de `stations`.
+        stations = (brut as any[]).filter((r) => r?.favorite);
+        if (titres.status === 'rejected' && sts.status === 'rejected') {
+          error = 'Favoris radio indisponibles.';
+        }
       })
       .finally(() => {
         radioLoading = false;
@@ -399,7 +445,9 @@
     { id: 'playlists', label: $t('favorites.playlists' as any), n: vPlaylists.length },
     { id: 'collections', label: $t('v2.nav.collections' as any), n: vCollections.length },
     { id: 'facettes', label: $t('v2.fav.tabFacets' as any), n: vFacettes.length },
-    { id: 'radio', label: $t('v2.nav.radioShort' as any), n: vRadio.length },
+    // Le compteur additionne les deux : une station en favori COMPTE comme un
+    // favori, c'est précisément ce que Fabien venait y chercher.
+    { id: 'radio', label: $t('v2.nav.radioShort' as any), n: vStations.length + vRadio.length },
   ]);
 
 
@@ -689,10 +737,31 @@
            retirer un titre. -->
       {#if radioLoading}
         <div class="state">{$t('v2.fav.radioLoading' as any)}</div>
-      {:else if !radio.length}
-        <div class="state">
-          {$t('v2.fav.radioEmpty' as any)}
-        </div>
+      {:else}
+        <!-- 🔴 LES STATIONS D'ABORD — c'est ce que « mettre une radio en
+             favori » veut dire pour l'auditeur. Les titres captés viennent
+             après : ce sont des morceaux entendus À l'antenne, pas des
+             stations, et les confondre était tout le défaut. -->
+        {#if vStations.length}
+          <h2 class="rf-titre">{$t('v2.radio.allStations' as any)}</h2>
+          <div class="stgrille">
+            {#each vStations as r (r.id)}
+              <button class="stcarte" onclick={() => lireStation(r)} title={r.name}>
+                <span class="stnom">{r.name}</span>
+                {#if r.genre}<span class="stgenre">{r.genre}</span>{/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      {/if}
+
+      {#if !radioLoading}
+      {#if !radio.length}
+        {#if !vStations.length}
+          <div class="state">
+            {$t('v2.fav.radioEmpty' as any)}
+          </div>
+        {/if}
       {:else}
         <div class="rf-actions">
           <span class="rf-cpt">{radio.length} titre{radio.length > 1 ? 's' : ''}</span>
@@ -729,6 +798,7 @@
             {/each}
           </div>
         {/if}
+      {/if}
       {/if}
     {/if}
   </div>
@@ -794,6 +864,18 @@
 </section>
 
 <style>
+  .rf-titre{font:700 12px var(--v2-mono); letter-spacing:.06em; color:var(--v2-txt3);
+    text-transform:uppercase; padding:14px 30px 8px}
+  .stgrille{display:grid; gap:10px; padding:0 30px 18px;
+    grid-template-columns:repeat(auto-fill, minmax(190px, 1fr))}
+  .stcarte{display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left;
+    padding:12px 14px; border-radius:11px; border:1px solid var(--v2-line2);
+    background:transparent; color:var(--v2-txt); cursor:pointer; min-width:0}
+  .stcarte:hover{border-color:var(--v2-acc1)}
+  .stnom{font:600 13.5px var(--v2-sans); overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; max-width:100%}
+  .stgenre{font:11px var(--v2-mono); color:var(--v2-txt3)}
+
   .barre{display:flex; align-items:center; justify-content:space-between; gap:18px;
     flex-wrap:wrap; padding:0 30px 12px}
   .puces{display:flex; gap:7px; flex-wrap:wrap}

@@ -94,6 +94,58 @@ describe('point 1 — l’écoute locale de l’historique est INJOUABLE', () =>
   });
 });
 
+describe('point 2 — le menu « … » d’un titre d’historique', () => {
+  it('🔴 une écoute locale SANS identifiant perd tout le menu de bibliothèque', () => {
+    // Le point 2 de Fabien est le MÊME défaut que le point 1, vu par une autre
+    // fenêtre. `entreesMenuPiste` ouvre « écouter des titres similaires »,
+    // « autres versions », « ajouter à une liste », « étiqueter » sur
+    // `idBibliotheque != null` — que `PisteActions` calcule comme
+    // `local && piste.id != null`.
+    //
+    // Sans `track_id`, la piste n'est pas locale : les quatre entrées
+    // disparaissent, et le titre local paraît PLUS pauvre qu'un titre Qobuz.
+    const [locale] = entreesDepuisServeur([ECOUTE_LOCALE]);
+    expect(estPisteLocale(locale.track)).toBe(false);
+
+    const [reparee] = entreesDepuisServeur([{ ...ECOUTE_LOCALE, track_id: 29572 }]);
+    expect(
+      estPisteLocale(reparee.track),
+      'le correctif serveur ne rend pas la piste à la bibliothèque : le menu ' +
+        'restera amputé',
+    ).toBe(true);
+  });
+
+  it('les entrées absentes sur un titre de SERVICE le sont pour une raison écrite', () => {
+    // Contrairement au point 1, ce n'est PAS un défaut : chaque garde porte sa
+    // justification en commentaire, et elles tiennent au serveur.
+    //   - similaires / versions / étiquettes : les routes prennent un `i64` ;
+    //   - ajouter à une liste : #1848 — `playlist_tracks.track_id` est
+    //     `NOT NULL REFERENCES tracks(id)`, la route répond 201 sur une liste
+    //     restée vide. « ABSENTE du menu, pas grisée. »
+    // Ce témoin garde la LIMITE : la lever demande le serveur, pas le client.
+    const menu = sansCommentaires(lire('src/lib/menuPiste.ts'));
+    for (const cle of [
+      'library.playSimilar',
+      'library.otherVersions',
+      'nowplaying.addToPlaylist',
+      'v2.cover.tags',
+    ]) {
+      expect(menu, `${cle} n’est plus réservée à la bibliothèque`).toMatch(
+        new RegExp(`pousser\\(deLaBibliotheque, '${cle.replace('.', '\\.')}'`),
+      );
+    }
+  });
+
+  it('les trois gestes de FILE restent ouverts à toute piste jouable', () => {
+    // Lire, lire ensuite, ajouter à la file : aucune raison de les refuser à
+    // un titre de service, et ils ne le sont pas.
+    const menu = sansCommentaires(lire('src/lib/menuPiste.ts'));
+    for (const cle of ['common.play', 'v2.pa.next', 'queue.addToQueue']) {
+      expect(menu).toMatch(new RegExp(`pousser\\(c\\.jouable, '${cle.replace('.', '\\.')}'`));
+    }
+  });
+});
+
 describe('points 3 et 5 — un album de SERVICE s’ouvre et se met en favori', () => {
   const src = () => sansCommentaires(lire('src/components/v2/SearchV2.svelte'));
 
