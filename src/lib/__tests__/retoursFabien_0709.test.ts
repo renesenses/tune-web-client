@@ -62,7 +62,18 @@ describe('« les hyperliens de l’album renvoient vers la page d’accueil »',
 
   it('la Bibliothèque v2 le CONSOMME, une seule fois', () => {
     const lib = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
-    expect(lib).toContain('const id = get(pendingLibraryAlbum);');
+    // 🔴 `$pendingLibraryAlbum`, et surtout PAS `get(pendingLibraryAlbum)` —
+    // #3717. Cette ligne attendait littéralement la forme `get(...)`, qui
+    // ÉTAIT le défaut : sous les runes, `get()` n'inscrit aucune dépendance,
+    // l'effet ne tournait qu'au montage, et « Aller à l'album » depuis
+    // l'intérieur de la Bibliothèque ne faisait rien. La garde figeait donc
+    // le bug qu'elle croyait surveiller — un témoin qui RÉPLIQUE le code ne
+    // le garde pas.
+    //
+    // Ce qui garde vraiment ce contrat est un témoin de COMPORTEMENT, qui
+    // monte la Bibliothèque, pose la cible ensuite, et exige la fiche à
+    // l'écran : `magasinsGetDansEffet3717.test.ts`.
+    expect(lib).toContain('const id = $pendingLibraryAlbum;');
     // Le laisser dans le magasin rouvrirait la fiche à chaque retour.
     expect(lib).toContain('pendingLibraryAlbum.set(null);');
   });

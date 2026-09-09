@@ -9,8 +9,9 @@
    *                (« jazz analogique chaleureux ») quand le serveur l'embarque.
    *
    * L'ouverture d'un album réutilise l'overlay AlbumDetailV2 (la section est
-   * `position:relative`). Un clic sur un artiste redéroule la recherche sur son
-   * nom — tout reste dans cet écran, sans navigation cassée.
+   * `position:relative`). Un clic sur un artiste LOCAL ouvre sa fiche dans la
+   * Bibliothèque (#3717) ; sur un artiste de SERVICE, qui n'a pas de fiche, il
+   * redéroule la recherche sur son nom et tout reste dans cet écran.
    */
   import * as api from '../../lib/api';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
@@ -18,7 +19,7 @@
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import { doitViderLePerimetre } from '../../lib/perimetreRecherche';
-  import { pendingSearchQuery } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryArtist, pendingSearchQuery } from '../../lib/stores/navigation';
   import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -454,6 +455,32 @@
   }
 
   /**
+   * Ouvrir une VIGNETTE D'ARTISTE — #3717.
+   *
+   * Les trois tuiles d'artiste de ce bandeau (le meilleur résultat, la
+   * pochette, le nom) faisaient toutes `q = ar.name` : cliquer un artiste
+   * RELANÇAIT la recherche sur son nom au lieu d'ouvrir sa fiche. Le mot
+   * cherché revenait, les résultats se rafraîchissaient, et l'artiste restait
+   * fermé — un clic qui a l'air cassé plutôt qu'inerte.
+   *
+   * On ne réinvente aucun chemin : c'est le contrat déjà posé par
+   * `AlbumDetailV2.allerArtiste` et `PisteActions.allerArtiste`, consommé par
+   * `LibraryV2` (`$pendingLibraryArtist`) — on POSE la cible, puis on change
+   * de vue.
+   *
+   * 🔴 Seul un artiste LOCAL a une fiche : `pendingLibraryArtist` est un
+   * identifiant de la table `artists`, et un artiste de service n'en a pas.
+   * Pour lui, affiner la recherche sur son nom reste le meilleur geste
+   * disponible — c'est l'ancien comportement, gardé là où il a un sens, et
+   * seulement là.
+   */
+  function ouvrirArtiste(ar: any) {
+    if (!estLocal(ar)) { q = ar.name; return; }
+    pendingLibraryArtist.set(ar.id);
+    activeView.set('library');
+  }
+
+  /**
    * « Tout lire » et « Lire les resultats en aleatoire » — #1947.
    *
    * Le client actuel les porte sur ses resultats (`SearchView.playAllTracks`) ;
@@ -665,7 +692,7 @@
               <h2>{$t('v2.rech.best' as any)}</h2>
               {#if meilleur.genre === 'artiste'}
                 {@const a = meilleur.artiste}
-                <button class="bcard" onclick={() => (q = a.name)}>
+                <button class="bcard" onclick={() => ouvrirArtiste(a)}>
                   <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
                   <span class="bt">{a.name}</span>
                   <span class="bk">{$t('v2.rech.kindArtist' as any)}</span>
@@ -699,13 +726,13 @@
                         favori={estLocal(ar) ? { artistId: ar.id! } : null}
                         etiquettes={estLocal(ar) ? { itemType: 'artist', itemId: ar.id! } : null}
                         onEditer={estLocal(ar) ? () => (artisteEnEdition = ar) : null}
-                        onOuvrir={() => (q = ar.name)}
+                        onOuvrir={() => ouvrirArtiste(ar)}
                         nom={ar.name}
                       >
                         <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
                       </PochetteActions>
                     </span>
-                    <button class="meta" onclick={() => (q = ar.name)}><span class="an" title={ar.name}>{ar.name}</span></button>
+                    <button class="meta" onclick={() => ouvrirArtiste(ar)}><span class="an" title={ar.name}>{ar.name}</span></button>
                   </div>
                 {/each}
               </div>
