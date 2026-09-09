@@ -62,6 +62,10 @@
   import { favoriteFacetKeys, facetFavKey } from '../../lib/stores/profile';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
+  // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
+  // manquant — n'atteignait jamais l'écran.
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -915,7 +919,7 @@
     // Un `track_id` n'a de sens que pour le serveur LOCAL : celui d'un serveur
     // distant designerait un tout autre morceau ici. On passe donc par son URL
     // de flux, jouee en `source: upnp`.
-    playAndSync(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(() => {});
+    playAndSync(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(signalerEchecLecture);
   }
   let opened = $state<Album | null>(null);
 
@@ -1054,7 +1058,7 @@
     }
     const zid = $currentZoneId;
     if (zid == null || a.id == null) return;
-    playAndSync(zid, { album_id: a.id }).catch(() => {});
+    playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
   function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; fCompilation = null; }

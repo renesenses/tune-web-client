@@ -9,6 +9,10 @@
   import { t as tr } from '../../lib/i18n';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
+  // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
+  // manquant — n'atteignait jamais l'écran.
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -241,7 +245,7 @@
     // ne designe rien pour le serveur, qui retombe alors sur « reprendre la
     // lecture en cours » — le defaut releve sur les playlists Qobuz.
     if (service && sidDistant) {
-      playAndSync(zid, { streaming_album_id: String(sidDistant), source: service as any, start_index: startIndex }).catch(() => {});
+      playAndSync(zid, { streaming_album_id: String(sidDistant), source: service as any, start_index: startIndex }).catch(signalerEchecLecture);
       return;
     }
     // Bandcamp : chaque piste porte son propre flux, il n'y a pas d'album a
@@ -250,12 +254,12 @@
     if (bandcamp) {
       const corps = corpsDeLecture(tracks[startIndex]);
       if (!corps) return;
-      playAndSync(zid, corps as any).catch(() => {});
+      playAndSync(zid, corps as any).catch(signalerEchecLecture);
       return;
     }
     if (album.id == null) return;
-    if (depot) { enchainerDistant(tracks, startIndex).catch(() => {}); return; }
-    playAndSync(zid, { album_id: album.id, start_index: startIndex }).catch(() => {});
+    if (depot) { enchainerDistant(tracks, startIndex).catch(signalerEchecLecture); return; }
+    playAndSync(zid, { album_id: album.id, start_index: startIndex }).catch(signalerEchecLecture);
   }
   /** Melange en place, sans hasard reel : la meme permutation pour un meme
    *  nombre de pistes. C'etait deja le cas ici, on ne fait que l'extraire. */
@@ -268,7 +272,7 @@
   function shuffle() {
     const zid = $currentZoneId;
     if (zid == null) return;
-    if (depot) { enchainerDistant(melanger(tracks)).catch(() => {}); return; }
+    if (depot) { enchainerDistant(melanger(tracks)).catch(signalerEchecLecture); return; }
     // Album de SERVICE ou Bandcamp : pas d'`id` local, mais chaque piste est
     // designable par sa paire `source` + `source_id`. La premiere joue, les
     // autres s'empilent en UNE requete.
@@ -280,12 +284,12 @@
         await playAndSync(zid, tete as any);
         const reste = corpsDeFileListe(l.slice(1));
         if (reste) await api.addToQueue(zid, reste);
-      })().catch(() => {});
+      })().catch(signalerEchecLecture);
       return;
     }
     if (album.id == null) return;
     const ids = melanger(tracks.map((t) => t.id).filter((x): x is number => x != null));
-    playAndSync(zid, { track_ids: ids }).catch(() => {});
+    playAndSync(zid, { track_ids: ids }).catch(signalerEchecLecture);
   }
   /**
    * Les deux boutons de file, pour les QUATRE origines.
