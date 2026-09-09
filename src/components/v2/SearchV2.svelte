@@ -32,6 +32,8 @@
   import ListePistesV2 from './ListePistesV2.svelte';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
+  import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import { t } from '../../lib/i18n';
@@ -120,6 +122,21 @@
   let acousticAvailable = $state(false);
   let busy = $state(false);
   let opened = $state<Album | null>(null);
+  /**
+   * Le SERVICE de l'album ouvert, `null` pour un album de la bibliothèque.
+   *
+   * `AlbumDetailV2` sait déjà tout faire d'un album de service — lecture,
+   * favori, pistes — mais SEULEMENT si on lui passe `service` : sans lui, il
+   * traite l'album comme local et cherche des pistes par un identifiant qui
+   * n'existe pas. La fiche était donc écrite et pas atteignable d'ici.
+   */
+  let serviceOuvert = $state<string | null>(null);
+
+  /** Ouvrir la fiche d'un album, local ou de service. */
+  function ouvrirFiche(a: any) {
+    opened = a;
+    serviceOuvert = estLocal(a) ? null : (a.source ?? null);
+  }
   /**
    * Édition depuis les résultats. Le crayon existait dans Bibliothèque et pas
    * ici : le même disque changeait de gestes selon l'écran par lequel on
@@ -637,13 +654,13 @@
                     etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
                     onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                     onLire={a.id != null ? () => lireAlbum(a.id!) : null}
-                    onOuvrir={() => (opened = a)}
+                    onOuvrir={() => ouvrirFiche(a)}
                     nom={a.title}
                   >
                     <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                   </PochetteActions>
                 </span>
-                <button class="meta" onclick={() => (opened = a)}>
+                <button class="meta" onclick={() => ouvrirFiche(a)}>
                   <span class="ct" title={a.title}>{a.title}</span>
                   <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
                   <QualiteAlbum objet={a} />
@@ -714,7 +731,11 @@
                 </button>
               {:else if meilleur.genre === 'album'}
                 {@const a = meilleur.album}
-                <button class="bcard" onclick={() => (estLocal(a) ? (opened = a) : ouvrirOuLire(a))}>
+                <!-- Le MEILLEUR RÉSULTAT mène à la fiche dans les deux cas.
+                     Il LANÇAIT la lecture pour un album de service, quand le
+                     même geste ouvre la fiche pour un local : deux gestes
+                     différents sous une carte identique. -->
+                <button class="bcard" onclick={() => ouvrirFiche(a)}>
                   <span class="bcv"><AlbumArt coverPath={a.cover_path} albumId={estLocal(a) ? a.id : null} size={0} alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} /></span>
                   <span class="bt">{a.title}</span>
                   <span class="bk">{$t('v2.rech.kindAlbum' as any)} · {a.artist_name ?? ''}</span>
@@ -770,31 +791,62 @@
               {@const local_ = estLocal(a)}
               <div class="card" class:static={!local_}>
                 <span class="cv">
-                  <!-- Un album de SERVICE n'a ni coeur ni etiquettes : les deux
-                       sont adosses a un identifiant de bibliotheque qu'il n'a
-                       pas. Il se LIT, avec la paire service + identifiant. -->
+                  <!-- 🔴 PARITÉ local / service, sauf l'édition.
+                       FabienM, fil 1739, 09/09/2026 : « D'une manière générale
+                       il faut qu'on retrouve les mêmes boutons / actions sur
+                       les albums / Titres / Artistes quelque soit la source
+                       (local / Streaming), à l'exception de l'édition. »
+
+                       Le commentaire qui vivait ici disait « un album de
+                       SERVICE n'a ni coeur ni etiquettes », au motif commun
+                       qu'il n'a pas d'identifiant de bibliothèque. Ce motif
+                       avait DÉJÀ été tranché le 03/09 sur la page d'accueil
+                       (`PageWidgets`) : il tient pour les étiquettes, pas pour
+                       le favori, qui a sa propre table serveur
+                       `streaming_favorites` clefée `service` + `service_id` en
+                       TEXTE. La correction n'avait jamais été propagée ici.
+
+                       Les ÉTIQUETTES restent absentes, et ce n'est pas un
+                       oubli : la route serveur prend `item_id: i64` quand un
+                       album Qobuz s'identifie « kxend2k5wdg06 ». Les brancher
+                       demande une évolution du SERVEUR. Mieux vaut une icône
+                       absente qu'une icône morte. -->
                   <PochetteActions
                     favori={local_ ? { albumId: a.id! } : null}
+                    favoriExterne={!local_ && a.source && a.source_id
+                      ? favoriExterneService($favoriteStreamingKeys, {
+                          itemType: 'album',
+                          service: String(a.source),
+                          serviceId: String(a.source_id),
+                          title: a.title,
+                          artist: a.artist_name ?? undefined,
+                          coverUrl: a.cover_path ?? undefined,
+                        })
+                      : null}
                     etiquettes={local_ ? { itemType: 'album', itemId: a.id! } : null}
                     onEditer={local_ ? () => (albumEnEdition = a) : null}
                     onLire={local_ || (a.source && a.source_id) ? () => ouvrirOuLire(a) : null}
-                    onOuvrir={local_ ? () => (opened = a) : null}
+                    onOuvrir={local_ || (a.source && a.source_id) ? () => ouvrirFiche(a) : null}
                     nom={a.title}
                   >
                     <AlbumArt coverPath={a.cover_path} albumId={local_ ? a.id : null} size={0} alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} />
                   </PochetteActions>
                 </span>
-                {#if local_}
-                  <button class="meta" onclick={() => (opened = a)}>
+                <!-- Le TITRE mène à la fiche, pour un album de service comme
+                     pour un local. Le texte inerte de l'`{:else}` était l'autre
+                     moitié du constat de Fabien : « on peut accéder à la page
+                     de l'album local (en cliquant en dehors du bouton play)
+                     mais on ne peut pas accéder à la page d'un album Qobuz ».
+                     La source reste nommée sur la troisième ligne, avec la
+                     qualité, de la même façon qu'un album local. -->
+                {#if local_ || (a.source && a.source_id)}
+                  <button class="meta" onclick={() => ouvrirFiche(a)}>
                     <span class="ct" title={a.title}>{a.title}</span>
                     <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
                     <QualiteAlbum objet={a} />
                   </button>
                 {:else}
                   <span class="ct" title={a.title}>{a.title}</span>
-                  <!-- La source quitte la ligne de l'artiste : elle est nommee
-                       sur la troisieme, avec la qualite, et de la meme facon
-                       que pour un album local. -->
                   <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
                   <QualiteAlbum objet={a} />
                 {/if}
@@ -848,7 +900,13 @@
   </div>
 
   {#if opened}
-    <AlbumDetailV2 album={opened} onClose={() => (opened = null)} />
+    <!-- 🔴 `service` : sans lui la fiche traite l'album comme local et cherche
+         ses pistes par un identifiant de bibliothèque qui n'existe pas. -->
+    <AlbumDetailV2
+      album={opened}
+      service={serviceOuvert}
+      onClose={() => { opened = null; serviceOuvert = null; }}
+    />
   {/if}
 
   {#if albumEnEdition}
