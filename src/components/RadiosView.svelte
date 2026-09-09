@@ -11,15 +11,37 @@
   import { tuneWS } from '../lib/websocket';
   import { onMount } from 'svelte';
   import type { RadioStation } from '../lib/types';
+  import { radioGenreShelf, radioGenreShelves, radioGenreLabel } from '../lib/radioGenres';
 
   type Tab = 'stations' | 'saved';
   let activeTab = $state<Tab>('stations');
 
   let radios = $state<RadioStation[]>([]);
   let loading = $state(true);
+  /**
+   * Le filtre porte sur la CLÉ de rayon, jamais sur le libellé affiché.
+   *
+   * Il portait sur la chaîne brute, et c'est ce qui fabriquait les rayons en
+   * double : `eclectic` et `Éclectique` sont le même genre, mais deux chaînes,
+   * donc deux boutons, donc la moitié des stations manquante à chaque clic.
+   * Une clé de rayon est stable — même casse, même accents, même langue
+   * d'affichage.
+   */
   let filterGenre = $state<string | null>(null);
   let filterFavorite = $state(false);
-  let genres = $derived([...new Set(radios.map(r => r.genre).filter(Boolean))].sort());
+  /**
+   * Les rayons présents, triés sur le LIBELLÉ traduit : un lecteur japonais
+   * doit voir ses genres dans l'ordre du japonais, pas dans l'ordre
+   * alphabétique de clés anglaises. Le tri dépend donc de `$t`, ce qui le
+   * garde ici et hors du module de vocabulaire.
+   */
+  let genres = $derived(
+    radioGenreShelves(radios).sort((a, b) =>
+      radioGenreLabel(a, $t).localeCompare(radioGenreLabel(b, $t), undefined, {
+        sensitivity: 'base',
+      }),
+    ),
+  );
 
   // Radio favorites (saved tracks)
   interface RadioFav { id: number; title: string; artist: string; station_name: string; cover_url?: string; stream_url?: string; saved_at: string; }
@@ -70,7 +92,10 @@
   let filtered = $derived.by(() => {
     let list = radios;
     if (filterFavorite) list = list.filter(r => r.favorite);
-    if (filterGenre) list = list.filter(r => r.genre === filterGenre);
+    // Comparaison sur la clé de rayon. L'égalité stricte des chaînes brutes
+    // laissait dehors toutes les stations dont l'orthographe différait d'un
+    // accent ou d'une majuscule.
+    if (filterGenre) list = list.filter(r => radioGenreShelf(r.genre)?.key === filterGenre);
     return list;
   });
 
@@ -277,7 +302,27 @@
   });
 </script>
 
+<!--
+  UNE seule barre ancrée, au lieu de trois ancrages empilés à la main.
+
+  Le défaut vécu (#2112, Jean Valjean, fil 1421) : « on ne voit pas la ligne
+  [Ajouter / Importer / Exporter] si on veut rajouter une radio alors que l'on
+  a fait défiler légèrement la liste ». Or les trois barres étaient DÉJÀ
+  `position: sticky`. Ce qui ne tenait pas, c'étaient leurs décalages :
+  `.stations-actions { top: 66px }` et `.filters { top: 95px }`, deux
+  constantes obtenues à l'œil (« tuned live », « boîte ~31px »). Une hauteur
+  d'en-tête différente — police, zoom, largeur de fenêtre — et la pile se
+  chevauche : la barre est là, mais derrière l'en-tête.
+
+  On ne recalcule pas ces constantes, on les SUPPRIME : les trois lignes vivent
+  dans un seul conteneur ancré, et chacune se place sous la précédente par le
+  flux normal. C'est déjà ce que fait `.gt-toolbar` de l'Arbre des genres
+  (« l'ancrage vit sur la barre, pas sur chaque ligne »). `.radios-view` est un
+  bloc simple qui défile dans `.view-scroller`, lui aussi un bloc simple depuis
+  #1282 : Firefox honore donc cet ancrage-là.
+-->
 <div class="radios-view">
+  <div class="radios-barre">
   <header class="radios-header">
     <h2>{$t('radio.title')}</h2>
     <div class="tab-bar">
@@ -337,13 +382,16 @@
       <svg viewBox="0 0 24 24" fill={filterFavorite ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
       {$t('radio.favorites')}
     </button>
-    {#each genres as g}
-      <button class="filter-chip" class:active={filterGenre === g} onclick={() => { filterGenre = filterGenre === g ? null : g; filterFavorite = false; }}>
-        {g}
+    {#each genres as rayon (rayon.key)}
+      <button class="filter-chip" class:active={filterGenre === rayon.key} onclick={() => { filterGenre = filterGenre === rayon.key ? null : rayon.key; filterFavorite = false; }}>
+        {radioGenreLabel(rayon, $t)}
       </button>
     {/each}
   </div>
+  {/if}
+  </div>
 
+  {#if activeTab === 'stations'}
   {#if loading}
     <div class="empty-state">{$t('common.loading')}</div>
   {:else if filtered.length === 0}
@@ -351,6 +399,7 @@
   {:else}
     <div class="radios-grid">
       {#each filtered as radio}
+        {@const rayon = radioGenreShelf(radio.genre)}
         <div class="radio-card">
           <button class="radio-icon" onclick={() => playRadio(radio)} title={$t('radio.play')} disabled={!$currentZoneId}>
             {#if coverUrl(radio)}
@@ -361,8 +410,12 @@
           </button>
           <div class="radio-info">
             <button class="radio-name-btn" onclick={() => playRadio(radio)} disabled={!$currentZoneId}>{radio.name}</button>
-            {#if radio.genre}
-              <button class="radio-genre radio-genre-btn" onclick={() => { filterGenre = filterGenre === radio.genre ? null : radio.genre!; filterFavorite = false; }}>{radio.genre}</button>
+            {#if rayon}
+              <!-- La pastille affiche le libellé traduit et filtre sur la clé
+                   du rayon. Elle affichait la chaîne brute et filtrait dessus :
+                   cliquer sur « jazz » n'ouvrait donc pas le même rayon que
+                   cliquer sur « Jazz ». -->
+              <button class="radio-genre radio-genre-btn" onclick={() => { filterGenre = filterGenre === rayon.key ? null : rayon.key; filterFavorite = false; }}>{radioGenreLabel(rayon, $t)}</button>
             {/if}
             <button class="radio-url radio-url-btn" onclick={() => playRadio(radio)} disabled={!$currentZoneId}>{radio.stream_url}</button>
           </div>
@@ -413,7 +466,7 @@
         <div class="saved-row">
           <div class="saved-cover">
             {#if fav.cover_url}
-              <img src={api.artworkUrl(fav.cover_url)} alt="" loading="lazy" />
+              <img src={api.artworkSrc(fav.cover_url)} alt="" loading="lazy" />
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><circle cx="12" cy="12" r="10" /><path d="M9 12l2 2 4-4" /></svg>
             {/if}
@@ -516,18 +569,26 @@
     max-width: 900px;
   }
 
-  /* En-tête figé au défilement (#1237, Jean). */
+  /* LE seul ancrage de cette vue (#1237, #2112). Les trois lignes qu'elle
+     contient — titre + onglets, Ajouter/Importer/Exporter, pastilles de
+     genres — s'empilent par le flux normal : plus aucune constante de
+     décalage à tenir à jour quand une hauteur change. */
+  .radios-barre {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    /* Absorbe le `padding` haut de `.radios-view` pour que rien ne dépasse
+       au-dessus du bandeau quand la liste passe dessous. */
+    margin-top: calc(-1 * var(--space-lg));
+    padding-top: var(--space-lg);
+  }
+
   .radios-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: var(--space-lg);
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: var(--tune-bg);
-    margin-top: calc(-1 * var(--space-lg));
-    padding-top: var(--space-lg);
     padding-bottom: 8px;
   }
 
@@ -574,15 +635,10 @@
     font-weight: 700;
   }
 
+  /* Plus de `position: sticky` ni de `top: 66px` : la barre est ancrée par
+     `.radios-barre`, qui la porte. */
   .stations-actions {
     margin-bottom: var(--space-md);
-    /* Pin the Add/Import/Export bar under the already-sticky `.radios-header`
-       so it stays reachable with many stations — #1282 extension (Jean Valjean).
-       Scroller = `.view-scroller`; top ≈ .radios-header height (tuned live). */
-    position: sticky;
-    top: 66px;
-    z-index: 15;
-    background: var(--tune-bg);
   }
 
   .header-actions {
@@ -687,17 +743,13 @@
     cursor: pointer;
   }
 
+  /* Idem : plus de `top: 95px` calé à l'œil sur la hauteur de la barre
+     précédente. Les pastilles suivent le flux à l'intérieur de `.radios-barre`. */
   .filters {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
     margin-bottom: var(--space-lg);
-    /* Pastilles de genres figées sous `.stations-actions` (sticky top:66px,
-       boîte ~31px ; tuck 2px sous son fond opaque) — #1282 (Jean Valjean). */
-    position: sticky;
-    top: 95px;
-    z-index: 14;
-    background: var(--tune-bg);
     padding-bottom: 6px;
   }
 

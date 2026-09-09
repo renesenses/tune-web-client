@@ -45,14 +45,23 @@ export type ActionRetour =
   | { action: 'racine-du-service' };
 
 export function actionRetour(niveaux: NiveauxStreaming): ActionRetour {
-  // Une fiche ouverte depuis un autre écran : le premier retour y ramène. Ce
-  // contrat précède le dépilage et reste prioritaire sur lui.
-  if (niveaux.provenance) {
-    return { action: 'quitter-la-vue', vers: niveaux.provenance };
-  }
-  // Le cas de Sandro : on ne dépile qu'UN niveau.
+  // Le cas de Sandro : on ne dépile qu'UN niveau, et ce dépilage passe AVANT
+  // la sortie de la vue.
+  //
+  // L'ordre inverse tenait tant que seul l'accueil annonçait une provenance :
+  // il n'ouvre que des albums, jamais de fiche artiste, donc les deux niveaux
+  // ne pouvaient pas coexister avec une provenance. La recherche globale, elle,
+  // entre par la fiche ARTISTE (fil 1553, second parcours) et l'auditeur
+  // descend d'un cran de plus. Sortir aussitôt lui ferait sauter la
+  // discographie — l'exact contraire de ce que le premier correctif de ce fil
+  // venait d'obtenir pour l'onglet Qobuz, et le même bouton donnerait deux
+  // résultats selon la porte d'entrée.
   if (niveaux.album && niveaux.artiste) {
     return { action: 'remonter-a-l-artiste' };
+  }
+  // Plus rien à dépiler : une fiche ouverte depuis un autre écran y ramène.
+  if (niveaux.provenance) {
+    return { action: 'quitter-la-vue', vers: niveaux.provenance };
   }
   return { action: 'racine-du-service' };
 }

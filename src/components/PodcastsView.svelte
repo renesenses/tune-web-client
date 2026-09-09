@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { SvelteSet } from 'svelte/reactivity';
   import { onMount } from 'svelte';
   import * as api from '../lib/api';
+  import { dateCourte } from '../lib/dates';
   import { currentZoneId } from '../lib/stores/zones';
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
@@ -403,8 +405,36 @@
 
   // --- Helpers ---
 
-  function podcastCover(p: any): string | null {
+  /**
+   * #203 — une pochette de podcast qui NE RÉPOND PAS laisse une icône cassée.
+   *
+   * L'exploration automatique rapportait dix-neuf images injoignables sous
+   * `www.radiofrance.fr/s3` sur cet écran. Mesuré le 08/09/2026 : cette
+   * adresse rend **403** en direct, et **502** à travers le proxy du serveur —
+   * Radio France refuse aussi bien le navigateur que le serveur. Aucun
+   * correctif client ne la fera revenir.
+   *
+   * Ce qui est corrigeable, c'est ce qu'on montre à la place. `{#if}` seul ne
+   * suffit pas : l'adresse EXISTE, elle ne répond simplement pas — la
+   * condition est vraie et l'image casse. Il faut le savoir à l'`onerror`.
+   *
+   * (L'écran v2 n'a pas ce défaut : il passe par `AlbumArt`, qui gère déjà
+   * l'échec de chargement et rend des initiales.)
+   */
+  const pochettesMortes = new SvelteSet<string>();
+
+  /** L'adresse annoncée, qu'elle réponde ou non. */
+  function pochetteBrute(p: any): string | null {
     return p?.cover_url || p?.image_url || p?.artworkUrl600 || p?.artworkUrl100 || null;
+  }
+  function pochetteEnEchec(url: string | null) {
+    if (url) pochettesMortes.add(url);
+  }
+
+  /** Celle qu'on AFFICHE : `null` dès qu'on l'a vue échouer. */
+  function podcastCover(p: any): string | null {
+    const url = pochetteBrute(p);
+    return url && !pochettesMortes.has(url) ? url : null;
   }
 
   function podcastName(p: any): string {
@@ -432,7 +462,7 @@
     if (!dateStr) return '';
     try {
       const d = new Date(dateStr);
-      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+      return $dateCourte(d);
     } catch { return ''; }
   }
 
@@ -460,7 +490,7 @@
 
       <div class="detail-header">
         {#if podcastCover(selectedPodcast)}
-          <img src={podcastCover(selectedPodcast)} alt="" class="detail-cover" />
+          <img src={podcastCover(selectedPodcast)} alt="" class="detail-cover"  onerror={() => pochetteEnEchec(pochetteBrute(selectedPodcast))} />
         {:else}
           <div class="detail-cover detail-cover-placeholder">
             <svg viewBox="0 0 24 24" fill="currentColor" width="48" height="48"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
@@ -505,7 +535,7 @@
               {#if episode.cover_url}
                 <img src={episode.cover_url} alt="" class="episode-thumb" loading="lazy" />
               {:else if podcastCover(selectedPodcast)}
-                <img src={podcastCover(selectedPodcast)} alt="" class="episode-thumb" loading="lazy" />
+                <img src={podcastCover(selectedPodcast)} alt="" class="episode-thumb" loading="lazy"  onerror={() => pochetteEnEchec(pochetteBrute(selectedPodcast))} />
               {:else}
                 <div class="episode-thumb episode-thumb-placeholder">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3" /></svg>
@@ -676,7 +706,7 @@
                   <div class="trending-rank">#{i + 1}</div>
                   <div class="trending-cover-wrap">
                     {#if podcastCover(podcast)}
-                      <img src={podcastCover(podcast)} alt="" class="trending-cover" loading="lazy" />
+                      <img src={podcastCover(podcast)} alt="" class="trending-cover" loading="lazy"  onerror={() => pochetteEnEchec(pochetteBrute(podcast))} />
                     {:else}
                       <div class="trending-cover trending-cover-placeholder">
                         <svg viewBox="0 0 24 24" fill="currentColor" width="40" height="40"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
@@ -721,7 +751,7 @@
                 <div class="card-cover-wrap">
                   <span class="card-rank">#{i + 11}</span>
                   {#if podcastCover(podcast)}
-                    <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy" />
+                    <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy"  onerror={() => pochetteEnEchec(pochetteBrute(podcast))} />
                   {:else}
                     <div class="card-cover card-cover-placeholder">
                       <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
@@ -800,7 +830,7 @@
                 <div class="podcast-card" role="button" tabindex="0" onclick={() => selectPodcast(podcast)} onkeydown={(e) => e.key === 'Enter' && selectPodcast(podcast)}>
                   <div class="card-cover-wrap">
                     {#if podcastCover(podcast)}
-                      <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy" />
+                      <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy"  onerror={() => pochetteEnEchec(pochetteBrute(podcast))} />
                     {:else}
                       <div class="card-cover card-cover-placeholder">
                         <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
@@ -854,7 +884,7 @@
             >
               <div class="card-cover-wrap">
                 {#if podcastCover(podcast)}
-                  <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy" />
+                  <img src={podcastCover(podcast)} alt="" class="card-cover" loading="lazy"  onerror={() => pochetteEnEchec(pochetteBrute(podcast))} />
                 {:else}
                   <div class="card-cover card-cover-placeholder">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>

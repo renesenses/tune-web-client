@@ -9,6 +9,7 @@
   import { deviceHasBoundZone, deviceZoneActionKey, deviceZoneSuccessKey, deviceZoneTargetId } from '../lib/hiddenZoneRecovery';
   import OaatGroupsPanel from './OaatGroupsPanel.svelte';
   import AirplayPairingModal from './AirplayPairingModal.svelte';
+  import OutputModuleBanner from './OutputModuleBanner.svelte';
   import type { Zone, ZoneGroupResponse, OutputType, DiscoveredDevice, StereoPairInfo, LocalAudioDevice } from '../lib/types';
 
   // --- State ---
@@ -75,6 +76,36 @@
 
   $effect(() => {
     loadData();
+  });
+
+  /** L'instantané `output_providers` de `/system/diagnostics` (#2392).
+   *
+   *  Il est chargé ICI, sur l'écran des Zones, et pas seulement dans
+   *  Diagnostics. Diagnostics est l'endroit logique ; ce n'est pas celui où
+   *  l'utilisateur va quand aucun appareil n'apparaît. Le bêta-testeur du
+   *  module Diretta a réinstallé son système d'exploitation sans jamais ouvrir
+   *  Diagnostics — il est venu ici, a vu une liste vide, et n'a rien appris.
+   */
+  let instantaneFournisseurs = $state<unknown>(null);
+
+  /** Chargement délibérément SÉPARÉ de `loadData`.
+   *
+   *  Une panne de `/system/diagnostics` ne doit pas priver l'écran de ses
+   *  zones, et une panne des zones ne doit pas priver l'utilisateur de
+   *  l'explication qu'il est venu chercher. Un échec laisse simplement
+   *  l'instantané à `null`, donc aucun bandeau : on n'invente aucun refus.
+   */
+  async function loadStatutFournisseurs() {
+    try {
+      const diag = await api.getServerDiagnostics();
+      instantaneFournisseurs = diag?.output_providers ?? null;
+    } catch {
+      instantaneFournisseurs = null;
+    }
+  }
+
+  $effect(() => {
+    loadStatutFournisseurs();
   });
 
   // --- Zone helpers ---
@@ -583,6 +614,16 @@
       </button>
     </div>
   </header>
+
+  <!-- Un module de sortie payant qui n'affiche aucun appareil, et pourquoi
+       (#2392). Volontairement HORS du bloc « aucune zone » : un utilisateur
+       qui a déjà un Sonos a une liste non vide et reste pourtant privé de son
+       module Diretta en silence. Masquer l'avertissement dès qu'une zone
+       existe rejouerait le défaut sur lui — c'est la faute déjà commise par le
+       bloc de correction FIR, qui se cachait sur les zones incompatibles et
+       avait fait conclure à un abonné Premium que la fonction n'existait pas.
+       On prévient, on ne masque pas. -->
+  <OutputModuleBanner instantane={instantaneFournisseurs} />
 
   <!-- Stereo pair creation form -->
   {#if showStereoPairForm}

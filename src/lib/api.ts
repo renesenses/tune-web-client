@@ -8,6 +8,8 @@ import { profileHeader } from './profileHeader';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
+import type { RetraitDossier } from './purgeOrphelines';
+import type { AppareilIgnore } from './appareilsIgnores';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -45,6 +47,8 @@ import type {
   DiscoveredDevice,
   QueueStateResponse,
   SearchResult,
+  StreamingSearchResult,
+  CataloguePlaylist,
   FederatedSearchResult,
   FeaturedSection,
   SystemHealth,
@@ -168,7 +172,7 @@ export async function apiFetch(path: string): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -187,7 +191,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -206,7 +210,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -220,7 +224,7 @@ export async function apiDelete(path: string): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   // Tolerate empty bodies (e.g. HTTP 204 No Content from delete_radio_favorite):
@@ -244,8 +248,10 @@ export interface ApiError extends Error {
 async function apiError(response: Response): Promise<ApiError> {
   let detail = `${response.status} ${response.statusText}`;
   let code: string | undefined;
+  let corps: unknown = null;
   try {
     const body = await response.json();
+    corps = body;
     if (body.detail) detail = body.detail;
     else if (body.message) detail = body.message;
     code = body.error;
@@ -253,8 +259,51 @@ async function apiError(response: Response): Promise<ApiError> {
   const err = new Error(detail) as ApiError;
   err.code = code;
   err.status = response.status;
+  // Le delai d'un 429 doit survivre jusqu'a l'ecran. `erreurDepuisReponse` le
+  // portait deja, pas ce chemin-ci : les LECTURES du support (liste des
+  // tickets, fil, reponse, marquage lu) passent par `fetchJSON`, et elles
+  // partagent le compteur d'envoi de mozaiklabs. Un 429 sur l'une d'elles
+  // arrivait donc sans `retry_after`, et l'ecran disait « reessaie plus tard »
+  // alors que le serveur avait nomme le delai (#2178).
+  err.retryAfter = retryAfterDe(response, corps);
   return err;
 }
+
+/**
+ * Erreur sentinelle des aides de `fetch` — « Session expired », « premium_required ».
+ *
+ * Ces deux-la sont levees AVANT `apiError`, et l'etaient en `Error` nue : ni
+ * `status`, ni `code`. Un refus premium arrivait au magasin indistinguable
+ * d'une panne reseau, et chaque ecran devait le rattraper sur la CHAINE du
+ * message (`premiumRefus.ts`, `motifEchecEq.ts`). Le message reste identique —
+ * les appelants qui le comparent continuent de fonctionner — mais le statut
+ * et le code voyagent desormais avec (#2178).
+ */
+function erreurSentinelle(message: string, status: number, code?: string): ApiError {
+  const err = new Error(message) as ApiError;
+  err.status = status;
+  if (code) err.code = code;
+  return err;
+}
+
+/**
+ * Le `code` stable porte par un refus 402, ou `null`.
+ *
+ * Depuis #2392/#2419 le serveur nomme ses refus par un TERME, `message`
+ * n'etant qu'un repli : c'est ce terme qui permet a l'interface de porter sa
+ * propre traduction. Le lire coute une lecture du corps — la seule autorisee,
+ * un `Response` ne se lit qu'une fois — et un corps illisible n'est jamais une
+ * raison de perdre le refus : on retombe sur le message generique.
+ */
+async function codeDuRefus(response: Response): Promise<Refus | null> {
+  try {
+    return (await response.json()) as Refus;
+  } catch {
+    return null;
+  }
+}
+
+type Refus = { code?: string; zone_limit?: number; zones_actives?: number };
 
 export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   let response: Response;
@@ -279,16 +328,32 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();
-      throw new Error('Session expired');
+      throw erreurSentinelle('Session expired', 401);
     }
+    // Ni le message du serveur ni le repli ne parlaient la langue de
+    // l'interface : `premium_guard.rs` compose le sien avec
+    // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
+    // en anglais — et le repli etait du francais code en dur, montre tel
+    // quel a un anglophone. Les deux sont le meme defaut (#2419).
+    //
+    // Depuis #3672, tous les 402 ne disent plus la meme chose. Le plafond de
+    // zones du palier gratuit n'est PAS une fonction payante : l'utilisateur a
+    // simplement consomme ses zones, et aucun protocole (DLNA, AirPlay 2,
+    // BluOS, Chromecast, OpenHome) n'est reserve au Premium. Servir
+    // « Cette fonctionnalite fait partie de Tune Premium » a quelqu'un qui
+    // vient de cliquer sur son enceinte BluOS lui fait conclure l'inverse —
+    // c'est exactement ce qu'a ecrit Claudio Osorio le 08/09/2026. Le serveur
+    // distingue desormais les deux par un `code` stable ; l'interface porte sa
+    // propre phrase pour chacun.
     if (response.status === 402) {
-      // Ni le message du serveur ni le repli ne parlaient la langue de
-      // l'interface : `premium_guard.rs` compose le sien avec
-      // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
-      // en anglais — et le repli etait du francais code en dur, montre tel
-      // quel a un anglophone. Les deux sont le meme defaut (#2419).
+      const refus = await codeDuRefus(response);
+      if (refus?.code === 'free_zone_cap_reached') {
+        const n = String(refus.zone_limit ?? '');
+        notifications.error(get(t)('zone.freeCapReached').replace('{n}', n));
+        throw erreurSentinelle('premium_required', 402, refus.code);
+      }
       notifications.error(get(t)('premium.required'));
-      throw new Error('premium_required');
+      throw erreurSentinelle('premium_required', 402, 'premium_required');
     }
     const err = await apiError(response);
     if (response.status >= 500) {
@@ -354,7 +419,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();
-      throw new Error('Session expired');
+      throw erreurSentinelle('Session expired', 401);
     }
     const err = await apiError(response);
     if (response.status >= 500) {
@@ -392,6 +457,33 @@ export function createZone(name: string, outputType: OutputType = 'local', outpu
   });
 }
 
+/** Un groupe de zones qui désignent le même appareil (DUP-1 phase 0,
+ *  `zones_doublons` de `/system/diagnostics`). `remplacee_probable` n'est vrai
+ *  que pour une zone hors ligne dont une jumelle est en ligne. */
+export interface ZonesDoublon {
+  motif?: string;
+  cle?: string;
+  en_ligne?: number;
+  zones: {
+    id: number;
+    name: string;
+    output_type?: string;
+    output_device_id?: string | null;
+    online?: boolean;
+    remplacee_probable?: boolean;
+  }[];
+}
+export function getZonesDoublons() {
+  return fetchJSON<{ zones_doublons?: ZonesDoublon[] }>(`${BASE}/system/diagnostics`)
+    .then((d) => d?.zones_doublons ?? []);
+}
+/** DUP-1 phase 1 : la zone `doublon` disparaît dans `cible`, qui hérite de ce
+ *  qu'elle réglait (égaliseur, profils, file si vide, alarmes, historique,
+ *  groupes). Le serveur refuse (409) si les deux zones ne désignent pas le
+ *  même appareil, ou si l'une joue. */
+export function mergeZoneInto(doublon: number, cible: number) {
+  return fetchJSON<unknown>(`${BASE}/zones/${doublon}/fusionner-dans/${cible}`, { method: 'POST' });
+}
 export function renameZone(id: number, name: string) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
@@ -442,6 +534,28 @@ export function updateZoneGainTrim(id: number, gainTrimDb: number) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ gain_trim_db: gainTrimDb }),
+  });
+}
+
+/** Sortie mono (#2362) : le serveur somme `M = (L + R) / 2` et émet `M` sur
+ *  les DEUX voies de la zone.
+ *
+ *  Réglage de CÂBLAGE, pas d'agrément : pour qui n'a qu'une enceinte raccordée
+ *  sur un canal, la moitié de la musique est sinon inaudible (Nicolas Tardif,
+ *  fil forum 1532 : « je perds toute la musique qui passe par le canal
+ *  droit »). Le serveur savait le faire depuis `channels.rs` et l'exposait en
+ *  PATCH ; AUCUN écran ne l'atteignait — c'est exactement le défaut qu'avait
+ *  déjà `aac_passthrough` juste au-dessus.
+ *
+ *  Le serveur écrit le setting `zone_{id}_mono_downmix` à l'activation et le
+ *  SUPPRIME à la désactivation : absence de clé et défaut désarmé sont un seul
+ *  et même état. Relu à chaud (`refresh_zone_mono_downmix`), donc l'effet
+ *  s'entend musique en cours — ce qui compte pour un réglage qui se vérifie à
+ *  l'oreille. N'agit que sur une sortie LOCALE. */
+export function updateZoneMonoDownmix(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ mono_downmix: enabled }),
   });
 }
 
@@ -546,6 +660,33 @@ export function updateZoneDlnaPlayDelay(id: number, ms: number) {
   });
 }
 
+/**
+ * Récupération d'une sauvegarde locale : plusieurs réglages d'appareil en UN
+ * seul PATCH.
+ *
+ * Le serveur traite chaque clé indépendamment (`routes/zones.rs`, un
+ * `if let Some(...)` par champ), donc un corps composite équivaut à la suite
+ * d'appels unitaires ci-dessus. Mais 🔴 L'ORDRE COMPTE, et c'est pour cela que
+ * cette fonction existe.
+ *
+ * `routes/zones/ecriture.rs` (lu sur `origin/main`) persiste le PATCH, PUIS —
+ * si et seulement si le corps portait `brand` ou `model` — pousse le préréglage
+ * communautaire, dont la charge utile est relue en base à ce moment-là
+ * (`renderer_settings_snapshot`). Envoyer l'identité et les réglages en DEUX
+ * PATCH ferait donc partir la poussée sur une zone encore neutre : le snapshot
+ * serait vide, la poussée abandonnée, et le consensus n'apprendrait jamais la
+ * configuration qu'on vient de restaurer.
+ *
+ * Le corps est construit par `reglagesAppareilLocal.corpsPatch`, qui n'y met
+ * que ce qui change et écarte `fixed_volume`.
+ */
+export function updateZoneReglages(id: number, corps: Record<string, unknown>) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(corps),
+  });
+}
+
 /** Catalogue statique marque→modèles (+ quirks) pour la config d'une zone. */
 export function getDeviceCatalog() {
   return fetchJSON<import('./types').DeviceCatalog>(`${BASE}/devices/catalog`);
@@ -595,9 +736,64 @@ export function clearDevices() {
   return fetchJSON<{ cleared: number }>(`${BASE}/devices/clear`, { method: 'POST' });
 }
 
+/**
+ * Oubli **non durable** : la sortie quitte le registre en mémoire et la liste
+ * des appareils manuels persistés, rien de plus.
+ *
+ * L'appareil REVIENT au scan suivant, parce que rien n'empêche la découverte
+ * de le ré-enregistrer — c'est exactement le « ils disparaissent bien sur le
+ * coup mais réapparaissent rapidement » du ticket #1280. Pour faire taire
+ * durablement un appareil, c'est [`ignoreDevice`] qu'il faut appeler.
+ */
 export function deleteDevice(deviceId: string) {
   // Server returns 204 No Content, use fetchVoid to avoid JSON parse error on empty body
   return fetchVoid(`${BASE}/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE' });
+}
+
+// --- Appareils ignorés (#1280) --------------------------------------------
+//
+// Le serveur porte une table `ignored_devices` SANS clé étrangère, avec un
+// instantané d'identité figé à l'insertion (device_id, MAC, hôte + nom
+// annoncé). Le blocage porte sur la PROPOSITION — enregistrement de sortie,
+// création de zone, liste d'appareils — jamais sur l'écoute SSDP/mDNS
+// elle-même, et il survit à la purge des zones comme à la bascule
+// SQLite → PostgreSQL.
+
+/**
+ * `POST /devices/{id}/ignore` — faire taire un appareil, **durablement**.
+ *
+ * Trois effets côté serveur, et les trois comptent : l'identité est figée
+ * (l'appareil ne revient à aucun scan, sous aucune de ses identités
+ * jumelles), sa sortie quitte le registre TOUT DE SUITE, et sa zone est
+ * masquée si elle existe. Rend l'instantané figé et les zones masquées.
+ */
+export function ignoreDevice(deviceId: string) {
+  return fetchJSON<{ ignored: AppareilIgnore; hidden_zone_ids: number[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}/ignore`,
+    { method: 'POST' },
+  );
+}
+
+/**
+ * `DELETE /devices/{id}/ignore` — débloquer.
+ *
+ * Libère TOUTES les identités du même appareil : sans cela, qui a fait taire
+ * son Sonos devrait deviner l'UUID jumeau pour le récupérer. Idempotent —
+ * débloquer ce qui ne l'était pas rend `released: []`. L'appareil ne
+ * réapparaît qu'au prochain passage de découverte.
+ */
+export function unignoreDevice(deviceId: string) {
+  return fetchJSON<{ released: string[] }>(
+    `${BASE}/devices/${encodeURIComponent(deviceId)}/ignore`,
+    { method: 'DELETE' },
+  );
+}
+
+/** `GET /devices/ignored` — la liste de révision. C'est la SEULE vue depuis
+ *  laquelle un appareil ignoré peut être débloqué : il n'est plus annoncé
+ *  ailleurs. */
+export function listIgnoredDevices() {
+  return fetchJSON<{ total: number; items: AppareilIgnore[] }>(`${BASE}/devices/ignored`);
 }
 
 export function getDevice(id: string) {
@@ -844,7 +1040,26 @@ export function listStereoPairs() {
 // Comme `addToQueue` : les champs descriptifs acceptent `null`, que le serveur
 // reçoit en `Option<String>`. Le type `Track` les déclare `string | null`, et
 // sans cela chaque appelant devait les blanchir en `undefined`.
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number }) {
+/**
+ * Lance une lecture sur une zone.
+ *
+ * `context_type` / `context_id` disent CE QUE l'auditeur a demandé, et non ce
+ * qui part dans la file. Le serveur les enregistre dans `listen_history` et
+ * s'en sert pour « Continuer l'écoute » — c'est la règle posée par FabienM
+ * (fil forum 1557) : « le type pris en compte dans ces rubriques dépend de
+ * l'endroit où l'utilisateur a cliqué sur Lire ».
+ *
+ * Il sait DÉDUIRE `album`, `playlist` et `track` du reste du corps
+ * (`tune-server/src/routes/playback.rs:544-611`). Mais `artist` et `label` ne
+ * s'y devinent pas : une discographie part en liste nue de `track_ids`, que
+ * rien ne distingue d'une sélection quelconque. Les annoncer est la SEULE
+ * voie, et le serveur l'attendait sans qu'aucun client la prenne (#2442).
+ *
+ * Le serveur refuse toute valeur hors des cinq qu'il connaît (`track`,
+ * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
+ * libre se remplir de variantes.
+ */
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -871,8 +1086,13 @@ export function previous(zoneId: number) {
   return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' });
 }
 
+/** #3662 — le serveur rend `{position_ms}`, PAS une `Zone`
+ *  (`tune-server/src/routes/playback.rs:2339-2352`). La déclaration `Zone`
+ *  promettait `id`, `name` et l'état complet de la zone : trois choses
+ *  absentes de la réponse. Aucun appelant ne lisait le retour ; c'est
+ *  précisément ce qui a laissé le mensonge s'installer. */
 export function seek(zoneId: number, positionMs: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/seek`, {
+  return fetchJSON<{ position_ms: number }>(`${BASE}/zones/${zoneId}/seek`, {
     method: 'POST',
     body: JSON.stringify({ position_ms: positionMs }),
   });
@@ -882,6 +1102,22 @@ export function setVolume(zoneId: number, volume: number) {
   return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
     method: 'PUT',
     body: JSON.stringify({ volume }),
+  });
+}
+
+/**
+ * Le volume demandé en dB, pas en pour-cent (#1274).
+ *
+ * `PUT /zones/{id}/volume` accepte `volume_db` depuis la v0.9.127, et les deux
+ * champs y sont EXCLUSIFS : envoyer les deux fait répondre 400
+ * `invalid_volume`. On n'envoie donc que celui-là. Le serveur refuse aussi
+ * tout dB strictement positif — `analyserDb` l'écarte déjà côté saisie.
+ * Réponse : 204, comme `setVolume`.
+ */
+export function setVolumeDb(zoneId: number, volumeDb: number) {
+  return fetchVoid(`${BASE}/zones/${zoneId}/volume`, {
+    method: 'PUT',
+    body: JSON.stringify({ volume_db: volumeDb }),
   });
 }
 
@@ -897,15 +1133,23 @@ export function setRepeat(zoneId: number, mode: RepeatMode) {
   });
 }
 
+// `folder` est la portée de RÉPERTOIRE — le même `folder=<chemin absolu>` que
+// `/library/tracks`, appliqué au sous-arbre entier. Il manquait, et c'était tout
+// le défaut de #2801 : la pastille de répertoire de la Bibliothèque n'avait
+// aucun champ où se transmettre, l'appel partait donc SANS filtre, et le
+// serveur tirait au hasard dans toute la table `tracks` (Marco Polo : « il
+// semble s'alimenter de toute la bibliothèque, pas seulement de la sélection à
+// l'écran »).
 export function shuffleAll(
   zoneId: number,
-  opts?: { search_query?: string; album_id?: number; artist_id?: number; genre?: string },
+  opts?: { search_query?: string; album_id?: number; artist_id?: number; genre?: string; folder?: string },
 ) {
   const params = new URLSearchParams({ zone_id: String(zoneId) });
   if (opts?.search_query) params.set('search_query', opts.search_query);
   if (opts?.album_id != null) params.set('album_id', String(opts.album_id));
   if (opts?.artist_id != null) params.set('artist_id', String(opts.artist_id));
   if (opts?.genre) params.set('genre', opts.genre);
+  if (opts?.folder) params.set('folder', opts.folder);
   return fetchJSON<{ status: string; track_count: number }>(`${BASE}/playback/shuffle-all?${params}`, {
     method: 'POST',
   });
@@ -974,8 +1218,12 @@ export function jumpInQueue(zoneId: number, position: number) {
   });
 }
 
+/** #3662 — le serveur répond **204 No Content**
+ *  (`tune-server/src/routes/playback.rs:2953-2977`) : il n'y a pas de corps du
+ *  tout, donc pas de `queue_length`. `fetchJSON` rendait `undefined` sur corps
+ *  vide, ce qui masquait la promesse fausse ; `fetchVoid` la dit. */
 export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number) {
-  return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/move`, {
+  return fetchVoid(`${BASE}/zones/${zoneId}/queue/move`, {
     method: 'POST',
     body: JSON.stringify({ from_position: fromPosition, to_position: toPosition }),
   });
@@ -997,25 +1245,98 @@ export function getRecentAlbums(limit = 50) {
   return fetchJSON<Album[]>(`${BASE}/library/albums/recent?limit=${limit}`);
 }
 
-export async function getAllAlbums(pageSize = 2000, sort = 'title', order = 'asc', page?: number, perPage?: number): Promise<Album[]> {
+/** Tranche de Dynamic Range, bornes INCLUSES (#2144). Les deux sont
+ *  facultatives et indépendantes, exactement comme côté serveur :
+ *  `{ min: 14 }` = « DR14 et au-dessus », `{ max: 7 }` = « DR7 et en dessous ».
+ *  Une borne nulle ou absente ne produit AUCUN paramètre — la réponse est
+ *  alors identique à celle d'avant. */
+export interface DrRange { min?: number | null; max?: number | null }
+
+/** Les bornes en paramètres d'URL, ou la chaîne vide. Le filtre est appliqué
+ *  par le SERVEUR : la liste d'albums ne porte pas la valeur de DR, un tri ou
+ *  un filtre côté client ne pourrait donc pas la voir. */
+function drParams(dr?: DrRange): string {
+  let out = '';
+  if (dr?.min != null) out += `&dr_min=${dr.min}`;
+  if (dr?.max != null) out += `&dr_max=${dr.max}`;
+  return out;
+}
+
+/** Un tirage d'albums : les albums, et la graine qui les a ordonnés (#3074).
+ *  `seed` n'est renseignée qu'en tri aléatoire. */
+export interface AlbumsDraw { albums: Album[]; seed?: number }
+
+/** Comme [`getAllAlbums`], mais rend AUSSI la graine du tri aléatoire.
+ *
+ *  Le contrat serveur (#3074) : `sort=random` sans `seed` en fait tirer une et
+ *  la renvoie dans la réponse ; l'appelant DOIT la repasser sur les pages
+ *  suivantes. Sans ça, chaque `offset` re-tire — la grille montre des albums
+ *  en double tout en en cachant d'autres, et la vue Bibliothèque charge ses
+ *  albums en plusieurs requêtes.
+ *
+ *  Le bouton de re-tirage n'est donc rien d'autre que « redemander sans
+ *  graine ».
+ */
+/**
+ * `sort` a `null` n'envoie AUCUN parametre de tri — ce n'est pas la meme chose
+ * que le tri par defaut.
+ *
+ * Mesure sur le .18 le 05/09/2026 : le chemin TRIE du serveur perd `added_at`,
+ * quelle que soit la cle. Sans tri, la donnee est la ; avec `sort=title`, elle
+ * est `null` sur les 2000 albums. Les ecrans du nouveau client triant
+ * eux-memes, ne rien demander leur rend la date d'ajout.
+ */
+export async function getAllAlbumsSeeded(pageSize = 2000, sort: string | null = 'title', order: string | null = 'asc', page?: number, perPage?: number, dr?: DrRange, seed?: number | null): Promise<AlbumsDraw> {
+  const drq = drParams(dr);
+  // Chaine VIDE, pas `&sort=null` : un parametre pose avec une valeur qui n'en
+  // est pas une remettrait le serveur sur son chemin trie.
+  const triq = sort == null ? '' : `&sort=${sort}${order == null ? '' : `&order=${order}`}`;
+  // Une graine absente ne produit AUCUN paramètre : la réponse est alors
+  // exactement celle d'avant #3074 pour tous les autres tris.
+  const seedq = (g?: number | null) => (g == null ? '' : `&seed=${g}`);
   // When page is specified, fetch a single page (for future pagination support)
   if (page !== undefined) {
     const limit = perPage ?? 100;
     const offset = (page - 1) * limit;
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}&sort=${sort}&order=${order}`);
-    return Array.isArray(raw) ? raw : (raw.items ?? []);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${limit}&offset=${offset}${triq}${drq}${seedq(seed)}`);
+    const albums: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
+    return { albums, seed: typeof raw?.seed === 'number' ? raw.seed : (seed ?? undefined) };
   }
   // Default: fetch all albums in batches
   const all: Album[] = [];
   let offset = 0;
+  // La graine du LOT : celle qu'on nous a passée, sinon celle que la première
+  // réponse nous apprend. Les lots suivants la repassent, sinon ils tirent
+  // chacun leur propre ordre et le résultat n'est plus une liste.
+  let graine: number | null | undefined = seed;
   while (true) {
-    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}&sort=${sort}&order=${order}`);
+    const raw = await fetchJSON<any>(`${BASE}/library/albums?limit=${pageSize}&offset=${offset}${triq}${drq}${seedq(graine)}`);
+    if (graine == null && typeof raw?.seed === 'number') graine = raw.seed;
     const batch: Album[] = Array.isArray(raw) ? raw : (raw.items ?? []);
     all.push(...batch);
     if (batch.length < pageSize) break;
     offset += pageSize;
   }
-  return all;
+  return { albums: all, seed: graine ?? undefined };
+}
+
+export async function getAllAlbums(pageSize = 2000, sort: string | null = 'title', order: string | null = 'asc', page?: number, perPage?: number, dr?: DrRange): Promise<Album[]> {
+  return (await getAllAlbumsSeeded(pageSize, sort, order, page, perPage, dr)).albums;
+}
+
+/** Les valeurs de Dynamic Range RÉELLEMENT présentes dans la bibliothèque,
+ *  décroissantes. Vide sur une bibliothèque non taguée — et le client ne doit
+ *  alors dessiner AUCUNE commande, plutôt qu'une commande sans effet. */
+export async function getAlbumDynamicRanges(): Promise<number[]> {
+  try {
+    const raw = await fetchJSON<any>(`${BASE}/library/albums/filters`);
+    const vals = Array.isArray(raw?.dynamic_ranges) ? raw.dynamic_ranges : [];
+    return vals.map(Number).filter((n: number) => Number.isFinite(n)).sort((a: number, b: number) => b - a);
+  } catch {
+    // Un serveur antérieur à la v0.9.130 ne connaît pas la clé : pas de
+    // commande, pas d'erreur à l'écran.
+    return [];
+  }
 }
 
 export function getAlbum(id: number) {
@@ -1371,14 +1692,31 @@ export async function getFilteredTracks(opts: {
   playlist?: FacetParam;      // Oxygen playlist facet: playlist name
   untagged?: FacetParam;      // Oxygen untagged facet: 'genre'|'year'|'artist'|'album'|'cover'
   original_year?: FacetParam; // Oxygen recording-year facet (albums.original_year)
+  dr?: FacetParam;            // Oxygen Dynamic Range facet (#2144, #3196)
   limit?: number;
   offset?: number;
 }): Promise<{ items: Track[]; total: number }> {
   const params = new URLSearchParams();
+  // 🔴 CETTE LISTE EST LA VÉRITÉ : une facette absente d'ici est affichée dans
+  // le rail, se clique, se coche — et ne filtre RIEN.
+  //
+  // C'est ce qui est arrivé au Dynamic Range. La facette a rejoint le rail à
+  // la révision 4 des préférences (#2144, #3196) et son paramètre n'a jamais
+  // été ajouté ici : « Vue Oxygen : pas de refresh des albums quand on
+  // choisit un Dynamic Range » (Patatorz, forum 1683, 06/09/2026).
+  //
+  // Mesuré sur le .18 le même jour — le serveur, lui, filtre bien :
+  //
+  //   /library/tracks?limit=1            → total 46877
+  //   /library/tracks?dr=10&limit=1      → total 0
+  //   /library/tracks?zzzbidon=10&limit=1 → total 46877  (paramètre ignoré)
+  //
+  // Une garde compare désormais cette liste à la carte `FACET_PARAM`
+  // d'`OxygenView` : la prochaine facette ne pourra plus être livrée à moitié.
   for (const key of [
     'folder', 'rating', 'collection', 'genre', 'format', 'sample_rate', 'bit_depth',
     'year', 'source', 'label', 'composer', 'artist', 'country', 'mood', 'source_media',
-    'favorite', 'playlist', 'untagged', 'original_year', 'q',
+    'favorite', 'playlist', 'untagged', 'original_year', 'dr', 'q',
   ] as const) {
     appendFacetParam(params, key, (opts as Record<string, FacetParam | undefined>)[key]);
   }
@@ -1576,8 +1914,13 @@ export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string;
   });
 }
 
+/** ⚠️ Le serveur rend `{ "status": "ok", "track_id": <id> }`, PAS un `Track` —
+ *  `tune-server/src/routes/metadata.rs:607`. Le type de retour dit ce qui
+ *  arrive vraiment : il était déclaré `Track`, et l'appelant appariait sa
+ *  liste sur `updated.id`, un champ jamais envoyé (#3638). Pour rafraîchir un
+ *  affichage, relire la piste avec `getTrack`. */
 export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number; genre?: string; year?: string }) {
-  return fetchJSON<Track>(`${BASE}/library/tracks/${id}`, {
+  return fetchJSON<{ status: string; track_id: number }>(`${BASE}/library/tracks/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -1676,18 +2019,15 @@ export function searchMediaServer(serverId: string, query: string, container: st
   );
 }
 
-export function getMediaServerItemStreamUrl(serverId: string, itemId: string) {
-  return fetchJSON<{ url: string }>(
-    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/stream-url`
-  );
-}
-
-export function playMediaServerItem(serverId: string, itemId: string, zoneId: number) {
-  return fetchJSON<import('./types').Zone>(
-    `${BASE}/network/media-servers/${serverId}/item/${itemId}/play/${zoneId}`,
-    { method: 'POST' }
-  );
-}
+// #3662 — `getMediaServerItemStreamUrl` et `playMediaServerItem` ont été
+// retirées : deux contrats MORTS. Aucun appelant dans ce dépôt, et le serveur
+// ne les implémente pas — `media_server_stream_url` rend
+// `{server_id, item_id, stream_url: null, message: "…not yet implemented"}`
+// et `play_media_server_item` rend `{status: "not_implemented"}`
+// (`tune-server/src/routes/network.rs:1578-1596`). Les déclarations promettaient
+// `{url}` et `Zone` : deux types que rien ne peut honorer. Même geste que pour
+// `/playlists/all` et `/system/audio-check` — on retire la promesse, on ne
+// fabrique pas côté serveur une réponse que personne n'attend.
 
 // --- User Tags ---
 
@@ -1750,6 +2090,30 @@ export function getTagAlbums(tagId: number) {
   return fetchJSON<{ albums: import('./types').Album[]; count: number }>(`${BASE}/tags/${tagId}/albums`);
 }
 
+// 🔴 Les TROIS autres routes de listage par étiquette.
+//
+// `EtiquettesV2` portait ceci en commentaire : « `GET /tags/{id}/albums` est la
+// SEULE route qui liste par étiquette ». C'était faux, et l'écran s'en tenait à
+// cette croyance — on pouvait étiqueter un artiste depuis sa pochette sans
+// jamais le retrouver. « Pas de prise en compte des tags artistes »
+// (Bertrand, 06/09/2026).
+//
+// Mesuré sur le .18 le même jour, les quatre répondent 200 avec la même forme
+// (`{<famille>: [...], count, tag_id}`) :
+//
+//   /tags/1/albums  /tags/1/artists  /tags/1/tracks  /tags/1/playlists
+export function getTagArtists(tagId: number) {
+  return fetchJSON<{ artists: import('./types').Artist[]; count: number }>(`${BASE}/tags/${tagId}/artists`);
+}
+
+export function getTagTracks(tagId: number) {
+  return fetchJSON<{ tracks: import('./types').Track[]; count: number }>(`${BASE}/tags/${tagId}/tracks`);
+}
+
+export function getTagPlaylists(tagId: number) {
+  return fetchJSON<{ playlists: any[]; count: number }>(`${BASE}/tags/${tagId}/playlists`);
+}
+
 // --- Playlists ---
 
 // --- Smart Playlists ---
@@ -1778,12 +2142,14 @@ export function getSimilarTracks(trackId: number, limit = 50) {
   );
 }
 
-export function setEqualizer(zoneId: number, preset: string) {
-  return fetchJSON<any>(`${BASE}/zones/${zoneId}/eq`, {
-    method: 'POST',
-    body: JSON.stringify({ preset }),
-  });
-}
+// `setEqualizer(zoneId, preset)` — écrire l'égaliseur en n'envoyant QU'UN NOM
+// — a été retirée (#532). Elle ne pouvait pas tenir sa promesse : avant
+// `eq_presets.rs`, `set_eq` recopiait `body.preset` dans sa réponse sans
+// jamais l'appliquer (200, et aucune bande modifiée) ; depuis, un nom que le
+// serveur ne connaît pas est refusé en 400. `setEq` ci-dessous envoie les
+// bandes, ce qui agit sur toutes les versions — les bandes explicites sont
+// prioritaires (`prereglage_a_appliquer`, routes/playback.rs). Les courbes des
+// sept préréglages vivent dans `lib/eqPrereglages`.
 
 export interface EqBand {
   freq: number;
@@ -1882,6 +2248,31 @@ export interface CrossfeedSettings {
   delay_ms: number; // 0.0 .. 5.0
 }
 
+/** Ce que le crossfeed VAUT sur CETTE zone, publié par `GET` et `PUT
+ *  /zones/{id}/dsp` depuis la 0.9.132 (tune-server-rust `1aad45e1`).
+ *
+ *  `unavailable` se lève même case décochée : la question n'est pas « le
+ *  réglage a-t-il changé ? » mais « ce réglage a-t-il encore un sens ici ? ».
+ *  C'est donc lui qui VERROUILLE le contrôle. `reason` porte un code stable,
+ *  `detail` la même chose en clair — mais en français seulement, côté serveur :
+ *  l'écran traduit par `reason` et ne sert jamais `detail` tel quel.
+ *
+ *  Absent d'un serveur antérieur, et `null` sur un `PUT` dont le corps ne
+ *  portait pas de `crossfeed` : ne rien affirmer alors, se replier sur le type
+ *  de sortie de la zone (voir `lib/crossfeed`). */
+export interface CrossfeedStatus {
+  /** La case telle qu'elle est persistée. */
+  requested: boolean;
+  /** Ce qui sera réellement appliqué au son. */
+  effective: boolean;
+  /** La contrainte s'applique — verrouille le contrôle. */
+  unavailable: boolean;
+  /** `non_local_output` | `pure_mode` ; `null` quand le réglage est honoré. */
+  reason: string | null;
+  /** Phrase serveur, en français uniquement. Non affichée par l'écran web. */
+  detail: string | null;
+}
+
 // GET /zones/{id}/dsp returns the whole DSP chain for the zone. Fields are
 // optional because the server fills in defaults and callers PUT partial
 // updates (e.g. only eq_profile, or only crossfeed). Kept open-ended so
@@ -1889,6 +2280,8 @@ export interface CrossfeedSettings {
 export interface DspSettings {
   eq_profile?: any;
   crossfeed?: CrossfeedSettings;
+  /** #2742 — verdict du serveur sur cette zone. Voir CrossfeedStatus. */
+  crossfeed_status?: CrossfeedStatus | null;
   [key: string]: any;
 }
 
@@ -1907,8 +2300,19 @@ export function getListeningStats() {
   return fetchJSON<any>(`${BASE}/system/stats/listening`);
 }
 
+/**
+ * #533 — la route est déclarée en **POST** (`routes/playback.rs:760`), et elle
+ * rend `{ token, url, track }`, pas `{ title, artist, album, text, cover_url }`.
+ *
+ * L'appel en GET rendait 405 et le champ `text` attendu n'a jamais existé :
+ * c'est `undefined` qui partait au presse-papiers. Le texte se compose côté
+ * client, voir `lib/partageEcoute.ts`.
+ */
 export function shareNowPlaying(zoneId: number) {
-  return fetchJSON<{ title: string; artist: string; album: string; text: string; cover_url: string | null }>(`${BASE}/zones/${zoneId}/share`);
+  return fetchJSON<import('./partageEcoute').CartePartage>(
+    `${BASE}/zones/${zoneId}/share`,
+    { method: 'POST' },
+  );
 }
 
 export function transferPlayback(fromZoneId: number, toZoneId: number) {
@@ -2027,8 +2431,39 @@ function mapStreamingQuality(track: any): Track {
   return track as Track;
 }
 
-function mapStreamingTracks(tracks: any[]): Track[] {
-  return (tracks ?? []).map(mapStreamingQuality);
+/**
+ * 🔴 On POSE la source quand le serveur ne la donne pas.
+ *
+ * Bertrand, 05/09/2026, capture d'une playlist Qobuz : « où sont les boutons
+ * d'action par piste ? ». Nulle part — les cinq avaient disparu de TOUTES les
+ * pistes de service.
+ *
+ * Mesure sur le .18, première piste de la playlist Qobuz 69142842 :
+ *
+ *     id        = null
+ *     source    = null      ← le serveur ne l'écrit pas
+ *     source_id = '55816716'
+ *
+ * Le serveur l'omet parce qu'elle est implicite dans la ROUTE —
+ * `/streaming/qobuz/playlists/…` — mais la piste, une fois détachée de sa
+ * requête, ne sait plus d'où elle vient. Or une piste distante se désigne par
+ * la PAIRE `source` + `source_id` : sans la source, elle n'est ni jouable, ni
+ * enfilable, ni favorisable. La barre d'actions se retirait donc entièrement,
+ * ce qu'elle est censée faire pour une piste qu'on ne sait pas désigner —
+ * elle avait raison, c'est la donnée qui était incomplète.
+ *
+ * On la pose ICI, à la frontière où le service est connu, et jamais dans un
+ * écran : trois écrans lisent ces routes.
+ *
+ * `??` et non `=` : une piste qui porte déjà sa source garde la sienne — un
+ * agrégateur peut rendre du Tidal sous une route Qobuz.
+ */
+function mapStreamingTracks(tracks: any[], service?: string): Track[] {
+  return (tracks ?? []).map((t) => {
+    const p = mapStreamingQuality(t);
+    if (service && !(p as any).source) (p as any).source = service;
+    return p;
+  });
 }
 
 function mapStreamingAlbums(albums: any[]): Album[] {
@@ -2043,11 +2478,33 @@ function mapStreamingAlbums(albums: any[]): Album[] {
   });
 }
 
-function mapStreamingSearchResult(result: SearchResult): SearchResult {
+/**
+ * 🔴 La SOURCE est posée sur les QUATRE familles, pas seulement sur les pistes.
+ *
+ * Mesure sur le .18 le 07/09/2026, `/streaming/qobuz/search?q=somebody` :
+ * AUCUN objet rendu ne porte `source` — ni album, ni artiste, ni piste, ni
+ * playlist. Le serveur l'omet parce qu'elle est implicite dans la route ; une
+ * fois l'objet détaché de sa requête, plus rien ne dit d'où il vient.
+ *
+ * Sans elle, une piste de résultat n'est ni enfilable ni favorisable et
+ * `PisteActions` retire toute sa barre — exactement le défaut corrigé en août
+ * sur les playlists. La recherche par service le rouvrait pour ses résultats.
+ *
+ * `??` et non `=` : un agrégateur peut rendre du Tidal sous une route Qobuz.
+ */
+type QuatreFamilles = {
+  tracks: Track[]; albums: Album[]; artists: Artist[]; playlists?: CataloguePlaylist[];
+};
+
+function mapStreamingSearchResult<T extends QuatreFamilles>(result: T, service?: string): T {
+  const poser = <U,>(xs: U[] | undefined): U[] =>
+    (xs ?? []).map((x: any) => (service && !x?.source ? { ...x, source: service } : x));
   return {
     ...result,
-    tracks: mapStreamingTracks(result.tracks),
-    albums: mapStreamingAlbums(result.albums),
+    tracks: poser(mapStreamingTracks(result.tracks, service)),
+    albums: poser(mapStreamingAlbums(result.albums)),
+    artists: poser(result.artists),
+    playlists: poser(result.playlists),
   };
 }
 
@@ -2072,8 +2529,41 @@ function mapZoneQuality(zone: any): Zone {
  */
 export const SEARCH_PAGE_LIMIT = 50;
 
-export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PAGE_LIMIT) {
+/**
+ * Le plafond de la recherche FÉDÉRÉE — distinct du précédent, et plus haut.
+ *
+ * #764 : le serveur n'active `recherche_paginee(plafond)` **qu'au-delà de
+ * cinquante**. À cinquante pile, la pagination ne se déclenchait jamais, et le
+ * plafond était donc posé par le client sans que personne l'ait décidé.
+ *
+ * Mesuré sur le .18 le 08/09/2026, `/search?q=miles` :
+ *
+ *   | limite | local (pistes / albums) | qobuz | tidal |
+ *   |--------|-------------------------|-------|-------|
+ *   | 50     | 50 / 50                 | 50    | 50    |
+ *   | 100    | 100 / **92**            | 100   | 100   |
+ *   | 200    | 200 / 92                | 200   | 200   |
+ *
+ * Le ticket réservait sa conclusion à un seul service : la mesure la lève,
+ * Qobuz ET Tidal suivent. Et à cent, le nombre d'albums atteint son total réel
+ * (92) au lieu d'être tronqué — ce que cinquante cachait.
+ *
+ * Pourquoi cent et pas deux cents : cent suffit à déclencher la pagination et
+ * à découvrir les totaux, sans doubler une seconde fois le poids d'un écran
+ * qui rend déjà quatre familles pour quatre sources.
+ *
+ * 🔴 Ne PAS confondre avec `SEARCH_PAGE_LIMIT` juste au-dessus : cinquante est
+ * le plafond de page de l'API Qobuz, et il reste juste pour la recherche
+ * service par service, qui pagine, elle, par `offset`.
+ */
+export const SEARCH_FEDEREE_LIMIT = 100;
+
+export function federatedSearch(q: string, sources?: string[], limit = SEARCH_FEDEREE_LIMIT, offset = 0) {
   let url = `${BASE}/search?q=${encodeURIComponent(q)}&limit=${limit}`;
+  // #3189 — la suite de la bibliothèque locale (le serveur ne pagine que
+  // celle-là). Absent = 0 = la page d'avant : l'URL des appels existants ne
+  // change pas.
+  if (offset > 0) url += `&offset=${offset}`;
   if (sources && sources.length > 0) {
     url += `&sources=${sources.join(',')}`;
   }
@@ -2083,12 +2573,30 @@ export function federatedSearch(q: string, sources?: string[], limit = SEARCH_PA
       for (const key of Object.keys(result.services)) {
         result.services[key].tracks = mapStreamingTracks(result.services[key].tracks);
         result.services[key].albums = mapStreamingAlbums(result.services[key].albums);
-        // The server's StreamTrack/StreamAlbum carry no `source` field, so a
-        // track played from global search had no source and did nothing
-        // (DEvir). Stamp the service key as the source so play/queue actions
-        // can route these streaming results.
-        for (const t of result.services[key].tracks ?? []) if (t && !t.source) t.source = key;
-        for (const a of result.services[key].albums ?? []) if (a && !a.source) a.source = key;
+        // 🔴 Le serveur ne tamponne AUCUNE source — vérifié sur le .18 le
+        // 06/09/2026, `/search?q=miles` : ni les pistes, ni les albums, ni les
+        // artistes, ni les playlists de `services.qobuz` ne portent `source`.
+        // Sans ce tampon, une piste jouée depuis la recherche globale n'avait
+        // pas de source et ne faisait rien (DEvir).
+        //
+        // Les ARTISTES et les PLAYLISTS y échappaient, et le défaut ne se
+        // limitait pas à l'affichage. `estLocal(x)` vaut
+        // `(x.source ?? 'local') === 'local' && x.id != null` : un artiste
+        // Qobuz, sans source et avec `id: "6760"`, passait donc pour LOCAL.
+        // L'écran de recherche lui offrait alors le cœur, les étiquettes et
+        // l'édition de la bibliothèque — et le cœur écrivait
+        // `artist_id: "6760"` dans la table des favoris LOCAUX.
+        //
+        // Côté périmètre, ils étaient comptés sous « Local » et disparaissaient
+        // quand on choisissait le service : « si on clique sur Qobuz, c'est le
+        // même résultat que Tous » (Reivax66, forum 1647).
+        //
+        // Les quatre familles, donc, et pas trois.
+        for (const fam of ['tracks', 'albums', 'artists', 'playlists'] as const) {
+          for (const x of (result.services[key] as any)[fam] ?? []) {
+            if (x && !x.source) x.source = key;
+          }
+        }
       }
     }
     return result;
@@ -2124,18 +2632,63 @@ export function updateConfig(fields: Record<string, unknown>) {
   });
 }
 
-export function addMusicDir(path: string) {
-  return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs`, {
-    method: 'POST',
-    body: JSON.stringify({ path }),
-  });
+/**
+ * 🔴 Le serveur répond `dirs`, pas `music_dirs`.
+ *
+ * Mesuré sur le .18 le 06/09/2026 :
+ *
+ *     GET /system/music-dirs → {"dirs":["/data/music", …]}
+ *
+ * et les handlers `add_music_dir` / `remove_music_dir` rendent eux aussi
+ * `Json(json!({ "dirs": dirs }))` (tune-server, `routes/system/config.rs`).
+ *
+ * Le client lisait `r?.music_dirs`, donc toujours `undefined` : l'écran
+ * gardait son ancienne liste après un ajout, et il fallait recharger la page
+ * pour voir le dossier — `/system/config`, lui, porte bien `music_dirs`, d'où
+ * le fait que F5 « répare ».
+ *
+ * « L'affichage de l'ajout de répertoires dans la bibliothèque ne fonctionne
+ * pas [...] Il faut rafraîchir le navigateur pour les voir » (Patatorz, forum
+ * 1680, 06/09/2026, TuneOS 0.9.138).
+ *
+ * La traduction se fait ICI, au bord : les deux clients appellent ces routes,
+ * et le reste du corps (`purge_refused`, `orphelines`) est conservé tel quel.
+ */
+function listeDossiers(r: any): string[] {
+  const l = r?.dirs ?? r?.music_dirs;
+  return Array.isArray(l) ? l : [];
 }
 
-export function removeMusicDir(path: string) {
-  return fetchJSON<{ music_dirs: string[] }>(`${BASE}/system/music-dirs/remove`, {
+export async function addMusicDir(path: string): Promise<{ music_dirs: string[] }> {
+  const r = await fetchJSON<any>(`${BASE}/system/music-dirs`, {
     method: 'POST',
     body: JSON.stringify({ path }),
   });
+  return { ...r, music_dirs: listeDossiers(r) };
+}
+
+/**
+ * Retire une racine de musique — et, si `confirmPurge` est donné, retire
+ * aussi les pistes devenues orphelines (#2149).
+ *
+ * Le type de retour disait `{ music_dirs }` : le serveur rend `dirs`. Personne
+ * ne s'en apercevait, l'appelant jetait la réponse — et jetait avec elle
+ * `orphan_tracks` et `confirm_purge_required`, sans lesquels aucun écran ne
+ * pouvait proposer la purge.
+ *
+ * `confirmPurge` est un NOMBRE, pas un booléen : il doit couvrir le nombre
+ * exact annoncé au premier appel, sinon le plafond de #1943 refuse tout. Le
+ * refus se lit dans `purge_refused`, jamais dans le code HTTP — le retrait,
+ * lui, a toujours réussi.
+ */
+export async function removeMusicDir(path: string, confirmPurge?: number) {
+  const body: Record<string, unknown> = { path };
+  if (typeof confirmPurge === 'number') body.confirm_purge = confirmPurge;
+  const r = await fetchJSON<RetraitDossier>(`${BASE}/system/music-dirs/remove`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return { ...r, music_dirs: listeDossiers(r) };
 }
 
 export function triggerScan(path?: string, full = false) {
@@ -2168,8 +2721,10 @@ export function albumBetterQuality(id: number) {
   return fetchJSON<{ better: BetterQuality | null }>(`${BASE}/library/albums/${id}/better-quality`);
 }
 
+/** #3662 — le serveur rend `{status: "restarting"}` et rien d'autre
+ *  (`tune-server/src/routes/system/config.rs:2244-2320`) : pas de `message`. */
 export function restartServer() {
-  return fetchJSON<{ status: string; message: string }>(`${BASE}/system/restart`, { method: 'POST' });
+  return fetchJSON<{ status: string }>(`${BASE}/system/restart`, { method: 'POST' });
 }
 
 /** Arrêter le PROCESSUS serveur (pas la machine). L'erreur réseau qui suit
@@ -2373,9 +2928,22 @@ export function triggerEnrich() {
 
 // --- Streaming ---
 
-export function searchStreaming(service: string, q: string, limit = SEARCH_PAGE_LIMIT) {
-  return fetchJSON<SearchResult>(`${BASE}/streaming/${encodeURIComponent(service)}/search?q=${encodeURIComponent(q)}&limit=${limit}`)
-    .then(mapStreamingSearchResult);
+/**
+ * Recherche dans UN service — la seule des deux qui pagine.
+ *
+ * `offset` existe côté serveur et fonctionne (mesure du 07/09/2026, voir
+ * `StreamingSearchResult`) ; le client ne l'envoyait pas, si bien qu'aucun
+ * écran ne pouvait dépasser la première page de 50. C'est le plafond que
+ * Fabien a mesuré sur « Somebody » (v0.9.140).
+ *
+ * Le plafond de PAGE reste 50 : c'est celui de l'API Qobuz, demander plus ne
+ * rend pas plus. On en demande une AUTRE, on n'agrandit pas celle-ci.
+ */
+export function searchStreaming(service: string, q: string, limit = SEARCH_PAGE_LIMIT, offset = 0) {
+  const p = new URLSearchParams({ q, limit: String(limit) });
+  if (offset) p.set('offset', String(offset));
+  return fetchJSON<StreamingSearchResult>(`${BASE}/streaming/${encodeURIComponent(service)}/search?${p.toString()}`)
+    .then((r) => mapStreamingSearchResult(r, service));
 }
 
 export function getStreamingAlbum(service: string, albumId: string) {
@@ -2384,7 +2952,7 @@ export function getStreamingAlbum(service: string, albumId: string) {
 
 export function getStreamingAlbumTracks(service: string, albumId: string) {
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/tracks`)
-    .then(mapStreamingTracks);
+    .then((t) => mapStreamingTracks(t, service));
 }
 
 export function getStreamingArtist(service: string, artistId: string) {
@@ -2454,7 +3022,7 @@ export function getStreamingFavorites(service: string, type: 'tracks' | 'albums'
     .then(data => {
       // Map quality sub-object on favorite tracks
       if (type === 'tracks' && data?.tracks) {
-        data.tracks = mapStreamingTracks(data.tracks);
+        data.tracks = mapStreamingTracks(data.tracks, service);
       }
       return data;
     });
@@ -2483,7 +3051,14 @@ export interface StreamingFavorite {
   artist?: string | null;
   album?: string | null;
   cover_url?: string | null;
-  /** Date de la mise en favori — le serveur la rend déjà (#2001). */
+  /**
+   * Quand le cœur a été posé, en ISO — « 2026-09-03T21:59:50Z » (#2001).
+   *
+   * Le serveur le renvoyait déjà ; le type l'ignorait, donc le champ arrivait
+   * et se perdait à la conversion. C'est la SEULE date que porte un favori de
+   * service : sans elle, un tri par date n'aurait rien à lire de ce côté.
+   * Mesuré sur le .18 le 04/09/2026.
+   */
   created_at?: string | null;
 }
 
@@ -2541,7 +3116,7 @@ export function matchTrack(title: string, artistName: string, services?: string[
 
 export function getStreamingPlaylistTracks(service: string, playlistId: string) {
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`)
-    .then(mapStreamingTracks);
+    .then((t) => mapStreamingTracks(t, service));
 }
 
 // --- YouTube Music OAuth ---
@@ -2595,17 +3170,15 @@ export function getYouTubeLibrary(limit = 100) {
   return fetchJSON<Track[]>(`${BASE}/streaming/youtube/library?limit=${limit}`);
 }
 
-export function transferPlaylist(sourceService: string, sourceId: string, targetService: string, targetName?: string) {
-  return fetchJSON<import('./types').PlaylistTransferResponse>(`${BASE}/playlists/transfer`, {
-    method: 'POST',
-    body: JSON.stringify({
-      source_service: sourceService,
-      source_playlist_id: sourceId,
-      target_service: targetService,
-      target_name: targetName || undefined,
-    }),
-  });
-}
+// #3662 — `transferPlaylist` a été retirée : contrat MORT. Aucun appelant — les
+// sept sites de transfert du client passent tous par `transferPlaylistV2`
+// (`/playlist-manager/transfer`). La déclaration promettait
+// `PlaylistTransferResponse` (sept champs) là où
+// `tune-server/src/routes/playlists.rs:1296-1318` rend `{transferred}` — et ne
+// transfère RIEN vers un service : il verse les pistes d'une playlist locale
+// dans la file d'une zone, à partir d'un corps `{playlist_id, zone_id}` que
+// cette fonction n'envoyait même pas. Le type, le corps et l'intention étaient
+// faux tous les trois.
 
 export function diffPlaylists(sourceService: string, sourceId: string, targetService: string, targetId: string) {
   return fetchJSON<import('./types').PlaylistDiffResponse>(`${BASE}/playlists/diff`, {
@@ -2714,11 +3287,36 @@ export function exportPlaylistFile(service: string, playlistId: string, format: 
   });
 }
 
-export async function importPlaylistFile(file: File, format: string) {
+/**
+ * Importe une playlist depuis un fichier M3U.
+ *
+ * 🔴 Cette fonction visait `POST /playlist-manager/import`, qui attend un
+ * corps **JSON** (`{ name, format, tracks: [{title, artist, album}] }`) et ne
+ * lit AUCUN fichier. Elle lui envoyait un `FormData` : le serveur ne pouvait
+ * répondre que 415, et l'import de playlist par fichier n'a donc jamais
+ * fonctionné. Même défaut que l'import Roon/Plex, à un second endroit.
+ *
+ * La bonne route existait depuis le début : `POST /playlists/import/m3u`
+ * prend le fichier en multipart, l'analyse avec `m3u_parser`, crée la playlist
+ * et rapproche chaque ligne de la bibliothèque.
+ *
+ * ⚠️ Le M3U est le SEUL format que cette route lit. `/playlist-manager/export`
+ * en produit trois — csv, xspf, json — mais aucun ne revient par ici.
+ */
+export async function importPlaylistFile(file: File, name?: string) {
   const form = new FormData();
   form.append('file', file);
-  const resp = await fetch(`${BASE}/playlist-manager/import?format=${format}`, { method: 'POST', headers: authHeaders(), body: form });
-  return resp.json();
+  if (name) form.append('name', name);
+  const resp = await fetch(`${BASE}/playlists/import/m3u`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  });
+  if (!resp.ok) {
+    const detail = await resp.text().catch(() => '');
+    throw new Error(detail || `import: HTTP ${resp.status}`);
+  }
+  return resp.json() as Promise<{ playlist_id?: number; matched?: number; missing?: number }>;
 }
 
 export function getPlaylistLinks() {
@@ -2790,8 +3388,16 @@ export function deleteRadio(id: number) {
   return fetchVoid(`${BASE}/radios/${id}`, { method: 'DELETE' });
 }
 
+/** #3662 — le serveur ne rend PAS une `Zone` mais un compte rendu de lecture
+ *  (`tune-server/src/routes/radios.rs:937-982`) : `zone_id` — et non `id` —,
+ *  le NOM de la radio dans `radio`, et l'état de la zone dans `state`. Les
+ *  appelants ne lisent que `stream_url`, qui existe bien ; tout le reste de
+ *  `Zone` était promis à vide. */
 export function playRadio(radioId: number, zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/radios/${radioId}/play/${zoneId}`, { method: 'POST' });
+  return fetchJSON<import('./types').RadioPlayResult>(
+    `${BASE}/radios/${radioId}/play/${zoneId}`,
+    { method: 'POST' },
+  );
 }
 
 export async function uploadRadioCover(radioId: number, file: File): Promise<import('./types').RadioStation> {
@@ -2853,29 +3459,65 @@ export function deleteProfile(id: number) {
 // --- Favorites ---
 
 // Server favorites API is keyed by {item_type, item_id}; the web callers pass
-// {track_id|album_id|artist_id|playlist_id}. Normalise here so callers stay
-// ergonomic.
+// {track_id|album_id|artist_id|playlist_id|collection_id|smart_collection_id}.
+// Normalise here so callers stay ergonomic.
 //
 // `playlist_id` : une playlist LOCALE porte un id entier (`playlists.id`), elle
 // entre donc dans la même table que les titres, albums et artistes, sans
 // migration (#2442, FabienM fil 1557). Un LABEL, lui, n'a pas d'identifiant :
 // il passe par les favoris de facette, plus bas.
+//
+// `playlist` est un type de favori de plein droit côté serveur : il figure dans
+// `LOCAL_ITEM_TYPES`, donc son identité est figée à l'ajout comme celle d'un
+// album. Sans cet instantané, le cœur s'éteindrait au premier changement d'id —
+// import M3U rejoué, playlist recréée, bascule SQLite→PostgreSQL.
+//
+// NOTE DE FUSION (04/09/2026) : ce type s'appelait `FavItem` sur la ligne du
+// client v2 et `FavoriteRef` sur `main`. On garde le nom de `main`, plus
+// explicite, et on lui ajoute les deux champs de collection.
 export interface FavoriteRef {
   track_id?: number;
   album_id?: number;
   artist_id?: number;
   playlist_id?: number;
+  /**
+   * DEUX champs pour les collections : leurs espaces d'identifiants sont
+   * indépendants et se recouvrent (id 1 = « favorites » ET « Audiophile » sur
+   * le serveur de Bertrand). Le serveur les distingue par `item_type`.
+   */
+  collection_id?: number;
+  smart_collection_id?: number;
 }
+
+/** Les quatre types INTERROGEABLES par `getFavorites`. */
 export type LocalFavoriteType = 'track' | 'album' | 'artist' | 'playlist';
 
-function favItem(p: FavoriteRef): { item_type: LocalFavoriteType; item_id: number } | null {
+/**
+ * Ce que `favItem` sait produire.
+ *
+ * Les collections s'ajoutent aux quatre ci-dessus mais ne les rejoignent PAS
+ * dans `LocalFavoriteType` : ce dernier sert de paramètre de requête à
+ * `getFavorites`, et le serveur n'y accepte que ces quatre-là.
+ */
+type FavoriteItemType = LocalFavoriteType | 'collection' | 'smart_collection';
+
+function favItem(p: FavoriteRef): { item_type: FavoriteItemType; item_id: number } | null {
   if (p.track_id != null) return { item_type: 'track', item_id: p.track_id };
   if (p.album_id != null) return { item_type: 'album', item_id: p.album_id };
   if (p.artist_id != null) return { item_type: 'artist', item_id: p.artist_id };
   if (p.playlist_id != null) return { item_type: 'playlist', item_id: p.playlist_id };
+  if (p.collection_id != null) return { item_type: 'collection', item_id: p.collection_id };
+  if (p.smart_collection_id != null)
+    return { item_type: 'smart_collection', item_id: p.smart_collection_id };
   return null;
 }
 
+/** La piste relue depuis la base. C'est la SEULE route qui rende un `Track`
+ *  complet : les trois points d'entrée d'édition (`PUT /library/tracks/{id}`,
+ *  `PATCH /metadata/tracks/{id}`, `POST /metadata/tracks/{id}/edit`) sont
+ *  servis par le même gestionnaire `edit_track` et ne rendent qu'un accusé de
+ *  réception. Un écran se rafraîchit donc en relisant, jamais en croyant la
+ *  réponse de l'écriture (#3638). */
 export function getTrack(id: number) {
   return fetchJSON<import('./types').Track>(`${BASE}/library/tracks/${id}`);
 }
@@ -2901,6 +3543,16 @@ export async function getFavorites(
   albums: import('./types').Album[];
   artists: import('./types').Artist[];
   playlists: import('./types').Playlist[];
+  /**
+   * Les collections sortent en IDENTIFIANTS, pas en objets développés.
+   *
+   * Les autres seaux vont chercher chaque objet un par un pour que l'écran
+   * Favoris puisse les afficher. Les collections n'ont pas d'écran de favoris,
+   * et l'unique usage est le cœur sur leur vignette : une requête par
+   * collection ne servirait à rien.
+   */
+  collectionIds: number[];
+  smartCollectionIds: number[];
 }> {
   const q = type ? `?item_type=${type}` : '';
   const rows = await fetchJSON<
@@ -2930,7 +3582,80 @@ export async function getFavorites(
     settle(lignes('artist'), getArtist),
     settle(lignes('playlist'), getPlaylist),
   ]);
-  return { tracks, albums, artists, playlists };
+  // Les collections n'ont besoin que de leur identifiant — on ne passe donc pas
+  // par `settle`, qui relit chaque objet un par un.
+  return {
+    tracks,
+    albums,
+    artists,
+    playlists,
+    collectionIds: lignes('collection').map((r) => r.item_id),
+    smartCollectionIds: lignes('smart_collection').map((r) => r.item_id),
+  };
+}
+
+/**
+ * Préférences d'interface d'un PROFIL.
+ *
+ * Elles vivent côté serveur, pas dans le navigateur : la disposition de
+ * l'accueil doit suivre d'un appareil à l'autre et survivre à un vidage de
+ * cache. Choix de Bertrand du 02/09/2026, qui les a voulues par profil plutôt
+ * que globales — chacun sa page d'accueil.
+ *
+ * L'écriture FUSIONNE : un écran qui n'envoie que sa clé n'efface pas celles
+ * des autres. Envoyer `null` pour une clé la supprime.
+ */
+/**
+ * Preferences d'un profil.
+ *
+ * 🔴 La route est `/settings`, pas `/preferences`.
+ *
+ * Bertrand, 05/09/2026 : « la configuration avec les widgets n'est pas
+ * sauvegardee avec le profil de l'utilisateur ». Ces deux fonctions visaient
+ * `/profiles/{id}/preferences` en PUT — une route qui n'existe pas. Mesure sur
+ * le .18 :
+ *
+ *     GET  /api/v1/profiles/1/preferences  -> 404 {"error":"not found"}
+ *     PUT  /api/v1/profiles/1/preferences  -> 404
+ *     GET  /api/v1/profiles/1/settings     -> 200 {}
+ *     PUT  /api/v1/profiles/1/settings     -> 405
+ *     POST /api/v1/profiles/1/settings     -> 204, et la relecture rend l'objet
+ *
+ * La lecture echouait donc en silence — l'ecran gardait sa disposition par
+ * defaut — et l'ecriture levait a chaque deplacement de widget. Rien n'etait
+ * jamais retenu.
+ */
+export function getProfilePreferences(profileId: number) {
+  return fetchJSON<Record<string, any>>(`${BASE}/profiles/${profileId}/settings`);
+}
+
+/**
+ * Ecrit en FUSIONNANT : un ecran qui n'envoie que sa cle ne doit pas effacer
+ * celles des autres.
+ *
+ * 🔴 La fusion se fait ICI parce que le serveur ne la fait pas. Mesure :
+ * poster `{cle_a}` puis `{cle_b}` laisse `{"cle_b":…}` seul — `cle_a` a
+ * disparu. `POST /settings` REMPLACE l'objet entier. On relit donc avant
+ * d'ecrire.
+ *
+ * La course entre deux ecrans qui enregistrent en meme temps reste possible ;
+ * elle l'etait deja, et le cas ne se presente pas — un seul ecran ecrit ces
+ * reglages a la fois.
+ */
+export async function setProfilePreferences(profileId: number, patch: Record<string, any>) {
+  let actuel: Record<string, any> = {};
+  try {
+    actuel = (await getProfilePreferences(profileId)) ?? {};
+  } catch {
+    // Reglages illisibles : on ecrit quand meme le correctif plutot que de
+    // perdre le geste de l'utilisateur.
+  }
+  const fusion = { ...actuel, ...patch };
+  await fetchJSON<unknown>(`${BASE}/profiles/${profileId}/settings`, {
+    method: 'POST',
+    body: JSON.stringify(fusion),
+  });
+  return fusion;
 }
 
 export function addFavorite(profileId: number, body: FavoriteRef) {
@@ -3014,6 +3739,27 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
   return `${BASE}/library/artwork/${encodeURIComponent(filename)}${sizeParam}`;
 }
 
+/**
+ * 🔴 La même adresse, mais `undefined` quand il n'y a pas de pochette — #201.
+ *
+ * `artworkUrl` rend la **chaîne vide** quand le chemin est absent. C'est utile
+ * pour un `{#if}`, et catastrophique dans un attribut : `<img src="">` fait
+ * **redemander la page courante** au navigateur. C'est exactement ce que
+ * l'exploration automatique rapportait — « Image(s) injoignable(s) sous
+ * localhost:8888// — ex. `/` », vue Bibliothèque, deux occurrences par
+ * passage — et il y avait DIX-HUIT `<img src={artworkUrl(…)}>` sans garde dans
+ * le dépôt.
+ *
+ * Svelte omet un attribut dont la valeur est `undefined` : la balise part alors
+ * sans `src`, et le navigateur ne demande rien du tout.
+ *
+ * Le placeholder, lui, reste l'affaire de l'appelant — `AlbumArt` le fait déjà
+ * proprement, avec en plus un `onerror` pour les pochettes qui répondent 404.
+ */
+export function artworkSrc(coverPath: string | null | undefined, size?: number): string | undefined {
+  return artworkUrl(coverPath, size) || undefined;
+}
+
 // --- Album cover cache ---
 
 const albumCoverCache = new Map<number, string | null>();
@@ -3088,8 +3834,22 @@ export async function getUpdateStatus(): Promise<any> {
 
 // --- Network / SMB ---
 
+/** Un hôte annoncé en mDNS par `GET /network/shares`. C'est un HÔTE, pas un
+ *  partage : le serveur ne sait rien de ses partages à ce stade et n'en pose
+ *  donc aucune liste. Le type était `any[]`, ce qui a laissé passer #3637 —
+ *  l'assistant SMB croyait y lire un champ `shares`. */
+export interface HoteReseauDecouvert {
+  id: string;
+  name: string;
+  host: string;
+  hostname?: string;
+  port?: number;
+  protocol: string;
+  available: boolean;
+}
+
 export function discoverSmbShares() {
-  return fetchJSON<any[]>(`${BASE}/network/shares`);
+  return fetchJSON<HoteReseauDecouvert[]>(`${BASE}/network/shares`);
 }
 
 export function scanHost(host: string, protocol?: string, username?: string, password?: string) {
@@ -3100,9 +3860,12 @@ export function scanHost(host: string, protocol?: string, username?: string, pas
   return fetchJSON<any>(url);
 }
 
-export function listHostShares(hostId: string) {
-  return fetchJSON<{ shares: string[] }>(`${BASE}/network/shares/${encodeURIComponent(hostId)}`);
-}
+// `listHostShares` a été retirée (#3637). Elle appelait
+// `GET /network/shares/{id}` en lui passant l'identifiant d'un hôte découvert
+// (`smb://192.168.x.y`) et en attendant `{ shares: string[] }`. Cette route
+// extrait un `Path<i64>` et rend la ligne d'un MONTAGE enregistré
+// (`network_mounts`) : elle ne pouvait ni recevoir cet identifiant, ni
+// répondre cette forme. Les partages d'un hôte s'obtiennent par `scanHost`.
 
 export function testSmbConnection(host: string, share: string, username?: string, password?: string, _domain?: string) {
   return fetchJSON<{ ok: boolean; message?: string; error?: string }>(`${BASE}/network/smb/mount`, {
@@ -3343,7 +4106,9 @@ export function createCollection(name: string, description?: string, icon?: stri
 }
 export function updateCollection(id: number, data: any) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
 export function deleteCollection(id: number) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'DELETE' }); }
-export function getCollectionAlbums(id: number) { return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums`); }
+export function getCollectionAlbums(id: number, sort: 'artist' | 'title' | 'year' | 'added' = 'artist') {
+  return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums?sort=${sort}`);
+}
 export function addAlbumToCollection(collectionId: number, albumId: number) {
   // Server route is POST /collections/{id}/albums/{album_id} (album_id in the
   // path, like the DELETE below). POSTing to /albums with the id in the body
@@ -3361,7 +4126,24 @@ export function getSmartDuplicates(limit = 50) { return fetchJSON<any>(`${BASE}/
 export function getActivityFeed(limit = 30) { return fetchJSON<any[]>(`${BASE}/library/activity?limit=${limit}`); }
 
 // --- Share Playlist ---
-export function sharePlaylist(playlistId: number) { return fetchJSON<any>(`${BASE}/playlists/${playlistId}/share`); }
+/**
+ * Publie une playlist sous un jeton public et rend son URL.
+ *
+ * 🔴 Cette fonction faisait un **GET** sur une route déclarée en **POST**
+ * (`playlists.rs:86`) : elle ne pouvait répondre que 405. Troisième décalage
+ * client/serveur du même genre trouvé le 02/09/2026, après l'import de
+ * playlist et l'import Roon/Plex.
+ *
+ * ⚠️ Le jeton est PUBLIC. Il n'est pas devinable — UUID v4, 128 bits de
+ * hasard, après un correctif d'audit : l'ancien dérivait de l'horloge et de
+ * l'identifiant, donc se retrouvait par force brute. Mais quiconque a l'URL
+ * lit la playlist, sans compte ni mot de passe.
+ */
+export function sharePlaylist(playlistId: number) {
+  return fetchJSON<{ token: string; url: string }>(`${BASE}/playlists/${playlistId}/share`, {
+    method: 'POST',
+  });
+}
 
 // --- Now Listening ---
 export function getNowListening() { return fetchJSON<any[]>(`${BASE}/zones/now-listening`); }
@@ -3472,8 +4254,19 @@ export async function getTopPodcasts(genreId?: number | null, limit = 50, countr
   return data.items || data;
 }
 
-export async function getDiscoverPodcasts(): Promise<{ curated: any[]; top: any[]; genres: any[] }> {
-  const res = await fetch(`${BASE}/podcasts/discover`, { headers: authHeaders() });
+/**
+ * Sélection éditoriale et palmarès du PAYS demandé.
+ *
+ * 🔴 Le pays était absent de cet appel, et la route l'ignorait de toute façon :
+ * son palmarès était figé sur `"us"`. Changer de pays dans l'interface ne
+ * pouvait donc rien changer — « quand je sélectionne USA : rien » (Bertrand,
+ * 02/09/2026) — et un utilisateur français voyait « Crime Junkie » sous
+ * l'intitulé « Populaires » sans savoir qu'il regardait le classement
+ * américain. Corrigé des deux côtés le même jour.
+ */
+export async function getDiscoverPodcasts(country?: string): Promise<{ curated: any[]; top: any[]; genres: any[] }> {
+  const cc = country || podcastCountry();
+  const res = await fetch(`${BASE}/podcasts/discover?country=${encodeURIComponent(cc)}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Discover podcasts failed: ${res.status} ${res.statusText}`);
   return res.json();
 }
@@ -3539,6 +4332,43 @@ async function downloadCsv(path: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Exporter une playlist LOCALE dans un fichier.
+ *
+ * Demande de Bertrand le 05/09/2026. La route existe cote serveur et etait
+ * inutilisee par le client — mesure sur le .18 :
+ *
+ *     GET /playlists/13/export            -> 200
+ *       content-type: audio/x-mpegurl
+ *       content-disposition: attachment; filename="00._Genesis_-_Genesis.m3u"
+ *     ?format=json -> 200   ?format=csv -> 200   ?format=m3u8 -> 400
+ *
+ * Le M3U est le defaut : c'est le format qu'un autre lecteur saura relire.
+ *
+ * ⚠️ Le nom de fichier vient du SERVEUR, pas de nous : il l'assainit deja
+ * (« 00._Genesis_-_Genesis.m3u »), et un nom de playlist peut contenir des
+ * caracteres qu'un systeme de fichiers refuse. On le lit dans l'en-tete plutot
+ * que de le recomposer.
+ */
+export async function exportPlaylist(playlistId: number, format: 'm3u' | 'json' | 'csv' = 'm3u') {
+  const url = `${BASE}/playlists/${playlistId}/export${format === 'm3u' ? '' : `?format=${format}`}`;
+  const res = await fetch(url, { headers: authHeaders() });
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const dispo = res.headers.get('content-disposition') ?? '';
+  const trouve = /filename="?([^";]+)"?/i.exec(dispo);
+  const nom = trouve?.[1]?.trim() || `playlist.${format}`;
+  const blob = await res.blob();
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = nom;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(href);
+  return nom;
+}
+
 export function exportAlbumsCsv() { return downloadCsv('/export/albums.csv', 'albums.csv'); }
 export function exportTracksCsv() { return downloadCsv('/export/tracks.csv', 'tracks.csv'); }
 export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', 'artists.csv'); }
@@ -3601,19 +4431,6 @@ export function setAudiophileVolumeLock(
       lock_volume: lockVolume,
       ...(confirmFullVolume ? { confirm_full_volume: true } : {}),
     }),
-  });
-}
-
-// --- Streaming Quality ---
-
-export function getStreamingQuality(zoneId: number) {
-  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`);
-}
-
-export function setStreamingQuality(zoneId: number, quality: string) {
-  return fetchJSON<{ quality: string }>(`${BASE}/zones/${zoneId}/quality`, {
-    method: 'POST',
-    body: JSON.stringify({ quality }),
   });
 }
 
@@ -3757,6 +4574,21 @@ export function getServerDiagnostics() {
     // Added by tune-server-rust #2201. Optional keeps the diagnostics screen
     // compatible with older servers during rolling client/server updates.
     asio_warm_scan?: AsioWarmScanStatus;
+    // Added by tune-server-rust #2392 (`discovery_setup::provider_status_snapshot`).
+    // Pourquoi un fournisseur de sortie hors-arbre est inerte : absent de la
+    // liste = non compilé ; présent avec un `refusal` = droit manquant, et le
+    // refus dit lequel et quoi faire ; présent sans refus et `devices: 0` = il
+    // cherche vraiment et ne trouve rien. Ces trois cas donnaient le même écran
+    // vide, et un bêta-testeur Diretta a réinstallé son OS pour rien.
+    //
+    // `unknown` est délibéré. Déclarer la forme ici ne la vérifierait pas —
+    // `SmartCollection.max_albums` et `TrackAllTags.db_fields` étaient déclarés
+    // et absents du JSON servi, et l'écran gelait sur « Chargement ». Le seul
+    // lecteur est `lib/refusModuleSortie.ts`, qui sonde tout à l'exécution.
+    // Optionnel ET nullable : un serveur antérieur à #2392 n'envoie rien, et le
+    // serveur écrit `null` tant qu'aucune passe de découverte n'a eu lieu —
+    // y compris quand le binaire n'embarque aucun fournisseur hors-arbre.
+    output_providers?: unknown;
     // Scan info embedded under scan_status.*
     scan_status: {
       status: string;
@@ -3931,15 +4763,23 @@ export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
   return fetchJSON<InstalledPlugin[]>(`${BASE}/plugins`);
 }
 
-export function enablePlugin(name: string): Promise<{ status: string }> {
+/** #3662 — le serveur ne rend AUCUN champ `status`
+ *  (`tune-server/src/routes/plugins.rs:538-556`) : il rend
+ *  `{name, enabled, restart_required}`. Et `restart_required` n'est pas
+ *  décoratif — il compare l'état demandé à ce qui tourne réellement, donc il
+ *  dit s'il faut vraiment couper la musique. Le type faux empêchait un
+ *  appelant typé de le lire. */
+export function enablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
   // The server mounts enable/disable under /plugins (routes/plugins.rs), same
   // as install/uninstall/update — not under /system, which only aliases the
   // list. The old /system/plugins/… path 404'd, so the toggle never took.
-  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
+  return fetchJSON<import('./types').PluginToggleResult>(
+    `${BASE}/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
 }
 
-export function disablePlugin(name: string): Promise<{ status: string }> {
-  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
+export function disablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
+  return fetchJSON<import('./types').PluginToggleResult>(
+    `${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
 }
 
 export async function getStorePlugins(search?: string, category?: string): Promise<StorePlugin[]> {
@@ -3954,8 +4794,39 @@ export async function getStorePlugins(search?: string, category?: string): Promi
 }
 
 /** Fetch merged plugin list (catalog + local) from the Tune server. */
+/**
+ * 🔴 `compatible` ABSENT vaut COMPATIBLE.
+ *
+ * Signalé par Querite sur le forum le 05/09/2026, capture à l'appui : toutes
+ * ses extensions portaient le badge « INCOMPATIBLE », et le bouton Installer
+ * du catalogue était grisé.
+ *
+ * Mesure sur le .18 — la réponse de `/plugins` ne contient tout simplement pas
+ * le champ :
+ *
+ *     xtune     : author, description, display_name, enabled, icon, installed,
+ *                 name, type, url, version
+ *     bandcamp  : config_schema, description, display_name, enabled, installed,
+ *                 name, type, url, version
+ *     recorder  : author, description, display_name, enabled, installed,
+ *                 loaded, name, restart_required, type, url, version
+ *
+ * L'écran du client actuel le normalisait à `true` avant d'afficher ; le
+ * nouveau lisait la réponse telle quelle et testait `!p.compatible`. Un champ
+ * absent est faux : tout passait en incompatible.
+ *
+ * La normalisation vit ICI, à la frontière où l'on sait ce que le serveur omet,
+ * et non dans un écran — c'est ce qui a permis au défaut de revenir sur le
+ * second. `?? true` et non `= true` : un `false` explicite du serveur, lui,
+ * doit être respecté.
+ *
+ * Issue serveur ouverte pour qu'il émette le champ, ce qui protègera aussi les
+ * clients déjà publiés.
+ */
 export function getMergedPlugins(): Promise<MergedPlugin[]> {
-  return fetchJSON<MergedPlugin[]>(`${BASE}/plugins`);
+  return fetchJSON<MergedPlugin[]>(`${BASE}/plugins`).then((liste) =>
+    (liste ?? []).map((p) => ({ ...p, compatible: (p as any).compatible ?? true })),
+  );
 }
 
 export interface MarketplaceCatalogPlugin {
@@ -4468,10 +5339,18 @@ export function deactivateLicense(): Promise<LicenseActivateResponse> {
   });
 }
 
-export function validateLicense(): Promise<{ status: string }> {
-  return fetchJSON<{ status: string }>(`${BASE}/cloud/license/validate`, {
-    method: 'POST',
-  });
+/**
+ * 🔴 Répond HTTP 200 même quand la validation a ÉCHOUÉ : le verdict est dans
+ * le corps, jamais dans le statut HTTP. Le corps entier est donc rendu, et
+ * `verdictValidationLicence` (src/lib/licenceValidation.ts) le lit — #570.
+ */
+export function validateLicense(): Promise<
+  import('./licenceValidation').ReponseValidationLicence
+> {
+  return fetchJSON<import('./licenceValidation').ReponseValidationLicence>(
+    `${BASE}/cloud/license/validate`,
+    { method: 'POST' },
+  );
 }
 
 // Log out of the mozaiklabs.fr cloud account (server drops the stored SSO token).
@@ -4483,11 +5362,12 @@ export function ssoDisconnect(): Promise<{ status?: string }> {
 
 // --- Support Premium v2 (fil de tickets hébergé sur mozaiklabs.fr) ---
 //
-// TOUT passe par le RELAIS du serveur Tune local (#2559). Le contournement
-// historique — parler en direct à mozaiklabs.fr « tant que le contrat n'est pas
-// déployé côté serveur » — n'a plus lieu d'être : `tune-server` expose les
-// routes depuis `routes/support.rs`, et la CRÉATION de ticket les empruntait
-// déjà.
+// TOUT passe par le RELAIS du serveur Tune local (#2559) — y compris, depuis
+// ce correctif, le « marquer lu », qui était le dernier appel encore adressé
+// en direct au site. Le contournement historique — parler en direct à
+// mozaiklabs.fr « tant que le contrat n'est pas déployé côté serveur » — n'a
+// plus lieu d'être : `tune-server` expose les routes depuis
+// `routes/support.rs`, et la CRÉATION de ticket les empruntait déjà.
 //
 // Trois raisons de ne plus jamais appeler mozaiklabs.fr depuis la page :
 //
@@ -4507,8 +5387,6 @@ export function ssoDisconnect(): Promise<{ status?: string }> {
 //     statut 200. Chaque client du parc rejouait cet appel à chaque changement
 //     d'écran.
 
-export const MOZAIKLABS_API = 'https://mozaiklabs.fr/api/v1';
-
 export type SupportTicketStatus = 'open' | 'answered' | 'resolved';
 
 export interface SupportTicketSummary {
@@ -4527,30 +5405,6 @@ export interface SupportTicketReply {
   author: 'user' | 'team';
   body: string;
   created_at: string;
-}
-
-async function mozaikFetch(path: string, options?: RequestInit): Promise<any> {
-  const resp = await fetch(`${MOZAIKLABS_API}${path}`, {
-    headers: {
-      Accept: 'application/json',
-      ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    ...options,
-  });
-  if (!resp.ok) {
-    const err = new Error(`${resp.status}`) as ApiError;
-    err.status = resp.status;
-    // Appel DIRECT à mozaiklabs : `Retry-After` n'est lisible que si le site
-    // l'expose par CORS, d'où le repli sur le corps. Absent ⇒ `undefined`, et
-    // l'écran dit « réessaie plus tard » sans inventer de délai (#2178).
-    let corps: unknown = null;
-    try { corps = JSON.parse(await resp.clone().text()); } catch { /* corps non JSON */ }
-    err.retryAfter = retryAfterDe(resp, corps);
-    throw err;
-  }
-  const text = await resp.text();
-  if (!text.trim()) return null;
-  return JSON.parse(text);
 }
 
 export function getSupportTickets(_licenseKey?: string): Promise<{ tickets: SupportTicketSummary[] }> {
@@ -4578,23 +5432,26 @@ export function postSupportTicketReply(id: number, _licenseKey: string, body: st
 }
 
 /**
- * ⚠️ SEUL appel encore dirigé vers mozaiklabs.fr, et donc seul à rester bloqué
- * par CORS depuis une adresse locale (#2559).
+ * Marque un fil comme lu — dernier appel du support qui partait encore en
+ * direct vers mozaiklabs.fr, la clé de licence dans le corps (#2559).
  *
- * Le relais du serveur Tune n'expose PAS `/tickets/{id}/read` — vérifié dans
- * `routes/support.rs`, qui déclare `/tickets`, `/tickets/{id}` et
- * `/tickets/{id}/reply`, et dans `tune-core/src/cloud/support.rs`, qui n'a pas
- * d'équivalent de `mark_read`. Le router par le relais suppose donc d'ajouter
- * la route côté serveur : c'est un travail distinct, dans un autre dépôt.
+ * Il ne pouvait pas aboutir : depuis une page servie par le serveur Tune —
+ * `http://192.168.1.18:8888`, `http://localhost:8888` — l'origine n'est jamais
+ * `https://mozaiklabs.fr`, et `localhost` ne bénéficie d'aucune exception CORS.
+ * Trois testeurs sur deux moteurs de navigateur ont produit le même refus.
+ * L'échec étant avalé par l'appelant, le seul symptôme était une pastille de
+ * non-lus qui ne redescendait jamais.
  *
- * L'échec est déjà avalé par l'appelant — marquer comme lu n'est pas critique,
- * seul le compteur de non-lus reste en retard.
+ * Le relais expose désormais `POST /support/tickets/{id}/read`
+ * (`tune-server/src/routes/support.rs`) : même origine, et la clé ne quitte
+ * plus le serveur. Le paramètre reste accepté pour ne pas casser les
+ * appelants, et il est ignoré.
+ *
+ * Serveur antérieur au relais : 404, avalé comme l'était le refus CORS — aucun
+ * comportement ne se dégrade par rapport à l'existant.
  */
-export function markSupportTicketRead(id: number, licenseKey: string): Promise<any> {
-  return mozaikFetch(`/support/tickets/${id}/read`, {
-    method: 'POST',
-    body: JSON.stringify({ license_key: licenseKey }),
-  });
+export function markSupportTicketRead(id: number, _licenseKey?: string): Promise<any> {
+  return fetchJSON<any>(`${BASE}/support/tickets/${id}/read`, { method: 'POST' });
 }
 
 /** Crée un ticket support en `multipart/form-data` (avec pièces jointes). Poste
@@ -4616,7 +5473,7 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}/support/tickets`, { method: 'POST', headers, body: form });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) {
     let message = `${resp.status}`;
     let corps: unknown = null;
@@ -4838,7 +5695,7 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   let json: any = null;
   try { json = await resp.json(); } catch { /* non-JSON body */ }
   if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
@@ -4966,6 +5823,45 @@ export interface MetadataProposal {
   /** Combien de bibliotheques portent la valeur proposee. */
   servers_count: number;
   fetched_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Doublons de la bibliothèque : ce que le serveur sait nommer et réparer
+// (BIB-A2, BIB-C1, BIB-B3 — v0.9.137 à v0.9.140).
+// ---------------------------------------------------------------------------
+export interface AlbumEclate { id: number; title: string; artist?: string | null; year?: number | null; track_count: number; track_numbers?: number[] }
+export interface GroupeAlbumsEclates { numeros_complementaires?: boolean; meme_annee?: boolean; pistes?: number; albums: AlbumEclate[]; [k: string]: unknown }
+/** Un album coupé en plusieurs fiches (`GET /library/albums/eclates`). */
+export function getAlbumsEclates() {
+  return fetchJSON<{ count: number; groups: GroupeAlbumsEclates[] }>(`${BASE}/library/albums/eclates`).then((r) => r?.groups ?? []);
+}
+/** L'album `cible` absorbe `doublon` : pistes, favoris, notes, étiquettes, dossiers,
+ *  historique. 409 si les deux n'ont aucun dossier commun, pas le même titre, ou
+ *  ont été déclarés distincts. */
+export function absorbAlbum(cible: number, doublon: number) {
+  return fetchJSON<unknown>(`${BASE}/library/albums/${cible}/absorber/${doublon}`, { method: 'POST' });
+}
+export interface ArtisteHomographe { id: number; name: string; musicbrainz_id?: string | null; albums: number }
+export interface GroupeArtistes { cle: string; mbid_distincts?: boolean; albums?: number; artistes: ArtisteHomographe[] }
+/** Deux fiches d'un même artiste sous deux graphies (`GET /library/artists/doublons`). */
+export function getArtistsDoublons() {
+  return fetchJSON<{ count: number; groups: GroupeArtistes[] }>(`${BASE}/library/artists/doublons`).then((r) => r?.groups ?? []);
+}
+export function absorbArtist(cible: number, doublon: number) {
+  return fetchJSON<unknown>(`${BASE}/library/artists/${cible}/absorber/${doublon}`, { method: 'POST' });
+}
+export interface CopieDoublon { id: number; title?: string; artist_name?: string | null; file_path?: string; duration_ms?: number; format?: string | null; sample_rate?: number | null; bit_depth?: number | null }
+export interface PaireDoublonNommee { critere: string; suppression_sure: boolean; a: CopieDoublon; b: CopieDoublon; recommandation: { garder: number | null; raison: string } }
+/** BIB-B3 : les paires de pistes en double, une forme unique — critère nommé,
+ *  recommandation « garder » par la règle de qualité partagée. */
+export function getPairesDoublons(critere?: string) {
+  const q = critere ? `?critere=${encodeURIComponent(critere)}` : '';
+  return fetchJSON<{ paires?: PaireDoublonNommee[] }>(`${BASE}/library/duplicates${q}`).then((r) => r?.paires ?? []);
+}
+/** Garde `keep`, retire `del` de la bibliothèque (playlists, file, historique et
+ *  favoris repointés sur `keep`). Le fichier n'est pas touché. */
+export function resolveTrackDuplicate(keep: number, del: number) {
+  return fetchJSON<unknown>(`${BASE}/library/duplicates/resolve`, { method: 'POST', body: JSON.stringify({ keep_id: keep, delete_id: del }) });
 }
 
 export function listMetadataProposals(
@@ -5123,9 +6019,18 @@ export function bandcampTags() {
   return fetchJSON<{ tags: string[]; genres?: BandcampGenre[] }>(`${BASE}/ext/bandcamp/tags`);
 }
 
-/** Parcourir un genre, éventuellement restreint à l'un de ses sous-genres. */
-export function bandcampDiscover(tag: string, sort = 'top', page = 0, subgenre?: string) {
-  const p = new URLSearchParams({ tag, sort, page: String(page) });
+/**
+ * Parcourir Bandcamp, éventuellement par genre et sous-genre.
+ *
+ * `tag` est OPTIONNEL depuis le 05/09/2026 : sans lui, la route rend la
+ * découverte générale — mesuré sur le .18, 48 entrées. C'est ce que montre
+ * désormais l'onglet « Découvrir », les genres ayant leur propre onglet.
+ * Envoyer `tag=` vide n'est pas la même chose que ne pas l'envoyer : le
+ * paramètre n'est ajouté que s'il porte une valeur.
+ */
+export function bandcampDiscover(tag?: string, sort = 'top', page = 0, subgenre?: string) {
+  const p = new URLSearchParams({ sort, page: String(page) });
+  if (tag) p.set('tag', tag);
   if (subgenre) p.set('subgenre', subgenre);
   return fetchJSON<BandcampDecouverte>(`${BASE}/ext/bandcamp/discover?${p}`);
 }
@@ -5152,4 +6057,72 @@ export interface BandcampDiscographie {
 export function bandcampArtist(url: string) {
   const p = new URLSearchParams({ url });
   return fetchJSON<BandcampDiscographie>(`${BASE}/ext/bandcamp/artist?${p}`);
+}
+
+// --- Concerts (greffon, monté sur /ext/concerts) ---
+
+/** Un concert à venir d'un artiste de la bibliothèque. */
+export interface Concert {
+  artist_name: string;
+  event_date: string;
+  venue?: string | null;
+  city?: string | null;
+  country?: string | null;
+  event_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+/** Les trois crans du périmètre. Gradué, jamais binaire : les grands groupes
+ *  ne passent que dans les grandes villes, et un rayon strict masquerait
+ *  précisément les têtes d'affiche. */
+export type PerimetreConcerts = 'radius' | 'country' | 'world';
+
+/** Les rayons proposés, en kilomètres. Liste fermée, la même que côté serveur :
+ *  un rayon libre serait un « partout » déguisé, plus lent et moins lisible. */
+export const RAYONS_CONCERTS = [50, 100, 200] as const;
+
+export interface ConcertsAVenir {
+  concerts: Concert[];
+  /** Le périmètre effectivement appliqué par le nuage. */
+  scope?: PerimetreConcerts;
+  radius_km?: number | null;
+  city?: string | null;
+  country?: string | null;
+  /** Code d'anomalie stable et traduisible — jamais une phrase anglaise. */
+  code?: string;
+}
+
+export interface LocalisationConcerts {
+  scope: PerimetreConcerts;
+  city: string;
+  country: string;
+  radius_km: number;
+  /** `false` quand le rayon est demandé mais que la commune n'a pas été
+   *  trouvée : la lecture retombe alors sur le pays. Sans ce drapeau,
+   *  l'utilisateur croit filtrer à 50 km alors qu'il voit tout son pays. */
+  located?: boolean;
+  code?: string;
+}
+
+export function getConcertsAVenir() {
+  return fetchJSON<ConcertsAVenir>(`${BASE}/ext/concerts/upcoming`);
+}
+
+/** Enregistre la commune SAISIE par l'utilisateur et le périmètre voulu.
+ *
+ *  Jamais déduite : le serveur connaît pourtant des coordonnées tirées de
+ *  l'adresse IP, et il ne faut pas s'en servir — derrière un VPN elles
+ *  désignent un autre pays. */
+export function setLocalisationConcerts(demande: {
+  city: string;
+  postal_code?: string | null;
+  country: string;
+  scope: PerimetreConcerts;
+  radius_km?: number;
+}) {
+  return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`, {
+    method: 'POST',
+    body: JSON.stringify(demande),
+  });
 }
