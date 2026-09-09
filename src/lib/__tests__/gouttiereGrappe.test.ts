@@ -34,6 +34,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync, globSync } from 'fs';
+import { reserveDeLaGrappe, RESERVE_MINIMALE, MARGE_DROITE, AIR } from '../gouttiereGrappe';
 
 const ECRANS = globSync('src/components/v2/*.svelte');
 const SHELL = readFileSync('src/components/v2/ShellV2.svelte', 'utf8');
@@ -134,6 +135,43 @@ describe('La gouttière de la grappe', () => {
     const zones = readFileSync('src/components/v2/ZonesV2.svelte', 'utf8');
     expect(zones).toContain('class="v2-top"');
     expect(css('src/components/v2/ZonesV2.svelte')).not.toMatch(/\.top\s*\{/);
+  });
+
+  it('🔴 la réserve est MESURÉE, plus devinée', () => {
+    // Le nombre écrit à la main a été faux DEUX fois, et pour la même raison :
+    // il décrit un ÉTAT de la grappe, qui en a plusieurs. `96px` valait avant
+    // que la recherche globale ne la rejoigne ; `172px` vaut loupe REPLIÉE
+    // (36 px) — dépliée elle en fait 320, et « Ajouter un widget » repassait
+    // dessous (Bertrand, 09/09/2026).
+    const REPLIEE = 36 + 10 + 32 + 10 + 40;   // loupe + signet + avatar
+    const DEPLIEE = 320 + 10 + 32 + 10 + 40;  // la même, loupe ouverte
+    expect(reserveDeLaGrappe(REPLIEE)).toBe(RESERVE_MINIMALE);
+    expect(reserveDeLaGrappe(DEPLIEE)).toBe(DEPLIEE + MARGE_DROITE + AIR);
+    // La réserve SUIT la grappe : c'est tout l'objet du changement.
+    expect(reserveDeLaGrappe(DEPLIEE)).toBeGreaterThan(reserveDeLaGrappe(REPLIEE));
+  });
+
+  it('une mesure absente ou absurde retombe sur le repli, jamais sur zéro', () => {
+    // Zéro laisserait l'en-tête passer sous la grappe entière.
+    for (const v of [0, -5, NaN, Infinity]) expect(reserveDeLaGrappe(v)).toBe(RESERVE_MINIMALE);
+  });
+
+  it('arrondie au pixel SUPÉRIEUR', () => {
+    // Arrondir vers le bas laisse le dernier pixel du bouton sous la loupe —
+    // exactement le défaut corrigé.
+    expect(reserveDeLaGrappe(400.2)).toBe(401 + MARGE_DROITE + AIR);
+  });
+
+  it('🔴 la coquille mesure vraiment, et applique la règle', () => {
+    const shell = readFileSync('src/components/v2/ShellV2.svelte', 'utf8');
+    expect(shell).toContain("import { reserveDeLaGrappe } from '../../lib/gouttiereGrappe'");
+    expect(shell).toContain('new ResizeObserver(poser)');
+    expect(shell).toContain("c.style.setProperty('--v2-grappe-w'");
+    expect(shell).toContain('bind:this={grappeEl}');
+    // L'effet ne doit pas relire ce qu'il écrit : il pose une propriété CSS sur
+    // un nœud, jamais un `$state`. `effect_update_depth_exceeded` a déjà tué un
+    // écran entier dans ce client.
+    expect(shell).not.toMatch(/grappeW\s*=\s*/);
   });
 
   it('🔴 la grappe reste au-dessus, et c’est voulu', () => {

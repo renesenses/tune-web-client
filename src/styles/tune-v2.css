@@ -225,12 +225,24 @@
    `src/styles/`, et déclarait le jeton introuvable pour les vingt-quatre
    écrans qui s'en servent. `.tune-v2` est la racine de chaque écran ET de la
    coquille — la valeur descend donc partout, y compris dans les trois écrans
-   v1 (Oxygène, Ambiance, Répertoires) montés dans la coquille v2. */
+   v1 (Oxygène, Ambiance, Répertoires) montés dans la coquille v2.
+
+   ⚠️ CETTE VALEUR EST UN REPLI, PAS LA VÉRITÉ. Elle décrit la grappe avec la
+   loupe REPLIÉE (36 px) ; dépliée, celle-ci en fait 320, et les boutons de
+   l'en-tête repassaient dessous (Bertrand, 09/09/2026 : « Ajouter un widget »
+   et « Terminé » sur l'accueil, « 200 lectures / Vider » sur l'Historique).
+
+   `ShellV2` MESURE la grappe et réécrit ce jeton sur la coquille — voir
+   `lib/gouttiereGrappe.ts`. Le nombre ci-dessous ne sert plus qu'avant la
+   première mesure, et là où il n'y a pas de `ResizeObserver`. */
 .tune-v2{--v2-grappe-w:172px}
 
 .tune-v2 .v2-top{
   display:flex; align-items:flex-end; gap:20px;
   padding:24px 30px 14px; padding-right:var(--v2-grappe-w, 172px);
+  /* La loupe s'ouvre en fondu : l'en-tête recule au même rythme, sinon il
+     saute d'un coup pendant que la barre glisse. */
+  transition:padding-right .18s ease-out;
 }
 .tune-v2 .v2-top .v2-titres{margin-right:auto; min-width:0}
 .tune-v2 .v2-eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
