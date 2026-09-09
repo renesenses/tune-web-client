@@ -1112,6 +1112,7 @@ export default {
   'bandcamp.playTo': "播放将输出到",
   'bandcamp.noZone': "未选择区域 — 请先选择一个区域再收听。",
   'bandcamp.zoneRefused': "该区域不接受 Bandcamp 的 128 kbit/s MP3。请换一个区域。",
+  'bandcamp.noStream': "Tune 未能获取该 Bandcamp 曲目的音频流。这与区域无关，请稍后再试。",
   'bandcamp.collectionEmpty': "此 Bandcamp 收藏为空，无可比较。浏览目录看看。",
   'bandcamp.dormantTitle': "Bandcamp 插件未启用",
   'bandcamp.dormantInstall': "打开侧边栏的「{rubrique}」，安装“bandcamp”，然后重启服务器。",

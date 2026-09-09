@@ -1121,6 +1121,7 @@ export default {
   'bandcamp.playTo': "Redarea merge către",
   'bandcamp.noZone': "Nicio zonă selectată — alegeți o zonă pentru a asculta.",
   'bandcamp.zoneRefused': "această zonă nu a acceptat MP3-ul de 128 kbit/s de la Bandcamp. Încercați altă zonă.",
+  'bandcamp.noStream': "Tune nu a obținut niciun flux pentru această piesă Bandcamp. Zona nu are nicio vină: încercați din nou într-o clipă.",
   'bandcamp.collectionEmpty': "Această colecție Bandcamp este goală — nimic de comparat. Explorați catalogul.",
   'bandcamp.dormantTitle': "Pluginul Bandcamp nu este activ",
   'bandcamp.dormantInstall': "Deschideți „{rubrique}” din bara laterală și instalați „bandcamp”, apoi reporniți serverul.",

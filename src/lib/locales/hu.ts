@@ -1275,6 +1275,7 @@ export default {
   'bandcamp.playTo': "A lejátszás ide megy",
   'bandcamp.noZone': "Nincs kiválasztott zóna — válasszon egy zónát a hallgatáshoz.",
   'bandcamp.zoneRefused': "ez a zóna nem fogadta el a Bandcamp 128 kbit/s-os MP3-át. Próbáljon másik zónát.",
+  'bandcamp.noStream': "A Tune nem kapott adatfolyamot ehhez a Bandcamp-számhoz. Nem a zóna a hibás – próbálja újra egy pillanat múlva.",
   'bandcamp.collectionEmpty': "Ez a Bandcamp-gyűjtemény üres — nincs mit összehasonlítani. Fedezze fel a katalógust.",
   'bandcamp.dormantTitle': "A Bandcamp bővítmény nem aktív",
   'bandcamp.dormantInstall': "Nyissa meg a(z) „{rubrique}” menüpontot az oldalsávon, telepítse a „bandcamp” bővítményt, majd indítsa újra a kiszolgálót.",

@@ -1112,6 +1112,7 @@ export default {
   'bandcamp.playTo': "再生先",
   'bandcamp.noZone': "ゾーンが選択されていません。聴くゾーンを選んでください。",
   'bandcamp.zoneRefused': "このゾーンは Bandcamp の 128 kbit/s MP3 を受け付けませんでした。別のゾーンをお試しください。",
+  'bandcamp.noStream': "Tune はこの Bandcamp のトラックのストリームを取得できませんでした。ゾーンに問題はありません。少し待ってからお試しください。",
   'bandcamp.collectionEmpty': "この Bandcamp コレクションは空です。比較するものがありません。カタログをさがしてみてください。",
   'bandcamp.dormantTitle': "Bandcamp プラグインが有効ではありません",
   'bandcamp.dormantInstall': "サイドバーの「{rubrique}」を開き「bandcamp」をインストールしてから、サーバーを再起動してください。",
