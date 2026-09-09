@@ -50,7 +50,12 @@ export const currentTrackId = derived(
  *  évidence du tout (Bertrand, .18, 0.9.102) alors que la bibliothèque le fait
  *  depuis toujours. */
 export function estLaPisteEnLecture(
-  t: { id?: number | null; source?: Source | null; source_id?: string | null },
+  t: {
+    id?: number | null;
+    source?: Source | null;
+    source_id?: string | null;
+    title?: string | null;
+  },
   currentId: number | null,
   np: NowPlaying | null,
 ): boolean {
@@ -59,6 +64,27 @@ export function estLaPisteEnLecture(
     // La source doit concorder quand les deux la portent : deux services
     // peuvent numéroter une piste pareil.
     if (t.source != null && np.source != null && t.source !== np.source) return false;
+    /**
+     * 🔴 En RADIO, `source_id` désigne la STATION, pas le morceau.
+     *
+     * Le serveur republie le même `source_id` à chaque changement de titre
+     * (`tune-core/src/poller/radio.rs` : `source_id: np.source_id.clone()`).
+     * Sans ce départage, TOUTES les lignes d'historique de la même station
+     * portaient `class:np` et `aria-current="true"` en même temps — signalé
+     * par Reivax66 le 09/09/2026 (#3729) sur FIP, dont le journal montre cinq
+     * changements de morceau sur la même `url=…/fip-hifi.aac`.
+     *
+     * Le titre départage. On ne l'exige que si les DEUX côtés le portent :
+     * sinon on n'a rien mesuré, et retirer le surlignage serait inventer une
+     * absence. Le commentaire au-dessus prévoyait le faux positif de
+     * l'identifiant NUL ; celui-ci est le faux positif de l'identifiant
+     * PARTAGÉ.
+     */
+    if (t.source === 'radio' || np.source === 'radio') {
+      const a = (t.title ?? '').trim().toLowerCase();
+      const b = (np.title ?? '').trim().toLowerCase();
+      if (a && b && a !== b) return false;
+    }
     return true;
   }
   return false;
