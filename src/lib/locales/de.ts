@@ -3987,6 +3987,7 @@ export default {
   "v2.tags.noPlaylistWithTag": "Keine Playlist trägt dieses Tag.",
   "v2.album.play": "Abspielen",
   "v2.album.shuffle": "Zufall",
+  "v2.album.locate": "Auf der Festplatte anzeigen",
   "v2.album.playNext": "Als Nächstes",
   "v2.piste.enLecture": "Wird abgespielt",
   "v2.piste.enPause": "Pausiert",

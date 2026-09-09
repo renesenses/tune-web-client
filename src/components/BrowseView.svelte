@@ -13,6 +13,7 @@
   import { preferences } from '../lib/stores/preferences';
   import ImportWizard from './ImportWizard.svelte';
 
+  import { repertoireCible, consommerRepertoireCible } from '../lib/stores/repertoireCible';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }
@@ -68,6 +69,24 @@
     }
     loading = false;
   }
+
+  /**
+   * Ouverture DIRECTE sur un dossier, demandée par un autre écran.
+   *
+   * « Localiser sur le disque » depuis la vue Albums pose le chemin dans
+   * `repertoireCible` puis bascule ici. On le CONSOMME — l'écran le remet à
+   * `null` — sinon revenir aux Répertoires par la barre latérale rouvrirait
+   * indéfiniment le dernier album localisé.
+   *
+   * L'effet ne relit pas ce qu'il écrit : il lit le magasin, le vide, et
+   * n'écrit que `browseResult` / `currentPath`.
+   */
+  $effect(() => {
+    const cible = $repertoireCible;
+    if (!cible) return;
+    consommerRepertoireCible();
+    void navigateTo(cible);
+  });
 
   async function navigateTo(path: string, missing = false) {
     // A root flagged `exists === false` (NAS offline, external SSD unmounted)

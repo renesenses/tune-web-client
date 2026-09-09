@@ -33,6 +33,8 @@
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { activeView, pendingLibraryArtist } from '../../lib/stores/navigation';
 
+  import { dossierDeLAlbum } from '../../lib/dossierAlbum';
+  import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
   // par lui, sans quoi on jouerait un tout autre morceau du meme numero.
@@ -54,6 +56,25 @@
   const sidDistant = $derived(service ? ((album as any).source_id ?? null) : null);
 
   let tracks = $state<Track[]>([]);
+
+  /**
+   * « Localiser sur le disque » (Bertrand, 09/09/2026).
+   *
+   * Le dossier se DÉDUIT des pistes : mesuré sur le .18, un album ne porte
+   * aucun chemin, une piste si. La règle vit dans `lib/dossierAlbum` — elle
+   * remonte au plus long préfixe commun, pour qu'un album gravé en `CD1/` et
+   * `CD2/` ouvre le dossier de l'ALBUM et non la moitié.
+   *
+   * `null` quand il n'y a rien à montrer — album de streaming, dépôt distant,
+   * pistes sans chemin : le bouton disparaît alors, plutôt que d'ouvrir un
+   * dossier qui n'est pas celui-là.
+   */
+  const dossier = $derived(depot ? null : dossierDeLAlbum(tracks));
+  function localiser() {
+    if (!dossier) return;
+    ouvrirLeRepertoire(dossier);
+    activeView.set('browse');
+  }
   let loading = $state(true);
   let error = $state<string | null>(null);
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
@@ -473,6 +494,15 @@
         <!-- Le cœur n'apparaît que si l'album est DÉSIGNABLE : un album
              Bandcamp, identifié par une URL, n'entre dans aucune des deux
              tables de favoris. Un bouton absent ne promet rien. -->
+        <!-- Le dossier n'existe que pour un album LOCAL, et seulement si ses
+             pistes portent un chemin : le bouton n'apparaît qu'alors. -->
+        {#if dossier}
+          <button class="ghost" onclick={localiser}
+            title={$tr('v2.album.locate' as any)} aria-label={$tr('v2.album.locate' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            {$tr('v2.album.locate' as any)}
+          </button>
+        {/if}
         {#if album.id != null || (service && sidDistant)}
           <button class="ghost coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
             aria-pressed={enFavori}

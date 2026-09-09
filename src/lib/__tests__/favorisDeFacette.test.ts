@@ -20,6 +20,18 @@ import { resolve } from 'node:path';
 import { get } from 'svelte/store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+/**
+ * ⏱️ Délai porté à 60 s — même raison que `sortieMonoZone` et
+ * `rechercheComptesAlbumsArtistes3623`.
+ *
+ * `monter()` importe un module qui tire des composants : le coût n'est pas le
+ * test, c'est la transformation Svelte payée à froid. Au-dessus du plafond de
+ * 5 s de Vitest dès que la machine a autre chose à faire — et le symptôme est
+ * un FAUX ROUGE sur un fichier sans rapport avec le changement examiné.
+ */
+const DELAI_MONTAGE = 60_000;
+
+
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 
 /** Un garde qui lit du code doit lire le CODE, pas ce qu'on en dit. */
@@ -47,7 +59,7 @@ describe('bascule d un favori de facette', () => {
     return { add, rem, prof, basculerFavoriFacette };
   }
 
-  it('ajoute la valeur au magasin ET appelle la route des facettes', async () => {
+  it('ajoute la valeur au magasin ET appelle la route des facettes', { timeout: DELAI_MONTAGE }, async () => {
     const { add, prof, basculerFavoriFacette } = await monter();
     const etat = await basculerFavoriFacette('genre', 'Jazz');
     expect(etat).toBe(true);
@@ -55,7 +67,7 @@ describe('bascule d un favori de facette', () => {
     expect(add).toHaveBeenCalledWith(1, 'genre', 'Jazz');
   });
 
-  it('un second appel retire, par la route de retrait', async () => {
+  it('un second appel retire, par la route de retrait', { timeout: DELAI_MONTAGE }, async () => {
     const { rem, prof, basculerFavoriFacette } = await monter();
     await basculerFavoriFacette('year', '1971');
     expect(get(prof.favoriteFacetKeys).has('year:1971')).toBe(true);
@@ -65,14 +77,14 @@ describe('bascule d un favori de facette', () => {
     expect(rem).toHaveBeenCalledWith(1, 'year', '1971');
   });
 
-  it('revient en arrière si le serveur refuse : le magasin ne ment pas', async () => {
+  it('revient en arrière si le serveur refuse : le magasin ne ment pas', { timeout: DELAI_MONTAGE }, async () => {
     const { prof, basculerFavoriFacette } = await monter(true);
     const etat = await basculerFavoriFacette('label', 'ECM');
     expect(etat).toBe(false);
     expect(get(prof.favoriteFacetKeys).has('label:ECM')).toBe(false);
   });
 
-  it('sans profil, rien n est écrit ni appelé', async () => {
+  it('sans profil, rien n est écrit ni appelé', { timeout: DELAI_MONTAGE }, async () => {
     const { add, prof, basculerFavoriFacette } = await monter();
     prof.currentProfileId.set(null);
     // `loadProfiles` n'est pas moqué : il échouera faute de `fetch`, et c'est
@@ -83,7 +95,7 @@ describe('bascule d un favori de facette', () => {
     expect(get(prof.favoriteFacetKeys).size).toBe(0);
   });
 
-  it('la valeur est ROGNÉE, comme la clé du magasin', async () => {
+  it('la valeur est ROGNÉE, comme la clé du magasin', { timeout: DELAI_MONTAGE }, async () => {
     const { add, prof, basculerFavoriFacette } = await monter();
     await basculerFavoriFacette('genre', '  Jazz  ');
     // `facetFavKey` rogne : envoyer la valeur brute au serveur écrirait une

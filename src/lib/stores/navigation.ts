@@ -124,6 +124,22 @@ export const pendingLibraryAlbum = writable<number | null>(null);
  */
 export const pendingLibraryArtist = writable<number | null>(null);
 
+/**
+ * L'ANNÉE à appliquer en arrivant sur la Bibliothèque du nouveau client.
+ *
+ * Troisième trou de la MÊME famille que ses deux jumeaux ci-dessus, trouvé le
+ * 09/09/2026 en reprenant les retours de Fabien : `NowPlaying.navigateToYear`
+ * pose `yearFilter` (`stores/library`) puis passe à la Bibliothèque. Mesure :
+ * `yearFilter` n'est lu QUE par `components/LibraryView.svelte`, l'écran de
+ * l'ANCIEN client. Aucun composant `v2/` ne le lit — cliquer « (2003) » à côté
+ * du titre d'album ne filtrait donc RIEN sur le nouveau client.
+ *
+ * Le correctif de Fabien avait été posé sur une branche de `navigateToAlbum`
+ * et pas sur les deux autres sorties de l'écran : c'est le même défaut, laissé
+ * là où on ne l'avait pas cherché.
+ */
+export const pendingLibraryYear = writable<number | null>(null);
+
 export interface NavContext {
   view: View;
   albumId?: number | null;

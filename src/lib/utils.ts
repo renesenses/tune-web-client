@@ -36,7 +36,70 @@ export function formatAudioBadge(
 
 export type QualityTier = 'mqa' | 'hires_max' | 'hires' | 'cd' | 'lossy' | 'dsd';
 
-const LOSSLESS_FORMATS = new Set(['flac', 'wav', 'alac', 'aiff', 'dsd']);
+/**
+ * Les formats DSD, par leur nom de FICHIER.
+ *
+ * 🔴 « dsd » n'est presque jamais ce que le scanner écrit. Les fichiers DSD
+ * s'appellent `.dsf` (Sony) ou `.dff` (Philips DSDIFF) ; « dsd » est le cas
+ * rare. `types.ts` les déclare d'ailleurs tous les trois depuis toujours —
+ * `'dsd' | 'dsf' | 'dff'` — mais la règle de qualité ne testait que le premier.
+ *
+ * MESURÉ sur la bibliothèque de Bertrand le 09/09/2026 (4 255 albums) :
+ *
+ *     dsf   47 albums        ← ignorés par l'ancienne règle
+ *     dsd    2 albums        ← les seuls reconnus
+ *
+ * Soit 47 sur 49, 96 %, classés ailleurs. Et pas n'importe où : un DSF porte
+ * `bit_depth: 1` et `sample_rate: 2 822 400`. La fréquence le faisait passer
+ * pour sans perte, la profondeur de 1 bit échouait à `bd > 16`, et il retombait
+ * sur… **CD**. « le filtre DSD oublie cet album » (Bertrand, avec la copie
+ * d'écran d'un album marqué « CD DSF 5644.8/1 »).
+ */
+const DSD_FORMATS = new Set(['dsd', 'dsf', 'dff']);
+
+/** DSD compris : ils sont sans perte, et ce jeu sert aussi hors du calcul de palier. */
+const LOSSLESS_FORMATS = new Set(['flac', 'wav', 'alac', 'aiff', 'dsd', 'dsf', 'dff']);
+
+/**
+ * Le MULTIPLE DSD, à partir de la fréquence.
+ *
+ * 🔴 Le libellé valait `sample_rate >= 5000000 ? 'DSD128' : 'DSD64'` : deux
+ * cases pour une famille qui en compte cinq. MESURÉ sur la bibliothèque de
+ * Bertrand le 09/09/2026, sur ses 49 albums DSD :
+ *
+ *     2 822 400  ×39   DSD64
+ *     5 644 800  ×2    DSD128
+ *    11 289 600  ×6    DSD256   ← annoncés « DSD128 »
+ *    22 579 200  ×1    DSD512   ← annoncé « DSD128 »
+ *
+ * Sept albums sur quarante-neuf portaient donc un multiple faux, et toujours
+ * PAR DÉFAUT — un DSD512 annoncé en DSD128 fait croire à quatre fois moins.
+ *
+ * Le multiple est un rapport à la fréquence CD, pas un seuil : DSD64 vaut
+ * 44 100 × 64. On le calcule, et on ne le nomme que s'il tombe sur une
+ * puissance de deux connue — une fréquence inattendue rend `null` plutôt qu'un
+ * nom inventé.
+ */
+const DSD_BASE = 44100;
+export function multipleDSD(sampleRate: number | null | undefined): string | null {
+  const sr = sampleRate ?? 0;
+  if (sr <= 0) return null;
+  const n = Math.round(sr / DSD_BASE);
+  return [64, 128, 256, 512, 1024].includes(n) ? `DSD${n}` : null;
+}
+
+/**
+ * Ce fichier est-il du DSD ?
+ *
+ * Exportée pour que le test l'APPELLE, et pour que tout écran qui a besoin de
+ * la question la pose au même endroit. Accepte aussi les types MIME
+ * (`audio/x-dsf`), déjà normalisés par l'appelant.
+ */
+export function estDuDSD(format: string | null | undefined): boolean {
+  const raw = (format ?? '').toLowerCase().trim();
+  const fmt = raw.startsWith('audio/') ? raw.slice(6).replace('x-', '') : raw;
+  return DSD_FORMATS.has(fmt) || fmt.startsWith('dsd');
+}
 
 /** Determine the quality tier for a track */
 export function getQualityTier(
@@ -57,8 +120,10 @@ export function getQualityTier(
   // MQA is identifiable by format string
   if (fmt === 'mqa' || fmt.includes('mqa')) return 'mqa';
 
-  // DSD — native 1-bit format, always its own tier
-  if (fmt === 'dsd' || fmt.startsWith('dsd')) return 'dsd';
+  // DSD — format natif 1 bit, toujours son propre palier. La règle vit dans
+  // `estDuDSD` : elle ne testait que « dsd » et laissait passer 47 albums `dsf`
+  // sur les 49 de la bibliothèque de Bertrand, classés « CD » faute de mieux.
+  if (estDuDSD(fmt)) return 'dsd';
 
   // A track is lossless when its declared format says so, OR when its specs /
   // source make it unambiguous: no lossy codec (MP3/AAC/OGG/Opus/WMA) can exceed
