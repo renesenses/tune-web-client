@@ -4120,7 +4120,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <div class="album-card" onclick={() => selectAlbumDetail(a as Album)}>
               <div class="album-card-art">
                 {#if a.cover_path}
-                  <img class="album-cover-img" src={api.artworkUrl(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
+                  <img class="album-cover-img" src={api.artworkSrc(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
                 {/if}
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); a.id && playAlbum(a.id); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
