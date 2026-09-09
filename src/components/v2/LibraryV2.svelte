@@ -165,6 +165,26 @@
     depot ? chargementD : (porteeActive && idsPortee == null) || $libraryLoading,
   );
 
+  /**
+   * LES ARTISTES DE LA PORTÉE — `null` = aucune portée, on les montre tous.
+   *
+   * L'onglet Artistes tire sa liste de `/library/artists`, sa propre table :
+   * il ignorait donc la portée, et choisir un répertoire laissait les 1 632
+   * artistes de la bibliothèque sous la puce du dossier (#3101). Le serveur
+   * n'offre pas de facette `folder` sur cette route ; on se sert de ce qu'on
+   * a déjà payé — les albums de la portée (`src`) portent leur `artist_id`.
+   *
+   * Ensemble VIDE tant que la portée n'a pas répondu (`idsPortee == null`) :
+   * l'écran attend plutôt que de montrer tout, ce qui serait le défaut même.
+   */
+  const idsArtistesPortee = $derived<Set<number> | null>(
+    !porteeActive || depot
+      ? null
+      : new Set(
+          src.map((a) => (a as any).artist_id).filter((x: any): x is number => typeof x === 'number'),
+        ),
+  );
+
   const level = $derived($preferences.settingsLevel);
   // FILTRER FAIT PARTIE DU GESTE DE BASE (Bertrand, 28/08 : « ou sont passes
   // les filtres ?? »). Dans une app audiophile, choisir « FLAC » ou « 96 kHz »
@@ -789,10 +809,21 @@
     facetteOuverte == null ? null : (groups.find((g) => g.key === facetteOuverte) ?? null),
   );
 
-  // ── Onglet « Titres » : charge la liste des pistes une seule fois ───────
+  // ── Onglet « Titres » : charge la liste des pistes, PAR PORTÉE ────────
   let tracks = $state<Track[]>([]);
   let tracksLoading = $state(false);
-  let tracksLoaded = false;
+  /**
+   * La portée sous laquelle `tracks` a été rempli — `undefined` tant qu'aucun
+   * chargement n'a eu lieu, `null` pour « toute la bibliothèque ».
+   *
+   * C'était un simple booléen `tracksLoaded` : la liste se chargeait UNE fois
+   * et ne se rechargeait plus jamais. Choisir un répertoire laissait donc les
+   * 46 000 titres à l'écran sous la puce du dossier —
+   * renesenses/tune-server-rust#3101, mot pour mot : « c'est l'entièreté de la
+   * bibliothèque en cours qui s'affiche et non pas celle du répertoire
+   * sélectionné ». Une portée, pas un drapeau.
+   */
+  let porteePistes: string | null | undefined = undefined;
   /**
    * Le nombre de pistes ANNONCÉ pendant que la liste charge.
    *
@@ -809,19 +840,38 @@
   let nbPistesServeur = $state<number | null>(null);
   $effect(() => {
     const d = depot;
-    if (tab !== 'tracks' || tracksLoaded) return;
-    tracksLoaded = true;
+    const portee = dossierPortee;
+    if (tab !== 'tracks' || porteePistes === portee) return;
+    porteePistes = portee;
+    // 🔴 La liste repart VIDE : la portée vient de changer, ce qu'elle
+    // contient ne correspond plus à ce que la puce annonce. Un écran vide qui
+    // le dit vaut mieux qu'une bibliothèque entière qui ment.
+    tracks = [];
+    nbPistesServeur = null;
     tracksLoading = true;
+    let perime = false;
     // Un dépôt distant compte SES pistes, pas les nôtres : on ne lui prête pas
     // le total local, on n'annonce simplement rien.
     // `/library/stats`, pas `/system/stats` : c'est un écran de bibliothèque.
     // Les deux rendent `tracks` (46 877 sur le .18, mesuré le 06/09/2026), le
     // premier sans traîner l'inventaire des zones et des sorties.
-    if (!d) api.getLibraryStats().then((st) => { nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
-    (d ? pistesDistantes(d) : api.getAllTracks())
-      .then((t) => { tracks = t ?? []; })
-      .catch(() => { tracks = []; })
-      .finally(() => { tracksLoading = false; });
+    // Sous portée, le total du serveur porte sur TOUTE la bibliothèque : on
+    // n'annonce pas un compte qu'on ne servira pas.
+    if (!d && !portee) api.getLibraryStats().then((st) => { nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
+    (d ? pistesDistantes(d)
+       : portee ? api.getFilteredTracks({ folder: portee, limit: 5000 }).then((r) => r.items ?? [])
+       : api.getAllTracks())
+      .then((t) => { if (!perime) tracks = t ?? []; })
+      .catch(() => {
+        if (perime) return;
+        tracks = [];
+        // L'échec est DIT. Les trois `catch` de l'ancien client écrivaient en
+        // console et laissaient la liste précédente à l'écran : c'est le second
+        // mécanisme nommé par #3101.
+        if (portee) notifications.error($tr('library.scopeLoadError').replace('{d}', nomDeDossier(portee)));
+      })
+      .finally(() => { if (!perime) tracksLoading = false; });
+    return () => { perime = true; };
   });
   const nbPistesAnnonce = $derived(
     tracksLoading && nbPistesServeur != null ? nbPistesServeur : tracks.length,
@@ -1301,7 +1351,8 @@
            déduction depuis les albums chargés. Ils ne passent donc pas par les
            gardes « bibliothèque vide » ci-dessous : une bibliothèque dont les
            albums ne sont pas encore arrivés a déjà ses artistes. -->
-      <ArtistesV2 {q} ouvrirId={artisteADemande} onOuvert={() => (artisteADemande = null)} />
+      <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null}
+        ouvrirId={artisteADemande} onOuvert={() => (artisteADemande = null)} />
     {:else if enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
     {:else if sorted.length === 0}
