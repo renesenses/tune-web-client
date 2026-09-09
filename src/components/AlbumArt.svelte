@@ -95,9 +95,28 @@
     z-index: 1;
   }
 
+  /* Mode « remplissage » (`size={0}`) : la pochette adopte la boite definie
+     par le parent au lieu d'imposer la sienne.
+
+     C'est le seul mode correct quand le parent porte deja une taille CSS et
+     `overflow:hidden` — cas de TOUS les habillages du client v2. Avec une
+     taille fixe (`size={280}` dans une tuile de 158 px), l'image etait dessinee
+     a 280 px puis TRONQUEE par le parent : les pochettes n'etaient pas mises a
+     l'echelle, elles etaient rognees, et chaque rangee au coefficient de son
+     choix. `size` ne sert d'ailleurs a rien d'autre : l'URL d'artwork est
+     demandee sans parametre de taille, la source est la meme dans tous les cas.
+
+     La requete de conteneur donne au repli en initiale la meme proportion que
+     le calcul `size * 0.32` du mode a taille fixe, mais rapportee a la boite
+     reellement occupee. */
   .album-art.fill {
     width: 100%;
     aspect-ratio: 1;
+    container-type: inline-size;
+  }
+
+  .album-art.fill .placeholder-initials {
+    font-size: 32cqw;
   }
 
   .album-art.round {

@@ -4,6 +4,7 @@
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
   import { OXYGEN_FACETS_ALL } from '../lib/stores/preferences';
+  import { chainesUniques, sansDoublons } from '../lib/clesUniques';
   import OxygenFolderFacet from './OxygenFolderFacet.svelte';
 
   interface Props {
@@ -11,8 +12,22 @@
     serverFacets: Record<string, FacetValue[]>;       // full-library counts from the server index
     facets: string[];                                 // which facets to show (preferences.oxygenFacets)
     limit?: number;                                   // max values per facet; 0 = no limit
-    selected: Record<string, string>;
-    onSelect: (field: string, value: string | null) => void;
+    /** Les valeurs COCHÉES par facette (#2168). Plusieurs valeurs dans une
+     *  même facette se combinent en OU côté serveur ; deux facettes en ET. */
+    selected: Record<string, string[]>;
+    /** Coche ou décoche UNE valeur. Le parent tient la liste : le rail ne sait
+     *  pas si la facette est mono- ou multivaluée, il signale seulement le
+     *  geste — c'est ainsi que `folder` et `collection` restent monovaluées
+     *  sans que le rail ait à le savoir. */
+    onSelect: (field: string, value: string) => void;
+    /** Décoche toute une facette d'un geste. */
+    onClearFacet?: (field: string) => void;
+    /** Facettes dont le plafond de valeurs a été levé pour cette session
+     *  (#2131). Le rail ne décide pas : il signale le geste, le parent
+     *  redemande la facette entière au serveur. */
+    sansPlafond?: string[];
+    /** « Tout afficher » sur une facette tronquée par le plafond. */
+    onToutAfficher?: (field: string) => void;
     // Folder facet (drill-down) — supplied by OxygenView from /library/folder-facet.
     folderCrumbs?: FolderCrumb[];
     folderChildren?: FolderChild[];
@@ -20,9 +35,58 @@
     onFolderDrill?: (path: string | null) => void;
   }
   let {
-    tracks, serverFacets, facets, limit = 200, selected, onSelect,
+    tracks, serverFacets, facets, limit = 200, selected, onSelect, onClearFacet = () => {},
+    sansPlafond = [], onToutAfficher = () => {},
     folderCrumbs = [], folderChildren = [], folderLoading = false, onFolderDrill = () => {},
   }: Props = $props();
+
+  // ---- Plafond de valeurs (#2131) -----------------------------------------
+  //
+  // LE CHEMIN QU'ON RACCOURCIT ICI, geste par geste.
+  //
+  // `preferences.oxygenFacetLimit` vaut 200 par défaut, et c'est le serveur qui
+  // tronque : sur la bibliothèque de Bertrand — 8 873 artistes — la facette
+  // Artistes rend les 200 plus fournis, et RIEN d'autre. La bande A→Z ne
+  // rattrape pas : elle est construite à partir de ce que le rail a reçu, donc
+  // une lettre absente des 200 n'existe même pas comme bouton. La valeur
+  // cherchée n'est pas « loin dans la liste », elle est INATTEIGNABLE depuis
+  // le rail.
+  //
+  // Pour l'atteindre, le seul chemin qui existait passait par les Réglages :
+  //
+  //   1. barre latérale → Paramètres
+  //   2. onglet Bibliothèque
+  //   3. si le niveau d'affichage n'est pas « expert », le réglage est MASQUÉ
+  //      (`settingLevels`: 'library.oxygenFacetLimit' → expert) : Général →
+  //      Niveau → Expert, puis revenir à Bibliothèque — trois gestes de plus
+  //   4. descendre jusqu'à la section Oxygen
+  //   5. « Valeurs par facette » → Sans limite
+  //   6. barre latérale → Oxygen
+  //   7. rouvrir la facette, chercher la valeur
+  //
+  // Soit une dizaine de gestes, et un réglage GLOBAL et PERMANENT changé pour
+  // une recherche ponctuelle. Patatorz, 16/08/2026 : « il faut faire une
+  // dizaine de clics pour charger une bibliothèque de 50k titres et accéder
+  // aux filtres ».
+  //
+  // Le bouton ci-dessous remplace ces sept étapes par UNE, à l'endroit même où
+  // la troncature se voit, sans rien changer aux réglages. Les facettes ne sont
+  // pas réinventées : c'est leur accès qui change.
+  //
+  // ⚠️ Le chemin exact de Patatorz reste inconnu — il n'a jamais répondu à la
+  // question posée le 17/08. Ce qui est mesuré ici, c'est le chemin QUI EXISTE
+  // dans le code, pas le sien.
+  const plafondDe = (f: string) => (sansPlafond.includes(f) ? 0 : limit);
+  /** La liste est-elle butée sur le plafond ? Alors il manque des valeurs. */
+  const tronquee = (f: string) => {
+    const p = plafondDe(f);
+    return p > 0 && (groups[f] ?? []).length >= p;
+  };
+
+  /** Cette valeur est-elle cochée ? */
+  const estCochee = (field: string, value: string) => (selected[field] ?? []).includes(value);
+  /** Combien de valeurs cochées dans cette facette. */
+  const nbCochees = (field: string) => (selected[field] ?? []).length;
 
   // Fields computable client-side from Track columns (fallback when the server
   // index is unavailable). k/v fields (country/mood/source) need the server.
@@ -45,6 +109,10 @@
       return Number.isFinite(n) && n > 0 ? `${(n / 1000).toLocaleString('fr')} kHz` : value;
     }
     if (field === 'bit_depth') return `${value} bit`;
+    // Le serveur rend le DR brut (« 14 ») : la pastille l'écrit comme
+    // l'écrivent les analyseurs et MinimServer, DR14, sans quoi une
+    // colonne de nombres nus ne se rattache à rien.
+    if (field === 'dr') return `DR${value}`;
     if (field === 'rating') {
       const n = Math.max(0, Math.min(5, Number(value) || 0));
       return '★'.repeat(n) + '☆'.repeat(5 - n);
@@ -71,7 +139,13 @@
   // fallu des mois pour les ramener une par une. Deux listes à tenir à jour, une
   // seule visible du développeur qui ajoute une facette.
   const RENDERABLE: ReadonlySet<string> = new Set(OXYGEN_FACETS_ALL);
-  const shown = $derived(facets.filter(f => RENDERABLE.has(f)));
+  // Ce bloc se clave sur la valeur elle-même — `{#each shown as f (f)}` — et
+  // `facets` vient de `preferences.oxygenFacets`, c'est-à-dire de
+  // `localStorage`. Une liste enregistrée qui porterait deux fois « genre »
+  // faisait tomber TOUT Oxygen sur `each_key_duplicate` (#1775, Reivax66) :
+  // page figée, F5 obligatoire, et plus aucun gestionnaire attaché ensuite.
+  // Une facette en double doit coûter une entrée ignorée, pas un écran mort.
+  const shown = $derived(chainesUniques(facets.filter(f => RENDERABLE.has(f))));
 
   // ---- Index alphabétique -------------------------------------------------
   // Sur 8 873 artistes (bibliothèque de Bertrand), dérouler la liste n'est pas
@@ -111,7 +185,10 @@
     const m = new Map<string, number>();
     for (const t of tracks) { const v = get(t); if (v == null || v === '') continue; m.set(v, (m.get(v) ?? 0) + 1); }
     const all = sortFacet(field, [...m.entries()].map(([value, count]) => ({ value, count })));
-    return limit > 0 ? all.slice(0, limit) : all;
+    // Le plafond levé vaut aussi pour le repli client : sinon « Tout afficher »
+    // ne ferait rien sur une facette que le serveur ne sert pas.
+    const p = plafondDe(field);
+    return p > 0 ? all.slice(0, p) : all;
   }
   // Per-facet sort mode. Default 'count' (years = chronological desc, so 2026
   // stays on top — Bertrand: "pas facile de trouver 2026 !"). Dominique wanted
@@ -124,7 +201,7 @@
     if (modeOf(field) === 'alpha') {
       return out.sort((a, b) => a.value.localeCompare(b.value, 'fr', { numeric: true }));
     }
-    if (field === 'year' || field === 'sample_rate' || field === 'bit_depth' || field === 'rating')
+    if (field === 'year' || field === 'sample_rate' || field === 'bit_depth' || field === 'rating' || field === 'dr')
       return out.sort((a, b) => Number(b.value) - Number(a.value));
     return out.sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, 'fr'));
   }
@@ -133,7 +210,11 @@
     const out: Record<string, FacetValue[]> = {};
     for (const f of shown) {
       const sv = serverFacets[f];
-      out[f] = (sv && sv.length) ? sortFacet(f, [...sv]) : clientCounts(f);
+      // Même précaution sur les VALEURS : elles servent de clé
+      // — `{#each rowsOf(f) as row (row.value)}` — et viennent du serveur,
+      // donc des métadonnées. `clientCounts` passe par une Map, il est déjà
+      // unique ; l'index du serveur, lui, n'était vérifié nulle part (#1775).
+      out[f] = (sv && sv.length) ? sansDoublons(sortFacet(f, [...sv]), r => r.value) : clientCounts(f);
     }
     return out;
   });
@@ -190,7 +271,7 @@
           <span class="gn">{folderChildren.length}</span>
         </div>
         {#if isOpen(f)}
-          <OxygenFolderFacet crumbs={folderCrumbs} folders={folderChildren} selected={selected.folder ?? null} loading={folderLoading} onDrill={onFolderDrill} />
+          <OxygenFolderFacet crumbs={folderCrumbs} folders={folderChildren} selected={selected.folder?.[0] ?? null} loading={folderLoading} onDrill={onFolderDrill} />
         {/if}
       </div>
     {:else if (groups[f] ?? []).length}
@@ -206,6 +287,20 @@
                D'où « classement alphabétique absent » alors que le tri existait
                (retour Stéphane Villerio, 08/08/2026). -->
           <button class="sortbtn" title={modeOf(f) === 'count' ? $t('oxygen.sortAlpha') : $t('oxygen.sortCount')} onclick={() => cycleSort(f)}>{modeOf(f) === 'count' ? 'A→Z' : '#'}</button>
+          <!-- Combien de valeurs cochées ici, et de quoi tout décocher d'un
+               geste : sans ce repère, une facette repliée cache sa sélection
+               et l'on ne comprend plus pourquoi la liste est si courte. -->
+          {#if nbCochees(f)}
+            <button class="clearbtn" title={$t('oxygen.facetClear')} aria-label={$t('oxygen.facetClear')} onclick={() => onClearFacet(f)}>{nbCochees(f)} <span class="x">×</span></button>
+          {/if}
+          <!-- La facette bute sur le plafond : il manque des valeurs, et
+               jusqu'ici seul un détour par les Réglages permettait de les
+               voir (#2131). Le bouton n'apparaît QUE dans ce cas — sur une
+               facette complète il n'aurait rien à offrir. -->
+          {#if tronquee(f)}
+            <button class="allvals" title={$t('oxygen.facetShowAll')} aria-label={$t('oxygen.facetShowAll')}
+                    onclick={() => onToutAfficher(f)}>{$t('oxygen.facetShowAll')}</button>
+          {/if}
           <span class="gn">{alphaOf(f) ? `${rowsOf(f).length}/${(groups[f] ?? []).length}` : (groups[f] ?? []).length}</span>
         </div>
         {#if isOpen(f)}
@@ -220,9 +315,17 @@
             {/if}
           {/if}
           <div class="values">
+            <!-- Cases à cocher : c'est le geste que la demande décrit (« une
+                 capture d'Audirvana pour mieux me faire comprendre »). La
+                 coche rend la sélection multiple DÉCOUVRABLE ; sans elle, rien
+                 ne dit qu'un second clic ajoute au lieu de remplacer. -->
             {#each rowsOf(f) as row (row.value)}
-              <button class="val" class:active={selected[f] === row.value}
-                onclick={() => onSelect(f, selected[f] === row.value ? null : row.value)}>
+              {@const coche = estCochee(f, row.value)}
+              <button class="val" class:active={coche} role="checkbox" aria-checked={coche}
+                onclick={() => onSelect(f, row.value)}>
+                <span class="box" class:on={coche} aria-hidden="true">
+                  {#if coche}<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3.5"><path d="m5 12 5 5L19 7"/></svg>{/if}
+                </span>
                 <span class="vl" title={row.value}>{fmtValue(f, row.value)}</span>
                 <span class="vc">{row.count.toLocaleString('fr')}</span>
               </button>
@@ -256,8 +359,21 @@
   .ghtitle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: none; border: 0; color: var(--tune-text); font: inherit; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 0; cursor: pointer; text-align: left; }
   .sortbtn { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 10px; font-weight: 700; letter-spacing: .02em; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; }
   .sortbtn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }
+  /* Nombre de valeurs cochées + « tout décocher ». Discret tant qu'on ne le
+     survole pas : c'est un repère, pas une action qu'on veut déclencher par
+     mégarde. */
+  .clearbtn { display: flex; align-items: center; gap: 3px; background: var(--tune-accent); border: 0; color: #1a1206; font: inherit; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; cursor: pointer; flex: none; }
+  .clearbtn:hover { filter: brightness(1.12); }
+  .clearbtn .x { font-size: 11px; line-height: 1; }
+  /* La case à cocher d'une valeur de facette. */
+  .box { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border: 1.5px solid var(--tune-border); border-radius: 3px; color: #1a1206; }
+  .box.on { background: var(--tune-accent); border-color: var(--tune-accent); }
   .chev { transition: transform .12s; color: var(--tune-text-muted); }
   .chev.closed { transform: rotate(-90deg); }
+  /* Discret comme `.sortbtn` : c'est une issue, pas l'action principale de la
+     ligne. Il ne s'affiche que sur une facette réellement tronquée. */
+  .allvals { background: none; border: 0; color: var(--tune-accent); font: inherit; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; white-space: nowrap; }
+  .allvals:hover { background: var(--tune-surface-hover); }
   .gn { margin-left: auto; font-size: 10px; color: var(--tune-text-muted); font-variant-numeric: tabular-nums; }
   .values { display: flex; flex-direction: column; }
   .val { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; color: var(--tune-text-secondary); font: inherit; text-align: left; padding: 5px 8px; border-radius: 7px; cursor: pointer; }

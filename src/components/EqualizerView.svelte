@@ -12,18 +12,33 @@
     CF_MIN_DELAY,
     CF_PRESETS,
     reglagesCrossfeed,
+    indisponibiliteCrossfeed,
+    cleIndisponibiliteCrossfeed,
   } from '../lib/crossfeed';
-  import type { EqBand, EqSettings, CrossfeedSettings } from '../lib/api';
+  import type { EqBand, EqSettings, CrossfeedSettings, CrossfeedStatus } from '../lib/api';
   import { NEUTRAL_PARAMETRIC_BAND, resetParametricBands } from '../lib/eqReset';
+  import { PREREGLAGES_EQ } from '../lib/eqPrereglages';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
+  import {
+    MOTIF_INCONNU,
+    REFUS_PREMIUM,
+    REFUS_SERVEUR,
+    motifDEchec,
+    phraseEchec,
+    type EchecEq,
+  } from '../lib/motifEchecEq';
   import ParametricEq from './ParametricEq.svelte';
+  import { ISO_OCTAVE_HZ, freqLabel } from '../lib/spectrumScale';
 
   // Grilles ISO : octave (10), 2/3 d'octave (15), 1/3 d'octave (31) — les
   // repères de REW. La résolution vient des Paramètres (clé serveur
   // eq_expert_bands) pour que web/iPad/mobile partagent la même grille.
+  // La grille à l'octave est partagée avec l'analyseur de spectre (#2081) :
+  // les deux écrans doivent porter les MÊMES repères, c'est tout l'objet du
+  // ticket. Deux tableaux jumeaux dériveraient l'un de l'autre.
   const GRIDS: Record<number, number[]> = {
-    10: [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000],
+    10: ISO_OCTAVE_HZ,
     15: [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000],
     31: [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
          1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000],
@@ -33,6 +48,82 @@
   const GRID_Q: Record<number, number> = { 10: 1.0, 15: 2.15, 31: 4.32 };
   let bandCount = $state(10);
   let BANDS = $derived(GRIDS[bandCount] ?? GRIDS[10]);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Dire pourquoi (#513)
+  //
+  // Cet écran avalait cinq échecs en silence — `catch {}` et
+  // `catch { /* ignore */ }`. Un refus d'offre y était indiscernable d'une
+  // panne réseau, elle-même indiscernable d'une erreur serveur : l'utilisateur
+  // bougeait un curseur, rien ne se passait, et rien ne lui disait pourquoi.
+  // C'est ce silence qui a rendu le signalement de BARATOUX (fil 1383)
+  // impossible à trancher.
+  //
+  // Deux règles, désormais, et aucun `catch` sans l'une des deux :
+  //  - ce qui vient d'un GESTE de l'utilisateur se dit à l'écran, avec son
+  //    motif nommé (`lib/motifEchecEq`) ;
+  //  - ce qui échoue en arrière-plan — le stockage local, une lecture au
+  //    montage — se dit au JOURNAL. Un `catch` qui n'informe ni l'un ni
+  //    l'autre jette la raison au moment exact où elle existe.
+  // ───────────────────────────────────────────────────────────────────────────
+
+  // Le serveur est l'AUTORITÉ sur l'offre. `$isPremium` est lu au démarrage et
+  // peut mentir (licence active ailleurs, fonction absente du palier, statut
+  // jamais rechargé) : un 402 reçu lève donc le bandeau à son tour, comme le
+  // panneau EQ de « En écoute » le fait depuis #2419.
+  let refusPremiumServeur = $state(false);
+
+  // Pourquoi « Mes presets » ne vient pas du serveur, quand c'est le cas. Ce
+  // chemin-là ne peut pas se dire par une notification : il part au montage,
+  // sans geste de l'utilisateur, et une alerte à l'ouverture de l'écran serait
+  // du bruit. Il se dit donc SUR le bloc concerné, en permanence.
+  let presetsServeurEchec = $state<EchecEq | null>(null);
+
+  /**
+   * Ce qui n'a pas atteint le serveur, dit avec son motif.
+   *
+   * Le journal reçoit TOUJOURS la raison, même quand l'écran se tait. La
+   * déduplication est par (endroit, motif) : une bande touchée = un envoi, et
+   * sans garde-fou l'utilisateur recevrait une alerte par mouvement de
+   * curseur — mais un motif nouveau, lui, doit passer.
+   */
+  function signalerEchec(ou: string, e: unknown, cleGenerique?: string) {
+    const echec = motifDEchec(e);
+    console.warn(`EQ ${ou} — ${echec.motif}`, e);
+    if (echec.motif === REFUS_PREMIUM) {
+      // Une limite d'offre n'est pas une panne : elle se dit une fois pour
+      // toutes, à l'écran, et pas dans une notification qui s'efface au bout
+      // de cinq secondes. `fetchJSON` en a déjà poussé une sur le 402 ; en
+      // empiler une seconde n'apprendrait rien de plus.
+      refusPremiumServeur = true;
+      return;
+    }
+    const signature = `${ou}:${echec.motif}`;
+    if (signature === dernierRefus) return;
+    dernierRefus = signature;
+    // Quand le motif est un refus du serveur sans autre précision, la phrase
+    // propre à l'endroit (« Enregistrement du preset impossible ») en dit plus
+    // que la phrase générique. Les motifs NOMMÉS — offre, réseau, session,
+    // panne — gardent la leur : c'est tout l'objet du ticket.
+    const generique =
+      (echec.motif === REFUS_SERVEUR || echec.motif === MOTIF_INCONNU) && cleGenerique;
+    const phrase = phraseEchec((cle) => $t(cle as any), {
+      ...echec,
+      cleI18n: generique ? cleGenerique! : echec.cleI18n,
+    });
+    notifications.error(phrase);
+  }
+
+  /**
+   * Le stockage local a refusé.
+   *
+   * Navigation privée, quota plein, stockage bloqué par le navigateur : le
+   * réglage vit quand même pour la session en cours, donc on ne dérange pas
+   * l'utilisateur. Mais la raison ne se perd plus.
+   */
+  function signalerStockageLocal(quoi: string, e: unknown) {
+    console.warn(`EQ stockage local indisponible (${quoi})`, e);
+  }
 
   // --- Tune Master Profiler (Assistant mode) ---
   type EqMode = 'assistant' | 'expert';
@@ -60,7 +151,7 @@
       localStorage.setItem(PROFILER_STORAGE_KEY, JSON.stringify({
         listening, roomSize, placement, bassSlider, midSlider, trebleSlider
       }));
-    } catch {}
+    } catch (e) { signalerStockageLocal('profil acoustique (écriture)', e); }
   }
 
   function loadProfiler() {
@@ -75,7 +166,7 @@
         midSlider = p.midSlider ?? 0;
         trebleSlider = p.trebleSlider ?? 0;
       }
-    } catch {}
+    } catch (e) { signalerStockageLocal('profil acoustique (lecture)', e); }
   }
 
   // Debounced apply for slider drags: oninput fires on EVERY step of the
@@ -113,12 +204,11 @@
       signalerPortee(res?.eq_applied_live);
       if (!quiet) notifications.success($t('eq.profilerApplied' as any));
     } catch (e) {
-      console.error('Apply profiler error:', e);
-      // fetchJSON already showed the dedicated Premium popup for a 402 —
-      // don't stack a generic one on top of it.
-      if ((e as Error)?.message !== 'premium_required') {
-        notifications.error($t('eq.profileApplyError' as any));
-      }
+      // `(e as Error)?.message !== 'premium_required'` ne reconnaissait QU'UNE
+      // des deux formes de refus que la couche API produit : l'`ApiError`
+      // portant `status: 402` passait pour une panne. `motifDEchec` lit les
+      // deux, et nomme aussi le réseau, la session et le 5xx.
+      signalerEchec('profil acoustique', e, 'eq.profileApplyError');
     }
   }
 
@@ -145,27 +235,27 @@
       // retirer continue de jouer jusqu'a la piste suivante, sans le dire.
       signalerPortee(res?.eq_applied_live);
       notifications.success($t('eq.profilerDisabled' as any));
-    } catch {}
-  }
-
-  function freqLabel(f: number): string {
-    return f >= 1000 ? `${f / 1000}k` : `${f}`;
+    } catch (e) {
+      // Le pire des cinq. Les curseurs venaient d'être remis à zéro À L'ÉCRAN
+      // ; l'écriture qui devait couper la correction côté serveur échouait, et
+      // rien ne le disait. L'utilisateur voyait un profil désactivé et
+      // continuait d'entendre la correction qu'il croyait avoir retirée.
+      signalerEchec('désactivation du profil', e);
+    }
   }
 
   const DEFAULT_Q = 1.0;
   const MIN_GAIN = -12;
   const MAX_GAIN = 12;
 
-  // Preset gain arrays (10 values, one per band)
-  const PRESETS: Record<string, { label: string; gains: number[] }> = {
-    flat:         { label: 'Flat',          gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-    bass_boost:   { label: 'Bass Boost',    gains: [8, 6, 4, 2, 0, 0, 0, 0, 0, 0] },
-    treble_boost: { label: 'Treble Boost',  gains: [0, 0, 0, 0, 0, 1, 3, 5, 7, 8] },
-    loudness:     { label: 'Loudness',      gains: [6, 4, 0, -2, -1, 0, 2, 4, 5, 6] },
-    rock:         { label: 'Rock',          gains: [5, 3, 0, -2, -1, 2, 4, 5, 5, 4] },
-    jazz:         { label: 'Jazz',          gains: [3, 2, 0, 2, -1, -1, 0, 2, 4, 5] },
-    classical:    { label: 'Classical',     gains: [0, 0, 0, 0, 0, 0, -2, -3, -2, -1] },
-  };
+  // Les courbes des préréglages (dix gains, un par bande de la grille à
+  // l'octave) viennent de `lib/eqPrereglages`. Elles vivaient ici, en dur, et
+  // le panneau EQ de « En écoute » en tenait une seconde, réduite aux
+  // libellés : c'est comme ça qu'un « Vocal » que le serveur n'a jamais connu
+  // a pu y vivre des mois (#532). Une seule table, deux lecteurs.
+  const PRESETS: Record<string, { label: string; gains: number[] }> = Object.fromEntries(
+    PREREGLAGES_EQ.map((p) => [p.cle, { label: p.label, gains: [...p.gains] }]),
+  );
 
   let gains = $state<number[]>(Array(10).fill(0)); // redimensionné par la résolution au mount
   // Courbe du canal DROIT. `null` = courbes liées, et c'est le défaut : une
@@ -206,7 +296,7 @@
   function saveLocal() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ gains, gainsDroite: $state.snapshot(gainsDroite), canalEdite, enabled, activePreset, pBands: $state.snapshot(pBands), expertSubMode }));
-    } catch { /* ignore */ }
+    } catch (e) { signalerStockageLocal('reglage EQ (ecriture)', e); }
   }
 
   function loadLocal() {
@@ -230,7 +320,7 @@
         if (Array.isArray(parsed.pBands)) pBands = parsed.pBands;
         if (parsed.expertSubMode === 'parametric') expertSubMode = 'parametric';
       }
-    } catch { /* ignore */ }
+    } catch (e) { signalerStockageLocal('reglage EQ (lecture)', e); }
   }
 
   /// La courbe que les curseurs affichent et modifient.
@@ -368,16 +458,14 @@
       // signalements « l'égaliseur ne fonctionne pas », #1688).
       //
       // Même règle que le volume refusé : ce qui n'atteint pas le son doit se
-      // voir. Le reste de cet écran distingue déjà `premium_required`, seul
-      // ce chemin — celui qui porte le réglage — ne le faisait pas.
-      // Une bande touchee = un envoi : sans ce garde-fou, un utilisateur non
-      // premium recevrait une alerte par mouvement de curseur. On ne signale
-      // qu'au changement de motif, et le prochain succes rearme.
-      const cle = (e as Error)?.message === 'premium_required' ? 'eq.premiumRequired' : 'eq.applyFailed';
-      if (cle !== dernierRefus) {
-        dernierRefus = cle;
-        notifications.error($t(cle as any));
-      }
+      // voir. Tout cet écran passe désormais par le même classement de
+      // motifs ; ce chemin — celui qui porte le réglage — n'en distinguait
+      // que deux.
+      // Le tri se faisait sur `message === 'premium_required'` : deux motifs
+      // seulement, « offre » et « le serveur a refuse », et un serveur eteint
+      // se presentait comme un refus. `motifDEchec` en distingue six et rend
+      // le message que le serveur a ecrit quand il en a ecrit un.
+      signalerEchec('bandes', e);
     }
   }
 
@@ -445,7 +533,7 @@
   function cacheCustomPresets() {
     try {
       localStorage.setItem(PRESETS_CACHE_KEY, JSON.stringify($state.snapshot(customPresets)));
-    } catch { /* ignore */ }
+    } catch (e) { signalerStockageLocal('cache des presets (ecriture)', e); }
   }
 
   async function loadCustomPresets() {
@@ -454,14 +542,22 @@
       const raw = localStorage.getItem(PRESETS_CACHE_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
       if (Array.isArray(parsed)) customPresets = parsed.filter((p) => p && p.id && p.name);
-    } catch { /* ignore */ }
+    } catch (e) { signalerStockageLocal('cache des presets (lecture)', e); }
     // 2) Source de vérité = serveur (partagé entre appareils).
     try {
       const server = await api.listEqPresets();
       await migrateLegacyPresets(server);
       customPresets = (await api.listEqPresets()).map(fromServerPreset);
       cacheCustomPresets();
-    } catch { /* serveur indispo / ancien binaire : on garde le cache local */ }
+    } catch (e) {
+      // On garde le cache local : la liste affichee reste utilisable. Mais
+      // « Mes presets » montre alors un etat qui peut etre perime, et
+      // enregistrer echouera aussi. Le taire, c'etait laisser croire que la
+      // liste vient du serveur.
+      presetsServeurEchec = motifDEchec(e);
+      console.warn('EQ liste des presets serveur —', presetsServeurEchec.motif, e);
+      if (presetsServeurEchec.motif === REFUS_PREMIUM) refusPremiumServeur = true;
+    }
   }
 
   // Migration one-shot : pousse les presets de l'ancien stockage local (feature
@@ -472,15 +568,19 @@
       const raw = localStorage.getItem(LEGACY_PRESETS_KEY);
       const p = raw ? JSON.parse(raw) : null;
       if (Array.isArray(p)) legacy = p.filter((x) => x && x.name);
-    } catch { /* ignore */ }
+    } catch (e) { signalerStockageLocal('anciens presets locaux', e); }
     if (!legacy.length) return;
     const serverNames = new Set(server.map((s) => s.name));
     for (const p of legacy) {
       if (serverNames.has(p.name)) continue;
       const bands = p.mode === 'parametric' ? (p.pBands ?? []) : gainsToBands(p.gains ?? []);
-      try { await api.createEqPreset({ name: p.name, eq_type: p.mode, bands }); } catch { /* skip */ }
+      // Une migration qui echoue ne doit pas interrompre les suivantes, mais
+      // elle laisse un preset derriere elle : ca se journalise.
+      try { await api.createEqPreset({ name: p.name, eq_type: p.mode, bands }); }
+      catch (e) { console.warn(`EQ migration du preset « ${p.name} » —`, motifDEchec(e).motif, e); }
     }
-    try { localStorage.removeItem(LEGACY_PRESETS_KEY); } catch { /* ignore */ }
+    try { localStorage.removeItem(LEGACY_PRESETS_KEY); }
+    catch (e) { signalerStockageLocal('purge des anciens presets', e); }
   }
 
   async function saveCurrentAsPreset() {
@@ -491,7 +591,12 @@
     try {
       // Écraser un preset du même nom = supprimer l'ancien puis recréer.
       const dup = customPresets.find((p) => p.name === name);
-      if (dup) { try { await api.deleteEqPreset(dup.id); } catch { /* ignore */ } }
+      // L'ancien homonyme resiste : la creation qui suit fera doublon cote
+      // serveur, et c'est ce qu'il faut pouvoir lire ensuite.
+      if (dup) {
+        try { await api.deleteEqPreset(dup.id); }
+        catch (e) { console.warn('EQ remplacement d’un preset —', motifDEchec(e).motif, e); }
+      }
       const created = await api.createEqPreset({ name, eq_type, bands });
       customPresets = [...customPresets.filter((p) => p.name !== name), fromServerPreset(created)];
       cacheCustomPresets();
@@ -499,7 +604,7 @@
       showSaveInput = false;
       notifications.success($t('eq.presetSaved' as any).replace('{name}', name));
     } catch (e) {
-      if ((e as Error)?.message !== 'premium_required') notifications.error($t('eq.presetSaveFailed' as any));
+      signalerEchec('enregistrement d’un preset', e, 'eq.presetSaveFailed');
     }
   }
 
@@ -529,10 +634,12 @@
     try {
       await api.deleteEqPreset(id);
     } catch (e) {
-      if ((e as Error)?.message !== 'premium_required') {
-        customPresets = prev; // revert si le serveur a refusé
-        cacheCustomPresets();
-      }
+      // La suppression n'a pas eu lieu : remettre la liste telle qu'elle est
+      // vraiment cote serveur, et le dire. Elle etait revertie en silence —
+      // le preset reapparaissait tout seul, sans explication.
+      customPresets = prev;
+      cacheCustomPresets();
+      signalerEchec('suppression d’un preset', e);
     }
   }
 
@@ -618,8 +725,12 @@
   async function loadPure(zoneId: number) {
     try {
       pureActive = (await api.getAudiophileMode(zoneId)).enabled;
-    } catch {
+    } catch (e) {
+      // On n'affirme pas un mode PURE qu'on n'a pas pu lire : le bandeau
+      // resterait cache, et c'est le comportement d'avant. Mais la raison va
+      // au journal — c'est elle qui manquait pour instruire le cas BARATOUX.
       pureActive = false;
+      console.warn('EQ lecture du mode PURE —', motifDEchec(e).motif, e);
     }
   }
 
@@ -633,6 +744,11 @@
   let cfEnabled = $state(false);
   let cfAmount = $state(0.30);
   let cfDelay = $state(0.30);
+  // Ce que le SERVEUR dit du crossfeed sur cette zone (`crossfeed_status`,
+  // GET/PUT /zones/{id}/dsp depuis la 0.9.132). `unavailable` verrouille le
+  // contrôle ; à défaut du champ, le type de sortie de la zone tranche.
+  let cfStatut = $state<CrossfeedStatus | null>(null);
+  let cfIndispo = $derived(indisponibiliteCrossfeed(cfStatut, $currentZone?.output_type));
 
   // amount/delay per preset. Same save path as the EQ (debounced PUT), never
   // one request per slider tick.
@@ -661,12 +777,16 @@
       // pas — zone réseau, mode PURE — et qu'on écoute, on bouge le curseur
       // et rien ne change. C'est le silence qui se raconte ensuite comme
       // « le crossfeed ne marche pas ».
-      signalerPortee(res?.crossfeed_applied_live);
+      cfStatut = res?.crossfeed_status ?? cfStatut;
+      // Là où la contrainte est structurelle, « prendra effet à la piste
+      // suivante » est faux : le serveur vient de dire « jamais ». Le message
+      // permanent affiché sous le titre le dit à la place (#2742).
+      if (!cfIndispo.indisponible) signalerPortee(res?.crossfeed_applied_live);
     } catch (e) {
-      // fetchJSON already surfaced the Premium popup on a 402 — don't stack.
-      if ((e as Error)?.message !== 'premium_required') {
-        console.error('Crossfeed save error:', e);
-      }
+      // Le crossfeed se juge à l'oreille, tout de suite : un réglage qui n'est
+      // pas parti et qu'on ne dit pas, c'est un curseur qu'on pousse sans
+      // rien entendre. Il mourait dans la console.
+      signalerEchec('crossfeed', e);
     }
   }
 
@@ -711,8 +831,12 @@
         bandCount = res.expert_bands;
         gains = resampleGains(prev, prevGrid, GRIDS[bandCount]);
       }
-    } catch {
-      // Vieux serveur sans la route — on reste en 10 bandes
+    } catch (e) {
+      // Vieux serveur sans la route : on reste en 10 bandes, et c'est une
+      // dégradation correcte — rien à dire à l'utilisateur. Mais la raison
+      // part au journal : sur un serveur récent, un échec ici veut dire que
+      // la résolution choisie dans les Paramètres n'est PAS celle affichée.
+      console.warn('EQ résolution experte —', motifDEchec(e).motif, e);
     }
     try {
       const eq = await api.getEq(zoneId);
@@ -761,26 +885,45 @@
           saveLocal();
         }
       }
-    } catch {
-      // Endpoint may not exist — use local values
+    } catch (e) {
+      // On garde les valeurs locales : l'écran reste utilisable. Mais ce qui
+      // est affiché peut alors différer de ce que la zone joue vraiment —
+      // c'est exactement le doute que le cas BARATOUX n'a jamais pu lever.
+      console.warn('EQ lecture du réglage de la zone —', motifDEchec(e).motif, e);
     }
     // Crossfeed state comes from the shared DSP route (defaults returned even
     // when absent server-side).
     try {
       const dsp = await api.getDsp(zoneId);
       const cf = dsp?.crossfeed;
+      cfStatut = dsp?.crossfeed_status ?? null;
       if (cf) {
         cfEnabled = !!cf.enabled;
         if (typeof cf.amount === 'number') cfAmount = cf.amount;
         if (typeof cf.delay_ms === 'number') cfDelay = cf.delay_ms;
       }
-    } catch {
-      // Endpoint gated / unavailable — keep defaults.
+    } catch (e) {
+      // On garde les valeurs par défaut du crossfeed : elles sont justes tant
+      // qu'aucune écriture n'a eu lieu. Le journal garde la raison.
+      console.warn('EQ lecture du DSP de la zone —', motifDEchec(e).motif, e);
     }
   });
 </script>
 
 <section class="equalizer-view">
+  <!-- Le serveur a refusé une écriture en 402 alors que l'état de licence lu
+       au démarrage disait « premium ». Il est l'autorité : on le dit ici, en
+       permanence, plutôt que dans une notification qui s'efface au bout de
+       cinq secondes et laisse un écran d'égaliseur pleinement fonctionnel qui
+       n'a aucun effet. Quand `$isPremium` est déjà faux, le bandeau
+       `premium-gate` ci-dessous couvre l'écran entier : pas la peine des
+       deux. -->
+  {#if refusPremiumServeur && $isPremium}
+    <div class="premium-gate">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>{$t('eq.premiumRequired' as any)}</span>
+    </div>
+  {/if}
   {#if pureActive && $isPremium}
     <div class="eq-pure-banner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -989,6 +1132,14 @@
       {:else if !showSaveInput}
         <p class="my-presets-empty">{$t('eq.noPresets' as any)}</p>
       {/if}
+
+      <!-- La liste vient alors du cache local : elle peut être périmée, et
+           enregistrer échouera de la même façon. Ce chemin part au montage,
+           sans geste de l'utilisateur — une notification y serait du bruit,
+           mais se taire laissait croire que le serveur avait répondu. -->
+      {#if presetsServeurEchec}
+        <p class="my-presets-warn">{$t('eq.presetsLoadFailed' as any)}</p>
+      {/if}
     </div>
 
   {#if expertSubMode === 'parametric'}
@@ -1124,6 +1275,7 @@
           class:active={cfEnabled}
           onclick={toggleCrossfeed}
           aria-pressed={cfEnabled}
+          disabled={cfIndispo.indisponible}
         >
           {cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}
         </button>
@@ -1131,11 +1283,18 @@
 
       <p class="crossfeed-desc">{$t('dsp.crossfeedDesc')}</p>
 
+      {#if cfIndispo.indisponible}
+        <!-- Le serveur dit que le crossfeed n'a aucun chemin sur cette zone :
+             le contrôle est verrouillé et la raison est écrite (#2742). -->
+        <p class="crossfeed-desc crossfeed-indispo">{$t(cleIndisponibiliteCrossfeed(cfIndispo.motif) as any)}</p>
+      {/if}
+
       <div class="crossfeed-presets">
         {#each CF_PRESETS as preset}
           <button
             class="crossfeed-preset-btn"
             class:active={cfActivePreset === preset.key}
+            disabled={cfIndispo.indisponible}
             onclick={() => applyCrossfeedPreset(preset.amount, preset.delay)}
           >
             {$t(preset.labelKey)}
@@ -1143,7 +1302,7 @@
         {/each}
       </div>
 
-      <div class="crossfeed-sliders" class:disabled={!cfEnabled}>
+      <div class="crossfeed-sliders" class:disabled={!cfEnabled || cfIndispo.indisponible}>
         <div class="crossfeed-slider">
           <div class="crossfeed-slider-header">
             <span class="crossfeed-slider-label">{$t('dsp.crossfeedAmount')}</span>
@@ -1156,7 +1315,7 @@
             step="0.01"
             value={cfAmount}
             oninput={onCrossfeedAmount}
-            disabled={!cfEnabled}
+            disabled={!cfEnabled || cfIndispo.indisponible}
           />
         </div>
 
@@ -1172,7 +1331,7 @@
             step="0.05"
             value={cfDelay}
             oninput={onCrossfeedDelay}
-            disabled={!cfEnabled}
+            disabled={!cfEnabled || cfIndispo.indisponible}
           />
         </div>
       </div>
@@ -1217,6 +1376,12 @@
     font-size: 14px;
   }
   .premium-gate strong { color: var(--tune-accent, #6366f1); }
+  .my-presets-warn {
+    margin: 6px 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--tune-warning, #f0b429);
+  }
 
   .eq-mode-tabs {
     display: flex;
@@ -1883,6 +2048,14 @@
     background: var(--tune-accent, #6366f1);
     color: white;
     border-color: var(--tune-accent, #6366f1);
+  }
+  .crossfeed-indispo {
+    color: var(--tune-accent, #6366f1);
+  }
+  .crossfeed-toggle:disabled,
+  .crossfeed-preset-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
   .crossfeed-desc {
     margin: 0 0 1rem;

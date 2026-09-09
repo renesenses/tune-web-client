@@ -1,9 +1,15 @@
 import { writable } from 'svelte/store';
 import type { Locale } from '../i18n';
 import { isSettingsLevel, legacyAdvancedToLevel, type SettingsLevel } from '../settingLevels';
+import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
+import {
+  DEFAUTS as DEFAUTS_COLONNES, PAR_CLE as COLONNES_PAR_CLE, type CleColonne,
+} from '../colonnesPistes';
+import { chainesUniques } from '../clesUniques';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
+import { STYLE_CRETE_DEFAUT, type StyleCreteMetre } from '../peakMetre';
 export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings';
 
 /** Layout mode for the Oxygen library view. */
@@ -25,7 +31,7 @@ export type AlbumGridDensity = 'detail' | 'wall';
 // browses by (direct tracks columns; server column_facet). `folder` is special:
 // a hierarchical drill-down (breadcrumb + child folders) backed by
 // /library/folder-facet, rendered by OxygenFolderFacet — not a flat value list.
-export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
+export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year', 'format', 'sample_rate', 'bit_depth', 'dr', 'country', 'mood', 'source', 'rating', 'collection', 'favorite', 'playlist', 'untagged', 'original_year', 'folder'] as const;
 /** Facets removed from OXYGEN_FACETS_ALL — used to migrate old stored prefs.
  *  `untagged` en était sorti par `bf46fad7` (« only offer facets the rail can
  *  render ») en même temps que collection/folder/rating, faute d'un rendu. Les
@@ -34,7 +40,7 @@ export const OXYGEN_FACETS_ALL = ['genre', 'artist', 'composer', 'label', 'year'
 const OXYGEN_FACETS_REMOVED: string[] = [];
 /** Révision courante de la liste de facettes livrée. À incrémenter en même
  *  temps qu'on ajoute une entrée à ADDED_BY_REV ci-dessous. */
-const OXYGEN_FACETS_REV = 3;
+const OXYGEN_FACETS_REV = 4;
 /** Facettes apparues à chaque révision : elles sont ajoutées une fois aux
  *  préférences déjà enregistrées, puis le choix de l'utilisateur fait foi. */
 const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
@@ -47,6 +53,13 @@ const OXYGEN_FACETS_ADDED_BY_REV: Record<number, string[]> = {
   // L'année d'ENREGISTREMENT, distincte de celle d'édition déjà offerte par
   // `year`. Sur du jazz ou du classique, l'écart se compte en décennies.
   3: ['original_year'],
+  // Dynamic Range (#2144, #3196). Le serveur sert la facette sous
+  // `fields=…,dr` depuis la v0.9.130, mais aucun client ne la demandait :
+  // les notes de version l'annonçaient et elle n'existait nulle part
+  // (JeromeQ, fil 1640). Activée une fois chez ceux qui ont déjà des
+  // préférences enregistrées, sans quoi le correctif resterait invisible
+  // pour eux — ce sont précisément les testeurs qui l'ont réclamée.
+  4: ['dr'],
 };
 
 export interface Preferences {
@@ -79,6 +92,17 @@ export interface Preferences {
   albumSortOrder: 'asc' | 'desc';
   /** Densité de la grille d'albums — voir AlbumGridDensity. */
   albumGridDensity: AlbumGridDensity;
+  /**
+   * Le crête-mètre affiché — #452, spécifié par Xavijol.
+   *
+   * AFFICHAGE seulement : rien ici ne touche à l'audio. `off` n'affiche rien,
+   * `lamps` deux témoins compacts, `dat` le bargraphe VFD type Sony DAT
+   * PCM-7030, `iec` le même format à l'échelle IEC 268-18.
+   *
+   * La barre de lecture ne montre JAMAIS `dat` ni `iec` — trop larges — mais
+   * elle honore l'extinction. Voir `lib/peakMetre.styleSurLaBarre`.
+   */
+  peakMeterStyle: StyleCreteMetre;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -91,6 +115,45 @@ export interface Preferences {
    *  Défaut : débutant pour TOUS, installations existantes comprises
    *  (arbitrage Bertrand, 14/08) — l'ancien toggle « réglages avancés »
    *  migre vers expert au premier chargement (voir loadPrefs). */
+  /** Thème du NOUVEAU client (six palettes, voir lib/v2Theme). Distinct de
+   *  `theme` ci-dessus, qui reste celui de l'app historique : les deux
+   *  clients cohabitent derrière le drapeau `?v2`, chacun garde le sien. */
+  v2Theme: V2Theme;
+  /** Ligne technique (format · fréquence · profondeur) sous chaque pochette de
+   *  la Bibliothèque. Niveau Expert uniquement — en dessous, elle n'est pas
+   *  proposée et ne s'affiche pas.
+   *
+   *  Défaut OFF (Bertrand, 01/09/2026) : elle était liée au seul niveau
+   *  d'interface, donc imposée à tout utilisateur Expert. Or « Expert » dit
+   *  ce qu'on sait faire, pas ce qu'on veut voir sous chaque vignette. */
+  v2AlbumTechLine: boolean;
+  /**
+   * Mosaïque de quatre pochettes sur les cartes de collection, ou pochette
+   * UNIQUE — l'écran compact de l'ancien client.
+   *
+   * « L'affichage des collections me paraît moins agréable dans la V1. Les
+   * 4 pochettes accolées, ce n'est pas ma préférence. J'aimais beaucoup
+   * l'écran collection de l'ancienne version, épuré, compact » (Gros Bidon,
+   * forum 1671, 05/09/2026).
+   *
+   * Un GOÛT, pas un défaut : d'où un interrupteur, et un défaut qui ne bouge
+   * pas — personne ne doit voir son écran changer sans l'avoir demandé.
+   */
+  v2CollectionsMosaique: boolean;
+  /**
+   * Les COLONNES du tableau de pistes, par mode d'interface.
+   *
+   * Chantier du 07/09/2026 (maquette Levente) : en mode Essentiel, une liste
+   * de pistes devient un tableau dont l'utilisateur choisit les colonnes.
+   *
+   * ⚠️ Distinct de `displayFields`, et volontairement. Celui-ci décrit les
+   * PUCES d'une ligne, il est partagé avec l'ancien client et persiste par
+   * profil côté serveur (`metadata_visible_fields:{pid}`). Élargir son
+   * contrat pour y loger trois listes casserait la v0. Les deux se
+   * rejoindront quand la v0 s'effacera ; d'ici là, deux surfaces, deux
+   * réglages, et ce commentaire pour qu'on sache pourquoi.
+   */
+  v2Colonnes: Record<SettingsLevel, CleColonne[]>;
   settingsLevel: SettingsLevel;
 }
 
@@ -113,17 +176,34 @@ const defaults: Preferences = {
   albumSortOrder: 'asc',
   albumGridDensity: 'detail',
   tooltipsEnabled: true,
-  settingsLevel: 'beginner',
+  v2Theme: V2_THEME_DEFAULT,
+  v2AlbumTechLine: false,
+  v2CollectionsMosaique: true,
+  peakMeterStyle: STYLE_CRETE_DEFAUT,
+  v2Colonnes: { ...DEFAUTS_COLONNES },
+  // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
+  // Ne s'applique qu'aux installations SANS niveau enregistre : un choix
+  // explicite fait toujours foi, et la migration `legacySettingsLevel()`
+  // ci-dessous continue de primer sur ce defaut.
+  settingsLevel: 'expert',
 };
 
 /** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
  *  appliquée seulement quand les préférences stockées ne portent AUCUN niveau
- *  (elles prédatent le sélecteur) — un choix explicite fait toujours foi. */
-function legacySettingsLevel(): SettingsLevel {
+ *  (elles prédatent le sélecteur) — un choix explicite fait toujours foi.
+ *
+ *  Renvoie `null` quand l'ancien toggle N'EXISTE PAS, pour laisser le défaut
+ *  s'appliquer. Auparavant elle renvoyait 'beginner' dans ce cas, ce qui
+ *  écrasait silencieusement `defaults.settingsLevel` : changer le défaut
+ *  n'avait alors aucun effet, ni sur une installation neuve ni sur des
+ *  préférences sans niveau valide. */
+function legacySettingsLevel(): SettingsLevel | null {
   try {
-    return legacyAdvancedToLevel(localStorage.getItem('tune_settings_advanced'));
+    const flag = localStorage.getItem('tune_settings_advanced');
+    if (flag === null) return null;   // aucun ancien réglage : le défaut fait foi
+    return legacyAdvancedToLevel(flag);
   } catch {
-    return 'beginner';
+    return null;
   }
 }
 
@@ -154,8 +234,51 @@ function loadPrefs(): Preferences {
       if (facets.some((f) => OXYGEN_FACETS_REMOVED.includes(f))) {
         p.oxygenFacets = [...defaults.oxygenFacets];
       } else {
-        const cleaned = facets.filter((f) => supported.includes(f));
+        // 🔴 `chainesUniques` referme la porte d'entrée du défaut #1775.
+        //
+        // Ce filtre écartait les facettes inconnues sans jamais retirer un
+        // DOUBLON : une liste enregistrée portant deux fois « genre »
+        // ressortait telle quelle, et le rail la donnait à un
+        // `{#each shown as f (f)}`, qui refuse deux clés identiques. Tout
+        // Oxygen tombait alors — page figée, F5 obligatoire — et le sélecteur
+        // de niveau devenait inerte au passage, faute de gestionnaires
+        // attachés après l'erreur.
+        //
+        // La migration de révision (plus bas) produisait bien une liste unique,
+        // mais par accident — elle repart de `supported`, déjà unique — et elle
+        // ne se joue qu'UNE fois. Un blob enregistré à la révision courante
+        // n'était plus jamais assaini.
+        //
+        // Le magasin est `localStorage`, donc PAR NAVIGATEUR : c'est la seule
+        // hypothèse compatible avec « Edge oui, Chrome non » sans invoquer une
+        // différence de moteur — Edge et Chrome partagent Blink. Non démontré.
+        const cleaned = chainesUniques(facets.filter((f) => supported.includes(f)));
         p.oxygenFacets = cleaned.length ? cleaned : [...defaults.oxygenFacets];
+      }
+      /**
+       * 🔴 Les colonnes se fusionnent MODE PAR MODE.
+       *
+       * `{ ...defaults, ...raw }` est une fusion PLATE : un `v2Colonnes` venu
+       * du stockage remplace l'objet entier. Un navigateur qui n'aurait connu
+       * qu'Essentiel effacerait donc les défauts d'Avancé et d'Expert, et le
+       * jour où ces modes passeront au tableau ils s'ouvriraient sans aucune
+       * colonne. On refusionne ici, mode par mode.
+       *
+       * Au passage, les clés inconnues sont écartées : un réglage écrit par
+       * une version future ne doit pas produire une grille trouée.
+       */
+      const colonnes = (raw as Record<string, unknown>)?.v2Colonnes;
+      p.v2Colonnes = { ...DEFAUTS_COLONNES };
+      if (colonnes && typeof colonnes === 'object') {
+        for (const mode of Object.keys(DEFAUTS_COLONNES) as SettingsLevel[]) {
+          const liste = (colonnes as Record<string, unknown>)[mode];
+          if (!Array.isArray(liste)) continue;
+          const propres = liste.filter(
+            (c): c is CleColonne => typeof c === 'string' && !!COLONNES_PAR_CLE[c as CleColonne],
+          );
+          // Une liste VIDE est un choix : on ne la remplace pas par le défaut.
+          p.v2Colonnes[mode] = propres;
+        }
       }
       // Facettes ajoutées depuis la dernière version connue de ce navigateur :
       // les activer une fois, dans l'ordre canonique du rail.
@@ -178,14 +301,22 @@ function loadPrefs(): Preferences {
       // Niveau d'affichage (#1617) : valeur invalide ou absente → défaut
       // débutant, sauf si l'ancien toggle « avancé » était actif (⇒ expert).
       if (!isSettingsLevel((raw as { settingsLevel?: unknown })?.settingsLevel)) {
-        p.settingsLevel = legacySettingsLevel();
+        const legacy = legacySettingsLevel();
+        if (legacy) p.settingsLevel = legacy;
+      }
+      // Thème du client v2 : une valeur inconnue (préférence écrite par une
+      // version ultérieure, ou blob corrompu) retombe sur le défaut plutôt que
+      // de laisser l'interface à moitié peinte.
+      if (!isV2Theme((raw as { v2Theme?: unknown })?.v2Theme)) {
+        p.v2Theme = V2_THEME_DEFAULT;
       }
       return p;
     }
   } catch { /* ignore */ }
   const p = { ...defaults };
   adoptLegacyAlbumSort(p);
-  p.settingsLevel = legacySettingsLevel();
+  const legacy = legacySettingsLevel();
+  if (legacy) p.settingsLevel = legacy;
   return p;
 }
 

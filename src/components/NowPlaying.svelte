@@ -1,15 +1,26 @@
 <script lang="ts">
+  import { rangeableEnPlaylist } from '../lib/pisteFile';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { doitReinitialiserLesParoles } from '../lib/nowPlayingLyricsReset';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentZone } from '../lib/stores/zones';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
   import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../lib/stores/nowPlaying';
   import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs } from '../lib/stores/queue';
   import { currentZoneId, zones } from '../lib/stores/zones';
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
-  import { isMiddlePressWheel } from '../lib/npWheelGesture';
+  import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
-  import { CF_PRESETS, presetActif, reglagesCrossfeed } from '../lib/crossfeed';
+  import { lireOuAjouter } from '../lib/playback';
+  import CreteMetre from './CreteMetre.svelte';
+  import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../lib/peakMetre';
+  import { preferences } from '../lib/stores/preferences';
+  import { texteDePartage, partageUtilisable } from '../lib/partageEcoute';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
+  import {
+    CF_PRESETS, presetActif, reglagesCrossfeed,
+    indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
+  } from '../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import SeekBar from './SeekBar.svelte';
@@ -17,16 +28,21 @@
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { isPremium, licenseState } from '../lib/stores/license';
   import { estRefusPremium } from '../lib/premiumRefus';
+  import { bandesDuPrereglage, prereglageDesBandes } from '../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
+  import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
-  import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery } from '../lib/stores/navigation';
+  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist } from '../lib/stores/navigation';
+  import { destinationArtiste } from '../lib/routageArtiste';
+  import { setSearchCriteria } from '../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
-  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery } from '../lib/lyrics';
+  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../lib/lyrics';
+  import { chargerParolesEnLigne } from '../lib/lyricsOnline';
   import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../lib/types';
 
   let isFavorite = $state(false);
@@ -49,6 +65,11 @@
    *  "tag" ou "lrclib"). Elle traversait déjà la normalisation et s'arrêtait
    *  là (renesenses/tune-server-rust#2432). */
   let npLyricsSource: string | null = $state(null);
+  /** Motif de l'absence de paroles ('none' / 'error'), ou `null` tant que rien
+   *  n'a été demandé. Sans lui, le panneau ne pouvait rien dire : les trois
+   *  situations arrivaient ici sous la même forme, `npLyrics === null`
+   *  (renesenses/tune-server-rust#3577). */
+  let npLyricsMiss: LyricsMiss | null = $state(null);
   let npLyricsTrackId: number | null = $state(null);
   /** Clé `artist|title` des paroles radio chargées (piste sans track id). */
   let npLyricsRadioKey: string | null = $state(null);
@@ -70,10 +91,6 @@
   let showSleepMenu = $state(false);
   let sleepActive = $state(false);
   let sleepMinutes = $state(0);
-
-  // Crossfade
-  let crossfadeEnabled = $state(false);
-  let crossfadeDuration = $state(3);
 
   // Normalization
   let normEnabled = $state(false);
@@ -108,13 +125,15 @@
         moodLoading = null;
         return;
       }
-      if ($queueTracks.length === 0) {
-        await playAndSync(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('nowplaying.tracksPlaying')}`);
-      } else {
-        await api.addToQueue(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('nowplaying.tracksAdded')}`);
-      }
+      // #528 — jouer ou ajouter se décide sur l'état RÉEL de la file, jamais
+      // sur `$queueTracks` : ce cache est vide tant que rien ne l'a hydraté et
+      // périmé dès qu'un autre client a enfilé des titres, et `POST /play`
+      // REMPLACE la file. Voir `lireOuAjouter`.
+      const decision = await lireOuAjouter(zone.id, ids);
+      const libelle = decision === 'lecture'
+        ? $t('nowplaying.tracksPlaying')
+        : $t('nowplaying.tracksAdded');
+      notifications.success(`${mood.label} Mix : ${ids.length} ${libelle}`);
       // Refresh queue
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
@@ -190,6 +209,11 @@
   let cfAmount = $state(0.3);
   let cfDelay = $state(0.3);
   let cfPorteeLive = $state<boolean | null>(null);
+  // Ce que le SERVEUR dit du crossfeed sur cette zone (`crossfeed_status`,
+  // GET/PUT /zones/{id}/dsp depuis la 0.9.132). `unavailable` verrouille le
+  // controle ; a defaut du champ, le type de sortie de la zone tranche.
+  let cfStatut = $state<api.CrossfeedStatus | null>(null);
+  let cfIndispo = $derived(indisponibiliteCrossfeed(cfStatut, $currentZone?.output_type));
   let cfTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function chargerCrossfeed() {
@@ -197,6 +221,7 @@
     try {
       const dsp = await api.getDsp(zone.id);
       const cf = dsp?.crossfeed;
+      cfStatut = dsp?.crossfeed_status ?? null;
       if (cf) {
         cfEnabled = !!cf.enabled;
         cfAmount = cf.amount ?? 0.3;
@@ -224,6 +249,7 @@
       // Le serveur dit si le reglage a atteint le flux EN COURS. Sans ca, on
       // pousse le curseur, rien ne change a l'oreille, et ca se raconte
       // ensuite comme « le crossfeed ne marche pas ».
+      cfStatut = res?.crossfeed_status ?? cfStatut;
       cfPorteeLive = res?.crossfeed_applied_live ?? null;
     } catch (e) {
       if ((e as Error)?.message !== 'premium_required') {
@@ -259,18 +285,6 @@
       const r = await api.getSleepTimer(zone.id);
       sleepActive = r.active;
     } catch {}
-  }
-
-  async function toggleCrossfade() {
-    if (zone?.id == null) return;
-    try {
-      const next = !crossfadeEnabled;
-      await api.setCrossfade(zone.id, next, crossfadeDuration);
-      crossfadeEnabled = next;
-      notifications.success(next ? `Crossfade: ${crossfadeDuration}s` : 'Crossfade off');
-    } catch (e) {
-      console.error('Crossfade error:', e);
-    }
   }
 
   async function toggleNormalization() {
@@ -326,11 +340,17 @@
       .then((r) => {
         eqBands = r.bands ?? [];
         eqEnabled = r.enabled !== false;
-        // Des gains tous nuls SONT un egaliseur plat — on peut le dire. Toute
-        // autre courbe reste sans nom : le serveur ne memorise pas quel
-        // prereglage l'a produite, et deviner serait retomber dans le defaut.
+        // Le serveur ne memorise pas quel prereglage a produit cette courbe :
+        // il ne garde que les bandes. La comparer aux sept courbes connues est
+        // la seule facon honnete de retrouver un nom, et `null` quand rien ne
+        // correspond evite d'en inventer un. C'est ce qui permet au panneau de
+        // montrer « Rock » comme actif apres un clic, au lieu de retomber sur
+        // « personnalise » a la relecture.
+        // Une courbe entierement nulle EST plate, quelle que soit sa
+        // resolution : on peut le dire meme quand ce n'est pas la grille a dix
+        // bandes des prereglages.
         const plat = eqBands.length > 0 && eqBands.every((b) => (b.gain ?? 0) === 0);
-        currentEqPreset = plat ? 'flat' : '';
+        currentEqPreset = prereglageDesBandes(eqBands) ?? (plat ? 'flat' : '');
       })
       .catch(() => { eqBands = []; eqEnabled = true; currentEqPreset = ''; });
   });
@@ -349,9 +369,29 @@
 
   async function setEqPreset(preset: string) {
     if (zone?.id == null) return;
+    // Le panneau envoyait un NOM. `set_eq` ne l'appliquait pas : il le
+    // recopiait dans sa reponse (`"preset": body.preset…`), repondait 200, et
+    // n'altérait aucune bande — donc aucun son (#532). Le serveur sait le
+    // resoudre depuis `eq_presets.rs`, mais un binaire anterieur ne le sait
+    // pas, et les bandes explicites restent PRIORITAIRES sur toutes les
+    // versions (`prereglage_a_appliquer`). On envoie donc la courbe, comme
+    // l'ecran Egaliseur complet : c'est le seul chemin qui agisse partout.
+    const bands = bandesDuPrereglage(preset);
+    if (bands === null) {
+      // Un nom que la table ne connait pas : envoyer une courbe vide
+      // remettrait l'egaliseur a plat en croyant appliquer un prereglage.
+      notifications.error($t('nowplaying.eqError'));
+      return;
+    }
     try {
-      await api.setEqualizer(zone.id, preset);
+      await api.setEq(zone.id, { bands, enabled: true });
       currentEqPreset = preset;
+      // La courbe affichee vient du serveur, jamais d'une supposition. Ici on
+      // vient de l'ecrire : on la montre sans attendre une relecture, sinon le
+      // panneau garderait l'ancienne courbe jusqu'au prochain changement de
+      // zone.
+      eqBands = bands;
+      eqEnabled = true;
       eqRefusePremium = false;
     } catch (e) {
       // Un refus d'offre n'est pas une panne. Il ne meurt plus dans la
@@ -367,10 +407,21 @@
   async function handleShare() {
     if (zone?.id == null) return;
     try {
-      const card = await api.shareNowPlaying(zone.id);
-      await navigator.clipboard.writeText(card.text);
+      const carte = await api.shareNowPlaying(zone.id);
+      // #533 : le serveur ne rend PAS de champ `text` — c'est `undefined` qui
+      // partait au presse-papiers. Le texte se compose ici.
+      if (!partageUtilisable(carte)) {
+        notifications.error($t('nowplaying.shareError' as any));
+        return;
+      }
+      await navigator.clipboard.writeText(texteDePartage(carte, location.origin));
       notifications.success($t('nowplaying.copiedToClipboard'));
-    } catch (e) { console.error('Share error:', e); }
+    } catch (e) {
+      // L'échec ne meurt plus dans la console : le bouton disait « rien »
+      // depuis que la route est passée en POST.
+      console.error('Share error:', e);
+      notifications.error($t('nowplaying.shareError' as any));
+    }
   }
 
   async function loadNpCredits(trackId: number) {
@@ -431,37 +482,75 @@
     });
   }
 
-  async function navigateToArtist(artistId: number | undefined, artistName: string) {
+  /**
+   * Le nom d'artiste de la lecture en cours ne mène pas au même endroit selon
+   * D'OÙ vient la piste (Bertrand, 07/09/2026 : « click sur l'artiste ne
+   * renvoie pas là où il faut. Si local : page artiste. Si radio : écran
+   * recherche/résultats avec les bons paramètres »).
+   *
+   * La DÉCISION vit dans `lib/routageArtiste`, pas ici : une garde écrite
+   * contre ce composant ne pourrait que lire son texte. On n'exécute ici que
+   * ce que le module a décidé.
+   *
+   * 🔴 LES DEUX CONTRATS SONT ALIMENTÉS, comme le fait déjà `navigateToAlbum`.
+   * Cet écran est monté par les DEUX coquilles : l'ancienne lit
+   * `selectedArtist` + `libraryTab`, la nouvelle ne lit ni l'un ni l'autre —
+   * elle consomme `pendingLibraryArtist`. Poser les seuls magasins de
+   * l'ancienne, c'est le défaut que Fabien a signalé sur la v0.9.140 : le clic
+   * changeait d'écran sans rien ouvrir.
+   */
+  async function ouvrirFicheArtiste(artistId: number, artistName: string) {
     selectedAlbum.set(null);
-    if (artistId) {
-      try {
-        const [artist, albums] = await Promise.all([
-          api.getArtist(artistId).catch(() => null),
-          api.getArtistAlbums(artistId).catch(() => []),
-        ]);
-        selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
-        artistAlbums.set(albums ?? []);
-      } catch {
-        selectedArtist.set({ id: artistId, name: artistName } as any);
-      }
-      libraryTab.set('artists');
-      activeView.set('library');
-    } else if (artistName) {
-      try {
-        const results = await api.searchLibrary(artistName);
-        const match = results?.artists?.[0];
-        if (match?.id) {
-          const albums = await api.getArtistAlbums(match.id).catch(() => []);
-          selectedArtist.set(match);
-          artistAlbums.set(albums);
-          libraryTab.set('artists');
-          activeView.set('library');
-          return;
-        }
-      } catch { /* fallthrough to search */ }
-      pendingSearchQuery.set(artistName);
-      activeView.set('search');
+    try {
+      const [artist, albums] = await Promise.all([
+        api.getArtist(artistId).catch(() => null),
+        api.getArtistAlbums(artistId).catch(() => []),
+      ]);
+      selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
+      artistAlbums.set(albums ?? []);
+    } catch {
+      selectedArtist.set({ id: artistId, name: artistName } as any);
     }
+    libraryTab.set('artists');           // contrat du client ACTUEL
+    pendingLibraryArtist.set(artistId);  // contrat du NOUVEAU client
+    activeView.set('library');
+  }
+
+  /** Vers la Recherche, avec la requête ET le périmètre demandés. */
+  function ouvrirRecherche(requete: string, source: string | null) {
+    pendingSearchQuery.set(requete);                       // contrat du client ACTUEL
+    setSearchCriteria({ q: requete, source: source ?? null }); // contrat du NOUVEAU
+    activeView.set('search');
+  }
+
+  async function navigateToArtist(artistId: number | undefined, artistName: string) {
+    // `artistId` prime quand l'appelant en tient un (les crédits en ont un que
+    // la piste n'a pas) ; sinon le module tranche sur la piste écoutée.
+    const dest = artistId
+      ? ({ type: 'artiste', artistId } as const)
+      : destinationArtiste({
+          source: displayTrack?.source ?? null,
+          artist_id: artistIdOf(displayTrack) ?? null,
+          artist_name: artistName,
+        });
+    if (!dest) return;
+
+    if (dest.type === 'artiste') { await ouvrirFicheArtiste(dest.artistId, artistName); return; }
+
+    if (dest.type === 'artiste-par-nom') {
+      // Une piste locale d'un serveur antérieur à la 0.9.102 n'a pas
+      // d'`artist_id` : l'artiste EST en bibliothèque, il ne manque que son
+      // numéro. On le résout, et on ne retombe sur la recherche que s'il est
+      // introuvable.
+      try {
+        const match = (await api.searchLibrary(dest.nom))?.artists?.[0];
+        if (match?.id) { await ouvrirFicheArtiste(match.id, match.name ?? dest.nom); return; }
+      } catch { /* on retombe sur la recherche */ }
+      ouvrirRecherche(dest.nom, null);
+      return;
+    }
+
+    ouvrirRecherche(dest.requete, dest.source);
   }
 
   async function navigateToAlbum(albumId: number | undefined, albumTitle?: string) {
@@ -473,11 +562,20 @@
           api.getAlbumTracks(albumId).catch(() => []),
         ]);
         selectedAlbum.set(album ?? ({ id: albumId, title: albumTitle ?? '' } as any));
-        albumTracks.set(tracks ?? []);
+        // La liste est CLEFEE sur l'album ouvert (#3178) : reposee nue, elle
+        // pouvait s'afficher sous la fiche suivante.
+        const idFiche = commencerFicheAlbum(albumId);
+        poserPistesAlbum(idFiche, tracks ?? []);
       } catch {
         selectedAlbum.set({ id: albumId, title: albumTitle ?? '' } as any);
+        commencerFicheAlbum(albumId);
       }
       libraryTab.set('albums');
+      // Le NOUVEAU client ne lit pas `selectedAlbum` : il consomme
+      // `pendingLibraryAlbum` au montage de sa Bibliothèque. On alimente les
+      // deux contrats plutôt que de deviner quelle coquille tourne (Fabien,
+      // v0.9.140 : « les hyperliens renvoient vers la page d'accueil »).
+      pendingLibraryAlbum.set(albumId);
       activeView.set('library');
     } else if (albumTitle) {
       try {
@@ -486,14 +584,17 @@
         if (match?.id) {
           const tracks = await api.getAlbumTracks(match.id).catch(() => []);
           selectedAlbum.set(match);
-          albumTracks.set(tracks);
+          const idFiche = commencerFicheAlbum(match.id);
+          poserPistesAlbum(idFiche, tracks);
           libraryTab.set('albums');
           activeView.set('library');
           return;
         }
       } catch { /* fallthrough to search */ }
-      pendingSearchQuery.set(albumTitle);
-      activeView.set('search');
+      // Même repli que pour l'artiste : `pendingSearchQuery` n'est lu QUE par
+      // l'écran de recherche du client actuel. Sans `setSearchCriteria`, le
+      // nouveau client atterrissait sur une recherche VIDE (radio, streaming).
+      ouvrirRecherche(albumTitle, null);
     }
   }
 
@@ -529,11 +630,13 @@
     npLyricsRadioKey = null;
     lyricsLoading = true;
     // `fetchTrackLyrics` (lib/lyrics) normalise les deux formes de réponse
-    // serveur (historique et `{synced, lines}`) et avale toute erreur en null.
-    const data = await fetchTrackLyrics(trackId);
+    // serveur (historique et `{synced, lines}`) et NOMME l'absence : `miss`
+    // vaut 'none' (le serveur n'a rien) ou 'error' (la requête a échoué).
+    const { data, miss } = await fetchTrackLyrics(trackId);
     if (npLyricsTrackId === trackId) {
       npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
       npLyricsSource = data?.source ?? null;
+      npLyricsMiss = miss;
       syncedLines = data?.synced
         ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
         : [];
@@ -551,10 +654,11 @@
     npLyricsRadioKey = key;
     npLyricsTrackId = null;
     lyricsLoading = true;
-    const data = await fetchLyricsByMeta(q);
+    const { data, miss } = await fetchLyricsByMeta(q);
     if (npLyricsRadioKey === key) {
       npLyrics = data ? data.lines.map((l) => l.text).join('\n') : null;
       npLyricsSource = data?.source ?? null;
+      npLyricsMiss = miss;
       syncedLines =
         !q.radio && data?.synced
           ? data.lines.filter((l) => l.t_ms != null).map((l) => ({ time: l.t_ms!, text: l.text }))
@@ -565,6 +669,10 @@
 
   /** Charge les paroles adaptées à la piste affichée (bibliothèque ou méta). */
   function loadLyricsFor(tr: Track | NowPlaying | null) {
+    // Lit `lyrics_lrclib_enabled` en même temps : sans lui, un panneau vide ne
+    // peut pas dire QUEL des deux verrous s'est refermé. Une seule fois par
+    // session (le module met en cache), et jamais bloquant.
+    chargerParolesEnLigne();
     if (!tr) return;
     const id = nowPlayingToTrack(tr).id;
     if (id != null) { loadNpLyrics(id); return; }
@@ -585,7 +693,7 @@
         npCreditsTrackId = null;
       }
       if (key !== npLyricsRadioKey) {
-        npLyrics = null; npLyricsSource = null;
+        npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
         syncedLines = [];
         karaokeMode = false;
       }
@@ -595,7 +703,7 @@
     if (id == null) {
       npCredits = [];
       npCreditsTrackId = null;
-      npLyrics = null; npLyricsSource = null;
+      npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
       syncedLines = [];
       npLyricsTrackId = null;
       npLyricsRadioKey = null;
@@ -610,7 +718,7 @@
       loadNpCredits(id);
     }
     if (doitReinitialiserLesParoles(id, npLyricsTrackId, npLyricsResetPourId)) {
-      npLyrics = null; npLyricsSource = null;
+      npLyrics = null; npLyricsSource = null; npLyricsMiss = null;
       syncedLines = [];
       npLyricsRadioKey = null;
       karaokeMode = false;
@@ -726,11 +834,13 @@
           const favs = await api.apiFetch('/radio-favorites?limit=500');
           const match = favs.find((f: any) => f.title === tr.title && f.artist === tr.artist_name);
           if (match) await api.apiDelete(`/radio-favorites/${match.id}`);
+          forgetRadioFavListenAt(tr.title, tr.artist_name);
           isFavorite = false;
         } else {
           const zid = zone?.id;
           if (zid != null) {
             await api.apiPost('/radio-favorites/save-current', { zone_id: zid });
+            rememberRadioFavListenAt(tr.title, tr.artist_name, isoFromMetadataChangedAt(metadataChangedAtOf(displayTrack)));
             isFavorite = true;
           }
         }
@@ -762,13 +872,65 @@
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
+    /**
+     * La coquille pose-t-elle deja un bouton « mode TV » en haut a droite ?
+     *
+     * Le client v2 en peint un dans la grappe avatar + signet, exactement ou
+     * cet ecran pose le sien (`.np-tv-btn`, top 16 / right 16) : les deux se
+     * superposaient, le notre passant DERRIERE l'avatar. Bertrand, 02/09/2026 :
+     * « une icone en haut a droite en doublon [...] derriere l'avatar ».
+     *
+     * Un booleen plutot qu'un retrait pur et simple : en v1 il n'y a pas de
+     * grappe avatar, et c'est le seul acces au mode TV de cet ecran.
+     */
+    tvDansLaCoquille?: boolean;
   }
-  let { onAddToPlaylist }: Props = $props();
+  let { onAddToPlaylist, tvDansLaCoquille = false }: Props = $props();
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
   let playState = $derived($playbackState);
+
+  /** #452 — le visuel choisi, replié sur le défaut si le réglage est illisible. */
+  let styleCrete = $derived(
+    estStyleCrete($preferences.peakMeterStyle) ? $preferences.peakMeterStyle : STYLE_CRETE_DEFAUT,
+  );
   let isRadio = $derived(track?.source === 'radio' || (track == null && $ytPlayerState.track?.source === 'radio'));
+
+  // ─── #719 : le temps qui passe sur une RADIO ──────────────────────────
+  //
+  // Une radio n'a pas de position de lecture : `position_ms` vaut zéro en
+  // permanence (mesuré sur le .18, zone 10, deux relevés à huit secondes
+  // d'écart). Le surlignage karaoké restait donc figé sur la première ligne,
+  // alors que le serveur rend bien des paroles horodatées.
+  //
+  // Le serveur donne l'âge de la métadonnée du flux — l'instant où il a vu le
+  // morceau changer. `radioAnchorFrom` en fait un repère LOCAL
+  // (`performance.now() − âge`), sans jamais comparer deux horloges. Le
+  // mécanisme existait, et n'était utilisé que par `TvView`.
+  let ancrageRadio = $state<number | null>(null);
+  $effect(() => {
+    // Lit la piste, écrit l'ancrage : jamais l'inverse.
+    if (!isRadio || !track) { ancrageRadio = null; return; }
+    ancrageRadio = radioAnchorFrom(track.metadata_age_ms, performance.now());
+  });
+
+  let positionRadio = $state(0);
+  $effect(() => {
+    if (!isRadio || !showLyrics || !karaokeMode) return;
+    let raf = 0;
+    const battre = () => {
+      positionRadio = positionParoles({
+        estRadio: true,
+        positionZoneMs: null,
+        ancrageRadioMs: ancrageRadio,
+        maintenantMs: performance.now(),
+      });
+      raf = requestAnimationFrame(battre);
+    };
+    raf = requestAnimationFrame(battre);
+    return () => cancelAnimationFrame(raf);
+  });
 
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)
   let ytState = $derived($ytPlayerState);
@@ -794,6 +956,15 @@
     t && 'channels' in t ? t.channels : undefined;
   const filePathOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'file_path' in t ? (t.file_path ?? null) : null;
+  /** L'instant ou le flux a annonce ce titre. Il vit sur l'enveloppe
+   *  `NowPlaying`, PAS sur `Track` : c'est un fait de la LECTURE, pas du
+   *  morceau. `nowPlayingToTrack` etale l'objet (`{...t}`) donc la valeur
+   *  survit a l'execution — mais le type de retour est `Track`, qui l'efface.
+   *  La lire sur `normalizedTrack` compilait par accident hier et faisait
+   *  echouer `check-svelte` des que le socle a ete regenere. On la lit donc
+   *  a sa source, avec la meme garde `in` que `albumIdOf` et ses voisines. */
+  const metadataChangedAtOf = (t: Track | NowPlaying | null | undefined) =>
+    t && 'metadata_changed_at' in t ? t.metadata_changed_at : undefined;
 
 
   // Play count for the current local track (Progman, #1056). Fetched on demand;
@@ -1084,6 +1255,14 @@
       npWheelAccum = 0; // a press must not leave a half-armed gesture behind
       return;
     }
+    // Fil 1619 (Jean Valjean, 0.9.126, Firefox) : la molette qui déroule les
+    // paroles — ou tout autre cadre défilant de l'écran — n'est pas le geste de
+    // découverte de la file. L'événement remonte jusqu'ici quand même ; on le
+    // laisse au cadre, sans laisser de geste à moitié armé derrière lui.
+    if (isInnerScrollerWheel(e.target)) {
+      npWheelAccum = 0;
+      return;
+    }
 
     // Normalize deltaMode (0=pixels, 1=lines, 2=pages) to pixels.
     const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1;
@@ -1284,9 +1463,19 @@
   <!-- Seul bouton de l'écran rendu hors de la garde `displayTrack` : il passait
        en plein écran sur une vue TV qui n'avait rien à afficher quand rien ne
        jouait. Les autres modes (paroles, crédits, EQ) sont déjà à l'intérieur. -->
-  {#if displayTrack}
+  {#if displayTrack && !tvDansLaCoquille}
     <button class="np-tv-btn" onclick={enterTvMode} title={$t('nowplaying.tvMode')}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      <!--
+        Un ÉCRAN, pas quatre flèches.
+
+        L'icône était le pictogramme universel du « plein écran » : dans un coin
+        d'interface il se lit comme « agrandir la fenêtre », et rien n'indiquait
+        qu'on basculait vers un mode d'affichage distinct. Bertrand l'a demandée
+        remplacée le 02/09/2026, capture à l'appui.
+
+        Un téléviseur — cadre posé sur un pied — dit ce que le mode est.
+      -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
     </button>
   {/if}
   {#if resolvedCoverUrl}
@@ -1320,6 +1509,13 @@
               </div>
             {/if}
           </div>
+          <!-- #452 — ici, le visuel CHOISI : la fiche a la place que la barre
+               de lecture n'a pas. -->
+          {#if styleCrete !== 'off'}
+            <div class="np-crete">
+              <CreteMetre style={styleCrete} hauteur={26} joue={playState === 'playing'} />
+            </div>
+          {/if}
           {#if ytActive}
             <button class="eye-btn" onclick={handleShowVideo} title={$t('youtube.showVideo')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -1445,7 +1641,7 @@
           <!-- La barre d'actions. Ce qui a besoin d'un identifiant de piste
                (crédits, paroles, partage) reste conditionné ; l'ÉGALISEUR, non.
                Il se lit par api.getEq(zone.id) et s'écrit par
-               api.setEqualizer(zone.id, ...) : c'est un réglage de ZONE, qui
+               api.setEq(zone.id, ...) : c'est un réglage de ZONE, qui
                ne touche jamais displayTrack. Enfermé ici avec les crédits, il
                disparaissait sur une radio et sur toute piste hors bibliothèque
                (Bandcamp, ajout par URL) — exactement l'auditeur qui veut
@@ -1513,35 +1709,48 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                 {$t('nowplaying.share')}
               </button>
-              <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
-                <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-                  Sleep
-                </button>
-                {#if showSleepMenu}
-                  <div class="np-sleep-dropdown">
-                    {#each [15, 30, 45, 60] as m}
-                      <button class="sleep-option" class:active={sleepActive && sleepMinutes === m} onclick={() => handleSleepTimer(m)}>{m} min</button>
-                    {/each}
-                    <button class="sleep-option sleep-off" onclick={() => handleSleepTimer(0)}>Off</button>
-                  </div>
-                {/if}
-              </div>
-              <button
-                class="np-credits-btn"
-                class:active={cfEnabled}
-                onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
-                {$t('dsp.crossfeedTitle')}
-              </button>
-              <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
-                {$t('nowplaying.alarm')}
-              </button>
             {/if}
+            <!-- Sleep, DSP et Réveil sont des réglages de ZONE, comme l'EQ
+                 juste au-dessus (#534). Leurs trois gestionnaires ne prennent
+                 que `zone.id` — `api.setSleepTimer`, `api.setDSP`,
+                 `api.setAlarm` / `api.cancelAlarm` — et aucun ne lit
+                 `displayTrack`. Enfermés avec les crédits, ils disparaissaient
+                 sur une radio et sur toute piste hors bibliothèque, en privant
+                 précisément l'auditeur de radio des deux réglages qui ont le
+                 plus de sens pour lui : s'endormir dessus, et se réveiller
+                 dessus. Garde : src/lib/__tests__/npReglagesDeZone.test.ts -->
+            <div class="np-sleep-wrapper" style="position:relative;display:inline-flex">
+              <button class="np-credits-btn" class:active={sleepActive} onclick={() => { showSleepMenu = !showSleepMenu; showDspMenu = false; }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                Sleep
+              </button>
+              {#if showSleepMenu}
+                <div class="np-sleep-dropdown">
+                  {#each [15, 30, 45, 60] as m}
+                    <button class="sleep-option" class:active={sleepActive && sleepMinutes === m} onclick={() => handleSleepTimer(m)}>{m} min</button>
+                  {/each}
+                  <button class="sleep-option sleep-off" onclick={() => handleSleepTimer(0)}>Off</button>
+                </div>
+              {/if}
+            </div>
+            <button
+              class="np-credits-btn"
+              class:active={cfEnabled}
+              onclick={() => { showDspMenu = !showDspMenu; showSleepMenu = false; if (showDspMenu) void chargerCrossfeed(); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M2 12h4l3-9 6 18 3-9h4" /></svg>
+              {$t('dsp.crossfeedTitle')}
+            </button>
+            <button class="np-credits-btn" class:active={alarmActive || showAlarm} onclick={() => { showAlarm = !showAlarm; showSleepMenu = false; showDspMenu = false; }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
+              {$t('nowplaying.alarm')}
+            </button>
           </div>
-          {#if showAlarm && !isRadio && normalizedTrack?.id != null}
+          <!-- Le panneau du réveil garde sa propre condition, `showAlarm`, et
+               elle seule : le bouton qui l'ouvre n'est plus gardé par la piste,
+               laisser le panneau l'être aurait rendu ce bouton sans effet sur
+               une radio — un silence de plus, à la place de celui qu'on répare. -->
+          {#if showAlarm}
             <div class="np-alarm-panel">
               <div class="alarm-row">
                 <input type="time" class="alarm-time-input" bind:value={alarmTime} />
@@ -1562,8 +1771,10 @@
               loading={lyricsLoading}
               lyrics={npLyrics}
               source={npLyricsSource}
+              miss={npLyricsMiss}
               {syncedLines}
               {karaokeMode}
+              positionMs={isRadio ? positionRadio : null}
               onToggleKaraoke={() => { karaokeMode = !karaokeMode; }}
             />
           {/if}
@@ -1578,6 +1789,7 @@
                     type="checkbox"
                     bind:checked={cfEnabled}
                     onchange={() => void enregistrerCrossfeed()}
+                    disabled={cfIndispo.indisponible}
                   />
                   <span>{cfEnabled ? $t('dsp.crossfeedOn') : $t('dsp.crossfeedOff')}</span>
                 </label>
@@ -1586,6 +1798,7 @@
                     <button
                       class="cf-preset"
                       class:actif={cfEnabled && presetActif(cfAmount, cfDelay) === p.key}
+                      disabled={cfIndispo.indisponible}
                       onclick={() => appliquerPreset(p)}>{$t(p.labelKey as any)}</button
                     >
                   {/each}
@@ -1601,7 +1814,7 @@
                   step="0.01"
                   bind:value={cfAmount}
                   oninput={planifierCrossfeed}
-                  disabled={!cfEnabled}
+                  disabled={!cfEnabled || cfIndispo.indisponible}
                 />
                 <output>{cfAmount.toFixed(2)}</output>
               </label>
@@ -1615,13 +1828,19 @@
                   step="0.1"
                   bind:value={cfDelay}
                   oninput={planifierCrossfeed}
-                  disabled={!cfEnabled}
+                  disabled={!cfEnabled || cfIndispo.indisponible}
                 />
                 <output>{cfDelay.toFixed(1)} ms</output>
               </label>
 
               <p class="cf-note">{$t('dsp.crossfeedDesc')}</p>
-              {#if cfPorteeLive === false}
+              {#if cfIndispo.indisponible}
+                <!-- Le serveur (ou, a defaut, le type de sortie) dit que le
+                     crossfeed n'a AUCUN chemin sur cette zone. Promettre la
+                     piste suivante y serait faux : il ne prendra jamais
+                     (tune-server-rust#2742). -->
+                <p class="cf-note cf-note-alerte">{$t(cleIndisponibiliteCrossfeed(cfIndispo.motif) as any)}</p>
+              {:else if cfPorteeLive === false}
                 <!-- Le serveur dit que le reglage n'a pas atteint le flux en
                      cours : le taire, c'est laisser croire a une panne. -->
                 <p class="cf-note cf-note-alerte">{$t('eq.effectNextTrack')}</p>
@@ -1715,12 +1934,17 @@
 
         <!-- Settings row: shuffle, repeat -->
         <div class="settings-row" class:center={!isWide}>
-          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} title={$t('transport.shuffle')}>
+          <!-- Même règle d'affichage que la barre de lecture (#2733) : le
+               libellé porte le nom ET l'état, et il vient de lib/etatTransport
+               pour que les deux points d'entrée ne divergent pas. -->
+          <button class="setting-btn" class:active={$shuffleEnabled} onclick={toggleShuffle} aria-pressed={$shuffleEnabled} aria-label={libelleAleatoire($t, $shuffleEnabled)} title={libelleAleatoire($t, $shuffleEnabled)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" />
             </svg>
           </button>
-          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} title={$t('transport.repeat')}>
+          <!-- Trois états : pas d'`aria-pressed`, le nom accessible porte
+               l'état. Justification dans lib/etatTransport. -->
+          <button class="setting-btn" class:active={$repeatMode !== 'off'} onclick={cycleRepeat} aria-label={libelleRepetition($t, $repeatMode)} title={libelleRepetition($t, $repeatMode)}>
             {#if $repeatMode === 'one'}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" />
@@ -1737,7 +1961,7 @@
           <!-- Le garde testait `displayTrack?.id`, absent du now-playing de la zone
                (le champ y est `track_id`) : le bouton n'apparaissait donc jamais
                pour une piste locale en plein écran. -->
-          {#if onAddToPlaylist && (normalizedTrack?.id || normalizedTrack?.source_id)}
+          {#if onAddToPlaylist && normalizedTrack && rangeableEnPlaylist(normalizedTrack)}
             <button class="setting-btn" onclick={() => onAddToPlaylist!(normalizedTrack!)} title={$t('nowplaying.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
                 <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" />
@@ -1745,11 +1969,6 @@
             </button>
           {/if}
 
-          <button class="setting-btn" class:active={crossfadeEnabled} onclick={toggleCrossfade} title="Crossfade">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-              <path d="M2 6c4 0 6 6 10 6s6-6 10-6" /><path d="M2 18c4 0 6-6 10-6s6 6 10 6" />
-            </svg>
-          </button>
           <button class="setting-btn" class:active={normEnabled} onclick={toggleNormalization} title={$t('nowplaying.normalization')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
               <line x1="2" y1="12" x2="6" y2="12" /><line x1="18" y1="12" x2="22" y2="12" /><line x1="8" y1="8" x2="8" y2="16" /><line x1="12" y1="6" x2="12" y2="18" /><line x1="16" y1="9" x2="16" y2="15" />
@@ -2011,7 +2230,7 @@
             <button class="qs-item-play" onclick={() => qsPlayFromPosition(index)}>
               <span class="qs-index">{index + 1}</span>
               {#if queueTrack.cover_path}
-                <img src={api.artworkUrl(queueTrack.cover_path)} alt="" width="36" height="36" loading="lazy" style="border-radius:5px;object-fit:cover;flex-shrink:0" />
+                <img src={api.artworkSrc(queueTrack.cover_path)} alt="" width="36" height="36" loading="lazy" style="border-radius:5px;object-fit:cover;flex-shrink:0" />
               {:else}
                 <AlbumArt albumId={queueTrack.album_id} size={36} alt={queueTrack.title} />
               {/if}
@@ -2029,11 +2248,12 @@
               {/if}
               <span class="qs-duration">{formatTime(queueTrack.duration_ms)}</span>
             </button>
-            {#if onAddToPlaylist && (queueTrack.id || queueTrack.source_id)}
+            {#if onAddToPlaylist && rangeableEnPlaylist(queueTrack)}
               <button class="qs-btn qs-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
               </button>
             {/if}
+            <MenuPisteV1 piste={queueTrack} />
             <button class="qs-btn qs-remove-btn" onclick={(e) => { e.stopPropagation(); qsRemoveFromQueue(index); }} title={$t('queue.removeFromQueue')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
@@ -2104,6 +2324,7 @@
 {/if}
 
 <style>
+  .np-crete { margin-top: 10px; width: 100%; max-width: 440px; }
   .now-playing {
     display: flex;
     align-items: center;
@@ -2122,16 +2343,26 @@
   /* Owns the vertical scroll for the now-playing CONTENT (artwork + controls)
      on short viewports, so the root can stay overflow:hidden. The queue sheet
      is a sibling of this wrapper, so scrolling here never reveals it. */
+  /*
+    `align-items: center` sur un conteneur qui defile est un piege connu :
+    quand le contenu est plus haut que le cadre, il deborde des DEUX cotes et
+    le haut devient INATTEIGNABLE au defilement. On centre donc par `margin`
+    sur l'enfant — meme rendu quand il y a de la place, entierement defilable
+    quand il n'y en a pas.
+  */
   .np-scroll {
     flex: 1 1 auto;
     align-self: stretch;
     width: 100%;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     overflow-y: auto;
     position: relative;
     z-index: 1;
+  }
+  .np-scroll > .content-layout {
+    margin-block: auto;
   }
 
   .np-back-btn {
@@ -2210,33 +2441,47 @@
     }
   }
 
+  /*
+    La pochette etait dimensionnee UNIQUEMENT par sa largeur : `width: 100%`
+    plafonne par `max-width`, et `aspect-ratio: 1` en deduisait la hauteur.
+    Rien ne la bornait verticalement. Dans une fenetre plus basse que large, le
+    carre depassait donc l'espace disponible — la pochette perdait environ un
+    tiers de sa hauteur, et les badges qualite places juste en dessous etaient
+    pousses hors cadre et rognes a leur tour. Deux symptomes, une seule cause.
+    Signale par Gilles Olive le 19/08/2026.
+
+    Le remede : le cote du carre est desormais le PLUS PETIT des deux — la
+    largeur voulue, ou une part de la hauteur de fenetre. `aspect-ratio` fait
+    le reste, la pochette reste carree, et elle ne peut plus deborder.
+
+    `--np-art` porte la largeur voulue pour que les paliers ci-dessous n'aient
+    qu'elle a changer : redefinir `max-width` dans chaque media query aurait
+    fait sauter la borne de hauteur a chaque palier.
+  */
   .artwork-container {
+    --np-art: 400px;
     width: 100%;
-    max-width: 400px;
+    max-width: min(var(--np-art), 62vh);
     aspect-ratio: 1;
     flex-shrink: 0;
     position: relative;
   }
 
   .content-layout.wide .artwork-container {
-    max-width: 360px;
+    --np-art: 360px;
   }
 
   @media (min-width: 1400px) {
-    .artwork-container {
-      max-width: 520px;
-    }
+    .artwork-container,
     .content-layout.wide .artwork-container {
-      max-width: 520px;
+      --np-art: 520px;
     }
   }
 
   @media (min-width: 1800px) {
-    .artwork-container {
-      max-width: 640px;
-    }
+    .artwork-container,
     .content-layout.wide .artwork-container {
-      max-width: 640px;
+      --np-art: 640px;
     }
   }
 
@@ -2981,7 +3226,10 @@
     }
 
     .artwork-container {
-      max-width: 280px;
+      /* `--np-art` et non `max-width` : ecraser `max-width` ici ferait sauter
+         la borne de hauteur, et le defaut reviendrait sur telephone — ou les
+         fenetres sont justement les plus basses en paysage. */
+      --np-art: 280px;
       flex-shrink: 1;
       min-height: 120px;
     }

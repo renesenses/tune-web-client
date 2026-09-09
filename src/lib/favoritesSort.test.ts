@@ -88,7 +88,12 @@ describe('clesPourOnglet', () => {
   it("n'offre que ce qui trie vraiment quelque chose", () => {
     expect(clesPourOnglet('tracks')).toContain('album');
     expect(clesPourOnglet('albums')).not.toContain('album');
-    expect(clesPourOnglet('artists')).toEqual(['defaut', 'titre']);
+    // « ajout » s'ajoute aux CINQ onglets depuis le second volet de #2001 :
+    // tout favori a une date de pose, y compris un artiste. Le contrat que ce
+    // test verrouille — ne pas offrir une clé qui ne trierait rien — est
+    // intact : « album » reste absent des albums.
+    expect(clesPourOnglet('artists')).toEqual(['defaut', 'titre', 'ajout']);
+    expect(clesPourOnglet('albums')).toContain('ajout');
   });
 
   it('propose toujours le retour à l’ordre d’ajout', () => {

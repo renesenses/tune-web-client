@@ -4,6 +4,7 @@
    *  être réutilisé depuis la fiche système du volet Support. */
   import type { Zone, DeviceBrand } from '../lib/types';
   import * as api from '../lib/api';
+  import { identiteModifiee } from '../lib/identiteAppareilZone';
   import { t } from '../lib/i18n';
 
   interface Props {
@@ -41,10 +42,15 @@
         !modelsForBrand.some((m) => m.name.toLowerCase() === selectedModel.trim().toLowerCase()))
   );
 
-  let deviceDirty = $derived(
-    (selectedBrand.trim() || '') !== (zone.brand ?? '') ||
-      (selectedModel.trim() || '') !== (zone.model ?? '')
-  );
+  /**
+   * #763 : la comparaison porte sur la valeur EFFECTIVE (override, sinon
+   * détection), c'est-à-dire sur celle qui a été mise dans le champ. Comparer
+   * au seul override rendait « Appliquer » permanent sur une zone détectée, et
+   * le faisait disparaître dès qu'on vidait le champ pour retirer l'identité.
+   *
+   * La règle vit dans `lib/identiteAppareilZone.ts`, pour qu'un test l'APPELLE.
+   */
+  let deviceDirty = $derived(identiteModifiee(zone, selectedBrand, selectedModel));
 
   $effect(() => {
     api.getDeviceCatalog()

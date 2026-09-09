@@ -1,10 +1,13 @@
 <script lang="ts">
+  import { rangeableEnPlaylist } from '../lib/pisteFile';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs, queueTotalMs, jumpAndSync } from '../lib/stores/queue';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';
-  import { currentZone, currentZoneId, zones, playAndSync, syncZone } from '../lib/stores/zones';
+  import { currentZone, currentZoneId, zones, syncZone } from '../lib/stores/zones';
   import { currentTrack, seekPositionMs, stopSeekTimer } from '../lib/stores/nowPlaying';
   import * as api from '../lib/api';
+  import { lireOuAjouter } from '../lib/playback';
   import { formatTime, formatDuration, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
@@ -292,14 +295,15 @@
         moodLoading = null;
         return;
       }
-      // If queue is empty, play directly; otherwise add to queue
-      if ($queueTracks.length === 0) {
-        await playAndSync(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('queue.tracksPlaying')}`);
-      } else {
-        await api.addToQueue(zone.id, { track_ids: ids });
-        notifications.success(`${mood.label} Mix : ${ids.length} ${$t('queue.tracksAdded')}`);
-      }
+      // #528 — jouer ou ajouter se décide sur l'état RÉEL de la file, jamais
+      // sur `$queueTracks` : ce cache est vide tant que rien ne l'a hydraté et
+      // périmé dès qu'un autre client a enfilé des titres, et `POST /play`
+      // REMPLACE la file. Voir `lireOuAjouter`.
+      const decision = await lireOuAjouter(zone.id, ids);
+      const libelle = decision === 'lecture'
+        ? $t('queue.tracksPlaying')
+        : $t('queue.tracksAdded');
+      notifications.success(`${mood.label} Mix : ${ids.length} ${libelle}`);
       // Refresh queue
       const qs = await api.getQueue(zone.id);
       queueTracks.set(qs.tracks);
@@ -339,12 +343,14 @@
       class="autoplay-toggle"
       class:active={autoPlayEnabled}
       onclick={toggleAutoPlay}
+      disabled={autoPlaySaving}
+      aria-pressed={autoPlayEnabled}
       use:tip={'queue.autoplayTip'}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
         <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
       </svg>
-      AutoPlay
+      {$t('queue.autoplayLabel')}
     </button>
     {#if $queueTracks.length > 0}
       <button class="save-queue-btn" onclick={handleSaveAsPlaylist} disabled={savingQueue}>
@@ -429,7 +435,7 @@
           <button class="queue-item-play" onclick={() => playFromPosition(index)}>
             <span class="queue-index">{index + 1}</span>
             {#if queueTrack.cover_path}
-              <img src={api.artworkUrl(queueTrack.cover_path)} alt="" width="40" height="40" loading="lazy" style="border-radius:6px;object-fit:cover;flex-shrink:0" />
+              <img src={api.artworkSrc(queueTrack.cover_path)} alt="" width="40" height="40" loading="lazy" style="border-radius:6px;object-fit:cover;flex-shrink:0" />
             {:else}
               <AlbumArt albumId={queueTrack.album_id} size={40} alt={queueTrack.title} />
             {/if}
@@ -457,11 +463,12 @@
               <HeartButton trackId={queueTrack.id} size={14} />
             {/if}
           </span>
-          {#if onAddToPlaylist && (queueTrack.id || queueTrack.source_id)}
+          {#if onAddToPlaylist && rangeableEnPlaylist(queueTrack)}
             <button class="action-btn playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(queueTrack); }} title={$t('queue.addToPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
             </button>
           {/if}
+          <MenuPisteV1 piste={queueTrack} />
           <button class="action-btn remove-btn" onclick={(e) => { e.stopPropagation(); removeFromQueue(index); }} title={$t('queue.removeFromQueue')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>

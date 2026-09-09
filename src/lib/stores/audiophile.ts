@@ -12,12 +12,11 @@ import * as api from '../api';
  */
 export const audiophileEnabled = writable<boolean>(false);
 
-/**
- * Réglage serveur global `audiophile_lock_volume` : le mode PURE impose-t-il
- * le volume à 100 % ? **Faux par défaut** — cocher « Audiophile » ne doit pas
- * changer le niveau sans prévenir.
- */
+/** Verrou effectif de la zone courante, surcharge par zone comprise. */
 export const audiophileLockVolume = writable<boolean>(false);
+
+/** Réglage global historique, désormais utilisé comme valeur par défaut. */
+export const audiophileGlobalLockVolume = writable<boolean>(false);
 
 /**
  * Le curseur de volume doit-il être gelé ? Uniquement quand les DEUX
@@ -40,29 +39,51 @@ export function isOn(v: unknown): boolean {
 // l'état de la zone courante — même garde que celle qui existait dans
 // TransportBar.
 let generation = 0;
+let currentLockOverride: boolean | null = null;
+let currentAudiophileZoneId: number | null = null;
 
 export async function refreshAudiophile(zoneId: number | null | undefined): Promise<void> {
   if (!zoneId) {
+    generation += 1;
+    currentAudiophileZoneId = null;
+    currentLockOverride = null;
     audiophileEnabled.set(false);
+    audiophileLockVolume.set(get(audiophileGlobalLockVolume));
     return;
   }
   const gen = ++generation;
+  currentAudiophileZoneId = zoneId;
   try {
     const res = await api.getAudiophileMode(zoneId);
-    if (gen === generation) audiophileEnabled.set(res.enabled);
+    if (gen === generation) {
+      currentLockOverride = res.lock_volume ?? null;
+      audiophileEnabled.set(res.enabled);
+      audiophileLockVolume.set(
+        typeof res.effective_lock_volume === 'boolean'
+          ? res.effective_lock_volume
+          : (currentLockOverride ?? get(audiophileGlobalLockVolume)),
+      );
+    }
   } catch {
-    if (gen === generation) audiophileEnabled.set(false);
+    if (gen === generation) {
+      currentLockOverride = null;
+      audiophileEnabled.set(false);
+      audiophileLockVolume.set(get(audiophileGlobalLockVolume));
+    }
   }
 }
 
 export async function refreshVolumeLock(): Promise<void> {
   try {
     const cfg = await api.getConfig();
-    audiophileLockVolume.set(isOn((cfg as Record<string, unknown>).audiophile_lock_volume));
+    const enabled = isOn((cfg as Record<string, unknown>).audiophile_lock_volume);
+    audiophileGlobalLockVolume.set(enabled);
+    if (currentLockOverride === null) audiophileLockVolume.set(enabled);
   } catch {
     // Serveur injoignable : on n'invente pas un verrou, on laisse le curseur
     // libre. Une restriction supposée est pire qu'une restriction absente.
-    audiophileLockVolume.set(false);
+    audiophileGlobalLockVolume.set(false);
+    if (currentLockOverride === null) audiophileLockVolume.set(false);
   }
 }
 
@@ -70,19 +91,43 @@ export async function setVolumeLock(
   enabled: boolean,
   confirmFullVolume = false,
 ): Promise<void> {
-  if (enabled && !get(audiophileLockVolume) && !confirmFullVolume) {
+  if (enabled && !get(audiophileGlobalLockVolume) && !confirmFullVolume) {
     throw new Error('full_volume_confirmation_required');
   }
-  audiophileLockVolume.set(enabled);
+  const previous = get(audiophileGlobalLockVolume);
+  audiophileGlobalLockVolume.set(enabled);
+  if (currentLockOverride === null) audiophileLockVolume.set(enabled);
   try {
     await api.updateConfig({
       audiophile_lock_volume: enabled,
       ...(confirmFullVolume ? { _confirm_full_volume: true } : {}),
     });
   } catch (e) {
-    audiophileLockVolume.set(!enabled);
+    audiophileGlobalLockVolume.set(previous);
+    if (currentLockOverride === null) audiophileLockVolume.set(previous);
     throw e;
   }
+}
+
+/** Modifier la surcharge de la zone courante ou d'une autre zone. */
+export async function setZoneVolumeLock(
+  zoneId: number,
+  enabled: boolean | null,
+  confirmFullVolume = false,
+) {
+  if (enabled === true && !confirmFullVolume) {
+    throw new Error('full_volume_confirmation_required');
+  }
+  const res = await api.setAudiophileVolumeLock(zoneId, enabled, confirmFullVolume);
+  if (zoneId === currentAudiophileZoneId) {
+    currentLockOverride = res.lock_volume ?? null;
+    audiophileLockVolume.set(
+      res.effective_lock_volume
+        ?? currentLockOverride
+        ?? get(audiophileGlobalLockVolume),
+    );
+  }
+  return res;
 }
 
 /** Le volume est-il gelé en ce moment ? Version non réactive, pour les gardes. */

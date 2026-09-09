@@ -44,14 +44,15 @@ describe('garde plein volume transversale (#2445)', () => {
   it('l’interrupteur du verrou confirme avant toute écriture', () => {
     const handler = bodyOf(transport, 'async function toggleVolumeLock()', 'const detailTranslations');
     expect(handler.indexOf("fullVolumeConfirmationRequired('volume-lock'")).toBeLessThan(
-      handler.indexOf('setVolumeLock('),
+      handler.indexOf('setZoneVolumeLock('),
     );
-    expect(handler.indexOf('dialogs.confirm(')).toBeLessThan(handler.indexOf('setVolumeLock('));
-    expect(handler).toContain('setVolumeLock(enabled, fullVolumeConfirmed)');
+    expect(handler.indexOf('dialogs.confirm(')).toBeLessThan(handler.indexOf('setZoneVolumeLock('));
+    expect(handler).toContain('setZoneVolumeLock(z.id, enabled, fullVolumeConfirmed)');
   });
 
   it('aucun appelant ne peut armer le verrou sans attestation', () => {
-    expect(store).toContain("if (enabled && !get(audiophileLockVolume) && !confirmFullVolume)");
+    expect(store).toContain("if (enabled && !get(audiophileGlobalLockVolume) && !confirmFullVolume)");
+    expect(store).toContain("if (enabled === true && !confirmFullVolume)");
     expect(store).toContain("throw new Error('full_volume_confirmation_required')");
     expect(store).toContain('_confirm_full_volume: true');
     // Le double geste déjà livré dans les Paramètres transmet explicitement
@@ -60,7 +61,7 @@ describe('garde plein volume transversale (#2445)', () => {
   });
 
   it('le POST PURE ne transmet le témoin que sur confirmation', () => {
-    const method = bodyOf(api, 'export function setAudiophileMode(', '// --- Streaming Quality ---');
+    const method = bodyOf(api, 'export function setAudiophileMode(', '// --- Config Export/Import ---');
     expect(method).toContain('confirmFullVolume ? { confirm_full_volume: true } : {}');
   });
 });

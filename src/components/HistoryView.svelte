@@ -1,68 +1,75 @@
 <script lang="ts">
   import { playbackHistory, type HistoryEntry } from '../lib/stores/history';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentZone } from '../lib/stores/zones';
   import { formatTime, formatAudioBadge } from '../lib/utils';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
+  import { tip } from '../lib/tooltip';
+  import { bulleTexte } from '../lib/infobulleTexte';
   import * as api from '../lib/api';
   import AlbumArt from './AlbumArt.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
+  // Fusion, déduplication et rejeu vivent dans `lib/historiqueLecture` depuis
+  // le 05/09/2026 : le nouveau client a son propre écran d'historique, et deux
+  // copies de ce rejeu à quatre chemins auraient divergé à la première
+  // correction.
+  import {
+    entreesDepuisServeur,
+    fusionnerHistorique,
+    estRadioEnregistrable,
+    rejouerEntree,
+    cleFavoriRadio,
+    chargerFavorisRadio,
+    basculerFavoriRadio,
+  } from '../lib/historiqueLecture';
 
   let playingIndex = $state<number | null>(null);
   let serverHistory = $state<HistoryEntry[]>([]);
+  let radioFavKeys = $state(new Set<string>());
+  let favBusyKey = $state<string | null>(null);
 
   let zone = $derived($currentZone);
 
   // Merge local + server history
-  let mergedHistory = $derived.by(() => {
-    const local = $playbackHistory;
-    let combined: HistoryEntry[];
-    if (serverHistory.length === 0) combined = local;
-    else if (local.length === 0) combined = serverHistory;
-    else {
-      // Merge: local first (most recent), then server entries not in local
-      const localTitles = new Set(local.map(e => e.track.title + e.playedAt));
-      const extra = serverHistory.filter(e => !localTitles.has(e.track.title + e.playedAt));
-      combined = [...local, ...extra];
-    }
-    // Show each track only once — its most recent listen (Elie). The list is
-    // ordered most-recent-first, so keep the first occurrence per track.
-    const seen = new Set<string>();
-    const deduped: HistoryEntry[] = [];
-    for (const e of combined) {
-      const t = e.track;
-      const key = t.id != null
-        ? `id:${t.id}`
-        : `s:${t.source ?? ''}:${t.source_id ?? ''}:${(t.title || '').toLowerCase()}:${(t.artist_name || '').toLowerCase()}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      deduped.push(e);
-    }
-    return deduped.slice(0, 200);
-  });
+  let mergedHistory = $derived(fusionnerHistorique($playbackHistory, serverHistory));
 
   // Load server history on mount
   $effect(() => {
     api.getPlaybackHistory(100).then(res => {
-      const entries = res?.items ?? [];
-      serverHistory = entries.map((e: any) => ({
-        track: {
-          id: e.track_id,
-          title: e.title,
-          artist_name: e.artist_name,
-          album_title: e.album_title,
-          duration_ms: e.duration_ms,
-          source: e.source,
-          source_id: e.source_id,
-          album_id: e.album_id ?? null,
-          cover_path: e.cover_url ?? null,
-        },
-        playedAt: e.listened_at,
-        zoneName: `Zone ${e.zone_id ?? '?'}`,
-      }));
+      serverHistory = entreesDepuisServeur(res?.items ?? []);
     }).catch((err) => { console.error('HistoryView: fetch error', err); });
+    chargerFavorisRadio().then((s) => { radioFavKeys = s; });
   });
+
+  const radioFavKey = cleFavoriRadio;
+
+  const isSavableRadio = estRadioEnregistrable;
+
+  function isRadioFav(track: HistoryEntry['track']): boolean {
+    return radioFavKeys.has(radioFavKey(track.title, track.artist_name));
+  }
+
+  async function toggleRadioFav(entry: HistoryEntry, event: MouseEvent) {
+    event.stopPropagation();
+    event.preventDefault();
+    const track = entry.track;
+    if (!isSavableRadio(track)) return;
+    const key = radioFavKey(track.title, track.artist_name);
+    if (favBusyKey) return;
+    favBusyKey = key;
+    try {
+      const desormais = await basculerFavoriRadio(entry, radioFavKeys.has(key));
+      const next = new Set(radioFavKeys);
+      if (desormais) next.add(key); else next.delete(key);
+      radioFavKeys = next;
+      notifications.success($t(desormais ? 'history.radioFavAdded' : 'history.radioFavRemoved'));
+    } catch (e) {
+      console.error('HistoryView: radio fav error', e);
+      notifications.error($t('history.radioFavError'));
+    }
+    favBusyKey = null;
+  }
 
   function relativeTime(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
@@ -94,46 +101,8 @@
     }
     playingIndex = index;
     try {
-      if (entry.track.source === 'radio' && entry.track.source_id) {
-        const radioId = parseInt(entry.track.source_id, 10);
-        if (!isNaN(radioId)) {
-          await api.playRadio(radioId, zone.id);
-          notifications.success(`Radio : ${entry.track.album_title || entry.track.title}`);
-        } else {
-          await playAndSync(zone.id, { source: 'radio', source_id: entry.track.source_id });
-          notifications.success(`Radio : ${entry.track.album_title || entry.track.title}`);
-        }
-      } else if (entry.track.id) {
-        await playAndSync(zone.id, { track_id: entry.track.id });
-        notifications.success(`Lecture : ${entry.track.title}`);
-      } else if (entry.track.source && entry.track.source !== 'local' && entry.track.source_id) {
-        await playAndSync(zone.id, { source: entry.track.source, source_id: entry.track.source_id });
-        notifications.success(`Lecture : ${entry.track.title}`);
-      } else {
-        const title = entry.track.album_title || entry.track.title;
-        if (title) {
-          const results = await api.searchLibrary(title);
-          if (results.tracks && results.tracks.length > 0) {
-            const match = results.tracks.find((t: any) => t.album_id);
-            if (match?.album_id) {
-              await playAndSync(zone.id, { album_id: match.album_id });
-              notifications.success(`Lecture : ${title}`);
-              return;
-            }
-            if (results.tracks[0].id) {
-              await playAndSync(zone.id, { track_id: results.tracks[0].id });
-              notifications.success(`Lecture : ${results.tracks[0].title}`);
-              return;
-            }
-          }
-        }
-        if (entry.track.file_path) {
-          await playAndSync(zone.id, { file_path: entry.track.file_path });
-          notifications.success(`Lecture : ${entry.track.title}`);
-        } else {
-          notifications.error('Impossible de relancer cette piste');
-        }
-      }
+      const fait = await rejouerEntree(zone.id, entry);
+      notifications.success(`${fait.genre === 'radio' ? 'Radio' : 'Lecture'} : ${fait.libelle}`);
     } catch (e) {
       console.error('Replay error:', e);
       notifications.error('Erreur de lecture');
@@ -161,27 +130,43 @@
   {:else}
     <div class="history-list">
       {#each mergedHistory as entry, i}
-        <button class="history-item" class:loading={playingIndex === i} onclick={() => replay(entry, i)}>
-          <div class="history-play-icon">
-            {#if playingIndex === i}
-              <div class="spinner-sm"></div>
-            {:else}
-              <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5,3 19,12 5,21" /></svg>
-            {/if}
-          </div>
-          <AlbumArt coverPath={entry.track.cover_path} albumId={entry.track.album_id} size={44} alt={entry.track.title} />
-          <div class="history-info">
-            <span class="history-title truncate">{entry.track.title}</span>
-            <span class="history-artist truncate">{entry.track.artist_name ?? ''}</span>
-            <MetadataChips track={entry.track} fields={$displayFields} />
-          </div>
-          <div class="history-meta">
-            <span class="history-zone truncate">{entry.zoneName}</span>
-            <span class="history-time">{relativeTime(entry.playedAt)}</span>
-          </div>
-          {#if entry.track.format}<span class="audio-format">{formatAudioBadge(entry.track)}</span>{/if}
-          <span class="history-duration">{formatTime(entry.track.duration_ms)}</span>
-        </button>
+        <div class="history-item" class:loading={playingIndex === i}>
+          <button type="button" class="history-main" onclick={() => replay(entry, i)}>
+            <div class="history-play-icon">
+              {#if playingIndex === i}
+                <div class="spinner-sm"></div>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><polygon points="5,3 19,12 5,21" /></svg>
+              {/if}
+            </div>
+            <AlbumArt coverPath={entry.track.cover_path} albumId={entry.track.album_id} size={44} alt={entry.track.title} />
+            <div class="history-info">
+              <span class="history-title truncate" use:bulleTexte>{entry.track.title}</span>
+              <span class="history-artist truncate" use:bulleTexte>{entry.track.artist_name ?? ''}</span>
+              <MetadataChips track={entry.track} fields={$displayFields} />
+            </div>
+            <div class="history-meta">
+              <span class="history-zone truncate" use:bulleTexte>{entry.zoneName}</span>
+              <span class="history-time">{relativeTime(entry.playedAt)}</span>
+            </div>
+            {#if entry.track.format}<span class="audio-format">{formatAudioBadge(entry.track)}</span>{/if}
+            <span class="history-duration">{formatTime(entry.track.duration_ms)}</span>
+          </button>
+          {#if isSavableRadio(entry.track)}
+            <button
+              type="button"
+              class="history-fav-btn"
+              class:is-fav={isRadioFav(entry.track)}
+              disabled={favBusyKey === radioFavKey(entry.track.title, entry.track.artist_name)}
+              onclick={(e) => toggleRadioFav(entry, e)}
+              use:tip={isRadioFav(entry.track) ? 'history.removeRadioFav' : 'history.saveRadioFav'}
+            >
+              <svg viewBox="0 0 24 24" fill={isRadioFav(entry.track) ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </button>
+          {/if}
+        </div>
       {/each}
     </div>
   {/if}
@@ -259,14 +244,8 @@
   .history-item {
     display: flex;
     align-items: center;
-    gap: var(--space-md);
-    padding: 8px 24px;
-    background: none;
-    border: none;
     border-radius: 0;
     color: var(--tune-text);
-    cursor: pointer;
-    text-align: left;
     transition: background 0.12s ease-out;
   }
 
@@ -274,9 +253,52 @@
     background: var(--tune-surface-hover);
   }
 
-  .history-item.loading {
+  .history-main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px 8px 24px;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .history-item.loading .history-main {
     opacity: 0.6;
     pointer-events: none;
+  }
+
+  .history-fav-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 20px 8px 4px;
+    color: var(--tune-text-muted);
+    opacity: 0;
+    transition: color 0.15s, opacity 0.12s, transform 0.15s;
+  }
+
+  .history-item:hover .history-fav-btn,
+  .history-fav-btn.is-fav {
+    opacity: 1;
+  }
+
+  .history-fav-btn:hover {
+    color: var(--tune-text);
+    transform: scale(1.15);
+  }
+
+  .history-fav-btn.is-fav {
+    color: #e74c6f;
+  }
+
+  .history-fav-btn:disabled {
+    cursor: default;
   }
 
   .history-play-icon {

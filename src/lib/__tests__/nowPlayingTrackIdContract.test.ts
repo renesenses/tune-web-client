@@ -26,8 +26,16 @@ describe('contrat d’identifiant du lecteur (#2430)', () => {
 
     expect(actionsStart).toBeGreaterThanOrEqual(0);
     expect(actionsEnd).toBeGreaterThan(actionsStart);
-    // Deux groupes de boutons et le panneau Réveil partagent le même contrat.
-    expect(actions.match(/!isRadio && normalizedTrack\?\.id != null/g)).toHaveLength(3);
+    // Les DEUX groupes de boutons qui exigent encore une piste identifiée —
+    // crédits/paroles, et partage — partagent le même contrat.
+    //
+    // Ils étaient trois : le panneau du Réveil portait la même garde. Elle en
+    // a été retirée (#534), parce que le réveil est un réglage de ZONE
+    // (`api.setAlarm(zone.id, …)`) et que la garde le rendait introuvable sur
+    // une radio. Ce test compte les gardes RESTANTES ; ce qu'il protège est
+    // inchangé : celles qui restent lisent la piste NORMALISÉE, jamais
+    // `displayTrack.id` (l'assertion suivante).
+    expect(actions.match(/!isRadio && normalizedTrack\?\.id != null/g)).toHaveLength(2);
     expect(actions).toContain('loadNpCredits(normalizedTrack.id)');
     expect(actions).not.toMatch(/displayTrack\??\.id/);
   });

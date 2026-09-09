@@ -1,11 +1,14 @@
 <script lang="ts">
+  import { bulleTexte } from '../lib/infobulleTexte';
+  import { rangeableEnPlaylist } from '../lib/pisteFile';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { currentProfileId, favoritePlaylistIds, favoriteFacetKeys, facetFavKey, favoriteStreamingKeys, streamingFavKey } from '../lib/stores/profile';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playFromHere } from '../lib/playback';
-  import { trier, clesPourOnglet, type CleDeTri } from '../lib/favoritesSort';
+  import { trier, clesPourOnglet, dateDeTri, type CleDeTri } from '../lib/favoritesSort';
   import { melangee } from '../lib/shuffle';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
-  import { selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
+  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
   import { pendingPlaylistId } from '../lib/stores/playlists';
   import * as api from '../lib/api';
@@ -29,8 +32,9 @@
   // Cinq onglets depuis #2442 (FabienM, fil 1557) : « il manque de pouvoir
   // mettre en favoris une PLAYLIST et un LABEL ». Les deux nouveaux sont
   // LOCAUX par nature — une playlist locale porte un id entier, un label est
-  // une valeur de facette — d'où l'absence de filtre par service et de tri sur
-  // ces deux onglets.
+  // une valeur de facette — d'où l'absence de filtre par service sur ces deux
+  // onglets. Ils se TRIENT en revanche comme les trois autres depuis #2001 :
+  // la table est polymorphe, le tri doit l'être aussi.
   type FavTab = 'tracks' | 'albums' | 'artists' | 'playlists' | 'labels';
   const ONGLETS: FavTab[] = ['tracks', 'albums', 'artists', 'playlists', 'labels'];
   let activeTab = $state<FavTab>('tracks');
@@ -61,8 +65,15 @@
   // `PlaylistFavorite` et non `Playlist` : une playlist de service n'a pas
   // d'`id` entier, elle porte `source` + `source_id` (#2370).
   let favPlaylists = $state<PlaylistFavorite[]>([]);
-  /** Valeurs de label mises en favori — des CHAÎNES, un label n'a pas d'id. */
-  let favLabels = $state<string[]>([]);
+  /**
+   * Labels mis en favori — désignés par leur VALEUR, une chaîne : un label n'a
+   * pas d'id.
+   *
+   * On garde la ligne de facette entière (`{ facet, value, created_at }`) et
+   * non la seule chaîne : sans sa date, l'onglet Labels ne pourrait pas se
+   * trier par date d'ajout comme les quatre autres (#2001).
+   */
+  let favLabels = $state<api.FacetFavorite[]>([]);
 
   let zone = $derived($currentZone);
 
@@ -104,25 +115,46 @@
     ),
   );
 
-  // Les playlists ne sont pas triables (voir plus bas), mais elles se filtrent
-  // désormais par source comme les autres : depuis #2370 l'onglet mélange les
-  // locales et celles de Qobuz/Tidal.
+  // Les deux onglets venus de #2442 se trient eux aussi (#2001) : la table des
+  // favoris est POLYMORPHE, et un tri qui ne vaudrait que pour les pistes
+  // laisserait deux listes sur cinq dans l'état que ce ticket dénonce.
+  //
+  // Une playlist locale porte un `name`, un label une `value` — d'où la seule
+  // clé alphabétique « titre » sur ces deux onglets. Les deux acceptent en
+  // revanche la date d'ajout : tout favori a été posé un jour.
+  //
+  // FUSION #2001 + #2370 : les playlists se FILTRENT par source (elles mêlent
+  // le local et Qobuz/Tidal depuis #2370) PUIS se trient. L'ordre compte —
+  // trier d'abord puis filtrer donnerait le même résultat ici, mais filtrer
+  // d'abord épargne le tri des lignes qu'on ne montrera pas.
+  //
+  // La réserve posée ici lors de la fusion #2001 + #2370 est LEVÉE (#2715) :
+  // `fusionnerPlaylistsFavorites` reporte désormais `favorite_added_at` (côté
+  // local) et `created_at` (côté service), les deux noms que lit `dateDeTri`.
+  // Le tri « date d'ajout » n'est donc plus inerte sur cet onglet.
   let displayPlaylists = $derived(
-    sourceFilter === 'all'
-      ? favPlaylists
-      : favPlaylists.filter((p) => srcOf(p) === sourceFilter),
+    trier(
+      sourceFilter === 'all'
+        ? favPlaylists
+        : favPlaylists.filter((p) => srcOf(p) === sourceFilter),
+      tri,
+      triDescendant,
+    ),
   );
+  let displayLabels = $derived(trier(favLabels, tri, triDescendant));
 
-  // `clesPourOnglet` ne connaît que les trois onglets triables. Les playlists
-  // et les labels s'affichent dans l'ordre d'ajout rendu par le serveur.
-  let ongletTriable = $derived(
-    activeTab === 'tracks' || activeTab === 'albums' || activeTab === 'artists',
-  );
-  let clesDeTri = $derived(
+  // Le filtre par SOURCE couvre les trois onglets d'origine ET les playlists :
+  // depuis #2370 cet onglet mêle le local et les services, la pastille y a donc
+  // plus d'une valeur. Un label, lui, reste local par nature.
+  //
+  // `ongletTriable` de main disparaît : il disait que seuls trois onglets se
+  // trient, ce que #2001 rend faux — `clesPourOnglet` a un cas `default` qui
+  // rend `['defaut','titre','ajout']` pour les playlists et les labels.
+  let ongletAvecSources = $derived(
     activeTab === 'tracks' || activeTab === 'albums' || activeTab === 'artists'
-      ? clesPourOnglet(activeTab)
-      : [],
+      || activeTab === 'playlists',
   );
+  let clesDeTri = $derived(clesPourOnglet(activeTab));
 
   // Changer d'onglet peut invalider la clé courante — « album » n'existe pas
   // sur les artistes. On retombe sur l'ordre d'ajout plutôt que de trier sur
@@ -140,7 +172,40 @@
           ? favArtists
           : activeTab === 'playlists'
             ? favPlaylists
-            : favLabels.map((value) => ({ value })),
+            : favLabels,
+  );
+
+  /**
+   * 🔴 Aucune entrée de la liste courante ne porte de date d'ajout.
+   *
+   * « L'ordre n'est pas respecté [...] je change le sens du tri : rien ne
+   * change [...] "Par défaut" et "Date d'ajout" affichent la même chose »
+   * (Didier, forum 1666, 04/09/2026).
+   *
+   * Les trois symptômes n'en font qu'un. Mesuré le 06/09/2026 :
+   * `GET /streaming/{service}/favorites/{type}` ne transporte AUCUNE date —
+   * huit clés sur les albums, quatorze sur les pistes, pas une seule
+   * temporelle — là où `/profiles/{id}/favorites/streaming` porte bien
+   * `created_at`. La clé de tri vaut donc la chaîne vide pour toutes les
+   * entrées : le comparateur rend 0 partout, le sens n'est jamais atteint, et
+   * « Date d'ajout » rend exactement ce que rend « Par défaut ».
+   *
+   * Le client ne peut pas trier ce qu'il n'a pas — c'est l'affaire du serveur
+   * (renesenses/tune-server-rust#3489). Ce qu'il peut, et doit, c'est cesser
+   * de le PROMETTRE : la clé se grise, le bouton de sens disparaît, et
+   * l'écran dit pourquoi.
+   *
+   * ⚠️ Calculé sur `currentList`, la liste NON TRIÉE. La calculer sur la liste
+   * affichée la ferait dépendre de `tri`, et tout effet qui en tirerait `tri`
+   * boucherait — le piège exact du champ de recherche (forum 1686).
+   */
+  let listeDuFiltre = $derived(
+    ongletAvecSources && sourceFilter !== 'all'
+      ? currentList.filter((x: any) => srcOf(x) === sourceFilter)
+      : currentList,
+  );
+  let aucuneDateDAjout = $derived(
+    listeDuFiltre.length > 0 && !listeDuFiltre.some((x: any) => dateDeTri(x).trim()),
   );
 
   // Les pastilles de filtre listent les sources dont l'utilisateur DISPOSE, pas
@@ -362,7 +427,9 @@
       // n'étaient relues nulle part : le cœur posé sur une playlist Qobuz
       // n'aboutissait à aucun écran (#2370, Didier fil 1541).
       favPlaylists = fusionnerPlaylistsFavorites(local.playlists ?? [], streaming);
-      favLabels = facets.map((f) => f.value);
+      // La ligne de facette entière, sa date comprise : sans elle, l'onglet
+      // Labels ne saurait pas se trier par date d'ajout (#2001).
+      favLabels = facets;
     } catch (e) {
       console.error('Load favorites error:', e);
     }
@@ -506,7 +573,7 @@
   async function removeFavLabel(value: string) {
     const pid = $currentProfileId;
     if (!pid) return;
-    favLabels = favLabels.filter((l) => l !== value);
+    favLabels = favLabels.filter((l) => l.value !== value);
     favoriteFacetKeys.update((set) => { set.delete(facetFavKey('label', value)); return set; });
     try {
       await api.removeFacetFavorite(pid, 'label', value);
@@ -665,7 +732,12 @@
     if (!album.id) return;
     selectedArtist.set(null);
     selectedAlbum.set(album);
-    api.getAlbumTracks(album.id).then(tracks => albumTracks.set(tracks));
+    // La liste de la fiche precedente tombe AVANT la requete, et la reponse ne
+    // s'ecrit que si c'est toujours cet album qui est ouvert (#3178).
+    const idFiche = commencerFicheAlbum(album.id);
+    api.getAlbumTracks(album.id)
+      .then(tracks => poserPistesAlbum(idFiche, tracks))
+      .catch(e => console.error('Load album tracks error:', e));
     activeView.set('library');
   }
 
@@ -719,7 +791,7 @@
     </div>
   </div>
 
-  {#if !loading && ongletTriable && availableSources.length > 1}
+  {#if !loading && ongletAvecSources && availableSources.length > 1}
     <div class="filter-bar">
       <button class="chip" class:active={sourceFilter === 'all'} onclick={() => sourceFilter = 'all'}>{$tr('common.all')}</button>
       {#each availableSources as s}
@@ -731,29 +803,51 @@
     </div>
   {/if}
 
-  {#if !loading && ongletTriable && currentList.length > 1}
+  {#if !loading && currentList.length > 1}
     <div class="filter-bar tri-bar">
       <span class="tri-label">{$tr('favorites.sortBy')}</span>
       {#each clesDeTri as cle (cle)}
-        <button class="chip" class:active={tri === cle} onclick={() => (tri = cle)}>
+        <button
+          class="chip"
+          class:active={tri === cle}
+          class:inerte={cle === 'ajout' && aucuneDateDAjout}
+          disabled={cle === 'ajout' && aucuneDateDAjout}
+          title={cle === 'ajout' && aucuneDateDAjout ? $tr('favorites.noAddedDate') : undefined}
+          onclick={() => (tri = cle)}
+        >
+          <!-- `defaut` ne trie RIEN : il rend la liste telle que le serveur
+               l'a donnée. L'appeler « Date d'ajout » était le nœud du
+               malentendu — la pastille promettait une date, et le bouton de
+               sens restait masqué. « Date d'ajout » désigne maintenant la clé
+               qui trie vraiment, sur la date elle-même. -->
           {cle === 'defaut'
-            ? $tr('library.sortAddedDate')
+            ? $tr('favorites.sortDefault')
             : cle === 'titre'
               ? $tr('library.sortTitle')
               : cle === 'artiste'
                 ? $tr('library.sortArtist')
-                : $tr('common.album')}
+                : cle === 'ajout'
+                  ? $tr('library.sortAddedDate')
+                  : $tr('common.album')}
         </button>
       {/each}
-      <!-- Le sens n'a aucun sens sur l'ordre d'ajout : on ne l'affiche pas
-           plutôt que de le griser, un bouton grisé faisant croire à un défaut. -->
-      {#if tri !== 'defaut'}
+      <!-- Le sens n'a aucun sens sur « tel quel » : on ne l'affiche pas
+           plutôt que de le griser, un bouton grisé faisant croire à un défaut.
+           Sur « Date d'ajout », il est là — et ↑ donne le plus ancien d'abord,
+           l'ordre séquentiel que Tades cherchait. -->
+      <!-- Le sens disparaît aussi quand la date manque : le laisser, c'est
+           promettre un geste sans effet — « je change le sens du tri : rien ne
+           change » (Didier, forum 1666). -->
+      {#if tri !== 'defaut' && !(tri === 'ajout' && aucuneDateDAjout)}
         <button
           class="chip"
           onclick={() => (triDescendant = !triDescendant)}
           title={triDescendant ? $tr('common.descending') : $tr('common.ascending')}
           aria-label={triDescendant ? $tr('common.descending') : $tr('common.ascending')}
         >{triDescendant ? '↓' : '↑'}</button>
+      {/if}
+      {#if aucuneDateDAjout}
+        <span class="tri-note">{$tr('favorites.noAddedDate')}</span>
       {/if}
     </div>
   {/if}
@@ -788,10 +882,10 @@
             <span class="track-thumb"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? ''} /></span>
             <div class="track-info">
               <span class="track-title-row">
-                <span class="track-title truncate">{t.title}</span>
+                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
                 <ServiceBadge source={(t as any).source ?? 'local'} compact />
               </span>
-              <span class="track-meta truncate">{t.artist_name ?? ''}{#if t.album_title} — {t.album_title}{/if}</span>
+              <span class="track-meta truncate" use:bulleTexte>{t.artist_name ?? ''}{#if t.album_title} — {t.album_title}{/if}</span>
               <MetadataChips track={t} fields={$displayFields} />
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
@@ -799,11 +893,12 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
             </button>
             <button class="action-btn" onclick={(e) => { e.stopPropagation(); addToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-            {#if onAddToPlaylist && (t.id || t.source_id)}
+            {#if onAddToPlaylist && rangeableEnPlaylist(t)}
               <button class="action-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" /><line x1="16" y1="3" x2="16" y2="11" /><line x1="12" y1="7" x2="20" y2="7" /></svg>
               </button>
             {/if}
+            <MenuPisteV1 piste={t} />
             <button class="remove-btn" onclick={(e) => { e.stopPropagation(); removeFavTrack(t); }} title={$tr('profile.delete')}>
               <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
             </button>
@@ -825,7 +920,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="album-card" onclick={() => navigateToAlbum(album)}>
             <div class="album-card-art">
-              <img class="album-cover-img" src={api.artworkUrl(album.cover_path)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+              <img class="album-cover-img" src={api.artworkSrc(album.cover_path)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
               <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playAlbum(album); }} title={$tr('library.playAlbum')}>
                 <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
               </button>
@@ -834,9 +929,9 @@
               </button>
               <div class="cover-badge"><ServiceBadge source={(album as any).source ?? 'local'} compact /></div>
             </div>
-            <span class="album-card-title truncate">{album.title}</span>
+            <span class="album-card-title truncate" use:bulleTexte>{album.title}</span>
             {#if album.artist_name}
-              <span class="album-card-artist truncate">{album.artist_name}</span>
+              <span class="album-card-artist truncate" use:bulleTexte>{album.artist_name}</span>
             {/if}
           </div>
         {/each}
@@ -858,7 +953,7 @@
             <div class="artist-card-avatar">
               <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round fallbackInitials={initials(artist.name)} />
             </div>
-            <span class="artist-card-name truncate">{artist.name}</span>
+            <span class="artist-card-name truncate" use:bulleTexte>{artist.name}</span>
             <ServiceBadge source={(artist as any).source ?? 'local'} compact />
             <button class="artist-remove-btn" onclick={(e) => { e.stopPropagation(); removeFavArtist(artist); }}>
               <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="14" height="14"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -888,11 +983,11 @@
             </span>
             <div class="track-info">
               <span class="track-title-row">
-                <span class="track-title truncate">{pl.name}</span>
+                <span class="track-title truncate" use:bulleTexte>{pl.name}</span>
                 <ServiceBadge source={pl.source} compact />
               </span>
               {#if pl.track_count != null}
-                <span class="track-meta truncate">{pl.track_count} {$tr('common.tracks')}</span>
+                <span class="track-meta truncate" use:bulleTexte>{pl.track_count} {$tr('common.tracks')}</span>
               {/if}
             </div>
             <button class="action-btn" onclick={(e) => { e.stopPropagation(); playPlaylist(pl); }} title={$tr('common.play')} aria-label={$tr('common.play')}>
@@ -914,7 +1009,7 @@
       </div>
     {:else}
       <div class="track-list">
-        {#each favLabels as value (value)}
+        {#each displayLabels as { value } (value)}
           <!-- svelte-ignore a11y_click_events_have_key_events -->
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <div class="track-item" onclick={() => openLabel(value)}>
@@ -923,7 +1018,7 @@
             </span>
             <div class="track-info">
               <span class="track-title-row">
-                <span class="track-title truncate">{value}</span>
+                <span class="track-title truncate" use:bulleTexte>{value}</span>
                 <ServiceBadge source="local" compact />
               </span>
             </div>
@@ -1011,6 +1106,14 @@
   .tri-label {
     align-self: center; font-size: 0.8125rem; color: var(--text-muted, #888);
     margin-right: 0.15rem;
+  }
+  /* Une clé de tri INERTE reste LISIBLE : la cacher ferait croire qu'elle
+     n'existe pas, alors qu'elle reviendra dès que le service donnera la date.
+     Elle est grisée, elle ne se clique pas, et la note dit pourquoi. */
+  .chip.inerte { opacity: 0.45; cursor: default; }
+  .tri-note {
+    align-self: center; font-size: 0.75rem; color: var(--text-muted, #888);
+    margin-left: 0.35rem; max-width: 42ch;
   }
   .filter-bar {
     display: flex;
