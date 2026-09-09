@@ -66,11 +66,11 @@
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { queuePosition } from '../../lib/stores/queue';
   import {
-    favoriteTrackIds, favoriteStreamingKeys, streamingFavKey,
+    favoriteTrackIds, favoriteStreamingKeys,
     favoriteStreamingTrackKeys, clePisteJumelee,
   } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
-  import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
+  import { favKeyOf, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
   import { activeView, pendingLibraryAlbum, pendingLibraryArtist } from '../../lib/stores/navigation';
   import { t } from '../../lib/i18n';
@@ -93,9 +93,20 @@
   let ancreMenu = $state<DOMRect | null>(null);
 
   const local = $derived(estPisteLocale(piste));
+  /**
+   * 🔴 La clé passe par `favKeyOf`, JAMAIS par `streamingFavKey` en direct.
+   *
+   * `streamingFavKey` est une concaténation : elle rend une clé pour
+   * n'importe quoi. `favKeyOf` est le garde — il refuse un identifiant vide,
+   * et depuis #3729 un identifiant PARTAGÉ. Ce composant appelait la
+   * concaténation et contournait donc le garde : le garde était écrit, il
+   * n'était pas branché ici. Sur une ligne de radio, la clé valait
+   * `track:radio:<url du flux>`, la même pour tous les titres de la station,
+   * et un seul favori remplissait tous les cœurs (Reivax66, 09/09/2026).
+   */
   const cleService = $derived(
     !local && piste.source && piste.source_id
-      ? streamingFavKey('track', piste.source, String(piste.source_id))
+      ? favKeyOf({ itemType: 'track', service: String(piste.source), serviceId: String(piste.source_id) })
       : null,
   );
   /**
