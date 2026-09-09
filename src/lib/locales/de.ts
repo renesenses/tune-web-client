@@ -322,6 +322,7 @@ export default {
   'nowplaying.eqPremium': 'Der Equalizer gehört zu Tune Premium: ohne aktive Lizenz bleiben diese Voreinstellungen nicht verfügbar.',
   'nowplaying.eqError': 'Die Equalizer-Einstellung konnte nicht gespeichert werden.',
   'premium.required': 'Diese Funktion gehört zu Tune Premium.',
+  'zone.freeCapReached': "Sie nutzen bereits Ihre {n} kostenlosen Zonen. Die Wiedergabe auf einer weiteren Zone erfordert Tune Premium — die Protokolle (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) sind alle in der kostenlosen Version enthalten.",
   'nowplaying.addToPlaylist': 'Zur Playlist hinzufügen',
   'nowplaying.upNext': 'Als Nächstes',
   'nowplaying.noPlayback': 'Keine Wiedergabe aktiv',

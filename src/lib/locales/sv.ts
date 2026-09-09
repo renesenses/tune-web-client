@@ -296,6 +296,7 @@ export default {
   'nowplaying.eqPremium': 'Equalizern ingår i Tune Premium: utan en aktiv licens är dessa förinställningar inte tillgängliga.',
   'nowplaying.eqError': 'Equalizerinställningen kunde inte sparas.',
   'premium.required': 'Den här funktionen ingår i Tune Premium.',
+  'zone.freeCapReached': "Du använder redan dina {n} gratiszoner. Att spela i ytterligare en zon kräver Tune Premium — protokollen (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) ingår alla i gratisversionen.",
   'nowplaying.addToPlaylist': 'Lägg till i spellista',
   'nowplaying.upNext': 'Härnäst',
   'nowplaying.noPlayback': 'Inget spelas',

@@ -322,6 +322,7 @@ export default {
   'nowplaying.eqPremium': '이퀄라이저는 Tune Premium 기능입니다. 활성 라이선스가 없으면 이 프리셋을 사용할 수 없습니다.',
   'nowplaying.eqError': '이퀄라이저 설정을 저장하지 못했습니다.',
   'premium.required': '이 기능은 Tune Premium에 포함됩니다.',
+  'zone.freeCapReached': "무료 영역 {n}개를 이미 모두 사용 중입니다. 영역을 하나 더 재생하려면 Tune Premium이 필요합니다. 프로토콜(DLNA, AirPlay 2, BluOS, Chromecast, OpenHome)은 모두 무료 버전에 포함되어 있습니다.",
   'nowplaying.addToPlaylist': '재생목록에 추가',
   'nowplaying.upNext': '다음 곡',
   'nowplaying.noPlayback': '재생 중인 항목 없음',
