@@ -222,7 +222,11 @@ describe('LibraryView n’empile plus sa propre entrée (5c420af)', () => {
     const corps = corpsDe(source, 'async function selectAlbumDetail');
     // Contre-épreuve du test lui-même : la tranche doit bien contenir le code
     // attendu, sinon l'absence de `pushState` ne prouverait rien.
-    expect(corps).toContain('albumTracks.set(');
+    //
+    // L'ancre a changé de nom avec #3178 : la liste de pistes ne s'écrit plus
+    // en clair mais par `poserPistesAlbum(idFiche, …)`, qui refuse une réponse
+    // en retard. C'est la même écriture, clefée.
+    expect(corps).toContain('poserPistesAlbum(');
     expect(corps).not.toMatch(/history\.pushState/);
   });
 

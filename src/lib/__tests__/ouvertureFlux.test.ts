@@ -194,8 +194,13 @@ describe('SeekBar.svelte — le câblage existe', () => {
   );
 
   it('importe le suivi et le branche sur la zone courante', () => {
-    expect(SOURCE).toMatch(/from\s+['"]\.\.\/lib\/ouvertureFlux['"]/);
-    expect(SOURCE).toContain('suivreOuverture');
+    // Le câblage (état tenu entre deux appels, `untrack`, battement d'horloge)
+    // a quitté le composant pour `lib/ouvertureFlux.svelte` quand un deuxième
+    // appelant est apparu — le mini-lecteur, second volet de #2267. La barre
+    // le consomme désormais au lieu de le porter ; la DÉCISION, elle, n'a pas
+    // bougé et reste couverte par tout ce qui précède.
+    expect(SOURCE).toMatch(/from\s+['"]\.\.\/lib\/ouvertureFlux\.svelte['"]/);
+    expect(SOURCE).toContain('suiviOuverture');
   });
 
   it("marque la barre pendant l'ouverture, et le dit aux technologies d'assistance", () => {

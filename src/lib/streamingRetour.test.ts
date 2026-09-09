@@ -51,17 +51,38 @@ describe('actionRetour', () => {
     });
   });
 
-  it("une provenance externe reste prioritaire sur tout le reste", () => {
-    // Une fiche ouverte depuis l'accueil (`streamingAlbumOrigin`) : le premier
-    // retour ramène à l'écran d'origine. Ce comportement existait avant et ne
-    // doit pas être avalé par le dépilage — même quand un artiste est ouvert.
-    expect(actionRetour({ provenance: 'home', album: true, artiste: true })).toEqual({
-      action: 'quitter-la-vue',
-      vers: 'home',
-    });
+  it("une provenance externe ramène à l'écran d'origine", () => {
+    // Une fiche ouverte depuis l'accueil (`streamingAlbumOrigin`) : le retour
+    // ramène à l'écran d'origine au lieu d'atterrir sur la grille du service.
     expect(actionRetour({ provenance: 'home', album: true, artiste: false })).toEqual({
       action: 'quitter-la-vue',
       vers: 'home',
+    });
+    // Et depuis une fiche artiste ouverte par la recherche globale.
+    expect(actionRetour({ provenance: 'search', album: false, artiste: true })).toEqual({
+      action: 'quitter-la-vue',
+      vers: 'search',
+    });
+  });
+
+  it('dépile le niveau album AVANT de rendre la main à la provenance', () => {
+    // Second parcours de Sandro (fil 1553) : la recherche globale entre dans
+    // Qobuz par la fiche ARTISTE, et il descend ensuite d'un cran de plus.
+    // Deux niveaux sont donc ouverts sous une provenance — ce que l'accueil,
+    // qui n'ouvre que des albums, ne pouvait pas produire.
+    //
+    // Rendre la main tout de suite ferait sauter la discographie, c'est-à-dire
+    // exactement le geste que le premier correctif de ce fil venait de réparer
+    // pour l'onglet Qobuz : le même « Retour », sur le même écran, n'aurait pas
+    // le même effet selon la porte d'entrée. On dépile d'abord, on sort après.
+    expect(actionRetour({ provenance: 'search', album: true, artiste: true })).toEqual({
+      action: 'remonter-a-l-artiste',
+    });
+    // Le Retour SUIVANT, lui, honore la provenance : les résultats de la
+    // recherche globale reviennent.
+    expect(actionRetour({ provenance: 'search', album: false, artiste: true })).toEqual({
+      action: 'quitter-la-vue',
+      vers: 'search',
     });
   });
 });
