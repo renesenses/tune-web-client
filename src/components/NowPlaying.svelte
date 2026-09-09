@@ -10,6 +10,7 @@
   import { currentZoneId, zones } from '../lib/stores/zones';
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
+  import { largeurReserveeFileAttente } from '../lib/fileAttenteReserve';
   import * as api from '../lib/api';
   import { lireOuAjouter } from '../lib/playback';
   import CreteMetre from './CreteMetre.svelte';
@@ -1155,6 +1156,13 @@
     } catch { /* storage unavailable */ }
   }
 
+  // Place réellement rendue au panneau, à droite du contenu (#3676). Zéro dès
+  // que le panneau n'est pas une colonne de droite : file fermée, ou
+  // disposition étroite où il est une feuille ancrée en bas.
+  let reserveFileAttente = $derived(
+    largeurReserveeFileAttente(isWide, queueSheetState, sheetCustomWidth),
+  );
+
   // The size the panel should actually take, or '' to keep the CSS defaults.
   function sheetSizeStyle(): string {
     if (queueSheetState === 'collapsed') return '';
@@ -1456,7 +1464,7 @@
   }
 </script>
 
-<div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} bind:clientWidth={containerWidth} onwheel={handleNpWheel} onmousedown={handleNpMiddlePress}>
+<div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} style="--np-reserve-file: {reserveFileAttente}px" bind:clientWidth={containerWidth} onwheel={handleNpWheel} onmousedown={handleNpMiddlePress}>
   <button class="np-back-btn" onclick={() => activeView.set($previousView && $previousView !== 'nowplaying' ? $previousView : 'library')} title={$t('nowplaying.back')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
@@ -2350,6 +2358,17 @@
     sur l'enfant — meme rendu quand il y a de la place, entierement defilable
     quand il n'y en a pas.
   */
+  /*
+    `padding-right` porte la place du panneau File d'attente (#3676).
+
+    Le contenu est CENTRÉ ici (`justify-content: center`) : lui poser une
+    `max-width` plus petite ne le décale pas, elle répartit la place libérée
+    des DEUX côtés pendant que le panneau, lui, est ancré à droite — d'où le
+    recouvrement signalé par Pierre M (fil 911). Un retrait sur le conteneur
+    déplace réellement l'aire de centrage. La valeur vient de
+    `largeurReserveeFileAttente()`, donc elle suit la largeur que
+    l'utilisateur donne au panneau au lieu d'une constante.
+  */
   .np-scroll {
     flex: 1 1 auto;
     align-self: stretch;
@@ -2360,6 +2379,8 @@
     overflow-y: auto;
     position: relative;
     z-index: 1;
+    padding-right: var(--np-reserve-file, 0px);
+    transition: padding-right 0.3s ease-out;
   }
   .np-scroll > .content-layout {
     margin-block: auto;
@@ -4301,11 +4322,19 @@
     width: 420px;
   }
 
-  /* Shrink artwork area when queue is open on wide */
-  .now-playing.queue-open .content-layout.wide {
-    max-width: calc(100% - 420px);
-    transition: max-width 0.3s ease-out;
-  }
+  /*
+    #3676 — il y avait ici :
+
+      .now-playing.queue-open .content-layout.wide {
+        max-width: calc(100% - 420px);
+        transition: max-width 0.3s ease-out;
+      }
+
+    Cette règle RÉSERVAIT la place sans jamais DÉCALER le bloc : son parent
+    `.np-scroll` centre, donc les 420 px se répartissaient 210 px à gauche et
+    210 px à droite, et le panneau ancré à droite recouvrait le bloc dès que
+    celui-ci dépassait `W − 2 × 210`. La réserve est passée en
+    `padding-right` sur `.np-scroll`, où elle décale l'aire de centrage. */
 
   /* Shrink artwork when queue is open on mobile */
   .now-playing.queue-open .artwork-container {
