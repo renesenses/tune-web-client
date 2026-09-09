@@ -34,10 +34,26 @@ export interface FiltresBibliotheque {
   format: string | null;
   profondeur: number | null;
   recherche: string;
+  /**
+   * Compilations seulement (#1957). `null` = pas de filtre.
+   *
+   * 🔴 `false` n'est volontairement PAS proposé à l'écran, alors que le
+   * serveur l'accepte (`?compilation=false`, `albums.rs`). La colonne est
+   * écrite au scan et jamais devinée pour l'existant : sur une bibliothèque
+   * indexée avant la v0.9.95, TOUS les albums valent `false`. Un filtre
+   * « hors compilations » rendrait donc la bibliothèque entière et passerait
+   * pour cassé, alors que « compilations » rendant peu ou rien se lit
+   * correctement — il n'y en a pas encore de repérée.
+   *
+   * Le type reste `boolean | null` : le jour où le drapeau est fiable pour
+   * l'existant, la valeur `false` marche déjà, seul le rendu est à ouvrir.
+   */
+  compilation: boolean | null;
 }
 
 /** Les facettes qui portent un compte. */
-export type Facette = 'qualite' | 'frequence' | 'annee' | 'format' | 'profondeur';
+export type Facette =
+  'qualite' | 'frequence' | 'annee' | 'format' | 'profondeur' | 'compilation';
 
 export interface Outils {
   /** Le palier de qualité d'un album, tel que l'écran le calcule. */
@@ -66,6 +82,11 @@ export function correspond(
   if (sauf !== 'annee' && f.annee != null && o.anneeDe(a) !== f.annee) return false;
   if (sauf !== 'format' && f.format && (a.format?.trim().toUpperCase() ?? '') !== f.format) return false;
   if (sauf !== 'profondeur' && f.profondeur != null && (a.bit_depth ?? 0) !== f.profondeur) return false;
+  // `?? false` : un album servi par une route qui ne porte pas le champ, ou
+  // par un serveur antérieur à la v0.9.95, n'est pas une compilation CONNUE.
+  // C'est la même convention que le serveur, qui décode `NULL` en « non ».
+  if (sauf !== 'compilation' && f.compilation != null
+      && (a.is_compilation ?? false) !== f.compilation) return false;
   // La RECHERCHE n'est pas une facette : elle ne s'exclut jamais. Compter les
   // formats d'albums qui ne correspondent pas au texte tapé n'aurait aucun sens.
   if (f.recherche && !o.plier(a.title).includes(o.plier(f.recherche))
@@ -104,6 +125,21 @@ export function comptesFormat(
     if (v) m.set(v, (m.get(v) ?? 0) + 1);
   }
   return [...m.entries()].sort((x, z) => z[1] - x[1] || x[0].localeCompare(z[0]));
+}
+
+/**
+ * Combien de COMPILATIONS parmi les albums qui satisfont les autres filtres.
+ *
+ * Une seule valeur, et non une paire : voir `FiltresBibliotheque.compilation`.
+ * Le compte est ce qui rend la puce honnête — à zéro, elle ne s'affiche pas,
+ * plutôt que de promettre un filtre qui ne rendrait rien parce que la
+ * bibliothèque n'a pas été re-scannée depuis la v0.9.95.
+ */
+export function comptesCompilation(
+  albums: readonly Album[], f: FiltresBibliotheque, o: Outils,
+): number {
+  return assiette(albums, f, o, 'compilation')
+    .reduce((n, a) => n + (a.is_compilation ? 1 : 0), 0);
 }
 
 /** Les profondeurs PRÉSENTES, avec leur compte, par ordre croissant. */

@@ -4,6 +4,7 @@
   import { get } from 'svelte/store';
   import { t } from '../lib/i18n';
   import { OXYGEN_FACETS_ALL } from '../lib/stores/preferences';
+  import { chainesUniques, sansDoublons } from '../lib/clesUniques';
   import OxygenFolderFacet from './OxygenFolderFacet.svelte';
 
   interface Props {
@@ -138,7 +139,13 @@
   // fallu des mois pour les ramener une par une. Deux listes à tenir à jour, une
   // seule visible du développeur qui ajoute une facette.
   const RENDERABLE: ReadonlySet<string> = new Set(OXYGEN_FACETS_ALL);
-  const shown = $derived(facets.filter(f => RENDERABLE.has(f)));
+  // Ce bloc se clave sur la valeur elle-même — `{#each shown as f (f)}` — et
+  // `facets` vient de `preferences.oxygenFacets`, c'est-à-dire de
+  // `localStorage`. Une liste enregistrée qui porterait deux fois « genre »
+  // faisait tomber TOUT Oxygen sur `each_key_duplicate` (#1775, Reivax66) :
+  // page figée, F5 obligatoire, et plus aucun gestionnaire attaché ensuite.
+  // Une facette en double doit coûter une entrée ignorée, pas un écran mort.
+  const shown = $derived(chainesUniques(facets.filter(f => RENDERABLE.has(f))));
 
   // ---- Index alphabétique -------------------------------------------------
   // Sur 8 873 artistes (bibliothèque de Bertrand), dérouler la liste n'est pas
@@ -203,7 +210,11 @@
     const out: Record<string, FacetValue[]> = {};
     for (const f of shown) {
       const sv = serverFacets[f];
-      out[f] = (sv && sv.length) ? sortFacet(f, [...sv]) : clientCounts(f);
+      // Même précaution sur les VALEURS : elles servent de clé
+      // — `{#each rowsOf(f) as row (row.value)}` — et viennent du serveur,
+      // donc des métadonnées. `clientCounts` passe par une Map, il est déjà
+      // unique ; l'index du serveur, lui, n'était vérifié nulle part (#1775).
+      out[f] = (sv && sv.length) ? sansDoublons(sortFacet(f, [...sv]), r => r.value) : clientCounts(f);
     }
     return out;
   });

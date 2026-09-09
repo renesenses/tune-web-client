@@ -6,6 +6,7 @@
   import { tip } from '../lib/tooltip';
   import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { purgeAProposer, questionDePurge, verdictDePurge, verdictDeRefus } from '../lib/purgeOrphelines';
   import { backendSelectionne, choixDeBackend, libelleBackend, modeWasapiPertinent, type ChoixBackend } from '../lib/audioBackends';
   import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
@@ -38,6 +39,7 @@
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
   import { licenseState, isPremium, loadLicense, offlineGrace } from '../lib/stores/license';
   import { verdictValidationLicence } from '../lib/licenceValidation';
+  import { etatTelemetrie, routeDeBascule } from '../lib/etatTelemetrie';
   import SmbWizard from './SmbWizard.svelte';
   import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
@@ -561,6 +563,9 @@ function setSettingsLevel(level: SettingsLevel) {
   let cloudSsoLoading = $state(true);
   let cloudTelemetryEnabled = $state(false);
   let cloudTelemetryLoading = $state(false);
+  // #3383 — `TUNE_TELEMETRY=false` coupe a l'echelle de la machine : la
+  // bascule ne peut alors rien rallumer, et doit le dire.
+  let cloudTelemetryEnvLocked = $state(false);
   let cloudTelemetryInstanceId = $state<string | null>(null);
   let cloudRateLimits = $state<Array<{
     scope: string;
@@ -621,7 +626,9 @@ function setSettingsLevel(level: SettingsLevel) {
 
     try {
       const tel = await api.apiFetch('/cloud/telemetry/status');
-      cloudTelemetryEnabled = !!tel?.enabled;
+      const etat = etatTelemetrie(tel, { actif: false, verrouEnvironnement: false });
+      cloudTelemetryEnabled = etat.actif;
+      cloudTelemetryEnvLocked = etat.verrouEnvironnement;
       cloudTelemetryInstanceId = tel?.instance_id || tel?.server_id || null;
       cloudRateLimits = Array.isArray(tel?.rate_limits) ? tel.rate_limits : [];
     } catch {
@@ -693,10 +700,20 @@ function setSettingsLevel(level: SettingsLevel) {
 
   async function toggleCloudTelemetry() {
     cloudTelemetryLoading = true;
-    const endpoint = cloudTelemetryEnabled ? '/cloud/telemetry/disable' : '/cloud/telemetry/enable';
+    const souhait = !cloudTelemetryEnabled;
     try {
-      await api.apiPost(endpoint);
-      cloudTelemetryEnabled = !cloudTelemetryEnabled;
+      const reponse = await api.apiPost(routeDeBascule(souhait));
+      // #3383 : l'etat affiche est celui que le SERVEUR confirme, jamais une
+      // inversion locale. Quand `TUNE_TELEMETRY=false` verrouille la machine,
+      // une demande d'activation revient `enabled: false` — la case doit le
+      // montrer tout de suite, au lieu d'attendre le rafraichissement suivant
+      // pour se decocher toute seule.
+      const etat = etatTelemetrie(reponse, {
+        actif: souhait,
+        verrouEnvironnement: cloudTelemetryEnvLocked,
+      });
+      cloudTelemetryEnabled = etat.actif;
+      cloudTelemetryEnvLocked = etat.verrouEnvironnement;
     } catch (err: any) {
       notifications.error(err?.message ?? get(t)('settings.telemetryError'));
     }
@@ -2372,15 +2389,45 @@ function setSettingsLevel(level: SettingsLevel) {
     addingMusicDir = false;
   }
 
+  /**
+   * Retire une racine, puis propose de retirer ce qu'elle contenait (#2149).
+   *
+   * La réponse du retrait était JETÉE. Elle porte pourtant `orphan_tracks` et
+   * `confirm_purge_required` : sans écran pour les lire, ces pistes restaient
+   * dans la base pour toujours — plus sous aucune racine, donc jamais
+   * revisitées par le scan, donc jamais purgées (#1943).
+   *
+   * Deux appels sur la même route : le premier retire et annonce, le second
+   * — seulement si l'utilisateur dit oui — purge avec le nombre EXACT.
+   */
   async function handleRemoveMusicDir(path: string) {
     if (!(await dialogs.confirm(get(t)('settings.removeMusicDirConfirm'), { danger: true }))) return;
     removingMusicDir = path;
     try {
-      await api.removeMusicDir(path);
+      const retrait = await api.removeMusicDir(path);
+      const aPurger = purgeAProposer(retrait);
+      if (aPurger > 0) {
+        if (await dialogs.confirm(questionDePurge(retrait, get(t)), { danger: true })) {
+          // Le retrait est idempotent : le dossier n'est déjà plus dans la
+          // liste, seul l'ensemble orphelin est recalculé — à l'identique.
+          const purge = await api.removeMusicDir(path, aPurger);
+          const v = verdictDePurge(purge, get(t));
+          notifications[v.ton](v.message);
+          // Les compteurs de la page viennent de tomber : on les relit, sans
+          // repasser par `loadAll()` qui ferait clignoter tout l'écran.
+          if (!purge.purge_refused) stats = await api.getStats().catch(() => stats);
+        } else {
+          const v = verdictDeRefus(retrait, get(t));
+          notifications[v.ton](v.message);
+        }
+      }
       const br = await api.getBrowseRoots().catch(() => ({ roots: [] }));
       musicRoots = br.roots;
     } catch (e: any) {
+      // Le retrait n'a pas abouti : on le DIT. L'échec mourait dans la
+      // console, l'écran laissait le dossier affiché sans un mot.
       console.error('Remove music dir error:', e);
+      notifications.error(`${get(t)('settings.removeMusicDirError')} ${errText(e) ?? ''}`.trim());
     }
     removingMusicDir = null;
   }
@@ -6029,12 +6076,16 @@ function setSettingsLevel(level: SettingsLevel) {
           <div class="cloud-toggle-label">
             <span>{$t('settings.telemetry')}</span>
             <span class="cloud-toggle-hint">{$t('settings.telemetryHint')}</span>
+            <span class="cloud-toggle-hint">{$t('settings.telemetryOffScope')}</span>
           </div>
           <label class="cloud-toggle">
-            <input type="checkbox" checked={cloudTelemetryEnabled} onchange={toggleCloudTelemetry} disabled={cloudTelemetryLoading} />
+            <input type="checkbox" checked={cloudTelemetryEnabled} onchange={toggleCloudTelemetry} disabled={cloudTelemetryLoading || cloudTelemetryEnvLocked} />
             <span class="cloud-toggle-slider"></span>
           </label>
         </div>
+        {#if cloudTelemetryEnvLocked}
+          <div class="cloud-telemetry-locked" role="status">{$t('settings.telemetryEnvLocked')}</div>
+        {/if}
         {#if cloudTelemetryInstanceId}
           <div class="cloud-instance-id">{$t('settings.instance')} : <code>{cloudTelemetryInstanceId}</code></div>
         {/if}
@@ -8372,6 +8423,17 @@ function setSettingsLevel(level: SettingsLevel) {
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     font-size: 10px;
+  }
+
+  .cloud-telemetry-locked {
+    margin-top: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px solid color-mix(in srgb, var(--tune-text-muted) 35%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   .cloud-rate-limit-notice {
