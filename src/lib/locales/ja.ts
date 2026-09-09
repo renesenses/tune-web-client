@@ -322,6 +322,7 @@ export default {
   'nowplaying.eqPremium': 'イコライザーは Tune Premium の機能です。有効なライセンスがない場合、これらのプリセットは使用できません。',
   'nowplaying.eqError': 'イコライザーの設定を保存できませんでした。',
   'premium.required': 'この機能は Tune Premium に含まれます。',
+  'zone.freeCapReached': "無料の {n} ゾーンをすべて使用中です。さらにゾーンで再生するには Tune Premium が必要です。プロトコル（DLNA、AirPlay 2、BluOS、Chromecast、OpenHome）はすべて無料版に含まれています。",
   'nowplaying.addToPlaylist': 'プレイリストに追加',
   'nowplaying.upNext': '次に再生',
   'nowplaying.noPlayback': '再生中の音声がありません',
@@ -416,6 +417,12 @@ export default {
   'search.shownOf': '{total}件中{shown}件',
   'search.shownOfAtLeast': '{shown}件（{total}件以上）',
   'search.loadMore': 'もっと見る',
+  'search.createPlaylist': 'プレイリストを作成',
+  'search.playlistNamePrompt': '新しいプレイリストの名前',
+  'search.playlistCreated': 'プレイリスト「{name}」を {n} 曲で作成しました。',
+  'search.playlistCreatedPartial': 'プレイリスト「{name}」を表示中の {n} 曲で作成しました（全 {total} 件中）。',
+  'search.playlistNoLocalTracks': 'この検索結果にローカルライブラリのトラックはありません。',
+  'search.playlistError': 'プレイリストを作成できませんでした。',
   'search.durationShown': '表示中 {d}',
 
   // Streaming
@@ -558,6 +565,14 @@ export default {
   'settings.addSmbShare': 'ネットワーク共有を追加（SMB）',
   'settings.addLocalFolder': 'ローカルフォルダを追加',
   'settings.removeMusicDirConfirm': 'このフォルダをライブラリから削除しますか？',
+  "settings.removeMusicDirError": "フォルダーを削除できませんでした。",
+  "settings.orphanTracksAsk": "フォルダーを削除しました。{count} 曲はどの音楽フォルダーにも属さなくなり、スキャンで再び読み込まれることはありません。ライブラリからも削除しますか？",
+  "settings.orphanTracksImpact": "併せて削除されます — プレイリスト: {playlists}、お気に入り: {favorites}、再生キュー: {queue}。",
+  "settings.orphanTracksFilesSafe": "ディスク上のファイルはそのまま残ります。",
+  "settings.orphanTracksPurged": "{count} 曲をライブラリから削除しました。",
+  "settings.orphanTracksRefused": "フォルダーは削除されましたが、{count} 曲は削除されませんでした。確認した曲数と一致しなくなっています。もう一度やり直してください。",
+  "settings.orphanTracksNothingLeft": "削除すべき孤立した曲は残っていませんでした。",
+  "settings.orphanTracksKept": "{count} 曲を残しました。スキャンで再び読み込まれることはありません。この操作だけが削除できます。",
   'settings.coversProgress': 'カバー {current}/{total}（{found}件見つかりました）',
   'settings.searchingCovers': 'カバーを検索中...',
   'settings.searchMissingCovers': '不足しているカバーを検索',
@@ -4147,6 +4162,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "所有モジュールなし",
   "diagnostics.outputNoProviders": "このサーバーには外部出力プロバイダーが組み込まれていません。",
   "diagnostics.outputOpenLicense": "ライセンスを見る",
+  "v2.album.compilation": "コンピレーション",
+  "v2.album.compilationHint": "スキャン時にサーバーがコンピレーションとして印を付けたアルバムです。",
+  "v2.lib.compilations": "コンピレーション",
+  "v2.lib.compilationsHint": "コンピレーションのみを表示します。この印はスキャン時に付きます。更新前にインデックスされたアルバムは、次回のスキャンで初めて印が付きます。",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent

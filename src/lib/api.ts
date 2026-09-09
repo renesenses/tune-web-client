@@ -8,6 +8,7 @@ import { profileHeader } from './profileHeader';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
+import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -293,6 +294,25 @@ function erreurSentinelle(message: string, status: number, code?: string): ApiEr
   return err;
 }
 
+/**
+ * Le `code` stable porte par un refus 402, ou `null`.
+ *
+ * Depuis #2392/#2419 le serveur nomme ses refus par un TERME, `message`
+ * n'etant qu'un repli : c'est ce terme qui permet a l'interface de porter sa
+ * propre traduction. Le lire coute une lecture du corps — la seule autorisee,
+ * un `Response` ne se lit qu'une fois — et un corps illisible n'est jamais une
+ * raison de perdre le refus : on retombe sur le message generique.
+ */
+async function codeDuRefus(response: Response): Promise<Refus | null> {
+  try {
+    return (await response.json()) as Refus;
+  } catch {
+    return null;
+  }
+}
+
+type Refus = { code?: string; zone_limit?: number; zones_actives?: number };
+
 export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   let response: Response;
   try {
@@ -318,12 +338,28 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       clearToken();
       throw erreurSentinelle('Session expired', 401);
     }
+    // Ni le message du serveur ni le repli ne parlaient la langue de
+    // l'interface : `premium_guard.rs` compose le sien avec
+    // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
+    // en anglais — et le repli etait du francais code en dur, montre tel
+    // quel a un anglophone. Les deux sont le meme defaut (#2419).
+    //
+    // Depuis #3672, tous les 402 ne disent plus la meme chose. Le plafond de
+    // zones du palier gratuit n'est PAS une fonction payante : l'utilisateur a
+    // simplement consomme ses zones, et aucun protocole (DLNA, AirPlay 2,
+    // BluOS, Chromecast, OpenHome) n'est reserve au Premium. Servir
+    // « Cette fonctionnalite fait partie de Tune Premium » a quelqu'un qui
+    // vient de cliquer sur son enceinte BluOS lui fait conclure l'inverse —
+    // c'est exactement ce qu'a ecrit Claudio Osorio le 08/09/2026. Le serveur
+    // distingue desormais les deux par un `code` stable ; l'interface porte sa
+    // propre phrase pour chacun.
     if (response.status === 402) {
-      // Ni le message du serveur ni le repli ne parlaient la langue de
-      // l'interface : `premium_guard.rs` compose le sien avec
-      // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
-      // en anglais — et le repli etait du francais code en dur, montre tel
-      // quel a un anglophone. Les deux sont le meme defaut (#2419).
+      const refus = await codeDuRefus(response);
+      if (refus?.code === 'free_zone_cap_reached') {
+        const n = String(refus.zone_limit ?? '');
+        notifications.error(get(t)('zone.freeCapReached').replace('{n}', n));
+        throw erreurSentinelle('premium_required', 402, refus.code);
+      }
       notifications.error(get(t)('premium.required'));
       throw erreurSentinelle('premium_required', 402, 'premium_required');
     }
@@ -2639,10 +2675,26 @@ export async function addMusicDir(path: string): Promise<{ music_dirs: string[] 
   return { ...r, music_dirs: listeDossiers(r) };
 }
 
-export async function removeMusicDir(path: string): Promise<{ music_dirs: string[] }> {
-  const r = await fetchJSON<any>(`${BASE}/system/music-dirs/remove`, {
+/**
+ * Retire une racine de musique — et, si `confirmPurge` est donné, retire
+ * aussi les pistes devenues orphelines (#2149).
+ *
+ * Le type de retour disait `{ music_dirs }` : le serveur rend `dirs`. Personne
+ * ne s'en apercevait, l'appelant jetait la réponse — et jetait avec elle
+ * `orphan_tracks` et `confirm_purge_required`, sans lesquels aucun écran ne
+ * pouvait proposer la purge.
+ *
+ * `confirmPurge` est un NOMBRE, pas un booléen : il doit couvrir le nombre
+ * exact annoncé au premier appel, sinon le plafond de #1943 refuse tout. Le
+ * refus se lit dans `purge_refused`, jamais dans le code HTTP — le retrait,
+ * lui, a toujours réussi.
+ */
+export async function removeMusicDir(path: string, confirmPurge?: number) {
+  const body: Record<string, unknown> = { path };
+  if (typeof confirmPurge === 'number') body.confirm_purge = confirmPurge;
+  const r = await fetchJSON<RetraitDossier>(`${BASE}/system/music-dirs/remove`, {
     method: 'POST',
-    body: JSON.stringify({ path }),
+    body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
 }

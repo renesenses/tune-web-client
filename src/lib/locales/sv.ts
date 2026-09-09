@@ -296,6 +296,7 @@ export default {
   'nowplaying.eqPremium': 'Equalizern ingår i Tune Premium: utan en aktiv licens är dessa förinställningar inte tillgängliga.',
   'nowplaying.eqError': 'Equalizerinställningen kunde inte sparas.',
   'premium.required': 'Den här funktionen ingår i Tune Premium.',
+  'zone.freeCapReached': "Du använder redan dina {n} gratiszoner. Att spela i ytterligare en zon kräver Tune Premium — protokollen (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) ingår alla i gratisversionen.",
   'nowplaying.addToPlaylist': 'Lägg till i spellista',
   'nowplaying.upNext': 'Härnäst',
   'nowplaying.noPlayback': 'Inget spelas',
@@ -386,6 +387,12 @@ export default {
   'search.shownOf': '{shown} av {total}',
   'search.shownOfAtLeast': '{shown} av minst {total}',
   'search.loadMore': 'Visa fler',
+  'search.createPlaylist': 'Skapa en spellista',
+  'search.playlistNamePrompt': 'Namn på den nya spellistan',
+  'search.playlistCreated': 'Spellistan ”{name}” skapades med {n} spår.',
+  'search.playlistCreatedPartial': 'Spellistan ”{name}” skapades med de {n} visade spåren, av {total} träffar.',
+  'search.playlistNoLocalTracks': 'Inget spår från det lokala biblioteket i dessa resultat.',
+  'search.playlistError': 'Spellistan kunde inte skapas.',
   'search.durationShown': '{d} visade',
 
   // Streaming
@@ -529,6 +536,14 @@ export default {
   'settings.addSmbShare': 'Lägg till nätverksresurs (SMB)',
   'settings.addLocalFolder': 'Lägg till lokal mapp',
   'settings.removeMusicDirConfirm': 'Ta bort denna mapp från biblioteket?',
+  "settings.removeMusicDirError": "Mappen kunde inte tas bort.",
+  "settings.orphanTracksAsk": "Mappen togs bort. {count} spår ligger inte längre under någon musikmapp, så genomsökningen kommer aldrig att hitta dem igen. Ta bort dem från biblioteket också?",
+  "settings.orphanTracksImpact": "Tas också bort — spellistor: {playlists}, favoriter: {favorites}, kö: {queue}.",
+  "settings.orphanTracksFilesSafe": "Filerna på disken lämnas orörda.",
+  "settings.orphanTracksPurged": "{count} spår togs bort från biblioteket.",
+  "settings.orphanTracksRefused": "Mappen togs bort, men de {count} spåren raderades inte: bekräftelsen täckte inte längre deras antal. Börja om för att ta bort dem.",
+  "settings.orphanTracksNothingLeft": "Det fanns inga föräldralösa spår kvar att ta bort.",
+  "settings.orphanTracksKept": "{count} spår behölls. Genomsökningen hittar dem aldrig igen: bara den här åtgärden kan ta bort dem.",
   'settings.coversProgress': 'Omslag {current}/{total} ({found} hittade)',
   'settings.searchingCovers': 'Söker efter omslag...',
   'settings.searchMissingCovers': 'Sök efter saknade omslag',
@@ -4146,6 +4161,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Ingen modul ägs",
   "diagnostics.outputNoProviders": "Ingen extern utgångsleverantör är inkompilerad i den här servern.",
   "diagnostics.outputOpenLicense": "Visa min licens",
+  "v2.album.compilation": "Samlingsalbum",
+  "v2.album.compilationHint": "Album som servern markerade som samlingsalbum vid genomsökningen.",
+  "v2.lib.compilations": "Samlingsalbum",
+  "v2.lib.compilationsHint": "Visa endast samlingsalbum. Markeringen sätts vid genomsökningen: ett album som indexerades före uppdateringen får den först vid nästa genomsökning.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
