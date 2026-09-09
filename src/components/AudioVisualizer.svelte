@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { estDuDSD } from '../lib/utils';
   import { onMount } from 'svelte';
   import { audioLevels, levelsForZone, type AudioLevels } from '../lib/stores/audioLevels';
   import { freqLabel, spectrumIsoTicks } from '../lib/spectrumScale';
@@ -129,7 +130,10 @@
       bass = 0.7; mid = 0.55;
     }
 
-    if (format === 'dsd') {
+    // `estDuDSD` et non `format === 'dsd'` : les fichiers DSD s'appellent `.dsf`
+    // ou `.dff`, et 47 des 49 albums DSD de la bibliothèque de Bertrand sont en
+    // `dsf` — l'animation ne les reconnaissait donc pas.
+    if (estDuDSD(format)) {
       bass = 0.75; mid = 0.6; treble = 0.65; speed = 0.9;
     }
 

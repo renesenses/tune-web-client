@@ -5,6 +5,28 @@ import { fr } from '../locales';
 import type { Zone } from '../types';
 
 /**
+ * ⏱️ Délai porté à 60 s pour ce fichier.
+ *
+ * Ces cas MONTENT un composant : le coût n'est pas le test, c'est la
+ * transformation Svelte, payée à froid au premier montage. Mesuré le
+ * 09/09/2026 : 26 s d'exécution pour deux fichiers, dont 23 s de transformation
+ * — au-dessus du plafond de 5 s de Vitest dès que la machine a autre chose à
+ * faire.
+ *
+ * Le symptôme est un FAUX ROUGE, et il est traître : le test qui tombe change
+ * d'une exécution à l'autre, et il ne tombe jamais seul — il ment sur le
+ * changement en cours d'examen. Vu trois fois de suite le 09/09, sur le Mac
+ * comme sur Shrek (charge 22 sur 40 cœurs), sur des fichiers sans rapport avec
+ * ce qui était modifié.
+ *
+ * Ce n'est PAS un contournement d'un test lent : rien n'attend ici, le plafond
+ * mesurait la compilation. La même correction avait déjà été faite sur
+ * `bibliothequeVivante` pour la même raison.
+ */
+const DELAI_MONTAGE = 60_000;
+
+
+/**
  * Sortie mono par zone (#2362) — l'écran, pas le moteur.
  *
  * ## Ce qui manquait
@@ -118,7 +140,7 @@ function interrupteurMono(racine: HTMLElement): HTMLInputElement {
 }
 
 describe('#2362 — la sortie mono est atteignable depuis le panneau de zone', () => {
-  it('expose un interrupteur, et son libellé DIT ce que le réglage fait', async () => {
+  it('expose un interrupteur, et son libellé DIT ce que le réglage fait', { timeout: DELAI_MONTAGE }, async () => {
     const racine = await ouvrirPanneau(zoneLocale());
     const label = racine.querySelector('.mono-toggle')!;
 
@@ -135,25 +157,25 @@ describe('#2362 — la sortie mono est atteignable depuis le panneau de zone', (
     expect(fr['zoneConfig.monoLabel']).toMatch(/droit/);
   });
 
-  it("l'état coché vient du SERVEUR, pas d'un défaut local", async () => {
+  it("l'état coché vient du SERVEUR, pas d'un défaut local", { timeout: DELAI_MONTAGE }, async () => {
     // Sabotage n°1 vise ceci : figer la valeur affichée fait tomber ce cas.
     const racine = await ouvrirPanneau(zoneLocale({ mono_downmix: true }));
     expect(interrupteurMono(racine).checked).toBe(true);
   });
 
-  it('une zone dont le serveur rend `false` affiche un interrupteur désarmé', async () => {
+  it('une zone dont le serveur rend `false` affiche un interrupteur désarmé', { timeout: DELAI_MONTAGE }, async () => {
     const racine = await ouvrirPanneau(zoneLocale({ mono_downmix: false }));
     expect(interrupteurMono(racine).checked).toBe(false);
   });
 
-  it('un serveur trop ancien, qui ne rend pas le champ, ne coche rien', async () => {
+  it('un serveur trop ancien, qui ne rend pas le champ, ne coche rien', { timeout: DELAI_MONTAGE }, async () => {
     const sansChamp = zoneLocale();
     delete (sansChamp as Partial<Zone>).mono_downmix;
     const racine = await ouvrirPanneau(sansChamp);
     expect(interrupteurMono(racine).checked).toBe(false);
   });
 
-  it('cocher ÉCRIT sur le serveur, avec le nom de champ du contrat', async () => {
+  it('cocher ÉCRIT sur le serveur, avec le nom de champ du contrat', { timeout: DELAI_MONTAGE }, async () => {
     // Sabotage n°2 vise ceci : débrancher l'envoi fait tomber ce cas.
     const racine = await ouvrirPanneau(zoneLocale());
     const boite = interrupteurMono(racine);
@@ -176,7 +198,7 @@ describe('#2362 — la sortie mono est atteignable depuis le panneau de zone', (
     expect(patchMono).toHaveBeenCalledWith(21, false);
   });
 
-  it("un PATCH refusé RAMÈNE l'interrupteur, il n'affirme pas un réglage absent", async () => {
+  it("un PATCH refusé RAMÈNE l'interrupteur, il n'affirme pas un réglage absent", { timeout: DELAI_MONTAGE }, async () => {
     patchMono.mockRejectedValueOnce(new Error('boum'));
     const racine = await ouvrirPanneau(zoneLocale({ mono_downmix: false }));
     const boite = interrupteurMono(racine);
@@ -190,7 +212,7 @@ describe('#2362 — la sortie mono est atteignable depuis le panneau de zone', (
     });
   });
 
-  it("prévient quand la zone n'est pas locale, au lieu de MASQUER le réglage", async () => {
+  it("prévient quand la zone n'est pas locale, au lieu de MASQUER le réglage", { timeout: DELAI_MONTAGE }, async () => {
     // Masquer est la faute que le bloc FIR d'à côté a déjà commise : un abonné
     // Premium en a conclu que la correction de pièce n'existait pas. On dit
     // que ça ne fera rien ici, et on laisse le réglage atteignable.
@@ -201,7 +223,7 @@ describe('#2362 — la sortie mono est atteignable depuis le panneau de zone', (
     );
   });
 
-  it('ne prévient de rien sur une zone locale, où le réglage agit', async () => {
+  it('ne prévient de rien sur une zone locale, où le réglage agit', { timeout: DELAI_MONTAGE }, async () => {
     const local = await ouvrirPanneau(zoneLocale({ output_type: 'local' }));
     expect(local.querySelector('.mono-note')).toBeNull();
   });
@@ -214,7 +236,7 @@ describe('#2362 — la sortie mono est atteignable depuis le panneau de zone', (
  * ce témoin, le test ci-dessus resterait vert sur un panneau amputé.
  */
 describe('#2362 — témoin : le panneau de zone garde ses autres réglages', () => {
-  it('conserve renommage, groupe, décalage de synchro, correction de pièce et suppression', async () => {
+  it('conserve renommage, groupe, décalage de synchro, correction de pièce et suppression', { timeout: DELAI_MONTAGE }, async () => {
     const racine = await ouvrirPanneau(zoneLocale());
     const titres = [...racine.querySelectorAll('.section-title')].map((h) => h.textContent?.trim());
 
