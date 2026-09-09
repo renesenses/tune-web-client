@@ -11,6 +11,10 @@
    */
   import * as api from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
+  // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
+  // manquant — n'atteignait jamais l'écran.
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, fold } from '../../lib/utils';
@@ -195,7 +199,7 @@
     e?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null || pl.id == null) return;
-    playAndSync(zid, { playlist_id: pl.id }).catch(() => {});
+    playAndSync(zid, { playlist_id: pl.id }).catch(signalerEchecLecture);
   }
   /**
    * DEUX ONGLETS, comme les collections.
@@ -283,7 +287,7 @@
         const ids = (pistes ?? []).map((t: any) => t.id).filter((x: any) => x != null);
         if (ids.length) return playAndSync(zid, { track_ids: ids.slice(0, 500) });
       })
-      .catch(() => {});
+      .catch(signalerEchecLecture);
   }
 
   // ── Sauvegardes ──────────────────────────────────────────────────────────
@@ -388,7 +392,7 @@
     // `service`, PAS `pl.source` : voir `PlaylistDetailV2`. Le champ n'existe
     // pas sur ces objets, et son absence faisait reprendre la lecture en cours
     // au lieu de lancer la playlist.
-    playAndSync(zid, { streaming_playlist_id: pl.source_id, source: service as any }).catch(() => {});
+    playAndSync(zid, { streaming_playlist_id: pl.source_id, source: service as any }).catch(signalerEchecLecture);
   }
   function create() {
     const name = newName.trim();

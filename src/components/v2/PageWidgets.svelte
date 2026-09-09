@@ -38,6 +38,10 @@
   import { t } from '../../lib/i18n';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
+  // Les vignettes de l'accueil jouent par `el.jouer`, qui appelle `api.play`
+  // directement. Son echec finissait dans un `.catch(() => {})` : le clic ne
+  // faisait rien, sans message (#3732).
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
@@ -341,7 +345,7 @@
   function jouer(e: Element) {
     const z = $currentZoneId;
     if (z == null || !e.jouer) return;
-    Promise.resolve(e.jouer(z)).catch(() => {});
+    Promise.resolve(e.jouer(z)).catch(signalerEchecLecture);
   }
 
   /** Fiche album ouverte par-dessus la page, comme sur les autres écrans. */
