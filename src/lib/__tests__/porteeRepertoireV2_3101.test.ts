@@ -79,6 +79,8 @@ const PISTES_HORS_PORTEE = [
 ];
 
 let urls: string[] = [];
+/** Quand elle est posée, `/library/tracks` attend qu'on la dénoue. */
+let retardTitres: Promise<void> | null = null;
 
 function corpsPour(u: string): unknown {
   if (/\/library\/albums-detailed/.test(u)) {
@@ -129,6 +131,7 @@ const texte = (el: HTMLElement, sel: string) =>
 
 beforeEach(() => {
   urls = [];
+  retardTitres = null;
   activeView.set('home');
   libraryFolderScope.set(null);
   localStorage.clear();
@@ -138,6 +141,7 @@ beforeEach(() => {
     vi.fn(async (url: any) => {
       const u = String(url);
       urls.push(u);
+      if (retardTitres && /\/library\/tracks/.test(u)) await retardTitres;
       const corps = corpsPour(u);
       return {
         ok: true,
@@ -223,6 +227,31 @@ describe('#3101 — onglet Titres : la portée s’applique, et un changement de
     const puce = texte(el, '.chip.count');
     expect(puce, 'la puce annonce le total de toute la bibliothèque').not.toContain('46');
     expect(puce).toContain('2');
+  });
+});
+
+describe('#3101 — quitter l’onglet Titres pendant le chargement', () => {
+  /**
+   * 🔴 L'effet des titres a `tab` pour dépendance : il se rejoue aussi quand on
+   * QUITTE l'onglet. Périmer la requête en vol depuis le nettoyage de l'effet
+   * la tuerait alors qu'elle est parfaitement valide — au retour, la portée
+   * n'aurait pas changé, aucun rechargement ne partirait, et l'écran resterait
+   * sur « Chargement… » à jamais. D'où un JETON, qui ne bouge que lorsqu'un
+   * nouveau chargement commence.
+   */
+  it('la liste arrive quand même au retour sur l’onglet', async () => {
+    let libere: () => void = () => {};
+    retardTitres = new Promise<void>((r) => (libere = r));
+    const el = await poser();
+    await ouvrirOnglet(el, fr['favorites.tracks']);
+    // On repart sur les Albums pendant que la requête traîne, puis on revient.
+    await ouvrirOnglet(el, fr['favorites.albums']);
+    await ouvrirOnglet(el, fr['favorites.tracks']);
+    libere();
+    for (let i = 0; i < 12; i++) await respirer();
+    flushSync();
+    expect(texte(el, '.tracklist'), 'l’écran est resté sur « Chargement… »')
+      .toContain('Titre hors portee');
   });
 });
 
