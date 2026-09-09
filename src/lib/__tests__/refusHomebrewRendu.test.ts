@@ -46,7 +46,6 @@ const REFUS_HOMEBREW = {
   installation_version: '0.9.71',
   current_version: '0.9.110',
   installation_version_mismatch: true,
-  upgrade_in_place_available: false,
   upgrade_in_place_blocked_reason: 'homebrew_brew_missing',
   upgrade_in_place_detail: 'No executable brew at /opt/homebrew/bin/brew.',
 };

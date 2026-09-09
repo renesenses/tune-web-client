@@ -41,7 +41,15 @@ export type RefusHomebrew = {
   versionCellar: string;
   /** Version du binaire réellement en cours d'exécution. */
   versionBinaire: string;
-  /** Tune peut-il conduire `brew upgrade` lui-même sur cette machine ? */
+  /**
+   * Tune peut-il conduire `brew upgrade` lui-même sur cette machine ?
+   *
+   * Déduit du MOTIF, jamais d'un drapeau : le serveur n'émet un refus QUE
+   * lorsque la mise à jour en place est barrée — quand elle est possible, la
+   * route lance le travail et rend 202. Un booléen dédié aurait donc valu
+   * `false` dans tous les refus réellement émis, et un champ constant qu'on lit
+   * a l'air de dire quelque chose.
+   */
   peutSeMettreAJourSeul: boolean;
   /** Motif de machine quand il ne le peut pas (`homebrew_brew_missing`…). */
   motifBlocage: string;
@@ -69,7 +77,7 @@ export function refusHomebrew(res: unknown): RefusHomebrew | null {
     divergence: r.installation_version_mismatch === true,
     versionCellar: texte(r.installation_version),
     versionBinaire: texte(r.current_version),
-    peutSeMettreAJourSeul: r.upgrade_in_place_available === true,
+    peutSeMettreAJourSeul: !texte(r.upgrade_in_place_blocked_reason),
     motifBlocage: texte(r.upgrade_in_place_blocked_reason),
     detailBlocage: texte(r.upgrade_in_place_detail),
   };
