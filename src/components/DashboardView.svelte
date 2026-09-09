@@ -4,7 +4,7 @@
   import { t } from '../lib/i18n';
   import { activeView } from '../lib/stores/navigation';
   import { selectedAlbum, selectedArtist, libraryTab, commencerFicheAlbum, poserPistesAlbum, fermerFicheAlbum, artistAlbums } from '../lib/stores/library';
-  import { artworkUrl, artworkSrc } from '../lib/api';
+  import { artworkSrc } from '../lib/api';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import DashboardHighlights from './DashboardHighlights.svelte';
   import HeartButton from './HeartButton.svelte';
