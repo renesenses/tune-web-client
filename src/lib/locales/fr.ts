@@ -3569,6 +3569,13 @@ export default {
   "settings.updateBlockedPlaying": "Mise à jour reportée : une zone est en lecture. Installer couperait la musique en cours.",
   "settings.updateBlockedUnknown": "Le serveur a refusé la mise à jour sans en donner la raison. Consultez les journaux du serveur.",
   "settings.updateDockerHint": "Tune tourne dans un conteneur Docker : la mise a jour se fait en recuperant la nouvelle image (docker compose pull && docker compose up -d). Vos donnees montees en volume sont conservees.",
+  "settings.homebrewManaged": "Cette installation de Tune est gérée par Homebrew : le serveur et son interface web forment un seul ensemble, que seul Homebrew doit remplacer.",
+  "settings.homebrewMismatch": "Attention : le serveur tourne en v{binaire} alors que Homebrew a posé la v{cellar}. L'interface que vous lisez peut donc être plus ancienne que le serveur. La mise à jour ci-dessous remet les deux d'accord.",
+  "settings.homebrewCannotSelfUpdate": "Tune ne peut pas lancer cette mise à jour lui-même ({detail}). Lancez-la dans un terminal :",
+  "settings.homebrewUpdating": "Mise à jour de Homebrew en cours…",
+  "settings.homebrewUpgrading": "Installation de la nouvelle version par Homebrew…",
+  "settings.homebrewRestarting": "Redémarrage du serveur…",
+  "settings.homebrewFailed": "La mise à jour Homebrew a échoué à l'étape « {etape} ». Lancez-la dans un terminal :",
   // v2 — outils Expert partagés (Convertisseur, Dé-ploc)
   "v2.tool.eyebrow": "Outils",
   "v2.tool.loading": "Chargement…",

@@ -3282,6 +3282,13 @@ export default {
   "settings.updateBlockedPlaying": "Actualizare amânată: o zonă redă. Instalarea ar întrerupe muzica.",
   "settings.updateBlockedUnknown": "Serverul a refuzat actualizarea fără a da un motiv. Consultați jurnalele serverului.",
   "settings.updateDockerHint": "Tune ruleaza intr-un container Docker: actualizati descarcand noua imagine (docker compose pull && docker compose up -d). Datele din volumele montate sunt pastrate.",
+  "settings.homebrewManaged": "Această instalare Tune este gestionată de Homebrew: serverul și interfața sa web formează un singur ansamblu, pe care doar Homebrew trebuie să îl înlocuiască.",
+  "settings.homebrewMismatch": "Atenție: serverul rulează v{binaire}, în timp ce Homebrew a instalat v{cellar}. Interfața pe care o vedeți poate fi mai veche decât serverul. Actualizarea de mai jos le pune din nou de acord.",
+  "settings.homebrewCannotSelfUpdate": "Tune nu poate rula singur această actualizare ({detail}). Rulați-o într-un terminal:",
+  "settings.homebrewUpdating": "Se actualizează Homebrew…",
+  "settings.homebrewUpgrading": "Homebrew instalează noua versiune…",
+  "settings.homebrewRestarting": "Se repornește serverul…",
+  "settings.homebrewFailed": "Actualizarea Homebrew a eșuat la pasul „{etape}”. Rulați-o într-un terminal:",
   // v2 — traduceri adăugate la 04/09/2026 (paritatea limbilor)
   "v2.col.noneInTab": "Nicio colecție de acest tip.",
   "common.open": "Deschide",

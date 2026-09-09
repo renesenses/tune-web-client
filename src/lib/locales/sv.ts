@@ -3281,6 +3281,13 @@ export default {
   "settings.updateBlockedPlaying": "Uppdateringen sköts upp: en zon spelar. Installation skulle avbryta musiken mitt i spåret.",
   "settings.updateBlockedUnknown": "Servern nekade uppdateringen utan att ange skäl. Kontrollera serverloggarna.",
   "settings.updateDockerHint": "Tune kors i en Docker-container: uppdatera genom att hamta den nya avbildningen (docker compose pull && docker compose up -d). Dina data i monterade volymer bevaras.",
+  "settings.homebrewManaged": "Den här Tune-installationen hanteras av Homebrew: servern och dess webbgränssnitt utgör en enhet som bara Homebrew ska ersätta.",
+  "settings.homebrewMismatch": "Varning: servern kör v{binaire} medan Homebrew installerade v{cellar}. Gränssnittet du ser kan därför vara äldre än servern. Uppdateringen nedan får de två i takt igen.",
+  "settings.homebrewCannotSelfUpdate": "Tune kan inte köra den här uppdateringen själv ({detail}). Kör den i en terminal:",
+  "settings.homebrewUpdating": "Uppdaterar Homebrew…",
+  "settings.homebrewUpgrading": "Homebrew installerar den nya versionen…",
+  "settings.homebrewRestarting": "Startar om servern…",
+  "settings.homebrewFailed": "Homebrew-uppdateringen misslyckades i steget ”{etape}”. Kör den i en terminal:",
   // v2 — översättningar tillagda 2026-09-04 (språkparitet)
   "v2.col.noneInTab": "Ingen samling av det här slaget.",
   "common.open": "Öppna",

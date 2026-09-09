@@ -3282,6 +3282,13 @@ export default {
   "settings.updateBlockedPlaying": "Actualización aplazada: una zona está reproduciendo. Instalar cortaría la música en curso.",
   "settings.updateBlockedUnknown": "El servidor rechazó la actualización sin dar un motivo. Consulte los registros del servidor.",
   "settings.updateDockerHint": "Tune se ejecuta en un contenedor Docker: actualiza descargando la nueva imagen (docker compose pull && docker compose up -d). Tus datos en volumenes montados se conservan.",
+  "settings.homebrewManaged": "Esta instalación de Tune la gestiona Homebrew: el servidor y su interfaz web forman un único conjunto que solo Homebrew debe reemplazar.",
+  "settings.homebrewMismatch": "Atención: el servidor ejecuta la v{binaire} mientras que Homebrew instaló la v{cellar}. La interfaz que estás viendo puede ser más antigua que el servidor. La actualización siguiente vuelve a alinear ambos.",
+  "settings.homebrewCannotSelfUpdate": "Tune no puede ejecutar esta actualización por sí mismo ({detail}). Ejecútala en un terminal:",
+  "settings.homebrewUpdating": "Actualizando Homebrew…",
+  "settings.homebrewUpgrading": "Homebrew está instalando la nueva versión…",
+  "settings.homebrewRestarting": "Reiniciando el servidor…",
+  "settings.homebrewFailed": "La actualización de Homebrew falló en el paso «{etape}». Ejecútala en un terminal:",
   // v2 — traducciones añadidas el 04/09/2026 (paridad de idiomas)
   "v2.col.noneInTab": "Ninguna colección de este tipo.",
   "common.open": "Abrir",

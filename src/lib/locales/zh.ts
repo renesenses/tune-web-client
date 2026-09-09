@@ -3282,6 +3282,13 @@ export default {
   "settings.updateBlockedPlaying": "更新已推迟：有区域正在播放。现在安装会中断正在播放的音乐。",
   "settings.updateBlockedUnknown": "服务器拒绝了更新但未说明原因。请查看服务器日志。",
   "settings.updateDockerHint": "Tune 正在 Docker 容器中运行：请拉取新镜像进行更新（docker compose pull && docker compose up -d）。挂载卷中的数据会保留。",
+  "settings.homebrewManaged": "此 Tune 安装由 Homebrew 管理：服务器及其网页界面是一个整体，只应由 Homebrew 替换。",
+  "settings.homebrewMismatch": "注意：服务器运行的是 v{binaire}，而 Homebrew 安装的是 v{cellar}。您看到的界面可能比服务器旧。下面的更新会让两者重新一致。",
+  "settings.homebrewCannotSelfUpdate": "Tune 无法自行执行此更新（{detail}）。请在终端中运行：",
+  "settings.homebrewUpdating": "正在更新 Homebrew…",
+  "settings.homebrewUpgrading": "Homebrew 正在安装新版本…",
+  "settings.homebrewRestarting": "正在重启服务器…",
+  "settings.homebrewFailed": "Homebrew 更新在「{etape}」步骤失败。请在终端中运行：",
   // v2 — 2026-09-04 新增的翻译（语言一致性）
   "v2.col.noneInTab": "没有此类收藏集。",
   "common.open": "打开",
