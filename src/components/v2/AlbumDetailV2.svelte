@@ -54,12 +54,44 @@
   let error = $state<string | null>(null);
   const showExpert = $derived(atLeast($preferences.settingsLevel, 'expert'));
 
+  /**
+   * Les pistes de la fiche AFFICHÉE — et rien d'autre.
+   *
+   * renesenses/tune-server-rust#3178 (jfpaquet, 0.9.130 Windows) : « en
+   * ouvrant la fiche d'un album, la liste de pistes affichée est celle d'un
+   * AUTRE album », titre et pochette corrects, et la LECTURE juste. Le
+   * compteur de l'entête suivait la liste étrangère — 12 puis 8 pour le même
+   * disque, dont le journal serveur donne le vrai compte (`set_queue_ok n=9`).
+   *
+   * L'ancien client a reçu sa clé (`albumTracksOwner`, stores/library) ; CETTE
+   * fiche-ci ne l'avait pas, et elle porte deux trous :
+   *
+   *  1. **La fiche change d'album SANS être remontée.** `{#if opened}<AlbumDetailV2
+   *     album={opened}/>{/if}` : passer de l'album A à l'album B garde
+   *     l'instance et ne fait que changer la propriété. `tracks` restait donc
+   *     rempli des pistes de A — et l'entête, qui compte `tracks.length`,
+   *     annonçait le compte de A sous le titre de B. C'est err 02 / err 01.
+   *     `LibraryV2` a exactement ce chemin : l'effet `$pendingLibraryAlbum`
+   *     écrit `opened = <autre album>` alors qu'une fiche est ouverte
+   *     (« aller à l'album » du menu d'une piste).
+   *  2. **Aucun jeton de fraîcheur.** Deux ouvertures rapprochées laissaient
+   *     gagner la réponse la plus LENTE : celle de l'album précédent venait se
+   *     poser, PLEINE et cohérente, sous l'entête du suivant.
+   *
+   * La liste repart donc VIDE à chaque changement d'album, et une réponse
+   * périmée n'écrit plus rien. L'effet ÉCRIT `tracks`, `loading` et `error`,
+   * et ne les LIT jamais — sans quoi il se relancerait lui-même sans fin.
+   */
   $effect(() => {
     const id = album.id, d = depot, svc = service, sid = sidDistant, bc = bandcamp;
+    // 🔴 AVANT la garde : une fiche qu'on ne sait pas charger ne doit pas
+    // garder à l'écran la liste de la précédente.
+    tracks = [];
     // Un album de service n'a pas d'`id` local : sans cette branche, la garde
     // sortait aussitot et la fiche restait sur « Chargement… » pour toujours.
     if (id == null && !(svc && sid) && !bc) return;
     loading = true; error = null;
+    let perime = false;
     const p = bc
       // Le plugin rend ses propres champs : on les traduit dans la forme d'une
       // piste, en gardant `stream_url` comme chemin de lecture — c'est ce que
@@ -87,9 +119,10 @@
       : d
         ? pistesAlbumDistant(d, id as number)
         : api.getAlbumTracks(id as number);
-    p.then((t) => { tracks = t; })
-      .catch((e) => { error = errText(e) ?? 'Chargement impossible'; })
-      .finally(() => { loading = false; });
+    p.then((t) => { if (!perime) tracks = t; })
+      .catch((e) => { if (!perime) error = errText(e) ?? 'Chargement impossible'; })
+      .finally(() => { if (!perime) loading = false; });
+    return () => { perime = true; };
   });
 
   /**

@@ -73,8 +73,20 @@
     /** Acquitté une fois la fiche ouverte — sinon elle se rouvrirait à chaque
      *  retour sur l'onglet. */
     onOuvert?: () => void;
+    /**
+     * PORTÉE À UN RÉPERTOIRE — les identifiants des artistes à montrer, ou
+     * `null` quand aucune portée n'est posée.
+     *
+     * `/library/artists` n'a pas de facette `folder` : la portée arrive donc
+     * déjà résolue, depuis les albums du dossier que la Bibliothèque a
+     * demandés. Sans elle, choisir un répertoire laissait TOUS les artistes à
+     * l'écran sous la puce du dossier — renesenses/tune-server-rust#3101.
+     */
+    idsPortee?: Set<number> | null;
+    /** Le nom du dossier, pour le dire quand la portée ne rend aucun artiste. */
+    nomPortee?: string | null;
   }
-  let { q = '', ouvrirId = null, onOuvert }: Props = $props();
+  let { q = '', ouvrirId = null, onOuvert, idsPortee = null, nomPortee = null }: Props = $props();
 
   /**
    * 🔴 On attend que la LISTE soit chargée : `artistes` est vide au montage, et
@@ -149,11 +161,15 @@
   const plier = (s: string | null | undefined) =>
     (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+  /** Les artistes que la PORTÉE laisse passer — tous, sans portée. */
+  const dansLaPortee = $derived(
+    idsPortee == null ? artistes : artistes.filter((x) => x.id != null && idsPortee!.has(x.id)),
+  );
   const affiches = $derived.by(() => {
     const aiguille = plier(q);
     const liste = aiguille
-      ? artistes.filter((a) => plier(a.name).includes(aiguille))
-      : artistes;
+      ? dansLaPortee.filter((a) => plier(a.name).includes(aiguille))
+      : dansLaPortee;
     return [...liste].sort((x, z) => plier(x.name).localeCompare(plier(z.name)));
   });
 

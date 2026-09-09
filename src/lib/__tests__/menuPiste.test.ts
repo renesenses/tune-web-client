@@ -176,7 +176,11 @@ describe('« je veux à minima le contenu de la v0 »', () => {
     expect(/tab = 'artists'/.test(bib),
       'l’onglet des artistes n’est plus ouvert : la vue ne serait même pas montée').toBe(true);
     // Basculer d'onglet est la MOITIÉ du geste ; encore faut-il ouvrir la fiche.
-    expect(/<ArtistesV2 \{q\} ouvrirId=/.test(bib),
+    // ⚠️ Le motif exigeait `<ArtistesV2 {q} ouvrirId=` — donc l'ORDRE des
+    // attributs, pas le contrat. #3101 a inséré la portée de répertoire entre
+    // les deux et faisait rougir cette ligne sans qu'aucun identifiant se
+    // perde. On exige désormais ce qui compte : la balise porte `ouvrirId`.
+    expect(/<ArtistesV2[\s\S]*?ouvrirId=\{artisteADemande\}/.test(bib),
       'l’identifiant n’est plus transmis à la vue des artistes').toBe(true);
 
     const vue = lire('src/components/v2/ArtistesV2.svelte');

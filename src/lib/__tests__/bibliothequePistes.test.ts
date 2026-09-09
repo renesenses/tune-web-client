@@ -54,7 +54,14 @@ describe('le compteur de pistes', () => {
   });
 
   it("un dépôt distant ne se voit pas prêter le total LOCAL", () => {
-    expect(src).toMatch(/if \(!d\) api\.getLibraryStats\(\)/);
+    // ⚠️ Cette garde est TEXTUELLE, et elle exigeait littéralement `if (!d)`.
+    // La condition en porte une seconde depuis #3101 : sous une PORTÉE de
+    // répertoire, le total du serveur porte sur toute la bibliothèque et ne
+    // doit pas davantage être prêté à l'écran. Le témoin de COMPORTEMENT de
+    // cette seconde moitié est dans `porteeRepertoireV2_3101.test.ts` (« la
+    // puce ne prête pas le total du serveur sous une portée ») ; ici on garde
+    // la seule chose que le texte prouve — que la condition existe encore.
+    expect(src).toMatch(/if \(!d && !portee\) api\.getLibraryStats\(\)/);
   });
 });
 
