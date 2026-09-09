@@ -49,6 +49,12 @@ const SHELL = readFileSync('src/components/v2/ShellV2.svelte', 'utf8');
  */
 const PAS_DES_ECRANS = new Set([
   'TransportBar', 'NowPlaying', 'DialogContainer', 'GlobalSearchBar', 'TvView',
+  // `ToastContainer` rejoint la coquille avec #3732. Comme `DialogContainer`,
+  // ce n'est pas un écran : il n'a ni en-tête ni barre d'outils, et ses
+  // bandeaux sont en `position: fixed` en BAS et au centre — ils ne peuvent
+  // pas passer sous la grappe du coin haut-droit. Lui imposer la gouttière
+  // reviendrait à décaler un élément qui n'est pas dans le flux.
+  'ToastContainer',
 ]);
 const ECRANS_V1 = [...SHELL.matchAll(/import\s+(\w+)\s+from\s+'\.\.\/(\w+\.svelte)'/g)]
   .filter((m) => !PAS_DES_ECRANS.has(m[1]))

@@ -36,8 +36,12 @@
  *
  * Ce n'est pas un fork du gestionnaire d'événements d'`App` : c'est le
  * sous-ensemble qui fait vivre le TRANSPORT. Les branches propres à l'app
- * historique — YouTube, zones navigateur, fenêtres de grâce, onboarding — n'y
- * sont pas, et n'ont rien à y faire.
+ * historique — YouTube, zones navigateur, onboarding — n'y sont pas, et n'ont
+ * rien à y faire.
+ *
+ * ⚠️ La fenêtre de grâce, elle, EST ici depuis le 09/09/2026, et ce n'est pas
+ * une entorse : elle est indissociable de l'ÉCHEC DE LECTURE, qui ne pouvait
+ * pas rester dehors (#3732, #3737). Voir la branche `zone.playback_error`.
  *
  * Le jour où `App` extraira sa boucle complète dans un module partagé, ce
  * fichier disparaîtra au profit de celui-là. En attendant, il est court et
@@ -46,9 +50,18 @@
 import { get } from 'svelte/store';
 import * as api from './api';
 import { tuneWS } from './websocket';
-import { zones, currentZone, currentZoneId } from './stores/zones';
+import {
+  zones,
+  currentZone,
+  currentZoneId,
+  playPendingUntil,
+  suppressedByPlayGrace,
+} from './stores/zones';
 import { queueTracks, queuePosition, queueLength } from './stores/queue';
 import { handleAudioLevelsEvent } from './stores/audioLevels';
+import { notifications } from './stores/notifications';
+import { t } from './i18n';
+import { signalerErreurServeur } from './echecLecture';
 import {
   seekPositionMs,
   startSeekTimer,
@@ -161,6 +174,29 @@ async function rechargerFile(): Promise<void> {
   }
 }
 
+/**
+ * Dernier échec annoncé, pour ne pas empiler douze fois le même bandeau.
+ *
+ * Mesuré chez le testeur du 09/09 : douze clics en quatorze minutes, douze
+ * `zone.playback_error` RIGOUREUSEMENT identiques. Le conteneur de bandeaux
+ * n'en empile que trois proprement ; au-delà ils se recouvrent. Remplacer le
+ * silence par un mur de bandeaux identiques serait un autre défaut.
+ *
+ * La fenêtre est courte exprès : deux échecs distants de plus de trois
+ * secondes sont deux gestes de l'utilisateur, et chacun mérite sa réponse.
+ */
+let dernierEchec: { texte: string; a: number } | null = null;
+const REPETITION_MS = 3000;
+
+function dejaAnnonce(texte: string): boolean {
+  const maintenant = Date.now();
+  if (dernierEchec && dernierEchec.texte === texte && maintenant - dernierEchec.a < REPETITION_MS) {
+    return true;
+  }
+  dernierEchec = { texte, a: maintenant };
+  return false;
+}
+
 /** Recharge les zones depuis l'API — après un événement qui change la piste. */
 async function rechargerZones(): Promise<void> {
   try {
@@ -224,6 +260,46 @@ export function demarrerTransportV2(): () => void {
       return;
     }
 
+    // 🔴 L'ÉCHEC DE LECTURE — le canal que la coquille v2 n'écoutait PAS.
+    //
+    // #3732 / #3737 : `?v2` monte `ShellV2` À LA PLACE de `App`, et la seule
+    // branche du client qui affichait un échec vivait dans `App.svelte`. Un
+    // `grep -c "playback\|error"` sur ce fichier rendait 0 : DAC absent, refus
+    // exclusif, sortie disparue, `400 no tracks to play` — rien n'atteignait
+    // l'écran, alors que le serveur pousse un message complet, qui NOMME
+    // l'appareil demandé et les endpoints disponibles.
+    //
+    // Le serveur Rust émet `zone.playback_error` ; le serveur embarqué iPad
+    // émet `playback.error`. Les deux, comme `App` le fait — sans quoi
+    // l'événement Rust n'entrerait dans aucune branche, puisqu'il ne commence
+    // même pas par `playback.`.
+    //
+    // ⚠️ Placé AVANT le bloc générique `playback.*`, qui se contenterait de
+    // recharger les zones en silence.
+    if (type === 'zone.playback_error' || type === 'playback.error') {
+      const zoneId = event?.data?.zone_id as number | null | undefined;
+      // La fenêtre de grâce, telle que la v1 la tient (#1146) : pendant les
+      // trente secondes qui suivent un Lire, une erreur PASSAGÈRE est le
+      // pré-transcodage HI-RES qui travaille encore, pas une panne.
+      //
+      // `fatal` la contourne, et c'est tout l'enjeu : un périphérique audio
+      // qui refuse de s'ouvrir ne guérira pas, et le serveur le rapporte en
+      // moins d'une seconde — donc en PLEIN dans la fenêtre. L'y taire
+      // afficherait « chargement… » puis plus rien du tout, puisque cette
+      // erreur-là n'est émise qu'une fois et que la zone s'arrête juste après.
+      if (suppressedByPlayGrace(zoneId, event?.data?.fatal === true)) {
+        notifications.info(get(t)('common.loading'));
+        void rechargerZones();
+        return;
+      }
+      const brut = event?.data?.message || event?.data?.error || '';
+      if (!dejaAnnonce(`${brut}|${event?.data?.track_title ?? ''}`)) {
+        signalerErreurServeur(event?.data);
+      }
+      void rechargerZones();
+      return;
+    }
+
     // Le volume peut changer AILLEURS — depuis l'appareil lui-même, ou depuis
     // un autre client. Sans cela, le curseur de la barre reste sur la dernière
     // valeur qu'on lui a donnée soi-même.
@@ -279,6 +355,15 @@ export function demarrerTransportV2(): () => void {
     // Les autres événements de lecture changent la PISTE ou la file : eux
     // demandent bien une relecture, l'événement ne la porte pas.
     if (type.startsWith('playback.')) {
+      // La lecture a VRAIMENT démarré : on ferme la fenêtre de grâce, sans quoi
+      // une erreur survenue plus tard dans les trente secondes passerait encore
+      // pour « chargement… ». `App` fait exactement cela (#1146) ; ici rien ne
+      // le faisait, car `rechargerZones()` écrit `zones` en bloc au lieu de
+      // passer par `syncZone`.
+      const zid = event?.data?.zone_id;
+      if (zid != null && (type === 'playback.started' || type === 'playback.track_changed')) {
+        playPendingUntil.delete(zid);
+      }
       void rechargerZones();
       void rechargerFile();
     }

@@ -23,6 +23,10 @@
   import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
+  // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
+  // manquant — n'atteignait jamais l'écran.
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, getQualityTier } from '../../lib/utils';
@@ -267,7 +271,7 @@
   function lireAlbum(id: number) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    playAndSync(zid, { album_id: id }).catch(() => {});
+    playAndSync(zid, { album_id: id }).catch(signalerEchecLecture);
   }
 
   /**
@@ -278,13 +282,13 @@
   function lireDistant(a: any) {
     const zid = $currentZoneId;
     if (zid == null || !a?.source || !a?.source_id) return;
-    playAndSync(zid, { streaming_album_id: String(a.source_id), source: a.source }).catch(() => {});
+    playAndSync(zid, { streaming_album_id: String(a.source_id), source: a.source }).catch(signalerEchecLecture);
   }
 
   function playTrack(t: Track) {
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
-    playAndSync(zid, { track_id: t.id }).catch(() => {});
+    playAndSync(zid, { track_id: t.id }).catch(signalerEchecLecture);
   }
   function trackRate(t: Track): string {
     if (getQualityTier(t) === 'dsd') return 'DSD';
@@ -442,9 +446,9 @@
   function lirePlaylist(pl: PlaylistTrouvee) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    if (pl.idLocal != null) { playAndSync(zid, { playlist_id: pl.idLocal }).catch(() => {}); return; }
+    if (pl.idLocal != null) { playAndSync(zid, { playlist_id: pl.idLocal }).catch(signalerEchecLecture); return; }
     if (pl.idService && pl.serviceSource) {
-      playAndSync(zid, { streaming_playlist_id: pl.idService, source: pl.serviceSource as any }).catch(() => {});
+      playAndSync(zid, { streaming_playlist_id: pl.idService, source: pl.serviceSource as any }).catch(signalerEchecLecture);
     }
   }
 
@@ -510,12 +514,12 @@
   function lirePiste(t: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    if (estLocal(t)) { playAndSync(zid, { track_id: t.id }).catch(() => {}); return; }
+    if (estLocal(t)) { playAndSync(zid, { track_id: t.id }).catch(signalerEchecLecture); return; }
     if (t?.source && t?.source_id) {
       playAndSync(zid, { source: t.source, source_id: String(t.source_id),
         title: t.title ?? null, artist_name: t.artist_name ?? null,
         album_title: t.album_title ?? null, cover_path: t.cover_path ?? null,
-        duration_ms: t.duration_ms }).catch(() => {});
+        duration_ms: t.duration_ms }).catch(signalerEchecLecture);
     }
   }
 </script>

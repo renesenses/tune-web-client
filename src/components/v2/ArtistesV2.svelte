@@ -43,6 +43,10 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
+  // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
+  // manquant — n'atteignait jamais l'écran.
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import { notifications } from '../../lib/stores/notifications';
   import type { Album, Artist } from '../../lib/types';
   import { streamingServices } from '../../lib/stores/streaming';
@@ -154,7 +158,7 @@
     // n'est apparié par aucun service.
     if (zid == null || al.source_id == null) return;
     playAndSync(zid, { streaming_album_id: String(al.source_id), source: (al.source ?? service) as any })
-      .catch(() => {});
+      .catch(signalerEchecLecture);
   }
 
   /** Sans accents ni casse : « Éric » doit se ranger et se chercher comme « Eric ». */
@@ -296,7 +300,7 @@
   function lireAlbum(al: Album) {
     const zid = $currentZoneId;
     if (zid == null || al.id == null) return;
-    playAndSync(zid, { album_id: al.id }).catch(() => {});
+    playAndSync(zid, { album_id: al.id }).catch(signalerEchecLecture);
   }
 
   /**
