@@ -107,14 +107,16 @@
 </script>
 
 <section class="v2-hist tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$tr('v2.hist.eyebrow' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$tr('v2.hist.eyebrow' as any)}</div>
       <h1>{$tr('history.title')}</h1>
     </div>
     {#if entrees.length}
-      <div class="meta"><span>{entrees.length} {$tr('history.plays')}</span></div>
-      <button class="lnk danger" onclick={vider} disabled={vidage}>{$tr('history.clear')}</button>
+      <div class="v2-actions">
+        <div class="meta"><span>{entrees.length} {$tr('history.plays')}</span></div>
+        <button class="v2-btn danger" onclick={vider} disabled={vidage}>{$tr('history.clear')}</button>
+      </div>
     {/if}
   </header>
 
@@ -164,14 +166,7 @@
 <style>
   .v2-hist{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:20px; padding:24px 30px 14px; padding-right:96px}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
-  .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
-    border-radius:var(--v2-r-pill); padding:8px 15px; font:600 12px var(--v2-sans)}
-  .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
-  .lnk:disabled{opacity:.45; cursor:default}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}

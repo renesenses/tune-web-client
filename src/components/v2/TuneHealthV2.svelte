@@ -202,18 +202,20 @@
 </script>
 
 <section class="v2-health tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.health.eyebrow' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.health.eyebrow' as any)}</div>
       <h1>{$t('v2.nav.processing' as any)}</h1>
     </div>
-    <div class="meta">
-      {#if lastAt}<span>{$t('v2.health.readAt' as any).replace('{h}', lastAt)}</span>{/if}
-      {#if anyRunning}<span class="live">{$t('v2.health.autoFollow' as any)}</span>{/if}
+    <div class="v2-actions">
+      <div class="meta">
+        {#if lastAt}<span>{$t('v2.health.readAt' as any).replace('{h}', lastAt)}</span>{/if}
+        {#if anyRunning}<span class="live">{$t('v2.health.autoFollow' as any)}</span>{/if}
+      </div>
+      <button class="v2-btn" onclick={() => collect()} disabled={refreshing}>
+        {$t((refreshing ? 'v2.health.refreshing' : 'v2.health.refresh') as any)}
+      </button>
     </div>
-    <button class="lnk" onclick={() => collect()} disabled={refreshing}>
-      {$t((refreshing ? 'v2.health.refreshing' : 'v2.health.refresh') as any)}
-    </button>
   </header>
 
   <div class="scroll">
@@ -265,9 +267,6 @@
 <style>
   .v2-health{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:18px; padding:24px 30px 14px; padding-right:96px}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .meta{display:flex; gap:14px; margin-left:auto; font:11px var(--v2-mono); color:var(--v2-txt3)}
   .meta .live{color:var(--v2-acc1)}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;

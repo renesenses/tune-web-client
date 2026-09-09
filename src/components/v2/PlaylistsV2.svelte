@@ -400,11 +400,12 @@
 </script>
 
 <section class="v2-playlists tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.lbl.yourCollections' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.lbl.yourCollections' as any)}</div>
       <h1>Playlists</h1>
     </div>
+    <div class="v2-actions">
     <label class="chercher">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
            stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -420,11 +421,11 @@
           <!-- svelte-ignore a11y_autofocus -->
           <input bind:value={newName} placeholder={$t('v2.pl.namePlaceholder' as any)} autofocus
             onkeydown={(e) => { if (e.key === 'Enter') create(); if (e.key === 'Escape') { creating = false; newName = ''; } }} />
-          <button class="mk" onclick={create}>{$t('v2.zone.create' as any)}</button>
+          <button class="v2-btn primaire" onclick={create}>{$t('v2.zone.create' as any)}</button>
         </div>
       {:else}
         <div class="outils">
-          <button class="add" onclick={() => (creating = true)}>
+          <button class="v2-btn primaire" onclick={() => (creating = true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
             {$t('v2.lbl.newPlaylist' as any)}
           </button>
@@ -445,6 +446,7 @@
         </div>
       {/if}
     {/if}
+    </div>
   </header>
 
   <!-- Premier niveau : la SOURCE, en pastilles. Une seule source ne justifie
@@ -631,13 +633,6 @@
   .v2-playlists{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
 
-  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 10px; padding-right:96px}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .add{display:inline-flex; align-items:center; gap:8px; height:42px; padding:0 16px; border-radius:var(--v2-r-pill);
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:600 13px var(--v2-sans); cursor:pointer}
-  .add svg{width:16px; height:16px}
-  .add:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .newp{display:flex; gap:8px}
   /* La recherche vit dans l'en-tete, a cote des outils : elle porte sur tout
      l'ecran, pas sur une seule de ses quatre listes. */
