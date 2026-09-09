@@ -8,6 +8,7 @@ import { profileHeader } from './profileHeader';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
+import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -2666,10 +2667,26 @@ export async function addMusicDir(path: string): Promise<{ music_dirs: string[] 
   return { ...r, music_dirs: listeDossiers(r) };
 }
 
-export async function removeMusicDir(path: string): Promise<{ music_dirs: string[] }> {
-  const r = await fetchJSON<any>(`${BASE}/system/music-dirs/remove`, {
+/**
+ * Retire une racine de musique — et, si `confirmPurge` est donné, retire
+ * aussi les pistes devenues orphelines (#2149).
+ *
+ * Le type de retour disait `{ music_dirs }` : le serveur rend `dirs`. Personne
+ * ne s'en apercevait, l'appelant jetait la réponse — et jetait avec elle
+ * `orphan_tracks` et `confirm_purge_required`, sans lesquels aucun écran ne
+ * pouvait proposer la purge.
+ *
+ * `confirmPurge` est un NOMBRE, pas un booléen : il doit couvrir le nombre
+ * exact annoncé au premier appel, sinon le plafond de #1943 refuse tout. Le
+ * refus se lit dans `purge_refused`, jamais dans le code HTTP — le retrait,
+ * lui, a toujours réussi.
+ */
+export async function removeMusicDir(path: string, confirmPurge?: number) {
+  const body: Record<string, unknown> = { path };
+  if (typeof confirmPurge === 'number') body.confirm_purge = confirmPurge;
+  const r = await fetchJSON<RetraitDossier>(`${BASE}/system/music-dirs/remove`, {
     method: 'POST',
-    body: JSON.stringify({ path }),
+    body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
 }
@@ -6040,4 +6057,72 @@ export interface BandcampDiscographie {
 export function bandcampArtist(url: string) {
   const p = new URLSearchParams({ url });
   return fetchJSON<BandcampDiscographie>(`${BASE}/ext/bandcamp/artist?${p}`);
+}
+
+// --- Concerts (greffon, monté sur /ext/concerts) ---
+
+/** Un concert à venir d'un artiste de la bibliothèque. */
+export interface Concert {
+  artist_name: string;
+  event_date: string;
+  venue?: string | null;
+  city?: string | null;
+  country?: string | null;
+  event_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+/** Les trois crans du périmètre. Gradué, jamais binaire : les grands groupes
+ *  ne passent que dans les grandes villes, et un rayon strict masquerait
+ *  précisément les têtes d'affiche. */
+export type PerimetreConcerts = 'radius' | 'country' | 'world';
+
+/** Les rayons proposés, en kilomètres. Liste fermée, la même que côté serveur :
+ *  un rayon libre serait un « partout » déguisé, plus lent et moins lisible. */
+export const RAYONS_CONCERTS = [50, 100, 200] as const;
+
+export interface ConcertsAVenir {
+  concerts: Concert[];
+  /** Le périmètre effectivement appliqué par le nuage. */
+  scope?: PerimetreConcerts;
+  radius_km?: number | null;
+  city?: string | null;
+  country?: string | null;
+  /** Code d'anomalie stable et traduisible — jamais une phrase anglaise. */
+  code?: string;
+}
+
+export interface LocalisationConcerts {
+  scope: PerimetreConcerts;
+  city: string;
+  country: string;
+  radius_km: number;
+  /** `false` quand le rayon est demandé mais que la commune n'a pas été
+   *  trouvée : la lecture retombe alors sur le pays. Sans ce drapeau,
+   *  l'utilisateur croit filtrer à 50 km alors qu'il voit tout son pays. */
+  located?: boolean;
+  code?: string;
+}
+
+export function getConcertsAVenir() {
+  return fetchJSON<ConcertsAVenir>(`${BASE}/ext/concerts/upcoming`);
+}
+
+/** Enregistre la commune SAISIE par l'utilisateur et le périmètre voulu.
+ *
+ *  Jamais déduite : le serveur connaît pourtant des coordonnées tirées de
+ *  l'adresse IP, et il ne faut pas s'en servir — derrière un VPN elles
+ *  désignent un autre pays. */
+export function setLocalisationConcerts(demande: {
+  city: string;
+  postal_code?: string | null;
+  country: string;
+  scope: PerimetreConcerts;
+  radius_km?: number;
+}) {
+  return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`, {
+    method: 'POST',
+    body: JSON.stringify(demande),
+  });
 }

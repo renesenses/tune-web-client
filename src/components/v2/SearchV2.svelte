@@ -889,8 +889,43 @@
   .grp h2 .tag{font:600 10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); border-radius:999px; padding:3px 9px}
 
-  .arow{display:flex; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none}
-  .arow::-webkit-scrollbar{display:none}
+  /*
+    #3707 — FabienM, fil forum 1727 : « Le problème est le bloc artistes qui
+    est mal alignés, on ne peut pas voir tous les résultats. » Sa capture
+    montre la pastille « Artistes 22 » et une 6e vignette tranchée par le bord.
+
+    Ce n'était pas un défaut d'alignement mais un DÉBORDEMENT HORIZONTAL SANS
+    AFFORDANCE, et il tenait à ces deux lignes :
+
+      .arow{… overflow-x:auto; scrollbar-width:none}
+      .arow::-webkit-scrollbar{display:none}
+
+    Douze vignettes de 112 px espacées de 22 font ~1 586 px de rangée, posées
+    dans la colonne de 2fr du bandeau. Le contenu était dans le DOM, hors
+    champ, et rien à l'écran ne l'annonçait — la barre de défilement, seul
+    indice, était explicitement effacée. Pire : « Voir plus (10) » ajoutait
+    dix vignettes à la MÊME rangée, il aggravait le débordement.
+
+    🔴 `flex-wrap: wrap` D'ABORD, la barre ensuite. Le point ouvert du ticket
+    était : « on ne sait pas s'il PEUT défiler la rangée » — avec une souris
+    sans molette horizontale ni pavé tactile, cas ordinaire sous Windows, rien
+    ne le garantissait, et seize artistes sur vingt-deux auraient été
+    strictement inatteignables. Le repli supprime la question : il n'y a plus
+    rien hors champ à atteindre. Rendre seulement la barre visible aurait
+    soigné la découvrabilité en pariant sur le matériel de l'utilisateur.
+
+    La mise en page en deux colonnes n'est PAS défaite : les artistes restent
+    à droite du meilleur résultat, ils tiennent sur deux lignes au lieu de
+    fuir vers la droite. Le ticket cite « rangée repliable » parmi les
+    remèdes qui ne touchent pas à cet arbitrage.
+
+    `overflow-x:auto` reste, en filet : une colonne plus étroite qu'une
+    vignette (112 px) déborderait encore. Sa barre est désormais VISIBLE, et
+    une barre visible se traîne à la souris.
+  */
+  .arow{display:flex; flex-wrap:wrap; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin}
+  .arow::-webkit-scrollbar{height:8px}
+  .arow::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:999px}
   .artile{flex:0 0 auto; width:112px; border:0; background:transparent; color:inherit; cursor:pointer; text-align:center; padding:0}
   /* Carrée comme un album — voir `ArtistesV2`. */
   .acv{display:block; width:112px; height:112px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
