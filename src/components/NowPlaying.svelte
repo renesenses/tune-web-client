@@ -40,6 +40,7 @@
   import { setSearchCriteria } from '../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
+  import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../lib/lyrics';
@@ -1875,6 +1876,11 @@
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                     </button>
                   </div>
+
+                  <!-- #2207 — sur quoi le son sort RÉELLEMENT, avant la
+                       description de la chaîne. Silencieux tant que le serveur
+                       n'envoie pas le champ. -->
+                  <ZoneOutputDeviceNotice {zone} />
 
                   <div class="sp-steps">
                     {#each zone.signal_path.steps as step, i}
