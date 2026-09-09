@@ -3994,6 +3994,7 @@ export default {
   "v2.tags.noPlaylistWithTag": "Nessuna playlist ha questa etichetta.",
   "v2.album.play": "Riproduci",
   "v2.album.shuffle": "Casuale",
+  "v2.album.locate": "Individua sul disco",
   "v2.album.playNext": "Riproduci dopo",
   "v2.piste.enLecture": "In riproduzione",
   "v2.piste.enPause": "In pausa",

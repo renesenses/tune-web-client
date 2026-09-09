@@ -3994,6 +3994,7 @@ export default {
   "v2.tags.noPlaylistWithTag": "Ninguna lista tiene esta etiqueta.",
   "v2.album.play": "Reproducir",
   "v2.album.shuffle": "Aleatorio",
+  "v2.album.locate": "Localizar en el disco",
   "v2.album.playNext": "Reproducir a continuación",
   "v2.piste.enLecture": "En reproducción",
   "v2.piste.enPause": "En pausa",

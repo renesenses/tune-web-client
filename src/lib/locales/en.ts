@@ -4014,6 +4014,7 @@ export default {
   "v2.tags.noPlaylistWithTag": "No playlist has this tag.",
   "v2.album.play": "Play",
   "v2.album.shuffle": "Shuffle",
+  "v2.album.locate": "Locate on disk",
   "v2.album.playNext": "Play next",
   "v2.piste.enLecture": "Now playing",
   "v2.piste.enPause": "Paused",

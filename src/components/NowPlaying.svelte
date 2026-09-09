@@ -36,7 +36,7 @@
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist } from '../lib/stores/navigation';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear } from '../lib/stores/navigation';
   import { destinationArtiste } from '../lib/routageArtiste';
   import { setSearchCriteria } from '../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
@@ -590,6 +590,13 @@
           const idFiche = commencerFicheAlbum(match.id);
           poserPistesAlbum(idFiche, tracks);
           libraryTab.set('albums');
+          // 🔴 LE MÊME OUBLI QUE FABIEN AVAIT SIGNALÉ, dans l'AUTRE branche de
+          // cette fonction. Le correctif du 07/09 n'a été posé que sur le
+          // chemin `albumId` ; ici — radio et streaming, les seules pistes
+          // sans `album_id` — l'album était bien retrouvé, `selectedAlbum`
+          // posé pour l'ancien client, et le nouveau atterrissait sur la
+          // GRILLE de la Bibliothèque, fiche fermée.
+          pendingLibraryAlbum.set(match.id);
           activeView.set('library');
           return;
         }
@@ -603,7 +610,8 @@
 
   function navigateToYear(year: number | undefined) {
     if (!year) return;
-    yearFilter.set(year);
+    yearFilter.set(year);          // contrat du client ACTUEL (`LibraryView`)
+    pendingLibraryYear.set(year);  // contrat du NOUVEAU (`v2/LibraryV2`)
     libraryTab.set('albums');
     activeView.set('library');
   }

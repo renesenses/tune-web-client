@@ -4016,6 +4016,7 @@ export default {
   "v2.tags.noPlaylistWithTag": "Aucune playlist ne porte cette étiquette.",
   "v2.album.play": "Lire",
   "v2.album.shuffle": "Aléatoire",
+  "v2.album.locate": "Localiser sur le disque",
   "v2.album.playNext": "Lire ensuite",
   "v2.piste.enLecture": "En lecture",
   "v2.piste.enPause": "En pause",
