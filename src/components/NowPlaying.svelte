@@ -9,7 +9,7 @@
   import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../lib/stores/queue';
   import type { QueueSheetState } from '../lib/stores/queue';
   import { currentZoneId, zones } from '../lib/stores/zones';
-  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualitySource, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
+  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import { largeurReserveeFileAttente } from '../lib/fileAttenteReserve';
   import * as api from '../lib/api';
@@ -1549,8 +1549,20 @@
               onclick={() => showTrackDetail = !showTrackDetail}
               style="cursor: pointer"
             >
+              <!--
+                Le TIER seul. La seconde ligne disait « Qobuz 24/96 » — soit
+                le service, déjà porté par la pastille juste à gauche
+                (`ServiceBadge`), et les chiffres, déjà portés par la rangée de
+                puces juste en dessous (« FLAC · 96.0 kHz · 24-bit »).
+
+                Alex Campbell, 08/09/2026 : le badge est redondant et difficile
+                à lire. Les deux constats n'en font qu'un : c'est en entassant
+                trois informations dans dix pixels qu'aucune ne se lisait. Ne
+                reste que celle que le badge est SEUL à porter — le palier,
+                c'est-à-dire le jugement, pas la mesure. Le détail complet
+                demeure dans l'infobulle et sous le clic (chemin du signal).
+              -->
               <span class="aqb-tier">{getQualityTierLabel(tier)}</span>
-              <span class="aqb-detail">{formatQualitySource(displayTrack)}</span>
             </div>
             {#if showTrackDetail}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -2144,6 +2156,21 @@
   {#if $queueTracks.length > 0 && zone && displayTrack}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!--
+      Le voile qui referme au clic AILLEURS.
+
+      Alex Campbell, 08/09/2026 : « la file ne se ferme pas quand on clique à
+      côté, et il faut deux clics ». Les deux moitiés n'en faisaient qu'une :
+      sur petit écran, le premier appui du bouton donnait `peek` — l'état SANS
+      voile — et il en fallait deux de plus pour revenir. Depuis que le bouton
+      ne fait plus que deux crans (`nextQueueSheetState`), un appui donne
+      `expanded`, qui porte ce voile.
+
+      Pas de voile sur `peek` : il ne s'obtient plus que par un GLISSÉ, et il
+      laisse le lecteur visible au-dessus de lui — le couvrir rendrait les
+      commandes de lecture inertes pour refermer un panneau qu'un second glissé
+      referme déjà.
+    -->
     {#if queueSheetState === 'expanded'}
       <div class="qs-backdrop" onclick={closeQueueSheet}></div>
     {/if}
@@ -3691,12 +3718,14 @@
   .artwork-quality-badge {
     position: relative;
     font-family: var(--font-label);
-    font-size: 10px;
+    /* 11,5 px et un fond opaque : à 10 px sur un gris translucide, le palier ne
+       se lisait pas. Il n'a plus à partager la place avec le détail. */
+    font-size: 11.5px;
     font-weight: 700;
     letter-spacing: 0.5px;
-    padding: 3px 10px;
+    padding: 3px 11px;
     border-radius: 4px;
-    background: rgba(60, 60, 63, 0.6);
+    background: rgba(60, 60, 63, 0.92);
     backdrop-filter: blur(8px);
     text-transform: uppercase;
     display: inline-flex;
@@ -3714,12 +3743,6 @@
   .aqb-tier {
     font-weight: 800;
     letter-spacing: 0.8px;
-  }
-
-  .aqb-detail {
-    font-weight: 500;
-    opacity: 0.85;
-    letter-spacing: 0.3px;
   }
 
   /* Gold-Max tier (Hi-Res Max ≥ 176.4 kHz / MQA) */
@@ -3936,14 +3959,14 @@
       -webkit-line-clamp: 1;
     }
 
+    /* Le repli en 9 px a disparu avec le détail qu'il servait à comprimer :
+       c'est ici que le badge était le moins lisible, et c'est de là qu'Alex
+       Campbell le regardait. `.aqb-detail { display:none }` vivait déjà dans
+       cette requête — quelqu'un avait donc vu la redondance sur petit écran,
+       sans la retirer partout. */
     .artwork-quality-badge {
-      font-size: 9px;
-      padding: 2px 8px;
+      padding: 2px 9px;
       gap: 4px;
-    }
-
-    .aqb-detail {
-      display: none;
     }
 
     .lightbox-img {

@@ -570,7 +570,18 @@
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); padding:5px 12px; border-radius:999px}
   .soon h2{font-size:28px; font-weight:800}
   .soon p{max-width:420px; color:var(--v2-txt2); font-size:14px; line-height:1.5}
-  .np-overlay{position:fixed; inset:0; z-index:120; background:var(--v2-bg); display:flex; flex-direction:column}
+  /* 🔴 122, et non 120 : AU-DESSUS de la grappe.
+     
+     Sur petit écran la grappe passe à `z-index:121` pour rester atteignable
+     par-dessus le voile du tiroir (voir plus haut). Effet de bord non voulu :
+     elle passait aussi au-dessus de « Lecture en cours », qui valait 120 — dans
+     une webapp Safari, le menu Profil s'ouvrait donc PAR-DESSUS la file
+     d'attente (Alex Campbell, 08/09/2026, « Profile options cover the queue »).
+     
+     « Lecture en cours » est un plein écran modal avec son propre bouton de
+     fermeture (`.np-close`) : rien n'a de raison d'y flotter au-dessus, et le
+     bouton de tiroir n'y sert pas — il n'y a pas de tiroir à ouvrir depuis là. */
+  .np-overlay{position:fixed; inset:0; z-index:122; background:var(--v2-bg); display:flex; flex-direction:column}
   .np-close{position:absolute; top:12px; left:12px; z-index:1; width:40px; height:40px; border:0; border-radius:50%;
     background:var(--v2-surface); color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center}
   .np-close svg{width:22px; height:22px}
