@@ -336,7 +336,6 @@ export default {
   'transport.shuffle': 'Zufallswiedergabe',
   'transport.previous': 'Zurück',
   'transport.next': 'Weiter',
-  'transport.stop': 'Stopp',
   'transport.repeat': 'Wiederholen',
   'transport.shuffleOn': 'Zufallswiedergabe: ein',
   'transport.shuffleOff': 'Zufallswiedergabe: aus',
