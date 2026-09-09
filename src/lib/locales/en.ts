@@ -614,6 +614,12 @@ export default {
 
   // Library
   'library.title': 'Library',
+  'library.recentlyAdded': 'Recently added',
+  'library.recentlyAddedRule': 'Tracks and albums added to the local library over the last {d} days',
+  'library.recentWindowDays': '{d} days',
+  'library.recentCounts': '{a} albums · {t} tracks · {h}',
+  'library.noRecentAlbums': 'No album added in this period.',
+  'library.recentLoadError': 'Could not load recent additions: the list stays empty.',
   'library.scopeLoadError': 'Could not load folder {d}: the list stays empty.',
   'library.albumTracksLoadError': 'Could not load this album’s tracks: the list stays empty.',
   'library.playSimilar': 'More like this',

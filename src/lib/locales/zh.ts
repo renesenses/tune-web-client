@@ -403,6 +403,12 @@ export default {
 
   // Library
   'library.title': '媒体库',
+  'library.recentlyAdded': '最近添加',
+  'library.recentlyAddedRule': '最近 {d} 天内添加到本地媒体库的曲目和专辑',
+  'library.recentWindowDays': '{d} 天',
+  'library.recentCounts': '{a} 张专辑 · {t} 首曲目 · {h}',
+  'library.noRecentAlbums': '该时间段内没有新增专辑。',
+  'library.recentLoadError': '无法加载最近添加的内容：列表保持为空。',
   'library.scopeLoadError': '无法加载文件夹 {d}：列表保持为空。',
   'library.albumTracksLoadError': '无法加载该专辑的曲目：列表保持为空。',
   'library.searchPlaceholder': '搜索...',

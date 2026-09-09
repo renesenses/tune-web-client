@@ -403,6 +403,12 @@ export default {
 
   // Library
   'library.title': 'Libreria',
+  'library.recentlyAdded': 'Aggiunti di recente',
+  'library.recentlyAddedRule': 'Brani e album aggiunti alla libreria locale negli ultimi {d} giorni',
+  'library.recentWindowDays': '{d} giorni',
+  'library.recentCounts': '{a} album · {t} brani · {h}',
+  'library.noRecentAlbums': 'Nessun album aggiunto in questo periodo.',
+  'library.recentLoadError': 'Impossibile caricare le aggiunte recenti: l’elenco resta vuoto.',
   'library.scopeLoadError': 'Impossibile caricare la cartella {d}: l’elenco resta vuoto.',
   'library.albumTracksLoadError': 'Impossibile caricare i brani di questo album: l’elenco resta vuoto.',
   'library.searchPlaceholder': 'Ricerca...',

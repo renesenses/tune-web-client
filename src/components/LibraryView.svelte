@@ -1478,6 +1478,68 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     } catch {}
   }
 
+  /**
+   * « Ajouts récents » — renesenses/tune-server-rust#3039, Sevy Tabroc (forum
+   * 1630) : « je souhaite voir les albums que j'ai récemment ajoutés à ma
+   * bibliothèque locale », avec « la possibilité de choisir entre dans les
+   * derniers quinze jours et/ou dans le dernier mois ».
+   *
+   * ## Ce que le serveur rendait déjà
+   *
+   * Tout. `routes/home.rs` accepte `?days=` (1 à 730, défaut 7) sur
+   * `/home/recently-added`, expose `/home/recently-added/summary` qui compte
+   * albums, pistes ET durée sur la MÊME fenêtre, et compte la vraie date
+   * d'ajout — `COALESCE(ffs.first_seen_at, file_mtime)`, pas la date du
+   * fichier. AUCUNE vue cliente ne lisait `days`, et aucune ne lisait le
+   * résumé : « écrit mais pas branché ».
+   *
+   * ## Les deux fenêtres
+   *
+   * 15 jours et 30 jours, exactement ce que le testeur demande. Le serveur en
+   * accepte n'importe laquelle ; un réglage libre reste ouvert, il n'a pas été
+   * arbitré.
+   */
+  const FENETRES_AJOUTS_RECENTS = [15, 30];
+  /** Le plafond de la page : au-delà, c'est une bibliothèque, pas un « récent ». */
+  const PLAFOND_AJOUTS_RECENTS = 500;
+  let recentDays = $state(FENETRES_AJOUTS_RECENTS[0]);
+  let recentAlbums = $state<any[]>([]);
+  let recentSummary = $state<api.ResumeAjoutsRecents | null>(null);
+  let recentLoaded = $state(false);
+
+  async function loadRecent() {
+    const fenetre = recentDays;
+    libraryLoading.set(true);
+    try {
+      const [items, resume] = await Promise.all([
+        api.getRecentlyAdded(fenetre, PLAFOND_AJOUTS_RECENTS),
+        api.getRecentlyAddedSummary(fenetre),
+      ]);
+      // La fenêtre a changé pendant la requête : ce résultat ne la décrit plus.
+      if (recentDays !== fenetre) { libraryLoading.set(false); return; }
+      recentAlbums = items ?? [];
+      recentSummary = resume ?? null;
+      recentLoaded = true;
+    } catch (e) {
+      console.error('Load recently added error:', e);
+      if (recentDays !== fenetre) { libraryLoading.set(false); return; }
+      // Vide et DIT, plutôt qu'une liste d'une autre fenêtre laissée à l'écran.
+      recentAlbums = [];
+      recentSummary = null;
+      recentLoaded = true;
+      notifications.error($tr('library.recentLoadError'));
+    }
+    libraryLoading.set(false);
+  }
+
+  /** Change la fenêtre : la liste et le résumé la suivent, ensemble. */
+  function choisirFenetreRecents(jours: number) {
+    if (jours === recentDays) return;
+    recentDays = jours;
+    recentLoaded = false;
+    loadRecent();
+  }
+
   let albumsLoaded = $state(false);
 
   /** Assistant d'ajout de contenu (dossier → bibliothèque). */
@@ -2503,6 +2565,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       if (tab === 'artists' && !artistsLoaded && listeARecharger('artists', portee, $artists.length)) loadArtists();
       if (tab === 'tracks' && !tracksLoaded && listeARecharger('tracks', portee, $tracks.length)) loadTracks();
       if (tab === 'labels' && !labelsLoaded) loadLabels();
+      if (tab === 'recent' && !recentLoaded) loadRecent();
     });
   });
 </script>
@@ -2552,6 +2615,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <button class="tab" class:active={$libraryTab === 'genres'} onclick={() => switchTab('genres')}>{$tr('common.genres')}</button>
             <button class="tab" class:active={$libraryTab === 'years'} onclick={() => switchTab('years')}>{$tr('common.years')}</button>
             <button class="tab" class:active={$libraryTab === 'labels'} onclick={() => switchTab('labels')}>{$tr('common.labels' as any)}</button>
+            <button class="tab" class:active={$libraryTab === 'recent'} onclick={() => switchTab('recent')}>{$tr('library.recentlyAdded' as any)}</button>
           </div>
         </div>
       </div>
@@ -4025,6 +4089,54 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           {/each}
         </div>
       {/if}
+    {:else if $libraryTab === 'recent'}
+      <!-- #3039 — la règle est ÉNONCÉE, et le décompte porte sur la même
+           fenêtre que la liste : le serveur les calcule ensemble. -->
+      <div class="recent-head">
+        <p class="recent-rule">{$tr('library.recentlyAddedRule' as any).replace('{d}', String(recentDays))}</p>
+        <div class="recent-windows">
+          {#each FENETRES_AJOUTS_RECENTS as jours}
+            <button class="recent-window" class:actif={recentDays === jours} onclick={() => choisirFenetreRecents(jours)}>
+              {$tr('library.recentWindowDays' as any).replace('{d}', String(jours))}
+            </button>
+          {/each}
+        </div>
+        {#if recentSummary}
+          <span class="recent-counts">{$tr('library.recentCounts' as any)
+            .replace('{a}', String(recentSummary.album_count))
+            .replace('{t}', String(recentSummary.track_count))
+            .replace('{h}', formatDuration(recentSummary.duration_ms))}</span>
+        {/if}
+      </div>
+      {#if !recentLoaded}
+        <div class="empty">{$tr('common.loading')}</div>
+      {:else if recentAlbums.length === 0}
+        <div class="empty">{$tr('library.noRecentAlbums' as any)}</div>
+      {:else}
+        <div class="albums-grid">
+          {#each recentAlbums as a (a.id)}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="album-card" onclick={() => selectAlbumDetail(a as Album)}>
+              <div class="album-card-art">
+                {#if a.cover_path}
+                  <img class="album-cover-img" src={api.artworkSrc(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
+                {/if}
+                <button class="play-overlay" onclick={(e) => { e.stopPropagation(); a.id && playAlbum(a.id); }} title={$tr('library.playAlbum')}>
+                  <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
+                </button>
+                {#if a.format || a.sample_rate}
+                  <span class="quality-overlay"><QualityBadge format={a.format} sampleRate={a.sample_rate} bitDepth={a.bit_depth} /></span>
+                {/if}
+              </div>
+              <span class="album-card-title truncate" title={a.title ?? ''}>{a.title ?? ''}</span>
+              {#if a.artist_name}
+                <span class="album-card-artist truncate">{a.artist_name}</span>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
     {:else if $libraryTab === 'years'}
       {#if yearGroups.length === 0}
         <div class="empty">{$tr('library.noAlbums')}</div>
@@ -5138,6 +5250,49 @@ import CollapsibleSection from './CollapsibleSection.svelte';
        (#1143). Chrome keeps its 14px ::-webkit-scrollbar. */
     scrollbar-width: auto;
     scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+  }
+
+  /* #3039 — l'entête de l'onglet « Ajouts récents » : la règle, les fenêtres,
+     le décompte. Tout ce qui est affiché ici décrit la MÊME fenêtre. */
+  .recent-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0 14px;
+  }
+
+  .recent-rule {
+    margin: 0;
+    color: var(--tune-text-muted);
+    font-size: 13px;
+    flex: 1 1 100%;
+  }
+
+  .recent-windows {
+    display: flex;
+    gap: 6px;
+  }
+
+  .recent-window {
+    background: var(--tune-surface, rgba(255, 255, 255, 0.06));
+    border: 1px solid var(--tune-border, rgba(255, 255, 255, 0.12));
+    color: var(--tune-text);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .recent-window.actif {
+    background: var(--tune-accent);
+    border-color: var(--tune-accent);
+    color: #fff;
+  }
+
+  .recent-counts {
+    color: var(--tune-text-muted);
+    font-size: 13px;
   }
 
   .albums-grid {

@@ -5042,8 +5042,43 @@ export function getContinueListening(limit = 20) {
   return fetchJSON<any[]>(`${BASE}/home/continue-listening?limit=${limit}`);
 }
 
-export function getRecentlyAdded() {
-  return fetchJSON<any[]>(`${BASE}/home/recently-added`);
+/**
+ * Les albums entrés dans la bibliothèque au cours des `days` derniers jours.
+ *
+ * #3039 — la fenêtre était écrite en dur à 7 jours côté serveur, hors
+ * d'atteinte de tout appelant. `tune-server/src/routes/home.rs` accepte
+ * désormais `?days=` (de 1 à `FENETRE_JOURS_MAX = 730`, défaut 7) et compte la
+ * VRAIE date d'ajout — `COALESCE(ffs.first_seen_at, file_mtime)` —, pas la date
+ * du fichier. Sans paramètre, l'URL est exactement celle d'avant : un serveur
+ * plus ancien répond comme toujours.
+ */
+export function getRecentlyAdded(days?: number, limit?: number) {
+  const p = new URLSearchParams();
+  if (days != null) p.set('days', String(days));
+  if (limit != null) p.set('limit', String(limit));
+  const qs = p.toString();
+  return fetchJSON<any[]>(`${BASE}/home/recently-added${qs ? `?${qs}` : ''}`);
+}
+
+/** Ce que compte `/home/recently-added/summary`, sur la MÊME fenêtre. */
+export interface ResumeAjoutsRecents {
+  days: number;
+  album_count: number;
+  track_count: number;
+  duration_ms: number;
+  duration_seconds: number;
+}
+
+/**
+ * Combien d'albums, combien de pistes, combien de temps sur la fenêtre — le
+ * « 7 albums • 71 pistes • 5 h 55 min » demandé par le testeur (#3039).
+ *
+ * Route séparée côté serveur, et non un champ de plus dans la réponse
+ * ci-dessus : passer le tableau en objet aurait cassé tout client déployé.
+ */
+export function getRecentlyAddedSummary(days?: number) {
+  const qs = days != null ? `?days=${days}` : '';
+  return fetchJSON<ResumeAjoutsRecents>(`${BASE}/home/recently-added/summary${qs}`);
 }
 
 export function getNewInLibrary() {

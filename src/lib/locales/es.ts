@@ -403,6 +403,12 @@ export default {
 
   // Library
   'library.title': 'Biblioteca',
+  'library.recentlyAdded': 'Añadidos recientes',
+  'library.recentlyAddedRule': 'Pistas y álbumes añadidos a la biblioteca local en los últimos {d} días',
+  'library.recentWindowDays': '{d} días',
+  'library.recentCounts': '{a} álbumes · {t} pistas · {h}',
+  'library.noRecentAlbums': 'Ningún álbum añadido en este periodo.',
+  'library.recentLoadError': 'No se pudieron cargar los añadidos recientes: la lista queda vacía.',
   'library.scopeLoadError': 'No se pudo cargar la carpeta {d}: la lista queda vacía.',
   'library.albumTracksLoadError': 'No se pudieron cargar las pistas de este álbum: la lista queda vacía.',
   'library.searchPlaceholder': 'Buscar...',

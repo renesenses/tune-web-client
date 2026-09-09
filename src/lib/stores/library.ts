@@ -1,7 +1,12 @@
 import { writable, derived, get } from 'svelte/store';
 import type { Album, Artist, Track } from '../types';
 
-export type LibraryTab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels' | 'folders';
+/**
+ * `recent` — l'onglet « Ajouts récents » (#3039). Sevy Tabroc le demandait au
+ * même rang qu'Albums, comme chez Audirvana : « je souhaite voir les albums que
+ * j'ai récemment ajoutés à ma bibliothèque locale ».
+ */
+export type LibraryTab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels' | 'folders' | 'recent';
 
 export const libraryTab = writable<LibraryTab>('albums');
 export const libraryLoading = writable<boolean>(false);

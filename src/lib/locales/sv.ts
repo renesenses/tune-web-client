@@ -373,6 +373,12 @@ export default {
 
   // Library
   'library.title': 'Bibliotek',
+  'library.recentlyAdded': 'Nyligen tillagda',
+  'library.recentlyAddedRule': 'Spår och album som lagts till i det lokala biblioteket de senaste {d} dagarna',
+  'library.recentWindowDays': '{d} dagar',
+  'library.recentCounts': '{a} album · {t} spår · {h}',
+  'library.noRecentAlbums': 'Inget album tillagt under denna period.',
+  'library.recentLoadError': 'De senaste tilläggen kunde inte läsas in: listan förblir tom.',
   'library.scopeLoadError': 'Mappen {d} kunde inte läsas in: listan förblir tom.',
   'library.albumTracksLoadError': 'Albumets spår kunde inte läsas in: listan förblir tom.',
   'library.searchPlaceholder': 'Sök...',
