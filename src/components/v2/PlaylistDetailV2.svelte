@@ -11,6 +11,10 @@
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t as tr } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
+  // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
+  // manquant — n'atteignait jamais l'écran.
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import { formatDuration, errText } from '../../lib/utils';
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
@@ -136,7 +140,7 @@
     const zid = $currentZoneId;
     if (zid == null) return;
     if (item.kind === 'local') {
-      playAndSync(zid, { playlist_id: item.pl.id as number, start_index: startIndex }).catch(() => {});
+      playAndSync(zid, { playlist_id: item.pl.id as number, start_index: startIndex }).catch(signalerEchecLecture);
     } else {
       // `item.service`, PAS `item.pl.source` : les playlists rendues par
       // `/streaming/{service}/playlists` ne portent aucun champ `source` —
@@ -149,7 +153,7 @@
       // lecture en cours » — cliquer Lire relançait le morceau du moment.
       // Bertrand, 02/09/2026. Le service est deja celui avec lequel on a
       // charge les pistes deux lignes plus haut.
-      playAndSync(zid, { streaming_playlist_id: item.pl.source_id, source: item.service as any, start_index: startIndex }).catch(() => {});
+      playAndSync(zid, { streaming_playlist_id: item.pl.source_id, source: item.service as any, start_index: startIndex }).catch(signalerEchecLecture);
     }
   }
   function addQueue() {

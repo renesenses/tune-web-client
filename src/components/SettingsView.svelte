@@ -1,5 +1,6 @@
 <script lang="ts">
   import { nomFonctionnalite } from '../lib/nomFonctionnaliteLicence';
+  import { compteLocalAAfficher } from '../lib/comptesLocaux';
   import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
   import { dateSimple } from '../lib/dates';
@@ -28,6 +29,15 @@
   } from '../lib/appareilsIgnores';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
   import { choisirInterface } from '../lib/interfaceChoisie';
+  import RefusHomebrewBloc from './RefusHomebrew.svelte';
+  import {
+    DELAI_MAJ_HOMEBREW_MS,
+    divergenceHomebrew,
+    etatHomebrew,
+    majHomebrewLancee,
+    refusHomebrew,
+    type RefusHomebrew,
+  } from '../lib/miseAJourHomebrew';
   import { SETTING_LEVELS, SETTINGS_LEVELS, isSettingVisible, hiddenKeysByTab, hiddenKeysAmong, revealLevel, type SettingKey, type SettingsLevel } from '../lib/settingLevels';
   import SettingsLevelNote from './SettingsLevelNote.svelte';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
@@ -254,6 +264,10 @@ function setSettingsLevel(level: SettingsLevel) {
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
+  // #2147 — le compte que le rapport de scan peut confirmer. `null` = rien a
+  // expliquer (voir `compteLocalAAfficher`).
+  const pistesLocales = $derived.by(() => compteLocalAAfficher(stats?.tracks, stats?.tracks_local));
+  const albumsLocaux = $derived.by(() => compteLocalAAfficher(stats?.albums, stats?.albums_local));
   let config: SystemConfig | null = $state(null);
   let backups = $state<BackupInfo[]>([]);
   let scanning = $state(false);
@@ -1848,6 +1862,11 @@ function setSettingsLevel(level: SettingsLevel) {
    *  Les motifs connus sont traduits ; un motif inconnu retombe sur le texte
    *  du serveur, qui vaut mieux que rien. */
   let updateRefusal = $state('');
+  /** Le refus Homebrew, STRUCTURÉ : il porte une commande à taper, donc il ne
+   *  peut pas voyager dans la même chaîne que les autres motifs. */
+  let updateHomebrew = $state<RefusHomebrew | null>(null);
+  /** Étape en clair d'une mise à jour Homebrew conduite par le serveur. */
+  let updateHomebrewPhase = $state('');
   function updateRefusalMessage(res: any): string {
     const raw = String(res?.message ?? res?.status ?? '');
     if (raw.includes('.no-auto-update')) return $t('settings.updateBlockedFlag');
@@ -1861,6 +1880,11 @@ function setSettingsLevel(level: SettingsLevel) {
   async function installUpdate() {
     updateInstalling = true;
     updateRefusal = '';
+    updateHomebrew = null;
+    updateHomebrewPhase = '';
+    // Budget d'attente. Une mise à jour Homebrew dure des minutes ; les 180 s
+    // du chemin autonome expireraient au milieu.
+    let budget = 180_000;
     try {
       // Server returns immediately ("started"). Download runs in the
       // background; we poll /update/status until it completes.
@@ -1873,6 +1897,31 @@ function setSettingsLevel(level: SettingsLevel) {
       // n'arriverait jamais, et l'utilisateur voyait un bouton mort là où le
       // serveur avait répondu clairement (#412 — vécu sur une machine portant
       // un drapeau .no-auto-update).
+      // Homebrew AVANT tout autre refus. Le serveur rend 409 avec le motif ET
+      // la commande ; `updateRefusalMessage` ne sait rien en faire et retombe
+      // sur `res.message`, c'est-à-dire la phrase ANGLAISE du serveur, sans la
+      // commande mise en forme ni l'avertissement de divergence. Mesuré : le
+      // témoin DOM rendait « ⛔ This Tune installation is managed by
+      // Homebrew… » tant que ce test passait en second.
+      //
+      // Ce test attrape aussi les serveurs antérieurs, qui rendaient ce refus
+      // dans un 200 : `res.ok` restait vrai, aucune branche ne se déclenchait,
+      // et l'écran entrait dans trois minutes d'attente d'un redémarrage qui
+      // n'arriverait jamais — bouton « Installation… » puis retour muet
+      // (Yves Corbat, macOS Homebrew).
+      const refusHb = refusHomebrew(res);
+      if (refusHb) {
+        updateInstalling = false;
+        updateHomebrew = refusHb;
+        return;
+      }
+      // Homebrew, acceptation : le serveur conduit `brew update && brew
+      // upgrade` lui-même et se relancera. On suit l'étape au lieu d'attendre
+      // en silence.
+      if (majHomebrewLancee(res)) {
+        budget = DELAI_MAJ_HOMEBREW_MS;
+        updateHomebrewPhase = $t('settings.homebrewUpdating');
+      }
       if (res && res.ok === false) {
         updateInstalling = false;
         updateRefusal = updateRefusalMessage(res);
@@ -1908,7 +1957,7 @@ function setSettingsLevel(level: SettingsLevel) {
     // poll, this is a platform-independent "it restarted" signal — used as a
     // backstop when the version string can't be compared.
     let sawServerDown = false;
-    while (Date.now() - start < 180_000) {
+    while (Date.now() - start < budget) {
       await new Promise((r) => setTimeout(r, 3_000));
       let status: any = null;
       try {
@@ -1929,6 +1978,21 @@ function setSettingsLevel(level: SettingsLevel) {
       }
       if (status?.phase === 'failed') {
         updateInstalling = false;
+        return;
+      }
+
+      // La mise à jour Homebrew écrit son étape sur le DISQUE, hors du Cellar :
+      // c'est ce qui la rend lisible APRÈS le redémarrage, par le serveur neuf.
+      const hb = etatHomebrew(status);
+      if (hb?.genre === 'en_cours') {
+        updateHomebrewPhase = $t(hb.cle);
+      } else if (hb?.genre === 'echec') {
+        updateHomebrewPhase = '';
+        updateInstalling = false;
+        updateHomebrew = {
+          ...(updateHomebrew ?? divergenceHomebrew({ reason: 'homebrew_version_mismatch' })!),
+          echec: $t('settings.homebrewFailed').replace('{etape}', hb.etape),
+        };
         return;
       }
 
@@ -3464,7 +3528,16 @@ function setSettingsLevel(level: SettingsLevel) {
               ⚠️ {$t('settings.updateStopsPlayback')}
             </div>
           {/if}
+          {#if updateHomebrewPhase}
+            <div class="update-playing-warning">{updateHomebrewPhase}</div>
+          {/if}
         </div>
+        <!-- Le refus Homebrew n'avait AUCUN site de rendu dans cet onglet :
+             `updateRefusal` n'est affiché qu'en « À propos ». Même un refus
+             correctement reçu y restait invisible. -->
+        {#if updateHomebrew}
+          <RefusHomebrewBloc refus={updateHomebrew} />
+        {/if}
       </section>
     {/if}
 
@@ -3780,10 +3853,28 @@ function setSettingsLevel(level: SettingsLevel) {
             <span class="stat-value">{stats.tracks}</span>
             <span class="stat-label">{$t('settings.tracks')}</span>
           </div>
+          <!-- #2147 — le compteur ci-dessus compte TOUTES les sources ; le
+               rapport de scan, quelques lignes plus bas, ne compte que les
+               fichiers du disque. Sans ce chiffre-ci, la différence se lit
+               comme des pistes fantômes. Absent quand il n'y a rien à
+               expliquer (bibliothèque purement locale, ou serveur antérieur
+               à la ventilation de #3277). -->
+          {#if pistesLocales !== null}
+          <div class="stat-item">
+            <span class="stat-value">{pistesLocales}</span>
+            <span class="stat-label">{$t('settings.tracksLocal' as any)}</span>
+          </div>
+          {/if}
           <div class="stat-item">
             <span class="stat-value">{stats.albums}</span>
             <span class="stat-label">{$t('settings.albums')}</span>
           </div>
+          {#if albumsLocaux !== null}
+          <div class="stat-item">
+            <span class="stat-value">{albumsLocaux}</span>
+            <span class="stat-label">{$t('settings.albumsLocal' as any)}</span>
+          </div>
+          {/if}
           <div class="stat-item">
             <span class="stat-value">{stats.artists}</span>
             <span class="stat-label">{$t('settings.artists')}</span>
@@ -6320,6 +6411,12 @@ function setSettingsLevel(level: SettingsLevel) {
           {/if}
           {#if updateRefusal}
             <div class="update-refusal">⛔ {updateRefusal}</div>
+          {/if}
+          {#if updateHomebrewPhase}
+            <div class="install-hint">{updateHomebrewPhase}</div>
+          {/if}
+          {#if updateHomebrew}
+            <RefusHomebrewBloc refus={updateHomebrew} />
           {/if}
           {#if playingZones > 0 && updateInfo.installable !== false && !updateDone && !updateDmgReady && !updateInstalling}
             <div class="update-playing-warning">

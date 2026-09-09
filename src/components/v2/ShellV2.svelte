@@ -66,6 +66,25 @@
    * dont la deconnexion d'un service.
    */
   import DialogContainer from '../DialogContainer.svelte';
+  /**
+   * TREIZIÈME « écrit mais pas branché », et le plus coûteux de la série.
+   *
+   * `notifications.error(...)` est appelé CENT DIX-NEUF fois dans les écrans
+   * de cette coquille. Le magasin les enregistrait consciencieusement… et
+   * `ToastContainer`, le SEUL composant du client qui rend `$notifications`,
+   * n'était monté que par `App.svelte` — que `?v2` ne monte jamais. Le
+   * commentaire du magasin le dit mot pour mot : « any component can push a
+   * toast, and `App.svelte` subscribes to render it ».
+   *
+   * Conséquence : en v2, tout message d'erreur, de succès ou d'information
+   * partait dans le vide. Y compris `PisteActions.svelte`, qui traite
+   * pourtant son échec de lecture correctement depuis toujours.
+   *
+   * C'est le TROISIÈME canal bouché de #3732 — celui que le ticket ne
+   * nommait pas, et sans lequel corriger les deux autres n'aurait rien
+   * changé à l'écran.
+   */
+  import ToastContainer from '../ToastContainer.svelte';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
   // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
   // « Il manque Oxygen dans la v2 !! ». Il pese 1 400 lignes avec son rail de
@@ -486,6 +505,11 @@
        demande. Place ICI, au premier niveau de la coquille, pour couvrir tous
        les ecrans qu'elle monte. -->
   <DialogContainer />
+
+  <!-- Les BANDEAUX. Même raison, même endroit que les dialogues : sans lui,
+       `notifications.error()` écrit dans un magasin que personne ne rend, et
+       un échec de lecture ne produit rigoureusement rien (#3732). -->
+  <ToastContainer />
 
   <!-- Voie MOBILE : la barre pose ce drapeau au lieu de changer de vue.
        Personne ne l'écoutait ici. -->

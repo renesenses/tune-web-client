@@ -27,6 +27,15 @@
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
+  import RefusHomebrewBloc from '../RefusHomebrew.svelte';
+  import {
+    DELAI_MAJ_HOMEBREW_MS,
+    divergenceHomebrew,
+    etatHomebrew,
+    majHomebrewLancee,
+    refusHomebrew,
+    type RefusHomebrew,
+  } from '../../lib/miseAJourHomebrew';
   import { LEVEL_LABEL_KEYS } from '../../lib/uiLevel';
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
@@ -1211,6 +1220,10 @@
 
   let updBusy = $state(false);
   let updRefus = $state('');
+  /** Refus Homebrew structuré : il porte une commande, pas une phrase. */
+  let updHomebrew = $state<RefusHomebrew | null>(null);
+  /** Étape en clair d'une mise à jour Homebrew conduite par le serveur. */
+  let updHomebrewEtape = $state('');
   let updDone = $state(false);
   let updDmg = $state<string | null>(null);
 
@@ -1241,12 +1254,23 @@
   }
   async function installerMaj() {
     updBusy = true; updRefus = ''; updDone = false; updDmg = null;
+    updHomebrew = null; updHomebrewEtape = '';
+    let budget = 180_000;
     const versionAvant = updateInfo?.current_version ?? serverVersion;
     try {
       // `force` : le bouton est cliqué juste sous l'avertissement de coupure,
       // donc la garde serveur ne doit pas re-refuser ce que l'utilisateur vient
       // d'accepter.
       const res: any = await api.installUpdate(true);
+      // Homebrew AVANT le refus générique : `updMotifRefus` retomberait sur la
+      // phrase anglaise du serveur et jetterait la commande. Mesuré au DOM.
+      const refusHb = refusHomebrew(res);
+      if (refusHb) { updBusy = false; updHomebrew = refusHb; return; }
+      // Homebrew, acceptation : le serveur conduit la mise à jour lui-même.
+      if (majHomebrewLancee(res)) {
+        budget = DELAI_MAJ_HOMEBREW_MS;
+        updHomebrewEtape = get(t)('settings.homebrewUpdating');
+      }
       if (res && res.ok === false) { updBusy = false; updRefus = updMotifRefus(res); return; }
       // Docker : le serveur répond 200 — ce n'est pas une erreur, c'est une
       // consigne. Le binaire vit dans une couche d'image en lecture seule :
@@ -1264,13 +1288,26 @@
 
     // Surveillance jusqu'au redémarrage sur la nouvelle version.
     let vuHorsService = false;
-    const limite = Date.now() + 180_000;
+    const limite = Date.now() + budget;
     while (Date.now() < limite) {
       await new Promise((r) => setTimeout(r, 3000));
       let st: any = null;
       try { st = await api.getUpdateStatus(); } catch { vuHorsService = true; continue; }
       if (st?.phase === 'dmg_ready') { updDmg = st.dmg_path || '~/Downloads'; updBusy = false; return; }
       if (st?.phase === 'failed') { updBusy = false; updRefus = get(t)('settings.updateBlockedUnknown'); return; }
+      // L'étape Homebrew vit sur le disque : elle survit au redémarrage.
+      const hb = etatHomebrew(st);
+      if (hb?.genre === 'en_cours') {
+        updHomebrewEtape = get(t)(hb.cle);
+      } else if (hb?.genre === 'echec') {
+        updHomebrewEtape = '';
+        updBusy = false;
+        updHomebrew = {
+          ...(updHomebrew ?? divergenceHomebrew({ reason: 'homebrew_version_mismatch' })!),
+          echec: get(t)('settings.homebrewFailed').replace('{etape}', hb.etape),
+        };
+        return;
+      }
       // Deux détections, chacune suffisante : la version a bougé, ou le serveur
       // est retombé puis revenu sans mise à jour en cours.
       const courante: string | undefined = st?.current_version;
@@ -2505,6 +2542,8 @@
                   </button>
                 </div>
                 {#if updRefus}<div class="warnbox">{updRefus}</div>{/if}
+                {#if updHomebrewEtape}<div class="okbox">{updHomebrewEtape}</div>{/if}
+                {#if updHomebrew}<RefusHomebrewBloc refus={updHomebrew} />{/if}
                 {#if updDmg}<div class="okbox">{updDmg}</div>{/if}
                 {#if updDone}<div class="okbox">{$t('settings.updateDoneReloading' as any)}</div>{/if}
               {:else}
