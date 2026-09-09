@@ -1,17 +1,24 @@
 <script lang="ts">
+  import { rangeableEnPlaylist } from '../lib/pisteFile';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, pendingStreamingPlaylist, streamingAlbumOrigin, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
+  import { formatAnneeAlbum } from '../lib/formats';
   import { tip } from '../lib/tooltip';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { activeView, settingsInitialTab, saveViewContext, loadViewContext } from '../lib/stores/navigation';
   import * as api from '../lib/api';
-  import { formatTime, formatAlbumYear } from '../lib/utils';
+  // `formatAlbumYear` a QUITTE `lib/utils` : il figeait `fr-FR` et vit
+  // desormais dans `lib/formats` sous la forme d'un store derive de la langue
+  // (`formatAnneeAlbum`, importe ci-dessus). Les appels de `main` suivent plus
+  // bas — voir la note de fusion du 04/09/2026.
+  import { formatTime } from '../lib/utils';
   import { actionRetour, etapesDeRestauration } from '../lib/streamingRetour';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import HeartButton from './HeartButton.svelte';
-  import type { Album, Artist, Track, SearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
+  import type { Album, Artist, Track, StreamingSearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { fusionnerPage } from '../lib/pagination';
   import { notifications } from '../lib/stores/notifications';
@@ -39,7 +46,10 @@
   let tab = $state<StreamingTab>('search');
   let searchQuery = $state('');
   let searching = $state(false);
-  let results: SearchResult | null = $state(null);
+  // `searchStreaming` rend la forme de la route PAR SERVICE, pas celle de la
+  // route fédérée : `has_more` y est un booléen et `totals` une table libre.
+  // Voir `StreamingSearchResult` — les deux contrats ne s'héritent pas.
+  let results: StreamingSearchResult | null = $state(null);
 
   let selectedAlbum = $state<Album | null>(null);
   let albumTracks = $state<Track[]>([]);
@@ -73,8 +83,7 @@
     'editor-picks': 'streaming.section.editorPicks',
     'most-streamed': 'streaming.section.mostStreamed',
     'ideal-discography': 'streaming.section.idealDiscography',
-    qobuzissims: 'streaming.section.qobuzissimes',
-  };
+    qobuzissims: 'streaming.section.qobuzissimes' };
   const sectionTitle = (sec: FeaturedSection) =>
     SECTION_KEYS[sec.id] ? $tr(SECTION_KEYS[sec.id]) : sec.name;
 
@@ -95,8 +104,7 @@
     speakers: 'streaming.tag.speakers',
     danslecasque: 'streaming.tag.headphones',
     qobuzdigs: 'streaming.tag.qobuzdigs',
-    auditoriums: 'streaming.tag.auditoriums',
-  };
+    auditoriums: 'streaming.tag.auditoriums' };
   const tagTitle = (group: api.PlaylistTagGroup) =>
     TAG_KEYS[group.id] ? $tr(TAG_KEYS[group.id]) : group.name;
 
@@ -257,8 +265,7 @@
       selectedAlbum,
       selectedArtist,
       selectedStreamingPlaylist,
-      genreBreadcrumb: browsingGenres ? genreBreadcrumb : null,
-    };
+      genreBreadcrumb: browsingGenres ? genreBreadcrumb : null };
     saveViewContext('streaming', snapshot);
   });
 
@@ -458,8 +465,7 @@
           title: it.title ?? it.name,
           artist: it.artist_name,
           album: it.album_title,
-          cover_url: it.cover_url ?? it.cover_path,
-        }).catch(() => {});
+          cover_url: it.cover_url ?? it.cover_path }).catch(() => {});
         await api.addStreamingFavorite(service, type, itemId).catch(() => {});
       }
       await Promise.all([loadFavorites(service), loadLocalFavorites(service)]);
@@ -672,8 +678,7 @@
       track_count: 0,
       duration_ms: 0,
       cover_path: item.cover_path || null,
-      source: 'youtube' as any,
-    };
+      source: 'youtube' as any };
     selectedAlbum = null;
     selectedArtist = null;
     loading = true;
@@ -692,8 +697,7 @@
       tidal: 'TIDAL',
       qobuz: 'Qobuz',
       youtube: 'YouTube Music',
-      amazon: 'Amazon Music',
-    };
+      amazon: 'Amazon Music' };
     return names[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
   }
 
@@ -946,8 +950,7 @@
     const suite = actionRetour({
       provenance: $streamingAlbumOrigin,
       album: selectedAlbum != null,
-      artiste: selectedArtist != null,
-    });
+      artiste: selectedArtist != null });
 
     if (suite.action === 'remonter-a-l-artiste') {
       // L'album a été ouvert DEPUIS la discographie : on ne referme que lui,
@@ -1097,7 +1100,7 @@
           <p class="detail-artist">{selectedAlbum.artist_name}</p>
         {/if}
         {#if selectedAlbum.year || selectedAlbum.original_year}
-          <p class="detail-meta">{formatAlbumYear(selectedAlbum)}</p>
+          <p class="detail-meta">{$formatAnneeAlbum(selectedAlbum)}</p>
         {/if}
         <div class="album-detail-actions">
           <button class="play-all-btn" onclick={() => selectedAlbum && playStreamingAlbum(selectedAlbum)}>
@@ -1149,11 +1152,12 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-            {#if onAddToPlaylist && (t.id || t.source_id)}
+            {#if onAddToPlaylist && rangeableEnPlaylist(t)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
               </button>
             {/if}
+            <MenuPisteV1 piste={t} />
           </div>
         {/each}
       </div>
@@ -1231,11 +1235,12 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-            {#if onAddToPlaylist && (t.id || t.source_id)}
+            {#if onAddToPlaylist && rangeableEnPlaylist(t)}
               <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
               </button>
             {/if}
+            <MenuPisteV1 piste={t} />
           </div>
         {/each}
       </div>
@@ -1269,7 +1274,7 @@
             </div>
             <span class="album-card-title truncate" title={album.title}>{album.title}</span>
             {#if album.year || album.original_year}
-              <span class="album-card-year">{formatAlbumYear(album)}</span>
+              <span class="album-card-year">{$formatAnneeAlbum(album)}</span>
             {/if}
           </div>
         {/each}
@@ -1388,6 +1393,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+                <MenuPisteV1 piste={t} />
               </div>
             {/each}
           </div>
@@ -1412,6 +1418,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+                <MenuPisteV1 piste={t} />
               </div>
             {/each}
           </div>
@@ -1436,6 +1443,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
+                <MenuPisteV1 piste={t} />
               </div>
             {/each}
           </div>
@@ -1607,11 +1615,12 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" /><line x1="19" y1="5" x2="19" y2="19" /></svg>
                 </button>
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addStreamingTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-              {#if onAddToPlaylist && (t.id || t.source_id)}
+              {#if onAddToPlaylist && rangeableEnPlaylist(t)}
                 <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
                 </button>
               {/if}
+              <MenuPisteV1 piste={t} />
             </div>
           {/each}
         </div>

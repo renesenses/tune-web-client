@@ -4,7 +4,16 @@ import type { StreamingItemType } from '../streamingFavorites';
 
 export interface Profile {
   id: number;
+  /**
+   * L'IDENTIFIANT de connexion, pas le nom affichable.
+   *
+   * Mesure sur le .18 le 03/09/2026 : le serveur rend
+   * `{"display_name":"Bertrand","name":"bertrand@mozaiklabs.fr"}`. `name` est
+   * l'adresse ; le prenom est dans `display_name`, que ce type ignorait.
+   */
   name: string;
+  /** Le nom tel qu'on l'ecrit. Absent des serveurs qui ne le servent pas. */
+  display_name?: string | null;
   avatar_color: string;
 }
 
@@ -55,9 +64,30 @@ export const profileReady = writable<boolean>(false);
 export const favoriteTrackIds = writable<Set<number>>(new Set());
 export const favoriteAlbumIds = writable<Set<number>>(new Set());
 export const favoriteArtistIds = writable<Set<number>>(new Set());
-// Playlists LOCALES mises en favori (#2442). Même mécanique : `playlists.id`
-// est un entier, le cœur répond en O(1) sans requête par ligne.
+/**
+ * Playlists en favori.
+ *
+ * NOTE DE FUSION (04/09/2026) : `main` déclarait aussi ce magasin, en une
+ * ligne, dans le même commit #2442 qui apporte les favoris de facette. Les
+ * deux versions sont identiques dans le code — on garde celle-ci pour sa
+ * documentation, et les facettes de `main` suivent juste en dessous.
+ *
+ * Le serveur sait déjà les stocker : `LOCAL_ITEM_TYPES` inclut `playlist`, et
+ * l'instantané d'identité est figé à l'ajout — sans quoi le cœur s'éteindrait
+ * dès que l'id change (import M3U rejoué, playlist recréée, bascule
+ * SQLite→PostgreSQL). Seul le client ne les lisait pas.
+ */
 export const favoritePlaylistIds = writable<Set<number>>(new Set());
+/**
+ * Collections en favori — DEUX ensembles, et non un seul.
+ *
+ * Les deux sortes ont des espaces d'identifiants indépendants qui se
+ * recouvrent : sur le serveur de Bertrand, l'id 1 est à la fois la collection
+ * normale « favorites » et l'intelligente « 💎 Audiophile » (02/09/2026). Un
+ * ensemble unique allumerait le cœur de l'une en mettant l'autre en favori.
+ */
+export const favoriteCollectionIds = writable<Set<number>>(new Set());
+export const favoriteSmartCollectionIds = writable<Set<number>>(new Set());
 
 // Favoris de FACETTE — le label d'abord (#2442). Des CHAÎNES, pas des ids : un
 // label n'a pas d'identifiant côté serveur, il est désigné par sa valeur telle
@@ -74,6 +104,42 @@ export function facetFavKey(facet: string, value: string): string {
 // an API call per row — same reasoning as the local id sets above.
 export const favoriteStreamingKeys = writable<Set<string>>(new Set());
 
+/**
+ * Les PISTES favorites de streaming, indexées par titre + artiste normalisés.
+ *
+ * Bertrand, 05/09/2026 : « si une piste en streaming est en favori et que j'ai
+ * la piste en local, elle devrait être aussi en favori, non ? ». Le serveur
+ * dit déjà oui — pour les règles. `track_favorites_sub` y unit les favoris
+ * locaux et les pistes locales dont le titre et l'artiste normalisés
+ * correspondent à un favori de streaming du même profil.
+ *
+ * L'interface, elle, disait non : la réponse du serveur porte `title` et
+ * `artist` sur chaque favori, et le client n'en gardait que la clé
+ * `type:service:identifiant` — il JETAIT les deux champs, donc ne pouvait pas
+ * faire le rapprochement.
+ *
+ * On les garde. Le cœur d'une piste locale se remplit désormais quand son
+ * jumeau distant est en favori.
+ */
+export const favoriteStreamingTrackKeys = writable<Set<string>>(new Set());
+
+/**
+ * La clé de rapprochement, reproduite À L'IDENTIQUE du serveur :
+ *
+ *     lower(trim(t9.title)) = lower(trim(sf9.title))
+ *     lower(trim(coalesce(ar9.name,''))) = lower(trim(coalesce(sf9.artist,'')))
+ *
+ * Volontairement exacte-normalisée, sans approximation : un titre orthographié
+ * différemment ne correspond pas, et c'est assumé côté serveur. Toute latitude
+ * prise ici ferait diverger le cœur affiché de ce que retiennent les règles.
+ */
+export function clePisteJumelee(
+  titre: string | null | undefined,
+  artiste: string | null | undefined,
+): string {
+  return `${(titre ?? '').trim().toLowerCase()}\u0000${(artiste ?? '').trim().toLowerCase()}`;
+}
+
 export function streamingFavKey(
   itemType: StreamingItemType,
   service: string,
@@ -88,8 +154,11 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteAlbumIds.set(new Set());
     favoriteArtistIds.set(new Set());
     favoritePlaylistIds.set(new Set());
+    favoriteCollectionIds.set(new Set());
+    favoriteSmartCollectionIds.set(new Set());
     favoriteFacetKeys.set(new Set());
     favoriteStreamingKeys.set(new Set());
+    favoriteStreamingTrackKeys.set(new Set());
     return;
   }
   try {
@@ -98,6 +167,8 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteAlbumIds.set(new Set((favs.albums ?? []).map((a: any) => a.id)));
     favoriteArtistIds.set(new Set((favs.artists ?? []).map((a: any) => a.id)));
     favoritePlaylistIds.set(new Set((favs.playlists ?? []).map((p: any) => p.id)));
+    favoriteCollectionIds.set(new Set(favs.collectionIds ?? []));
+    favoriteSmartCollectionIds.set(new Set(favs.smartCollectionIds ?? []));
   } catch (e) {
     console.error('Load favorite ids error:', e);
   }
@@ -114,9 +185,87 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoriteStreamingKeys.set(
       new Set(sfavs.map((f) => streamingFavKey(f.item_type, f.service, f.service_id))),
     );
+    // Un favori SANS titre ne peut rapprocher personne : le serveur l'écarte
+    // aussi (`sf9.title IS NOT NULL`).
+    favoriteStreamingTrackKeys.set(
+      new Set(
+        sfavs
+          .filter((f: any) => f.item_type === 'track' && f.title)
+          .map((f: any) => clePisteJumelee(f.title, f.artist)),
+      ),
+    );
   } catch (e) {
     console.error('Load streaming favorite keys error:', e);
   }
+
+  // Sans `await` : les favoris locaux sont deja affiches, ceux des services les
+  // rejoignent quand ils arrivent.
+  void reprendreFavorisDesServices();
+}
+
+/**
+ * 🔴 REPRISE des favoris poses CHEZ les services.
+ *
+ * Bertrand, 05/09/2026 : « le cœur ne rougit toujours pas sur Get Lucky ». Ce
+ * titre EST dans ses favoris Qobuz — mesure sur le .18, `source_id 9140031`,
+ * parmi 14 pistes — mais il n'est pas dans `streaming_favorites`, la table de
+ * Tune, qui ne recoit que les cœurs cliques DANS Tune. Le cœur restait donc
+ * vide, et les regles ne les comptaient pas non plus (issue serveur #3419).
+ *
+ * On lit donc aussi ce que disent les services eux-memes, et on le verse dans
+ * les deux index : les cles `type:service:id` — pour le cœur d'un objet DE
+ * service — et les cles titre+artiste — pour le jumelage avec une piste locale.
+ *
+ * ⚠️ Ce que ce contournement NE fait PAS : les collections intelligentes sont
+ * evaluees en SQL par le serveur, sur `streaming_favorites`. Elles resteront
+ * aveugles a ces favoris tant que la reprise n'existera pas cote serveur.
+ *
+ * Le cout est un appel par service authentifie. Il part APRES les ensembles
+ * principaux et ne les bloque pas : un service lent ne doit pas retarder
+ * l'affichage des favoris locaux. Chaque service tolere l'echec pour lui seul.
+ */
+async function reprendreFavorisDesServices(): Promise<void> {
+  let services: Record<string, any> = {};
+  try {
+    services = (await api.getStreamingServices()) ?? {};
+  } catch {
+    return;
+  }
+  const connectes = Object.entries(services)
+    .filter(([, st]: [string, any]) => st?.authenticated)
+    .map(([nom]) => nom);
+  if (!connectes.length) return;
+
+  await Promise.allSettled(
+    connectes.map(async (svc) => {
+      const types: Array<['tracks' | 'albums' | 'artists', StreamingItemType]> = [
+        ['tracks', 'track'], ['albums', 'album'], ['artists', 'artist'],
+      ];
+      for (const [route, type] of types) {
+        try {
+          const d: any = await api.getStreamingFavorites(svc, route);
+          const items: any[] = d?.[route] ?? d?.items ?? (Array.isArray(d) ? d : []);
+          if (!items.length) continue;
+          favoriteStreamingKeys.update((set) => {
+            for (const it of items) {
+              const sid = it?.source_id ?? it?.id;
+              if (sid) set.add(streamingFavKey(type, svc, String(sid)));
+            }
+            return new Set(set);
+          });
+          if (type === 'track') {
+            favoriteStreamingTrackKeys.update((set) => {
+              for (const it of items) {
+                const titre = it?.title;
+                if (titre) set.add(clePisteJumelee(titre, it?.artist_name ?? it?.artist));
+              }
+              return new Set(set);
+            });
+          }
+        } catch { /* ce service, ce type : tant pis, les autres continuent */ }
+      }
+    }),
+  );
 }
 
 // Reload favorites whenever the active profile changes.

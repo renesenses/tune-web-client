@@ -143,3 +143,90 @@ export async function playFromHere(
     notifications.error(get(t)('library.playbackError'));
   }
 }
+
+/** Ce qu'un geste « poser ces pistes sur la zone » a réellement fait. */
+export type DecisionFile = 'lecture' | 'ajout';
+
+/**
+ * Les trois gestes serveur dont dépend la décision, injectables : la garde peut
+ * ainsi observer LEQUEL a été appelé, sans réseau ni composant monté.
+ */
+export interface PortesFile {
+  /** `GET /zones/{id}/queue` — l'état réel de la file, celui qui fait foi. */
+  lireFile: (
+    zoneId: number,
+  ) => Promise<{ tracks?: unknown[]; length?: number } | null | undefined>;
+  /** `POST /zones/{id}/play` — REMPLACE la file de bout en bout. */
+  lire: (zoneId: number, ids: number[]) => Promise<unknown>;
+  /** `POST /zones/{id}/queue/add` — ajoute en fin de file, n'écrase jamais. */
+  ajouter: (zoneId: number, ids: number[]) => Promise<unknown>;
+}
+
+const portesReelles: PortesFile = {
+  lireFile: (zoneId) => api.getQueue(zoneId),
+  lire: (zoneId, ids) => playAndSync(zoneId, { track_ids: ids }),
+  ajouter: (zoneId, ids) => api.addToQueue(zoneId, { track_ids: ids }),
+};
+
+/**
+ * La file du serveur est-elle RÉELLEMENT vide ?
+ *
+ * Trois réponses possibles, deux seulement sont « vide » :
+ * - un compte lisible à zéro ⇒ vide, on peut remplacer sans rien perdre ;
+ * - un compte lisible non nul ⇒ pleine ;
+ * - pas de réponse, ou une réponse illisible ⇒ **doute**, traité comme pleine.
+ *
+ * Le doute penche du côté qui ne détruit rien : au pire on ajoute à une file
+ * vide — l'utilisateur voit ses titres et appuie sur lecture — là où l'erreur
+ * inverse efface ce qu'il écoutait, sans erreur ni trace.
+ *
+ * `length` et `tracks.length` sont lus tous les deux, et c'est le PLUS GRAND
+ * qui décide : si l'un des deux annonce quelque chose, la file n'est pas vide.
+ */
+async function fileServeurVide(
+  zoneId: number,
+  lireFile: PortesFile['lireFile'],
+): Promise<boolean> {
+  let etat: Awaited<ReturnType<PortesFile['lireFile']>>;
+  try {
+    etat = await lireFile(zoneId);
+  } catch {
+    return false;
+  }
+  const compte = typeof etat?.length === 'number' ? etat.length : null;
+  const pistes = Array.isArray(etat?.tracks) ? etat.tracks.length : null;
+  if (compte === null && pistes === null) return false;
+  return Math.max(compte ?? 0, pistes ?? 0) === 0;
+}
+
+/**
+ * Poser une liste de pistes locales sur une zone : les jouer si la file est
+ * vide, les ajouter sinon — la décision prise sur l'état du SERVEUR (#528).
+ *
+ * Deux écrans (« Mood Mix » de `NowPlaying` et de `QueueView`) tranchaient sur
+ * `$queueTracks`, un cache client. Ce cache est vide dans quatre situations où
+ * la file du serveur ne l'est pas : l'écran n'a jamais été ouvert et rien ne
+ * l'a hydraté, le premier rendu précède la réponse de `getQueue`, la zone
+ * vient de changer, ou un autre client — téléphone, tablette, second
+ * navigateur, télécommande — a enfilé des titres depuis. La branche « vide »
+ * appelait alors `POST /play`, qui remplace délibérément la file côté serveur :
+ * ce que l'auditeur écoutait disparaissait, et le message annonçait « ajoutées ».
+ *
+ * Relire la file coûte un aller-retour ; il est fait AVANT de choisir, et il
+ * n'y a plus qu'une seule lecture d'état, la bonne. La fenêtre restante — un
+ * autre client qui enfile entre la lecture et le `POST /play` — se compte en
+ * millisecondes et demanderait une route conditionnelle côté serveur ; le
+ * défaut corrigé ici, lui, est permanent dès que l'écran n'a pas été ouvert.
+ */
+export async function lireOuAjouter(
+  zoneId: number,
+  ids: number[],
+  portes: PortesFile = portesReelles,
+): Promise<DecisionFile> {
+  if (await fileServeurVide(zoneId, portes.lireFile)) {
+    await portes.lire(zoneId, ids);
+    return 'lecture';
+  }
+  await portes.ajouter(zoneId, ids);
+  return 'ajout';
+}

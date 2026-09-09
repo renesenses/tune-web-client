@@ -9,6 +9,7 @@
   import { isPremium } from '../lib/stores/license';
   import { ambianceUsable, refreshAcousticStatus } from '../lib/stores/acoustic';
   import { bandcampUsable, refreshBandcampPlugin } from '../lib/stores/bandcamp';
+  import { concertsUtilisable, refreshConcertsPlugin } from '../lib/stores/concerts';
   import { preferences } from '../lib/stores/preferences';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
@@ -72,6 +73,9 @@
     // Idem pour Bandcamp : l'entrée n'a de sens que si le binaire embarque le
     // plugin. Sans cet appel, l'écran existait mais rien n'y menait (#1768).
     refreshBandcampPlugin();
+    // Idem pour Concerts, et pour la même raison : une vue déclarée et
+    // aiguillée sans bouton pour l'atteindre compile parfaitement.
+    refreshConcertsPlugin();
     // Primary: get version from /system/health (always available)
     api.getHealth()
       .then((r) => {
@@ -108,11 +112,10 @@
   let newZoneName = $state('');
   let newZoneOutputType = $state<OutputType>('local');
   let newZoneDeviceId = $state<string | undefined>(undefined);
-  // v0.8.0 multi-room — Snapcast/Sonos device pickers fetched lazily
+  // v0.8.0 multi-room — Snapcast device picker fetched lazily
   // when the user opens the modal and picks the matching type. Kept
   // local to the component so we don't spam the API on every render.
   let snapcastClients = $state<{id: string; name: string; connected: boolean}[]>([]);
-  let sonosSpeakers = $state<{uid: string; name: string; ip: string}[]>([]);
   let multiroomLoading = $state(false);
 
   let configZone = $state<Zone | null>(null);
@@ -305,17 +308,22 @@
   }
 
   // v0.8.0 multi-room — load device candidates when the user picks
-  // a Snapcast / Sonos type in the create-zone modal. Lazy so we
+  // a Snapcast type in the create-zone modal. Lazy so we
   // don't hit the API for every Sidebar render.
+  //
+  // Plus de branche « sonos » : ce type n'est PAS une sortie que le serveur
+  // sache router. `OutputType` (tune-core) ne comporte aucune variante Sonos,
+  // et `TYPES_DE_SORTIE` (routes/zones.rs) — la liste que le PATCH d'une zone
+  // accepte — vaut exactement local, browser, dlna, openhome, chromecast,
+  // bluos, squeezebox, oaat. Une zone créée en « sonos » était donc persistée
+  // par le POST (qui ne valide pas) puis refusée par tout PATCH ultérieur, et
+  // ne jouait nulle part. Une enceinte Sonos se choisit sous **DLNA**, où la
+  // découverte la fait effectivement apparaître et où elle joue déjà.
   async function loadMultiroomDevices(type: OutputType) {
-    if (type !== 'snapcast' && type !== 'sonos') return;
+    if (type !== 'snapcast') return;
     multiroomLoading = true;
     try {
-      if (type === 'snapcast') {
-        snapcastClients = await api.listSnapcastClients();
-      } else {
-        sonosSpeakers = await api.listSonosSpeakers();
-      }
+      snapcastClients = await api.listSnapcastClients();
     } catch (e) {
       console.error('multiroom_devices_load_failed', e);
     } finally {
@@ -872,6 +880,19 @@
         {$t('nav.bandcamp')}
       </button>
     {/if}
+    <!-- « Concerts » suit Bandcamp : ce sont les deux entrées apportées par un
+         greffon, et l'utilisateur les cherche au même endroit.
+
+         Masquée quand le binaire n'embarque pas le greffon : une porte fermée
+         est pire que rien. Visible dès qu'il est présent, même non installé —
+         l'écran explique alors le geste. Le portillon Premium, lui, ne se joue
+         PAS ici : l'écran le dit, avec ce qu'il refuse et pourquoi. -->
+    {#if $concertsUtilisable}
+      <button class="nav-item" class:active={$activeView === 'concerts'} onclick={() => navigate('concerts')}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v2"></path><path d="M4 8a2 2 0 0 1 0 4v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4a2 2 0 0 1 0-4"></path><line x1="12" y1="4" x2="12" y2="18" stroke-dasharray="2 3"></line></svg>
+        {$t('nav.concerts')}
+      </button>
+    {/if}
     <button class="nav-item" class:active={$activeView === 'radios'} onclick={() => navigate('radios')}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5"></path><line x1="12" y1="19" x2="12" y2="22"></line><path d="M8 22h8"></path></svg>
       {$t('nav.radios')}
@@ -997,7 +1018,6 @@
           <option value="dlna">DLNA</option>
           <option value="airplay">AirPlay</option>
           <option value="snapcast">Snapcast</option>
-          <option value="sonos">Sonos</option>
         </select>
         {#if newZoneOutputType === 'dlna' || newZoneOutputType === 'airplay'}
           <select class="create-zone-device" bind:value={newZoneDeviceId}>
@@ -1011,13 +1031,6 @@
             <option value={undefined}>{multiroomLoading ? '…' : $t('zone.selectDevice')}</option>
             {#each snapcastClients as cli}
               <option value={cli.id}>{cli.name}{cli.connected ? '' : ' (offline)'}</option>
-            {/each}
-          </select>
-        {:else if newZoneOutputType === 'sonos'}
-          <select class="create-zone-device" bind:value={newZoneDeviceId}>
-            <option value={undefined}>{multiroomLoading ? '…' : $t('zone.selectDevice')}</option>
-            {#each sonosSpeakers as sp}
-              <option value={sp.uid}>{sp.name} ({sp.ip})</option>
             {/each}
           </select>
         {/if}
@@ -1282,6 +1295,11 @@
   .logo-img {
     height: 28px;
     width: auto;
+    /* Le logo ne se laisse pas écraser quand la ligne se resserre : c'est le
+       texte de version, à côté, qui doit céder en premier. Sans cela, l'image
+       est un élément flexible comme un autre et se réduit sous sa taille
+       intrinsèque. */
+    flex-shrink: 0;
   }
 
   .version {
@@ -2213,6 +2231,26 @@
     .nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
     /* Hide text badges in icon-only mode to prevent overflow */
     .badge-update { display: none; }
+    /*
+      Le logo était rogné à gauche (#1394). Mesuré sur la vue réelle, à 1024px :
+      la barre fait 64px, moins 1px de bordure et 11px de barre de défilement
+      (`scrollbar-width: thin`), il reste 52px de contenu. La ligne du logo en
+      réclamait 56 — image 29,3 + espace 8 + bouton 18. `justify-content: center`
+      répartit ce débordement des DEUX côtés, et `overflow-x: hidden` rend les
+      3,6px de gauche définitivement inatteignables : on ne peut pas défiler
+      vers eux.
+
+      Ce n'est pas une divergence de moteur : Firefox 154 et Chrome rendent des
+      chiffres IDENTIQUES (débordement 4px, image à -3,6px). Le rapport disait
+      « firefox ? » avec un point d'interrogation ; c'est bien ce palier-ci, pas
+      le navigateur. Un écran Windows 1366×768 à 150 % d'échelle vaut 911px CSS
+      et tombe donc dedans.
+
+      « Quoi de neuf » reste atteignable dans Réglages → Système, où vit déjà
+      son second point d'entrée — comme la version et le nom du serveur, cachés
+      juste au-dessus pour la même raison.
+    */
+    .whatsnew-btn { display: none; }
     /* Icon-only : la pastille support devient un point discret superposable */
     .support-unread-badge { min-width: 8px; width: 8px; height: 8px; padding: 0; font-size: 0; margin-left: -4px; }
     .connected-dot { display: none; }

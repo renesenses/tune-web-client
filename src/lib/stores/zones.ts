@@ -65,6 +65,10 @@ export const currentZone = derived(
 
 export function syncZone(zone: Zone) {
   zones.update((zs) => zs.map((z) => z.id === zone.id ? zone : z));
+  // Le témoin s'éteint quand la zone JOUE, pas quand la requête a répondu :
+  // le serveur accuse réception tout de suite et ne rend le son qu'après le
+  // pré-transcodage. C'est cet écart-là que l'attente couvre.
+  if (zone.state === 'playing') fermerAttente(zone.id);
 }
 
 /**
@@ -80,6 +84,50 @@ export const playPendingUntil = new Map<number, number>();
 // Worst observed HI-RES DASH pre-transcode is ~23 s (#1146); 20 s left the
 // tail end of a slow start outside the window and still toasting an error.
 const PLAY_GRACE_MS = 30000;
+
+/**
+ * Zone dont une demande de lecture est EN VOL, pour que l'interface puisse le
+ * MONTRER.
+ *
+ * `playPendingUntil` ci-dessus existait déjà, mais c'est une `Map` nue : rien
+ * ne s'y abonne, elle ne sert qu'à taire une erreur passagère. L'écran, lui,
+ * ne disait rien du tout pendant l'attente.
+ *
+ * Mesuré sur le .18 le 05/09/2026, zone 10 : un pré-transcodage `Aac -> Flac`
+ * a pris 102 s pendant lesquelles l'interface est restée muette. Bertrand a
+ * recliqué — le serveur a reçu 24 mises en file et marqué 8 lectures comme
+ * dépassées. Le geste avait bien été envoyé ; rien ne le disait.
+ * Serveur : renesenses/tune-server-rust#3444.
+ */
+export const lectureEnAttente = writable<number | null>(null);
+
+/**
+ * Plafond de l'INDICATEUR, distinct de la fenêtre de grâce des erreurs.
+ *
+ * 30 s suffisent à couvrir un démarrage lent (#1146), pas les 102 s mesurées :
+ * l'indicateur se serait éteint alors que l'attente durait encore, et l'écran
+ * serait redevenu muet précisément dans le cas qui l'a motivé. On borne malgré
+ * tout, pour qu'une lecture perdue en route ne laisse pas un témoin allumé
+ * pour toujours.
+ */
+const ATTENTE_MAX_MS = 150000;
+
+let minuterieAttente: ReturnType<typeof setTimeout> | null = null;
+
+function ouvrirAttente(zoneId: number): void {
+  playPendingUntil.set(zoneId, Date.now() + PLAY_GRACE_MS);
+  lectureEnAttente.set(zoneId);
+  if (minuterieAttente) clearTimeout(minuterieAttente);
+  minuterieAttente = setTimeout(() => fermerAttente(zoneId), ATTENTE_MAX_MS);
+}
+
+/** Éteint le témoin, mais seulement s'il porte bien SUR CETTE zone. */
+export function fermerAttente(zoneId: number | null | undefined): void {
+  if (zoneId == null) return;
+  if (get(lectureEnAttente) !== zoneId) return;
+  lectureEnAttente.set(null);
+  if (minuterieAttente) { clearTimeout(minuterieAttente); minuterieAttente = null; }
+}
 
 function withinPlayGrace(zoneId: number): boolean {
   const until = playPendingUntil.get(zoneId);
@@ -137,7 +185,7 @@ async function handleBrowserPlayback(zone: Zone) {
 export async function playAndSync(zoneId: number, body?: Parameters<typeof api.play>[1]): Promise<Zone> {
   // Open a grace window so a transient playback.error during a slow HI-RES
   // pre-transcode reads as "chargement…" rather than a failure (see above).
-  playPendingUntil.set(zoneId, Date.now() + PLAY_GRACE_MS);
+  ouvrirAttente(zoneId);
   let zone: Zone;
   try {
     zone = await api.play(zoneId, body);
@@ -150,6 +198,9 @@ export async function playAndSync(zoneId: number, body?: Parameters<typeof api.p
       loadingInstead();
       return api.getZone(zoneId);
     }
+    // Un échec qui remonte jusqu'ici n'est plus une attente : sans cela le
+    // témoin resterait allumé jusqu'au plafond alors que rien ne se joue.
+    fermerAttente(zoneId);
     throw e;
   }
   checkPlayError(zone);
@@ -187,6 +238,28 @@ export async function previousAndSync(zoneId: number): Promise<Zone> {
   await api.previous(zoneId);
   const zone = await api.getZone(zoneId);
   checkPlayError(zone);
+  syncZone(zone);
+  handleBrowserPlayback(zone);
+  return zone;
+}
+
+/**
+ * ARRÊTER, et reporter l'état.
+ *
+ * 🔴 `api.stop()` seul ne met pas le magasin à jour. Bertrand, 05/09/2026 :
+ * « Play - Pause - Stop me semble mal géré ». Le défaut était là : après un
+ * arrêt, la zone restait « playing » dans le magasin, le bouton gardait donc
+ * l'icône pause, et le clic suivant envoyait `api.pause()` à une zone déjà
+ * arrêtée — rien ne se passait, le bouton paraissait mort jusqu'au prochain
+ * relevé.
+ *
+ * Toutes les autres commandes de transport ont leur `…AndSync` depuis
+ * longtemps ; le stop n'en avait pas parce qu'il vivait dans un bouton qui
+ * n'appelait que l'API. En le déplaçant sur le double-clic, j'ai déplacé le
+ * trou avec.
+ */
+export async function stopAndSync(zoneId: number): Promise<Zone> {
+  const zone = await api.stop(zoneId);
   syncZone(zone);
   handleBrowserPlayback(zone);
   return zone;

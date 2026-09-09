@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import { currentZone, zones, playAndSync } from '../lib/stores/zones';
   import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../lib/stores/nowPlaying';
@@ -23,7 +24,12 @@
   async function handleSharePlaylist(playlistId: number) {
     try {
       const result = await api.sharePlaylist(playlistId);
-      const text = result.text ?? result.share_url ?? JSON.stringify(result);
+      // `url` et `token` : les DEUX seuls champs que le serveur rend
+      // (`playlists.rs`, `share_playlist`). L'ancien code lisait `text` puis
+      // `share_url`, qui n'ont jamais existé — il retombait donc sur le JSON
+      // brut, et c'est lui qu'on collait dans le presse-papiers.
+      const chemin = result.url ?? (result.token ? `/api/v1/playlists/shared/${result.token}` : null);
+      const text = chemin ? new URL(chemin, window.location.origin).toString() : JSON.stringify(result);
       await navigator.clipboard.writeText(text);
       notifications.success($tr('playlistManager.linkCopied'));
     } catch (e) {
@@ -1236,9 +1242,9 @@
                 <AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? t.title ?? ''} />
               </span>
               <div class="track-info">
-                <span class="track-title truncate">{t.title}</span>
+                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
                 {#if t.artist_name}
-                  <span class="track-artist truncate">{t.artist_name}</span>
+                  <span class="track-artist truncate" use:bulleTexte>{t.artist_name}</span>
                 {/if}
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
@@ -1341,9 +1347,9 @@
                       <span class="transfer-status-dot"></span>
                       <div class="transfer-track-info">
                         <div class="transfer-track-main">
-                          <span class="transfer-track-title">{track.title}</span>
+                          <span class="transfer-track-title" use:bulleTexte>{track.title}</span>
                           {#if track.artist_name}
-                            <span class="transfer-track-artist">{track.artist_name}</span>
+                            <span class="transfer-track-artist" use:bulleTexte>{track.artist_name}</span>
                           {/if}
                           <span class="transfer-track-status">
                             {#if track.match_method === 'manual'}
@@ -1356,15 +1362,15 @@
                         {#if track.status === 'approximate' && track.target_title}
                           <div class="transfer-match-info">
                             <span class="match-label">{$tr('playlist.matchedAs')}</span>
-                            <span class="match-title">{track.target_title}</span>
-                            {#if track.target_artist}<span class="match-artist">- {track.target_artist}</span>{/if}
+                            <span class="match-title" use:bulleTexte>{track.target_title}</span>
+                            {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
                             {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
                           </div>
                         {/if}
                         {#if track.match_method === 'manual' && track.target_title}
                           <div class="transfer-match-info">
-                            <span class="match-title">{track.target_title}</span>
-                            {#if track.target_artist}<span class="match-artist">- {track.target_artist}</span>{/if}
+                            <span class="match-title" use:bulleTexte>{track.target_title}</span>
+                            {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
                             {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
                           </div>
                         {/if}
@@ -1376,8 +1382,8 @@
                             <div class="alternatives">
                               {#each track.alternatives as alt}
                                 <div class="alt-row">
-                                  <span class="alt-title">{alt.title}</span>
-                                  <span class="alt-artist">{alt.artist_name}</span>
+                                  <span class="alt-title" use:bulleTexte>{alt.title}</span>
+                                  <span class="alt-artist" use:bulleTexte>{alt.artist_name}</span>
                                   <span class="alt-score">{Math.round(alt.score * 100)}%</span>
                                   <button class="alt-pick" onclick={() => qtPickAlternative(track, alt)}>
                                     {track.status === 'approximate' ? $tr('playlist.replace') : $tr('playlist.choose')}
@@ -1668,8 +1674,8 @@
                     <div class="collab-track-row">
                       <span class="collab-track-num">{i + 1}</span>
                       <div class="collab-track-info">
-                        <span class="collab-track-title truncate">{track.title}</span>
-                        <span class="collab-track-artist truncate">{track.artist_name ?? ''}</span>
+                        <span class="collab-track-title truncate" use:bulleTexte>{track.title}</span>
+                        <span class="collab-track-artist truncate" use:bulleTexte>{track.artist_name ?? ''}</span>
                       </div>
                       <span class="collab-track-dur">{formatTime(track.duration_ms)}</span>
                     </div>
@@ -1882,9 +1888,9 @@
                 <span class="transfer-status-dot"></span>
                 <div class="transfer-track-info">
                   <div class="transfer-track-main">
-                    <span class="transfer-track-title">{track.title}</span>
+                    <span class="transfer-track-title" use:bulleTexte>{track.title}</span>
                     {#if track.artist_name}
-                      <span class="transfer-track-artist">{track.artist_name}</span>
+                      <span class="transfer-track-artist" use:bulleTexte>{track.artist_name}</span>
                     {/if}
                     <span class="transfer-track-status">
                       {#if track.match_method === 'manual'}
@@ -1900,9 +1906,9 @@
                   {#if track.status === 'approximate' && track.target_title}
                     <div class="transfer-match-info">
                       <span class="match-label">{$tr('playlist.matchedAs')}</span>
-                      <span class="match-title">{track.target_title}</span>
+                      <span class="match-title" use:bulleTexte>{track.target_title}</span>
                       {#if track.target_artist}
-                        <span class="match-artist">- {track.target_artist}</span>
+                        <span class="match-artist" use:bulleTexte>- {track.target_artist}</span>
                       {/if}
                       {#if track.score}
                         <span class="match-score">{Math.round(track.score * 100)}%</span>
@@ -1912,9 +1918,9 @@
                   <!-- For manual matches: show what was picked -->
                   {#if track.match_method === 'manual' && track.target_title}
                     <div class="transfer-match-info">
-                      <span class="match-title">{track.target_title}</span>
+                      <span class="match-title" use:bulleTexte>{track.target_title}</span>
                       {#if track.target_artist}
-                        <span class="match-artist">- {track.target_artist}</span>
+                        <span class="match-artist" use:bulleTexte>- {track.target_artist}</span>
                       {/if}
                       {#if track.score}
                         <span class="match-score">{Math.round(track.score * 100)}%</span>
@@ -1934,8 +1940,8 @@
                       <div class="alternatives">
                         {#each track.alternatives as alt}
                           <div class="alt-row">
-                            <span class="alt-title">{alt.title}</span>
-                            <span class="alt-artist">{alt.artist_name}</span>
+                            <span class="alt-title" use:bulleTexte>{alt.title}</span>
+                            <span class="alt-artist" use:bulleTexte>{alt.artist_name}</span>
                             <span class="alt-score">{Math.round(alt.score * 100)}%</span>
                             <button class="alt-pick" onclick={() => pickAlternative(track, alt)}>
                               {track.status === 'approximate' ? $tr('playlist.replace') : $tr('playlist.choose')}
@@ -2010,8 +2016,8 @@
               <div class="diff-track-list">
                 {#each diffResult.only_in_source as track}
                   <div class="diff-track source-only">
-                    <span class="diff-track-title">{track.title}</span>
-                    {#if track.artist_name}<span class="diff-track-artist">{track.artist_name}</span>{/if}
+                    <span class="diff-track-title" use:bulleTexte>{track.title}</span>
+                    {#if track.artist_name}<span class="diff-track-artist" use:bulleTexte>{track.artist_name}</span>{/if}
                   </div>
                 {/each}
                 {#if diffResult.only_in_source.length === 0}
@@ -2024,8 +2030,8 @@
               <div class="diff-track-list">
                 {#each diffResult.in_both as track}
                   <div class="diff-track in-both" class:approximate={track.match_quality === 'approximate'}>
-                    <span class="diff-track-title">{track.title}</span>
-                    {#if track.artist_name}<span class="diff-track-artist">{track.artist_name}</span>{/if}
+                    <span class="diff-track-title" use:bulleTexte>{track.title}</span>
+                    {#if track.artist_name}<span class="diff-track-artist" use:bulleTexte>{track.artist_name}</span>{/if}
                     {#if track.match_quality === 'approximate'}
                       <span class="diff-quality-badge">{$tr('playlist.approximate')}</span>
                     {/if}
@@ -2041,8 +2047,8 @@
               <div class="diff-track-list">
                 {#each diffResult.only_in_target as track}
                   <div class="diff-track target-only">
-                    <span class="diff-track-title">{track.title}</span>
-                    {#if track.artist_name}<span class="diff-track-artist">{track.artist_name}</span>{/if}
+                    <span class="diff-track-title" use:bulleTexte>{track.title}</span>
+                    {#if track.artist_name}<span class="diff-track-artist" use:bulleTexte>{track.artist_name}</span>{/if}
                   </div>
                 {/each}
                 {#if diffResult.only_in_target.length === 0}
@@ -2143,9 +2149,9 @@
                 <div class="recover-track-row status-{track.status === 'recovered' ? 'approximate' : 'not_found'}">
                   <span class="transfer-status-dot"></span>
                   <div class="recover-track-info">
-                    <span class="transfer-track-title">{track.title}</span>
+                    <span class="transfer-track-title" use:bulleTexte>{track.title}</span>
                     {#if track.artist_name}
-                      <span class="transfer-track-artist">{track.artist_name}</span>
+                      <span class="transfer-track-artist" use:bulleTexte>{track.artist_name}</span>
                     {/if}
                     <span class="recover-source-label">{track.original_source}</span>
                   </div>
@@ -2154,9 +2160,9 @@
                       {#each track.alternatives as alt}
                         <div class="recover-alt-item">
                           <span class="source-chip" style="color: {serviceColor(alt.service)}">{alt.service === 'local' ? $tr('playlist.local') : serviceName(alt.service)}</span>
-                          <span class="recover-alt-title">{alt.title}</span>
+                          <span class="recover-alt-title" use:bulleTexte>{alt.title}</span>
                           {#if alt.artist_name}
-                            <span class="recover-alt-artist">{alt.artist_name}</span>
+                            <span class="recover-alt-artist" use:bulleTexte>{alt.artist_name}</span>
                           {/if}
                           <button
                             class="recover-apply-btn"

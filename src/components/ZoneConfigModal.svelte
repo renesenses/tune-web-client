@@ -121,6 +121,44 @@
     irLoading = false;
   }
 
+  /**
+   * Sortie mono (#2362).
+   *
+   * L'état affiché est celui du SERVEUR : `mono_downmix` est rendu par
+   * `GET /zones` comme par `GET /zones/{id}` (mesuré sur .18 — la clé est
+   * présente, à `false`, sur les dix-huit zones). Un interrupteur qui naîtrait
+   * toujours désarmé mentirait dès la seconde ouverture du panneau.
+   *
+   * Semé une fois à l'ouverture, comme `editSyncDelay` et `editName` juste
+   * au-dessus : le panneau est ouvert pour une zone et se referme. Un
+   * `$effect` de resynchronisation écraserait au contraire une bascule en vol
+   * dès le prochain sondage.
+   */
+  let monoDownmix = $state(zone.mono_downmix ?? false);
+  let monoSaving = $state(false);
+  let monoError = $state('');
+
+  async function setMonoDownmix(enabled: boolean) {
+    if (zone.id === null) return;
+    const avant = monoDownmix;
+    monoDownmix = enabled;
+    monoSaving = true;
+    monoError = '';
+    try {
+      const maj = await api.updateZoneMonoDownmix(zone.id, enabled);
+      // Le PATCH RÉPOND la zone à jour : on affiche ce que le serveur dit,
+      // pas ce qu'on lui a demandé.
+      monoDownmix = maj?.mono_downmix ?? enabled;
+    } catch (e: any) {
+      // Rien n'a été persisté : l'interrupteur doit revenir en arrière, sinon
+      // il affirme un réglage que le serveur n'a pas.
+      monoDownmix = avant;
+      monoError = e?.message || get(t)('common.error');
+    } finally {
+      monoSaving = false;
+    }
+  }
+
   async function handleRename() {
     if (zone.id === null || !editName.trim() || editName.trim() === zone.name) return;
     renaming = true;
@@ -464,6 +502,47 @@
         </div>
       </div>
     {/if}
+
+    <!--
+      Sortie mono (#2362).
+
+      Le serveur sait sommer les deux voies depuis `tune-core/src/audio/channels.rs`
+      et relit le reglage a chaud (`refresh_zone_mono_downmix`) — mais AUCUN
+      ecran ne l'exposait, exactement comme `aac_passthrough` avant lui. Nicolas
+      Tardif (fil forum 1532, 26/08) ecoute sur une enceinte raccordee a un seul
+      canal : « En effet, je perds toute la musique qui passe par le canal
+      droit. » Le correctif existait ; il ne pouvait simplement pas l'atteindre.
+
+      ICI, et pas dans « Reglages par zone » : ce panneau porte deja la chaine
+      DSP de la zone — la correction de piece est juste en dessous — et c'est la
+      meme famille, compenser une installation PHYSIQUE. L'autre ecran regroupe
+      des questions de format et de compatibilite renderer (DSD, passthrough,
+      frequence max), ce que ceci n'est pas.
+    -->
+    <div class="modal-section">
+      <h3 class="section-title">{$t('zoneConfig.monoTitle')}</h3>
+      <p class="section-desc">{$t('zoneConfig.monoDesc')}</p>
+      <label class="mono-toggle">
+        <input
+          type="checkbox"
+          checked={monoDownmix}
+          disabled={monoSaving || zone.id === null}
+          onchange={(e) => setMonoDownmix((e.target as HTMLInputElement).checked)}
+        />
+        <span>{$t('zoneConfig.monoLabel')}</span>
+      </label>
+      {#if (zone.output_type ?? '') !== 'local'}
+        <!--
+          Dire que ca ne fera rien ici plutot que de MASQUER le reglage : c'est
+          la lecon du bloc FIR juste dessous, ou la condition d'affichage a
+          laisse un abonne conclure que la fonction n'existait pas.
+        -->
+        <p class="mono-note">{$t('zoneConfig.monoLocalOnly')}</p>
+      {/if}
+      {#if monoError}
+        <div class="ir-message ir-error">{monoError}</div>
+      {/if}
+    </div>
 
     <!--
       La correction de piece vaut pour TOUTE zone : une zone, un appareil, un
@@ -870,6 +949,17 @@
     display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
   }
   .ir-file-input { display: none; }
+  .mono-toggle {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-family: var(--font-body); font-size: 13px;
+    color: var(--tune-text-primary); cursor: pointer;
+  }
+  .mono-toggle input { margin-top: 2px; flex: none; cursor: pointer; }
+  .mono-toggle input:disabled { cursor: default; }
+  .mono-note {
+    font-family: var(--font-body); font-size: 12px;
+    color: var(--tune-text-muted); margin: 8px 0 0;
+  }
   .ir-message { font-size: 12px; color: var(--tune-text-muted); margin-top: 4px; }
   .ir-message.ir-error { color: var(--tune-error, #ef4444); }
   .btn-danger-outline {

@@ -12,6 +12,9 @@
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
 
   import { t } from '../lib/i18n';
+  import OutputModuleBanner from './OutputModuleBanner.svelte';
+  import OutputModulesPanel from './OutputModulesPanel.svelte';
+  import { tableauFournisseurs } from '../lib/refusModuleSortie';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus } from '../lib/types';
 
   // « Services actifs » affichait `serverDiag.connectors`, c'est-a-dire la
@@ -61,6 +64,10 @@
     connectors: string[];
     memory_rss_mb: number | null;
     asio_warm_scan?: api.AsioWarmScanStatus;
+    // #2392 — pourquoi un module de sortie payant n'affiche aucun appareil.
+    // `unknown` : la forme est sondée à l'exécution par `refusModuleSortie.ts`,
+    // jamais tenue pour acquise. Voir le commentaire dans `api.ts`.
+    output_providers?: unknown;
     scan_status: {
       status: string;
       tracks: number;
@@ -68,6 +75,11 @@
       last_result: Record<string, unknown> | null;
     } | null;
   } | null>(null);
+
+  // #2392 — le panneau « Modules de sortie » : `null` tant que le serveur
+  // n'envoie pas `output_providers` (antérieur à v0.9.115), et alors rien
+  // n'est monté. La lecture est celle de `refusModuleSortie.ts`, sondée.
+  const tableauModules = $derived(tableauFournisseurs(serverDiag?.output_providers));
 
   async function fetchServerVersion() {
     try {
@@ -579,6 +591,13 @@
       </section>
     {/if}
 
+    <!-- #2392 — le même bandeau qu'à l'écran des Zones, au même endroit du
+         raisonnement : en haut, avant les compteurs. Diagnostics n'est pas là
+         où l'utilisateur va quand aucun appareil n'apparaît (le bêta-testeur
+         Diretta n'y a jamais mis les pieds), mais c'est là qu'il est envoyé
+         quand il demande de l'aide — et la donnée y est déjà chargée. -->
+    <OutputModuleBanner instantane={serverDiag?.output_providers} />
+
     <!-- Server Stats Dashboard -->
     {#if serverDiag}
     <section class="diag-section">
@@ -852,6 +871,18 @@
             </div>
           {/each}
         </div>
+      </section>
+    {/if}
+
+    <!-- #2392 — Modules de sortie (arbitrage du 01/09/2026). Le bandeau du
+         haut dit le refus en langage courant ; ce panneau montre l'état
+         complet que sert le serveur, code de refus compris : c'est l'écran
+         qu'on envoie au support. Absent sur un serveur antérieur à v0.9.115. -->
+    {#if tableauModules}
+      <section class="diag-section">
+        <h3>{$t('diagnostics.outputModules')}</h3>
+        <p class="diag-hint">{$t('diagnostics.outputModulesHint')}</p>
+        <OutputModulesPanel tableau={tableauModules} />
       </section>
     {/if}
 
@@ -1146,6 +1177,13 @@
     border: 1px solid var(--tune-border);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
+  }
+
+  .diag-hint {
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--tune-text-muted);
+    margin: 0 0 var(--space-sm);
   }
 
   .diag-section h3 {

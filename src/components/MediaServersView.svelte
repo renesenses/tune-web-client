@@ -182,7 +182,7 @@
 
   async function browseTo(objectId: string, title?: string) {
     if (!selectedServer) return;
-    saveDetailScroll(msKey(currentObjectId()), msEl);
+    saveDetailScroll(msKey(currentObjectId()), () => msEl);
     loading = true;
     try {
       browseResult = await api.browseMediaServer(selectedServer.id, objectId);
@@ -194,7 +194,7 @@
       console.error('Browse error:', e);
     }
     loading = false;
-    restoreDetailScroll(msKey(objectId), msEl);
+    restoreDetailScroll(msKey(objectId), () => msEl);
   }
 
   function navigateToBreadcrumb(objectId: string | null) {
@@ -210,21 +210,21 @@
     // Find the index and truncate stack
     const idx = navigationStack.findIndex(e => e.objectId === objectId);
     if (idx >= 0) {
-      saveDetailScroll(msKey(currentObjectId()), msEl);
+      saveDetailScroll(msKey(currentObjectId()), () => msEl);
       navigationStack = navigationStack.slice(0, idx + 1);
       if (selectedServer) {
         loading = true;
         api.browseMediaServer(selectedServer.id, objectId).then(res => {
           browseResult = res;
           loading = false;
-          restoreDetailScroll(msKey(objectId), msEl);
+          restoreDetailScroll(msKey(objectId), () => msEl);
         }).catch(() => { loading = false; });
       }
     }
   }
 
   function goBack() {
-    saveDetailScroll(msKey(currentObjectId()), msEl);
+    saveDetailScroll(msKey(currentObjectId()), () => msEl);
     if (navigationStack.length > 1) {
       // Go to parent container
       const newStack = navigationStack.slice(0, -1);
@@ -235,7 +235,7 @@
         api.browseMediaServer(selectedServer.id, parent.objectId).then(res => {
           browseResult = res;
           loading = false;
-          restoreDetailScroll(msKey(parent.objectId), msEl);
+          restoreDetailScroll(msKey(parent.objectId), () => msEl);
         }).catch(() => { loading = false; });
       }
     } else if (navigationStack.length === 1) {
@@ -246,7 +246,7 @@
         api.browseMediaServer(selectedServer.id, '0').then(res => {
           browseResult = res;
           loading = false;
-          restoreDetailScroll(msKey('0'), msEl);
+          restoreDetailScroll(msKey('0'), () => msEl);
         }).catch(() => { loading = false; });
       }
     } else {
@@ -422,7 +422,20 @@
   loadServers();
 </script>
 
-<div class="mediaservers-view" bind:this={msEl}>
+<!--
+  L'en-tête et la barre de recherche sont des FRÈRES du conteneur qui défile
+  (`.ms-body`), pas ses enfants — le seul ancrage qui tienne dans TOUS les
+  navigateurs (#2112, Jean Valjean).
+
+  Pourquoi pas un `position: sticky` de plus : cette vue possède son propre
+  ascenseur ET est un `display: flex; flex-direction: column`. C'est
+  exactement la construction dont Firefox n'honore pas le `sticky` (#1282), et
+  le test d'Edge du 15/08 a montré que le symptôme s'y voyait AUSSI — parce
+  qu'ici rien n'était épinglé du tout, dans aucun moteur. Diagnostics (#463) et
+  Paramètres (#1282) ont déjà été réparés de cette façon-là ; on ne pose pas
+  une troisième variante, on reprend celle qui est éprouvée.
+-->
+<div class="mediaservers-view">
   {#if selectedServer && browseResult}
     <!-- Browsing a server -->
     <div class="ms-header">
@@ -476,6 +489,7 @@
       {/if}
     </div>
 
+    <div class="ms-body" bind:this={msEl}>
     {#if requete.trim() && repliLocal}
       <!-- Le serveur ne sait pas chercher : le dire, plutot que de laisser
            croire que la recherche a porte sur toute la bibliotheque. -->
@@ -613,6 +627,7 @@
         <div class="empty">{$tr('mediaservers.noContent')}</div>
       {/if}
     {/if}
+    </div>
 
   {:else}
     <!-- Server list -->
@@ -624,6 +639,7 @@
       </button>
     </div>
 
+    <div class="ms-body">
     {#if loading}
       <div class="loading">
         <div class="spinner"></div>
@@ -657,15 +673,25 @@
         {/each}
       </div>
     {/if}
+    </div>
   {/if}
 </div>
 
 <style>
+  /* La vue ne défile PLUS elle-même : elle borne la hauteur, et `.ms-body`
+     porte l'ascenseur. L'en-tête, posé au-dessus, est donc hors de ce qui
+     défile — il ne peut plus partir, quel que soit le moteur. */
   .mediaservers-view {
     height: 100%;
     display: flex;
     flex-direction: column;
     padding: var(--space-lg) 28px;
+    overflow: hidden;
+  }
+
+  .ms-body {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
   }
 
