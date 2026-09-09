@@ -17,6 +17,7 @@
   import AlbumArt from '../AlbumArt.svelte';
   import ClampedText from '../ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { queuePosition } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
@@ -26,6 +27,7 @@
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
+  import { activeView, pendingLibraryArtist } from '../../lib/stores/navigation';
 
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
@@ -340,6 +342,33 @@
     bioChargement = false;
   }
 
+  /**
+   * Le nom de l'artiste MÈNE à sa fiche — #3708, FabienM, fil forum 1726 :
+   * « l'hyperlien sur l'artiste est absent, ex ici: Artiste Depeche Mode n'a
+   * pas de lien actif pour rediriger vers la page de l'artiste. »
+   *
+   * On ne réinvente aucun chemin : c'est le contrat que `PisteActions`
+   * (`allerArtiste`) et `NowPlaying` (`ouvrirFicheArtiste`) posent déjà — on
+   * POSE la cible, puis on change de vue. Le composant ne sait pas naviguer,
+   * et n'a pas à le savoir.
+   *
+   * 🔴 `onClose()` en plus des deux magasins : cette fiche est un CALQUE
+   * par-dessus la grille. Sans lui, l'onglet Artistes s'ouvrait derrière un
+   * album resté au premier plan — le clic n'aurait rien paru faire.
+   *
+   * Le contrat V1 (`selectedArtist` + `libraryTab`) n'est PAS alimenté ici :
+   * ce composant vit dans `components/v2/` et n'est monté que par la nouvelle
+   * coquille (vérifié : ses neuf montages sont tous des composants `v2/`).
+   * `NowPlaying`, lui, est monté par les DEUX et pose donc les deux.
+   */
+  function allerArtiste() {
+    const id = album.artist_id;
+    if (id == null) return;
+    pendingLibraryArtist.set(id);
+    activeView.set('library');
+    onClose();
+  }
+
   function trackTech(t: Track): string {
     const rate = t.sample_rate ? `${Math.round(t.sample_rate / 100) / 10} kHz` : '';
     const depth = t.bit_depth ? `${t.bit_depth}-bit` : '';
@@ -355,9 +384,26 @@
   <div class="head">
     <div class="art"><AlbumArt coverPath={album.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
     <div class="meta">
-      <div class="qbadge">{qLabel}</div>
+      <!-- 🔴 La pastille « compilation » vit À CÔTÉ du badge de qualité, pas
+           dans la ligne de faits : c'est une NATURE de disque, pas une mesure,
+           et c'est la première chose que Didier et Bertrand cherchaient sur
+           cette fiche (#1957). Absente quand le drapeau est faux ou absent —
+           voir `PastilleCompilation`. -->
+      <div class="qrow">
+        <div class="qbadge">{qLabel}</div>
+        <PastilleCompilation compilation={album.is_compilation} />
+      </div>
       <h1>{album.title}</h1>
-      <div class="artist">{album.artist_name ?? ''}</div>
+      <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.
+           Pas d'`<a href>` non plus — cette coquille ne route rien par l'URL,
+           la navigation passe par les magasins. Sans identifiant d'artiste
+           (album de service, dépôt distant, base ancienne), le nom reste du
+           TEXTE : un lien mort serait pire que pas de lien. -->
+      {#if album.artist_id != null}
+        <button type="button" class="artist lien" onclick={allerArtiste}>{album.artist_name ?? ''}</button>
+      {:else}
+        <div class="artist">{album.artist_name ?? ''}</div>
+      {/if}
       <div class="facts">
         {#if $formatAnneeAlbum(album)}<span>{$formatAnneeAlbum(album)}</span>{/if}
         <span>{tracks.length} titre{tracks.length > 1 ? 's' : ''}</span>
@@ -462,10 +508,21 @@
   .head{display:flex; gap:30px; padding:6px 0 26px}
   .art{width:240px; height:240px; border-radius:8px; overflow:hidden; flex:0 0 auto; box-shadow:var(--v2-sh-lg)}
   .meta{display:flex; flex-direction:column; gap:12px; padding-top:8px}
-  .qbadge{align-self:flex-start; font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
+  /* Le badge de qualité et la pastille « compilation » sur la MÊME ligne, et
+     non deux blocs empilés : ce sont deux étiquettes de même rang, et empilées
+     elles pousseraient le titre de l'album hors du premier coup d'œil. */
+  .qrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .qbadge{font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}
   .artist{font-size:18px; color:var(--v2-txt2)}
+  /* Le bouton doit se lire comme le texte qu'il remplace : même taille, même
+     couleur, aligné à gauche. Ce qui l'annonce comme un lien, c'est le
+     survol et le focus — visible AU CLAVIER, pas seulement à la souris. */
+  .artist.lien{border:0; background:transparent; padding:0; font-family:inherit;
+    text-align:left; cursor:pointer}
+  .artist.lien:hover{color:var(--v2-acc-tint); text-decoration:underline}
+  .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
   .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
   /* Le DR DÉDUIT (moyenne des pistes) : tilde dans le texte, soulignement
      pointillé en `currentColor` — donc lisible dans les deux thèmes sans
@@ -487,6 +544,10 @@
 
   .tracks{display:flex; flex-direction:column; gap:1px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
+  /* Les regles de LIGNE ont disparu avec la boucle qu'elles habillaient :
+     la fiche monte `ListePistesV2`, qui porte les siennes. Le compilateur
+     Svelte les signalait toutes les neuf en « Unused CSS selector » des que
+     ce composant etait compile (#1957, garde de montage). */
 
   /* Présentation de l'album (#3586) — repliée par défaut, comme dans
      l'interface actuelle : la route sort sur le réseau quand la notice
@@ -499,17 +560,4 @@
   .bio-text{margin:0; color:var(--v2-txt2); font-size:14px; line-height:1.65; max-width:70ch}
   .bio-state{margin:0; color:var(--v2-txt3); font-size:13px; font-style:italic}
   .bio-state.err{color:var(--v2-danger)}
-  .trk{display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:14px; width:100%;
-    padding:0 12px; color:var(--v2-txt2); border-radius:8px}
-  /* Le clic de LECTURE : c'est lui qui porte la grille du titre, la ligne
-     n'etant plus qu'un conteneur depuis qu'elle accueille la barre d'actions. */
-  .tclick{display:grid; grid-template-columns:34px 1fr; align-items:center; gap:14px; min-width:0;
-    padding:11px 0; border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; font-family:inherit}
-  .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
-  .trk.np{color:var(--v2-acc1)}
-  .trk .n{font:12px var(--v2-mono); color:var(--v2-txt3); text-align:right}
-  .trk.np .n{color:var(--v2-acc1)}
-  .trk .ti{font-size:14px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-  .trk .tk{font:10px var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em}
-  .trk .dur{font:12px var(--v2-mono); color:var(--v2-txt3)}
 </style>

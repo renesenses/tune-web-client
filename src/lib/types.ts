@@ -85,6 +85,29 @@ export interface Album {
    *  Servi uniquement par `GET /library/albums/{id}`, et absent de la réponse
    *  quand aucune piste ne porte le tag — ce qui est le cas courant. */
   dynamic_range?: string | null;
+  /**
+   * Le disque est-il une compilation ? (#1957)
+   *
+   * Servi par le serveur depuis la v0.9.95 : `Album` le sérialise
+   * (`tune-core/src/db/models.rs`, champ `is_compilation`) et
+   * `/library/albums-detailed` le calcule par `MAX(al.is_compilation)`. Le
+   * client ne l'avait jamais lu — d'où le symptôme signalé, « le drapeau
+   * n'apparaît nulle part à l'écran ».
+   *
+   * 🔴 ABSENT ≠ FAUX pour un album déjà indexé.
+   *
+   * La colonne est écrite AU SCAN, jamais devinée rétroactivement : un serveur
+   * mis à jour sans re-scan rend `false` pour toute sa bibliothèque. Et le
+   * verdict lui-même a changé le 07/09/2026 (`ef2de52e`, serveur #3232 : « le
+   * verdict porte sur le dossier entier, pas sur ce qu'un lot en montre »),
+   * donc un album à cheval sur plusieurs lots peut basculer au prochain scan.
+   *
+   * Conséquence pour l'écran : on n'affiche QUE le positif. Une pastille
+   * « compilation » sur un album qui en est une est vraie dès qu'elle
+   * apparaît ; une mention « ce n'est pas une compilation » affirmerait ce
+   * que la base ne sait pas encore.
+   */
+  is_compilation?: boolean;
   /** D'OÙ sort ce Dynamic Range (#1388, serveur v0.9.142) : `album_tag` quand
    *  une piste porte `ALBUM DYNAMIC RANGE`, `track_average` quand Tune l'a
    *  déduite de la moyenne arrondie des `DYNAMIC RANGE` des pistes. Apparaît
@@ -961,9 +984,49 @@ export interface PlaylistRecoverResponse {
   tracks: RecoverTrackResult[];
 }
 
+/** Réponse de `POST /playlists/{id}/recover/apply`.
+ *
+ *  #3662 — le client déclarait `{replaced, failed}` : deux champs que le
+ *  serveur n'a jamais rendus. `apply_recovery`
+ *  (`tune-server/src/routes/playlists.rs:1479-1512`) rend
+ *  `{playlist_id, total_tracks, recovered, still_missing}`.
+ *
+ *  ⚠️ Le nom trompe, et le type ne le rattrape pas : ce handler ne prend AUCUN
+ *  corps de requête. Il RECOMPTE les pistes de la playlist ; il n'applique
+ *  aucun remplacement. La liste `replacements` envoyée par le client est donc
+ *  reçue puis ignorée. C'est un défaut de fond distinct de l'alignement de type
+ *  fait ici — voir la note portée à #3662. */
 export interface RecoverApplyResponse {
-  replaced: number;
-  failed: number;
+  playlist_id: number;
+  total_tracks: number;
+  recovered: number;
+  still_missing: number;
+}
+
+/** Réponse de `POST /plugins/{name}/enable` et `/disable`
+ *  (`tune-server/src/routes/plugins.rs:538-556`).
+ *
+ *  `restart_required` compare l'état DEMANDÉ à ce qui tourne réellement :
+ *  réactiver un greffon déjà chargé, ou désactiver un greffon déjà absent, ne
+ *  demande aucun redémarrage. */
+export interface PluginToggleResult {
+  name: string;
+  enabled: boolean;
+  restart_required: boolean;
+}
+
+/** Réponse de `POST /radios/{id}/play/{zone_id}`
+ *  (`tune-server/src/routes/radios.rs:937-982`). Ce n'est pas une `Zone` :
+ *  l'identifiant s'appelle `zone_id`, et `radio` porte le NOM de la station. */
+export interface RadioPlayResult {
+  zone_id: number;
+  radio: string;
+  output_sent: boolean;
+  error?: string | null;
+  state?: unknown;
+  /** Adresse du flux — servie aux seules zones navigateur (#3164), donc
+   *  absente ou nulle ailleurs. */
+  stream_url?: string | null;
 }
 
 export interface StereoPairResponse {

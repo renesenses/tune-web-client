@@ -6,7 +6,7 @@
   import * as api from '../lib/api';
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
-  import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
+  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab } from '../lib/stores/library';
   import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
@@ -22,8 +22,9 @@
       stashViewState('smartcollections', { id: selected.id });
     }
     selectedAlbum.set(album);
+    const idFiche = commencerFicheAlbum(album.id);
     api.getAlbumTracks(album.id).then(tracks => {
-      albumTracks.set(tracks);
+      poserPistesAlbum(idFiche, tracks);
       libraryTab.set('albums');
       activeView.set('library');
     });

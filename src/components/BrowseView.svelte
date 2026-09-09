@@ -391,6 +391,15 @@
     align-items: center;
     gap: var(--space-md);
     margin-bottom: var(--space-lg);
+ 
+    /* La gouttière de la grappe (loupe + signet + avatar), qui est en
+       `position:absolute` au-dessus des écrans du shell v2. Cet écran est un
+       composant v1 monté DANS ce shell : la garde `gouttiereGrappe` ne
+       balayait que `components/v2` et ne le voyait pas — les trois derniers
+       boutons passaient sous la barre de recherche globale (copie d'écran
+       Répertoires, 08/09/2026). La valeur vit sur `.v2-shell` ; le repli sert
+       aux écrans montés hors du shell. */
+    padding-right: var(--v2-grappe-w, 172px);
   }
 
   .browse-header h2 {

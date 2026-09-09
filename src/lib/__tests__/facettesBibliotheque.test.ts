@@ -39,6 +39,10 @@ const OUTILS: Outils = {
 
 const AUCUN: FiltresBibliotheque = {
   qualite: null, frequence: null, annee: null, format: null, profondeur: null, recherche: '',
+  // #1957 — la facette « compilation ». Ses propres cas vivent dans
+  // `pastilleCompilation.test.ts` ; ici elle est simplement inactive, pour que
+  // les comptes existants restent ceux d'avant.
+  compilation: null,
 };
 
 describe('sans filtre, on compte toute la bibliothèque', () => {

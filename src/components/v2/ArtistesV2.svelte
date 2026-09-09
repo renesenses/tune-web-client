@@ -45,7 +45,14 @@
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import type { Album, Artist } from '../../lib/types';
+  import { streamingServices } from '../../lib/stores/streaming';
+  import {
+    albumsDeStreamingPourArtiste,
+    servicesInterrogeables,
+    type AlbumsDeService,
+  } from '../../lib/albumsArtisteStreaming';
   import AlbumArt from '../AlbumArt.svelte';
+  import ServiceBadge from '../ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
@@ -93,6 +100,51 @@
   let albumOuvert = $state<Album | null>(null);
   let enEdition = $state<Artist | null>(null);
 
+  /**
+   * Les albums de l'artiste CHEZ LES SERVICES — #3709.
+   *
+   * `ouvrirService` porte le service en même temps que l'album : `AlbumDetailV2`
+   * n'apparie un album de streaming que sur la PAIRE service + `source_id`, et
+   * l'ouvrir sans son service le laisserait sur « Chargement… » pour toujours.
+   */
+  let albumsService = $state<AlbumsDeService[]>([]);
+  let albumsServiceChargement = $state(false);
+  let albumOuvertService = $state<{ album: Album; service: string } | null>(null);
+
+  /**
+   * 🔴 Un jeton par ouverture. Ces requêtes sont lentes (une recherche PUIS une
+   * liste, par service) : sans lui, la réponse d'un artiste ouvert puis refermé
+   * viendrait se poser sous le suivant.
+   */
+  let jetonService = 0;
+  async function chargerAlbumsDeService(a: Artist) {
+    const jeton = ++jetonService;
+    albumsService = [];
+    const services = servicesInterrogeables($streamingServices);
+    if (!services.length || !a.name) {
+      albumsServiceChargement = false;
+      return;
+    }
+    albumsServiceChargement = true;
+    const trouves = await albumsDeStreamingPourArtiste(a.name, services, {
+      resoudreArtiste: async (svc, nom) =>
+        (await api.federatedSearch(nom, [svc], 5))?.services?.[svc]?.artists ?? [],
+      albumsDeLArtiste: (svc, id) => api.getStreamingArtistAlbums(svc, id),
+    });
+    if (jeton !== jetonService) return;
+    albumsService = trouves;
+    albumsServiceChargement = false;
+  }
+
+  function lireAlbumDeService(al: Album, service: string) {
+    const zid = $currentZoneId;
+    // 🔴 `source` va TOUJOURS avec `streaming_album_id` : seul, l'identifiant
+    // n'est apparié par aucun service.
+    if (zid == null || al.source_id == null) return;
+    playAndSync(zid, { streaming_album_id: String(al.source_id), source: (al.source ?? service) as any })
+      .catch(() => {});
+  }
+
   /** Sans accents ni casse : « Éric » doit se ranger et se chercher comme « Eric ». */
   const plier = (s: string | null | undefined) =>
     (s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -137,6 +189,10 @@
     ouvert = a;
     albums = [];
     albumsChargement = true;
+    // Les services partent EN PARALLÈLE et sans bloquer : la bibliothèque
+    // locale répond en un aller-retour, un service en deux. Les attendre
+    // retarderait l'affichage de ce qu'on possède déjà.
+    void chargerAlbumsDeService(a);
     try {
       albums = (await api.getArtistAlbums(a.id!)) ?? [];
     } catch {
@@ -157,9 +213,15 @@
    * `api.shuffleAll` sans aucun appelant. Il tire sur la discographie entiere,
    * la ou une liste chargee cote client s'arreterait a ce qui est affiche.
    */
+  //
+  // `contexte` dit au serveur CE QUE l'auditeur a demandé — ici un ARTISTE. Il
+  // sait déduire album, playlist et piste du corps ; une discographie, non :
+  // elle part en liste nue de `track_ids`. Sans cette annonce l'écoute
+  // s'enregistrait sans contexte et retombait dans le repli « albums » de
+  // « Continuer l'écoute », jamais sous le nom de l'artiste (#2442).
   let masseEnCours = $state(false);
-  const gestesMasse = (zid: number) => ({
-    lire: (c: any) => playAndSync(zid, c),
+  const gestesMasse = (zid: number, contexte?: Record<string, unknown>) => ({
+    lire: (c: any) => playAndSync(zid, contexte ? { ...c, ...contexte } : c),
     enfiler: (c: any) => api.addToQueue(zid, c),
   });
   async function lireToutArtiste(a: Artist) {
@@ -171,7 +233,10 @@
     masseEnCours = true;
     try {
       const pistes = (await api.getArtistTracks(a.id)) ?? [];
-      const n = await lireListe(pistes, gestesMasse(zid));
+      const n = await lireListe(
+        pistes,
+        gestesMasse(zid, { context_type: 'artist', context_id: String(a.id) }),
+      );
       if (!n) notifications.error($t('library.noTracks' as any));
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
@@ -265,37 +330,101 @@
     </div>
   </header>
 
-  {#if albumsChargement}
-    <div class="etat">{$t('common.loading' as any)}</div>
-  {:else if !albums.length}
-    <div class="etat">{$t('v2.art.noAlbum' as any)}</div>
-  {:else}
-    <div class="grille">
-      {#each albums as al (al.id)}
-        <div class="carte">
-          <div class="cv">
-            <PochetteActions
-              favori={al.id != null ? { albumId: al.id } : null}
-              etiquettes={al.id != null ? { itemType: 'album', itemId: al.id } : null}
-              onLire={() => lireAlbum(al)}
-              onOuvrir={() => (albumOuvert = al)}
-              nom={al.title}
-            >
-              <AlbumArt coverPath={al.cover_path} albumId={al.id} size={0} alt={al.title}
-                fallbackInitials={al.title?.slice(0, 1)} />
-            </PochetteActions>
-          </div>
-          <button class="meta" onclick={() => (albumOuvert = al)}>
-            <span class="ct" title={al.title}>{al.title}</span>
-            <span class="ca" title={String(al.year ?? '')}>{al.year ?? ''}</span>
-          </button>
+  <!-- UN seul conteneur défilant pour la fiche : les albums de la
+       bibliothèque, puis une section par service (#3709). Deux zones
+       défilantes empilées obligeraient à faire rouler deux ascenseurs pour
+       parcourir une discographie. -->
+  <div class="corps">
+    {#if albumsChargement}
+      <div class="etat">{$t('common.loading' as any)}</div>
+    {:else if !albums.length && !albumsService.length && !albumsServiceChargement}
+      <div class="etat">{$t('v2.art.noAlbum' as any)}</div>
+    {:else}
+      {#if albums.length}
+        <div class="gr">
+          {#each albums as al (al.id)}
+            <div class="carte">
+              <div class="cv">
+                <PochetteActions
+                  favori={al.id != null ? { albumId: al.id } : null}
+                  etiquettes={al.id != null ? { itemType: 'album', itemId: al.id } : null}
+                  onLire={() => lireAlbum(al)}
+                  onOuvrir={() => (albumOuvert = al)}
+                  nom={al.title}
+                >
+                  <AlbumArt coverPath={al.cover_path} albumId={al.id} size={0} alt={al.title}
+                    fallbackInitials={al.title?.slice(0, 1)} />
+                </PochetteActions>
+              </div>
+              <button class="meta" onclick={() => (albumOuvert = al)}>
+                <span class="ct" title={al.title}>{al.title}</span>
+                <span class="ca" title={String(al.year ?? '')}>{al.year ?? ''}</span>
+              </button>
+            </div>
+          {/each}
         </div>
+      {/if}
+
+      <!-- #3709 — « Il manque tous ses albums de Qobuz / Tidal / Bandcamp /
+           Youtube » (FabienM, fil 1726). Une section SÉPARÉE par service, sous
+           les albums de la bibliothèque : la grille locale est indexée sur
+           `al.id` et ses cœurs et étiquettes tiennent à un identifiant LOCAL
+           qu'un album de service n'a pas. Les mêler casserait la clé de boucle
+           et poserait des cœurs sans cible.
+           Même forme que l'interface actuelle (`LibraryView.svelte:3335`) :
+           badge du service, nombre d'albums, puis la grille. -->
+      {#if albumsServiceChargement}
+        <div class="etat">{$t('common.loading' as any)}</div>
+      {/if}
+      {#each albumsService as sec (sec.service)}
+        <section class="svc">
+          <div class="svct">
+            <ServiceBadge source={sec.service} />
+            <span class="cpt">{sec.albums.length} {$t('v2.art.albums' as any)}</span>
+          </div>
+          <div class="gr">
+            {#each sec.albums as al, i (String(al.source_id ?? al.id ?? i))}
+              <div class="carte">
+                <div class="cv">
+                  <!-- Ni cœur ni étiquettes : les deux sont adossés à un
+                       identifiant de bibliothèque que cet album n'a pas. Il
+                       s'ouvre et il se lit, avec la paire service +
+                       `source_id`. -->
+                  <PochetteActions
+                    favori={null}
+                    etiquettes={null}
+                    onLire={() => lireAlbumDeService(al, sec.service)}
+                    onOuvrir={() => (albumOuvertService = { album: al, service: sec.service })}
+                    nom={al.title}
+                  >
+                    <AlbumArt coverPath={al.cover_path} albumId={null} size={0} alt={al.title}
+                      source={al.source} fallbackInitials={al.title?.slice(0, 1)} />
+                  </PochetteActions>
+                </div>
+                <button class="meta"
+                  onclick={() => (albumOuvertService = { album: al, service: sec.service })}>
+                  <span class="ct" title={al.title}>{al.title}</span>
+                  <span class="ca" title={String(al.year ?? '')}>{al.year ?? ''}</span>
+                </button>
+              </div>
+            {/each}
+          </div>
+        </section>
       {/each}
-    </div>
-  {/if}
+    {/if}
+  </div>
 
   {#if albumOuvert}
     <AlbumDetailV2 album={albumOuvert} depot={null} onClose={() => (albumOuvert = null)} />
+  {/if}
+
+  <!-- 🔴 `service` est passé AVEC l'album : la fiche n'apparie un album de
+       streaming que sur la paire service + `source_id`. Sans lui, elle
+       resterait sur « Chargement… » indéfiniment. -->
+  {#if albumOuvertService}
+    {@const fiche = albumOuvertService}
+    <AlbumDetailV2 album={fiche.album} service={fiche.service}
+      onClose={() => (albumOuvertService = null)} />
   {/if}
 
 {:else if chargement}
@@ -380,6 +509,20 @@
     align-content: start;
     padding: 8px 30px 40px;
   }
+  /* #3709 — la fiche d'un artiste défile d'un SEUL bloc : les albums de la
+     bibliothèque, puis une section par service. `.gr` est la grille de
+     `.grille` sans son défilement ni son remplissage propres, qui remontent
+     dans `.corps`. */
+  .corps { flex: 1; overflow-y: auto; padding: 8px 30px 40px; min-height: 0; }
+  .gr {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+    gap: 22px 18px;
+    align-content: start;
+  }
+  .svc { margin-top: 30px; }
+  .svct { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; }
+  .corps .etat { padding: 22px 0; }
   .carte {
     display: flex;
     flex-direction: column;

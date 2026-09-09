@@ -282,18 +282,20 @@
 </script>
 
 <section class="v2-sup tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.lbl.assistance' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.lbl.assistance' as any)}</div>
       <h1>{$t('v2.nav.support' as any)}</h1>
     </div>
+    <div class="v2-actions">
     {#if tier && tier !== 'free'}<span class="tier">{tier}</span>{/if}
     {#if licenseKey && !redaction}
-      <button class="neuve" onclick={() => (redaction = true)}>
+      <button class="v2-btn primaire" onclick={() => (redaction = true)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         {$t('v2.sup.newTicket' as any)}
       </button>
     {/if}
+    </div>
   </header>
 
   <nav class="volets" role="tablist">
@@ -509,12 +511,6 @@
 <style>
   .v2-sup{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:16px; padding:24px 30px 14px; padding-right:96px}
-  .neuve{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px; margin-left:auto;
-    border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent;
-    color:var(--v2-txt2); cursor:pointer; font:600 12.5px var(--v2-sans); white-space:nowrap}
-  .neuve:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .neuve svg{width:16px; height:16px}
 
   .redac{display:flex; flex-direction:column; gap:16px; max-width:760px; padding-top:6px}
   .redac .deux{display:grid; grid-template-columns:1fr 1fr; gap:16px}
@@ -535,8 +531,6 @@
   .redac .go:disabled{opacity:.5; cursor:default}
   .redac .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     border-radius:999px; padding:7px 15px; font:600 11.5px var(--v2-sans)}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .tier{font:9.5px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-on-acc);
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); border-radius:999px; padding:4px 11px}
 

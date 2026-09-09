@@ -34,7 +34,7 @@
   import { t } from '../lib/i18n';
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
-  import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
+  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist } from '../lib/stores/navigation';
   import { destinationArtiste } from '../lib/routageArtiste';
   import { setSearchCriteria } from '../lib/stores/shortcuts';
@@ -563,9 +563,13 @@
           api.getAlbumTracks(albumId).catch(() => []),
         ]);
         selectedAlbum.set(album ?? ({ id: albumId, title: albumTitle ?? '' } as any));
-        albumTracks.set(tracks ?? []);
+        // La liste est CLEFEE sur l'album ouvert (#3178) : reposee nue, elle
+        // pouvait s'afficher sous la fiche suivante.
+        const idFiche = commencerFicheAlbum(albumId);
+        poserPistesAlbum(idFiche, tracks ?? []);
       } catch {
         selectedAlbum.set({ id: albumId, title: albumTitle ?? '' } as any);
+        commencerFicheAlbum(albumId);
       }
       libraryTab.set('albums');
       // Le NOUVEAU client ne lit pas `selectedAlbum` : il consomme
@@ -581,7 +585,8 @@
         if (match?.id) {
           const tracks = await api.getAlbumTracks(match.id).catch(() => []);
           selectedAlbum.set(match);
-          albumTracks.set(tracks);
+          const idFiche = commencerFicheAlbum(match.id);
+          poserPistesAlbum(idFiche, tracks);
           libraryTab.set('albums');
           activeView.set('library');
           return;
