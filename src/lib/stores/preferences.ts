@@ -5,9 +5,11 @@ import { isV2Theme, V2_THEME_DEFAULT, type V2Theme } from '../v2Theme';
 import {
   DEFAUTS as DEFAUTS_COLONNES, PAR_CLE as COLONNES_PAR_CLE, type CleColonne,
 } from '../colonnesPistes';
+import { chainesUniques } from '../clesUniques';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
+import { STYLE_CRETE_DEFAUT, type StyleCreteMetre } from '../peakMetre';
 export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings';
 
 /** Layout mode for the Oxygen library view. */
@@ -90,6 +92,17 @@ export interface Preferences {
   albumSortOrder: 'asc' | 'desc';
   /** Densité de la grille d'albums — voir AlbumGridDensity. */
   albumGridDensity: AlbumGridDensity;
+  /**
+   * Le crête-mètre affiché — #452, spécifié par Xavijol.
+   *
+   * AFFICHAGE seulement : rien ici ne touche à l'audio. `off` n'affiche rien,
+   * `lamps` deux témoins compacts, `dat` le bargraphe VFD type Sony DAT
+   * PCM-7030, `iec` le même format à l'échelle IEC 268-18.
+   *
+   * La barre de lecture ne montre JAMAIS `dat` ni `iec` — trop larges — mais
+   * elle honore l'extinction. Voir `lib/peakMetre.styleSurLaBarre`.
+   */
+  peakMeterStyle: StyleCreteMetre;
   /** Afficher les bulles d'aide au survol des boutons.
    *
    *  Activé par défaut : trois testeurs de suite n'ont pas trouvé un bouton
@@ -166,6 +179,7 @@ const defaults: Preferences = {
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
   v2CollectionsMosaique: true,
+  peakMeterStyle: STYLE_CRETE_DEFAUT,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
   // Ne s'applique qu'aux installations SANS niveau enregistre : un choix
@@ -220,7 +234,25 @@ function loadPrefs(): Preferences {
       if (facets.some((f) => OXYGEN_FACETS_REMOVED.includes(f))) {
         p.oxygenFacets = [...defaults.oxygenFacets];
       } else {
-        const cleaned = facets.filter((f) => supported.includes(f));
+        // 🔴 `chainesUniques` referme la porte d'entrée du défaut #1775.
+        //
+        // Ce filtre écartait les facettes inconnues sans jamais retirer un
+        // DOUBLON : une liste enregistrée portant deux fois « genre »
+        // ressortait telle quelle, et le rail la donnait à un
+        // `{#each shown as f (f)}`, qui refuse deux clés identiques. Tout
+        // Oxygen tombait alors — page figée, F5 obligatoire — et le sélecteur
+        // de niveau devenait inerte au passage, faute de gestionnaires
+        // attachés après l'erreur.
+        //
+        // La migration de révision (plus bas) produisait bien une liste unique,
+        // mais par accident — elle repart de `supported`, déjà unique — et elle
+        // ne se joue qu'UNE fois. Un blob enregistré à la révision courante
+        // n'était plus jamais assaini.
+        //
+        // Le magasin est `localStorage`, donc PAR NAVIGATEUR : c'est la seule
+        // hypothèse compatible avec « Edge oui, Chrome non » sans invoquer une
+        // différence de moteur — Edge et Chrome partagent Blink. Non démontré.
+        const cleaned = chainesUniques(facets.filter((f) => supported.includes(f)));
         p.oxygenFacets = cleaned.length ? cleaned : [...defaults.oxygenFacets];
       }
       /**

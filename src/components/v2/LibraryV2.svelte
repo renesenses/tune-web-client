@@ -56,6 +56,7 @@
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
+    comptesCompilation,
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
@@ -67,6 +68,7 @@
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import QualiteAlbum from './QualiteAlbum.svelte';
+  import PastilleCompilation from './PastilleCompilation.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
@@ -219,6 +221,18 @@
   let fRate = $state<number | null>(null);
   let fFormat = $state<string | null>(null);
   let fDepth = $state<number | null>(null);
+  /**
+   * COMPILATIONS seulement (#1957). Une bascule, pas un menu.
+   *
+   * Le serveur accepte `?compilation=true|false` depuis la v0.9.95, mais la
+   * bibliothèque est ici DÉJÀ chargée en entier — les autres filtres sont tous
+   * appliqués sur place, et un aller-retour réseau pour celui-là seul ferait
+   * diverger la grille du compteur. Le filtre est donc posé au même endroit
+   * que ses voisins, sur `matches`.
+   *
+   * `false` n'est pas offert : voir `FiltresBibliotheque.compilation`.
+   */
+  let fCompilation = $state<boolean | null>(null);
 
   /** Formats et profondeurs REELLEMENT presents, avec leur compte. Proposer
    *  une liste figee ferait offrir des rubriques vides — et un filtre qui ne
@@ -263,6 +277,10 @@
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     if (fFormat && (a.format?.trim().toUpperCase() ?? '') !== fFormat) return false;
     if (fDepth != null && (a.bit_depth ?? 0) !== fDepth) return false;
+    // `?? false` : un serveur d'avant la v0.9.95, ou une bibliothèque pas
+    // encore re-scannée, ne porte pas le champ. Il vaut « non », comme côté
+    // serveur — jamais « on ne sait pas, laissons passer ».
+    if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
     return true;
   }
@@ -379,6 +397,7 @@
   const filtresActifs = $derived<FiltresBibliotheque>({
     qualite: fQuality, frequence: fRate, annee: fYear,
     format: fFormat, profondeur: fDepth, recherche: q,
+    compilation: fCompilation,
   });
   const outilsFacettes = $derived<Outils>({
     qualiteDe: tierMatches, anneeDe: albumYear, plier: fold,
@@ -388,6 +407,10 @@
   const depths = $derived(comptesProfondeur(src, filtresActifs, outilsFacettes));
   const nQualite = $derived(comptesQualite(src, filtresActifs, outilsFacettes, QUALITIES.map((x) => x.key)));
   const nFrequence = $derived(comptesFrequence(src, filtresActifs, outilsFacettes, RATES.map((r) => r.v)));
+  /** Combien de compilations, compte tenu des AUTRES filtres. À zéro, la puce
+   *  ne s'affiche pas : proposer un filtre qui ne rend rien passe pour un bug —
+   *  et c'est le cas normal sur une bibliothèque pas encore re-scannée. */
+  const nCompilations = $derived(comptesCompilation(src, filtresActifs, outilsFacettes));
 
   /** Annee SURVOLEE dans la frise. Le curseur suit la souris : c'est ce qui
    *  fait qu'il « parcourt les annees » au lieu d'attendre un clic. */
@@ -861,14 +884,32 @@
    * L'identifiant est consommé ICI puis passé à `ArtistesV2` en propriété :
    * deux consommateurs d'un même dépôt se le voleraient selon l'ordre de
    * montage, et l'onglet n'est monté que quand on l'a choisi.
+   *
+   * 🔴 `$pendingLibraryArtist`, PAS `get(pendingLibraryArtist)` — #3708.
+   *
+   * `get()` lit la valeur et se désabonne aussitôt : sous les runes il
+   * n'inscrit AUCUNE dépendance, et l'effet ne tournait donc qu'au montage.
+   * Mesuré le 09/09/2026 avec un composant sonde (un `$effect` lisant
+   * `get(store)`, journal après `store.set(42)` : `[null]` — une seule
+   * passe). Cela suffisait tant que la cible n'était posée que depuis une
+   * AUTRE vue : `ShellV2` monte `{#if $activeView === 'library'}<LibraryV2/>`,
+   * donc changer de vue remontait l'écran et rejouait l'effet. Depuis la fiche
+   * d'album, on est DÉJÀ dans la Bibliothèque : rien n'était remonté, et poser
+   * le magasin n'aurait rien fait à l'écran.
+   *
+   * L'effet écrit ce qu'il lit (`set(null)`), ce qui le rejoue une fois : la
+   * seconde passe sort sur `id == null` sans rien écraser.
    */
   let artisteADemande = $state<number | null>(null);
   $effect(() => {
-    const id = get(pendingLibraryArtist);
+    const id = $pendingLibraryArtist;
     if (id == null) return;
     pendingLibraryArtist.set(null);
     artisteADemande = id;
     tab = 'artists';
+    // La fiche d'album est un CALQUE par-dessus la grille : la laisser
+    // ouverte cacherait l'onglet Artistes qu'on vient d'ouvrir.
+    opened = null;
   });
 
   $effect(() => {
@@ -909,7 +950,7 @@
     playAndSync(zid, { album_id: a.id }).catch(() => {});
   }
 
-  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; }
+  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; fCompilation = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -1019,7 +1060,7 @@
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null} onclick={reset}>Tout ({matchCount})</button>
+      <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null && fCompilation == null} onclick={reset}>Tout ({matchCount})</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -1071,6 +1112,19 @@
             {/each}
           </div>
         </div>
+      {/if}
+      <!-- COMPILATIONS (#1957). Une bascule, pas un menu : le seul état qui a
+           un sens à demander est « montre-moi les compilations ». « Montre-moi
+           ce qui n'en est pas » rendrait la bibliothèque entière tant que le
+           scan n'a pas repassé dessus — voir `FiltresBibliotheque`.
+           Cachée à zéro : c'est l'état normal d'un serveur mis à jour sans
+           re-scan, et un filtre qui ne rend rien passe pour un bug. -->
+      {#if nCompilations > 0 || fCompilation != null}
+        <button class="chip" class:active={fCompilation != null}
+          aria-pressed={fCompilation != null}
+          title={$tr('v2.lib.compilationsHint' as any)}
+          onclick={() => (fCompilation = fCompilation == null ? true : null)}
+        >{$tr('v2.lib.compilations' as any)} <em>{$formatNombre(nCompilations)}</em></button>
       {/if}
       {#if showExpert && depths.length > 1}
         <div class="drop" class:open={ddOpen === 'depth'}>
@@ -1362,7 +1416,7 @@
                     <button class="meta" onclick={() => opened = a}>
                       <div class="ct" title={a.title}>{a.title}</div>
                       <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
-                      <QualiteAlbum objet={a} />
+                      <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
                     </button>
                   </div>
                 {/each}
@@ -1380,7 +1434,10 @@
           {#each affiches as a (a.id)}
             <button class="lrow" data-letter={firstLetter(a)} onclick={() => opened = a}>
               <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
-              <span class="lt">{a.title}</span>
+              <!-- La pastille reste DANS la cellule du titre : une septieme
+                   colonne decalerait toutes les autres, et seule une poignee de
+                   lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
+              <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
               <span class="la">{a.artist_name ?? ''}</span>
               <span class="ly">{albumYear(a) ?? ''}</span>
               <!--
@@ -1423,7 +1480,7 @@
               <button class="meta" onclick={() => opened = a}>
                 <div class="ct" title={a.title}>{a.title}</div>
                 <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
-                <QualiteAlbum objet={a} />
+                <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
                 {#if showTech}<div class="cq">{tech(a)}</div>{/if}
               </button>
             </div>
@@ -1494,6 +1551,12 @@
   .chip svg{width:12px; height:12px; opacity:.7}
   .chip.count{background:transparent; border:1px solid var(--v2-line2); color:var(--v2-txt)}
   .chip.active{background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); color:var(--v2-on-acc)}
+  /* Le compte d'une puce-bascule, dans la puce elle-même : les menus le
+     portent sur chaque valeur, une bascule n'en a qu'une à annoncer.
+     `currentColor` à l'état actif, sinon le chiffre resterait gris sur le
+     dégradé et deviendrait illisible. */
+  .chip em{font:9.5px var(--v2-mono); font-style:normal; color:var(--v2-txt3); margin-left:-2px}
+  .chip.active em{color:currentColor; opacity:.8}
   .drop{position:relative}
   .drop .menu{position:absolute; top:44px; left:0; z-index:20; min-width:150px; padding:6px;
     background:var(--v2-surface); border:1px solid var(--v2-line2); border-radius:12px; box-shadow:var(--v2-sh-lg);
@@ -1671,7 +1734,11 @@
     color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s}
   .lrow:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}
-  .lrow .lt{font-size:13.5px; font-weight:600; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lrow .lt{display:flex; align-items:center; gap:7px; min-width:0;
+    font-size:13.5px; font-weight:600; color:var(--v2-txt)}
+  /* C'est le TITRE qui s'elide, pas la pastille : une pastille tronquee ne
+     dirait plus rien, alors qu'un titre coupe reste identifiable. */
+  .lrow .ltt{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lrow .la{font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .lrow .ly{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right; font-variant-numeric:tabular-nums}
   /* La cellule du badge existe meme vide : c'est elle qui tient la colonne. */
@@ -1732,5 +1799,10 @@
     border-radius:3px; background:var(--v2-scrim); color:var(--v2-acc-tint)}
   .ct{margin-top:9px; font:600 12.5px var(--v2-sans); line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* Troisieme ligne d'une vignette : la provenance et la qualite, puis la
+     pastille « compilation ». `min-width:0` sur les deux enfants, sinon le
+     badge de qualite refuse de retrecir et pousse la pastille hors carte. */
+  .cbot{display:flex; align-items:center; gap:6px; min-width:0}
+  .cbot > :global(*){min-width:0}
   .cq{margin-top:4px; font:9.5px var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

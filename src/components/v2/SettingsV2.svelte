@@ -47,6 +47,8 @@
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
+  import CreteMetre from '../CreteMetre.svelte';
+  import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
@@ -1727,6 +1729,30 @@
                 </div>
               </div>
 
+              <!-- #452 — le crête-mètre, avec son aperçu VIVANT à côté du
+                   choix. Trois visuels décrits par des mots ne se départagent
+                   pas : « DAT PCM-7030 » ne dit rien tant qu'on ne l'a pas vu
+                   bouger. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('v2.set.peakMeter' as any)}</span>
+                  <span class="hint">{$t('v2.set.peakMeterHint' as any)}</span>
+                </div>
+                <div class="creterow">
+                  <select class="sel" value={$preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT}
+                    onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                      if (estStyleCrete(v)) preferences.update((pr) => ({ ...pr, peakMeterStyle: v })); }}>
+                    <option value="off">{$t('v2.set.peakOff' as any)}</option>
+                    <option value="lamps">{$t('v2.set.peakLamps' as any)}</option>
+                    <option value="dat">{$t('v2.set.peakDat' as any)}</option>
+                    <option value="iec">{$t('v2.set.peakIec' as any)}</option>
+                  </select>
+                  <span class="apercu">
+                    <CreteMetre style={$preferences.peakMeterStyle ?? STYLE_CRETE_DEFAUT} hauteur={22} largeur={150} />
+                  </span>
+                </div>
+              </div>
+
               <div class="row">
                 <div class="lbl"><span>{$t('settings.language' as any)}</span></div>
                 <select class="sel" value={$preferences.language ?? 'fr'}
@@ -1739,7 +1765,10 @@
               </div>
 
               <div class="row">
-                <div class="lbl"><span>{$t('settings.startupView' as any)}</span></div>
+                <div class="lbl">
+                    <span>{$t('settings.startupView' as any)}</span>
+                    <span class="hint">{$t('v2.hint.startupView' as any)}</span>
+                  </div>
                 <select class="sel" value={$preferences.startupView}
                   onchange={(e) => preferences.update((pr) => ({ ...pr, startupView: (e.currentTarget as HTMLSelectElement).value as StartupView }))}>
                   {#each STARTUP as o (o.v)}<option value={o.v}>{$t(o.k as any)}</option>{/each}
@@ -1747,7 +1776,10 @@
               </div>
 
               <div class="row">
-                <div class="lbl"><span>{$t('settings.defaultZone' as any)}</span></div>
+                <div class="lbl">
+                    <span>{$t('settings.defaultZone' as any)}</span>
+                    <span class="hint">{$t('v2.hint.defaultZone' as any)}</span>
+                  </div>
                 <select class="sel" value={$preferences.defaultZoneId ?? ''}
                   onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
                     const dz = v ? Number(v) : null;
@@ -1760,7 +1792,10 @@
 
               {#if atLeast(level, 'intermediate')}
                 <div class="row">
-                  <div class="lbl"><span>{$t('settings.volumeDisplay' as any)}</span></div>
+                  <div class="lbl">
+                    <span>{$t('settings.volumeDisplay' as any)}</span>
+                    <span class="hint">{$t('v2.hint.volumeDisplay' as any)}</span>
+                  </div>
                   <div class="seg4">
                     <button class:on={$preferences.volumeDisplay === 'percent'}
                       onclick={() => preferences.update((pr) => ({ ...pr, volumeDisplay: 'percent' as VolumeDisplay }))}>{$t('settings.percent' as any)}</button>
@@ -1856,7 +1891,10 @@
                   {$t('v2.hint.ingestRule' as any)}
                 </p>
                 <div class="row">
-                  <div class="lbl"><span>{$t('settings.ingestMode' as any)}</span></div>
+                  <div class="lbl">
+                    <span>{$t('settings.ingestMode' as any)}</span>
+                    <span class="hint">{$t('v2.hint.ingestMode' as any)}</span>
+                  </div>
                   <div class="seg4">
                     <button class:on={ingest.mode === 'copy'} onclick={() => saveIngest({ mode: 'copy' })}>{$t('v2.set.copy' as any)}</button>
                     <button class:on={ingest.mode === 'move'} onclick={() => saveIngest({ mode: 'move' })}>{$t('ingest.move' as any)}</button>
@@ -2967,7 +3005,10 @@
             {:else if s.id === 'localAudio'}
               {#if atLeast(level, 'expert')}
                 <div class="row">
-                  <div class="lbl"><span>{$t('settings.audioBackend' as any)}</span></div>
+                  <div class="lbl">
+                    <span>{$t('settings.audioBackend' as any)}</span>
+                    <span class="hint">{$t('v2.hint.audioBackend' as any)}</span>
+                  </div>
                   <div class="seg4">
                     <button class:on={audioBackend === 'auto'} onclick={() => setBackend('auto')}>{$t('settings.autoDefault' as any)}</button>
                     <button class:on={audioBackend === 'wasapi'} onclick={() => setBackend('wasapi')}>WASAPI</button>
@@ -2976,7 +3017,10 @@
                 </div>
                 {#if audioBackend === 'wasapi'}
                   <div class="row">
-                    <div class="lbl"><span>{$t('settings.wasapiMode' as any)}</span></div>
+                    <div class="lbl">
+                    <span>{$t('settings.wasapiMode' as any)}</span>
+                    <span class="hint">{$t('v2.hint.wasapiMode' as any)}</span>
+                  </div>
                     <div class="seg4">
                       <button class:on={!exclusiveMode} onclick={() => setExclusive(false)}>{$t('settings.sharedDefault' as any)}</button>
                       <button class:on={exclusiveMode} onclick={() => setExclusive(true)}>{$t('settings.exclusiveBitPerfect' as any)}</button>
@@ -2999,7 +3043,10 @@
                 </div>
                 {#if rgMode !== 'off' && atLeast(level, 'expert')}
                   <div class="row">
-                    <div class="lbl"><span>{$t('settings.replayGainPreamp' as any)}</span></div>
+                    <div class="lbl">
+                    <span>{$t('settings.replayGainPreamp' as any)}</span>
+                    <span class="hint">{$t('v2.hint.replayGainPreamp' as any)}</span>
+                  </div>
                     <div class="seg4">
                       {#each [-6, -3, 0, 3, 6] as db (db)}
                         <button class:on={rgPreamp === db} onclick={() => setRgPreamp(db)}>{db > 0 ? `+${db}` : db} dB</button>
@@ -3007,7 +3054,10 @@
                     </div>
                   </div>
                   <div class="row">
-                    <div class="lbl"><span>{$t('settings.replayGainPreventClipping' as any)}</span></div>
+                    <div class="lbl">
+                    <span>{$t('settings.replayGainPreventClipping' as any)}</span>
+                    <span class="hint">{$t('v2.hint.replayGainPreventClipping' as any)}</span>
+                  </div>
                     <label class="sw">
                       <input type="checkbox" checked={rgAntiClip} onchange={(e) => setRgAntiClip((e.currentTarget as HTMLInputElement).checked)} />
                       <span class="slider"></span>
@@ -3181,6 +3231,8 @@
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   /* Badge « Tune tested » : discret. Une zone sur quatorze le porte, et il
      dit une validation, pas une alerte. */
+  .creterow{display:flex; align-items:center; gap:14px}
+  .apercu{display:inline-block; min-width:150px}
   .svcon{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
   .tt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase;

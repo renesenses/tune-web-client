@@ -8,6 +8,7 @@ import { profileHeader } from './profileHeader';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
+import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -171,7 +172,7 @@ export async function apiFetch(path: string): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -190,7 +191,7 @@ export async function apiPost(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -209,7 +210,7 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -223,7 +224,7 @@ export async function apiDelete(path: string): Promise<any> {
   const headers: Record<string, string> = { 'Accept': 'application/json', 'Accept-Language': acceptLang(), ...profileHeader() };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   // Tolerate empty bodies (e.g. HTTP 204 No Content from delete_radio_favorite):
@@ -247,8 +248,10 @@ export interface ApiError extends Error {
 async function apiError(response: Response): Promise<ApiError> {
   let detail = `${response.status} ${response.statusText}`;
   let code: string | undefined;
+  let corps: unknown = null;
   try {
     const body = await response.json();
+    corps = body;
     if (body.detail) detail = body.detail;
     else if (body.message) detail = body.message;
     code = body.error;
@@ -256,8 +259,51 @@ async function apiError(response: Response): Promise<ApiError> {
   const err = new Error(detail) as ApiError;
   err.code = code;
   err.status = response.status;
+  // Le delai d'un 429 doit survivre jusqu'a l'ecran. `erreurDepuisReponse` le
+  // portait deja, pas ce chemin-ci : les LECTURES du support (liste des
+  // tickets, fil, reponse, marquage lu) passent par `fetchJSON`, et elles
+  // partagent le compteur d'envoi de mozaiklabs. Un 429 sur l'une d'elles
+  // arrivait donc sans `retry_after`, et l'ecran disait « reessaie plus tard »
+  // alors que le serveur avait nomme le delai (#2178).
+  err.retryAfter = retryAfterDe(response, corps);
   return err;
 }
+
+/**
+ * Erreur sentinelle des aides de `fetch` — « Session expired », « premium_required ».
+ *
+ * Ces deux-la sont levees AVANT `apiError`, et l'etaient en `Error` nue : ni
+ * `status`, ni `code`. Un refus premium arrivait au magasin indistinguable
+ * d'une panne reseau, et chaque ecran devait le rattraper sur la CHAINE du
+ * message (`premiumRefus.ts`, `motifEchecEq.ts`). Le message reste identique —
+ * les appelants qui le comparent continuent de fonctionner — mais le statut
+ * et le code voyagent desormais avec (#2178).
+ */
+function erreurSentinelle(message: string, status: number, code?: string): ApiError {
+  const err = new Error(message) as ApiError;
+  err.status = status;
+  if (code) err.code = code;
+  return err;
+}
+
+/**
+ * Le `code` stable porte par un refus 402, ou `null`.
+ *
+ * Depuis #2392/#2419 le serveur nomme ses refus par un TERME, `message`
+ * n'etant qu'un repli : c'est ce terme qui permet a l'interface de porter sa
+ * propre traduction. Le lire coute une lecture du corps — la seule autorisee,
+ * un `Response` ne se lit qu'une fois — et un corps illisible n'est jamais une
+ * raison de perdre le refus : on retombe sur le message generique.
+ */
+async function codeDuRefus(response: Response): Promise<Refus | null> {
+  try {
+    return (await response.json()) as Refus;
+  } catch {
+    return null;
+  }
+}
+
+type Refus = { code?: string; zone_limit?: number; zones_actives?: number };
 
 export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   let response: Response;
@@ -282,16 +328,32 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();
-      throw new Error('Session expired');
+      throw erreurSentinelle('Session expired', 401);
     }
+    // Ni le message du serveur ni le repli ne parlaient la langue de
+    // l'interface : `premium_guard.rs` compose le sien avec
+    // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
+    // en anglais — et le repli etait du francais code en dur, montre tel
+    // quel a un anglophone. Les deux sont le meme defaut (#2419).
+    //
+    // Depuis #3672, tous les 402 ne disent plus la meme chose. Le plafond de
+    // zones du palier gratuit n'est PAS une fonction payante : l'utilisateur a
+    // simplement consomme ses zones, et aucun protocole (DLNA, AirPlay 2,
+    // BluOS, Chromecast, OpenHome) n'est reserve au Premium. Servir
+    // « Cette fonctionnalite fait partie de Tune Premium » a quelqu'un qui
+    // vient de cliquer sur son enceinte BluOS lui fait conclure l'inverse —
+    // c'est exactement ce qu'a ecrit Claudio Osorio le 08/09/2026. Le serveur
+    // distingue desormais les deux par un `code` stable ; l'interface porte sa
+    // propre phrase pour chacun.
     if (response.status === 402) {
-      // Ni le message du serveur ni le repli ne parlaient la langue de
-      // l'interface : `premium_guard.rs` compose le sien avec
-      // `feature.display_name()` — « Parametric EQ requires Tune Premium »,
-      // en anglais — et le repli etait du francais code en dur, montre tel
-      // quel a un anglophone. Les deux sont le meme defaut (#2419).
+      const refus = await codeDuRefus(response);
+      if (refus?.code === 'free_zone_cap_reached') {
+        const n = String(refus.zone_limit ?? '');
+        notifications.error(get(t)('zone.freeCapReached').replace('{n}', n));
+        throw erreurSentinelle('premium_required', 402, refus.code);
+      }
       notifications.error(get(t)('premium.required'));
-      throw new Error('premium_required');
+      throw erreurSentinelle('premium_required', 402, 'premium_required');
     }
     const err = await apiError(response);
     if (response.status >= 500) {
@@ -357,7 +419,7 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
   if (!response.ok) {
     if (response.status === 401) {
       clearToken();
-      throw new Error('Session expired');
+      throw erreurSentinelle('Session expired', 401);
     }
     const err = await apiError(response);
     if (response.status >= 500) {
@@ -978,7 +1040,26 @@ export function listStereoPairs() {
 // Comme `addToQueue` : les champs descriptifs acceptent `null`, que le serveur
 // reçoit en `Option<String>`. Le type `Track` les déclare `string | null`, et
 // sans cela chaque appelant devait les blanchir en `undefined`.
-export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number }) {
+/**
+ * Lance une lecture sur une zone.
+ *
+ * `context_type` / `context_id` disent CE QUE l'auditeur a demandé, et non ce
+ * qui part dans la file. Le serveur les enregistre dans `listen_history` et
+ * s'en sert pour « Continuer l'écoute » — c'est la règle posée par FabienM
+ * (fil forum 1557) : « le type pris en compte dans ces rubriques dépend de
+ * l'endroit où l'utilisateur a cliqué sur Lire ».
+ *
+ * Il sait DÉDUIRE `album`, `playlist` et `track` du reste du corps
+ * (`tune-server/src/routes/playback.rs:544-611`). Mais `artist` et `label` ne
+ * s'y devinent pas : une discographie part en liste nue de `track_ids`, que
+ * rien ne distingue d'une sélection quelconque. Les annoncer est la SEULE
+ * voie, et le serveur l'attendait sans qu'aucun client la prenne (#2442).
+ *
+ * Le serveur refuse toute valeur hors des cinq qu'il connaît (`track`,
+ * `album`, `playlist`, `artist`, `label`) plutôt que de laisser une colonne
+ * libre se remplir de variantes.
+ */
+export function play(zoneId: number, body?: { track_id?: number; track_ids?: number[]; album_id?: number; playlist_id?: number; source?: Source; source_id?: string; streaming_album_id?: string; streaming_playlist_id?: string; start_index?: number; file_path?: string; title?: string | null; artist_name?: string | null; album_title?: string | null; cover_path?: string | null; duration_ms?: number; media_format?: string; sample_rate?: number; context_type?: 'track' | 'album' | 'playlist' | 'artist' | 'label'; context_id?: string }) {
   return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/play`, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -1005,8 +1086,13 @@ export function previous(zoneId: number) {
   return fetchJSON<{ status: string; queue_position?: number }>(`${BASE}/zones/${zoneId}/previous`, { method: 'POST' });
 }
 
+/** #3662 — le serveur rend `{position_ms}`, PAS une `Zone`
+ *  (`tune-server/src/routes/playback.rs:2339-2352`). La déclaration `Zone`
+ *  promettait `id`, `name` et l'état complet de la zone : trois choses
+ *  absentes de la réponse. Aucun appelant ne lisait le retour ; c'est
+ *  précisément ce qui a laissé le mensonge s'installer. */
 export function seek(zoneId: number, positionMs: number) {
-  return fetchJSON<Zone>(`${BASE}/zones/${zoneId}/seek`, {
+  return fetchJSON<{ position_ms: number }>(`${BASE}/zones/${zoneId}/seek`, {
     method: 'POST',
     body: JSON.stringify({ position_ms: positionMs }),
   });
@@ -1132,8 +1218,12 @@ export function jumpInQueue(zoneId: number, position: number) {
   });
 }
 
+/** #3662 — le serveur répond **204 No Content**
+ *  (`tune-server/src/routes/playback.rs:2953-2977`) : il n'y a pas de corps du
+ *  tout, donc pas de `queue_length`. `fetchJSON` rendait `undefined` sur corps
+ *  vide, ce qui masquait la promesse fausse ; `fetchVoid` la dit. */
 export function moveInQueue(zoneId: number, fromPosition: number, toPosition: number) {
-  return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/move`, {
+  return fetchVoid(`${BASE}/zones/${zoneId}/queue/move`, {
     method: 'POST',
     body: JSON.stringify({ from_position: fromPosition, to_position: toPosition }),
   });
@@ -1824,8 +1914,13 @@ export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string;
   });
 }
 
+/** ⚠️ Le serveur rend `{ "status": "ok", "track_id": <id> }`, PAS un `Track` —
+ *  `tune-server/src/routes/metadata.rs:607`. Le type de retour dit ce qui
+ *  arrive vraiment : il était déclaré `Track`, et l'appelant appariait sa
+ *  liste sur `updated.id`, un champ jamais envoyé (#3638). Pour rafraîchir un
+ *  affichage, relire la piste avec `getTrack`. */
 export function updateTrack(id: number, data: { title?: string; album_id?: number; artist_id?: number; disc_number?: number; track_number?: number; genre?: string; year?: string }) {
-  return fetchJSON<Track>(`${BASE}/library/tracks/${id}`, {
+  return fetchJSON<{ status: string; track_id: number }>(`${BASE}/library/tracks/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -1924,18 +2019,15 @@ export function searchMediaServer(serverId: string, query: string, container: st
   );
 }
 
-export function getMediaServerItemStreamUrl(serverId: string, itemId: string) {
-  return fetchJSON<{ url: string }>(
-    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/item/${encodeURIComponent(itemId)}/stream-url`
-  );
-}
-
-export function playMediaServerItem(serverId: string, itemId: string, zoneId: number) {
-  return fetchJSON<import('./types').Zone>(
-    `${BASE}/network/media-servers/${serverId}/item/${itemId}/play/${zoneId}`,
-    { method: 'POST' }
-  );
-}
+// #3662 — `getMediaServerItemStreamUrl` et `playMediaServerItem` ont été
+// retirées : deux contrats MORTS. Aucun appelant dans ce dépôt, et le serveur
+// ne les implémente pas — `media_server_stream_url` rend
+// `{server_id, item_id, stream_url: null, message: "…not yet implemented"}`
+// et `play_media_server_item` rend `{status: "not_implemented"}`
+// (`tune-server/src/routes/network.rs:1578-1596`). Les déclarations promettaient
+// `{url}` et `Zone` : deux types que rien ne peut honorer. Même geste que pour
+// `/playlists/all` et `/system/audio-check` — on retire la promesse, on ne
+// fabrique pas côté serveur une réponse que personne n'attend.
 
 // --- User Tags ---
 
@@ -2575,10 +2667,26 @@ export async function addMusicDir(path: string): Promise<{ music_dirs: string[] 
   return { ...r, music_dirs: listeDossiers(r) };
 }
 
-export async function removeMusicDir(path: string): Promise<{ music_dirs: string[] }> {
-  const r = await fetchJSON<any>(`${BASE}/system/music-dirs/remove`, {
+/**
+ * Retire une racine de musique — et, si `confirmPurge` est donné, retire
+ * aussi les pistes devenues orphelines (#2149).
+ *
+ * Le type de retour disait `{ music_dirs }` : le serveur rend `dirs`. Personne
+ * ne s'en apercevait, l'appelant jetait la réponse — et jetait avec elle
+ * `orphan_tracks` et `confirm_purge_required`, sans lesquels aucun écran ne
+ * pouvait proposer la purge.
+ *
+ * `confirmPurge` est un NOMBRE, pas un booléen : il doit couvrir le nombre
+ * exact annoncé au premier appel, sinon le plafond de #1943 refuse tout. Le
+ * refus se lit dans `purge_refused`, jamais dans le code HTTP — le retrait,
+ * lui, a toujours réussi.
+ */
+export async function removeMusicDir(path: string, confirmPurge?: number) {
+  const body: Record<string, unknown> = { path };
+  if (typeof confirmPurge === 'number') body.confirm_purge = confirmPurge;
+  const r = await fetchJSON<RetraitDossier>(`${BASE}/system/music-dirs/remove`, {
     method: 'POST',
-    body: JSON.stringify({ path }),
+    body: JSON.stringify(body),
   });
   return { ...r, music_dirs: listeDossiers(r) };
 }
@@ -2613,8 +2721,10 @@ export function albumBetterQuality(id: number) {
   return fetchJSON<{ better: BetterQuality | null }>(`${BASE}/library/albums/${id}/better-quality`);
 }
 
+/** #3662 — le serveur rend `{status: "restarting"}` et rien d'autre
+ *  (`tune-server/src/routes/system/config.rs:2244-2320`) : pas de `message`. */
 export function restartServer() {
-  return fetchJSON<{ status: string; message: string }>(`${BASE}/system/restart`, { method: 'POST' });
+  return fetchJSON<{ status: string }>(`${BASE}/system/restart`, { method: 'POST' });
 }
 
 /** Arrêter le PROCESSUS serveur (pas la machine). L'erreur réseau qui suit
@@ -3060,17 +3170,15 @@ export function getYouTubeLibrary(limit = 100) {
   return fetchJSON<Track[]>(`${BASE}/streaming/youtube/library?limit=${limit}`);
 }
 
-export function transferPlaylist(sourceService: string, sourceId: string, targetService: string, targetName?: string) {
-  return fetchJSON<import('./types').PlaylistTransferResponse>(`${BASE}/playlists/transfer`, {
-    method: 'POST',
-    body: JSON.stringify({
-      source_service: sourceService,
-      source_playlist_id: sourceId,
-      target_service: targetService,
-      target_name: targetName || undefined,
-    }),
-  });
-}
+// #3662 — `transferPlaylist` a été retirée : contrat MORT. Aucun appelant — les
+// sept sites de transfert du client passent tous par `transferPlaylistV2`
+// (`/playlist-manager/transfer`). La déclaration promettait
+// `PlaylistTransferResponse` (sept champs) là où
+// `tune-server/src/routes/playlists.rs:1296-1318` rend `{transferred}` — et ne
+// transfère RIEN vers un service : il verse les pistes d'une playlist locale
+// dans la file d'une zone, à partir d'un corps `{playlist_id, zone_id}` que
+// cette fonction n'envoyait même pas. Le type, le corps et l'intention étaient
+// faux tous les trois.
 
 export function diffPlaylists(sourceService: string, sourceId: string, targetService: string, targetId: string) {
   return fetchJSON<import('./types').PlaylistDiffResponse>(`${BASE}/playlists/diff`, {
@@ -3280,8 +3388,16 @@ export function deleteRadio(id: number) {
   return fetchVoid(`${BASE}/radios/${id}`, { method: 'DELETE' });
 }
 
+/** #3662 — le serveur ne rend PAS une `Zone` mais un compte rendu de lecture
+ *  (`tune-server/src/routes/radios.rs:937-982`) : `zone_id` — et non `id` —,
+ *  le NOM de la radio dans `radio`, et l'état de la zone dans `state`. Les
+ *  appelants ne lisent que `stream_url`, qui existe bien ; tout le reste de
+ *  `Zone` était promis à vide. */
 export function playRadio(radioId: number, zoneId: number) {
-  return fetchJSON<Zone>(`${BASE}/radios/${radioId}/play/${zoneId}`, { method: 'POST' });
+  return fetchJSON<import('./types').RadioPlayResult>(
+    `${BASE}/radios/${radioId}/play/${zoneId}`,
+    { method: 'POST' },
+  );
 }
 
 export async function uploadRadioCover(radioId: number, file: File): Promise<import('./types').RadioStation> {
@@ -3396,6 +3512,12 @@ function favItem(p: FavoriteRef): { item_type: FavoriteItemType; item_id: number
   return null;
 }
 
+/** La piste relue depuis la base. C'est la SEULE route qui rende un `Track`
+ *  complet : les trois points d'entrée d'édition (`PUT /library/tracks/{id}`,
+ *  `PATCH /metadata/tracks/{id}`, `POST /metadata/tracks/{id}/edit`) sont
+ *  servis par le même gestionnaire `edit_track` et ne rendent qu'un accusé de
+ *  réception. Un écran se rafraîchit donc en relisant, jamais en croyant la
+ *  réponse de l'écriture (#3638). */
 export function getTrack(id: number) {
   return fetchJSON<import('./types').Track>(`${BASE}/library/tracks/${id}`);
 }
@@ -4641,15 +4763,23 @@ export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
   return fetchJSON<InstalledPlugin[]>(`${BASE}/plugins`);
 }
 
-export function enablePlugin(name: string): Promise<{ status: string }> {
+/** #3662 — le serveur ne rend AUCUN champ `status`
+ *  (`tune-server/src/routes/plugins.rs:538-556`) : il rend
+ *  `{name, enabled, restart_required}`. Et `restart_required` n'est pas
+ *  décoratif — il compare l'état demandé à ce qui tourne réellement, donc il
+ *  dit s'il faut vraiment couper la musique. Le type faux empêchait un
+ *  appelant typé de le lire. */
+export function enablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
   // The server mounts enable/disable under /plugins (routes/plugins.rs), same
   // as install/uninstall/update — not under /system, which only aliases the
   // list. The old /system/plugins/… path 404'd, so the toggle never took.
-  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
+  return fetchJSON<import('./types').PluginToggleResult>(
+    `${BASE}/plugins/${encodeURIComponent(name)}/enable`, { method: 'POST' });
 }
 
-export function disablePlugin(name: string): Promise<{ status: string }> {
-  return fetchJSON<{ status: string }>(`${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
+export function disablePlugin(name: string): Promise<import('./types').PluginToggleResult> {
+  return fetchJSON<import('./types').PluginToggleResult>(
+    `${BASE}/plugins/${encodeURIComponent(name)}/disable`, { method: 'POST' });
 }
 
 export async function getStorePlugins(search?: string, category?: string): Promise<StorePlugin[]> {
@@ -5343,7 +5473,7 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}/support/tickets`, { method: 'POST', headers, body: form });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   if (!resp.ok) {
     let message = `${resp.status}`;
     let corps: unknown = null;
@@ -5565,7 +5695,7 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (resp.status === 401) { clearToken(); throw new Error('Session expired'); }
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   let json: any = null;
   try { json = await resp.json(); } catch { /* non-JSON body */ }
   if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
@@ -5927,4 +6057,72 @@ export interface BandcampDiscographie {
 export function bandcampArtist(url: string) {
   const p = new URLSearchParams({ url });
   return fetchJSON<BandcampDiscographie>(`${BASE}/ext/bandcamp/artist?${p}`);
+}
+
+// --- Concerts (greffon, monté sur /ext/concerts) ---
+
+/** Un concert à venir d'un artiste de la bibliothèque. */
+export interface Concert {
+  artist_name: string;
+  event_date: string;
+  venue?: string | null;
+  city?: string | null;
+  country?: string | null;
+  event_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+/** Les trois crans du périmètre. Gradué, jamais binaire : les grands groupes
+ *  ne passent que dans les grandes villes, et un rayon strict masquerait
+ *  précisément les têtes d'affiche. */
+export type PerimetreConcerts = 'radius' | 'country' | 'world';
+
+/** Les rayons proposés, en kilomètres. Liste fermée, la même que côté serveur :
+ *  un rayon libre serait un « partout » déguisé, plus lent et moins lisible. */
+export const RAYONS_CONCERTS = [50, 100, 200] as const;
+
+export interface ConcertsAVenir {
+  concerts: Concert[];
+  /** Le périmètre effectivement appliqué par le nuage. */
+  scope?: PerimetreConcerts;
+  radius_km?: number | null;
+  city?: string | null;
+  country?: string | null;
+  /** Code d'anomalie stable et traduisible — jamais une phrase anglaise. */
+  code?: string;
+}
+
+export interface LocalisationConcerts {
+  scope: PerimetreConcerts;
+  city: string;
+  country: string;
+  radius_km: number;
+  /** `false` quand le rayon est demandé mais que la commune n'a pas été
+   *  trouvée : la lecture retombe alors sur le pays. Sans ce drapeau,
+   *  l'utilisateur croit filtrer à 50 km alors qu'il voit tout son pays. */
+  located?: boolean;
+  code?: string;
+}
+
+export function getConcertsAVenir() {
+  return fetchJSON<ConcertsAVenir>(`${BASE}/ext/concerts/upcoming`);
+}
+
+/** Enregistre la commune SAISIE par l'utilisateur et le périmètre voulu.
+ *
+ *  Jamais déduite : le serveur connaît pourtant des coordonnées tirées de
+ *  l'adresse IP, et il ne faut pas s'en servir — derrière un VPN elles
+ *  désignent un autre pays. */
+export function setLocalisationConcerts(demande: {
+  city: string;
+  postal_code?: string | null;
+  country: string;
+  scope: PerimetreConcerts;
+  radius_km?: number;
+}) {
+  return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`, {
+    method: 'POST',
+    body: JSON.stringify(demande),
+  });
 }

@@ -12,6 +12,9 @@
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
   import * as api from '../lib/api';
   import { lireOuAjouter } from '../lib/playback';
+  import CreteMetre from './CreteMetre.svelte';
+  import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../lib/peakMetre';
+  import { preferences } from '../lib/stores/preferences';
   import { texteDePartage, partageUtilisable } from '../lib/partageEcoute';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
   import {
@@ -30,7 +33,7 @@
   import { t } from '../lib/i18n';
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
-  import { selectedArtist, selectedAlbum, albumTracks, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
+  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist } from '../lib/stores/navigation';
   import { destinationArtiste } from '../lib/routageArtiste';
   import { setSearchCriteria } from '../lib/stores/shortcuts';
@@ -559,9 +562,13 @@
           api.getAlbumTracks(albumId).catch(() => []),
         ]);
         selectedAlbum.set(album ?? ({ id: albumId, title: albumTitle ?? '' } as any));
-        albumTracks.set(tracks ?? []);
+        // La liste est CLEFEE sur l'album ouvert (#3178) : reposee nue, elle
+        // pouvait s'afficher sous la fiche suivante.
+        const idFiche = commencerFicheAlbum(albumId);
+        poserPistesAlbum(idFiche, tracks ?? []);
       } catch {
         selectedAlbum.set({ id: albumId, title: albumTitle ?? '' } as any);
+        commencerFicheAlbum(albumId);
       }
       libraryTab.set('albums');
       // Le NOUVEAU client ne lit pas `selectedAlbum` : il consomme
@@ -577,7 +584,8 @@
         if (match?.id) {
           const tracks = await api.getAlbumTracks(match.id).catch(() => []);
           selectedAlbum.set(match);
-          albumTracks.set(tracks);
+          const idFiche = commencerFicheAlbum(match.id);
+          poserPistesAlbum(idFiche, tracks);
           libraryTab.set('albums');
           activeView.set('library');
           return;
@@ -882,6 +890,11 @@
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
   let playState = $derived($playbackState);
+
+  /** #452 — le visuel choisi, replié sur le défaut si le réglage est illisible. */
+  let styleCrete = $derived(
+    estStyleCrete($preferences.peakMeterStyle) ? $preferences.peakMeterStyle : STYLE_CRETE_DEFAUT,
+  );
   let isRadio = $derived(track?.source === 'radio' || (track == null && $ytPlayerState.track?.source === 'radio'));
 
   // ─── #719 : le temps qui passe sur une RADIO ──────────────────────────
@@ -1496,6 +1509,13 @@
               </div>
             {/if}
           </div>
+          <!-- #452 — ici, le visuel CHOISI : la fiche a la place que la barre
+               de lecture n'a pas. -->
+          {#if styleCrete !== 'off'}
+            <div class="np-crete">
+              <CreteMetre style={styleCrete} hauteur={26} joue={playState === 'playing'} />
+            </div>
+          {/if}
           {#if ytActive}
             <button class="eye-btn" onclick={handleShowVideo} title={$t('youtube.showVideo')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
@@ -2304,6 +2324,7 @@
 {/if}
 
 <style>
+  .np-crete { margin-top: 10px; width: 100%; max-width: 440px; }
   .now-playing {
     display: flex;
     align-items: center;

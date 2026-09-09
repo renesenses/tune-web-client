@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../lib/infobulleTexte';
   import { rangeableEnPlaylist } from '../lib/pisteFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
   import { currentProfileId, favoritePlaylistIds, favoriteFacetKeys, facetFavKey, favoriteStreamingKeys, streamingFavKey } from '../lib/stores/profile';
@@ -7,7 +8,7 @@
   import { trier, clesPourOnglet, dateDeTri, type CleDeTri } from '../lib/favoritesSort';
   import { melangee } from '../lib/shuffle';
   import { queueTracks, queuePosition } from '../lib/stores/queue';
-  import { selectedAlbum, albumTracks, selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
+  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, selectedArtist, artistAlbums, libraryTab } from '../lib/stores/library';
   import { activeView } from '../lib/stores/navigation';
   import { pendingPlaylistId } from '../lib/stores/playlists';
   import * as api from '../lib/api';
@@ -731,7 +732,12 @@
     if (!album.id) return;
     selectedArtist.set(null);
     selectedAlbum.set(album);
-    api.getAlbumTracks(album.id).then(tracks => albumTracks.set(tracks));
+    // La liste de la fiche precedente tombe AVANT la requete, et la reponse ne
+    // s'ecrit que si c'est toujours cet album qui est ouvert (#3178).
+    const idFiche = commencerFicheAlbum(album.id);
+    api.getAlbumTracks(album.id)
+      .then(tracks => poserPistesAlbum(idFiche, tracks))
+      .catch(e => console.error('Load album tracks error:', e));
     activeView.set('library');
   }
 
@@ -876,10 +882,10 @@
             <span class="track-thumb"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? ''} /></span>
             <div class="track-info">
               <span class="track-title-row">
-                <span class="track-title truncate">{t.title}</span>
+                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
                 <ServiceBadge source={(t as any).source ?? 'local'} compact />
               </span>
-              <span class="track-meta truncate">{t.artist_name ?? ''}{#if t.album_title} — {t.album_title}{/if}</span>
+              <span class="track-meta truncate" use:bulleTexte>{t.artist_name ?? ''}{#if t.album_title} — {t.album_title}{/if}</span>
               <MetadataChips track={t} fields={$displayFields} />
             </div>
             <span class="track-duration">{formatTime(t.duration_ms)}</span>
@@ -923,9 +929,9 @@
               </button>
               <div class="cover-badge"><ServiceBadge source={(album as any).source ?? 'local'} compact /></div>
             </div>
-            <span class="album-card-title truncate">{album.title}</span>
+            <span class="album-card-title truncate" use:bulleTexte>{album.title}</span>
             {#if album.artist_name}
-              <span class="album-card-artist truncate">{album.artist_name}</span>
+              <span class="album-card-artist truncate" use:bulleTexte>{album.artist_name}</span>
             {/if}
           </div>
         {/each}
@@ -947,7 +953,7 @@
             <div class="artist-card-avatar">
               <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round fallbackInitials={initials(artist.name)} />
             </div>
-            <span class="artist-card-name truncate">{artist.name}</span>
+            <span class="artist-card-name truncate" use:bulleTexte>{artist.name}</span>
             <ServiceBadge source={(artist as any).source ?? 'local'} compact />
             <button class="artist-remove-btn" onclick={(e) => { e.stopPropagation(); removeFavArtist(artist); }}>
               <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="14" height="14"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -977,11 +983,11 @@
             </span>
             <div class="track-info">
               <span class="track-title-row">
-                <span class="track-title truncate">{pl.name}</span>
+                <span class="track-title truncate" use:bulleTexte>{pl.name}</span>
                 <ServiceBadge source={pl.source} compact />
               </span>
               {#if pl.track_count != null}
-                <span class="track-meta truncate">{pl.track_count} {$tr('common.tracks')}</span>
+                <span class="track-meta truncate" use:bulleTexte>{pl.track_count} {$tr('common.tracks')}</span>
               {/if}
             </div>
             <button class="action-btn" onclick={(e) => { e.stopPropagation(); playPlaylist(pl); }} title={$tr('common.play')} aria-label={$tr('common.play')}>
@@ -1012,7 +1018,7 @@
             </span>
             <div class="track-info">
               <span class="track-title-row">
-                <span class="track-title truncate">{value}</span>
+                <span class="track-title truncate" use:bulleTexte>{value}</span>
                 <ServiceBadge source="local" compact />
               </span>
             </div>
