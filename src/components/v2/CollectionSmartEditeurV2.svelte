@@ -44,6 +44,7 @@
     CHAMPS, operateursDe, typeDuChamp, sansValeur, regleComplete, valeurInitiale,
     type TypeChamp,
   } from '../../lib/smartRegles';
+  import SmartFolderPicker from '../SmartFolderPicker.svelte';
   import type { SmartRule } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -82,7 +83,7 @@
   /** Les champs que CET éditeur sait saisir. Voir l'en-tête. */
   const SAISISSABLES: TypeChamp[] = [
     'text', 'int', 'nullable', 'timestamp', 'count', 'favorite',
-    'collection_ref', 'playlist_ref',
+    'collection_ref', 'playlist_ref', 'folder',
   ];
 
   /**
@@ -287,6 +288,8 @@
                 value={Array.isArray(r.value) ? r.value[1] : ''}
                 oninput={(e) => changerBorne(i, 1, e.currentTarget.value)} />
             </span>
+          {:else if type === 'folder'}
+            <SmartFolderPicker value={r.value ?? ''} onChange={(v) => changerValeur(i, v)} />
           {:else if type === 'collection_ref'}
             <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
               <option value="" disabled>{$t('smartCollection.refPick')}</option>
