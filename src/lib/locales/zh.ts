@@ -3987,6 +3987,7 @@ export default {
   "v2.tags.noPlaylistWithTag": "没有播放列表带有此标签。",
   "v2.album.play": "播放",
   "v2.album.shuffle": "随机播放",
+  "v2.album.locate": "在磁盘中定位",
   "v2.album.playNext": "下一首播放",
   "v2.piste.enLecture": "正在播放",
   "v2.piste.enPause": "已暂停",

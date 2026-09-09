@@ -25,6 +25,28 @@ import { mount, unmount, flushSync } from 'svelte';
 import SearchView from '../../components/SearchView.svelte';
 import lFr from '../locales/fr';
 
+/**
+ * ⏱️ Délai porté à 60 s pour ce fichier.
+ *
+ * Ces cas MONTENT un composant : le coût n'est pas le test, c'est la
+ * transformation Svelte, payée à froid au premier montage. Mesuré le
+ * 09/09/2026 : 26 s d'exécution pour deux fichiers, dont 23 s de transformation
+ * — au-dessus du plafond de 5 s de Vitest dès que la machine a autre chose à
+ * faire.
+ *
+ * Le symptôme est un FAUX ROUGE, et il est traître : le test qui tombe change
+ * d'une exécution à l'autre, et il ne tombe jamais seul — il ment sur le
+ * changement en cours d'examen. Vu trois fois de suite le 09/09, sur le Mac
+ * comme sur Shrek (charge 22 sur 40 cœurs), sur des fichiers sans rapport avec
+ * ce qui était modifié.
+ *
+ * Ce n'est PAS un contournement d'un test lent : rien n'attend ici, le plafond
+ * mesurait la compilation. La même correction avait déjà été faite sur
+ * `bibliothequeVivante` pour la même raison.
+ */
+const DELAI_MONTAGE = 60_000;
+
+
 const fr = lFr as unknown as Record<string, string>;
 
 /** Ce que le serveur COMPTE, face à ce qu'il rend dans la page. */
@@ -191,14 +213,14 @@ afterEach(() => {
 });
 
 describe('Albums — le compteur menteur, plafonné à 50', () => {
-  it('affiche le VRAI total du serveur, pas la longueur de la page', async () => {
+  it('affiche le VRAI total du serveur, pas la longueur de la page', { timeout: DELAI_MONTAGE }, async () => {
     const el = await chercher('jazz');
     // 🔴 Avant : « 50 ». Le serveur en compte 731 sur le même prédicat.
     expect(compteAffiche(el, 'Albums')).toBe(attendu(PAGE, TOTAL_ALBUMS));
     expect(compteAffiche(el, 'Albums')).not.toBe(String(PAGE));
   });
 
-  it('offre une suite, et la demande au bon rang', async () => {
+  it('offre une suite, et la demande au bon rang', { timeout: DELAI_MONTAGE }, async () => {
     const el = await chercher('jazz');
     const bouton = boutonVoirPlus(el, 'Albums');
     expect(bouton, 'aucun bouton de suite sur les albums').toBeTruthy();
@@ -217,13 +239,13 @@ describe('Albums — le compteur menteur, plafonné à 50', () => {
 });
 
 describe('Artistes — douze vignettes, aucun compte, aucun accès au reste', () => {
-  it('le vrai total est affiché à côté du titre', async () => {
+  it('le vrai total est affiché à côté du titre', { timeout: DELAI_MONTAGE }, async () => {
     const el = await chercher('jazz');
     // 🔴 Avant : rien du tout, et `slice(0, 12)` en silence.
     expect(compteAffiche(el, 'Artistes')).toBe(attendu(12, TOTAL_ARTISTES));
   });
 
-  it('le bouton découvre d’abord ce qui est DÉJÀ reçu, sans rien demander', async () => {
+  it('le bouton découvre d’abord ce qui est DÉJÀ reçu, sans rien demander', { timeout: DELAI_MONTAGE }, async () => {
     const el = await chercher('jazz');
     urls.length = 0;
     boutonVoirPlus(el, 'Artistes')!.click();
@@ -234,7 +256,7 @@ describe('Artistes — douze vignettes, aucun compte, aucun accès au reste', ()
     expect(compteAffiche(el, 'Artistes')).toBe(attendu(24, TOTAL_ARTISTES));
   });
 
-  it('puis va chercher la page suivante quand tout le reçu est montré', async () => {
+  it('puis va chercher la page suivante quand tout le reçu est montré', { timeout: DELAI_MONTAGE }, async () => {
     const el = await chercher('jazz');
     // 12 → 24 → 36 → 48 : tout ce que la page de 50 portait, moins deux.
     for (let i = 0; i < 3; i++) {
@@ -259,7 +281,7 @@ describe('Artistes — douze vignettes, aucun compte, aucun accès au reste', ()
 });
 
 describe('un rang par famille — le piège de l’`offset` unique du serveur', () => {
-  it('charger la suite des pistes ne fait pas sauter cinquante albums', async () => {
+  it('charger la suite des pistes ne fait pas sauter cinquante albums', { timeout: DELAI_MONTAGE }, async () => {
     const el = await chercher('jazz');
     // 1. La suite des PISTES : le rang des pistes passe à 100.
     boutonVoirPlus(el, 'Pistes')!.click();
@@ -278,7 +300,7 @@ describe('un rang par famille — le piège de l’`offset` unique du serveur', 
     expect(suite[0]).not.toContain('offset=100');
   });
 
-  it('une nouvelle recherche remet les trois rangs à zéro', async () => {
+  it('une nouvelle recherche remet les trois rangs à zéro', { timeout: DELAI_MONTAGE }, async () => {
     const el = await chercher('jazz');
     boutonVoirPlus(el, 'Albums')!.click();
     await reposer();

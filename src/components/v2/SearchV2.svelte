@@ -692,8 +692,23 @@
               <h2>{$t('v2.rech.best' as any)}</h2>
               {#if meilleur.genre === 'artiste'}
                 {@const a = meilleur.artiste}
+                <!--
+                  La SOURCE, qui manquait ici seule.
+
+                  `fusionnerParType` estampille déjà `source` sur les artistes
+                  comme sur les albums et les pistes ; la tuile ne la passait
+                  simplement pas à la pochette, là où les cartes d'album et de
+                  piste le font depuis toujours.
+
+                  Ce n'est pas cosmétique : mesuré sur le .18 pour « Marco
+                  Iacobini », la recherche rend le MÊME artiste chez Bandcamp,
+                  Qobuz, Tidal et YouTube — quatre tuiles au nom identique, à
+                  l'image parfois identique, et rien pour les distinguer. Le
+                  serveur ne met aucun champ `source` dans ces objets : la
+                  source ne se sait qu'au seau d'où ils viennent.
+                -->
                 <button class="bcard" onclick={() => ouvrirArtiste(a)}>
-                  <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
+                  <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} source={a.source as any} fallbackInitials={a.name?.slice(0,1)} /></span>
                   <span class="bt">{a.name}</span>
                   <span class="bk">{$t('v2.rech.kindArtist' as any)}</span>
                 </button>
@@ -729,7 +744,9 @@
                         onOuvrir={() => ouvrirArtiste(ar)}
                         nom={ar.name}
                       >
-                        <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
+                        <!-- Même raison que le meilleur résultat : sans la
+                             source, quatre « Marco Iacobini » identiques. -->
+                        <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} source={ar.source as any} fallbackInitials={ar.name?.slice(0,1)} />
                       </PochetteActions>
                     </span>
                     <button class="meta" onclick={() => ouvrirArtiste(ar)}><span class="an" title={ar.name}>{ar.name}</span></button>

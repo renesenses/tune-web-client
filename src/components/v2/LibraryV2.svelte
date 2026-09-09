@@ -50,7 +50,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
-  import { getQualityTier, fold, formatDuration,  type QualityTier } from '../../lib/utils';
+  import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
@@ -602,7 +602,10 @@
     const t = getQualityTier(a);
     const rate = RATES.find((r) => r.v === a.sample_rate)?.l;
     const depth = a.bit_depth ? `${a.bit_depth}-bit` : '';
-    if (t === 'dsd') return `DSD · ${a.sample_rate && a.sample_rate >= 5000000 ? 'DSD128' : 'DSD64'}`;
+    // Le multiple vit dans `lib/utils` : le seuil « ≥ 5 MHz ⇒ DSD128 » annonçait
+    // DSD128 pour les DSD256 ET les DSD512 — sept albums sur les 49 de la
+    // bibliothèque de Bertrand, toujours sous-estimés.
+    if (t === 'dsd') { const m = multipleDSD(a.sample_rate); return m ? `DSD · ${m}` : 'DSD'; }
     return [a.format?.toUpperCase(), rate && `${rate} kHz`, depth].filter(Boolean).join(' · ');
   }
   function badge(a: Album): string | null {

@@ -3945,6 +3945,7 @@ export default {
   "v2.tags.noPlaylistWithTag": "Egyetlen lejátszási lista sem hordozza ezt a címkét.",
   "v2.album.play": "Lejátszás",
   "v2.album.shuffle": "Véletlenszerű",
+  "v2.album.locate": "Megkeresés a lemezen",
   "v2.album.playNext": "Következőként",
   "v2.piste.enLecture": "Most szól",
   "v2.piste.enPause": "Szüneteltetve",
