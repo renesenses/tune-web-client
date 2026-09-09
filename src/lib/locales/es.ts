@@ -1109,6 +1109,7 @@ export default {
   'bandcamp.playTo': "La reproducción va a",
   'bandcamp.noZone': "Ninguna zona seleccionada: elija una zona para escuchar.",
   'bandcamp.zoneRefused': "esta zona no aceptó el MP3 de 128 kbit/s de Bandcamp. Pruebe con otra zona.",
+  'bandcamp.noStream': "Tune no obtuvo ningún flujo para esta pista de Bandcamp. La zona no tiene la culpa: inténtelo de nuevo en un momento.",
   'bandcamp.collectionEmpty': "Esta colección de Bandcamp está vacía: nada que comparar. Explore el catálogo.",
   'bandcamp.dormantTitle': "El complemento Bandcamp no está activo",
   'bandcamp.dormantInstall': "Abra «{rubrique}» en la barra lateral e instale «bandcamp», luego reinicie el servidor.",

@@ -6,6 +6,8 @@
   import { rapprocher, type Rapprochement } from '../lib/bandcampMatch';
   import { bandcampCharge, bandcampAttendRedemarrage } from '../lib/stores/bandcamp';
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { isBrowserZone } from '../lib/stores/browserAudio';
+  import { verdictEnvoiBandcamp } from '../lib/bandcampEnvoi';
   import { activeView } from '../lib/stores/navigation';
 
   // L'écran ne présente PAS Bandcamp : il répond à « qu'est-ce que j'ai acheté
@@ -212,17 +214,29 @@
     exploreErreur = '';
     try {
       const apres = await playAndSync(zone.id, piste_distante(p));
-      // `output_sent === false` : le serveur a bien résolu le flux mais la
-      // sortie ne l'a pas pris. C'est le cas que #1768 devait couvrir — une
-      // zone peut refuser ce format — et le seul endroit où l'utilisateur
-      // peut l'apprendre. `playAndSync` a déjà affiché `zone.error` s'il y en
-      // avait un ; ici on nomme la zone, pour qu'il sache laquelle a refusé.
-      if (apres.output_sent === false && !apres.error) {
-        notifications.error(
-          `${zone.name} — ${$t('bandcamp.zoneRefused' as any)}`,
-          8000,
-        );
-        return;
+      // `output_sent === false` couvrait deux cas très différents sous un seul
+      // message. Sur une sortie RÉELLE, il dit qu'un appareil a refusé le flux
+      // — c'est le cas de #1768, et nommer la zone y est juste. Sur une zone
+      // NAVIGATEUR, il est toujours faux : l'onglet est la sortie, il n'y a
+      // aucun périphérique à qui envoyer quoi que ce soit, et le serveur le
+      // documente lui-même. Accuser cette zone-là revenait à envoyer
+      // l'auditeur reconfigurer du matériel pour un défaut qui n'était pas le
+      // sien (#2076). Le raisonnement complet, et les lignes du serveur qui
+      // l'établissent, sont dans `bandcampEnvoi.ts`.
+      switch (verdictEnvoiBandcamp(apres, isBrowserZone(apres))) {
+        case 'refusDeLaZone':
+          notifications.error(
+            `${zone.name} — ${$t('bandcamp.zoneRefused' as any)}`,
+            8000,
+          );
+          return;
+        case 'aucunFlux':
+          notifications.error($t('bandcamp.noStream' as any), 8000);
+          return;
+        case 'dejaSignale':
+          return;
+        case 'succes':
+          break;
       }
       notifications.success(
         `${p.title} → ${zone.name} · ${$t('bandcamp.qualityBadge' as any)}`,

@@ -1067,6 +1067,7 @@ export default {
   'bandcamp.playTo': "Uppspelningen går till",
   'bandcamp.noZone': "Ingen zon vald — välj en zon för att lyssna.",
   'bandcamp.zoneRefused': "den här zonen tog inte emot Bandcamps MP3 på 128 kbit/s. Prova en annan zon.",
+  'bandcamp.noStream': "Tune fick ingen ström för det här Bandcamp-spåret. Det är inte zonens fel – försök igen om en stund.",
   'bandcamp.collectionEmpty': "Den här Bandcamp-samlingen är tom — inget att jämföra. Utforska katalogen.",
   'bandcamp.dormantTitle': "Bandcamp-tillägget är inte aktivt",
   'bandcamp.dormantInstall': "Öppna ”{rubrique}” i sidofältet och installera ”bandcamp”, starta sedan om servern.",
