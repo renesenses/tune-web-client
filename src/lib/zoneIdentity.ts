@@ -139,13 +139,26 @@ export function zoneDeviceName(zone?: Pick<
 /**
  * Ce qu'on écrit sur la pastille de zone de la barre de lecture.
  *
- * L'appareil d'abord, parce que c'est la question posée — « où joue la
- * musique ? ». Le nom de la zone en repli, parce qu'il est toujours là et
- * qu'il est souvent parlant (« Salon »). Jamais vide.
+ * ⚠️ ARBITRAGE REPRIS le 09/09/2026 (tune-server-rust#3695, FabienM, fils
+ * forum 1691 puis 1730). La règle précédente mettait l'appareil d'abord —
+ * « où joue la musique ? » — et le nom de zone seulement en repli. Elle
+ * effaçait le seul libellé que l'utilisateur ait choisi : « Salon » devenait
+ * « D Phantom ». Pire, `zoneDeviceName` se replie sur la DÉTECTION UPnP, si
+ * bien qu'aucune saisie n'était nécessaire pour évincer le nom — et #3660
+ * mesure des `detected_model` qui ne désignent rien (« AV Renderer Device »).
+ *
+ * Donc : **le nom de la zone d'abord, sans condition**. L'appareil ne
+ * disparaît pas du produit pour autant — il reste en sous-titre dans le menu
+ * déroulant de cette même pastille, dans `zoneFullLabel` (infobulle et
+ * étiquette d'accessibilité du bouton), et dans la gestion des zones.
+ *
+ * L'appareil ne garde sa place ICI que pour une zone SANS nom : `present`
+ * plutôt que `!= null`, parce que le serveur renvoie tantôt `null`, tantôt la
+ * chaîne vide. Jamais vide : une pastille vide se lit comme une panne.
  */
 export function zoneChipLabel(zone?: Zone | null): string {
   if (!zone) return '';
-  return zoneDeviceName(zone) ?? zone.name ?? '';
+  return present(zone.name) ?? zoneDeviceName(zone) ?? '';
 }
 
 /**
