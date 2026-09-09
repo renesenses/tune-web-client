@@ -908,7 +908,11 @@
 
 <style>
   .oxygen { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--tune-bg); color: var(--tune-text); }
-  .bar { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--tune-border); flex-shrink: 0; }
+  /* `padding-right` : la gouttière de la grappe du shell v2 (loupe + signet +
+     avatar), en `position:absolute` au-dessus des écrans. Écran v1 monté dans
+     le shell v2, donc invisible à la garde `gouttiereGrappe` qui ne balaie que
+     `components/v2`. Repli pour un montage hors shell. */
+  .bar { display: flex; align-items: center; gap: 12px; padding: 12px 18px; padding-right: var(--v2-grappe-w, 172px); border-bottom: 1px solid var(--tune-border); flex-shrink: 0; }
   .icnbtn { background: var(--tune-surface); border: 1px solid var(--tune-border); color: var(--tune-text-secondary); width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; }
   .icnbtn:hover { color: var(--tune-text); border-color: var(--tune-accent); }
   .titleblock .eyebrow { font-size: 11px; letter-spacing: .04em; color: var(--tune-accent); }

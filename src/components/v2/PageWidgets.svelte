@@ -466,19 +466,23 @@
 </script>
 
 <section class="v2-home tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{salut ? banniere : $t(cleEyebrow as any)}</div>
+  <!-- C'est l'en-tête de l'ACCUEIL et de l'HISTORIQUE : celui dont Bertrand a
+       dit le 08/09/2026 que « le bouton modifier est trop proche de l'icône
+       rechercher ». Il portait ses propres `.outils` / `.ghost` ; il passe aux
+       classes partagées, comme les autres. -->
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{salut ? banniere : $t(cleEyebrow as any)}</div>
       <h1>{$t(cleTitre as any)}</h1>
     </div>
-    <div class="outils">
+    <div class="v2-actions">
       {#if edition}
-        <button class="ghost" onclick={() => (ajoutOuvert = !ajoutOuvert)} disabled={!disponibles.length}>
+        <button class="v2-btn" onclick={() => (ajoutOuvert = !ajoutOuvert)} disabled={!disponibles.length}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           {$t('v2.home.add' as any)}
         </button>
       {/if}
-      <button class="ghost" class:on={edition} onclick={() => { edition = !edition; ajoutOuvert = false; }}>
+      <button class="v2-btn" class:on={edition} onclick={() => { edition = !edition; ajoutOuvert = false; }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
         {edition ? $t('v2.home.done' as any) : $t('v2.home.edit' as any)}
       </button>
@@ -733,17 +737,6 @@
 <style>
   .v2-home{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; justify-content:space-between; gap:20px; padding:24px 30px 12px; padding-right:130px}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .outils{display:flex; gap:8px}
-  .ghost{display:inline-flex; align-items:center; gap:7px; cursor:pointer; border:1px solid var(--v2-line2);
-    border-radius:var(--v2-r-pill); background:transparent; color:var(--v2-txt2);
-    font:600 12.5px var(--v2-sans); padding:8px 14px}
-  .ghost:hover{color:var(--v2-txt); background:var(--v2-hover)}
-  .ghost.on{color:var(--v2-on-acc); background:var(--v2-acc1); border-color:transparent}
-  .ghost:disabled{opacity:.45; cursor:default}
-  .ghost svg{width:14px; height:14px}
 
   .ajout{display:flex; flex-wrap:wrap; gap:6px; padding:6px 30px 10px}
   .puce{border:1px dashed var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;

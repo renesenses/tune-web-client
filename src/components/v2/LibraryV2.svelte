@@ -1005,10 +1005,13 @@
 
 <svelte:window onclick={ddDehors} onkeydown={ddEchap} />
 <section class="v2-lib tune-v2">
-  <header class="top">
-    <h1>{depot ? depot.nom : $tr('library.title' as any)}</h1>
-    {#if depot}<span class="dist">{depot.hote}</span>{/if}
-    <button class="btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null}
+  <header class="v2-top">
+    <div class="v2-titres">
+      <h1>{depot ? depot.nom : $tr('library.title' as any)}</h1>
+      {#if depot}<span class="dist">{depot.hote}</span>{/if}
+    </div>
+    <div class="v2-actions">
+    <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null}
       title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
         : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)
         : $tr('v2.lib.shuffleAll' as any)}>
@@ -1018,7 +1021,7 @@
       <!-- Declarer un dossier de musique est un reglage du serveur LOCAL :
            le proposer sur la bibliotheque d'une autre machine promettrait
            d'agir sur elle, ce qu'on ne fait pas. -->
-      <button class="btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
+      <button class="v2-btn" onclick={addContent} title={$tr('v2.lib.addFolders' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>{$tr('v2.tags.add' as any)}
       </button>
     {/if}
@@ -1029,6 +1032,7 @@
         {/if}
       {/each}
     </nav>
+    </div>
   </header>
 
   <!-- La ligne de filtres existe a TOUS les niveaux : chez Levente le champ
@@ -1138,7 +1142,10 @@
         </div>
       {/if}
     {/if}
-    <div class="search">
+    <!-- Le champ partagé (`.v2-rech`), comme sur tous les autres écrans. Il
+         faisait ici 320 × 42 avec sa loupe en flux, ailleurs 300 × 40 avec la
+         loupe en absolu : deux dessins pour un seul geste. -->
+    <div class="v2-rech">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
       <input placeholder={$tr('v2.lib.searchPlaceholder' as any)} bind:value={q} />
       {#if q}
@@ -1532,12 +1539,6 @@
   .v2-lib{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden; box-sizing:border-box}
   /* padding-right élargi : l'avatar de la coquille est pincé à droite. */
-  .top{display:flex; align-items:center; gap:18px; padding:20px 30px 8px; padding-right:96px}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em}
-  .btn{display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 18px; border-radius:var(--v2-r-pill);
-    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); font:600 14px var(--v2-sans); cursor:pointer}
-  .btn:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
-  .btn svg{width:16px; height:16px}
   .tabs{margin-left:auto; display:flex; align-items:center; gap:4px}
   .tab{padding:8px 15px; border-radius:var(--v2-r-pill); border:0; background:transparent; color:var(--v2-txt2);
     font:600 14px var(--v2-sans); cursor:pointer}
@@ -1570,15 +1571,6 @@
     padding:8px 10px; border-radius:8px; cursor:pointer}
   .drop .menu button:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .drop .menu button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .search{position:relative; margin-left:auto; display:flex; align-items:center; gap:10px; height:42px; width:320px; padding:0 16px;
-    border-radius:14px; background:var(--v2-surface2); border:1px solid var(--v2-line); color:var(--v2-txt2)}
-  .search svg{width:16px; height:16px}
-  .search .clr{position:absolute; right:8px; width:20px; height:20px; border:0; border-radius:50%;
-    background:transparent; color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center}
-  .search .clr:hover{color:var(--v2-txt)}
-  .search .clr svg{width:11px; height:11px}
-  .search input{background:transparent; border:0; outline:0; color:var(--v2-txt); font:14px var(--v2-sans); width:100%}
-  .search input::placeholder{color:var(--v2-txt3)}
 
   .body{flex:1; min-height:0; display:flex; padding-left:18px}
   .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
