@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import { tip } from '../lib/tooltip';
-  import { artworkUrl, artworkSrc } from '../lib/api';
+  import { artworkSrc } from '../lib/api';
   import type { Artist } from '../lib/types';
   import { t } from '../lib/i18n';
 

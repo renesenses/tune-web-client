@@ -3,7 +3,6 @@
   import { dialogs } from '../lib/stores/dialogs';
   import * as api from '../lib/api';
   import { errText } from '../lib/utils';
-  import { artworkUrl } from '../lib/api';
   import type { Album, Artist, Track, Source, CompletenessStats, BackupInfo, MetadataFilter } from '../lib/types';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';

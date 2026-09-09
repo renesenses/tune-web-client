@@ -5,7 +5,7 @@
   import QualityBadge from './QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import HeartButton from './HeartButton.svelte';
-  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkUrl, artworkSrc, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../lib/api';
+  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkSrc, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../lib/api';
   import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
   import { displayFields } from '../lib/stores/displayFields';
   import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
