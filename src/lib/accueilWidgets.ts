@@ -25,6 +25,7 @@
  * dans le chargeur laisse au rendu un seul cas à traiter.
  */
 import * as api from './api';
+import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -440,8 +441,19 @@ export const WIDGETS: Widget[] = [
     id: 'reprendre',
     cleTitre: 'v2.home.wResume',
     forme: 'bande',
+    /**
+     * Le serveur étiquette chaque ligne `album` ou `track` ; le client jetait
+     * l'étiquette, et la bande mélangeait donc albums et morceaux sans le dire
+     * (Alex Campbell, 08/09/2026). La règle vit dans `lib/reprendreEcoute`,
+     * pour qu'un test l'APPELLE au lieu de relire ce fichier.
+     */
     charger: async () =>
-      utiles(liste(await api.getContinueListening(LIMITE)).map((o, i) => versElement(o, i, 'rep'))),
+      utiles(
+        reprisesUtiles(liste(await api.getContinueListening(LIMITE))).map((o, i) => {
+          const el = versElement(o, i, 'rep');
+          return { ...el, sous: sousTitreReprise(o) || el.sous };
+        }),
+      ),
   },
   {
     id: 'recemment-ajoutes',

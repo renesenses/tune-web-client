@@ -112,15 +112,30 @@ describe('zoneDeviceName', () => {
 });
 
 describe('zoneChipLabel', () => {
-  it('montre l’appareil quand on le connaît', () => {
+  /** ⚠️ Cette attente est l'INVERSE de celle d'avant le 09/09/2026 : la
+   *  version précédente exigeait « Marantz ND8006 » ici. L'arbitrage rendu sur
+   *  tune-server-rust#3695 met le nom choisi par l'utilisateur devant. */
+  it('montre le nom de la zone, même quand l’appareil est connu', () => {
     expect(zoneChipLabel(zone({ brand: 'Marantz', model: 'ND8006' })))
-      .toBe('Marantz ND8006');
+      .toBe('Salon');
   });
 
-  /** Le nom de zone est toujours présent et souvent parlant. La pastille ne
-   *  doit jamais être vide : une pastille vide se lit comme une panne. */
-  it('retombe sur le nom de la zone, jamais sur du vide', () => {
-    expect(zoneChipLabel(zone())).toBe('Salon');
+  /** Le cas de FabienM, mot pour mot : la détection UPnP seule suffisait à
+   *  écrire « D Phantom » à la place de « Salon », sans qu'il ait rien saisi. */
+  it('ne se laisse pas évincer par la seule détection UPnP', () => {
+    expect(zoneChipLabel(zone({
+      name: 'Salon', detected_manufacturer: 'D', detected_model: 'Phantom',
+    }))).toBe('Salon');
+  });
+
+  /** Seul cas où l'appareil garde sa place : la zone n'a pas de nom. Le
+   *  serveur renvoie tantôt `null`, tantôt `''` — les deux comptent comme une
+   *  absence, sinon la pastille serait vide et se lirait comme une panne. */
+  it('retombe sur l’appareil quand la zone n’a pas de nom, jamais sur du vide', () => {
+    expect(zoneChipLabel(zone({ name: '', brand: 'Marantz', model: 'ND8006' })))
+      .toBe('Marantz ND8006');
+    expect(zoneChipLabel(zone({ name: '   ', detected_model: 'Node' }))).toBe('Node');
+    expect(zoneChipLabel(zone({ name: null as never }))).toBe('');
     expect(zoneChipLabel(zone({ brand: '', model: '' }))).toBe('Salon');
     expect(zoneChipLabel(null)).toBe('');
   });

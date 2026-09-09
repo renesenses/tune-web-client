@@ -336,7 +336,6 @@ export default {
   'transport.shuffle': 'Aleatorio',
   'transport.previous': 'Anterior',
   'transport.next': 'Siguiente',
-  'transport.stop': 'Detener',
   'transport.repeat': 'Repetir',
   'transport.shuffleOn': 'Aleatorio: activado',
   'transport.shuffleOff': 'Aleatorio: desactivado',

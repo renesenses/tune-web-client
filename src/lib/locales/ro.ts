@@ -342,7 +342,6 @@ export default {
   'transport.shuffle': 'Amestecă',
   'transport.previous': 'Anterioară',
   'transport.next': 'Următoarea',
-  'transport.stop': 'Oprește',
   'transport.repeat': 'Repetă',
   'transport.shuffleOn': 'Amestecă: activat',
   'transport.shuffleOff': 'Amestecă: dezactivat',

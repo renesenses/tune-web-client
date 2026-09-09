@@ -519,7 +519,6 @@ export default {
   "transport.shuffle": "Véletlenszerű",
   "transport.previous": "Előző",
   "transport.next": "Következő",
-  "transport.stop": "Leállítás",
   "transport.repeat": "Ismétlés",
   "transport.shuffleOn": "Véletlenszerű: be",
   "transport.shuffleOff": "Véletlenszerű: ki",
