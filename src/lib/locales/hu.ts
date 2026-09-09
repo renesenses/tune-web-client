@@ -3238,6 +3238,13 @@ export default {
   "settings.updateBlockedPlaying": "A frissítés elhalasztva: egy zóna épp játszik. A telepítés a szám közepén vágná el a zenét.",
   "settings.updateBlockedUnknown": "A szerver indoklás nélkül elutasította a frissítést. Nézd meg a szervernaplókat.",
   "settings.updateDockerHint": "A Tune Docker-konténerben fut: frissítsd az új képfájl lehúzásával (docker compose pull && docker compose up -d). A csatolt kötetekben lévő adataid megmaradnak.",
+  "settings.homebrewManaged": "Ezt a Tune-telepítést a Homebrew kezeli: a kiszolgáló és a webes felület egyetlen egységet alkot, amelyet csak a Homebrew cserélhet le.",
+  "settings.homebrewMismatch": "Figyelem: a kiszolgáló v{binaire} verziót futtat, míg a Homebrew a v{cellar} verziót telepítette. Az itt látható felület ezért régebbi lehet a kiszolgálónál. Az alábbi frissítés újra összehangolja a kettőt.",
+  "settings.homebrewCannotSelfUpdate": "A Tune nem tudja magától lefuttatni ezt a frissítést ({detail}). Futtasd egy terminálban:",
+  "settings.homebrewUpdating": "A Homebrew frissítése…",
+  "settings.homebrewUpgrading": "A Homebrew telepíti az új verziót…",
+  "settings.homebrewRestarting": "A kiszolgáló újraindítása…",
+  "settings.homebrewFailed": "A Homebrew-frissítés a(z) „{etape}” lépésnél meghiúsult. Futtasd egy terminálban:",
   // v2 — 2026.09.04-én hozzáadott fordítások (nyelvi paritás)
   "v2.col.noneInTab": "Nincs ilyen típusú gyűjtemény.",
   "common.open": "Megnyitás",
