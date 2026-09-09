@@ -288,7 +288,7 @@
 
       Dans la GRAPPE haut-droite, et non en haut à gauche comme le veut
       l'usage : c'est le seul endroit que les vingt-cinq écrans réservent
-      déjà (leur en-tête porte `padding-right:96px` pour l'avatar). Posé à
+      déjà (leur en-tête réserve `var(--v2-grappe-w)`). Posé à
       gauche, il se serait couché sur le titre de chaque écran.
     -->
     {#if $formatEcran === 'tiroir'}
@@ -463,6 +463,13 @@
 </div>
 
 <style>
+  /* 🔴 `--v2-grappe-w` — la gouttière de la grappe — vit dans
+     `src/styles/tune-v2.css`, avec les autres jetons. Elle était ici, dans un
+     style de COMPOSANT : `check-jetons-css` ne balaie que `src/styles/` et
+     déclarait donc le jeton « défini nulle part » pour les vingt-quatre écrans
+     qui l'emploient. Un jeton absent n'échoue pas — la déclaration est ignorée
+     en silence — c'est-à-dire exactement la panne qu'on vient de corriger, et
+     que la porte savait annoncer. */
   .v2-shell{--maj-h:42px; position:relative; display:flex; flex-direction:column; height:100vh; background:var(--v2-bg); overflow:hidden}
   /* Avatar unique de l'application : pincé en haut à droite de l'écran, au-dessus
      de toutes les vues (y compris les overlays de fiche). */

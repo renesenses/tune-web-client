@@ -115,12 +115,14 @@
 </script>
 
 <section class="v2-sc tune-v2">
-  <header class="top">
-    <div class="eyebrow">{$t('v2.sc.eyebrow' as any)}</div>
-    <h1>{$t('v2.nav.shortcuts' as any)}</h1>
-    <!-- On DIT la règle de la barre : sans cela, un utilisateur qui a huit
-         raccourcis ne comprend pas pourquoi trois n'y figurent pas. -->
-    <p class="sub">{$t('v2.sc.hint' as any)}</p>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.sc.eyebrow' as any)}</div>
+      <h1>{$t('v2.nav.shortcuts' as any)}</h1>
+      <!-- On DIT la règle de la barre : sans cela, un utilisateur qui a huit
+           raccourcis ne comprend pas pourquoi trois n'y figurent pas. -->
+      <p class="v2-sous">{$t('v2.sc.hint' as any)}</p>
+    </div>
   </header>
 
   <div class="scroll">
@@ -195,10 +197,6 @@
 <style>
   .v2-sc{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
-  .top{padding:24px 30px 12px; padding-right:130px}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
-  .sub{color:var(--v2-txt2); font-size:13px; margin-top:6px; max-width:64ch}
   .scroll{flex:1; min-width:0; overflow-y:auto; padding:8px 30px 40px}
   .etat{padding:26px 0; color:var(--v2-txt3); font-size:13.5px}
 
