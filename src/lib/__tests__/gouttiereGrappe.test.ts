@@ -73,7 +73,7 @@ describe('La gouttière de la grappe', () => {
     // la déclaration est ignorée en silence. C'était la panne d'origine, que
     // la porte savait dire.
     const feuille = readFileSync('src/styles/tune-v2.css', 'utf8');
-    expect(feuille).toMatch(/\.tune-v2\{--v2-grappe-w:\s*\d+px\}/);
+    expect(feuille).toMatch(/\.v2-shell\{--v2-grappe-w:\s*\d+px\}/);
     // Et nulle part ailleurs : une seconde définition serait une seconde valeur.
     const doublons = [...ECRANS, ...ECRANS_V1]
       .filter((f) => /--v2-grappe-w\s*:/.test(css(f)));
@@ -135,6 +135,30 @@ describe('La gouttière de la grappe', () => {
     const zones = readFileSync('src/components/v2/ZonesV2.svelte', 'utf8');
     expect(zones).toContain('class="v2-top"');
     expect(css('src/components/v2/ZonesV2.svelte')).not.toMatch(/\.top\s*\{/);
+  });
+
+  it('🔴 le repli n’est PAS déclaré sur une classe que les écrans portent', () => {
+    // Le piège qui a annulé la mesure le 09/09/2026 : le jeton était posé sur
+    // `.tune-v2`, qui est la racine de la coquille MAIS AUSSI celle de chaque
+    // écran. Chacun le redéclarait donc à 172 px et masquait la valeur mesurée
+    // posée au-dessus de lui — une variable héritée perd contre une variable
+    // redéclarée plus bas. La mesure marchait ; personne ne la lisait.
+    const feuille = readFileSync('src/styles/tune-v2.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const declarations = [...feuille.matchAll(/([^{}\s][^{}]*)\{[^}]*--v2-grappe-w\s*:/g)].map((m) => m[1].trim());
+    expect(declarations, 'le jeton doit être déclaré une fois et une seule').toHaveLength(1);
+
+    // Et son sélecteur ne doit désigner AUCUNE racine d'écran.
+    const racines = new Set<string>();
+    for (const f of [...ECRANS, ...ECRANS_V1]) {
+      for (const m of readFileSync(f, 'utf8').matchAll(/<(?:div|section|main)\s+class="([^"]+)"/g)) {
+        if (f.endsWith('ShellV2.svelte')) continue;
+        for (const c of m[1].split(/\s+/)) racines.add(c);
+      }
+    }
+    for (const classe of declarations[0].split(/[\s,>+~]+/).filter(Boolean)) {
+      const nom = classe.replace(/^\./, '');
+      expect(racines.has(nom), `« ${classe} » est portée par un écran : il masquerait la mesure`).toBe(false);
+    }
   });
 
   it('🔴 la réserve est MESURÉE, plus devinée', () => {

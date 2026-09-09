@@ -234,8 +234,23 @@
 
    `ShellV2` MESURE la grappe et réécrit ce jeton sur la coquille — voir
    `lib/gouttiereGrappe.ts`. Le nombre ci-dessous ne sert plus qu'avant la
-   première mesure, et là où il n'y a pas de `ResizeObserver`. */
-.tune-v2{--v2-grappe-w:172px}
+   première mesure, et là où il n'y a pas de `ResizeObserver`.
+
+   🔴 SUR `.v2-shell`, ET SURTOUT PAS SUR `.tune-v2`.
+
+   `.tune-v2` est la racine de la coquille MAIS AUSSI celle de chaque écran :
+   quarante composants la portent. Déclarer le jeton là le redéclarait donc à
+   172 px dans CHAQUE écran, masquant la valeur mesurée que la coquille venait
+   de poser au-dessus d'eux — une variable héritée est battue par une variable
+   redéclarée plus bas. La mesure fonctionnait, personne ne la lisait.
+
+   Mesuré le 09/09/2026 : les boutons « 200 lectures / Vider » restaient sous la
+   loupe ouverte alors que `ShellV2` calculait bien 456 px.
+
+   `.v2-shell` ne désigne que la coquille. Les écrans — v2 comme v1 — héritent,
+   et leurs usages portent tous un repli `var(--v2-grappe-w, 172px)` pour le cas
+   où ils seraient montés hors de la coquille. */
+.v2-shell{--v2-grappe-w:172px}
 
 .tune-v2 .v2-top{
   display:flex; align-items:flex-end; gap:20px;
