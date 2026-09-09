@@ -51,35 +51,55 @@ describe('le catalogue', () => {
     expect(COLONNES.filter((c) => c.verrouillee).map((c) => c.cle)).toEqual(['title']);
   });
 
-  it('🔴 UNE SEULE colonne reste sans donnée — les deux autres sont allumées', () => {
-    // Elles étaient TROIS jusqu'au 09/09/2026, sur une mesure du 07/09 faite
-    // contre `/library/albums/{id}/tracks`. Remesuré ce jour contre la route
-    // employée par l'écran, `GET /library/tracks?limit=400` sur le .18 :
+  it('🔴 AUCUNE colonne n’est déclarée sans donnée (#826 puis #824)', () => {
+    // Deux lots ont mesuré le même jour, séparément, et se recoupent.
     //
+    // #826, `GET /library/tracks?limit=400` sur le .18 :
     //   play_count      → présent sur 400 / 400   ⇒ ALLUMÉE
     //   last_played_at  → présent sur   8 / 400   ⇒ ALLUMÉE (creuse, pas morte)
-    //   dynamic_range   → présent sur   0 / 400   ⇒ reste grisée
+    //   dynamic_range   → présent sur   0 / 400
     //
-    // Le serveur les sert depuis #3518. La mesure d'origine portait sur une
-    // AUTRE route, d'où l'erreur.
+    // #824, sur les TROIS surfaces du .18 en v0.9.144 :
+    //   GET /library/tracks?limit=3       → play_count=4, last_played_at posés
+    //   GET /library/tracks?q=Lachrimae…  → idem, chemin FILTRÉ
+    //   GET /library/tracks/16645         → idem, fiche d'une piste
     //
-    // Le DR, lui, reste grisé pour un motif RÉVISÉ : le serveur le pose bien
-    // (sous le nom `dynamic_range`, pas `dr`), mais l'omet quand la piste n'a
-    // pas le tag — et aucune bibliothèque sous la main n'en porte. Vérifié sur
-    // DEUX serveurs, plus `/library/albums/filters` du .18 dont la liste
-    // `dynamic_ranges` est VIDE. L'allumer livrerait une colonne vide partout,
-    // sans distinguer « pas de tag » de « pas branché ».
-    expect(COLONNES.filter((c) => c.indisponible).map((c) => c.cle)).toEqual(['dr']);
+    // 🔴 LE DR A CHANGÉ DE CAMP, ET VOICI POURQUOI. #826 le laissait grisé :
+    // le serveur le sert, mais aucune bibliothèque sous la main n'en porte
+    // (0/400 sur DEUX serveurs, `dynamic_ranges` vide dans
+    // `/library/albums/filters`), donc « on ne peut pas distinguer pas-de-tag
+    // de pas-branché ». Cette mesure est juste. La distinction a ensuite été
+    // ÉTABLIE : deux lignes `dr_track` posées le temps d'une mesure sur le .18,
+    // puis retirées, ont fait sortir la clé sur les trois surfaces — `"0"`
+    // comprise — pendant que la piste voisine non taguée gardait la clé
+    // ABSENTE dans la même charge. « Pas branché » est donc exclu par la
+    // mesure. Arbitrage de Bertrand le 09/09 : on allume.
+    expect(COLONNES.filter((c) => c.indisponible).map((c) => c.cle)).toEqual([]);
   });
 
-  it('les deux colonnes allumées LISENT bien le champ du serveur', () => {
-    // Contre-épreuve de l'allumage : les déclarer disponibles sans les brancher
-    // donnerait une colonne cochable et vide — pire que grisée.
+  it('les colonnes allumées LISENT bien le champ du serveur', () => {
+    // Ce témoin vient de #826 : les déclarer disponibles sans les brancher
+    // donnerait une colonne cochable et vide — pire que grisée. Il garde
+    // désormais l'implémentation de #826, conservée à la fusion.
     const piste = { play_count: 12, last_played_at: '2026-09-01T10:00:00Z' } as any;
     expect(valeurColonne(piste, 'plays')).toBe('12');
     expect(valeurColonne(piste, 'lastPlayed')).toBe('2026-09-01');
     // Jamais écoutée : rien, et surtout pas une date inventée.
     expect(valeurColonne({} as any, 'lastPlayed')).toBeNull();
+    // Et le DR, ajout de #824 : la clé existe désormais aussi.
+    expect(valeurColonne({ dynamic_range: '14' } as any, 'dr')).toBe('14');
+  });
+
+  it('🔴 le drapeau `indisponible` reste APPLIQUÉ, même inutilisé', () => {
+    // Personne ne le porte aujourd'hui : une garde qui se contenterait de la
+    // liste vide ci-dessus laisserait passer la suppression du filtre, et la
+    // soupape serait perdue sans un seul rouge. On lit donc le MODULE, et on
+    // y cherche le filtre — aiguille assemblée à l'exécution pour qu'elle ne
+    // se trouve pas elle-même dans ce fichier de test.
+    const src = readFileSync(resolve(process.cwd(), 'src/lib/colonnesPistes.ts'), 'utf-8');
+    const aiguille = '!c.' + 'indisponible';
+    expect(src.includes(aiguille), 'colonnesRetenues n’écarte plus une colonne sans donnée')
+      .toBe(true);
   });
 
   it('🔴 EXPERT propose TOUT le catalogue', () => {
@@ -139,15 +159,16 @@ describe('les colonnes retenues', () => {
     expect(colonnesRetenues([]).map((c) => c.cle)).toEqual(['title']);
   });
 
-  it('🔴 écartent une colonne SANS DONNÉE, même cochée', () => {
-    // Le réglage survit au serveur : une colonne cochée hier ne doit pas
-    // réapparaître vide si la donnée n'arrive toujours pas.
+  it('🔴 retiennent « # écoutes » et « dernière écoute », désormais SERVIES', () => {
+    // Ce témoin gardait l'inverse jusqu'au 09/09/2026 : les deux colonnes
+    // portaient `indisponible` et étaient donc écartées même cochées.
     //
-    // C'était `['plays', 'lastPlayed']` jusqu'au 09/09/2026 ; ces deux-là sont
-    // désormais servies et donc RETENUES. Le témoin bascule sur `dr`, la seule
-    // qui reste sans donnée — sinon il ne garderait plus rien.
-    expect(colonnesRetenues(['dr']).map((c) => c.cle)).toEqual(['title']);
-    // Et la contre-épreuve : une colonne allumée, elle, PASSE.
+    // 🔴 IL N'A PLUS DE COLONNE À GARDER pour l'autre moitié de son contrat.
+    // #826 avait fait basculer l'assertion « écartée même cochée » sur `dr`,
+    // seule colonne encore grisée ; `dr` est allumée depuis. Le mécanisme
+    // lui-même est désormais gardé par lecture du module — voir « le drapeau
+    // `indisponible` reste APPLIQUÉ » plus haut. Ici on garde ce qui est
+    // observable : une case cochée produit bien une colonne.
     expect(colonnesRetenues(['plays', 'lastPlayed']).map((c) => c.cle))
       .toEqual(['title', 'plays', 'lastPlayed']);
   });
@@ -186,13 +207,88 @@ describe('les valeurs', () => {
     expect(valeurColonne(piste({ bpm: null } as any), 'bpm')).toBeNull();
     expect(valeurColonne(piste({ year: null } as any), 'year')).toBeNull();
     expect(valeurColonne(piste({ genre: '   ' } as any), 'genre')).toBeNull();
+    // Les trois clés ABSENTES de la charge : le serveur ne pose `play_count`
+    // et `last_played_at` que si la base a répondu, et `dynamic_range` que si
+    // la piste porte le tag. Rien à dire ⇒ cellule vide.
     expect(valeurColonne(piste(), 'plays')).toBeNull();
     expect(valeurColonne(piste(), 'lastPlayed')).toBeNull();
+    expect(valeurColonne(piste(), 'dr')).toBeNull();
   });
 
   it('un zéro RÉEL reste zéro', () => {
     expect(valeurColonne(piste({ channels: 0 } as any), 'channels')).toBe('0');
     expect(valeurColonne(piste({ track_number: 0 } as any), 'num')).toBe('0');
+  });
+
+  describe('🔴 #824 — les trois colonnes rallumées, et leurs DEUX contrats', () => {
+    // Le piège central du ticket : `dynamic_range` absent et `dynamic_range`
+    // à zéro ne veulent PAS dire la même chose, et `play_count` à zéro ne veut
+    // pas dire la même chose qu'un `play_count` absent. Quatre cas, quatre
+    // affichages, mesurés le 09/09/2026 sur le .18 en v0.9.144.
+
+    it('DR0 s’affiche « 0 » : c’est la mesure d’un master saturé', () => {
+      // Le serveur rend la valeur en CHAÎNE (mesuré : `"0"`, `"14"`). Un test
+      // de vérité sur cette chaîne la laisserait passer ; un test de vérité
+      // sur un nombre `0` la perdrait. Les deux formes sont couvertes.
+      expect(valeurColonne(piste({ dynamic_range: '0' } as any), 'dr')).toBe('0');
+      expect(valeurColonne(piste({ dynamic_range: 0 } as any), 'dr')).toBe('0');
+    });
+
+    it('une piste SANS tag DR laisse la cellule vide, jamais « 0 »', () => {
+      // C'est le sens de la flèche qui compte : vide ⇏ DR0. Un `?? 0` posé un
+      // jour de fatigue afficherait « 0 » sur les 46 877 pistes du .18, et
+      // accuserait toute la bibliothèque d'être écrasée.
+      expect(valeurColonne(piste({} as any), 'dr')).toBeNull();
+      expect(valeurColonne(piste({ dynamic_range: null } as any), 'dr')).toBeNull();
+      expect(valeurColonne(piste({ dynamic_range: '  ' } as any), 'dr')).toBeNull();
+    });
+
+    it('DR14 s’affiche « 14 »', () => {
+      expect(valeurColonne(piste({ dynamic_range: '14' } as any), 'dr')).toBe('14');
+    });
+
+    it('play_count = 0 s’affiche « 0 » : jamais jouée est une information', () => {
+      // L'inverse du DR. Ici la clé est TOUJOURS posée quand la base répond,
+      // et l'immense majorité des pistes vaut `0` : rendre `null` viderait la
+      // colonne entière et la ferait passer pour une panne.
+      expect(valeurColonne(piste({ play_count: 0 } as any), 'plays')).toBe('0');
+      expect(valeurColonne(piste({ play_count: 4 } as any), 'plays')).toBe('4');
+    });
+
+    it('play_count ABSENT laisse la cellule vide : la base a échoué', () => {
+      // Le serveur ne pose alors AUCUNE des deux clés, plutôt qu'un `0` qui
+      // se lirait « jamais jouée » et mentirait.
+      expect(valeurColonne(piste({} as any), 'plays')).toBeNull();
+    });
+
+    it('last_played_at rend la DATE, et `null` reste vide', () => {
+      // Horodatage tel que mesuré sur le .18.
+      expect(valeurColonne(piste({ last_played_at: '2026-09-06T12:09:53Z' } as any), 'lastPlayed'))
+        .toBe('2026-09-06');
+      expect(valeurColonne(piste({ last_played_at: null } as any), 'lastPlayed')).toBeNull();
+      expect(valeurColonne(piste({ last_played_at: 'pas une date' } as any), 'lastPlayed'))
+        .toBeNull();
+    });
+
+    it('🔴 `dr` reste EXPERT, et c’est l’ÉCRAN qui descend vers elle', () => {
+      // Arbitrage de Bertrand, 09/09/2026. La version précédente de ce témoin
+      // disait l'inverse — `MODES_BRANCHES` ne citait pas 'expert', et le DR
+      // n'était rendu nulle part. Le niveau de la colonne n'a pas bougé : le
+      // tableau, lui, existe maintenant aussi en Expert.
+      expect(PAR_CLE.dr.min).toBe('expert');
+      expect(MODES_BRANCHES).toContain('expert');
+      // Elle reste hors de portée d'Essentiel : brancher un mode ne déplace
+      // aucune colonne.
+      expect(colonnesRetenues(['dr'], 'beginner').map((c) => c.cle)).toEqual(['title']);
+      expect(colonnesRetenues(['dr'], 'expert').map((c) => c.cle)).toEqual(['title', 'dr']);
+      // Les écoutes n'ont AUCUN `min` : les deux modes en tableau les portent.
+      expect(PAR_CLE.plays.min).toBeUndefined();
+      expect(PAR_CLE.lastPlayed.min).toBeUndefined();
+      for (const m of MODES_BRANCHES) {
+        expect(colonnesRetenues(['plays', 'lastPlayed'], m).map((c) => c.cle), m)
+          .toEqual(['title', 'plays', 'lastPlayed']);
+      }
+    });
   });
 
   it('la qualité ne passe pas par le texte : c’est une pastille', () => {
@@ -217,12 +313,36 @@ describe('les défauts par mode', () => {
     expect(DEFAUTS.intermediate.length).toBeLessThan(DEFAUTS.expert.length);
   });
 
-  it('🔴 seul Essentiel est branché, et le code le DIT', () => {
-    // Option A retenue par Bertrand : la matrice montrera les trois modes,
-    // les deux autres grisés et annoncés comme non appliqués. Cette constante
-    // est ce sur quoi l'écran s'appuiera — pas une condition écrite en dur
-    // dans le balisage.
-    expect(MODES_BRANCHES).toEqual(['beginner']);
+  it('🔴 Essentiel ET Expert sont branchés ; Avancé ne l’est pas', () => {
+    // Arbitrage du 09/09/2026 : « on branche le tableau en mode Expert ».
+    // Avancé reste dehors — périmètre explicite, pas un oubli : la matrice
+    // des Réglages continue de le griser et de le dire.
+    expect(MODES_BRANCHES).toEqual(['beginner', 'expert']);
+    expect(MODES_BRANCHES).not.toContain('intermediate');
+  });
+
+  it('🔴 les modes branchés ouvrent sur des colonnes, jamais sur une grille NUE', () => {
+    // Ce qui se passe pour quelqu'un dont les préférences ont été écrites
+    // quand Expert ne portait pas le tableau : le magasin refusionne mode par
+    // mode sur `DEFAUTS`, donc il retombe sur cette liste-ci. Elle a cessé
+    // d'être théorique le jour où Expert est passé au tableau — et
+    // `settingsLevel` vaut `'expert'` par DÉFAUT depuis le 27/08, donc c'est
+    // aussi ce que voit une installation neuve.
+    for (const m of MODES_BRANCHES) {
+      expect(DEFAUTS[m].length, `${m} : défaut vide`).toBeGreaterThan(0);
+      const rendues = colonnesRetenues(DEFAUTS[m], m).map((c) => c.cle);
+      expect(rendues.length, `${m} : aucune colonne rendue`).toBeGreaterThan(1);
+      expect(rendues, `${m} : le titre a disparu`).toContain('title');
+    }
+  });
+
+  it('le titre survit même à un réglage VIDE — la grille n’est jamais sans colonne', () => {
+    // « Une liste VIDE est un choix : on ne la remplace pas par le défaut »
+    // (magasin de préférences). Ce choix ne doit pas produire un tableau sans
+    // une seule cellule cliquable : le titre est verrouillé, il reste.
+    for (const m of MODES_BRANCHES) {
+      expect(colonnesRetenues([], m).map((c) => c.cle), m).toEqual(['title']);
+    }
   });
 });
 
@@ -390,5 +510,39 @@ describe('🔴 l’alignement de l’en-tête et des lignes', () => {
     // Sinon, sur une piste sans playlist ni étiquettes, les quatre icônes
     // restantes glissent à gauche et les cœurs ne sont plus l'un sous l'autre.
     expect(liste()).toMatch(/\.act\{[^}]*justify-content:flex-end/);
+  });
+});
+
+describe('🔴 UNE seule source de vérité pour « ce mode rend-il un tableau ? »', () => {
+  const composant = () =>
+    readFileSync(resolve(process.cwd(), 'src/components/v2/ListePistesV2.svelte'), 'utf-8');
+  const sansCommentaires2 = (src: string) =>
+    src.replace(/<!--[\s\S]*?-->/g, '')
+       .replace(/\/\*[\s\S]*?\*\//g, '')
+       .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  it('le composant CONSULTE `MODES_BRANCHES` au lieu de retrancher la question', () => {
+    // Avant le 09/09/2026 il décidait tout seul : `enTableau = mode ===
+    // 'beginner'`, pendant que l'écran des Réglages consultait
+    // `MODES_BRANCHES`. Deux réponses à une question — brancher Expert dans la
+    // constante n'aurait rien changé à l'affichage, et la matrice aurait
+    // annoncé cochable un mode que le tableau ignorait.
+    expect(sansCommentaires2(composant())).toMatch(/const enTableau = \$derived\(modeEnTableau\(mode\)\)/);
+  });
+
+  it('🔴 AUCUN nom de mode écrit en dur dans la décision du tableau', () => {
+    // C'est exactement la ligne qu'un correctif futur réintroduit sans y
+    // penser — « il suffit de tester le mode ici ». Elle repasserait au vert
+    // sur tous les autres témoins, et Expert reperdrait son tableau en
+    // silence.
+    //
+    // 🔴 Aiguilles ASSEMBLÉES à l'exécution : écrites en clair, elles
+    // figureraient dans CE fichier, et ce témoin se trouverait lui-même.
+    const src = sansCommentaires2(composant());
+    const ligne = src.split('\n').find((l) => l.includes('const enTableau')) ?? '';
+    expect(ligne, 'la ligne `enTableau` a disparu').not.toBe('');
+    for (const mode of ['beg' + 'inner', 'interme' + 'diate', 'exp' + 'ert']) {
+      expect(ligne.includes(mode), `« ${mode} » est écrit en dur dans enTableau`).toBe(false);
+    }
   });
 });

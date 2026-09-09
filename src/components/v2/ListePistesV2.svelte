@@ -34,7 +34,7 @@
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
-    colonnesRetenues, gabaritGrille, valeurColonne, type CleColonne,
+    colonnesRetenues, gabaritGrille, modeEnTableau, valeurColonne, type CleColonne,
   } from '../../lib/colonnesPistes';
   import type { Track } from '../../lib/types';
   import LignePisteV2 from './LignePisteV2.svelte';
@@ -107,7 +107,19 @@
   }: Props = $props();
 
   const mode = $derived($preferences.settingsLevel);
-  const enTableau = $derived(mode === 'beginner');
+  /**
+   * 🔴 Une SEULE source de vérité : `MODES_BRANCHES`, via `modeEnTableau`.
+   *
+   * Cette ligne testait `mode === 'beginner'` en dur, pendant que l'écran des
+   * Réglages, lui, consultait `MODES_BRANCHES` pour griser les modes non
+   * branchés. Deux réponses à une seule question : brancher Expert dans la
+   * constante n'aurait rien changé ici, et la matrice aurait annoncé cochable
+   * un mode que le tableau continuait d'ignorer — le défaut exact que ce
+   * client passe son temps à corriger.
+   *
+   * Ne jamais remettre de nom de mode en dur ici. Une garde le vérifie.
+   */
+  const enTableau = $derived(modeEnTableau(mode));
 
   // Le MODE est passé : une colonne réservée à Expert ne doit pas apparaître
   // si un réglage plus ancien la coche pour un mode inférieur.
@@ -165,8 +177,10 @@
 </script>
 
 {#if !enTableau}
-  <!-- Modes Avancé et Expert : inchangés, à la virgule près. Le suffixe garde
-       la même enveloppe en grille que les écrans avaient chez eux. -->
+  <!-- Les modes HORS tableau — Avancé seul depuis le 09/09/2026, Expert étant
+       passé au tableau. Ce rendu est inchangé à la virgule près : le suffixe
+       garde la même enveloppe en grille que les écrans avaient chez eux. Une
+       garde vérifie qu'Avancé l'emprunte toujours. -->
   {#each pistes as p, i (clef(p, i))}
     {@const ouvrir = ouvertureAlbum?.(p, i) ?? null}
     {#if apres}

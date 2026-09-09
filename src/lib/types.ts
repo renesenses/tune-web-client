@@ -150,6 +150,32 @@ export interface Track {
   bpm?: number | null;
   comments?: string | null;
   musicbrainz_recording_id?: string | null;
+  /**
+   * Dynamic Range de la PISTE, chiffres seuls (« 12 »), tel que le tag
+   * `DYNAMIC RANGE` a été lu au scan (serveur #1806/#1388, `dr_track`).
+   *
+   * 🔴 ABSENT quand la piste n'a pas le tag — jamais `null`, jamais `0`.
+   * `"0"` est une VRAIE mesure, celle d'un master saturé. Mesuré le
+   * 09/09/2026 sur le .18 en v0.9.144 : la valeur arrive en chaîne, comme
+   * sur l'album. Servi par `GET /library/tracks` (filtré et non filtré),
+   * `GET /library/tracks/{id}` et `GET /library/albums/{id}/tracks`.
+   *
+   * Même clé, même contrat que `Album.dynamic_range` : passer par
+   * `lib/dynamicRange.ts` plutôt que de tester la valeur soi-même.
+   */
+  dynamic_range?: string | null;
+  /**
+   * Nombre d'écoutes de cette piste (serveur #3518, `attacher_ecoutes`).
+   *
+   * 🔴 Contrat INVERSE de `dynamic_range` : la clé est TOUJOURS posée quand
+   * la lecture a réussi, et vaut `0` pour une piste jamais jouée — ici un
+   * zéro est une information. Elle ne manque que si la base a échoué : le
+   * serveur préfère ne rien dire plutôt que poser un `0` qui mentirait.
+   */
+  play_count?: number;
+  /** Dernière écoute, horodatage ISO — `null` pour une piste jamais jouée
+   *  (#3518). Va toujours de pair avec `play_count`. */
+  last_played_at?: string | null;
 }
 
 export interface Playlist {

@@ -13,23 +13,71 @@
  * Il ne rend rien : la mise en page appartient au composant, et la qualité
  * s'affiche par `QualityBadge`, pas par une chaîne.
  *
- * ## 🔴 Deux colonnes sans donnée
+ * ## ✅ Les trois colonnes grisées sont RALLUMÉES (#826 puis #824)
  *
- * `# Plays` et `Last Played` sont cochées sur la maquette. Mesuré sur le .18
- * le 07/09/2026, la route qui remplit cet écran —
- * `GET /library/albums/{id}/tracks` — rend 31 champs, et ni `play_count` ni
- * `last_played_at` n'en font partie. Les comptes existent ailleurs
- * (`/library/history/top-tracks` rend `{track_id, plays}`), pas par piste sur
- * cette route.
+ * `# Plays`, `Last Played` et `Dynamic Range` ont porté `indisponible: true`
+ * du 07/09 au 09/09/2026, au motif écrit que la route ne rendait pas la
+ * donnée. Le motif était juste le 07 et FAUX le 08 : le serveur a branché les
+ * trois champs le 08/09 (#1388 pour le DR, #3518 pour les écoutes).
  *
- * On les déclare donc `indisponible`, pour que l'écran des Réglages le DISE au
- * lieu d'offrir une colonne qui afficherait « — » partout sans qu'on sache
- * pourquoi. Elles s'allumeront le jour où le serveur les portera, sans autre
- * changement que le passage de ce drapeau à `false`.
+ * Deux lots l'ont constaté le même jour, séparément. **#826 a allumé les deux
+ * colonnes d'écoute et son implémentation est celle qui reste** — elle est
+ * arrivée la première dans `main`, et deux implémentations d'un même champ
+ * finissent toujours par diverger. Ce lot-ci lui apporte une troisième
+ * surface mesurée, le Dynamic Range, et l'écran qui le rend.
+ *
+ * ### Ce que j'ai mesuré moi-même, le 09/09/2026
+ *
+ * Contre le .18 en **v0.9.144** (`GET /api/v1/system/version`), c'est-à-dire
+ * la version publiée, pas une tête de branche :
+ *
+ * ```
+ * GET /library/tracks?limit=3            → play_count, last_played_at présents
+ * GET /library/tracks?q=Lachrimae…       → idem (chemin FILTRÉ, is_active)
+ * GET /library/tracks/16645              → idem (fiche d'une piste)
+ * ```
+ *
+ * Les trois surfaces passent par le même seam serveur,
+ * `tracks.rs::joindre_dr_par_piste`, qui appelle `albums.rs::attacher_ecoutes`.
+ *
+ * Le `dynamic_range` n'apparaissait sur AUCUNE piste — non pas parce que la
+ * route l'ignore, mais parce que la bibliothèque du .18 ne porte pas un seul
+ * tag `DYNAMIC RANGE` (`select count(*) from track_metadata where
+ * key='dr_track'` → **0**). C'est exactement le piège dans lequel la mesure du
+ * 07/09 est tombée : une clé absente d'une charge ne prouve rien tant qu'on
+ * n'a pas vérifié qu'une piste porte la donnée. Deux lignes `dr_track`
+ * posées le temps d'une mesure, puis retirées, ont fait apparaître la clé sur
+ * les trois surfaces.
+ *
+ * ### Le contrat, qui n'est PAS le même pour les trois
+ *
+ *  - `dynamic_range` est **absente** quand la piste n'a pas le tag — jamais
+ *    `null`, jamais `0`. `DR0` est la mesure d'un master saturé, pas une
+ *    absence : une cellule vide ne doit jamais se lire « DR 0 », et une piste
+ *    à DR0 doit afficher `0`, pas du vide. Mesuré : la valeur arrive en
+ *    **chaîne** (`"0"`, `"14"`), comme sur l'album.
+ *  - `play_count` vaut **`0`** et `last_played_at` **`null`** pour une piste
+ *    jamais jouée : ici `0` est une vraie valeur, à afficher telle quelle. Les
+ *    deux clés ne manquent que si la base a échoué — et le serveur préfère
+ *    alors ne rien poser plutôt que mentir avec un zéro. Clé absente = cellule
+ *    vide, et c'est le bon message.
+ *
+ * ### Le mode EXPERT passe au tableau, et le DR s'affiche enfin
+ *
+ * Premier état de ce lot : les trois colonnes étaient rallumées, mais `dr`
+ * portait `min: 'expert'` alors que le tableau n'existait qu'en Essentiel — sa
+ * valeur était calculée et éprouvée, et aucun écran ne la rendait. Arbitrage
+ * de Bertrand, 09/09/2026 : **on branche le tableau en mode Expert**, et `dr`
+ * garde son niveau. C'est l'écran qui descend vers la colonne, pas l'inverse.
+ *
+ * `MODES_BRANCHES` cite donc `beginner` ET `expert`. Avancé reste hors du
+ * tableau : le périmètre est explicite, et rien ici ne le lui interdit le jour
+ * où il suivra — il suffira de l'ajouter à cette liste, et à elle seule.
  */
 import { levelRank, type SettingsLevel } from './uiLevel';
 import type { Track } from './types';
 import { formatTime } from './utils';
+import { afficherDynamicRange } from './dynamicRange';
 
 export type CleColonne =
   | 'num' | 'title' | 'artist' | 'composer' | 'time' | 'year'
@@ -39,8 +87,8 @@ export type CleColonne =
   | 'album' | 'albumArtist' | 'disc' | 'label'
   | 'format' | 'sampleRate' | 'bitDepth' | 'size' | 'path' | 'isrc' | 'mbid'
   // « En expert, il les faut TOUTES comme Dynamic Range » (Bertrand,
-  // 07/09/2026). Expert propose donc tout ce que la route porte, plus le DR
-  // qu'elle ne porte pas encore.
+  // 07/09/2026). Expert propose tout ce que la route porte — Dynamic Range
+  // compris depuis le 08/09 (serveur #1388).
   | 'dr' | 'comments' | 'discSubtitle' | 'source' | 'modified' | 'hash';
 
 export interface Colonne {
@@ -58,7 +106,16 @@ export interface Colonne {
    * le numéro n'a pas de sens hors d'un album.
    */
   verrouillee?: boolean;
-  /** Le serveur ne fournit pas encore la donnée sur la route des pistes. */
+  /**
+   * Le serveur ne fournit pas la donnée sur la route des pistes.
+   *
+   * 🔴 AUCUNE colonne ne le porte aujourd'hui (#824, 09/09/2026) — le drapeau
+   * reste, la mécanique qui l'applique aussi. C'est une soupape, pas un
+   * vestige : le jour où une route cesse de rendre un champ, la poser ici
+   * grise la ligne dans les Réglages, écrit le motif à l'écran et écarte la
+   * colonne même si un réglage d'hier la coche. La retirer obligerait à
+   * réinventer les trois.
+   */
   indisponible?: boolean;
   /**
    * Niveau d'interface MINIMUM auquel cette colonne est proposée.
@@ -103,6 +160,11 @@ export const COLONNES: Colonne[] = [
    * Le second est CREUX, et c'est normal : seules les pistes réellement
    * écoutées en portent une. Une colonne vide sur la plupart des lignes n'est
    * pas une colonne morte — c'est l'information « jamais écoutée ».
+   *
+   * Mesure INDÉPENDANTE le même jour (#824), qui ajoute la troisième surface :
+   * les deux clés sortent aussi sur `/library/tracks?q=…` (chemin FILTRÉ) et
+   * sur `/library/tracks/{id}` (fiche d'une piste), `0` et `null` compris. Les
+   * deux mesures se recoupent, par deux chemins différents.
    */
   { cle: 'plays',      cleI18n: 'v2.tcol.plays',      largeur: '72px',  align: 'droite' },
   { cle: 'lastPlayed', cleI18n: 'v2.tcol.lastPlayed', largeur: '116px', align: 'droite' },
@@ -139,30 +201,46 @@ export const COLONNES: Colonne[] = [
   { cle: 'modified',    cleI18n: 'v2.tcol.modified',    largeur: '112px', align: 'droite', min: 'expert' },
   { cle: 'hash',        cleI18n: 'v2.tcol.hash',        largeur: '150px', min: 'expert' },
   /**
-   * 🔴 Dynamic Range — reste grisée, mais le motif a CHANGÉ.
+   * Dynamic Range — ALLUMÉE le 09/09/2026, après deux motifs successifs.
    *
-   * L'ancien motif disait « le serveur ne le RESTITUE pas ». C'est faux : le
-   * serveur pose bien `dynamic_range` sur `/library/tracks` (même passe que
-   * `play_count`), sous ce nom-là et non `dr`. Il l'omet simplement quand la
-   * piste ne porte pas le tag `DYNAMIC RANGE`.
+   * ## Trois états, deux corrections
    *
-   * Le vrai motif est qu'AUCUNE donnée n'existe pour l'éprouver. Mesuré le
-   * 09/09/2026, sur DEUX serveurs :
-   *   .18  `/library/tracks?limit=400`   → dynamic_range présent sur 0
-   *   .15  `/library/tracks?limit=400`   → dynamic_range présent sur 0
-   *   .18  `/library/albums/filters`     → `dynamic_ranges` : liste VIDE
+   * 1. 07/09 : « le serveur ne le RESTITUE pas ». FAUX — mesure faite sur
+   *    `/library/albums/{id}/tracks` et sur un serveur d'avant #1388.
+   * 2. 09/09, #826 : le motif est révisé, et sa mesure est juste — le serveur
+   *    pose bien `dynamic_range` (sous ce nom, pas `dr`) et l'omet quand la
+   *    piste n'a pas le tag ; mais aucune bibliothèque sous la main n'en porte.
+   *      .18  `/library/tracks?limit=400`   → dynamic_range présent sur 0
+   *      .15  `/library/tracks?limit=400`   → dynamic_range présent sur 0
+   *      .18  `/library/albums/filters`     → `dynamic_ranges` : liste VIDE
+   *    Conclusion de #826 : garder la colonne grisée, faute de pouvoir
+   *    distinguer « pas de tag » de « pas branché ».
+   * 3. 09/09, #824 : cette distinction A ÉTÉ établie, et c'est ce qui lève la
+   *    réserve. Deux lignes `dr_track` posées le temps d'une mesure sur le .18
+   *    (v0.9.144), puis retirées : la clé est sortie sur les TROIS surfaces,
+   *    `"0"` comprise, et la piste voisine non taguée a gardé la clé absente
+   *    DANS LA MÊME CHARGE. « Pas branché » est donc exclu par la mesure, pas
+   *    par confiance. Arbitrage de Bertrand le même jour : on allume, et on
+   *    branche le tableau du mode Expert pour qu'elle s'affiche.
    *
-   * Ni piste ni album ne porte de DR sur ces bibliothèques. Allumer la colonne
-   * livrerait une colonne vide partout, sans moyen de distinguer « pas de tag »
-   * de « pas branché » — exactement le doute qu'on veut éviter. Elle reste donc
-   * grisée, et l'allumer demande d'abord UNE bibliothèque taguée pour le
-   * vérifier, pas une modification de code.
+   * ## Ce qui reste vrai de la réserve de #826
+   *
+   * La colonne sera VIDE sur les bibliothèques d'aujourd'hui, puisqu'aucune
+   * n'est taguée. C'est un fait, pas un défaut : elle est décochée d'office
+   * (`DEFAUTS.expert` ne la cite pas), donc personne ne la subit, et celui qui
+   * la coche sait ce qu'il cherche. La garde qui compte est ailleurs — une
+   * cellule vide ne doit jamais se lire « DR 0 », et une piste à DR0 doit
+   * afficher `0`. Deux témoins montés le vérifient sur le DOM.
    *
    * ⚠️ Ne pas confondre avec le DR d'ALBUM, qui lui est affiché sur les deux
    * fiches (`AlbumDetailV2`, `LibraryView`) — quand il existe.
+   *
+   * Elle reste `min: 'expert'`, et depuis le 09/09/2026 le tableau existe
+   * aussi dans ce mode (`MODES_BRANCHES`) : c'est l'écran qui est descendu
+   * vers la colonne, pas la colonne qui a changé de niveau.
    */
   { cle: 'dr',          cleI18n: 'v2.tcol.dr',          largeur: '64px',  align: 'droite',
-    min: 'expert', indisponible: true },
+    min: 'expert' },
   // Le chemin en dernier : c'est la plus longue, et la seule qu'on lit de
   // gauche à droite jusqu'au bout.
   { cle: 'path',        cleI18n: 'v2.tcol.path',        largeur: 'minmax(0,2fr)',   min: 'expert' },
@@ -175,16 +253,21 @@ export const PAR_CLE: Record<CleColonne, Colonne> = Object.fromEntries(
 /**
  * Le choix par DÉFAUT de chaque mode.
  *
- * Essentiel reprend la maquette, moins les deux colonnes sans donnée : les
- * proposer cochées d'office remplirait l'écran de tirets le premier jour.
- * Elles restent choisissables — « oui, # plays et last played voulues si
- * choisies par l'utilisateur » (Bertrand, 07/09/2026) — le jour où le serveur
- * les portera.
+ * Essentiel reprend la maquette, moins « # Plays » et « Last Played ». Elles
+ * sont désormais SERVIES (#824) mais restent décochées d'office : « oui,
+ * # plays et last played voulues SI CHOISIES par l'utilisateur » (Bertrand,
+ * 07/09/2026). Le défaut est un choix produit, pas un aveu d'absence — les
+ * ajouter ici serait décider à sa place.
  *
- * Avancé et Expert ne sont PAS branchés pour l'instant (décision Bertrand,
- * option A) : leurs listes existent, l'écran des Réglages les montre grisées
- * et le dit. Elles serviront telles quelles quand ces modes passeront au
- * tableau.
+ * 🔴 LA LISTE D'EXPERT N'EST PLUS THÉORIQUE (09/09/2026). Elle servait de
+ * réserve tant que ce mode ne portait pas le tableau ; il le porte désormais,
+ * et `settingsLevel` vaut `'expert'` PAR DÉFAUT depuis le 27/08. Ces dix
+ * colonnes sont donc ce qu'un utilisateur voit à l'ouverture d'une
+ * installation neuve. On n'y touche pas — « il les faut toutes » veut dire
+ * toutes PROPOSÉES, pas toutes cochées — mais on sait maintenant ce qu'elle
+ * coûte, et une liste vide ici ouvrirait une grille nue.
+ *
+ * Avancé, lui, reste hors du tableau : voir `MODES_BRANCHES`.
  */
 export const DEFAUTS: Record<SettingsLevel, CleColonne[]> = {
   beginner:     ['num', 'title', 'artist', 'time', 'quality'],
@@ -195,8 +278,33 @@ export const DEFAUTS: Record<SettingsLevel, CleColonne[]> = {
   expert:       ['num', 'title', 'artist', 'composer', 'time', 'year', 'channels', 'bpm', 'genre', 'quality'],
 };
 
-/** Les modes dont le TABLEAU est réellement branché aujourd'hui. */
-export const MODES_BRANCHES: SettingsLevel[] = ['beginner'];
+/**
+ * Les modes dont le TABLEAU est réellement branché.
+ *
+ * 🔴 SOURCE UNIQUE. `ListePistesV2` décidait la même chose de son côté, en
+ * dur : `enTableau = mode === 'beginner'`. Deux réponses à une seule question,
+ * dont une seule — celle de l'écran des Réglages — consultait cette liste.
+ * L'ajout d'`expert` ici n'aurait donc rien changé à l'affichage, et la
+ * matrice aurait annoncé un mode branché que le tableau ignorait. Le
+ * composant lit maintenant cette constante, et elle seule.
+ *
+ * Avancé n'y est pas : périmètre explicite de l'arbitrage du 09/09/2026, pas
+ * un oubli. L'y ajouter suffira le jour venu — c'est tout l'intérêt d'une
+ * source unique.
+ */
+export const MODES_BRANCHES: SettingsLevel[] = ['beginner', 'expert'];
+
+/**
+ * Ce mode rend-il un TABLEAU, ou des lignes ?
+ *
+ * La question de `ListePistesV2`, posée ici pour qu'il n'ait pas à la
+ * retrancher. Un `includes` sur la constante exportée reste lisible chez lui,
+ * mais une fonction nommée dit ce qu'on demande, et c'est elle qu'on cherche
+ * quand on se demande où ça se décide.
+ */
+export function modeEnTableau(mode: SettingsLevel): boolean {
+  return MODES_BRANCHES.includes(mode);
+}
 
 /** Cette colonne est-elle offerte à ce mode ? */
 export function offerteAu(c: Colonne, mode: SettingsLevel): boolean {
@@ -270,8 +378,8 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
     case 'channels': return (t as any).channels != null ? String((t as any).channels) : null;
     case 'bpm':      return (t as any).bpm != null ? String(Math.round((t as any).bpm)) : null;
     case 'genre':    return texte((t as any).genre);
-    // Sans donnée sur la route des pistes : la cellule reste vide, et la
-    // colonne n'est de toute façon pas proposée tant que `indisponible` tient.
+    // Métadonnées de catalogue, toutes présentes sur la route des pistes :
+    // `texte()` rend `null` sur ce qui manque, et la cellule reste vide.
     case 'album':       return texte((t as any).album_title);
     case 'albumArtist': return texte((t as any).album_artist);
     case 'disc':        return (t as any).disc_number != null ? String((t as any).disc_number) : null;
@@ -292,14 +400,37 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
     // `file_mtime` est un horodatage UNIX en SECONDES (1777546399.0 mesuré) :
     // le passer tel quel à `Date` donnerait 1970.
     case 'modified':     return dateFichier((t as any).file_mtime);
+    // 🔴 CES DEUX LIGNES SONT CELLES DE #826, mot pour mot.
+    //
+    // Ce lot en portait deux autres, écrites en parallèle et équivalentes à la
+    // sortie près : `nombreEcoutes` et `dateEcoute`, avec leurs propres gardes
+    // de type. Deux implémentations d'un même champ finissent toujours par
+    // diverger ; #826 est arrivée la première dans `main`, elle reste. Les
+    // témoins du présent lot deviennent des gardes SUR ELLE — ils la couvrent
+    // plus largement qu'elle ne se couvrait (`play_count` à 0, clé absente,
+    // horodatage illisible).
     case 'plays':      return texte((t as any).play_count);
     // Creuse par nature : une piste jamais écoutée n'en a pas. `texte` rend
     // une chaîne vide, ce qui se lit « jamais » sans rien inventer.
     case 'lastPlayed': return dateFichier(
       (t as any).last_played_at ? Date.parse((t as any).last_played_at) / 1000 : null,
     );
-    case 'dr':
-      return null;
+    /**
+     * 🔴 Le Dynamic Range passe par `afficherDynamicRange`, et pas par
+     * `texte()`.
+     *
+     * Le contrat est le MÊME que sur l'album — clé absente quand la piste n'a
+     * pas le tag, `"0"` quand le master est écrasé — et ce module le tient
+     * déjà, avec sa règle du tilde pour une valeur déduite. Le recopier ici
+     * donnerait deux vérités sur le même champ, et c'est exactement ce que
+     * `attach_track_tags` évite côté serveur.
+     *
+     * `texte()` aurait d'ailleurs suffi par accident (`String(0).trim()` vaut
+     * `'0'`, qui est vrai) — mais par accident seulement : un jour où la
+     * valeur arriverait en NOMBRE, `texte(0)` resterait bon et `t.dr ? …`
+     * casserait. Une seule fonction, éprouvée, pour les deux écrans.
+     */
+    case 'dr':       return afficherDynamicRange(t)?.texte ?? null;
     case 'quality':  return null;
   }
 }
