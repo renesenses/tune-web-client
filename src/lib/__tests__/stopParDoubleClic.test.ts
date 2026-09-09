@@ -8,22 +8,29 @@ const sansCommentaires = (s: string) =>
   s.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 /**
- * ⚠️ MISE À JOUR DU 08/09/2026 — le bouton Stop est REVENU.
+ * ⚠️ 09/09/2026 — le bouton autonome est de nouveau PARTI, et pour de bon.
  *
- * Le 05/09, Bertrand a remplacé le bouton autonome par un double-clic sur
- * Lecture. Le 08/09 : « Et le bouton Stop de la transport barre !! ?? !! ».
- * Les deux chemins cohabitent désormais et appellent le MÊME `arreter` — le
- * double-clic pour qui l'a pris en main, le bouton pour qui ne peut pas le
- * deviner.
+ * L'aller-retour, en clair, parce qu'un test qui change d'avis doit dire
+ * pourquoi :
  *
- * Ce fichier garde donc le double-clic, tel qu'il a été mis au point ; le
- * bouton, sa condition et l'unicité de l'appel sont gardés par
- * `arretTransport.test.ts`. Le cas retiré ci-dessous — « le bouton autonome a
- * disparu » — a été supprimé parce qu'il affirmait une décision que Bertrand a
- * révoquée, et non parce qu'il gênait.
+ *  - 05/09 — Bertrand remplace le bouton par le double-clic. Ce fichier naît.
+ *  - 08/09 — « Et le bouton Stop de la transport barre !! ?? !! ». Je le lis
+ *    comme une demande de retour et je remets le bouton, en supprimant d'ici
+ *    le cas « le bouton autonome a disparu ».
+ *  - 09/09 — « Le bouton stop devait avoir été retiré. Non ? ». Ma lecture
+ *    était fausse. Le bouton repart, et le cas revient.
+ *
+ * La décision n'a donc jamais changé qu'une fois : dans ma tête. Le cas est
+ * rétabli tel quel.
  */
 describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
   const bar = sansCommentaires(lire('src/components/TransportBar.svelte'));
+
+  it('le bouton stop autonome a disparu de la barre', () => {
+    expect(bar).not.toContain('control-btn stop-btn');
+    expect(bar).not.toContain("$t('common.stop')");
+    expect(bar).not.toContain("transport.stop'");
+  });
 
   it("le stop utilise le double-clic DU SYSTÈME, pas un chronomètre maison", () => {
     // Deux réglages maison ont été faux : 350 ms avalait un re-clic délibéré,

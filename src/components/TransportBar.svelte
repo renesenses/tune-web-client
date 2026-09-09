@@ -498,7 +498,7 @@
   }
 
   /**
-   * L'arrêt, UN seul chemin — le bouton et le double-clic l'appellent tous deux.
+   * L'arrêt. UN seul chemin, et un seul geste qui y mène : le double-clic.
    *
    * `stopAndSync` et non `api.stop` : sans report d'état, la zone restait
    * « playing » dans le magasin et le bouton devenait inerte.
@@ -511,6 +511,29 @@
   async function doubleClicLecture() {
     await arreter();
   }
+
+  /**
+   * 🔴 LE TROISIÈME ÉTAT DU BOUTON.
+   *
+   * Bertrand, 09/09/2026 : « je veux avoir un seul bouton à 3 états : Play,
+   * Pause, Stop » — puis, en précisant : « Simple click : passage Play - Pause
+   * ou Pause - Play. Double click : passage Play - Stop ou Pause - Stop. »
+   *
+   * Les deux GESTES existaient déjà. Ce qui manquait, c'est que le bouton
+   * n'avait que DEUX apparences : `isPlaying ? pause : lecture`. Une zone
+   * ARRÊTÉE et une zone EN PAUSE montraient donc exactement le même triangle,
+   * et rien ne disait laquelle des deux on regardait — le double-clic
+   * n'accusait aucun effet visible sur le bouton.
+   *
+   * L'icône continue de nommer l'ACTION du clic (c'est la convention de la
+   * barre, et elle est juste : arrêté comme en pause, un clic LIT). C'est la
+   * FORME qui porte l'état : plein quand il reste quelque chose en cours,
+   * creux quand la zone est à l'arrêt. Trois apparences, un bouton.
+   *
+   * `ytActive` : une vidéo en cours n'est pas un arrêt, même quand la zone dit
+   * « stopped » — c'est déjà la raison d'être de `isPlaying` juste au-dessus.
+   */
+  const estArretee = $derived(!isPlaying && !ytActive && playState === 'stopped');
 
   async function handlePrevious() {
     await controls.skipPrevious(zone);
@@ -886,6 +909,7 @@
     <button
       class="control-btn play-btn"
       class:loading={ytLoadingState}
+      class:arretee={estArretee}
       disabled={hasNoZone && !ytActive}
       onclick={clicLecture}
       ondblclick={doubleClicLecture}
@@ -910,32 +934,24 @@
     </button>
 
     <!--
-      Le bouton STOP, revenu à sa place.
+      PAS de bouton stop autonome ici.
 
-      Il avait été retiré le 05/09/2026 au profit du double-clic sur Lecture
-      (voir `doubleClicLecture` plus haut). Bertrand, 08/09/2026 : « Et le
-      bouton Stop de la transport barre !! ?? !! ». Les DEUX chemins vivent
-      désormais ensemble — le double-clic reste pour qui l'a pris en main, le
-      bouton pour qui ne peut pas le deviner. C'est le même appel, `stopAndSync`,
-      pas une seconde implémentation.
+      Il a existé, a été retiré le 05/09/2026 au profit du double-clic sur
+      Lecture (voir `arreter` et `doubleClicLecture` plus haut), remis le
+      08/09 sur une lecture erronée d'un message de Bertrand — « Et le bouton
+      Stop de la transport barre !! ?? !! » —, et retiré de nouveau le 09/09 :
+      « Le bouton stop devait avoir été retiré. Non ? ».
 
-      Même garde que Précédent / Suivant : la RADIO n'a pas de stop, un flux en
-      direct ne se reprend pas où on l'a laissé. Le bouton disparaît alors,
-      plutôt que de rester grisé sans dire pourquoi.
+      La décision est la sienne et elle tient : le stop n'est pas une commande
+      de MUSIQUE, c'est une commande d'APPAREIL, et elle n'a pas à occuper une
+      place permanente au milieu des commandes de lecture. L'infobulle du
+      bouton Lecture annonce le double-clic, et la touche `S` reste le chemin
+      clavier.
+
+      `arretTransport.ts` reste : la condition (pas de stop sur une radio, pas
+      de stop sans zone) sert au double-clic exactement comme elle servait au
+      bouton, et un test l'APPELLE.
     -->
-    {#if stopPossible}
-      <button
-        class="control-btn"
-        onclick={arreter}
-        aria-label={$t('transport.stop' as any)}
-        title={$t('transport.stop' as any)}
-      >
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <rect x="6" y="6" width="12" height="12" rx="1.5" />
-        </svg>
-      </button>
-    {/if}
-
     {#if displayTrack?.source !== 'radio'}
       <!-- La règle vit dans lib/boutonSuivant : le mini-lecteur porte le même
            bouton, et les deux copies avaient déjà divergé. Elle reproduit
@@ -1783,6 +1799,22 @@
 
   .play-btn:hover {
     background: var(--tune-accent-hover) !important;
+  }
+
+  /* Le troisième état : la zone est ARRÊTÉE. Le bouton se creuse — même icône,
+     même geste, mais on voit qu'il n'y a plus rien en cours. En pause il reste
+     plein : quelque chose attend d'être repris. */
+  .play-btn.arretee {
+    /* `!important` parce que la règle de base en porte un (`.play-btn`), et
+       `box-shadow: inset` plutôt qu'un `border` : un contour de 2 px ferait
+       passer le bouton de 44 à 48 px et décalerait toute la rangée. */
+    background: transparent !important;
+    color: var(--tune-accent) !important;
+    box-shadow: inset 0 0 0 2px var(--tune-accent);
+  }
+  .play-btn.arretee:hover {
+    background: var(--tune-accent) !important;
+    color: white !important;
   }
 
   .play-btn.loading {

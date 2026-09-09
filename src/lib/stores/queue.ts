@@ -43,9 +43,18 @@ export function nextQueueSheetState(
     // Deux crans : `peek` n'a pas de rendu propre ici.
     return current === 'collapsed' ? 'expanded' : 'collapsed';
   }
-  if (current === 'collapsed') return 'peek';
-  if (current === 'peek') return 'expanded';
-  return 'collapsed';
+  // 🔴 SUR PETIT ÉCRAN AUSSI, le BOUTON ne fait que deux crans.
+  //
+  // Le cycle valait `collapsed → peek → expanded → collapsed` : refermer depuis
+  // `peek` demandait DEUX appuis, et ouvrir en grand deux aussi. Alex Campbell,
+  // 08/09/2026, dans une webapp Safari : « it takes two clicks ».
+  //
+  // Les trois états restent — `peek` est ce que produit le GESTE, un glissé
+  // vers le haut depuis la barre (voir `handleSheetTouchMove`), et c'est là
+  // qu'il a un sens : la main dose la hauteur. Un bouton, lui, ne dose rien :
+  // il ouvre ou il ferme. On ne retire donc pas l'état, on retire seulement
+  // l'escalier que le bouton faisait monter marche par marche.
+  return current === 'collapsed' ? 'expanded' : 'collapsed';
 }
 
 /**

@@ -112,6 +112,43 @@
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { demarrerTransportV2 } from '../../lib/v2Live';
+  import { reserveDeLaGrappe } from '../../lib/gouttiereGrappe';
+
+  /**
+   * 🔴 LA GOUTTIÈRE EST MESURÉE, PLUS DEVINÉE.
+   *
+   * `.av-tr` est en position absolue au-dessus des écrans : sa largeur ne leur
+   * est pas connue, ils la réservaient donc par un nombre écrit à la main. Ce
+   * nombre a été faux deux fois de suite, pour la même raison — il décrit un
+   * ÉTAT, et la grappe en a plusieurs :
+   *
+   *   - `96px`, avant que la recherche globale ne rejoigne la grappe (#3629) :
+   *     « le bouton Modifier est trop proche de l'icône rechercher » ;
+   *   - `172px`, qui compte la loupe REPLIÉE (36 px). Dépliée, elle en fait
+   *     320. Les boutons « Ajouter un widget » et « Terminé » de l'accueil
+   *     passaient donc encore dessous (Bertrand, 09/09/2026), et « 200 lectures
+   *     / Vider » de l'Historique avec eux.
+   *
+   * Un observateur de taille écrit la largeur réelle dans `--v2-grappe-w`. Elle
+   * suit la loupe qui s'ouvre, le bouton de tiroir qui paraît, le bouton TV, et
+   * tout ce qu'on ajoutera demain — sans qu'un nombre soit à corriger nulle
+   * part. La valeur de la feuille reste le repli, avant la première mesure et
+   * là où l'observateur n'existe pas.
+   *
+   * L'effet n'écrit PAS un `$state` qu'il relit : il pose une propriété CSS sur
+   * un nœud. Aucune boucle de mise à jour possible.
+   */
+  let grappeEl = $state<HTMLElement | null>(null);
+  let coquilleEl = $state<HTMLElement | null>(null);
+  $effect(() => {
+    const g = grappeEl, c = coquilleEl;
+    if (!g || !c || typeof ResizeObserver === 'undefined') return;
+    const poser = () => c.style.setProperty('--v2-grappe-w', `${reserveDeLaGrappe(g.getBoundingClientRect().width)}px`);
+    poser();
+    const ro = new ResizeObserver(poser);
+    ro.observe(g);
+    return () => ro.disconnect();
+  });
   import '../../styles/tune-v2.css';
 
   /**
@@ -258,7 +295,7 @@
   }
 </script>
 
-<div class="v2-shell tune-v2" class:avec-maj={annonceMaj}>
+<div class="v2-shell tune-v2" class:avec-maj={annonceMaj} bind:this={coquilleEl}>
   <!--
     Le raccourci se pose depuis N'IMPORTE QUEL écran.
 
@@ -278,7 +315,7 @@
     de repli est inatteignable. Sans ce bouton, la navigation entière
     disparaîtrait sur un téléphone.
   -->
-  <div class="av-tr">
+  <div class="av-tr" bind:this={grappeEl}>
     <!--
       🔴 L'OUVERTURE DU TIROIR vit ICI, pas dans la barre latérale.
 
@@ -570,7 +607,18 @@
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); padding:5px 12px; border-radius:999px}
   .soon h2{font-size:28px; font-weight:800}
   .soon p{max-width:420px; color:var(--v2-txt2); font-size:14px; line-height:1.5}
-  .np-overlay{position:fixed; inset:0; z-index:120; background:var(--v2-bg); display:flex; flex-direction:column}
+  /* 🔴 122, et non 120 : AU-DESSUS de la grappe.
+     
+     Sur petit écran la grappe passe à `z-index:121` pour rester atteignable
+     par-dessus le voile du tiroir (voir plus haut). Effet de bord non voulu :
+     elle passait aussi au-dessus de « Lecture en cours », qui valait 120 — dans
+     une webapp Safari, le menu Profil s'ouvrait donc PAR-DESSUS la file
+     d'attente (Alex Campbell, 08/09/2026, « Profile options cover the queue »).
+     
+     « Lecture en cours » est un plein écran modal avec son propre bouton de
+     fermeture (`.np-close`) : rien n'a de raison d'y flotter au-dessus, et le
+     bouton de tiroir n'y sert pas — il n'y a pas de tiroir à ouvrir depuis là. */
+  .np-overlay{position:fixed; inset:0; z-index:122; background:var(--v2-bg); display:flex; flex-direction:column}
   .np-close{position:absolute; top:12px; left:12px; z-index:1; width:40px; height:40px; border:0; border-radius:50%;
     background:var(--v2-surface); color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center}
   .np-close svg{width:22px; height:22px}

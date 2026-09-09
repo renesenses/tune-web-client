@@ -179,7 +179,24 @@
           {pochette}
           onOuvrirAlbum={ouvrir}
         />
-        {@render apres(p, i)}
+        <!--
+          🔴 Le suffixe est enveloppé, et ce n'est pas cosmétique.
+
+          `.avecSuffixe` est une grille à DEUX colonnes. Un extrait qui rend
+          plusieurs éléments racine — l'Historique en rend deux, l'heure et le
+          cœur radio — en posait donc TROIS dans deux colonnes : le troisième
+          passait à une seconde ligne IMPLICITE, sous la piste.
+
+          Le cœur radio est en `opacity:0` hors survol : la ligne supplémentaire
+          était invisible, et coûtait pourtant 28 px de hauteur plus les 8 px de
+          gouttière. Bertrand, 09/09/2026 : « Historique : diminue l'espace
+          entre les pistes ». Ce n'était pas un réglage d'espacement, c'était
+          une ligne de grille en trop, à chaque piste.
+
+          Une enveloppe, et le nombre de colonnes cesse de dépendre de ce que
+          l'appelant a écrit dans son extrait.
+        -->
+        <span class="suffixe">{@render apres(p, i)}</span>
       </div>
     {:else}
       <LignePisteV2
@@ -280,6 +297,9 @@
      eux (`1fr auto`), pour que rien ne bouge à leurs yeux. */
   .avecSuffixe{display:grid; grid-template-columns:minmax(0,1fr) auto;
     align-items:center; gap:8px}
+  /* L'enveloppe du suffixe : quel que soit le nombre d'éléments que l'extrait
+     rend, ils tiennent sur UNE ligne et dans UNE colonne. */
+  .suffixe{display:flex; align-items:center; gap:8px; justify-content:flex-end}
 
   /* Sous 720 px les colonnes ne tiennent plus : l'en-tête se retire et les
      lignes redeviennent lisibles en pile plutôt que d'être rognées. */

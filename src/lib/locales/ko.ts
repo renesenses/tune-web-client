@@ -336,7 +336,6 @@ export default {
   'transport.shuffle': '셔플',
   'transport.previous': '이전',
   'transport.next': '다음',
-  'transport.stop': '정지',
   'transport.repeat': '반복',
   'transport.shuffleOn': '셔플: 켜짐',
   'transport.shuffleOff': '셔플: 꺼짐',
