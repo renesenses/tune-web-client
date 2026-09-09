@@ -75,9 +75,36 @@
     }
   }
 
+  /**
+   * « Enregistré » — le témoin qui manquait.
+   *
+   * Bertrand, 09/09/2026 : « Et un bouton "sauvegarder mes réglages" dans
+   * configuration du renderer ?? »
+   *
+   * Ces réglages SONT enregistrés, un par un, dès le clic. Ce qui manquait
+   * n'était pas la sauvegarde : c'était sa PREUVE. Seul l'échec parlait
+   * (`renderer.saveError`) ; un succès ne disait rien du tout, et rien ne
+   * distinguait « c'est écrit » de « le clic n'a rien fait ».
+   *
+   * 🔴 L'incohérence était dans le MÊME onglet Appareils : `ZoneDeviceEditor`,
+   * juste à côté, montre un « Enregistré » après sa sauvegarde
+   * (`ZoneDeviceEditor.svelte:150`). Deux blocs voisins, deux comportements.
+   * On reprend le sien, sa clé i18n comprise — traduite dans les 11 langues.
+   *
+   * Pas de bouton, donc : en ajouter un ferait croire que rien n'est écrit
+   * tant qu'on ne l'a pas pressé, ce qui serait faux et pire que le silence.
+   */
+  let enregistreLe = $state(0);
+  let minuterie: ReturnType<typeof setTimeout> | null = null;
+
   async function save(fn: () => Promise<unknown>) {
     try {
       await fn();
+      enregistreLe = Date.now();
+      if (minuterie) clearTimeout(minuterie);
+      // Il s'efface : un témoin permanent cesse d'être lu, et ne dirait plus
+      // rien du clic suivant.
+      minuterie = setTimeout(() => { enregistreLe = 0; }, 2200);
     } catch {
       notifications.error($t('renderer.saveError'));
     }
@@ -148,6 +175,9 @@
 
 <div class="rc">
   <div class="rc-discovery">
+    {#if enregistreLe}
+      <span class="rc-saved" role="status">{$t('common.saved')}</span>
+    {/if}
     <button class="rc-check" onclick={check} disabled={probing}>
       {probing ? $t('renderer.checking') : $t('renderer.check')}
     </button>
@@ -221,6 +251,16 @@
 </div>
 
 <style>
+  /* Même dessin que le « Enregistré » de `ZoneDeviceEditor`, dans le même
+     onglet : deux blocs voisins ne doivent pas s'annoncer de deux façons. */
+  .rc-saved {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--tune-success, #22c55e);
+    margin-right: 8px;
+    white-space: nowrap;
+  }
+
   .rc {
     display: flex;
     flex-direction: column;
