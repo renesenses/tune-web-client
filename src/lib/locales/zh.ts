@@ -322,6 +322,7 @@ export default {
   'nowplaying.eqPremium': '均衡器属于 Tune Premium 功能：没有有效授权时，这些预设不可用。',
   'nowplaying.eqError': '均衡器设置保存失败。',
   'premium.required': '此功能属于 Tune Premium。',
+  'zone.freeCapReached': "您已用满 {n} 个免费区域。在更多区域播放需要 Tune Premium — 各类协议（DLNA、AirPlay 2、BluOS、Chromecast、OpenHome）均已包含在免费版中。",
   'nowplaying.addToPlaylist': '添加到播放列表',
   'nowplaying.upNext': '接下来',
   'nowplaying.noPlayback': '未在播放',
@@ -564,6 +565,14 @@ export default {
   'settings.addSmbShare': '添加网络共享 (SMB)',
   'settings.addLocalFolder': '添加本地文件夹',
   'settings.removeMusicDirConfirm': '从媒体库中移除此文件夹？',
+  "settings.removeMusicDirError": "无法移除该文件夹。",
+  "settings.orphanTracksAsk": "文件夹已移除。{count} 首曲目不再位于任何音乐文件夹下，扫描将不会再访问它们。是否也从音乐库中移除？",
+  "settings.orphanTracksImpact": "同时会移除 — 播放列表：{playlists}，收藏：{favorites}，播放队列：{queue}。",
+  "settings.orphanTracksFilesSafe": "磁盘上的文件不会被改动。",
+  "settings.orphanTracksPurged": "已从音乐库移除 {count} 首曲目。",
+  "settings.orphanTracksRefused": "文件夹已移除，但这 {count} 首曲目未被删除：确认数量已不再匹配。请重新操作以移除它们。",
+  "settings.orphanTracksNothingLeft": "已经没有需要移除的孤立曲目。",
+  "settings.orphanTracksKept": "保留了 {count} 首曲目。扫描将不再访问它们：只有此操作才能移除它们。",
   'settings.coversProgress': '封面 {current}/{total}（找到 {found}）',
   'settings.searchingCovers': '搜索封面中...',
   'settings.searchMissingCovers': '搜索缺失的封面',
@@ -4151,6 +4160,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "未拥有任何模块",
   "diagnostics.outputNoProviders": "此服务器未编译任何外部输出提供方。",
   "diagnostics.outputOpenLicense": "查看我的许可证",
+  "v2.album.compilation": "合辑",
+  "v2.album.compilationHint": "服务器在扫描时将此专辑标记为合辑。",
+  "v2.lib.compilations": "合辑",
+  "v2.lib.compilationsHint": "仅显示合辑。该标记在扫描时写入：更新前已索引的专辑要到下次扫描才会有此标记。",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent

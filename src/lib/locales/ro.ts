@@ -328,6 +328,7 @@ export default {
   'nowplaying.eqPremium': 'Egalizatorul face parte din Tune Premium: fără o licență activă, aceste presetări rămân indisponibile.',
   'nowplaying.eqError': 'Setarea egalizatorului nu a putut fi salvată.',
   'premium.required': 'Această funcție face parte din Tune Premium.',
+  'zone.freeCapReached': "Folosiți deja cele {n} zone gratuite. Redarea într-o zonă în plus necesită Tune Premium — protocoalele (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) sunt toate incluse în versiunea gratuită.",
   'nowplaying.addToPlaylist': 'Adaugă la playlist',
   'nowplaying.upNext': 'Urmează',
   'nowplaying.noPlayback': 'Nu se redă nimic',
@@ -574,6 +575,14 @@ export default {
   'settings.addSmbShare': 'Adaugă partajare de rețea (SMB)',
   'settings.addLocalFolder': 'Adaugă folder local',
   'settings.removeMusicDirConfirm': 'Elimini acest director din bibliotecă?',
+  "settings.removeMusicDirError": "Dosarul nu a putut fi eliminat.",
+  "settings.orphanTracksAsk": "Dosarul a fost eliminat. {count} piese nu mai se află sub niciun dosar de muzică, deci scanarea nu le va mai vizita. Le eliminăm și din bibliotecă?",
+  "settings.orphanTracksImpact": "Ar fi eliminate și — liste: {playlists}, favorite: {favorites}, coadă: {queue}.",
+  "settings.orphanTracksFilesSafe": "Fișierele de pe disc rămân neatinse.",
+  "settings.orphanTracksPurged": "{count} piese eliminate din bibliotecă.",
+  "settings.orphanTracksRefused": "Dosarul a fost eliminat, dar cele {count} piese nu au fost șterse: confirmarea nu mai acoperea numărul lor. Reluați pentru a le elimina.",
+  "settings.orphanTracksNothingLeft": "Nu mai erau piese orfane de eliminat.",
+  "settings.orphanTracksKept": "{count} piese păstrate. Scanarea nu le va mai vizita: doar această acțiune le poate elimina.",
   'settings.coversProgress': 'Coperți {current}/{total} ({found} găsite)',
   'settings.searchingCovers': 'Se caută coperți...',
   'settings.searchMissingCovers': 'Caută coperțile lipsă',
@@ -4151,6 +4160,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Niciun modul deținut",
   "diagnostics.outputNoProviders": "Niciun furnizor de ieșire extern nu este compilat în acest server.",
   "diagnostics.outputOpenLicense": "Vezi licența mea",
+  "v2.album.compilation": "Compilație",
+  "v2.album.compilationHint": "Album marcat drept compilație de către server în timpul scanării.",
+  "v2.lib.compilations": "Compilații",
+  "v2.lib.compilationsHint": "Afișează doar compilațiile. Marcajul este pus în timpul scanării: un album indexat înainte de actualizare îl va primi abia la următoarea scanare.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent

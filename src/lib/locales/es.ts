@@ -322,6 +322,7 @@ export default {
   'nowplaying.eqPremium': 'El ecualizador forma parte de Tune Premium: sin una licencia activa, estos ajustes no están disponibles.',
   'nowplaying.eqError': 'No se ha podido guardar el ajuste del ecualizador.',
   'premium.required': 'Esta función forma parte de Tune Premium.',
+  'zone.freeCapReached': "Ya está usando sus {n} zonas gratuitas. Reproducir en una zona más requiere Tune Premium: los protocolos (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) están todos incluidos en la versión gratuita.",
   'nowplaying.addToPlaylist': 'Añadir a una lista de reproducción',
   'nowplaying.upNext': 'Siguiente',
   'nowplaying.noPlayback': 'Sin reproducción',
@@ -564,6 +565,14 @@ export default {
   'settings.addSmbShare': 'Añadir recurso compartido de red (SMB)',
   'settings.addLocalFolder': 'Añadir carpeta local',
   'settings.removeMusicDirConfirm': '¿Eliminar esta carpeta de la biblioteca?',
+  "settings.removeMusicDirError": "No se ha podido quitar la carpeta.",
+  "settings.orphanTracksAsk": "La carpeta se ha quitado. {count} pistas ya no están bajo ninguna carpeta de música, así que el análisis no volverá a visitarlas. ¿Quitarlas también de la biblioteca?",
+  "settings.orphanTracksImpact": "También se quitarían — listas: {playlists}, favoritos: {favorites}, cola: {queue}.",
+  "settings.orphanTracksFilesSafe": "Los archivos del disco no se tocan.",
+  "settings.orphanTracksPurged": "{count} pistas quitadas de la biblioteca.",
+  "settings.orphanTracksRefused": "La carpeta se ha quitado, pero las {count} pistas no se han eliminado: la confirmación ya no cubría su número. Vuelve a empezar para quitarlas.",
+  "settings.orphanTracksNothingLeft": "Ya no quedaban pistas huérfanas que quitar.",
+  "settings.orphanTracksKept": "{count} pistas conservadas. El análisis no volverá a visitarlas: esta acción es la única que puede quitarlas.",
   'settings.coversProgress': 'Portadas {current}/{total} ({found} encontradas)',
   'settings.searchingCovers': 'Buscando portadas...',
   'settings.searchMissingCovers': 'Buscar portadas faltantes',
@@ -4151,6 +4160,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Ningún módulo adquirido",
   "diagnostics.outputNoProviders": "Ningún proveedor de salida externo está compilado en este servidor.",
   "diagnostics.outputOpenLicense": "Ver mi licencia",
+  "v2.album.compilation": "Recopilación",
+  "v2.album.compilationHint": "Álbum marcado como recopilación por el servidor durante el escaneo.",
+  "v2.lib.compilations": "Recopilaciones",
+  "v2.lib.compilationsHint": "Mostrar solo las recopilaciones. La marca se establece durante el escaneo: un álbum indexado antes de la actualización solo la recibirá en el próximo escaneo.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent

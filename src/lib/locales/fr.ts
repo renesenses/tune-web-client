@@ -529,6 +529,7 @@ export default {
   'nowplaying.eqPremium': "L'égaliseur fait partie de Tune Premium : sans licence active, ces préréglages restent indisponibles.",
   'nowplaying.eqError': "Le réglage de l'égaliseur n'a pas pu être enregistré.",
   'premium.required': 'Cette fonctionnalité fait partie de Tune Premium.',
+  'zone.freeCapReached': "Vous utilisez déjà vos {n} zones gratuites. Jouer sur une zone de plus demande Tune Premium — les protocoles (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) sont tous inclus dans la version gratuite.",
   'nowplaying.addToPlaylist': 'Ajouter à une playlist',
   'nowplaying.upNext': 'À suivre',
   'nowplaying.noPlayback': 'Aucune lecture en cours',
@@ -783,6 +784,14 @@ export default {
   'settings.addSmbShare': 'Ajouter un partage réseau (SMB)',
   'settings.addLocalFolder': 'Ajouter un dossier local',
   'settings.removeMusicDirConfirm': 'Retirer ce dossier de la bibliothèque ?',
+  "settings.removeMusicDirError": "Le dossier n’a pas pu être retiré.",
+  "settings.orphanTracksAsk": "Le dossier a été retiré. {count} pistes ne sont plus sous aucun dossier de musique : le scan ne les visitera plus. Les retirer aussi de la bibliothèque ?",
+  "settings.orphanTracksImpact": "Seraient également retirés — playlists : {playlists}, favoris : {favorites}, file d’attente : {queue}.",
+  "settings.orphanTracksFilesSafe": "Les fichiers sur le disque ne sont pas touchés.",
+  "settings.orphanTracksPurged": "{count} pistes retirées de la bibliothèque.",
+  "settings.orphanTracksRefused": "Le dossier a bien été retiré, mais les {count} pistes n’ont pas été supprimées : la confirmation ne couvrait plus leur nombre. Recommencez pour les retirer.",
+  "settings.orphanTracksNothingLeft": "Il n’y avait plus de piste orpheline à retirer.",
+  "settings.orphanTracksKept": "{count} pistes conservées. Le scan ne les visitera plus : ce geste est le seul qui puisse les retirer.",
   'settings.coversProgress': 'Covers {current}/{total} ({found} trouvées)',
   'settings.searchingCovers': 'Recherche de covers...',
   'settings.searchMissingCovers': 'Rechercher les covers manquantes',
@@ -4173,6 +4182,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Aucun module possédé",
   "diagnostics.outputNoProviders": "Aucun fournisseur de sortie externe n'est compilé dans ce serveur.",
   "diagnostics.outputOpenLicense": "Voir ma licence",
+  "v2.album.compilation": "Compilation",
+  "v2.album.compilationHint": "Disque marqué comme compilation par le serveur au moment du scan.",
+  "v2.lib.compilations": "Compilations",
+  "v2.lib.compilationsHint": "N’afficher que les compilations. Le drapeau est posé au scan : un album indexé avant la mise à jour ne le portera qu’au prochain scan.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent

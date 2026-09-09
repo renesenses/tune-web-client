@@ -322,6 +322,7 @@ export default {
   'nowplaying.eqPremium': '이퀄라이저는 Tune Premium 기능입니다. 활성 라이선스가 없으면 이 프리셋을 사용할 수 없습니다.',
   'nowplaying.eqError': '이퀄라이저 설정을 저장하지 못했습니다.',
   'premium.required': '이 기능은 Tune Premium에 포함됩니다.',
+  'zone.freeCapReached': "무료 영역 {n}개를 이미 모두 사용 중입니다. 영역을 하나 더 재생하려면 Tune Premium이 필요합니다. 프로토콜(DLNA, AirPlay 2, BluOS, Chromecast, OpenHome)은 모두 무료 버전에 포함되어 있습니다.",
   'nowplaying.addToPlaylist': '재생목록에 추가',
   'nowplaying.upNext': '다음 곡',
   'nowplaying.noPlayback': '재생 중인 항목 없음',
@@ -564,6 +565,14 @@ export default {
   'settings.addSmbShare': '네트워크 공유 추가 (SMB)',
   'settings.addLocalFolder': '로컬 폴더 추가',
   'settings.removeMusicDirConfirm': '이 폴더를 라이브러리에서 제거하시겠습니까?',
+  "settings.removeMusicDirError": "폴더를 제거하지 못했습니다.",
+  "settings.orphanTracksAsk": "폴더를 제거했습니다. {count}개 트랙이 더 이상 어떤 음악 폴더에도 속하지 않아 검색이 다시 찾지 않습니다. 라이브러리에서도 제거할까요?",
+  "settings.orphanTracksImpact": "함께 제거됩니다 — 재생목록: {playlists}, 즐겨찾기: {favorites}, 대기열: {queue}.",
+  "settings.orphanTracksFilesSafe": "디스크의 파일은 그대로 유지됩니다.",
+  "settings.orphanTracksPurged": "{count}개 트랙을 라이브러리에서 제거했습니다.",
+  "settings.orphanTracksRefused": "폴더는 제거되었지만 {count}개 트랙은 삭제되지 않았습니다. 확인한 개수와 더 이상 일치하지 않습니다. 다시 시도하세요.",
+  "settings.orphanTracksNothingLeft": "제거할 고아 트랙이 남아 있지 않았습니다.",
+  "settings.orphanTracksKept": "{count}개 트랙을 유지했습니다. 검색이 다시 찾지 않으며, 이 작업만이 제거할 수 있습니다.",
   'settings.coversProgress': '커버 {current}/{total} ({found} 찾음)',
   'settings.searchingCovers': '커버 검색 중...',
   'settings.searchMissingCovers': '누락된 커버 검색',
@@ -4151,6 +4160,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "보유한 모듈 없음",
   "diagnostics.outputNoProviders": "이 서버에는 외부 출력 공급자가 컴파일되어 있지 않습니다.",
   "diagnostics.outputOpenLicense": "내 라이선스 보기",
+  "v2.album.compilation": "컴필레이션",
+  "v2.album.compilationHint": "스캔 중에 서버가 컴필레이션으로 표시한 앨범입니다.",
+  "v2.lib.compilations": "컴필레이션",
+  "v2.lib.compilationsHint": "컴필레이션만 표시합니다. 이 표시는 스캔 중에 설정됩니다. 업데이트 전에 색인된 앨범은 다음 스캔에서야 표시됩니다.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent

@@ -529,6 +529,7 @@ export default {
   'nowplaying.eqPremium': 'The equalizer is part of Tune Premium: without an active licence, these presets stay unavailable.',
   'nowplaying.eqError': 'The equalizer setting could not be saved.',
   'premium.required': 'This feature is part of Tune Premium.',
+  'zone.freeCapReached': "You are already using your {n} free zones. Playing on one more zone requires Tune Premium — the protocols (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) are all included in the free version.",
   'nowplaying.addToPlaylist': 'Add to Playlist',
   'nowplaying.upNext': 'Up Next',
   'nowplaying.noPlayback': 'Nothing playing',
@@ -773,6 +774,14 @@ export default {
   'settings.addSmbShare': 'Add network share (SMB)',
   'settings.addLocalFolder': 'Add local folder',
   'settings.removeMusicDirConfirm': 'Remove this directory from the library?',
+  "settings.removeMusicDirError": "The folder could not be removed.",
+  "settings.orphanTracksAsk": "The folder was removed. {count} tracks are no longer under any music folder, so scanning will never visit them again. Remove them from the library too?",
+  "settings.orphanTracksImpact": "Also removed — playlists: {playlists}, favourites: {favorites}, queue: {queue}.",
+  "settings.orphanTracksFilesSafe": "The files on disk are left untouched.",
+  "settings.orphanTracksPurged": "{count} tracks removed from the library.",
+  "settings.orphanTracksRefused": "The folder was removed, but the {count} tracks were not deleted: the confirmation no longer covered their number. Start over to remove them.",
+  "settings.orphanTracksNothingLeft": "There were no orphaned tracks left to remove.",
+  "settings.orphanTracksKept": "{count} tracks kept. Scanning will never visit them again: this is the only action that can remove them.",
   'settings.coversProgress': 'Covers {current}/{total} ({found} found)',
   'settings.searchingCovers': 'Searching for covers...',
   'settings.searchMissingCovers': 'Search for Missing Covers',
@@ -4171,6 +4180,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "No module owned",
   "diagnostics.outputNoProviders": "No external output provider is compiled into this server.",
   "diagnostics.outputOpenLicense": "See my licence",
+  "v2.album.compilation": "Compilation",
+  "v2.album.compilationHint": "Album flagged as a compilation by the server during the scan.",
+  "v2.lib.compilations": "Compilations",
+  "v2.lib.compilationsHint": "Show compilations only. The flag is set during the scan: an album indexed before the update only gets it on the next scan.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
