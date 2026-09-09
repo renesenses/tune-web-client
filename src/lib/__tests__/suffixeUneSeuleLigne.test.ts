@@ -30,14 +30,27 @@ function racinesDuSnippet(source: string, nom: string): number {
   const i = source.indexOf(`{#snippet ${nom}(`);
   if (i < 0) return -1;
   const fin = source.indexOf('{/snippet}', i);
-  const corps = source.slice(source.indexOf('\n', i), fin);
+  // 🔴 Les COMMENTAIRES d'abord : `<!-- … -->` commence par `<` et se faisait
+  // compter comme un élément racine. Ajouter un commentaire au-dessus d'une
+  // ligne faisait donc rougir la garde sans que le rendu ait bougé d'un pixel
+  // — attrapé le 09/09/2026 en documentant l'ajout de la zone d'écoute.
+  const corps = source
+    .slice(source.indexOf('\n', i), fin)
+    .replace(/<!--[\s\S]*?-->/g, '');
   // Un élément racine : une balise ouvrante ou un bloc `{#if}` en tête de ligne
   // à l'indentation la plus faible du corps.
   const lignes = corps.split('\n').filter((l) => l.trim() && !l.trim().startsWith('{@const'));
   const creux = Math.min(...lignes.map((l) => l.length - l.trimStart().length));
   return lignes.filter((l) => {
     const t = l.slice(creux);
-    return (l.length - l.trimStart().length) === creux && (t.startsWith('<') || t.startsWith('{#if'));
+    // 🔴 `</span>` n'est pas une racine — c'est la FIN d'une. Le compteur
+    // prenait toute ligne commençant par `<`, donc un élément écrit sur
+    // plusieurs lignes était compté DEUX fois. Second défaut du compteur
+    // attrapé le 09/09/2026, avec celui des commentaires.
+    return (
+      (l.length - l.trimStart().length) === creux &&
+      ((t.startsWith('<') && !t.startsWith('</')) || t.startsWith('{#if'))
+    );
   }).length;
 }
 
@@ -71,7 +84,11 @@ describe('l’enveloppe du suffixe', () => {
 
 describe('les trois écrans qui posent un suffixe', () => {
   it('l’Historique en rend bien DEUX — c’est le cas qui a cassé', () => {
-    // L'heure, puis le cœur radio (ou son emplacement vide).
+    // La colonne « zone + instant », puis le cœur radio (ou son emplacement
+    // vide). C'était « l'heure puis le cœur » jusqu'au 09/09/2026 : la zone
+    // d'écoute est venue s'empiler AVEC l'instant dans une seule colonne
+    // (`.quand`), pour ne pas ajouter un troisième enfant à la grille — c'est
+    // exactement l'invariant que ce fichier tient (FabienM, fil 1739, point 8).
     expect(racinesDuSnippet(lire('HistoriqueV2.svelte'), 'suffixe')).toBe(2);
   });
 
