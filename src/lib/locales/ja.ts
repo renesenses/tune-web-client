@@ -3281,6 +3281,13 @@ export default {
   "settings.updateBlockedPlaying": "更新を保留しました。再生中のゾーンがあります。今入れると曲の途中で音が止まります。",
   "settings.updateBlockedUnknown": "サーバーが理由を示さずに更新を拒否しました。サーバーのログを確認してください。",
   "settings.updateDockerHint": "Tune は Docker コンテナーで動作しています。新しいイメージを取得して更新してください（docker compose pull && docker compose up -d）。マウントしたボリュームのデータは保持されます。",
+  "settings.homebrewManaged": "この Tune は Homebrew で管理されています。サーバーと Web インターフェースは一体であり、置き換えは Homebrew に任せる必要があります。",
+  "settings.homebrewMismatch": "注意：サーバーは v{binaire} で動作していますが、Homebrew が導入したのは v{cellar} です。表示中の画面はサーバーより古い可能性があります。下の更新で両者が揃います。",
+  "settings.homebrewCannotSelfUpdate": "Tune はこの更新を自分で実行できません（{detail}）。ターミナルで実行してください:",
+  "settings.homebrewUpdating": "Homebrew を更新しています…",
+  "settings.homebrewUpgrading": "Homebrew が新しいバージョンを導入しています…",
+  "settings.homebrewRestarting": "サーバーを再起動しています…",
+  "settings.homebrewFailed": "Homebrew の更新が「{etape}」の段階で失敗しました。ターミナルで実行してください:",
   // v2 — 2026/09/04 に追加した翻訳（ロケールの整合）
   "v2.col.noneInTab": "この種類のコレクションはありません。",
   "common.open": "開く",

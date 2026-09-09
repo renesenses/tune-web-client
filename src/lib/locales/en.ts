@@ -3566,6 +3566,13 @@ export default {
   "settings.updateBlockedPlaying": "Update deferred: a zone is playing. Installing would cut the music mid-track.",
   "settings.updateBlockedUnknown": "The server refused the update without giving a reason. Check the server logs.",
   "settings.updateDockerHint": "Tune is running in a Docker container: update by pulling the new image (docker compose pull && docker compose up -d). Your data in mounted volumes is preserved.",
+  "settings.homebrewManaged": "This Tune installation is managed by Homebrew: the server and its web interface form a single unit that only Homebrew should replace.",
+  "settings.homebrewMismatch": "Warning: the server is running v{binaire} while Homebrew installed v{cellar}. The interface you are reading may therefore be older than the server. The update below brings the two back in step.",
+  "settings.homebrewCannotSelfUpdate": "Tune cannot run this update itself ({detail}). Run it in a terminal:",
+  "settings.homebrewUpdating": "Updating Homebrew…",
+  "settings.homebrewUpgrading": "Homebrew is installing the new version…",
+  "settings.homebrewRestarting": "Restarting the server…",
+  "settings.homebrewFailed": "The Homebrew update failed at step “{etape}”. Run it in a terminal:",
   // v2 — shared Expert tools (Converter, De-click)
   "v2.tool.eyebrow": "Tools",
   "v2.tool.loading": "Loading…",
