@@ -825,6 +825,16 @@
    */
   let porteePistes: string | null | undefined = undefined;
   /**
+   * 🔴 Un JETON, pas le nettoyage de l'effet.
+   *
+   * L'effet se rejoue aussi quand on QUITTE l'onglet (`tab` est sa
+   * dépendance). Un drapeau posé par le nettoyage périmerait alors une requête
+   * parfaitement valide : au retour, `porteePistes` vaut déjà la portée, aucun
+   * rechargement ne part, et l'écran resterait sur « Chargement… » à jamais.
+   * Le jeton ne bouge que lorsqu'un NOUVEAU chargement commence.
+   */
+  let jetonPistes = 0;
+  /**
    * Le nombre de pistes ANNONCÉ pendant que la liste charge.
    *
    * `/stats` le rend tout de suite ; `getAllTracks()` met plusieurs secondes
@@ -846,10 +856,10 @@
     // 🔴 La liste repart VIDE : la portée vient de changer, ce qu'elle
     // contient ne correspond plus à ce que la puce annonce. Un écran vide qui
     // le dit vaut mieux qu'une bibliothèque entière qui ment.
+    const jeton = ++jetonPistes;
     tracks = [];
     nbPistesServeur = null;
     tracksLoading = true;
-    let perime = false;
     // Un dépôt distant compte SES pistes, pas les nôtres : on ne lui prête pas
     // le total local, on n'annonce simplement rien.
     // `/library/stats`, pas `/system/stats` : c'est un écran de bibliothèque.
@@ -857,21 +867,20 @@
     // premier sans traîner l'inventaire des zones et des sorties.
     // Sous portée, le total du serveur porte sur TOUTE la bibliothèque : on
     // n'annonce pas un compte qu'on ne servira pas.
-    if (!d && !portee) api.getLibraryStats().then((st) => { nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
+    if (!d && !portee) api.getLibraryStats().then((st) => { if (jeton === jetonPistes) nbPistesServeur = st?.tracks ?? null; }).catch(() => {});
     (d ? pistesDistantes(d)
        : portee ? api.getFilteredTracks({ folder: portee, limit: 5000 }).then((r) => r.items ?? [])
        : api.getAllTracks())
-      .then((t) => { if (!perime) tracks = t ?? []; })
+      .then((t) => { if (jeton === jetonPistes) tracks = t ?? []; })
       .catch(() => {
-        if (perime) return;
+        if (jeton !== jetonPistes) return;
         tracks = [];
         // L'échec est DIT. Les trois `catch` de l'ancien client écrivaient en
         // console et laissaient la liste précédente à l'écran : c'est le second
         // mécanisme nommé par #3101.
         if (portee) notifications.error($tr('library.scopeLoadError').replace('{d}', nomDeDossier(portee)));
       })
-      .finally(() => { if (!perime) tracksLoading = false; });
-    return () => { perime = true; };
+      .finally(() => { if (jeton === jetonPistes) tracksLoading = false; });
   });
   const nbPistesAnnonce = $derived(
     tracksLoading && nbPistesServeur != null ? nbPistesServeur : tracks.length,
