@@ -572,6 +572,8 @@ export default {
   'settings.library': 'Libreria',
   'settings.tracks': 'Brani',
   'settings.albums': 'Album',
+  'settings.tracksLocal': 'Tracce locali',
+  'settings.albumsLocal': 'Album locali',
   'settings.artists': 'Artisti',
   'settings.zones': 'Zone',
   'settings.devices': 'Dispositivi',

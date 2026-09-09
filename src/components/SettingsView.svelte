@@ -1,5 +1,6 @@
 <script lang="ts">
   import { nomFonctionnalite } from '../lib/nomFonctionnaliteLicence';
+  import { compteLocalAAfficher } from '../lib/comptesLocaux';
   import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
   import { dateSimple } from '../lib/dates';
@@ -263,6 +264,10 @@ function setSettingsLevel(level: SettingsLevel) {
 
   let health: SystemHealth | null = $state(null);
   let stats: SystemStats | null = $state(null);
+  // #2147 — le compte que le rapport de scan peut confirmer. `null` = rien a
+  // expliquer (voir `compteLocalAAfficher`).
+  const pistesLocales = $derived.by(() => compteLocalAAfficher(stats?.tracks, stats?.tracks_local));
+  const albumsLocaux = $derived.by(() => compteLocalAAfficher(stats?.albums, stats?.albums_local));
   let config: SystemConfig | null = $state(null);
   let backups = $state<BackupInfo[]>([]);
   let scanning = $state(false);
@@ -3848,10 +3853,28 @@ function setSettingsLevel(level: SettingsLevel) {
             <span class="stat-value">{stats.tracks}</span>
             <span class="stat-label">{$t('settings.tracks')}</span>
           </div>
+          <!-- #2147 — le compteur ci-dessus compte TOUTES les sources ; le
+               rapport de scan, quelques lignes plus bas, ne compte que les
+               fichiers du disque. Sans ce chiffre-ci, la différence se lit
+               comme des pistes fantômes. Absent quand il n'y a rien à
+               expliquer (bibliothèque purement locale, ou serveur antérieur
+               à la ventilation de #3277). -->
+          {#if pistesLocales !== null}
+          <div class="stat-item">
+            <span class="stat-value">{pistesLocales}</span>
+            <span class="stat-label">{$t('settings.tracksLocal' as any)}</span>
+          </div>
+          {/if}
           <div class="stat-item">
             <span class="stat-value">{stats.albums}</span>
             <span class="stat-label">{$t('settings.albums')}</span>
           </div>
+          {#if albumsLocaux !== null}
+          <div class="stat-item">
+            <span class="stat-value">{albumsLocaux}</span>
+            <span class="stat-label">{$t('settings.albumsLocal' as any)}</span>
+          </div>
+          {/if}
           <div class="stat-item">
             <span class="stat-value">{stats.artists}</span>
             <span class="stat-label">{$t('settings.artists')}</span>

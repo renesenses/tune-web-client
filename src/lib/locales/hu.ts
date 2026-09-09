@@ -755,6 +755,8 @@ export default {
   "settings.library": "Gyűjtemény",
   "settings.tracks": "Számok",
   "settings.albums": "Albumok",
+  "settings.tracksLocal": "Helyi számok",
+  "settings.albumsLocal": "Helyi albumok",
   "settings.artists": "Előadók",
   "settings.zones": "Zónák",
   "settings.devices": "Eszközök",

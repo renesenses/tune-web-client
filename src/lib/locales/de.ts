@@ -572,6 +572,8 @@ export default {
   'settings.library': 'Musikbibliothek',
   'settings.tracks': 'Titel',
   'settings.albums': 'Alben',
+  'settings.tracksLocal': 'Lokale Titel',
+  'settings.albumsLocal': 'Lokale Alben',
   'settings.artists': 'Künstler',
   'settings.zones': 'Zonen',
   'settings.devices': 'Geräte',

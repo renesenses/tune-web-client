@@ -542,6 +542,8 @@ export default {
   'settings.library': 'Bibliotek',
   'settings.tracks': 'Spår',
   'settings.albums': 'Album',
+  'settings.tracksLocal': 'Lokala spår',
+  'settings.albumsLocal': 'Lokala album',
   'settings.artists': 'Artister',
   'settings.zones': 'Zoner',
   'settings.devices': 'Enheter',
