@@ -1143,10 +1143,14 @@
           <ZoneTypeIcon type={zone?.output_type} size={20} />
           <span class="zone-status-pip"></span>
         </span>
-        <!-- L'appareil par son nom, le nom de zone en repli. C'est lui qui
-             sépare deux zones du MÊME type, que le pictogramme confond par
-             construction. Masqué sous 980px : la pastille y redevient un
-             carré, comme le reste de la barre se dépouille. -->
+        <!-- Le NOM DE LA ZONE, l'appareil en repli seulement si elle n'en a
+             pas (#3695, arbitrage du 09/09/2026) : c'est le libellé que
+             l'utilisateur a choisi, et c'est lui qui sépare deux zones du MÊME
+             type, que le pictogramme confond par construction. L'appareil
+             reste lisible juste en dessous, dans le menu déroulant, et dans
+             l'infobulle du bouton (`zoneFullLabel`). Masqué sous 980px : la
+             pastille y redevient un carré, comme le reste de la barre se
+             dépouille. -->
         <span class="truncate zone-chip-label">{zoneChipLabel(zone)}</span>
       </button>
       {#if showZoneDropdown}
