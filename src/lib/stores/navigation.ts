@@ -152,21 +152,44 @@ export function getScrollPosition(view: string): number {
 // number of frames until the re-rendered list is tall enough to hold the
 // offset (a single set clamps to 0 before layout).
 const detailScrolls = new Map<string, number>();
-export function saveDetailScroll(key: string, el: HTMLElement | null | undefined) {
-  if (el) detailScrolls.set(key, el.scrollTop);
+/**
+ * Le conteneur à mémoriser / restaurer. Une FONCTION quand l'élément n'existe
+ * pas encore au moment de l'appel.
+ *
+ * 🔴 Le piège que ce type ferme. `goBack()` remet la vue sur sa liste puis
+ * appelle la restauration dans la foulée ; Svelte 5 ne repeint qu'au
+ * micro-tour suivant. Tant que le conteneur de défilement était la RACINE de
+ * la vue — toujours présente — l'élément était là et tout marchait. Dès qu'on
+ * sort l'en-tête du conteneur qui défile (le seul ancrage que Firefox ET
+ * Chromium honorent, cf `.settings-body` / `.diagnostics-body`), ce conteneur
+ * naît avec la branche « liste » : il vaut `null` à l'instant de l'appel, et
+ * l'ancienne version rendait la main SANS RIEN FAIRE ni le dire. La position
+ * mémorisée était perdue en silence.
+ */
+export type CibleDefilement = HTMLElement | null | undefined | (() => HTMLElement | null | undefined);
+function resoudre(cible: CibleDefilement): HTMLElement | null {
+  return (typeof cible === 'function' ? cible() : cible) ?? null;
 }
-export function restoreDetailScroll(key: string, el: HTMLElement | null | undefined) {
+export function saveDetailScroll(key: string, el: CibleDefilement) {
+  const cible = resoudre(el);
+  if (cible) detailScrolls.set(key, cible.scrollTop);
+}
+export function restoreDetailScroll(key: string, el: CibleDefilement) {
   const target = detailScrolls.get(key) ?? 0;
-  if (!el) return;
-  if (target <= 0) { el.scrollTop = 0; return; }
   let attempts = 0;
   const tick = () => {
-    if (el.scrollHeight >= target + el.clientHeight || attempts >= 30) {
-      el.scrollTop = target;
+    // L'élément est RÉSOLU À CHAQUE TOUR, pas une fois pour toutes : c'est ce
+    // qui laisse le temps à la branche « liste » de se rendre.
+    const cible = resoudre(el);
+    const pret = cible !== null && (target <= 0 || cible.scrollHeight >= target + cible.clientHeight);
+    if (pret || attempts >= 30) {
+      if (cible) cible.scrollTop = target > 0 ? target : 0;
       return;
     }
     attempts += 1;
     requestAnimationFrame(tick);
   };
-  requestAnimationFrame(tick);
+  // Un premier tour synchrone garde le comportement d'origine quand l'élément
+  // est déjà là et la position déjà tenable : rien n'attend une trame.
+  tick();
 }
