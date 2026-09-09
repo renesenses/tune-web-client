@@ -2039,15 +2039,17 @@
           {:else if zone.online === false}
             <span class="zone-offline-badge">{$t('zone.offline')}</span>
           {/if}
-          <span class="playback-indicator" class:playing={isEffectivePlaying} class:paused={playState === 'paused' && !isEffectivePlaying}>
-            {#if isEffectivePlaying}
-              <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M8 5v14l11-7z" /></svg>
-            {:else if playState === 'paused'}
-              <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-            {:else}
-              <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><rect x="6" y="6" width="12" height="12" rx="1" /></svg>
-            {/if}
-          </span>
+          <!--
+            Le petit témoin d'état (12 px, ▶ / ⏸ / ■) est retiré le 09/09/2026.
+
+            Il disait la même chose que le bouton de lecture de la barre de
+            transport, qui porte désormais les TROIS états lui-même : plein
+            avec ⏸ en lecture, plein avec ▶ en pause, CREUX avec ▶ à l'arrêt.
+            Bertrand : « Retire ce témoin, le bouton porte déjà les 3 états ».
+
+            Son carré à l'arrêt se lisait d'ailleurs comme un bouton Stop qui
+            n'en était pas un — il était dans un `<span>`, rien ne s'y cliquait.
+          -->
         </div>
 
         <!-- Queue toggle button -->
@@ -3059,24 +3061,6 @@
     background: rgba(239, 68, 68, 0.15);
     padding: 1px 6px;
     border-radius: var(--radius-sm);
-  }
-
-  .playback-indicator {
-    display: flex;
-    align-items: center;
-  }
-
-  .playback-indicator.playing {
-    color: var(--tune-success);
-  }
-
-  .playback-indicator.paused {
-    color: var(--tune-warning);
-  }
-
-  .playback-indicator svg {
-    width: 12px;
-    height: 12px;
   }
 
   /* Up Next */

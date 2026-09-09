@@ -24,7 +24,7 @@
  *     client ; deux implémentations de l'arrêt en seraient la variante.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, globSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { arretPossible } from '../arretTransport';
 
@@ -122,6 +122,27 @@ describe('🔴 le bouton unique a bien TROIS états', () => {
     // Et le contour ne doit pas changer la TAILLE du bouton : `border` ferait
     // passer 44 px à 48 et décalerait la rangée entière.
     expect(regle).not.toContain('border:');
+  });
+
+  it('🔴 aucun SECOND témoin d’état ailleurs dans l’application', () => {
+    // « Retire ce témoin, le bouton porte déjà les 3 états » (09/09/2026).
+    // « Lecture en cours » portait un carré de 12 px à l'arrêt, dans un
+    // `<span>` : il redisait ce que le bouton dit, et se lisait comme un
+    // bouton Stop qui n'en était pas un — c'est lui que Bertrand voyait encore
+    // après le retrait du vrai bouton.
+    //
+    // La garde balaie TOUTE l'application : le défaut n'était pas dans la
+    // barre, et le chercher seulement là l'aurait manqué une seconde fois.
+    const fautifs: string[] = [];
+    for (const f of globSync('src/components/**/*.svelte')) {
+      const code = readFileSync(f, 'utf8')
+        .replace(/<!--[\s\S]*?-->/g, ' ')
+        .replace(/\/\*[\s\S]*?\*\//g, ' ');
+      if (code.includes('playback-indicator')) fautifs.push(`${f.split('/').pop()} → playback-indicator`);
+      // Le carré de « stop » à 12 px, la forme exacte du témoin retiré.
+      if (/x="6" y="6" width="12" height="12"/.test(code)) fautifs.push(`${f.split('/').pop()} → carré 12×12`);
+    }
+    expect(fautifs).toEqual([]);
   });
 
   it('un simple clic bascule, un double-clic arrête — les deux gestes de Bertrand', () => {
