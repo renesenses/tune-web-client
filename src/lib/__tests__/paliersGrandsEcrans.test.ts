@@ -68,7 +68,10 @@ const HORS_PERIMETRE: Record<string, string> = {
   ':global([data-kiosk]) .content-layout': 'mode kiosque',
   ':global([data-kiosk]) .artwork-container': 'mode kiosque',
   ':global([data-kiosk]) .info-column': 'mode kiosque',
-  '.now-playing.queue-open .content-layout.wide': "file d'attente ouverte",
+  // `.now-playing.queue-open .content-layout.wide` a disparu de la feuille
+  // avec #3676 : la place du panneau est désormais un `padding-right` sur
+  // `.np-scroll`, pas une `max-width` sur l'îlot. Voir
+  // `fileAttenteReserve.test.ts`.
   '.now-playing.queue-open .artwork-container': "file d'attente ouverte",
 };
 

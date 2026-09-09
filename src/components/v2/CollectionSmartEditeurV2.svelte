@@ -44,6 +44,7 @@
     CHAMPS, operateursDe, typeDuChamp, sansValeur, regleComplete, valeurInitiale,
     type TypeChamp,
   } from '../../lib/smartRegles';
+  import SmartFolderPicker from '../SmartFolderPicker.svelte';
   import type { SmartRule } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -82,7 +83,7 @@
   /** Les champs que CET éditeur sait saisir. Voir l'en-tête. */
   const SAISISSABLES: TypeChamp[] = [
     'text', 'int', 'nullable', 'timestamp', 'count', 'favorite',
-    'collection_ref', 'playlist_ref',
+    'collection_ref', 'playlist_ref', 'folder',
   ];
 
   /**
@@ -233,9 +234,9 @@
 </script>
 
 <div class="v2-smart tune-v2">
-  <div class="entete">
-    <div>
-      <div class="eyebrow">{$t('v2.col.smart' as any)}</div>
+  <div class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.col.smart' as any)}</div>
       <h1>{id != null ? $t('v2.smart.editTitle' as any) : $t('v2.smart.newTitle' as any)}</h1>
     </div>
     <button class="fermer" onclick={onClose} aria-label={$t('common.close' as any)}>
@@ -287,6 +288,8 @@
                 value={Array.isArray(r.value) ? r.value[1] : ''}
                 oninput={(e) => changerBorne(i, 1, e.currentTarget.value)} />
             </span>
+          {:else if type === 'folder'}
+            <SmartFolderPicker value={r.value ?? ''} onChange={(v) => changerValeur(i, v)} />
           {:else if type === 'collection_ref'}
             <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
               <option value="" disabled>{$t('smartCollection.refPick')}</option>
@@ -367,9 +370,6 @@
 <style>
   .v2-smart{position:absolute; inset:0; z-index:40; display:flex; flex-direction:column;
     background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
-  .entete{display:flex; align-items:flex-start; gap:20px; padding:24px 30px 12px}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .entete h1{font-size:26px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .fermer{margin-left:auto; width:36px; height:36px; border-radius:10px; cursor:pointer;
     border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt2);
     display:grid; place-items:center}

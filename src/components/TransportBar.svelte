@@ -4,6 +4,7 @@
   import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../lib/stores/zones';
+  import { arretPossible } from '../lib/arretTransport';
   import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
   import { upNextCount } from '../lib/stores/queue';
   import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
@@ -21,6 +22,7 @@
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
+  import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../lib/zoneIdentity';
   import { t } from '../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
@@ -485,9 +487,9 @@
    * la touche `S` reste le chemin d'arrêt.
    */
 
-  // La RADIO n'a pas de stop : le bouton autonome l'excluait déjà, un flux en
-  // direct ne se met pas en pause pour reprendre où l'on était.
-  const stopPossible = $derived(!!zone?.id && displayTrack?.source !== 'radio');
+  // La règle vit dans `lib/arretTransport` : le bouton Stop et le double-clic
+  // la partagent, et un test l'APPELLE au lieu de relire ce fichier.
+  const stopPossible = $derived(arretPossible(zone?.id, displayTrack?.source));
 
   async function clicLecture(e: MouseEvent) {
     // Le second clic d'un double ne bascule pas : `dblclick` va arrêter.
@@ -495,11 +497,19 @@
     await togglePlayPause();
   }
 
-  async function doubleClicLecture() {
+  /**
+   * L'arrêt, UN seul chemin — le bouton et le double-clic l'appellent tous deux.
+   *
+   * `stopAndSync` et non `api.stop` : sans report d'état, la zone restait
+   * « playing » dans le magasin et le bouton devenait inerte.
+   */
+  async function arreter() {
     if (!stopPossible || !zone?.id) return;
-    // `stopAndSync` et non `api.stop` : sans report d'état, la zone restait
-    // « playing » dans le magasin et le bouton devenait inerte.
     await stopAndSync(zone.id);
+  }
+
+  async function doubleClicLecture() {
+    await arreter();
   }
 
   async function handlePrevious() {
@@ -899,6 +909,32 @@
       {/if}
     </button>
 
+    <!--
+      Le bouton STOP, revenu à sa place.
+
+      Il avait été retiré le 05/09/2026 au profit du double-clic sur Lecture
+      (voir `doubleClicLecture` plus haut). Bertrand, 08/09/2026 : « Et le
+      bouton Stop de la transport barre !! ?? !! ». Les DEUX chemins vivent
+      désormais ensemble — le double-clic reste pour qui l'a pris en main, le
+      bouton pour qui ne peut pas le deviner. C'est le même appel, `stopAndSync`,
+      pas une seconde implémentation.
+
+      Même garde que Précédent / Suivant : la RADIO n'a pas de stop, un flux en
+      direct ne se reprend pas où on l'a laissé. Le bouton disparaît alors,
+      plutôt que de rester grisé sans dire pourquoi.
+    -->
+    {#if stopPossible}
+      <button
+        class="control-btn"
+        onclick={arreter}
+        aria-label={$t('transport.stop' as any)}
+        title={$t('transport.stop' as any)}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="6" width="12" height="12" rx="1.5" />
+        </svg>
+      </button>
+    {/if}
 
     {#if displayTrack?.source !== 'radio'}
       <!-- La règle vit dans lib/boutonSuivant : le mini-lecteur porte le même
@@ -1175,6 +1211,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
+
+      <!-- #2207 — le périphérique RÉELLEMENT ouvert, avant toute description
+           du signal : savoir sur quoi le son sort passe avant de savoir
+           comment il y arrive. Hors du bloc `{#if zone?.signal_path}` : une
+           zone à l'arrêt n'a plus de chemin de signal, mais la dernière
+           ouverture reste ce qu'il y a de plus utile à lire. -->
+      <ZoneOutputDeviceNotice {zone} />
 
       <!-- Audiophile on/off lives here (merged from the old separate bar icon). -->
       <div class="sp-audiophile">

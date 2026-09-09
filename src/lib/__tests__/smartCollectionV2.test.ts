@@ -13,7 +13,8 @@ describe('Grammaire des règles : une seule, partagée', () => {
   it('elle décrit tous les champs que le serveur connaît', () => {
     // Recopier vingt-deux champs dans un second éditeur aurait donné deux
     // vocabulaires qui divergent à la première addition.
-    expect(CHAMPS.length).toBe(24);
+    // 25 depuis l'ajout de « répertoire » (localisation sur le disque).
+    expect(CHAMPS.length).toBe(25);
     for (const c of CHAMPS) {
       expect(OPERATEURS[c.type], `${c.value} : type sans opérateurs`).toBeTruthy();
       expect(OPERATEURS[c.type].length).toBeGreaterThan(0);
@@ -196,5 +197,81 @@ describe("Les albums d'une collection ouverte", () => {
 
   it('la troisième ligne y est comme ailleurs', () => {
     expect(col).toContain('<QualiteAlbum objet={a} />');
+  });
+});
+
+describe('Le champ « répertoire »', () => {
+  it('existe, et porte son propre type', () => {
+    const champ = CHAMPS.find((c) => c.value === 'folder');
+    expect(champ, 'le champ répertoire doit exister dans la grammaire').toBeTruthy();
+    // Son type ne peut pas être `text` : la saisie est une NAVIGATION, et les
+    // opérateurs ne sont pas ceux d'un texte quelconque.
+    expect(champ!.type).toBe('folder');
+    expect(typeDuChamp('folder')).toBe('folder');
+  });
+
+  it('n\'offre que « est dans » et « contient »', () => {
+    const ops = operateursDe('folder').map((o) => o.value);
+    expect(ops).toEqual(['starts_with', 'contains']);
+  });
+
+  it('n\'offre PAS l\'égalité, et c\'est délibéré', () => {
+    // La colonne comparée est `tracks.file_path` — le chemin d'un FICHIER.
+    // Une égalité ne pourrait matcher qu'un chemin de fichier complet, donc
+    // rendre UNE piste, alors que l'utilisateur croit désigner un dossier.
+    // Ce test grave le choix : l'ajouter demande de venir le retirer d'abord.
+    expect(operateursDe('folder').map((o) => o.value)).not.toContain('=');
+  });
+
+  it('« est dans » est le défaut, parce qu\'il attrape les sous-dossiers', () => {
+    // `starts_with` compile en préfixe côté serveur : /Musique/Jazz ramène
+    // aussi /Musique/Jazz/Vocal. Si `contains` passait devant, une règle
+    // « Jazz » ramasserait /Rock/Jazzy et tout ce qui contient ces lettres.
+    expect(operateursDe('folder')[0].value).toBe('starts_with');
+  });
+
+  it('les DEUX éditeurs savent le saisir', () => {
+    // Le v2 filtre les champs par type (`SAISISSABLES`) : un type absent de
+    // cette liste disparaît du sélecteur SANS erreur — le champ existerait
+    // dans la grammaire et nulle part à l'écran.
+    const v2 = sansCommentaires(lire('src/components/v2/CollectionSmartEditeurV2.svelte'));
+    expect(v2, 'le v2 doit déclarer `folder` saisissable').toContain("'folder'");
+    expect(v2).toContain('SmartFolderPicker');
+
+    const v1 = sansCommentaires(lire('src/components/SmartCollectionEditor.svelte'));
+    expect(v1).toContain('SmartFolderPicker');
+  });
+
+  it('le sélecteur tire ses dossiers de la BASE, pas du disque', () => {
+    // `browse` lit le disque : formes Unicode NFC/NFD divergentes (le dossier
+    // « CDThèque » d'Yves) et panne sèche sur bibliothèque démontée. Le chemin
+    // proposé ne correspondrait alors à RIEN, sans un mot.
+    // `folder-facet` est dérivé de `tracks.file_path` — la colonne que le
+    // serveur comparera. Il correspond par construction.
+    const picker = lire('src/components/SmartFolderPicker.svelte');
+    expect(picker, 'le sélecteur doit interroger folder-facet').toContain('getFolderFacet');
+    expect(
+      sansCommentaires(picker),
+      'le sélecteur ne doit PAS lire le disque via browse',
+    ).not.toContain('getFolders');
+  });
+
+  it('les cinq libellés existent dans les onze langues', () => {
+    // La porte i18n vérifie qu'aucune langue ne DIVERGE des autres ; elle ne
+    // suit pas une clé référencée dynamiquement. Une faute de frappe dans un
+    // `labelKey` la laisserait verte et afficherait le code brut à l'écran.
+    const CLES = [
+      'smartCollection.fieldFolder',
+      'smartCollection.opInFolder',
+      'smartCollection.folderPlaceholder',
+      'smartCollection.folderBrowse',
+      'smartCollection.folderUnavailable',
+    ];
+    for (const langue of ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh']) {
+      const src = lire(`src/lib/locales/${langue}.ts`);
+      for (const cle of CLES) {
+        expect(src, `${langue}.ts ne porte pas ${cle}`).toContain(`"${cle}"`);
+      }
+    }
   });
 });

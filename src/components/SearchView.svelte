@@ -5,14 +5,15 @@
   import { tip } from '../lib/tooltip';
   import { playFromHere } from '../lib/playback';
   import { notifications } from '../lib/stores/notifications';
+  import { dialogs } from '../lib/stores/dialogs';
   import { activeView, pendingSearchQuery, saveViewContext, loadViewContext } from '../lib/stores/navigation';
   import { requeteAuMontage } from '../lib/rechercheContexte';
-  import { totalFamille, libelleComptePistes, suiteExiste, rangDeLaSuite, fusionnerLaSuiteFamille, type FamilleRecherche } from '../lib/rechercheTotaux';
+  import { totalFamille, totalPistes, libelleComptePistes, suiteExiste, rangDeLaSuite, fusionnerLaSuiteFamille, type FamilleRecherche } from '../lib/rechercheTotaux';
   import { selectedArtist, artistAlbums, selectedAlbum, libraryTab, libraryLoading, albums, artists, tracks as libraryTracks, genres as libraryGenres } from '../lib/stores/library';
   import { get } from 'svelte/store';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
+  import { formatTime, formatDuration } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -152,6 +153,111 @@
     qualityFilter === 'all' ? totalFamille(results, 'tracks') : null,
     gabaritsCompte,
   ));
+  /**
+   * #3191 — jfpaquet (forum 1644) : « il serait utile […] de pouvoir créer une
+   * playlist avec les résultats de la recherche ». Il cherche « Autumn Leaves »
+   * dans une collection de jazz et veut FIGER cette sélection.
+   *
+   * ## Ce que le serveur rendait déjà
+   *
+   * Les deux briques : `POST /playlists` (`api.createPlaylist`) et
+   * `POST /playlists/{id}/tracks` (`api.addPlaylistTracks`). Rien à écrire côté
+   * serveur — il manquait le geste qui les relie depuis cet écran, où les deux
+   * seules actions de masse enfilaient dans la file, volatile par nature.
+   *
+   * ## 🔴 Le piège, et pourquoi il est PIRE ici qu'à l'affichage
+   *
+   * La liste est une PAGE, plafonnée à 50. Une liste de lecture tronquée en
+   * silence PERSISTE, et sera prise pour exhaustive des mois plus tard — là où
+   * une liste tronquée à l'écran se corrige en refaisant la recherche. Le
+   * message de succès dit donc TOUJOURS combien de pistes ont été
+   * enregistrées, et, quand la recherche en compte davantage, sur combien de
+   * correspondances.
+   *
+   * ## Ce qui est enregistré
+   *
+   * Les pistes de la BIBLIOTHÈQUE, celles qui portent un identifiant local.
+   * L'écran mêle bibliothèque et services (`groupedTracks` agrège
+   * `results.local` et `results.services`) et une liste locale ne contient pas
+   * une piste de service de la même façon — ce point n'a pas été tranché par le
+   * testeur, et on ne l'invente pas.
+   */
+  let pistesLocalesDesResultats = $derived(
+    filteredTracks.filter(
+      (t) => (((t as any)._source ?? 'local') === 'local') && typeof t.id === 'number',
+    ),
+  );
+  let creationPlaylist = $state(false);
+
+  async function creerPlaylistDepuisResultats() {
+    if (creationPlaylist) return;
+    const pistes = pistesLocalesDesResultats;
+    if (pistes.length === 0) {
+      notifications.error($t('search.playlistNoLocalTracks'));
+      return;
+    }
+    // `dialogs.prompt`, et non `window.prompt` : les dialogues natifs ne
+    // s'ouvrent jamais dans un webview, le clic ne fait rien et rien ne le dit
+    // (#166).
+    const saisi = await dialogs.prompt($t('search.playlistNamePrompt'), searchQuery.trim());
+    if (saisi === null) return;
+    const nom = saisi.trim() || searchQuery.trim();
+    if (!nom) return;
+    creationPlaylist = true;
+    try {
+      const pl = await api.createPlaylist(nom);
+      if (pl?.id == null) throw new Error('playlist creee sans identifiant');
+      const ids = pistes.map((t) => t.id as number);
+      await api.addPlaylistTracks(pl.id, ids);
+      const total = qualityFilter === 'all' ? totalPistes(results) : null;
+      const message =
+        total && total.total > filteredTracks.length
+          ? $t('search.playlistCreatedPartial')
+              .replace('{name}', nom)
+              .replace('{n}', String(ids.length))
+              .replace('{total}', String(total.total))
+          : $t('search.playlistCreated').replace('{name}', nom).replace('{n}', String(ids.length));
+      notifications.success(message);
+    } catch (e) {
+      console.error('create playlist from search error', e);
+      notifications.error($t('search.playlistError'));
+    } finally {
+      creationPlaylist = false;
+    }
+  }
+
+
+  /**
+   * #3190 — jfpaquet (forum 1644) : « il serait utile que Tune affiche, en plus
+   * de "pistes", la durée totale, comme le fait Spotify ».
+   *
+   * Le serveur ne publie AUCUNE durée sur `/search` : `totals` porte les trois
+   * comptes et `tracks_via_metadata`, rien d'autre. La somme se fait donc ici,
+   * sur ce qui est RÉELLEMENT affiché — chaque piste rendue porte son
+   * `duration_ms`.
+   *
+   * 🔴 Et c'est tout le piège du ticket : la liste est une PAGE. Écrire « 3 h
+   * 12 » sous un compteur qui dit déjà « 50 sur 2451 » publierait un second
+   * chiffre faux, avec l'autorité d'une durée. Quand tout n'est pas montré, la
+   * durée le DIT (`search.durationShown`) ; quand tout l'est, elle s'écrit nue.
+   */
+  let dureePistesAffichees = $derived(
+    filteredTracks.reduce((somme, t) => somme + (t.duration_ms ?? 0), 0),
+  );
+  let toutesLesPistesSontAffichees = $derived.by(() => {
+    const t = qualityFilter === 'all' ? totalFamille(results, 'tracks') : null;
+    // Sans total serveur (version antérieure à la 0.9.132, ou filtre actif),
+    // on ne sait pas s'il en manque : on ne l'affirme donc pas.
+    return t == null ? !suiteExiste(results, 'tracks') : t.total <= filteredTracks.length;
+  });
+  let libelleDureePistes = $derived(
+    dureePistesAffichees <= 0
+      ? ''
+      : toutesLesPistesSontAffichees
+        ? formatDuration(dureePistesAffichees)
+        : $t('search.durationShown').replace('{d}', formatDuration(dureePistesAffichees)),
+  );
+
 
   // #3623 — la moitié ALBUMS n'avait jamais été réparée : le titre affichait
   // `filteredAlbums.length`, c'est-à-dire la longueur de la page reçue,
@@ -1260,7 +1366,7 @@
             {:else if sec === 'tracks' && showTracks && filteredTracks.length > 0}
               <section class="section">
                 <div class="section-head">
-                  <h3 class="section-title">Pistes <span class="count">{libellePistes}</span></h3>
+                  <h3 class="section-title">Pistes <span class="count">{libellePistes}</span>{#if libelleDureePistes}<span class="section-duration">{libelleDureePistes}</span>{/if}</h3>
                   {#if filteredTracks.filter(t => t.id).length > 1}
                     <div class="track-actions-bar">
                       <button class="action-pill" onclick={() => playAllTracks(filteredTracks)}>
@@ -1271,6 +1377,15 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="16,3 21,3 21,8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21,16 21,21 16,21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
                         Aleatoire
                       </button>
+                      <!-- #3191 : les deux actions ci-dessus enfilent dans la
+                           file, volatile. Celle-ci FIGE la sélection, et son
+                           message dit combien de pistes ont été enregistrées. -->
+                      {#if pistesLocalesDesResultats.length > 0}
+                        <button class="action-pill" onclick={creerPlaylistDepuisResultats} disabled={creationPlaylist}>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 18V5l12-3v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="15" r="3" /></svg>
+                          {creationPlaylist ? $t('common.loading') : $t('search.createPlaylist')}
+                        </button>
+                      {/if}
                     </div>
                   {/if}
                 </div>
@@ -1599,6 +1714,15 @@
     font-weight: 400;
     color: var(--tune-text-muted);
     font-size: 16px;
+  }
+
+  /* #3190 — la durée des pistes affichées, en retrait du compteur : elle le
+     complète, elle ne le concurrence pas. */
+  .section-duration {
+    font-weight: 400;
+    color: var(--tune-text-muted);
+    font-size: 14px;
+    margin-left: 10px;
   }
 
   .link-btn {

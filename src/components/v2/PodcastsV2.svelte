@@ -529,17 +529,17 @@
 </script>
 
 <section class="v2-pod tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('v2.pod.eyebrow' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('v2.pod.eyebrow' as any)}</div>
       <h1>Podcasts</h1>
     </div>
-    {#if showDiscover}
-      <nav class="tabs">
-        <button class:on={tab === 'discover'} onclick={() => (tab = 'discover')}>{$t('v2.pod.tabDiscover' as any)}</button>
-        <button class:on={tab === 'subs'} onclick={() => (tab = 'subs')}>{$t('v2.pod.tabSubs' as any)}</button>
-        <button class:on={tab === 'search'} onclick={() => (tab = 'search')}>{$t('v2.pod.search' as any)}</button>
-      </nav>
+    <div class="v2-actions">
+    {#if tab === 'subs'}
+      <div class="v2-rech">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input placeholder={$t('v2.pod.filterSubs' as any)} aria-label={$t('v2.pod.filterSubs' as any)} bind:value={q} />
+      </div>
     {/if}
     {#if showDiscover && tab !== 'subs'}
       <!-- Le PAYS commande les palmarès ET la recherche : les deux
@@ -575,12 +575,14 @@
       Elle ne paraît plus que là où elle agit, et son invite dit ce qu'elle
       fait plutôt que de promettre une recherche.
     -->
-    {#if tab === 'subs'}
-      <div class="search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input placeholder={$t('v2.pod.filterSubs' as any)} aria-label={$t('v2.pod.filterSubs' as any)} bind:value={q} />
-      </div>
+    {#if showDiscover}
+      <nav class="tabs">
+        <button class:on={tab === 'discover'} onclick={() => (tab = 'discover')}>{$t('v2.pod.tabDiscover' as any)}</button>
+        <button class:on={tab === 'subs'} onclick={() => (tab = 'subs')}>{$t('v2.pod.tabSubs' as any)}</button>
+        <button class:on={tab === 'search'} onclick={() => (tab = 'search')}>{$t('v2.pod.search' as any)}</button>
+      </nav>
     {/if}
+    </div>
   </header>
 
   {#if error}<div class="err" role="status">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div>{/if}
@@ -870,19 +872,11 @@
 
   .v2-pod{position:relative; display:flex; flex-direction:column; height:100%; background:var(--v2-bg);
     color:var(--v2-txt); font-family:var(--v2-sans); overflow:hidden}
-  .top{display:flex; align-items:flex-end; gap:22px; padding:24px 30px 14px; padding-right:96px}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
   .tabs{display:flex; gap:4px}
   .tabs button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill); transition:.15s}
   .tabs button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .tabs button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
-  .search{position:relative; margin-left:auto; display:flex; align-items:center; width:260px; flex:0 0 auto}
-  .search svg{position:absolute; left:14px; width:16px; height:16px; color:var(--v2-txt3); pointer-events:none}
-  .search input{width:100%; height:40px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
-    background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans); padding:0 14px 0 38px; outline:none}
-  .search input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;
     font-size:12.5px; color:var(--v2-txt); border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}

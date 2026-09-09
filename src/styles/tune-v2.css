@@ -175,3 +175,113 @@
   --tune-accent-2: var(--v2-acc2);
   --tune-text-dim: var(--v2-txt3);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   EN-TÊTE D'ÉCRAN — une seule définition pour vingt-cinq écrans.
+
+   Bertrand, 08/09/2026 : « Remarques pour tous les écrans : harmoniser le
+   placement de la recherche et les boutons d'action qui doivent tous se
+   ressembler. »
+
+   Mesuré avant d'écrire : les vingt-cinq en-têtes portaient CHACUN leur propre
+   dessin. `.add` (h 40, 13 px, `--v2-txt`), `.neuve` (h 38, 12,5 px,
+   `--v2-txt2`), `.btn` (h 40, 14 px), `.lnk` (padding 8/15, 12 px), `.mk`
+   (plein, h 40) — cinq boutons d'action pour un seul geste. Le champ de
+   recherche valait 300 px sur Radios, 260 px sur Podcasts, et se rangeait
+   tantôt après le titre, tantôt collé à droite sous la grappe de l'avatar.
+
+   Les règles ci-dessous vivent ici, et non dans un composant, parce qu'un
+   composant obligerait à réécrire les vingt-cinq balisages d'un coup : la
+   feuille est déjà importée par les vingt-sept écrans du v2, une classe suffit
+   pour en convertir un, et un écran non converti continue de fonctionner.
+
+   ── L'ORDRE, qui est la moitié de l'harmonisation ──
+   Titre à gauche, puis, poussé à droite : la RECHERCHE d'abord, les actions
+   SECONDAIRES ensuite, l'action PRIMAIRE en dernier — une seule par écran.
+   C'est l'ordre de lecture : on cherche avant d'agir, et le geste principal
+   tombe sous le pouce, à l'extrémité.
+
+   ── LA GOUTTIÈRE ──
+   `.v2-top` réserve `--v2-grappe-w` (définie sur `.v2-shell`) : la grappe
+   loupe + signet + avatar est en `position:absolute` au-dessus des écrans, et
+   les vingt-quatre `padding-right: 96px` recopiés à la main avaient cessé de
+   suivre quand la barre de recherche globale a rejoint la grappe.
+   ───────────────────────────────────────────────────────────────────────── */
+/* 🔴 LA GOUTTIÈRE DE LA GRAPPE, définie UNE fois pour toute l'application.
+
+   `.av-tr` — recherche globale, signet, avatar — est en position absolue en
+   haut à droite de la coquille : elle flotte au-dessus des écrans, qui doivent
+   donc lui réserver la place eux-mêmes. Cette réserve était recopiée en dur,
+   `padding-right: 96px`, dans VINGT-QUATRE en-têtes. Quand la recherche globale
+   a rejoint la grappe (#3629), aucune des vingt-quatre copies n'a suivi : le
+   bouton « Modifier » de l'accueil s'est retrouvé collé à la loupe, et
+   l'Historique avec lui (Bertrand, 08/09/2026).
+
+   Le compte : loupe 36 + 10 + signet 32 + 10 + avatar 40 + marge 30 = 158.
+   172 laisse un peu d'air, et un seul nombre à changer le jour où la grappe
+   gagne un bouton.
+
+   Ici, et non dans le style de `ShellV2` : `check-jetons-css` ne balaie que
+   `src/styles/`, et déclarait le jeton introuvable pour les vingt-quatre
+   écrans qui s'en servent. `.tune-v2` est la racine de chaque écran ET de la
+   coquille — la valeur descend donc partout, y compris dans les trois écrans
+   v1 (Oxygène, Ambiance, Répertoires) montés dans la coquille v2. */
+.tune-v2{--v2-grappe-w:172px}
+
+.tune-v2 .v2-top{
+  display:flex; align-items:flex-end; gap:20px;
+  padding:24px 30px 14px; padding-right:var(--v2-grappe-w, 172px);
+}
+.tune-v2 .v2-top .v2-titres{margin-right:auto; min-width:0}
+.tune-v2 .v2-eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
+.tune-v2 .v2-top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
+.tune-v2 .v2-sous{color:var(--v2-txt2); font-size:13.5px; margin-top:6px; max-width:60ch}
+
+/* La grappe d'actions de l'écran. `flex-wrap` : sur une fenêtre étroite les
+   boutons passent à la ligne au lieu de rétrécir jusqu'à l'illisible. */
+.tune-v2 .v2-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+
+/* LE bouton d'action. Une seule géométrie : h 38, pilule, bord `--v2-line2`.
+   `white-space:nowrap` — un libellé traduit ne doit pas casser la rangée. */
+.tune-v2 .v2-btn{
+  display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
+  border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent;
+  color:var(--v2-txt2); font:600 12.5px var(--v2-sans); cursor:pointer;
+  white-space:nowrap; transition:border-color .15s, color .15s;
+}
+.tune-v2 .v2-btn svg{width:16px; height:16px; flex:0 0 auto}
+.tune-v2 .v2-btn:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+.tune-v2 .v2-btn:focus-visible{outline:none; border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+.tune-v2 .v2-btn:disabled{opacity:.45; cursor:default}
+
+/* L'action PRIMAIRE : une par écran, la seule pleine. Deux boutons pleins
+   côte à côte ne désignent plus rien. */
+.tune-v2 .v2-btn.primaire{
+  border-color:transparent; color:var(--v2-on-acc); font-weight:700;
+  background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2));
+}
+.tune-v2 .v2-btn.primaire:hover:not(:disabled){color:var(--v2-on-acc); filter:brightness(1.06)}
+.tune-v2 .v2-btn.danger{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+.tune-v2 .v2-btn.danger:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger)}
+
+/* La recherche DANS l'écran (à ne pas confondre avec la recherche globale de
+   la grappe). Même largeur partout, même hauteur que les boutons. */
+.tune-v2 .v2-rech{position:relative; display:flex; align-items:center; width:260px; flex:0 0 auto}
+.tune-v2 .v2-rech > svg{position:absolute; left:13px; width:16px; height:16px; color:var(--v2-txt3); pointer-events:none}
+.tune-v2 .v2-rech input{
+  width:100%; height:38px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2);
+  background:var(--v2-surface2); color:var(--v2-txt); font:13px var(--v2-sans);
+  padding:0 32px 0 37px; outline:none;
+}
+.tune-v2 .v2-rech input:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+.tune-v2 .v2-rech .clr{
+  position:absolute; right:9px; width:19px; height:19px; border:0; border-radius:50%;
+  background:transparent; color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center;
+}
+.tune-v2 .v2-rech .clr svg{position:static; width:10px; height:10px}
+.tune-v2 .v2-rech .clr:hover{color:var(--v2-txt)}
+
+/* Fenêtre étroite : la recherche cède sa largeur fixe avant les boutons. */
+@media (max-width:1000px){
+  .tune-v2 .v2-rech{width:auto; flex:1 1 160px; min-width:130px}
+}

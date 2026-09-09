@@ -63,7 +63,8 @@
    * détection — « Sonos, Inc. », raison sociale comprise, que `clefAppareil`
    * sait retirer.
    */
-  import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, URL_PAGE_PUBLIQUE, type AppareilTuneTested } from '../../lib/tuneTested';
+  import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
+  import BadgeTuneTested from './BadgeTuneTested.svelte';
   let indexTuneTested = $state<Map<string, AppareilTuneTested>>(new Map());
   // Une seule fois : l'effet ne lit RIEN de ce qu'il écrit.
   $effect(() => {
@@ -1555,9 +1556,9 @@
 </script>
 
 <section class="v2-settings tune-v2">
-  <header class="top">
-    <div>
-      <div class="eyebrow">{$t('settings.configSection' as any)}</div>
+  <header class="v2-top">
+    <div class="v2-titres">
+      <div class="v2-eyebrow">{$t('settings.configSection' as any)}</div>
       <h1>{$t('settings.titleV2' as any)}</h1>
     </div>
   </header>
@@ -2215,13 +2216,10 @@
                       <div class="zch">
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
-                        {#if tuneTestedDe(z)}
-                          <!-- Cliquable : un badge qui n'explique pas ce qu'il
-                               affirme n'est qu'une décoration. Il mène à la
-                               liste publique des appareils validés. -->
-                          <a class="tt" href={URL_PAGE_PUBLIQUE} target="_blank" rel="noopener noreferrer"
-                             use:tip={'v2.dev.tuneTestedTip'}>{$t('v2.dev.tuneTested' as any)}</a>
-                        {/if}
+                        <!-- Le badge vit dans `BadgeTuneTested` : la carte de
+                             zone en vue grille porte le même, et deux copies
+                             auraient divergé. -->
+                        {#if tuneTestedDe(z)}<BadgeTuneTested />{/if}
                       </div>
                       <div class="zr">
                         <label class="zf">
@@ -3171,9 +3169,6 @@
 
   .v2-settings{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .top{padding:24px 30px 12px; padding-right:96px}
-  .eyebrow{font:600 13px var(--v2-mono); letter-spacing:.06em; color:var(--v2-acc1)}
-  .top h1{font-size:30px; font-weight:800; letter-spacing:-.01em; margin-top:4px}
 
   /* Onglets horizontaux : une barre laterale existe deja a gauche, une
      seconde aurait mange la largeur utile et brouille la hierarchie. */
@@ -3235,10 +3230,6 @@
   .apercu{display:inline-block; min-width:150px}
   .svcon{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--v2-txt2); cursor:pointer}
   .svcon input{cursor:pointer}
-  .tt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase;
-      color:var(--v2-acc1); border:1px solid var(--v2-acc1); border-radius:3px;
-      padding:1px 5px; white-space:nowrap; text-decoration:none; cursor:pointer}
-  .tt:hover{background:var(--v2-acc-soft)}
   .zr{display:flex; gap:18px; flex-wrap:wrap; margin-top:12px}
   .zf{display:flex; flex-direction:column; gap:5px}
   .zf > span{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}

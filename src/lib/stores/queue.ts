@@ -5,6 +5,49 @@ export const queueTracks = writable<Track[]>([]);
 export const queuePosition = writable<number>(0);
 export const queueLength = writable<number>(0);
 
+/** Les trois positions du panneau de file. */
+export type QueueSheetState = 'collapsed' | 'peek' | 'expanded';
+
+/**
+ * L'état suivant du panneau de file quand on appuie sur le bouton « File ».
+ *
+ * #2191 — Alex Campbell, 0.9.98 Linux : « you are still required to press it
+ * 3 times before the Queue will disappear ». Il compte juste, et ce n'est pas
+ * un simple désaccord de conception : sur un écran large, l'appui du milieu ne
+ * montre RIEN.
+ *
+ * Les trois états ne sont distincts qu'en disposition étroite, où le panneau
+ * monte du bas et où sa HAUTEUR les sépare (`NowPlaying.svelte` :
+ * `.queue-sheet.peek { height: 240px }` contre `.expanded { height: 70vh }`,
+ * et 220px contre 65vh sous 768px). Là, `peek` sert vraiment : on entrevoit la
+ * file sans masquer la pochette, et les gestes tactiles traversent les trois
+ * crans un par un (`handleSheetTouchEnd`).
+ *
+ * En disposition LARGE, le panneau est une colonne ancrée à droite, pleine
+ * hauteur dans les deux cas ; il ne reste que la largeur pour les distinguer —
+ * `.wide-layout.peek { width: 380px }` contre `.wide-layout.expanded
+ * { width: 420px }`. Quarante pixels. Et dès que l'utilisateur a tiré une fois
+ * le bord de redimensionnement, `sheetSizeStyle()` impose sa largeur mémorisée
+ * aux DEUX états : l'appui du milieu devient alors strictement sans effet.
+ * D'où le décompte d'Alex — ouvrir, « il ne se passe rien », refermer.
+ *
+ * On ne retire donc `peek` que là où l'écran est incapable de le rendre. Au
+ * tactile et en colonne étroite le cycle reste à trois crans : supprimer
+ * `peek` partout serait la régression que redoutait l'instruction du fil.
+ */
+export function nextQueueSheetState(
+  current: QueueSheetState,
+  isWide: boolean,
+): QueueSheetState {
+  if (isWide) {
+    // Deux crans : `peek` n'a pas de rendu propre ici.
+    return current === 'collapsed' ? 'expanded' : 'collapsed';
+  }
+  if (current === 'collapsed') return 'peek';
+  if (current === 'peek') return 'expanded';
+  return 'collapsed';
+}
+
 /**
  * Sauter à une position de la file, et faire suivre l'affichage.
  *

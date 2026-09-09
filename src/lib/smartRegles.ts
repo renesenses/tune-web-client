@@ -14,7 +14,7 @@
 /** Le type d'un champ décide des opérateurs proposés ET du contrôle de saisie. */
 export type TypeChamp =
   | 'text' | 'int' | 'nullable' | 'timestamp' | 'count'
-  | 'credit' | 'collection_ref' | 'playlist_ref' | 'favorite';
+  | 'credit' | 'collection_ref' | 'playlist_ref' | 'favorite' | 'folder';
 
 export interface Champ {
   value: string;
@@ -30,6 +30,10 @@ export const CHAMPS: readonly Champ[] = [
   { value: 'label',          labelKey: 'smartCollection.fieldLabel',       type: 'text' },
   { value: 'format',         labelKey: 'smartCollection.fieldFormat',      type: 'text' },
   { value: 'source',         labelKey: 'smartCollection.fieldSource',      type: 'text' },
+  // La LOCALISATION sur le disque, à côté de la provenance : les deux
+  // répondent à « d'où sort ce morceau ». Son propre type parce que sa saisie
+  // est une navigation, pas une frappe.
+  { value: 'folder',         labelKey: 'smartCollection.fieldFolder',      type: 'folder' },
   { value: 'year',           labelKey: 'smartCollection.fieldYear',        type: 'int' },
   { value: 'sample_rate',    labelKey: 'smartCollection.fieldSampleRate',  type: 'int' },
   { value: 'bit_depth',      labelKey: 'smartCollection.fieldBitDepth',    type: 'int' },
@@ -72,6 +76,20 @@ export const OPERATEURS: Record<TypeChamp, readonly Operateur[]> = {
     { value: 'in', labelKey: 'smartCollection.opIn' },
     { value: 'is_null', labelKey: 'smartCollection.opIsEmpty' },
     { value: 'is_not_null', labelKey: 'smartCollection.opIsNotEmpty' },
+  ],
+  // Un répertoire n'a que deux questions sensées.
+  //
+  // « Est dans » compile en PRÉFIXE côté serveur, donc il attrape les
+  // sous-dossiers : /Musique/Jazz ramène aussi /Musique/Jazz/Vocal. C'est ce
+  // qu'on attend d'un dossier, et c'est le choix par défaut.
+  //
+  // Pas d'ÉGALITÉ, volontairement : la colonne comparée est `tracks.file_path`,
+  // le chemin d'un FICHIER. Une égalité ne pourrait matcher qu'un chemin de
+  // fichier complet — une règle qui rendrait UNE piste alors que l'utilisateur
+  // croit désigner un dossier.
+  folder: [
+    { value: 'starts_with', labelKey: 'smartCollection.opInFolder' },
+    { value: 'contains', labelKey: 'smartCollection.opContains' },
   ],
   nullable: [
     { value: 'is_null', labelKey: 'smartCollection.opIsEmpty' },
