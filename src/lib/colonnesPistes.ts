@@ -56,15 +56,17 @@
  *    alors ne rien poser plutôt que mentir avec un zéro. Clé absente = cellule
  *    vide, et c'est le bon message.
  *
- * ### 🔴 Ce qui reste hors de portée : `dr` ne s'affiche encore NULLE PART
+ * ### Le mode EXPERT passe au tableau, et le DR s'affiche enfin
  *
- * Le tableau n'existe qu'au mode Essentiel (`ListePistesV2`,
- * `enTableau = mode === 'beginner'`, et `MODES_BRANCHES` ne cite que lui) ;
- * or `dr` est `min: 'expert'` — décision produit de Bertrand le 07/09, « en
- * expert, il les faut toutes comme Dynamic Range ». Sa valeur est donc calculée
- * et testée ici, mais aucun écran ne la rend tant que le tableau du mode
- * Expert n'est pas branché. `plays` et `lastPlayed`, eux, n'ont pas de `min` :
- * ils s'affichent dès aujourd'hui, en Essentiel.
+ * Premier état de ce lot : les trois colonnes étaient rallumées, mais `dr`
+ * portait `min: 'expert'` alors que le tableau n'existait qu'en Essentiel — sa
+ * valeur était calculée et éprouvée, et aucun écran ne la rendait. Arbitrage
+ * de Bertrand, 09/09/2026 : **on branche le tableau en mode Expert**, et `dr`
+ * garde son niveau. C'est l'écran qui descend vers la colonne, pas l'inverse.
+ *
+ * `MODES_BRANCHES` cite donc `beginner` ET `expert`. Avancé reste hors du
+ * tableau : le périmètre est explicite, et rien ici ne le lui interdit le jour
+ * où il suivra — il suffira de l'ajouter à cette liste, et à elle seule.
  */
 import { levelRank, type SettingsLevel } from './uiLevel';
 import type { Track } from './types';
@@ -185,9 +187,8 @@ export const COLONNES: Colonne[] = [
    * deux `dr_track` posées le temps de la mesure : la clé sort sur les trois
    * surfaces, `"0"` comprise.
    *
-   * ⚠️ Elle reste `min: 'expert'`, et le tableau n'existe qu'en Essentiel :
-   * la valeur est prête, l'écran qui la portera ne l'est pas. Voir l'en-tête
-   * du module.
+   * Elle reste `min: 'expert'` — et depuis le 09/09/2026 le tableau existe
+   * aussi dans ce mode (`MODES_BRANCHES`), donc elle s'affiche pour de bon.
    */
   { cle: 'dr',          cleI18n: 'v2.tcol.dr',          largeur: '64px',  align: 'droite',
     min: 'expert' },
@@ -209,10 +210,15 @@ export const PAR_CLE: Record<CleColonne, Colonne> = Object.fromEntries(
  * 07/09/2026). Le défaut est un choix produit, pas un aveu d'absence — les
  * ajouter ici serait décider à sa place.
  *
- * Avancé et Expert ne sont PAS branchés pour l'instant (décision Bertrand,
- * option A) : leurs listes existent, l'écran des Réglages les montre grisées
- * et le dit. Elles serviront telles quelles quand ces modes passeront au
- * tableau.
+ * 🔴 LA LISTE D'EXPERT N'EST PLUS THÉORIQUE (09/09/2026). Elle servait de
+ * réserve tant que ce mode ne portait pas le tableau ; il le porte désormais,
+ * et `settingsLevel` vaut `'expert'` PAR DÉFAUT depuis le 27/08. Ces dix
+ * colonnes sont donc ce qu'un utilisateur voit à l'ouverture d'une
+ * installation neuve. On n'y touche pas — « il les faut toutes » veut dire
+ * toutes PROPOSÉES, pas toutes cochées — mais on sait maintenant ce qu'elle
+ * coûte, et une liste vide ici ouvrirait une grille nue.
+ *
+ * Avancé, lui, reste hors du tableau : voir `MODES_BRANCHES`.
  */
 export const DEFAUTS: Record<SettingsLevel, CleColonne[]> = {
   beginner:     ['num', 'title', 'artist', 'time', 'quality'],
@@ -223,8 +229,33 @@ export const DEFAUTS: Record<SettingsLevel, CleColonne[]> = {
   expert:       ['num', 'title', 'artist', 'composer', 'time', 'year', 'channels', 'bpm', 'genre', 'quality'],
 };
 
-/** Les modes dont le TABLEAU est réellement branché aujourd'hui. */
-export const MODES_BRANCHES: SettingsLevel[] = ['beginner'];
+/**
+ * Les modes dont le TABLEAU est réellement branché.
+ *
+ * 🔴 SOURCE UNIQUE. `ListePistesV2` décidait la même chose de son côté, en
+ * dur : `enTableau = mode === 'beginner'`. Deux réponses à une seule question,
+ * dont une seule — celle de l'écran des Réglages — consultait cette liste.
+ * L'ajout d'`expert` ici n'aurait donc rien changé à l'affichage, et la
+ * matrice aurait annoncé un mode branché que le tableau ignorait. Le
+ * composant lit maintenant cette constante, et elle seule.
+ *
+ * Avancé n'y est pas : périmètre explicite de l'arbitrage du 09/09/2026, pas
+ * un oubli. L'y ajouter suffira le jour venu — c'est tout l'intérêt d'une
+ * source unique.
+ */
+export const MODES_BRANCHES: SettingsLevel[] = ['beginner', 'expert'];
+
+/**
+ * Ce mode rend-il un TABLEAU, ou des lignes ?
+ *
+ * La question de `ListePistesV2`, posée ici pour qu'il n'ait pas à la
+ * retrancher. Un `includes` sur la constante exportée reste lisible chez lui,
+ * mais une fonction nommée dit ce qu'on demande, et c'est elle qu'on cherche
+ * quand on se demande où ça se décide.
+ */
+export function modeEnTableau(mode: SettingsLevel): boolean {
+  return MODES_BRANCHES.includes(mode);
+}
 
 /** Cette colonne est-elle offerte à ce mode ? */
 export function offerteAu(c: Colonne, mode: SettingsLevel): boolean {

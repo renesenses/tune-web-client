@@ -33,12 +33,20 @@
 // retirer d'un seul endroit aurait laissé la colonne invisible avec une
 // fonction verte. Ce fichier lit donc le DOM RENDU : les en-têtes, puis les
 // cellules, ligne par ligne.
+//
+// Le même défaut a resurgi aussitôt, d'un cran plus haut : les trois colonnes
+// rallumées, le DR restait invisible — `dr` est `min: 'expert'` et le tableau
+// n'existait qu'en Essentiel. Arbitrage de Bertrand le 09/09/2026 : on branche
+// le tableau en Expert, la colonne garde son niveau. Ce fichier monte donc les
+// DEUX modes branchés, vérifie qu'Avancé garde son rendu en lignes, et rejoue
+// le chargement réel des préférences pour un Expert d'avant le tableau.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import ListePistesV2 from '../../components/v2/ListePistesV2.svelte';
+import { DEFAUTS } from '../colonnesPistes';
 import { locale, t } from '../i18n';
 import { preferences } from '../stores/preferences';
 import type { Track } from '../types';
@@ -94,18 +102,18 @@ afterEach(() => {
 });
 
 /**
- * Monte le TABLEAU avec ces colonnes cochées, en mode Essentiel.
+ * Monte la liste dans un MODE donné, avec ces colonnes cochées.
  *
- * Essentiel et pas un autre : `enTableau = mode === 'beginner'` dans
- * `ListePistesV2`, et `MODES_BRANCHES` ne cite que lui. Au-dessus, le
- * composant rend des LIGNES, sans colonne ni en-tête — un test monté en mode
- * Expert n'aurait aucune cellule à lire et passerait au vert pour rien.
+ * Le mode est un paramètre depuis le 09/09/2026 : le tableau existe désormais
+ * en Essentiel ET en Expert (`MODES_BRANCHES`). Il fallait bien qu'il le
+ * devienne — un test qui monte toujours le même mode ne verrait jamais
+ * qu'Expert a reperdu son tableau.
  */
-function poser(colonnes: string[], pistes: Partial<Track>[]) {
+function poserAu(mode: string, colonnes: string[], pistes: Partial<Track>[]) {
   preferences.update((p) => ({
     ...p,
-    settingsLevel: 'beginner',
-    v2Colonnes: { ...p.v2Colonnes, beginner: colonnes as never },
+    settingsLevel: mode as never,
+    v2Colonnes: { ...p.v2Colonnes, [mode]: colonnes as never },
   }));
   hote = document.createElement('div');
   document.body.appendChild(hote);
@@ -115,6 +123,11 @@ function poser(colonnes: string[], pistes: Partial<Track>[]) {
   });
   flushSync();
   return hote;
+}
+
+/** Le cas d'origine : le tableau du mode Essentiel. */
+function poser(colonnes: string[], pistes: Partial<Track>[]) {
+  return poserAu('beginner', colonnes, pistes);
 }
 
 /** Les libellés de la ligne d'en-tête, dans l'ordre du rendu. */
@@ -180,16 +193,149 @@ describe('🔴 #824 — le tableau REND les colonnes rallumées', () => {
     expect(cellules(2)).toEqual(['Tiento III Primer Tono', '', '']);
   });
 
-  it('🔴 le Dynamic Range n’est PAS rendu : il reste réservé à EXPERT', () => {
-    // Ce que ce lot NE fait PAS, écrit pour qu'on ne le croie pas fait. `dr`
-    // porte `min: 'expert'` (décision produit du 07/09) et le tableau n'existe
-    // qu'en Essentiel : la valeur est calculée et testée, aucun écran ne la
-    // montre encore. Le jour où le tableau d'Expert sera branché, ce témoin
-    // devra être RELU, pas supprimé.
+  it('🔴 le Dynamic Range n’est pas rendu en ESSENTIEL : il est réservé à Expert', () => {
+    // Brancher le tableau en Expert ne déplace aucune colonne : `dr` porte
+    // `min: 'expert'` et reste hors d'Essentiel, même cochée par un vieux
+    // réglage.
     poser(['dr', 'plays'], [{ ...JOUEE, dynamic_range: '0' }]);
     const dr = String(get(t)('v2.tcol.dr' as never));
     expect(entetes()).not.toContain(dr);
     expect(cellules(0)).toEqual(['Lachrimae Antiquae', '4']);
+  });
+});
+
+/**
+ * Arbitrage de Bertrand, 09/09/2026 : « on branche le tableau en mode Expert.
+ * La colonne `dr` garde `min: 'expert'` — c'est l'écran qui descend vers elle,
+ * pas l'inverse. »
+ *
+ * Le premier état de ce lot rallumait les trois colonnes mais laissait le DR
+ * invisible : `dr` était experte, le tableau essentiel. Ces témoins mesurent
+ * le DOM d'Expert, pas `valeurColonne` — c'est la seule façon de voir la
+ * différence entre « la valeur est juste » et « la cellule s'affiche ».
+ */
+describe('🔴 #824 — le tableau EXPERT, et le Dynamic Range enfin rendu', () => {
+  it('Expert rend un TABLEAU, pas des lignes', () => {
+    poserAu('expert', ['plays'], [JOUEE]);
+    expect(hote!.querySelector('.tbl'), 'aucun tableau en Expert').toBeTruthy();
+    expect(hote!.querySelectorAll('.trow').length).toBe(1);
+  });
+
+  it('🔴 le DR s’affiche, DR0 compris', () => {
+    // Le cœur du ticket, enfin visible à l'écran : `"0"` est la mesure d'un
+    // master saturé, pas une absence, et la cellule doit porter « 0 ».
+    poserAu('expert', ['dr', 'plays', 'lastPlayed'], [{ ...JOUEE, dynamic_range: '0' }]);
+    expect(entetes()).toContain(String(get(t)('v2.tcol.dr' as never)));
+    // Ordre du CATALOGUE : titre, plays, lastPlayed, … puis dr.
+    expect(cellules(0)).toEqual(['Lachrimae Antiquae', '4', '2026-09-06', '0']);
+  });
+
+  it('🔴 une piste sans tag DR laisse la cellule vide, dans la même grille', () => {
+    // Trois lignes d'affilée : DR0, DR14, et pas de tag. C'est là que « 0 » et
+    // « vide » doivent se distinguer à l'œil, et c'est ce que le serveur rend
+    // — mesuré le 09/09, la clé manque sur la piste non taguée alors que ses
+    // deux voisines la portent.
+    poserAu('expert', ['dr'], [
+      { ...JOUEE, dynamic_range: '0' },
+      { ...JAMAIS, dynamic_range: '14' },
+      MUETTE,
+    ]);
+    expect(cellules(0)).toEqual(['Lachrimae Antiquae', '0']);
+    expect(cellules(1)).toEqual(['Lachrimae Antiquae (2012)', '14']);
+    expect(cellules(2)).toEqual(['Tiento III Primer Tono', '']);
+  });
+
+  it('les écoutes s’affichent AUSSI en Expert, mêmes contrats', () => {
+    poserAu('expert', ['plays', 'lastPlayed'], [JOUEE, JAMAIS, MUETTE]);
+    expect(cellules(0)).toEqual(['Lachrimae Antiquae', '4', '2026-09-06']);
+    expect(cellules(1)).toEqual(['Lachrimae Antiquae (2012)', '0', '']);
+    expect(cellules(2)).toEqual(['Tiento III Primer Tono', '', '']);
+  });
+
+  it('🔴 AVANCÉ garde le rendu en LIGNES — le périmètre est Expert seul', () => {
+    // `{#if !enTableau}` protège l'autre rendu. Brancher Expert ne doit pas
+    // l'emporter avec lui : Avancé reste hors du tableau, décision explicite.
+    poserAu('intermediate', ['plays', 'lastPlayed'], [JOUEE]);
+    expect(hote!.querySelector('.tbl'), 'Avancé est passé au tableau').toBeNull();
+    expect(hote!.querySelector('.thead')).toBeNull();
+    // Et il rend bien QUELQUE CHOSE : une absence de tableau doublée d'une
+    // absence de lignes serait un écran blanc, pas un mode non branché.
+    expect((hote!.textContent ?? '')).toContain('Lachrimae Antiquae');
+  });
+
+  it('🔴 un réglage VIDE n’ouvre pas une grille nue : le titre reste', () => {
+    // « Une liste VIDE est un choix » dit le magasin de préférences, et il la
+    // garde telle quelle. Le titre est verrouillé : il survit, avec son bouton
+    // de lecture. Une ligne sans une seule cellule cliquable serait pire que
+    // l'absence de tableau.
+    poserAu('expert', [], [JOUEE]);
+    expect(hote!.querySelector('.tbl')).toBeTruthy();
+    expect(cellules(0)).toEqual(['Lachrimae Antiquae']);
+  });
+
+  it('🔴 les DÉFAUTS d’Expert remplissent la grille — ils ne sont plus théoriques', () => {
+    // `settingsLevel` vaut `'expert'` par DÉFAUT depuis le 27/08 : cette
+    // liste est ce que voit une installation neuve à l'ouverture. Une liste
+    // vide ici ouvrirait un tableau nu sur toute la bibliothèque.
+    poserAu('expert', [...DEFAUTS.expert], [JOUEE]);
+    expect(DEFAUTS.expert.length).toBeGreaterThan(1);
+    // `quality` est une pastille, pas un texte : on compte les CELLULES, pas
+    // les libellés, sinon la colonne Qualité ferait échouer l'égalité.
+    expect(cellules(0).length).toBe(DEFAUTS.expert.length);
+    expect(entetes()).toContain(String(get(t)('v2.tcol.composer' as never)));
+  });
+});
+
+describe('🔴 #824 — ce que voit un Expert dont les préférences PRÉCÈDENT le tableau', () => {
+  /**
+   * On rejoue le VRAI chargement du magasin, pas une reconstitution.
+   *
+   * `loadPrefs()` n'est pas exportée : elle s'exécute à l'import du module. On
+   * sème donc `localStorage`, puis on réimporte le magasin à neuf
+   * (`vi.resetModules()`), et on lit ce qu'il en a fait. Reconstituer la
+   * fusion à la main dans le test ne prouverait rien — ce serait répliquer le
+   * code au lieu de le mesurer.
+   */
+  async function magasinFrais(stocke: unknown) {
+    localStorage.setItem('tune-preferences', JSON.stringify(stocke));
+    vi.resetModules();
+    const mod = await import('../stores/preferences');
+    return get(mod.preferences);
+  }
+
+  afterEach(() => {
+    localStorage.removeItem('tune-preferences');
+  });
+
+  it('des préférences SANS `v2Colonnes` retombent sur les défauts d’Expert', () => {
+    // Le cas de tout le monde : ces préférences datent d'avant les colonnes.
+    return magasinFrais({ settingsLevel: 'expert' }).then((p) => {
+      expect(p.settingsLevel).toBe('expert');
+      expect(p.v2Colonnes.expert).toEqual(DEFAUTS.expert);
+    });
+  });
+
+  it('🔴 un `v2Colonnes` qui ne connaît qu’Essentiel ne VIDE pas Expert', () => {
+    // C'est le piège que le magasin avait anticipé, et la raison d'être de sa
+    // fusion mode par mode : `{ ...defaults, ...raw }` est PLATE, et un objet
+    // stocké qui ne porte que `beginner` aurait effacé les deux autres. Le
+    // jour où Expert passe au tableau — aujourd'hui — il se serait ouvert sur
+    // une grille vide.
+    return magasinFrais({
+      settingsLevel: 'expert',
+      v2Colonnes: { beginner: ['num', 'title', 'artist'] },
+    }).then((p) => {
+      expect(p.v2Colonnes.beginner).toEqual(['num', 'title', 'artist']);
+      expect(p.v2Colonnes.expert, 'Expert ouvrirait sur une grille vide')
+        .toEqual(DEFAUTS.expert);
+    });
+  });
+
+  it('une liste VIDE écrite à la main reste vide — c’est un choix, pas une panne', () => {
+    // Le magasin le dit en toutes lettres. La grille garde le titre (témoin
+    // ci-dessus), donc le tableau reste utilisable.
+    return magasinFrais({ settingsLevel: 'expert', v2Colonnes: { expert: [] } })
+      .then((p) => expect(p.v2Colonnes.expert).toEqual([]));
   });
 });
 
