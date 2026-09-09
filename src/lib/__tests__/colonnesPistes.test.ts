@@ -51,14 +51,33 @@ describe('le catalogue', () => {
     expect(COLONNES.filter((c) => c.verrouillee).map((c) => c.cle)).toEqual(['title']);
   });
 
-  it('🔴 trois colonnes sont déclarées SANS DONNÉE', () => {
-    // Mesuré sur le .18 le 07/09/2026 : `/library/albums/{id}/tracks` rend
-    // 31 champs, et ni `play_count`, ni `last_played_at`, ni `dr` n'en font
-    // partie — aucune clé ne contient même `dr`, `replay`, `gain`, `loudness`
-    // ou `peak`. Les trois sont pourtant demandées. Les proposer sans le dire
-    // remplirait la colonne de vide.
-    expect(COLONNES.filter((c) => c.indisponible).map((c) => c.cle))
-      .toEqual(['plays', 'lastPlayed', 'dr']);
+  it('🔴 AUCUNE colonne n’est déclarée sans donnée (#824)', () => {
+    // Les trois qui l'étaient — `plays`, `lastPlayed`, `dr` — le devaient à
+    // une mesure du 07/09/2026 périmée le 08 : le serveur a branché les trois
+    // champs ce jour-là (#1388, #3518). Re-mesuré le 09/09 contre le .18 en
+    // v0.9.144, sur les trois surfaces :
+    //
+    //   GET /library/tracks?limit=3       → play_count=4, last_played_at posés
+    //   GET /library/tracks?q=Lachrimae…  → idem, chemin FILTRÉ
+    //   GET /library/tracks/16645         → idem, fiche d'une piste
+    //
+    // `dynamic_range` ne sortait sur aucune piste parce que la bibliothèque
+    // du .18 ne porte AUCUN tag `DYNAMIC RANGE` (0 ligne `dr_track`) — pas
+    // parce que la route l'ignore : deux lignes posées le temps de la mesure
+    // ont fait apparaître la clé sur les trois surfaces, `"0"` comprise.
+    expect(COLONNES.filter((c) => c.indisponible).map((c) => c.cle)).toEqual([]);
+  });
+
+  it('🔴 le drapeau `indisponible` reste APPLIQUÉ, même inutilisé', () => {
+    // Personne ne le porte aujourd'hui : une garde qui se contenterait de la
+    // liste vide ci-dessus laisserait passer la suppression du filtre, et la
+    // soupape serait perdue sans un seul rouge. On lit donc le MODULE, et on
+    // y cherche le filtre — aiguille assemblée à l'exécution pour qu'elle ne
+    // se trouve pas elle-même dans ce fichier de test.
+    const src = readFileSync(resolve(process.cwd(), 'src/lib/colonnesPistes.ts'), 'utf-8');
+    const aiguille = '!c.' + 'indisponible';
+    expect(src.includes(aiguille), 'colonnesRetenues n’écarte plus une colonne sans donnée')
+      .toBe(true);
   });
 
   it('🔴 EXPERT propose TOUT le catalogue', () => {
@@ -118,10 +137,13 @@ describe('les colonnes retenues', () => {
     expect(colonnesRetenues([]).map((c) => c.cle)).toEqual(['title']);
   });
 
-  it('🔴 écartent une colonne SANS DONNÉE, même cochée', () => {
-    // Le réglage survit au serveur : une colonne cochée hier ne doit pas
-    // réapparaître vide si la donnée n'arrive toujours pas.
-    expect(colonnesRetenues(['plays', 'lastPlayed']).map((c) => c.cle)).toEqual(['title']);
+  it('🔴 retiennent « # écoutes » et « dernière écoute », désormais SERVIES (#824)', () => {
+    // Elles étaient écartées d'office tant qu'elles portaient `indisponible`.
+    // Le serveur les rend depuis le 08/09/2026 : une case cochée doit
+    // maintenant produire une colonne. C'est le témoin qui tombe en premier
+    // si quelqu'un remet le drapeau sans re-mesurer.
+    expect(colonnesRetenues(['plays', 'lastPlayed']).map((c) => c.cle))
+      .toEqual(['title', 'plays', 'lastPlayed']);
   });
 
   it('écartent une clé INCONNUE au lieu de casser la grille', () => {
@@ -158,13 +180,84 @@ describe('les valeurs', () => {
     expect(valeurColonne(piste({ bpm: null } as any), 'bpm')).toBeNull();
     expect(valeurColonne(piste({ year: null } as any), 'year')).toBeNull();
     expect(valeurColonne(piste({ genre: '   ' } as any), 'genre')).toBeNull();
+    // Les trois clés ABSENTES de la charge : le serveur ne pose `play_count`
+    // et `last_played_at` que si la base a répondu, et `dynamic_range` que si
+    // la piste porte le tag. Rien à dire ⇒ cellule vide.
     expect(valeurColonne(piste(), 'plays')).toBeNull();
     expect(valeurColonne(piste(), 'lastPlayed')).toBeNull();
+    expect(valeurColonne(piste(), 'dr')).toBeNull();
   });
 
   it('un zéro RÉEL reste zéro', () => {
     expect(valeurColonne(piste({ channels: 0 } as any), 'channels')).toBe('0');
     expect(valeurColonne(piste({ track_number: 0 } as any), 'num')).toBe('0');
+  });
+
+  describe('🔴 #824 — les trois colonnes rallumées, et leurs DEUX contrats', () => {
+    // Le piège central du ticket : `dynamic_range` absent et `dynamic_range`
+    // à zéro ne veulent PAS dire la même chose, et `play_count` à zéro ne veut
+    // pas dire la même chose qu'un `play_count` absent. Quatre cas, quatre
+    // affichages, mesurés le 09/09/2026 sur le .18 en v0.9.144.
+
+    it('DR0 s’affiche « 0 » : c’est la mesure d’un master saturé', () => {
+      // Le serveur rend la valeur en CHAÎNE (mesuré : `"0"`, `"14"`). Un test
+      // de vérité sur cette chaîne la laisserait passer ; un test de vérité
+      // sur un nombre `0` la perdrait. Les deux formes sont couvertes.
+      expect(valeurColonne(piste({ dynamic_range: '0' } as any), 'dr')).toBe('0');
+      expect(valeurColonne(piste({ dynamic_range: 0 } as any), 'dr')).toBe('0');
+    });
+
+    it('une piste SANS tag DR laisse la cellule vide, jamais « 0 »', () => {
+      // C'est le sens de la flèche qui compte : vide ⇏ DR0. Un `?? 0` posé un
+      // jour de fatigue afficherait « 0 » sur les 46 877 pistes du .18, et
+      // accuserait toute la bibliothèque d'être écrasée.
+      expect(valeurColonne(piste({} as any), 'dr')).toBeNull();
+      expect(valeurColonne(piste({ dynamic_range: null } as any), 'dr')).toBeNull();
+      expect(valeurColonne(piste({ dynamic_range: '  ' } as any), 'dr')).toBeNull();
+    });
+
+    it('DR14 s’affiche « 14 »', () => {
+      expect(valeurColonne(piste({ dynamic_range: '14' } as any), 'dr')).toBe('14');
+    });
+
+    it('play_count = 0 s’affiche « 0 » : jamais jouée est une information', () => {
+      // L'inverse du DR. Ici la clé est TOUJOURS posée quand la base répond,
+      // et l'immense majorité des pistes vaut `0` : rendre `null` viderait la
+      // colonne entière et la ferait passer pour une panne.
+      expect(valeurColonne(piste({ play_count: 0 } as any), 'plays')).toBe('0');
+      expect(valeurColonne(piste({ play_count: 4 } as any), 'plays')).toBe('4');
+    });
+
+    it('play_count ABSENT laisse la cellule vide : la base a échoué', () => {
+      // Le serveur ne pose alors AUCUNE des deux clés, plutôt qu'un `0` qui
+      // se lirait « jamais jouée » et mentirait.
+      expect(valeurColonne(piste({} as any), 'plays')).toBeNull();
+    });
+
+    it('last_played_at rend la DATE, et `null` reste vide', () => {
+      // Horodatage tel que mesuré sur le .18.
+      expect(valeurColonne(piste({ last_played_at: '2026-09-06T12:09:53Z' } as any), 'lastPlayed'))
+        .toBe('2026-09-06');
+      expect(valeurColonne(piste({ last_played_at: null } as any), 'lastPlayed')).toBeNull();
+      expect(valeurColonne(piste({ last_played_at: 'pas une date' } as any), 'lastPlayed'))
+        .toBeNull();
+    });
+
+    it('🔴 `dr` reste EXPERT, et le tableau n’existe qu’en Essentiel', () => {
+      // Ce que ce lot ne fait PAS, écrit noir sur blanc : la valeur du DR est
+      // prête, mais aucun écran ne la rend tant que le tableau du mode Expert
+      // n'est pas branché. Le jour où `MODES_BRANCHES` gagne 'expert', ce
+      // témoin devra être relu — pas supprimé.
+      expect(PAR_CLE.dr.min).toBe('expert');
+      expect(MODES_BRANCHES).not.toContain('expert');
+      expect(colonnesRetenues(['dr'], 'beginner').map((c) => c.cle)).toEqual(['title']);
+      // En revanche les écoutes n'ont AUCUN `min` : elles s'affichent dès
+      // aujourd'hui, dans le seul mode où le tableau existe.
+      expect(PAR_CLE.plays.min).toBeUndefined();
+      expect(PAR_CLE.lastPlayed.min).toBeUndefined();
+      expect(colonnesRetenues(['plays', 'lastPlayed'], 'beginner').map((c) => c.cle))
+        .toEqual(['title', 'plays', 'lastPlayed']);
+    });
   });
 
   it('la qualité ne passe pas par le texte : c’est une pastille', () => {
