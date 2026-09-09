@@ -18,6 +18,7 @@
   import { t } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
+  import QualityBadge from '../QualityBadge.svelte';
   import '../../styles/tune-v2.css';
 
   let caps = $state<api.ConverterCapabilities | null>(null);
@@ -201,6 +202,24 @@
                 <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                 <span class="ct" title={a.title}>{a.title}</span>
                 <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
+                <!-- 🔴 Le format D'ORIGINE. Tades, 06/09/2026 (ticket 83, fil
+                     1677) : « on me montre des albums qu'on me propose de
+                     convertir. Difficile de savoir le format d'origine :
+                     Alac ? » Un écran qui propose de convertir sans dire
+                     DEPUIS QUOI demande une décision à l'aveugle.
+
+                     La donnée était déjà là : `$albums` porte `format`,
+                     `sample_rate` et `bit_depth` (`Album`, sérialisés par
+                     `tune-core/src/db/models.rs`), et c'est ce même magasin
+                     qui alimente la grille de la Bibliothèque, où le badge
+                     est affiché depuis toujours. Rien à demander au serveur.
+
+                     `QualityBadge` plutôt qu'un texte : c'est le badge que
+                     l'utilisateur lit déjà partout ailleurs, et il ne dessine
+                     RIEN quand il n'a pas de quoi — un album sans format ne
+                     reçoit pas une case vide, il n'a pas de badge. -->
+                <span class="cq"><QualityBadge format={a.format} sampleRate={a.sample_rate}
+                  bitDepth={a.bit_depth} source={a.source} /></span>
                 {#if a.id != null && picked.has(a.id)}
                   <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>
                 {/if}
@@ -226,6 +245,9 @@
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:26px 0; color:var(--v2-txt3)}
   .cl{font:10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
+  /* Le badge de qualité de la source, sous l'artiste. Une ligne vide quand
+     l'album n'en a pas : le badge ne rend rien, la carte ne bouge pas. */
+  .cq{display:block; margin-top:3px; min-height:16px}
 
   .fmt{padding:4px 0 20px}
   .chips{display:flex; gap:7px; flex-wrap:wrap; padding:11px 0 0}
