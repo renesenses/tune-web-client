@@ -27,6 +27,7 @@
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
+  import { activeView, pendingLibraryArtist } from '../../lib/stores/navigation';
 
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
@@ -341,6 +342,33 @@
     bioChargement = false;
   }
 
+  /**
+   * Le nom de l'artiste MÈNE à sa fiche — #3708, FabienM, fil forum 1726 :
+   * « l'hyperlien sur l'artiste est absent, ex ici: Artiste Depeche Mode n'a
+   * pas de lien actif pour rediriger vers la page de l'artiste. »
+   *
+   * On ne réinvente aucun chemin : c'est le contrat que `PisteActions`
+   * (`allerArtiste`) et `NowPlaying` (`ouvrirFicheArtiste`) posent déjà — on
+   * POSE la cible, puis on change de vue. Le composant ne sait pas naviguer,
+   * et n'a pas à le savoir.
+   *
+   * 🔴 `onClose()` en plus des deux magasins : cette fiche est un CALQUE
+   * par-dessus la grille. Sans lui, l'onglet Artistes s'ouvrait derrière un
+   * album resté au premier plan — le clic n'aurait rien paru faire.
+   *
+   * Le contrat V1 (`selectedArtist` + `libraryTab`) n'est PAS alimenté ici :
+   * ce composant vit dans `components/v2/` et n'est monté que par la nouvelle
+   * coquille (vérifié : ses neuf montages sont tous des composants `v2/`).
+   * `NowPlaying`, lui, est monté par les DEUX et pose donc les deux.
+   */
+  function allerArtiste() {
+    const id = album.artist_id;
+    if (id == null) return;
+    pendingLibraryArtist.set(id);
+    activeView.set('library');
+    onClose();
+  }
+
   function trackTech(t: Track): string {
     const rate = t.sample_rate ? `${Math.round(t.sample_rate / 100) / 10} kHz` : '';
     const depth = t.bit_depth ? `${t.bit_depth}-bit` : '';
@@ -366,7 +394,16 @@
         <PastilleCompilation compilation={album.is_compilation} />
       </div>
       <h1>{album.title}</h1>
-      <div class="artist">{album.artist_name ?? ''}</div>
+      <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.
+           Pas d'`<a href>` non plus — cette coquille ne route rien par l'URL,
+           la navigation passe par les magasins. Sans identifiant d'artiste
+           (album de service, dépôt distant, base ancienne), le nom reste du
+           TEXTE : un lien mort serait pire que pas de lien. -->
+      {#if album.artist_id != null}
+        <button type="button" class="artist lien" onclick={allerArtiste}>{album.artist_name ?? ''}</button>
+      {:else}
+        <div class="artist">{album.artist_name ?? ''}</div>
+      {/if}
       <div class="facts">
         {#if $formatAnneeAlbum(album)}<span>{$formatAnneeAlbum(album)}</span>{/if}
         <span>{tracks.length} titre{tracks.length > 1 ? 's' : ''}</span>
@@ -479,6 +516,13 @@
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}
   .artist{font-size:18px; color:var(--v2-txt2)}
+  /* Le bouton doit se lire comme le texte qu'il remplace : même taille, même
+     couleur, aligné à gauche. Ce qui l'annonce comme un lien, c'est le
+     survol et le focus — visible AU CLAVIER, pas seulement à la souris. */
+  .artist.lien{border:0; background:transparent; padding:0; font-family:inherit;
+    text-align:left; cursor:pointer}
+  .artist.lien:hover{color:var(--v2-acc-tint); text-decoration:underline}
+  .artist.lien:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px; border-radius:4px}
   .facts{display:flex; gap:16px; font:12px var(--v2-mono); color:var(--v2-txt3)}
   /* Le DR DÉDUIT (moyenne des pistes) : tilde dans le texte, soulignement
      pointillé en `currentColor` — donc lisible dans les deux thèmes sans
