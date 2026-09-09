@@ -45,7 +45,7 @@
   // lu quand la Bibliothèque était déjà montée. On prend sa version.
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
-  import { activeView, pendingLibraryAlbum, pendingLibraryArtist, type View } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
@@ -1000,6 +1000,35 @@
   });
 
   /**
+   * L'ANNÉE demandée de l'extérieur — troisième de la même famille.
+   *
+   * `NowPlaying` pose `yearFilter` depuis toujours, et `yearFilter` n'est lu
+   * que par l'écran de l'ANCIEN client : cliquer « (2003) » à côté du titre
+   * d'album amenait ici sans rien filtrer. On consomme donc le contrat v2,
+   * exactement comme ses deux jumeaux au-dessus.
+   *
+   * 🔴 `$pendingLibraryYear`, PAS `get(...)` — #3708 / #3717, deux fois la
+   * même faute : `get()` n'inscrit aucune dépendance sous les runes, et
+   * l'effet ne tournerait qu'au montage. Or l'année peut être posée alors
+   * qu'on est DÉJÀ dans la Bibliothèque, écran de lecture en calque.
+   *
+   * `navMode = 'years'` avec : une grille filtrée sans que la frise soit à
+   * l'écran ne montre aucune cause. Le rail A–Z resterait affiché en face
+   * d'une grille de douze albums, ce qui se lit comme une panne.
+   */
+  $effect(() => {
+    const an = $pendingLibraryYear;
+    if (an == null) return;
+    pendingLibraryYear.set(null);
+    fYear = an;
+    navMode = 'years';
+    tab = 'albums';
+    // Même raison que chez le jumeau Artistes : la fiche est un CALQUE, et la
+    // laisser ouverte cacherait la grille qu'on vient de filtrer.
+    opened = null;
+  });
+
+  /**
    * Album en cours d'édition — le bouton haut-droit de la pochette.
    *
    * `AlbumEditModal` vient du client actuel : c'est la MÊME modale, pas une
@@ -1258,10 +1287,25 @@
     {/if}
   </div>
 
-  {#if showTimeline}
+  <!--
+    🔴 `showTimeline || fYear != null` : la PASTILLE existe a tous les niveaux.
+
+    `showTimeline` demande le niveau Intermediaire. En Essentiel, tout ce bloc
+    disparaissait — y compris le seul moyen de VOIR le filtre d'annee et de le
+    retirer. Une annee posee de l'exterieur (le lien « (2003) » de l'ecran de
+    lecture) y aurait reduit la grille a douze albums, sans cause visible et
+    sans sortie. Un filtre actif qu'on ne peut ni lire ni annuler est pire que
+    le clic mort qu'on vient de corriger.
+
+    Les deux BOUTONS de navigation, eux, restent reserves a l'Intermediaire :
+    la frise est bien une option avancee, la pastille est un temoin d'etat.
+  -->
+  {#if showTimeline || fYear != null}
     <div class="navmode">
-      <button class:on={navMode === 'alpha'} onclick={() => { navMode = 'alpha'; fYear = null; }}>A–Z</button>
-      <button class:on={navMode === 'years'} onclick={() => (navMode = 'years')}>{$tr('v2.lib.navYears' as any)}</button>
+      {#if showTimeline}
+        <button class:on={navMode === 'alpha'} onclick={() => { navMode = 'alpha'; fYear = null; }}>A–Z</button>
+        <button class:on={navMode === 'years'} onclick={() => (navMode = 'years')}>{$tr('v2.lib.navYears' as any)}</button>
+      {/if}
       {#if fYear != null}
         <button class="yearpill" onclick={() => (fYear = null)}>
           {fYear} · {yearCount} album{yearCount > 1 ? 's' : ''}
