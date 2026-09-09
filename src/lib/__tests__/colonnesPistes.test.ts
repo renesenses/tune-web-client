@@ -51,21 +51,43 @@ describe('le catalogue', () => {
     expect(COLONNES.filter((c) => c.verrouillee).map((c) => c.cle)).toEqual(['title']);
   });
 
-  it('🔴 AUCUNE colonne n’est déclarée sans donnée (#824)', () => {
-    // Les trois qui l'étaient — `plays`, `lastPlayed`, `dr` — le devaient à
-    // une mesure du 07/09/2026 périmée le 08 : le serveur a branché les trois
-    // champs ce jour-là (#1388, #3518). Re-mesuré le 09/09 contre le .18 en
-    // v0.9.144, sur les trois surfaces :
+  it('🔴 AUCUNE colonne n’est déclarée sans donnée (#826 puis #824)', () => {
+    // Deux lots ont mesuré le même jour, séparément, et se recoupent.
     //
+    // #826, `GET /library/tracks?limit=400` sur le .18 :
+    //   play_count      → présent sur 400 / 400   ⇒ ALLUMÉE
+    //   last_played_at  → présent sur   8 / 400   ⇒ ALLUMÉE (creuse, pas morte)
+    //   dynamic_range   → présent sur   0 / 400
+    //
+    // #824, sur les TROIS surfaces du .18 en v0.9.144 :
     //   GET /library/tracks?limit=3       → play_count=4, last_played_at posés
     //   GET /library/tracks?q=Lachrimae…  → idem, chemin FILTRÉ
     //   GET /library/tracks/16645         → idem, fiche d'une piste
     //
-    // `dynamic_range` ne sortait sur aucune piste parce que la bibliothèque
-    // du .18 ne porte AUCUN tag `DYNAMIC RANGE` (0 ligne `dr_track`) — pas
-    // parce que la route l'ignore : deux lignes posées le temps de la mesure
-    // ont fait apparaître la clé sur les trois surfaces, `"0"` comprise.
+    // 🔴 LE DR A CHANGÉ DE CAMP, ET VOICI POURQUOI. #826 le laissait grisé :
+    // le serveur le sert, mais aucune bibliothèque sous la main n'en porte
+    // (0/400 sur DEUX serveurs, `dynamic_ranges` vide dans
+    // `/library/albums/filters`), donc « on ne peut pas distinguer pas-de-tag
+    // de pas-branché ». Cette mesure est juste. La distinction a ensuite été
+    // ÉTABLIE : deux lignes `dr_track` posées le temps d'une mesure sur le .18,
+    // puis retirées, ont fait sortir la clé sur les trois surfaces — `"0"`
+    // comprise — pendant que la piste voisine non taguée gardait la clé
+    // ABSENTE dans la même charge. « Pas branché » est donc exclu par la
+    // mesure. Arbitrage de Bertrand le 09/09 : on allume.
     expect(COLONNES.filter((c) => c.indisponible).map((c) => c.cle)).toEqual([]);
+  });
+
+  it('les colonnes allumées LISENT bien le champ du serveur', () => {
+    // Ce témoin vient de #826 : les déclarer disponibles sans les brancher
+    // donnerait une colonne cochable et vide — pire que grisée. Il garde
+    // désormais l'implémentation de #826, conservée à la fusion.
+    const piste = { play_count: 12, last_played_at: '2026-09-01T10:00:00Z' } as any;
+    expect(valeurColonne(piste, 'plays')).toBe('12');
+    expect(valeurColonne(piste, 'lastPlayed')).toBe('2026-09-01');
+    // Jamais écoutée : rien, et surtout pas une date inventée.
+    expect(valeurColonne({} as any, 'lastPlayed')).toBeNull();
+    // Et le DR, ajout de #824 : la clé existe désormais aussi.
+    expect(valeurColonne({ dynamic_range: '14' } as any, 'dr')).toBe('14');
   });
 
   it('🔴 le drapeau `indisponible` reste APPLIQUÉ, même inutilisé', () => {
@@ -137,11 +159,16 @@ describe('les colonnes retenues', () => {
     expect(colonnesRetenues([]).map((c) => c.cle)).toEqual(['title']);
   });
 
-  it('🔴 retiennent « # écoutes » et « dernière écoute », désormais SERVIES (#824)', () => {
-    // Elles étaient écartées d'office tant qu'elles portaient `indisponible`.
-    // Le serveur les rend depuis le 08/09/2026 : une case cochée doit
-    // maintenant produire une colonne. C'est le témoin qui tombe en premier
-    // si quelqu'un remet le drapeau sans re-mesurer.
+  it('🔴 retiennent « # écoutes » et « dernière écoute », désormais SERVIES', () => {
+    // Ce témoin gardait l'inverse jusqu'au 09/09/2026 : les deux colonnes
+    // portaient `indisponible` et étaient donc écartées même cochées.
+    //
+    // 🔴 IL N'A PLUS DE COLONNE À GARDER pour l'autre moitié de son contrat.
+    // #826 avait fait basculer l'assertion « écartée même cochée » sur `dr`,
+    // seule colonne encore grisée ; `dr` est allumée depuis. Le mécanisme
+    // lui-même est désormais gardé par lecture du module — voir « le drapeau
+    // `indisponible` reste APPLIQUÉ » plus haut. Ici on garde ce qui est
+    // observable : une case cochée produit bien une colonne.
     expect(colonnesRetenues(['plays', 'lastPlayed']).map((c) => c.cle))
       .toEqual(['title', 'plays', 'lastPlayed']);
   });

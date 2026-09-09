@@ -322,6 +322,16 @@
         );
       case 'added':
         return list.sort((a, b) => (b.added_at ?? 0) - (a.added_at ?? 0) || byTitle(a, b));
+      case 'dr':
+        // Les albums SANS tag sortent en dernier, jamais à DR 0 : les annoncer
+        // à zéro serait un mensonge (`NULLS LAST` côté serveur, même règle).
+        return list.sort((a, b) => {
+          const va = drNombre(a), vb = drNombre(b);
+          if (va == null && vb == null) return byTitle(a, b);
+          if (va == null) return 1;
+          if (vb == null) return -1;
+          return vb - va || byTitle(a, b);
+        });
       default:
         return list.sort(byTitle);
     }
@@ -481,12 +491,16 @@
   // « Ajout récent » n'est propose que si la donnee existe : sur une
   // bibliotheque importee d'un ancien serveur, `added_at` est souvent vide,
   // et un tri qui ne trie rien est pire qu'un tri absent.
-  type SortKey = 'title' | 'artist' | 'year' | 'added';
+  type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr';
   // `l` porte une CLÉ, pas un libellé : le menu de tri restait en français
   // quelle que soit la langue (Bertrand, 06/09/2026).
   const SORTS: { k: SortKey; l: string }[] = [
     { k: 'title', l: 'v2.lib.sortTitle' }, { k: 'artist', l: 'v2.lib.sortArtist' },
     { k: 'year', l: 'v2.lib.sortYear' }, { k: 'added', l: 'v2.fav.sortRecent' },
+    // Dynamic Range (#2144) — l'écran actuel l'a depuis longtemps, la nouvelle
+    // interface ne l'avait jamais repris. Décroissant : on trie par DR pour
+    // remonter ses disques les PLUS dynamiques, pas les plus écrasés.
+    { k: 'dr', l: 'library.sortDynamicRange' },
   ];
   /**
    * 🔴 RETENU d'une visite à l'autre (Lulu, forum, 05/09/2026 : « figer le
@@ -496,7 +510,38 @@
   let sortKey = $state<SortKey>(lireChoix('lib.sort', SORTS.map((s2) => s2.k), 'title'));
   $effect(() => ecrireChoix('lib.sort', sortKey));
   const hasAddedAt = $derived(src.some((a) => (a.added_at ?? 0) > 0));
-  const availableSorts = $derived(SORTS.filter((s2) => s2.k !== 'added' || hasAddedAt));
+  /**
+   * Le DR d'un album, en nombre — `null` quand il n'est pas tagué.
+   *
+   * ⚠️ `'0'` est une VRAIE valeur (un album entièrement écrasé), pas une
+   * absence : `Number('')` rendrait 0 et le ferait passer pour tel.
+   */
+  const drNombre = (a: Album): number | null => {
+    const v = (a as any).dynamic_range;
+    if (v == null || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  /**
+   * 🔴 Le tri DR ne PARAÎT que s'il trie quelque chose — même règle que la
+   * tranche DR de l'écran actuel, qui se cache quand aucune valeur n'existe.
+   *
+   * Mesuré le 09/09/2026 sur TROIS serveurs (.18, .15, .42) : aucun album,
+   * aucune piste ne porte de DR. Proposer le tri là-dessus donnerait une
+   * entrée de menu qui ne change rien à l'écran — ce qui se lit comme une
+   * panne, pas comme une bibliothèque non taguée.
+   */
+  const hasDr = $derived(src.some((a) => drNombre(a) != null));
+  const availableSorts = $derived(
+    SORTS.filter((s2) => (s2.k !== 'added' || hasAddedAt) && (s2.k !== 'dr' || hasDr)),
+  );
+  /**
+   * Un tri devenu indisponible ne doit pas rester ACTIF : la bibliothèque
+   * paraîtrait triée par un critère absent du menu.
+   */
+  $effect(() => {
+    if (!availableSorts.some((s2) => s2.k === sortKey)) sortKey = 'title';
+  });
 
   // ── Affichage grille / liste ──────────────────────────────────────────
   type Display = 'grid' | 'list';

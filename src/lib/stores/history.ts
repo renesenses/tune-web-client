@@ -5,6 +5,8 @@ export interface HistoryEntry {
   track: Track;
   playedAt: string; // ISO timestamp
   zoneName: string;
+  /** Le NUMÉRO de la zone, quand le serveur le donne — voir `nomDeZone`. */
+  zoneId?: number | null;
 }
 
 const STORAGE_KEY = 'tune-playback-history';

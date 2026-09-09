@@ -13,12 +13,18 @@
  * Il ne rend rien : la mise en page appartient au composant, et la qualité
  * s'affiche par `QualityBadge`, pas par une chaîne.
  *
- * ## ✅ Les trois colonnes grisées sont RALLUMÉES (#824)
+ * ## ✅ Les trois colonnes grisées sont RALLUMÉES (#826 puis #824)
  *
  * `# Plays`, `Last Played` et `Dynamic Range` ont porté `indisponible: true`
  * du 07/09 au 09/09/2026, au motif écrit que la route ne rendait pas la
  * donnée. Le motif était juste le 07 et FAUX le 08 : le serveur a branché les
  * trois champs le 08/09 (#1388 pour le DR, #3518 pour les écoutes).
+ *
+ * Deux lots l'ont constaté le même jour, séparément. **#826 a allumé les deux
+ * colonnes d'écoute et son implémentation est celle qui reste** — elle est
+ * arrivée la première dans `main`, et deux implémentations d'un même champ
+ * finissent toujours par diverger. Ce lot-ci lui apporte une troisième
+ * surface mesurée, le Dynamic Range, et l'écran qui le rend.
  *
  * ### Ce que j'ai mesuré moi-même, le 09/09/2026
  *
@@ -140,9 +146,26 @@ export const COLONNES: Colonne[] = [
   { cle: 'composer',   cleI18n: 'v2.tcol.composer',   largeur: 'minmax(0,1.2fr)' },
   { cle: 'time',       cleI18n: 'v2.tcol.time',       largeur: '64px',  align: 'droite' },
   { cle: 'year',       cleI18n: 'v2.tcol.year',       largeur: '56px',  align: 'droite' },
-  // Servies depuis le 08/09/2026 (serveur #3518, `albums.rs::attacher_ecoutes`),
-  // mesurées le 09/09 sur le .18 en v0.9.144 : les deux clés sont là sur les
-  // trois surfaces, `0`/`null` compris.
+  /**
+   * « # Lectures » et « Dernière écoute » — ALLUMÉES le 09/09/2026.
+   *
+   * Elles étaient grisées au motif que la route ne les portait pas. Le serveur
+   * les sert depuis #3518 (`joindre_dr_par_piste` pose aussi `play_count` et
+   * `last_played_at` sur les trois chemins de `/library/tracks`).
+   *
+   * Mesuré sur le .18 ce jour, `GET /library/tracks?limit=400` :
+   *   play_count      → présent sur 400 / 400
+   *   last_played_at  → présent sur   8 / 400
+   *
+   * Le second est CREUX, et c'est normal : seules les pistes réellement
+   * écoutées en portent une. Une colonne vide sur la plupart des lignes n'est
+   * pas une colonne morte — c'est l'information « jamais écoutée ».
+   *
+   * Mesure INDÉPENDANTE le même jour (#824), qui ajoute la troisième surface :
+   * les deux clés sortent aussi sur `/library/tracks?q=…` (chemin FILTRÉ) et
+   * sur `/library/tracks/{id}` (fiche d'une piste), `0` et `null` compris. Les
+   * deux mesures se recoupent, par deux chemins différents.
+   */
   { cle: 'plays',      cleI18n: 'v2.tcol.plays',      largeur: '72px',  align: 'droite' },
   { cle: 'lastPlayed', cleI18n: 'v2.tcol.lastPlayed', largeur: '116px', align: 'droite' },
   { cle: 'channels',   cleI18n: 'v2.tcol.channels',   largeur: '72px',  align: 'centre' },
@@ -178,17 +201,43 @@ export const COLONNES: Colonne[] = [
   { cle: 'modified',    cleI18n: 'v2.tcol.modified',    largeur: '112px', align: 'droite', min: 'expert' },
   { cle: 'hash',        cleI18n: 'v2.tcol.hash',        largeur: '150px', min: 'expert' },
   /**
-   * Dynamic Range — demandé nommément, et SERVI depuis le 08/09/2026.
+   * Dynamic Range — ALLUMÉE le 09/09/2026, après deux motifs successifs.
    *
-   * La mesure du 07/09 qui le déclarait absent portait sur un serveur d'avant
-   * `tracks.rs::joindre_dr_par_piste` (#1388) ET sur une bibliothèque qui ne
-   * contient aucun tag `DYNAMIC RANGE` — deux raisons de ne rien voir, dont
-   * une seule était une panne. Re-mesuré le 09/09 sur le .18 en v0.9.144, avec
-   * deux `dr_track` posées le temps de la mesure : la clé sort sur les trois
-   * surfaces, `"0"` comprise.
+   * ## Trois états, deux corrections
    *
-   * Elle reste `min: 'expert'` — et depuis le 09/09/2026 le tableau existe
-   * aussi dans ce mode (`MODES_BRANCHES`), donc elle s'affiche pour de bon.
+   * 1. 07/09 : « le serveur ne le RESTITUE pas ». FAUX — mesure faite sur
+   *    `/library/albums/{id}/tracks` et sur un serveur d'avant #1388.
+   * 2. 09/09, #826 : le motif est révisé, et sa mesure est juste — le serveur
+   *    pose bien `dynamic_range` (sous ce nom, pas `dr`) et l'omet quand la
+   *    piste n'a pas le tag ; mais aucune bibliothèque sous la main n'en porte.
+   *      .18  `/library/tracks?limit=400`   → dynamic_range présent sur 0
+   *      .15  `/library/tracks?limit=400`   → dynamic_range présent sur 0
+   *      .18  `/library/albums/filters`     → `dynamic_ranges` : liste VIDE
+   *    Conclusion de #826 : garder la colonne grisée, faute de pouvoir
+   *    distinguer « pas de tag » de « pas branché ».
+   * 3. 09/09, #824 : cette distinction A ÉTÉ établie, et c'est ce qui lève la
+   *    réserve. Deux lignes `dr_track` posées le temps d'une mesure sur le .18
+   *    (v0.9.144), puis retirées : la clé est sortie sur les TROIS surfaces,
+   *    `"0"` comprise, et la piste voisine non taguée a gardé la clé absente
+   *    DANS LA MÊME CHARGE. « Pas branché » est donc exclu par la mesure, pas
+   *    par confiance. Arbitrage de Bertrand le même jour : on allume, et on
+   *    branche le tableau du mode Expert pour qu'elle s'affiche.
+   *
+   * ## Ce qui reste vrai de la réserve de #826
+   *
+   * La colonne sera VIDE sur les bibliothèques d'aujourd'hui, puisqu'aucune
+   * n'est taguée. C'est un fait, pas un défaut : elle est décochée d'office
+   * (`DEFAUTS.expert` ne la cite pas), donc personne ne la subit, et celui qui
+   * la coche sait ce qu'il cherche. La garde qui compte est ailleurs — une
+   * cellule vide ne doit jamais se lire « DR 0 », et une piste à DR0 doit
+   * afficher `0`. Deux témoins montés le vérifient sur le DOM.
+   *
+   * ⚠️ Ne pas confondre avec le DR d'ALBUM, qui lui est affiché sur les deux
+   * fiches (`AlbumDetailV2`, `LibraryView`) — quand il existe.
+   *
+   * Elle reste `min: 'expert'`, et depuis le 09/09/2026 le tableau existe
+   * aussi dans ce mode (`MODES_BRANCHES`) : c'est l'écran qui est descendu
+   * vers la colonne, pas la colonne qui a changé de niveau.
    */
   { cle: 'dr',          cleI18n: 'v2.tcol.dr',          largeur: '64px',  align: 'droite',
     min: 'expert' },
@@ -314,38 +363,6 @@ function tailleFichier(octets: unknown): string | null {
   return mo < 1 ? `${Math.round(octets / 1024)} Ko` : `${(Math.round(mo * 10) / 10)} Mo`;
 }
 
-/**
- * Le nombre d'écoutes, ou `null` quand le serveur ne l'a pas posé (#824).
- *
- * 🔴 `0` est une VALEUR, pas une absence : le serveur pose toujours les deux
- * clés d'écoute quand la lecture a réussi, et `0` veut dire « jamais jouée ».
- * Un test de vérité (`t.play_count ? … : null`) rendrait donc la cellule vide
- * pour toute piste jamais jouée, c'est-à-dire l'immense majorité de la
- * bibliothèque — la colonne aurait l'air en panne.
- *
- * Clé ABSENTE, en revanche, veut dire que la base a échoué côté serveur : il
- * refuse alors de poser un `0` qui mentirait. La cellule reste vide, et c'est
- * le bon message.
- */
-function nombreEcoutes(v: unknown): string | null {
-  if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) return null;
-  return String(Math.trunc(v));
-}
-
-/**
- * La date de dernière écoute, ou `null`. Horodatage ISO en entrée (#824).
- *
- * `last_played_at` vaut `null` pour une piste jamais jouée — mesuré. On ne
- * remplace pas ce `null` par « jamais » : la colonne « # écoutes » d'à côté
- * porte déjà le `0`, et deux façons de dire la même chose sur une même ligne
- * se contrediraient au premier bogue.
- */
-function dateEcoute(iso: unknown): string | null {
-  if (typeof iso !== 'string' || iso.trim() === '') return null;
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
-}
-
 export function valeurColonne(t: Track, cle: CleColonne): string | null {
   const texte = (v: unknown): string | null => {
     const s = v == null ? '' : String(v).trim();
@@ -383,6 +400,21 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
     // `file_mtime` est un horodatage UNIX en SECONDES (1777546399.0 mesuré) :
     // le passer tel quel à `Date` donnerait 1970.
     case 'modified':     return dateFichier((t as any).file_mtime);
+    // 🔴 CES DEUX LIGNES SONT CELLES DE #826, mot pour mot.
+    //
+    // Ce lot en portait deux autres, écrites en parallèle et équivalentes à la
+    // sortie près : `nombreEcoutes` et `dateEcoute`, avec leurs propres gardes
+    // de type. Deux implémentations d'un même champ finissent toujours par
+    // diverger ; #826 est arrivée la première dans `main`, elle reste. Les
+    // témoins du présent lot deviennent des gardes SUR ELLE — ils la couvrent
+    // plus largement qu'elle ne se couvrait (`play_count` à 0, clé absente,
+    // horodatage illisible).
+    case 'plays':      return texte((t as any).play_count);
+    // Creuse par nature : une piste jamais écoutée n'en a pas. `texte` rend
+    // une chaîne vide, ce qui se lit « jamais » sans rien inventer.
+    case 'lastPlayed': return dateFichier(
+      (t as any).last_played_at ? Date.parse((t as any).last_played_at) / 1000 : null,
+    );
     /**
      * 🔴 Le Dynamic Range passe par `afficherDynamicRange`, et pas par
      * `texte()`.
@@ -399,8 +431,6 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
      * casserait. Une seule fonction, éprouvée, pour les deux écrans.
      */
     case 'dr':       return afficherDynamicRange(t)?.texte ?? null;
-    case 'plays':      return nombreEcoutes(t.play_count);
-    case 'lastPlayed': return dateEcoute(t.last_played_at);
     case 'quality':  return null;
   }
 }

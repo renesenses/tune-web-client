@@ -42,8 +42,42 @@ export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
       cover_path: e.cover_url ?? null,
     } as Track,
     playedAt: e.listened_at,
+    zoneId: e.zone_id ?? null,
     zoneName: `Zone ${e.zone_id ?? '?'}`,
   }));
+}
+
+/**
+ * Le NOM de la zone où l'écoute a eu lieu.
+ *
+ * FabienM, fil forum 1739, point 8 : « Menu historique : il manque
+ * l'information de la zone jouée pour chaque titre dans la V1. Dans
+ * l'interface actuelle la zone apparaît. »
+ *
+ * Deux choses manquaient, pas une :
+ *
+ *  1. L'écran v2 ne rendait PAS `zoneName` — `HistoryView.svelte:149` l'affiche
+ *     depuis toujours, `HistoriqueV2` l'avait perdu au portage.
+ *  2. `entreesDepuisServeur` fabriquait « Zone 3 » à partir du seul numéro,
+ *     parce que le serveur ne rend que `zone_id`. Afficher « Zone 3 » quand la
+ *     zone s'appelle « Salon » ne répond pas à la question posée.
+ *
+ * On résout donc le numéro contre les zones connues, et on ne retombe sur le
+ * libellé fabriqué que si la zone a disparu depuis (renommée, supprimée) :
+ * mieux vaut « Zone 3 » qu'une ligne muette, mais c'est le dernier recours.
+ */
+export function nomDeZone(
+  entree: { zoneId?: number | null; zoneName?: string },
+  zones: readonly { id?: number | null; name?: string | null }[],
+): string {
+  const id = entree.zoneId ?? null;
+  if (id != null) {
+    const z = zones.find((x) => x.id === id);
+    if (z?.name) return z.name;
+  }
+  // Une écoute locale porte déjà le vrai nom : c'est le client qui l'a écrit
+  // au moment de lancer la lecture (`playbackHistory.add`).
+  return entree.zoneName ?? '';
 }
 
 /**

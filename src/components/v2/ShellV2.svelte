@@ -604,7 +604,16 @@
      1990 px : zone principale 1754 px, ecran Bibliotheque 1139 px — 615 px
      perdus a droite. `:global` parce que l'ecran est un composant enfant :
      le style scope de la coquille ne l'atteindrait pas. */
-  .main{min-width:0; overflow:hidden; display:flex}
+  /* 🔴 `position:relative` — SANS LUI LA FICHE D'ALBUM MANGE LE LECTEUR.
+     Sandro, fil forum 1740, 09/09/2026 : « À l'ouverture de l'album, la barre
+     de lecture située en bas de l'écran disparaît complètement. »
+
+     `AlbumDetailV2` (et les autres calques d'écran) posent
+     `position:absolute; inset:0`. Sans ancêtre positionné ici, ce `inset:0`
+     remontait jusqu'à `.v2-shell` — la coquille ENTIÈRE — et recouvrait donc
+     `<TransportBar />`, qui est pourtant son FRÈRE dans la mise en page.
+     Le calque est désormais borné à la zone de contenu, et la barre reste. */
+  .main{min-width:0; overflow:hidden; display:flex; position:relative}
 
   /* ---- PETIT ÉCRAN ----------------------------------------------------
      La rangée n'a plus qu'UNE colonne : la barre latérale est passée en

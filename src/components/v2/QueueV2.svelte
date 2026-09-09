@@ -18,7 +18,8 @@
    */
   import * as api from '../../lib/api';
   import { t as tr } from '../../lib/i18n';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
+  import { notifications } from '../../lib/stores/notifications';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
@@ -51,6 +52,48 @@
     }
     loading = false;
   }
+  /**
+   * AUTOPLAY — jamais porté dans la nouvelle interface.
+   *
+   * Sandro, fil forum 1740, 09/09/2026 : « L'option d'Autoplay (la lecture
+   * automatique basée sur l'artiste que l'on écoute) a disparu. […] Cette
+   * absence concerne à la fois la bibliothèque locale et Qobuz. »
+   *
+   * Rien n'était à écrire côté serveur : le réglage vit sur la ZONE
+   * (`autoplay_enabled`), le sondeur le lit pour rallonger la file, et la
+   * route existe (`api.updateZoneAutoplay`). Seul l'écran manquait —
+   * `QueueView.svelte` le porte depuis toujours, `QueueV2` ne l'avait pas.
+   *
+   * 🔴 Sandro avait DÉJÀ demandé où trouver ce réglage sur le forum, deux
+   * fois, le 08/08/2026, sans réponse : à l'époque la bascule n'écrivait que
+   * dans `localStorage` et le serveur n'en entendait jamais parler. Le
+   * correctif d'alors a rendu le réglage réel ; il reste opt-in (migration 46
+   * l'a coupé pour tout le monde par construction). Le perdre au portage le
+   * lui a fait disparaître une seconde fois.
+   *
+   * On lit la zone dans le magasin plutôt que de la recevoir en propriété :
+   * `PATCH` rend la zone à jour, `syncZone` la repose, et toutes les vues
+   * suivent sans relecture.
+   */
+  const zoneCourante = $derived($zones.find((z) => z.id === $currentZoneId) ?? null);
+  const autoplayActif = $derived(zoneCourante?.autoplay_enabled === true);
+  let autoplayOccupe = $state(false);
+
+  async function basculerAutoplay() {
+    const z = zoneCourante;
+    if (!z?.id || autoplayOccupe) return;
+    const suivant = !autoplayActif;
+    autoplayOccupe = true;
+    try {
+      syncZone(await api.updateZoneAutoplay(z.id, suivant));
+      notifications.success($tr(suivant ? 'queue.autoplayOn' : 'queue.autoplayOff'));
+    } catch {
+      notifications.error($tr('queue.autoplayFailed'));
+    } finally {
+      autoplayOccupe = false;
+    }
+  }
+
   // Se relance sur changement de zone : chaque zone a SA file.
   $effect(() => { void $currentZoneId; loading = true; reload(); });
 
@@ -97,15 +140,26 @@
       <div class="v2-eyebrow">{$tr('v2.lbl.currentZone' as any)}</div>
       <h1>{$tr('nav.queue' as any)}</h1>
     </div>
-    {#if tracks.length}
-      <div class="v2-actions">
+    <div class="v2-actions">
+      {#if tracks.length}
         <div class="meta">
           <span>{upNext.length} à suivre</span>
           {#if remainingMs}<span>{formatDuration(remainingMs)} restantes</span>{/if}
         </div>
+      {/if}
+      <!-- 🔴 HORS du `{#if tracks.length}` : c'est précisément quand la file se
+           vide que l'Autoplay compte, et le cacher là le rendrait introuvable
+           au moment où on le cherche. -->
+      <button class="v2-btn" class:primaire={autoplayActif} onclick={basculerAutoplay}
+              disabled={autoplayOccupe || !zoneCourante} aria-pressed={autoplayActif}
+              title={$tr('queue.autoplayTip' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+        {$tr('queue.autoplayLabel' as any)}
+      </button>
+      {#if tracks.length}
         <button class="v2-btn danger" onclick={clear} disabled={busy}>{$tr('v2.queue.clear' as any)}</button>
-      </div>
-    {/if}
+      {/if}
+    </div>
   </header>
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
