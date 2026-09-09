@@ -243,6 +243,17 @@ export interface ApiError extends Error {
   status?: number;
   /** Secondes avant nouvelle tentative, sur un 429 qui l'annonce (#2178). */
   retryAfter?: number;
+  /**
+   * Cette couche a DÉJÀ posé un bandeau pour cet échec.
+   *
+   * `fetchJSON` traduit lui-même quelques refus de lecture nommés
+   * (`file_not_found`, `zone_no_output_device`) parce que ses appelants
+   * historiques ne les attendaient pas. Depuis #3732, les appels de lecture de
+   * la coquille v2 posent le leur : sans ce drapeau, le même échec produirait
+   * DEUX bandeaux empilés — le silence remplacé par du bruit, ce qui serait un
+   * autre défaut.
+   */
+  dejaAnnonce?: boolean;
 }
 
 async function apiError(response: Response): Promise<ApiError> {
@@ -363,7 +374,11 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       // swallow (they fire play/next/resume without awaiting): a missing local
       // file or a zone with no output device. Localised so it matches the UI.
       const key = err.code ? PLAY_ERROR_KEYS[err.code] : undefined;
-      if (key) notifications.error(get(t)(key as any));
+      if (key) {
+        notifications.error(get(t)(key as any));
+        // Dit à l'appelant que c'est fait : voir `ApiError.dejaAnnonce`.
+        err.dejaAnnonce = true;
+      }
     }
     throw err;
   }

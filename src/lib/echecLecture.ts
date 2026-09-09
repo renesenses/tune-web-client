@@ -63,9 +63,13 @@ export function texteEchec(e: unknown): string {
  * qui sans cela ne laisse AUCUNE trace, ni à l'écran ni au journal.
  */
 export function signalerEchecLecture(e: unknown): void {
+  console.error('Play error:', e);
+  // La couche API traduit elle-même quelques refus nommés (`file_not_found`,
+  // `zone_no_output_device`) et pose son propre bandeau. En poser un second
+  // empilerait deux messages pour un seul échec.
+  if ((e as { dejaAnnonce?: boolean } | null)?.dejaAnnonce === true) return;
   const detail = texteEchec(e);
   const prefixe = get(t)('library.playbackError');
-  console.error('Play error:', e);
   notifications.error(detail ? `${prefixe} : ${detail}` : prefixe, DUREE_ECHEC_MS);
 }
 

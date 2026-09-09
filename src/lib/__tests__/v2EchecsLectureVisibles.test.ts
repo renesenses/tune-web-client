@@ -216,6 +216,30 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     ).toContain('no tracks to play');
   });
 
+  it('un refus que la couche API traduit déjà ne pose QU’UN bandeau', async () => {
+    // `fetchJSON` traduit lui-même `file_not_found` et `zone_no_output_device`
+    // et pose son propre bandeau, parce que ses appelants historiques
+    // n'attendaient pas leur promesse. Maintenant que les appels de lecture
+    // posent le leur, le même échec en produirait DEUX, empilés. Le silence
+    // remplacé par du bruit serait un autre défaut.
+    refusDePlay = { status: 400, corps: { error: 'zone_no_output_device', detail: 'zone has no output' } };
+    const el = poserLaCoquille();
+    await respirer();
+    flushSync();
+
+    const lire = el.querySelector('button.centre') as HTMLButtonElement | null;
+    expect(lire, 'le bouton Lire de la pochette n’est pas rendu — témoin sans objet').not.toBeNull();
+    lire!.click();
+    await respirer();
+    flushSync();
+
+    const vus = bandeauxErreur();
+    expect(vus.length, `deux bandeaux pour un seul échec : ${vus.join(' | ')}`).toBe(1);
+    // Et c'est le message TRADUIT qui reste, pas le terme brut du serveur.
+    expect(vus[0]).not.toContain('zone_no_output_device');
+    expect(vus[0].length, 'le bandeau restant est vide').toBeGreaterThan(10);
+  });
+
   it('un `zone.playback_error` FATAL s’écrit à l’écran, en nommant l’appareil ET les disponibles', async () => {
     // Canal 2, et le cas de terrain exact. La charge utile est celle que le
     // serveur pousse réellement (`poller.rs`), y compris `fatal: true`.
