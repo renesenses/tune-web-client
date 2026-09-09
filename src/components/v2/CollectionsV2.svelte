@@ -147,6 +147,25 @@
   let enEdition = $state<Entree | null>(null);
 
   /**
+   * Ouvrir l'édition d'une collection, quelle que soit sa sorte.
+   *
+   * Bertrand, 09/09/2026 : « Manque le bouton d'édition d'une collection » —
+   * copie d'écran de la fiche d'une intelligente. L'édition n'existait que sur
+   * la VIGNETTE de la liste (`PochetteActions`) : une fois la collection
+   * ouverte, il n'y avait plus aucun chemin vers ses règles, et il fallait
+   * revenir en arrière pour le retrouver.
+   *
+   * Les deux sortes n'ouvrent pas la même chose — l'intelligente ouvre son
+   * éditeur de règles, la manuelle son renommage — et c'est précisément
+   * pourquoi la bifurcation vit ICI, appelée par la liste ET par la fiche, au
+   * lieu d'être recopiée aux deux endroits.
+   */
+  function editerCollection(e: Entree) {
+    if (e.sorte === 'smart') editeurSmart = { id: e.id };
+    else enEdition = e;
+  }
+
+  /**
    * Lecture d'une collection entière.
    *
    * Il n'existe pas de route « lire la collection » : on lit ses albums, puis
@@ -313,6 +332,27 @@
       }
     }
     entrees = liste;
+
+    /**
+     * La FICHE ouverte suit le rechargement.
+     *
+     * `ouverte` porte une COPIE de l'entrée, faite au moment du clic. Tant que
+     * l'édition ne vivait que sur la vignette de la liste, cela suffisait : on
+     * n'était jamais sur la fiche en éditant. Depuis que le bouton d'édition
+     * est aussi sur la fiche (09/09/2026), renommer une collection y laissait
+     * l'ancien nom affiché jusqu'à ce qu'on ressorte et revienne.
+     *
+     * On la retrouve par sorte ET par identifiant : les deux espaces d'ids se
+     * recouvrent — l'id 1 est à la fois la collection « favorites » et
+     * l'intelligente « Audiophile ». Chercher par id seul rouvrirait l'autre.
+     *
+     * Disparue du serveur (supprimée ailleurs) : on referme la fiche plutôt
+     * que d'y laisser une collection qui n'existe plus.
+     */
+    if (ouverte) {
+      ouverte = liste.find((x) => x.sorte === ouverte!.sorte && x.id === ouverte!.id) ?? null;
+    }
+
     chargement = false;
 
     // Repli : le serveur ne rend pas encore `covers`. On va les chercher, mais
@@ -443,6 +483,14 @@
           disabled={masseEnCours || !albums.length} title={$t('collections.shuffleAll' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('collections.shuffleAll' as any)}
         </button>
+        <!-- L'édition, ABSENTE de la fiche jusqu'au 09/09/2026 : elle ne vivait
+             que sur la vignette de la liste. Une fois la collection ouverte, ses
+             règles n'étaient plus atteignables. Même appel que la liste. -->
+        <button class="v2-btn" onclick={() => editerCollection(ouverte!)}
+          title={$t('v2.cover.edit' as any)} aria-label={$t('v2.cover.edit' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
+          {$t('v2.cover.edit' as any)}
+        </button>
       </div>
     </header>
 
@@ -565,9 +613,7 @@
               <PochetteActions
                 favori={e.sorte === 'smart' ? { smartCollectionId: e.id } : { collectionId: e.id }}
                 etiquettes={{ itemType: e.sorte === 'smart' ? 'smart_collection' : 'collection', itemId: e.id }}
-                onEditer={e.sorte === 'normale'
-                  ? () => (enEdition = e)
-                  : () => (editeurSmart = { id: e.id })}
+                onEditer={() => editerCollection(e)}
                 onLire={() => lireCollection(e)}
                 onOuvrir={() => ouvrir(e)}
                 nom={e.nom}
