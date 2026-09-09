@@ -1,10 +1,12 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
+  import { formatAnneeAlbum } from '../lib/formats';
   import { dialogs } from '../lib/stores/dialogs';
   import { trierAlbumsParAnnee } from '../lib/trierAlbums';
   import { doitMemoriserPositionListe } from '../lib/libraryNavScroll';
   import { tip } from '../lib/tooltip';
-  import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
+  import { afficherDynamicRange } from '../lib/dynamicRange';
+  import { libraryTab, libraryLoading, albums, artists, tracks, selectedAlbum, albumTracks, albumTracksOwner, commencerFicheAlbum, poserPistesAlbum, ficheAlbumToujoursOuverte, fermerFicheAlbum, selectedArtist, artistAlbums, genres, yearFilter, type LibraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { preferences } from '../lib/stores/preferences';
   import { currentTrackId, seekPositionMs } from '../lib/stores/nowPlaying';
@@ -20,7 +22,7 @@
   import { bioDisplayText } from '../lib/library/bio';
   import { sectionHeads } from '../lib/library/grouping';
 import { observeHeight, observeWidth } from '../lib/actions/observeSize';
-import { formatTime, formatDuration, formatAlbumYear, fold } from '../lib/utils';
+import { formatTime, formatDuration,  fold } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
 import TrackContextMenu from './TrackContextMenu.svelte';
 import AlbumRating from './AlbumRating.svelte';
@@ -36,7 +38,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import { t as tr, locale } from '../lib/i18n';
   import { streamingServices, activeStreamingService, pendingStreamingAlbum } from '../lib/stores/streaming';
   import { get } from 'svelte/store';
-  import { activeView, pendingSearchQuery, pendingLibraryFolder } from '../lib/stores/navigation';
+  import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
+  import { libraryFolderScope } from '../lib/stores/library';
+  import {
+    listeARecharger, marquerListeChargee, viderListesHorsPortee, echecChargementPortee, nomDeDossier,
+    type ListePartagee,
+  } from '../lib/porteeBibliotheque';
   import { CANDIDATS_DEFILEMENT, conteneurDefilant } from '../lib/defilementReel';
   import { reculerAvecIntention } from '../lib/historiqueNavigation';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -537,6 +544,10 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       .catch(() => {})
       .finally(() => genreTreeLoaded = true);
     loadUserTags();
+    // Les DR réellement présents (#2144). Un échec ou un serveur antérieur à
+    // la v0.9.130 rend une liste vide : la commande n'est simplement pas
+    // dessinée, aucune erreur à l'écran.
+    api.getAlbumDynamicRanges().then(v => drValues = v).catch(() => {});
   });
   let formatFilter = $state<string | null>(null);
   let qualityFilter = $state<string | null>(null);
@@ -624,13 +635,23 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   });
 
   // Sort options
-  type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date';
+  type AlbumSortKey = 'title' | 'artist' | 'release_date' | 'original_year' | 'added_date' | 'dynamic_range' | 'random';
   const ALBUM_SORT_OPTIONS: { key: AlbumSortKey; label: string; defaultOrder: 'asc' | 'desc' }[] = [
     { key: 'title', label: 'library.sortTitle', defaultOrder: 'asc' },
     { key: 'artist', label: 'library.sortArtist', defaultOrder: 'asc' },
     { key: 'release_date', label: 'library.sortReleaseDate', defaultOrder: 'desc' },
     { key: 'original_year', label: 'library.sortOriginalYear', defaultOrder: 'desc' },
     { key: 'added_date', label: 'library.sortAddedDate', defaultOrder: 'desc' },
+    // Dynamic Range (#2144). Décroissant par défaut : on trie par DR pour
+    // remonter ses disques les PLUS dynamiques, pas les plus écrasés. Les
+    // albums sans tag sortent en dernier (`NULLS LAST` côté serveur) — les
+    // annoncer à DR0 serait un mensonge.
+    { key: 'dynamic_range', label: 'library.sortDynamicRange', defaultOrder: 'desc' },
+    // Tri aléatoire (#3074, Steve Taylor, fil 1635) : « sort by random and have
+    // something I have not played for years come out on top ». Redécouvrir sa
+    // propre bibliothèque, pas écouter — d'où un TRI, distinct du bouton
+    // « Play all shuffled » qui, lui, lance la lecture.
+    { key: 'random', label: 'library.sortRandom', defaultOrder: 'asc' },
   ];
   // Album sort lives in the server-synced preferences store (#1134) so the
   // chosen order follows the user across sessions/devices, not just this browser.
@@ -665,6 +686,47 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     // Persist through the preferences store (localStorage + server ui_preferences),
     // so the order is remembered per profile across devices (#1134).
     preferences.update(p => ({ ...p, albumSort: key, albumSortOrder: order }));
+    // Chaque passage AU tri aléatoire est un nouveau tirage : garder l'ancienne
+    // graine rendrait exactement la même grille, et le tri paraîtrait cassé.
+    if (key === 'random') albumRandomSeed = null;
+    albumsLoaded = false;
+    loadAlbums();
+  }
+
+  // Tranche de Dynamic Range (#2144), bornes INCLUSES et indépendantes.
+  //
+  // Le filtre part au SERVEUR (`dr_min`/`dr_max`) et non au client : la liste
+  // d'albums ne porte pas la valeur de DR, un filtrage local ne verrait donc
+  // rien. `drValues` liste ce qui existe réellement — vide sur une
+  // bibliothèque non taguée, et la commande n'est alors pas dessinée du tout
+  // plutôt que d'offrir un menu qui ne filtrerait rien.
+  // Graine du tri aléatoire (#3074). `null` = « tire-m'en une » : le serveur
+  // en fabrique une, la renvoie, et on la garde pour les pages suivantes —
+  // sinon chaque requête re-tire et la grille montre des albums en double tout
+  // en en cachant d'autres. Le bouton de re-tirage la remet simplement à
+  // `null`.
+  let albumRandomSeed = $state<number | null>(null);
+  function retirerAleatoire() {
+    albumRandomSeed = null;
+    albumsLoaded = false;
+    loadAlbums();
+  }
+
+  let albumDrMin = $state<number | null>(null);
+  let albumDrMax = $state<number | null>(null);
+  let drValues = $state<number[]>([]);
+  let drRange = $derived(
+    albumDrMin == null && albumDrMax == null ? undefined : { min: albumDrMin, max: albumDrMax },
+  );
+  function setAlbumDr(borne: 'min' | 'max', valeur: string) {
+    const n = valeur === '' ? null : Number(valeur);
+    if (borne === 'min') albumDrMin = n; else albumDrMax = n;
+    albumsLoaded = false;
+    loadAlbums();
+  }
+  function clearAlbumDr() {
+    if (albumDrMin == null && albumDrMax == null) return;
+    albumDrMin = null; albumDrMax = null;
     albumsLoaded = false;
     loadAlbums();
   }
@@ -1081,6 +1143,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
 
   // Alpha index for albums (years + months when sorted by date, letters otherwise)
   let albumIndexEntries = $derived.by(() => {
+    // Trié par DR, une bande de lettres A→Z ne désigne plus rien : elle
+    // sauterait à un titre au hasard dans une grille ordonnée par dynamique.
+    // Pas de repère plutôt qu'un faux repère — la liste d'albums ne porte pas
+    // la valeur de DR, on ne peut donc pas en dessiner un vrai ici.
+    if (albumSort === 'dynamic_range' || albumSort === 'random') return [];
     if (albumSort === 'release_date' || albumSort === 'original_year' || albumSort === 'added_date') {
       const keys = [...new Set(filteredAlbums.map(albumDateKey))];
       return albumSortOrder === 'desc' ? keys.sort((a, b) => b.localeCompare(a)) : keys.sort();
@@ -1307,20 +1374,39 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     yearScrollTop = (e.currentTarget as HTMLDivElement).scrollTop;
   }
 
-  let albumTotalDuration = $derived(
-    $albumTracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
+  /**
+   * Les pistes de la fiche AFFICHÉE — et rien d'autre.
+   *
+   * renesenses/tune-server-rust#3178 : `albumTracks` est un magasin partagé,
+   * écrit par sept écrans. Tant qu'on le lisait nu, la liste d'un album
+   * précédent pouvait se retrouver sous l'entête d'un autre — pleine,
+   * cohérente, et le compteur de l'entête la suivait, puisqu'il en dérive.
+   *
+   * La clé `albumTracksOwner` dit de quel album la liste porte les pistes. Si
+   * elle ne désigne pas l'album affiché, l'écran ne montre RIEN : un état vide
+   * qui le dit vaut mieux qu'une liste étrangère qui a l'air juste.
+   */
+  let pistesFiche = $derived(
+    $albumTracksOwner === ($selectedAlbum?.id ?? null) ? $albumTracks : []
   );
 
+  let albumTotalDuration = $derived(
+    pistesFiche.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
+  );
+
+  /** Le badge DR de la fiche, et ce qu'il doit dire de sa provenance (#1388). */
+  let drAffiche = $derived(afficherDynamicRange($selectedAlbum));
+
   let tracksByDisc = $derived.by(() => {
-    const map = new Map<number, typeof $albumTracks>();
+    const map = new Map<number, typeof pistesFiche>();
     const subtitles = new Map<number, string | null>();
-    for (const t of $albumTracks) {
+    for (const t of pistesFiche) {
       const disc = t.disc_number ?? 1;
       if (!map.has(disc)) map.set(disc, []);
       map.get(disc)!.push(t);
       if (t.disc_subtitle && !subtitles.has(disc)) subtitles.set(disc, t.disc_subtitle);
     }
-    return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([num, tracks]) => [num, tracks, subtitles.get(num) ?? null] as [number, typeof $albumTracks, string | null]);
+    return [...map.entries()].sort((a, b) => a[0] - b[0]).map(([num, tracks]) => [num, tracks, subtitles.get(num) ?? null] as [number, typeof pistesFiche, string | null]);
   });
 
   let hasMultipleDiscs = $derived(tracksByDisc.length > 1);
@@ -1399,32 +1485,42 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   let artistsLoaded = $state(false);
   let tracksLoaded = $state(false);
 
-  // --- Folder-scoped mode (from the Répertoires view's "View in library"
-  // button, pendingLibraryFolder). Scope Albums/Artists/Tracks/Genres to a
-  // folder + subfolders by deriving them client-side from that folder's tracks
-  // (/library/tracks?folder=), so no server change is needed. Genres follow for
-  // free (the genres store is derived from `albums`). Consumed once at init so
-  // the first tab load is already scoped.
-  function takePendingLibraryFolder(): string | null {
-    const pf = get(pendingLibraryFolder);
-    if (pf) { pendingLibraryFolder.set(null); return pf; }
-    return null;
-  }
-  let scopedFolder = $state<string | null>(takePendingLibraryFolder());
-  let scopedFolderName = $derived(scopedFolder ? (scopedFolder.split(/[/\\]/).filter(Boolean).pop() ?? scopedFolder) : '');
+  // --- Portée à un répertoire (bouton « Voir en bibliothèque » de l'écran
+  // Répertoires). UNE source de vérité : le magasin `libraryFolderScope`, lu
+  // ici par la pastille ET par les chargeurs, écrit par BrowseView et par la
+  // croix de la pastille. Ce n'est plus un dépôt « consommé une fois à
+  // l'initialisation » : posé pendant que l'écran était monté, ou lu à un
+  // remontage alors que le magasin `albums` était déjà plein, il laissait la
+  // bibliothèque ENTIÈRE sous une pastille qui annonçait un répertoire (Sevy
+  // Tabroc, forum 1637, renesenses/tune-server-rust#3101). Les onglets se
+  // dérivent côté client des pistes du dossier (/library/tracks?folder=) ; les
+  // genres suivent (le magasin `genres` dérive de `albums`).
+  let scopedFolder = $derived($libraryFolderScope);
+  let scopedFolderName = $derived(nomDeDossier(scopedFolder));
   let scopedTracksCache: Track[] | null = null;
 
-  async function ensureScopedTracks(): Promise<Track[]> {
+  async function ensureScopedTracks(portee: string): Promise<Track[]> {
     if (scopedTracksCache) return scopedTracksCache;
-    const res = await api.getFilteredTracks({ folder: scopedFolder!, limit: 5000 });
-    scopedTracksCache = res.items;
-    return scopedTracksCache;
+    const res = await api.getFilteredTracks({ folder: portee, limit: 5000 });
+    // La portée a changé pendant la requête : ce résultat ne se garde pas.
+    if (scopedFolder === portee) scopedTracksCache = res.items;
+    return res.items;
+  }
+  /** Le chargement de `liste` sous `portee` a échoué : la liste est VIDÉE et
+   *  l'utilisateur prévenu — l'ancienne liste (la bibliothèque entière) ne
+   *  reste plus à l'écran sous la pastille. Rien si la portée a changé entre
+   *  temps : le résultat ne concernait plus cet écran. */
+  function echecPortee(liste: ListePartagee, portee: string, e: unknown) {
+    console.error(`Load scoped ${liste} error:`, e);
+    if (scopedFolder !== portee) return;
+    echecChargementPortee(liste, portee);
+    notifications.error($tr('library.scopeLoadError').replace('{d}', nomDeDossier(portee)));
   }
 
-  async function loadScopedAlbums() {
+  async function loadScopedAlbums(portee: string) {
     libraryLoading.set(true);
     try {
-      const ts = await ensureScopedTracks();
+      const ts = await ensureScopedTracks(portee);
       const map = new Map<number, Album>();
       for (const t of ts) {
         if (t.album_id == null) continue;
@@ -1434,59 +1530,73 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           id: t.album_id, title: t.album_title ?? '',
           artist_id: t.artist_id ?? null, artist_name: t.album_artist ?? t.artist_name ?? '',
           year: t.year ?? null, genre: t.genre ?? null, cover_path: t.cover_path ?? null,
-          track_count: 1, format: t.format ?? null, sample_rate: t.sample_rate ?? null, bit_depth: t.bit_depth ?? null,
-        } as Album);
+          track_count: 1, format: t.format ?? null, sample_rate: t.sample_rate ?? null, bit_depth: t.bit_depth ?? null } as Album);
       }
-      albums.set([...map.values()].sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')));
-      albumsLoaded = true;
-    } catch (e) { console.error('Load scoped albums error:', e); albumsLoaded = true; }
+      if (scopedFolder === portee) {
+        albums.set([...map.values()].sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')));
+        marquerListeChargee('albums', portee);
+        albumsLoaded = true;
+      }
+    } catch (e) { echecPortee('albums', portee, e); albumsLoaded = true; }
     libraryLoading.set(false);
   }
 
-  async function loadScopedArtists() {
+  async function loadScopedArtists(portee: string) {
     libraryLoading.set(true);
     try {
-      const ts = await ensureScopedTracks();
+      const ts = await ensureScopedTracks(portee);
       const map = new Map<number, Artist>();
       for (const t of ts) {
         if (t.artist_id == null) continue;
         if (!map.has(t.artist_id)) map.set(t.artist_id, { id: t.artist_id, name: t.artist_name ?? t.album_artist ?? '', image_path: null } as Artist);
       }
-      artists.set([...map.values()].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')));
-      artistsLoaded = true;
-    } catch (e) { console.error('Load scoped artists error:', e); artistsLoaded = true; }
+      if (scopedFolder === portee) {
+        artists.set([...map.values()].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '')));
+        marquerListeChargee('artists', portee);
+        artistsLoaded = true;
+      }
+    } catch (e) { echecPortee('artists', portee, e); artistsLoaded = true; }
     libraryLoading.set(false);
   }
 
-  async function loadScopedTracks() {
+  async function loadScopedTracks(portee: string) {
     libraryLoading.set(true);
     try {
-      tracks.set(await ensureScopedTracks());
-      tracksLoaded = true;
-    } catch (e) { console.error('Load scoped tracks error:', e); tracksLoaded = true; }
+      const ts = await ensureScopedTracks(portee);
+      if (scopedFolder === portee) {
+        tracks.set(ts);
+        marquerListeChargee('tracks', portee);
+        tracksLoaded = true;
+      }
+    } catch (e) { echecPortee('tracks', portee, e); tracksLoaded = true; }
     libraryLoading.set(false);
   }
 
+  // La croix de la pastille. Le rechargement suit dans l'effet de chargement
+  // automatique, qui lit le magasin : une seule voie, quelle que soit l'origine
+  // du changement de portée.
   function clearFolderScope() {
-    scopedFolder = null;
-    scopedTracksCache = null;
-    albumsLoaded = false; artistsLoaded = false; tracksLoaded = false;
-    if ($libraryTab === 'artists') loadArtists();
-    else if ($libraryTab === 'tracks') loadTracks();
-    else loadAlbums();
+    libraryFolderScope.set(null);
   }
 
   async function loadAlbums() {
-    if (scopedFolder) { await loadScopedAlbums(); return; }
+    if (scopedFolder) { await loadScopedAlbums(scopedFolder); return; }
     libraryLoading.set(true);
     try {
-      const first = await api.getAllAlbums(100, albumSort, albumSortOrder, 1, 100);
-      albums.set(first);
+      const premier = await api.getAllAlbumsSeeded(100, albumSort, albumSortOrder, 1, 100, drRange, albumRandomSeed);
+      // Une portée posée pendant la requête : cette liste entière n'est plus
+      // celle de l'écran, le chargement scopé est déjà parti.
+      if (scopedFolder) { libraryLoading.set(false); return; }
+      // La graine du premier tirage vaut pour TOUTE la grille : on la retient
+      // avant la seconde requête, qui doit lire le même ordre.
+      if (albumSort === 'random' && premier.seed != null) albumRandomSeed = premier.seed;
+      albums.set(premier.albums);
+      marquerListeChargee('albums', null);
       albumsLoaded = true;
       libraryLoading.set(false);
-      if (first.length >= 100) {
-        const rest = await api.getAllAlbums(2000, albumSort, albumSortOrder);
-        albums.set(rest);
+      if (premier.albums.length >= 100) {
+        const reste = await api.getAllAlbumsSeeded(2000, albumSort, albumSortOrder, undefined, undefined, drRange, albumRandomSeed);
+        if (!scopedFolder) albums.set(reste.albums);
       }
     } catch (e) {
       console.error('Load albums error:', e);
@@ -1496,12 +1606,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   async function loadArtists() {
-    if (scopedFolder) { await loadScopedArtists(); return; }
+    if (scopedFolder) { await loadScopedArtists(scopedFolder); return; }
     libraryLoading.set(true);
     try {
       const result = await api.getAllArtists();
-      artists.set(result);
-      artistsLoaded = true;
+      if (!scopedFolder) {
+        artists.set(result);
+        marquerListeChargee('artists', null);
+        artistsLoaded = true;
+      }
     } catch (e) {
       console.error('Load artists error:', e);
       artistsLoaded = true;
@@ -1510,12 +1623,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   }
 
   async function loadTracks() {
-    if (scopedFolder) { await loadScopedTracks(); return; }
+    if (scopedFolder) { await loadScopedTracks(scopedFolder); return; }
     libraryLoading.set(true);
     try {
       const result = await api.getAllTracks();
-      tracks.set(result);
-      tracksLoaded = true;
+      if (!scopedFolder) {
+        tracks.set(result);
+        marquerListeChargee('tracks', null);
+        tracksLoaded = true;
+      }
     } catch (e) {
       console.error('Load tracks error:', e);
       tracksLoaded = true;
@@ -1540,6 +1656,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     showAlbumBio = false;
     // Album rating state now lives in <AlbumRating/>, which reloads itself when
     // its albumId prop changes.
+    //
+    // 🔴 AVANT toute requête : la liste de la fiche précédente tombe et la clé
+    // désigne le nouvel album (renesenses/tune-server-rust#3178). Sans cela,
+    // un aller-retour dont le chargement échouait laissait les pistes de
+    // l'album d'avant sous l'entête du nouveau — pleines, cohérentes, et le
+    // compteur de l'entête les suivait.
+    const idFiche = commencerFicheAlbum(album.id);
     libraryLoading.set(true);
     try {
       // The detail endpoint carries fields the grid listing cannot: the Dynamic
@@ -1560,8 +1683,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         api.getAlbum(album.id),
         api.getAlbumTracks(album.id, albumQualityFilter, albumFormatFilter),
       ]);
+      // Une autre fiche a été ouverte pendant la requête : ce résultat ne la
+      // concerne plus. Sans ce garde-fou, la réponse la plus LENTE gagnait, et
+      // c'est le second mécanisme par lequel une liste étrangère s'installe.
+      if (!ficheAlbumToujoursOuverte(idFiche)) { libraryLoading.set(false); return; }
       selectedAlbum.set(full);
-      albumTracks.set(result);
+      poserPistesAlbum(idFiche, result);
       // Pas de `pushState` ici : l'abonnement `selectedAlbum` d'App.svelte en a
       // DÉJÀ empilé une, et il en est la seule source de vérité. Empiler la
       // sienne en plus déposait deux entrées jumelles pour une seule
@@ -1572,8 +1699,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // Cette entrée-là omettait de surcroît `artistId`, que l'abonnement
       // reporte, lui — voir le cas « album ouvert depuis une fiche artiste ».
     } catch (e) {
+      // 🔴 LE chemin du défaut #3178. Ce `catch` posait le NOUVEL album sans
+      // toucher aux pistes de l'ANCIEN : l'entête changeait, la liste restait,
+      // et le compteur — qui en dérive — annonçait le nombre de l'autre album.
+      // La liste tombe désormais avec la requête, et l'échec est DIT.
       console.error('Load album tracks error:', e);
+      if (!ficheAlbumToujoursOuverte(idFiche)) { libraryLoading.set(false); return; }
       selectedAlbum.set(album);
+      poserPistesAlbum(idFiche, []);
+      notifications.error($tr('library.albumTracksLoadError'));
     }
     libraryLoading.set(false);
   }
@@ -1878,8 +2012,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // reveillent les souscriptions d'App.svelte, lesquelles reecrivaient
       // l'entree de la fiche juste avant de reculer.
       reculerAvecIntention(() => {
-        selectedAlbum.set(null);
-        albumTracks.set([]);
+        fermerFicheAlbum();
       });
       return;
     }
@@ -1888,9 +2021,8 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     const wasArtistTab = $libraryTab === 'artists';
     restoringScroll = restoreAlbumScroll > 0;
     reculerAvecIntention(() => {
-      selectedAlbum.set(null);
+      fermerFicheAlbum();
       selectedArtist.set(null);
-      albumTracks.set([]);
       artistAlbums.set([]);
       streamingArtistAlbums = [];
       artistMetadata = null;
@@ -2036,7 +2168,20 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           [trackIds[i], trackIds[j]] = [trackIds[j], trackIds[i]];
         }
       }
-      await api.play(zone.id, { track_ids: trackIds });
+      // On ANNONCE l'artiste. Une discographie part en liste nue de
+      // `track_ids`, que rien ne distingue d'une sélection quelconque : le
+      // serveur ne peut pas la deviner, il enregistrait donc un contexte vide
+      // et l'écoute retombait dans le repli « albums » de « Continuer
+      // l'écoute ». C'est la règle de FabienM — le type dépend de l'endroit où
+      // l'on a cliqué sur Lire — et le serveur l'attendait depuis #2441 sans
+      // qu'aucun client la prenne (#2442).
+      const artisteId = $selectedArtist?.id;
+      await api.play(zone.id, {
+        track_ids: trackIds,
+        ...(artisteId != null
+          ? { context_type: 'artist' as const, context_id: String(artisteId) }
+          : {}),
+      });
       notifications.success($tr('library.shufflePlaying').replace('{count}', String(trackIds.length)));
     } catch (e) {
       console.error('Play artist library error:', e);
@@ -2145,12 +2290,34 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
   }
 
+  /**
+   * « Lecture aleatoire » de l'album ouvert — #1947.
+   *
+   * Le tirage est le SERVEUR qui le fait : `album_id` figurait deja dans la
+   * signature de `api.shuffleAll` et dans la route, sans aucun appelant. On ne
+   * melange donc rien ici, et surtout on n'arme pas le drapeau `shuffle` de la
+   * zone — c'est une ACTION, pas une bascule (garde d'affordance, #2261).
+   */
+  async function lireAlbumAleatoire() {
+    if (!zone?.id) {
+      notifications.error($tr('library.noZoneSelected'));
+      return;
+    }
+    const id = $selectedAlbum?.id;
+    if (id == null) return;
+    try {
+      const r = await api.shuffleAll(zone.id, { album_id: id });
+      notifications.success($tr('library.shufflePlaying').replace('{count}', String(r.track_count)));
+    } catch (e) {
+      notifications.error($tr('library.playbackError') + ' : ' + (e instanceof Error ? e.message : String(e)));
+    }
+  }
   async function playAlbumDetail() {
     if (!zone?.id) {
       notifications.error($tr('library.noZoneSelected'));
       return;
     }
-    const ids = $albumTracks.map(t => t.id).filter(Boolean) as number[];
+    const ids = pistesFiche.map(t => t.id).filter(Boolean) as number[];
     if (ids.length > 0) {
       try {
         await playAndSync(zone.id, { track_ids: ids });
@@ -2205,9 +2372,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       return;
     }
     try {
-      const idx = $albumTracks.findIndex(t => t.id === trackId);
+      const idx = pistesFiche.findIndex(t => t.id === trackId);
       if (idx >= 0) {
-        const ids = $albumTracks.slice(idx).map(t => t.id).filter(Boolean) as number[];
+        const ids = pistesFiche.slice(idx).map(t => t.id).filter(Boolean) as number[];
         await playAndSync(zone.id, { track_ids: ids });
       } else {
         await playAndSync(zone.id, { track_id: trackId });
@@ -2309,15 +2476,32 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     });
   });
 
-  // Auto-load on tab switch
+  // Chargement automatique : au changement d'onglet ET au changement de
+  // portée. `porteeVue` est la portée sous laquelle CET écran a posé ses
+  // drapeaux `*Loaded` : si elle change — dépôt depuis Répertoires pendant
+  // que l'écran est monté, croix de la pastille, clic latéral —, tout est à
+  // recharger, et ce qui a été rempli sous l'autre portée est vidé sur-le-champ.
+  //
+  // 🔴 Et une liste déjà pleine ne dispense de rien si elle a été remplie sous
+  // une AUTRE portée (`listeARecharger`). C'était le trou : « `$albums.length
+  // === 0` » tenait un magasin rempli par une visite précédente pour « déjà
+  // chargé », et la bibliothèque entière restait à l'écran sous la pastille
+  // du répertoire (renesenses/tune-server-rust#3101).
+  let porteeVue: string | null | undefined;
   $effect(() => {
     const tab = $libraryTab;
+    const portee = $libraryFolderScope;
     untrack(() => {
-      if (tab === 'albums' && !albumsLoaded && $albums.length === 0) loadAlbums();
-      if (tab === 'artists' && !artistsLoaded && $artists.length === 0) loadArtists();
-      if (tab === 'tracks' && !tracksLoaded && $tracks.length === 0) loadTracks();
-      if (tab === 'genres' && !albumsLoaded && $albums.length === 0) loadAlbums();
-      if (tab === 'years' && !albumsLoaded && $albums.length === 0) loadAlbums();
+      if (portee !== porteeVue) {
+        porteeVue = portee;
+        scopedTracksCache = null;
+        albumsLoaded = false; artistsLoaded = false; tracksLoaded = false;
+        viderListesHorsPortee(portee);
+      }
+      const albumsARecharger = !albumsLoaded && listeARecharger('albums', portee, $albums.length);
+      if ((tab === 'albums' || tab === 'genres' || tab === 'years') && albumsARecharger) loadAlbums();
+      if (tab === 'artists' && !artistsLoaded && listeARecharger('artists', portee, $artists.length)) loadArtists();
+      if (tab === 'tracks' && !tracksLoaded && listeARecharger('tracks', portee, $tracks.length)) loadTracks();
       if (tab === 'labels' && !labelsLoaded) loadLabels();
     });
   });
@@ -2397,13 +2581,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           {/if}
           <div class="detail-meta">
             {#if $selectedAlbum.year || $selectedAlbum.original_year}
-              <span>{formatAlbumYear($selectedAlbum)}</span>
+              <span>{$formatAnneeAlbum($selectedAlbum)}</span>
             {/if}
             {#if $selectedAlbum.genre}
               <span>{$selectedAlbum.genre.split(/[;\/\\]/).map(g => g.trim()).filter(Boolean).join(', ')}</span>
             {/if}
-            {#if $albumTracks.length > 0}
-              <span>{$albumTracks.length} {$tr('common.tracks')}</span>
+            {#if pistesFiche.length > 0}
+              <span>{pistesFiche.length} {$tr('common.tracks')}</span>
             {/if}
             {#if albumTotalDuration > 0}
               <span>{formatDuration(albumTotalDuration)}</span>
@@ -2411,9 +2595,14 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <!-- Dynamic Range, quand les fichiers portent le tag (#303, #1418).
                  Rien n'est affiché sinon : la plupart des bibliothèques ne sont
                  pas taguées, et une mention vide sur chaque album serait pire
-                 que l'absence. -->
-            {#if $selectedAlbum.dynamic_range}
-              <span class="dr-badge" use:tip={'library.dynamicRangeTip'}>DR {$selectedAlbum.dynamic_range}</span>
+                 que l'absence.
+                 #1388 : la valeur DIT désormais d'où elle sort. Une mesure
+                 d'album reste `DR 12` ; une moyenne des pistes s'écrit
+                 `DR ~12`, souligné en pointillés, et porte sa propre
+                 infobulle. Même valeur, provenance différente — la règle et
+                 son pourquoi sont dans `lib/dynamicRange.ts`. -->
+            {#if drAffiche}
+              <span class="dr-badge" class:dr-deduit={drAffiche.deduit} use:tip={drAffiche.cleInfobulle}>DR {drAffiche.texte}</span>
             {/if}
           </div>
           {#if $selectedAlbum.source && $selectedAlbum.source !== 'local'}
@@ -2422,6 +2611,15 @@ import CollapsibleSection from './CollapsibleSection.svelte';
           <div class="detail-actions">
             <button class="play-all-btn" onclick={() => playAlbumDetail()} title={$tr('library.playAlbum')}>
               <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8 5v14l11-7z" /></svg>
+            </button>
+            <!-- #1947 : la fiche d'album n'avait pas de « lecture aleatoire ».
+                 Le bouton de l'en-tete de la Bibliotheque est enferme dans
+                 `{#if !$selectedAlbum && !$selectedArtist}` : des qu'un album
+                 est ouvert, il disparait. -->
+            <button class="play-all-btn shuffle-album-btn" onclick={() => lireAlbumAleatoire()}
+              disabled={$selectedAlbum?.id == null}
+              title={$tr('library.shuffle')} aria-label={$tr('library.shuffle')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
             </button>
             <button
               class="queue-album-btn"
@@ -2604,7 +2802,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                   </button>
                 {/if}
                 <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-              <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere($albumTracks, $albumTracks.indexOf(t)); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+              <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(pistesFiche, pistesFiche.indexOf(t)); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
               </button>
               <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title={$tr('library.playNext')}>
@@ -2629,6 +2827,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                       onClose={closeTrackMenu}
                       onPlay={() => t.id && playTrack(t.id)}
                       onAddToQueue={() => addTrackToQueue(t)}
+                      onPlayNext={() => playNext(t)}
                       onPlaySimilar={() => playSimilar(t)}
                       onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                       onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
@@ -2716,7 +2915,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
         {/each}
       {:else}
         <div class="track-list">
-          {#each $albumTracks as t, index}
+          {#each pistesFiche as t, index}
             {#if t.id != null && groupingHeads.has(t.id)}
               <div class="grouping-header">{groupingHeads.get(t.id)}</div>
             {/if}
@@ -2748,7 +2947,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 </button>
               {/if}
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>
-              <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere($albumTracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+              <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(pistesFiche, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
               </button>
               <button class="play-next-btn" onclick={(e) => { e.stopPropagation(); playNext(t); }} title={$tr('library.playNext')}>
@@ -2773,6 +2972,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onClose={closeTrackMenu}
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
+                    onPlayNext={() => playNext(t)}
                       onPlaySimilar={() => playSimilar(t)}
                       onOtherVersions={t.id ? () => toggleTrackVersions(t.id!) : undefined}
                     onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
@@ -3095,7 +3295,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" onclick={() => selectAlbumDetail(album)}>
               <div class="album-card-art">
-                <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
@@ -3109,7 +3309,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               </div>
               <span class="album-card-title truncate" title={album.title}>{album.title}</span>
               {#if album.year || album.original_year}
-                <span class="album-card-year">{formatAlbumYear(album)}</span>
+                <span class="album-card-year">{$formatAnneeAlbum(album)}</span>
               {/if}
             </div>
           {/each}
@@ -3307,6 +3507,34 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             {/if}
           </button>
         {/if}
+        <!-- Tranche de Dynamic Range (#2144). Dessinée SEULEMENT si la
+             bibliothèque porte des tags DR : ailleurs, ce serait une commande
+             qui ne filtre rien. Deux bornes indépendantes — « DR12 et
+             au-dessus » se règle en ne touchant qu'au minimum. -->
+        {#if drValues.length > 0}
+          <span class="filter-sep">|</span>
+          <span class="dr-range" class:active={albumDrMin != null || albumDrMax != null}>
+            <span class="dr-label">{$tr('library.drRange')}</span>
+            <select class="dr-select" aria-label={$tr('library.drMin')} title={$tr('library.drMin')}
+              value={albumDrMin == null ? '' : String(albumDrMin)}
+              onchange={(e) => setAlbumDr('min', (e.currentTarget as HTMLSelectElement).value)}>
+              <option value="">{$tr('library.drAny')}</option>
+              {#each drValues as v}<option value={String(v)}>{v}</option>{/each}
+            </select>
+            <span class="dr-dash">–</span>
+            <select class="dr-select" aria-label={$tr('library.drMax')} title={$tr('library.drMax')}
+              value={albumDrMax == null ? '' : String(albumDrMax)}
+              onchange={(e) => setAlbumDr('max', (e.currentTarget as HTMLSelectElement).value)}>
+              <option value="">{$tr('library.drAny')}</option>
+              {#each drValues as v}<option value={String(v)}>{v}</option>{/each}
+            </select>
+            {#if albumDrMin != null || albumDrMax != null}
+              <button class="dr-clear" onclick={clearAlbumDr} title={$tr('library.drClear')} aria-label={$tr('library.drClear')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="10" height="10"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            {/if}
+          </span>
+        {/if}
         <span class="filter-sep">|</span>
         <span class="sort-control">
           <svg class="sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M3 6h18M3 12h12M3 18h6" /></svg>
@@ -3315,13 +3543,23 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <option value={opt.key}>{$tr(opt.label)}</option>
             {/each}
           </select>
-          <button class="sort-order-btn" onclick={() => { albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_album_sort_order', albumSortOrder); loadAlbums(); }} title={albumSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}>
-            {#if albumSortOrder === 'asc'}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
-            {:else}
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>
-            {/if}
-          </button>
+          <!-- Tri aléatoire : croissant/décroissant ne veut plus rien dire, et
+               retourner un tirage n'est pas le re-tirer. La flèche cède donc la
+               place au bouton de re-tirage demandé au fil 1635 — qui n'est rien
+               d'autre que « redemander sans graine ». -->
+          {#if albumSort === 'random'}
+            <button class="sort-order-btn" onclick={retirerAleatoire} title={$tr('library.reshuffle')} aria-label={$tr('library.reshuffle')}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+            </button>
+          {:else}
+            <button class="sort-order-btn" onclick={() => { albumSortOrder = albumSortOrder === 'asc' ? 'desc' : 'asc'; localStorage.setItem('tune_album_sort_order', albumSortOrder); loadAlbums(); }} title={albumSortOrder === 'asc' ? $tr('library.ascending') : $tr('library.descending')}>
+              {#if albumSortOrder === 'asc'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="18 15 12 9 6 15" /></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9" /></svg>
+              {/if}
+            </button>
+          {/if}
           <!-- Mur de pochettes : pochettes seules, grille plus dense. On choisit
                un album de mémoire visuelle, et le texte court-circuite ce
                mécanisme (demande Alex Campbell). -->
@@ -3365,7 +3603,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 <div class="album-card" class:album-card-wall={albumWall} onclick={() => selectAlbumDetail(album)}
                      title={albumWall ? album.title + (album.artist_name ? " — " + album.artist_name : "") : undefined}>
                   <div class="album-card-art">
-                    <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                    <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                     <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                       <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                     </button>
@@ -3535,6 +3773,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     onClose={closeTrackMenu}
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
+                    onPlayNext={() => playNext(t)}
                     onPlaySimilar={() => playSimilar(t)}
                     onAddToPlaylist={onAddToPlaylist ? () => onAddToPlaylist!(t) : undefined}
                     onGoToArtist={t.artist_id != null && t.artist_name
@@ -3622,7 +3861,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" onclick={() => selectAlbumDetail(album)}>
               <div class="album-card-art">
-                <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                 <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                   <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                 </button>
@@ -3747,7 +3986,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <div class="album-card" onclick={() => selectAlbumDetail({ id: a.album_id, title: a.title ?? '', cover_path: a.cover_path } as any)}>
                 <div class="album-card-art">
                   {#if a.cover_path}
-                    <img class="album-cover-img" src={api.artworkUrl(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
+                    <img class="album-cover-img" src={api.artworkSrc(a.cover_path, 200)} alt={a.title ?? ''} loading="lazy" />
                   {/if}
                   <button class="play-overlay" onclick={(e) => { e.stopPropagation(); playAlbum(a.album_id); }} title={$tr('library.playAlbum')}>
                     <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
@@ -3819,7 +4058,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                     <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <div class="album-card" onclick={() => selectAlbumDetail(album)}>
                       <div class="album-card-art">
-                        <img class="album-cover-img" src={api.artworkUrl(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
+                        <img class="album-cover-img" src={api.artworkSrc(album.cover_path, 200)} alt={album.title} loading="lazy" onerror={(e) => (e.target as HTMLImageElement).style.display='none'} />
                         <button class="play-overlay" onclick={(e) => { e.stopPropagation(); album.id && playAlbum(album.id); }} title={$tr('library.playAlbum')}>
                           <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                         </button>
@@ -4415,6 +4654,17 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     opacity: 0.5;
   }
 
+  /* #1388 : un DR DÉDUIT de la moyenne des pistes porte, en plus de son tilde,
+     un soulignement pointillé — la convention de « valeur approchée, une
+     explication au survol ». Tracé en `currentColor`, il suit la couleur du
+     texte et reste donc lisible dans les deux thèmes sans jeton dédié. Une
+     mesure d'album, elle, garde exactement le badge d'avant. */
+  .dr-badge.dr-deduit {
+    text-decoration: underline dotted currentColor;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
   .source-badge {
     display: inline-block;
     font-family: var(--font-label);
@@ -4770,6 +5020,48 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     color: var(--tune-text-muted);
     flex-shrink: 0;
   }
+
+  /* Tranche de Dynamic Range (#2144). Mêmes jetons que le tri voisin : la
+     commande appartient à la même barre, elle ne doit pas s'en distinguer. */
+  .dr-range {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .dr-label {
+    color: var(--tune-text-muted);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .dr-range.active .dr-label { color: var(--tune-accent, #6c5ce7); }
+  .dr-select {
+    background: var(--tune-surface);
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text);
+    font-family: var(--font-body);
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+  .dr-select:focus { border-color: var(--tune-accent); }
+  .dr-range.active .dr-select { border-color: var(--tune-accent, #6c5ce7); }
+  .dr-dash {
+    color: var(--tune-text-muted);
+    font-size: 12px;
+  }
+  .dr-clear {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--tune-text-muted);
+    padding: 2px;
+    cursor: pointer;
+  }
+  .dr-clear:hover { color: var(--tune-text, #e8e8ea); }
 
   .wall-toggle {
     display: inline-flex;
@@ -6759,4 +7051,12 @@ import CollapsibleSection from './CollapsibleSection.svelte';
     }
   }
 
+  /* #1947 — meme pastille que « lire l'album », en creux : c'est une action
+     voisine, pas une action primaire de plus. */
+  .shuffle-album-btn {
+    background: transparent;
+    border: 1px solid var(--tune-accent);
+    color: var(--tune-accent);
+  }
+  .shuffle-album-btn:disabled { opacity: 0.4; cursor: default; }
 </style>

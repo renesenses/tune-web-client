@@ -4,6 +4,7 @@
   import * as api from '../lib/api';
   import { t, locale } from '../lib/i18n';
   import { messageErreurSupport } from '../lib/supportErrors';
+  import { modeleSysteme, mermaidSysteme } from '../lib/schemaSysteme';
   import { zones, currentZone } from '../lib/stores/zones';
   import { copyText } from '../lib/utils';
   import { licenseState, isPremium } from '../lib/stores/license';
@@ -486,26 +487,11 @@
    *  (point 4, revue 2026-08-15). Les libellés sont échappés en entités
    *  numériques Mermaid (#NN;) — un nom d'appareil avec guillemets ou
    *  crochets casserait le parseur sinon. */
+  /** Le schéma vit dans `lib/schemaSysteme` depuis le 05/09/2026 : le nouveau
+   *  client l'AFFICHE, et deux générateurs auraient fini par décrire deux
+   *  systèmes différents — celui qu'on regarde et celui qu'on envoie. */
   function buildSystemMermaid(): string {
-    const esc = (s: string) => s.replace(/[^\p{L}\p{N} .:+/·'-]/gu, (c) => `#${c.codePointAt(0)};`);
-    const version = get(currentVersion) ?? __APP_VERSION__;
-    const lines: string[] = ['flowchart LR', `  S["Tune Server v${esc(String(version))}"]`];
-    const zoneList = get(zones).filter((z) => z.id != null);
-    zoneList.forEach((z, i) => {
-      const zid = `Z${i}`;
-      const transport = (z.output_type ?? 'local').toUpperCase();
-      lines.push(`  S --> ${zid}["${esc(z.name)} (${esc(transport)})"]`);
-      const device = [z.brand ?? z.detected_manufacturer, z.model ?? z.detected_model]
-        .filter(Boolean)
-        .join(' ');
-      if (device) {
-        lines.push(`  ${zid} --> D${i}["${esc(device)}"]`);
-      }
-      if (z.online === false) {
-        lines.push(`  style ${zid} stroke-dasharray: 4 4`);
-      }
-    });
-    return lines.join('\n');
+    return mermaidSysteme(modeleSysteme(get(zones), String(get(currentVersion) ?? __APP_VERSION__)));
   }
 
   async function copyMermaid() {

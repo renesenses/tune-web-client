@@ -45,7 +45,20 @@ export type RegleLargeur = RegleCss;
  * comme à l'intérieur des requêtes de média.
  */
 export function releverReglesLargeur(css: string): RegleLargeur[] {
-  return releverDeclarations(css, ['max-width']);
+  // `--np-art` est relevée AVEC `max-width` parce qu'elle en porte désormais la
+  // valeur : la feuille écrit `max-width: min(var(--np-art), 62vh)`, et seuls
+  // les paliers changent la variable. Sans elle, la cascade se résoudrait sur
+  // une expression dont un terme manquerait.
+  return releverDeclarations(css, ['max-width', '--np-art']);
+}
+
+/** Une longueur CSS en pixels, `vh` converti pour l'écran donné. */
+function enPixels(valeur: string, ecran: Ecran): number | null {
+  const px = /^(-?\d+(?:\.\d+)?)px$/.exec(valeur.trim());
+  if (px) return Number(px[1]);
+  const vh = /^(-?\d+(?:\.\d+)?)vh$/.exec(valeur.trim());
+  if (vh) return (Number(vh[1]) * ecran.hauteur) / 100;
+  return null;
 }
 
 /**
@@ -70,6 +83,31 @@ export function largeurMaxEffective(
     survol: true,
   });
   if (gagnante === null) return null;
-  const pixels = /^(-?\d+(?:\.\d+)?)px$/.exec(gagnante.valeur);
-  return pixels ? Number(pixels[1]) : null;
+
+  const direct = enPixels(gagnante.valeur, ecran);
+  if (direct !== null) return direct;
+
+  // `min(var(--np-art), 62vh)` — la forme qu'a prise la feuille le 04/09/2026
+  // pour qu'une pochette ne puisse plus dépasser la hauteur de la fenêtre.
+  //
+  // Elle donne EXACTEMENT les mêmes tailles que les `max-width` en dur qu'elle
+  // remplace sur les trois écrans de ce test — le plafond en hauteur ne mord
+  // qu'en fenêtre basse. Mais l'analyseur ne lisait qu'un `Npx` nu et rendait
+  // `null`, ce qui faisait rougir la promesse faite à Alain alors qu'elle
+  // était tenue. On lit donc la CSS réelle plutôt qu'un dialecte plus étroit.
+  const min = /^min\(([^,]+),([^)]+)\)$/.exec(gagnante.valeur.trim());
+  if (!min) return null;
+
+  const termes = [min[1], min[2]].map((terme) => {
+    const t = terme.trim();
+    const variable = /^var\((--[\w-]+)\)$/.exec(t);
+    if (!variable) return enPixels(t, ecran);
+    // La variable traverse la MÊME cascade que la propriété : ce sont les
+    // paliers qui la redéfinissent, et c'est tout l'intérêt de la forme.
+    const v = regleEffective(regles, selecteursApplicables, variable[1], { ecran, survol: true });
+    return v === null ? null : enPixels(v.valeur, ecran);
+  });
+
+  if (termes.some((t) => t === null)) return null;
+  return Math.min(...(termes as number[]));
 }

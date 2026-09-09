@@ -85,6 +85,35 @@ export interface Album {
    *  Servi uniquement par `GET /library/albums/{id}`, et absent de la réponse
    *  quand aucune piste ne porte le tag — ce qui est le cas courant. */
   dynamic_range?: string | null;
+  /**
+   * Le disque est-il une compilation ? (#1957)
+   *
+   * Servi par le serveur depuis la v0.9.95 : `Album` le sérialise
+   * (`tune-core/src/db/models.rs`, champ `is_compilation`) et
+   * `/library/albums-detailed` le calcule par `MAX(al.is_compilation)`. Le
+   * client ne l'avait jamais lu — d'où le symptôme signalé, « le drapeau
+   * n'apparaît nulle part à l'écran ».
+   *
+   * 🔴 ABSENT ≠ FAUX pour un album déjà indexé.
+   *
+   * La colonne est écrite AU SCAN, jamais devinée rétroactivement : un serveur
+   * mis à jour sans re-scan rend `false` pour toute sa bibliothèque. Et le
+   * verdict lui-même a changé le 07/09/2026 (`ef2de52e`, serveur #3232 : « le
+   * verdict porte sur le dossier entier, pas sur ce qu'un lot en montre »),
+   * donc un album à cheval sur plusieurs lots peut basculer au prochain scan.
+   *
+   * Conséquence pour l'écran : on n'affiche QUE le positif. Une pastille
+   * « compilation » sur un album qui en est une est vraie dès qu'elle
+   * apparaît ; une mention « ce n'est pas une compilation » affirmerait ce
+   * que la base ne sait pas encore.
+   */
+  is_compilation?: boolean;
+  /** D'OÙ sort ce Dynamic Range (#1388, serveur v0.9.142) : `album_tag` quand
+   *  une piste porte `ALBUM DYNAMIC RANGE`, `track_average` quand Tune l'a
+   *  déduite de la moyenne arrondie des `DYNAMIC RANGE` des pistes. Apparaît
+   *  et disparaît AVEC `dynamic_range` ; absente d'un serveur plus ancien.
+   *  Voir `lib/dynamicRange.ts` pour la règle d'affichage. */
+  dynamic_range_source?: string | null;
 }
 
 export interface Track {
@@ -283,6 +312,10 @@ export interface Zone {
   error?: string | null;
   stream_url?: string | null;
   online?: boolean;
+  /** DUP-1 phase 2 : à côté de `online`, DEPUIS QUAND l'appareil ne répond
+   *  plus. `absente_depuis` s'accompagne de `jours_absente`. */
+  presence?: 'en_ligne' | 'eteinte_recemment' | 'absente_depuis' | 'jamais_vue';
+  jours_absente?: number;
   /**
    * Où va réellement le son de cette zone (#1499). `online` répond « la sortie
    * répond-elle ? », pas « y a-t-il une sortie ? », et vaut toujours `true`
@@ -348,6 +381,24 @@ export interface Zone {
    *  device uniquement — l'affichage garde le volume utilisateur. 0 = neutre.
    *  Sans effet sur une zone fixed_volume. */
   gain_trim_db?: number;
+  /**
+   * Sortie mono (#2362) : le serveur somme `M = (L + R) / 2` et émet `M` sur
+   * les DEUX voies de la zone.
+   *
+   * C'est un réglage de CÂBLAGE, pas d'agrément. Pour qui n'a qu'une enceinte
+   * raccordée sur un canal, la moitié de la musique est aujourd'hui inaudible
+   * — Nicolas Tardif, fil forum 1532 : « je perds toute la musique qui passe
+   * par le canal droit ». Il n'est donc pas derrière la barrière Premium.
+   *
+   * ⚠️ N'agit que sur une sortie **locale** : le serveur persiste le réglage
+   * sur n'importe quelle zone, mais la chaîne DSP qui l'applique n'existe
+   * qu'en local. Ce que le signal subit RÉELLEMENT est dit par `signal_path`,
+   * qui applique en plus la règle PURE — ne jamais déduire l'un de l'autre.
+   *
+   * Rendu par `GET /zones` **et** `GET /zones/{id}` (mesuré sur .18 : la clé
+   * est présente à `false` sur les 18 zones). Défaut off.
+   */
+  mono_downmix?: boolean;
   /** Marque choisie par l'utilisateur au catalogue (override). null si non défini. */
   brand?: string | null;
   /** Modèle choisi par l'utilisateur (override). null si non défini. */
@@ -499,6 +550,62 @@ export interface SearchResult {
    * 0.9.71 ne renvoie pas le champ.
    */
   playlists?: CataloguePlaylist[];
+  /**
+   * #3189 — ce que la liste ne disait pas. Rendus par le serveur depuis la
+   * 0.9.132 (`routes/search.rs`), pour la bibliothèque LOCALE seulement ;
+   * optionnels : un serveur plus ancien ne les envoie pas et l'écran retombe
+   * sur le compte affiché. `totals` est un COUNT sur le même prédicat que la
+   * liste ; `totals_capped` dit que ce total est une borne inférieure (« au
+   * moins N ») ; `has_more` dit qu'une suite existe, à demander par `offset`.
+   */
+  totals?: { artists: number; albums: number; tracks: number; tracks_via_metadata?: number };
+  totals_capped?: { artists?: boolean; albums?: boolean; tracks?: boolean };
+  has_more?: { artists?: boolean; albums?: boolean; tracks?: boolean };
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Ce que rend la recherche d'UN service — `/streaming/{svc}/search`.
+ *
+ * Elle rend les mêmes quatre familles que `SearchResult`, plus de quoi
+ * PAGINER : mesure sur le .18 le 07/09/2026, `q=somebody` sur Qobuz —
+ *
+ *     limit=50&offset=0   -> 50 albums, 50 artistes, 50 titres, 50 playlists
+ *     limit=50&offset=50  -> 50/50/50/50, tous différents
+ *     limit=50&offset=120 -> 50 albums, 14 artistes (la famille s'épuise)
+ *     has_more: true      totals: {albums:1000, artists:134, tracks:1000, …}
+ *
+ * `has_more` est GLOBAL — il reste vrai tant qu'une seule famille a encore de
+ * la matière, même quand les artistes sont épuisés. C'est lui qui décide de
+ * l'existence du bouton « voir plus », pas le compte d'une famille.
+ *
+ * Fabien, sur la v0.9.140 : « la recherche globale ne retourne que 50
+ * résultats ». Cette route-ci pagine, et le client ne le lui demandait pas.
+ *
+ * 🔴 ELLE N'ÉTEND PAS `SearchResult`, et c'est délibéré : les deux routes
+ * emploient les MÊMES NOMS pour des formes DIFFÉRENTES.
+ *
+ *     /search                  has_more: { artists?, albums?, tracks? }   (#3189)
+ *                              totals:   { artists, albums, tracks, … }
+ *     /streaming/{svc}/search  has_more: true                (un seul booléen)
+ *                              totals:   { albums, artists, tracks, playlists }
+ *
+ * Les faire hériter l'une de l'autre revenait à promettre au compilateur une
+ * compatibilité que le serveur ne tient pas. Deux contrats, deux types.
+ */
+export interface StreamingSearchResult {
+  tracks: Track[];
+  albums: Album[];
+  artists: Artist[];
+  playlists?: CataloguePlaylist[];
+  /** Vrai tant que le service a encore des résultats après cette page. */
+  has_more?: boolean;
+  /** Décalage de CETTE page — ce que le serveur a réellement appliqué. */
+  offset?: number;
+  /** Nombre total par famille, quand le service le connaît. */
+  totals?: Record<string, number>;
+  truncated?: boolean;
 }
 
 /** Miroir exact de `StreamPlaylist` côté serveur : `id` y est sérialisé en
@@ -925,9 +1032,49 @@ export interface PlaylistRecoverResponse {
   tracks: RecoverTrackResult[];
 }
 
+/** Réponse de `POST /playlists/{id}/recover/apply`.
+ *
+ *  #3662 — le client déclarait `{replaced, failed}` : deux champs que le
+ *  serveur n'a jamais rendus. `apply_recovery`
+ *  (`tune-server/src/routes/playlists.rs:1479-1512`) rend
+ *  `{playlist_id, total_tracks, recovered, still_missing}`.
+ *
+ *  ⚠️ Le nom trompe, et le type ne le rattrape pas : ce handler ne prend AUCUN
+ *  corps de requête. Il RECOMPTE les pistes de la playlist ; il n'applique
+ *  aucun remplacement. La liste `replacements` envoyée par le client est donc
+ *  reçue puis ignorée. C'est un défaut de fond distinct de l'alignement de type
+ *  fait ici — voir la note portée à #3662. */
 export interface RecoverApplyResponse {
-  replaced: number;
-  failed: number;
+  playlist_id: number;
+  total_tracks: number;
+  recovered: number;
+  still_missing: number;
+}
+
+/** Réponse de `POST /plugins/{name}/enable` et `/disable`
+ *  (`tune-server/src/routes/plugins.rs:538-556`).
+ *
+ *  `restart_required` compare l'état DEMANDÉ à ce qui tourne réellement :
+ *  réactiver un greffon déjà chargé, ou désactiver un greffon déjà absent, ne
+ *  demande aucun redémarrage. */
+export interface PluginToggleResult {
+  name: string;
+  enabled: boolean;
+  restart_required: boolean;
+}
+
+/** Réponse de `POST /radios/{id}/play/{zone_id}`
+ *  (`tune-server/src/routes/radios.rs:937-982`). Ce n'est pas une `Zone` :
+ *  l'identifiant s'appelle `zone_id`, et `radio` porte le NOM de la station. */
+export interface RadioPlayResult {
+  zone_id: number;
+  radio: string;
+  output_sent: boolean;
+  error?: string | null;
+  state?: unknown;
+  /** Adresse du flux — servie aux seules zones navigateur (#3164), donc
+   *  absente ou nulle ailleurs. */
+  stream_url?: string | null;
 }
 
 export interface StereoPairResponse {
@@ -1016,18 +1163,21 @@ export interface SmartCollection {
   id: number;
   name: string;
   description: string | null;
-  icon: string;
-  color: string;
-  rules: string;            // JSON-encoded SmartRule[]
+  icon: string | null;
+  color: string | null;
+  // Le routeur renvoie le tableau JSON decode ; les anciennes reponses
+  // portaient la chaine encodee (#2732).
+  rules: SmartRule[] | string;
   match_mode: 'all' | 'any';
-  sort_by: string;
+  sort_by: string | null;
   sort_order: 'asc' | 'desc';
-  max_albums: number;
-  auto_refresh: number;
+  // Nom persistant et servi : `max_limit`. `max_albums` n'a jamais ete dans
+  // la reponse Rust (#2732).
+  max_limit: number | null;
   album_count?: number;
   created_at: string;
-  updated_at: string;
 }
+
 
 export interface SmartCollectionPreview {
   // Server returns {"albums": [...], "total": albums.len()} — total is the

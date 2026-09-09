@@ -1,9 +1,12 @@
 <script lang="ts">
+  import { nomFonctionnalite } from '../lib/nomFonctionnaliteLicence';
   import { onMount, onDestroy } from 'svelte';
   import SettingHint from './SettingHint.svelte';
+  import { dateSimple } from '../lib/dates';
   import { tip } from '../lib/tooltip';
   import { compteSupprimees, cleLibelleFinDeScan } from '../lib/bandeauFinDeScan';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
+  import { purgeAProposer, questionDePurge, verdictDePurge, verdictDeRefus } from '../lib/purgeOrphelines';
   import { backendSelectionne, choixDeBackend, libelleBackend, modeWasapiPertinent, type ChoixBackend } from '../lib/audioBackends';
   import { doitSArreterFauteDImagesManquantes, type ModeEnrichissementImages } from '../lib/enrichissementImagesArtistes';
   import { dialogs } from '../lib/stores/dialogs';
@@ -24,7 +27,9 @@
     type AppareilIgnore,
   } from '../lib/appareilsIgnores';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
-  import { SETTING_LEVELS, SETTINGS_LEVELS, isSettingVisible, hiddenCountByTab, nextLevel, type SettingKey, type SettingsLevel } from '../lib/settingLevels';
+  import { choisirInterface } from '../lib/interfaceChoisie';
+  import { SETTING_LEVELS, SETTINGS_LEVELS, isSettingVisible, hiddenKeysByTab, hiddenKeysAmong, revealLevel, type SettingKey, type SettingsLevel } from '../lib/settingLevels';
+  import SettingsLevelNote from './SettingsLevelNote.svelte';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
@@ -33,6 +38,8 @@
   import { copyText, errText } from '../lib/utils';
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';
   import { licenseState, isPremium, loadLicense, offlineGrace } from '../lib/stores/license';
+  import { verdictValidationLicence } from '../lib/licenceValidation';
+  import { etatTelemetrie, routeDeBascule } from '../lib/etatTelemetrie';
   import SmbWizard from './SmbWizard.svelte';
   import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
@@ -556,6 +563,9 @@ function setSettingsLevel(level: SettingsLevel) {
   let cloudSsoLoading = $state(true);
   let cloudTelemetryEnabled = $state(false);
   let cloudTelemetryLoading = $state(false);
+  // #3383 — `TUNE_TELEMETRY=false` coupe a l'echelle de la machine : la
+  // bascule ne peut alors rien rallumer, et doit le dire.
+  let cloudTelemetryEnvLocked = $state(false);
   let cloudTelemetryInstanceId = $state<string | null>(null);
   let cloudRateLimits = $state<Array<{
     scope: string;
@@ -616,7 +626,9 @@ function setSettingsLevel(level: SettingsLevel) {
 
     try {
       const tel = await api.apiFetch('/cloud/telemetry/status');
-      cloudTelemetryEnabled = !!tel?.enabled;
+      const etat = etatTelemetrie(tel, { actif: false, verrouEnvironnement: false });
+      cloudTelemetryEnabled = etat.actif;
+      cloudTelemetryEnvLocked = etat.verrouEnvironnement;
       cloudTelemetryInstanceId = tel?.instance_id || tel?.server_id || null;
       cloudRateLimits = Array.isArray(tel?.rate_limits) ? tel.rate_limits : [];
     } catch {
@@ -688,10 +700,20 @@ function setSettingsLevel(level: SettingsLevel) {
 
   async function toggleCloudTelemetry() {
     cloudTelemetryLoading = true;
-    const endpoint = cloudTelemetryEnabled ? '/cloud/telemetry/disable' : '/cloud/telemetry/enable';
+    const souhait = !cloudTelemetryEnabled;
     try {
-      await api.apiPost(endpoint);
-      cloudTelemetryEnabled = !cloudTelemetryEnabled;
+      const reponse = await api.apiPost(routeDeBascule(souhait));
+      // #3383 : l'etat affiche est celui que le SERVEUR confirme, jamais une
+      // inversion locale. Quand `TUNE_TELEMETRY=false` verrouille la machine,
+      // une demande d'activation revient `enabled: false` — la case doit le
+      // montrer tout de suite, au lieu d'attendre le rafraichissement suivant
+      // pour se decocher toute seule.
+      const etat = etatTelemetrie(reponse, {
+        actif: souhait,
+        verrouEnvironnement: cloudTelemetryEnvLocked,
+      });
+      cloudTelemetryEnabled = etat.actif;
+      cloudTelemetryEnvLocked = etat.verrouEnvironnement;
     } catch (err: any) {
       notifications.error(err?.message ?? get(t)('settings.telemetryError'));
     }
@@ -795,13 +817,37 @@ function setSettingsLevel(level: SettingsLevel) {
     licenseDeactivating = false;
   }
 
+  // 🔴 `POST /cloud/license/validate` répond HTTP 200 dans TOUS ses cas
+  // d'échec : rien ne lève, et le verdict vit dans le champ `status` du corps.
+  // Ce code annonçait donc « Licence validée » dès que l'appel local avait
+  // abouti. Bruno Lescarret l'a lu trois fois en deux jours, sur une ligne de
+  // licence que le serveur n'a jamais touchée — et il est resté en gratuit
+  // seize jours en cherchant la panne ailleurs (#570).
+  //
+  // Le succès demande maintenant deux choses : que le serveur dise avoir posé
+  // le palier, ET que l'état relu derrière montre bien le premium. Sinon on
+  // affiche le motif exact, jamais un message positif.
   async function handleValidateLicense() {
     licenseValidating = true;
     try {
-      await api.validateLicense();
+      const reponse = await api.validateLicense();
       await refreshLicense();
-      notifications.success(get(t)('settings.licenseValidated'));
+      const etat = get(licenseState);
+      const verdict = verdictValidationLicence(reponse, {
+        tier: etat.tier,
+        conflitDeSession: etat.sessionConflict != null,
+      });
+      const texte =
+        verdict.statutDistant === null
+          ? get(t)(verdict.cle)
+          : get(t)(verdict.cle).replace('{code}', String(verdict.statutDistant));
+      if (verdict.succes) notifications.success(texte);
+      else notifications.error(texte);
+      // Le plafond de requêtes est un refus du serveur DISTANT, traduit en 200
+      // par la route locale : le `catch` ci-dessous ne pouvait pas le voir.
+      if (verdict.repos) startLicenseCooldown();
     } catch (e: any) {
+      // Reste utile : la route LOCALE a son propre garde-fou de débit.
       if (e?.status === 429) {
         notifications.error(get(t)('settings.licenseRateLimited'));
         startLicenseCooldown();
@@ -2343,15 +2389,45 @@ function setSettingsLevel(level: SettingsLevel) {
     addingMusicDir = false;
   }
 
+  /**
+   * Retire une racine, puis propose de retirer ce qu'elle contenait (#2149).
+   *
+   * La réponse du retrait était JETÉE. Elle porte pourtant `orphan_tracks` et
+   * `confirm_purge_required` : sans écran pour les lire, ces pistes restaient
+   * dans la base pour toujours — plus sous aucune racine, donc jamais
+   * revisitées par le scan, donc jamais purgées (#1943).
+   *
+   * Deux appels sur la même route : le premier retire et annonce, le second
+   * — seulement si l'utilisateur dit oui — purge avec le nombre EXACT.
+   */
   async function handleRemoveMusicDir(path: string) {
     if (!(await dialogs.confirm(get(t)('settings.removeMusicDirConfirm'), { danger: true }))) return;
     removingMusicDir = path;
     try {
-      await api.removeMusicDir(path);
+      const retrait = await api.removeMusicDir(path);
+      const aPurger = purgeAProposer(retrait);
+      if (aPurger > 0) {
+        if (await dialogs.confirm(questionDePurge(retrait, get(t)), { danger: true })) {
+          // Le retrait est idempotent : le dossier n'est déjà plus dans la
+          // liste, seul l'ensemble orphelin est recalculé — à l'identique.
+          const purge = await api.removeMusicDir(path, aPurger);
+          const v = verdictDePurge(purge, get(t));
+          notifications[v.ton](v.message);
+          // Les compteurs de la page viennent de tomber : on les relit, sans
+          // repasser par `loadAll()` qui ferait clignoter tout l'écran.
+          if (!purge.purge_refused) stats = await api.getStats().catch(() => stats);
+        } else {
+          const v = verdictDeRefus(retrait, get(t));
+          notifications[v.ton](v.message);
+        }
+      }
       const br = await api.getBrowseRoots().catch(() => ({ roots: [] }));
       musicRoots = br.roots;
     } catch (e: any) {
+      // Le retrait n'a pas abouti : on le DIT. L'échec mourait dans la
+      // console, l'écran laissait le dossier affiché sans un mot.
       console.error('Remove music dir error:', e);
+      notifications.error(`${get(t)('settings.removeMusicDirError')} ${errText(e) ?? ''}`.trim());
     }
     removingMusicDir = null;
   }
@@ -2441,29 +2517,6 @@ function setSettingsLevel(level: SettingsLevel) {
       console.error('Artwork rescan error:', e);
       artworkScanning = false;
     }
-  }
-
-  // --- Streaming Quality ---
-  let streamingQuality = $state<string>('max');
-  let qualityLoading = $state(false);
-
-  async function loadStreamingQuality() {
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    try {
-      const res = await api.getStreamingQuality(zoneId);
-      streamingQuality = res.quality ?? 'max';
-    } catch {}
-  }
-
-  async function applyStreamingQuality() {
-    const zoneId = get(zones)[0]?.id;
-    if (zoneId == null) return;
-    qualityLoading = true;
-    try {
-      await api.setStreamingQuality(zoneId, streamingQuality);
-    } catch {}
-    qualityLoading = false;
   }
 
   // --- Config Export/Import ---
@@ -2827,7 +2880,6 @@ function setSettingsLevel(level: SettingsLevel) {
     fetchTunePeers();
     fetchServerVersion();
     checkForUpdate();
-    loadStreamingQuality();
     loadScanSchedule();
     loadMetadataFields();
     loadLogLevel();
@@ -3008,6 +3060,12 @@ function setSettingsLevel(level: SettingsLevel) {
     'library.replaygainAnalysis': config?.replaygain_analysis_enabled === false || config?.replaygain_analysis_enabled === 'false',
     'library.oxygenEnable': $preferences.oxygenEnabled,
     'library.oxygenView': $preferences.oxygenView !== 'detail',
+    // Les deux sous-reglages d'Oxygen n'avaient AUCUNE entree ici : un
+    // plafond de facettes deja porte a 500, ou une liste de facettes
+    // remaniee, restait masque sous le niveau expert alors que la regle
+    // d'or aurait du le laisser a l'ecran. C'est le levier de #2131.
+    'library.oxygenFacetLimit': $preferences.oxygenFacetLimit !== 200,
+    'library.oxygenFacets': OXYGEN_FACETS_ALL.some((f) => !$preferences.oxygenFacets.includes(f)),
     'library.metadataReadonly': !!config?.metadata_readonly,
     'library.ingestTemplate': !!ingestSettings?.template && ingestSettings.template !== ingestSettings.default_template,
     'library.discogsToken': !!config?.discogs_token_set,
@@ -3060,16 +3118,45 @@ function setSettingsLevel(level: SettingsLevel) {
     return keys.some(lvOk);
   }
 
-  const hiddenCounts = $derived(hiddenCountByTab(
+  // Sous-reglages dont le PARENT est allume : la ligne se rend donc pour de
+  // bon, et si le niveau la masque elle doit compter et se dire. Parent
+  // eteint, elle n'est nulle part et il n'y a rien a annoncer.
+  const settingParentOn = $derived.by((): Partial<Record<SettingKey, boolean>> => ({
+    'library.scanScheduleTime': scanScheduleEnabled,
+    'library.oxygenFacets': $preferences.oxygenEnabled && $isPremium,
+    'library.oxygenFacetLimit': $preferences.oxygenEnabled && $isPremium,
+    'network.wasapiMode': modeWasapiPertinent(choixBackends, audioBackend),
+    'network.replayGainPreamp': replayGainMode !== 'off',
+    'network.replayGainAntiClip': replayGainMode !== 'off',
+    'services.deezerArl': !!$streamingServicesStore['deezer'],
+  }));
+
+  /** Reglages masques dans une section donnee — pour la note posee sur place. */
+  function lvHidden(...keys: SettingKey[]): SettingKey[] {
+    return hiddenKeysAmong(
+      keys,
+      settingsLevel,
+      (k) => !!settingModified[k],
+      (k) => settingPresent[k] !== false,
+      (k) => settingParentOn[k] === true,
+    );
+  }
+
+  const hiddenKeys = $derived(hiddenKeysByTab(
     settingsLevel,
     (k) => !!settingModified[k],
     (k) => settingPresent[k] !== false,
+    (k) => settingParentOn[k] === true,
   ));
   const hiddenInCurrentTab = $derived(
     settingsTab === 'general' || settingsTab === 'library' || settingsTab === 'services'
       || settingsTab === 'network' || settingsTab === 'system'
-      ? hiddenCounts[settingsTab] : 0,
+      ? hiddenKeys[settingsTab] : [],
   );
+  // Le niveau qui revele VRAIMENT quelque chose, jamais « un cran » a
+  // l'aveugle : d'un niveau debutant dont les seuls masques sont experts,
+  // monter d'un cran ne montrerait rien et le bouton mentirait.
+  const raiseTarget = $derived(revealLevel(hiddenInCurrentTab, settingsLevel));
 
   const LEVEL_LABEL_KEYS: Record<SettingsLevel, string> = {
     beginner: 'settings.levelBeginner',
@@ -4592,6 +4679,11 @@ function setSettingsLevel(level: SettingsLevel) {
           </select>
         </div>
       {/if}
+      <SettingsLevelNote
+        hidden={lvHidden('network.wasapiMode', 'network.replayGainPreamp', 'network.replayGainAntiClip')}
+        current={settingsLevel}
+        onRaise={setSettingsLevel}
+      />
       <!-- Source du gain (#1627) : l'interrupteur d'analyse vivait dans la
            section Métadonnées, à un écran d'ici — le lien entre les deux était
            invisible (question de Bebelalu55, #1382 : « Tune utilise-t-il mes
@@ -5052,6 +5144,11 @@ function setSettingsLevel(level: SettingsLevel) {
           <option value="0">{$t('oxygen.facetAll')}</option>
         </select>
       </div>
+      <SettingsLevelNote
+        hidden={lvHidden('library.oxygenFacets', 'library.oxygenFacetLimit')}
+        current={settingsLevel}
+        onRaise={setSettingsLevel}
+      />
       <div class="settings-actions">
         <button class="action-btn" onclick={() => activeView.set('oxygen')}>{$t('oxygen.open')}</button>
       </div>
@@ -5204,6 +5301,20 @@ function setSettingsLevel(level: SettingsLevel) {
     <section class="settings-section">
       <h3>{$t('settings.interface')}</h3>
       <div class="pref-grid">
+        <!--
+          L'ENTREE vers la future v1. Elle est ici, dans la section qui decide
+          deja de quoi Tune a l'air, et non mise en avant ailleurs : c'est une
+          previsualisation, pas une bascule que l'on pousse.
+
+          Le choix est retenu PAR APPAREIL et le retour vit dans le menu du
+          compte de la future v1, a un clic de n'importe quel ecran.
+        -->
+        <span class="pref-label">{$t('settings.uiChoice' as any)}</span>
+        <div class="pref-inline">
+          <button class="pref-btn" onclick={() => choisirInterface(true)}>{$t('settings.uiTryFuture' as any)}</button>
+          <span class="pref-note">{$t('settings.uiChoiceHint' as any)}</span>
+        </div>
+
         <label class="pref-label" for="pref-theme">{$t('settings.theme')}<SettingHint k="settings.themeHelp" labelKey="settings.theme" /></label>
         <select id="pref-theme" class="pref-select" value={$preferences.theme}
           onchange={(e) => {
@@ -5427,6 +5538,15 @@ function setSettingsLevel(level: SettingsLevel) {
                     {/if}
                   </div>
                 {:else if name === 'deezer'}
+                  <!-- La saisie de l'ARL est le SEUL chemin de connexion a
+                       Deezer, et elle est de niveau expert : masquee sans
+                       trace, le service se lit comme casse. La note dit
+                       qu'il y a quelque chose, et comment l'atteindre. -->
+                  <SettingsLevelNote
+                    hidden={lvHidden('services.deezerArl')}
+                    current={settingsLevel}
+                    onRaise={setSettingsLevel}
+                  />
                   <div class="service-auth-form" class:lv-hidden={!lvOk('services.deezerArl')}>
                     <p class="auth-hint">{$t('settings.deezerArlHint')}</p>
                     <input
@@ -5769,24 +5889,6 @@ function setSettingsLevel(level: SettingsLevel) {
     {/if}
     {/if}
 
-    {#if settingsTab === 'general'}
-    <!-- Streaming Quality -->
-    <section class="settings-section">
-      <h3>{$t('settings.streamingQuality' as any)}</h3>
-      <div class="setting-row">
-        <div class="setting-label">
-          <span>{$t('settings.streamingQuality' as any)}</span>
-        </div>
-        <select class="quality-select" bind:value={streamingQuality} onchange={() => applyStreamingQuality()} disabled={qualityLoading}>
-          <option value="max">{$t('settings.qualityMax' as any)}</option>
-          <option value="hires">{$t('settings.qualityHires' as any)}</option>
-          <option value="cd">{$t('settings.qualityCd' as any)}</option>
-          <option value="low">{$t('settings.qualityLow' as any)}</option>
-        </select>
-      </div>
-    </section>
-    {/if}
-
     {#if settingsTab === 'system'}
     <!-- Config Export/Import -->
     <section class="settings-section" class:lv-hidden={!lvOk('system.configExportImport')}>
@@ -5974,12 +6076,16 @@ function setSettingsLevel(level: SettingsLevel) {
           <div class="cloud-toggle-label">
             <span>{$t('settings.telemetry')}</span>
             <span class="cloud-toggle-hint">{$t('settings.telemetryHint')}</span>
+            <span class="cloud-toggle-hint">{$t('settings.telemetryOffScope')}</span>
           </div>
           <label class="cloud-toggle">
-            <input type="checkbox" checked={cloudTelemetryEnabled} onchange={toggleCloudTelemetry} disabled={cloudTelemetryLoading} />
+            <input type="checkbox" checked={cloudTelemetryEnabled} onchange={toggleCloudTelemetry} disabled={cloudTelemetryLoading || cloudTelemetryEnvLocked} />
             <span class="cloud-toggle-slider"></span>
           </label>
         </div>
+        {#if cloudTelemetryEnvLocked}
+          <div class="cloud-telemetry-locked" role="status">{$t('settings.telemetryEnvLocked')}</div>
+        {/if}
         {#if cloudTelemetryInstanceId}
           <div class="cloud-instance-id">{$t('settings.instance')} : <code>{cloudTelemetryInstanceId}</code></div>
         {/if}
@@ -6037,7 +6143,7 @@ function setSettingsLevel(level: SettingsLevel) {
           <span class="license-badge free">Free</span>
         {/if}
         {#if $licenseState.expiresAt}
-          <span class="license-expires">{$t('settings.expiresOn')} {new Date($licenseState.expiresAt).toLocaleDateString('fr-FR')}</span>
+          <span class="license-expires">{$t('settings.expiresOn')} {$dateSimple($licenseState.expiresAt)}</span>
         {/if}
       </div>
 
@@ -6151,7 +6257,10 @@ function setSettingsLevel(level: SettingsLevel) {
                 onkeydown={(e) => { if (clickable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openFeature(key); } }}
               >
                 <span class="license-feature-icon">{state === 'avail' ? '✓' : state === 'unavail' ? '✕' : '🔒'}</span>
-                <span class="license-feature-name">{feat.display_name}</span>
+                <!-- #798 — le NOM traduit par le code, `display_name` en repli.
+                     Un prospect a conclu que DLNA et AirPlay 2 étaient payants
+                     devant vingt-cinq lignes anglaises frappées d'un cadenas. -->
+                <span class="license-feature-name">{nomFonctionnalite(key, feat.display_name, $t as any)}</span>
               </div>
             {/each}
           </div>
@@ -6319,10 +6428,10 @@ function setSettingsLevel(level: SettingsLevel) {
     <!-- Indice de découvrabilité (#1617) : ce que le niveau courant masque
          dans CET onglet, avec le geste pour le révéler. Les réglages modifiés
          ne comptent pas — la règle d'or les laisse visibles. -->
-    {#if hiddenInCurrentTab > 0 && settingsLevel !== 'expert'}
+    {#if hiddenInCurrentTab.length > 0 && raiseTarget}
       <p class="hidden-settings-hint">
-        {$t('settings.hiddenSettingsCount' as any).replace('{n}', String(hiddenInCurrentTab))}
-        <button class="hidden-settings-raise" onclick={() => setSettingsLevel(nextLevel(settingsLevel))}>
+        {$t('settings.hiddenSettingsCount' as any).replace('{n}', String(hiddenInCurrentTab.length))}
+        <button class="hidden-settings-raise" onclick={() => setSettingsLevel(raiseTarget)}>
           {$t('settings.hiddenSettingsRaise' as any)}
         </button>
       </p>
@@ -6914,6 +7023,34 @@ function setSettingsLevel(level: SettingsLevel) {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-md) var(--space-lg);
     align-items: center;
+  }
+
+  /* Entree vers la future v1 — meme grille que les autres preferences. */
+  .pref-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .pref-btn {
+    background: transparent;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text);
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pref-btn:hover {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+  .pref-note {
+    font-size: 0.8rem;
+    color: var(--tune-text-muted);
+    line-height: 1.5;
   }
 
   .pref-label {
@@ -7781,21 +7918,6 @@ function setSettingsLevel(level: SettingsLevel) {
     color: #ff3b30;
   }
 
-  /* Streaming Quality */
-  .quality-select {
-    background: var(--tune-bg);
-    color: var(--tune-text);
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    padding: 6px 12px;
-    font-family: var(--font-body);
-    font-size: 13px;
-    cursor: pointer;
-    min-width: 160px;
-  }
-
-  .quality-select:disabled { opacity: 0.5; }
-
   /* Batch Enrich Progress */
   .enrich-group-title {
     margin: var(--space-lg) 0 var(--space-sm);
@@ -8301,6 +8423,17 @@ function setSettingsLevel(level: SettingsLevel) {
     padding: 1px 6px;
     border-radius: var(--radius-sm);
     font-size: 10px;
+  }
+
+  .cloud-telemetry-locked {
+    margin-top: var(--space-sm);
+    padding: var(--space-sm);
+    border: 1px solid color-mix(in srgb, var(--tune-text-muted) 35%, transparent);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   .cloud-rate-limit-notice {

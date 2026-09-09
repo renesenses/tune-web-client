@@ -426,23 +426,74 @@ export function normalizeTrackAllTags(raw: unknown, trackId: number): TrackAllTa
   };
 }
 
+/**
+ * Un item de `file_tags` tel que le serveur l'écrit : le `Debug` de `TagItem`.
+ *
+ * Mesuré sur le .18 le 06/09/2026 :
+ *
+ *   TagItem { lang: [88, 88, 88], description: "", item_key: TrackArtist,
+ *             item_value: Text("Paco de Lucia") }
+ *
+ * Le correctif de #661 avait arrêté le PLANTAGE — `vals.join()` sur un objet —
+ * mais pas rendu le tiroir utile : « Tous les champs piste » affichait UNE
+ * ligne, « VorbisComments », contenant quatorze de ces chaînes collées bout à
+ * bout. On ne pouvait rien y lire.
+ *
+ * On en tire donc la paire qui compte. Rend `null` si la forme n'est pas celle
+ * attendue : mieux vaut garder la chaîne brute que la perdre en la découpant
+ * de travers.
+ */
+export function parseTagItemRust(s: string): { cle: string; valeur: string } | null {
+  const mCle = /\bitem_key:\s*([A-Za-z0-9_]+)/.exec(s);
+  const iVal = s.indexOf('item_value:');
+  if (!mCle || iVal < 0) return null;
+
+  // Tout ce qui suit `item_value:`, sans l'accolade fermante du `Debug`.
+  let brut = s.slice(iVal + 'item_value:'.length).trim().replace(/\s*\}\s*$/, '');
+  // `Text("…")`, `Locator("…")`, `UnsignedInt(3)`… : on garde l'intérieur, et
+  // le nom de la variante quand il porte une information (un binaire).
+  const mVar = /^([A-Za-z0-9_]+)\((.*)\)$/s.exec(brut);
+  if (mVar) {
+    const [, variante, dedans] = mVar;
+    brut = /^Text|Locator$/.test(variante) ? dedans : `${variante}(${dedans})`;
+  }
+  // Chaîne Rust échappée : on la dénude.
+  if (brut.startsWith('"') && brut.endsWith('"')) {
+    brut = brut.slice(1, -1).replace(/\\(["\\])/g, '$1');
+  }
+  return { cle: mCle[1], valeur: brut.trim() };
+}
+
 export function normalizeFileTags(raw: unknown): Record<string, string[]> {
   if (!raw) return {};
   if (Array.isArray(raw)) {
     const out: Record<string, string[]> = {};
+    /** Ajoute sans DOUBLON : un fichier déclare souvent deux fois le même
+     *  `AlbumArtist`, dans deux conteneurs ou deux fois dans le même. Les
+     *  afficher tous les deux n'apprend rien. */
+    const pousser = (cle: string, v: string) => {
+      if (!v) return;
+      const l = (out[cle] ??= []);
+      if (!l.includes(v)) l.push(v);
+    };
     for (const entry of raw) {
       if (!entry || typeof entry !== 'object') {
         const leaf = formatTagLeaf(entry);
-        if (leaf) (out['tag'] ??= []).push(leaf);
+        if (leaf) pousser('tag', leaf);
         continue;
       }
       const rec = entry as Record<string, unknown>;
       const tagType = String(rec.tag_type ?? rec.tagType ?? 'tag');
-      const items = rec.items;
-      const vals = Array.isArray(items)
-        ? items.map(formatTagLeaf).filter(Boolean)
-        : [formatTagLeaf(entry)].filter(Boolean);
-      if (vals.length) out[tagType] = [...(out[tagType] ?? []), ...vals];
+      const items = Array.isArray(rec.items) ? rec.items : [entry];
+      for (const it of items) {
+        const leaf = formatTagLeaf(it);
+        if (!leaf) continue;
+        // La paire du fichier si on sait la lire, sinon la ligne telle quelle
+        // sous le nom du conteneur : on ne perd rien en chemin.
+        const p = typeof it === 'string' ? parseTagItemRust(it) : null;
+        if (p) pousser(p.cle, p.valeur);
+        else pousser(tagType, leaf);
+      }
     }
     return out;
   }

@@ -302,7 +302,27 @@
   });
 </script>
 
+<!--
+  UNE seule barre ancrée, au lieu de trois ancrages empilés à la main.
+
+  Le défaut vécu (#2112, Jean Valjean, fil 1421) : « on ne voit pas la ligne
+  [Ajouter / Importer / Exporter] si on veut rajouter une radio alors que l'on
+  a fait défiler légèrement la liste ». Or les trois barres étaient DÉJÀ
+  `position: sticky`. Ce qui ne tenait pas, c'étaient leurs décalages :
+  `.stations-actions { top: 66px }` et `.filters { top: 95px }`, deux
+  constantes obtenues à l'œil (« tuned live », « boîte ~31px »). Une hauteur
+  d'en-tête différente — police, zoom, largeur de fenêtre — et la pile se
+  chevauche : la barre est là, mais derrière l'en-tête.
+
+  On ne recalcule pas ces constantes, on les SUPPRIME : les trois lignes vivent
+  dans un seul conteneur ancré, et chacune se place sous la précédente par le
+  flux normal. C'est déjà ce que fait `.gt-toolbar` de l'Arbre des genres
+  (« l'ancrage vit sur la barre, pas sur chaque ligne »). `.radios-view` est un
+  bloc simple qui défile dans `.view-scroller`, lui aussi un bloc simple depuis
+  #1282 : Firefox honore donc cet ancrage-là.
+-->
 <div class="radios-view">
+  <div class="radios-barre">
   <header class="radios-header">
     <h2>{$t('radio.title')}</h2>
     <div class="tab-bar">
@@ -368,7 +388,10 @@
       </button>
     {/each}
   </div>
+  {/if}
+  </div>
 
+  {#if activeTab === 'stations'}
   {#if loading}
     <div class="empty-state">{$t('common.loading')}</div>
   {:else if filtered.length === 0}
@@ -443,7 +466,7 @@
         <div class="saved-row">
           <div class="saved-cover">
             {#if fav.cover_url}
-              <img src={api.artworkUrl(fav.cover_url)} alt="" loading="lazy" />
+              <img src={api.artworkSrc(fav.cover_url)} alt="" loading="lazy" />
             {:else}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="24" height="24"><circle cx="12" cy="12" r="10" /><path d="M9 12l2 2 4-4" /></svg>
             {/if}
@@ -546,18 +569,26 @@
     max-width: 900px;
   }
 
-  /* En-tête figé au défilement (#1237, Jean). */
+  /* LE seul ancrage de cette vue (#1237, #2112). Les trois lignes qu'elle
+     contient — titre + onglets, Ajouter/Importer/Exporter, pastilles de
+     genres — s'empilent par le flux normal : plus aucune constante de
+     décalage à tenir à jour quand une hauteur change. */
+  .radios-barre {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    /* Absorbe le `padding` haut de `.radios-view` pour que rien ne dépasse
+       au-dessus du bandeau quand la liste passe dessous. */
+    margin-top: calc(-1 * var(--space-lg));
+    padding-top: var(--space-lg);
+  }
+
   .radios-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: var(--space-lg);
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: var(--tune-bg);
-    margin-top: calc(-1 * var(--space-lg));
-    padding-top: var(--space-lg);
     padding-bottom: 8px;
   }
 
@@ -604,15 +635,10 @@
     font-weight: 700;
   }
 
+  /* Plus de `position: sticky` ni de `top: 66px` : la barre est ancrée par
+     `.radios-barre`, qui la porte. */
   .stations-actions {
     margin-bottom: var(--space-md);
-    /* Pin the Add/Import/Export bar under the already-sticky `.radios-header`
-       so it stays reachable with many stations — #1282 extension (Jean Valjean).
-       Scroller = `.view-scroller`; top ≈ .radios-header height (tuned live). */
-    position: sticky;
-    top: 66px;
-    z-index: 15;
-    background: var(--tune-bg);
   }
 
   .header-actions {
@@ -717,17 +743,13 @@
     cursor: pointer;
   }
 
+  /* Idem : plus de `top: 95px` calé à l'œil sur la hauteur de la barre
+     précédente. Les pastilles suivent le flux à l'intérieur de `.radios-barre`. */
   .filters {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
     margin-bottom: var(--space-lg);
-    /* Pastilles de genres figées sous `.stations-actions` (sticky top:66px,
-       boîte ~31px ; tuck 2px sous son fond opaque) — #1282 (Jean Valjean). */
-    position: sticky;
-    top: 95px;
-    z-index: 14;
-    background: var(--tune-bg);
     padding-bottom: 6px;
   }
 

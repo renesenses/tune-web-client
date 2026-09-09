@@ -11,10 +11,21 @@
 # — et `npm run build` le laisse passer.
 name: CI
 
+# LA LIGNE DE VIE DU CLIENT V2 EST AJOUTEE ICI (Bertrand, 04/09/2026).
+#
+# `feat/client-v2-niveaux` ne fusionne JAMAIS vers `main` — c'est la doctrine
+# du chantier. Elle ne remplissait donc aucune des deux conditions ci-dessous :
+# ni `main`, ni une PR. Consequence mesuree le 04/09 : douze commits pousses
+# dans la journee, ZERO execution de CI. Le seul « vert » etait un `npm test`
+# lance a la main sur un Mac, alors que la CI tourne sur Linux avec une autre
+# version de Node — exactement l'ecart qui a deja fait passer une regression.
+#
+# Une branche qui ne fusionne pas a d'autant plus besoin d'une porte : rien ne
+# la rattrapera plus tard.
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, feat/client-v2-niveaux, feat/v2-avatar-identite-et-i18n]
 
 # Une PR poussée trois fois de suite n'occupe qu'un seul exécuteur : les runs
 # précédents sont annulés.

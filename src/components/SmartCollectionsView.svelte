@@ -1,11 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { formatAnneeAlbum } from '../lib/formats';
   import { dialogs } from '../lib/stores/dialogs';
-  import { formatAlbumYear } from '../lib/utils';
+  import { } from '../lib/utils';
   import * as api from '../lib/api';
   import type { SmartCollection } from '../lib/types';
   import SmartCollectionEditor from './SmartCollectionEditor.svelte';
-  import { selectedAlbum, albumTracks, libraryTab } from '../lib/stores/library';
+  import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab } from '../lib/stores/library';
   import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
   import { currentZone } from '../lib/stores/zones';
   import { notifications } from '../lib/stores/notifications';
@@ -21,8 +22,9 @@
       stashViewState('smartcollections', { id: selected.id });
     }
     selectedAlbum.set(album);
+    const idFiche = commencerFicheAlbum(album.id);
     api.getAlbumTracks(album.id).then(tracks => {
-      albumTracks.set(tracks);
+      poserPistesAlbum(idFiche, tracks);
       libraryTab.set('albums');
       activeView.set('library');
     });
@@ -151,8 +153,7 @@
     setShortcutTarget({
       key: `smartcollections:${col.id}`,
       restore: { id: col.id, name: col.name },
-      label: col.name,
-    });
+      label: col.name });
     albumsLoading = true;
     try {
       selectedAlbums = await api.getSmartCollectionAlbums(col.id);
@@ -194,7 +195,7 @@
 
   function ruleSummary(col: SmartCollection): string {
     try {
-      const rules = JSON.parse(col.rules ?? '[]');
+      const rules: any[] = Array.isArray(col.rules) ? col.rules : JSON.parse(col.rules ?? '[]');
       if (!rules.length) return $t('smartCollection.noRule');
       const parts = rules.slice(0, 2).map((r: any) => {
         if (r.field === 'credit') {
@@ -299,13 +300,13 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div class="album-card" role="button" tabindex="0" onclick={() => navigateToAlbum(alb)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigateToAlbum(alb); }}>
               <div class="album-card-art">
-                <img class="album-cover-img" src={api.artworkUrl(alb.cover_path, 200)} alt={alb.title} loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.display='none')} />
+                <img class="album-cover-img" src={api.artworkSrc(alb.cover_path, 200)} alt={alb.title} loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.display='none')} />
               </div>
               <span class="album-card-title truncate" title={alb.title}>{alb.title}</span>
               {#if alb.artist_name}
                 <span class="album-card-artist truncate" title={alb.artist_name}>{alb.artist_name}</span>
               {/if}
-              {#if alb.year || alb.original_year}<span class="album-card-year">{formatAlbumYear(alb)}</span>{/if}
+              {#if alb.year || alb.original_year}<span class="album-card-year">{$formatAnneeAlbum(alb)}</span>{/if}
             </div>
           {/each}
         </div>

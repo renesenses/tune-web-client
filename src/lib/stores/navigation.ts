@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 
-export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'plugins' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'oxygen' | 'support' | 'tv' | 'bandcamp';
+export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'playlistshub' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'crossfeed' | 'plugins' | 'onboarding' | 'offline' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'tags' | 'oxygen' | 'support' | 'tv' | 'bandcamp' | 'concerts';
 export const activeView = writable<View>('home');
 export const previousView = writable<View | null>(null);
 
@@ -89,9 +89,40 @@ export const pendingSearchQuery = writable<string>('');
 // its subfolders (facetSels.folder). Consumed once on Oxygen mount.
 export const pendingOxygenFolder = writable<string | null>(null);
 
-// One-shot: same idea for the classic LibraryView — scope its Albums/Artists/
-// Tracks/Genres tabs to a folder + subfolders. Consumed once on Library mount.
-export const pendingLibraryFolder = writable<string | null>(null);
+
+/**
+ * 🔴 L'ALBUM à ouvrir en arrivant sur la Bibliothèque du nouveau client.
+ *
+ * « Page lecture en cours d'un titre : les hyperliens de l'album et de
+ * l'artiste renvoient vers la page d'accueil et non vers la page de l'artiste
+ * ou de l'album » (Fabien, v0.9.140, 07/09/2026).
+ *
+ * TREIZIÈME « écrit mais pas branché » de ce client. `NowPlaying` pose
+ * `selectedAlbum` / `selectedArtist` puis change de vue. Ces deux magasins
+ * sont lus par DOUZE composants de l'ancien client et par AUCUN de la v2 : le
+ * clic changeait donc d'écran sans rien ouvrir.
+ *
+ * Même forme que `pendingLibraryFolder` juste au-dessus : posé avant le
+ * changement de vue, consommé UNE fois au montage. `NowPlaying` alimente les
+ * deux contrats — l'ancien pour l'ancien client, celui-ci pour le nouveau —
+ * plutôt que de deviner lequel tourne.
+ */
+export const pendingLibraryAlbum = writable<number | null>(null);
+
+/**
+ * L'ARTISTE à ouvrir en arrivant sur la Bibliothèque du nouveau client.
+ *
+ * Même contrat que `pendingLibraryAlbum` juste au-dessus, pour le geste
+ * « Aller à l'artiste » du menu « … » d'une piste (Bertrand, 07/09/2026 :
+ * « je veux à minima le contenu de la v0 »).
+ *
+ * On y range l'IDENTIFIANT, pas le nom. Le client actuel retrouve l'artiste
+ * en cherchant son nom dans `$artists` — un rapprochement par chaîne qui échoue
+ * dès qu'une piste porte « M » quand la table porte « -M- ». Une piste de la
+ * bibliothèque porte `artist_id` (mesuré sur le .18 : `artist_id: 125` pour
+ * « M »), et c'est cet identifiant que la table des artistes emploie.
+ */
+export const pendingLibraryArtist = writable<number | null>(null);
 
 export interface NavContext {
   view: View;
@@ -121,21 +152,44 @@ export function getScrollPosition(view: string): number {
 // number of frames until the re-rendered list is tall enough to hold the
 // offset (a single set clamps to 0 before layout).
 const detailScrolls = new Map<string, number>();
-export function saveDetailScroll(key: string, el: HTMLElement | null | undefined) {
-  if (el) detailScrolls.set(key, el.scrollTop);
+/**
+ * Le conteneur à mémoriser / restaurer. Une FONCTION quand l'élément n'existe
+ * pas encore au moment de l'appel.
+ *
+ * 🔴 Le piège que ce type ferme. `goBack()` remet la vue sur sa liste puis
+ * appelle la restauration dans la foulée ; Svelte 5 ne repeint qu'au
+ * micro-tour suivant. Tant que le conteneur de défilement était la RACINE de
+ * la vue — toujours présente — l'élément était là et tout marchait. Dès qu'on
+ * sort l'en-tête du conteneur qui défile (le seul ancrage que Firefox ET
+ * Chromium honorent, cf `.settings-body` / `.diagnostics-body`), ce conteneur
+ * naît avec la branche « liste » : il vaut `null` à l'instant de l'appel, et
+ * l'ancienne version rendait la main SANS RIEN FAIRE ni le dire. La position
+ * mémorisée était perdue en silence.
+ */
+export type CibleDefilement = HTMLElement | null | undefined | (() => HTMLElement | null | undefined);
+function resoudre(cible: CibleDefilement): HTMLElement | null {
+  return (typeof cible === 'function' ? cible() : cible) ?? null;
 }
-export function restoreDetailScroll(key: string, el: HTMLElement | null | undefined) {
+export function saveDetailScroll(key: string, el: CibleDefilement) {
+  const cible = resoudre(el);
+  if (cible) detailScrolls.set(key, cible.scrollTop);
+}
+export function restoreDetailScroll(key: string, el: CibleDefilement) {
   const target = detailScrolls.get(key) ?? 0;
-  if (!el) return;
-  if (target <= 0) { el.scrollTop = 0; return; }
   let attempts = 0;
   const tick = () => {
-    if (el.scrollHeight >= target + el.clientHeight || attempts >= 30) {
-      el.scrollTop = target;
+    // L'élément est RÉSOLU À CHAQUE TOUR, pas une fois pour toutes : c'est ce
+    // qui laisse le temps à la branche « liste » de se rendre.
+    const cible = resoudre(el);
+    const pret = cible !== null && (target <= 0 || cible.scrollHeight >= target + cible.clientHeight);
+    if (pret || attempts >= 30) {
+      if (cible) cible.scrollTop = target > 0 ? target : 0;
       return;
     }
     attempts += 1;
     requestAnimationFrame(tick);
   };
-  requestAnimationFrame(tick);
+  // Un premier tour synchrone garde le comportement d'origine quand l'élément
+  // est déjà là et la position déjà tenable : rien n'attend une trame.
+  tick();
 }

@@ -2,6 +2,7 @@
   import * as api from '../lib/api';
   import type { SmartRule, SmartCollection } from '../lib/types';
   import { t } from '../lib/i18n';
+  import SmartFolderPicker from './SmartFolderPicker.svelte';
   import { notifications } from '../lib/stores/notifications';
 
   // Editor for one Smart Collection: name + rules + match_mode + sort.
@@ -20,7 +21,7 @@
   let matchMode = $state<'all' | 'any'>(collection?.match_mode ?? 'all');
   let sortBy = $state(collection?.sort_by ?? 'added_at');
   let sortOrder = $state<'asc' | 'desc'>(collection?.sort_order ?? 'desc');
-  let maxAlbums = $state(collection?.max_albums ?? 500);
+  let maxAlbums = $state(collection?.max_limit ?? 500);
 
   // Parse the JSON-encoded rules (server stores as text); fall back
   // to a single empty rule for the create flow.
@@ -50,6 +51,7 @@
     { value: 'label',       labelKey: 'smartCollection.fieldLabel',       type: 'text' },
     { value: 'format',      labelKey: 'smartCollection.fieldFormat',      type: 'text' },
     { value: 'source',      labelKey: 'smartCollection.fieldSource',      type: 'text' },
+    { value: 'folder',      labelKey: 'smartCollection.fieldFolder',      type: 'folder' },
     { value: 'year',        labelKey: 'smartCollection.fieldYear',        type: 'int' },
     { value: 'sample_rate', labelKey: 'smartCollection.fieldSampleRate',  type: 'int' },
     { value: 'bit_depth',   labelKey: 'smartCollection.fieldBitDepth',    type: 'int' },
@@ -115,6 +117,19 @@
       { value: 'in', labelKey: 'smartCollection.opIn' },
       { value: 'is_null', labelKey: 'smartCollection.opIsEmpty' },
       { value: 'is_not_null', labelKey: 'smartCollection.opIsNotEmpty' },
+    ],
+    // Un répertoire n'a que deux questions sensées. « Est dans » compile en
+    // préfixe, donc il attrape les SOUS-DOSSIERS — /Musique/Jazz ramène aussi
+    // /Musique/Jazz/Vocal, ce qu'on attend d'un dossier. « Contient » sert au
+    // motif partiel (« Live » n'importe où dans le chemin).
+    //
+    // Pas d'égalité : `t.file_path` est le chemin d'un FICHIER, jamais celui
+    // d'un dossier. `=` ne pourrait matcher que si l'utilisateur tapait un
+    // chemin de fichier complet — une règle qui ne rendrait qu'une piste, et
+    // qu'il croirait pourtant porter sur un dossier.
+    folder: [
+      { value: 'starts_with', labelKey: 'smartCollection.opInFolder' },
+      { value: 'contains', labelKey: 'smartCollection.opContains' },
     ],
     nullable: [
       { value: 'is_null', labelKey: 'smartCollection.opIsEmpty' },
@@ -330,6 +345,11 @@
               <option value="album">{$t('smartCollection.favAlbum')}</option>
               <option value="artist">{$t('smartCollection.favArtist')}</option>
             </select>
+          {:else if fieldType(rule.field) === 'folder'}
+            <SmartFolderPicker
+              value={rule.value ?? ''}
+              onChange={(v) => updateRule(i, { value: v })}
+            />
           {:else if rule.field === 'credit'}
             <span class="credit-grid">
               <input

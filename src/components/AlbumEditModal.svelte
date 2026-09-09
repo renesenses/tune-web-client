@@ -3,7 +3,7 @@
   import { tip } from '../lib/tooltip';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
-  import { artworkUrl } from '../lib/api';
+  import { artworkUrl, artworkSrc } from '../lib/api';
   import type { Album, Artist, Track } from '../lib/types';
   import type { MetadataCategory } from '../lib/api/metadata';
   import { t } from '../lib/i18n';
@@ -358,7 +358,7 @@
             onkeydown={(e) => e.key === 'Enter' && fileInput.click()}
           >
             {#if coverPath}
-              <img src={artworkUrl(coverPath)} alt="Album cover" class="cover-preview" />
+              <img src={artworkSrc(coverPath)} alt="Album cover" class="cover-preview" />
             {:else}
               <div class="cover-placeholder">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="32" height="32">

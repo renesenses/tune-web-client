@@ -8,7 +8,8 @@
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { activeView, pendingOxygenFolder, pendingLibraryFolder } from '../lib/stores/navigation';
+  import { activeView, pendingOxygenFolder } from '../lib/stores/navigation';
+  import { libraryFolderScope } from '../lib/stores/library';
   import { preferences } from '../lib/stores/preferences';
   import ImportWizard from './ImportWizard.svelte';
 
@@ -179,10 +180,11 @@
   }
 
   // Open the current folder in the classic Library view (Albums/Artists/Tracks/
-  // Genres tabs) scoped to this folder + subfolders, via pendingLibraryFolder.
+  // Genres tabs) scoped to this folder + subfolders, via libraryFolderScope —
+  // a store both Library screens READ (not a one-shot handoff, #3101).
   function openInLibrary() {
     if (!browseResult?.path) return;
-    pendingLibraryFolder.set(browseResult.path);
+    libraryFolderScope.set(browseResult.path);
     activeView.set('library');
   }
 
@@ -389,6 +391,15 @@
     align-items: center;
     gap: var(--space-md);
     margin-bottom: var(--space-lg);
+ 
+    /* La gouttière de la grappe (loupe + signet + avatar), qui est en
+       `position:absolute` au-dessus des écrans du shell v2. Cet écran est un
+       composant v1 monté DANS ce shell : la garde `gouttiereGrappe` ne
+       balayait que `components/v2` et ne le voyait pas — les trois derniers
+       boutons passaient sous la barre de recherche globale (copie d'écran
+       Répertoires, 08/09/2026). La valeur vit sur `.v2-shell` ; le repli sert
+       aux écrans montés hors du shell. */
+    padding-right: var(--v2-grappe-w, 172px);
   }
 
   .browse-header h2 {
