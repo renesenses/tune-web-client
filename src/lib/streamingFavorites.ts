@@ -48,15 +48,46 @@ export interface StreamingRef {
   coverUrl?: string;
 }
 
+/**
+ * Les services dont l'identifiant de PISTE ne désigne pas une piste.
+ *
+ * `radio` : le `source_id` d'un titre entendu à la radio est l'URL du FLUX, pas
+ * celle du morceau. Le serveur republie le MÊME `source_id` à chaque changement
+ * de morceau — `tune-core/src/poller/radio.rs`, où le `NowPlaying` reconstruit
+ * porte un titre neuf et `source_id: np.source_id.clone()`. Tous les titres
+ * entendus sur une station partagent donc une seule clé
+ * `track:radio:<url du flux>` : un favori posé sur l'un remplissait le cœur de
+ * TOUS les autres.
+ *
+ * Signalé par Reivax66 le 09/09/2026 (ticket support 104, fil 1729, #3729) :
+ * « lors d'un clic pour ajouter un titre radio live aux favoris dans
+ * l'historique tous les titres radio live sont sélectionnés ».
+ *
+ * ⚠️ Le garde de l'identifiant VIDE, juste en dessous, ne mordait pas ici :
+ * l'identifiant n'est pas vide, il est partagé par nature.
+ *
+ * Conséquence assumée : une ligne de radio n'a plus de cœur de service. Ce
+ * n'est pas une perte — un titre de radio se met en favori par
+ * `/radio-favorites`, qui l'indexe par (titre, artiste, station) et donne donc
+ * bien UNE clé par titre. C'est le cœur que l'écran Historique pose déjà dans
+ * sa colonne suffixe (`HistoriqueV2.svelte`), et les deux cœurs voisins qui
+ * disaient deux choses différentes sur la même ligne disparaissent avec
+ * celui-ci. Un cœur absent vaut mieux qu'un cœur qui ment — c'est la règle que
+ * `PisteActions` s'était déjà donnée : « ce qui ne s'applique pas est ABSENT ».
+ */
+const SERVICES_SANS_IDENTIFIANT_DE_PISTE: ReadonlySet<string> = new Set(['radio']);
+
 /** Clé d'appartenance, ou `null` quand l'objet n'est pas identifiable.
  *
  *  Un identifiant vide n'est pas une clé : il ferait cocher le cœur de tous
- *  les objets sans identifiant du même service. */
+ *  les objets sans identifiant du même service. Un identifiant PARTAGÉ non
+ *  plus — voir `SERVICES_SANS_IDENTIFIANT_DE_PISTE` juste au-dessus. */
 export function favKeyOf(ref: Pick<StreamingRef, 'itemType' | 'service' | 'serviceId'> | null | undefined): string | null {
   if (!ref) return null;
   const id = (ref.serviceId ?? '').trim();
   const svc = (ref.service ?? '').trim();
   if (!id || !svc) return null;
+  if (ref.itemType === 'track' && SERVICES_SANS_IDENTIFIANT_DE_PISTE.has(svc)) return null;
   return streamingFavKey(ref.itemType, svc, id);
 }
 

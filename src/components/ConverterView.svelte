@@ -5,6 +5,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
+  import QualityBadge from './QualityBadge.svelte';
 
   // --- Source selection ---
   type SourceTab = 'library' | 'directories';
@@ -503,6 +504,12 @@
               </div>
               <div class="album-title">{album.title}</div>
               <div class="album-artist">{album.artist_name ?? ''}</div>
+              <!-- Le format D'ORIGINE — même manque que sur le nouvel écran,
+                   même correctif (Tades, ticket 83, fil 1677). L'écran offrait
+                   six formats de SORTIE et taisait celui d'ENTRÉE. -->
+              <div class="album-quality"><QualityBadge format={album.format}
+                sampleRate={album.sample_rate} bitDepth={album.bit_depth}
+                source={album.source} /></div>
             </button>
           {/each}
         </div>
@@ -917,6 +924,13 @@
 
   .album-card:hover {
     border-color: rgba(255,255,255,0.1);
+  }
+
+  /* Le badge ne rend rien sans donnée : la carte garde sa hauteur, elle ne
+     gagne pas une case vide. */
+  .album-quality {
+    margin-top: 2px;
+    min-height: 16px;
   }
 
   .album-card.selected {
