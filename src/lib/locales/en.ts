@@ -1348,6 +1348,7 @@ export default {
   'bandcamp.playTo': "Playback goes to",
   'bandcamp.noZone': "No zone selected — pick a zone to listen.",
   'bandcamp.zoneRefused': "this zone would not take Bandcamp's 128 kbit/s MP3. Try another zone.",
+  'bandcamp.noStream': "Tune got no stream for this Bandcamp track. Nothing is wrong with the zone — try again in a moment.",
   'bandcamp.collectionEmpty': "This Bandcamp collection is empty — nothing to compare. Explore the catalogue to find something to buy.",
   'bandcamp.dormantTitle': "The Bandcamp plugin is not active",
   'bandcamp.dormantInstall': "Open “{rubrique}” in the sidebar and install “bandcamp”, then restart the server.",
