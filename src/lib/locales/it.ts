@@ -322,6 +322,7 @@ export default {
   'nowplaying.eqPremium': "L'equalizzatore fa parte di Tune Premium: senza una licenza attiva, queste preimpostazioni non sono disponibili.",
   'nowplaying.eqError': "Non è stato possibile salvare l'impostazione dell'equalizzatore.",
   'premium.required': 'Questa funzione fa parte di Tune Premium.',
+  'zone.freeCapReached': "Stai già usando le tue {n} zone gratuite. Riprodurre su un'altra zona richiede Tune Premium — i protocolli (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) sono tutti inclusi nella versione gratuita.",
   'nowplaying.addToPlaylist': 'Aggiungi a una playlist',
   'nowplaying.upNext': 'Prossimo',
   'nowplaying.noPlayback': 'Nessuna riproduzione in corso',
@@ -416,6 +417,12 @@ export default {
   'search.shownOf': '{shown} di {total}',
   'search.shownOfAtLeast': '{shown} di almeno {total}',
   'search.loadMore': 'Mostra altro',
+  'search.createPlaylist': 'Crea una playlist',
+  'search.playlistNamePrompt': 'Nome della nuova playlist',
+  'search.playlistCreated': 'Playlist «{name}» creata con {n} brani.',
+  'search.playlistCreatedPartial': 'Playlist «{name}» creata con i {n} brani mostrati, su {total} corrispondenze.',
+  'search.playlistNoLocalTracks': 'Nessun brano della libreria locale in questi risultati.',
+  'search.playlistError': 'Impossibile creare la playlist.',
   'search.durationShown': '{d} mostrati',
 
   // Streaming
@@ -558,6 +565,14 @@ export default {
   'settings.addSmbShare': 'Aggiungi condivisione di rete (SMB)',
   'settings.addLocalFolder': 'Aggiungi cartella locale',
   'settings.removeMusicDirConfirm': 'Rimuovere questa cartella dalla libreria?',
+  "settings.removeMusicDirError": "Non è stato possibile rimuovere la cartella.",
+  "settings.orphanTracksAsk": "La cartella è stata rimossa. {count} brani non si trovano più sotto alcuna cartella musicale, quindi la scansione non li visiterà più. Rimuoverli anche dalla libreria?",
+  "settings.orphanTracksImpact": "Verrebbero rimossi anche — playlist: {playlists}, preferiti: {favorites}, coda: {queue}.",
+  "settings.orphanTracksFilesSafe": "I file sul disco non vengono toccati.",
+  "settings.orphanTracksPurged": "{count} brani rimossi dalla libreria.",
+  "settings.orphanTracksRefused": "La cartella è stata rimossa, ma i {count} brani non sono stati eliminati: la conferma non copriva più il loro numero. Ricomincia per rimuoverli.",
+  "settings.orphanTracksNothingLeft": "Non c'erano più brani orfani da rimuovere.",
+  "settings.orphanTracksKept": "{count} brani conservati. La scansione non li visiterà più: solo questa azione può rimuoverli.",
   'settings.coversProgress': 'Copertine {current}/{total} ({found} trovate)',
   'settings.searchingCovers': 'Ricerca copertine...',
   'settings.searchMissingCovers': 'Cerca copertine mancanti',
@@ -4145,6 +4160,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Nessun modulo posseduto",
   "diagnostics.outputNoProviders": "Nessun fornitore di uscita esterno è compilato in questo server.",
   "diagnostics.outputOpenLicense": "Vedi la mia licenza",
+  "v2.album.compilation": "Compilation",
+  "v2.album.compilationHint": "Album contrassegnato come compilation dal server durante la scansione.",
+  "v2.lib.compilations": "Compilation",
+  "v2.lib.compilationsHint": "Mostra solo le compilation. Il contrassegno viene impostato durante la scansione: un album indicizzato prima dell’aggiornamento lo riceverà solo alla prossima scansione.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent

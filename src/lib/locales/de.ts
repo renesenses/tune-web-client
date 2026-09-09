@@ -322,6 +322,7 @@ export default {
   'nowplaying.eqPremium': 'Der Equalizer gehört zu Tune Premium: ohne aktive Lizenz bleiben diese Voreinstellungen nicht verfügbar.',
   'nowplaying.eqError': 'Die Equalizer-Einstellung konnte nicht gespeichert werden.',
   'premium.required': 'Diese Funktion gehört zu Tune Premium.',
+  'zone.freeCapReached': "Sie nutzen bereits Ihre {n} kostenlosen Zonen. Die Wiedergabe auf einer weiteren Zone erfordert Tune Premium — die Protokolle (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) sind alle in der kostenlosen Version enthalten.",
   'nowplaying.addToPlaylist': 'Zur Playlist hinzufügen',
   'nowplaying.upNext': 'Als Nächstes',
   'nowplaying.noPlayback': 'Keine Wiedergabe aktiv',
@@ -416,6 +417,12 @@ export default {
   'search.shownOf': '{shown} von {total}',
   'search.shownOfAtLeast': '{shown} von mindestens {total}',
   'search.loadMore': 'Mehr anzeigen',
+  'search.createPlaylist': 'Wiedergabeliste erstellen',
+  'search.playlistNamePrompt': 'Name der neuen Wiedergabeliste',
+  'search.playlistCreated': 'Wiedergabeliste „{name}“ mit {n} Titeln erstellt.',
+  'search.playlistCreatedPartial': 'Wiedergabeliste „{name}“ mit den {n} angezeigten Titeln erstellt, von {total} Treffern.',
+  'search.playlistNoLocalTracks': 'Kein Titel der lokalen Bibliothek in diesen Ergebnissen.',
+  'search.playlistError': 'Die Wiedergabeliste konnte nicht erstellt werden.',
   'search.durationShown': '{d} angezeigt',
 
   // Streaming
@@ -558,6 +565,14 @@ export default {
   'settings.addSmbShare': 'Netzwerkfreigabe hinzufügen (SMB)',
   'settings.addLocalFolder': 'Lokalen Ordner hinzufügen',
   'settings.removeMusicDirConfirm': 'Diesen Ordner aus der Bibliothek entfernen?',
+  "settings.removeMusicDirError": "Der Ordner konnte nicht entfernt werden.",
+  "settings.orphanTracksAsk": "Der Ordner wurde entfernt. {count} Titel liegen unter keinem Musikordner mehr, der Scan wird sie nie wieder erfassen. Auch aus der Bibliothek entfernen?",
+  "settings.orphanTracksImpact": "Ebenfalls entfernt — Wiedergabelisten: {playlists}, Favoriten: {favorites}, Warteschlange: {queue}.",
+  "settings.orphanTracksFilesSafe": "Die Dateien auf der Festplatte bleiben unberührt.",
+  "settings.orphanTracksPurged": "{count} Titel aus der Bibliothek entfernt.",
+  "settings.orphanTracksRefused": "Der Ordner wurde entfernt, die {count} Titel jedoch nicht gelöscht: Die Bestätigung deckte ihre Anzahl nicht mehr ab. Beginnen Sie erneut, um sie zu entfernen.",
+  "settings.orphanTracksNothingLeft": "Es waren keine verwaisten Titel mehr zu entfernen.",
+  "settings.orphanTracksKept": "{count} Titel behalten. Der Scan wird sie nie wieder erfassen: Nur diese Aktion kann sie entfernen.",
   'settings.coversProgress': 'Cover {current}/{total} ({found} gefunden)',
   'settings.searchingCovers': 'Suche nach Covern...',
   'settings.searchMissingCovers': 'Fehlende Cover suchen',
@@ -4145,6 +4160,10 @@ export default {
   "diagnostics.outputNoLicensedModules": "Kein Modul erworben",
   "diagnostics.outputNoProviders": "In diesen Server ist kein externer Ausgabeanbieter einkompiliert.",
   "diagnostics.outputOpenLicense": "Meine Lizenz anzeigen",
+  "v2.album.compilation": "Compilation",
+  "v2.album.compilationHint": "Album, das der Server beim Scan als Compilation markiert hat.",
+  "v2.lib.compilations": "Compilations",
+  "v2.lib.compilationsHint": "Nur Compilations anzeigen. Die Markierung wird beim Scan gesetzt: ein vor dem Update indiziertes Album erhält sie erst beim nächsten Scan.",
 
   // ── #1617 — trace laissee sur place par le filtre de niveau ─────────
   // Bloc distinct, ajoute en fin de fichier : sept PR ouvertes touchent
