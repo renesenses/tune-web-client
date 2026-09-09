@@ -13,7 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { playbackHistory, type HistoryEntry } from '../../lib/stores/history';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZoneId, zones } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { t as tr } from '../../lib/i18n';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -25,6 +25,7 @@
     cleFavoriRadio,
     chargerFavorisRadio,
     basculerFavoriRadio,
+    nomDeZone,
   } from '../../lib/historiqueLecture';
   import '../../styles/tune-v2.css';
 
@@ -139,13 +140,22 @@
           onLire={(_p, i) => rejouer(entrees[i], i)}
           clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + entrees[i].playedAt}
           apres={suffixe}
-          largeurApres="124px"
+          largeurApres="164px"
         />
         {#snippet suffixe(_p: any, i: number)}
           {@const e = entrees[i]}
           {@const radio = estRadioEnregistrable(e.track)}
           {@const cle = cleFavoriRadio(e.track.title, e.track.artist_name)}
-          <span class="when" class:busy={enCours === i}>{depuis(e.playedAt)}</span>
+          <!-- 🔴 LA ZONE, que l'écran actuel affiche depuis toujours
+               (`HistoryView.svelte:149`) et que le portage avait perdue.
+               FabienM, fil 1739, point 8. Au-dessus de l'instant, comme dans
+               l'écran actuel — c'est cette disposition qu'il montre en
+               exemple. -->
+          {@const zn = nomDeZone(e, $zones)}
+          <span class="quand">
+            {#if zn}<span class="zone" title={zn}>{zn}</span>{/if}
+            <span class="when" class:busy={enCours === i}>{depuis(e.playedAt)}</span>
+          </span>
           {#if radio}
             <button class="fav" class:on={favorisRadio.has(cle)} disabled={occupe === cle}
                     onclick={(ev) => basculerFav(e, ev)}
@@ -178,6 +188,12 @@
   .lh{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:10px; border-radius:9px}
   .lh.busy{opacity:.55}
   .lh .when{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:82px; text-align:right}
+  /* La zone au-dessus de l'instant : deux lignes serrées, alignées à droite,
+     comme dans l'écran actuel. */
+  .quand{display:flex; flex-direction:column; align-items:flex-end; gap:1px; min-width:92px}
+  .quand .zone{font:600 10.5px var(--v2-mono); color:var(--v2-acc1); letter-spacing:.02em;
+    max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .quand .when{font:11px var(--v2-mono); color:var(--v2-txt3)}
 
   /* Le cœur d'un titre radio DÉJÀ en favori reste visible : sans cela on ne
      peut plus lire lesquels le sont sans les survoler un par un — la même

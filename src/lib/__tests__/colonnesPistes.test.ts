@@ -51,14 +51,35 @@ describe('le catalogue', () => {
     expect(COLONNES.filter((c) => c.verrouillee).map((c) => c.cle)).toEqual(['title']);
   });
 
-  it('🔴 trois colonnes sont déclarées SANS DONNÉE', () => {
-    // Mesuré sur le .18 le 07/09/2026 : `/library/albums/{id}/tracks` rend
-    // 31 champs, et ni `play_count`, ni `last_played_at`, ni `dr` n'en font
-    // partie — aucune clé ne contient même `dr`, `replay`, `gain`, `loudness`
-    // ou `peak`. Les trois sont pourtant demandées. Les proposer sans le dire
-    // remplirait la colonne de vide.
-    expect(COLONNES.filter((c) => c.indisponible).map((c) => c.cle))
-      .toEqual(['plays', 'lastPlayed', 'dr']);
+  it('🔴 UNE SEULE colonne reste sans donnée — les deux autres sont allumées', () => {
+    // Elles étaient TROIS jusqu'au 09/09/2026, sur une mesure du 07/09 faite
+    // contre `/library/albums/{id}/tracks`. Remesuré ce jour contre la route
+    // employée par l'écran, `GET /library/tracks?limit=400` sur le .18 :
+    //
+    //   play_count      → présent sur 400 / 400   ⇒ ALLUMÉE
+    //   last_played_at  → présent sur   8 / 400   ⇒ ALLUMÉE (creuse, pas morte)
+    //   dynamic_range   → présent sur   0 / 400   ⇒ reste grisée
+    //
+    // Le serveur les sert depuis #3518. La mesure d'origine portait sur une
+    // AUTRE route, d'où l'erreur.
+    //
+    // Le DR, lui, reste grisé pour un motif RÉVISÉ : le serveur le pose bien
+    // (sous le nom `dynamic_range`, pas `dr`), mais l'omet quand la piste n'a
+    // pas le tag — et aucune bibliothèque sous la main n'en porte. Vérifié sur
+    // DEUX serveurs, plus `/library/albums/filters` du .18 dont la liste
+    // `dynamic_ranges` est VIDE. L'allumer livrerait une colonne vide partout,
+    // sans distinguer « pas de tag » de « pas branché ».
+    expect(COLONNES.filter((c) => c.indisponible).map((c) => c.cle)).toEqual(['dr']);
+  });
+
+  it('les deux colonnes allumées LISENT bien le champ du serveur', () => {
+    // Contre-épreuve de l'allumage : les déclarer disponibles sans les brancher
+    // donnerait une colonne cochable et vide — pire que grisée.
+    const piste = { play_count: 12, last_played_at: '2026-09-01T10:00:00Z' } as any;
+    expect(valeurColonne(piste, 'plays')).toBe('12');
+    expect(valeurColonne(piste, 'lastPlayed')).toBe('2026-09-01');
+    // Jamais écoutée : rien, et surtout pas une date inventée.
+    expect(valeurColonne({} as any, 'lastPlayed')).toBeNull();
   });
 
   it('🔴 EXPERT propose TOUT le catalogue', () => {
@@ -121,7 +142,14 @@ describe('les colonnes retenues', () => {
   it('🔴 écartent une colonne SANS DONNÉE, même cochée', () => {
     // Le réglage survit au serveur : une colonne cochée hier ne doit pas
     // réapparaître vide si la donnée n'arrive toujours pas.
-    expect(colonnesRetenues(['plays', 'lastPlayed']).map((c) => c.cle)).toEqual(['title']);
+    //
+    // C'était `['plays', 'lastPlayed']` jusqu'au 09/09/2026 ; ces deux-là sont
+    // désormais servies et donc RETENUES. Le témoin bascule sur `dr`, la seule
+    // qui reste sans donnée — sinon il ne garderait plus rien.
+    expect(colonnesRetenues(['dr']).map((c) => c.cle)).toEqual(['title']);
+    // Et la contre-épreuve : une colonne allumée, elle, PASSE.
+    expect(colonnesRetenues(['plays', 'lastPlayed']).map((c) => c.cle))
+      .toEqual(['title', 'plays', 'lastPlayed']);
   });
 
   it('écartent une clé INCONNUE au lieu de casser la grille', () => {

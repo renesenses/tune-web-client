@@ -89,8 +89,23 @@ export const COLONNES: Colonne[] = [
   { cle: 'composer',   cleI18n: 'v2.tcol.composer',   largeur: 'minmax(0,1.2fr)' },
   { cle: 'time',       cleI18n: 'v2.tcol.time',       largeur: '64px',  align: 'droite' },
   { cle: 'year',       cleI18n: 'v2.tcol.year',       largeur: '56px',  align: 'droite' },
-  { cle: 'plays',      cleI18n: 'v2.tcol.plays',      largeur: '72px',  align: 'droite', indisponible: true },
-  { cle: 'lastPlayed', cleI18n: 'v2.tcol.lastPlayed', largeur: '116px', align: 'droite', indisponible: true },
+  /**
+   * « # Lectures » et « Dernière écoute » — ALLUMÉES le 09/09/2026.
+   *
+   * Elles étaient grisées au motif que la route ne les portait pas. Le serveur
+   * les sert depuis #3518 (`joindre_dr_par_piste` pose aussi `play_count` et
+   * `last_played_at` sur les trois chemins de `/library/tracks`).
+   *
+   * Mesuré sur le .18 ce jour, `GET /library/tracks?limit=400` :
+   *   play_count      → présent sur 400 / 400
+   *   last_played_at  → présent sur   8 / 400
+   *
+   * Le second est CREUX, et c'est normal : seules les pistes réellement
+   * écoutées en portent une. Une colonne vide sur la plupart des lignes n'est
+   * pas une colonne morte — c'est l'information « jamais écoutée ».
+   */
+  { cle: 'plays',      cleI18n: 'v2.tcol.plays',      largeur: '72px',  align: 'droite' },
+  { cle: 'lastPlayed', cleI18n: 'v2.tcol.lastPlayed', largeur: '116px', align: 'droite' },
   { cle: 'channels',   cleI18n: 'v2.tcol.channels',   largeur: '72px',  align: 'centre' },
   { cle: 'bpm',        cleI18n: 'v2.tcol.bpm',        largeur: '64px',  align: 'droite' },
   { cle: 'genre',      cleI18n: 'v2.tcol.genre',      largeur: 'minmax(0,1fr)' },
@@ -124,16 +139,27 @@ export const COLONNES: Colonne[] = [
   { cle: 'modified',    cleI18n: 'v2.tcol.modified',    largeur: '112px', align: 'droite', min: 'expert' },
   { cle: 'hash',        cleI18n: 'v2.tcol.hash',        largeur: '150px', min: 'expert' },
   /**
-   * 🔴 Dynamic Range — demandé nommément, et SANS DONNÉE sur cette route.
+   * 🔴 Dynamic Range — reste grisée, mais le motif a CHANGÉ.
    *
-   * Mesuré sur le .18 le 07/09/2026 : la charge d'une piste ne porte aucun
-   * champ `dr`, ni rien qui s'en approche (`replay`, `gain`, `loudness`,
-   * `peak` : zéro correspondance sur les 31 clés). Le serveur SAIT pourtant
-   * filtrer dessus — `/library/tracks?dr=10` rend 0 sur 46 877, là où un
-   * paramètre inconnu en rend 46 877 — mais il ne le RESTITUE pas.
+   * L'ancien motif disait « le serveur ne le RESTITUE pas ». C'est faux : le
+   * serveur pose bien `dynamic_range` sur `/library/tracks` (même passe que
+   * `play_count`), sous ce nom-là et non `dr`. Il l'omet simplement quand la
+   * piste ne porte pas le tag `DYNAMIC RANGE`.
    *
-   * Même traitement que « # Plays » : proposée dans la matrice, grisée, motif
-   * écrit. Elle s'allumera quand la route la portera.
+   * Le vrai motif est qu'AUCUNE donnée n'existe pour l'éprouver. Mesuré le
+   * 09/09/2026, sur DEUX serveurs :
+   *   .18  `/library/tracks?limit=400`   → dynamic_range présent sur 0
+   *   .15  `/library/tracks?limit=400`   → dynamic_range présent sur 0
+   *   .18  `/library/albums/filters`     → `dynamic_ranges` : liste VIDE
+   *
+   * Ni piste ni album ne porte de DR sur ces bibliothèques. Allumer la colonne
+   * livrerait une colonne vide partout, sans moyen de distinguer « pas de tag »
+   * de « pas branché » — exactement le doute qu'on veut éviter. Elle reste donc
+   * grisée, et l'allumer demande d'abord UNE bibliothèque taguée pour le
+   * vérifier, pas une modification de code.
+   *
+   * ⚠️ Ne pas confondre avec le DR d'ALBUM, qui lui est affiché sur les deux
+   * fiches (`AlbumDetailV2`, `LibraryView`) — quand il existe.
    */
   { cle: 'dr',          cleI18n: 'v2.tcol.dr',          largeur: '64px',  align: 'droite',
     min: 'expert', indisponible: true },
@@ -266,9 +292,13 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
     // `file_mtime` est un horodatage UNIX en SECONDES (1777546399.0 mesuré) :
     // le passer tel quel à `Date` donnerait 1970.
     case 'modified':     return dateFichier((t as any).file_mtime);
+    case 'plays':      return texte((t as any).play_count);
+    // Creuse par nature : une piste jamais écoutée n'en a pas. `texte` rend
+    // une chaîne vide, ce qui se lit « jamais » sans rien inventer.
+    case 'lastPlayed': return dateFichier(
+      (t as any).last_played_at ? Date.parse((t as any).last_played_at) / 1000 : null,
+    );
     case 'dr':
-    case 'plays':
-    case 'lastPlayed':
       return null;
     case 'quality':  return null;
   }
