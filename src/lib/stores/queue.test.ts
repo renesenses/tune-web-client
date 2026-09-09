@@ -139,16 +139,33 @@ describe('#2191 — cycle du bouton « File »', () => {
     expect(nextQueueSheetState('peek', true)).toBe('collapsed');
   });
 
-  // ── Témoins : la colonne étroite garde ses trois crans ──────────────────
-  it('TÉMOIN — en colonne étroite, les trois crans sont conservés', () => {
-    // `peek` y a une hauteur propre (240px contre 70vh), et les gestes
-    // tactiles les traversent un par un : les retirer serait la régression.
-    expect(appuisPourRefermer(false)).toEqual(['peek', 'expanded', 'collapsed']);
+  // ── Colonne étroite : le BOUTON n'y fait plus l'escalier non plus ───────
+  //
+  // #2191 n'avait corrigé que l'écran large, et gardait la colonne étroite en
+  // témoin : « `peek` y a une hauteur propre (240px contre 70vh), et les gestes
+  // tactiles les traversent un par un ». Le second point reste vrai — le geste
+  // les traverse toujours — mais il ne justifiait pas que le BOUTON les monte.
+  //
+  // Alex Campbell est revenu dessus le 08/09/2026, cette fois depuis une webapp
+  // Safari, donc en colonne étroite : « it takes two clicks ». Le même défaut,
+  // signalé deux fois, corrigé une fois et demie.
+  it('🔴 en colonne étroite aussi, deux appuis suffisent', () => {
+    expect(appuisPourRefermer(false)).toEqual(['expanded', 'collapsed']);
   });
 
-  it('TÉMOIN — en colonne étroite, chaque cran est atteint dans l’ordre', () => {
-    expect(nextQueueSheetState('collapsed', false)).toBe('peek');
-    expect(nextQueueSheetState('peek', false)).toBe('expanded');
-    expect(nextQueueSheetState('expanded', false)).toBe('collapsed');
+  it('🔴 le bouton ne s’arrête jamais sur « peek », quelle que soit la largeur', () => {
+    for (const large of [true, false]) {
+      expect(nextQueueSheetState('collapsed', large)).toBe('expanded');
+      expect(nextQueueSheetState('peek', large)).toBe('collapsed');
+      expect(nextQueueSheetState('expanded', large)).toBe('collapsed');
+    }
+  });
+
+  it('« peek » reste un ÉTAT — il n’est pas supprimé, il n’est plus au bouton', () => {
+    // Le glissé tactile le pose (`handleSheetTouchMove` dans `NowPlaying`), et
+    // le bouton doit savoir refermer depuis là. Si `peek` disparaissait du
+    // type, ce cas cesserait de compiler — c'est le but.
+    const depuisPeek: QueueSheetState = 'peek';
+    expect(nextQueueSheetState(depuisPeek, false)).toBe('collapsed');
   });
 });

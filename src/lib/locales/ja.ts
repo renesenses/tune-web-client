@@ -336,7 +336,6 @@ export default {
   'transport.shuffle': 'シャッフル',
   'transport.previous': '前へ',
   'transport.next': '次へ',
-  'transport.stop': '停止',
   'transport.repeat': 'リピート',
   'transport.shuffleOn': 'シャッフル：オン',
   'transport.shuffleOff': 'シャッフル：オフ',

@@ -362,13 +362,29 @@ describe('Collections — deux sortes, deux identités', () => {
     // ajouter une smart collection ? »), donc son propre chemin : la modale de
     // renommage d'un côté, l'éditeur de règles de l'autre. Ce qui reste
     // interdit, c'est de les CONFONDRE.
+    //
+    // ⚠️ 09/09/2026 — la bifurcation a DÉMÉNAGÉ, elle n'a pas disparu. Elle
+    // était écrite en ternaire dans l'attribut `onEditer` ; le bouton
+    // d'édition est arrivé sur la FICHE de la collection (« Manque le bouton
+    // d'édition d'une collection »), et recopier le test aux deux endroits
+    // aurait été la façon sûre de les faire diverger. Il vit maintenant dans
+    // `editerCollection`, que la liste ET la fiche appellent.
+    //
+    // Ce que ce cas garde n'a pas changé d'un mot : les deux sortes ne se
+    // CONFONDENT pas.
     const src = ecran();
-    expect(src.includes("onEditer={e.sorte === 'normale'"), 'le crayon ne distingue plus les deux sortes').toBe(true);
-    expect(src.includes('? () => (enEdition = e)'), 'la manuelle n’ouvre plus la modale de renommage').toBe(true);
-    expect(src.includes(': () => (editeurSmart = { id: e.id })}'), 'l’intelligente n’ouvre pas l’éditeur de règles').toBe(true);
+    expect(src.includes('function editerCollection(e: Entree)'), 'la bifurcation a disparu').toBe(true);
+    const i = src.indexOf('function editerCollection(e: Entree)');
+    const corps = src.slice(i, i + 200);
+    expect(corps.includes("e.sorte === 'smart'"), 'le crayon ne distingue plus les deux sortes').toBe(true);
+    expect(corps.includes('editeurSmart = { id: e.id }'), 'l’intelligente n’ouvre pas l’éditeur de règles').toBe(true);
+    expect(corps.includes('enEdition = e'), 'la manuelle n’ouvre plus la modale de renommage').toBe(true);
     // Et l'intelligente ne passe JAMAIS par la modale de renommage, qui
     // écrirait sur une route qui ne la connaît pas.
-    expect(src.includes("e.sorte === 'smart' ? () => (enEdition = e)"), 'une intelligente passe par la modale de renommage').toBe(false);
+    expect(/e\.sorte === 'smart'\s*\)?\s*(\?\s*)?(\{\s*)?enEdition = e/.test(corps),
+      'une intelligente passe par la modale de renommage').toBe(false);
+    // Le crayon de la liste appelle bien cette fonction-là.
+    expect(src.includes('onEditer={() => editerCollection(e)}'), 'la liste a repris un chemin à elle').toBe(true);
   });
 });
 

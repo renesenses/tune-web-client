@@ -310,7 +310,6 @@ export default {
   'transport.shuffle': 'Blanda',
   'transport.previous': 'Föregående',
   'transport.next': 'Nästa',
-  'transport.stop': 'Stoppa',
   'transport.repeat': 'Upprepa',
   'transport.shuffleOn': 'Blanda: på',
   'transport.shuffleOff': 'Blanda: av',

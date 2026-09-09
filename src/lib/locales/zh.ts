@@ -336,7 +336,6 @@ export default {
   'transport.shuffle': '随机播放',
   'transport.previous': '上一首',
   'transport.next': '下一首',
-  'transport.stop': '停止',
   'transport.repeat': '重复',
   'transport.shuffleOn': '随机播放：开',
   'transport.shuffleOff': '随机播放：关',
