@@ -532,6 +532,7 @@ export default {
   'nowplaying.eqPremium': 'A hangszínszabályzó a Tune Premium része: aktív licenc nélkül ezek az előbeállítások nem érhetők el.',
   'nowplaying.eqError': 'A hangszínszabályzó beállítását nem sikerült menteni.',
   'premium.required': 'Ez a funkció a Tune Premium része.',
+  'zone.freeCapReached': "Már mind a(z) {n} ingyenes zónáját használja. Egy további zónában való lejátszáshoz Tune Premium szükséges — a protokollok (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) mind benne vannak az ingyenes változatban.",
   "nowplaying.addToPlaylist": "Hozzáadás lejátszási listához",
   "nowplaying.upNext": "Következik",
   "nowplaying.noPlayback": "Nem szól semmi",

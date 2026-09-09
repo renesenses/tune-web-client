@@ -557,6 +557,7 @@ export default {
   'nowplaying.eqPremium': "L'égaliseur fait partie de Tune Premium : sans licence active, ces préréglages restent indisponibles.",
   'nowplaying.eqError': "Le réglage de l'égaliseur n'a pas pu être enregistré.",
   'premium.required': 'Cette fonctionnalité fait partie de Tune Premium.',
+  'zone.freeCapReached': "Vous utilisez déjà vos {n} zones gratuites. Jouer sur une zone de plus demande Tune Premium — les protocoles (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) sont tous inclus dans la version gratuite.",
   'nowplaying.addToPlaylist': 'Ajouter à une playlist',
   'nowplaying.upNext': 'À suivre',
   'nowplaying.noPlayback': 'Aucune lecture en cours',

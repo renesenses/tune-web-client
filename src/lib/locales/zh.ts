@@ -350,6 +350,7 @@ export default {
   'nowplaying.eqPremium': '均衡器属于 Tune Premium 功能：没有有效授权时，这些预设不可用。',
   'nowplaying.eqError': '均衡器设置保存失败。',
   'premium.required': '此功能属于 Tune Premium。',
+  'zone.freeCapReached': "您已用满 {n} 个免费区域。在更多区域播放需要 Tune Premium — 各类协议（DLNA、AirPlay 2、BluOS、Chromecast、OpenHome）均已包含在免费版中。",
   'nowplaying.addToPlaylist': '添加到播放列表',
   'nowplaying.upNext': '接下来',
   'nowplaying.noPlayback': '未在播放',

@@ -350,6 +350,7 @@ export default {
   'nowplaying.eqPremium': 'イコライザーは Tune Premium の機能です。有効なライセンスがない場合、これらのプリセットは使用できません。',
   'nowplaying.eqError': 'イコライザーの設定を保存できませんでした。',
   'premium.required': 'この機能は Tune Premium に含まれます。',
+  'zone.freeCapReached': "無料の {n} ゾーンをすべて使用中です。さらにゾーンで再生するには Tune Premium が必要です。プロトコル（DLNA、AirPlay 2、BluOS、Chromecast、OpenHome）はすべて無料版に含まれています。",
   'nowplaying.addToPlaylist': 'プレイリストに追加',
   'nowplaying.upNext': '次に再生',
   'nowplaying.noPlayback': '再生中の音声がありません',

@@ -356,6 +356,7 @@ export default {
   'nowplaying.eqPremium': 'Egalizatorul face parte din Tune Premium: fără o licență activă, aceste presetări rămân indisponibile.',
   'nowplaying.eqError': 'Setarea egalizatorului nu a putut fi salvată.',
   'premium.required': 'Această funcție face parte din Tune Premium.',
+  'zone.freeCapReached': "Folosiți deja cele {n} zone gratuite. Redarea într-o zonă în plus necesită Tune Premium — protocoalele (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) sunt toate incluse în versiunea gratuită.",
   'nowplaying.addToPlaylist': 'Adaugă la playlist',
   'nowplaying.upNext': 'Urmează',
   'nowplaying.noPlayback': 'Nu se redă nimic',

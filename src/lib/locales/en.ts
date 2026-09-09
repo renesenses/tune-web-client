@@ -557,6 +557,7 @@ export default {
   'nowplaying.eqPremium': 'The equalizer is part of Tune Premium: without an active licence, these presets stay unavailable.',
   'nowplaying.eqError': 'The equalizer setting could not be saved.',
   'premium.required': 'This feature is part of Tune Premium.',
+  'zone.freeCapReached': "You are already using your {n} free zones. Playing on one more zone requires Tune Premium — the protocols (DLNA, AirPlay 2, BluOS, Chromecast, OpenHome) are all included in the free version.",
   'nowplaying.addToPlaylist': 'Add to Playlist',
   'nowplaying.upNext': 'Up Next',
   'nowplaying.noPlayback': 'Nothing playing',
