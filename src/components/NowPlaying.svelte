@@ -37,7 +37,6 @@
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear } from '../lib/stores/navigation';
-  import { destinationAlbum } from '../lib/routageAlbum';
   import { gestesNavigationService } from '../lib/stores/navigation';
   import { destinationArtiste } from '../lib/routageArtiste';
   import { setSearchCriteria } from '../lib/stores/shortcuts';
@@ -582,26 +581,47 @@
     selectedArtist.set(null);
 
     /*
-     * 🔴 L'ALBUM D'UNE PISTE DE SERVICE SE TROUVE SANS RIEN CHERCHER — #1361.
+     * 🔴 L'ALBUM DE CE QUI JOUE SE DEMANDE AU SERVEUR — #1361.
      *
-     * En dessous, la branche `albumTitle` interroge `searchLibrary` : pour un
-     * album Qobuz qu'on ne possède pas, elle ne peut par construction rien
-     * trouver, et on atterrissait sur une recherche par titre. Or la piste
-     * porte déjà l'identifiant de son album chez le service.
+     * CE BLOC A ÉTÉ FAUX, ET C'EST INSTRUCTIF. Il lisait
+     * `displayTrack.album_id` en espérant l'identifiant de l'album chez le
+     * service. Or ce champ est un `i64` de la table `albums` — le type du
+     * client le dit lui-même : « Absents pour une radio ou un flux, qui n'ont
+     * pas d'entrée en bibliothèque. » Sur une piste Qobuz qu'on ne possède
+     * pas, il vaut `null`, et le détournement ne se produisait JAMAIS.
      *
-     * On ne consulte la décision que quand l'appelant n'a PAS d'identifiant
-     * local : un `albumId` en main désigne un album de la bibliothèque, et
-     * rien ne doit détourner ce chemin-là.
+     * Les témoins ne l'ont pas vu parce qu'ils nourrissaient `destinationAlbum`
+     * d'une chaîne qu'ils fournissaient eux-mêmes : ils éprouvaient la
+     * décision, jamais ce que l'appelant lui passe.
+     *
+     * `GET /zones/{id}/album-en-cours` tranche les trois provenances côté
+     * serveur — le geste, la ligne de bibliothèque, puis le service interrogé
+     * UNE fois — et rend le chemin à ouvrir. Sa documentation conclut : « Ce
+     * qui reste au client : ouvrir `path`. Rien d'autre. »
+     *
+     * ⚠️ Un 404 est une réponse NORMALE (radio, flux, piste sans identifiant) :
+     * on retombe alors sur le geste d'avant, sans afficher d'erreur.
      */
-    if (!albumId && gestesService) {
-      const dest = destinationAlbum({
-        source: displayTrack?.source ?? null,
-        album_id: (displayTrack as any)?.album_id,
-        album_title: albumTitle ?? displayTrack?.album_title ?? null,
-      });
-      if (dest?.type === 'album-service') {
-        gestesService.ouvrirAlbum({ service: dest.service, albumId: dest.albumId, titre: dest.titre });
-        return;
+    if (!albumId) {
+      const zid = get(currentZoneId);
+      if (zid != null) {
+        try {
+          const ac = await api.getZoneCurrentAlbum(zid);
+          if (ac?.kind === 'streaming' && ac.album_id && gestesService) {
+            gestesService.ouvrirAlbum({
+              service: ac.service,
+              albumId: String(ac.album_id),
+              titre: albumTitle ?? displayTrack?.album_title ?? '',
+            });
+            return;
+          }
+          if (ac?.kind === 'library' && ac.album_id) {
+            // Le chemin local existe déjà et sait tout faire : on le reprend
+            // par le bas plutôt que d'en écrire un second.
+            const n = Number(ac.album_id);
+            if (Number.isFinite(n) && n > 0) { await navigateToAlbum(n, albumTitle); return; }
+          }
+        } catch { /* 404 ou serveur antérieur : le repli ci-dessous. */ }
       }
     }
 

@@ -2999,6 +2999,47 @@ export function getStreamingArtist(service: string, artistId: string) {
  * disent pas la même chose, et « ce sur quoi l'artiste apparaît » ne fait pas
  * un best of.
  */
+/** Ce que rend `GET /zones/{id}/album-en-cours` quand il a trouvé. */
+export interface AlbumEnCours {
+  zone_id: number;
+  /** `library` : l'album est en bibliothèque. `streaming` : il est chez un service. */
+  kind: 'library' | 'streaming';
+  service: string;
+  /** Numérique en TEXTE pour `library`, identifiant du service pour `streaming`. */
+  album_id: string;
+  artist_id: string | null;
+  path: string;
+  /** La branche prise : `session_context`, `current_track` ou `service_lookup`. */
+  origin: string;
+}
+
+/**
+ * L'album de ce qui joue — #1361, et la fin d'une devinette.
+ *
+ * 🔴 POURQUOI UNE ROUTE, ET PAS UN CHAMP DE LA PISTE. Le client a trois
+ * provenances possibles et aucune ne suffit seule, ce que la documentation
+ * serveur (`routes/zones.rs:549`) établit :
+ *
+ * * `session_context_*` dit ce que l'auditeur a DEMANDÉ — mais seulement quand
+ *   le geste était un conteneur ; un morceau lancé depuis une recherche donne
+ *   `("track", …)` et l'album n'y est pas ;
+ * * `current_track.album_id` est un `i64` de la table `albums` : **toujours
+ *   `null` sur une piste de service** ;
+ * * restait `source` + `source_id`, l'identifiant de la PISTE — donc un appel
+ *   au service **à chaque changement de piste**, chez chaque client.
+ *
+ * Le serveur tranche les trois, une fois, et rend le chemin à ouvrir. Sa
+ * conclusion, mot pour mot : « Ce qui reste au client : ouvrir `path`. Rien
+ * d'autre. »
+ *
+ * ⚠️ **404 est une réponse normale**, pas une panne : radio, flux, piste sans
+ * identifiant. Le corps porte alors `reason`. L'appelant doit retomber sur son
+ * geste d'avant plutôt que d'afficher une erreur.
+ */
+export function getZoneCurrentAlbum(zoneId: number) {
+  return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`);
+}
+
 export function getStreamingArtistTopTracks(service: string, artistId: string) {
   return fetchJSON<Track[]>(
     `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/top-tracks`,
