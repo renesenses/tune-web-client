@@ -40,6 +40,7 @@
   import LignePisteV2 from './LignePisteV2.svelte';
   import PisteActions from './PisteActions.svelte';
   import QualityBadge from '../QualityBadge.svelte';
+  import AlbumArt from '../AlbumArt.svelte';
 
   interface Props {
     pistes: Track[];
@@ -56,6 +57,35 @@
     /** Transmis tel quel au rendu en LIGNES (modes Avancé et Expert). */
     avecAlbum?: boolean;
     pochette?: boolean;
+    /**
+     * 🔴 La vignette en tête de ligne AU MODE TABLEAU — #3823.
+     *
+     * « Menu historique : régression par rapport à la v0.9.44 : manque
+     * vignette du titre en début de ligne » (FabienM, fil 1749, v0.9.145), et
+     * le même manque relevé le même jour par Pierre M, indépendamment, au
+     * niveau Expert : « On peut avoir le "cover" ? ».
+     *
+     * L'écran de l'ANCIEN client porte cette vignette depuis toujours et à
+     * tous les niveaux — `HistoryView.svelte:142`, un `AlbumArt` de 44 px en
+     * tête de chaque ligne. Le portage vers la liste partagée l'a perdue aux
+     * niveaux Essentiel et Expert, les deux qui rendent le TABLEAU
+     * (`MODES_BRANCHES`) ; seul le rendu en lignes (Avancé) la garde.
+     *
+     * ⚠️ OPT-IN, et volontairement. Le même tableau sert la Bibliothèque
+     * (onglet Titres), les playlists et la Recherche : y ajouter une pochette
+     * partout serait un choix de design, pas la réparation d'une régression.
+     * Seul l'Historique la demande ici, parce que c'est le seul écran dont
+     * l'équivalent actuel la montre. Si le design tranche un jour pour tous,
+     * le défaut de cette propriété change, et rien d'autre.
+     *
+     * ⚠️ La vignette vit DANS la cellule du titre, pas dans une colonne à
+     * elle. C'est la règle du composant, écrite trois fois dans ce fichier :
+     * l'en-tête et les lignes sont deux grilles séparées qui partagent un seul
+     * `grid-template-columns`, et une colonne de plus dans les lignes seules
+     * ferait dériver tous les en-têtes vers la droite. C'est exactement ce que
+     * fait déjà `IndicateurLecture`, juste à côté.
+     */
+    pochetteEnTableau?: boolean;
     /**
      * 🔴 Une FABRIQUE, pas un gestionnaire.
      *
@@ -102,7 +132,8 @@
   }
   let {
     pistes, onLire, numerotation = 'rang',
-    avecAlbum = true, pochette = true, ouvertureAlbum = null, apres,
+    avecAlbum = true, pochette = true, pochetteEnTableau = false,
+    ouvertureAlbum = null, apres,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
   }: Props = $props();
 
@@ -252,7 +283,14 @@
             <button class="td titre" onclick={() => onLire(p, i)} title={p.title}>
               <!-- L'indicateur est DANS la cellule du titre : une colonne de plus
                    décalerait l'en-tête, et la règle de ce composant est qu'un
-                   seul gabarit vaut pour l'en-tête et pour les lignes. -->
+                   seul gabarit vaut pour l'en-tête et pour les lignes.
+                   La vignette (#3823) suit la MÊME règle, pour la même raison. -->
+              {#if pochetteEnTableau}
+                <span class="tvig">
+                  <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={36}
+                    alt={p.title ?? ''} source={p.source} />
+                </span>
+              {/if}
               <IndicateurLecture {etat} />
               <span class="ttxt">{cellule(p, i, c.cle) ?? ''}</span>
             </button>
@@ -296,6 +334,13 @@
   .titre{display:flex; align-items:center; gap:7px;
     padding:0; border:0; background:transparent; cursor:pointer; text-align:left;
     font:600 13.5px var(--v2-sans); color:var(--v2-txt); min-width:0}
+  /* 36 px : la ligne du tableau fait 46 px de haut (`.trow`), contre 56 px
+     dans l'ancien écran qui portait une vignette de 44. La vignette ne doit
+     pas décider de la hauteur de la ligne, sinon le tableau change de densité
+     sur le seul écran qui l'active. `flex:0 0 auto` : elle ne se comprime
+     jamais — c'est le TEXTE qui s'élide, comme l'indicateur juste à côté. */
+  .tvig{flex:0 0 auto; width:36px; height:36px; border-radius:4px;
+    overflow:hidden; display:block; line-height:0}
   /* C'est le TEXTE qui s'élide, jamais l'indicateur : un repère tronqué ne
      repère plus rien. */
   .ttxt{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}

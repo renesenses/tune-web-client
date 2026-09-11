@@ -117,7 +117,12 @@ describe('Ce que les paliers commandent', () => {
 describe('Le tiroir se referme', () => {
   it('naviguer le referme', () => {
     // Sinon la barre reste par-dessus l'écran qu'on vient de demander.
-    expect(/function go\(v: View\) \{ activeView\.set\(v\); tiroirOuvert\.set\(false\); \}/.test(barre()),
+    // ⚠️ Le corps de `go` n'est plus figé mot pour mot : #3843 y a ajouté
+    // `requestListReset()` en tête (la barre v2 ne l'émettait pas, et la fiche
+    // album survivait au clic sur « Bibliothèque »). La garde tient toujours ce
+    // qu'elle veut dire — naviguer POSE la vue et REFERME le tiroir, dans cet
+    // ordre — sans interdire qu'on fasse autre chose dans la même fonction.
+    expect(/function go\(v: View\) \{[^}]*activeView\.set\(v\);[^}]*tiroirOuvert\.set\(false\);[^}]*\}/.test(barre()),
       'choisir une vue laisse le tiroir ouvert par-dessus elle').toBe(true);
   });
 

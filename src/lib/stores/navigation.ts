@@ -28,9 +28,36 @@ activeView.subscribe(v => {
 // collections) can reset to its list when the user clicks its nav entry while
 // already inside a detail. Views watch this and clear their local selection.
 export const listResetNonce = writable(0);
+/**
+ * 🔴 La vue vers laquelle le bouton « Retour » d'une FICHE doit ramener.
+ *
+ * « Menu recherche : si je clique sur un artiste cela me renvoie à la
+ * bibliothèque de l'artiste et si je clique sur le bouton Retour ça me renvoie
+ * à l'accueil de la bibliothèque alors que le comportement attendu devrait
+ * être un retour vers la page de recherche » (FabienM, fil 1749, v0.9.145 —
+ * renesenses/tune-server-rust#3824).
+ *
+ * Le chemin aller existe déjà et ne change pas : la Recherche POSE sa cible
+ * (`pendingLibraryArtist`) puis change de vue. Ce qui manquait est le chemin
+ * RETOUR — la fiche refermait son calque (`ouvert = null`) et découvrait la
+ * grille de la Bibliothèque, parce que rien ne lui disait d'où l'on venait.
+ *
+ * ⚠️ Pourquoi PAS `previousView`, qui existe pourtant juste au-dessus.
+ * `previousView` suit TOUT changement de vue, y compris ceux que l'utilisateur
+ * fait après être arrivé : il dit « la vue d'avant », pas « la vue à laquelle
+ * ce geste-ci doit rendre la main ». Il n'est d'ailleurs lu par aucun composant
+ * `v2/`. Ce dépôt-ci est explicite, posé par l'émetteur du geste, et consommé
+ * UNE fois par la fiche qui porte le bouton.
+ *
+ * Effacé par `requestListReset()` : un clic délibéré dans la barre latérale
+ * quitte le parcours, et le « retour » d'un parcours abandonné ne doit pas
+ * téléporter l'écran suivant.
+ */
+export const vueDeRetour = writable<View | null>(null);
 export function requestListReset() {
   listResetNonce.update(n => n + 1);
   viewStateStash.clear();
+  vueDeRetour.set(null);
 }
 
 // One-shot stash of a view's intra-drill state (open collection, …) so that

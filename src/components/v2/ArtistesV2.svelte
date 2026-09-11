@@ -39,6 +39,7 @@
    * pas d'`artist_id`. Même compromis que pour les collections.
    */
   import { onMount } from 'svelte';
+  import { activeView, listResetNonce, vueDeRetour } from '../../lib/stores/navigation';
   import { lireListe } from '../../lib/lectureEnMasse';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
@@ -115,6 +116,52 @@
   let albumsChargement = $state(false);
   let albumOuvert = $state<Album | null>(null);
   let enEdition = $state<Artist | null>(null);
+  /**
+   * 🔴 Le pendant de l'effet de `LibraryV2` — #3843.
+   *
+   * La fiche ARTISTE est un second calque, tenu ici et non dans `LibraryV2` :
+   * refermer `opened` chez le parent ne la referme pas. Un clic sur
+   * « Bibliothèque » doit rendre la grille, quel que soit le calque ouvert.
+   *
+   * 🔴 `$listResetNonce`, pas `get(...)` — voir `LibraryV2`.
+   */
+  $effect(() => {
+    $listResetNonce;
+    ouvert = null;
+    albumOuvert = null;
+  });
+  /**
+   * Le bouton « Retour » de la fiche artiste — #3824.
+   *
+   * Il ne faisait que `ouvert = null`, ce qui découvre la grille des artistes
+   * de la Bibliothèque : le testeur venu de la Recherche atterrissait « à
+   * l'accueil de la bibliothèque ». La fiche sait désormais d'où l'on vient,
+   * parce que l'émetteur du geste le lui a dit (`vueDeRetour`).
+   *
+   * Le calque est refermé DANS TOUS LES CAS : sans cela, revenir plus tard sur
+   * la Bibliothèque rouvrirait la fiche qu'on croyait avoir quittée.
+   */
+  function retourFiche() {
+    const retour = $vueDeRetour;
+    ouvert = null;
+    albumOuvert = null;
+    if (retour) {
+      vueDeRetour.set(null);
+      activeView.set(retour);
+    }
+  }
+  /**
+   * Ouvrir un artiste EN CLIQUANT LA GRILLE efface le retour en attente.
+   *
+   * Sans cela, un parcours « Recherche → fiche A → grille → fiche B » ferait
+   * repartir le Retour de la fiche B vers la Recherche, un écran que
+   * l'utilisateur a quitté entre-temps. Le dépôt n'appartient qu'au geste qui
+   * l'a posé.
+   */
+  function ouvrirDepuisGrille(a: Artist) {
+    vueDeRetour.set(null);
+    void ouvrir(a);
+  }
 
   /**
    * Les albums de l'artiste CHEZ LES SERVICES — #3709.
@@ -327,7 +374,7 @@
 {#if ouvert}
   {@const artiste = ouvert}
   <header class="fiche">
-    <button class="retour" onclick={() => (ouvert = null)}>← {$t('common.back' as any)}</button>
+    <button class="retour" onclick={retourFiche}>← {$t('common.back' as any)}</button>
     <div class="ident">
       <span class="av">
         <AlbumArt coverPath={artiste.image_path} size={0} alt={artiste.name}
@@ -468,7 +515,7 @@
               etiquettes={a.id != null ? { itemType: 'artist', itemId: a.id } : null}
               onEditer={a.id != null ? () => (enEdition = a) : null}
               onLire={() => lireArtiste(a)}
-              onOuvrir={() => ouvrir(a)}
+              onOuvrir={() => ouvrirDepuisGrille(a)}
               nom={a.name}
             >
               <AlbumArt coverPath={a.image_path} size={0} alt={a.name}
@@ -481,7 +528,7 @@
                image_source, musicbrainz_id, name, sort_name). L'afficher
                demanderait une requête par artiste, et en inventer un serait
                pire que de n'en montrer aucun. -->
-          <button class="meta centre" onclick={() => ouvrir(a)}>
+          <button class="meta centre" onclick={() => ouvrirDepuisGrille(a)}>
             <span class="ct" title={a.name}>{a.name}</span>
           </button>
         </div>
