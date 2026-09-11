@@ -8,6 +8,7 @@
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { isBrowserZone } from '../lib/stores/browserAudio';
   import { verdictEnvoiBandcamp } from '../lib/bandcampEnvoi';
+  import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../lib/bandcampLecture';
   import { activeView } from '../lib/stores/navigation';
 
   // L'écran ne présente PAS Bandcamp : il répond à « qu'est-ce que j'ai acheté
@@ -51,6 +52,26 @@
   let artisteNom = $state('');
   /** Piste dont l'envoi vers la zone est en cours, par URL de flux. */
   let envoiEnCours = $state<string | null>(null);
+  /** Article de collection dont l'envoi est en cours, par adresse d'album. */
+  let envoiCollection = $state<string | null>(null);
+
+  /** Le pseudo Bandcamp mémorisé PAR LE SERVEUR, relu au montage.
+   *
+   *  FabienM (#2778, fil 1606) : « quand je quitte le menu Bandcamp et quand
+   *  je reviens mon compte n'est plus actif, je suis obligé de ressaisir mon
+   *  identifiant ». La liaison n'était pas perdue — le greffon l'écrit dans la
+   *  table `settings` et elle survit au redémarrage du serveur. C'est
+   *  l'AFFICHAGE qui la perdait : le formulaire s'affiche sur `analyse`, une
+   *  variable de composant, et `App.svelte` démonte cet écran dès qu'on le
+   *  quitte. Revenir en construisait un neuf, donc `analyse = false`, donc le
+   *  formulaire, quel que soit l'état en base.
+   *
+   *  L'état est lisible par une route depuis la v0.9.132 —
+   *  `GET /api/v1/streaming/bandcamp/status`, rendue par l'inscription de
+   *  Bandcamp au registre des services (`tune-server/src/state.rs:369`,
+   *  mesurée présente aux tags v0.9.132, v0.9.144 et v0.9.145). Personne ne
+   *  l'appelait. */
+  let pseudoLie = $state<string | null>(null);
 
   let manquants = $derived(resultats.filter((r) => r.verdict === 'manquante'));
   let ambigus = $derived(resultats.filter((r) => r.verdict === 'ambigue'));
@@ -67,7 +88,37 @@
     if (!$bandcampCharge) return;
     charger_genres();
     explorer();
+    relire_liaison();
   });
+
+  /** Relire l'état de liaison auprès du SERVEUR, pas de la mémoire du
+   *  composant. Un échec ne se signale pas : l'écran retombe simplement sur le
+   *  formulaire, c'est-à-dire sur le comportement d'avant. */
+  async function relire_liaison() {
+    try {
+      const etat = await api.getStreamingServiceStatus('bandcamp');
+      pseudoLie = etat?.authenticated ? (etat.username ?? '') : null;
+      if (pseudoLie) pseudo = pseudoLie;
+    } catch {
+      pseudoLie = null;
+    }
+  }
+
+  /** Ouvrir « Ma collection ». Un compte déjà lié n'a pas à être ressaisi :
+   *  on compare directement. */
+  function ouvrir_collection() {
+    mode = 'collection';
+    if (pseudoLie && !analyse && !chargement) analyser();
+  }
+
+  /** Repasser par le formulaire, à la demande — pour lier un AUTRE compte. */
+  function changer_de_compte() {
+    pseudoLie = null;
+    analyse = false;
+    resultats = [];
+    pseudo = '';
+    erreur = '';
+  }
 
   async function charger_genres() {
     try {
@@ -210,10 +261,22 @@
       exploreErreur = $t('bandcamp.noZone' as any);
       return;
     }
+    // 🔴 #2702 — on envoie l'ALBUM, ouvert à la piste cliquée, et non la piste
+    // seule. La piste seule termine par `update_queue_info(zone, 0, 1)` : une
+    // file d'EXACTEMENT une piste, où il n'y a jamais de suivante à enchaîner.
+    // Le geste de l'auditeur ne change pas — il clique le premier titre — mais
+    // la file, elle, contient enfin l'album. Détail et lignes du serveur dans
+    // `bandcampLecture.ts`.
+    const index = albumOuvert?.tracks?.findIndex((q) => q.stream_url === p.stream_url) ?? -1;
+    const corps = corpsDeLectureBandcamp(albumOuvert, index < 0 ? 0 : index);
+    if (!corps) {
+      exploreErreur = $t('bandcamp.playFailed' as any);
+      return;
+    }
     envoiEnCours = p.stream_url;
     exploreErreur = '';
     try {
-      const apres = await playAndSync(zone.id, piste_distante(p));
+      const apres = await playAndSync(zone.id, corps);
       // `output_sent === false` couvrait deux cas très différents sous un seul
       // message. Sur une sortie RÉELLE, il dit qu'un appareil a refusé le flux
       // — c'est le cas de #1768, et nommer la zone y est juste. Sur une zone
@@ -270,6 +333,52 @@
     }
   }
 
+  /** Jouer un album de « Ma collection ».
+   *
+   *  Second volet du fil 1606 (#2778), requalifié par Bertrand le 29/08 :
+   *  « ce qui manque, ce n'est pas la lecture pour Bandcamp, c'est la lecture
+   *  depuis Ma collection ». L'écran n'offrait qu'un lien `target="_blank"`
+   *  vers bandcamp.com — aucun bouton, aucun gestionnaire de clic. L'article
+   *  porte pourtant l'adresse de l'album (`collection_mise_en_forme`, champ
+   *  `url`), donc exactement l'identifiant que `streaming_album_id` attend :
+   *  la collection devient jouable, et par l'album entier. */
+  async function jouer_collection(article: api.BandcampItem) {
+    const zone = $currentZone;
+    if (!zone?.id) {
+      erreur = $t('bandcamp.noZone' as any);
+      return;
+    }
+    const corps = corpsDeLectureCollection(article);
+    if (!corps) {
+      erreur = $t('bandcamp.playFailed' as any);
+      return;
+    }
+    envoiCollection = article.url;
+    erreur = '';
+    try {
+      const apres = await playAndSync(zone.id, corps);
+      switch (verdictEnvoiBandcamp(apres, isBrowserZone(apres))) {
+        case 'refusDeLaZone':
+          notifications.error(`${zone.name} — ${$t('bandcamp.zoneRefused' as any)}`, 8000);
+          return;
+        case 'aucunFlux':
+          notifications.error($t('bandcamp.noStream' as any), 8000);
+          return;
+        case 'dejaSignale':
+          return;
+        case 'succes':
+          break;
+      }
+      notifications.success(
+        `${article.title} → ${zone.name} · ${$t('bandcamp.qualityBadge' as any)}`,
+      );
+    } catch (e) {
+      erreur = (e as Error)?.message || $t('bandcamp.playFailed' as any);
+    } finally {
+      envoiCollection = null;
+    }
+  }
+
   function duree(s: number): string {
     if (!Number.isFinite(s) || s <= 0) return '';
     const m = Math.floor(s / 60);
@@ -284,6 +393,7 @@
     erreur = '';
     try {
       await api.bandcampLink(nom);
+      pseudoLie = nom;
       await analyser();
     } catch (e) {
       // Un échec silencieux ici, c'est un écran qui reste vide sans dire
@@ -356,7 +466,7 @@
     <button class:actif={mode === 'explorer'} onclick={() => (mode = 'explorer')}>
       {$t('bandcamp.explore' as any)}
     </button>
-    <button class:actif={mode === 'collection'} onclick={() => (mode = 'collection')}>
+    <button class:actif={mode === 'collection'} onclick={ouvrir_collection}>
       {$t('bandcamp.myCollection' as any)}
     </button>
   </nav>
@@ -592,7 +702,19 @@
 
   {/if}
 
-  {#if mode === 'collection' && !analyse}
+  <!-- Le compte lié est nommé, et il vient du SERVEUR : c'est lui qui met fin
+       au « mon identifiant n'est pas conservé » (#2778). Le formulaire ne
+       revient que si l'on demande à changer de compte. -->
+  {#if mode === 'collection' && pseudoLie}
+    <p class="bc-lie">
+      <span>{$t('bandcamp.linkedAs' as any).replace('{pseudo}', pseudoLie)}</span>
+      <button class="bc-lien" onclick={changer_de_compte}>
+        {$t('bandcamp.changeAccount' as any)}
+      </button>
+    </p>
+  {/if}
+
+  {#if mode === 'collection' && !analyse && !pseudoLie}
     <section class="bc-lier">
       <p>{$t('bandcamp.linkExplain' as any)}</p>
       <div class="bc-champ">
@@ -649,6 +771,14 @@
       <ul class="bc-liste">
         {#each affiches as r (r.article.url)}
           <li>
+            <!-- La pochette est RÉSOLUE par le serveur depuis la v0.9.145
+                 (`collection_mise_en_forme`, champ `pochette`) : « Ma
+                 collection » était la seule surface Bandcamp à ne rendre qu'un
+                 `art_id` nu, et le client ne recompose aucune URL bcbits —
+                 c'est l'oubli du préfixe `a` qui rendait 404 (#1768). -->
+            {#if r.article.pochette}
+              <img class="bc-mini" src={r.article.pochette} alt="" loading="lazy" />
+            {/if}
             <div class="bc-item">
               <span class="bc-artiste">{r.article.artist}</span>
               <span class="bc-titre">{r.article.title}</span>
@@ -656,6 +786,19 @@
                 <span class="bc-local">{$t('bandcamp.localMatch' as any)} {r.correspondance}</span>
               {/if}
             </div>
+            {#if r.article.type === 'album'}
+              <button
+                class="bc-ecouter"
+                disabled={envoiCollection === r.article.url}
+                title="{$t('bandcamp.playAlbum' as any)} · {$t('bandcamp.qualityBadge' as any)}"
+                aria-label="{$t('bandcamp.playAlbum' as any)} — {r.article.title} · {$t(
+                  'bandcamp.qualityBadge' as any,
+                )}"
+                onclick={() => jouer_collection(r.article)}
+              >
+                {envoiCollection === r.article.url ? '…' : '▶'}
+              </button>
+            {/if}
             <a href={r.article.url} target="_blank" rel="noopener noreferrer">
               {$t('bandcamp.openOnBandcamp' as any)}
             </a>
@@ -686,7 +829,12 @@
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     padding: 0.6rem 0; border-bottom: 1px solid var(--border, #2a2a2a);
   }
-  .bc-item { display: flex; flex-direction: column; min-width: 0; }
+  .bc-item { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .bc-mini { width: 44px; height: 44px; border-radius: 4px; object-fit: cover; flex: none; }
+  .bc-lie {
+    display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+    color: var(--text-muted, #888); margin: 0 0 0.75rem;
+  }
   .bc-artiste { font-weight: 600; }
   .bc-titre { color: var(--text-muted, #aaa); }
   .bc-local { font-size: 0.8125rem; color: var(--text-muted, #888); }
