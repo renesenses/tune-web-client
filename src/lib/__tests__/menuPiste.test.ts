@@ -21,6 +21,7 @@
  * garde qui ne la contrôle pas la laisse redescendre au premier remaniement.
  */
 import { describe, it, expect } from 'vitest';
+import { styleMenuAncre } from '../ancrageMenu';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { entreesMenuPiste, type CapacitesPiste, type GestesPiste } from '../menuPiste';
@@ -208,8 +209,21 @@ describe('Le menu, comme surface', () => {
 
   it('il remonte au-dessus du bouton quand le bas de la fenêtre est proche', () => {
     // Sur la dernière ligne d'une liste, un menu qui descend naît hors écran.
-    expect(/ancre\.bottom \+ hauteurEstimee \+ 8 > window\.innerHeight/.test(menu()),
-      'le menu ne se retourne plus : il naîtrait sous le bord de la fenêtre').toBe(true);
+    //
+    // Cette garde lisait le calcul dans la source de `MenuPisteV2`, à la
+    // virgule près. `renesenses/tune-web-client#872` l'a sorti dans
+    // `lib/ancrageMenu`, pour que le menu du client actuel l'appelle aussi :
+    // la garde par recopie serait devenue rouge sans qu'aucun comportement
+    // n'ait changé. On tient donc désormais le COMPORTEMENT — ce qu'une
+    // recopie de code ne gardait de toute façon pas — plus le fait que le
+    // menu appelle bien le calcul partagé.
+    expect(/styleMenuAncre\(ancre, entrees\.length, window\)/.test(menu()),
+      'le menu ne place plus son panneau par le calcul partagé').toBe(true);
+    const fenetre = { innerWidth: 1440, innerHeight: 900 };
+    expect(styleMenuAncre({ top: 300, bottom: 326, right: 1000 }, 7, fenetre),
+      ).toContain('top:');
+    expect(styleMenuAncre({ top: 840, bottom: 866, right: 1000 }, 7, fenetre),
+      'le menu ne se retourne plus : il naîtrait sous le bord de la fenêtre').toContain('bottom:');
   });
 
   it('ses libellés passent tous par une CLÉ', () => {
