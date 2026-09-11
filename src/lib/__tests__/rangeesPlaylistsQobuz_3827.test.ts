@@ -16,6 +16,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { catalogueService } from '../widgetsService';
 import * as api from '../api';
 
+/** Le contexte minimal : ces bandes n'en lisent rien. */
+const CONTEXTE = { profileId: null, albums: [], zones: [] } as any;
+
 const GROUPES = [
   {
     id: 'hires', name: 'Hi-Res',
@@ -59,7 +62,10 @@ describe('#3827 — une rangée par catégorie de playlists', () => {
     const cat = await catalogueService('qobuz');
     const appelsAvant = (api.getStreamingFeaturedPlaylistsByTag as any).mock.calls.length;
     const bande = cat.find((w) => w.id === 'qobuz-tag-hires')!;
-    const els = await bande.charger();
+    // `charger` reçoit un contexte : la signature est `(ctx: Contexte) =>`.
+    // Ces bandes n'en lisent rien — leurs playlists sont déjà en main — mais
+    // l'omettre est une erreur de type, et `check-svelte` la voit.
+    const els = await bande.charger(CONTEXTE);
     expect(els.length).toBe(2);
     expect(els[0].titre).toBe('Hi-Res du moment');
     // 🔴 `source` va TOUJOURS avec l'identifiant distant : le serveur
