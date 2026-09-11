@@ -666,6 +666,13 @@
                     a l'ecran : `favori` pour un disque de la bibliotheque,
                     `favoriExterne` pour un disque de service.
 
+                    Depuis #3822 le coeur vaut AUSSI pour une playlist de
+                    service : `streaming_favorites.item_type` est un TEXTE sans
+                    contrainte cote serveur, et la fiche comme la vignette de
+                    l'ecran Streaming l'ecrivent deja. Le type vient de
+                    `favoriDistant` quand l'element en porte un, et reste
+                    `album` partout ailleurs.
+
                     Les ETIQUETTES, elles, restent absentes des vignettes de
                     service, et ce n'est pas un oubli : la route serveur prend
                     `item_id: i64` et la table SQLite un `INTEGER`, quand un
@@ -674,14 +681,18 @@
                     SERVEUR. Mieux vaut une icone absente qu'une icone morte.
                   -->
                   {@const idLocal = el.fiche?.id ?? null}
-                  {@const sidDistant = idLocal == null ? (el.fiche?.source_id ?? null) : null}
+                  {@const sidDistant =
+                    idLocal == null
+                      ? (el.fiche?.source_id ?? el.favoriDistant?.serviceId ?? null)
+                      : null}
+                  {@const typeFavori = el.favoriDistant?.itemType ?? 'album'}
                   <div class="carte">
                     <div class="pochette">
                       <PochetteActions
                         favori={idLocal != null ? { albumId: idLocal } : null}
                         favoriExterne={sidDistant
                           ? favoriExterneService($favoriteStreamingKeys, {
-                              itemType: 'album',
+                              itemType: typeFavori,
                               service: el.fiche?.source ?? el.source ?? '',
                               serviceId: String(sidDistant),
                               title: el.titre,

@@ -25,6 +25,7 @@
  * dans le chargeur laisse au rendu un seul cas à traiter.
  */
 import * as api from './api';
+import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
@@ -57,6 +58,16 @@ export interface Element {
   ouvrir?: 'album' | 'zone' | null;
   /** Album normalisé pour la fiche, quand `ouvrir` vaut `album`. */
   fiche?: any;
+  /**
+   * Objet de SERVICE à mettre en favori quand ce n'est pas un album — une
+   * playlist Qobuz ou Tidal, aujourd'hui.
+   *
+   * Il fallait un champ à part plutôt qu'un détournement de `fiche` : `fiche`
+   * est l'album normalisé qu'ouvre `ouvrir: 'album'`, et une playlist n'ouvre
+   * rien ici. Les deux notions se recouvrent pour un album, pas pour le reste
+   * (#3822).
+   */
+  favoriDistant?: { itemType: StreamingItemType; serviceId: string } | null;
   /** Zone suivie par la vignette — bande « Zones d'écoute actives ». */
   zoneId?: number | null;
   /** Cette zone joue-t-elle ? Pilote le mini-analyseur sous la vignette. */
@@ -183,6 +194,14 @@ function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {})
  * un album au hasard.
  */
 function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | 'aucun') {
+  // Une playlist de service n'ouvre pas de fiche depuis un widget — mais elle
+  // se met en favori, comme sa vignette de l'écran Streaming et comme sa propre
+  // fiche (#3822). `streaming_favorites` prend `playlist` depuis #2370.
+  if (genre === 'playlist') {
+    const sid = champ(o, 'source_id', 'id');
+    if (!service || !sid) return {};
+    return { favoriDistant: { itemType: 'playlist' as const, serviceId: String(sid) } };
+  }
   if (genre !== 'album') return {};
   const dist = idDistant(o);
   // 🔴 `0` n'est pas un identifiant local : c'est le remplissage de
