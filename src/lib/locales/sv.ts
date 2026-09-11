@@ -847,6 +847,7 @@ export default {
   "favorites.addTrack": "Lägg till i favoriter",
   "favorites.removeTrack": "Ta bort från favoriter",
   'favorites.removedFromFavorites': 'Borttagen från favoriter',
+  "favorites.remove": "Ta bort från favoriter",
   'favorites.filter': 'Favoriter',
 
   // About

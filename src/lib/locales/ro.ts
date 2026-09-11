@@ -877,6 +877,7 @@ export default {
   "favorites.addTrack": "Adaugă la favorite",
   "favorites.removeTrack": "Elimină din favorite",
   'favorites.removedFromFavorites': 'Eliminat din favorite',
+  "favorites.remove": "Elimină din favorite",
   'favorites.filter': 'Favorite',
 
   // About

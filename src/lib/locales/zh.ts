@@ -867,6 +867,7 @@ export default {
   "favorites.addTrack": "添加到收藏",
   "favorites.removeTrack": "从收藏中移除",
   'favorites.removedFromFavorites': '已从收藏中移除',
+  "favorites.remove": "从收藏中移除",
   'favorites.filter': '收藏',
 
   // About

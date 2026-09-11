@@ -502,7 +502,7 @@
 
   /** `null` quand l'objet n'a pas de fiche : une piste, ou un objet sans
    *  identifiant exploitable. */
-  function ouvrirFiche(p: any, type: 'track' | 'album' | 'artist' | null) {
+  function ouvrirFiche(p: any, type: 'track' | 'album' | 'artist' | 'playlist' | null) {
     const svc = p?.source ?? active;
     const sid = p?.source_id;
     // 🔴 BANDCAMP s'ouvre, lui aussi (Bertrand, 05/09/2026 : « Click sur un
@@ -767,7 +767,7 @@
         {/if}
         {#if results.playlists?.length}
           <section class="sec"><h2>{$t('v2.rech.playlists' as any)}</h2>
-            <div class="grid">{#each results.playlists as pl, i (cleItem(pl, i))}{@render tile(pl, () => playPlaylist(pl), null)}{/each}</div>
+            <div class="grid">{#each results.playlists as pl, i (cleItem(pl, i))}{@render tile(pl, () => playPlaylist(pl), 'playlist')}{/each}</div>
           </section>
         {/if}
         {#if !aDesResultats}
@@ -936,7 +936,7 @@
 
     {:else if sub === 'playlists'}
       {#if myPlaylists.length}
-        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), null, () => (fichePlaylist = p))}{/each}</div>
+        <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => (fichePlaylist = p))}{/each}</div>
       {:else}
         <div class="state">Aucune playlist dans votre compte {label(active ?? '')}.</div>
       {/if}
@@ -1020,9 +1020,13 @@
   TEXTE — l'identifiant distant tel quel. Le meme chemin que `HeartButton` de
   la version actuelle, via l'unique `toggleStreamingFavorite`.
 
-  `type` dit CE QU'ON MET en favori : la table ne connait que piste, album et
-  artiste. Une playlist de service passe donc `null`, et n'a pas de coeur —
-  une icone absente plutot qu'une icone morte.
+  `type` dit CE QU'ON MET en favori. La table a longtemps ignore les
+  playlists, et une playlist de service passait donc `null` : pas de coeur, une
+  icone absente plutot qu'une icone morte. Ce n'est plus vrai depuis #2370 —
+  `StreamingItemType` porte `playlist`, et la fiche s'en sert deja
+  (`PlaylistDetailV2`). Les vignettes passent donc `'playlist'` comme les
+  autres (#3822). `ouvrirFiche` rend `null` hors `album` : le type n'ajoute
+  que le coeur, il ne change aucun geste.
 
   Les etiquettes, elles, restent absentes, et ce n'est pas un oubli : la route
   serveur prend `item_id: i64` et la table SQLite un `INTEGER`, quand un album
@@ -1032,7 +1036,7 @@
   `onOuvrir` LIT, comme avant — cliquer la pochette lancait deja la lecture, et
   cet ecran n'a pas de fiche distante a ouvrir.
 -->
-{#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | null = 'album', ouvrir: (() => void) | null = null)}
+{#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | 'playlist' | null = 'album', ouvrir: (() => void) | null = null)}
   {@const ouvre = ouvrir ?? ouvrirFiche(p, type)}
   <div class="card">
     <span class="cv">
