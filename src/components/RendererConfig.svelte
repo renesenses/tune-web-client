@@ -1,9 +1,15 @@
 <script lang="ts">
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
+  import { dateSimple } from '../lib/dates';
   import { notifications } from '../lib/stores/notifications';
+  import { preferences } from '../lib/stores/preferences';
   import { rendererProbeErrorKey } from '../lib/rendererProbe';
   import { etatWav24, wav24Disponible } from '../lib/wav24Gate';
+  import {
+    cleAppareil, parLeNom, construireInstantane, lireInstantane, ranger, oublier,
+    ecarts, corpsPatch, type ValeursEcran,
+  } from '../lib/reglagesRendererEnregistres';
   import type { Zone, RendererCapabilities } from '../lib/types';
 
   // Coherent per-renderer output config for a DLNA/OpenHome zone: a discovery
@@ -76,23 +82,21 @@
   }
 
   /**
-   * « Enregistré » — le témoin qui manquait.
+   * « Enregistré » — le témoin de l'écriture au clic.
    *
-   * Bertrand, 09/09/2026 : « Et un bouton "sauvegarder mes réglages" dans
-   * configuration du renderer ?? »
-   *
-   * Ces réglages SONT enregistrés, un par un, dès le clic. Ce qui manquait
-   * n'était pas la sauvegarde : c'était sa PREUVE. Seul l'échec parlait
-   * (`renderer.saveError`) ; un succès ne disait rien du tout, et rien ne
-   * distinguait « c'est écrit » de « le clic n'a rien fait ».
+   * Chaque case part en `PATCH /zones/{id}` dès qu'on la coche : c'est la
+   * sauvegarde automatique, et elle ne change pas. Seul l'échec parlait
+   * (`renderer.saveError`) ; ce témoin dit le succès, et distingue « c'est
+   * écrit » de « le clic n'a rien fait ».
    *
    * 🔴 L'incohérence était dans le MÊME onglet Appareils : `ZoneDeviceEditor`,
    * juste à côté, montre un « Enregistré » après sa sauvegarde
    * (`ZoneDeviceEditor.svelte:150`). Deux blocs voisins, deux comportements.
    * On reprend le sien, sa clé i18n comprise — traduite dans les 11 langues.
    *
-   * Pas de bouton, donc : en ajouter un ferait croire que rien n'est écrit
-   * tant qu'on ne l'a pas pressé, ce qui serait faux et pire que le silence.
+   * Le bouton « Enregistrer cette configuration », plus bas, ne remplace pas
+   * cette écriture : il en garde une COPIE ailleurs. Voir le bloc de la
+   * configuration enregistrée.
    */
   let enregistreLe = $state(0);
   let minuterie: ReturnType<typeof setTimeout> | null = null;
@@ -171,6 +175,122 @@
     playDelay = ms;
     if (zone.id != null) save(() => api.updateZoneDlnaPlayDelay(zone.id!, ms));
   }
+
+  /* ------------------------------------------------------------------------
+   * La configuration ENREGISTRÉE — ce que la session en cours ne suffit pas à
+   * garantir.
+   *
+   * Bertrand, 09/09/2026 : « Et un bouton "sauvegarder mes réglages" dans
+   * configuration du renderer ?? » ; et le 11/09, la raison : on perd des
+   * configurations d'une session à l'autre.
+   *
+   * Ce bloc n'enlève RIEN à l'écriture au clic ci-dessus : elle reste
+   * l'application immédiate, celle qui fait jouer l'appareil maintenant. Il
+   * ajoute une seconde copie, rattachée à l'APPAREIL et rangée dans les
+   * préférences synchronisées, que le sort d'une ligne de `zones` n'atteint
+   * pas. La règle, ses trois décisions et leurs raisons vivent dans
+   * `lib/reglagesRendererEnregistres`, où elles se testent.
+   * --------------------------------------------------------------------- */
+
+  /** Les sept valeurs telles que l'écran les porte — `forceWav` redevient la
+   *  paire exclusive que le serveur attend. */
+  let valeursEcran = $derived<ValeursEcran>({
+    dlna_native_flac: nativeFlac,
+    alac_passthrough: alacNative,
+    aac_passthrough: aacNative,
+    dlna_lpcm: forceWav === '16',
+    dlna_wav24: forceWav === '24',
+    dlna_cap_16bit: cap16,
+    dlna_play_delay_ms: playDelay,
+  });
+
+  let cleZone = $derived(cleAppareil(zone));
+  let enregistre = $derived(
+    lireInstantane($preferences.reglagesRendererEnregistres, cleZone)
+  );
+  /** Dérivé de l'écran, jamais posé à la main : après une remise en place,
+   *  l'écart se recalcule tout seul et le bandeau disparaît. */
+  let divergences = $derived(enregistre ? ecarts(enregistre, valeursEcran) : []);
+  let remiseEnPlace = $state(false);
+
+  /**
+   * Enregistrer : UN patch de la configuration entière, PUIS la copie.
+   *
+   * Le patch d'abord, et complet : il remet la ligne de zone en accord avec
+   * l'écran même si l'une des écritures au clic avait échoué sans qu'on y
+   * prenne garde. Et la copie n'est rangée qu'après le succès — enregistrer
+   * une configuration que le serveur a refusée serait garder une preuve de ce
+   * qui n'existe pas.
+   */
+  async function enregistrerConfig() {
+    if (zone.id == null || !cleZone) return;
+    const instantane = construireInstantane(zone, valeursEcran);
+    try {
+      await api.updateZoneReglages(zone.id, corpsPatch(instantane));
+    } catch {
+      notifications.error($t('renderer.saveError'));
+      return;
+    }
+    const cle = cleZone;
+    preferences.update((p) => ({
+      ...p,
+      reglagesRendererEnregistres: ranger(p.reglagesRendererEnregistres, cle, instantane),
+    }));
+    enregistreLe = Date.now();
+    if (minuterie) clearTimeout(minuterie);
+    minuterie = setTimeout(() => { enregistreLe = 0; }, 2200);
+  }
+
+  /**
+   * Remettre la configuration enregistrée.
+   *
+   * L'écran suit l'écriture, il ne la précède pas : les états locaux ne sont
+   * repris qu'APRÈS le succès du patch. Un échec laisse donc l'écran sur ce
+   * qui est réellement en base, au lieu d'afficher une remise en place qui n'a
+   * pas eu lieu.
+   *
+   * Le garde-fou du WAV 24 bits n'est volontairement pas consulté ici : une
+   * configuration enregistrée porte une décision déjà prise sur cet appareil,
+   * et la refuser rendrait le réglage inatteignable chez ceux dont la sonde ne
+   * répond pas — c'est exactement le défaut #303. L'avertissement
+   * « sans preuve » reste affiché, lui.
+   */
+  async function restaurerConfig() {
+    if (!enregistre || zone.id == null) return;
+    remiseEnPlace = true;
+    try {
+      await api.updateZoneReglages(zone.id, corpsPatch(enregistre));
+      const r = enregistre.reglages;
+      if (r.dlna_native_flac !== undefined) nativeFlac = !!r.dlna_native_flac;
+      if (r.alac_passthrough !== undefined) alacNative = !!r.alac_passthrough;
+      if (r.aac_passthrough !== undefined) aacNative = !!r.aac_passthrough;
+      if (r.dlna_cap_16bit !== undefined) cap16 = !!r.dlna_cap_16bit;
+      if (r.dlna_play_delay_ms !== undefined) playDelay = Number(r.dlna_play_delay_ms);
+      if (r.dlna_wav24 !== undefined || r.dlna_lpcm !== undefined) {
+        forceWav = r.dlna_wav24 ? '24' : r.dlna_lpcm ? '16' : 'off';
+      }
+      enregistreLe = Date.now();
+      if (minuterie) clearTimeout(minuterie);
+      minuterie = setTimeout(() => { enregistreLe = 0; }, 2200);
+    } catch {
+      notifications.error($t('renderer.saveError'));
+    } finally {
+      remiseEnPlace = false;
+    }
+  }
+
+  /** Oublier n'écrit rien sur l'appareil : la copie disparaît, la zone reste. */
+  function oublierConfig() {
+    if (!cleZone) return;
+    const cle = cleZone;
+    preferences.update((p) => ({
+      ...p,
+      reglagesRendererEnregistres: oublier(p.reglagesRendererEnregistres, cle),
+    }));
+  }
+
+  const libelle = (v: boolean | number): string =>
+    typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v);
 </script>
 
 <div class="rc">
@@ -247,6 +367,56 @@
         {/each}
       </div>
     </div>
+  </div>
+
+  <!-- La configuration enregistrée. Le texte d'aide dit d'abord que tout est
+       déjà appliqué : sans cela, le bouton laisserait croire le contraire, et
+       le quitter sans l'avoir pressé donnerait l'impression d'avoir tout
+       perdu. -->
+  <div class="rc-garde">
+    <p class="rc-hint">{$t('renderer.saveConfigHint')}</p>
+    <div class="rc-garde-actions">
+      <button
+        class="rc-check"
+        disabled={!cleZone || zone.id == null}
+        title={cleZone ? $t('renderer.saveConfigHint') : $t('renderer.saveConfigNoKey')}
+        onclick={enregistrerConfig}
+      >
+        {$t('renderer.saveConfig')}
+      </button>
+      {#if enregistre}
+        <span class="rc-garde-date">
+          {$t('renderer.configSavedOn').replace('{date}', $dateSimple(enregistre.enregistre_le))}
+        </span>
+        <button class="rc-lien" onclick={oublierConfig}>{$t('renderer.forgetConfig')}</button>
+      {/if}
+    </div>
+    {#if !cleZone}
+      <p class="rc-warn">{$t('renderer.saveConfigNoKey')}</p>
+    {:else if parLeNom(cleZone)}
+      <p class="rc-hint">{$t('renderer.configByName')}</p>
+    {/if}
+
+    {#if enregistre && divergences.length}
+      <div class="rc-ecart">
+        <p class="rc-warn">
+          {$t('renderer.configDiverged').replace('{date}', $dateSimple(enregistre.enregistre_le))}
+        </p>
+        <ul class="rc-chg">
+          {#each divergences as d (d.cle)}
+            <li>
+              <code>{d.cle}</code>
+              <span class="rc-av">{libelle(d.courant)}</span>
+              <span class="rc-fl">→</span>
+              <span class="rc-ap">{libelle(d.enregistre)}</span>
+            </li>
+          {/each}
+        </ul>
+        <button class="rc-check" disabled={remiseEnPlace} onclick={restaurerConfig}>
+          {remiseEnPlace ? $t('renderer.restoringConfig') : $t('renderer.restoreConfig')}
+        </button>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -385,5 +555,70 @@
   .rc-seg button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  /* La configuration enregistrée : séparée par un filet, parce qu'elle ne
+     décrit pas un réglage de plus mais ce qui advient des sept autres. */
+  .rc-garde {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--tune-border);
+  }
+  .rc-garde-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .rc-garde-date {
+    font-size: 12px;
+    color: var(--tune-text-secondary, #9ca3af);
+  }
+  .rc-lien {
+    font: inherit;
+    font-size: 12px;
+    color: var(--tune-text-secondary, #9ca3af);
+    background: none;
+    border: none;
+    padding: 0;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .rc-lien:hover {
+    color: var(--tune-text);
+  }
+  .rc-ecart {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .rc-chg {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .rc-chg li {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    font-size: 12px;
+  }
+  .rc-chg code {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    color: var(--tune-text-secondary, #9ca3af);
+  }
+  .rc-av,
+  .rc-fl {
+    color: var(--tune-text-secondary, #9ca3af);
+  }
+  .rc-ap {
+    color: var(--tune-success, #5fd0a0);
+    font-weight: 600;
   }
 </style>
