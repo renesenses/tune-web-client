@@ -18,6 +18,7 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { portail } from '../../lib/portail';
+  import { champsRadioAEnvoyer } from '../../lib/champsRadio';
   import { notifications } from '../../lib/stores/notifications';
   import type { RadioStation } from '../../lib/types';
 
@@ -68,7 +69,12 @@
     try {
       // Le nom et le flux suffisent à créer ; les quatre autres champs sont
       // envoyés vides plutôt qu'omis, comme à la modification.
-      const champs = {
+      //
+      // 🔴 #870 — À LA MODIFICATION, une adresse non touchée n'est PAS
+      // envoyée : c'est la seule façon d'atteindre la garde de compatibilité
+      // du serveur, qui ne sonde que ce qui est proposé. Sans cela, une
+      // station enregistrée avant #3578 n'était plus modifiable du tout.
+      const saisi = {
         name: nom.trim(),
         stream_url: flux.trim(),
         logo_url: logo.trim(),
@@ -77,8 +83,11 @@
         homepage_url: site.trim(),
       };
       const maj = creation
-        ? await api.createRadio(champs)
-        : await api.updateRadio(radio.id as number, champs);
+        ? await api.createRadio(saisi)
+        : await api.updateRadio(
+            radio.id as number,
+            champsRadioAEnvoyer(saisi, { stream_url: radio.stream_url }),
+          );
       onSaved?.(maj);
       onClose();
     } catch (err: any) {

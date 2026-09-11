@@ -6,6 +6,7 @@
   import { isBrowserZone, browserPlay } from '../lib/stores/browserAudio';
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
+  import { champsRadioAEnvoyer } from '../lib/champsRadio';
   import { notifications } from '../lib/stores/notifications';
   import { radioFavDisplayAt, formatRadioFavDate, forgetRadioFavListenAt, clearRadioFavListenAt } from '../lib/radioFavListenAt';
   import { tuneWS } from '../lib/websocket';
@@ -139,11 +140,23 @@
     if (!editRadio?.id) return;
     editError = '';
     try {
-      const updated = await api.updateRadio(editRadio.id, {
-        name: editName.trim(),
-        stream_url: editUrl.trim(),
-        genre: editGenre.trim() || undefined,
-      });
+      // 🔴 #870 — l'adresse non touchée n'est PAS proposée : le serveur ne
+      // sonde que ce qu'on lui propose, et sa garde de compatibilité laisse
+      // renommer ou reclasser une station dont l'adresse ne passerait plus la
+      // règle de #3578. Cet écran-ci portait le même blocage que le v2 ; il
+      // n'avait pas été relu quand la fiche a été ouverte.
+      const aEnvoyer = champsRadioAEnvoyer(
+        {
+          name: editName.trim(),
+          stream_url: editUrl.trim(),
+          logo_url: editRadio.logo_url ?? '',
+          genre: editGenre.trim(),
+          country: editRadio.country ?? '',
+          homepage_url: editRadio.homepage_url ?? '',
+        },
+        { stream_url: editRadio.stream_url },
+      );
+      const updated = await api.updateRadio(editRadio.id, aEnvoyer);
       radios = radios.map(r => r.id === updated.id ? updated : r);
       editRadio = updated;
     } catch (e) {
