@@ -1,3 +1,7 @@
+// 🔴 #872 — `TrackContextMenu` est désormais PORTÉ à la racine du document
+// (`lib/portail`), pour échapper à la contention de peinture de la ligne qui
+// l'ouvre. Le panneau n'est donc plus un descendant de l'hôte monté : on
+// l'interroge depuis `document`. Les assertions elles-mêmes n'ont pas bougé.
 // @vitest-environment jsdom
 //
 // jsdom depuis le 07/09/2026 : les trois premieres gardes MONTENT le menu au
@@ -87,15 +91,18 @@ describe('menu contextuel d\u2019une piste — entrée « Autres versions »', (
     if (hote) hote.remove();
     hote = null;
   });
+  /** Boîte écran du bouton : jsdom n'a pas de mise en page, zéro suffit (#872). */
+  const ANCRE = { top: 0, bottom: 0, right: 0 };
   function poser(props: any) {
+    props = { ancre: ANCRE, ...props };
     hote = document.createElement('div');
     document.body.appendChild(hote);
     monte = mount(TrackContextMenu, { target: hote, props });
     flushSync();
     return hote;
   }
-  const libelles = (r: HTMLElement) =>
-    [...r.querySelectorAll('.track-menu-item')].map((b) => (b.textContent ?? '').trim());
+  const libelles = (_r: HTMLElement) =>
+    [...document.querySelectorAll('.track-menu-item')].map((b) => (b.textContent ?? '').trim());
   const LIBELLE = (fr as Dict)['library.otherVersions'] as string;
   const rien = () => {};
   it('le menu porte une entrée « Autres versions »', () => {
@@ -115,7 +122,7 @@ describe('menu contextuel d\u2019une piste — entrée « Autres versions »', (
       onAddToQueue: rien,
       onOtherVersions: () => ordre.push('action'),
     });
-    const item = [...r.querySelectorAll('.track-menu-item')]
+    const item = [...document.querySelectorAll('.track-menu-item')]
       .find((b) => (b.textContent ?? '').trim() === LIBELLE) as HTMLElement;
     expect(item, 'entrée introuvable').toBeTruthy();
     item.click();

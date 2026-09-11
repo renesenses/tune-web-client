@@ -101,6 +101,10 @@ function playlistDistante(o: any, i: number, prefixe: string, service: string): 
     jouer: sid
       ? (z: number) => api.play(z, { streaming_playlist_id: sid, source: service as any })
       : undefined,
+    // Le coeur, comme sur les vignettes de l'ecran Streaming (#3822). Sans
+    // identifiant de service il n'y a pas de cle : mieux vaut aucune icone
+    // qu'une icone morte.
+    favoriDistant: sid ? { itemType: 'playlist' as const, serviceId: sid } : undefined,
   };
 }
 

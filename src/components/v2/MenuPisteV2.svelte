@@ -31,6 +31,7 @@
    * coordonnées figées suivrait sinon le bouton de très loin.
    */
   import { portail } from '../../lib/portail';
+  import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { t } from '../../lib/i18n';
   import type { EntreeMenuPiste as Entree } from '../../lib/menuPiste';
 
@@ -42,19 +43,18 @@
   }
   let { ancre, entrees, onClose }: Props = $props();
 
-  const LARGEUR = 208;
-
   /**
    * Le menu s'ouvre sous le bouton, aligné à DROITE sur lui — et remonte
    * au-dessus quand le bas de la fenêtre est trop proche. Sans quoi, sur la
    * dernière ligne d'une liste, il naîtrait hors de l'écran.
+   *
+   * Ce calcul vivait ici, en dur. `renesenses/tune-web-client#872` en a eu
+   * besoin mot pour mot pour le menu du client actuel : il est parti dans
+   * `lib/ancrageMenu`, que les deux menus appellent. Recopier, c'était
+   * accepter qu'ils dérivent — le reproche même de
+   * `renesenses/tune-server-rust#1848` sur leur contenu.
    */
-  const hauteurEstimee = $derived(entrees.length * 34 + 8);
-  const versLeHaut = $derived(ancre.bottom + hauteurEstimee + 8 > window.innerHeight);
-  const style = $derived(
-    `left:${Math.max(8, Math.min(ancre.right - LARGEUR, window.innerWidth - LARGEUR - 8))}px;` +
-    (versLeHaut ? `bottom:${window.innerHeight - ancre.top + 4}px;` : `top:${ancre.bottom + 4}px;`),
-  );
+  const style = $derived(styleMenuAncre(ancre, entrees.length, window));
 
   function lancer(e: MouseEvent, entree: Entree) {
     e.stopPropagation();
@@ -88,7 +88,7 @@
 
 <style>
   .fond{position:fixed; inset:0; z-index:900}
-  .menu{position:fixed; width:208px; padding:4px; z-index:901;
+  .menu{position:fixed; width:208px; /* = LARGEUR_MENU de lib/ancrageMenu */ padding:4px; z-index:901;
     background:var(--v2-surface, var(--tune-surface, #1b1b1f));
     border:1px solid var(--v2-line2, var(--tune-border, #333));
     border-radius:var(--v2-r-card, 10px);
