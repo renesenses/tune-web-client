@@ -867,6 +867,7 @@ export default {
   "favorites.addTrack": "즐겨찾기에 추가",
   "favorites.removeTrack": "즐겨찾기에서 제거",
   'favorites.removedFromFavorites': '즐겨찾기에서 제거됨',
+  "favorites.remove": "즐겨찾기에서 제거",
   'favorites.filter': '즐겨찾기',
 
   // About

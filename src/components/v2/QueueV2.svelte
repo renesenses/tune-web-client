@@ -183,6 +183,13 @@
               {#if showExpert && tech(current)}<div class="ntk">{tech(current)}</div>{/if}
             </div>
             <span class="ndur">{formatTime(current.duration_ms ?? 0)}</span>
+            <!-- 🔴 #3780 — la piste EN COURS portait zéro action, alors que
+                 chaque ligne « à suivre » en dessous porte la barre complète.
+                 FabienM, fil 1739 point 6 : « Menu file d'attente : il manque
+                 les actions comme sur l'interface actuelle. »
+                 C'est la seule ligne de cet écran qu'on regarde à coup sûr, et
+                 c'était la seule sans gestes. -->
+            <PisteActions piste={current} />
           </div>
         </section>
       {/if}

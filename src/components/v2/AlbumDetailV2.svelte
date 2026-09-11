@@ -32,7 +32,7 @@
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
-  import { activeView, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { activeView, gestesNavigationService, pendingLibraryArtist } from '../../lib/stores/navigation';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
@@ -444,12 +444,43 @@
    * coquille (vérifié : ses neuf montages sont tous des composants `v2/`).
    * `NowPlaying`, lui, est monté par les DEUX et pose donc les deux.
    */
+  /**
+   * L'artiste d'un album de SERVICE — #3708, seconde moitié.
+   *
+   * Le commentaire du balisage disait, et il avait raison à l'époque : « un
+   * lien mort serait pire que pas de lien ». Un album Qobuz n'a pas
+   * d'`artist_id`, et aucun écran n'accueillait un artiste de service.
+   *
+   * Il en existe un depuis #3825, et la coquille sait résoudre un NOM en
+   * identifiant (`gestesNavigationService.ouvrirArtiste`) — une piste de
+   * service ne portant pas d'identifiant d'artiste. Le lien n'est donc plus
+   * mort, et le texte inerte n'a plus de raison d'être.
+   *
+   * `null` quand il manque le service ou le nom : on retombe alors sur le
+   * texte, qui reste le bon geste faute de cible.
+   */
+  const artisteDeService = $derived.by(() => {
+    if (album.artist_id != null || !$gestesNavigationService) return null;
+    const nom = (album.artist_name ?? '').trim();
+    const svc = service ?? (album as any).source ?? null;
+    return svc && nom ? { service: svc as string, nom } : null;
+  });
+
   function allerArtiste() {
     const id = album.artist_id;
-    if (id == null) return;
-    pendingLibraryArtist.set(id);
-    activeView.set('library');
-    onClose();
+    if (id != null) {
+      pendingLibraryArtist.set(id);
+      activeView.set('library');
+      onClose();
+      return;
+    }
+    if (artisteDeService) {
+      // Le calque se referme AVANT de router : sans cela la fiche artiste
+      // s'ouvrirait derrière un album resté au premier plan, et le clic
+      // n'aurait rien paru faire — le même piège que la branche locale.
+      onClose();
+      $gestesNavigationService?.ouvrirArtiste(artisteDeService);
+    }
   }
 
   function trackTech(t: Track): string {
@@ -482,7 +513,7 @@
            la navigation passe par les magasins. Sans identifiant d'artiste
            (album de service, dépôt distant, base ancienne), le nom reste du
            TEXTE : un lien mort serait pire que pas de lien. -->
-      {#if album.artist_id != null}
+      {#if album.artist_id != null || artisteDeService}
         <button type="button" class="artist lien" onclick={allerArtiste}>{album.artist_name ?? ''}</button>
       {:else}
         <div class="artist">{album.artist_name ?? ''}</div>
