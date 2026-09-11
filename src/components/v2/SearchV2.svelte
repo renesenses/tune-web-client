@@ -20,6 +20,7 @@
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import { doitViderLePerimetre } from '../../lib/perimetreRecherche';
   import { activeView, pendingLibraryArtist, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
+  import { ficheArtisteService } from '../../lib/stores/streaming';
   import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -30,7 +31,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, getQualityTier } from '../../lib/utils';
-  import type { Album, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
+  import type { Album, Source, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -489,14 +490,25 @@
    * `LibraryV2` (`$pendingLibraryArtist`) — on POSE la cible, puis on change
    * de vue.
    *
-   * 🔴 Seul un artiste LOCAL a une fiche : `pendingLibraryArtist` est un
-   * identifiant de la table `artists`, et un artiste de service n'en a pas.
-   * Pour lui, affiner la recherche sur son nom reste le meilleur geste
-   * disponible — c'est l'ancien comportement, gardé là où il a un sens, et
-   * seulement là.
+   * Un artiste LOCAL et un artiste de SERVICE ne se désignent pas pareil :
+   * `pendingLibraryArtist` est un identifiant de la table `artists`, un
+   * artiste de service n'en a pas — il a un service et un `source_id`. Deux
+   * cibles, deux dépôts, deux vues. Mais désormais DEUX FICHES : jusqu'à
+   * #3825, l'artiste de service n'avait pas d'écran d'arrivée et le clic
+   * relançait la recherche sur son nom (`q = ar.name`) — un geste qui a l'air
+   * cassé plutôt qu'inerte, exactement ce que #3717 venait de corriger pour
+   * l'artiste local.
    */
   function ouvrirArtiste(ar: any) {
-    if (!estLocal(ar)) { q = ar.name; return; }
+    if (!estLocal(ar)) {
+      // Sans les deux, pas de fiche : le repli d'avant reste le seul geste
+      // honnête. Un service sans identifiant ne s'interroge pas.
+      if (!ar?.source || !ar?.source_id) { q = ar.name; return; }
+      vueDeRetour.set('search');
+      ficheArtisteService.set({ service: ar.source as Source, id: String(ar.source_id), nom: ar.name ?? '' });
+      activeView.set('streamingartist');
+      return;
+    }
     // 🔴 Le chemin RETOUR, posé en même temps que la cible — #3824. Sans lui
     // la fiche referme son calque et découvre la grille de la Bibliothèque,
     // « l'accueil de la bibliothèque » que FabienM décrit. La Recherche est le

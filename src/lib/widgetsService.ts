@@ -115,9 +115,14 @@ const nom = (s: string) => (s === 'qobuz' ? 'Qobuz' : s === 'tidal' ? 'Tidal' : 
  * un service peut très bien servir ses nouveautés et pas ses genres.
  */
 export async function catalogueService(service: string): Promise<Widget[]> {
-  const [sections, genres] = await Promise.all([
+  const [sections, genres, groupesPlaylists] = await Promise.all([
     api.getStreamingFeaturedSections(service).catch(() => []),
     api.getStreamingGenres(service).catch(() => []),
+    // Les CATÉGORIES de playlists éditoriales — #3827. Un seul appel les rend
+    // toutes : le serveur interroge `/playlist/getFeatured` une fois par tag,
+    // en parallèle. Les demander rangée par rangée multiplierait ce travail
+    // par le nombre de catégories pour exactement le même résultat.
+    api.getStreamingFeaturedPlaylistsByTag(service).catch(() => []),
   ]);
 
   const w: Widget[] = [];
@@ -169,6 +174,49 @@ export async function catalogueService(service: string): Promise<Widget[]> {
           .map((o, i) => playlistDistante(o, i, `${service}fp`, service)),
       ),
   });
+
+  /*
+   * UNE RANGÉE PAR CATÉGORIE DE PLAYLISTS — #3827.
+   *
+   * FabienM, fil forum 1749 point 7 (10/09/2026) : « Accueil / Menu Streaming
+   * Qobuz: Widgets: il manque tous les widgets associés aux playlists Qobuz ».
+   * Sa capture n'est pas Tune : c'est l'application Qobuz, bandeau « Playlists
+   * Qobuz — Créées par nos experts », avec ses onglets Hi-Res, Nouveautés,
+   * Thématiques, Humeurs, Artistes, Dans le casque de…, Histoires de labels,
+   * Les Pépites de l'équipe, Événements & Médias, Partenaires. C'est ce qu'il
+   * ATTEND, et ce sont exactement les tags que le serveur sert déjà.
+   *
+   * L'ancienne interface les affiche depuis longtemps
+   * (`StreamingView.loadFeaturedPlaylistGroups`) ; la nouvelle ne les avait
+   * jamais demandées — la bande « Mises en avant » juste au-dessus rend UNE
+   * liste plate, toutes catégories confondues.
+   *
+   * Aucun nom n'est écrit en dur, pour la même raison que les sections et les
+   * genres : les catégories de Qobuz peuvent changer, et un service qui n'en
+   * a pas — Tidal rend un tableau vide, mesuré — n'obtient simplement aucune
+   * rangée plutôt que dix bandes creuses.
+   *
+   * Les playlists sont DÉJÀ en main : `charger` ne relance rien, il découpe.
+   */
+  for (const groupe of liste(groupesPlaylists)) {
+    const gid = texte(groupe, 'id');
+    const label = texte(groupe, 'name');
+    const contenu = liste(groupe?.playlists);
+    // Une catégorie vide ne mérite pas sa bande : c'est la garde `utiles`,
+    // appliquée un cran plus haut.
+    if (!gid || !label || !contenu.length) continue;
+    w.push({
+      id: `${service}-tag-${gid}`,
+      cleTitre: label,
+      forme: 'bande',
+      charger: async () =>
+        utiles(
+          contenu
+            .slice(0, LIMITE)
+            .map((o, i) => playlistDistante(o, i, `${service}t${gid}`, service)),
+        ),
+    });
+  }
 
   // Les vôtres.
   w.push({

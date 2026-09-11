@@ -8,12 +8,19 @@
    * affichent un cadre « à venir » dans la coquille — on les redessinera une
    * à une, sans jamais casser la navigation.
    */
-  import { activeView, type View } from '../../lib/stores/navigation';
+  import { activeView, vueDeRetour, type View } from '../../lib/stores/navigation';
   import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
   import HomeV2 from './HomeV2.svelte';
   import SearchV2 from './SearchV2.svelte';
+  import * as api from '../../lib/api';
+  import { ficheAlbumService, ficheArtisteService } from '../../lib/stores/streaming';
+  import { apparierArtiste } from '../../lib/albumsArtisteStreaming';
+  import { setSearchCriteria } from '../../lib/stores/shortcuts';
+  import { pendingSearchQuery, gestesNavigationService } from '../../lib/stores/navigation';
+  import ArtisteServiceV2 from './ArtisteServiceV2.svelte';
+  import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
   import SettingsV2 from './SettingsV2.svelte';
   import RadiosV2 from './RadiosV2.svelte';
@@ -286,6 +293,73 @@
   }
 
   /** Bascule vers le mode TV — plein écran puis vue dédiée, comme l'écran actuel. */
+  /**
+   * Ouvrir la fiche d'un album de service depuis « Lecture en cours ».
+   *
+   * La coquille est le seul endroit qui sache que cet écran existe : le
+   * composant partagé `NowPlaying` reçoit le geste, il ne le devine pas.
+   * `vueDeRetour` porte le chemin du retour, comme pour la fiche artiste —
+   * un seul mécanisme de retour dans cette coquille, pas deux.
+   */
+  function ouvrirAlbumService(c: { service: string; albumId: string; titre: string }) {
+    vueDeRetour.set('nowplaying');
+    ficheAlbumService.set({ service: c.service as any, id: c.albumId, titre: c.titre });
+    activeView.set('streamingalbum');
+  }
+
+  /**
+   * Résoudre un NOM d'artiste en identifiant de service, puis ouvrir sa fiche.
+   *
+   * 🔴 Une piste de service ne porte pas l'identifiant de son artiste — seul
+   * son nom voyage avec elle. On le résout par la recherche fédérée, comme
+   * `ArtistesV2` le fait déjà pour les albums d'un artiste local, et on
+   * réemploie `apparierArtiste` plutôt que d'écrire un second appariement :
+   * il préfère l'égalité exacte du nom et ne retombe sur le premier candidat
+   * qu'à défaut.
+   *
+   * ⚠️ REPLI EXPLICITE. Si le service ne connaît pas ce nom, il n'y a pas de
+   * fiche à ouvrir : on revient au geste d'avant — la recherche, périmètre
+   * ouvert sur la source. Un écran vide serait pire que la recherche qu'il
+   * remplace.
+   */
+  async function ouvrirArtisteServiceParNom(c: { service: string; nom: string }) {
+    let id: string | null = null;
+    try {
+      const r = await api.federatedSearch(c.nom, [c.service], 5);
+      id = apparierArtiste(r?.services?.[c.service]?.artists ?? [], c.nom);
+    } catch { /* le repli ci-dessous s'en charge */ }
+    if (!id) {
+      setSearchCriteria({ q: c.nom, source: c.service });
+      pendingSearchQuery.set(c.nom);
+      activeView.set('search');
+      return;
+    }
+    vueDeRetour.set('nowplaying');
+    ficheArtisteService.set({ service: c.service as any, id, nom: c.nom });
+    activeView.set('streamingartist');
+  }
+
+  /**
+   * ARMER les gestes que cette coquille sait tenir. L'ancienne ne les arme
+   * pas : les composants partagés y liront `null` et garderont leur
+   * comportement d'avant. Voir `stores/navigation.gestesNavigationService`.
+   */
+  $effect(() => {
+    gestesNavigationService.set({
+      ouvrirAlbum: ouvrirAlbumService,
+      ouvrirArtiste: ouvrirArtisteServiceParNom,
+    });
+    return () => gestesNavigationService.set(null);
+  });
+
+  /** Le retour de la fiche album : le dépôt est consommé UNE fois. */
+  function fermerAlbumService() {
+    const ou = $vueDeRetour;
+    ficheAlbumService.set(null);
+    vueDeRetour.set(null);
+    activeView.set(ou ?? 'nowplaying');
+  }
+
   function modeTv() {
     try {
       document.documentElement.requestFullscreen?.()?.catch(() => {});
@@ -427,6 +501,24 @@
         <LibraryV2 />
       {:else if $activeView === 'search'}
         <SearchV2 />
+      {:else if $activeView === 'streamingalbum' && $ficheAlbumService}
+        <!-- La fiche d'un album de STREAMING (#1361, #3626). `service` EN MÊME
+             TEMPS que l'album : `AlbumDetailV2` n'apparie un album distant que
+             sur la paire, et l'ouvrir sans son service le laisserait sur
+             « Chargement… » pour toujours. -->
+        <AlbumDetailV2
+          album={{ id: null, title: $ficheAlbumService.titre,
+                   source: $ficheAlbumService.service,
+                   source_id: $ficheAlbumService.id } as any}
+          service={$ficheAlbumService.service}
+          onClose={fermerAlbumService} />
+      {:else if $activeView === 'streamingartist'}
+        <!-- La fiche d'un artiste de STREAMING (#3825). Écran à part entière,
+             et pas un calque de la Recherche : « Lecture en cours » et la
+             Bibliothèque doivent pouvoir y mener aussi (#3626, #1361). Sans
+             cette route, `activeView` tomberait sur le repli « À venir » —
+             le huitième « écrit, pas branché ». -->
+        <ArtisteServiceV2 />
       {:else if $activeView === 'playlists'}
         <PlaylistsV2 />
       {:else if $activeView === 'settings'}
