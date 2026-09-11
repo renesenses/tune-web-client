@@ -154,9 +154,17 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   // Track context menu ("...")
   let trackMenuOpenId = $state<number | null>(null);
 
+  /**
+   * #872 — le panneau est porté à la racine du document ; il lui faut la boîte
+   * ÉCRAN du bouton, prise au clic. Les trois listes de cette vue passent
+   * toutes par ici, il n'y a donc qu'un endroit à tenir.
+   */
+  let trackMenuAncre = $state<DOMRect | null>(null);
+
   function openTrackMenu(e: MouseEvent, trackId: number | null | undefined) {
     e.stopPropagation();
     if (!trackId) return;
+    trackMenuAncre = (e.currentTarget as HTMLElement).getBoundingClientRect();
     trackMenuOpenId = trackMenuOpenId === trackId ? null : trackId;
   }
 
@@ -2889,8 +2897,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 <!-- Track context menu -->
                 <div class="track-more-wrap">
                   <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
-                  {#if trackMenuOpenId === t.id}
+                  {#if trackMenuOpenId === t.id && trackMenuAncre}
                     <TrackContextMenu
+                      ancre={trackMenuAncre}
                       onClose={closeTrackMenu}
                       onPlay={() => t.id && playTrack(t.id)}
                       onAddToQueue={() => addTrackToQueue(t)}
@@ -3034,8 +3043,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <!-- Track context menu -->
               <div class="track-more-wrap">
                 <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
-                {#if trackMenuOpenId === t.id}
+                {#if trackMenuOpenId === t.id && trackMenuAncre}
                   <TrackContextMenu
+                    ancre={trackMenuAncre}
                     onClose={closeTrackMenu}
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
@@ -3835,8 +3845,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                    rendue que dans la fiche d'album. -->
               <div class="track-more-wrap">
                 <button class="track-more-btn" onclick={(e) => openTrackMenu(e, t.id)} title={$tr('library.moreOptions')}>···</button>
-                {#if trackMenuOpenId === t.id}
+                {#if trackMenuOpenId === t.id && trackMenuAncre}
                   <TrackContextMenu
+                    ancre={trackMenuAncre}
                     onClose={closeTrackMenu}
                     onPlay={() => t.id && playTrack(t.id)}
                     onAddToQueue={() => addTrackToQueue(t)}
