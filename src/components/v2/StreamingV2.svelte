@@ -26,6 +26,7 @@
    *     collection d'achats.
    */
   import * as api from '../../lib/api';
+  import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { activeView } from '../../lib/stores/navigation';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult } from '../../lib/types';
@@ -531,7 +532,17 @@
 
   function playAlbum(a: any) {
     const zid = $currentZoneId;
-    if (zid == null || !active || active === BANDCAMP) return;
+    if (zid == null || !active) return;
+    // Bandcamp était exclu d'ici : aucun album n'y faisait de file (#2702).
+    // Son identifiant d'album EST son adresse publique, portée par `url` —
+    // la même que `playBc` emploie, et la même fonction qui tranche.
+    if (active === BANDCAMP) {
+      const corps = corpsDeLectureCollection({ url: a?.url ?? a?.source_id ?? null });
+      if (corps) {
+        playAndSync(zid, corps as any).catch(() => { error = $t('v2.stream.playFailed' as any); });
+      }
+      return;
+    }
     const sid = a?.source_id ?? a?.id;
     if (sid) playAndSync(zid, { streaming_album_id: String(sid), source: active as any }).catch(() => { error = $t('v2.stream.playFailed' as any); });
   }
@@ -566,7 +577,11 @@
     const zid = $currentZoneId;
     const svc = piste?.source ?? active;
     const sid = piste?.source_id ?? piste?.id;
-    if (zid == null || !svc || svc === BANDCAMP || !sid) return;
+    // Une piste Bandcamp passe par `playBc` : elle doit ouvrir l'album qui la
+    // porte, pas partir seule dans une file d'une piste (#2702). Sans cette
+    // branche, l'exclusion d'origine rendait le clic simplement inerte.
+    if (zid != null && svc === BANDCAMP) { playBc(piste); return; }
+    if (zid == null || !svc || !sid) return;
     playAndSync(zid, { source: svc as any, source_id: String(sid) })
       .catch(() => { error = $t('v2.stream.playFailed' as any); });
   }
@@ -576,20 +591,49 @@
     playAndSync(zid, { streaming_playlist_id: String(p.source_id ?? p.id), source: (p.source ?? active) as any })
       .catch(() => { error = $t('v2.stream.playFailed' as any); });
   }
-  /** Bandcamp ne sert qu'un extrait mp3-128 : on le lit tel quel. */
+  /**
+   * Lecture d'un article BANDCAMP — #2702.
+   *
+   * Sevy Tabroc, 0.9.119 macOS : « Je choisis un album / je lance le premier
+   * titre / à la fin du morceau, le prochain ne s'enchaîne pas. »
+   *
+   * 🔴 CE N'ÉTAIT PAS LA DÉTECTION DE FIN DE PISTE, C'ÉTAIT LA FILE. Cet écran
+   * envoyait une piste distante seule — la paire `{source, source_id}`, où
+   * `source_id` est l'URL d'extrait mp3-128. Ce chemin termine par
+   * `update_queue_info(zone, 0, 1)` : une file d'EXACTEMENT une piste. Il n'y
+   * avait jamais de suivante.
+   *
+   * La correction existe, testée et fusionnée, dans `lib/bandcampLecture` —
+   * elle sert l'écran Bandcamp de l'ANCIENNE interface depuis qu'elle est là.
+   * Ce composant-ci ne l'avait jamais appelée : encore « écrit, pas branché ».
+   *
+   * Chaque article de ces grilles porte déjà son `url` — c'est même la clé de
+   * la boucle `{#each}` — et `url` est exactement ce que `streaming_album_id`
+   * attend (`get_album_tracks` fait `album_depuis_url`). Rien à aller chercher.
+   *
+   * Le geste de l'auditeur ne change pas : il clique la vignette. La file, elle,
+   * contient enfin l'album.
+   */
   function playBc(it: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    if (!it?.extrait) { error = $t('v2.str.noPreview' as any); return; }
-    // 🔴 La PAIRE `source` + `source_id`, pas `file_path` : c'est ce que le
-    // serveur apparie. Avec `file_path`, il ne reconnaissait rien et retombait
-    // sur « reprendre la lecture en cours » (Bertrand, 05/09/2026). L'ecran
-    // Bandcamp du client actuel envoie cette paire depuis toujours.
-    playAndSync(zid, {
-      source: 'bandcamp' as any, source_id: String(it.extrait),
-      title: it.titre, artist_name: it.artiste ?? null,
-      cover_path: it.pochette ?? null,
-    }).catch(() => { error = $t('v2.stream.playFailed' as any); });
+    // L'extrait devient le REPLI, plus le chemin nominal : il ne reste que
+    // pour ce qui n'a pas d'album derrière — une piste isolée d'un résultat de
+    // recherche. Mieux vaut une file d'une piste que rien du tout.
+    const corps = corpsDeLectureBandcamp(
+      {
+        url: it?.url ?? null,
+        title: it?.titre,
+        artist: it?.artiste,
+        pochette: it?.pochette ?? null,
+        tracks: it?.extrait
+          ? [{ stream_url: String(it.extrait), title: it?.titre ?? '', artist: it?.artiste ?? '' }]
+          : [],
+      },
+      0,
+    );
+    if (!corps) { error = $t('v2.str.noPreview' as any); return; }
+    playAndSync(zid, corps as any).catch(() => { error = $t('v2.stream.playFailed' as any); });
   }
 
   async function linkBandcamp() {
