@@ -7,6 +7,7 @@ import { writable, get } from 'svelte/store';
 import { currentZone, syncZone } from './zones';
 import { seekPositionMs, startSeekTimer, stopSeekTimer } from './nowPlaying';
 import * as api from '../api';
+import { sourceDuLecteur } from '../urlDeFluxNavigateur';
 
 // The singleton <audio> element used for browser playback
 let audioElement: HTMLAudioElement | null = null;
@@ -97,16 +98,17 @@ function getAudio(): HTMLAudioElement {
 export function browserPlay(streamUrl: string, force = false) {
   const audio = getAudio();
   const currentUrl = get(browserStreamUrl);
-  // Use a relative URL so the browser connects to the same host
-  // (the server returns an absolute URL with the advertised IP, which
-  // may not be reachable from the browser if behind a proxy/NAT).
-  let relativeUrl = streamUrl;
-  try {
-    const u = new URL(streamUrl);
-    relativeUrl = u.pathname + u.search;
-  } catch {
-    // keep as-is if not a valid URL
-  }
+  // Une URL de TUNE part en relatif pour joindre l'hôte que le navigateur a su
+  // atteindre (le serveur annonce son IP de LAN, pas forcément joignable
+  // derrière un proxy ou un NAT). Une URL TIERCE garde son domaine : le lui
+  // retirer faisait demander `bcbits.com/stream/…` à Tune, qui répondait par
+  // son repli SPA — `200 text/html`, « Failed to init decoder » (#2076).
+  // La règle exacte, et les lignes du serveur qui la fondent, vivent dans
+  // `urlDeFluxNavigateur.ts` : elle est pure, donc éprouvable sans DOM.
+  const relativeUrl = sourceDuLecteur(
+    streamUrl,
+    typeof location !== 'undefined' ? location.origin : null,
+  );
   if (force || currentUrl !== relativeUrl) {
     // Cache-bust when the URL is unchanged so the element fetches the new
     // track instead of replaying its buffered contents.
