@@ -38,6 +38,7 @@
   import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear } from '../lib/stores/navigation';
   import { destinationAlbum } from '../lib/routageAlbum';
+  import { gestesNavigationService } from '../lib/stores/navigation';
   import { destinationArtiste } from '../lib/routageArtiste';
   import { setSearchCriteria } from '../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
@@ -570,8 +571,8 @@
      * La résolution du nom en identifiant appartient à la coquille : elle seule
      * connaît la recherche fédérée, et `NowPlaying` n'a pas à l'apprendre.
      */
-    if (onOuvrirArtisteService && dest.source && dest.source !== 'local') {
-      onOuvrirArtisteService({ service: dest.source, nom: dest.requete });
+    if (gestesService && dest.source && dest.source !== 'local') {
+      gestesService.ouvrirArtiste({ service: dest.source, nom: dest.requete });
       return;
     }
     ouvrirRecherche(dest.requete, dest.source);
@@ -592,14 +593,14 @@
      * local : un `albumId` en main désigne un album de la bibliothèque, et
      * rien ne doit détourner ce chemin-là.
      */
-    if (!albumId && onOuvrirAlbumService) {
+    if (!albumId && gestesService) {
       const dest = destinationAlbum({
         source: displayTrack?.source ?? null,
         album_id: (displayTrack as any)?.album_id,
         album_title: albumTitle ?? displayTrack?.album_title ?? null,
       });
       if (dest?.type === 'album-service') {
-        onOuvrirAlbumService({ service: dest.service, albumId: dest.albumId, titre: dest.titre });
+        gestesService.ouvrirAlbum({ service: dest.service, albumId: dest.albumId, titre: dest.titre });
         return;
       }
     }
@@ -941,35 +942,16 @@
      * grappe avatar, et c'est le seul acces au mode TV de cet ecran.
      */
     tvDansLaCoquille?: boolean;
-    /**
-     * Ouvrir la fiche d'un album CHEZ UN SERVICE — #1361, #3626.
-     *
-     * Rappel optionnel, fourni par la seule coquille qui possède cet écran.
-     * Même contrat que `onAddToPlaylist` juste au-dessus : absent, le geste
-     * garde son comportement d'avant (la recherche par titre). « Mieux vaut un
-     * bouton absent qu'un bouton mort » — et surtout, ce composant est monté
-     * par les DEUX coquilles : router en dur vers une vue que l'ancienne ne
-     * connaît pas la ferait tomber sur son repli.
-     *
-     * C'est le contrat `tvDansLaCoquille` : la coquille dit au composant
-     * partagé ce qu'elle sait faire, il ne le devine pas. `futureInterface()`
-     * n'est appelé nulle part hors de `main.ts`, et ce n'est pas ici qu'il
-     * fallait commencer.
-     */
-    onOuvrirAlbumService?: (cible: { service: string; albumId: string; titre: string }) => void;
-    /**
-     * Ouvrir la fiche d'un ARTISTE chez un service — moitié artiste de #3626.
-     *
-     * Même contrat optionnel que son voisin, et pour la même raison. Mais une
-     * différence de FOND avec l'album : une piste de service porte
-     * l'identifiant de son ALBUM (`StreamTrack.album_id`) et PAS celui de son
-     * artiste — le champ n'existe pas. On ne peut donc transmettre qu'un NOM,
-     * et c'est à la coquille de le résoudre en identifiant avant d'ouvrir la
-     * fiche. D'où une cible sans `id`, là où l'album en a un.
-     */
-    onOuvrirArtisteService?: (cible: { service: string; nom: string }) => void;
+
   }
-  let { onAddToPlaylist, tvDansLaCoquille = false, onOuvrirAlbumService, onOuvrirArtisteService }: Props = $props();
+  let { onAddToPlaylist, tvDansLaCoquille = false }: Props = $props();
+
+  /**
+   * Ce que la coquille qui nous monte sait faire — voir
+   * `stores/navigation.gestesNavigationService`. `null` dans l'ancienne : les
+   * gestes ci-dessous gardent alors exactement leur comportement d'avant.
+   */
+  const gestesService = $derived($gestesNavigationService);
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);

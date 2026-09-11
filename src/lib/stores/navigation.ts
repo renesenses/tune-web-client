@@ -54,6 +54,40 @@ export const listResetNonce = writable(0);
  * téléporter l'écran suivant.
  */
 export const vueDeRetour = writable<View | null>(null);
+
+/**
+ * LES GESTES DE NAVIGATION QUE LA COQUILLE SAIT TENIR — #3777, #3626, #1361.
+ *
+ * Les fiches d'un artiste et d'un album de STREAMING n'existent que dans la
+ * coquille v2. Or les composants qui voudraient y mener — `NowPlaying`,
+ * `PisteActions` — sont montés par LES DEUX. Router en dur vers une vue que
+ * l'ancienne coquille ne connaît pas la ferait tomber sur son repli « À venir ».
+ *
+ * La coquille ARME donc ce magasin au montage, et les composants partagés
+ * lisent ce qui est armé. `null` — l'ancienne coquille — veut dire « je ne
+ * sais pas faire » : l'entrée de menu est alors ABSENTE et le lien garde son
+ * geste d'avant. Absent, pas grisé, pas mort : la règle du menu.
+ *
+ * ⚠️ Pourquoi un magasin et pas des props. `NowPlaying` est monté une fois par
+ * coquille, une prop y suffirait ; `PisteActions` l'est par DOUZE composants,
+ * et une prop obligerait chacun à relayer quelque chose qui ne le regarde pas.
+ * Deux mécanismes pour un même besoin finiraient par diverger — on n'en garde
+ * qu'un, celui qui passe partout.
+ *
+ * ⚠️ Pourquoi pas le contexte Svelte, qui semblerait fait pour ça : le dépôt
+ * n'en emploie nulle part, et un idiome introduit pour un seul cas coûte plus
+ * qu'il ne rapporte.
+ */
+export interface GestesNavigationService {
+  /** La piste porte l'identifiant de son album chez le service. */
+  ouvrirAlbum: (cible: { service: string; albumId: string; titre: string }) => void;
+  /**
+   * Seulement un NOM : `StreamTrack` ne porte pas d'identifiant d'artiste.
+   * C'est à la coquille de le résoudre avant d'ouvrir la fiche.
+   */
+  ouvrirArtiste: (cible: { service: string; nom: string }) => void;
+}
+export const gestesNavigationService = writable<GestesNavigationService | null>(null);
 export function requestListReset() {
   listResetNonce.update(n => n + 1);
   viewStateStash.clear();

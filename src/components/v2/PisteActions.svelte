@@ -72,7 +72,8 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favKeyOf, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
-  import { activeView, pendingLibraryAlbum, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { activeView, gestesNavigationService, pendingLibraryAlbum, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { destinationAlbum } from '../../lib/routageAlbum';
   import { t } from '../../lib/i18n';
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste } from '../../lib/menuPiste';
@@ -235,15 +236,49 @@
    * change de vue — le même contrat que les liens de la lecture en cours.
    * Le composant ne sait pas naviguer, et n'a pas à le savoir.
    */
+  /**
+   * L'album et l'artiste de la piste CHEZ SON SERVICE — #3777, famille C.
+   *
+   * `null` dès que la coquille ne sait pas les ouvrir : l'entrée disparaît
+   * alors, au lieu d'ouvrir sur rien. C'est la règle du menu — absent, pas
+   * grisé — et c'est aussi ce qui protège l'ANCIENNE coquille, qui n'a pas ces
+   * écrans et n'arme donc pas `gestesNavigationService`.
+   */
+  const albumDeService = $derived.by(() => {
+    if (local || !$gestesNavigationService) return null;
+    const d = destinationAlbum({
+      source: piste.source ?? null,
+      album_id: (piste as any).album_id,
+      album_title: piste.album_title ?? null,
+    });
+    return d?.type === 'album-service'
+      ? { service: d.service, albumId: d.albumId, titre: d.titre }
+      : null;
+  });
+  const artisteDeService = $derived.by(() => {
+    if (local || !$gestesNavigationService) return null;
+    const nom = (piste.artist_name ?? '').trim();
+    return piste.source && nom ? { service: piste.source as string, nom } : null;
+  });
+
   function allerArtiste() {
-    if (piste.artist_id == null) return;
-    pendingLibraryArtist.set(piste.artist_id);
-    activeView.set('library');
+    if (piste.artist_id != null) {
+      pendingLibraryArtist.set(piste.artist_id);
+      activeView.set('library');
+      return;
+    }
+    if (artisteDeService) $gestesNavigationService?.ouvrirArtiste(artisteDeService);
   }
   function allerAlbum() {
-    if (piste.album_id == null) return;
-    pendingLibraryAlbum.set(piste.album_id);
-    activeView.set('library');
+    // 🔴 L'identifiant de BIBLIOTHÈQUE d'abord : une piste locale garde son
+    // chemin, et rien ne doit le détourner. `album_id` d'une piste de service
+    // est une CHAÎNE — `routageAlbum` tranche, ici on ne devine pas.
+    if (typeof piste.album_id === 'number' && piste.album_id > 0) {
+      pendingLibraryAlbum.set(piste.album_id);
+      activeView.set('library');
+      return;
+    }
+    if (albumDeService) $gestesNavigationService?.ouvrirAlbum(albumDeService);
   }
 
   /**
@@ -262,7 +297,9 @@
         // service n'a ni voisins acoustiques, ni versions, ni étiquettes.
         idBibliotheque: local && piste.id != null ? piste.id : null,
         artistId: piste.artist_id ?? null,
-        albumId: piste.album_id ?? null,
+        albumId: typeof piste.album_id === 'number' ? piste.album_id : null,
+        albumDeService,
+        artisteDeService,
       },
       {
         lire: () => lire(new MouseEvent('click')),

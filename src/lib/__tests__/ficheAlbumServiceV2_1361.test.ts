@@ -124,16 +124,16 @@ describe('#1361 — la coquille v2 porte la fiche album de service', () => {
 // La moitié « aller », dans le composant PARTAGÉ par les deux coquilles.
 // ---------------------------------------------------------------------------
 describe('#1361 — NowPlaying ne détourne le geste que si la coquille sait le recevoir', () => {
-  it('le rappel est OPTIONNEL : sans lui, le comportement d\'avant est intact', async () => {
+  it("le geste n'est détourné QUE si la coquille a armé ses gestes", async () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
     const np = readFileSync(resolve(process.cwd(), 'src/components/NowPlaying.svelte'), 'utf-8');
     // Absent ⇒ on ne consulte même pas la décision : l'ancienne coquille, qui
     // n'a pas cet écran, garde sa recherche par titre.
-    expect(np).toContain('if (!albumId && onOuvrirAlbumService) {');
+    expect(np).toContain('if (!albumId && gestesService) {');
     expect(np).toContain("if (dest?.type === 'album-service') {");
     // Et la coquille v2 le fournit.
     const shell = readFileSync(resolve(process.cwd(), 'src/components/v2/ShellV2.svelte'), 'utf-8');
-    expect(shell).toContain('onOuvrirAlbumService={ouvrirAlbumService}');
+    expect(shell).toContain('ouvrirAlbum: ouvrirAlbumService,');
   });
 });
