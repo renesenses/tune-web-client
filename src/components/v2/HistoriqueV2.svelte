@@ -137,6 +137,7 @@
         <ListePistesV2
           pistes={entrees.map((x) => x.track)}
           numerotation="aucune"
+          pochetteEnTableau
           onLire={(_p, i) => rejouer(entrees[i], i)}
           clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + entrees[i].playedAt}
           apres={suffixe}
