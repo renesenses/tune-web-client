@@ -3916,6 +3916,8 @@ export default {
   "v2.fas.topTracks": "Toppspår",
   "v2.fas.albums": "Album",
   "v2.fas.empty": "Inget att visa för den här artisten.",
+  "v2.fas.bestOf": "Spela det bästa",
+  "v2.fas.radio": "Artistradio",
   "v2.rech.tracks": "Låtar",
   "v2.rech.playlists": "Spellistor",
   "v2.rech.best": "Bästa träff",

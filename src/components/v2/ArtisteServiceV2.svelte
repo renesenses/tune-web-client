@@ -29,6 +29,8 @@
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { t as tr } from '../../lib/i18n';
+  import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
+  import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../AlbumArt.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
 
@@ -64,7 +66,15 @@
     ]);
     if (mien !== jeton) return;
     if (a.status === 'fulfilled') artiste = a.value;
-    if (tt.status === 'fulfilled') titres = tt.value ?? [];
+    // 🔴 ESTAMPILLER LA SOURCE, UNE FOIS, ICI. La charge de `top-tracks` ne
+    // porte pas de champ `source` — le service est dans l'URL. Sans lui
+    // `corpsDeLecture` ne sait désigner aucune de ces pistes : `planDeLecture`
+    // les écarte toutes et le « best of » partirait VIDE, sans erreur. On le
+    // pose au chargement plutôt qu'à chaque geste : un seul endroit à ne pas
+    // oublier, au lieu d'un par bouton.
+    if (tt.status === 'fulfilled') {
+      titres = (tt.value ?? []).map((p) => ({ ...p, source: service })) as Track[];
+    }
     if (al.status === 'fulfilled') albums = al.value ?? [];
     chargement = false;
   }
@@ -87,18 +97,11 @@
     activeView.set(ou ?? 'search');
   }
 
-  /**
-   * 🔴 `source` va TOUJOURS avec `source_id`. La charge de `top-tracks` ne
-   * porte pas le service — il est dans l'URL — donc on le rajoute ici. Sans
-   * lui, l'identifiant n'est apparié par aucun service et la lecture échoue
-   * sans rien dire.
-   */
   function lire(p: any) {
     const zid = $currentZoneId;
-    const svc = cible?.service;
-    if (zid == null || !svc || !p?.source_id) return;
+    if (zid == null || !p?.source || !p?.source_id) return;
     playAndSync(zid, {
-      source: svc,
+      source: p.source,
       source_id: String(p.source_id),
       title: p.title ?? null,
       artist_name: p.artist_name ?? null,
@@ -106,6 +109,46 @@
       cover_path: p.cover_path ?? null,
       duration_ms: p.duration_ms,
     }).catch(signalerEchecLecture);
+  }
+
+  /**
+   * « Best of » et « Radio de l'artiste » — #2568.
+   *
+   * Sandro, fil forum 1579 (27/08/2026) : « serait-il possible d'ajouter un
+   * bouton pour écouter une sélection de ses meilleurs titres (ou un mix
+   * automatique basé sur son catalogue) […] une fonction "Radio Artiste" ou
+   * "Best of" dédiée, permettant de découvrir rapidement sa discographie sans
+   * devoir charger manuellement chaque album un par un. »
+   *
+   * Sa demande porte DEUX gestes, et un seul bouton en trahirait un : le best
+   * of, c'est la sélection dans l'ordre du service ; la radio, c'est le mix.
+   * On ne fabrique aucun classement — `get_artist_top_tracks` rend l'ordre du
+   * service, et le trier nous-mêmes sur une popularité qu'il ne donne pas
+   * reviendrait à inventer le best of au lieu de le relayer.
+   *
+   * ⚠️ Le piège serveur que le ticket signalait est LEVÉ sur `main` : Qobuz
+   * demande `extra=tracks` d'abord et ne retombe sur `tracks_appears_on` —
+   * « ce sur quoi l'artiste apparaît », qui n'est pas un best of — qu'en
+   * dernier recours (`qobuz.rs`, `get_artist_top_tracks`).
+   */
+  let enMasse = $state(false);
+  async function jouerLesTitres(aleatoire: boolean) {
+    const zid = $currentZoneId;
+    if (zid == null || !titres.length) return;
+    enMasse = true;
+    try {
+      const gestes = {
+        lire: (c: any) => playAndSync(zid, c),
+        enfiler: (c: any) => api.addToQueue(zid, c),
+      };
+      const n = aleatoire ? await lireListeAleatoire(titres, gestes) : await lireListe(titres, gestes);
+      // Zéro veut dire « rien n'était désignable » : c'est à l'écran de le
+      // dire, sans quoi le bouton paraîtrait mort.
+      if (!n) notifications.error($tr('v2.fas.empty' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $tr('v2.fas.empty' as any));
+    }
+    enMasse = false;
   }
 
   const duree = (ms?: number | null) => {
@@ -133,6 +176,16 @@
     <div class="ident">
       <h1>{nom}</h1>
       {#if cible}<span class="svc">{cible.service}</span>{/if}
+      {#if titres.length}
+        <div class="gestes">
+          <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
+            {$tr('v2.fas.bestOf' as any)}
+          </button>
+          <button class="v2-btn ghost" disabled={enMasse} onclick={() => jouerLesTitres(true)}>
+            {$tr('v2.fas.radio' as any)}
+          </button>
+        </div>
+      {/if}
     </div>
   </header>
 
@@ -186,6 +239,7 @@
   .portrait{width:92px; height:92px; border-radius:50%; overflow:hidden; flex:none; background:var(--v2-line2)}
   .ident h1{margin:0; font:600 26px/1.15 var(--v2-sans)}
   .svc{font:11px var(--v2-mono); color:var(--v2-txt3); text-transform:uppercase; letter-spacing:.06em}
+  .gestes{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
   .etat{padding:40px 0; color:var(--v2-txt3)}
   h2{margin:22px 0 10px; font:600 13px var(--v2-sans); color:var(--v2-txt2);
     text-transform:uppercase; letter-spacing:.05em}

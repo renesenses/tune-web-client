@@ -3917,6 +3917,8 @@ export default {
   "v2.fas.topTracks": "热门单曲",
   "v2.fas.albums": "专辑",
   "v2.fas.empty": "该艺术家暂无可显示的内容。",
+  "v2.fas.bestOf": "播放精选",
+  "v2.fas.radio": "艺人电台",
   "v2.rech.tracks": "曲目",
   "v2.rech.playlists": "播放列表",
   "v2.rech.best": "最佳结果",

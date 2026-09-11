@@ -3917,6 +3917,8 @@ export default {
   "v2.fas.topTracks": "Top-Titel",
   "v2.fas.albums": "Alben",
   "v2.fas.empty": "Für diesen Künstler gibt es nichts anzuzeigen.",
+  "v2.fas.bestOf": "Best of abspielen",
+  "v2.fas.radio": "Künstlerradio",
   "v2.rech.tracks": "Titel",
   "v2.rech.playlists": "Playlists",
   "v2.rech.best": "Bestes Ergebnis",

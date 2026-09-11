@@ -3917,6 +3917,8 @@ export default {
   "v2.fas.topTracks": "Piese populare",
   "v2.fas.albums": "Albume",
   "v2.fas.empty": "Nimic de afișat pentru acest artist.",
+  "v2.fas.bestOf": "Ascultă cele mai bune",
+  "v2.fas.radio": "Radio artist",
   "v2.rech.tracks": "Piese",
   "v2.rech.playlists": "Playlisturi",
   "v2.rech.best": "Cel mai bun rezultat",
