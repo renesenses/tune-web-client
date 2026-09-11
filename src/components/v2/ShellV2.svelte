@@ -8,13 +8,15 @@
    * affichent un cadre « à venir » dans la coquille — on les redessinera une
    * à une, sans jamais casser la navigation.
    */
-  import { activeView, type View } from '../../lib/stores/navigation';
+  import { activeView, vueDeRetour, type View } from '../../lib/stores/navigation';
   import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
   import HomeV2 from './HomeV2.svelte';
   import SearchV2 from './SearchV2.svelte';
+  import { ficheAlbumService } from '../../lib/stores/streaming';
   import ArtisteServiceV2 from './ArtisteServiceV2.svelte';
+  import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
   import SettingsV2 from './SettingsV2.svelte';
   import RadiosV2 from './RadiosV2.svelte';
@@ -287,6 +289,28 @@
   }
 
   /** Bascule vers le mode TV — plein écran puis vue dédiée, comme l'écran actuel. */
+  /**
+   * Ouvrir la fiche d'un album de service depuis « Lecture en cours ».
+   *
+   * La coquille est le seul endroit qui sache que cet écran existe : le
+   * composant partagé `NowPlaying` reçoit le geste, il ne le devine pas.
+   * `vueDeRetour` porte le chemin du retour, comme pour la fiche artiste —
+   * un seul mécanisme de retour dans cette coquille, pas deux.
+   */
+  function ouvrirAlbumService(c: { service: string; albumId: string; titre: string }) {
+    vueDeRetour.set('nowplaying');
+    ficheAlbumService.set({ service: c.service as any, id: c.albumId, titre: c.titre });
+    activeView.set('streamingalbum');
+  }
+
+  /** Le retour de la fiche album : le dépôt est consommé UNE fois. */
+  function fermerAlbumService() {
+    const ou = $vueDeRetour;
+    ficheAlbumService.set(null);
+    vueDeRetour.set(null);
+    activeView.set(ou ?? 'nowplaying');
+  }
+
   function modeTv() {
     try {
       document.documentElement.requestFullscreen?.()?.catch(() => {});
@@ -428,6 +452,17 @@
         <LibraryV2 />
       {:else if $activeView === 'search'}
         <SearchV2 />
+      {:else if $activeView === 'streamingalbum' && $ficheAlbumService}
+        <!-- La fiche d'un album de STREAMING (#1361, #3626). `service` EN MÊME
+             TEMPS que l'album : `AlbumDetailV2` n'apparie un album distant que
+             sur la paire, et l'ouvrir sans son service le laisserait sur
+             « Chargement… » pour toujours. -->
+        <AlbumDetailV2
+          album={{ id: null, title: $ficheAlbumService.titre,
+                   source: $ficheAlbumService.service,
+                   source_id: $ficheAlbumService.id } as any}
+          service={$ficheAlbumService.service}
+          onClose={fermerAlbumService} />
       {:else if $activeView === 'streamingartist'}
         <!-- La fiche d'un artiste de STREAMING (#3825). Écran à part entière,
              et pas un calque de la Recherche : « Lecture en cours » et la
@@ -497,7 +532,7 @@
         <!-- `onAddToPlaylist` non fournie : le bouton « ajouter à une playlist »
              de cet écran reste masqué tant que la coquille v2 n'a pas sa propre
              fenêtre de playlists. Mieux vaut un bouton absent qu'un bouton mort. -->
-        <NowPlaying tvDansLaCoquille />
+        <NowPlaying tvDansLaCoquille onOuvrirAlbumService={ouvrirAlbumService} />
       {:else}
         <div class="soon">
           <div class="badge">{$t('v2.shell.soon' as any)}</div>

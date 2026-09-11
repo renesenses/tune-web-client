@@ -81,6 +81,20 @@ export const pendingStreamingArtist = writable<Artist | null>(null);
 export const ficheArtisteService =
   writable<{ service: Source; id: string; nom: string } | null>(null);
 
+/**
+ * La cible de la FICHE ALBUM DE SERVICE de la coquille v2 — #1361, #3626.
+ *
+ * Même contrat que [`ficheArtisteService`] juste au-dessus, et pour la même
+ * raison : `pendingStreamingAlbum` porte un `Album` et son consommateur unique
+ * est `StreamingView` (v1), qui ouvre l'album DANS son écran.
+ *
+ * 🔴 `service` ET `id` ensemble, toujours : `AlbumDetailV2` n'apparie un album
+ * distant que sur la PAIRE, et l'ouvrir sans son service le laisserait sur
+ * « Chargement… » pour toujours.
+ */
+export const ficheAlbumService =
+  writable<{ service: Source; id: string; titre: string } | null>(null);
+
 /// Playlist de service à rouvrir en arrivant sur StreamingView (#2370).
 ///
 /// Même plomberie que `pendingStreamingAlbum` : l'écran Favoris ne peut pas
