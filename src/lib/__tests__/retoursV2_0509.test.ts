@@ -60,10 +60,28 @@ describe('Retours Bertrand du 05/09/2026', () => {
     // zone (« Lachrimae Antiquae » au lieu de « Codex VI ») — c'est le repli
     // « reprendre la lecture en cours ».
     expect(det).toContain("source: 'bandcamp', source_id: t.stream_url");
-    expect(det).toContain('corpsDeLecture(tracks[startIndex])');
     expect(det, 'file_path est revenu').not.toContain('file_path: t.file_path');
-    // Et la vignette de découverte envoie la même paire.
-    expect(str).toContain("source: 'bandcamp' as any, source_id: String(it.extrait)");
+    /*
+     * ⚠️ CETTE ASSERTION A CHANGÉ LE 11/09/2026, ET C'EST VOULU — #2702.
+     *
+     * Elle exigeait `corpsDeLecture(tracks[startIndex])`, c'est-à-dire UNE
+     * piste, parce qu'on croyait alors qu'« il n'y a pas d'album à désigner au
+     * serveur » pour Bandcamp. C'était vrai avant que Bandcamp entre au
+     * registre des services (`tune-server/src/state.rs:369`) ; depuis,
+     * `streaming_album_id` accepte l'adresse publique de l'album.
+     *
+     * Une piste seule termine par `update_queue_info(zone, 0, 1)` : une file
+     * d'exactement une piste, où rien ne s'enchaîne jamais. C'est le défaut
+     * que Sevy Tabroc décrit. L'album, lui, remplit la file.
+     *
+     * Ce que le témoin garde est INCHANGÉ dans son intention : le serveur doit
+     * recevoir quelque chose qu'il sait apparier, et jamais `file_path`.
+     */
+    expect(det).toContain('corpsDeLectureBandcamp(');
+    expect(det).toContain('startIndex,');
+    // Et la vignette : l'album quand elle en connaît l'adresse, la paire
+    // `source`+`source_id` seulement en repli. Jamais `file_path`.
+    expect(str).toContain('corpsDeLectureBandcamp(');
     expect(str, 'file_path est revenu sur la vignette').not.toContain('file_path: it.extrait');
   });
 
