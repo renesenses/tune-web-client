@@ -1787,6 +1787,8 @@ export default {
   "settings.current": "현재",
   "settings.dmgReady": "DMG가 다운로드되어 Finder에서 열렸습니다.",
   "settings.installedRestarting": "설치됨 — 다시 시작 중...",
+  "settings.updateReloadGaveUp": "서버가 돌아오지 않았습니다. 아직 다시 시작 중일 수 있습니다. 잠시 후 페이지를 새로 고치세요.",
+  "settings.updateStatusUnknown": "업데이트가 설치되었는지 알 수 없습니다. 서버가 응답하지 않았습니다. 페이지를 새로 고쳐 실행 중인 버전을 확인하세요.",
   "settings.installing": "설치 중...",
   "settings.updateButton": "업데이트",
   "settings.updateStopsPlayback": "지금 음악이 재생 중입니다. 업데이트를 설치하면 서버가 재시작되어 재생이 중단됩니다.",
