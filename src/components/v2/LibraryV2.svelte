@@ -45,7 +45,7 @@
   // lu quand la Bibliothèque était déjà montée. On prend sa version.
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
-  import { activeView, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, type View } from '../../lib/stores/navigation';
+  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
@@ -967,6 +967,30 @@
     playAndSync(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(signalerEchecLecture);
   }
   let opened = $state<Album | null>(null);
+  /**
+   * 🔴 Un clic sur « Bibliothèque » dans la barre latérale REFERME la fiche
+   * d'album — #3843.
+   *
+   * La fiche est un CALQUE posé par-dessus la grille ; tant que `opened` tient
+   * une valeur, la grille est cachée. Voir `v2/Sidebar.svelte` (`go`) pour le
+   * mécanisme complet : la barre v2 n'émettait pas le signal, et aucun écran
+   * v2 ne l'écoutait.
+   *
+   * 🔴 `$listResetNonce`, PAS `get(listResetNonce)` — exactement le piège
+   * déjà payé deux fois juste en dessous (#3708, #3717) : `get()` lit la
+   * valeur et se désabonne aussitôt, n'inscrit AUCUNE dépendance sous les
+   * runes, et l'effet ne tournerait qu'au montage — c'est-à-dire jamais dans
+   * le cas qu'on corrige, puisque le défaut est précisément qu'on ne remonte
+   * pas.
+   *
+   * ⚠️ Déclaré AVANT les trois effets `pendingLibrary*`. Au montage, les
+   * effets d'un composant tournent dans l'ordre de DÉCLARATION : placé après,
+   * celui-ci refermerait la fiche que « Aller à l'album » vient d'ouvrir.
+   */
+  $effect(() => {
+    $listResetNonce;
+    opened = null;
+  });
 
   /**
    * 🔴 L'album demandé par « Lecture en cours ».

@@ -12,7 +12,7 @@
    * Principe de stabilité spatiale : le noyau ne bouge JAMAIS d'un niveau à
    * l'autre — les groupes se révèlent en place, jamais de réorganisation.
    */
-  import { activeView, type View } from '../../lib/stores/navigation';
+  import { activeView, requestListReset, type View } from '../../lib/stores/navigation';
   import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import { updateAvailable, latestVersion, currentVersion } from '../../lib/stores/updates';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -152,7 +152,28 @@
   // 🔴 Naviguer REFERME le tiroir. Sans cela, au palier « tiroir » la barre
   // reste par-dessus l'écran qu'on vient de demander : on choisit une vue et
   // on ne la voit pas.
-  function go(v: View) { activeView.set(v); tiroirOuvert.set(false); }
+  /**
+   * 🔴 `requestListReset()` AVANT de poser la vue — #3843 (Lulu/JLuc, fil 1752,
+   * v0.9.145).
+   *
+   * « Lorsqu'on se trouve sur un album plein écran, le retour sur
+   * "Bibliothèque" ne fonctionne pas, il est nécessaire de repasser par un
+   * autre dossier. »
+   *
+   * `activeView.set('library')` alors qu'on est DÉJÀ sur `library` ne notifie
+   * personne : la coquille ne remonte rien, et le calque de la fiche album —
+   * un `$state` local de `LibraryV2` — survit intact. Repasser par un autre
+   * écran « marchait » seulement parce que cela DÉMONTAIT l'écran.
+   *
+   * L'ancienne barre appelle `requestListReset()` depuis toujours
+   * (`components/Sidebar.svelte:443`, « Clicking Playlists/Collections returns
+   * to the list even if we're already on that view showing a detail ») et les
+   * écrans de l'ancien client l'écoutent. La barre de la NOUVELLE coquille ne
+   * l'appelait pas, et aucun écran `v2/` ne l'écoutait : les deux moitiés
+   * manquaient. Elles sont branchées ici, dans `LibraryV2` et dans
+   * `ArtistesV2`.
+   */
+  function go(v: View) { requestListReset(); activeView.set(v); tiroirOuvert.set(false); }
 
   /**
    * 🔴 LE BOUTON DE MISE À JOUR, à côté du logo — comme dans le client actuel.

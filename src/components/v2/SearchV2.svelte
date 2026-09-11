@@ -19,7 +19,7 @@
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import { doitViderLePerimetre } from '../../lib/perimetreRecherche';
-  import { activeView, pendingLibraryArtist, pendingSearchQuery } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryArtist, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
   import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -497,6 +497,11 @@
    */
   function ouvrirArtiste(ar: any) {
     if (!estLocal(ar)) { q = ar.name; return; }
+    // 🔴 Le chemin RETOUR, posé en même temps que la cible — #3824. Sans lui
+    // la fiche referme son calque et découvre la grille de la Bibliothèque,
+    // « l'accueil de la bibliothèque » que FabienM décrit. La Recherche est le
+    // seul à savoir que c'est d'elle qu'on part : elle le dit, la fiche le lit.
+    vueDeRetour.set('search');
     pendingLibraryArtist.set(ar.id);
     activeView.set('library');
   }
