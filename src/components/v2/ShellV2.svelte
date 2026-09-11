@@ -18,7 +18,7 @@
   import { ficheAlbumService, ficheArtisteService } from '../../lib/stores/streaming';
   import { apparierArtiste } from '../../lib/albumsArtisteStreaming';
   import { setSearchCriteria } from '../../lib/stores/shortcuts';
-  import { pendingSearchQuery } from '../../lib/stores/navigation';
+  import { pendingSearchQuery, gestesNavigationService } from '../../lib/stores/navigation';
   import ArtisteServiceV2 from './ArtisteServiceV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
@@ -339,6 +339,19 @@
     activeView.set('streamingartist');
   }
 
+  /**
+   * ARMER les gestes que cette coquille sait tenir. L'ancienne ne les arme
+   * pas : les composants partagés y liront `null` et garderont leur
+   * comportement d'avant. Voir `stores/navigation.gestesNavigationService`.
+   */
+  $effect(() => {
+    gestesNavigationService.set({
+      ouvrirAlbum: ouvrirAlbumService,
+      ouvrirArtiste: ouvrirArtisteServiceParNom,
+    });
+    return () => gestesNavigationService.set(null);
+  });
+
   /** Le retour de la fiche album : le dépôt est consommé UNE fois. */
   function fermerAlbumService() {
     const ou = $vueDeRetour;
@@ -568,8 +581,7 @@
         <!-- `onAddToPlaylist` non fournie : le bouton « ajouter à une playlist »
              de cet écran reste masqué tant que la coquille v2 n'a pas sa propre
              fenêtre de playlists. Mieux vaut un bouton absent qu'un bouton mort. -->
-        <NowPlaying tvDansLaCoquille onOuvrirAlbumService={ouvrirAlbumService}
-                    onOuvrirArtisteService={ouvrirArtisteServiceParNom} />
+        <NowPlaying tvDansLaCoquille />
       {:else}
         <div class="soon">
           <div class="badge">{$t('v2.shell.soon' as any)}</div>

@@ -65,6 +65,18 @@ export interface CapacitesPiste {
   idBibliotheque: number | null;
   artistId: number | null;
   albumId: number | null;
+  /**
+   * L'album de la piste CHEZ SON SERVICE, quand elle en vient — #3777.
+   * `null` pour une piste locale, et pour un service qui n'a pas renseigné
+   * l'album de cette piste.
+   */
+  albumDeService?: { service: string; albumId: string; titre: string } | null;
+  /**
+   * L'artiste de la piste chez son service. Un NOM, pas un identifiant :
+   * `StreamTrack` ne porte pas d'identifiant d'artiste — c'est à la coquille
+   * de le résoudre. Voir `GestesNavigationService`.
+   */
+  artisteDeService?: { service: string; nom: string } | null;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -124,8 +136,40 @@ export function entreesMenuPiste(
    * piste de service, pas grisée. »
    */
   pousser(deLaBibliotheque, 'nowplaying.addToPlaylist', ICONES.playlist, g.ajouterAPlaylist);
-  pousser(c.artistId != null, 'library.goToArtist', ICONES.artist, g.allerArtiste);
-  pousser(c.albumId != null, 'library.goToAlbum', ICONES.album, g.allerAlbum);
+  /**
+   * « Aller à l'artiste » et « Aller à l'album » — #3777, famille C.
+   *
+   * FabienM, fil 1739 : « 3 entrées contre 9 » sur un titre Qobuz. Six
+   * absences, TROIS familles, et les confondre serait l'erreur :
+   *
+   *   A. Plus comme ça, Autres versions, Étiquettes — les trois routes prennent
+   *      un `i64` de `tracks`. Une piste de service n'en a pas.
+   *   B. Ajouter à une playlist — tranché par #1848 : `playlist_tracks.track_id`
+   *      est `NOT NULL REFERENCES tracks(id)`. Évolution de schéma, pas
+   *      correctif d'interface.
+   *   C. CES DEUX-CI — possibles, et simplement pas branchées.
+   *
+   * Elles ne dépendaient que des identifiants de BIBLIOTHÈQUE. Or une piste de
+   * service porte de quoi désigner son album et son artiste dans le référentiel
+   * du SERVICE : `album_id` (cf. `routageAlbum`) et le nom de l'artiste.
+   *
+   * Le ticket posait en « non établi » que `source_id` d'une piste suffise à
+   * ouvrir son album. La réponse est non — et il ne sert pas à ça :
+   * `StreamTrack.album_id` porte l'identifiant de l'ALBUM, distinct de celui de
+   * la piste, et voyage avec elle. Aucun aller-retour serveur.
+   */
+  pousser(
+    c.artistId != null || c.artisteDeService != null,
+    'library.goToArtist',
+    ICONES.artist,
+    g.allerArtiste,
+  );
+  pousser(
+    c.albumId != null || c.albumDeService != null,
+    'library.goToAlbum',
+    ICONES.album,
+    g.allerAlbum,
+  );
   pousser(deLaBibliotheque, 'v2.cover.tags', ICONES.tag, g.etiqueter);
   return e;
 }

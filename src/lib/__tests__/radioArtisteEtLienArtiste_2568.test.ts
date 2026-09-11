@@ -115,11 +115,11 @@ describe('#3626 — le lien artiste de « Lecture en cours » ne mène plus à u
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
     const np = readFileSync(resolve(process.cwd(), 'src/components/NowPlaying.svelte'), 'utf-8');
-    expect(np).toContain("if (onOuvrirArtisteService && dest.source && dest.source !== 'local') {");
+    expect(np).toContain("if (gestesService && dest.source && dest.source !== 'local') {");
     // Le repli demeure juste après : sans rappel, la recherche d'avant.
     expect(np).toContain('ouvrirRecherche(dest.requete, dest.source);');
     const shell = readFileSync(resolve(process.cwd(), 'src/components/v2/ShellV2.svelte'), 'utf-8');
-    expect(shell).toContain('onOuvrirArtisteService={ouvrirArtisteServiceParNom}');
+    expect(shell).toContain('ouvrirArtiste: ouvrirArtisteServiceParNom,');
     // Et la résolution retombe sur la recherche quand le service ignore le nom.
     expect(shell).toContain('setSearchCriteria({ q: c.nom, source: c.service });');
   });
