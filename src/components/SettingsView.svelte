@@ -13,6 +13,7 @@
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
+  import { attendreRetourEtRecharger } from '../lib/retourDuServeur';
   import { refreshAcousticStatus, acousticStatus, acousticEnabled } from '../lib/stores/acoustic';
   import AcousticProgress from './AcousticProgress.svelte';
   import { tuneWS } from '../lib/websocket';
@@ -380,28 +381,17 @@ function setSettingsLevel(level: SettingsLevel) {
         return;
       }
     }
-    const start = Date.now();
-    let sawDown = false;
-    const tryReload = async () => {
-      const elapsed = Date.now() - start;
-      let up = false;
-      try {
-        await api.getHealth();
-        up = true;
-      } catch {
-        sawDown = true; // server is restarting
-      }
-      if (up && (sawDown || elapsed > 8_000)) {
-        window.location.reload();
-        return;
-      }
-      if (elapsed > 45_000) {
-        window.location.reload(); // hard backstop
-        return;
-      }
-      setTimeout(tryReload, 700);
-    };
-    setTimeout(tryReload, 1_000);
+    // #900 — la même attente que la mise à jour, désormais partagée. Le
+    // butoir ne recharge PLUS dans le vide : on le dit, et la page reste
+    // utilisable au lieu de mourir sur un serveur absent.
+    attendreRetourEtRecharger({
+      sonder: () => api.getHealth(),
+      recharger: () => window.location.reload(),
+      renoncer: () => {
+        restarting = false;
+        notifications.error($t('settings.updateReloadGaveUp' as any));
+      },
+    });
   }
 
   let loading = $state(true);
@@ -2010,7 +2000,21 @@ function setSettingsLevel(level: SettingsLevel) {
       if (versionBumped || restarted) {
         updateDone = true;
         updateInstalling = false;
-        setTimeout(() => window.location.reload(), 1500);
+        // 🔴 #900 — on rechargeait ici au bout de 1 500 ms, SANS rien
+        // vérifier. Un serveur qui se ré-exécute une seconde fois (c'est le
+        // cas de la mise à jour automatique) n'est plus debout à cet instant,
+        // et le navigateur atterrit sur rien : « la page reste bloquée sur
+        // Tune Redémarre ». Le bouton « Redémarrer le serveur », à quarante
+        // lignes d'ici, sondait déjà `/system/health` avant de recharger
+        // depuis #1209 — la leçon n'avait jamais traversé.
+        attendreRetourEtRecharger({
+          sonder: () => api.getHealth(),
+          recharger: () => window.location.reload(),
+          renoncer: () => {
+            updateDone = false;
+            notifications.error($t('settings.updateReloadGaveUp' as any));
+          },
+        });
         return;
       }
     }
@@ -2020,11 +2024,23 @@ function setSettingsLevel(level: SettingsLevel) {
       if (status?.current_version && status.current_version !== oldVersion) {
         updateDone = true;
         updateInstalling = false;
-        setTimeout(() => window.location.reload(), 1500);
+        attendreRetourEtRecharger({
+          sonder: () => api.getHealth(),
+          recharger: () => window.location.reload(),
+          renoncer: () => {
+            updateDone = false;
+            notifications.error($t('settings.updateReloadGaveUp' as any));
+          },
+        });
         return;
       }
     } catch { /* ignore */ }
+    // 🔴 #900 — cette sortie était MUETTE : budget épuisé, dernière
+    // vérification sans réponse, et l'écran retombait sur le bouton sans un
+    // mot. L'utilisateur ne sait ni si la mise à jour a eu lieu, ni quoi
+    // faire. On ne se tait plus.
     updateInstalling = false;
+    notifications.error($t('settings.updateStatusUnknown' as any));
   }
 
   async function loadAll() {
