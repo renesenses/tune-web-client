@@ -87,9 +87,19 @@ describe('Les écrans qui portent des pochettes de service', () => {
     ).toBe(true);
     // Le cœur local et le cœur distant ne doivent pas se disputer la même
     // pochette : `favoriExterne` ne se calcule que faute d'identifiant local.
+    //
+    // La garde porte sur l'INVARIANT, plus sur la mise en forme : #3822 a
+    // étalé cette ligne sur quatre en lui ajoutant le repli `favoriDistant`,
+    // ce qui faisait tomber une comparaison au caractère près sans que la
+    // règle protégée ait bougé d'un pouce.
+    const compact = src.replace(/\s+/g, ' ');
     expect(
-      src.includes('{@const sidDistant = idLocal == null ? (el.fiche?.source_id ?? null) : null}'),
+      compact.includes('{@const sidDistant = idLocal == null ?'),
       'un album de la bibliothèque peut recevoir les DEUX cœurs à la fois',
+    ).toBe(true);
+    expect(
+      /\{@const sidDistant = idLocal == null \?[^}]*: null\}/.test(compact),
+      'la branche « identifiant local présent » ne rend plus `null`',
     ).toBe(true);
   });
 
