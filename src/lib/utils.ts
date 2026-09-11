@@ -55,10 +55,63 @@ export type QualityTier = 'mqa' | 'hires_max' | 'hires' | 'cd' | 'lossy' | 'dsd'
  * sur… **CD**. « le filtre DSD oublie cet album » (Bertrand, avec la copie
  * d'écran d'un album marqué « CD DSF 5644.8/1 »).
  */
-const DSD_FORMATS = new Set(['dsd', 'dsf', 'dff']);
+const DSD_FORMATS = new Set(['dsd', 'dsf', 'dff', 'dst']);
 
-/** DSD compris : ils sont sans perte, et ce jeu sert aussi hors du calcul de palier. */
-const LOSSLESS_FORMATS = new Set(['flac', 'wav', 'alac', 'aiff', 'dsd', 'dsf', 'dff']);
+/**
+ * Les formats SANS PERTE — la liste du serveur, recopiée sans la raccourcir.
+ *
+ * 🔴 Elle était plus courte que celle du serveur, et l'écran mentait (#3848).
+ * `AudioFormat::is_lossless()` (`tune-core/src/audio/formats.rs`) dit sans
+ * perte pour Flac, Wav, Dsd, Alac, Aiff, **WavPack** et **APE** ; le client
+ * n'en connaissait que cinq. Un APE 44,1/16 ne satisfaisait alors AUCUNE des
+ * quatre conditions de `getQualityTier` — ni la liste, ni `bd >= 24`, ni
+ * `sr > 48000`, ni Qobuz — et retombait sur `'lossy'`, affiché en ROUGE.
+ *
+ * « Le format APE est sans perte. Pourquoi l'identifier 'LOSSY' ? » — Marco
+ * Polo, fil 1754, capture de neuf badges `LOSSY APE 44.1/16` d'affilée. Le
+ * serveur, lui, renvoyait déjà `quality: "cd"` pour ces mêmes albums
+ * (`Album::quality()` ne dit « lossy » que pour mp3|ogg|opus|wma|aac) : les
+ * deux moitiés du produit se contredisaient sur la même piste.
+ *
+ * ⚠️ Le défaut ne touchait QUE les rips CD. Le même APE en 24 bits ou au-delà
+ * de 48 kHz passait par les garde-fous de spécifications et s'affichait
+ * hi-res — ce qui rendait l'incohérence d'autant plus difficile à voir.
+ *
+ * Les valeurs sont celles que le serveur STOCKE, c'est-à-dire les extensions
+ * qu'il reconnaît (`AudioFormat::from_extension`) : `aif` à côté d'`aiff`,
+ * `dst` à côté de `dsf`/`dff`, `wv` pour WavPack. Ajouter un format ici sans
+ * l'ajouter là-bas recréerait l'écart qu'on referme.
+ */
+const LOSSLESS_FORMATS = new Set([
+  'flac', 'wav', 'alac', 'aiff', 'aif',
+  'dsd', 'dsf', 'dff', 'dst',
+  'wv', 'ape',
+]);
+
+/**
+ * Les formats AVEC perte — l'exact complément de ce que le serveur compresse.
+ *
+ * Exporté parce que trois écrans portaient chacun leur propre liste, toutes
+ * différentes : la bibliothèque comptait cinq codecs, la recherche trois
+ * (`opus` et `wma` y étaient donc rangés en « CD »), et la barre de lecture
+ * décidait par une liste de quatre formats sans perte écrite à la main. Une
+ * seule liste, sinon la prochaine correction n'en répare qu'un tiers.
+ *
+ * Miroir de `Album::quality()` côté serveur — `mp3|ogg|opus|wma|aac`. `m4a`
+ * n'y est PAS : le serveur le résout en `alac` ou `aac` selon la présence
+ * d'une profondeur de bits, et c'est cette valeur résolue qui est stockée.
+ */
+export const LOSSY_FORMATS = new Set(['mp3', 'aac', 'ogg', 'opus', 'wma']);
+
+/** Le format déclaré est-il un codec avec perte ? Casse et vide tolérés. */
+export function estAvecPerte(format: string | null | undefined): boolean {
+  return LOSSY_FORMATS.has((format ?? '').toLowerCase());
+}
+
+/** Le format déclaré est-il sans perte, au sens du serveur ? */
+export function estSansPerte(format: string | null | undefined): boolean {
+  return LOSSLESS_FORMATS.has((format ?? '').toLowerCase());
+}
 
 /**
  * Le MULTIPLE DSD, à partir de la fréquence.

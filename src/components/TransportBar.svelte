@@ -25,7 +25,7 @@
   import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../lib/zoneIdentity';
   import { t } from '../lib/i18n';
-  import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
+  import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../lib/utils';
   import type { OutputType, RepeatMode } from '../lib/types';
   import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
   import { isPremium } from '../lib/stores/license';
@@ -832,7 +832,7 @@
                 {@const spFormat = sourceStep.split(' ')[0]?.toUpperCase() || ''}
                 {@const spDetail = sourceStep || ''}
                 {@const hasTrackFormat = !!(displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
-                {@const miniTier = hasTrackFormat ? getQualityTier(displayTrack) : (spFormat === 'DSD' ? 'dsd' : (sourceStep.includes('24') || sourceStep.includes('88') || sourceStep.includes('96') || sourceStep.includes('176') || sourceStep.includes('192') || sourceStep.includes('352') || sourceStep.includes('384')) ? 'hires' : (spFormat === 'FLAC' || spFormat === 'WAV' || spFormat === 'ALAC' || spFormat === 'AIFF') ? 'cd' : zone?.signal_path?.bit_perfect ? 'cd' : 'lossy')}
+                {@const miniTier = hasTrackFormat ? getQualityTier(displayTrack) : (spFormat === 'DSD' ? 'dsd' : (sourceStep.includes('24') || sourceStep.includes('88') || sourceStep.includes('96') || sourceStep.includes('176') || sourceStep.includes('192') || sourceStep.includes('352') || sourceStep.includes('384')) ? 'hires' : estSansPerte(spFormat) ? 'cd' : zone?.signal_path?.bit_perfect ? 'cd' : 'lossy')}
                 <span
                   class="tb-quality-badge tier-{getQualityTierColor(miniTier)}"
                   class:sp-clickable={!!zone?.signal_path}

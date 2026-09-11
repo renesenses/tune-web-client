@@ -13,7 +13,7 @@
   import { get } from 'svelte/store';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
-  import { formatTime, formatDuration } from '../lib/utils';
+  import { formatTime, formatDuration, estAvecPerte } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -98,8 +98,11 @@
     const bd = item.bit_depth ?? 0;
     const fmt = (item.format ?? '').toLowerCase();
     if (qualityFilter === 'hires') return sr > 48000 || bd > 16;
-    if (qualityFilter === 'cd') return sr > 0 && sr <= 48000 && bd <= 16 && fmt !== 'mp3' && fmt !== 'aac' && fmt !== 'ogg';
-    if (qualityFilter === 'lossy') return fmt === 'mp3' || fmt === 'aac' || fmt === 'ogg';
+    // `estAvecPerte` remplace une liste de TROIS codecs ecrite ici (#3848) :
+    // `opus` et `wma` en etaient absents, donc un Opus 48/16 etait compte
+    // sous « CD » et introuvable sous « Compresse ».
+    if (qualityFilter === 'cd') return sr > 0 && sr <= 48000 && bd <= 16 && !estAvecPerte(fmt);
+    if (qualityFilter === 'lossy') return estAvecPerte(fmt);
     return true;
   }
 
