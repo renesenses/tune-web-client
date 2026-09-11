@@ -1063,6 +1063,7 @@ export default {
   "favorites.addTrack": "Hozzáadás a kedvencekhez",
   "favorites.removeTrack": "Eltávolítás a kedvencek közül",
   "favorites.removedFromFavorites": "Eltávolítva a kedvencekből",
+  "favorites.remove": "Eltávolítás a kedvencekből",
   "favorites.filter": "Kedvencek",
   // Névjegy
   "settings.about": "Névjegy",

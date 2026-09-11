@@ -867,6 +867,7 @@ export default {
   "favorites.addTrack": "Aggiungi ai preferiti",
   "favorites.removeTrack": "Rimuovi dai preferiti",
   'favorites.removedFromFavorites': 'Rimosso dai preferiti',
+  "favorites.remove": "Rimuovi dai preferiti",
   'favorites.filter': 'Preferiti',
 
   // About
