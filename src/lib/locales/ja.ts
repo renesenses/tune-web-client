@@ -867,6 +867,7 @@ export default {
   "favorites.addTrack": "お気に入りに追加",
   "favorites.removeTrack": "お気に入りから削除",
   'favorites.removedFromFavorites': 'お気に入りから削除しました',
+  "favorites.remove": "お気に入りから削除",
   'favorites.filter': 'お気に入り',
 
   // About

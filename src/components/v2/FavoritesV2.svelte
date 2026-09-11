@@ -20,7 +20,7 @@
     favoriteStreamingTrackKeys, clePisteJumelee, streamingFavKey,
     favoriteFacetKeys, facetFavKey,
   } from '../../lib/stores/profile';
-  import { favoriExterneService } from '../../lib/streamingFavorites';
+  import { favoriExterneService, fusionnerPlaylistsFavorites } from '../../lib/streamingFavorites';
   import {
     trierEtFiltrer, sourcesPresentes, SOURCE_BIBLIOTHEQUE, type TriFavoris,
   } from '../../lib/favorisTriFiltre';
@@ -128,7 +128,7 @@
     o?.id ?? (o?.source && o?.source_id ? `${o.source}:${o.source_id}` : `#${i}`);
 
   /** Le cœur d'un objet de service, ou `null` s'il est de la bibliothèque. */
-  const coeurService = (o: any, itemType: 'track' | 'album' | 'artist') =>
+  const coeurService = (o: any, itemType: 'track' | 'album' | 'artist' | 'playlist') =>
     o?.id != null
       ? null
       : favoriExterneService($favoriteStreamingKeys, {
@@ -158,7 +158,27 @@
       albums = [...(f.albums ?? []), ...s.filter((x) => x.item_type === 'album').map(versAlbum)];
       tracks = [...(f.tracks ?? []), ...s.filter((x) => x.item_type === 'track').map(versPiste)];
       artists = [...(f.artists ?? []), ...s.filter((x) => x.item_type === 'artist').map(versArtiste)];
-      playlists = f.playlists ?? [];
+      /*
+       * 🔴 LE QUATRIÈME SEAU — #3822, moitié « lecture ».
+       *
+       * Cette ligne ne prenait que `f.playlists`, la bibliothèque. Une playlist
+       * de service mise en favori s'écrivait donc bien dans
+       * `streaming_favorites` — `item_type` y est un `TEXT` sans énumération,
+       * mesuré — et ne réapparaissait NULLE PART. C'est exactement le défaut
+       * que cet écran raconte plus haut avoir corrigé le 03/09 pour les albums,
+       * les pistes et les artistes ; il manquait le quatrième.
+       *
+       * ⚠️ ON N'ÉCRIT PAS UN SECOND FUSIONNEUR. `fusionnerPlaylistsFavorites`
+       * existe depuis #2370 (Didier, fil 1541), porte 17 assertions, et
+       * l'ANCIENNE interface l'appelle depuis toujours
+       * (`FavoritesView.svelte:429`). Elle n'avait simplement aucun appelant
+       * dans `components/v2/` — « écrit, pas branché », une fois de plus.
+       * L'appeler ici fait hériter cet écran de ses gardes.
+       */
+      playlists = fusionnerPlaylistsFavorites(
+        (f.playlists ?? []) as any,
+        s.filter((x) => x.item_type === 'playlist') as any,
+      ) as any;
       // Les deux familles de collections au mieux : une seule qui manque ne
       // doit pas vider l'onglet de l'autre.
       const ids = new Set(f.collectionIds ?? []);
@@ -217,7 +237,7 @@
    * qu'on ne sait pas juger — ni identifiant local, ni clef de service — est
    * gardé : le faire disparaître au doute serait pire que de le laisser.
    */
-  function encoreFavori(o: any, type: 'album' | 'track' | 'artist'): boolean {
+  function encoreFavori(o: any, type: 'album' | 'track' | 'artist' | 'playlist'): boolean {
     const idLocal = typeof o?.id === 'number' ? o.id : null;
     if (idLocal != null) {
       if (type === 'album') return $favoriteAlbumIds.has(idLocal);
@@ -251,8 +271,17 @@
 
   // Une playlist retirée des favoris disparaît elle aussi : même règle que
   // les trois autres seaux, sur le magasin qui porte la vérité.
+  /*
+   * ⚠️ `$favoritePlaylistIds` ne porte que des identifiants NUMÉRIQUES de la
+   * bibliothèque. Le test `p?.id == null` laissait donc passer tout objet sans
+   * identifiant — sans conséquence tant que seules les playlists locales
+   * arrivaient ici, mais un trou dès qu'un favori de service retiré doit
+   * quitter l'écran. On tranche par type, comme les trois autres seaux.
+   */
   const vPlaylists = $derived(
-    playlists.filter((p) => (p?.id == null || $favoritePlaylistIds.has(p.id)) && match(p?.name)),
+    playlists.filter((p: any) =>
+      (p?.id != null ? $favoritePlaylistIds.has(p.id) : encoreFavori(p, 'playlist')) && match(p?.name),
+    ),
   );
   const vCollections = $derived(collections.filter((c) => match(c?.name)));
 
@@ -666,8 +695,19 @@
         <div class="state">{playlists.length ? $t('v2.fav.noMatch' as any) : $t('v2.fav.emptyPlaylists' as any)}</div>
       {:else}
         <div class="simples">
-          {#each vPlaylists as pl (pl.id ?? pl.name)}
-            <button class="simple" onclick={() => ouvrirPlaylist(pl)}>
+          <!-- 🔴 La clé passe par `clef` : `id` est NUL sur toute playlist de
+               service, et deux `null` retombant sur le même nom se disputeraient
+               la clé — Svelte s'arrête alors sur `each_key_duplicate` et
+               l'onglet entier disparaît. -->
+          {#each vPlaylists as pl, i (clef(pl, i))}
+            {@const locale = pl.id != null}
+            {@const coeur = locale ? null : coeurService(pl, 'playlist')}
+            <!-- Une playlist de SERVICE n'a pas encore d'écran qui l'accueille :
+                 on l'affiche, on laisse retirer son cœur, et on ne la rend PAS
+                 cliquable. Un lien mort serait pire que pas de lien — la règle
+                 déjà tenue par le nom d'artiste d'un album de service. -->
+            <svelte:element this={locale ? 'button' : 'div'} class="simple" class:inerte={!locale}
+                            onclick={locale ? () => ouvrirPlaylist(pl) : undefined}>
               <span class="si" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                      stroke-linecap="round" stroke-linejoin="round">
@@ -676,7 +716,20 @@
               </span>
               <span class="sn" title={pl.name}>{pl.name}</span>
               {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
-            </button>
+              <!-- Le cœur, propre à la LIGNE : `PochetteActions` enveloppe une
+                   pochette et exige un enfant ; cette liste porte une icône. On
+                   réemploie le geste, pas l'habillage. -->
+              {#if coeur}
+                <button class="sfav" class:on={coeur.actif}
+                        onclick={(e) => { e.stopPropagation(); void coeur.basculer(); }}
+                        aria-label={$t('favorites.remove' as any)}>
+                  <svg viewBox="0 0 24 24" fill={coeur.actif ? 'currentColor' : 'none'}
+                       stroke="currentColor" stroke-width="2">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                  </svg>
+                </button>
+              {/if}
+            </svelte:element>
           {/each}
         </div>
       {/if}
@@ -916,6 +969,14 @@
      playlist n'a pas d'image, et une grille de cartes vides mentirait sur la
      richesse de ce qu'elle contient. */
   .simples{display:flex; flex-direction:column; gap:2px}
+  /* Une playlist de service : présente, retirable, sans destination — le
+     curseur ne promet pas un clic qui ne mène nulle part. */
+  .simple.inerte{cursor:default}
+  .sfav{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
+    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; flex:none}
+  .sfav:hover{color:var(--v2-txt); border-color:var(--v2-line2)}
+  .sfav.on{color:var(--v2-danger)}
+  .sfav svg{width:14px; height:14px}
   .simple{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; width:100%;
     padding:9px 12px; border:0; border-radius:9px; background:transparent; color:var(--v2-txt2);
     text-align:left; cursor:pointer; font:inherit}
