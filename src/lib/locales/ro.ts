@@ -1823,6 +1823,8 @@ export default {
   "settings.current": "curent",
   "settings.dmgReady": "DMG descărcat și deschis în Finder.",
   "settings.installedRestarting": "Instalat — se repornește...",
+  "settings.updateReloadGaveUp": "Serverul nu a revenit. Poate încă reporneşte — reîncarcă pagina peste o clipă.",
+  "settings.updateStatusUnknown": "Nu se poate şti dacă actualizarea s-a instalat: serverul nu a răspuns. Reîncarcă pagina pentru a vedea versiunea curentă.",
   "settings.installing": "Se instalează...",
   "settings.updateButton": "Actualizează",
   "settings.updateStopsPlayback": "Se redă muzică chiar acum: instalarea actualizării repornește serverul și va opri redarea.",

@@ -2351,6 +2351,8 @@ export default {
   "settings.current": "current",
   "settings.dmgReady": "DMG downloaded and opened in Finder.",
   "settings.installedRestarting": "Installed — restarting...",
+  "settings.updateReloadGaveUp": "The server hasn't come back. It may still be restarting — reload the page in a moment.",
+  "settings.updateStatusUnknown": "Can't tell whether the update installed: the server didn't answer. Reload the page to see the running version.",
   "settings.installing": "Installing...",
   "settings.updateButton": "Update",
   "settings.updateStopsPlayback": "Music is playing right now: installing the update restarts the server and will stop playback.",

@@ -1813,6 +1813,8 @@ export default {
   "settings.current": "attuale",
   "settings.dmgReady": "DMG scaricato e aperto nel Finder.",
   "settings.installedRestarting": "Installato — riavvio in corso...",
+  "settings.updateReloadGaveUp": "Il server non è tornato. Forse si sta ancora riavviando: ricarica la pagina tra un istante.",
+  "settings.updateStatusUnknown": "Impossibile sapere se l'aggiornamento è stato installato: il server non ha risposto. Ricarica la pagina per vedere la versione in esecuzione.",
   "settings.installing": "Installazione...",
   "settings.updateButton": "Aggiorna",
   "settings.updateStopsPlayback": "È in corso una riproduzione: installare l'aggiornamento riavvia il server e interromperà l'ascolto.",
