@@ -14,6 +14,7 @@
   import LibraryV2 from './LibraryV2.svelte';
   import HomeV2 from './HomeV2.svelte';
   import SearchV2 from './SearchV2.svelte';
+  import ArtisteServiceV2 from './ArtisteServiceV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
   import SettingsV2 from './SettingsV2.svelte';
   import RadiosV2 from './RadiosV2.svelte';
@@ -427,6 +428,13 @@
         <LibraryV2 />
       {:else if $activeView === 'search'}
         <SearchV2 />
+      {:else if $activeView === 'streamingartist'}
+        <!-- La fiche d'un artiste de STREAMING (#3825). Écran à part entière,
+             et pas un calque de la Recherche : « Lecture en cours » et la
+             Bibliothèque doivent pouvoir y mener aussi (#3626, #1361). Sans
+             cette route, `activeView` tomberait sur le repli « À venir » —
+             le huitième « écrit, pas branché ». -->
+        <ArtisteServiceV2 />
       {:else if $activeView === 'playlists'}
         <PlaylistsV2 />
       {:else if $activeView === 'settings'}
