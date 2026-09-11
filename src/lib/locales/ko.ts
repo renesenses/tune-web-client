@@ -3920,6 +3920,8 @@ export default {
   "v2.fas.topTracks": "인기 트랙",
   "v2.fas.albums": "앨범",
   "v2.fas.empty": "이 아티스트에 대해 표시할 내용이 없습니다.",
+  "v2.fas.bestOf": "베스트 재생",
+  "v2.fas.radio": "아티스트 라디오",
   "v2.rech.tracks": "트랙",
   "v2.rech.playlists": "재생목록",
   "v2.rech.best": "가장 일치하는 결과",

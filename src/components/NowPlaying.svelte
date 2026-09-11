@@ -554,6 +554,26 @@
       return;
     }
 
+    /*
+     * 🔴 UNE RECHERCHE N'EST PAS UNE FICHE — moitié artiste de #3626.
+     *
+     * `destinationArtiste` rend `recherche` pour une piste de service : c'était
+     * le meilleur geste disponible tant qu'aucun écran n'accueillait un artiste
+     * de service. FabienM, fil 1749 point 5 : « quand je clique sur un artiste
+     * Qobuz ça me renvoie à la page recherche alors que je devrais arriver sur
+     * la page de l'artiste Qobuz ».
+     *
+     * On ne détourne QUE si la coquille sait recevoir le geste, et que la
+     * décision a bien nommé une source. Sinon rien ne change — l'ancienne
+     * coquille, qui n'a pas cet écran, garde sa recherche.
+     *
+     * La résolution du nom en identifiant appartient à la coquille : elle seule
+     * connaît la recherche fédérée, et `NowPlaying` n'a pas à l'apprendre.
+     */
+    if (onOuvrirArtisteService && dest.source && dest.source !== 'local') {
+      onOuvrirArtisteService({ service: dest.source, nom: dest.requete });
+      return;
+    }
     ouvrirRecherche(dest.requete, dest.source);
   }
 
@@ -937,8 +957,19 @@
      * fallait commencer.
      */
     onOuvrirAlbumService?: (cible: { service: string; albumId: string; titre: string }) => void;
+    /**
+     * Ouvrir la fiche d'un ARTISTE chez un service — moitié artiste de #3626.
+     *
+     * Même contrat optionnel que son voisin, et pour la même raison. Mais une
+     * différence de FOND avec l'album : une piste de service porte
+     * l'identifiant de son ALBUM (`StreamTrack.album_id`) et PAS celui de son
+     * artiste — le champ n'existe pas. On ne peut donc transmettre qu'un NOM,
+     * et c'est à la coquille de le résoudre en identifiant avant d'ouvrir la
+     * fiche. D'où une cible sans `id`, là où l'album en a un.
+     */
+    onOuvrirArtisteService?: (cible: { service: string; nom: string }) => void;
   }
-  let { onAddToPlaylist, tvDansLaCoquille = false, onOuvrirAlbumService }: Props = $props();
+  let { onAddToPlaylist, tvDansLaCoquille = false, onOuvrirAlbumService, onOuvrirArtisteService }: Props = $props();
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);

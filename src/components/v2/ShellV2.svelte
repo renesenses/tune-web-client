@@ -14,7 +14,11 @@
   import LibraryV2 from './LibraryV2.svelte';
   import HomeV2 from './HomeV2.svelte';
   import SearchV2 from './SearchV2.svelte';
-  import { ficheAlbumService } from '../../lib/stores/streaming';
+  import * as api from '../../lib/api';
+  import { ficheAlbumService, ficheArtisteService } from '../../lib/stores/streaming';
+  import { apparierArtiste } from '../../lib/albumsArtisteStreaming';
+  import { setSearchCriteria } from '../../lib/stores/shortcuts';
+  import { pendingSearchQuery } from '../../lib/stores/navigation';
   import ArtisteServiceV2 from './ArtisteServiceV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
@@ -303,6 +307,38 @@
     activeView.set('streamingalbum');
   }
 
+  /**
+   * Résoudre un NOM d'artiste en identifiant de service, puis ouvrir sa fiche.
+   *
+   * 🔴 Une piste de service ne porte pas l'identifiant de son artiste — seul
+   * son nom voyage avec elle. On le résout par la recherche fédérée, comme
+   * `ArtistesV2` le fait déjà pour les albums d'un artiste local, et on
+   * réemploie `apparierArtiste` plutôt que d'écrire un second appariement :
+   * il préfère l'égalité exacte du nom et ne retombe sur le premier candidat
+   * qu'à défaut.
+   *
+   * ⚠️ REPLI EXPLICITE. Si le service ne connaît pas ce nom, il n'y a pas de
+   * fiche à ouvrir : on revient au geste d'avant — la recherche, périmètre
+   * ouvert sur la source. Un écran vide serait pire que la recherche qu'il
+   * remplace.
+   */
+  async function ouvrirArtisteServiceParNom(c: { service: string; nom: string }) {
+    let id: string | null = null;
+    try {
+      const r = await api.federatedSearch(c.nom, [c.service], 5);
+      id = apparierArtiste(r?.services?.[c.service]?.artists ?? [], c.nom);
+    } catch { /* le repli ci-dessous s'en charge */ }
+    if (!id) {
+      setSearchCriteria({ q: c.nom, source: c.service });
+      pendingSearchQuery.set(c.nom);
+      activeView.set('search');
+      return;
+    }
+    vueDeRetour.set('nowplaying');
+    ficheArtisteService.set({ service: c.service as any, id, nom: c.nom });
+    activeView.set('streamingartist');
+  }
+
   /** Le retour de la fiche album : le dépôt est consommé UNE fois. */
   function fermerAlbumService() {
     const ou = $vueDeRetour;
@@ -532,7 +568,8 @@
         <!-- `onAddToPlaylist` non fournie : le bouton « ajouter à une playlist »
              de cet écran reste masqué tant que la coquille v2 n'a pas sa propre
              fenêtre de playlists. Mieux vaut un bouton absent qu'un bouton mort. -->
-        <NowPlaying tvDansLaCoquille onOuvrirAlbumService={ouvrirAlbumService} />
+        <NowPlaying tvDansLaCoquille onOuvrirAlbumService={ouvrirAlbumService}
+                    onOuvrirArtisteService={ouvrirArtisteServiceParNom} />
       {:else}
         <div class="soon">
           <div class="badge">{$t('v2.shell.soon' as any)}</div>

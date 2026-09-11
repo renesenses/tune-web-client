@@ -3920,6 +3920,8 @@ export default {
   "v2.fas.topTracks": "人気の曲",
   "v2.fas.albums": "アルバム",
   "v2.fas.empty": "このアーティストに表示できるものはありません。",
+  "v2.fas.bestOf": "ベスト盤を再生",
+  "v2.fas.radio": "アーティストラジオ",
   "v2.rech.tracks": "曲",
   "v2.rech.playlists": "プレイリスト",
   "v2.rech.best": "最も一致する結果",

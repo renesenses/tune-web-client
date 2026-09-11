@@ -3920,6 +3920,8 @@ export default {
   "v2.fas.topTracks": "Brani principali",
   "v2.fas.albums": "Album",
   "v2.fas.empty": "Niente da mostrare per questo artista.",
+  "v2.fas.bestOf": "Ascolta il meglio",
+  "v2.fas.radio": "Radio dell'artista",
   "v2.rech.tracks": "Brani",
   "v2.rech.playlists": "Playlist",
   "v2.rech.best": "Risultato migliore",
