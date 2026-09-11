@@ -1,31 +1,64 @@
 /**
  * La configuration du renderer, ENREGISTRÉE à la main et rattachée à l'appareil.
  *
- * Bertrand, 09/09/2026 : « Et un bouton "sauvegarder mes réglages" dans
- * configuration du renderer ?? » — puis, le 11/09, la raison : **on perd des
- * configurations d'une session à l'autre.**
+ * Bertrand, deux fois : le 08/09/2026 « je veux un bouton sur l'UI de Tune
+ * sauvegarder mes réglages en local ! », puis le 09/09 en nommant l'écran —
+ * « Et un bouton "sauvegarder mes réglages" dans configuration du renderer ?? ».
  *
- * ## Pourquoi un bouton, alors que tout est déjà écrit au clic
+ * ## 🔴 La raison d'origine a été corrigée AILLEURS — lire ceci avant d'argumenter
  *
- * Une première lecture avait conclu qu'il n'y avait rien à ajouter : les sept
- * réglages de l'écran partent bien en `PATCH /zones/{id}` dès le clic, et ce
- * qui manquait n'était que la PREUVE du succès — le témoin « Enregistré », posé
- * le 09/09. Ce raisonnement tenait sur une prémisse qui n'a pas résisté à
- * l'usage : que ce qui est écrit RESTE écrit.
+ * Ce module est né d'une perte mesurée : le 11/09/2026, sur un serveur 0.9.145,
+ * une zone renommée dont l'appareil change d'adresse se voyait offrir une zone
+ * NEUVE, ses réglages restant sur une ligne orpheline. Deux lignes pour un seul
+ * Mac, reproduit de bout en bout (#3919).
  *
- * Or ces sept réglages vivent dans des colonnes de la table `zones`, et une
- * ligne de `zones` n'est pas stable d'un démarrage à l'autre. Le serveur porte
- * tout un appareillage pour rattraper ce que la découverte lui fait subir —
- * `deduplicate()`, `reparer_prefixe_local()`, `merge_duplicate_settings()`,
- * `reporter_reglages_de_doublons()` (#1823, #1832 : deux instructions de report
- * échouaient à chaque démarrage sur chaque machine). Cet appareillage existe
- * parce que le cas EST arrivé, et rien n'en garantit la couverture complète.
+ * **Ce défaut est réglé, côté serveur, et ce module n'y est pour rien.** La PR
+ * #3928 ajoute un quatrième filet de ré-ancrage — par la MAC que la ligne de
+ * zone porte déjà dans `zones.mac` — placé après les trois filets par nom et
+ * avant la création automatique. Mesuré sur l'installation d'essai : **10 zones
+ * sur 11 portent une MAC**, donc le chemin principal est couvert.
  *
- * Le bouton ne remplace donc pas l'écriture au clic : il ajoute une **seconde
- * copie, ailleurs**, que le sort d'une ligne de `zones` n'atteint pas. C'est
- * tout ce qu'il fait, et c'est ce que l'écran doit dire — un bouton qui
- * laisserait croire que rien n'est appliqué avant de l'avoir pressé serait un
- * mensonge, et le reste de cet écran dépend de l'inverse.
+ * Toute justification de ce fichier qui repose sur « la ligne de zone n'est pas
+ * stable » est donc PÉRIMÉE. Elle l'a été, elle ne l'est plus, et la première
+ * version de cet en-tête l'affirmait encore.
+ *
+ * ## Ce qui justifie ce module aujourd'hui
+ *
+ * 1. **La demande, qui ne dépendait pas du défaut.** « Sauvegarder mes réglages »
+ *    est une fonction, pas un contournement. Elle a été réclamée deux fois, dont
+ *    une en désignant cet écran précis.
+ *
+ * 2. **Les cas où le filet de #3928 refuse d'agir**, par ses quatre refus
+ *    nommés : deux zones du même type sur une seule MAC ; la même MAC vue sur
+ *    deux protocoles (un Eversolo DMP-A8 est DLNA *et* AirPlay, #3747) ; un
+ *    `output_type` absent ; et le nouvel identifiant déjà pris.
+ *
+ * 3. **Un appareil sans MAC ET sans identifiant annoncé** — aucun sur
+ *    l'installation d'essai, mais la table ARP ne franchit pas un routeur.
+ *
+ * 4. **Tout ce qui n'est pas un changement d'adresse** : une zone supprimée par
+ *    erreur, une base réinitialisée ou restaurée, un changement de machine, un
+ *    appareil remis à zéro d'usine (UUID *et* MAC neufs).
+ *
+ * ## Ce qui existe déjà, et pourquoi ceci n'en est pas un doublon
+ *
+ * `components/v2/SauvegardeReglagesV2.svelte` couvre déjà les **quatorze**
+ * réglages d'appareil de **toutes** les zones, par fichier et presse-papiers,
+ * avec aperçu avant écriture. Elle est plus complète, et elle reste la bonne
+ * porte pour transporter une configuration d'une installation à une autre.
+ *
+ * Ce module est l'autre moitié du besoin : **par appareil, sur place, sans
+ * fichier à gérer**, dans le bloc où le réglage se fait — et c'est là que
+ * Bertrand a demandé le bouton. Les deux peuvent coexister ; si l'un doit
+ * disparaître, c'est un arbitrage, pas une évidence.
+ *
+ * ## Et le bouton ne doit jamais laisser croire que rien n'est appliqué
+ *
+ * Les sept réglages partent en `PATCH /zones/{id}` dès le clic, et le témoin
+ * « Enregistré » le prouve depuis le 09/09. Le bouton ajoute une copie, il ne
+ * conditionne rien : un écran qui suggérerait l'inverse serait un mensonge, et
+ * le reste de ce bloc dépend de cette vérité. C'est ce que garde
+ * `rendererPreuveDeSauvegarde.test.ts`.
  *
  * ## Trois décisions, et leur raison
  *

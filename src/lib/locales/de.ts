@@ -2026,7 +2026,7 @@ export default {
   "renderer.probeSoapFailed": "Der Renderer wird erkannt, aber die Abfrage der Fähigkeiten ist fehlgeschlagen. Versuche es erneut; wenn er bereits abspielt, muss das Netzwerk nicht geändert werden.",
   "renderer.saveError": "Die Einstellung konnte nicht gespeichert werden.",
   "renderer.saveConfig": "Diese Konfiguration speichern",
-  "renderer.saveConfigHint": "Diese Einstellungen werden beim Klicken bereits auf das Gerät angewendet. Diese Schaltfläche bewahrt zusätzlich eine dauerhafte, an dieses Gerät gebundene Kopie auf: Geht die Konfiguration zwischen zwei Sitzungen verloren, bietet dieser Bildschirm sie hier wieder an.",
+  "renderer.saveConfigHint": "Diese Einstellungen werden beim Klicken bereits auf das Gerät angewendet. Diese Schaltfläche bewahrt zusätzlich eine dauerhafte, an dieses Gerät gebundene Kopie auf: Sie können sie jederzeit von diesem Bildschirm aus wiederherstellen.",
   "renderer.saveConfigNoKey": "Diese Zone hat weder eine Ausgabekennung noch einen Namen: Es gibt nichts, woran eine gespeicherte Konfiguration gebunden werden könnte.",
   "renderer.configSavedOn": "Konfiguration gespeichert am {date}",
   "renderer.configByName": "Ohne Ausgabekennung ist diese Konfiguration an den NAMEN der Zone gebunden: Ein Umbenennen würde sie ablösen.",

@@ -2036,7 +2036,7 @@ export default {
   "renderer.probeSoapFailed": "Renderer-ul este detectat, dar solicitarea capacităților a eșuat. Încearcă din nou; dacă redă deja, nu trebuie schimbată rețeaua.",
   "renderer.saveError": "Setarea nu a putut fi salvată.",
   "renderer.saveConfig": "Salvează această configurație",
-  "renderer.saveConfigHint": "Aceste setări sunt deja aplicate aparatului din clipa în care dai clic. Acest buton păstrează în plus o copie durabilă, legată de acest aparat: dacă configurația se pierde de la o sesiune la alta, acest ecran ți-o oferă din nou aici.",
+  "renderer.saveConfigHint": "Aceste setări sunt deja aplicate aparatului din clipa în care dai clic. Acest buton păstrează în plus o copie durabilă legată de acest aparat: o poți repune din acest ecran oricând.",
   "renderer.saveConfigNoKey": "Această zonă nu are nici identificator de ieșire, nici nume: nu există nimic de care să fie legată o configurație salvată.",
   "renderer.configSavedOn": "Configurație salvată pe {date}",
   "renderer.configByName": "În lipsa unui identificator de ieșire, această configurație este legată de NUMELE zonei: redenumirea ei ar desprinde-o.",

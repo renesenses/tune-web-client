@@ -2524,7 +2524,7 @@ export default {
   "renderer.probeSoapFailed": "Le renderer est détecté, mais l'appel de capacités a échoué. Réessaie ; s'il joue déjà, il n'est pas nécessaire de modifier le réseau.",
   "renderer.saveError": "Impossible d'enregistrer le réglage.",
   "renderer.saveConfig": "Enregistrer cette configuration",
-  "renderer.saveConfigHint": "Ces réglages sont déjà appliqués à l'appareil dès le clic. Ce bouton en garde en plus une copie durable, rattachée à cet appareil : si la configuration se perd d'une session à l'autre, cet écran vous la repropose ici.",
+  "renderer.saveConfigHint": "Ces réglages sont déjà appliqués à l'appareil dès le clic. Ce bouton en garde en plus une copie durable, rattachée à cet appareil : vous pouvez la remettre en place à tout moment depuis cet écran.",
   "renderer.saveConfigNoKey": "Cette zone n'a ni identifiant de sortie ni nom : il n'y a rien à quoi rattacher une configuration enregistrée.",
   "renderer.configSavedOn": "Configuration enregistrée le {date}",
   "renderer.configByName": "Faute d'identifiant de sortie, cette configuration est rattachée au NOM de la zone : la renommer la détacherait.",

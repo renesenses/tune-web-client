@@ -2026,7 +2026,7 @@ export default {
   "renderer.probeSoapFailed": "El renderer está detectado, pero falló la consulta de capacidades. Inténtalo de nuevo; si ya reproduce, no es necesario cambiar la red.",
   "renderer.saveError": "No se pudo guardar el ajuste.",
   "renderer.saveConfig": "Guardar esta configuración",
-  "renderer.saveConfigHint": "Estos ajustes ya se aplican al aparato en cuanto haces clic. Este botón guarda además una copia duradera, vinculada a este aparato: si la configuración se pierde de una sesión a otra, esta pantalla te la vuelve a ofrecer aquí.",
+  "renderer.saveConfigHint": "Estos ajustes ya se aplican al aparato en cuanto haces clic. Este botón guarda además una copia duradera vinculada a este aparato: puedes restablecerla desde esta pantalla en cualquier momento.",
   "renderer.saveConfigNoKey": "Esta zona no tiene identificador de salida ni nombre: no hay nada a lo que vincular una configuración guardada.",
   "renderer.configSavedOn": "Configuración guardada el {date}",
   "renderer.configByName": "Al faltar el identificador de salida, esta configuración queda vinculada al NOMBRE de la zona: cambiarlo la desvincularía.",

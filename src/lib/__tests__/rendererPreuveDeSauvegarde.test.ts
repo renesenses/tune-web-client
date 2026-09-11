@@ -2,38 +2,42 @@
  * « Et un bouton "sauvegarder mes réglages" dans configuration du renderer ?? »
  * — Bertrand, 09/09/2026, onglet Appareils des Réglages.
  *
- * ## Deux réponses successives à la même demande, et pourquoi la première ne
- * suffisait pas
+ * ## Trois réponses successives, et ce que chacune a appris
  *
- * **09/09 — le témoin.** La lecture du code avait montré que les sept réglages
- * du renderer SONT écrits, un par un, dès le clic : `setNativeFlac`, `setAlac`,
- * `setAac`, `setCap16`, `setForceWav`, `setPlayDelay` appellent tous
- * `save(() => api.updateZone…)`. Ce qui manquait n'était donc pas la
- * sauvegarde, c'était sa PREUVE : seul l'échec parlait (`renderer.saveError`),
- * un succès ne disait rien, et rien ne distinguait « c'est écrit » de « le clic
- * n'a rien fait ». Le témoin « Enregistré » a été posé, repris de
- * `ZoneDeviceEditor` — le bloc voisin du même onglet, qui le montrait déjà.
+ * **09/09 — le témoin.** Les sept réglages SONT écrits dès le clic :
+ * `setNativeFlac`, `setAlac`, `setAac`, `setCap16`, `setForceWav`,
+ * `setPlayDelay` appellent tous `save(() => api.updateZone…)`. Ce qui manquait
+ * n'était pas la sauvegarde mais sa PREUVE — seul l'échec parlait
+ * (`renderer.saveError`). Le témoin « Enregistré » a été posé, repris de
+ * `ZoneDeviceEditor`, le bloc voisin du même onglet.
  *
- * Et il avait été conclu : **pas de bouton**, parce qu'il ferait croire que
- * rien n'est écrit tant qu'on ne l'a pas pressé. Ce garde interdisait donc
- * `common.save` dans l'écran.
+ * Et il avait été conclu : **pas de bouton**, parce qu'il ferait croire que rien
+ * n'est écrit tant qu'on ne l'a pas pressé. Ce garde interdisait `common.save`.
  *
- * 🔴 **11/09 — la prémisse était fausse.** Cette conclusion tenait sur un
- * implicite jamais vérifié : que ce qui est écrit RESTE écrit. Bertrand mesure
- * l'inverse en usage — **des configurations se perdent d'une session à
- * l'autre**. Les sept réglages vivent dans des colonnes de la table `zones`, et
- * une ligne de `zones` n'est pas stable d'un démarrage à l'autre : le serveur
- * porte tout un appareillage pour rattraper ce que la découverte lui fait subir
- * (`deduplicate`, `reparer_prefixe_local`, `merge_duplicate_settings`,
- * `reporter_reglages_de_doublons` — #1823, #1832). Cet appareillage existe
- * parce que le cas EST arrivé.
+ * **11/09 — la prémisse tombe.** Cette conclusion supposait que ce qui est écrit
+ * RESTE écrit. Mesuré : faux. Une zone renommée dont l'appareil change d'adresse
+ * se voyait offrir une zone NEUVE, réglages restés sur une ligne orpheline —
+ * deux lignes pour un seul Mac, reproduit sur 0.9.145 (#3919). L'interdiction a
+ * donc été levée.
  *
- * Le bouton demandé a donc une fonction que le témoin n'avait pas : garder une
- * **seconde copie, ailleurs** (préférences synchronisées, clé = l'appareil),
- * que le sort d'une ligne de `zones` n'atteint pas. L'interdiction est levée ;
- * ce qu'elle protégeait ne l'est pas. Un bouton qui laisserait croire que rien
- * n'est appliqué avant de l'avoir pressé serait toujours un mensonge — d'où le
- * dernier bloc de ce fichier, qui exige que le texte d'aide dise l'inverse.
+ * 🔴 **11/09, plus tard — le défaut est corrigé AILLEURS.** #3928 ajoute un
+ * quatrième filet de ré-ancrage, par la MAC que `zones.mac` porte déjà. La
+ * raison d'origine du bouton n'est donc plus d'actualité : il reste la fonction
+ * demandée (deux fois) et les cas que ce filet refuse. Voir l'en-tête de
+ * `reglagesRendererEnregistres.ts`.
+ *
+ * ## Ce que ce fichier garde, à travers les trois révisions
+ *
+ * Rien de tout cela ne change les deux invariants qui comptent, et c'est
+ * pourquoi ce garde survit à chacune :
+ *
+ * 1. **Les sept réglages s'écrivent toujours au clic**, par le même `save`. Si
+ *    l'un cessait, l'écran deviendrait un formulaire à valider — ce que personne
+ *    n'a demandé, à aucune des trois étapes.
+ * 2. **Le texte d'aide dit que les réglages sont DÉJÀ appliqués.** C'est ce que
+ *    l'interdiction du 09/09 protégeait vraiment, et ça reste vrai : sans cette
+ *    phrase, le bouton laisse croire le contraire, et le quitter sans l'avoir
+ *    pressé donne l'impression d'avoir tout perdu.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';

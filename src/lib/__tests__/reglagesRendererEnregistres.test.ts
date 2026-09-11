@@ -1,13 +1,19 @@
 /**
  * La configuration du renderer enregistrée à la main, et rattachée à l'appareil.
  *
- * Bertrand, 09/09/2026 : « Et un bouton "sauvegarder mes réglages" dans
- * configuration du renderer ?? » ; puis le 11/09, la raison — **on perd des
- * configurations d'une session à l'autre.**
+ * Bertrand, deux fois : le 08/09/2026 « je veux un bouton sur l'UI de Tune
+ * sauvegarder mes réglages en local ! », puis le 09/09 en désignant l'écran.
  *
- * Les zones ci-dessous reprennent l'installation telle que `GET /zones` la
- * rendait le 08/09/2026 : l'Eversolo DMP-A8, seule zone réglée des quatorze, un
- * Sonos neutre, et une zone navigateur sans sortie.
+ * 🔴 **La perte de configuration entre sessions qui a motivé ce module est
+ * corrigée côté SERVEUR** — #3919 reproduit le 11/09/2026 sur 0.9.145, réglé
+ * par #3928 (ré-ancrage par la MAC que `zones.mac` porte déjà). Ce qui reste
+ * couvert ici est la fonction demandée, plus les cas que ce filet refuse. Le
+ * raisonnement complet est en tête de `reglagesRendererEnregistres.ts` ; ces
+ * tests n'éprouvent que la règle, qui n'a pas changé.
+ *
+ * Les valeurs viennent d'installations réelles : la fiche `GET /zones` du
+ * 08/09/2026 (l'Eversolo DMP-A8, un Sonos neutre, une zone navigateur sans
+ * sortie), et le relevé du 11/09 qui a servi à la reproduction.
  */
 import { describe, it, expect } from 'vitest';
 import {

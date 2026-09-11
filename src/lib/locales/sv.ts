@@ -1915,7 +1915,7 @@ export default {
   "renderer.probeSoapFailed": "Renderaren upptäcks, men kapacitetsanropet misslyckades. Försök igen; om den redan spelar behöver nätverket inte ändras.",
   "renderer.saveError": "Kunde inte spara inställningen.",
   "renderer.saveConfig": "Spara den här konfigurationen",
-  "renderer.saveConfigHint": "De här inställningarna tillämpas redan på enheten så snart du klickar. Knappen bevarar dessutom en varaktig kopia som är kopplad till enheten: om konfigurationen går förlorad mellan två sessioner erbjuder skärmen den här igen.",
+  "renderer.saveConfigHint": "De här inställningarna tillämpas redan på enheten så snart du klickar. Knappen bevarar dessutom en varaktig kopia kopplad till enheten: du kan återställa den från den här skärmen när som helst.",
   "renderer.saveConfigNoKey": "Den här zonen har varken ett utgångs-ID eller ett namn: det finns inget att koppla en sparad konfiguration till.",
   "renderer.configSavedOn": "Konfigurationen sparades {date}",
   "renderer.configByName": "Utan utgångs-ID är den här konfigurationen kopplad till zonens NAMN: att byta namn skulle koppla loss den.",

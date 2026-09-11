@@ -2026,7 +2026,7 @@ export default {
   "renderer.probeSoapFailed": "已检测到渲染器，但功能请求失败。请重试；如果已能播放，无需更改网络。",
   "renderer.saveError": "无法保存该设置。",
   "renderer.saveConfig": "保存此配置",
-  "renderer.saveConfigHint": "这些设置在点击时已经应用到设备。此按钮还会额外保留一份绑定到该设备的持久副本:如果配置在两次会话之间丢失,本页会在此处重新提供。",
+  "renderer.saveConfigHint": "这些设置在点击时已经应用到设备。此按钮还会额外保留一份绑定到该设备的持久副本:你可以随时在本页将其恢复。",
   "renderer.saveConfigNoKey": "该区域既没有输出标识,也没有名称:无法将已保存的配置绑定到任何对象。",
   "renderer.configSavedOn": "配置保存于 {date}",
   "renderer.configByName": "由于没有输出标识,此配置绑定到区域的名称:重命名会使其失去关联。",

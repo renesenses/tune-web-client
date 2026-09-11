@@ -2177,7 +2177,7 @@ export default {
   "renderer.probeSoapFailed": "A renderelő észlelhető, de a képességlekérés sikertelen volt. Próbáld újra; ha már lejátszik, nem kell módosítani a hálózatot.",
   "renderer.saveError": "A beállítást nem sikerült menteni.",
   "renderer.saveConfig": "A beállítások mentése",
-  "renderer.saveConfigHint": "Ezek a beállítások kattintáskor máris érvénybe lépnek a készüléken. Ez a gomb ezenfelül tartós, a készülékhez kötött másolatot őriz meg: ha a beállítások két munkamenet között elvesznek, ez a képernyő itt ajánlja fel őket újra.",
+  "renderer.saveConfigHint": "Ezek a beállítások kattintáskor máris érvénybe lépnek a készüléken. Ez a gomb ezenfelül tartós, a készülékhez kötött másolatot őriz meg: bármikor visszaállíthatja erről a képernyőről.",
   "renderer.saveConfigNoKey": "Ennek a zónának nincs sem kimeneti azonosítója, sem neve: nincs mihez kötni a mentett beállításokat.",
   "renderer.configSavedOn": "Beállítások elmentve: {date}",
   "renderer.configByName": "Kimeneti azonosító híján ezek a beállítások a zóna NEVÉHEZ kötődnek: az átnevezés leválasztaná őket.",

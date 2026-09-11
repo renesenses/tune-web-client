@@ -2001,7 +2001,7 @@ export default {
   "renderer.probeSoapFailed": "렌더러는 감지되지만 기능 요청이 실패했습니다. 다시 시도하세요. 이미 재생된다면 네트워크를 변경할 필요가 없습니다.",
   "renderer.saveError": "설정을 저장할 수 없습니다.",
   "renderer.saveConfig": "이 구성 저장",
-  "renderer.saveConfigHint": "이 설정은 클릭하는 순간 이미 기기에 적용됩니다. 이 버튼은 여기에 더해 기기에 연결된 지속적인 사본을 보관합니다. 세션 사이에 구성이 사라져도 이 화면이 여기에서 다시 제시합니다.",
+  "renderer.saveConfigHint": "이 설정은 클릭하는 순간 이미 기기에 적용됩니다. 이 버튼은 여기에 더해 기기에 연결된 지속적인 사본을 보관합니다. 이 화면에서 언제든 되돌릴 수 있습니다.",
   "renderer.saveConfigNoKey": "이 구역에는 출력 식별자도 이름도 없습니다. 저장한 구성을 연결할 대상이 없습니다.",
   "renderer.configSavedOn": "{date}에 저장된 구성",
   "renderer.configByName": "출력 식별자가 없어 이 구성은 구역의 이름에 연결됩니다. 이름을 바꾸면 연결이 끊어집니다.",

@@ -2521,7 +2521,7 @@ export default {
   "renderer.probeSoapFailed": "The renderer is discovered, but the capability request failed. Try again; if it already plays, there is no need to change the network.",
   "renderer.saveError": "Couldn't save the setting.",
   "renderer.saveConfig": "Save this configuration",
-  "renderer.saveConfigHint": "These settings are already applied to the device the moment you click. This button also keeps a durable copy, tied to this device: should the configuration be lost between sessions, this screen offers it back here.",
+  "renderer.saveConfigHint": "These settings are already applied to the device the moment you click. This button also keeps a durable copy tied to this device: you can put it back from this screen at any time.",
   "renderer.saveConfigNoKey": "This zone has neither an output identifier nor a name: there is nothing to tie a saved configuration to.",
   "renderer.configSavedOn": "Configuration saved on {date}",
   "renderer.configByName": "With no output identifier, this configuration is tied to the zone's NAME: renaming it would detach it.",

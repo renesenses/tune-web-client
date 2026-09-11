@@ -177,19 +177,23 @@
   }
 
   /* ------------------------------------------------------------------------
-   * La configuration ENREGISTRÉE — ce que la session en cours ne suffit pas à
-   * garantir.
+   * La configuration ENREGISTRÉE.
    *
-   * Bertrand, 09/09/2026 : « Et un bouton "sauvegarder mes réglages" dans
-   * configuration du renderer ?? » ; et le 11/09, la raison : on perd des
-   * configurations d'une session à l'autre.
+   * Bertrand, deux fois : le 08/09/2026 « je veux un bouton sur l'UI de Tune
+   * sauvegarder mes réglages en local ! », puis le 09/09 en désignant cet
+   * écran-ci.
    *
    * Ce bloc n'enlève RIEN à l'écriture au clic ci-dessus : elle reste
    * l'application immédiate, celle qui fait jouer l'appareil maintenant. Il
-   * ajoute une seconde copie, rattachée à l'APPAREIL et rangée dans les
-   * préférences synchronisées, que le sort d'une ligne de `zones` n'atteint
-   * pas. La règle, ses trois décisions et leurs raisons vivent dans
-   * `lib/reglagesRendererEnregistres`, où elles se testent.
+   * ajoute une copie durable, rattachée à l'APPAREIL et rangée dans les
+   * préférences synchronisées.
+   *
+   * ⚠️ Ce bloc n'est PAS le correctif de la perte de configuration entre
+   * sessions. Ce défaut-là (#3919) est réglé côté serveur par #3928, qui
+   * ré-ancre une zone renommée sur la MAC que sa ligne porte déjà. Ce qui reste
+   * ici est la fonction demandée, et les cas que ce filet refuse — la liste et
+   * ses raisons vivent dans `lib/reglagesRendererEnregistres`, où elles se
+   * testent.
    * --------------------------------------------------------------------- */
 
   /** Les sept valeurs telles que l'écran les porte — `forceWav` redevient la

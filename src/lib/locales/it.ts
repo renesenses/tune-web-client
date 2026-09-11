@@ -2026,7 +2026,7 @@ export default {
   "renderer.probeSoapFailed": "Il renderer è rilevato, ma la richiesta delle capacità non è riuscita. Riprova; se sta già riproducendo, non serve modificare la rete.",
   "renderer.saveError": "Impossibile salvare l'impostazione.",
   "renderer.saveConfig": "Salva questa configurazione",
-  "renderer.saveConfigHint": "Queste impostazioni vengono già applicate al dispositivo appena fai clic. Questo pulsante ne conserva inoltre una copia durevole, legata a questo dispositivo: se la configurazione va perduta da una sessione all'altra, questa schermata te la ripropone qui.",
+  "renderer.saveConfigHint": "Queste impostazioni vengono già applicate al dispositivo appena fai clic. Questo pulsante ne conserva inoltre una copia durevole legata a questo dispositivo: puoi ripristinarla da questa schermata in qualsiasi momento.",
   "renderer.saveConfigNoKey": "Questa zona non ha né un identificativo di uscita né un nome: non c'è nulla a cui legare una configurazione salvata.",
   "renderer.configSavedOn": "Configurazione salvata il {date}",
   "renderer.configByName": "In mancanza di un identificativo di uscita, questa configurazione è legata al NOME della zona: rinominarla la scollegherebbe.",
