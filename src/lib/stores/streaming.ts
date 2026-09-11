@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { Album, Artist, StreamingPlaylist, StreamingServiceStatus } from '../types';
+import type { Album, Artist, Source, StreamingPlaylist, StreamingServiceStatus } from '../types';
 
 export const activeStreamingService = writable<string | null>(null);
 
@@ -64,6 +64,22 @@ export const pendingStreamingAlbum = writable<Album | null>(null);
 /// service) efface la provenance.
 export const streamingAlbumOrigin = writable<string | null>(null);
 export const pendingStreamingArtist = writable<Artist | null>(null);
+
+/**
+ * La cible de la FICHE ARTISTE DE SERVICE de la coquille v2 — #3825.
+ *
+ * ⚠️ Pourquoi pas `pendingStreamingArtist`, juste au-dessus. Celui-ci porte un
+ * `Artist`, et son consommateur unique est `StreamingView` (v1), qui ouvre la
+ * fiche DANS son propre écran avec ses états à lui. La v2 n'a pas cet écran :
+ * elle route sur une vue. Deux contrats différents sous un même nom finiraient
+ * par se marcher dessus le jour où les deux coquilles cohabiteraient.
+ *
+ * Le contenu est le strict nécessaire pour appeler les trois routes et
+ * afficher un nom pendant le chargement — surtout pas un `Artist`, dont
+ * l'`id` numérique n'a aucun sens pour un artiste de service.
+ */
+export const ficheArtisteService =
+  writable<{ service: Source; id: string; nom: string } | null>(null);
 
 /// Playlist de service à rouvrir en arrivant sur StreamingView (#2370).
 ///

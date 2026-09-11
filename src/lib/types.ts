@@ -57,6 +57,16 @@ export interface Artist {
   image_path?: string | null;
   image_source?: string | null;
   source_id?: string | null;
+  /**
+   * Le service d'où vient l'artiste — `'qobuz'`, `'tidal'`… Absent ou
+   * `'local'` pour un artiste de la bibliothèque.
+   *
+   * Le champ EXISTAIT déjà à l'exécution : `SearchV2.estLocal` le lit
+   * (`(x?.source ?? 'local') === 'local' && x?.id != null`), et la recherche
+   * fédérée le pose. Il manquait seulement au type, qui affirmait donc le
+   * contraire du code.
+   */
+  source?: string | null;
 }
 
 export interface Album {

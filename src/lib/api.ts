@@ -2982,6 +2982,29 @@ export function getStreamingArtist(service: string, artistId: string) {
  * ce qui arrête le « voir plus », y compris sur un service qui ne sait pas
  * paginer et qui rend alors vide dès le premier offset non nul.
  */
+/**
+ * Les titres phares d'un artiste chez un service — #2568, #3825.
+ *
+ * 🔴 La route existe et sert SIX services (`tune-streaming-http/src/lib.rs:319`
+ * → `get_artist_top_tracks`, implémenté par Qobuz, Tidal, Deezer, Spotify,
+ * Amazon et YouTube). Il n'y avait aucune enveloppe cliente : ni appelant, ni
+ * même de quoi appeler.
+ *
+ * ⚠️ La charge rendue ne porte PAS de champ `source` — le service est dans
+ * l'URL, pas dans le corps. L'appelant doit le rajouter avant toute lecture :
+ * `source` va toujours avec `source_id`, seul l'identifiant n'est apparié par
+ * aucun service.
+ *
+ * ⚠️ Ce sont bien les titres PHARES, pas `tracks_appears_on` : les deux ne
+ * disent pas la même chose, et « ce sur quoi l'artiste apparaît » ne fait pas
+ * un best of.
+ */
+export function getStreamingArtistTopTracks(service: string, artistId: string) {
+  return fetchJSON<Track[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/top-tracks`,
+  );
+}
+
 export function getStreamingArtistAlbums(service: string, artistId: string, offset = 0) {
   const p = offset > 0 ? `?offset=${offset}` : '';
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums${p}`);
