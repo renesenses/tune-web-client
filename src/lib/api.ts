@@ -5938,8 +5938,20 @@ export interface BandcampItem {
   artist: string;
   title: string;
   type: string;
+  /** Adresse publique de l'album — et donc l'identifiant que
+   *  `streaming_album_id` attend (`get_album_tracks` fait
+   *  `album_depuis_url`). C'est ce qui rend « Ma collection » JOUABLE. */
   url: string;
   art_id?: number;
+  /** Pochette RÉSOLUE par le serveur depuis la v0.9.145
+   *  (`collection_mise_en_forme`). Le client ne recompose aucune URL bcbits :
+   *  l'oubli du préfixe `a` rendait 404 (#1768). */
+  pochette?: string | null;
+  /** URL d'extrait mp3-128 servie par le bloc `tracklists` de Bandcamp, que
+   *  Tune jetait avant #3750. Non utilisée ici : on joue l'album entier. */
+  extrait?: string | null;
+  qualite?: string;
+  lossless?: boolean;
 }
 
 export interface BandcampCollectionPage {
