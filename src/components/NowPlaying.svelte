@@ -37,6 +37,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
   import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear } from '../lib/stores/navigation';
+  import { destinationAlbum } from '../lib/routageAlbum';
   import { destinationArtiste } from '../lib/routageArtiste';
   import { setSearchCriteria } from '../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
@@ -558,6 +559,31 @@
 
   async function navigateToAlbum(albumId: number | undefined, albumTitle?: string) {
     selectedArtist.set(null);
+
+    /*
+     * 🔴 L'ALBUM D'UNE PISTE DE SERVICE SE TROUVE SANS RIEN CHERCHER — #1361.
+     *
+     * En dessous, la branche `albumTitle` interroge `searchLibrary` : pour un
+     * album Qobuz qu'on ne possède pas, elle ne peut par construction rien
+     * trouver, et on atterrissait sur une recherche par titre. Or la piste
+     * porte déjà l'identifiant de son album chez le service.
+     *
+     * On ne consulte la décision que quand l'appelant n'a PAS d'identifiant
+     * local : un `albumId` en main désigne un album de la bibliothèque, et
+     * rien ne doit détourner ce chemin-là.
+     */
+    if (!albumId && onOuvrirAlbumService) {
+      const dest = destinationAlbum({
+        source: displayTrack?.source ?? null,
+        album_id: (displayTrack as any)?.album_id,
+        album_title: albumTitle ?? displayTrack?.album_title ?? null,
+      });
+      if (dest?.type === 'album-service') {
+        onOuvrirAlbumService({ service: dest.service, albumId: dest.albumId, titre: dest.titre });
+        return;
+      }
+    }
+
     if (albumId) {
       try {
         const [album, tracks] = await Promise.all([
@@ -895,8 +921,24 @@
      * grappe avatar, et c'est le seul acces au mode TV de cet ecran.
      */
     tvDansLaCoquille?: boolean;
+    /**
+     * Ouvrir la fiche d'un album CHEZ UN SERVICE — #1361, #3626.
+     *
+     * Rappel optionnel, fourni par la seule coquille qui possède cet écran.
+     * Même contrat que `onAddToPlaylist` juste au-dessus : absent, le geste
+     * garde son comportement d'avant (la recherche par titre). « Mieux vaut un
+     * bouton absent qu'un bouton mort » — et surtout, ce composant est monté
+     * par les DEUX coquilles : router en dur vers une vue que l'ancienne ne
+     * connaît pas la ferait tomber sur son repli.
+     *
+     * C'est le contrat `tvDansLaCoquille` : la coquille dit au composant
+     * partagé ce qu'elle sait faire, il ne le devine pas. `futureInterface()`
+     * n'est appelé nulle part hors de `main.ts`, et ce n'est pas ici qu'il
+     * fallait commencer.
+     */
+    onOuvrirAlbumService?: (cible: { service: string; albumId: string; titre: string }) => void;
   }
-  let { onAddToPlaylist, tvDansLaCoquille = false }: Props = $props();
+  let { onAddToPlaylist, tvDansLaCoquille = false, onOuvrirAlbumService }: Props = $props();
 
   let zone = $derived($currentZone);
   let track = $derived($currentTrack);
