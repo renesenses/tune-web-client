@@ -22,7 +22,7 @@
   import { bioDisplayText } from '../lib/library/bio';
   import { sectionHeads } from '../lib/library/grouping';
 import { observeHeight, observeWidth } from '../lib/actions/observeSize';
-import { formatTime, formatDuration,  fold } from '../lib/utils';
+import { formatTime, formatDuration,  fold, estAvecPerte } from '../lib/utils';
   import AlbumArt from './AlbumArt.svelte';
 import TrackContextMenu from './TrackContextMenu.svelte';
 import AlbumRating from './AlbumRating.svelte';
@@ -967,8 +967,11 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   const qualityBuckets: QualityBucket[] = [
     { key: 'dsd', label: 'DSD', match: t => t.format === 'dsd' || t.format === 'dsf' || t.format === 'dff' || (t.file_path ?? '').toLowerCase().endsWith('.dsf') || (t.file_path ?? '').toLowerCase().endsWith('.dff') },
     { key: 'hires', label: 'Hi-Res', match: t => t.format !== 'dsd' && ((t.sample_rate ?? 0) > 48000 || (t.bit_depth ?? 0) > 16) },
-    { key: 'cd', label: 'CD', match: t => t.format !== 'dsd' && (t.sample_rate ?? 0) <= 48000 && (t.bit_depth ?? 0) <= 16 && !['mp3', 'aac', 'ogg', 'opus', 'wma'].includes(t.format ?? '') },
-    { key: 'lossy', label: 'Lossy', match: t => ['mp3', 'aac', 'ogg', 'opus', 'wma'].includes(t.format ?? '') },
+    // La liste des codecs avec perte vit dans `utils` (#3848) — elle etait
+    // recopiee ici, et ailleurs plus courte. Celle-ci etait juste ; elle ne
+    // le serait pas restee.
+    { key: 'cd', label: 'CD', match: t => t.format !== 'dsd' && (t.sample_rate ?? 0) <= 48000 && (t.bit_depth ?? 0) <= 16 && !estAvecPerte(t.format) },
+    { key: 'lossy', label: 'Lossy', match: t => estAvecPerte(t.format) },
   ];
 
   // Albums filtered by search only (for quality chip counts)
