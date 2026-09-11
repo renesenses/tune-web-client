@@ -24,7 +24,12 @@ import ShellV2 from '../../components/v2/ShellV2.svelte';
 import { activeView, vueDeRetour } from '../stores/navigation';
 import { ficheAlbumService } from '../stores/streaming';
 
-describe('#1361 — la décision, appelée et non lue', () => {
+// ⚠️ Ces six témoins restent JUSTES, mais leur portée a changé.
+// `destinationAlbum` sert les LISTES de pistes — recherche, file d'attente,
+// menu « … » — où une piste de service est un `StreamTrack` et porte bien
+// `album_id: Option<String>`. Il ne sert PLUS « Lecture en cours », dont la
+// piste est un `NowPlaying` au `album_id: i64`.
+describe('#1361 — la décision, appelée et non lue (listes de pistes)', () => {
   it("une piste de SERVICE mène à l'album du service, sans passer par la bibliothèque", () => {
     expect(destinationAlbum({ source: 'qobuz', album_id: 'q-alb-7', album_title: 'Malina' }))
       .toEqual({ type: 'album-service', service: 'qobuz', albumId: 'q-alb-7', titre: 'Malina' });
@@ -123,17 +128,33 @@ describe('#1361 — la coquille v2 porte la fiche album de service', () => {
 // ---------------------------------------------------------------------------
 // La moitié « aller », dans le composant PARTAGÉ par les deux coquilles.
 // ---------------------------------------------------------------------------
-describe('#1361 — NowPlaying ne détourne le geste que si la coquille sait le recevoir', () => {
-  it("le geste n'est détourné QUE si la coquille a armé ses gestes", async () => {
+describe('#1361 — ce que ce fichier NE garde PLUS, et pourquoi', () => {
+  it("🔴 la moitié « aller » est passée à un témoin qui regarde le RÉSEAU", async () => {
+    /*
+     * CE TÉMOIN A DONNÉ UN FAUX VERT, ET C'EST SA LEÇON.
+     *
+     * Il cherchait la chaîne `if (!albumId && onOuvrirAlbumService) {` dans le
+     * source de `NowPlaying`. Elle y était. Le détournement, lui, ne se
+     * produisait JAMAIS : il lisait `displayTrack.album_id` en espérant
+     * l'identifiant de l'album chez le service, alors que ce champ est un
+     * `i64` de la table `albums` — `null` sur toute piste de service.
+     *
+     * Un texte présent ne prouve pas qu'il s'exécute, et les six témoins
+     * ci-dessus nourrissaient `destinationAlbum` d'une chaîne qu'ils
+     * fournissaient eux-mêmes : ils éprouvaient la décision, jamais ce que
+     * l'appelant lui passe.
+     *
+     * `albumEnCours1361.test.ts` monte l'écran, clique le titre d'album et
+     * regarde l'URL demandée. Contre-épreuve faite : avec l'ancien code, il
+     * rend « aucune fiche ouverte : expected +0 to be 1 ».
+     */
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
+    const garde = readFileSync(resolve(process.cwd(), 'src/lib/__tests__/albumEnCours1361.test.ts'), 'utf-8');
+    expect(garde).toContain("/zones/1/album-en-cours");
+    // Et `NowPlaying` ne lit plus le champ qui mentait.
     const np = readFileSync(resolve(process.cwd(), 'src/components/NowPlaying.svelte'), 'utf-8');
-    // Absent ⇒ on ne consulte même pas la décision : l'ancienne coquille, qui
-    // n'a pas cet écran, garde sa recherche par titre.
-    expect(np).toContain('if (!albumId && gestesService) {');
-    expect(np).toContain("if (dest?.type === 'album-service') {");
-    // Et la coquille v2 le fournit.
-    const shell = readFileSync(resolve(process.cwd(), 'src/components/v2/ShellV2.svelte'), 'utf-8');
-    expect(shell).toContain('ouvrirAlbum: ouvrirAlbumService,');
+    expect(np).not.toContain('destinationAlbum({');
+    expect(np).toContain('api.getZoneCurrentAlbum(zid)');
   });
 });

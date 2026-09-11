@@ -34,6 +34,20 @@
  * CHAÎNE. Le champ paraissait donc inutilisable là où il était précisément la
  * réponse. On le lit ici en `unknown`, et on le rend en chaîne.
  *
+ * ## ⚠️ DEUX FORMES DE `album_id`, ET CE MODULE N'EN CONNAÎT QU'UNE
+ *
+ * Ce module sert les listes de pistes — résultats de recherche, file
+ * d'attente, menu « … » — où une piste de service est un `StreamTrack` et
+ * porte donc `album_id: Option<String>`, l'identifiant de son album chez le
+ * service. C'est le cas pour lequel il est écrit.
+ *
+ * 🔴 IL NE SERT PAS « LECTURE EN COURS ». Là, la piste est un `NowPlaying`,
+ * dont `album_id` est un `i64` de la table `albums` — `null` sur toute piste
+ * de service. Ce module y rendait `recherche` à tous les coups, et le
+ * détournement qu'il devait armer ne se produisait jamais. L'album de ce qui
+ * joue se demande à `GET /zones/{id}/album-en-cours`, qui tranche les trois
+ * provenances côté serveur (#1361).
+ *
  * ## Pourquoi un module, et pas un `if` dans le composant
  *
  * Même raison que son jumeau : une garde écrite contre `NowPlaying` ne peut
