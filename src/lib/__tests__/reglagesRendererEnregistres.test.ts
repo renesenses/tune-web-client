@@ -12,11 +12,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   VERSION, CLES_RENDERER,
-  cleAppareil, parLeNom, reglagesAEnregistrer, construireInstantane,
+  cleAppareil, parLeNom, identiteStable, reglagesAEnregistrer, construireInstantane,
   ranger, oublier, lireInstantane, ecarts, corpsPatch,
   type Instantane, type Instantanes, type ValeursEcran,
 } from '../reglagesRendererEnregistres';
-import type { Zone } from '../types';
+import type { Zone, OutputType } from '../types';
 
 const zone = (p: Partial<Zone>): Zone => ({
   id: 1, name: 'Zone', output_type: 'dlna', output_device_id: 'uuid:x',
@@ -86,6 +86,83 @@ describe('La clé de rangement', () => {
   it('ni sortie ni nom : aucune clé, donc rien d’enregistrable', () => {
     expect(cleAppareil(zone({ name: '', output_device_id: null }))).toBeNull();
     expect(cleAppareil(zone({ name: '   ', output_device_id: '  ' }))).toBeNull();
+  });
+});
+
+/**
+ * Ces cas viennent d'une installation RÉELLE, relevée le 11/09/2026 sur un
+ * serveur 0.9.145 : sept zones découvertes, deux Sonos Play:1, un Eversolo
+ * DMP-A8, un AppleTV, un Mac et un Tune Endpoint.
+ */
+describe('🔴 Un identifiant dérivé de l’ADRESSE n’est pas une identité', () => {
+  // Le serveur produit deux formes (`mdns.rs:787`) : celle que l'appareil
+  // annonce, et `{output_type}-{host}-{port}` quand il n'annonce rien. La
+  // seconde suit le bail DHCP — « un bail DHCP renouvelé changeait l'identité
+  // de l'appareil » (#1528, en tête de `device_id_for`).
+
+  it('mesuré : le Mac a changé d’identifiant à `id` constant', () => {
+    // Relevé à quelques minutes d'intervalle sur la même installation, la même
+    // zone (id=3, « Mac13,1 »). Si la clé suivait cette chaîne, la
+    // configuration enregistrée serait devenue orpheline entre les deux.
+    const avant = zone({ id: 3, name: 'Mac13,1', output_type: 'airplay', output_device_id: 'airplay-192.168.1.41-7000' });
+    const apres = zone({ id: 3, name: 'Mac13,1', output_type: 'airplay', output_device_id: 'airplay-192.168.1.24-7000' });
+
+    expect(identiteStable(avant)).toBe(false);
+    expect(cleAppareil(apres)).toBe(cleAppareil(avant));
+    expect(parLeNom(cleAppareil(avant)!), 'le repli par le nom doit être signalé').toBe(true);
+  });
+
+  it('une MAC annoncée, elle, EST une identité — et ne se replie pas', () => {
+    // `airplay-80:0A:80:5D:4D:EE` : pas de `-<port>` final, séparateurs `:`.
+    const z = zone({ name: 'Salon', output_type: 'airplay', output_device_id: 'airplay-80:0A:80:5D:4D:EE' });
+    expect(identiteStable(z)).toBe(true);
+    expect(cleAppareil(z)).toBe('sortie:airplay-80:0a:80:5d:4d:ee');
+  });
+
+  it('l’IPv6 aussi est une adresse — le `-<port>` final la trahit', () => {
+    const z = zone({ name: 'Cuisine', output_type: 'airplay', output_device_id: 'airplay-2a02:842a::17bc-7000' });
+    expect(identiteStable(z)).toBe(false);
+    expect(cleAppareil(z)).toBe('nom:cuisine');
+  });
+
+  it('les formes annoncées relevées sur l’installation restent des identités', () => {
+    // 🔴 `oaat` n'est PAS dans l'union `OutputType` du client, et le serveur le
+    // publie quand même — relevé le 11/09/2026 sur la zone « Tune Endpoint »
+    // d'une installation 0.9.145. D'où le `as` : l'union a pris du retard sur
+    // le serveur, et corriger `types.ts` déborderait de cette PR. Ce test
+    // documente l'écart en attendant.
+    const mesurees: [string, string][] = [
+      ['dlna', 'uuid:RINCON_B8E937B44D0801400'],
+      ['dlna', 'uuid:9C41535E-DB73-11F0-A7C6-800A805D4DEE'],
+      ['dlna', 'uuid:aef5e377-bc40-4807-8bb9-30f09fc0a6e8'],
+      ['oaat', 'oaat:1081bb7a-ad6e-485e-a33b-c0596e3c8154'],
+      ['local', 'local:alsa:usbstream:CARD=Generic'],
+    ];
+    for (const [output_type, output_device_id] of mesurees) {
+      const z = zone({ name: 'X', output_type: output_type as OutputType, output_device_id });
+      expect(identiteStable(z), `${output_device_id} devrait être une identité`).toBe(true);
+      expect(parLeNom(cleAppareil(z)!)).toBe(false);
+    }
+  });
+
+  it('les trois zones AirPlay mesurées se replient toutes sur leur nom', () => {
+    const mesurees: [string, string][] = [
+      ['Mac13,1', 'airplay-192.168.1.24-7000'],
+      ['eversolo,1', 'airplay-192.168.1.17-5500'],
+      ['AppleTV14,1', 'airplay-192.168.1.37-7000'],
+    ];
+    const cles = mesurees.map(([name, output_device_id]) =>
+      cleAppareil(zone({ name, output_type: 'airplay', output_device_id })),
+    );
+    expect(cles).toEqual(['nom:mac13,1', 'nom:eversolo,1', 'nom:appletv14,1']);
+  });
+
+  it('sans `output_type`, on ne devine pas : la chaîne reste une identité', () => {
+    // Le repli ne s'arme que sur la forme EXACTE `{type}-{host}-{port}`. Sans
+    // type publié, rien ne prouve qu'on a affaire à une adresse, et déclasser
+    // une identité valable serait le défaut symétrique.
+    const z = zone({ name: 'X', output_type: undefined, output_device_id: 'airplay-192.168.1.24-7000' });
+    expect(identiteStable(z)).toBe(true);
   });
 });
 

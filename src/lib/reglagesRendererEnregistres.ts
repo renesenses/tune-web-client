@@ -98,16 +98,52 @@ const defautDe = (cle: CleRenderer): ValeurRenderer =>
   CLES_RENDERER.find((c) => c.cle === cle)!.defaut as ValeurRenderer;
 
 /**
- * La clé de rangement : la SORTIE d'abord, le nom en repli.
+ * 🔴 Tout `output_device_id` n'est PAS une identité — mesuré, pas supposé.
+ *
+ * Le serveur en produit deux formes (`tune-core/src/discovery/mdns.rs:787`) :
+ *
+ * - `device_id_for()` — ce que l'appareil ANNONCE lui-même : `uuid:RINCON_…`
+ *   pour un Sonos, `airplay-80:0A:80:5D:4D:EE` (son adresse MAC) pour un
+ *   AirPlay bavard, `oaat:…`, `local:…`. Stable.
+ * - `legacy_device_id()` — `{output_type}-{host}-{port}`, dérivé de l'ADRESSE,
+ *   produit pour tout appareil qui n'annonce rien : `airplay-192.168.1.24-7000`.
+ *   **Change avec le bail DHCP.**
+ *
+ * Le serveur documente lui-même ce que ça coûte, en tête de `device_id_for` :
+ * « un bail DHCP renouvelé changeait l'identité de l'appareil, donc dédoublait
+ * sa zone et faisait revenir les zones supprimées, puisque tout le cycle de vie
+ * d'une zone repose sur cette chaîne » (#1528).
+ *
+ * Mesuré sur une installation réelle le 11/09/2026, entre deux relevés de
+ * `GET /zones` séparés de quelques minutes : la zone `Mac13,1` est passée de
+ * `airplay-192.168.1.41-7000` à `airplay-192.168.1.24-7000`, **à `id`
+ * constant**. Ranger un instantané sous cette chaîne le rendrait orphelin au
+ * premier renouvellement de bail — c'est-à-dire exactement entre deux sessions,
+ * le cas que ce fichier existe pour couvrir.
+ *
+ * Le discriminant est sans ambiguïté : la forme d'adresse se termine toujours
+ * par `-<port>`, la forme annoncée jamais (une MAC sépare par `:`, un `uuid:`
+ * et un `oaat:` par `:`).
+ */
+const FIN_PORT = /-\d{1,5}$/;
+
+export function identiteStable(zone: Zone): boolean {
+  const sortie = (zone.output_device_id ?? '').trim();
+  if (!sortie) return false;
+  const type = (zone.output_type ?? '').trim();
+  return !(type && sortie.startsWith(`${type}-`) && FIN_PORT.test(sortie));
+}
+
+/**
+ * La clé de rangement : la SORTIE quand elle est une identité, le nom sinon.
  *
  * Les deux formes sont préfixées, sans quoi une zone nommée `uuid:x` pourrait
- * heurter l'appareil `uuid:x`. Rend `null` quand la zone n'a ni sortie ni nom :
- * il n'y a alors rien à quoi rattacher un instantané, et l'écran désarme son
- * bouton plutôt que d'en écrire un sous une clé vide.
+ * heurter l'appareil `uuid:x`. Rend `null` quand la zone n'a ni identité ni
+ * nom : il n'y a alors rien à quoi rattacher un instantané, et l'écran désarme
+ * son bouton plutôt que d'en écrire un sous une clé vide.
  */
 export function cleAppareil(zone: Zone): string | null {
-  const sortie = plier(zone.output_device_id);
-  if (sortie) return `sortie:${sortie}`;
+  if (identiteStable(zone)) return `sortie:${plier(zone.output_device_id)}`;
   const nom = plier(zone.name);
   return nom ? `nom:${nom}` : null;
 }
