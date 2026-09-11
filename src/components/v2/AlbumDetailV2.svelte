@@ -31,6 +31,7 @@
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
+  import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
   import { activeView, pendingLibraryArtist } from '../../lib/stores/navigation';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
@@ -248,11 +249,35 @@
       playAndSync(zid, { streaming_album_id: String(sidDistant), source: service as any, start_index: startIndex }).catch(signalerEchecLecture);
       return;
     }
-    // Bandcamp : chaque piste porte son propre flux, il n'y a pas d'album a
-    // designer au serveur. On lance celle qu'on a choisie, par le MEME chemin
-    // que partout ailleurs — `corpsDeLecture` sait former la paire.
+    /*
+     * 🔴 BANDCAMP : L'ALBUM, OUVERT À LA PISTE CHOISIE — #2702.
+     *
+     * Le commentaire qui vivait ici disait « il n'y a pas d'album à désigner
+     * au serveur ». C'était vrai, et ça ne l'est plus : Bandcamp est inscrit
+     * au registre des services depuis `tune-server/src/state.rs:369`, donc
+     * `streaming_album_id` l'accepte — et son identifiant d'album EST l'adresse
+     * publique de sa page, celle que `bandcamp` porte déjà.
+     *
+     * Tant qu'on envoyait UNE piste, le serveur terminait par
+     * `update_queue_info(zone, 0, 1)` : une file d'exactement une piste, sans
+     * jamais de suivante. Sevy Tabroc : « à la fin du morceau, le prochain ne
+     * s'enchaîne pas. » Ce n'était pas la détection de fin de piste, c'était la
+     * constitution de la file.
+     *
+     * `corpsDeLectureBandcamp` est la décision déjà employée par l'écran
+     * Bandcamp de l'ancienne interface : elle rend le corps d'ALBUM dès qu'une
+     * adresse est connue, et ne retombe sur la piste seule que s'il n'y en a
+     * pas — mieux vaut une file d'une piste que rien.
+     */
     if (bandcamp) {
-      const corps = corpsDeLecture(tracks[startIndex]);
+      const corps = corpsDeLectureBandcamp(
+        { url: bandcamp, tracks: tracks.map((t: any) => ({
+            stream_url: String(t?.stream_url ?? t?.source_id ?? ''),
+            title: t?.title ?? '',
+            artist: t?.artist_name ?? '',
+          })) },
+        startIndex,
+      );
       if (!corps) return;
       playAndSync(zid, corps as any).catch(signalerEchecLecture);
       return;
