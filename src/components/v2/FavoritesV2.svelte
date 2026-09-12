@@ -13,6 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import { messageEchecLecture } from '../../lib/echecLecture';
   import { notifications } from '../../lib/stores/notifications';
   import {
     currentProfileId, loadFavoriteIds, favoriteStreamingKeys,
@@ -36,6 +37,7 @@
   import { tick } from 'svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { t } from '../../lib/i18n';
+  import { get } from 'svelte/store';
   import '../../styles/tune-v2.css';
 
 
@@ -497,7 +499,7 @@
       ? { streaming_album_id: String(a.source_id), source: a.source as any }
       : null;
     if (!corps) return;
-    playAndSync(zid, corps).catch(() => { error = 'Lecture impossible.'; });
+    playAndSync(zid, corps).catch((e) => { error = messageEchecLecture(e, 'library.playbackError'); });
   }
   function playTrack(t: any) {
     const zid = $currentZoneId;
@@ -508,7 +510,7 @@
       ? { source: t.source as any, source_id: String(t.source_id) }
       : null;
     if (!corps) return;
-    playAndSync(zid, corps).catch(() => { error = 'Lecture impossible.'; });
+    playAndSync(zid, corps).catch((e) => { error = messageEchecLecture(e, 'library.playbackError'); });
   }
   // `e` optionnel : appelee depuis la carte historique (qui propage) ET depuis
   // le menu de `PochetteActions`, qui a deja arrete le geste.
@@ -516,7 +518,16 @@
     e?.stopPropagation();
     const zid = $currentZoneId;
     if (zid == null || id == null) return;
-    api.addToQueue(zid, { album_id: id }).catch(() => { error = $t('v2.fav.queueFailed' as any); });
+    // 🔴 `get(t)(…)` et non `$t(…)` : on est dans un `.catch(…)`, donc dans une
+    // fonction imbriquée, où Svelte 5 refuse de souscrire à un magasin
+    // (« Cannot subscribe to stores that are not declared at the top level »).
+    // esbuild transpile sans résoudre — la faute ne casse pas le build et
+    // n'apparaît QUE chez l'utilisateur. Même défaut que celui corrigé sur les
+    // deux lectures ci-dessus, sur le chemin de la file.
+    api.addToQueue(zid, { album_id: id }).catch((err) => {
+      console.error('Queue error:', err);
+      error = get(t)('v2.fav.queueFailed');
+    });
   }
 
   /** Retrait d'un favori. On recharge aussi les ENSEMBLES d'identifiants du
