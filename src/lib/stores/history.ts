@@ -7,6 +7,13 @@ export interface HistoryEntry {
   zoneName: string;
   /** Le NUMÉRO de la zone, quand le serveur le donne — voir `nomDeZone`. */
   zoneId?: number | null;
+  /**
+   * L'objet qu'on avait lancé — #904. Servi par `/library/history` depuis la
+   * v0.9.131 et jeté par les deux écrans jusqu'ici. Absent pour 65,8 % des
+   * écoutes (mesuré sur la .18) : ce n'est pas une anomalie, c'est le cas
+   * courant, et les lignes sans contexte restent des lignes plates.
+   */
+  contexte?: import('../historiqueParContexte').ContexteEcoute | null;
 }
 
 const STORAGE_KEY = 'tune-playback-history';
