@@ -12,6 +12,9 @@
   import { concertsUtilisable, refreshConcertsPlugin } from '../lib/stores/concerts';
   import { preferences } from '../lib/stores/preferences';
   import { t } from '../lib/i18n';
+  // #914 — l'infobulle ne s'affiche que si le texte DÉBORDE vraiment,
+  // et suit les changements de taille et de contenu (`lib/infobulleTexte`).
+  import { bulleTexte } from '../lib/infobulleTexte';
   import * as api from '../lib/api';
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
   import { favoritesFirst, toggleFavoriteId, type DeviceFavPrefix } from '../lib/deviceFavorites';
@@ -694,7 +697,7 @@
       <span class="state-dot" style="color: {stateColor($connectionState)}">
         {stateIcon($connectionState)}
       </span>
-      <span class="state-text truncate">{stateLabel($connectionState, $reconnectAttempts)}</span>
+      <span class="state-text truncate" use:bulleTexte>{stateLabel($connectionState, $reconnectAttempts)}</span>
       {#if $connectionState === 'polling'}
         <span class="polling-badge" title={$t('sidebar.pollingMode')}>P</span>
       {/if}
@@ -713,7 +716,7 @@
     {#if serverName}
       <div class="server-identity" title={$t('sidebar.serverIdentityTitle')}>
         <span class="server-identity-label">{$t('sidebar.serverIdentityLabel')}</span>
-        <span class="server-identity-name truncate">{serverName}</span>
+        <span class="server-identity-name truncate" use:bulleTexte>{serverName}</span>
       </div>
     {/if}
   </div>
@@ -1077,9 +1080,9 @@
               {/if}
             </span>
             <div class="zone-text">
-              <span class="zone-name truncate">{zone.name}</span>
+              <span class="zone-name truncate" use:bulleTexte>{zone.name}</span>
               {#if zone.current_track && (zone.state === 'playing' || zone.state === 'paused')}
-                <span class="zone-track truncate">{zone.current_track.title}{zone.current_track.artist_name ? ` - ${zone.current_track.artist_name}` : ''}</span>
+                <span class="zone-track truncate" use:bulleTexte>{zone.current_track.title}{zone.current_track.artist_name ? ` - ${zone.current_track.artist_name}` : ''}</span>
               {/if}
             </div>
           </div>
@@ -1135,7 +1138,7 @@
           <span class="device-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>
           </span>
-          <span class="device-name truncate">{audioDevice.name}</span>
+          <span class="device-name truncate" use:bulleTexte>{audioDevice.name}</span>
           {@render favoriteStar('audio', audioDevice.id)}
           <span class="device-type-tag">{$t('settings.usb')}</span>
           <button class="device-add-btn" onclick={() => createZoneFromAudioDevice(audioDevice)} title={$t('zone.createZone')}>
@@ -1157,7 +1160,7 @@
           {#if device.type === 'airplay' && !pairedDeviceIds.has(device.id)}
             <svg class="device-lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           {/if}
-          <span class="device-name truncate">{device.name}</span>
+          <span class="device-name truncate" use:bulleTexte>{device.name}</span>
           {@render favoriteStar('net', device.id)}
           {#if device.zone_hidden}
             <span class="device-hidden-zone">{$t('zone.deletedZone')}</span>
