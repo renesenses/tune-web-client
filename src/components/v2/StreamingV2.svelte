@@ -26,6 +26,9 @@
    *     collection d'achats.
    */
   import * as api from '../../lib/api';
+  import {
+    TAILLES_PAGE, chargerTaillePage, retenirTaillePage, type TaillePage,
+  } from '../../lib/taillePageRecherche';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
@@ -78,6 +81,12 @@
   let results = $state<StreamingSearchResult | null>(null);
   /** Decalage de la DERNIERE page obtenue. */
   let rechOffset = $state(0);
+  /**
+   * 🔴 #922 — combien de lignes une page rapporte. Le plafond de 50 venait
+   * d'un commentaire faux, pas du service : mesuré, `limit=500` rend bien 500
+   * (voir `lib/taillePageRecherche`).
+   */
+  let taillePage = $state<TaillePage>(chargerTaillePage());
   /** Une page suivante est en route — le bouton se desarme le temps qu'elle vienne. */
   let rechSuite = $state(false);
   let bcSearch = $state<any | null>(null);
@@ -129,10 +138,10 @@
     const svc = active, needle = q.trim();
     if (!svc || svc === BANDCAMP || !results || rechSuite || !results.has_more) return;
     const mien = seq;
-    const suivant = rechOffset + api.SEARCH_PAGE_LIMIT;
+    const suivant = rechOffset + taillePage;
     rechSuite = true;
     try {
-      const page = await api.searchStreaming(svc, needle, api.SEARCH_PAGE_LIMIT, suivant);
+      const page = await api.searchStreaming(svc, needle, taillePage, suivant);
       // La recherche a change pendant l'aller-retour : cette page n'est plus
       // celle de l'ecran, on la jette.
       if (mien !== seq || !results) return;
@@ -484,7 +493,10 @@
           .catch(() => { if (mine === seq) bcSearch = null; })
           .finally(() => { if (mine === seq) searching = false; });
       } else {
-        api.searchStreaming(svc, needle).then((r) => { if (mine === seq) results = r; })
+        // 🔴 #922 — la PREMIÈRE page compte autant que les suivantes : c'est
+        // elle qui rendait « seulement 50 résultats ». `taillePage` est lu
+        // ici, donc changer le réglage relance la recherche.
+        api.searchStreaming(svc, needle, taillePage).then((r) => { if (mine === seq) results = r; })
           .catch(() => { if (mine === seq) results = null; })
           .finally(() => { if (mine === seq) searching = false; });
       }
@@ -797,9 +809,21 @@
           <!-- « Voir plus » CHARGE, il ne devoile pas : la recherche globale
                range tout d'un coup et n'en montre qu'une part, celle-ci va
                chercher la page suivante au service. -->
-          <button class="voirplus" onclick={chargerPlus} disabled={rechSuite}>
-            {rechSuite ? $t('v2.stream.loadingMore' as any) : $t('v2.stream.seeMore' as any)}
-          </button>
+          <div class="pagination">
+            <button class="voirplus" onclick={chargerPlus} disabled={rechSuite}>
+              {rechSuite ? $t('v2.stream.loadingMore' as any) : $t('v2.stream.seeMore' as any)}
+            </button>
+            <!-- 🔴 #922 — la taille de page. Elle vaut 50 depuis toujours à
+                 cause d'un commentaire qui affirmait à tort que le service ne
+                 rendait pas davantage. Mesuré : 500 rend 500. -->
+            <label class="tpage">
+              <span>{$t('v2.stream.pageSize' as any)}</span>
+              <select value={String(taillePage)}
+                onchange={(e) => { taillePage = retenirTaillePage((e.currentTarget as HTMLSelectElement).value); }}>
+                {#each TAILLES_PAGE as n (n)}<option value={String(n)}>{n}</option>{/each}
+              </select>
+            </label>
+          </div>
         {/if}
       {/if}
 
@@ -1137,6 +1161,13 @@
   .svcs button.on .who{color:var(--v2-on-acc); opacity:.75}
 
   /* L'arbre des genres : des familles lisibles, pas 27 puces sur une ligne. */
+  /* #922 — la barre de pagination : le bouton, puis la taille de page. */
+  .pagination{display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:6px 0 18px}
+  .tpage{display:flex; align-items:center; gap:7px; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .tpage select{font:inherit; color:var(--v2-txt); background:var(--v2-surface2, transparent);
+    border:1px solid var(--v2-line2); border-radius:7px; padding:4px 7px; cursor:pointer}
+  .tpage select:hover{border-color:var(--v2-acc1)}
+
   .gtree{display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:8px; margin:4px 0 18px}
   .gfam{display:flex; align-items:center; justify-content:space-between; gap:10px;
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2);

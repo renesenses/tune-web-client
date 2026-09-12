@@ -2563,8 +2563,22 @@ function mapZoneQuality(zone: any): Zone {
  * même mot-clé rendait donc plus de résultats dans un écran que dans l'autre,
  * sans que rien ne l'explique (#2036, signalé par Vincent sur Qobuz).
  *
- * 50 est le plafond de page de l'API Qobuz — demander davantage ne rend pas
- * davantage. Au-delà, il faut paginer, pas augmenter ce nombre.
+ * 🔴 CE COMMENTAIRE ÉTAIT FAUX, et il a tenu le plafond à 50 pendant tout ce
+ * temps. Il affirmait : « 50 est le plafond de page de l'API Qobuz — demander
+ * davantage ne rend pas davantage. »
+ *
+ * Mesuré le 12/09/2026 sur la .18 en v0.9.147, requête « somebody » :
+ *
+ *   GET /streaming/qobuz/search?limit=50  → 50 albums   limit=200 → 200
+ *                                   100  → 100          limit=500 → 500
+ *   totals : albums 1000 · titres 1000
+ *
+ * Demander davantage rend bien davantage. Le plafond de 50 n'était pas celui
+ * du service, c'était celui qu'on s'imposait — et c'est le « seulement 50
+ * résultats » que FabienM signale (#922, fil 1691 point 5).
+ *
+ * Cette constante reste la valeur PAR DÉFAUT ; la taille réellement employée
+ * se règle désormais par écran (`lib/taillePageRecherche`).
  */
 export const SEARCH_PAGE_LIMIT = 50;
 

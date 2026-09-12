@@ -3817,6 +3817,7 @@ export default {
   "v2.stream.searchIn": "Search in {service}",
   "v2.stream.noResultIn": "No results in {service}.",
   "v2.stream.seeMore": "Load more results",
+  "v2.stream.pageSize": "Per page",
   "v2.stream.loadingMore": "Loading…",
   "v2.stream.playFailed": "Playback failed.",
   "v2.common.loading": "Loading…",

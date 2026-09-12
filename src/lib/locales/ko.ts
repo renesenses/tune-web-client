@@ -3798,6 +3798,7 @@ export default {
   "v2.stream.searchIn": "{service}에서 검색",
   "v2.stream.noResultIn": "{service}에 결과가 없습니다.",
   "v2.stream.seeMore": "결과 더 불러오기",
+  "v2.stream.pageSize": "페이지당",
   "v2.stream.loadingMore": "불러오는 중…",
   "v2.stream.playFailed": "재생할 수 없습니다.",
   "v2.common.loading": "불러오는 중…",
