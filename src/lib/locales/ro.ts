@@ -4120,6 +4120,7 @@ export default {
   "v2.health.enrichErrors": "{n} eșuate",
   "v2.health.cardCovers": "Portrete de artiști",
   "v2.health.cardCoversSub": "Căutarea portretelor lipsă",
+  "v2.health.cardLogs": "Jurnalele serverului",
   "v2.health.coversLine": "{n} din {t} procesate — {f} găsite",
   "v2.health.coversNone": "Nicio trecere înregistrată",
   "v2.health.coversMissing": "{n} artiști încă fără portret",

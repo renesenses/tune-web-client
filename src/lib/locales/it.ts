@@ -4120,6 +4120,7 @@ export default {
   "v2.health.enrichErrors": "{n} falliti",
   "v2.health.cardCovers": "Ritratti degli artisti",
   "v2.health.cardCoversSub": "Ricerca dei ritratti mancanti",
+  "v2.health.cardLogs": "Log del server",
   "v2.health.coversLine": "{n} di {t} elaborati — {f} trovati",
   "v2.health.coversNone": "Nessun passaggio registrato",
   "v2.health.coversMissing": "{n} artisti ancora senza ritratto",

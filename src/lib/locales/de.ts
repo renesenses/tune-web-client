@@ -4120,6 +4120,7 @@ export default {
   "v2.health.enrichErrors": "{n} fehlgeschlagen",
   "v2.health.cardCovers": "Interpretenbilder",
   "v2.health.cardCoversSub": "Suche nach fehlenden Bildern",
+  "v2.health.cardLogs": "Server-Protokolle",
   "v2.health.coversLine": "{n} von {t} verarbeitet — {f} gefunden",
   "v2.health.coversNone": "Kein Durchlauf aufgezeichnet",
   "v2.health.coversMissing": "{n} Interpreten noch ohne Bild",

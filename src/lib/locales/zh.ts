@@ -4120,6 +4120,7 @@ export default {
   "v2.health.enrichErrors": "{n} 个失败",
   "v2.health.cardCovers": "艺术家照片",
   "v2.health.cardCoversSub": "查找缺失的照片",
+  "v2.health.cardLogs": "服务器日志",
   "v2.health.coversLine": "已处理 {t} 中的 {n} — 找到 {f}",
   "v2.health.coversNone": "没有记录的运行",
   "v2.health.coversMissing": "仍有 {n} 位艺术家没有照片",

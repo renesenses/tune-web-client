@@ -4120,6 +4120,7 @@ export default {
   "v2.health.enrichErrors": "{n} 件が失敗",
   "v2.health.cardCovers": "アーティスト画像",
   "v2.health.cardCoversSub": "不足している画像を検索",
+  "v2.health.cardLogs": "サーバーログ",
   "v2.health.coversLine": "{t} 件中 {n} 件を処理 — {f} 件発見",
   "v2.health.coversNone": "記録された実行はありません",
   "v2.health.coversMissing": "{n} 人のアーティストに画像がありません",

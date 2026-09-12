@@ -4078,6 +4078,7 @@ export default {
   "v2.health.enrichErrors": "{n} sikertelen",
   "v2.health.cardCovers": "Előadói portrék",
   "v2.health.cardCoversSub": "Hiányzó portrék keresése",
+  "v2.health.cardLogs": "Kiszolgálónaplók",
   "v2.health.coversLine": "{t}-ból {n} feldolgozva — {f} találat",
   "v2.health.coversNone": "Nincs rögzített futás",
   "v2.health.coversMissing": "{n} előadónak még nincs portréja",

@@ -4120,6 +4120,7 @@ export default {
   "v2.health.enrichErrors": "{n}개 실패",
   "v2.health.cardCovers": "아티스트 사진",
   "v2.health.cardCoversSub": "누락된 사진 검색",
+  "v2.health.cardLogs": "서버 로그",
   "v2.health.coversLine": "{t}개 중 {n}개 처리 — {f}개 발견",
   "v2.health.coversNone": "기록된 실행이 없습니다",
   "v2.health.coversMissing": "{n}명의 아티스트에게 사진이 없습니다",

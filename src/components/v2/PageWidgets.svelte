@@ -246,7 +246,10 @@
     if (demandes.has(id)) return;
     demandes.add(id);
     const w = parId(id);
-    if (!w) return;
+    // Même raison qu'au `.catch` : une demande qui n'a rien lancé n'est pas
+    // une demande servie. La garder condamnerait l'identifiant pour la vie de
+    // la page si le catalogue venait à l'apprendre plus tard.
+    if (!w) { demandes.delete(id); return; }
     /**
      * 🔴 On ne garde PAS la référence qu'on vient de pousser.
      *
@@ -280,8 +283,50 @@
           phase: 'echec',
           raison: err?.message === 'delai' ? 'delai' : (err?.message ?? 'erreur'),
         });
+        /**
+         * 🔴 #871 — LE REGISTRE REND LA DEMANDE QUI A ÉCHOUÉ.
+         *
+         * `demandes` existe pour empêcher les « chargements x4 » : une seconde
+         * demande du même widget est refusée. Mais l'identifiant y restait
+         * même quand le chargement avait ÉCHOUÉ — le garde ne distinguait pas
+         * « déjà chargé » de « déjà tombé ».
+         *
+         * Conséquence mesurée par Bertrand : le serveur redémarre, les quatre
+         * widgets tombent ensemble en « (délai) », et plus RIEN ne les relève.
+         * Aucun geste de la page ne pouvait les relancer, parce que tous
+         * passent par `chargerWidget`, qui repartait aussitôt. Il fallait
+         * recharger l'onglet — sur une tablette posée dans le salon, c'est-à-
+         * dire jamais.
+         *
+         * Un échec n'est donc pas une demande servie : on la retire, et la
+         * page redevient relançable. Le succès, lui, garde son entrée — c'est
+         * lui, et lui seul, que le garde doit refuser.
+         *
+         * ⚠️ AUCUN `$t(…)` ici. Ce `.catch` est du code ordinaire, pas du
+         * balisage : `$t` y est une souscription que le compilateur transpile
+         * sans la résoudre. Le libellé du bouton de relance vit dans le
+         * balisage, où `$t` a un sens.
+         */
+        demandes.delete(id);
         console.warn('[accueil] widget en échec', id, err);
       });
+  }
+
+  /**
+   * Relance un widget TOMBÉ, sans recharger la page.
+   *
+   * L'état d'échec est retiré AVANT l'appel : `chargerWidget` empile une
+   * entrée neuve sans regarder si le tableau en porte déjà une pour cet
+   * identifiant, et `majEtat` n'écrirait ensuite que dans la PREMIÈRE — la
+   * carte resterait figée sur son échec pendant que la seconde, invisible,
+   * recevrait le contenu.
+   *
+   * Rien n'est retiré du registre ici : c'est le `.catch` qui rend la demande.
+   * Le faire aux deux endroits masquerait sa disparition de l'un des deux.
+   */
+  function relancerWidget(id: string) {
+    etats = etats.filter((e) => e.id !== id);
+    chargerWidget(id);
   }
 
   /**
@@ -552,8 +597,15 @@
             {#if !et || et.phase === 'attente'}
               <div class="state mince">{$t('common.loading' as any)}</div>
             {:else if et.phase === 'echec'}
+              <!-- #871 — le message DIT ce qui a échoué, le bouton permet d'y
+                   revenir. Sans lui, la seule issue était F5 : les quatre
+                   widgets tombent ensemble dès que le serveur redémarre, et
+                   un accueil figé sur « (délai) » se lit comme une panne de
+                   la bibliothèque. Le libellé est celui, déjà traduit dans
+                   les onze langues, des podcasts. -->
               <div class="state mince err">
-                {$t('v2.home.widgetFailed' as any)}{et.raison ? ` (${et.raison})` : ''}
+                <span>{$t('v2.home.widgetFailed' as any)}{et.raison ? ` (${et.raison})` : ''}</span>
+                <button class="relancer" onclick={() => relancerWidget(id)}>{$t('v2.pod.retry' as any)}</button>
               </div>
             {:else if w.forme === 'chiffres'}
               <div class="chiffres">
@@ -766,7 +818,12 @@
   .bloc{min-width:0}
   .state{padding:26px 30px; color:var(--v2-txt3); font-size:13.5px}
   .state.mince{padding:8px 30px 18px}
-  .state.err{color:var(--v2-danger)}
+  .state.err{color:var(--v2-danger); display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  /* #871 — la relance est une ACTION, elle se voit sans survol : c'est le
+     dernier recours d'une page tombée, et un bouton caché n'en est pas un. */
+  .relancer{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2, var(--v2-txt));
+    font:inherit; font-size:12.5px; padding:3px 10px; border-radius:7px; cursor:pointer}
+  .relancer:hover{border-color:var(--v2-acc1); color:var(--v2-txt)}
 
   .bloc{padding:10px 0 6px; border-top:1px solid transparent}
   /* La cible de dépôt se voit : sans repère, on lâche à l'aveugle. */
