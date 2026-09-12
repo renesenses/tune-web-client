@@ -192,6 +192,22 @@ export interface Preferences {
    * rien d'autre ne doit écrire cette clé sans passer par lui.
    */
   avatarImage: string;
+  /**
+   * À QUI appartient cette photo — l'identité du compte cloud qui l'a posée
+   * (son adresse de courriel, ou son nom d'affichage à défaut). Vide = aucune.
+   *
+   * 🔴 Sans ce champ, la photo n'appartient à personne : elle reste affichée
+   * après une déconnexion, et un second compte ouvert sur la même machine
+   * hérite de la photo du premier. Ce n'est pas une subtilité de session —
+   * c'est l'identité montrée en permanence dans le coin de l'écran.
+   *
+   * Les préférences sont rangées PAR INSTALLATION (`ui_preferences`), pas par
+   * compte : c'est donc au moment de l'AFFICHAGE qu'on recoupe, en comparant
+   * ce champ à l'identité rendue par `GET /cloud/sso/status`. Se déconnecter
+   * rend le dégradé, se reconnecter rend la photo, et un autre compte ne la
+   * voit pas.
+   */
+  avatarCompte: string;
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -225,6 +241,7 @@ const defaults: Preferences = {
   // ci-dessous continue de primer sur ce defaut.
   settingsLevel: 'expert',
   avatarImage: '',
+  avatarCompte: '',
 };
 
 /** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
@@ -358,6 +375,10 @@ function loadPrefs(): Preferences {
       if (!estDataUrlImage((raw as { avatarImage?: unknown })?.avatarImage)) {
         p.avatarImage = '';
       }
+      // Le propriétaire de la photo est comparé à une identité de compte : une
+      // valeur qui n'est pas une chaîne ne peut apparier personne, et la garder
+      // ferait porter la comparaison sur un objet.
+      if (typeof p.avatarCompte !== 'string') p.avatarCompte = '';
       return p;
     }
   } catch { /* ignore */ }
@@ -411,6 +432,7 @@ export async function syncPreferencesFromServer() {
       // par lequel une valeur distante atteindrait l'attribut `src` de la
       // bulle — précisément celui qu'on prétend garder.
       if (!estDataUrlImage(server.avatarImage)) delete server.avatarImage;
+      if (typeof server.avatarCompte !== 'string') delete server.avatarCompte;
       if (hadLocalPrefs) {
         preferences.update((local) => ({ ...defaults, ...server, ...local }));
       } else {

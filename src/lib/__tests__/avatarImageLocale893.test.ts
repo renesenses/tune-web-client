@@ -254,6 +254,66 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
     expect(menu()).toMatch(/photoLocaleCassee \? '' : photoLocale\) \|\| ssoAvatar/);
   });
 
+  it('🔴 la BULLE ouvre l’explorateur, pas le menu', () => {
+    // Geste demandé par Matteo le 12/09/2026 : on clique sa photo pour la
+    // changer. C'est le bouton visible en permanence.
+    const src = menu();
+    const bulle = src.indexOf('<button class="avatar"');
+    expect(src.slice(bulle, src.indexOf('>', bulle))).toContain('onclick={ouvrirExplorateur}');
+  });
+
+  it('🔴 le menu du compte garde une porte — le chevron', () => {
+    // La bulle était sa SEULE porte. La lui prendre sans rien mettre à la place
+    // enterrait Réglages, Thèmes, « Se déconnecter » et le retour vers
+    // l'interface actuelle — que les notes décrivent comme l'issue de sortie
+    // d'une prévisualisation.
+    const src = menu();
+    const chevron = src.indexOf('<button class="chevron"');
+    expect(chevron, 'plus aucun bouton n’ouvre le menu du compte').toBeGreaterThan(-1);
+    expect(src.slice(chevron, src.indexOf('</button>', chevron))).toContain('onclick={toggle}');
+  });
+
+  it('🔴 le champ de fichier vit HORS du panneau', () => {
+    // Depuis que la bulle l'ouvre, il doit exister menu FERMÉ. Le laisser dans
+    // le panneau rendrait le clic sur la bulle sans effet — et sans erreur.
+    const src = menu();
+    const champ = src.indexOf('type="file"');
+    const panneau = src.indexOf('{#if open}');
+    expect(champ, 'le champ de fichier a disparu').toBeGreaterThan(-1);
+    expect(champ, 'le champ est enfermé dans le panneau : la bulle ne l’atteindrait pas')
+      .toBeLessThan(panneau);
+  });
+
+  it('🔴 déconnecté, on refuse en disant pourquoi', () => {
+    // La photo est attachée à un compte : en poser une sans compte produirait
+    // une image aussitôt masquée, c'est-à-dire un bouton qui ne fait rien.
+    const src = menu();
+    const i = src.indexOf('function ouvrirExplorateur');
+    const corps = src.slice(i, i + 400);
+    expect(corps).toContain('if (!ssoConnected)');
+    expect(corps).toContain("settings.avatarSignInFirst");
+    expect(corps.indexOf('return;'), 'le refus ne coupe pas : l’explorateur s’ouvrirait quand même')
+      .toBeLessThan(corps.indexOf('champFichier?.click()'));
+  });
+
+  it('🔴 la photo n’est montrée qu’à SON compte', () => {
+    // Sans ce recoupement, elle survit à la déconnexion — affichée dans le coin
+    // de l'écran alors qu'il n'y a plus personne — et le compte suivant ouvert
+    // sur la même machine hérite de celle du précédent.
+    const src = menu();
+    expect(src).toContain('ssoConnected && identiteCompte && $preferences.avatarCompte === identiteCompte');
+  });
+
+  it('🔴 la photo et son propriétaire s’écrivent ENSEMBLE', () => {
+    // Séparés, il existerait un instant où l'un vit sans l'autre : une photo
+    // sans compte ne s'affiche jamais, et elle serait rangée pour rien.
+    const src = menu();
+    expect(src).toContain('avatarImage: url, avatarCompte: identiteCompte');
+    expect(src, 'retirer laisse un propriétaire orphelin').toContain(
+      "avatarImage: '', avatarCompte: ''",
+    );
+  });
+
   it('🔴 les deux actions sont dépliées par le ROND de l’en-tête', () => {
     // Choix de Matteo (12/09/2026) : pas de rubrique permanente de plus dans
     // un panneau déjà plafonné en hauteur. Le geste est « je clique ma photo
@@ -284,9 +344,7 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
     expect(src, 'sans filtre, le sélecteur propose tous les fichiers').toContain(
       'accept="image/*"',
     );
-    expect(src, 'le bouton du menu doit déclencher le champ masqué').toContain(
-      'champFichier?.click()',
-    );
+    expect(src, 'plus rien ne déclenche le champ masqué').toContain('champFichier?.click()');
   });
 
   it('🔴 le champ est vidé AVANT le premier retour possible', () => {

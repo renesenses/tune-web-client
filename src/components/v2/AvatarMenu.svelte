@@ -135,7 +135,27 @@
   // jamais l'effacer : la supprimer repartirait en `PATCH` et détruirait chez
   // tout le monde une image parfaitement lisible ailleurs.
   let photoLocaleCassee = $state(false);
-  const photoLocale = $derived($preferences.avatarImage);
+
+  /**
+   * L'identité du compte ouvert : l'adresse de courriel, son nom d'affichage à
+   * défaut. C'est la clé à laquelle la photo est attachée.
+   */
+  const identiteCompte = $derived(ssoEmail || ssoName);
+
+  /**
+   * 🔴 La photo n'est montrée QUE si elle appartient au compte ouvert.
+   *
+   * Les préférences sont rangées par installation, pas par compte. Sans ce
+   * recoupement, la photo survivait à la déconnexion — elle restait affichée
+   * dans le coin de l'écran alors qu'il n'y avait plus personne — et le compte
+   * suivant ouvert sur la même machine héritait de celle du précédent. Se
+   * déconnecter rend le dégradé ; se reconnecter rend la photo.
+   */
+  const photoLocale = $derived(
+    ssoConnected && identiteCompte && $preferences.avatarCompte === identiteCompte
+      ? $preferences.avatarImage
+      : '',
+  );
   const photo = $derived((photoLocaleCassee ? '' : photoLocale) || ssoAvatar);
 
   // Une photo fraîchement choisie doit être réessayée, même si la précédente
@@ -152,6 +172,22 @@
     if (!open) photoActions = false;
   });
 
+  /**
+   * Le geste principal : un clic sur la BULLE ouvre l'explorateur de fichiers.
+   *
+   * Déconnecté, on refuse en disant pourquoi. La photo est attachée à un
+   * compte : en poser une sans compte produirait une image aussitôt masquée,
+   * c'est-à-dire un bouton qui ne fait rien de visible. Le menu, lui, reste à
+   * un clic — le chevron voisin — et c'est là que se trouve « Se connecter ».
+   */
+  function ouvrirExplorateur() {
+    if (!ssoConnected) {
+      notifications.error(get(t)('settings.avatarSignInFirst'));
+      return;
+    }
+    champFichier?.click();
+  }
+
   async function choisirPhoto(e: Event) {
     const champ = e.currentTarget as HTMLInputElement;
     const fichier = champ.files?.[0];
@@ -163,7 +199,10 @@
     envoiPhoto = true;
     try {
       const url = await avatarDepuisFichier(fichier);
-      preferences.update((p) => ({ ...p, avatarImage: url }));
+      // La photo et SON propriétaire s'écrivent ensemble : une photo sans
+      // compte ne s'afficherait jamais, et un compte sans photo est l'état
+      // normal. Les séparer laisserait une fenêtre où l'un existe sans l'autre.
+      preferences.update((p) => ({ ...p, avatarImage: url, avatarCompte: identiteCompte }));
       notifications.success(get(t)('settings.avatarSaved'));
     } catch (err) {
       // Le motif du refus est porté par l'exception : on dit QUOI corriger.
@@ -176,7 +215,7 @@
   }
 
   function retirerPhoto() {
-    preferences.update((p) => ({ ...p, avatarImage: '' }));
+    preferences.update((p) => ({ ...p, avatarImage: '', avatarCompte: '' }));
     notifications.success(get(t)('settings.avatarRemoved'));
   }
 
@@ -218,7 +257,15 @@
 <svelte:window onclick={onDocClick} />
 
 <div class="avwrap tune-v2">
-  <button class="avatar" class:linked={ssoConnected} onclick={toggle} aria-label={$t('settings.accountMenu' as any)} aria-haspopup="menu" aria-expanded={open}>
+  <!--
+    LA BULLE OUVRE L'EXPLORATEUR. C'est le geste demandé par Matteo le
+    12/09/2026 : on clique sa photo pour la changer, et la nouvelle remplace
+    l'ancienne. Le menu du compte n'y est plus attaché — il a le chevron voisin,
+    sans quoi Réglages, Thèmes, « Se déconnecter » et le retour vers l'interface
+    actuelle n'auraient plus AUCUNE porte : la bulle était la seule.
+  -->
+  <button class="avatar" class:linked={ssoConnected} onclick={ouvrirExplorateur}
+    aria-label={$t('settings.avatarSetPhoto' as any)} title={$t('settings.avatarSetPhoto' as any)}>
     <!-- La photo affichée : celle qu'on a choisie soi-même d'abord, celle du
          compte mozaiklabs.fr à défaut. En `<img>` et non en `background-image` :
          l'URL vient du serveur, la coller dans du CSS l'exposerait à une
@@ -233,6 +280,20 @@
         onerror={() => { if (photoLocale && !photoLocaleCassee) photoLocaleCassee = true; else ssoAvatar = ''; }} />
     {/if}
   </button>
+
+  <!-- La porte du menu du compte. Discrète mais VISIBLE : un menu qu'on
+       n'atteint que par un geste caché est un menu perdu. -->
+  <button class="chevron" onclick={toggle} aria-label={$t('settings.accountMenu' as any)}
+    title={$t('settings.accountMenu' as any)} aria-haspopup="menu" aria-expanded={open}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+      stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+  </button>
+
+  <!-- 🔴 Le champ vit HORS du menu. Depuis que la bulle l'ouvre, il doit
+       exister menu fermé : le laisser dans le panneau rendrait le clic sur la
+       bulle sans effet, sans la moindre erreur pour le dire. -->
+  <input class="fichier" bind:this={champFichier} type="file" accept="image/*"
+    tabindex="-1" aria-hidden="true" onchange={choisirPhoto} />
 
   {#if open}
     <div class="avmenu">
@@ -271,15 +332,13 @@
       -->
       {#if photoActions}
         <div class="seg">
-          <button onclick={() => champFichier?.click()} disabled={envoiPhoto}>
+          <button onclick={ouvrirExplorateur} disabled={envoiPhoto}>
             {envoiPhoto ? $t('common.loading') : $t('settings.avatarChoose' as any)}
           </button>
           {#if photoLocale}
             <button onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
           {/if}
         </div>
-        <input class="fichier" bind:this={champFichier} type="file" accept="image/*"
-          tabindex="-1" aria-hidden="true" onchange={choisirPhoto} />
         <div class="hint">{$t('settings.avatarHint' as any)}</div>
       {/if}
 
@@ -380,7 +439,7 @@
 </div>
 
 <style>
-  .avwrap{position:relative; font-family:var(--v2-sans)}
+  .avwrap{position:relative; display:flex; align-items:center; font-family:var(--v2-sans)}
   .avatar{width:44px; height:44px; border-radius:50%; border:2px solid var(--v2-line2); cursor:pointer;
     position:relative; background:linear-gradient(135deg,var(--v2-av1),var(--v2-av2)); padding:0}
   /* Pastille de compte. Elle etait DECORATIVE — couleur fixe, aucun etat — et
@@ -444,6 +503,16 @@
     font-size:11.5px; font-weight:600; padding:7px 4px; border-radius:9px; cursor:pointer; transition:.15s}
   .seg button:hover{color:var(--v2-txt)}
   .seg button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 3px 10px var(--v2-glow)}
+  /* Le chevron du menu du compte. Collé à la bulle — 6 px et non les 10 px qui
+     séparent les autres icônes — pour qu'il se lise comme SON accessoire, et
+     non comme un quatrième bouton indépendant de la grappe. */
+  .chevron{width:24px; height:24px; margin-left:6px; padding:0; border:0; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; border-radius:8px;
+    background:transparent; color:var(--v2-txt3); transition:.15s}
+  .chevron:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .chevron svg{width:14px; height:14px}
+  .chevron[aria-expanded="true"]{color:var(--v2-txt); background:var(--v2-hover)}
+
   /* Le champ de fichier n'est jamais montré : le bouton du menu le déclenche.
      `display:none` et non une astuce de position — rien ne doit le rendre
      atteignable au clavier, c'est le bouton qui porte le focus. */
