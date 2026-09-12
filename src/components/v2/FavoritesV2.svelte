@@ -375,6 +375,36 @@
       });
   });
 
+  /**
+   * 🔴 #857 — retirer une STATION de ses favoris.
+   *
+   * FabienM, fil 1749 point 6 : « il manque le cœur rouge sur la radio pour
+   * enlever le favori. Le cœur rouge est bien présent dans les autres
+   * catégories ». Les stations étaient arrivées dans cet onglet par #3779 ;
+   * le geste inverse, non.
+   *
+   * Rien à écrire côté serveur : le favori d'une station vit dans
+   * `radios.favorite`, et `RadiosV2:102` bascule déjà ce champ par le même
+   * appel. Il n'était simplement pas offert depuis cet écran.
+   *
+   * La carte disparaît aussitôt — c'est ce que fait déjà `retirerRadio` pour
+   * un titre capté, et un favori retiré qui reste affiché dans l'onglet
+   * « favoris » se relit comme un échec.
+   */
+  let retraitStation = $state<number | null>(null);
+
+  async function retirerStation(r: any) {
+    if (r?.id == null || retraitStation != null) return;
+    retraitStation = r.id;
+    try {
+      await api.updateRadio(r.id, { favorite: false });
+      stations = stations.filter((x) => x.id !== r.id);
+    } catch {
+      notifications.error($t('settings.deletionError' as any));
+    }
+    retraitStation = null;
+  }
+
   async function retirerRadio(fav: any) {
     try {
       await api.apiDelete(`/radio-favorites/${fav.id}`);
@@ -810,10 +840,22 @@
           <h2 class="rf-titre">{$t('v2.radio.allStations' as any)}</h2>
           <div class="stgrille">
             {#each vStations as r (r.id)}
-              <button class="stcarte" onclick={() => lireStation(r)} title={r.name}>
-                <span class="stnom">{r.name}</span>
-                {#if r.genre}<span class="stgenre">{r.genre}</span>{/if}
-              </button>
+              <!-- 🔴 #857 — la carte était UN SEUL bouton de lecture. Le cœur
+                   de retrait ne pouvait donc pas y tenir : un bouton dans un
+                   bouton n'est pas du HTML valide. On sort l'enveloppe, la
+                   lecture garde son bouton, le cœur a le sien. -->
+              <div class="stcarte" class:occupee={retraitStation === r.id}>
+                <button class="stlire" onclick={() => lireStation(r)} title={r.name}>
+                  <span class="stnom">{r.name}</span>
+                  {#if r.genre}<span class="stgenre">{r.genre}</span>{/if}
+                </button>
+                <button class="sfav on" disabled={retraitStation === r.id}
+                  onclick={() => retirerStation(r)}
+                  title={$t('favorites.remove' as any)}
+                  aria-label={$t('favorites.remove' as any)}>
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z"/></svg>
+                </button>
+              </div>
             {/each}
           </div>
         {/if}
@@ -932,10 +974,16 @@
     text-transform:uppercase; padding:14px 30px 8px}
   .stgrille{display:grid; gap:10px; padding:0 30px 18px;
     grid-template-columns:repeat(auto-fill, minmax(190px, 1fr))}
-  .stcarte{display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left;
+  /* #857 — l'enveloppe porte le cadre ; la lecture et le cœur sont deux
+     boutons côte à côte, à l'intérieur. */
+  .stcarte{display:flex; align-items:center; gap:8px;
     padding:12px 14px; border-radius:11px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt); cursor:pointer; min-width:0}
+    background:transparent; color:var(--v2-txt); min-width:0}
   .stcarte:hover{border-color:var(--v2-acc1)}
+  .stcarte.occupee{opacity:.55}
+  .stlire{display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left;
+    flex:1; min-width:0; padding:0; border:0; background:transparent;
+    color:inherit; font:inherit; cursor:pointer}
   .stnom{font:600 13.5px var(--v2-sans); overflow:hidden; text-overflow:ellipsis;
     white-space:nowrap; max-width:100%}
   .stgenre{font:11px var(--v2-mono); color:var(--v2-txt3)}
