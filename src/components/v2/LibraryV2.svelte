@@ -52,7 +52,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
-  import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, type ModeAnnee } from '../../lib/anneeAlbum';
+  import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
     comptesCompilation,
@@ -317,8 +317,15 @@
       case 'year':
         // Sans annee en DERNIER quel que soit le sens : un album non date ne
         // doit pas squatter la tete de liste.
+        //
+        // 🔴 L'annee, PUIS la date de sortie (#866). Le bouble « Plus recent
+        // d'abord » ne descendait pas sous l'annee : deux albums de 1975
+        // retombaient sur l'ordre alphabetique, ce que Jean Valjean lit comme
+        // un bouton qui n'ordonne pas. `comparerAlbumsParAnnee` departage sur
+        // `original_date`/`release_date` quand les DEUX portent un mois, et
+        // rend 0 sinon — on retombe alors sur `byTitle`, comme avant.
         return list.sort((a, b) =>
-          comparerAnnees(albumYear(a), albumYear(b), ordreAnnee) || byTitle(a, b),
+          comparerAlbumsParAnnee(a, b, modeAnnee, ordreAnnee) || byTitle(a, b),
         );
       case 'added':
         return list.sort((a, b) => (b.added_at ?? 0) - (a.added_at ?? 0) || byTitle(a, b));
@@ -374,8 +381,15 @@
    * sans le savoir ferait tomber la frise a 90 albums, ce qui se lit comme une
    * panne.
    *
-   * `release_date` n'est pas propose : mesure a 0 rempli. Un choix qui ne
-   * trierait rien n'est pas un choix.
+   * `release_date` n'est toujours pas propose comme MODE : mesure du
+   * 12/09/2026 sur le .18 (v0.9.146), 0 album sur 4 255 en porte un. Un choix
+   * qui ne trierait rien n'est pas un choix.
+   *
+   * ⚠️ A ne pas confondre avec le DEPARTAGE par date ajoute pour #866 : le tri
+   * par annee descend desormais jusqu'a `original_date`/`release_date` quand
+   * les deux albums compares en portent une (`comparerAlbumsParAnnee`). C'est
+   * un second critere applique sous l'annee, pas une entree de menu — il
+   * n'affiche rien de nouveau et ne coute rien quand la donnee manque.
    */
   let modeAnnee = $state<ModeAnnee>('auto');
   let ordreAnnee = $state<'asc' | 'desc'>('desc');
@@ -538,8 +552,31 @@
   /**
    * Un tri devenu indisponible ne doit pas rester ACTIF : la bibliothèque
    * paraîtrait triée par un critère absent du menu.
+   *
+   * 🔴 MAIS UNE LISTE VIDE NE DÉCIDE DE RIEN (#899).
+   *
+   * `hasAddedAt` et `hasDr` interrogent `src`, et `src` est VIDE le temps que
+   * la bibliothèque arrive. Sans cette garde, l'enchaînement était :
+   *
+   *   1. l'écran s'ouvre, `src` est vide, `hasAddedAt` est faux ;
+   *   2. « Ajout récent » quitte `availableSorts` ;
+   *   3. cet effet rabat `sortKey` sur `'title'`… et l'effet voisin
+   *      (`ecrireChoix('lib.sort', …)`) ÉCRIT ce `'title'` dans le stockage ;
+   *   4. les albums arrivent, « Ajout récent » revient au menu — mais le choix
+   *      de l'utilisateur a déjà été effacé, définitivement.
+   *
+   * eric, forum 1668, 04/09/2026 : « je n'ai pas vu de possibilité de tri des
+   * albums par date d'ajout dans la nouvelle interface ». L'option EXISTE et le
+   * serveur sert bien `added_at` — mesuré le 12/09/2026 sur le .18
+   * (v0.9.146) : 4 255 albums sur 4 255 en portent un. C'est le retour sur
+   * « Titre » à chaque ouverture qui la faisait paraître absente, et c'est
+   * exactement la plainte de Lulu (05/09) que `preferencesEcran` devait régler.
+   *
+   * On ne retire donc un tri que sur une liste qui a répondu. Le cas réel —
+   * une bibliothèque chargée où rien ne porte la donnée — reste couvert.
    */
   $effect(() => {
+    if (!src.length) return;
     if (!availableSorts.some((s2) => s2.k === sortKey)) sortKey = 'title';
   });
 
