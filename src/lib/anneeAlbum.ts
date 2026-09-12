@@ -21,8 +21,11 @@
  *
  * ## Ce que cette mesure impose
  *
- * `release_date` n'est proposé nulle part : un choix qui ne trierait RIEN
- * n'est pas un choix. Et « année d'origine » seule fait tomber la
+ * `release_date` n'est proposé comme MODE nulle part : un choix qui ne
+ * trierait RIEN n'est pas un choix. Il sert en revanche de DÉPARTAGE sous
+ * l'année depuis #866 — voir [`comparerAlbumsParAnnee`] en bas de ce fichier :
+ * un second critère ne coûte rien quand la donnée manque, alors qu'une entrée
+ * de menu vide se lit comme une panne. Et « année d'origine » seule fait tomber la
  * bibliothèque de 3049 albums datés à 90 — l'écran doit donc annoncer la
  * couverture de chaque mode, sinon le choix ressemble à une panne.
  *
@@ -101,4 +104,79 @@ export function comparerAnnees(
   if (ya == null) return 1;
   if (yb == null) return -1;
   return ordre === 'asc' ? ya - yb : yb - ya;
+}
+
+/**
+ * La date COMPLÈTE d'un album dans ce mode — `null` si elle n'apporte rien.
+ *
+ * Même cascade que [`anneeAlbum`] : `edition` lit `release_date`, `origine`
+ * lit `original_date`, `auto` prend l'origine si elle existe. Le tri par année
+ * doit départager sur la MÊME date que celle qu'il affiche, sinon deux albums
+ * se rangeraient selon une date que l'écran ne montre pas.
+ *
+ * 🔴 On exige le MOIS (`AAAA-MM`). Une date réduite à `1975` ne dit rien de
+ * plus que l'année déjà comparée, et la comparer comme texte la ferait passer
+ * avant `1975-03-02` — on affirmerait « janvier » là où la donnée dit
+ * seulement « 1975 ». Même règle que l'année absente : on ne classe pas ce
+ * qu'on ne sait pas.
+ */
+export function dateAlbum(a: Album | null | undefined, mode: ModeAnnee = 'auto'): string | null {
+  if (!a) return null;
+  const precise = (v: unknown): string | null =>
+    typeof v === 'string' && /^\d{4}-\d{2}/.test(v) ? v : null;
+  const edition = precise(a.release_date);
+  const origine = precise(a.original_date);
+  if (mode === 'edition') return edition;
+  if (mode === 'origine') return origine;
+  return origine ?? edition;
+}
+
+/**
+ * Compare deux ALBUMS pour le tri par année — l'année d'abord, puis la date.
+ *
+ * ## Pourquoi la date, alors que l'année suffisait
+ *
+ * « Dans Bibliothèque, le bouton ne fonctionne que sur les années et pas sur
+ * les dates de sortie d'album » (Jean Valjean, forum 1671, réponse 6154,
+ * 09/09/2026). Le constat était exact : la granularité maximale du tri était
+ * l'année, et deux albums de 1975 retombaient sur l'ordre ALPHABÉTIQUE — ce
+ * qui, sur une frise triée « Plus récent d'abord », se lit comme un bouton qui
+ * n'ordonne pas.
+ *
+ * ## Ce que ça change RÉELLEMENT, mesuré
+ *
+ * Mesure du 12/09/2026 sur le .18 (v0.9.146, 4 255 albums) :
+ *
+ * | champ           | rempli |
+ * |-----------------|--------|
+ * | `release_date`  | **0** |
+ * | `original_date` | 90 (2,1 %) — dont **12** avec un mois |
+ *
+ * Douze albums portent une date plus fine que l'année, et ils ne se
+ * rencontrent que sur DEUX années (1999 et 2024). Le départage ne joue donc
+ * aujourd'hui que sur une seule paire — « True Blue » (1999-01-21) et « Trio
+ * in Tokyo » (1999-10-15). C'est peu, et c'est dit : la date de sortie n'est
+ * pas une donnée que ce parc porte. Ajouter une ENTRÉE DE MENU « date de
+ * sortie » resterait donc exclu (« un choix qui ne trierait rien n'est pas un
+ * choix ») ; affiner le tri existant là où la donnée EXISTE, en revanche, ne
+ * coûte rien quand elle manque — on retombe sur le titre, exactement comme
+ * avant.
+ *
+ * Rend `0` quand rien ne départage : c'est à l'appelant d'enchaîner sur le
+ * titre, pour qu'il n'y ait qu'UN ordre de repli dans tout l'écran.
+ */
+export function comparerAlbumsParAnnee(
+  a: Album,
+  b: Album,
+  mode: ModeAnnee,
+  ordre: 'asc' | 'desc',
+): number {
+  const parAnnee = comparerAnnees(anneeAlbum(a, mode), anneeAlbum(b, mode), ordre);
+  if (parAnnee !== 0) return parAnnee;
+  const da = dateAlbum(a, mode);
+  const db = dateAlbum(b, mode);
+  // Une seule des deux dates ne départage PAS : on ignore le mois de l'un
+  // plutôt que de décréter que l'autre est de janvier.
+  if (da == null || db == null || da === db) return 0;
+  return ordre === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
 }
