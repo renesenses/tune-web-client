@@ -255,12 +255,13 @@
   .state{padding:30px; color:var(--v2-txt3)}
 
   .list{display:flex; flex-direction:column; gap:1px; padding:6px 30px 20px}
-  /* 🔴 #874 — `.lh`, l'enveloppe de ligne, n'existe plus dans ce balisage :
-     la ligne est rendue par `ListePistesV2` depuis le portage. Ses trois
-     règles ne s'appliquaient à rien. Celle qui comptait — l'atténuation de la
-     ligne en cours de rejeu — est reposée ci-dessous sur l'élément que cet
-     écran rend VRAIMENT et qui porte déjà `class:busy`. */
-  .when.busy{opacity:.55}
+  /* 🔴 #874 — `.lh` a été RETIRÉE : trois règles pour une classe que ce
+     composant ne rend plus depuis le 05/09, quand la ligne est passée à
+     `ListePistesV2` (`f2c9a0c3`). Du CSS mort ne casse rien — c'est
+     précisément pourquoi il reste : personne ne le voit. Trouvée par la garde
+     écrite pour `.row`, qui cherchait un seul sélecteur mort et en a levé
+     deux. `.when` garde sa mise en forme par `.quand .when`, juste en
+     dessous. */
   /* La zone au-dessus de l'instant : deux lignes serrées, alignées à droite,
      comme dans l'écran actuel. */
   .quand{display:flex; flex-direction:column; align-items:flex-end; gap:1px; min-width:92px}
@@ -268,24 +269,27 @@
     max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .quand .when{font:11px var(--v2-mono); color:var(--v2-txt3)}
 
-  /* 🔴 #874 — LE CŒUR NE SE CACHE PLUS DERRIÈRE UN SÉLECTEUR MORT.
-     Il était en `opacity:0`, révélé par `.row:hover .fav`. Or cet écran ne
-     rend AUCUN élément `.row` : les lignes viennent de `ListePistesV2`, qui
-     les nomme `.avecSuffixe` (mode liste) ou `.trow` (mode tableau) — et le
-     CSS de Svelte est portée de COMPOSANT, donc même en changeant de nom la
-     règle ne les atteindrait pas d'ici.
-     La règle ne s'appliquait donc à rien, et rien ne cassait visiblement :
-     le cœur d'un titre PAS ENCORE en favori restait simplement invisible,
-     survol ou pas. Ajouter un favori depuis l'historique demandait de cliquer
-     un bouton qu'on ne voyait pas.
-     Il est désormais visible en permanence — discret quand il est éteint,
-     plein quand le titre est en favori — et son état ne dépend plus du
-     balisage d'un autre composant.
-     ⚠️ `.lh` était mort pour la même raison : son enveloppe est tombée au
-     portage vers `ListePistesV2`. Ses règles sont retirées plus bas. */
+  /* Le cœur d'un titre radio DÉJÀ en favori reste visible : sans cela on ne
+     peut plus lire lesquels le sont sans les survoler un par un — la même
+     règle que sur les pochettes. */
+  /* 🔴 #874 — LE SURVOL ÉTAIT UN SÉLECTEUR MORT.
+     `.fav` naissait en `opacity:0`, révélé par `.row:hover .fav`. Or ce
+     composant ne rend AUCUN `class="row"` : la ligne vient de
+     `ListePistesV2`, qui l'appelle `.trow`. Et même en la renommant, la règle
+     ne mordrait pas — Svelte porte ses styles par composant, et `.trow` ne
+     porte pas le sceau de CELUI-CI.
+     Conséquence mesurée : sur un poste de bureau, le cœur d'un titre PAS
+     ENCORE en favori était invisible — donc inatteignable. Il ne s'affichait
+     que sur tablette, par la règle `@media (hover:none)` juste en dessous.
+     Reivax66 (fil 1729) est sous Windows.
+     On ne remplace pas par `:global(.trow:hover)` : une règle qui perce la
+     portée d'un autre composant se casse à son prochain renommage, en
+     silence, exactement comme celle-ci. Le cœur reste VISIBLE — sa colonne
+     est déjà réservée (`.fav-vide` fait la même largeur), il ne coûte donc
+     aucune place. */
   .fav{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
-    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; opacity:.62; transition:opacity .12s}
-  .fav:hover:not(:disabled), .fav:focus-visible, .fav.on{opacity:1}
+    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; transition:color .12s}
+  .fav.on{opacity:1}
   .fav.on{color:var(--v2-danger)}
   .fav:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-line2)}
   .fav.on:hover{color:var(--v2-danger)}
@@ -309,6 +313,6 @@
   .objet .when{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:82px; text-align:right}
   .tiroir{padding-left:22px; border-left:2px solid var(--v2-line2); margin:2px 0 6px 8px}
 
-  /* Sans survol possible — tactile — rien ne peut rester en réserve. */
-  @media (hover:none){ .fav{opacity:1} }
+  /* La règle tactile qui vivait ici est devenue sans objet : le cœur est
+     visible partout, et il l'était déjà sur tablette par ce seul chemin. */
 </style>

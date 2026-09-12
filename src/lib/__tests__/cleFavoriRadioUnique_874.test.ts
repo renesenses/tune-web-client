@@ -1,26 +1,35 @@
 // @vitest-environment jsdom
 //
-// « Historique : le cœur « favori radio » mal indexé »
-// — renesenses/tune-web-client#874.
+// « Historique : le cœur « favori radio » mal indexé » — #874, ce qu'il en
+// RESTE après #952.
 //
-// Deux défauts distincts sous un seul numéro.
+// ⚠️ DEUX SESSIONS ONT TRAVAILLÉ SUR CETTE ISSUE LE MÊME JOUR. Lisez d'abord
+// `coeurRadioFavoris857_874.test.ts` : il tient le SÉLECTEUR MORT
+// (`.row:hover .fav`, puis `.lh`), livré par #952, avec un détecteur de
+// classes orphelines plus complet que ce que ce fichier tenait — il lit les
+// trois formes que Svelte emploie, `class="x"`, `class:x={…}` et `class:x`.
+// Rien de tout cela n'est repris ici : ce serait une seconde vérité sur le
+// même sujet, et c'est précisément ce que ce fichier combat.
 //
-// 1. LA CLÉ. `cleFavoriRadio` recopiait mot pour mot la formule de
-//    `radioFavListenKey`, qui indexe déjà exactement la même chose — un favori
-//    de radio par titre et artiste — pour la barre de transport, l'écran de
-//    lecture, l'écran des radios et celui des favoris. Deux formules pour un
-//    seul index, c'est une divergence en attente : le jour où l'une se met à
-//    découper ou normaliser autrement, le cœur de l'historique cesse de
-//    s'allumer pour un titre que les quatre autres écrans tiennent pour un
-//    favori — sans erreur et sans rien qui le fasse voir. Elle DÉLÈGUE
-//    désormais.
+// CE QUI RESTE, ET QUE #952 N'A PAS TRAITÉ : LA CLÉ.
 //
-// 2. LE SÉLECTEUR MORT. Le cœur vivait en `opacity:0`, révélé par
-//    `.row:hover .fav`. Or cet écran ne rend AUCUN `.row` : les lignes
-//    viennent de `ListePistesV2`, et le CSS de Svelte est de portée
-//    composant. La règle ne s'appliquait à rien, et rien ne cassait
-//    visiblement — le cœur d'un titre pas encore en favori restait simplement
-//    invisible, survol ou pas.
+// `cleFavoriRadio` recopiait mot pour mot la formule de `radioFavListenKey`,
+// qui indexe déjà exactement la même chose — un favori de radio par titre et
+// artiste — pour la barre de transport, l'écran de lecture, l'écran des
+// radios et celui des favoris. Les deux rendaient la même chaîne : ce n'était
+// pas une divergence, c'était une DUPLICATION, donc une divergence en
+// attente. Le jour où l'une se met à découper ou normaliser autrement, le
+// cœur de l'historique cesse de s'allumer pour un titre que les quatre autres
+// écrans tiennent pour un favori — sans erreur, sans message, et sans rien
+// qui le fasse voir. Elle DÉLÈGUE désormais ; il n'y a plus qu'une formule.
+//
+// 🔴 CE QUE CE FICHIER NE TRANCHE PAS.
+//
+// #952 laisse ouverte une question de produit : deux LIGNES d'historique du
+// même titre ET du même artiste partagent leur état de favori, ce qui est
+// peut-être correct — un favori de radio EST un couple titre/artiste, pas une
+// ligne. Rien ici n'y répond : la clé reste le couple titre/artiste. Ce
+// fichier tient seulement qu'elle est UNE, et qu'elle garde l'artiste.
 //
 // 🔴 LE PIÈGE DE CE TÉMOIN, ET COMMENT IL EST ÉVITÉ.
 //
@@ -31,8 +40,6 @@
 // perdrait l'artiste allumerait les deux cœurs, et le compte passerait de un
 // à deux.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { mount, unmount, flushSync } from 'svelte';
 import HistoriqueV2 from '../../components/v2/HistoriqueV2.svelte';
 import { cleFavoriRadio, chargerFavorisRadio } from '../historiqueLecture';
@@ -141,43 +148,4 @@ describe('#874 — deux homonymes d’artistes différents, deux favoris distinc
     ).toBe(1);
   });
 
-  it('le cœur est VISIBLE sans dépendre du balisage d’un autre composant', () => {
-    // Le défaut était invisible parce qu'il ne cassait rien : le cœur restait
-    // simplement à `opacity:0`, révélé par une règle qui ne s'appliquait à
-    // rien. La règle générale, tenue ici : aucun sélecteur de classe du
-    // `<style>` de cet écran ne vise une classe que son propre balisage ne
-    // rend pas.
-    const src = lireEcran();
-    const i = src.lastIndexOf('<style>');
-    const balisage = src.slice(0, i);
-    const style = src.slice(i, src.lastIndexOf('</style>')).replace(/\/\*[\s\S]*?\*\//g, '');
-
-    const rendues = new Set<string>();
-    for (const m of balisage.matchAll(/class="([^"{]*)"/g)) {
-      for (const c of m[1].split(/\s+/)) if (c) rendues.add(c);
-    }
-    for (const m of balisage.matchAll(/class:([A-Za-z0-9_-]+)/g)) rendues.add(m[1]);
-
-    const visees = new Set<string>();
-    for (const m of style.matchAll(/\.([A-Za-z][A-Za-z0-9_-]*)/g)) visees.add(m[1]);
-
-    const mortes = [...visees].filter((c) => !rendues.has(c));
-    expect(
-      mortes,
-      `HistoriqueV2 stylise des classes qu’il ne rend pas : ${mortes.join(', ')} — ` +
-      'la règle ne s’applique à rien, et rien ne le signale',
-    ).toEqual([]);
-
-    // Et le cœur n'est plus caché : un bouton qu'on ne voit pas n'est pas une
-    // action qu'on peut faire.
-    const regleFav = /\.fav\{[^}]*\}/.exec(style)?.[0] ?? '';
-    expect(regleFav, 'la règle du cœur a disparu').not.toBe('');
-    expect(/opacity:\s*0\b/.test(regleFav), 'le cœur est de nouveau invisible au repos').toBe(false);
-  });
 });
-
-function lireEcran(): string {
-  // `import.meta.url` n'est pas un `file:` sous jsdom : on lit depuis la
-  // racine du dépôt, comme les autres témoins de source de ce dossier.
-  return readFileSync(resolve(process.cwd(), 'src/components/v2/HistoriqueV2.svelte'), 'utf8');
-}

@@ -31,19 +31,11 @@ export const AIR = 14;
  * laisse le dernier pixel du bouton sous la loupe, ce qui est exactement le
  * défaut qu'on corrige.
  *
- * Un plancher au repli connu : si la mesure arrive avant que les polices ne
- * soient chargées, la grappe peut être annoncée plus étroite qu'elle ne le
- * sera, et l'en-tête se retrouverait dessous le temps d'une image.
- *
- * ⚠️ CE PLANCHER SUIT LA GRAPPE. Il valait 172 quand elle portait loupe,
- * signet et avatar (36 + 10 + 32 + 10 + 40 = 128, plus la marge et l'air). Le
- * chevron du menu du compte l'a rejointe le 12/09/2026 — la bulle ouvre
- * désormais l'explorateur de photo, le menu a donc sa propre porte (#893) —
- * soit 6 + 24 de plus : 158 + 30 + 14 = 202. Laisser 172 aurait reproduit,
- * en plus discret, les deux défauts racontés plus haut : un nombre qui décrit
- * une grappe qui n'existe plus.
+ * Un plancher au repli connu (172 px) : si la mesure arrive avant que les
+ * polices ne soient chargées, la grappe peut être annoncée plus étroite qu'elle
+ * ne le sera, et l'en-tête se retrouverait dessous le temps d'une image.
  */
-export const RESERVE_MINIMALE = 202;
+export const RESERVE_MINIMALE = 172;
 
 export function reserveDeLaGrappe(largeurMesuree: number): number {
   if (!Number.isFinite(largeurMesuree) || largeurMesuree <= 0) return RESERVE_MINIMALE;
