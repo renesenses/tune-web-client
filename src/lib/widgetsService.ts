@@ -213,6 +213,7 @@ export async function catalogueService(service: string): Promise<Widget[]> {
       id: `${service}-tag-${gid}`,
       cleTitre: label,
       forme: 'bande',
+      categorie: 'playlists-editoriales',
       charger: async () =>
         utiles(
           contenu
@@ -265,8 +266,42 @@ export async function catalogueService(service: string): Promise<Widget[]> {
  * aucun identifiant en dur : une disposition par défaut qui nommerait
  * `qobuz-sec-new-releases` serait vide sur Tidal.
  */
+/** Combien de bandes d'ALBUMS la disposition par défaut retient en tête. */
+const TETE_PAR_DEFAUT = 4;
+
+/**
+ * La disposition proposée à qui n'a rien réglé.
+ *
+ * 🔴 Elle valait `catalogue.slice(0, 4)`. Sur Qobuz, le catalogue en construit
+ * ~36 et ses quatre premiers sont des bandes d'ALBUMS — Nouveautés, New
+ * Releases, Best Sellers, Press Awards. Les treize catégories de playlists
+ * éditoriales étaient donc bâties, chargées, prêtes… et JAMAIS affichées, sauf
+ * à aller les ajouter une par une en mode édition — le geste dont
+ * `renesenses/tune-web-client#880` établit qu'il n'est pas découvrable.
+ *
+ * L'interface ACTUELLE, elle, les montre sans rien demander :
+ * `StreamingView.svelte` appelle `loadFeaturedPlaylistGroups` dès qu'on
+ * choisit le service. La nouvelle perdait donc une fonction que l'ancienne
+ * avait — c'est ce que FabienM signale dans #3827, fil 1749 point 7 :
+ * « il manque tous les widgets associés aux playlists Qobuz ».
+ *
+ * Mesuré sur la .18 le 12/09/2026 : Qobuz sert 13 catégories, de 16 à 50
+ * playlists chacune — Hi-Res, Nouveautés, Thématiques, Humeurs, Artistes,
+ * Dans le casque de…, Histoires de labels, Les Pépites de l'équipe,
+ * Événements & Médias, Partenaires Hi-Fi, Testez vos enceintes, Discothèque
+ * Idéale, Top playlists. Ce sont exactement les onglets de l'application
+ * Qobuz.
+ *
+ * ⚠️ Ne touche QUE le défaut. Une disposition déjà enregistrée est un choix de
+ * l'utilisateur, et rien ici ne la réécrit.
+ */
 export function dispositionDefautService(catalogue: Widget[]): string[] {
-  return catalogue.slice(0, 4).map((w) => w.id);
+  const tete = catalogue.slice(0, TETE_PAR_DEFAUT);
+  const vus = new Set(tete.map((w) => w.id));
+  const playlists = catalogue.filter(
+    (w) => w.categorie === 'playlists-editoriales' && !vus.has(w.id),
+  );
+  return [...tete, ...playlists].map((w) => w.id);
 }
 
 /** Clé de rangement de la disposition, une par service. */
