@@ -567,6 +567,31 @@ export function updateZoneGainTrim(id: number, gainTrimDb: number) {
  *  et même état. Relu à chaud (`refresh_zone_mono_downmix`), donc l'effet
  *  s'entend musique en cours — ce qui compte pour un réglage qui se vérifie à
  *  l'oreille. N'agit que sur une sortie LOCALE. */
+/**
+ * Le GAPLESS d'une zone — `renesenses/tune-web-client#920`.
+ *
+ * 🔴 Le serveur le gère « depuis toujours » (`routes/zones.rs`, garde
+ * `gapless_enabled`), `settings.perZoneHint` l'annonce dans les onze langues
+ * (« Mode DSD, volume fixe et gapless pour chaque zone de lecture »), et
+ * `SettingsView.svelte` porte le commentaire `<!-- Zone audio settings (DSD
+ * mode, gapless, fixed volume) -->` au-dessus d'un bloc qui n'en contient pas.
+ *
+ * Personne n'envoyait jamais ce champ : `git grep gapless_enabled -- src/`
+ * rendait ZÉRO occurrence. C'est le même motif que `fixed_volume`, dont le
+ * commentaire disait déjà, sur place : « Le serveur gérait ce réglage depuis
+ * toujours, mais aucun écran ne l'exposait ».
+ *
+ * Mesuré le 12/09/2026 sur la .18 en v0.9.147, zone « Cet ordinateur » :
+ * `PATCH /zones/15 {"gapless_enabled": false}` répond la zone à jour, et
+ * l'écriture inverse la restaure. Le contrat tient, il manquait l'appelant.
+ */
+export function updateZoneGapless(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ gapless_enabled: enabled }),
+  });
+}
+
 export function updateZoneMonoDownmix(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
@@ -2563,8 +2588,22 @@ function mapZoneQuality(zone: any): Zone {
  * même mot-clé rendait donc plus de résultats dans un écran que dans l'autre,
  * sans que rien ne l'explique (#2036, signalé par Vincent sur Qobuz).
  *
- * 50 est le plafond de page de l'API Qobuz — demander davantage ne rend pas
- * davantage. Au-delà, il faut paginer, pas augmenter ce nombre.
+ * 🔴 CE COMMENTAIRE ÉTAIT FAUX, et il a tenu le plafond à 50 pendant tout ce
+ * temps. Il affirmait : « 50 est le plafond de page de l'API Qobuz — demander
+ * davantage ne rend pas davantage. »
+ *
+ * Mesuré le 12/09/2026 sur la .18 en v0.9.147, requête « somebody » :
+ *
+ *   GET /streaming/qobuz/search?limit=50  → 50 albums   limit=200 → 200
+ *                                   100  → 100          limit=500 → 500
+ *   totals : albums 1000 · titres 1000
+ *
+ * Demander davantage rend bien davantage. Le plafond de 50 n'était pas celui
+ * du service, c'était celui qu'on s'imposait — et c'est le « seulement 50
+ * résultats » que FabienM signale (#922, fil 1691 point 5).
+ *
+ * Cette constante reste la valeur PAR DÉFAUT ; la taille réellement employée
+ * se règle désormais par écran (`lib/taillePageRecherche`).
  */
 export const SEARCH_PAGE_LIMIT = 50;
 
