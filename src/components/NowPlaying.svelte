@@ -968,8 +968,9 @@
 
   /**
    * Ce que la coquille qui nous monte sait faire — voir
-   * `stores/navigation.gestesNavigationService`. `null` dans l'ancienne : les
-   * gestes ci-dessous gardent alors exactement leur comportement d'avant.
+   * `stores/navigation.gestesNavigationService`. Les DEUX l'arment depuis #888 ;
+   * `null` (montage nu, coquille de test) fait garder aux gestes ci-dessous
+   * exactement leur comportement d'avant — la recherche.
    */
   const gestesService = $derived($gestesNavigationService);
 

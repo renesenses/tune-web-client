@@ -245,8 +245,8 @@
    *
    * `null` dès que la coquille ne sait pas les ouvrir : l'entrée disparaît
    * alors, au lieu d'ouvrir sur rien. C'est la règle du menu — absent, pas
-   * grisé — et c'est aussi ce qui protège l'ANCIENNE coquille, qui n'a pas ces
-   * écrans et n'arme donc pas `gestesNavigationService`.
+   * grisé. La coquille ACTUELLE arme désormais ces gestes elle aussi (#888),
+   * vers `StreamingView` ; la garde reste, pour tout montage qui n'arme rien.
    */
   const albumDeService = $derived.by(() => {
     if (local || !$gestesNavigationService) return null;

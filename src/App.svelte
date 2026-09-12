@@ -15,7 +15,7 @@
   import { queueTracks, queuePosition, queueLength } from './lib/stores/queue';
   import { playlists as playlistsStore, playlistsLoaded } from './lib/stores/playlists';
   import { connectionState, reconnectAttempts } from './lib/stores/connection';
-  import { activeView, focusMode, settingsInitialTab, saveScrollPosition, getScrollPosition } from './lib/stores/navigation';
+  import { activeView, focusMode, settingsInitialTab, saveScrollPosition, getScrollPosition, gestesNavigationService, pendingSearchQuery } from './lib/stores/navigation';
   import { selectedAlbum, selectedArtist, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab } from './lib/stores/library';
   import { reconcilierFiche } from './lib/reconciliationFiche';
   import { CANDIDATS_DEFILEMENT, conteneurDefilant, restaurerQuandPret } from './lib/defilementReel';
@@ -98,7 +98,15 @@ import AlarmsView from './components/AlarmsView.svelte';
   import { loadLicense, isPremium } from './lib/stores/license';
   import { notifications } from './lib/stores/notifications';
   import { healthStatus } from './lib/stores/health';
-  import { streamingServices as streamingServicesStore } from './lib/stores/streaming';
+  import {
+    streamingServices as streamingServicesStore,
+    activeStreamingService,
+    pendingStreamingAlbum,
+    pendingStreamingArtist,
+    streamingAlbumOrigin,
+  } from './lib/stores/streaming';
+  import { setSearchCriteria } from './lib/stores/shortcuts';
+  import { apparierArtiste } from './lib/albumsArtisteStreaming';
   import { isPushEnabled, initPushNotifications } from './lib/notifications-push';
 
   import type { Track, Zone } from './lib/types';
@@ -283,6 +291,95 @@ import AlarmsView from './components/AlarmsView.svelte';
       syncZoneState(zoneId);
     });
     return unsub;
+  });
+
+  /* ───────────────────────────────────────────────────────────────────────────
+   * Aller à l'ALBUM ou à l'ARTISTE d'une piste de service — #888, #931, #869.
+   *
+   * `NowPlaying` et `PisteActions` sont montés par LES DEUX coquilles et ne
+   * routent pas en dur : ils lisent `gestesNavigationService`, que la coquille
+   * arme au montage. `null` veut dire « je ne sais pas faire », et les liens
+   * gardent alors leur geste d'avant — la recherche.
+   *
+   * 🔴 Seule `ShellV2` armait ce magasin (`ShellV2.svelte:368`). Sous cette
+   * coquille-ci, le magasin restait `null` : l'artiste et l'album d'un titre
+   * Qobuz retombaient sur la recherche, et le menu « … » n'offrait pas les deux
+   * entrées correspondantes. FabienM, fil 1716 : « les hyperliens de l'artiste
+   * et l'album renvoient vers la page d'accueil » ; Cyrille Moutia, #931 :
+   * « aucun moyen de revenir à l'album en cours ».
+   *
+   * ⚠️ CE N'EST PAS UN SECOND MÉCANISME. La destination existait déjà ici, et
+   * six écrans de cette coquille s'en servent depuis longtemps :
+   * `pendingStreamingAlbum` / `pendingStreamingArtist`, consommés par
+   * `StreamingView` (`:359-375`), armés par l'accueil, la recherche, les
+   * favoris, la bibliothèque et les raccourcis. On ne fait que brancher le
+   * contrat partagé sur la plomberie qui était déjà là.
+   * ─────────────────────────────────────────────────────────────────────────── */
+
+  /**
+   * `streamingAlbumOrigin` porte le RETOUR : `StreamingView.goBack()` le rend à
+   * `activeView` (`lib/streamingRetour.actionRetour`). En le posant sur
+   * « nowplaying », le Retour de la fiche Qobuz ramène à la Lecture en cours
+   * plutôt qu'à la grille du service — le « retour à l'album en cours » de
+   * Cyrille Moutia, dans l'autre sens.
+   */
+  const PROVENANCE_LECTURE = 'nowplaying';
+
+  function ouvrirAlbumDeService(c: { service: string; albumId: string; titre: string }) {
+    // La forme attendue est celle que l'accueil pose déjà (`HomeView:602`) :
+    // `StreamingView.selectAlbum` lit `source_id ?? id`.
+    activeStreamingService.set(c.service);
+    pendingStreamingAlbum.set({
+      id: c.albumId,
+      source_id: c.albumId,
+      source: c.service,
+      title: c.titre,
+    } as any);
+    streamingAlbumOrigin.set(PROVENANCE_LECTURE);
+    activeView.set('streaming');
+  }
+
+  /**
+   * Une piste de service ne porte PAS l'identifiant de son artiste — seul son
+   * nom voyage avec elle. On le résout par la recherche fédérée et on réemploie
+   * `apparierArtiste`, exactement comme `ShellV2` : deux appariements différents
+   * finiraient par désigner deux artistes différents pour le même nom.
+   *
+   * ⚠️ REPLI EXPLICITE, le même que l'autre coquille : service muet ou nom
+   * inconnu, on revient au geste d'avant — la recherche, périmètre ouvert sur
+   * la source. Une fiche vide serait pire que la recherche qu'elle remplace.
+   */
+  async function ouvrirArtisteDeService(c: { service: string; nom: string }) {
+    let id: string | null = null;
+    try {
+      const r: any = await api.federatedSearch(c.nom, [c.service], 5);
+      id = apparierArtiste(r?.services?.[c.service]?.artists ?? [], c.nom);
+    } catch { /* le repli ci-dessous s'en charge */ }
+    if (!id) {
+      pendingSearchQuery.set(c.nom);
+      setSearchCriteria({ q: c.nom, source: c.service });
+      activeView.set('search');
+      return;
+    }
+    activeStreamingService.set(c.service);
+    pendingStreamingArtist.set({
+      id,
+      source_id: id,
+      source: c.service,
+      name: c.nom,
+    } as any);
+    streamingAlbumOrigin.set(PROVENANCE_LECTURE);
+    activeView.set('streaming');
+  }
+
+  $effect(() => {
+    gestesNavigationService.set({
+      ouvrirAlbum: ouvrirAlbumDeService,
+      ouvrirArtiste: (c) => void ouvrirArtisteDeService(c),
+    });
+    // Sans cette dépose, une coquille remontée laisserait un armement périmé
+    // derrière elle — la règle que `ShellV2` tient déjà.
+    return () => gestesNavigationService.set(null);
   });
 
   function showError(msg: string) {

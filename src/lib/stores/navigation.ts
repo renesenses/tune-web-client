@@ -64,9 +64,16 @@ export const vueDeRetour = writable<View | null>(null);
  * l'ancienne coquille ne connaît pas la ferait tomber sur son repli « À venir ».
  *
  * La coquille ARME donc ce magasin au montage, et les composants partagés
- * lisent ce qui est armé. `null` — l'ancienne coquille — veut dire « je ne
- * sais pas faire » : l'entrée de menu est alors ABSENTE et le lien garde son
- * geste d'avant. Absent, pas grisé, pas mort : la règle du menu.
+ * lisent ce qui est armé. `null` veut dire « je ne sais pas faire » : l'entrée
+ * de menu est alors ABSENTE et le lien garde son geste d'avant. Absent, pas
+ * grisé, pas mort : la règle du menu.
+ *
+ * 🔴 Les DEUX coquilles l'arment désormais (#888, #931, #869) — chacune vers
+ * l'écran qu'elle possède : `ShellV2` vers ses vues `streamingalbum` /
+ * `streamingartist`, `App.svelte` vers `StreamingView` par les dépôts
+ * `pendingStreamingAlbum` / `pendingStreamingArtist`. Seule `ShellV2` le
+ * faisait, et sous l'autre coquille tout retombait sur la recherche.
+ * `null` reste le cas d'une coquille de test, ou d'un composant monté seul.
  *
  * ⚠️ Pourquoi un magasin et pas des props. `NowPlaying` est monté une fois par
  * coquille, une prop y suffirait ; `PisteActions` l'est par DOUZE composants,

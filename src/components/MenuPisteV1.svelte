@@ -24,10 +24,14 @@
    *
    * Lire, lire ensuite, mettre en file, « plus comme ça », les autres versions,
    * les étiquettes et l'ajout à une liste : il les tient seul, par les mêmes
-   * routes que `PisteActions`. Aller à l'artiste et aller à l'album, non — une
-   * piste de la bibliothèque se navigue par identifiant, une piste de service
-   * par son objet Album/Artiste que seul l'écran d'accueil sait bâtir. L'écran
-   * les fournit ; s'il ne les fournit pas, les deux entrées disparaissent.
+   * routes que `PisteActions`.
+   *
+   * Aller à l'artiste et aller à l'album se décident à TROIS niveaux, dans cet
+   * ordre : le relais de l'écran (`onAller…`, quand il sait mieux), puis
+   * l'identifiant de BIBLIOTHÈQUE de la piste, puis — #869, famille C — sa
+   * désignation CHEZ SON SERVICE, à condition que la coquille ait armé
+   * `gestesNavigationService`. Aucun des trois : l'entrée disparaît, elle n'est
+   * jamais grisée ni muette.
    */
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
@@ -35,7 +39,8 @@
   import { currentZoneId, playAndSync } from '../lib/stores/zones';
   import { queuePosition } from '../lib/stores/queue';
   import { notifications } from '../lib/stores/notifications';
-  import { activeView, pendingLibraryAlbum, pendingLibraryArtist } from '../lib/stores/navigation';
+  import { activeView, gestesNavigationService, pendingLibraryAlbum, pendingLibraryArtist } from '../lib/stores/navigation';
+  import { destinationAlbum } from '../lib/routageAlbum';
   import { t as tr } from '../lib/i18n';
   import TrackContextMenu from './TrackContextMenu.svelte';
   import type { Track } from '../lib/types';
@@ -73,16 +78,57 @@
    */
   const idBibliotheque = $derived(local && piste.id != null ? piste.id : null);
   const jouable = $derived(corpsDeLecture(piste) != null);
-  /** Aller à l'artiste : le relais de l'écran, sinon la fiche de bibliothèque. */
+  /**
+   * L'album et l'artiste de la piste CHEZ SON SERVICE — #869, famille C.
+   *
+   * Une piste de service n'a ni `artist_id` ni `album_id` numérique : les deux
+   * entrées « Aller à… » disparaissaient, et le menu d'un titre Qobuz tombait à
+   * trois entrées contre neuf (FabienM, fil 1739, point 2). Elles ne dépendaient
+   * pourtant que des identifiants de BIBLIOTHÈQUE, alors que la piste porte de
+   * quoi se désigner chez son service.
+   *
+   * 🔴 Repris mot pour mot de `v2/PisteActions.svelte:251-266`, qui le tient
+   * depuis #3777 — mêmes champs, même module de décision (`routageAlbum`), même
+   * garde. Recopier la RÈGLE aurait fait diverger les deux menus, ce qui est
+   * exactement le reproche d'origine (#1848).
+   *
+   * `null` dès que la coquille ne sait pas les ouvrir : l'entrée est alors
+   * ABSENTE plutôt qu'ouvrant sur rien.
+   */
+  const albumDeService = $derived.by(() => {
+    if (local || !$gestesNavigationService) return null;
+    const d = destinationAlbum({
+      source: piste.source ?? null,
+      album_id: (piste as any).album_id,
+      album_title: piste.album_title ?? null,
+    });
+    return d?.type === 'album-service'
+      ? { service: d.service, albumId: d.albumId, titre: d.titre }
+      : null;
+  });
+  const artisteDeService = $derived.by(() => {
+    if (local || !$gestesNavigationService) return null;
+    const nom = (piste.artist_name ?? '').trim();
+    return piste.source && nom ? { service: piste.source as string, nom } : null;
+  });
+  /** Aller à l'artiste : le relais de l'écran, la fiche de bibliothèque, ou le service. */
   const allerArtiste = $derived(
     onAllerArtiste ?? (piste.artist_id != null
       ? () => { pendingLibraryArtist.set(piste.artist_id!); activeView.set('library'); }
-      : undefined),
+      : artisteDeService
+        ? () => { $gestesNavigationService?.ouvrirArtiste(artisteDeService!); }
+        : undefined),
   );
   const allerAlbum = $derived(
-    onAllerAlbum ?? (piste.album_id != null
-      ? () => { pendingLibraryAlbum.set(piste.album_id!); activeView.set('library'); }
-      : undefined),
+    // 🔴 L'identifiant de BIBLIOTHÈQUE d'abord, et SEULEMENT s'il est numérique.
+    // `album_id` d'une piste de service est une CHAÎNE : `!= null` était vrai
+    // pour elle et l'envoyait dans `pendingLibraryAlbum`, où rien ne l'attend.
+    // `v2/PisteActions.svelte:280` tranche déjà comme ça.
+    onAllerAlbum ?? (typeof piste.album_id === 'number' && piste.album_id > 0
+      ? () => { pendingLibraryAlbum.set(piste.album_id as number); activeView.set('library'); }
+      : albumDeService
+        ? () => { $gestesNavigationService?.ouvrirAlbum(albumDeService!); }
+        : undefined),
   );
   const capacites = $derived({
     jouable,
@@ -90,6 +136,8 @@
     // Une capacité qui ne tient que si quelqu'un sait la faire : voir plus haut.
     artistId: allerArtiste ? 1 : null,
     albumId: allerAlbum ? 1 : null,
+    albumDeService,
+    artisteDeService,
   });
   function lire() {
     const zid = get(currentZoneId);
