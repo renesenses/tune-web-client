@@ -567,6 +567,31 @@ export function updateZoneGainTrim(id: number, gainTrimDb: number) {
  *  et même état. Relu à chaud (`refresh_zone_mono_downmix`), donc l'effet
  *  s'entend musique en cours — ce qui compte pour un réglage qui se vérifie à
  *  l'oreille. N'agit que sur une sortie LOCALE. */
+/**
+ * Le GAPLESS d'une zone — `renesenses/tune-web-client#920`.
+ *
+ * 🔴 Le serveur le gère « depuis toujours » (`routes/zones.rs`, garde
+ * `gapless_enabled`), `settings.perZoneHint` l'annonce dans les onze langues
+ * (« Mode DSD, volume fixe et gapless pour chaque zone de lecture »), et
+ * `SettingsView.svelte` porte le commentaire `<!-- Zone audio settings (DSD
+ * mode, gapless, fixed volume) -->` au-dessus d'un bloc qui n'en contient pas.
+ *
+ * Personne n'envoyait jamais ce champ : `git grep gapless_enabled -- src/`
+ * rendait ZÉRO occurrence. C'est le même motif que `fixed_volume`, dont le
+ * commentaire disait déjà, sur place : « Le serveur gérait ce réglage depuis
+ * toujours, mais aucun écran ne l'exposait ».
+ *
+ * Mesuré le 12/09/2026 sur la .18 en v0.9.147, zone « Cet ordinateur » :
+ * `PATCH /zones/15 {"gapless_enabled": false}` répond la zone à jour, et
+ * l'écriture inverse la restaure. Le contrat tient, il manquait l'appelant.
+ */
+export function updateZoneGapless(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ gapless_enabled: enabled }),
+  });
+}
+
 export function updateZoneMonoDownmix(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
