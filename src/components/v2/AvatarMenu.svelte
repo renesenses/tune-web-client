@@ -124,12 +124,6 @@
   // mozaiklabs qu'on ne peut pas changer depuis ici.
   let champFichier = $state<HTMLInputElement | null>(null);
   let envoiPhoto = $state(false);
-  // Les deux actions sont REPLIÉES par défaut, et le rond de l'en-tête les
-  // déplie. Le panneau est déjà plafonné en hauteur — une capture de testeur
-  // montrait « Réglages » et « Se déconnecter » coupés par le bas de l'écran —
-  // et il grandit à chaque réglage ajouté ; une rubrique permanente de plus le
-  // rapprocherait de ce défaut pour un geste qu'on fait une fois.
-  let photoActions = $state(false);
   // Une photo locale que CE navigateur ne sait pas décoder — un WebP écrit
   // ailleurs sur un moteur qui l'ignore. On l'écarte pour la session, sans
   // jamais l'effacer : la supprimer repartirait en `PATCH` et détruirait chez
@@ -164,21 +158,13 @@
     if (photoLocale) photoLocaleCassee = false;
   });
 
-  // Le panneau se referme par TROIS chemins — le bouton, `close()` et le clic
-  // au-dehors. Replier ici, sur l'état, plutôt que dans chacun : le jour où un
-  // quatrième chemin apparaît, il ne rouvrira pas le menu sur une rubrique
-  // dépliée par un geste oublié.
-  $effect(() => {
-    if (!open) photoActions = false;
-  });
-
   /**
-   * Le geste principal : un clic sur la BULLE ouvre l'explorateur de fichiers.
+   * Le geste principal : un clic sur le ROND DU PANNEAU ouvre l'explorateur.
    *
    * Déconnecté, on refuse en disant pourquoi. La photo est attachée à un
    * compte : en poser une sans compte produirait une image aussitôt masquée,
-   * c'est-à-dire un bouton qui ne fait rien de visible. Le menu, lui, reste à
-   * un clic — le chevron voisin — et c'est là que se trouve « Se connecter ».
+   * c'est-à-dire un bouton qui ne fait rien de visible. Et « Se connecter » est
+   * juste en dessous, dans le même panneau.
    */
   function ouvrirExplorateur() {
     if (!ssoConnected) {
@@ -257,15 +243,7 @@
 <svelte:window onclick={onDocClick} />
 
 <div class="avwrap tune-v2">
-  <!--
-    LA BULLE OUVRE L'EXPLORATEUR. C'est le geste demandé par Matteo le
-    12/09/2026 : on clique sa photo pour la changer, et la nouvelle remplace
-    l'ancienne. Le menu du compte n'y est plus attaché — il a le chevron voisin,
-    sans quoi Réglages, Thèmes, « Se déconnecter » et le retour vers l'interface
-    actuelle n'auraient plus AUCUNE porte : la bulle était la seule.
-  -->
-  <button class="avatar" class:linked={ssoConnected} onclick={ouvrirExplorateur}
-    aria-label={$t('settings.avatarSetPhoto' as any)} title={$t('settings.avatarSetPhoto' as any)}>
+  <button class="avatar" class:linked={ssoConnected} onclick={toggle} aria-label={$t('settings.accountMenu' as any)} aria-haspopup="menu" aria-expanded={open}>
     <!-- La photo affichée : celle qu'on a choisie soi-même d'abord, celle du
          compte mozaiklabs.fr à défaut. En `<img>` et non en `background-image` :
          l'URL vient du serveur, la coller dans du CSS l'exposerait à une
@@ -281,17 +259,8 @@
     {/if}
   </button>
 
-  <!-- La porte du menu du compte. Discrète mais VISIBLE : un menu qu'on
-       n'atteint que par un geste caché est un menu perdu. -->
-  <button class="chevron" onclick={toggle} aria-label={$t('settings.accountMenu' as any)}
-    title={$t('settings.accountMenu' as any)} aria-haspopup="menu" aria-expanded={open}>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-      stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-  </button>
-
-  <!-- 🔴 Le champ vit HORS du menu. Depuis que la bulle l'ouvre, il doit
-       exister menu fermé : le laisser dans le panneau rendrait le clic sur la
-       bulle sans effet, sans la moindre erreur pour le dire. -->
+  <!-- Le champ de fichier vit hors du panneau : il n'a aucune raison d'être
+       détruit et reconstruit à chaque ouverture du menu. -->
   <input class="fichier" bind:this={champFichier} type="file" accept="image/*"
     tabindex="-1" aria-hidden="true" onchange={choisirPhoto} />
 
@@ -299,17 +268,15 @@
     <div class="avmenu">
       <div class="avhead">
         <!--
-          Le rond de l'en-tête EST le bouton de la photo. Les deux actions
-          restent repliées tant qu'on ne clique pas dessus : le panneau est
-          déjà plafonné en hauteur (voir `.avmenu`), et il grandit à chaque
-          réglage ajouté. Le geste — « je clique ma photo pour la changer » —
-          est aussi plus direct qu'une rubrique à lire (choix de Matteo,
-          12/09/2026).
+          LE ROND DU PANNEAU OUVRE L'EXPLORATEUR. Un clic, on choisit, la photo
+          remplace l'ancienne — pas de rubrique à déplier, pas de bouton
+          « Choisir » à lire (geste demandé par Matteo, 12/09/2026).
+
+          Il est ici et non sur la bulle : la bulle ouvre le panneau, comme elle
+          l'a toujours fait, et elle en est la seule porte.
         -->
-        <button class="avatar sm" class:ouvert={photoActions}
-          onclick={() => (photoActions = !photoActions)}
-          aria-label={$t('settings.avatarTitle' as any)} title={$t('settings.avatarTitle' as any)}
-          aria-expanded={photoActions}>
+        <button class="avatar sm" onclick={ouvrirExplorateur} disabled={envoiPhoto}
+          aria-label={$t('settings.avatarSetPhoto' as any)} title={$t('settings.avatarSetPhoto' as any)}>
           {#if photo}
             <img class="avimg" src={photo} alt="" />
           {/if}
@@ -324,21 +291,12 @@
         </div>
       </div>
       <!--
-        Les deux actions de la photo, dépliées par le rond ci-dessus.
-
-        Le champ de fichier est masqué et piloté par le bouton : un
-        `<input type="file">` nu ne se met pas à la typographie du menu, et
-        affiche en plus le nom du fichier choisi, qui n'apprend rien ici.
+        « Retirer » ne s'affiche que s'il y a une photo à retirer — sans lui, on
+        pourrait seulement REMPLACER, jamais revenir au dégradé. Il est bref et
+        discret : le geste courant est le rond ci-dessus.
       -->
-      {#if photoActions}
-        <div class="seg">
-          <button onclick={ouvrirExplorateur} disabled={envoiPhoto}>
-            {envoiPhoto ? $t('common.loading') : $t('settings.avatarChoose' as any)}
-          </button>
-          {#if photoLocale}
-            <button onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
-          {/if}
-        </div>
+      {#if photoLocale}
+        <button class="retirer" onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
         <div class="hint">{$t('settings.avatarHint' as any)}</div>
       {/if}
 
@@ -439,7 +397,7 @@
 </div>
 
 <style>
-  .avwrap{position:relative; display:flex; align-items:center; font-family:var(--v2-sans)}
+  .avwrap{position:relative; font-family:var(--v2-sans)}
   .avatar{width:44px; height:44px; border-radius:50%; border:2px solid var(--v2-line2); cursor:pointer;
     position:relative; background:linear-gradient(135deg,var(--v2-av1),var(--v2-av2)); padding:0}
   /* Pastille de compte. Elle etait DECORATIVE — couleur fixe, aucun etat — et
@@ -491,10 +449,16 @@
   .avname{font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .avmail{font-family:var(--v2-mono); font-size:10px; letter-spacing:.12em; color:var(--v2-txt2); margin-top:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  /* Le rond de l'en-tête est un BOUTON : il déplie les deux actions de la
-     photo. L'anneau d'accent dit qu'elles sont dépliées — sans lui, le clic
-     semble ouvrir quelque chose sans rien changer là où on regarde. */
-  .avatar.sm.ouvert{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  /* Le rond de l'en-tête est un BOUTON : il ouvre l'explorateur de photo.
+     L'anneau au survol le dit — un rond qui ne réagit pas se lit comme une
+     vignette, et personne ne clique une vignette. */
+  .avatar.sm:hover{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
+  .avatar.sm:disabled{opacity:.55; cursor:default; box-shadow:none}
+
+  /* « Retirer » : un lien discret sous l'identité, pas un bouton de plus. */
+  .retirer{display:block; margin:0 0 4px 55px; padding:2px 0; border:0; background:transparent;
+    color:var(--v2-txt3); font-family:inherit; font-size:11px; cursor:pointer; text-decoration:underline}
+  .retirer:hover{color:var(--v2-txt)}
   .sep{height:1px; background:var(--v2-line); margin:6px 0}
   .sec{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.16em; color:var(--v2-txt3);
     text-transform:uppercase; padding:6px 6px 8px}
@@ -503,16 +467,6 @@
     font-size:11.5px; font-weight:600; padding:7px 4px; border-radius:9px; cursor:pointer; transition:.15s}
   .seg button:hover{color:var(--v2-txt)}
   .seg button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 3px 10px var(--v2-glow)}
-  /* Le chevron du menu du compte. Collé à la bulle — 6 px et non les 10 px qui
-     séparent les autres icônes — pour qu'il se lise comme SON accessoire, et
-     non comme un quatrième bouton indépendant de la grappe. */
-  .chevron{width:24px; height:24px; margin-left:6px; padding:0; border:0; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; border-radius:8px;
-    background:transparent; color:var(--v2-txt3); transition:.15s}
-  .chevron:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .chevron svg{width:14px; height:14px}
-  .chevron[aria-expanded="true"]{color:var(--v2-txt); background:var(--v2-hover)}
-
   /* Le champ de fichier n'est jamais montré : le bouton du menu le déclenche.
      `display:none` et non une astuce de position — rien ne doit le rendre
      atteignable au clavier, c'est le bouton qui porte le focus. */
