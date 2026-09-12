@@ -46,7 +46,16 @@ describe("Historique dans le nouveau client (Bertrand, 05/09/2026)", () => {
     expect(v2).toContain("import ListePistesV2 from './ListePistesV2.svelte'");
     expect(v2).toContain('<ListePistesV2');
     // Et la piste vient bien de l'entrée d'historique, pas d'ailleurs.
-    expect(v2).toContain('entrees.map((x) => x.track)');
+    //
+    // 🔴 #904 — l'écran a DEUX niveaux depuis : le tableau est rendu une fois
+    // par tranche (titres nus consécutifs, ou titres d'un objet déplié), sur
+    // `lot` et non plus sur la liste entière. Ce que la garde protège ne bouge
+    // pas : la piste sort toujours de l'entrée d'historique.
+    expect(v2).toContain('lot.map((x) => x.track)');
+    expect(
+      v2.split('lot.map((x) => x.track)').length - 1,
+      'un seul des deux niveaux passe par la liste partagée',
+    ).toBe(2);
     // Il ne redessine plus ni pochette, ni durée, ni fiche technique.
     expect(v2).not.toContain('formatDuration');
     expect(v2).not.toContain('AlbumArt');

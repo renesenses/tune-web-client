@@ -28,6 +28,7 @@
   import * as api from '../../lib/api';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import { messageEchecLecture } from '../../lib/echecLecture';
   import { activeView } from '../../lib/stores/navigation';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
@@ -41,10 +42,16 @@
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
   import { aUnOngletGenres, normaliserGenres, ouvertureGenre, sousGenresUtiles } from '../../lib/streamingGenres';
+  import {
+    BANDCAMP_EXT,
+    ongletInitial,
+    ongletsStreaming,
+    pseudoOnglet,
+  } from '../../lib/ongletsStreaming';
   import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
-  const BANDCAMP = '__bandcamp__';
+  const BANDCAMP = BANDCAMP_EXT;
   let services = $state<Record<string, StreamingServiceStatus>>({});
   let bandcampLive = $state(false);
   let loading = $state(true);
@@ -269,11 +276,18 @@
   let bcCollection = $state<any[]>([]);
   let paneLoading = $state(false);
 
-  /** Un service n'entre dans les onglets que s'il est ACTIVÉ ET CONNECTÉ. */
-  const connected = $derived(
-    Object.entries(services).filter(([, v]) => v.enabled && v.authenticated).map(([k]) => k)
-  );
-  const tabs = $derived([...connected, ...(bandcampLive ? [BANDCAMP] : [])]);
+  /**
+   * Un service n'entre dans les onglets que s'il est ACTIVÉ ET CONNECTÉ — et
+   * Bandcamp n'y entre qu'UNE FOIS (#860).
+   *
+   * La rangée était `[...connected, ...(bandcampLive ? [BANDCAMP] : [])]` : dès
+   * que le compte Bandcamp est lié, le serveur rend `bandcamp` authentifié, la
+   * sonde `/ext/bandcamp/tags` répond, et les deux clés — `bandcamp` et
+   * `__bandcamp__` — se retrouvaient côte à côte. Deux onglets pour un service.
+   * Le dédoublonnage, son arbitrage et sa mesure sont dans
+   * `lib/ongletsStreaming.ts`.
+   */
+  const tabs = $derived(ongletsStreaming(services, bandcampLive));
   const isBc = $derived(active === BANDCAMP);
 
   /**
@@ -339,8 +353,11 @@
         }
         bcTag = bcGenres[0]?.slug ?? '';
       }
-      const first = Object.entries(services).find(([, v]) => v.enabled && v.authenticated)?.[0];
-      active = first ?? (bandcampLive ? BANDCAMP : null);
+      // 🔴 L'onglet ouvert se prend dans la rangée RÉELLEMENT affichée (#860).
+      // Le calcul d'origine — « le premier service connecté » — désignait
+      // `bandcamp`, la clé même que le dédoublonnage retire : l'écran se serait
+      // ouvert sur un onglet absent de sa propre rangée, aucun bouton allumé.
+      active = ongletInitial(services, bandcampLive);
     }).finally(() => { loading = false; });
   });
 
@@ -539,12 +556,12 @@
     if (active === BANDCAMP) {
       const corps = corpsDeLectureCollection({ url: a?.url ?? a?.source_id ?? null });
       if (corps) {
-        playAndSync(zid, corps as any).catch(() => { error = $t('v2.stream.playFailed' as any); });
+        playAndSync(zid, corps as any).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
       }
       return;
     }
     const sid = a?.source_id ?? a?.id;
-    if (sid) playAndSync(zid, { streaming_album_id: String(sid), source: active as any }).catch(() => { error = $t('v2.stream.playFailed' as any); });
+    if (sid) playAndSync(zid, { streaming_album_id: String(sid), source: active as any }).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   /**
    * Lecture d'une PISTE de service.
@@ -583,13 +600,13 @@
     if (zid != null && svc === BANDCAMP) { playBc(piste); return; }
     if (zid == null || !svc || !sid) return;
     playAndSync(zid, { source: svc as any, source_id: String(sid) })
-      .catch(() => { error = $t('v2.stream.playFailed' as any); });
+      .catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   function playPlaylist(p: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
     playAndSync(zid, { streaming_playlist_id: String(p.source_id ?? p.id), source: (p.source ?? active) as any })
-      .catch(() => { error = $t('v2.stream.playFailed' as any); });
+      .catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   /**
    * Lecture d'un article BANDCAMP — #2702.
@@ -633,7 +650,7 @@
       0,
     );
     if (!corps) { error = $t('v2.str.noPreview' as any); return; }
-    playAndSync(zid, corps as any).catch(() => { error = $t('v2.stream.playFailed' as any); });
+    playAndSync(zid, corps as any).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
 
   async function linkBandcamp() {
@@ -681,9 +698,13 @@
   {#if tabs.length}
     <nav class="svcs">
       {#each tabs as name (name)}
+        <!-- Le pseudo suit l'onglet qui SURVIT au dédoublonnage (#860) : celui
+             de l'extension porte désormais le compte lu sur la clé `bandcamp`,
+             sans quoi la liaison de compte redeviendrait invisible. -->
+        {@const qui = pseudoOnglet(name, services)}
         <button class:on={active === name} onclick={() => { active = name; sub = 'editorial'; q = ''; results = null; bcSearch = null; }}>
           {label(name)}
-          {#if name !== BANDCAMP && services[name]?.username}<span class="who">{services[name].username}</span>{/if}
+          {#if qui}<span class="who">{qui}</span>{/if}
         </button>
       {/each}
     </nav>

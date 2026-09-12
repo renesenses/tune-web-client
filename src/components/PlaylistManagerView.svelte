@@ -7,6 +7,7 @@
   import { playlists as playlistsStore, pendingPlaylistId } from '../lib/stores/playlists';
   import { streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
+  import { shareLink } from '../lib/playlistShare';
   import { formatTime, formatAudioBadge, errText } from '../lib/utils';
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../lib/types';
   import { t as tr } from '../lib/i18n';
@@ -25,12 +26,11 @@
     try {
       const result = await api.sharePlaylist(playlistId);
       // `url` et `token` : les DEUX seuls champs que le serveur rend
-      // (`playlists.rs`, `share_playlist`). L'ancien code lisait `text` puis
-      // `share_url`, qui n'ont jamais existé — il retombait donc sur le JSON
-      // brut, et c'est lui qu'on collait dans le presse-papiers.
-      const chemin = result.url ?? (result.token ? `/api/v1/playlists/shared/${result.token}` : null);
-      const text = chemin ? new URL(chemin, window.location.origin).toString() : JSON.stringify(result);
-      await navigator.clipboard.writeText(text);
+      // (`playlists.rs`, `share_playlist`). Le repli d'avant collait
+      // `JSON.stringify(result)` — le corps brut, jeton compris — et annonçait
+      // « lien copié » : n'importe quelle réponse passait pour une réussite.
+      // `shareLink` lève à la place, et l'écran dit son erreur.
+      await navigator.clipboard.writeText(shareLink(result, window.location.origin));
       notifications.success($tr('playlistManager.linkCopied'));
     } catch (e) {
       console.error('Share playlist error:', e);
