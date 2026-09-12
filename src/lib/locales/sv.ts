@@ -3797,6 +3797,7 @@ export default {
   "v2.stream.searchIn": "Sök i {service}",
   "v2.stream.noResultIn": "Inga resultat i {service}.",
   "v2.stream.seeMore": "Ladda fler resultat",
+  "v2.stream.pageSize": "Per sida",
   "v2.stream.loadingMore": "Laddar…",
   "v2.stream.playFailed": "Uppspelning misslyckades.",
   "v2.common.loading": "Laddar…",

@@ -3798,6 +3798,7 @@ export default {
   "v2.stream.searchIn": "在 {service} 中搜索",
   "v2.stream.noResultIn": "{service} 中没有结果。",
   "v2.stream.seeMore": "加载更多结果",
+  "v2.stream.pageSize": "每页",
   "v2.stream.loadingMore": "加载中…",
   "v2.stream.playFailed": "无法播放。",
   "v2.common.loading": "加载中…",

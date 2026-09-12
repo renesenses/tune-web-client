@@ -3756,6 +3756,7 @@ export default {
   "v2.stream.searchIn": "Keresés itt: {service}",
   "v2.stream.noResultIn": "Nincs találat itt: {service}.",
   "v2.stream.seeMore": "További találatok betöltése",
+  "v2.stream.pageSize": "Oldalanként",
   "v2.stream.loadingMore": "Betöltés…",
   "v2.stream.playFailed": "A lejátszás nem sikerült.",
   "v2.common.loading": "Betöltés…",

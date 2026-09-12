@@ -3798,6 +3798,7 @@ export default {
   "v2.stream.searchIn": "Caută în {service}",
   "v2.stream.noResultIn": "Niciun rezultat în {service}.",
   "v2.stream.seeMore": "Încarcă mai multe rezultate",
+  "v2.stream.pageSize": "Pe pagină",
   "v2.stream.loadingMore": "Se încarcă…",
   "v2.stream.playFailed": "Redare imposibilă.",
   "v2.common.loading": "Se încarcă…",

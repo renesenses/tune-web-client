@@ -3798,6 +3798,7 @@ export default {
   "v2.stream.searchIn": "{service} 内を検索",
   "v2.stream.noResultIn": "{service} に結果はありません。",
   "v2.stream.seeMore": "さらに読み込む",
+  "v2.stream.pageSize": "1ページあたり",
   "v2.stream.loadingMore": "読み込み中…",
   "v2.stream.playFailed": "再生できません。",
   "v2.common.loading": "読み込み中…",
