@@ -1228,6 +1228,76 @@
   let updDone = $state(false);
   let updDmg = $state<string | null>(null);
 
+  /**
+   * 🔴 GESTES DE SERVICE — PORTAGE, rien de neuf.
+   *
+   * Les deux routes existent depuis toujours (`POST /system/restart`,
+   * `POST /system/stop`), `api.restartServer()` et `api.stopServer()` les
+   * appellent déjà, et SEULE la coquille actuelle offrait les boutons
+   * (`SettingsView`, `restartServerAndReload` l. 367 et `arreterLeServeur`
+   * l. 329). Un utilisateur du nouvel écran n'avait aucun moyen de redémarrer
+   * ni d'arrêter son serveur : « écrit mais pas branché », encore.
+   */
+  let redemarrage = $state(false);
+  let arretEnCours = $state(false);
+
+  /**
+   * Redémarrer, puis recharger UNE FOIS que le serveur répond — jamais sur un
+   * minuteur (#1209, Mika/Windows : le rechargement à délai fixe tombait sur un
+   * serveur pas encore prêt).
+   *
+   * ⚠️ Ce bouton ne CONTOURNE pas l'attente armée par `installerMaj` (#900) :
+   * il passe par le MÊME module partagé, `lib/retourDuServeur`. Après une
+   * installation, il est là pour le cas où le serveur ne se relève pas seul —
+   * l'utilisateur redemande le redémarrage, et l'écran se remet à sonder.
+   */
+  async function redemarrerServeur() {
+    if (!(await dialogs.confirm(get(t)('settings.restartConfirm' as any), { danger: true }))) return;
+    redemarrage = true;
+    try {
+      await api.restartServer();
+    } catch (e) {
+      // Le serveur peut couper la connexion AVANT d'avoir répondu : ici,
+      // « Failed to fetch » signifie que le redémarrage a COMMENCÉ, pas qu'il
+      // a échoué. On ne s'arrête que sur une vraie erreur applicative — c'est
+      // exactement la règle de la coquille actuelle (capture de Stéphane
+      // Villerio, 12/08/2026).
+      const msg = errText(e);
+      if (msg !== null) {
+        redemarrage = false;
+        notifications.error(msg);
+        return;
+      }
+    }
+    attendreRetourEtRecharger({
+      sonder: () => api.getHealth(),
+      recharger: () => window.location.reload(),
+      renoncer: () => {
+        redemarrage = false;
+        notifications.error(get(t)('settings.updateReloadGaveUp' as any));
+      },
+    });
+  }
+
+  /**
+   * Arrêter le PROCESSUS serveur. Irréversible du point de vue de
+   * l'utilisateur : l'interface devient inatteignable et il faut un accès à la
+   * machine pour relancer. La confirmation n'est donc PAS décorative, et elle
+   * passe par `dialogs.confirm` — les dialogues natifs ne s'ouvrent jamais
+   * dans les webviews (#166) et sont interdits ici.
+   *
+   * Le bouton ne revient pas à son état initial : le serveur est mort,
+   * proposer de recommencer donnerait à croire que ça n'a pas marché.
+   */
+  async function arreterLeServeur() {
+    if (!(await dialogs.confirm(get(t)('settings.stopServerConfirm' as any), { danger: true }))) return;
+    arretEnCours = true;
+    // ⚠️ Le `catch` vide est VOULU, ce n'est pas une erreur avalée : le serveur
+    // meurt avant d'avoir répondu, donc la requête échoue TOUJOURS — et cet
+    // échec-là est le succès du geste.
+    try { await api.stopServer(); } catch { /* attendu : le serveur meurt */ }
+  }
+
   /** Traduit le refus du serveur. Repris tel quel du client actuel. */
   function updMotifRefus(res: any): string {
     const brut = String(res?.message ?? res?.status ?? '');
@@ -2559,14 +2629,44 @@
                   {$t('settings.updateAvailable' as any)} : <b>v{updateInfo.latest_version}</b>
                   (v{updateInfo.current_version ?? serverVersion})
                 </div>
-                {#if zonesEnLecture > 0 && !updDone && !updBusy}
+                {#if zonesEnLecture > 0 && updateInfo.installable !== false && !updDone && !updDmg && !updBusy}
                   <p class="hint">{$t('settings.updateStopsPlayback' as any)}</p>
                 {/if}
+                <!--
+                  🔴 PARITÉ AVEC LA COQUILLE ACTUELLE (`SettingsView`, l. 6405-6428).
+                  « MAJ v2 toujours pas de bouton comme dans la version actuelle »
+                  (Bertrand). Cet écran n'avait qu'UNE branche : quel que soit
+                  l'état, il proposait d'installer. L'ancien écran en a quatre, et
+                  les trois autres manquaient — y compris quand l'installation
+                  venait d'aboutir, et quand le serveur DIT qu'il ne peut pas
+                  s'installer lui-même. On reprend son ordre, tel quel.
+                -->
                 <div class="inline">
-                  <button class="lnk" disabled={updBusy} onclick={installerMaj}>
-                    {updBusy ? $t('common.loading' as any) : $t('settings.updateButton' as any)}
-                  </button>
+                  {#if updDmg}
+                    <b>{$t('settings.dmgDownloadedMac' as any)}</b>
+                  {:else if updDone}
+                    <!-- Installée. `installerMaj` a déjà armé l'attente du retour
+                         (#900) ; ce bouton ne la contourne pas — il redonne la
+                         main quand le serveur, lui, ne se relève pas seul. -->
+                    <b>{$t('settings.installed' as any)}</b>
+                    <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
+                      {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
+                    </button>
+                  {:else if updateInfo.installable === false}
+                    <!-- Installation depuis les sources : le serveur ne peut pas se
+                         remplacer lui-même. Offrir le bouton, c'est promettre un
+                         geste qui sera refusé. `install_hint` dit quoi faire. -->
+                    <b title={updateInfo.install_hint ?? ''}
+                      >{'⚠️ ' + $t('settings.sourceInstallNote' as any)}</b>
+                  {:else}
+                    <button class="lnk" disabled={updBusy} onclick={installerMaj}>
+                      {updBusy ? $t('common.loading' as any) : $t('settings.updateButton' as any)}
+                    </button>
+                  {/if}
                 </div>
+                {#if updateInfo.installable === false && updateInfo.install_hint}
+                  <p class="hint">{updateInfo.install_hint}</p>
+                {/if}
                 {#if updRefus}<div class="warnbox">{updRefus}</div>{/if}
                 {#if updHomebrewEtape}<div class="okbox">{updHomebrewEtape}</div>{/if}
                 {#if updHomebrew}<RefusHomebrewBloc refus={updHomebrew} />{/if}
@@ -2654,6 +2754,21 @@
                 </div>
               {/if}
               <p class="hint">{#each emphaseParts($t('settings.backgroundTasksHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <!--
+                🔴 LES DEUX GESTES DE SERVICE, en permanence — pas seulement
+                après une mise à jour. Ils vivent ICI, sous l'état du serveur,
+                comme dans la coquille actuelle (`SettingsView`, l. 3580-3609).
+                « Arrêter » est irréversible côté utilisateur : il faut un accès
+                à la machine pour relancer. Sa confirmation est `danger`.
+              -->
+              <div class="inline">
+                <button class="lnk" disabled={redemarrage} onclick={redemarrerServeur}>
+                  {redemarrage ? $t('settings.restarting' as any) : $t('settings.restartServer' as any)}
+                </button>
+                <button class="lnk danger" disabled={arretEnCours} onclick={arreterLeServeur}>
+                  {arretEnCours ? $t('settings.stoppingServer' as any) : $t('settings.stopServer' as any)}
+                </button>
+              </div>
 
             {:else if s.id === 'streaming'}
               {#if !Object.keys(svcs).length}
