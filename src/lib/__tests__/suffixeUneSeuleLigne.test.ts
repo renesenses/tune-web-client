@@ -89,14 +89,30 @@ describe('les trois écrans qui posent un suffixe', () => {
     // d'écoute est venue s'empiler AVEC l'instant dans une seule colonne
     // (`.quand`), pour ne pas ajouter un troisième enfant à la grille — c'est
     // exactement l'invariant que ce fichier tient (FabienM, fil 1739, point 8).
-    expect(racinesDuSnippet(lire('HistoriqueV2.svelte'), 'suffixe')).toBe(2);
+    //
+    // 🔴 #904 — l'extrait s'appelle désormais `colonnes` : l'écran a DEUX
+    // niveaux, et les deux posent le MÊME suffixe. L'invariant est inchangé,
+    // mais il vaut maintenant pour les deux niveaux d'un coup.
+    const v2 = lire('HistoriqueV2.svelte');
+    expect(racinesDuSnippet(v2, 'colonnes')).toBe(2);
+    // Et les deux niveaux délèguent bien au même extrait, plutôt que d'en
+    // recopier un chacun — c'est ce qui rend l'invariant vrai des deux.
+    for (const niveau of ['suffixeNu', 'suffixeObjet']) {
+      const i = v2.indexOf(`{#snippet ${niveau}(`);
+      expect(i, `extrait ${niveau} introuvable`).toBeGreaterThan(0);
+      const corps = v2.slice(i, v2.indexOf('{/snippet}', i));
+      expect(
+        corps.includes('{@render colonnes('),
+        `${niveau} recopie le suffixe au lieu de le partager`,
+      ).toBe(true);
+    }
   });
 
   it('🔴 aucun ne dépend plus du nombre qu’il rend', () => {
     // Le contrat est tenu par l'enveloppe, pas par la discipline des appelants :
     // un écran qui rendrait trois éléments demain ne casserait plus rien.
     for (const [f, nom] of [
-      ['HistoriqueV2.svelte', 'suffixe'],
+      ['HistoriqueV2.svelte', 'colonnes'],
       ['PlaylistDetailV2.svelte', 'suffixe'],
       ['SearchV2.svelte', 'proximite'],
     ] as const) {
