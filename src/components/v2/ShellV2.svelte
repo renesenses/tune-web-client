@@ -137,6 +137,7 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { bootstrapV2, suivreLaBibliotheque } from '../../lib/v2Bootstrap';
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
+  import { brancherHistoriqueCoquille } from '../../lib/historiqueCoquille';
   import { demarrerTransportV2 } from '../../lib/v2Live';
   import { reserveDeLaGrappe } from '../../lib/gouttiereGrappe';
 
@@ -277,6 +278,25 @@
    * Bertrand demandait : il n'y avait pas d'endroit ou la poser.
    */
   $effect(() => setupKeyboardShortcuts());
+
+  /**
+   * 🔴 L'HISTORIQUE DU NAVIGATEUR, QUE CETTE COQUILLE N'ÉCRIVAIT PAS — #828, #867.
+   *
+   * FabienM, fil 1749 : « Bouton RETOUR du navigateur ne fonctionne pas dans la
+   * V1 alors que ça fonctionne dans l'interface actuelle. […] ça me renvoie au
+   * site précédent, JE SORS TOTALEMENT DE TUNE. » Cinq testeurs, le même geste.
+   *
+   * Ce n'était pas un bouton cassé : `pushState` et `popstate` n'existaient que
+   * dans `App.svelte`, que `main.ts` ne monte jamais quand cette coquille
+   * tourne. Zéro occurrence dans les cinquante composants de `v2/` — mesuré
+   * avant d'écrire. Aucune entrée empilée, donc rien à dépiler : le Précédent
+   * remontait à la page d'AVANT Tune.
+   *
+   * Le branchement rend sa fonction d'arrêt : sans elle, une coquille remontée
+   * laisserait un second écrivain derrière elle et chaque changement de vue
+   * empilerait deux entrées.
+   */
+  $effect(() => brancherHistoriqueCoquille());
 
   /** La bannière n'occupe la place que si elle a quelque chose à dire. */
   const annonceMaj = $derived($updateAvailable && !$updateBannerDismissed);
