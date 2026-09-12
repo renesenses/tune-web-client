@@ -47,8 +47,38 @@
  * Inventer « déduite » faute de savoir serait pire que se taire.
  */
 
-/** L'étiquette de provenance, telle que le serveur l'écrit. */
-export type SourceDynamicRange = 'album_tag' | 'track_average';
+/**
+ * ## LA MÊME CLÉ PORTE DEUX VOCABULAIRES (#3924)
+ *
+ * `dynamic_range_source` sort de DEUX surfaces, et ne dit pas la même chose
+ * sur chacune. Mesuré sur le tag `v0.9.147` :
+ *
+ * | surface | route | valeurs |
+ * |---|---|---|
+ * | ALBUM | `GET /library/albums/{id}` | `album_tag`, `track_average` |
+ * | PISTE | `GET /library/albums/{id}/tracks`, `GET /library/tracks` | `tag`, `analysis` |
+ *
+ * Côté album (`DynamicRangeAlbum::source`, `tune-core/src/db/album_repo.rs`),
+ * l'étiquette dit d'où sort l'AGRÉGAT : le tag d'album, ou la moyenne des
+ * pistes. Elle ne dit RIEN de la provenance de ces pistes.
+ *
+ * Côté piste (`albums::provenance_du_dr`, `routes/library/albums.rs:447`),
+ * elle répond à l'autre question — celle que Patatorz pose au fil 1683,
+ * « mesurés, calculés ou juste reportés » : `tag` quand le scan a lu la valeur
+ * dans le fichier, `analysis` quand la passe d'analyse l'a CALCULÉE sur les
+ * échantillons (`tune-core/src/audio/replaygain.rs`, depuis la v0.9.145).
+ *
+ * 🔴 Le client ne connaissait que la première paire. Une valeur `analysis`
+ * tombait donc dans la branche par défaut et s'affichait avec l'infobulle
+ * « lue dans les tags des fichiers » — un énoncé FAUX, et précisément celui
+ * que le testeur cherchait à départager. `tag`, lui, y tombait aussi, mais
+ * l'énoncé y était vrai : seul `analysis` mentait.
+ *
+ * Comme côté serveur, la provenance ne sort JAMAIS sans la valeur : un
+ * `dr_track` écrit avant que `dr_source` existe sort sans provenance, et
+ * on ne lui en invente pas.
+ */
+export type SourceDynamicRange = 'album_tag' | 'track_average' | 'tag' | 'analysis';
 
 /** Ce qu'un album porte de Dynamic Range, dans la forme où l'API le rend. */
 export interface AlbumAvecDynamicRange {
@@ -64,8 +94,20 @@ export interface AffichageDynamicRange {
   texte: string;
   /** Vrai quand la valeur est la moyenne des pistes, pas une mesure d'album. */
   deduit: boolean;
-  /** Clé d'infobulle. Deux textes distincts, jamais le même. */
-  cleInfobulle: 'library.dynamicRangeTip' | 'library.dynamicRangeAverageTip';
+  /**
+   * Vrai quand Tune a CALCULÉ cette valeur sur les échantillons (#3924).
+   *
+   * Distinct de `deduit`, qui est une moyenne d'autres valeurs. Un calcul
+   * d'analyse est une mesure — il ne prend donc PAS le tilde de
+   * l'« environ », qui affirmerait une approximation qui n'existe pas. Ce
+   * qu'il change, c'est la phrase de l'infobulle.
+   */
+  calcule: boolean;
+  /** Clé d'infobulle. Trois textes distincts, jamais le même. */
+  cleInfobulle:
+    | 'library.dynamicRangeTip'
+    | 'library.dynamicRangeAverageTip'
+    | 'library.dynamicRangeAnalysisTip';
 }
 
 /**
@@ -84,11 +126,21 @@ export function afficherDynamicRange(
   const valeur = String(brut).trim();
   if (valeur === '') return null;
 
-  const deduit = album?.dynamic_range_source === 'track_average';
+  const source = album?.dynamic_range_source;
+  const deduit = source === 'track_average';
+  // #3924 — la valeur que la passe d'analyse a calculée sur les échantillons.
+  // Elle n'est ni un tag ni une moyenne : sans cette branche, elle tombait
+  // dans le repli et l'écran affirmait « lue dans les tags des fichiers ».
+  const calcule = source === 'analysis';
   return {
     valeur,
     texte: deduit ? `~${valeur}` : valeur,
     deduit,
-    cleInfobulle: deduit ? 'library.dynamicRangeAverageTip' : 'library.dynamicRangeTip',
+    calcule,
+    cleInfobulle: deduit
+      ? 'library.dynamicRangeAverageTip'
+      : calcule
+        ? 'library.dynamicRangeAnalysisTip'
+        : 'library.dynamicRangeTip',
   };
 }

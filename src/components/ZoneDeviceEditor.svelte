@@ -65,6 +65,65 @@
     deviceSaved = false;
   }
 
+  /**
+   * #3660 — RÉCUSER la détection, et non l'override.
+   *
+   * `zone.identite_appareil_effacee` est publié par le serveur À CÔTÉ des
+   * deux champs détectés, qu'il sert à `null` quand le drapeau est posé
+   * (`inject_device_identity`, `routes/zones.rs:355`). D'où la règle
+   * d'affichage : le bloc reste visible tant que le drapeau est posé, sinon
+   * il disparaîtrait avec la détection qu'il vient d'effacer et l'utilisateur
+   * n'aurait plus aucun moyen de revenir en arrière.
+   *
+   * L'état affiché est celui que la RÉPONSE porte — `patch_zone` rend la
+   * fiche complète — et jamais l'inverse du booléen local.
+   */
+  let identiteSaving = $state(false);
+  let identiteEffacee = $state(zone.identite_appareil_effacee === true);
+  /**
+   * 🔴 La détection AFFICHÉE vit ici, et non dans `zone`.
+   *
+   * `zone` est une prop, et écrire dans un objet reçu en prop ne redessine
+   * rien : la ligne « Détecté : EVERSOLO · AV Renderer Device » serait restée
+   * à l'écran après que le serveur l'a mise à `null` — on aurait continué
+   * d'afficher l'identité qu'on venait de récuser. (`zone.brand = …` du
+   * bloc marque/modèle vit avec ce défaut depuis toujours ; il ne se voit pas
+   * là-bas, les deux champs de saisie portant déjà la valeur.)
+   */
+  let detectedMarque = $state<string | null>(zone.detected_manufacturer ?? null);
+  let detectedModele = $state<string | null>(zone.detected_model ?? null);
+
+  async function basculerIdentiteEffacee(ev: Event) {
+    // Saisie AVANT tout `await` : `currentTarget` est remis à `null` dès que
+    // le gestionnaire rend la main.
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    if (zone.id === null) return;
+    identiteSaving = true;
+    error = '';
+    const souhait = !identiteEffacee;
+    try {
+      const maj = await api.setZoneIdentiteEffacee(zone.id, souhait);
+      // L'état vient de la RÉPONSE — `patch_zone` rend la fiche complète via
+      // `get_zone`. Un serveur antérieur à #3660 ne porte pas le drapeau : la
+      // case revient alors d'elle-même à « pas récusé », plutôt que
+      // d'affirmer un effacement qui n'a pas eu lieu.
+      identiteEffacee = maj.identite_appareil_effacee === true;
+      detectedMarque = maj.detected_manufacturer ?? null;
+      detectedModele = maj.detected_model ?? null;
+      zone.identite_appareil_effacee = identiteEffacee;
+      zone.detected_manufacturer = detectedMarque;
+      zone.detected_model = detectedModele;
+      onSaved?.(zone);
+    } catch (e: any) {
+      error = e?.message || 'Failed to save device';
+    }
+    identiteSaving = false;
+    // Le clic a déjà bougé le DOM ; quand l'état confirmé est celui qu'on
+    // affichait déjà, Svelte n'a rien à re-rendre et la case resterait
+    // cochée devant un serveur qui n'a rien effacé.
+    if (caseCochee) caseCochee.checked = identiteEffacee;
+  }
+
   async function saveDevice() {
     if (zone.id === null) return;
     deviceSaving = true;
@@ -135,10 +194,29 @@
   </label>
 </div>
 
-{#if zone.detected_manufacturer || zone.detected_model}
+{#if detectedMarque || detectedModele}
   <p class="device-detected">
-    {$t('zoneConfig.detected')}: {[zone.detected_manufacturer, zone.detected_model].filter(Boolean).join(' · ')}
+    {$t('zoneConfig.detected')}: {[detectedMarque, detectedModele].filter(Boolean).join(' · ')}
   </p>
+{/if}
+
+<!-- #3660 — « cet appareil n'EST PAS un Eversolo ». Visible tant qu'il y a
+     une détection À RÉCUSER, et tant que le drapeau est posé : sans ce
+     second cas le bloc disparaîtrait avec la détection qu'il efface, et
+     l'utilisateur n'aurait plus de chemin de retour. -->
+{#if zone.id !== null && (detectedMarque || detectedModele || identiteEffacee)}
+  <label class="device-reject">
+    <input
+      type="checkbox"
+      checked={identiteEffacee}
+      disabled={identiteSaving}
+      onchange={(e) => basculerIdentiteEffacee(e)}
+    />
+    <span>
+      <span class="device-reject-label">{$t('zoneConfig.identiteEffacee')}</span>
+      <span class="device-reject-hint">{$t('zoneConfig.identiteEffaceeHint')}</span>
+    </span>
+  </label>
 {/if}
 
 <div class="device-actions">
@@ -215,6 +293,29 @@
     font-size: 12px;
     color: var(--tune-text-muted);
     margin: 8px 0 0;
+  }
+  .device-reject {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 8px 0 0;
+    cursor: pointer;
+  }
+  .device-reject input {
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+  .device-reject-label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--tune-text-secondary);
+  }
+  .device-reject-hint {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-text-muted);
   }
   .device-actions {
     margin-top: 10px;

@@ -465,3 +465,20 @@ export function valeurColonne(t: Track, cle: CleColonne): string | null {
     case 'quality':  return null;
   }
 }
+
+/**
+ * Ce qu'une cellule doit DIRE d'elle-même, en clé de traduction (#3924).
+ *
+ * `null` — le cas de toutes les colonnes sauf une — laisse l'infobulle
+ * afficher la valeur brute, comme avant.
+ *
+ * La colonne `dr`, elle, a une provenance à annoncer, et c'est la SEULE
+ * surface où le vocabulaire de PISTE (`tag` / `analysis`, #3924) atteint
+ * l'utilisateur. Sans cette ligne, une valeur calculée par la passe
+ * d'analyse ne se distinguerait d'un tag de fichier par rien du tout :
+ * même chiffre, même cellule, aucune infobulle. La règle vit dans
+ * `afficherDynamicRange`, la même que sur les deux fiches d'album.
+ */
+export function cleInfobulleColonne(t: Track, cle: CleColonne): string | null {
+  return cle === 'dr' ? (afficherDynamicRange(t)?.cleInfobulle ?? null) : null;
+}
