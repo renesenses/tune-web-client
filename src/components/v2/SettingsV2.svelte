@@ -27,6 +27,7 @@
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
+  import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../RefusHomebrew.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
@@ -1313,11 +1314,36 @@
       const courante: string | undefined = st?.current_version;
       if ((courante && versionAvant && courante !== versionAvant) || (vuHorsService && !st?.update_in_progress)) {
         updDone = true; updBusy = false;
-        setTimeout(() => window.location.reload(), 1500);
+        // 🔴 #900 — PORTAGE DEPUIS LA COQUILLE ACTUELLE, RIEN DE PLUS.
+        //
+        // On rechargeait ici au bout de 1 500 ms, SANS rien vérifier. Un
+        // serveur qui se ré-exécute une seconde fois — c'est le cas de la mise
+        // à jour automatique — n'est plus debout à cet instant, et le
+        // navigateur atterrit sur rien : « la page reste bloquée sur Tune
+        // Redémarre » (Lulu, fil du 04/09/2026).
+        //
+        // `SettingsView` (coquille actuelle) sonde `/system/health` avant de
+        // recharger depuis #1209, et partage cette attente depuis `eac1988` :
+        // `lib/retourDuServeur`. Le module existait, il était éprouvé, et il
+        // n'était appelé QUE par l'autre coquille. Ici on l'appelle.
+        attendreRetourEtRecharger({
+          sonder: () => api.getHealth(),
+          recharger: () => window.location.reload(),
+          renoncer: () => {
+            updDone = false;
+            updRefus = get(t)('settings.updateReloadGaveUp');
+          },
+        });
         return;
       }
     }
+    // 🔴 #900 — CETTE SORTIE ÉTAIT MUETTE. Budget épuisé (trois minutes, ou
+    // `DELAI_MAJ_HOMEBREW_MS`), dernière vérification sans réponse, et l'écran
+    // retombait sur le bouton sans un mot : ni « installée », ni « échouée »,
+    // ni quoi faire. `SettingsView` a cessé de se taire avec `eac1988` ; cette
+    // coquille-ci se taisait encore. La clé existe déjà dans les onze langues.
     updBusy = false;
+    updRefus = get(t)('settings.updateStatusUnknown');
   }
 
   let stk = $state<any[]>([]);
