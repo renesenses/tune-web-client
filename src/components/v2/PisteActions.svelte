@@ -64,6 +64,7 @@
   import * as api from '../../lib/api';
   import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import { queuePosition } from '../../lib/stores/queue';
   import {
     favoriteTrackIds, favoriteStreamingKeys,
@@ -144,7 +145,10 @@
     const zid = $currentZoneId;
     const corps = corpsDeLecture(piste);
     if (zid == null || !corps) return;
-    playAndSync(zid, corps as any).catch(() => notifications.error($t('v2.pa.playError' as any)));
+    // Un toast, donc le chemin commun : `signalerEchecLecture` journalise,
+    // accole le message du serveur au lieu du seul « Impossible de lire ce
+    // titre », et n'empile pas deux bandeaux identiques (#3732).
+    playAndSync(zid, corps as any).catch(signalerEchecLecture);
   }
 
   /**
