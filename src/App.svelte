@@ -26,6 +26,7 @@
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
   import { handleAudioLevelsEvent } from './lib/stores/audioLevels';
+  import { zoneInitiale } from './lib/zoneInitiale';
   import { startUpdatePolling, stopUpdatePolling, updateAvailable, latestVersion, currentVersion, updateBannerDismissed, dismissUpdateBanner } from './lib/stores/updates';
   import { startSupportPolling, stopSupportPolling } from './lib/stores/support';
   import { ytPlayerState, ytLoading, playVideo, pauseVideo, resumeVideo, stopVideo, clearYTLoading } from './lib/stores/ytPlayer';
@@ -309,23 +310,16 @@ import AlarmsView from './components/AlarmsView.svelte';
       const urlZoneId = kioskUrlZoneId(zoneList);
       if (urlZoneId !== null) currentZoneId.set(urlZoneId);
 
-      // Zone selection: keep current if already set, otherwise prefer a playing
-      // zone over the default/first so the UI reconnects to active playback.
+      // Sélection de zone : la règle vit dans `zoneInitiale`, partagée avec la
+      // coquille V1 qui en portait une AUTRE (la première de la liste). Le
+      // comportement de cet écran est inchangé — c'est sa règle qui a été
+      // extraite, pas réécrite.
       let curId: number | null = null;
       currentZoneId.subscribe((v) => (curId = v))();
-      const curZoneExists = curId !== null && zoneList.some((z) => z.id === curId);
-      if ((!curZoneExists) && zoneList.length > 0) {
-        // Check server-side default zone (is_default flag from zones list),
-        // then fall back to local preference, then playing zone, then first zone.
-        const serverDefault = zoneList.find((z) => z.is_default);
-        let localDefaultId: number | null = null;
-        preferences.subscribe((p) => (localDefaultId = p.defaultZoneId))();
-        const localDefault = localDefaultId !== null ? zoneList.find((z) => z.id === localDefaultId) : null;
-        const defaultZone = serverDefault ?? localDefault;
-        const playingZone = zoneList.find((z) => z.state === 'playing');
-        const target = defaultZone ?? playingZone ?? zoneList[0];
-        if (target?.id != null) currentZoneId.set(target.id);
-      }
+      let localDefaultId: number | null = null;
+      preferences.subscribe((p) => (localDefaultId = p.defaultZoneId))();
+      const cibleZone = zoneInitiale(zoneList, curId, localDefaultId);
+      if (cibleZone != null && cibleZone !== curId) currentZoneId.set(cibleZone);
 
       // Recaler l'aléatoire et la répétition sur ce que le serveur vient de
       // dire (#2092). APRÈS la sélection de zone, sinon `syncTransportFromZone`

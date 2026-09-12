@@ -24,6 +24,28 @@ import { tuneWS } from './websocket';
 import { devices } from './stores/devices';
 import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
 import { loadLicense } from './stores/license';
+import { zoneInitiale } from './zoneInitiale';
+
+
+/**
+ * La zone préférée sur CET appareil (`preferences.defaultZoneId`), ou `null`.
+ *
+ * Chargée à la demande, et non importée en tête de fichier : le module
+ * `stores/preferences` lit `localStorage` au chargement, ce qui jette hors
+ * d'un navigateur. L'importer statiquement ici faisait échouer
+ * `bibliothequeVivante.test.ts`, qui monte l'amorçage en environnement `node`
+ * — un test vert avant, rouge après, et sans rapport avec la sélection de
+ * zone. Une préférence d'appareil illisible n'est pas une panne : on
+ * n'en tient simplement pas compte.
+ */
+async function defautDAppareil(): Promise<number | null> {
+  try {
+    const { preferences } = await import('./stores/preferences');
+    return get(preferences).defaultZoneId ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /** Zones + sélection courante. Sans zone, aucune lecture n'est possible. */
 async function loadZones(): Promise<void> {
@@ -32,9 +54,17 @@ async function loadZones(): Promise<void> {
   // La zone mémorisée prime, mais seulement si elle existe ENCORE : une zone
   // supprimée depuis la dernière session laisserait sinon l'interface pointer
   // dans le vide, avec des boutons Lire silencieusement inertes.
-  const saved = get(currentZoneId);
-  const stillThere = saved != null && list.some((z) => z.id === saved);
-  if (!stillThere && list.length) currentZoneId.set(list[0].id ?? null);
+  // La règle vit dans `zoneInitiale`, partagée avec l'interface actuelle.
+  // Elle prenait ici la PREMIÈRE de la liste, là où l'autre coquille préfère
+  // la zone qui joue : sur un appareil neuf, les deux interfaces du même
+  // serveur se posaient sur deux zones différentes, et les vumètres — qui ne
+  // rendent que la zone SÉLECTIONNÉE — restaient à zéro d'un côté.
+  const actuelle = get(currentZoneId);
+  const cible = zoneInitiale(list, actuelle, await defautDAppareil());
+  // ⚠️ Jamais `set(null)` : sur une liste VIDE — serveur qui démarre, appel
+  // qui a échoué — la version précédente ne touchait pas à la sélection, et
+  // l'écraser ici rendait tout bouton Lire inerte jusqu'au rechargement.
+  if (cible != null && cible !== actuelle) currentZoneId.set(cible);
 }
 
 /**
