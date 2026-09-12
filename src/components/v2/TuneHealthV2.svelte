@@ -21,9 +21,13 @@
   import { tableauFournisseurs, type TableauFournisseurs } from '../../lib/refusModuleSortie';
   import { formatNombre } from '../../lib/formats';
   import { activeView } from '../../lib/stores/navigation';
-  import { } from '../../lib/utils';
+  import { errText } from '../../lib/utils';
   import { heureSeule } from '../../lib/dates';
   import { t } from '../../lib/i18n';
+  import { notifications } from '../../lib/stores/notifications';
+  // #865 — le geste des journaux, PARTAGÉ avec `DiagnosticsView`. Voir
+  // `lib/journaux.ts` : aucune copie de la route ni du nom de fichier ici.
+  import { lireJournaux, telechargerJournaux } from '../../lib/journaux';
   import '../../styles/tune-v2.css';
 
   type Card = {
@@ -199,6 +203,54 @@
     off: { txt: $t('v2.health.stOff' as any), cls: 'off' },
     inconnu: { txt: $t('v2.health.stUnknown' as any), cls: 'unk' } });
   const pct = (c: Card) => (c.total && c.fait != null ? Math.min(100, Math.round((c.fait / c.total) * 100)) : null);
+
+  // ── #865 : les JOURNAUX ────────────────────────────────────────────────
+  //
+  // 🔴 Ils n'existaient nulle part dans la coquille `?v2`. Le client actuel
+  // les sert depuis `DiagnosticsView` — la vue `diagnostics` — mais la
+  // nouvelle coquille rend `TuneHealthV2` sous cette même vue, et cet écran ne
+  // parlait que des traitements de fond. Un testeur en `?v2` à qui on demande
+  // ses journaux ne pouvait donc RIEN envoyer : pas de page, pas de bouton,
+  // pas de fichier. C'est le coût invisible de chaque signalement.
+  //
+  // On les rebranche ICI, et pas dans les Réglages : c'est l'écran de santé,
+  // c'est là qu'on vient quand quelque chose ne va pas, et c'est la vue que
+  // l'ancienne interface montait déjà pour ça. Le geste lui-même est celui de
+  // `DiagnosticsView`, extrait dans `lib/journaux.ts` pour qu'il n'y ait pas
+  // deux vérités — il y en avait déjà deux dans le client actuel, et elles
+  // avaient divergé.
+  let journauxOuverts = $state(false);
+  let journaux = $state('');
+  let journauxSource = $state('');
+  let journauxEnCours = $state(false);
+  let exportEnCours = $state(false);
+
+  async function basculerJournaux() {
+    journauxOuverts = !journauxOuverts;
+    if (!journauxOuverts) return;
+    journauxEnCours = true;
+    try {
+      const j = await lireJournaux();
+      journaux = j.texte || $t('diagnostics.noLogs' as any);
+      journauxSource = j.source;
+    } catch {
+      journaux = $t('diagnostics.logsError' as any);
+      journauxSource = 'error';
+    }
+    journauxEnCours = false;
+  }
+
+  async function exporterJournaux() {
+    exportEnCours = true;
+    try {
+      // Le libellé « aucun journal » est passé TRADUIT : le module ne parle
+      // à personne, et un fichier vide se lit comme un export raté.
+      await telechargerJournaux({ siVide: $t('diagnostics.noLogs' as any) });
+    } catch (e: any) {
+      notifications.error($t('common.error' as any) + ' : ' + (errText(e) ?? $t('common.serverUnreachable' as any)));
+    }
+    exportEnCours = false;
+  }
 </script>
 
 <section class="v2-health tune-v2">
@@ -256,6 +308,28 @@
         </section>
       {/if}
 
+      <!-- #865 — les JOURNAUX. Le bloc est en dehors du `{#if modulesSortie}`
+           et ne dépend d'aucune route facultative : il doit être là même —
+           surtout — quand le serveur va mal. -->
+      <section class="journaux">
+        <h2>{$t('v2.health.cardLogs' as any)}</h2>
+        <div class="sub">{$t('settings.downloadLogsTitle' as any)}</div>
+        <div class="jactions">
+          <button class="lnk" onclick={basculerJournaux} disabled={journauxEnCours}>
+            {$t((journauxOuverts ? 'diagnostics.hideLogs' : 'diagnostics.showLogs') as any)}
+          </button>
+          <button class="lnk" onclick={exporterJournaux} disabled={exportEnCours}>
+            {$t((exportEnCours ? 'diagnostics.exporting' : 'diagnostics.exportLogs') as any)}
+          </button>
+          {#if journauxSource && journauxOuverts}
+            <span class="jsrc">{journauxSource}</span>
+          {/if}
+        </div>
+        {#if journauxOuverts}
+          <pre class="jtexte">{journauxEnCours ? $t('common.loading' as any) : journaux}</pre>
+        {/if}
+      </section>
+
       <p class="foot">
         {$t('v2.hint.processingFromSettings' as any)}
         <button class="lnk sm" onclick={() => activeView.set('settings')}>{$t('v2.eq.openSettings' as any)}</button>
@@ -302,4 +376,18 @@
   .modules{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
   .modules h2{font-size:15px; font-weight:700}
   .modules .sub{margin-bottom:12px}
+
+  /* #865 — le bloc des journaux, dans l'enveloppe des autres sections de
+     l'écran plutôt qu'avec un style à lui. */
+  .journaux{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px;
+    background:var(--v2-surface2); padding:16px 18px 18px}
+  .journaux h2{font-size:15px; font-weight:700}
+  .journaux .sub{margin-bottom:12px}
+  .jactions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .jsrc{font:10.5px var(--v2-mono); color:var(--v2-txt3)}
+  /* Le journal est long et ses lignes le sont aussi : il défile dans les deux
+     sens, et la page, elle, ne déborde pas. */
+  .jtexte{margin-top:12px; max-height:380px; overflow:auto; padding:12px;
+    border:1px solid var(--v2-line2); border-radius:10px; background:var(--v2-bg);
+    font:11.5px/1.55 var(--v2-mono); color:var(--v2-txt2); white-space:pre; tab-size:2}
 </style>

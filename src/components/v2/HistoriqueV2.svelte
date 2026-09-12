@@ -255,11 +255,12 @@
   .state{padding:30px; color:var(--v2-txt3)}
 
   .list{display:flex; flex-direction:column; gap:1px; padding:6px 30px 20px}
-  /* Enveloppe : la ligne partagee, plus les deux colonnes propres a
-     l'historique. */
-  .lh{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:10px; border-radius:9px}
-  .lh.busy{opacity:.55}
-  .lh .when{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:82px; text-align:right}
+  /* 🔴 #874 — `.lh`, l'enveloppe de ligne, n'existe plus dans ce balisage :
+     la ligne est rendue par `ListePistesV2` depuis le portage. Ses trois
+     règles ne s'appliquaient à rien. Celle qui comptait — l'atténuation de la
+     ligne en cours de rejeu — est reposée ci-dessous sur l'élément que cet
+     écran rend VRAIMENT et qui porte déjà `class:busy`. */
+  .when.busy{opacity:.55}
   /* La zone au-dessus de l'instant : deux lignes serrées, alignées à droite,
      comme dans l'écran actuel. */
   .quand{display:flex; flex-direction:column; align-items:flex-end; gap:1px; min-width:92px}
@@ -267,12 +268,24 @@
     max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .quand .when{font:11px var(--v2-mono); color:var(--v2-txt3)}
 
-  /* Le cœur d'un titre radio DÉJÀ en favori reste visible : sans cela on ne
-     peut plus lire lesquels le sont sans les survoler un par un — la même
-     règle que sur les pochettes. */
+  /* 🔴 #874 — LE CŒUR NE SE CACHE PLUS DERRIÈRE UN SÉLECTEUR MORT.
+     Il était en `opacity:0`, révélé par `.row:hover .fav`. Or cet écran ne
+     rend AUCUN élément `.row` : les lignes viennent de `ListePistesV2`, qui
+     les nomme `.avecSuffixe` (mode liste) ou `.trow` (mode tableau) — et le
+     CSS de Svelte est portée de COMPOSANT, donc même en changeant de nom la
+     règle ne les atteindrait pas d'ici.
+     La règle ne s'appliquait donc à rien, et rien ne cassait visiblement :
+     le cœur d'un titre PAS ENCORE en favori restait simplement invisible,
+     survol ou pas. Ajouter un favori depuis l'historique demandait de cliquer
+     un bouton qu'on ne voyait pas.
+     Il est désormais visible en permanence — discret quand il est éteint,
+     plein quand le titre est en favori — et son état ne dépend plus du
+     balisage d'un autre composant.
+     ⚠️ `.lh` était mort pour la même raison : son enveloppe est tombée au
+     portage vers `ListePistesV2`. Ses règles sont retirées plus bas. */
   .fav{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
-    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; opacity:0; transition:opacity .12s}
-  .row:hover .fav, .fav.on{opacity:1}
+    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; opacity:.62; transition:opacity .12s}
+  .fav:hover:not(:disabled), .fav:focus-visible, .fav.on{opacity:1}
   .fav.on{color:var(--v2-danger)}
   .fav:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-line2)}
   .fav.on:hover{color:var(--v2-danger)}

@@ -14,6 +14,8 @@
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import { canConfirmImport } from '../lib/importReport';
+// #865 — l'export des journaux, UNE seule fois pour tout le client.
+import { telechargerJournaux } from '../lib/journaux';
   import { attendreRetourEtRecharger } from '../lib/retourDuServeur';
   import { refreshAcousticStatus, acousticStatus, acousticEnabled } from '../lib/stores/acoustic';
   import AcousticProgress from './AcousticProgress.svelte';
@@ -1062,20 +1064,22 @@ function setSettingsLevel(level: SettingsLevel) {
   // Logs download
   let logsDownloading = $state(false);
 
+  /**
+   * 🔴 #865 — TROISIÈME copie du même geste, et la seule qui était FAUSSE.
+   *
+   * Elle lisait `/api/v1/system/logs` en `.text()`. Cette route rend du JSON
+   * (`{ logs, source }`) : le fichier remis au testeur contenait donc l'objet
+   * JSON échappé — « {"logs":"2026-09-12T… \n…" } » — au lieu des lignes de
+   * journal. Sans en-tête non plus : ni version, ni système, ni source.
+   *
+   * C'est exactement ce que trois copies d'un même geste finissent par
+   * produire. Il n'y en a plus qu'une, dans `lib/journaux.ts`, et les deux
+   * coquilles l'appellent.
+   */
   async function downloadLogs() {
     logsDownloading = true;
     try {
-      const resp = await fetch(`/api/v1/system/logs`);
-      const text = await resp.text();
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tune-logs-${new Date().toISOString().slice(0, 10)}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await telechargerJournaux({ siVide: get(t)('diagnostics.noLogs') });
     } catch (err: any) {
       notifications.error(get(t)('settings.logsError') + ': ' + (errText(err) ?? get(t)('common.serverUnreachable')));
     } finally {

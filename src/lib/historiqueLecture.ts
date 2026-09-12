@@ -24,6 +24,10 @@ import { cleDObjet, estRegroupable } from './historiqueParContexte';
 import type { Track } from './types';
 import * as api from './api';
 import { playAndSync } from './stores/zones';
+// La clé d'index des favoris de radio, UNE fois pour tout le client — voir
+// `cleFavoriRadio` plus bas. Le module ne touche au stockage que dans ses
+// fonctions : l'importer ne lit rien.
+import { radioFavListenKey } from './radioFavListenAt';
 
 /** Nombre d'entrées rendues par la fusion — au-delà, la liste n'est plus lue. */
 const PLAFOND = 200;
@@ -248,9 +252,26 @@ export async function rejouerEntree(zoneId: number, entree: HistoryEntry): Promi
 /**
  * Un titre entendu à la radio n'a pas d'identifiant : on le retrouve par son
  * couple titre / artiste, et c'est cette clé-là qui sert d'index côté écran.
+ *
+ * 🔴 #874 — ELLE NE RECOPIE PLUS LA FORMULE, ELLE L'EMPRUNTE.
+ *
+ * `radioFavListenKey` indexait déjà exactement la même chose — un favori de
+ * radio par titre et artiste — pour la barre de transport, l'écran de lecture,
+ * l'écran des radios et celui des favoris. Cette fonction en tenait une
+ * SECONDE copie, écrite à l'identique, pour l'historique et rien d'autre.
+ *
+ * Deux formules pour un seul index, c'est une divergence en attente : le jour
+ * où l'une se met à découper ou à normaliser autrement, le cœur de
+ * l'historique cesse de s'allumer pour un titre que les quatre autres écrans
+ * tiennent pour un favori — sans erreur, sans message, et sans rien qui le
+ * fasse voir. On délègue donc, et il ne reste qu'une vérité.
+ *
+ * Le couple ENTIER fait la clé : deux titres homonymes d'artistes différents
+ * — « Hallelujah » de Cohen et celle de Buckley — désignent deux favoris, pas
+ * un. `historiqueV2.test.ts` le tient.
  */
 export function cleFavoriRadio(titre?: string | null, artiste?: string | null): string {
-  return `${titre ?? ''}\n${artiste ?? ''}`;
+  return radioFavListenKey(titre, artiste);
 }
 
 /** Les clés des titres radio déjà en favori. Rend un ensemble vide si l'appel échoue. */

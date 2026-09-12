@@ -15,6 +15,9 @@
   import OutputModuleBanner from './OutputModuleBanner.svelte';
   import OutputModulesPanel from './OutputModulesPanel.svelte';
   import { tableauFournisseurs } from '../lib/refusModuleSortie';
+  // #865 — le geste des journaux est PARTAGÉ avec la coquille v2, qui n'en
+  // avait aucun. Il vient d'ici ; il vit maintenant dans `lib/journaux.ts`.
+  import { lireJournaux, telechargerJournaux } from '../lib/journaux';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus } from '../lib/types';
 
   // « Services actifs » affichait `serverDiag.connectors`, c'est-a-dire la
@@ -406,9 +409,9 @@
     if (!showLogs) return;
     logsLoading = true;
     try {
-      const r = await api.apiFetch('/system/logs?lines=1000');
-      logs = r.logs || $t('diagnostics.noLogs' as any);
-      logsSource = r.source || 'unknown';
+      const j = await lireJournaux();
+      logs = j.texte || $t('diagnostics.noLogs' as any);
+      logsSource = j.source;
     } catch { logs = $t('diagnostics.logsError' as any); logsSource = 'error'; }
     logsLoading = false;
   }
@@ -416,26 +419,22 @@
   let logsSource = $state('');
   let downloadingLogs = $state(false);
 
+  /**
+   * #865 — le corps de ce geste a été EXTRAIT dans `lib/journaux.ts`.
+   *
+   * Il était écrit ici, et nulle part ailleurs qu'ici : la coquille v2 ne
+   * monte jamais cet écran, et ses utilisateurs n'avaient donc aucun moyen
+   * d'envoyer leurs journaux. Le déplacer plutôt que le recopier est tout
+   * l'objet du correctif — le client actuel en portait DÉJÀ deux copies
+   * (celle-ci et celle de `SettingsView`), et elles avaient divergé.
+   *
+   * Le comportement ne change pas d'un caractère : même route, mêmes mille
+   * lignes, même en-tête, même `tune-logs-AAAA-MM-JJ.txt`.
+   */
   async function downloadLogs() {
     downloadingLogs = true;
     try {
-      const r = await api.apiFetch('/system/logs?lines=1000');
-      const logText = r.logs || $t('diagnostics.noLogs' as any);
-      const source = r.source || 'unknown';
-      const diag = await api.apiFetch('/system/diagnostics').catch(() => null);
-      const version = diag?.server_version || 'inconnue';
-      const os = diag?.os || 'inconnu';
-      const header = `Tune Server ${version} | ${os} | source: ${source}\n${'='.repeat(60)}\n\n`;
-      const blob = new Blob([header + logText], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const date = new Date().toISOString().slice(0, 10);
-      a.download = `tune-logs-${date}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await telechargerJournaux({ siVide: $t('diagnostics.noLogs' as any) });
     } catch (e: any) {
       notifications.error($t('common.error') + ' : ' + (errText(e) ?? $t('common.serverUnreachable')));
     }

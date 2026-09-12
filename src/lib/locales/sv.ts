@@ -4121,6 +4121,7 @@ export default {
   "v2.health.enrichErrors": "{n} misslyckades",
   "v2.health.cardCovers": "Artistbilder",
   "v2.health.cardCoversSub": "Söker saknade bilder",
+  "v2.health.cardLogs": "Serverloggar",
   "v2.health.coversLine": "{n} av {t} bearbetade — {f} hittade",
   "v2.health.coversNone": "Ingen körning registrerad",
   "v2.health.coversMissing": "{n} artister saknar fortfarande bild",
