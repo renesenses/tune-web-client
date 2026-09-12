@@ -38,8 +38,14 @@
    * La lecture passe par le premier album : `POST /zones/{id}/play` n'accepte
    * pas d'`artist_id`. Même compromis que pour les collections.
    */
-  import { onMount } from 'svelte';
-  import { activeView, listResetNonce, vueDeRetour } from '../../lib/stores/navigation';
+  import { onMount, untrack } from 'svelte';
+  import {
+    activeView, listResetNonce, vueDeRetour,
+    saveDetailScroll, restoreDetailScroll,
+  } from '../../lib/stores/navigation';
+  import {
+    detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant,
+  } from '../../lib/historiqueCoquille';
   import { lireListe } from '../../lib/lectureEnMasse';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
@@ -129,6 +135,9 @@
     $listResetNonce;
     ouvert = null;
     albumOuvert = null;
+    // Le magasin partagé suit le calque : le laisser garni ferait porter à
+    // l'entrée d'historique une fiche que l'écran n'affiche plus.
+    fermerDetail();
   });
   /**
    * Le bouton « Retour » de la fiche artiste — #3824.
@@ -143,13 +152,62 @@
    */
   function retourFiche() {
     const retour = $vueDeRetour;
-    ouvert = null;
-    albumOuvert = null;
     if (retour) {
+      // Le parcours a une destination explicite (venu de la Recherche) : on y
+      // VA, on ne recule pas. Le magasin de détail est vidé sans reculer, sinon
+      // le `history.back()` et le changement de vue se marcheraient dessus.
+      fermerDetail();
+      fermerLaFiche();
       vueDeRetour.set(null);
       activeView.set(retour);
+      return;
     }
+    // Sinon c'est un vrai RECUL : on dépile l'entrée d'historique en même
+    // temps qu'on referme, pour que la pile du navigateur suive le chemin
+    // réellement parcouru (#828).
+    fermerDetailEnReculant(fermerLaFiche);
   }
+
+  /**
+   * LE RETOUR REPOSE OÙ L'ON ÉTAIT — #864.
+   *
+   * « Bibliothèque → Artistes → choix de l'artiste → album(s) → retour → haut
+   * de la page » (Jean Valjean, fil 1671). `{#if ouvert}` RETIRE la grille du
+   * DOM : au retour elle est reconstruite à neuf, et le navigateur n'a plus de
+   * conteneur dont restaurer le `scrollTop`. Rien ne le compensait — mesuré :
+   * pas une occurrence de `scrollTop` dans ce fichier avant ce correctif.
+   *
+   * On réemploie `saveDetailScroll` / `restoreDetailScroll`, écrits pour
+   * exactement ce motif dans cinq écrans de l'ancienne coquille. La cible est
+   * une FONCTION, pas l'élément : au moment du retour la branche « liste »
+   * n'est pas encore rendue et `grilleEl` vaut `null` — la version à élément
+   * rendrait la main sans rien faire, en silence.
+   */
+  const CLE_DEFILEMENT = 'v2:artistes';
+  function fermerLaFiche() {
+    ouvert = null;
+    albumOuvert = null;
+    restoreDetailScroll(CLE_DEFILEMENT, () => grilleEl);
+  }
+
+  /**
+   * LE BOUTON PRÉCÉDENT DU NAVIGATEUR, relu ici — #828, #867.
+   *
+   * La coquille repose l'état de l'entrée atteinte dans `detailOuvert` ; c'est
+   * à l'écran qui porte le calque de s'y conformer. Sans ce raccord, le retour
+   * navigateur reposerait la bonne VUE en laissant la fiche par-dessus.
+   *
+   * ⚠️ `untrack` : l'effet écrit `ouvert`, qu'il lirait aussi. Il ne doit
+   * dépendre QUE du magasin, sinon sa propre écriture le relance.
+   */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (!ouvert) return;
+      if (voulu === `artiste:${ouvert.id}`) return;
+      fermerLaFiche();
+    });
+  });
   /**
    * Ouvrir un artiste EN CLIQUANT LA GRILLE efface le retour en attente.
    *
@@ -253,6 +311,12 @@
   }
 
   async function ouvrir(a: Artist) {
+    // AVANT de basculer : `{#if ouvert}` va retirer `grilleEl` du DOM, et une
+    // position mesurée après coup vaudrait toujours zéro.
+    saveDetailScroll(CLE_DEFILEMENT, () => grilleEl);
+    // La CLÉ, pas l'artiste : `a` est un proxy `$state` et `history.state`
+    // refuse les proxies. Voir l'en-tête de `lib/historiqueCoquille.ts`.
+    if (a.id != null) ouvrirDetail(`artiste:${a.id}`);
     ouvert = a;
     albums = [];
     albumsChargement = true;
