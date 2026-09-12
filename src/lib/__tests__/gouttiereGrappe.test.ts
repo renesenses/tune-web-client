@@ -173,11 +173,8 @@ describe('La gouttière de la grappe', () => {
     // que la recherche globale ne la rejoigne ; `172px` vaut loupe REPLIÉE
     // (36 px) — dépliée elle en fait 320, et « Ajouter un widget » repassait
     // dessous (Bertrand, 09/09/2026).
-    // Le chevron du menu du compte (6 + 24) a rejoint la grappe le 12/09/2026,
-    // la bulle ouvrant désormais l'explorateur de photo (#893). Le plancher
-    // l'a suivi : c'est tout l'objet de ces deux lignes.
-    const REPLIEE = 36 + 10 + 32 + 10 + 40 + 6 + 24;   // loupe + signet + avatar + chevron
-    const DEPLIEE = 320 + 10 + 32 + 10 + 40 + 6 + 24;  // la même, loupe ouverte
+    const REPLIEE = 36 + 10 + 32 + 10 + 40;   // loupe + signet + avatar
+    const DEPLIEE = 320 + 10 + 32 + 10 + 40;  // la même, loupe ouverte
     expect(reserveDeLaGrappe(REPLIEE)).toBe(RESERVE_MINIMALE);
     expect(reserveDeLaGrappe(DEPLIEE)).toBe(DEPLIEE + MARGE_DROITE + AIR);
     // La réserve SUIT la grappe : c'est tout l'objet du changement.
