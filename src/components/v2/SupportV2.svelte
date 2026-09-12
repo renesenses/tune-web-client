@@ -19,7 +19,9 @@
   import type { SupportTicketSummary, SupportTicketReply } from '../../lib/api';
   import { licenseState } from '../../lib/stores/license';
   import { currentZone } from '../../lib/stores/zones';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import { messageErreurSupport } from '../../lib/supportErrors';
+  import { get } from 'svelte/store';
   import { dateEtHeure } from '../../lib/dates';
   import { zones } from '../../lib/stores/zones';
   import { currentVersion } from '../../lib/stores/updates';
@@ -38,6 +40,19 @@
    */
   type Volet = 'diagnostic' | 'tickets' | 'systeme';
   let volet = $state<Volet>('diagnostic');
+
+  /**
+   * Traduction avec interpolation `{cle}` — contrat attendu par
+   * `messageErreurSupport`, identique à celui de `SupportView` (v1). Le module
+   * des messages de support est PUR : il reçoit sa traduction et sa langue, ce
+   * qui permet aux deux coquilles de partager exactement les mêmes phrases
+   * sans qu'aucune ne réécrive sa propre table de statuts.
+   */
+  function tr1(cle: string, vars?: Record<string, string | number>): string {
+    let s = get(t)(cle);
+    if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, String(v));
+    return s;
+  }
 
   /* ---------------- Diagnostic ---------------- */
   let diagEnCours = $state(true);
@@ -211,12 +226,18 @@
       sujet = ''; corps = ''; categorie = 'other'; fichiers = []; redaction = false;
       rechargerTickets();
     } catch (e: any) {
-      // Le délai remonté par le serveur DOIT survivre jusqu'ici : sans lui,
-      // l'écran ne sait pas dire quand réessayer (#2178).
-      const attente = (e as any)?.retryAfter;
-      error = attente
-        ? $t('v2.sup.errRateLimited' as any).replace('{delay}', String(attente))
-        : (e?.message ?? $t('v2.sup.errSend' as any));
+      // 🔴 C'EST L'ÉCRAN DE LA CAPTURE DE REIVAX66 (#1294) : « Support premium
+      // → Nouveau ticket ». Le correctif du 429 n'avait été posé que sur
+      // `SupportView` (la v1) ; ici, le repli restait `e.message` — c'est-à-dire
+      // le statut HTTP NU, « 429 », ou le « Too Many Attempts. » anglais du
+      // relais. Mot pour mot le défaut que #1294 décrit, dans la coquille qui
+      // est aujourd'hui celle qu'on montre.
+      //
+      // Et quand le serveur DONNAIT un délai, `{delay}` recevait des SECONDES
+      // brutes : un `Retry-After: 3600` s'affichait « réessayez dans 3600
+      // secondes ». `messageErreurSupport` passe par `Intl.RelativeTimeFormat`
+      // et écrit « dans 1 heure », dans les onze langues.
+      error = messageErreurSupport(e, tr1, get(locale));
     }
     envoi = false;
   }
@@ -224,7 +245,12 @@
   function rechargerTickets() {
     const key = licenseKey;
     if (!key) return;
-    api.getSupportTickets(key).then((r) => { tickets = r?.tickets ?? []; }).catch(() => {});
+    api.getSupportTickets(key)
+      .then((r) => { tickets = r?.tickets ?? []; })
+      // Le ticket VIENT d'être accepté ; si la relecture échoue, la liste reste
+      // celle d'avant. On ne pose pas de bandeau d'erreur sur un envoi réussi —
+      // ce serait mentir à l'utilisateur — mais la console garde la trace.
+      .catch((e) => console.error('Support: rechargement des tickets impossible', e));
   }
 
   $effect(() => {
@@ -233,7 +259,10 @@
     loading = true;
     api.getSupportTickets(key)
       .then((r) => { tickets = r?.tickets ?? []; error = null; })
-      .catch(() => { error = $t('v2.sup.unavailable' as any); })
+      // `v2.sup.unavailable` nomme le cas le plus courant — le relais muet —
+      // mais un 412 (pas connecté) ou un 403 (pas premium) expliquent une liste
+      // vide tout autrement, et `messageErreurSupport` les distingue déjà.
+      .catch((e) => { console.error('Support: liste des tickets', e); error = messageErreurSupport(e, tr1, get(locale)); })
       .finally(() => { loading = false; });
   });
 
@@ -250,9 +279,9 @@
       if (t.unread_count > 0) {
         api.markSupportTicketRead(t.id, key)
           .then(() => { tickets = tickets.map((x) => (x.id === t.id ? { ...x, unread_count: 0 } : x)); })
-          .catch(() => {});
+          .catch((e) => console.error('Support: marquage lu', e));
       }
-    } catch { error = 'Conversation indisponible.'; }
+    } catch (e) { console.error('Support: ouverture du fil', e); error = messageErreurSupport(e, tr1, get(locale)); }
     repLoading = false;
   }
 
@@ -267,7 +296,7 @@
       const r = await api.getSupportTicket(opened.id, key);
       replies = r?.replies ?? [];
       draft = '';
-    } catch { error = 'Envoi impossible.'; }
+    } catch (e) { console.error('Support: envoi de la réponse', e); error = messageErreurSupport(e, tr1, get(locale)); }
     sending = false;
   }
 
