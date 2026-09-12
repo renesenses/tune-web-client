@@ -45,8 +45,26 @@
  * repère y serait une invention. On n'en met pas.
  */
 
-/** Taille de la FFT du serveur — `tune-core/src/audio/levels.rs:188`. */
-export const SERVER_FFT_SIZE = 2048;
+/**
+ * 🔴 #892 — CE N'EST PLUS QU'UN REPLI.
+ *
+ * Cette constante recopiait la FFT du serveur d'avant #2866 (PR #2987,
+ * v0.9.129). Depuis, la FFT est ADAPTATIVE — elle suit la fenêtre : 2048 à
+ * 44,1 et 48 kHz, 4096 à 96 kHz, 8192 au-delà (`SPECTRUM_FFT_MAX`) — et le
+ * plafond rend la résolution CONSTANTE, ~25 Hz, de 44,1 à 192 kHz.
+ *
+ * Le serveur ANNONCE sa taille (`spectrum_fft_size`) et même, par bande, s'il
+ * sait la distinguer (`spectrum_resolved`). Quand il le fait, on l'écoute. On
+ * ne retombe ici que pour un serveur antérieur, pour lequel 2048 est juste.
+ *
+ * C'est ce qui a fait dire à Pascal que l'échelle commençait à 250 Hz : à
+ * 96 kHz le client se croyait à 46,9 Hz de résolution alors que le serveur en
+ * a 25, et il refusait le repère 125 Hz — légitime depuis quinze versions.
+ */
+export const SERVER_FFT_SIZE_PAR_DEFAUT = 2048;
+
+/** @deprecated Repli seulement — préférer ce que le serveur annonce (#892). */
+export const SERVER_FFT_SIZE = SERVER_FFT_SIZE_PAR_DEFAUT;
 
 /** Fréquence la plus basse de l'axe du serveur — `levels.rs:264`. */
 export const SERVER_FREQ_MIN = 20;
@@ -84,14 +102,18 @@ export interface BandSpan {
  * Rejoue `levels.rs:271-277` pour obtenir la plage réellement couverte par
  * chaque bande à cette fréquence d'échantillonnage.
  */
-export function serverBandSpans(sampleRate: number, bandCount: number): BandSpan[] {
-  if (!(sampleRate > 0) || bandCount <= 0) return [];
+export function serverBandSpans(
+  sampleRate: number,
+  bandCount: number,
+  fftSize: number = SERVER_FFT_SIZE_PAR_DEFAUT,
+): BandSpan[] {
+  if (!(sampleRate > 0) || bandCount <= 0 || !(fftSize > 1)) return [];
   const nyquist = sampleRate / 2;
   const freqMax = Math.min(nyquist, SERVER_FREQ_MAX);
   if (freqMax <= SERVER_FREQ_MIN) return [];
   const logRatio = freqMax / SERVER_FREQ_MIN;
-  const half = SERVER_FFT_SIZE / 2;
-  const resolution = sampleRate / SERVER_FFT_SIZE;
+  const half = fftSize / 2;
+  const resolution = sampleRate / fftSize;
 
   const raw: Array<{ lo: number; hi: number }> = [];
   for (let b = 0; b < bandCount; b++) {
@@ -118,6 +140,19 @@ export interface SpectrumTick {
 }
 
 /**
+ * Ce que le serveur annonce de SON analyse — `playback.audio_levels`.
+ *
+ * Tout est facultatif : un serveur antérieur à #2866 n'annonce rien, et le
+ * repli sur `SERVER_FFT_SIZE_PAR_DEFAUT` reste juste pour lui.
+ */
+export interface AnnonceSpectre {
+  /** `spectrum_fft_size` — la taille RÉELLEMENT employée pour cette trame. */
+  fftSize?: number | null;
+  /** `spectrum_resolved` — un booléen par bande. Fait autorité quand il est là. */
+  resolus?: boolean[] | null;
+}
+
+/**
  * Les repères ISO que cet analyseur peut porter **honnêtement**.
  *
  * Un repère n'est retenu que si une seule bande couvre réellement sa
@@ -133,10 +168,17 @@ export interface SpectrumTick {
 export function spectrumIsoTicks(
   sampleRate: number | null | undefined,
   bandCount: number,
+  annonce?: AnnonceSpectre | null,
 ): SpectrumTick[] {
   if (!sampleRate || !(sampleRate > 0) || bandCount <= 0) return [];
-  const spans = serverBandSpans(sampleRate, bandCount);
+  const taille =
+    annonce?.fftSize && annonce.fftSize > 1 ? annonce.fftSize : SERVER_FFT_SIZE_PAR_DEFAUT;
+  const spans = serverBandSpans(sampleRate, bandCount, taille);
   if (spans.length === 0) return [];
+  // Le serveur sait, bande par bande, ce qu'il distingue. Quand il le dit, sa
+  // réponse fait autorité : la nôtre n'est qu'une reconstitution.
+  const resolus =
+    annonce?.resolus && annonce.resolus.length === spans.length ? annonce.resolus : null;
 
   const ticks: SpectrumTick[] = [];
   for (const hz of ISO_OCTAVE_HZ) {
@@ -152,7 +194,7 @@ export function spectrumIsoTicks(
     const s = spans[found];
     // Bande écrasée sur les mêmes raies qu'une voisine : l'analyseur ne sait
     // pas distinguer cette fréquence, on ne prétend pas le contraire.
-    if (!s.distinct) continue;
+    if (!(resolus ? resolus[found] : s.distinct)) continue;
     const within = Math.log(hz / s.loHz) / Math.log(s.hiHz / s.loHz);
     ticks.push({ hz, pos: (found + within) / bandCount });
   }

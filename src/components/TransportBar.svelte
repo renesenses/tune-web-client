@@ -2055,8 +2055,25 @@
     box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.05);
     min-width: 220px;
     max-width: 320px;
-    max-height: 300px;
+    /* 🔴 #876 — Reivax66, 0.9.143, fil 1728 : `max-height: 300px` était un
+       plafond EN DUR, sans rapport avec la place disponible. Le panneau
+       s'ouvre vers le haut depuis la barre de lecture ; sur sa capture il y
+       avait plus de mille pixels libres au-dessus, et la 7e zone — celle qui
+       JOUAIT — était tranchée par le bord bas du panneau.
+
+       Sept zones dont trois à sous-titre demandent ~354 px : le plafond
+       relatif les rend toutes. Il reste un plafond absolu, pour qu'une
+       bibliothèque à quarante zones ne devienne pas un mur pleine hauteur.
+
+       ⚠️ Ce correctif ne prétend PAS expliquer pourquoi aucune barre de
+       défilement n'était peinte dans sa capture : la feuille globale
+       (`tune-theme.css`) aurait dû en peindre une de 14 px, et la lecture du
+       code ne dit pas pourquoi elle ne l'a pas fait. `scrollbar-gutter`
+       réserve la gouttière pour que le débordement, quand il aura lieu, se
+       VOIE — c'est tout ce qui est mesuré ici. */
+    max-height: min(60vh, 520px);
     overflow-y: auto;
+    scrollbar-gutter: stable;
     z-index: 100;
     display: flex;
     flex-direction: column;

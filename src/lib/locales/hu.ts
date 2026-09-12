@@ -1063,6 +1063,7 @@ export default {
   "favorites.addTrack": "Hozzáadás a kedvencekhez",
   "favorites.removeTrack": "Eltávolítás a kedvencek közül",
   "favorites.removedFromFavorites": "Eltávolítva a kedvencekből",
+  "favorites.remove": "Eltávolítás a kedvencekből",
   "favorites.filter": "Kedvencek",
   // Névjegy
   "settings.about": "Névjegy",
@@ -2007,6 +2008,8 @@ export default {
   "settings.current": "jelenlegi",
   "settings.dmgReady": "A DMG letöltve és megnyitva a Finderben.",
   "settings.installedRestarting": "Telepítve — újraindítás...",
+  "settings.updateReloadGaveUp": "A kiszolgáló nem tért vissza. Lehet, hogy még újraindul — töltse újra az oldalt egy pillanat múlva.",
+  "settings.updateStatusUnknown": "Nem állapítható meg, hogy a frissítés települt-e: a kiszolgáló nem válaszolt. Töltse újra az oldalt a futó verzió megtekintéséhez.",
   "settings.installing": "Telepítés...",
   "settings.updateButton": "Frissítés",
   "settings.updateStopsPlayback": "Éppen szól a zene: a frissítés telepítése újraindítja a szervert, és leállítja a lejátszást.",

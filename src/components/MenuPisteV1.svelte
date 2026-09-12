@@ -52,6 +52,15 @@
   }
   let { piste, onAllerArtiste, onAllerAlbum }: Props = $props();
   let ouvert = $state(false);
+  /**
+   * La boîte ÉCRAN du bouton, prise AU CLIC.
+   *
+   * #872 : le panneau est porté à la racine du document pour échapper à la
+   * contention de peinture de la ligne. Il faut donc lui dire où était le
+   * bouton — et le lui dire au moment du clic, pas plus tard : la ligne aura
+   * pu défiler entre-temps.
+   */
+  let ancre = $state<DOMRect | null>(null);
   let occupe = $state(false);
   let panneauVersions = $state(false);
   let panneauEtiquettes = $state(false);
@@ -128,13 +137,18 @@
 <div class="track-more-wrap">
   <button class="track-more-btn" aria-haspopup="menu" aria-expanded={ouvert}
     title={$tr('library.moreOptions')} aria-label={$tr('library.moreOptions')}
-    onclick={(e) => { e.stopPropagation(); e.preventDefault(); ouvert = !ouvert; }}>
+    onclick={(e) => {
+      e.stopPropagation(); e.preventDefault();
+      ancre = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      ouvert = !ouvert;
+    }}>
     <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
       <circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/>
     </svg>
   </button>
-  {#if ouvert}
+  {#if ouvert && ancre}
     <TrackContextMenu
+      {ancre}
       {capacites}
       onClose={() => (ouvert = false)}
       onPlay={lire}

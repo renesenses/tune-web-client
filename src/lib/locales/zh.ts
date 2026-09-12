@@ -867,6 +867,7 @@ export default {
   "favorites.addTrack": "添加到收藏",
   "favorites.removeTrack": "从收藏中移除",
   'favorites.removedFromFavorites': '已从收藏中移除',
+  "favorites.remove": "从收藏中移除",
   'favorites.filter': '收藏',
 
   // About
@@ -1812,6 +1813,8 @@ export default {
   "settings.current": "当前",
   "settings.dmgReady": "DMG 已下载并在 Finder 中打开。",
   "settings.installedRestarting": "已安装 — 正在重启…",
+  "settings.updateReloadGaveUp": "服务器尚未恢复。它可能仍在重启——请稍后重新加载页面。",
+  "settings.updateStatusUnknown": "无法确定更新是否已安装：服务器没有响应。请重新加载页面以查看正在运行的版本。",
   "settings.installing": "安装中…",
   "settings.updateButton": "更新",
   "settings.updateStopsPlayback": "当前正在播放音乐：安装更新会重启服务器并中断播放。",

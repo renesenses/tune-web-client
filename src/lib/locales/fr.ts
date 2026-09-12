@@ -1107,6 +1107,7 @@ export default {
   "favorites.addTrack": "Ajouter aux favoris",
   "favorites.removeTrack": "Retirer des favoris",
   'favorites.removedFromFavorites': 'Retiré des favoris',
+  "favorites.remove": "Retirer des favoris",
   'favorites.filter': 'Favoris',
 
   // About
@@ -2353,6 +2354,8 @@ export default {
   "settings.current": "actuel",
   "settings.dmgReady": "DMG téléchargé et ouvert dans le Finder.",
   "settings.installedRestarting": "Installée — redémarrage...",
+  "settings.updateReloadGaveUp": "Le serveur n'est pas revenu. Il redémarre peut-être encore : rechargez la page dans un instant.",
+  "settings.updateStatusUnknown": "Impossible de savoir si la mise à jour s'est installée : le serveur n'a pas répondu. Rechargez la page pour voir la version en cours.",
   "settings.installing": "Installation...",
   "settings.updateButton": "Mettre à jour",
   "settings.updateStopsPlayback": "De la musique joue en ce moment : installer la mise à jour redémarre le serveur et coupera la lecture.",

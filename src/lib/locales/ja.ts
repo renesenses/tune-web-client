@@ -867,6 +867,7 @@ export default {
   "favorites.addTrack": "お気に入りに追加",
   "favorites.removeTrack": "お気に入りから削除",
   'favorites.removedFromFavorites': 'お気に入りから削除しました',
+  "favorites.remove": "お気に入りから削除",
   'favorites.filter': 'お気に入り',
 
   // About
@@ -1812,6 +1813,8 @@ export default {
   "settings.current": "現在",
   "settings.dmgReady": "DMG をダウンロードし Finder で開きました。",
   "settings.installedRestarting": "インストール済み — 再起動中...",
+  "settings.updateReloadGaveUp": "サーバーが復帰しませんでした。まだ再起動中の可能性があります。少ししてからページを再読み込みしてください。",
+  "settings.updateStatusUnknown": "更新がインストールされたか判断できません。サーバーが応答しませんでした。ページを再読み込みして実行中のバージョンを確認してください。",
   "settings.installing": "インストール中...",
   "settings.updateButton": "アップデート",
   "settings.updateStopsPlayback": "現在音楽を再生中です。アップデートをインストールするとサーバーが再起動し、再生が停止します。",

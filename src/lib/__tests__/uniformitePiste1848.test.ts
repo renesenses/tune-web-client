@@ -1,3 +1,7 @@
+// 🔴 #872 — `TrackContextMenu` est désormais PORTÉ à la racine du document
+// (`lib/portail`), pour échapper à la contention de peinture de la ligne qui
+// l'ouvre. Le panneau n'est donc plus un descendant de l'hôte monté : on
+// l'interroge depuis `document`. Les assertions elles-mêmes n'ont pas bougé.
 // @vitest-environment jsdom
 //
 // jsdom, et pas `node` : ce fichier MONTE les deux menus réels. Sans `window`,
@@ -38,6 +42,8 @@ import { entreesMenuPiste, type CapacitesPiste, type GestesPiste } from '../menu
 import { rangeableEnPlaylist } from '../pisteFile';
 import lFr from '../locales/fr';
 import type { Track } from '../types';
+/** Boîte écran du bouton : jsdom n'a pas de mise en page, zéro suffit (#872). */
+const ANCRE = { top: 0, bottom: 0, right: 0 };
 const fr: Record<string, string> = lFr as any;
 let monte: any = null;
 let hote: HTMLElement | null = null;
@@ -48,6 +54,13 @@ afterEach(() => {
   hote = null;
 });
 function poser(composant: any, props: Record<string, any>) {
+  // 🔴 #872 — deux épreuves posent DEUX fois dans le même cas. `poser`
+  // écrasait `monte` sans démonter : l'hôte orphelin partait avec le nœud,
+  // personne ne s'en apercevait. Depuis que le panneau est porté à la racine
+  // du document, il y SURVIT — et l'épreuve suivante compte les entrées du
+  // menu fantôme. On démonte ce qui précède.
+  if (monte) unmount(monte, { outro: false });
+  if (hote) hote.remove();
   hote = document.createElement('div');
   document.body.appendChild(hote);
   monte = mount(composant, { target: hote, props });
@@ -55,8 +68,8 @@ function poser(composant: any, props: Record<string, any>) {
   return hote;
 }
 /** Les libellés RENDUS par le menu, dans l'ordre où ils apparaissent. */
-function libelles(racine: HTMLElement): string[] {
-  return [...racine.querySelectorAll('.track-menu-item')]
+function libelles(_racine: HTMLElement): string[] {
+  return [...document.querySelectorAll('.track-menu-item')]
     .map((b) => (b.textContent ?? '').trim());
 }
 /** Une piste de la BIBLIOTHÈQUE. */
@@ -81,7 +94,7 @@ describe('#1848 — le menu du client actuel ne décide plus de son contenu', ()
   it('il rend EXACTEMENT ce que `entreesMenuPiste` produit', () => {
     const rien = () => {};
     const capacites: CapacitesPiste = { jouable: true, idBibliotheque: 1, artistId: 1, albumId: 1 };
-    const racine = poser(TrackContextMenu, {
+    const racine = poser(TrackContextMenu, { ancre: ANCRE,
       onClose: rien, onPlay: rien, onAddToQueue: rien, onPlayNext: rien,
       onPlaySimilar: rien, onOtherVersions: rien, onAddToPlaylist: rien,
       onGoToArtist: rien, onGoToAlbum: rien, onTag: rien,
@@ -99,7 +112,7 @@ describe('#1848 — le menu du client actuel ne décide plus de son contenu', ()
     // ne passe pas `onOtherVersions`, et l'entrée doit disparaître. Une entrée
     // muette est pire qu'une entrée absente (garde #2574).
     const rien = () => {};
-    const racine = poser(TrackContextMenu, {
+    const racine = poser(TrackContextMenu, { ancre: ANCRE,
       onClose: rien, onPlay: rien, onAddToQueue: rien,
     });
     expect(libelles(racine)).toEqual([fr['common.play'], fr['queue.addToQueue']]);
@@ -108,12 +121,13 @@ describe('#1848 — le menu du client actuel ne décide plus de son contenu', ()
     const appels: string[] = [];
     const g = (nom: string) => () => appels.push(nom);
     const racine = poser(TrackContextMenu, {
+      ancre: ANCRE,
       onClose: () => {}, onPlay: g('lire'), onPlayNext: g('ensuite'),
       onAddToQueue: g('aLaFile'), onPlaySimilar: g('plusCommeCa'),
       onOtherVersions: g('autresVersions'), onAddToPlaylist: g('ajouterAPlaylist'),
       onGoToArtist: g('allerArtiste'), onGoToAlbum: g('allerAlbum'), onTag: g('etiqueter'),
     });
-    for (const b of [...racine.querySelectorAll('.track-menu-item')]) (b as HTMLElement).click();
+    for (const b of [...document.querySelectorAll('.track-menu-item')]) (b as HTMLElement).click();
     flushSync();
     expect(appels).toEqual([
       'lire', 'ensuite', 'aLaFile', 'plusCommeCa', 'autresVersions',
@@ -165,7 +179,7 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     let vu = 0;
     const racine = ouvrir(SERVICE, { onAllerArtiste: () => vu++ });
     expect(libelles(racine)).toContain(fr['library.goToArtist']);
-    const entree = [...racine.querySelectorAll('.track-menu-item')]
+    const entree = [...document.querySelectorAll('.track-menu-item')]
       .find((b) => (b.textContent ?? '').trim() === fr['library.goToArtist']) as HTMLElement;
     entree.click();
     flushSync();
@@ -173,9 +187,9 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
   });
   it('le menu se referme quand on choisit', () => {
     const racine = ouvrir(LOCALE);
-    (racine.querySelector('.track-menu-item') as HTMLElement).click();
+    (document.querySelector('.track-menu-item') as HTMLElement).click();
     flushSync();
-    expect(racine.querySelectorAll('.track-menu-item')).toHaveLength(0);
+    expect(document.querySelectorAll('.track-menu-item')).toHaveLength(0);
   });
 });
 describe('#1848 — une piste de service n’entre pas dans une liste locale', () => {
