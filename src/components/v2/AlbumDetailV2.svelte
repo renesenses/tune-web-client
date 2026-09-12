@@ -17,6 +17,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
+  import { qualiteEnTeteAlbum } from '../../lib/qualiteEnTeteAlbum';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import ClampedText from '../ClampedText.svelte';
@@ -218,13 +219,36 @@
   }
 
   const totalMs = $derived(tracks.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
-  const tier = $derived(getQualityTier(album));
+  /**
+   * 🔴 #852 — l'en-tete se calcule sur les PISTES, pas sur les colonnes de
+   * l'album.
+   *
+   * Pierre M voyait « CD » au-dessus d'un tableau qui affiche
+   * `HI-RES FLAC 88.2/24` sur chacune des douze pistes. Les colonnes de
+   * `albums` sont remplies une fois au scan et jamais recalculees ; les
+   * pistes, elles, sont relues a chaque fois. On croit les pistes, et
+   * l'en-tete dit alors la meme chose que le tableau PAR CONSTRUCTION.
+   *
+   * `null` = on ne sait pas, et on n'affiche AUCUN badge. L'ancien repli
+   * `?? 'CD'` affirmait un format qu'il n'avait pas.
+   */
+  const qualite = $derived(qualiteEnTeteAlbum(album, tracks));
+  const tier = $derived(
+    qualite
+      ? getQualityTier({
+          format: qualite.format,
+          sample_rate: qualite.sampleRate,
+          bit_depth: qualite.bitDepth,
+        } as any)
+      : getQualityTier(album),
+  );
   const qLabel = $derived.by(() => {
+    if (!qualite) return null;
     if (tier === 'dsd') return 'DSD';
-    const rate = album.sample_rate ? Math.round(album.sample_rate / 100) / 10 : null;
-    const depth = album.bit_depth ?? 24;
+    const rate = qualite.sampleRate ? Math.round(qualite.sampleRate / 100) / 10 : null;
+    const depth = qualite.bitDepth ?? 24;
     if ((tier === 'hires' || tier === 'hires_max') && rate) return `${rate} kHz · ${depth}-bit`;
-    return album.format?.toUpperCase() ?? 'CD';
+    return qualite.format ? qualite.format.toUpperCase() : null;
   });
 
   /** Enchaine une suite de pistes distantes : la premiere joue, les autres
@@ -504,7 +528,9 @@
            cette fiche (#1957). Absente quand le drapeau est faux ou absent —
            voir `PastilleCompilation`. -->
       <div class="qrow">
-        <div class="qbadge">{qLabel}</div>
+        <!-- #852 — pas de badge quand la qualite est inconnue : mieux vaut
+             rien qu'un « CD » invente. -->
+        {#if qLabel}<div class="qbadge">{qLabel}</div>{/if}
         <PastilleCompilation compilation={album.is_compilation} />
       </div>
       <h1>{album.title}</h1>

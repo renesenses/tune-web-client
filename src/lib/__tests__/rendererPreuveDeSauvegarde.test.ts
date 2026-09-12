@@ -2,26 +2,48 @@
  * « Et un bouton "sauvegarder mes réglages" dans configuration du renderer ?? »
  * — Bertrand, 09/09/2026, onglet Appareils des Réglages.
  *
- * ## Ce que la lecture du code a montré
+ * ## Trois réponses successives, et ce que chacune a appris
  *
- * Les sept réglages du renderer SONT enregistrés, un par un, dès le clic :
+ * **09/09 — le témoin.** Les sept réglages SONT écrits dès le clic :
  * `setNativeFlac`, `setAlac`, `setAac`, `setCap16`, `setForceWav`,
- * `setPlayDelay` appellent tous `save(() => api.updateZone…)`.
+ * `setPlayDelay` appellent tous `save(() => api.updateZone…)`. Ce qui manquait
+ * n'était pas la sauvegarde mais sa PREUVE — seul l'échec parlait
+ * (`renderer.saveError`). Le témoin « Enregistré » a été posé, repris de
+ * `ZoneDeviceEditor`, le bloc voisin du même onglet.
  *
- * Ce qui manquait n'était donc pas la sauvegarde, c'était sa PREUVE : seul
- * l'échec parlait (`renderer.saveError`), un succès ne disait rien, et rien ne
- * distinguait « c'est écrit » de « le clic n'a rien fait ».
+ * Et il avait été conclu : **pas de bouton**, parce qu'il ferait croire que rien
+ * n'est écrit tant qu'on ne l'a pas pressé. Ce garde interdisait `common.save`.
  *
- * 🔴 L'incohérence était dans le MÊME onglet : `ZoneDeviceEditor`, le bloc
- * voisin, montre un « Enregistré » après sa sauvegarde. Deux blocs côte à
- * côte, deux comportements.
+ * **11/09 — la prémisse tombe.** Cette conclusion supposait que ce qui est écrit
+ * RESTE écrit. Mesuré : faux. Une zone renommée dont l'appareil change d'adresse
+ * se voyait offrir une zone NEUVE, réglages restés sur une ligne orpheline —
+ * deux lignes pour un seul Mac, reproduit sur 0.9.145 (#3919). L'interdiction a
+ * donc été levée.
  *
- * On n'ajoute donc PAS de bouton : il ferait croire que rien n'est écrit tant
- * qu'on ne l'a pas pressé, ce qui serait faux — et pire que le silence.
+ * 🔴 **11/09, plus tard — le défaut est corrigé AILLEURS.** #3928 ajoute un
+ * quatrième filet de ré-ancrage, par la MAC que `zones.mac` porte déjà. La
+ * raison d'origine du bouton n'est donc plus d'actualité : il reste la fonction
+ * demandée (deux fois) et les cas que ce filet refuse. Voir l'en-tête de
+ * `reglagesRendererEnregistres.ts`.
+ *
+ * ## Ce que ce fichier garde, à travers les trois révisions
+ *
+ * Rien de tout cela ne change les deux invariants qui comptent, et c'est
+ * pourquoi ce garde survit à chacune :
+ *
+ * 1. **Les sept réglages s'écrivent toujours au clic**, par le même `save`. Si
+ *    l'un cessait, l'écran deviendrait un formulaire à valider — ce que personne
+ *    n'a demandé, à aucune des trois étapes.
+ * 2. **Le texte d'aide dit que les réglages sont DÉJÀ appliqués.** C'est ce que
+ *    l'interdiction du 09/09 protégeait vraiment, et ça reste vrai : sans cette
+ *    phrase, le bouton laisse croire le contraire, et le quitter sans l'avoir
+ *    pressé donne l'impression d'avoir tout perdu.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import fr from '../locales/fr';
+import en from '../locales/en';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 function sansCommentaires(src: string): string {
@@ -32,7 +54,7 @@ function sansCommentaires(src: string): string {
 }
 const rc = () => sansCommentaires(lire('src/components/RendererConfig.svelte'));
 
-describe('la sauvegarde du renderer se VOIT', () => {
+describe('la sauvegarde automatique du renderer se VOIT', () => {
   it('🔴 un succès pose le témoin — avant, seul l’échec parlait', () => {
     const src = rc();
     expect(src, 'le succès ne laisse toujours aucune trace').toContain('enregistreLe = Date.now();');
@@ -51,25 +73,19 @@ describe('la sauvegarde du renderer se VOIT', () => {
     expect(rc()).toContain("notifications.error($t('renderer.saveError'));");
   });
 
-  it('🔴 les SEPT réglages passent par le même `save` — donc tous le montrent', () => {
-    // Si l'un d'eux appelait l'API en direct, il resterait muet et l'écran
-    // serait à moitié corrigé. C'est le vrai invariant.
+  it('🔴 les SEPT réglages s’écrivent toujours au clic, par le même `save`', () => {
+    // C'est le vrai invariant, et le bouton d'enregistrement N'Y TOUCHE PAS :
+    // si l'un des sept cessait d'écrire au clic, l'écran deviendrait un
+    // formulaire à valider, ce que personne n'a demandé.
     const src = rc();
-    const appels = src.match(/api\.updateZone\w+\(/g) ?? [];
-    expect(appels.length, 'aucun appel de sauvegarde trouvé : fichier déplacé ?')
+    const unitaires = src.match(/api\.updateZone(?!Reglages)\w+\(/g) ?? [];
+    expect(unitaires.length, 'aucune écriture au clic trouvée : fichier déplacé ?')
       .toBeGreaterThanOrEqual(6);
     const horsSave = src
-      .split(/api\.updateZone\w+\(/)
+      .split(/api\.updateZone(?!Reglages)\w+\(/)
       .slice(0, -1)
       .filter((avant) => !/save\(\(\) => $/.test(avant));
     expect(horsSave, 'un réglage s’enregistre hors de `save` : il restera muet').toEqual([]);
-  });
-
-  it('AUCUN bouton « enregistrer » n’a été ajouté — ce serait un mensonge', () => {
-    // Les réglages sont déjà écrits au clic. Un bouton laisserait croire le
-    // contraire, et le fermer sans l'avoir pressé donnerait l'impression
-    // d'avoir tout perdu.
-    expect(rc()).not.toMatch(/\$t\('common\.save'\)/);
   });
 
   it('le voisin du même onglet montre le même témoin — c’est la maison', () => {
@@ -77,5 +93,72 @@ describe('la sauvegarde du renderer se VOIT', () => {
     // faire, ce fichier n'aurait plus de référence et devrait être relu.
     expect(sansCommentaires(lire('src/components/ZoneDeviceEditor.svelte')))
       .toContain("{$t('common.saved')}");
+  });
+});
+
+describe('la configuration ENREGISTRÉE survit à la session', () => {
+  it('🔴 l’écran porte un bouton d’enregistrement', () => {
+    // Demande de Bertrand, deux fois : le 09/09 (« un bouton "sauvegarder mes
+    // réglages" »), puis le 11/09 avec sa raison — les pertes entre sessions.
+    expect(rc()).toContain("$t('renderer.saveConfig')");
+    expect(rc(), "le bouton n'est pas branché").toContain('onclick={enregistrerConfig}');
+  });
+
+  it('🔴 la copie est rangée sous l’APPAREIL, jamais sous l’identifiant de zone', () => {
+    // `zones.id` est précisément ce qui change quand la découverte recrée une
+    // zone : ranger la copie dessous la perdrait dans le seul cas qu'on couvre.
+    const src = rc();
+    expect(src).toContain('cleAppareil(zone)');
+    expect(src, "la clé ne doit pas se construire sur l'identifiant de zone")
+      .not.toMatch(/ranger\([^)]*zone\.id/);
+  });
+
+  it('🔴 la copie n’est rangée qu’APRÈS le succès du patch', () => {
+    // Garder une configuration que le serveur a refusée serait garder la preuve
+    // de ce qui n'existe pas. Le `return` de la branche d'échec est l'invariant.
+    const src = rc();
+    const i = src.indexOf('async function enregistrerConfig');
+    expect(i, 'enregistrerConfig a disparu').toBeGreaterThan(-1);
+    const corps = src.slice(i, src.indexOf('\n  }', i));
+    const patch = corps.indexOf('api.updateZoneReglages');
+    const rangement = corps.indexOf('ranger(');
+    expect(patch).toBeGreaterThan(-1);
+    expect(rangement, 'le rangement doit suivre le patch').toBeGreaterThan(patch);
+    expect(
+      corps.slice(patch, rangement),
+      "un échec doit sortir avant de ranger quoi que ce soit",
+    ).toMatch(/catch\s*\{[\s\S]*return;/);
+  });
+
+  it('🔴 la remise en place patche la PAIRE WAV, pas le seul écart', () => {
+    // `dlna_lpcm` et `dlna_wav24` sont exclusifs côté serveur. Le corps vient
+    // de `corpsPatch`, qui porte toujours les deux ; le construire à partir des
+    // écarts laisserait la zone porter la paire contradictoire.
+    const src = rc();
+    expect(src).toContain('corpsPatch(enregistre)');
+    expect(src, 'un corps construit sur les écarts réintroduirait le défaut')
+      .not.toMatch(/corpsPatch\(\s*divergences/);
+  });
+
+  it("l’écart est DÉRIVÉ de l’écran — il disparaît de lui-même après la remise en place", () => {
+    // Posé à la main, le bandeau resterait affiché après avoir été traité, et
+    // il n'y aurait aucune contre-épreuve à l'écran.
+    expect(rc()).toMatch(/let divergences = \$derived\(/);
+  });
+
+  it('🔴 le texte d’aide dit que les réglages sont DÉJÀ appliqués', () => {
+    // C'est ce que l'interdiction du 09/09 protégeait, et c'est ce qui reste
+    // vrai : sans cette phrase, le bouton laisse croire que rien n'est écrit
+    // tant qu'on ne l'a pas pressé, et le quitter sans l'avoir pressé donne
+    // l'impression d'avoir tout perdu.
+    expect(rc()).toContain("$t('renderer.saveConfigHint')");
+    for (const [nom, dict] of [['fr', fr], ['en', en]] as const) {
+      const aide = (dict as Record<string, string>)['renderer.saveConfigHint'];
+      expect(aide, `renderer.saveConfigHint absente de ${nom}.ts`).toBeTruthy();
+      expect(
+        /déjà|already/i.test(aide),
+        `en ${nom}, l'aide ne dit pas que les réglages sont déjà appliqués`,
+      ).toBe(true);
+    }
   });
 });

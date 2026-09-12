@@ -20,6 +20,7 @@
  */
 
 import type { HistoryEntry } from './stores/history';
+import { cleDObjet, estRegroupable } from './historiqueParContexte';
 import type { Track } from './types';
 import * as api from './api';
 import { playAndSync } from './stores/zones';
@@ -44,6 +45,14 @@ export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
     playedAt: e.listened_at,
     zoneId: e.zone_id ?? null,
     zoneName: `Zone ${e.zone_id ?? '?'}`,
+    // #904 — les trois champs que le serveur sert depuis la v0.9.131 et que
+    // ce mapping jetait. `context_id` n'est jamais interprété ici : il peut
+    // être un entier, un identifiant de service, ou une URL entière.
+    contexte: {
+      type: e.context_type ?? null,
+      id: e.context_id ?? null,
+      position: e.context_position ?? null,
+    },
   }));
 }
 
@@ -103,11 +112,30 @@ export function fusionnerHistorique(
   const vues = new Set<string>();
   const rendu: HistoryEntry[] = [];
   for (const e of combine) {
-    if (vues.has(cleDePiste(e.track))) continue;
-    vues.add(cleDePiste(e.track));
+    const cle = cleDeLigne(e);
+    if (vues.has(cle)) continue;
+    vues.add(cle);
     rendu.push(e);
   }
   return rendu.slice(0, PLAFOND);
+}
+
+/**
+ * Clé de déduplication d'une LIGNE.
+ *
+ * 🔴 #904 — elle valait la seule piste, et « chaque titre une fois » écrasait
+ * alors la même piste écoutée depuis DEUX objets différents. Le schéma de
+ * FabienM (fil 1649) montre précisément « Titre A1T1 » deux fois, sous
+ * « Album A1 » et sous « Artiste A1 » : la règle d'origine l'aurait supprimé.
+ *
+ * On la RESTREINT au lieu de l'abandonner : deux écoutes du même titre depuis
+ * le même objet se replient toujours sur une ligne — c'est ce que l'arbitrage
+ * d'origine voulait — mais deux objets distincts gardent chacun la leur.
+ */
+function cleDeLigne(e: HistoryEntry): string {
+  const c = e.contexte;
+  const obj = estRegroupable(c) ? cleDObjet(c!) : '';
+  return `${cleDePiste(e.track)}@${obj}`;
 }
 
 /**
