@@ -811,8 +811,51 @@
 </div>
 
 <style>
-  .bc { padding: 1rem; max-width: 60rem; margin: 0 auto; }
+  .bc {
+    padding: 1rem; max-width: 60rem; margin: 0 auto;
+    /* Hauteur de la bande titre épinglée : elle sert DEUX fois — la hauteur
+       réservée au titre, et l'offset auquel la rangée de modes se cale
+       dessous. Une seule valeur, donc jamais de décalage entre les deux. */
+    --bc-bande-tete: 64px;
+  }
+
+  /* #887 (Jean Valjean, fil 1721, v0.9.142 Windows 11 Firefox) — « quand on
+     utilise la souris pour le défilement, on perd tous ces choix ». L'écran
+     n'avait AUCUN élément épinglé : titre et sélecteur de mode partaient avec
+     les résultats.
+
+     Le conteneur qui défile n'est pas `.bc` (qui n'a pas d'`overflow`) mais
+     `.view-scroller` d'`App.svelte`, un bloc simple — mesuré en faisant
+     défiler : `.bc-tete` se déplaçait de 400 px pour 400 px de défilement.
+     Aucun ancêtre du chemin ne porte `overflow`, `contain`, `content-visibility`
+     ni `transform`, donc l'ancrage prend effet ; le test `ancrage887` le
+     vérifie plutôt que de faire confiance à la règle seule. */
+  .bc-tete {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    background: var(--bg, #111);
+    /* Absorbe le padding du conteneur pour que la bande opaque monte jusqu'au
+       bord : sans ça, le contenu défile VISIBLE au-dessus du titre. */
+    padding: 1rem 0 0.5rem;
+    margin: -1rem 0 0;
+    box-sizing: border-box;
+    min-height: var(--bc-bande-tete);
+  }
+  /* Dans la bande épinglée, la marge basse du sous-titre creuserait un trou
+     transparent entre le titre et la rangée de modes. */
+  .bc-tete .bc-sous { margin-bottom: 0; }
   .bc-tete h2 { margin: 0 0 0.25rem; }
+
+  /* La rangée de modes se range JUSTE sous la bande du titre — c'est elle que
+     Jean Valjean appelle « ces choix ». Une seule variable relie les deux. */
+  .bc-modes.bc-modes {
+    position: sticky;
+    top: var(--bc-bande-tete);
+    z-index: 11;
+    background: var(--bg, #111);
+    padding-bottom: 0.5rem;
+  }
   .bc-sous { color: var(--text-muted, #888); margin: 0 0 1.5rem; }
   .bc-lier { background: var(--surface, #1b1b1b); padding: 1rem; border-radius: 8px; }
   .bc-champ { display: flex; gap: 0.5rem; margin: 0.75rem 0 0.5rem; }

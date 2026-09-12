@@ -1869,6 +1869,31 @@
     align-items: center;
     gap: var(--space-md);
     margin-bottom: var(--space-lg);
+    /* En-tête figé pendant le défilement (#925 — Benjithom fil 1104/1192, Jean
+       Valjean fil 1237 : « bloquer les hauts d'onglets, les autres le sont »).
+
+       Pourquoi `sticky` ICI, alors que `.library-header` a justement ABANDONNÉ
+       `sticky` pour devenir un frère du scroller : `.streaming-view` porte HUIT
+       branches de premier niveau (fiche album, artiste, playlist, genres, YTM…)
+       qui défilent toutes dans ce même conteneur. Le rendre non défilant pour
+       sortir l'en-tête casserait le défilement des sept autres.
+
+       La raison invoquée par `.library-header` (« Firefox n'honore pas un
+       sticky dans un scroller flex-colonne », #463/#1282, 0.9.75) a été
+       REMESURÉE le 12/09/2026 sur ce composant même, en faisant défiler :
+       Chrome 152 ET Firefox 155 gardent l'en-tête à 24 px après 400 px de
+       défilement (déplacement 0). Le fond opaque reste indispensable — sans
+       lui le contenu défile en transparence sous le titre. */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    /* Le conteneur a `padding-top: var(--space-lg)` : le sticky s'arrête au
+       haut de son bloc conteneur, soit sous ce padding. La marge négative puis
+       le padding rendent la bande opaque jusqu'au bord, sinon le contenu
+       apparaît au-dessus de l'en-tête en défilant. */
+    margin-top: calc(-1 * var(--space-lg));
+    padding-top: var(--space-lg);
   }
 
   .streaming-header h2 {

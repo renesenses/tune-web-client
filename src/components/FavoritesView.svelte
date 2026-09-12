@@ -1048,6 +1048,20 @@
     margin-bottom: var(--space-lg);
     gap: var(--space-md);
     flex-wrap: wrap;
+    /* En-tête figé pendant le défilement (#925). Même recette et même mesure
+       que `.streaming-header` : `.favorites-view` est le conteneur défilant et
+       porte le titre PLUS les cinq onglets — c'est la barre que Jean Valjean
+       demande à voir rester (fil 1237). Mesuré en faisant défiler le
+       12/09/2026 : déplacement 400 px avant, 0 après, sous Chrome 152 comme
+       sous Firefox 155.
+       Le fond opaque et la bande de padding évitent que le contenu défile
+       en transparence par-dessus. */
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--tune-bg);
+    margin-top: calc(-1 * var(--space-lg));
+    padding-top: var(--space-lg);
   }
 
   .favorites-header h2 {
