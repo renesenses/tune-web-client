@@ -260,13 +260,49 @@ async function apiError(response: Response): Promise<ApiError> {
   let detail = `${response.status} ${response.statusText}`;
   let code: string | undefined;
   let corps: unknown = null;
+
+  /**
+   * 🔴 `renesenses/tune-web-client#859` — CE BLOC PERDAIT L'EXPLICATION DU
+   * SERVEUR, de deux façons.
+   *
+   * Mesuré le 12/09/2026 sur la .18 en v0.9.147, le serveur rend TROIS formes
+   * d'erreur, et l'ancien code n'en lisait correctement aucune :
+   *
+   *   501 text/plain  « Bandcamp ne fournit pas de playlists »
+   *   404 text/plain  « unknown service: inconnu »
+   *   404 JSON        {"error":"not found","path":"…"}
+   *   404 JSON        {"code":"not_found","error":"job not found: …"}
+   *   404 (corps vide)
+   *
+   * 1. `response.json()` LÈVE sur un corps `text/plain` — et sur un corps
+   *    vide. Le `catch` avalait tout, l'écran affichait « 501 Not Implemented »
+   *    au lieu de la phrase que le serveur avait pris la peine d'écrire.
+   *
+   * 2. Sur les corps JSON, il lisait `detail` puis `message` — que ce serveur
+   *    n'envoie pas — et rangeait `body.error` dans `code`. Or `error` porte
+   *    le MESSAGE (« job not found »), et `code` porte le code
+   *    (« not_found »). Les deux champs étaient donc inversés : le message
+   *    partait où personne ne le lit, et l'écran gardait « 404 Not Found ».
+   *
+   * ⚠️ `code` retombe sur `body.error` quand `body.code` est absent : c'est le
+   * comportement d'avant, et `premiumRefus` comme la garde de plafond de zones
+   * comparent `err.code` à des valeurs nommées. Le retirer d'un coup aurait
+   * pu rendre muet un refus premium — on ajoute la bonne source SANS enlever
+   * l'ancienne.
+   */
+  const brut = await response.text().catch(() => '');
   try {
-    const body = await response.json();
+    const body = JSON.parse(brut);
     corps = body;
     if (body.detail) detail = body.detail;
     else if (body.message) detail = body.message;
-    code = body.error;
-  } catch { /* ignore */ }
+    else if (typeof body.error === 'string' && body.error) detail = body.error;
+    code = body.code ?? body.error;
+  } catch {
+    // Pas du JSON : c'est un message en clair, et c'est tout ce qu'on a.
+    const texte = brut.trim();
+    if (texte && texte.length <= 500 && !texte.startsWith('<')) detail = texte;
+  }
   const err = new Error(detail) as ApiError;
   err.code = code;
   err.status = response.status;
