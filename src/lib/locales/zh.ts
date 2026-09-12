@@ -3166,6 +3166,8 @@ export default {
   "profiles.namePlaceholder": "配置文件名称",
   "profiles.premiumRequired": "多配置文件仅限 Premium 版本。",
   "profiles.whoIsListening": "谁在收听？",
+  "profiles.title": "用户",
+  "profiles.switchHint": "切换用户会重新加载页面。",
   "queue.autoplayFailed": "无法修改 AutoPlay",
   "queue.resizePanel": "拖动调整大小 · 双击恢复",
   'player.showWaveform': '显示波形',

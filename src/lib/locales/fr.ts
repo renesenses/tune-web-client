@@ -3581,6 +3581,8 @@ export default {
   "profiles.confirmDelete": "Supprimer le profil « {name} » ? Ses favoris et son historique seront perdus.",
   "profiles.premiumRequired": "Les profils multiples sont réservés à la version Premium.",
   "profiles.whoIsListening": "Qui écoute ?",
+  "profiles.title": "Profils",
+  "profiles.switchHint": "Changer de profil recharge l'écran.",
   "common.edit": "Modifier",
   "dashboard.slot.empty": "Rien à afficher pour l'instant.",
   "dashboard.slot.play": "Lire ce titre",

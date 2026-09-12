@@ -3241,6 +3241,8 @@ export default {
   "profiles.confirmDelete": "Törlöd a(z) „{name}” profilt? A kedvencei és az előzményei elvesznek.",
   "profiles.premiumRequired": "A több profilhoz Premium szükséges.",
   "profiles.whoIsListening": "Ki hallgatja?",
+  "profiles.title": "Profilok",
+  "profiles.switchHint": "A profilváltás újratölti a képernyőt.",
   "common.edit": "Szerkesztés",
   "dashboard.slot.empty": "Egyelőre nincs mit mutatni.",
   "dashboard.slot.play": "Ennek a számnak a lejátszása",

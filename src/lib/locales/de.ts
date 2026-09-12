@@ -3166,6 +3166,8 @@ export default {
   "profiles.namePlaceholder": "Profilname",
   "profiles.premiumRequired": "Mehrere Profile sind der Premium-Version vorbehalten.",
   "profiles.whoIsListening": "Wer hört zu?",
+  "profiles.title": "Profile",
+  "profiles.switchHint": "Ein Profilwechsel lädt die Ansicht neu.",
   "queue.autoplayFailed": "AutoPlay konnte nicht geändert werden",
   "queue.resizePanel": "Ziehen zum Ändern der Größe · Doppelklick zum Zurücksetzen",
   'player.showWaveform': 'Wellenform anzeigen',

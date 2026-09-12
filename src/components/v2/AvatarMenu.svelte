@@ -21,6 +21,8 @@
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
   import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
+  import { profiles, currentProfileId, type Profile } from '../../lib/stores/profile';
+  import { basculerVers } from '../../lib/basculeDeProfil';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
@@ -205,6 +207,25 @@
     notifications.success(get(t)('settings.avatarRemoved'));
   }
 
+  /**
+   * Le nom à écrire.
+   *
+   * `name` est l'IDENTIFIANT de connexion — le serveur y range l'adresse de
+   * courriel — et `display_name` le prénom. Afficher `name` mettrait
+   * « matteo@mozaiklabs.fr » dans une liste de personnes.
+   */
+  function nomDuProfil(p: Profile): string {
+    return p.display_name?.trim() || p.name;
+  }
+
+  /**
+   * Basculer RECHARGE la page — voir `lib/basculeDeProfil` pour le pourquoi.
+   * On ne ferme donc pas le panneau : il n'y en aura plus.
+   */
+  function basculer(id: number) {
+    basculerVers(get(currentProfileId), id);
+  }
+
   function setLevel(l: SettingsLevel) {
     preferences.update((p) => ({ ...p, settingsLevel: l }));
   }
@@ -298,6 +319,39 @@
       {#if photoLocale}
         <button class="retirer" onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
         <div class="hint">{$t('settings.avatarHint' as any)}</div>
+      {/if}
+
+      <!--
+        LA BASCULE DE PROFIL.
+
+        Elle n'existait NULLE PART dans cette interface : `ProfileSelector` n'est
+        monté que par `Sidebar.svelte`, donc par l'interface actuelle. Le profil
+        retenu (`localStorage['tune-profile-id']`) était pourtant déjà honoré —
+        il part en `X-Profile-Id` sur chaque appel — mais rien ne permettait
+        d'en changer sans repasser par l'ancienne interface.
+
+        Elle n'apparaît qu'à partir de DEUX profils : sur une installation qui
+        n'en a qu'un, une liste à un élément n'est pas un choix, c'est du bruit.
+      -->
+      {#if $profiles.length > 1}
+        <div class="sep"></div>
+        <div class="sec">{$t('profiles.title')}</div>
+        <div class="profils">
+          {#each $profiles as p (p.id)}
+            <button
+              class="profil"
+              class:actif={p.id === $currentProfileId}
+              onclick={() => basculer(p.id)}
+              aria-current={p.id === $currentProfileId ? 'true' : undefined}
+            >
+              <span class="pastille" style="background:{p.avatar_color || 'var(--v2-line2)'}"
+                >{nomDuProfil(p).charAt(0).toUpperCase()}</span
+              >
+              <span class="pnom">{nomDuProfil(p)}</span>
+            </button>
+          {/each}
+        </div>
+        <div class="hint">{$t('profiles.switchHint' as any)}</div>
       {/if}
 
       <div class="sep"></div>
@@ -454,6 +508,22 @@
      vignette, et personne ne clique une vignette. */
   .avatar.sm:hover{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .avatar.sm:disabled{opacity:.55; cursor:default; box-shadow:none}
+
+  /* La liste des profils. Défilante : un foyer peut en compter plusieurs, et le
+     panneau est déjà plafonné en hauteur depuis la capture de bluevelvet. */
+  .profils{display:flex; flex-direction:column; gap:2px; max-height:168px; overflow-y:auto; padding:0 2px}
+  .profils::-webkit-scrollbar{width:7px}
+  .profils::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .profil{display:flex; align-items:center; gap:10px; width:100%; padding:7px 8px; border:0;
+    border-radius:9px; background:transparent; cursor:pointer; text-align:left;
+    color:var(--v2-txt2); font-family:inherit; font-size:13px}
+  .profil:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  /* L'actif se lit par un FOND, pas par une couleur d'accent : il reste alors
+     lisible dans les six thèmes sans avoir à les vérifier un par un. */
+  .profil.actif{background:var(--v2-surface2); color:var(--v2-txt); font-weight:600}
+  .pastille{flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:flex;
+    align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff}
+  .pnom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   /* « Retirer » : un lien discret sous l'identité, pas un bouton de plus. */
   .retirer{display:block; margin:0 0 4px 55px; padding:2px 0; border:0; background:transparent;
