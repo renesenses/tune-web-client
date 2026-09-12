@@ -42,10 +42,16 @@
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
   import { aUnOngletGenres, normaliserGenres, ouvertureGenre, sousGenresUtiles } from '../../lib/streamingGenres';
+  import {
+    BANDCAMP_EXT,
+    ongletInitial,
+    ongletsStreaming,
+    pseudoOnglet,
+  } from '../../lib/ongletsStreaming';
   import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
-  const BANDCAMP = '__bandcamp__';
+  const BANDCAMP = BANDCAMP_EXT;
   let services = $state<Record<string, StreamingServiceStatus>>({});
   let bandcampLive = $state(false);
   let loading = $state(true);
@@ -270,11 +276,18 @@
   let bcCollection = $state<any[]>([]);
   let paneLoading = $state(false);
 
-  /** Un service n'entre dans les onglets que s'il est ACTIVÉ ET CONNECTÉ. */
-  const connected = $derived(
-    Object.entries(services).filter(([, v]) => v.enabled && v.authenticated).map(([k]) => k)
-  );
-  const tabs = $derived([...connected, ...(bandcampLive ? [BANDCAMP] : [])]);
+  /**
+   * Un service n'entre dans les onglets que s'il est ACTIVÉ ET CONNECTÉ — et
+   * Bandcamp n'y entre qu'UNE FOIS (#860).
+   *
+   * La rangée était `[...connected, ...(bandcampLive ? [BANDCAMP] : [])]` : dès
+   * que le compte Bandcamp est lié, le serveur rend `bandcamp` authentifié, la
+   * sonde `/ext/bandcamp/tags` répond, et les deux clés — `bandcamp` et
+   * `__bandcamp__` — se retrouvaient côte à côte. Deux onglets pour un service.
+   * Le dédoublonnage, son arbitrage et sa mesure sont dans
+   * `lib/ongletsStreaming.ts`.
+   */
+  const tabs = $derived(ongletsStreaming(services, bandcampLive));
   const isBc = $derived(active === BANDCAMP);
 
   /**
@@ -340,8 +353,11 @@
         }
         bcTag = bcGenres[0]?.slug ?? '';
       }
-      const first = Object.entries(services).find(([, v]) => v.enabled && v.authenticated)?.[0];
-      active = first ?? (bandcampLive ? BANDCAMP : null);
+      // 🔴 L'onglet ouvert se prend dans la rangée RÉELLEMENT affichée (#860).
+      // Le calcul d'origine — « le premier service connecté » — désignait
+      // `bandcamp`, la clé même que le dédoublonnage retire : l'écran se serait
+      // ouvert sur un onglet absent de sa propre rangée, aucun bouton allumé.
+      active = ongletInitial(services, bandcampLive);
     }).finally(() => { loading = false; });
   });
 
@@ -682,9 +698,13 @@
   {#if tabs.length}
     <nav class="svcs">
       {#each tabs as name (name)}
+        <!-- Le pseudo suit l'onglet qui SURVIT au dédoublonnage (#860) : celui
+             de l'extension porte désormais le compte lu sur la clé `bandcamp`,
+             sans quoi la liaison de compte redeviendrait invisible. -->
+        {@const qui = pseudoOnglet(name, services)}
         <button class:on={active === name} onclick={() => { active = name; sub = 'editorial'; q = ''; results = null; bcSearch = null; }}>
           {label(name)}
-          {#if name !== BANDCAMP && services[name]?.username}<span class="who">{services[name].username}</span>{/if}
+          {#if qui}<span class="who">{qui}</span>{/if}
         </button>
       {/each}
     </nav>
