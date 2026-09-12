@@ -134,7 +134,11 @@ describe('Menu avatar — entrer et sortir', () => {
   const menu = () =>
     readFileSync(AVATAR, 'utf8')
       .replace(/<!--[\s\S]*?-->/g, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '')
+      // 🔴 Bloc reconnu en DÉBUT de ligne seulement : le motif large ouvrait un
+      // faux commentaire sur le `/*` de `accept="image/*"` et mangeait tout le
+      // balisage jusqu'au commentaire CSS suivant — trois gardes de ce fichier
+      // sont tombées d'un coup, sur du code parfaitement présent (12/09/2026).
+      .replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, '')
       .replace(/^\s*\/\/.*$/gm, '');
 
   it('offre les DEUX chemins : se connecter et se déconnecter', () => {
@@ -194,7 +198,11 @@ describe('Menu avatar — la photo du compte', () => {
   const menu = () =>
     readFileSync(AVATAR, 'utf8')
       .replace(/<!--[\s\S]*?-->/g, '')
-      .replace(/\/\*[\s\S]*?\*\//g, '')
+      // 🔴 Bloc reconnu en DÉBUT de ligne seulement : le motif large ouvrait un
+      // faux commentaire sur le `/*` de `accept="image/*"` et mangeait tout le
+      // balisage jusqu'au commentaire CSS suivant — trois gardes de ce fichier
+      // sont tombées d'un coup, sur du code parfaitement présent (12/09/2026).
+      .replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, '')
       .replace(/^\s*\/\/.*$/gm, '');
 
   it('la photo est portée par le BOUTON, visible menu fermé', () => {
@@ -221,9 +229,18 @@ describe('Menu avatar — la photo du compte', () => {
   it('une photo injoignable retombe sur le dégradé', () => {
     // Hébergeur muet, fichier supprimé : sans ce repli, il resterait un rond
     // vide — pire que pas de photo.
+    //
+    // Le gestionnaire traite maintenant DEUX sources (#893 a ajouté la photo
+    // choisie sur la machine), il n'est donc plus la ligne exacte d'avant. Ce
+    // qui est gardé ici reste le même : l'échec de chargement d'une photo DE
+    // COMPTE la retire, et c'est le dégradé qui revient.
+    const src = menu();
+    const i = src.indexOf('onerror=');
+    expect(i, 'le repli sur échec de chargement a disparu : une photo morte laisserait un rond vide.')
+      .toBeGreaterThan(-1);
     expect(
-      menu().includes("onerror={() => (ssoAvatar = '')}"),
-      'le repli sur échec de chargement a disparu : une photo morte laisserait un rond vide.',
+      src.slice(i, src.indexOf('/>', i)).includes("ssoAvatar = ''"),
+      'l’échec ne retire plus la photo du compte : une photo morte laisserait un rond vide.',
     ).toBe(true);
   });
 

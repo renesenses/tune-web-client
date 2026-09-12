@@ -7,6 +7,7 @@ import {
 } from '../colonnesPistes';
 import { chainesUniques } from '../clesUniques';
 import type { Instantanes as InstantanesRenderer } from '../reglagesRendererEnregistres';
+import { estDataUrlImage } from '../avatarLocal';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
@@ -170,6 +171,27 @@ export interface Preferences {
    */
   reglagesRendererEnregistres: InstantanesRenderer;
   settingsLevel: SettingsLevel;
+  /**
+   * La PHOTO d'avatar choisie sur la machine, en data-URL. Vide = aucune.
+   *
+   * La bulle du coin haut-droit n'avait qu'une source : la photo du compte
+   * mozaiklabs.fr (`GET /cloud/sso/status`). Sur un serveur personnel sans
+   * `client_id` cloud, il n'existait AUCUN moyen de se donner une image —
+   * demandé par deux testeurs à un jour d'intervalle (fils 1681 et 1676,
+   * issue #893). Celle-ci prime sur celle du compte : c'est un choix
+   * explicite, il doit gagner sur ce qui est hérité.
+   *
+   * Rangée ici et pas ailleurs pour une raison simple : aucune route d'avatar
+   * n'existe côté serveur (`avatar_path` y stocke une couleur hexadécimale).
+   * Elle suit donc le sort de tous les réglages — `localStorage` puis
+   * `ui_preferences` en `PATCH /system/config`.
+   *
+   * ⚠️ C'est ce qui impose de la RÉDUIRE avant de l'écrire : ce blob repart en
+   * entier à chaque modification de n'importe quel réglage. Le cadrage et
+   * l'encodage sont dans `lib/avatarLocal.ts`, qui plafonne le résultat ;
+   * rien d'autre ne doit écrire cette clé sans passer par lui.
+   */
+  avatarImage: string;
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -202,6 +224,7 @@ const defaults: Preferences = {
   // explicite fait toujours foi, et la migration `legacySettingsLevel()`
   // ci-dessous continue de primer sur ce defaut.
   settingsLevel: 'expert',
+  avatarImage: '',
 };
 
 /** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
@@ -326,6 +349,15 @@ function loadPrefs(): Preferences {
       if (!isV2Theme((raw as { v2Theme?: unknown })?.v2Theme)) {
         p.v2Theme = V2_THEME_DEFAULT;
       }
+      // Photo d'avatar : on n'accepte QUE ce que ce client sait avoir écrit,
+      // une data-URL d'image. Ce blob ne vient pas seulement d'ici — il est
+      // relu depuis `ui_preferences`, donc depuis le serveur (voir
+      // `syncPreferencesFromServer`) : c'est une valeur distante qu'on s'apprête
+      // à poser dans l'attribut `src` d'une balise. Tout le reste retombe sur
+      // « aucune photo », ce qui redonne le dégradé au lieu d'un rond cassé.
+      if (!estDataUrlImage((raw as { avatarImage?: unknown })?.avatarImage)) {
+        p.avatarImage = '';
+      }
       return p;
     }
   } catch { /* ignore */ }
@@ -373,6 +405,12 @@ export async function syncPreferencesFromServer() {
       const server: Partial<Preferences> = typeof config.ui_preferences === 'string'
         ? JSON.parse(config.ui_preferences)
         : config.ui_preferences;
+      // 🔴 Le MÊME filtre que `loadPrefs`, et il doit être ici aussi : sur un
+      // navigateur sans préférences locales, la branche ci-dessous adopte le
+      // blob serveur TEL QUEL, sans repasser par `loadPrefs`. C'est le chemin
+      // par lequel une valeur distante atteindrait l'attribut `src` de la
+      // bulle — précisément celui qu'on prétend garder.
+      if (!estDataUrlImage(server.avatarImage)) delete server.avatarImage;
       if (hadLocalPrefs) {
         preferences.update((local) => ({ ...defaults, ...server, ...local }));
       } else {

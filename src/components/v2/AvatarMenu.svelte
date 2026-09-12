@@ -20,6 +20,7 @@
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import * as api from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
+  import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
@@ -109,6 +110,76 @@
     signingOut = false;
   }
 
+  // ── La photo qu'on choisit soi-même ──────────────────────────────────────
+  //
+  // La bulle n'avait qu'une source : le compte mozaiklabs.fr. Sur un serveur
+  // personnel sans nuage configuré, il n'existait AUCUN moyen de se donner une
+  // image, et deux testeurs l'ont demandé à un jour d'intervalle (fils 1681 et
+  // 1676, issue #893). Le fichier est recadré et réduit par `lib/avatarLocal`,
+  // puis rangé dans les préférences — le serveur Tune n'a pas de route
+  // d'avatar, rien n'est téléversé.
+  //
+  // La photo locale PRIME sur celle du compte : elle est un choix explicite,
+  // l'autre est héritée. C'est aussi ce qui permet de remplacer une photo
+  // mozaiklabs qu'on ne peut pas changer depuis ici.
+  let champFichier = $state<HTMLInputElement | null>(null);
+  let envoiPhoto = $state(false);
+  // Les deux actions sont REPLIÉES par défaut, et le rond de l'en-tête les
+  // déplie. Le panneau est déjà plafonné en hauteur — une capture de testeur
+  // montrait « Réglages » et « Se déconnecter » coupés par le bas de l'écran —
+  // et il grandit à chaque réglage ajouté ; une rubrique permanente de plus le
+  // rapprocherait de ce défaut pour un geste qu'on fait une fois.
+  let photoActions = $state(false);
+  // Une photo locale que CE navigateur ne sait pas décoder — un WebP écrit
+  // ailleurs sur un moteur qui l'ignore. On l'écarte pour la session, sans
+  // jamais l'effacer : la supprimer repartirait en `PATCH` et détruirait chez
+  // tout le monde une image parfaitement lisible ailleurs.
+  let photoLocaleCassee = $state(false);
+  const photoLocale = $derived($preferences.avatarImage);
+  const photo = $derived((photoLocaleCassee ? '' : photoLocale) || ssoAvatar);
+
+  // Une photo fraîchement choisie doit être réessayée, même si la précédente
+  // avait échoué : sans ça, le drapeau d'échec collerait à la nouvelle.
+  $effect(() => {
+    if (photoLocale) photoLocaleCassee = false;
+  });
+
+  // Le panneau se referme par TROIS chemins — le bouton, `close()` et le clic
+  // au-dehors. Replier ici, sur l'état, plutôt que dans chacun : le jour où un
+  // quatrième chemin apparaît, il ne rouvrira pas le menu sur une rubrique
+  // dépliée par un geste oublié.
+  $effect(() => {
+    if (!open) photoActions = false;
+  });
+
+  async function choisirPhoto(e: Event) {
+    const champ = e.currentTarget as HTMLInputElement;
+    const fichier = champ.files?.[0];
+    // 🔴 On vide le champ TOUT DE SUITE. Un `<input type="file">` ne relève
+    // `change` que si la valeur change : rechoisir le même fichier après
+    // l'avoir retiré ne déclencherait plus rien, et le bouton paraîtrait mort.
+    champ.value = '';
+    if (!fichier) return;
+    envoiPhoto = true;
+    try {
+      const url = await avatarDepuisFichier(fichier);
+      preferences.update((p) => ({ ...p, avatarImage: url }));
+      notifications.success(get(t)('settings.avatarSaved'));
+    } catch (err) {
+      // Le motif du refus est porté par l'exception : on dit QUOI corriger.
+      // Un « échec » sans cause renvoie l'utilisateur réessayer le même
+      // fichier, indéfiniment.
+      const cle = err instanceof AvatarRefuse ? CLE_MESSAGE[err.motif] : CLE_MESSAGE.lecture;
+      notifications.error(get(t)(cle));
+    }
+    envoiPhoto = false;
+  }
+
+  function retirerPhoto() {
+    preferences.update((p) => ({ ...p, avatarImage: '' }));
+    notifications.success(get(t)('settings.avatarRemoved'));
+  }
+
   function setLevel(l: SettingsLevel) {
     preferences.update((p) => ({ ...p, settingsLevel: l }));
   }
@@ -133,7 +204,14 @@
   function toggle() { open = !open; if (!open) q = ''; }
   function close() { open = false; }
   function onDocClick(e: MouseEvent) {
-    if (!(e.target as HTMLElement)?.closest('.avwrap')) open = false;
+    const cible = e.target as HTMLElement | null;
+    // 🔴 Un élément que le clic vient de FAIRE DISPARAÎTRE n'a plus d'ancêtre :
+    // Svelte l'a détaché avant que ce gestionnaire de fenêtre ne s'exécute,
+    // `closest('.avwrap')` rend null, et le menu se referme comme si on avait
+    // cliqué dehors. Mesuré sur « Retirer » (#893), qui s'efface lui-même dès
+    // que la photo est retirée : le panneau se fermait sur son propre bouton.
+    if (cible && !cible.isConnected) return;
+    if (!cible?.closest('.avwrap')) open = false;
   }
 </script>
 
@@ -141,26 +219,40 @@
 
 <div class="avwrap tune-v2">
   <button class="avatar" class:linked={ssoConnected} onclick={toggle} aria-label={$t('settings.accountMenu' as any)} aria-haspopup="menu" aria-expanded={open}>
-    <!-- La photo du compte, quand il y en a une. En `<img>` et non en
-         `background-image` : l'URL vient du serveur, la coller dans du CSS
-         l'exposerait à une échappée hors de `url(…)`. Un `<img>` ne peut porter
-         qu'une source.
+    <!-- La photo affichée : celle qu'on a choisie soi-même d'abord, celle du
+         compte mozaiklabs.fr à défaut. En `<img>` et non en `background-image` :
+         l'URL vient du serveur, la coller dans du CSS l'exposerait à une
+         échappée hors de `url(…)`. Un `<img>` ne peut porter qu'une source.
          `onerror` remet le dégradé : une photo injoignable — hébergeur muet,
          fichier supprimé — laisserait sinon un rond vide, pire que pas de
-         photo du tout. -->
-    {#if ssoAvatar}
-      <img class="avimg" src={ssoAvatar} alt="" onerror={() => (ssoAvatar = '')} />
+         photo du tout. Une photo LOCALE illisible est seulement écartée pour la
+         session : l'effacer la détruirait aussi sur les appareils qui la
+         lisent très bien. -->
+    {#if photo}
+      <img class="avimg" src={photo} alt=""
+        onerror={() => { if (photoLocale && !photoLocaleCassee) photoLocaleCassee = true; else ssoAvatar = ''; }} />
     {/if}
   </button>
 
   {#if open}
     <div class="avmenu">
       <div class="avhead">
-        {#if ssoAvatar}
-          <img class="avatar sm" src={ssoAvatar} alt="" />
-        {:else}
-          <div class="avatar sm"></div>
-        {/if}
+        <!--
+          Le rond de l'en-tête EST le bouton de la photo. Les deux actions
+          restent repliées tant qu'on ne clique pas dessus : le panneau est
+          déjà plafonné en hauteur (voir `.avmenu`), et il grandit à chaque
+          réglage ajouté. Le geste — « je clique ma photo pour la changer » —
+          est aussi plus direct qu'une rubrique à lire (choix de Matteo,
+          12/09/2026).
+        -->
+        <button class="avatar sm" class:ouvert={photoActions}
+          onclick={() => (photoActions = !photoActions)}
+          aria-label={$t('settings.avatarTitle' as any)} title={$t('settings.avatarTitle' as any)}
+          aria-expanded={photoActions}>
+          {#if photo}
+            <img class="avimg" src={photo} alt="" />
+          {/if}
+        </button>
         <div class="avid">
           {#if ssoConnected}
             <div class="avname">{ssoName}</div>
@@ -170,6 +262,27 @@
           {/if}
         </div>
       </div>
+      <!--
+        Les deux actions de la photo, dépliées par le rond ci-dessus.
+
+        Le champ de fichier est masqué et piloté par le bouton : un
+        `<input type="file">` nu ne se met pas à la typographie du menu, et
+        affiche en plus le nom du fichier choisi, qui n'apprend rien ici.
+      -->
+      {#if photoActions}
+        <div class="seg">
+          <button onclick={() => champFichier?.click()} disabled={envoiPhoto}>
+            {envoiPhoto ? $t('common.loading') : $t('settings.avatarChoose' as any)}
+          </button>
+          {#if photoLocale}
+            <button onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
+          {/if}
+        </div>
+        <input class="fichier" bind:this={champFichier} type="file" accept="image/*"
+          tabindex="-1" aria-hidden="true" onchange={choisirPhoto} />
+        <div class="hint">{$t('settings.avatarHint' as any)}</div>
+      {/if}
+
       <div class="sep"></div>
 
       <div class="sfield">
@@ -319,8 +432,10 @@
   .avname{font-weight:700; font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .avmail{font-family:var(--v2-mono); font-size:10px; letter-spacing:.12em; color:var(--v2-txt2); margin-top:2px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  /* Avatar distant : même gabarit que la pastille dégradée qu'il remplace. */
-  img.avatar.sm{object-fit:cover; background:var(--v2-line2)}
+  /* Le rond de l'en-tête est un BOUTON : il déplie les deux actions de la
+     photo. L'anneau d'accent dit qu'elles sont dépliées — sans lui, le clic
+     semble ouvrir quelque chose sans rien changer là où on regarde. */
+  .avatar.sm.ouvert{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .sep{height:1px; background:var(--v2-line); margin:6px 0}
   .sec{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.16em; color:var(--v2-txt3);
     text-transform:uppercase; padding:6px 6px 8px}
@@ -329,6 +444,10 @@
     font-size:11.5px; font-weight:600; padding:7px 4px; border-radius:9px; cursor:pointer; transition:.15s}
   .seg button:hover{color:var(--v2-txt)}
   .seg button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 3px 10px var(--v2-glow)}
+  /* Le champ de fichier n'est jamais montré : le bouton du menu le déclenche.
+     `display:none` et non une astuce de position — rien ne doit le rendre
+     atteignable au clavier, c'est le bouton qui porte le focus. */
+  .fichier{display:none}
   .sfield{position:relative; display:flex; align-items:center; margin:2px 4px 6px}
   .sfield svg{position:absolute; left:11px; width:15px; height:15px; color:var(--v2-txt3); pointer-events:none}
   .sfield input{width:100%; height:36px; border-radius:10px; border:1px solid var(--v2-line2);
