@@ -2181,6 +2181,7 @@ export default {
   "v2.svc.wNew": "New releases",
   "v2.svc.wFeatured": "Featured",
   "v2.svc.wMine": "My playlists",
+  "v2.svc.wFavAlbums": "Favourite albums",
   "v2.home.wResume": "Resume listening",
   "v2.home.wRecentlyAdded": "Recently added",
   "v2.home.wRecentlyPlayed": "Recently played",

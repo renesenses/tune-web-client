@@ -3389,6 +3389,7 @@ export default {
   "v2.svc.wNew": "Újdonságok",
   "v2.svc.wFeatured": "Kiemeltek",
   "v2.svc.wMine": "Saját lejátszási listáim",
+  "v2.svc.wFavAlbums": "Kedvenc albumok",
   "v2.home.wResume": "Hallgatás folytatása",
   "v2.home.wRecentlyAdded": "Nemrég hozzáadva",
   "v2.home.wRecentlyPlayed": "Nemrég hallgatva",
