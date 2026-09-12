@@ -8,6 +8,22 @@ import {
 import { chainesUniques } from '../clesUniques';
 import type { Instantanes as InstantanesRenderer } from '../reglagesRendererEnregistres';
 import { estDataUrlImage } from '../avatarLocal';
+/**
+ * 🔴 `profileHeader()`, et non la couche `api.ts`.
+ *
+ * Ces trois appels sont des `fetch` BRUTS — ils l'étaient déjà — et c'est
+ * précisément ce qui les faisait passer à côté de `X-Profile-Id` : l'en-tête
+ * est posé par les aides de `api.ts` et par `api/_client.ts`, que ce magasin
+ * n'emprunte pas. Les préférences partaient donc sans dire au nom de qui, et
+ * le serveur les rangeait sous le profil par défaut, pour tout le monde.
+ *
+ * On ajoute l'en-tête plutôt que de basculer sur `api.ts` : ce magasin est
+ * chargé AVANT tout le reste (`applyTheme` s'exécute à l'évaluation du module,
+ * pour éviter le flash de thème), et l'y faire dépendre de la couche API
+ * créerait un cycle d'import — la raison même pour laquelle `profileHeader`
+ * lit `localStorage` en direct plutôt que le magasin de profil.
+ */
+import { profileHeader } from '../profileHeader';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
@@ -401,7 +417,7 @@ function createPreferences() {
     if (initialized) {
       fetch('/api/v1/system/config', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...profileHeader() },
         body: JSON.stringify({ ui_preferences: JSON.stringify(v) }),
       }).catch(() => {});
     }
@@ -419,7 +435,7 @@ applyTheme(loadPrefs().theme);
 
 export async function syncPreferencesFromServer() {
   try {
-    const res = await fetch('/api/v1/system/config');
+    const res = await fetch('/api/v1/system/config', { headers: profileHeader() });
     if (!res.ok) return;
     const config = await res.json();
     if (config.ui_preferences) {
@@ -442,7 +458,7 @@ export async function syncPreferencesFromServer() {
   } catch { /* ignore */ }
   // Sync server-side default zone into local preferences
   try {
-    const res = await fetch('/api/v1/system/settings/default-zone');
+    const res = await fetch('/api/v1/system/settings/default-zone', { headers: profileHeader() });
     if (res.ok) {
       const data = await res.json();
       if (data.zone_id != null) {
