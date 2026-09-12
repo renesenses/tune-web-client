@@ -109,12 +109,28 @@ describe('Recherche dans un service : les pages', () => {
     const src = ecran();
     const bloc = /async function chargerPlus\(\)[\s\S]*?\n  \}/.exec(src);
     expect(bloc, 'chargerPlus a disparu : le bouton ne pourrait plus rien charger').not.toBeNull();
+    // 🔴 #922 — cette garde recopiait `rechOffset + api.SEARCH_PAGE_LIMIT` à
+    // la virgule près. Le plafond de 50 est devenu réglable (le commentaire
+    // qui le justifiait était faux : mesuré, le service rend 500 quand on lui
+    // en demande 500), et elle est sortie ROUGE sans qu'aucun invariant ait
+    // bougé. Elle tient désormais ce qu'elle voulait tenir : la page suivante
+    // part du décalage courant, d'un pas égal à celui de la page.
     expect(
-      /rechOffset \+ api\.SEARCH_PAGE_LIMIT/.test(bloc![0]),
+      /rechOffset \+ \w+;/.test(bloc![0]),
       'la page suivante ne se calcule plus depuis le décalage courant',
     ).toBe(true);
+    const pas = /const suivant = rechOffset \+ (\w+);/.exec(bloc![0]);
+    expect(pas, 'le pas de page n’est plus nommé').not.toBeNull();
     expect(
-      /api\.searchStreaming\(svc, needle, api\.SEARCH_PAGE_LIMIT, suivant\)/.test(bloc![0]),
+      new RegExp(`searchStreaming\\([^)]*\\b${pas![1]}\\b[^)]*suivant`).test(bloc![0]),
+      'on avance d’un pas et on en demande un autre : des lignes seraient sautées',
+    ).toBe(true);
+    // Seconde recopie du même appel, retirée pour la même raison : l'assertion
+    // ci-dessus tient déjà le lien entre le pas et la demande, et elle le tient
+    // MIEUX — elle vérifie que les deux sont la même variable, ce qu'une
+    // chaîne figée ne pouvait pas faire.
+    expect(
+      /api\.searchStreaming\(svc, needle, \w+, suivant\)/.test(bloc![0]),
       'chargerPlus ne redemande plus au service avec le décalage',
     ).toBe(true);
     // Le bouton est commandé par `has_more`, pas par le compte d'une famille :
