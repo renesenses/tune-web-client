@@ -17,6 +17,7 @@
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
+  import { optionsAleatoire } from '../lib/porteeAleatoire';
   import { notifications } from '../lib/stores/notifications';
   import { groupCreditsByRole, uniqueInstruments } from '../lib/library/credits';
   import { bioDisplayText } from '../lib/library/bio';
@@ -2199,11 +2200,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // Sans ce champ, `opts` restait VIDE dans le cas de Marco Polo (un
       // répertoire, ni recherche ni genre) : l'appel partait avec `undefined`
       // et le serveur tirait dans toute la bibliothèque.
-      const opts: { search_query?: string; genre?: string; folder?: string } = {};
-      if (scopedFolder) opts.folder = scopedFolder;
-      if (searchQuery.trim()) opts.search_query = searchQuery.trim();
-      else if (selectedGenre && !scopedFolder) opts.genre = selectedGenre;
-      const result = await api.shuffleAll(zone.id, Object.keys(opts).length ? opts : undefined);
+      // #882 — la règle vit dans `lib/porteeAleatoire`, partagée avec la
+      // nouvelle coquille : elle n'y transmettait PAS le répertoire, et les
+      // deux écrans avaient donc deux comportements pour le même bouton.
+      const opts = optionsAleatoire({
+        dossier: scopedFolder, recherche: searchQuery, genre: selectedGenre,
+      });
+      const result = await api.shuffleAll(zone.id, opts);
       notifications.success($tr('library.shufflePlaying').replace('{count}', String(result.track_count)));
     } catch (e) {
       console.error('Shuffle all error:', e);
