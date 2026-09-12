@@ -1875,6 +1875,11 @@
     width: 100%;
     text-align: left;
     position: relative;
+    /* Filet de sécurité de #849 : le repli ci-dessous traite la cause, mais
+       un libellé futur plus long qu'une ligne entière déborderait encore. La
+       carte le retient au lieu de le laisser passer par dessus la colonne
+       voisine — `.artists-section` porte déjà exactement la même garde. */
+    overflow: hidden;
   }
   .top-result-card:hover { background: rgba(255, 255, 255, 0.08); }
 
@@ -1948,6 +1953,34 @@
     align-items: center;
     gap: 8px;
     margin-top: 2px;
+    /* #849 (FabienM, fil 1761) — « le label de qualité déborde du cadre ».
+       `.top-row` fixe la colonne à 300 px ; une fois la pochette (110) et les
+       gouttières retirées il reste 134 px pour cette rangée. Mesuré dans le
+       navigateur sur son cas exact (« wish you were », Qobuz 192/24) : la
+       rangée fait 134 px pour 245 px de contenu, et le badge
+       « Hi-Res Max ✦ FLAC 192/24 » sortait de 91 px À DROITE de la carte, par
+       dessus la colonne des artistes.
+
+       `.top-result-details` portait déjà `min-width: 0` — c'est pourquoi le
+       TITRE se cassait proprement. Cette rangée-ci ne l'avait pas, et ne se
+       repliait jamais : ses enfants sont des blocs insécables, ils sortaient.
+       Le repli place le badge sous « année + N pistes », ce que FabienM
+       demandait mot pour mot. */
+    flex-wrap: wrap;
+    min-width: 0;
+    row-gap: 4px;
+  }
+
+  /* Le repli ne suffit pas seul : « Hi-Res Max ✦ FLAC 192/24 » fait 168 px à
+     lui seul, pour 134 px de colonne — mesuré. Une fois seul sur sa ligne il
+     dépassait encore de 14 px, et l'`overflow:hidden` de la carte le TRONQUAIT
+     au lieu de le laisser sortir : plus propre, mais toujours illisible.
+     On autorise donc le badge à se replier à l'intérieur de lui-même, ICI
+     seulement — `QualityBadge` sert une vingtaine d'écrans et garde partout
+     ailleurs son unique ligne. */
+  .top-result-meta :global(.quality-badge) {
+    flex-wrap: wrap;
+    max-width: 100%;
   }
   .top-result-year, .top-result-count, .top-result-dur {
     font-family: var(--font-label);
