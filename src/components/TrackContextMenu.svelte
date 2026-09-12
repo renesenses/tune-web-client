@@ -29,7 +29,17 @@
    */
   import { t as tr } from '../lib/i18n';
   import { entreesMenuPiste, type CapacitesPiste } from '../lib/menuPiste';
+  import { portail } from '../lib/portail';
+  import { styleMenuAncre, type AncreMenu } from '../lib/ancrageMenu';
   interface Props {
+    /**
+     * Boîte ÉCRAN du bouton qui a ouvert le menu — `getBoundingClientRect()`.
+     *
+     * Obligatoire : porté à la racine du document, le panneau n'a plus aucun
+     * moyen de retrouver son bouton. Un appelant qui l'oublie doit être ROUGE
+     * à la compilation, pas silencieusement mal placé.
+     */
+    ancre: AncreMenu;
     /** Dismiss the menu (also invoked before every action). */
     onClose: () => void;
     onPlay: () => void;
@@ -65,6 +75,7 @@
     capacites?: CapacitesPiste;
   }
   let {
+    ancre,
     onClose,
     onPlay,
     onAddToQueue,
@@ -90,6 +101,12 @@
       etiqueter: onTag,
     }),
   );
+  /**
+   * Le panneau est en `position: fixed` aux coordonnées du bouton : il se
+   * referme donc dès que la page bouge sous lui, sinon il resterait figé loin
+   * de sa ligne. Même règle que `MenuPisteV2`.
+   */
+  const style = $derived(styleMenuAncre(ancre, entrees.length, window));
   // Every item stops propagation, closes the menu, then runs its action.
   function run(fn: () => void, e: MouseEvent) {
     e.stopPropagation();
@@ -103,19 +120,23 @@
     onClose();
   }
 </script>
+<svelte:window onresize={onClose} />
+<!-- Le fond ET le panneau sont portés à la racine : un ancêtre qui contient sa
+     peinture rognerait aussi bien l'un que l'autre (#872). -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="track-menu-backdrop" onclick={dismiss}></div>
-<div class="track-menu" role="menu">
-  {#each entrees as entree (entree.cle)}
-    <button class="track-menu-item" role="menuitem" onclick={(e) => run(entree.faire, e)}>
-      <svg viewBox="0 0 24 24" width="14" height="14"
-        fill={entree.plein ? 'currentColor' : 'none'}
-        stroke={entree.plein ? 'none' : 'currentColor'}
-        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={entree.icone}/></svg>
-      {$tr(entree.cle as any)}
-    </button>
-  {/each}
+<div class="track-menu-backdrop" onclick={dismiss} onwheel={dismiss} use:portail>
+  <div class="track-menu" role="menu" style={style}>
+    {#each entrees as entree (entree.cle)}
+      <button class="track-menu-item" role="menuitem" onclick={(e) => run(entree.faire, e)}>
+        <svg viewBox="0 0 24 24" width="14" height="14"
+          fill={entree.plein ? 'currentColor' : 'none'}
+          stroke={entree.plein ? 'none' : 'currentColor'}
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={entree.icone}/></svg>
+        {$tr(entree.cle as any)}
+      </button>
+    {/each}
+  </div>
 </div>
 <style>
   .track-menu-backdrop {
@@ -124,9 +145,11 @@
     z-index: 99;
   }
   .track-menu {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 4px);
+    /* #872 — `fixed`, et non `absolute` : porté à la racine du document, le
+       panneau n'a plus d'ancêtre positionné à qui se référer. Ses coordonnées
+       viennent de `styleMenuAncre`, en ligne. */
+    position: fixed;
+    width: 208px;
     background: var(--tune-surface);
     border: 1px solid var(--tune-border);
     border-radius: 10px;
@@ -136,7 +159,6 @@
     gap: 1px;
     z-index: 100;
     box-shadow: var(--shadow-lg, 0 8px 24px rgba(0,0,0,0.4));
-    min-width: 190px;
     white-space: nowrap;
   }
   .track-menu-item {

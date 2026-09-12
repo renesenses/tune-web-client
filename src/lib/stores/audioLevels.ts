@@ -12,6 +12,34 @@ export interface AudioLevels {
   spectrum: number[];
   /** Niveau absolu par bande, en dBFS (serveur ≥ 0.9.63). Vide sinon. */
   spectrum_db: number[];
+  /**
+   * 🔴 #892 — ce que le serveur ANNONCE de son analyse, et que le client
+   * jetait depuis #2866 (PR #2987, v0.9.129).
+   *
+   * La FFT du serveur n'est plus figée à 2048 : elle suit la fenêtre — 2048 à
+   * 44,1 et 48 kHz, 4096 à 96 kHz, 8192 au-delà — et sa résolution est
+   * CONSTANTE, ~25 Hz, de 44,1 à 192 kHz. Le client recopiait 2048 en dur et
+   * rejouait une troncature périmée : à 96 kHz il se croyait à 46,9 Hz de
+   * résolution là où le serveur en a 25, et écartait des repères que
+   * l'analyseur sait parfaitement distinguer. Pascal ne voyait l'échelle
+   * commencer qu'à 250 Hz (fil 1765).
+   *
+   * `null` / vide = serveur antérieur, ou champ absent : les appelants
+   * retombent sur l'ancienne hypothèse, qui reste juste pour ces serveurs-là.
+   */
+  spectrum_fft_size: number | null;
+  /**
+   * La résolution VRAIE, en Hz. Ce n'est PAS `sample_rate / spectrum_fft_size`
+   * — le zéro-padding resserre les raies sans ajouter d'information, et le
+   * serveur le dit explicitement.
+   */
+  spectrum_resolution_hz: number | null;
+  /**
+   * Un booléen PAR BANDE : l'analyse la sépare-t-elle vraiment de ses
+   * voisines ? Quand il est là, il fait autorité — inutile de rejouer la
+   * troncature du serveur pour le deviner.
+   */
+  spectrum_resolved: boolean[];
 }
 
 const defaultLevels: AudioLevels = {
@@ -24,6 +52,9 @@ const defaultLevels: AudioLevels = {
   rms_right: 0,
   spectrum: [],
   spectrum_db: [],
+  spectrum_fft_size: null,
+  spectrum_resolution_hz: null,
+  spectrum_resolved: [],
 };
 
 /// Niveaux les plus récents de CHAQUE zone.
@@ -66,6 +97,10 @@ export function handleAudioLevelsEvent(data: any) {
     rms_right: data.rms_right ?? 0,
     spectrum: Array.isArray(data.spectrum) ? data.spectrum : [],
     spectrum_db: Array.isArray(data.spectrum_db) ? data.spectrum_db : [],
+    spectrum_fft_size: typeof data.spectrum_fft_size === 'number' ? data.spectrum_fft_size : null,
+    spectrum_resolution_hz:
+      typeof data.spectrum_resolution_hz === 'number' ? data.spectrum_resolution_hz : null,
+    spectrum_resolved: Array.isArray(data.spectrum_resolved) ? data.spectrum_resolved : [],
   };
   levelsByZone.update((m) => ({ ...m, [zoneId]: levels }));
 }

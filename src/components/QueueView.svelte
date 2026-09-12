@@ -660,8 +660,22 @@
        CSS containment is used instead of JS windowing so drag-and-drop and the
        variable row heights (metadata chips, gapless indicator) keep working —
        every row stays in the DOM. `auto` remembers each row's measured height
-       for scrollbar stability; 56px is the initial estimate. Nothing in a row
-       overflows its box, so the implied paint containment clips nothing. */
+       for scrollbar stability; 56px is the initial estimate.
+
+       🔴 #872 — cette dernière phrase disait « Nothing in a row overflows its
+       box, so the implied paint containment clips nothing ». C'était vrai le
+       jour où elle a été écrite : la ligne n'avait que le cœur, le « + » et la
+       croix. Ça a cessé de l'être le jour où `MenuPisteV1` est arrivé dans la
+       ligne — son panneau s'ouvre à `top: calc(100% + 4px)`, donc HORS de la
+       boîte de 56 px, et `content-visibility: auto` (qui implique
+       `contain: layout style paint`) le rognait entièrement. Jean Valjean
+       voyait un cadre vide.
+
+       Le panneau est désormais porté à la racine du document
+       (`lib/portail`) : la contention de peinture de cette ligne ne peut plus
+       l'atteindre, quoi qu'on ajoute ici ensuite. NE PAS retirer
+       `content-visibility` pour autant — c'est lui qui tient les milliers de
+       lignes d'une file mélangée (#1096). */
     content-visibility: auto;
     contain-intrinsic-size: auto 56px;
   }

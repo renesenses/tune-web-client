@@ -87,9 +87,19 @@ describe('Les écrans qui portent des pochettes de service', () => {
     ).toBe(true);
     // Le cœur local et le cœur distant ne doivent pas se disputer la même
     // pochette : `favoriExterne` ne se calcule que faute d'identifiant local.
+    //
+    // La garde porte sur l'INVARIANT, plus sur la mise en forme : #3822 a
+    // étalé cette ligne sur quatre en lui ajoutant le repli `favoriDistant`,
+    // ce qui faisait tomber une comparaison au caractère près sans que la
+    // règle protégée ait bougé d'un pouce.
+    const compact = src.replace(/\s+/g, ' ');
     expect(
-      src.includes('{@const sidDistant = idLocal == null ? (el.fiche?.source_id ?? null) : null}'),
+      compact.includes('{@const sidDistant = idLocal == null ?'),
       'un album de la bibliothèque peut recevoir les DEUX cœurs à la fois',
+    ).toBe(true);
+    expect(
+      /\{@const sidDistant = idLocal == null \?[^}]*: null\}/.test(compact),
+      'la branche « identifiant local présent » ne rend plus `null`',
     ).toBe(true);
   });
 
@@ -111,15 +121,34 @@ describe('Les écrans qui portent des pochettes de service', () => {
     }
   });
 
-  it('une playlist de service n’a pas de cœur', () => {
-    // `streaming_favorites.item_type` ne connaît que piste, album et artiste.
-    // Un cœur sur une playlist serait un bouton qui échoue en silence.
-    // Le TYPE passé à la vignette reste `null` : c'est lui qui commande le
-    // cœur. Depuis le 05/09/2026 la playlist reçoit en plus un geste
-    // d'ouverture — quatrième argument — mais toujours pas de type.
+  /**
+   * RENVERSÉ par #3822 (FabienM, fil 1749). Ce test verrouillait l'absence de
+   * cœur sur les vignettes de playlist, au motif que
+   * « `streaming_favorites.item_type` ne connaît que piste, album et artiste ».
+   * Ce motif était faux à la date où il a été écrit :
+   *
+   * - le schéma serveur déclare `item_type TEXT NOT NULL`, sans énumération ni
+   *   contrainte (`tune-core/src/db/migrations.rs`), et
+   *   `streaming_favorites_repo.rs` fait transiter `item_type: &str` sans le
+   *   valider — la table accepte donc `playlist` ;
+   * - `StreamingItemType` porte `playlist` depuis #2370 ;
+   * - la FICHE écrit déjà `itemType: 'playlist'` en production
+   *   (`PlaylistDetailV2`), et `favoriPlaylistQobuz.test.ts` vérifie que le
+   *   favori ainsi écrit est bien relu.
+   *
+   * Une vignette sans cœur et une fiche avec cœur, c'était deux gestes pour le
+   * même objet selon l'écran. Ce qui reste vrai, et que #2474 documente, c'est
+   * que la RECOPIE vers Qobuz est refusée ; elle ne bloque pas le favori Tune,
+   * `toggleStreamingFavorite` n'annulant pas le cœur sur cet échec.
+   */
+  it('une playlist de service porte un cœur, comme sa fiche', () => {
     expect(
-      /\{@render tile\(p, \(\) => playPlaylist\(p\), null[,)]/.test(streaming()),
-      'les playlists de service redemandent un cœur que le serveur ne stocke pas',
+      /\{@render tile\(p, \(\) => playPlaylist\(p\), 'playlist'[,)]/.test(streaming()),
+      'la vignette « mes playlists » a reperdu son cœur',
+    ).toBe(true);
+    expect(
+      /\{@render tile\(pl, \(\) => playPlaylist\(pl\), 'playlist'[,)]/.test(streaming()),
+      'la vignette de recherche a reperdu son cœur',
     ).toBe(true);
   });
 });

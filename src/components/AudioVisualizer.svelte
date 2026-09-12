@@ -2,7 +2,7 @@
   import { estDuDSD } from '../lib/utils';
   import { onMount } from 'svelte';
   import { audioLevels, levelsForZone, type AudioLevels } from '../lib/stores/audioLevels';
-  import { freqLabel, spectrumIsoTicks } from '../lib/spectrumScale';
+  import { freqLabel, spectrumIsoTicks, type AnnonceSpectre } from '../lib/spectrumScale';
   import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../lib/waveformHistory';
 
   interface Props {
@@ -64,6 +64,12 @@
    * n'apparaît que sous des barres qui existent.
    */
   let serverBandCount = 0;
+  /**
+   * 🔴 #892 — ce que le serveur annonce de son analyse, retenu de la dernière
+   * trame. Sans ça, le module d'échelle recopiait une FFT de 2048 périmée
+   * depuis #2866 et refusait le repère 125 Hz au-dessus de 48 kHz.
+   */
+  let annonceSpectre: AnnonceSpectre | null = null;
   /** Hauteur réservée sous les barres pour l'échelle, en px CSS. */
   const AXIS_H = 12;
   /** Même corps que la grille de l'égaliseur (`.grid-label`, ParametricEq). */
@@ -181,6 +187,9 @@
    */
   function spectrumTargets(levels: AudioLevels | null): number {
     for (let i = 0; i < barCount; i++) barTargets[i] = 0;
+    annonceSpectre = levels
+      ? { fftSize: levels.spectrum_fft_size, resolus: levels.spectrum_resolved }
+      : null;
     if (!levels) return 0;
 
     // Préféré quand le serveur le fournit : niveau absolu par bande.
@@ -354,11 +363,14 @@
     //  - des bandes RÉELLEMENT reçues à la dernière trame — pas de graduation
     //    sur un analyseur vide, et pas de graduation sur des barres inventées
     //    puisqu'il n'y en a plus.
-    // `spectrumIsoTicks` rejoue l'échelle exacte du serveur et n'en garde que
-    // ce qu'il sait distinguer : dans le grave, sa FFT de 2048 points ne
-    // résout pas ses propres bandes, et un repère y serait à côté de la barre
-    // qui s'allume. Voir ../lib/spectrumScale.ts.
-    const ticks = mini ? [] : spectrumIsoTicks(sampleRate, serverBandCount);
+    // `spectrumIsoTicks` ne garde que ce que le serveur sait distinguer : dans
+    // le grave, une FFT trop courte ne résout pas ses propres bandes, et un
+    // repère y serait à côté de la barre qui s'allume.
+    //
+    // #892 — on lui passe désormais ce que le serveur ANNONCE (taille de FFT,
+    // et le booléen par bande quand il est là) au lieu de le laisser rejouer
+    // une troncature calculée sur 2048 points en dur. Voir spectrumScale.ts.
+    const ticks = mini ? [] : spectrumIsoTicks(sampleRate, serverBandCount, annonceSpectre);
     const axisH = ticks.length > 0 ? AXIS_H * dpr : 0;
     // Les barres ne descendent plus jusqu'au bas du canevas quand l'échelle
     // est là : elles s'arrêtent au-dessus, sinon les libellés se poseraient
