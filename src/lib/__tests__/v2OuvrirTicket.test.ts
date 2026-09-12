@@ -35,10 +35,30 @@ describe('Support v2 — ouvrir un ticket', () => {
     expect(ecran).toMatch(/getSystemProfile\(\)\)\); \} catch/);
   });
 
-  it('le délai de réessai du serveur survit jusqu’au message', () => {
+  it('les refus passent par le module partagé, qui porte le délai ET le motif', () => {
     // Sans lui, l'écran ne sait pas dire QUAND réessayer (#2178).
-    expect(ecran).toContain('retryAfter');
-    expect(ecran).toContain('v2.sup.errRateLimited');
+    //
+    // 🔴 CE TÉMOIN A CHANGÉ D'OBJET, et il faut dire pourquoi. Il exigeait
+    // les chaînes `retryAfter` et `v2.sup.errRateLimited` dans le source.
+    // C'était vérifier la forme du remède, pas le mal : l'écran POUVAIT citer
+    // `retryAfter` et rester faux — et il l'était. Deux fautes que ces deux
+    // chaînes laissaient passer :
+    //
+    //   - un 429 SANS `Retry-After` — le cas courant du relais — retombait sur
+    //     `e.message`, c'est-à-dire le statut HTTP NU. Le défaut de #1294,
+    //     intact, sur l'écran même de la capture ;
+    //   - `{delay}` recevait des SECONDES : « réessayez dans 3600 secondes ».
+    //
+    // `messageErreurSupport` (lib/supportErrors.ts) traite les deux, est pur,
+    // testé, et sert déjà la v1. Ce qui se garde ici est donc qu'on ne
+    // réécrive pas une seconde table de statuts à côté. Ce que l'utilisateur
+    // VOIT est mesuré en montant l'écran : `ubErreursLisibles.test.ts`.
+    expect(ecran).toContain('messageErreurSupport(');
+    expect(
+      /catch[\s\S]{0,400}?retryAfter/.test(ecran),
+      'l’écran relit `retryAfter` lui-même au lieu de laisser faire le module partagé — ' +
+        'c’est ainsi qu’il rendait « dans 3600 secondes »',
+    ).toBe(false);
   });
 });
 

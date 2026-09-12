@@ -10,6 +10,7 @@
    * Le clic ouvre l'overlay PlaylistDetailV2 (la section est `position:relative`).
    */
   import * as api from '../../lib/api';
+  import { shareLink } from '../../lib/playlistShare';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
@@ -369,10 +370,10 @@
     if (pl.id == null) return;
     try {
       const r = await api.sharePlaylist(pl.id);
-      const url = new URL(
-        r.url ?? `/api/v1/playlists/shared/${r.token}`,
-        window.location.origin,
-      ).toString();
+      // Le repli d'avant ne vérifiait pas que `token` existe : une réponse sans
+      // partage donnait un lien finissant par `undefined`, copié en annonçant
+      // une réussite. `shareLink` lève, et l'écran dit son erreur.
+      const url = shareLink(r, window.location.origin);
       await navigator.clipboard.writeText(url);
       notifications.success($t('v2.pl.shared' as any));
     } catch (e: any) {
