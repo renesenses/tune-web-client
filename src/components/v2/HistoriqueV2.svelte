@@ -27,15 +27,43 @@
     basculerFavoriRadio,
     nomDeZone,
   } from '../../lib/historiqueLecture';
+  import {
+    enTranches,
+    nomDObjet,
+    regrouperParContexte,
+  } from '../../lib/historiqueParContexte';
   import '../../styles/tune-v2.css';
 
   let serveur = $state<HistoryEntry[]>([]);
   let favorisRadio = $state(new Set<string>());
-  let enCours = $state<number | null>(null);
   let occupe = $state<string | null>(null);
   let vidage = $state(false);
 
   const entrees = $derived(fusionnerHistorique($playbackHistory, serveur));
+
+  /**
+   * 🔴 #904 / #903 — l'écran en DEUX niveaux.
+   *
+   * Les titres nus consécutifs restent un seul tableau ; un objet lancé
+   * (album, playlist, artiste) prend une ligne à part, dépliable. Mesuré sur
+   * la .18 : 65,8 % des écoutes n'ont AUCUN contexte, donc la liste plate
+   * reste la forme dominante de l'écran — c'est aussi ce que montre le schéma
+   * de FabienM, où des titres nus voisinent avec des objets.
+   */
+  const tranches = $derived(enTranches(regrouperParContexte(entrees)));
+
+  /** Les objets DÉPLIÉS, par clé. Repliés par défaut : c'est le « + » du schéma. */
+  let deplies = $state(new Set<string>());
+  function basculerPli(cle: string) {
+    const n = new Set(deplies);
+    if (n.has(cle)) n.delete(cle); else n.add(cle);
+    deplies = n;
+  }
+
+  /** L'entrée en cours de rejeu, désignée par une clé stable et non un rang. */
+  let rejeuEnCours = $state<string | null>(null);
+  const cleEntree = (e: HistoryEntry) =>
+    `${e.track.id ?? e.track.source_id ?? e.track.title ?? ''}@${e.playedAt}`;
 
   $effect(() => {
     api.getPlaybackHistory(100)
@@ -61,17 +89,17 @@
   }
 
 
-  async function rejouer(e: HistoryEntry, i: number) {
+  async function rejouer(e: HistoryEntry) {
     const zid = $currentZoneId;
     if (zid == null) { notifications.error($tr('queue.noZoneSelected')); return; }
-    enCours = i;
+    rejeuEnCours = cleEntree(e);
     try {
       const fait = await rejouerEntree(zid, e);
       notifications.success(`${fait.genre === 'radio' ? 'Radio' : 'Lecture'} : ${fait.libelle}`);
     } catch {
       notifications.error($tr('v2.hist.replayError' as any));
     }
-    enCours = null;
+    rejeuEnCours = null;
   }
 
   async function basculerFav(e: HistoryEntry, ev: MouseEvent) {
@@ -126,36 +154,79 @@
       <div class="state">{$tr('history.noHistory')}</div>
     {:else}
       <div class="list">
-        <!-- LISTE partagée : tableau au mode Essentiel, mêmes lignes qu'avant
-             au-dessus. Les deux colonnes propres à cet écran — l'instant, et le
-             cœur d'un titre entendu à la radio — passent par le suffixe.
+        <!-- 🔴 #904 / #903 — DEUX niveaux. Une tranche de titres nus est un
+             tableau ; un objet lancé est une ligne dépliable.
 
              ⚠️ `clef` : la même piste peut figurer deux fois, écoutée deux
              fois. `id` seul donnerait deux clés identiques, et Svelte
              s'arrêterait sur `each_key_duplicate` — la liste entière
              disparaîtrait. -->
-        <ListePistesV2
-          pistes={entrees.map((x) => x.track)}
-          numerotation="aucune"
-          pochetteEnTableau
-          onLire={(_p, i) => rejouer(entrees[i], i)}
-          clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + entrees[i].playedAt}
-          apres={suffixe}
-          largeurApres="164px"
-        />
-        {#snippet suffixe(_p: any, i: number)}
-          {@const e = entrees[i]}
+        {#each tranches as tranche, ti (tranche.genre === 'objet' ? tranche.cle : `t${ti}`)}
+          {#if tranche.genre === 'titres'}
+            {@const lot = tranche.entrees}
+            <ListePistesV2
+              pistes={lot.map((x) => x.track)}
+              numerotation="aucune"
+              pochetteEnTableau
+              onLire={(_p, i) => rejouer(lot[i])}
+              clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + lot[i].playedAt}
+              apres={suffixeNu}
+              largeurApres="164px"
+            />
+            {#snippet suffixeNu(_p: any, i: number)}
+              {@render colonnes(lot[i])}
+            {/snippet}
+          {:else}
+            {@const lot = tranche.entrees}
+            {@const nom = nomDObjet(tranche.type, lot)}
+            {@const ouvert = deplies.has(tranche.cle)}
+            <!-- Le « + » / « − » du schéma de FabienM. L'objet est REPLIÉ par
+                 défaut : déplié, l'écran redeviendrait la liste plate qu'il
+                 remplace. -->
+            <button class="objet" class:ouvert aria-expanded={ouvert}
+              onclick={() => basculerPli(tranche.cle)}>
+              <span class="pli" aria-hidden="true">{ouvert ? '−' : '+'}</span>
+              <span class="otype">{$tr(`v2.hist.ctx.${tranche.type}` as any)}</span>
+              <!-- 🔴 Le serveur ne sert AUCUN nom de contexte : seize champs,
+                   et pas un titre d'objet. Un album et un artiste se déduisent
+                   des pistes ; une playlist, non. On pose alors le seul type,
+                   plutôt qu'un nom inventé. -->
+              <span class="onom">{nom ?? $tr('v2.hist.ctx.sansNom' as any)}</span>
+              <span class="ocompte">{lot.length}</span>
+              <span class="when">{depuis(tranche.quand)}</span>
+            </button>
+            {#if ouvert}
+              <div class="tiroir">
+                <ListePistesV2
+                  pistes={lot.map((x) => x.track)}
+                  numerotation="aucune"
+                  pochetteEnTableau
+                  onLire={(_p, i) => rejouer(lot[i])}
+                  clef={(p, i) => String(p.id ?? p.source_id ?? '') + '@' + lot[i].playedAt}
+                  apres={suffixeObjet}
+                  largeurApres="164px"
+                />
+                {#snippet suffixeObjet(_p: any, i: number)}
+                  {@render colonnes(lot[i])}
+                {/snippet}
+              </div>
+            {/if}
+          {/if}
+        {/each}
+
+        <!-- Les deux colonnes propres à cet écran — la zone et l'instant, plus
+             le cœur d'un titre entendu à la radio — sont les mêmes aux deux
+             niveaux. Elles sont donc écrites UNE fois. -->
+        {#snippet colonnes(e: HistoryEntry)}
           {@const radio = estRadioEnregistrable(e.track)}
           {@const cle = cleFavoriRadio(e.track.title, e.track.artist_name)}
           <!-- 🔴 LA ZONE, que l'écran actuel affiche depuis toujours
                (`HistoryView.svelte:149`) et que le portage avait perdue.
-               FabienM, fil 1739, point 8. Au-dessus de l'instant, comme dans
-               l'écran actuel — c'est cette disposition qu'il montre en
-               exemple. -->
+               FabienM, fil 1739, point 8. -->
           {@const zn = nomDeZone(e, $zones)}
           <span class="quand">
             {#if zn}<span class="zone" title={zn}>{zn}</span>{/if}
-            <span class="when" class:busy={enCours === i}>{depuis(e.playedAt)}</span>
+            <span class="when" class:busy={rejeuEnCours === cleEntree(e)}>{depuis(e.playedAt)}</span>
           </span>
           {#if radio}
             <button class="fav" class:on={favorisRadio.has(cle)} disabled={occupe === cle}
@@ -208,6 +279,22 @@
   .fav:disabled{opacity:.4; cursor:default}
   .fav svg{width:14px; height:14px}
   .fav-vide{width:28px; height:28px}
+
+  /* #904 — la ligne d'objet du premier niveau, et son tiroir. */
+  .objet{display:grid; grid-template-columns:18px auto 1fr auto auto; align-items:center; gap:10px;
+    width:100%; text-align:left; padding:9px 12px; border:1px solid var(--v2-line2);
+    border-radius:9px; background:var(--v2-surface2, transparent); color:var(--v2-txt);
+    cursor:pointer; font-family:inherit}
+  .objet:hover{border-color:var(--v2-acc1)}
+  .objet .pli{font:600 15px var(--v2-mono); color:var(--v2-txt3); text-align:center}
+  .objet.ouvert .pli{color:var(--v2-acc1)}
+  .objet .otype{font:600 10.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
+    color:var(--v2-acc1)}
+  .objet .onom{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .objet .ocompte{font:11px var(--v2-mono); color:var(--v2-txt3);
+    border:1px solid var(--v2-line2); border-radius:10px; padding:1px 7px}
+  .objet .when{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:82px; text-align:right}
+  .tiroir{padding-left:22px; border-left:2px solid var(--v2-line2); margin:2px 0 6px 8px}
 
   /* Sans survol possible — tactile — rien ne peut rester en réserve. */
   @media (hover:none){ .fav{opacity:1} }
