@@ -34,7 +34,7 @@
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
-    colonnesRetenues, gabaritGrille, modeEnTableau, valeurColonne, type CleColonne,
+    colonnesRetenues, gabaritGrille, largeurMinimale, modeEnTableau, valeurColonne, type CleColonne,
   } from '../../lib/colonnesPistes';
   import type { Track } from '../../lib/types';
   import LignePisteV2 from './LignePisteV2.svelte';
@@ -177,8 +177,24 @@
    * 178 px = six boutons de 28 px + cinq gouttières de 2 px, la barre pleine.
    */
   const LARGEUR_ACTIONS = '178px';
+  /** Les mêmes largeurs en NOMBRE, pour le calcul du plancher (#853). */
+  const LARGEUR_ACTIONS_PX = 178;
+  const largeurApresPx = $derived(parseFloat(largeurApres) || 0);
   const gabarit = $derived(
     `${gabaritGrille(colonnes)} ${LARGEUR_ACTIONS}${apres ? ` ${largeurApres}` : ''}`,
+  );
+
+  /**
+   * 🔴 #853 — la largeur minimale de la grille : somme des PLANCHERS.
+   *
+   * Pierre M (fil 1671) avait coché une dizaine de colonnes de plus que les
+   * dix d'Expert. Les colonnes fixes remplissaient sa fenêtre, les `fr` se
+   * partageaient ce qui restait, et le titre tombait à ~64 px — « E… ». Les
+   * planchers posés dans le catalogue ne valent que si la grille a le droit de
+   * DÉBORDER : sinon elle les ignore et comprime quand même.
+   */
+  const minGrille = $derived(
+    largeurMinimale(colonnes, LARGEUR_ACTIONS_PX + (apres ? largeurApresPx : 0)),
   );
 
   /**
@@ -255,7 +271,10 @@
     {/if}
   {/each}
 {:else}
-  <div class="tbl" style="--tcols:{gabarit}" role="table">
+  <!-- 🔴 #853 — `--tmin` est la largeur en deçà de laquelle le tableau DÉFILE
+       au lieu de comprimer. Sans elle, les planchers des colonnes de texte
+       seraient simplement ignorés par la grille, qui redescendrait sous eux. -->
+  <div class="tbl" style="--tcols:{gabarit}; --tmin:{minGrille}px" role="table">
     <div class="thead" role="row">
       {#each colonnes as c (c.cle)}
         <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
@@ -313,9 +332,13 @@
   /* 🔴 UN seul gabarit, posé sur le conteneur et hérité par l'en-tête comme
      par les lignes. Deux gabarits calculés séparément divergent — c'est le
      défaut d'alignement relevé sur la vue Liste le 05/09/2026. */
-  .tbl{display:flex; flex-direction:column; min-width:0}
+  /* 🔴 #853 — le tableau DÉFILE au lieu de comprimer. `.tbl` n'avait aucun
+     `overflow-x` : la grille ne pouvait pas déborder, donc elle écrasait. */
+  .tbl{display:flex; flex-direction:column; min-width:0; overflow-x:auto}
+  .tbl::-webkit-scrollbar{height:9px}
+  .tbl::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .thead, .trow{display:grid; grid-template-columns:var(--tcols); align-items:center;
-    gap:14px; padding:0 10px}
+    gap:14px; padding:0 10px; min-width:var(--tmin, 0)}
   .thead{position:sticky; top:0; z-index:2; background:var(--v2-bg);
     border-bottom:1px solid var(--v2-line2); padding-bottom:9px; margin-bottom:4px}
   .th{font:600 11px var(--v2-sans); letter-spacing:.04em; color:var(--v2-txt3);
