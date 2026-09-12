@@ -6,6 +6,7 @@ import {
   DEFAUTS as DEFAUTS_COLONNES, PAR_CLE as COLONNES_PAR_CLE, type CleColonne,
 } from '../colonnesPistes';
 import { chainesUniques } from '../clesUniques';
+import type { Instantanes as InstantanesRenderer } from '../reglagesRendererEnregistres';
 
 export type ThemeMode = 'dark' | 'light' | 'oled' | 'midnight';
 export type VolumeDisplay = 'percent' | 'dB';
@@ -154,6 +155,20 @@ export interface Preferences {
    * réglages, et ce commentaire pour qu'on sache pourquoi.
    */
   v2Colonnes: Record<SettingsLevel, CleColonne[]>;
+  /**
+   * La configuration du renderer ENREGISTRÉE à la main, par appareil.
+   *
+   * Rangée ici, et pas dans la table `zones`, parce que c'est précisément la
+   * ligne de `zones` qui se perd d'un démarrage à l'autre : une zone recréée par
+   * la découverte change d'identifiant, et ses colonnes repartent au défaut.
+   * `ui_preferences` est un blob à part, synchronisé serveur, que la découverte
+   * n'atteint pas — et qui suit le profil au lieu de rester dans un navigateur
+   * (même arbitrage que le tri d'albums, #1134).
+   *
+   * La clé est celle de l'APPAREIL (`sortie:…`, `nom:…`), voir
+   * `lib/reglagesRendererEnregistres.cleAppareil`.
+   */
+  reglagesRendererEnregistres: InstantanesRenderer;
   settingsLevel: SettingsLevel;
 }
 
@@ -181,6 +196,7 @@ const defaults: Preferences = {
   v2CollectionsMosaique: true,
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   v2Colonnes: { ...DEFAUTS_COLONNES },
+  reglagesRendererEnregistres: {},
   // EXPERT par defaut (Bertrand, 27/08) — inverse la decision du 14/08.
   // Ne s'applique qu'aux installations SANS niveau enregistre : un choix
   // explicite fait toujours foi, et la migration `legacySettingsLevel()`
