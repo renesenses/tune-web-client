@@ -34,7 +34,8 @@
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import {
-    colonnesRetenues, gabaritGrille, largeurMinimale, modeEnTableau, valeurColonne, type CleColonne,
+    cleInfobulleColonne, colonnesRetenues, gabaritGrille, largeurMinimale, modeEnTableau,
+    valeurColonne, type CleColonne,
   } from '../../lib/colonnesPistes';
   import type { Track } from '../../lib/types';
   import LignePisteV2 from './LignePisteV2.svelte';
@@ -317,8 +318,12 @@
             {@const v = cellule(p, i, c.cle)}
             <!-- Une cellule sans valeur reste VIDE : « — » affirmerait une
                  absence qu'on n'a pas mesurée. -->
+            <!-- #3924 — l'infobulle dit la PROVENANCE quand la colonne en a
+                 une (le Dynamic Range, et lui seul). Partout ailleurs elle
+                 reste la valeur brute, comme avant. -->
+            {@const ib = cleInfobulleColonne(p, c.cle)}
             <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-              role="cell" title={v ?? ''}>{v ?? ''}</span>
+              role="cell" title={ib ? $t(ib as any) : (v ?? '')}>{v ?? ''}</span>
           {/if}
         {/each}
         <span class="td act" role="cell"><PisteActions piste={p} /></span>

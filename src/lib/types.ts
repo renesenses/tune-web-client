@@ -463,6 +463,21 @@ export interface Zone {
   detected_manufacturer?: string | null;
   /** Modèle détecté en UPnP pour le device assigné (pré-remplissage). */
   detected_model?: string | null;
+  /**
+   * #3660 — l'utilisateur a RÉCUSÉ l'identité détectée de cette zone.
+   *
+   * Publié par `inject_device_identity` (`routes/zones.rs:355`, tag
+   * `v0.9.147`) sur `GET /zones`, `GET /zones/{id}` et la réponse de
+   * `PATCH /zones/{id}` — qui rend la fiche complète via `get_zone`.
+   *
+   * Quand il vaut `true`, le serveur sert `detected_manufacturer` et
+   * `detected_model` à `null` : sans ce drapeau publié à côté, un écran ne
+   * saurait pas distinguer « rien n'a été détecté » de « ce qui a été détecté
+   * a été récusé », ni comment revenir en arrière.
+   *
+   * Absent des serveurs antérieurs : `undefined` vaut « pas récusé ».
+   */
+  identite_appareil_effacee?: boolean;
 }
 
 // Catalogue d'appareils (GET /devices/catalog)

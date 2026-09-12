@@ -41,6 +41,7 @@
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
+import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
@@ -436,6 +437,46 @@
     } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
     sbSaving = false;
   }
+  /**
+   * #3809 — l'ANNONCE, l'autre sens du protocole. Réglage distinct de
+   * celui du dessus : voir `lib/annonceSlimproto`, qui porte le nom de clé
+   * serveur et la règle de lecture.
+   *
+   * L'état affiché vient de la RELECTURE, jamais du clic : `PATCH
+   * /system/config` ne répond que `{"ok": true}`, et un serveur qui ne
+   * connaît pas la clé doit pouvoir démentir la case.
+   */
+  let annonceSlim = $state(true);
+  let annonceSlimSaving = $state(false);
+  /**
+   * 🔴 Le réglage est RETENU tout de suite, mais il n'AGIT qu'au démarrage.
+   *
+   * `spawn_slimproto_server` (background.rs, tag v0.9.147) lit la clé UNE
+   * fois, au lancement, et arme `discovery::spawn` — qui ne porte ni handle,
+   * ni jeton d'annulation. Décocher n'éteint donc pas l'annonce en cours.
+   *
+   * Le taire ferait rapporter au testeur le symptôme EXACT de l'issue :
+   * « je décoche et ça continue ». On le dit, dès que le choix est posé.
+   */
+  let annonceSlimRedemarrage = $state(false);
+  async function toggleAnnonceSlimproto(ev: Event) {
+    // 🔴 La case est saisie AVANT tout `await` : `currentTarget` est remis à
+    // `null` dès que le gestionnaire rend la main.
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    annonceSlimSaving = true;
+    try {
+      annonceSlim = await basculerAnnonceSlimproto(!annonceSlim);
+      annonceSlimRedemarrage = true;
+    } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
+    annonceSlimSaving = false;
+    // 🔴 Et on REPOSE la case sur l'état confirmé. Le clic a déjà bougé le
+    // DOM ; si le serveur répond la valeur qu'on affichait DÉJÀ (serveur
+    // antérieur à #3809, qui ignore la clé), `annonceSlim` ne change pas,
+    // Svelte n'a donc rien à re-rendre — et la case resterait visuellement
+    // décochée devant un serveur qui annonce toujours. C'est le mensonge
+    // même de l'issue, une case plus loin.
+    if (caseCochee) caseCochee.checked = annonceSlim;
+  }
   async function saveSqueezeboxHost() {
     sbSaving = true;
     try {
@@ -473,7 +514,11 @@
   let hqStatusMsg = $state('');
 
   $effect(() => {
-    api.getConfig().then((c: any) => { sbEnabled = c?.squeezebox_enabled ?? false; }).catch(() => {});
+    api.getConfig().then((c: any) => {
+      sbEnabled = c?.squeezebox_enabled ?? false;
+      // #3809 — même bloc de config, DEUX réglages opposés.
+      annonceSlim = annonceSlimprotoDepuisConfig(c);
+    }).catch(() => {});
     api.apiFetch('/hqplayer/config')
       .then((c: any) => { hqEnabled = c?.hqplayer_enabled ?? false; hqHost = c?.hqplayer_host ?? ''; hqPort = c?.hqplayer_port ?? 4321; })
       .catch(() => {});
@@ -2984,6 +3029,27 @@
                   <span class="slider"></span>
                 </label>
               </div>
+              <!-- #3809 — l'autre sens du protocole, et le seul que Home
+                   Assistant voit. Hors du `{#if sbEnabled}` : les deux
+                   réglages sont indépendants, et c'est justement celui-ci
+                   qu'un utilisateur veut éteindre sans rien activer. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.slimprotoAnnonce' as any)}</span>
+                  <span class="hint">{$t('settings.slimprotoAnnonceHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={annonceSlim} disabled={annonceSlimSaving} onchange={toggleAnnonceSlimproto} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if annonceSlimRedemarrage}
+                <div class="row">
+                  <div class="lbl">
+                    <span class="hint">{$t('settings.slimprotoAnnonceRedemarrage' as any)}</span>
+                  </div>
+                </div>
+              {/if}
               {#if sbEnabled}
                 <div class="row">
                   <div class="lbl">

@@ -716,6 +716,30 @@ export function updateZoneDevice(id: number, brand: string, model: string) {
   });
 }
 
+/**
+ * #3660 — le vide FORCÉ sur l'identité d'appareil d'une zone.
+ *
+ * 🔴 Ce n'est PAS `updateZoneDevice(id, '', '')`. La chaîne vide efface
+ * l'OVERRIDE choisi par l'utilisateur et laisse REVENIR la détection UPnP, qui
+ * se repeuple au balayage suivant. Ce drapeau-ci récuse la DÉTECTION
+ * elle-même : « cet appareil n'EST PAS un Eversolo ». Deux gestes distincts
+ * parce que ce sont deux intentions distinctes — « je n'ai plus d'avis » et
+ * « ce n'est pas celui-là » (`routes/zones/ecriture.rs:533`, tag `v0.9.147`).
+ *
+ * Le serveur persiste le drapeau dans `settings` sous `zone_{id}_identite_
+ * effacee`, donc il survit à une redécouverte, et sert alors
+ * `detected_manufacturer` / `detected_model` à `null`.
+ *
+ * La réponse est la fiche COMPLÈTE de la zone (`patch_zone` se termine par
+ * `get_zone`) : c'est elle qui dit l'état retenu, pas le clic.
+ */
+export function setZoneIdentiteEffacee(id: number, effacee: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ identite_appareil_effacee: effacee }),
+  });
+}
+
 /** Set the "force WAV" mode for a DLNA renderer. The 16-bit LPCM (`dlna_lpcm`)
  *  and 24-bit (`dlna_wav24`) paths are mutually exclusive, so patch both flags
  *  in one request to keep the zone state coherent. */

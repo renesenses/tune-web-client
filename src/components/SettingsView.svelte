@@ -13,6 +13,7 @@
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
+  import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../lib/annonceSlimproto';
   import { canConfirmImport } from '../lib/importReport';
 // #865 — l'export des journaux, UNE seule fois pour tout le client.
 import { telechargerJournaux } from '../lib/journaux';
@@ -1228,6 +1229,50 @@ function setSettingsLevel(level: SettingsLevel) {
     squeezeboxSaving = false;
   }
 
+  /**
+   * #3809 — l'ANNONCE de Tune comme serveur Squeezebox.
+   *
+   * Réglage DISTINCT de `squeezebox_enabled` juste au-dessus, et de sens
+   * opposé : celui-là gouverne Tune client d'un LMS, celui-ci le répondeur
+   * UDP 3483 que Home Assistant trouve. Nom de clé et règle de lecture dans
+   * `lib/annonceSlimproto`.
+   *
+   * L'état affiché vient de la RELECTURE de `GET /system/config` faite par
+   * `basculerAnnonceSlimproto`, jamais du clic : le PATCH ne répond que
+   * `{"ok": true}`, et un serveur qui ignore la clé doit pouvoir démentir.
+   */
+  let slimprotoAnnonce = $state(true);
+  let slimprotoSaving = $state(false);
+  /**
+   * 🔴 Retenu tout de suite, mais n'AGIT qu'au démarrage.
+   *
+   * `spawn_slimproto_server` (background.rs, tag v0.9.147) lit la clé UNE
+   * fois au lancement et arme `discovery::spawn`, qui ne porte ni handle ni
+   * jeton d'annulation. Décocher n'éteint pas l'annonce déjà en cours — le
+   * taire ferait rapporter le symptôme EXACT de l'issue.
+   */
+  let slimprotoRedemarrage = $state(false);
+
+  async function toggleSlimprotoAnnonce(ev: Event) {
+    // 🔴 Saisie AVANT tout `await` : `currentTarget` est remis à `null` dès
+    // que le gestionnaire rend la main.
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    slimprotoSaving = true;
+    try {
+      slimprotoAnnonce = await basculerAnnonceSlimproto(!slimprotoAnnonce);
+      slimprotoRedemarrage = true;
+    } catch (err: any) {
+      notifications.error(err?.message ?? 'Error');
+    }
+    slimprotoSaving = false;
+    // 🔴 La case REVIENT sur l'état confirmé. Le clic a déjà bougé le DOM ;
+    // quand le serveur répond la valeur qu'on affichait déjà (serveur
+    // antérieur à #3809, qui ignore la clé), la variable ne change pas,
+    // Svelte n'a rien à re-rendre — et la case resterait décochée devant un
+    // serveur qui annonce toujours.
+    if (caseCochee) caseCochee.checked = slimprotoAnnonce;
+  }
+
   async function saveSqueezeboxLmsHost() {
     squeezeboxSaving = true;
     try {
@@ -2088,6 +2133,9 @@ function setSettingsLevel(level: SettingsLevel) {
       loadHqplayerConfig();
       // Load Squeezebox status if enabled
       if (config?.squeezebox_enabled) refreshSqueezebox();
+      // #3809 — l'ANNONCE, lue dans le MÊME bloc de config. Défaut serveur
+      // `true` : seul un `false` explicite éteint.
+      slimprotoAnnonce = annonceSlimprotoDepuisConfig(config);
       loadBridgeStatus();
     } catch (e) {
       console.error('Settings load error:', e);
@@ -5851,6 +5899,25 @@ function setSettingsLevel(level: SettingsLevel) {
             <span class="toggle-slider"></span>
           </label>
         </div>
+
+        <!-- #3809 — l'autre sens du protocole : ce que Tune ANNONCE, et le
+             seul réglage que voit Home Assistant. Hors du `{#if
+             config.squeezebox_enabled}` : les deux sont indépendants, et
+             c'est celui-ci qu'on veut éteindre sans rien activer. -->
+        <div class="setting-row">
+          <div class="setting-label">
+            <span>{$t('settings.slimprotoAnnonce' as any)}</span>
+            <span class="setting-hint">{$t('settings.slimprotoAnnonceHint' as any)}</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" checked={slimprotoAnnonce} onchange={(e) => toggleSlimprotoAnnonce(e)} disabled={slimprotoSaving} />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        {#if slimprotoRedemarrage}
+          <p class="section-hint">{$t('settings.slimprotoAnnonceRedemarrage' as any)}</p>
+        {/if}
 
         {#if config.squeezebox_enabled}
           <div class="setting-row" style="margin-top: 0.5rem;">
