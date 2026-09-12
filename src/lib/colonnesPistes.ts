@@ -141,9 +141,9 @@ export interface Colonne {
  */
 export const COLONNES: Colonne[] = [
   { cle: 'num',        cleI18n: 'v2.tcol.num',        largeur: '44px',  align: 'droite' },
-  { cle: 'title',      cleI18n: 'v2.tcol.title',      largeur: 'minmax(0,2fr)', verrouillee: true },
-  { cle: 'artist',     cleI18n: 'v2.tcol.artist',     largeur: 'minmax(0,1.4fr)' },
-  { cle: 'composer',   cleI18n: 'v2.tcol.composer',   largeur: 'minmax(0,1.2fr)' },
+  { cle: 'title',      cleI18n: 'v2.tcol.title',      largeur: 'minmax(170px,2fr)', verrouillee: true },
+  { cle: 'artist',     cleI18n: 'v2.tcol.artist',     largeur: 'minmax(130px,1.4fr)' },
+  { cle: 'composer',   cleI18n: 'v2.tcol.composer',   largeur: 'minmax(120px,1.2fr)' },
   { cle: 'time',       cleI18n: 'v2.tcol.time',       largeur: '64px',  align: 'droite' },
   { cle: 'year',       cleI18n: 'v2.tcol.year',       largeur: '56px',  align: 'droite' },
   /**
@@ -170,7 +170,7 @@ export const COLONNES: Colonne[] = [
   { cle: 'lastPlayed', cleI18n: 'v2.tcol.lastPlayed', largeur: '116px', align: 'droite' },
   { cle: 'channels',   cleI18n: 'v2.tcol.channels',   largeur: '72px',  align: 'centre' },
   { cle: 'bpm',        cleI18n: 'v2.tcol.bpm',        largeur: '64px',  align: 'droite' },
-  { cle: 'genre',      cleI18n: 'v2.tcol.genre',      largeur: 'minmax(0,1fr)' },
+  { cle: 'genre',      cleI18n: 'v2.tcol.genre',      largeur: 'minmax(100px,1fr)' },
   { cle: 'quality',    cleI18n: 'v2.tcol.quality',    largeur: '132px' },
 
   // ── À partir d'AVANCÉ ────────────────────────────────────────────────────
@@ -180,10 +180,10 @@ export const COLONNES: Colonne[] = [
   // depth accessible aussi en mode advanced » (Bertrand, 07/09/2026) — elles
   // étaient à Expert, et c'était trop haut : la pastille Qualité les résume
   // déjà en Essentiel, ces colonnes servent à TRIER et comparer.
-  { cle: 'album',       cleI18n: 'v2.tcol.album',       largeur: 'minmax(0,1.4fr)', min: 'intermediate' },
-  { cle: 'albumArtist', cleI18n: 'v2.tcol.albumArtist', largeur: 'minmax(0,1.2fr)', min: 'intermediate' },
+  { cle: 'album',       cleI18n: 'v2.tcol.album',       largeur: 'minmax(130px,1.4fr)', min: 'intermediate' },
+  { cle: 'albumArtist', cleI18n: 'v2.tcol.albumArtist', largeur: 'minmax(120px,1.2fr)', min: 'intermediate' },
   { cle: 'disc',        cleI18n: 'v2.tcol.disc',        largeur: '56px',  align: 'droite', min: 'intermediate' },
-  { cle: 'label',       cleI18n: 'v2.tcol.label',       largeur: 'minmax(0,1fr)',   min: 'intermediate' },
+  { cle: 'label',       cleI18n: 'v2.tcol.label',       largeur: 'minmax(100px,1fr)',   min: 'intermediate' },
 
   { cle: 'format',      cleI18n: 'v2.tcol.format',      largeur: '76px',  min: 'intermediate' },
   { cle: 'sampleRate',  cleI18n: 'v2.tcol.sampleRate',  largeur: '86px',  align: 'droite', min: 'intermediate' },
@@ -195,8 +195,8 @@ export const COLONNES: Colonne[] = [
   { cle: 'size',        cleI18n: 'v2.tcol.size',        largeur: '84px',  align: 'droite', min: 'expert' },
   { cle: 'isrc',        cleI18n: 'v2.tcol.isrc',        largeur: '124px', min: 'expert' },
   { cle: 'mbid',        cleI18n: 'v2.tcol.mbid',        largeur: '150px', min: 'expert' },
-  { cle: 'comments',    cleI18n: 'v2.tcol.comments',    largeur: 'minmax(0,1.4fr)', min: 'expert' },
-  { cle: 'discSubtitle', cleI18n: 'v2.tcol.discSubtitle', largeur: 'minmax(0,1fr)',  min: 'expert' },
+  { cle: 'comments',    cleI18n: 'v2.tcol.comments',    largeur: 'minmax(130px,1.4fr)', min: 'expert' },
+  { cle: 'discSubtitle', cleI18n: 'v2.tcol.discSubtitle', largeur: 'minmax(100px,1fr)',  min: 'expert' },
   { cle: 'source',      cleI18n: 'v2.tcol.source',      largeur: '86px',  min: 'expert' },
   { cle: 'modified',    cleI18n: 'v2.tcol.modified',    largeur: '112px', align: 'droite', min: 'expert' },
   { cle: 'hash',        cleI18n: 'v2.tcol.hash',        largeur: '150px', min: 'expert' },
@@ -243,7 +243,7 @@ export const COLONNES: Colonne[] = [
     min: 'expert' },
   // Le chemin en dernier : c'est la plus longue, et la seule qu'on lit de
   // gauche à droite jusqu'au bout.
-  { cle: 'path',        cleI18n: 'v2.tcol.path',        largeur: 'minmax(0,2fr)',   min: 'expert' },
+  { cle: 'path',        cleI18n: 'v2.tcol.path',        largeur: 'minmax(150px,2fr)',   min: 'expert' },
 ];
 
 export const PAR_CLE: Record<CleColonne, Colonne> = Object.fromEntries(
@@ -337,6 +337,37 @@ export function colonnesRetenues(
 /** `grid-template-columns` de l'en-tête ET des lignes — une seule source. */
 export function gabaritGrille(colonnes: readonly Colonne[]): string {
   return colonnes.map((c) => c.largeur).join(' ');
+}
+
+/**
+ * La largeur MINIMALE que ce jeu de colonnes exige, en pixels.
+ *
+ * 🔴 `renesenses/tune-web-client#853` — Pierre M, fil 1671, fenetre de
+ * 1 491 px : « impossible de lire le morceau ou l'artiste ». Il avait coche
+ * une dizaine de colonnes de plus que les dix du niveau Expert.
+ *
+ * Les colonnes de texte etaient en `minmax(0, Nfr)` — plancher ZERO — et tout
+ * le reste en pixels fixes. Quand les pixels fixes remplissent la largeur, les
+ * `fr` se partagent ce qui reste. Arithmetique de sa capture : ~1 040 px de
+ * colonnes fixes sur ~1 450 px utiles, il restait ~400 px pour 12,6 fr, soit
+ * **1 fr ≈ 32 px et le titre (2 fr) ≈ 64 px**. C'est exactement le « E… »
+ * qu'il montre. `overflow:hidden; text-overflow:ellipsis` rendait
+ * l'ecrasement propre, donc invisible a la lecture du code.
+ *
+ * Les planchers seuls ne suffisent pas : une grille dont la somme des
+ * planchers depasse son conteneur deborde. Il faut que le tableau puisse
+ * DEFILER — d'ou cette fonction, qui donne au conteneur la largeur a partir de
+ * laquelle il doit poser un ascenseur horizontal plutot que comprimer.
+ */
+export function largeurMinimale(colonnes: readonly Colonne[], largeurActions = 0): number {
+  let total = largeurActions;
+  for (const c of colonnes) {
+    const fixe = /^([0-9.]+)px$/.exec(c.largeur);
+    if (fixe) { total += parseFloat(fixe[1]); continue; }
+    const mm = /^minmax\(([0-9.]+)px,/.exec(c.largeur);
+    total += mm ? parseFloat(mm[1]) : 0;
+  }
+  return Math.round(total);
 }
 
 /**

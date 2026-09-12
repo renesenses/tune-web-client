@@ -186,8 +186,20 @@ describe('le gabarit de grille', () => {
     // C'est la leçon de la vue Liste de la Bibliothèque : deux gabarits
     // calculés séparément finissent par diverger, et les colonnes ne
     // s'alignent plus d'une ligne à l'autre.
-    expect(gabaritGrille(colonnesRetenues(['num', 'artist', 'time'])))
-      .toBe('44px minmax(0,2fr) minmax(0,1.4fr) 64px');
+    //
+    // 🔴 #853 — cette garde recopiait le gabarit AU CARACTÈRE près, planchers
+    // compris. Les planchers ont changé (ils valaient zéro, ce qui écrasait le
+    // titre à une lettre chez Pierre M) et elle est sortie rouge sans qu'aucun
+    // invariant ait bougé. Elle tient désormais ce qu'elle voulait tenir : un
+    // seul gabarit, dans l'ORDRE des colonnes retenues, une piste par colonne.
+    const gabarit = gabaritGrille(colonnesRetenues(['num', 'artist', 'time']));
+    const pistes = gabarit.split(' ');
+    expect(pistes, 'une colonne retenue n’a pas sa piste de grille').toHaveLength(4);
+    expect(pistes[0]).toBe('44px');
+    expect(pistes[3]).toBe('64px');
+    // `title` est verrouillée, donc toujours en tête des colonnes de texte.
+    expect(pistes[1]).toMatch(/^minmax\([0-9.]+px,2fr\)$/);
+    expect(pistes[2]).toMatch(/^minmax\([0-9.]+px,1\.4fr\)$/);
   });
 });
 
