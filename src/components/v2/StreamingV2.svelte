@@ -28,6 +28,7 @@
   import * as api from '../../lib/api';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import { messageEchecLecture } from '../../lib/echecLecture';
   import { activeView } from '../../lib/stores/navigation';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
@@ -539,12 +540,12 @@
     if (active === BANDCAMP) {
       const corps = corpsDeLectureCollection({ url: a?.url ?? a?.source_id ?? null });
       if (corps) {
-        playAndSync(zid, corps as any).catch(() => { error = $t('v2.stream.playFailed' as any); });
+        playAndSync(zid, corps as any).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
       }
       return;
     }
     const sid = a?.source_id ?? a?.id;
-    if (sid) playAndSync(zid, { streaming_album_id: String(sid), source: active as any }).catch(() => { error = $t('v2.stream.playFailed' as any); });
+    if (sid) playAndSync(zid, { streaming_album_id: String(sid), source: active as any }).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   /**
    * Lecture d'une PISTE de service.
@@ -583,13 +584,13 @@
     if (zid != null && svc === BANDCAMP) { playBc(piste); return; }
     if (zid == null || !svc || !sid) return;
     playAndSync(zid, { source: svc as any, source_id: String(sid) })
-      .catch(() => { error = $t('v2.stream.playFailed' as any); });
+      .catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   function playPlaylist(p: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
     playAndSync(zid, { streaming_playlist_id: String(p.source_id ?? p.id), source: (p.source ?? active) as any })
-      .catch(() => { error = $t('v2.stream.playFailed' as any); });
+      .catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   /**
    * Lecture d'un article BANDCAMP — #2702.
@@ -633,7 +634,7 @@
       0,
     );
     if (!corps) { error = $t('v2.str.noPreview' as any); return; }
-    playAndSync(zid, corps as any).catch(() => { error = $t('v2.stream.playFailed' as any); });
+    playAndSync(zid, corps as any).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
 
   async function linkBandcamp() {
