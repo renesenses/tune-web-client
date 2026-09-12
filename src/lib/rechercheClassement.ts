@@ -62,6 +62,50 @@ export type Meilleur =
   | { genre: 'album'; album: AvecSource<Album> }
   | { genre: 'piste'; piste: AvecSource<Track> };
 
+/**
+ * Ce que vaut une SOURCE, à texte égal.
+ *
+ * 🔴 `renesenses/tune-web-client#850` — FabienM, fil 1749. Le barème ne
+ * connaît ni source ni notoriété : « 100 points pour un titre exactement égal
+ * à la requête ». Sur une requête ordinaire, une dizaine de lignes atteignent
+ * donc le même score, et la boucle garde la PREMIÈRE (`s > best`). C'est
+ * l'ordre d'arrivée qui tranche — et il est alphabétique par accident, le
+ * serveur sérialisant ses services depuis un `BTreeMap` (#856).
+ *
+ * MESURÉ le 12/09/2026 sur la .18, dix requêtes réelles :
+ *
+ *   9 sur 10 ont un meilleur résultat décidé par ÉGALITÉ
+ *   « air » : 8 ex æquo · « miles davis » : 6 · « daft punk » : 5
+ *
+ * Et l'ordre alphabétique met en tête le service qui rend le MOINS :
+ *
+ *   tidal    rang 3,0 — 320 résultats      bandcamp  rang 1,0 — 143
+ *   qobuz    rang 2,0 — 319                youtube   rang 4,0 —  30
+ *
+ * Le départage vaut donc bien plus que quelques points : c'est lui qui décide
+ * presque toujours. On le rend EXPLICITE.
+ *
+ * Le local passe devant — c'est ce que l'utilisateur possède déjà, et le lui
+ * proposer après une offre marchande serait absurde (même raison que
+ * `fusionnerParType`). Les services suivent dans un ordre assumé, et non plus
+ * celui de leurs initiales. Une source inconnue ne tombe pas à zéro : elle
+ * vaut moins que celles qu'on connaît, jamais moins que rien.
+ */
+const RANG_SOURCE: Record<string, number> = {
+  local: 5,
+  qobuz: 4,
+  tidal: 3,
+  deezer: 2,
+  bandcamp: 1,
+  youtube: 0,
+};
+
+/** Le petit bonus de source, à texte égal. Jamais assez pour battre un texte. */
+export function bonusSource(source: string | null | undefined): number {
+  const r = RANG_SOURCE[(source ?? '').toLowerCase()];
+  return r == null ? 0.5 : r;
+}
+
 /** Barème commun aux trois types : égalité 100, préfixe 50, contenu 20. */
 function scoreTexte(valeur: string | null | undefined, q: string): number {
   const v = (valeur ?? '').toLowerCase();
@@ -92,21 +136,21 @@ export function meilleurResultat(
   let best = 0;
   let gagnant: Meilleur | null = null;
   for (const a of r.artistes) {
-    const s = scoreTexte(a.name, q) + (a.image_path ? 30 : 0);
+    const s = scoreTexte(a.name, q) + (a.image_path ? 30 : 0) + bonusSource(a.source);
     if (s > 0 && s > best) { best = s; gagnant = { genre: 'artiste', artiste: a }; }
   }
   if (gagnant) candidats.push({ score: best, valeur: gagnant });
 
   best = 0; gagnant = null;
   for (const a of r.albums) {
-    const s = scoreTexte(a.title, q) + (a.cover_path ? 5 : 0);
+    const s = scoreTexte(a.title, q) + (a.cover_path ? 5 : 0) + bonusSource(a.source);
     if (s > 0 && s > best) { best = s; gagnant = { genre: 'album', album: a }; }
   }
   if (gagnant) candidats.push({ score: best, valeur: gagnant });
 
   best = 0; gagnant = null;
   for (const t of r.pistes) {
-    const s = scoreTexte(t.title, q);
+    const s = scoreTexte(t.title, q) + bonusSource(t.source);
     if (s > 0 && s > best) { best = s; gagnant = { genre: 'piste', piste: t }; }
   }
   if (gagnant) candidats.push({ score: best, valeur: gagnant });
