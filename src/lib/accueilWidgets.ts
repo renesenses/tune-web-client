@@ -90,6 +90,16 @@ export interface Widget {
   charger: (ctx: Contexte) => Promise<Element[]>;
   /** Chiffres d'un widget de statistiques. */
   chiffres?: (ctx: Contexte) => Promise<{ cle: string; valeur: string }[]>;
+  /**
+   * Ce que la bande contient, quand ça compte pour la disposition par défaut.
+   *
+   * `'playlists-editoriales'` marque une CATÉGORIE de playlists du service —
+   * « Hi-Res », « Thématiques », « Humeurs »… Le marqueur est déclaratif
+   * exprès : la disposition par défaut les retenait autrement par la forme de
+   * leur identifiant (`${service}-tag-${gid}`), ce qui aurait cassé au premier
+   * renommage d'identifiant sans qu'aucun test ne le voie.
+   */
+  categorie?: 'playlists-editoriales';
 }
 
 export interface Contexte {
