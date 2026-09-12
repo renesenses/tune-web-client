@@ -1317,6 +1317,7 @@ export default {
   'whatsnew.noNotes': 'Inga versionsanteckningar tillgängliga.',
   'whatsnew.loading': 'Laddar versionsanteckningar...',
   'whatsnew.error': 'Kunde inte ladda versionsanteckningarna.',
+  "whatsnew.notTranslated": "Dessa noteringar är inte översatta ännu – de visas på franska.",
   'whatsnew.newFeatures': 'Nya funktioner',
   'whatsnew.fixes': 'Buggfixar',
   'whatsnew.improvements': 'Förbättringar',

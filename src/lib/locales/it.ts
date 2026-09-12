@@ -1358,6 +1358,7 @@ export default {
   'whatsnew.noNotes': 'Nessuna nota di rilascio disponibile.',
   'whatsnew.loading': 'Caricamento delle note di rilascio...',
   'whatsnew.error': 'Impossibile caricare le note di rilascio.',
+  "whatsnew.notTranslated": "Queste note non sono ancora tradotte: sono mostrate in francese.",
   'whatsnew.newFeatures': 'Nuove funzionalità',
   'whatsnew.fixes': 'Correzioni',
   'whatsnew.improvements': 'Miglioramenti',

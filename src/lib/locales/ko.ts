@@ -1333,6 +1333,7 @@ export default {
   'whatsnew.noNotes': '사용 가능한 릴리스 노트가 없습니다.',
   'whatsnew.loading': '릴리스 노트 로딩 중...',
   'whatsnew.error': '릴리스 노트를 불러올 수 없습니다.',
+  "whatsnew.notTranslated": "이 릴리스 노트는 아직 번역되지 않아 프랑스어로 표시됩니다.",
   'whatsnew.newFeatures': '새 기능',
   'whatsnew.fixes': '버그 수정',
   'whatsnew.improvements': '개선 사항',

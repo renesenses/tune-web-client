@@ -1613,6 +1613,7 @@ export default {
   'whatsnew.noNotes': 'No release notes available.',
   'whatsnew.loading': 'Loading release notes...',
   'whatsnew.error': 'Failed to load release notes.',
+  "whatsnew.notTranslated": "These notes aren't translated yet — they're shown in French.",
   'whatsnew.newFeatures': 'New Features',
   'whatsnew.fixes': 'Bug Fixes',
   'whatsnew.improvements': 'Improvements',

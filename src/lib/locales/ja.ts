@@ -1358,6 +1358,7 @@ export default {
   'whatsnew.noNotes': 'リリースノートはありません。',
   'whatsnew.loading': 'リリースノートを読み込み中...',
   'whatsnew.error': 'リリースノートの読み込みに失敗しました。',
+  "whatsnew.notTranslated": "これらのリリースノートは未翻訳のため、フランス語で表示されています。",
   'whatsnew.newFeatures': '新機能',
   'whatsnew.fixes': 'バグ修正',
   'whatsnew.improvements': '改善',

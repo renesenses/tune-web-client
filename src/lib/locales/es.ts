@@ -1358,6 +1358,7 @@ export default {
   'whatsnew.noNotes': 'Sin notas de versión disponibles.',
   'whatsnew.loading': 'Cargando notas de versión...',
   'whatsnew.error': 'No se pudieron cargar las notas de versión.',
+  "whatsnew.notTranslated": "Estas notas aún no están traducidas: se muestran en francés.",
   'whatsnew.newFeatures': 'Novedades',
   'whatsnew.fixes': 'Correcciones',
   'whatsnew.improvements': 'Mejoras',

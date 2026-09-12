@@ -1554,6 +1554,7 @@ export default {
   "whatsnew.noNotes": "Nincs elérhető kiadási jegyzet.",
   "whatsnew.loading": "Kiadási jegyzetek betöltése...",
   "whatsnew.error": "A kiadási jegyzeteket nem sikerült betölteni.",
+  "whatsnew.notTranslated": "Ezek a megjegyzések még nincsenek lefordítva, franciául jelennek meg.",
   "whatsnew.newFeatures": "Új funkciók",
   "whatsnew.fixes": "Hibajavítások",
   "whatsnew.improvements": "Fejlesztések",

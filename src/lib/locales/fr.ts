@@ -1624,6 +1624,7 @@ export default {
   'whatsnew.noNotes': 'Aucune note de version disponible.',
   'whatsnew.loading': 'Chargement des notes de version...',
   'whatsnew.error': 'Impossible de charger les notes de version.',
+  "whatsnew.notTranslated": "Ces notes ne sont pas encore traduites : elles sont affichées en français.",
   'whatsnew.newFeatures': 'Nouveautés',
   'whatsnew.fixes': 'Corrections',
   'whatsnew.improvements': 'Améliorations',

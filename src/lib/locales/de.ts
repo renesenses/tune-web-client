@@ -1358,6 +1358,7 @@ export default {
   'whatsnew.noNotes': 'Keine Versionshinweise verfügbar.',
   'whatsnew.loading': 'Versionshinweise werden geladen...',
   'whatsnew.error': 'Versionshinweise konnten nicht geladen werden.',
+  "whatsnew.notTranslated": "Diese Hinweise sind noch nicht übersetzt und werden auf Französisch angezeigt.",
   'whatsnew.newFeatures': 'Neue Funktionen',
   'whatsnew.fixes': 'Fehlerbehebungen',
   'whatsnew.improvements': 'Verbesserungen',
