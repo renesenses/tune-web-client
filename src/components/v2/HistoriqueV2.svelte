@@ -255,11 +255,13 @@
   .state{padding:30px; color:var(--v2-txt3)}
 
   .list{display:flex; flex-direction:column; gap:1px; padding:6px 30px 20px}
-  /* Enveloppe : la ligne partagee, plus les deux colonnes propres a
-     l'historique. */
-  .lh{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:10px; border-radius:9px}
-  .lh.busy{opacity:.55}
-  .lh .when{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:82px; text-align:right}
+  /* 🔴 #874 — `.lh` a été RETIRÉE : trois règles pour une classe que ce
+     composant ne rend plus depuis le 05/09, quand la ligne est passée à
+     `ListePistesV2` (`f2c9a0c3`). Du CSS mort ne casse rien — c'est
+     précisément pourquoi il reste : personne ne le voit. Trouvée par la garde
+     écrite pour `.row`, qui cherchait un seul sélecteur mort et en a levé
+     deux. `.when` garde sa mise en forme par `.quand .when`, juste en
+     dessous. */
   /* La zone au-dessus de l'instant : deux lignes serrées, alignées à droite,
      comme dans l'écran actuel. */
   .quand{display:flex; flex-direction:column; align-items:flex-end; gap:1px; min-width:92px}
@@ -270,9 +272,24 @@
   /* Le cœur d'un titre radio DÉJÀ en favori reste visible : sans cela on ne
      peut plus lire lesquels le sont sans les survoler un par un — la même
      règle que sur les pochettes. */
+  /* 🔴 #874 — LE SURVOL ÉTAIT UN SÉLECTEUR MORT.
+     `.fav` naissait en `opacity:0`, révélé par `.row:hover .fav`. Or ce
+     composant ne rend AUCUN `class="row"` : la ligne vient de
+     `ListePistesV2`, qui l'appelle `.trow`. Et même en la renommant, la règle
+     ne mordrait pas — Svelte porte ses styles par composant, et `.trow` ne
+     porte pas le sceau de CELUI-CI.
+     Conséquence mesurée : sur un poste de bureau, le cœur d'un titre PAS
+     ENCORE en favori était invisible — donc inatteignable. Il ne s'affichait
+     que sur tablette, par la règle `@media (hover:none)` juste en dessous.
+     Reivax66 (fil 1729) est sous Windows.
+     On ne remplace pas par `:global(.trow:hover)` : une règle qui perce la
+     portée d'un autre composant se casse à son prochain renommage, en
+     silence, exactement comme celle-ci. Le cœur reste VISIBLE — sa colonne
+     est déjà réservée (`.fav-vide` fait la même largeur), il ne coûte donc
+     aucune place. */
   .fav{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
-    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; opacity:0; transition:opacity .12s}
-  .row:hover .fav, .fav.on{opacity:1}
+    color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; transition:color .12s}
+  .fav.on{opacity:1}
   .fav.on{color:var(--v2-danger)}
   .fav:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-line2)}
   .fav.on:hover{color:var(--v2-danger)}
@@ -296,6 +313,6 @@
   .objet .when{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:82px; text-align:right}
   .tiroir{padding-left:22px; border-left:2px solid var(--v2-line2); margin:2px 0 6px 8px}
 
-  /* Sans survol possible — tactile — rien ne peut rester en réserve. */
-  @media (hover:none){ .fav{opacity:1} }
+  /* La règle tactile qui vivait ici est devenue sans objet : le cœur est
+     visible partout, et il l'était déjà sur tablette par ce seul chemin. */
 </style>
