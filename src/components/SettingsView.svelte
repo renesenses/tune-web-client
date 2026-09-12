@@ -13,6 +13,7 @@
   import { dialogs } from '../lib/stores/dialogs';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
+  import { canConfirmImport } from '../lib/importReport';
   import { attendreRetourEtRecharger } from '../lib/retourDuServeur';
   import { refreshAcousticStatus, acousticStatus, acousticEnabled } from '../lib/stores/acoustic';
   import AcousticProgress from './AcousticProgress.svelte';
@@ -4379,7 +4380,7 @@ function setSettingsLevel(level: SettingsLevel) {
 
               <div class="import-actions">
                 <button class="btn-secondary" onclick={resetImport}>{$t('import.cancel' as any)}</button>
-                <button class="btn-primary" onclick={confirmImport} disabled={importImporting || importReport.matched === 0}>
+                <button class="btn-primary" onclick={confirmImport} disabled={!canConfirmImport(importReport, importImporting)}>
                   {importImporting ? $t('import.importing' as any) : $t('import.confirm' as any)}
                 </button>
               </div>
