@@ -433,6 +433,11 @@
   .tab-content {
     flex: 1;
     overflow-y: auto;
+    /* Les deux bandes épinglées de cet écran. Chacune vaut à la fois la hauteur
+       réservée à l'en-tête ET l'offset auquel le rail A-Z se range dessous :
+       une seule valeur, donc pas de dérive possible entre les deux (#907). */
+    --hauteur-entete-collections: 46px;
+    --hauteur-entete-detail: 30px;
   }
 
   .collections-header {
@@ -448,6 +453,9 @@
     top: 0;
     z-index: 10;
     background: var(--tune-bg);
+    /* Hauteur arrêtée : le rail des collections s'aligne dessous. */
+    box-sizing: border-box;
+    min-height: var(--hauteur-entete-collections);
   }
 
   .create-btn {
@@ -602,6 +610,39 @@
   .detail-header {
     display: flex;
     align-items: center;
+    /* #907 (Lulu / JLuc, fil 1632) — « le bouton Retour, serait-il envisageable
+       qu'il soit toujours accessible ? ». Il vivait DANS `.tab-content`, le seul
+       conteneur défilant de l'écran, sans être épinglé : il partait avec la
+       grille d'albums. Ses deux voisins du même conteneur l'étaient déjà —
+       `.collections-header` juste au-dessus, et le rail A-Z d'`AlphaIndex`.
+       Mesuré en faisant défiler le 12/09/2026, collection ouverte et 60 albums
+       en grille : déplacement 400 px avant, 0 après.
+       Seul le VOLET 1 de la demande est traité ici (la position). Le volet 2
+       (« deux fonctions en une ») reste ouvert faute de savoir ce qui
+       départagerait les deux actions — question posée dans l'issue. */
+    position: sticky;
+    top: 0;
+    z-index: 11;
+    background: var(--tune-bg);
+    /* Hauteur ARRÊTÉE, parce que le rail A-Z s'aligne dessous par
+       `--alpha-sticky-top` : laisser la hauteur flotter avec la police ferait
+       glisser le rail sous l'en-tête au premier changement de corps. */
+    box-sizing: border-box;
+    min-height: var(--hauteur-entete-detail);
+    padding: 4px 0;
+  }
+
+  /* Le détail d'une collection : l'en-tête épinglé occupe la bande, le rail A-Z
+     commence juste en dessous (#907). */
+  .collection-detail {
+    --alpha-sticky-top: var(--hauteur-entete-detail);
+  }
+
+  /* Même correction pour la vue LISTE, où le défaut existait déjà AVANT #907 :
+     `.collections-header` y est épinglé de longue date, et le rail des
+     collections se rangeait derrière lui. */
+  .collections-section {
+    --alpha-sticky-top: var(--hauteur-entete-collections);
   }
 
   .back-btn {

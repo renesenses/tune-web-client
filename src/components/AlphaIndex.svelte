@@ -96,8 +96,17 @@
        compensation mais un trou — les premières lettres partaient 72px trop
        bas. Le repère d'origine reste #1282 (Jean Valjean). La variante sticky
        ne sert que sur l'onglet Artistes, l'index par date des Albums n'est
-       donc jamais touché. */
-    top: 0;
+       donc jamais touché.
+
+       🔴 `--alpha-sticky-top` (défaut 0) rend l'offset RÉGLABLE par l'écran
+       hôte, parce que le raisonnement ci-dessus ne vaut que si l'en-tête est
+       un frère du scroller. Dans Collections il ne l'est pas : la barre
+       « Nouvelle collection » et, depuis #907, l'en-tête du détail sont
+       épinglés DANS le conteneur défilant. À `top: 0`, le rail se range
+       DERRIÈRE eux — mesuré le 12/09/2026, rail à 74 px pour un en-tête dont
+       le bas est à 98 px. La Bibliothèque ne pose pas la variable et garde
+       donc exactement son comportement. */
+    top: var(--alpha-sticky-top, 0);
     align-self: flex-start;
     max-height: calc(100vh - 120px);
   }
