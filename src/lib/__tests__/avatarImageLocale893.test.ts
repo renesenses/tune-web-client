@@ -254,34 +254,28 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
     expect(menu()).toMatch(/photoLocaleCassee \? '' : photoLocale\) \|\| ssoAvatar/);
   });
 
-  it('🔴 la BULLE ouvre l’explorateur, pas le menu', () => {
-    // Geste demandé par Matteo le 12/09/2026 : on clique sa photo pour la
-    // changer. C'est le bouton visible en permanence.
+  it('🔴 la BULLE ouvre le panneau — elle en est la seule porte', () => {
+    // Essayée en « ouvre l'explorateur » le 12/09, avec un chevron pour le
+    // menu. Refusé par Matteo le jour même : « je ne veux pas d'une bulle ET
+    // d'une flèche ». Le menu du compte n'a pas d'autre accès — Réglages,
+    // Thèmes, « Se déconnecter », le retour vers l'interface actuelle.
     const src = menu();
     const bulle = src.indexOf('<button class="avatar"');
-    expect(src.slice(bulle, src.indexOf('>', bulle))).toContain('onclick={ouvrirExplorateur}');
+    expect(src.slice(bulle, src.indexOf('>', bulle))).toContain('onclick={toggle}');
+    expect(src, 'le chevron est revenu : une seule commande, pas deux').not.toContain(
+      'class="chevron"',
+    );
   });
 
-  it('🔴 le menu du compte garde une porte — le chevron', () => {
-    // La bulle était sa SEULE porte. La lui prendre sans rien mettre à la place
-    // enterrait Réglages, Thèmes, « Se déconnecter » et le retour vers
-    // l'interface actuelle — que les notes décrivent comme l'issue de sortie
-    // d'une prévisualisation.
+  it('🔴 le ROND DU PANNEAU ouvre l’explorateur, sans étape intermédiaire', () => {
+    // Un clic, on choisit, la photo remplace l'ancienne. Pas de rubrique à
+    // déplier, pas de bouton « Choisir » à lire.
     const src = menu();
-    const chevron = src.indexOf('<button class="chevron"');
-    expect(chevron, 'plus aucun bouton n’ouvre le menu du compte').toBeGreaterThan(-1);
-    expect(src.slice(chevron, src.indexOf('</button>', chevron))).toContain('onclick={toggle}');
-  });
-
-  it('🔴 le champ de fichier vit HORS du panneau', () => {
-    // Depuis que la bulle l'ouvre, il doit exister menu FERMÉ. Le laisser dans
-    // le panneau rendrait le clic sur la bulle sans effet — et sans erreur.
-    const src = menu();
-    const champ = src.indexOf('type="file"');
-    const panneau = src.indexOf('{#if open}');
-    expect(champ, 'le champ de fichier a disparu').toBeGreaterThan(-1);
-    expect(champ, 'le champ est enfermé dans le panneau : la bulle ne l’atteindrait pas')
-      .toBeLessThan(panneau);
+    const rond = src.indexOf('<button class="avatar sm"');
+    expect(rond, 'le rond du panneau n’est plus un bouton').toBeGreaterThan(-1);
+    const balise = src.slice(rond, src.indexOf('>', rond));
+    expect(balise).toContain('onclick={ouvrirExplorateur}');
+    expect(src, 'une rubrique dépliable est revenue s’intercaler').not.toContain('photoActions');
   });
 
   it('🔴 déconnecté, on refuse en disant pourquoi', () => {
@@ -314,30 +308,6 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
     );
   });
 
-  it('🔴 les deux actions sont dépliées par le ROND de l’en-tête', () => {
-    // Choix de Matteo (12/09/2026) : pas de rubrique permanente de plus dans
-    // un panneau déjà plafonné en hauteur. Le geste est « je clique ma photo
-    // pour la changer ».
-    const src = menu();
-    const rond = src.indexOf('<button class="avatar sm"');
-    expect(rond, 'le rond de l’en-tête n’est plus un bouton').toBeGreaterThan(-1);
-    expect(src.slice(rond, src.indexOf('</button>', rond))).toContain(
-      'photoActions = !photoActions',
-    );
-    const actions = src.indexOf("$t('settings.avatarChoose'");
-    expect(
-      src.slice(0, actions).lastIndexOf('{#if photoActions}'),
-      'les actions ne sont plus repliées : le panneau grandit pour tout le monde',
-    ).toBeGreaterThan(rond);
-  });
-
-  it('🔴 refermer le menu replie les actions', () => {
-    // Trois chemins referment le panneau (le bouton, `close()`, le clic
-    // dehors) : sans repli sur l'état, il rouvrirait déplié par un geste que
-    // l'utilisateur a oublié.
-    expect(menu()).toMatch(/\$effect\(\(\) => \{\s*if \(!open\) photoActions = false;\s*\}\);/);
-  });
-
   it('le champ de fichier existe, et n’accepte que des images', () => {
     const src = menu();
     expect(src).toContain('type="file"');
@@ -361,6 +331,7 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
   });
 
   it('« Retirer » n’apparaît que s’il y a une photo à retirer', () => {
+    // Sans lui on pourrait seulement REMPLACER, jamais revenir au dégradé.
     const src = menu();
     const i = src.indexOf("$t('settings.avatarRemove'");
     expect(i).toBeGreaterThan(-1);
