@@ -170,5 +170,37 @@ export async function bootstrapV2(): Promise<void> {
   // reste 'free' et la CLE de licence nulle : le Support ne peut pas lister
   // les tickets (ils sont interroges par cle), et toute fonction premium se
   // croit indisponible.
-  await Promise.allSettled([loadZones(), loadAlbums(), loadDevices(), loadProfile(), loadLicense()]);
+  //
+  // 🔴 `syncPreferencesFromServer()` : meme famille, meme cause, et c'est le
+  // douzieme « ecrit mais pas branche » de cette liste. La seule ligne qui
+  // relit les preferences ENREGISTREES vit dans `App.svelte`, que `?v2` ne
+  // monte jamais. La nouvelle interface ne lisait donc QUE `localStorage` :
+  //
+  //   - un navigateur neuf, ou un vidage de cache, repartait aux defauts alors
+  //     que le serveur portait les reglages ;
+  //   - et depuis que `ui_preferences` est range PAR PROFIL cote serveur
+  //     (tune-server-rust#3991), changer de profil ne ramenait rien du tout —
+  //     chacun gardait le blob du dernier passage sur cet appareil.
+  //
+  // Constate en mesurant le lot B dans Chrome : le pere ne retrouvait pas son
+  // theme apres le passage du fils. Ce n'etait pas le banc, c'etait ceci.
+  // ⚠️ Import DYNAMIQUE, et c'est necessaire. `stores/preferences` lit
+  // `localStorage` et applique le theme A L'EVALUATION DU MODULE, pour eviter
+  // le flash au demarrage. L'importer en tete ferait entrer ces effets dans le
+  // graphe de tout fichier qui importe ce module — y compris les bancs de test
+  // qui tournent en `node`, ou `localStorage` n'existe pas. Un test etranger
+  // est tombe ainsi (`bibliothequeVivante`, 12/09/2026) : il n'appelle meme pas
+  // `bootstrapV2`, il importait seulement `suivreLaBibliotheque`.
+  const preferences = import('./stores/preferences').then((m) =>
+    m.syncPreferencesFromServer(),
+  );
+
+  await Promise.allSettled([
+    loadZones(),
+    loadAlbums(),
+    loadDevices(),
+    loadProfile(),
+    loadLicense(),
+    preferences,
+  ]);
 }
