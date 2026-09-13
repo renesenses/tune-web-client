@@ -3322,6 +3322,7 @@ export default {
   "settings.homebrewFailed": "L'aggiornamento Homebrew non è riuscito al passaggio «{etape}». Eseguilo in un terminale:",
   // v2 — traduzioni aggiunte il 04/09/2026 (parità delle lingue)
   "v2.col.noneInTab": "Nessuna raccolta di questo tipo.",
+  "v2.col.deleteAsk": "Eliminare la raccolta «{nom}»? Gli album che contiene non vengono toccati.",
   "common.open": "Apri",
   "v2.edit.collection": "Modifica la raccolta",
   "v2.edit.name": "Nome",

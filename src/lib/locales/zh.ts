@@ -3322,6 +3322,7 @@ export default {
   "settings.homebrewFailed": "Homebrew 更新在「{etape}」步骤失败。请在终端中运行：",
   // v2 — 2026-09-04 新增的翻译（语言一致性）
   "v2.col.noneInTab": "没有此类收藏集。",
+  "v2.col.deleteAsk": "删除收藏集“{nom}”？其中的专辑不会受到影响。",
   "common.open": "打开",
   "v2.edit.collection": "编辑收藏集",
   "v2.edit.name": "名称",

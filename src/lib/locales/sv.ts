@@ -3321,6 +3321,7 @@ export default {
   "settings.homebrewFailed": "Homebrew-uppdateringen misslyckades i steget ”{etape}”. Kör den i en terminal:",
   // v2 — översättningar tillagda 2026-09-04 (språkparitet)
   "v2.col.noneInTab": "Ingen samling av det här slaget.",
+  "v2.col.deleteAsk": "Ta bort samlingen ”{nom}”? Albumen den innehåller påverkas inte.",
   "common.open": "Öppna",
   "v2.edit.collection": "Redigera samlingen",
   "v2.edit.name": "Namn",

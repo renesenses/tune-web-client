@@ -3322,6 +3322,7 @@ export default {
   "settings.homebrewFailed": "Die Homebrew-Aktualisierung ist bei Schritt „{etape}“ fehlgeschlagen. Führen Sie sie in einem Terminal aus:",
   // v2 — traductions ajoutées le 04/09/2026 (parité des locales)
   "v2.col.noneInTab": "Keine Sammlung dieser Art.",
+  "v2.col.deleteAsk": "Sammlung „{nom}“ löschen? Die enthaltenen Alben bleiben unberührt.",
   "common.open": "Öffnen",
   "v2.edit.collection": "Sammlung bearbeiten",
   "v2.edit.name": "Name",
