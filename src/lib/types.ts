@@ -16,7 +16,25 @@ export type RepeatMode = 'off' | 'one' | 'all';
 // discovery_setup.rs, outputs/airplay2) : les omettre faisait passer les gardes
 // `output_type !== 'openhome'` / `!== 'airplay2'` pour impossibles, alors que
 // les supprimer casserait ces sorties.
-export type OutputType = 'local' | 'dlna' | 'openhome' | 'airplay' | 'airplay2' | 'chromecast' | 'bluos' | 'snapcast' | 'sonos' | 'squeezebox' | 'browser';
+/**
+ * Les types de sortie d'une zone, ÉNUMÉRÉS — #1003.
+ *
+ * 🔴 C'était une union de littéraux, et `'oaat'` n'y figurait pas : le serveur
+ * l'envoie pourtant depuis que OAAT existe (mesuré sur la .18 le 13/09/2026,
+ * zone « Tune Endpoint » : `output_type = "oaat"`). Le type mentait, et les
+ * SEPT tables de libellés du client ignoraient ce cas — la carte affichait donc
+ * « oaat » brut, en minuscules, au milieu de « DLNA » et « AirPlay ».
+ *
+ * La liste est désormais une constante, et le type en dérive : une garde peut
+ * la parcourir et vérifier que chaque type a bien un libellé. Ajouter un
+ * protocole sans le nommer devient rouge.
+ */
+export const TYPES_DE_SORTIE = [
+  'local', 'dlna', 'openhome', 'airplay', 'airplay2', 'chromecast',
+  'bluos', 'snapcast', 'sonos', 'squeezebox', 'browser', 'oaat',
+] as const;
+
+export type OutputType = (typeof TYPES_DE_SORTIE)[number];
 
 // v0.8.0 multi-room — Snapcast endpoint discovered by snapserver.
 export interface SnapcastClient {

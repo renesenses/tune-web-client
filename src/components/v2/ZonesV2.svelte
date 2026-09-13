@@ -228,6 +228,8 @@
     local: 'Sortie locale', dlna: 'DLNA', openhome: 'OpenHome', airplay: 'AirPlay',
     airplay2: 'AirPlay 2', chromecast: 'Chromecast', bluos: 'BluOS', snapcast: 'Snapcast',
     sonos: 'Sonos', squeezebox: 'Squeezebox', browser: 'Navigateur',
+    // Un sigle, comme DLNA — #1003.
+    oaat: 'OAAT',
   };
   function reach(z: Zone): { cls: string; txt: string } | null {
     // Absent = `ok` : ne pas inventer une panne sur un serveur < 0.9.70.
