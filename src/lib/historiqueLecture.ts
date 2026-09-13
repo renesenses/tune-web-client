@@ -94,12 +94,81 @@ export function nomDeZone(
 }
 
 /**
+ * L'instant d'une écoute, en millisecondes. `NaN` quand la date est illisible.
+ *
+ * Une entrée sans date valide ne doit ni remonter en tête ni faire basculer le
+ * tri : elle est renvoyée en FIN de liste, et l'ordre relatif des autres n'en
+ * dépend pas.
+ */
+function instant(e: HistoryEntry): number {
+  const t = Date.parse(e?.playedAt ?? '');
+  return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+}
+
+/**
+ * Comparateur du plus RÉCENT au plus ancien.
+ *
+ * Il COMPARE au lieu de soustraire, parce que `-Infinity - (-Infinity)` vaut
+ * `NaN` — ce qui arrive dès que deux entrées portent une date illisible.
+ *
+ * ⚠️ Ce n'est PAS un correctif de bogue, et il ne faut pas le lire comme tel.
+ * Vérifié sur node v22.23.2 le 13/09/2026, et conforme à ECMA-262 : `SortCompare`
+ * fait `If v is NaN, return +0` — un `NaN` est donc traité comme « égaux », et
+ * la soustraction rendait déjà le bon ordre. La contre-épreuve écrite pour ce
+ * point est restée VERTE, et c'est la mesure qui a corrigé l'hypothèse, pas
+ * l'inverse.
+ *
+ * On garde la forme explicite : elle dit ce qu'elle fait sans dépendre d'une
+ * règle de la spécification que personne ne relit.
+ */
+function duPlusRecent(a: HistoryEntry, b: HistoryEntry): number {
+  const ia = instant(a);
+  const ib = instant(b);
+  if (ia === ib) return 0;
+  return ib > ia ? 1 : -1;
+}
+
+/**
  * Fusionne local et serveur, puis ne garde qu'une ligne par piste : sa plus
  * récente écoute (demandé par Elie).
  *
- * Le local passe devant : il est plus récent que ce que le serveur a eu le
- * temps d'enregistrer, et il porte les titres de radio que le serveur ne sait
- * pas rattacher.
+ * ## Deux étapes, et l'ordre entre elles est le sujet
+ *
+ * **1 · Déduplication, le LOCAL prioritaire.** C'est un choix, et il tient :
+ * une écoute présente des deux côtés est mieux décrite par le magasin local —
+ * il porte les titres de radio que le serveur ne sait pas rattacher, et le vrai
+ * nom de la zone. La liste combinée met donc le local devant, et le premier vu
+ * gagne.
+ *
+ * **2 · Affichage, l'ordre CHRONOLOGIQUE.** 🔴 C'est ce qui manquait — #989.
+ *
+ * FabienM, fil « v0.9.147 : v1 divers bugs », point 12 :
+ *
+ *   « Menu historique : l'ordre chronologique n'est pas respecté. J'ai en
+ *     premier des titres qui ont été joués il y a plusieurs jours alors qu'une
+ *     playlist plus récente et d'autres titres ont été joués plus récemment. »
+ *
+ * La fonction CONCATÉNAIT et ne triait jamais. Les deux listes sont chacune
+ * récente-en-tête, mais elles n'étaient pas ENTRELACÉES : tout le magasin
+ * local — jusqu'à deux cents entrées, dont des écoutes de plusieurs jours —
+ * passait devant tout ce que le serveur venait de servir.
+ *
+ * Et aucun tri en aval ne rattrapait : `regrouperParContexte` préserve l'ordre
+ * d'entrée, et les deux seuls `sort` du module trient À L'INTÉRIEUR d'un objet.
+ *
+ * ## 🔴 Le tri vient AVANT le plafond, et ce n'est pas un détail
+ *
+ * `slice(0, PLAFOND)` s'appliquait à une liste non triée : un magasin local
+ * bien garni pouvait ÉVINCER des écoutes serveur plus récentes — pas les mal
+ * placer, les faire disparaître. Trier d'abord garantit que les deux cents
+ * conservées sont les deux cents plus récentes.
+ *
+ * ## Ce que ce tri ne peut pas réparer
+ *
+ * Les deux `playedAt` viennent d'horloges DIFFÉRENTES — le navigateur pour le
+ * local, la machine pour le serveur. Deux écoutes quasi simultanées peuvent
+ * donc s'inverser à la marge. C'est sans commune mesure avec l'écart d'avant,
+ * et rien du côté client ne permet de faire mieux.
  */
 export function fusionnerHistorique(
   local: readonly HistoryEntry[],
@@ -121,6 +190,10 @@ export function fusionnerHistorique(
     vues.add(cle);
     rendu.push(e);
   }
+  // `sort` est STABLE depuis ES2019 : à instant égal, l'ordre de la
+  // déduplication survit — donc le local reste devant le serveur, ce qui est
+  // exactement la priorité posée à l'étape 1.
+  rendu.sort(duPlusRecent);
   return rendu.slice(0, PLAFOND);
 }
 
