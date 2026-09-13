@@ -856,6 +856,17 @@ export interface CompletenessStats {
    *  that only send tracks_without_artist. */
   albums_without_artist?: number;
   doubtful_count: number;
+  /** Plage dynamique (#2218). Optionnels : un serveur antérieur ne les envoie
+   *  pas, et la carte doit alors se déclarer indisponible plutôt que d'afficher
+   *  « 0 piste », qui se lirait comme une bibliothèque sans aucun DR. */
+  with_dynamic_range?: number;
+  /** Mesurée par la passe d'analyse de Tune. */
+  dynamic_range_from_analysis?: number;
+  /** Lue telle quelle dans les tags du fichier — vaut ce que vaut le tagueur. */
+  dynamic_range_from_tag?: number;
+  /** Pistes que la passe a essayées et écartées pour de bon. */
+  dynamic_range_unavailable?: number;
+  dynamic_range_pct?: number;
 }
 
 export interface ArtworkRescanResult {
