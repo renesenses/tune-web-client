@@ -73,6 +73,11 @@ import {
   nowPlayingToTrack,
 } from './stores/nowPlaying';
 import { mergeTransport, type TransportState } from './transportSync';
+import {
+  positionApresReleve,
+  clePisteEnCours,
+  type SuiviPosition,
+} from './positionLecture';
 
 /**
  * Écart au-delà duquel la position du serveur corrige l'interpolation locale.
@@ -138,21 +143,45 @@ function concerneLaZoneCourante(event: any): boolean {
   return emettrice?.group_id === courante.group_id;
 }
 
+/**
+ * La piste à laquelle la position affichée appartient — #954.
+ *
+ * Sans ce souvenir, impossible de savoir qu'un relevé parle encore du morceau
+ * PRÉCÉDENT. Réinitialisé au débranchement, pour qu'une coquille remontée ne
+ * compare pas à la piste d'une session d'avant.
+ */
+let suivi: SuiviPosition = { clePiste: null, positionMs: 0 };
+
+/** Repartir de la piste que joue la zone qu'on vient de choisir — #954. */
+function suiviDeZone(id: number | null | undefined): void {
+  const z = (get(zones) as any[]).find((x) => x?.id === id);
+  suivi = { clePiste: clePisteEnCours(z), positionMs: 0 };
+}
+
 /** Minuteur et position, pour la zone courante uniquement. */
 function suivreProgression(zoneList: any[]): void {
   const id = get(currentZoneId);
   const zone = id != null ? zoneList.find((z) => z?.id === id) : null;
   if (!zone) return;
-  if (zone.state === 'playing') {
-    startSeekTimer();
-    const posServeur = zone.position_ms ?? 0;
-    if (Math.abs(get(seekPositionMs) - posServeur) > DERIVE_MAX_MS) {
-      seekPositionMs.set(posServeur);
-    }
-  } else {
-    stopSeekTimer();
-    seekPositionMs.set(zone.position_ms ?? 0);
-  }
+
+  /**
+   * 🔴 #954 — LA POSITION EST REFUSÉE TANT QU'ELLE PARLE DE L'ANCIENNE PISTE.
+   *
+   * Mesuré sur la .18 le 13/09/2026 : au `next`, l'objet de zone reste
+   * incohérent une à deux secondes — `queue_position` a déjà avancé,
+   * `current_track` et `position_ms` portent encore le morceau d'avant. Cette
+   * fonction recopiait la position telle quelle : la barre montrait donc 68 s
+   * sur un titre qui venait de commencer. « The timeline will stay in the same
+   * place. »
+   *
+   * `App.svelte` tenait déjà la moitié de cette règle (`seekPositionMs.set(0)`
+   * sur `playback.track_changed`) ; cette coquille n'en avait rien. La règle
+   * vit maintenant dans `lib/positionLecture`, partagée.
+   */
+  const d = positionApresReleve(suivi, zone, get(seekPositionMs), DERIVE_MAX_MS);
+  suivi = d.suivi;
+  if (zone.state === 'playing') startSeekTimer(); else stopSeekTimer();
+  if (d.ecrire) seekPositionMs.set(d.suivi.positionMs);
 }
 
 /**
@@ -227,6 +256,14 @@ export function demarrerTransportV2(): () => void {
     // Changer de zone change de file : sans cela, la barre garderait le
     // « à venir » de la zone précédente.
     void rechargerFile();
+    // Et change de PISTE : le souvenir suit, sinon le premier relevé de la
+    // nouvelle zone passerait pour « même piste » (#954).
+    //
+    // 🔴 Posé APRÈS `rechargerFile()`, et le commentaire tenu court : la garde
+    // de `v2TransportVivant` vérifie que cet appel reste à moins de quatre
+    // cents caractères du `subscribe`. Une première version l'avait poussé
+    // dehors — le comportement n'avait pas bougé, la garde ne le voyait plus.
+    suiviDeZone(id);
   });
 
   const desabonnerEvents = tuneWS.onEvent((event: any) => {
@@ -406,5 +443,9 @@ export function demarrerTransportV2(): () => void {
     desabonnerEvents?.();
     desabonnerZone?.();
     stopSeekTimer();
+    // Le souvenir de la piste suivie meurt avec le branchement : une coquille
+    // remontée comparerait sinon à la piste d'une session d'avant, et refuserait
+    // le premier relevé pour rien.
+    suivi = { clePiste: null, positionMs: 0 };
   };
 }
