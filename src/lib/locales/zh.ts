@@ -3431,6 +3431,7 @@ export default {
   "v2.svc.wNew": "新发行",
   "v2.svc.wFeatured": "精选推荐",
   "v2.svc.wMine": "我的播放列表",
+  "v2.svc.wFavAlbums": "收藏的专辑",
   "v2.home.wResume": "继续收听",
   "v2.home.wRecentlyAdded": "最近添加",
   "v2.home.wRecentlyPlayed": "最近播放",
