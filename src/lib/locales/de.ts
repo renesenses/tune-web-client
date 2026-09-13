@@ -3333,6 +3333,8 @@ export default {
   "v2.tags.noAlbumWithTag": "Kein Album trägt dieses Etikett.",
   "v2.tags.emptyHint": "Noch keine Etiketten. Vergeben Sie eines über das Cover eines Albums, einer Playlist oder einer Sammlung.",
   "v2.nav.shortcuts": "Verknüpfungen",
+  "v2.nav.artisteIntrouvable": "„{nom}“ wurde bei {service} nicht gefunden – hier sind die Suchergebnisse.",
+  "v2.nav.serviceInjoignable": "{service} hat nicht geantwortet – hier sind die Suchergebnisse für „{nom}“.",
   "v2.nav.allShortcuts": "Alle Verknüpfungen",
   "v2.nav.selections": "Auswahlen",
   "v2.nav.tags": "Etiketten",

@@ -3333,6 +3333,8 @@ export default {
   "v2.tags.noAlbumWithTag": "Nessun album porta questa etichetta.",
   "v2.tags.emptyHint": "Ancora nessuna etichetta. Applicane una dalla copertina di un album, di una playlist o di una raccolta.",
   "v2.nav.shortcuts": "Scorciatoie",
+  "v2.nav.artisteIntrouvable": "«{nom}» non è stato trovato su {service}: ecco i risultati della ricerca.",
+  "v2.nav.serviceInjoignable": "{service} non ha risposto: ecco i risultati della ricerca per «{nom}».",
   "v2.nav.allShortcuts": "Tutte le scorciatoie",
   "v2.nav.selections": "Selezioni",
   "v2.nav.tags": "Etichette",

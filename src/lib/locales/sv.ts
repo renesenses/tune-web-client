@@ -3332,6 +3332,8 @@ export default {
   "v2.tags.noAlbumWithTag": "Inget album bär den här etiketten.",
   "v2.tags.emptyHint": "Inga etiketter ännu. Sätt en från omslaget till ett album, en spellista eller en samling.",
   "v2.nav.shortcuts": "Genvägar",
+  "v2.nav.artisteIntrouvable": "”{nom}” hittades inte på {service} – här är sökresultaten.",
+  "v2.nav.serviceInjoignable": "{service} svarade inte – här är sökresultaten för ”{nom}”.",
   "v2.nav.allShortcuts": "Alla genvägar",
   "v2.nav.selections": "Urval",
   "v2.nav.tags": "Etiketter",

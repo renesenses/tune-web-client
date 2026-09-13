@@ -3291,6 +3291,8 @@ export default {
   "v2.tags.noAlbumWithTag": "Egyetlen album sem viseli ezt a címkét.",
   "v2.tags.emptyHint": "Még nincs címke. Helyezzen el egyet egy album, lejátszási lista vagy gyűjtemény borítójáról.",
   "v2.nav.shortcuts": "Gyorsindítók",
+  "v2.nav.artisteIntrouvable": "A(z) „{nom}” nem található a(z) {service} szolgáltatásban – itt vannak a keresési eredmények.",
+  "v2.nav.serviceInjoignable": "A(z) {service} nem válaszolt – itt vannak a(z) „{nom}” keresési eredményei.",
   "v2.nav.allShortcuts": "Összes gyorsindító",
   "v2.nav.selections": "Válogatások",
   "v2.nav.tags": "Címkék",

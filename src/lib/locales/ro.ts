@@ -3333,6 +3333,8 @@ export default {
   "v2.tags.noAlbumWithTag": "Niciun album nu poartă această etichetă.",
   "v2.tags.emptyHint": "Încă nicio etichetă. Puneți una de pe coperta unui album, a unei liste sau a unei colecții.",
   "v2.nav.shortcuts": "Scurtături",
+  "v2.nav.artisteIntrouvable": "„{nom}” nu a fost găsit pe {service} — iată rezultatele căutării.",
+  "v2.nav.serviceInjoignable": "{service} nu a răspuns — iată rezultatele căutării pentru „{nom}”.",
   "v2.nav.allShortcuts": "Toate scurtăturile",
   "v2.nav.selections": "Selecții",
   "v2.nav.tags": "Etichete",

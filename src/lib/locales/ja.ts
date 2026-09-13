@@ -3333,6 +3333,8 @@ export default {
   "v2.tags.noAlbumWithTag": "このタグが付いたアルバムはありません。",
   "v2.tags.emptyHint": "まだタグがありません。アルバム、プレイリスト、コレクションのジャケットから追加できます。",
   "v2.nav.shortcuts": "ショートカット",
+  "v2.nav.artisteIntrouvable": "「{nom}」は {service} で見つかりませんでした。検索結果を表示します。",
+  "v2.nav.serviceInjoignable": "{service} から応答がありませんでした。「{nom}」の検索結果を表示します。",
   "v2.nav.allShortcuts": "すべてのショートカット",
   "v2.nav.selections": "セレクション",
   "v2.nav.tags": "タグ",
