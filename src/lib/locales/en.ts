@@ -3589,6 +3589,8 @@ export default {
   "profiles.confirmDelete": "Delete the profile “{name}”? Its favourites and history will be lost.",
   "profiles.premiumRequired": "Multiple profiles require Premium.",
   "profiles.whoIsListening": "Who's listening?",
+  "profiles.title": "Profiles",
+  "profiles.switchHint": "Switching profile reloads the screen.",
   "common.edit": "Edit",
   "dashboard.slot.empty": "Nothing to show yet.",
   "dashboard.slot.play": "Play this track",

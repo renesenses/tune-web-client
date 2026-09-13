@@ -465,8 +465,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const caseCochee = ev.currentTarget as HTMLInputElement | null;
     annonceSlimSaving = true;
     try {
-      annonceSlim = await basculerAnnonceSlimproto(!annonceSlim);
-      annonceSlimRedemarrage = true;
+      const bascule = await basculerAnnonceSlimproto(!annonceSlim);
+      annonceSlim = bascule.annonce;
+      // Meme regle que dans SettingsView : pas d'avis si le serveur a
+      // applique a chaud (#3809).
+      annonceSlimRedemarrage = !bascule.appliqueAChaud;
     } catch (e: any) { notifications.error(e?.message ?? 'Erreur'); }
     annonceSlimSaving = false;
     // 🔴 Et on REPOSE la case sur l'état confirmé. Le clic a déjà bougé le

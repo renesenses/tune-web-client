@@ -40,6 +40,8 @@ import {
   CLE_ANNONCE_SLIMPROTO,
   annonceSlimprotoActivee,
   annonceSlimprotoDepuisConfig,
+  annonceAppliqueeAChaud,
+  CHAMP_APPLIQUE,
 } from '../annonceSlimproto';
 import lFr from '../locales/fr';
 
@@ -57,6 +59,8 @@ let requetes: Requete[] = [];
 let configServeur: Record<string, unknown> = {};
 /** Le serveur RETIENT-IL ce que le PATCH lui demande ? */
 let serveurAccepteLePatch = true;
+/** Le serveur applique-t-il l'annonce A CHAUD ? Faux = serveur anterieur. */
+let serveurAppliqueAChaud = false;
 
 class ObservateurInerte {
   observe() {}
@@ -88,6 +92,7 @@ beforeEach(() => {
   requetes = [];
   configServeur = {};
   serveurAccepteLePatch = true;
+  serveurAppliqueAChaud = false;
   locale.set('fr');
   // La section Squeezebox est offerte à partir du niveau « intermédiaire »
   // (lib/v2Settings). Au niveau débutant, ces témoins ne verraient rien.
@@ -111,7 +116,12 @@ beforeEach(() => {
         // — SANS écho de la valeur posée. L'état ne peut donc venir que d'une
         // relecture.
         if (serveurAccepteLePatch && body) configServeur = { ...configServeur, ...body };
-        charge = { ok: true };
+        // Depuis le correctif d'application a chaud, la reponse porte en plus
+        // `slimproto_discovery_applied`. Un serveur anterieur ne le porte pas :
+        // c'est le defaut de ce bouchon, et c'est le parc reel.
+        charge = serveurAppliqueAChaud
+          ? { ok: true, slimproto_discovery_applied: true }
+          : { ok: true };
       }
       return {
         ok: true,
@@ -351,6 +361,58 @@ describe('#3809 — l’écran DIT qu’un redémarrage est nécessaire', () => 
     expect(texte()).toContain(AVIS());
   });
 
+
+  // ── Le serveur qui applique À CHAUD ────────────────────────────────────
+  // Le correctif serveur donne au répondeur UDP une poignée de tâche :
+  // l'éteindre relâche le port 3483 tout de suite. La réponse du PATCH porte
+  // alors `slimproto_discovery_applied`. Réclamer un redémarrage devant CE
+  // serveur remettrait en place le mensonge de #3809 à l'endroit même qu'on
+  // répare — l'utilisateur redémarrerait pour rien, et en conclurait que le
+  // réglage ne fait rien.
+
+  it('ShellV2 : le serveur a appliqué à chaud, donc AUCUN avis', async () => {
+    serveurAppliqueAChaud = true;
+    await poserCoquilleV2();
+    caseAnnonce().click();
+    await souffler(10);
+    expect(
+      texte(),
+      'le serveur a éteint l’annonce tout de suite : réclamer un redémarrage serait faux',
+    ).not.toContain(AVIS());
+  });
+
+  it('coquille actuelle : même silence quand le serveur a appliqué', async () => {
+    serveurAppliqueAChaud = true;
+    await poserCoquilleActuelle();
+    caseAnnonce().click();
+    await souffler(10);
+    expect(texte()).not.toContain(AVIS());
+  });
+
+  it('le champ ABSENT vaut « serveur antérieur », pas « appliqué »', () => {
+    // La distinction qui compte : deux serveurs coexistent dans le parc.
+    // Traiter l'absence comme un succès ferait taire l'avis devant le serveur
+    // qui en a le plus besoin — celui qui n'applique qu'au démarrage.
+    expect(annonceAppliqueeAChaud({ ok: true })).toBe(false);
+    expect(annonceAppliqueeAChaud({})).toBe(false);
+    expect(annonceAppliqueeAChaud(null)).toBe(false);
+    expect(annonceAppliqueeAChaud(undefined)).toBe(false);
+  });
+
+  it('seul un `true` franc compte comme appliqué', () => {
+    expect(annonceAppliqueeAChaud({ [CHAMP_APPLIQUE]: true })).toBe(true);
+    // Un serveur qui a reçu la demande sans rien changer (l'état était déjà
+    // le bon) rend `false` : il n'y a rien à redémarrer non plus, mais ce
+    // n'est pas à ce témoin d'en décider — il garde la lecture, pas la règle.
+    expect(annonceAppliqueeAChaud({ [CHAMP_APPLIQUE]: false })).toBe(false);
+    for (const valeur of ['true', 1, 'oui', {}]) {
+      expect(annonceAppliqueeAChaud({ [CHAMP_APPLIQUE]: valeur }), String(valeur)).toBe(false);
+    }
+  });
+
+  it('le nom du champ est celui que le serveur écrit, à la lettre', () => {
+    expect(CHAMP_APPLIQUE).toBe('slimproto_discovery_applied');
+  });
   it('l’avis existe dans les onze langues', async () => {
     const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
     for (const code of langues) {

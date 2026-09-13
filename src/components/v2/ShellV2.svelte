@@ -8,7 +8,7 @@
    * affichent un cadre « à venir » dans la coquille — on les redessinera une
    * à une, sans jamais casser la navigation.
    */
-  import { activeView, vueDeRetour, type View } from '../../lib/stores/navigation';
+  import { activeView, vueDeRetour, focusMode, type View } from '../../lib/stores/navigation';
   import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
@@ -528,8 +528,23 @@
     </div>
   {/if}
 
-  <div class="v2-row">
-    <Sidebar />
+  <!--
+    🔴 LE MODE SANS DISTRACTION, QUE CETTE COQUILLE N'HONORAIT PAS — #978. Alex
+    Campbell, 12/09/2026 : « it also appears the full screen button in Oxygen
+    does not do anything. »
+
+    Le bouton vit dans `OxygenView`, monté par les DEUX coquilles (`App:1622`
+    et ici). Le magasin `focusMode`, lui, n'était lu que par `App.svelte` —
+    `?v2` monte `ShellV2` à sa place, et le clic ne changeait donc rien à
+    l'écran. Écrit, mais pas branché : la même famille que l'annonce de mise à
+    jour, les raccourcis clavier et l'historique du navigateur.
+
+    La sortie est assurée dans les deux : le bouton lui-même, Échap (posé par
+    `OxygenView`, donc indépendant de la coquille), et le fait que `focusMode`
+    retombe à faux dès qu'on change de vue.
+  -->
+  <div class="v2-row" class:sans-distraction={$focusMode}>
+    {#if !$focusMode}<Sidebar />{/if}
     <main class="main">
       {#if $activeView === 'home'}
         <HomeV2 />
@@ -720,6 +735,7 @@
      barre et la vue. Mesure par CDP (getMatchedStyles) avant renommage. Un nom
      generique dans une app a CSS partage est un piege — on le retire au lieu
      de gagner une bataille de specificite avec `gap:0`. */
+  .v2-row.sans-distraction{grid-template-columns:1fr}
   .v2-row{flex:1; min-height:0; display:grid; grid-template-columns:auto 1fr; gap:0;
     /* La RANGEE doit valoir la hauteur du conteneur, pas celle du contenu.
        Sans `minmax(0,1fr)` la rangee implicite est auto-dimensionnee sur le
