@@ -281,10 +281,17 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
   it('🔴 déconnecté, on refuse en disant pourquoi', () => {
     // La photo est attachée à un compte : en poser une sans compte produirait
     // une image aussitôt masquée, c'est-à-dire un bouton qui ne fait rien.
+    //
+    // 🔴 #893 — la garde recopiait `if (!ssoConnected)`. Le refus dépend
+    // désormais de `peutChoisirPhoto`, qui distingue « pas de compte OUVERT »
+    // de « pas de compte POSSIBLE » : sans nuage configuré, personne ne peut
+    // jamais se connecter, et refuser revenait à refuser pour toujours. Ce que
+    // la garde veut tenir — un refus EXPLIQUÉ avant l'explorateur — n'a pas
+    // bougé, et c'est cela qu'elle tient maintenant.
     const src = menu();
     const i = src.indexOf('function ouvrirExplorateur');
     const corps = src.slice(i, i + 400);
-    expect(corps).toContain('if (!ssoConnected)');
+    expect(corps).toContain("peutChoisirPhoto(etatCompte) === 'connexion'");
     expect(corps).toContain("settings.avatarSignInFirst");
     expect(corps.indexOf('return;'), 'le refus ne coupe pas : l’explorateur s’ouvrirait quand même')
       .toBeLessThan(corps.indexOf('champFichier?.click()'));
@@ -295,14 +302,24 @@ describe('Menu avatar — la photo qu’on choisit soi-même', () => {
     // de l'écran alors qu'il n'y a plus personne — et le compte suivant ouvert
     // sur la même machine hérite de celle du précédent.
     const src = menu();
-    expect(src).toContain('ssoConnected && identiteCompte && $preferences.avatarCompte === identiteCompte');
+    // 🔴 #893 — recopiait l'expression entière. Le recoupement vit désormais
+    // dans `lib/proprietaireAvatar`, qui le tient pour les DEUX cas — avec et
+    // sans nuage — et qui est éprouvé à part. Ce qu'on vérifie ici, c'est que
+    // l'écran l'APPELLE au lieu de refaire le calcul à la main.
+    expect(src).toContain('photoAAfficher(etatCompte,');
+    expect(src, 'le recoupement est revenu en dur dans l’écran')
+      .not.toContain('$preferences.avatarCompte === identiteCompte');
   });
 
   it('🔴 la photo et son propriétaire s’écrivent ENSEMBLE', () => {
     // Séparés, il existerait un instant où l'un vit sans l'autre : une photo
     // sans compte ne s'affiche jamais, et elle serait rangée pour rien.
     const src = menu();
-    expect(src).toContain('avatarImage: url, avatarCompte: identiteCompte');
+    // 🔴 #893 — même raison : le propriétaire d'une NOUVELLE photo est décidé
+    // par `proprietairePourNouvellePhoto`, qui rend `''` quand aucun compte
+    // n'est possible. Attacher à `identiteCompte` sans condition rangeait une
+    // chaîne vide comme propriétaire, ce qui masquait aussitôt la photo.
+    expect(src).toContain('avatarImage: url, avatarCompte: proprietairePourNouvellePhoto(etatCompte)');
     expect(src, 'retirer laisse un propriétaire orphelin').toContain(
       "avatarImage: '', avatarCompte: ''",
     );
