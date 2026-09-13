@@ -3172,6 +3172,8 @@ export default {
   "profiles.namePlaceholder": "Profilens namn",
   "profiles.premiumRequired": "Flera profiler är förbehållet Premium-versionen.",
   "profiles.whoIsListening": "Vem lyssnar?",
+  "profiles.title": "Profiler",
+  "profiles.switchHint": "Att byta profil laddar om skärmen.",
   "queue.autoplayFailed": "Det gick inte att ändra AutoPlay",
   "queue.resizePanel": "Dra för att ändra storlek · dubbelklicka för att återställa",
   'player.showWaveform': 'Visa vågform',
