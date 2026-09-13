@@ -25,6 +25,7 @@
   import { locale } from './lib/i18n';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
+  import { noterSiDebutDEcoute } from './lib/historiqueEcoutes';
   import { handleAudioLevelsEvent } from './lib/stores/audioLevels';
   import { zoneInitiale } from './lib/zoneInitiale';
   import { startUpdatePolling, stopUpdatePolling, updateAvailable, latestVersion, currentVersion, updateBannerDismissed, dismissUpdateBanner } from './lib/stores/updates';
@@ -1311,12 +1312,22 @@ import AlarmsView from './components/AlarmsView.svelte';
               }
             }
 
-            // Record to playback history on track start/change
-            if (type === 'playback.started' || type === 'playback.track_changed') {
-              if (z?.current_track) {
-                playbackHistory.add(nowPlayingToTrack(z.current_track), z.name);
-              }
-            }
+            // L'historique local — la MÊME règle que la nouvelle coquille.
+            //
+            // Elle vivait ici, et ici seulement : `?v2` monte `ShellV2` à la
+            // place de ce composant, et la radio — que le serveur n'écrit
+            // jamais dans `listen_history`, faute d'identifiant de `tracks` —
+            // y disparaissait de l'historique (#889, Reivax66). Elle est
+            // désormais dans `lib/historiqueEcoutes`, tenue par les deux.
+            //
+            // Le filtrage de zone a déjà eu lieu plus haut (`curZone?.id !==
+            // zoneId && !isGroupMember` ⇒ `return`) : on le repasse quand même,
+            // pour que ce soit la MÊME fonction qui décide des deux côtés.
+            noterSiDebutDEcoute(
+              type, zoneId, z, get(zones).find((zz) => zz.id === zoneId),
+              nowPlayingToTrack,
+              (piste, nom) => playbackHistory.add(piste, nom),
+            );
           });
           // NOTE: no fetchQueue() here — playback.started/track_changed already
           // refetch the queue above, and playback.resumed never changes it. A
