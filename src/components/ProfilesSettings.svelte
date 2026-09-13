@@ -1,10 +1,18 @@
 <script lang="ts">
-  import { profiles, currentProfileId, createProfile, deleteProfile, updateProfile, selectProfile, type Profile } from '../lib/stores/profile';
+  import { profiles, currentProfileId, createProfile, deleteProfile, updateProfile, selectProfile, type MotifEchecCreation, type Profile } from '../lib/stores/profile';
   import { dialogs } from '../lib/stores/dialogs';
   import { isPremium } from '../lib/stores/license';
   import { t } from '../lib/i18n';
 
   const avatarColors = ['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#8b5cf6', '#14b8a6', '#ef4444', '#3b82f6'];
+
+  /** Un message par motif. La table vit ici, à côté de son usage, pour qu'un
+   *  motif ajouté sans message se voie à la compilation. */
+  const MESSAGE_ECHEC: Record<MotifEchecCreation, string> = {
+    premium: 'profiles.premiumRequired',
+    'nom-pris': 'profiles.nameTaken',
+    autre: 'profiles.createFailed',
+  };
 
   let newName = $state('');
   let newColor = $state(avatarColors[0]);
@@ -20,15 +28,17 @@
     if (!name || creating) return;
     creating = true;
     createError = '';
-    const created = await createProfile(name, newColor);
+    const resultat = await createProfile(name, newColor);
     creating = false;
-    if (created) {
+    if (resultat.ok) {
       newName = '';
       newColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
     } else {
-      // createProfile returns null on failure; the common case is the premium
-      // gate (server replies 403 premium_required).
-      createError = $t('profiles.createFailed');
+      // 🔴 On dit ce qui s'est VRAIMENT passé. Cet écran affichait « les profils
+      // multiples demandent la version Premium » pour toute cause — y compris
+      // une coupure réseau. Envoyer quelqu'un à la caisse parce que son Wi-Fi a
+      // lâché est la pire des deux erreurs possibles.
+      createError = $t(MESSAGE_ECHEC[resultat.motif] as any);
     }
   }
 

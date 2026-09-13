@@ -34,6 +34,8 @@
   let showCreateDialog = $state(false);
   let newName = $state('');
   let newColor = $state('#6366f1');
+  /** Le refus de la dernière tentative, affiché dans la fenêtre elle-même. */
+  let createError = $state('');
 
   let showEditDialog = $state(false);
   let editProfileId = $state<number | null>(null);
@@ -55,6 +57,7 @@
 
   function openCreateDialog() {
     newName = '';
+    createError = '';
     newColor = avatarColors[Math.floor(Math.random() * avatarColors.length)];
     showCreateDialog = true;
     dropdownOpen = false;
@@ -62,7 +65,22 @@
 
   async function handleCreate() {
     if (!newName.trim()) return;
-    await createProfile(newName.trim(), newColor);
+    // 🔴 Le résultat était IGNORÉ : un refus de palier fermait la fenêtre comme
+    // une réussite, et la liste restait inchangée sans un mot. On garde la
+    // fenêtre ouverte et on dit pourquoi — `fetchJSON` a déjà signalé le 402,
+    // mais rien ne rattachait ce refus au geste qu'on venait de faire.
+    const resultat = await createProfile(newName.trim(), newColor);
+    if (!resultat.ok) {
+      createError = $t(
+        (resultat.motif === 'premium'
+          ? 'profiles.premiumRequired'
+          : resultat.motif === 'nom-pris'
+            ? 'profiles.nameTaken'
+            : 'profiles.createFailed') as any,
+      );
+      return;
+    }
+    createError = '';
     showCreateDialog = false;
   }
 
@@ -170,6 +188,9 @@
         </span>
         <span class="preview-name">{newName || '...'}</span>
       </div>
+      {#if createError}
+        <p class="create-error">{createError}</p>
+      {/if}
       <div class="modal-actions">
         <button class="btn-cancel" onclick={() => showCreateDialog = false}>{$t('common.cancel')}</button>
         <button class="btn-create" onclick={handleCreate}>{$t('common.create')}</button>
@@ -571,5 +592,12 @@
     .profile-selector {
       display: none;
     }
+  }
+  /* Le refus, dans la fenêtre : il explique le bouton qui n'a rien fait. */
+  .create-error {
+    margin: 8px 0 0;
+    font-size: 0.84rem;
+    line-height: 1.35;
+    color: var(--tune-danger, #ef4444);
   }
 </style>
