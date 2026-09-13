@@ -41,6 +41,8 @@
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
@@ -521,6 +523,28 @@
    * `updateAlbum(album.id, …)`, et un album distant n'a pas d'`id`.
    */
   let fiche = $state<any | null>(null);
+  /**
+   * 🔴 LE CALQUE ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #980.
+   *
+   * Cet écran en porte DEUX, exclusifs l'un de l'autre : la fiche d'un album de
+   * service, et celle d'un album Bandcamp. Ils partagent le même branchement —
+   * un seul calque est ouvert à la fois, donc une seule entrée à la fois.
+   */
+  function ouvrirCalqueAlbum(a: any) {
+    const cle = cleDetailAlbum(a);
+    if (cle) ouvrirDetail(cle);
+  }
+  function fermerCalqueAlbum() {
+    fiche = null;
+    ficheService = null;
+    ficheBc = null;
+  }
+  function retourCalqueAlbum() {
+    fermerDetailEnReculant(fermerCalqueAlbum);
+  }
+  $effect(() => {
+    if ($detailOuvert == null && (fiche || ficheBc)) fermerCalqueAlbum();
+  });
   let ficheService = $state<string | null>(null);
 
   /** La fiche d'un album BANDCAMP : il n'a pas de `source_id`, son identite
@@ -539,10 +563,14 @@
     // montrer la liste des titres. Son identite est l'URL, pas un identifiant.
     if (type === 'album' && svc === BANDCAMP && p?.url) {
       return () => {
-        ficheBc = {
+        const a = {
           id: null, title: pTitle(p), artist_name: p?.artiste ?? p?.artist ?? '',
           cover_path: pCover(p), url: String(p.url),
+          // Son identité est l'URL : c'est elle qui sert de clé d'historique.
+          source: BANDCAMP, source_id: String(p.url),
         };
+        ouvrirCalqueAlbum(a);
+        ficheBc = a;
       };
     }
     // 🔴 Une PLAYLIST s'ouvre aussi (Bertrand, 13/09/2026 : « Impossible
@@ -565,7 +593,7 @@
     }
     if (type !== 'album' || !sid || !svc || svc === BANDCAMP) return null;
     return () => {
-      fiche = {
+      const a = {
         id: null, source_id: String(sid), source: svc,
         title: pTitle(p), artist_name: p?.artist_name ?? p?.artist ?? '',
         cover_path: pCover(p), year: p?.year ?? null,
@@ -573,6 +601,8 @@
         sample_rate: p?.quality?.sample_rate ?? p?.sample_rate ?? null,
         bit_depth: p?.quality?.bit_depth ?? p?.bit_depth ?? null,
       };
+      ouvrirCalqueAlbum(a);
+      fiche = a;
       ficheService = svc;
     };
   }
@@ -1142,11 +1172,11 @@
 {/snippet}
 
 {#if fiche}
-  <AlbumDetailV2 album={fiche} service={ficheService} onClose={() => { fiche = null; ficheService = null; }} />
+  <AlbumDetailV2 album={fiche} service={ficheService} onClose={retourCalqueAlbum} />
 {/if}
 
 {#if ficheBc}
-  <AlbumDetailV2 album={ficheBc} bandcamp={ficheBc.url} onClose={() => (ficheBc = null)} />
+  <AlbumDetailV2 album={ficheBc} bandcamp={ficheBc.url} onClose={retourCalqueAlbum} />
 {/if}
 
 {#if fichePlaylist}
