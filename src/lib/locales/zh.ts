@@ -3166,7 +3166,8 @@ export default {
   "profiles.active": "当前",
   "profiles.confirmDelete": "删除配置文件“{name}”？其收藏和播放历史将丢失。",
   "profiles.createButton": "创建",
-  "profiles.createFailed": "无法创建。多配置文件需要 Premium 版本。",
+  "profiles.createFailed": "无法创建用户，请稍后重试。",
+  "profiles.nameTaken": "该名称已被其他用户使用。",
   "profiles.createTitle": "新建配置文件",
   "profiles.hint": "每个配置文件都保留各自的收藏、播放历史和显示偏好。",
   "profiles.namePlaceholder": "配置文件名称",
@@ -3321,6 +3322,7 @@ export default {
   "settings.homebrewFailed": "Homebrew 更新在「{etape}」步骤失败。请在终端中运行：",
   // v2 — 2026-09-04 新增的翻译（语言一致性）
   "v2.col.noneInTab": "没有此类收藏集。",
+  "v2.col.deleteAsk": "删除收藏集“{nom}”？其中的专辑不会受到影响。",
   "common.open": "打开",
   "v2.edit.collection": "编辑收藏集",
   "v2.edit.name": "名称",

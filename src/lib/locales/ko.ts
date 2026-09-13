@@ -3158,7 +3158,8 @@ export default {
   "profiles.active": "사용 중",
   "profiles.confirmDelete": "프로필 '{name}'을(를) 삭제할까요? 즐겨찾기와 기록이 사라집니다.",
   "profiles.createButton": "만들기",
-  "profiles.createFailed": "만들 수 없습니다. 다중 프로필은 Premium 버전이 필요합니다.",
+  "profiles.createFailed": "프로필을 만들지 못했습니다. 잠시 후 다시 시도하세요.",
+  "profiles.nameTaken": "다른 프로필이 이미 이 이름을 사용 중입니다.",
   "profiles.createTitle": "새 프로필",
   "profiles.hint": "각 프로필은 즐겨찾기, 기록, 표시 설정을 따로 보관합니다.",
   "profiles.namePlaceholder": "프로필 이름",
@@ -3321,6 +3322,7 @@ export default {
   "settings.homebrewFailed": "Homebrew 업데이트가 “{etape}” 단계에서 실패했습니다. 터미널에서 실행하세요:",
   // v2 — 2026-09-04에 추가한 번역 (로케일 정합)
   "v2.col.noneInTab": "이런 종류의 컬렉션이 없습니다.",
+  "v2.col.deleteAsk": "컬렉션 “{nom}”을(를) 삭제할까요? 포함된 앨범은 영향을 받지 않습니다.",
   "common.open": "열기",
   "v2.edit.collection": "컬렉션 편집",
   "v2.edit.name": "이름",

@@ -296,12 +296,50 @@ export async function loadProfiles(): Promise<void> {
   }
 }
 
-export async function createProfile(name: string, avatarColor: string): Promise<Profile | null> {
+/**
+ * Pourquoi une création de profil a échoué.
+ *
+ * `createProfile` rendait `null` pour TOUTE cause, et l'écran devinait : il
+ * affichait « les profils multiples demandent la version Premium » sur une
+ * panne réseau comme sur un refus de palier. Dire à quelqu'un de payer parce
+ * que son Wi-Fi a coupé est la pire des deux erreurs possibles.
+ *
+ * Le serveur, lui, sait : il refuse en `402` avec
+ * `{"error":"premium_required","feature":"multi_profiles"}` (`profiles.rs`),
+ * et `fetchJSON` fait déjà voyager le statut sur l'erreur (#2178).
+ */
+export type MotifEchecCreation = 'premium' | 'nom-pris' | 'autre';
+
+export type ResultatCreation =
+  | { ok: true; profil: Profile }
+  | { ok: false; motif: MotifEchecCreation };
+
+/**
+ * Le motif porté par une erreur d'API, ou `'autre'`.
+ *
+ * Pur, pour être vérifiable sans réseau. On lit le STATUT d'abord — c'est le
+ * contrat stable depuis #2178 — et le message ensuite, parce que les aides
+ * plus anciennes levaient encore des `Error` nues dont le texte contenait le
+ * code.
+ */
+export function motifDeLErreur(e: unknown): MotifEchecCreation {
+  const err = e as { status?: number; message?: string } | null | undefined;
+  const statut = err?.status;
+  const message = err?.message ?? '';
+  if (statut === 402 || message.includes('premium_required')) return 'premium';
+  if (statut === 409 || message.includes('409')) return 'nom-pris';
+  return 'autre';
+}
+
+export async function createProfile(
+  name: string,
+  avatarColor: string,
+): Promise<ResultatCreation> {
   try {
     const created = await api.createProfile({ name, avatar_color: avatarColor });
     profiles.update((list) => [...list, created]);
     currentProfileId.set(created.id);
-    return created;
+    return { ok: true, profil: created };
   } catch (e: any) {
     // Handle 409 — profile already exists, auto-select it
     if (e?.message?.includes('409') || e?.status === 409) {
@@ -310,7 +348,7 @@ export async function createProfile(name: string, avatarColor: string): Promise<
       );
       if (existing) {
         currentProfileId.set(existing.id);
-        return existing;
+        return { ok: true, profil: existing };
       }
       // Refresh profiles and try again
       await loadProfiles();
@@ -319,11 +357,11 @@ export async function createProfile(name: string, avatarColor: string): Promise<
       );
       if (refreshed) {
         currentProfileId.set(refreshed.id);
-        return refreshed;
+        return { ok: true, profil: refreshed };
       }
     }
     console.error('Create profile error:', e);
-    return null;
+    return { ok: false, motif: motifDeLErreur(e) };
   }
 }
 

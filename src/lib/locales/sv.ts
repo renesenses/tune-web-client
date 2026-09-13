@@ -3166,7 +3166,8 @@ export default {
   "profiles.active": "Aktiv",
   "profiles.confirmDelete": "Radera profilen ”{name}”? Dess favoriter och historik går förlorade.",
   "profiles.createButton": "Skapa",
-  "profiles.createFailed": "Kunde inte skapas. Flera profiler kräver Premium-versionen.",
+  "profiles.createFailed": "Profilen kunde inte skapas. Försök igen om en stund.",
+  "profiles.nameTaken": "En annan profil använder redan det här namnet.",
   "profiles.createTitle": "Ny profil",
   "profiles.hint": "Varje profil behåller sina egna favoriter, sin historik och sina visningsinställningar.",
   "profiles.namePlaceholder": "Profilens namn",
@@ -3320,6 +3321,7 @@ export default {
   "settings.homebrewFailed": "Homebrew-uppdateringen misslyckades i steget ”{etape}”. Kör den i en terminal:",
   // v2 — översättningar tillagda 2026-09-04 (språkparitet)
   "v2.col.noneInTab": "Ingen samling av det här slaget.",
+  "v2.col.deleteAsk": "Ta bort samlingen ”{nom}”? Albumen den innehåller påverkas inte.",
   "common.open": "Öppna",
   "v2.edit.collection": "Redigera samlingen",
   "v2.edit.name": "Namn",

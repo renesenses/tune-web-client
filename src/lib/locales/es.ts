@@ -3166,7 +3166,8 @@ export default {
   "profiles.active": "Activo",
   "profiles.confirmDelete": "¿Eliminar el perfil «{name}»? Se perderán sus favoritos y su historial.",
   "profiles.createButton": "Crear",
-  "profiles.createFailed": "No se ha podido crear. Los perfiles múltiples requieren la versión Premium.",
+  "profiles.createFailed": "No se ha podido crear el perfil. Vuelve a intentarlo en un momento.",
+  "profiles.nameTaken": "Otro perfil ya usa este nombre.",
   "profiles.createTitle": "Nuevo perfil",
   "profiles.hint": "Cada perfil conserva sus favoritos, su historial y sus preferencias de visualización.",
   "profiles.namePlaceholder": "Nombre del perfil",
@@ -3321,6 +3322,7 @@ export default {
   "settings.homebrewFailed": "La actualización de Homebrew falló en el paso «{etape}». Ejecútala en un terminal:",
   // v2 — traducciones añadidas el 04/09/2026 (paridad de idiomas)
   "v2.col.noneInTab": "Ninguna colección de este tipo.",
+  "v2.col.deleteAsk": "¿Eliminar la colección «{nom}»? Los álbumes que contiene no se ven afectados.",
   "common.open": "Abrir",
   "v2.edit.collection": "Editar la colección",
   "v2.edit.name": "Nombre",

@@ -3243,7 +3243,8 @@ export default {
   "profiles.createTitle": "Új profil",
   "profiles.namePlaceholder": "A profil neve",
   "profiles.createButton": "Létrehozás",
-  "profiles.createFailed": "A profilt nem sikerült létrehozni. A több profilhoz Premium szükséges.",
+  "profiles.createFailed": "A profil létrehozása nem sikerült. Próbáld újra egy pillanat múlva.",
+  "profiles.nameTaken": "Ezt a nevet már egy másik profil használja.",
   "profiles.confirmDelete": "Törlöd a(z) „{name}” profilt? A kedvencei és az előzményei elvesznek.",
   "profiles.premiumRequired": "A több profilhoz Premium szükséges.",
   "profiles.whoIsListening": "Ki hallgatja?",
@@ -3279,6 +3280,7 @@ export default {
   "settings.homebrewFailed": "A Homebrew-frissítés a(z) „{etape}” lépésnél meghiúsult. Futtasd egy terminálban:",
   // v2 — 2026.09.04-én hozzáadott fordítások (nyelvi paritás)
   "v2.col.noneInTab": "Nincs ilyen típusú gyűjtemény.",
+  "v2.col.deleteAsk": "Törli a(z) „{nom}” gyűjteményt? A benne lévő albumok nem változnak.",
   "common.open": "Megnyitás",
   "v2.edit.collection": "Gyűjtemény szerkesztése",
   "v2.edit.name": "Név",

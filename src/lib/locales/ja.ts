@@ -3164,7 +3164,8 @@ export default {
   "profiles.active": "使用中",
   "profiles.confirmDelete": "プロフィール「{name}」を削除しますか？ お気に入りと履歴が失われます。",
   "profiles.createButton": "作成",
-  "profiles.createFailed": "作成できません。複数プロフィールには Premium 版が必要です。",
+  "profiles.createFailed": "プロフィールを作成できませんでした。しばらくしてからもう一度お試しください。",
+  "profiles.nameTaken": "この名前は別のプロフィールがすでに使用しています。",
   "profiles.createTitle": "新しいプロフィール",
   "profiles.hint": "プロフィールごとに、お気に入り・再生履歴・表示設定が保存されます。",
   "profiles.namePlaceholder": "プロフィール名",
@@ -3321,6 +3322,7 @@ export default {
   "settings.homebrewFailed": "Homebrew の更新が「{etape}」の段階で失敗しました。ターミナルで実行してください:",
   // v2 — 2026/09/04 に追加した翻訳（ロケールの整合）
   "v2.col.noneInTab": "この種類のコレクションはありません。",
+  "v2.col.deleteAsk": "コレクション「{nom}」を削除しますか？ 含まれるアルバムは影響を受けません。",
   "common.open": "開く",
   "v2.edit.collection": "コレクションを編集",
   "v2.edit.name": "名前",

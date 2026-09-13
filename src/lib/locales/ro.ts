@@ -3169,7 +3169,8 @@ export default {
   "profiles.active": "Activ",
   "profiles.confirmDelete": "Ștergi profilul „{name}”? Favoritele și istoricul lui se vor pierde.",
   "profiles.createButton": "Creează",
-  "profiles.createFailed": "Creare imposibilă. Profilurile multiple necesită versiunea Premium.",
+  "profiles.createFailed": "Profilul nu a putut fi creat. Încearcă din nou într-o clipă.",
+  "profiles.nameTaken": "Acest nume este deja folosit de alt profil.",
   "profiles.createTitle": "Profil nou",
   "profiles.hint": "Fiecare profil își păstrează favoritele, istoricul și preferințele de afișare.",
   "profiles.namePlaceholder": "Numele profilului",
@@ -3321,6 +3322,7 @@ export default {
   "settings.homebrewFailed": "Actualizarea Homebrew a eșuat la pasul „{etape}”. Rulați-o într-un terminal:",
   // v2 — traduceri adăugate la 04/09/2026 (paritatea limbilor)
   "v2.col.noneInTab": "Nicio colecție de acest tip.",
+  "v2.col.deleteAsk": "Ștergeți colecția „{nom}”? Albumurile pe care le conține nu sunt afectate.",
   "common.open": "Deschide",
   "v2.edit.collection": "Modifică colecția",
   "v2.edit.name": "Nume",
