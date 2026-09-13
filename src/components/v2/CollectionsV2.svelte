@@ -148,7 +148,7 @@
   let enEdition = $state<Entree | null>(null);
 
   /**
-   * SUPPRIMER une collection — #981.
+   * SUPPRIMER une collection — #983.
    *
    * Fabien, fil « v0.9.147 : v1 divers bugs », point 4 : « Je ne vois aucun
    * bouton "Supprimer" une collection ? » Il ne le voyait pas : il n'existait

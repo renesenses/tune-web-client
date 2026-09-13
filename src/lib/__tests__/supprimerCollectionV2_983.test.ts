@@ -1,5 +1,5 @@
 /**
- * #981 — « Je ne vois aucun bouton "Supprimer" une collection ? »
+ * #983 — « Je ne vois aucun bouton "Supprimer" une collection ? »
  *
  * Fabien, fil « v0.9.147 : v1 divers bugs », 13/09/2026, point 4.
  *
@@ -68,7 +68,7 @@ function corpsSuppression(src: string): string {
   return lignes.slice(debut, fin + 1).join('\n');
 }
 
-describe('#981 — supprimer une collection dans la nouvelle interface', () => {
+describe('#983 — supprimer une collection dans la nouvelle interface', () => {
   it('le geste existe', () => {
     expect(ecran()).toContain('async function supprimerCollection');
   });
