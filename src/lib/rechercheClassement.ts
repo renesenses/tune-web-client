@@ -189,11 +189,54 @@ function ecrire(entrees: RechercheRecente[]) {
 }
 
 /** Ajoute une requête en tête, sans doublon insensible à la casse. */
+/**
+ * Une frappe PROLONGE-t-elle la recherche qu'on vient de retenir ?
+ *
+ * 🔴 `renesenses/tune-web-client#881` — l'historique était écrit à chaque état
+ * de frappe, pas à la validation : « dix entrées pour deux recherches, et il
+ * est plafonné à dix ». Taper « miles davis » en marquant une pause laissait
+ * « mi », « miles », « miles dav », « miles davis » — et les quatre chassaient
+ * les vraies recherches d'avant hors du plafond.
+ *
+ * L'écran n'a pas de bouton « chercher » : il cherche pendant qu'on tape. On
+ * ne peut donc pas attendre une validation qui n'existe pas. Ce qu'on PEUT
+ * reconnaître, c'est la frappe elle-même — une saisie qui prolonge la
+ * précédente est la MÊME recherche, en cours d'écriture.
+ *
+ * Exporté pour être éprouvé, et parce que la règle mérite d'être lisible
+ * ailleurs que dans le corps de `retenirRecherche`.
+ */
+export function prolonge(precedente: string, nouvelle: string): boolean {
+  const a = precedente.trim().toLowerCase();
+  const b = nouvelle.trim().toLowerCase();
+  if (!a || !b || a === b) return false;
+  // « mile » → « miles » : on écrit. « miles » → « mile » : on efface. Les
+  // deux sont la même recherche en cours, dans un sens ou dans l'autre.
+  return b.startsWith(a) || a.startsWith(b);
+}
+
+/**
+ * Retient une recherche.
+ *
+ * 🔴 #881 — une frappe qui PROLONGE la précédente la REMPLACE au lieu de
+ * s'ajouter. Le plafond ne se remplit donc plus de brouillons, et l'entrée
+ * gardée est la plus complète des deux : c'est celle que l'utilisateur a fini
+ * d'écrire.
+ *
+ * ⚠️ Deux recherches VRAIMENT différentes restent deux entrées, même tapées
+ * coup sur coup : « miles » puis « coltrane » ne se confondent pas.
+ */
 export function retenirRecherche(query: string): RechercheRecente[] {
   const q = query.trim();
   if (!q) return chargerRecherchesRecentes();
-  const entrees = chargerRecherchesRecentes()
-    .filter((e) => e.query.toLowerCase() !== q.toLowerCase());
+  const avant = chargerRecherchesRecentes();
+  const entrees = avant.filter((e, i) => {
+    if (e.query.toLowerCase() === q.toLowerCase()) return false;
+    // Seule la PREMIÈRE — la plus récente — peut être un brouillon de
+    // celle-ci. Écarter les suivantes effacerait de vraies recherches
+    // anciennes qui partagent un préfixe.
+    return !(i === 0 && prolonge(e.query, q));
+  });
   entrees.unshift({ query: q, timestamp: Date.now() });
   const coupe = entrees.slice(0, RECENTES_MAX);
   ecrire(coupe);
