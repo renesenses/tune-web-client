@@ -33,7 +33,7 @@
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
-  import { activeView, gestesNavigationService, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryAlbum, vueDeRetour, gestesNavigationService, pendingLibraryArtist } from '../../lib/stores/navigation';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
@@ -74,6 +74,21 @@
   const dossier = $derived(depot ? null : dossierDeLAlbum(tracks));
   function localiser() {
     if (!dossier) return;
+    /**
+     * 🔴 #854 — Pierre M, fil 1671 : « "Localiser sur le disque" : OK mais
+     * retour ne ramène à l'album mais remonte l'arborescence ».
+     *
+     * L'écran Répertoires est celui du client ACTUEL, et son bouton Retour est
+     * `goUp()` — le dossier parent, puis les racines. Rien ne lui disait d'où
+     * l'on venait.
+     *
+     * On pose donc le chemin retour avant de partir, comme le fait déjà la
+     * Recherche vers une fiche d'artiste : la VUE où rendre la main, et
+     * l'ALBUM à y rouvrir. `pendingLibraryAlbum` est le contrat que
+     * `LibraryV2` lit déjà pour rouvrir une fiche.
+     */
+    if (album.id != null) pendingLibraryAlbum.set(album.id);
+    vueDeRetour.set('library');
     ouvrirLeRepertoire(dossier);
     activeView.set('browse');
   }
