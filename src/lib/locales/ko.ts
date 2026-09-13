@@ -3425,6 +3425,8 @@ export default {
   "v2.home.add": "위젯 추가",
   "v2.home.remove": "이 위젯 제거",
   "v2.home.move": "이 위젯 이동",
+  "v2.home.editTip": "위젯 추가, 제거 또는 순서 변경",
+  "v2.home.editHint": "핸들을 끌어 위젯 순서를 바꾸거나, ×를 클릭해 제거하세요.",
   "v2.home.allAdded": "모든 위젯이 이미 페이지에 있습니다.",
   "v2.home.emptyHint": "페이지가 비어 있습니다. 「편집」으로 전환해 위젯을 추가하세요.",
   "v2.home.widgetEmpty": "지금은 여기에 보여드릴 것이 없습니다.",

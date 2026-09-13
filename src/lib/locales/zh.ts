@@ -3425,6 +3425,8 @@ export default {
   "v2.home.add": "添加小组件",
   "v2.home.remove": "移除此小组件",
   "v2.home.move": "移动此小组件",
+  "v2.home.editTip": "添加、移除或重新排列小组件",
+  "v2.home.editHint": "拖动手柄可重新排列小组件，点击叉号可将其移除。",
   "v2.home.allAdded": "所有小组件都已在您的页面上。",
   "v2.home.emptyHint": "您的页面是空的。切换到「编辑」以添加小组件。",
   "v2.home.widgetEmpty": "目前这里没有可显示的内容。",
