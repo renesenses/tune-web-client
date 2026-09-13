@@ -403,7 +403,28 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
       throw erreurSentinelle('premium_required', 402, 'premium_required');
     }
     const err = await apiError(response);
-    if (response.status >= 500) {
+    /**
+     * 🔴 501 N'EST PAS UNE PANNE — #1007. Fabien, fil « v0.9.148 : v1 divers
+     * bugs », point 4 : « Menu playlists : quand on rentre dans le menu, erreur
+     * bandcamp ».
+     *
+     * Mesuré sur la .18 le 13/09/2026 :
+     *
+     *     GET /api/v1/streaming/bandcamp/playlists
+     *       → 501  « Bandcamp ne fournit pas de playlists »
+     *
+     * `PlaylistsV2` interroge tous les services authentifiés et attrape
+     * proprement ceux qui ne répondent pas (`catch { par[n] = [] }`). Mais ce
+     * bloc-ci criait AVANT lui, parce que 501 tombe dans `>= 500` : un bandeau
+     * rouge « Server error » à chaque ouverture de l'écran, pour une
+     * fonctionnalité que le service n'offre simplement pas.
+     *
+     * `501 Not Implemented` dit « je ne sais pas faire ça », pas « je suis en
+     * panne ». La distinction est celle-là même que #859 a établie côté
+     * message ; elle vaut aussi pour le bandeau. L'appelant reste libre de
+     * traiter le refus — et il le fait déjà.
+     */
+    if (response.status >= 500 && response.status !== 501) {
       notifications.error(`Server error: ${err.message}`);
     } else {
       // Surface actionable playback failures that callers would otherwise
