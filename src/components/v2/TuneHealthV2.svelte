@@ -43,6 +43,11 @@
     sansJauge?: boolean;
   };
 
+  /** L'analyse ReplayGain est-elle armée ? Le DR dépend du même interrupteur
+   *  (`rattraper_un_lot_de_dr` n'est atteint que sous `EtatAnalyse::Active`),
+   *  d'où ce partage plutôt qu'une seconde lecture de la config. */
+  let cfgDrActive = false;
+
   let cards = $state<Card[]>([]);
   let loading = $state(true);
   let lastAt = $state<string | null>(null);
@@ -121,6 +126,9 @@
       const analysis = c?.replaygain_analysis_enabled !== false && c?.replaygain_analysis_enabled !== 'false';
       const modeLabel = mode === 'off' ? $t('v2.health.rgOff' as any)
         : mode === 'track' ? $t('v2.health.rgTrack' as any) : $t('v2.health.rgAlbum' as any);
+      // Le DR dépend du MÊME interrupteur : on le retient ici plutôt que de
+      // relire la config une seconde fois.
+      cfgDrActive = analysis;
       out.push({
         id: 'rg', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
         etat: mode === 'off' ? 'off' : 'idle',
@@ -130,6 +138,60 @@
         sansJauge: true });
     } else {
       out.push({ id: 'rg', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
+        etat: 'inconnu', ligne: $t('v2.health.unavailable' as any), sansJauge: true });
+    }
+
+    // ── Plage dynamique ───────────────────────────────────────────────────
+    // #2218 — le DR s'affichait par piste et par album, se filtrait à la
+    // recherche, mais AUCUNE carte n'en parlait : on ne pouvait pas savoir
+    // combien de pistes en avaient un, ni d'où il venait.
+    //
+    // Cette carte vient APRÈS ReplayGain, et ce n'est pas décoratif : le DR
+    // n'a pas de passe à lui. Il est le troisième maillon, derrière le
+    // ReplayGain et les empreintes, dans le même créneau et sous le même
+    // interrupteur (`rattraper_un_lot_de_dr`, appelé seulement quand les deux
+    // autres n'ont plus rien). Une jauge sans cette explication laisserait
+    // l'utilisateur devant un chiffre sans prise : le levier est sur la carte
+    // d'à côté.
+    const drc = await Promise.allSettled([api.getCompletenessStats()]);
+    if (drc[0].status === 'fulfilled' && drc[0].value?.with_dynamic_range !== undefined) {
+      const c = drc[0].value;
+      const avec = c.with_dynamic_range ?? 0;
+      const total = c.total_tracks ?? 0;
+      const mesure = c.dynamic_range_from_analysis ?? 0;
+      const tague = c.dynamic_range_from_tag ?? 0;
+      const ecartees = c.dynamic_range_unavailable ?? 0;
+      // `cfgDr` est la config déjà lue plus haut pour ReplayGain : le DR
+      // dépend du MÊME réglage, on ne le relit pas.
+      const analyseActive = cfgDrActive;
+      const restantes = Math.max(0, total - avec - ecartees);
+
+      out.push({
+        id: 'dr',
+        titre: $t('v2.health.cardDr' as any),
+        sous: $t('v2.health.cardDrSub' as any),
+        etat: !analyseActive ? 'off' : restantes === 0 ? 'done' : 'idle',
+        // La ligne dit la RÉPARTITION, pas seulement le total : un DR tagué
+        // n'a pas la même valeur qu'un DR mesuré.
+        ligne: $t('v2.health.drLine' as any)
+          .replace('{n}', $formatNombre(avec))
+          .replace('{t}', $formatNombre(total))
+          .replace('{m}', $formatNombre(mesure))
+          .replace('{g}', $formatNombre(tague)),
+        fait: avec,
+        total: total || undefined,
+        // Le détail porte la CAUSE, jamais un simple compteur.
+        detail: !analyseActive
+          ? $t('v2.health.drOffBecauseRg' as any)
+          : restantes > 0
+            ? $t('v2.health.drQueuedBehindRg' as any).replace('{n}', $formatNombre(restantes))
+            : ecartees > 0
+              ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
+              : undefined });
+    } else {
+      // Serveur antérieur au comptage : se déclarer indisponible, surtout pas
+      // afficher « 0 piste » — qui se lirait comme une bibliothèque sans DR.
+      out.push({ id: 'dr', titre: $t('v2.health.cardDr' as any), sous: $t('v2.health.cardDrSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any), sansJauge: true });
     }
 
