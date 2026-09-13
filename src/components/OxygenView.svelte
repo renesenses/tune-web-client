@@ -762,7 +762,6 @@
             <div class="card" role="button" tabindex="0" onclick={() => openAlbum(g)} ondblclick={() => playAlbumGroup(g)} onkeydown={(e) => e.key === 'Enter' && openAlbum(g)}>
               <div class="cwrap">
                 {#if g.cover}<img class="cvr" src={artworkSrc(g.cover)} alt="" loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="cvr ph">♪</div>{/if}
-                <span class="qov"><QualityBadge format={g.format} sampleRate={g.sr} bitDepth={g.bd} source={g.source} /></span>
                 {#if typeof g.key === 'number'}<span class="hov" onclick={(e) => e.stopPropagation()}><HeartButton albumId={g.key} size={14} /></span>{/if}
                 <button class="pov" title={$t('library.playAlbum')} onclick={(e) => { e.stopPropagation(); playAlbumGroup(g); }}>
                   <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z"/></svg>
@@ -770,6 +769,24 @@
               </div>
               <div class="ct">{g.title}</div>
               <div class="ca">{g.artist}</div>
+              <!-- 🔴 LA QUALITÉ SUR UNE TROISIÈME LIGNE, PLUS SUR LA POCHETTE.
+                   #977 — Alex Campbell, 12/09/2026, capture à l'appui : « the encoding
+                   title covering the album art in Oxygen has to go! You can see
+                   its simply not legible and a bad design choice, can you remove
+                   it entirely or implement the same details below next to artist
+                   and album? »
+                   Ce n'est pas une préférence nouvelle : Bertrand a tranché la
+                   MÊME question le 05/09/2026 pour la nouvelle interface — « Badge
+                   qualité masqué : mets-le sur une troisième ligne » — et
+                   `v2/QualiteAlbum` le fait depuis. Oxygen était resté en arrière.
+                   Le diagnostic écrit là-bas vaut ici mot pour mot : un badge
+                   translucide se perd sur une pochette claire, et la barre
+                   d'actions qui apparaît au survol le recouvre. Sur les huit
+                   pochettes de la capture d'Alex, « HI-RES MAX ✦ FLAC 192/24 »
+                   barre le haut de l'image sans se laisser lire.
+                   Il garde sa propre ligne plutôt que de rejoindre l'artiste :
+                   `.ca` est déjà élidé à 150 px de large. -->
+              <div class="cq"><QualityBadge format={g.format} sampleRate={g.sr} bitDepth={g.bd} source={g.source} /></div>
             </div>
           {/each}
         </div>
@@ -999,7 +1016,9 @@
   .cvr { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--tune-surface-hover); }
   .cvr.ph { display: grid; place-items: center; font-size: 30px; color: var(--tune-text-muted); }
   .card:hover .cwrap { transform: translateY(-3px); transition: transform .15s; }
-  .qov { position: absolute; top: 7px; right: 7px; }
+  /* La qualité a quitté la pochette pour la troisième ligne de la carte
+     (Alex Campbell, 12/09/2026 ; même décision que `v2/QualiteAlbum`). */
+  .cq { margin-top: 3px; display: flex; min-width: 0; }
   .ct { margin-top: 9px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ca { color: var(--tune-text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
