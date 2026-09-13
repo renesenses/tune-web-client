@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { audioLevels, levelsForZone, type AudioLevels } from '../lib/stores/audioLevels';
   import { freqLabel, spectrumIsoTicks, type AnnonceSpectre } from '../lib/spectrumScale';
+  import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../lib/axeSpectre';
   import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../lib/waveformHistory';
 
   interface Props {
@@ -70,6 +71,15 @@
    * depuis #2866 et refusait le repère 125 Hz au-dessus de 48 kHz.
    */
   let annonceSpectre: AnnonceSpectre | null = null;
+  /**
+   * La capacité de l'analyseur pour le format courant — Bertrand, 13/09/2026.
+   *
+   * 🔴 `spectrum_frames` VARIE d'une trame à l'autre (mesuré sur la .18 :
+   * 1764 puis 1080 puis 1764), et la résolution vraie en dépend. L'axe suivait
+   * la dernière trame : le repère 125 Hz clignotait, et une capture prise sur
+   * une trame courte ne montrait rien sous 250 Hz. Voir `lib/axeSpectre`.
+   */
+  let capacite: CapaciteSpectre = CAPACITE_VIDE;
   /** Hauteur réservée sous les barres pour l'échelle, en px CSS. */
   const AXIS_H = 12;
   /** Même corps que la grille de l'égaliseur (`.grid-label`, ParametricEq). */
@@ -370,7 +380,32 @@
     // #892 — on lui passe désormais ce que le serveur ANNONCE (taille de FFT,
     // et le booléen par bande quand il est là) au lieu de le laisser rejouer
     // une troncature calculée sur 2048 points en dur. Voir spectrumScale.ts.
-    const ticks = mini ? [] : spectrumIsoTicks(sampleRate, serverBandCount, annonceSpectre);
+    /**
+     * L'axe décrit ce que l'analyseur SAIT FAIRE, pas ce qu'une trame écourtée
+     * a pu faire — Bertrand, 13/09/2026, « ajoute les fréquences < 250 Hz ».
+     *
+     * 🔴 Mesuré sur la .18 : `spectrum_frames` varie d'une trame à l'autre
+     * (1764, puis 1080, puis 1764), et la résolution vraie vaut
+     * `sample_rate / spectrum_frames`. Le repère 125 Hz apparaissait donc et
+     * disparaissait plusieurs fois par seconde ; une capture prise sur une
+     * trame courte ne montre rien sous 250 Hz.
+     *
+     * 🔴 Et c'est ICI, pas dans `spectrumTargets` : la garde
+     * `spectreSansInvention` interdit — à juste titre — que le calcul des
+     * BARRES touche aux métadonnées de la piste. `sampleRate` n'entre que dans
+     * l'axe, qui n'est pas une barre.
+     */
+    capacite = capaciteMaintenue(
+      capacite,
+      cleFormat(sampleRate, annonceSpectre?.fftSize, annonceSpectre?.resolus?.length ?? 0),
+      annonceSpectre?.resolus,
+    );
+    const ticks = mini
+      ? []
+      : spectrumIsoTicks(sampleRate, serverBandCount, {
+          fftSize: annonceSpectre?.fftSize,
+          resolus: capacite.resolus,
+        });
     const axisH = ticks.length > 0 ? AXIS_H * dpr : 0;
     // Les barres ne descendent plus jusqu'au bas du canevas quand l'échelle
     // est là : elles s'arrêtent au-dessus, sinon les libellés se poseraient
