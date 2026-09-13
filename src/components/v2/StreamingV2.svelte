@@ -545,6 +545,24 @@
         };
       };
     }
+    // 🔴 Une PLAYLIST s'ouvre aussi (Bertrand, 13/09/2026 : « Impossible
+    // d'ouvrir une playlist Qobuz ni en cliquant sur la cover ni sur le
+    // titre », écran `#streaming`).
+    //
+    // `ouvrirFiche` ne connaissait que l'album. Pour une playlist elle rendait
+    // `null`, et le gabarit `tile` retombe alors sur `onOuvrir={ouvre ?? onPlay}`
+    // et `onclick={ouvre ?? onPlay}` : la pochette ET le titre LANÇAIENT la
+    // lecture au lieu d'ouvrir. Sans erreur, sans rien à l'écran quand la
+    // lecture ne prenait pas — le symptôme exact de Bertrand.
+    //
+    // Une seule liste y échappait : « Mon <service> », qui passe explicitement
+    // son quatrième argument (`fichePlaylist = p`). La recherche et l'éditorial
+    // n'avaient rien. On répare donc ICI, une fois, pour toutes les listes.
+    if (type === 'playlist' && sid && svc && svc !== BANDCAMP) {
+        return () => {
+            fichePlaylist = { ...p, source: svc };
+        };
+    }
     if (type !== 'album' || !sid || !svc || svc === BANDCAMP) return null;
     return () => {
       fiche = {
