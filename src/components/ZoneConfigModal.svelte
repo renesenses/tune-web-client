@@ -138,6 +138,101 @@
   let monoSaving = $state(false);
   let monoError = $state('');
 
+  /**
+   * 🔴 #920 — LES TROIS RÉGLAGES QUE CE PANNEAU PROMETTAIT SANS LES AVOIR.
+   *
+   * Philippe, fil 781 (25/06/2026), partant d'une note de version : « Zone
+   * settings — Nouveau panneau de réglages par zone accessible via appui
+   * long : DSD mode, gapless, volume fixe. Je n'ai vu aucun panneau de
+   * réglage qui correspond à ce choix. »
+   *
+   * Le geste existait depuis `8656fda8` (v0.8.183) : le clic droit sur la
+   * pastille de zone ouvre bien ce panneau. Son CONTENU, non — `git grep -i
+   * "dsd\|gapless\|fixed_volume"` sur ce fichier rendait zéro. Deux des
+   * trois options vivaient AILLEURS (Réglages › Réglages par zone), le
+   * gapless nulle part.
+   *
+   * Deux écrans portaient donc le même nom avec des contenus disjoints, et
+   * c'est exactement ce qui a fait écrire Philippe. Ce panneau devient la
+   * porte unique : il porte désormais les trois.
+   *
+   * Le patron est celui de `setMonoDownmix`, à la lettre — le PATCH répond la
+   * zone à jour, on affiche ce que le serveur dit, et un échec remet
+   * l'interrupteur où il était plutôt que d'affirmer un réglage non persisté.
+   */
+  let gapless = $state(zone.gapless_enabled ?? true);
+  let gaplessSaving = $state(false);
+  let gaplessError = $state('');
+
+  async function setGapless(enabled: boolean) {
+    if (zone.id === null) return;
+    const avant = gapless;
+    gapless = enabled;
+    gaplessSaving = true;
+    gaplessError = '';
+    try {
+      const maj = await api.updateZoneGapless(zone.id, enabled);
+      gapless = maj?.gapless_enabled ?? enabled;
+    } catch (e: any) {
+      gapless = avant;
+      gaplessError = e?.message || get(t)('common.error');
+    } finally {
+      gaplessSaving = false;
+    }
+  }
+
+  let dsdMode = $state(zone.dsd_mode ?? 'auto');
+  let dsdSaving = $state(false);
+  let dsdError = $state('');
+
+  async function setDsdMode(mode: string) {
+    if (zone.id === null) return;
+    const avant = dsdMode;
+    dsdMode = mode;
+    dsdSaving = true;
+    dsdError = '';
+    try {
+      const maj = await api.updateZoneDsdMode(zone.id, mode);
+      dsdMode = maj?.dsd_mode ?? mode;
+    } catch (e: any) {
+      dsdMode = avant;
+      dsdError = e?.message || get(t)('common.error');
+    } finally {
+      dsdSaving = false;
+    }
+  }
+
+  let volumeFixe = $state(zone.fixed_volume ?? false);
+  let volumeSaving = $state(false);
+  let volumeError = $state('');
+
+  /**
+   * ⚠️ Sur une zone RÉSEAU, activer envoie 100 % à l'appareil lui-même : un
+   * ampli part à fond. Vécu par Cyrille sur son Yamaha (fil 1320, réponse
+   * #21). `SettingsView` exige de TAPER 100 pour confirmer ; on ne duplique
+   * pas ce dialogue ici — on renvoie à l'écran qui le porte, plutôt que
+   * d'offrir depuis ce panneau un geste risqué sans sa garde.
+   */
+  async function setVolumeFixe(enabled: boolean) {
+    if (zone.id === null) return;
+    const avant = volumeFixe;
+    volumeFixe = enabled;
+    volumeSaving = true;
+    volumeError = '';
+    try {
+      const maj = await api.updateZoneFixedVolume(zone.id, enabled);
+      volumeFixe = maj?.fixed_volume ?? enabled;
+      if (volumeFixe) zone.volume = 100;
+    } catch (e: any) {
+      volumeFixe = avant;
+      volumeError = e?.message || get(t)('common.error');
+    } finally {
+      volumeSaving = false;
+    }
+  }
+
+  const zoneLocale = $derived((zone.output_type ?? '') === 'local');
+
   async function setMonoDownmix(enabled: boolean) {
     if (zone.id === null) return;
     const avant = monoDownmix;
@@ -519,6 +614,60 @@
       des questions de format et de compatibilite renderer (DSD, passthrough,
       frequence max), ce que ceci n'est pas.
     -->
+    <!--
+      🔴 #920 — LES TROIS RÉGLAGES ANNONCÉS PAR LA NOTE DE VERSION DE JUIN.
+      Ce panneau les promettait sans les avoir ; deux vivaient dans Réglages,
+      le gapless nulle part. Ils sont ici, et c'est désormais la porte unique.
+    -->
+    <div class="modal-section">
+      <h3 class="section-title">{$t('zoneConfig.audioTitle')}</h3>
+      <p class="section-desc">{$t('zoneConfig.audioDesc')}</p>
+
+      <label class="zc-toggle">
+        <input type="checkbox" checked={gapless}
+          disabled={gaplessSaving || zone.id === null}
+          onchange={(e) => setGapless((e.target as HTMLInputElement).checked)} />
+        <span>{$t('zoneConfig.gaplessLabel')}</span>
+      </label>
+      {#if gaplessError}<div class="ir-message ir-error">{gaplessError}</div>{/if}
+
+      <div class="zc-ligne">
+        <span class="zc-label">{$t('zoneConfig.dsdLabel')}</span>
+        <select class="zc-select" value={dsdMode}
+          disabled={dsdSaving || zone.id === null}
+          onchange={(e) => setDsdMode((e.target as HTMLSelectElement).value)}>
+          <!-- Les MÊMES libellés que Réglages › Réglages par zone : deux
+               écrans qui nomment différemment le même réglage, c'est le
+               défaut que ce lot corrige, pas un défaut à reproduire. -->
+          <option value="auto">Auto</option>
+          <option value="native">{$t('settings.dsdNative')}</option>
+          <option value="dop">DoP</option>
+          <option value="pcm">{$t('settings.dsdPcm')}</option>
+        </select>
+      </div>
+      {#if dsdError}<div class="ir-message ir-error">{dsdError}</div>{/if}
+
+      <!--
+        ⚠️ Le volume fixe n'est OFFERT ici que sur une zone locale. Sur une
+        zone réseau, l'activer envoie 100 % à l'appareil — un ampli part à
+        fond (Cyrille, fil 1320). `SettingsView` exige de TAPER 100 pour
+        confirmer ; dupliquer ce dialogue ici, c'était le dupliquer mal. On
+        renvoie donc à l'écran qui porte la garde, au lieu d'offrir le geste
+        sans elle.
+      -->
+      {#if zoneLocale}
+        <label class="zc-toggle">
+          <input type="checkbox" checked={volumeFixe}
+            disabled={volumeSaving || zone.id === null}
+            onchange={(e) => setVolumeFixe((e.target as HTMLInputElement).checked)} />
+          <span>{$t('settings.fixedVolume')}</span>
+        </label>
+        {#if volumeError}<div class="ir-message ir-error">{volumeError}</div>{/if}
+      {:else}
+        <p class="zc-note">{$t('zoneConfig.fixedVolumeNetElsewhere')}</p>
+      {/if}
+    </div>
+
     <div class="modal-section">
       <h3 class="section-title">{$t('zoneConfig.monoTitle')}</h3>
       <p class="section-desc">{$t('zoneConfig.monoDesc')}</p>
@@ -949,6 +1098,26 @@
     display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
   }
   .ir-file-input { display: none; }
+  /* 🔴 #920 — des classes PROPRES à cette section. Le premier jet réutilisait
+     `.mono-toggle` et `.mono-note` de la section voisine : la garde de #2362,
+     qui cherche ces classes pour vérifier la sortie mono, tombait sur MES
+     contrôles — sept épreuves rouges, toutes justes. Deux sections qui
+     partagent un sélecteur ne sont plus distinguables par personne, ni par un
+     test ni par une feuille de style. */
+  .zc-toggle { display: flex; align-items: center; gap: 9px; margin: 10px 0 4px;
+    font-size: 0.92rem; color: var(--tune-text); cursor: pointer; }
+  .zc-toggle input { cursor: pointer; }
+  .zc-note { font-size: 0.82rem; color: var(--tune-text-secondary); margin: 6px 0 0; }
+
+  /* #920 — une ligne « libellé + sélecteur », pour le mode DSD. */
+  .zc-ligne { display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin: 10px 0 4px; }
+  .zc-label { font-size: 0.9rem; color: var(--tune-text-secondary); }
+  .zc-select { font: inherit; color: var(--tune-text); background: var(--tune-surface);
+    border: 1px solid var(--tune-border); border-radius: 8px; padding: 5px 9px; cursor: pointer; }
+  .zc-select:hover { border-color: var(--tune-accent); }
+  .zc-select:disabled { opacity: .5; cursor: default; }
+
   .mono-toggle {
     display: flex; align-items: flex-start; gap: 8px;
     font-family: var(--font-body); font-size: 13px;

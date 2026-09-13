@@ -47,6 +47,7 @@
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
   import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
+  import { optionsAleatoire } from '../../lib/porteeAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -1179,7 +1180,13 @@
     shuffling = true;
     try {
       if (depot) await aleatoireDistant(zid);
-      else await api.shuffleAll(zid, q.trim() ? { search_query: q.trim() } : undefined);
+      // 🔴 #882 — la PASTILLE DE RÉPERTOIRE n'était pas transmise. Marco Polo
+      // (fil 1614) : « la lecture aléatoire prend sa source dans toute la
+      // bibliothèque ; si je passe à l'ancienne interface, elle fonctionne ».
+      // La portée était pourtant là — `dossierPortee` filtre déjà l'affichage
+      // — elle n'arrivait simplement pas jusqu'au serveur. La règle est
+      // partagée avec l'écran actuel pour que les deux ne redivergent pas.
+      else await api.shuffleAll(zid, optionsAleatoire({ dossier: dossierPortee, recherche: q }));
     }
     catch { /* le serveur signale déjà l'échec */ }
     shuffling = false;
