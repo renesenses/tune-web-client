@@ -17,6 +17,7 @@
   import { queueTracks, queuePosition } from '../lib/stores/queue';
   import { currentProfileId } from '../lib/stores/profile';
   import * as api from '../lib/api';
+  import { optionsAleatoire } from '../lib/porteeAleatoire';
   import { notifications } from '../lib/stores/notifications';
   import { groupCreditsByRole, uniqueInstruments } from '../lib/library/credits';
   import { bioDisplayText } from '../lib/library/bio';
@@ -36,6 +37,9 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import type { Album, Artist, Track, TrackCredit, UserTag } from '../lib/types';
   import { t as tr, locale } from '../lib/i18n';
+  // #914 — l'infobulle ne s'affiche que si le texte DÉBORDE vraiment,
+  // et suit les changements de taille et de contenu (`lib/infobulleTexte`).
+  import { bulleTexte } from '../lib/infobulleTexte';
   import { streamingServices, activeStreamingService, pendingStreamingAlbum } from '../lib/stores/streaming';
   import { get } from 'svelte/store';
   import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
@@ -2199,11 +2203,13 @@ import CollapsibleSection from './CollapsibleSection.svelte';
       // Sans ce champ, `opts` restait VIDE dans le cas de Marco Polo (un
       // répertoire, ni recherche ni genre) : l'appel partait avec `undefined`
       // et le serveur tirait dans toute la bibliothèque.
-      const opts: { search_query?: string; genre?: string; folder?: string } = {};
-      if (scopedFolder) opts.folder = scopedFolder;
-      if (searchQuery.trim()) opts.search_query = searchQuery.trim();
-      else if (selectedGenre && !scopedFolder) opts.genre = selectedGenre;
-      const result = await api.shuffleAll(zone.id, Object.keys(opts).length ? opts : undefined);
+      // #882 — la règle vit dans `lib/porteeAleatoire`, partagée avec la
+      // nouvelle coquille : elle n'y transmettait PAS le répertoire, et les
+      // deux écrans avaient donc deux comportements pour le même bouton.
+      const opts = optionsAleatoire({
+        dossier: scopedFolder, recherche: searchQuery, genre: selectedGenre,
+      });
+      const result = await api.shuffleAll(zone.id, opts);
       notifications.success($tr('library.shufflePlaying').replace('{count}', String(result.track_count)));
     } catch (e) {
       console.error('Shuffle all error:', e);
@@ -2957,7 +2963,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                           <button class="version-tuile" onclick={(e) => { e.stopPropagation(); if (v.track_id) playTrack(v.track_id); }} title={v.album_title ?? ''}>
                             <AlbumArt coverPath={v.cover_path} albumId={v.album_id} size={48} alt={v.album_title ?? ''} />
                             <span class="version-tuile-texte">
-                              <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
+                              <span class="version-tuile-titre truncate" use:bulleTexte>{v.album_title ?? ''}</span>
                               <span class="version-tuile-sub">
                                 {#if v.duration_ms}{formatTime(v.duration_ms)}{/if}
                               </span>
@@ -2974,7 +2980,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                           >
                             <AlbumArt coverPath={v.cover_path} size={48} alt={v.album_title ?? v.title} />
                             <span class="version-tuile-texte">
-                              <span class="version-tuile-titre truncate">{v.kind === 'reprise' ? (v.artist_name ?? v.title) : (v.album_title ?? v.title)}</span>
+                              <span class="version-tuile-titre truncate" use:bulleTexte>{v.kind === 'reprise' ? (v.artist_name ?? v.title) : (v.album_title ?? v.title)}</span>
                               <span class="version-tuile-sub">
                                 <ServiceBadge source={v.service} compact />
                               </span>
@@ -3103,7 +3109,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                         <button class="version-tuile" onclick={(e) => { e.stopPropagation(); if (v.track_id) playTrack(v.track_id); }} title={v.album_title ?? ''}>
                           <AlbumArt coverPath={v.cover_path} albumId={v.album_id} size={48} alt={v.album_title ?? ''} />
                           <span class="version-tuile-texte">
-                            <span class="version-tuile-titre truncate">{v.album_title ?? ''}</span>
+                            <span class="version-tuile-titre truncate" use:bulleTexte>{v.album_title ?? ''}</span>
                             <span class="version-tuile-sub">
                               {#if v.duration_ms}{formatTime(v.duration_ms)}{/if}
                             </span>
@@ -3120,7 +3126,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                         >
                           <AlbumArt coverPath={v.cover_path} size={48} alt={v.album_title ?? v.title} />
                           <span class="version-tuile-texte">
-                            <span class="version-tuile-titre truncate">{v.kind === 'reprise' ? (v.artist_name ?? v.title) : (v.album_title ?? v.title)}</span>
+                            <span class="version-tuile-titre truncate" use:bulleTexte>{v.kind === 'reprise' ? (v.artist_name ?? v.title) : (v.album_title ?? v.title)}</span>
                             <span class="version-tuile-sub">
                               <ServiceBadge source={v.service} compact />
                             </span>
@@ -3815,7 +3821,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               <span class="track-thumb"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? ''} /></span>
               <div class="track-info" title={t.file_path ?? ''}>
                 <span class="track-title truncate" title={t.title}>{t.title}</span>
-                <span class="track-meta truncate">{#if t.artist_name}<button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.artist_id) selectArtistDetail({ id: t.artist_id, name: t.artist_name! }); }}>{t.artist_name}</button>{/if}{#if t.album_title}<span class="track-sep"> — </span><button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.album_id) selectAlbumDetail({ id: t.album_id, title: t.album_title!, artist_name: t.artist_name } as Album); }}>{t.album_title}</button>{/if}</span>
+                <span class="track-meta truncate" use:bulleTexte>{#if t.artist_name}<button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.artist_id) selectArtistDetail({ id: t.artist_id, name: t.artist_name! }); }}>{t.artist_name}</button>{/if}{#if t.album_title}<span class="track-sep"> — </span><button class="track-link" onclick={(e) => { e.stopPropagation(); if (t.album_id) selectAlbumDetail({ id: t.album_id, title: t.album_title!, artist_name: t.artist_name } as Album); }}>{t.album_title}</button>{/if}</span>
                 <MetadataChips track={t} fields={$displayFields} />
               </div>
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
@@ -4075,7 +4081,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
                 </div>
                 <span class="album-card-title truncate" title={a.title ?? ''}>{a.title ?? ''}</span>
                 {#if a.album_artist}
-                  <span class="album-card-artist truncate">{a.album_artist}</span>
+                  <span class="album-card-artist truncate" use:bulleTexte>{a.album_artist}</span>
                 {/if}
               </div>
             {/each}
@@ -4145,7 +4151,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
               </div>
               <span class="album-card-title truncate" title={a.title ?? ''}>{a.title ?? ''}</span>
               {#if a.artist_name}
-                <span class="album-card-artist truncate">{a.artist_name}</span>
+                <span class="album-card-artist truncate" use:bulleTexte>{a.artist_name}</span>
               {/if}
             </div>
           {/each}

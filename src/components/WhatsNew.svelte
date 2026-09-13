@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { t } from '../lib/i18n';
+  import { locale, t } from '../lib/i18n';
+  import { get } from 'svelte/store';
   import * as api from '../lib/api';
 
   interface Props {
@@ -26,16 +27,35 @@
    * cours — une affirmation fausse, là où un panneau vide n'affirmait rien.
    */
   let offline = $state(false);
+  /**
+   * 🔴 #906 — les notes SONT-ELLES traduites ?
+   *
+   * Levente Toth, fil 1436 : « the What's New section also displays in FR —
+   * Tune's language setting is EN ». Le panneau demandait ses notes SANS
+   * langue, et le serveur retombait donc sur le français.
+   *
+   * Mesuré le 12/09/2026 sur la .18 en v0.9.147 : la route honore `?lang=` ET
+   * `Accept-Language`, et chaque entrée porte `lang` plus un booléen
+   * `fallback` — « je te donne le français faute de mieux ». Le client ne
+   * lisait ni l'un ni l'autre.
+   *
+   * On demande la langue, et quand le serveur annonce un repli on le DIT :
+   * une note en français chez un anglophone se lit comme un défaut tant que
+   * rien ne l'explique.
+   */
+  let notesNonTraduites = $state(false);
 
   $effect(() => {
     Promise.all([
       api.checkForUpdate().then((r) => { serverVersion = r?.current_version ?? null; }).catch(() => {}),
-      fetch(`/api/v1/system/changelog?limit=10`)
+      fetch(`/api/v1/system/changelog?limit=10&lang=${encodeURIComponent(get(locale))}`)
         .then(r => r.ok ? r.json() : Promise.reject('not ok'))
         .then((data: any) => {
           offline = data?.offline === true;
           const entries = data?.entries ?? data;
           if (!Array.isArray(entries)) return;
+          // Le serveur le dit entrée par entrée : une seule suffit à prévenir.
+          notesNonTraduites = entries.some((e: any) => e?.fallback === true);
           changelog = entries.map((e: any) => {
             if (e.features || e.fixes || e.improvements) return e;
             const sections = e.sections ?? [];
@@ -110,6 +130,13 @@
           <span>{$t('whatsnew.loading')}</span>
         </div>
       {:else}
+        <!-- 🔴 #906 — le serveur annonce `fallback` quand il n'a pas les notes
+             dans la langue demandée. On le DIT : sans cela, un anglophone lit
+             du français et conclut que le réglage de langue ne marche pas —
+             c'est exactement ce qu'a signalé Levente. -->
+        {#if notesNonTraduites}
+          <p class="whatsnew-fallback">{$t('whatsnew.notTranslated')}</p>
+        {/if}
         {#if offline}
           <p class="whatsnew-offline">{$t('whatsnew.error')}</p>
         {/if}
@@ -189,6 +216,16 @@
 </div>
 
 <style>
+  /* #906 — le bandeau « notes non traduites », plus discret que l'erreur
+     hors ligne : ce n'est pas une panne, c'est une absence de traduction. */
+  .whatsnew-fallback {
+    font-size: 0.82rem;
+    color: var(--tune-text-secondary);
+    border-left: 2px solid var(--tune-border);
+    padding-left: 10px;
+    margin: 0 0 12px;
+  }
+
   .whatsnew-backdrop {
     position: fixed;
     inset: 0;

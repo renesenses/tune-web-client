@@ -19,6 +19,10 @@
   import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import * as api from '../../lib/api';
+  import {
+    peutChoisirPhoto, photoAAfficher, proprietairePourNouvellePhoto,
+    type EtatCompte,
+  } from '../../lib/proprietaireAvatar';
   import { notifications } from '../../lib/stores/notifications';
   import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
   import { profiles, currentProfileId, type Profile } from '../../lib/stores/profile';
@@ -139,6 +143,20 @@
   const identiteCompte = $derived(ssoEmail || ssoName);
 
   /**
+   * 🔴 #893 — l'état du compte, tel que le serveur le décrit.
+   *
+   * `configured` sépare « pas de compte OUVERT » de « pas de compte
+   * POSSIBLE ». Sur un serveur sans nuage — celui des deux demandeurs, fils
+   * 1681 et 1676 — personne ne peut jamais se connecter : refuser la photo
+   * faute de compte revenait à la refuser pour toujours.
+   */
+  const etatCompte = $derived<EtatCompte>({
+    configured: ssoConfigured,
+    connected: ssoConnected,
+    identite: identiteCompte,
+  });
+
+  /**
    * 🔴 La photo n'est montrée QUE si elle appartient au compte ouvert.
    *
    * Les préférences sont rangées par installation, pas par compte. Sans ce
@@ -148,9 +166,10 @@
    * déconnecter rend le dégradé ; se reconnecter rend la photo.
    */
   const photoLocale = $derived(
-    ssoConnected && identiteCompte && $preferences.avatarCompte === identiteCompte
-      ? $preferences.avatarImage
-      : '',
+    photoAAfficher(etatCompte, {
+      image: $preferences.avatarImage ?? '',
+      compte: $preferences.avatarCompte ?? '',
+    }),
   );
   const photo = $derived((photoLocaleCassee ? '' : photoLocale) || ssoAvatar);
 
@@ -169,7 +188,9 @@
    * juste en dessous, dans le même panneau.
    */
   function ouvrirExplorateur() {
-    if (!ssoConnected) {
+    // #893 — le refus ne vaut que si un compte est POSSIBLE. Sans nuage
+    // configuré, la photo est locale et n'appartient à personne.
+    if (peutChoisirPhoto(etatCompte) === 'connexion') {
       notifications.error(get(t)('settings.avatarSignInFirst'));
       return;
     }
@@ -190,7 +211,11 @@
       // La photo et SON propriétaire s'écrivent ensemble : une photo sans
       // compte ne s'afficherait jamais, et un compte sans photo est l'état
       // normal. Les séparer laisserait une fenêtre où l'un existe sans l'autre.
-      preferences.update((p) => ({ ...p, avatarImage: url, avatarCompte: identiteCompte }));
+      // #893 — sans nuage, la photo n'est attachée à personne : elle doit
+      // survivre, puisqu'aucun compte ne viendra jamais la réclamer.
+      preferences.update((p) => ({
+        ...p, avatarImage: url, avatarCompte: proprietairePourNouvellePhoto(etatCompte),
+      }));
       notifications.success(get(t)('settings.avatarSaved'));
     } catch (err) {
       // Le motif du refus est porté par l'exception : on dit QUOI corriger.
