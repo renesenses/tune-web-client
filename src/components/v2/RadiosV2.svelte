@@ -20,6 +20,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { fold } from '../../lib/utils';
+  import { ecrireVue, lireVue, type VueEcran } from '../../lib/vueEcran';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -36,6 +37,37 @@
   let q = $state('');
   let genre = $state<string | null>(null);
   let playingId = $state<number | null>(null);
+
+  /**
+   * 🔴 #863 — « une vue par ligne », demandée par Jean Valjean (fil 1671).
+   *
+   * L'écran ne connaissait qu'une disposition : `.grid`, en
+   * `repeat(auto-fill, minmax(150px, 1fr))`. Sur un catalogue de stations, une
+   * liste est plus dense et se balaie plus vite qu'une grille de vignettes —
+   * c'est la même demande qu'il avait faite pour les Genres deux jours plus
+   * tôt dans ce fil.
+   *
+   * La mécanique vient de `lib/vueEcran`, généralisée depuis `vueZones` :
+   * recopier aurait donné deux implémentations de la même chose, à tenir
+   * d'accord à la main.
+   */
+  let vue = $state<VueEcran>('grille');
+  $effect(() => { vue = lireVue('radios'); });
+  function choisirVue(v: VueEcran) { vue = ecrireVue('radios', v); }
+
+  /**
+   * 🔴 #863 — « un onglet avec ses radios favorites ».
+   *
+   * Les favoris étaient déjà GROUPÉS en tête, mais dans la même page : les
+   * deux sections défilent ensemble, et sur un long catalogue ses favoris
+   * disparaissent vers le haut. Sa demande n'est donc pas « rendez-les
+   * accessibles » mais « séparez-les vraiment ».
+   *
+   * ⚠️ Un onglet qui n'aurait rien à montrer serait pire que pas d'onglet :
+   * `ongletFavoris` ne s'offre que s'il existe au moins une station en
+   * favori, et l'écran retombe sur « toutes » dès que la dernière est retirée.
+   */
+  let ongletFavoris = $state(false);
 
   $effect(() => {
     loading = true; error = null;
@@ -131,6 +163,19 @@
           </button>
         {/if}
       </div>
+      <!-- #863 — le basculeur de vue, au MÊME endroit et avec les mêmes icônes
+           que celui des Zones : deux écrans qui offrent le même choix doivent
+           le proposer pareil. -->
+      <div class="bascule" role="group" aria-label={$t('v2.zones.viewSwitch' as any)}>
+        <button class="v2-btn" class:on={vue === 'grille'} aria-pressed={vue === 'grille'}
+          onclick={() => choisirVue('grille')} title={$t('v2.zones.viewGrid' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        </button>
+        <button class="v2-btn" class:on={vue === 'liste'} aria-pressed={vue === 'liste'}
+          onclick={() => choisirVue('liste')} title={$t('v2.zones.viewList' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
+        </button>
+      </div>
       <button class="v2-btn primaire" onclick={nouvelleStation}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         {$t('v2.radio.create' as any)}
@@ -157,21 +202,28 @@
     {:else if !shown.length}
       <div class="state">{$t('v2.radio.noMatch' as any)}</div>
     {:else}
+      <!-- 🔴 #863 — DEUX ONGLETS, et non plus deux sections qui défilent
+           ensemble. L'onglet « Favoris » ne s'affiche que s'il y en a : un
+           onglet vide serait pire que pas d'onglet. -->
       {#if favorites.length}
-        <section class="sec">
-          <h2>{$t('nav.favorites' as any)}</h2>
-          <div class="grid">
-            {#each favorites as r (r.id)}
-              {@render tile(r)}
-            {/each}
-          </div>
-        </section>
+        <div class="ronglets" role="tablist">
+          <button class="v2-btn" class:on={ongletFavoris} role="tab"
+            aria-selected={ongletFavoris} onclick={() => (ongletFavoris = true)}>
+            {$t('nav.favorites' as any)} <span class="rn">{favorites.length}</span>
+          </button>
+          <button class="v2-btn" class:on={!ongletFavoris} role="tab"
+            aria-selected={!ongletFavoris} onclick={() => (ongletFavoris = false)}>
+            {$t('v2.radio.allStations' as any)} <span class="rn">{shown.length}</span>
+          </button>
+        </div>
       {/if}
-      {#if others.length}
+      {@const liste = favorites.length && ongletFavoris ? favorites : shown}
+      {#if !liste.length}
+        <div class="state">{$t('v2.radio.noMatch' as any)}</div>
+      {:else}
         <section class="sec">
-          {#if favorites.length}<h2>{$t('v2.radio.allStations' as any)}</h2>{/if}
-          <div class="grid">
-            {#each others as r (r.id)}
+          <div class={vue === 'liste' ? 'rlist' : 'grid'}>
+            {#each liste as r (r.id)}
               {@render tile(r)}
             {/each}
           </div>
@@ -227,6 +279,22 @@
 {/snippet}
 
 <style>
+  /* #863 — les onglets Favoris / Toutes, et la vue en liste. */
+  .ronglets{display:flex; gap:8px; padding:0 30px 12px}
+  .ronglets .rn{font:11px var(--v2-mono); opacity:.7; margin-left:5px}
+  .bascule{display:flex; gap:4px}
+  .bascule .v2-btn{padding:6px 9px}
+  .bascule .v2-btn svg{width:15px; height:15px}
+  .bascule .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}
+
+  /* La vue par ligne : une station par rangée, dense et balayable. C'est ce
+     que Jean Valjean demande — « une vue par ligne » — et c'est la grille
+     ramenée à une seule colonne, pour que la vignette reste la MÊME. */
+  .rlist{display:flex; flex-direction:column; gap:6px; padding:0 30px 20px}
+  .rlist :global(.st){display:grid; grid-template-columns:44px 1fr auto;
+    align-items:center; gap:12px}
+  .rlist :global(.st .cv){width:44px; height:44px}
+
   .v2-radios{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
 
