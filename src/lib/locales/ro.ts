@@ -3432,6 +3432,7 @@ export default {
   "v2.svc.wNew": "Noutăți",
   "v2.svc.wFeatured": "În prim-plan",
   "v2.svc.wMine": "Listele mele",
+  "v2.svc.wFavAlbums": "Albume favorite",
   "v2.home.wResume": "Reluați ascultarea",
   "v2.home.wRecentlyAdded": "Adăugate recent",
   "v2.home.wRecentlyPlayed": "Ascultate recent",

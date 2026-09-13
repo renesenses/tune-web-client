@@ -3432,6 +3432,7 @@ export default {
   "v2.svc.wNew": "신보",
   "v2.svc.wFeatured": "추천",
   "v2.svc.wMine": "내 재생목록",
+  "v2.svc.wFavAlbums": "즐겨찾는 앨범",
   "v2.home.wResume": "이어 듣기",
   "v2.home.wRecentlyAdded": "최근 추가",
   "v2.home.wRecentlyPlayed": "최근 재생",

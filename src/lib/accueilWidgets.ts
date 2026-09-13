@@ -93,13 +93,18 @@ export interface Widget {
   /**
    * Ce que la bande contient, quand ça compte pour la disposition par défaut.
    *
+   * `'a-moi'` marque ce qui appartient à l'utilisateur — ses albums favoris,
+   * ses playlists. Ces bandes passent EN TÊTE de la disposition par défaut
+   * (#911, fil 1571) : on ne cherche pas ce qu'on possède déjà au bas d'une
+   * très longue page.
+   *
    * `'playlists-editoriales'` marque une CATÉGORIE de playlists du service —
    * « Hi-Res », « Thématiques », « Humeurs »… Le marqueur est déclaratif
    * exprès : la disposition par défaut les retenait autrement par la forme de
    * leur identifiant (`${service}-tag-${gid}`), ce qui aurait cassé au premier
    * renommage d'identifiant sans qu'aucun test ne le voie.
    */
-  categorie?: 'playlists-editoriales';
+  categorie?: 'playlists-editoriales' | 'a-moi';
 }
 
 export interface Contexte {

@@ -3432,6 +3432,7 @@ export default {
   "v2.svc.wNew": "新着",
   "v2.svc.wFeatured": "注目",
   "v2.svc.wMine": "自分のプレイリスト",
+  "v2.svc.wFavAlbums": "お気に入りのアルバム",
   "v2.home.wResume": "続きから聴く",
   "v2.home.wRecentlyAdded": "最近追加",
   "v2.home.wRecentlyPlayed": "最近再生",

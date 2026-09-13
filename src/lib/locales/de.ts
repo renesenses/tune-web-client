@@ -3432,6 +3432,7 @@ export default {
   "v2.svc.wNew": "Neuerscheinungen",
   "v2.svc.wFeatured": "Empfohlen",
   "v2.svc.wMine": "Meine Playlists",
+  "v2.svc.wFavAlbums": "Lieblingsalben",
   "v2.home.wResume": "Weiterhören",
   "v2.home.wRecentlyAdded": "Kürzlich hinzugefügt",
   "v2.home.wRecentlyPlayed": "Kürzlich gehört",

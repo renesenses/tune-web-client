@@ -3431,6 +3431,7 @@ export default {
   "v2.svc.wNew": "Nyheter",
   "v2.svc.wFeatured": "Utvalda",
   "v2.svc.wMine": "Mina spellistor",
+  "v2.svc.wFavAlbums": "Favoritalbum",
   "v2.home.wResume": "Fortsätt lyssna",
   "v2.home.wRecentlyAdded": "Nyligen tillagda",
   "v2.home.wRecentlyPlayed": "Nyligen spelade",

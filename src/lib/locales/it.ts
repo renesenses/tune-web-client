@@ -3432,6 +3432,7 @@ export default {
   "v2.svc.wNew": "Novità",
   "v2.svc.wFeatured": "In evidenza",
   "v2.svc.wMine": "Le mie playlist",
+  "v2.svc.wFavAlbums": "Album preferiti",
   "v2.home.wResume": "Riprendi l'ascolto",
   "v2.home.wRecentlyAdded": "Aggiunti di recente",
   "v2.home.wRecentlyPlayed": "Ascoltati di recente",
