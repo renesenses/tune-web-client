@@ -1368,6 +1368,7 @@ export default {
   'whatsnew.noNotes': 'Nu există note de lansare disponibile.',
   'whatsnew.loading': 'Se încarcă notele de lansare...',
   'whatsnew.error': 'Încărcarea notelor de lansare a eșuat.',
+  "whatsnew.notTranslated": "Aceste note nu sunt încă traduse: sunt afişate în franceză.",
   'whatsnew.newFeatures': 'Funcții noi',
   'whatsnew.fixes': 'Remedieri de erori',
   'whatsnew.improvements': 'Îmbunătățiri',

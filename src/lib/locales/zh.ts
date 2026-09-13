@@ -1358,6 +1358,7 @@ export default {
   'whatsnew.noNotes': '暂无版本说明。',
   'whatsnew.loading': '加载版本说明中...',
   'whatsnew.error': '无法加载版本说明。',
+  "whatsnew.notTranslated": "这些版本说明尚未翻译，以法语显示。",
   'whatsnew.newFeatures': '新功能',
   'whatsnew.fixes': '修复',
   'whatsnew.improvements': '改进',
