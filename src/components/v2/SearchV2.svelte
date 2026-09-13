@@ -20,6 +20,8 @@
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import { doitViderLePerimetre } from '../../lib/perimetreRecherche';
   import { activeView, pendingLibraryArtist, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { ficheArtisteService } from '../../lib/stores/streaming';
   import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
@@ -138,10 +140,55 @@
   let serviceOuvert = $state<string | null>(null);
 
   /** Ouvrir la fiche d'un album, local ou de service. */
+  /**
+   * 🔴 LA FICHE EMPILE UNE ENTRÉE D'HISTORIQUE — #980.
+   *
+   * Fabien, fil « v0.9.147 : v1 divers bugs », point 1 : « Menu recherche,
+   * après une recherche et page de résultat, quand on clique sur un album →
+   * page album, le bouton "BACK" du navigateur retourne à la page d'accueil et
+   * non à la page de résultats. »
+   *
+   * La fiche est un CALQUE : ouvrir ne changeait pas `activeView`, donc la
+   * coquille n'écrivait rien. Le Précédent dépilait alors l'entrée d'avant —
+   * l'écran d'où l'on était venu à la Recherche, l'accueil dans son cas.
+   *
+   * `ArtistesV2` tenait déjà cette règle pour sa fiche artiste (#828/#3843) ;
+   * la Recherche ne l'avait jamais reprise. On POSE la clé, pas l'objet :
+   * `a` est un proxy `$state` et `history.state` refuse les proxies — voir
+   * l'en-tête de `lib/historiqueCoquille.ts`.
+   */
   function ouvrirFiche(a: any) {
+    const cle = cleDetailAlbum(a);
+    if (cle) ouvrirDetail(cle);
     opened = a;
     serviceOuvert = estLocal(a) ? null : (a.source ?? null);
   }
+
+  /**
+   * Le Retour de la fiche : on REFERME et on DÉPILE, d'un seul geste.
+   *
+   * Refermer sans dépiler laisserait la pile du navigateur un cran plus haut
+   * que le chemin parcouru, et le Précédent suivant ne ferait « rien » une
+   * fois de trop. C'est le contrat de `fermerDetailEnReculant`, déjà tracé et
+   * testé pour la fiche artiste.
+   */
+  function fermerLaFiche() {
+    opened = null;
+    serviceOuvert = null;
+  }
+
+  function retourFiche() {
+    fermerDetailEnReculant(fermerLaFiche);
+  }
+
+  /**
+   * Le Précédent du navigateur a dépilé l'entrée de la fiche : la coquille vide
+   * `detailOuvert`, et le calque doit suivre. Sans cela le Précédent ne
+   * refermerait rien — l'écran resterait sur la fiche, entrée en moins.
+   */
+  $effect(() => {
+    if ($detailOuvert == null && opened) fermerLaFiche();
+  });
   /**
    * Édition depuis les résultats. Le crayon existait dans Bibliothèque et pas
    * ici : le même disque changeait de gestes selon l'écran par lequel on
@@ -926,7 +973,7 @@
     <AlbumDetailV2
       album={opened}
       service={serviceOuvert}
-      onClose={() => { opened = null; serviceOuvert = null; }}
+      onClose={retourFiche}
     />
   {/if}
 
