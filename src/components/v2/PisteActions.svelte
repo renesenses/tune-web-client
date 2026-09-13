@@ -90,6 +90,10 @@
    *  import. C'est ce que fait déjà `PochetteActions` pour les étiquettes. */
   let modalePlaylist = $state(false);
   let panneauEtiquettes = $state(false);
+  /** Le tiroir « Tous les champs piste » — #851. Chargé à la demande, comme
+   *  les deux panneaux voisins : il tire `getTrackAllTags` et sa grille de
+   *  champs, que la plupart des lignes n'ouvriront jamais. */
+  let tiroirChamps = $state(false);
   let panneauVersions = $state(false);
   /** L'ancre du menu « … » : sa position ÉCRAN, relevée au clic. */
   let ancreMenu = $state<DOMRect | null>(null);
@@ -315,6 +319,7 @@
         allerArtiste,
         allerAlbum,
         etiqueter: () => (panneauEtiquettes = true),
+        champsDuFichier: () => (tiroirChamps = true),
       },
     ),
   );
@@ -413,6 +418,15 @@
   {#await import('./EtiquettesPanneau.svelte') then m}
     <m.default itemType="track" itemId={piste.id} nom={piste.title}
       onClose={() => (panneauEtiquettes = false)} />
+  {/await}
+{/if}
+
+<!-- #851 — le tiroir des champs du fichier, jusqu'ici atteignable seulement
+     par pochette → Modifier l'album → cliquer une piste. Il vit hors de `v2/` :
+     c'est le MÊME que le client actuel, pas une copie. -->
+{#if tiroirChamps && piste.id != null}
+  {#await import('../TrackTagsDrawer.svelte') then m}
+    <m.default trackId={piste.id} onClose={() => (tiroirChamps = false)} />
   {/await}
 {/if}
 

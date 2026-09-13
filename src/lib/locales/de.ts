@@ -3423,6 +3423,8 @@ export default {
   "v2.home.add": "Widget hinzufügen",
   "v2.home.remove": "Dieses Widget entfernen",
   "v2.home.move": "Dieses Widget verschieben",
+  "v2.home.editTip": "Widgets hinzufügen, entfernen oder neu anordnen",
+  "v2.home.editHint": "Ziehen Sie den Griff, um ein Widget neu anzuordnen, oder klicken Sie auf das Kreuz, um es zu entfernen.",
   "v2.home.allAdded": "Alle Widgets sind bereits auf Ihrer Seite.",
   "v2.home.emptyHint": "Ihre Seite ist leer. Wechseln Sie zu „Bearbeiten“, um Widgets hinzuzufügen.",
   "v2.home.widgetEmpty": "Hier gibt es derzeit nichts zu zeigen.",

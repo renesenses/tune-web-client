@@ -3423,6 +3423,8 @@ export default {
   "v2.home.add": "Aggiungi un widget",
   "v2.home.remove": "Rimuovi questo widget",
   "v2.home.move": "Sposta questo widget",
+  "v2.home.editTip": "Aggiungere, rimuovere o riordinare i widget",
+  "v2.home.editHint": "Trascina la maniglia per riordinare un widget, oppure fai clic sulla croce per rimuoverlo.",
   "v2.home.allAdded": "Tutti i widget sono già sulla tua pagina.",
   "v2.home.emptyHint": "La tua pagina è vuota. Passa a «Modifica» per aggiungere widget.",
   "v2.home.widgetEmpty": "Per ora non c'è nulla da mostrare qui.",
