@@ -90,6 +90,14 @@ export function zoneTypeLabel(type?: OutputType | null): string {
       return 'Squeezebox';
     case 'browser':
       return 'Browser';
+    /**
+     * 🔴 EN CAPITALES — Bertrand, 13/09/2026 : « oaat à remplacer par OAAT
+     * pour Tune Endpoint dans les zones ». C'est un sigle, comme DLNA : il
+     * n'était nulle part, et la carte affichait la valeur brute du serveur,
+     * en minuscules, au milieu de « DLNA » et « AirPlay ».
+     */
+    case 'oaat':
+      return 'OAAT';
     case 'local':
       return '';
     default:
