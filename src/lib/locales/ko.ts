@@ -3319,6 +3319,7 @@ export default {
   "settings.homebrewFailed": "Homebrew 업데이트가 “{etape}” 단계에서 실패했습니다. 터미널에서 실행하세요:",
   // v2 — 2026-09-04에 추가한 번역 (로케일 정합)
   "v2.col.noneInTab": "이런 종류의 컬렉션이 없습니다.",
+  "v2.col.deleteAsk": "컬렉션 “{nom}”을(를) 삭제할까요? 포함된 앨범은 영향을 받지 않습니다.",
   "common.open": "열기",
   "v2.edit.collection": "컬렉션 편집",
   "v2.edit.name": "이름",

@@ -3319,6 +3319,7 @@ export default {
   "settings.homebrewFailed": "Actualizarea Homebrew a eșuat la pasul „{etape}”. Rulați-o într-un terminal:",
   // v2 — traduceri adăugate la 04/09/2026 (paritatea limbilor)
   "v2.col.noneInTab": "Nicio colecție de acest tip.",
+  "v2.col.deleteAsk": "Ștergeți colecția „{nom}”? Albumurile pe care le conține nu sunt afectate.",
   "common.open": "Deschide",
   "v2.edit.collection": "Modifică colecția",
   "v2.edit.name": "Nume",

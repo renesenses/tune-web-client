@@ -3319,6 +3319,7 @@ export default {
   "settings.homebrewFailed": "Homebrew の更新が「{etape}」の段階で失敗しました。ターミナルで実行してください:",
   // v2 — 2026/09/04 に追加した翻訳（ロケールの整合）
   "v2.col.noneInTab": "この種類のコレクションはありません。",
+  "v2.col.deleteAsk": "コレクション「{nom}」を削除しますか？ 含まれるアルバムは影響を受けません。",
   "common.open": "開く",
   "v2.edit.collection": "コレクションを編集",
   "v2.edit.name": "名前",

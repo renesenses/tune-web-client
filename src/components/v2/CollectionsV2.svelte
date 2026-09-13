@@ -36,6 +36,7 @@
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { quatreDistinctes } from '../../lib/mosaique';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -145,6 +146,51 @@
   let ouverte = $state<Entree | null>(null);
   /** Collection en cours de renommage — le bouton haut-droit de la pochette. */
   let enEdition = $state<Entree | null>(null);
+
+  /**
+   * SUPPRIMER une collection — #981.
+   *
+   * Fabien, fil « v0.9.147 : v1 divers bugs », point 4 : « Je ne vois aucun
+   * bouton "Supprimer" une collection ? » Il ne le voyait pas : il n'existait
+   * pas. `grep -in "supprimer\|delete" CollectionsV2.svelte` rendait ZÉRO,
+   * alors que l'ancienne interface porte une corbeille par carte depuis
+   * toujours (`CollectionsView.handleDelete`).
+   *
+   * ## Deux sortes, deux routes
+   *
+   * Leurs identifiants se RECOUVRENT — l'id 1 est à la fois la collection
+   * « favorites » et l'intelligente « Audiophile » sur le serveur de Bertrand.
+   * C'est le même piège que les étiquettes de la carte, et il est déjà
+   * commenté dix lignes plus bas : appeler la mauvaise route supprimerait une
+   * autre collection que celle qu'on vise.
+   *
+   * ## Elle est DERRIÈRE le menu, et derrière une confirmation
+   *
+   * Pas d'icône de corbeille sur la vignette : c'est la règle que `ZonesV2`
+   * pose déjà pour ses cartes — « une carte qu'on clique pour activer ne doit
+   * pas porter une corbeille à portée de pouce ». Le menu d'actions de
+   * `PochetteActions` sait teinter une entrée `danger`, et il est fait pour ça.
+   *
+   * 🔴 `dialogs.confirm`, jamais `window.confirm` : les dialogues natifs ne
+   * s'affichent pas dans les vues web embarquées. L'ancienne interface, elle,
+   * supprimait SANS rien demander.
+   */
+  async function supprimerCollection(e: Entree) {
+    const question = $t('v2.col.deleteAsk' as any).replace('{nom}', e.nom ?? '');
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
+    try {
+      if (e.sorte === 'smart') await api.deleteSmartCollection(e.id);
+      else await api.deleteCollection(e.id);
+      // Retirée de la liste sur la PAIRE (sorte, id), pour la même raison que
+      // la clé de boucle : l'id seul viserait les deux sortes.
+      entrees = entrees.filter((x) => !(x.sorte === e.sorte && x.id === e.id));
+      if (ouverte && ouverte.sorte === e.sorte && ouverte.id === e.id) ouverte = null;
+      notifications.success($t('collections.deleted' as any));
+    } catch (err) {
+      console.error('Delete collection error:', err);
+      notifications.error($t('collections.deleteError' as any));
+    }
+  }
 
   /**
    * Ouvrir l'édition d'une collection, quelle que soit sa sorte.
@@ -616,6 +662,11 @@
                 onEditer={() => editerCollection(e)}
                 onLire={() => lireCollection(e)}
                 onOuvrir={() => ouvrir(e)}
+                menu={[{
+                  libelle: $t('common.delete' as any),
+                  danger: true,
+                  faire: () => void supprimerCollection(e),
+                }]}
                 nom={e.nom}
               >
                 <!-- Mosaïque ou pochette UNIQUE, au choix (Réglages →

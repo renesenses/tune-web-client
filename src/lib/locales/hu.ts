@@ -3277,6 +3277,7 @@ export default {
   "settings.homebrewFailed": "A Homebrew-frissítés a(z) „{etape}” lépésnél meghiúsult. Futtasd egy terminálban:",
   // v2 — 2026.09.04-én hozzáadott fordítások (nyelvi paritás)
   "v2.col.noneInTab": "Nincs ilyen típusú gyűjtemény.",
+  "v2.col.deleteAsk": "Törli a(z) „{nom}” gyűjteményt? A benne lévő albumok nem változnak.",
   "common.open": "Megnyitás",
   "v2.edit.collection": "Gyűjtemény szerkesztése",
   "v2.edit.name": "Név",

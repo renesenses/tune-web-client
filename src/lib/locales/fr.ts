@@ -2072,6 +2072,7 @@ export default {
   "settings.levelIntermediate": "Intermédiaire",
   "settings.levelExpert": "Expert",
   "v2.col.noneInTab": "Aucune collection de ce type.",
+  "v2.col.deleteAsk": "Supprimer la collection « {nom} » ? Les albums qu’elle contient ne sont pas touchés.",
   "common.open": "Ouvrir",
   "v2.edit.collection": "Modifier la collection",
   "v2.edit.name": "Nom",
