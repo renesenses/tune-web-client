@@ -1754,40 +1754,6 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                 {$t('artist.credits')}
               </button>
-              {#if showCredits}
-                {#if npCredits.length > 0}
-                  <div class="np-credits">
-                    {#each sortedRoleEntries(npCredits) as [role, credits]}
-                      <div class="np-credits-group">
-                        <span class="np-credits-role">{formatRole(role)}</span>
-                        <div class="np-credits-names">
-                          {#each credits ?? [] as c}
-                            <button
-                              class="np-credit-chip"
-                              class:linkable={!!c.artist_id}
-                              disabled={!c.artist_id}
-                              onclick={() => navigateToArtist(c.artist_id ?? undefined, c.artist_name)}
-                            >
-                              {c.artist_name}{#if c.instrument}<span class="np-credit-instr">{c.instrument}</span>{/if}
-                            </button>
-                          {/each}
-                        </div>
-                      </div>
-                    {/each}
-                  </div>
-                {:else}
-                  <div class="np-credits-empty">
-                    <div class="np-credits-empty-title">{$t('credits.empty.title')}</div>
-                    <button
-                      class="np-credits-empty-cta"
-                      onclick={enrichCurrentTrackCredits}
-                      disabled={creditsEnriching}
-                    >
-                      {creditsEnriching ? $t('credits.enrich.in_progress') : $t('credits.empty.cta_enrich')}
-                    </button>
-                  </div>
-                {/if}
-              {/if}
               <button class="np-credits-btn" class:active={showLyrics} onclick={() => { showLyrics = !showLyrics; showCredits = false; showEq = false; if (!showLyrics) karaokeMode = false; if (showLyrics) loadLyricsFor(displayTrack); }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
                 {$t('nowplaying.lyrics')}
@@ -1848,6 +1814,63 @@
               {$t('nowplaying.alarm')}
             </button>
           </div>
+          <!-- 🔴 LE PANNEAU DES CRÉDITS VIT HORS DE LA RANGÉE — #975.
+
+               Deux testeurs, le même jour. Fabien, fil « v0.9.147 : v1 divers
+               bugs », point 16 ; Alex Campbell, capture à l'appui.
+
+               Fabien : « Quand j'ai cliqué sur la boîte "Crédits", une nouvelle
+               boîte À CÔTÉ de crédits est apparue mais trop peu large et est donc
+               illisible. » Alex, le même jour : « When clicking on Credits it opens
+               an unmanageable window. »
+
+               `.np-extra-btns` est une RANGÉE flex. Le panneau y était un item
+               comme les autres, coincé entre le bouton « Crédits » et le bouton
+               « Paroles », et `flex-shrink` le réduisait à la place qui restait —
+               d'où la lamelle verticale de la capture, où « ARTIST / F.S. Blumm /
+               Nils Frahm » se lit une lettre à la fois.
+
+               Il rejoint donc `np-alarm-panel`, juste en dessous, qui tient déjà
+               cette règle : les BOUTONS dans la rangée, les PANNEAUX sous elle.
+               La condition de piste est REPRISE ici : le bloc était imbriqué dans
+               celle du groupe crédits/paroles, et l'en sortir sans elle
+               afficherait des crédits sur une radio — qui n'a pas d'identifiant
+               de bibliothèque, et pour laquelle `getTrackCredits` n'a rien à
+               demander. -->
+          {#if showCredits && !isRadio && normalizedTrack?.id != null}
+            {#if npCredits.length > 0}
+              <div class="np-credits">
+                {#each sortedRoleEntries(npCredits) as [role, credits]}
+                  <div class="np-credits-group">
+                    <span class="np-credits-role">{formatRole(role)}</span>
+                    <div class="np-credits-names">
+                      {#each credits ?? [] as c}
+                        <button
+                          class="np-credit-chip"
+                          class:linkable={!!c.artist_id}
+                          disabled={!c.artist_id}
+                          onclick={() => navigateToArtist(c.artist_id ?? undefined, c.artist_name)}
+                        >
+                          {c.artist_name}{#if c.instrument}<span class="np-credit-instr">{c.instrument}</span>{/if}
+                        </button>
+                      {/each}
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <div class="np-credits-empty">
+                <div class="np-credits-empty-title">{$t('credits.empty.title')}</div>
+                <button
+                  class="np-credits-empty-cta"
+                  onclick={enrichCurrentTrackCredits}
+                  disabled={creditsEnriching}
+                >
+                  {creditsEnriching ? $t('credits.enrich.in_progress') : $t('credits.empty.cta_enrich')}
+                </button>
+              </div>
+            {/if}
+          {/if}
           <!-- Le panneau du réveil garde sa propre condition, `showAlarm`, et
                elle seule : le bouton qui l'ouvre n'est plus gardé par la piste,
                laisser le panneau l'être aurait rendu ce bouton sans effet sur
