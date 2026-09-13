@@ -527,8 +527,19 @@
                   <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} source={source} fallbackInitials={pl.name?.slice(0,1)} />
                 </PochetteActions>
               </span>
-              <span class="ct" title={pl.name}>{pl.name}</span>
-              <span class="ca" title={`${pl.track_count} titres${pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}`}>{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
+              <!-- 🔴 Le titre d'une playlist de SERVICE n'a jamais été
+                   cliquable : ces deux lignes étaient des `<span>` nus, alors
+                   que la carte locale, dix lignes plus bas, les enveloppe dans
+                   un `<button class="meta">` qui ouvre. Bertrand, 13/09/2026 :
+                   « Impossible d'ouvrir une playlist Qobuz ni en cliquant sur
+                   la cover ni sur le titre. »
+                   Le serveur n'y est pour rien — `/streaming/qobuz/playlists/
+                   {id}/tracks` répond 200 avec ses pistes. C'est le seul
+                   endroit de l'écran où le titre ne menait nulle part. -->
+              <button class="meta" onclick={() => ouvrirPl({ kind: 'streaming', service: source, pl })}>
+                <span class="ct" title={pl.name}>{pl.name}</span>
+                <span class="ca" title={`${pl.track_count} titres${pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}`}>{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
+              </button>
             </div>
           {/each}
         </div>
