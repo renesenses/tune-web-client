@@ -3422,6 +3422,8 @@ export default {
   "v2.home.add": "Lägg till en widget",
   "v2.home.remove": "Ta bort den här widgeten",
   "v2.home.move": "Flytta den här widgeten",
+  "v2.home.editTip": "Lägg till, ta bort eller ordna om widgetar",
+  "v2.home.editHint": "Dra i handtaget för att ordna om en widget, eller klicka på krysset för att ta bort den.",
   "v2.home.allAdded": "Alla widgetar finns redan på din sida.",
   "v2.home.emptyHint": "Din sida är tom. Växla till ”Redigera” för att lägga till widgetar.",
   "v2.home.widgetEmpty": "Inget att visa här för tillfället.",
