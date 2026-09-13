@@ -62,12 +62,15 @@ import { handleAudioLevelsEvent } from './stores/audioLevels';
 import { notifications } from './stores/notifications';
 import { t } from './i18n';
 import { signalerErreurServeur } from './echecLecture';
+import { playbackHistory } from './stores/history';
+import { noterSiDebutDEcoute } from './historiqueEcoutes';
 import {
   seekPositionMs,
   startSeekTimer,
   stopSeekTimer,
   repeatMode,
   shuffleEnabled,
+  nowPlayingToTrack,
 } from './stores/nowPlaying';
 import { mergeTransport, type TransportState } from './transportSync';
 
@@ -364,7 +367,37 @@ export function demarrerTransportV2(): () => void {
       if (zid != null && (type === 'playback.started' || type === 'playback.track_changed')) {
         playPendingUntil.delete(zid);
       }
-      void rechargerZones();
+      void rechargerZones().then(() => {
+        /**
+         * 🔴 #889 — L'HISTORIQUE LOCAL, QUE CETTE COQUILLE N'ÉCRIVAIT PAS.
+         *
+         * Reivax66, fil « Historique radio », 08/09/2026 : « Les morceaux
+         * écoutés avec les radios live ne figurent plus dans l'historique
+         * depuis le 06/09/2026. »
+         *
+         * L'écran fusionne le serveur et le magasin local. Le serveur n'écrit
+         * pas la radio — une écoute y est indexée sur un identifiant de
+         * `tracks`, qu'un titre de radio n'a pas. La radio ne tenait donc QUE
+         * par le magasin local, dont l'unique écrivain vivait dans
+         * `App.svelte` — que `?v2` ne monte jamais. D'où la forme exacte du
+         * symptôme : les pistes locales restent, la radio disparaît.
+         *
+         * APRÈS le rechargement, pas avant : c'est lui qui pose la nouvelle
+         * piste dans `currentZone`. Noter avant reviendrait à réécrire
+         * l'ANCIENNE, et donc à la dédoublonner contre elle-même.
+         *
+         * La règle vit dans `historiqueEcoutes`, partagée avec `App` : deux
+         * copies divergeraient au premier correctif — ce qui vient
+         * précisément d'arriver.
+         */
+        const courante = get(currentZone) as any;
+        const emettrice = (get(zones) as any[]).find((z) => z?.id === zid);
+        noterSiDebutDEcoute(
+          type, zid, courante, emettrice,
+          nowPlayingToTrack,
+          (piste, nom) => playbackHistory.add(piste, nom),
+        );
+      });
       void rechargerFile();
     }
   });

@@ -4,6 +4,9 @@
   import * as api from '../lib/api';
   import { onMount, onDestroy } from 'svelte';
   import { t as tr } from '../lib/i18n';
+  // #914 — l'infobulle ne s'affiche que si le texte DÉBORDE vraiment,
+  // et suit les changements de taille et de contenu (`lib/infobulleTexte`).
+  import { bulleTexte } from '../lib/infobulleTexte';
   import { ouvertureParDefaut, estUnServeurTune, RAYONS_TUNE } from '../lib/mediaServerHome';
   import { filtrerLocalement } from '../lib/rechercheServeurMedia';
   import { formatTime, formatAudioBadge } from '../lib/utils';
@@ -453,7 +456,7 @@
               {crumb.title}
             </button>
           {:else}
-            <span class="breadcrumb-current">{crumb.title}</span>
+            <span class="breadcrumb-current" use:bulleTexte>{crumb.title}</span>
           {/if}
         {/each}
       </nav>
@@ -543,13 +546,13 @@
                     <svg viewBox="0 0 24 24" fill="white" width="32" height="32"><path d="M8 5v14l11-7z" /></svg>
                   </button>
                 </div>
-                <span class="album-grid-title truncate">{container.title}</span>
+                <span class="album-grid-title truncate" use:bulleTexte>{container.title}</span>
                 {#if container.artist}
                   <!-- Le serveur envoyait `dc:creator` depuis toujours ; c'est
                        notre analyseur DIDL qui le jetait pour les conteneurs.
                        Une grille d'albums sans artiste n'est pas une
                        bibliothèque. -->
-                  <span class="album-grid-artist truncate">{container.artist}</span>
+                  <span class="album-grid-artist truncate" use:bulleTexte>{container.artist}</span>
                 {/if}
               </div>
             {/each}
@@ -604,8 +607,8 @@
                 {/if}
               </span>
               <div class="item-info">
-                <span class="item-title truncate">{item.title}</span>
-                <span class="item-meta truncate">
+                <span class="item-title truncate" use:bulleTexte>{item.title}</span>
+                <span class="item-meta truncate" use:bulleTexte>
                   {#if item.artist}<span>{item.artist}</span>{/if}
                   {#if item.artist && item.album}<span class="item-sep"> — </span>{/if}
                   {#if item.album}<span>{item.album}</span>{/if}
@@ -656,7 +659,7 @@
             </svg>
             <div class="server-info">
               <span class="server-name">{server.name}</span>
-              <span class="server-detail truncate">{server.manufacturer} &middot; {server.host}:{server.port}</span>
+              <span class="server-detail truncate" use:bulleTexte>{server.manufacturer} &middot; {server.host}:{server.port}</span>
             </div>
             <!-- Depuis le serveur 0.9.118, le contrat s'appelle `reachable`.
                  `false` est le seul signal qui autorise « indisponible » ; un

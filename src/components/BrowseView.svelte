@@ -1,5 +1,6 @@
 <script lang="ts">
   import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { get } from 'svelte/store';
   import { tip } from '../lib/tooltip';
   import { playFromHere } from '../lib/playback';
   import * as api from '../lib/api';
@@ -8,7 +9,7 @@
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import { activeView, pendingOxygenFolder } from '../lib/stores/navigation';
+  import { activeView, pendingOxygenFolder, vueDeRetour } from '../lib/stores/navigation';
   import { libraryFolderScope } from '../lib/stores/library';
   import { preferences } from '../lib/stores/preferences';
   import ImportWizard from './ImportWizard.svelte';
@@ -114,7 +115,27 @@
     currentPath = null;
   }
 
+  /**
+   * 🔴 #854 — le Retour rend la main à CE QUI NOUS A ENVOYÉS ICI, quand
+   * quelqu'un l'a dit.
+   *
+   * « Localiser sur le disque » amène ici depuis une fiche album ; jusqu'ici
+   * le Retour remontait l'arborescence, et Pierre M devait retrouver son album
+   * à la main dans une bibliothèque de 155 829 titres.
+   *
+   * Le dépôt est CONSOMMÉ — mis à `null` — pour qu'un second Retour reprenne
+   * son geste normal : remonter d'un niveau. Sans cela, on ne pourrait plus
+   * jamais remonter l'arborescence après être venu d'un album.
+   *
+   * Sans dépôt posé — on est arrivé par la barre latérale — rien ne change.
+   */
   function goUp() {
+    const retour = get(vueDeRetour);
+    if (retour) {
+      vueDeRetour.set(null);
+      activeView.set(retour);
+      return;
+    }
     if (browseResult?.parent) {
       navigateTo(browseResult.parent);
     } else {

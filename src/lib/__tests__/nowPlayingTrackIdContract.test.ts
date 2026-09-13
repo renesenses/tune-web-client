@@ -26,16 +26,22 @@ describe('contrat d’identifiant du lecteur (#2430)', () => {
 
     expect(actionsStart).toBeGreaterThanOrEqual(0);
     expect(actionsEnd).toBeGreaterThan(actionsStart);
-    // Les DEUX groupes de boutons qui exigent encore une piste identifiée —
-    // crédits/paroles, et partage — partagent le même contrat.
+    // TROIS gardes, qui exigent toutes une piste identifiée et partagent le
+    // même contrat : le groupe crédits/paroles, le partage, et — depuis #975 —
+    // le PANNEAU des crédits, sorti de la rangée de boutons.
     //
-    // Ils étaient trois : le panneau du Réveil portait la même garde. Elle en
-    // a été retirée (#534), parce que le réveil est un réglage de ZONE
+    // 🔴 La troisième n'est pas une garde de plus, c'est la MÊME déplacée : le
+    // panneau vivait à l'intérieur du groupe crédits/paroles et en héritait.
+    // L'en sortir sans la reprendre aurait affiché des crédits sur une radio.
+    // Le compte monte donc de 2 à 3 sans qu'aucun bouton ne change de règle.
+    //
+    // Elles étaient trois avant #534 : le panneau du Réveil portait la même
+    // garde. Elle en a été retirée, parce que le réveil est un réglage de ZONE
     // (`api.setAlarm(zone.id, …)`) et que la garde le rendait introuvable sur
     // une radio. Ce test compte les gardes RESTANTES ; ce qu'il protège est
     // inchangé : celles qui restent lisent la piste NORMALISÉE, jamais
     // `displayTrack.id` (l'assertion suivante).
-    expect(actions.match(/!isRadio && normalizedTrack\?\.id != null/g)).toHaveLength(2);
+    expect(actions.match(/!isRadio && normalizedTrack\?\.id != null/g)).toHaveLength(3);
     expect(actions).toContain('loadNpCredits(normalizedTrack.id)');
     expect(actions).not.toMatch(/displayTrack\??\.id/);
   });

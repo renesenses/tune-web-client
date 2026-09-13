@@ -3,6 +3,9 @@
   import { dialogs } from '../lib/stores/dialogs';
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
+  // #914 — l'infobulle ne s'affiche que si le texte DÉBORDE vraiment,
+  // et suit les changements de taille et de contenu (`lib/infobulleTexte`).
+  import { bulleTexte } from '../lib/infobulleTexte';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './AlbumArt.svelte';
 
@@ -197,8 +200,8 @@
                 <AlbumArt coverPath={group.cover_path} albumId={group.album_id} size={120} alt={group.album_title} />
               </div>
               <div class="album-card-info">
-                <span class="album-card-title truncate">{group.album_title}</span>
-                <span class="album-card-artist truncate">{group.artist_name}</span>
+                <span class="album-card-title truncate" use:bulleTexte>{group.album_title}</span>
+                <span class="album-card-artist truncate" use:bulleTexte>{group.artist_name}</span>
                 <span class="album-card-count">
                   {group.tracks.filter(t => t.status === 'complete').length}/{group.tracks.length} {$t('common.tracks')}
                   {#if group.tracks.some(t => t.status === 'downloading' || t.status === 'pending')}
@@ -241,8 +244,8 @@
               <AlbumArt coverPath={dl.cover_path} albumId={dl.album_id} size={40} alt={dl.title} />
             </div>
             <div class="track-info">
-              <span class="track-title truncate">{dl.title}</span>
-              <span class="track-meta truncate">{dl.artist_name ?? ''}{dl.album_title ? ` — ${dl.album_title}` : ''}</span>
+              <span class="track-title truncate" use:bulleTexte>{dl.title}</span>
+              <span class="track-meta truncate" use:bulleTexte>{dl.artist_name ?? ''}{dl.album_title ? ` — ${dl.album_title}` : ''}</span>
               {#if dl.status === 'downloading' && dl.progress_percent != null}
                 <div class="download-progress">
                   <div class="download-progress-bar" style="width: {dl.progress_percent}%"></div>

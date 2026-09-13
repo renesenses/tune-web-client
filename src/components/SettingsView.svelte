@@ -1259,8 +1259,12 @@ function setSettingsLevel(level: SettingsLevel) {
     const caseCochee = ev.currentTarget as HTMLInputElement | null;
     slimprotoSaving = true;
     try {
-      slimprotoAnnonce = await basculerAnnonceSlimproto(!slimprotoAnnonce);
-      slimprotoRedemarrage = true;
+      const bascule = await basculerAnnonceSlimproto(!slimprotoAnnonce);
+      slimprotoAnnonce = bascule.annonce;
+      // L'avis n'a de sens que si le serveur N'A PAS applique a chaud.
+      // Le dire devant un serveur qui vient de le faire remettrait en place
+      // le mensonge de #3809 a l'endroit meme qu'on repare.
+      slimprotoRedemarrage = !bascule.appliqueAChaud;
     } catch (err: any) {
       notifications.error(err?.message ?? 'Error');
     }

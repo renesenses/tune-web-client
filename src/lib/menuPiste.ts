@@ -56,6 +56,8 @@ export const ICONES = {
   artist: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8',
   album: 'M3 3h18v18H3zM9 9h6M9 13h4',
   tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z',
+  /** Une fiche de champs — le tiroir « Tous les champs piste » (#851). */
+  champs: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
 } as const;
 /** Ce que la piste permet, décidé par l'appelant qui seul connaît le contexte. */
 export interface CapacitesPiste {
@@ -95,6 +97,8 @@ export interface GestesPiste {
   allerArtiste?: () => void;
   allerAlbum?: () => void;
   etiqueter?: () => void;
+  /** Ouvre le tiroir « Tous les champs piste » — #851, lecture des tags. */
+  champsDuFichier?: () => void;
 }
 export function entreesMenuPiste(
   c: CapacitesPiste,
@@ -171,5 +175,29 @@ export function entreesMenuPiste(
     g.allerAlbum,
   );
   pousser(deLaBibliotheque, 'v2.cover.tags', ICONES.tag, g.etiqueter);
+  /**
+   * « Tous les champs piste » — #851 (Pierre M, fil 1671, 10/09/2026).
+   *
+   *     « Pas de visualisation des Tags des morceaux dans la visu Bibliothèque. »
+   *
+   * Il parlait des champs du FICHIER : le même message joint une capture de
+   * foobar2000 (« Editing Combined Tags From 6 Files » : Artist, Album, Disc,
+   * ALBUMARTISTSORT, ISRC, ORGANIZATION…), et sa phrase suivante porte sur
+   * « Localiser sur le disque ». Son fil de pensée est le fichier.
+   *
+   * 🔴 Ce n'est PAS l'entrée « Étiquettes » juste au-dessus. Les deux portent
+   * le mot « tags » en français courant et ne montrent pas la même chose :
+   * `v2.cover.tags` pose des ÉTIQUETTES Tune sur l'objet, `trackTags.title`
+   * lit les CHAMPS du fichier et de la base. Les garder distinctes est le
+   * but, pas un oubli — c'est exactement la confusion que l'issue relève
+   * comme « non établie ».
+   *
+   * Le tiroir existe déjà (`TrackTagsDrawer`, « Tous les champs piste ») et
+   * sert le client actuel depuis toujours ; il n'était atteignable dans la
+   * nouvelle interface que par pochette → Modifier l'album → cliquer une
+   * piste, trois gestes que rien ne signale. Il prend un `i64` de `tracks` :
+   * réservé à la bibliothèque, comme ses trois voisines de la famille A.
+   */
+  pousser(deLaBibliotheque, 'trackTags.title', ICONES.champs, g.champsDuFichier);
   return e;
 }

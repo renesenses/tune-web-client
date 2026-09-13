@@ -223,9 +223,37 @@ export async function catalogueService(service: string): Promise<Widget[]> {
     });
   }
 
+  /**
+   * 🔴 LES ALBUMS FAVORIS — `renesenses/tune-web-client#911`.
+   *
+   * Le catalogue n'en avait pas, alors que la route existe et que le client
+   * sait déjà la demander (`api.getStreamingFavorites`). Mesuré le 12/09/2026
+   * sur la .18 en v0.9.147 :
+   *
+   *   GET /streaming/qobuz/favorites/albums   → 3 albums
+   *   GET /streaming/qobuz/favorites/artists  → 0
+   *   GET /streaming/qobuz/favorites/tracks   → 14
+   *
+   * Une bande vide ne s'affiche pas — `utiles` s'en charge un cran plus haut.
+   * Un compte sans favori ne gagne donc pas une rangée morte.
+   */
+  w.push({
+    id: `${service}-albums-favoris`,
+    cleTitre: 'v2.svc.wFavAlbums',
+    forme: 'bande',
+    categorie: 'a-moi',
+    charger: async () =>
+      utiles(
+        liste(await api.getStreamingFavorites(service, 'albums'))
+          .slice(0, LIMITE)
+          .map((o, i) => albumDistant(o, i, `${service}fa`, service)),
+      ),
+  });
+
   // Les vôtres.
   w.push({
     id: `${service}-mes-playlists`,
+    categorie: 'a-moi',
     cleTitre: 'v2.svc.wMine',
     forme: 'bande',
     charger: async () =>
@@ -296,12 +324,37 @@ const TETE_PAR_DEFAUT = 4;
  * l'utilisateur, et rien ici ne la réécrit.
  */
 export function dispositionDefautService(catalogue: Widget[]): string[] {
-  const tete = catalogue.slice(0, TETE_PAR_DEFAUT);
-  const vus = new Set(tete.map((w) => w.id));
+  /**
+   * 🔴 #911 — CE QUI EST À MOI PASSE DEVANT, et l'ordre vient du FIL.
+   *
+   * Didier, fil 1571 : « pourquoi ne pas mettre au début de la page Qobuz les
+   * thèmes "Mes playlists" et "Albums favoris" plutôt qu'à la fin de cette
+   * très longue page ». L'ordre a été convenu avec lui, réponse 1 du fil :
+   *
+   *     « avec l'ordre exact que vous proposez : Albums favoris, puis Mes
+   *       playlists, puis les thèmes Qobuz. »
+   *
+   * ⚠️ Et FabienM a posé une CONTRAINTE dans le même fil, réponse 2, qui
+   * affine la demande au lieu de s'y opposer :
+   *
+   *     « Attention à ne pas mettre les titres favoris car la liste peut être
+   *       longue et reléguer très loin les propositions de Qobuz, ce qui les
+   *       rendra quasi invisibles. »
+   *
+   * Les TITRES favoris ne remontent donc pas, et ce n'est pas un oubli. La
+   * route les sert pourtant (14 sur la .18) : c'est un choix, pris dans le
+   * fil, et il est écrit ici pour qu'il ne se reperde pas.
+   *
+   * Ni l'un ni l'autre n'était dans la fiche — ils vivaient dans les réponses.
+   */
+  const aMoi = catalogue.filter((w) => w.categorie === 'a-moi');
+  const vus = new Set(aMoi.map((w) => w.id));
+  const tete = catalogue.filter((w) => !vus.has(w.id)).slice(0, TETE_PAR_DEFAUT);
+  for (const w of tete) vus.add(w.id);
   const playlists = catalogue.filter(
     (w) => w.categorie === 'playlists-editoriales' && !vus.has(w.id),
   );
-  return [...tete, ...playlists].map((w) => w.id);
+  return [...aMoi, ...tete, ...playlists].map((w) => w.id);
 }
 
 /** Clé de rangement de la disposition, une par service. */

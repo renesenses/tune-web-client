@@ -19,8 +19,14 @@
   import { searchSettings, tabLabel, type V2SettingsHit } from '../../lib/v2Settings';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import * as api from '../../lib/api';
+  import {
+    peutChoisirPhoto, photoAAfficher, proprietairePourNouvellePhoto,
+    type EtatCompte,
+  } from '../../lib/proprietaireAvatar';
   import { notifications } from '../../lib/stores/notifications';
   import { avatarDepuisFichier, AvatarRefuse, CLE_MESSAGE } from '../../lib/avatarLocal';
+  import { profiles, currentProfileId, type Profile } from '../../lib/stores/profile';
+  import { basculerVers } from '../../lib/basculeDeProfil';
 
   const LEVELS: SettingsLevel[] = ['beginner', 'intermediate', 'expert'];
   let open = $state(false);
@@ -137,6 +143,20 @@
   const identiteCompte = $derived(ssoEmail || ssoName);
 
   /**
+   * 🔴 #893 — l'état du compte, tel que le serveur le décrit.
+   *
+   * `configured` sépare « pas de compte OUVERT » de « pas de compte
+   * POSSIBLE ». Sur un serveur sans nuage — celui des deux demandeurs, fils
+   * 1681 et 1676 — personne ne peut jamais se connecter : refuser la photo
+   * faute de compte revenait à la refuser pour toujours.
+   */
+  const etatCompte = $derived<EtatCompte>({
+    configured: ssoConfigured,
+    connected: ssoConnected,
+    identite: identiteCompte,
+  });
+
+  /**
    * 🔴 La photo n'est montrée QUE si elle appartient au compte ouvert.
    *
    * Les préférences sont rangées par installation, pas par compte. Sans ce
@@ -146,9 +166,10 @@
    * déconnecter rend le dégradé ; se reconnecter rend la photo.
    */
   const photoLocale = $derived(
-    ssoConnected && identiteCompte && $preferences.avatarCompte === identiteCompte
-      ? $preferences.avatarImage
-      : '',
+    photoAAfficher(etatCompte, {
+      image: $preferences.avatarImage ?? '',
+      compte: $preferences.avatarCompte ?? '',
+    }),
   );
   const photo = $derived((photoLocaleCassee ? '' : photoLocale) || ssoAvatar);
 
@@ -167,7 +188,9 @@
    * juste en dessous, dans le même panneau.
    */
   function ouvrirExplorateur() {
-    if (!ssoConnected) {
+    // #893 — le refus ne vaut que si un compte est POSSIBLE. Sans nuage
+    // configuré, la photo est locale et n'appartient à personne.
+    if (peutChoisirPhoto(etatCompte) === 'connexion') {
       notifications.error(get(t)('settings.avatarSignInFirst'));
       return;
     }
@@ -188,7 +211,11 @@
       // La photo et SON propriétaire s'écrivent ensemble : une photo sans
       // compte ne s'afficherait jamais, et un compte sans photo est l'état
       // normal. Les séparer laisserait une fenêtre où l'un existe sans l'autre.
-      preferences.update((p) => ({ ...p, avatarImage: url, avatarCompte: identiteCompte }));
+      // #893 — sans nuage, la photo n'est attachée à personne : elle doit
+      // survivre, puisqu'aucun compte ne viendra jamais la réclamer.
+      preferences.update((p) => ({
+        ...p, avatarImage: url, avatarCompte: proprietairePourNouvellePhoto(etatCompte),
+      }));
       notifications.success(get(t)('settings.avatarSaved'));
     } catch (err) {
       // Le motif du refus est porté par l'exception : on dit QUOI corriger.
@@ -203,6 +230,25 @@
   function retirerPhoto() {
     preferences.update((p) => ({ ...p, avatarImage: '', avatarCompte: '' }));
     notifications.success(get(t)('settings.avatarRemoved'));
+  }
+
+  /**
+   * Le nom à écrire.
+   *
+   * `name` est l'IDENTIFIANT de connexion — le serveur y range l'adresse de
+   * courriel — et `display_name` le prénom. Afficher `name` mettrait
+   * « matteo@mozaiklabs.fr » dans une liste de personnes.
+   */
+  function nomDuProfil(p: Profile): string {
+    return p.display_name?.trim() || p.name;
+  }
+
+  /**
+   * Basculer RECHARGE la page — voir `lib/basculeDeProfil` pour le pourquoi.
+   * On ne ferme donc pas le panneau : il n'y en aura plus.
+   */
+  function basculer(id: number) {
+    basculerVers(get(currentProfileId), id);
   }
 
   function setLevel(l: SettingsLevel) {
@@ -298,6 +344,39 @@
       {#if photoLocale}
         <button class="retirer" onclick={retirerPhoto}>{$t('settings.avatarRemove' as any)}</button>
         <div class="hint">{$t('settings.avatarHint' as any)}</div>
+      {/if}
+
+      <!--
+        LA BASCULE DE PROFIL.
+
+        Elle n'existait NULLE PART dans cette interface : `ProfileSelector` n'est
+        monté que par `Sidebar.svelte`, donc par l'interface actuelle. Le profil
+        retenu (`localStorage['tune-profile-id']`) était pourtant déjà honoré —
+        il part en `X-Profile-Id` sur chaque appel — mais rien ne permettait
+        d'en changer sans repasser par l'ancienne interface.
+
+        Elle n'apparaît qu'à partir de DEUX profils : sur une installation qui
+        n'en a qu'un, une liste à un élément n'est pas un choix, c'est du bruit.
+      -->
+      {#if $profiles.length > 1}
+        <div class="sep"></div>
+        <div class="sec">{$t('profiles.title')}</div>
+        <div class="profils">
+          {#each $profiles as p (p.id)}
+            <button
+              class="profil"
+              class:actif={p.id === $currentProfileId}
+              onclick={() => basculer(p.id)}
+              aria-current={p.id === $currentProfileId ? 'true' : undefined}
+            >
+              <span class="pastille" style="background:{p.avatar_color || 'var(--v2-line2)'}"
+                >{nomDuProfil(p).charAt(0).toUpperCase()}</span
+              >
+              <span class="pnom">{nomDuProfil(p)}</span>
+            </button>
+          {/each}
+        </div>
+        <div class="hint">{$t('profiles.switchHint' as any)}</div>
       {/if}
 
       <div class="sep"></div>
@@ -454,6 +533,22 @@
      vignette, et personne ne clique une vignette. */
   .avatar.sm:hover{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .avatar.sm:disabled{opacity:.55; cursor:default; box-shadow:none}
+
+  /* La liste des profils. Défilante : un foyer peut en compter plusieurs, et le
+     panneau est déjà plafonné en hauteur depuis la capture de bluevelvet. */
+  .profils{display:flex; flex-direction:column; gap:2px; max-height:168px; overflow-y:auto; padding:0 2px}
+  .profils::-webkit-scrollbar{width:7px}
+  .profils::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  .profil{display:flex; align-items:center; gap:10px; width:100%; padding:7px 8px; border:0;
+    border-radius:9px; background:transparent; cursor:pointer; text-align:left;
+    color:var(--v2-txt2); font-family:inherit; font-size:13px}
+  .profil:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  /* L'actif se lit par un FOND, pas par une couleur d'accent : il reste alors
+     lisible dans les six thèmes sans avoir à les vérifier un par un. */
+  .profil.actif{background:var(--v2-surface2); color:var(--v2-txt); font-weight:600}
+  .pastille{flex:0 0 auto; width:24px; height:24px; border-radius:50%; display:flex;
+    align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff}
+  .pnom{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 
   /* « Retirer » : un lien discret sous l'identité, pas un bouton de plus. */
   .retirer{display:block; margin:0 0 4px 55px; padding:2px 0; border:0; background:transparent;

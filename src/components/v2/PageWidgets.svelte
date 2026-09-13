@@ -531,12 +531,23 @@
           {$t('v2.home.add' as any)}
         </button>
       {/if}
-      <button class="v2-btn" class:on={edition} onclick={() => { edition = !edition; ajoutOuvert = false; }}>
+      <!-- #880 — « Modifier » ne disait pas QUOI il modifie. C'est la seule
+           porte vers l'ajout ET le retrait d'un widget, et les deux boutons
+           qu'il révèle n'existent qu'une fois franchie. Le `title` nomme les
+           trois gestes ; le bandeau ci-dessous les redit une fois dedans. -->
+      <button class="v2-btn" class:on={edition} title={$t('v2.home.editTip' as any)}
+              onclick={() => { edition = !edition; ajoutOuvert = false; }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
         {edition ? $t('v2.home.done' as any) : $t('v2.home.edit' as any)}
       </button>
     </div>
   </header>
+
+  {#if edition}
+    <!-- #880 — une fois en mode édition, dire ce qu'on peut y faire. La croix
+         et la poignée n'apparaissent qu'ici, et rien ne les annonçait. -->
+    <p class="aide-edition">{$t('v2.home.editHint' as any)}</p>
+  {/if}
 
   {#if edition && ajoutOuvert}
     <div class="ajout">
@@ -580,6 +591,7 @@
                   role="button"
                   tabindex="0"
                   draggable="true"
+                  title={$t('v2.home.move' as any)}
                   aria-label={$t('v2.home.move' as any)}
                   ondragstart={() => (saisi = i)}
                   ondragend={() => { saisi = null; survole = null; }}
@@ -590,7 +602,14 @@
               {/if}
               <h2>{$t(w.cleTitre as any)}</h2>
               {#if edition}
-                <button class="retirer" onclick={() => retirer(id)} aria-label={$t('v2.home.remove' as any)}>×</button>
+                <!-- #880 — le libellé vivait dans le seul `aria-label` : lu par un lecteur
+                     d'écran, JAMAIS affiché à la souris. Sandro (fil 1679) a traversé
+                     ce mode pour ajouter son widget et n'a pas su le retirer ; Didier
+                     lui a répondu « une petite croix grise ». Un « × » nu ne dit pas
+                     ce qu'il retire. Le `title` le dit, sans rien déplacer. -->
+                <button class="retirer" onclick={() => retirer(id)}
+                        title={$t('v2.home.remove' as any)}
+                        aria-label={$t('v2.home.remove' as any)}>×</button>
               {/if}
             </div>
 
@@ -805,6 +824,7 @@
   .v2-home{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
 
+  .aide-edition{margin:0 0 8px; padding:0 2px; font-size:12px; color:var(--v2-txt2); line-height:1.45}
   .ajout{display:flex; flex-wrap:wrap; gap:6px; padding:6px 30px 10px}
   .puce{border:1px dashed var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}

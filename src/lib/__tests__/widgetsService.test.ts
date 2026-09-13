@@ -71,8 +71,20 @@ describe('Catalogue d’un service', () => {
     vi.spyOn(api, 'getStreamingFeaturedSections').mockRejectedValue(new Error('500'));
     vi.spyOn(api, 'getStreamingGenres').mockRejectedValue(new Error('500'));
     const c = await catalogueService('qobuz');
-    // Il reste les nouveautés et les deux bandes de playlists.
-    expect(c.length).toBe(3);
+    // 🔴 #911 — la garde comptait « 3 ». Un widget s'est ajouté (les albums
+    // favoris) et elle est sortie rouge sans que son invariant ait bougé :
+    // ce qu'elle veut tenir, c'est que les DEUX routes mortes n'emportent que
+    // ce qu'elles servaient. On nomme donc ce qui reste, au lieu de le
+    // compter — un nombre nu redeviendra faux au prochain widget.
+    const ids = c.map((w) => w.id);
+    expect(ids, 'une route morte a emporté autre chose que ce qu’elle servait').toEqual([
+      'qobuz-nouveautes',
+      'qobuz-playlists-editoriales',
+      'qobuz-albums-favoris',
+      'qobuz-mes-playlists',
+    ]);
+    // Et rien de ce que les deux routes tombées servaient.
+    expect(ids.some((i) => i.includes('-sec-') || i.includes('-genre-'))).toBe(false);
   });
 
   it('chaque service range sa disposition SOUS SA PROPRE clé', () => {

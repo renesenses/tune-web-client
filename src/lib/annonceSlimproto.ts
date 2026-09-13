@@ -45,14 +45,21 @@
  * le même « éteint ». Afficher une case COCHÉE devant l'une de ces trois
  * formes redirait à l'utilisateur exactement le mensonge de l'issue.
  *
- * ## Ce que le serveur NE rend PAS
+ * ## Ce que le serveur rend, et ce qu'il rendait avant
  *
- * `PATCH /system/config` répond `{"ok": true}` et **rien d'autre** : pas d'écho
- * de la valeur posée (`routes/system/config.rs`, `update_config`). L'état
- * affiché ne peut donc pas venir de la réponse du PATCH — il vient d'une
- * RELECTURE de `GET /system/config`. C'est la différence entre « ce que
- * l'utilisateur a cliqué » et « ce que le serveur a retenu », et un serveur
- * antérieur à #3809, qui ignore la clé, se trahit ainsi tout seul.
+ * `PATCH /system/config` répondait `{"ok": true}` et **rien d'autre** : pas
+ * d'écho de la valeur posée. L'état affiché ne peut donc pas venir de la
+ * réponse du PATCH — il vient d'une RELECTURE de `GET /system/config`. C'est
+ * la différence entre « ce que l'utilisateur a cliqué » et « ce que le
+ * serveur a retenu », et un serveur qui ignore la clé se trahit ainsi tout
+ * seul.
+ *
+ * Depuis le correctif serveur d'application à chaud, la réponse porte en plus
+ * `slimproto_discovery_applied` — voir [`CHAMP_APPLIQUE`]. Elle dit si le
+ * répondeur UDP a été armé ou éteint **maintenant**, ou s'il faudra
+ * redémarrer. Deux serveurs coexistent donc dans le parc, et l'écran doit
+ * pouvoir dire vrai devant les deux : le champ ABSENT signifie « serveur
+ * antérieur », pas « pas appliqué ».
  */
 import * as api from './api';
 
@@ -87,14 +94,56 @@ export async function lireAnnonceSlimproto(): Promise<boolean> {
 }
 
 /**
- * Demande `souhaitee`, puis rend ce que le serveur a RETENU.
+ * Le champ que le serveur ajoute à la réponse du `PATCH` quand il a appliqué
+ * l'annonce **à chaud**.
  *
- * Deux requêtes, et c'est voulu : le PATCH ne renvoie que `{"ok": true}`. La
- * relecture est la seule façon d'afficher l'état confirmé — un serveur qui
- * ignore la clé rendra son défaut, et la case reviendra d'elle-même à cet
- * état plutôt que de mentir jusqu'au prochain chargement de page.
+ * Il n'existe que depuis le correctif serveur qui donne au répondeur UDP une
+ * poignée de tâche. Avant lui, le réglage n'était lu qu'au démarrage : la
+ * bascule s'écrivait en base et ne changeait rien au réseau jusqu'au prochain
+ * lancement.
  */
-export async function basculerAnnonceSlimproto(souhaitee: boolean): Promise<boolean> {
-  await api.updateConfig({ [CLE_ANNONCE_SLIMPROTO]: souhaitee });
-  return lireAnnonceSlimproto();
+export const CHAMP_APPLIQUE = 'slimproto_discovery_applied';
+
+/**
+ * Le serveur a-t-il appliqué la bascule tout de suite ?
+ *
+ * Fonction PURE, et volontairement STRICTE : seul un `true` franc compte.
+ * L'absence du champ est le cas du serveur antérieur — il faut alors dire à
+ * l'utilisateur qu'un redémarrage est nécessaire, parce que c'est vrai chez
+ * lui. Traiter l'absence comme « appliqué » ferait taire l'avis devant le
+ * serveur qui en a le plus besoin.
+ */
+export function annonceAppliqueeAChaud(reponsePatch: unknown): boolean {
+  const bloc = reponsePatch as Record<string, unknown> | null | undefined;
+  return bloc?.[CHAMP_APPLIQUE] === true;
+}
+
+/** Ce que la bascule apprend : l'état retenu, et s'il a pris effet. */
+export interface BasculeAnnonce {
+  /** L'état que le serveur a RETENU, relu par `GET /system/config`. */
+  annonce: boolean;
+  /** Le répondeur a-t-il été armé ou éteint MAINTENANT ? */
+  appliqueAChaud: boolean;
+}
+
+/**
+ * Demande `souhaitee`, puis rend ce que le serveur a RETENU et s'il l'a
+ * APPLIQUÉ.
+ *
+ * Deux requêtes, et c'est voulu : le `PATCH` ne renvoie pas la configuration.
+ * La relecture est la seule façon d'afficher l'état confirmé — un serveur qui
+ * ignore la clé rendra son défaut, et la case reviendra d'elle-même à cet état
+ * plutôt que de mentir jusqu'au prochain chargement de page.
+ *
+ * La réponse du `PATCH`, elle, sert à UNE chose : savoir s'il faut réclamer un
+ * redémarrage. Le dire à tort serait remettre en place le mensonge de #3809 à
+ * l'endroit même qu'on répare — l'utilisateur redémarrerait pour rien et en
+ * conclurait que le réglage ne fait rien.
+ */
+export async function basculerAnnonceSlimproto(souhaitee: boolean): Promise<BasculeAnnonce> {
+  const reponsePatch = await api.updateConfig({ [CLE_ANNONCE_SLIMPROTO]: souhaitee });
+  return {
+    annonce: await lireAnnonceSlimproto(),
+    appliqueAChaud: annonceAppliqueeAChaud(reponsePatch),
+  };
 }

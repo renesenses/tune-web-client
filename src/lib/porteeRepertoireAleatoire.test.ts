@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { optionsAleatoire } from './porteeAleatoire';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -26,6 +27,17 @@ import { resolve } from 'node:path';
  * plusieurs onglets et d'un magasin Svelte, elle ne s'appelle pas depuis Node.
  * Ce qu'ils tiennent, c'est la chaîne de transmission — le seul endroit où le
  * défaut vivait.
+ *
+ * 🔴 RÉORIENTÉS le 12/09/2026 par #882. Le même défaut est réapparu dans la
+ * NOUVELLE coquille : `LibraryV2` n'envoyait que `search_query`, et la portée
+ * de répertoire repartait à la trappe — Marco Polo l'a signalé une seconde
+ * fois, sur le même fil, deux mois plus tard.
+ *
+ * La construction vit désormais dans `lib/porteeAleatoire`, appelée par les
+ * DEUX écrans. Les épreuves qui recopiaient `opts.folder = scopedFolder` à la
+ * lettre tiennent maintenant le COMPORTEMENT de cette règle — ce qui est plus
+ * fort : une recopie ne pouvait pas voir qu'un second écran construisait
+ * autrement.
  */
 
 const libraryView = readFileSync(
@@ -66,34 +78,31 @@ describe('shuffleAllLibrary transmet la portée de répertoire', () => {
     expect(corpsDeShuffleAllLibrary()).toContain('scopedFolder');
   });
 
-  it("la met dans `opts` sous la clé `folder`", () => {
-    expect(corpsDeShuffleAllLibrary()).toMatch(/opts\.folder\s*=\s*scopedFolder/);
+  it("la met sous la clé `folder` — vérifié sur la RÈGLE, plus sur sa recopie", () => {
+    // #882 — recopiait `opts.folder = scopedFolder` à la lettre. La
+    // construction est partagée depuis, et c'est son résultat qui compte.
+    expect(optionsAleatoire({ dossier: '/data/music' })).toEqual({ folder: '/data/music' });
   });
 
-  it("déclare `folder` dans le type de `opts`, sans quoi TypeScript refuse l'affectation", () => {
-    const corps = corpsDeShuffleAllLibrary();
-    const decl = corps.slice(corps.indexOf('const opts:'), corps.indexOf('} = {}'));
-    expect(decl).toContain('folder?: string');
+  it("passe bien la portée de l'écran à la règle", () => {
+    // Ce que l'écran doit faire : lui donner `scopedFolder`. Le reste est
+    // affaire de la règle, éprouvée à part.
+    expect(corpsDeShuffleAllLibrary()).toMatch(/dossier:\s*scopedFolder/);
   });
 
   it("laisse partir la recherche AVEC le répertoire, pas à sa place", () => {
     // La zone de recherche ne fait que restreindre le sous-arbre affiché : les
-    // deux voyagent ensemble, et le serveur les intersecte. Un `else if` ici
-    // ferait jouer tout le répertoire alors que l'écran montre un extrait.
-    const corps = corpsDeShuffleAllLibrary();
-    const posFolder = corps.indexOf('opts.folder = scopedFolder');
-    const posRecherche = corps.indexOf('opts.search_query =');
-    expect(posFolder).toBeGreaterThan(-1);
-    expect(posRecherche).toBeGreaterThan(posFolder);
-    // Entre les deux, aucun `else` : ce sont deux instructions indépendantes.
-    expect(corps.slice(posFolder, posRecherche)).not.toContain('else');
+    // deux voyagent ensemble, et le serveur les intersecte. Les séparer ferait
+    // jouer tout le répertoire alors que l'écran montre un extrait.
+    expect(optionsAleatoire({ dossier: '/d', recherche: 'miles' }))
+      .toEqual({ folder: '/d', search_query: 'miles' });
   });
 
   it("n'envoie pas le genre en même temps que le répertoire", () => {
     // L'onglet Genres n'a pas de pastille de répertoire : les deux portées ne
     // coexistent pas à l'écran, et le serveur donne la priorité au répertoire.
     // Envoyer les deux laisserait croire à une intersection qui n'a pas lieu.
-    expect(corpsDeShuffleAllLibrary()).toMatch(/selectedGenre\s*&&\s*!scopedFolder/);
+    expect(optionsAleatoire({ dossier: '/d', genre: 'Jazz' })).toEqual({ folder: '/d' });
   });
 });
 
