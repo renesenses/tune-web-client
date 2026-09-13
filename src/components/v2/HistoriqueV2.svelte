@@ -32,7 +32,40 @@
     nomDObjet,
     regrouperParContexte,
   } from '../../lib/historiqueParContexte';
+  import { preferences } from '../../lib/stores/preferences';
+  import { colonnesRetenues } from '../../lib/colonnesPistes';
   import '../../styles/tune-v2.css';
+
+  /**
+   * 🔴 LA LIGNE D'OBJET S'ALIGNE SUR LE TABLEAU DES PISTES — #1009.
+   *
+   * Fabien, fil « v0.9.148 : v1 divers bugs », point 1, capture à l'appui :
+   *
+   *   « mauvais alignement des titres vs albums/playlist […] la colonne # du
+   *     titre devrait être juste en dessous de la colonne + de l'album »
+   *
+   * Il avait raison, et la cause est structurelle : cet écran rend DEUX sortes
+   * de lignes de premier niveau, et chacune avait sa propre mise en page.
+   *
+   *   la ligne d'OBJET   grille locale `18px auto 1fr auto auto`,
+   *                      gap 10px, padding 9px 12px, bordure 1px
+   *   la ligne de TITRE  rendue par `ListePistesV2` : grille CALCULÉE,
+   *                      gap 14px, padding 0 10px
+   *
+   * Aucune colonne commune, ni le même écartement, ni la même marge : elles ne
+   * pouvaient s'aligner que par accident.
+   *
+   * ⚠️ On ne recopie PAS de largeur en dur. Le gabarit du tableau dépend des
+   * colonnes que l'utilisateur a cochées — Pierre M en avait vingt (#853) — et
+   * un nombre figé ici se serait défait au premier changement de réglage. On
+   * lit donc la MÊME source que `ListePistesV2` : `colonnesRetenues`, avec le
+   * même mode. Sa première colonne donne la largeur, et le reste de la ligne
+   * d'objet suit derrière.
+   */
+  const largeurPremiereColonne = $derived(
+    colonnesRetenues($preferences.v2Colonnes?.[$preferences.settingsLevel] ?? [],
+                     $preferences.settingsLevel)[0]?.largeur ?? '44px',
+  );
 
   let serveur = $state<HistoryEntry[]>([]);
   let favorisRadio = $state(new Set<string>());
@@ -184,6 +217,7 @@
                  défaut : déplié, l'écran redeviendrait la liste plate qu'il
                  remplace. -->
             <button class="objet" class:ouvert aria-expanded={ouvert}
+              style="--col1:{largeurPremiereColonne}"
               onclick={() => basculerPli(tranche.cle)}>
               <span class="pli" aria-hidden="true">{ouvert ? '−' : '+'}</span>
               <span class="otype">{$tr(`v2.hist.ctx.${tranche.type}` as any)}</span>
@@ -298,12 +332,17 @@
   .fav-vide{width:28px; height:28px}
 
   /* #904 — la ligne d'objet du premier niveau, et son tiroir. */
-  .objet{display:grid; grid-template-columns:18px auto 1fr auto auto; align-items:center; gap:10px;
-    width:100%; text-align:left; padding:9px 12px; border:1px solid var(--v2-line2);
+  /* #1009 — la PREMIÈRE colonne, l'écartement et la marge horizontale sont ceux
+     du tableau des pistes (`.trow` de `ListePistesV2` : gap 14px, padding 0 10px).
+     La bordure est comptée dans la marge pour que le bord intérieur tombe au
+     même endroit : 10px = 1px de bordure + 9px de remplissage. */
+  .objet{display:grid; grid-template-columns:var(--col1, 44px) auto 1fr auto auto;
+    align-items:center; gap:14px;
+    width:100%; text-align:left; padding:9px; border:1px solid var(--v2-line2);
     border-radius:9px; background:var(--v2-surface2, transparent); color:var(--v2-txt);
     cursor:pointer; font-family:inherit}
   .objet:hover{border-color:var(--v2-acc1)}
-  .objet .pli{font:600 15px var(--v2-mono); color:var(--v2-txt3); text-align:center}
+  .objet .pli{font:600 15px var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .objet.ouvert .pli{color:var(--v2-acc1)}
   .objet .otype{font:600 10.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
     color:var(--v2-acc1)}
