@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { t } from '../lib/i18n';
-  import { notifications } from '../lib/stores/notifications';
-  import * as api from '../lib/api';
-  import AlbumArt from './partages/AlbumArt.svelte';
-  import HeartButton from './partages/HeartButton.svelte';
-  import { formatTime } from '../lib/utils';
-  import type { Track } from '../lib/types';
+  import { currentZone, playAndSync } from '../../lib/stores/zones';
+  import { t } from '../../lib/i18n';
+  import { notifications } from '../../lib/stores/notifications';
+  import * as api from '../../lib/api';
+  import AlbumArt from '../partages/AlbumArt.svelte';
+  import HeartButton from '../partages/HeartButton.svelte';
+  import { formatTime } from '../../lib/utils';
+  import type { Track } from '../../lib/types';
 
   let loading = $state(false);
   let tracks = $state<Track[]>([]);

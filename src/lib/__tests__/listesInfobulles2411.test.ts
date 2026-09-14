@@ -24,7 +24,7 @@ import { mount, unmount, flushSync, type Component } from 'svelte';
 import HistoryView from '../../components/HistoryView.svelte';
 import PlaylistsView from '../../components/PlaylistsView.svelte';
 import FavoritesView from '../../components/FavoritesView.svelte';
-import PlaylistManagerView from '../../components/PlaylistManagerView.svelte';
+import PlaylistManagerView from '../../components/v2-heritage/PlaylistManagerView.svelte';
 import { reinitialiserLeGeste } from '../infobulleTexte';
 import { playbackHistory } from '../stores/history';
 import {

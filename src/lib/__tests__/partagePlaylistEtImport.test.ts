@@ -134,7 +134,7 @@ describe('shareLink', () => {
   });
 
   it('est bien celui que les DEUX écrans appellent', () => {
-    for (const ecran of ['../../components/PlaylistManagerView.svelte', '../../components/v2/PlaylistsV2.svelte']) {
+    for (const ecran of ['../../components/v2-heritage/PlaylistManagerView.svelte', '../../components/v2/PlaylistsV2.svelte']) {
       const source = sansCommentaires(lire(ecran));
       expect(source, `${ecran} ne passe plus par shareLink`).toMatch(/shareLink\(/);
       // Les deux replis qui fabriquaient un faux succès ne doivent pas revenir.
