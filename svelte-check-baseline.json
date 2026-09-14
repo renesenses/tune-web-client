@@ -10,7 +10,6 @@
   "src/components/LibraryView.svelte :: Variable 'filteredAlbums' is used before being assigned.",
   "src/components/OnboardingView.svelte :: Property 'metadata_ok' does not exist on type '{ total?: number | undefined; inserted?: number | undefined; scanned?: number | undefined; }'.",
   "src/components/OnboardingView.svelte :: Property 'result' does not exist on type '{ scanning: boolean; }'.",
-  "src/components/OnboardingWizard.svelte :: Property 'error' does not exist on type 'StreamingAuthResponse'.",
   "src/components/PlaylistManagerView.svelte :: Argument of type 'number | null' is not assignable to parameter of type 'number'.\\n Type 'null' is not assignable to type 'number'.",
   "src/components/PlaylistManagerView.svelte :: Block-scoped variable 'authenticatedServices' used before its declaration.",
   "src/components/PlaylistManagerView.svelte :: Variable 'authenticatedServices' is used before being assigned.",

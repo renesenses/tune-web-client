@@ -1,12 +1,12 @@
 <script lang="ts">
   import { get } from 'svelte/store';
-  import * as api from '../lib/api';
-  import { t } from '../lib/i18n';
-  import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
-  import { activeView } from '../lib/stores/navigation';
-  import { tuneWS } from '../lib/websocket';
-  import { notifications } from '../lib/stores/notifications';
-  import type { BrowseRootEntry } from '../lib/types';
+  import * as api from '../../lib/api';
+  import { t } from '../../lib/i18n';
+  import { streamingServices as streamingServicesStore } from '../../lib/stores/streaming';
+  import { activeView } from '../../lib/stores/navigation';
+  import { tuneWS } from '../../lib/websocket';
+  import { notifications } from '../../lib/stores/notifications';
+  import type { BrowseRootEntry } from '../../lib/types';
 
   let { onComplete }: { onComplete: () => void } = $props();
 

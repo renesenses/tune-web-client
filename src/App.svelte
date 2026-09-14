@@ -84,7 +84,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import ToastContainer from './components/partages/ToastContainer.svelte';
   import DialogContainer from './components/partages/DialogContainer.svelte';
   import ImportWizard from './components/partages/ImportWizard.svelte';
-  import OnboardingWizard from './components/OnboardingWizard.svelte';
+  import AssistantPremiereInstallation from './components/partages/AssistantPremiereInstallation.svelte';
   import OnboardingView from './components/OnboardingView.svelte';
   import OfflineView from './components/OfflineView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
@@ -141,8 +141,6 @@ import AlarmsView from './components/AlarmsView.svelte';
   // enrichissement qui dure des minutes est parfaitement invisible (#2227).
   let backgroundTasks = $state<TacheDeFond[]>([]);
   let playlistModalTrack = $state<Track | null>(null);
-  let showOnboarding = $state(false);
-  let onboardingChecked = $state(false);
   let showWhatsNew = $state(false);
 
   // Status banner state
@@ -630,40 +628,6 @@ import AlarmsView from './components/AlarmsView.svelte';
     }
   }
 
-  async function checkOnboarding() {
-    // Skip if already completed locally
-    if (localStorage.getItem('tune_onboarding_completed')) {
-      onboardingChecked = true;
-      return;
-    }
-    try {
-      // Check server-side flag first
-      const config = await api.getConfig().catch(() => null);
-      if (config?.onboarding_complete === 'true' || config?.onboarding_complete === true || config?.onboarding_completed === 'true' || config?.onboarding_completed === true) {
-        localStorage.setItem('tune_onboarding_completed', 'true');
-        onboardingChecked = true;
-        return;
-      }
-      // Try the onboarding API
-      const status = await api.getOnboardingStatus().catch(() => null);
-      if (status && !status.complete) {
-        showOnboarding = true;
-        onboardingChecked = true;
-        return;
-      }
-      // Fallback: check library stats
-      const stats = await api.getLibraryStats();
-      showOnboarding = stats.tracks === 0;
-    } catch {
-      showOnboarding = false;
-    }
-    onboardingChecked = true;
-  }
-
-  function handleOnboardingComplete() {
-    showOnboarding = false;
-  }
-
   async function checkWhatsNew() {
     try {
       const data = await api.checkForUpdate();
@@ -962,7 +926,6 @@ import AlarmsView from './components/AlarmsView.svelte';
     fetchPlaylists();
     loadProfiles();
     loadLicense();
-    checkOnboarding();
     checkWhatsNew();
     // État initial des tâches de fond, au cas où un enrichissement tourne déjà
     // au chargement ; le direct arrive ensuite par le WebSocket (#2227).
@@ -1749,9 +1712,9 @@ import AlarmsView from './components/AlarmsView.svelte';
   <TvView />
 {/if}
 
-{#if showOnboarding}
-  <OnboardingWizard onComplete={handleOnboardingComplete} />
-{/if}
+<!-- La règle vit dans `lib/onboardingRequis.ts`, l'écran dans
+     `partages/` : la future v1 monte exactement le même (#1033). -->
+<AssistantPremiereInstallation />
 
 {#if showWhatsNew}
   <WhatsNew onClose={handleWhatsNewClose} />
