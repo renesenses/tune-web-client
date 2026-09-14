@@ -19,10 +19,10 @@
    * de lui transmettre ce que le serveur dit, et d'afficher ce qu'elle rend.
    */
   import { onDestroy } from 'svelte';
-  import { t } from '../lib/i18n';
-  import { activeView } from '../lib/stores/navigation';
-  import { creerBandeauLisible } from '../lib/bandeauLisible';
-  import type { Zone } from '../lib/types';
+  import { t } from '../../lib/i18n';
+  import { activeView } from '../../lib/stores/navigation';
+  import { creerBandeauLisible } from '../../lib/bandeauLisible';
+  import type { Zone } from '../../lib/types';
 
   let { zone }: { zone: Zone | null } = $props();
 

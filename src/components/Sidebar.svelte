@@ -19,7 +19,7 @@
   import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone, ZoneGroupResponse, StreamingServiceStatus } from '../lib/types';
   import { favoritesFirst, toggleFavoriteId, type DeviceFavPrefix } from '../lib/deviceFavorites';
   import { deviceHasBoundZone, deviceZoneActionKey, deviceZoneTargetId } from '../lib/hiddenZoneRecovery';
-  import ZoneConfigModal from './ZoneConfigModal.svelte';
+  import ZoneConfigModal from './partages/ZoneConfigModal.svelte';
   import ProfileSelector from './ProfileSelector.svelte';
   import { notifications } from '../lib/stores/notifications';
   import { updateAvailable, latestVersion } from '../lib/stores/updates';

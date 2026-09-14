@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(
-  resolve(__dirname, '../../components/TrackContextMenu.svelte'),
+  resolve(__dirname, '../../components/partages/TrackContextMenu.svelte'),
   'utf-8',
 );
 

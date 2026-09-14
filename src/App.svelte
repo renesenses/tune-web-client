@@ -89,7 +89,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import OfflineView from './components/OfflineView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
   import StreamingSessionPrompt from './components/StreamingSessionPrompt.svelte';
-  import LoginView from './components/LoginView.svelte';
+  import LoginView from './components/partages/LoginView.svelte';
   /*
    * 🔴 LE CALQUE DE SESSION EXPIREE (#1021).
    *

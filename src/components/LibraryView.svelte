@@ -25,7 +25,7 @@
 import { observeHeight, observeWidth } from '../lib/actions/observeSize';
 import { formatTime, formatDuration,  fold, estAvecPerte } from '../lib/utils';
   import AlbumArt from './partages/AlbumArt.svelte';
-import TrackContextMenu from './TrackContextMenu.svelte';
+import TrackContextMenu from './partages/TrackContextMenu.svelte';
 import AlbumRating from './AlbumRating.svelte';
 import CollapsibleSection from './CollapsibleSection.svelte';
   import ClampedText from './partages/ClampedText.svelte';

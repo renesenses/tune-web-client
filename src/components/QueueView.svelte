@@ -1,6 +1,6 @@
 <script lang="ts">
   import { rangeableEnPlaylist } from '../lib/pisteFile';
-  import MenuPisteV1 from './MenuPisteV1.svelte';
+  import MenuPisteV1 from './partages/MenuPisteV1.svelte';
   import { queueTracks, queuePosition, queueLength, upNextCount, upNextMs, queueTotalMs, jumpAndSync } from '../lib/stores/queue';
   import { dialogs } from '../lib/stores/dialogs';
   import { tip } from '../lib/tooltip';

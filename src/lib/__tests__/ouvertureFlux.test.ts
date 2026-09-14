@@ -189,7 +189,7 @@ describe("suivreOuverture — l'ouverture qui échoue ou n'aboutit jamais", () =
  */
 describe('SeekBar.svelte — le câblage existe', () => {
   const SOURCE = readFileSync(
-    resolve(__dirname, '../../components/SeekBar.svelte'),
+    resolve(__dirname, '../../components/partages/SeekBar.svelte'),
     'utf8',
   );
 
@@ -199,7 +199,9 @@ describe('SeekBar.svelte — le câblage existe', () => {
     // appelant est apparu — le mini-lecteur, second volet de #2267. La barre
     // le consomme désormais au lieu de le porter ; la DÉCISION, elle, n'a pas
     // bougé et reste couverte par tout ce qui précède.
-    expect(SOURCE).toMatch(/from\s+['"]\.\.\/lib\/ouvertureFlux\.svelte['"]/);
+    // `SeekBar` vit dans `partages/` : deux crans jusqu'à `lib/`, pas un.
+    // Ce que la garde exige est l'IMPORT du module, pas la profondeur.
+    expect(SOURCE).toMatch(/from\s+['"]\.\.\/(\.\.\/)?lib\/ouvertureFlux(\.svelte)?['"]/);
     expect(SOURCE).toContain('suiviOuverture');
   });
 

@@ -249,7 +249,7 @@ describe('lecture du champ serveur', () => {
  */
 describe('ZoneOutputBanner ne juge plus `output_reach` lui-même', () => {
   const source = readFileSync(
-    new URL('../components/ZoneOutputBanner.svelte', import.meta.url),
+    new URL('../components/partages/ZoneOutputBanner.svelte', import.meta.url),
     'utf-8',
   );
 

@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
-  import { zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
-  import { preferences } from '../lib/stores/preferences';
-  import { isBrowserZone, browserSetVolume } from '../lib/stores/browserAudio';
-  import { t } from '../lib/i18n';
-  import { volumeLocked } from '../lib/stores/audiophile';
-  import { notifications } from '../lib/stores/notifications';
-  import * as api from '../lib/api';
-  import { analyserDb, formaterDb, lineaireDepuisDb } from '../lib/volumeDb';
+  import { currentZone } from '../../lib/stores/zones';
+  import { zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
+  import { preferences } from '../../lib/stores/preferences';
+  import { isBrowserZone, browserSetVolume } from '../../lib/stores/browserAudio';
+  import { t } from '../../lib/i18n';
+  import { volumeLocked } from '../../lib/stores/audiophile';
+  import { notifications } from '../../lib/stores/notifications';
+  import * as api from '../../lib/api';
+  import { analyserDb, formaterDb, lineaireDepuisDb } from '../../lib/volumeDb';
 
   let zone = $derived($currentZone);
   let vol = $derived($zoneVolume);

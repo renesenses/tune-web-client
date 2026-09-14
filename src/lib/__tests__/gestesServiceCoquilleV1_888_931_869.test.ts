@@ -42,7 +42,7 @@ vi.mock('../websocket', () => ({
 }));
 
 import App from '../../App.svelte';
-import MenuPisteV1 from '../../components/MenuPisteV1.svelte';
+import MenuPisteV1 from '../../components/partages/MenuPisteV1.svelte';
 import { zones, currentZoneId } from '../stores/zones';
 import {
   activeView,

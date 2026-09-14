@@ -22,7 +22,7 @@
   } from '../../lib/api/ingest';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
-  import FolderBrowser from '../FolderBrowser.svelte';
+  import FolderBrowser from './FolderBrowser.svelte';
 
   interface Props {
     /** Chemin de départ (dossier déjà connu côté serveur). */

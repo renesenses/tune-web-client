@@ -1,6 +1,6 @@
 <script lang="ts">
   import { rangeableEnPlaylist } from '../lib/pisteFile';
-  import MenuPisteV1 from './MenuPisteV1.svelte';
+  import MenuPisteV1 from './partages/MenuPisteV1.svelte';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, pendingStreamingPlaylist, streamingAlbumOrigin, streamingServices as streamingServicesStore, streamingGenreBreadcrumb } from '../lib/stores/streaming';
   import { formatAnneeAlbum } from '../lib/formats';
   import { tip } from '../lib/tooltip';

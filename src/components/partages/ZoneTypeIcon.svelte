@@ -16,8 +16,8 @@
    *  (`zoneDeviceName`). Deux zones du même genre portent donc le même
    *  dessin : c'est le texte qui les sépare.
    */
-  import { zoneIconKind } from '../lib/zoneIdentity';
-  import type { OutputType } from '../lib/types';
+  import { zoneIconKind } from '../../lib/zoneIdentity';
+  import type { OutputType } from '../../lib/types';
 
   interface Props {
     type?: OutputType | null;

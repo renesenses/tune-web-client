@@ -1,7 +1,7 @@
 <script lang="ts">
   import { bulleTexte } from '../lib/infobulleTexte';
   import { rangeableEnPlaylist } from '../lib/pisteFile';
-  import MenuPisteV1 from './MenuPisteV1.svelte';
+  import MenuPisteV1 from './partages/MenuPisteV1.svelte';
   import { get } from 'svelte/store';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../lib/stores/nowPlaying';

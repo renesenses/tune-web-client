@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { t } from '../lib/i18n';
-  import type { EqBand } from '../lib/api';
-  import { PREREGLAGES_EQ, libellePrereglage } from '../lib/eqPrereglages';
+  import { t } from '../../lib/i18n';
+  import type { EqBand } from '../../lib/api';
+  import { PREREGLAGES_EQ, libellePrereglage } from '../../lib/eqPrereglages';
 
   // La table vient de `lib/eqPrereglages`, partagée avec l'écran Égaliseur et
   // alignée sur `eq_presets::noms()` côté serveur. Celle qui vivait ici

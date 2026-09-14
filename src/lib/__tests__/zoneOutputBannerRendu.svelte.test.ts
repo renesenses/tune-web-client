@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import ZoneOutputBanner from '../../components/ZoneOutputBanner.svelte';
+import ZoneOutputBanner from '../../components/partages/ZoneOutputBanner.svelte';
 import { BANDEAU_DUREE_MIN_MS } from '../bandeauLisible';
 import { locale } from '../i18n';
 import fr from '../locales/fr';

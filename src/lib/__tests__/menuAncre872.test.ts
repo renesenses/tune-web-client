@@ -31,7 +31,7 @@
 // `styleMenuAncre` qui rendrait n'importe quoi passerait pour gardé.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import MenuPisteV1 from '../../components/MenuPisteV1.svelte';
+import MenuPisteV1 from '../../components/partages/MenuPisteV1.svelte';
 import { LARGEUR_MENU, styleMenuAncre } from '../ancrageMenu';
 import type { Track } from '../types';
 

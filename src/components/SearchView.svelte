@@ -1,6 +1,6 @@
 <script lang="ts">
   import { rangeableEnPlaylist } from '../lib/pisteFile';
-  import MenuPisteV1 from './MenuPisteV1.svelte';
+  import MenuPisteV1 from './partages/MenuPisteV1.svelte';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { tip } from '../lib/tooltip';
   import { playFromHere } from '../lib/playback';

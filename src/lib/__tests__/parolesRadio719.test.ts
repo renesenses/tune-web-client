@@ -57,7 +57,7 @@ describe('La position des paroles', () => {
 
 describe('🔴 Le câblage — la règle ne sert à rien si personne ne l’appelle', () => {
   const NP = readFileSync('src/components/partages/NowPlaying.svelte', 'utf8');
-  const PANNEAU = readFileSync('src/components/NowPlayingLyrics.svelte', 'utf8');
+  const PANNEAU = readFileSync('src/components/partages/NowPlayingLyrics.svelte', 'utf8');
 
   it('« En écoute » pose l’ancrage radio', () => {
     expect(NP).toContain('radioAnchorFrom(track.metadata_age_ms, performance.now())');

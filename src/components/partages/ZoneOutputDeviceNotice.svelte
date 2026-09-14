@@ -15,9 +15,9 @@
    *
    * Modèle : `ZoneOutputBanner` — pas de champ, pas d'affichage.
    */
-  import { t } from '../lib/i18n';
-  import { lecturePeripheriqueSortie } from '../lib/peripheriqueSortieZone';
-  import type { Zone } from '../lib/types';
+  import { t } from '../../lib/i18n';
+  import { lecturePeripheriqueSortie } from '../../lib/peripheriqueSortieZone';
+  import type { Zone } from '../../lib/types';
 
   let { zone }: { zone: Zone | null | undefined } = $props();
 

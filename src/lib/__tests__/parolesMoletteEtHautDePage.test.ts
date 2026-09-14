@@ -31,7 +31,7 @@ function lire(chemin: string): string {
   return readFileSync(resolve(process.cwd(), chemin), 'utf-8');
 }
 const NOW_PLAYING = lire('src/components/partages/NowPlaying.svelte');
-const PAROLES = lire('src/components/NowPlayingLyrics.svelte');
+const PAROLES = lire('src/components/partages/NowPlayingLyrics.svelte');
 
 interface Regle {
   selecteur: string;

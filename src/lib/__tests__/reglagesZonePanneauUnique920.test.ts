@@ -35,7 +35,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const lire = (p: string) => readFileSync(resolve(__dirname, '../../', p), 'utf-8');
-const panneau = () => lire('components/ZoneConfigModal.svelte');
+const panneau = () => lire('components/partages/ZoneConfigModal.svelte');
 const api = () => lire('lib/api.ts');
 
 describe('#920 — le panneau du clic droit porte enfin ce qu’il annonçait', () => {

@@ -44,7 +44,7 @@ const NOW_PLAYING = readFileSync(
   'utf-8',
 );
 const PANNEAU = readFileSync(
-  resolve(process.cwd(), 'src/components/NowPlayingEqPanel.svelte'),
+  resolve(process.cwd(), 'src/components/partages/NowPlayingEqPanel.svelte'),
   'utf-8',
 );
 const API = readFileSync(resolve(process.cwd(), 'src/lib/api.ts'), 'utf-8');
