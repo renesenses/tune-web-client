@@ -22,6 +22,9 @@
   import { formatNombre } from '../../lib/formats';
   import { activeView } from '../../lib/stores/navigation';
   import { errText } from '../../lib/utils';
+  // #4144 — ce que la carte ReplayGain a le droit d'afficher, y compris face à
+  // un serveur qui ne connaît pas la route.
+  import { jaugeReplayGain } from '../../lib/santeReplayGain';
   import { heureSeule } from '../../lib/dates';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
@@ -117,9 +120,14 @@
     }
 
     // ── ReplayGain ────────────────────────────────────────────────────────
-    // Aucune route d'avancement n'est exposée côté client : on montre la
-    // CONFIGURATION réelle et on le dit, plutôt qu'une jauge inventée.
-    const cfg = await Promise.allSettled([api.getConfig()]);
+    // #4144 — la route d'avancement existe DÉSORMAIS (`getReplayGainProgress`).
+    // Ce qui n'a pas changé, et ne doit pas changer : quand le serveur ne
+    // répond pas — v0.9.149 ou plus ancien, la route n'existe pas — la carte
+    // montre la CONFIGURATION réelle et dit qu'elle ne connaît pas
+    // l'avancement, plutôt qu'une jauge inventée ou, pire, une jauge vide qui
+    // se lirait « 0 piste analysée ». La décision est dans
+    // `lib/santeReplayGain.ts` : elle s'y garde sans monter l'écran.
+    const cfg = await Promise.allSettled([api.getConfig(), api.getReplayGainProgress()]);
     if (cfg[0].status === 'fulfilled') {
       const c: any = cfg[0].value;
       const mode = c?.replaygain_mode ?? 'off';
@@ -129,13 +137,20 @@
       // Le DR dépend du MÊME interrupteur : on le retient ici plutôt que de
       // relire la config une seconde fois.
       cfgDrActive = analysis;
+      const jauge = jaugeReplayGain(mode !== 'off', cfg[1].status === 'fulfilled' ? cfg[1].value : null);
       out.push({
         id: 'rg', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
-        etat: mode === 'off' ? 'off' : 'idle',
+        etat: jauge.etat,
         ligne: $t('v2.health.rgLine' as any).replace('{m}', modeLabel)
           .replace('{s}', analysis ? $t('v2.health.rgSourceBoth' as any) : $t('v2.health.rgSourceTags' as any)),
-        detail: $t('v2.health.rgNoProgress' as any),
-        sansJauge: true });
+        fait: jauge.fait, total: jauge.total,
+        // Le message d'absence ne s'affiche que quand l'absence est réelle.
+        detail: jauge.sansJauge
+          ? $t('v2.health.rgNoProgress' as any)
+          : $t('v2.health.rgProgress' as any)
+              .replace('{n}', $formatNombre(jauge.fait ?? 0))
+              .replace('{t}', $formatNombre(jauge.total ?? 0)),
+        sansJauge: jauge.sansJauge });
     } else {
       out.push({ id: 'rg', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any), sansJauge: true });

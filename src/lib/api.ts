@@ -2130,6 +2130,26 @@ export function browseMediaServer(serverId: string, objectId: string = '0') {
   );
 }
 
+/** Indexe UNE source UPnP dans la bibliothèque (#4129).
+ *
+ *  `conteneur` fixe le point de départ : `'0'` = la racine du serveur. Le
+ *  passer permet exactement ce que la réponse conseille quand un plafond a
+ *  mordu — repartir d'un dossier plus précis plutôt que de tout relever.
+ *
+ *  Les trois plafonds ne sont PAS passés ici : ils vivent dans les réglages
+ *  (`upnp_index_max_pistes`, `_max_conteneurs`, `_profondeur_max`), pour que
+ *  le choix se souvienne d'une passe à l'autre (#4154).
+ *
+ *  ⚠️ La passe est synchrone et peut être longue sur un gros catalogue —
+ *  22 331 pistes en 11,6 s à la mesure du 13/09/2026. */
+export function indexerServeurMedia(serverId: string, conteneur: string = '0') {
+  return fetchJSON<import('./types').IndexationUpnpResultat>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/indexer` +
+      `?conteneur=${encodeURIComponent(conteneur)}`,
+    { method: 'POST' },
+  );
+}
+
 /** Cherche DANS un serveur de médias, par son action ContentDirectory Search.
  *
  *  `container` restreint au dossier affiché ; `'0'` cherche tout le serveur. */
@@ -2910,6 +2930,20 @@ export function transferToPeer(ip: string, port: number = 8888, zoneId: number =
 
 export function getScanStatus() {
   return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
+}
+
+/**
+ * Avancement de la passe ReplayGain (#4144) — le pendant de `getScanStatus`.
+ *
+ * 🔴 UN SERVEUR ANTÉRIEUR À v0.9.150 N'A PAS CETTE ROUTE, et l'appel est alors
+ * rejeté (404). C'est attendu : l'appelant doit garder son message d'absence
+ * plutôt que d'afficher une jauge vide. Voir `lib/santeReplayGain.ts`, qui
+ * tient cette décision, et le témoin qui la garde.
+ */
+export function getReplayGainProgress() {
+  return fetchJSON<import('./santeReplayGain').AvancementReplayGain>(
+    `${BASE}/system/replaygain/progress`,
+  );
 }
 
 /** Last scan report (persisted server-side, survives restarts). */
