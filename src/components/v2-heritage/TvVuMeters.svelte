@@ -4,7 +4,7 @@
   // (événements audio_levels). Balistique VU classique : intégration ~300 ms,
   // zone rouge réservée aux vrais −3…0 dBFS, témoin de crête.
   import { onMount, onDestroy } from 'svelte';
-  import { audioLevels } from '../lib/stores/audioLevels';
+  import { audioLevels } from '../../lib/stores/audioLevels';
   import {
     MIN_DB,
     MAX_DB,
@@ -13,8 +13,8 @@
     TICKS,
     LABELED_TICKS,
     dbToFraction,
-  } from '../lib/tvVuScale';
-  import { t } from '../lib/i18n';
+  } from '../../lib/tvVuScale';
+  import { t } from '../../lib/i18n';
 
   interface Props {
     playing: boolean;

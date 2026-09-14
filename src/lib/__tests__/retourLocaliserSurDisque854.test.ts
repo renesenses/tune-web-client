@@ -61,7 +61,7 @@ describe('#854 — l’aller POSE le chemin du retour', () => {
 
 describe('#854 — le RETOUR consomme ce dépôt', () => {
   const corpsGoUp = () => {
-    const src = lire('BrowseView.svelte');
+    const src = lire('v2-heritage/BrowseView.svelte');
     const i = src.indexOf('function goUp()');
     expect(i, '`goUp` a disparu').toBeGreaterThan(-1);
     return src.slice(i, src.indexOf('\n  }', i));
@@ -92,8 +92,11 @@ describe('#854 — le RETOUR consomme ce dépôt', () => {
     // `check-svelte` a rougi sur « Cannot find name 'vueDeRetour' » : à
     // l'exécution, le composant lève et la vue ne s'affiche plus. La 0.9.62
     // est partie ainsi (`albumWall`).
-    const src = lire('BrowseView.svelte');
-    expect(src).toContain("vueDeRetour } from '../lib/stores/navigation'");
+    const src = lire('v2-heritage/BrowseView.svelte');
+    // Un ou deux crans : `BrowseView` vit dans `v2-heritage/` depuis la phase 3
+    // du chantier de bascule. Ce que la garde exige est l'IMPORT de
+    // `vueDeRetour`, pas la profondeur du fichier.
+    expect(src).toMatch(/vueDeRetour \} from '\.\.\/(\.\.\/)?lib\/stores\/navigation'/);
   });
 });
 

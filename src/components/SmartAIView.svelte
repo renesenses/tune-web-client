@@ -4,7 +4,7 @@
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import HeartButton from './HeartButton.svelte';
+  import HeartButton from './partages/HeartButton.svelte';
   import { formatTime } from '../lib/utils';
   import type { Track } from '../lib/types';
 

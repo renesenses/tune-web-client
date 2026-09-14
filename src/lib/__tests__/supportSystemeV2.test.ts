@@ -63,7 +63,7 @@ describe('Support v2 : diagnostic et « Mon système » (Bertrand, 05/09/2026)',
 
   it('les deux écrans partagent le MÊME générateur', () => {
     const v1 = sansCommentaires(lire('src/components/SupportView.svelte'));
-    expect(v1).toContain("from '../lib/schemaSysteme'");
+    expect(v1).toMatch(/from '\.\.\/(\.\.\/)?lib\/schemaSysteme'/);
     expect(sup).toContain("from '../../lib/schemaSysteme'");
     // Le v0 ne construit plus le Mermaid ligne à ligne.
     expect(v1).not.toContain("const lines: string[] = ['flowchart LR'");

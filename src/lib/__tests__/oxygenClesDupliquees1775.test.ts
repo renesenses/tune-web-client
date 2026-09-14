@@ -21,7 +21,7 @@
 //     dans le seul profil Edge y suffirait — c'est cohérent, pas démontré.
 import { afterEach, describe, expect, it } from 'vitest';
 import { mount, unmount } from 'svelte';
-import OxygenFacetRail from '../../components/OxygenFacetRail.svelte';
+import OxygenFacetRail from '../../components/v2-heritage/OxygenFacetRail.svelte';
 import type { FacetValue } from '../api';
 import { chainesUniques, sansDoublons } from '../clesUniques';
 

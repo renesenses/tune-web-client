@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { dialogs } from '../lib/stores/dialogs';
-  import * as api from '../lib/api';
-  import { notifications } from '../lib/stores/notifications';
-  import { t } from '../lib/i18n';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import * as api from '../../lib/api';
+  import { notifications } from '../../lib/stores/notifications';
+  import { t } from '../../lib/i18n';
 
   type Tree = Record<string, string[]>;
 
@@ -216,7 +216,7 @@
     <h1>{$t('genreTree.title')}</h1>
     <p class="lede">
       {$t('genreTree.ledePart1')}
-      <code>genre branch_of "Jazz"</code> {$t('genreTree.ledePart2')} <em>"Jazz"</em>
+      <code>genre branch_of "Jazz"</code> {$t('genreTree.ledePart2')} <em>{$t('genreTree.ledeExemple' as any)}</em>
       {$t('genreTree.ledePart3')} <code>albums.genre</code>
       {$t('genreTree.ledePart4')}
     </p>

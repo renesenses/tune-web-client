@@ -20,7 +20,7 @@
   import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
   import { t } from '../lib/i18n';
   import MetadataChips from './partages/MetadataChips.svelte';
-  import HeartButton from './HeartButton.svelte';
+  import HeartButton from './partages/HeartButton.svelte';
   import { displayFields } from '../lib/stores/displayFields';
 
   // --- Search history (localStorage) ---

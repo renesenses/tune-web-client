@@ -14,7 +14,7 @@
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './partages/AlbumArt.svelte';
   import ClampedText from './partages/ClampedText.svelte';
-  import HeartButton from './HeartButton.svelte';
+  import HeartButton from './partages/HeartButton.svelte';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
   import PlaylistsHub from './PlaylistsHub.svelte';

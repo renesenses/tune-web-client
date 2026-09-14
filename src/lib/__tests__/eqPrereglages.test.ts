@@ -181,12 +181,12 @@ describe('les deux écrans lisent la MÊME table', () => {
   const API = readFileSync(resolve(process.cwd(), 'src/lib/api.ts'), 'utf-8');
 
   it('le panneau ne tient plus sa propre liste de libellés', () => {
-    expect(PANNEAU).toContain("from '../lib/eqPrereglages'");
+    expect(PANNEAU).toMatch(/from '\.\.\/(\.\.\/)?lib\/eqPrereglages'/);
     expect(PANNEAU, '« Vocal » est revenu dans le panneau').not.toContain("'vocal'");
   });
 
   it('l’écran Égaliseur non plus', () => {
-    expect(EQUALIZER).toContain("from '../lib/eqPrereglages'");
+    expect(EQUALIZER).toMatch(/from '\.\.\/(\.\.\/)?lib\/eqPrereglages'/);
     expect(EQUALIZER, 'la table en dur est revenue').not.toMatch(
       /bass_boost:\s*\{\s*label/,
     );

@@ -79,7 +79,7 @@ describe('fil 1680 — les répertoires ajoutés n’apparaissent pas', () => {
 
 describe('fil 1683 — la facette Dynamic Range ne filtre rien', () => {
   const api = sansCommentaires(lire('src/lib/api.ts'));
-  const oxy = sansCommentaires(lire('src/components/OxygenView.svelte'));
+  const oxy = sansCommentaires(lire('src/components/v2-heritage/OxygenView.svelte'));
 
   /** La liste blanche des paramètres réellement envoyés à /library/tracks. */
   function listeBlanche(): string[] {

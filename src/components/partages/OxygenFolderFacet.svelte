@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { t } from '../lib/i18n';
-  import type { FolderChild, FolderCrumb } from '../lib/api';
+  import { t } from '../../lib/i18n';
+  import type { FolderChild, FolderCrumb } from '../../lib/api';
 
   interface Props {
     crumbs: FolderCrumb[];          // library root → current folder (each drillable)

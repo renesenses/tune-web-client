@@ -34,7 +34,7 @@
 // bouton serait un bruit permanent.
 import { afterEach, describe, expect, it } from 'vitest';
 import { mount, unmount } from 'svelte';
-import OxygenFacetRail from '../../components/OxygenFacetRail.svelte';
+import OxygenFacetRail from '../../components/v2-heritage/OxygenFacetRail.svelte';
 import type { FacetValue } from '../api';
 import lFr from '../locales/fr';
 

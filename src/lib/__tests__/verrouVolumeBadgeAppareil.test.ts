@@ -107,7 +107,7 @@ describe('badge de verrou : quand il se tait', () => {
 
 describe('la carte de l’appareil ne fabrique pas son propre héritage', () => {
   it('elle passe par le module de décision, pas par un calcul local', () => {
-    expect(devices).toContain("from '../lib/audiophileLockBadge'");
+    expect(devices).toMatch(/from '\.\.\/(\.\.\/)?lib\/audiophileLockBadge'/);
     expect(devices).toContain('volumeLockBadge(state)');
   });
 

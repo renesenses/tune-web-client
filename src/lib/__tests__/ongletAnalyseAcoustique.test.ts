@@ -36,7 +36,7 @@ const settingsView = readFileSync(
   'utf-8',
 );
 const ambianceView = readFileSync(
-  resolve(__dirname, '../../components/AmbianceView.svelte'),
+  resolve(__dirname, '../../components/v2-heritage/AmbianceView.svelte'),
   'utf-8',
 );
 

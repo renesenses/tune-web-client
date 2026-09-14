@@ -125,7 +125,14 @@ describe('Les trois écrans que la coquille ne montait pas', () => {
     for (const [vue, composant] of [
       ['oxygen', 'OxygenView'], ['ambiance', 'AmbianceView'], ['browse', 'BrowseView'],
     ]) {
-      expect(shell, `${vue} : composant absent`).toContain(`import ${composant} from '../${composant}.svelte'`);
+      // Ces trois écrans ont déménagé dans `v2-heritage/` (phase 3 du chantier
+      // de bascule) : ils appartiennent à la v2, mais ne respectent pas encore
+      // ses règles de forme. Voir `src/components/v2-heritage/LISEZ-MOI.md`.
+      // Seul le CHEMIN change — les trois autres exigences ci-dessous, elles,
+      // gardent exactement ce que ce retour de Bertrand demandait.
+      expect(shell, `${vue} : composant absent`).toMatch(
+        new RegExp(`import ${composant} from '\\.\\./(v2-heritage/)?${composant}\\.svelte'`),
+      );
       expect(shell, `${vue} : vue non routée`).toContain(`$activeView === '${vue}'`);
       expect(shell, `${vue} : composant non monté`).toContain(`<${composant} `);
       expect(barre, `${vue} : absent de la barre`).toContain(`view: '${vue}'`);

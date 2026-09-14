@@ -108,7 +108,7 @@ describe('bascule d un favori de facette', () => {
 
 describe('un seul corps pour la bascule', () => {
   it('HeartButton délègue et ne rappelle plus la route lui-même', () => {
-    const src = sansCommentaires(lire('src/components/HeartButton.svelte'));
+    const src = sansCommentaires(lire('src/components/partages/HeartButton.svelte'));
     expect(src).toContain('basculerFavoriFacette(');
     expect(src, 'la mécanique est repartie dans le module partagé').not.toMatch(
       /api\.(add|remove)FacetFavorite\(/,

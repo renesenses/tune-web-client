@@ -44,7 +44,7 @@ describe('Favori jumelé : streaming ↔ local (Bertrand, 05/09/2026)', () => {
     const pa = sansCommentaires(lire('src/components/v2/PisteActions.svelte'));
     expect(pa).toContain('$favoriteTrackIds.has(piste.id!) || parJumeau');
     expect(pa).toContain('clePisteJumelee(piste.title, piste.artist_name)');
-    const hb = sansCommentaires(lire('src/components/HeartButton.svelte'));
+    const hb = sansCommentaires(lire('src/components/partages/HeartButton.svelte'));
     expect(hb).toContain('$favoriteStreamingTrackKeys.has(clePisteJumelee(titre, artiste))');
   });
 

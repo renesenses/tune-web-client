@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 /**
@@ -221,9 +221,37 @@ export type Analyse = {
   coupables: { b: Balise; classes: string[] }[];
 };
 
-/** Analyse un composant de `src/components/`. */
+/**
+ * Analyse un composant, où qu'il vive sous `src/components/`.
+ *
+ * 🔴 Le nom seul ne suffit plus depuis le chantier de bascule : un composant
+ * peut être à la racine, dans `v2/`, dans `partages/` (ce que les deux
+ * interfaces utilisent) ou dans `v2-heritage/` (les écrans hérités, pas encore
+ * conformes — voir `src/components/v2-heritage/LISEZ-MOI.md`).
+ *
+ * Les appelants passent un NOM, pas un chemin : c'est à cette fonction de
+ * savoir où chercher. Sinon chaque déplacement de fichier casse tous ses
+ * appelants, et on les corrige un par un — ce qui a coûté cinq relances de la
+ * suite complète le 14/09/2026.
+ *
+ * Un nom qui contient déjà un `/` est pris tel quel.
+ */
+const DOSSIERS = ['', 'v2/', 'partages/', 'v2-heritage/'];
+
 export function analyser(nom: string): Analyse {
-  const source = readFileSync(resolve(RACINE, `components/${nom}.svelte`), 'utf8');
+  const candidats = nom.includes('/')
+    ? [`components/${nom}.svelte`]
+    : DOSSIERS.map((d) => `components/${d}${nom}.svelte`);
+  const trouve = candidats.find((c) => existsSync(resolve(RACINE, c)));
+  if (!trouve) {
+    // Mieux vaut un échec qui NOMME le composant qu'un ENOENT sur le premier
+    // chemin essayé : le lecteur saurait alors quoi chercher.
+    throw new Error(
+      `composant introuvable : « ${nom} » n'est ni à la racine, ni dans v2/, `
+      + `partages/ ou v2-heritage/`,
+    );
+  }
+  const source = readFileSync(resolve(RACINE, trouve), 'utf8');
   const debutStyle = source.indexOf('<style>');
   const markup = debutStyle === -1 ? source : source.slice(0, debutStyle);
   const style = debutStyle === -1 ? '' : source.slice(debutStyle, source.indexOf('</style>'));

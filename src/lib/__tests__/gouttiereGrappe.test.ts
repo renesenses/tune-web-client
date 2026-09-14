@@ -62,9 +62,19 @@ const PAS_DES_ECRANS = new Set([
   // connexion hors de son centre pour éviter des boutons qu'il masque.
   'SessionExpireeOverlay',
 ]);
-const ECRANS_V1 = [...SHELL.matchAll(/import\s+(\w+)\s+from\s+'\.\.\/(\w+\.svelte)'/g)]
+// 🔴 Ces écrans ont DÉMÉNAGÉ (phase 3 du chantier de bascule).
+//
+// Ils étaient importés par `'../X.svelte'` — la racine des composants, donc
+// l'interface actuelle. Ils vivent désormais dans `v2-heritage/` : ils
+// appartiennent à la v2, mais ne respectent pas encore ses règles de forme.
+// Voir `src/components/v2-heritage/LISEZ-MOI.md`.
+//
+// La catégorie « écran v1 monté par la coquille v2 » n'existe donc plus. On
+// balaie le dossier d'héritage à la place — et la garde continue de couvrir
+// exactement les mêmes fichiers.
+const ECRANS_V1 = [...SHELL.matchAll(/import\s+(\w+)\s+from\s+'\.\.\/v2-heritage\/(\w+\.svelte)'/g)]
   .filter((m) => !PAS_DES_ECRANS.has(m[1]))
-  .map((m) => `src/components/${m[2]}`);
+  .map((m) => `src/components/v2-heritage/${m[2]}`);
 
 /** Le CSS d'un composant, commentaires retirés. */
 function css(fichier: string): string {
@@ -109,9 +119,9 @@ describe('La gouttière de la grappe', () => {
   it('🔴 les écrans v1 montés dans la coquille sont bien vus', () => {
     // La première version de cette garde ne les balayait pas : c'est par là que
     // les Répertoires sont passés.
-    expect(ECRANS_V1).toContain('src/components/BrowseView.svelte');
-    expect(ECRANS_V1).toContain('src/components/OxygenView.svelte');
-    expect(ECRANS_V1).toContain('src/components/AmbianceView.svelte');
+    expect(ECRANS_V1).toContain('src/components/v2-heritage/BrowseView.svelte');
+    expect(ECRANS_V1).toContain('src/components/v2-heritage/OxygenView.svelte');
+    expect(ECRANS_V1).toContain('src/components/v2-heritage/AmbianceView.svelte');
   });
 
   it('🔴 les écrans v1 montés dans la coquille réservent la gouttière', () => {

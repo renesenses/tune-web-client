@@ -1,20 +1,20 @@
 <script lang="ts">
-  import { currentZone, playAndSync } from '../lib/stores/zones';
+  import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { get } from 'svelte/store';
-  import { tip } from '../lib/tooltip';
-  import { playFromHere } from '../lib/playback';
-  import * as api from '../lib/api';
-  import { formatTime, formatAudioBadge } from '../lib/utils';
-  import AlbumArt from './partages/AlbumArt.svelte';
-  import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
-  import { t as tr } from '../lib/i18n';
-  import { notifications } from '../lib/stores/notifications';
-  import { activeView, pendingOxygenFolder, vueDeRetour } from '../lib/stores/navigation';
-  import { libraryFolderScope } from '../lib/stores/library';
-  import { preferences } from '../lib/stores/preferences';
-  import ImportWizard from './ImportWizard.svelte';
+  import { tip } from '../../lib/tooltip';
+  import { playFromHere } from '../../lib/playback';
+  import * as api from '../../lib/api';
+  import { formatTime, formatAudioBadge } from '../../lib/utils';
+  import AlbumArt from '../partages/AlbumArt.svelte';
+  import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../../lib/types';
+  import { t as tr } from '../../lib/i18n';
+  import { notifications } from '../../lib/stores/notifications';
+  import { activeView, pendingOxygenFolder, vueDeRetour } from '../../lib/stores/navigation';
+  import { libraryFolderScope } from '../../lib/stores/library';
+  import { preferences } from '../../lib/stores/preferences';
+  import ImportWizard from '../partages/ImportWizard.svelte';
 
-  import { repertoireCible, consommerRepertoireCible } from '../lib/stores/repertoireCible';
+  import { repertoireCible, consommerRepertoireCible } from '../../lib/stores/repertoireCible';
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
   }

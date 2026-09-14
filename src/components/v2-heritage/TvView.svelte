@@ -5,9 +5,9 @@
   // ←/→ piste précédente/suivante. Échap ou clic = retour à l'app.
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
-  import { currentZone } from '../lib/stores/zones';
-  import { currentTrack, currentTrackId, seekPositionMs, playbackState } from '../lib/stores/nowPlaying';
-  import { activeView, previousView } from '../lib/stores/navigation';
+  import { currentZone } from '../../lib/stores/zones';
+  import { currentTrack, currentTrackId, seekPositionMs, playbackState } from '../../lib/stores/nowPlaying';
+  import { activeView, previousView } from '../../lib/stores/navigation';
   import {
     fetchTrackLyrics,
     fetchLyricsByMeta,
@@ -16,13 +16,13 @@
     lyricsSourceKind,
     type LyricsData,
     type LyricsMiss,
-  } from '../lib/lyrics';
-  import { chargerParolesEnLigne, parolesEnLigneActives } from '../lib/lyricsOnline';
-  import { formatTime } from '../lib/utils';
-  import { skipNext, skipPrevious } from '../lib/playback-controls';
-  import * as api from '../lib/api';
-  import AlbumArt from './partages/AlbumArt.svelte';
-  import QualityBadge from './partages/QualityBadge.svelte';
+  } from '../../lib/lyrics';
+  import { chargerParolesEnLigne, parolesEnLigneActives } from '../../lib/lyricsOnline';
+  import { formatTime } from '../../lib/utils';
+  import { skipNext, skipPrevious } from '../../lib/playback-controls';
+  import * as api from '../../lib/api';
+  import AlbumArt from '../partages/AlbumArt.svelte';
+  import QualityBadge from '../partages/QualityBadge.svelte';
   import TvVuMeters from './TvVuMeters.svelte';
   import TvVuBars from './TvVuBars.svelte';
   import {
@@ -31,7 +31,7 @@
     VU_INSTRUMENTS,
     VU_INSTRUMENT_DEFAULT,
     type VuInstrument,
-  } from '../lib/tvVuMode';
+  } from '../../lib/tvVuMode';
   import {
     BAR_SCALES,
     BAR_SCALE_IDS,
@@ -39,8 +39,8 @@
     barScaleLabel,
     readBarScale,
     type BarScaleId,
-  } from '../lib/tvBarScale';
-  import { t } from '../lib/i18n';
+  } from '../../lib/tvBarScale';
+  import { t } from '../../lib/i18n';
 
   let track = $derived($currentTrack);
   let zone = $derived($currentZone);
