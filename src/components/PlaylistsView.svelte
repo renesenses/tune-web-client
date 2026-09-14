@@ -15,7 +15,7 @@
   import type { Playlist, Track, StreamingPlaylist } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import ClampedText from './ClampedText.svelte';
 
   interface Props {

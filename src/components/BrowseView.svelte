@@ -5,7 +5,7 @@
   import { playFromHere } from '../lib/playback';
   import * as api from '../lib/api';
   import { formatTime, formatAudioBadge } from '../lib/utils';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import type { BrowseRootEntry, BrowseDirectory, BrowseResult, Track } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';

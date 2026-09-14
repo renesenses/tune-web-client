@@ -21,7 +21,7 @@
   import { formatTime } from '../lib/utils';
   import { skipNext, skipPrevious } from '../lib/playback-controls';
   import * as api from '../lib/api';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import TvVuMeters from './TvVuMeters.svelte';
   import TvVuBars from './TvVuBars.svelte';

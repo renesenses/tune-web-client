@@ -7,7 +7,7 @@
   import { selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab } from '../lib/stores/library';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { activeView, listResetNonce, saveDetailScroll, restoreDetailScroll, stashViewState, takeViewState } from '../lib/stores/navigation';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import AlphaIndex from './AlphaIndex.svelte';
   import SmartCollectionsView from './SmartCollectionsView.svelte';
   import {

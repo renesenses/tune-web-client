@@ -26,7 +26,7 @@
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import RecommendationsSection from './RecommendationsSection.svelte';
   import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';

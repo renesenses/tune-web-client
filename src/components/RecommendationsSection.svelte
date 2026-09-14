@@ -18,7 +18,7 @@
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { ouvrirAlbum } from '../lib/libraryNavigation';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
 
   let recommendations: any[] = $state([]);
   let recsLoaded = $state(false);

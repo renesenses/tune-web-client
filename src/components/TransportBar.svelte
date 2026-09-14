@@ -16,7 +16,7 @@
   import * as controls from '../lib/playback-controls';
   import { suivantDesactive } from '../lib/boutonSuivant';
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';

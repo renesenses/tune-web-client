@@ -15,7 +15,7 @@
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { formatTime } from '../lib/utils';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import { displayFields } from '../lib/stores/displayFields';

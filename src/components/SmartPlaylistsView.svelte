@@ -7,7 +7,7 @@
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import {
     OPERATEURS,
     normaliserOperateur,

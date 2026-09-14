@@ -16,7 +16,7 @@
   import { albums } from '../../lib/stores/library';
   import { fold } from '../../lib/utils';
   import { t } from '../../lib/i18n';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import '../../styles/tune-v2.css';
 
   let q = $state('');

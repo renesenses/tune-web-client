@@ -41,7 +41,7 @@
   import LignePisteV2 from './LignePisteV2.svelte';
   import PisteActions from './PisteActions.svelte';
   import QualityBadge from '../QualityBadge.svelte';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
 
   interface Props {
     pistes: Track[];

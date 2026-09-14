@@ -24,7 +24,7 @@
   import { sectionHeads } from '../lib/library/grouping';
 import { observeHeight, observeWidth } from '../lib/actions/observeSize';
 import { formatTime, formatDuration,  fold, estAvecPerte } from '../lib/utils';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
 import TrackContextMenu from './TrackContextMenu.svelte';
 import AlbumRating from './AlbumRating.svelte';
 import CollapsibleSection from './CollapsibleSection.svelte';

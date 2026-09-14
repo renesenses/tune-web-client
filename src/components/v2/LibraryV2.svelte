@@ -67,7 +67,7 @@
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
   import { signalerEchecLecture } from '../../lib/echecLecture';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';

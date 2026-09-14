@@ -15,7 +15,7 @@
   import { formatNombre } from '../../lib/formats';
   import type { MetadataProposal, DoubtfulAlbum, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon } from '../../lib/api';
   import { } from '../../lib/utils';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   // L'arbre des genres du client actuel, REPRIS tel quel plutôt que réécrit :
   // 426 lignes qui savent charger, renommer, fusionner et enregistrer. Le
   // dupliquer en style v2 aurait été quatre cents lignes de risque pour un

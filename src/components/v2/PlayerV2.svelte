@@ -12,7 +12,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, formatTime } from '../../lib/utils';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import '../../styles/tune-v2.css';
 
   const t = $derived($currentTrack);

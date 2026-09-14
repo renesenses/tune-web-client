@@ -32,7 +32,7 @@
    * rang. Ce composant ne peut pas le deviner, il le reçoit.
    */
   import { t } from '../../lib/i18n';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import MetadataChips from '../MetadataChips.svelte';
   import QualityBadge from '../QualityBadge.svelte';
   import PisteActions from './PisteActions.svelte';

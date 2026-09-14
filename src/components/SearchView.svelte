@@ -14,7 +14,7 @@
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, streamingAlbumOrigin, streamingServices } from '../lib/stores/streaming';
   import * as api from '../lib/api';
   import { formatTime, formatDuration, estAvecPerte } from '../lib/utils';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
