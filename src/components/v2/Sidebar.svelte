@@ -124,6 +124,9 @@
     { view: 'crossfeed', labelKey: 'v2.nav.crossfeed', icon: 'M8 6a6 6 0 0 0 0 12M16 6a6 6 0 0 1 0 12M4 12h4M16 12h4' },
     { view: 'converter', labelKey: 'v2.nav.converter', icon: 'M4 8h13l-3-3M20 16H7l3 3' },
     { view: 'declick', labelKey: 'v2.nav.declick', icon: 'M3 12h4l3-8 4 16 3-8h4' },
+    // Réveils — porté depuis l'écran actuel (Bertrand, 14/09/2026). Rangé
+    // avec les outils, pas avec la musique : on y va pour RÉGLER, pas écouter.
+    { view: 'alarms', labelKey: 'alarms.title', icon: 'M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16M12 9v4l2 2M5 3L2 6M22 6l-3-3' },
     { view: 'metadata', labelKey: 'metadata.title', icon: 'M20 12l-8 8-9-9V4h7zM8 8h.01' },
     { view: 'diagnostics', labelKey: 'v2.nav.processing', icon: 'M3 12h4l2 6 4-14 2 8h6' },
   ];
