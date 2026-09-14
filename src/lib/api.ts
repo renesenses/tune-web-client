@@ -2130,6 +2130,26 @@ export function browseMediaServer(serverId: string, objectId: string = '0') {
   );
 }
 
+/** Indexe UNE source UPnP dans la bibliothèque (#4129).
+ *
+ *  `conteneur` fixe le point de départ : `'0'` = la racine du serveur. Le
+ *  passer permet exactement ce que la réponse conseille quand un plafond a
+ *  mordu — repartir d'un dossier plus précis plutôt que de tout relever.
+ *
+ *  Les trois plafonds ne sont PAS passés ici : ils vivent dans les réglages
+ *  (`upnp_index_max_pistes`, `_max_conteneurs`, `_profondeur_max`), pour que
+ *  le choix se souvienne d'une passe à l'autre (#4154).
+ *
+ *  ⚠️ La passe est synchrone et peut être longue sur un gros catalogue —
+ *  22 331 pistes en 11,6 s à la mesure du 13/09/2026. */
+export function indexerServeurMedia(serverId: string, conteneur: string = '0') {
+  return fetchJSON<import('./types').IndexationUpnpResultat>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/indexer` +
+      `?conteneur=${encodeURIComponent(conteneur)}`,
+    { method: 'POST' },
+  );
+}
+
 /** Cherche DANS un serveur de médias, par son action ContentDirectory Search.
  *
  *  `container` restreint au dossier affiché ; `'0'` cherche tout le serveur. */
