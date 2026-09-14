@@ -131,4 +131,23 @@ describe("Aucun appelant de ServiceBadge ne replie sur 'local'", () => {
       expect(fautes, fautes.join('\n')).toEqual([]);
     });
   }
+
+  it("SearchView ne fabrique pas non plus de provenance 'local' par défaut", () => {
+    // Ici le repli ne se lisait pas sur la balise : il était posé en amont, sur
+    // l'entrée `_sources` que la pastille consomme ensuite (`s.source`). Et la
+    // branche `local` de cette vue rend un `<span>LOCAL</span>` EN DUR, sans
+    // passer par ServiceBadge — le mensonge sautait donc le composant.
+    const sv = lire('src/components/SearchView.svelte');
+    const fautes = sv
+      .split('\n')
+      .map((l, i) => [i + 1, l] as const)
+      .filter(([, l]) => /_source\s*\?\?\s*['"]local['"]/.test(l))
+      // `estLocal` et la clé de regroupement ne peignent rien : ils décident
+      // de ce qui est JOUABLE en local et de ce qui se range ensemble.
+      .filter(([, l]) => !/const key =|typeof t\.id === 'number'/.test(l))
+      .map(([n, l]) => `SearchView.svelte:${n}: ${l.trim()}`);
+    expect(fautes, fautes.join('\n')).toEqual([]);
+    // Et le type dit la vérité : une entrée peut n'avoir AUCUNE source connue.
+    expect(sv).toContain('_sources: { source: string | undefined; artist: Artist }[]');
+  });
 });

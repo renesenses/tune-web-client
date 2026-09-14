@@ -731,7 +731,9 @@
 
   interface MergedArtist extends Artist {
     _source?: string;
-    _sources: { source: string; artist: Artist }[];
+    /** `source` peut être INCONNUE : mieux vaut aucune pastille qu'un « LOCAL »
+     *  affiché sur un artiste distant dont on n'a pas encore lu la provenance. */
+    _sources: { source: string | undefined; artist: Artist }[];
   }
 
   let groupedArtists = $derived.by(() => {
@@ -764,9 +766,9 @@
       const key = a.name.toLowerCase();
       const existing = map.get(key);
       if (!existing) {
-        map.set(key, { ...a, _sources: [{ source: (a as any)._source ?? 'local', artist: a }] });
+        map.set(key, { ...a, _sources: [{ source: (a as any)._source, artist: a }] });
       } else {
-        const srcName = (a as any)._source ?? 'local';
+        const srcName = (a as any)._source;
         if (!existing._sources.some(s => s.source === srcName)) {
           existing._sources.push({ source: srcName, artist: a });
         }
@@ -1156,7 +1158,7 @@
                       <span class="top-result-name">{topResult.artist.name}</span>
                     </button>
                     <div class="source-badges">
-                      {#each (topResult.artist as MergedArtist)._sources ?? [{ source: (topResult.artist as any)._source ?? 'local', artist: topResult.artist }] as s}
+                      {#each (topResult.artist as MergedArtist)._sources ?? [{ source: (topResult.artist as any)._source, artist: topResult.artist }] as s}
                         <button class="source-badge-btn" onclick={() => {
                           if (s.source === 'local') {
                             selectArtist({ ...s.artist, _source: 'local' } as any);
