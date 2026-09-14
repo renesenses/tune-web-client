@@ -7,10 +7,10 @@
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import * as api from '../lib/api';
-  import type { Playlist, StreamingPlaylist } from '../lib/types';
-  import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
-  import { t } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import type { Playlist, StreamingPlaylist } from '../../lib/types';
+  import { streamingServices as streamingServicesStore } from '../../lib/stores/streaming';
+  import { t } from '../../lib/i18n';
 
   type HubTab = 'library' | 'transfers' | 'sync' | 'snapshots';
   let activeTab = $state<HubTab>('library');

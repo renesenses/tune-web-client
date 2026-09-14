@@ -18,6 +18,7 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
+  import { activeView } from '../../lib/stores/navigation';
   import { formatDuration, fold } from '../../lib/utils';
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -475,6 +476,14 @@
         aria-selected={onglet === 'listes'} onclick={() => (onglet = 'listes')}>{$t('v2.pl.tabLists' as any)}</button>
       <button class="onglet" class:actif={onglet === 'smart'} role="tab"
         aria-selected={onglet === 'smart'} onclick={() => (onglet = 'smart')}>{$t('v2.pl.tabSmart' as any)}</button>
+      <!-- 🔴 LE SEUL CHEMIN vers treize fonctions que cet écran ne sait pas
+           faire : playlists collaboratives, fusionner, comparer, récupérer une
+           playlist supprimée, liens, synchronisation, réordonner. Elles vivent
+           dans l'écran de l'ancienne interface, monté par la coquille depuis
+           `v2-heritage/`. Sans ce bouton la route existe et n'est atteinte par
+           personne — le défaut qu'on vient de corriger deux fois ailleurs. -->
+      <button class="onglet gestion" onclick={() => activeView.set('playlistmanager')}
+        >{$t('playlist.manager')}</button>
     </nav>
   {/if}
 
@@ -703,6 +712,7 @@
 
   /* Second niveau : SOULIGNÉ, comme les rubriques de l'écran Streaming. */
   .onglets{display:flex; gap:4px; padding:4px 30px 0}
+  .onglet.gestion{margin-left:auto; opacity:.75}
   .onglet{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;
     color:var(--v2-txt3); font:600 13.5px var(--v2-sans); padding:10px 12px}
   .onglet:hover{color:var(--v2-txt2)}

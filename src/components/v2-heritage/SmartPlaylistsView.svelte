@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { playFromHere } from '../lib/playback';
-  import * as api from '../lib/api';
-  import { formatTime, formatAudioBadge } from '../lib/utils';
-  import type { Track } from '../lib/types';
-  import { t as tr } from '../lib/i18n';
-  import { notifications } from '../lib/stores/notifications';
-  import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
-  import AlbumArt from './partages/AlbumArt.svelte';
+  import { currentZone, playAndSync } from '../../lib/stores/zones';
+  import { playFromHere } from '../../lib/playback';
+  import * as api from '../../lib/api';
+  import { formatTime, formatAudioBadge } from '../../lib/utils';
+  import type { Track } from '../../lib/types';
+  import { t as tr } from '../../lib/i18n';
+  import { notifications } from '../../lib/stores/notifications';
+  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import {
     OPERATEURS,
     normaliserOperateur,
     optionOperateur,
-  } from '../lib/smartPlaylistOperateurs';
+  } from '../../lib/smartPlaylistOperateurs';
 
   let zone = $derived($currentZone);
 
