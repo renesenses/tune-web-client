@@ -14,7 +14,7 @@
   // bas — voir la note de fusion du 04/09/2026.
   import { formatTime } from '../lib/utils';
   import { actionRetour, etapesDeRestauration } from '../lib/streamingRetour';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import QualityBadge from './QualityBadge.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import HeartButton from './HeartButton.svelte';

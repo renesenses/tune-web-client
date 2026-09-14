@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { artworkUrl, getAlbumCoverPath } from '../lib/api';
-  import ServiceBadge from './ServiceBadge.svelte';
+  import { artworkUrl, getAlbumCoverPath } from '../../lib/api';
+  import ServiceBadge from '../ServiceBadge.svelte';
 
   interface Props {
     coverPath?: string | null;

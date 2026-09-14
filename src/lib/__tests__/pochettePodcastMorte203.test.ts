@@ -27,7 +27,7 @@ import { readFileSync } from 'fs';
 
 const V0 = readFileSync('src/components/PodcastsView.svelte', 'utf8');
 const V2 = readFileSync('src/components/v2/PodcastsV2.svelte', 'utf8');
-const ART = readFileSync('src/components/AlbumArt.svelte', 'utf8');
+const ART = readFileSync('src/components/partages/AlbumArt.svelte', 'utf8');
 
 describe('Une pochette de podcast qui ne répond pas', () => {
   it('🔴 chaque `<img>` de pochette apprend son échec', () => {

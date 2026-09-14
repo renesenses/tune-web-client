@@ -31,7 +31,7 @@
   import { t as tr } from '../../lib/i18n';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { notifications } from '../../lib/stores/notifications';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
 
   const cible = $derived($ficheArtisteService);

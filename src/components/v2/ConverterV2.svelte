@@ -17,7 +17,7 @@
   import { fold } from '../../lib/utils';
   import { t } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import QualityBadge from '../QualityBadge.svelte';
   import '../../styles/tune-v2.css';
 

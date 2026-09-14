@@ -54,7 +54,7 @@
     type Element,
     type Widget,
   } from '../../lib/accueilWidgets';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import AlbumEditModal from '../AlbumEditModal.svelte';

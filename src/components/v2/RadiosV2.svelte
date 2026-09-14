@@ -22,7 +22,7 @@
   import { fold } from '../../lib/utils';
   import { ecrireVue, lireVue, type VueEcran } from '../../lib/vueEcran';
   import type { RadioStation } from '../../lib/types';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
   import '../../styles/tune-v2.css';

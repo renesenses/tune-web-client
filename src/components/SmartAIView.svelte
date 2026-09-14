@@ -3,7 +3,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import HeartButton from './HeartButton.svelte';
   import { formatTime } from '../lib/utils';
   import type { Track } from '../lib/types';

@@ -23,7 +23,7 @@
   import { connectionState } from '../lib/stores/connection';
   import { t } from '../lib/i18n';
   import { suiviOuverture } from '../lib/ouvertureFlux.svelte';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import type { Track } from '../lib/types';
 
   let zone = $derived($currentZone);

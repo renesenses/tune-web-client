@@ -29,7 +29,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, formatTime, getQualityTier } from '../../lib/utils';
   import type { Track } from '../../lib/types';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);

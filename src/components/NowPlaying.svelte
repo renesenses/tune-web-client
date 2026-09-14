@@ -23,7 +23,7 @@
     CF_PRESETS, presetActif, reglagesCrossfeed,
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../lib/crossfeed';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';

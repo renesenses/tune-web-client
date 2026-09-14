@@ -12,7 +12,7 @@
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import ClampedText from './ClampedText.svelte';
   import HeartButton from './HeartButton.svelte';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';

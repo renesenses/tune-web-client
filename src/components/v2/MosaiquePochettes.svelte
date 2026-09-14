@@ -24,7 +24,7 @@
    *
    * Aucune pochette du tout : on rend l'initiale, comme partout ailleurs.
    */
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
 
   interface Props {
     /** Pochettes DISTINCTES, dans l'ordre de la playlist. Au plus quatre sont lues. */

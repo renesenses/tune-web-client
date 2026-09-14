@@ -89,7 +89,7 @@ describe('🔴 le balisage la passe enfin à la pochette', () => {
 
   it('la pochette n’affiche PAS de badge pour le local ni la radio', () => {
     // Sans quoi chaque album de la bibliothèque porterait une pastille inutile.
-    const art = lire('components/AlbumArt.svelte');
+    const art = lire('components/partages/AlbumArt.svelte');
     expect(art).toContain("{#if source && source !== 'local' && source !== 'radio'}");
   });
 });

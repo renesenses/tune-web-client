@@ -11,7 +11,7 @@
   import { formatTime, formatDuration, formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip } from '../lib/utils';
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import HeartButton from './HeartButton.svelte';

@@ -19,7 +19,7 @@
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import { qualiteEnTeteAlbum } from '../../lib/qualiteEnTeteAlbum';
   import type { Album, Track } from '../../lib/types';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import ClampedText from '../ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';

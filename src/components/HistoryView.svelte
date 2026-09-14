@@ -7,7 +7,7 @@
   import { tip } from '../lib/tooltip';
   import { bulleTexte } from '../lib/infobulleTexte';
   import * as api from '../lib/api';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   // Fusion, déduplication et rejeu vivent dans `lib/historiqueLecture` depuis

@@ -34,7 +34,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, getQualityTier } from '../../lib/utils';
   import type { Album, Source, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import QualiteAlbum from './QualiteAlbum.svelte';

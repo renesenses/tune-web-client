@@ -62,7 +62,7 @@
     servicesInterrogeables,
     type AlbumsDeService,
   } from '../../lib/albumsArtisteStreaming';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';

@@ -7,7 +7,7 @@
   // et suit les changements de taille et de contenu (`lib/infobulleTexte`).
   import { bulleTexte } from '../lib/infobulleTexte';
   import { notifications } from '../lib/stores/notifications';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
 
   interface OfflineDownload {
     id: string;

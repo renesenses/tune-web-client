@@ -4,7 +4,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import * as api from '../lib/api';
-  import AlbumArt from './AlbumArt.svelte';
+  import AlbumArt from './partages/AlbumArt.svelte';
   /**
    * Les cinq actions par piste (Bertrand, 05/09/2026 : « et les boutons
    * d'action sur une piste dans cet écran ? »). Cet écran est celui du client

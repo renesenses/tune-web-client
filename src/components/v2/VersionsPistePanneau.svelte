@@ -33,7 +33,7 @@
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { activeView, pendingLibraryAlbum } from '../../lib/stores/navigation';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../ServiceBadge.svelte';
 
   interface Props {

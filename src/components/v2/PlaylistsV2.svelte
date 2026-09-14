@@ -20,7 +20,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, fold } from '../../lib/utils';
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import { t } from '../../lib/i18n';
   import { quatreDistinctes } from '../../lib/mosaique';

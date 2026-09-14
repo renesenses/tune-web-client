@@ -27,7 +27,7 @@
   } from '../../lib/favorisTriFiltre';
   import { fold } from '../../lib/utils';
   import type { Album, Track, Artist } from '../../lib/types';
-  import AlbumArt from '../AlbumArt.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
