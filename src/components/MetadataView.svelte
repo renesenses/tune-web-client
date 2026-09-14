@@ -9,7 +9,7 @@
   import { tuneWS } from '../lib/websocket';
   import { runAsyncOp } from '../lib/asyncOp';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import AlbumEditModal from './AlbumEditModal.svelte';
+  import AlbumEditModal from './partages/AlbumEditModal.svelte';
   import MetadataStatsDashboard from './MetadataStatsDashboard.svelte';
   import MetadataMp3Panel from './MetadataMp3Panel.svelte';
   import MetadataSuggestionsPanel from './MetadataSuggestionsPanel.svelte';

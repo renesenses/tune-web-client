@@ -24,7 +24,7 @@
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../lib/crossfeed';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import ServiceBadge from './ServiceBadge.svelte';
+  import ServiceBadge from './partages/ServiceBadge.svelte';
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';

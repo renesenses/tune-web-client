@@ -40,7 +40,7 @@
   import type { Track } from '../../lib/types';
   import LignePisteV2 from './LignePisteV2.svelte';
   import PisteActions from './PisteActions.svelte';
-  import QualityBadge from '../QualityBadge.svelte';
+  import QualityBadge from '../partages/QualityBadge.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
 
   interface Props {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getQualityTier, getQualityTierLabel, getQualityTierColor, formatCompactQuality, formatQualityTooltip } from '../lib/utils';
+  import { getQualityTier, getQualityTierLabel, getQualityTierColor, formatCompactQuality, formatQualityTooltip } from '../../lib/utils';
 
   interface Props {
     format?: string | null;

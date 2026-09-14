@@ -74,7 +74,7 @@ describe('#849 — le meilleur résultat ne déborde plus de sa carte', () => {
 
   it('la portée reste LOCALE : QualityBadge n’est pas modifié pour tout le reste', () => {
     const badge = readFileSync(
-      resolve(__dirname, '../../components/QualityBadge.svelte'), 'utf-8',
+      resolve(__dirname, '../../components/partages/QualityBadge.svelte'), 'utf-8',
     );
     expect(
       declarationsDe(lireStyles(badge), 'quality-badge')['flex-wrap'],

@@ -1,14 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import * as api from '../lib/api';
-  import type { TrackAllTags } from '../lib/api';
-  import { notifications } from '../lib/stores/notifications';
-  import { t } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import type { TrackAllTags } from '../../lib/api';
+  import { notifications } from '../../lib/stores/notifications';
+  import { t } from '../../lib/i18n';
   import {
     CHAMPS_MODIFIABLES,
     champModifiable,
     grouperChampsPiste,
-  } from '../lib/champsPiste';
+  } from '../../lib/champsPiste';
 
   interface Props {
     trackId: number;

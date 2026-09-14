@@ -35,7 +35,12 @@ describe.each(ECRANS)('Convertisseur — $nom', ({ fichier, album }) => {
   it('importe le badge de qualité plutôt que d’en redessiner un', () => {
     // DRY : le badge que l'utilisateur lit déjà partout ailleurs. Un libellé
     // maison ici divergerait du reste de l'application au premier changement.
-    expect(src).toMatch(/import QualityBadge from '\.{1,2}\/(\.\.\/)?QualityBadge\.svelte'/);
+    // 🔴 Le chemin passe par `partages/` depuis la phase 1 du chantier de
+    // bascule : `QualityBadge` est une brique commune aux deux interfaces, plus
+    // un composant de l'interface actuelle que la v2 emprunterait.
+    // La règle reste lâche sur le NOMBRE de crans — les deux écrans ne sont pas
+    // à la même profondeur — mais exige le dossier.
+    expect(src).toMatch(/import QualityBadge from '\.{1,2}\/(\.\.\/)?partages\/QualityBadge\.svelte'/);
   });
 
   it('affiche le format D’ORIGINE de l’album, pas celui de sortie', () => {

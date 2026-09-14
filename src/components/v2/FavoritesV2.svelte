@@ -31,7 +31,7 @@
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import AlbumEditModal from '../AlbumEditModal.svelte';
+  import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import { dialogs } from '../../lib/stores/dialogs';
   import { tick } from 'svelte';

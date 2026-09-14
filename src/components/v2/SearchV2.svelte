@@ -41,7 +41,7 @@
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
-  import AlbumEditModal from '../AlbumEditModal.svelte';
+  import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import { t } from '../../lib/i18n';
   import type { Artist, Playlist, StreamingPlaylist } from '../../lib/types';

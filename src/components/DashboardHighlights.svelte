@@ -21,7 +21,7 @@
   import { t } from '../lib/i18n';
   import * as api from '../lib/api';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import ServiceBadge from './ServiceBadge.svelte';
+  import ServiceBadge from './partages/ServiceBadge.svelte';
   import type { Track, Source, TopTrack, TopArtist } from '../lib/types';
   import {
     ouvrirAlbum as navigateToAlbum,

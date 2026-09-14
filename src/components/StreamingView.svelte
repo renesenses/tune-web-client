@@ -15,8 +15,8 @@
   import { formatTime } from '../lib/utils';
   import { actionRetour, etapesDeRestauration } from '../lib/streamingRetour';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import QualityBadge from './QualityBadge.svelte';
-  import ServiceBadge from './ServiceBadge.svelte';
+  import QualityBadge from './partages/QualityBadge.svelte';
+  import ServiceBadge from './partages/ServiceBadge.svelte';
   import HeartButton from './HeartButton.svelte';
   import type { Album, Artist, Track, StreamingSearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';

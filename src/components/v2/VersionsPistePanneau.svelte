@@ -34,7 +34,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { activeView, pendingLibraryAlbum } from '../../lib/stores/navigation';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import ServiceBadge from '../ServiceBadge.svelte';
+  import ServiceBadge from '../partages/ServiceBadge.svelte';
 
   interface Props {
     trackId: number;

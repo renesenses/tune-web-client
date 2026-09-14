@@ -190,7 +190,7 @@ describe("Les albums d'une collection ouverte", () => {
 
   it("la fiche d'album et l'édition sont montées", () => {
     expect(col).toContain('<AlbumDetailV2 album={fiche}');
-    expect(col).toContain("import('../AlbumEditModal.svelte')");
+    expect(col).toContain("import('../partages/AlbumEditModal.svelte')");
     // Le titre corrigé doit revenir dans la grille sans rouvrir la collection.
     expect(col).toContain('albums = albums.map((x: any) => (x.id === maj.id ? { ...x, ...maj } : x))');
   });

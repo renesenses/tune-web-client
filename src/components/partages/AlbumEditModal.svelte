@@ -1,12 +1,12 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { tip } from '../lib/tooltip';
+  import { tip } from '../../lib/tooltip';
   import { get } from 'svelte/store';
-  import * as api from '../lib/api';
-  import { artworkSrc } from '../lib/api';
-  import type { Album, Artist, Track } from '../lib/types';
-  import type { MetadataCategory } from '../lib/api/metadata';
-  import { t } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import { artworkSrc } from '../../lib/api';
+  import type { Album, Artist, Track } from '../../lib/types';
+  import type { MetadataCategory } from '../../lib/api/metadata';
+  import { t } from '../../lib/i18n';
   import TrackTagsDrawer from './TrackTagsDrawer.svelte';
 
   interface Props {

@@ -15,8 +15,8 @@
   import * as api from '../lib/api';
   import { formatTime, formatDuration, estAvecPerte } from '../lib/utils';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import QualityBadge from './QualityBadge.svelte';
-  import ServiceBadge from './ServiceBadge.svelte';
+  import QualityBadge from './partages/QualityBadge.svelte';
+  import ServiceBadge from './partages/ServiceBadge.svelte';
   import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
   import { t } from '../lib/i18n';
   import MetadataChips from './MetadataChips.svelte';

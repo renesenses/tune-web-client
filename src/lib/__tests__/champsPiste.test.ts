@@ -205,9 +205,9 @@ describe('champModifiable', () => {
 });
 
 /** Le tiroir doit VRAIMENT utiliser ce module — sinon la garde ne garde rien. */
-describe('TrackTagsDrawer', () => {
+describe('partages/TrackTagsDrawer', () => {
   const SOURCE = readFileSync(
-    resolve(process.cwd(), 'src/components/TrackTagsDrawer.svelte'),
+    resolve(process.cwd(), 'src/components/partages/TrackTagsDrawer.svelte'),
     'utf-8',
   );
 

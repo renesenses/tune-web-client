@@ -146,7 +146,7 @@ describe('Vignettes et fiche album (Bertrand, 05/09/2026)', () => {
     // sur les pochettes claires. Il ne s'affichait d'ailleurs qu'à partir du
     // niveau Avancé, et seulement pour le hi-res et le DSD.
     const q = sansCommentaires(lire('src/components/v2/QualiteAlbum.svelte'));
-    expect(q).toContain("import ServiceBadge from '../ServiceBadge.svelte'");
+    expect(q).toContain("import ServiceBadge from '../partages/ServiceBadge.svelte'");
     for (const f of ['LibraryV2', 'SearchV2']) {
       const src = sansCommentaires(lire(`src/components/v2/${f}.svelte`));
       expect(src, f).toContain("import QualiteAlbum from './QualiteAlbum.svelte'");
@@ -163,7 +163,7 @@ describe('Vignettes et fiche album (Bertrand, 05/09/2026)', () => {
     expect(q).toContain("s === 'radio' ? null : s");
     expect(q, "`local` ne doit pas être écarté").not.toMatch(/!==\s*'local'/);
     // Le libellé existe déjà côté ServiceBadge.
-    expect(lire('src/components/ServiceBadge.svelte')).toContain("local:");
+    expect(lire('src/components/partages/ServiceBadge.svelte')).toContain("local:");
   });
 
   it("la fiche d'un album porte enfin un FAVORI", () => {
