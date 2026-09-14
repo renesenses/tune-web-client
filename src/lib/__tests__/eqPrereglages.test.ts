@@ -167,7 +167,7 @@ describe('libellePrereglage', () => {
 
 describe('les deux écrans lisent la MÊME table', () => {
   const NOW_PLAYING = readFileSync(
-    resolve(process.cwd(), 'src/components/NowPlaying.svelte'),
+    resolve(process.cwd(), 'src/components/partages/NowPlaying.svelte'),
     'utf-8',
   );
   const PANNEAU = readFileSync(

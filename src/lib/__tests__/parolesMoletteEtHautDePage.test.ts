@@ -30,7 +30,7 @@ import { isInnerScrollerWheel, NP_INNER_SCROLLER_SELECTOR } from '../npWheelGest
 function lire(chemin: string): string {
   return readFileSync(resolve(process.cwd(), chemin), 'utf-8');
 }
-const NOW_PLAYING = lire('src/components/NowPlaying.svelte');
+const NOW_PLAYING = lire('src/components/partages/NowPlaying.svelte');
 const PAROLES = lire('src/components/NowPlayingLyrics.svelte');
 
 interface Regle {
@@ -118,7 +118,7 @@ describe('#2900 — la molette dans un cadre défilant ne révèle pas la file',
 
   it('handleNpWheel consulte la cible AVANT d’accumuler le défilement', () => {
     // Une fonction pure écrite mais jamais appelée ne corrige rien.
-    expect(NOW_PLAYING).toMatch(/import \{[^}]*\bisInnerScrollerWheel\b[^}]*\} from '\.\.\/lib\/npWheelGesture'/);
+    expect(NOW_PLAYING).toMatch(/import \{[^}]*\bisInnerScrollerWheel\b[^}]*\} from '\.\.\/(\.\.\/)?lib\/npWheelGesture'/);
     const debut = NOW_PLAYING.indexOf('function handleNpWheel(');
     expect(debut).toBeGreaterThan(-1);
     const corps = NOW_PLAYING.slice(debut, NOW_PLAYING.indexOf('\n  }\n', debut));

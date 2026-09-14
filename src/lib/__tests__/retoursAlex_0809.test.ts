@@ -19,7 +19,7 @@ import { estUnePiste, sousTitreReprise, reprisesUtiles } from '../reprendreEcout
 import { nextQueueSheetState } from '../stores/queue';
 
 const lire = (p: string) => readFileSync(resolve(__dirname, '../../', p), 'utf-8');
-const np = lire('components/NowPlaying.svelte');
+const np = lire('components/partages/NowPlaying.svelte');
 /** Le code seul : une garde qui lit les COMMENTAIRES se déclenche sur le récit
  *  du correctif au lieu du correctif. */
 const npCode = np.replace(/<!--[\s\S]*?-->/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');

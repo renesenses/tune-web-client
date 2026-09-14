@@ -153,7 +153,7 @@ describe('#1361 — ce que ce fichier NE garde PLUS, et pourquoi', () => {
     const garde = readFileSync(resolve(process.cwd(), 'src/lib/__tests__/albumEnCours1361.test.ts'), 'utf-8');
     expect(garde).toContain("/zones/1/album-en-cours");
     // Et `NowPlaying` ne lit plus le champ qui mentait.
-    const np = readFileSync(resolve(process.cwd(), 'src/components/NowPlaying.svelte'), 'utf-8');
+    const np = readFileSync(resolve(process.cwd(), 'src/components/partages/NowPlaying.svelte'), 'utf-8');
     expect(np).not.toContain('destinationAlbum({');
     expect(np).toContain('api.getZoneCurrentAlbum(zid)');
   });

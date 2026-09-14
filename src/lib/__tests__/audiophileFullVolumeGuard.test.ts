@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const transport = readFileSync(
-  resolve(__dirname, '../../components/TransportBar.svelte'),
+  resolve(__dirname, '../../components/partages/TransportBar.svelte'),
   'utf-8',
 );
 const settings = readFileSync(

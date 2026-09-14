@@ -95,7 +95,7 @@ describe('attente de lecture — les gestes v2 sont BRANCHÉS dessus', () => {
 
 describe('attente de lecture — le témoin est VISIBLE', () => {
   it('la barre de transport affiche l attente de la zone affichée', () => {
-    const src = sansCommentaires(lire('src/components/TransportBar.svelte'));
+    const src = sansCommentaires(lire('src/components/partages/TransportBar.svelte'));
 
     expect(src).toContain('lectureEnAttente');
     expect(src).toContain('tb-attente');

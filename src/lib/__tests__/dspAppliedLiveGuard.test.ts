@@ -87,7 +87,7 @@ describe('garde : un réglage DSP écrit rapporte sa portée', () => {
  */
 describe('garde : la bascule PURE rapporte sa portée', () => {
   const source = readFileSync(
-    resolve(__dirname, '../../components/TransportBar.svelte'),
+    resolve(__dirname, '../../components/partages/TransportBar.svelte'),
     'utf-8',
   );
 

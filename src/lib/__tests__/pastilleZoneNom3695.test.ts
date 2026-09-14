@@ -17,7 +17,7 @@
 // voit : on lit ici le `textContent` du `<span class="zone-chip-label">` rendu.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import TransportBar from '../../components/TransportBar.svelte';
+import TransportBar from '../../components/partages/TransportBar.svelte';
 import { zones, currentZoneId } from '../stores/zones';
 
 /** La capture de FabienM : « Salon », DLNA, « D Phantom » en sous-titre —

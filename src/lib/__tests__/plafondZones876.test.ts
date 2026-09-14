@@ -26,7 +26,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(
-  resolve(__dirname, '../../components/TransportBar.svelte'),
+  resolve(__dirname, '../../components/partages/TransportBar.svelte'),
   'utf-8',
 );
 

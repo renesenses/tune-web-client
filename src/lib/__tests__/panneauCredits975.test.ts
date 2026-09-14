@@ -36,7 +36,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const src = () =>
-  readFileSync(resolve(process.cwd(), 'src/components/NowPlaying.svelte'), 'utf-8');
+  readFileSync(resolve(process.cwd(), 'src/components/partages/NowPlaying.svelte'), 'utf-8');
 
 /**
  * Les bornes de la rangée `.np-extra-btns` — de son `<div>` à son `</div>`,

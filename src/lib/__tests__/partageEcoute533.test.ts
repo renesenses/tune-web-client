@@ -56,7 +56,7 @@ describe('Le texte de partage', () => {
 
 describe('🔴 L’appel lui-même', () => {
   const api = readFileSync('src/lib/api.ts', 'utf8');
-  const ecran = readFileSync('src/components/NowPlaying.svelte', 'utf8');
+  const ecran = readFileSync('src/components/partages/NowPlaying.svelte', 'utf8');
 
   it('part en POST — la route est déclarée `post("/{id}/share")`', () => {
     const bloc = api.slice(api.indexOf('export function shareNowPlaying'), api.indexOf('export function transferPlayback'));

@@ -33,7 +33,7 @@ import { lyricsSourceKind, normalizeLyricsResponse } from '../lyrics';
 
 const lire = (chemin: string) => readFileSync(resolve(process.cwd(), chemin), 'utf-8');
 
-const NOW_PLAYING = lire('src/components/NowPlaying.svelte');
+const NOW_PLAYING = lire('src/components/partages/NowPlaying.svelte');
 const PANNEAU = lire('src/components/NowPlayingLyrics.svelte');
 const GRAND_ECRAN = lire('src/components/TvView.svelte');
 

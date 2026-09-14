@@ -95,7 +95,7 @@ describe('LibraryView applique encore la règle (#2253)', () => {
 
   it('la règle est importée depuis le module partagé', () => {
     expect(source).toMatch(
-      /import\s*\{[^}]*\bdoitMemoriserPositionListe\b[^}]*\}\s*from\s*'\.\.\/lib\/libraryNavScroll'/,
+      /import\s*\{[^}]*\bdoitMemoriserPositionListe\b[^}]*\}\s*from\s*'\.\.\/(\.\.\/)?lib\/libraryNavScroll'/,
     );
   });
 

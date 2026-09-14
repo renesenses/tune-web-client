@@ -39,9 +39,9 @@
   import { cleBanniereEnrichissementApresScan } from './lib/enrichissementApresScan';
   import { urlFlux } from './lib/bridge';
   import Sidebar from './components/Sidebar.svelte';
-  import NowPlaying from './components/NowPlaying.svelte';
+  import NowPlaying from './components/partages/NowPlaying.svelte';
   import TvView from './components/TvView.svelte';
-  import TransportBar from './components/TransportBar.svelte';
+  import TransportBar from './components/partages/TransportBar.svelte';
   import QueueView from './components/QueueView.svelte';
   import LibraryView from './components/LibraryView.svelte';
   import OxygenView from './components/OxygenView.svelte';

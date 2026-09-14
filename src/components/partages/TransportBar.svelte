@@ -1,37 +1,37 @@
 <script lang="ts">
-  import { preferences } from '../lib/stores/preferences';
-  import CreteMetre from './partages/CreteMetre.svelte';
-  import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../lib/peakMetre';
+  import { preferences } from '../../lib/stores/preferences';
+  import CreteMetre from './CreteMetre.svelte';
+  import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
-  import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../lib/stores/zones';
-  import { arretPossible } from '../lib/arretTransport';
-  import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../lib/stores/nowPlaying';
-  import { upNextCount } from '../lib/stores/queue';
-  import { ytPlayerState, ytLoading } from '../lib/stores/ytPlayer';
-  import { isBrowserZone, browserSetVolume, browserSeek } from '../lib/stores/browserAudio';
-  import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../lib/stores/profile';
-  import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
-  import * as api from '../lib/api';
-  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
-  import * as controls from '../lib/playback-controls';
-  import { suivantDesactive } from '../lib/boutonSuivant';
-  import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
-  import AlbumArt from './partages/AlbumArt.svelte';
-  import ServiceBadge from './partages/ServiceBadge.svelte';
-  import VolumeControl from './VolumeControl.svelte';
-  import AudioVisualizer from './partages/AudioVisualizer.svelte';
-  import ZoneConfigModal from './ZoneConfigModal.svelte';
-  import ZoneTypeIcon from './ZoneTypeIcon.svelte';
-  import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
-  import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../lib/zoneIdentity';
-  import { t } from '../lib/i18n';
-  import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../lib/utils';
-  import type { OutputType, RepeatMode } from '../lib/types';
-  import { activeView, mobileNowPlayingOpen } from '../lib/stores/navigation';
-  import { isPremium } from '../lib/stores/license';
-  import { notifications } from '../lib/stores/notifications';
-  import { dialogs } from '../lib/stores/dialogs';
-  import { fullVolumeConfirmationRequired } from '../lib/audiophileSafety';
+  import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../../lib/stores/zones';
+  import { arretPossible } from '../../lib/arretTransport';
+  import { currentTrack, playbackState, shuffleEnabled, repeatMode, seekPositionMs, zoneVolume, mutedVolume } from '../../lib/stores/nowPlaying';
+  import { upNextCount } from '../../lib/stores/queue';
+  import { ytPlayerState, ytLoading } from '../../lib/stores/ytPlayer';
+  import { isBrowserZone, browserSetVolume, browserSeek } from '../../lib/stores/browserAudio';
+  import { currentProfileId, favoriteTrackIds, favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
+  import * as api from '../../lib/api';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
+  import * as controls from '../../lib/playback-controls';
+  import { suivantDesactive } from '../../lib/boutonSuivant';
+  import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
+  import AlbumArt from './AlbumArt.svelte';
+  import ServiceBadge from './ServiceBadge.svelte';
+  import VolumeControl from '../VolumeControl.svelte';
+  import AudioVisualizer from './AudioVisualizer.svelte';
+  import ZoneConfigModal from '../ZoneConfigModal.svelte';
+  import ZoneTypeIcon from '../ZoneTypeIcon.svelte';
+  import ZoneOutputDeviceNotice from '../ZoneOutputDeviceNotice.svelte';
+  import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../../lib/zoneIdentity';
+  import { t } from '../../lib/i18n';
+  import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
+  import type { OutputType, RepeatMode } from '../../lib/types';
+  import { activeView, mobileNowPlayingOpen } from '../../lib/stores/navigation';
+  import { isPremium } from '../../lib/stores/license';
+  import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { fullVolumeConfirmationRequired } from '../../lib/audiophileSafety';
   import {
     audiophileEnabled,
     audiophileLockVolume,
@@ -39,7 +39,7 @@
     refreshVolumeLock,
     setZoneVolumeLock,
     volumeLocked,
-  } from '../lib/stores/audiophile';
+  } from '../../lib/stores/audiophile';
 
   // Le libellé de protocole vivait ici en copie locale (il en existe encore
   // deux autres, Sidebar et BottomTabBar). Il est passé dans `lib/zoneIdentity`

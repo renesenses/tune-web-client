@@ -306,7 +306,7 @@ describe('Radio — cœur harmonisé et édition', () => {
  */
 describe('Lecture en cours — le bouton TV', () => {
   it('l’icône est un téléviseur, plus des flèches de plein écran', () => {
-    const src = lire('../../components/NowPlaying.svelte');
+    const src = lire('../../components/partages/NowPlaying.svelte');
     const i = src.indexOf('class="np-tv-btn"');
     expect(i, 'le bouton TV a disparu').toBeGreaterThan(-1);
     const bloc = src.slice(i, i + 1400);

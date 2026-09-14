@@ -126,8 +126,8 @@ describe('les onze langues portent les cinq libellés', () => {
 
 const lire = (f: string) => readFileSync(resolve(__dirname, '../../components', f), 'utf8');
 const GABARITS: Array<[string, string]> = [
-  ['TransportBar.svelte', lire('TransportBar.svelte')],
-  ['NowPlaying.svelte', lire('NowPlaying.svelte')],
+  ['TransportBar.svelte', lire('partages/TransportBar.svelte')],
+  ['NowPlaying.svelte', lire('partages/NowPlaying.svelte')],
 ];
 
 describe('les quatre points d\'entrée passent par la règle commune', () => {
@@ -137,7 +137,8 @@ describe('les quatre points d\'entrée passent par la règle commune', () => {
     });
 
     it(`${nom} — Aléatoire et Répéter appellent le module partagé`, () => {
-      expect(src).toContain("from '../lib/etatTransport'");
+      // Idem : `partages/` est un cran plus bas que la racine des composants.
+      expect(src).toMatch(/from '\.\.\/(\.\.\/)?lib\/etatTransport'/);
       expect(src).toMatch(/libelleAleatoire\(\$t, \$shuffleEnabled\)/);
       expect(src).toMatch(/libelleRepetition\(\$t, \$repeatMode\)/);
     });

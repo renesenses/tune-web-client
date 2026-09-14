@@ -111,7 +111,7 @@ describe('suivantDesactive — contrat serveur prioritaire', () => {
 });
 
 describe('le contrat autoritaire est branché sur les deux surfaces', () => {
-  for (const composant of ['TransportBar.svelte', 'MiniPlayer.svelte']) {
+  for (const composant of ['partages/TransportBar.svelte', 'MiniPlayer.svelte']) {
     it(`${composant} transmet can_skip_next à la règle partagée`, () => {
       const source = readFileSync(resolve(__dirname, `../components/${composant}`), 'utf8');
       expect(source).toMatch(/canSkipNext:\s*zone\?\.can_skip_next/);
