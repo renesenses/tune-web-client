@@ -14,7 +14,7 @@
   import AlbumArt from './partages/AlbumArt.svelte';
   import ServiceBadge from './partages/ServiceBadge.svelte';
   import MetadataChips from './partages/MetadataChips.svelte';
-  import HeartButton from './HeartButton.svelte';
+  import HeartButton from './partages/HeartButton.svelte';
   import { displayFields } from '../lib/stores/displayFields';
 
   interface Props {

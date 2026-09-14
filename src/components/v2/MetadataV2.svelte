@@ -20,7 +20,7 @@
   // 426 lignes qui savent charger, renommer, fusionner et enregistrer. Le
   // dupliquer en style v2 aurait été quatre cents lignes de risque pour un
   // habillage. Il est habillé par le conteneur, voir `.gt-v2`.
-  import GenreTreeView from '../GenreTreeView.svelte';
+  import GenreTreeView from '../v2-heritage/GenreTreeView.svelte';
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 

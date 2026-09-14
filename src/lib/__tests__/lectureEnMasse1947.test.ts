@@ -206,7 +206,7 @@ describe('#1947 — les surfaces qui n’avaient pas ces boutons les ont', () =>
     expect(src).not.toContain('lireListe(vusTitres');
   });
   it('l’écran des répertoires tire dans le SOUS-ARBRE, pas dans la page', () => {
-    const src = sansCommentaires(lireSrc('src/components/OxygenView.svelte'));
+    const src = sansCommentaires(lireSrc('src/components/v2-heritage/OxygenView.svelte'));
     expect(src).toContain('tirerDansLeDossier');
     expect(src).toContain('shuffleAll(zone.id, { folder: dossierOuvert })');
     // Le bouton n'apparaît que dans un répertoire : sans portée, le serveur
@@ -220,7 +220,7 @@ describe('#1947 — les surfaces qui n’avaient pas ces boutons les ont', () =>
       'src/components/v2/PlaylistDetailV2.svelte',
       'src/components/v2/CollectionsV2.svelte',
       'src/components/v2/SearchV2.svelte',
-      'src/components/OxygenView.svelte',
+      'src/components/v2-heritage/OxygenView.svelte',
     ]) {
       expect(sansCommentaires(lireSrc(f)), `${f} appelle setShuffle`).not.toContain('setShuffle');
     }

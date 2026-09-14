@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const actions = () => lire('../../components/v2/PochetteActions.svelte');
 const biblio = () => lire('../../components/v2/LibraryV2.svelte');
-const coeur = () => lire('../../components/HeartButton.svelte');
+const coeur = () => lire('../../components/partages/HeartButton.svelte');
 
 describe('Pochette — les cinq emplacements de la maquette', () => {
   it('chaque coin porte l’action que la maquette y met', () => {

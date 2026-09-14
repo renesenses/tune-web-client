@@ -103,8 +103,8 @@ describe('le bouton est BRANCHÉ, pas seulement écrit', () => {
   it('🔴 les Répertoires OUVRENT le dossier demandé, et le consomment', () => {
     // Sans consommation, revenir aux Répertoires par la barre latérale
     // rouvrirait indéfiniment le dernier album localisé.
-    const br = lire('components/BrowseView.svelte');
-    expect(br).toContain("from '../lib/stores/repertoireCible'");
+    const br = lire('components/v2-heritage/BrowseView.svelte');
+    expect(br).toMatch(/from '\.\.\/(\.\.\/)?lib\/stores\/repertoireCible'/);
     expect(br).toContain('consommerRepertoireCible()');
     expect(br).toContain('void navigateTo(cible)');
   });

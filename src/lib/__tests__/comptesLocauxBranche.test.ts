@@ -20,7 +20,7 @@ const ECRAN = readFileSync(
 
 describe('la ventilation par source est branchee sur l ecran Bibliotheque', () => {
   it('SettingsView importe le decideur', () => {
-    expect(ECRAN).toContain("from '../lib/comptesLocaux'");
+    expect(ECRAN).toMatch(/from '\.\.\/(\.\.\/)?lib\/comptesLocaux'/);
   });
 
   it('SettingsView derive les deux comptes locaux des stats du serveur', () => {

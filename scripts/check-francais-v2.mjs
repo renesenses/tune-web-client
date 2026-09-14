@@ -139,7 +139,18 @@ for (const f of fichiers('src/components/v2')) {
   let balisage = src.slice(i + 9);
   // Le bloc <style> ne s'affiche pas.
   const j = balisage.indexOf('<style');
-  const fin = j > 0 ? balisage.slice(0, j) : balisage;
+  let fin = j > 0 ? balisage.slice(0, j) : balisage;
+  // 🔴 `<code>` et `<pre>` ne se traduisent PAS : ils portent de la SYNTAXE.
+  //
+  // `GenreTreeView` documente le langage de requête avec
+  // `<code>genre branch_of "Jazz"</code>` et `<code>albums.genre</code>`.
+  // Un utilisateur allemand doit taper `branch_of`, pas sa traduction ; et
+  // `albums.genre` est un nom de colonne. Les réclamer en clé i18n produirait
+  // une interface qui ment sur ce qu'il faut saisir.
+  //
+  // On les blanchit comme les commentaires, en gardant les sauts de ligne pour
+  // que les numéros signalés restent justes.
+  fin = fin.replace(/<(code|pre)\b[^>]*>[\s\S]*?<\/\1>/g, blanchir);
   for (const m of fin.matchAll(/>([^<>{}]+)</g)) {
     // Les entités HTML décodées AVANT l'examen : `&times;` n'est pas un mot,
     // et `&lt; 15 m²` est une mesure. Les réclamer en traduction ferait fuir

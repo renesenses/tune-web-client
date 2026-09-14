@@ -32,8 +32,8 @@ import sv from '../locales/sv';
 import zh from '../locales/zh';
 import hu from '../locales/hu';
 
-const tvView = readFileSync(resolve(__dirname, '../../components/TvView.svelte'), 'utf-8');
-const bars = readFileSync(resolve(__dirname, '../../components/TvVuBars.svelte'), 'utf-8');
+const tvView = readFileSync(resolve(__dirname, '../../components/v2-heritage/TvView.svelte'), 'utf-8');
+const bars = readFileSync(resolve(__dirname, '../../components/v2-heritage/TvVuBars.svelte'), 'utf-8');
 const barScaleSrc = readFileSync(resolve(__dirname, '../tvBarScale.ts'), 'utf-8');
 const vuModeSrc = readFileSync(resolve(__dirname, '../tvVuMode.ts'), 'utf-8');
 
@@ -237,7 +237,7 @@ describe('placement sur la barre', () => {
  * ------------------------------------------------------------------------ */
 describe('le bargraphe ne dessine que ce que le serveur publie', () => {
   it('il lit les crêtes ET les moyennes des mêmes événements audio_levels', () => {
-    expect(bars).toContain("from '../lib/stores/audioLevels'");
+    expect(bars).toMatch(/from '\.\.\/(\.\.\/)?lib\/stores\/audioLevels'/);
     expect(bars).toContain('levels.rms_left_db');
     expect(bars).toContain('levels.rms_right_db');
     expect(bars).toContain('levels.peak_left_db');

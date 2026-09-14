@@ -35,7 +35,7 @@ const lire = (chemin: string) => readFileSync(resolve(process.cwd(), chemin), 'u
 
 const NOW_PLAYING = lire('src/components/partages/NowPlaying.svelte');
 const PANNEAU = lire('src/components/NowPlayingLyrics.svelte');
-const GRAND_ECRAN = lire('src/components/TvView.svelte');
+const GRAND_ECRAN = lire('src/components/v2-heritage/TvView.svelte');
 
 describe('lyricsSourceKind', () => {
   it('reconnaît les trois valeurs du contrat serveur', () => {

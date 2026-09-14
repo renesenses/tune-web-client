@@ -1,11 +1,11 @@
 <script lang="ts">
-  import type { Track } from '../lib/types';
-  import type { FacetValue, FolderChild, FolderCrumb } from '../lib/api';
+  import type { Track } from '../../lib/types';
+  import type { FacetValue, FolderChild, FolderCrumb } from '../../lib/api';
   import { get } from 'svelte/store';
-  import { t } from '../lib/i18n';
-  import { OXYGEN_FACETS_ALL } from '../lib/stores/preferences';
-  import { chainesUniques, sansDoublons } from '../lib/clesUniques';
-  import OxygenFolderFacet from './OxygenFolderFacet.svelte';
+  import { t } from '../../lib/i18n';
+  import { OXYGEN_FACETS_ALL } from '../../lib/stores/preferences';
+  import { chainesUniques, sansDoublons } from '../../lib/clesUniques';
+  import OxygenFolderFacet from '../partages/OxygenFolderFacet.svelte';
 
   interface Props {
     tracks: Track[];                                  // loaded window (client fallback)

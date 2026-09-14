@@ -36,7 +36,7 @@
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
   import type { FolderChild, FolderCrumb } from '../../lib/api';
-  import OxygenFolderFacet from '../OxygenFolderFacet.svelte';
+  import OxygenFolderFacet from './OxygenFolderFacet.svelte';
 
   interface Props {
     /** Le chemin absolu porté par la règle. */

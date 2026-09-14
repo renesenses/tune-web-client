@@ -67,7 +67,7 @@
    * navigation à tenir ici.
    */
   import SessionExpireeOverlay from '../partages/SessionExpireeOverlay.svelte';
-  import TvView from '../TvView.svelte';
+  import TvView from '../v2-heritage/TvView.svelte';
   /**
    * 🔴 SANS LUI, TOUT DIALOGUE RESTE SANS REPONSE POUR TOUJOURS.
    *
@@ -111,13 +111,13 @@
   // facettes et son inspecteur ; le reecrire aux couleurs du nouveau client
   // est un chantier a part, et le laisser absent en attendant privait d'une
   // fonction entiere. Mieux vaut l'ecran d'hier que pas d'ecran.
-  import OxygenView from '../OxygenView.svelte';
+  import OxygenView from '../v2-heritage/OxygenView.svelte';
   // AMBIANCE et REPERTOIRES, montes de la meme facon. Signales manquants par
   // Querite sur le forum le 05/09/2026 : « manque les onglets : Ambiance,
   // Repertoires, Oxygen ». Les trois vues existaient et etaient declarees ;
   // la coquille n'en montait aucune.
-  import AmbianceView from '../AmbianceView.svelte';
-  import BrowseView from '../BrowseView.svelte';
+  import AmbianceView from '../v2-heritage/AmbianceView.svelte';
+  import BrowseView from '../v2-heritage/BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
   /**

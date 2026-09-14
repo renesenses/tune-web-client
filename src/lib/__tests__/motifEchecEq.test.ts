@@ -253,7 +253,7 @@ describe('l’écran Égaliseur ne se tait plus', () => {
   });
 
   it('passe par le classement partagé des motifs', () => {
-    expect(SOURCE).toContain("from '../lib/motifEchecEq'");
+    expect(SOURCE).toMatch(/from '\.\.\/(\.\.\/)?lib\/motifEchecEq'/);
     expect(SOURCE).toContain('motifDEchec(');
   });
 

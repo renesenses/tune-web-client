@@ -44,7 +44,7 @@ const cles = (bloc: string) =>
 
 describe('facettes Oxygen réellement branchées', () => {
   const src = readFileSync(
-    resolve(__dirname, '../../components/OxygenView.svelte'),
+    resolve(__dirname, '../../components/v2-heritage/OxygenView.svelte'),
     'utf-8',
   );
   const demandees = valeurs(corps(src, /const SERVER_FACET_FIELDS = \[([^\]]+)\]/, 'SERVER_FACET_FIELDS'));

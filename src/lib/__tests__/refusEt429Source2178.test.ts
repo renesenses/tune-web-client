@@ -86,7 +86,7 @@ describe('429 sur une LECTURE du support (chemin fetchJSON)', () => {
     expect(delaiAvantNouvelleTentative(e)).toBe(3540);
     expect(messageErreurSupport(e, trFr, 'fr')).toBe(
       "Limite d'envoi du support atteinte : trop de messages en peu de temps. " +
-        "Ton message n'a pas été envoyé — réessaie dans 59 minutes.",
+        "Votre message n'a pas été envoyé — réessayez dans 59 minutes.",
     );
   });
 

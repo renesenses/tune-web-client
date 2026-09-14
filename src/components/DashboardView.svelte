@@ -7,7 +7,7 @@
   import { artworkSrc } from '../lib/api';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import DashboardHighlights from './DashboardHighlights.svelte';
-  import HeartButton from './HeartButton.svelte';
+  import HeartButton from './partages/HeartButton.svelte';
 
   let tree = $state<Record<string, string[]>>({});
 

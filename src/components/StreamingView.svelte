@@ -17,7 +17,7 @@
   import AlbumArt from './partages/AlbumArt.svelte';
   import QualityBadge from './partages/QualityBadge.svelte';
   import ServiceBadge from './partages/ServiceBadge.svelte';
-  import HeartButton from './HeartButton.svelte';
+  import HeartButton from './partages/HeartButton.svelte';
   import type { Album, Artist, Track, StreamingSearchResult, FeaturedSection, StreamingPlaylist, StreamingGenre } from '../lib/types';
   import { t as tr } from '../lib/i18n';
   import { fusionnerPage } from '../lib/pagination';

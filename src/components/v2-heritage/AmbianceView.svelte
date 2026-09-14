@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { t } from '../lib/i18n';
-  import { notifications } from '../lib/stores/notifications';
-  import * as api from '../lib/api';
-  import AlbumArt from './partages/AlbumArt.svelte';
+  import { currentZone, playAndSync } from '../../lib/stores/zones';
+  import { t } from '../../lib/i18n';
+  import { notifications } from '../../lib/stores/notifications';
+  import * as api from '../../lib/api';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   /**
    * Les cinq actions par piste (Bertrand, 05/09/2026 : « et les boutons
    * d'action sur une piste dans cet écran ? »). Cet écran est celui du client
@@ -17,11 +17,11 @@
    * ambiances enregistrées et indexation acoustique comprises — est un chantier
    * à part.
    */
-  import PisteActions from './v2/PisteActions.svelte';
-  import { formatTime } from '../lib/utils';
-  import type { Track } from '../lib/types';
-  import { acousticStatus, acousticEnabled, acousticProgress, refreshAcousticStatus } from '../lib/stores/acoustic';
-  import AcousticProgress from './AcousticProgress.svelte';
+  import PisteActions from '../v2/PisteActions.svelte';
+  import { formatTime } from '../../lib/utils';
+  import type { Track } from '../../lib/types';
+  import { acousticStatus, acousticEnabled, acousticProgress, refreshAcousticStatus } from '../../lib/stores/acoustic';
+  import AcousticProgress from '../partages/AcousticProgress.svelte';
 
   let loading = $state(false);
   let tracks = $state<(Track & { similarity?: number })[]>([]);
@@ -49,7 +49,7 @@
       await api.updateConfig({ audio_embedding_enabled: true });
       await refreshAcousticStatus();
       notifications.success(
-        "Analyse acoustique activée. Elle démarre en tâche de fond ; la recherche par ambiance donnera des résultats à mesure que les titres seront analysés.",
+        $t('v2.ambiance.analysisOn' as any),
       );
     } catch (e: any) {
       notifications.error(e?.message || "Impossible d'activer l'analyse acoustique");
@@ -66,7 +66,7 @@
     { label: 'Techno nocturne', query: 'driving dark hypnotic techno' },
     { label: 'Chaud analogique', query: 'warm analog vintage recording' },
     { label: 'Piano solo', query: 'intimate solo acoustic piano' },
-    { label: 'Électro ambient', query: 'atmospheric ambient electronic' },
+    { label: $t('v2.ambiance.presetElectro' as any), query: 'atmospheric ambient electronic' },
     { label: 'Rock live', query: 'raw energetic live rock' },
     { label: 'Acoustique doux', query: 'gentle acoustic folk fingerpicking' },
     { label: 'Groove funk', query: 'funky syncopated groove bass' },
@@ -111,9 +111,9 @@
       const msg = String(e?.message ?? '');
       if (/\b503\b|model|acoustic|unavailable|provision/i.test(msg)) {
         error =
-          "La recherche par ambiance prépare son modèle acoustique (téléchargement au premier usage). Réessaie dans un instant — si le problème persiste, vérifie la connexion Internet du serveur.";
+          $t('v2.ambiance.modelWarming' as any);
       } else {
-        error = e?.message || 'Recherche par ambiance indisponible';
+        error = e?.message || $t('v2.ambiance.unavailable' as any);
       }
       tracks = [];
     }
@@ -258,14 +258,14 @@
         notifications.success(`Playlist « ${name} » sauvegardée (${ids.length} titres)`);
       }
     } catch (e: any) {
-      notifications.error(e?.message || 'Erreur de sauvegarde');
+      notifications.error(e?.message || $t('v2.ambiance.saveError' as any));
     }
   }
 </script>
 
 <div class="ambiance-view">
   <div class="view-header">
-    <h2>Ambiance</h2>
+    <h2>{$t('v2.ambiance.title' as any)}</h2>
     <span class="subtitle">{$t('ambiance.subtitle')}</span>
   </div>
 
@@ -385,14 +385,14 @@
   {#if premiumBlocked}
     <div class="premium-banner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.5 5.8 21 7 14 2 9.3 9 8.5 12 2" /></svg>
-      La recherche par ambiance nécessite une licence Premium.
+      {$t('v2.ambiance.premiumNeeded' as any)}
     </div>
   {/if}
 
   {#if loading && tracks.length === 0}
     <div class="loading-state">
       <div class="loading-spinner"></div>
-      <p>Analyse acoustique en cours…</p>
+      <p>{$t('v2.ambiance.analysing' as any)}</p>
     </div>
   {/if}
 
@@ -414,15 +414,15 @@
         <div class="results-actions">
           <button class="action-btn play-all-btn" onclick={() => playAll(false)}>
             <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5,3 19,12 5,21" /></svg>
-            Tout lire
+            {$t('v2.ambiance.playAll' as any)}
           </button>
           <button class="action-btn" onclick={() => playAll(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
-            Aléatoire
+            {$t('v2.ambiance.shuffle' as any)}
           </button>
           <button class="action-btn save-btn" onclick={saveAsPlaylist}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" /></svg>
-            Sauvegarder
+            {$t('v2.ambiance.save' as any)}
           </button>
         </div>
       </div>

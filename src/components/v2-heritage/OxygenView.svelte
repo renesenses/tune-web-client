@@ -1,22 +1,22 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { shuffleAll } from '../lib/api';
-  import { tip } from '../lib/tooltip';
-  import QualityBadge from './partages/QualityBadge.svelte';
+  import { shuffleAll } from '../../lib/api';
+  import { tip } from '../../lib/tooltip';
+  import QualityBadge from '../partages/QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
-  import HeartButton from './HeartButton.svelte';
-  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkSrc, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../lib/api';
-  import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../lib/api/metadata';
-  import { displayFields } from '../lib/stores/displayFields';
-  import { preferences, type OxygenViewMode } from '../lib/stores/preferences';
+  import HeartButton from '../partages/HeartButton.svelte';
+  import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkSrc, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../../lib/api';
+  import { getTrackExtendedMetadata, getMetadataFieldSettings, type MetadataCategory } from '../../lib/api/metadata';
+  import { displayFields } from '../../lib/stores/displayFields';
+  import { preferences, type OxygenViewMode } from '../../lib/stores/preferences';
   import { get } from 'svelte/store';
-  import { activeView, focusMode, pendingOxygenFolder } from '../lib/stores/navigation';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { currentTrackId } from '../lib/stores/nowPlaying';
-  import { notifications } from '../lib/stores/notifications';
-  import { fold } from '../lib/utils';
-  import { t } from '../lib/i18n';
-  import type { Track } from '../lib/types';
+  import { activeView, focusMode, pendingOxygenFolder } from '../../lib/stores/navigation';
+  import { currentZone, playAndSync } from '../../lib/stores/zones';
+  import { currentTrackId } from '../../lib/stores/nowPlaying';
+  import { notifications } from '../../lib/stores/notifications';
+  import { fold } from '../../lib/utils';
+  import { t } from '../../lib/i18n';
+  import type { Track } from '../../lib/types';
 
   const NEW_KEYS = new Set(['release_country', 'mb_release_track_id', 'encoder_software', 'source_media']);
   const LOAD_LIMIT = 3000; // client window; full-library facets = server index (Phase 2b)

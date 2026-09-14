@@ -13,16 +13,16 @@
   // plage). La quatrième, « amplitude dynamique », est restée sans définition
   // de la part du demandeur : on ne la devine pas, et rien ici n'en prétend une.
   import { onMount, onDestroy } from 'svelte';
-  import { audioLevels } from '../lib/stores/audioLevels';
-  import { RED_FROM_DB, PEAK_LAMP_DBFS } from '../lib/tvVuScale';
+  import { audioLevels } from '../../lib/stores/audioLevels';
+  import { RED_FROM_DB, PEAK_LAMP_DBFS } from '../../lib/tvVuScale';
   import {
     BAR_SCALES,
     barFraction,
     redFraction,
     barScaleLabel,
     type BarScaleId,
-  } from '../lib/tvBarScale';
-  import { t } from '../lib/i18n';
+  } from '../../lib/tvBarScale';
+  import { t } from '../../lib/i18n';
 
   interface Props {
     playing: boolean;

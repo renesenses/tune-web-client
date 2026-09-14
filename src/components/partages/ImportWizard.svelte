@@ -7,7 +7,7 @@
   //   album       vérifier/corriger ce que les tags racontent
   //   dest        choisir déplacer/copier et valider l'aperçu des chemins
   //   done        rapport, avec annulation en un clic
-  import * as api from '../lib/api';
+  import * as api from '../../lib/api';
   import type {
     DroppedFile,
     IngestAnalysis,
@@ -19,10 +19,10 @@
     IngestReleaseTracksResponse,
     IngestSettings,
     IngestTrackOverride,
-  } from '../lib/api/ingest';
-  import { t } from '../lib/i18n';
-  import { notifications } from '../lib/stores/notifications';
-  import FolderBrowser from './FolderBrowser.svelte';
+  } from '../../lib/api/ingest';
+  import { t } from '../../lib/i18n';
+  import { notifications } from '../../lib/stores/notifications';
+  import FolderBrowser from '../FolderBrowser.svelte';
 
   interface Props {
     /** Chemin de départ (dossier déjà connu côté serveur). */

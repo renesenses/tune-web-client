@@ -19,7 +19,7 @@
 import { telechargerJournaux } from '../lib/journaux';
   import { attendreRetourEtRecharger } from '../lib/retourDuServeur';
   import { refreshAcousticStatus, acousticStatus, acousticEnabled } from '../lib/stores/acoustic';
-  import AcousticProgress from './AcousticProgress.svelte';
+  import AcousticProgress from './partages/AcousticProgress.svelte';
   import { tuneWS } from '../lib/websocket';
   import { zones, currentZoneId, followMe } from '../lib/stores/zones';
   import { audiophileEnabled, audiophileGlobalLockVolume, audiophileLockVolume, setVolumeLock, refreshAudiophile, refreshVolumeLock } from '../lib/stores/audiophile';

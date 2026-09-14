@@ -44,7 +44,7 @@ describe('429 du relais support', () => {
 
     expect(messageErreurSupport(e, trFr, 'fr')).toBe(
       "Limite d'envoi du support atteinte : trop de messages en peu de temps. " +
-        "Ton message n'a pas été envoyé — réessaie dans 59 minutes.",
+        "Votre message n'a pas été envoyé — réessayez dans 59 minutes.",
     );
     expect(messageErreurSupport(e, trEn, 'en')).toBe(
       'Support sending limit reached: too many messages in a short time. ' +
@@ -57,7 +57,7 @@ describe('429 du relais support', () => {
 
     expect(messageErreurSupport(e, trFr, 'fr')).toBe(
       "Limite d'envoi du support atteinte : trop de messages en peu de temps. " +
-        "Ton message n'a pas été envoyé — réessaie plus tard.",
+        "Votre message n'a pas été envoyé — réessayez plus tard.",
     );
     expect(messageErreurSupport(e, trEn, 'en')).toBe(
       'Support sending limit reached: too many messages in a short time. ' +

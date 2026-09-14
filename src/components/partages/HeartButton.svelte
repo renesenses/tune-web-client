@@ -13,11 +13,11 @@
     clePisteJumelee,
     streamingFavKey,
     loadProfiles,
-  } from '../lib/stores/profile';
-  import { toggleStreamingFavorite, isStreamingFavorite } from '../lib/streamingFavorites';
-  import * as api from '../lib/api';
-  import { basculerFavoriLocal, basculerFavoriFacette } from '../lib/favorisLocaux';
-  import type { StreamingItemType } from '../lib/streamingFavorites';
+  } from '../../lib/stores/profile';
+  import { toggleStreamingFavorite, isStreamingFavorite } from '../../lib/streamingFavorites';
+  import * as api from '../../lib/api';
+  import { basculerFavoriLocal, basculerFavoriFacette } from '../../lib/favorisLocaux';
+  import type { StreamingItemType } from '../../lib/streamingFavorites';
 
   /** A streaming item (Qobuz/Tidal/…) to favorite, instead of a local id.
    *

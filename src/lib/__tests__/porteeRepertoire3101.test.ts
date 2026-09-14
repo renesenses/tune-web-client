@@ -130,7 +130,7 @@ describe('nomDeDossier', () => {
 describe('une seule source de vérité : `libraryFolderScope`', () => {
   const v1 = sansCommentaires(lire('src/components/LibraryView.svelte'));
   const v2 = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
-  const browse = sansCommentaires(lire('src/components/BrowseView.svelte'));
+  const browse = sansCommentaires(lire('src/components/v2-heritage/BrowseView.svelte'));
   const nav = sansCommentaires(lire('src/lib/stores/navigation.ts'));
 
   it('le dépôt « consommé une fois » n’existe plus nulle part', () => {

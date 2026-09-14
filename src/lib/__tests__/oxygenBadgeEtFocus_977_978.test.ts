@@ -55,7 +55,7 @@ function contenuDe(texte: string, classe: string): string {
 }
 
 describe('#977 — la qualité quitte la pochette dans la grille Oxygen', () => {
-  const oxy = () => lire('src/components/OxygenView.svelte');
+  const oxy = () => lire('src/components/v2-heritage/OxygenView.svelte');
 
   /** 🔴 LE DÉFAUT LUI-MÊME. */
   it('la pochette ne porte PLUS de badge de qualité', () => {
@@ -127,7 +127,7 @@ describe('#978 — le mode sans distraction vaut dans les DEUX coquilles', () =>
    * persisté.
    */
   it('les trois sorties tiennent, et aucune ne dépend de la coquille', () => {
-    const oxy = lire('src/components/OxygenView.svelte');
+    const oxy = lire('src/components/v2-heritage/OxygenView.svelte');
     // 1 · le bouton reste rendu quel que soit l'état
     expect(oxy).toContain('focusMode.set(!$focusMode)');
     // 2 · Échap, posé par la VUE et non par une coquille

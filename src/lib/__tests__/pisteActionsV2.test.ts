@@ -32,7 +32,7 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     // Celui de la barre couvre en outre les pistes de SERVICE, que
     // `HeartButton trackId=…` ne pouvait pas atteindre faute d'identifiant
     // local.
-    const amb = sansCommentaires(lire('src/components/AmbianceView.svelte'));
+    const amb = sansCommentaires(lire('src/components/v2-heritage/AmbianceView.svelte'));
     expect(amb).toContain('<PisteActions piste={track} />');
     expect(amb, 'deux cœurs sur la même ligne').not.toContain('HeartButton');
   });
