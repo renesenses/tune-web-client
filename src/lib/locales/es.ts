@@ -4156,6 +4156,7 @@ export default {
   "v2.health.rgSourceBoth": "etiquetas de archivo + análisis",
   "v2.health.rgSourceTags": "solo etiquetas de archivo",
   "v2.health.rgNoProgress": "El servidor no expone el progreso del cálculo.",
+  "v2.health.rgProgress": "{n} de {t} pistas analizadas",
   "v2.health.cardEnrich": "Enriquecimiento de metadatos",
   "v2.health.cardEnrichSub": "Complemento desde bases públicas",
   "v2.health.enrichProgress": "{n} de {t}",

@@ -4156,6 +4156,7 @@ export default {
   "v2.health.rgSourceBoth": "Datei-Tags + Analyse",
   "v2.health.rgSourceTags": "nur Datei-Tags",
   "v2.health.rgNoProgress": "Der Server stellt den Berechnungsfortschritt nicht bereit.",
+  "v2.health.rgProgress": "{n} von {t} Titeln analysiert",
   "v2.health.cardEnrich": "Metadaten-Anreicherung",
   "v2.health.cardEnrichSub": "Ergänzung aus öffentlichen Datenbanken",
   "v2.health.enrichProgress": "{n} von {t}",

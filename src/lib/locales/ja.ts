@@ -4156,6 +4156,7 @@ export default {
   "v2.health.rgSourceBoth": "ファイルタグ＋解析",
   "v2.health.rgSourceTags": "ファイルタグのみ",
   "v2.health.rgNoProgress": "サーバーは計算の進捗を公開していません。",
+  "v2.health.rgProgress": "{t} 曲中 {n} 曲を解析",
   "v2.health.cardEnrich": "メタデータの補完",
   "v2.health.cardEnrichSub": "公開データベースからの補完",
   "v2.health.enrichProgress": "{t} 件中 {n} 件",

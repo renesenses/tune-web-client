@@ -4155,6 +4155,7 @@ export default {
   "v2.health.rgSourceBoth": "filtaggar + analys",
   "v2.health.rgSourceTags": "endast filtaggar",
   "v2.health.rgNoProgress": "Servern visar inte beräkningens förlopp.",
+  "v2.health.rgProgress": "{n} av {t} spår analyserade",
   "v2.health.cardEnrich": "Metadataberikning",
   "v2.health.cardEnrichSub": "Komplettering från offentliga databaser",
   "v2.health.enrichProgress": "{n} av {t}",

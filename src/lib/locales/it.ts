@@ -4156,6 +4156,7 @@ export default {
   "v2.health.rgSourceBoth": "tag dei file + analisi",
   "v2.health.rgSourceTags": "solo tag dei file",
   "v2.health.rgNoProgress": "Il server non espone l’avanzamento del calcolo.",
+  "v2.health.rgProgress": "{n} di {t} brani analizzati",
   "v2.health.cardEnrich": "Arricchimento dei metadati",
   "v2.health.cardEnrichSub": "Completamento da basi dati pubbliche",
   "v2.health.enrichProgress": "{n} di {t}",

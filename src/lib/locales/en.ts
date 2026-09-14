@@ -4176,6 +4176,7 @@ export default {
   "v2.health.rgSourceBoth": "file tags + analysis",
   "v2.health.rgSourceTags": "file tags only",
   "v2.health.rgNoProgress": "The server does not expose the computation progress.",
+  "v2.health.rgProgress": "{n} of {t} tracks analysed",
   "v2.health.cardEnrich": "Metadata enrichment",
   "v2.health.cardEnrichSub": "Completion from public databases",
   "v2.health.enrichProgress": "{n} of {t}",
