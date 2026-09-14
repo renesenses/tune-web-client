@@ -177,6 +177,49 @@
       .then(() => { tracks = tracks.filter((_, k) => k !== i); onChanged?.(); })
       .catch(() => {});
   }
+
+  /** Un déplacement est en cours : on n'en accepte pas un second par-dessus. */
+  let deplacement = $state(false);
+
+  /**
+   * Déplace une piste d'un rang, et enregistre le nouvel ordre.
+   *
+   * ## Pourquoi des boutons et pas un glisser-déposer
+   *
+   * L'écran hérité réordonne par glisser-déposer, qui n'est atteignable ni au
+   * clavier ni au lecteur d'écran. Deux boutons font le même travail, sont
+   * utilisables par tout le monde, et ne demandent rien à `ListePistesV2` —
+   * que six écrans partagent. Le glisser-déposer pourra s'ajouter par-dessus ;
+   * l'inverse — rendre accessible un glisser-déposer déjà écrit — coûte plus.
+   *
+   * ## Optimiste, mais jamais menteur
+   *
+   * La liste bouge tout de suite, puis le serveur est prévenu. En cas d'échec,
+   * l'écran hérité recharge EN SILENCE (`console.error`) : l'utilisateur voit
+   * sa piste revenir à sa place sans comprendre. Ici l'échec est DIT, et la
+   * liste rechargée — un écran qui ment est pire qu'un écran qui refuse.
+   */
+  async function deplacer(de: number, versLeBas: boolean) {
+    if (item.kind !== 'local' || item.pl.id == null || deplacement) return;
+    const vers = de + (versLeBas ? 1 : -1);
+    if (vers < 0 || vers >= tracks.length) return;
+    const avant = tracks;
+    const suite = [...tracks];
+    const [piste] = suite.splice(de, 1);
+    suite.splice(vers, 0, piste);
+    tracks = suite;
+    deplacement = true;
+    try {
+      const rangs = suite.map((t) => t.id).filter((id): id is number => typeof id === 'number');
+      await api.reorderPlaylistTracks(item.pl.id, rangs);
+      onChanged?.();
+    } catch (e) {
+      tracks = avant;
+      notifications.error(errText(e) ?? $tr('common.error'));
+    } finally {
+      deplacement = false;
+    }
+  }
   function trackTech(t: Track): string {
     const rate = t.sample_rate ? `${Math.round(t.sample_rate / 100) / 10} kHz` : '';
     const depth = t.bit_depth ? `${t.bit_depth}-bit` : '';
@@ -272,11 +315,25 @@
     {:else if !tracks.length}
       <div class="state">{$tr('v2.pl.empty' as any)}</div>
     {:else}
-      <ListePistesV2 pistes={tracks} onLire={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="40px" />
+      <ListePistesV2 pistes={tracks} onLire={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
       {#snippet suffixe(_t: any, i: number)}
-        <!-- Le bouton « retirer » devient une COLONNE de la ligne. Le fragment
-             est compilé ici : ses styles le suivent. -->
+        <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
+             compilé ici : ses styles le suivent.
+
+             100px est une LITTÉRALE, pas une expression conditionnelle, même
+             si la colonne reste vide hors édition. Une largeur qui change
+             selon l'état se résoudrait différemment dans l'en-tête et dans
+             les lignes, et les colonnes ne tomberaient plus en face —
+             `colonnesPistes` garde précisément cela. -->
         {#if edition && isLocal}
+          <button class="rm mv" onclick={() => deplacer(i, false)} disabled={i === 0 || deplacement}
+            aria-label={$tr('playlist.moveUp')} title={$tr('playlist.moveUp')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          </button>
+          <button class="rm mv" onclick={() => deplacer(i, true)} disabled={i === tracks.length - 1 || deplacement}
+            aria-label={$tr('playlist.moveDown')} title={$tr('playlist.moveDown')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          </button>
           <button class="rm" onclick={() => removeAt(i)} aria-label={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
           </button>
@@ -342,4 +399,5 @@
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center}
   .rm:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .rm svg{width:15px; height:15px}
+  .mv:disabled{opacity:.3; cursor:default}
 </style>
