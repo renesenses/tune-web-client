@@ -77,7 +77,7 @@ import AlarmsView from './components/AlarmsView.svelte';
   import DashboardView from './components/DashboardView.svelte';
   import EqualizerView from './components/EqualizerView.svelte';
   import PluginsView from './components/PluginsView.svelte';
-  import AddToPlaylistModal from './components/AddToPlaylistModal.svelte';
+  import AddToPlaylistModal from './components/partages/AddToPlaylistModal.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
   import MiniPlayer from './components/MiniPlayer.svelte';

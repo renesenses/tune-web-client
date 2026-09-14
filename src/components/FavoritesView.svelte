@@ -17,7 +17,7 @@
   import { formatTime } from '../lib/utils';
   import AlbumArt from './partages/AlbumArt.svelte';
   import MetadataChips from './MetadataChips.svelte';
-  import ServiceBadge from './ServiceBadge.svelte';
+  import ServiceBadge from './partages/ServiceBadge.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';
   import { activeStreamingService, pendingStreamingAlbum, pendingStreamingArtist, pendingStreamingPlaylist, streamingServices } from '../lib/stores/streaming';

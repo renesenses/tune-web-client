@@ -224,7 +224,7 @@
   {/await}
 {/if}
 {#if modalePlaylist}
-  {#await import('./AddToPlaylistModal.svelte') then m}
+  {#await import('./partages/AddToPlaylistModal.svelte') then m}
     <m.default track={piste} onClose={() => (modalePlaylist = false)} />
   {/await}
 {/if}

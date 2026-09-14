@@ -711,7 +711,7 @@
   {/if}
 
   {#if albumEnEdition}
-    {#await import('../AlbumEditModal.svelte') then m}
+    {#await import('../partages/AlbumEditModal.svelte') then m}
       <m.default
         album={albumEnEdition}
         onClose={() => (albumEnEdition = null)}

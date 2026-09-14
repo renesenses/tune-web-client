@@ -1,8 +1,8 @@
 <script lang="ts">
-  import * as api from '../lib/api';
-  import { tip } from '../lib/tooltip';
-  import type { Playlist, Track, StreamingTrackInfo } from '../lib/types';
-  import { t } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import { tip } from '../../lib/tooltip';
+  import type { Playlist, Track, StreamingTrackInfo } from '../../lib/types';
+  import { t } from '../../lib/i18n';
 
   interface Props {
     track: Track;

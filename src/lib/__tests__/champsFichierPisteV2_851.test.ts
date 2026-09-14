@@ -115,7 +115,7 @@ describe('#851 — les champs du fichier depuis le menu « … » d’une piste'
   it('PisteActions fournit le geste ET monte le tiroir', () => {
     const src = lire('src/components/v2/PisteActions.svelte');
     expect(src).toMatch(/champsDuFichier:\s*\(\)\s*=>/);
-    expect(src).toContain('TrackTagsDrawer.svelte');
+    expect(src).toContain('partages/TrackTagsDrawer.svelte');
   });
 
   it('le libellé est une CLÉ de traduction présente partout', () => {

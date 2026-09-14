@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { shuffleAll } from '../lib/api';
   import { tip } from '../lib/tooltip';
-  import QualityBadge from './QualityBadge.svelte';
+  import QualityBadge from './partages/QualityBadge.svelte';
   import OxygenFacetRail from './OxygenFacetRail.svelte';
   import HeartButton from './HeartButton.svelte';
   import { getFilteredTracks, getLibraryFacets, getFolderFacet, getAlbumTracks, getLibraryStats, getAlbumsDetailed, artworkSrc, addToQueue, getQueue, jumpInQueue, type FacetValue, type FacetParam, type FolderFacet, type AlbumDetailed } from '../lib/api';

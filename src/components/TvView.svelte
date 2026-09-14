@@ -22,7 +22,7 @@
   import { skipNext, skipPrevious } from '../lib/playback-controls';
   import * as api from '../lib/api';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import QualityBadge from './QualityBadge.svelte';
+  import QualityBadge from './partages/QualityBadge.svelte';
   import TvVuMeters from './TvVuMeters.svelte';
   import TvVuBars from './TvVuBars.svelte';
   import {

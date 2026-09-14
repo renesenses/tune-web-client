@@ -17,7 +17,7 @@
   import { suivantDesactive } from '../lib/boutonSuivant';
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import ServiceBadge from './ServiceBadge.svelte';
+  import ServiceBadge from './partages/ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';

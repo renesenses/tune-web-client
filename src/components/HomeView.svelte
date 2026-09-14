@@ -27,7 +27,7 @@
   import * as api from '../lib/api';
   import { tuneWS } from '../lib/websocket';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import ServiceBadge from './ServiceBadge.svelte';
+  import ServiceBadge from './partages/ServiceBadge.svelte';
   import RecommendationsSection from './RecommendationsSection.svelte';
   import type { Album, Track, Source, TopTrack, TopArtist } from '../lib/types';
 

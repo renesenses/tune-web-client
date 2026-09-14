@@ -57,7 +57,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
-  import AlbumEditModal from '../AlbumEditModal.svelte';
+  import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';

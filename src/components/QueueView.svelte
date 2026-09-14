@@ -12,7 +12,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import ServiceBadge from './ServiceBadge.svelte';
+  import ServiceBadge from './partages/ServiceBadge.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import HeartButton from './HeartButton.svelte';
   import { displayFields } from '../lib/stores/displayFields';

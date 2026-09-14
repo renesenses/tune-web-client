@@ -425,13 +425,13 @@
      par pochette → Modifier l'album → cliquer une piste. Il vit hors de `v2/` :
      c'est le MÊME que le client actuel, pas une copie. -->
 {#if tiroirChamps && piste.id != null}
-  {#await import('../TrackTagsDrawer.svelte') then m}
+  {#await import('../partages/TrackTagsDrawer.svelte') then m}
     <m.default trackId={piste.id} onClose={() => (tiroirChamps = false)} />
   {/await}
 {/if}
 
 {#if modalePlaylist}
-  {#await import('../AddToPlaylistModal.svelte') then m}
+  {#await import('../partages/AddToPlaylistModal.svelte') then m}
     <m.default track={piste} onClose={() => (modalePlaylist = false)} />
   {/await}
 {/if}

@@ -5,7 +5,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import { isPremium } from '../lib/stores/license';
-  import QualityBadge from './QualityBadge.svelte';
+  import QualityBadge from './partages/QualityBadge.svelte';
 
   // --- Source selection ---
   type SourceTab = 'library' | 'directories';

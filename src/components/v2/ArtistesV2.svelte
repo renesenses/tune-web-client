@@ -63,7 +63,7 @@
     type AlbumsDeService,
   } from '../../lib/albumsArtisteStreaming';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import ServiceBadge from '../ServiceBadge.svelte';
+  import ServiceBadge from '../partages/ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';

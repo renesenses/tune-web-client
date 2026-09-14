@@ -73,7 +73,7 @@
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
-  import AlbumEditModal from '../AlbumEditModal.svelte';
+  import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import {

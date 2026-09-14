@@ -22,7 +22,7 @@
    * Ici, la source est TOUJOURS nommée, `LOCAL` compris. C'est la convention de
    * la barre de transport, qui affiche déjà `LOCAL` à côté du titre en cours.
    */
-  import ServiceBadge from '../ServiceBadge.svelte';
+  import ServiceBadge from '../partages/ServiceBadge.svelte';
   import { getQualityTier } from '../../lib/utils';
 
   interface Props {
