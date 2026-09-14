@@ -25,6 +25,7 @@
   import PlaylistsV2 from './PlaylistsV2.svelte';
   import SettingsV2 from './SettingsV2.svelte';
   import RadiosV2 from './RadiosV2.svelte';
+  import AlarmesV2 from './AlarmesV2.svelte';
   import PodcastsV2 from './PodcastsV2.svelte';
   import QueueV2 from './QueueV2.svelte';
   import FavoritesV2 from './FavoritesV2.svelte';
@@ -209,7 +210,7 @@
     mediaservers: 'nav.mediaservers', history: 'nav.history', oxygen: 'v2.nav.oxygen',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
     crossfeed: 'v2.nav.crossfeed', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
-    metadata: 'metadata.title', plugins: 'v2.nav.plugins', diagnostics: 'v2.nav.processing',
+    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
   };
   const label = $derived(
@@ -616,6 +617,8 @@
         <EqualizerV2 />
       {:else if $activeView === 'diagnostics'}
         <TuneHealthV2 />
+      {:else if $activeView === 'alarms'}
+        <AlarmesV2 />
       {:else if $activeView === 'converter'}
         <ConverterV2 />
       {:else if $activeView === 'declick'}
