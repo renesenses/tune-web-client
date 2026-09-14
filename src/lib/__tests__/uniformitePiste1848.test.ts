@@ -36,8 +36,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { flushSync, mount, unmount } from 'svelte';
-import TrackContextMenu from '../../components/TrackContextMenu.svelte';
-import MenuPisteV1 from '../../components/MenuPisteV1.svelte';
+import TrackContextMenu from '../../components/partages/TrackContextMenu.svelte';
+import MenuPisteV1 from '../../components/partages/MenuPisteV1.svelte';
 import { entreesMenuPiste, type CapacitesPiste, type GestesPiste } from '../menuPiste';
 import { rangeableEnPlaylist } from '../pisteFile';
 import lFr from '../locales/fr';
@@ -223,10 +223,10 @@ describe('#1848 — les surfaces qui n’avaient aucun menu en montent un', () =
     it(`${ecran} monte le menu partagé`, () => {
       const src = sansCommentaires(lire(`src/components/${ecran}.svelte`));
       expect(src, `${ecran} n’importe pas le menu`)
-        // `MenuPisteV1` est resté à la racine des composants ; une surface
-        // rangée dans `partages/` l'atteint donc par `../`, pas par `./`.
-        // La garde porte sur l'IMPORT, pas sur la profondeur de l'appelant.
-        .toMatch(/import MenuPisteV1 from '\.{1,2}\/MenuPisteV1\.svelte'/);
+        // `MenuPisteV1` a rejoint `partages/` : un écran resté à la racine
+        // l'atteint par `./partages/`, une brique de `partages/` par `./`.
+        // La garde porte sur l'IMPORT, pas sur le chemin qui y mène.
+        .toMatch(/import MenuPisteV1 from '\.{1,2}\/(partages\/)?MenuPisteV1\.svelte'/);
       expect(src, `${ecran} importe le menu sans le monter`)
         .toContain(`<MenuPisteV1 ${prop} />`);
     });

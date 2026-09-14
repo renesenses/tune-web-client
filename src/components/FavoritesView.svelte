@@ -1,7 +1,7 @@
 <script lang="ts">
   import { bulleTexte } from '../lib/infobulleTexte';
   import { rangeableEnPlaylist } from '../lib/pisteFile';
-  import MenuPisteV1 from './MenuPisteV1.svelte';
+  import MenuPisteV1 from './partages/MenuPisteV1.svelte';
   import { currentProfileId, favoritePlaylistIds, favoriteFacetKeys, facetFavKey, favoriteStreamingKeys, streamingFavKey } from '../lib/stores/profile';
   import { currentZone, playAndSync } from '../lib/stores/zones';
   import { playFromHere } from '../lib/playback';

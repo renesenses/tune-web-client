@@ -167,11 +167,15 @@ describe('#2207 — le BRANCHEMENT dans les deux panneaux « Chemin du signal »
 
   it('le composant lit la décision partagée, il ne la réécrit pas', () => {
     const source = readFileSync(
-      resolve(__dirname, '../../components/ZoneOutputDeviceNotice.svelte'),
+      resolve(__dirname, '../../components/partages/ZoneOutputDeviceNotice.svelte'),
       'utf-8',
     );
-    expect(source).toContain(
-      "import { lecturePeripheriqueSortie } from '../lib/peripheriqueSortieZone'",
+    // `ZoneOutputDeviceNotice` vit dans `partages/` : deux crans jusqu'à
+    // `lib/`. La garde exige l'IMPORT de la décision partagée, pas la
+    // profondeur — c'est bien elle qui compte ici : le composant LIT la règle,
+    // il ne la réécrit pas.
+    expect(source).toMatch(
+      /import \{ lecturePeripheriqueSortie \} from '\.\.\/(\.\.\/)?lib\/peripheriqueSortieZone'/,
     );
     // Les deux noms sont affichés, et l'écart est signalé.
     expect(source).toContain("$t('signal.outputDevice')");

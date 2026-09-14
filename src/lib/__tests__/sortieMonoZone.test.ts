@@ -116,7 +116,7 @@ afterEach(() => {
 });
 
 async function ouvrirPanneau(zone: Zone) {
-  const { default: ZoneConfigModal } = await import('../../components/ZoneConfigModal.svelte');
+  const { default: ZoneConfigModal } = await import('../../components/partages/ZoneConfigModal.svelte');
   monte = mount(ZoneConfigModal, {
     target: cible,
     props: {

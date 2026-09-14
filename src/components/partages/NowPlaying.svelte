@@ -1,6 +1,6 @@
 <script lang="ts">
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
-  import MenuPisteV1 from '../MenuPisteV1.svelte';
+  import MenuPisteV1 from './MenuPisteV1.svelte';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
   import { currentZone } from '../../lib/stores/zones';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -25,9 +25,9 @@
   } from '../../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
-  import SeekBar from '../SeekBar.svelte';
-  import NowPlayingLyrics from '../NowPlayingLyrics.svelte';
-  import NowPlayingEqPanel from '../NowPlayingEqPanel.svelte';
+  import SeekBar from './SeekBar.svelte';
+  import NowPlayingLyrics from './NowPlayingLyrics.svelte';
+  import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
   import { isPremium, licenseState } from '../../lib/stores/license';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
@@ -40,9 +40,9 @@
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { setSearchCriteria } from '../../lib/stores/shortcuts';
-  import VolumeControl from '../VolumeControl.svelte';
-  import ZoneOutputBanner from '../ZoneOutputBanner.svelte';
-  import ZoneOutputDeviceNotice from '../ZoneOutputDeviceNotice.svelte';
+  import VolumeControl from './VolumeControl.svelte';
+  import ZoneOutputBanner from './ZoneOutputBanner.svelte';
+  import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import MetadataChips from './MetadataChips.svelte';
   import { displayFields } from '../../lib/stores/displayFields';
   import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../../lib/lyrics';

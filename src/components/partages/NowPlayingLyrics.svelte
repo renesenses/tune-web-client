@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { seekPositionMs } from '../lib/stores/nowPlaying';
-  import { lyricsSourceKind, type LyricsMiss } from '../lib/lyrics';
-  import { parolesEnLigneActives } from '../lib/lyricsOnline';
-  import { t } from '../lib/i18n';
+  import { seekPositionMs } from '../../lib/stores/nowPlaying';
+  import { lyricsSourceKind, type LyricsMiss } from '../../lib/lyrics';
+  import { parolesEnLigneActives } from '../../lib/lyricsOnline';
+  import { t } from '../../lib/i18n';
 
   interface Props {
     loading: boolean;

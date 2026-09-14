@@ -1,10 +1,10 @@
 <script lang="ts">
-  import type { Zone, ZoneGroupResponse } from '../lib/types';
-  import * as api from '../lib/api';
-  import { t } from '../lib/i18n';
+  import type { Zone, ZoneGroupResponse } from '../../lib/types';
+  import * as api from '../../lib/api';
+  import { t } from '../../lib/i18n';
   import { get } from 'svelte/store';
   import FirResponseCurve from './FirResponseCurve.svelte';
-  import ZoneDeviceEditor from './partages/ZoneDeviceEditor.svelte';
+  import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
 
   interface Props {
     zone: Zone;

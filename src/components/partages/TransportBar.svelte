@@ -18,11 +18,11 @@
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
-  import VolumeControl from '../VolumeControl.svelte';
+  import VolumeControl from './VolumeControl.svelte';
   import AudioVisualizer from './AudioVisualizer.svelte';
-  import ZoneConfigModal from '../ZoneConfigModal.svelte';
-  import ZoneTypeIcon from '../ZoneTypeIcon.svelte';
-  import ZoneOutputDeviceNotice from '../ZoneOutputDeviceNotice.svelte';
+  import ZoneConfigModal from './ZoneConfigModal.svelte';
+  import ZoneTypeIcon from './ZoneTypeIcon.svelte';
+  import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
   import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../../lib/zoneIdentity';
   import { t } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';

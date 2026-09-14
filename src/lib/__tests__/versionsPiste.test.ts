@@ -9,7 +9,7 @@
 // pure et ne s'en trouve pas change.
 import { afterEach, describe, expect, it } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import TrackContextMenu from '../../components/TrackContextMenu.svelte';
+import TrackContextMenu from '../../components/partages/TrackContextMenu.svelte';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -45,7 +45,7 @@ import hu from '../locales/hu';
 
 const lire = (chemin: string) => readFileSync(resolve(__dirname, chemin), 'utf8');
 
-const MENU = lire('../../components/TrackContextMenu.svelte');
+const MENU = lire('../../components/partages/TrackContextMenu.svelte');
 const LIBRARY = lire('../../components/LibraryView.svelte');
 const API = lire('../api.ts');
 

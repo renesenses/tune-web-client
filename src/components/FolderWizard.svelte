@@ -5,7 +5,7 @@
   import { t } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import type { BrowseRootEntry } from '../lib/types';
-  import FolderBrowser from './FolderBrowser.svelte';
+  import FolderBrowser from './partages/FolderBrowser.svelte';
 
   interface Props {
     onClose: () => void;

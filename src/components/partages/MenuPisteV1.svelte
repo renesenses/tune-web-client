@@ -34,16 +34,16 @@
    * jamais grisée ni muette.
    */
   import { get } from 'svelte/store';
-  import * as api from '../lib/api';
-  import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../lib/pisteFile';
-  import { currentZoneId, playAndSync } from '../lib/stores/zones';
-  import { queuePosition } from '../lib/stores/queue';
-  import { notifications } from '../lib/stores/notifications';
-  import { activeView, gestesNavigationService, pendingLibraryAlbum, pendingLibraryArtist } from '../lib/stores/navigation';
-  import { destinationAlbum } from '../lib/routageAlbum';
-  import { t as tr } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
+  import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import { queuePosition } from '../../lib/stores/queue';
+  import { notifications } from '../../lib/stores/notifications';
+  import { activeView, gestesNavigationService, pendingLibraryAlbum, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { destinationAlbum } from '../../lib/routageAlbum';
+  import { t as tr } from '../../lib/i18n';
   import TrackContextMenu from './TrackContextMenu.svelte';
-  import type { Track } from '../lib/types';
+  import type { Track } from '../../lib/types';
   interface Props {
     piste: Track;
     /**
@@ -212,19 +212,19 @@
   {/if}
 </div>
 {#if panneauVersions && idBibliotheque != null}
-  {#await import('./v2/VersionsPistePanneau.svelte') then m}
+  {#await import('../v2/VersionsPistePanneau.svelte') then m}
     <m.default trackId={idBibliotheque} titre={piste.title}
       onClose={() => (panneauVersions = false)} />
   {/await}
 {/if}
 {#if panneauEtiquettes && idBibliotheque != null}
-  {#await import('./v2/EtiquettesPanneau.svelte') then m}
+  {#await import('../v2/EtiquettesPanneau.svelte') then m}
     <m.default itemType="track" itemId={idBibliotheque} nom={piste.title}
       onClose={() => (panneauEtiquettes = false)} />
   {/await}
 {/if}
 {#if modalePlaylist}
-  {#await import('./partages/AddToPlaylistModal.svelte') then m}
+  {#await import('./AddToPlaylistModal.svelte') then m}
     <m.default track={piste} onClose={() => (modalePlaylist = false)} />
   {/await}
 {/if}

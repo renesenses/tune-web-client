@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { setToken } from '../lib/auth';
-  import { t } from '../lib/i18n';
-  import { activeView } from '../lib/stores/navigation';
+  import { setToken } from '../../lib/auth';
+  import { t } from '../../lib/i18n';
+  import { activeView } from '../../lib/stores/navigation';
 
   /**
    * `true` quand l'écran est monté EN CALQUE par-dessus l'interface

@@ -20,7 +20,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
-import NowPlayingLyrics from '../../components/NowPlayingLyrics.svelte';
+import NowPlayingLyrics from '../../components/partages/NowPlayingLyrics.svelte';
 import { classifyLyricsError } from '../lyrics';
 import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../lyricsOnline';
 import lFr from '../locales/fr';

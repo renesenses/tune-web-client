@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '../lib/i18n';
+  import { t } from '../../lib/i18n';
 
   let { onSelect, onClose }: { onSelect: (path: string) => void; onClose: () => void } = $props();
 

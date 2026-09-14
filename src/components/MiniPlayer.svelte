@@ -14,7 +14,7 @@
    */
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, switchZone } from '../lib/stores/zones';
-  import ZoneOutputBanner from './ZoneOutputBanner.svelte';
+  import ZoneOutputBanner from './partages/ZoneOutputBanner.svelte';
   import { currentTrack, playbackState, seekPositionMs, repeatMode, shuffleEnabled } from '../lib/stores/nowPlaying';
   import { upNextCount } from '../lib/stores/queue';
   import * as controls from '../lib/playback-controls';

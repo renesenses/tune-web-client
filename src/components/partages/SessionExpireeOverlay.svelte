@@ -18,7 +18,7 @@
    */
   import { sessionExpiree } from '../../lib/stores/sessionExpiree';
   import { t } from '../../lib/i18n';
-  import LoginView from '../LoginView.svelte';
+  import LoginView from './LoginView.svelte';
 </script>
 
 {#if $sessionExpiree}

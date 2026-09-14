@@ -27,10 +27,10 @@
    * SERVICE passe ses vraies capacités (`MenuPisteV1`), et les entrées qui
    * prennent un `i64` côté serveur s'effacent d'elles-mêmes.
    */
-  import { t as tr } from '../lib/i18n';
-  import { entreesMenuPiste, type CapacitesPiste } from '../lib/menuPiste';
-  import { portail } from '../lib/portail';
-  import { styleMenuAncre, type AncreMenu } from '../lib/ancrageMenu';
+  import { t as tr } from '../../lib/i18n';
+  import { entreesMenuPiste, type CapacitesPiste } from '../../lib/menuPiste';
+  import { portail } from '../../lib/portail';
+  import { styleMenuAncre, type AncreMenu } from '../../lib/ancrageMenu';
   interface Props {
     /**
      * Boîte ÉCRAN du bouton qui a ouvert le menu — `getBoundingClientRect()`.

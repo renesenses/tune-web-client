@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { currentZone } from '../lib/stores/zones';
-  import { isBrowserZone, browserSeek } from '../lib/stores/browserAudio';
-  import * as api from '../lib/api';
-  import { formatTime } from '../lib/utils';
-  import { t } from '../lib/i18n';
-  import { seekPositionMs, startSeekTimer, stopSeekTimer } from '../lib/stores/nowPlaying';
-  import { suiviOuverture } from '../lib/ouvertureFlux.svelte';
+  import { currentZone } from '../../lib/stores/zones';
+  import { isBrowserZone, browserSeek } from '../../lib/stores/browserAudio';
+  import * as api from '../../lib/api';
+  import { formatTime } from '../../lib/utils';
+  import { t } from '../../lib/i18n';
+  import { seekPositionMs, startSeekTimer, stopSeekTimer } from '../../lib/stores/nowPlaying';
+  import { suiviOuverture } from '../../lib/ouvertureFlux.svelte';
 
   interface Props {
     positionMs: number;

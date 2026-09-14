@@ -1,6 +1,6 @@
 <script lang="ts">
-  import * as api from '../lib/api';
-  import { t } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import { t } from '../../lib/i18n';
 
   // Courbe de réponse du filtre FIR (convolver) chargé sur une zone.
   // Le serveur pré-calcule ~200 points log 20 Hz → 20 kHz :
