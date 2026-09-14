@@ -113,7 +113,7 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     const ligne = sansCommentaires(lire('src/components/v2/LignePisteV2.svelte'));
     // Ce que Bertrand a demande le 05/09/2026 : la v0 PLUS le survol.
     expect(ligne).toContain("import AlbumArt from '../partages/AlbumArt.svelte'");
-    expect(ligne).toContain("import MetadataChips from '../MetadataChips.svelte'");
+    expect(ligne).toContain("import MetadataChips from '../partages/MetadataChips.svelte'");
     expect(ligne).toContain("import QualityBadge from '../partages/QualityBadge.svelte'");
     expect(ligne).toContain("import PisteActions from './PisteActions.svelte'");
     // Les puces suivent le REGLAGE du profil, la ligne n'en decide pas.

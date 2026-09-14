@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { estDuDSD } from '../lib/utils';
+  import { estDuDSD } from '../../lib/utils';
   import { onMount } from 'svelte';
-  import { audioLevels, levelsForZone, type AudioLevels } from '../lib/stores/audioLevels';
-  import { freqLabel, spectrumIsoTicks, type AnnonceSpectre } from '../lib/spectrumScale';
-  import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../lib/axeSpectre';
-  import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../lib/waveformHistory';
+  import { audioLevels, levelsForZone, type AudioLevels } from '../../lib/stores/audioLevels';
+  import { freqLabel, spectrumIsoTicks, type AnnonceSpectre } from '../../lib/spectrumScale';
+  import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../../lib/axeSpectre';
+  import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../../lib/waveformHistory';
 
   interface Props {
     playing: boolean;

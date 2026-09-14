@@ -248,7 +248,7 @@ describe('Le champ « répertoire »', () => {
     // proposé ne correspondrait alors à RIEN, sans un mot.
     // `folder-facet` est dérivé de `tracks.file_path` — la colonne que le
     // serveur comparera. Il correspond par construction.
-    const picker = lire('src/components/SmartFolderPicker.svelte');
+    const picker = lire('src/components/partages/SmartFolderPicker.svelte');
     expect(picker, 'le sélecteur doit interroger folder-facet').toContain('getFolderFacet');
     expect(
       sansCommentaires(picker),

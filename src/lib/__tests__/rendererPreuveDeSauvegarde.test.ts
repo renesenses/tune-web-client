@@ -52,7 +52,7 @@ function sansCommentaires(src: string): string {
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
-const rc = () => sansCommentaires(lire('src/components/RendererConfig.svelte'));
+const rc = () => sansCommentaires(lire('src/components/partages/RendererConfig.svelte'));
 
 describe('la sauvegarde automatique du renderer se VOIT', () => {
   it('🔴 un succès pose le témoin — avant, seul l’échec parlait', () => {
@@ -91,7 +91,7 @@ describe('la sauvegarde automatique du renderer se VOIT', () => {
   it('le voisin du même onglet montre le même témoin — c’est la maison', () => {
     // Contre-épreuve du raisonnement : si `ZoneDeviceEditor` cessait de le
     // faire, ce fichier n'aurait plus de référence et devrait être relu.
-    expect(sansCommentaires(lire('src/components/ZoneDeviceEditor.svelte')))
+    expect(sansCommentaires(lire('src/components/partages/ZoneDeviceEditor.svelte')))
       .toContain("{$t('common.saved')}");
   });
 });

@@ -26,7 +26,7 @@
  */
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import GlobalSearchBar from '../../components/GlobalSearchBar.svelte';
+import GlobalSearchBar from '../../components/partages/GlobalSearchBar.svelte';
 
 let monte: Record<string, any> | null = null;
 let hote: HTMLElement | null = null;

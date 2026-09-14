@@ -128,7 +128,7 @@ describe('les écrans APPELLENT la règle', () => {
   });
 
   it('l’animation reconnaît le DSD par sa vraie extension', () => {
-    const vis = lire('components/AudioVisualizer.svelte');
+    const vis = lire('components/partages/AudioVisualizer.svelte');
     expect(vis).toContain('estDuDSD(format)');
     expect(vis).not.toContain("if (format === 'dsd')");
   });

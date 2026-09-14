@@ -28,7 +28,7 @@
     phraseEchec,
     type EchecEq,
   } from '../lib/motifEchecEq';
-  import ParametricEq from './ParametricEq.svelte';
+  import ParametricEq from './partages/ParametricEq.svelte';
   import { ISO_OCTAVE_HZ, freqLabel } from '../lib/spectrumScale';
 
   // Grilles ISO : octave (10), 2/3 d'octave (15), 1/3 d'octave (31) — les

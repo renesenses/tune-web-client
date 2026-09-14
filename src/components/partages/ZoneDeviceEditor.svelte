@@ -2,10 +2,10 @@
   /** Éditeur « appareil » d'une zone : marque + modèle, via le catalogue
    *  serveur (avec saisie libre en repli). Extrait de ZoneConfigModal pour
    *  être réutilisé depuis la fiche système du volet Support. */
-  import type { Zone, DeviceBrand } from '../lib/types';
-  import * as api from '../lib/api';
-  import { identiteModifiee } from '../lib/identiteAppareilZone';
-  import { t } from '../lib/i18n';
+  import type { Zone, DeviceBrand } from '../../lib/types';
+  import * as api from '../../lib/api';
+  import { identiteModifiee } from '../../lib/identiteAppareilZone';
+  import { t } from '../../lib/i18n';
 
   interface Props {
     zone: Zone;

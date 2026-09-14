@@ -16,12 +16,12 @@
    * quelques centaines de nœuds à remuer. `TvVuMeters` a tranché de la même
    * façon pour les cadrans du Grand écran ; on ne rejoue pas ce raisonnement.
    */
-  import { audioLevels } from '../lib/stores/audioLevels';
+  import { audioLevels } from '../../lib/stores/audioLevels';
   import {
     BAR_RELEASE, PLANCHER_DB, PPM_HOLD_MS,
     fractionDe, suivreLaCrete, suivrePpm, surcharge, zoneIec,
     type EtatPpm, type StyleCreteMetre,
-  } from '../lib/peakMetre';
+  } from '../../lib/peakMetre';
 
   interface Props {
     style: StyleCreteMetre;

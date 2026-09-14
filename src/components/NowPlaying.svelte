@@ -14,7 +14,7 @@
   import { largeurReserveeFileAttente } from '../lib/fileAttenteReserve';
   import * as api from '../lib/api';
   import { lireOuAjouter } from '../lib/playback';
-  import CreteMetre from './CreteMetre.svelte';
+  import CreteMetre from './partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../lib/peakMetre';
   import { preferences } from '../lib/stores/preferences';
   import { texteDePartage, partageUtilisable } from '../lib/partageEcoute';
@@ -31,7 +31,7 @@
   import { isPremium, licenseState } from '../lib/stores/license';
   import { estRefusPremium } from '../lib/premiumRefus';
   import { bandesDuPrereglage, prereglageDesBandes } from '../lib/eqPrereglages';
-  import AudioVisualizer from './AudioVisualizer.svelte';
+  import AudioVisualizer from './partages/AudioVisualizer.svelte';
   import { t } from '../lib/i18n';
   import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
   import { notifications } from '../lib/stores/notifications';
@@ -43,7 +43,7 @@
   import VolumeControl from './VolumeControl.svelte';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
   import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
-  import MetadataChips from './MetadataChips.svelte';
+  import MetadataChips from './partages/MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../lib/lyrics';
   import { chargerParolesEnLigne } from '../lib/lyricsOnline';

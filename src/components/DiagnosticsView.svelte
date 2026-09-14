@@ -13,7 +13,7 @@
 
   import { t } from '../lib/i18n';
   import OutputModuleBanner from './OutputModuleBanner.svelte';
-  import OutputModulesPanel from './OutputModulesPanel.svelte';
+  import OutputModulesPanel from './partages/OutputModulesPanel.svelte';
   import { tableauFournisseurs } from '../lib/refusModuleSortie';
   // #865 — le geste des journaux est PARTAGÉ avec la coquille v2, qui n'en
   // avait aucun. Il vient d'ici ; il vit maintenant dans `lib/journaux.ts`.

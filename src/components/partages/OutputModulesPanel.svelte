@@ -22,15 +22,15 @@
    * `variante` choisit la navigation vers l'écran compte/licence : le client
    * actuel passe par `settingsInitialTab`, le nouveau par `v2SettingsTarget`.
    */
-  import { t } from '../lib/i18n';
-  import { activeView, settingsInitialTab } from '../lib/stores/navigation';
-  import { v2SettingsTarget } from '../lib/stores/v2SettingsNav';
+  import { t } from '../../lib/i18n';
+  import { activeView, settingsInitialTab } from '../../lib/stores/navigation';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import {
     COMPTE_NON_RELIE,
     MODULE_NON_POSSEDE,
     type CodeRefusModule,
     type TableauFournisseurs,
-  } from '../lib/refusModuleSortie';
+  } from '../../lib/refusModuleSortie';
 
   let {
     tableau,

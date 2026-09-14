@@ -19,7 +19,7 @@
   import ServiceBadge from './partages/ServiceBadge.svelte';
   import type { FederatedSearchResult, Track, Album, Artist, Playlist, StreamingPlaylist, Source } from '../lib/types';
   import { t } from '../lib/i18n';
-  import MetadataChips from './MetadataChips.svelte';
+  import MetadataChips from './partages/MetadataChips.svelte';
   import HeartButton from './HeartButton.svelte';
   import { displayFields } from '../lib/stores/displayFields';
 

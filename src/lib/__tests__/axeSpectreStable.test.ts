@@ -44,7 +44,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const visualiseur = () =>
-  readFileSync(resolve(process.cwd(), 'src/components/AudioVisualizer.svelte'), 'utf-8');
+  readFileSync(resolve(process.cwd(), 'src/components/partages/AudioVisualizer.svelte'), 'utf-8');
 
 /** Les deux tables mesurées : 8 puis 10 bandes non résolues sur 32. */
 const table = (nonResolues: number) =>

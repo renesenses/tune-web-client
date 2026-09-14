@@ -28,7 +28,7 @@ import { resolve } from 'node:path';
  */
 describe('garde : le mode spectre ne fabrique aucune barre', () => {
   const source = readFileSync(
-    resolve(__dirname, '../../components/AudioVisualizer.svelte'),
+    resolve(__dirname, '../../components/partages/AudioVisualizer.svelte'),
     'utf-8',
   );
 

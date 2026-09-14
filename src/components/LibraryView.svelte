@@ -28,13 +28,13 @@ import { formatTime, formatDuration,  fold, estAvecPerte } from '../lib/utils';
 import TrackContextMenu from './TrackContextMenu.svelte';
 import AlbumRating from './AlbumRating.svelte';
 import CollapsibleSection from './CollapsibleSection.svelte';
-  import ClampedText from './ClampedText.svelte';
+  import ClampedText from './partages/ClampedText.svelte';
   import AlbumEditModal from './partages/AlbumEditModal.svelte';
   import ArtistEditModal from './ArtistEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
   import HeartButton from './HeartButton.svelte';
   import AlphaIndex from './AlphaIndex.svelte';
-  import MetadataChips from './MetadataChips.svelte';
+  import MetadataChips from './partages/MetadataChips.svelte';
   import type { Album, Artist, Track, TrackCredit, UserTag } from '../lib/types';
   import { t as tr, locale } from '../lib/i18n';
   // #914 — l'infobulle ne s'affiche que si le texte DÉBORDE vraiment,

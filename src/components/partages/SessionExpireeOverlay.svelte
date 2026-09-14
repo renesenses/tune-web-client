@@ -16,9 +16,9 @@
    * 401 est loin d'ici (`api.ts` → `clearToken()` → `signalerSessionExpiree()`)
    * et n'a rien à savoir de l'écran.
    */
-  import { sessionExpiree } from '../lib/stores/sessionExpiree';
-  import { t } from '../lib/i18n';
-  import LoginView from './LoginView.svelte';
+  import { sessionExpiree } from '../../lib/stores/sessionExpiree';
+  import { t } from '../../lib/i18n';
+  import LoginView from '../LoginView.svelte';
 </script>
 
 {#if $sessionExpiree}

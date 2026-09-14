@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { dialogs } from '../lib/stores/dialogs';
-  import { t } from '../lib/i18n';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { t } from '../../lib/i18n';
 
   // Head of the queue — the store serializes concurrent requests.
   let current = $derived($dialogs[0] ?? null);

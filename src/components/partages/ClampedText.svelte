@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { t as tr } from '../lib/i18n';
+  import { t as tr } from '../../lib/i18n';
 
   interface Props {
     /** Number of lines shown when collapsed. */

@@ -52,7 +52,7 @@ describe('Égaliseur v2 — les trois modes', () => {
 
 describe('Paramétrique — le composant v1 est REPRIS, pas réécrit', () => {
   it('EqualizerV2 monte ParametricEq', () => {
-    expect(eq).toContain("import ParametricEq from '../ParametricEq.svelte'");
+    expect(eq).toContain("import ParametricEq from '../partages/ParametricEq.svelte'");
     expect(eq).toMatch(/<ParametricEq[^>]*bind:bands=\{pBandes\}/);
   });
 

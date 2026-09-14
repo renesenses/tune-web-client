@@ -27,7 +27,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
   import { NEUTRAL_PARAMETRIC_BAND } from '../../lib/eqReset';
-  import ParametricEq from '../ParametricEq.svelte';
+  import ParametricEq from '../partages/ParametricEq.svelte';
   import ProfilerV2 from './ProfilerV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import '../../styles/tune-v2.css';

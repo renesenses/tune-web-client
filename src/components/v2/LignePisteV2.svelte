@@ -33,7 +33,7 @@
    */
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import MetadataChips from '../MetadataChips.svelte';
+  import MetadataChips from '../partages/MetadataChips.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import PisteActions from './PisteActions.svelte';
   import { displayFields } from '../../lib/stores/displayFields';

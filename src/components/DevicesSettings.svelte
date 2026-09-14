@@ -7,8 +7,8 @@
   import * as api from '../lib/api';
   import { t } from '../lib/i18n';
   import { tip } from '../lib/tooltip';
-  import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
-  import RendererConfig from './RendererConfig.svelte';
+  import ZoneDeviceEditor from './partages/ZoneDeviceEditor.svelte';
+  import RendererConfig from './partages/RendererConfig.svelte';
   import type { Zone } from '../lib/types';
   import { audiophileGlobalLockVolume } from '../lib/stores/audiophile';
   import {

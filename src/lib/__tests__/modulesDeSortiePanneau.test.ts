@@ -26,7 +26,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { mount, unmount } from 'svelte';
-import OutputModulesPanel from '../../components/OutputModulesPanel.svelte';
+import OutputModulesPanel from '../../components/partages/OutputModulesPanel.svelte';
 import {
   COMPTE_NON_RELIE,
   MODULE_NON_POSSEDE,
@@ -242,7 +242,7 @@ const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 describe('#2392 — le panneau est monté par les deux écrans de diagnostic', () => {
   it('Diagnostics (client actuel) le monte sous le titre « Modules de sortie », derrière `{#if}`', () => {
     const vue = lire('src/components/DiagnosticsView.svelte');
-    expect(vue).toContain("import OutputModulesPanel from './OutputModulesPanel.svelte'");
+    expect(vue).toContain("import OutputModulesPanel from './partages/OutputModulesPanel.svelte'");
     expect(vue).toContain('tableauFournisseurs(serverDiag?.output_providers)');
     expect(vue).toContain("{$t('diagnostics.outputModules')}");
     expect(vue).toContain('<OutputModulesPanel tableau={tableauModules} />');
@@ -254,7 +254,7 @@ describe('#2392 — le panneau est monté par les deux écrans de diagnostic', (
   });
   it('Tune Health (nouveau client) le monte aussi, sur la même route', () => {
     const vue = lire('src/components/v2/TuneHealthV2.svelte');
-    expect(vue).toContain("import OutputModulesPanel from '../OutputModulesPanel.svelte'");
+    expect(vue).toContain("import OutputModulesPanel from '../partages/OutputModulesPanel.svelte'");
     expect(vue).toContain('api.getServerDiagnostics()');
     expect(vue).toContain('tableauFournisseurs(diag[0].value?.output_providers)');
     expect(vue).toContain('<OutputModulesPanel tableau={modulesSortie} variante="v2" />');

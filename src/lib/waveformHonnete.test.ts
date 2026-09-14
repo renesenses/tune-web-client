@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 /// fichier en contient plusieurs qui citent l'ancienne formule pour expliquer
 /// ce qu'on a retiré. On dépouille donc les commentaires avant de chercher.
 
-const VISUALIZER = new URL('../components/AudioVisualizer.svelte', import.meta.url);
+const VISUALIZER = new URL('../components/partages/AudioVisualizer.svelte', import.meta.url);
 
 /** Retire commentaires de ligne, blocs `/* *\/` et chaînes, pour ne garder que du code. */
 export function stripComments(source: string): string {

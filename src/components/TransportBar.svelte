@@ -1,6 +1,6 @@
 <script lang="ts">
   import { preferences } from '../lib/stores/preferences';
-  import CreteMetre from './CreteMetre.svelte';
+  import CreteMetre from './partages/CreteMetre.svelte';
   import { styleSurLaBarre, STYLE_CRETE_DEFAUT } from '../lib/peakMetre';
   import { onMount, onDestroy } from 'svelte';
   import { zones, currentZone, currentZoneId, stopAndSync, switchZone, lectureEnAttente } from '../lib/stores/zones';
@@ -19,7 +19,7 @@
   import AlbumArt from './partages/AlbumArt.svelte';
   import ServiceBadge from './partages/ServiceBadge.svelte';
   import VolumeControl from './VolumeControl.svelte';
-  import AudioVisualizer from './AudioVisualizer.svelte';
+  import AudioVisualizer from './partages/AudioVisualizer.svelte';
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
   import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';

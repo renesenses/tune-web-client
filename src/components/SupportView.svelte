@@ -11,7 +11,7 @@
   import { updateAvailable, latestVersion, currentVersion } from '../lib/stores/updates';
   import { activeView, settingsInitialTab } from '../lib/stores/navigation';
   import { refreshSupportUnread } from '../lib/stores/support';
-  import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
+  import ZoneDeviceEditor from './partages/ZoneDeviceEditor.svelte';
   import type { Zone } from '../lib/types';
 
   // Garde anti-écriture après démontage (même motif que DiagnosticsView).

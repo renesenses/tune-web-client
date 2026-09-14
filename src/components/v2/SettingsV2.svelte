@@ -28,7 +28,7 @@
   import * as api from '../../lib/api';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
-  import RefusHomebrewBloc from '../RefusHomebrew.svelte';
+  import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -58,7 +58,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
   import { tip } from '../../lib/tooltip';
-  import CreteMetre from '../CreteMetre.svelte';
+  import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   /**
@@ -100,7 +100,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * c'est le raisonnement qui a déjà fait reprendre `TransportBar` telle
    * quelle, et le pont de thème de `tune-v2.css` est fait pour ça.
    */
-  import RendererConfig from '../RendererConfig.svelte';
+  import RendererConfig from '../partages/RendererConfig.svelte';
   /**
    * Marque et modele de l'appareil, REPRIS du client actuel.
    *
@@ -109,7 +109,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * dupliquer en version v2 imposerait de corriger deux fois le catalogue
    * d'appareils.
    */
-  import ZoneDeviceEditor from '../ZoneDeviceEditor.svelte';
+  import ZoneDeviceEditor from '../partages/ZoneDeviceEditor.svelte';
 
   /**
    * Trim de gain — ecrit ici plutot que repris : c'est un curseur et une
