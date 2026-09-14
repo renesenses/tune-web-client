@@ -883,7 +883,7 @@
             <div class="track-info">
               <span class="track-title-row">
                 <span class="track-title truncate" use:bulleTexte>{t.title}</span>
-                <ServiceBadge source={(t as any).source ?? 'local'} compact />
+                <ServiceBadge source={(t as any).source} compact />
               </span>
               <span class="track-meta truncate" use:bulleTexte>{t.artist_name ?? ''}{#if t.album_title} — {t.album_title}{/if}</span>
               <MetadataChips track={t} fields={$displayFields} />
@@ -927,7 +927,7 @@
               <button class="remove-overlay" onclick={(e) => { e.stopPropagation(); removeFavAlbum(album); }}>
                 <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
               </button>
-              <div class="cover-badge"><ServiceBadge source={(album as any).source ?? 'local'} compact /></div>
+              <div class="cover-badge"><ServiceBadge source={(album as any).source} compact /></div>
             </div>
             <span class="album-card-title truncate" use:bulleTexte>{album.title}</span>
             {#if album.artist_name}
@@ -954,7 +954,7 @@
               <AlbumArt coverPath={artist.image_path} size={100} alt={artist.name} round fallbackInitials={initials(artist.name)} />
             </div>
             <span class="artist-card-name truncate" use:bulleTexte>{artist.name}</span>
-            <ServiceBadge source={(artist as any).source ?? 'local'} compact />
+            <ServiceBadge source={(artist as any).source} compact />
             <button class="artist-remove-btn" onclick={(e) => { e.stopPropagation(); removeFavArtist(artist); }}>
               <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="14" height="14"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
             </button>
