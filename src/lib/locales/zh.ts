@@ -4407,6 +4407,10 @@ export default {
   "licenseFeature.synced_lyrics": "同步歌词",
   "licenseFeature.unlimited_zones": "无限区域",
   "licenseFeature.weekly_digest": "每周摘要",
+  // Session expirée (#1021) : le calque que les DEUX coquilles montent
+  // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
+  "session.expiredTitle": "会话已过期",
+  "session.expiredBody": "您的会话已结束。请重新登录以继续，之前打开的界面仍保留在下方。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

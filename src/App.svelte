@@ -90,6 +90,19 @@ import AlarmsView from './components/AlarmsView.svelte';
   import WhatsNew from './components/WhatsNew.svelte';
   import StreamingSessionPrompt from './components/StreamingSessionPrompt.svelte';
   import LoginView from './components/LoginView.svelte';
+  /*
+   * 🔴 LE CALQUE DE SESSION EXPIREE (#1021).
+   *
+   * `LoginView` ci-dessus est importé depuis toujours et rendu l. 1698
+   * sous `activeView === 'login'` — mais RIEN ne pose jamais cette vue.
+   * Le 401 effaçait le jeton et posait `#login`, que personne ne lit :
+   * cette coquille n'écoute le `hashchange` que pour `#tv`. L'écran de
+   * connexion était donc inatteignable ici comme en v2.
+   *
+   * Le calque observe un magasin, pas le hash, et les deux coquilles le
+   * montent — voir `lib/stores/sessionExpiree.ts`.
+   */
+  import SessionExpireeOverlay from './components/SessionExpireeOverlay.svelte';
   import ConverterView from './components/ConverterView.svelte';
   import DeplocView from './components/DeplocView.svelte';
   import AiChat from './components/AiChat.svelte';
@@ -1771,6 +1784,10 @@ import AlarmsView from './components/AlarmsView.svelte';
 {#if showImportDrop}
   <ImportWizard droppedFiles={importDropFiles} onClose={closeImportDrop} />
 {/if}
+<!-- Session expirée (#1021) : muet tant que le jeton vaut, plein écran
+     sinon. HORS de `.app-layout` — le mini-lecteur remplace cette grappe
+     entière, et un 401 pendant qu'il est ouvert doit se voir lui aussi. -->
+<SessionExpireeOverlay />
 
 <style>
   .app-layout {

@@ -4407,6 +4407,10 @@ export default {
   "licenseFeature.synced_lyrics": "同期歌詞",
   "licenseFeature.unlimited_zones": "ゾーン数無制限",
   "licenseFeature.weekly_digest": "週間ダイジェスト",
+  // Session expirée (#1021) : le calque que les DEUX coquilles montent
+  // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
+  "session.expiredTitle": "セッションの有効期限が切れました",
+  "session.expiredBody": "セッションが終了しました。再度サインインすると続きから操作できます。開いていた画面はそのまま下に残っています。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -4406,4 +4406,8 @@ export default {
   "licenseFeature.synced_lyrics": "Synkroniserad låttext",
   "licenseFeature.unlimited_zones": "Obegränsat antal zoner",
   "licenseFeature.weekly_digest": "Veckosammanfattning",
+  // Session expirée (#1021) : le calque que les DEUX coquilles montent
+  // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
+  "session.expiredTitle": "Sessionen har gått ut",
+  "session.expiredBody": "Din session har avslutats. Logga in igen för att fortsätta där du var — skärmen du hade öppen väntar kvar under.",
 } as const;

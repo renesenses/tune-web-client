@@ -4427,6 +4427,10 @@ export default {
   "licenseFeature.synced_lyrics": "Synced lyrics",
   "licenseFeature.unlimited_zones": "Unlimited zones",
   "licenseFeature.weekly_digest": "Weekly digest",
+  // Session expirée (#1021) : le calque que les DEUX coquilles montent
+  // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
+  "session.expiredTitle": "Session expired",
+  "session.expiredBody": "Your session has ended. Sign in again to pick up where you were — the screen you had open is still waiting underneath.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
