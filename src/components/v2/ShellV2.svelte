@@ -67,6 +67,19 @@
    * navigation à tenir ici.
    */
   import SessionExpireeOverlay from '../partages/SessionExpireeOverlay.svelte';
+  /**
+   * 🔴 SANS LUI, UNE INSTALLATION NEUVE ARRIVE DANS UNE COQUILLE VIDE.
+   *
+   * L'assistant de première installation n'était monté que par
+   * `App.svelte`. Tant que l'interface actuelle était le défaut, personne
+   * ne s'en apercevait. En basculant le défaut ici (phase 4), un serveur
+   * fraîchement installé serait arrivé sans dossier de musique, sans zone
+   * et sans rien pour le guider.
+   *
+   * L'enveloppe décide elle-même s'il y a lieu de se montrer : ici, une
+   * ligne suffit, et la règle ne vit qu'à un seul endroit.
+   */
+  import AssistantPremiereInstallation from '../partages/AssistantPremiereInstallation.svelte';
   import TvView from '../v2-heritage/TvView.svelte';
   /**
    * 🔴 SANS LUI, TOUT DIALOGUE RESTE SANS REPONSE POUR TOUJOURS.
@@ -683,6 +696,9 @@
      `overflow:hidden`. Le calque est en `position:fixed` et n'a aucune
      raison de dépendre du bloc conteneur de la coquille. -->
 <SessionExpireeOverlay />
+<!-- Première installation (#1033) : hors de `.v2-shell` comme le calque de
+     session expirée, et pour la même raison — `overflow:hidden`. -->
+<AssistantPremiereInstallation />
 
 <style>
   /* 🔴 `--v2-grappe-w` — la gouttière de la grappe — vit dans

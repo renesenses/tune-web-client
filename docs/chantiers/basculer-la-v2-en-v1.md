@@ -37,6 +37,14 @@
 > L'application devenait muette. Ce n'était donc pas un obstacle à la bascule
 > mais un défaut existant — corrigé par #1022 et l'issue #1021.
 >
+> Et **la seconde porte cachait le même défaut**, découvert le 14/09 en
+> portant l'assistant (#1033) : `OnboardingView` — 1 117 lignes — pend à
+> `$activeView === 'onboarding'`, valeur que personne ne pose. Elle n'a jamais
+> été atteignable non plus. L'assistant réellement monté était
+> `OnboardingWizard`, ailleurs dans `App.svelte`. Deux portes d'entrée, deux
+> écrans morts, et le même piège : ce document listait des fichiers qui
+> EXISTENT, jamais des chemins qu'on PARCOURT.
+>
 > **3. « Phase 3 : combler les deux trous » — la phase 3 est devenue autre
 > chose.** Les alarmes ont bien été portées (#1020) ; les concerts sont
 > reportés sur décision de Bertrand. Mais le vrai travail de la phase 3 a été
@@ -135,6 +143,17 @@ Aucun travail à prévoir : la fonction est là, l'écran d'origine peut tomber.
 | **Concerts** | `ConcertsView` | 269 lignes |
 | **Connexion** | `LoginView` | voir le point dur |
 | **Première installation** | `OnboardingView` | voir le point dur |
+
+⚠️ **Les deux dernières lignes sont périmées, et l'une des deux nommait le
+mauvais fichier.**
+
+| Fonction | Où elle en est |
+|---|---|
+| Connexion | portée — `SessionExpireeOverlay` monte `LoginView` des deux côtés (#1021, #1022) |
+| Première installation | portée — `AssistantPremiereInstallation` monte `OnboardingWizard` des deux côtés (#1033) |
+
+`OnboardingView` n'était pas l'assistant : elle n'a jamais été atteignable.
+Voir la préface, point 2.
 
 ### Restant à vérifier une par une
 
