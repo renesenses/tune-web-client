@@ -3366,6 +3366,8 @@ export default {
   "v2.pl.backups": "Säkerhetskopior",
   "v2.pl.backupNow": "Säkerhetskopiera nu",
   "v2.pl.backupDone": "Säkerhetskopia skapad",
+  "v2.pl.backupDeleteAsk": "Ta bort säkerhetskopian ”{name}”?",
+  "v2.pl.backupDeleted": "Säkerhetskopia borttagen.",
   "v2.pl.noBackup": "Ingen säkerhetskopia ännu.",
   "v2.pl.restore": "Återställ",
   "v2.pl.restoreDone": "Säkerhetskopia återställd",

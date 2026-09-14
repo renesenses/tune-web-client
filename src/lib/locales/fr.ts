@@ -2102,6 +2102,8 @@ export default {
   "v2.pl.backups": "Sauvegardes",
   "v2.pl.backupNow": "Sauvegarder maintenant",
   "v2.pl.backupDone": "Sauvegarde effectuée",
+  "v2.pl.backupDeleteAsk": "Supprimer la sauvegarde « {name} » ?",
+  "v2.pl.backupDeleted": "Sauvegarde supprimée.",
   "v2.pl.noBackup": "Aucune sauvegarde pour l’instant.",
   "v2.pl.restore": "Restaurer",
   "v2.pl.restoreDone": "Sauvegarde restaurée",

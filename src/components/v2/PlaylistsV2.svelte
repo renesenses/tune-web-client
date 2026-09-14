@@ -19,13 +19,14 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { activeView } from '../../lib/stores/navigation';
-  import { formatDuration, fold } from '../../lib/utils';
+  import { formatDuration, fold, errText } from '../../lib/utils';
   import type { Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import { t } from '../../lib/i18n';
   import { quatreDistinctes } from '../../lib/mosaique';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   import PochetteActions from './PochetteActions.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
@@ -335,6 +336,40 @@
     restauration = null;
   }
 
+  /** Sauvegarde en cours de suppression, ou `null`. */
+  let suppression = $state<number | null>(null);
+
+  /**
+   * Supprime une sauvegarde.
+   *
+   * 🔴 La v2 savait CRÉER et RESTAURER une sauvegarde, jamais en effacer une :
+   * la liste ne pouvait que grossir, et la plus ancienne finissait par noyer
+   * les autres. `DELETE /playlist-manager/backups/{id}` existait depuis
+   * toujours côté serveur.
+   *
+   * Confirmation obligatoire, et `danger` : c'est un filet qu'on retire, et
+   * rien ne le reconstitue. Le même défaut avait été relevé sur les alarmes,
+   * qui supprimaient sans rien demander.
+   */
+  async function supprimerInstantane(snap: any) {
+    if (suppression != null) return;
+    const nom = snap.name ?? snap.playlist_name ?? `#${snap.id}`;
+    const ok = await dialogs.confirm(
+      $t('v2.pl.backupDeleteAsk' as any).replace('{name}', String(nom)),
+      { danger: true },
+    );
+    if (!ok) return;
+    suppression = snap.id;
+    try {
+      await api.deletePlaylistSnapshot(snap.id);
+      await chargerInstantanes();
+      notifications.success($t('v2.pl.backupDeleted' as any));
+    } catch (e: any) {
+      notifications.error(errText(e) ?? $t('common.error' as any));
+    }
+    suppression = null;
+  }
+
   // ── Import M3U ───────────────────────────────────────────────────────────
   let importEnCours = $state(false);
   async function importer(ev: Event) {
@@ -505,6 +540,11 @@
               <span class="sd">{snap.created_at ?? ''}</span>
               <button class="ghost sm" disabled={restauration != null} onclick={() => restaurer(snap)}>
                 {restauration === snap.id ? $t('common.loading' as any) : $t('v2.pl.restore' as any)}
+              </button>
+              <button class="ghost sm danger" disabled={suppression != null || restauration != null}
+                onclick={() => supprimerInstantane(snap)}
+                aria-label={$t('common.delete' as any)}>
+                {suppression === snap.id ? $t('common.loading' as any) : $t('common.delete' as any)}
               </button>
             </li>
           {/each}
@@ -723,6 +763,11 @@
   .sauv-tete{display:flex; align-items:center; justify-content:space-between; gap:12px}
   .sauv-tete h2{font-size:14px; font-weight:700}
   .sauv-vide{margin-top:8px; color:var(--v2-txt3); font-size:13px}
+  /* Le bouton qui retire un filet se distingue de celui qui le pose. La
+     couleur ne porte pas l'information seule : le libellé dit « Supprimer »,
+     et une confirmation `danger` s'interpose. */
+  .ghost.sm.danger{color:var(--v2-err, #d64545)}
+  .ghost.sm.danger:hover:not(:disabled){border-color:var(--v2-err, #d64545)}
   .sauv-liste{margin-top:10px; list-style:none; display:flex; flex-direction:column; gap:6px}
   .sauv-liste li{display:flex; align-items:center; gap:10px; font-size:13px}
   .sn{font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}

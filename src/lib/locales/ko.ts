@@ -3367,6 +3367,8 @@ export default {
   "v2.pl.backups": "백업",
   "v2.pl.backupNow": "지금 백업",
   "v2.pl.backupDone": "백업을 만들었습니다",
+  "v2.pl.backupDeleteAsk": "백업 “{name}”을(를) 삭제할까요?",
+  "v2.pl.backupDeleted": "백업을 삭제했습니다.",
   "v2.pl.noBackup": "아직 백업이 없습니다.",
   "v2.pl.restore": "복원",
   "v2.pl.restoreDone": "백업을 복원했습니다",
