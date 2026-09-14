@@ -56,7 +56,7 @@
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
-    comptesCompilation,
+    comptesCompilation, comptesProvenance,
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
@@ -258,6 +258,79 @@
    */
   let fCompilation = $state<boolean | null>(null);
 
+  /**
+   * SOURCE — de quelle bibliothèque l'album vient (#4152).
+   *
+   * `null` = toutes les sources. Sinon `'local'`, ou `'upnp:<udn>'` pour UN
+   * serveur précis.
+   *
+   * 🔴 Nommé `fProvenance` et pas `fSource` : le mode d'année de cet écran
+   * s'appelle déjà « origine » (`v2.lib.yearOrigin`), et la facette `source`
+   * de `/library/tracks` désigne le SUPPORT (CD, vinyle). Le libellé affiché
+   * reste « Source », qui est le mot de l'utilisateur.
+   *
+   * Comme ses voisins, le filtre est appliqué SUR PLACE : la bibliothèque est
+   * déjà chargée en entier et `showFilters` masque la barre sur l'onglet
+   * Titres. Un aller-retour réseau pour celui-là seul ferait diverger la
+   * grille de son compteur — c'est le raisonnement de `fCompilation`, mot pour
+   * mot.
+   */
+  let fProvenance = $state<string | null>(null);
+
+  /**
+   * D'où vient un album : `'local'`, ou `'upnp:<udn>'`.
+   *
+   * L'UDN est le préfixe de `source_id` avant `'|'` — convention posée par
+   * l'indexation UPnP côté serveur (`source_id = '<udn>|<condensat>'`).
+   * Mesuré sur le .18 le 14/09/2026 : les 51 albums distants portent tous
+   * `uuid:258FC2D5-E2C3-B734-0-123456789abc|…`.
+   *
+   * Une ligne distante SANS ce format — source `qobuz`, `tidal`, ou une ligne
+   * antérieure — retombe sur sa famille (`'qobuz'`…) plutôt que sur un UDN
+   * inventé : elle reste filtrable, sans prétendre venir d'un serveur nommé.
+   */
+  function provenanceDe(a: Album): string {
+    const src = (a.source ?? 'local').trim() || 'local';
+    if (src === 'local') return 'local';
+    const udn = (a.source_id ?? '').split('|')[0]?.trim();
+    return udn && udn.length < (a.source_id ?? '').trim().length ? `${src}:${udn}` : src;
+  }
+
+  /**
+   * Les noms que les serveurs s'annoncent, par UDN.
+   *
+   * `source_id` ne porte que l'UDN ; le nom lisible vit au registre
+   * (`GET /network/media-servers`, champ `id` = ce même UDN). Bertrand,
+   * 14/09/2026 : le libellé est le NOM du serveur, jamais `upnp` ni une IP
+   * quand un nom existe.
+   *
+   * Le registre est CONSULTÉ, jamais exigé : injoignable, le menu s'affiche
+   * quand même et l'entrée porte son UDN abrégé. Perdre la pilule entière
+   * parce qu'un nom manque serait la mauvaise panne.
+   */
+  let nomsServeurs = $state<Record<string, string>>({});
+  $effect(() => {
+    let vivant = true;
+    api.getMediaServers()
+      .then((liste) => {
+        if (!vivant) return;
+        const carte: Record<string, string> = {};
+        for (const s of liste) if (s.id && s.name) carte[s.id] = s.name;
+        nomsServeurs = carte;
+      })
+      .catch(() => { /* registre muet : les UDN suffisent à filtrer */ });
+    return () => { vivant = false; };
+  });
+
+  /** Le libellé d'une provenance dans le menu et sur la pilule. */
+  function libelleProvenance(cle: string): string {
+    if (cle === 'local') return $tr('v2.lib.sourceLocal' as any);
+    const udn = cle.slice(cle.indexOf(':') + 1);
+    // Le nom du registre d'abord ; à défaut, l'UDN abrégé — lisible, et qui
+    // reste distinctif quand deux serveurs cohabitent.
+    return nomsServeurs[udn] ?? `${udn.slice(0, 18)}…`;
+  }
+
   /** Formats et profondeurs REELLEMENT presents, avec leur compte. Proposer
    *  une liste figee ferait offrir des rubriques vides — et un filtre qui ne
    *  renvoie rien passe pour un bug. */
@@ -305,6 +378,7 @@
     // encore re-scannée, ne porte pas le champ. Il vaut « non », comme côté
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
+    if (fProvenance && provenanceDe(a) !== fProvenance) return false;
     if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
     return true;
   }
@@ -445,14 +519,24 @@
   const filtresActifs = $derived<FiltresBibliotheque>({
     qualite: fQuality, frequence: fRate, annee: fYear,
     format: fFormat, profondeur: fDepth, recherche: q,
-    compilation: fCompilation,
+    compilation: fCompilation, provenance: fProvenance,
   });
   const outilsFacettes = $derived<Outils>({
-    qualiteDe: tierMatches, anneeDe: albumYear, plier: fold,
+    qualiteDe: tierMatches, anneeDe: albumYear, plier: fold, provenanceDe,
   });
 
   const formats = $derived(comptesFormat(src, filtresActifs, outilsFacettes));
   const depths = $derived(comptesProfondeur(src, filtresActifs, outilsFacettes));
+  /** Les provenances présentes, avec leur compte (#4152). La pilule ne
+   *  s'affiche qu'au-delà d'UNE : sur une bibliothèque purement locale, un
+   *  menu à une seule entrée ne filtre rien — même règle que `Format`. */
+  const provenances = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
+  /** Ce que « Toutes les sources » rendrait : la SOMME des provenances, c'est
+   *  à dire la même assiette qu'elles — les autres filtres appliqués, celui-ci
+   *  non. `matchCount` ne conviendrait pas : il porte déjà la provenance
+   *  choisie, et l'entrée « Toutes » annoncerait alors le compte de l'entrée
+   *  courante. */
+  const matchCountToutesSources = $derived(provenances.reduce((n, [, c]) => n + c, 0));
   const nQualite = $derived(comptesQualite(src, filtresActifs, outilsFacettes, QUALITIES.map((x) => x.key)));
   const nFrequence = $derived(comptesFrequence(src, filtresActifs, outilsFacettes, RATES.map((r) => r.v)));
   /** Combien de compilations, compte tenu des AUTRES filtres. À zéro, la puce
@@ -1168,7 +1252,7 @@
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; fCompilation = null; }
+  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; fCompilation = null; fProvenance = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -1288,7 +1372,7 @@
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null && fCompilation == null} onclick={reset}>Tout ({matchCount})</button>
+      <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null && fCompilation == null && !fProvenance} onclick={reset}>Tout ({matchCount})</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -1301,6 +1385,33 @@
         <button class="chip" class:active={sortKey === 'added'}
           onclick={() => (sortKey = sortKey === 'added' ? 'title' : 'added')}
           title={$tr('v2.lib.recentHint' as any)}>{$tr('v2.lib.recent' as any)}</button>
+      {/if}
+      <!--
+        SOURCE (#4152). Rangée ICI, entre « Derniers ajouts » et « Qualité »,
+        et pas au bout de la file : Qualité, Fréquence, Format et Profondeur
+        décrivent le CONTENU d'un album ; « Source » dit de quelle
+        bibliothèque on parle. C'est une portée, comme le fil d'Ariane des
+        Répertoires — elle précède les critères qu'elle borne.
+
+        Elle n'apparaît qu'à partir de DEUX provenances : sur une
+        bibliothèque purement locale, un menu à une seule entrée ne filtre
+        rien et n'a rien à dire. Même règle que « Format », qui se tait
+        au-dessous de deux valeurs.
+      -->
+      {#if provenances.length > 1}
+        <div class="drop" class:open={ddOpen === 'provenance'}>
+          <button class="chip" class:active={fProvenance !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'provenance'} onclick={() => ddToggle('provenance')}>{$tr('v2.lib.source' as any)}{#if fProvenance}&nbsp;· {libelleProvenance(fProvenance)}{/if}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
+          <div class="menu">
+            <!-- « Toutes les sources » EST l'absence de filtre, et elle est
+                 écrite : la retirer obligerait à passer par « Tout », qui
+                 efface aussi la qualité, le format et la recherche. -->
+            <button class:on={fProvenance === null} onclick={() => { fProvenance = null; ddClose(); }}>{$tr('v2.lib.sourceAll' as any)} <em>{matchCountToutesSources}</em></button>
+            {#each provenances as [cle, n] (cle)}
+              <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{n}</em></button>
+            {/each}
+          </div>
+        </div>
       {/if}
       <div class="drop" class:open={ddOpen === 'quality'}>
         <button class="chip" class:active={fQuality !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
