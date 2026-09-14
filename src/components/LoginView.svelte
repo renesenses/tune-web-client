@@ -3,6 +3,19 @@
   import { t } from '../lib/i18n';
   import { activeView } from '../lib/stores/navigation';
 
+  /**
+   * `true` quand l'écran est monté EN CALQUE par-dessus l'interface
+   * (session expirée, #1021) et non comme une vue à part entière.
+   *
+   * 🔴 Il ne change qu'une chose, et elle compte : en calque, une
+   * connexion réussie ne repart PAS à l'accueil. Le calque se retire tout
+   * seul — `setToken()` rabaisse le drapeau — et l'utilisateur retrouve
+   * l'écran qu'il avait sous les yeux. Poser `activeView` à `'home'` ici
+   * aurait jeté la file d'attente et la recherche en cours, c'est-à-dire
+   * précisément le contexte que le calque est là pour préserver.
+   */
+  let { surCouche = false }: { surCouche?: boolean } = $props();
+
   const BASE = '/api/v1';
 
   // Mode: 'login' or 'register'
@@ -42,7 +55,7 @@
       const data = await resp.json();
       if (data.token || data.access_token) {
         setToken(data.token || data.access_token);
-        activeView.set('home');
+        if (!surCouche) activeView.set('home');
       } else {
         error = 'Reponse inattendue du serveur.';
       }
@@ -78,7 +91,7 @@
       const data = await resp.json();
       if (data.token || data.access_token) {
         setToken(data.token || data.access_token);
-        activeView.set('home');
+        if (!surCouche) activeView.set('home');
       } else {
         // Registration succeeded but no token — switch to login
         mode = 'login';

@@ -4368,6 +4368,10 @@ export default {
   "licenseFeature.synced_lyrics": "Szinkronizált dalszöveg",
   "licenseFeature.unlimited_zones": "Korlátlan zóna",
   "licenseFeature.weekly_digest": "Heti összefoglaló",
+  // Session expirée (#1021) : le calque que les DEUX coquilles montent
+  // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
+  "session.expiredTitle": "A munkamenet lejárt",
+  "session.expiredBody": "A munkamenet véget ért. Jelentkezzen be újra, hogy onnan folytassa, ahol abbahagyta – a megnyitott képernyő alatta várja.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

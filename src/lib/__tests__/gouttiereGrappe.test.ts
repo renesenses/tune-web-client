@@ -55,6 +55,12 @@ const PAS_DES_ECRANS = new Set([
   // pas passer sous la grappe du coin haut-droit. Lui imposer la gouttière
   // reviendrait à décaler un élément qui n'est pas dans le flux.
   'ToastContainer',
+  // `SessionExpireeOverlay` rejoint la coquille avec #1021. Ce n'est pas
+  // un écran non plus : c'est un calque `position: fixed; inset: 0` en
+  // z-index 9000, qui recouvre la grappe ENTIÈRE au lieu de passer
+  // dessous. Lui réserver une gouttière à droite décalerait la carte de
+  // connexion hors de son centre pour éviter des boutons qu'il masque.
+  'SessionExpireeOverlay',
 ]);
 const ECRANS_V1 = [...SHELL.matchAll(/import\s+(\w+)\s+from\s+'\.\.\/(\w+\.svelte)'/g)]
   .filter((m) => !PAS_DES_ECRANS.has(m[1]))

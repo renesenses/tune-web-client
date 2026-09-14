@@ -56,6 +56,17 @@
   // mobile). Sans ces deux montages, le clic tombait dans le repli « À venir » :
   // l'écran n'avait pas disparu, il n'avait jamais été branché.
   import NowPlaying from '../NowPlaying.svelte';
+  /*
+   * 🔴 LE CALQUE DE SESSION EXPIREE (#1021).
+   *
+   * Cette coquille ne lit AUCUN hash : elle navigue par `pushState` /
+   * `popstate`. Le `#login` que posait `clearToken()` n'y a jamais rien
+   * déclenché — l'application devenait simplement muette. Le calque
+   * observe un booléen partagé, que `App.svelte` observe aussi : un seul
+   * mécanisme pour les deux coquilles, et aucun second système de
+   * navigation à tenir ici.
+   */
+  import SessionExpireeOverlay from '../SessionExpireeOverlay.svelte';
   import TvView from '../TvView.svelte';
   /**
    * 🔴 SANS LUI, TOUT DIALOGUE RESTE SANS REPONSE POUR TOUJOURS.
@@ -668,6 +679,10 @@
     </div>
   {/if}
 </div>
+<!-- Session expirée (#1021) : HORS de `.v2-shell`, qui est en
+     `overflow:hidden`. Le calque est en `position:fixed` et n'a aucune
+     raison de dépendre du bloc conteneur de la coquille. -->
+<SessionExpireeOverlay />
 
 <style>
   /* 🔴 `--v2-grappe-w` — la gouttière de la grappe — vit dans

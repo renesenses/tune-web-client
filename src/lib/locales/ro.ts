@@ -4410,6 +4410,10 @@ export default {
   "licenseFeature.synced_lyrics": "Versuri sincronizate",
   "licenseFeature.unlimited_zones": "Zone nelimitate",
   "licenseFeature.weekly_digest": "Rezumat săptămânal",
+  // Session expirée (#1021) : le calque que les DEUX coquilles montent
+  // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
+  "session.expiredTitle": "Sesiune expirată",
+  "session.expiredBody": "Sesiunea ta s-a încheiat. Conectează-te din nou pentru a relua de unde ai rămas — ecranul pe care îl aveai deschis te așteaptă dedesubt.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

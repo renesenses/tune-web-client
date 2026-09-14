@@ -4410,6 +4410,10 @@ export default {
   "licenseFeature.synced_lyrics": "동기화 가사",
   "licenseFeature.unlimited_zones": "무제한 존",
   "licenseFeature.weekly_digest": "주간 요약",
+  // Session expirée (#1021) : le calque que les DEUX coquilles montent
+  // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
+  "session.expiredTitle": "세션이 만료되었습니다",
+  "session.expiredBody": "세션이 종료되었습니다. 다시 로그인하면 이어서 사용할 수 있습니다. 열어 두었던 화면은 아래에 그대로 있습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
