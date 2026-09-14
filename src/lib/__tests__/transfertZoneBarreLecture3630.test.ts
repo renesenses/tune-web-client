@@ -20,7 +20,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
-import TransportBar from '../../components/TransportBar.svelte';
+import TransportBar from '../../components/partages/TransportBar.svelte';
 import { zones, currentZoneId } from '../stores/zones';
 import fr from '../locales/fr';
 

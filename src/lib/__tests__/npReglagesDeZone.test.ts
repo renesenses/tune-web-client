@@ -25,7 +25,7 @@ import { conditionsA } from './pileDeBlocs';
  */
 
 const SOURCE = readFileSync(
-  resolve(process.cwd(), 'src/components/NowPlaying.svelte'),
+  resolve(process.cwd(), 'src/components/partages/NowPlaying.svelte'),
   'utf-8',
 );
 

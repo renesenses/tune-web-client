@@ -38,7 +38,7 @@ import { largeurMaxEffective, releverReglesLargeur, type Ecran } from '../nowPla
  * de bout en bout, qui n'existe pas dans ce dépôt.
  */
 
-const CHEMIN = resolve(process.cwd(), 'src/components/NowPlaying.svelte');
+const CHEMIN = resolve(process.cwd(), 'src/components/partages/NowPlaying.svelte');
 const SOURCE = readFileSync(CHEMIN, 'utf-8');
 const FEUILLE = extraireFeuilleDeStyle(SOURCE);
 const REGLES = releverReglesLargeur(FEUILLE);
@@ -73,7 +73,7 @@ describe('largeurReserveeFileAttente — la fonction appelée par NowPlaying', (
 describe('Le site d’appel existe — la fonction n’est pas écrite sans être branchée', () => {
   it('NowPlaying.svelte importe la fonction', () => {
     expect(SOURCE).toMatch(
-      /import\s*\{\s*largeurReserveeFileAttente\s*\}\s*from\s*'\.\.\/lib\/fileAttenteReserve'/,
+      /import\s*\{\s*largeurReserveeFileAttente\s*\}\s*from\s*'\.\.\/(\.\.\/)?lib\/fileAttenteReserve'/,
     );
   });
 

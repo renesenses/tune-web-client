@@ -114,7 +114,7 @@ describe('#3626 — le lien artiste de « Lecture en cours » ne mène plus à u
   it('NowPlaying ne détourne QUE si la coquille sait recevoir le geste', async () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
-    const np = readFileSync(resolve(process.cwd(), 'src/components/NowPlaying.svelte'), 'utf-8');
+    const np = readFileSync(resolve(process.cwd(), 'src/components/partages/NowPlaying.svelte'), 'utf-8');
     expect(np).toContain("if (gestesService && dest.source && dest.source !== 'local') {");
     // Le repli demeure juste après : sans rappel, la recherche d'avant.
     expect(np).toContain('ouvrirRecherche(dest.requete, dest.source);');

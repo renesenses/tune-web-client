@@ -1,53 +1,53 @@
 <script lang="ts">
-  import { rangeableEnPlaylist } from '../lib/pisteFile';
-  import MenuPisteV1 from './MenuPisteV1.svelte';
-  import { doitReinitialiserLesParoles } from '../lib/nowPlayingLyricsReset';
-  import { currentZone } from '../lib/stores/zones';
-  import { dialogs } from '../lib/stores/dialogs';
-  import { tip } from '../lib/tooltip';
-  import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../lib/stores/nowPlaying';
-  import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../lib/stores/queue';
-  import type { QueueSheetState } from '../lib/stores/queue';
-  import { currentZoneId, zones } from '../lib/stores/zones';
-  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality } from '../lib/utils';
-  import { isMiddlePressWheel, isInnerScrollerWheel } from '../lib/npWheelGesture';
-  import { largeurReserveeFileAttente } from '../lib/fileAttenteReserve';
-  import * as api from '../lib/api';
-  import { lireOuAjouter } from '../lib/playback';
-  import CreteMetre from './partages/CreteMetre.svelte';
-  import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../lib/peakMetre';
-  import { preferences } from '../lib/stores/preferences';
-  import { texteDePartage, partageUtilisable } from '../lib/partageEcoute';
-  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../lib/radioFavListenAt';
+  import { rangeableEnPlaylist } from '../../lib/pisteFile';
+  import MenuPisteV1 from '../MenuPisteV1.svelte';
+  import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
+  import { currentZone } from '../../lib/stores/zones';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { tip } from '../../lib/tooltip';
+  import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../../lib/stores/nowPlaying';
+  import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
+  import type { QueueSheetState } from '../../lib/stores/queue';
+  import { currentZoneId, zones } from '../../lib/stores/zones';
+  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality } from '../../lib/utils';
+  import { isMiddlePressWheel, isInnerScrollerWheel } from '../../lib/npWheelGesture';
+  import { largeurReserveeFileAttente } from '../../lib/fileAttenteReserve';
+  import * as api from '../../lib/api';
+  import { lireOuAjouter } from '../../lib/playback';
+  import CreteMetre from './CreteMetre.svelte';
+  import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
+  import { preferences } from '../../lib/stores/preferences';
+  import { texteDePartage, partageUtilisable } from '../../lib/partageEcoute';
+  import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import {
     CF_PRESETS, presetActif, reglagesCrossfeed,
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
-  } from '../lib/crossfeed';
-  import AlbumArt from './partages/AlbumArt.svelte';
-  import ServiceBadge from './partages/ServiceBadge.svelte';
-  import SeekBar from './SeekBar.svelte';
-  import NowPlayingLyrics from './NowPlayingLyrics.svelte';
-  import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
-  import { isPremium, licenseState } from '../lib/stores/license';
-  import { estRefusPremium } from '../lib/premiumRefus';
-  import { bandesDuPrereglage, prereglageDesBandes } from '../lib/eqPrereglages';
-  import AudioVisualizer from './partages/AudioVisualizer.svelte';
-  import { t } from '../lib/i18n';
-  import { libelleAleatoire, libelleRepetition } from '../lib/etatTransport';
-  import { notifications } from '../lib/stores/notifications';
-  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear } from '../lib/stores/navigation';
-  import { gestesNavigationService } from '../lib/stores/navigation';
-  import { destinationArtiste } from '../lib/routageArtiste';
-  import { setSearchCriteria } from '../lib/stores/shortcuts';
-  import VolumeControl from './VolumeControl.svelte';
-  import ZoneOutputBanner from './ZoneOutputBanner.svelte';
-  import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
-  import MetadataChips from './partages/MetadataChips.svelte';
-  import { displayFields } from '../lib/stores/displayFields';
-  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../lib/lyrics';
-  import { chargerParolesEnLigne } from '../lib/lyricsOnline';
-  import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../lib/types';
+  } from '../../lib/crossfeed';
+  import AlbumArt from './AlbumArt.svelte';
+  import ServiceBadge from './ServiceBadge.svelte';
+  import SeekBar from '../SeekBar.svelte';
+  import NowPlayingLyrics from '../NowPlayingLyrics.svelte';
+  import NowPlayingEqPanel from '../NowPlayingEqPanel.svelte';
+  import { isPremium, licenseState } from '../../lib/stores/license';
+  import { estRefusPremium } from '../../lib/premiumRefus';
+  import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
+  import AudioVisualizer from './AudioVisualizer.svelte';
+  import { t } from '../../lib/i18n';
+  import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
+  import { notifications } from '../../lib/stores/notifications';
+  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../../lib/stores/library';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear } from '../../lib/stores/navigation';
+  import { gestesNavigationService } from '../../lib/stores/navigation';
+  import { destinationArtiste } from '../../lib/routageArtiste';
+  import { setSearchCriteria } from '../../lib/stores/shortcuts';
+  import VolumeControl from '../VolumeControl.svelte';
+  import ZoneOutputBanner from '../ZoneOutputBanner.svelte';
+  import ZoneOutputDeviceNotice from '../ZoneOutputDeviceNotice.svelte';
+  import MetadataChips from './MetadataChips.svelte';
+  import { displayFields } from '../../lib/stores/displayFields';
+  import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../../lib/lyrics';
+  import { chargerParolesEnLigne } from '../../lib/lyricsOnline';
+  import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../../lib/types';
 
   let isFavorite = $state(false);
   let favChecking = $state(false);
@@ -943,10 +943,10 @@
     }
     favChecking = false;
   }
-  import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../lib/stores/ytPlayer';
+  import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../../lib/stores/ytPlayer';
   import { onDestroy, onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { currentProfileId, favoriteTrackIds, loadProfiles } from '../lib/stores/profile';
+  import { currentProfileId, favoriteTrackIds, loadProfiles } from '../../lib/stores/profile';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
@@ -1138,7 +1138,7 @@
     if (zone?.id == null) return;
     try {
       // upNext starts at queuePosition + 1, so real index is queuePosition + 1 + index
-      const { queuePosition } = await import('../lib/stores/queue');
+      const { queuePosition } = await import('../../lib/stores/queue');
       const { get } = await import('svelte/store');
       const pos = get(queuePosition);
       await api.jumpInQueue(zone.id, pos + 1 + index);

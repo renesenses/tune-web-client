@@ -21,7 +21,7 @@
 // serveur l'envoie — et regarde ce qui PART SUR LE RÉSEAU.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import NowPlaying from '../../components/NowPlaying.svelte';
+import NowPlaying from '../../components/partages/NowPlaying.svelte';
 import { zones, currentZoneId } from '../stores/zones';
 import { gestesNavigationService, activeView } from '../stores/navigation';
 

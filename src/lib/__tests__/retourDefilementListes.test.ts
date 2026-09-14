@@ -107,7 +107,7 @@ describe('PlaylistsView mémorise et rétablit la position de sa liste', () => {
 
   it('importe le mécanisme partagé', () => {
     expect(source).toMatch(
-      /import\s*\{[^}]*\bsaveDetailScroll\b[^}]*\brestoreDetailScroll\b[^}]*\}\s*from\s*'\.\.\/lib\/stores\/navigation'/,
+      /import\s*\{[^}]*\bsaveDetailScroll\b[^}]*\brestoreDetailScroll\b[^}]*\}\s*from\s*'\.\.\/(\.\.\/)?lib\/stores\/navigation'/,
     );
   });
 
@@ -145,7 +145,7 @@ describe('PodcastsView mémorise et rétablit la position de sa liste', () => {
 
   it('importe le mécanisme partagé', () => {
     expect(source).toMatch(
-      /import\s*\{[^}]*\bsaveDetailScroll\b[^}]*\brestoreDetailScroll\b[^}]*\}\s*from\s*'\.\.\/lib\/stores\/navigation'/,
+      /import\s*\{[^}]*\bsaveDetailScroll\b[^}]*\brestoreDetailScroll\b[^}]*\}\s*from\s*'\.\.\/(\.\.\/)?lib\/stores\/navigation'/,
     );
   });
 

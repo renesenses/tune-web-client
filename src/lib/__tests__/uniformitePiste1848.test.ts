@@ -217,13 +217,16 @@ describe('#1848 — les surfaces qui n’avaient aucun menu en montent un', () =
     ['QueueView', 'piste={queueTrack}'],
     ['PlaylistsView', 'piste={t}'],
     ['FavoritesView', 'piste={t}'],
-    ['NowPlaying', 'piste={queueTrack}'],
+    ['partages/NowPlaying', 'piste={queueTrack}'],
   ];
   for (const [ecran, prop] of SURFACES) {
     it(`${ecran} monte le menu partagé`, () => {
       const src = sansCommentaires(lire(`src/components/${ecran}.svelte`));
       expect(src, `${ecran} n’importe pas le menu`)
-        .toContain("import MenuPisteV1 from './MenuPisteV1.svelte'");
+        // `MenuPisteV1` est resté à la racine des composants ; une surface
+        // rangée dans `partages/` l'atteint donc par `../`, pas par `./`.
+        // La garde porte sur l'IMPORT, pas sur la profondeur de l'appelant.
+        .toMatch(/import MenuPisteV1 from '\.{1,2}\/MenuPisteV1\.svelte'/);
       expect(src, `${ecran} importe le menu sans le monter`)
         .toContain(`<MenuPisteV1 ${prop} />`);
     });

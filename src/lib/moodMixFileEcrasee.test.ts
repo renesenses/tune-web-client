@@ -110,7 +110,7 @@ function corpsDeFonction(source: string, nom: string): string {
 
 describe('#528 — les deux écrans passent par lireOuAjouter', () => {
   const ecrans = [
-    ['NowPlaying.svelte', 'handleNpMoodSelect'],
+    ['partages/NowPlaying.svelte', 'handleNpMoodSelect'],
     ['QueueView.svelte', 'handleMoodSelect'],
   ] as const;
 

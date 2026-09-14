@@ -40,7 +40,7 @@ import * as locales from '../locales';
  */
 
 const NOW_PLAYING = readFileSync(
-  resolve(process.cwd(), 'src/components/NowPlaying.svelte'),
+  resolve(process.cwd(), 'src/components/partages/NowPlaying.svelte'),
   'utf-8',
 );
 const PANNEAU = readFileSync(
@@ -105,7 +105,10 @@ describe('reconnaître un refus premium', () => {
 describe('le panneau EQ de Lecture en cours devant une licence absente', () => {
   it('reçoit l’état de licence — `isPremium` ne peut plus être absent du fichier', () => {
     expect(
-      NOW_PLAYING.includes("from '../lib/stores/license'"),
+      // Un ou deux crans : `NowPlaying` est rangé dans `partages/` depuis la
+      // phase 1 du chantier de bascule. Ce que la garde exige est l'IMPORT de
+      // l'état de licence, pas la profondeur du fichier.
+      /from '\.\.\/(\.\.\/)?lib\/stores\/license'/.test(NOW_PLAYING),
       'NowPlaying.svelte n’importe toujours pas l’état de licence',
     ).toBe(true);
     expect(NOW_PLAYING).toMatch(/\$isPremium/);

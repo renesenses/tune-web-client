@@ -49,13 +49,13 @@
   // pont de variables de `tune-v2.css`.
   import EtiquettesV2 from './EtiquettesV2.svelte';
   import RaccourcisV2 from './RaccourcisV2.svelte';
-  import TransportBar from '../TransportBar.svelte';
+  import TransportBar from '../partages/TransportBar.svelte';
   // « Lecture en cours » : l'écran du client actuel, monté ici. Il n'a jamais
   // existé dans le shell v2 — mais depuis que la barre historique y vit, elle
   // PROPOSE de l'ouvrir (clic sur la piste, et `mobileNowPlayingOpen` en
   // mobile). Sans ces deux montages, le clic tombait dans le repli « À venir » :
   // l'écran n'avait pas disparu, il n'avait jamais été branché.
-  import NowPlaying from '../NowPlaying.svelte';
+  import NowPlaying from '../partages/NowPlaying.svelte';
   /*
    * 🔴 LE CALQUE DE SESSION EXPIREE (#1021).
    *

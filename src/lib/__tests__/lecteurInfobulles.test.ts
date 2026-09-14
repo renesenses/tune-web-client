@@ -11,11 +11,15 @@ import {
 /** Les composants du lot 1. `LibraryView` et `StreamingView` en sont
  *  volontairement absents : d'autres sessions écrivent dedans, et le chantier
  *  les traite à part. */
-const COMPOSANTS = ['NowPlaying', 'TransportBar', 'MiniPlayer', 'QueueView'] as const;
+const COMPOSANTS = ['partages/NowPlaying', 'partages/TransportBar', 'MiniPlayer', 'QueueView'] as const;
 
 const ANALYSES: Analyse[] = COMPOSANTS.map(analyser);
 
-const analyse = (nom: string) => ANALYSES.find((a) => a.nom === nom)!;
+// Le nom d'usage reste NU — `analyse('NowPlaying')` — alors que la liste porte
+// le dossier depuis la phase 1 du chantier de bascule. On compare sur le
+// dernier segment : sinon `find` rend `undefined` et le `!` le masque.
+const analyse = (nom: string) =>
+  ANALYSES.find((a) => a.nom === nom || a.nom.endsWith(`/${nom}`))!;
 
 describe('Lecteur — infobulle sur les textes tronqués (#2411, lot 1)', () => {
   it('la feuille globale définit bien une classe de troncature', () => {

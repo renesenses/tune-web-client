@@ -48,7 +48,7 @@ const LIBRARY_VIEW = readFileSync(
   'utf8',
 );
 const TRANSPORT_BAR = readFileSync(
-  resolve(__dirname, '../../components/TransportBar.svelte'),
+  resolve(__dirname, '../../components/partages/TransportBar.svelte'),
   'utf8',
 );
 
@@ -102,7 +102,7 @@ const GLYPHE_ENTETE = svgApres(
 const GLYPHE_BASCULE = svgApres(
   TRANSPORT_BAR,
   'class:active={$shuffleEnabled}',
-  'TransportBar.svelte',
+  'partages/TransportBar.svelte',
 );
 
 describe("le glyphe de l'action ne peut pas être celui de la bascule", () => {

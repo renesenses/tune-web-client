@@ -26,7 +26,7 @@ import { resolve } from 'node:path';
 import { destinationArtiste } from '../routageArtiste';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
-const np = () => lire('src/components/NowPlaying.svelte');
+const np = () => lire('src/components/partages/NowPlaying.svelte');
 
 describe('Où mène le nom d’artiste de la lecture en cours', () => {
   it('LOCAL → la fiche de l’artiste, par identifiant', () => {

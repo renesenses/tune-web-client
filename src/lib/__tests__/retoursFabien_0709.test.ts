@@ -54,7 +54,7 @@ describe('« les hyperliens de l’album renvoient vers la page d’accueil »',
     // `NowPlaying` posait `selectedAlbum`, lu par DOUZE composants de l'ancien
     // client et par AUCUN de la v2 : le clic changeait d'écran sans rien
     // ouvrir. Le nouveau contrat suit la forme de `pendingLibraryFolder`.
-    const np = sansCommentaires(lire('src/components/NowPlaying.svelte'));
+    const np = sansCommentaires(lire('src/components/partages/NowPlaying.svelte'));
     expect(np).toContain('pendingLibraryAlbum.set(albumId)');
     // L'ancien contrat reste alimenté : l'ancienne coquille en dépend.
     expect(np).toContain('selectedAlbum.set(');

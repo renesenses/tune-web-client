@@ -150,14 +150,16 @@ describe('#2207 — le BRANCHEMENT dans les deux panneaux « Chemin du signal »
   // Le défaut corrigé est précisément « écrit mais pas branché » : deux
   // accesseurs justes côté serveur, aucun lecteur. Un composant juste et non
   // monté referait exactement la même faute, un cran plus loin.
-  for (const panneau of ['TransportBar', 'NowPlaying']) {
+  for (const panneau of ['partages/TransportBar', 'partages/NowPlaying']) {
     it(`${panneau} monte le panneau du périphérique ouvert`, () => {
       const source = readFileSync(
         resolve(__dirname, `../../components/${panneau}.svelte`),
         'utf-8',
       );
-      expect(source).toContain(
-        "import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte'",
+      expect(source).toMatch(
+        // Resté à la racine des composants : une surface rangée dans
+        // `partages/` l'atteint par `../`, pas par `./`.
+        /import ZoneOutputDeviceNotice from '\.{1,2}\/ZoneOutputDeviceNotice\.svelte'/,
       );
       expect(source).toContain('<ZoneOutputDeviceNotice {zone} />');
     });

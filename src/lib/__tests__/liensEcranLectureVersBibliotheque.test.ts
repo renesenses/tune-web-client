@@ -8,7 +8,7 @@
 // `pendingLibraryAlbum` / `pendingLibraryArtist` — mais sur DEUX des quatre
 // sorties de l'écran seulement.
 //
-// Relevé le 09/09/2026 sur `components/NowPlaying.svelte` : quatre
+// Relevé le 09/09/2026 sur `components/partages/NowPlaying.svelte` : quatre
 // `activeView.set('library')`, deux qui alimentaient le contrat du nouveau
 // client, deux qui ne l'alimentaient pas.
 //
@@ -219,7 +219,7 @@ describe('toute sortie de l’écran de lecture vers la Bibliothèque nourrit le
   const CONTRATS_V2 = ['pendingLibraryAlbum', 'pendingLibraryArtist', 'pendingLibraryYear', 'pendingLibraryFolder'];
 
   const releve = (() => {
-    const src = readFileSync('src/components/NowPlaying.svelte', 'utf8');
+    const src = readFileSync('src/components/partages/NowPlaying.svelte', 'utf8');
     // Retirer les commentaires : ils CITENT ces magasins pour les expliquer.
     const nu = src
       .replace(/<!--[\s\S]*?-->/g, '')

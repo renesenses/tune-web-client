@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { nowPlayingToTrack } from '../stores/nowPlaying';
 
 const source = readFileSync(
-  resolve(__dirname, '../../components/NowPlaying.svelte'),
+  resolve(__dirname, '../../components/partages/NowPlaying.svelte'),
   'utf-8',
 );
 

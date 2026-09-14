@@ -150,7 +150,7 @@ describe('StreamingView applique la restauration à deux niveaux', () => {
 
   it('etapesDeRestauration est bien importé par le composant', () => {
     expect(source).toMatch(
-      /import\s*\{[^}]*\betapesDeRestauration\b[^}]*\}\s*from\s*'\.\.\/lib\/streamingRetour'/,
+      /import\s*\{[^}]*\betapesDeRestauration\b[^}]*\}\s*from\s*'\.\.\/(\.\.\/)?lib\/streamingRetour'/,
     );
   });
 });

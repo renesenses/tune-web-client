@@ -20,7 +20,7 @@ const LANGUES = {
 describe('portée configurable du verrou de volume PURE (#2425, #2526)', () => {
   it('le chemin du signal agit sur la zone courante', () => {
     const transport = readFileSync(
-      resolve(__dirname, '../../components/TransportBar.svelte'),
+      resolve(__dirname, '../../components/partages/TransportBar.svelte'),
       'utf-8',
     );
     const row = transport.indexOf('<div class="sp-audiophile sp-ap-sub-row">');

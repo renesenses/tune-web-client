@@ -28,7 +28,7 @@ import { readFileSync, globSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { arretPossible } from '../arretTransport';
 
-const barre = readFileSync(resolve(__dirname, '../../components/TransportBar.svelte'), 'utf-8');
+const barre = readFileSync(resolve(__dirname, '../../components/partages/TransportBar.svelte'), 'utf-8');
 
 describe('arretPossible', () => {
   it('arrête une piste locale d’une zone', () => {
@@ -54,7 +54,10 @@ describe('arretPossible', () => {
 
 describe('la barre appelle la règle, et n’a pas de bouton stop', () => {
   it('la barre appelle la règle au lieu de la réécrire', () => {
-    expect(barre).toContain("import { arretPossible } from '../lib/arretTransport'");
+    // Le nombre de crans dépend du dossier : une brique rangée dans
+    // `partages/` est à DEUX crans de `lib/`. La garde porte sur l'IMPORT de
+    // la règle, pas sur la profondeur du fichier.
+    expect(barre).toMatch(/import \{ arretPossible \} from '\.\.\/(\.\.\/)?lib\/arretTransport'/);
     expect(barre).toContain('arretPossible(zone?.id, displayTrack?.source)');
     // La condition en dur qu'elle remplace ne doit pas revenir en douce.
     expect(barre).not.toContain("!!zone?.id && displayTrack?.source !== 'radio'");

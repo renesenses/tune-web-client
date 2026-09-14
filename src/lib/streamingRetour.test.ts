@@ -130,6 +130,6 @@ describe('StreamingView applique le dépilage', () => {
   });
 
   it('actionRetour est bien importé par le composant', () => {
-    expect(source).toMatch(/import\s*\{[^}]*\bactionRetour\b[^}]*\}\s*from\s*'\.\.\/lib\/streamingRetour'/);
+    expect(source).toMatch(/import\s*\{[^}]*\bactionRetour\b[^}]*\}\s*from\s*'\.\.\/(\.\.\/)?lib\/streamingRetour'/);
   });
 });

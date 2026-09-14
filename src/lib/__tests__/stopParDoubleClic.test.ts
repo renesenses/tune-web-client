@@ -24,7 +24,7 @@ const sansCommentaires = (s: string) =>
  * rétabli tel quel.
  */
 describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
-  const bar = sansCommentaires(lire('src/components/TransportBar.svelte'));
+  const bar = sansCommentaires(lire('src/components/partages/TransportBar.svelte'));
 
   it('le bouton stop autonome a disparu de la barre', () => {
     expect(bar).not.toContain('control-btn stop-btn');
@@ -78,7 +78,7 @@ describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
     expect(zones.slice(zones.indexOf('export async function stopAndSync'), zones.indexOf('export async function stopAndSync') + 300))
       .toContain('syncZone(zone)');
     // Plus personne n'appelle `api.stop` sans reporter l'état.
-    for (const f of ['src/components/TransportBar.svelte', 'src/lib/keyboard.ts']) {
+    for (const f of ['src/components/partages/TransportBar.svelte', 'src/lib/keyboard.ts']) {
       expect(sansCommentaires(lire(f)), f).not.toContain('api.stop(');
     }
   });
