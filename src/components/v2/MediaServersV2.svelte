@@ -40,6 +40,10 @@
   import { depotDistant } from '../../lib/tuneRemote';
   import LibraryV2 from './LibraryV2.svelte';
   import { filtrerLocalement } from '../../lib/rechercheServeurMedia';
+  import {
+    PALIERS, DEFAUTS, lirePlafonds, versPatch, libellePalier, verdictDe,
+    type Axe, type Plafond, type Plafonds, type Verdict,
+  } from '../../lib/indexationUpnp';
   import { decoderEntitesXml, formatTime } from '../../lib/utils';
   import type {
     MediaServer,
@@ -67,6 +71,64 @@
   let browse = $state<MediaServerBrowseResult | null>(null);
   let pile = $state<{ objectId: string; titre: string }[]>([]);
   let busy = $state(false);
+
+  // ── Indexation dans la bibliothèque (#4129) et ses plafonds (#4154) ───────
+  //
+  // Le geste n'existait NULLE PART dans le client : la route était écrite et
+  // personne ne pouvait l'appeler. Les réglages non plus, ce qui rendait le
+  // plafond de pistes — mal calé à 50 000 contre une bibliothèque de 47 056 —
+  // impossible à relever.
+  let indexation = $state(false);
+  let verdict = $state<Verdict | null>(null);
+  let plafonds = $state<Plafonds>({ ...DEFAUTS });
+  let plafondsOuverts = $state(false);
+  /** L'axe que la dernière troncature désigne : c'est celui qu'on met en
+   *  avant, pour que « relever le réglage » soit un geste et pas une chasse. */
+  const axeATraiter = $derived<Axe | null>(verdict?.troncature?.axe ?? null);
+
+  $effect(() => {
+    api.getConfig()
+      .then((c) => { plafonds = lirePlafonds(c as Record<string, unknown>); })
+      // Un serveur qui ne publie pas ces clés laisse les défauts : l'écran
+      // montre alors ce que CE serveur-là appliquera, pas une case vide.
+      .catch(() => { plafonds = { ...DEFAUTS }; });
+  });
+
+  async function poserPlafond(axe: Axe, valeur: Plafond) {
+    const avant = plafonds[axe];
+    plafonds = { ...plafonds, [axe]: valeur };
+    try {
+      await api.updateConfig(versPatch(axe, valeur));
+    } catch {
+      // Le réglage REVIENT à sa valeur d'avant si le serveur l'a refusé.
+      // Laisser la nouvelle à l'écran ferait croire à un plafond levé qui ne
+      // l'est pas — le défaut muet de #4154, déplacé dans le client.
+      plafonds = { ...plafonds, [axe]: avant };
+      error = $t('v2.ms.indexSettingFailed' as any);
+    }
+  }
+
+  /** Indexe DEPUIS LE DOSSIER AFFICHÉ, pas systématiquement la racine.
+   *
+   *  C'est exactement ce que la réponse du serveur conseille quand un plafond
+   *  a mordu : repartir d'un conteneur plus précis plutôt que de tout relever. */
+  async function indexer() {
+    const s = open;
+    if (!s || indexation) return;
+    indexation = true;
+    verdict = null;
+    try {
+      verdict = verdictDe(await api.indexerServeurMedia(s.id, objetCourant ?? '0'));
+      // Le plafond a pu être lu d'un réglage changé ailleurs : on relit.
+      api.getConfig()
+        .then((c) => { plafonds = lirePlafonds(c as Record<string, unknown>); })
+        .catch(() => {});
+    } catch {
+      error = $t('v2.ms.indexFailed' as any);
+    } finally {
+      indexation = false;
+    }
+  }
   let action = $state<string | null>(null);
 
   // Recherche dans le serveur distant.
@@ -346,7 +408,70 @@
         <button class="crumb" class:last={i === fil.length - 1} onclick={() => auFil(c.objectId)}>{c.titre}</button>
       {/each}
       <span class="host">{open.host}:{open.port}</span>
+      <!-- INDEXER (#4129/#4154). Le geste manquait entièrement au client : la
+           route existait et personne ne pouvait l'appeler. Il part du dossier
+           AFFICHÉ, ce qui est aussi le conseil que le serveur donne quand un
+           plafond a mordu. -->
+      <button class="idx" disabled={indexation} onclick={indexer}>
+        {indexation ? $t('v2.ms.indexing' as any) : $t('v2.ms.index' as any)}
+      </button>
+      <button class="idx ghost" aria-expanded={plafondsOuverts}
+        onclick={() => (plafondsOuverts = !plafondsOuverts)}>{$t('v2.ms.indexLimits' as any)}</button>
     </nav>
+
+    {#if plafondsOuverts}
+      <!-- Les TROIS plafonds. Chacun dit ce qu'il borne : « conteneurs » et
+           « profondeur » ne veulent rien dire pour qui n'a pas lu le code. -->
+      <div class="plafonds">
+        {#each [
+          { axe: 'pistes' as Axe, titre: $t('v2.ms.limitTracks' as any), aide: $t('v2.ms.limitTracksHint' as any) },
+          { axe: 'conteneurs' as Axe, titre: $t('v2.ms.limitContainers' as any), aide: $t('v2.ms.limitContainersHint' as any) },
+          { axe: 'profondeur' as Axe, titre: $t('v2.ms.limitDepth' as any), aide: $t('v2.ms.limitDepthHint' as any) },
+        ] as reglage (reglage.axe)}
+          <label class="plafond" class:vise={axeATraiter === reglage.axe}>
+            <span class="ttl">{reglage.titre}</span>
+            <select value={String(plafonds[reglage.axe])}
+              onchange={(e) => {
+                const v = (e.currentTarget as HTMLSelectElement).value;
+                poserPlafond(reglage.axe, v === 'null' ? null : Number(v));
+              }}>
+              {#each PALIERS[reglage.axe] as palier (String(palier))}
+                <option value={String(palier)}>{libellePalier(palier, $t('v2.ms.limitNone' as any))}</option>
+              {/each}
+              <!-- Une valeur hors paliers — posée par une autre interface, ou
+                   héritée — reste SÉLECTIONNABLE, sinon le menu en afficherait
+                   une autre et le réglage changerait sans qu'on l'ait touché. -->
+              {#if !PALIERS[reglage.axe].some((v) => v === plafonds[reglage.axe])}
+                <option value={String(plafonds[reglage.axe])}>{libellePalier(plafonds[reglage.axe], $t('v2.ms.limitNone' as any))}</option>
+              {/if}
+            </select>
+            <span class="aide">{reglage.aide}</span>
+          </label>
+        {/each}
+      </div>
+    {/if}
+
+    {#if verdict}
+      <div class="bilan" class:coupe={!!verdict.troncature}>
+        <p class="chiffres">
+          {$t('v2.ms.indexDone' as any)
+            .replace('{tracks}', String(verdict.pistes))
+            .replace('{albums}', String(verdict.albums))}
+        </p>
+        {#if verdict.troncature}
+          <!-- 🔴 Le cœur de #4154 : une bibliothèque coupée le DIT, et dit
+               quoi relever. Sans cela l'utilisateur cherche un album jamais
+               indexé et croit à un bug de recherche. La phrase vient du
+               serveur, qui connaît la valeur effective du plafond. -->
+          <p class="coupure">{verdict.troncature.message}</p>
+          {#if verdict.troncature.axe}
+            <button class="idx" onclick={() => (plafondsOuverts = true)}>{$t('v2.ms.indexRaise' as any)}</button>
+          {/if}
+        {/if}
+        {#each verdict.erreurs as e, i (i)}<p class="coupure">{e}</p>{/each}
+        <button class="clr" onclick={() => (verdict = null)} aria-label={$t('common.clear' as any)}>×</button>
+      </div>
+    {/if}
 
     {#if estTune}
       <!-- Rayons connus : on ne les propose QUE sur un serveur Tune, dont on
@@ -502,6 +627,28 @@
   .crumb.last{color:var(--v2-txt); font-weight:700; cursor:default}
   .sep{color:var(--v2-txt3); font-size:12px}
   .host{margin-left:auto; font:11px var(--v2-mono); color:var(--v2-txt3)}
+  /* Indexation et ses plafonds (#4154) */
+  .idx{border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
+       border-radius:999px; padding:5px 12px; font:12px var(--v2-sans); cursor:pointer}
+  .idx:hover:not(:disabled){border-color:var(--v2-acc1); color:var(--v2-acc-tint)}
+  .idx:disabled{opacity:.55; cursor:progress}
+  .idx.ghost{background:transparent; color:var(--v2-txt2)}
+  .plafonds{display:flex; flex-wrap:wrap; gap:16px; padding:0 30px 12px}
+  .plafond{display:flex; flex-direction:column; gap:3px; min-width:200px; max-width:320px}
+  .plafond .ttl{font:600 12px var(--v2-sans); color:var(--v2-txt)}
+  .plafond .aide{font:11px var(--v2-sans); color:var(--v2-txt3); line-height:1.35}
+  .plafond select{border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt);
+                  border-radius:6px; padding:5px 8px; font:12px var(--v2-sans)}
+  /* Le réglage que la troncature désigne : mis en avant, pour que
+     « relever le réglage » soit un geste et pas une chasse. */
+  .plafond.vise select{border-color:var(--v2-acc1)}
+  .plafond.vise .ttl{color:var(--v2-acc-tint)}
+  .bilan{position:relative; margin:0 30px 12px; padding:10px 34px 10px 12px; border-radius:8px;
+         border:1px solid var(--v2-line2); background:var(--v2-surface2)}
+  .bilan.coupe{border-color:var(--v2-acc1)}
+  .bilan .chiffres{margin:0; font:13px var(--v2-sans); color:var(--v2-txt)}
+  .bilan .coupure{margin:6px 0 0; font:12px var(--v2-sans); color:var(--v2-txt2); line-height:1.4}
+  .bilan .clr{position:absolute; top:6px; right:8px}
 
   .chips{display:flex; gap:8px; flex-wrap:wrap; padding:0 30px 12px}
   .chip{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;

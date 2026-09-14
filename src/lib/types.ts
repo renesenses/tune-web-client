@@ -956,6 +956,48 @@ export interface MediaServer {
   last_seen_secs?: number;
 }
 
+/** Ce que rend `POST /network/media-servers/{id}/indexer` (#4129, #4154).
+ *
+ *  ⚠️ `parcours.plafond` n'est renseigné que si un plafond a MORDU. Il porte
+ *  alors les trois choses dont l'utilisateur a besoin : ce qui a coupé, à
+ *  combien, et **le réglage à relever** — sans quoi il cherche un album jamais
+ *  indexé et croit à un bug de recherche (#4154). */
+export interface IndexationUpnpResultat {
+  indexe: boolean;
+  raison?: string;
+  detail?: string;
+  serveur?: { id: string; nom: string; adresse: string };
+  conteneur?: string;
+  parcours?: {
+    conteneurs_visites: number;
+    items_vus: number;
+    duree_ms: number;
+    plafond_atteint: string | null;
+    /** Les bornes EFFECTIVES de la passe. `null` = sans limite. */
+    plafonds?: {
+      max_pistes: number | null;
+      max_conteneurs: number | null;
+      profondeur_max: number | null;
+    };
+    plafond?: {
+      nature: string;
+      valeur: number | null;
+      reglage: string | null;
+      message: string;
+    } | null;
+  };
+  pistes?: {
+    distinctes: number;
+    ajoutees: number;
+    mises_a_jour: number;
+    ecartees_sans_url_de_lecture: number;
+    sans_res_size: number;
+  };
+  albums_ajoutes?: number;
+  erreurs?: string[];
+  reserves?: string[];
+}
+
 export interface MediaServerContainer {
   id: string;
   parent_id: string;
