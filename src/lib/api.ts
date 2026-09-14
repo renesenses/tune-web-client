@@ -2912,6 +2912,20 @@ export function getScanStatus() {
   return fetchJSON<{ scanning: boolean }>(`${BASE}/system/scan/status`);
 }
 
+/**
+ * Avancement de la passe ReplayGain (#4144) — le pendant de `getScanStatus`.
+ *
+ * 🔴 UN SERVEUR ANTÉRIEUR À v0.9.150 N'A PAS CETTE ROUTE, et l'appel est alors
+ * rejeté (404). C'est attendu : l'appelant doit garder son message d'absence
+ * plutôt que d'afficher une jauge vide. Voir `lib/santeReplayGain.ts`, qui
+ * tient cette décision, et le témoin qui la garde.
+ */
+export function getReplayGainProgress() {
+  return fetchJSON<import('./santeReplayGain').AvancementReplayGain>(
+    `${BASE}/system/replaygain/progress`,
+  );
+}
+
 /** Last scan report (persisted server-side, survives restarts). */
 export interface ScanReport {
   total_files?: number;

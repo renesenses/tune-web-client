@@ -4156,6 +4156,7 @@ export default {
   "v2.health.rgSourceBoth": "文件标签 + 分析",
   "v2.health.rgSourceTags": "仅文件标签",
   "v2.health.rgNoProgress": "服务器不提供计算进度。",
+  "v2.health.rgProgress": "已分析 {t} 首中的 {n} 首",
   "v2.health.cardEnrich": "元数据补全",
   "v2.health.cardEnrichSub": "来自公共数据库的补充",
   "v2.health.enrichProgress": "{t} 中的 {n}",
