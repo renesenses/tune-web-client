@@ -3325,6 +3325,8 @@ export default {
   "v2.pl.backups": "Biztonsági mentések",
   "v2.pl.backupNow": "Mentés most",
   "v2.pl.backupDone": "Mentés elkészült",
+  "v2.pl.backupDeleteAsk": "Törli a(z) „{name}” biztonsági mentést?",
+  "v2.pl.backupDeleted": "Biztonsági mentés törölve.",
   "v2.pl.noBackup": "Még nincs mentés.",
   "v2.pl.restore": "Visszaállítás",
   "v2.pl.restoreDone": "Mentés visszaállítva",

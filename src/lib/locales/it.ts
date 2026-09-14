@@ -3367,6 +3367,8 @@ export default {
   "v2.pl.backups": "Backup",
   "v2.pl.backupNow": "Esegui il backup ora",
   "v2.pl.backupDone": "Backup creato",
+  "v2.pl.backupDeleteAsk": "Eliminare il backup «{name}»?",
+  "v2.pl.backupDeleted": "Backup eliminato.",
   "v2.pl.noBackup": "Ancora nessun backup.",
   "v2.pl.restore": "Ripristina",
   "v2.pl.restoreDone": "Backup ripristinato",

@@ -3367,6 +3367,8 @@ export default {
   "v2.pl.backups": "バックアップ",
   "v2.pl.backupNow": "今すぐバックアップ",
   "v2.pl.backupDone": "バックアップを作成しました",
+  "v2.pl.backupDeleteAsk": "バックアップ「{name}」を削除しますか？",
+  "v2.pl.backupDeleted": "バックアップを削除しました。",
   "v2.pl.noBackup": "まだバックアップがありません。",
   "v2.pl.restore": "復元",
   "v2.pl.restoreDone": "バックアップを復元しました",

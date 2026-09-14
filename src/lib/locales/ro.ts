@@ -3367,6 +3367,8 @@ export default {
   "v2.pl.backups": "Copii de siguranță",
   "v2.pl.backupNow": "Salvează acum",
   "v2.pl.backupDone": "Copie creată",
+  "v2.pl.backupDeleteAsk": "Ștergeți copia de rezervă „{name}”?",
+  "v2.pl.backupDeleted": "Copie de rezervă ștearsă.",
   "v2.pl.noBackup": "Încă nicio copie de siguranță.",
   "v2.pl.restore": "Restaurează",
   "v2.pl.restoreDone": "Copie restaurată",
