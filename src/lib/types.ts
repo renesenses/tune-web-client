@@ -5,7 +5,19 @@
 // jouable, sans service authentifié derrière. Le serveur la résout par la même
 // porte (`Orchestrator::resolve_direct_url`), et la file d'attente la range
 // comme les autres pistes distantes.
-export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spotify' | 'deezer' | 'radio' | 'bandcamp';
+/**
+ * D'où vient une ligne de bibliothèque.
+ *
+ * 🔴 `'upnp'` y manquait, et le serveur l'écrit pourtant depuis la phase 2 du
+ * chantier « unifier serveurs UPnP et bibliothèque » (#4129) : mesuré sur le
+ * .18 le 14/09/2026, `albums_by_source : { local: 4255, upnp: 51 }`. Le type
+ * affirmait donc le contraire du code — même défaut que `'oaat'` pour
+ * `OutputType`, et que `Artist.source` juste en dessous.
+ *
+ * `'podcast'` est ajouté pour la même raison : `orchestrator.rs` le pose parmi
+ * les sources qu'il aiguille vers `resolve_direct_url`.
+ */
+export type Source = 'local' | 'tidal' | 'qobuz' | 'youtube' | 'amazon' | 'spotify' | 'deezer' | 'radio' | 'bandcamp' | 'upnp' | 'podcast';
 // `dsf`/`dff` sont les formats réellement portés par les fichiers DSD : les
 // omettre rendait le test de la puce « DSD » impossible selon le type (il ne
 // passait que par le repli sur l'extension du chemin).

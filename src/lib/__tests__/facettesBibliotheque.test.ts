@@ -35,6 +35,12 @@ const OUTILS: Outils = {
   qualiteDe: (a, cle) => (cle === 'hires' ? (a.sample_rate ?? 0) > 44100 : (a.sample_rate ?? 0) === 44100),
   anneeDe: (a) => a.year ?? null,
   plier: (s) => (s ?? '').toLowerCase(),
+  provenanceDe: (a) => {
+    const src = (a.source ?? 'local').trim() || 'local';
+    if (src === 'local') return 'local';
+    const udn = (a.source_id ?? '').split('|')[0]?.trim();
+    return udn && udn.length < (a.source_id ?? '').trim().length ? `${src}:${udn}` : src;
+  },
 };
 
 const AUCUN: FiltresBibliotheque = {
@@ -43,6 +49,9 @@ const AUCUN: FiltresBibliotheque = {
   // `pastilleCompilation.test.ts` ; ici elle est simplement inactive, pour que
   // les comptes existants restent ceux d'avant.
   compilation: null,
+  // #4152 — la facette « provenance ». Ses propres cas vivent plus bas ; ici
+  // elle est inactive, pour que les comptes existants restent ceux d'avant.
+  provenance: null,
 };
 
 describe('sans filtre, on compte toute la bibliothèque', () => {
