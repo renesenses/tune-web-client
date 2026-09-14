@@ -49,11 +49,27 @@ export interface FiltresBibliotheque {
    * l'existant, la valeur `false` marche déjà, seul le rendu est à ouvrir.
    */
   compilation: boolean | null;
+  /**
+   * D'OÙ vient l'album — le disque, ou UN serveur UPnP indexé (#4152).
+   * `null` = toutes les sources, l'absence de filtre.
+   *
+   * 🔴 Le nom est `provenance`, et ce n'est pas un détail. Deux autres choses
+   * s'appellent déjà « source » dans ce produit :
+   *  - la facette `source` de `/library/tracks`, qui porte sur `source_media`
+   *    — le SUPPORT d'origine (CD, vinyle) ;
+   *  - le mode d'année « origine » de cet écran même (`v2.lib.yearOrigin`),
+   *    qui oppose l'année d'ORIGINE à celle de l'édition.
+   * Le libellé affiché reste « Source », qui est le mot de l'utilisateur ; le
+   * nom du code est distinct pour qu'on ne les confonde jamais.
+   *
+   * Valeurs : `'local'`, ou `'upnp:<udn>'`.
+   */
+  provenance: string | null;
 }
 
 /** Les facettes qui portent un compte. */
 export type Facette =
-  'qualite' | 'frequence' | 'annee' | 'format' | 'profondeur' | 'compilation';
+  'qualite' | 'frequence' | 'annee' | 'format' | 'profondeur' | 'compilation' | 'provenance';
 
 export interface Outils {
   /** Le palier de qualité d'un album, tel que l'écran le calcule. */
@@ -62,6 +78,14 @@ export interface Outils {
   anneeDe: (a: Album) => number | null;
   /** Repli de casse et d'accents, partagé avec la recherche de l'écran. */
   plier: (s: string | null | undefined) => string;
+  /**
+   * La provenance d'un album : `'local'`, ou `'upnp:<udn>'` (#4152).
+   *
+   * Passée en OUTIL et non déduite ici, comme `qualiteDe` : la règle est celle
+   * de l'écran, qui sait que l'UDN est le préfixe de `source_id` avant `'|'`
+   * (convention posée par l'indexation, côté serveur).
+   */
+  provenanceDe: (a: Album) => string;
 }
 
 /**
@@ -87,6 +111,7 @@ export function correspond(
   // C'est la même convention que le serveur, qui décode `NULL` en « non ».
   if (sauf !== 'compilation' && f.compilation != null
       && (a.is_compilation ?? false) !== f.compilation) return false;
+  if (sauf !== 'provenance' && f.provenance && o.provenanceDe(a) !== f.provenance) return false;
   // La RECHERCHE n'est pas une facette : elle ne s'exclut jamais. Compter les
   // formats d'albums qui ne correspondent pas au texte tapé n'aurait aucun sens.
   if (f.recherche && !o.plier(a.title).includes(o.plier(f.recherche))
@@ -140,6 +165,32 @@ export function comptesCompilation(
 ): number {
   return assiette(albums, f, o, 'compilation')
     .reduce((n, a) => n + (a.is_compilation ? 1 : 0), 0);
+}
+
+/**
+ * Les provenances PRÉSENTES, avec leur compte, du plus fourni au moins fourni
+ * (#4152) — « Local » d'abord quand il existe, parce que c'est la
+ * bibliothèque de l'utilisateur et que la reléguer derrière un serveur voisin
+ * se lirait comme un classement.
+ *
+ * Une provenance à zéro album n'est pas rendue : un serveur dont tous les
+ * albums sont masqués par leur équivalent local (#4146) n'a rien à proposer,
+ * et une entrée de menu qui ne filtre sur rien passe pour un bug — même règle
+ * que `comptesFormat`, qui ne propose que les formats réellement présents.
+ */
+export function comptesProvenance(
+  albums: readonly Album[], f: FiltresBibliotheque, o: Outils,
+): [string, number][] {
+  const m = new Map<string, number>();
+  for (const a of assiette(albums, f, o, 'provenance')) {
+    const v = o.provenanceDe(a);
+    if (v) m.set(v, (m.get(v) ?? 0) + 1);
+  }
+  return [...m.entries()].sort((x, z) => {
+    if (x[0] === 'local') return -1;
+    if (z[0] === 'local') return 1;
+    return z[1] - x[1] || x[0].localeCompare(z[0]);
+  });
 }
 
 /** Les profondeurs PRÉSENTES, avec leur compte, par ordre croissant. */

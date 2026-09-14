@@ -135,10 +135,17 @@ const OUTILS: Outils = {
   qualiteDe: () => true,
   anneeDe: (a) => a.year ?? null,
   plier: (s) => (s ?? '').toLowerCase(),
+  provenanceDe: (a) => {
+    const src = (a.source ?? 'local').trim() || 'local';
+    if (src === 'local') return 'local';
+    const udn = (a.source_id ?? '').split('|')[0]?.trim();
+    return udn && udn.length < (a.source_id ?? '').trim().length ? `${src}:${udn}` : src;
+  },
 };
 const AUCUN: FiltresBibliotheque = {
   qualite: null, frequence: null, annee: null,
   format: null, profondeur: null, recherche: '', compilation: null,
+  provenance: null,
 };
 const alb = (id: number, o: Partial<Album> = {}): Album =>
   ({ id, title: `A${id}`, ...o }) as Album;
