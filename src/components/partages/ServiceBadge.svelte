@@ -17,6 +17,11 @@
     // qu'elle sort par la zone. Sans cette entrée, la puce ne s'affichait pas
     // du tout : le lecteur ne disait pas d'où venait le morceau.
     bandcamp:{ name: 'BANDCAMP',bg: '#1DA0C3', color: '#ffffff' },
+    // Serveur UPnP/DLNA du réseau — arbitrage du 14/09/2026 (D1bis de
+    // `unifier-serveurs-upnp-et-bibliotheque.md`) : la provenance est UPnP, pas
+    // « local », et il n'y a PAS un badge par serveur. Un ambre : aucune des
+    // sept autres puces ne l'occupe, et il se lit comme elles sur fond sombre.
+    upnp:    { name: 'UPNP',     bg: '#D97706', color: '#ffffff' },
   };
 
   let info = $derived(source ? services[source] ?? null : null);
@@ -102,6 +107,13 @@
     color: #4FC3E0;
     background: rgba(29, 160, 195, 0.12);
     border: 1px solid rgba(29, 160, 195, 0.30);
+  }
+
+  /* UPnP/DLNA server: amber tones */
+  .service-badge.upnp {
+    color: #F5B942;
+    background: rgba(217, 119, 6, 0.14);
+    border: 1px solid rgba(217, 119, 6, 0.35);
   }
 
   /* Local library: neutral grey tones */
