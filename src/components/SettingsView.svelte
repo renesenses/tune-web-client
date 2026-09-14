@@ -34,7 +34,7 @@ import { telechargerJournaux } from '../lib/journaux';
   } from '../lib/appareilsIgnores';
   import { preferences, applyTheme, OXYGEN_FACETS_ALL, type ThemeMode, type VolumeDisplay, type StartupView, type OxygenViewMode } from '../lib/stores/preferences';
   import { choisirInterface } from '../lib/interfaceChoisie';
-  import RefusHomebrewBloc from './RefusHomebrew.svelte';
+  import RefusHomebrewBloc from './partages/RefusHomebrew.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -48,7 +48,7 @@ import { telechargerJournaux } from '../lib/journaux';
   import { streamingServices as streamingServicesStore } from '../lib/stores/streaming';
   import type { SystemHealth, SystemStats, SystemConfig, StreamingServiceStatus, StreamingAuthResponse, LocalAudioDevice, BrowseRootEntry, BackupInfo } from '../lib/types';
   import { t, locale, localeNames, type Locale } from '../lib/i18n';
-  import RendererConfig from './RendererConfig.svelte';
+  import RendererConfig from './partages/RendererConfig.svelte';
   import { notifications } from '../lib/stores/notifications';
   import { copyText, errText } from '../lib/utils';
   import { activeView, settingsInitialTab, type View } from '../lib/stores/navigation';

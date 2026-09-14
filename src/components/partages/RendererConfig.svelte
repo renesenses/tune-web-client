@@ -1,16 +1,16 @@
 <script lang="ts">
-  import * as api from '../lib/api';
-  import { t } from '../lib/i18n';
-  import { dateSimple } from '../lib/dates';
-  import { notifications } from '../lib/stores/notifications';
-  import { preferences } from '../lib/stores/preferences';
-  import { rendererProbeErrorKey } from '../lib/rendererProbe';
-  import { etatWav24, wav24Disponible } from '../lib/wav24Gate';
+  import * as api from '../../lib/api';
+  import { t } from '../../lib/i18n';
+  import { dateSimple } from '../../lib/dates';
+  import { notifications } from '../../lib/stores/notifications';
+  import { preferences } from '../../lib/stores/preferences';
+  import { rendererProbeErrorKey } from '../../lib/rendererProbe';
+  import { etatWav24, wav24Disponible } from '../../lib/wav24Gate';
   import {
     cleAppareil, parLeNom, construireInstantane, lireInstantane, ranger, oublier,
     ecarts, corpsPatch, type ValeursEcran,
-  } from '../lib/reglagesRendererEnregistres';
-  import type { Zone, RendererCapabilities } from '../lib/types';
+  } from '../../lib/reglagesRendererEnregistres';
+  import type { Zone, RendererCapabilities } from '../../lib/types';
 
   // Coherent per-renderer output config for a DLNA/OpenHome zone: a discovery
   // check (GetProtocolInfo) plus overrides that respect the server's precedence

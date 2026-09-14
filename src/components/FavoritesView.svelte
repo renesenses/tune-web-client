@@ -16,7 +16,7 @@
   import { notifications } from '../lib/stores/notifications';
   import { formatTime } from '../lib/utils';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import MetadataChips from './MetadataChips.svelte';
+  import MetadataChips from './partages/MetadataChips.svelte';
   import ServiceBadge from './partages/ServiceBadge.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   import { setShortcutTarget, clearShortcutTarget } from '../lib/stores/shortcuts';

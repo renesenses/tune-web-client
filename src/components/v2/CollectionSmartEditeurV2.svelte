@@ -44,7 +44,7 @@
     CHAMPS, operateursDe, typeDuChamp, sansValeur, regleComplete, valeurInitiale,
     type TypeChamp,
   } from '../../lib/smartRegles';
-  import SmartFolderPicker from '../SmartFolderPicker.svelte';
+  import SmartFolderPicker from '../partages/SmartFolderPicker.svelte';
   import type { SmartRule } from '../../lib/types';
   import '../../styles/tune-v2.css';
 

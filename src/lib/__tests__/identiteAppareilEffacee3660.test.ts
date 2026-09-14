@@ -26,7 +26,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import ZoneDeviceEditor from '../../components/ZoneDeviceEditor.svelte';
+import ZoneDeviceEditor from '../../components/partages/ZoneDeviceEditor.svelte';
 import { locale } from '../i18n';
 import type { Zone } from '../types';
 import lFr from '../locales/fr';

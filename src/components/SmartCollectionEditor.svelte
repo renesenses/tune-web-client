@@ -2,7 +2,7 @@
   import * as api from '../lib/api';
   import type { SmartRule, SmartCollection } from '../lib/types';
   import { t } from '../lib/i18n';
-  import SmartFolderPicker from './SmartFolderPicker.svelte';
+  import SmartFolderPicker from './partages/SmartFolderPicker.svelte';
   import { notifications } from '../lib/stores/notifications';
 
   // Editor for one Smart Collection: name + rules + match_mode + sort.

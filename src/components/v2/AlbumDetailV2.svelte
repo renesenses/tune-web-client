@@ -20,7 +20,7 @@
   import { qualiteEnTeteAlbum } from '../../lib/qualiteEnTeteAlbum';
   import type { Album, Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import ClampedText from '../ClampedText.svelte';
+  import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';

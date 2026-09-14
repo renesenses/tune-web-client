@@ -17,7 +17,7 @@
    * en cours : un écran de santé ne doit pas être lui-même une charge.
    */
   import * as api from '../../lib/api';
-  import OutputModulesPanel from '../OutputModulesPanel.svelte';
+  import OutputModulesPanel from '../partages/OutputModulesPanel.svelte';
   import { tableauFournisseurs, type TableauFournisseurs } from '../../lib/refusModuleSortie';
   import { formatNombre } from '../../lib/formats';
   import { activeView } from '../../lib/stores/navigation';

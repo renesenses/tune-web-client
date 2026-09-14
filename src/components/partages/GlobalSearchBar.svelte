@@ -1,12 +1,12 @@
 <script lang="ts">
   import { get } from 'svelte/store';
-  import { activeView, pendingSearchQuery } from '../lib/stores/navigation';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { notifications } from '../lib/stores/notifications';
-  import * as api from '../lib/api';
-  import { t } from '../lib/i18n';
-  import AlbumArt from './partages/AlbumArt.svelte';
-  import type { Track, Album, FederatedSearchResult } from '../lib/types';
+  import { activeView, pendingSearchQuery } from '../../lib/stores/navigation';
+  import { currentZone, playAndSync } from '../../lib/stores/zones';
+  import { notifications } from '../../lib/stores/notifications';
+  import * as api from '../../lib/api';
+  import { t } from '../../lib/i18n';
+  import AlbumArt from './AlbumArt.svelte';
+  import type { Track, Album, FederatedSearchResult } from '../../lib/types';
 
   let expanded = $state(false);
   let query = $state('');

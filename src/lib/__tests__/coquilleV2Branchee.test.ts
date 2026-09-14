@@ -33,7 +33,7 @@ describe('La coquille v2 monte tout ce que App.svelte monte', () => {
     // Sans lui, `dialogs.confirm()` pose sa demande dans une file que personne
     // ne rend : la promesse ne se résout jamais, et le geste ne fait rien —
     // sans message, sans erreur de console.
-    expect(shell).toContain("import DialogContainer from '../DialogContainer.svelte'");
+    expect(shell).toContain("import DialogContainer from '../partages/DialogContainer.svelte'");
     expect(shell).toContain('<DialogContainer />');
   });
 

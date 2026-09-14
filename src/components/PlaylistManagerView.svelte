@@ -13,7 +13,7 @@
   import { t as tr } from '../lib/i18n';
   import { notifications } from '../lib/stores/notifications';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import ClampedText from './ClampedText.svelte';
+  import ClampedText from './partages/ClampedText.svelte';
   import HeartButton from './HeartButton.svelte';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';

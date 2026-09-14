@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { t } from '../lib/i18n';
-  import { freqLabel } from '../lib/spectrumScale';
+  import { t } from '../../lib/i18n';
+  import { freqLabel } from '../../lib/spectrumScale';
   import {
     choixDepuisBande,
     canalDepuisChoix,
     bandesDuCanal,
     reglageAsymetrique,
-  } from '../lib/eqChannel';
-  import type { EqBand } from '../lib/api';
+  } from '../../lib/eqChannel';
+  import type { EqBand } from '../../lib/api';
 
   // Éditeur paramétrique : jusqu'à 31 bandes libres (fréquence, gain, Q, type),
   // éditées en glissant les points sur la courbe de réponse RÉELLE — calculée

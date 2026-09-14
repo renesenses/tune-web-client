@@ -43,7 +43,7 @@ describe('Le plafond de la recherche fédérée', () => {
   it('🔴 la barre de suggestions garde le plafond ÉTROIT', () => {
     // Elle part à chaque frappe : lui donner le plafond élargi doublerait le
     // trafic de la frappe, pour un menu déroulant que personne ne fait défiler.
-    const barre = readFileSync('src/components/GlobalSearchBar.svelte', 'utf8');
+    const barre = readFileSync('src/components/partages/GlobalSearchBar.svelte', 'utf8');
     expect(barre).toContain('api.SEARCH_PAGE_LIMIT');
   });
 

@@ -7,8 +7,8 @@
    * l'avertissement de divergence doivent dire la même chose partout, et trois
    * copies de balisage divergent toujours.
    */
-  import { t } from '../lib/i18n';
-  import type { RefusHomebrew } from '../lib/miseAJourHomebrew';
+  import { t } from '../../lib/i18n';
+  import type { RefusHomebrew } from '../../lib/miseAJourHomebrew';
 
   let { refus }: { refus: RefusHomebrew } = $props();
 

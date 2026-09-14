@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { formatTime } from '../lib/utils';
-  import type { Track } from '../lib/types';
+  import { formatTime } from '../../lib/utils';
+  import type { Track } from '../../lib/types';
 
   interface Props {
     track: Track | Record<string, any>;

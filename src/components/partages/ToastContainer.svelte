@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { notifications } from '../lib/stores/notifications';
+  import { notifications } from '../../lib/stores/notifications';
 </script>
 
 {#each $notifications as n (n.id)}

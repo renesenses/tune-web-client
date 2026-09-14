@@ -122,7 +122,7 @@ describe('v2 — le bloc « Avancé · renderer » reste monté', () => {
   const settings = lire('SettingsV2.svelte');
 
   it('SettingsV2 importe RendererConfig', () => {
-    expect(settings).toContain("import RendererConfig from '../RendererConfig.svelte'");
+    expect(settings).toContain("import RendererConfig from '../partages/RendererConfig.svelte'");
   });
 
   it('il lui passe la zone', () => {

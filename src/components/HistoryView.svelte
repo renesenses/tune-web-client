@@ -8,7 +8,7 @@
   import { bulleTexte } from '../lib/infobulleTexte';
   import * as api from '../lib/api';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import MetadataChips from './MetadataChips.svelte';
+  import MetadataChips from './partages/MetadataChips.svelte';
   import { displayFields } from '../lib/stores/displayFields';
   // Fusion, déduplication et rejeu vivent dans `lib/historiqueLecture` depuis
   // le 05/09/2026 : le nouveau client a son propre écran d'historique, et deux

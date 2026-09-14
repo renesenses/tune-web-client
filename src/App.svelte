@@ -81,8 +81,8 @@ import AlarmsView from './components/AlarmsView.svelte';
   import BottomTabBar from './components/BottomTabBar.svelte';
   import YTPlayer from './components/YTPlayer.svelte';
   import MiniPlayer from './components/MiniPlayer.svelte';
-  import ToastContainer from './components/ToastContainer.svelte';
-  import DialogContainer from './components/DialogContainer.svelte';
+  import ToastContainer from './components/partages/ToastContainer.svelte';
+  import DialogContainer from './components/partages/DialogContainer.svelte';
   import ImportWizard from './components/ImportWizard.svelte';
   import OnboardingWizard from './components/OnboardingWizard.svelte';
   import OnboardingView from './components/OnboardingView.svelte';
@@ -102,11 +102,11 @@ import AlarmsView from './components/AlarmsView.svelte';
    * Le calque observe un magasin, pas le hash, et les deux coquilles le
    * montent — voir `lib/stores/sessionExpiree.ts`.
    */
-  import SessionExpireeOverlay from './components/SessionExpireeOverlay.svelte';
+  import SessionExpireeOverlay from './components/partages/SessionExpireeOverlay.svelte';
   import ConverterView from './components/ConverterView.svelte';
   import DeplocView from './components/DeplocView.svelte';
   import AiChat from './components/AiChat.svelte';
-  import GlobalSearchBar from './components/GlobalSearchBar.svelte';
+  import GlobalSearchBar from './components/partages/GlobalSearchBar.svelte';
   import AddShortcutButton from './components/AddShortcutButton.svelte';
   import { mobileNowPlayingOpen } from './lib/stores/navigation';
   import { loadProfiles } from './lib/stores/profile';

@@ -4,7 +4,7 @@
   import { t } from '../lib/i18n';
   import { get } from 'svelte/store';
   import FirResponseCurve from './FirResponseCurve.svelte';
-  import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
+  import ZoneDeviceEditor from './partages/ZoneDeviceEditor.svelte';
 
   interface Props {
     zone: Zone;

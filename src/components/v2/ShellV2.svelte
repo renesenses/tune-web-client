@@ -66,7 +66,7 @@
    * mécanisme pour les deux coquilles, et aucun second système de
    * navigation à tenir ici.
    */
-  import SessionExpireeOverlay from '../SessionExpireeOverlay.svelte';
+  import SessionExpireeOverlay from '../partages/SessionExpireeOverlay.svelte';
   import TvView from '../TvView.svelte';
   /**
    * 🔴 SANS LUI, TOUT DIALOGUE RESTE SANS REPONSE POUR TOUJOURS.
@@ -85,7 +85,7 @@
    * raccourci, vider les favoris radio, et deux confirmations des Reglages
    * dont la deconnexion d'un service.
    */
-  import DialogContainer from '../DialogContainer.svelte';
+  import DialogContainer from '../partages/DialogContainer.svelte';
   /**
    * TREIZIÈME « écrit mais pas branché », et le plus coûteux de la série.
    *
@@ -104,7 +104,7 @@
    * nommait pas, et sans lequel corriger les deux autres n'aurait rien
    * changé à l'écran.
    */
-  import ToastContainer from '../ToastContainer.svelte';
+  import ToastContainer from '../partages/ToastContainer.svelte';
   // OXYGEN monte l'ecran du client ACTUEL, comme « Lecture en cours » et
   // « TV » juste au-dessus. Signale manquant par Bertrand le 05/09/2026 :
   // « Il manque Oxygen dans la v2 !! ». Il pese 1 400 lignes avec son rail de
@@ -137,7 +137,7 @@
    * écran à l'autre. La barre reste escamotée en une icône ronde tant qu'on ne
    * clique pas — la grappe ne gagne donc qu'un rond de 32 px.
    */
-  import GlobalSearchBar from '../GlobalSearchBar.svelte';
+  import GlobalSearchBar from '../partages/GlobalSearchBar.svelte';
   import { addShortcut } from '../../lib/stores/shortcuts';
   import { notifications } from '../../lib/stores/notifications';
   import { t, locale } from '../../lib/i18n';

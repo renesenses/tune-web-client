@@ -66,7 +66,7 @@ describe('Ce qui compte comme une modification', () => {
 describe('🔴 L’écran appelle bien cette règle', () => {
   it('ZoneDeviceEditor ne recalcule plus `deviceDirty` à la main', async () => {
     const source = await import('fs').then((fs) =>
-      fs.readFileSync('src/components/ZoneDeviceEditor.svelte', 'utf8'),
+      fs.readFileSync('src/components/partages/ZoneDeviceEditor.svelte', 'utf8'),
     );
     expect(source).toContain('identiteModifiee(zone, selectedBrand, selectedModel)');
     // La comparaison au seul override ne doit pas revenir par habitude.

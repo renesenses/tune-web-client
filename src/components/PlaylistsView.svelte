@@ -16,7 +16,7 @@
   import { t as tr } from '../lib/i18n';
   import { saveDetailScroll, restoreDetailScroll } from '../lib/stores/navigation';
   import AlbumArt from './partages/AlbumArt.svelte';
-  import ClampedText from './ClampedText.svelte';
+  import ClampedText from './partages/ClampedText.svelte';
 
   interface Props {
     onAddToPlaylist?: (track: Track) => void;
