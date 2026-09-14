@@ -42,6 +42,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
 
   let etiquettes = $state<UserTag[]>([]);
   let chargement = $state(true);
@@ -52,6 +54,34 @@
   let listes = $state<any[]>([]);
   let albumsChargement = $state(false);
   let albumOuvert = $state<Album | null>(null);
+  /**
+   * 🔴 LE CALQUE ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #980.
+   *
+   * Fabien, fils 1774 et 1778 : « quand on clique sur un album → page album, le
+   * bouton BACK du navigateur retourne à la page d'accueil » / « à l'avant-
+   * dernière page consultée ».
+   *
+   * Une fiche album est un CALQUE : l'ouvrir ne change pas `activeView`, donc
+   * la coquille n'écrit rien et le Précédent dépile l'entrée d'AVANT. Mesuré :
+   * dix écrans montent `AlbumDetailV2`, et deux seulement empilaient.
+   *
+   * Trois branchements, et il en faut trois : ouvrir empile, le Retour referme
+   * ET dépile, le Précédent referme le calque. On pose la CLÉ, jamais l'objet —
+   * `history.state` refuse les proxies Svelte.
+   */
+  function ouvrirCalqueAlbum(a: any) {
+    const cle = cleDetailAlbum(a);
+    if (cle) ouvrirDetail(cle);
+  }
+  function fermerCalqueAlbum() {
+    albumOuvert = null;
+  }
+  function retourCalqueAlbum() {
+    fermerDetailEnReculant(fermerCalqueAlbum);
+  }
+  $effect(() => {
+    if ($detailOuvert == null && albumOuvert) fermerCalqueAlbum();
+  });
 
   type Famille = 'albums' | 'artistes' | 'pistes' | 'listes';
   let famille = $state<Famille>('albums');
@@ -192,14 +222,14 @@
                     favori={a.id != null ? { albumId: a.id } : null}
                     etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
                     onLire={() => lireAlbum(a)}
-                    onOuvrir={() => (albumOuvert = a)}
+                    onOuvrir={() => { ouvrirCalqueAlbum(a); albumOuvert = a; }}
                     nom={a.title}
                   >
                     <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title}
                       fallbackInitials={a.title?.slice(0, 1)} />
                   </PochetteActions>
                 </div>
-                <button class="meta" onclick={() => (albumOuvert = a)}>
+                <button class="meta" onclick={() => { ouvrirCalqueAlbum(a); albumOuvert = a; }}>
                   <span class="ct" title={a.title}>{a.title}</span>
                   <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
                 </button>
@@ -263,7 +293,7 @@
     {/if}
 
     {#if albumOuvert}
-      <AlbumDetailV2 album={albumOuvert} depot={null} onClose={() => (albumOuvert = null)} />
+      <AlbumDetailV2 album={albumOuvert} depot={null} onClose={retourCalqueAlbum} />
     {/if}
 
   {:else}

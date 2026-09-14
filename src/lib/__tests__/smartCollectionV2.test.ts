@@ -167,7 +167,10 @@ describe("Les albums d'une collection ouverte", () => {
     expect(grille).toContain('favori={a.id != null ? { albumId: a.id } : null}');
     expect(grille).toContain("etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}");
     expect(grille).toContain('onLire={() => lireAlbum(a)}');
-    expect(grille).toContain('onOuvrir={() => (fiche = a)}');
+    // Le geste OUVRE la fiche. Depuis #980 il empile aussi une entrée
+    // d'historique, donc la ligne n'est plus une affectation nue — l'intention
+    // gardée est « onOuvrir pose la fiche », pas sa graphie.
+    expect(grille).toMatch(/onOuvrir=\{\(\) => \{[^}]*fiche = a;/);
   });
 
   it("cliquer une carte OUVRE l'album, il ne le lance plus", () => {
@@ -175,7 +178,7 @@ describe("Les albums d'une collection ouverte", () => {
     // gestes à la pochette : lancer sur un simple clic était l'exception.
     const grille = col.slice(col.indexOf('{#each albums as a'), col.indexOf('{/each}', col.indexOf('{#each albums as a')));
     expect(grille, 'la carte lance encore la lecture').not.toContain('onclick={(ev) => lireAlbum(a, ev)}');
-    expect(grille).toContain('<button class="meta" onclick={() => (fiche = a)}>');
+    expect(grille).toMatch(/<button class="meta" onclick=\{\(\) => \{[^}]*fiche = a;/);
   });
 
   it("la carte n'est plus un <button>", () => {
