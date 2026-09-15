@@ -4452,7 +4452,7 @@ export default {
   "upnp.sync.limits": "Limitări de redare",
   "upnp.sync.refresh": "Sincronizează acum",
   "upnp.sync.pause": "Suspendă sincronizarea",
-  "upnp.sync.remove": "Au dispărut {n} piese din dosar, peste 20%. Confirmați eliminarea din bibliotecă? Fișierele de pe server nu se modifică.",
+  "upnp.sync.remove": "Au dispărut {n} piese din dosar. Eliminarea lor din bibliotecă poate afecta favoritele și listele de redare. Confirmați? Fișierele de pe server nu se modifică.",
   "upnp.sync.partial": "Scanare incompletă — nimic eliminat",
   "upnp.sync.confirmation": "Este necesară confirmarea",
   "upnp.sync.localOnly": "Sunt afișate doar albume locale. Gestionați sursele în Servere multimedia.",

@@ -4410,7 +4410,7 @@ export default {
   "upnp.sync.limits": "Lejátszási korlátozások",
   "upnp.sync.refresh": "Szinkronizálás most",
   "upnp.sync.pause": "Szinkronizálás szüneteltetése",
-  "upnp.sync.remove": "{n} szám eltűnt a mappából, több mint 20%. Megerősíti eltávolításukat a könyvtárból? A távoli fájlok nem változnak.",
+  "upnp.sync.remove": "{n} szám eltűnt a mappából. Eltávolításuk a könyvtárból érintheti a kedvenceket és a lejátszási listákat. Megerősíti az eltávolítást? A távoli fájlok nem változnak.",
   "upnp.sync.partial": "Hiányos beolvasás — semmi sem lett eltávolítva",
   "upnp.sync.confirmation": "Megerősítés szükséges",
   "upnp.sync.localOnly": "Csak helyi albumok jelennek meg. A forrásokat a Médiaszervereknél kezelheti.",

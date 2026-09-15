@@ -4452,7 +4452,7 @@ export default {
   "upnp.sync.limits": "재생 제한",
   "upnp.sync.refresh": "지금 동기화",
   "upnp.sync.pause": "동기화 일시 중지",
-  "upnp.sync.remove": "폴더에서 {n}곡(20% 초과)이 사라졌습니다. 라이브러리에서 제거하시겠습니까? 원격 파일은 변경되지 않습니다.",
+  "upnp.sync.remove": "폴더에서 {n}곡이 사라졌습니다. 라이브러리에서 제거하면 즐겨찾기와 재생목록에 영향을 줄 수 있습니다. 제거하시겠습니까? 원격 파일은 변경되지 않습니다.",
   "upnp.sync.partial": "불완전한 스캔 — 제거 없음",
   "upnp.sync.confirmation": "확인 필요",
   "upnp.sync.localOnly": "로컬 앨범만 표시됩니다. 미디어 서버에서 소스를 관리하세요.",

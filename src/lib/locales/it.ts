@@ -4452,7 +4452,7 @@ export default {
   "upnp.sync.limits": "Limiti di riproduzione",
   "upnp.sync.refresh": "Sincronizza ora",
   "upnp.sync.pause": "Sospendi sincronizzazione",
-  "upnp.sync.remove": "Sono scomparse {n} tracce dalla cartella, oltre il 20%. Confermare la rimozione dalla libreria? I file remoti restano invariati.",
+  "upnp.sync.remove": "Sono scomparse {n} tracce dalla cartella. Rimuoverle dalla libreria può influire su preferiti e playlist. Confermare? I file remoti restano invariati.",
   "upnp.sync.partial": "Scansione incompleta — nessuna rimozione",
   "upnp.sync.confirmation": "Conferma richiesta",
   "upnp.sync.localOnly": "Sono visualizzati solo album locali. Gestisci le sorgenti in Server multimediali.",

@@ -4451,7 +4451,7 @@ export default {
   "upnp.sync.limits": "Begränsningar vid uppspelning",
   "upnp.sync.refresh": "Synkronisera nu",
   "upnp.sync.pause": "Pausa synkronisering",
-  "upnp.sync.remove": "{n} spår saknas i mappen, mer än 20 %. Bekräfta att de tas bort ur biblioteket? Filerna på servern ändras inte.",
+  "upnp.sync.remove": "{n} spår saknas i mappen. Om de tas bort ur biblioteket kan dina favoriter och spellistor påverkas. Bekräfta borttagningen? Filerna på servern ändras inte.",
   "upnp.sync.partial": "Ofullständig skanning — inget borttaget",
   "upnp.sync.confirmation": "Bekräftelse krävs",
   "upnp.sync.localOnly": "Endast lokala album visas. Hantera källorna under Medieservrar.",

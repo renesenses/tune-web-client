@@ -4452,7 +4452,7 @@ export default {
   "upnp.sync.limits": "再生の制限",
   "upnp.sync.refresh": "今すぐ同期",
   "upnp.sync.pause": "同期を一時停止",
-  "upnp.sync.remove": "フォルダーから{n}曲（20%超）がなくなりました。ライブラリから削除しますか？リモートファイルは変更されません。",
+  "upnp.sync.remove": "フォルダーから{n}曲がなくなりました。ライブラリから削除すると、お気に入りやプレイリストに影響する場合があります。削除しますか？リモートファイルは変更されません。",
   "upnp.sync.partial": "スキャン未完了 — 削除なし",
   "upnp.sync.confirmation": "確認が必要です",
   "upnp.sync.localOnly": "ローカルアルバムのみが表示されています。メディアサーバーでソースを管理してください。",

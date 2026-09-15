@@ -4474,7 +4474,7 @@ export default {
   "upnp.sync.limits": "Limites de lecture",
   "upnp.sync.refresh": "Synchroniser maintenant",
   "upnp.sync.pause": "Suspendre la synchronisation",
-  "upnp.sync.remove": "{n} pistes ont disparu du dossier, soit plus de 20 %. Confirmer leur retrait de la bibliothèque ? Les fichiers distants restent intacts.",
+  "upnp.sync.remove": "{n} pistes ont disparu du dossier. Leur retrait de la bibliothèque peut affecter vos favoris et playlists. Confirmer ? Les fichiers distants restent intacts.",
   "upnp.sync.partial": "Parcours incomplet — aucun retrait",
   "upnp.sync.confirmation": "Confirmation requise",
   "upnp.sync.localOnly": "Seuls des albums locaux sont affichés. Gérez les sources dans Serveurs multimédia.",

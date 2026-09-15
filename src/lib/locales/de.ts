@@ -4452,7 +4452,7 @@ export default {
   "upnp.sync.limits": "Wiedergabeeinschränkungen",
   "upnp.sync.refresh": "Jetzt synchronisieren",
   "upnp.sync.pause": "Synchronisierung pausieren",
-  "upnp.sync.remove": "{n} Titel fehlen im Ordner, mehr als 20 %. Aus der Bibliothek entfernen? Die entfernten Dateien bleiben unverändert.",
+  "upnp.sync.remove": "{n} Titel fehlen im Ordner. Das Entfernen aus der Bibliothek kann Favoriten und Wiedergabelisten betreffen. Entfernung bestätigen? Die Dateien auf dem Server bleiben unverändert.",
   "upnp.sync.partial": "Unvollständiger Scan — nichts entfernt",
   "upnp.sync.confirmation": "Bestätigung erforderlich",
   "upnp.sync.localOnly": "Es werden nur lokale Alben angezeigt. Verwalten Sie die Quellen unter Medienserver.",

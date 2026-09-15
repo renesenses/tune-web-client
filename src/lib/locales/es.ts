@@ -4452,7 +4452,7 @@ export default {
   "upnp.sync.limits": "Limitaciones de reproducción",
   "upnp.sync.refresh": "Sincronizar ahora",
   "upnp.sync.pause": "Pausar sincronización",
-  "upnp.sync.remove": "Han desaparecido {n} pistas de la carpeta, más del 20 %. ¿Confirmar su retirada de la biblioteca? Los archivos remotos no se modificarán.",
+  "upnp.sync.remove": "Han desaparecido {n} pistas de la carpeta. Quitarlas de la biblioteca puede afectar a tus favoritos y listas de reproducción. ¿Confirmar? Los archivos remotos no se modificarán.",
   "upnp.sync.partial": "Exploración incompleta — sin retiradas",
   "upnp.sync.confirmation": "Se requiere confirmación",
   "upnp.sync.localOnly": "Solo se muestran álbumes locales. Gestione las fuentes en Servidores multimedia.",

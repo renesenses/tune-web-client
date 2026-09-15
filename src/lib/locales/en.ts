@@ -4472,7 +4472,7 @@ export default {
   "upnp.sync.limits": "Playback limitations",
   "upnp.sync.refresh": "Sync now",
   "upnp.sync.pause": "Pause syncing",
-  "upnp.sync.remove": "{n} tracks disappeared from the folder, more than 20%. Confirm their removal from the library? Remote files remain unchanged.",
+  "upnp.sync.remove": "{n} tracks disappeared from the folder. Removing them from the library may affect your favourites and playlists. Confirm removal? Remote files remain unchanged.",
   "upnp.sync.partial": "Incomplete scan — nothing removed",
   "upnp.sync.confirmation": "Confirmation required",
   "upnp.sync.localOnly": "Only local albums are displayed. Manage sources in Media servers.",
