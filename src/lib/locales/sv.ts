@@ -4455,4 +4455,10 @@ export default {
   "upnp.sync.partial": "Ofullständig skanning — inget borttaget",
   "upnp.sync.confirmation": "Bekräftelse krävs",
   "upnp.sync.localOnly": "Endast lokala album visas. Hantera källorna under Medieservrar.",
+  "upnp.availability.present": "Server upptäckt",
+  "upnp.availability.stale": "Inte sedd nyligen",
+  "upnp.availability.absent": "Server saknas",
+  "upnp.availability.disabled": "Server inaktiverad",
+  "upnp.availability.unknown": "Okänd status",
+  "upnp.availability.hint": "Senast kända serverstatus; katalogen går fortfarande att bläddra i.",
 } as const;

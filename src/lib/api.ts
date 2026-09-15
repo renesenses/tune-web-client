@@ -2134,8 +2134,8 @@ export function browseDirectory(path: string) {
 
 // --- Media Servers (UPnP/DLNA) ---
 
-export async function getMediaServers(): Promise<import('./types').MediaServer[]> {
-  const data = await fetchJSON<any>(`${BASE}/network/media-servers`);
+export async function getMediaServers(signal?: AbortSignal): Promise<import('./types').MediaServer[]> {
+  const data = await fetchJSON<any>(`${BASE}/network/media-servers`, signal ? { signal } : undefined);
   return Array.isArray(data) ? data : data.items ?? [];
 }
 

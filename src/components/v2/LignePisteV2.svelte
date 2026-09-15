@@ -40,6 +40,7 @@
   import { champsUtiles } from '../../lib/champsLigne';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
     from '../../lib/stores/nowPlaying';
+  import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import IndicateurLecture from './IndicateurLecture.svelte';
   import { formatTime } from '../../lib/utils';
   import type { Track } from '../../lib/types';
@@ -162,6 +163,7 @@
         <IndicateurLecture etat={etatLigne} />
         <span class="tt" title={piste.title}>{piste.title}</span>
       </span>
+      {#if piste.source === 'upnp'}<DisponibiliteUpnp sourceId={piste.source_id} />{/if}
       {#if sousTitre}<em title={sousTitre}>{sousTitre}</em>{/if}
       {#if puces.length}
         <span class="puces"><MetadataChips track={piste} fields={puces} /></span>

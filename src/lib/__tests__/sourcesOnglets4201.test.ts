@@ -21,6 +21,9 @@ const morceaux: Track[] = [
   { id: 4, title: 'Solo compilation', artist_id: 30, artist_name: 'Soliste invité', album_id: 4, source: 'upnp', source_id: 'uuid:asset|z' },
 ];
 let pistes: Track[];
+let presenceAsset: 'present' | 'absent';
+let registreEnEchec: boolean;
+let appelsRegistre: number;
 let instance: ReturnType<typeof mount>;
 let target: HTMLDivElement;
 let lectures: any[];
@@ -36,6 +39,8 @@ async function comptes() { await click('.filters button.chip', 'Source'); return
 const corps = () => target.querySelector('.body')!.textContent!;
 
 beforeEach(async () => {
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  presenceAsset = 'present'; registreEnEchec = false; appelsRegistre = 0;
   localStorage.clear(); libraryFolderScope.set(null); activeView.set('library'); currentZoneId.set(1);
   pistes = [...morceaux]; lectures = [];
   vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -43,7 +48,11 @@ beforeEach(async () => {
     const path = String(url);
     let data: unknown = {};
     if (path.includes('/network/library-sources')) data = { items: [{ udn: 'uuid:asset' }, { udn: 'uuid:sonos' }, { udn: 'uuid:absent' }] };
-    else if (path.includes('/network/media-servers')) data = [{ id: 'uuid:asset', name: 'Asset' }, { id: 'uuid:sonos', name: 'Sonos' }, { id: 'uuid:absent', name: 'Absent' }];
+    else if (path.includes('/network/media-servers')) {
+      appelsRegistre++;
+      if (registreEnEchec) throw new Error('Registre indisponible');
+      data = [{ id: 'uuid:asset', name: 'Asset', reachable: presenceAsset === 'present', presence: presenceAsset }, { id: 'uuid:sonos', name: 'Sonos', reachable: true }, { id: 'uuid:absent', name: 'Absent', presence: 'absent' }];
+    }
     else if (/\/artists\/10\/albums/.test(path)) data = catalogue.slice(0, 3);
     else if (/\/artists\/10\/tracks/.test(path)) data = morceaux.slice(0, 3);
     else if (path.includes('/library/artists')) data = [{ id: 10, name: 'Artiste partagé' }, { id: 20, name: 'Divers' }, { id: 30, name: 'Soliste invité' }, { id: 40, name: 'Sans album' }];
@@ -57,7 +66,7 @@ beforeEach(async () => {
   target = document.createElement('div'); document.body.appendChild(target);
   instance = mount(Library, { target }); await flush();
 });
-afterEach(async () => { await unmount(instance); target.remove(); vi.unstubAllGlobals(); libraryFolderScope.set(null); });
+afterEach(async () => { await unmount(instance); target.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); libraryFolderScope.set(null); });
 
 it('garde Source en passant aux pistes, filtre avant la limite de 500 et compte des pistes', async () => {
   pistes = [...Array.from({ length: 501 }, (_, i) => ({ ...morceaux[0], id: 100 + i })), morceaux[1]];
@@ -116,4 +125,35 @@ it('UPnP regroupe les serveurs et l’aléatoire exclut les pistes locales', asy
   await click('button', 'Aléatoire');
   expect(lectures).toHaveLength(1);
   expect(lectures[0].track_ids.sort()).toEqual([2, 3, 4]);
+});
+
+
+it('l’extinction et le retour du serveur actualisent albums et pistes sans retirer le catalogue', async () => {
+  const avant = appelsRegistre;
+  const badge = () => target.querySelector<HTMLElement>('.disponibilite[title^="Asset"]');
+  expect(badge()?.textContent).toContain('Serveur détecté');
+  presenceAsset = 'absent';
+  await vi.advanceTimersByTimeAsync(30_000); await flush();
+  expect(appelsRegistre - avant).toBe(1); // un sondage partagé, pas un par vignette
+  expect(badge()?.textContent).toContain('Serveur absent');
+  expect(corps()).toContain('Disque Asset');
+  await tab('Pistes');
+  expect(corps()).toContain('Ballade Asset');
+  expect(badge()?.textContent).toContain('Serveur absent');
+  presenceAsset = 'present';
+  await vi.advanceTimersByTimeAsync(30_000); await flush();
+  expect(badge()?.textContent).toContain('Serveur détecté');
+  expect(corps()).toContain('Ballade Asset');
+});
+
+it('une erreur de registre rend l’état inconnu et conserve la pochette locale', async () => {
+  const hash = 'a'.repeat(64);
+  albums.set(catalogue.map(a => a.id === 2 ? { ...a, cover_path: hash } : a)); await flush();
+  const image = () => target.querySelector<HTMLImageElement>('img[alt="Disque Asset"]');
+  expect(image()?.getAttribute('src')).toContain(`/library/artwork/${hash}`);
+  registreEnEchec = true;
+  await vi.advanceTimersByTimeAsync(30_000); await flush();
+  expect(target.querySelector('.disponibilite[title^="Asset"]')?.textContent).toContain('État inconnu');
+  expect(corps()).toContain('Disque Asset');
+  expect(image()?.getAttribute('src')).toContain(`/library/artwork/${hash}`);
 });

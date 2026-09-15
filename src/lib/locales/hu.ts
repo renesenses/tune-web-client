@@ -4414,6 +4414,12 @@ export default {
   "upnp.sync.partial": "Hiányos beolvasás — semmi sem lett eltávolítva",
   "upnp.sync.confirmation": "Megerősítés szükséges",
   "upnp.sync.localOnly": "Csak helyi albumok jelennek meg. A forrásokat a Médiaszervereknél kezelheti.",
+  "upnp.availability.present": "Kiszolgáló észlelve",
+  "upnp.availability.stale": "Régóta nem észlelt",
+  "upnp.availability.absent": "Kiszolgáló nem található",
+  "upnp.availability.disabled": "Kiszolgáló letiltva",
+  "upnp.availability.unknown": "Ismeretlen állapot",
+  "upnp.availability.hint": "A kiszolgáló utolsó ismert állapota; a katalógus továbbra is böngészhető.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

@@ -4456,6 +4456,12 @@ export default {
   "upnp.sync.partial": "Scanare incompletă — nimic eliminat",
   "upnp.sync.confirmation": "Este necesară confirmarea",
   "upnp.sync.localOnly": "Sunt afișate doar albume locale. Gestionați sursele în Servere multimedia.",
+  "upnp.availability.present": "Server detectat",
+  "upnp.availability.stale": "Nedetectat recent",
+  "upnp.availability.absent": "Server absent",
+  "upnp.availability.disabled": "Server dezactivat",
+  "upnp.availability.unknown": "Stare necunoscută",
+  "upnp.availability.hint": "Ultima stare cunoscută a serverului; catalogul poate fi consultat în continuare.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

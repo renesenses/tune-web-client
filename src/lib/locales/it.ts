@@ -4456,6 +4456,12 @@ export default {
   "upnp.sync.partial": "Scansione incompleta — nessuna rimozione",
   "upnp.sync.confirmation": "Conferma richiesta",
   "upnp.sync.localOnly": "Sono visualizzati solo album locali. Gestisci le sorgenti in Server multimediali.",
+  "upnp.availability.present": "Server rilevato",
+  "upnp.availability.stale": "Non rilevato di recente",
+  "upnp.availability.absent": "Server assente",
+  "upnp.availability.disabled": "Server disattivato",
+  "upnp.availability.unknown": "Stato sconosciuto",
+  "upnp.availability.hint": "Ultimo stato noto del server; il catalogo rimane consultabile.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

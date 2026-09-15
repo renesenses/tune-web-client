@@ -4456,6 +4456,12 @@ export default {
   "upnp.sync.partial": "불완전한 스캔 — 제거 없음",
   "upnp.sync.confirmation": "확인 필요",
   "upnp.sync.localOnly": "로컬 앨범만 표시됩니다. 미디어 서버에서 소스를 관리하세요.",
+  "upnp.availability.present": "서버 감지됨",
+  "upnp.availability.stale": "최근 감지되지 않음",
+  "upnp.availability.absent": "서버 부재",
+  "upnp.availability.disabled": "서버 비활성화됨",
+  "upnp.availability.unknown": "상태 알 수 없음",
+  "upnp.availability.hint": "마지막으로 확인된 서버 상태입니다. 카탈로그는 계속 탐색할 수 있습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

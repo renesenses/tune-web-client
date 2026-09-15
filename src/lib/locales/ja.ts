@@ -4456,6 +4456,12 @@ export default {
   "upnp.sync.partial": "スキャン未完了 — 削除なし",
   "upnp.sync.confirmation": "確認が必要です",
   "upnp.sync.localOnly": "ローカルアルバムのみが表示されています。メディアサーバーでソースを管理してください。",
+  "upnp.availability.present": "サーバーを検出",
+  "upnp.availability.stale": "最近検出されていません",
+  "upnp.availability.absent": "サーバー不在",
+  "upnp.availability.disabled": "サーバー無効",
+  "upnp.availability.unknown": "状態不明",
+  "upnp.availability.hint": "サーバーの最終確認状態です。カタログは引き続き閲覧できます。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

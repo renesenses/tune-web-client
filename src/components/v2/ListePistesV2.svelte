@@ -38,6 +38,7 @@
     valeurColonne, type CleColonne,
   } from '../../lib/colonnesPistes';
   import type { Track } from '../../lib/types';
+  import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import LignePisteV2 from './LignePisteV2.svelte';
   import PisteActions from './PisteActions.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
@@ -313,6 +314,7 @@
               {/if}
               <IndicateurLecture {etat} />
               <span class="ttxt">{cellule(p, i, c.cle) ?? ''}</span>
+              {#if p.source === 'upnp'}<DisponibiliteUpnp sourceId={p.source_id} />{/if}
             </button>
           {:else}
             {@const v = cellule(p, i, c.cle)}

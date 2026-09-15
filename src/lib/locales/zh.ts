@@ -4456,6 +4456,12 @@ export default {
   "upnp.sync.partial": "扫描不完整 — 未移除任何曲目",
   "upnp.sync.confirmation": "需要确认",
   "upnp.sync.localOnly": "目前仅显示本地专辑。请在媒体服务器中管理来源。",
+  "upnp.availability.present": "已检测到服务器",
+  "upnp.availability.stale": "最近未检测到",
+  "upnp.availability.absent": "服务器不在线",
+  "upnp.availability.disabled": "服务器已禁用",
+  "upnp.availability.unknown": "状态未知",
+  "upnp.availability.hint": "服务器的最后已知状态；仍可浏览目录。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
