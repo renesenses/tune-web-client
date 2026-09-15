@@ -743,3 +743,20 @@ describe('preferences de profil (Bertrand, 05/09/2026)', () => {
     expect(envoye).toEqual({ autre_cle: 'gardee', home_widgets: ['neuf'] });
   });
 });
+
+describe('avertissements de lecture UPnP', () => {
+  it('affiche les limites renvoyées après une lecture et les conserve jusqu’à fermeture', async () => {
+    const { notifications } = await import('../stores/notifications');
+    vi.mocked(notifications.info).mockClear();
+    mockFetch({ id: 7, avertissements: ['DSP non appliqué', 'DSP non appliqué', null] });
+    await api.play(7, { track_id: 4 });
+    expect(notifications.info).toHaveBeenCalledExactlyOnceWith('DSP non appliqué', 0);
+  });
+  it('ne répète pas un avertissement lors du rafraîchissement de la zone', async () => {
+    const { notifications } = await import('../stores/notifications');
+    vi.mocked(notifications.info).mockClear();
+    mockFetch({ id: 7, avertissements: ['DSP non appliqué'] });
+    await api.getZone(7);
+    expect(notifications.info).not.toHaveBeenCalled();
+  });
+});

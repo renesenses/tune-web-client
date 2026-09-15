@@ -19,6 +19,7 @@
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import { qualiteEnTeteAlbum } from '../../lib/qualiteEnTeteAlbum';
   import type { Album, Track } from '../../lib/types';
+  import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -543,6 +544,7 @@
            cette fiche (#1957). Absente quand le drapeau est faux ou absent —
            voir `PastilleCompilation`. -->
       <div class="qrow">
+        {#if album.source === 'upnp'}<DisponibiliteUpnp sourceId={album.source_id} />{/if}
         <!-- #852 — pas de badge quand la qualite est inconnue : mieux vaut
              rien qu'un « CD » invente. -->
         {#if qLabel}<div class="qbadge">{qLabel}</div>{/if}

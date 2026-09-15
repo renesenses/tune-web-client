@@ -4444,6 +4444,24 @@ export default {
   // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
   "session.expiredTitle": "세션이 만료되었습니다",
   "session.expiredBody": "세션이 종료되었습니다. 다시 로그인하면 이어서 사용할 수 있습니다. 열어 두었던 화면은 아래에 그대로 있습니다.",
+  "upnp.sync.title": "라이브러리 소스",
+  "upnp.sync.add": "라이브러리에 추가",
+  "upnp.sync.hint": "선택한 폴더는 매시간 자동으로 동기화됩니다. 오디오 파일은 원래 서버에 유지됩니다.",
+  "upnp.sync.whole": "전체 서버",
+  "upnp.sync.last": "마지막 동기화:",
+  "upnp.sync.limits": "재생 제한",
+  "upnp.sync.refresh": "지금 동기화",
+  "upnp.sync.pause": "동기화 일시 중지",
+  "upnp.sync.remove": "폴더에서 {n}곡이 사라졌습니다. 라이브러리에서 제거하면 즐겨찾기와 재생목록에 영향을 줄 수 있습니다. 제거하시겠습니까? 원격 파일은 변경되지 않습니다.",
+  "upnp.sync.partial": "불완전한 스캔 — 제거 없음",
+  "upnp.sync.confirmation": "확인 필요",
+  "upnp.sync.localOnly": "로컬 앨범만 표시됩니다. 미디어 서버에서 소스를 관리하세요.",
+  "upnp.availability.present": "서버 감지됨",
+  "upnp.availability.stale": "최근 감지되지 않음",
+  "upnp.availability.absent": "서버 부재",
+  "upnp.availability.disabled": "서버 비활성화됨",
+  "upnp.availability.unknown": "상태 알 수 없음",
+  "upnp.availability.hint": "마지막으로 확인된 서버 상태입니다. 카탈로그는 계속 탐색할 수 있습니다.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

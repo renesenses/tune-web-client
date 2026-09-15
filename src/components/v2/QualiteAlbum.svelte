@@ -22,6 +22,7 @@
    * Ici, la source est TOUJOURS nommée, `LOCAL` compris. C'est la convention de
    * la barre de transport, qui affiche déjà `LOCAL` à côté du titre en cours.
    */
+  import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import { getQualityTier } from '../../lib/utils';
 
@@ -29,6 +30,7 @@
     /** Album ou piste : tout objet portant format, fréquence et profondeur. */
     objet: {
       source?: string | null;
+      source_id?: string | null;
       format?: string | null;
       sample_rate?: number | null;
       bit_depth?: number | null;
@@ -67,12 +69,13 @@
 {#if source || qualite}
   <span class="qa">
     {#if source}<ServiceBadge {source} compact />{/if}
+    {#if source === 'upnp'}<DisponibiliteUpnp sourceId={objet?.source_id} />{/if}
     {#if qualite}<span class="q">{qualite}</span>{/if}
   </span>
 {/if}
 
 <style>
-  .qa{display:flex; align-items:center; gap:6px; margin-top:3px; min-width:0}
+  .qa{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:3px; min-width:0}
   /* Le chiffre s'élide, pas le badge : savoir d'où vient un disque prime sur
      savoir en quelle fréquence il est encodé. */
   .q{font:500 10px var(--v2-mono); letter-spacing:.02em; color:var(--v2-txt3);

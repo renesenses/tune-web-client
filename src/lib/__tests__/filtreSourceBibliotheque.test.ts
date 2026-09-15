@@ -40,13 +40,7 @@ import {
 } from '../facettesBibliotheque';
 import type { Album, Source } from '../types';
 
-/** La règle de l'écran, recopiée ici telle quelle — voir `provenanceDe`. */
-const provenanceDe = (a: Album): string => {
-  const src = (a.source ?? 'local').trim() || 'local';
-  if (src === 'local') return 'local';
-  const udn = (a.source_id ?? '').split('|')[0]?.trim();
-  return udn && udn.length < (a.source_id ?? '').trim().length ? `${src}:${udn}` : src;
-};
+import { provenanceDe } from '../provenanceBibliotheque';
 
 const OUTILS: Outils = {
   qualiteDe: () => true,
@@ -211,10 +205,10 @@ describe('la pilule dans la barre de filtres', () => {
     expect(SOURCE_LIBRARYV2).toContain('&& !fProvenance} onclick={reset}');
   });
 
-  it('elle se tait au-dessous de DEUX provenances', () => {
-    // Sur une bibliothèque purement locale, un menu à une entrée ne filtre
-    // rien. Même règle que « Format », qui se tait au-dessous de deux valeurs.
-    expect(SOURCE_LIBRARYV2).toContain('{#if provenances.length > 1}');
+  it('reste accessible avec une seule source et explique comment en ajouter', () => {
+    expect(SOURCE_LIBRARYV2).not.toContain('{#if provenances.length > 1}');
+    expect(SOURCE_LIBRARYV2).toContain('upnp.sync.localOnly');
+    expect(SOURCE_LIBRARYV2).toContain('#mediaservers');
   });
 
   it('le libellé d’un serveur vient du REGISTRE, pas de l’UDN ni d’« upnp »', () => {
@@ -235,4 +229,11 @@ describe('les libellés sont traduits', () => {
       expect(en[cle], `${cle} absente de l’anglais`).toBeTruthy();
     }
   });
+});
+
+it('un filtre de format ne fait pas disparaître les autres sources du menu', () => {
+  const counts = comptesProvenance(BIBLIO, { ...AUCUN, format: 'MP3' }, OUTILS);
+  expect(new Map(counts).get('local')).toBe(0);
+  expect(new Map(counts).get(`upnp:${ASSET}`)).toBe(1);
+  expect(new Map(counts).get(`upnp:${SONOS}`)).toBe(0);
 });
