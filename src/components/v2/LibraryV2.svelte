@@ -47,6 +47,7 @@
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
   import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
+  import { melangee } from '../../lib/shuffle';
   import { optionsAleatoire } from '../../lib/porteeAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
@@ -60,6 +61,7 @@
     type FiltresBibliotheque, type Outils,
   } from '../../lib/facettesBibliotheque';
   import * as api from '../../lib/api';
+  import { provenanceDe, dansSource, sourcesParArtiste, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { favoriteFacetKeys, facetFavKey } from '../../lib/stores/profile';
   import { basculerFavoriFacette } from '../../lib/favorisLocaux';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -170,26 +172,6 @@
     depot ? chargementD : (porteeActive && idsPortee == null) || $libraryLoading,
   );
 
-  /**
-   * LES ARTISTES DE LA PORTÉE — `null` = aucune portée, on les montre tous.
-   *
-   * L'onglet Artistes tire sa liste de `/library/artists`, sa propre table :
-   * il ignorait donc la portée, et choisir un répertoire laissait les 1 632
-   * artistes de la bibliothèque sous la puce du dossier (#3101). Le serveur
-   * n'offre pas de facette `folder` sur cette route ; on se sert de ce qu'on
-   * a déjà payé — les albums de la portée (`src`) portent leur `artist_id`.
-   *
-   * Ensemble VIDE tant que la portée n'a pas répondu (`idsPortee == null`) :
-   * l'écran attend plutôt que de montrer tout, ce qui serait le défaut même.
-   */
-  const idsArtistesPortee = $derived<Set<number> | null>(
-    !porteeActive || depot
-      ? null
-      : new Set(
-          src.map((a) => (a as any).artist_id).filter((x: any): x is number => typeof x === 'number'),
-        ),
-  );
-
   const level = $derived($preferences.settingsLevel);
   // FILTRER FAIT PARTIE DU GESTE DE BASE (Bertrand, 28/08 : « ou sont passes
   // les filtres ?? »). Dans une app audiophile, choisir « FLAC » ou « 96 kHz »
@@ -270,31 +252,10 @@
    * reste « Source », qui est le mot de l'utilisateur.
    *
    * Comme ses voisins, le filtre est appliqué SUR PLACE : la bibliothèque est
-   * déjà chargée en entier et `showFilters` masque la barre sur l'onglet
-   * Titres. Un aller-retour réseau pour celui-là seul ferait diverger la
-   * grille de son compteur — c'est le raisonnement de `fCompilation`, mot pour
-   * mot.
+   * déjà chargée. La sélection reste partagée entre Albums, Artistes et
+   * Pistes ; les comptes portent sur les éléments de l'onglet courant.
    */
   let fProvenance = $state<string | null>(null);
-
-  /**
-   * D'où vient un album : `'local'`, ou `'upnp:<udn>'`.
-   *
-   * L'UDN est le préfixe de `source_id` avant `'|'` — convention posée par
-   * l'indexation UPnP côté serveur (`source_id = '<udn>|<condensat>'`).
-   * Mesuré sur le .18 le 14/09/2026 : les 51 albums distants portent tous
-   * `uuid:258FC2D5-E2C3-B734-0-123456789abc|…`.
-   *
-   * Une ligne distante SANS ce format — source `qobuz`, `tidal`, ou une ligne
-   * antérieure — retombe sur sa famille (`'qobuz'`…) plutôt que sur un UDN
-   * inventé : elle reste filtrable, sans prétendre venir d'un serveur nommé.
-   */
-  function provenanceDe(a: Album): string {
-    const src = (a.source ?? 'local').trim() || 'local';
-    if (src === 'local') return 'local';
-    const udn = (a.source_id ?? '').split('|')[0]?.trim();
-    return udn && udn.length < (a.source_id ?? '').trim().length ? `${src}:${udn}` : src;
-  }
 
   /**
    * Les noms que les serveurs s'annoncent, par UDN.
@@ -333,6 +294,7 @@
   /** Le libellé d'une provenance dans le menu et sur la pilule. */
   function libelleProvenance(cle: string): string {
     if (cle === 'local') return $tr('v2.lib.sourceLocal' as any);
+    if (!cle.startsWith('upnp:')) return cle.toUpperCase();
     const udn = cle.slice(cle.indexOf(':') + 1);
     // Le nom du registre d'abord ; à défaut, l'UDN abrégé — lisible, et qui
     // reste distinctif quand deux serveurs cohabitent.
@@ -386,7 +348,7 @@
     // encore re-scannée, ne porte pas le champ. Il vaut « non », comme côté
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
-    if (fProvenance && provenanceDe(a) !== fProvenance) return false;
+    if (!dansSource(a, fProvenance)) return false;
     if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
     return true;
   }
@@ -535,18 +497,6 @@
 
   const formats = $derived(comptesFormat(src, filtresActifs, outilsFacettes));
   const depths = $derived(comptesProfondeur(src, filtresActifs, outilsFacettes));
-  /** Les provenances restent proposées, même à zéro après un autre filtre. */
-  const provenances = $derived.by(() => {
-    const counts = new Map(comptesProvenance(src, filtresActifs, outilsFacettes));
-    for (const source of sourcesIntegrees) if (!counts.has(source)) counts.set(source, 0);
-    return [...counts.entries()];
-  });
-  /** Ce que « Toutes les sources » rendrait : la SOMME des provenances, c'est
-   *  à dire la même assiette qu'elles — les autres filtres appliqués, celui-ci
-   *  non. `matchCount` ne conviendrait pas : il porte déjà la provenance
-   *  choisie, et l'entrée « Toutes » annoncerait alors le compte de l'entrée
-   *  courante. */
-  const matchCountToutesSources = $derived(provenances.reduce((n, [, c]) => n + c, 0));
   const nQualite = $derived(comptesQualite(src, filtresActifs, outilsFacettes, QUALITIES.map((x) => x.key)));
   const nFrequence = $derived(comptesFrequence(src, filtresActifs, outilsFacettes, RATES.map((r) => r.v)));
   /** Combien de compilations, compte tenu des AUTRES filtres. À zéro, la puce
@@ -804,8 +754,7 @@
   // deja chargees plutot que d'appeler le serveur — c'est instantane, et ca
   // ne peut pas diverger de la grille.
   //
-  // « Titres » est le seul a demander autre chose : il charge la liste des
-  // pistes, une fois, a la premiere ouverture de l'onglet.
+  // Artistes et Pistes partagent le chargement des pistes pour résoudre leurs sources.
   type Tab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels';
   // Mêmes clés que les onglets des Favoris : ce sont les mêmes familles, et
   // les traduire deux fois les ferait diverger.
@@ -829,12 +778,12 @@
    * « Tout (4255) » annonçait des albums au-dessus d'une grille d'artistes
    * (signalé par Bertrand, capture à l'appui, 02/09/2026).
    *
-   * La RECHERCHE, elle, reste : elle filtre bien les artistes.
+   * La recherche et la source restent : elles filtrent les artistes.
    */
   /**
    * Les filtres d'ALBUM ne s'affichent pas la ou ils n'agissent pas.
    *
-   * `visibleTracks` ne filtre que sur la recherche : ni la qualite, ni le
+   * Les pistes se filtrent par recherche et source : ni la qualite, ni le
    * format, ni la profondeur, ni l'annee ne touchent la liste des titres. Les
    * puces restaient pourtant affichees sur l'onglet Titres, et le compteur
    * « Tout (n) » y annoncait un nombre d'ALBUMS — 55 albums de 2026 au-dessus
@@ -993,9 +942,10 @@
     facetteOuverte == null ? null : (groups.find((g) => g.key === facetteOuverte) ?? null),
   );
 
-  // ── Onglet « Titres » : charge la liste des pistes, PAR PORTÉE ────────
+  // Pistes et appartenances des artistes : un chargement partagé par portée.
   let tracks = $state<Track[]>([]);
   let tracksLoading = $state(false);
+  let tracksError = $state<string | null>(null);
   /**
    * La portée sous laquelle `tracks` a été rempli — `undefined` tant qu'aucun
    * chargement n'a eu lieu, `null` pour « toute la bibliothèque ».
@@ -1035,7 +985,7 @@
   $effect(() => {
     const d = depot;
     const portee = dossierPortee;
-    if (tab !== 'tracks' || porteePistes === portee) return;
+    if ((tab !== 'tracks' && tab !== 'artists') || porteePistes === portee) return;
     porteePistes = portee;
     // 🔴 La liste repart VIDE : la portée vient de changer, ce qu'elle
     // contient ne correspond plus à ce que la puce annonce. Un écran vide qui
@@ -1044,6 +994,7 @@
     tracks = [];
     nbPistesServeur = null;
     tracksLoading = true;
+    tracksError = null;
     // Un dépôt distant compte SES pistes, pas les nôtres : on ne lui prête pas
     // le total local, on n'annonce simplement rien.
     // `/library/stats`, pas `/system/stats` : c'est un écran de bibliothèque.
@@ -1056,9 +1007,10 @@
        : portee ? api.getFilteredTracks({ folder: portee, limit: 5000 }).then((r) => r.items ?? [])
        : api.getAllTracks())
       .then((t) => { if (jeton === jetonPistes) tracks = t ?? []; })
-      .catch(() => {
+      .catch((e) => {
         if (jeton !== jetonPistes) return;
         tracks = [];
+        tracksError = e?.message ?? $tr('common.error');
         // L'échec est DIT. Les trois `catch` de l'ancien client écrivaient en
         // console et laissaient la liste précédente à l'écran : c'est le second
         // mécanisme nommé par #3101.
@@ -1066,9 +1018,6 @@
       })
       .finally(() => { if (jeton === jetonPistes) tracksLoading = false; });
   });
-  const nbPistesAnnonce = $derived(
-    tracksLoading && nbPistesServeur != null ? nbPistesServeur : tracks.length,
-  );
 
   /**
    * Ouvrir l'album d'une piste depuis l'onglet Titres.
@@ -1084,12 +1033,44 @@
     if (aid == null || depot) return null;
     return $albums.find((a) => a.id === aid) ?? null;
   }
-  const visibleTracks = $derived.by(() => {
+  const pistesRecherche = $derived.by(() => {
     const needle = fold(q);
-    return tracks.filter((t) =>
-      !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle)
-    ).slice(0, 500);
+    return tracks.filter(t => !needle || fold(t.title).includes(needle) || fold(t.artist_name).includes(needle));
   });
+  const pistesFiltrees = $derived(pistesRecherche.filter(t => dansSource(t, fProvenance)));
+  const visibleTracks = $derived(pistesFiltrees.slice(0, 500));
+  let comptesArtistes = $state<ComptesArtistesSources>({ comptes: new Map(), total: 0 });
+  const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
+  const comptesPistes = $derived(compterSources(pistesRecherche.map(t => [provenanceDe(t)])));
+  const provenances = $derived.by(() => {
+    const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
+      : tab === 'tracks' ? comptesPistes : comptesAlbums);
+    if (tab !== 'artists' && tab !== 'tracks') {
+      counts.set('upnp', [...counts].reduce((n, [s, c]) => n + (s === 'upnp' || s.startsWith('upnp:') ? c : 0), 0));
+    }
+    // Une recherche sans résultat ne fait pas disparaître les choix.
+    for (const source of ['local', 'upnp', ...src.map(provenanceDe), ...tracks.map(provenanceDe), ...sourcesIntegrees]) {
+      if (!counts.has(source)) counts.set(source, 0);
+    }
+    if (fProvenance && !counts.has(fProvenance)) counts.set(fProvenance, 0);
+    return [...counts.entries()].sort(([a], [b]) =>
+      a === b ? 0 : a === 'local' ? -1 : b === 'local' ? 1 : a === 'upnp' ? -1 : b === 'upnp' ? 1
+        : libelleProvenance(a).localeCompare(libelleProvenance(b)));
+  });
+  // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
+  const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
+    : tab === 'tracks' ? pistesRecherche.length : comptesAlbums.reduce((n, [, c]) => n + c, 0));
+  const comptesSourcesEnCharge = $derived((tab === 'tracks' || tab === 'artists') && (tracksLoading || tracksError != null));
+  const appartenancesArtistes = $derived(sourcesParArtiste(src, tracks));
+
+  // La portée dossier inclut aussi les artistes de pistes de compilation.
+  // Sans portée, la table des artistes reste entière, y compris sans album.
+  const idsArtistesPortee = $derived<Set<number> | null>(
+    !porteeActive || depot ? null : new Set(appartenancesArtistes.keys()),
+  );
+  const nbPistesAnnonce = $derived(
+    tracksLoading && !q && !fProvenance && nbPistesServeur != null ? nbPistesServeur : pistesFiltrees.length,
+  );
   function playTrack(t: Track) {
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
@@ -1274,6 +1255,17 @@
     shuffling = true;
     try {
       if (depot) await aleatoireDistant(zid);
+      else if (fProvenance != null) {
+        const liste = dossierPortee
+          ? (await api.getFilteredTracks({ folder: dossierPortee, limit: 5000 })).items ?? []
+          : await api.getAllTracks();
+        const needle = fold(q);
+        const selection = liste.filter(p => dansSource(p, fProvenance) &&
+          (!needle || fold(p.title).includes(needle) || fold(p.artist_name).includes(needle)));
+        const ids = melangee(selection).flatMap(p => p.id == null ? [] : [p.id]);
+        if (ids.length) await playAndSync(zid, { track_ids: ids });
+        else notifications.error($tr('library.noTracks'));
+      }
       // 🔴 #882 — la PASTILLE DE RÉPERTOIRE n'était pas transmise. Marco Polo
       // (fil 1614) : « la lecture aléatoire prend sa source dans toute la
       // bibliothèque ; si je passe à l'ancienne interface, elle fonctionne ».
@@ -1282,7 +1274,7 @@
       // partagée avec l'écran actuel pour que les deux ne redivergent pas.
       else await api.shuffleAll(zid, optionsAleatoire({ dossier: dossierPortee, recherche: q }));
     }
-    catch { /* le serveur signale déjà l'échec */ }
+    catch (e) { signalerEchecLecture(e); }
     shuffling = false;
   }
 
@@ -1377,8 +1369,7 @@
 
   <div class="filters">
     {#if tab === 'tracks'}
-      <!-- Un compteur qui compte CE QU'ON REGARDE. La recherche, elle, agit
-           bien sur les titres : c'est le seul filtre qu'on garde ici. -->
+      <!-- Nombre de pistes après recherche et source, avant la limite d’affichage. -->
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
@@ -1396,6 +1387,7 @@
           onclick={() => (sortKey = sortKey === 'added' ? 'title' : 'added')}
           title={$tr('v2.lib.recentHint' as any)}>{$tr('v2.lib.recent' as any)}</button>
       {/if}
+    {/if}
       <!--
         SOURCE (#4152). Rangée ICI, entre « Derniers ajouts » et « Qualité »,
         et pas au bout de la file : Qualité, Fréquence, Format et Profondeur
@@ -1413,16 +1405,17 @@
             <!-- « Toutes les sources » EST l'absence de filtre, et elle est
                  écrite : la retirer obligerait à passer par « Tout », qui
                  efface aussi la qualité, le format et la recherche. -->
-            <button class:on={fProvenance === null} onclick={() => { fProvenance = null; ddClose(); }}>{$tr('v2.lib.sourceAll' as any)} <em>{matchCountToutesSources}</em></button>
-            {#if provenances.every(([cle]) => cle === 'local')}
+            <button class:on={fProvenance === null} onclick={() => { fProvenance = null; ddClose(); }}>{$tr('v2.lib.sourceAll' as any)} <em>{comptesSourcesEnCharge ? "…" : matchCountToutesSources}</em></button>
+            {#if tab === 'albums' && !sourcesIntegrees.length && src.every(a => provenanceDe(a) === 'local')}
               <p>{$tr('upnp.sync.localOnly' as any)}</p>
             {/if}
             <a href="#mediaservers">{$tr('nav.mediaservers' as any)}</a>
             {#each provenances as [cle, n] (cle)}
-              <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{n}</em></button>
+              <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{comptesSourcesEnCharge ? "…" : n}</em></button>
             {/each}
           </div>
         </div>
+    {#if showFilters}
       <div class="drop" class:open={ddOpen === 'quality'}>
         <button class="chip" class:active={fQuality !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -1646,10 +1639,12 @@
            gardes « bibliothèque vide » ci-dessous : une bibliothèque dont les
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null}
+        provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
+        sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)}
         ouvrirId={artisteADemande} onOuvert={() => (artisteADemande = null)} />
-    {:else if enCharge && sorted.length === 0}
+    {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
-    {:else if sorted.length === 0}
+    {:else if tab !== 'tracks' && sorted.length === 0}
       <!-- « Votre » serait faux sur la bibliotheque d'une autre machine : on
            nomme le serveur, sinon un catalogue distant vide se lirait comme
            un defaut de la sienne. Mesure : 192.168.1.16 rend `[]`. -->
@@ -1671,6 +1666,8 @@
         <div class="tracklist">
           {#if tracksLoading}
             <div class="state">{$tr('v2.lib.loadingTracks' as any)}</div>
+          {:else if tracksError}
+            <div class="state">{tracksError}</div>
           {:else if !visibleTracks.length}
             <div class="state">{tracks.length ? $tr('v2.lib.noTrackMatch' as any) : $tr('v2.lib.noTrack' as any)}</div>
           {:else}
@@ -1686,8 +1683,8 @@
                 return alb ? () => (opened = alb) : null;
               }}
             />
-            {#if tracks.length > visibleTracks.length}
-              <div class="state">{visibleTracks.length} titres affichés sur {tracks.length} — affinez la recherche.</div>
+            {#if pistesFiltrees.length > visibleTracks.length}
+              <div class="state">{visibleTracks.length} titres affichés sur {pistesFiltrees.length} — affinez la recherche.</div>
             {/if}
           {/if}
         </div>

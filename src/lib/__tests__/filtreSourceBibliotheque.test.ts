@@ -40,13 +40,7 @@ import {
 } from '../facettesBibliotheque';
 import type { Album, Source } from '../types';
 
-/** La règle de l'écran, recopiée ici telle quelle — voir `provenanceDe`. */
-const provenanceDe = (a: Album): string => {
-  const src = (a.source ?? 'local').trim() || 'local';
-  if (src === 'local') return 'local';
-  const udn = (a.source_id ?? '').split('|')[0]?.trim();
-  return udn && udn.length < (a.source_id ?? '').trim().length ? `${src}:${udn}` : src;
-};
+import { provenanceDe } from '../provenanceBibliotheque';
 
 const OUTILS: Outils = {
   qualiteDe: () => true,

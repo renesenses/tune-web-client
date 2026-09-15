@@ -42,7 +42,7 @@ describe('le compteur de pistes', () => {
     // Une fois la liste là, c'est elle qui fait foi : un total et une liste
     // qui ne coïncident pas seraient pires que l'attente.
     expect(src).toMatch(
-      /nbPistesAnnonce = \$derived\(\s*tracksLoading && nbPistesServeur != null \? nbPistesServeur : tracks\.length,?\s*\)/,
+      /nbPistesAnnonce = \$derived\(\s*tracksLoading && !q && !fProvenance && nbPistesServeur != null \? nbPistesServeur : pistesFiltrees\.length,?\s*\)/,
     );
   });
 

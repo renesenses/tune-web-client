@@ -1,3 +1,4 @@
+import { sourceCorrespond } from './provenanceBibliotheque';
 /**
  * Comptes des filtres de la bibliothèque, à jour des AUTRES filtres actifs.
  *
@@ -111,7 +112,7 @@ export function correspond(
   // C'est la même convention que le serveur, qui décode `NULL` en « non ».
   if (sauf !== 'compilation' && f.compilation != null
       && (a.is_compilation ?? false) !== f.compilation) return false;
-  if (sauf !== 'provenance' && f.provenance && o.provenanceDe(a) !== f.provenance) return false;
+  if (sauf !== 'provenance' && !sourceCorrespond(o.provenanceDe(a), f.provenance)) return false;
   // La RECHERCHE n'est pas une facette : elle ne s'exclut jamais. Compter les
   // formats d'albums qui ne correspondent pas au texte tapé n'aurait aucun sens.
   if (f.recherche && !o.plier(a.title).includes(o.plier(f.recherche))
@@ -173,10 +174,8 @@ export function comptesCompilation(
  * bibliothèque de l'utilisateur et que la reléguer derrière un serveur voisin
  * se lirait comme un classement.
  *
- * Une provenance à zéro album n'est pas rendue : un serveur dont tous les
- * albums sont masqués par leur équivalent local (#4146) n'a rien à proposer,
- * et une entrée de menu qui ne filtre sur rien passe pour un bug — même règle
- * que `comptesFormat`, qui ne propose que les formats réellement présents.
+ * Une provenance reste proposée à zéro après application des autres filtres.
+ * Les abonnements sans album visible sont ajoutés par la vue.
  */
 export function comptesProvenance(
   albums: readonly Album[], f: FiltresBibliotheque, o: Outils,
