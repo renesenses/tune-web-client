@@ -4444,6 +4444,18 @@ export default {
   // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
   "session.expiredTitle": "Sesiune expirată",
   "session.expiredBody": "Sesiunea ta s-a încheiat. Conectează-te din nou pentru a relua de unde ai rămas — ecranul pe care îl aveai deschis te așteaptă dedesubt.",
+  "upnp.sync.title": "Sursele bibliotecii",
+  "upnp.sync.add": "Adaugă în bibliotecă",
+  "upnp.sync.hint": "Dosarul ales se va sincroniza în fiecare oră. Fișierele audio rămân pe serverul de origine.",
+  "upnp.sync.whole": "Întregul server",
+  "upnp.sync.last": "Ultima sincronizare:",
+  "upnp.sync.limits": "Limitări de redare",
+  "upnp.sync.refresh": "Sincronizează acum",
+  "upnp.sync.pause": "Suspendă sincronizarea",
+  "upnp.sync.remove": "Au dispărut {n} piese din dosar, peste 20%. Confirmați eliminarea din bibliotecă? Fișierele de pe server nu se modifică.",
+  "upnp.sync.partial": "Scanare incompletă — nimic eliminat",
+  "upnp.sync.confirmation": "Este necesară confirmarea",
+  "upnp.sync.localOnly": "Sunt afișate doar albume locale. Gestionați sursele în Servere multimedia.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

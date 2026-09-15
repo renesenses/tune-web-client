@@ -4444,6 +4444,18 @@ export default {
   // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
   "session.expiredTitle": "セッションの有効期限が切れました",
   "session.expiredBody": "セッションが終了しました。再度サインインすると続きから操作できます。開いていた画面はそのまま下に残っています。",
+  "upnp.sync.title": "ライブラリのソース",
+  "upnp.sync.add": "ライブラリに追加",
+  "upnp.sync.hint": "選択したフォルダーは毎時自動同期されます。音声ファイルは元のサーバーに残ります。",
+  "upnp.sync.whole": "サーバー全体",
+  "upnp.sync.last": "最終同期：",
+  "upnp.sync.limits": "再生の制限",
+  "upnp.sync.refresh": "今すぐ同期",
+  "upnp.sync.pause": "同期を一時停止",
+  "upnp.sync.remove": "フォルダーから{n}曲（20%超）がなくなりました。ライブラリから削除しますか？リモートファイルは変更されません。",
+  "upnp.sync.partial": "スキャン未完了 — 削除なし",
+  "upnp.sync.confirmation": "確認が必要です",
+  "upnp.sync.localOnly": "ローカルアルバムのみが表示されています。メディアサーバーでソースを管理してください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

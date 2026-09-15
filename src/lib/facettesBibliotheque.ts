@@ -181,7 +181,7 @@ export function comptesCompilation(
 export function comptesProvenance(
   albums: readonly Album[], f: FiltresBibliotheque, o: Outils,
 ): [string, number][] {
-  const m = new Map<string, number>();
+  const m = new Map<string, number>(albums.map(a => [o.provenanceDe(a), 0]));
   for (const a of assiette(albums, f, o, 'provenance')) {
     const v = o.provenanceDe(a);
     if (v) m.set(v, (m.get(v) ?? 0) + 1);

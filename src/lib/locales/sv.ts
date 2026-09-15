@@ -4443,4 +4443,16 @@ export default {
   // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
   "session.expiredTitle": "Sessionen har gått ut",
   "session.expiredBody": "Din session har avslutats. Logga in igen för att fortsätta där du var — skärmen du hade öppen väntar kvar under.",
+  "upnp.sync.title": "Bibliotekskällor",
+  "upnp.sync.add": "Lägg till i biblioteket",
+  "upnp.sync.hint": "Den valda mappen synkroniseras varje timme. Ljudfilerna finns kvar på ursprungsservern.",
+  "upnp.sync.whole": "Hela servern",
+  "upnp.sync.last": "Senaste synkronisering:",
+  "upnp.sync.limits": "Begränsningar vid uppspelning",
+  "upnp.sync.refresh": "Synkronisera nu",
+  "upnp.sync.pause": "Pausa synkronisering",
+  "upnp.sync.remove": "{n} spår saknas i mappen, mer än 20 %. Bekräfta att de tas bort ur biblioteket? Filerna på servern ändras inte.",
+  "upnp.sync.partial": "Ofullständig skanning — inget borttaget",
+  "upnp.sync.confirmation": "Bekräftelse krävs",
+  "upnp.sync.localOnly": "Endast lokala album visas. Hantera källorna under Medieservrar.",
 } as const;

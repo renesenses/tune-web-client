@@ -4444,6 +4444,18 @@ export default {
   // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
   "session.expiredTitle": "Sessione scaduta",
   "session.expiredBody": "La tua sessione è terminata. Accedi di nuovo per riprendere da dove eri: la schermata che avevi aperto ti aspetta sotto.",
+  "upnp.sync.title": "Sorgenti della libreria",
+  "upnp.sync.add": "Aggiungi alla libreria",
+  "upnp.sync.hint": "La cartella scelta verrà sincronizzata ogni ora. I file audio restano sul server di origine.",
+  "upnp.sync.whole": "Intero server",
+  "upnp.sync.last": "Ultima sincronizzazione:",
+  "upnp.sync.limits": "Limiti di riproduzione",
+  "upnp.sync.refresh": "Sincronizza ora",
+  "upnp.sync.pause": "Sospendi sincronizzazione",
+  "upnp.sync.remove": "Sono scomparse {n} tracce dalla cartella, oltre il 20%. Confermare la rimozione dalla libreria? I file remoti restano invariati.",
+  "upnp.sync.partial": "Scansione incompleta — nessuna rimozione",
+  "upnp.sync.confirmation": "Conferma richiesta",
+  "upnp.sync.localOnly": "Sono visualizzati solo album locali. Gestisci le sorgenti in Server multimediali.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

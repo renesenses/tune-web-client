@@ -4402,6 +4402,18 @@ export default {
   // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
   "session.expiredTitle": "A munkamenet lejárt",
   "session.expiredBody": "A munkamenet véget ért. Jelentkezzen be újra, hogy onnan folytassa, ahol abbahagyta – a megnyitott képernyő alatta várja.",
+  "upnp.sync.title": "Könyvtárforrások",
+  "upnp.sync.add": "Hozzáadás a könyvtárhoz",
+  "upnp.sync.hint": "A kiválasztott mappa óránként szinkronizálódik. A hangfájlok az eredeti szerveren maradnak.",
+  "upnp.sync.whole": "Teljes szerver",
+  "upnp.sync.last": "Utolsó szinkronizálás:",
+  "upnp.sync.limits": "Lejátszási korlátozások",
+  "upnp.sync.refresh": "Szinkronizálás most",
+  "upnp.sync.pause": "Szinkronizálás szüneteltetése",
+  "upnp.sync.remove": "{n} szám eltűnt a mappából, több mint 20%. Megerősíti eltávolításukat a könyvtárból? A távoli fájlok nem változnak.",
+  "upnp.sync.partial": "Hiányos beolvasás — semmi sem lett eltávolítva",
+  "upnp.sync.confirmation": "Megerősítés szükséges",
+  "upnp.sync.localOnly": "Csak helyi albumok jelennek meg. A forrásokat a Médiaszervereknél kezelheti.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

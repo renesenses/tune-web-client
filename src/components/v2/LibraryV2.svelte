@@ -309,6 +309,14 @@
    * parce qu'un nom manque serait la mauvaise panne.
    */
   let nomsServeurs = $state<Record<string, string>>({});
+  let sourcesIntegrees = $state<string[]>([]);
+  $effect(() => {
+    let alive = true;
+    Promise.resolve().then(() => api.getUpnpLibrarySources()).then(({ items }) => {
+      if (alive) sourcesIntegrees = [...new Set(items.map(s => `upnp:${s.udn}`))];
+    }).catch(() => { /* older servers still expose album provenance */ });
+    return () => { alive = false; };
+  });
   $effect(() => {
     let vivant = true;
     api.getMediaServers()
@@ -527,10 +535,12 @@
 
   const formats = $derived(comptesFormat(src, filtresActifs, outilsFacettes));
   const depths = $derived(comptesProfondeur(src, filtresActifs, outilsFacettes));
-  /** Les provenances présentes, avec leur compte (#4152). La pilule ne
-   *  s'affiche qu'au-delà d'UNE : sur une bibliothèque purement locale, un
-   *  menu à une seule entrée ne filtre rien — même règle que `Format`. */
-  const provenances = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
+  /** Les provenances restent proposées, même à zéro après un autre filtre. */
+  const provenances = $derived.by(() => {
+    const counts = new Map(comptesProvenance(src, filtresActifs, outilsFacettes));
+    for (const source of sourcesIntegrees) if (!counts.has(source)) counts.set(source, 0);
+    return [...counts.entries()];
+  });
   /** Ce que « Toutes les sources » rendrait : la SOMME des provenances, c'est
    *  à dire la même assiette qu'elles — les autres filtres appliqués, celui-ci
    *  non. `matchCount` ne conviendrait pas : il porte déjà la provenance
@@ -1393,12 +1403,9 @@
         bibliothèque on parle. C'est une portée, comme le fil d'Ariane des
         Répertoires — elle précède les critères qu'elle borne.
 
-        Elle n'apparaît qu'à partir de DEUX provenances : sur une
-        bibliothèque purement locale, un menu à une seule entrée ne filtre
-        rien et n'a rien à dire. Même règle que « Format », qui se tait
-        au-dessous de deux valeurs.
+        Toujours visible : une bibliothèque locale explique comment intégrer
+        une source distante. Les autres filtres ne retirent pas ses entrées.
       -->
-      {#if provenances.length > 1}
         <div class="drop" class:open={ddOpen === 'provenance'}>
           <button class="chip" class:active={fProvenance !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'provenance'} onclick={() => ddToggle('provenance')}>{$tr('v2.lib.source' as any)}{#if fProvenance}&nbsp;· {libelleProvenance(fProvenance)}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -1407,12 +1414,15 @@
                  écrite : la retirer obligerait à passer par « Tout », qui
                  efface aussi la qualité, le format et la recherche. -->
             <button class:on={fProvenance === null} onclick={() => { fProvenance = null; ddClose(); }}>{$tr('v2.lib.sourceAll' as any)} <em>{matchCountToutesSources}</em></button>
+            {#if provenances.every(([cle]) => cle === 'local')}
+              <p>{$tr('upnp.sync.localOnly' as any)}</p>
+            {/if}
+            <a href="#mediaservers">{$tr('nav.mediaservers' as any)}</a>
             {#each provenances as [cle, n] (cle)}
               <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{n}</em></button>
             {/each}
           </div>
         </div>
-      {/if}
       <div class="drop" class:open={ddOpen === 'quality'}>
         <button class="chip" class:active={fQuality !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>

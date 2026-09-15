@@ -4464,6 +4464,18 @@ export default {
   // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
   "session.expiredTitle": "Session expired",
   "session.expiredBody": "Your session has ended. Sign in again to pick up where you were — the screen you had open is still waiting underneath.",
+  "upnp.sync.title": "Library sources",
+  "upnp.sync.add": "Add to library",
+  "upnp.sync.hint": "The chosen folder will sync automatically every hour. Audio files stay on the original server.",
+  "upnp.sync.whole": "Entire server",
+  "upnp.sync.last": "Last sync:",
+  "upnp.sync.limits": "Playback limitations",
+  "upnp.sync.refresh": "Sync now",
+  "upnp.sync.pause": "Pause syncing",
+  "upnp.sync.remove": "{n} tracks disappeared from the folder, more than 20%. Confirm their removal from the library? Remote files remain unchanged.",
+  "upnp.sync.partial": "Incomplete scan — nothing removed",
+  "upnp.sync.confirmation": "Confirmation required",
+  "upnp.sync.localOnly": "Only local albums are displayed. Manage sources in Media servers.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
