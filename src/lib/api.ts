@@ -3607,6 +3607,8 @@ export * from './api/metadata';
 // --- Ingest (ajout de contenu à la bibliothèque) ---
 // Voir lib/api/ingest.ts.
 export * from './api/ingest';
+// Voir lib/api/bandcampAchats.ts.
+export * from './api/bandcampAchats';
 
 // --- Radios ---
 
@@ -6230,6 +6232,10 @@ export interface BandcampItem {
   extrait?: string | null;
   qualite?: string;
   lossless?: boolean;
+  /** Lot 3 : la clé d'achat, à passer à `bandcampTelecharger`. */
+  sale_item?: string | null;
+  /** Lot 3 : Bandcamp offre le fichier — vrai seulement avec la session. */
+  downloadable?: boolean;
 }
 
 export interface BandcampCollectionPage {
@@ -6238,6 +6244,8 @@ export interface BandcampCollectionPage {
   items: BandcampItem[];
   more_available: boolean;
   last_token: string | null;
+  /** Lot 3 : la réponse portait des pages de téléchargement (session valide). */
+  downloads_available?: boolean;
 }
 
 /** Lier un compte Bandcamp par son PSEUDO. Aucun mot de passe : la page de
