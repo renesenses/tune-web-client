@@ -56,9 +56,14 @@ describe("Historique dans le nouveau client (Bertrand, 05/09/2026)", () => {
       v2.split('lot.map((x) => x.track)').length - 1,
       'un seul des deux niveaux passe par la liste partagée',
     ).toBe(2);
-    // Il ne redessine plus ni pochette, ni durée, ni fiche technique.
+    // Il ne redessine plus ni pochette, ni durée, ni fiche technique — pour
+    // les PISTES. La seule pochette qu'il rend lui-même est celle de la ligne
+    // d'OBJET (#991), qui n'a pas d'équivalent dans la liste partagée : elle
+    // vit dans le bouton `.objet`, et nulle part ailleurs.
     expect(v2).not.toContain('formatDuration');
-    expect(v2).not.toContain('AlbumArt');
+    expect(v2.split('<AlbumArt').length - 1, 'une seule pochette rendue ici').toBe(1);
+    const objet = v2.slice(v2.indexOf('<button class="objet"'), v2.indexOf('</button>', v2.indexOf('<button class="objet"')));
+    expect(objet).toContain('<AlbumArt');
     // Ne restent que les deux colonnes qui lui sont propres.
     expect(v2).toContain('depuis(e.playedAt)');
     expect(v2).toContain('basculerFav');

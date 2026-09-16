@@ -15,6 +15,8 @@ export interface V2SettingsTarget {
   tab: V2SettingsTabId;
   /** Section à mettre en avant, si la navigation vient d'une recherche. */
   section?: string;
+  /** #1006 — la carte de zone mène à SES réglages : la fiche de cette zone est mise en avant. */
+  zone?: number;
 }
 
 export const v2SettingsTarget = writable<V2SettingsTarget | null>(null);
