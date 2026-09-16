@@ -4110,6 +4110,8 @@ export default {
   "v2.tags.noTrackWithTag": "Kein Titel trägt dieses Tag.",
   "v2.tags.noPlaylistWithTag": "Keine Playlist trägt dieses Tag.",
   "v2.album.play": "Abspielen",
+  "v2.album.cue": "CUE",
+  "v2.album.cueTip": "Album aus einem Audio-Image und seinem CUE-Sheet aufgeteilt",
   "v2.album.shuffle": "Zufall",
   "v2.album.locate": "Auf der Festplatte anzeigen",
   "v2.album.playNext": "Als Nächstes",

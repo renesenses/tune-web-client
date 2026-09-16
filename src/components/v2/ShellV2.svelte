@@ -144,6 +144,14 @@
    * fonction revient. Le portage à la manière v2 reste à faire.
    */
   import PlaylistManagerView from '../v2-heritage/PlaylistManagerView.svelte';
+  /**
+   * #1011 — Fabien : « Comment créer une playlist intelligente pour obtenir
+   * des titres avec des critères ? » L'éditeur existait (`SmartPlaylistsView`)
+   * et la vue `smartplaylists` aussi — mais cette coquille ne la montait pas :
+   * l'onglet « Intelligentes » de l'écran Playlists listait sans jamais
+   * permettre d'en créer une. « Écrit mais pas branché », une fois de plus.
+   */
+  import SmartPlaylistsView from '../v2-heritage/SmartPlaylistsView.svelte';
   import AmbianceView from '../v2-heritage/AmbianceView.svelte';
   import BrowseView from '../v2-heritage/BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
@@ -246,6 +254,7 @@
     crossfeed: 'v2.nav.crossfeed', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
     alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
+    smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager',
   };
   const label = $derived(
     LABELS[$activeView] ? $t(LABELS[$activeView] as any) : $activeView,
@@ -677,6 +686,8 @@
         <OxygenView />
       {:else if $activeView === 'ambiance'}
         <AmbianceView />
+      {:else if $activeView === 'smartplaylists'}
+        <SmartPlaylistsView />
       {:else if $activeView === 'playlistmanager'}
         <!-- `onAddToPlaylist` non fournie, comme pour BrowseView : mieux vaut
              un bouton absent qu'un bouton mort. -->

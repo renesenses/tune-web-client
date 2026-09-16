@@ -173,6 +173,10 @@ export interface Track {
   track_number?: number;
   duration_ms?: number;
   file_path?: string | null;
+  /** #862 — la piste est DÉCOUPÉE dans une image (APE/FLAC/MP3 + feuille CUE) : le chemin de l'image. */
+  cue_media_path?: string | null;
+  cue_start_ms?: number | null;
+  cue_end_ms?: number | null;
   format?: AudioFormat | null;
   sample_rate?: number | null;
   bit_depth?: number | null;

@@ -6,7 +6,7 @@
    * Densité par niveau :
    *   Essentiel → favoris en tête, puis toutes les stations. Lecture, favori.
    *   Avancé    → filtres par genre + recherche.
-   *   Expert    → codec et pays affichés sur la vignette.
+   *   Avancé+   → codec et pays affichés sur la vignette (#863 : Expert seul avant).
    *
    * Subtilité reprise de l'écran actuel, à ne pas perdre : sur une zone
    * NAVIGATEUR, le serveur ne peut pas sortir le son — il renvoie l'URL du
@@ -274,7 +274,10 @@
     </span>
     <span class="nm">{r.name}</span>
     {#if r.genre}<span class="gn">{r.genre}</span>{/if}
-    {#if showExpert && tech(r)}<span class="tk">{tech(r)}</span>{/if}
+    <!-- #863 — Jean Valjean : « pouvoir voir le format d'émission ». Le codec
+         existait, réservé à Expert ; il se lit dès Avancé, comme les filtres.
+         Essentiel reste épuré. -->
+    {#if showFilters && tech(r)}<span class="tk">{tech(r)}</span>{/if}
   </div>
 {/snippet}
 

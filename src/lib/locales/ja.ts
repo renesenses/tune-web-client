@@ -4110,6 +4110,8 @@ export default {
   "v2.tags.noTrackWithTag": "このタグを持つ曲はありません。",
   "v2.tags.noPlaylistWithTag": "このタグを持つプレイリストはありません。",
   "v2.album.play": "再生",
+  "v2.album.cue": "CUE",
+  "v2.album.cueTip": "オーディオイメージと CUE シートから分割されたアルバム",
   "v2.album.shuffle": "シャッフル",
   "v2.album.locate": "ディスク上で表示",
   "v2.album.playNext": "次に再生",
