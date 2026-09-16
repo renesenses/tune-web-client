@@ -3455,6 +3455,7 @@ export default {
   "v2.home.emptyHint": "Pagina dumneavoastră este goală. Treceți la „Modifică” pentru a adăuga widgeturi.",
   "v2.home.widgetEmpty": "Deocamdată nu este nimic de arătat aici.",
   "v2.home.widgetFailed": "Acest widget nu a putut fi încărcat.",
+  "v2.home.widgetUnsupported": "Acest serviciu nu oferă această secțiune.",
   "v2.home.wZones": "Zone care redau acum",
   "v2.svc.eyebrow": "Editorial",
   "v2.svc.wNew": "Noutăți",

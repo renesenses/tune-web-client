@@ -3413,6 +3413,7 @@ export default {
   "v2.home.emptyHint": "Az oldala üres. Váltson „Szerkesztés” módba widgetek hozzáadásához.",
   "v2.home.widgetEmpty": "Itt egyelőre nincs mit mutatni.",
   "v2.home.widgetFailed": "Ezt a widgetet nem sikerült betölteni.",
+  "v2.home.widgetUnsupported": "Ez a szolgáltatás nem kínálja ezt a rovatot.",
   "v2.home.wZones": "Most szóló zónák",
   "v2.svc.eyebrow": "Szerkesztőségi",
   "v2.svc.wNew": "Újdonságok",

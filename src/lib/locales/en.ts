@@ -2187,6 +2187,7 @@ export default {
   "v2.home.emptyHint": "Your page is empty. Use “Edit” to add widgets.",
   "v2.home.widgetEmpty": "Nothing to show here yet.",
   "v2.home.widgetFailed": "This widget could not be loaded.",
+  "v2.home.widgetUnsupported": "This service does not offer this section.",
   "v2.home.wZones": "Zones playing now",
   "v2.svc.eyebrow": "Editorial",
   "v2.svc.wNew": "New releases",

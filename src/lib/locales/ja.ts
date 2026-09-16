@@ -3455,6 +3455,7 @@ export default {
   "v2.home.emptyHint": "ページが空です。「編集」に切り替えてウィジェットを追加してください。",
   "v2.home.widgetEmpty": "ここに表示できるものは今のところありません。",
   "v2.home.widgetFailed": "このウィジェットを読み込めませんでした。",
+  "v2.home.widgetUnsupported": "このサービスにはこの項目はありません。",
   "v2.home.wZones": "再生中のゾーン",
   "v2.svc.eyebrow": "エディトリアル",
   "v2.svc.wNew": "新着",

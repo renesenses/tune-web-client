@@ -2190,6 +2190,7 @@ export default {
   "v2.home.emptyHint": "Votre page est vide. Passez en « Modifier » pour y ajouter des widgets.",
   "v2.home.widgetEmpty": "Rien à montrer ici pour l’instant.",
   "v2.home.widgetFailed": "Ce widget n’a pas pu être chargé.",
+  "v2.home.widgetUnsupported": "Ce service ne propose pas cette rubrique.",
   "v2.home.wZones": "Zones d’écoute actives",
   "v2.svc.eyebrow": "Éditorial",
   "v2.svc.wNew": "Nouveautés",
