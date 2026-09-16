@@ -42,6 +42,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import RenommerModale from './RenommerModale.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -490,6 +492,34 @@
    * du nouveau client ouvrent l'album et laissent les gestes a la pochette.
    */
   let fiche = $state<any | null>(null);
+  /**
+   * 🔴 LE CALQUE ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #980.
+   *
+   * Fabien, fils 1774 et 1778 : « quand on clique sur un album → page album, le
+   * bouton BACK du navigateur retourne à la page d'accueil » / « à l'avant-
+   * dernière page consultée ».
+   *
+   * Une fiche album est un CALQUE : l'ouvrir ne change pas `activeView`, donc
+   * la coquille n'écrit rien et le Précédent dépile l'entrée d'AVANT. Mesuré :
+   * dix écrans montent `AlbumDetailV2`, et deux seulement empilaient.
+   *
+   * Trois branchements, et il en faut trois : ouvrir empile, le Retour referme
+   * ET dépile, le Précédent referme le calque. On pose la CLÉ, jamais l'objet —
+   * `history.state` refuse les proxies Svelte.
+   */
+  function ouvrirCalqueAlbum(a: any) {
+    const cle = cleDetailAlbum(a);
+    if (cle) ouvrirDetail(cle);
+  }
+  function fermerCalqueAlbum() {
+    fiche = null;
+  }
+  function retourCalqueAlbum() {
+    fermerDetailEnReculant(fermerCalqueAlbum);
+  }
+  $effect(() => {
+    if ($detailOuvert == null && fiche) fermerCalqueAlbum();
+  });
   let albumEnEdition = $state<any | null>(null);
 
   async function lireAlbum(a: any, ev?: MouseEvent) {
@@ -567,13 +597,13 @@
                 etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
                 onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                 onLire={() => lireAlbum(a)}
-                onOuvrir={() => (fiche = a)}
+                onOuvrir={() => { ouvrirCalqueAlbum(a); fiche = a; }}
                 nom={a.title}
               >
                 <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
               </PochetteActions>
             </span>
-            <button class="meta" onclick={() => (fiche = a)}>
+            <button class="meta" onclick={() => { ouvrirCalqueAlbum(a); fiche = a; }}>
               <span class="ct" title={a.title}>{a.title}</span>
               <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
             </button>
@@ -707,7 +737,7 @@
   {/if}
 
   {#if fiche}
-    <AlbumDetailV2 album={fiche} onClose={() => (fiche = null)} />
+    <AlbumDetailV2 album={fiche} onClose={retourCalqueAlbum} />
   {/if}
 
   {#if albumEnEdition}

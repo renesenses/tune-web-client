@@ -57,6 +57,8 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
@@ -405,6 +407,25 @@
    */
   let enEdition = $state<any | null>(null);
   let ficheOuverte = $state<any | null>(null);
+  /**
+   * 🔴 LE CALQUE ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #980. Voir le même
+   * bloc dans `FavoritesV2` : ouvrir empile, le Retour referme ET dépile, le
+   * Précédent referme le calque.
+   */
+  function ouvrirCalqueAlbum(a: any) {
+    const cle = cleDetailAlbum(a);
+    if (cle) ouvrirDetail(cle);
+  }
+  function fermerCalqueAlbum() {
+    ficheOuverte = null;
+    serviceOuvert = null;
+  }
+  function retourCalqueAlbum() {
+    fermerDetailEnReculant(fermerCalqueAlbum);
+  }
+  $effect(() => {
+    if ($detailOuvert == null && ficheOuverte) fermerCalqueAlbum();
+  });
   let serviceOuvert = $state<string | null>(null);
 
   /**
@@ -420,6 +441,7 @@
       return;
     }
     if (e.ouvrir === 'album' && e.fiche) {
+      ouvrirCalqueAlbum(e.fiche);
       ficheOuverte = e.fiche;
       // La fiche distingue local et service par CE drapeau : avec lui elle va
       // chercher les pistes chez le service, sans lui dans la bibliotheque.
@@ -804,7 +826,7 @@
 </section>
 
 {#if ficheOuverte}
-  <AlbumDetailV2 album={ficheOuverte} service={serviceOuvert} onClose={() => { ficheOuverte = null; serviceOuvert = null; }} />
+  <AlbumDetailV2 album={ficheOuverte} service={serviceOuvert} onClose={retourCalqueAlbum} />
 {/if}
 
 {#if enEdition}
