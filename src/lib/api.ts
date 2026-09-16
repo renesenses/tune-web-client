@@ -6139,6 +6139,34 @@ export function listMetadataProposals(
 }
 
 /** `accept: false` compte comme une voix pour la valeur qu'on possede deja. */
+/**
+ * Graver le Dynamic Range calculé par Tune dans les fichiers (16/09/2026).
+ *
+ * `GET` rend l'inventaire ET le dernier état de la passe : `a_graver` (calculés
+ * par Tune, conteneur relu par le scan), `hors_format` (calculés, mais MP3/M4A…
+ * que le scan ne relit pas — donc jamais gravés), `dans_les_fichiers`
+ * (`dr_source = tag`). Pendant la passe, `status = running` et les compteurs
+ * `written / already / skipped / errors` avancent ; à la fin `status = done`.
+ */
+export interface GravureDrEtat {
+  status: 'idle' | 'running' | 'done';
+  a_graver: number;
+  hors_format: number;
+  dans_les_fichiers: number;
+  total?: number;
+  written?: number;
+  already?: number;
+  skipped?: number;
+  errors?: number;
+}
+export function getGravureDr(): Promise<GravureDrEtat> {
+  return apiFetch('/library/dr/gravure');
+}
+/** 202 accepté ; 409 si la passe tourne déjà. */
+export function lancerGravureDr(): Promise<{ status: string; total: number; hors_format: number }> {
+  return apiPost('/library/dr/gravure', {});
+}
+
 export function decideMetadataProposal(
   id: number,
   accept: boolean,
