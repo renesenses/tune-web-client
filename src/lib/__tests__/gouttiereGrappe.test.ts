@@ -210,7 +210,8 @@ describe('La gouttière de la grappe', () => {
 
   it('🔴 la coquille mesure vraiment, et applique la règle', () => {
     const shell = readFileSync('src/components/v2/ShellV2.svelte', 'utf8');
-    expect(shell).toContain("import { reserveDeLaGrappe } from '../../lib/gouttiereGrappe'");
+    // #1045 — la réserve VERTICALE voyage dans le même import.
+    expect(shell).toContain("import { reserveDeLaGrappe, reserveHauteDeLaGrappe } from '../../lib/gouttiereGrappe'");
     expect(shell).toContain('new ResizeObserver(poser)');
     expect(shell).toContain("c.style.setProperty('--v2-grappe-w'");
     expect(shell).toContain('bind:this={grappeEl}');

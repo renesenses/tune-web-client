@@ -4000,6 +4000,7 @@ export default {
   "v2.rech.show": "표시",
   "v2.rech.artists": "아티스트",
   "v2.rech.albums": "앨범",
+  "v2.stream.favIndex": "즐겨찾기 목차",
   "v2.fas.topTracks": "인기 트랙",
   "v2.fas.albums": "앨범",
   "v2.fas.empty": "이 아티스트에 대해 표시할 내용이 없습니다.",

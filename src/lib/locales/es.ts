@@ -4000,6 +4000,7 @@ export default {
   "v2.rech.show": "Mostrar",
   "v2.rech.artists": "Artistas",
   "v2.rech.albums": "Álbumes",
+  "v2.stream.favIndex": "Índice de favoritos",
   "v2.fas.topTracks": "Temas destacados",
   "v2.fas.albums": "Álbumes",
   "v2.fas.empty": "No hay nada que mostrar para este artista.",

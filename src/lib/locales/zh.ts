@@ -4000,6 +4000,7 @@ export default {
   "v2.rech.show": "显示",
   "v2.rech.artists": "艺人",
   "v2.rech.albums": "专辑",
+  "v2.stream.favIndex": "收藏目录",
   "v2.fas.topTracks": "热门单曲",
   "v2.fas.albums": "专辑",
   "v2.fas.empty": "该艺术家暂无可显示的内容。",
