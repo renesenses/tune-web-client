@@ -3257,6 +3257,20 @@ export function getStreamingPlaylists(service: string) {
   return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`);
 }
 
+/**
+ * UNE playlist d'un service, par son identifiant — #988.
+ *
+ * `GET /streaming/{service}/playlists/{id}` rend `{ name, cover_path,
+ * description, owner, source_id, track_count }` (mesuré sur la .18 en
+ * v0.9.151). L'Historique s'en sert pour nommer une playlist de service
+ * jouée, que `/library/history` ne sait pas nommer.
+ */
+export function getStreamingPlaylist(service: string, id: string) {
+  return fetchJSON<{ name?: string | null; cover_path?: string | null; source_id?: string }>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(id)}`,
+  );
+}
+
 export function getStreamingFavorites(service: string, type: 'tracks' | 'albums' | 'artists') {
   return fetchJSON<Record<string, any[]>>(`${BASE}/streaming/${encodeURIComponent(service)}/favorites/${type}`)
     .then(data => {
