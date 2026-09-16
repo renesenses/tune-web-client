@@ -42,6 +42,7 @@
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
+  import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
@@ -1344,6 +1345,45 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * Le bouton ne revient pas à son état initial : le serveur est mort,
    * proposer de recommencer donnerait à croire que ça n'a pas marché.
    */
+  /**
+   * Fabien, fil 1780 (16/09/2026), point 3 : « v1 : menu paramètres -
+   * Système : il manque le bouton Télécharger les logs et diagnostics ».
+   * Les deux gestes existaient dans la coquille actuelle (`SettingsView`,
+   * `downloadLogs` / `downloadDiagnostics`) ; ils passent par les MÊMES
+   * fonctions — `telechargerJournaux` (lib/journaux) et
+   * `api.downloadDiagnosticsBundle` — pour ne pas fabriquer une troisième
+   * copie du téléchargement.
+   */
+  let journauxEnCours = $state(false);
+  let diagnosticEnCours = $state(false);
+  async function telechargerLesJournaux() {
+    journauxEnCours = true;
+    try {
+      await telechargerJournaux({ siVide: get(t)('diagnostics.noLogs' as any) });
+    } catch (err: any) {
+      notifications.error(get(t)('settings.logsError' as any) + ': ' + (err?.message ?? get(t)('common.serverUnreachable' as any)));
+    } finally {
+      journauxEnCours = false;
+    }
+  }
+  async function telechargerLeDiagnostic() {
+    diagnosticEnCours = true;
+    try {
+      const { blob, filename } = await api.downloadDiagnosticsBundle();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      notifications.error(get(t)('settings.diagnosticError' as any) + ': ' + (err?.message ?? get(t)('common.serverUnreachable' as any)));
+    } finally {
+      diagnosticEnCours = false;
+    }
+  }
   async function arreterLeServeur() {
     if (!(await dialogs.confirm(get(t)('settings.stopServerConfirm' as any), { danger: true }))) return;
     arretEnCours = true;
@@ -2822,6 +2862,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </button>
                 <button class="lnk danger" disabled={arretEnCours} onclick={arreterLeServeur}>
                   {arretEnCours ? $t('settings.stoppingServer' as any) : $t('settings.stopServer' as any)}
+                </button>
+              </div>
+              <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici
+                   comme dans la coquille actuelle. -->
+              <div class="inline">
+                <button class="lnk" disabled={journauxEnCours} onclick={telechargerLesJournaux}>
+                  {$t('settings.downloadLogs' as any)}
+                </button>
+                <button class="lnk" disabled={diagnosticEnCours} onclick={telechargerLeDiagnostic}
+                  title={$t('settings.downloadDiagTitle' as any)}>
+                  {$t('settings.downloadDiag' as any)}
                 </button>
               </div>
 

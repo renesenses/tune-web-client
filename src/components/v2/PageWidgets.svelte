@@ -131,7 +131,7 @@
    */
   interface Etat {
     id: string;
-    phase: 'attente' | 'charge' | 'echec';
+    phase: 'attente' | 'charge' | 'echec' | 'non-propose';
     elements: Element[];
     chiffres: { cle: string; valeur: string }[];
     raison?: string;
@@ -291,6 +291,13 @@
           : { phase: 'charge', elements: r ?? [] });
       })
       .catch((err: any) => {
+        // #859 — un 501 n'est PAS une panne : le service ne propose pas cette
+        // rubrique (Bandcamp n'a pas de playlists de compte, et le dit par un
+        // 501 depuis la .147). FabienM lisait « 502 Bad Gateway », puis
+        // « 501 Not Implemented » — un code HTTP brut, sur une bande qui
+        // n'avait rien à charger. On le dit en clair, sans rouge ni bouton
+        // « réessayer » : réessayer ne changera rien.
+        if (err?.status === 501) { majEtat(id, { phase: 'non-propose' }); return; }
         // On DIT ce qui a échoué, et POURQUOI : une bande vide se lit comme
         // « rien à montrer », et on cherche alors un défaut de bibliothèque.
         majEtat(id, {
@@ -669,6 +676,8 @@
 
             {#if !et || et.phase === 'attente'}
               <div class="state mince">{$t('common.loading' as any)}</div>
+            {:else if et.phase === 'non-propose'}
+              <div class="state mince">{$t('v2.home.widgetUnsupported' as any)}</div>
             {:else if et.phase === 'echec'}
               <!-- #871 — le message DIT ce qui a échoué, le bouton permet d'y
                    revenir. Sans lui, la seule issue était F5 : les quatre
