@@ -41,6 +41,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { activeView, gestesNavigationService, pendingLibraryAlbum, pendingLibraryArtist } from '../../lib/stores/navigation';
   import { destinationAlbum } from '../../lib/routageAlbum';
+  import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
   import TrackContextMenu from './TrackContextMenu.svelte';
   import type { Track } from '../../lib/types';
@@ -106,15 +107,27 @@
       ? { service: d.service, albumId: d.albumId, titre: d.titre }
       : null;
   });
+  // 🔴 #956 — `destinationArtiste` tranche : une piste de service porte un
+  // `artist_id` de SERVICE, qui n'est pas une clé de bibliothèque.
+  const destination = $derived(destinationArtiste({
+    source: local ? 'local' : (piste.source ?? null),
+    artist_id: piste.artist_id as any,
+    artist_name: piste.artist_name ?? null,
+  }));
   const artisteDeService = $derived.by(() => {
-    if (local || !$gestesNavigationService) return null;
-    const nom = (piste.artist_name ?? '').trim();
-    return piste.source && nom ? { service: piste.source as string, nom } : null;
+    if (local || !$gestesNavigationService || !destination) return null;
+    if (destination.type === 'artiste-service') {
+      return { service: destination.service, nom: destination.nom, id: destination.id };
+    }
+    if (destination.type === 'recherche' && destination.source && destination.source !== 'local') {
+      return { service: destination.source, nom: destination.requete };
+    }
+    return null;
   });
   /** Aller à l'artiste : le relais de l'écran, la fiche de bibliothèque, ou le service. */
   const allerArtiste = $derived(
-    onAllerArtiste ?? (piste.artist_id != null
-      ? () => { pendingLibraryArtist.set(piste.artist_id!); activeView.set('library'); }
+    onAllerArtiste ?? (destination?.type === 'artiste'
+      ? () => { pendingLibraryArtist.set((destination as any).artistId); activeView.set('library'); }
       : artisteDeService
         ? () => { $gestesNavigationService?.ouvrirArtiste(artisteDeService!); }
         : undefined),

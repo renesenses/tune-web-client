@@ -46,6 +46,22 @@ export type DestinationArtiste =
    */
   | { type: 'artiste-par-nom'; nom: string }
   /**
+   * La fiche d'un artiste de SERVICE, par identifiant — #956.
+   *
+   * 🔴 Mesuré sur la .18 le 16/09/2026 (v0.9.151) : un album ou une piste
+   * Qobuz servi par `/search` ou `/streaming/qobuz/…` porte
+   * `artist_id: "610403"` — l'identifiant de l'artiste CHEZ QOBUZ, en chaîne.
+   * La règle « `artist_id != null` = artiste local » ne tenait que pour la
+   * lecture en cours (`NowPlaying.artist_id: Option<i64>`, bibliothèque
+   * seule), et envoyait Sandro et Fabien dans la Bibliothèque à la recherche
+   * d'un artiste 610403 qui n'y est pas — « ça me renvoie sur la liste des
+   * albums », « à la page d'accueil ».
+   *
+   * Quand la source est un service, l'identifiant est celui du service : la
+   * fiche s'ouvre directement, sans résoudre le nom par une recherche.
+   */
+  | { type: 'artiste-service'; service: string; id: string; nom: string }
+  /**
    * L'écran Recherche.
    *
    * `source` restreint le périmètre au service d'où vient la piste, ou vaut
@@ -55,8 +71,15 @@ export type DestinationArtiste =
 
 export interface PisteEcoutee {
   source?: string | null;
-  artist_id?: number | null;
+  /** Un nombre pour la bibliothèque ; une chaîne (ou un nombre, Deezer) pour un service. */
+  artist_id?: number | string | null;
   artist_name?: string | null;
+}
+
+/** La source est-elle un SERVICE — ni la bibliothèque, ni une radio, ni inconnue ? */
+export function estUnService(source: string | null | undefined): boolean {
+  const s = (source ?? '').toLowerCase();
+  return s !== '' && s !== LOCAL && s !== RADIO;
 }
 
 /**
@@ -73,10 +96,22 @@ export function destinationArtiste(piste: PisteEcoutee | null | undefined): Dest
   const nom = piste?.artist_name?.trim() ?? '';
   const source = piste?.source ?? null;
 
+  const id = piste?.artist_id;
+
+  // 0. SERVICE avec identifiant — #956 : l'identifiant est celui du service,
+  //    quel que soit son type (Qobuz le sert en chaîne, Deezer en nombre).
+  //    Il ne désigne RIEN dans la bibliothèque, et ouvre la fiche directement.
+  if (estUnService(source) && id != null && String(id).trim() !== '') {
+    return { type: 'artiste-service', service: source as string, id: String(id).trim(), nom };
+  }
+
   // 1. LOCAL — l'identifiant prime sur tout le reste : c'est la seule donnée
   //    qui désigne l'artiste sans ambiguïté. « M » et « -M- » sont le même
-  //    artiste et deux chaînes différentes.
-  if (piste?.artist_id != null) return { type: 'artiste', artistId: piste.artist_id };
+  //    artiste et deux chaînes différentes. Un identifiant de bibliothèque est
+  //    un NOMBRE ; une chaîne sans source connue n'est pas une clé locale.
+  if (typeof id === 'number' && Number.isFinite(id) && !estUnService(source)) {
+    return { type: 'artiste', artistId: id };
+  }
   if (source === LOCAL && nom) return { type: 'artiste-par-nom', nom };
 
   // Sans nom, il n'y a rien à chercher : aucun geste plutôt qu'un geste mort.
