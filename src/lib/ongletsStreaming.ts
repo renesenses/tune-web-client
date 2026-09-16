@@ -62,6 +62,8 @@
  * la régression que `tune-server-rust#2778` avait justement réparée.
  */
 
+import { ordonnerSources } from './rechercheClassement';
+
 /** La clé LOCALE au client de l'onglet servi par l'extension serveur. */
 export const BANDCAMP_EXT = '__bandcamp__';
 
@@ -84,9 +86,14 @@ export interface EtatService {
 export function servicesConnectes(
   services: Record<string, EtatService> | null | undefined,
 ): string[] {
-  return Object.entries(services ?? {})
-    .filter(([, v]) => !!v?.enabled && !!v?.authenticated)
-    .map(([k]) => k);
+  // #998 — par PRÉFÉRENCE, pas dans l'ordre alphabétique où le serveur
+  // sérialise ses clés : Qobuz avant Bandcamp (FabienM, fil 1774, point 9).
+  return ordonnerSources(
+    Object.entries(services ?? {})
+      .filter(([, v]) => !!v?.enabled && !!v?.authenticated)
+      .map(([k]) => k),
+    (k) => k,
+  );
 }
 
 /**

@@ -541,6 +541,14 @@
 
     if (dest.type === 'artiste') { await ouvrirFicheArtiste(dest.artistId, artistName); return; }
 
+    // #956 — l'identifiant du service est déjà là : la fiche directement, si
+    // la coquille sait l'ouvrir ; sinon la recherche, comme avant.
+    if (dest.type === 'artiste-service') {
+      if (gestesService) { gestesService.ouvrirArtiste({ service: dest.service, nom: dest.nom, id: dest.id }); return; }
+      ouvrirRecherche(dest.nom, dest.service);
+      return;
+    }
+
     if (dest.type === 'artiste-par-nom') {
       // Une piste locale d'un serveur antérieur à la 0.9.102 n'a pas
       // d'`artist_id` : l'artiste EST en bibliothèque, il ne manque que son

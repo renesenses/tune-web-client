@@ -96,10 +96,21 @@
     salut = false,
   }: Props = $props();
 
+  /** Ce que le catalogue a appris après le montage — #987. */
+  let appris = $state<Widget[]>([]);
+  const catalogueComplet = $derived([...catalogue, ...appris]);
   /** Recherche DANS le catalogue de cette page, jamais dans le registre global. */
-  const parId = (id: string) => catalogue.find((w) => w.id === id);
+  const parId = (id: string) => catalogueComplet.find((w) => w.id === id);
 
   let disposition = $state<string[]>([...dispositionDefaut]);
+  /**
+   * #987 — la disposition TELLE QU'ENREGISTRÉE, identifiants inconnus compris.
+   * Le catalogue de l'accueil apprend des widgets APRÈS le montage (les
+   * catégories de playlists Qobuz) ; sans cette copie, un widget choisi hier
+   * serait retiré de la disposition au chargement, avant même que le
+   * catalogue ait pu le nommer — et perdu au prochain enregistrement.
+   */
+  let dispositionEnregistree: string[] | null = null;
   let charge = $state(false);
   let edition = $state(false);
   let ajoutOuvert = $state(false);
@@ -170,7 +181,7 @@
     ]);
   }
 
-  const disponibles = $derived(catalogue.filter((w) => !disposition.includes(w.id)));
+  const disponibles = $derived(catalogueComplet.filter((w) => !disposition.includes(w.id)));
 
   // ── Carte de zone (widget « En écoute ») ────────────────────────────────
   //
@@ -223,7 +234,8 @@
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
       if (Array.isArray(d) && d.length) {
-        disposition = d.filter((id: any) => typeof id === 'string' && parId(id));
+        dispositionEnregistree = d.filter((id: any) => typeof id === 'string');
+        disposition = dispositionEnregistree.filter((id) => parId(id));
       }
     } catch {
       // Préférences illisibles : on garde la disposition par défaut plutôt que
@@ -349,6 +361,26 @@
    */
   function chargerTout() {
     for (const id of disposition) chargerWidget(id);
+  }
+
+  /**
+   * #987 — le catalogue APPREND des widgets après le montage (les catégories
+   * de playlists Qobuz, que l'accueil demande). C'est un GESTE du parent, pas
+   * un effet : `chargerWidget` écrit `etats`, et un effet qui l'appelle
+   * reprend la boucle de dépendance racontée sous `chargerTout`.
+   *
+   * Ceux qu'une disposition enregistrée citait reviennent à leur place, et
+   * se chargent. Si les préférences ne sont pas encore lues, `charger()` les
+   * retrouvera lui-même : `parId` connaît désormais ces identifiants.
+   */
+  export function apprendreCatalogue(nouveaux: Widget[]) {
+    appris = nouveaux.filter((w) => !catalogue.some((c) => c.id === w.id));
+    const memo = dispositionEnregistree;
+    if (!charge || !memo) return;
+    const revenus = memo.filter((id) => !disposition.includes(id) && parId(id));
+    if (!revenus.length) return;
+    disposition = memo.filter((id) => disposition.includes(id) || revenus.includes(id));
+    for (const id of revenus) chargerWidget(id);
   }
 
   /**

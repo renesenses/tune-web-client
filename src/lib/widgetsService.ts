@@ -202,26 +202,7 @@ export async function catalogueService(service: string): Promise<Widget[]> {
    *
    * Les playlists sont DÉJÀ en main : `charger` ne relance rien, il découpe.
    */
-  for (const groupe of liste(groupesPlaylists)) {
-    const gid = texte(groupe, 'id');
-    const label = texte(groupe, 'name');
-    const contenu = liste(groupe?.playlists);
-    // Une catégorie vide ne mérite pas sa bande : c'est la garde `utiles`,
-    // appliquée un cran plus haut.
-    if (!gid || !label || !contenu.length) continue;
-    w.push({
-      id: `${service}-tag-${gid}`,
-      cleTitre: label,
-      forme: 'bande',
-      categorie: 'playlists-editoriales',
-      charger: async () =>
-        utiles(
-          contenu
-            .slice(0, LIMITE)
-            .map((o, i) => playlistDistante(o, i, `${service}t${gid}`, service)),
-        ),
-    });
-  }
+  w.push(...widgetsCategoriesPlaylists(service, groupesPlaylists));
 
   /**
    * 🔴 LES ALBUMS FAVORIS — `renesenses/tune-web-client#911`.
@@ -362,3 +343,50 @@ export const cleService = (service: string) => `editorial_${service}_widgets`;
 
 /** Libellé de l'écran, pour l'en-tête de `PageWidgets`. */
 export const titreService = (service: string) => nom(service);
+
+/**
+ * Une rangée par CATÉGORIE de playlists éditoriales — #3827.
+ *
+ * Partagé entre l'écran du service et l'ACCUEIL (#987) : FabienM, fil 1774,
+ * point 6 — « Widgets du menu accueil : il manque les playlists Qobuz (alors
+ * que le widget playlist Qobuz est bien présent dans le menu streaming) ».
+ * Les identifiants (`<service>-tag-<id>`) sont les mêmes sur les deux pages ;
+ * leurs dispositions, elles, sont rangées sous des clés distinctes.
+ */
+export function widgetsCategoriesPlaylists(service: string, groupesPlaylists: any): Widget[] {
+  const w: Widget[] = [];
+  for (const groupe of liste(groupesPlaylists)) {
+    const gid = texte(groupe, 'id');
+    const label = texte(groupe, 'name');
+    const contenu = liste(groupe?.playlists);
+    // Une catégorie vide ne mérite pas sa bande : c'est la garde `utiles`,
+    // appliquée un cran plus haut.
+    if (!gid || !label || !contenu.length) continue;
+    w.push({
+      id: `${service}-tag-${gid}`,
+      cleTitre: label,
+      forme: 'bande',
+      categorie: 'playlists-editoriales',
+      charger: async () =>
+        utiles(
+          contenu
+            .slice(0, LIMITE)
+            .map((o, i) => playlistDistante(o, i, `${service}t${gid}`, service)),
+        ),
+    });
+  }
+
+  return w;
+}
+
+/**
+ * Les catégories de playlists d'un service, pour l'ACCUEIL — #987.
+ *
+ * Un seul appel, comme sur l'écran du service. Un service absent, non
+ * connecté ou qui ne répond pas ne rend RIEN : l'accueil se monte sans
+ * attendre, et n'apprend ces widgets que s'ils existent.
+ */
+export async function categoriesPlaylistsPourAccueil(service = 'qobuz'): Promise<Widget[]> {
+  const groupes = await api.getStreamingFeaturedPlaylistsByTag(service).catch(() => []);
+  return widgetsCategoriesPlaylists(service, groupes);
+}

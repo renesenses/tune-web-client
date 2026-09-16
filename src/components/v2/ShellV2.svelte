@@ -384,7 +384,15 @@
    * ouvert sur la source. Un écran vide serait pire que la recherche qu'il
    * remplace.
    */
-  async function ouvrirArtisteServiceParNom(c: { service: string; nom: string }) {
+  async function ouvrirArtisteServiceParNom(c: { service: string; nom: string; id?: string | null }) {
+    // #956 — l'identifiant du service est déjà là (album ou piste servis par
+    // le service) : on ouvre la fiche sans rien deviner.
+    if (c.id != null && String(c.id).trim() !== '') {
+      vueDeRetour.set('nowplaying');
+      ficheArtisteService.set({ service: c.service as any, id: String(c.id).trim(), nom: c.nom });
+      activeView.set('streamingartist');
+      return;
+    }
     const issue = await resoudreArtisteDeService(c, async (nom, service) => {
       const r = await api.federatedSearch(nom, [service], 5);
       return r?.services?.[service]?.artists ?? [];
