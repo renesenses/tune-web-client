@@ -7,6 +7,14 @@ export interface AudioLevels {
   rms_right_db: number;
   peak_left_db: number;
   peak_right_db: number;
+  /**
+   * Surcharge constatée par le serveur dans la fenêtre : au moins trois
+   * échantillons consécutifs à pleine échelle (#4175, serveur ≥ 0.9.152).
+   * `false` sur un serveur antérieur — il ne la mesure pas, et la crête
+   * bornée à 0 dBFS ne permet pas de la déduire.
+   */
+  over_left: boolean;
+  over_right: boolean;
   rms_left: number;
   rms_right: number;
   spectrum: number[];
@@ -47,6 +55,8 @@ const defaultLevels: AudioLevels = {
   rms_left_db: -96,
   rms_right_db: -96,
   peak_left_db: -96,
+  over_left: false,
+  over_right: false,
   peak_right_db: -96,
   rms_left: 0,
   rms_right: 0,
@@ -93,6 +103,8 @@ export function handleAudioLevelsEvent(data: any) {
     rms_right_db: data.rms_right_db ?? -96,
     peak_left_db: data.peak_left_db ?? -96,
     peak_right_db: data.peak_right_db ?? -96,
+    over_left: data.over_left === true,
+    over_right: data.over_right === true,
     rms_left: data.rms_left ?? 0,
     rms_right: data.rms_right ?? 0,
     spectrum: Array.isArray(data.spectrum) ? data.spectrum : [],

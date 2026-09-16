@@ -596,6 +596,12 @@
     {:else if onglet === 'smart'}
       <!-- Les intelligentes : une grille, comme tout le reste de cet écran
            (« playlists en vue grille par défaut », Bertrand, 02/09/2026). -->
+      <!-- #1011 — le seul chemin vers l'ÉDITEUR : créer, modifier, supprimer
+           une règle. Sans lui, l'onglet listait des playlists que personne
+           ne pouvait créer ici (Fabien, fil 1778, point 8). -->
+      <div class="grp creer">
+        <button class="v2-btn primaire" onclick={() => activeView.set('smartplaylists')}>{$t('smartPlaylists.new')}</button>
+      </div>
       {#if !smart.length}
         <div class="state">{$t('v2.pl.noSmart' as any)}</div>
       {:else}
@@ -723,6 +729,7 @@
   .state{padding:24px 30px; color:var(--v2-txt3)} .state.empty{color:var(--v2-txt2)}
 
   .grp{padding:14px 30px 8px}
+  .grp.creer{display:flex; justify-content:flex-end; padding-bottom:0}
   .grp h2{font-size:18px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:22px}
   .card{position:relative; border:0; background:transparent; color:inherit; text-align:left; padding:0; display:flex; flex-direction:column}

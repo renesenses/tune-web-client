@@ -60,6 +60,8 @@
   const sidDistant = $derived(service ? ((album as any).source_id ?? null) : null);
 
   let tracks = $state<Track[]>([]);
+  /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
+  const depuisCue = $derived(tracks.some((t) => !!t.cue_media_path));
 
   /**
    * « Localiser sur le disque » (Bertrand, 09/09/2026).
@@ -566,6 +568,12 @@
              rien qu'un « CD » invente. -->
         {#if qLabel}<div class="qbadge">{qLabel}</div>{/if}
         <PastilleCompilation compilation={album.is_compilation} />
+        <!-- #862 — Marco Polo, fil 1738 : « identifier dans la bibliothèque
+             qu'un album affiché est la résultante d'un fichier .CUE ». La
+             donnée vit sur les PISTES (`cue_media_path`) ; la fiche la remonte
+             dès qu'une piste en porte. C'est une nature de disque, à côté de
+             « compilation ». -->
+        {#if depuisCue}<div class="qbadge cue" title={$tr('v2.album.cueTip' as any)}>{$tr('v2.album.cue' as any)}</div>{/if}
       </div>
       <h1>{album.title}</h1>
       <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.
@@ -695,6 +703,7 @@
      non deux blocs empilés : ce sont deux étiquettes de même rang, et empilées
      elles pousseraient le titre de l'album hors du premier coup d'œil. */
   .qrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .qbadge.cue{background:transparent; border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .qbadge{font:700 11px var(--v2-mono); letter-spacing:.04em; padding:6px 10px; border-radius:8px;
     color:var(--v2-acc-tint); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
   .meta h1{font-size:38px; font-weight:800; letter-spacing:-.01em; line-height:1.05}

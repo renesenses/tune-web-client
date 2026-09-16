@@ -998,6 +998,24 @@
         </svg>
       {/if}
     </button>
+
+    <!-- #919 — FabienM, fil 1526 : « sur toutes les versions, il faut un
+         accès rapide vers la file d'attente ; une icône dédiée à côté de
+         répéter ». La barre avait aléatoire et répéter, et rien vers la file.
+         Le nombre de titres à suivre est en infobulle, pas dessiné : la barre
+         reste compacte. -->
+    <button
+      class="control-btn small"
+      class:active={$activeView === 'queue'}
+      onclick={() => activeView.set('queue')}
+      aria-label={$t('nav.queue')}
+      title={$t('nav.queue')}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="15" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="11" y2="18" />
+        <polygon points="17 10 22 13 17 16 17 10" fill="currentColor" stroke="none" />
+      </svg>
+    </button>
   </div>
 
   <!-- Mobile volume button (visible only on small screens) -->

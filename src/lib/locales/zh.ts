@@ -4110,6 +4110,8 @@ export default {
   "v2.tags.noTrackWithTag": "没有曲目带有此标签。",
   "v2.tags.noPlaylistWithTag": "没有播放列表带有此标签。",
   "v2.album.play": "播放",
+  "v2.album.cue": "CUE",
+  "v2.album.cueTip": "由音频镜像及其 CUE 文件切分的专辑",
   "v2.album.shuffle": "随机播放",
   "v2.album.locate": "在磁盘中定位",
   "v2.album.playNext": "下一首播放",

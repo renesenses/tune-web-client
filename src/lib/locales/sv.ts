@@ -4109,6 +4109,8 @@ export default {
   "v2.tags.noTrackWithTag": "Inget spår har den här taggen.",
   "v2.tags.noPlaylistWithTag": "Ingen spellista har den här taggen.",
   "v2.album.play": "Spela",
+  "v2.album.cue": "CUE",
+  "v2.album.cueTip": "Album uppdelat från en ljudavbild och dess CUE-fil",
   "v2.album.shuffle": "Slumpa",
   "v2.album.locate": "Visa på disken",
   "v2.album.playNext": "Spela härnäst",
