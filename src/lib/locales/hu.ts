@@ -4125,6 +4125,7 @@ export default {
   "v2.health.drOffBecauseRg": "Semmi nem halad: a dinamikatartományt a ReplayGain futás számolja, és ez az elemzés ki van kapcsolva. A közvetlenül fölötte lévő ReplayGain kártya kapcsolja vissza.",
   "v2.health.drQueuedBehindRg": "{n} szám várakozik. A dinamikatartomány jön utoljára: csak akkor dekódol, amikor a ReplayGain és az ujjlenyomatok már végeztek.",
   "v2.health.drUnavailable": "{n} szám véglegesen kihagyva: ezeken a fájlokon a mérés nem tudott befejeződni.",
+  "v2.health.deferredPaths": "{n} szám elhalasztva: a fájljaik nem válaszolnak (hiányzó meghajtó vagy megosztás?). Automatikus újrapróbálás hat órán belül.",
   "v2.health.cardRgSub": "Szintnormalizálás",
   "v2.health.rgOff": "Kikapcsolva",
   "v2.health.rgTrack": "Számonként",

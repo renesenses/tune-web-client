@@ -4167,6 +4167,7 @@ export default {
   "v2.health.drOffBecauseRg": "Nichts geht voran: Der Dynamikumfang wird vom ReplayGain-Durchlauf berechnet, und diese Analyse ist aus. Die ReplayGain-Karte direkt darüber schaltet sie wieder ein.",
   "v2.health.drQueuedBehindRg": "{n} Titel warten. Der Dynamikumfang kommt zuletzt: Er dekodiert erst, wenn ReplayGain und Fingerabdrücke nichts mehr zu tun haben.",
   "v2.health.drUnavailable": "{n} Titel dauerhaft übersprungen: Die Messung konnte bei diesen Dateien nicht abgeschlossen werden.",
+  "v2.health.deferredPaths": "{n} Titel zurückgestellt: ihre Dateien antworten nicht (Laufwerk oder Freigabe fehlt?). Automatischer neuer Versuch innerhalb von sechs Stunden.",
   "v2.health.cardRgSub": "Pegelnormalisierung",
   "v2.health.rgOff": "Aus",
   "v2.health.rgTrack": "Pro Titel",

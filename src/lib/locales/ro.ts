@@ -4167,6 +4167,7 @@ export default {
   "v2.health.drOffBecauseRg": "Nimic nu avansează: gama dinamică este calculată de trecerea ReplayGain, iar acea analiză este oprită. Cardul ReplayGain, chiar deasupra, o repornește.",
   "v2.health.drQueuedBehindRg": "{n} piese în așteptare. Gama dinamică vine ultima: decodează abia când ReplayGain și amprentele nu mai au nimic de făcut.",
   "v2.health.drUnavailable": "{n} piese excluse definitiv: măsurarea nu s-a putut finaliza pe acele fișiere.",
+  "v2.health.deferredPaths": "{n} piese amânate: fișierele lor nu răspund (disc sau partajare lipsă?). Reîncercare automată în cel mult șase ore.",
   "v2.health.cardRgSub": "Normalizarea nivelului",
   "v2.health.rgOff": "Dezactivat",
   "v2.health.rgTrack": "Per piesă",

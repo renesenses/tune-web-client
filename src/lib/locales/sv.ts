@@ -4166,6 +4166,7 @@ export default {
   "v2.health.drOffBecauseRg": "Inget går framåt: det dynamiska omfånget beräknas av ReplayGain-passet, och den analysen är avstängd. ReplayGain-kortet strax ovanför slår på den igen.",
   "v2.health.drQueuedBehindRg": "{n} spår väntar. Det dynamiska omfånget kommer sist: det avkodar först när ReplayGain och fingeravtryck inte har något kvar att göra.",
   "v2.health.drUnavailable": "{n} spår permanent överhoppade: mätningen kunde inte slutföras på de filerna.",
+  "v2.health.deferredPaths": "{n} spår uppskjutna: deras filer svarar inte (saknas disken eller utdelningen?). Nytt automatiskt försök inom sex timmar.",
   "v2.health.cardRgSub": "Nivånormalisering",
   "v2.health.rgOff": "Av",
   "v2.health.rgTrack": "Per spår",

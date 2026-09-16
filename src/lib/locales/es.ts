@@ -4167,6 +4167,7 @@ export default {
   "v2.health.drOffBecauseRg": "Nada avanza: el rango dinámico lo calcula la pasada de ReplayGain, y ese análisis está apagado. La tarjeta ReplayGain, justo encima, vuelve a activarlo.",
   "v2.health.drQueuedBehindRg": "{n} pistas en espera. El rango dinámico va el último: solo decodifica cuando ReplayGain y las huellas no tienen nada más que hacer.",
   "v2.health.drUnavailable": "{n} pistas descartadas definitivamente: la medición no pudo completarse en esos archivos.",
+  "v2.health.deferredPaths": "{n} pistas aplazadas: sus archivos no responden (¿disco o recurso compartido ausente?). Nuevo intento automático en menos de seis horas.",
   "v2.health.cardRgSub": "Normalización de nivel",
   "v2.health.rgOff": "Desactivado",
   "v2.health.rgTrack": "Por pista",

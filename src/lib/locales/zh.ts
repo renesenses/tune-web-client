@@ -4167,6 +4167,7 @@ export default {
   "v2.health.drOffBecauseRg": "没有进展：动态范围由 ReplayGain 处理计算，而该分析已关闭。上方的 ReplayGain 卡片可以重新开启它。",
   "v2.health.drQueuedBehindRg": "{n} 首等待中。动态范围排在最后：只有当 ReplayGain 和指纹都无事可做时才会解码。",
   "v2.health.drUnavailable": "{n} 首已永久跳过：这些文件无法完成测量。",
+  "v2.health.deferredPaths": "{n} 首曲目已推迟：其文件无响应（磁盘或共享缺失？）。六小时内自动重试。",
   "v2.health.cardRgSub": "音量标准化",
   "v2.health.rgOff": "关闭",
   "v2.health.rgTrack": "按曲目",

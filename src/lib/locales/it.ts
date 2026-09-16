@@ -4167,6 +4167,7 @@ export default {
   "v2.health.drOffBecauseRg": "Nulla avanza: la gamma dinamica è calcolata dalla passata ReplayGain, e quell'analisi è spenta. La scheda ReplayGain, appena sopra, la riaccende.",
   "v2.health.drQueuedBehindRg": "{n} brani in attesa. La gamma dinamica viene per ultima: decodifica solo quando ReplayGain e le impronte non hanno più nulla da fare.",
   "v2.health.drUnavailable": "{n} brani scartati definitivamente: la misura non ha potuto concludersi su quei file.",
+  "v2.health.deferredPaths": "{n} brani rinviati: i loro file non rispondono (disco o condivisione assente?). Nuovo tentativo automatico entro sei ore.",
   "v2.health.cardRgSub": "Normalizzazione del livello",
   "v2.health.rgOff": "Disattivato",
   "v2.health.rgTrack": "Per brano",
