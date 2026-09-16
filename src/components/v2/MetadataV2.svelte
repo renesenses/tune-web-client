@@ -12,6 +12,7 @@
    * qu'on possède déjà. L'écran le dit, sinon on croit jeter l'information.
    */
   import * as api from '../../lib/api';
+  import { fautSuivreReparation, traites, type ReparationCompilations } from '../../lib/compilations';
   import { formatNombre } from '../../lib/formats';
   import type { GravureDrEtat, MetadataProposal, DoubtfulAlbum, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon } from '../../lib/api';
   import { } from '../../lib/utils';
@@ -24,7 +25,7 @@
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
-  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr';
+  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'compil';
   let tab = $state<Tab>('proposals');
 
   let proposals = $state<MetadataProposal[]>([]);
@@ -128,6 +129,35 @@
     return () => { if (drMinuterie) { clearTimeout(drMinuterie); drMinuterie = null; } };
   });
 
+  // Onglet « Compilations » (serveur #4244) : remettre le drapeau
+  // `is_compilation` d'accord avec les fichiers. Même geste que le DR : l'état
+  // vient du serveur seul, relu toutes les deux secondes tant que ça tourne.
+  let compil = $state<ReparationCompilations | null>(null);
+  let compilErr = $state<string | null>(null);
+  let compilBusy = $state(false);
+  let compilMinuterie: ReturnType<typeof setTimeout> | null = null;
+  async function chargerCompil() {
+    try { compil = await api.getReparationCompilations(); compilErr = null; }
+    catch (e: any) { compilErr = e?.message ?? $t('v2.meta.compilUnavail' as any); }
+    if (fautSuivreReparation(compil)) {
+      if (compilMinuterie) clearTimeout(compilMinuterie);
+      compilMinuterie = setTimeout(chargerCompil, 2000);
+    }
+  }
+  async function reparerCompil() {
+    if (compilBusy) return;
+    compilBusy = true;
+    try { await api.lancerReparationCompilations(); compilErr = null; }
+    catch (e: any) { compilErr = e?.message ?? $t('v2.meta.compilUnavail' as any); }
+    compilBusy = false;
+    await chargerCompil();
+  }
+  $effect(() => {
+    if (tab !== 'compil') return;
+    chargerCompil();
+    return () => { if (compilMinuterie) { clearTimeout(compilMinuterie); compilMinuterie = null; } };
+  });
+
   $effect(() => { loadProposals(); });
 
   // Les albums douteux ne sont chargés qu'à l'ouverture de leur onglet.
@@ -180,6 +210,7 @@
       <button class:on={tab === 'doublons'} onclick={() => (tab = 'doublons')}>{$t('v2.meta.tabDoublons' as any)}{#if dblLoaded && !dblLoading}<span>{$formatNombre(dblAlbums.length + dblArtistes.length + dblPaires.length)}</span>{/if}</button>
       <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>{$t('v2.meta.tabGenres' as any)}</button>
       <button class:on={tab === 'dr'} onclick={() => (tab = 'dr')}>{$t('v2.meta.tabDr' as any)}{#if dr}<span>{$formatNombre(dr.a_graver)}</span>{/if}</button>
+      <button class:on={tab === 'compil'} onclick={() => (tab = 'compil')}>{$t('v2.meta.tabCompil' as any)}</button>
     </nav>
   </header>
 
@@ -354,6 +385,42 @@
           <p class="note">{$t('v2.meta.drNothing' as any)}</p>
         {/if}
         {#if drErr}<div class="errline">{drErr}</div>{/if}
+      {/if}
+
+    {:else if tab === 'compil'}
+      <!--
+        Réparer le drapeau « compilation » (serveur #4244). Les albums scannés
+        avant les règles C1/C2 gardent le verdict d'alors ; la passe relit les
+        fichiers et le remet d'accord. Un album édité à la main n'est JAMAIS
+        touché : il est compté à part.
+      -->
+      {#if !compil && !compilErr}
+        <div class="state">{$t('v2.tool.loading' as any)}</div>
+      {:else if compilErr && !compil}
+        <div class="state">{compilErr}</div>
+      {:else if compil}
+        <div class="auto">
+          <div class="al">
+            <span>{$t('v2.meta.compilRepair' as any)}</span>
+            <span class="hint">{$t('v2.meta.compilHint' as any)}</span>
+          </div>
+          <button class="go" disabled={compilBusy || compil.status === 'running'} onclick={reparerCompil}>
+            {compil.status === 'running' ? $t('v2.meta.compilRunning' as any) : $t('v2.meta.compilRepairBtn' as any)}
+          </button>
+        </div>
+        {#if compil.status === 'running'}
+          <p class="note">{$t('v2.meta.drProgress' as any).replace('{done}', $formatNombre(traites(compil))).replace('{total}', $formatNombre(compil.total ?? 0))}</p>
+        {:else if compil.status === 'done'}
+          <div class="drgrid">
+            <div class="drk"><b>{$formatNombre(compil.repaired ?? 0)}</b><span>{$t('v2.meta.compilRepaired' as any)}</span></div>
+            <div class="drk"><b>{$formatNombre(compil.unchanged ?? 0)}</b><span>{$t('v2.meta.compilUnchanged' as any)}</span></div>
+            <div class="drk"><b>{$formatNombre(compil.manual_skipped ?? 0)}</b><span>{$t('v2.meta.compilManual' as any)}</span></div>
+          </div>
+          {#if (compil.unreadable ?? 0) + (compil.errors ?? 0) > 0}
+            <p class="note">{$t('v2.meta.compilProblems' as any).replace('{unreadable}', $formatNombre(compil.unreadable ?? 0)).replace('{errors}', $formatNombre(compil.errors ?? 0))}</p>
+          {/if}
+        {/if}
+        {#if compilErr}<div class="errline">{compilErr}</div>{/if}
       {/if}
 
     {:else if dLoading}

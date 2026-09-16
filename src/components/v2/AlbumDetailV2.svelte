@@ -6,6 +6,7 @@
    */
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
+  import { champsEditesALaMain } from '../../lib/compilations';
   import { t as tr } from '../../lib/i18n';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -62,6 +63,25 @@
   let tracks = $state<Track[]>([]);
   /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
   const depuisCue = $derived(tracks.some((t) => !!t.cue_media_path));
+
+  /**
+   * « Édité à la main » (serveur #4244, marqueur C3) : les champs que
+   * l'utilisateur a corrigés lui-même. La réparation des compilations ne les
+   * touche jamais — la fiche le dit, pour qu'un drapeau qui ne suit pas les
+   * fichiers ne passe pas pour un oubli. Album LOCAL seulement : un disque de
+   * service n'a pas de métadonnées étendues.
+   */
+  let champsManuels = $state<string[]>([]);
+  $effect(() => {
+    const id = album.id, d = depot, svc = service, bc = bandcamp;
+    champsManuels = [];
+    if (id == null || d || svc || bc) return;
+    let perime = false;
+    api.getAlbumExtendedMetadata(id)
+      .then((m) => { if (!perime) champsManuels = champsEditesALaMain(m); })
+      .catch(() => { /* pas de mention plutôt qu'une mention fausse */ });
+    return () => { perime = true; };
+  });
 
   /**
    * « Localiser sur le disque » (Bertrand, 09/09/2026).
@@ -574,6 +594,7 @@
              dès qu'une piste en porte. C'est une nature de disque, à côté de
              « compilation ». -->
         {#if depuisCue}<div class="qbadge cue" title={$tr('v2.album.cueTip' as any)}>{$tr('v2.album.cue' as any)}</div>{/if}
+        {#if champsManuels.length}<div class="qbadge cue" title={$tr('v2.album.manualTip' as any).replace('{fields}', champsManuels.join(', '))}>{$tr('v2.album.manual' as any)}</div>{/if}
       </div>
       <h1>{album.title}</h1>
       <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.

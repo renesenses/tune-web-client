@@ -6236,6 +6236,16 @@ export function lancerGravureDr(): Promise<{ status: string; total: number; hors
   return apiPost('/library/dr/gravure', {});
 }
 
+// Réparer le drapeau « compilation » de l'existant (serveur #4244). La passe
+// n'écrit jamais sur un album dont le champ a été édité à la main.
+export function getReparationCompilations(): Promise<import('./compilations').ReparationCompilations> {
+  return apiFetch('/library/compilations/reparation');
+}
+/** 202 accepté ; 409 si la passe tourne déjà. */
+export function lancerReparationCompilations(): Promise<{ status: string }> {
+  return apiPost('/library/compilations/reparation', {});
+}
+
 export function decideMetadataProposal(
   id: number,
   accept: boolean,
