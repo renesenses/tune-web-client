@@ -27,6 +27,9 @@
   import { appareilDeLaZone, lireVueZones, ecrireVueZones, type VueZones } from '../../lib/vueZones';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
+  import { activeView } from '../../lib/stores/navigation';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -231,13 +234,30 @@
     // Un sigle, comme DLNA — #1003.
     oaat: 'OAAT',
   };
-  function reach(z: Zone): { cls: string; txt: string } | null {
+  /**
+   * L'avertissement d'une zone — `txt` est la PASTILLE (deux mots), `long`
+   * l'infobulle (la phrase). #1006, Bertrand : « Hors ligne et Éteinte
+   * récemment en petits badges » — les phrases entières faisaient des
+   * bandeaux pleine largeur sur la carte.
+   */
+  function reach(z: Zone): { cls: string; txt: string; long: string } | null {
     // Absent = `ok` : ne pas inventer une panne sur un serveur < 0.9.70.
     const r = z.output_reach ?? 'ok';
-    if (r === 'no_output') return { cls: 'bad', txt: 'Aucune sortie — la lecture sera refusée' };
-    if (r === 'browser_unattended') return { cls: 'warn', txt: $t('v2.zones.browserUnattended' as any) };
-    if (z.online === false) return { cls: 'bad', txt: 'Hors ligne' };
+    if (r === 'no_output') return { cls: 'bad', txt: $t('v2.zone.badgeNoOutput' as any), long: $t('v2.zone.noOutputLong' as any) };
+    if (r === 'browser_unattended') return { cls: 'warn', txt: $t('v2.zone.badgeBrowser' as any), long: $t('v2.zones.browserUnattended' as any) };
+    if (z.online === false) return { cls: 'bad', txt: $t('v2.zone.badgeOffline' as any), long: $t('v2.zone.badgeOffline' as any) };
     return null;
+  }
+
+  /** #1006 — la pochette de la carte ouvre « Lecture en cours » SUR cette zone. */
+  function ouvrirLecture(z: Zone) {
+    select(z);
+    activeView.set('nowplaying');
+  }
+  /** #1006 — le lien vers les réglages DE CETTE zone (Réglages → Appareils → Par zone). */
+  function reglagesDeLaZone(z: Zone) {
+    v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined });
+    activeView.set('settings');
   }
 </script>
 
@@ -289,11 +309,20 @@
       <!--
         Vue GRILLE — quatre colonnes, de grosses cartes.
 
-        Ce qu'une carte porte, et dans cet ordre : l'état (le point), le NOM,
-        l'APPAREIL, le badge Tune tested, ce qui joue, l'avertissement s'il y
-        en a un, puis le volume. Les gestes destructifs (renommer, supprimer,
-        fusionner) restent à la LISTE : une carte qu'on clique pour activer une
-        zone ne doit pas porter une corbeille à portée de pouce.
+        Ce qu'une carte porte, et dans cet ordre : la POCHETTE de ce qui joue
+        (cliquable, elle ouvre Lecture en cours sur cette zone), l'état (le
+        point), le NOM, l'APPAREIL, les BADGES (Tune tested, hors ligne,
+        éteinte récemment, aucune sortie — en pastilles, la phrase en
+        infobulle), ce qui joue, puis le volume et le lien vers les réglages
+        de la zone. Les gestes destructifs (renommer, supprimer, fusionner)
+        restent à la LISTE : une carte qu'on clique pour activer une zone ne
+        doit pas porter une corbeille à portée de pouce.
+
+        🔴 #1006 — la carte n'est PLUS un seul <button> : une pochette
+        cliquable et un lien dans un bouton, c'est du balisage invalide que
+        les navigateurs défont. Elle est découpée comme `PochetteActions` et
+        les cartes de la Recherche : le bouton d'activation (`.cpick`) et les
+        autres cibles sont FRÈRES.
 
         Mesuré sur le .18 avant de dessiner : neuf zones sur quatorze n'ont
         aucune identité d'appareil. La carte retombe alors sur le type de
@@ -303,31 +332,44 @@
         {#each $zones as z (z.id)}
           {@const r = reach(z)}
           {@const teste = tuneTestedDe(z)}
+          {@const np = z.current_track}
           <div class="carte" class:active={z.id === $currentZoneId} class:offline={z.online === false}>
-            <button class="cpick" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
-              <span class="chaut">
-                <span class="dot" class:on={z.id === $currentZoneId}></span>
-                {#if sortieSecondaire(z)}<span class="cot">{sortieSecondaire(z)}</span>{/if}
-                {#if z.is_default}<span class="cdef">{$t('v2.zone.default' as any)}</span>{/if}
-              </span>
-              <span class="cnom">{z.name}</span>
-              <span class="cappareil" class:muet={!appareilDeLaZone(z)}>{appareilOuSortie(z)}</span>
-              {#if teste}<span class="cbadge"><BadgeTuneTested taille="md" /></span>{/if}
-              <span class="cetat">
-                {#if z.current_track?.title}
-                  <span class="cnp">♪ {z.current_track.title}</span>
+            <div class="ctete">
+              {#if np?.cover_path || np?.album_id}
+                <button class="cpoch" onclick={() => ouvrirLecture(z)}
+                  title={$t('v2.zone.openNowPlaying' as any)} aria-label={$t('v2.zone.openNowPlaying' as any)}>
+                  <AlbumArt coverPath={np?.cover_path ?? null} albumId={np?.album_id ?? null} size={64} alt={np?.title ?? ''} />
+                </button>
+              {/if}
+              <button class="cpick" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
+                <span class="chaut">
+                  <span class="dot" class:on={z.id === $currentZoneId}></span>
+                  {#if sortieSecondaire(z)}<span class="cot">{sortieSecondaire(z)}</span>{/if}
+                  {#if z.is_default}<span class="cdef">{$t('v2.zone.default' as any)}</span>{/if}
+                </span>
+                <span class="cnom">{z.name}</span>
+                <span class="cappareil" class:muet={!appareilDeLaZone(z)}>{appareilOuSortie(z)}</span>
+                <span class="cbadges">
+                  {#if teste}<BadgeTuneTested taille="sm" />{/if}
+                  {#if r}<span class="rc {r.cls}" title={r.long}>{r.txt}</span>{/if}
+                  {#if presenceTxt(z)}<span class="rc warn" title={presenceTxt(z)}>{presenceTxt(z)}</span>{/if}
+                  {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
+                </span>
+                {#if np?.title}
+                  <span class="cnp" title={`${np.title}${np.artist_name ? ' — ' + np.artist_name : ''}`}>♪ {np.title}{#if np.artist_name}<span class="cna"> — {np.artist_name}</span>{/if}</span>
                 {/if}
-                {#if r}<span class="rc {r.cls}">{r.txt}</span>{/if}
-                {#if presenceTxt(z)}<span class="rc warn">{presenceTxt(z)}</span>{/if}
-                {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
-              </span>
-            </button>
+              </button>
+            </div>
             <div class="cvol">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5zM15.5 8.5a5 5 0 0 1 0 7"/></svg>
               <input type="range" min="0" max="100" step="1" value={Math.round((z.volume ?? 0) * 100)}
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`} />
               <span class="vn">{Math.round((z.volume ?? 0) * 100)}</span>
+              <button class="creg" onclick={() => reglagesDeLaZone(z)}
+                title={$t('v2.zone.openSettings' as any)} aria-label={$t('v2.zone.openSettings' as any)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+              </button>
             </div>
           </div>
         {/each}
@@ -527,6 +569,14 @@
      pas une zone en panne, on la montre éteinte. */
   .carte.offline .cnom, .carte.offline .cappareil{opacity:.6}
 
+  /* #1006 — la tête de carte : pochette à gauche (si quelque chose joue),
+     bouton d'activation à droite. Deux cibles SŒURS, jamais imbriquées. */
+  .ctete{display:flex; align-items:stretch; gap:0; flex:1; min-width:0}
+  .cpoch{flex:0 0 auto; padding:15px 0 12px 14px; border:0; background:transparent; cursor:pointer;
+    display:flex; align-items:flex-start}
+  .cpoch:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-3px}
+  .cpoch :global(.album-art){border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.35); transition:transform .15s}
+  .cpoch:hover :global(.album-art){transform:scale(1.04)}
   .cpick{display:flex; flex-direction:column; align-items:flex-start; gap:0;
     padding:15px 16px 12px; border:0; background:transparent; color:inherit;
     text-align:left; cursor:pointer; width:100%; flex:1; min-width:0}
@@ -544,16 +594,24 @@
      en modèle. */
   .cappareil{margin-top:4px; font:12.5px var(--v2-sans); color:var(--v2-txt2); width:100%; overflow-wrap:anywhere}
   .cappareil.muet{color:var(--v2-txt3)}
-  .cbadge{margin-top:9px; display:flex}
+  /* #1006 — les badges en PASTILLES, sur une seule rangée qui replie. */
+  .cbadges{margin-top:9px; display:flex; flex-wrap:wrap; align-items:center; gap:6px; width:100%}
+  .cbadges:empty{display:none}
 
-  .cetat{margin-top:10px; display:flex; flex-direction:column; gap:5px; width:100%; min-width:0}
-  .cnp{font:12px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .cnp{margin-top:10px; font:12px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%}
+  .cna{color:var(--v2-txt3)}
 
   .cvol{display:flex; align-items:center; gap:10px; padding:10px 16px 13px;
     border-top:1px solid var(--v2-line)}
   .cvol svg{width:15px; height:15px; color:var(--v2-txt3); flex:0 0 auto}
   .cvol input[type=range]{flex:1; min-width:0; accent-color:var(--v2-acc1); cursor:pointer}
   .cvol .vn{font:11.5px var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
+  /* #1006 — le lien vers les réglages de la zone, au bout de la rangée du volume. */
+  .creg{flex:0 0 auto; width:26px; height:26px; display:grid; place-items:center; border-radius:8px;
+    border:1px solid transparent; background:transparent; color:var(--v2-txt3); cursor:pointer; padding:0}
+  .creg svg{width:15px; height:15px; color:inherit}
+  .creg:hover{color:var(--v2-txt); border-color:var(--v2-line2); background:var(--v2-surface)}
+  .creg:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
 
   /* La bascule grille / liste : deux boutons d'action ordinaires, celui qui
      est actif porte la teinte. Pas un troisième dessin de bouton. */

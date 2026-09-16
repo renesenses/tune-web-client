@@ -92,6 +92,17 @@ export interface BandeauLisible {
   readonly affiche: Readable<AvertissementBandeau | null>;
   /** Ce que le serveur vient de dire de cette zone. Idempotent. */
   signaler(zoneId: number | null, reach: string | null | undefined): void;
+  /**
+   * Fermer le bandeau POUR L'INCIDENT COURANT — #1043.
+   *
+   * Alex Campbell, 14/09/2026 : « no tab is receiving the sound » sur sa zone
+   * navigateur, sans croix, et sa configuration lui semblait correcte. Le
+   * bandeau se ferme, et reste fermé tant que la MÊME zone porte le MÊME
+   * motif. Dès que la sortie redevient joignable, l'incident est clos : le
+   * suivant s'affichera. Un autre motif sur la même zone s'affiche aussi —
+   * ce n'est plus le même avertissement.
+   */
+  fermer(): void;
   /** Annule une extinction en attente (démontage du composant). */
   detruire(): void;
 }
@@ -107,6 +118,8 @@ export function creerBandeauLisible(dureeMinMs: number = BANDEAU_DUREE_MIN_MS): 
 
   let courant: AvertissementBandeau | null = null;
   let zoneCourante: number | null = null;
+  /** Le motif écarté par l'utilisateur sur la zone courante — #1043. */
+  let ecarte: AvertissementBandeau | null = null;
   let afficheDepuis = 0;
   let minuterie: ReturnType<typeof setTimeout> | null = null;
 
@@ -127,11 +140,19 @@ export function creerBandeauLisible(dureeMinMs: number = BANDEAU_DUREE_MIN_MS): 
     // n'en garde rien, pas même le reste de sa durée minimale.
     if (zoneId !== zoneCourante) {
       zoneCourante = zoneId;
+      ecarte = null;
       annulerMinuterie();
       poser(null);
     }
 
     const avertissement = avertissementDe(reach);
+
+    if (avertissement !== null && avertissement === ecarte) {
+      // #1043 — écarté par l'utilisateur, et toujours le même incident.
+      annulerMinuterie();
+      if (courant !== null) poser(null);
+      return;
+    }
 
     if (avertissement !== null) {
       // Une extinction programmée est annulée : le bandeau n'a pas quitté
@@ -145,6 +166,10 @@ export function creerBandeauLisible(dureeMinMs: number = BANDEAU_DUREE_MIN_MS): 
       }
       return;
     }
+
+    // La sortie est joignable : l'incident est clos, et ce qu'on avait écarté
+    // ne vaut plus pour le suivant (#1043).
+    ecarte = null;
 
     if (courant === null) return; // rien à l'écran, rien à éteindre
     if (minuterie !== null) return; // extinction déjà programmée
@@ -161,9 +186,17 @@ export function creerBandeauLisible(dureeMinMs: number = BANDEAU_DUREE_MIN_MS): 
     }, reste);
   }
 
+  function fermer(): void {
+    if (courant === null) return;
+    ecarte = courant;
+    annulerMinuterie();
+    poser(null);
+  }
+
   return {
     affiche: { subscribe: etat.subscribe },
     signaler,
+    fermer,
     detruire: annulerMinuterie,
   };
 }
