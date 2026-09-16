@@ -626,6 +626,8 @@
       </div>
     </header>
 
+    <!-- #907 : l'en-tête (et son « Retour ») ne part plus avec la grille. -->
+    <div class="defil">
     {#if albumsChargement}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !albums.length}
@@ -669,6 +671,7 @@
         </div>
       </div>
     {/if}
+    </div>
 
   {:else}
     <header class="v2-top">
@@ -717,6 +720,9 @@
       </label>
     </nav>
 
+    <!-- #855 : seule la liste défile ; l'en-tête et les onglets restent à l'écran,
+         comme dans la Bibliothèque. -->
+    <div class="defil">
     {#if chargement}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !visibles.length}
@@ -778,6 +784,7 @@
         {/each}
       </div>
     {/if}
+    </div>
   {/if}
 
   {#if enEdition}
@@ -834,7 +841,12 @@
 </section>
 
 <style>
-  .v2-collections{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
+  .v2-collections{height:100%; display:flex; flex-direction:column; overflow:hidden; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
+  /* #855 / #907 — la SECTION défilait tout entière : en-tête, « Retour »,
+     onglets et tri partaient avec la grille. Seul `.defil` défile désormais ;
+     le rail A-Z y reste collé (`sticky` dans ce conteneur). */
+  .v2-collections > header, .v2-collections > .tabs{flex:none}
+  .defil{flex:1; min-height:0; overflow-y:auto}
   .lnkcrea{display:block; margin-top:12px; border:1px solid var(--v2-line2); background:transparent;
     color:var(--v2-txt2); cursor:pointer; border-radius:999px; padding:6px 14px; font:600 11.5px var(--v2-sans)}
   .lnkcrea:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}

@@ -490,6 +490,7 @@ export default {
   'playlist.importing': 'Importerar...',
   'playlist.imported': '{count} spår importerade',
   'playlist.manager': 'Spellistehanterare',
+  'favorites.serviceSyncFailed': 'Favoriten finns kvar i Tune, men {service} följde inte med: {motif}',
   'playlist.source': 'Källa',
   'playlist.importConfirm': 'Importera denna spellista lokalt?',
   "playlist.importedMatched": "{count} av {total} spår hittades i biblioteket och importerades.",

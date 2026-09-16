@@ -739,6 +739,7 @@ export default {
   'playlist.importing': 'Importation...',
   'playlist.imported': '{count} pistes importées',
   'playlist.manager': 'Gestionnaire de playlists',
+  'favorites.serviceSyncFailed': 'Le favori est gardé dans Tune, mais {service} n’a pas suivi : {motif}',
   'playlist.source': 'Source',
   'playlist.importConfirm': 'Importer cette playlist en local ?',
   "playlist.importedMatched": "{count} pistes sur {total} trouvées dans la bibliothèque et importées.",

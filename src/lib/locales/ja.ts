@@ -521,6 +521,7 @@ export default {
   'playlist.importing': 'インポート中...',
   'playlist.imported': '{count}曲インポートしました',
   'playlist.manager': 'プレイリストマネージャー',
+  'favorites.serviceSyncFailed': 'お気に入りは Tune に保存されましたが、{service} に反映されませんでした: {motif}',
   'playlist.source': 'ソース',
   'playlist.importConfirm': 'このプレイリストをローカルにインポートしますか？',
   "playlist.importedMatched": "{total} 曲中 {count} 曲がライブラリで見つかり、インポートされました。",

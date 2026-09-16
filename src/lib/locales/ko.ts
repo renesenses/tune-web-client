@@ -521,6 +521,7 @@ export default {
   'playlist.importing': '가져오는 중...',
   'playlist.imported': '{count}곡 가져옴',
   'playlist.manager': '재생목록 관리자',
+  'favorites.serviceSyncFailed': '즐겨찾기는 Tune에 유지되었지만 {service}에 반영되지 않았습니다: {motif}',
   'playlist.source': '소스',
   'playlist.importConfirm': '이 재생목록을 로컬로 가져오시겠습니까?',
   "playlist.importedMatched": "{total}곡 중 {count}곡을 라이브러리에서 찾아 가져왔습니다.",

@@ -26,6 +26,8 @@ import {
   loadProfiles,
 } from './stores/profile';
 import * as api from './api';
+import { notifications } from './stores/notifications';
+import { t } from './i18n';
 
 /**
  * `playlist` a rejoint la liste pour #2370 (Didier, fil 1541) : on pouvait
@@ -261,12 +263,30 @@ export async function toggleStreamingFavorite(ref: StreamingRef): Promise<boolea
   }
 
   const svcType = serviceFavType(ref.itemType);
-  if (wasFav) {
-    api.removeStreamingFavorite(ref.service, svcType, ref.serviceId).catch(() => {});
-  } else {
-    api.addStreamingFavorite(ref.service, svcType, ref.serviceId).catch(() => {});
-  }
+  const recopie = wasFav
+    ? api.removeStreamingFavorite(ref.service, svcType, ref.serviceId)
+    : api.addStreamingFavorite(ref.service, svcType, ref.serviceId);
+  recopie.catch((e) => signalerRecopieManquee(ref.service, e));
   return !wasFav;
+}
+
+/**
+ * #1070 — la recopie vers le service ne se tait plus.
+ *
+ * Elle était avalée (`.catch(() => {})`) : quand Qobuz refusait, le cœur de
+ * Tune et les favoris du service divergeaient sans un mot. Le cœur de Tune
+ * reste posé (il vit dans sa propre table, la règle ci-dessus tient), mais
+ * l'utilisateur apprend que le service n'a pas suivi, avec le motif du
+ * serveur. Un 501 n'est pas un échec : le service n'a pas d'API de favoris
+ * (YouTube), il n'y avait rien à recopier.
+ */
+export function signalerRecopieManquee(service: string, e: unknown): void {
+  const status = (e as { status?: number } | null)?.status;
+  if (status === 501) return;
+  const motif = e instanceof Error && e.message ? e.message : String(e ?? '');
+  notifications.error(
+    get(t)('favorites.serviceSyncFailed').replace('{service}', service).replace('{motif}', motif),
+  );
 }
 
 /**
