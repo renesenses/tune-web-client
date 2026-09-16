@@ -33,6 +33,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
 
   const cible = $derived($ficheArtisteService);
 
@@ -41,6 +43,34 @@
   let albums = $state<Album[]>([]);
   let chargement = $state(true);
   let albumOuvert = $state<Album | null>(null);
+  /**
+   * 🔴 LE CALQUE ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #980.
+   *
+   * Fabien, fils 1774 et 1778 : « quand on clique sur un album → page album, le
+   * bouton BACK du navigateur retourne à la page d'accueil » / « à l'avant-
+   * dernière page consultée ».
+   *
+   * Une fiche album est un CALQUE : l'ouvrir ne change pas `activeView`, donc
+   * la coquille n'écrit rien et le Précédent dépile l'entrée d'AVANT. Mesuré :
+   * dix écrans montent `AlbumDetailV2`, et deux seulement empilaient.
+   *
+   * Trois branchements, et il en faut trois : ouvrir empile, le Retour referme
+   * ET dépile, le Précédent referme le calque. On pose la CLÉ, jamais l'objet —
+   * `history.state` refuse les proxies Svelte.
+   */
+  function ouvrirCalqueAlbum(a: any) {
+    const cle = cleDetailAlbum(a);
+    if (cle) ouvrirDetail(cle);
+  }
+  function fermerCalqueAlbum() {
+    albumOuvert = null;
+  }
+  function retourCalqueAlbum() {
+    fermerDetailEnReculant(fermerCalqueAlbum);
+  }
+  $effect(() => {
+    if ($detailOuvert == null && albumOuvert) fermerCalqueAlbum();
+  });
 
   /**
    * 🔴 Un jeton par ouverture. Trois requêtes partent ensemble et un service
@@ -162,7 +192,7 @@
   <!-- `service` EN MÊME TEMPS que l'album : `AlbumDetailV2` n'apparie un album
        de streaming que sur la paire service + `source_id`, et l'ouvrir sans son
        service le laisserait sur « Chargement… » pour toujours (#3709). -->
-  <AlbumDetailV2 album={albumOuvert} service={cible?.service ?? null} onClose={() => (albumOuvert = null)} />
+  <AlbumDetailV2 album={albumOuvert} service={cible?.service ?? null} onClose={retourCalqueAlbum} />
 {:else}
 <section class="v2-fas tune-v2">
   <header class="tete">
@@ -214,7 +244,7 @@
       <h2>{$tr('v2.fas.albums' as any)}</h2>
       <div class="grille">
         {#each albums as al (String(al.source_id ?? al.title))}
-          <button class="carte" onclick={() => (albumOuvert = al)}>
+          <button class="carte" onclick={() => { ouvrirCalqueAlbum(al); albumOuvert = al; }}>
             <AlbumArt coverPath={al.cover_path} albumId={null} size={0}
                       alt={al.title} source={(al.source ?? cible?.service) as any}
                       fallbackInitials={al.title?.slice(0, 1)} />

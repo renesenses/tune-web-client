@@ -42,6 +42,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import RenommerModale from './RenommerModale.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -286,6 +288,51 @@
   let albums = $state<any[]>([]);
   let albumsChargement = $state(false);
 
+  /**
+   * Tri des albums d'une collection MANUELLE ouverte. Bertrand, 16/09/2026 :
+   * « pouvoir les trier par Titre de l'album, Artistes et les 3 dates en
+   * ascendant ou descendant » — Année · Sortie · Ajout.
+   *
+   * Le tri est fait par le SERVEUR (`?sort=&order=`) : c'est lui qui replie
+   * accents et casse, range « CD2 » avant « CD10 », attache la date d'ajout
+   * et garde les valeurs manquantes en dernier dans les deux sens. Le trier
+   * ici en JavaScript donnerait un autre ordre que celui des autres clients.
+   *
+   * Les collections INTELLIGENTES n'ont pas ce sélecteur : leur ordre fait
+   * partie de leurs règles (`sort_by` / `sort_order`), et il s'édite là.
+   *
+   * Le choix est mémorisé par écran, comme celui de la liste.
+   */
+  const TRIS_ALBUMS = ['artist', 'title', 'year', 'release_date', 'added_at'] as const;
+  type TriAlbums = (typeof TRIS_ALBUMS)[number];
+  const SENS = ['asc', 'desc'] as const;
+  type Sens = (typeof SENS)[number];
+  let triAlbums = $state<TriAlbums>(lireChoix<TriAlbums>('v2.collection.albums.tri', TRIS_ALBUMS, 'artist'));
+  let sensAlbums = $state<Sens>(lireChoix<Sens>('v2.collection.albums.sens', SENS, 'asc'));
+  $effect(() => { ecrireChoix('v2.collection.albums.tri', triAlbums); });
+  $effect(() => { ecrireChoix('v2.collection.albums.sens', sensAlbums); });
+  const LIBELLES_TRI: Record<TriAlbums, string> = {
+    artist: 'v2.lib.sortArtist', title: 'v2.lib.sortTitle', year: 'v2.lib.sortYear',
+    release_date: 'library.sortReleaseDate', added_at: 'library.sortAddedDate',
+  };
+  async function chargerAlbums(e: Entree) {
+    albumsChargement = true;
+    try {
+      albums =
+        ((e.sorte === 'smart'
+          ? await api.getSmartCollectionAlbums(e.id)
+          : await api.getCollectionAlbums(e.id, triAlbums, sensAlbums)) as any[]) ?? [];
+    } catch {
+      albums = [];
+    }
+    albumsChargement = false;
+  }
+  function changerTri(tri: TriAlbums, sens: Sens) {
+    triAlbums = tri;
+    sensAlbums = sens;
+    if (ouverte && ouverte.sorte !== 'smart') chargerAlbums(ouverte);
+  }
+
   /* ---------------- Ascenseur alphabetique d'une collection ouverte -------- */
   /**
    * Lulu, forum, 05/09/2026 : « il manque dans chaque dossier cree l'ascenseur
@@ -468,16 +515,7 @@
     ouverte = e;
     setShortcutTarget({ key: cleCible(e), restore: { id: e.id, name: e.nom }, label: e.nom });
     albums = [];
-    albumsChargement = true;
-    try {
-      albums =
-        ((e.sorte === 'smart'
-          ? await api.getSmartCollectionAlbums(e.id)
-          : await api.getCollectionAlbums(e.id)) as any[]) ?? [];
-    } catch {
-      albums = [];
-    }
-    albumsChargement = false;
+    await chargerAlbums(e);
   }
 
   /**
@@ -490,6 +528,34 @@
    * du nouveau client ouvrent l'album et laissent les gestes a la pochette.
    */
   let fiche = $state<any | null>(null);
+  /**
+   * 🔴 LE CALQUE ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #980.
+   *
+   * Fabien, fils 1774 et 1778 : « quand on clique sur un album → page album, le
+   * bouton BACK du navigateur retourne à la page d'accueil » / « à l'avant-
+   * dernière page consultée ».
+   *
+   * Une fiche album est un CALQUE : l'ouvrir ne change pas `activeView`, donc
+   * la coquille n'écrit rien et le Précédent dépile l'entrée d'AVANT. Mesuré :
+   * dix écrans montent `AlbumDetailV2`, et deux seulement empilaient.
+   *
+   * Trois branchements, et il en faut trois : ouvrir empile, le Retour referme
+   * ET dépile, le Précédent referme le calque. On pose la CLÉ, jamais l'objet —
+   * `history.state` refuse les proxies Svelte.
+   */
+  function ouvrirCalqueAlbum(a: any) {
+    const cle = cleDetailAlbum(a);
+    if (cle) ouvrirDetail(cle);
+  }
+  function fermerCalqueAlbum() {
+    fiche = null;
+  }
+  function retourCalqueAlbum() {
+    fermerDetailEnReculant(fermerCalqueAlbum);
+  }
+  $effect(() => {
+    if ($detailOuvert == null && fiche) fermerCalqueAlbum();
+  });
   let albumEnEdition = $state<any | null>(null);
 
   async function lireAlbum(a: any, ev?: MouseEvent) {
@@ -521,6 +587,26 @@
         {#if ouverte.description}<p class="v2-sous">{ouverte.description}</p>{/if}
       </div>
       <div class="v2-actions fa">
+        {#if ouverte.sorte !== 'smart'}
+          <label class="tricol">
+            <span>{$t('v2.fav.sortBy' as any)}</span>
+            <select value={triAlbums} aria-label={$t('v2.fav.sortBy' as any)}
+              onchange={(ev) => changerTri((ev.currentTarget as HTMLSelectElement).value as TriAlbums, sensAlbums)}>
+              {#each TRIS_ALBUMS as k (k)}
+                <option value={k}>{$t(LIBELLES_TRI[k] as any)}</option>
+              {/each}
+            </select>
+            <button class="sens" onclick={() => changerTri(triAlbums, sensAlbums === 'asc' ? 'desc' : 'asc')}
+              title={$t((sensAlbums === 'asc' ? 'common.ascending' : 'common.descending') as any)}
+              aria-label={$t((sensAlbums === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
+              {#if sensAlbums === 'asc'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
+              {/if}
+            </button>
+          </label>
+        {/if}
         <button class="fab" onclick={() => lireCollectionEntiere(false)}
           disabled={masseEnCours || !albums.length} title={$t('collections.playAll' as any)}>
           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('collections.playAll' as any)}
@@ -567,13 +653,13 @@
                 etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
                 onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                 onLire={() => lireAlbum(a)}
-                onOuvrir={() => (fiche = a)}
+                onOuvrir={() => { ouvrirCalqueAlbum(a); fiche = a; }}
                 nom={a.title}
               >
                 <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
               </PochetteActions>
             </span>
-            <button class="meta" onclick={() => (fiche = a)}>
+            <button class="meta" onclick={() => { ouvrirCalqueAlbum(a); fiche = a; }}>
               <span class="ct" title={a.title}>{a.title}</span>
               <span class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</span>
             </button>
@@ -707,7 +793,7 @@
   {/if}
 
   {#if fiche}
-    <AlbumDetailV2 album={fiche} onClose={() => (fiche = null)} />
+    <AlbumDetailV2 album={fiche} onClose={retourCalqueAlbum} />
   {/if}
 
   {#if albumEnEdition}
@@ -761,6 +847,16 @@
   .tricol select{height:30px; padding:0 8px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
     background:var(--v2-surface2); color:var(--v2-txt2); font:12.5px inherit; cursor:pointer}
   .tricol select:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
+  /* Le sens, à côté de la clé : un seul bouton qui bascule, l'icône dit
+     l'état courant et le titre le nomme. */
+  .tricol .sens{width:30px; height:30px; display:grid; place-items:center; padding:0;
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); background:var(--v2-surface2);
+    color:var(--v2-txt2); cursor:pointer}
+  .tricol .sens:hover{border-color:var(--v2-acc2); color:var(--v2-txt)}
+  .tricol .sens svg{width:14px; height:14px}
+  /* Dans l'en-tête d'une collection ouverte, le sélecteur ne se pousse pas à
+     droite : il précède les boutons de lecture. */
+  .fa .tricol{margin-left:0}
 
   .tabs{display:flex; gap:4px; padding:4px 30px 0}
   .tab{background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer;

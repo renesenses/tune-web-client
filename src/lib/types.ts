@@ -886,6 +886,9 @@ export interface CompletenessStats {
   dynamic_range_from_tag?: number;
   /** Pistes que la passe a essayées et écartées pour de bon. */
   dynamic_range_unavailable?: number;
+  /** Pistes que la passe REPORTE (fichier qui ne répond pas, #1865) — ni
+   *  faites, ni écartées. Serveur ≥ 0.9.152 (#4254). */
+  dynamic_range_deferred?: number;
   dynamic_range_pct?: number;
 }
 

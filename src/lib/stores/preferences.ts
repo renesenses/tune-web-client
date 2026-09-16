@@ -31,7 +31,13 @@ import { STYLE_CRETE_DEFAUT, type StyleCreteMetre } from '../peakMetre';
 export type StartupView = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'search' | 'settings';
 
 /** Layout mode for the Oxygen library view. */
-export type OxygenViewMode = 'album' | 'grid' | 'cards' | 'detail';
+/**
+ * `mur` — #994, Alex Campbell : « only album art and all the cover art
+ * stitched together, no Artist information, no Album information ». Ajoutée
+ * comme disposition SUPPLÉMENTAIRE, ce qu'il proposait lui-même en repli ;
+ * arbitré par Bertrand le 13/09/2026.
+ */
+export type OxygenViewMode = 'album' | 'grid' | 'cards' | 'detail' | 'mur';
 /** Densité de la grille d'albums.
  *  `detail` = pochette + titre + artiste (historique).
  *  `wall`   = mur de pochettes seules, plus dense : on choisit un album de

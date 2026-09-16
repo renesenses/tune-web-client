@@ -33,6 +33,13 @@ export interface AvancementReplayGain {
   reported?: boolean;
   /** L'analyse est-elle armée côté serveur. */
   enabled?: boolean;
+  /** Pistes tenues à l'écart parce que leur fichier ne répond pas — report
+   *  de six heures (#1865). Ni dans `total`, ni dans `processed`. Serveur
+   *  ≥ 0.9.152 ; absent avant, et l'absence se lit « 0 ». */
+  deferred?: number;
+  /** `"unresolved_paths"` quand les reports sont la SEULE chose qui reste :
+   *  la passe n'a rien à faire tant que le disque ne revient pas (#4254). */
+  waiting_reason?: string | null;
 }
 
 export type EtatCarteReplayGain = 'inconnu' | 'idle' | 'running' | 'done' | 'off';
@@ -41,6 +48,12 @@ export interface JaugeReplayGain {
   etat: EtatCarteReplayGain;
   fait?: number;
   total?: number;
+  /** Pistes reportées (fichier absent), à dire à côté de la jauge. `0` quand
+   *  le serveur ne sait pas le compter — on n'affiche alors rien de plus. */
+  reportees: number;
+  /** Il ne reste QUE des reports : la carte dit « en attente d'un disque »,
+   *  jamais « terminée » (#4254). */
+  attendLesFichiers: boolean;
   /**
    * `true` = la carte garde son message d'absence et n'affiche AUCUNE barre.
    * C'est l'état de repli, et c'est lui qui doit survivre à tout ce que ce
@@ -69,13 +82,13 @@ export function jaugeReplayGain(
   // Pas de réponse, ou une réponse dont on ne sait pas lire le couple : on ne
   // sait pas, on le dit. Un serveur plus ancien passe exactement par ici.
   if (!avancement || !estUnNombre(avancement.total) || !estUnNombre(avancement.processed)) {
-    return { etat: modeArme ? 'idle' : 'off', sansJauge: true };
+    return { etat: modeArme ? 'idle' : 'off', sansJauge: true, reportees: 0, attendLesFichiers: false };
   }
 
   // L'analyse est coupée côté serveur : la passe n'avancera pas, et une jauge
   // immobile se lirait comme une passe bloquée. On dit « désactivé ».
   if (avancement.enabled === false || !modeArme) {
-    return { etat: 'off', sansJauge: true };
+    return { etat: 'off', sansJauge: true, reportees: 0, attendLesFichiers: false };
   }
 
   const total = Math.max(0, Math.trunc(avancement.total));
@@ -84,19 +97,30 @@ export function jaugeReplayGain(
   // la carte acoustique a déjà connu (#1479).
   const fait = Math.min(total, Math.max(0, Math.trunc(avancement.processed)));
 
+  // Les pistes que la passe REPORTE (fichier qui ne répond pas) ne sont ni
+  // dans `total` ni dans `processed` : sans ce compteur, une bibliothèque
+  // entière sur un partage démonté se lisait « terminée » (#4254).
+  const reportees = estUnNombre(avancement.deferred) ? Math.max(0, Math.trunc(avancement.deferred)) : 0;
+  const attendLesFichiers = avancement.waiting_reason === 'unresolved_paths' && reportees > 0;
+
   // Rien à analyser : la bibliothèque est faite. Pas de barre — une jauge
-  // « 0 / 0 » ne dit rien à personne.
+  // « 0 / 0 » ne dit rien à personne. Sauf s'il reste des reports : alors ce
+  // n'est pas « fini », c'est « en attente d'un disque », et on le dit.
   if (total === 0) {
-    return { etat: 'done', sansJauge: true };
+    return attendLesFichiers
+      ? { etat: 'idle', sansJauge: true, reportees, attendLesFichiers }
+      : { etat: 'done', sansJauge: true, reportees, attendLesFichiers: false };
   }
 
   if (avancement.active) {
-    return { etat: 'running', fait, total, sansJauge: false };
+    return { etat: 'running', fait, total, sansJauge: false, reportees, attendLesFichiers: false };
   }
   if (fait >= total) {
-    return { etat: 'done', fait, total, sansJauge: false };
+    return attendLesFichiers
+      ? { etat: 'idle', fait, total, sansJauge: false, reportees, attendLesFichiers }
+      : { etat: 'done', fait, total, sansJauge: false, reportees, attendLesFichiers: false };
   }
   // Du travail en attente, mais aucune campagne ouverte : la passe dort encore
   // (elle laisse passer deux minutes au démarrage) ou elle cède à la lecture.
-  return { etat: 'idle', fait, total, sansJauge: false };
+  return { etat: 'idle', fait, total, sansJauge: false, reportees, attendLesFichiers: false };
 }

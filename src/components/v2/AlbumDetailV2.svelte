@@ -35,6 +35,7 @@
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
   import { activeView, pendingLibraryAlbum, vueDeRetour, gestesNavigationService, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { destinationArtiste } from '../../lib/routageArtiste';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
@@ -499,17 +500,33 @@
    * `null` quand il manque le service ou le nom : on retombe alors sur le
    * texte, qui reste le bon geste faute de cible.
    */
+  /**
+   * 🔴 #956 — `destinationArtiste` tranche, et lui seul. Un album Qobuz porte
+   * `artist_id: "610403"` (mesuré sur la .18) : ce n'est PAS un artiste de la
+   * bibliothèque, et `artist_id != null` l'y envoyait — Sandro (fil 1769) et
+   * Fabien (fil 1774, point 15) atterrissaient sur une grille sans lui.
+   * La source effective est le SERVICE de la fiche : `album.source` est nul
+   * sur un album servi par `/streaming/qobuz/…`.
+   */
+  const destination = $derived(destinationArtiste({
+    source: service ?? (album as any).source ?? null,
+    artist_id: album.artist_id as any,
+    artist_name: album.artist_name ?? null,
+  }));
   const artisteDeService = $derived.by(() => {
-    if (album.artist_id != null || !$gestesNavigationService) return null;
-    const nom = (album.artist_name ?? '').trim();
-    const svc = service ?? (album as any).source ?? null;
-    return svc && nom ? { service: svc as string, nom } : null;
+    if (!$gestesNavigationService || !destination) return null;
+    if (destination.type === 'artiste-service') {
+      return { service: destination.service, nom: destination.nom, id: destination.id };
+    }
+    if (destination.type === 'recherche' && destination.source && destination.source !== 'local') {
+      return { service: destination.source, nom: destination.requete };
+    }
+    return null;
   });
 
   function allerArtiste() {
-    const id = album.artist_id;
-    if (id != null) {
-      pendingLibraryArtist.set(id);
+    if (destination?.type === 'artiste') {
+      pendingLibraryArtist.set(destination.artistId);
       activeView.set('library');
       onClose();
       return;

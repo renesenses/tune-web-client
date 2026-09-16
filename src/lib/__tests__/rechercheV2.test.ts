@@ -61,8 +61,9 @@ describe('Recherche v2 (retours Bertrand, 05/09/2026)', () => {
     // La rangée n'apparaît qu'à partir de DEUX sources : à une seule case, un
     // périmètre ne choisit rien.
     expect(src).toContain('sourcesTrouvees.length > 1');
-    // Le local passe en tête : c'est ce que l'utilisateur possède déjà.
-    expect(src).toContain("a[0] === 'local' ? -1");
+    // Le local passe en tête : c'est ce que l'utilisateur possède déjà — et
+    // depuis #856 le reste suit la PRÉFÉRENCE (`RANG_SOURCE`), pas l'alphabet.
+    expect(src).toContain('ordonnerSources([...n.entries()], (e) => e[0])');
   });
 
   /**

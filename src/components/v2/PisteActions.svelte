@@ -74,6 +74,7 @@
   import { favKeyOf, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
   import { activeView, gestesNavigationService, pendingLibraryAlbum, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { destinationArtiste } from '../../lib/routageArtiste';
   import { destinationAlbum } from '../../lib/routageAlbum';
   import { t } from '../../lib/i18n';
   import MenuPisteV2 from './MenuPisteV2.svelte';
@@ -263,15 +264,27 @@
       ? { service: d.service, albumId: d.albumId, titre: d.titre }
       : null;
   });
+  // 🔴 #956 — `destinationArtiste` tranche : une piste Qobuz porte un
+  // `artist_id` de SERVICE (chaîne), qui n'a rien à faire dans la Bibliothèque.
+  const destination = $derived(destinationArtiste({
+    source: local ? 'local' : (piste.source ?? null),
+    artist_id: piste.artist_id as any,
+    artist_name: piste.artist_name ?? null,
+  }));
   const artisteDeService = $derived.by(() => {
-    if (local || !$gestesNavigationService) return null;
-    const nom = (piste.artist_name ?? '').trim();
-    return piste.source && nom ? { service: piste.source as string, nom } : null;
+    if (local || !$gestesNavigationService || !destination) return null;
+    if (destination.type === 'artiste-service') {
+      return { service: destination.service, nom: destination.nom, id: destination.id };
+    }
+    if (destination.type === 'recherche' && destination.source && destination.source !== 'local') {
+      return { service: destination.source, nom: destination.requete };
+    }
+    return null;
   });
 
   function allerArtiste() {
-    if (piste.artist_id != null) {
-      pendingLibraryArtist.set(piste.artist_id);
+    if (destination?.type === 'artiste') {
+      pendingLibraryArtist.set(destination.artistId);
       activeView.set('library');
       return;
     }

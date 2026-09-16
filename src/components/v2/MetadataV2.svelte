@@ -13,7 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
-  import type { MetadataProposal, DoubtfulAlbum, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon } from '../../lib/api';
+  import type { GravureDrEtat, MetadataProposal, DoubtfulAlbum, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon } from '../../lib/api';
   import { } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   // L'arbre des genres du client actuel, REPRIS tel quel plutôt que réécrit :
@@ -24,7 +24,7 @@
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
-  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres';
+  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr';
   let tab = $state<Tab>('proposals');
 
   let proposals = $state<MetadataProposal[]>([]);
@@ -97,6 +97,37 @@
     try { await fn(); await chargerDoublons(); error = null; }
     catch (e: any) { error = e?.message ?? $t('v2.meta.decisionNotSaved' as any); }
   }
+
+  // Onglet « Dynamic Range » (Bertrand, 16/09/2026) : graver dans les
+  // fichiers le DR que Tune a CALCULÉ, sous la clé `DYNAMIC RANGE` que le
+  // scan relit. L'état vient du serveur seul ; pendant la passe on le relit
+  // toutes les deux secondes, et on s'arrête dès qu'il ne dit plus « running ».
+  let dr = $state<GravureDrEtat | null>(null);
+  let drErr = $state<string | null>(null);
+  let drBusy = $state(false);
+  let drMinuterie: ReturnType<typeof setTimeout> | null = null;
+  async function chargerDr() {
+    try { dr = await api.getGravureDr(); drErr = null; }
+    catch (e: any) { drErr = e?.message ?? $t('v2.meta.drUnavail' as any); }
+    if (dr?.status === 'running') {
+      if (drMinuterie) clearTimeout(drMinuterie);
+      drMinuterie = setTimeout(chargerDr, 2000);
+    }
+  }
+  async function graverDr() {
+    if (drBusy) return;
+    drBusy = true;
+    try { await api.lancerGravureDr(); drErr = null; }
+    catch (e: any) { drErr = e?.message ?? $t('v2.meta.drUnavail' as any); }
+    drBusy = false;
+    await chargerDr();
+  }
+  $effect(() => {
+    if (tab !== 'dr') return;
+    chargerDr();
+    return () => { if (drMinuterie) { clearTimeout(drMinuterie); drMinuterie = null; } };
+  });
+
   $effect(() => { loadProposals(); });
 
   // Les albums douteux ne sont chargés qu'à l'ouverture de leur onglet.
@@ -148,6 +179,7 @@
       <button class:on={tab === 'doubtful'} onclick={() => (tab = 'doubtful')}>{$t('v2.meta.tabDoubtful' as any)}{#if dLoaded}<span>{$formatNombre(doubtful.length)}</span>{/if}</button>
       <button class:on={tab === 'doublons'} onclick={() => (tab = 'doublons')}>{$t('v2.meta.tabDoublons' as any)}{#if dblLoaded && !dblLoading}<span>{$formatNombre(dblAlbums.length + dblArtistes.length + dblPaires.length)}</span>{/if}</button>
       <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>{$t('v2.meta.tabGenres' as any)}</button>
+      <button class:on={tab === 'dr'} onclick={() => (tab = 'dr')}>{$t('v2.meta.tabDr' as any)}{#if dr}<span>{$formatNombre(dr.a_graver)}</span>{/if}</button>
     </nav>
   </header>
 
@@ -286,6 +318,44 @@
         <GenreTreeView />
       </div>
 
+    {:else if tab === 'dr'}
+      <!--
+        Graver le Dynamic Range (Bertrand, 16/09/2026). Tune calcule le DR
+        dans la passe ReplayGain et ne le garde qu'en base ; ce bouton l'écrit
+        dans les fichiers sous `DYNAMIC RANGE`, la clé que le scan RELIT — et
+        que foobar2000 lit aussi. Seuls les conteneurs relus (FLAC, Ogg, Opus)
+        sont gravés ; les autres sont comptés, pas touchés. Un fichier qui
+        porte déjà la clé n'est jamais réécrit : le tag du disque fait foi.
+      -->
+      {#if !dr && !drErr}
+        <div class="state">{$t('v2.tool.loading' as any)}</div>
+      {:else if drErr && !dr}
+        <div class="state">{drErr}</div>
+      {:else if dr}
+        <div class="auto">
+          <div class="al">
+            <span>{$t('v2.meta.drEngrave' as any)}</span>
+            <span class="hint">{$t('v2.meta.drHint' as any)}</span>
+          </div>
+          <button class="go" disabled={drBusy || dr.status === 'running' || dr.a_graver === 0} onclick={graverDr}>
+            {dr.status === 'running' ? $t('v2.meta.drRunning' as any) : $t('v2.meta.drEngraveBtn' as any)}
+          </button>
+        </div>
+        <div class="drgrid">
+          <div class="drk"><b>{$formatNombre(dr.a_graver)}</b><span>{$t('v2.meta.drToEngrave' as any)}</span></div>
+          <div class="drk"><b>{$formatNombre(dr.dans_les_fichiers)}</b><span>{$t('v2.meta.drInFiles' as any)}</span></div>
+          <div class="drk"><b>{$formatNombre(dr.hors_format)}</b><span>{$t('v2.meta.drOtherFormats' as any)}</span></div>
+        </div>
+        {#if dr.status === 'running'}
+          <p class="note">{$t('v2.meta.drProgress' as any).replace('{done}', $formatNombre((dr.written ?? 0) + (dr.already ?? 0) + (dr.skipped ?? 0) + (dr.errors ?? 0))).replace('{total}', $formatNombre(dr.total ?? 0))}</p>
+        {:else if dr.status === 'done'}
+          <p class="note">{$t('v2.meta.drDone' as any).replace('{written}', $formatNombre(dr.written ?? 0)).replace('{already}', $formatNombre(dr.already ?? 0)).replace('{skipped}', $formatNombre(dr.skipped ?? 0)).replace('{errors}', $formatNombre(dr.errors ?? 0))}</p>
+        {:else if dr.a_graver === 0}
+          <p class="note">{$t('v2.meta.drNothing' as any)}</p>
+        {/if}
+        {#if drErr}<div class="errline">{drErr}</div>{/if}
+      {/if}
+
     {:else if dLoading}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !doubtful.length}
@@ -385,6 +455,12 @@
   .src{margin-top:7px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
   .pa{display:flex; gap:8px; flex:0 0 auto}
   .pa.wrap{flex-wrap:wrap; margin-top:8px}
+  .drgrid{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-bottom:14px}
+  .drk{display:flex; flex-direction:column; gap:3px; padding:12px 16px; border-radius:12px;
+    border:1px solid var(--v2-line); background:var(--v2-surface2)}
+  .drk b{font:600 20px var(--v2-sans); color:var(--v2-txt); font-variant-numeric:tabular-nums}
+  .drk span{font-size:11.5px; color:var(--v2-txt3)}
+  .errline{margin-top:10px; font-size:12.5px; color:var(--v2-danger)}
   .dh{margin:18px 0 8px; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-txt3)}
   .dh span{margin-left:6px; opacity:.7}
   .sub{margin-top:4px; font-size:12px; color:var(--v2-txt3)}
