@@ -49,6 +49,9 @@
   import { lireListe } from '../../lib/lectureEnMasse';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
+  import TriAlbums from '../partages/TriAlbums.svelte';
+  import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
@@ -120,6 +123,20 @@
   let ouvert = $state<Artist | null>(null);
   let albums = $state<Album[]>([]);
   let albumsChargement = $state(false);
+
+  /**
+   * Tri des albums de la fiche (Bertrand, 16/09/2026 : « idem dans la vue
+   * Library / Artists »). Pas d'« Artiste » ici — ils ont tous le même — ni
+   * de « Pertinence » : le défaut est l'année, l'ordre d'une discographie.
+   * Côté client sur la liste reçue ; la date d'ajout est attachée par la
+   * route (tune-server-rust #4246). Mémorisé par écran.
+   */
+  const CLES_FICHE: readonly CleTriAlbums[] = ['year', 'title', 'release_date', 'added_at'];
+  let triAlbums = $state<CleTriAlbums>(lireChoix<CleTriAlbums>('v2.art.albums.tri', CLES_FICHE, 'year'));
+  let sensAlbums = $state<SensTri>(lireChoix<SensTri>('v2.art.albums.sens', ['asc', 'desc'], 'asc'));
+  $effect(() => { ecrireChoix('v2.art.albums.tri', triAlbums); });
+  $effect(() => { ecrireChoix('v2.art.albums.sens', sensAlbums); });
+  const albumsTries = $derived(trierAlbums(albums, triAlbums, sensAlbums));
   let albumOuvert = $state<Album | null>(null);
   let enEdition = $state<Artist | null>(null);
   /**
@@ -472,8 +489,11 @@
       <div class="etat">{$t('v2.art.noAlbum' as any)}</div>
     {:else}
       {#if albums.length}
+        <div class="entete-albums">
+          <TriAlbums bind:cle={triAlbums} bind:sens={sensAlbums} cles={CLES_FICHE} />
+        </div>
         <div class="gr">
-          {#each albums as al (al.id)}
+          {#each albumsTries as al (al.id)}
             <div class="carte">
               <div class="cv">
                 <PochetteActions
@@ -645,6 +665,7 @@
      `.grille` sans son défilement ni son remplissage propres, qui remontent
      dans `.corps`. */
   .corps { flex: 1; overflow-y: auto; padding: 8px 30px 40px; min-height: 0; }
+  .entete-albums { display: flex; justify-content: flex-end; padding: 0 0 10px; }
   .gr {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));

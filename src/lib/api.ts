@@ -4360,8 +4360,19 @@ export function createCollection(name: string, description?: string, icon?: stri
 }
 export function updateCollection(id: number, data: any) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
 export function deleteCollection(id: number) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'DELETE' }); }
-export function getCollectionAlbums(id: number, sort: 'artist' | 'title' | 'year' | 'added' = 'artist') {
-  return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums?sort=${sort}`);
+/** Clés de tri des albums d'un dossier, telles que le serveur les accepte
+ *  (`album_order::CollectionSort::parse`). `added` est l'ordre d'ajout AU
+ *  DOSSIER ; `added_at` la date d'ajout à la bibliothèque. */
+export type CollectionAlbumsSort = 'artist' | 'title' | 'year' | 'release_date' | 'added_at' | 'added';
+export type CollectionAlbumsOrder = 'asc' | 'desc';
+/** Le sens ne porte que sur la clé principale ; les valeurs manquantes
+ *  restent en dernier dans les deux sens (Bertrand, 16/09/2026). */
+export function getCollectionAlbums(
+  id: number,
+  sort: CollectionAlbumsSort = 'artist',
+  order: CollectionAlbumsOrder = 'asc',
+) {
+  return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums?sort=${sort}&order=${order}`);
 }
 export function addAlbumToCollection(collectionId: number, albumId: number) {
   // Server route is POST /collections/{id}/albums/{album_id} (album_id in the
@@ -6160,6 +6171,34 @@ export function listMetadataProposals(
 }
 
 /** `accept: false` compte comme une voix pour la valeur qu'on possede deja. */
+/**
+ * Graver le Dynamic Range calculé par Tune dans les fichiers (16/09/2026).
+ *
+ * `GET` rend l'inventaire ET le dernier état de la passe : `a_graver` (calculés
+ * par Tune, conteneur relu par le scan), `hors_format` (calculés, mais MP3/M4A…
+ * que le scan ne relit pas — donc jamais gravés), `dans_les_fichiers`
+ * (`dr_source = tag`). Pendant la passe, `status = running` et les compteurs
+ * `written / already / skipped / errors` avancent ; à la fin `status = done`.
+ */
+export interface GravureDrEtat {
+  status: 'idle' | 'running' | 'done';
+  a_graver: number;
+  hors_format: number;
+  dans_les_fichiers: number;
+  total?: number;
+  written?: number;
+  already?: number;
+  skipped?: number;
+  errors?: number;
+}
+export function getGravureDr(): Promise<GravureDrEtat> {
+  return apiFetch('/library/dr/gravure');
+}
+/** 202 accepté ; 409 si la passe tourne déjà. */
+export function lancerGravureDr(): Promise<{ status: string; total: number; hors_format: number }> {
+  return apiPost('/library/dr/gravure', {});
+}
+
 export function decideMetadataProposal(
   id: number,
   accept: boolean,

@@ -17,6 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
+  import { tick } from 'svelte';
   import { get } from 'svelte/store';
   import { dialogs } from '../../lib/stores/dialogs';
   import { emphaseParts } from '../../lib/i18nEmphase';
@@ -132,6 +133,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
   let tabId = $state<V2SettingsTabId>('general');
   let highlight = $state<string | null>(null);
+  /** #1006 — la zone visée par la carte de l'écran Zones, mise en avant dans « Par zone ». */
+  let cibleZone = $state<number | null>(null);
 
   // Cible venue de la recherche du menu avatar : consommée UNE fois, sinon un
   // retour ultérieur sur les Réglages rejouerait l'ancienne cible.
@@ -140,7 +143,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     if (!target) return;
     tabId = target.tab;
     highlight = target.section ?? null;
+    cibleZone = target.zone ?? null;
     v2SettingsTarget.set(null);
+    if (target.zone != null) {
+      tick().then(() => document.getElementById(`zc-${target.zone}`)?.scrollIntoView({ block: 'center' }));
+    }
   });
 
   const tab = $derived(tabs.find((x) => x.id === tabId) ?? tabs[0]);
@@ -2433,7 +2440,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">{$t('settings.perZoneScopeHint' as any)}</p>
                 <div class="zlist">
                   {#each $zones as z (z.id)}
-                    <div class="zc">
+                    <div class="zc" id={`zc-${z.id}`} class:hl={cibleZone === z.id}>
                       <div class="zch">
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
@@ -3521,6 +3528,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .up{font:12.5px var(--v2-mono); color:var(--v2-acc-tint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .zlist{display:flex; flex-direction:column; gap:9px; margin-top:12px}
   .zc{padding:13px 15px; border-radius:12px; border:1px solid var(--v2-line); background:var(--v2-bg)}
+  .zc.hl{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .zch{display:flex; align-items:baseline; gap:11px}
   .zn{font-size:14px; font-weight:700}
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}

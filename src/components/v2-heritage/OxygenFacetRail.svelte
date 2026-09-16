@@ -277,7 +277,12 @@
     {:else if (groups[f] ?? []).length}
       <div class="group">
         <div class="ghead">
-          <button class="ghtitle" onclick={() => toggle(f)}>
+          <!-- #896 — Patatorz (fils 1683 et 1800) : « clarifier si "dynamic"
+               est celle de l'album ou des titres ». Le libellé le dit
+               (« DR de l'album ») et l'infobulle dit d'où vient la valeur —
+               le tag ALBUM DYNAMIC RANGE, sinon la moyenne des pistes. -->
+          <button class="ghtitle" onclick={() => toggle(f)}
+                  title={f === 'dr' ? $t('oxygen.facet.drHelp') : undefined}>
             <svg class="chev" class:closed={!isOpen(f)} viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
             {$t('oxygen.facet.' + f)}
           </button>

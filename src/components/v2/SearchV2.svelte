@@ -44,6 +44,9 @@
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import RenommerModale from './RenommerModale.svelte';
   import { t } from '../../lib/i18n';
+  import TriAlbums from '../partages/TriAlbums.svelte';
+  import { CLES_TRI_ALBUMS, trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import type { Artist, Playlist, StreamingPlaylist } from '../../lib/types';
   import { streamingServices } from '../../lib/stores/streaming';
   import {
@@ -451,7 +454,18 @@
     k === 'local' ? $t('v2.rech.srcLocal' as any) : k.charAt(0).toUpperCase() + k.slice(1);
 
   const artistes = $derived(voirArtistes ? groupes.artistes.filter(dansLePerimetre) : []);
-  const albums = $derived(voirAlbums ? groupes.albums.filter(dansLePerimetre) : []);
+  /**
+   * Tri de la section Albums (Bertrand, 16/09/2026 : « tri par Album / dates
+   * asc desc pour un artiste et Artiste / dates asc desc pour un album »).
+   * Côté client, sur ce qui a été reçu : la recherche interroge plusieurs
+   * sources à la fois et aucune route ne trie l'union. « Pertinence » est le
+   * défaut — l'ordre du serveur est une information. Mémorisé par écran.
+   */
+  let triAlbums = $state<CleTriAlbums>(lireChoix<CleTriAlbums>('v2.rech.albums.tri', CLES_TRI_ALBUMS, 'pertinence'));
+  let sensAlbums = $state<SensTri>(lireChoix<SensTri>('v2.rech.albums.sens', ['asc', 'desc'], 'asc'));
+  $effect(() => { ecrireChoix('v2.rech.albums.tri', triAlbums); });
+  $effect(() => { ecrireChoix('v2.rech.albums.sens', sensAlbums); });
+  const albums = $derived(voirAlbums ? trierAlbums(groupes.albums.filter(dansLePerimetre), triAlbums, sensAlbums) : []);
   const titres = $derived(voirTitres ? groupes.pistes.filter(dansLePerimetre) : []);
 
   /**
@@ -855,7 +869,7 @@
 
       {#if albums.length}
         <section class="grp">
-          <h2>{$t('v2.rech.albums' as any)}</h2>
+          <h2>{$t('v2.rech.albums' as any)}<span class="tri"><TriAlbums bind:cle={triAlbums} bind:sens={sensAlbums} /></span></h2>
           <div class="grid">
             {#each vusAlbums as a, i (String(a.source ?? 'local') + ':' + String(a.id ?? a.source_id ?? i))}
               {@const local_ = estLocal(a)}
@@ -1063,6 +1077,7 @@
 
   .grp{padding:14px 30px 8px}
   .grp h2{font-size:18px; font-weight:700; padding-bottom:12px; display:flex; align-items:center; gap:10px}
+  .grp h2 .tri{margin-left:auto; font-weight:400}
   .grp h2 .tag{font:600 10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-acc-tint);
     border:1px solid var(--v2-acc2); border-radius:999px; padding:3px 9px}
 
