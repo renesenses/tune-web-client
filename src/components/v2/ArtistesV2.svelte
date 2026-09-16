@@ -47,6 +47,8 @@
     detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant,
   } from '../../lib/historiqueCoquille';
   import { lireListe } from '../../lib/lectureEnMasse';
+  import { melangee } from '../../lib/shuffle';
+  import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import TriAlbums from '../partages/TriAlbums.svelte';
@@ -58,7 +60,7 @@
   // manquant — n'atteignait jamais l'écran.
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { notifications } from '../../lib/stores/notifications';
-  import type { Album, Artist } from '../../lib/types';
+  import type { Album, Artist, Track } from '../../lib/types';
   import { streamingServices } from '../../lib/stores/streaming';
   import {
     albumsDeStreamingPourArtiste,
@@ -74,6 +76,12 @@
   interface Props {
     /** Filtre texte partagé avec le reste de l'écran. */
     q?: string;
+    /** Source partagée avec Albums/Pistes ; un artiste peut en avoir plusieurs. */
+    provenance?: string | null;
+    sourcesArtistes?: Map<number, Set<string>>;
+    sourcesEnCharge?: boolean;
+    erreurSources?: string | null;
+    onComptesSources?: (comptes: ComptesArtistesSources) => void;
     /**
      * L'artiste à OUVRIR dès que la liste est là — « Aller à l'artiste » du
      * menu « … » d'une piste (Bertrand, 07/09/2026).
@@ -100,7 +108,7 @@
     /** Le nom du dossier, pour le dire quand la portée ne rend aucun artiste. */
     nomPortee?: string | null;
   }
-  let { q = '', ouvrirId = null, onOuvert, idsPortee = null, nomPortee = null }: Props = $props();
+  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, ouvrirId = null, onOuvert, idsPortee = null, nomPortee = null }: Props = $props();
 
   /**
    * 🔴 On attend que la LISTE soit chargée : `artistes` est vide au montage, et
@@ -123,6 +131,7 @@
   let ouvert = $state<Artist | null>(null);
   let albums = $state<Album[]>([]);
   let albumsChargement = $state(false);
+  const albumsAffiches = $derived(albums.filter(a => dansSource(a, provenance)));
 
   /**
    * Tri des albums de la fiche (Bertrand, 16/09/2026 : « idem dans la vue
@@ -136,7 +145,8 @@
   let sensAlbums = $state<SensTri>(lireChoix<SensTri>('v2.art.albums.sens', ['asc', 'desc'], 'asc'));
   $effect(() => { ecrireChoix('v2.art.albums.tri', triAlbums); });
   $effect(() => { ecrireChoix('v2.art.albums.sens', sensAlbums); });
-  const albumsTries = $derived(trierAlbums(albums, triAlbums, sensAlbums));
+  // Fusion #1046 × #1052 : on FILTRE par source (UPnP, #4201) puis on TRIE.
+  const albumsTries = $derived(trierAlbums(albumsAffiches, triAlbums, sensAlbums));
   let albumOuvert = $state<Album | null>(null);
   let enEdition = $state<Artist | null>(null);
   /**
@@ -246,6 +256,7 @@
    * l'ouvrir sans son service le laisserait sur « Chargement… » pour toujours.
    */
   let albumsService = $state<AlbumsDeService[]>([]);
+  const servicesAffiches = $derived(provenance == null ? albumsService : []);
   let albumsServiceChargement = $state(false);
   let albumOuvertService = $state<{ album: Album; service: string } | null>(null);
 
@@ -291,12 +302,15 @@
   const dansLaPortee = $derived(
     idsPortee == null ? artistes : artistes.filter((x) => x.id != null && idsPortee!.has(x.id)),
   );
-  const affiches = $derived.by(() => {
-    const aiguille = plier(q);
-    const liste = aiguille
-      ? dansLaPortee.filter((a) => plier(a.name).includes(aiguille))
-      : dansLaPortee;
-    return [...liste].sort((x, z) => plier(x.name).localeCompare(plier(z.name)));
+  const artistesRecherche = $derived(dansLaPortee.filter(a => plier(a.name).includes(plier(q))));
+  const affiches = $derived(artistesRecherche.filter(a => provenance == null ||
+    [...(sourcesArtistes.get(a.id!) ?? [])].some(s => sourceCorrespond(s, provenance)))
+    .sort((x, z) => plier(x.name).localeCompare(plier(z.name))));
+  $effect(() => {
+    onComptesSources?.({
+      total: artistesRecherche.length,
+      comptes: compterSources(artistesRecherche.map(a => sourcesArtistes.get(a.id!) ?? [])),
+    });
   });
 
   /** Première lettre, chiffres et symboles rassemblés sous « # ». */
@@ -372,6 +386,12 @@
     lire: (c: any) => playAndSync(zid, contexte ? { ...c, ...contexte } : c),
     enfiler: (c: any) => api.addToQueue(zid, c),
   });
+  async function lirePistesSource(zid: number, a: Artist, pistes: Track[]) {
+    const ids = pistes.flatMap(p => p.id == null ? [] : [p.id]);
+    if (!ids.length) return 0;
+    await playAndSync(zid, { track_ids: ids, context_type: 'artist', context_id: String(a.id) } as any);
+    return ids.length;
+  }
   async function lireToutArtiste(a: Artist) {
     const zid = $currentZoneId;
     if (zid == null || a.id == null) {
@@ -381,10 +401,13 @@
     masseEnCours = true;
     try {
       const pistes = (await api.getArtistTracks(a.id)) ?? [];
-      const n = await lireListe(
-        pistes,
-        gestesMasse(zid, { context_type: 'artist', context_id: String(a.id) }),
-      );
+      const selection = pistes.filter(p => dansSource(p, provenance));
+      const n = provenance != null
+        ? await lirePistesSource(zid, a, selection)
+        : await lireListe(
+            pistes,
+            gestesMasse(zid, { context_type: 'artist', context_id: String(a.id) }),
+          );
       if (!n) notifications.error($t('library.noTracks' as any));
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
@@ -399,8 +422,13 @@
     }
     masseEnCours = true;
     try {
-      const r = await api.shuffleAll(zid, { artist_id: a.id });
-      if (!r.track_count) notifications.error($t('library.noTracks' as any));
+      if (provenance != null) {
+        const pistes = ((await api.getArtistTracks(a.id)) ?? []).filter(p => dansSource(p, provenance));
+        if (!await lirePistesSource(zid, a, melangee(pistes))) notifications.error($t('library.noTracks' as any));
+      } else {
+        const r = await api.shuffleAll(zid, { artist_id: a.id });
+        if (!r.track_count) notifications.error($t('library.noTracks' as any));
+      }
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }
@@ -414,7 +442,7 @@
     }
     try {
       const liste = (await api.getArtistAlbums(a.id!)) ?? [];
-      const premier = liste.find((x) => x?.id != null);
+      const premier = liste.find((x) => x?.id != null && dansSource(x, provenance));
       if (!premier) {
         notifications.error($t('v2.art.noAlbum' as any));
         return;
@@ -463,7 +491,7 @@
       </span>
       <div>
         <h1>{artiste.name}</h1>
-        <p class="cpt">{albums.length} {$t('v2.art.albums' as any)}</p>
+        <p class="cpt">{albumsAffiches.length} {$t('v2.art.albums' as any)}</p>
       </div>
     </div>
     <div class="fa">
@@ -485,10 +513,10 @@
   <div class="corps">
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
-    {:else if !albums.length && !albumsService.length && !albumsServiceChargement}
+    {:else if !albumsAffiches.length && !servicesAffiches.length && !(provenance == null && albumsServiceChargement)}
       <div class="etat">{$t('v2.art.noAlbum' as any)}</div>
     {:else}
-      {#if albums.length}
+      {#if albumsAffiches.length}
         <div class="entete-albums">
           <TriAlbums bind:cle={triAlbums} bind:sens={sensAlbums} cles={CLES_FICHE} />
         </div>
@@ -524,10 +552,10 @@
            et poserait des cœurs sans cible.
            Même forme que l'interface actuelle (`LibraryView.svelte:3335`) :
            badge du service, nombre d'albums, puis la grille. -->
-      {#if albumsServiceChargement}
+      {#if provenance == null && albumsServiceChargement}
         <div class="etat">{$t('common.loading' as any)}</div>
       {/if}
-      {#each albumsService as sec (sec.service)}
+      {#each servicesAffiches as sec (sec.service)}
         <section class="svc">
           <div class="svct">
             <ServiceBadge source={sec.service} />
@@ -578,8 +606,10 @@
       onClose={() => (albumOuvertService = null)} />
   {/if}
 
-{:else if chargement}
+{:else if chargement || (provenance != null && sourcesEnCharge)}
   <div class="etat">{$t('common.loading' as any)}</div>
+{:else if provenance != null && erreurSources}
+  <div class="etat err">{erreurSources}</div>
 {:else if erreur}
   <div class="etat err">{erreur}</div>
 {:else if !affiches.length}

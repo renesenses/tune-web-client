@@ -4470,6 +4470,24 @@ export default {
   // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
   "session.expiredTitle": "会话已过期",
   "session.expiredBody": "您的会话已结束。请重新登录以继续，之前打开的界面仍保留在下方。",
+  "upnp.sync.title": "音乐库来源",
+  "upnp.sync.add": "添加到音乐库",
+  "upnp.sync.hint": "所选文件夹将每小时自动同步。音频文件保留在原服务器上。",
+  "upnp.sync.whole": "整个服务器",
+  "upnp.sync.last": "上次同步：",
+  "upnp.sync.limits": "播放限制",
+  "upnp.sync.refresh": "立即同步",
+  "upnp.sync.pause": "暂停同步",
+  "upnp.sync.remove": "文件夹中有 {n} 首曲目已消失。从音乐库中移除它们可能影响收藏和播放列表。确认移除？远程文件不会被修改。",
+  "upnp.sync.partial": "扫描不完整 — 未移除任何曲目",
+  "upnp.sync.confirmation": "需要确认",
+  "upnp.sync.localOnly": "目前仅显示本地专辑。请在媒体服务器中管理来源。",
+  "upnp.availability.present": "已检测到服务器",
+  "upnp.availability.stale": "最近未检测到",
+  "upnp.availability.absent": "服务器不在线",
+  "upnp.availability.disabled": "服务器已禁用",
+  "upnp.availability.unknown": "状态未知",
+  "upnp.availability.hint": "服务器的最后已知状态；仍可浏览目录。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -62,7 +62,7 @@ describe('Bibliothèque — l’onglet Titres', () => {
     // `visibleTracks` filtre sur `q` : c'est le seul contrôle qui a un effet
     // ici, et le masquer priverait l'onglet de tout moyen de chercher.
     const src = source();
-    const debut = src.indexOf('const visibleTracks');
+    const debut = src.indexOf('const pistesRecherche');
     expect(debut, '`visibleTracks` a disparu').toBeGreaterThan(-1);
     const bloc = src.slice(debut, src.indexOf('function playTrack', debut));
     expect(bloc.includes('fold(q)'), 'la recherche ne s’applique plus aux titres').toBe(true);
