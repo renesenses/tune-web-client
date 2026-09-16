@@ -41,3 +41,25 @@ export function reserveDeLaGrappe(largeurMesuree: number): number {
   if (!Number.isFinite(largeurMesuree) || largeurMesuree <= 0) return RESERVE_MINIMALE;
   return Math.max(RESERVE_MINIMALE, Math.ceil(largeurMesuree) + MARGE_DROITE + AIR);
 }
+
+/** La grappe est posée à 20 px du haut (`.av-tr{top:20px}`) et fait 32 px : 66 px avec l'air. */
+export const RESERVE_HAUTE_MINIMALE = 66;
+
+/**
+ * La réserve VERTICALE de la grappe — #1045.
+ *
+ * Alex Campbell, 14/09/2026 : « The queue vs the profile are still fighting
+ * for dominance ». Sur « Lecture en cours », la colonne de la file d'attente
+ * est pincée en haut à droite (`.queue-sheet.wide-layout{top:0; right:0}`) —
+ * exactement sous la grappe avatar/signet/loupe/TV que la coquille pose au
+ * même endroit, un cran au-dessus (`z-index:80` contre 50). Son en-tête et
+ * sa première piste passaient dessous.
+ *
+ * La coquille écrit `--v2-grappe-h` — le bas de la grappe, mesuré, plus
+ * l'air — et la colonne commence là. Hors coquille, le repli vaut 0 : rien
+ * ne change pour l'ancienne interface, qui n'a pas de grappe.
+ */
+export function reserveHauteDeLaGrappe(basMesure: number): number {
+  if (!Number.isFinite(basMesure) || basMesure <= 0) return RESERVE_HAUTE_MINIMALE;
+  return Math.max(RESERVE_HAUTE_MINIMALE, Math.ceil(basMesure) + AIR);
+}

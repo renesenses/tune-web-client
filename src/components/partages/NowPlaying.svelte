@@ -4432,7 +4432,9 @@
   .queue-sheet.wide-layout {
     left: auto;
     right: 0;
-    top: 0;
+    /* #1045 — sous la grappe avatar/signet de la coquille v2, jamais dessous.
+       `--v2-grappe-h` est mesurée par la coquille ; hors coquille, 0. */
+    top: var(--v2-grappe-h, 0px);
     bottom: 0;
     width: 380px;
     max-height: 100%;

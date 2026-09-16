@@ -284,6 +284,10 @@
   let favAlbums = $state<any[]>([]);
   let favArtists = $state<any[]>([]);
   let favTracks = $state<any[]>([]);
+  /** #1042 — le sommaire des favoris amène à la section, dans le conteneur qui défile. */
+  function allerA(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
   let bcCollection = $state<any[]>([]);
   let paneLoading = $state(false);
 
@@ -1035,13 +1039,31 @@
       {/if}
 
     {:else}
+      <!-- #1042 — GgB, fil 1671 : « il faut scroller complètement chaque
+           catégorie albums, artistes, titres, possible d'avoir des sous index
+           favoris pour y accéder ». Un SOMMAIRE, collé en haut : une pastille
+           par nature présente, avec son compte, qui amène à sa section. Il
+           n'apparaît qu'à partir de DEUX natures — à une seule, il n'y a rien
+           à sauter. -->
+      {@const natures = [
+        { id: 'fav-albums', cle: 'v2.rech.albums', n: favAlbums.length },
+        { id: 'fav-artistes', cle: 'v2.rech.artists', n: favArtists.length },
+        { id: 'fav-titres', cle: 'v2.rech.tracks', n: favTracks.length },
+      ].filter((x) => x.n > 0)}
+      {#if natures.length > 1}
+        <nav class="sommaire" aria-label={$t('v2.stream.favIndex' as any)}>
+          {#each natures as x (x.id)}
+            <button class="chip" onclick={() => allerA(x.id)}>{$t(x.cle as any)} <span class="n">{x.n}</span></button>
+          {/each}
+        </nav>
+      {/if}
       {#if favAlbums.length}
-        <section class="sec"><h2>{$t('v2.rech.albums' as any)}</h2>
+        <section class="sec" id="fav-albums"><h2>{$t('v2.rech.albums' as any)}</h2>
           <div class="grid">{#each favAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
         </section>
       {/if}
       {#if favArtists.length}
-        <section class="sec"><h2>{$t('v2.rech.artists' as any)}</h2>
+        <section class="sec" id="fav-artistes"><h2>{$t('v2.rech.artists' as any)}</h2>
           <div class="arow">
             {#each favArtists as ar, i ((ar.source_id ?? ar.name ?? i))}
               {@render artiste(ar)}
@@ -1050,7 +1072,7 @@
         </section>
       {/if}
       {#if favTracks.length}
-        <section class="sec"><h2>{$t('v2.rech.tracks' as any)}</h2>
+        <section class="sec" id="fav-titres"><h2>{$t('v2.rech.tracks' as any)}</h2>
           <div class="grid">{#each favTracks as tr, i ((tr.source_id ?? tr.id ?? i))}{@render tile(tr, () => playTrack(tr), 'track')}{/each}</div>
         </section>
       {/if}
@@ -1270,6 +1292,14 @@
   .notice code{font:11.5px var(--v2-mono); color:var(--v2-acc2)}
 
   .sec{padding:4px 0 22px}
+  /* #1042 — le sommaire des favoris : collé en haut du défilement. */
+  .sommaire{position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:8px;
+    padding:6px 0 10px; margin-bottom:6px; background:var(--v2-bg)}
+  .sommaire .chip{display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:999px;
+    border:1px solid var(--v2-line); background:var(--v2-surface2); color:var(--v2-txt2);
+    font:600 12px var(--v2-sans); cursor:pointer}
+  .sommaire .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
+  .sommaire .chip .n{font:11px var(--v2-mono); color:var(--v2-txt3)}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .card{position:relative; display:flex; flex-direction:column}

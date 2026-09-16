@@ -4032,6 +4032,7 @@ export default {
   "v2.rech.show": "Afficher",
   "v2.rech.artists": "Artistes",
   "v2.rech.albums": "Albums",
+  "v2.stream.favIndex": "Sommaire des favoris",
   "v2.fas.topTracks": "Titres phares",
   "v2.fas.albums": "Albums",
   "v2.fas.empty": "Rien à afficher pour cet artiste.",

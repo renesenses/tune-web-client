@@ -4010,6 +4010,7 @@ export default {
   "v2.rech.show": "表示",
   "v2.rech.artists": "アーティスト",
   "v2.rech.albums": "アルバム",
+  "v2.stream.favIndex": "お気に入りの目次",
   "v2.fas.topTracks": "人気の曲",
   "v2.fas.albums": "アルバム",
   "v2.fas.empty": "このアーティストに表示できるものはありません。",

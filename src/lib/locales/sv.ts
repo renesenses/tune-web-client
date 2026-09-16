@@ -4009,6 +4009,7 @@ export default {
   "v2.rech.show": "Visa",
   "v2.rech.artists": "Artister",
   "v2.rech.albums": "Album",
+  "v2.stream.favIndex": "Favoritindex",
   "v2.fas.topTracks": "Toppspår",
   "v2.fas.albums": "Album",
   "v2.fas.empty": "Inget att visa för den här artisten.",
