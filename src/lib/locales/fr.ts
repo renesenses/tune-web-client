@@ -4492,6 +4492,24 @@ export default {
   // quand un 401 efface le jeton. Voir lib/stores/sessionExpiree.ts.
   "session.expiredTitle": "Session expirée",
   "session.expiredBody": "Votre session a pris fin. Reconnectez-vous pour retrouver votre musique — l’écran que vous aviez ouvert vous attend dessous.",
+  "upnp.sync.title": "Sources de la bibliothèque",
+  "upnp.sync.add": "Ajouter à la bibliothèque",
+  "upnp.sync.hint": "Le dossier choisi sera synchronisé automatiquement chaque heure. Les fichiers audio restent sur le serveur d’origine.",
+  "upnp.sync.whole": "Tout le serveur",
+  "upnp.sync.last": "Dernière synchronisation :",
+  "upnp.sync.limits": "Limites de lecture",
+  "upnp.sync.refresh": "Synchroniser maintenant",
+  "upnp.sync.pause": "Suspendre la synchronisation",
+  "upnp.sync.remove": "{n} pistes ont disparu du dossier. Leur retrait de la bibliothèque peut affecter vos favoris et playlists. Confirmer ? Les fichiers distants restent intacts.",
+  "upnp.sync.partial": "Parcours incomplet — aucun retrait",
+  "upnp.sync.confirmation": "Confirmation requise",
+  "upnp.sync.localOnly": "Seuls des albums locaux sont affichés. Gérez les sources dans Serveurs multimédia.",
+  "upnp.availability.present": "Serveur détecté",
+  "upnp.availability.stale": "Non revu récemment",
+  "upnp.availability.absent": "Serveur absent",
+  "upnp.availability.disabled": "Serveur désactivé",
+  "upnp.availability.unknown": "État inconnu",
+  "upnp.availability.hint": "Dernier état connu du serveur ; le catalogue reste consultable.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

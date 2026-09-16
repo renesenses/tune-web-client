@@ -974,6 +974,11 @@ export interface MediaServer {
   /** État publié par `/network/media-servers` depuis Tune Server 0.9.118.
    *  Optionnel pour rester compatible avec un serveur plus ancien : une
    *  absence est un état inconnu, jamais la preuve d'une indisponibilité. */
+  /** Qualification du registre durable ; distincte de la joignabilité HTTP. */
+  presence?: 'present' | 'absent';
+  active?: boolean;
+  proposable?: boolean;
+  last_seen_at?: string;
   reachable?: boolean;
   /** Secondes depuis la dernière annonce SSDP reçue. */
   last_seen_secs?: number;

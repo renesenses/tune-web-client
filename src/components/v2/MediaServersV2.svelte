@@ -39,6 +39,7 @@
   import { estUnServeurTune, ouvertureParDefaut, RAYONS_TUNE } from '../../lib/mediaServerHome';
   import { depotDistant } from '../../lib/tuneRemote';
   import LibraryV2 from './LibraryV2.svelte';
+  import UpnpLibrarySourcesV2 from './UpnpLibrarySourcesV2.svelte';
   import { filtrerLocalement } from '../../lib/rechercheServeurMedia';
   import {
     PALIERS, DEFAUTS, lirePlafonds, versPatch, libellePalier, verdictDe,
@@ -397,6 +398,8 @@
   {/if}
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
+
+  <UpnpLibrarySourcesV2 server={open ?? null} container={estTune ? '0' : (objetCourant ?? '0')} name={estTune ? undefined : fil.map(c => c.titre).join(' / ')} />
 
   {#if open && !estTune}
     <nav class="fil">

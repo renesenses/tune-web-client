@@ -350,6 +350,8 @@ async function codeDuRefus(response: Response): Promise<Refus | null> {
   }
 }
 
+const playbackWarnings = new Map<string, { text: string; id: number }>();
+
 type Refus = { code?: string; zone_limit?: number; zones_actives?: number };
 
 export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
@@ -451,7 +453,20 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     return undefined as T;
   }
   try {
-    return JSON.parse(text) as T;
+    const parsed = JSON.parse(text);
+    const playbackZone = url.match(/\/zones\/([^/]+)\/(play|resume|next|previous)(?:\?|$)/)?.[1];
+    if (options?.method === 'POST' && playbackZone) {
+      const messages = Array.isArray(parsed?.avertissements)
+        ? [...new Set<string>(parsed.avertissements.filter((v: unknown): v is string => typeof v === 'string' && v.trim().length > 0))] : [];
+      const message = messages.join('\n');
+      const previous = playbackWarnings.get(playbackZone);
+      if (previous?.text !== message) {
+        if (previous && typeof previous.id === 'number') notifications.dismiss(previous.id);
+        playbackWarnings.delete(playbackZone);
+        if (message) playbackWarnings.set(playbackZone, { text: message, id: notifications.info(message, 0) });
+      }
+    }
+    return parsed as T;
   } catch {
     throw new Error('Invalid JSON response');
   }
@@ -2126,8 +2141,8 @@ export function browseDirectory(path: string) {
 
 // --- Media Servers (UPnP/DLNA) ---
 
-export async function getMediaServers(): Promise<import('./types').MediaServer[]> {
-  const data = await fetchJSON<any>(`${BASE}/network/media-servers`);
+export async function getMediaServers(signal?: AbortSignal): Promise<import('./types').MediaServer[]> {
+  const data = await fetchJSON<any>(`${BASE}/network/media-servers`, signal ? { signal } : undefined);
   return Array.isArray(data) ? data : data.items ?? [];
 }
 
@@ -2660,6 +2675,28 @@ function mapStreamingSearchResult<T extends QuatreFamilles>(result: T, service?:
 function mapZoneQuality(zone: any): Zone {
   if (zone?.current_track) mapStreamingQuality(zone.current_track);
   return zone as Zone;
+}
+
+export interface UpnpLibrarySource {
+  key: string; udn: string; container: string; name: string; enabled: boolean;
+  status: string; last_attempt: number; last_success: number | null;
+  generation: string; pending_count: number;
+  report: { pistes?: { distinctes?: number }; albums_ajoutes?: number; supprimees?: number;
+    erreurs?: string[]; reserves?: string[]; error?: string; detail?: string;
+    parcours?: { plafond?: { message: string } | null } };
+}
+export function getUpnpLibrarySources() {
+  return fetchJSON<{ items: UpnpLibrarySource[] }>(`${BASE}/network/library-sources`);
+}
+export function addUpnpLibrarySource(id: string, container: string, name?: string) {
+  return fetchJSON<UpnpLibrarySource>(`${BASE}/network/media-servers/${encodeURIComponent(id)}/library-source`, {
+    method: 'POST', body: JSON.stringify({ container, name }),
+  });
+}
+export function actUpnpLibrarySource(source: UpnpLibrarySource, action: 'sync' | 'pause' | 'confirm') {
+  return fetchJSON<UpnpLibrarySource>(`${BASE}/network/library-sources`, {
+    method: 'POST', body: JSON.stringify({ key: source.key, action, generation: source.generation, count: source.pending_count }),
+  });
 }
 
 // --- Search ---
