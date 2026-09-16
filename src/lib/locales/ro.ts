@@ -531,6 +531,7 @@ export default {
   'playlist.importing': 'Se importă...',
   'playlist.imported': '{count} piese importate',
   'playlist.manager': 'Manager playlisturi',
+  'favorites.serviceSyncFailed': 'Favoritul a rămas în Tune, dar {service} nu a urmat: {motif}',
   'playlist.source': 'Sursă',
   'playlist.importConfirm': 'Imporți acest playlist local?',
   "playlist.importedMatched": "{count} din {total} piese găsite în bibliotecă și importate.",

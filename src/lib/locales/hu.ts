@@ -199,6 +199,7 @@ export default {
   // Lejátszási listák / offline / podcastok / rádiók / vegyes
   "playlist.moveUp": "Mozgatás felfelé",
   "playlist.moveDown": "Mozgatás lefelé",
+  "favorites.serviceSyncFailed": "A kedvenc megmaradt a Tune-ban, de a(z) {service} nem követte: {motif}",
   "playlist.noStreamingPlaylists": "Nincs {service} lejátszási lista",
   "offline.syncStarted": "A szinkronizálás elindult",
   "offline.syncError": "Szinkronizálási hiba",
