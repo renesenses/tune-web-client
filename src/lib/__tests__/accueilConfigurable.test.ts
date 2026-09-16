@@ -111,8 +111,12 @@ describe('Accueil — la configuration', () => {
     const home = lire('../../components/v2/HomeV2.svelte');
     const balise = /<PageWidgets([^>]*)\/>/.exec(home);
     expect(balise, 'l’accueil n’instancie plus la page générique').not.toBeNull();
+    // #987 — `bind:this` n'est pas un réglage : c'est la poignée par laquelle
+    // l'accueil APPREND à la page les catégories de playlists Qobuz, une fois
+    // qu'elles sont arrivées (`apprendreCatalogue`). Catalogue, disposition
+    // et clé restent les défauts.
     expect(
-      balise![1].trim().replace(/\bsalut\b/, '').trim(),
+      balise![1].trim().replace(/\bsalut\b/, '').replace(/bind:this=\{page\}/, '').trim(),
       'l’accueil passe des réglages au lieu de prendre les défauts',
     ).toBe('');
   });
@@ -148,8 +152,17 @@ describe('Accueil — la configuration', () => {
   it('un identifiant inconnu est IGNORÉ', () => {
     // Un widget retiré du registre laisserait sinon un trou muet dans la page
     // de qui l'avait choisi.
+    // #987 — en DEUX temps : la liste enregistrée est gardée telle quelle
+    // (`dispositionEnregistree`), la disposition rendue n'en retient que les
+    // identifiants connus. Un widget que le catalogue apprend plus tard
+    // (catégories Qobuz de l'accueil) revient ainsi à sa place au lieu d'être
+    // perdu au chargement.
     expect(
-      ecran().includes("d.filter((id: any) => typeof id === 'string' && parId(id))"),
+      ecran().includes("dispositionEnregistree = d.filter((id: any) => typeof id === 'string');"),
+      'la disposition enregistrée n’est plus gardée telle quelle.',
+    ).toBe(true);
+    expect(
+      ecran().includes('disposition = dispositionEnregistree.filter((id) => parId(id));'),
       'les identifiants inconnus ne sont plus filtrés.',
     ).toBe(true);
   });

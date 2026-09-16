@@ -62,11 +62,40 @@ describe('Où mène le nom d’artiste de la lecture en cours', () => {
       .toEqual({ type: 'artiste-par-nom', nom: 'M' });
   });
 
-  it('l’identifiant PRIME sur la source', () => {
-    // « M » et « -M- » sont le même artiste et deux chaînes différentes : dès
-    // qu'un numéro existe, il tranche.
-    expect(destinationArtiste({ source: 'qobuz', artist_id: 125, artist_name: 'M' }))
-      .toEqual({ type: 'artiste', artistId: 125 });
+  /**
+   * 🔴 PRÉMISSE RENVERSÉE le 16/09/2026 — #956.
+   *
+   * Cette garde affirmait « l'identifiant PRIME sur la source » : un
+   * `artist_id` avec `source: 'qobuz'` ouvrait l'artiste LOCAL 125. La
+   * prémisse venait de `NowPlaying.artist_id: Option<i64>`, bibliothèque
+   * seule — et elle était vraie pour la lecture en cours. Mais un album ou
+   * une piste servis par `/search` ou `/streaming/qobuz/…` portent
+   * `artist_id: "610403"` : l'identifiant de l'artiste CHEZ QOBUZ. Mesuré sur
+   * la .18 (v0.9.151), album « Melodies Of Atonement » de Leprous. Sandro
+   * (fil 1769) et Fabien (fil 1774, point 15) atterrissaient dans la
+   * Bibliothèque à la recherche d'un artiste 610403 qui n'y est pas.
+   *
+   * La règle devient : la SOURCE dit de quel référentiel l'identifiant est.
+   */
+  it('🔴 #956 — un identifiant sous une source de SERVICE est celui du service : fiche directe', () => {
+    expect(destinationArtiste({ source: 'qobuz', artist_id: '610403', artist_name: 'Leprous' }))
+      .toEqual({ type: 'artiste-service', service: 'qobuz', id: '610403', nom: 'Leprous' });
+    // Deezer sert ses identifiants en NOMBRE : c'est un identifiant distant quand même.
+    expect(destinationArtiste({ source: 'deezer', artist_id: 125, artist_name: 'M' }))
+      .toEqual({ type: 'artiste-service', service: 'deezer', id: '125', nom: 'M' });
+  });
+
+  it('🔴 #956 — une CHAÎNE n’est jamais une clé de bibliothèque, même sans source', () => {
+    const d = destinationArtiste({ source: null, artist_id: '610403', artist_name: 'Leprous' });
+    expect(d?.type).not.toBe('artiste');
+    expect(d).toEqual({ type: 'recherche', requete: 'Leprous', source: null });
+  });
+
+  it('un nombre sous une source LOCALE (ou inconnue) reste la bibliothèque', () => {
+    expect(destinationArtiste({ source: 'local', artist_id: 994, artist_name: 'Pink Floyd' }))
+      .toEqual({ type: 'artiste', artistId: 994 });
+    expect(destinationArtiste({ source: null, artist_id: 994, artist_name: 'Pink Floyd' }))
+      .toEqual({ type: 'artiste', artistId: 994 });
   });
 
   it('sans nom d’artiste, AUCUN geste', () => {

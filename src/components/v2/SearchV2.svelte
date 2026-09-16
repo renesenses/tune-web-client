@@ -57,6 +57,7 @@
     oublierRecherche,
     viderRecherchesRecentes,
     type RechercheRecente,
+    ordonnerSources,
   } from '../../lib/rechercheClassement';
   import '../../styles/tune-v2.css';
 
@@ -401,9 +402,10 @@
     for (const l of [groupes.artistes, groupes.albums, groupes.pistes]) {
       for (const x of l) n.set(x.source ?? 'local', (n.get(x.source ?? 'local') ?? 0) + 1);
     }
-    // Le LOCAL en tête : c'est ce que l'utilisateur possède déjà.
-    return [...n.entries()].sort((a, b) =>
-      (a[0] === 'local' ? -1 : b[0] === 'local' ? 1 : a[0].localeCompare(b[0])));
+    // #856 — par PRÉFÉRENCE (local, Qobuz, Tidal, …, Bandcamp, YouTube), la
+    // même table que le classement des résultats. Le local reste en tête :
+    // c'est ce que l'utilisateur possède déjà.
+    return ordonnerSources([...n.entries()], (e) => e[0]);
   });
 
   /**

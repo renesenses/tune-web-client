@@ -83,7 +83,7 @@ describe('Le bandeau, en français et en anglais', () => {
 
 describe('Où le bandeau s’affiche', () => {
   it('l’accueil salue, les écrans éditoriaux non', () => {
-    expect(lire('../../components/v2/HomeV2.svelte').includes('<PageWidgets salut />'),
+    expect(/<PageWidgets salut(\s+bind:this=\{page\})? \/>/.test(lire('../../components/v2/HomeV2.svelte')),
       'l’accueil a reperdu son salut').toBe(true);
     // Qobuz et Tidal instancient la MÊME page : sans la garde, « Bonsoir
     // Bertrand ! » remplacerait « Éditorial » et on ne saurait plus où l'on est.

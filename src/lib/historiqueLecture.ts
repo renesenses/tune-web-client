@@ -56,6 +56,8 @@ export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
       type: e.context_type ?? null,
       id: e.context_id ?? null,
       position: e.context_position ?? null,
+      // #988 — servi depuis la v0.9.151 ; absent d'un serveur plus ancien.
+      nom: e.context_name ?? null,
     },
   }));
 }

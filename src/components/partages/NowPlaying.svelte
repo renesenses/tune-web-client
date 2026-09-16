@@ -541,6 +541,14 @@
 
     if (dest.type === 'artiste') { await ouvrirFicheArtiste(dest.artistId, artistName); return; }
 
+    // #956 — l'identifiant du service est déjà là : la fiche directement, si
+    // la coquille sait l'ouvrir ; sinon la recherche, comme avant.
+    if (dest.type === 'artiste-service') {
+      if (gestesService) { gestesService.ouvrirArtiste({ service: dest.service, nom: dest.nom, id: dest.id }); return; }
+      ouvrirRecherche(dest.nom, dest.service);
+      return;
+    }
+
     if (dest.type === 'artiste-par-nom') {
       // Une piste locale d'un serveur antérieur à la 0.9.102 n'a pas
       // d'`artist_id` : l'artiste EST en bibliothèque, il ne manque que son
@@ -2566,12 +2574,19 @@
   }
   .np-tv-btn:hover { background: rgba(0, 0, 0, 0.5); }
 
+  /* #993 — FabienM (fil 1774, point 5) : « Fond d'écran délavé dans lecture
+     en cours. Pas assez de contraste. » Le fond reste la pochette floutée —
+     c'est ce que cet écran a de particulier — mais assombrie bien plus :
+     à 0.3, une pochette claire donnait un gris moyen sous du texte blanc ;
+     à 0.12, la pochette la plus blanche plafonne à un gris #1f1f1f, celui
+     d'un fond de thème sombre. Arbitré par Bertrand le 13/09/2026 :
+     assombrir, pas remplacer. */
   .bg-blur {
     position: absolute;
     inset: 0;
     background-size: cover;
     background-position: center;
-    filter: blur(60px) brightness(0.3);
+    filter: blur(60px) brightness(0.12);
     transform: scale(1.2);
     z-index: 0;
     transition: background-image 1s ease-in-out;
@@ -4150,7 +4165,7 @@
   }
 
   :global([data-kiosk]) .bg-blur {
-    filter: blur(60px) brightness(0.25);
+    filter: blur(60px) brightness(0.1);
   }
 
   /* --- Mood picker dropdown in settings row --- */
@@ -4417,7 +4432,9 @@
   .queue-sheet.wide-layout {
     left: auto;
     right: 0;
-    top: 0;
+    /* #1045 — sous la grappe avatar/signet de la coquille v2, jamais dessous.
+       `--v2-grappe-h` est mesurée par la coquille ; hors coquille, 0. */
+    top: var(--v2-grappe-h, 0px);
     bottom: 0;
     width: 380px;
     max-height: 100%;

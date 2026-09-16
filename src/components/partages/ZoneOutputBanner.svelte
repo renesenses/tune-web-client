@@ -58,6 +58,10 @@
         {$t('zone.noOutputBannerAction')}
       </button>
     {/if}
+    <!-- #1043 — une croix : le bandeau se ferme pour l'incident courant, et
+         revient au suivant. Alex Campbell ne pouvait pas le fermer. -->
+    <button class="zone-output-banner-close" onclick={() => bandeau.fermer()}
+            title={$t('zone.bannerDismiss')} aria-label={$t('zone.bannerDismiss')}>×</button>
   </div>
 {/if}
 
@@ -94,5 +98,19 @@
   }
   .zone-output-banner-action:hover {
     background: rgba(245, 158, 11, 0.2);
+  }
+  .zone-output-banner-close {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    opacity: 0.7;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.1rem 0.35rem;
+    cursor: pointer;
+  }
+  .zone-output-banner-close:hover {
+    opacity: 1;
   }
 </style>

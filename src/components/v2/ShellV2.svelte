@@ -180,7 +180,7 @@
   import { setupKeyboardShortcuts } from '../../lib/keyboard';
   import { brancherHistoriqueCoquille } from '../../lib/historiqueCoquille';
   import { demarrerTransportV2 } from '../../lib/v2Live';
-  import { reserveDeLaGrappe } from '../../lib/gouttiereGrappe';
+  import { reserveDeLaGrappe, reserveHauteDeLaGrappe } from '../../lib/gouttiereGrappe';
 
   /**
    * 🔴 LA GOUTTIÈRE EST MESURÉE, PLUS DEVINÉE.
@@ -211,7 +211,13 @@
   $effect(() => {
     const g = grappeEl, c = coquilleEl;
     if (!g || !c || typeof ResizeObserver === 'undefined') return;
-    const poser = () => c.style.setProperty('--v2-grappe-w', `${reserveDeLaGrappe(g.getBoundingClientRect().width)}px`);
+    const poser = () => {
+      const r = g.getBoundingClientRect();
+      c.style.setProperty('--v2-grappe-w', `${reserveDeLaGrappe(r.width)}px`);
+      // #1045 — la réserve VERTICALE, pour ce qui se pince en haut à droite
+      // DANS un écran (la colonne de la file d'attente de « Lecture en cours »).
+      c.style.setProperty('--v2-grappe-h', `${reserveHauteDeLaGrappe(r.bottom - c.getBoundingClientRect().top)}px`);
+    };
     poser();
     const ro = new ResizeObserver(poser);
     ro.observe(g);
@@ -384,7 +390,15 @@
    * ouvert sur la source. Un écran vide serait pire que la recherche qu'il
    * remplace.
    */
-  async function ouvrirArtisteServiceParNom(c: { service: string; nom: string }) {
+  async function ouvrirArtisteServiceParNom(c: { service: string; nom: string; id?: string | null }) {
+    // #956 — l'identifiant du service est déjà là (album ou piste servis par
+    // le service) : on ouvre la fiche sans rien deviner.
+    if (c.id != null && String(c.id).trim() !== '') {
+      vueDeRetour.set('nowplaying');
+      ficheArtisteService.set({ service: c.service as any, id: String(c.id).trim(), nom: c.nom });
+      activeView.set('streamingartist');
+      return;
+    }
     const issue = await resoudreArtisteDeService(c, async (nom, service) => {
       const r = await api.federatedSearch(nom, [service], 5);
       return r?.services?.[service]?.artists ?? [];

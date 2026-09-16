@@ -49,7 +49,10 @@ export function fusionnerParType(
   const albums = [...marquer(local?.albums, 'local')];
   const pistes = [...marquer(local?.tracks, 'local')];
 
-  for (const [svc, r] of Object.entries(services ?? {})) {
+  // #856 — les blocs de service dans l'ordre de PRÉFÉRENCE, pas dans celui
+  // des clés du serveur (alphabétique). Le regroupement par source, lui,
+  // existait déjà.
+  for (const [svc, r] of ordonnerSources(Object.entries(services ?? {}), (e) => e[0])) {
     artistes.push(...marquer(r?.artists, svc));
     albums.push(...marquer(r?.albums, svc));
     pistes.push(...marquer(r?.tracks, svc));
@@ -104,6 +107,25 @@ const RANG_SOURCE: Record<string, number> = {
 export function bonusSource(source: string | null | undefined): number {
   const r = RANG_SOURCE[(source ?? '').toLowerCase()];
   return r == null ? 0.5 : r;
+}
+
+/**
+ * Ranger des SOURCES par préférence — #856 et #998.
+ *
+ * FabienM, fils 1749 (point 10) et 1774 (points 8 et 9) : « l'ordre des
+ * critères du "où" devrait être local, qobuz, … », « Menu streaming : mettre
+ * l'ordre suivant Qobuz, … Bandcamp ». Jusqu'ici l'ordre des pastilles « Où »
+ * et des onglets du Streaming était celui des clés d'un `serde_json::Map`
+ * côté serveur — un `BTreeMap`, donc l'ALPHABET : `bandcamp < qobuz < tidal
+ * < youtube`. Personne ne l'avait choisi.
+ *
+ * 🔴 UNE table, `RANG_SOURCE`, et non une seconde qui divergerait au premier
+ * service ajouté. Un service inconnu se range à mi-chemin (0,5), jamais en
+ * tête ni hors de la liste. À rang égal, l'ordre d'arrivée est conservé
+ * (`sort` est stable).
+ */
+export function ordonnerSources<T>(elements: readonly T[], source: (x: T) => string | null | undefined): T[] {
+  return [...elements].sort((a, b) => bonusSource(source(b)) - bonusSource(source(a)));
 }
 
 /** Barème commun aux trois types : égalité 100, préfixe 50, contenu 20. */
