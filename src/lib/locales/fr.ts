@@ -4189,6 +4189,7 @@ export default {
   "v2.health.drOffBecauseRg": "Rien n'avance : la plage dynamique est calculée par la passe ReplayGain, et cette analyse est éteinte. C'est la carte ReplayGain, juste au-dessus, qui la rallume.",
   "v2.health.drQueuedBehindRg": "{n} pistes en attente. La plage dynamique passe en dernier : elle ne décode que lorsque le ReplayGain et les empreintes n'ont plus rien à faire.",
   "v2.health.drUnavailable": "{n} pistes écartées définitivement : la mesure n'a pas pu aboutir sur ces fichiers.",
+  "v2.health.deferredPaths": "{n} pistes reportées : leur fichier ne répond pas (disque ou partage absent ?). Nouvel essai automatique dans les six heures.",
   "v2.health.cardRgSub": "Normalisation du niveau",
   "v2.health.rgOff": "Désactivé",
   "v2.health.rgTrack": "Par piste",

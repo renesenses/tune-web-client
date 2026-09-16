@@ -4167,6 +4167,7 @@ export default {
   "v2.health.drOffBecauseRg": "진행되지 않습니다. 다이내믹 레인지는 ReplayGain 작업에서 계산되는데 그 분석이 꺼져 있습니다. 바로 위 ReplayGain 카드에서 다시 켤 수 있습니다.",
   "v2.health.drQueuedBehindRg": "{n}곡이 대기 중입니다. 다이내믹 레인지는 마지막 차례입니다. ReplayGain과 지문 작업이 모두 끝나야 디코딩이 시작됩니다.",
   "v2.health.drUnavailable": "{n}곡을 영구히 건너뛰었습니다. 해당 파일에서는 측정을 마칠 수 없었습니다.",
+  "v2.health.deferredPaths": "{n}곡 보류됨: 파일이 응답하지 않습니다(드라이브 또는 공유가 없나요?). 6시간 이내에 자동으로 다시 시도합니다.",
   "v2.health.cardRgSub": "레벨 정규화",
   "v2.health.rgOff": "꺼짐",
   "v2.health.rgTrack": "트랙별",

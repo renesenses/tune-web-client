@@ -4167,6 +4167,7 @@ export default {
   "v2.health.drOffBecauseRg": "進んでいません。ダイナミックレンジは ReplayGain の処理で計算されますが、その解析が無効です。すぐ上の ReplayGain カードから再開できます。",
   "v2.health.drQueuedBehindRg": "{n} 曲が待機中です。ダイナミックレンジは最後に処理されます。ReplayGain と指紋の処理が終わってから復号が始まります。",
   "v2.health.drUnavailable": "{n} 曲を完全に除外しました。これらのファイルでは測定を完了できませんでした。",
+  "v2.health.deferredPaths": "{n} 曲を保留中：ファイルが応答しません（ドライブや共有が見つかりませんか？）。6 時間以内に自動的に再試行します。",
   "v2.health.cardRgSub": "音量の正規化",
   "v2.health.rgOff": "オフ",
   "v2.health.rgTrack": "トラック単位",

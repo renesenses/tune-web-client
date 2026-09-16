@@ -4187,6 +4187,7 @@ export default {
   "v2.health.drOffBecauseRg": "Nothing is progressing: dynamic range is computed by the ReplayGain pass, and that analysis is off. The ReplayGain card just above turns it back on.",
   "v2.health.drQueuedBehindRg": "{n} tracks waiting. Dynamic range comes last: it only decodes once ReplayGain and fingerprints have nothing left to do.",
   "v2.health.drUnavailable": "{n} tracks permanently skipped: the measurement could not complete on those files.",
+  "v2.health.deferredPaths": "{n} tracks deferred: their files do not respond (drive or share missing?). Retried automatically within six hours.",
   "v2.health.cardRgSub": "Level normalisation",
   "v2.health.rgOff": "Off",
   "v2.health.rgTrack": "Per track",

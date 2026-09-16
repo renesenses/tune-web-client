@@ -1959,7 +1959,14 @@ export interface AcousticSearchResult {
  *  déjà été analysé. Sert à ne pas proposer l'écran Ambiance quand il ne peut
  *  rien donner. */
 export function getAcousticStatus() {
-  return fetchJSON<{ available: boolean; enabled: boolean; analysed_tracks: number }>(
+  return fetchJSON<{
+    available: boolean; enabled: boolean; analysed_tracks: number;
+    // ≥ 0.9.151 (#4187) : la jauge des Réglages et la carte Santé lisent le
+    // MÊME couple. `eligible_tracks` exclut les pistes reportées.
+    processed_tracks?: number; eligible_tracks?: number; total_eligible_tracks?: number;
+    pending_tracks?: number; deferred_tracks?: number; failed_tracks?: number;
+    waiting_reason?: string | null;
+  }>(
     `${BASE}/library/search/acoustic/status`,
   );
 }
