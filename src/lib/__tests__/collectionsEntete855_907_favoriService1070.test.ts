@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
+// Import STATIQUE : un `import()` dans le test dépassait les 5 s sous charge
+// (graphe d'import de `streamingFavorites`), faux rouge sur Shrek.
+import { signalerRecopieManquee } from '../streamingFavorites';
 
 /**
  * #855 / #907 — Collections : seule la liste défile, l'en-tête (« Retour »,
@@ -41,16 +44,14 @@ vi.mock('../stores/notifications', () => ({ notifications: { error: (m: string) 
 describe('#1070 — la recopie vers le service signale son échec', () => {
   beforeEach(() => push.mockReset());
 
-  it('le motif du serveur atteint l’utilisateur', async () => {
-    const { signalerRecopieManquee } = await import('../streamingFavorites');
+  it('le motif du serveur atteint l’utilisateur', () => {
     signalerRecopieManquee('qobuz', Object.assign(new Error('502 — Qobuz a refusé'), { status: 502 }));
     expect(push).toHaveBeenCalledTimes(1);
     expect(push.mock.calls[0][0]).toContain('qobuz');
     expect(push.mock.calls[0][0]).toContain('Qobuz a refusé');
   });
 
-  it('un 501 (service sans API de favoris) reste muet', async () => {
-    const { signalerRecopieManquee } = await import('../streamingFavorites');
+  it('un 501 (service sans API de favoris) reste muet', () => {
     signalerRecopieManquee('youtube', Object.assign(new Error('501'), { status: 501 }));
     expect(push).not.toHaveBeenCalled();
   });

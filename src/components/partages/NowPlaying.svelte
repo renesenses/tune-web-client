@@ -2183,6 +2183,8 @@
                  celui qu'on regarde vraiment. Meme calcul, meme libelle. -->
             {#if $upNextCount > 0}
               <span class="queue-sheet-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
+            {:else if $queueTracks.length > 0}
+              <span class="queue-sheet-remaining">{$t('queue.nothingNext')}</span>
             {/if}
             <svg class="queue-sheet-chevron" class:rotated={queueSheetState !== 'collapsed'} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
               <polyline points="18 15 12 9 6 15" />
@@ -2335,6 +2337,8 @@
                a entendre qu'on veut savoir (Dominique COMET). -->
           {#if $upNextCount > 0}
             <span class="qs-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
+          {:else if $queueTracks.length > 0}
+            <span class="qs-remaining">{$t('queue.nothingNext')}</span>
           {/if}
         </div>
         <div class="qs-header-actions">
@@ -2360,6 +2364,7 @@
           <div
             class="qs-item"
             class:qs-current={qsIsCurrent(index)}
+            class:qs-passee={index < $queuePosition}
             class:qs-dragging={qsDragIndex === index}
             class:qs-drop-above={qsDropIndex === index && qsDragIndex !== null && qsDragIndex > index}
             class:qs-drop-below={qsDropIndex === index && qsDragIndex !== null && qsDragIndex < index}
@@ -4655,6 +4660,14 @@
 
   .qs-item:hover {
     background: var(--tune-surface-hover);
+  }
+
+  /* #1064 — ce qui PRÉCÈDE le curseur n'est pas à venir. Lancer la dernière
+     piste d'un album enfile l'album entier : les pistes d'avant restaient
+     affichées comme la suite, alors que rien ne suivra. Elles restent là
+     (on peut y remonter), mais estompées. */
+  .qs-item.qs-passee {
+    opacity: 0.5;
   }
 
   .qs-item.qs-current {
