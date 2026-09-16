@@ -521,6 +521,7 @@ export default {
   'playlist.importing': '导入中...',
   'playlist.imported': '已导入 {count} 首曲目',
   'playlist.manager': '播放列表管理器',
+  'favorites.serviceSyncFailed': '收藏已保留在 Tune 中，但 {service} 未同步：{motif}',
   'playlist.source': '来源',
   'playlist.importConfirm': '将此播放列表导入到本地？',
   "playlist.importedMatched": "在音乐库中找到并导入了 {total} 首中的 {count} 首。",
