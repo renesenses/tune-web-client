@@ -132,3 +132,16 @@ export function lireListe(liste: readonly Track[], g: GestesLecture): Promise<nu
 export function lireListeAleatoire(liste: readonly Track[], g: GestesLecture): Promise<number> {
   return executer(planAleatoire(liste), g);
 }
+/**
+ * « Lire à partir d'ici » : la liste depuis `index`, dans son ordre.
+ *
+ * Fabien, fil 1780 (16/09/2026), point 9 : « il manque une action "Lire à
+ * partir d'ici" qui lance le titre sélectionné suivi des titres qui suivent
+ * dans la liste affichée à l'écran — je la vois dans mes playlists, pas dans
+ * mes favoris Qobuz. Il faudrait la généraliser. » Les playlists passent par
+ * `start_index` côté serveur ; une liste quelconque (favoris, résultats) n'a
+ * pas de « playlist » derrière : c'est le même plan tête-et-reste, tronqué.
+ */
+export function lireListeDepuis(liste: readonly Track[], index: number, g: GestesLecture): Promise<number> {
+  return executer(planDeLecture(liste.slice(Math.max(0, index))), g);
+}

@@ -1127,6 +1127,16 @@
   }
 </script>
 
+<!--
+  UNE seule racine, en COLONNE. Fabien, fil 1780 (16/09/2026), point 4 :
+  « Menu Playlists : mauvaise mise en page, le top menu est à gauche centré
+  verticalement ». Cette vue rendait deux racines — `.view-tabs` puis
+  `.pm-view` — et la coquille v2 pose ses vues dans `.main`, un flex en LIGNE
+  dont chaque enfant prend `flex:1` : les onglets faisaient une colonne à
+  gauche, le contenu une colonne à droite. Les autres vues héritées n'ont
+  qu'une racine ; celle-ci en a une désormais.
+-->
+<div class="pm-racine">
 <div class="view-tabs">
   <button class="view-tab" class:active={viewTab === 'manual'} onclick={() => viewTab = 'manual'}>
     Playlists
@@ -2194,8 +2204,10 @@
   </div>
 {/if}
 {/if}
+</div>
 
 <style>
+  .pm-racine { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow-y: auto; }
   .view-tabs {
     display: flex;
     gap: 0;
