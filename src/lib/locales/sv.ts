@@ -3192,6 +3192,7 @@ export default {
   "profiles.premiumRequired": "Flera profiler är förbehållet Premium-versionen.",
   "profiles.whoIsListening": "Vem lyssnar?",
   "profiles.title": "Profiler",
+  "profiles.manage": "Hantera profiler",
   "profiles.switchHint": "Att byta profil laddar om skärmen.",
   "queue.autoplayFailed": "Det gick inte att ändra AutoPlay",
   "queue.resizePanel": "Dra för att ändra storlek · dubbelklicka för att återställa",

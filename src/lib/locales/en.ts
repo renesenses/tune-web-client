@@ -3613,6 +3613,7 @@ export default {
   "profiles.premiumRequired": "Multiple profiles require Premium.",
   "profiles.whoIsListening": "Who's listening?",
   "profiles.title": "Profiles",
+  "profiles.manage": "Manage profiles",
   "profiles.switchHint": "Switching profile reloads the screen.",
   "common.edit": "Edit",
   "dashboard.slot.empty": "Nothing to show yet.",

@@ -453,6 +453,14 @@
       <div class="hint">{$t('settings.themeScopeHint' as any)}</div>
 
       <div class="sep"></div>
+      <!-- Bertrand, 16/09/2026 : la v2 ne savait que BASCULER de profil (et
+           seulement à partir de deux). Le chemin vers la gestion — créer,
+           renommer, supprimer — est ici, toujours visible : c'est le seul
+           chemin vers un deuxième profil. -->
+      <button class="item" onclick={() => { v2SettingsTarget.set({ tab: 'general', section: 'profiles' }); activeView.set('settings'); close(); }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" /></svg>
+        {$t('profiles.manage' as any)}
+      </button>
       <button class="item" onclick={() => { activeView.set('settings'); close(); }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
         {$t('settings.titleV2' as any)}

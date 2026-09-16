@@ -3190,6 +3190,7 @@ export default {
   "profiles.premiumRequired": "複数プロフィールは Premium 版専用です。",
   "profiles.whoIsListening": "どなたが聴きますか？",
   "profiles.title": "プロフィール",
+  "profiles.manage": "プロファイルを管理",
   "profiles.switchHint": "プロフィールを切り替えると画面が再読み込みされます。",
   "queue.autoplayFailed": "AutoPlay を変更できませんでした",
   "queue.resizePanel": "ドラッグでサイズ変更 · ダブルクリックで元に戻す",
