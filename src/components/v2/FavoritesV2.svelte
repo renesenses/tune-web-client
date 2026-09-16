@@ -12,8 +12,11 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
+  import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
+  import { ouvrirArtiste, ouvrirArtisteParNom } from '../../lib/libraryNavigation';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
+  import { ficheArtisteService } from '../../lib/stores/streaming';
   import { notifications } from '../../lib/stores/notifications';
   import {
     currentProfileId, loadFavoriteIds, favoriteStreamingKeys,
@@ -561,6 +564,42 @@
     if (!corps) return;
     playAndSync(zid, corps).catch((e) => { error = messageEchecLecture(e, 'library.playbackError'); });
   }
+  /**
+   * Fabien, fil 1780, points 1 et 9 : « Tout lire » / « Lire aléatoire » sur
+   * l'onglet Pistes, et « Lire à partir d'ici » sur chaque piste — la liste
+   * AFFICHÉE (filtre, source et tri compris), pas la table entière.
+   */
+  let masseEnCours = $state(false);
+  function gestes(zid: number) {
+    return { lire: (c: any) => playAndSync(zid, c), enfiler: (c: any) => api.addToQueue(zid, c) };
+  }
+  async function lireLesPistes(aleatoire: boolean) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    masseEnCours = true;
+    try {
+      const n = aleatoire
+        ? await lireListeAleatoire(vTracks as any, gestes(zid))
+        : await lireListe(vTracks as any, gestes(zid));
+      if (!n) error = $t('v2.fav.emptyTracks' as any);
+    } catch (e: any) { error = messageEchecLecture(e, 'library.playbackError'); }
+    masseEnCours = false;
+  }
+  function lireDepuis(i: number) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    lireListeDepuis(vTracks as any, i, gestes(zid))
+      .catch((e) => { error = messageEchecLecture(e, 'library.playbackError'); });
+  }
+  /** Point 11 : un artiste favori s'ouvre — sa fiche locale, ou celle du service. */
+  function ouvrirArtisteFavori(a: any) {
+    if (a?.id != null) { void ouvrirArtiste(a.id); return; }
+    if (a?.source && a?.source_id) {
+      ficheArtisteService.set({ service: a.source, id: String(a.source_id), nom: a.name ?? '' });
+      return;
+    }
+    if (a?.name) void ouvrirArtisteParNom(a.name);
+  }
   function playTrack(t: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
@@ -635,6 +674,16 @@
   -->
   {#if tab === 'albums' || tab === 'tracks' || tab === 'artists'}
     <div class="barre">
+      {#if tab === 'tracks' && vTracks.length}
+        <div class="masse">
+          <button class="fab" onclick={() => lireLesPistes(false)} disabled={masseEnCours} title={$t('collections.playAll' as any)}>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('collections.playAll' as any)}
+          </button>
+          <button class="fab creux" onclick={() => lireLesPistes(true)} disabled={masseEnCours} title={$t('collections.shuffleAll' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('collections.shuffleAll' as any)}
+          </button>
+        </div>
+      {/if}
       {#if sourcesOnglet.length > 1}
         <div class="puces">
           <button class:on={sourceFiltre === null} onclick={() => (sourceFiltre = null)}>{$t('v2.fav.allSources' as any)}</button>
@@ -730,9 +779,9 @@
           <!-- ⚠️ `clef` : `id` est NUL sur toute piste de service. Deux entrées
                de clé `null` arrêtent Svelte sur `each_key_duplicate`, et
                l'écran entier disparaît. `clef()` existe ici pour ça. -->
-          <ListePistesV2 pistes={vTracks} numerotation="aucune"
+          <ListePistesV2 pistes={vTracks} numerotation="aucune" pochetteEnTableau
             clef={(p, i) => clef(p, i)}
-            onLire={(p) => playTrack(p)} />
+            onLire={(_p, i) => lireDepuis(i)} />
         </div>
       {/if}
 
@@ -749,13 +798,14 @@
                   favoriExterne={coeurService(a, 'artist')}
                   etiquettes={a.id != null ? { itemType: 'artist', itemId: a.id } : null}
                   onEditer={a.id != null ? () => (artisteEnEdition = a) : null}
+                  onOuvrir={() => ouvrirArtisteFavori(a)}
                   nom={a.name}
                 >
                   <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name}
                     source={(a as any).source} fallbackInitials={a.name?.slice(0,1)} />
                 </PochetteActions>
               </span>
-              <span class="an" title={a.name}>{a.name}</span>
+              <button class="an" title={a.name} onclick={() => ouvrirArtisteFavori(a)}>{a.name}</button>
             </div>
           {/each}
         </div>
@@ -1127,7 +1177,20 @@
   .art{position:relative; display:flex; flex-direction:column; align-items:center; text-align:center}
   /* Carrée comme un album — voir `ArtistesV2`. */
   .acv{display:block; width:112px; height:112px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
-  .an{margin-top:10px; font:600 13px var(--v2-sans); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  /* Point 11 (fil 1780) : le nom est un BOUTON qui ouvre la fiche, comme la
+     pochette. Même dessin qu'avant : rien ne bouge à l'œil. */
+  .an{margin-top:10px; font:600 13px var(--v2-sans); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    border:0; background:transparent; color:inherit; cursor:pointer; padding:0; text-align:center}
+  .an:hover{color:var(--v2-acc-tint)}
+  .masse{display:inline-flex; align-items:center; gap:10px}
+  .fab{display:inline-flex; align-items:center; gap:8px; height:34px; padding:0 14px;
+    border:0; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
+    font:700 12.5px var(--v2-sans, inherit); color:var(--v2-on-acc, #14110a);
+    background:linear-gradient(135deg, var(--v2-acc1), var(--v2-acc2))}
+  .fab.creux{background:transparent; color:var(--v2-txt, inherit); border:1px solid var(--v2-line2)}
+  .fab.creux:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .fab:disabled{opacity:.5; cursor:default}
+  .fab svg{width:15px; height:15px}
   .hot.round{position:absolute; top:2px; right:50%; transform:translateX(58px); width:28px; height:28px;
     border-radius:50%; border:0; background:rgba(0,0,0,.55); cursor:pointer; display:grid; place-items:center; opacity:0; transition:.16s}
   .art:hover .hot.round{opacity:1}

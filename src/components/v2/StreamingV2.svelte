@@ -44,6 +44,7 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import { lireListeDepuis } from '../../lib/lectureEnMasse';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
   import { aUnOngletGenres, normaliserGenres, ouvertureGenre, sousGenresUtiles } from '../../lib/streamingGenres';
@@ -654,6 +655,15 @@
   // traduction importe en tete de fichier, et le nommer ainsi le masquait —
   // `$t(...)` dans le corps ne traduisait plus rien mais s'abonnait a un
   // parametre. `check-svelte` l'a arrete (07/09/2026).
+  /** Point 9 du fil 1780 : la liste des favoris depuis le titre cliqué. */
+  function lireFavorisDepuis(i: number) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    lireListeDepuis(favTracks as any, i, {
+      lire: (c: any) => playAndSync(zid, c),
+      enfiler: (c: any) => api.addToQueue(zid, c),
+    }).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
+  }
   function playTrack(piste: any) {
     const zid = $currentZoneId;
     const svc = piste?.source ?? active;
@@ -1072,8 +1082,17 @@
         </section>
       {/if}
       {#if favTracks.length}
+        <!-- Fabien, fil 1780 (point 10, issue #1062) : « afficher les titres
+             favoris sous forme de liste avec des actions » — la MÊME liste que
+             les résultats de recherche juste au-dessus, avec ses cinq gestes,
+             la vignette, et « Lire à partir d'ici » (point 9) : le titre
+             cliqué, puis ceux qui suivent dans la liste affichée. -->
         <section class="sec" id="fav-titres"><h2>{$t('v2.rech.tracks' as any)}</h2>
-          <div class="grid">{#each favTracks as tr, i ((tr.source_id ?? tr.id ?? i))}{@render tile(tr, () => playTrack(tr), 'track')}{/each}</div>
+          <div class="liste">
+            <ListePistesV2 pistes={favTracks as any} numerotation="aucune" avecAlbum pochetteEnTableau
+              onLire={(_pi, i) => lireFavorisDepuis(i)}
+              clef={(pi, i) => cleItem(pi as any, i)} />
+          </div>
         </section>
       {/if}
       {#if !favAlbums.length && !favArtists.length && !favTracks.length}
