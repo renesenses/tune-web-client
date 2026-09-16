@@ -3967,6 +3967,7 @@ export default {
   "v2.rech.show": "Megjelenítés",
   "v2.rech.artists": "Előadók",
   "v2.rech.albums": "Albumok",
+  "v2.stream.favIndex": "Kedvencek tartalomjegyzéke",
   "v2.fas.topTracks": "Népszerű dalok",
   "v2.fas.albums": "Albumok",
   "v2.fas.empty": "Ehhez az előadóhoz nincs megjeleníthető tartalom.",

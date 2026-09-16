@@ -4009,6 +4009,7 @@ export default {
   "v2.rech.show": "Afișează",
   "v2.rech.artists": "Artiști",
   "v2.rech.albums": "Albume",
+  "v2.stream.favIndex": "Cuprinsul favoritelor",
   "v2.fas.topTracks": "Piese populare",
   "v2.fas.albums": "Albume",
   "v2.fas.empty": "Nimic de afișat pentru acest artist.",
