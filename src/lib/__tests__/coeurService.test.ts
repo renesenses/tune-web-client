@@ -300,11 +300,15 @@ describe('Lire une PISTE de service (#720)', () => {
    * given argument ») — la lecture échouait à tous les coups.
    */
   it('la vignette d’une piste n’emprunte plus le chemin des albums', () => {
+    // Depuis le fil 1780 (point 10, #1062), les titres favoris sont une LISTE
+    // (`ListePistesV2`) et partent par `lireFavorisDepuis` → `lectureEnMasse`,
+    // dont le corps d'une piste de service est la paire {source, source_id}.
+    // Ce qui ne doit JAMAIS revenir : `playAlbum` sur une piste.
     const src = streaming();
-    expect(
-      src.includes("{@render tile(tr, () => playTrack(tr), 'track')}"),
-      'une piste favorite repasse par playAlbum : elle partirait en streaming_album_id',
-    ).toBe(true);
+    const bloc = src.slice(src.indexOf('{#if favTracks.length}'), src.indexOf('{#if !favAlbums.length'));
+    expect(bloc.includes('<ListePistesV2 pistes={favTracks as any}'), 'les titres favoris sont une liste').toBe(true);
+    expect(bloc.includes('lireFavorisDepuis(i)'), 'et partent par la lecture de liste').toBe(true);
+    expect(bloc.includes('playAlbum'), 'une piste favorite repasse par playAlbum : elle partirait en streaming_album_id').toBe(false);
   });
 
   it('une piste part par la PAIRE {source, source_id}', () => {

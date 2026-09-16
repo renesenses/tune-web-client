@@ -315,7 +315,10 @@
     {:else if !tracks.length}
       <div class="state">{$tr('v2.pl.empty' as any)}</div>
     {:else}
-      <ListePistesV2 pistes={tracks} onLire={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <!-- Fabien, fil 1780 (point 12, issue #1057) : la vignette des titres
+           manquait sur une playlist Qobuz en mode tableau — même règle que
+           l'Historique (#3823). -->
+      <ListePistesV2 pistes={tracks} pochetteEnTableau onLire={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
              compilé ici : ses styles le suivent.
