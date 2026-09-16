@@ -3367,6 +3367,8 @@ export default {
   "v2.pl.backups": "Sicherungen",
   "v2.pl.backupNow": "Jetzt sichern",
   "v2.pl.backupDone": "Sicherung erstellt",
+  "v2.pl.backupDeleteAsk": "Sicherung „{name}“ löschen?",
+  "v2.pl.backupDeleted": "Sicherung gelöscht.",
   "v2.pl.noBackup": "Noch keine Sicherung.",
   "v2.pl.restore": "Wiederherstellen",
   "v2.pl.restoreDone": "Sicherung wiederhergestellt",

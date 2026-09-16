@@ -3367,6 +3367,8 @@ export default {
   "v2.pl.backups": "备份",
   "v2.pl.backupNow": "立即备份",
   "v2.pl.backupDone": "备份已创建",
+  "v2.pl.backupDeleteAsk": "删除备份“{name}”？",
+  "v2.pl.backupDeleted": "备份已删除。",
   "v2.pl.noBackup": "暂无备份。",
   "v2.pl.restore": "恢复",
   "v2.pl.restoreDone": "备份已恢复",

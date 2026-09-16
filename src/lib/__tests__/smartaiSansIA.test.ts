@@ -34,7 +34,7 @@ const LANGUES: Record<string, Record<string, string>> = {
   hu: locales.hu,
 };
 
-const vue = readFileSync(resolve(__dirname, '../../components/SmartAIView.svelte'), 'utf-8');
+const vue = readFileSync(resolve(__dirname, '../../components/v2-heritage/SmartAIView.svelte'), 'utf-8');
 
 /** Le vocabulaire réel du moteur, relevé dans routes/smart_ai.rs @ v0.9.127. */
 const GENRES = [

@@ -242,7 +242,11 @@ describe('Barre latérale — Collections et Playlists dans Sélections', () => 
   it('elles ont quitté le noyau', () => {
     const src = barre();
     const noyau = src.slice(src.indexOf('const CORE'), src.indexOf('const ADVANCED'));
-    for (const v of ['collections', 'playlists']) {
+    // `playlistmanager` depuis le 14/09/2026 : l'entrée Playlists mène à
+    // l'écran complet. La propriété gardée est inchangée — elle ne doit pas
+    // être dans le noyau — mais la cible a changé, donc on vérifie les deux
+    // noms plutôt qu'un seul.
+    for (const v of ['collections', 'playlists', 'playlistmanager']) {
       expect(
         noyau.includes(`view: '${v}'`),
         `« ${v} » est resté dans le noyau : il y serait en double avec Sélections.`,
@@ -254,7 +258,12 @@ describe('Barre latérale — Collections et Playlists dans Sélections', () => 
     const src = barre();
     const sel = src.slice(src.indexOf('const SELECTIONS'), src.indexOf('const STUDIO'));
     expect(sel.includes("view: 'collections'"), 'Collections a disparu').toBe(true);
-    expect(sel.includes("view: 'playlists'"), 'Playlists a disparu').toBe(true);
+    // On identifie l'entrée par son LIBELLÉ, pas par la vue qu'elle ouvre.
+    // Le 14/09/2026 la cible est passée de `playlists` à `playlistmanager` —
+    // l'écran complet, celui vers lequel l'ancienne interface a toujours
+    // pointé. La propriété gardée ici est « l'entrée Playlists est dans
+    // Sélections », et elle ne dépend pas de l'écran choisi.
+    expect(sel.includes("labelKey: 'v2.nav.playlists'"), 'Playlists a disparu').toBe(true);
   });
 });
 

@@ -67,6 +67,19 @@
    * navigation à tenir ici.
    */
   import SessionExpireeOverlay from '../partages/SessionExpireeOverlay.svelte';
+  /**
+   * 🔴 SANS LUI, UNE INSTALLATION NEUVE ARRIVE DANS UNE COQUILLE VIDE.
+   *
+   * L'assistant de première installation n'était monté que par
+   * `App.svelte`. Tant que l'interface actuelle était le défaut, personne
+   * ne s'en apercevait. En basculant le défaut ici (phase 4), un serveur
+   * fraîchement installé serait arrivé sans dossier de musique, sans zone
+   * et sans rien pour le guider.
+   *
+   * L'enveloppe décide elle-même s'il y a lieu de se montrer : ici, une
+   * ligne suffit, et la règle ne vit qu'à un seul endroit.
+   */
+  import AssistantPremiereInstallation from '../partages/AssistantPremiereInstallation.svelte';
   import TvView from '../v2-heritage/TvView.svelte';
   /**
    * 🔴 SANS LUI, TOUT DIALOGUE RESTE SANS REPONSE POUR TOUJOURS.
@@ -116,6 +129,21 @@
   // Querite sur le forum le 05/09/2026 : « manque les onglets : Ambiance,
   // Repertoires, Oxygen ». Les trois vues existaient et etaient declarees ;
   // la coquille n'en montait aucune.
+  /**
+   * 🔴 LES TREIZE APPELS QUE LA v2 NE SAIT PAS FAIRE.
+   *
+   * `PlaylistsV2` (741 lignes) fait 13 appels d'API ; l'écran de l'ancienne
+   * interface (3 995 lignes) en fait 31. Treize n'existaient NULLE PART en v2 :
+   * playlists collaboratives, fusionner, comparer, récupérer une playlist
+   * supprimée, liens, synchronisation avec les services, réordonner.
+   *
+   * Tant que l'ancienne interface était le défaut, personne ne les perdait.
+   * Depuis la bascule (#1032), un utilisateur qui n'a jamais rien choisi ne
+   * les atteint plus. Monté ici en l'état, comme les autres écrits de
+   * `v2-heritage/` : l'allure est celle de l'ancienne interface, mais la
+   * fonction revient. Le portage à la manière v2 reste à faire.
+   */
+  import PlaylistManagerView from '../v2-heritage/PlaylistManagerView.svelte';
   import AmbianceView from '../v2-heritage/AmbianceView.svelte';
   import BrowseView from '../v2-heritage/BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
@@ -635,6 +663,10 @@
         <OxygenView />
       {:else if $activeView === 'ambiance'}
         <AmbianceView />
+      {:else if $activeView === 'playlistmanager'}
+        <!-- `onAddToPlaylist` non fournie, comme pour BrowseView : mieux vaut
+             un bouton absent qu'un bouton mort. -->
+        <PlaylistManagerView />
       {:else if $activeView === 'browse'}
         <!-- `onAddToPlaylist` non fournie : le bouton reste masque tant que la
              coquille v2 n'a pas sa propre fenetre de playlists. Mieux vaut un
@@ -683,6 +715,9 @@
      `overflow:hidden`. Le calque est en `position:fixed` et n'a aucune
      raison de dépendre du bloc conteneur de la coquille. -->
 <SessionExpireeOverlay />
+<!-- Première installation (#1033) : hors de `.v2-shell` comme le calque de
+     session expirée, et pour la même raison — `overflow:hidden`. -->
+<AssistantPremiereInstallation />
 
 <style>
   /* 🔴 `--v2-grappe-w` — la gouttière de la grappe — vit dans

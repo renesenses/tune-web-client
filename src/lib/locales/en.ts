@@ -2099,6 +2099,8 @@ export default {
   "v2.pl.backups": "Backups",
   "v2.pl.backupNow": "Back up now",
   "v2.pl.backupDone": "Backup created",
+  "v2.pl.backupDeleteAsk": "Delete backup “{name}”?",
+  "v2.pl.backupDeleted": "Backup deleted.",
   "v2.pl.noBackup": "No backup yet.",
   "v2.pl.restore": "Restore",
   "v2.pl.restoreDone": "Backup restored",

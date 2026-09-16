@@ -19,8 +19,16 @@
  * bloquait au point de rendre le menu inatteignable, `?v2=0` ramène à
  * l'interface actuelle sans avoir à vider quoi que ce soit.
  *
- * Sans paramètre, le choix mémorisé décide. Sans choix mémorisé, l'interface
- * ACTUELLE — la future v1 ne s'impose à personne.
+ * Sans paramètre, le choix mémorisé décide. Sans choix mémorisé, la FUTURE v1
+ * — c'est la phase 4 de la bascule (14/09/2026) : elle devient ce que voit un
+ * appareil qui n'a jamais rien choisi.
+ *
+ * ## Ce que la phase 4 ne fait PAS
+ *
+ * Elle n'enlève rien. L'interface actuelle est toujours là, `?v2=0` la ramène,
+ * et un « actuelle » explicitement mémorisé continue de tenir contre le
+ * nouveau défaut. C'est le point de non-retour réversible : si un blocage
+ * remonte, une ligne d'ici ramène tout le parc en arrière.
  */
 
 const CLE = 'tune-interface';
@@ -40,9 +48,10 @@ export function choixMemorise(): boolean | null {
     const v = localStorage.getItem(CLE);
     return v === null ? null : v === 'future';
   } catch {
-    // Navigation privée, stockage refusé : on ne se souvient de rien, et
-    // l'interface actuelle reste le défaut. Jamais d'exception ici — cette
-    // fonction est appelée avant que quoi que ce soit ne soit monté.
+    // Navigation privée, stockage refusé : on ne se souvient de rien, donc
+    // c'est le défaut qui s'applique — la future v1 depuis la phase 4.
+    // Jamais d'exception ici : cette fonction est appelée avant que quoi que
+    // ce soit ne soit monté.
     return null;
   }
 }
@@ -51,7 +60,9 @@ export function choixMemorise(): boolean | null {
 export function futureInterface(recherche: string = typeof location !== 'undefined' ? location.search : ''): boolean {
   const force = forcageUrl(recherche);
   if (force !== null) return force;
-  return choixMemorise() === true;
+  // Phase 4 : seul un « actuelle » EXPLICITEMENT mémorisé ramène l'ancienne
+  // interface. Ne rien avoir choisi vaut désormais la future v1.
+  return choixMemorise() !== false;
 }
 
 /**

@@ -733,6 +733,14 @@ export interface StreamingAuthResponse {
   authenticated: boolean;
   verification_url?: string | null;
   user_code?: string | null;
+  /**
+   * Le motif d'échec, quand le serveur en donne un — `'missing_credentials'`
+   * notamment. Il manquait ici alors que l'assistant de première installation
+   * le lisait depuis toujours : faute de champ, le test tombait dans le
+   * `else`, et le message « identifiants manquants » n'a jamais pu s'afficher.
+   * L'utilisateur voyait « erreur de connexion » sans savoir quoi corriger.
+   */
+  error?: string | null;
 }
 
 export interface SystemHealth {

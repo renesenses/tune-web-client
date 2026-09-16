@@ -35,7 +35,20 @@
    * 06/09/2026). La dette est soldée ici ; le type ne laisse plus la place
    * d'en reprendre, puisqu'il n'y a plus de champ où écrire du texte.
    */
-  type Item = { view: View; labelKey: string; icon: string };
+  /**
+   * `aussi` : les vues qui appartiennent à la MÊME entrée de menu.
+   *
+   * Playlists en est le cas : l'entrée mène à l'écran complet
+   * (`playlistmanager`), mais on peut arriver sur `playlists` par les favoris
+   * ou comme écran de démarrage. Sans alias, l'utilisateur y serait sans
+   * qu'aucune entrée ne s'allume — il ne saurait plus où il est.
+   */
+  type Item = { view: View; labelKey: string; icon: string; aussi?: View[] };
+
+  /** L'entrée correspond-elle à l'écran courant ? */
+  function estActif(it: Item, vue: View): boolean {
+    return it.view === vue || (it.aussi?.includes(vue) ?? false);
+  }
 
   // Noyau aligné sur le brouillon v3 de Levente (26/08) : cinq entrées, pas
   // plus. Deux ecarts assumes avec notre version precedente :
@@ -105,13 +118,25 @@
    */
   // Les deux nouveaux groupes sont TRADUITS, là où le reste de la barre porte
   // encore ses libellés en dur (dette connue) : on n'en ajoute pas.
-  const SELECTIONS: { view: View; labelKey: string; icon: string }[] = [
+  const SELECTIONS: Item[] = [
     // COLLECTIONS et PLAYLISTS rejoignent le groupe (Bertrand, 02/09/2026) :
     // ce sont des sélections que l'utilisateur a constituées lui-même, au même
     // titre que les étiquettes et les favoris. Dans le noyau, elles voisinaient
     // avec Bibliothèque et Radio — des SOURCES, pas des choix.
     { view: 'collections', labelKey: 'v2.nav.collections', icon: 'M4 6h7v7H4zM13 6h7v7h-7zM4 15h7v3H4zM13 15h7v3h-7z' },
-    { view: 'playlists', labelKey: 'v2.nav.playlists', icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
+    // 🔴 MÈNE À L'ÉCRAN COMPLET, pas à `PlaylistsV2`.
+    //
+    // `PlaylistsV2` fait 13 appels d'API ; l'écran complet en fait 31. Treize
+    // n'existent nulle part ailleurs en v2 : playlists collaboratives,
+    // fusionner, comparer, récupérer une playlist supprimée, liens,
+    // synchronisation, réordonner. L'ancienne interface a toujours fait
+    // pointer ce bouton là — `playlistmanager`, jamais `playlists`.
+    //
+    // `PlaylistsV2` reste atteignable : les favoris y mènent
+    // (`ouvrirAilleurs('playlists', …)`) et il peut être écran de démarrage.
+    // D'où l'alias, sans quoi aucune entrée ne s'allumerait quand on y est.
+    { view: 'playlistmanager', labelKey: 'v2.nav.playlists', aussi: ['playlists', 'smartplaylists', 'playlistshub', 'smart-ai'],
+      icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     { view: 'tags', labelKey: 'v2.nav.tags', icon: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42zM6.5 6.5h.01' },
     { view: 'favorites', labelKey: 'v2.nav.favorites', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
   ];
@@ -285,7 +310,7 @@
   <div class="navscroll">
     <nav class="grp">
       {#each CORE as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} title={collapsed ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={collapsed ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -294,7 +319,7 @@
 
     <nav class="grp reveal" class:show={showAdvanced} aria-hidden={!showAdvanced}>
       {#each ADVANCED as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={collapsed ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={collapsed ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -334,7 +359,7 @@
     <nav class="grp">
       <div class="grp-label">{$t('v2.nav.selections' as any)}</div>
       {#each SELECTIONS as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} title={collapsed ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={collapsed ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -344,7 +369,7 @@
     <nav class="grp reveal" class:show={showStudio} aria-hidden={!showStudio}>
       <div class="grp-label">{$t('v2.nav.studio' as any)}</div>
       {#each STUDIO as it (it.view)}
-        <button class="nav" class:active={$activeView === it.view} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={collapsed ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={collapsed ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>

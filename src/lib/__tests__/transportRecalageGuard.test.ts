@@ -82,7 +82,13 @@ describe('garde : chaque source d’état de zone recale le transport', () => {
     {
       nom: 'zone REST /zones/{id} (après chaque événement de lecture)',
       debut: 'async function syncZoneState',
-      fin: 'async function checkOnboarding',
+      // Était `async function checkOnboarding`, retirée d'`App.svelte` quand la
+      // règle de première installation a été partagée avec la future v1
+      // (#1033). La garde n'a pas viré au vert : elle a dit « borne de fin
+      // introuvable — la garde ne garde plus rien ». C'est le bon rouge, et la
+      // raison pour laquelle ces bornes sont vérifiées avant d'être utilisées.
+      // La PROPRIÉTÉ gardée est inchangée ; seule la borne suivante a bougé.
+      fin: 'async function checkWhatsNew',
     },
     {
       nom: 'sondage bulk zone.updated',

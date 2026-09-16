@@ -1,5 +1,75 @@
 # Basculer la v2 en v1, et retirer l'interface actuelle
 
+> ## ⚠️ ÉTAT AU 14/09/2026 — LE PLAN CI-DESSOUS A ÉTÉ EXÉCUTÉ EN PARTIE
+>
+> Ce document est la reconnaissance d'origine. Il est conservé pour son
+> raisonnement, mais **cinq de ses affirmations se sont révélées fausses** à
+> l'exécution. Les voici, avant de le lire.
+>
+> ### Les phases 1 et 3 sont FAITES
+>
+> | Phase | État | PR |
+> |---|---|---|
+> | 1 — ranger les emprunts | ✅ **faite** | #1023, #1024, #1025, #1026, #1028 |
+> | 2 — porte d'entrée | ✅ **faite** | #1022 |
+> | 3 — écrans hérités | ✅ **faite** | #1027 |
+> | 4 — inverser le défaut | à faire — **une ligne** | |
+> | 5 — retirer l'interface actuelle | après une release | |
+>
+> L'arborescence est désormais : **51** composants en `v2/`, **39** en
+> `partages/` (ce que les deux interfaces utilisent), **8** en
+> `v2-heritage/` (les écrans hérités, voir leur `LISEZ-MOI.md`), et **70** à la
+> racine — l'interface actuelle, isolée. `racineIsolee.test.ts` garde qu'aucun
+> sous-dossier n'y puise plus.
+>
+> ### Ce que ce document dit de FAUX
+>
+> **1. « 24 emprunts » — il y en avait 26, puis 39 au total.** Le décompte ne
+> voyait que les `from '…'` et ratait les `import('…')` DYNAMIQUES
+> (`TrackTagsDrawer`, `AddToPlaylistModal`). Il ignorait aussi les satellites de
+> satellites, et — surtout — les emprunts depuis `partages/` et `v2-heritage/`,
+> deux dossiers créés en cours de route. Onze composants de plus, découverts
+> APRÈS avoir annoncé la phase close.
+>
+> **2. « Le point dur : la v2 n'a pas de porte d'entrée » — le défaut était
+> ailleurs, et pire.** `LoginView` était inatteignable dans les DEUX interfaces :
+> un 401 appelait `clearToken()`, qui posait `#login`, que PERSONNE ne lisait.
+> L'application devenait muette. Ce n'était donc pas un obstacle à la bascule
+> mais un défaut existant — corrigé par #1022 et l'issue #1021.
+>
+> Et **la seconde porte cachait le même défaut**, découvert le 14/09 en
+> portant l'assistant (#1033) : `OnboardingView` — 1 117 lignes — pend à
+> `$activeView === 'onboarding'`, valeur que personne ne pose. Elle n'a jamais
+> été atteignable non plus. L'assistant réellement monté était
+> `OnboardingWizard`, ailleurs dans `App.svelte`. Deux portes d'entrée, deux
+> écrans morts, et le même piège : ce document listait des fichiers qui
+> EXISTENT, jamais des chemins qu'on PARCOURT.
+>
+> **3. « Phase 3 : combler les deux trous » — la phase 3 est devenue autre
+> chose.** Les alarmes ont bien été portées (#1020) ; les concerts sont
+> reportés sur décision de Bertrand. Mais le vrai travail de la phase 3 a été
+> de sortir CINQ ÉCRANS de l'interface actuelle — ce que ce document ne
+> prévoyait pas du tout.
+>
+> **4. « Les déplacer suffit » — faux.** Entrer dans `v2/` signifie hériter de
+> ses DIX contrôleurs de conformité. Mesuré : 17 gardes rouges. D'où
+> `v2-heritage/`, un dossier qui doit se vider.
+>
+> **5. Le coût n'est pas le nombre de fichiers déplacés.** C'est le nombre de
+> GARDES qui citent le composant, et les DIX façons dont ce dépôt désigne un
+> chemin (import statique, dynamique, depuis la racine, nom séparé du dossier,
+> nom nu, entre briques rangées, regex à barre nue, regex à barre échappée,
+> chaîne dans un `.includes()`, et l'ORDRE déplacer/réécrire). `AlbumArt` avait
+> 23 imports et un seul test : vert du premier coup. `NowPlaying` en avait un
+> et quarante tests : quatre relances.
+>
+> ### La leçon
+>
+> Un inventaire mesure un PÉRIMÈTRE ; une garde garde une PROPRIÉTÉ. Trois
+> inventaires successifs se sont trompés ici. `racineIsolee.test.ts` ne compte
+> rien : il exige zéro.
+
+
 Reconnaissance du 14/09/2026, sur `tune-web-client` `origin/main` (`d58ae8cd`).
 Aucun code modifié. Tous les chiffres ci-dessous sont mesurés, pas estimés.
 
@@ -73,6 +143,17 @@ Aucun travail à prévoir : la fonction est là, l'écran d'origine peut tomber.
 | **Concerts** | `ConcertsView` | 269 lignes |
 | **Connexion** | `LoginView` | voir le point dur |
 | **Première installation** | `OnboardingView` | voir le point dur |
+
+⚠️ **Les deux dernières lignes sont périmées, et l'une des deux nommait le
+mauvais fichier.**
+
+| Fonction | Où elle en est |
+|---|---|
+| Connexion | portée — `SessionExpireeOverlay` monte `LoginView` des deux côtés (#1021, #1022) |
+| Première installation | portée — `AssistantPremiereInstallation` monte `OnboardingWizard` des deux côtés (#1033) |
+
+`OnboardingView` n'était pas l'assistant : elle n'a jamais été atteignable.
+Voir la préface, point 2.
 
 ### Restant à vérifier une par une
 

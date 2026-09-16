@@ -3367,6 +3367,8 @@ export default {
   "v2.pl.backups": "Copias de seguridad",
   "v2.pl.backupNow": "Guardar ahora",
   "v2.pl.backupDone": "Copia creada",
+  "v2.pl.backupDeleteAsk": "¿Eliminar la copia de seguridad «{name}»?",
+  "v2.pl.backupDeleted": "Copia de seguridad eliminada.",
   "v2.pl.noBackup": "Todavía no hay copias.",
   "v2.pl.restore": "Restaurar",
   "v2.pl.restoreDone": "Copia restaurada",

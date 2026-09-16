@@ -1,24 +1,24 @@
 <script lang="ts">
-  import { bulleTexte } from '../lib/infobulleTexte';
+  import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
-  import { currentZone, zones, playAndSync } from '../lib/stores/zones';
-  import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../lib/stores/nowPlaying';
-  import { dialogs } from '../lib/stores/dialogs';
-  import { playlists as playlistsStore, pendingPlaylistId } from '../lib/stores/playlists';
-  import { streamingServices } from '../lib/stores/streaming';
-  import * as api from '../lib/api';
-  import { shareLink } from '../lib/playlistShare';
-  import { formatTime, formatAudioBadge, errText } from '../lib/utils';
-  import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../lib/types';
-  import { t as tr } from '../lib/i18n';
-  import { notifications } from '../lib/stores/notifications';
-  import AlbumArt from './partages/AlbumArt.svelte';
-  import ClampedText from './partages/ClampedText.svelte';
-  import HeartButton from './partages/HeartButton.svelte';
+  import { currentZone, zones, playAndSync } from '../../lib/stores/zones';
+  import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../../lib/stores/nowPlaying';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { playlists as playlistsStore, pendingPlaylistId } from '../../lib/stores/playlists';
+  import { streamingServices } from '../../lib/stores/streaming';
+  import * as api from '../../lib/api';
+  import { shareLink } from '../../lib/playlistShare';
+  import { formatTime, formatAudioBadge, errText } from '../../lib/utils';
+  import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../../lib/types';
+  import { t as tr } from '../../lib/i18n';
+  import { notifications } from '../../lib/stores/notifications';
+  import AlbumArt from '../partages/AlbumArt.svelte';
+  import ClampedText from '../partages/ClampedText.svelte';
+  import HeartButton from '../partages/HeartButton.svelte';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
   import PlaylistsHub from './PlaylistsHub.svelte';
-  import { listResetNonce } from '../lib/stores/navigation';
+  import { listResetNonce } from '../../lib/stores/navigation';
 
   let viewTab = $state<'manual' | 'smart' | 'smart-ai' | 'hub'>('manual');
 
@@ -2294,6 +2294,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-md);
+    /* La grappe du coin haut-droit — recherche globale, signet, avatar — est
+       en position absolue et flotte au-dessus des écrans : chacun lui réserve
+       sa place. Le jeton n'est défini que sur `.v2-shell`, d'où le repli, qui
+       s'applique quand cet écran est monté par l'interface actuelle. Même
+       forme que `BrowseView`, monté lui aussi des deux côtés. */
+    padding-right: var(--v2-grappe-w, 172px);
   }
 
   .pm-header h2 {

@@ -46,18 +46,28 @@ describe('ce que l’appareil retient', () => {
     expect(futureInterface('')).toBe(false);
   });
 
-  it('sans choix ni paramètre, l’interface ACTUELLE', () => {
-    // La future ne s'impose à personne : c'est une prévisualisation.
-    expect(futureInterface('')).toBe(false);
-    expect(choixMemorise()).toBeNull();
+  it('sans choix ni paramètre, la FUTURE v1 (phase 4)', () => {
+    // Défaut inversé le 14/09/2026. Un appareil qui n'a jamais rien choisi
+    // ouvre la future v1 — et n'a rien eu à faire pour cela.
+    expect(futureInterface('')).toBe(true);
+    expect(choixMemorise(), 'le défaut ne doit RIEN écrire').toBeNull();
   });
 
-  it('un stockage refusé ne fait pas d’exception et retombe sur l’actuelle', () => {
+  it('un « actuelle » mémorisé tient CONTRE le nouveau défaut', () => {
+    // Le point qui rend la phase 4 réversible pour un utilisateur donné : si
+    // quelqu'un a choisi l'ancienne interface, l'inversion du défaut ne doit
+    // pas la lui retirer dans son dos.
+    localStorage.setItem(CLE, 'actuelle');
+    expect(futureInterface(''), 'le défaut a écrasé un choix explicite').toBe(false);
+  });
+
+  it('un stockage refusé ne fait pas d’exception et suit le défaut', () => {
     // Navigation privée. Cette fonction est appelée AVANT tout montage : une
-    // exception ici laisserait une page blanche.
+    // exception ici laisserait une page blanche. C'est la propriété qui compte
+    // ici — le résultat, lui, suit le défaut de la phase 4.
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('refusé'); });
     expect(() => futureInterface('')).not.toThrow();
-    expect(futureInterface('')).toBe(false);
+    expect(futureInterface('')).toBe(true);
   });
 });
 
