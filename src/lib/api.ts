@@ -4360,8 +4360,19 @@ export function createCollection(name: string, description?: string, icon?: stri
 }
 export function updateCollection(id: number, data: any) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'PUT', body: JSON.stringify(data) }); }
 export function deleteCollection(id: number) { return fetchJSON<any>(`${BASE}/library/collections/${id}`, { method: 'DELETE' }); }
-export function getCollectionAlbums(id: number, sort: 'artist' | 'title' | 'year' | 'added' = 'artist') {
-  return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums?sort=${sort}`);
+/** Clés de tri des albums d'un dossier, telles que le serveur les accepte
+ *  (`album_order::CollectionSort::parse`). `added` est l'ordre d'ajout AU
+ *  DOSSIER ; `added_at` la date d'ajout à la bibliothèque. */
+export type CollectionAlbumsSort = 'artist' | 'title' | 'year' | 'release_date' | 'added_at' | 'added';
+export type CollectionAlbumsOrder = 'asc' | 'desc';
+/** Le sens ne porte que sur la clé principale ; les valeurs manquantes
+ *  restent en dernier dans les deux sens (Bertrand, 16/09/2026). */
+export function getCollectionAlbums(
+  id: number,
+  sort: CollectionAlbumsSort = 'artist',
+  order: CollectionAlbumsOrder = 'asc',
+) {
+  return fetchJSON<any[]>(`${BASE}/library/collections/${id}/albums?sort=${sort}&order=${order}`);
 }
 export function addAlbumToCollection(collectionId: number, albumId: number) {
   // Server route is POST /collections/{id}/albums/{album_id} (album_id in the
