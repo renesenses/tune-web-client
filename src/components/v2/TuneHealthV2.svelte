@@ -98,6 +98,20 @@
     if (ac[0].status === 'fulfilled') {
       const s = ac[0].value;
       const done = s?.analysed_tracks ?? 0;
+      // #4214 / #4254 — depuis 0.9.151 la route dit ce que la jauge des
+      // Réglages affiche déjà : `processed / eligible`, où « eligible » EXCLUT
+      // les pistes REPORTÉES (fichier qui ne répond pas, #1865), comptées à
+      // part dans `deferred_tracks`. Deux écrans, un seul chiffre. Un serveur
+      // plus ancien n'a pas ces champs : on retombe sur analysées / total.
+      const eligible = typeof s?.eligible_tracks === 'number' ? s.eligible_tracks : undefined;
+      const processed = typeof s?.processed_tracks === 'number' ? s.processed_tracks : undefined;
+      const reportees = typeof s?.deferred_tracks === 'number' ? s.deferred_tracks : 0;
+      const attendLesFichiers = s?.waiting_reason === 'unresolved_paths' && reportees > 0;
+      const fait = processed ?? done;
+      const total = eligible ?? totalTracks;
+      const reporteesDetail = reportees > 0
+        ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(reportees))
+        : undefined;
       if (!s?.available) {
         out.push({ id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
           etat: 'off', ligne: $t('v2.health.clapAbsent' as any) });
@@ -108,11 +122,15 @@
       } else {
         out.push({
           id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
-          etat: totalTracks && done >= totalTracks ? 'done' : done > 0 ? 'running' : 'idle',
-          ligne: totalTracks
-            ? $t('v2.health.clapProgress' as any).replace('{n}', $formatNombre(done)).replace('{t}', $formatNombre(totalTracks))
-            : $t('v2.health.clapDone' as any).replace('{n}', $formatNombre(done)),
-          fait: done, total: totalTracks || undefined });
+          // Il ne reste QUE des reports : « au repos », avec la cause en
+          // détail — pas « terminée », pas une jauge immobile sans un mot.
+          etat: attendLesFichiers ? 'idle'
+            : total && fait >= total ? 'done' : fait > 0 ? 'running' : 'idle',
+          ligne: total
+            ? $t('v2.health.clapProgress' as any).replace('{n}', $formatNombre(fait)).replace('{t}', $formatNombre(total))
+            : $t('v2.health.clapDone' as any).replace('{n}', $formatNombre(fait)),
+          detail: reporteesDetail,
+          fait, total: total || undefined });
       }
     } else {
       out.push({ id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
@@ -145,11 +163,20 @@
           .replace('{s}', analysis ? $t('v2.health.rgSourceBoth' as any) : $t('v2.health.rgSourceTags' as any)),
         fait: jauge.fait, total: jauge.total,
         // Le message d'absence ne s'affiche que quand l'absence est réelle.
-        detail: jauge.sansJauge
-          ? $t('v2.health.rgNoProgress' as any)
-          : $t('v2.health.rgProgress' as any)
-              .replace('{n}', $formatNombre(jauge.fait ?? 0))
-              .replace('{t}', $formatNombre(jauge.total ?? 0)),
+        // Les reports (#4254) s'ajoutent au détail, quel qu'il soit : une
+        // passe « à jour » sur un disque absent n'est pas à jour.
+        detail: [
+          jauge.attendLesFichiers && jauge.sansJauge
+            ? undefined
+            : jauge.sansJauge
+              ? $t('v2.health.rgNoProgress' as any)
+              : $t('v2.health.rgProgress' as any)
+                  .replace('{n}', $formatNombre(jauge.fait ?? 0))
+                  .replace('{t}', $formatNombre(jauge.total ?? 0)),
+          jauge.reportees > 0
+            ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(jauge.reportees))
+            : undefined,
+        ].filter(Boolean).join(' ') || undefined,
         sansJauge: jauge.sansJauge });
     } else {
       out.push({ id: 'rg', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
@@ -176,16 +203,20 @@
       const mesure = c.dynamic_range_from_analysis ?? 0;
       const tague = c.dynamic_range_from_tag ?? 0;
       const ecartees = c.dynamic_range_unavailable ?? 0;
+      // Reportées (#4254) : fichier qui ne répond pas. Ni faites, ni écartées,
+      // ni « en attente derrière ReplayGain » — en attente d'un disque.
+      // Serveur ≥ 0.9.152 ; absent avant, donc 0.
+      const reportees = typeof c.dynamic_range_deferred === 'number' ? c.dynamic_range_deferred : 0;
       // `cfgDr` est la config déjà lue plus haut pour ReplayGain : le DR
       // dépend du MÊME réglage, on ne le relit pas.
       const analyseActive = cfgDrActive;
-      const restantes = Math.max(0, total - avec - ecartees);
+      const restantes = Math.max(0, total - avec - ecartees - reportees);
 
       out.push({
         id: 'dr',
         titre: $t('v2.health.cardDr' as any),
         sous: $t('v2.health.cardDrSub' as any),
-        etat: !analyseActive ? 'off' : restantes === 0 ? 'done' : 'idle',
+        etat: !analyseActive ? 'off' : restantes === 0 && reportees === 0 ? 'done' : 'idle',
         // La ligne dit la RÉPARTITION, pas seulement le total : un DR tagué
         // n'a pas la même valeur qu'un DR mesuré.
         ligne: $t('v2.health.drLine' as any)
@@ -198,11 +229,16 @@
         // Le détail porte la CAUSE, jamais un simple compteur.
         detail: !analyseActive
           ? $t('v2.health.drOffBecauseRg' as any)
-          : restantes > 0
-            ? $t('v2.health.drQueuedBehindRg' as any).replace('{n}', $formatNombre(restantes))
-            : ecartees > 0
-              ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
-              : undefined });
+          : [
+              restantes > 0
+                ? $t('v2.health.drQueuedBehindRg' as any).replace('{n}', $formatNombre(restantes))
+                : ecartees > 0
+                  ? $t('v2.health.drUnavailable' as any).replace('{n}', $formatNombre(ecartees))
+                  : undefined,
+              reportees > 0
+                ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(reportees))
+                : undefined,
+            ].filter(Boolean).join(' ') || undefined });
     } else {
       // Serveur antérieur au comptage : se déclarer indisponible, surtout pas
       // afficher « 0 piste » — qui se lirait comme une bibliothèque sans DR.

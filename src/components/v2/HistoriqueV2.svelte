@@ -30,8 +30,13 @@
   import {
     enTranches,
     nomDObjet,
+    artisteDObjet,
+    pochetteDObjet,
+    serviceDePlaylist,
     regrouperParContexte,
   } from '../../lib/historiqueParContexte';
+  import { NomsDePlaylists, type FichePlaylist } from '../../lib/nomsDePlaylists';
+  import AlbumArt from '../partages/AlbumArt.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { colonnesRetenues } from '../../lib/colonnesPistes';
   import '../../styles/tune-v2.css';
@@ -84,6 +89,26 @@
    * de FabienM, où des titres nus voisinent avec des objets.
    */
   const tranches = $derived(enTranches(regrouperParContexte(entrees)));
+
+  /**
+   * #988 — le nom (et la pochette) d'une playlist de SERVICE jouée. Le
+   * serveur ne nomme que les playlists locales ; pour Qobuz ou Tidal on
+   * demande au service, une fois par playlist, et on s'en souvient.
+   */
+  const noms = new NomsDePlaylists(api.getStreamingPlaylist);
+  let fiches = $state(new Map<string, FichePlaylist | null>());
+  $effect(() => {
+    for (const tr of tranches) {
+      if (tr.genre !== 'objet' || fiches.has(tr.cle)) continue;
+      if (nomDObjet(tr.type, tr.entrees) != null) continue;
+      const service = serviceDePlaylist(tr.type, tr.entrees);
+      if (!service) continue;
+      const cle = tr.cle;
+      noms.resoudre(service, tr.id).then((f) => {
+        const n = new Map(fiches); n.set(cle, f); fiches = n;
+      });
+    }
+  });
 
   /** Les objets DÉPLIÉS, par clé. Repliés par défaut : c'est le « + » du schéma. */
   let deplies = $state(new Set<string>());
@@ -213,6 +238,11 @@
             {@const lot = tranche.entrees}
             {@const nom = nomDObjet(tranche.type, lot)}
             {@const ouvert = deplies.has(tranche.cle)}
+            {@const fiche = fiches.get(tranche.cle) ?? null}
+            {@const vignette = fiche?.pochette
+              ? { cover_path: fiche.pochette, album_id: null }
+              : pochetteDObjet(lot)}
+            {@const artiste = artisteDObjet(tranche.type, lot)}
             <!-- Le « + » / « − » du schéma de FabienM. L'objet est REPLIÉ par
                  défaut : déplié, l'écran redeviendrait la liste plate qu'il
                  remplace. -->
@@ -221,11 +251,26 @@
               onclick={() => basculerPli(tranche.cle)}>
               <span class="pli" aria-hidden="true">{ouvert ? '−' : '+'}</span>
               <span class="otype">{$tr(`v2.hist.ctx.${tranche.type}` as any)}</span>
-              <!-- 🔴 Le serveur ne sert AUCUN nom de contexte : seize champs,
-                   et pas un titre d'objet. Un album et un artiste se déduisent
-                   des pistes ; une playlist, non. On pose alors le seul type,
+              <!-- Le nom vient, dans l'ordre : de la playlist de service
+                   résolue (#988), du serveur (`context_name`, .151), des
+                   pistes (album, artiste) ; et à défaut on pose le seul type,
                    plutôt qu'un nom inventé. -->
-              <span class="onom">{nom ?? $tr('v2.hist.ctx.sansNom' as any)}</span>
+              <!-- #991 — l'objet replié est la seule ligne qu'on voit : il
+                   porte la pochette de la playlist quand le service l'a
+                   donnée, sinon celle de sa première piste. -->
+              <span class="onom">
+                {#if vignette}
+                  <span class="ovig">
+                    <AlbumArt coverPath={vignette.cover_path} albumId={vignette.album_id}
+                      size={36} alt={nom ?? ''} source={lot[0]?.track?.source ?? null} />
+                  </span>
+                {/if}
+                <span class="otxt">
+                  <span class="otitre">{fiche?.nom ?? nom ?? $tr('v2.hist.ctx.sansNom' as any)}</span>
+                  <!-- #988, point 11 — l'artiste de l'album joué. -->
+                  {#if artiste}<span class="oart">{artiste}</span>{/if}
+                </span>
+              </span>
               <span class="ocompte">{lot.length}</span>
               <span class="when">{depuis(tranche.quand)}</span>
             </button>
@@ -346,7 +391,11 @@
   .objet.ouvert .pli{color:var(--v2-acc1)}
   .objet .otype{font:600 10.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
     color:var(--v2-acc1)}
-  .objet .onom{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .objet .onom{display:flex; align-items:center; gap:10px; min-width:0}
+  .objet .ovig{flex:none; width:36px; height:36px}
+  .objet .otxt{display:flex; flex-direction:column; min-width:0; line-height:1.25}
+  .objet .otitre, .objet .oart{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .objet .oart{font-size:12px; color:var(--v2-txt3)}
   .objet .ocompte{font:11px var(--v2-mono); color:var(--v2-txt3);
     border:1px solid var(--v2-line2); border-radius:10px; padding:1px 7px}
   .objet .when{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:82px; text-align:right}
