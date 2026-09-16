@@ -203,6 +203,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'database',   titleKey: 'settings.database',          from: 'system', min: 'expert', keywords: ['base', 'sqlite', 'postgres'] },
       { id: 'dataLoc',    titleKey: 'settings.dataLocation',      from: 'system', min: 'expert', keywords: ['emplacement', 'données'] },
       { id: 'import',     titleKey: 'import.title',               from: 'system', min: 'expert' },
+      // Bertrand, 16/09/2026 : le pont Roon « en plugin PREMIUM ». L'écran
+      // d'import de l'archive du moissonneur (crédits, images).
+      { id: 'pontRoon',   titleKey: 'v2.roon.title',              from: 'system', min: 'intermediate', keywords: ['roon', 'moissonneur', 'crédits', 'images', 'pochettes', 'premium'] },
       { id: 'config',     titleKey: 'settings.configSection',     from: 'system', min: 'expert', keywords: ['configuration', 'fichier'] },
       { id: 'exportCsv',  titleKey: 'settings.exportCsv',         from: 'system', min: 'expert', keywords: ['export', 'csv'] },
     ],

@@ -30,6 +30,7 @@
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
+  import PontRoonV2 from './PontRoonV2.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -2212,6 +2213,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'cloud'}
               <p class="hint">{#each emphaseParts($t('settings.cloudScopeHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
 
+            {:else if s.id === 'pontRoon'}
+              <PontRoonV2 />
             {:else if s.id === 'import'}
               <p class="hint">{$t('v2.hint.importWizard' as any)}</p>
 

@@ -3644,6 +3644,8 @@ export * from './api/metadata';
 // --- Ingest (ajout de contenu à la bibliothèque) ---
 // Voir lib/api/ingest.ts.
 export * from './api/ingest';
+// Voir lib/api/pontRoon.ts.
+export * from './api/pontRoon';
 
 // --- Radios ---
 
