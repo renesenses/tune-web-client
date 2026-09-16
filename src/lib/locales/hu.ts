@@ -4068,6 +4068,8 @@ export default {
   "v2.tags.noTrackWithTag": "Egyetlen szám sem hordozza ezt a címkét.",
   "v2.tags.noPlaylistWithTag": "Egyetlen lejátszási lista sem hordozza ezt a címkét.",
   "v2.album.play": "Lejátszás",
+  "v2.album.cue": "CUE",
+  "v2.album.cueTip": "Egy hangképből és CUE-lapjából felosztott album",
   "v2.album.shuffle": "Véletlenszerű",
   "v2.album.locate": "Megkeresés a lemezen",
   "v2.album.playNext": "Következőként",

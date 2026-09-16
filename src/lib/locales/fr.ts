@@ -4132,6 +4132,8 @@ export default {
   "v2.tags.noTrackWithTag": "Aucun titre ne porte cette étiquette.",
   "v2.tags.noPlaylistWithTag": "Aucune playlist ne porte cette étiquette.",
   "v2.album.play": "Lire",
+  "v2.album.cue": "CUE",
+  "v2.album.cueTip": "Album découpé depuis une image audio et sa feuille CUE",
   "v2.album.shuffle": "Aléatoire",
   "v2.album.locate": "Localiser sur le disque",
   "v2.album.playNext": "Lire ensuite",

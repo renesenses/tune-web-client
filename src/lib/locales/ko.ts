@@ -4110,6 +4110,8 @@ export default {
   "v2.tags.noTrackWithTag": "이 태그를 가진 트랙이 없습니다.",
   "v2.tags.noPlaylistWithTag": "이 태그를 가진 재생목록이 없습니다.",
   "v2.album.play": "재생",
+  "v2.album.cue": "CUE",
+  "v2.album.cueTip": "오디오 이미지와 CUE 시트에서 분할된 앨범",
   "v2.album.shuffle": "셔플",
   "v2.album.locate": "디스크에서 찾기",
   "v2.album.playNext": "다음에 재생",

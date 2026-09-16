@@ -541,7 +541,8 @@
 
 <style>
   .sp-view { padding: var(--space-lg) 28px; overflow-y: auto; height: 100%; }
-  .sp-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); }
+  /* L’écran est monté dans la coquille : son en-tête laisse la place à la grappe. */
+  .sp-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); padding-right: var(--v2-grappe-w, 172px); }
   .sp-list-header h2 { font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); margin: 0; }
   .create-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 13px; font-weight: 600; transition: opacity 0.12s; }
   .create-btn:hover { opacity: 0.85; }

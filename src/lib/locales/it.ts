@@ -4110,6 +4110,8 @@ export default {
   "v2.tags.noTrackWithTag": "Nessun brano ha questa etichetta.",
   "v2.tags.noPlaylistWithTag": "Nessuna playlist ha questa etichetta.",
   "v2.album.play": "Riproduci",
+  "v2.album.cue": "CUE",
+  "v2.album.cueTip": "Album suddiviso da un’immagine audio e dal suo foglio CUE",
   "v2.album.shuffle": "Casuale",
   "v2.album.locate": "Individua sul disco",
   "v2.album.playNext": "Riproduci dopo",
