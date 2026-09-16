@@ -667,6 +667,9 @@
       <button class:on={mode === 'cards'} onclick={() => setMode('cards')} title={$t('oxygen.view.cards')} aria-label={$t('oxygen.view.cards')}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="8" height="8" rx="1.5"/><path d="M13 6h8M13 10h5"/><rect x="3" y="14" width="8" height="6" rx="1.5"/><path d="M13 16h8M13 19h5"/></svg>
       </button>
+      <button class:on={mode === 'mur'} onclick={() => setMode('mur')} title={$t('oxygen.view.mur')} aria-label={$t('oxygen.view.mur')}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="2" y="2" width="6" height="6"/><rect x="9" y="2" width="6" height="6"/><rect x="16" y="2" width="6" height="6"/><rect x="2" y="9" width="6" height="6"/><rect x="9" y="9" width="6" height="6"/><rect x="16" y="9" width="6" height="6"/><rect x="2" y="16" width="6" height="6"/><rect x="9" y="16" width="6" height="6"/><rect x="16" y="16" width="6" height="6"/></svg>
+      </button>
       <button class:on={mode === 'detail'} onclick={() => setMode('detail')} title={$t('oxygen.view.detail')} aria-label={$t('oxygen.view.detail')}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
@@ -756,6 +759,24 @@
             {/each}
           </div>
         {/if}
+      {:else if mode === 'mur'}
+        <!-- #994 — LE MUR : les pochettes cousues, et rien d'autre. Alex
+             Campbell, 13/09/2026 : « only album art and all the cover art
+             stitched together, no Artist information, no Album information ».
+             Mêmes albums, même ordre et même plafond que la Grille — c'est
+             une DISPOSITION de plus, pas une autre requête. Le titre et
+             l'artiste restent en infobulle : sans texte, la vignette est le
+             seul point de contact. Un clic ouvre l'album, un double-clic le
+             lit — les gestes de la Grille. -->
+        <div class="mur">
+          {#each albums as g (g.key)}
+            <div class="tuile" role="button" tabindex="0" title={`${g.title} — ${g.artist}`}
+                 onclick={() => openAlbum(g)} ondblclick={() => playAlbumGroup(g)}
+                 onkeydown={(e) => e.key === 'Enter' && openAlbum(g)}>
+              {#if g.cover}<img src={artworkSrc(g.cover)} alt={g.title} loading="lazy" onerror={(e) => ((e.target as HTMLImageElement).style.visibility = 'hidden')} />{:else}<div class="ph">♪</div>{/if}
+            </div>
+          {/each}
+        </div>
       {:else if mode === 'grid'}
         <div class="grid">
           {#each albums as g (g.key)}
@@ -998,6 +1019,13 @@
   .main { min-width: 0; min-height: 0; overflow: auto; padding: 14px 18px 20px; }
 
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px 16px; }
+  /* #994 — le mur : des carrés jointifs, sans marge ni texte. */
+  .mur { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 2px; }
+  .mur .tuile { position: relative; aspect-ratio: 1; overflow: hidden; background: var(--tune-grey2); cursor: pointer; outline: none; }
+  .mur .tuile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .15s ease; }
+  .mur .tuile:hover img, .mur .tuile:focus-visible img { transform: scale(1.04); }
+  .mur .tuile:focus-visible { box-shadow: inset 0 0 0 2px var(--tune-accent, #fff); }
+  .mur .ph { width: 100%; height: 100%; display: grid; place-items: center; color: var(--tune-grey5); font-size: 28px; }
   .card { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: inherit; }
   .pov { position: absolute; right: 8px; bottom: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--tune-accent, #f5a623); color: #000; display: none; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
   .card:hover .pov, .pov:focus { display: inline-flex; }

@@ -5275,6 +5275,7 @@ function setSettingsLevel(level: SettingsLevel) {
           <option value="detail">{$t('oxygen.detailsTable')}</option>
           <option value="album">Albums (groupé)</option>
           <option value="grid">Grille de pochettes</option>
+          <option value="mur">{$t('oxygen.view.mur')}</option>
         </select>
       </div>
       <p class="settings-note">{$t('oxygen.description')}</p>
