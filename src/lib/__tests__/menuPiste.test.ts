@@ -154,8 +154,10 @@ describe('« je veux à minima le contenu de la v0 »', () => {
     // « Autres versions » : le panneau.
     expect(src.includes("import('./VersionsPistePanneau.svelte')"),
       '« Autres versions » n’ouvre plus de panneau').toBe(true);
-    // « Aller à l'artiste » : le dépôt ET la vue.
-    expect(/pendingLibraryArtist\.set\(piste\.artist_id\)/.test(src),
+    // « Aller à l'artiste » : le dépôt ET la vue. Depuis #956 la cible vient
+    // de `destinationArtiste` — une piste Qobuz porte un `artist_id` de
+    // SERVICE, et `piste.artist_id` posé tel quel envoyait dans la Bibliothèque.
+    expect(/pendingLibraryArtist\.set\(destination\.artistId\)/.test(src),
       '« Aller à l’artiste » ne pose plus la cible').toBe(true);
     expect(/allerArtiste[\s\S]{0,220}activeView\.set\('library'\)/.test(src),
       '« Aller à l’artiste » ne change plus de vue').toBe(true);

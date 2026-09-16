@@ -51,6 +51,15 @@ export interface ContexteEcoute {
   type?: string | null;
   id?: string | number | null;
   position?: number | null;
+  /**
+   * Le NOM de l'objet, quand le serveur le connaît — #988.
+   *
+   * `/library/history` sert `context_name` depuis la v0.9.151
+   * (tune-server-rust#4036) : rempli pour une playlist LOCALE encore
+   * existante, `null` pour tout le reste — une playlist de service, une
+   * playlist supprimée, ou une écoute d'avant la .151.
+   */
+  nom?: string | null;
 }
 
 /** Le minimum qu'une entree d'historique doit offrir a ce module. */
@@ -175,29 +184,36 @@ export function enTranches<E extends EntreeDatee>(niveaux: readonly NiveauUn<E>[
 }
 
 /**
- * Comment NOMMER l'objet, alors que le serveur ne le nomme pas.
+ * Comment NOMMER l'objet.
  *
- * 🔴 Mesure du 12/09/2026 : `GET /library/history` sert seize champs —
- * `album_id, album_title, artist_name, context_id, context_position,
- * context_type, cover_url, duration_ms, id, listened_at, profile_id, source,
- * source_id, title, track_id, zone_id`. **Aucun nom de contexte.** Le client
- * sait donc qu'une playlist a ete lancee, et son identifiant, mais pas son
- * titre.
+ * Jusqu'à la v0.9.150, `GET /library/history` servait seize champs et
+ * **aucun nom de contexte** (mesure du 12/09/2026). Depuis la .151
+ * (tune-server-rust#4036), il sert `context_name` — pour une playlist LOCALE
+ * qui existe encore ; `null` sinon. Ce nom, quand il est là, prime sur tout.
  *
- * Ce qu'on peut deduire des ecoutes elles-memes :
+ * À défaut, ce qu'on peut déduire des écoutes elles-mêmes :
  *
  *  - `album`  → `album_title` de ses pistes, qu'elles portent toutes ;
- *  - `artist` → `artist_name`, meme raison.
+ *  - `artist` → `artist_name`, même raison.
  *
- * Pour une `playlist` — 9,8 % des ecoutes — il n'y a RIEN a deduire : aucune
- * piste ne porte le nom de la liste dont elle vient. On rend alors `null`, et
- * c'est a l'ecran de poser le libelle du type. Inventer un nom serait pire que
- * de n'en pas mettre.
+ * Pour une `playlist` de SERVICE, il n'y a rien à déduire des pistes : c'est
+ * `serviceDePlaylist` puis une demande au service qui nomment (#988). Et
+ * quand rien n'a répondu, on rend `null` : c'est à l'écran de poser le
+ * libellé du type. Inventer un nom serait pire que de n'en pas mettre.
  */
 export function nomDObjet(
   type: string,
-  entrees: readonly { track?: { album_title?: string | null; artist_name?: string | null } }[],
+  entrees: readonly {
+    track?: { album_title?: string | null; artist_name?: string | null };
+    contexte?: { nom?: string | null } | null;
+  }[],
 ): string | null {
+  // #988 — le serveur nomme l'objet lui-même depuis la .151 : ce nom prime,
+  // il vient de la table des playlists et non d'une déduction.
+  for (const e of entrees) {
+    const n = e.contexte?.nom;
+    if (n != null && String(n).trim() !== '') return String(n).trim();
+  }
   const champ = type === 'album' ? 'album_title' : (type === 'artist' || type === 'artiste') ? 'artist_name' : null;
   if (!champ) return null;
   for (const e of entrees) {
@@ -205,4 +221,79 @@ export function nomDObjet(
     if (v != null && String(v).trim() !== '') return String(v);
   }
   return null;
+}
+
+/**
+ * L'ARTISTE d'un objet — #988, point 11 de FabienM : « Menu Historique :
+ * manque l'artiste de l'album joué. »
+ *
+ * Il n'y avait rien à demander à personne : l'artiste est dans chaque piste
+ * du lot, exactement là où `nomDObjet` va le chercher pour le type `artist`.
+ * Il n'était simplement pas affiché. Sans objet pour un artiste (ce serait le
+ * nom lui-même) et pour une playlist (ses pistes n'ont pas UN artiste).
+ */
+export function artisteDObjet(
+  type: string,
+  entrees: readonly { track?: { artist_name?: string | null } }[],
+): string | null {
+  if (type !== 'album') return null;
+  for (const e of entrees) {
+    const v = e.track?.artist_name;
+    if (v != null && String(v).trim() !== '') return String(v);
+  }
+  return null;
+}
+
+/**
+ * La POCHETTE d'un objet — #991, point 17 de FabienM : « il manque la
+ * vignette des titres d'une playlist ou d'un album joué provenant d'une
+ * source streaming ».
+ *
+ * Mesuré sur la .18 le 16/09/2026 : les 179 écoutes Qobuz de l'historique
+ * portent toutes un `cover_url`, et le relais `/library/artwork/proxy` le
+ * sert (200, image/jpeg). Les pistes du TIROIR ont donc leur vignette. Ce
+ * qui n'en avait pas, c'est la ligne de l'OBJET lui-même — replié par
+ * défaut, donc la seule chose qu'on voit. On lui donne la pochette de sa
+ * première piste qui en porte une ; l'appelant peut la remplacer par celle
+ * de la playlist quand il l'a résolue.
+ */
+export function pochetteDObjet(
+  entrees: readonly { track?: { cover_path?: string | null; album_id?: number | null } }[],
+): { cover_path: string | null; album_id: number | null } | null {
+  for (const e of entrees) {
+    const t = e.track;
+    if (!t) continue;
+    if (t.cover_path || t.album_id) return { cover_path: t.cover_path ?? null, album_id: t.album_id ?? null };
+  }
+  return null;
+}
+
+/**
+ * Le SERVICE d'une playlist jouée, pour aller lui demander son nom — #988,
+ * point 10 : « cas d'une playlist : son nom n'apparaît pas, c'est indiqué
+ * "Sans nom" ».
+ *
+ * 🔴 `context_id` d'une playlist Qobuz est un ENTIER (`21846544`), comme
+ * celui d'une playlist locale. On ne peut donc pas deviner le service depuis
+ * l'identifiant : on le lit sur les PISTES. Et seulement si elles sont
+ * TOUTES du même service — une playlist locale peut contenir des pistes
+ * Qobuz, et demander à Qobuz « la playlist 12 » rendrait une playlist
+ * étrangère, ce qui serait pire que « sans nom ».
+ *
+ * Rend `null` pour une playlist locale, mixte, ou sans piste : dans ces cas
+ * c'est `context_name` du serveur qui fait foi, et lui seul.
+ */
+export function serviceDePlaylist(
+  type: string,
+  entrees: readonly { track?: { source?: string | null } }[],
+): string | null {
+  if (type !== 'playlist' || entrees.length === 0) return null;
+  let service: string | null = null;
+  for (const e of entrees) {
+    const s = (e.track?.source ?? '').toLowerCase();
+    if (!s || s === 'local' || s === 'radio' || s === 'upnp') return null;
+    if (service == null) service = s;
+    else if (service !== s) return null;
+  }
+  return service;
 }

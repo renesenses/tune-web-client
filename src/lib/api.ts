@@ -1959,7 +1959,14 @@ export interface AcousticSearchResult {
  *  déjà été analysé. Sert à ne pas proposer l'écran Ambiance quand il ne peut
  *  rien donner. */
 export function getAcousticStatus() {
-  return fetchJSON<{ available: boolean; enabled: boolean; analysed_tracks: number }>(
+  return fetchJSON<{
+    available: boolean; enabled: boolean; analysed_tracks: number;
+    // ≥ 0.9.151 (#4187) : la jauge des Réglages et la carte Santé lisent le
+    // MÊME couple. `eligible_tracks` exclut les pistes reportées.
+    processed_tracks?: number; eligible_tracks?: number; total_eligible_tracks?: number;
+    pending_tracks?: number; deferred_tracks?: number; failed_tracks?: number;
+    waiting_reason?: string | null;
+  }>(
     `${BASE}/library/search/acoustic/status`,
   );
 }
@@ -3248,6 +3255,20 @@ export function getStreamingGenreAlbums(service: string, genreId: string, limit 
 
 export function getStreamingPlaylists(service: string) {
   return fetchJSON<import('./types').StreamingPlaylist[]>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`);
+}
+
+/**
+ * UNE playlist d'un service, par son identifiant — #988.
+ *
+ * `GET /streaming/{service}/playlists/{id}` rend `{ name, cover_path,
+ * description, owner, source_id, track_count }` (mesuré sur la .18 en
+ * v0.9.151). L'Historique s'en sert pour nommer une playlist de service
+ * jouée, que `/library/history` ne sait pas nommer.
+ */
+export function getStreamingPlaylist(service: string, id: string) {
+  return fetchJSON<{ name?: string | null; cover_path?: string | null; source_id?: string }>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(id)}`,
+  );
 }
 
 export function getStreamingFavorites(service: string, type: 'tracks' | 'albums' | 'artists') {
@@ -6150,6 +6171,34 @@ export function listMetadataProposals(
 }
 
 /** `accept: false` compte comme une voix pour la valeur qu'on possede deja. */
+/**
+ * Graver le Dynamic Range calculé par Tune dans les fichiers (16/09/2026).
+ *
+ * `GET` rend l'inventaire ET le dernier état de la passe : `a_graver` (calculés
+ * par Tune, conteneur relu par le scan), `hors_format` (calculés, mais MP3/M4A…
+ * que le scan ne relit pas — donc jamais gravés), `dans_les_fichiers`
+ * (`dr_source = tag`). Pendant la passe, `status = running` et les compteurs
+ * `written / already / skipped / errors` avancent ; à la fin `status = done`.
+ */
+export interface GravureDrEtat {
+  status: 'idle' | 'running' | 'done';
+  a_graver: number;
+  hors_format: number;
+  dans_les_fichiers: number;
+  total?: number;
+  written?: number;
+  already?: number;
+  skipped?: number;
+  errors?: number;
+}
+export function getGravureDr(): Promise<GravureDrEtat> {
+  return apiFetch('/library/dr/gravure');
+}
+/** 202 accepté ; 409 si la passe tourne déjà. */
+export function lancerGravureDr(): Promise<{ status: string; total: number; hors_format: number }> {
+  return apiPost('/library/dr/gravure', {});
+}
+
 export function decideMetadataProposal(
   id: number,
   accept: boolean,

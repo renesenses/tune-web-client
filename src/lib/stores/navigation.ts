@@ -92,7 +92,12 @@ export interface GestesNavigationService {
    * Seulement un NOM : `StreamTrack` ne porte pas d'identifiant d'artiste.
    * C'est à la coquille de le résoudre avant d'ouvrir la fiche.
    */
-  ouvrirArtiste: (cible: { service: string; nom: string }) => void;
+  /**
+   * Avec `id`, la fiche s'ouvre directement (#956 : l'album ou la piste de
+   * service porte l'identifiant de son artiste chez le service). Sans, la
+   * coquille résout le nom par une recherche, avec repli explicite.
+   */
+  ouvrirArtiste: (cible: { service: string; nom: string; id?: string | null }) => void;
 }
 export const gestesNavigationService = writable<GestesNavigationService | null>(null);
 export function requestListReset() {

@@ -57,6 +57,8 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
@@ -94,10 +96,21 @@
     salut = false,
   }: Props = $props();
 
+  /** Ce que le catalogue a appris après le montage — #987. */
+  let appris = $state<Widget[]>([]);
+  const catalogueComplet = $derived([...catalogue, ...appris]);
   /** Recherche DANS le catalogue de cette page, jamais dans le registre global. */
-  const parId = (id: string) => catalogue.find((w) => w.id === id);
+  const parId = (id: string) => catalogueComplet.find((w) => w.id === id);
 
   let disposition = $state<string[]>([...dispositionDefaut]);
+  /**
+   * #987 — la disposition TELLE QU'ENREGISTRÉE, identifiants inconnus compris.
+   * Le catalogue de l'accueil apprend des widgets APRÈS le montage (les
+   * catégories de playlists Qobuz) ; sans cette copie, un widget choisi hier
+   * serait retiré de la disposition au chargement, avant même que le
+   * catalogue ait pu le nommer — et perdu au prochain enregistrement.
+   */
+  let dispositionEnregistree: string[] | null = null;
   let charge = $state(false);
   let edition = $state(false);
   let ajoutOuvert = $state(false);
@@ -118,7 +131,7 @@
    */
   interface Etat {
     id: string;
-    phase: 'attente' | 'charge' | 'echec';
+    phase: 'attente' | 'charge' | 'echec' | 'non-propose';
     elements: Element[];
     chiffres: { cle: string; valeur: string }[];
     raison?: string;
@@ -168,7 +181,7 @@
     ]);
   }
 
-  const disponibles = $derived(catalogue.filter((w) => !disposition.includes(w.id)));
+  const disponibles = $derived(catalogueComplet.filter((w) => !disposition.includes(w.id)));
 
   // ── Carte de zone (widget « En écoute ») ────────────────────────────────
   //
@@ -221,7 +234,8 @@
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
       if (Array.isArray(d) && d.length) {
-        disposition = d.filter((id: any) => typeof id === 'string' && parId(id));
+        dispositionEnregistree = d.filter((id: any) => typeof id === 'string');
+        disposition = dispositionEnregistree.filter((id) => parId(id));
       }
     } catch {
       // Préférences illisibles : on garde la disposition par défaut plutôt que
@@ -277,6 +291,13 @@
           : { phase: 'charge', elements: r ?? [] });
       })
       .catch((err: any) => {
+        // #859 — un 501 n'est PAS une panne : le service ne propose pas cette
+        // rubrique (Bandcamp n'a pas de playlists de compte, et le dit par un
+        // 501 depuis la .147). FabienM lisait « 502 Bad Gateway », puis
+        // « 501 Not Implemented » — un code HTTP brut, sur une bande qui
+        // n'avait rien à charger. On le dit en clair, sans rouge ni bouton
+        // « réessayer » : réessayer ne changera rien.
+        if (err?.status === 501) { majEtat(id, { phase: 'non-propose' }); return; }
         // On DIT ce qui a échoué, et POURQUOI : une bande vide se lit comme
         // « rien à montrer », et on cherche alors un défaut de bibliothèque.
         majEtat(id, {
@@ -350,6 +371,26 @@
   }
 
   /**
+   * #987 — le catalogue APPREND des widgets après le montage (les catégories
+   * de playlists Qobuz, que l'accueil demande). C'est un GESTE du parent, pas
+   * un effet : `chargerWidget` écrit `etats`, et un effet qui l'appelle
+   * reprend la boucle de dépendance racontée sous `chargerTout`.
+   *
+   * Ceux qu'une disposition enregistrée citait reviennent à leur place, et
+   * se chargent. Si les préférences ne sont pas encore lues, `charger()` les
+   * retrouvera lui-même : `parId` connaît désormais ces identifiants.
+   */
+  export function apprendreCatalogue(nouveaux: Widget[]) {
+    appris = nouveaux.filter((w) => !catalogue.some((c) => c.id === w.id));
+    const memo = dispositionEnregistree;
+    if (!charge || !memo) return;
+    const revenus = memo.filter((id) => !disposition.includes(id) && parId(id));
+    if (!revenus.length) return;
+    disposition = memo.filter((id) => disposition.includes(id) || revenus.includes(id));
+    for (const id of revenus) chargerWidget(id);
+  }
+
+  /**
    * Recharge un widget DÉJÀ chargé, sans repasser par le garde.
    *
    * `chargerWidget` refuse la seconde demande — c'est ce qui empêche les
@@ -405,6 +446,25 @@
    */
   let enEdition = $state<any | null>(null);
   let ficheOuverte = $state<any | null>(null);
+  /**
+   * 🔴 LE CALQUE ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #980. Voir le même
+   * bloc dans `FavoritesV2` : ouvrir empile, le Retour referme ET dépile, le
+   * Précédent referme le calque.
+   */
+  function ouvrirCalqueAlbum(a: any) {
+    const cle = cleDetailAlbum(a);
+    if (cle) ouvrirDetail(cle);
+  }
+  function fermerCalqueAlbum() {
+    ficheOuverte = null;
+    serviceOuvert = null;
+  }
+  function retourCalqueAlbum() {
+    fermerDetailEnReculant(fermerCalqueAlbum);
+  }
+  $effect(() => {
+    if ($detailOuvert == null && ficheOuverte) fermerCalqueAlbum();
+  });
   let serviceOuvert = $state<string | null>(null);
 
   /**
@@ -420,6 +480,7 @@
       return;
     }
     if (e.ouvrir === 'album' && e.fiche) {
+      ouvrirCalqueAlbum(e.fiche);
       ficheOuverte = e.fiche;
       // La fiche distingue local et service par CE drapeau : avec lui elle va
       // chercher les pistes chez le service, sans lui dans la bibliotheque.
@@ -615,6 +676,8 @@
 
             {#if !et || et.phase === 'attente'}
               <div class="state mince">{$t('common.loading' as any)}</div>
+            {:else if et.phase === 'non-propose'}
+              <div class="state mince">{$t('v2.home.widgetUnsupported' as any)}</div>
             {:else if et.phase === 'echec'}
               <!-- #871 — le message DIT ce qui a échoué, le bouton permet d'y
                    revenir. Sans lui, la seule issue était F5 : les quatre
@@ -804,7 +867,7 @@
 </section>
 
 {#if ficheOuverte}
-  <AlbumDetailV2 album={ficheOuverte} service={serviceOuvert} onClose={() => { ficheOuverte = null; serviceOuvert = null; }} />
+  <AlbumDetailV2 album={ficheOuverte} service={serviceOuvert} onClose={retourCalqueAlbum} />
 {/if}
 
 {#if enEdition}

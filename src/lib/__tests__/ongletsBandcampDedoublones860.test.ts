@@ -87,16 +87,23 @@ describe('#860 — le module : Bandcamp n’entre qu’une fois dans la rangée'
 
   it('les autres services ne sont pas touchés, et les non connectés restent dehors', () => {
     const onglets = ongletsStreaming(SERVICES_DU_18, true);
-    expect(onglets).toEqual([BANDCAMP_EXT, 'qobuz', 'tidal', 'youtube']);
+    // #998 — la rangée suit la PRÉFÉRENCE (Qobuz, Tidal, Bandcamp, YouTube),
+    // plus l'alphabet du serveur, où `bandcamp` venait en premier.
+    expect(onglets).toEqual(['qobuz', 'tidal', BANDCAMP_EXT, 'youtube']);
     expect(servicesConnectes(SERVICES_DU_18)).not.toContain('deezer');
     expect(servicesConnectes(SERVICES_DU_18)).not.toContain('spotify');
   });
 
   it('l’onglet garde sa PLACE : lier son compte ne le fait pas sauter en fin de rangée', () => {
-    // `bandcamp` est premier dans la réponse du serveur. S'il partait en
-    // dernier une fois le compte lié, l'onglet changerait de place sous le
-    // curseur pour une raison qu'aucun écran n'explique.
-    expect(ongletsStreaming(SERVICES_DU_18, true)[0]).toBe(BANDCAMP_EXT);
+    // Sans extension, `bandcamp` occupe une place dans la rangée. Une fois le
+    // compte lié, l'extension prend EXACTEMENT cette place — l'onglet ne
+    // change pas de position sous le curseur pour une raison qu'aucun écran
+    // n'explique. (#998 a déplacé la place elle-même : elle est désormais
+    // celle de la préférence, pas la première.)
+    const sans = ongletsStreaming(SERVICES_DU_18, false);
+    const avec = ongletsStreaming(SERVICES_DU_18, true);
+    expect(avec.indexOf(BANDCAMP_EXT)).toBe(sans.indexOf(BANDCAMP_SVC));
+    expect(sans.indexOf(BANDCAMP_SVC)).toBeGreaterThan(0);
   });
 
   it('le pseudo suit l’onglet qui survit', () => {
@@ -108,9 +115,15 @@ describe('#860 — le module : Bandcamp n’entre qu’une fois dans la rangée'
   it('l’onglet initial est pris dans la rangée AFFICHÉE, jamais dans `services`', () => {
     // Le calcul d'origine — « le premier service connecté » — rendait
     // `bandcamp`, la clé même que le dédoublonnage retire.
-    const initial = ongletInitial(SERVICES_DU_18, true);
+    // Avec le seul Bandcamp connecté, « le premier service connecté » rendait
+    // `bandcamp` — la clé que le dédoublonnage retire.
+    const seulBandcamp = { bandcamp: SERVICES_DU_18.bandcamp };
+    const initial = ongletInitial(seulBandcamp, true);
     expect(initial).toBe(BANDCAMP_EXT);
-    expect(ongletsStreaming(SERVICES_DU_18, true)).toContain(initial!);
+    expect(ongletsStreaming(seulBandcamp, true)).toContain(initial!);
+    // Et avec tous les services, l'initial est bien dans la rangée AFFICHÉE.
+    const tous = ongletInitial(SERVICES_DU_18, true);
+    expect(ongletsStreaming(SERVICES_DU_18, true)).toContain(tous!);
   });
 });
 
@@ -256,8 +269,20 @@ describe('#860 — l’écran monté ne rend qu’UNE tuile Bandcamp', () => {
     ).toBe(1);
   });
 
-  it('l’onglet ouvert au montage est CELUI de l’extension, pas la clé retirée', async () => {
+  it('l’onglet Bandcamp ouvert est CELUI de l’extension, pas la clé retirée', async () => {
     await monterEcran();
+    // #998 — Bandcamp n'est plus l'onglet initial (Qobuz passe devant) : on
+    // l'ouvre, comme le ferait l'utilisateur, puis on regarde ce qui s'affiche.
+    const bouton = Array.from(hote!.querySelectorAll('nav.svcs > button')).find((b) =>
+      /bandcamp/i.test(b.textContent ?? ''),
+    ) as HTMLButtonElement | undefined;
+    expect(bouton, 'aucun onglet Bandcamp dans la rangée').toBeDefined();
+    bouton!.click();
+    for (let i = 0; i < 20; i++) {
+      await Promise.resolve();
+      await new Promise((r) => setTimeout(r, 0));
+      flushSync();
+    }
     const allume = hote!.querySelector('nav.svcs > button.on');
     expect(allume, 'aucun onglet n’est allumé : `active` désigne une clé absente de la rangée').not
       .toBeNull();
