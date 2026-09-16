@@ -214,7 +214,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /** Ecrit une cle de config et restaure l'etat anterieur si le serveur refuse. */
   async function patch(fields: Record<string, unknown>, revert: () => void, okMsg?: string) {
     try {
-      await api.updateConfig(fields);
+      const r = await api.updateConfig(fields);
+      // #4184 — en quittant ASIO, le serveur désarme l'exclusif qu'ASIO
+      // avait armé, même si ce composant a répété `true` en écho : ce qui a
+      // été ÉCRIT fait foi, et le sélecteur « partagé / exclusif » le montre.
+      if (typeof r?.local_exclusive_mode === 'boolean') exclusiveMode = r.local_exclusive_mode;
       if (okMsg) notifications.success(okMsg);
     } catch {
       revert();
