@@ -1255,7 +1255,13 @@
      comment remonter — sans lui, le second niveau est un cul-de-sac. */
   .crumb{display:flex; align-items:center; gap:10px; padding:0 0 14px}
   .crumb .cur{font-size:13px; font-weight:600; color:var(--v2-txt)}
-  .chips.sous{padding-top:0; margin-top:-8px}
+  /* #887 (volet 2) — Jean Valjean, fil 1721 : aucun en-tête n'était figé au
+     défilement dans le volet Genres. La rangée des SOUS-genres — celle qui
+     surplombe directement les albums — reste à l'écran pendant qu'on les
+     parcourt ; le nuage de tous les genres, lui, peut faire plusieurs
+     rangées et mangerait l'écran. Fond opaque, sinon la grille défilerait en
+     transparence dessous. `BandcampView` fait de même depuis 2fb1ce0b. */
+  .chips.sous{padding-top:0; margin-top:-8px; position:sticky; top:0; z-index:3; background:var(--v2-bg); padding-top:8px}
   .chips.sous .chip{font-size:11px; padding:5px 11px; opacity:.9}
   .inline{display:flex; align-items:center; gap:9px; flex-wrap:wrap}
   .txt{height:38px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:var(--v2-bg);

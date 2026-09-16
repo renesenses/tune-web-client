@@ -3455,6 +3455,7 @@ export default {
   "v2.home.emptyHint": "Su página está vacía. Pase a «Editar» para añadir widgets.",
   "v2.home.widgetEmpty": "Por ahora no hay nada que mostrar aquí.",
   "v2.home.widgetFailed": "No se pudo cargar este widget.",
+  "v2.home.widgetUnsupported": "Este servicio no ofrece esta sección.",
   "v2.home.wZones": "Zonas sonando ahora",
   "v2.svc.eyebrow": "Editorial",
   "v2.svc.wNew": "Novedades",

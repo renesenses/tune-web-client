@@ -3455,6 +3455,7 @@ export default {
   "v2.home.emptyHint": "Ihre Seite ist leer. Wechseln Sie zu „Bearbeiten“, um Widgets hinzuzufügen.",
   "v2.home.widgetEmpty": "Hier gibt es derzeit nichts zu zeigen.",
   "v2.home.widgetFailed": "Dieses Widget konnte nicht geladen werden.",
+  "v2.home.widgetUnsupported": "Dieser Dienst bietet diesen Bereich nicht an.",
   "v2.home.wZones": "Zonen, die gerade spielen",
   "v2.svc.eyebrow": "Redaktion",
   "v2.svc.wNew": "Neuerscheinungen",

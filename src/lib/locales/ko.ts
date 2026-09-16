@@ -3455,6 +3455,7 @@ export default {
   "v2.home.emptyHint": "페이지가 비어 있습니다. 「편집」으로 전환해 위젯을 추가하세요.",
   "v2.home.widgetEmpty": "지금은 여기에 보여드릴 것이 없습니다.",
   "v2.home.widgetFailed": "이 위젯을 불러올 수 없었습니다.",
+  "v2.home.widgetUnsupported": "이 서비스는 이 항목을 제공하지 않습니다.",
   "v2.home.wZones": "지금 재생 중인 존",
   "v2.svc.eyebrow": "에디토리얼",
   "v2.svc.wNew": "신보",

@@ -3454,6 +3454,7 @@ export default {
   "v2.home.emptyHint": "Din sida är tom. Växla till ”Redigera” för att lägga till widgetar.",
   "v2.home.widgetEmpty": "Inget att visa här för tillfället.",
   "v2.home.widgetFailed": "Den här widgeten kunde inte läsas in.",
+  "v2.home.widgetUnsupported": "Den här tjänsten erbjuder inte det här avsnittet.",
   "v2.home.wZones": "Zoner som spelar nu",
   "v2.svc.eyebrow": "Redaktionellt",
   "v2.svc.wNew": "Nyheter",
