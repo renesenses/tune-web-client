@@ -162,7 +162,7 @@
    * L'en-tête et les lignes sont des grilles SÉPARÉES qui partagent le même
    * `grid-template-columns`. Une colonne dimensionnée par son contenu — `auto`,
    * `max-content` — se résout donc dans chacune indépendamment : à zéro dans
-   * l'en-tête, où la cellule d'actions est vide, et à ~178 px dans les lignes.
+   * l'en-tête, où la cellule d'actions est vide, et à ~208 px dans les lignes.
    * Les colonnes en `fr` absorbent l'écart, et TOUS les en-têtes dérivent vers
    * la droite. Signalé par Bertrand le 07/09/2026, capture à l'appui : « TIME »
    * deux cents pixels à droite de « 5:24 ».
@@ -175,11 +175,19 @@
    * C'est la leçon de la vue Liste de la Bibliothèque, écrite le 05/09 et que
    * j'ai réintroduite ici. Une garde la tient désormais.
    *
-   * 178 px = six boutons de 28 px + cinq gouttières de 2 px, la barre pleine.
+   * 208 px = SEPT boutons de 28 px + six gouttières de 2 px, la barre pleine.
+   *
+   * 🔴 Elle valait 178 px — six boutons — jusqu'au 16/09/2026. Le menu « … »
+   * (a5be266a, 07/09) avait porté la barre à sept sans toucher à ce chiffre :
+   * `.act` est en `overflow:visible; justify-content:flex-end`, donc les 30 px
+   * en trop débordaient à GAUCHE, sur la dernière colonne de données. Bertrand,
+   * capture à l'appui : la colonne DR se lisait « 1▶ » au lieu de « 12 » — le
+   * bouton Lire recouvrait le second chiffre. Ce nombre doit suivre la barre :
+   * un témoin compte les boutons de `PisteActions` et le recalcule.
    */
-  const LARGEUR_ACTIONS = '178px';
+  const LARGEUR_ACTIONS = '208px';
   /** Les mêmes largeurs en NOMBRE, pour le calcul du plancher (#853). */
-  const LARGEUR_ACTIONS_PX = 178;
+  const LARGEUR_ACTIONS_PX = 208;
   const largeurApresPx = $derived(parseFloat(largeurApres) || 0);
   const gabarit = $derived(
     `${gabaritGrille(colonnes)} ${LARGEUR_ACTIONS}${apres ? ` ${largeurApres}` : ''}`,
