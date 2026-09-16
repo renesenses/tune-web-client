@@ -154,3 +154,26 @@ describe('Le réglage', () => {
     for (const v of STYLES_CRETE) expect(estStyleCrete(v)).toBe(true);
   });
 });
+
+/**
+ * #4175 — le rouge ne pouvait pas s'allumer : la crête d'un flux PCM entier
+ * est bornée à 0 dBFS, et « rouge si > 0 strictement » ne se produisait
+ * jamais. Le serveur mesure désormais la surcharge comme un DAT — des
+ * échantillons consécutifs à pleine échelle — et l'envoie en `over_*`.
+ */
+describe('#4175 — le témoin de surcharge du serveur allume le rouge', () => {
+  it('🔴 over=true allume le rouge, même à 0,0 dBFS', () => {
+    expect(surcharge(0, true)).toBe('rouge');
+    expect(surcharge(-0.2, true)).toBe('rouge');
+  });
+  it('over=false laisse la règle des seuils intacte', () => {
+    expect(surcharge(0, false)).toBe('ambre');
+    expect(surcharge(-0.49, false)).toBe('ambre');
+    expect(surcharge(-3, false)).toBe('aucune');
+  });
+  it('un serveur antérieur (over absent) se comporte comme avant', () => {
+    expect(surcharge(0)).toBe('ambre');
+    expect(surcharge(0.01)).toBe('rouge');
+    expect(surcharge(-1)).toBe('aucune');
+  });
+});

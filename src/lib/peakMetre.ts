@@ -55,7 +55,25 @@ export const AMBRE_DES_DB = -0.5;
 
 export type Surcharge = 'aucune' | 'ambre' | 'rouge';
 
-export function surcharge(creteDb: number): Surcharge {
+/**
+ * 🔴 #4175 — « rouge si crête > 0 dBFS » était une branche MORTE : le
+ * serveur mesure du PCM entier, dont la crête est bornée à 0 dBFS par
+ * construction. Le seul état atteignable était l'ambre, soit « crête entre
+ * −0,5 et 0 » — le voisinage du plein, pas un dépassement — allumé quasi en
+ * permanence sur un master moderne (GgB : « très optimiste », fil 1797).
+ *
+ * La surcharge d'un flux entier se lit autrement, comme sur l'appareil que
+ * le style DAT imite : des échantillons **consécutifs à pleine échelle**. Le
+ * serveur (≥ 0.9.152) la mesure et l'envoie en `over_left` / `over_right` ;
+ * c'est ce témoin qui allume le rouge. La règle « > 0 strictement » reste,
+ * pour un serveur qui enverrait un jour du flottant non borné.
+ *
+ * @param creteDb crête de la fenêtre, en dBFS
+ * @param over surcharge constatée par le serveur ; `undefined` = serveur
+ *   antérieur, qui ne la mesure pas
+ */
+export function surcharge(creteDb: number, over?: boolean): Surcharge {
+  if (over === true) return 'rouge';
   if (creteDb > 0) return 'rouge';                       // STRICTEMENT
   if (creteDb > AMBRE_DES_DB) return 'ambre';            // > −0,5 et ≤ 0
   return 'aucune';
