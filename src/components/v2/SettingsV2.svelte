@@ -16,6 +16,8 @@
    * absent.
    */
   import { t } from '../../lib/i18n';
+  import { zoneTypeLabel } from '../../lib/zoneIdentity';
+  import { appareilDeLaZone } from '../../lib/vueZones';
   import { formatNombre } from '../../lib/formats';
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
@@ -1108,6 +1110,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   ];
   const OFFSETS = [0, 1000, 2000, 3000, 4000, 5000, 7000, 10000, 15000, 20000];
   const isLocalZone = (z: any) => (z?.output_type ?? 'local') === 'local' || z?.output_type === 'browser';
+  /**
+   * #1065 — deux cartes « Eversolo », toutes deux « sortie réseau » : rien ne
+   * disait que l'une est DLNA et l'autre AirPlay. Le protocole s'affiche sur la
+   * carte, et une zone qui partage l'appareil détecté d'une autre, par un autre
+   * protocole, le dit : ce n'est pas un doublon.
+   */
+  function jumelleDeProtocole(z: any, toutes: readonly any[]): { nom: string; proto: string } | null {
+    const app = appareilDeLaZone(z);
+    if (!app) return null;
+    const autre = toutes.find((o) => o.id !== z.id && appareilDeLaZone(o) === app
+      && (o.output_type ?? 'local') !== (z.output_type ?? 'local') && zoneTypeLabel(o.output_type));
+    return autre ? { nom: autre.name, proto: zoneTypeLabel(autre.output_type) } : null;
+  }
 
   /** Confirmation ARMEE pour le volume fixe sur une zone RESEAU.
    *
@@ -2448,11 +2463,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <div class="zch">
                         <span class="zn">{z.name}</span>
                         <span class="zt">{$t((isLocalZone(z) ? 'v2.set.localOutput' : 'v2.set.networkOutput') as any)}</span>
+                        {#if zoneTypeLabel(z.output_type)}<span class="zt proto">{zoneTypeLabel(z.output_type)}</span>{/if}
                         <!-- Le badge vit dans `BadgeTuneTested` : la carte de
                              zone en vue grille porte le même, et deux copies
                              auraient divergé. -->
                         {#if tuneTestedDe(z)}<BadgeTuneTested />{/if}
                       </div>
+                      {#if jumelleDeProtocole(z, $zones)}
+                        {@const j = jumelleDeProtocole(z, $zones)!}
+                        <p class="hint jumelle">{$t('v2.set.sameDeviceOtherProtocol' as any).replace('{name}', j.nom).replace('{protocol}', j.proto)}</p>
+                      {/if}
                       <div class="zr">
                         <label class="zf">
                           <span>DSD</span>
@@ -3536,6 +3556,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .zch{display:flex; align-items:baseline; gap:11px}
   .zn{font-size:14px; font-weight:700}
   .zt{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .zt.proto{border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; color:var(--v2-txt2)}
+  .hint.jumelle{margin:4px 0 0}
   /* Badge « Tune tested » : discret. Une zone sur quatorze le porte, et il
      dit une validation, pas une alerte. */
   .creterow{display:flex; align-items:center; gap:14px}
