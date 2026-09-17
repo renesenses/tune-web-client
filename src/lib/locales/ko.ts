@@ -4061,6 +4061,7 @@ export default {
   "v2.rech.albums": "앨범",
   "v2.stream.favIndex": "즐겨찾기 목차",
   "v2.fas.topTracks": "인기 트랙",
+  "v2.art.bio": "약력",
   "v2.disco.focus": "포커스",
   "v2.disco.source": "소스",
   "v2.disco.quality": "음질",
