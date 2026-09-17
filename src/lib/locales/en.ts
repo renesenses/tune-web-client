@@ -470,6 +470,7 @@ export default {
   'zone.activeGroup': 'Active Group',
   'zone.configure': 'Configure',
   'zone.transferHere': 'Transfer playback here',
+  'zone.transferTo': 'Transfer playback to…',
   'zone.offline': 'Offline',
   'zone.recovering': 'Reconnecting...',
   'zone.recovered': 'Reconnected',

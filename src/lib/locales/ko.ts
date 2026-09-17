@@ -265,6 +265,7 @@ export default {
   'zone.activeGroup': '활성 그룹',
   'zone.configure': '구성',
   'zone.transferHere': '재생을 여기로 전송',
+  'zone.transferTo': '재생 전송…',
   'zone.offline': '오프라인',
   'zone.searchingDevices': '기기 검색 중...',
   'zone.noZone': '존 없음',
