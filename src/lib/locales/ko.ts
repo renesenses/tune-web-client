@@ -4153,6 +4153,8 @@ export default {
   "v2.lib.sortTitle": "제목",
   "v2.lib.sortArtist": "아티스트",
   "v2.lib.sortYear": "연도",
+  "v2.pl.sortOrder": "플레이리스트 순서",
+  "v2.col.sortRules": "규칙 순서",
   "v2.lib.tabYears": "연도",
   "v2.lib.tabLabels": "레이블",
   "v2.lib.source": "소스",

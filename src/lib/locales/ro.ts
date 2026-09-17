@@ -4153,6 +4153,8 @@ export default {
   "v2.lib.sortTitle": "Titlu",
   "v2.lib.sortArtist": "Artist",
   "v2.lib.sortYear": "An",
+  "v2.pl.sortOrder": "Ordinea listei",
+  "v2.col.sortRules": "Ordinea regulilor",
   "v2.lib.tabYears": "Ani",
   "v2.lib.tabLabels": "Case de discuri",
   "v2.lib.source": "Sursă",
