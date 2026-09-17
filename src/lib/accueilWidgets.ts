@@ -25,6 +25,7 @@
  * dans le chargeur laisse au rendu un seul cas à traiter.
  */
 import * as api from './api';
+import { estSourceDeBibliotheque } from './provenanceBibliotheque';
 import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
 
@@ -332,8 +333,7 @@ function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | '
  * `id` de bibliothèque, comme un album local.
  */
 function estProvenanceBibliotheque(source: string | null | undefined): boolean {
-  const s = String(source ?? '').trim().toLowerCase();
-  return s === 'local' || s === 'upnp' || s.startsWith('upnp:');
+  return !!source && estSourceDeBibliotheque(source);
 }
 
 /** Le service de streaming à qui parler — jamais une provenance de bibliothèque. */
