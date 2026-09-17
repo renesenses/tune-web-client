@@ -1404,8 +1404,8 @@
         bibliothèque on parle. C'est une portée, comme le fil d'Ariane des
         Répertoires — elle précède les critères qu'elle borne.
 
-        Toujours visible : une bibliothèque locale explique comment intégrer
-        une source distante. Les autres filtres ne retirent pas ses entrées.
+        Toujours visible : une bibliothèque locale explique qu'elle n'a pas
+        encore de source distante. Les autres filtres ne retirent pas ses entrées.
       -->
         <div class="drop" class:open={ddOpen === 'provenance'}>
           <button class="chip" class:active={fProvenance !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'provenance'} onclick={() => ddToggle('provenance')}>{$tr('v2.lib.source' as any)}{#if fProvenance}&nbsp;· {libelleProvenance(fProvenance)}{/if}
@@ -1418,7 +1418,9 @@
             {#if tab === 'albums' && !sourcesIntegrees.length && src.every(a => provenanceDe(a) === 'local')}
               <p>{$tr('upnp.sync.localOnly' as any)}</p>
             {/if}
-            <a href="#mediaservers">{$tr('nav.mediaservers' as any)}</a>
+            <!-- Plus de lien « Serveurs multimédia » ici : un menu de FILTRE
+                 n'est pas une navigation (Bertrand, 17/09/2026 : « Cette
+                 mention ne sert à rien »). -->
             {#each provenances as [cle, n] (cle)}
               <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{comptesSourcesEnCharge ? "…" : n}</em></button>
             {/each}
