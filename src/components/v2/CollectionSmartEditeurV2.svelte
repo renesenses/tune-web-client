@@ -37,7 +37,11 @@
    * reste dans la grammaire — une collection qui l'utilise s'ouvre et
    * s'enregistre sans le perdre — mais on ne peut pas en créer ici.
    */
+  import { onMount } from 'svelte';
   import * as api from '../../lib/api';
+  import { streamingServices } from '../../lib/stores/streaming';
+  import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
+  import { sourcesDisponibles, libelleSource } from '../../lib/sourcesRegle';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import {
@@ -83,8 +87,14 @@
   /** Les champs que CET éditeur sait saisir. Voir l'en-tête. */
   const SAISISSABLES: TypeChamp[] = [
     'text', 'int', 'nullable', 'timestamp', 'count', 'favorite',
-    'collection_ref', 'playlist_ref', 'folder',
+    'collection_ref', 'playlist_ref', 'folder', 'source',
   ];
+  /** Les statuts des services, pour la liste d'une règle « Source » (#4299). */
+  let statutsServices = $state<Record<string, any>>({});
+  onMount(() => {
+    void statutsStreaming($streamingServices, api.getStreamingServices, (x) => streamingServices.set(x))
+      .then((s) => { statutsServices = s; });
+  });
 
   /**
    * Les quatre listes qui alimentent les sélecteurs de référence.
@@ -288,6 +298,13 @@
                 value={Array.isArray(r.value) ? r.value[1] : ''}
                 oninput={(e) => changerBorne(i, 1, e.currentTarget.value)} />
             </span>
+          {:else if type === 'source'}
+            <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
+              <option value="" disabled>{$t('smartCollection.refPick')}</option>
+              {#each sourcesDisponibles(statutsServices, r.value) as s (s)}
+                <option value={s}>{libelleSource(s, $t('v2.lib.sourceLocal' as any))}</option>
+              {/each}
+            </select>
           {:else if type === 'folder'}
             <SmartFolderPicker value={r.value ?? ''} onChange={(v) => changerValeur(i, v)} />
           {:else if type === 'collection_ref'}

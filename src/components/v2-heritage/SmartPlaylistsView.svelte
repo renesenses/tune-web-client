@@ -8,6 +8,12 @@
   import { notifications } from '../../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import { get } from 'svelte/store';
+  import { streamingServices } from '../../lib/stores/streaming';
+  import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
+  import { sourcesDisponibles, libelleSource } from '../../lib/sourcesRegle';
+  import { lireListe } from '../../lib/lectureEnMasse';
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import {
     OPERATEURS,
     normaliserOperateur,
@@ -84,12 +90,21 @@
     { value: 'is_not', key: 'smartCollection.opRefNotIn' },
   ];
 
+  // « Source » se choisit dans une LISTE (#4299) : est / n'est pas. Le serveur
+  // ne ramène les favoris d'un service que sur une règle positive.
+  const SOURCE_OPERATORS: { value: string; label: string }[] = [
+    { value: 'equals', label: '=' },
+    { value: 'not_equals', label: '≠' },
+  ];
+  let statutsServices = $state<Record<string, any>>({});
+
   function isRefField(field: string): boolean {
     return field === 'in_collection' || field === 'in_playlist' || field === 'favorite';
   }
   function opsFor(field: string): readonly { value: string; key?: string; label?: string }[] {
     if (field === 'favorite') return FAV_OPERATORS;
     if (isRefField(field)) return REF_OPERATORS;
+    if (field === 'source') return SOURCE_OPERATORS;
     return OPERATORS;
   }
 
@@ -137,6 +152,11 @@
         ? $tr(r.value === 'album' ? 'smartCollection.favAlbum' : r.value === 'artist' ? 'smartCollection.favArtist' : 'smartCollection.favTrack')
         : refName(r.value);
       return `${fieldLabel} ${opLabel} « ${valueLabel} »`;
+    }
+    if (r.field === 'source') {
+      const fieldLabel = $tr('smartPlaylists.fieldSource');
+      const opLabel = r.operator === 'not_equals' ? '≠' : '=';
+      return `${fieldLabel} ${opLabel} « ${libelleSource(r.value, $tr('v2.lib.sourceLocal' as any))} »`;
     }
     // Le libellé du menu, pas la valeur interne : le résumé d'une règle doit se
     // lire « bit_depth ≥ "24" », pas « bit_depth gte "24" ».
@@ -287,17 +307,36 @@
     newRules = [{ field: 'genre', operator: 'contains', value: '' }];
   }
 
+  /**
+   * « Tout lire » — la liste peut être MIXTE depuis #4299 : une règle « Source
+   * = Qobuz » ramène des favoris de service, sans identifiant de bibliothèque.
+   * `track_ids` les écartait tous ; `lireListe` lance la tête et enfile le
+   * reste, locales et services confondus.
+   */
   async function playAll() {
-    if (!zone?.id || spTracks.length === 0) return;
-    const ids = spTracks.map(t => t.id).filter(Boolean) as number[];
-    if (ids.length > 0) {
-      await playAndSync(zone.id, { track_ids: ids });
-    }
+    const zid = zone?.id;
+    if (zid == null || spTracks.length === 0) return;
+    await lireListe(spTracks, {
+      lire: (c: any) => playAndSync(zid, c),
+      enfiler: (c: any) => api.addToQueue(zid, c),
+    }).catch(signalerEchecLecture);
   }
 
-  async function playTrack(trackId: number) {
+  /** Une ligne : par son identifiant si elle est locale, par service sinon. */
+  async function playTrack(t: Track) {
     if (!zone?.id) return;
-    await playAndSync(zone.id, { track_id: trackId });
+    if (t.id != null) {
+      await playAndSync(zone.id, { track_id: t.id }).catch(signalerEchecLecture);
+    } else if (t.source && t.source_id) {
+      await playAndSync(zone.id, {
+        source: t.source,
+        source_id: String(t.source_id),
+        title: t.title ?? null,
+        artist_name: t.artist_name ?? null,
+        album_title: t.album_title ?? null,
+        cover_path: t.cover_path ?? null,
+      } as any).catch(signalerEchecLecture);
+    }
   }
 
   function addRule() {
@@ -326,7 +365,13 @@
     return rules.length > 2 ? `${summary} … (+${rules.length - 2})` : summary;
   }
 
-  $effect(() => { loadSmartPlaylists(); loadRefOptions(); });
+  $effect(() => {
+    loadSmartPlaylists();
+    loadRefOptions();
+    // `get` : une lecture ponctuelle, qui n'abonne pas l'effet au magasin.
+    void statutsStreaming(get(streamingServices), api.getStreamingServices, (x) => streamingServices.set(x))
+      .then((st) => { statutsServices = st; });
+  });
 </script>
 
 <div class="sp-view">
@@ -374,7 +419,7 @@
           {#each spTracks as t, i}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="sp-track-row" onclick={() => t.id && playTrack(t.id)}>
+            <div class="sp-track-row" onclick={() => playTrack(t)}>
               <span class="sp-track-num">{i + 1}</span>
               <div class="sp-track-art"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={40} alt={t.title} /></div>
               <div class="sp-track-info">
@@ -455,6 +500,13 @@
                       <option value={`smart:${p.id}`}>{p.name}</option>
                     {/each}
                   </optgroup>
+                </select>
+              {:else if rule.field === 'source'}
+                <select bind:value={rule.value} class="sp-select sp-input-sm">
+                  <option value="" disabled>{$tr('smartCollection.refPick')}</option>
+                  {#each sourcesDisponibles(statutsServices, rule.value) as s (s)}
+                    <option value={s}>{libelleSource(s, $tr('v2.lib.sourceLocal' as any))}</option>
+                  {/each}
                 </select>
               {:else if rule.field === 'favorite'}
                 <select bind:value={rule.value} class="sp-select sp-input-sm">
