@@ -250,10 +250,10 @@ afterEach(() => {
 
 /** `ouvrirId` ouvre la fiche dès que la liste est là — le même chemin que le
  *  clic sur une vignette, sans traverser la grille. */
-async function poserFiche(): Promise<HTMLDivElement> {
+async function poserFiche(extra: Record<string, unknown> = {}): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
-  monte = mount(ArtistesV2, { target: hote, props: { q: '', ouvrirId: 3 } });
+  monte = mount(ArtistesV2, { target: hote, props: { q: '', ouvrirId: 3, ...extra } });
   for (let i = 0; i < 12; i++) await respirer();
   flushSync();
   return hote;
@@ -317,6 +317,24 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
     ).toBe(true);
     expect(titres(el)).toContain('Ultra Moderne Solitude');
     expect(appels.filter((u) => /tidal/.test(u)), 'Tidal est déconnecté').toEqual([]);
+  });
+
+  it('#4330 — le menu « Source » reçoit les comptes de la FICHE, services compris', async () => {
+    // Bertrand, .18, 17/09/2026 : « Source affiche des chiffres faux et pas les
+    // services de streaming ».
+    const recus: unknown[] = [];
+    await poserFiche({ onComptesFiche: (c: unknown) => recus.push(c) });
+    const dernier = recus.filter(Boolean).at(-1) as { total: number; comptes: Map<string, number> } | undefined;
+    expect(dernier, 'aucun compte de fiche remonté au menu').toBeTruthy();
+    expect(dernier!.total).toBe(3);
+    expect(Object.fromEntries(dernier!.comptes)).toEqual({ local: 1, qobuz: 2 });
+  });
+
+  it('#4330 — « Source · QOBUZ » garde les albums Qobuz au lieu de tout cacher', async () => {
+    const el = await poserFiche({ provenance: 'qobuz' });
+    const vus = titres(el);
+    expect(vus, `titres rendus : ${JSON.stringify(vus)}`).toContain('Ultra Moderne Solitude');
+    expect(vus).not.toContain('Au Ras Des Paquerettes');
   });
 
   it('ouvrir un album de service passe le SERVICE avec lui', async () => {

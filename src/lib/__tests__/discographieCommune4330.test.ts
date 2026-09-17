@@ -12,7 +12,7 @@
 //      Youtube, Bancamp »
 import { describe, expect, it } from 'vitest';
 import {
-  cleEdition, compterFocus, filtrerFocus, fusionnerDiscographie, qualiteDe,
+  cleEdition, compterFocus, comptesProvenanceFiche, dansProvenance, filtrerFocus, fusionnerDiscographie, qualiteDe,
 } from '../discographieCommune';
 import type { Album } from '../types';
 
@@ -113,5 +113,30 @@ describe('#4330 — le Focus', () => {
     expect(titres(['local'], [])).toEqual(['A']);
     expect(titres(['local', 'qobuz'], [])).toEqual(['A', 'B']);
     expect(titres(['qobuz'], ['hires'])).toEqual(['A']);
+  });
+});
+
+describe('#4330 — le menu « Source » de la Bibliothèque, fiche ouverte', () => {
+  const e = fusionnerDiscographie(
+    [al({ id: 1, title: 'A', source: 'local' }), al({ id: 2, title: 'U', source: 'upnp', source_id: 'uuid:srv|42' })],
+    [
+      { service: 'qobuz', albums: [al({ source_id: 'QA', title: 'A' }), al({ source_id: 'QB', title: 'B' })] },
+      { service: 'tidal', albums: [al({ source_id: 'TB', title: 'B' })] },
+    ],
+  );
+
+  it('compte chaque source une fois par vignette, services compris ; total = vignettes', () => {
+    const c = comptesProvenanceFiche(e);
+    expect(c.total).toBe(3);
+    expect(Object.fromEntries(c.comptes)).toEqual({ local: 1, 'upnp:uuid:srv': 1, upnp: 1, qobuz: 2, tidal: 1 });
+  });
+
+  it('filtre : un exemplaire de la source suffit ; « upnp » couvre ses serveurs', () => {
+    const t = (f: string | null) => e.filter((x) => dansProvenance(x, f)).map((x) => x.principal.album.title);
+    expect(t(null)).toEqual(['A', 'U', 'B']);
+    expect(t('qobuz')).toEqual(['A', 'B']);
+    expect(t('tidal')).toEqual(['B']);
+    expect(t('local')).toEqual(['A']);
+    expect(t('upnp')).toEqual(['U']);
   });
 });

@@ -82,6 +82,12 @@
     erreurSources?: string | null;
     onComptesSources?: (comptes: ComptesArtistesSources) => void;
     /**
+     * Les comptes du menu « Source » quand une FICHE est ouverte — ceux de sa
+     * discographie commune, services compris (#4330) ; `null` à la fermeture,
+     * le menu reprend alors ceux de la grille des artistes.
+     */
+    onComptesFiche?: (comptes: ComptesArtistesSources | null) => void;
+    /**
      * L'artiste à OUVRIR dès que la liste est là — « Aller à l'artiste » du
      * menu « … » d'une piste (Bertrand, 07/09/2026).
      *
@@ -107,7 +113,7 @@
     /** Le nom du dossier, pour le dire quand la portée ne rend aucun artiste. */
     nomPortee?: string | null;
   }
-  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, ouvrirId = null, onOuvert, idsPortee = null, nomPortee = null }: Props = $props();
+  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, onComptesFiche, ouvrirId = null, onOuvert, idsPortee = null, nomPortee = null }: Props = $props();
 
   /**
    * 🔴 On attend que la LISTE soit chargée : `artistes` est vide au montage, et
@@ -130,7 +136,10 @@
   let ouvert = $state<Artist | null>(null);
   let albums = $state<Album[]>([]);
   let albumsChargement = $state(false);
-  const albumsAffiches = $derived(albums.filter(a => dansSource(a, provenance)));
+  /** Le compte de l'en-tête : les vignettes de la discographie commune, et non
+   *  les seuls albums de la bibliothèque (« 1 albums » pour a-ha, 44 à l'écran). */
+  let comptesFiche = $state<ComptesArtistesSources | null>(null);
+  $effect(() => { if (!ouvert) { comptesFiche = null; onComptesFiche?.(null); } });
 
   // Le tri de la fiche (#4246) a suivi la grille dans `DiscographieCommune`,
   // avec ses clés et sa mémoire.
@@ -243,7 +252,6 @@
    * l'ouvrir sans son service le laisserait sur « Chargement… » pour toujours.
    */
   let albumsService = $state<AlbumsDeService[]>([]);
-  const servicesAffiches = $derived(provenance == null ? albumsService : []);
   let albumsServiceChargement = $state(false);
   let albumOuvertService = $state<{ album: Album; service: string } | null>(null);
 
@@ -494,7 +502,7 @@
       </span>
       <div>
         <h1>{artiste.name}</h1>
-        <p class="cpt">{albumsAffiches.length} {$t('v2.art.albums' as any)}</p>
+        <p class="cpt">{comptesFiche?.total ?? albums.length} {$t('v2.art.albums' as any)}</p>
       </div>
     </div>
     <div class="fa">
@@ -515,11 +523,14 @@
   <div class="corps">
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
-    {:else if !albumsAffiches.length && !servicesAffiches.length && !(provenance == null && albumsServiceChargement)}
+    {:else if !albums.length && !albumsService.length && !albumsServiceChargement}
       <div class="etat">{$t('v2.art.noAlbum' as any)}</div>
     {:else}
-      <DiscographieCommune locaux={albumsAffiches} services={servicesAffiches}
-        servicesEnCharge={provenance == null && albumsServiceChargement}
+      <!-- Le filtre « Source » s'applique DANS la grille commune : le poser
+           sur la seule bibliothèque cachait tous les services (#4330). -->
+      <DiscographieCommune locaux={albums} services={albumsService}
+        servicesEnCharge={albumsServiceChargement} {provenance}
+        onComptesProvenance={(c) => { comptesFiche = c; onComptesFiche?.(c); }}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   </div>
