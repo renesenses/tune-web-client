@@ -79,6 +79,38 @@ export function servicesInterrogeables(
 }
 
 /**
+ * Les statuts des services, CHARGÉS s'il le faut — renesenses/tune-server-rust#4330.
+ *
+ * 🔴 Dans le nouveau client, AUCUN écran ne remplit le magasin
+ * `streamingServices`. Seuls l'ancienne barre latérale (`Sidebar.svelte`),
+ * les réglages et l'accueil de l'ancienne interface y écrivent ; les écrans v2
+ * (`StreamingV2`, `SettingsV2`, `PlaylistsV2`) lisent `getStreamingServices`
+ * dans une variable locale. Ouverte depuis la Bibliothèque v2, la fiche artiste
+ * lisait donc `{}` et n'interrogeait AUCUN service — mesuré sur le .18 le
+ * 17/09/2026 : a-ha, Qobuz connecté, zéro album de service, alors que
+ * `/search` et `/streaming/qobuz/artists/53675/albums` répondaient 200.
+ * La garde de #3709 ne le voyait pas : elle posait le magasin à la main.
+ *
+ * On lit le magasin s'il porte quelque chose ; sinon on demande au serveur, et
+ * on RANGE la réponse dans le magasin pour les écrans suivants. Un échec rend
+ * `{}` : la fiche se montre alors avec la seule bibliothèque, comme avant.
+ */
+export async function statutsStreaming(
+  actuels: Record<string, StreamingServiceStatus> | null | undefined,
+  charger: () => Promise<Record<string, StreamingServiceStatus> | null | undefined>,
+  ranger: (s: Record<string, StreamingServiceStatus>) => void,
+): Promise<Record<string, StreamingServiceStatus>> {
+  if (actuels && Object.keys(actuels).length) return actuels;
+  try {
+    const lus = (await charger()) ?? {};
+    if (Object.keys(lus).length) ranger(lus);
+    return lus;
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Lequel des artistes rendus par le service est le nôtre.
  *
  * Le nom EXACT (casse ignorée) prime ; à défaut, le premier — le service
