@@ -205,10 +205,12 @@ describe('la pilule dans la barre de filtres', () => {
     expect(SOURCE_LIBRARYV2).toContain('&& !fProvenance} onclick={reset}');
   });
 
-  it('reste accessible avec une seule source et explique comment en ajouter', () => {
+  it('reste accessible avec une seule source, SANS lien « Serveurs multimédia »', () => {
     expect(SOURCE_LIBRARYV2).not.toContain('{#if provenances.length > 1}');
     expect(SOURCE_LIBRARYV2).toContain('upnp.sync.localOnly');
-    expect(SOURCE_LIBRARYV2).toContain('#mediaservers');
+    // Bertrand, 17/09/2026 : « Filtre Source : enlève Serveurs multimédia.
+    // Cette mention ne sert à rien ! »
+    expect(SOURCE_LIBRARYV2).not.toContain('href="#mediaservers"');
   });
 
   it('le libellé d’un serveur vient du REGISTRE, pas de l’UDN ni d’« upnp »', () => {
