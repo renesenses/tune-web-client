@@ -507,6 +507,26 @@ describe('Accueil — ce que fait un clic', () => {
     expect(geste({ id: 30 }, null, 'aucun')).toBeUndefined();
   });
 
+  /**
+   * 🔴 `upnp` n'est pas un service — .18, 17/09/2026 : « Erreur de lecture :
+   * unknown service: upnp » sur « Récemment ajoutés ». Forme mesurée de
+   * `/library/albums/recent` : 27 albums UPnP sur 50.
+   */
+  it('un album de bibliothèque venu d’un serveur UPnP part par son id, pas comme un service', () => {
+    const upnp = {
+      id: 4429, album_id: null, source: 'upnp',
+      source_id: 'uuid:258FC2D5-E2C3-B734-0-123456789abc|0ac4042f1994b976',
+      title: 'Au service de la France',
+    };
+    expect(corps(upnp, 'upnp')).toEqual({ album_id: 4429 });
+    expect(corps({ ...upnp, source: 'upnp:uuid:258FC2D5' }, 'upnp:uuid:258FC2D5')).toEqual({ album_id: 4429 });
+    expect(corps({ id: 12, source: 'local', source_id: 'x' }, 'local')).toEqual({ album_id: 12 });
+    // Un vrai service garde sa voie.
+    expect(corps({ source_id: 'kxend2k5wdg06' }, 'qobuz')).toEqual({
+      streaming_album_id: 'kxend2k5wdg06', source: 'qobuz',
+    });
+  });
+
   it('rien à jouer ne rend rien — la carte n’affichera pas de disque', () => {
     expect(geste({ titre: 'x' }, null, 'album')).toBeUndefined();
   });
