@@ -51,9 +51,6 @@
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import TriAlbums from '../partages/TriAlbums.svelte';
-  import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
-  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
@@ -67,8 +64,9 @@
     servicesInterrogeables,
     type AlbumsDeService,
   } from '../../lib/albumsArtisteStreaming';
+  import { BIBLIOTHEQUE, type Exemplaire } from '../../lib/discographieCommune';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import ServiceBadge from '../partages/ServiceBadge.svelte';
+  import DiscographieCommune from './DiscographieCommune.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
@@ -133,20 +131,8 @@
   let albumsChargement = $state(false);
   const albumsAffiches = $derived(albums.filter(a => dansSource(a, provenance)));
 
-  /**
-   * Tri des albums de la fiche (Bertrand, 16/09/2026 : « idem dans la vue
-   * Library / Artists »). Pas d'« Artiste » ici — ils ont tous le même — ni
-   * de « Pertinence » : le défaut est l'année, l'ordre d'une discographie.
-   * Côté client sur la liste reçue ; la date d'ajout est attachée par la
-   * route (tune-server-rust #4246). Mémorisé par écran.
-   */
-  const CLES_FICHE: readonly CleTriAlbums[] = ['year', 'title', 'release_date', 'added_at'];
-  let triAlbums = $state<CleTriAlbums>(lireChoix<CleTriAlbums>('v2.art.albums.tri', CLES_FICHE, 'year'));
-  let sensAlbums = $state<SensTri>(lireChoix<SensTri>('v2.art.albums.sens', ['asc', 'desc'], 'asc'));
-  $effect(() => { ecrireChoix('v2.art.albums.tri', triAlbums); });
-  $effect(() => { ecrireChoix('v2.art.albums.sens', sensAlbums); });
-  // Fusion #1046 × #1052 : on FILTRE par source (UPnP, #4201) puis on TRIE.
-  const albumsTries = $derived(trierAlbums(albumsAffiches, triAlbums, sensAlbums));
+  // Le tri de la fiche (#4246) a suivi la grille dans `DiscographieCommune`,
+  // avec ses clés et sa mémoire.
   let albumOuvert = $state<Album | null>(null);
   let enEdition = $state<Artist | null>(null);
   /**
@@ -459,6 +445,18 @@
     playAndSync(zid, { album_id: al.id }).catch(signalerEchecLecture);
   }
 
+  /** Une vignette de la discographie commune désigne un exemplaire : la
+   *  bibliothèque s'ouvre par son identifiant, un service par sa paire
+   *  service + `source_id` (#3709). */
+  function ouvrirExemplaire(ex: Exemplaire) {
+    if (ex.source === BIBLIOTHEQUE) albumOuvert = ex.album;
+    else albumOuvertService = { album: ex.album, service: ex.source };
+  }
+  function lireExemplaire(ex: Exemplaire) {
+    if (ex.source === BIBLIOTHEQUE) lireAlbum(ex.album);
+    else lireAlbumDeService(ex.album, ex.source);
+  }
+
   /**
    * Une à deux initiales, LETTRES ET CHIFFRES seulement.
    *
@@ -506,90 +504,18 @@
     </div>
   </header>
 
-  <!-- UN seul conteneur défilant pour la fiche : les albums de la
-       bibliothèque, puis une section par service (#3709). Deux zones
-       défilantes empilées obligeraient à faire rouler deux ascenseurs pour
-       parcourir une discographie. -->
+  <!-- UN seul conteneur défilant pour la fiche. La grille est COMMUNE à la
+       bibliothèque et aux services — #4330 (FabienM, fil 1823), qui remplace
+       les sections séparées par service de #3709. -->
   <div class="corps">
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
     {:else if !albumsAffiches.length && !servicesAffiches.length && !(provenance == null && albumsServiceChargement)}
       <div class="etat">{$t('v2.art.noAlbum' as any)}</div>
     {:else}
-      {#if albumsAffiches.length}
-        <div class="entete-albums">
-          <TriAlbums bind:cle={triAlbums} bind:sens={sensAlbums} cles={CLES_FICHE} />
-        </div>
-        <div class="gr">
-          {#each albumsTries as al (al.id)}
-            <div class="carte">
-              <div class="cv">
-                <PochetteActions
-                  favori={al.id != null ? { albumId: al.id } : null}
-                  etiquettes={al.id != null ? { itemType: 'album', itemId: al.id } : null}
-                  onLire={() => lireAlbum(al)}
-                  onOuvrir={() => (albumOuvert = al)}
-                  nom={al.title}
-                >
-                  <AlbumArt coverPath={al.cover_path} albumId={al.id} size={0} alt={al.title}
-                    fallbackInitials={al.title?.slice(0, 1)} />
-                </PochetteActions>
-              </div>
-              <button class="meta" onclick={() => (albumOuvert = al)}>
-                <span class="ct" title={al.title}>{al.title}</span>
-                <span class="ca" title={String(al.year ?? '')}>{al.year ?? ''}</span>
-              </button>
-            </div>
-          {/each}
-        </div>
-      {/if}
-
-      <!-- #3709 — « Il manque tous ses albums de Qobuz / Tidal / Bandcamp /
-           Youtube » (FabienM, fil 1726). Une section SÉPARÉE par service, sous
-           les albums de la bibliothèque : la grille locale est indexée sur
-           `al.id` et ses cœurs et étiquettes tiennent à un identifiant LOCAL
-           qu'un album de service n'a pas. Les mêler casserait la clé de boucle
-           et poserait des cœurs sans cible.
-           Même forme que l'interface actuelle (`LibraryView.svelte:3335`) :
-           badge du service, nombre d'albums, puis la grille. -->
-      {#if provenance == null && albumsServiceChargement}
-        <div class="etat">{$t('common.loading' as any)}</div>
-      {/if}
-      {#each servicesAffiches as sec (sec.service)}
-        <section class="svc">
-          <div class="svct">
-            <ServiceBadge source={sec.service} />
-            <span class="cpt">{sec.albums.length} {$t('v2.art.albums' as any)}</span>
-          </div>
-          <div class="gr">
-            {#each sec.albums as al, i (String(al.source_id ?? al.id ?? i))}
-              <div class="carte">
-                <div class="cv">
-                  <!-- Ni cœur ni étiquettes : les deux sont adossés à un
-                       identifiant de bibliothèque que cet album n'a pas. Il
-                       s'ouvre et il se lit, avec la paire service +
-                       `source_id`. -->
-                  <PochetteActions
-                    favori={null}
-                    etiquettes={null}
-                    onLire={() => lireAlbumDeService(al, sec.service)}
-                    onOuvrir={() => (albumOuvertService = { album: al, service: sec.service })}
-                    nom={al.title}
-                  >
-                    <AlbumArt coverPath={al.cover_path} albumId={null} size={0} alt={al.title}
-                      source={al.source} fallbackInitials={al.title?.slice(0, 1)} />
-                  </PochetteActions>
-                </div>
-                <button class="meta"
-                  onclick={() => (albumOuvertService = { album: al, service: sec.service })}>
-                  <span class="ct" title={al.title}>{al.title}</span>
-                  <span class="ca" title={String(al.year ?? '')}>{al.year ?? ''}</span>
-                </button>
-              </div>
-            {/each}
-          </div>
-        </section>
-      {/each}
+      <DiscographieCommune locaux={albumsAffiches} services={servicesAffiches}
+        servicesEnCharge={provenance == null && albumsServiceChargement}
+        onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   </div>
 
@@ -690,20 +616,9 @@
     align-content: start;
     padding: 8px 30px 40px;
   }
-  /* #3709 — la fiche d'un artiste défile d'un SEUL bloc : les albums de la
-     bibliothèque, puis une section par service. `.gr` est la grille de
-     `.grille` sans son défilement ni son remplissage propres, qui remontent
-     dans `.corps`. */
+  /* La fiche d'un artiste défile d'un SEUL bloc (#3709) ; sa grille est
+     `DiscographieCommune` (#4330). */
   .corps { flex: 1; overflow-y: auto; padding: 8px 30px 40px; min-height: 0; }
-  .entete-albums { display: flex; justify-content: flex-end; padding: 0 0 10px; }
-  .gr {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-    gap: 22px 18px;
-    align-content: start;
-  }
-  .svc { margin-top: 30px; }
-  .svct { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; }
   .corps .etat { padding: 22px 0; }
   .carte {
     display: flex;

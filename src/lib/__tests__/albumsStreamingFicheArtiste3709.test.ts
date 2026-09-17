@@ -249,7 +249,7 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
     ).toBe(true);
   });
 
-  it('les albums du service sont À L’ÉCRAN, sous ceux de la bibliothèque', async () => {
+  it('les albums du service sont À L’ÉCRAN, avec ceux de la bibliothèque', async () => {
     const el = await poserFiche();
     const vus = titres(el);
     expect(vus, `titres rendus : ${JSON.stringify(vus)}`).toContain('Au Ras Des Paquerettes');
@@ -257,15 +257,21 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
       vus,
       'les albums de Qobuz ne sont pas affichés — c’est exactement ce que Fabien signale',
     ).toContain('Ultra Moderne Solitude');
-    // L'ORDRE compte : la bibliothèque d'abord, les services ensuite.
-    expect(vus.indexOf('Au Ras Des Paquerettes')).toBeLessThan(vus.indexOf('Ultra Moderne Solitude'));
+    // #4330 : la grille est COMMUNE et triée (année par défaut) — la
+    // bibliothèque n'est plus un bloc placé avant les services.
   });
 
-  it('la section porte le badge du service et son compte', async () => {
+  it('#4330 — UNE grille : chaque vignette dit ses sources, plus de section par service', async () => {
+    // Les sections séparées de #3709 ont cédé la place à la discographie
+    // commune (FabienM, fil 1823).
     const el = await poserFiche();
-    const sections = Array.from(el.querySelectorAll('.svc'));
-    expect(sections, 'aucune section de service').toHaveLength(1);
-    expect(sections[0].querySelector('.svct')?.textContent).toContain('2');
+    expect(el.querySelectorAll('.svc'), 'une section par service a survécu').toHaveLength(0);
+    const sources = Object.fromEntries(
+      Array.from(el.querySelectorAll<HTMLElement>('.carte[data-sources]'))
+        .map((c) => [c.querySelector('.ct')?.textContent, c.dataset.sources]),
+    );
+    expect(sources['Au Ras Des Paquerettes']).toBe('local');
+    expect(sources['Ultra Moderne Solitude']).toBe('qobuz');
   });
 
   it('un service DÉCONNECTÉ n’est jamais interrogé', async () => {
@@ -280,7 +286,7 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
     // Sans le service, `AlbumDetailV2` ne peut apparier aucun album de
     // streaming et resterait sur « Chargement… ».
     const el = await poserFiche();
-    const carte = Array.from(el.querySelectorAll('.svc .carte .meta')) as HTMLElement[];
+    const carte = Array.from(el.querySelectorAll('.carte[data-sources="qobuz"] .meta')) as HTMLElement[];
     expect(carte.length, 'aucune vignette de service à ouvrir').toBeGreaterThan(0);
     carte[0].click();
     for (let i = 0; i < 8; i++) await respirer();
