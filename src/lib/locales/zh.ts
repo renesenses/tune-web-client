@@ -4519,6 +4519,7 @@ export default {
   "licenseFeature.dac_calibration": "DAC 校准",
   "licenseFeature.declick": "消除爆音",
   "licenseFeature.developer_api": "开发者接口",
+  "licenseFeature.crossfeed": "Crossfeed",
   "licenseFeature.dsp_eq": "音频处理与均衡器",
   "licenseFeature.listening_stats": "收听统计",
   "licenseFeature.multi_profiles": "多用户资料",

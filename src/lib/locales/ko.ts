@@ -4519,6 +4519,7 @@ export default {
   "licenseFeature.dac_calibration": "DAC 보정",
   "licenseFeature.declick": "클릭 잡음 제거",
   "licenseFeature.developer_api": "개발자 API",
+  "licenseFeature.crossfeed": "Crossfeed",
   "licenseFeature.dsp_eq": "음향 처리와 이퀄라이저",
   "licenseFeature.listening_stats": "청취 통계",
   "licenseFeature.multi_profiles": "다중 사용자 프로필",

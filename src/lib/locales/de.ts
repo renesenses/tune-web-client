@@ -4519,6 +4519,7 @@ export default {
   "licenseFeature.dac_calibration": "DAC-Kalibrierung",
   "licenseFeature.declick": "Knackser-Entfernung",
   "licenseFeature.developer_api": "Entwickler-API",
+  "licenseFeature.crossfeed": "Crossfeed",
   "licenseFeature.dsp_eq": "Klangbearbeitung und Equalizer",
   "licenseFeature.listening_stats": "Hörstatistiken",
   "licenseFeature.multi_profiles": "Mehrere Benutzerprofile",

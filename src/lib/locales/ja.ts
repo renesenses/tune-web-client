@@ -4519,6 +4519,7 @@ export default {
   "licenseFeature.dac_calibration": "DAC の校正",
   "licenseFeature.declick": "クリック除去",
   "licenseFeature.developer_api": "開発者向け API",
+  "licenseFeature.crossfeed": "Crossfeed",
   "licenseFeature.dsp_eq": "音声処理とイコライザー",
   "licenseFeature.listening_stats": "再生統計",
   "licenseFeature.multi_profiles": "複数プロフィール",

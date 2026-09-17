@@ -4518,6 +4518,7 @@ export default {
   "licenseFeature.dac_calibration": "DAC-kalibrering",
   "licenseFeature.declick": "Knäppborttagning",
   "licenseFeature.developer_api": "Utvecklar-API",
+  "licenseFeature.crossfeed": "Crossfeed",
   "licenseFeature.dsp_eq": "Ljudbearbetning och equalizer",
   "licenseFeature.listening_stats": "Lyssningsstatistik",
   "licenseFeature.multi_profiles": "Flera användarprofiler",

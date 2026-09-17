@@ -4519,6 +4519,7 @@ export default {
   "licenseFeature.dac_calibration": "Calibrarea DAC-ului",
   "licenseFeature.declick": "Eliminarea pocnetelor",
   "licenseFeature.developer_api": "API pentru dezvoltatori",
+  "licenseFeature.crossfeed": "Crossfeed",
   "licenseFeature.dsp_eq": "Procesare audio și egalizator",
   "licenseFeature.listening_stats": "Statistici de ascultare",
   "licenseFeature.multi_profiles": "Profiluri multiple",

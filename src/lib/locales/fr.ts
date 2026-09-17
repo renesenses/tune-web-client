@@ -4541,6 +4541,7 @@ export default {
   "licenseFeature.dac_calibration": "Étalonnage du convertisseur",
   "licenseFeature.declick": "Dé-ploc",
   "licenseFeature.developer_api": "Interface de programmation",
+  "licenseFeature.crossfeed": "Crossfeed",
   "licenseFeature.dsp_eq": "Traitement du son et égaliseur",
   "licenseFeature.listening_stats": "Statistiques d'écoute",
   "licenseFeature.multi_profiles": "Profils multiples",

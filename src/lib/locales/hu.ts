@@ -4477,6 +4477,7 @@ export default {
   "licenseFeature.dac_calibration": "DAC-kalibrálás",
   "licenseFeature.declick": "Kattanásszűrés",
   "licenseFeature.developer_api": "Fejlesztői API",
+  "licenseFeature.crossfeed": "Crossfeed",
   "licenseFeature.dsp_eq": "Hangfeldolgozás és hangszínszabályzó",
   "licenseFeature.listening_stats": "Hallgatási statisztikák",
   "licenseFeature.multi_profiles": "Több felhasználói profil",
