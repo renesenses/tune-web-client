@@ -37,6 +37,7 @@
  */
 import type { Album } from './types';
 import type { AlbumsDeService } from './albumsArtisteStreaming';
+import { compterSources, provenanceDe, sourceCorrespond, type ComptesArtistesSources } from './provenanceBibliotheque';
 
 /** La bibliothèque, sous le nom que porte déjà sa provenance partout ailleurs. */
 export const BIBLIOTHEQUE = 'local';
@@ -169,6 +170,32 @@ export function fusionnerDiscographie(
       qualites,
     };
   });
+}
+
+/**
+ * LE MENU « SOURCE » DE LA BIBLIOTHÈQUE, fiche artiste ouverte.
+ *
+ * Bertrand, capture du .18 le 17/09/2026 : « Source affiche des chiffres faux
+ * et pas les services de streaming ». Le menu comptait la grille des ARTISTES
+ * (bibliothèque seule) pendant que la fiche montrait 44 albums de cinq sources.
+ *
+ * Les provenances d'une vignette parlent la langue de ce menu : un exemplaire
+ * de bibliothèque vaut `provenanceDe` (`local`, ou `upnp:<udn>` pour un serveur
+ * du réseau intégré), un exemplaire de service vaut le nom du service.
+ */
+export function provenancesEntree(e: EntreeDiscographie): string[] {
+  return e.exemplaires.map((x) => (x.source === BIBLIOTHEQUE ? provenanceDe(x.album) : x.source));
+}
+
+/** Une vignette passe le filtre si UN de ses exemplaires vient de la source. */
+export function dansProvenance(e: EntreeDiscographie, filtre: string | null): boolean {
+  return filtre == null || provenancesEntree(e).some((s) => sourceCorrespond(s, filtre));
+}
+
+/** Les comptes du menu, sur la discographie ENTIÈRE — une vignette à deux
+ *  sources compte pour chacune, et une seule fois dans le total. */
+export function comptesProvenanceFiche(entrees: EntreeDiscographie[]): ComptesArtistesSources {
+  return { comptes: compterSources(entrees.map(provenancesEntree)), total: entrees.length };
 }
 
 /** Ce que le Focus retient. Un ensemble vide = pas de filtre sur cet axe. */

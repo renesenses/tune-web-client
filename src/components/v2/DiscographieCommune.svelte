@@ -19,11 +19,12 @@
   import type { Album } from '../../lib/types';
   import type { AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import {
-    BIBLIOTHEQUE, compterFocus, filtrerFocus, fusionnerDiscographie,
+    BIBLIOTHEQUE, compterFocus, comptesProvenanceFiche, dansProvenance, filtrerFocus, fusionnerDiscographie,
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
   import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import type { ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
@@ -40,10 +41,16 @@
     /** Ouvre l'exemplaire PRINCIPAL d'une vignette. */
     onOuvrir: (ex: Exemplaire) => void;
     onLire: (ex: Exemplaire) => void;
+    /** Le filtre « Source » de la Bibliothèque, appliqué AVANT le Focus. */
+    provenance?: string | null;
+    /** Les comptes de ce filtre, pour que le menu parle de CETTE discographie. */
+    onComptesProvenance?: (c: ComptesArtistesSources) => void;
   }
-  let { locaux = [], services = [], servicesEnCharge = false, onOuvrir, onLire }: Props = $props();
+  let { locaux = [], services = [], servicesEnCharge = false, onOuvrir, onLire, provenance = null, onComptesProvenance }: Props = $props();
 
-  const entrees = $derived(fusionnerDiscographie(locaux, services));
+  const toutes = $derived(fusionnerDiscographie(locaux, services));
+  $effect(() => { onComptesProvenance?.(comptesProvenanceFiche(toutes)); });
+  const entrees = $derived(toutes.filter((e) => dansProvenance(e, provenance)));
   const comptes = $derived(compterFocus(entrees));
 
   // ── Focus ────────────────────────────────────────────────────────────────

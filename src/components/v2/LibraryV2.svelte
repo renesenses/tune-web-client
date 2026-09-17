@@ -1040,10 +1040,18 @@
   const pistesFiltrees = $derived(pistesRecherche.filter(t => dansSource(t, fProvenance)));
   const visibleTracks = $derived(pistesFiltrees.slice(0, 500));
   let comptesArtistes = $state<ComptesArtistesSources>({ comptes: new Map(), total: 0 });
+  /**
+   * Fiche artiste OUVERTE : le menu « Source » compte SA discographie commune,
+   * services de streaming compris — #4330. Bertrand, .18, 17/09/2026 : « Source
+   * affiche des chiffres faux et pas les services de streaming ». `null` quand
+   * aucune fiche n'est ouverte : on retombe sur la grille des artistes.
+   */
+  let comptesFiche = $state<ComptesArtistesSources | null>(null);
+  const comptesOngletArtistes = $derived(comptesFiche ?? comptesArtistes);
   const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
   const comptesPistes = $derived(compterSources(pistesRecherche.map(t => [provenanceDe(t)])));
   const provenances = $derived.by(() => {
-    const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
+    const counts = new Map(tab === 'artists' ? comptesOngletArtistes.comptes
       : tab === 'tracks' ? comptesPistes : comptesAlbums);
     if (tab !== 'artists' && tab !== 'tracks') {
       counts.set('upnp', [...counts].reduce((n, [s, c]) => n + (s === 'upnp' || s.startsWith('upnp:') ? c : 0), 0));
@@ -1058,9 +1066,10 @@
         : libelleProvenance(a).localeCompare(libelleProvenance(b)));
   });
   // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
-  const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
+  const matchCountToutesSources = $derived(tab === 'artists' ? comptesOngletArtistes.total
     : tab === 'tracks' ? pistesRecherche.length : comptesAlbums.reduce((n, [, c]) => n + c, 0));
-  const comptesSourcesEnCharge = $derived((tab === 'tracks' || tab === 'artists') && (tracksLoading || tracksError != null));
+  // Une fiche ouverte a SES comptes, qui ne dépendent pas des pistes chargées.
+  const comptesSourcesEnCharge = $derived((tab === 'tracks' || (tab === 'artists' && comptesFiche == null)) && (tracksLoading || tracksError != null));
   const appartenancesArtistes = $derived(sourcesParArtiste(src, tracks));
 
   // La portée dossier inclut aussi les artistes de pistes de compilation.
@@ -1640,7 +1649,7 @@
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
-        sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)}
+        sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} onComptesFiche={(c) => (comptesFiche = c)}
         ouvrirId={artisteADemande} onOuvert={() => (artisteADemande = null)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
