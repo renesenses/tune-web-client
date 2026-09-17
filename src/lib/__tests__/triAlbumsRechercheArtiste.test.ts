@@ -77,9 +77,12 @@ describe('les deux écrans', () => {
     expect(s).toContain('<TriAlbums bind:cle={triAlbums} bind:sens={sensAlbums} />');
   });
   it('la fiche artiste trie par le même module, année par défaut, sans « Artiste » ni « Pertinence »', () => {
-    const s = lire('src/components/v2/ArtistesV2.svelte');
+    // #4330 : la grille de la fiche est `DiscographieCommune`, qui a repris le
+    // tri avec ses clés et sa mémoire.
+    expect(lire('src/components/v2/ArtistesV2.svelte')).toContain('<DiscographieCommune');
+    const s = lire('src/components/v2/DiscographieCommune.svelte');
     expect(s).toMatch(/CLES_FICHE: readonly CleTriAlbums\[\] = \['year', 'title', 'release_date', 'added_at'\]/);
     expect(s).toMatch(/lireChoix<CleTriAlbums>\('v2\.art\.albums\.tri', CLES_FICHE, 'year'\)/);
-    expect(s).toMatch(/\{#each albumsTries as al \(al\.id\)\}/);
+    expect(s).toMatch(/trierAlbums\(albums, triAlbums, sensAlbums\)/);
   });
 });

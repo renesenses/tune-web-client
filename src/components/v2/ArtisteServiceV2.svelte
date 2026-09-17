@@ -25,7 +25,10 @@
   import * as api from '../../lib/api';
   import type { Album, Artist, Source, Track } from '../../lib/types';
   import { activeView, vueDeRetour } from '../../lib/stores/navigation';
-  import { ficheArtisteService } from '../../lib/stores/streaming';
+  import { ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
+  import { albumsDeStreamingPourArtiste, servicesInterrogeables, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
+  import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
+  import DiscographieCommune from './DiscographieCommune.svelte';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { t as tr } from '../../lib/i18n';
@@ -42,7 +45,30 @@
   let titres = $state<Track[]>([]);
   let albums = $state<Album[]>([]);
   let chargement = $state(true);
+  /**
+   * LA MÊME PAGE QUE CELLE D'UN ARTISTE DE LA BIBLIOTHÈQUE — #4330.
+   *
+   * FabienM, 17/09/2026 : depuis un artiste trouvé seulement sur un service,
+   * « Oui je m'attends à avoir la même page, c'est le principe de la page
+   * commune ». La fiche va donc chercher, en plus des albums du service d'où
+   * l'on vient :
+   *   • ses albums dans la BIBLIOTHÈQUE, si elle connaît un artiste du même
+   *     nom (replié) — et seulement du même nom : un rapprochement approché
+   *     poserait les albums d'un autre artiste sous celui-ci ;
+   *   • ses albums chez les AUTRES services connectés, résolus par le nom
+   *     comme le fait déjà la fiche de bibliothèque (#3709).
+   * Les deux partent sans bloquer l'affichage : le service d'origine répond
+   * d'abord, la grille grandit ensuite.
+   */
+  let locaux = $state<Album[]>([]);
+  let autresServices = $state<AlbumsDeService[]>([]);
+  let complementsEnCharge = $state(false);
+  const sectionsServices = $derived<AlbumsDeService[]>(
+    cible && albums.length ? [{ service: cible.service, albums }, ...autresServices] : autresServices,
+  );
+  /** L'album ouvert, et d'où il vient : `null` = la bibliothèque. */
   let albumOuvert = $state<Album | null>(null);
+  let serviceOuvert = $state<string | null>(null);
   /**
    * 🔴 LE CALQUE ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #980.
    *
@@ -105,8 +131,58 @@
     if (tt.status === 'fulfilled') {
       titres = (tt.value ?? []).map((p) => ({ ...p, source: service })) as Track[];
     }
-    if (al.status === 'fulfilled') albums = al.value ?? [];
+    // Tamponnée comme le fait `albumsDeStreamingPourArtiste` : le serveur ne
+    // pose `source` sur aucun objet de streaming, et la clé d'historique d'un
+    // album (`cleDetailAlbum`) en a besoin.
+    if (al.status === 'fulfilled') {
+      albums = (al.value ?? []).map((x) => ({ ...x, source: (x.source ?? service) as Album['source'] }));
+    }
     chargement = false;
+    void chargerComplements(mien, service, artiste?.name || cible?.nom || '');
+  }
+
+  const plier = (x: string | null | undefined) => cleEdition(x);
+
+  async function chargerComplements(mien: number, service: Source, nomArtiste: string) {
+    locaux = [];
+    autresServices = [];
+    if (!nomArtiste.trim()) return;
+    complementsEnCharge = true;
+    const autres = servicesInterrogeables($streamingServices).filter((s) => s !== service);
+    const [loc, svc] = await Promise.allSettled([
+      (async () => {
+        const trouve = ((await api.searchLibrary(nomArtiste, 20))?.artists ?? [])
+          .find((a) => a.id != null && plier(a.name) === plier(nomArtiste));
+        return trouve ? ((await api.getArtistAlbums(trouve.id!)) ?? []) : [];
+      })(),
+      albumsDeStreamingPourArtiste(nomArtiste, autres, {
+        resoudreArtiste: async (svc, nom) =>
+          (await api.federatedSearch(nom, [svc], 5))?.services?.[svc]?.artists ?? [],
+        albumsDeLArtiste: (svc, id) => api.getStreamingArtistAlbums(svc, id),
+      }),
+    ]);
+    if (mien !== jeton) return;
+    if (loc.status === 'fulfilled') locaux = loc.value;
+    if (svc.status === 'fulfilled') autresServices = svc.value;
+    complementsEnCharge = false;
+  }
+
+  function ouvrirExemplaire(ex: Exemplaire) {
+    ouvrirCalqueAlbum(ex.album);
+    serviceOuvert = ex.source === BIBLIOTHEQUE ? null : ex.source;
+    albumOuvert = ex.album;
+  }
+  function lireExemplaire(ex: Exemplaire) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    if (ex.source === BIBLIOTHEQUE) {
+      if (ex.album.id == null) return;
+      playAndSync(zid, { album_id: ex.album.id }).catch(signalerEchecLecture);
+    } else if (ex.album.source_id != null) {
+      // 🔴 `source` va TOUJOURS avec `streaming_album_id` (voir `ArtistesV2`).
+      playAndSync(zid, { streaming_album_id: String(ex.album.source_id), source: ex.source as any })
+        .catch(signalerEchecLecture);
+    }
   }
 
   $effect(() => {
@@ -192,7 +268,11 @@
   <!-- `service` EN MÊME TEMPS que l'album : `AlbumDetailV2` n'apparie un album
        de streaming que sur la paire service + `source_id`, et l'ouvrir sans son
        service le laisserait sur « Chargement… » pour toujours (#3709). -->
-  <AlbumDetailV2 album={albumOuvert} service={cible?.service ?? null} onClose={retourCalqueAlbum} />
+  {#if serviceOuvert}
+    <AlbumDetailV2 album={albumOuvert} service={serviceOuvert} onClose={retourCalqueAlbum} />
+  {:else}
+    <AlbumDetailV2 album={albumOuvert} depot={null} onClose={retourCalqueAlbum} />
+  {/if}
 {:else}
 <section class="v2-fas tune-v2">
   <header class="tete">
@@ -221,7 +301,7 @@
 
   {#if chargement}
     <div class="etat">{$tr('v2.common.loading' as any)}</div>
-  {:else if !titres.length && !albums.length}
+  {:else if !titres.length && !albums.length && !locaux.length && !autresServices.length && !complementsEnCharge}
     <div class="etat">{$tr('v2.fas.empty' as any)}</div>
   {:else}
     {#if titres.length}
@@ -240,19 +320,10 @@
       </ol>
     {/if}
 
-    {#if albums.length}
+    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
-      <div class="grille">
-        {#each albums as al (String(al.source_id ?? al.title))}
-          <button class="carte" onclick={() => { ouvrirCalqueAlbum(al); albumOuvert = al; }}>
-            <AlbumArt coverPath={al.cover_path} albumId={null} size={0}
-                      alt={al.title} source={(al.source ?? cible?.service) as any}
-                      fallbackInitials={al.title?.slice(0, 1)} />
-            <span class="ti">{al.title}</span>
-            {#if al.year}<span class="an">{al.year}</span>{/if}
-          </button>
-        {/each}
-      </div>
+      <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge}
+        onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   {/if}
 </section>
@@ -282,12 +353,6 @@
   .tt{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .al{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--v2-txt3); font-size:12.5px}
   .du{font:11px var(--v2-mono); color:var(--v2-txt3)}
-  .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(132px, 1fr)); gap:16px}
-  .carte{border:0; background:transparent; color:inherit; font:inherit; padding:0; cursor:pointer;
-    display:flex; flex-direction:column; gap:6px; text-align:left}
-  .carte :global(img), .carte :global(.art){border-radius:9px; aspect-ratio:1; width:100%}
-  .ti{font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .an{font:11px var(--v2-mono); color:var(--v2-txt3)}
   @media (max-width: 640px){
     .v2-fas{padding:0 16px 40px}
     .piste{grid-template-columns:24px 1fr auto}
