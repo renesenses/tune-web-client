@@ -62,6 +62,7 @@
   import {
     albumsDeStreamingPourArtiste,
     servicesInterrogeables,
+    statutsStreaming,
     type AlbumsDeService,
   } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, type Exemplaire } from '../../lib/discographieCommune';
@@ -255,7 +256,11 @@
   async function chargerAlbumsDeService(a: Artist) {
     const jeton = ++jetonService;
     albumsService = [];
-    const services = servicesInterrogeables($streamingServices);
+    albumsServiceChargement = true;
+    // Le magasin peut être VIDE dans le nouveau client : voir `statutsStreaming`.
+    const statuts = await statutsStreaming($streamingServices, api.getStreamingServices, (x) => streamingServices.set(x));
+    if (jeton !== jetonService) return;
+    const services = servicesInterrogeables(statuts);
     if (!services.length || !a.name) {
       albumsServiceChargement = false;
       return;

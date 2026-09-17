@@ -30,6 +30,7 @@ import {
   albumsDeStreamingPourArtiste,
   apparierArtiste,
   servicesInterrogeables,
+  statutsStreaming,
   type PasserellesStreaming,
 } from '../albumsArtisteStreaming';
 import { streamingServices } from '../stores/streaming';
@@ -79,6 +80,25 @@ describe('#3709 — quels services on interroge', () => {
   it('aucun statut connu ⇒ aucun service', () => {
     expect(servicesInterrogeables(null)).toEqual([]);
     expect(servicesInterrogeables({})).toEqual([]);
+  });
+});
+
+describe('#4330 — les statuts des services, chargés s’il le faut', () => {
+  const connecte = { qobuz: { enabled: true, authenticated: true } as never };
+  it('magasin garni : on s’en sert, sans appel', async () => {
+    let appele = false;
+    const r = await statutsStreaming(connecte, async () => { appele = true; return {}; }, () => {});
+    expect(r).toBe(connecte);
+    expect(appele).toBe(false);
+  });
+  it('magasin vide : on charge, et on RANGE pour les écrans suivants', async () => {
+    let range: unknown = null;
+    const r = await statutsStreaming({}, async () => connecte, (x) => { range = x; });
+    expect(r).toEqual(connecte);
+    expect(range).toEqual(connecte);
+  });
+  it('échec du chargement : rien, sans lever', async () => {
+    expect(await statutsStreaming(null, async () => { throw new Error('502'); }, () => {})).toEqual({});
   });
 });
 
@@ -169,6 +189,9 @@ class ResizeObserverInerte {
 }
 
 function corpsPour(url: string): unknown {
+  if (/\/streaming\/services/.test(url)) {
+    return { qobuz: { enabled: true, authenticated: true }, tidal: { enabled: true, authenticated: false } };
+  }
   if (/\/search\?/.test(url)) {
     return { local: { tracks: [], albums: [], artists: [], playlists: [] },
              services: { qobuz: { tracks: [], albums: [], artists: [{ id: 'Q7', name: 'Alain Souchon' }], playlists: [] } } };
@@ -280,6 +303,20 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
       appels.filter((u) => /tidal/.test(u)),
       'Tidal est déconnecté : l’interroger rendrait un 401 par artiste ouvert',
     ).toEqual([]);
+  });
+
+  it('#4330 — magasin des services VIDE (nouveau client) : la fiche charge les statuts et interroge Qobuz', async () => {
+    // Mesuré sur le .18 le 17/09/2026 : aucun écran v2 ne remplit
+    // `streamingServices`, et la fiche n'interrogeait alors aucun service.
+    streamingServices.set({});
+    const el = await poserFiche();
+    expect(appels.some((u) => /\/streaming\/services/.test(u)), 'les statuts n’ont pas été demandés').toBe(true);
+    expect(
+      appels.some((u) => /\/streaming\/qobuz\/artists\/Q7\/albums/.test(u)),
+      `Qobuz n’a pas été interrogé. URL vues : ${appels.join(' | ')}`,
+    ).toBe(true);
+    expect(titres(el)).toContain('Ultra Moderne Solitude');
+    expect(appels.filter((u) => /tidal/.test(u)), 'Tidal est déconnecté').toEqual([]);
   });
 
   it('ouvrir un album de service passe le SERVICE avec lui', async () => {

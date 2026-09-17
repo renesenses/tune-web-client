@@ -26,7 +26,7 @@
   import type { Album, Artist, Source, Track } from '../../lib/types';
   import { activeView, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
-  import { albumsDeStreamingPourArtiste, servicesInterrogeables, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
+  import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -148,7 +148,10 @@
     autresServices = [];
     if (!nomArtiste.trim()) return;
     complementsEnCharge = true;
-    const autres = servicesInterrogeables($streamingServices).filter((s) => s !== service);
+    // Le magasin peut être VIDE dans le nouveau client : voir `statutsStreaming`.
+    const statuts = await statutsStreaming($streamingServices, api.getStreamingServices, (x) => streamingServices.set(x));
+    if (mien !== jeton) return;
+    const autres = servicesInterrogeables(statuts).filter((s) => s !== service);
     const [loc, svc] = await Promise.allSettled([
       (async () => {
         const trouve = ((await api.searchLibrary(nomArtiste, 20))?.artists ?? [])
