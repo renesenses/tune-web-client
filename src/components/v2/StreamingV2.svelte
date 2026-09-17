@@ -30,6 +30,7 @@
     TAILLES_PAGE, chargerTaillePage, retenirTaillePage, type TaillePage,
   } from '../../lib/taillePageRecherche';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
+  import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
   import { activeView } from '../../lib/stores/navigation';
@@ -290,6 +291,22 @@
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   let bcCollection = $state<any[]>([]);
+  /**
+   * Les COPIES LOCALES des albums de la collection — Yves, 17/09/2026 : ses
+   * achats sont dans sa bibliothèque en FLAC, la collection les jouait en
+   * mp3-128. L'index est bâti une fois, au premier affichage de la collection.
+   * Voir `lib/bandcampCopieLocale`.
+   */
+  let copiesLocales = $state<Map<string, CopieLocale>>(new Map());
+  let copiesChargees = false;
+  function chargerCopiesLocales() {
+    if (copiesChargees) return;
+    copiesChargees = true;
+    api.getAllAlbums()
+      .then((albums) => { copiesLocales = indexerAlbumsLocaux(albums); })
+      .catch(() => { copiesChargees = false; });
+  }
+  const copieDe = (it: any) => copieLocale(it, copiesLocales);
   let paneLoading = $state(false);
 
   /**
@@ -423,7 +440,7 @@
       } else {
         bcNeedsLink = false;
         api.bandcampCollection()
-          .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; })
+          .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; chargerCopiesLocales(); })
           .catch((e: any) => {
             // 428 : aucun compte relie. Ce n'est pas une panne, c'est une
             // etape a franchir — on le dit au lieu d'afficher « rien ».
@@ -708,6 +725,13 @@
   function playBc(it: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
+    // La copie LOCALE d'abord : l'album acheté est dans la bibliothèque, en
+    // pleine résolution. Le flux Bandcamp (mp3-128) n'est qu'un repli.
+    const locale = copieDe(it);
+    if (locale) {
+      playAndSync(zid, { album_id: locale.albumId }).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
+      return;
+    }
     // L'extrait devient le REPLI, plus le chemin nominal : il ne reste que
     // pour ce qui n'a pas d'album derrière — une piste isolée d'un résultat de
     // recherche. Mieux vaut une file d'une piste que rien du tout.
@@ -736,6 +760,7 @@
       bcNeedsLink = false;
       const d: any = await api.bandcampCollection();
       bcCollection = d?.items ?? d?.collection ?? [];
+      chargerCopiesLocales();
     } catch { error = $t('v2.str.bandcampNotFound' as any); }
     bcLinking = false;
   }
@@ -956,7 +981,9 @@
           </div>
         </div>
       {:else if bcCollection.length}
-        <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
+        <!-- Un article dont la copie est dans la bibliothèque se lit et
+             s'annonce depuis elle : sa qualité réelle, pas le mp3-128 du flux. -->
+        <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@const loc = copieDe(it)}{@render tile(loc ? { ...it, qualiteSource: 'local', format: loc.format, sample_rate: loc.sample_rate, bit_depth: loc.bit_depth, quality: null } : it, () => playBc(it))}{/each}</div>
       {:else}
         <div class="state">{$t('v2.stream.bcEmpty' as any)}</div>
       {/if}
@@ -1204,7 +1231,9 @@
          (`{codec, sample_rate, bit_depth}`) ; on la traduit dans celle que le
          composant attend, sans quoi il n'annoncerait que la source. -->
     <QualiteAlbum objet={{
-      source: p?.source ?? active,
+      // `qualiteSource` : la provenance de ce qu'on JOUERA (la copie locale d'un
+      // achat Bandcamp), sans toucher à `source`, qui porte le favori du service.
+      source: p?.qualiteSource ?? p?.source ?? active,
       format: p?.quality?.codec ?? p?.format ?? null,
       sample_rate: p?.quality?.sample_rate ?? p?.sample_rate ?? null,
       bit_depth: p?.quality?.bit_depth ?? p?.bit_depth ?? null,
