@@ -75,7 +75,8 @@ describe('réordonner une playlist en v2', () => {
   it('les bouts de liste ne proposent pas un déplacement impossible', () => {
     // Un bouton qui ne fait rien est pire qu'un bouton absent — la règle de
     // cet écran, déjà écrite pour la loupe d'album.
-    expect(ecran).toMatch(/disabled=\{i === 0 \|\|/);
-    expect(ecran).toMatch(/disabled=\{i === tracks\.length - 1 \|\|/);
+    // `!ordreNaturel` en tête : une liste TRIÉE (17/09/2026) ne se réordonne pas.
+    expect(ecran).toMatch(/disabled=\{!ordreNaturel \|\| i === 0 \|\|/);
+    expect(ecran).toMatch(/disabled=\{!ordreNaturel \|\| i === tracks\.length - 1 \|\|/);
   });
 });

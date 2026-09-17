@@ -4153,6 +4153,8 @@ export default {
   "v2.lib.sortTitle": "Titolo",
   "v2.lib.sortArtist": "Artista",
   "v2.lib.sortYear": "Anno",
+  "v2.pl.sortOrder": "Ordine della playlist",
+  "v2.col.sortRules": "Ordine delle regole",
   "v2.lib.tabYears": "Anni",
   "v2.lib.tabLabels": "Etichette",
   "v2.lib.source": "Sorgente",

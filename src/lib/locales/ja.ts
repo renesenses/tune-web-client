@@ -4153,6 +4153,8 @@ export default {
   "v2.lib.sortTitle": "タイトル",
   "v2.lib.sortArtist": "アーティスト",
   "v2.lib.sortYear": "年",
+  "v2.pl.sortOrder": "プレイリストの順序",
+  "v2.col.sortRules": "ルールの順序",
   "v2.lib.tabYears": "年代",
   "v2.lib.tabLabels": "レーベル",
   "v2.lib.source": "ソース",

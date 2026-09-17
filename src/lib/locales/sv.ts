@@ -4152,6 +4152,8 @@ export default {
   "v2.lib.sortTitle": "Titel",
   "v2.lib.sortArtist": "Artist",
   "v2.lib.sortYear": "År",
+  "v2.pl.sortOrder": "Spellistans ordning",
+  "v2.col.sortRules": "Reglernas ordning",
   "v2.lib.tabYears": "År",
   "v2.lib.tabLabels": "Bolag",
   "v2.lib.source": "Källa",

@@ -4153,6 +4153,8 @@ export default {
   "v2.lib.sortTitle": "标题",
   "v2.lib.sortArtist": "艺术家",
   "v2.lib.sortYear": "年份",
+  "v2.pl.sortOrder": "播放列表顺序",
+  "v2.col.sortRules": "规则顺序",
   "v2.lib.tabYears": "年份",
   "v2.lib.tabLabels": "厂牌",
   "v2.lib.source": "来源",

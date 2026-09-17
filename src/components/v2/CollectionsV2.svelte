@@ -46,6 +46,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import RenommerModale from './RenommerModale.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import { trierAlbums } from '../../lib/trierAlbums';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { preferences } from '../../lib/stores/preferences';
 
@@ -236,11 +237,11 @@
    */
   let masseEnCours = $state(false);
   async function pistesDeLaCollection(): Promise<any[]> {
-    const ids = albums.map((a) => a?.id).filter((x): x is number => x != null);
+    const ids = albumsVus.map((a) => a?.id).filter((x): x is number => x != null);
     // Les albums de SERVICE d'une collection intelligente (« Source = Qobuz »,
     // #4299) n'ont pas d'identifiant de bibliothèque : leurs pistes viennent du
     // service. Sans cela « Tout lire » les laissait tomber en silence.
-    const deService = albums.filter(estAlbumDeService);
+    const deService = albumsVus.filter(estAlbumDeService);
     const [locales, services] = await Promise.all([
       ids.length ? api.getAlbumTracksBatch(ids) : Promise.resolve({ tracks: [], failedAlbums: 0 }),
       Promise.allSettled(deService.map((a) => api.getStreamingAlbumTracks(a.source, String(a.source_id)))),
@@ -348,6 +349,33 @@
     }
     albumsChargement = false;
   }
+  /**
+   * TRI d'une collection INTELLIGENTE — Bertrand, 17/09/2026 : « toujours pas
+   * de tri possible dans les playlists et collections » (capture : « 2026 »,
+   * intelligente). L'en-tête écartait les intelligentes, leur ordre étant dans
+   * leurs règles ; l'utilisateur veut pouvoir le changer à l'écran.
+   *
+   * Côté CLIENT, sur la liste reçue : `/smart-collections/{id}/albums` ne prend
+   * pas `?sort=`, et ses albums ne portent que titre, artiste et ANNÉE — ni
+   * date de sortie, ni date d'ajout. On ne propose donc que ces trois clés.
+   * `regles` = l'ordre défini par les règles, le défaut.
+   */
+  const TRIS_SMART = ['regles', 'artist', 'title', 'year'] as const;
+  type TriSmart = (typeof TRIS_SMART)[number];
+  let triSmart = $state<TriSmart>(lireChoix<TriSmart>('v2.collection.smart.tri', TRIS_SMART, 'regles'));
+  let sensSmart = $state<Sens>(lireChoix<Sens>('v2.collection.smart.sens', SENS, 'asc'));
+  $effect(() => { ecrireChoix('v2.collection.smart.tri', triSmart); });
+  $effect(() => { ecrireChoix('v2.collection.smart.sens', sensSmart); });
+  const LIBELLES_SMART: Record<TriSmart, string> = {
+    regles: 'v2.col.sortRules', artist: 'v2.lib.sortArtist', title: 'v2.lib.sortTitle', year: 'v2.lib.sortYear',
+  };
+  /** Ce que la grille AFFICHE — et ce que « Tout lire » enchaîne. */
+  const albumsVus = $derived(
+    ouverte?.sorte === 'smart'
+      ? trierAlbums(albums, triSmart === 'regles' ? 'pertinence' : triSmart, sensSmart)
+      : albums,
+  );
+
   function changerTri(tri: TriAlbums, sens: Sens) {
     triAlbums = tri;
     sensAlbums = sens;
@@ -616,7 +644,23 @@
         {#if ouverte.description}<p class="v2-sous">{ouverte.description}</p>{/if}
       </div>
       <div class="v2-actions fa">
-        {#if ouverte.sorte !== 'smart'}
+        {#if ouverte.sorte === 'smart'}
+          <label class="tricol">
+            <span>{$t('v2.fav.sortBy' as any)}</span>
+            <select bind:value={triSmart} aria-label={$t('v2.fav.sortBy' as any)}>
+              {#each TRIS_SMART as k (k)}<option value={k}>{$t(LIBELLES_SMART[k] as any)}</option>{/each}
+            </select>
+            <button class="sens" onclick={() => (sensSmart = sensSmart === 'asc' ? 'desc' : 'asc')}
+              title={$t((sensSmart === 'asc' ? 'common.ascending' : 'common.descending') as any)}
+              aria-label={$t((sensSmart === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
+              {#if sensSmart === 'asc'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
+              {/if}
+            </button>
+          </label>
+        {:else}
           <label class="tricol">
             <span>{$t('v2.fav.sortBy' as any)}</span>
             <select value={triAlbums} aria-label={$t('v2.fav.sortBy' as any)}
@@ -672,7 +716,7 @@
           {/each}
         </div>
         <div class="grid" bind:this={grilleEl}>
-        {#each albums as a (cleAlbum(a))}
+        {#each albumsVus as a (cleAlbum(a))}
           <!-- Meme carte que la Bibliotheque : les cinq gestes sur la
                pochette, le texte cliquable, et la troisieme ligne. La carte
                n'est plus un bouton — `PochetteActions` en pose cinq, et un
