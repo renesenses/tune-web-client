@@ -37,6 +37,7 @@
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
@@ -1199,6 +1200,11 @@
 -->
 {#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | 'playlist' | null = 'album', ouvrir: (() => void) | null = null)}
   {@const ouvre = ouvrir ?? ouvrirFiche(p, type)}
+  <!-- Point 10 (Yves Corbat, 17/09/2026) : un album ANNONCÉ porte sa date.
+       Il n'est PAS grisé en bloc et garde sa lecture : ses singles déjà
+       sortis s'écoutent — c'est piste par piste que l'indisponible se dit
+       (`pisteIndisponible`, dans les listes). -->
+  {@const aParaitre = estAParaitre(p)}
   <div class="card">
     <span class="cv">
       <PochetteActions
@@ -1226,6 +1232,10 @@
          plutot que de ne rien faire du tout. -->
     <button class="ct" title={pTitle(p)} onclick={ouvre ?? onPlay}>{pTitle(p)}</button>
     {#if pSub(p)}<span class="ca" title={pSub(p)}>{pSub(p)}</span>{/if}
+    {#if aParaitre}
+      {@const d = dateDeParution(p)}
+      <span class="cp">{d ? $t('v2.str.comingOn' as any).replace('{d}', d) : $t('v2.str.coming' as any)}</span>
+    {/if}
     <!-- TROISIEME LIGNE, comme dans la Bibliotheque : d'ou vient le disque et
          en quelle qualite. `p.quality` est la forme que rendent les services
          (`{codec, sample_rate, bit_depth}`) ; on la traduit dans celle que le
@@ -1351,6 +1361,8 @@
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .card{position:relative; display:flex; flex-direction:column}
+  /* Point 10 — la date d'un album annoncé, en clair sous son titre. */
+  .cp{font:600 11px var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}

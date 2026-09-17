@@ -28,6 +28,7 @@ import * as api from './api';
 import { estSourceDeBibliotheque } from './provenanceBibliotheque';
 import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
+import { estAParaitre } from './albumAParaitre';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -59,6 +60,14 @@ export interface Element {
   ouvrir?: 'album' | 'zone' | null;
   /** Album normalisé pour la fiche, quand `ouvrir` vaut `album`. */
   fiche?: any;
+  /**
+   * Album ANNONCÉ, pas encore sorti (point 10, 17/09/2026). La vignette est
+   * grisée et ne porte pas de disque de lecture : le service répond « no url »
+   * sur ses pistes, et un geste qui échoue vaut moins qu'un geste absent.
+   */
+  aParaitre?: boolean;
+  /** La date annoncée, telle que le service la donne (époque, secondes). */
+  parution?: number | null;
   /**
    * Objet de SERVICE à mettre en favori quand ce n'est pas un album — une
    * playlist Qobuz ou Tidal, aujourd'hui.
@@ -171,8 +180,11 @@ export interface OptsElement {
   genre?: 'album' | 'playlist' | 'aucun';
 }
 
-function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {}): Element {
+/** Exporté pour les tests : c'est ici que se décide ce qu'une vignette
+ *  porte, et notamment si elle est jouable (point 10). */
+export function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {}): Element {
   const id = champ(o, 'id', 'album_id', 'track_id', 'source_id', 'feed_url', 'uri') ?? '';
+  const aParaitre = estAParaitre(o);
   // La source de l'OBJET prime sur celle du widget : une bande locale peut
   // rendre un album importé d'un service, la déclaration ne le sait pas.
   const service = champ(o, 'source', 'service', 'provider') ?? opts.service ?? null;
@@ -196,7 +208,11 @@ function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {})
     // La source de l'objet PRIME sur celle du widget : une bande locale peut
     // rendre un album importé d'un service, la déclaration ne le sait pas.
     source: service,
+    // Un album annoncé garde son geste : ses singles déjà sortis s'écoutent.
+    // C'est la PISTE qui porte l'indisponibilité (`pisteIndisponible`).
     jouer: geste(o, service, opts.genre ?? 'album'),
+    aParaitre,
+    parution: typeof o?.released_at === 'number' ? o.released_at : null,
     ...ficheDe(o, service, opts.genre ?? 'album'),
   };
 }

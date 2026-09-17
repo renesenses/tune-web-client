@@ -4319,6 +4319,8 @@ export default {
   "v2.str.noPreview": "此曲目没有可用的试听。",
   "v2.str.bandcampNotFound": "未找到账户 — 请检查 Bandcamp 用户名。",
   "v2.str.noEditorial": "{s} 目前没有编辑精选。请使用搜索。",
+  "v2.str.comingOn": "{d} 发行",
+  "v2.str.coming": "即将发行",
   "v2.set.noLimit": "无限制",
   "v2.set.none": "无",
   "v2.set.firstMusicFolder": "第一个音乐文件夹",

@@ -32,6 +32,7 @@
    * rang. Ce composant ne peut pas le deviner, il le reçoit.
    */
   import { t } from '../../lib/i18n';
+  import { pisteIndisponible } from '../../lib/albumAParaitre';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MetadataChips from '../partages/MetadataChips.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
@@ -100,6 +101,9 @@
     etatDeLaLigne(piste, $currentTrackId, $currentTrack, $playbackState),
   );
   const enLecture = $derived(etatLigne != null);
+  /** Point 10 (17/09/2026) — le service ne sert pas encore cette piste : la
+   *  ligne est grisée et ne se lance pas. */
+  const indispo = $derived(pisteIndisponible(piste));
   const sousTitre = $derived(
     [piste.artist_name, avecAlbum ? piste.album_title : null].filter(Boolean).join(' · '),
   );
@@ -131,7 +135,7 @@
 
 <!-- `aria-current` : un lecteur d'écran annonce « élément courant » sur cette
      ligne. La couleur, elle, ne lui dit rien du tout. -->
-<div class="trk" class:np={enLecture} aria-current={enLecture ? 'true' : undefined}
+<div class="trk" class:np={enLecture} class:indispo aria-current={enLecture ? 'true' : undefined}
   style="--tcols:{colonnes}">
   {#if numero != null}<span class="n">{numero}</span>{/if}
   {#if pochette}
@@ -155,13 +159,14 @@
       </span>
     {/if}
   {/if}
-  <button class="tclick" onclick={onLire}>
+  <button class="tclick" onclick={() => { if (!indispo) onLire(); }} disabled={indispo}>
     <span class="ti">
       <!-- `title` : ces deux lignes s'elident. Sans lui, un titre long est
            illisible et rien ne permet d'en lire la fin (Bilou, forum). -->
       <span class="tl">
         <IndicateurLecture etat={etatLigne} />
         <span class="tt" title={piste.title}>{piste.title}</span>
+        {#if indispo}<span class="indispo-etiq">{$t('v2.str.coming' as any)}</span>{/if}
       </span>
       {#if piste.source === 'upnp'}<DisponibiliteUpnp sourceId={piste.source_id} />{/if}
       {#if sousTitre}<em title={sousTitre}>{sousTitre}</em>{/if}
@@ -178,6 +183,12 @@
 </div>
 
 <style>
+  /* Point 10 — la piste pas encore servie par le service. */
+  .trk.indispo{opacity:0.5}
+  .trk.indispo .tclick{cursor:default}
+  .indispo-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-acc2);
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
+
   .trk{display:grid; grid-template-columns:var(--tcols, minmax(0,1fr) auto auto auto);
     align-items:center; gap:14px; width:100%;
     padding:0 10px; border-radius:9px; color:var(--v2-txt2)}

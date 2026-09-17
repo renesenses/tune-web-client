@@ -4319,6 +4319,8 @@ export default {
   "v2.str.noPreview": "이 트랙의 미리듣기가 없습니다.",
   "v2.str.bandcampNotFound": "계정을 찾을 수 없습니다 — Bandcamp 사용자 이름을 확인하세요.",
   "v2.str.noEditorial": "{s}에서 현재 에디토리얼 선곡을 제공하지 않습니다. 검색을 사용하세요.",
+  "v2.str.comingOn": "{d} 발매 예정",
+  "v2.str.coming": "발매 예정",
   "v2.set.noLimit": "제한 없음",
   "v2.set.none": "없음",
   "v2.set.firstMusicFolder": "첫 번째 음악 폴더",

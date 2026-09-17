@@ -63,6 +63,7 @@
   import PochetteActions from './PochetteActions.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { dateDeParution } from '../../lib/albumAParaitre';
   import '../../styles/tune-v2.css';
 
   interface Props {
@@ -820,6 +821,9 @@
                       ? (el.fiche?.source_id ?? el.favoriDistant?.serviceId ?? null)
                       : null}
                   {@const typeFavori = el.favoriDistant?.itemType ?? 'album'}
+                  <!-- Point 10 (17/09/2026) : un album ANNONCÉ porte sa date.
+                       Il garde sa lecture : ses singles déjà sortis
+                       s'écoutent, et c'est la PISTE qui dit l'indisponible. -->
                   <div class="carte">
                     <div class="pochette">
                       <PochetteActions
@@ -847,6 +851,12 @@
                     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
                       <span class="ct" title={el.titre}>{el.titre}</span>
                       {#if el.sous}<span class="ca" title={el.sous}>{el.sous}</span>{/if}
+                      {#if el.aParaitre}
+                        {@const d = dateDeParution({ released_at: el.parution })}
+                        <span class="cp">{d
+                          ? $t('v2.str.comingOn' as any).replace('{d}', d)
+                          : $t('v2.str.coming' as any)}</span>
+                      {/if}
                     </button>
                     {#if el.zoneId != null}
                       <!-- Le mini-analyseur de la version actuelle, sous la
@@ -886,6 +896,9 @@
 <style>
   .v2-home{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
+
+  /* Point 10 — la date d'un album annoncé, sous son titre. */
+  .cp{display:block; font:600 11px var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
 
   .aide-edition{margin:0 0 8px; padding:0 2px; font-size:12px; color:var(--v2-txt2); line-height:1.45}
   .ajout{display:flex; flex-wrap:wrap; gap:6px; padding:6px 30px 10px}
