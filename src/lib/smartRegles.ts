@@ -14,7 +14,9 @@
 /** Le type d'un champ décide des opérateurs proposés ET du contrôle de saisie. */
 export type TypeChamp =
   | 'text' | 'int' | 'nullable' | 'timestamp' | 'count'
-  | 'credit' | 'collection_ref' | 'playlist_ref' | 'favorite' | 'folder';
+  | 'credit' | 'collection_ref' | 'playlist_ref' | 'favorite' | 'folder'
+  // La PROVENANCE, choisie dans une liste (#4299) — voir `lib/sourcesRegle`.
+  | 'source';
 
 export interface Champ {
   value: string;
@@ -29,7 +31,7 @@ export const CHAMPS: readonly Champ[] = [
   { value: 'composer',       labelKey: 'smartCollection.fieldComposer',    type: 'text' },
   { value: 'label',          labelKey: 'smartCollection.fieldLabel',       type: 'text' },
   { value: 'format',         labelKey: 'smartCollection.fieldFormat',      type: 'text' },
-  { value: 'source',         labelKey: 'smartCollection.fieldSource',      type: 'text' },
+  { value: 'source',         labelKey: 'smartCollection.fieldSource',      type: 'source' },
   // La LOCALISATION sur le disque, à côté de la provenance : les deux
   // répondent à « d'où sort ce morceau ». Son propre type parce que sa saisie
   // est une navigation, pas une frappe.
@@ -76,6 +78,11 @@ export const OPERATEURS: Record<TypeChamp, readonly Operateur[]> = {
     { value: 'in', labelKey: 'smartCollection.opIn' },
     { value: 'is_null', labelKey: 'smartCollection.opIsEmpty' },
     { value: 'is_not_null', labelKey: 'smartCollection.opIsNotEmpty' },
+  ],
+  // Une source se choisit dans une liste : « est » ou « n'est pas ». Le
+  // serveur ne ramène les favoris d'un service que sur une règle POSITIVE.
+  source: [
+    { value: '=', label: '=' }, { value: '!=', label: '≠' },
   ],
   // Un répertoire n'a que deux questions sensées.
   //

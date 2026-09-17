@@ -237,10 +237,31 @@
   let masseEnCours = $state(false);
   async function pistesDeLaCollection(): Promise<any[]> {
     const ids = albums.map((a) => a?.id).filter((x): x is number => x != null);
-    if (!ids.length) return [];
-    const { tracks, failedAlbums } = await api.getAlbumTracksBatch(ids);
-    if (failedAlbums) notifications.error($t('collections.playError' as any));
-    return tracks;
+    // Les albums de SERVICE d'une collection intelligente (« Source = Qobuz »,
+    // #4299) n'ont pas d'identifiant de bibliothèque : leurs pistes viennent du
+    // service. Sans cela « Tout lire » les laissait tomber en silence.
+    const deService = albums.filter(estAlbumDeService);
+    const [locales, services] = await Promise.all([
+      ids.length ? api.getAlbumTracksBatch(ids) : Promise.resolve({ tracks: [], failedAlbums: 0 }),
+      Promise.allSettled(deService.map((a) => api.getStreamingAlbumTracks(a.source, String(a.source_id)))),
+    ]);
+    if (locales.failedAlbums || services.some((r) => r.status === 'rejected')) {
+      notifications.error($t('collections.playError' as any));
+    }
+    return [
+      ...locales.tracks,
+      ...services.flatMap((r) => (r.status === 'fulfilled' ? r.value ?? [] : [])),
+    ];
+  }
+
+  /** Un album rendu par un SERVICE : pas d'id, une paire service + `source_id`. */
+  function estAlbumDeService(a: any): boolean {
+    return a?.id == null && !!a?.source && a?.source_id != null;
+  }
+  /** La clé de boucle d'un album — l'id ne suffit plus : plusieurs albums de
+   *  service ont `id: null`, et deux clés égales font planter la grille. */
+  function cleAlbum(a: any): string {
+    return a?.id != null ? `album:${a.id}` : `${a?.source}:${a?.source_id}`;
   }
   async function lireCollectionEntiere(aleatoire: boolean) {
     const zid = $currentZoneId;
@@ -275,12 +296,12 @@
       const liste = ((e.sorte === 'smart'
         ? await api.getSmartCollectionAlbums(e.id)
         : await api.getCollectionAlbums(e.id)) as any[]) ?? [];
-      const premier = liste.find((a) => a?.id != null);
+      const premier = liste.find((a) => a?.id != null || estAlbumDeService(a));
       if (!premier) {
         notifications.error($t('v2.col.emptyCollection' as any));
         return;
       }
-      await playAndSync(zid, { album_id: premier.id });
+      await playAndSync(zid, corpsAlbum(premier));
     } catch (err: any) {
       notifications.error(err?.message ?? $t('common.error' as any));
     }
@@ -558,6 +579,14 @@
   });
   let albumEnEdition = $state<any | null>(null);
 
+  /** Le corps de lecture d'un album : son id, ou `source` + `streaming_album_id`
+   *  (les deux vont TOUJOURS ensemble — voir `ArtistesV2`). */
+  function corpsAlbum(a: any): Record<string, unknown> {
+    return estAlbumDeService(a)
+      ? { streaming_album_id: String(a.source_id), source: a.source }
+      : { album_id: a.id };
+  }
+
   async function lireAlbum(a: any, ev?: MouseEvent) {
     ev?.stopPropagation();
     const zid = $currentZoneId;
@@ -566,7 +595,7 @@
       return;
     }
     try {
-      await playAndSync(zid, { album_id: a.id });
+      await playAndSync(zid, corpsAlbum(a));
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }
@@ -643,7 +672,7 @@
           {/each}
         </div>
         <div class="grid" bind:this={grilleEl}>
-        {#each albums as a (a.id)}
+        {#each albums as a (cleAlbum(a))}
           <!-- Meme carte que la Bibliotheque : les cinq gestes sur la
                pochette, le texte cliquable, et la troisieme ligne. La carte
                n'est plus un bouton — `PochetteActions` en pose cinq, et un
@@ -800,7 +829,9 @@
   {/if}
 
   {#if fiche}
-    <AlbumDetailV2 album={fiche} onClose={retourCalqueAlbum} />
+    <!-- Un album de service s'ouvre AVEC son service : sans lui, la fiche
+         resterait sur « Chargement… » (#3709). -->
+    <AlbumDetailV2 album={fiche} service={estAlbumDeService(fiche) ? fiche.source : null} onClose={retourCalqueAlbum} />
   {/if}
 
   {#if albumEnEdition}
