@@ -59,7 +59,7 @@ describe('les écrans', () => {
   });
   it('Playlist ouverte : vignettes en mode tableau (#1057)', () => {
     const s = sans(lire('src/components/v2/PlaylistDetailV2.svelte'));
-    expect(s).toMatch(/<ListePistesV2 pistes=\{tracks\} pochetteEnTableau/);
+    expect(s).toMatch(/<ListePistesV2 pistes=\{pistesVues\} pochetteEnTableau/);
   });
   it('Gestionnaire de playlists : UNE racine en colonne (#1058)', () => {
     const s = sans(lire('src/components/v2-heritage/PlaylistManagerView.svelte'));

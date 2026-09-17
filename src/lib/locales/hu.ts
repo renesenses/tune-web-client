@@ -4111,6 +4111,8 @@ export default {
   "v2.lib.sortTitle": "Cím",
   "v2.lib.sortArtist": "Előadó",
   "v2.lib.sortYear": "Év",
+  "v2.pl.sortOrder": "Lejátszási lista sorrendje",
+  "v2.col.sortRules": "Szabályok sorrendje",
   "v2.lib.tabYears": "Évek",
   "v2.lib.tabLabels": "Kiadók",
   "v2.lib.source": "Forrás",
