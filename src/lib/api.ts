@@ -5065,6 +5065,79 @@ export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
   return fetchJSON<InstalledPlugin[]>(`${BASE}/plugins`);
 }
 
+/**
+ * Pont Roon (Premium) — renesenses/tune-server-rust#4349.
+ *
+ * Le rapport, champ pour champ, tel que le rend le greffon
+ * (`plugins/tune-pont-roon/src/lib.rs`, `importer`) : la structure `Rapport`
+ * de `tune-core/src/library/pont_roon.rs`, plus `preview`, `core`, `releve`,
+ * `absent_de_l_api` et `archive` que le greffon y ajoute.
+ */
+export interface RapportPontRoon {
+  artistes_total: number;
+  artistes_apparies: number;
+  artistes_inconnus: string[];
+  albums_total: number;
+  albums_apparies: number;
+  albums_inconnus: string[];
+  pistes_total: number;
+  pistes_appariees: number;
+  credits_a_ecrire: number;
+  credits_deja_presents: number;
+  credits_ecrits: number;
+  images_nommees: number;
+  images_portees: number;
+  images_artistes_a_poser: number;
+  images_artistes_posees: number;
+  images_albums_a_poser: number;
+  images_albums_posees: number;
+  preview: boolean;
+  core: string;
+  releve: string;
+  absent_de_l_api: string[];
+  archive: boolean;
+}
+
+/** `GET /ext/pont-roon/` — le droit Premium, et le dernier import écrit. */
+export interface EtatPontRoon {
+  premium: boolean;
+  dernier_rapport: RapportPontRoon | null;
+}
+
+export function getEtatPontRoon(): Promise<EtatPontRoon> {
+  return fetchJSON<EtatPontRoon>(`${BASE}/ext/pont-roon/`);
+}
+
+/**
+ * `POST /ext/pont-roon/import?apercu=…` — le corps est l'archive du
+ * moissonneur (ou son `export.json`) en OCTETS BRUTS, pas du multipart.
+ *
+ * Pas `fetchJSON` : il impose `Content-Type: application/json` et son `...options`
+ * écraserait l'en-tête d'authentification. Pas `apiPost` non plus : il sérialise
+ * le corps en JSON. L'échec passe par `apiError`, qui lit `detail` avant
+ * `error` — le 422 du greffon (`{"error":"export_pont_roon_illisible",
+ * "detail":"ce n'est pas un export du moissonneur"}`) arrive ainsi à l'écran
+ * avec son MOTIF et non avec son code.
+ */
+export async function importerPontRoon(
+  corps: Blob | ArrayBuffer,
+  apercu: boolean,
+): Promise<RapportPontRoon> {
+  const resp = await fetch(`${BASE}/ext/pont-roon/import?apercu=${apercu ? 'true' : 'false'}`, {
+    method: 'POST',
+    headers: authHeaders({
+      'Accept': 'application/json',
+      'Accept-Language': acceptLang(),
+      'Content-Type': 'application/octet-stream',
+      ...profileHeader(),
+    }),
+    body: corps,
+  });
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
+  if (!resp.ok) throw await apiError(resp);
+  return (await resp.json()) as RapportPontRoon;
+}
+
 /** #3662 — le serveur ne rend AUCUN champ `status`
  *  (`tune-server/src/routes/plugins.rs:538-556`) : il rend
  *  `{name, enabled, restart_required}`. Et `restart_required` n'est pas
