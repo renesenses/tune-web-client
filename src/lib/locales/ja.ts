@@ -265,6 +265,7 @@ export default {
   'zone.activeGroup': 'アクティブグループ',
   'zone.configure': '設定',
   'zone.transferHere': '再生をここに転送',
+  'zone.transferTo': '再生を転送…',
   'zone.offline': 'オフライン',
   'zone.searchingDevices': 'デバイスを検索中...',
   'zone.noZone': 'ゾーンがありません',
@@ -1248,6 +1249,9 @@ export default {
   "settings.followMe": "追従",
   "settings.followMeLabel": "離れたゾーンを一時停止",
   "settings.followMeHint": "ゾーンを切り替えるとき、離れたゾーンの再生を一時停止して、後ろで再生が続かないようにします。既定はオフ（マルチルーム用にゾーンは独立）。",
+  "settings.searchExact": "完全一致検索",
+  "settings.searchExactLabel": "完全一致検索",
+  "settings.searchExactHint": "入力した語句をその順序のまま、アーティスト・アルバム・トラック名から検索します（二重引用符で囲んだ場合と同じ）。",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
@@ -4073,6 +4077,9 @@ export default {
   "v2.hist.daysAgo": "{n} 日前",
   "v2.rech.show": "表示",
   "v2.rech.artists": "アーティスト",
+  "v2.rech.allTypes": "すべて",
+  "v2.rech.labels": "レーベル",
+  "v2.rech.labelAlbums": "{n} 枚のアルバム",
   "v2.rech.albums": "アルバム",
   "v2.stream.favIndex": "お気に入りの目次",
   "v2.fas.topTracks": "人気の曲",

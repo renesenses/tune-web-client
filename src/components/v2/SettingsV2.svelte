@@ -3450,6 +3450,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 {/if}
               </div>
 
+            {:else if s.id === 'searchExact'}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.searchExactLabel' as any)}</span>
+                  <span class="hint">{$t('settings.searchExactHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.searchExact}
+                    onchange={(e) => preferences.update((pr) => ({ ...pr, searchExact: (e.currentTarget as HTMLInputElement).checked }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
             {:else if s.id === 'followMe'}
               <!-- Section réellement portée : même store que l'écran actuel,
                    donc le réglage est partagé, pas dupliqué. -->

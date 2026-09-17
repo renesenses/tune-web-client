@@ -188,6 +188,7 @@
   function handleGlobalKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       if (showZoneDropdown) { showZoneDropdown = false; e.stopPropagation(); }
+      if (showTransferDropdown) { showTransferDropdown = false; e.stopPropagation(); }
       if (sleepDropdownOpen) { sleepDropdownOpen = false; e.stopPropagation(); }
       if (mobileVolumeOpen) { mobileVolumeOpen = false; e.stopPropagation(); }
     }
@@ -365,6 +366,7 @@
   function handleBarClick(e: MouseEvent) {
     if ((e.target as HTMLElement).closest('.control-btn')) return;
     if ((e.target as HTMLElement).closest('.zone-selector')) return;
+    if ((e.target as HTMLElement).closest('.transfer-selector')) return;
     if ((e.target as HTMLElement).closest('.zone-popover')) return;
     if ((e.target as HTMLElement).closest('.mobile-volume-wrapper')) return;
     if (window.innerWidth <= 768) {
@@ -405,6 +407,16 @@
    * donc sur la même ligne, la seconde explicitement nommée.
    */
   let transferringTo = $state<number | null>(null);
+  let showTransferDropdown = $state(false);
+  /** Les zones vers lesquelles transférer : toutes sauf la zone pilotée, en
+   *  ligne, une seule par appareil (même repli que le menu des zones). */
+  let ciblesDeTransfert = $derived(
+    $zones.filter((z, i, arr) =>
+      z.id !== $currentZoneId
+      && z.online !== false
+      && (!z.output_device_id || arr.findIndex(x => x.output_device_id === z.output_device_id) === i)
+    ).slice(0, 50)
+  );
 
   /**
    * Même garde que la barre latérale (`Sidebar.svelte:34-37`) : sans lecture en
@@ -426,6 +438,7 @@
       await switchZone(cibleId);
       zones.set(await api.getZones());
       showZoneDropdown = false;
+      showTransferDropdown = false;
     } catch (err: any) {
       notifications.error(err?.message || String(err));
     } finally {
@@ -1235,6 +1248,53 @@
         </div>
       {/if}
     </div>
+
+    <!-- Transférer la lecture : un geste à part entière, à l'extrême droite
+         de la barre (Bertrand, 17/09/2026). Il existait déjà dans le menu des
+         zones, derrière la pastille — introuvable pour qui ne l'y cherchait
+         pas. Même garde que la flèche du menu : sans lecture, le serveur
+         répondrait `400 nothing playing to transfer`. -->
+    {#if currentZonePlaying && ciblesDeTransfert.length > 0}
+      <div class="transfer-selector">
+        <button
+          class="control-btn transfer-bar-btn"
+          class:active={showTransferDropdown}
+          onclick={(e) => { e.stopPropagation(); showZoneDropdown = false; showTransferDropdown = !showTransferDropdown; }}
+          title={$t('zone.transferTo')}
+          aria-label={$t('zone.transferTo')}
+          aria-haspopup="menu"
+          aria-expanded={showTransferDropdown}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M4 7h13"/><path d="m14 3 4 4-4 4"/><path d="M20 17H7"/><path d="m10 13-4 4 4 4"/></svg>
+        </button>
+        {#if showTransferDropdown}
+          <div class="zone-popover-backdrop" onclick={() => showTransferDropdown = false} onkeydown={(e) => { if (e.key === 'Escape') showTransferDropdown = false; }} role="button" tabindex={0} aria-label="Close transfer menu"></div>
+          <div class="zone-popover" role="menu">
+            <div class="zone-popover-header">
+              <span class="zone-popover-title">{$t('zone.transferTo')}</span>
+            </div>
+            {#each ciblesDeTransfert as z (z.id)}
+              <button
+                class="zone-popover-item"
+                class:busy={transferringTo === z.id}
+                role="menuitem"
+                disabled={transferringTo !== null}
+                onclick={(e) => transfererVers(z.id, e)}
+              >
+                <span class="zone-dot" class:online={z.online !== false && z.recovery_started_at == null} class:recovering={z.recovery_started_at != null}></span>
+                <span class="zone-popover-icon"><ZoneTypeIcon type={z.output_type} size={16} /></span>
+                <span class="zone-popover-labels">
+                  <span class="zone-popover-name truncate" title={z.name}>{z.name}</span>
+                  {#if zoneDeviceName(z) && zoneDeviceName(z) !== z.name}
+                    <span class="zone-popover-device truncate" title={zoneDeviceName(z)}>{zoneDeviceName(z)}</span>
+                  {/if}
+                </span>
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/if}
     </div>
     <VolumeControl />
   </div>
@@ -1910,6 +1970,17 @@
   .zone-selector {
     position: relative;
     flex-shrink: 0;
+  }
+
+  .transfer-selector {
+    position: relative;
+    flex-shrink: 0;
+  }
+  .transfer-bar-btn.active {
+    color: var(--tune-accent);
+  }
+  .zone-popover-item.busy {
+    opacity: 0.6;
   }
 
   /* Spotify-style icon-only zone/device button. */

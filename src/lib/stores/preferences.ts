@@ -151,6 +151,10 @@ export interface Preferences {
    *  d'interface, donc imposée à tout utilisateur Expert. Or « Expert » dit
    *  ce qu'on sait faire, pas ce qu'on veut voir sous chaque vignette. */
   v2AlbumTechLine: boolean;
+  /** Recherche EXACTE (Yves Corbat, point 8, 17/09/2026) : la saisie entière
+   *  vaut une phrase entre guillemets — un artiste, un album ou un titre dont
+   *  le nom contient ces mots, dans cet ordre. Désactivée par défaut. */
+  searchExact: boolean;
   /**
    * Mosaïque de quatre pochettes sur les cartes de collection, ou pochette
    * UNIQUE — l'écran compact de l'ancien client.
@@ -253,6 +257,7 @@ const defaults: Preferences = {
   tooltipsEnabled: true,
   v2Theme: V2_THEME_DEFAULT,
   v2AlbumTechLine: false,
+  searchExact: false,
   v2CollectionsMosaique: true,
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   v2Colonnes: { ...DEFAUTS_COLONNES },

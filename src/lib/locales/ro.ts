@@ -268,6 +268,7 @@ export default {
   'zone.activeGroup': 'Grup activ',
   'zone.configure': 'Configurează',
   'zone.transferHere': 'Transferă redarea aici',
+  'zone.transferTo': 'Transferă redarea către…',
   'zone.offline': 'Offline',
   'zone.recovering': 'Se reconectează...',
   'zone.recovered': 'Reconectat',
@@ -1257,6 +1258,9 @@ export default {
   "settings.followMe": "Urmărește-mă",
   "settings.followMeLabel": "Pune pe pauză zona părăsită",
   "settings.followMeHint": "La schimbarea zonei, pune pe pauză redarea din zona pe care o părăsești, ca să nu continue nimic în spate. Dezactivat implicit (zonele rămân independente pentru multi-room).",
+  "settings.searchExact": "Căutare exactă",
+  "settings.searchExactLabel": "Căutare exactă",
+  "settings.searchExactHint": "Caută cuvintele introduse ca frază, în această ordine, în numele unui artist, album sau piese — ca între ghilimele.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
@@ -4073,6 +4077,9 @@ export default {
   "v2.hist.daysAgo": "acum {n} z",
   "v2.rech.show": "Afișează",
   "v2.rech.artists": "Artiști",
+  "v2.rech.allTypes": "Toate",
+  "v2.rech.labels": "Case de discuri",
+  "v2.rech.labelAlbums": "{n} albume",
   "v2.rech.albums": "Albume",
   "v2.stream.favIndex": "Cuprinsul favoritelor",
   "v2.fas.topTracks": "Piese populare",

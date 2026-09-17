@@ -239,6 +239,7 @@ export default {
   'zone.activeGroup': 'Aktiv grupp',
   'zone.configure': 'Konfigurera',
   'zone.transferHere': 'Överför uppspelningen hit',
+  'zone.transferTo': 'Överför uppspelning till…',
   'zone.offline': 'Offline',
   'zone.recovering': 'Återansluter...',
   'zone.recovered': 'Återansluten',
@@ -1205,6 +1206,9 @@ export default {
   "settings.followMe": "Följ mig",
   "settings.followMeLabel": "Pausa zonen du lämnar",
   "settings.followMeHint": "När du byter zon pausas uppspelningen i zonen du var i, så att inget fortsätter spela bakom dig. Av som standard (zoner förblir oberoende för flera rum).",
+  "settings.searchExact": "Exakt sökning",
+  "settings.searchExactLabel": "Exakt sökning",
+  "settings.searchExactHint": "Söker de inskrivna orden som en fras, i den ordningen, i namnet på en artist, ett album eller ett spår – som inom citattecken.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
@@ -4072,6 +4076,9 @@ export default {
   "v2.hist.daysAgo": "för {n} d sedan",
   "v2.rech.show": "Visa",
   "v2.rech.artists": "Artister",
+  "v2.rech.allTypes": "Alla",
+  "v2.rech.labels": "Skivbolag",
+  "v2.rech.labelAlbums": "{n} album",
   "v2.rech.albums": "Album",
   "v2.stream.favIndex": "Favoritindex",
   "v2.fas.topTracks": "Toppspår",
