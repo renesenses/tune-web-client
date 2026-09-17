@@ -62,6 +62,6 @@ describe("« Reprendre l'écoute » : identifiant distant et id zéro", () => {
   });
 
   it('une piste distante se joue par la PAIRE service + identifiant', () => {
-    expect(src).toContain("api.play(z, { source: service as any, source_id: dist.id })");
+    expect(src).toContain("api.play(z, { source: svc as any, source_id: dist.id })");
   });
 });

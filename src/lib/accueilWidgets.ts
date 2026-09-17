@@ -218,13 +218,14 @@ function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | '
     return { favoriDistant: { itemType: 'playlist' as const, serviceId: String(sid) } };
   }
   if (genre !== 'album') return {};
-  const dist = idDistant(o);
+  const svc = serviceDistant(service);
+  const dist = svc ? idDistant(o) : null;
   // 🔴 `0` n'est pas un identifiant local : c'est le remplissage de
   // `/home/continue-listening`. Le prendre pour vrai faisait passer des albums
   // Qobuz pour des albums de la bibliothèque — d'où le crayon et les
   // étiquettes sur les uns et pas sur les autres.
   const idLocal = idLocalValide(o?.album_id) ?? (dist ? null : idLocalValide(o?.id));
-  if (idLocal == null && !(service && dist)) return {};
+  if (idLocal == null && !(svc && dist)) return {};
   // Un identifiant qui désigne une PLAYLIST n'ouvre pas plus un album qu'un
   // identifiant de piste.
   if (idLocal == null && dist && dist.genre !== 'album') return {};
@@ -314,6 +315,32 @@ function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | '
  *  - la fiche prenait ce même `0` pour un identifiant LOCAL, d'où le crayon et
  *    les étiquettes sur des albums Qobuz, et seulement sur ceux-là.
  */
+/**
+ * 🔴 `upnp` N'EST PAS UN SERVICE — bug du .18, 17/09/2026 : « Erreur de
+ * lecture : unknown service: upnp », depuis l'Accueil.
+ *
+ * `/library/albums/recent` rend des albums de BIBLIOTHÈQUE intégrés depuis un
+ * serveur UPnP (27 sur 50 sur le .18) :
+ *
+ *     {"id": 4429, "album_id": null, "source": "upnp",
+ *      "source_id": "uuid:258FC2D5-…|0ac4042f1994b976", …}
+ *
+ * `source` y dit la PROVENANCE, pas un service de streaming, et `source_id`
+ * est l'adresse de l'objet sur le serveur UPnP, pas un identifiant distant.
+ * Pris pour un service, l'album partait en `streaming_album_id` + `source:
+ * upnp`, que le registre des services refuse. Il se joue et s'ouvre par son
+ * `id` de bibliothèque, comme un album local.
+ */
+function estProvenanceBibliotheque(source: string | null | undefined): boolean {
+  const s = String(source ?? '').trim().toLowerCase();
+  return s === 'local' || s === 'upnp' || s.startsWith('upnp:');
+}
+
+/** Le service de streaming à qui parler — jamais une provenance de bibliothèque. */
+function serviceDistant(service: string | null): string | null {
+  return service && !estProvenanceBibliotheque(service) ? service : null;
+}
+
 function idDistant(o: any): { id: string; genre: string } | null {
   const sid = champ(o, 'source_id');
   if (sid) return { id: String(sid), genre: 'album' };
@@ -334,20 +361,21 @@ export function geste(o: any, service: string | null, genre: 'album' | 'playlist
   if (local != null) return (z: number) => api.play(z, { album_id: local });
   if (o?.track_id != null) return (z: number) => api.play(z, { track_id: o.track_id });
 
-  const dist = idDistant(o);
-  if (service && dist) {
+  const svc = serviceDistant(service);
+  const dist = svc ? idDistant(o) : null;
+  if (svc && dist) {
     // Ce que l'identifiant DÉSIGNE prime sur le genre déclaré par le widget :
     // une entrée d'historique dont le contexte est une playlist ne se joue pas
     // comme un album.
     const quoi = dist.genre === 'playlist' || genre === 'playlist' ? 'playlist'
       : dist.genre === 'track' ? 'track' : 'album';
     if (quoi === 'playlist') {
-      return (z: number) => api.play(z, { streaming_playlist_id: dist.id, source: service as any });
+      return (z: number) => api.play(z, { streaming_playlist_id: dist.id, source: svc as any });
     }
     if (quoi === 'track') {
-      return (z: number) => api.play(z, { source: service as any, source_id: dist.id });
+      return (z: number) => api.play(z, { source: svc as any, source_id: dist.id });
     }
-    return (z: number) => api.play(z, { streaming_album_id: dist.id, source: service as any });
+    return (z: number) => api.play(z, { streaming_album_id: dist.id, source: svc as any });
   }
 
   // Un identifiant NU n'est un album que si l'appelant le dit. Sinon on ne
