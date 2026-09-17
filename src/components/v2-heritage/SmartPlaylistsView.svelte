@@ -12,7 +12,7 @@
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import { sourcesDisponibles, libelleSource } from '../../lib/sourcesRegle';
-  import { lireListe } from '../../lib/lectureEnMasse';
+  import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import {
     OPERATEURS,
@@ -322,6 +322,21 @@
     }).catch(signalerEchecLecture);
   }
 
+  /**
+   * « Lecture aléatoire » — Bertrand, 17/09/2026 (réunion avec Yves, point 4) :
+   * « Playlists ou Smart playlists, ajouter bouton lecture aléatoire ». Même
+   * mélange que les playlists et les collections (`lectureEnMasse`), sans
+   * toucher au mode aléatoire de la zone.
+   */
+  async function playShuffle() {
+    const zid = zone?.id;
+    if (zid == null || spTracks.length === 0) return;
+    await lireListeAleatoire(spTracks, {
+      lire: (c: any) => playAndSync(zid, c),
+      enfiler: (c: any) => api.addToQueue(zid, c),
+    }).catch(signalerEchecLecture);
+  }
+
   /** Une ligne : par son identifiant si elle est locale, par service sinon. */
   async function playTrack(t: Track) {
     if (!zone?.id) return;
@@ -405,6 +420,10 @@
         <button class="play-all-btn" onclick={playAll} disabled={spTracks.length === 0}>
           <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
           {$tr('smartPlaylists.playAll')} ({spTracks.length})
+        </button>
+        <button class="edit-btn" onclick={playShuffle} disabled={spTracks.length === 0} title={$tr('library.shuffle')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+          {$tr('library.shuffle')}
         </button>
         <button class="edit-btn" onclick={() => { const sp = selectedSp!; selectedSp = null; spTracks = []; startEdit(sp); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
