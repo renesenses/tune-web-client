@@ -4326,6 +4326,8 @@ export default {
   "v2.str.noPreview": "No hay vista previa para esta pista.",
   "v2.str.bandcampNotFound": "Cuenta no encontrada: comprueba el nombre de usuario de Bandcamp.",
   "v2.str.noEditorial": "{s} no ofrece ninguna selección editorial por ahora. Usa la búsqueda.",
+  "v2.str.comingOn": "Disponible el {d}",
+  "v2.str.coming": "Próximamente",
   "v2.set.noLimit": "Sin límite",
   "v2.set.none": "Ninguno",
   "v2.set.firstMusicFolder": "la primera carpeta de música",

@@ -4284,6 +4284,8 @@ export default {
   "v2.str.noPreview": "Ehhez a számhoz nincs elérhető részlet.",
   "v2.str.bandcampNotFound": "A fiók nem található — ellenőrizze a Bandcamp felhasználónevet.",
   "v2.str.noEditorial": "A(z) {s} jelenleg nem kínál szerkesztői válogatást. Használja a keresést.",
+  "v2.str.comingOn": "Megjelenik: {d}",
+  "v2.str.coming": "Hamarosan",
   "v2.set.noLimit": "Nincs korlát",
   "v2.set.none": "Nincs",
   "v2.set.firstMusicFolder": "az első zenei mappa",

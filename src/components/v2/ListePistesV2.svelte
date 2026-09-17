@@ -42,6 +42,7 @@
   import LignePisteV2 from './LignePisteV2.svelte';
   import PisteActions from './PisteActions.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
+  import { pisteIndisponible } from '../../lib/albumAParaitre';
   import AlbumArt from '../partages/AlbumArt.svelte';
 
   interface Props {
@@ -298,7 +299,10 @@
 
     {#each pistes as p, i (clef(p, i))}
       {@const etat = etatDe(p)}
-      <div class="trow" class:np={etat != null} aria-current={etat ? 'true' : undefined}
+      <!-- Point 10 (17/09/2026) — une piste que le service dit indisponible
+           est grisée et ne se lance pas : le lancer rendrait « no url ». -->
+      {@const indispo = pisteIndisponible(p)}
+      <div class="trow" class:np={etat != null} class:indispo aria-current={etat ? 'true' : undefined}
         role="row">
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
@@ -309,7 +313,8 @@
           {:else if c.verrouillee}
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus
                  large et la plus évidente de la ligne. -->
-            <button class="td titre" onclick={() => onLire(p, i)} title={p.title}>
+            <button class="td titre" onclick={() => { if (!indispo) onLire(p, i); }}
+              disabled={indispo} title={indispo ? $t('v2.str.coming' as any) : p.title}>
               <!-- L'indicateur est DANS la cellule du titre : une colonne de plus
                    décalerait l'en-tête, et la règle de ce composant est qu'un
                    seul gabarit vaut pour l'en-tête et pour les lignes.
@@ -323,6 +328,7 @@
               <IndicateurLecture {etat} />
               <span class="ttxt">{cellule(p, i, c.cle) ?? ''}</span>
               {#if p.source === 'upnp'}<DisponibiliteUpnp sourceId={p.source_id} />{/if}
+              {#if indispo}<span class="indispo-etiq">{$t('v2.str.coming' as any)}</span>{/if}
             </button>
           {:else}
             {@const v = cellule(p, i, c.cle)}
@@ -362,6 +368,11 @@
   .trow{border-radius:9px; color:var(--v2-txt2); min-height:46px}
   .trow:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .trow.np{color:var(--v2-acc1)}
+  /* Point 10 — la piste que le service ne sert pas encore. */
+  .trow.indispo{opacity:0.5}
+  .trow.indispo .titre{cursor:default}
+  .indispo-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-acc2);
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
 
   .td{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Les colonnes de chiffres s'alignent à droite, en chiffres tabulaires :

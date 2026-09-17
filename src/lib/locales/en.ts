@@ -4346,6 +4346,8 @@ export default {
   "v2.str.noPreview": "No preview available for this track.",
   "v2.str.bandcampNotFound": "Account not found — check the Bandcamp username.",
   "v2.str.noEditorial": "{s} offers no editorial selection right now. Use the search.",
+  "v2.str.comingOn": "Out on {d}",
+  "v2.str.coming": "Coming soon",
   "v2.set.noLimit": "No limit",
   "v2.set.none": "None",
   "v2.set.firstMusicFolder": "the first music folder",
