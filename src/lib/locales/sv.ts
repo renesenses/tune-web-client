@@ -4060,6 +4060,7 @@ export default {
   "v2.rech.albums": "Album",
   "v2.stream.favIndex": "Favoritindex",
   "v2.fas.topTracks": "Toppspår",
+  "v2.art.bio": "Biografi",
   "v2.disco.focus": "Fokus",
   "v2.disco.source": "Källa",
   "v2.disco.quality": "Kvalitet",

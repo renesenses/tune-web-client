@@ -29,6 +29,7 @@
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
   import DiscographieCommune from './DiscographieCommune.svelte';
+  import BioEtTitresPhares from './BioEtTitresPhares.svelte';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { t as tr } from '../../lib/i18n';
@@ -206,20 +207,6 @@
     activeView.set(ou ?? 'search');
   }
 
-  function lire(p: any) {
-    const zid = $currentZoneId;
-    if (zid == null || !p?.source || !p?.source_id) return;
-    playAndSync(zid, {
-      source: p.source,
-      source_id: String(p.source_id),
-      title: p.title ?? null,
-      artist_name: p.artist_name ?? null,
-      album_title: p.album_title ?? null,
-      cover_path: p.cover_path ?? null,
-      duration_ms: p.duration_ms,
-    }).catch(signalerEchecLecture);
-  }
-
   /**
    * « Best of » et « Radio de l'artiste » — #2568.
    *
@@ -259,12 +246,6 @@
     }
     enMasse = false;
   }
-
-  const duree = (ms?: number | null) => {
-    if (!ms) return '';
-    const s = Math.round(ms / 1000);
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  };
 </script>
 
 {#if albumOuvert}
@@ -307,21 +288,9 @@
   {:else if !titres.length && !albums.length && !locaux.length && !autresServices.length && !complementsEnCharge}
     <div class="etat">{$tr('v2.fas.empty' as any)}</div>
   {:else}
-    {#if titres.length}
-      <h2>{$tr('v2.fas.topTracks' as any)}</h2>
-      <ol class="titres">
-        {#each titres as p, i (String(p.source_id ?? i))}
-          <li>
-            <button class="piste" onclick={() => lire(p)}>
-              <span class="rang">{i + 1}</span>
-              <span class="tt">{p.title}</span>
-              <span class="al">{p.album_title ?? ''}</span>
-              <span class="du">{duree(p.duration_ms)}</span>
-            </button>
-          </li>
-        {/each}
-      </ol>
-    {/if}
+    <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
+         fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
+    <BioEtTitresPhares bio={artiste?.bio ?? null} titres={titres} cle={cible?.id} />
 
     {#if albums.length || locaux.length || autresServices.length || complementsEnCharge}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
@@ -347,18 +316,7 @@
   .etat{padding:40px 0; color:var(--v2-txt3)}
   h2{margin:22px 0 10px; font:600 13px var(--v2-sans); color:var(--v2-txt2);
     text-transform:uppercase; letter-spacing:.05em}
-  .titres{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px}
-  .piste{width:100%; display:grid; grid-template-columns:28px 1fr 1fr auto; gap:12px; align-items:center;
-    padding:8px 10px; border:0; border-radius:8px; background:transparent; color:inherit;
-    font:inherit; text-align:left; cursor:pointer}
-  .piste:hover{background:var(--v2-line2)}
-  .rang{font:11px var(--v2-mono); color:var(--v2-txt3); text-align:right}
-  .tt{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-  .al{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--v2-txt3); font-size:12.5px}
-  .du{font:11px var(--v2-mono); color:var(--v2-txt3)}
   @media (max-width: 640px){
     .v2-fas{padding:0 16px 40px}
-    .piste{grid-template-columns:24px 1fr auto}
-    .al{display:none}
   }
 </style>

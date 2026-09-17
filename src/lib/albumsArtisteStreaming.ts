@@ -50,6 +50,9 @@ import type { Album, StreamingServiceStatus } from './types';
 export interface AlbumsDeService {
   service: string;
   albums: Album[];
+  /** L'identifiant de l'artiste chez ce service, résolu par le nom — réemployé
+   *  pour ses titres phares (`lib/titresPharesArtiste`). */
+  artistId?: string;
 }
 
 /**
@@ -163,7 +166,7 @@ export async function albumsDeStreamingPourArtiste(
         // détaché de sa requête, plus rien ne dit d'où il vient, et il ne
         // serait alors ni ouvrable ni jouable. `??`, pas `=` : un agrégateur
         // peut rendre du Tidal sous une route Qobuz.
-        return { service, albums: albums.map((a) => ({ ...a, source: (a.source ?? service) as Album['source'] })) };
+        return { service, artistId, albums: albums.map((a) => ({ ...a, source: (a.source ?? service) as Album['source'] })) };
       } catch {
         return null;
       }
