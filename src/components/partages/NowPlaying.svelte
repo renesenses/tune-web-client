@@ -32,6 +32,7 @@
   import { estRefusPremium } from '../../lib/premiumRefus';
   import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
+  import { afficherDynamicRange, type AffichageDynamicRange } from '../../lib/dynamicRange';
   import { t } from '../../lib/i18n';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
@@ -1075,6 +1076,31 @@
         .catch(() => {});
     }
   });
+  /**
+   * LE DYNAMIC RANGE DE LA PISTE EN COURS — demande de Bertrand, 17/09/2026 :
+   * « ajoute la dr value dans cette vue à côté de FLAC, 44,1 kHz et 16-bit ».
+   *
+   * L'état de zone ne le porte pas : `current_track` n'a ni `dynamic_range`
+   * ni sa provenance (mesuré sur le .18). `GET /library/tracks/{id}` les rend
+   * tous deux — `"9"` / `"analysis"` pour « Décollage ». On les lit comme le
+   * nombre d'écoutes ci-dessus : à la demande, pour une piste LOCALE, et gardé
+   * à l'identifiant exact pour qu'une réponse tardive ne se pose pas sous la
+   * piste suivante. Absent ⇒ aucune puce : une piste sans mesure n'a pas de DR.
+   *
+   * L'affichage est celui de la fiche album (#1388, #3924) : `~12` pour une
+   * moyenne, et l'infobulle dit si la valeur vient du tag ou de l'analyse.
+   */
+  let trackDr = $state<AffichageDynamicRange | null>(null);
+  $effect(() => {
+    const dt = normalizedTrack;
+    const id = dt?.id ?? null;
+    trackDr = null;
+    if (id != null && dt?.source === 'local') {
+      api.getTrack(id)
+        .then((t) => { if (normalizedTrack?.id === id) trackDr = afficherDynamicRange(t as any); })
+        .catch(() => {});
+    }
+  });
   // Zone playing OR IFrame playing while yt-dlp loads
   let isEffectivePlaying = $derived(
     playState === 'playing' || (ytState.active && ytState.playing && playState === 'stopped')
@@ -1737,12 +1763,13 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <p class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
           {/if}
-          {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
+          {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
               {#if displayTrack.format}<span class="tech-chip">{displayTrack.format.toUpperCase()}</span>{/if}
               {#if displayTrack.sample_rate}<span class="tech-chip">{displayTrack.sample_rate >= 1000000 ? (displayTrack.sample_rate / 1000000).toFixed(1) + ' MHz' : (displayTrack.sample_rate / 1000).toFixed(1) + ' kHz'}</span>{/if}
               {#if displayTrack.bit_depth}<span class="tech-chip">{displayTrack.bit_depth}-bit</span>{/if}
               {#if channelsOf(displayTrack)}<span class="tech-chip">{channelsOf(displayTrack)}ch</span>{/if}
+              {#if trackDr}<span class="tech-chip dr-chip" class:dr-deduit={trackDr.deduit} title={$t(trackDr.cleInfobulle)}>DR {trackDr.texte}</span>{/if}
             </p>
           {/if}
           {#if !isRadio && displayTrack.source === 'local' && trackPlays !== null && trackPlays > 0}
@@ -2900,6 +2927,9 @@
     opacity: 0.75;
   }
 
+  /* Une moyenne de pistes se distingue d'une mesure par un soulignement
+     pointillé, comme sur la fiche album (`lib/dynamicRange`). */
+  .tech-chip.dr-deduit { text-decoration: underline dotted currentColor; text-underline-offset: 2px; }
   .tech-chip {
     font-family: var(--font-label);
     font-size: 10px;

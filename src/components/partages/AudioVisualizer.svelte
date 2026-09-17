@@ -2,7 +2,7 @@
   import { estDuDSD } from '../../lib/utils';
   import { onMount } from 'svelte';
   import { audioLevels, levelsForZone, type AudioLevels } from '../../lib/stores/audioLevels';
-  import { freqLabel, spectrumIsoTicks, type AnnonceSpectre } from '../../lib/spectrumScale';
+  import { freqLabel, spectrumGravesTicks, spectrumIsoTicks, type AnnonceSpectre } from '../../lib/spectrumScale';
   import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../../lib/axeSpectre';
   import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../../lib/waveformHistory';
 
@@ -400,12 +400,15 @@
       cleFormat(sampleRate, annonceSpectre?.fftSize, annonceSpectre?.resolus?.length ?? 0),
       annonceSpectre?.resolus,
     );
-    const ticks = mini
+    const iso = mini
       ? []
       : spectrumIsoTicks(sampleRate, serverBandCount, {
           fftSize: annonceSpectre?.fftSize,
           resolus: capacite.resolus,
         });
+    // 20, 31, 63 Hz sous le premier repère résolu — voir `spectrumGravesTicks`.
+    // Seulement quand l'axe existe déjà : pas de graduation sans spectre reçu.
+    const ticks = iso.length > 0 ? [...spectrumGravesTicks(sampleRate, iso[0].hz), ...iso] : iso;
     const axisH = ticks.length > 0 ? AXIS_H * dpr : 0;
     // Les barres ne descendent plus jusqu'au bas du canevas quand l'échelle
     // est là : elles s'arrêtent au-dessus, sinon les libellés se poseraient
@@ -486,6 +489,9 @@
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
 
+    // Bord droit de la dernière étiquette écrite : sur un écran étroit, 20 et
+    // 31 Hz se touchent. Le trait reste, l'étiquette qui chevaucherait saute.
+    let finPrecedente = -Infinity;
     for (const { hz, pos } of ticks) {
       const x = pos * w;
       // Trait de grille sur toute la hauteur du tracé : c'est lui qui permet
@@ -502,6 +508,8 @@
       const label = `${freqLabel(hz)}Hz`;
       const halfText = ctx.measureText(label).width / 2;
       const cx = Math.min(w - halfText, Math.max(halfText, x));
+      if (cx - halfText < finPrecedente + 4 * dpr) continue;
+      finPrecedente = cx + halfText;
       ctx.fillStyle = cachedMuted;
       ctx.fillText(label, cx, plotH + axisH);
     }
