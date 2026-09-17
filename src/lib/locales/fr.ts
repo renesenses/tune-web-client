@@ -3753,6 +3753,9 @@ export default {
   // v2 — Zones et paires stéréo
   "v2.zone.default": "par défaut",
   "v2.zone.create": "Créer",
+  "v2.zone.groupBrowser": "Ce navigateur",
+  "v2.zone.groupLocal": "Sorties du serveur",
+  "v2.zone.groupNetwork": "Appareils du réseau",
   "v2.zone.cancel": "Annuler",
   "v2.zone.namePlaceholder": "Nom de la zone",
   "v2.zone.none": "Aucune zone. Créez-en une, ou déclarez une sortie dans Réglages → Audio.",
