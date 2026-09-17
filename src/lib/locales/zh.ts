@@ -265,6 +265,7 @@ export default {
   'zone.activeGroup': '活跃组',
   'zone.configure': '配置',
   'zone.transferHere': '将播放转移到这里',
+  'zone.transferTo': '转移播放到…',
   'zone.offline': '离线',
   'zone.searchingDevices': '搜索设备中...',
   'zone.noZone': '无区域',

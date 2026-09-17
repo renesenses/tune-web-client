@@ -265,6 +265,7 @@ export default {
   'zone.activeGroup': 'Aktive Gruppe',
   'zone.configure': 'Konfigurieren',
   'zone.transferHere': 'Wiedergabe hierher übertragen',
+  'zone.transferTo': 'Wiedergabe übertragen an…',
   'zone.offline': 'Offline',
   'zone.searchingDevices': 'Suche nach Geräten...',
   'zone.noZone': 'Keine Zonen',

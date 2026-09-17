@@ -239,6 +239,7 @@ export default {
   'zone.activeGroup': 'Aktiv grupp',
   'zone.configure': 'Konfigurera',
   'zone.transferHere': 'Överför uppspelningen hit',
+  'zone.transferTo': 'Överför uppspelning till…',
   'zone.offline': 'Offline',
   'zone.recovering': 'Återansluter...',
   'zone.recovered': 'Återansluten',

@@ -2886,6 +2886,7 @@ export default {
   "zone.favoriteDevice": "Eszköz hozzáadása a kedvencekhez",
   "zone.unfavoriteDevice": "Eszköz eltávolítása a kedvencekből",
   "zone.transferHere": "Lejátszás átirányítása ide",
+  "zone.transferTo": "Lejátszás átirányítása ide…",
   "collections.playAll": "Összes lejátszása",
   "collections.shuffleAll": "Véletlenszerű",
   "collections.playingAll": "{count} szám szól",

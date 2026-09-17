@@ -268,6 +268,7 @@ export default {
   'zone.activeGroup': 'Grup activ',
   'zone.configure': 'Configurează',
   'zone.transferHere': 'Transferă redarea aici',
+  'zone.transferTo': 'Transferă redarea către…',
   'zone.offline': 'Offline',
   'zone.recovering': 'Se reconectează...',
   'zone.recovered': 'Reconectat',
