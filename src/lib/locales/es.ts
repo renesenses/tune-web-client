@@ -1247,6 +1247,9 @@ export default {
   "settings.followMe": "Seguirme",
   "settings.followMeLabel": "Pausar la zona que dejas",
   "settings.followMeHint": "Al cambiar de zona, pausa la reproducción de la zona que dejas para que nada siga sonando detrás de ti. Desactivado por defecto (zonas independientes para multisala).",
+  "settings.searchExact": "Búsqueda exacta",
+  "settings.searchExactLabel": "Búsqueda exacta",
+  "settings.searchExactHint": "Busca las palabras escritas como una frase, en ese orden, en el nombre de un artista, álbum o pista, como si estuvieran entre comillas dobles.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
@@ -4073,6 +4076,9 @@ export default {
   "v2.hist.daysAgo": "hace {n} d",
   "v2.rech.show": "Mostrar",
   "v2.rech.artists": "Artistas",
+  "v2.rech.allTypes": "Todo",
+  "v2.rech.labels": "Sellos",
+  "v2.rech.labelAlbums": "{n} álbumes",
   "v2.rech.albums": "Álbumes",
   "v2.stream.favIndex": "Índice de favoritos",
   "v2.fas.topTracks": "Temas destacados",

@@ -1248,6 +1248,9 @@ export default {
   "settings.followMe": "跟随我",
   "settings.followMeLabel": "暂停离开的区域",
   "settings.followMeHint": "切换区域时，暂停你离开的区域的播放，这样身后就不会继续播放。默认关闭（多房间下区域保持独立）。",
+  "settings.searchExact": "精确搜索",
+  "settings.searchExactLabel": "精确搜索",
+  "settings.searchExactHint": "按输入顺序将词语作为短语，在艺人、专辑或曲目名称中查找——相当于加上双引号。",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
@@ -4073,6 +4076,9 @@ export default {
   "v2.hist.daysAgo": "{n} 天前",
   "v2.rech.show": "显示",
   "v2.rech.artists": "艺人",
+  "v2.rech.allTypes": "全部",
+  "v2.rech.labels": "厂牌",
+  "v2.rech.labelAlbums": "{n} 张专辑",
   "v2.rech.albums": "专辑",
   "v2.stream.favIndex": "收藏目录",
   "v2.fas.topTracks": "热门单曲",

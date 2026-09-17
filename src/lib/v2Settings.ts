@@ -97,6 +97,8 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner' },
       { id: 'musicDirs',  titleKey: 'settings.musicDirs',    from: 'library', min: 'beginner', keywords: ['dossiers', 'chemins'] },
       { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan'] },
+      { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
+        keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
       { id: 'scanSched',  titleKey: 'settings.scanSchedule', from: 'library', min: 'intermediate', keywords: ['planification', 'automatique'] },
       { id: 'metadata',   titleKey: 'metadata.title',        from: 'library', min: 'intermediate', keywords: ['métadonnées', 'tags'] },
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
