@@ -470,6 +470,7 @@ export default {
   'zone.activeGroup': 'Groupe actif',
   'zone.configure': 'Configurer',
   'zone.transferHere': 'Transférer la lecture ici',
+  'zone.transferTo': 'Transférer la lecture vers…',
   'zone.offline': 'Hors ligne',
   'zone.recovering': 'Reconnexion...',
   'zone.recovered': 'Reconnecté',
