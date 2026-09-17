@@ -16,6 +16,7 @@
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
   import { signalerEchecLecture } from '../../lib/echecLecture';
+  import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { activeView } from '../../lib/stores/navigation';
@@ -204,6 +205,28 @@
     if (zid == null || pl.id == null) return;
     playAndSync(zid, { playlist_id: pl.id }).catch(signalerEchecLecture);
   }
+
+  /**
+   * « Lecture aléatoire » depuis la VIGNETTE — Bertrand, 17/09/2026 (point 4 :
+   * « Playlists ou Smart playlists, ajouter bouton lecture aléatoire »). La
+   * fiche d'une playlist l'avait déjà ; la grille, non. Mélange côté client
+   * (`lireListeAleatoire`), comme la fiche et les collections : la zone garde
+   * son propre mode aléatoire.
+   */
+  async function lireLocalAleatoire(pl: Playlist) {
+    const zid = $currentZoneId;
+    if (zid == null || pl.id == null) return;
+    try {
+      const pistes = (await api.getPlaylistTracks(pl.id)) ?? [];
+      await lireListeAleatoire(pistes, gestesDeLecture(zid));
+    } catch (e) {
+      signalerEchecLecture(e);
+    }
+  }
+  const gestesDeLecture = (zid: number) => ({
+    lire: (c: any) => playAndSync(zid, c),
+    enfiler: (c: any) => api.addToQueue(zid, c),
+  });
   /**
    * DEUX ONGLETS, comme les collections.
    *
@@ -279,16 +302,24 @@
     if (onglet === 'smart') void chargerSmart();
   });
 
-  function lireSmart(sp: any) {
+  function lireSmart(sp: any, aleatoire = false) {
     const zid = $currentZoneId;
     if (zid == null || sp?.id == null) return;
     // Pas de route « lire la playlist intelligente » : on lit ses pistes et on
     // enfile la liste. Une règle n'a pas d'identité de file côté serveur.
+    //
+    // `lireListe`, plus `track_ids` : depuis #4299, une règle « Source =
+    // Qobuz » ramène des favoris de SERVICE (id nul), que `track_ids`
+    // écartait en silence. Et l'aléatoire (point 4, 17/09/2026) passe par le
+    // même mélange que les playlists.
     api
       .getSmartPlaylistTracks(sp.id)
       .then((pistes) => {
-        const ids = (pistes ?? []).map((t: any) => t.id).filter((x: any) => x != null);
-        if (ids.length) return playAndSync(zid, { track_ids: ids.slice(0, 500) });
+        const liste = (pistes ?? []).slice(0, 500);
+        if (!liste.length) return;
+        return aleatoire
+          ? lireListeAleatoire(liste, gestesDeLecture(zid))
+          : lireListe(liste, gestesDeLecture(zid));
       })
       .catch(signalerEchecLecture);
   }
@@ -615,7 +646,8 @@
                        une RÈGLE, elle n'a pas d'identité dans `favorites` ni
                        dans `item_tags`. Un cœur qui ne s'allume pas serait
                        pire que pas de cœur. -->
-                  <PochetteActions onLire={() => lireSmart(sp)} nom={sp.name}>
+                  <PochetteActions onLire={() => lireSmart(sp)} nom={sp.name}
+                    menu={[{ libelle: $t('library.shuffle' as any), faire: () => lireSmart(sp, true) }]}>
                     {#if mos}
                       <MosaiquePochettes pochettes={mos} initiales={sp.name?.slice(0, 1)} alt={sp.name} />
                     {:else}
@@ -655,7 +687,10 @@
                     onLire={() => playLocal(pl)}
                     onOuvrir={() => ouvrirPl({ kind: 'local', pl })}
                     menu={pl.id != null
-                      ? [{ libelle: $t('v2.pl.share' as any), danger: true, faire: () => partager(pl) }]
+                      ? [
+                          { libelle: $t('library.shuffle' as any), faire: () => void lireLocalAleatoire(pl) },
+                          { libelle: $t('v2.pl.share' as any), danger: true, faire: () => partager(pl) },
+                        ]
                       : []}
                     nom={pl.name}
                   >

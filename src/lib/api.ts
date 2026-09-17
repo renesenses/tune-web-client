@@ -4773,6 +4773,29 @@ export function getBatchEnrichStatus() {
   );
 }
 
+/**
+ * Pochettes d'ALBUMS manquantes — `POST /library/artwork/enrich` (Cover Art
+ * Archive, puis Discogs quand un jeton est enregistré). Rend 202 et travaille
+ * en tâche de fond ; `skipped` quand aucun album n'est sans pochette.
+ * Demandé par Yves (réunion du 17/09/2026) pour l'écran Métadonnées.
+ */
+export function startAlbumArtworkEnrich() {
+  return fetchJSON<{ status: string; albums_to_process?: number; missing?: number; message?: string }>(
+    `${BASE}/library/artwork/enrich`,
+    { method: 'POST' },
+  );
+}
+
+/** Avancement de la passe ci-dessus : `result` est le dernier relevé écrit par
+ *  la tâche (`status: running` tant qu'elle tourne), `albums_without_cover`
+ *  le compte recalculé à l'instant. */
+export function getAlbumArtworkEnrichStatus() {
+  return fetchJSON<{
+    result: { status?: string; total?: number; searched?: number; enriched?: number; failed?: number } | null;
+    albums_without_cover: number;
+  }>(`${BASE}/library/artwork/enrich/status`);
+}
+
 // Artist image enrichment (community + Fanart/TheAudioDB/MusicBrainz by MBID,
 // then Discogs/Last.fm by name). Runs manually for everyone; the automatic
 // post-scan run is Premium-only.
