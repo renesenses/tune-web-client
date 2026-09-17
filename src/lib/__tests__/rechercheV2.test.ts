@@ -43,7 +43,9 @@ describe('Recherche v2 (retours Bertrand, 05/09/2026)', () => {
     // Il sort du PÉRIMÈTRE choisi, pas de tous les résultats : mettre en avant
     // un album d'un service qu'on vient d'écarter n'aurait pas de sens.
     expect(src).toContain('meilleurResultat(q, {');
-    expect(src).toContain('artistes: groupes.artistes.filter(dansLePerimetre)');
+    // …et du TYPE choisi (point 8, 17/09/2026) : restreint aux albums, pas
+    // d'artiste en tête.
+    expect(src).toContain('artistes: voirArtistes ? groupes.artistes.filter(dansLePerimetre) : []');
     expect(src).toContain('v2.rech.best');
     expect(src).toContain('api.getStreamingPlaylists(');
     expect(src).toContain('lirePlaylist');
@@ -111,10 +113,9 @@ describe('Recherche v2 (retours Bertrand, 05/09/2026)', () => {
     expect(src).toContain('groupes.pistes.filter(dansLePerimetre).length');
   });
 
-  it('les filtres par type sont TOUS allumés au départ', () => {
-    for (const f of ['voirArtistes', 'voirAlbums', 'voirTitres', 'voirPlaylists']) {
-      expect(src).toContain(`let ${f} = $state(true)`);
-    }
+  it('le type de recherche part sur « Tout » : rien n’est masqué au départ', () => {
+    // Point 8 (17/09/2026) : les pastilles sont devenues un choix unique.
+    expect(src).toContain("let typeRecherche = $state<TypeRecherche>('tout')");
   });
 
   it('la fusion met le local devant et marque la provenance', () => {

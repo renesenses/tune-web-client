@@ -1224,6 +1224,9 @@ export default {
   "settings.followMe": "따라오기",
   "settings.followMeLabel": "떠난 구역 일시정지",
   "settings.followMeHint": "구역을 전환할 때 떠난 구역의 재생을 일시정지하여 뒤에서 계속 재생되지 않도록 합니다. 기본값은 꺼짐(멀티룸을 위해 구역은 독립적).",
+  "settings.searchExact": "정확히 일치 검색",
+  "settings.searchExactLabel": "정확히 일치 검색",
+  "settings.searchExactHint": "입력한 단어를 그 순서대로 아티스트, 앨범, 트랙 이름에서 찾습니다(큰따옴표로 묶은 것과 같음).",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
@@ -4074,6 +4077,9 @@ export default {
   "v2.hist.daysAgo": "{n}일 전",
   "v2.rech.show": "표시",
   "v2.rech.artists": "아티스트",
+  "v2.rech.allTypes": "전체",
+  "v2.rech.labels": "레이블",
+  "v2.rech.labelAlbums": "앨범 {n}개",
   "v2.rech.albums": "앨범",
   "v2.stream.favIndex": "즐겨찾기 목차",
   "v2.fas.topTracks": "인기 트랙",

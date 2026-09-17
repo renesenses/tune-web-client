@@ -1504,6 +1504,9 @@ export default {
   "settings.followMe": "Follow me",
   "settings.followMeLabel": "Pause the zone you leave",
   "settings.followMeHint": "When switching zones, pause playback on the zone you were on so nothing keeps playing behind you. Off by default (zones stay independent for multi-room).",
+  "settings.searchExact": "Exact search",
+  "settings.searchExactLabel": "Exact search",
+  "settings.searchExactHint": "Match the typed words as a phrase, in that order, in an artist, album or track name — as if they were in double quotes. Double quotes still work without this setting.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
@@ -4094,6 +4097,9 @@ export default {
   "v2.hist.daysAgo": "{n} d ago",
   "v2.rech.show": "Show",
   "v2.rech.artists": "Artists",
+  "v2.rech.allTypes": "All",
+  "v2.rech.labels": "Labels",
+  "v2.rech.labelAlbums": "{n} albums",
   "v2.rech.albums": "Albums",
   "v2.stream.favIndex": "Favourites index",
   "v2.fas.topTracks": "Top tracks",

@@ -14,6 +14,8 @@
    * redéroule la recherche sur son nom et tout reste dans cet écran.
    */
   import * as api from '../../lib/api';
+  import { tick } from 'svelte';
+  import { type TypeRecherche, TYPES_RECHERCHE, sectionVisible, phrasesEntreGuillemets, respecteLesPhrases } from '../../lib/rechercheRestreinte';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { notifications } from '../../lib/stores/notifications';
   import { get } from 'svelte/store';
@@ -232,7 +234,7 @@
     const mine = ++seq;
     busy = true;
     const t = setTimeout(() => {
-      api.searchLibrary(query, 40)
+      api.searchLibrary(requeteExacte(query), 40)
         .then((r) => { if (mine === seq) local = r; })
         .catch(() => { if (mine === seq) local = null; })
         .finally(() => { if (mine === seq) busy = false; });
@@ -378,12 +380,27 @@
    */
   const groupes = $derived(fusionnerParType(local, fed));
 
-  // Filtres par type. Rien n'est masqué par défaut : ils servent à ÉCARTER
-  // quand une requête ramène trop, pas à révéler.
-  let voirArtistes = $state(true);
-  let voirAlbums = $state(true);
-  let voirTitres = $state(true);
-  let voirPlaylists = $state(true);
+  // RESTREINDRE par type — un choix unique (Yves Corbat, point 8, 17/09/2026).
+  // Les pastilles ÉCARTAIENT une section à la fois : ne garder que les albums
+  // demandait trois clics. « Tout » au départ, rien n'est masqué.
+  let typeRecherche = $state<TypeRecherche>('tout');
+  const voirArtistes = $derived(sectionVisible(typeRecherche, 'artistes'));
+  const voirLabels = $derived(sectionVisible(typeRecherche, 'labels'));
+  const voirAlbums = $derived(sectionVisible(typeRecherche, 'albums'));
+  const voirTitres = $derived(sectionVisible(typeRecherche, 'titres'));
+  const voirPlaylists = $derived(sectionVisible(typeRecherche, 'playlists'));
+  const LIBELLE_TYPE: Record<TypeRecherche, string> = {
+    tout: 'v2.rech.allTypes', artistes: 'v2.rech.artists', labels: 'v2.rech.labels',
+    albums: 'v2.rech.albums', titres: 'v2.rech.tracks', playlists: 'v2.rech.playlists',
+  };
+  // Les DOUBLES GUILLEMETS : une phrase exacte. Le serveur la tient pour la
+  // bibliothèque ; ce filtre la tient pour tout ce qui s'affiche, services
+  // compris.
+  // Le réglage « Recherche exacte » vaut des guillemets autour de la saisie
+  // entière — sauf si l'utilisateur en a déjà posé.
+  const requeteExacte = (brute: string) =>
+    $preferences.searchExact && !brute.includes('"') && brute.trim() ? `"${brute.trim()}"` : brute;
+  const phrases = $derived(phrasesEntreGuillemets(requeteExacte(q)));
 
   /**
    * PÉRIMÈTRE — où l'on a cherché, et où l'on veut chercher.
@@ -449,7 +466,25 @@
   });
 
   const dansLePerimetre = (x: any) =>
-    sourcesActives.size === 0 || sourcesActives.has(x?.source ?? 'local');
+    (sourcesActives.size === 0 || sourcesActives.has(x?.source ?? 'local'))
+    && respecteLesPhrases(x, phrases);
+
+  /** Labels de la bibliothèque (le seul endroit où un label se range). */
+  const labels = $derived(
+    voirLabels && (sourcesActives.size === 0 || sourcesActives.has('local'))
+      ? ((local?.labels ?? []) as { name: string; album_count: number }[])
+          .filter((l) => respecteLesPhrases(l, phrases))
+      : [],
+  );
+  const nbLabels = $derived(
+    ((local?.labels ?? []) as { name: string }[]).filter((l) => respecteLesPhrases(l, phrases)).length,
+  );
+  /** Même chemin que les favoris de facette : la Bibliothèque, onglet Labels. */
+  async function ouvrirLabel(nom: string) {
+    activeView.set('library');
+    await tick();
+    window.dispatchEvent(new CustomEvent('tune:v2-facette', { detail: { onglet: 'labels', valeur: nom } }));
+  }
 
   const nomSource = (k: string) =>
     k === 'local' ? $t('v2.rech.srcLocal' as any) : k.charAt(0).toUpperCase() + k.slice(1);
@@ -504,15 +539,15 @@
   const resteAlbums = $derived(albums.length - vusAlbums.length);
   const resteTitres = $derived(titres.length - vusTitres.length);
   const libelleVoirPlus = (n: number) => $t('v2.rech.seeMore' as any).replace('{n}', String(n));
-  const lesPlaylists = $derived(voirPlaylists ? playlists : []);
+  const lesPlaylists = $derived(voirPlaylists ? playlists.filter((pl) => respecteLesPhrases(pl, phrases)) : []);
 
   // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
   // sortir du périmètre choisi, sinon on met en avant un album d'un service
   // qu'on vient justement d'écarter.
-  const meilleur = $derived(meilleurResultat(q, {
-    artistes: groupes.artistes.filter(dansLePerimetre),
-    albums: groupes.albums.filter(dansLePerimetre),
-    pistes: groupes.pistes.filter(dansLePerimetre),
+  const meilleur = $derived(typeRecherche === 'labels' || typeRecherche === 'playlists' ? null : meilleurResultat(q, {
+    artistes: voirArtistes ? groupes.artistes.filter(dansLePerimetre) : [],
+    albums: voirAlbums ? groupes.albums.filter(dansLePerimetre) : [],
+    pistes: voirTitres ? groupes.pistes.filter(dansLePerimetre) : [],
   }));
 
   /** Une ligne locale porte un identifiant de bibliothèque ; une ligne de
@@ -524,7 +559,8 @@
 
   const nothing = $derived(
     q.trim().length >= 2 && !busy && !groupes.albums.length && !groupes.pistes.length &&
-    !groupes.artistes.length && !playlists.length && !(acoustic?.tracks.length)
+    !groupes.artistes.length && !playlists.length && !(acoustic?.tracks.length) &&
+    !(local?.labels?.length)
   );
 
   function lirePlaylist(pl: PlaylistTrouvee) {
@@ -679,14 +715,17 @@
       <span class="pl">{$t('v2.rech.show' as any)}</span>
       <!-- Les compteurs suivent le PÉRIMÈTRE : annoncer 152 albums alors qu'on
            s'est restreint à la bibliothèque serait un chiffre qui ment. -->
-      <button class="pill" class:on={voirArtistes} onclick={() => (voirArtistes = !voirArtistes)}
-        >{$t('v2.rech.artists' as any)} <b>{groupes.artistes.filter(dansLePerimetre).length}</b></button>
-      <button class="pill" class:on={voirAlbums} onclick={() => (voirAlbums = !voirAlbums)}
-        >{$t('v2.rech.albums' as any)} <b>{groupes.albums.filter(dansLePerimetre).length}</b></button>
-      <button class="pill" class:on={voirTitres} onclick={() => (voirTitres = !voirTitres)}
-        >{$t('v2.rech.tracks' as any)} <b>{groupes.pistes.filter(dansLePerimetre).length}</b></button>
-      <button class="pill" class:on={voirPlaylists} onclick={() => (voirPlaylists = !voirPlaylists)}
-        >{$t('v2.rech.playlists' as any)} <b>{playlists.length}</b></button>
+      {#each TYPES_RECHERCHE as ty (ty)}
+        {@const n = ty === 'artistes' ? groupes.artistes.filter(dansLePerimetre).length
+          : ty === 'labels' ? nbLabels
+          : ty === 'albums' ? groupes.albums.filter(dansLePerimetre).length
+          : ty === 'titres' ? groupes.pistes.filter(dansLePerimetre).length
+          : ty === 'playlists' ? playlists.filter((pl) => respecteLesPhrases(pl, phrases)).length
+          : null}
+        <button class="pill" class:on={typeRecherche === ty} aria-pressed={typeRecherche === ty}
+          onclick={() => (typeRecherche = ty)}
+          >{$t(LIBELLE_TYPE[ty] as any)}{#if n != null} <b>{n}</b>{/if}</button>
+      {/each}
     </div>
   {/if}
 
@@ -867,6 +906,20 @@
               {/if}
             </div>
           {/if}
+        </section>
+      {/if}
+
+      {#if labels.length}
+        <section class="grp">
+          <h2>{$t('v2.rech.labels' as any)}</h2>
+          <div class="labels">
+            {#each labels as l (l.name)}
+              <button class="lab" onclick={() => ouvrirLabel(l.name)} title={l.name}>
+                <span class="ln">{l.name}</span>
+                <span class="lc">{$t('v2.rech.labelAlbums' as any).replace('{n}', String(l.album_count))}</span>
+              </button>
+            {/each}
+          </div>
         </section>
       {/if}
 
@@ -1147,6 +1200,11 @@
   /* Pastilles de filtre par type — elles ECARTENT, elles ne revelent pas :
      tout est allume au depart. */
   .pills{display:flex; align-items:center; gap:9px; flex-wrap:wrap; padding:2px 30px 10px}
+  .labels{display:flex; flex-wrap:wrap; gap:8px}
+  .lab{display:flex; flex-direction:column; align-items:flex-start; gap:2px; max-width:260px; padding:8px 12px; border-radius:10px; border:1px solid var(--v2-line2); background:var(--v2-surface2); color:var(--v2-txt); cursor:pointer; text-align:left}
+  .lab:hover{border-color:var(--v2-acc1)}
+  .ln{font-weight:600; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lc{font-size:12px; color:var(--v2-txt3)}
   .pl{font:600 10px var(--v2-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--v2-txt3)}
   .pill{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt3); cursor:pointer;
     border-radius:var(--v2-r-pill); padding:6px 13px; font:600 12px var(--v2-sans)}

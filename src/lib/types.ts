@@ -631,6 +631,9 @@ export interface SearchResult {
   tracks: Track[];
   albums: Album[];
   artists: Artist[];
+  /** Labels de la bibliothèque dont le nom correspond (point 8, 17/09/2026).
+   *  Absent des serveurs antérieurs et des services. */
+  labels?: { name: string; album_count: number }[];
   /**
    * Playlists du CATALOGUE du service — celles que la recherche fait remonter,
    * pas celles que possède l'utilisateur (`StreamingPlaylist`, qui porte en

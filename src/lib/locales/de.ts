@@ -1248,6 +1248,9 @@ export default {
   "settings.followMe": "Mir folgen",
   "settings.followMeLabel": "Verlassene Zone pausieren",
   "settings.followMeHint": "Beim Zonenwechsel die Wiedergabe der verlassenen Zone pausieren, damit nichts hinter dir weiterläuft. Standardmäßig aus (Zonen bleiben unabhängig für Multiroom).",
+  "settings.searchExact": "Exakte Suche",
+  "settings.searchExactLabel": "Exakte Suche",
+  "settings.searchExactHint": "Sucht die eingegebenen Wörter als Phrase, in dieser Reihenfolge, im Namen eines Interpreten, Albums oder Titels – als stünden sie in Anführungszeichen.",
 
   // Squeezebox / Lyrion
   'settings.squeezebox': 'Squeezebox / Lyrion',
@@ -4074,6 +4077,9 @@ export default {
   "v2.hist.daysAgo": "vor {n} T.",
   "v2.rech.show": "Anzeigen",
   "v2.rech.artists": "Interpreten",
+  "v2.rech.allTypes": "Alle",
+  "v2.rech.labels": "Labels",
+  "v2.rech.labelAlbums": "{n} Alben",
   "v2.rech.albums": "Alben",
   "v2.stream.favIndex": "Favoriten-Übersicht",
   "v2.fas.topTracks": "Top-Titel",
