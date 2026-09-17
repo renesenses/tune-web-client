@@ -1604,6 +1604,8 @@
   {/if}
   {#if resolvedCoverUrl}
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
+    <!-- Teinte du THÈME par-dessus la pochette assombrie — voir `.bg-teinte`. -->
+    <div class="bg-teinte" aria-hidden="true"></div>
   {/if}
 
   <!-- Scrollable content wrapper: keeps the now-playing content scrollable on
@@ -2622,6 +2624,36 @@
     transform: scale(1.2);
     z-index: 0;
     transition: background-image 1s ease-in-out;
+  }
+
+  /*
+    LA TEINTE DU THÈME — Bertrand, 17/09/2026 (point 5) : « Lecture en cours :
+    fond de la fenêtre principale n'est pas tout à fait en accord avec le
+    thème ».
+
+    `.bg-blur` assombrie à 0.12 (#993) donne un noir-gris NEUTRE ; les thèmes
+    sombres du nouveau client sont TEINTÉS (Midnight Orange #0B1020, Brown
+    #17110D, Black Blue #06111A…) : à côté de la barre latérale et du lecteur,
+    la fenêtre principale jurait. Une couche de la couleur du thème, à 78 %,
+    ramène le ton sans remplacer la pochette (arbitrage du 13/09 : assombrir,
+    pas remplacer) ni rendre du contraste — le fond reste aussi sombre.
+
+    `var(--v2-bg, transparent)` : hors du nouveau client le jeton n'existe
+    pas, la couche est transparente, rien ne change. Écartée sur les deux
+    thèmes CLAIRS : un voile clair sur la pochette noircie ferait un gris
+    moyen sous du texte blanc — le défaut même de #993.
+  */
+  .bg-teinte {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--v2-bg, transparent);
+    opacity: 0.78;
+  }
+  :global(:root[data-v2-theme="clear-white"]) .bg-teinte,
+  :global(:root[data-v2-theme="clear-grey"]) .bg-teinte {
+    display: none;
   }
 
   .content-layout {
