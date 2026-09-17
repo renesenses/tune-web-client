@@ -37,6 +37,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import { estDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
@@ -517,7 +518,9 @@
   /** Une ligne locale porte un identifiant de bibliothèque ; une ligne de
    *  service n'en a pas — c'est ce qui décide du cœur, du crayon et du geste
    *  de lecture. */
-  const estLocal = (x: any) => (x?.source ?? 'local') === 'local' && x?.id != null;
+  // `upnp` est une provenance de bibliothèque, pas un service (#4201) — un
+  // album UPnP de la Recherche s'ouvrait chez le « service » upnp.
+  const estLocal = (x: any) => estDeBibliotheque(x);
 
   const nothing = $derived(
     q.trim().length >= 2 && !busy && !groupes.albums.length && !groupes.pistes.length &&
