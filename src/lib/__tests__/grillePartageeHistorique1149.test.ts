@@ -167,8 +167,16 @@ describe('#1149 — une SEULE grille pour la ligne d’objet et la ligne de pist
 
   /** ⚠️ CE QU'IL NE FAUT PAS CASSER — le tableau garde sa propre composition. */
   it('le gabarit du tableau finit toujours par actions puis suffixe', () => {
-    expect(liste()).toMatch(/gabaritGrille\(colonnes\)\} \$\{LARGEUR_ACTIONS\}/);
+    // #1061 : la largeur d'actions est choisie entre DEUX constantes selon que
+    // l'écran pose le bouton « Lire à partir d'ici ». L'Historique ne le pose
+    // pas — sa colonne reste `LARGEUR_ACTIONS`, celle que sa ligne d'objet
+    // importe. Ce qui compte ici est l'ORDRE : actions, puis suffixe.
+    expect(liste()).toMatch(/gabaritGrille\(colonnes\)\} \$\{largeurDesActions\}/);
+    expect(liste()).toMatch(/const largeurDesActions = \$derived\(onLireDepuis \? LARGEUR_ACTIONS_DEPUIS : LARGEUR_ACTIONS\)/);
     expect(liste()).toMatch(/apres \? ` \$\{largeurApres\}` : ''/);
+    // 🔴 et l'Historique reste sur la largeur à SEPT boutons : sa ligne
+    // d'objet compose avec `LARGEUR_ACTIONS`, les deux dérivraient sinon.
+    expect(hist()).not.toContain('onLireDepuis');
   });
 
   /**
