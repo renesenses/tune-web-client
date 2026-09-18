@@ -40,6 +40,7 @@
   import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear } from '../../lib/stores/navigation';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
+  import { destinationDeRetour } from '../../lib/destinationDeRetour';
   import { setSearchCriteria } from '../../lib/stores/shortcuts';
   import VolumeControl from './VolumeControl.svelte';
   import ZoneOutputBanner from './ZoneOutputBanner.svelte';
@@ -1581,7 +1582,11 @@
 </script>
 
 <div class="now-playing" class:wide={isWide} class:queue-open={queueSheetState !== 'collapsed'} style="--np-reserve-file: {reserveFileAttente}px" bind:clientWidth={containerWidth} onwheel={handleNpWheel} onmousedown={handleNpMiddlePress}>
-  <button class="np-back-btn" onclick={() => activeView.set($previousView && $previousView !== 'nowplaying' ? $previousView : 'library')} title={$t('nowplaying.back')}>
+  <!-- #1134 : la vue d'avant n'est pas toujours une destination. Sortir du
+       Grand écran par un clic laisse `previousView = 'tv'`, et ce bouton
+       remontait donc le mode que l'utilisateur venait de quitter. La table de
+       `destinationDeRetour` tranche le cas de CHAQUE vue. -->
+  <button class="np-back-btn" onclick={() => activeView.set(destinationDeRetour($previousView, { depuis: 'nowplaying', repli: 'library' }))} title={$t('nowplaying.back')}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
   <!-- Seul bouton de l'écran rendu hors de la garde `displayTrack` : il passait
