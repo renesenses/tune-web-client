@@ -290,31 +290,67 @@
     go('streaming');
   }
 
-  // Repli de la barre (bouton ⟵ du brouillon v3) : la barre se reduit aux
-  // icones. Le choix persiste par navigateur — c'est une preference de
-  // place a l'ecran, pas un reglage de compte a synchroniser.
-  let collapsed = $state(false);
+  /**
+   * Repli de la barre (bouton ⟵ du brouillon v3) : la barre se reduit aux
+   * icones. Le choix persiste par navigateur — c'est une preference de
+   * place a l'ecran, pas un reglage de compte a synchroniser.
+   *
+   * 🔴 TROIS états, pas deux — #1151. `null` veut dire « l'utilisateur n'a
+   * rien demandé », et c'est alors le palier qui tranche. Un simple booléen
+   * confondait « déplié par choix » et « pas de choix », ce qui interdisait de
+   * distinguer le défaut du palier étroit d'un dépliage voulu.
+   */
+  let choixRepli = $state<boolean | null>(null);
   $effect(() => {
-    try { collapsed = localStorage.getItem('tune_v2_sidebar_collapsed') === '1'; } catch { /* ignore */ }
+    try {
+      const v = localStorage.getItem('tune_v2_sidebar_collapsed');
+      choixRepli = v === null ? null : v === '1';
+    } catch { /* ignore */ }
   });
-  function toggleCollapse() {
-    collapsed = !collapsed;
-    try { localStorage.setItem('tune_v2_sidebar_collapsed', collapsed ? '1' : '0'); } catch { /* ignore */ }
-  }
 
   /**
-   * Ce que la LARGEUR impose, par-dessus le choix de l'utilisateur.
+   * Ce que la LARGEUR impose, et ce que l'utilisateur peut en reprendre.
    *
-   * Le choix manuel ne vaut qu'au palier « large » : sous 1100 px on replie
-   * d'office, sous 760 px la barre sort du flux et retrouve ses libellés — un
-   * tiroir posé PAR-DESSUS la vue a toute la place, il n'a aucune raison de se
-   * réduire à des icônes.
+   * Sous 760 px la barre sort du flux et retrouve ses libellés — un tiroir
+   * posé PAR-DESSUS la vue a toute la place, il n'a aucune raison de se
+   * réduire à des icônes. Sous 1100 px, elle se replie d'office : 236 px sur
+   * une fenêtre de 1000 px, c'est un quart de l'écran pour des libellés qu'on
+   * connaît par cœur.
    *
-   * Il n'est jamais ÉCRASÉ pour autant : rien n'est écrit dans le stockage
-   * ici. Rendre la fenêtre à sa taille rend son état à l'utilisateur.
+   * 🔴 Mais d'office ne veut plus dire SANS RECOURS — #1151. Benjithom,
+   * fil 1780, sur Safari iPad : la barre était bloquée en icônes et le bouton
+   * de repli, rendu là comme ailleurs, n'y pouvait rien. Le seul moyen de
+   * retrouver les libellés était de descendre sous 760 px ou de remonter
+   * au-dessus de 1100 px — sur une tablette, ni l'un ni l'autre ne dépend de
+   * l'utilisateur. Le palier ne fixe donc plus que le DÉFAUT : un choix
+   * explicite l'emporte à tous les paliers en flux.
+   *
+   * Le choix n'est jamais ÉCRASÉ pour autant : rien n'est écrit dans le
+   * stockage ici. Rendre la fenêtre à sa taille rend son état à l'utilisateur.
    */
   const enTiroir = $derived($formatEcran === 'tiroir');
-  const enIcones = $derived($formatEcran === 'etroit' || (collapsed && !enTiroir));
+  /**
+   * 🔴 L'UNIQUE état d'affichage, et le cœur de #1151.
+   *
+   * Tout ce qui dépend du repli lit CETTE variable et aucune autre : la classe
+   * `.collapsed` (donc le `display:none` des libellés), les infobulles de
+   * secours, l'intitulé du bouton et la pastille de mise à jour. Le défaut
+   * corrigé ici était exactement d'avoir deux lectures — la barre se rendait
+   * sur `enIcones`, elle s'expliquait sur la préférence brute. Au palier
+   * étroit, préférence vide, cela donnait `display:none` sur le libellé ET
+   * `title={undefined}` : l'icône n'était nommée nulle part, ni pour la souris
+   * ni pour VoiceOver (un `<span>` en `display:none` ne compte pas dans le nom
+   * accessible).
+   */
+  const enIcones = $derived(!enTiroir && (choixRepli ?? $formatEcran === 'etroit'));
+
+  function toggleCollapse() {
+    // On inverse l'état RÉELLEMENT AFFICHÉ, pas la préférence : au palier
+    // étroit sans choix, la barre est repliée et le bouton doit la déplier.
+    const veut = !enIcones;
+    choixRepli = veut;
+    try { localStorage.setItem('tune_v2_sidebar_collapsed', veut ? '1' : '0'); } catch { /* ignore */ }
+  }
 
   function fermerTiroir() { tiroirOuvert.set(false); }
   function auClavier(e: KeyboardEvent) {
@@ -356,7 +392,7 @@
         <div class="ver">v{versionCourante}</div>
       {/if}
     </div>
-    {#if collapsed && $updateAvailable}
+    {#if enIcones && $updateAvailable}
       <!-- Repliée, `.txt` est masqué : sans ce point, l'annonce disparaîtrait
            entièrement dès qu'on replie la barre. -->
       <button class="maj-point" onclick={ouvrirMaj}
@@ -364,8 +400,8 @@
         title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}></button>
     {/if}
     <button class="collapse" onclick={toggleCollapse}
-      aria-label={collapsed ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}
-      title={collapsed ? $t('v2.nav.expand' as any) : $t('v2.nav.collapse' as any)}>
+      aria-label={enIcones ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}
+      title={enIcones ? $t('v2.nav.expand' as any) : $t('v2.nav.collapse' as any)}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
     </button>
   </div>
@@ -373,7 +409,7 @@
   <div class="navscroll">
     <nav class="grp">
       {#each CORE as it (it.view)}
-        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={collapsed ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -385,7 +421,7 @@
           {#each servicesBarre as svc (svc)}
             <button class="nav svc"
               class:active={$activeView === 'streaming' && $activeStreamingService === svc}
-              onclick={() => allerService(svc)} title={collapsed ? nomService(svc) : undefined}>
+              onclick={() => allerService(svc)} title={enIcones ? nomService(svc) : undefined}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M10 8.5l6 3.5-6 3.5z" /></svg>
               <span>{nomService(svc)}</span>
             </button>
@@ -396,7 +432,7 @@
 
     <nav class="grp reveal" class:show={showAdvanced} aria-hidden={!showAdvanced}>
       {#each ADVANCED as it (it.view)}
-        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={collapsed ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -415,7 +451,7 @@
       -->
       <div class="grp-label"><span>{$t('v2.nav.shortcuts' as any)}</span></div>
         {#each raccourcisVisibles as sc (sc.id)}
-          <button class="nav" onclick={() => navigateToShortcut(sc)} title={collapsed ? sc.name : undefined}>
+          <button class="nav" onclick={() => navigateToShortcut(sc)} title={enIcones ? sc.name : undefined}>
             <span class="emo" aria-hidden="true">{sc.icon}</span>
             <span>{sc.name}</span>
           </button>
@@ -426,7 +462,7 @@
            la gestion inatteignable tant qu'on en avait peu. -->
       {#if $shortcuts.length}
         <button class="nav tous" class:active={$activeView === 'shortcuts'}
-          onclick={() => go('shortcuts')} title={collapsed ? $t('v2.nav.allShortcuts' as any) : undefined}>
+          onclick={() => go('shortcuts')} title={enIcones ? $t('v2.nav.allShortcuts' as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           <span>{$t('v2.nav.allShortcuts' as any)} ({$shortcuts.length})</span>
         </button>
@@ -436,7 +472,7 @@
     <nav class="grp">
       <div class="grp-label">{$t('v2.nav.selections' as any)}</div>
       {#each SELECTIONS as it (it.view)}
-        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={collapsed ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -446,7 +482,7 @@
     <nav class="grp reveal" class:show={showStudio} aria-hidden={!showStudio}>
       <div class="grp-label">{$t('v2.nav.studio' as any)}</div>
       {#each STUDIO as it (it.view)}
-        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={collapsed ? $t(it.labelKey as any) : undefined}>
+        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
@@ -454,7 +490,13 @@
     </nav>
   </div>
 
-  <button class="nav support" onclick={() => go('support')}>
+  <!-- 🔴 Le Support est la SEULE entrée qui n'avait aucune infobulle — même
+       dépliée elle n'en a pas besoin, mais repliée elle devenait une bulle de
+       dialogue anonyme en bas de colonne (#1151). La clé existe déjà
+       (`v2.nav.support`), elle est celle du libellé juste en dessous : aucune
+       traduction nouvelle. -->
+  <button class="nav support" onclick={() => go('support')}
+    title={enIcones ? $t('v2.nav.support' as any) : undefined}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
     <span>{$t('v2.nav.support' as any)}</span>
   </button>
