@@ -8,6 +8,7 @@
   import { currentZone } from '../../lib/stores/zones';
   import { currentTrack, currentTrackId, seekPositionMs, playbackState } from '../../lib/stores/nowPlaying';
   import { activeView, previousView } from '../../lib/stores/navigation';
+  import { destinationDeRetour } from '../../lib/destinationDeRetour';
   import {
     fetchTrackLyrics,
     fetchLyricsByMeta,
@@ -138,10 +139,14 @@
   }
 
   // ─── Sortie : Échap ou clic ─────────────────────────────────────────────
+  // #1134 : la même table que le bouton Retour de « Lecture en cours ». Ce
+  // chemin-ci ne change pas en pratique — on entre dans le Grand écran depuis
+  // « Lecture en cours », donc `previousView` y vaut presque toujours
+  // `'nowplaying'` — mais les deux sorties lisent désormais le MÊME contrat,
+  // plutôt que chacune sa comparaison en dur.
   function exitTv() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    const prev = get(previousView);
-    activeView.set(prev && prev !== 'tv' ? prev : 'nowplaying');
+    activeView.set(destinationDeRetour(get(previousView), { depuis: 'tv', repli: 'nowplaying' }));
   }
   // Listener en capture (cf. onMount) : preventDefault + stopPropagation
   // court-circuitent le mapping global de lib/keyboard.ts (sinon les flèches

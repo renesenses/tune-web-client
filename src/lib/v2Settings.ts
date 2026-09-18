@@ -70,6 +70,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'playback',   titleKey: 'settings.playback',  from: 'general', min: 'beginner', keywords: ['lecture', 'volume'] },
       { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage'] },
+      // Bertrand, 16/09/2026 : la v2 savait basculer de profil (menu avatar),
+      // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.
+      { id: 'profiles',   titleKey: 'settings.tabProfiles', from: 'profiles', min: 'beginner', keywords: ['profils', 'utilisateurs', 'multi-profil', 'qui écoute'] },
       { id: 'voice',      title: 'Tune Voice AI',         from: 'general', min: 'expert',   keywords: ['voix', 'commande vocale'] },
     ],
   },
