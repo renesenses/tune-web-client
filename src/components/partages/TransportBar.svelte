@@ -1231,18 +1231,14 @@
                 {/if}
               </span>
             </button>
-            {#if currentZonePlaying && z.id !== $currentZoneId}
-              <button
-                class="zone-transfer-btn"
-                class:busy={transferringTo === z.id}
-                disabled={transferringTo !== null}
-                onclick={(e) => transfererVers(z.id, e)}
-                title={$t('zone.transferHere')}
-                aria-label={$t('zone.transferHere')}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
-              </button>
-            {/if}
+            <!--
+              #1192 — la flèche par zone a été RETIRÉE (FabienM, fil 1839,
+              point 1). Elle et le bouton dédié « Transférer la lecture vers… »
+              faisaient le même geste à deux endroits, et le sélecteur de zones
+              en portait alors deux qui se ressemblent : commuter la zone
+              pilotée, et déplacer la lecture. C'est exactement la confusion
+              que le bouton dédié était censé lever.
+            -->
             </div>
           {/each}
         </div>
@@ -1280,6 +1276,7 @@
                 role="menuitem"
                 disabled={transferringTo !== null}
                 onclick={(e) => transfererVers(z.id, e)}
+                title={$t('zone.transferHere')}
               >
                 <span class="zone-dot" class:online={z.online !== false && z.recovery_started_at == null} class:recovering={z.recovery_started_at != null}></span>
                 <span class="zone-popover-icon"><ZoneTypeIcon type={z.output_type} size={16} /></span>
@@ -2239,34 +2236,6 @@
        tenir le bord droit. */
     flex: 1 1 auto;
     min-width: 0;
-  }
-
-  /* La flèche « Transférer la lecture ici ». Elle n'apparaît que lorsque la
-     zone courante joue ou est en pause : sinon le serveur répond
-     `400 nothing playing to transfer`. */
-  .zone-transfer-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    width: 34px;
-    background: none;
-    border: none;
-    border-left: 1px solid var(--tune-border);
-    color: var(--tune-text-muted);
-    cursor: pointer;
-    transition: color 0.12s, background 0.12s;
-  }
-  .zone-transfer-btn:hover:not(:disabled) {
-    color: var(--tune-accent);
-    background: var(--tune-surface-hover);
-  }
-  .zone-transfer-btn:disabled {
-    cursor: default;
-  }
-  .zone-transfer-btn.busy {
-    color: var(--tune-accent);
-    opacity: 0.6;
   }
 
   /* Le bloc de texte porte désormais deux lignes (nom de zone, appareil) :
