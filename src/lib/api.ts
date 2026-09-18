@@ -66,6 +66,39 @@ import type {
 } from './types';
 
 import { baseApi, entetesRelais } from './bridge';
+import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
+
+/**
+ * L'erreur d'un refus premium 402 — **seul** constructeur de cette forme dans
+ * le client, et le seul endroit où se choisit la phrase montrée (#884).
+ *
+ * Rend `null` quand la réponse n'est pas un 402 : l'appelant enchaîne alors sur
+ * son chemin d'erreur habituel. Rend l'erreur SANS la lever, pour que chaque
+ * point d'entrée garde sa façon de la propager (`throw`, bandeau, sentinelle).
+ *
+ * ⚠️ Un `Response` ne se lit qu'UNE fois : cette lecture consomme le corps, et
+ * c'est pour cela qu'elle doit passer avant `apiError`/`erreurDepuisReponse`.
+ * Un corps illisible n'est jamais une raison de perdre le refus — on retombe
+ * sur la phrase générique.
+ *
+ * `message` reste la phrase traduite par le client ; `code` reste
+ * `premium_required`, la valeur que `estRefusPremium`, `motifEchecEq` et
+ * `stores/profile` comparent depuis #2178 — sauf pour le plafond de zones
+ * gratuit, qui n'est pas une fonction payante et porte son propre code (#3672).
+ */
+async function refusPremiumDe(response: Response): Promise<ApiError | null> {
+  if (response.status !== 402) return null;
+  let corps: CorpsRefusPremium = null;
+  try {
+    corps = (await response.json()) as CorpsRefusPremium;
+  } catch {
+    /* corps illisible : la phrase générique reste juste */
+  }
+  const err = new Error(messageRefusPremium(corps)) as ApiError;
+  err.status = 402;
+  err.code = corps?.code === 'free_zone_cap_reached' ? corps.code : 'premium_required';
+  return err;
+}
 
 /**
  * Base des appels d'API.
@@ -173,6 +206,10 @@ export async function apiFetch(path: string): Promise<any> {
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
+  // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
+  // du serveur est composé en français par `require_premium`, il ne doit jamais
+  // atteindre l'écran. Une seule aide, une seule phrase, onze langues.
+  if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -192,6 +229,10 @@ export async function apiPost(path: string, body?: any): Promise<any> {
     body: body ? JSON.stringify(body) : undefined,
   });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
+  // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
+  // du serveur est composé en français par `require_premium`, il ne doit jamais
+  // atteindre l'écran. Une seule aide, une seule phrase, onze langues.
+  if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -211,6 +252,10 @@ export async function apiPatch(path: string, body?: any): Promise<any> {
     body: body ? JSON.stringify(body) : undefined,
   });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
+  // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
+  // du serveur est composé en français par `require_premium`, il ne doit jamais
+  // atteindre l'écran. Une seule aide, une seule phrase, onze langues.
+  if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   if (text.trimStart().startsWith('<!') || text.trimStart().toLowerCase().startsWith('<html')) {
@@ -225,6 +270,10 @@ export async function apiDelete(path: string): Promise<any> {
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}${stripDoubleBase(path)}`, { method: 'DELETE', headers });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
+  // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
+  // du serveur est composé en français par `require_premium`, il ne doit jamais
+  // atteindre l'écran. Une seule aide, une seule phrase, onze langues.
+  if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   const text = await resp.text();
   // Tolerate empty bodies (e.g. HTTP 204 No Content from delete_radio_favorite):
@@ -395,14 +444,13 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     // distingue desormais les deux par un `code` stable ; l'interface porte sa
     // propre phrase pour chacun.
     if (response.status === 402) {
-      const refus = await codeDuRefus(response);
-      if (refus?.code === 'free_zone_cap_reached') {
-        const n = String(refus.zone_limit ?? '');
-        notifications.error(get(t)('zone.freeCapReached').replace('{n}', n));
-        throw erreurSentinelle('premium_required', 402, refus.code);
-      }
-      notifications.error(get(t)('premium.required'));
-      throw erreurSentinelle('premium_required', 402, 'premium_required');
+      // #884 — la phrase vient de l'aide partagée `messageRefusPremium`, comme
+      // partout ailleurs : `fetchJSON` était le SEUL chemin couvert par #2419.
+      const refus = await refusPremiumDe(response);
+      notifications.error(refus!.message);
+      // La sentinelle garde son message : les appelants historiques comparent
+      // `premium_required` (`motifEchecEq`, `stores/profile`, #2178).
+      throw erreurSentinelle('premium_required', 402, refus!.code);
     }
     const err = await apiError(response);
     /**
@@ -508,6 +556,12 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
       clearToken();
       throw erreurSentinelle('Session expired', 401);
     }
+    // #884 — `fetchVoid` porte les ÉCRITURES (grouper des zones, poser un EQ) :
+    // c'est par lui que passaient les refus premium les plus visibles, et il
+    // relayait le français du serveur tel quel. Il ne pose pas de bandeau
+    // lui-même hors panne : ses appelants affichent `e.message`, qui est
+    // désormais la phrase de l'application.
+    if (response.status === 402) throw (await refusPremiumDe(response))!;
     const err = await apiError(response);
     /**
      * 🔴 501 N'EST PAS UNE PANNE — ici non plus (#1148).
@@ -1920,6 +1974,10 @@ export interface AlbumDetailed {
   format: string | null;
   sample_rate: number | null;
   bit_depth: number | null;
+  /** Le disque est-il une compilation ? Servi par la route depuis #1957
+   *  (`MAX(al.is_compilation)`), jamais déclaré ici — d'où l'écran qui ne
+   *  pouvait pas le montrer. Voir `Album.is_compilation` : ABSENT ≠ FAUX. */
+  is_compilation?: boolean;
 }
 
 /** Albums agrégés pour la vue cartes. `filters` = les mêmes paramètres de
@@ -2069,7 +2127,15 @@ export function updateAlbum(id: number, data: { title?: string; artist_id?: numb
   });
 }
 
-export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string; year?: number; artist_id?: number; artist_name?: string; label?: string }) {
+/**
+ * Édition en lot des albums cochés.
+ *
+ * `is_compilation` (serveur #4427) : absent veut dire « je n'y touche pas »,
+ * jamais « faux » — on change le genre d'une sélection sans lui reprendre son
+ * drapeau. Le serveur pose en même temps le marqueur d'édition manuelle, ce
+ * qui empêche le scan de revenir sur la décision.
+ */
+export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string; year?: number; artist_id?: number; artist_name?: string; label?: string; is_compilation?: boolean }) {
   return fetchJSON<{ updated: number; total: number }>(`${BASE}/library/albums/batch-update`, {
     method: 'POST',
     body: JSON.stringify({ album_ids: albumIds, ...updates }),
@@ -3123,6 +3189,11 @@ export async function downloadDiagnosticsBundle(): Promise<{ blob: Blob; filenam
     clearToken();
     throw new Error('Session expirée — reconnecte-toi puis relance l’export');
   }
+  // #884 — l'archive de diagnostic n'est pas gardée premium aujourd'hui, mais
+  // la règle est la MÊME pour tout point d'entrée qui traite le 401 : un 402
+  // ne se raconte que par l'aide partagée. Une exception tolérée est la porte
+  // par laquelle le prochain oubli entre.
+  if (res.status === 402) throw (await refusPremiumDe(res))!;
   if (!res.ok) throw new Error(`Diagnostics bundle failed (${res.status})`);
   const cd = res.headers.get('Content-Disposition') ?? '';
   const m = /filename="([^"]+)"/.exec(cd);
@@ -5176,6 +5247,10 @@ export async function importerPontRoon(
     body: corps,
   });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
+  // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
+  // du serveur est composé en français par `require_premium`, il ne doit jamais
+  // atteindre l'écran. Une seule aide, une seule phrase, onze langues.
+  if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as RapportPontRoon;
 }
@@ -5926,6 +6001,10 @@ export async function createSupportTicketMultipart(form: FormData): Promise<any>
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const resp = await fetch(`${BASE}/support/tickets`, { method: 'POST', headers, body: form });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
+  // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
+  // du serveur est composé en français par `require_premium`, il ne doit jamais
+  // atteindre l'écran. Une seule aide, une seule phrase, onze langues.
+  if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   if (!resp.ok) {
     let message = `${resp.status}`;
     let corps: unknown = null;
@@ -6148,6 +6227,10 @@ async function applianceFetch(path: string, body?: any): Promise<any> {
     body: body ? JSON.stringify(body) : undefined,
   });
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
+  // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
+  // du serveur est composé en français par `require_premium`, il ne doit jamais
+  // atteindre l'écran. Une seule aide, une seule phrase, onze langues.
+  if (resp.status === 402) throw (await refusPremiumDe(resp))!;
   let json: any = null;
   try { json = await resp.json(); } catch { /* non-JSON body */ }
   if (!resp.ok) throw new Error(json?.error || `${resp.status}`);
