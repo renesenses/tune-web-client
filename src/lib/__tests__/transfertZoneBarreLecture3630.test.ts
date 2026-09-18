@@ -66,14 +66,33 @@ function ouvrirLeSelecteur(el: HTMLElement) {
   flushSync();
 }
 
-/** Le bouton de transfert de la ligne dont le nom est donné. */
-function transfertDe(el: HTMLElement, nom: string): HTMLButtonElement | null {
-  for (const rangee of Array.from(el.querySelectorAll('.zone-popover-row'))) {
-    if (rangee.textContent?.includes(nom)) {
-      return rangee.querySelector('.zone-transfer-btn') as HTMLButtonElement | null;
-    }
+/**
+ * #1192 — le geste a changé de porte, pas de nature.
+ *
+ * FabienM, fil 1839, point 1 : la flèche par zone et le bouton dédié faisaient
+ * la même chose à deux endroits. La flèche est retirée ; le transfert passe
+ * désormais par le bouton « Transférer la lecture vers… » à droite de la barre,
+ * qui ouvre sa propre liste de cibles. Ce témoin suit ce déplacement : il
+ * continue de CLIQUER et de regarder l'appel HTTP, il ne lit pas le balisage.
+ */
+function ouvrirLeMenuDeTransfert(el: HTMLElement) {
+  const bouton = el.querySelector('.transfer-bar-btn') as HTMLButtonElement | null;
+  expect(bouton, 'le bouton « Transférer la lecture vers… » a disparu de la barre').not.toBeNull();
+  bouton!.click();
+  flushSync();
+}
+
+/** La cible nommée, dans le menu du bouton dédié. */
+function cibleDeTransfert(el: HTMLElement, nom: string): HTMLButtonElement | null {
+  for (const item of Array.from(el.querySelectorAll('.zone-popover [role="menuitem"]'))) {
+    if (item.textContent?.includes(nom)) return item as HTMLButtonElement;
   }
   return null;
+}
+
+/** La flèche d'autrefois, dans le sélecteur de zones : elle ne doit plus exister. */
+function flecheDansLeSelecteur(el: HTMLElement): Element | null {
+  return el.querySelector('.zone-transfer-btn');
 }
 
 const respirer = () => new Promise((r) => setTimeout(r, 0));
@@ -105,40 +124,55 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('#3630 — la barre de lecture transfère la lecture vers une autre zone', () => {
-  it('propose « Transférer la lecture ici » sur les AUTRES zones quand la source joue', () => {
+describe('#3630 puis #1192 — la barre de lecture transfère, par UN SEUL geste', () => {
+  it('le bouton dédié liste les AUTRES zones quand la source joue', () => {
+    poserZones('playing');
+    const el = poserLaBarre();
+    ouvrirLeMenuDeTransfert(el);
+
+    const versChambre = cibleDeTransfert(el, 'Chambre');
+    expect(versChambre, 'aucune cible dans le menu de transfert — défaut #3630').not.toBeNull();
+    expect(versChambre!.getAttribute('title')).toBe(libelle);
+
+    // Pas la zone COURANTE : on ne transfère pas vers soi-même, et le serveur
+    // refuserait.
+    expect(cibleDeTransfert(el, 'Salon')).toBeNull();
+  });
+
+  it('⭐ #1192 — la flèche par zone a DISPARU du sélecteur : un seul geste, pas deux', () => {
     poserZones('playing');
     const el = poserLaBarre();
     ouvrirLeSelecteur(el);
 
-    const versChambre = transfertDe(el, 'Chambre');
-    expect(versChambre, 'aucun bouton de transfert dans la barre de lecture — défaut #3630').not.toBeNull();
-    expect(versChambre!.getAttribute('title')).toBe(libelle);
+    expect(
+      flecheDansLeSelecteur(el),
+      'la flèche « Transférer la lecture ici » est de retour dans le sélecteur : ' +
+        'deux gestes concurrents pour la même action (FabienM, fil 1839, point 1)',
+    ).toBeNull();
 
-    // Pas sur la zone COURANTE : on ne transfère pas vers soi-même, et le
-    // serveur refuserait.
-    expect(transfertDe(el, 'Salon')).toBeNull();
+    // Le témoin : le sélecteur garde son geste À LUI, commuter la zone pilotée.
+    const rangees = el.querySelectorAll('.zone-popover-row');
+    expect(rangees.length, 'le sélecteur de zones a perdu ses lignes').toBeGreaterThan(0);
   });
 
-  it('le propose aussi quand la source est en PAUSE — le serveur reporte l’état', () => {
-    poserZones('paused');
-    const el = poserLaBarre();
-    ouvrirLeSelecteur(el);
-    expect(transfertDe(el, 'Chambre')).not.toBeNull();
-  });
-
-  it('ne le propose PAS quand rien ne joue — le serveur répondrait 400', () => {
+  it('le bouton n’apparaît PAS quand rien ne joue — le serveur répondrait 400', () => {
     poserZones('stopped');
     const el = poserLaBarre();
-    ouvrirLeSelecteur(el);
-    expect(transfertDe(el, 'Chambre')).toBeNull();
+    expect(el.querySelector('.transfer-bar-btn')).toBeNull();
+  });
+
+  it('il apparaît quand la source est en PAUSE — le serveur reporte l’état', () => {
+    poserZones('paused');
+    const el = poserLaBarre();
+    ouvrirLeMenuDeTransfert(el);
+    expect(cibleDeTransfert(el, 'Chambre')).not.toBeNull();
   });
 
   it('le clic APPELLE la route de transfert, et non une simple commutation', async () => {
     poserZones('playing');
     const el = poserLaBarre();
-    ouvrirLeSelecteur(el);
-    transfertDe(el, 'Chambre')!.click();
+    ouvrirLeMenuDeTransfert(el);
+    cibleDeTransfert(el, 'Chambre')!.click();
     await respirer();
     await respirer();
 
@@ -153,8 +187,8 @@ describe('#3630 — la barre de lecture transfère la lecture vers une autre zon
   it('suit la musique : la zone pilotée devient la cible', async () => {
     poserZones('playing');
     const el = poserLaBarre();
-    ouvrirLeSelecteur(el);
-    transfertDe(el, 'Chambre')!.click();
+    ouvrirLeMenuDeTransfert(el);
+    cibleDeTransfert(el, 'Chambre')!.click();
     await respirer();
     await respirer();
     flushSync();
@@ -162,10 +196,10 @@ describe('#3630 — la barre de lecture transfère la lecture vers une autre zon
     // Sans ce report, l'écran continuerait de piloter une zone silencieuse —
     // c'est ce que fait déjà `Sidebar.svelte:45`.
     expect(get(currentZoneId)).toBe(2);
-    expect(el.querySelector('.zone-popover'), 'le popover est resté ouvert').toBeNull();
+    expect(el.querySelector('.zone-popover'), 'le menu est resté ouvert').toBeNull();
   });
 
-  it('le clic sur le CORPS de la ligne commute sans rien transférer — les deux gestes restent distincts', async () => {
+  it('le sélecteur de zones, lui, commute sans rien transférer', async () => {
     poserZones('playing');
     const el = poserLaBarre();
     ouvrirLeSelecteur(el);
