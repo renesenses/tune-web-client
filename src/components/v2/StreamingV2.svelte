@@ -607,8 +607,15 @@
     // lecture ne prenait pas — le symptôme exact de Bertrand.
     //
     // Une seule liste y échappait : « Mon <service> », qui passe explicitement
-    // son quatrième argument (`fichePlaylist = p`). La recherche et l'éditorial
-    // n'avaient rien. On répare donc ICI, une fois, pour toutes les listes.
+    // son quatrième argument (`fichePlaylist = p`). La recherche n'avait rien.
+    // On répare donc ICI, une fois, pour toutes les listes RENDUES PAR `tile`.
+    //
+    // ⚠️ RECTIFICATIF — #1108. Ce commentaire disait « et l'éditorial », et
+    // c'était faux : l'onglet éditorial n'est pas rendu par `tile`, il est
+    // rendu par `PageWidgets` (plus bas), qui n'appelle jamais `ouvrirFiche`.
+    // Ses cinq bandes de playlists sont restées mortes cinq jours de plus, et
+    // deux testeurs les ont re-signalées le 17/09/2026. Elles se réparent dans
+    // les fabriques d'éléments (`playlistDistante`, `ficheDe`), pas ici.
     if (type === 'playlist' && sid && svc && svc !== BANDCAMP) {
         return () => {
             fichePlaylist = { ...p, source: svc };

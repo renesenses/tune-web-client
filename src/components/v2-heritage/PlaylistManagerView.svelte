@@ -167,7 +167,10 @@
   }
 
   // --- NEW: Playlist Manager v2 tabs ---
-  let managerTab = $state<'playlists' | 'transfers' | 'smart-ai' | 'sync' | 'backup' | 'collab'>('playlists');
+  // Plus de 'smart-ai' ici : le générateur de playlists n'a qu'UNE porte, celle
+  // de la rangée du haut (`viewTab`). FabienM, fil 1829 point 2 (web#1111) :
+  // les deux rangées montaient le MÊME `SmartAIView` sous le MÊME libellé.
+  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab'>('playlists');
 
   // Transfer history
   let transferHistory = $state<any[]>([]);
@@ -1304,7 +1307,6 @@
       <div class="pm-tabs">
         <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>Playlists</button>
         <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
-        <button class="pm-tab" class:active={managerTab === 'smart-ai'} onclick={() => managerTab = 'smart-ai'}>{$tr('smartai.title')}</button>
         <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>Sync</button>
         <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>Backup</button>
         <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
@@ -1319,7 +1321,15 @@
             </button>
           {/if}
         </div>
-        <button class="create-btn" onclick={() => showCreate = true}>
+        <!--
+          Le bouton vit dans l'en-tête COMMUN aux onglets du gestionnaire, mais
+          le formulaire qu'il ouvre n'est rendu que dans la branche de l'onglet
+          Playlists : hors de cet onglet, le clic ne peignait rien. FabienM,
+          fil 1829 point 3 (web#1112). On ramène donc l'onglet Playlists avec
+          le formulaire, comme le testeur le demande — plutôt que de faire
+          disparaître le bouton, qui aurait rendu l'en-tête mouvant.
+        -->
+        <button class="create-btn" onclick={() => { managerTab = 'playlists'; showCreate = true; }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           {$tr('playlist.new')}
         </button>
@@ -1507,12 +1517,6 @@
             </div>
           {/if}
         </div>
-      </div>
-
-    {:else if managerTab === 'smart-ai'}
-      <!-- Onglet Generateur de playlists -->
-      <div class="pm-tab-content">
-        <SmartAIView />
       </div>
 
     {:else if managerTab === 'sync'}
