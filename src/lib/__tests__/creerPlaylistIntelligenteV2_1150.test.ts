@@ -37,8 +37,13 @@ import { get } from 'svelte/store';
 import PlaylistsV2 from '../../components/v2/PlaylistsV2.svelte';
 import { dialogs } from '../stores/dialogs';
 
-/** Monter cet écran compile un composant de plus de huit cents lignes. */
-vi.setConfig({ testTimeout: 30_000 });
+/**
+ * Monter cet écran compile un composant de plus de huit cents lignes, et
+ * l'éditeur en compile un second, à la demande. Sur une machine chargée — la
+ * porte web tourne les 458 fichiers en parallèle — la première compilation
+ * prend plusieurs secondes.
+ */
+vi.setConfig({ testTimeout: 60_000 });
 
 interface Appel {
   methode: string;
@@ -149,12 +154,12 @@ const ecritures = () => appels.filter((a) => a.methode !== 'GET');
  * fichier paie la compilation du composant, les suivants la trouvent en
  * cache. Un délai fixe serait donc vert ou rouge selon l'ordre des cas.
  */
-async function attendreEditeur(el: HTMLElement, plafond = 60): Promise<HTMLElement | null> {
+async function attendreEditeur(el: HTMLElement, plafond = 400): Promise<HTMLElement | null> {
   for (let i = 0; i < plafond; i++) {
     flushSync();
     const ed = editeur(el);
     if (ed) return ed;
-    await attendre(25);
+    await attendre(50);
   }
   return editeur(el);
 }
