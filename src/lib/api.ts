@@ -1920,6 +1920,10 @@ export interface AlbumDetailed {
   format: string | null;
   sample_rate: number | null;
   bit_depth: number | null;
+  /** Le disque est-il une compilation ? Servi par la route depuis #1957
+   *  (`MAX(al.is_compilation)`), jamais déclaré ici — d'où l'écran qui ne
+   *  pouvait pas le montrer. Voir `Album.is_compilation` : ABSENT ≠ FAUX. */
+  is_compilation?: boolean;
 }
 
 /** Albums agrégés pour la vue cartes. `filters` = les mêmes paramètres de
@@ -2069,7 +2073,15 @@ export function updateAlbum(id: number, data: { title?: string; artist_id?: numb
   });
 }
 
-export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string; year?: number; artist_id?: number; artist_name?: string; label?: string }) {
+/**
+ * Édition en lot des albums cochés.
+ *
+ * `is_compilation` (serveur #4427) : absent veut dire « je n'y touche pas »,
+ * jamais « faux » — on change le genre d'une sélection sans lui reprendre son
+ * drapeau. Le serveur pose en même temps le marqueur d'édition manuelle, ce
+ * qui empêche le scan de revenir sur la décision.
+ */
+export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string; year?: number; artist_id?: number; artist_name?: string; label?: string; is_compilation?: boolean }) {
   return fetchJSON<{ updated: number; total: number }>(`${BASE}/library/albums/batch-update`, {
     method: 'POST',
     body: JSON.stringify({ album_ids: albumIds, ...updates }),

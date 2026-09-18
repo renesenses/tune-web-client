@@ -76,6 +76,34 @@ export function mergeAlbums(albumIds: number[]) {
   });
 }
 
+/** Bilan d'une gravure du drapeau « compilation » dans les fichiers. */
+export interface GraverCompilationResult {
+  /** Albums effectivement traités — un identifiant inconnu ne compte pas. */
+  albums: number;
+  /** Fichiers dont l'étiquette a été écrite. */
+  ecrits: number;
+  /** Fichiers écartés : le scan ne relit pas leur conteneur (WAV, DSF, DFF…). */
+  hors_format: number;
+  /** Fichiers refusés par le graveur (manquant, verrouillé, illisible). */
+  echecs: number;
+}
+
+/**
+ * Grave le drapeau « compilation » de ces albums DANS leurs fichiers.
+ *
+ * Seconde action, explicite : la base retient déjà le choix, posé par
+ * `batchUpdateAlbums({ is_compilation })`. Cette route ne fait que le porter
+ * jusqu'au disque, et l'utilisateur doit l'avoir demandé — Tune ne touche pas
+ * aux fichiers de quelqu'un en passant (serveur #4427).
+ */
+export function graverCompilation(albumIds: number[]) {
+  return fetchJSON<GraverCompilationResult>(`${BASE}/library/albums/compilation/graver`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ album_ids: albumIds }),
+  });
+}
+
 // --- Lookup & enrichment ---
 // lookupTrack/lookupAlbum, enrichTrack/enrichAlbum, fetchAlbumCover et
 // fingerprint* : jamais appelés depuis un composant (retirés — la refonte
