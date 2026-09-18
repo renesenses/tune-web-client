@@ -3902,7 +3902,6 @@ export default {
   "v2.meta.compilBurn": "Graver dans les fichiers",
   "v2.meta.compilBurnHint": "Écrit le drapeau dans les fichiers eux-mêmes : il survit à un re-scan et se voit dans les autres lecteurs.",
   "v2.meta.compilBurned": "{written} fichiers gravés · {failed} en échec · {undecided} albums sans décision à graver.",
-  "v2.meta.compilFind": "Chercher",
   "v2.meta.compilIntro": "Un album dont chaque piste porte un artiste différent se range en autant de disques. Cherchez son titre, cochez les lignes, marquez-les comme compilation — puis réunissez-les, et gravez le drapeau dans les fichiers si vous voulez qu'il survive ailleurs.",
   "v2.meta.compilMark": "Compilation",
   "v2.meta.compilMarked": "{count} albums marqués.",

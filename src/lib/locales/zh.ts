@@ -3881,7 +3881,6 @@ export default {
   "v2.meta.compilBurn": "写入文件",
   "v2.meta.compilBurnHint": "把标记写进文件本身：重新扫描后依然保留，在其他播放器中也能看到。",
   "v2.meta.compilBurned": "已写入 {written} 个文件 · {failed} 个失败 · {undecided} 张专辑没有可写入的判断。",
-  "v2.meta.compilFind": "搜索",
   "v2.meta.compilIntro": "每首曲目艺人都不同的专辑，会被拆成同样多张唱片。搜索它的标题，勾选这些行，标记为合辑 — 然后合并它们；若希望在别处也保留，就把标记写入文件。",
   "v2.meta.compilMark": "合辑",
   "v2.meta.compilMarked": "已标记 {count} 张专辑。",

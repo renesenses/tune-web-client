@@ -150,32 +150,83 @@
     disque.
   */
   let cpQuery = $state('');
-  let cpAlbums = $state<AlbumDetailed[]>([]);
+  let cpTous = $state<AlbumDetailed[]>([]);
   let cpLoading = $state(false);
+  let cpCharge = false;
   let cpChoisis = $state<Set<number>>(new Set());
   let cpBusy = $state(false);
   let cpBilan = $state<string | null>(null);
   let cpErr = $state<string | null>(null);
 
-  async function chercherCompil() {
-    const q = cpQuery.trim();
-    if (q.length < 2) { cpAlbums = []; return; }
+  /**
+   * 🔴 Le filtre se fait ICI, pas par `?q=` du serveur.
+   *
+   * `q` cherche dans le TITRE DE PISTE et le NOM D'ARTISTE — jamais dans le
+   * titre d'album (`facets.rs` : `t.title LIKE … OR t.artist_id IN (SELECT id
+   * FROM artists WHERE name LIKE …)`). Mesuré sur la bibliothèque de Bertrand
+   * le 18/09 : 23 albums s'appellent « Coco María Presents… », et `q=Coco` en
+   * rendait **2** — plus quelques artistes nommés « Acid Coco ». Exactement le
+   * cas pour lequel cet écran existe, et il passait à côté.
+   *
+   * Il n'y a pas de filtre par titre d'album côté serveur ; en ajouter un est
+   * un autre chantier. La liste entière tient largement en mémoire — 4 381
+   * albums sur ce serveur — alors on la charge une fois et on filtre ici.
+   */
+  async function chargerAlbumsCompil() {
+    if (cpCharge || cpLoading) return;
     cpLoading = true;
-    cpBilan = null;
+    cpErr = null;
+    const tous: AlbumDetailed[] = [];
     try {
-      const r = await api.getAlbumsDetailed({ q }, 200, 0);
-      cpAlbums = r?.items ?? [];
-      cpErr = null;
+      // 2000 est le plafond dur du serveur (`limit.clamp(1, 2000)`), donc on
+      // pagine. Sans la boucle on ne verrait que le début de la bibliothèque —
+      // c'est ce qui m'a fait compter 11 albums au lieu de 23.
+      for (let offset = 0; ; offset += 2000) {
+        const r = await api.getAlbumsDetailed({}, 2000, offset);
+        const lot = r?.items ?? [];
+        tous.push(...lot);
+        if (lot.length === 0 || tous.length >= (r?.total ?? 0)) break;
+      }
+      cpTous = tous;
+      cpCharge = true;
     } catch (e: any) {
       cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
-      cpAlbums = [];
+      cpTous = [];
     }
     cpLoading = false;
-    // Une sélection qui survivrait à une recherche agirait sur des albums
-    // qu'on ne voit plus à l'écran.
+  }
+
+  /** Sans accents ni casse : « Coco María » se trouve en tapant « coco maria ». */
+  function pliage(s: string): string {
+    return (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
+  /**
+   * Les albums affichés. Le titre D'ABORD, l'artiste ensuite — on cherche une
+   * compilation par son nom, et c'est justement l'artiste qui diffère d'une
+   * ligne à l'autre.
+   */
+  let cpAlbums = $derived.by(() => {
+    const q = pliage(cpQuery.trim());
+    if (q.length < 2) return [];
+    return cpTous
+      .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
+      .sort((x, y) => (x.title ?? '').localeCompare(y.title ?? '') || (x.album_artist ?? '').localeCompare(y.album_artist ?? ''))
+      .slice(0, 300);
+  });
+
+  // Une sélection qui survivrait au changement de recherche agirait sur des
+  // albums qu'on ne voit plus à l'écran.
+  $effect(() => {
+    cpQuery;
     cpChoisis = new Set();
     arme = null;
-  }
+  });
+
+  $effect(() => {
+    if (tab !== 'compil') return;
+    chargerAlbumsCompil();
+  });
 
   function cocher(id: number) {
     const s = new Set(cpChoisis);
@@ -213,7 +264,7 @@
       // `fusionner: false` — marquer et réunir sont deux gestes distincts, et
       // le second s'arme en deux clics.
       const r = await api.poserCompilation(ids, valeur, false);
-      cpAlbums = cpAlbums.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: valeur } : a));
+      cpTous = cpTous.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: valeur } : a));
       cpBilan = $t('v2.meta.compilMarked' as any).replace('{count}', String(r.poses));
       cpErr = null;
     } catch (e: any) {
@@ -234,11 +285,12 @@
       // un aller-retour, et pas de fenêtre où les albums seraient marqués mais
       // pas réunis.
       const r = await api.poserCompilation(ids, true, true);
-      cpAlbums = cpAlbums.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: true } : a));
+      cpTous = cpTous.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: true } : a));
       cpBilan = $t('v2.meta.compilMerged' as any).replace('{count}', String(r.fusionnes));
       cpErr = null;
       cpChoisis = new Set();
-      await chercherCompil();
+      cpCharge = false;
+      await chargerAlbumsCompil();
     } catch (e: any) {
       cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
       cpBusy = false;
@@ -508,16 +560,14 @@
     {:else if tab === 'compil'}
       <p class="note">{$t('v2.meta.compilIntro' as any)}</p>
       <div class="cpbar">
+        <!-- Filtre au fil de la frappe : la liste est déjà en mémoire, il n'y a
+             rien à attendre. -->
         <input
           class="cpq"
           type="search"
           placeholder={$t('v2.meta.compilSearch' as any)}
           bind:value={cpQuery}
-          onkeydown={(e) => { if (e.key === 'Enter') chercherCompil(); }}
         />
-        <button class="go" onclick={chercherCompil} disabled={cpLoading || cpQuery.trim().length < 2}>
-          {$t('v2.meta.compilFind' as any)}
-        </button>
       </div>
 
       {#if cpLoading}

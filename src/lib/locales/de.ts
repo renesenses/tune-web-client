@@ -3881,7 +3881,6 @@ export default {
   "v2.meta.compilBurn": "In Dateien schreiben",
   "v2.meta.compilBurnHint": "Schreibt das Kennzeichen in die Dateien selbst: Es übersteht einen erneuten Scan und ist in anderen Playern sichtbar.",
   "v2.meta.compilBurned": "{written} Dateien geschrieben · {failed} fehlgeschlagen · {undecided} Alben ohne Entscheidung zum Schreiben.",
-  "v2.meta.compilFind": "Suchen",
   "v2.meta.compilIntro": "Ein Album, dessen Titel alle einen anderen Interpreten tragen, landet als ebenso viele Alben. Suchen Sie den Titel, haken Sie die Zeilen an, markieren Sie sie als Compilation — führen Sie sie dann zusammen und schreiben Sie das Kennzeichen in die Dateien, damit es auch anderswo erhalten bleibt.",
   "v2.meta.compilMark": "Compilation",
   "v2.meta.compilMarked": "{count} Alben markiert.",

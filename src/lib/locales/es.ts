@@ -3881,7 +3881,6 @@ export default {
   "v2.meta.compilBurn": "Escribir en los archivos",
   "v2.meta.compilBurnHint": "Escribe la marca en los propios archivos: sobrevive a un nuevo análisis y se ve en otros reproductores.",
   "v2.meta.compilBurned": "{written} archivos escritos · {failed} con error · {undecided} álbumes sin decisión que escribir.",
-  "v2.meta.compilFind": "Buscar",
   "v2.meta.compilIntro": "Un álbum cuyas pistas tienen cada una un artista distinto acaba repartido en otros tantos discos. Busca su título, marca las filas, señálalas como recopilación — luego reúnelas y escribe la marca en los archivos si quieres que sobreviva en otros sitios.",
   "v2.meta.compilMark": "Recopilación",
   "v2.meta.compilMarked": "{count} álbumes marcados.",

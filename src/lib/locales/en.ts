@@ -3900,7 +3900,6 @@ export default {
   "v2.meta.compilBurn": "Write to files",
   "v2.meta.compilBurnHint": "Writes the flag into the files themselves: it survives a rescan and shows up in other players.",
   "v2.meta.compilBurned": "{written} files written · {failed} failed · {undecided} albums with nothing decided to write.",
-  "v2.meta.compilFind": "Search",
   "v2.meta.compilIntro": "An album whose every track has a different artist ends up split into that many releases. Search its title, tick the rows, mark them as a compilation — then merge them, and write the flag into the files if you want it to survive elsewhere.",
   "v2.meta.compilMark": "Compilation",
   "v2.meta.compilMarked": "{count} albums marked.",

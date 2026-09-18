@@ -3880,7 +3880,6 @@ export default {
   "v2.meta.compilBurn": "Skriv till filerna",
   "v2.meta.compilBurnHint": "Skriver flaggan i själva filerna: den överlever en ny genomsökning och syns i andra spelare.",
   "v2.meta.compilBurned": "{written} filer skrivna · {failed} misslyckades · {undecided} album utan beslut att skriva.",
-  "v2.meta.compilFind": "Sök",
   "v2.meta.compilIntro": "Ett album där varje spår har olika artist hamnar som lika många skivor. Sök på titeln, kryssa i raderna, markera dem som samling — slå sedan ihop dem, och skriv flaggan till filerna om du vill att den ska finnas kvar någon annanstans.",
   "v2.meta.compilMark": "Samling",
   "v2.meta.compilMarked": "{count} album markerade.",

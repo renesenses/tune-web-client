@@ -3881,7 +3881,6 @@ export default {
   "v2.meta.compilBurn": "Scrie în fișiere",
   "v2.meta.compilBurnHint": "Scrie marcajul chiar în fișiere: rezistă la o nouă scanare și se vede în alte playere.",
   "v2.meta.compilBurned": "{written} fișiere scrise · {failed} eșuate · {undecided} albume fără decizie de scris.",
-  "v2.meta.compilFind": "Caută",
   "v2.meta.compilIntro": "Un album ale cărui piese au fiecare alt artist ajunge împărțit în tot atâtea discuri. Caută titlul, bifează rândurile, marchează-le drept compilație — apoi reunește-le și scrie marcajul în fișiere dacă vrei să reziste și în altă parte.",
   "v2.meta.compilMark": "Compilație",
   "v2.meta.compilMarked": "{count} albume marcate.",
