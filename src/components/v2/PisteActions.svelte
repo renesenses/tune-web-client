@@ -83,8 +83,24 @@
 
   interface Props {
     piste: Track;
+    /**
+     * « Lire à partir d'ici » — #1061, FabienM, fil 1812, point 9.
+     *
+     * « Pour chaque titre, il manque une action "Lire à partir d'ici" qui
+     * lance le titre sélectionné suivi des titres qui suivent dans la liste
+     * affichée à l'écran. […] Il faudrait donc généraliser le bouton lorsqu'il
+     * y a une liste de titres. »
+     *
+     * 🔴 OPT-IN, et il ne peut pas en être autrement : la barre reçoit UNE
+     * piste, pas la liste. Seul l'écran sait ce que « la suite » veut dire —
+     * son ordre d'affichage, ses filtres, sa source par défaut. Une barre qui
+     * inventerait la suite se tromperait sur les listes triées.
+     *
+     * Absent, la barre est exactement celle d'avant : sept boutons.
+     */
+    onLireDepuis?: (() => void) | null;
   }
-  let { piste }: Props = $props();
+  let { piste, onLireDepuis = null }: Props = $props();
 
   /** La modale de playlists est portée ICI, chargée à la demande : chaque
    *  écran qui pose la barre l'aurait sinon recopiée, avec son état et son
@@ -348,6 +364,18 @@
     <button class="pa" onclick={lire} title={$t('v2.pa.play' as any)} aria-label={$t('v2.pa.play' as any)}>
       <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4l14 8-14 8z"/></svg>
     </button>
+    {#if onLireDepuis}
+      <button class="pa" data-depuis onclick={(e) => { stop(e); onLireDepuis?.(); }}
+              title={$t('common.playFromHere' as any)} aria-label={$t('common.playFromHere' as any)}>
+        <!-- Une lecture qui EMPORTE la suite : la barre de lecture, puis les
+             lignes qui suivent. Distincte du triangle seul, qui ne lit que la
+             ligne, et du dessin de « lire ensuite », qui insère en tête. -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 6.5l5 3-5 3z" fill="currentColor" stroke="none"/>
+          <path d="M12 6.5h8M12 12h8M12 17.5h8"/>
+        </svg>
+      </button>
+    {/if}
     <!-- Une LISTE dont la lecture entre en tete. L'icone precedente etait
          `skip-forward` — celle de « piste suivante » de la barre de transport :
          deux gestes tres differents sous le meme dessin. -->

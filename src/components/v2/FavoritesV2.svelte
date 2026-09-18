@@ -12,6 +12,7 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -569,9 +570,9 @@
    * AFFICHÉE (filtre, source et tri compris), pas la table entière.
    */
   let masseEnCours = $state(false);
-  function gestes(zid: number) {
-    return { lire: (c: any) => playAndSync(zid, c), enfiler: (c: any) => api.addToQueue(zid, c) };
-  }
+  // #1061 : la paire était recopiée ici et dans `StreamingV2` ; elle vit
+  // désormais dans `lib/gestesDeZone`, que les cinq écrans partagent.
+  const gestes = gestesDeZone;
   async function lireLesPistes(aleatoire: boolean) {
     const zid = $currentZoneId;
     if (zid == null) return;
@@ -776,7 +777,8 @@
                l'écran entier disparaît. `clef()` existe ici pour ça. -->
           <ListePistesV2 pistes={vTracks} numerotation="aucune" pochetteEnTableau
             clef={(p, i) => clef(p, i)}
-            onLire={(_p, i) => lireDepuis(i)} />
+            onLire={(_p, i) => lireDepuis(i)}
+            onLireDepuis={(_p, i) => lireDepuis(i)} />
         </div>
       {/if}
 

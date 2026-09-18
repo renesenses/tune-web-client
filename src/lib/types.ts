@@ -1226,10 +1226,40 @@ export interface PlaylistRecoverResponse {
  *  aucun remplacement. La liste `replacements` envoyée par le client est donc
  *  reçue puis ignorée. C'est un défaut de fond distinct de l'alignement de type
  *  fait ici — voir la note portée à #3662. */
+/**
+ * Le compte rendu de `POST /playlists/{id}/recover/apply` — #1076.
+ *
+ * 🔴 `recovered` N'EXISTE PLUS. Le serveur applique désormais réellement les
+ * remplacements (tune-server-rust#3685, livré en v0.9.155) et rend ce qu'il a
+ * fait, piste par piste : `applied` avec le nouvel identifiant,
+ * `rejected` avec le MOTIF. `still_missing` est recompté APRÈS les écritures,
+ * sur la playlist telle qu'elle est en base — pas sur la liste lue avant.
+ *
+ * Rien d'appliqué ⇒ `422` avec le même corps ; mixte ⇒ `200`.
+ */
+export interface RecoverApplied {
+  track_id: number;
+  new_source: string;
+  new_source_id: string;
+  /** L'identifiant de la piste qui a REMPLACÉ l'ancienne, en base. */
+  new_track_id: number;
+}
+
+export interface RecoverRejected {
+  track_id: number;
+  new_source?: string;
+  new_source_id?: string;
+  /** Pourquoi, en toutes lettres. C'est ce que l'écran doit montrer. */
+  reason: string;
+}
+
 export interface RecoverApplyResponse {
   playlist_id: number;
   total_tracks: number;
-  recovered: number;
+  applied: RecoverApplied[];
+  rejected: RecoverRejected[];
+  applied_count: number;
+  rejected_count: number;
   still_missing: number;
 }
 

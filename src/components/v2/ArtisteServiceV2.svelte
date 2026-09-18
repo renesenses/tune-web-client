@@ -44,6 +44,10 @@
 
   let artiste = $state<Artist | null>(null);
   let titres = $state<Track[]>([]);
+  /** #910 — la requête des titres phares a ÉCHOUÉ, par opposition à « ce
+   *  service n'en rend aucun ». Sans ce témoin, les deux états sont le même
+   *  `titres.length === 0`. */
+  let titresEnEchec = $state(false);
   let albums = $state<Album[]>([]);
   let chargement = $state(true);
   /**
@@ -112,6 +116,7 @@
     chargement = true;
     artiste = null;
     titres = [];
+    titresEnEchec = false;
     albums = [];
     // `allSettled` : un service qui refuse les titres phares ne doit pas
     // emporter les albums avec lui. Une fiche à moitié pleine vaut mieux
@@ -131,6 +136,22 @@
     // oublier, au lieu d'un par bouton.
     if (tt.status === 'fulfilled') {
       titres = (tt.value ?? []).map((p) => ({ ...p, source: service })) as Track[];
+      titresEnEchec = false;
+    } else {
+      // 🔴 #910 — UN REFUS N'EST PAS UNE ABSENCE.
+      //
+      // Sandro, 15/09/2026 : « les boutons Radio et Best of restent absents
+      // près du nom de l'artiste — ont-ils été retirés ? » Ils ne l'avaient
+      // pas été. Ils sont entièrement conditionnés par `{#if titres.length}`,
+      // et `titres` reste VIDE aussi bien quand le service ne rend aucun titre
+      // phare que quand la requête a ÉCHOUÉ. `allSettled` avale le rejet : la
+      // page montrait alors ses albums sans un mot, et deux gestes
+      // disparaissaient sans que rien ne dise pourquoi.
+      //
+      // La distinction est la même que celle de #1096 pour les zones : une
+      // liste vide et une liste qu'on n'a pas pu charger ne se disent pas
+      // pareil.
+      titresEnEchec = true;
     }
     // Tamponnée comme le fait `albumsDeStreamingPourArtiste` : le serveur ne
     // pose `source` sur aucun objet de streaming, et la clé d'historique d'un
@@ -279,6 +300,15 @@
             {$tr('v2.fas.radio' as any)}
           </button>
         </div>
+      {:else if titresEnEchec && !chargement}
+        <!-- #910 — dire pourquoi les deux gestes manquent, et laisser
+             réessayer. Ils ne sont PAS retirés : le service n'a pas répondu. -->
+        <div class="gestes">
+          <span class="echec">{$tr('v2.fas.topTracksFailed' as any)}</span>
+          <button class="v2-btn ghost" onclick={() => cible && charger(cible.service as Source, cible.id)}>
+            {$tr('zone.retry' as any)}
+          </button>
+        </div>
       {/if}
     </div>
   </header>
@@ -286,7 +316,8 @@
   {#if chargement}
     <div class="etat">{$tr('v2.common.loading' as any)}</div>
   {:else if !titres.length && !albums.length && !locaux.length && !autresServices.length && !complementsEnCharge}
-    <div class="etat">{$tr('v2.fas.empty' as any)}</div>
+    <!-- #910 — « rien trouvé » et « rien chargé » ne se disent pas pareil. -->
+    <div class="etat">{$tr(titresEnEchec ? 'v2.fas.topTracksFailed' as any : 'v2.fas.empty' as any)}</div>
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
@@ -313,6 +344,8 @@
   .ident h1{margin:0; font:600 26px/1.15 var(--v2-sans)}
   .svc{font:11px var(--v2-mono); color:var(--v2-txt3); text-transform:uppercase; letter-spacing:.06em}
   .gestes{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+  /* #910 — pourquoi les deux gestes manquent. */
+  .echec{font-size:12.5px; line-height:1.4; color:var(--v2-txt2); align-self:center}
   .etat{padding:40px 0; color:var(--v2-txt3)}
   h2{margin:22px 0 10px; font:600 13px var(--v2-sans); color:var(--v2-txt2);
     text-transform:uppercase; letter-spacing:.05em}

@@ -7,7 +7,8 @@
   // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
   // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
   // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
-  import { t as tr } from '../../lib/i18n';
+  import { t as tr, locale } from '../../lib/i18n';
+  import { paliersDeFrequence, type LibelleServi } from '../../lib/libellesFrequence';
   import { formatNombre } from '../../lib/formats';
   /**
    * Bibliothèque — grille d'albums du nouveau client (direction Levente).
@@ -68,6 +69,9 @@
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { ciblesPourAlbum, libelleCible, type CollectionCible, type EntreeCible } from '../../lib/collectionsCibles';
+  import { lireListeDepuis } from '../../lib/lectureEnMasse';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -213,12 +217,25 @@
       .join(' '),
   );
 
-  // Fréquences en VALEURS EXACTES (jamais un seuil « ≥ »).
-  const RATES: { v: number; l: string }[] = [
-    { v: 44100, l: '44,1' }, { v: 48000, l: '48' }, { v: 88200, l: '88,2' },
-    { v: 96000, l: '96' }, { v: 176400, l: '176,4' }, { v: 192000, l: '192' },
-    { v: 352800, l: '352,8' }, { v: 384000, l: '384' },
-  ];
+  /**
+   * Fréquences en VALEURS EXACTES (jamais un seuil « ≥ »).
+   *
+   * 🔴 #1074 — la liste était FIGÉE ici, et ne portait que huit valeurs PCM :
+   * un album DSD64 (2 822 400 Hz) ne correspondait à AUCUNE entrée, ne se
+   * comptait nulle part et ne se filtrait pas. Ce n'était pas un libellé
+   * manquant, c'était une ligne absente (Cyrille, fil 1792).
+   *
+   * Le serveur les nomme depuis la v0.9.155 (tune-server-rust#4171) ; la
+   * liste figée reste le SECOURS pour les serveurs antérieurs. Voir
+   * `lib/libellesFrequence`.
+   */
+  let libellesServis = $state<LibelleServi[]>([]);
+  $effect(() => {
+    let vivant = true;
+    api.getSampleRateLabels().then((l) => { if (vivant) libellesServis = l; });
+    return () => { vivant = false; };
+  });
+  const RATES = $derived(paliersDeFrequence(libellesServis, $locale));
   // DSD, Hi-Res et CD sont des NOMS de format : ils s'écrivent pareil dans
   // toutes les langues. « Compressé » est un mot, et porte donc une clé —
   // d'où `cle`, qui distingue les deux sans que le rendu ait à deviner.
@@ -733,6 +750,54 @@
     gridEl?.querySelector<HTMLElement>(`[data-letter="${L}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  /**
+   * 🔴 #1222 — FAIRE ENTRER UN ALBUM DANS UN DOSSIER DE « COLLECTIONS ».
+   *
+   * Lulu (JLuc), fil 1844 : « un bouton permettant le transfert des albums de
+   * la "Bibliothèque" vers les répertoires de "Collections" ». Treizième
+   * « écrit mais pas branché » de ce client : `api.addAlbumToCollection`
+   * existe, le serveur expose la route, et son SEUL appelant vivait dans
+   * l'ancienne interface (`LibraryView.svelte:144`).
+   *
+   * Les collections INTELLIGENTES ne sont pas proposées : leur contenu vient
+   * de leurs règles, pas d'une liste d'identifiants. Y « ajouter » un album
+   * n'aurait aucun sens. `GET /library/collections` ne rend que les
+   * manuelles — les intelligentes ont leur propre route.
+   */
+  let collectionsCibles = $state<CollectionCible[]>([]);
+  $effect(() => {
+    let vivant = true;
+    api.getCollections()
+      .then((cs) => { if (vivant) collectionsCibles = cs ?? []; })
+      .catch(() => { /* pas de collections, pas d'entrées : rien à dire */ });
+    return () => { vivant = false; };
+  });
+
+  async function ajouterACollection(a: Album, cible: EntreeCible) {
+    if (a.id == null) return;
+    try {
+      await api.addAlbumToCollection(cible.id, a.id);
+      notifications.success($tr('library.albumAddedToCollection' as any));
+      // Relire : c'est `album_ids` qui dit « il y est déjà » au prochain clic.
+      collectionsCibles = (await api.getCollections()) ?? collectionsCibles;
+    } catch {
+      notifications.error($tr('library.collectionAddError' as any));
+    }
+  }
+
+  /** Une entrée par collection. Celles qui contiennent déjà l'album restent
+   *  proposées, mais le disent : les retirer se lirait comme « cette
+   *  collection n'existe pas ». */
+  function entreesCollection(a: Album) {
+    if (a.id == null) return [];
+    return ciblesPourAlbum(collectionsCibles, a.id).map((c) => ({
+      libelle: c.deja
+        ? libelleCible(c, (k) => $tr(k as any))
+        : $tr('v2.col.addTo' as any).replace('{name}', c.nom),
+      faire: () => void ajouterACollection(a, c),
+    }));
+  }
+
   function tech(a: Album): string {
     const t = getQualityTier(a);
     const rate = RATES.find((r) => r.v === a.sample_rate)?.l;
@@ -741,12 +806,12 @@
     // DSD128 pour les DSD256 ET les DSD512 — sept albums sur les 49 de la
     // bibliothèque de Bertrand, toujours sous-estimés.
     if (t === 'dsd') { const m = multipleDSD(a.sample_rate); return m ? `DSD · ${m}` : 'DSD'; }
-    return [a.format?.toUpperCase(), rate && `${rate} kHz`, depth].filter(Boolean).join(' · ');
+    return [a.format?.toUpperCase(), rate, depth].filter(Boolean).join(' · ');
   }
   function badge(a: Album): string | null {
     const t = getQualityTier(a);
     if (t === 'dsd') return 'DSD';
-    if (t === 'hires' || t === 'hires_max') return RATES.find((r) => r.v === a.sample_rate)?.l + 'k';
+    if (t === 'hires' || t === 'hires_max') return RATES.find((r) => r.v === a.sample_rate)?.court ?? null;
     return null;
   }
 
@@ -1084,6 +1149,20 @@
   const nbPistesAnnonce = $derived(
     tracksLoading && !q && !fProvenance && nbPistesServeur != null ? nbPistesServeur : pistesFiltrees.length,
   );
+  /**
+   * « Lire à partir d'ici » sur l'onglet Titres — #1061, point 9 de FabienM.
+   *
+   * La suite, c'est l'ORDRE AFFICHÉ : `visibleTracks`, donc filtres et tri
+   * compris. Prendre la bibliothèque entière ferait jouer des titres que
+   * l'écran ne montre pas.
+   */
+  function lireLesTitresDepuis(i: number) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    lireListeDepuis(visibleTracks as any, i, gestesDeZone(zid))
+      .catch(signalerEchecLecture);
+  }
+
   function playTrack(t: Track) {
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
@@ -1553,13 +1632,13 @@
         </div>
       </div>
       <div class="drop" class:open={ddOpen === 'rate'}>
-        <button class="chip" class:active={fRate !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>Fréquence{#if fRate}&nbsp;· {RATES.find(r => r.v === fRate)?.l} kHz{/if}
+        <button class="chip" class:active={fRate !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>Fréquence{#if fRate}&nbsp;· {RATES.find(r => r.v === fRate)?.l}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           {#each RATES as r (r.v)}
             {@const n = nFrequence.get(r.v) ?? 0}
             <button class:on={fRate === r.v} disabled={n === 0 && fRate !== r.v}
-              onclick={() => { fRate = fRate === r.v ? null : r.v; ddClose(); }}>{r.l} kHz <em>{n}</em></button>
+              onclick={() => { fRate = fRate === r.v ? null : r.v; ddClose(); }}>{r.l} <em>{n}</em></button>
           {/each}
         </div>
       </div>
@@ -1800,6 +1879,7 @@
             <ListePistesV2
               pistes={visibleTracks}
               onLire={(p) => playTrack(p)}
+              onLireDepuis={(_p, i) => lireLesTitresDepuis(i)}
               ouvertureAlbum={(p) => {
                 const alb = albumDeLaPiste(p);
                 return alb ? () => ouvrirCalqueAlbum(alb) : null;
@@ -1894,6 +1974,7 @@
                         onEditer={depot ? null : () => (enEdition = a)}
                         onLire={() => lireAlbum(a)}
                         onOuvrir={() => ouvrirCalqueAlbum(a)}
+                        menu={depot ? [] : entreesCollection(a)}
                         nom={a.title}
                       >
                         <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
