@@ -1145,13 +1145,13 @@
     Playlists
   </button>
   <button class="view-tab" class:active={viewTab === 'smart'} onclick={() => viewTab = 'smart'}>
-    Smart Playlists
+    {$tr('smartPlaylists.title')}
   </button>
   <button class="view-tab" class:active={viewTab === 'smart-ai'} onclick={() => viewTab = 'smart-ai'}>
     {$tr('smartai.title')}
   </button>
   <button class="view-tab" class:active={viewTab === 'hub'} onclick={() => viewTab = 'hub'}>
-    Playlists Hub
+    {$tr('playlists.hubTitle')}
   </button>
 </div>
 
@@ -1555,7 +1555,7 @@
       <!-- Backup Tab -->
       <div class="pm-tab-content">
         <div class="tab-actions">
-          <h3>Backup & Export</h3>
+          <h3>{$tr('playlistManager.backupExport')}</h3>
           <div class="tab-btns">
             <button class="btn-action" onclick={doBackup} disabled={backingUp}>
               {backingUp ? $tr('playlistManager.backingUp') : $tr('playlistManager.backupAll')}
@@ -1607,10 +1607,10 @@
           </div>
         {/if}
 
-        <h4 style="margin-top: 24px;">Batch Transfer</h4>
+        <h4 style="margin-top: 24px;">{$tr('playlistManager.batchTransfer')}</h4>
         <div class="batch-form">
           <select bind:value={batchSource}>
-            <option value="">Source...</option>
+            <option value="">{$tr('playlistManager.pickSource')}</option>
             {#each authenticatedServices as svc}
               <option value={svc}>{svc}</option>
             {/each}

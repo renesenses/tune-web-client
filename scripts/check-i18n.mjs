@@ -127,7 +127,27 @@ console.log('i18n check: no hardcoded French in visible text.');
  * interface anglaise retombe en français sans prévenir.
  * ---------------------------------------------------------------------- */
 
-const KEY_CALL = /\$?t\(\s*'([a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9_]+)+)'/g;
+/**
+ * 🔴 L'ALIAS D'IMPORT. Trouvé le 18/09/2026, en cherchant pourquoi aucune
+ * porte n'avait vu l'onglet Transferts peint en anglais.
+ *
+ * Ce contrôle lisait `\$?t\(`. Or vingt fichiers de ce dépôt écrivent
+ * `import { t as tr } from '../../lib/i18n'` et appellent `$tr('…')` —
+ * `$tr(` n'apparie pas `\$?t\(`. Les 183 clés de `PlaylistManagerView` à
+ * elles seules n'étaient vérifiées par personne : une clé morte y aurait
+ * affiché SON PROPRE NOM à l'écran sans que rien ne rougisse. C'est
+ * exactement le défaut « File d'attente » de Fabien, mais invisible à la
+ * garde censée l'attraper.
+ *
+ * Mesuré avant de poser, comme pour toute garde élargie : deux clés
+ * orphelines sur l'arbre entier — `collections.title` (une option du panneau
+ * Comparer) et `v2.pl.remove` (l'étiquette lue à voix haute du bouton
+ * Retirer, dans le client v2 ACTIF). Corrigées, puis le motif élargi.
+ *
+ * `tr` est le seul alias en usage ; le motif nomme les deux formes plutôt
+ * qu'un joker, pour ne pas apparier `format(` ou `at(`.
+ */
+const KEY_CALL = /\$?(?:t|tr)\(\s*'([a-z][a-zA-Z0-9]*(?:\.[a-zA-Z0-9_]+)+)'/g;
 
 /**
  * 🔴 Une clé RANGÉE dans une table, pas appelée sur place.
