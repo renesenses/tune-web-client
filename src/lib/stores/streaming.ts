@@ -93,7 +93,7 @@ export const ficheArtisteService =
  * « Chargement… » pour toujours.
  */
 export const ficheAlbumService =
-  writable<{ service: Source; id: string; titre: string } | null>(null);
+  writable<{ service: Source; id: string; titre: string; pochette?: string | null } | null>(null);
 
 /// Playlist de service à rouvrir en arrivant sur StreamingView (#2370).
 ///
