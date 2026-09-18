@@ -63,6 +63,8 @@
   import PisteActions from './PisteActions.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
+  import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
+  import { activeView } from '../../lib/stores/navigation';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
 
@@ -395,14 +397,30 @@
             </button>
           {:else}
             {@const v = cellule(p, i, c.cle)}
+            <!--
+              #1193 — la colonne ARTISTE renvoie à la fiche de l'artiste.
+              Posée ICI, dans le tableau PARTAGÉ : la playlist que FabienM
+              montre, mais aussi les Favoris, la fiche d'album et la
+              Bibliothèque, qui affichent la même colonne. `artisteDePiste`
+              distingue un identifiant de bibliothèque d'un identifiant de
+              service — les confondre ouvrirait un artiste au hasard.
+            -->
+            {@const artiste = c.cle === 'artist' ? artisteDePiste(p) : null}
             <!-- Une cellule sans valeur reste VIDE : « — » affirmerait une
                  absence qu'on n'a pas mesurée. -->
             <!-- #3924 — l'infobulle dit la PROVENANCE quand la colonne en a
                  une (le Dynamic Range, et lui seul). Partout ailleurs elle
                  reste la valeur brute, comme avant. -->
             {@const ib = cleInfobulleColonne(p, c.cle)}
-            <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
-              role="cell" title={ib ? $t(ib as any) : (v ?? '')}>{v ?? ''}</span>
+            {#if artiste && v}
+              <span class="td" role="cell">
+                <button class="lien-artiste" title={v}
+                  onclick={(e) => { e.stopPropagation(); void ouvrirArtisteDepuis(artiste, $activeView); }}>{v}</button>
+              </span>
+            {:else}
+              <span class="td" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
+                role="cell" title={ib ? $t(ib as any) : (v ?? '')}>{v ?? ''}</span>
+            {/if}
           {/if}
         {/each}
         <span class="td act" role="cell"><PisteActions piste={p} /></span>
@@ -432,6 +450,12 @@
   .trow:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .trow.np{color:var(--v2-acc1)}
   /* Point 10 — la piste que le service ne sert pas encore. */
+  /* #1193 — le lien garde EXACTEMENT l'allure de la cellule : c'est une
+     colonne de tableau, pas un bouton. */
+  .lien-artiste{background:none; border:none; padding:0; font:inherit; color:inherit;
+    text-align:left; cursor:pointer; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lien-artiste:hover{text-decoration:underline; color:var(--v2-txt)}
+
   .trow.indispo{opacity:0.5}
   .trow.indispo .titre{cursor:default}
   .indispo-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-acc2);
