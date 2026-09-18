@@ -4352,6 +4352,7 @@ export default {
   "v2.zones.browserUnattended": "Böngésző zóna: egyetlen lap sem hallgatja",
   "v2.zones.viewGrid": "Rács",
   "v2.zones.viewList": "Lista",
+  "v2.zones.listActionsHelp": "Zóna átnevezéséhez, egyesítéséhez vagy törléséhez váltson a(z) {view} nézetre.",
   "v2.zones.viewSwitch": "Nézet",
   "v2.str.discover": "Felfedezés",
   "v2.str.editorial": "Szerkesztői",

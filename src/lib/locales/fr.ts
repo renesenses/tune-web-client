@@ -4416,6 +4416,7 @@ export default {
   "v2.zones.browserUnattended": "Zone navigateur : aucun onglet n’écoute",
   "v2.zones.viewGrid": "Grille",
   "v2.zones.viewList": "Liste",
+  "v2.zones.listActionsHelp": "Pour renommer, fusionner ou supprimer une zone, passez en vue {view}.",
   "v2.zones.viewSwitch": "Affichage",
   "v2.str.discover": "Découvrir",
   "v2.str.editorial": "Éditorial",

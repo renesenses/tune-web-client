@@ -305,6 +305,7 @@
           {$t('v2.zones.viewGrid' as any)}
         </button>
         <button class="v2-btn" class:on={vue === 'liste'} aria-pressed={vue === 'liste'}
+          aria-describedby={vue === 'grille' && $zones.length ? 'zones-list-help' : undefined}
           onclick={() => choisirVue('liste')} title={$t('v2.zones.viewList' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
           {$t('v2.zones.viewList' as any)}
@@ -344,6 +345,7 @@
     {#if !$zones.length}
       <div class="state">{$t('v2.zone.none' as any)}</div>
     {:else if vue === 'grille'}
+      <p id="zones-list-help" class="list-help">{$t('v2.zones.listActionsHelp' as any).replace('{view}', $t('v2.zones.viewList' as any))}</p>
       <!--
         Vue GRILLE — quatre colonnes, de grosses cartes.
 
@@ -585,6 +587,7 @@
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
+  .list-help{margin:0 0 12px; color:var(--v2-txt3); font-size:13px; line-height:1.5}
   .list{display:flex; flex-direction:column; gap:8px}
 
   /* ── Vue GRILLE ────────────────────────────────────────────────────────

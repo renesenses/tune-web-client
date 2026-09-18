@@ -4394,6 +4394,7 @@ export default {
   "v2.zones.browserUnattended": "Browser-Zone: kein Tab hört zu",
   "v2.zones.viewGrid": "Raster",
   "v2.zones.viewList": "Liste",
+  "v2.zones.listActionsHelp": "Wechseln Sie zur Ansicht {view}, um eine Zone umzubenennen, zusammenzuführen oder zu löschen.",
   "v2.zones.viewSwitch": "Ansicht",
   "v2.str.discover": "Entdecken",
   "v2.str.editorial": "Redaktion",

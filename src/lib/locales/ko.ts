@@ -4394,6 +4394,7 @@ export default {
   "v2.zones.browserUnattended": "브라우저 구역: 수신 중인 탭이 없습니다",
   "v2.zones.viewGrid": "그리드",
   "v2.zones.viewList": "목록",
+  "v2.zones.listActionsHelp": "구역 이름을 바꾸거나 병합 또는 삭제하려면 {view} 보기로 전환하세요.",
   "v2.zones.viewSwitch": "보기",
   "v2.str.discover": "둘러보기",
   "v2.str.editorial": "에디토리얼",

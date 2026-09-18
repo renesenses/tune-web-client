@@ -4394,6 +4394,7 @@ export default {
   "v2.zones.browserUnattended": "Zonă browser: nicio filă nu ascultă",
   "v2.zones.viewGrid": "Grilă",
   "v2.zones.viewList": "Listă",
+  "v2.zones.listActionsHelp": "Pentru a redenumi, uni sau șterge o zonă, treceți la vizualizarea {view}.",
   "v2.zones.viewSwitch": "Vizualizare",
   "v2.str.discover": "Descoperă",
   "v2.str.editorial": "Editorial",

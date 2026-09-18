@@ -4414,6 +4414,7 @@ export default {
   "v2.zones.browserUnattended": "Browser zone: no tab is listening",
   "v2.zones.viewGrid": "Grid",
   "v2.zones.viewList": "List",
+  "v2.zones.listActionsHelp": "To rename, merge or delete a zone, switch to {view} view.",
   "v2.zones.viewSwitch": "View",
   "v2.str.discover": "Discover",
   "v2.str.editorial": "Editorial",

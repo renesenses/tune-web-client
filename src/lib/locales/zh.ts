@@ -4394,6 +4394,7 @@ export default {
   "v2.zones.browserUnattended": "浏览器区域：没有标签页在收听",
   "v2.zones.viewGrid": "网格",
   "v2.zones.viewList": "列表",
+  "v2.zones.listActionsHelp": "若要重命名、合并或删除区域，请切换到{view}视图。",
   "v2.zones.viewSwitch": "视图",
   "v2.str.discover": "发现",
   "v2.str.editorial": "编辑精选",

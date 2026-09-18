@@ -4394,6 +4394,7 @@ export default {
   "v2.zones.browserUnattended": "ブラウザーゾーン：再生中のタブがありません",
   "v2.zones.viewGrid": "グリッド",
   "v2.zones.viewList": "リスト",
+  "v2.zones.listActionsHelp": "ゾーンの名前変更、統合、削除を行うには、{view}表示に切り替えてください。",
   "v2.zones.viewSwitch": "表示",
   "v2.str.discover": "見つける",
   "v2.str.editorial": "エディトリアル",
