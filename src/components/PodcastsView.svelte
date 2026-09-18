@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { bulleTexte } from '../lib/infobulleTexte';
   import { SvelteSet } from 'svelte/reactivity';
   import { onMount } from 'svelte';
   import * as api from '../lib/api';
@@ -542,7 +543,7 @@
                 </div>
               {/if}
               <div class="episode-info">
-                <span class="episode-title">{episode.title}</span>
+                <span class="episode-title" use:bulleTexte>{episode.title}</span>
                 <span class="episode-meta">
                   {formatDate(episode.published)}
                   {#if episode.duration_ms} · {formatDuration(episode.duration_ms)}{/if}
@@ -607,9 +608,9 @@
                     </div>
                   {/if}
                 </div>
-                <span class="card-title">{podcast.title}</span>
+                <span class="card-title" use:bulleTexte>{podcast.title}</span>
                 {#if podcast.author}
-                  <span class="card-artist">{podcast.author}</span>
+                  <span class="card-artist" use:bulleTexte>{podcast.author}</span>
                 {/if}
                 <button class="btn-unsub" onclick={(e: MouseEvent) => { e.stopPropagation(); unsubscribe(podcast.id); }} title={$t('podcasts.unsubscribe')}>
                   <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
@@ -646,8 +647,8 @@
                     </div>
                   {/if}
                   <div class="new-ep-info">
-                    <span class="new-ep-title">{episode.title}</span>
-                    <span class="new-ep-podcast">{episode.podcast_name}</span>
+                    <span class="new-ep-title" use:bulleTexte>{episode.title}</span>
+                    <span class="new-ep-podcast" use:bulleTexte>{episode.podcast_name}</span>
                     <span class="new-ep-meta">
                       {formatDate(episode.published)}
                       {#if episode.duration_ms} · {formatDuration(episode.duration_ms)}{/if}
@@ -713,8 +714,8 @@
                       </div>
                     {/if}
                   </div>
-                  <span class="trending-title">{podcastName(podcast)}</span>
-                  <span class="trending-artist">{podcastArtist(podcast)}</span>
+                  <span class="trending-title" use:bulleTexte>{podcastName(podcast)}</span>
+                  <span class="trending-artist" use:bulleTexte>{podcastArtist(podcast)}</span>
                   {#if isSubscribed(podcast)}
                     <button class="btn-sub-sm btn-subscribed" onclick={(e: MouseEvent) => { e.stopPropagation(); const id = getSubscriptionId(podcast); if (id) unsubscribe(id); }} title={$t('podcasts.unsubscribe')}><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>{$t('podcasts.subscribed')}</button>
                   {:else}
@@ -758,8 +759,8 @@
                     </div>
                   {/if}
                 </div>
-                <span class="card-title">{podcastName(podcast)}</span>
-                <span class="card-artist">{podcastArtist(podcast)}</span>
+                <span class="card-title" use:bulleTexte>{podcastName(podcast)}</span>
+                <span class="card-artist" use:bulleTexte>{podcastArtist(podcast)}</span>
                 {#if isSubscribed(podcast)}
                   <button class="btn-sub-sm btn-subscribed" onclick={(e: MouseEvent) => { e.stopPropagation(); const id = getSubscriptionId(podcast); if (id) unsubscribe(id); }} title={$t('podcasts.unsubscribe')}><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>{$t('podcasts.subscribed')}</button>
                 {:else}
@@ -795,8 +796,8 @@
                   <div class="card-cover card-cover-placeholder">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
                   </div>
-                  <span class="card-title">{show.title}</span>
-                  <span class="card-artist">{show.station}</span>
+                  <span class="card-title" use:bulleTexte>{show.title}</span>
+                  <span class="card-artist" use:bulleTexte>{show.station}</span>
                 </div>
               {/each}
             </div>
@@ -809,8 +810,8 @@
                   <div class="card-cover card-cover-placeholder">
                     <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
                   </div>
-                  <span class="card-title">{show.title}</span>
-                  <span class="card-artist">{show.station}</span>
+                  <span class="card-title" use:bulleTexte>{show.title}</span>
+                  <span class="card-artist" use:bulleTexte>{show.station}</span>
                 </div>
               {/each}
             </div>
@@ -837,8 +838,8 @@
                       </div>
                     {/if}
                   </div>
-                  <span class="card-title">{podcastName(podcast)}</span>
-                  <span class="card-artist">{podcastArtist(podcast)}</span>
+                  <span class="card-title" use:bulleTexte>{podcastName(podcast)}</span>
+                  <span class="card-artist" use:bulleTexte>{podcastArtist(podcast)}</span>
                   {#if isSubscribed(podcast)}
                     <button class="btn-sub-sm btn-subscribed" onclick={(e: MouseEvent) => { e.stopPropagation(); const id = getSubscriptionId(podcast); if (id) unsubscribe(id); }} title={$t('podcasts.unsubscribe')}><svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>{$t('podcasts.subscribed')}</button>
                   {:else}
@@ -891,8 +892,8 @@
                   </div>
                 {/if}
               </div>
-              <span class="card-title">{podcastName(podcast)}</span>
-              <span class="card-artist">{podcastArtist(podcast)}</span>
+              <span class="card-title" use:bulleTexte>{podcastName(podcast)}</span>
+              <span class="card-artist" use:bulleTexte>{podcastArtist(podcast)}</span>
               {#if !podcastFeed(podcast)}
                 <span class="no-feed">{$t('podcasts.noRss')}</span>
               {:else if isSubscribed(podcast)}
