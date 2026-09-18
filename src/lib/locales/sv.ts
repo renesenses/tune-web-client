@@ -2666,6 +2666,7 @@ export default {
   "converter.retry": "Försök igen",
   "converter.conversionError": "Konverteringsfel",
   "converter.loadAlbumsError": "Kunde inte ladda album",
+  "converter.folderUnavailable": "Det gick inte att hitta albumets källmapp.",
   "converter.browseError": "Kunde inte bläddra i katalogen",
   "converter.startError": "Kunde inte starta konverteringen",
   "converter.cancelled": "Konvertering avbruten",

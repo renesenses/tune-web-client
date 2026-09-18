@@ -2974,6 +2974,7 @@ export default {
   "converter.retry": "Újra",
   "converter.conversionError": "Átalakítási hiba",
   "converter.loadAlbumsError": "Az albumokat nem sikerült betölteni",
+  "converter.folderUnavailable": "Az album forrásmappája nem határozható meg.",
   "converter.browseError": "A könyvtárat nem sikerült megnyitni",
   "converter.startError": "Az átalakítást nem sikerült elindítani",
   "converter.cancelled": "Az átalakítás megszakítva",

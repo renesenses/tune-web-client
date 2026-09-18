@@ -2724,6 +2724,7 @@ export default {
   "converter.retry": "Reîncearcă",
   "converter.conversionError": "Eroare la conversie",
   "converter.loadAlbumsError": "Încărcarea albumelor a eșuat",
+  "converter.folderUnavailable": "Nu se poate determina dosarul sursă al acestui album.",
   "converter.browseError": "Răsfoirea directorului a eșuat",
   "converter.startError": "Pornirea conversiei a eșuat",
   "converter.cancelled": "Conversie anulată",

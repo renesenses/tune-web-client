@@ -3351,6 +3351,7 @@ export default {
   "converter.retry": "Retry",
   "converter.conversionError": "Conversion error",
   "converter.loadAlbumsError": "Failed to load albums",
+  "converter.folderUnavailable": "Unable to determine this album’s source folder.",
   "converter.browseError": "Failed to browse directory",
   "converter.startError": "Failed to start conversion",
   "converter.cancelled": "Conversion cancelled",
