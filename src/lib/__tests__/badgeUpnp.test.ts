@@ -119,6 +119,10 @@ describe("Aucun appelant de ServiceBadge ne replie sur 'local'", () => {
     'src/components/partages/TransportBar.svelte',
     'src/components/v2/ArtistesV2.svelte',
     'src/components/v2/VersionsPistePanneau.svelte',
+    // Appelant ajouté le 18/09/2026 par #1113 : la pastille de provenance sur
+    // chaque ligne du tableau de pistes. Elle passe `p.source` telle quelle —
+    // une piste dont la source n'est pas lue ne doit pas se dire « LOCAL ».
+    'src/components/v2/ListePistesV2.svelte',
   ];
 
   for (const f of APPELANTS) {

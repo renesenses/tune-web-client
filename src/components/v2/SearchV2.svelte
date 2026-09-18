@@ -1012,7 +1012,15 @@
             <!-- La pochette de l'album de chaque piste — Bertrand, 17/09/2026 :
                  « Search : ajouter l'icône de l'album associé à la piste ».
                  Même option que l'Historique (#3823) et les playlists (#1057). -->
+            <!-- 🔴 #1113 — et la SOURCE de chaque ligne. « Menu Recherche: il
+                 manque les vignettes des titres trouvés et leur source
+                 (Bibliothèque, Qobuz, Bandcamp, Tidal, Youtube) » (FabienM,
+                 fil 1829, 17/09/2026). C'est la SEULE liste de pistes du
+                 client qui mêle les provenances : la rangée « OÙ » annonce
+                 quatre sources au-dessus d'un tableau unique. La source était
+                 déjà là — elle ne servait qu'à la clé de la boucle. -->
             <ListePistesV2 pistes={vusTitres as any} numerotation="aucune" pochetteEnTableau
+              sourceEnTableau
               onLire={(p) => lirePiste(p as any)}
               clef={(p, i) => String((p as any).source ?? 'local') + ':' + String(p.id ?? (p as any).source_id ?? i)} />
           </div>

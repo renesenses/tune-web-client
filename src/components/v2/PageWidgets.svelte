@@ -57,6 +57,12 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  // 🔴 #1108 — le calque PLAYLIST. `AlbumDetailV2` ne sait pas afficher une
+  // playlist : les deux espaces d'identifiants sont disjoints et les routes
+  // aussi (`…/albums/{id}/tracks` n'est pas `…/playlists/{id}/tracks`).
+  // C'est la MÊME fiche que celle ouverte par l'écran Streaming (#1016) et par
+  // l'écran Playlists : un second afficheur de playlist aurait divergé.
+  import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
@@ -469,6 +475,32 @@
   let serviceOuvert = $state<string | null>(null);
 
   /**
+   * 🔴 LE CALQUE PLAYLIST — #1108.
+   *
+   * Même mécanique que le calque album juste au-dessus : ouvrir empile une
+   * entrée d'historique (#980), le Retour de la page referme ET dépile, le
+   * Précédent du navigateur referme le calque.
+   *
+   * La clé s'écrit ici, comme `ArtistesV2` écrit la sienne (`artiste:${id}`) :
+   * une playlist de service se désigne par la PAIRE service + identifiant, et
+   * `playlist:` la sépare de `album:` — l'album 42 de Qobuz n'est pas sa
+   * playlist 42, et deux fiches sous une même clé se refermeraient l'une
+   * l'autre.
+   */
+  let playlistOuverte = $state<any | null>(null);
+  let servicePlaylistOuvert = $state<string | null>(null);
+  function fermerCalquePlaylist() {
+    playlistOuverte = null;
+    servicePlaylistOuvert = null;
+  }
+  function retourCalquePlaylist() {
+    fermerDetailEnReculant(fermerCalquePlaylist);
+  }
+  $effect(() => {
+    if ($detailOuvert == null && playlistOuverte) fermerCalquePlaylist();
+  });
+
+  /**
    * Un clic AILLEURS que sur le disque. Ouvre, ne joue pas.
    *
    * Une zone mène à « Lecture en cours », après y avoir bascule la selection :
@@ -478,6 +510,17 @@
     if (e.ouvrir === 'zone') {
       if (e.zoneId != null) currentZoneId.set(e.zoneId);
       activeView.set('nowplaying');
+      return;
+    }
+    // 🔴 #1108 — une PLAYLIST s'ouvre, elle aussi. Sans ce cas, `el.ouvrir`
+    // aurait beau être posé, le clic ne ferait RIEN : c'est la moitié du
+    // branchement, et une garde qui ne testerait que la fabrique la raterait.
+    if (e.ouvrir === 'playlist' && e.playlist) {
+      const svc = e.playlist.source ?? e.source ?? '';
+      const sid = e.playlist.source_id;
+      if (svc && sid) ouvrirDetail(`playlist:${svc}:${sid}`);
+      playlistOuverte = e.playlist;
+      servicePlaylistOuvert = svc || null;
       return;
     }
     if (e.ouvrir === 'album' && e.fiche) {
@@ -878,6 +921,16 @@
 
 {#if ficheOuverte}
   <AlbumDetailV2 album={ficheOuverte} service={serviceOuvert} onClose={retourCalqueAlbum} />
+{/if}
+
+<!-- #1108 : la composition d'une playlist de bande. `kind: 'streaming'` — une
+     bande de widget ne sert QUE des playlists de service ; une playlist locale
+     n'y arrive par aucun chemin. -->
+{#if playlistOuverte}
+  <PlaylistDetailV2
+    item={{ kind: 'streaming', service: servicePlaylistOuvert ?? '', pl: playlistOuverte }}
+    onClose={retourCalquePlaylist}
+  />
 {/if}
 
 {#if enEdition}
