@@ -52,10 +52,13 @@
   import { aUnOngletGenres, normaliserGenres, ouvertureGenre, sousGenresUtiles } from '../../lib/streamingGenres';
   import {
     BANDCAMP_EXT,
-    ongletInitial,
+    cleServeur,
+    ongletDeRestitution,
     ongletsStreaming,
     pseudoOnglet,
   } from '../../lib/ongletsStreaming';
+  import { get } from 'svelte/store';
+  import { activeStreamingService } from '../../lib/stores/streaming';
   import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -391,8 +394,41 @@
       // Le calcul d'origine — « le premier service connecté » — désignait
       // `bandcamp`, la clé même que le dédoublonnage retire : l'écran se serait
       // ouvert sur un onglet absent de sa propre rangée, aucun bouton allumé.
-      active = ongletInitial(services, bandcampLive);
+      //
+      // 🔴 …et il HONORE le service demandé (#1138). `activeStreamingService`
+      // est le magasin par lequel on arrive ici en désignant un service : la
+      // barre latérale quand on clique « Qobuz », `navigateToShortcut` quand on
+      // rouvre un raccourci. La coquille v2 ne le lisait pas — l'écran
+      // s'ouvrait toujours sur le premier de la rangée, et le raccourci
+      // d'Alain (fil 1671) ne ramenait jamais sur son service. Un souhait
+      // intenable (service déconnecté depuis) retombe sur le premier onglet.
+      active = ongletDeRestitution(services, bandcampLive, get(activeStreamingService));
     }).finally(() => { loading = false; });
+  });
+
+  /**
+   * L'onglet ouvert, PUBLIÉ — #1138.
+   *
+   * `captureCurrentView()` (`stores/shortcuts.ts`) fige le service courant en
+   * lisant `activeStreamingService`. Aucun écran de cette coquille ne l'avait
+   * jamais écrit : le raccourci enregistrait `null`, donc le MÊME état pour
+   * tous les services. Deux effets, tous deux signalés par Alain (fil 1671) :
+   * la restitution retombait sur le premier onglet, et deux raccourcis posés
+   * depuis deux services se dédoublonnaient l'un l'autre (`shortcutKey` ne
+   * voit que l'état) — impossible d'obtenir une entrée « Qobuz » à soi.
+   *
+   * 🔴 On publie la clé du SERVEUR, jamais `__bandcamp__` : ce magasin est
+   * partagé avec l'ancienne coquille et le raccourci se persiste dans la
+   * configuration du serveur. `ongletDeRestitution` refait la traduction en
+   * sens inverse au montage.
+   *
+   * 🔴 `active` nul ne s'écrit PAS. Au premier tour, avant que
+   * `/streaming/services` ait répondu, il l'est toujours — et l'écrire
+   * effacerait le service demandé par le raccourci avant même qu'on le lise.
+   */
+  $effect(() => {
+    const svc = cleServeur(active);
+    if (svc) activeStreamingService.set(svc);
   });
 
   /**

@@ -20,6 +20,11 @@
   import { atLeast } from '../../lib/uiLevel';
   import { t } from '../../lib/i18n';
   import { shortcuts, loadShortcuts, navigateToShortcut } from '../../lib/stores/shortcuts';
+  import { activeStreamingService, streamingServices } from '../../lib/stores/streaming';
+  import { servicesConnectes } from '../../lib/ongletsStreaming';
+  import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
+  import * as api from '../../lib/api';
+  import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
 
@@ -234,6 +239,57 @@
     void loadShortcuts();
   });
 
+  /**
+   * UNE ENTRÉE PAR SERVICE CONNECTÉ — #1138.
+   *
+   * schmitt (Alain), fil 1671, réponse 6208 : « Beaucoup cherché mais pas
+   * trouvé la possibilité de mettre en raccourci " Qobuz " dans la colonne de
+   * gauche sans passer par streaming. »
+   *
+   * L'ancienne barre (`components/Sidebar.svelte`, section « Sources ») donne
+   * son bouton NOMMÉ à chaque service connecté. Celle-ci n'avait que l'entrée
+   * générique « Streaming » : la fonction n'était pas cachée, elle avait
+   * disparu. On la rétablit ici, sous l'entrée qu'elle complète.
+   *
+   * ⚠️ Les libellés ne passent PAS par `$t` : ce sont des noms propres. La
+   * table reprend mot pour mot celle de l'ancienne barre (`streamingLabel`) —
+   * « TIDAL » en capitales, « YouTube » avec sa capitale interne — pour que le
+   * même service ne s'écrive pas de deux façons selon la coquille.
+   */
+  const NOMS_SERVICE: Record<string, string> = {
+    tidal: 'TIDAL',
+    qobuz: 'Qobuz',
+    youtube: 'YouTube',
+    amazon: 'Amazon',
+  };
+  const nomService = (s: string) => NOMS_SERVICE[s] ?? s.charAt(0).toUpperCase() + s.slice(1);
+
+  // 🔴 `servicesConnectes` : la MÊME règle et le MÊME ordre de préférence que
+  // la rangée d'onglets de l'écran (#998). Une seconde liste ici finirait par
+  // proposer une entrée que l'écran n'ouvre pas.
+  const servicesBarre = $derived(servicesConnectes($streamingServices));
+
+  // Le magasin n'est rempli par AUCUN écran de cette coquille : sans ce
+  // chargement la section resterait vide pour toujours (même constat que
+  // `statutsStreaming`, #4330). Rangé dans le magasin, il sert aux écrans
+  // suivants.
+  $effect(() => {
+    void statutsStreaming(get(streamingServices), api.getStreamingServices, (s) =>
+      streamingServices.set(s),
+    );
+  });
+
+  /**
+   * 🔴 Le service se POSE avant de changer de vue, et c'est tout le mécanisme :
+   * `StreamingV2` lit `activeStreamingService` à son montage
+   * (`ongletDeRestitution`). C'est aussi ce que `navigateToShortcut` fait, donc
+   * un raccourci posé depuis cette entrée rouvre le bon service.
+   */
+  function allerService(svc: string) {
+    activeStreamingService.set(svc);
+    go('streaming');
+  }
+
   // Repli de la barre (bouton ⟵ du brouillon v3) : la barre se reduit aux
   // icones. Le choix persiste par navigateur — c'est une preference de
   // place a l'ecran, pas un reglage de compte a synchroniser.
@@ -321,6 +377,20 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
+        <!-- Les services connectés, chacun par son nom, SOUS l'entrée qu'ils
+             complètent — #1138. La pastille reprend celle de l'ancienne barre :
+             elle dit « ce compte est connecté », la seule information que le
+             nom seul ne porte pas. -->
+        {#if it.view === 'streaming'}
+          {#each servicesBarre as svc (svc)}
+            <button class="nav svc"
+              class:active={$activeView === 'streaming' && $activeStreamingService === svc}
+              onclick={() => allerService(svc)} title={collapsed ? nomService(svc) : undefined}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M10 8.5l6 3.5-6 3.5z" /></svg>
+              <span>{nomService(svc)}</span>
+            </button>
+          {/each}
+        {/if}
       {/each}
     </nav>
 
@@ -518,5 +588,11 @@
   .nav:hover{color:var(--v2-txt); background:var(--v2-hover)}
   .nav.active{color:var(--v2-txt); background:linear-gradient(90deg,var(--v2-active1),var(--v2-active2)); box-shadow:inset 0 0 0 1px var(--v2-line2)}
   .nav.active svg{color:var(--v2-acc1)}
+  /* Les services connectés sont un DÉTAIL de l'entrée Streaming : ils en
+     dépendent, ils s'en retirent. Le retrait disparaît quand la barre est
+     repliée — à 72 px de large, décaler une icône la sortirait de sa colonne
+     et la rangée d'icônes cesserait d'être alignée. */
+  .nav.svc{padding-left:30px; font-size:13px}
+  .v2-sidebar.collapsed .nav.svc{padding-left:0}
   .support{margin-top:6px}
 </style>
