@@ -338,21 +338,36 @@
   {:else if data}
     <!-- Totals -->
     <div class="totals">
+      <!--
+        #1155 — CE QUE CHAQUE CHIFFRE COMPTE, écrit sous le chiffre.
+
+        Didier (fil 1566, 26/08/2026) : « Le terme écoutes me semble ambigu, si
+        j'interprète bien c'est le nombre de pistes écoutées (comptées
+        plusieurs fois si elles ont été jouées plusieurs fois). » Il
+        interprétait juste — `dashboard.rs` fait `COUNT(*)` sur
+        `playback_history` — mais rien à l'écran ne le disait, et il a dû le
+        déduire. Une légende, pas une infobulle : il demande « indiquer SUR
+        CET ÉCRAN la signification des chiffres ».
+      -->
       <div class="total-card">
         <div class="total-num">{data.totals.plays.toLocaleString()}</div>
         <div class="total-label">{$t('dashboard.totals.plays')}</div>
+        <div class="total-hint">{$t('dashboard.hint.plays' as any)}</div>
       </div>
       <div class="total-card">
         <div class="total-num">{formatMs(data.totals.listening_ms)}</div>
         <div class="total-label">{$t('dashboard.totals.listening_time')}</div>
+        <div class="total-hint">{$t('dashboard.hint.listeningTime' as any)}</div>
       </div>
       <div class="total-card">
         <div class="total-num">{data.totals.unique_tracks.toLocaleString()}</div>
         <div class="total-label">{$t('dashboard.totals.unique_tracks')}</div>
+        <div class="total-hint">{$t('dashboard.hint.uniqueTracks' as any)}</div>
       </div>
       <div class="total-card">
         <div class="total-num">{data.totals.unique_artists.toLocaleString()}</div>
         <div class="total-label">{$t('dashboard.totals.unique_artists')}</div>
+        <div class="total-hint">{$t('dashboard.hint.uniqueArtists' as any)}</div>
       </div>
     </div>
 
@@ -360,11 +375,16 @@
     {#if visibleTrend.length > 0}
       <div class="card">
         <h3>{$t('dashboard.section.trend')}</h3>
+        <!-- #1155 — « est-il possible d'indiquer l'échelle en abscisse (jours ?)
+             et en ordonnée (Pistes ?) ». Un trait par jour, la hauteur est le
+             nombre de lectures. L'infobulle était en ANGLAIS codé en dur
+             (« {d.plays} plays ») sur un écran entièrement français. -->
+        <div class="axis-hint">{$t('dashboard.trend.axis' as any)}</div>
         <div class="trend-bars">
           {#each visibleTrend as d}
             <div
               class="trend-bar"
-              title="{d.day} — {d.plays} plays"
+              title={$t('dashboard.trend.tip' as any).replace('{day}', d.day).replace('{plays}', String(d.plays))}
               style:height="{trendMax ? (d.plays / trendMax) * 100 : 0}%"
             ></div>
           {/each}
@@ -377,6 +397,7 @@
       {#if data.top_artists.length > 0}
         <div class="card">
           <h3>{$t('dashboard.section.top_artists')}</h3>
+          <div class="axis-hint">{$t('dashboard.hint.topArtists' as any)}</div>
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_artists as a}
               <li>
@@ -396,6 +417,7 @@
       {#if data.top_albums.length > 0}
         <div class="card">
           <h3>{$t('dashboard.section.top_albums')}</h3>
+          <div class="axis-hint">{$t('dashboard.hint.topAlbums' as any)}</div>
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_albums as a}
               <li>
@@ -420,6 +442,7 @@
       {#if data.top_tracks.length > 0}
         <div class="card">
           <h3>{$t('dashboard.section.top_tracks')}</h3>
+          <div class="axis-hint">{$t('dashboard.hint.topTracks' as any)}</div>
           <ol class="rank-list rank-list-with-cover">
             {#each data.top_tracks as tk}
               <li>
@@ -475,7 +498,9 @@
     <div class="grid">
       {#if data.streak && (data.streak.best > 0 || data.streak.current > 0)}
         <div class="card streak-card">
-          <h3>Streak</h3>
+          <!-- #1155 — « Pourquoi garder ici le terme en anglais Streak ? Tous
+               les autres termes sont en français. » Il était codé en dur. -->
+          <h3>{$t('dashboard.section.streak' as any)}</h3>
           <div class="streak-row">
             <div>
               <div class="streak-num">{data.streak.current}</div>
@@ -549,7 +574,7 @@
                   class:wh-cell-empty={plays === 0}
                   style:opacity={plays === 0 ? 0.06 : 0.18 + intensity * 0.82}
                   style:cursor={plays > 0 ? 'pointer' : 'default'}
-                  title="{day} {col}h — {plays} plays"
+                  title={$t('dashboard.slot.tip' as any).replace('{day}', day).replace('{hour}', String(col)).replace('{plays}', String(plays))}
                   role="button"
                   tabindex={plays > 0 ? 0 : -1}
                   onclick={() => plays > 0 && openSlot(row, col)}
@@ -572,7 +597,7 @@
             {@const intensity = hourlyMax && cell ? cell.plays / hourlyMax : 0}
             <div
               class="hourly-cell"
-              title="{h}h — {cell?.plays ?? 0} plays"
+              title={$t('dashboard.hour.tip' as any).replace('{hour}', String(h)).replace('{plays}', String(cell?.plays ?? 0))}
               style:opacity={0.15 + intensity * 0.85}
             >
               <span class="hourly-h">{h}</span>
@@ -738,6 +763,18 @@
   .rank-link:hover { color: var(--tune-accent); }
   .rank-sub { color: var(--tune-text-muted); font-size: 13px; }
   .rank-meta { font-size: 13px; color: var(--tune-text-muted); }
+  /* #1155 — « Le texte à droite des pistes locales n'est pas ajusté à droite
+     comme les pistes en streaming. » Ce n'est pas le texte qui bouge : c'est
+     le cœur qui manque. Une piste de service porte un `HeartButton`, une piste
+     locale sans `track_id` n'en porte aucun — et la colonne se décale d'autant,
+     ligne après ligne. On RÉSERVE la place, allumée ou non. */
+  .track-heart { width: 18px; flex: 0 0 18px; display: flex; justify-content: center; }
+
+  /* Ce que compte le chiffre, écrit sous lui — Didier demande de l'indiquer
+     « sur cet écran », pas dans une infobulle qu'il faut deviner. */
+  .total-hint, .axis-hint { font-size: 11.5px; line-height: 1.35; color: var(--tune-text-muted); }
+  .total-hint { margin-top: 2px; }
+  .axis-hint { margin: -2px 0 8px; }
   .rank-list-with-cover li { gap: 0.5rem; }
   .rank-cover {
     width: 32px; height: 32px; border-radius: var(--radius-sm);

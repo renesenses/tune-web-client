@@ -19,7 +19,7 @@
    * découpage gauche/droite finiraient par diverger.
    */
   import * as api from '../../lib/api';
-  import type { EqBand } from '../../lib/api';
+  import type { EqBand, MergedPlugin } from '../../lib/api';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { activeView } from '../../lib/stores/navigation';
@@ -91,6 +91,25 @@
   let loading = $state(true);
   let error = $state<string | null>(null);
 
+  /**
+   * Égaliseur en greffon FACULTATIF (v0.9.156).
+   *
+   * Il n'est plus activé d'office : il s'installe depuis le catalogue.
+   * `GET /plugins/equalizer` dit s'il est installé, s'il faut le PROPOSER
+   * (une configuration existait avant la mise à jour) et si des réglages sont
+   * conservés. Un vieux serveur ne rend pas ces champs, ou refuse la route :
+   * on garde l'écran d'avant — `undefined` n'est JAMAIS « non installé »,
+   * sinon un serveur d'hier montrerait un égaliseur « à installer » qui
+   * tourne déjà.
+   */
+  let greffon = $state<Pick<MergedPlugin, 'installed' | 'install_proposed' | 'existing_configuration'> | null>(null);
+  let installation = $state(false);
+  let redemarrageRequis = $state(false);
+  /** Compteur relu par l'effet de chargement : l'incrémenter recharge l'écran. */
+  let rechargement = $state(0);
+  const nonInstalle = $derived(greffon?.installed === false);
+  const installationProposee = $derived(nonInstalle && greffon?.install_proposed === true);
+
   const curve = $derived(gainsRight !== null && editing === 'right' ? gainsRight : gains);
 
   /** Rééchantillonne une courbe d'une grille vers une autre, par plus proche
@@ -106,9 +125,14 @@
 
   $effect(() => {
     const zid = $currentZoneId;
-    if (zid == null) { loading = false; return; }
+    void rechargement; // relu exprès : l'installation du greffon relance le chargement
     loading = true;
-    Promise.allSettled([api.getEqExpertSettings(), api.getEq(zid)])
+    // Le greffon se lit SANS zone : « pas installé » se dit même quand aucune
+    // zone n'est choisie, sinon l'écran réclamerait une zone pour un
+    // égaliseur qui n'existe pas encore.
+    const lectureGreffon = api.getPluginDetail('equalizer')
+      .then((p) => { greffon = p ?? null; }, () => { greffon = null; });
+    const lectureZone = zid == null ? Promise.resolve() : Promise.allSettled([api.getEqExpertSettings(), api.getEq(zid)])
       .then(([res, eq]) => {
         if (res.status === 'fulfilled') bandCount = res.value.expert_bands ?? 10;
         const grid = GRIDS[bandCount] ?? GRIDS[10];
@@ -124,9 +148,38 @@
         }
         error = null;
       })
-      .catch(() => { error = $t('v2.eq.errUnavailable' as any); })
-      .finally(() => { loading = false; });
+      .catch(() => { error = $t('v2.eq.errUnavailable' as any); });
+    Promise.allSettled([lectureGreffon, lectureZone]).finally(() => { loading = false; });
   });
+
+  /**
+   * Installer PUIS activer, dans cet ordre — la même mécanique que
+   * `PluginsV2` (`installPlugin` → `enablePlugin`), pas une autre route.
+   *
+   * `restart_required` est CRU : si le serveur dit qu'il faut redémarrer, on
+   * ne promet pas que l'égaliseur marche tout de suite. Le message reste
+   * affiché après le rechargement, jusqu'au redémarrage.
+   */
+  async function installerGreffon() {
+    if (installation) return;
+    installation = true;
+    error = null;
+    // Résolues AVANT l'attente : un `$t()` dans un `catch` est invisible au build.
+    const msgOk = $t('v2.eq.pluginInstalled' as any);
+    const msgKo = $t('v2.eq.pluginInstallError' as any);
+    try {
+      const inst = await api.installPlugin('equalizer');
+      const act = await api.enablePlugin('equalizer');
+      if (inst?.restart_required || act?.restart_required) redemarrageRequis = true;
+      notifications.success(msgOk);
+      rechargement++;
+    } catch {
+      error = msgKo;
+      notifications.error(msgKo);
+    } finally {
+      installation = false;
+    }
+  }
 
   // Le serveur applique au flux en cours quand il le peut (#1725). Quand il ne
   // le peut pas — zone réseau, mode PURE — et qu'on écoute, on pousse un
@@ -234,21 +287,37 @@
       <div class="v2-eyebrow">{$t('v2.eq.eyebrow' as any)}</div>
       <h1>{$t('v2.eq.title' as any)}</h1>
     </div>
-    <div class="v2-actions">
-      <label class="sw">
-        <input type="checkbox" checked={enabled} onchange={toggle} />
-        <span class="slider"></span>
-      </label>
-      <span class="onoff">{enabled ? $t('v2.eq.on' as any) : $t('v2.eq.off' as any)}</span>
-      <button class="v2-btn" onclick={reset}>{$t('v2.eq.reset' as any)}</button>
-    </div>
+    {#if !nonInstalle}
+      <div class="v2-actions">
+        <label class="sw">
+          <input type="checkbox" checked={enabled} onchange={toggle} />
+          <span class="slider"></span>
+        </label>
+        <span class="onoff">{enabled ? $t('v2.eq.on' as any) : $t('v2.eq.off' as any)}</span>
+        <button class="v2-btn" onclick={reset}>{$t('v2.eq.reset' as any)}</button>
+      </div>
+    {/if}
   </header>
 
   {#if error}<div class="err">{error}</div>{/if}
+  {#if redemarrageRequis}<div class="restart plugin-restart">{$t('v2.eq.pluginRestart' as any)}</div>{/if}
 
   <div class="scroll">
     {#if loading}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
+    {:else if nonInstalle}
+      <!-- Greffon absent : pas de curseurs qui bougent pour rien. Une phrase,
+           UN bouton — et, si une configuration existait avant la mise à jour,
+           la vérité : les réglages sont là, il suffit de réinstaller. -->
+      <div class="plugin">
+        {#if installationProposee}
+          <div class="plugin-banner">{$t('v2.eq.pluginProposed' as any)}</div>
+        {/if}
+        <p class="plugin-text">{$t('v2.eq.pluginNotInstalled' as any)}</p>
+        <button class="v2-btn plugin-install" disabled={installation} onclick={installerGreffon}>
+          {installation ? $t('v2.eq.pluginInstalling' as any) : $t('v2.eq.pluginInstall' as any)}
+        </button>
+      </div>
     {:else if $currentZoneId == null}
       <div class="state">{$t('v2.eq.noZone' as any)}</div>
     {:else}
@@ -361,6 +430,14 @@
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:26px 0; color:var(--v2-txt3)}
+  .restart{margin:0 30px 10px; padding:9px 14px; border-radius:10px; font-size:12.5px;
+    border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
+
+  .plugin{display:flex; flex-direction:column; align-items:flex-start; gap:14px; max-width:64ch; padding:26px 0}
+  .plugin-banner{padding:12px 16px; border-radius:11px; font-size:12.5px; line-height:1.55;
+    border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
+  .plugin-text{font-size:13.5px; line-height:1.55; color:var(--v2-txt2)}
+  .plugin-install:disabled{opacity:.55; cursor:progress}
 
   .presets{display:flex; gap:7px; flex-wrap:wrap; padding:2px 0 16px}
   .presets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;

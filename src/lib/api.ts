@@ -3883,6 +3883,8 @@ export * from './api/metadata';
 // --- Ingest (ajout de contenu à la bibliothèque) ---
 // Voir lib/api/ingest.ts.
 export * from './api/ingest';
+// Voir lib/api/bandcampAchats.ts.
+export * from './api/bandcampAchats';
 
 // --- Radios ---
 
@@ -5321,6 +5323,17 @@ export interface MergedPlugin {
   /** Entrée issue du catalogue marketplace (install via /marketplace). */
   marketplace?: boolean;
   slug?: string;
+  /**
+   * Égaliseur en greffon FACULTATIF (v0.9.156). `GET /plugins/equalizer` rend
+   * deux champs de plus à la racine, à côté de `installed` :
+   *  - `install_proposed` : une configuration EQ existait avant la mise à jour
+   *    et le greffon n'est pas installé — proposer l'installation en un geste ;
+   *  - `existing_configuration` : des réglages EQ (profils de zone, presets)
+   *    existent et sont conservés.
+   * Un vieux serveur ne les rend pas : `undefined` = comportement d'avant.
+   */
+  install_proposed?: boolean;
+  existing_configuration?: boolean;
 }
 
 export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
@@ -6514,7 +6527,20 @@ export interface MetadataProposal {
 // (BIB-A2, BIB-C1, BIB-B3 — v0.9.137 à v0.9.140).
 // ---------------------------------------------------------------------------
 export interface AlbumEclate { id: number; title: string; artist?: string | null; year?: number | null; track_count: number; track_numbers?: number[] }
-export interface GroupeAlbumsEclates { numeros_complementaires?: boolean; meme_annee?: boolean; pistes?: number; albums: AlbumEclate[]; [k: string]: unknown }
+/**
+ * L'INDICE qui a rapproché les fiches d'un groupe — #1069.
+ *
+ * Servi par le serveur depuis la v0.9.143 (`dossier_et_titre`) et la v0.9.146
+ * (`pochette_identique`, tune-server-rust#3396 / PR #3876). Le champ arrivait
+ * déjà dans la réponse et personne ne le lisait : le type l'absorbait par son
+ * `[k: string]: unknown`. Mesuré sur le .18 le 18/09/2026 —
+ * `{"indice":"dossier_et_titre", …}` sur les 26 groupes.
+ *
+ * Laissé en `string` : un serveur plus récent peut en nommer un troisième, et
+ * l'écran doit alors montrer le code plutôt que rien.
+ */
+export type IndiceEclate = 'dossier_et_titre' | 'pochette_identique' | (string & {});
+export interface GroupeAlbumsEclates { numeros_complementaires?: boolean; meme_annee?: boolean; pistes?: number; indice?: IndiceEclate; dossier?: string | null; albums: AlbumEclate[]; [k: string]: unknown }
 /** Un album coupé en plusieurs fiches (`GET /library/albums/eclates`). */
 export function getAlbumsEclates() {
   return fetchJSON<{ count: number; groups: GroupeAlbumsEclates[] }>(`${BASE}/library/albums/eclates`).then((r) => r?.groups ?? []);
@@ -6619,6 +6645,10 @@ export interface BandcampItem {
   extrait?: string | null;
   qualite?: string;
   lossless?: boolean;
+  /** Lot 3 : la clé d'achat, à passer à `bandcampTelecharger`. */
+  sale_item?: string | null;
+  /** Lot 3 : Bandcamp offre le fichier — vrai seulement avec la session. */
+  downloadable?: boolean;
 }
 
 export interface BandcampCollectionPage {
@@ -6627,6 +6657,8 @@ export interface BandcampCollectionPage {
   items: BandcampItem[];
   more_available: boolean;
   last_token: string | null;
+  /** Lot 3 : la réponse portait des pages de téléchargement (session valide). */
+  downloads_available?: boolean;
 }
 
 /** Lier un compte Bandcamp par son PSEUDO. Aucun mot de passe : la page de

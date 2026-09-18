@@ -12,7 +12,7 @@
    */
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
-import { dossierDeLAlbum } from '../../lib/dossierDAlbum';
+import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { albums } from '../../lib/stores/library';
   import { preferences } from '../../lib/stores/preferences';
   import { fold } from '../../lib/utils';
@@ -67,7 +67,13 @@ import { dossierDeLAlbum } from '../../lib/dossierDAlbum';
    * albums RETENUS — pas des deux cents vignettes affichées — et on garde le
    * résultat : cocher puis décocher ne redemande rien au serveur.
    */
-  const dossierDeLAlbumSur = (ts: any[]) => dossierDeLAlbum((ts ?? []).map((t) => t?.file_path));
+  // 🔴 `dossierAlbum` existait DÉJÀ sur `main` (`ab663b83`, « Localiser un
+  // album sur le disque ») et sert la fiche album. J'en avais écrit un second,
+  // `dossierDAlbum`, à une lettre du premier et avec les deux MÊMES noms de
+  // fonctions exportées — un piège pour le prochain lecteur, et deux copies
+  // qui divergeraient. Celui-ci prend les PISTES, pas des chemins nus, et
+  // écarte en prime les pistes de service : il fait plus, et mieux.
+  const dossierDeLAlbumSur = (ts: any[]) => dossierDeLAlbum(ts ?? []);
   let dossiers = $state<Map<number, string | null>>(new Map());
   let dossiersEnCours = new Set<number>();
   $effect(() => {
