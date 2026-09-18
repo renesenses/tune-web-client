@@ -38,7 +38,11 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     const token = getToken();
     const headers: Record<string, string> = {
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
+      // #4447 — `Content-Type: application/json` UNIQUEMENT s'il y a quelque
+      // chose a envoyer. Ce jumeau sert `api/metadata.ts` : `startAutoFix`
+      // poste sans corps, et l'en-tete faisait echouer l'extracteur
+      // `Option<Json<...>>` du serveur en 400 « EOF while parsing a value ».
+      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
     };
     if (token) headers['Authorization'] = `Bearer ${token}`;
