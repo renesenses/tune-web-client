@@ -565,6 +565,9 @@ export default {
   'playlist.recovered': 'Alternative gefunden',
   'playlist.applyRecovery': 'Ersetzen',
   'playlist.applyAll': 'Alle ersetzen',
+  "playlist.recoverPartial": "{applied} Ersetzung(en) angewendet, {rejected} abgelehnt.",
+  "playlist.recoverNoneApplied": "Es konnte keine Ersetzung angewendet werden ({rejected} abgelehnt).",
+  "playlist.recoverFailed": "Die Ersetzung ist fehlgeschlagen.",
   'playlist.noIssues': 'Alle Titel sind verfügbar',
 
   // Settings

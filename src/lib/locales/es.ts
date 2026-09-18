@@ -565,6 +565,9 @@ export default {
   'playlist.recovered': 'Alternativa encontrada',
   'playlist.applyRecovery': 'Reemplazar',
   'playlist.applyAll': 'Reemplazar todo',
+  "playlist.recoverPartial": "{applied} sustitución(es) aplicada(s), {rejected} rechazada(s).",
+  "playlist.recoverNoneApplied": "No se pudo aplicar ninguna sustitución ({rejected} rechazada(s)).",
+  "playlist.recoverFailed": "La sustitución ha fallado.",
   'playlist.noIssues': 'Todas las pistas están disponibles',
 
   // Settings

@@ -565,6 +565,9 @@ export default {
   'playlist.recovered': '代替が見つかりました',
   'playlist.applyRecovery': '置き換え',
   'playlist.applyAll': 'すべて置き換え',
+  "playlist.recoverPartial": "{applied} 件を置き換えました。{rejected} 件は拒否されました。",
+  "playlist.recoverNoneApplied": "置き換えを適用できませんでした（{rejected} 件が拒否）。",
+  "playlist.recoverFailed": "置き換えに失敗しました。",
   'playlist.noIssues': 'すべてのトラックが利用可能です',
 
   // Settings

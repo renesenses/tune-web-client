@@ -565,6 +565,9 @@ export default {
   'playlist.recovered': '已找到替代',
   'playlist.applyRecovery': '替换',
   'playlist.applyAll': '全部替换',
+  "playlist.recoverPartial": "已应用 {applied} 项替换，{rejected} 项被拒绝。",
+  "playlist.recoverNoneApplied": "没有任何替换被应用（{rejected} 项被拒绝）。",
+  "playlist.recoverFailed": "替换失败。",
   'playlist.noIssues': '所有曲目均可用',
 
   // Settings

@@ -405,7 +405,23 @@ const playbackWarnings = new Map<string, { text: string; id: number }>();
 
 type Refus = { code?: string; zone_limit?: number; zones_actives?: number };
 
-export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
+/**
+ * `accepter` — des statuts d'échec qui portent quand même une RÉPONSE.
+ *
+ * #1076 : `POST /playlists/{id}/recover/apply` répond `422` quand rien n'a pu
+ * être appliqué, et le corps est alors le compte rendu complet
+ * (`applied`, `rejected`, `still_missing`). Sans ce crochet, l'appelant reçoit
+ * une exception et perd le motif de chaque refus — il traite un REFUS
+ * documenté comme une panne serveur.
+ *
+ * Opt-in, et volontairement : par défaut rien ne change, un non-2xx reste une
+ * erreur pour les cent autres routes.
+ */
+export async function fetchJSON<T>(
+  url: string,
+  options?: RequestInit,
+  accepter?: (statut: number) => boolean,
+): Promise<T> {
   let response: Response;
   try {
     const token = getToken();
@@ -432,7 +448,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     showNetworkError();
     throw e;
   }
-  if (!response.ok) {
+  if (!response.ok && !accepter?.(response.status)) {
     if (response.status === 401) {
       clearToken();
       throw erreurSentinelle('Session expired', 401);
@@ -3671,11 +3687,25 @@ export function recoverPlaylist(playlistId: number) {
   });
 }
 
+/**
+ * Appliquer des remplacements de récupération — #1076.
+ *
+ * 🔴 Le `422` est ACCEPTÉ. Le serveur y répond « rien n'a pu être appliqué »
+ * avec le compte rendu complet : `rejected[].reason` nomme chaque refus
+ * (« la piste de remplacement n'existe pas », « la piste n'est plus dans cette
+ * playlist au moment d'écrire », « une piste de service ne remplace pas »).
+ * Le laisser jeter transformait un refus documenté en panne serveur, et
+ * l'écran n'avait plus qu'un `console.error` à offrir.
+ *
+ * Un `500` reste une panne et jette : là, le serveur nomme ce qui a déjà été
+ * écrit avant l'échec, et il n'y a pas de compte rendu à lire.
+ */
 export function applyRecovery(playlistId: number, replacements: Array<{ track_id: number; new_source: string; new_source_id: string }>) {
-  return fetchJSON<import('./types').RecoverApplyResponse>(`${BASE}/playlists/${playlistId}/recover/apply`, {
-    method: 'POST',
-    body: JSON.stringify({ replacements }),
-  });
+  return fetchJSON<import('./types').RecoverApplyResponse>(
+    `${BASE}/playlists/${playlistId}/recover/apply`,
+    { method: 'POST', body: JSON.stringify({ replacements }) },
+    (statut) => statut === 422,
+  );
 }
 
 // --- Playlist Manager v2 ---

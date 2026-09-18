@@ -749,6 +749,9 @@ export default {
   "playlist.recovered": "Alternatíva található",
   "playlist.applyRecovery": "Csere",
   "playlist.applyAll": "Összes cseréje",
+  "playlist.recoverPartial": "{applied} csere alkalmazva, {rejected} elutasítva.",
+  "playlist.recoverNoneApplied": "Egyetlen cserét sem sikerült alkalmazni ({rejected} elutasítva).",
+  "playlist.recoverFailed": "A csere nem sikerült.",
   "playlist.noIssues": "Minden szám elérhető",
   // Beállítások
   "settings.title": "Beállítások",
