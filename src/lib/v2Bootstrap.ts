@@ -19,7 +19,7 @@
 import { get } from 'svelte/store';
 import * as api from './api';
 import { zones, currentZoneId } from './stores/zones';
-import { albums, libraryLoading } from './stores/library';
+import { albums, libraryLoading, libraryAlbumsLoadState } from './stores/library';
 import { tuneWS } from './websocket';
 import { devices } from './stores/devices';
 import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
@@ -72,8 +72,12 @@ async function loadZones(): Promise<void> {
  * tout de suite, puis le reste. Sur une grosse bibliothèque, l'utilisateur
  * voit la grille se remplir au lieu d'attendre devant un écran vide.
  */
-async function loadAlbums(): Promise<void> {
+let albumsLoadGeneration = 0;
+export async function loadAlbums(): Promise<void> {
+  const generation = ++albumsLoadGeneration;
+  let partialPageLoaded = false;
   libraryLoading.set(true);
+  libraryAlbumsLoadState.set('loading');
   try {
     // 🔴 AUCUN tri demandé au serveur — et ce n'est pas un oubli.
     //
@@ -98,14 +102,26 @@ async function loadAlbums(): Promise<void> {
     // lectures des pages 0 et 1 rendent la même chose, sans recouvrement,
     // 200 identifiants distincts pour 200 attendus.
     const first = await api.getAllAlbums(100, null, null, 1, 100);
+    if (generation !== albumsLoadGeneration) return;
     albums.set(first);
+    partialPageLoaded = first.length >= 100;
     libraryLoading.set(false);
     if (first.length >= 100) {
       const rest = await api.getAllAlbums(2000, null, null);
+      if (generation !== albumsLoadGeneration) return;
       albums.set(rest);
     }
+    libraryAlbumsLoadState.set('idle');
+  } catch {
+    // Le complément peut échouer après une première page valide. La grille
+    // reste utilisable, mais ne doit pas se présenter comme complète (#1179).
+    // Même contrat pour le lancement depuis un événement WS : aucun rejet
+    // sans gestionnaire, et seul l'essai le plus récent peut poser l'état.
+    if (generation === albumsLoadGeneration) {
+      libraryAlbumsLoadState.set(partialPageLoaded ? 'partial-error' : 'error');
+    }
   } finally {
-    libraryLoading.set(false);
+    if (generation === albumsLoadGeneration) libraryLoading.set(false);
   }
 }
 
