@@ -298,7 +298,7 @@
     <button class="tab" class:active={activeTab === 'sync'}
             onclick={() => activeTab = 'sync'} role="tab">{$t('playlists.autoSyncLinks')}</button>
     <button class="tab" class:active={activeTab === 'snapshots'}
-            onclick={() => activeTab = 'snapshots'} role="tab">Snapshots</button>
+            onclick={() => activeTab = 'snapshots'} role="tab">{$t('playlists.snapshots')}</button>
   </nav>
 
   <!-- ── Tab content ────────────────────────────────── -->
@@ -432,7 +432,7 @@
 
   {:else if activeTab === 'snapshots'}
     <div class="placeholder">
-      <h3>Snapshots</h3>
+      <h3>{$t('playlists.snapshots')}</h3>
       <p>{$t('playlists.snapshotsPlaceholderBefore')}
         <strong>v0.7.33</strong>.</p>
     </div>
@@ -521,13 +521,13 @@
           {@const failed = wizardPreview.not_found ?? wizardPreview.failed ?? wizardPreview.tracks_not_found ?? Math.max(0, total - matched - approx)}
           <div class="match-bar">
             <div class="seg ok"  style:flex={matched}  title="ISRC: {matched}"></div>
-            <div class="seg warn" style:flex={approx}   title="Fuzzy: {approx}"></div>
-            <div class="seg err"  style:flex={failed}  title="Failed: {failed}"></div>
+            <div class="seg warn" style:flex={approx}   title="{$t('playlists.matchFuzzy')}: {approx}"></div>
+            <div class="seg err"  style:flex={failed}  title="{$t('playlists.matchFailed')}: {failed}"></div>
           </div>
           <div class="match-legend">
             <span><span class="dot ok"></span> ISRC <strong>{matched}</strong></span>
-            <span><span class="dot warn"></span> Fuzzy <strong>{approx}</strong></span>
-            <span><span class="dot err"></span> Failed <strong>{failed}</strong></span>
+            <span><span class="dot warn"></span> {$t('playlists.matchFuzzy')} <strong>{approx}</strong></span>
+            <span><span class="dot err"></span> {$t('playlists.matchFailed')} <strong>{failed}</strong></span>
             <span class="dim">· total {total}</span>
           </div>
         {/if}
@@ -603,7 +603,7 @@
         <button class="action small">↻ {$t('playlists.linkAutoSync')}</button>
       </div>
       <div class="action-row">
-        <button class="action small">💾 Backup</button>
+        <button class="action small">💾 {$t('playlists.backup')}</button>
         <button class="action small">⇄ {$t('playlists.compare')}</button>
       </div>
     </div>
