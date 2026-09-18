@@ -254,5 +254,9 @@ describe('#884 — aucun chemin ne rend le français du serveur', () => {
       if (fuiteFr || !vu.includes(attendu)) fuites.push(`${nom} → levé: ${leve} — bandeau: ${bandeaux}`);
     }
     expect(fuites, `${fuites.length} chemin(s) ne rendent pas la phrase de l’application`).toEqual([]);
-  });
+    // ⚠️ `lib/api.ts` fait 6 000 lignes : son import coûte plusieurs secondes
+    // sur une machine de compilation chargée, et les 5 s par défaut de vitest
+    // rendaient un ROUGE qui ne parlait pas du refus premium. Mesuré sur
+    // Shrek le 18/09/2026 : 1,1 s sur le Mac, > 5 s sous charge.
+  }, 60_000);
 });
