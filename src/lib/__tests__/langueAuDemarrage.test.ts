@@ -92,6 +92,13 @@ describe('barre latérale repliée — le bouton de dépliage', () => {
   it('le bouton reste nommé dans les deux états', () => {
     // Un bouton sans nom accessible est invisible pour qui ne voit pas
     // l'icône — et c'est le seul chemin de retour quand la barre est repliée.
-    expect(src).toContain("aria-label={collapsed ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}");
+    //
+    // ⚠️ #1151 : le nom se calcule désormais sur `enIcones`, l'état RÉELLEMENT
+    // affiché, et non plus sur la préférence brute `collapsed`. Au palier
+    // étroit (≤ 1100 px) la barre était repliée d'office pendant que la
+    // préférence valait `false` : le bouton annonçait « Replier » une barre
+    // déjà repliée. Le nom accessible est toujours là, il dit maintenant le
+    // geste réel.
+    expect(src).toContain("aria-label={enIcones ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}");
   });
 });
