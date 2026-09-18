@@ -1446,8 +1446,26 @@ export function clearQueue(zoneId: number) {
 
 // --- Library ---
 
-export function getAlbums(limit = 100, offset = 0) {
-  return fetchJSON<Album[]>(`${BASE}/library/albums?limit=${limit}&offset=${offset}`);
+/**
+ * Une page d'albums, avec le total pour paginer.
+ *
+ * 🔴 La route rend `{items, limit, offset, total}` — `getAlbums` promettait un
+ * `Album[]` et rendait cet objet tel quel, si bien que le `albums.find(...)`
+ * de ses deux appelants jetait « find is not a function ». Mesuré le
+ * 18/09/2026 sur le .18. On déballe ici, une fois, et la signature ne ment
+ * plus. `Array.isArray` garde le cas d'un serveur plus ancien qui rendrait le
+ * tableau nu.
+ */
+export async function getAlbumsPage(limit = 100, offset = 0): Promise<{ items: Album[]; total: number }> {
+  const r = await fetchJSON<{ items?: Album[]; total?: number } | Album[]>(
+    `${BASE}/library/albums?limit=${limit}&offset=${offset}`,
+  );
+  if (Array.isArray(r)) return { items: r, total: r.length };
+  return { items: r?.items ?? [], total: r?.total ?? (r?.items?.length ?? 0) };
+}
+
+export async function getAlbums(limit = 100, offset = 0): Promise<Album[]> {
+  return (await getAlbumsPage(limit, offset)).items;
 }
 
 export function getRecentAlbums(limit = 50) {
