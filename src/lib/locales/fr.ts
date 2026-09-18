@@ -4029,6 +4029,8 @@ export default {
   "v2.pl.namePlaceholder": "Nom de la playlist",
   "v2.pl.loading": "Chargement des playlists…",
   "v2.queue.clear": "Vider la file",
+  "v2.queue.clearUpNext": "Vider la suite",
+  "v2.queue.clearUpNextTip": "Retire tout ce qui suit la piste en cours, sans arrêter la lecture.",
   "v2.queue.loading": "Chargement de la file…",
   "v2.queue.noZone": "Aucune zone active — sélectionnez une zone pour voir sa file.",
   "v2.queue.empty": "La file est vide.",

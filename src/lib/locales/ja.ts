@@ -4007,6 +4007,8 @@ export default {
   "v2.pl.namePlaceholder": "プレイリストの名前",
   "v2.pl.loading": "プレイリストを読み込み中…",
   "v2.queue.clear": "キューを空にする",
+  "v2.queue.clearUpNext": "この先をクリア",
+  "v2.queue.clearUpNextTip": "再生を止めずに、現在の曲より後をすべて削除します。",
   "v2.queue.loading": "キューを読み込み中…",
   "v2.queue.noZone": "有効なゾーンがありません — キューを見るゾーンを選んでください。",
   "v2.queue.empty": "キューは空です。",

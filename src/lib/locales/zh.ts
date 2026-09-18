@@ -4007,6 +4007,8 @@ export default {
   "v2.pl.namePlaceholder": "播放列表名称",
   "v2.pl.loading": "正在加载播放列表…",
   "v2.queue.clear": "清空队列",
+  "v2.queue.clearUpNext": "清空后续",
+  "v2.queue.clearUpNextTip": "移除当前曲目之后的全部内容，不中断播放。",
   "v2.queue.loading": "正在加载队列…",
   "v2.queue.noZone": "没有活动区域 — 请选择一个区域以查看其队列。",
   "v2.queue.empty": "队列是空的。",

@@ -3965,6 +3965,8 @@ export default {
   "v2.pl.namePlaceholder": "A lejátszási lista neve",
   "v2.pl.loading": "Lejátszási listák betöltése…",
   "v2.queue.clear": "Sor ürítése",
+  "v2.queue.clearUpNext": "Következők törlése",
+  "v2.queue.clearUpNextTip": "Eltávolít mindent az aktuális szám után, a lejátszás megszakítása nélkül.",
   "v2.queue.loading": "A sor betöltése…",
   "v2.queue.noZone": "Nincs aktív zóna — válasszon zónát a sorának megtekintéséhez.",
   "v2.queue.empty": "A sor üres.",
