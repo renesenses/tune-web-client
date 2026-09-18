@@ -20,6 +20,7 @@
   import { reconcilierFiche } from './lib/reconciliationFiche';
   import { CANDIDATS_DEFILEMENT, conteneurDefilant, restaurerQuandPret } from './lib/defilementReel';
   import { finDuRetourProgrammatique, opPourFiche } from './lib/historiqueNavigation';
+import { vueDepuisHash } from './lib/routeAuChargement';
   import { preferences, applyTheme, syncPreferencesFromServer } from './lib/stores/preferences';
   import { syncDisplayFieldsFromServer } from './lib/stores/displayFields';
   import { locale } from './lib/i18n';
@@ -715,8 +716,27 @@ import AlarmsView from './components/AlarmsView.svelte';
         } catch {}
       }
 
+      // 🔴 LA ROUTE DE L'ADRESSE PASSE AVANT LA VUE DE DÉMARRAGE.
+      //
+      // Bertrand, .18, v0.9.153 : recharger `#library` retombait sur l'Accueil,
+      // et l'adresse elle-même était réécrite en `#home` — par le premier
+      // passage de `activeView.subscribe` plus bas, qui `replaceState` la vue
+      // COURANTE sans avoir jamais regardé le fragment. Le seul fragment lu
+      // ici était `#tv`.
+      //
+      // Elle passe avant la préférence « vue de démarrage » parce qu'un lien
+      // profond est une demande EXPRESSE, faite à l'instant ; la préférence dit
+      // seulement où aller quand on ne demande rien. Elle passe après le retour
+      // d'authentification SSO, qui n'a pas de fragment et doit rendre la main
+      // à l'écran qui l'attend.
+      //
+      // Un seul `set`, hors de tout effet réactif, et l'ancrage qui suit est un
+      // `replaceState` : aucune entrée n'est empilée.
+      const vueDeLAdresse = vueDepuisHash(bootHash);
       if (ssoPending) {
         activeView.set('settings');
+      } else if (vueDeLAdresse) {
+        activeView.set(vueDeLAdresse);
       } else {
         let prefs: { startupView?: string; defaultZoneId?: number | null } = {};
         preferences.subscribe((p) => (prefs = p))();
@@ -792,9 +812,10 @@ import AlarmsView from './components/AlarmsView.svelte';
             // PROPRE adresse (`#album/{id}`) au lieu de réutiliser `#library`,
             // pour que la barre d'adresse reflète la vue et que précédent /
             // suivant soient sans ambiguïté (demande testeur, 5c420af).
-            // Aucune régression de routage : rien ne lit ce fragment au
-            // démarrage — le seul lu est `#tv` (voir `isTvHash` plus haut), et
-            // l'aiguillage se fait sur `history.state`, inchangé.
+            // L'aiguillage EN SESSION se fait sur `history.state`, inchangé.
+            // Au CHARGEMENT, `routeAuChargement` connaît ce fragment : il
+            // repose la Bibliothèque, sans rouvrir la fiche — recharger
+            // l'album par l'API au démarrage est un autre chantier.
             window.history.pushState(ctx, '', `#album/${album.id}`);
           } else if (op === 'replace') {
             // Fermeture a la main (clic ailleurs, changement d'onglet) : l'entree
