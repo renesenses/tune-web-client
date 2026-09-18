@@ -168,12 +168,25 @@ describe('fetchJSON hardening', () => {
     expect(result).toEqual(data);
   });
 
-  it('should include Content-Type: application/json header', async () => {
+  // #4447 — l'en-tete decrit le CORPS. Ce test l'exigeait sur `getHealth()`,
+  // une requete qui n'en a pas : c'est precisement ce qui faisait echouer cote
+  // serveur les extracteurs `Option<Json<...>>` (400 « EOF while parsing a
+  // value at line 1 column 0 » sur /library/enrich-all). Il est desormais
+  // exige la ou il y a un corps, et interdit la ou il n'y en a pas.
+  it('should include Content-Type: application/json when there is a body', async () => {
+    mockFetch({ ok: true });
+    await api.createPlaylist('Ma liste');
+
+    const headers = fetchCalls[0].init?.headers as Record<string, string> | undefined;
+    expect(headers!['Content-Type']).toBe('application/json');
+  });
+
+  it('should NOT announce application/json when there is no body', async () => {
     mockFetch({ ok: true });
     await api.getHealth();
 
     const headers = fetchCalls[0].init?.headers as Record<string, string> | undefined;
-    expect(headers!['Content-Type']).toBe('application/json');
+    expect(headers!['Content-Type']).toBeUndefined();
   });
 
   it('should include Authorization header when token is set', async () => {
