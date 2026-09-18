@@ -20,10 +20,13 @@
   import { notifications } from '../../lib/stores/notifications';
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
-  import { doitViderLePerimetre } from '../../lib/perimetreRecherche';
+  import {
+    basculerPastille, dansLePerimetreDe, doitViderLePerimetre, pastilleAllumee, sansRestriction,
+  } from '../../lib/perimetreRecherche';
   import { activeView, pendingLibraryArtist, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
-  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { allerAuDetail, detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { cleDetailArtiste } from '../../lib/cleDetailArtiste';
   import { ficheArtisteService } from '../../lib/stores/streaming';
   import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
@@ -385,17 +388,34 @@
    */
   const groupes = $derived(fusionnerParType(local, fed));
 
-  // RESTREINDRE par type — un choix unique (Yves Corbat, point 8, 17/09/2026).
-  // Les pastilles ÉCARTAIENT une section à la fois : ne garder que les albums
-  // demandait trois clics. « Tout » au départ, rien n'est masqué.
-  let typeRecherche = $state<TypeRecherche>('tout');
-  const voirArtistes = $derived(sectionVisible(typeRecherche, 'artistes'));
-  const voirLabels = $derived(sectionVisible(typeRecherche, 'labels'));
-  const voirAlbums = $derived(sectionVisible(typeRecherche, 'albums'));
-  const voirTitres = $derived(sectionVisible(typeRecherche, 'titres'));
-  const voirPlaylists = $derived(sectionVisible(typeRecherche, 'playlists'));
+  /**
+   * RESTREINDRE par type — point 8 d'Yves Corbat (17/09/2026), et #1145.
+   *
+   * Les pastilles ÉCARTAIENT une section à la fois : ne garder que les albums
+   * demandait trois clics. Yves a obtenu le contraire — UN clic — et cet acquis
+   * est tenu ici (un premier clic RESTREINT à la pastille cliquée).
+   *
+   * 🔴 Mais ce n'était plus la règle de la rangée « OÙ » juste au-dessus, et
+   * c'est le défaut que FabienM décrit (#1145) : un ENSEMBLE d'un côté, un
+   * CHOIX UNIQUE de l'autre, sous deux rangées identiques à l'œil. Les deux
+   * rangées partagent désormais le même modèle — un ensemble où VIDE VAUT TOUT,
+   * dit par une pastille « Tout » explicite — et le même code
+   * (`lib/perimetreRecherche.ts`), qui porte la règle et sa raison.
+   *
+   * Ce que ça rend en plus : le CUMUL par type (Albums + Titres), que le choix
+   * unique interdisait.
+   */
+  let typesActifs = $state<Set<TypeRecherche>>(new Set());
+  const voirArtistes = $derived(sectionVisible(typesActifs, 'artistes'));
+  const voirLabels = $derived(sectionVisible(typesActifs, 'labels'));
+  const voirAlbums = $derived(sectionVisible(typesActifs, 'albums'));
+  const voirTitres = $derived(sectionVisible(typesActifs, 'titres'));
+  const voirPlaylists = $derived(sectionVisible(typesActifs, 'playlists'));
+  function basculerType(ty: TypeRecherche) {
+    typesActifs = basculerPastille(typesActifs, ty);
+  }
   const LIBELLE_TYPE: Record<TypeRecherche, string> = {
-    tout: 'v2.rech.allTypes', artistes: 'v2.rech.artists', labels: 'v2.rech.labels',
+    artistes: 'v2.rech.artists', labels: 'v2.rech.labels',
     albums: 'v2.rech.albums', titres: 'v2.rech.tracks', playlists: 'v2.rech.playlists',
   };
   // Les DOUBLES GUILLEMETS : une phrase exacte. Le serveur la tient pour la
@@ -444,9 +464,7 @@
     get(currentSearchCriteria)?.source ? new Set([get(currentSearchCriteria)!.source!]) : new Set<string>(),
   );
   function basculerSource(cle: string) {
-    const s2 = new Set(sourcesActives);
-    if (s2.has(cle)) s2.delete(cle); else s2.add(cle);
-    sourcesActives = s2;
+    sourcesActives = basculerPastille(sourcesActives, cle);
   }
   // Changer de requête remet le périmètre à zéro : un filtre hérité d'une
   // recherche précédente masquerait des résultats sans qu'on sache pourquoi.
@@ -470,13 +488,16 @@
     requetePrecedente = actuelle;
   });
 
+  // 🔴 VIDE VAUT TOUT — la règle du FILTRE ne change pas avec #1145. Ce qui
+  // change, c'est l'AFFICHAGE des pastilles : `pastilleAllumee` n'allume plus
+  // les quatre quand aucune n'est choisie.
   const dansLePerimetre = (x: any) =>
-    (sourcesActives.size === 0 || sourcesActives.has(x?.source ?? 'local'))
+    dansLePerimetreDe(sourcesActives, x?.source ?? 'local')
     && respecteLesPhrases(x, phrases);
 
   /** Labels de la bibliothèque (le seul endroit où un label se range). */
   const labels = $derived(
-    voirLabels && (sourcesActives.size === 0 || sourcesActives.has('local'))
+    voirLabels && dansLePerimetreDe(sourcesActives, 'local')
       ? ((local?.labels ?? []) as { name: string; album_count: number }[])
           .filter((l) => respecteLesPhrases(l, phrases))
       : [],
@@ -561,7 +582,11 @@
   // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
   // sortir du périmètre choisi, sinon on met en avant un album d'un service
   // qu'on vient justement d'écarter.
-  const meilleur = $derived(typeRecherche === 'labels' || typeRecherche === 'playlists' ? null : meilleurResultat(q, {
+  // Il n'a de sens que si l'une des trois sections qu'il peut désigner est à
+  // l'écran : restreint aux labels ou aux playlists, il montrerait un album
+  // qu'on vient justement d'écarter.
+  const meilleurPossible = $derived(voirArtistes || voirAlbums || voirTitres);
+  const meilleur = $derived(!meilleurPossible ? null : meilleurResultat(q, {
     // #1135 — la MÊME liste fusionnée que la rangée : sans cela le meilleur
     // résultat serait une des trois lignes d'origine, muette sur ses deux
     // autres provenances, juste à côté d'une vignette qui les dit.
@@ -657,7 +682,23 @@
     // seul à savoir que c'est d'elle qu'on part : elle le dit, la fiche le lit.
     vueDeRetour.set('search');
     pendingLibraryArtist.set(ar.id);
-    activeView.set('library');
+    /**
+     * 🔴 UNE entrée d'historique pour UN geste — #1142.
+     *
+     * `activeView.set('library')` empilait l'entrée de la GRILLE, que ce
+     * parcours ne montre jamais : la fiche s'ouvre par-dessus dans la foulée et
+     * empilait la sienne. Deux crans pour un clic, et le premier Précédent
+     * ramenait sur la Bibliothèque au lieu des résultats — mot pour mot le
+     * signalement. `allerAuDetail` écrit l'entrée COMPOSÉE `#library/artiste:42`
+     * et laisse `ArtistesV2` reposer la même clé sans rien empiler de plus.
+     *
+     * Sans clé (artiste sans identifiant de bibliothèque), on retombe sur le
+     * changement de vue nu : mieux vaut l'entrée de la grille qu'une entrée qui
+     * porterait une fiche que personne ne sait rouvrir.
+     */
+    const cle = cleDetailArtiste(ar.id);
+    if (cle) allerAuDetail('library', cle);
+    else activeView.set('library');
   }
 
   /**
@@ -738,23 +779,36 @@
   </header>
 
   {#if q.trim().length >= 2 && sourcesTrouvees.length > 1}
-    <div class="pills">
+    <div class="pills" data-rangee="ou">
       <span class="pl">{$t('v2.rech.where' as any)}</span>
+      <!-- 🔴 #1145 — « Toutes les sources » OUVRE la rangée, et elle y est
+           TOUJOURS. Elle n'apparaissait qu'une fois une source cochée, et
+           l'absence de restriction se disait en allumant les quatre autres
+           pastilles : le premier clic paraissait alors en éteindre trois.
+           C'est mot pour mot ce que FabienM décrit. Une pastille qui dit
+           « tout », et plus rien qui s'éteint tout seul. -->
+      <button class="pill raz" data-pastille="tout" class:on={sansRestriction(sourcesActives)}
+        aria-pressed={sansRestriction(sourcesActives)}
+        onclick={() => (sourcesActives = new Set())}>{$t('v2.rech.allSources' as any)}</button>
       {#each sourcesTrouvees as [cle, n] (cle)}
-        <button class="pill src" class:on={sourcesActives.size === 0 || sourcesActives.has(cle)}
+        <button class="pill src" class:on={pastilleAllumee(sourcesActives, cle)}
+          aria-pressed={pastilleAllumee(sourcesActives, cle)}
           onclick={() => basculerSource(cle)}>{nomSource(cle)} <b>{n}</b></button>
       {/each}
-      {#if sourcesActives.size}
-        <button class="pill raz" onclick={() => (sourcesActives = new Set())}>{$t('v2.rech.allSources' as any)}</button>
-      {/if}
     </div>
   {/if}
 
   {#if q.trim().length >= 2}
-    <div class="pills">
+    <div class="pills" data-rangee="afficher">
       <span class="pl">{$t('v2.rech.show' as any)}</span>
       <!-- Les compteurs suivent le PÉRIMÈTRE : annoncer 152 albums alors qu'on
            s'est restreint à la bibliothèque serait un chiffre qui ment. -->
+      <!-- La MÊME pastille que « Toutes les sources », au même endroit et avec
+           la même règle : allumée quand rien n'est restreint, elle relâche la
+           restriction d'un clic. -->
+      <button class="pill" data-pastille="tout" class:on={sansRestriction(typesActifs)}
+        aria-pressed={sansRestriction(typesActifs)}
+        onclick={() => (typesActifs = new Set())}>{$t('v2.rech.allTypes' as any)}</button>
       {#each TYPES_RECHERCHE as ty (ty)}
         <!-- #1135 — les ARTISTES sont comptés APRÈS fusion : annoncer 42 au-
              dessus de 30 vignettes serait le même chiffre qui ment. Les
@@ -763,11 +817,11 @@
           : ty === 'labels' ? nbLabels
           : ty === 'albums' ? groupes.albums.filter(dansLePerimetre).length
           : ty === 'titres' ? groupes.pistes.filter(dansLePerimetre).length
-          : ty === 'playlists' ? playlists.filter((pl) => respecteLesPhrases(pl, phrases)).length
-          : null}
-        <button class="pill" class:on={typeRecherche === ty} aria-pressed={typeRecherche === ty}
-          onclick={() => (typeRecherche = ty)}
-          >{$t(LIBELLE_TYPE[ty] as any)}{#if n != null} <b>{n}</b>{/if}</button>
+          : playlists.filter((pl) => respecteLesPhrases(pl, phrases)).length}
+        <button class="pill" class:on={pastilleAllumee(typesActifs, ty)}
+          aria-pressed={pastilleAllumee(typesActifs, ty)}
+          onclick={() => basculerType(ty)}
+          >{$t(LIBELLE_TYPE[ty] as any)} <b>{n}</b></button>
       {/each}
     </div>
   {/if}
