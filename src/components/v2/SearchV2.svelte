@@ -37,6 +37,10 @@
   import { formatDuration, getQualityTier } from '../../lib/utils';
   import type { Album, Source, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  // #1136 — le MÊME composant que partout ailleurs (~45 emplois, table de neuf
+  // provenances, `local: { name: 'LOCAL' }` comprise). Pas un troisième style
+  // de pastille : celui-là existe, il sait déjà nommer la bibliothèque.
+  import ServiceBadge from '../partages/ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { estDeBibliotheque } from '../../lib/provenanceBibliotheque';
@@ -54,6 +58,7 @@
   import { streamingServices } from '../../lib/stores/streaming';
   import {
     fusionnerParType,
+    regrouperArtistes,
     meilleurResultat,
     chargerRecherchesRecentes,
     retenirRecherche,
@@ -489,7 +494,19 @@
   const nomSource = (k: string) =>
     k === 'local' ? $t('v2.rech.srcLocal' as any) : k.charAt(0).toUpperCase() + k.slice(1);
 
-  const artistes = $derived(voirArtistes ? groupes.artistes.filter(dansLePerimetre) : []);
+  /**
+   * 🔴 #1135 — on REGROUPE après avoir filtré, jamais avant.
+   *
+   * Le périmètre (`OÙ`) se choisit par SOURCE : se restreindre à Qobuz doit
+   * rendre l'artiste Qobuz, pas une vignette fusionnée qui annoncerait encore
+   * la bibliothèque. Filtrer d'abord, fusionner ensuite, c'est aussi ce qui
+   * garde la rangée `OÙ` d'accord avec ce qu'on voit.
+   *
+   * Et les compteurs de seau (`sourcesTrouvees`) restent comptés AVANT la
+   * fusion : « Bibliothèque 50 · Bandcamp 64 · Qobuz 226 » est le compte par
+   * source rendu par le serveur — c'est une information, pas un doublon.
+   */
+  const artistes = $derived(voirArtistes ? regrouperArtistes(groupes.artistes.filter(dansLePerimetre)) : []);
   /**
    * Tri de la section Albums (Bertrand, 16/09/2026 : « tri par Album / dates
    * asc desc pour un artiste et Artiste / dates asc desc pour un album »).
@@ -545,7 +562,10 @@
   // sortir du périmètre choisi, sinon on met en avant un album d'un service
   // qu'on vient justement d'écarter.
   const meilleur = $derived(typeRecherche === 'labels' || typeRecherche === 'playlists' ? null : meilleurResultat(q, {
-    artistes: voirArtistes ? groupes.artistes.filter(dansLePerimetre) : [],
+    // #1135 — la MÊME liste fusionnée que la rangée : sans cela le meilleur
+    // résultat serait une des trois lignes d'origine, muette sur ses deux
+    // autres provenances, juste à côté d'une vignette qui les dit.
+    artistes,
     albums: voirAlbums ? groupes.albums.filter(dansLePerimetre) : [],
     pistes: voirTitres ? groupes.pistes.filter(dansLePerimetre) : [],
   }));
@@ -556,6 +576,26 @@
   // `upnp` est une provenance de bibliothèque, pas un service (#4201) — un
   // album UPnP de la Recherche s'ouvrait chez le « service » upnp.
   const estLocal = (x: any) => estDeBibliotheque(x);
+
+  /**
+   * Les provenances à peindre sous une vignette d'artiste — #1135 / #1136.
+   *
+   * `regrouperArtistes` pose `sources[]` sur tout ce qui sort de la rangée.
+   * Le repli d'une seule entrée sert les artistes qui n'en viennent pas — un
+   * appel direct, un futur autre appelant — pour qu'une vignette ne redevienne
+   * jamais muette par accident.
+   *
+   * ⚠️ Sur ce repli on n'invente RIEN : une ligne sans provenance rend une
+   * chaîne vide, que `ServiceBadge` ne connaît pas et ne peint donc pas. Mieux
+   * vaut aucune pastille qu'un « LOCAL » menteur — la règle de
+   * `badgeUpnp.test.ts`. Le chemin nominal, lui, passe par
+   * `regrouperArtistes`, où un artiste sans champ `source` est bien de la
+   * bibliothèque : c'est la convention que TOUT cet écran tient déjà
+   * (`estDeBibliotheque`, `dansLePerimetre`, `sourcesTrouvees`), et en
+   * diverger rangerait un artiste dans un seau que son badge contredirait.
+   */
+  const provenances = (ar: any): { source: string; artiste: any }[] =>
+    ar?.sources?.length ? ar.sources : [{ source: ar?.source ?? '', artiste: ar }];
 
   const nothing = $derived(
     q.trim().length >= 2 && !busy && !groupes.albums.length && !groupes.pistes.length &&
@@ -716,7 +756,10 @@
       <!-- Les compteurs suivent le PÉRIMÈTRE : annoncer 152 albums alors qu'on
            s'est restreint à la bibliothèque serait un chiffre qui ment. -->
       {#each TYPES_RECHERCHE as ty (ty)}
-        {@const n = ty === 'artistes' ? groupes.artistes.filter(dansLePerimetre).length
+        <!-- #1135 — les ARTISTES sont comptés APRÈS fusion : annoncer 42 au-
+             dessus de 30 vignettes serait le même chiffre qui ment. Les
+             compteurs de la rangée « OÙ », eux, restent par SEAU. -->
+        {@const n = ty === 'artistes' ? regrouperArtistes(groupes.artistes.filter(dansLePerimetre)).length
           : ty === 'labels' ? nbLabels
           : ty === 'albums' ? groupes.albums.filter(dansLePerimetre).length
           : ty === 'titres' ? groupes.pistes.filter(dansLePerimetre).length
@@ -849,12 +892,23 @@
                   l'image parfois identique, et rien pour les distinguer. Le
                   serveur ne met aucun champ `source` dans ces objets : la
                   source ne se sait qu'au seau d'où ils viennent.
+
+                  🔴 #1136 — la pochette ne la peint PLUS : les badges sont
+                  rendus SOUS la carte, par `.bsrc`. Motif en `.asrc`, plus
+                  bas, et c'est l'arbitrage de #1129 repris tel quel.
                 -->
                 <button class="bcard" onclick={() => ouvrirArtiste(a)}>
-                  <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} source={a.source as any} fallbackInitials={a.name?.slice(0,1)} /></span>
+                  <span class="bcv rond"><AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name} fallbackInitials={a.name?.slice(0,1)} /></span>
                   <span class="bt">{a.name}</span>
                   <span class="bk">{$t('v2.rech.kindArtist' as any)}</span>
                 </button>
+                <div class="bsrc">
+                  {#each provenances(a) as s (s.source)}
+                    <button class="asrcb" onclick={() => ouvrirArtiste(s.artiste)}>
+                      <ServiceBadge source={s.source} compact />
+                    </button>
+                  {/each}
+                </div>
               {:else if meilleur.genre === 'album'}
                 {@const a = meilleur.album}
                 <!-- Le MEILLEUR RÉSULTAT mène à la fiche dans les deux cas.
@@ -892,11 +946,45 @@
                         nom={ar.name}
                       >
                         <!-- Même raison que le meilleur résultat : sans la
-                             source, quatre « Marco Iacobini » identiques. -->
-                        <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} source={ar.source as any} fallbackInitials={ar.name?.slice(0,1)} />
+                             source, quatre « Marco Iacobini » identiques.
+                             🔴 #1136 — mais plus par INCRUSTATION : voir
+                             `.asrc` juste en dessous. -->
+                        <AlbumArt coverPath={ar.image_path ?? null} albumId={null} size={0} alt={ar.name} fallbackInitials={ar.name?.slice(0,1)} />
                       </PochetteActions>
                     </span>
                     <button class="meta" onclick={() => ouvrirArtiste(ar)}><span class="an" title={ar.name}>{ar.name}</span></button>
+                    <!--
+                      🔴 #1136 + #1135 — LA PROVENANCE, SOUS LA VIGNETTE.
+
+                      Deux raisons de ne PAS s'en remettre à l'incrustation de
+                      `AlbumArt`, et ce sont celles de #1129 :
+
+                      1. elle écarte volontairement `local`
+                         (`AlbumArt.svelte:77`) — c'est le défaut même de
+                         #1136 — et la lever peindrait `LOCAL` sur les ~18
+                         autres sites d'appel, y compris des écrans où tout est
+                         local par construction ;
+                      2. `.acv` fait 112 px en `overflow:hidden`, la pochette
+                         d'artiste est RONDE : une pastille `BANDCAMP` posée
+                         dans un coin y est rognée par le rayon.
+
+                      On REMPLACE donc l'incrustation au lieu de s'y ajouter —
+                      une seule pastille par provenance, jamais deux.
+
+                      Et depuis #1135 il y en a PLUSIEURS : c'est le rendu de
+                      `_sources` de l'ancienne interface
+                      (`SearchView.svelte:1244-1252`), au badge près. Chaque
+                      pastille MÈNE à la fiche de sa source : le clic n'a donc
+                      pas besoin d'un écran de désambiguïsation, et fusionner
+                      ne retire l'accès à rien.
+                    -->
+                    <div class="asrc">
+                      {#each provenances(ar) as s (s.source)}
+                        <button class="asrcb" onclick={() => ouvrirArtiste(s.artiste)}>
+                          <ServiceBadge source={s.source} compact />
+                        </button>
+                      {/each}
+                    </div>
                   </div>
                 {/each}
               </div>
@@ -1190,6 +1278,16 @@
   .acv{display:block; width:112px; height:112px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   .artile .an{display:block; margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .artile:hover .an{color:var(--v2-acc-tint)}
+  /* #1135 / #1136 — la rangée de provenances, SOUS la vignette : elle ne rogne
+     donc pas la pochette ronde et dit aussi la bibliothèque. `wrap` parce
+     qu'un artiste fusionné en porte jusqu'a quatre sur 112 px de large. */
+  .asrc{display:flex; flex-wrap:wrap; justify-content:center; gap:4px; margin-top:6px; min-height:14px}
+  .bsrc{display:flex; flex-wrap:wrap; gap:4px; margin-top:10px}
+  /* Chaque pastille MÈNE à la fiche de sa source — c'est ce qui remplace
+     l'écran de désambiguïsation. Le bouton ne se voit pas : la pastille est
+     déjà sa propre surface. */
+  .asrcb{border:0; background:transparent; padding:0; cursor:pointer; display:inline-flex; line-height:0}
+  .asrcb:hover{opacity:.78}
 
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .card{border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; padding:0; display:flex; flex-direction:column}
