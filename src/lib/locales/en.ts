@@ -574,6 +574,8 @@ export default {
   'queue.addToPlaylist': 'Add to Playlist',
   'queue.removeFromQueue': 'Remove from Queue',
   'queue.addToQueue': 'Add to Queue',
+  "queue.unresolvedWarning": "{count} track(s) from {service} could not be resolved and were added without their details.",
+  "queue.unresolvedUnknownService": "this service",
   'queue.addFailed': "Could not add to the queue",
 
   // Home
@@ -4031,6 +4033,8 @@ export default {
   "v2.pl.namePlaceholder": "Playlist name",
   "v2.pl.loading": "Loading playlists…",
   "v2.queue.clear": "Clear the queue",
+  "v2.queue.clearUpNext": "Clear up next",
+  "v2.queue.clearUpNextTip": "Removes everything after the current track, without stopping playback.",
   "v2.queue.loading": "Loading the queue…",
   "v2.queue.noZone": "No active zone — pick a zone to see its queue.",
   "v2.queue.empty": "The queue is empty.",

@@ -7,7 +7,8 @@
   // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
   // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
   // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
-  import { t as tr } from '../../lib/i18n';
+  import { t as tr, locale } from '../../lib/i18n';
+  import { paliersDeFrequence, type LibelleServi } from '../../lib/libellesFrequence';
   import { formatNombre } from '../../lib/formats';
   /**
    * Bibliothèque — grille d'albums du nouveau client (direction Levente).
@@ -215,12 +216,25 @@
       .join(' '),
   );
 
-  // Fréquences en VALEURS EXACTES (jamais un seuil « ≥ »).
-  const RATES: { v: number; l: string }[] = [
-    { v: 44100, l: '44,1' }, { v: 48000, l: '48' }, { v: 88200, l: '88,2' },
-    { v: 96000, l: '96' }, { v: 176400, l: '176,4' }, { v: 192000, l: '192' },
-    { v: 352800, l: '352,8' }, { v: 384000, l: '384' },
-  ];
+  /**
+   * Fréquences en VALEURS EXACTES (jamais un seuil « ≥ »).
+   *
+   * 🔴 #1074 — la liste était FIGÉE ici, et ne portait que huit valeurs PCM :
+   * un album DSD64 (2 822 400 Hz) ne correspondait à AUCUNE entrée, ne se
+   * comptait nulle part et ne se filtrait pas. Ce n'était pas un libellé
+   * manquant, c'était une ligne absente (Cyrille, fil 1792).
+   *
+   * Le serveur les nomme depuis la v0.9.155 (tune-server-rust#4171) ; la
+   * liste figée reste le SECOURS pour les serveurs antérieurs. Voir
+   * `lib/libellesFrequence`.
+   */
+  let libellesServis = $state<LibelleServi[]>([]);
+  $effect(() => {
+    let vivant = true;
+    api.getSampleRateLabels().then((l) => { if (vivant) libellesServis = l; });
+    return () => { vivant = false; };
+  });
+  const RATES = $derived(paliersDeFrequence(libellesServis, $locale));
   // DSD, Hi-Res et CD sont des NOMS de format : ils s'écrivent pareil dans
   // toutes les langues. « Compressé » est un mot, et porte donc une clé —
   // d'où `cle`, qui distingue les deux sans que le rendu ait à deviner.
@@ -743,12 +757,12 @@
     // DSD128 pour les DSD256 ET les DSD512 — sept albums sur les 49 de la
     // bibliothèque de Bertrand, toujours sous-estimés.
     if (t === 'dsd') { const m = multipleDSD(a.sample_rate); return m ? `DSD · ${m}` : 'DSD'; }
-    return [a.format?.toUpperCase(), rate && `${rate} kHz`, depth].filter(Boolean).join(' · ');
+    return [a.format?.toUpperCase(), rate, depth].filter(Boolean).join(' · ');
   }
   function badge(a: Album): string | null {
     const t = getQualityTier(a);
     if (t === 'dsd') return 'DSD';
-    if (t === 'hires' || t === 'hires_max') return RATES.find((r) => r.v === a.sample_rate)?.l + 'k';
+    if (t === 'hires' || t === 'hires_max') return RATES.find((r) => r.v === a.sample_rate)?.court ?? null;
     return null;
   }
 
@@ -1569,13 +1583,13 @@
         </div>
       </div>
       <div class="drop" class:open={ddOpen === 'rate'}>
-        <button class="chip" class:active={fRate !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>Fréquence{#if fRate}&nbsp;· {RATES.find(r => r.v === fRate)?.l} kHz{/if}
+        <button class="chip" class:active={fRate !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>Fréquence{#if fRate}&nbsp;· {RATES.find(r => r.v === fRate)?.l}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           {#each RATES as r (r.v)}
             {@const n = nFrequence.get(r.v) ?? 0}
             <button class:on={fRate === r.v} disabled={n === 0 && fRate !== r.v}
-              onclick={() => { fRate = fRate === r.v ? null : r.v; ddClose(); }}>{r.l} kHz <em>{n}</em></button>
+              onclick={() => { fRate = fRate === r.v ? null : r.v; ddClose(); }}>{r.l} <em>{n}</em></button>
           {/each}
         </div>
       </div>

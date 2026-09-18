@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': 'プレイリストに追加',
   'queue.removeFromQueue': 'キューから削除',
   'queue.addToQueue': 'キューに追加',
+  "queue.unresolvedWarning": "{service} の {count} 曲を解決できず、情報なしで追加されました。",
+  "queue.unresolvedUnknownService": "このサービス",
   'queue.addFailed': "キューに追加できませんでした",
 
   // Home
@@ -4011,6 +4013,8 @@ export default {
   "v2.pl.namePlaceholder": "プレイリストの名前",
   "v2.pl.loading": "プレイリストを読み込み中…",
   "v2.queue.clear": "キューを空にする",
+  "v2.queue.clearUpNext": "この先をクリア",
+  "v2.queue.clearUpNextTip": "再生を止めずに、現在の曲より後をすべて削除します。",
   "v2.queue.loading": "キューを読み込み中…",
   "v2.queue.noZone": "有効なゾーンがありません — キューを見るゾーンを選んでください。",
   "v2.queue.empty": "キューは空です。",

@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': '재생목록에 추가',
   'queue.removeFromQueue': '대기열에서 제거',
   'queue.addToQueue': '대기열에 추가',
+  "queue.unresolvedWarning": "{service}의 {count}개 트랙을 확인하지 못해 정보 없이 추가되었습니다.",
+  "queue.unresolvedUnknownService": "이 서비스",
   'queue.addFailed': "대기열에 추가하지 못했습니다",
 
   // Home
@@ -4011,6 +4013,8 @@ export default {
   "v2.pl.namePlaceholder": "재생목록 이름",
   "v2.pl.loading": "재생목록을 불러오는 중…",
   "v2.queue.clear": "대기열 비우기",
+  "v2.queue.clearUpNext": "다음 곡 비우기",
+  "v2.queue.clearUpNextTip": "재생을 멈추지 않고 현재 트랙 이후를 모두 제거합니다.",
   "v2.queue.loading": "대기열을 불러오는 중…",
   "v2.queue.noZone": "활성 존이 없습니다 — 대기열을 볼 존을 선택하세요.",
   "v2.queue.empty": "대기열이 비어 있습니다.",

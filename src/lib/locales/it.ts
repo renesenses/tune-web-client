@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': 'Aggiungi a una playlist',
   'queue.removeFromQueue': 'Rimuovi dalla coda',
   'queue.addToQueue': 'Aggiungi alla coda',
+  "queue.unresolvedWarning": "Non è stato possibile risolvere {count} brano/i di {service}: sono stati aggiunti senza i loro dati.",
+  "queue.unresolvedUnknownService": "questo servizio",
   'queue.addFailed': "Impossibile aggiungere alla coda",
 
   // Home
@@ -4011,6 +4013,8 @@ export default {
   "v2.pl.namePlaceholder": "Nome della playlist",
   "v2.pl.loading": "Caricamento delle playlist…",
   "v2.queue.clear": "Svuota la coda",
+  "v2.queue.clearUpNext": "Svuota i successivi",
+  "v2.queue.clearUpNextTip": "Rimuove tutto ciò che segue il brano corrente, senza interrompere la riproduzione.",
   "v2.queue.loading": "Caricamento della coda…",
   "v2.queue.noZone": "Nessuna zona attiva — scegli una zona per vederne la coda.",
   "v2.queue.empty": "La coda è vuota.",

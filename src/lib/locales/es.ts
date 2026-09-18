@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': 'Añadir a una lista de reproducción',
   'queue.removeFromQueue': 'Eliminar de la cola',
   'queue.addToQueue': 'Añadir a la cola',
+  "queue.unresolvedWarning": "No se pudieron resolver {count} pista(s) de {service} y se añadieron sin sus datos.",
+  "queue.unresolvedUnknownService": "este servicio",
   'queue.addFailed': "No se ha podido añadir a la cola",
 
   // Home
@@ -4011,6 +4013,8 @@ export default {
   "v2.pl.namePlaceholder": "Nombre de la lista",
   "v2.pl.loading": "Cargando las listas…",
   "v2.queue.clear": "Vaciar la cola",
+  "v2.queue.clearUpNext": "Vaciar lo siguiente",
+  "v2.queue.clearUpNextTip": "Elimina todo lo que sigue a la pista actual, sin detener la reproducción.",
   "v2.queue.loading": "Cargando la cola…",
   "v2.queue.noZone": "Ninguna zona activa — elija una zona para ver su cola.",
   "v2.queue.empty": "La cola está vacía.",
