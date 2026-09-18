@@ -67,10 +67,7 @@
   //    l'autre jette la raison au moment exact où elle existe.
   // ───────────────────────────────────────────────────────────────────────────
 
-  // Le serveur est l'AUTORITÉ sur l'offre. `$isPremium` est lu au démarrage et
-  // peut mentir (licence active ailleurs, fonction absente du palier, statut
-  // jamais rechargé) : un 402 reçu lève donc le bandeau à son tour, comme le
-  // panneau EQ de « En écoute » le fait depuis #2419.
+  // Les anciens serveurs peuvent encore refuser l’EQ : garder ce refus visible.
   let refusPremiumServeur = $state(false);
 
   // Pourquoi « Mes presets » ne vient pas du serveur, quand c'est le cas. Ce
@@ -95,7 +92,7 @@
       // toutes, à l'écran, et pas dans une notification qui s'efface au bout
       // de cinq secondes. `fetchJSON` en a déjà poussé une sur le 402 ; en
       // empiler une seconde n'apprendrait rien de plus.
-      refusPremiumServeur = true;
+      if (ou !== 'crossfeed') refusPremiumServeur = true;
       return;
     }
     const signature = `${ou}:${echec.motif}`;
@@ -911,20 +908,14 @@
 </script>
 
 <section class="equalizer-view">
-  <!-- Le serveur a refusé une écriture en 402 alors que l'état de licence lu
-       au démarrage disait « premium ». Il est l'autorité : on le dit ici, en
-       permanence, plutôt que dans une notification qui s'efface au bout de
-       cinq secondes et laisse un écran d'égaliseur pleinement fonctionnel qui
-       n'a aucun effet. Quand `$isPremium` est déjà faux, le bandeau
-       `premium-gate` ci-dessous couvre l'écran entier : pas la peine des
-       deux. -->
-  {#if refusPremiumServeur && $isPremium}
+  <!-- Un ancien serveur peut encore refuser l’EQ : son refus reste visible. -->
+  {#if refusPremiumServeur}
     <div class="premium-gate">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <span>{$t('eq.premiumRequired' as any)}</span>
     </div>
   {/if}
-  {#if pureActive && $isPremium}
+  {#if pureActive}
     <div class="eq-pure-banner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       {$t('eq.pureBypassWarning' as any)}
@@ -932,7 +923,6 @@
   {/if}
   <header class="eq-header">
     <h1>{$t('eq.title')}</h1>
-    {#if $isPremium}
     <div class="eq-mode-tabs">
       <button class="eq-mode-tab" class:active={eqMode === 'assistant'} onclick={() => eqMode = 'assistant'}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" /></svg>
@@ -943,16 +933,9 @@
         Expert
       </button>
     </div>
-    {/if}
   </header>
 
-  {#if !$isPremium}
-    <div class="premium-gate">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      <span>{$t('eq.premiumGate')} <strong>Tune Premium</strong>.</span>
-    </div>
-
-  {:else if eqMode === 'assistant'}
+  {#if eqMode === 'assistant'}
     <!-- =================== TUNE MASTER PROFILER =================== -->
     <div class="profiler">
       {#if profilerStep === 1}
@@ -1263,9 +1246,7 @@
   {/if}
 
   <!-- =================== CROSSFEED (CASQUE) =================== -->
-  <!-- Same DSP panel, same active zone. Shown for premium in both modes.
-       When not premium the top-level premium-gate already covers the whole
-       view, so this section is simply part of the gated DSP surface. -->
+  <!-- Le crossfeed conserve son offre Premium, indépendamment de l’EQ gratuit. -->
   {#if $isPremium}
     <section class="crossfeed">
       <div class="crossfeed-header">
@@ -1336,6 +1317,11 @@
         </div>
       </div>
     </section>
+  {:else}
+    <section class="crossfeed">
+      <h2 class="crossfeed-title">{$t('dsp.crossfeedTitle')}</h2>
+      <p class="crossfeed-desc crossfeed-indispo">{$t('dsp.crossfeedPremiumTransition')}</p>
+    </section>
   {/if}
 </section>
 
@@ -1375,7 +1361,6 @@
     color: var(--tune-text-secondary, #aaa);
     font-size: 14px;
   }
-  .premium-gate strong { color: var(--tune-accent, #6366f1); }
   .my-presets-warn {
     margin: 6px 0 0;
     font-size: 0.75rem;

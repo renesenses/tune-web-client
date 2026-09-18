@@ -20,10 +20,8 @@
     /** L'égaliseur est-il activé sur la zone ? */
     enabled?: boolean;
     /**
-     * L'égaliseur est hors de l'offre en cours. `POST /zones/{id}/eq` est
-     * gardée côté serveur par `require_premium(…, Feature::DspEq)` et répond
-     * 402 : laisser cliquer sept préréglages qui seront tous refusés, c'était
-     * le signalement de Daniel POUCHON (fil 1364, #2419).
+     * Un ancien serveur a explicitement refusé l’écriture (402, #2419).
+     * Le palier FREE local ne verrouille plus l’égaliseur.
      */
     locked?: boolean;
   }

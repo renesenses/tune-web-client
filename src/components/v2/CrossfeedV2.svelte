@@ -121,6 +121,8 @@
 
     {#if loading}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
+    {:else if indispo.motif === 'premium_required'}
+      <div class="warn">{$t('dsp.crossfeedPremiumTransition')}</div>
     {:else if $currentZoneId == null}
       <div class="state">{$t('v2.cf.noZone' as any)}</div>
     {:else}

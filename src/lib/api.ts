@@ -2376,7 +2376,7 @@ export function setEqExpertSettings(expertBands: number) {
 // « Mes presets » EQ — CRUD serveur (routes/eq_pro.rs, stockage KV partagé par
 // tous les contrôleurs du serveur → les presets suivent l'utilisateur d'un
 // appareil à l'autre). Le preset porte des `bands` {freq,gain,q,type} et un
-// `eq_type` ('graphic' | 'parametric'). Mutations gatées Premium (comme l'EQ).
+// `eq_type` ('graphic' | 'parametric'). Accessibles à l’offre FREE avec l’EQ.
 export interface EqProPreset {
   id: string;
   name: string;

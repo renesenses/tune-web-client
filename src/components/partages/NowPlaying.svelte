@@ -28,7 +28,6 @@
   import SeekBar from './SeekBar.svelte';
   import NowPlayingLyrics from './NowPlayingLyrics.svelte';
   import NowPlayingEqPanel from './NowPlayingEqPanel.svelte';
-  import { isPremium, licenseState } from '../../lib/stores/license';
   import { estRefusPremium } from '../../lib/premiumRefus';
   import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
@@ -360,17 +359,10 @@
       .catch(() => { eqBands = []; eqEnabled = true; currentEqPreset = ''; });
   });
 
-  // Le serveur refuse l'ecriture de l'egaliseur hors Premium
-  // (`require_premium(…, Feature::DspEq)` -> 402). `$isPremium` permet de le
-  // dire AVANT le clic, mais il est lu au demarrage et peut mentir : licence
-  // active sur un autre serveur, fonction absente du palier, statut jamais
-  // recharge. L'autorite reste donc la reponse du serveur — un 402 recu
-  // verrouille le panneau a son tour (#2419).
-  // `loaded` compte : avant que `loadLicense()` ait repondu, l'etat par defaut
-  // est `tier: 'free'`. S'en servir tel quel montrerait le cadenas a un abonne
-  // pendant le chargement — on aurait remplace un silence par un mensonge.
+  // L’égaliseur est gratuit. Seul un refus explicite d’un ancien serveur
+  // verrouille encore le panneau (#2419).
   let eqRefusePremium = $state(false);
-  let eqLocked = $derived(($licenseState.loaded && !$isPremium) || eqRefusePremium);
+  let eqLocked = $derived(eqRefusePremium);
 
   async function setEqPreset(preset: string) {
     if (zone?.id == null) return;
@@ -1945,6 +1937,9 @@
           {/if}
           {#if showDspMenu}
             <div class="np-crossfeed">
+              {#if cfIndispo.motif === 'premium_required'}
+                <p class="cf-note cf-note-alerte">{$t('dsp.crossfeedPremiumTransition')}</p>
+              {:else}
               <div class="cf-ligne">
                 <label class="cf-bascule">
                   <input
@@ -2006,6 +2001,7 @@
                 <!-- Le serveur dit que le reglage n'a pas atteint le flux en
                      cours : le taire, c'est laisser croire a une panne. -->
                 <p class="cf-note cf-note-alerte">{$t('eq.effectNextTrack')}</p>
+              {/if}
               {/if}
             </div>
           {/if}

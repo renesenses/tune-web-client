@@ -28,6 +28,8 @@ import * as locales from '../locales';
  * bout de cinq secondes ; et le panneau, lui, continue d'offrir sept boutons
  * qui ne feront jamais rien.
  *
+ * Depuis l’ouverture FREE (#4363 côté serveur), la licence locale ne bloque
+ * plus l’EQ. Le refus des anciens serveurs reste traité explicitement.
  * Le contrat protégé ici tient en trois points :
  *
  *  1. le client sait RECONNAÎTRE un refus premium, sous les deux formes que
@@ -103,15 +105,8 @@ describe('reconnaître un refus premium', () => {
 });
 
 describe('le panneau EQ de Lecture en cours devant une licence absente', () => {
-  it('reçoit l’état de licence — `isPremium` ne peut plus être absent du fichier', () => {
-    expect(
-      // Un ou deux crans : `NowPlaying` est rangé dans `partages/` depuis la
-      // phase 1 du chantier de bascule. Ce que la garde exige est l'IMPORT de
-      // l'état de licence, pas la profondeur du fichier.
-      /from '\.\.\/(\.\.\/)?lib\/stores\/license'/.test(NOW_PLAYING),
-      'NowPlaying.svelte n’importe toujours pas l’état de licence',
-    ).toBe(true);
-    expect(NOW_PLAYING).toMatch(/\$isPremium/);
+  it('ouvre l’EQ FREE et conserve le refus explicite des anciens serveurs', () => {
+    expect(NOW_PLAYING).toContain('let eqLocked = $derived(eqRefusePremium)');
   });
 
   it('transmet le verrou au panneau', () => {

@@ -237,6 +237,7 @@ function setSettingsLevel(level: SettingsLevel) {
     batch_converter: { view: 'converter' },
     declick: { view: 'declick' },
     dsp_eq: { view: 'equalizer' },
+    crossfeed: { view: 'equalizer' },
     room_correction: { view: 'equalizer' },
     dac_calibration: { view: 'equalizer' },
     listening_stats: { view: 'history' },

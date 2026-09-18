@@ -109,7 +109,11 @@ describe('#2742 — le verdict d’indisponibilité du crossfeed', () => {
     // dit pas qu'une clé rendue par ce module existe quelque part. Une faute
     // de frappe dans le `switch` ci-dessus donnerait donc une porte verte et
     // un écran qui affiche `dsp.crossfeedUnavailableNoLcpm` en toutes lettres.
+    expect(cleIndisponibiliteCrossfeed('premium_required')).toBe('dsp.crossfeedPremiumTransition');
+    expect(cleIndisponibiliteCrossfeed('plugin_unavailable')).toBe('dsp.crossfeedPluginUnavailable');
     const CLES = [
+      'dsp.crossfeedPremiumTransition',
+      'dsp.crossfeedPluginUnavailable',
       'dsp.crossfeedUnavailableNetwork',
       'dsp.crossfeedUnavailablePure',
       'dsp.crossfeedUnavailableProgressiveOff',
