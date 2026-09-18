@@ -5323,6 +5323,17 @@ export interface MergedPlugin {
   /** Entrée issue du catalogue marketplace (install via /marketplace). */
   marketplace?: boolean;
   slug?: string;
+  /**
+   * Égaliseur en greffon FACULTATIF (v0.9.156). `GET /plugins/equalizer` rend
+   * deux champs de plus à la racine, à côté de `installed` :
+   *  - `install_proposed` : une configuration EQ existait avant la mise à jour
+   *    et le greffon n'est pas installé — proposer l'installation en un geste ;
+   *  - `existing_configuration` : des réglages EQ (profils de zone, presets)
+   *    existent et sont conservés.
+   * Un vieux serveur ne les rend pas : `undefined` = comportement d'avant.
+   */
+  install_proposed?: boolean;
+  existing_configuration?: boolean;
 }
 
 export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
