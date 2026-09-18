@@ -2130,12 +2130,13 @@ export function updateAlbum(id: number, data: { title?: string; artist_id?: numb
 /**
  * Édition en lot des albums cochés.
  *
- * `is_compilation` (serveur #4427) : absent veut dire « je n'y touche pas »,
- * jamais « faux » — on change le genre d'une sélection sans lui reprendre son
- * drapeau. Le serveur pose en même temps le marqueur d'édition manuelle, ce
- * qui empêche le scan de revenir sur la décision.
+ * ⚠️ Le drapeau « compilation » ne passe PAS par ici : le serveur lui a donné
+ * sa propre route, `poserCompilation`. Un `is_compilation` glissé dans ce
+ * corps serait **ignoré en silence** — serde jette les champs inconnus, la
+ * requête rendrait 200, et rien ne serait posé (mesuré le 18/09 contre
+ * tune-server-rust#4431).
  */
-export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string; year?: number; artist_id?: number; artist_name?: string; label?: string; is_compilation?: boolean }) {
+export function batchUpdateAlbums(albumIds: number[], updates: { genre?: string; year?: number; artist_id?: number; artist_name?: string; label?: string }) {
   return fetchJSON<{ updated: number; total: number }>(`${BASE}/library/albums/batch-update`, {
     method: 'POST',
     body: JSON.stringify({ album_ids: albumIds, ...updates }),

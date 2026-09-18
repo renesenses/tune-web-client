@@ -9,10 +9,14 @@
 // 27 groupes, aucun ne les contient. Il fallait donc un geste à la main.
 //
 // Ce que ce fichier tient, côté client :
-//  - la gravure part bien en POST sur la route du serveur, avec les albums —
+//  - les deux gestes partent en POST sur LEURS routes, avec les albums —
 //    `apiFetch` avec des options partirait en GET et « réussirait » sans rien
 //    écrire (piège documenté de `api.ts`) ;
-//  - `batchUpdateAlbums` sait porter `is_compilation`, et l'écran l'appelle ;
+//  - 🔴 le drapeau ne passe JAMAIS par `/albums/batch-update` : le serveur n'y
+//    a pas de champ `is_compilation`, serde le jette, la requête rend 200 et
+//    rien n'est posé. Première version livrée ainsi le 18/09, muette ;
+//  - l'album qui survit à une fusion est le plus fourni, pas le premier coché ;
+//  - le bilan de gravure dit les albums SANS décision manuelle ;
 //  - réunir et graver sont ARMÉS en deux clics : elles déplacent des pistes ou
 //    écrivent sur le disque ;
 //  - une nouvelle recherche vide la sélection — sinon le geste porte sur des
@@ -34,27 +38,65 @@ describe('poser le tag compilation depuis Métadonnées', () => {
   // pour qui utilise le nouveau client.
   const vue = sansCommentaires(lire('src/components/v2/MetadataV2.svelte'));
 
-  it('la gravure part en POST sur /library/albums/compilation/graver, avec les albums', () => {
-    const i = apiMeta.indexOf('export function graverCompilation');
+  it('les deux gestes partent en POST sur LEURS routes, avec les albums', () => {
+    const i = apiMeta.indexOf('export function poserCompilation');
     expect(i).toBeGreaterThan(-1);
-    const corps = apiMeta.slice(i, i + 420);
-    expect(corps).toContain('/library/albums/compilation/graver');
-    expect(corps).toMatch(/method:\s*'POST'/);
-    expect(corps).toContain('album_ids: albumIds');
+    const poser = apiMeta.slice(i, i + 460);
+    expect(poser).toContain('/library/albums/compilation');
+    expect(poser).toMatch(/method:\s*'POST'/);
+    expect(poser).toContain('album_ids: albumIds, valeur, fusionner');
+
+    const j = apiMeta.indexOf('export function graverCompilation');
+    expect(j).toBeGreaterThan(-1);
+    const graver = apiMeta.slice(j, j + 460);
+    expect(graver).toContain('/library/albums/compilation/graver');
+    expect(graver).toMatch(/method:\s*'POST'/);
+    expect(graver).toContain('album_ids: albumIds');
   });
 
-  it('batchUpdateAlbums sait porter le drapeau, et l’écran s’en sert', () => {
+  it('🔴 le drapeau ne passe JAMAIS par batch-update', () => {
+    // Le serveur n'a pas de champ `is_compilation` sur `/albums/batch-update`
+    // (tune-server-rust#4431) : serde jette les champs inconnus, la requête
+    // rend 200, et RIEN n'est posé. Une panne muette — c'est exactement ce qui
+    // a été livré le 18/09 avant ce correctif.
     const i = api.indexOf('export function batchUpdateAlbums');
     expect(i).toBeGreaterThan(-1);
-    expect(api.slice(i, i + 300)).toContain('is_compilation?: boolean');
-    expect(vue).toContain('api.batchUpdateAlbums(ids, { is_compilation: valeur })');
+    const signature = api.slice(i, api.indexOf(')', api.indexOf('updates:', i)));
+    expect(signature).not.toContain('is_compilation');
+    expect(vue).not.toMatch(/batchUpdateAlbums\([^)]*is_compilation/);
   });
 
-  it('l’écran a l’onglet et branche les trois gestes', () => {
+  it('l’écran a l’onglet et branche les trois gestes sur la bonne route', () => {
     expect(vue).toContain("tab = 'compil'");
-    expect(vue).toContain('api.batchUpdateAlbums(');
-    expect(vue).toContain('api.mergeAlbums(ids)');
+    // Marquer ne fusionne pas ; réunir fusionne. Le booléen est explicite des
+    // deux côtés : une valeur par défaut déciderait à notre place.
+    expect(vue).toContain('api.poserCompilation(ids, valeur, false)');
+    expect(vue).toContain('api.poserCompilation(ids, true, true)');
     expect(vue).toContain('api.graverCompilation(ids)');
+  });
+
+  it('l’album qui survit à la fusion est le plus fourni, pas le premier coché', () => {
+    // Le serveur garde `album_ids[0]`. Sur Coco María — onze albums d'UNE
+    // piste — l'ordre de cochage déciderait au hasard.
+    const i = vue.indexOf('function idsChoisisCiblePremiere(');
+    expect(i).toBeGreaterThan(-1);
+    const corps = vue.slice(i, vue.indexOf('\n  }', i));
+    expect(corps).toContain('(y.track_count ?? 0) - (x.track_count ?? 0)');
+    for (const fn of ['marquerCompil', 'reunirCompil']) {
+      const j = vue.indexOf(`async function ${fn}(`);
+      expect(vue.slice(j, vue.indexOf('\n  }', j)), fn).toContain('idsChoisisCiblePremiere()');
+    }
+  });
+
+  it('le bilan de gravure dit les albums SANS décision', () => {
+    // Sans clic préalable sur « Compilation », le serveur ne grave rien et
+    // rend `sans_decision`. Taire ce compte ferait passer « 0 fichier gravé »
+    // pour une panne.
+    const i = vue.indexOf('async function graverCompil(');
+    const corps = vue.slice(i, vue.indexOf('\n  }', i));
+    expect(corps).toContain('b.fichiers_ecrits');
+    expect(corps).toContain('b.sans_decision?.length');
+    expect(corps).toContain('b.echecs?.length');
   });
 
   it('réunir et graver demandent DEUX clics — marquer, un seul', () => {
@@ -64,8 +106,6 @@ describe('poser le tag compilation depuis Métadonnées', () => {
       const corps = vue.slice(i, vue.indexOf('\n  }', i));
       expect(corps, fn).toContain(`if (arme !== '${cle}') { arme = '${cle}'; return; }`);
     }
-    // Poser le drapeau se défait d'un clic : l'armer serait une cérémonie pour
-    // rien, et ferait croire à une opération destructrice.
     const i = vue.indexOf('async function marquerCompil(');
     const corps = vue.slice(i, vue.indexOf('\n  }', i));
     expect(corps).not.toContain('arme =');
@@ -79,11 +119,9 @@ describe('poser le tag compilation depuis Métadonnées', () => {
   });
 
   it('retirer le drapeau ne réunit rien, et réunir exige au moins deux albums', () => {
-    // Le décochage ne doit pas enchaîner une fusion : ce serait faire passer un
-    // simple retrait pour une commande qui déplace des pistes.
     const i = vue.indexOf('async function marquerCompil(');
     const corps = vue.slice(i, vue.indexOf('\n  }', i));
-    expect(corps).not.toContain('mergeAlbums');
+    expect(corps).not.toContain('true, true');
     const j = vue.indexOf('async function reunirCompil(');
     expect(vue.slice(j, j + 200)).toContain('cpChoisis.size < 2');
   });
