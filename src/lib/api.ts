@@ -410,7 +410,14 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
-      'Content-Type': 'application/json',
+      // #4447 — `Content-Type: application/json` UNIQUEMENT s'il y a quelque
+      // chose a envoyer. Annonce sur un POST sans corps, il fait echouer cote
+      // serveur les extracteurs `Option<Json<...>>`, qui ne rendent `None` que
+      // si l'en-tete est ABSENT : 400 « EOF while parsing a value at line 1
+      // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
+      // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
+      // qui decrit un corps inexistant ne decrit rien.
+      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
@@ -538,7 +545,14 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
-      'Content-Type': 'application/json',
+      // #4447 — `Content-Type: application/json` UNIQUEMENT s'il y a quelque
+      // chose a envoyer. Annonce sur un POST sans corps, il fait echouer cote
+      // serveur les extracteurs `Option<Json<...>>`, qui ne rendent `None` que
+      // si l'en-tete est ABSENT : 400 « EOF while parsing a value at line 1
+      // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
+      // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
+      // qui decrit un corps inexistant ne decrit rien.
+      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
