@@ -60,3 +60,71 @@ export function genresConnus(albums: Album[]): string[] {
   }
   return [...s].sort((x, y) => x.localeCompare(y));
 }
+
+/**
+ * Le genre d'un artiste, quand il n'y en a QU'UN dans toute la bibliothèque.
+ *
+ * Bertrand, 18/09/2026 — arbitrage : « proposer, je valide ». Mesuré sur sa
+ * bibliothèque le même jour : sur 1 188 albums sans genre, **168** ont un
+ * artiste qui en porte un ailleurs, dont **138** où cet artiste n'en a qu'un
+ * seul.
+ *
+ * 🔴 Un artiste qui porte DEUX genres est écarté, pas arbitré. Prendre le plus
+ * fréquent poserait « Rock » sur l'album de jazz d'un rocker — la déduction
+ * serait fausse précisément là où elle est intéressante. Même règle que pour
+ * l'année : en cas de désaccord, on ne pose rien et on le dit.
+ */
+export function genreParArtiste(albums: Album[]): Map<number, string> {
+  const vus = new Map<number, Set<string>>();
+  for (const a of albums) {
+    const g = (a.genre ?? '').trim();
+    if (!g || a.artist_id == null) continue;
+    let s = vus.get(a.artist_id);
+    if (!s) { s = new Set(); vus.set(a.artist_id, s); }
+    s.add(g);
+  }
+  const uniques = new Map<number, string>();
+  for (const [id, s] of vus) if (s.size === 1) uniques.set(id, [...s][0]);
+  return uniques;
+}
+
+/**
+ * Ce qu'on proposerait pour ces albums : `album_id → genre`.
+ *
+ * Rien n'est proposé pour un album qui a déjà un genre, ni pour un artiste
+ * dont le genre n'est pas unique — ou qui n'en a aucun ailleurs.
+ */
+export function propositionsGenre(
+  cibles: Album[],
+  parArtiste: Map<number, string>,
+): Map<number, string> {
+  const p = new Map<number, string>();
+  for (const a of cibles) {
+    if (a.id == null || a.artist_id == null) continue;
+    if (!manqueA(a, 'genre')) continue;
+    const g = parArtiste.get(a.artist_id);
+    if (g) p.set(a.id, g);
+  }
+  return p;
+}
+
+/**
+ * Les propositions retenues, rangées par genre — un appel d'édition en lot par
+ * valeur distincte.
+ *
+ * L'édition en lot du serveur écrit UNE valeur pour tous les albums donnés :
+ * envoyer les 138 d'un coup leur poserait à tous le même genre. On groupe donc,
+ * et le nombre d'appels est le nombre de genres, pas le nombre d'albums.
+ */
+export function grouperParGenre(
+  propositions: Map<number, string>,
+  retenus: Set<number>,
+): Map<string, number[]> {
+  const par = new Map<string, number[]>();
+  for (const [id, g] of propositions) {
+    if (!retenus.has(id)) continue;
+    const l = par.get(g);
+    if (l) l.push(id); else par.set(g, [id]);
+  }
+  return par;
+}

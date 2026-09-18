@@ -11,7 +11,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { albumsAvecManque, genresConnus, manqueA } from '../manquesAlbums';
+import { albumsAvecManque, genreParArtiste, genresConnus, grouperParGenre, manqueA, propositionsGenre } from '../manquesAlbums';
 import type { Album } from '../types';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
@@ -134,13 +134,83 @@ describe('l’écran branche les listes', () => {
     expect(corps).toContain('poserPochette(albumId, f)');
   });
 
-  it('les quinze libellés existent dans les onze langues', () => {
+  it('les dix-neuf libellés existent dans les onze langues', () => {
     const cles = ['seeList','hideList','listEmpty','onlyLocal','selectAll','selectNone',
       'genrePlaceholder','yearPlaceholder','applyGenre','applyYear','applied','dropCover',
-      'coverDone','tracks','more'];
+      'coverDone','tracks','more','proposeFromArtist','applyProposals','proposed','noProposal'];
     for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of cles) expect(src, `${l} : v2.miss.${c}`).toContain(`"v2.miss.${c}":`);
     }
+  });
+});
+
+// « Proposer d'après l'artiste » — Bertrand, 18/09 : « proposer, je valide ».
+//
+// Mesuré sur sa bibliothèque : 138 des 1 188 albums sans genre ont un artiste
+// qui n'en porte qu'un seul ailleurs. Et mesuré chez MusicBrainz le même jour,
+// avec la requête exacte du serveur : sur 25 pistes, 18 enregistrements
+// retrouvés mais SEULEMENT 4 étiquettes de genre — d'où l'intérêt d'une
+// déduction locale, gratuite, à côté d'une passe de huit heures.
+describe('proposer le genre d’après l’artiste', () => {
+  it('un artiste qui n’a qu’UN genre ailleurs le prête', () => {
+    const table = genreParArtiste([
+      album({ id: 1, artist_id: 7, genre: 'Jazz' }),
+      album({ id: 2, artist_id: 7, genre: 'Jazz' }),
+    ]);
+    expect(table.get(7)).toBe('Jazz');
+  });
+
+  it('🔴 un artiste qui en porte DEUX est écarté, pas arbitré', () => {
+    // Prendre le plus fréquent poserait « Rock » sur l'album de jazz d'un
+    // rocker — faux précisément là où la déduction est intéressante.
+    const table = genreParArtiste([
+      album({ id: 1, artist_id: 7, genre: 'Rock' }),
+      album({ id: 2, artist_id: 7, genre: 'Rock' }),
+      album({ id: 3, artist_id: 7, genre: 'Jazz' }),
+    ]);
+    expect(table.has(7)).toBe(false);
+  });
+
+  it('on ne propose rien à un album qui a déjà un genre', () => {
+    const table = new Map([[7, 'Jazz']]);
+    const p = propositionsGenre([album({ id: 1, artist_id: 7, genre: 'Rock' })], table);
+    expect(p.size).toBe(0);
+  });
+
+  it('ni à un album dont l’artiste est inconnu de la table', () => {
+    const table = new Map([[7, 'Jazz']]);
+    const p = propositionsGenre(
+      [album({ id: 1, artist_id: 99, genre: null }), album({ id: 2, artist_id: null, genre: null })],
+      table,
+    );
+    expect(p.size).toBe(0);
+  });
+
+  it('les propositions retenues sont rangées par genre — un appel par valeur', () => {
+    // L'édition en lot écrit UNE valeur pour tous les albums donnés : envoyer
+    // les 138 d'un coup leur poserait à tous le même genre.
+    const p = new Map([[1, 'Jazz'], [2, 'Rock'], [3, 'Jazz'], [4, 'Funk']]);
+    const par = grouperParGenre(p, new Set([1, 2, 3]));
+    expect([...par.keys()].sort()).toEqual(['Jazz', 'Rock']);
+    expect(par.get('Jazz')).toEqual([1, 3]);
+    expect(par.get('Rock')).toEqual([2]);
+    expect(par.has('Funk')).toBe(false);
+  });
+
+  it('une proposition décochée n’est pas écrite', () => {
+    const p = new Map([[1, 'Jazz'], [2, 'Jazz']]);
+    expect(grouperParGenre(p, new Set([1])).get('Jazz')).toEqual([1]);
+    expect(grouperParGenre(p, new Set()).size).toBe(0);
+  });
+
+  it('l’écran propose sans écrire, et n’écrit que sur un second geste', () => {
+    const vue = sansCommentaires(lire('src/components/v2/ManquantsV2.svelte'));
+    const i = vue.indexOf('function proposerDApresArtiste(');
+    expect(i).toBeGreaterThan(-1);
+    const corps = vue.slice(i, vue.indexOf('\n  }', i));
+    expect(corps).toContain('propositions = p');
+    expect(corps).not.toContain('batchUpdateAlbums');
+    expect(vue).toContain('onclick={appliquerPropositions}');
   });
 });

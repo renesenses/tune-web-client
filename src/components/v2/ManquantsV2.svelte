@@ -10,7 +10,7 @@
   import { t } from '../../lib/i18n';
   import { formatNombre } from '../../lib/formats';
   import { avancementMusicBrainz, avancementPochettes, type Avancement } from '../../lib/manquantsMetadonnees';
-  import { albumsAvecManque, genresConnus, type Manque } from '../../lib/manquesAlbums';
+  import { albumsAvecManque, genreParArtiste, genresConnus, grouperParGenre, propositionsGenre, type Manque } from '../../lib/manquesAlbums';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
 
@@ -97,6 +97,7 @@
   async function basculer(quoi: Manque) {
     bilan = null;
     choisis = new Set();
+    propositions = new Map();
     if (ouvert === quoi) { ouvert = null; return; }
     ouvert = quoi;
     await chargerAlbums();
@@ -115,6 +116,52 @@
     // Seulement ce qui est AFFICHÉ : cocher 1 200 albums qu'on ne voit pas
     // serait une action en aveugle.
     choisis = choisis.size === liste.length ? new Set() : new Set(liste.map((a) => a.id!).filter(Boolean));
+  }
+
+  /*
+    « Proposer d'après l'artiste » (Bertrand, 18/09 : « proposer, je valide »).
+
+    Mesuré sur sa bibliothèque : 138 des 1 188 albums sans genre ont un artiste
+    qui n'en porte qu'un seul ailleurs. Ce n'est pas la majorité du problème,
+    mais c'est gratuit, hors ligne, et ça n'invente rien de plus que « le même
+    artiste, le même genre ». La passe MusicBrainz, elle, ne rend une étiquette
+    de genre qu'une fois sur cinq, pour huit heures de réseau — mesuré.
+
+    🔴 Rien n'est écrit par ce bouton : il REMPLIT la colonne de proposition et
+    coche les lignes. L'écriture reste le second geste.
+  */
+  let propositions = $state<Map<number, string>>(new Map());
+
+  function proposerDApresArtiste() {
+    const table = genreParArtiste(albums);
+    const p = propositionsGenre(liste, table);
+    propositions = p;
+    choisis = new Set(p.keys());
+    bilan = p.size === 0 ? $t('v2.miss.noProposal' as any) : null;
+  }
+
+  /** Applique les propositions retenues : un appel par genre distinct. */
+  async function appliquerPropositions() {
+    const par = grouperParGenre(propositions, choisis);
+    if (par.size === 0 || application) return;
+    application = true;
+    bilan = null;
+    let poses = 0;
+    try {
+      for (const [genre, ids] of par) {
+        const r = await api.batchUpdateAlbums(ids, { genre });
+        poses += r.updated;
+        albums = albums.map((a) => (a.id != null && ids.includes(a.id) ? { ...a, genre } : a));
+      }
+      bilan = libelle('v2.miss.applied', { count: poses });
+      propositions = new Map();
+      choisis = new Set();
+      void relireStats();
+      erreur = null;
+    } catch (e: any) {
+      erreur = e?.message ?? String(e);
+    }
+    application = false;
   }
 
   /** Écrit un champ sur les albums cochés, puis retire ceux qui sont réparés. */
@@ -212,6 +259,15 @@
             <button class="v2-btn primaire" disabled={application || !choisis.size || !genreSaisi.trim()} onclick={() => appliquer('genre')}>
               {$t('v2.miss.applyGenre' as any).replace('{count}', $formatNombre(choisis.size))}
             </button>
+            <span class="sep">|</span>
+            <button class="v2-btn" disabled={application} onclick={proposerDApresArtiste}>
+              {$t('v2.miss.proposeFromArtist' as any)}
+            </button>
+            {#if propositions.size}
+              <button class="v2-btn primaire" disabled={application || !choisis.size} onclick={appliquerPropositions}>
+                {$t('v2.miss.applyProposals' as any).replace('{count}', $formatNombre(grouperParGenre(propositions, choisis).size ? [...grouperParGenre(propositions, choisis).values()].reduce((n, l) => n + l.length, 0) : 0))}
+              </button>
+            {/if}
           {:else if ouvert === 'year'}
             <input class="saisie etroite" type="number" min="1900" max="2100" placeholder={$t('v2.miss.yearPlaceholder' as any)} bind:value={anneeSaisie} />
             <button class="v2-btn primaire" disabled={application || !choisis.size || !anneeSaisie} onclick={() => appliquer('year')}>
@@ -236,6 +292,10 @@
               <span class="txt">
                 <span class="titre">{a.title}</span>
                 <span class="meta">{a.artist_name ?? '—'} · {libelle('v2.miss.tracks', { count: a.track_count ?? 0 })}</span>
+                {#if a.id != null && propositions.has(a.id)}
+                  <!-- Ce qui SERAIT posé, dit avant de l'être. -->
+                  <span class="propo">{$t('v2.miss.proposed' as any).replace('{genre}', propositions.get(a.id) ?? '')}</span>
+                {/if}
               </span>
               {#if ouvert === 'cover'}
                 <span class="depot">
@@ -302,6 +362,8 @@
   .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
   .titre { font: 600 13px var(--v2-sans); color: var(--v2-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .meta { font: 11.5px var(--v2-mono); color: var(--v2-txt3); }
+  .propo { font: 11.5px var(--v2-mono); color: var(--v2-acc-tint); }
+  .sep { color: var(--v2-txt3); }
   .depot { flex: 0 0 auto; font: 11px var(--v2-mono); color: var(--v2-acc-tint); border: 1px dashed var(--v2-acc2); border-radius: var(--v2-r-pill); padding: 4px 10px; }
   .nom { font: 600 12px var(--v2-sans); color: var(--v2-txt2); text-transform: uppercase; letter-spacing: .05em; }
   .n { font: 700 28px var(--v2-sans); color: var(--v2-txt); }
