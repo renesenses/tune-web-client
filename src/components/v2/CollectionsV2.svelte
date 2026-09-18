@@ -467,6 +467,40 @@
       : (triAlbums === 'artist' || triAlbums === 'title' ? triAlbums : null),
   );
   /** L'initiale de rail d'un texte : accents repli\u00e9s, tout le reste sous \u00ab # \u00bb. */
+  /**
+   * 🔴 #1222 — SORTIR un album d'un dossier, l'autre moitié du geste de Lulu.
+   *
+   * `api.removeAlbumFromCollection` existe et son SEUL appelant vivait dans
+   * l'ancienne interface (`CollectionsView.svelte:210`).
+   *
+   * ⚠️ Réservé aux collections MANUELLES : le contenu d'une intelligente vient
+   * de ses règles, on ne l'en retire pas à la main — c'est la règle qu'il faut
+   * changer, et elle s'édite ailleurs. Proposer le geste là serait promettre
+   * un effet que le prochain recalcul annulerait.
+   */
+  async function retirerDeLaCollection(a: any) {
+    const e = ouverte;
+    if (!e || e.sorte === 'smart' || a?.id == null) return;
+    try {
+      await api.removeAlbumFromCollection(e.id, a.id);
+      // Retirer sur place plutôt que tout relire : la grille est déjà triée
+      // par le serveur, et une relecture la ferait sauter sous le pointeur.
+      albums = albums.filter((x) => x?.id !== a.id);
+      notifications.success($t('collections.albumRemoved' as any));
+    } catch {
+      notifications.error($t('v2.col.removeAlbumFailed' as any));
+    }
+  }
+
+  function entreesAlbum(a: any) {
+    if (!ouverte || ouverte.sorte === 'smart' || a?.id == null) return [];
+    return [{
+      libelle: $t('v2.col.removeAlbum' as any),
+      danger: true,
+      faire: () => void retirerDeLaCollection(a),
+    }];
+  }
+
   function initiale(texte: string | null | undefined): string {
     const c = fold(texte).trim().charAt(0).toUpperCase();
     return c >= 'A' && c <= 'Z' ? c : '#';
@@ -815,6 +849,7 @@
                 onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                 onLire={() => lireAlbum(a)}
                 onOuvrir={() => { ouvrirCalqueAlbum(a); fiche = a; }}
+                menu={entreesAlbum(a)}
                 nom={a.title}
               >
                 <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
