@@ -250,7 +250,27 @@
    `.v2-shell` ne désigne que la coquille. Les écrans — v2 comme v1 — héritent,
    et leurs usages portent tous un repli `var(--v2-grappe-w, 172px)` pour le cas
    où ils seraient montés hors de la coquille. */
-.v2-shell{--v2-grappe-w:172px}
+/* Et la réserve VERTICALE, pour la même raison et au même endroit — #1140.
+
+   #1045 a branché la MESURE (`--v2-grappe-h`, posée par `ShellV2` sur cette
+   même `.v2-shell`), mais son repli était resté au point d'usage, dans
+   `NowPlaying.svelte` : `top: var(--v2-grappe-h, 0px)`. Or zéro, c'est
+   exactement la valeur d'AVANT #1045 — le panneau de la file repincé en haut
+   à droite, sous l'avatar et le signet. Elle s'applique tant que
+   l'observateur n'a pas mesuré : au premier rendu, et là où `ResizeObserver`
+   n'existe pas. C'est ce que montre la capture de Bilou (fil 1770,
+   12/09/2026) : « l'avatar gêne le clic sur la corbeille ».
+
+   `66px` est le plancher du module (`RESERVE_HAUTE_MINIMALE`) : la grappe est
+   posée à 20 px du haut et ses boutons font 32 px, plus 14 px d'air.
+   `fileSousLaGrappe1140.test.ts` échoue si les deux divergent.
+
+   Sur `.v2-shell` SEULE, comme la gouttière horizontale et pour la même
+   raison. Hors coquille — l'ancienne interface — le jeton reste indéfini et
+   le repli du point d'usage vaut 0 : elle n'a rien à réserver, puisqu'elle
+   masque sa propre grappe haut-droite sur « Lecture en cours »
+   (`App.svelte`, `$activeView !== 'nowplaying'`). */
+.v2-shell{--v2-grappe-w:172px; --v2-grappe-h:66px}
 
 .tune-v2 .v2-top{
   display:flex; align-items:flex-end; gap:20px;

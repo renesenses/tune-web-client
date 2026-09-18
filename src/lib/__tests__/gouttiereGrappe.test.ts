@@ -95,7 +95,12 @@ describe('La gouttière de la grappe', () => {
     // la déclaration est ignorée en silence. C'était la panne d'origine, que
     // la porte savait dire.
     const feuille = readFileSync('src/styles/tune-v2.css', 'utf8');
-    expect(feuille).toMatch(/\.v2-shell\{--v2-grappe-w:\s*\d+px\}/);
+    // `[^}]*` et non `\}` : la règle porte AUSSI `--v2-grappe-h` depuis #1140,
+    // la réserve VERTICALE de la même grappe. Ce qui est gardé ici, c'est que
+    // le jeton est déclaré sur `.v2-shell` et en pixels — pas qu'il soit seul
+    // dans son bloc. L'unicité, elle, reste gardée deux fois plus bas :
+    // `doublons` et le décompte des déclarations.
+    expect(feuille).toMatch(/\.v2-shell\{[^}]*--v2-grappe-w:\s*\d+px[;}]/);
     // Et nulle part ailleurs : une seconde définition serait une seconde valeur.
     const doublons = [...ECRANS, ...ECRANS_V1]
       .filter((f) => /--v2-grappe-w\s*:/.test(css(f)));
