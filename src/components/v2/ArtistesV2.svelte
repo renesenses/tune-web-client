@@ -68,6 +68,8 @@
   import { BIBLIOTHEQUE, type Exemplaire } from '../../lib/discographieCommune';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import DiscographieCommune from './DiscographieCommune.svelte';
+  import BioEtTitresPhares from './BioEtTitresPhares.svelte';
+  import { chargerTitresPhares } from '../../lib/titresPharesArtiste';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
@@ -264,6 +266,7 @@
   async function chargerAlbumsDeService(a: Artist) {
     const jeton = ++jetonService;
     albumsService = [];
+    titresPhares = [];
     albumsServiceChargement = true;
     // Le magasin peut être VIDE dans le nouveau client : voir `statutsStreaming`.
     const statuts = await statutsStreaming($streamingServices, api.getStreamingServices, (x) => streamingServices.set(x));
@@ -282,6 +285,37 @@
     if (jeton !== jetonService) return;
     albumsService = trouves;
     albumsServiceChargement = false;
+    // Étape 2 de #4330 : les titres phares, chez le premier service qui en rend
+    // — l'identifiant de l'artiste vient d'être résolu pour ses albums.
+    const titres = await chargerTitresPhares(trouves, (svc, id) => api.getStreamingArtistTopTracks(svc, id));
+    if (jeton !== jetonService) return;
+    titresPhares = titres;
+  }
+
+  /**
+   * BIOGRAPHIE et TITRES PHARES de la fiche — étape 2 de #4330 (FabienM,
+   * 17/09/2026). La biographie éditée dans la bibliothèque (`artist.bio`)
+   * prime ; à défaut, celle que `GET /library/artists/{id}/bio` sait rendre
+   * (l'ancienne interface l'affiche depuis longtemps).
+   */
+  let bioFiche = $state<string | null>(null);
+  let titresPhares = $state<Track[]>([]);
+  let jetonBio = 0;
+  async function chargerBio(a: Artist) {
+    const jeton = ++jetonBio;
+    // 🔴 Une variable LOCALE, pas `bioFiche` relu : cette fonction part, dans
+    // sa partie synchrone, de l'effet qui ouvre la fiche (`ouvrirId`). Relire
+    // l'état qu'on vient d'écrire y abonnerait l'effet — boucle sans fin
+    // (mesurée : le témoin écran de #3709 ne rendait plus la main).
+    const locale = a.bio?.trim() || null;
+    bioFiche = locale;
+    if (locale || a.id == null) return;
+    try {
+      const r = await api.getArtistBio(a.id);
+      if (jeton === jetonBio) bioFiche = r?.bio?.trim() || null;
+    } catch {
+      /* pas de biographie : le bloc ne s'affiche pas */
+    }
   }
 
   function lireAlbumDeService(al: Album, service: string) {
@@ -354,6 +388,7 @@
     // locale répond en un aller-retour, un service en deux. Les attendre
     // retarderait l'affichage de ce qu'on possède déjà.
     void chargerAlbumsDeService(a);
+    void chargerBio(a);
     try {
       albums = (await api.getArtistAlbums(a.id!)) ?? [];
     } catch {
@@ -521,6 +556,7 @@
        bibliothèque et aux services — #4330 (FabienM, fil 1823), qui remplace
        les sections séparées par service de #3709. -->
   <div class="corps">
+    <BioEtTitresPhares bio={bioFiche} titres={titresPhares} cle={artiste.id} />
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
     {:else if !albums.length && !albumsService.length && !albumsServiceChargement}

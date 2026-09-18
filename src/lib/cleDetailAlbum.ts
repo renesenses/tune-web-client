@@ -24,6 +24,8 @@
  */
 
 /** Le minimum pour désigner un album, dans l'un ou l'autre référentiel. */
+import { estDeBibliotheque } from './provenanceBibliotheque';
+
 export interface AlbumDesignable {
   id?: unknown;
   source?: unknown;
@@ -32,8 +34,8 @@ export interface AlbumDesignable {
 
 /** Un album de la BIBLIOTHÈQUE : un identifiant numérique, et pas de service. */
 function estLocal(a: AlbumDesignable): boolean {
-  const s = a.source == null ? 'local' : String(a.source);
-  return a.id != null && (s === '' || s === 'local');
+  // `upnp` est une provenance de bibliothèque, pas un service (#4201).
+  return estDeBibliotheque(a);
 }
 
 export function cleDetailAlbum(a: AlbumDesignable | null | undefined): string | null {

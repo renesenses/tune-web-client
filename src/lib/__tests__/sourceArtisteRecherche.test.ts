@@ -65,21 +65,43 @@ describe('la donnée existait déjà', () => {
   });
 });
 
+/**
+ * 🔴 MISE À JOUR du 18/09/2026 — renesenses/tune-web-client#1136.
+ *
+ * Ces deux cas exigeaient `source={a.source as any}` / `source={ar.source as
+ * any}` sur la pochette des tuiles d'artiste : l'INCRUSTATION de `AlbumArt`.
+ *
+ * Elle ne convient plus, et pour la raison même du ticket #1136 : elle écarte
+ * `source === 'local'` (`AlbumArt.svelte:77`), donc l'artiste de la
+ * bibliothèque restait muet au milieu de ceux qui parlent. La pastille est
+ * désormais rendue HORS de la pochette (`.asrc` / `.bsrc`), comme l'ancienne
+ * interface le fait déjà (`SearchView.svelte:1244-1252`) et comme #1129 vient
+ * de le trancher pour la section Titres : on REMPLACE l'incrustation, on ne
+ * s'y ajoute pas — jamais deux pastilles pour une provenance.
+ *
+ * Ce que ces deux cas gardaient — « la source arrive jusqu'à la tuile et n'y
+ * est pas jetée » — est donc gardé AU RENDU par
+ * `badgeSourceArtiste1136.test.ts`, qui monte l'écran et lit ce qui est peint.
+ * On n'en laisse ici que l'inverse : l'incrustation ne doit PAS revenir, sous
+ * peine de deux pastilles.
+ */
 describe('🔴 le balisage la passe enfin à la pochette', () => {
   const ecran = lire('components/v2/SearchV2.svelte');
 
-  it('le MEILLEUR RÉSULTAT artiste porte sa source', () => {
+  it('le MEILLEUR RÉSULTAT artiste ne réincruste PAS sa source dans la pochette', () => {
     const debut = ecran.indexOf("{#if meilleur.genre === 'artiste'}");
     expect(debut).toBeGreaterThan(0);
     const bloc = ecran.slice(debut, ecran.indexOf("{:else if meilleur.genre === 'album'}", debut));
-    expect(bloc).toContain('source={a.source as any}');
+    expect(bloc).toContain('<AlbumArt');
+    expect(bloc.slice(bloc.indexOf('<AlbumArt'))).not.toContain('source={a.source as any}');
   });
 
-  it('les tuiles de la rangée « Artistes » aussi', () => {
+  it('les tuiles de la rangée « Artistes » non plus', () => {
     const debut = ecran.indexOf('{#each vusArtistes as ar');
     expect(debut).toBeGreaterThan(0);
-    const bloc = ecran.slice(debut, debut + 1600);
-    expect(bloc).toContain('source={ar.source as any}');
+    const bloc = ecran.slice(debut, ecran.indexOf('{/each}', debut));
+    expect(bloc).toContain('<AlbumArt');
+    expect(bloc).not.toContain('source={ar.source as any}');
   });
 
   it('TÉMOIN — albums et pistes la portaient déjà, et la portent toujours', () => {

@@ -38,6 +38,7 @@
   import ConverterV2 from './ConverterV2.svelte';
   import DeclickV2 from './DeclickV2.svelte';
   import PluginsV2 from './PluginsV2.svelte';
+  import PontRoonV2 from './PontRoonV2.svelte';
   import CollectionsV2 from './CollectionsV2.svelte';
   import HistoriqueV2 from './HistoriqueV2.svelte';
   import MetadataV2 from './MetadataV2.svelte';
@@ -252,7 +253,7 @@
     mediaservers: 'nav.mediaservers', history: 'nav.history', oxygen: 'v2.nav.oxygen',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
     crossfeed: 'v2.nav.crossfeed', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
-    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', diagnostics: 'v2.nav.processing',
+    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
     smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager',
   };
@@ -676,6 +677,10 @@
         <DeclickV2 />
       {:else if $activeView === 'plugins'}
         <PluginsV2 />
+      {:else if $activeView === 'pontroon'}
+        <!-- Écran d'import du Pont Roon (#4349), ouvert depuis sa carte dans
+             les Extensions. -->
+        <PontRoonV2 />
       {:else if $activeView === 'metadata'}
         <MetadataV2 />
       {:else if $activeView === 'support'}

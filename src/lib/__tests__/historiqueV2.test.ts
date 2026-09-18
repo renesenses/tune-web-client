@@ -43,7 +43,12 @@ describe("Historique dans le nouveau client (Bertrand, 05/09/2026)", () => {
     // `ListePistesV2`, qui rend le TABLEAU du mode Essentiel ou ces mêmes
     // lignes au-dessus. Ce que la garde protège ne bouge pas — aucun écran
     // ne roule sa propre ligne — et le conteneur le renforce.
-    expect(v2).toContain("import ListePistesV2 from './ListePistesV2.svelte'");
+    // 🔴 #1149 — l'import porte AUSSI `LARGEUR_ACTIONS` depuis le
+    // `<script module>` de `ListePistesV2` : la ligne d'objet compose sa
+    // grille avec la largeur du tableau au lieu d'en recopier une. La garde
+    // reste la même — l'écran délègue sa ligne — mais elle ne fige plus la
+    // forme exacte de l'import.
+    expect(v2).toMatch(/import ListePistesV2(?:, \{[^}]*\})? from '\.\/ListePistesV2\.svelte'/);
     expect(v2).toContain('<ListePistesV2');
     // Et la piste vient bien de l'entrée d'historique, pas d'ailleurs.
     //

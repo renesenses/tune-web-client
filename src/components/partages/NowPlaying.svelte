@@ -1604,6 +1604,8 @@
   {/if}
   {#if resolvedCoverUrl}
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
+    <!-- Teinte du THÈME par-dessus la pochette assombrie — voir `.bg-teinte`. -->
+    <div class="bg-teinte" aria-hidden="true"></div>
   {/if}
 
   <!-- Scrollable content wrapper: keeps the now-playing content scrollable on
@@ -2622,6 +2624,69 @@
     transform: scale(1.2);
     z-index: 0;
     transition: background-image 1s ease-in-out;
+  }
+
+  /*
+    LA TEINTE DU THÈME — Bertrand, 17/09/2026 (point 5) : « Lecture en cours :
+    fond de la fenêtre principale n'est pas tout à fait en accord avec le
+    thème ».
+
+    `.bg-blur` assombrie à 0.12 (#993) donne un noir-gris NEUTRE ; les thèmes
+    sombres du nouveau client sont TEINTÉS (Midnight Orange #0B1020, Brown
+    #17110D, Black Blue #06111A…) : à côté de la barre latérale et du lecteur,
+    la fenêtre principale jurait. Une couche de la couleur du thème, à 78 %,
+    ramène le ton sans remplacer la pochette (arbitrage du 13/09 : assombrir,
+    pas remplacer) ni rendre du contraste — le fond reste aussi sombre.
+
+    `var(--v2-bg, transparent)` : hors du nouveau client le jeton n'existe
+    pas, la couche est transparente, rien ne change.
+  */
+  .bg-teinte {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--v2-bg, transparent);
+    opacity: 0.78;
+  }
+
+  /*
+    🔴 LES DEUX THÈMES CLAIRS — #1144.
+
+    Le voile du 17/09 avait été écarté d'eux avec ce motif : « un voile clair
+    sur la pochette noircie ferait un gris moyen sous du texte BLANC ». Le
+    motif est faux, et c'est tout le défaut : sur `clear-white` et
+    `clear-grey`, le texte n'est pas blanc. `tune-v2.css` y pose
+    `--v2-txt:#0C1620` et `#141C24` — quasi NOIR — et `ShellV2` monte cet
+    écran dans `.tune-v2`, qui ponte `--tune-text: var(--v2-txt)`.
+
+    Il ne restait donc sur ces deux thèmes que `.bg-blur` à `brightness(0.12)`,
+    un facteur MULTIPLICATIF : il plafonne toute pochette à `#1F1F1F` et rend
+    du NOIR sur une pochette noire. Mesuré par
+    `fondClairLectureEnCours1144.test.ts` : 1,15:1 sur `clear-white` et
+    1,22:1 sur `clear-grey` — du texte quasi noir sur un fond quasi noir,
+    très loin des 4,5:1 de WCAG AA. Le titre du ticket dit « texte
+    ILLISIBLE » ; ici il l'était au sens propre.
+
+    Le remède garde l'arbitrage du 13/09 — assombrir, pas remplacer — en le
+    RETOURNANT dans le bon sens : là où le texte est sombre, il faut ÉCLAIRCIR
+    le fond, pas le noircir. C'est déjà ce que fait `.light .tv-bg-blur` dans
+    `TvView.svelte`, à `brightness(1.15) saturate(0.7)` ; on reprend sa
+    recette plutôt que d'en inventer une seconde.
+
+    L'opacité monte de 0,78 à 0,88 : à 0,78 le fond le plus sombre tombait à
+    `#C7C7C7`, où `--v2-txt2` ne tenait plus que 3,60:1. À 0,88 il remonte à
+    4,63:1 (`clear-white`) et 4,52:1 (`clear-grey`), et le texte principal est
+    à 13,9:1 et 11,4:1. La pochette reste perceptible : elle module encore le
+    fond sur une trentaine de niveaux, contre sept sur les thèmes sombres.
+  */
+  :global(:root[data-v2-theme="clear-white"]) .bg-blur,
+  :global(:root[data-v2-theme="clear-grey"]) .bg-blur {
+    filter: blur(60px) brightness(1.05) saturate(0.7);
+  }
+  :global(:root[data-v2-theme="clear-white"]) .bg-teinte,
+  :global(:root[data-v2-theme="clear-grey"]) .bg-teinte {
+    opacity: 0.88;
   }
 
   .content-layout {
@@ -4480,14 +4545,23 @@
     transform: translateX(100%);
   }
 
+  /* 🔴 `height: auto`, et non `100%` — #1140.
+
+     La paire `top` / `bottom` déclarée juste au-dessus dimensionne la colonne.
+     Un `height: 100%` la SUR-CONTRAINT (CSS 2.1 §10.6.4 : quand `top`,
+     `height` et `bottom` sont tous les trois déclarés, c'est `bottom` qui est
+     ignoré) : depuis que `top` vaut la réserve de la grappe, le panneau
+     mesurait la hauteur pleine du conteneur EN PARTANT de 66 px, dépassait
+     d'autant, et `.now-playing{overflow:hidden}` coupait la fin de la liste —
+     la dernière piste restait hors d'atteinte. */
   .queue-sheet.wide-layout.peek {
     transform: translateX(0);
-    height: 100%;
+    height: auto;
   }
 
   .queue-sheet.wide-layout.expanded {
     transform: translateX(0);
-    height: 100%;
+    height: auto;
     width: 420px;
   }
 

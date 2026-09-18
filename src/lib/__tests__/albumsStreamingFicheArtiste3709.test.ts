@@ -200,6 +200,12 @@ function corpsPour(url: string): unknown {
   if (/\/streaming\/qobuz\/albums\/AL1\/tracks/.test(url)) {
     return [{ id: null, title: 'Quand je serai KO', source_id: 'T1' }];
   }
+  if (/\/streaming\/qobuz\/artists\/Q7\/top-tracks/.test(url)) {
+    return [{ id: null, source_id: 'TT1', title: 'Foule sentimentale', artist_name: 'Alain Souchon' }];
+  }
+  if (/\/library\/artists\/3\/bio/.test(url)) {
+    return { artist: 'Alain Souchon', bio: 'Chanteur français né en 1944.' };
+  }
   if (/\/library\/artists\/3\/albums/.test(url)) return LOCAUX;
   if (/\/library\/artists/.test(url)) return [ARTISTE];
   return {};
@@ -335,6 +341,16 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
     const vus = titres(el);
     expect(vus, `titres rendus : ${JSON.stringify(vus)}`).toContain('Ultra Moderne Solitude');
     expect(vus).not.toContain('Au Ras Des Paquerettes');
+  });
+
+  it('#4330 étape 2 — la fiche montre la biographie et les titres phares du service', async () => {
+    const el = await poserFiche();
+    expect(el.textContent, 'biographie absente').toContain('Chanteur français né en 1944.');
+    expect(
+      appels.some((u) => /\/streaming\/qobuz\/artists\/Q7\/top-tracks/.test(u)),
+      `titres phares non demandés. URL vues : ${appels.join(' | ')}`,
+    ).toBe(true);
+    expect(el.textContent, 'titre phare absent').toContain('Foule sentimentale');
   });
 
   it('ouvrir un album de service passe le SERVICE avec lui', async () => {
