@@ -5,6 +5,7 @@ import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
 import { locale, t } from './i18n';
 import { profileHeader } from './profileHeader';
+import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
@@ -1421,11 +1422,27 @@ export interface AddToQueueRequest {
   tracks?: StreamingQueueItem[];
 }
 
-export function addToQueue(zoneId: number, body: AddToQueueRequest) {
-  return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+/**
+ * Ajouter à la file — et DIRE ce que le serveur n'a pas su résoudre (#1086).
+ *
+ * Depuis tune-server-rust#4261 (v0.9.155) la réponse porte un champ additif
+ * `unresolved`. Une piste de service injoignable est enfilée quand même, sous
+ * « Unknown » : l'ajout a réussi, mais le résultat n'est pas celui qu'on
+ * croit, et rien ne le disait.
+ *
+ * 🔴 L'avertissement vit ICI et pas dans les écrans : `addToQueue` a plus de
+ * trente appelants, et aucun n'a de raison d'apprendre ce champ. Il reste un
+ * AVERTISSEMENT, jamais une erreur et jamais un `throw` — l'ajout a eu lieu,
+ * et faire reculer l'appelant serait faux.
+ */
+export async function addToQueue(zoneId: number, body: AddToQueueRequest) {
+  const res = await fetchJSON<{ queue_length: number; unresolved?: PisteNonResolue[] }>(
+    `${BASE}/zones/${zoneId}/queue/add`,
+    { method: 'POST', body: JSON.stringify(body) },
+  );
+  const avis = texteNonResolues(res?.unresolved, (cle) => get(t)(cle as any));
+  if (avis) notifications.error(avis, 8000);
+  return res;
 }
 
 export function removeFromQueue(zoneId: number, index: number) {

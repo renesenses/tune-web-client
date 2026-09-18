@@ -372,6 +372,8 @@ export default {
   'queue.addToPlaylist': 'Adaugă la playlist',
   'queue.removeFromQueue': 'Elimină din coadă',
   'queue.addToQueue': 'Adaugă la coadă',
+  "queue.unresolvedWarning": "{count} piesă/piese de la {service} nu au putut fi rezolvate și au fost adăugate fără informații.",
+  "queue.unresolvedUnknownService": "acest serviciu",
   'queue.addFailed': "Nu s-a putut adăuga în coadă",
 
   // Home

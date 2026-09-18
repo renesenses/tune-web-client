@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': '添加到播放列表',
   'queue.removeFromQueue': '从队列中移除',
   'queue.addToQueue': '添加到队列',
+  "queue.unresolvedWarning": "{service} 的 {count} 首曲目无法解析，已在缺少信息的情况下加入。",
+  "queue.unresolvedUnknownService": "该服务",
   'queue.addFailed': "无法加入队列",
 
   // Home

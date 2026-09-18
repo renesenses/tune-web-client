@@ -574,6 +574,8 @@ export default {
   'queue.addToPlaylist': 'Add to Playlist',
   'queue.removeFromQueue': 'Remove from Queue',
   'queue.addToQueue': 'Add to Queue',
+  "queue.unresolvedWarning": "{count} track(s) from {service} could not be resolved and were added without their details.",
+  "queue.unresolvedUnknownService": "this service",
   'queue.addFailed': "Could not add to the queue",
 
   // Home
