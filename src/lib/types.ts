@@ -110,6 +110,9 @@ export interface Album {
   release_date?: string | null;
   original_date?: string | null;
   genre?: string | null;
+  /** La liste multiple (#1821), servie par la route à côté de `genre` et
+   *  jamais déclarée ici. Un album qui n'a QUE `genres` n'est pas sans genre. */
+  genres?: string | null;
   disc_count?: number;
   track_count?: number;
   cover_path?: string | null;
