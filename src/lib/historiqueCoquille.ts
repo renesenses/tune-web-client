@@ -160,6 +160,119 @@ export function fermerDetail(): void {
   detailOuvert.set(null);
 }
 
+/* ------------------------------------------------------------------ */
+/* ALLER D'UN COUP au DÉTAIL d'une AUTRE vue — #1142                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 🔴 LE GESTE QUI TRAVERSE UN ÉCRAN QUE PERSONNE NE VOIT.
+ *
+ * FabienM, fil 1774, point 1 : « le bouton "BACK" du navigateur retourne à la
+ * page d'accueil et non à la page de résultats » — et, au fil 1778 : « ça
+ * revient à l'avant-dernière page consultée ».
+ *
+ * MESURÉ (`historiqueRechercheArtiste1142.test.ts`, avant correctif) sur le
+ * parcours « résultats de recherche → clic sur un artiste » :
+ *
+ *     clic     : push #search → push #library        (la GRILLE, jamais vue)
+ *     montage  : push #library/artiste:42            (la fiche demandée)
+ *     Précédent: #library                            ← la Bibliothèque, pas les résultats
+ *
+ * UN geste, DEUX entrées : l'écran d'arrivée n'est pas la vue, c'est un détail
+ * DANS la vue, et la coquille écrit l'un puis l'autre. La grille de la
+ * Bibliothèque n'a jamais été à l'écran, et elle occupe pourtant un cran de la
+ * pile — le premier Précédent l'y ramène, et il faut en appuyer un second pour
+ * retrouver les résultats. C'est le symptôme, vu de l'autre côté : ce n'est pas
+ * une entrée qui manque, c'en est une de trop.
+ *
+ * Cette fonction écrit l'entrée COMPOSÉE, une seule, qui porte déjà le détail.
+ *
+ * ⚠️ Et elle tient l'intention jusqu'à ce que l'écran d'arrivée reprenne la
+ * main. Un écran v2 est démonté et remonté à chaque changement de vue
+ * (`ShellV2` : `{#if $activeView === …}`), et plusieurs remettent `detailOuvert`
+ * à `null` au montage — par exemple `ArtistesV2`, sur `listResetNonce`. Sans le
+ * drapeau, cette remise à zéro RÉÉCRIRAIT l'entrée composée en `#library`, et
+ * l'ouverture qui suit empilerait la seconde entrée qu'on vient d'éviter : le
+ * correctif serait annulé par le remontage.
+ *
+ * Le filet — la même parade que `reculerAvecIntention`, à laquelle ce drapeau
+ * est emprunté : si l'écran d'arrivée n'ouvre jamais rien (artiste introuvable,
+ * appel en échec), l'intention resterait levée et ferait taire la fermeture
+ * suivante, légitime celle-là.
+ */
+/** Ce que le PROCHAIN changement de vue doit écrire dans son entrée. */
+let cleVisee: string | null = null;
+/** Ce que l'écran d'arrivée va reposer, et qu'il ne faut donc pas réécrire. */
+let cleEnAttente: string | null = null;
+
+/** Le délai du filet, aligné sur celui de `reculerAvecIntention`. */
+const DELAI_FILET_VISE = 1000;
+
+function leverIntention(cle: string, programmerFilet: (cb: () => void, ms: number) => void): void {
+  cleVisee = cle;
+  cleEnAttente = null;
+  programmerFilet(() => { cleVisee = null; cleEnAttente = null; }, DELAI_FILET_VISE);
+}
+
+/**
+ * Aller à un détail d'une autre vue en UNE entrée d'historique.
+ *
+ * `cle` est la clé que l'écran d'arrivée posera lui-même dans `detailOuvert`
+ * (`artiste:42`) : elle doit être la MÊME, sans quoi l'écran empilerait sa
+ * propre entrée par-dessus. C'est pourquoi elle se construit par une fonction
+ * partagée (`cleDetailArtiste`, `cleDetailAlbum`) et jamais à la main.
+ */
+export function allerAuDetail(
+  vue: View,
+  cle: string,
+  options: { programmerFilet?: (cb: () => void, ms: number) => void } = {},
+): void {
+  const programmerFilet = options.programmerFilet ?? ((cb: () => void, ms: number) => setTimeout(cb, ms));
+  leverIntention(cle, programmerFilet);
+  // Le changement de vue fait le reste : l'abonnement du branchement lit
+  // l'intention et écrit l'entrée composée.
+  activeView.set(vue);
+}
+
+/**
+ * Ce que l'abonnement au DÉTAIL doit faire pendant une transition composée.
+ *
+ * - `null` reçu → le remontage de l'écran d'arrivée ; on n'écrit rien et on
+ *   GARDE l'intention : l'ouverture qu'on attend n'a pas encore eu lieu.
+ * - la clé visée → l'écran a repris la main ; l'entrée la porte déjà, rien à
+ *   écrire, et l'intention est consommée.
+ * - autre chose → on n'attend plus rien de cette transition : elle est
+ *   consommée et l'écriture suit son cours normal.
+ */
+function transitionAbsorbe(detail: string | null): boolean {
+  if (cleEnAttente === null) return false;
+  // `null` : le remontage de l'écran d'arrivée, qui vide le magasin avant de le
+  // regarnir. La clé visée : l'écho du `set` de la transition elle-même, PUIS
+  // l'ouverture par l'écran — indiscernables, et tous deux sans écriture à
+  // faire, puisque l'entrée porte déjà la clé. Dans les deux cas on se tait, et
+  // on GARDE l'intention : c'est le filet qui la baisse.
+  if (detail === null || detail === cleEnAttente) return true;
+  // Autre chose : on n'attend plus rien de cette transition.
+  cleEnAttente = null;
+  return false;
+}
+
+/**
+ * Lire et CONSOMMER l'intention au moment d'écrire l'entrée de la vue.
+ *
+ * Consommée ici, et pas plus tard : un second changement de vue qui suivrait
+ * de près ne doit surtout pas repeindre la même clé sur une autre entrée
+ * (`#radios/artiste:42`). Ce qui SURVIT à cette consommation, c'est la seule
+ * attente de l'écran d'arrivée (`cleEnAttente`), et elle ne fait que TAIRE des
+ * écritures, jamais en produire.
+ */
+function consommerVuePourEntree(): string | null {
+  const vise = cleVisee;
+  cleVisee = null;
+  if (vise !== null) cleEnAttente = vise;
+  return vise;
+}
+
 export interface OptionsBranchement {
   /**
    * Injectable pour les tests ; `window` par défaut.
@@ -245,15 +358,23 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     // Changer de vue quitte le niveau de détail de la vue qu'on laisse : la
     // nouvelle entrée est une racine. Le magasin est remis à `null` EN
     // SILENCE, sinon son abonnement réécrirait l'entrée qu'on vient d'empiler.
+    //
+    // 🔴 SAUF si le geste VISE un détail de la vue d'arrivée (#1142) : l'entrée
+    // est alors COMPOSÉE, elle porte la clé dès sa naissance, et le parcours ne
+    // coûte qu'un cran au lieu de deux. Voir `allerAuDetail`.
+    const vise = consommerVuePourEntree();
     enRestauration = true;
-    detailOuvert.set(null);
+    detailOuvert.set(vise);
     enRestauration = false;
-    ecrire(true, vue, null);
+    ecrire(true, vue, vise);
   });
 
   const arretDetail = detailOuvert.subscribe((detail) => {
     if (premierDetail) { premierDetail = false; return; }
     if (enRestauration) return;
+    // Une transition composée est en cours : l'entrée porte déjà ce que
+    // l'écran d'arrivée est en train de reposer. Ni push, ni replace.
+    if (transitionAbsorbe(detail)) return;
     // `opPourFiche` porte la règle d'intention, tracée dans Chrome sur .18 et
     // gardée par `retourHistoriqueFiche.test.ts` : ouverture → empiler ;
     // fermeture à la main → réécrire l'entrée courante ; fermeture PAR UN

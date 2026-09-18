@@ -12,14 +12,34 @@
  * veulent — le filtre ci-dessous tient la même promesse sur tout ce qui
  * s'affiche, quelle que soit la source.
  */
+import { dansLePerimetreDe } from './perimetreRecherche';
 
-export type TypeRecherche = 'tout' | 'artistes' | 'labels' | 'albums' | 'titres' | 'playlists';
+/**
+ * Les types affichables. « Tout » n'en est plus un — #1145.
+ *
+ * Il valait un membre de l'union tant que le type était un CHOIX UNIQUE. La
+ * règle retenue pour les deux rangées de pastilles en fait autre chose : une
+ * pastille qui RELÂCHE la restriction, c'est-à-dire l'ensemble VIDE. Le garder
+ * dans l'union aurait donné deux façons de dire « tout » — la pastille et
+ * l'ensemble vide — qui auraient fini par diverger.
+ */
+export type TypeRecherche = 'artistes' | 'labels' | 'albums' | 'titres' | 'playlists';
 
-export const TYPES_RECHERCHE: TypeRecherche[] = ['tout', 'artistes', 'labels', 'albums', 'titres', 'playlists'];
+export const TYPES_RECHERCHE: TypeRecherche[] = ['artistes', 'labels', 'albums', 'titres', 'playlists'];
 
-/** La section est-elle affichée pour le type choisi ? */
-export function sectionVisible(choix: TypeRecherche, section: Exclude<TypeRecherche, 'tout'>): boolean {
-  return choix === 'tout' || choix === section;
+/**
+ * La section est-elle affichée ?
+ *
+ * 🔴 La MÊME règle que les sources (`dansLePerimetreDe`), et par le même code :
+ * c'est tout l'objet de #1145. Deux rangées identiques à l'œil qui obéissaient
+ * à deux modèles de données — un ensemble d'un côté, un choix unique de
+ * l'autre — ne pouvaient pas se comporter pareil.
+ */
+export function sectionVisible(
+  selection: ReadonlySet<TypeRecherche>,
+  section: TypeRecherche,
+): boolean {
+  return dansLePerimetreDe(selection as ReadonlySet<string>, section);
 }
 
 /** Les passages entre doubles guillemets. Un guillemet resté ouvert court
