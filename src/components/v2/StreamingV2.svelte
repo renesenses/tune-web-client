@@ -47,6 +47,7 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
@@ -721,10 +722,7 @@
   function lireFavorisDepuis(i: number) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    lireListeDepuis(favTracks as any, i, {
-      lire: (c: any) => playAndSync(zid, c),
-      enfiler: (c: any) => api.addToQueue(zid, c),
-    }).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
+    lireListeDepuis(favTracks as any, i, gestesDeZone(zid)).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   function playTrack(piste: any) {
     const zid = $currentZoneId;
