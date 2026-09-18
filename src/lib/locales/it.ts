@@ -3881,7 +3881,6 @@ export default {
   "v2.meta.compilBurn": "Scrivi nei file",
   "v2.meta.compilBurnHint": "Scrive il contrassegno nei file stessi: sopravvive a una nuova scansione e si vede negli altri lettori.",
   "v2.meta.compilBurned": "{written} file scritti · {failed} non riusciti · {undecided} album senza decisione da scrivere.",
-  "v2.meta.compilFind": "Cerca",
   "v2.meta.compilIntro": "Un album le cui tracce hanno ognuna un artista diverso finisce diviso in altrettanti dischi. Cerca il titolo, spunta le righe, contrassegnale come compilation — poi riuniscile, e scrivi il contrassegno nei file se vuoi che sopravviva altrove.",
   "v2.meta.compilMark": "Compilation",
   "v2.meta.compilMarked": "{count} album contrassegnati.",

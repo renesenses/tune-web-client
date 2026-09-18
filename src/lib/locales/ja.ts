@@ -3881,7 +3881,6 @@ export default {
   "v2.meta.compilBurn": "ファイルに書き込む",
   "v2.meta.compilBurnHint": "フラグをファイル自体に書き込みます。再スキャンしても残り、他のプレーヤーでも見えます。",
   "v2.meta.compilBurned": "{written} ファイルに書き込み · {failed} は失敗 · {undecided} 枚は書き込む判断がありません。",
-  "v2.meta.compilFind": "検索",
   "v2.meta.compilIntro": "曲ごとにアーティストが違うアルバムは、その数だけの別アルバムに分かれます。タイトルで探し、行にチェックを入れ、コンピレーションとして印を付けてください。そのうえでひとつにまとめ、他でも残したいならフラグをファイルに書き込みます。",
   "v2.meta.compilMark": "コンピレーション",
   "v2.meta.compilMarked": "{count} 枚のアルバムに印を付けました。",

@@ -3839,7 +3839,6 @@ export default {
   "v2.meta.compilBurn": "Írás a fájlokba",
   "v2.meta.compilBurnHint": "A jelzőt magukba a fájlokba írja: túléli az újraolvasást, és más lejátszókban is látszik.",
   "v2.meta.compilBurned": "{written} fájl megírva · {failed} sikertelen · {undecided} albumnál nincs mit kiírni.",
-  "v2.meta.compilFind": "Keresés",
   "v2.meta.compilIntro": "Az az album, amelynek minden száma más előadóhoz tartozik, ugyanannyi lemezre esik szét. Keresse meg a címét, jelölje be a sorokat, jelölje válogatásnak — majd egyesítse őket, és írja a jelzőt a fájlokba, ha máshol is meg akarja őrizni.",
   "v2.meta.compilMark": "Válogatás",
   "v2.meta.compilMarked": "{count} album megjelölve.",

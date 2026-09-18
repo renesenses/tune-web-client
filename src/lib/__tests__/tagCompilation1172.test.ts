@@ -21,7 +21,7 @@
 //    écrivent sur le disque ;
 //  - une nouvelle recherche vide la sélection — sinon le geste porte sur des
 //    albums qu'on ne voit plus ;
-//  - les dix-huit libellés existent dans les onze langues.
+//  - les dix-sept libellés existent dans les onze langues.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -111,11 +111,36 @@ describe('poser le tag compilation depuis Métadonnées', () => {
     expect(corps).not.toContain('arme =');
   });
 
-  it('une nouvelle recherche vide la sélection', () => {
-    const i = vue.indexOf('async function chercherCompil(');
+  it('🔴 le filtre porte sur le TITRE D\'ALBUM, pas sur le ?q= du serveur', () => {
+    // `?q=` cherche dans le titre de PISTE et le nom d'ARTISTE, jamais dans le
+    // titre d'album (`facets.rs`). Mesuré le 18/09 : 23 albums s'appellent
+    // « Coco María Presents… » et `q=Coco` en rendait DEUX — le cas même pour
+    // lequel cet écran existe.
+    expect(vue).not.toMatch(/getAlbumsDetailed\(\s*\{\s*q\b/);
+    const i = vue.indexOf('let cpAlbums = $derived.by(');
+    expect(i).toBeGreaterThan(-1);
+    const corps = vue.slice(i, vue.indexOf('});', i));
+    expect(corps).toContain("pliage(a.title ?? '').includes(q)");
+    // Et la liste entière est paginée : le serveur plafonne à 2000 par appel,
+    // et s'arrêter au premier lot cachait 12 des 23 albums.
+    const j = vue.indexOf('async function chargerAlbumsCompil(');
+    expect(j).toBeGreaterThan(-1);
+    expect(vue.slice(j, vue.indexOf('\n  }', j))).toContain('offset += 2000');
+  });
+
+  it('accents et casse ignorés — « Coco María » se trouve en tapant « coco maria »', () => {
+    const i = vue.indexOf('function pliage(');
     expect(i).toBeGreaterThan(-1);
     const corps = vue.slice(i, vue.indexOf('\n  }', i));
-    expect(corps).toContain('cpChoisis = new Set()');
+    expect(corps).toContain("normalize('NFD')");
+    expect(corps).toContain('toLowerCase()');
+  });
+
+  it('changer la recherche vide la sélection', () => {
+    // Sinon le geste porterait sur des albums qu'on ne voit plus.
+    const i = vue.indexOf('cpQuery;');
+    expect(i).toBeGreaterThan(-1);
+    expect(vue.slice(i, i + 120)).toContain('cpChoisis = new Set()');
   });
 
   it('retirer le drapeau ne réunit rien, et réunir exige au moins deux albums', () => {
@@ -126,8 +151,8 @@ describe('poser le tag compilation depuis Métadonnées', () => {
     expect(vue.slice(j, j + 200)).toContain('cpChoisis.size < 2');
   });
 
-  it('les dix-huit libellés existent dans les onze langues', () => {
-    const cles = ['tabCompil','compilIntro','compilSearch','compilFind','compilStart','compilNone',
+  it('les dix-sept libellés existent dans les onze langues', () => {
+    const cles = ['tabCompil','compilIntro','compilSearch','compilStart','compilNone',
       'compilAll','compilNoneSel','compilMark','compilUnmark','compilMerge','compilBurn',
       'compilBurnHint','compilTracks','compilMarked','compilMerged','compilBurned','compilUnavail'];
     for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh']) {

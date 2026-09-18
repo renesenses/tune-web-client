@@ -3881,7 +3881,6 @@ export default {
   "v2.meta.compilBurn": "파일에 기록",
   "v2.meta.compilBurnHint": "표시를 파일 자체에 기록합니다. 다시 스캔해도 남고 다른 재생기에서도 보입니다.",
   "v2.meta.compilBurned": "{written}개 파일 기록 · {failed}개 실패 · {undecided}개 앨범은 기록할 결정이 없습니다.",
-  "v2.meta.compilFind": "검색",
   "v2.meta.compilIntro": "곡마다 아티스트가 다른 앨범은 그 수만큼의 음반으로 나뉩니다. 제목으로 찾아 행을 선택하고 컴필레이션으로 표시하세요. 그런 다음 하나로 합치고, 다른 곳에서도 남기려면 표시를 파일에 기록합니다.",
   "v2.meta.compilMark": "컴필레이션",
   "v2.meta.compilMarked": "앨범 {count}개를 표시했습니다.",
