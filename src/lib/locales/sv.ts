@@ -4393,6 +4393,7 @@ export default {
   "v2.zones.browserUnattended": "Webbläsarzon: ingen flik lyssnar",
   "v2.zones.viewGrid": "Rutnät",
   "v2.zones.viewList": "Lista",
+  "v2.zones.listActionsHelp": "Byt till vyn {view} för att byta namn på, slå samman eller ta bort en zon.",
   "v2.zones.viewSwitch": "Vy",
   "v2.str.discover": "Upptäck",
   "v2.str.editorial": "Redaktionellt",

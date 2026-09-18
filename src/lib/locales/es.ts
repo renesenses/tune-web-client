@@ -4394,6 +4394,7 @@ export default {
   "v2.zones.browserUnattended": "Zona de navegador: ninguna pestaña escucha",
   "v2.zones.viewGrid": "Cuadrícula",
   "v2.zones.viewList": "Lista",
+  "v2.zones.listActionsHelp": "Para renombrar, fusionar o eliminar una zona, cambia a la vista {view}.",
   "v2.zones.viewSwitch": "Vista",
   "v2.str.discover": "Descubrir",
   "v2.str.editorial": "Editorial",
