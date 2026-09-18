@@ -683,6 +683,8 @@ export default {
   'search.durationShown': '{d} affichées',
 
   // Streaming
+  'streaming.fichePistesEchec': 'Impossible de charger les pistes de cette fiche.',
+  'streaming.ficheDelaiDepasse': 'Le service n’a pas répondu à temps.',
   'streaming.selectService': 'Sélectionnez un service de streaming',
   'streaming.searchOn': 'Rechercher sur {service}...',
   'streaming.myPlaylists': 'Mes playlists',

@@ -673,6 +673,8 @@ export default {
   'search.durationShown': '{d} shown',
 
   // Streaming
+  'streaming.fichePistesEchec': 'Could not load the tracks for this item.',
+  'streaming.ficheDelaiDepasse': 'The service did not answer in time.',
   'streaming.selectService': 'Select a streaming service',
   'streaming.searchOn': 'Search on {service}...',
   'streaming.myPlaylists': 'My Playlists',

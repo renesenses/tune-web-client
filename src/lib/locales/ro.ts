@@ -474,6 +474,8 @@ export default {
   'search.durationShown': '{d} afișate',
 
   // Streaming
+  'streaming.fichePistesEchec': 'Piesele acestei fișe nu au putut fi încărcate.',
+  'streaming.ficheDelaiDepasse': 'Serviciul nu a răspuns la timp.',
   'streaming.selectService': 'Selectează un serviciu de streaming',
   'streaming.searchOn': 'Caută pe {service}...',
   'streaming.myPlaylists': 'Playlisturile mele',
