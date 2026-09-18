@@ -125,6 +125,19 @@
   const remove = (i: number) => act(() => api.removeFromQueue($currentZoneId!, i));
   const move = (from: number, to: number) => act(() => api.moveInQueue($currentZoneId!, from, to));
   const clear = () => act(() => api.clearQueue($currentZoneId!));
+  /**
+   * #1085 — VIDER LA SUITE, sans arrêter la lecture.
+   *
+   * Le geste « Vider » arrête et vide tout ; il n'y avait rien entre lui et
+   * retirer les pistes une par une. Le serveur sait le faire depuis la
+   * v0.9.155 (tune-server-rust#4169) : `keep_current` retire ce qui suit le
+   * curseur et laisse la piste en cours jouer.
+   *
+   * Le bouton ne s'affiche que s'il y a bien quelque chose APRÈS — sur la
+   * dernière piste, il n'aurait rien à retirer et « vider » une file d'un seul
+   * morceau prêterait à confusion avec le geste d'arrêt d'à côté.
+   */
+  const viderLaSuite = () => act(() => api.clearQueue($currentZoneId!, true));
 
   function tech(t: Track): string {
     if (getQualityTier(t) === 'dsd') return 'DSD';
@@ -156,6 +169,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
         {$tr('queue.autoplayLabel' as any)}
       </button>
+      {#if upNext.length}
+        <button class="v2-btn" onclick={viderLaSuite} disabled={busy}
+                title={$tr('v2.queue.clearUpNextTip' as any)}>{$tr('v2.queue.clearUpNext' as any)}</button>
+      {/if}
       {#if tracks.length}
         <button class="v2-btn danger" onclick={clear} disabled={busy}>{$tr('v2.queue.clear' as any)}</button>
       {/if}

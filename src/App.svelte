@@ -1144,6 +1144,17 @@ import AlarmsView from './components/AlarmsView.svelte';
         } else if (type === 'playback.queue_changed' || type === 'playback.queue.track_removed') {
           fetchQueue();
           if (zoneId) syncZoneState(zoneId);
+        } else if (type === 'playback.queue.cleared' && event.data?.keep_current) {
+          // 🔴 #1085 — « Vider la suite » émet le MÊME événement, avec
+          // `keep_current: true`. Le traiter comme l'autre effaçait la piste en
+          // cours et passait la zone à « arrêté » à l'écran alors qu'elle
+          // continuait de jouer : deux gestes différents, un seul événement, et
+          // c'est sa charge utile qui les distingue.
+          //
+          // Ici rien à remettre à zéro : seule la FILE a changé, et le serveur
+          // a laissé le curseur là où il était.
+          fetchQueue();
+          if (zoneId) syncZoneState(zoneId);
         } else if (type === 'playback.queue.cleared') {
           // Queue was explicitly cleared — reset current track so the Now Playing
           // bar and screen no longer display stale cover art / track info.
