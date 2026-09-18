@@ -2639,9 +2639,7 @@
     pas remplacer) ni rendre du contraste — le fond reste aussi sombre.
 
     `var(--v2-bg, transparent)` : hors du nouveau client le jeton n'existe
-    pas, la couche est transparente, rien ne change. Écartée sur les deux
-    thèmes CLAIRS : un voile clair sur la pochette noircie ferait un gris
-    moyen sous du texte blanc — le défaut même de #993.
+    pas, la couche est transparente, rien ne change.
   */
   .bg-teinte {
     position: absolute;
@@ -2651,9 +2649,44 @@
     background: var(--v2-bg, transparent);
     opacity: 0.78;
   }
+
+  /*
+    🔴 LES DEUX THÈMES CLAIRS — #1144.
+
+    Le voile du 17/09 avait été écarté d'eux avec ce motif : « un voile clair
+    sur la pochette noircie ferait un gris moyen sous du texte BLANC ». Le
+    motif est faux, et c'est tout le défaut : sur `clear-white` et
+    `clear-grey`, le texte n'est pas blanc. `tune-v2.css` y pose
+    `--v2-txt:#0C1620` et `#141C24` — quasi NOIR — et `ShellV2` monte cet
+    écran dans `.tune-v2`, qui ponte `--tune-text: var(--v2-txt)`.
+
+    Il ne restait donc sur ces deux thèmes que `.bg-blur` à `brightness(0.12)`,
+    un facteur MULTIPLICATIF : il plafonne toute pochette à `#1F1F1F` et rend
+    du NOIR sur une pochette noire. Mesuré par
+    `fondClairLectureEnCours1144.test.ts` : 1,15:1 sur `clear-white` et
+    1,22:1 sur `clear-grey` — du texte quasi noir sur un fond quasi noir,
+    très loin des 4,5:1 de WCAG AA. Le titre du ticket dit « texte
+    ILLISIBLE » ; ici il l'était au sens propre.
+
+    Le remède garde l'arbitrage du 13/09 — assombrir, pas remplacer — en le
+    RETOURNANT dans le bon sens : là où le texte est sombre, il faut ÉCLAIRCIR
+    le fond, pas le noircir. C'est déjà ce que fait `.light .tv-bg-blur` dans
+    `TvView.svelte`, à `brightness(1.15) saturate(0.7)` ; on reprend sa
+    recette plutôt que d'en inventer une seconde.
+
+    L'opacité monte de 0,78 à 0,88 : à 0,78 le fond le plus sombre tombait à
+    `#C7C7C7`, où `--v2-txt2` ne tenait plus que 3,60:1. À 0,88 il remonte à
+    4,63:1 (`clear-white`) et 4,52:1 (`clear-grey`), et le texte principal est
+    à 13,9:1 et 11,4:1. La pochette reste perceptible : elle module encore le
+    fond sur une trentaine de niveaux, contre sept sur les thèmes sombres.
+  */
+  :global(:root[data-v2-theme="clear-white"]) .bg-blur,
+  :global(:root[data-v2-theme="clear-grey"]) .bg-blur {
+    filter: blur(60px) brightness(1.05) saturate(0.7);
+  }
   :global(:root[data-v2-theme="clear-white"]) .bg-teinte,
   :global(:root[data-v2-theme="clear-grey"]) .bg-teinte {
-    display: none;
+    opacity: 0.88;
   }
 
   .content-layout {
