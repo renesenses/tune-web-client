@@ -3978,6 +3978,8 @@ export default {
   "v2.meta.drUnavail": "写入不可用。",
   "v2.meta.tabDoublons": "重复项",
   "v2.meta.dupAlbums": "被拆分的专辑",
+  "v2.meta.indiceDossierTitre": "同一文件夹且同名",
+  "v2.meta.indicePochette": "封面相同",
   "v2.meta.dupArtists": "重复艺术家",
   "v2.meta.dupTracks": "重复曲目",
   "v2.meta.regroupIn": "合并到 {name}",

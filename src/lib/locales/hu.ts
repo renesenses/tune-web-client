@@ -3936,6 +3936,8 @@ export default {
   "v2.meta.drUnavail": "A beírás nem érhető el.",
   "v2.meta.tabDoublons": "Duplikátumok",
   "v2.meta.dupAlbums": "Széttört albumok",
+  "v2.meta.indiceDossierTitre": "Azonos mappa és azonos cím",
+  "v2.meta.indicePochette": "Azonos borító",
   "v2.meta.dupArtists": "Duplikált előadók",
   "v2.meta.dupTracks": "Duplikált számok",
   "v2.meta.regroupIn": "Összevonás ide: {name}",

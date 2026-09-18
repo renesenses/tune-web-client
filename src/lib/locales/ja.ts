@@ -3978,6 +3978,8 @@ export default {
   "v2.meta.drUnavail": "書き込みは利用できません。",
   "v2.meta.tabDoublons": "重複",
   "v2.meta.dupAlbums": "分割されたアルバム",
+  "v2.meta.indiceDossierTitre": "同じフォルダー・同じタイトル",
+  "v2.meta.indicePochette": "同一のジャケット",
   "v2.meta.dupArtists": "重複アーティスト",
   "v2.meta.dupTracks": "重複トラック",
   "v2.meta.regroupIn": "{name} に統合",
