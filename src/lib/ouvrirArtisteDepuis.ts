@@ -45,3 +45,30 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View): Promise<void> {
   if (id !== null) pendingLibraryArtist.set(id);
   activeView.set('library');
 }
+
+/**
+ * L'artiste d'une PISTE, prêt pour [`ouvrirArtisteDepuis`] — ou `null`.
+ *
+ * #1193 — FabienM, fil 1839, point 8 : « quand on est sur la page d'une
+ * playlist avec les titres présentés en tableau, il faut que la colonne
+ * Artiste soit cliquable et renvoie à la page de l'artiste ».
+ *
+ * Trois cas, et un seul geste :
+ * - piste **locale** : `artist_id` est un identifiant de bibliothèque ;
+ * - piste de **service** : `artist_id` est l'identifiant chez le service, et
+ *   c'est `source` qui le dit — le confondre avec un id local ouvrirait un
+ *   artiste au hasard ;
+ * - **ni l'un ni l'autre** : il reste le nom, et la recherche EXACTE.
+ *
+ * `null` quand la piste ne porte même pas de nom d'artiste : la colonne reste
+ * alors un texte, pas un bouton mort.
+ */
+export function artisteDePiste(p: any): any | null {
+  const nom = p?.artist_name ?? null;
+  const id = p?.artist_id ?? null;
+  const src = p?.source ?? null;
+  const estBibliotheque = !src || src === 'local' || src === 'upnp';
+  if (id != null && estBibliotheque) return { id, name: nom, source: src ?? 'local' };
+  if (id != null && src) return { name: nom, source: src, source_id: String(id) };
+  return nom ? { name: nom } : null;
+}
