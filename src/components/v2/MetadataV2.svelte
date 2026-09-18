@@ -188,15 +188,33 @@
     arme = null;
   }
 
+  /**
+   * Les albums cochés, le plus fourni EN TÊTE.
+   *
+   * 🔴 Le serveur fait survivre le PREMIER identifiant de la liste à une
+   * fusion (`album_cible = album_ids[0]`). Envoyer l'ordre de cochage ferait
+   * dépendre le disque gardé du geste de l'utilisateur — et sur Coco María,
+   * onze albums d'une piste, ce serait le hasard. On range donc comme
+   * `cibleAlbum` le fait pour les doublons : celui qui porte le plus.
+   */
+  function idsChoisisCiblePremiere(): number[] {
+    return cpAlbums
+      .filter((a) => cpChoisis.has(a.album_id))
+      .sort((x, y) => (y.track_count ?? 0) - (x.track_count ?? 0))
+      .map((a) => a.album_id);
+  }
+
   /** Pose ou retire le drapeau sur les albums cochés. */
   async function marquerCompil(valeur: boolean) {
     if (!cpChoisis.size || cpBusy) return;
-    const ids = [...cpChoisis];
+    const ids = idsChoisisCiblePremiere();
     cpBusy = true;
     try {
-      const r = await api.batchUpdateAlbums(ids, { is_compilation: valeur });
+      // `fusionner: false` — marquer et réunir sont deux gestes distincts, et
+      // le second s'arme en deux clics.
+      const r = await api.poserCompilation(ids, valeur, false);
       cpAlbums = cpAlbums.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: valeur } : a));
-      cpBilan = $t('v2.meta.compilMarked' as any).replace('{count}', String(r.updated));
+      cpBilan = $t('v2.meta.compilMarked' as any).replace('{count}', String(r.poses));
       cpErr = null;
     } catch (e: any) {
       cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
@@ -209,13 +227,15 @@
     if (cpChoisis.size < 2 || cpBusy) return;
     if (arme !== 'cp:reunir') { arme = 'cp:reunir'; return; }
     arme = null;
-    const ids = [...cpChoisis];
+    const ids = idsChoisisCiblePremiere();
     cpBusy = true;
     try {
-      const r = await api.mergeAlbums(ids);
-      cpBilan = $t('v2.meta.compilMerged' as any)
-        .replace('{moved}', String(r.tracks_moved))
-        .replace('{total}', String(r.total_tracks));
+      // La fusion est faite PAR le serveur, dans le même geste que la pose :
+      // un aller-retour, et pas de fenêtre où les albums seraient marqués mais
+      // pas réunis.
+      const r = await api.poserCompilation(ids, true, true);
+      cpAlbums = cpAlbums.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: true } : a));
+      cpBilan = $t('v2.meta.compilMerged' as any).replace('{count}', String(r.fusionnes));
       cpErr = null;
       cpChoisis = new Set();
       await chercherCompil();
@@ -236,10 +256,14 @@
     cpBusy = true;
     try {
       const b = await api.graverCompilation(ids);
+      // `sans_decision` n'est pas une erreur : le serveur refuse de graver une
+      // déduction du scan dans les fichiers de quelqu'un. Sans ce compte,
+      // « 0 fichier gravé » passerait pour une panne alors qu'il manque
+      // seulement un clic sur « Compilation ».
       cpBilan = $t('v2.meta.compilBurned' as any)
-        .replace('{written}', String(b.ecrits))
-        .replace('{skipped}', String(b.hors_format))
-        .replace('{failed}', String(b.echecs));
+        .replace('{written}', String(b.fichiers_ecrits ?? 0))
+        .replace('{failed}', String(b.echecs?.length ?? 0))
+        .replace('{undecided}', String(b.sans_decision?.length ?? 0));
       cpErr = null;
     } catch (e: any) {
       cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);

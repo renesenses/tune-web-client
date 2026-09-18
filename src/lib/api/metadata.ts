@@ -76,25 +76,61 @@ export function mergeAlbums(albumIds: number[]) {
   });
 }
 
+/** Ce que rend `POST /library/albums/compilation`. */
+export interface PoserCompilationResult {
+  /** Albums dont la décision manuelle a été écrite. */
+  poses: number;
+  valeur: boolean;
+  /** Albums absorbés par la fusion — 0 si `fusionner` était faux. */
+  fusionnes: number;
+  /** L'album qui survit à la fusion : le PREMIER identifiant envoyé. */
+  album_cible: number | null;
+  echecs: unknown[];
+}
+
+/**
+ * Pose (ou retire) la décision manuelle « compilation » sur des albums.
+ *
+ * 🔴 C'est une route à elle, pas un champ de `batchUpdateAlbums` : le serveur
+ * ignorerait le champ en silence et rendrait 200 sans rien poser.
+ *
+ * `fusionner` ne joue que si `valeur` est vrai ET qu'il y a plusieurs albums —
+ * et l'album qui survit est le **premier de la liste**, donc l'appelant range
+ * en tête celui qu'il veut garder. Retirer le drapeau ne défait jamais une
+ * fusion déjà faite.
+ */
+export function poserCompilation(albumIds: number[], valeur: boolean, fusionner = false) {
+  return fetchJSON<PoserCompilationResult>(`${BASE}/library/albums/compilation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ album_ids: albumIds, valeur, fusionner }),
+  });
+}
+
 /** Bilan d'une gravure du drapeau « compilation » dans les fichiers. */
 export interface GraverCompilationResult {
-  /** Albums effectivement traités — un identifiant inconnu ne compte pas. */
-  albums: number;
   /** Fichiers dont l'étiquette a été écrite. */
-  ecrits: number;
-  /** Fichiers écartés : le scan ne relit pas leur conteneur (WAV, DSF, DFF…). */
-  hors_format: number;
-  /** Fichiers refusés par le graveur (manquant, verrouillé, illisible). */
-  echecs: number;
+  fichiers_ecrits: number;
+  /** Une entrée par fichier refusé (manquant, verrouillé, illisible). */
+  echecs: unknown[];
+  /**
+   * Albums qu'on a refusé de graver faute de décision manuelle.
+   *
+   * Le serveur ne grave JAMAIS une déduction du scan dans les fichiers de
+   * quelqu'un : sans clic préalable sur « Compilation », il n'y a rien à
+   * écrire. Ce n'est pas une erreur, mais l'écran doit le dire — sinon
+   * « 0 fichier gravé » passe pour une panne.
+   */
+  sans_decision: number[];
 }
 
 /**
  * Grave le drapeau « compilation » de ces albums DANS leurs fichiers.
  *
  * Seconde action, explicite : la base retient déjà le choix, posé par
- * `batchUpdateAlbums({ is_compilation })`. Cette route ne fait que le porter
- * jusqu'au disque, et l'utilisateur doit l'avoir demandé — Tune ne touche pas
- * aux fichiers de quelqu'un en passant (serveur #4427).
+ * `poserCompilation`. Cette route ne fait que le porter jusqu'au disque, et
+ * l'utilisateur doit l'avoir demandé — Tune ne touche pas aux fichiers de
+ * quelqu'un en passant (serveur #4427).
  */
 export function graverCompilation(albumIds: number[]) {
   return fetchJSON<GraverCompilationResult>(`${BASE}/library/albums/compilation/graver`, {
