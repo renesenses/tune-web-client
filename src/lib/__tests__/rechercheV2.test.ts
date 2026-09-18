@@ -45,7 +45,19 @@ describe('Recherche v2 (retours Bertrand, 05/09/2026)', () => {
     expect(src).toContain('meilleurResultat(q, {');
     // …et du TYPE choisi (point 8, 17/09/2026) : restreint aux albums, pas
     // d'artiste en tête.
-    expect(src).toContain('artistes: voirArtistes ? groupes.artistes.filter(dansLePerimetre) : []');
+    // 🔴 #1135 — la liste d'artistes du meilleur résultat est désormais LA
+    // MÊME que celle de la rangée (`artistes`), qui porte déjà le double
+    // filtre (type via `voirArtistes`, périmètre via `dansLePerimetre`) et, en
+    // plus, la fusion des doublons. Sans quoi le meilleur résultat serait une
+    // des trois lignes d'origine, muette sur ses deux autres provenances,
+    // juste à côté d'une vignette qui les dit. La règle elle-même est gardée
+    // AU RENDU par `artistesFusionnes1135.test.ts` et `rechercheRestreinte`.
+    expect(src).toContain('const artistes = $derived(voirArtistes ? regrouperArtistes(groupes.artistes.filter(dansLePerimetre)) : [])');
+    {
+      const i = src.indexOf('meilleurResultat(q, {');
+      const appel = src.slice(i, src.indexOf('albums:', i));
+      expect(appel).toMatch(/^\s*artistes,\s*$/m);
+    }
     expect(src).toContain('v2.rech.best');
     expect(src).toContain('api.getStreamingPlaylists(');
     expect(src).toContain('lirePlaylist');

@@ -64,8 +64,24 @@
     id?: number | null;
     onClose: () => void;
     onSaved: () => void;
+    /**
+     * Supprimer la collection éditée — #1143.
+     *
+     * FabienM a cherché la commande ICI, dans « Intelligente / Modifier la
+     * collection », deux fois et sur deux versions, avant de regarder la
+     * vignette. Sa capture du 13/09/2026 montre ce pied avec deux boutons :
+     * `Annuler` et `Enregistrer`. Le geste existait déjà — mais seulement
+     * dans le menu d'actions de la vignette, là où il n'a pas regardé.
+     *
+     * L'éditeur n'appelle PAS la route lui-même : il ne tient pas la liste
+     * qu'il faut mettre à jour, et il partage la confirmation de l'écran
+     * Collections, qui est la seule à savoir que les deux sortes ont des
+     * espaces d'identifiants distincts. Absent (création) = pas de bouton :
+     * il n'y a rien à supprimer.
+     */
+    supprimer?: (() => void | Promise<void>) | null;
   }
-  let { id = null, onClose, onSaved }: Props = $props();
+  let { id = null, onClose, onSaved, supprimer = null }: Props = $props();
 
   let collection = $state<any | null>(null);
   let chargement = $state(id != null);
@@ -377,6 +393,11 @@
   </div>
 
   <div class="pied">
+    <!-- Seulement en MODIFICATION, et seule à gauche : une suppression ne se
+         range pas contre « Enregistrer ». -->
+    {#if id != null && supprimer}
+      <button class="danger" onclick={() => void supprimer!()}>{$t('common.delete' as any)}</button>
+    {/if}
     <button class="ghost" onclick={onClose}>{$t('common.cancel' as any)}</button>
     <button class="play" onclick={enregistrer} disabled={!pretAEnregistrer || travail}>
       {$t('v2.smart.save' as any)}
@@ -433,7 +454,10 @@
 
   .pied{display:flex; justify-content:flex-end; gap:12px; padding:14px 30px 22px;
     border-top:1px solid var(--v2-line)}
-  .ghost,.play{height:42px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 14px var(--v2-sans); cursor:pointer}
+  .ghost,.play,.danger{height:42px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 14px var(--v2-sans); cursor:pointer}
+  /* `margin-right:auto` : elle part à gauche, les deux autres ne bougent pas. */
+  .danger{margin-right:auto; color:var(--v2-danger); background:transparent; border:1px solid var(--v2-danger-bd)}
+  .danger:hover{background:var(--v2-danger-soft)}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .play{color:var(--v2-on-acc); border:0; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
