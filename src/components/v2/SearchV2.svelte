@@ -16,7 +16,8 @@
   import * as api from '../../lib/api';
   import { tick } from 'svelte';
   import { type TypeRecherche, TYPES_RECHERCHE, sectionVisible, phrasesEntreGuillemets, respecteLesPhrases } from '../../lib/rechercheRestreinte';
-  import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
+  import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
   import { notifications } from '../../lib/stores/notifications';
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
@@ -728,6 +729,20 @@
     }
     masseEnCours = false;
   }
+  /**
+   * « Lire à partir d'ici » sur les résultats — #1061, point 9 de FabienM.
+   *
+   * `vusTitres` est la liste RENDUE : la tranche visible, dans l'ordre où le
+   * tableau la montre, sources mêlées comprises. `lireListeDepuis` sait
+   * composer une tête et une suite sur une liste mixte.
+   */
+  function lireLesTitresDepuis(i: number) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    lireListeDepuis(vusTitres as any, i, gestesDeZone(zid))
+      .catch(signalerEchecLecture);
+  }
+
   function lirePiste(t: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
@@ -1164,6 +1179,7 @@
             <ListePistesV2 pistes={vusTitres as any} numerotation="aucune" pochetteEnTableau
               sourceEnTableau
               onLire={(p) => lirePiste(p as any)}
+              onLireDepuis={(_p, i) => lireLesTitresDepuis(i)}
               clef={(p, i) => String((p as any).source ?? 'local') + ':' + String(p.id ?? (p as any).source_id ?? i)} />
           </div>
           {#if resteTitres > 0}

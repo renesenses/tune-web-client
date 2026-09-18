@@ -702,6 +702,7 @@
         pochette={false}
         avecAlbum={false}
         onLire={(_p, i) => playAlbum(i)}
+        onLireDepuis={(_p, i) => playAlbum(i)}
       />
     {/if}
   </div>

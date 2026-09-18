@@ -29,6 +29,8 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
+  import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
@@ -811,8 +813,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       .catch(() => {});
     return () => { Object.values(polls).forEach(clearInterval); polls = {}; };
   });
-  /** Qobuz attend des identifiants ; les autres passent par un code. */
-  function usesPassword(name: string): boolean { return name === 'qobuz'; }
+  /**
+   * Ce que chaque service demande — #1067.
+   *
+   * `usesPassword()` ne connaissait que deux mondes, « identifiant + mot de
+   * passe » et « code d'appareil », et Bandcamp ne tient dans ni l'un ni
+   * l'autre : il veut un PSEUDO SEUL. Le formulaire ne le demandait donc pas,
+   * et le bouton postait un corps vide — que le greffon lit comme un simple
+   * sondage. Voir `lib/identifiantsService`.
+   */
+  const formeSvc = formeDesIdentifiants;
+  function usesPassword(name: string): boolean {
+    return formeDesIdentifiants(name) === 'pseudo_motdepasse';
+  }
 
   function stopPoll(name: string) {
     if (polls[name]) { clearInterval(polls[name]); delete polls[name]; }
@@ -837,7 +850,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     svcErr = { ...svcErr, [name]: null };
     try {
       const c = cred[name];
-      const body = usesPassword(name) ? { username: c?.user ?? '', password: c?.pass ?? '' } : undefined;
+      const body = corpsDAuthentification(name, c);
       const res = await api.authenticateStreaming(name, body);
       // Le mot de passe ne survit pas a la reponse, quelle qu'elle soit.
       if (cred[name]) cred = { ...cred, [name]: { user: cred[name].user, pass: '' } };
@@ -850,11 +863,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
         deviceFlow = { ...deviceFlow, [name]: { url, code: res.user_code ?? null } };
         startPoll(name);   // svcBusy reste pose : l'attente fait partie du flux
       } else {
-        svcErr = { ...svcErr, [name]: usesPassword(name) ? get(t)('settings.errCredentialsRejected') : get(t)('settings.errNoAuthLink') };
+        // #1067 — « aucun lien d'authentification » était le message servi à
+        // Bandcamp alors que le serveur attendait simplement un pseudo.
+        const f = formeSvc(name);
+        svcErr = {
+          ...svcErr,
+          [name]:
+            f === 'pseudo_motdepasse' ? get(t)('settings.errCredentialsRejected')
+            : f === 'pseudo' ? get(t)('settings.errUsernameRejected')
+            : get(t)('settings.errNoAuthLink'),
+        };
         svcBusy = null;
       }
-    } catch {
-      svcErr = { ...svcErr, [name]: get(t)('settings.errConnectFailed') };
+    } catch (e: any) {
+      // #1067 — « profil introuvable », « username invalide » : le greffon
+      // Bandcamp NOMME ce qui ne va pas, et l'écran l'écrasait par un message
+      // générique. Un pseudo mal orthographié est le cas le plus probable ;
+      // autant le dire.
+      const motif = typeof e?.message === 'string' ? e.message.trim() : '';
+      svcErr = { ...svcErr, [name]: motif || get(t)('settings.errConnectFailed') };
       svcBusy = null;
     }
   }
@@ -2644,6 +2671,34 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <b>{scanReport.failed_paths.length} chemin(s) en échec.</b>
                   {/if}
                 </div>
+                <!--
+                  #1068 — LESQUELS, et pourquoi.
+
+                  Belkadi Yacine (fil 1600) voyait « des fichiers absents » sans
+                  savoir lesquels. Le serveur les nomme depuis la v0.9.144 ; rien
+                  ne les affichait. Replié par défaut : c'est un rapport qu'on
+                  ouvre quand on cherche, pas une alerte.
+                -->
+                {#if aDesEcarts(scanReport)}
+                  <details class="ecartes">
+                    <summary>{$t('v2.scan.discarded' as any)}</summary>
+                    {#if listeTronquee(scanReport)}
+                      <!-- Le serveur plafonne ses listes et le DIT : une liste
+                           muette face à 40 000 fichiers écartés se lirait comme
+                           un rapport complet, donc faux. -->
+                      <p class="hint">{$t('v2.scan.discardedSample' as any)}</p>
+                    {/if}
+                    {#each motifsDesFeuilles(scanReport) as m (m.motif)}
+                      <p class="hint">{m.motif} — {$formatNombre(m.nombre)}</p>
+                    {/each}
+                    {#each groupesEcartes(scanReport) as g (g.cle)}
+                      <p class="ecartes-titre">{$t(g.titre as any)} ({$formatNombre(g.chemins.length)})</p>
+                      <ul class="ecartes-liste">
+                        {#each g.chemins as c (c)}<li title={c}>{c}</li>{/each}
+                      </ul>
+                    {/each}
+                  </details>
+                {/if}
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
 
@@ -2957,6 +3012,21 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span class="waiting">{$t('v2.lbl.awaitingConfirm' as any)}</span>
                           <button class="lnk" onclick={() => cancelFlow(name)}>{$t('common.cancel' as any)}</button>
                         </div>
+
+                      {:else if formeSvc(name) === 'pseudo' && cred[name]}
+                        <!-- #1067 — Bandcamp : un PSEUDO, pas de mot de passe.
+                             La page de profil est publique, le greffon la lit ;
+                             demander un mot de passe laisserait croire le
+                             contraire. -->
+                        <div class="inline">
+                          <input class="txt" type="text" autocomplete="username"
+                            placeholder={$t('settings.usernameOnlyPlaceholder' as any)}
+                            bind:value={cred[name].user} disabled={svcBusy === name}
+                            onkeydown={(e) => { if (e.key === 'Enter' && identifiantsComplets(name, cred[name])) connectSvc(name); }} />
+                          <button class="lnk" disabled={svcBusy === name || !st.enabled || !identifiantsComplets(name, cred[name])}
+                            onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
+                        </div>
+                        <p class="hint">{$t('settings.usernameOnlyHint' as any)}</p>
 
                       {:else if usesPassword(name) && cred[name]}
                         <div class="inline">
@@ -3629,6 +3699,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:12.5px; line-height:1.55}
   .warnbox{color:var(--v2-txt2); border:1px solid var(--v2-danger-bd)}
   .okbox{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
+
+  /* #1068 — les chemins écartés du dernier scan. La liste peut compter des
+     centaines d'entrées : elle défile chez elle, sans pousser le reste de
+     l'écran. */
+  .ecartes{margin-top:10px; font:13px/1.5 var(--v2-sans); color:var(--v2-txt2)}
+  .ecartes summary{cursor:pointer; color:var(--v2-txt); font-weight:600}
+  .ecartes-titre{margin:10px 0 4px; font-weight:600; color:var(--v2-txt)}
+  .ecartes-liste{margin:0; padding:0 0 0 18px; max-height:220px; overflow:auto;
+    font-family:var(--v2-mono, ui-monospace, monospace); font-size:12px}
+  .ecartes-liste li{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .warnbox b,.okbox b{color:var(--v2-txt)}
   .errline{margin-top:10px; font-size:12px; color:var(--v2-danger)}
   .comps{display:flex; gap:6px; flex-wrap:wrap; margin-top:14px}

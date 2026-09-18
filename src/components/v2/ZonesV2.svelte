@@ -18,6 +18,7 @@
    */
   import * as api from '../../lib/api';
   import { zones, currentZoneId } from '../../lib/stores/zones';
+  import { chargerLesZones, etatDesZones, listeVraimentVide } from '../../lib/chargementDesZones';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import type { Zone, StereoPairInfo } from '../../lib/types';
@@ -156,8 +157,12 @@
   }
 
   async function refresh() {
-    try { zones.set(await api.getZones()); error = null; chargerDoublons(); }
-    catch { error = 'Zones indisponibles.'; }
+    // #1096 : la liste n'est écrasée que si le chargement a RÉUSSI, et
+    // `etatDesZones` porte la différence entre « vide » et « pas chargée ».
+    const liste = await chargerLesZones((zs) => zones.set(zs));
+    if (liste === null) { error = $t('v2.zone.unreachable' as any); return; }
+    error = null;
+    chargerDoublons();
   }
 
   // DUP-1 : deux zones pour un même appareil. Le diagnostic les nomme (phase
@@ -342,7 +347,17 @@
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
   <div class="scroll">
-    {#if !$zones.length}
+    {#if !$zones.length && !listeVraimentVide($etatDesZones, $zones.length)}
+      <!-- #1096 — tant que la liste n'a pas été CHARGÉE, une liste vide ne dit
+           rien du serveur : on ne prétend pas qu'il n'y a aucune zone, et on
+           n'invite pas à en recréer une qui existe peut-être déjà. -->
+      <div class="state">
+        {$etatDesZones === 'echec' ? $t('v2.zone.unreachable' as any) : $t('common.loading' as any)}
+        {#if $etatDesZones === 'echec'}
+          <button class="v2-btn" onclick={refresh}>{$t('zone.retry' as any)}</button>
+        {/if}
+      </div>
+    {:else if !$zones.length}
       <div class="state">{$t('v2.zone.none' as any)}</div>
     {:else if vue === 'grille'}
       <p id="zones-list-help" class="list-help">{$t('v2.zones.listActionsHelp' as any).replace('{view}', $t('v2.zones.viewList' as any))}</p>
