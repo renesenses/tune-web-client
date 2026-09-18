@@ -14,11 +14,20 @@
   import { sourcesDisponibles, libelleSource } from '../../lib/sourcesRegle';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { signalerEchecLecture } from '../../lib/echecLecture';
+  import { optionOperateur } from '../../lib/smartPlaylistOperateurs';
+  // La GRAMMAIRE des règles — champs, opérateurs offerts par champ, lecture
+  // des règles stockées, mise en forme pour le serveur — a quitté ce fichier
+  // pour `lib/smartPlaylistChamps` (#1150) : le nouveau client a désormais le
+  // même éditeur, et deux copies auraient divergé à la première addition.
   import {
-    OPERATEURS,
-    normaliserOperateur,
-    optionOperateur,
-  } from '../../lib/smartPlaylistOperateurs';
+    CHAMPS as FIELDS,
+    operateursDe as opsFor,
+    estChampReference as isRefField,
+    lireRegles,
+    reglesPourServeur,
+    regleNeuve,
+    type RegleSmartPlaylist,
+  } from '../../lib/smartPlaylistChamps';
 
   let zone = $derived($currentZone);
 
@@ -33,11 +42,7 @@
     max_tracks: number;
   }
 
-  interface Rule {
-    field: string;
-    operator: string;
-    value: string;
-  }
+  type Rule = RegleSmartPlaylist;
 
   let smartPlaylists: SmartPlaylist[] = $state([]);
   let selectedSp: SmartPlaylist | null = $state(null);
@@ -53,60 +58,9 @@
   let newSortBy = $state('title');
   let newSortOrder = $state('asc');
   let newMaxTracks = $state(200);
-  let newRules: Rule[] = $state([{ field: 'genre', operator: 'contains', value: '' }]);
+  let newRules: Rule[] = $state([regleNeuve()]);
 
-  const FIELDS: { value: string; key: string }[] = [
-    { value: 'title', key: 'common.title' },
-    { value: 'artist', key: 'common.artist' },
-    { value: 'album', key: 'common.album' },
-    { value: 'genre', key: 'smartPlaylists.fieldGenre' },
-    { value: 'year', key: 'smartPlaylists.fieldYear' },
-    { value: 'format', key: 'smartPlaylists.fieldFormat' },
-    { value: 'sample_rate', key: 'smartPlaylists.fieldSampleRate' },
-    { value: 'bit_depth', key: 'smartPlaylists.fieldBitDepth' },
-    { value: 'source', key: 'smartPlaylists.fieldSource' },
-    { value: 'composer', key: 'smartPlaylists.fieldComposer' },
-    { value: 'comments', key: 'smartPlaylists.fieldComments' },
-    // Références : appartenance à une collection / playlist (classique ou
-    // smart) et statut favori — mêmes libellés que l'éditeur de smart
-    // collections (clés smartCollection.*).
-    { value: 'in_collection', key: 'smartCollection.fieldInCollection' },
-    { value: 'in_playlist', key: 'smartCollection.fieldInPlaylist' },
-    { value: 'favorite', key: 'smartCollection.fieldFavorite' },
-  ];
-
-  // La liste et sa normalisation vivent dans `lib/smartPlaylistOperateurs.ts` :
-  // elles portent un contrat avec le serveur, et un contrat se teste.
-  const OPERATORS = OPERATEURS;
-
-  // Les champs « référence » n'acceptent que est / n'est pas
-  // (in|not_in côté serveur, is|is_not pour les favoris).
-  const REF_OPERATORS: { value: string; key: string }[] = [
-    { value: 'in', key: 'smartCollection.opRefIn' },
-    { value: 'not_in', key: 'smartCollection.opRefNotIn' },
-  ];
-  const FAV_OPERATORS: { value: string; key: string }[] = [
-    { value: 'is', key: 'smartCollection.opRefIn' },
-    { value: 'is_not', key: 'smartCollection.opRefNotIn' },
-  ];
-
-  // « Source » se choisit dans une LISTE (#4299) : est / n'est pas. Le serveur
-  // ne ramène les favoris d'un service que sur une règle positive.
-  const SOURCE_OPERATORS: { value: string; label: string }[] = [
-    { value: 'equals', label: '=' },
-    { value: 'not_equals', label: '≠' },
-  ];
   let statutsServices = $state<Record<string, any>>({});
-
-  function isRefField(field: string): boolean {
-    return field === 'in_collection' || field === 'in_playlist' || field === 'favorite';
-  }
-  function opsFor(field: string): readonly { value: string; key?: string; label?: string }[] {
-    if (field === 'favorite') return FAV_OPERATORS;
-    if (isRefField(field)) return REF_OPERATORS;
-    if (field === 'source') return SOURCE_OPERATORS;
-    return OPERATORS;
-  }
 
   // Listes pour les sélecteurs de référence (chargées avec la vue).
   let refOptions = $state<{
@@ -223,7 +177,7 @@
       const result = await api.createSmartPlaylist({
         name: newName.trim(),
         description: newDescription.trim() || undefined,
-        rules: newRules.filter(r => r.value.trim()).map(r => ({ field: r.field, op: r.operator, value: r.value })),
+        rules: reglesPourServeur(newRules),
         match_mode: newMatchMode,
         sort_by: newSortBy,
         sort_order: newSortOrder,
@@ -233,7 +187,7 @@
       showCreate = false;
       newName = '';
       newDescription = '';
-      newRules = [{ field: 'genre', operator: 'contains', value: '' }];
+      newRules = [regleNeuve()];
       await loadSmartPlaylists();
       // Auto-select the new one
       const created = smartPlaylists.find(sp => sp.id === result.id);
@@ -279,7 +233,7 @@
       await api.updateSmartPlaylist(editingSp.id, {
         name: newName.trim(),
         description: newDescription.trim() || undefined,
-        rules: newRules.filter(r => r.value.trim()).map(r => ({ field: r.field, op: r.operator, value: r.value })),
+        rules: reglesPourServeur(newRules),
         match_mode: newMatchMode,
         sort_by: newSortBy,
         sort_order: newSortOrder,
@@ -290,7 +244,7 @@
       showCreate = false;
       newName = '';
       newDescription = '';
-      newRules = [{ field: 'genre', operator: 'contains', value: '' }];
+      newRules = [regleNeuve()];
       await loadSmartPlaylists();
     } catch (e: any) {
       // apiError range le corps `error` du serveur dans e.code (ex. le
@@ -304,7 +258,7 @@
     showCreate = false;
     newName = '';
     newDescription = '';
-    newRules = [{ field: 'genre', operator: 'contains', value: '' }];
+    newRules = [regleNeuve()];
   }
 
   /**
@@ -355,7 +309,7 @@
   }
 
   function addRule() {
-    newRules = [...newRules, { field: 'genre', operator: 'contains', value: '' }];
+    newRules = [...newRules, regleNeuve()];
   }
 
   function removeRule(index: number) {
@@ -363,12 +317,7 @@
   }
 
   function parseRules(sp: SmartPlaylist): Rule[] {
-    const raw: any[] = Array.isArray(sp.rules) ? sp.rules : (() => { try { return JSON.parse(sp.rules || '[]'); } catch { return []; } })();
-    return raw.map(r => ({
-      field: r.field,
-      operator: normaliserOperateur(r.operator || r.op || 'contains'),
-      value: r.value,
-    }));
+    return lireRegles(sp.rules);
   }
 
   function ruleSummary(sp: SmartPlaylist): string {
@@ -460,7 +409,7 @@
     <!-- List view -->
     <div class="sp-list-header">
       <h2>{$tr('smartPlaylists.title')}</h2>
-      <button class="create-btn" onclick={() => { if (showCreate) { cancelForm(); } else { editingSp = null; newName = ''; newDescription = ''; newRules = [{ field: 'genre', operator: 'contains', value: '' }]; newMatchMode = 'all'; newSortBy = 'title'; newSortOrder = 'asc'; newMaxTracks = 200; showCreate = true; } }}>
+      <button class="create-btn" onclick={() => { if (showCreate) { cancelForm(); } else { editingSp = null; newName = ''; newDescription = ''; newRules = [regleNeuve()]; newMatchMode = 'all'; newSortBy = 'title'; newSortOrder = 'asc'; newMaxTracks = 200; showCreate = true; } }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         {$tr('smartPlaylists.new')}
       </button>

@@ -22,14 +22,33 @@ describe('#1011 — l’éditeur de playlists intelligentes est monté, et attei
     expect(shell).toMatch(/\{:else if \$activeView === 'smartplaylists'\}\s*<SmartPlaylistsView \/>/);
     expect(shell).toContain("smartplaylists: 'v2.pl.tabSmart'");
   });
+  /**
+   * ⚠️ 18/09/2026, web#1150 — CE BOUTON NE QUITTE PLUS L'ÉCRAN.
+   *
+   * Il basculait la vue sur `smartplaylists`, l'écran de l'ancienne interface,
+   * parce que c'était le seul à savoir créer une règle. Il ouvre désormais
+   * `PlaylistSmartEditeurV2`, sur place (FabienM, fil 1778 point 8 : la v2
+   * listait et jouait, elle ne créait pas).
+   *
+   * Ce que ce cas garde n'a pas changé : UNE porte, dans l'onglet, AVANT la
+   * liste — c'est quand il n'y a rien à voir que le bouton sert le plus. Seule
+   * sa destination a bougé, et la garde dit maintenant laquelle.
+   */
   it('🔴 l’onglet « Intelligentes » porte le bouton qui y mène — avant la liste, vide ou non', () => {
     const src = lire('src/components/v2/PlaylistsV2.svelte');
     const i = src.indexOf("{:else if onglet === 'smart'}");
-    const bouton = src.indexOf("onclick={() => activeView.set('smartplaylists')}", i);
+    const bouton = src.indexOf("onclick={() => (editeurSmart = { id: null })}", i);
     const vide = src.indexOf("{#if !smart.length}", i);
     expect(bouton).toBeGreaterThan(i);
     expect(bouton).toBeLessThan(vide);
     expect(src).toContain("{$t('smartPlaylists.new')}");
+    // Et il n'en reste QU'UNE : rouvrir la porte vers l'ancien écran en plus
+    // de l'éditeur v2 ferait deux chemins vers la même fonction — le doublon
+    // que web#1127 vient de retirer de la rangée du gestionnaire.
+    expect(
+      src.includes("activeView.set('smartplaylists')"),
+      'deux portes vers la création d’une playlist intelligente',
+    ).toBe(false);
   });
 });
 

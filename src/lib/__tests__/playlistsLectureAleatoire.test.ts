@@ -16,7 +16,11 @@ describe('lecture aléatoire des playlists', () => {
   });
 
   it('la vignette d’une playlist intelligente aussi, et sa lecture accepte les favoris de service', () => {
-    expect(grille).toContain("menu={[{ libelle: $t('library.shuffle' as any), faire: () => lireSmart(sp, true) }]}");
+    // Le menu de la vignette a gagné « Supprimer » (web#1150) : on garde
+    // l'ENTRÉE, plus la forme close du tableau qui la contenait seule.
+    expect(grille).toMatch(
+      /\{ libelle: \$t\('library\.shuffle' as any\), faire: \(\) => lireSmart\(sp, true\) \}/,
+    );
     // Plus de `track_ids` seuls : une règle « Source = Qobuz » ramène des pistes sans id.
     expect(grille).not.toContain('track_ids: ids.slice(0, 500)');
   });
