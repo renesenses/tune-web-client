@@ -47,6 +47,9 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import BandcampAchats from './BandcampAchats.svelte';
+  import { cleTelechargeable, telechargementDe } from '../../lib/bandcampAchats';
+  import type { BandcampTelechargement } from '../../lib/api';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
@@ -287,6 +290,12 @@
   let bcNeedsLink = $state(false);
   let bcUser = $state('');
   let bcLinking = $state(false);
+  // Lot 3 (Yves, 16/09/2026) : les achats en FLAC. `downloads_available` dit
+  // si la session d'achat a ouvert les pages de téléchargement ; la liste des
+  // téléchargements est partagée avec le volet qui la suit.
+  let bcDownloadsAvailable = $state(false);
+  let bcTelechargements = $state<BandcampTelechargement[]>([]);
+  let bcAchats = $state<BandcampAchats | null>(null);
   // Chez moi
   let myPlaylists = $state<StreamingPlaylist[]>([]);
   let favAlbums = $state<any[]>([]);
@@ -479,7 +488,7 @@
       } else {
         bcNeedsLink = false;
         api.bandcampCollection()
-          .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; chargerCopiesLocales(); })
+          .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; bcDownloadsAvailable = !!d?.downloads_available; chargerCopiesLocales(); })
           .catch((e: any) => {
             // 428 : aucun compte relie. Ce n'est pas une panne, c'est une
             // etape a franchir — on le dit au lieu d'afficher « rien ».
@@ -794,6 +803,18 @@
     playAndSync(zid, corps as any).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
 
+  /** Lot 3 : descendre un achat en FLAC, puis laisser le volet le suivre. */
+  async function telechargerFlac(it: any) {
+    const cle = cleTelechargeable(it);
+    if (!cle) return;
+    try {
+      await api.bandcampTelecharger(cle);
+    } catch (e: any) {
+      // 409 = déjà en cours : le volet l'affiche. Le reste est dit tel quel.
+      if (e?.status !== 409) error = e?.message ?? String(e);
+    }
+    void bcAchats?.suivre();
+  }
   async function linkBandcamp() {
     const u = bcUser.trim();
     if (!u || bcLinking) return;
@@ -801,11 +822,17 @@
     try {
       await api.bandcampLink(u);
       bcNeedsLink = false;
-      const d: any = await api.bandcampCollection();
-      bcCollection = d?.items ?? d?.collection ?? [];
-      chargerCopiesLocales();
+      await rechargerCollection();
     } catch { error = $t('v2.str.bandcampNotFound' as any); }
     bcLinking = false;
+  }
+  /** Relire « Ma collection » — après une liaison, ou une session posée/oubliée
+   *  (lot 3 : c'est elle qui décide de `downloadable` sur chaque achat). */
+  async function rechargerCollection() {
+    const d: any = await api.bandcampCollection();
+    bcCollection = d?.items ?? d?.collection ?? [];
+    bcDownloadsAvailable = !!d?.downloads_available;
+    chargerCopiesLocales();
   }
   const currentSous = $derived(bcGenres.find((g) => g.slug === bcTag)?.sous ?? []);
 
@@ -1023,12 +1050,30 @@
             </button>
           </div>
         </div>
-      {:else if bcCollection.length}
-        <!-- Un article dont la copie est dans la bibliothèque se lit et
-             s'annonce depuis elle : sa qualité réelle, pas le mp3-128 du flux. -->
-        <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@const loc = copieDe(it)}{@render tile(loc ? { ...it, qualiteSource: 'local', format: loc.format, sample_rate: loc.sample_rate, bit_depth: loc.bit_depth, quality: null } : it, () => playBc(it))}{/each}</div>
       {:else}
-        <div class="state">{$t('v2.stream.bcEmpty' as any)}</div>
+        <!-- Lot 3 : la session d'achat et les téléchargements FLAC. -->
+        <BandcampAchats bind:this={bcAchats} bind:telechargements={bcTelechargements}
+          downloadsAvailable={bcDownloadsAvailable} collectionVide={!bcCollection.length}
+          onSessionChangee={() => { void rechargerCollection().catch(() => {}); }} />
+        {#if bcCollection.length}
+          <div class="grid">{#each bcCollection as it, i (it.url ?? i)}
+            {@const cle = cleTelechargeable(it)}
+            {@const dl = telechargementDe(bcTelechargements, cle)}
+            {@const loc = copieDe(it)}
+            <div class="achat">
+              <!-- Un article dont la copie est dans la bibliothèque se lit et
+                   s'annonce depuis elle : sa qualité réelle, pas le mp3-128 du flux. -->
+              {@render tile(loc ? { ...it, qualiteSource: 'local', format: loc.format, sample_rate: loc.sample_rate, bit_depth: loc.bit_depth, quality: null } : it, () => playBc(it))}
+              {#if cle}
+                <button class="flac" disabled={!!dl && dl.state !== 'echec' && dl.state !== 'termine'}
+                  title={$t('v2.stream.bcFlacHint' as any)} onclick={() => telechargerFlac(it)}>
+                  {dl?.state === 'termine' ? $t('v2.stream.bcFlacAgain' as any) : $t('v2.stream.bcFlac' as any)}
+                </button>
+              {/if}
+            </div>{/each}</div>
+        {:else}
+          <div class="state">{$t('v2.stream.bcEmpty' as any)}</div>
+        {/if}
       {/if}
 
     {:else if sub === 'genres' && isBc}
@@ -1414,6 +1459,11 @@
   .sommaire .chip .n{font:11px var(--v2-mono); color:var(--v2-txt3)}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
+  .achat{display:flex; flex-direction:column; min-width:0}
+  .flac{margin-top:6px; align-self:flex-start; height:26px; padding:0 10px; border-radius:var(--v2-r-pill);
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer; font:12px var(--v2-sans)}
+  .flac:hover:not(:disabled){border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .flac:disabled{opacity:.5; cursor:default}
   .card{position:relative; display:flex; flex-direction:column}
   /* #1194 — le nom devient un bouton : il garde EXACTEMENT l'allure du texte. */
   .anbtn{background:none; border:none; padding:0; font:inherit; color:inherit; text-align:inherit; cursor:pointer}
