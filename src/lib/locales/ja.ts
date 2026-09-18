@@ -1,4 +1,11 @@
 export default {
+  "sacdIso.title": "SACD ISO",
+  "sacdIso.available": "サーバー上で sacd_extract を検出しました。すべての ISO の抽出を保証するものではありません。",
+  "sacdIso.missing": "Tune は sacd_extract を検出できませんでした。サーバーに別途インストールしてください。PATH を変更した場合は Tune を再起動してから再スキャンしてください。Tune には同梱されていません。",
+  "sacdIso.unknown": "sacd_extract の利用可否を確認できませんでした。再試行してください。ツールがないことを意味するものではありません。",
+  "sacdIso.loading": "sacd_extract を確認中…",
+  "sacdIso.check": "再確認",
+
   // Support premium
   "support.title": "プレミアムサポート",
   "support.newTicket": "新規チケット",

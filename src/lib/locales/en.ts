@@ -1,4 +1,11 @@
 export default {
+  "sacdIso.title": "SACD ISO",
+  "sacdIso.available": "sacd_extract detected on the server. This does not guarantee extraction of every ISO.",
+  "sacdIso.missing": "Tune did not detect sacd_extract. Install it separately on the server; if you change PATH, restart Tune, then scan again. Tune does not bundle this tool.",
+  "sacdIso.unknown": "Could not check sacd_extract availability. Try again; this does not mean the tool is missing.",
+  "sacdIso.loading": "Checking sacd_extract…",
+  "sacdIso.check": "Check again",
+
   // App shell (banners)
   'app.ready': 'Ready',
   'app.enrichmentRunning': 'Enrichment in progress…',

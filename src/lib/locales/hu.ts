@@ -1,4 +1,11 @@
 export default {
+  "sacdIso.title": "SACD ISO",
+  "sacdIso.available": "A szerveren elérhető a sacd_extract. Ez nem garantálja minden ISO kibontását.",
+  "sacdIso.missing": "A Tune nem észlelte a sacd_extract eszközt. Telepítse külön a szerverre; ha módosítja a PATH változót, indítsa újra a Tune-t, majd olvassa be újra a könyvtárat. A Tune nem tartalmazza ezt az eszközt.",
+  "sacdIso.unknown": "A sacd_extract elérhetősége nem ellenőrizhető. Próbálja újra; ez nem jelenti azt, hogy az eszköz hiányzik.",
+  "sacdIso.loading": "A sacd_extract ellenőrzése…",
+  "sacdIso.check": "Ellenőrzés újra",
+
   // App shell (bannières)
   "app.ready": "Kész",
   "app.enrichmentRunning": "Gazdagítás folyamatban…",

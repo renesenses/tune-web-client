@@ -33,6 +33,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import SacdIsoStatus from '../partages/SacdIsoStatus.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -2620,6 +2621,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'library'}
+              <SacdIsoStatus />
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.scanLibraryV2' as any)}</span>

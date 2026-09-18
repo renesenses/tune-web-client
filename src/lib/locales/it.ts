@@ -1,4 +1,11 @@
 export default {
+  "sacdIso.title": "ISO SACD",
+  "sacdIso.available": "sacd_extract rilevato sul server. Questo non garantisce l’estrazione di ogni ISO.",
+  "sacdIso.missing": "Tune non ha rilevato sacd_extract. Installarlo separatamente sul server; se si modifica PATH, riavviare Tune, quindi eseguire di nuovo la scansione. Tune non include questo strumento.",
+  "sacdIso.unknown": "Impossibile verificare la disponibilità di sacd_extract. Riprovare; questo non significa che lo strumento sia assente.",
+  "sacdIso.loading": "Verifica di sacd_extract…",
+  "sacdIso.check": "Verifica di nuovo",
+
   // Support premium
   "support.title": "Supporto premium",
   "support.newTicket": "Nuovo ticket",
