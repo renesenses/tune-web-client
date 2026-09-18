@@ -3682,6 +3682,7 @@ export default {
   "profiles.premiumRequired": "Les profils multiples sont réservés à la version Premium.",
   "profiles.whoIsListening": "Qui écoute ?",
   "profiles.title": "Profils",
+  "profiles.manage": "Gérer les profils",
   "profiles.switchHint": "Changer de profil recharge l'écran.",
   "common.edit": "Modifier",
   "dashboard.slot.empty": "Rien à afficher pour l'instant.",

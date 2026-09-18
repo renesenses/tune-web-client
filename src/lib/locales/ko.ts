@@ -3216,6 +3216,7 @@ export default {
   "profiles.premiumRequired": "다중 프로필은 Premium 버전 전용입니다.",
   "profiles.whoIsListening": "누가 듣나요?",
   "profiles.title": "프로필",
+  "profiles.manage": "프로필 관리",
   "profiles.switchHint": "프로필을 전환하면 화면을 다시 불러옵니다.",
   "queue.autoplayFailed": "AutoPlay를 변경할 수 없습니다",
   "queue.resizePanel": "드래그하여 크기 조절 · 더블클릭하여 원래대로",

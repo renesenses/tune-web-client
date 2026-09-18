@@ -3227,6 +3227,7 @@ export default {
   "profiles.premiumRequired": "Profilurile multiple sunt rezervate versiunii Premium.",
   "profiles.whoIsListening": "Cine ascultă?",
   "profiles.title": "Profiluri",
+  "profiles.manage": "Gestionează profilurile",
   "profiles.switchHint": "Schimbarea profilului reîncarcă ecranul.",
   "queue.autoplayFailed": "Nu s-a putut modifica AutoPlay",
   "queue.resizePanel": "Trage pentru redimensionare · dublu clic pentru resetare",

@@ -3301,6 +3301,7 @@ export default {
   "profiles.premiumRequired": "A több profilhoz Premium szükséges.",
   "profiles.whoIsListening": "Ki hallgatja?",
   "profiles.title": "Profilok",
+  "profiles.manage": "Profilok kezelése",
   "profiles.switchHint": "A profilváltás újratölti a képernyőt.",
   "common.edit": "Szerkesztés",
   "dashboard.slot.empty": "Egyelőre nincs mit mutatni.",
