@@ -68,6 +68,8 @@
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { lireListeDepuis } from '../../lib/lectureEnMasse';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -1084,6 +1086,20 @@
   const nbPistesAnnonce = $derived(
     tracksLoading && !q && !fProvenance && nbPistesServeur != null ? nbPistesServeur : pistesFiltrees.length,
   );
+  /**
+   * « Lire à partir d'ici » sur l'onglet Titres — #1061, point 9 de FabienM.
+   *
+   * La suite, c'est l'ORDRE AFFICHÉ : `visibleTracks`, donc filtres et tri
+   * compris. Prendre la bibliothèque entière ferait jouer des titres que
+   * l'écran ne montre pas.
+   */
+  function lireLesTitresDepuis(i: number) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    lireListeDepuis(visibleTracks as any, i, gestesDeZone(zid))
+      .catch(signalerEchecLecture);
+  }
+
   function playTrack(t: Track) {
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
@@ -1800,6 +1816,7 @@
             <ListePistesV2
               pistes={visibleTracks}
               onLire={(p) => playTrack(p)}
+              onLireDepuis={(_p, i) => lireLesTitresDepuis(i)}
               ouvertureAlbum={(p) => {
                 const alb = albumDeLaPiste(p);
                 return alb ? () => ouvrirCalqueAlbum(alb) : null;

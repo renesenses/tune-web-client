@@ -67,8 +67,11 @@
      * fallait retourner à l'onglet Albums et l'y retrouver à la main.
      */
     onOuvrirAlbum?: (() => void) | null;
+    /** « Lire à partir d'ici » — #1061. Posé par la LISTE, qui seule connaît
+     *  la suite. Absent = la barre d'actions est celle d'avant. */
+    onLireDepuis?: (() => void) | null;
   }
-  let { piste, onLire, numero = null, pochette = true, avecAlbum = true,
+  let { piste, onLire, onLireDepuis = null, numero = null, pochette = true, avecAlbum = true,
         onOuvrirAlbum = null }: Props = $props();
 
   /**
@@ -179,7 +182,7 @@
   <span class="qb"><QualityBadge format={piste.format} sampleRate={piste.sample_rate}
     bitDepth={piste.bit_depth} source={piste.source} /></span>
   <span class="dur">{piste.duration_ms ? formatTime(piste.duration_ms) : ''}</span>
-  <PisteActions {piste} />
+  <PisteActions {piste} {onLireDepuis} />
 </div>
 
 <style>
