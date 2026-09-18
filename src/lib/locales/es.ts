@@ -1026,9 +1026,9 @@ export default {
   'dashboard.section.hourly': 'Hora de escucha',
   'dashboard.section.by_zone': 'Por zona',
   'dashboard.section.by_source': 'Por fuente',
-  'dashboard.section.completion': 'Pistas completadas vs omitidas',
-  'dashboard.completion.completed': 'Completadas',
-  'dashboard.completion.skipped': 'Omitidas',
+  "dashboard.section.completion": "Duraciones registradas en el historial",
+  "dashboard.completion.completed": "30 s o más",
+  "dashboard.completion.skipped": "Menos de 30 s",
   'dashboard.empty': 'Aún no hay historial de escucha. Pon algo de música 🎶',
 
   // Equalizer

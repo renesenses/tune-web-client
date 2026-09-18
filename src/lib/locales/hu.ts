@@ -1224,9 +1224,9 @@ export default {
   "dashboard.section.hourly": "Napszak",
   "dashboard.section.by_zone": "Zóna szerint",
   "dashboard.section.by_source": "Forrás szerint",
-  "dashboard.section.completion": "Végighallgatott vs. átugrott",
-  "dashboard.completion.completed": "Végighallgatva",
-  "dashboard.completion.skipped": "Átugorva",
+  "dashboard.section.completion": "Az előzményekben rögzített időtartamok",
+  "dashboard.completion.completed": "Legalább 30 mp",
+  "dashboard.completion.skipped": "Kevesebb mint 30 mp",
   "dashboard.empty": "Még nincs hallgatási előzmény. Indíts el valamit 🎶",
   // Hangszínszabályzó
   "eq.pureBypassWarning": "Ezen a zónán a PURE mód aktív: a jel bit-perfect módon jut a DAC-hoz, a hangszínszabályzó ki van hagyva. Kapcsold ki a PURE módot, hogy halld a beállításaidat.",

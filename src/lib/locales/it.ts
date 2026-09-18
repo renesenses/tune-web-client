@@ -1026,9 +1026,9 @@ export default {
   'dashboard.section.hourly': 'Ora di ascolto',
   'dashboard.section.by_zone': 'Per zona',
   'dashboard.section.by_source': 'Per sorgente',
-  'dashboard.section.completion': 'Brani completati vs saltati',
-  'dashboard.completion.completed': 'Completati',
-  'dashboard.completion.skipped': 'Saltati',
+  "dashboard.section.completion": "Durate registrate nella cronologia",
+  "dashboard.completion.completed": "30 s o più",
+  "dashboard.completion.skipped": "Meno di 30 s",
   'dashboard.empty': 'Nessuna cronologia di ascolto. Avvia qualcosa 🎶',
 
   // Equalizer

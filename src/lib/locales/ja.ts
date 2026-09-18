@@ -1027,9 +1027,9 @@ export default {
   'dashboard.section.hourly': '時間帯別',
   'dashboard.section.by_zone': 'ゾーン別',
   'dashboard.section.by_source': 'ソース別',
-  'dashboard.section.completion': '完了 vs スキップ',
-  'dashboard.completion.completed': '完了',
-  'dashboard.completion.skipped': 'スキップ',
+  "dashboard.section.completion": "履歴に記録された長さ",
+  "dashboard.completion.completed": "30秒以上",
+  "dashboard.completion.skipped": "30秒未満",
   'dashboard.empty': 'まだ再生履歴がありません。何か聴いてみましょう 🎶',
 
   // Equalizer

@@ -1036,9 +1036,9 @@ export default {
   'dashboard.section.hourly': 'Ora din zi',
   'dashboard.section.by_zone': 'După zonă',
   'dashboard.section.by_source': 'După sursă',
-  'dashboard.section.completion': 'Finalizate vs sărite',
-  'dashboard.completion.completed': 'Finalizate',
-  'dashboard.completion.skipped': 'Sărite',
+  "dashboard.section.completion": "Durate înregistrate în istoric",
+  "dashboard.completion.completed": "30 s sau mai mult",
+  "dashboard.completion.skipped": "Mai puțin de 30 s",
   'dashboard.empty': 'Încă niciun istoric de ascultare. Pornește ceva 🎶',
 
   // Equalizer
