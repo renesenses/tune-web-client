@@ -176,7 +176,18 @@
    *
    * 🔴 `dialogs.confirm`, jamais `window.confirm` : les dialogues natifs ne
    * s'affichent pas dans les vues web embarquées. L'ancienne interface, elle,
-   * supprimait SANS rien demander.
+   * supprimait SANS rien demander pour une collection manuelle
+   * (`CollectionsView.handleDelete`), et AVEC une confirmation `danger` pour
+   * une intelligente (`SmartCollectionsView.deleteCollection`). On reprend la
+   * seconde pour les deux : c'est la seule des deux qui protège.
+   *
+   * ## Elle est aussi dans l'ÉDITEUR — #1143
+   *
+   * FabienM l'a cherchée deux fois, sur deux versions, dans « Modifier la
+   * collection », avant de regarder la vignette. Les deux éditeurs reçoivent
+   * donc cette même fonction en rappel ; ils ne rappellent NI la route NI la
+   * confirmation — une seconde copie divergerait sur la sorte, donc sur la
+   * route, donc sur ce qui disparaît.
    */
   async function supprimerCollection(e: Entree) {
     const question = $t('v2.col.deleteAsk' as any).replace('{nom}', e.nom ?? '');
@@ -188,6 +199,10 @@
       // la clé de boucle : l'id seul viserait les deux sortes.
       entrees = entrees.filter((x) => !(x.sorte === e.sorte && x.id === e.id));
       if (ouverte && ouverte.sorte === e.sorte && ouverte.id === e.id) ouverte = null;
+      // Appelée DEPUIS un éditeur, il faut le refermer : laisser ouverte la
+      // fiche d'une collection qui n'existe plus proposerait de l'enregistrer.
+      if (enEdition && enEdition.sorte === e.sorte && enEdition.id === e.id) enEdition = null;
+      if (e.sorte === 'smart' && editeurSmart?.id === e.id) editeurSmart = null;
       notifications.success($t('collections.deleted' as any));
     } catch (err) {
       console.error('Delete collection error:', err);
@@ -869,6 +884,7 @@
       enregistrer={(v) => api.updateCollection(cible.id, v)}
       onClose={() => (enEdition = null)}
       onSaved={charger}
+      supprimer={() => supprimerCollection(cible)}
     />
   {/if}
 
@@ -894,11 +910,17 @@
   {/if}
 
   {#if editeurSmart}
+    <!-- 🔴 L'entrée est retrouvée sur la PAIRE (sorte, id), jamais sur l'id
+         seul : les deux espaces se recouvrent, et l'id 1 désigne aussi une
+         collection manuelle. Absente de la liste — création — il n'y a rien à
+         supprimer, et le bouton ne se pose pas. -->
+    {@const cibleSmart = entrees.find((x) => x.sorte === 'smart' && x.id === editeurSmart!.id) ?? null}
     {#await import('./CollectionSmartEditeurV2.svelte') then m}
       <m.default
         id={editeurSmart.id}
         onClose={() => (editeurSmart = null)}
         onSaved={charger}
+        supprimer={cibleSmart ? () => supprimerCollection(cibleSmart) : null}
       />
     {/await}
   {/if}

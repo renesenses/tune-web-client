@@ -93,7 +93,11 @@ describe('🔴 la fiche suit le rechargement', () => {
   it('les deux éditeurs rechargent après enregistrement', () => {
     // Sans `onSaved={charger}`, la reprise ci-dessus n'aurait jamais lieu.
     expect(sansCommentaires).toContain('onSaved={charger}');
-    const smart = sansCommentaires.slice(sansCommentaires.indexOf('{#if editeurSmart}'));
-    expect(smart.slice(0, 300)).toContain('onSaved={charger}');
+    // La fenêtre s'arrête au `{/if}` du bloc, pas à un nombre de caractères :
+    // #1143 y a ajouté un `{@const}` et une prop `supprimer`, et une fenêtre de
+    // 300 signes rougissait alors que `onSaved={charger}` était toujours là.
+    const debut = sansCommentaires.indexOf('{#if editeurSmart}');
+    const smart = sansCommentaires.slice(debut, sansCommentaires.indexOf('{/if}', debut));
+    expect(smart).toContain('onSaved={charger}');
   });
 });
