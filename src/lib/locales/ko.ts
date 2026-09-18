@@ -2689,6 +2689,7 @@ export default {
   "converter.retry": "다시 시도",
   "converter.conversionError": "변환 오류",
   "converter.loadAlbumsError": "앨범 불러오기 실패",
+  "converter.folderUnavailable": "이 앨범의 원본 폴더를 확인할 수 없습니다.",
   "converter.browseError": "디렉터리 탐색 실패",
   "converter.startError": "변환 시작 실패",
   "converter.cancelled": "변환 취소됨",

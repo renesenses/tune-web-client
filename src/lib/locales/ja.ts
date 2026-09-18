@@ -2712,6 +2712,7 @@ export default {
   "converter.retry": "再試行",
   "converter.conversionError": "変換エラー",
   "converter.loadAlbumsError": "アルバムの読み込みに失敗しました",
+  "converter.folderUnavailable": "このアルバムの元フォルダーを特定できません。",
   "converter.browseError": "ディレクトリの参照に失敗しました",
   "converter.startError": "変換の開始に失敗しました",
   "converter.cancelled": "変換をキャンセルしました",

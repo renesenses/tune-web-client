@@ -10,6 +10,11 @@
    * serveur-ci ne peut pas produire, au lieu de laisser choisir un format qui
    * échouera à l'exécution.
    */
+  import { onDestroy } from 'svelte';
+  import { activeView, vueDeRetour } from '../../lib/stores/navigation';
+  import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
+  import { dossierDeLAlbum } from '../../lib/dossierAlbum';
+  import { conserverRetourConvertisseur, consommerRetourConvertisseur } from '../../lib/retourConvertisseur';
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
   import { albums } from '../../lib/stores/library';
@@ -21,28 +26,36 @@
   import QualityBadge from '../partages/QualityBadge.svelte';
   import '../../styles/tune-v2.css';
 
+  const retour = consommerRetourConvertisseur('v2');
+  let alive = true;
+  onDestroy(() => { alive = false; });
+  let locating = $state<number | null>(null);
   let caps = $state<api.ConverterCapabilities | null>(null);
   let presets = $state<any[]>([]);
   let loading = $state(true);
   let error = $state<string | null>(null);
 
-  let q = $state('');
-  let picked = $state<Set<number>>(new Set());
-  let presetId = $state<string | null>(null);
+  let q = $state(retour?.q ?? '');
+  let picked = $state<Set<number>>(new Set(retour?.picked ?? []));
+  let presetId = $state<string | null>(retour?.presetId ?? null);
 
-  let jobId = $state<string | null>(null);
-  let job = $state<Awaited<ReturnType<typeof api.getConversionStatus>> | null>(null);
+  let jobId = $state<string | null>(retour?.jobId ?? null);
+  let job = $state<Awaited<ReturnType<typeof api.getConversionStatus>> | null>(retour?.job ?? null);
   let starting = $state(false);
-  let downloadUrl = $state<string | null>(null);
+  let downloadUrl = $state<string | null>(retour?.downloadUrl ?? null);
 
   $effect(() => {
     Promise.allSettled([api.getConverterCapabilities(), api.getConverterPresets()])
       .then(([c, p]) => {
+        if (!alive) return;
         if (c.status === 'fulfilled') caps = c.value;
-        if (p.status === 'fulfilled') { presets = p.value ?? []; presetId = presets[0]?.id ?? null; }
+        if (p.status === 'fulfilled') {
+          presets = p.value ?? [];
+          presetId = presets.some(p => p.id === retour?.presetId) ? retour!.presetId : presets[0]?.id ?? null;
+        }
         if (c.status === 'rejected' && p.status === 'rejected') error = $t('v2.conv.errUnavailable' as any);
       })
-      .finally(() => { loading = false; });
+      .finally(() => { if (alive) loading = false; });
   });
 
   const shown = $derived(
@@ -90,6 +103,7 @@
       if (!alive) return;
       try {
         const s = await api.getConversionStatus(jid);
+        if (!alive) return;
         job = s;
         if (s.state === 'converting') setTimeout(tick, 1200);
       } catch { /* la tâche a peut-être disparu */ }
@@ -107,6 +121,27 @@
     if (!jobId) return;
     try { await api.cancelConversion(jobId); } catch { /* déjà finie */ }
     jobId = null; job = null;
+  }
+
+  async function localiser(album: Album) {
+    if (album.id == null || locating != null || starting) return;
+    locating = album.id;
+    try {
+      const tracks = await api.getAlbumTracks(album.id);
+      if (!alive || starting) return;
+      const dossier = dossierDeLAlbum(tracks);
+      if (!dossier) { error = $t('converter.folderUnavailable'); return; }
+      conserverRetourConvertisseur('v2', {
+        q, picked: [...picked], presetId, jobId, job, downloadUrl,
+      });
+      vueDeRetour.set('converter');
+      ouvrirLeRepertoire(dossier);
+      activeView.set('browse');
+    } catch {
+      if (alive) error = $t('converter.folderUnavailable');
+    } finally {
+      if (alive) locating = null;
+    }
   }
 </script>
 
@@ -198,6 +233,7 @@
         {:else}
           <div class="grid">
             {#each shown as a (a.id)}
+              <div class="album-source">
               <button class="card" class:sel={a.id != null && picked.has(a.id)} onclick={() => toggle(a.id)}>
                 <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                 <span class="ct" title={a.title}>{a.title}</span>
@@ -224,6 +260,9 @@
                   <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></span>
                 {/if}
               </button>
+              <button class="lnk source-folder" disabled={starting || locating != null || a.id == null}
+                onclick={() => localiser(a)}>{$t('v2.album.locate')}</button>
+              </div>
             {/each}
           </div>
           {#if $albums.length > shown.length}
@@ -236,6 +275,10 @@
 </section>
 
 <style>
+  .album-source{min-width:0; display:flex; flex-direction:column; gap:7px}
+  .album-source .card{width:100%; flex:1}
+  .source-folder{align-self:flex-start}
+
   .v2-conv{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .cnt{font:11.5px var(--v2-mono); color:var(--v2-acc-tint)}

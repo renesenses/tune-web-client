@@ -2714,6 +2714,7 @@ export default {
   "converter.retry": "重试",
   "converter.conversionError": "转换错误",
   "converter.loadAlbumsError": "加载专辑失败",
+  "converter.folderUnavailable": "无法确定此专辑的源文件夹。",
   "converter.browseError": "浏览目录失败",
   "converter.startError": "启动转换失败",
   "converter.cancelled": "转换已取消",

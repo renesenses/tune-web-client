@@ -2714,6 +2714,7 @@ export default {
   "converter.retry": "Reintentar",
   "converter.conversionError": "Error de conversión",
   "converter.loadAlbumsError": "No se pudieron cargar los álbumes",
+  "converter.folderUnavailable": "No se puede determinar la carpeta de origen de este álbum.",
   "converter.browseError": "No se pudo explorar el directorio",
   "converter.startError": "No se pudo iniciar la conversión",
   "converter.cancelled": "Conversión cancelada",

@@ -2714,6 +2714,7 @@ export default {
   "converter.retry": "Erneut versuchen",
   "converter.conversionError": "Konvertierungsfehler",
   "converter.loadAlbumsError": "Alben konnten nicht geladen werden",
+  "converter.folderUnavailable": "Der Quellordner dieses Albums konnte nicht ermittelt werden.",
   "converter.browseError": "Verzeichnis konnte nicht durchsucht werden",
   "converter.startError": "Konvertierung konnte nicht gestartet werden",
   "converter.cancelled": "Konvertierung abgebrochen",
