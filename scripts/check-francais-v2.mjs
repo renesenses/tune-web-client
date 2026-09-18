@@ -136,7 +136,15 @@ for (const f of fichiers('src/components/v2')) {
   const src = sansCommentaires(readFileSync(f, 'utf8'));
   const i = src.indexOf('</script>');
   if (i < 0) continue;
-  let balisage = src.slice(i + 9);
+  // 🔴 Un composant peut porter DEUX scripts : `<script module>` en plus du
+  // script d'instance — `ListePistesV2` depuis #1149, qui exporte la largeur
+  // de sa colonne d'actions pour que l'Historique compose la même grille.
+  // Couper au PREMIER `</script>` faisait alors lire le script d'INSTANCE
+  // comme du balisage, et une signature TypeScript y ressortait en « texte nu
+  // » : `void) | null) | null; apres?: Snippet`. On blanchit donc les blocs de
+  // script restants, en gardant les sauts de ligne pour que les numéros
+  // signalés restent justes.
+  let balisage = src.slice(i + 9).replace(/<script[\s\S]*?<\/script>/g, blanchir);
   // Le bloc <style> ne s'affiche pas.
   const j = balisage.indexOf('<style');
   let fin = j > 0 ? balisage.slice(0, j) : balisage;
