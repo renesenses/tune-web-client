@@ -1,3 +1,23 @@
+<script module lang="ts">
+  /**
+   * 🔴 LA LARGEUR DE LA COLONNE D'ACTIONS — une seule fois, pour tout l'écran.
+   *
+   * Elle vivait dans le script d'instance, donc invisible du dehors. L'écran
+   * Historique rend, dans le MÊME écran, des lignes de ce tableau et des
+   * lignes d'objet (album, playlist) qui ne passent pas par ici : pour que les
+   * deux tombent en face, la ligne d'objet doit composer sa grille avec cette
+   * largeur-ci — pas avec une copie (#1149).
+   *
+   * 208 px = SEPT boutons de 28 px + six gouttières de 2 px, la barre pleine
+   * de `PisteActions`. Le chiffre a déjà changé une fois (178 → 208 le
+   * 16/09/2026, quand le menu « … » a porté la barre à sept) : un témoin le
+   * recalcule en comptant les boutons, `largeurActionsSuitLaBarre.test.ts`.
+   */
+  export const LARGEUR_ACTIONS = '208px';
+  /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
+  export const LARGEUR_ACTIONS_PX = 208;
+</script>
+
 <script lang="ts">
   /**
    * Une liste de pistes — en TABLEAU au mode Essentiel, en lignes ailleurs.
@@ -224,9 +244,9 @@
    * bouton Lire recouvrait le second chiffre. Ce nombre doit suivre la barre :
    * un témoin compte les boutons de `PisteActions` et le recalcule.
    */
-  const LARGEUR_ACTIONS = '208px';
-  /** Les mêmes largeurs en NOMBRE, pour le calcul du plancher (#853). */
-  const LARGEUR_ACTIONS_PX = 208;
+  // `LARGEUR_ACTIONS` et `LARGEUR_ACTIONS_PX` sont déclarés dans le
+  // `<script module>` en tête de fichier : l'Historique compose sa ligne
+  // d'objet avec la MÊME valeur (#1149).
   const largeurApresPx = $derived(parseFloat(largeurApres) || 0);
   const gabarit = $derived(
     `${gabaritGrille(colonnes)} ${LARGEUR_ACTIONS}${apres ? ` ${largeurApres}` : ''}`,
