@@ -3753,6 +3753,7 @@ export default {
   "v2.conv.toolsFound": "检测到的工具：{list}",
   "v2.conv.running": "转换进行中",
   "v2.conv.albumsToConvert": "待转换的专辑",
+  "v2.conv.sourceFolder": "源文件夹：",
   "v2.conv.start": "转换",
   "v2.declick.title": "去爆音",
   "v2.declick.leadA": "去除编码留下的瑕疵：编码器延迟、末尾填充、接缝处的爆音。结果将重新导出为",

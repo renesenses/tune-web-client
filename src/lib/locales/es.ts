@@ -3753,6 +3753,7 @@ export default {
   "v2.conv.toolsFound": "Herramientas detectadas: {list}",
   "v2.conv.running": "Conversión en curso",
   "v2.conv.albumsToConvert": "Álbumes a convertir",
+  "v2.conv.sourceFolder": "Carpeta de origen:",
   "v2.conv.start": "Convertir",
   "v2.declick.title": "Quita-clics",
   "v2.declick.leadA": "Elimina los artefactos dejados por una codificación: retardo del codificador, relleno final, clics en las uniones. El resultado se reexporta",

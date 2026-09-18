@@ -3766,6 +3766,7 @@ export default {
   "v2.conv.toolsFound": "Outils détectés : {list}",
   "v2.conv.running": "Conversion en cours",
   "v2.conv.albumsToConvert": "Albums à convertir",
+  "v2.conv.sourceFolder": "Dossier d'origine :",
   "v2.conv.start": "Convertir",
   // v2 — Dé-ploc
   "v2.declick.title": "Dé-ploc",

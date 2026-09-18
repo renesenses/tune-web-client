@@ -3753,6 +3753,7 @@ export default {
   "v2.conv.toolsFound": "検出されたツール：{list}",
   "v2.conv.running": "変換中",
   "v2.conv.albumsToConvert": "変換するアルバム",
+  "v2.conv.sourceFolder": "元のフォルダー：",
   "v2.conv.start": "変換",
   "v2.declick.title": "クリック除去",
   "v2.declick.leadA": "エンコードが残したノイズを取り除きます：エンコーダー遅延、末尾のパディング、継ぎ目のクリック音。結果は次の形式で再書き出しされます：",

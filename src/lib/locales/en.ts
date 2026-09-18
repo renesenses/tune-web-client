@@ -3764,6 +3764,7 @@ export default {
   "v2.conv.toolsFound": "Tools detected: {list}",
   "v2.conv.running": "Conversion running",
   "v2.conv.albumsToConvert": "Albums to convert",
+  "v2.conv.sourceFolder": "Source folder:",
   "v2.conv.start": "Convert",
   // v2 — De-click
   "v2.declick.title": "De-click",
