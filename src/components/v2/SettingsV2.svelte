@@ -29,6 +29,7 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
@@ -2670,6 +2671,34 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <b>{scanReport.failed_paths.length} chemin(s) en échec.</b>
                   {/if}
                 </div>
+                <!--
+                  #1068 — LESQUELS, et pourquoi.
+
+                  Belkadi Yacine (fil 1600) voyait « des fichiers absents » sans
+                  savoir lesquels. Le serveur les nomme depuis la v0.9.144 ; rien
+                  ne les affichait. Replié par défaut : c'est un rapport qu'on
+                  ouvre quand on cherche, pas une alerte.
+                -->
+                {#if aDesEcarts(scanReport)}
+                  <details class="ecartes">
+                    <summary>{$t('v2.scan.discarded' as any)}</summary>
+                    {#if listeTronquee(scanReport)}
+                      <!-- Le serveur plafonne ses listes et le DIT : une liste
+                           muette face à 40 000 fichiers écartés se lirait comme
+                           un rapport complet, donc faux. -->
+                      <p class="hint">{$t('v2.scan.discardedSample' as any)}</p>
+                    {/if}
+                    {#each motifsDesFeuilles(scanReport) as m (m.motif)}
+                      <p class="hint">{m.motif} — {$formatNombre(m.nombre)}</p>
+                    {/each}
+                    {#each groupesEcartes(scanReport) as g (g.cle)}
+                      <p class="ecartes-titre">{$t(g.titre as any)} ({$formatNombre(g.chemins.length)})</p>
+                      <ul class="ecartes-liste">
+                        {#each g.chemins as c (c)}<li title={c}>{c}</li>{/each}
+                      </ul>
+                    {/each}
+                  </details>
+                {/if}
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
 
@@ -3670,6 +3699,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .warnbox,.okbox{margin-top:14px; padding:12px 15px; border-radius:11px; font-size:12.5px; line-height:1.55}
   .warnbox{color:var(--v2-txt2); border:1px solid var(--v2-danger-bd)}
   .okbox{color:var(--v2-txt2); border:1px solid var(--v2-acc2); background:var(--v2-acc-soft)}
+
+  /* #1068 — les chemins écartés du dernier scan. La liste peut compter des
+     centaines d'entrées : elle défile chez elle, sans pousser le reste de
+     l'écran. */
+  .ecartes{margin-top:10px; font:13px/1.5 var(--v2-sans); color:var(--v2-txt2)}
+  .ecartes summary{cursor:pointer; color:var(--v2-txt); font-weight:600}
+  .ecartes-titre{margin:10px 0 4px; font-weight:600; color:var(--v2-txt)}
+  .ecartes-liste{margin:0; padding:0 0 0 18px; max-height:220px; overflow:auto;
+    font-family:var(--v2-mono, ui-monospace, monospace); font-size:12px}
+  .ecartes-liste li{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .warnbox b,.okbox b{color:var(--v2-txt)}
   .errline{margin-top:10px; font-size:12px; color:var(--v2-danger)}
   .comps{display:flex; gap:6px; flex-wrap:wrap; margin-top:14px}

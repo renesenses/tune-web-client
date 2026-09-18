@@ -50,6 +50,7 @@
   import BandcampAchats from './BandcampAchats.svelte';
   import { cleTelechargeable, telechargementDe } from '../../lib/bandcampAchats';
   import type { BandcampTelechargement } from '../../lib/api';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
   import { catalogueService, dispositionDefautService, cleService, titreService } from '../../lib/widgetsService';
   import type { Widget } from '../../lib/accueilWidgets';
@@ -730,10 +731,7 @@
   function lireFavorisDepuis(i: number) {
     const zid = $currentZoneId;
     if (zid == null) return;
-    lireListeDepuis(favTracks as any, i, {
-      lire: (c: any) => playAndSync(zid, c),
-      enfiler: (c: any) => api.addToQueue(zid, c),
-    }).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
+    lireListeDepuis(favTracks as any, i, gestesDeZone(zid)).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   function playTrack(piste: any) {
     const zid = $currentZoneId;

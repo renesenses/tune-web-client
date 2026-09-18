@@ -11,6 +11,7 @@
   import { formatTime, formatAudioBadge, errText } from '../../lib/utils';
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../../lib/types';
   import { t as tr } from '../../lib/i18n';
+  import { pisteAppliquee, resumeApplication } from '../../lib/recuperationPlaylist';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ClampedText from '../partages/ClampedText.svelte';
@@ -106,6 +107,9 @@
   let showRecover = $state(false);
   let recovering = $state(false);
   let recoverResult = $state<PlaylistRecoverResponse | null>(null);
+  /** #1076 — ce que le serveur a répondu à la dernière application : combien
+   *  sont passées, et le MOTIF de chaque refus. */
+  let recoverMsg = $state<string | null>(null);
   let applyingRecovery = $state<Set<number>>(new Set());
   let applyingAll = $state(false);
 
@@ -1056,6 +1060,7 @@
   // Recover flow
   function openRecover() {
     recoverResult = null;
+    recoverMsg = null;
     recovering = false;
     applyingRecovery = new Set();
     applyingAll = false;
@@ -1066,6 +1071,7 @@
   function closeRecover() {
     showRecover = false;
     recoverResult = null;
+    recoverMsg = null;
     recovering = false;
   }
 
@@ -1080,15 +1086,29 @@
     recovering = false;
   }
 
+  /**
+   * 🔴 #1076 — on lit ce que le SERVEUR a fait, on ne le devine plus.
+   *
+   * L'ancienne version passait la piste à « disponible » juste après l'appel,
+   * sans regarder la réponse. Or le serveur refuse nommément dans trois cas
+   * (piste de remplacement absente de la base, piste de SERVICE proposée en
+   * remplacement, ligne disparue de la playlist entre la lecture et
+   * l'écriture) — et l'écran affichait « disponible » dans les trois.
+   *
+   * `applyRecovery` accepte désormais le `422` : « rien n'a pu être appliqué »
+   * est un refus DOCUMENTÉ, pas une panne. Voir `lib/recuperationPlaylist`.
+   */
   async function applyOneRecovery(trackId: number, alt: { service: string; source_id: string }) {
     if (!selectedPlaylist?.id) return;
     applyingRecovery = new Set([...applyingRecovery, trackId]);
+    recoverMsg = null;
     try {
-      await api.applyRecovery(selectedPlaylist.id, [
+      const res = await api.applyRecovery(selectedPlaylist.id, [
         { track_id: trackId, new_source: alt.service, new_source_id: alt.source_id },
       ]);
-      // Update the result in place
-      if (recoverResult) {
+      recoverMsg = resumeApplication(res, (c) => $tr(c as any));
+      // « Disponible » SEULEMENT si le serveur l'a écrit.
+      if (recoverResult && pisteAppliquee(res, trackId)) {
         recoverResult = {
           ...recoverResult,
           tracks: recoverResult.tracks.map((t) =>
@@ -1100,8 +1120,11 @@
       }
       // Refresh detail tracks
       detailTracks = await api.getPlaylistTracks(selectedPlaylist.id);
-    } catch (e) {
-      console.error('Apply recovery error:', e);
+    } catch (e: any) {
+      // Il reste les vraies pannes — un 500 qui nomme ce qui a déjà été écrit.
+      recoverMsg = typeof e?.message === 'string' && e.message.trim()
+        ? e.message.trim()
+        : $tr('playlist.recoverFailed' as any);
     }
     applyingRecovery = new Set([...applyingRecovery].filter((id) => id !== trackId));
   }
@@ -1117,14 +1140,22 @@
       }));
     if (replacements.length === 0) return;
     applyingAll = true;
+    recoverMsg = null;
     try {
-      await api.applyRecovery(selectedPlaylist.id, replacements);
+      // #1076 : même règle en masse — le compte rendu dit combien sont passées
+      // et pourquoi les autres ont été refusées. `doRecover()` relit ensuite
+      // l'état RÉEL de la playlist, ce qui rend toute réécriture optimiste
+      // inutile ici.
+      const res = await api.applyRecovery(selectedPlaylist.id, replacements);
+      recoverMsg = resumeApplication(res, (c) => $tr(c as any));
       // Re-run recovery to refresh
       await doRecover();
       // Refresh detail tracks
       detailTracks = await api.getPlaylistTracks(selectedPlaylist.id);
-    } catch (e) {
-      console.error('Apply all recovery error:', e);
+    } catch (e: any) {
+      recoverMsg = typeof e?.message === 'string' && e.message.trim()
+        ? e.message.trim()
+        : $tr('playlist.recoverFailed' as any);
     }
     applyingAll = false;
   }
@@ -2148,6 +2179,11 @@
                 <span class="summary-stat not-found">{recoverResult.unavailable} {$tr('playlist.unavailable')}</span>
               {/if}
             </div>
+            <!-- #1076 — ce que le serveur a répondu : combien sont passées, et
+                 le MOTIF de chaque refus. L'écran n'avait qu'un `console.error`. -->
+            {#if recoverMsg}
+              <div class="recover-msg">{recoverMsg}</div>
+            {/if}
             {#if recoverResult.recovered > 0}
               <div class="form-actions" style="margin-bottom: var(--space-md); justify-content: flex-start;">
                 <button class="confirm-btn" onclick={applyAllRecovery} disabled={applyingAll}>
@@ -3568,6 +3604,16 @@
   }
 
   /* Recover report */
+  /* #1076 — le compte rendu de la dernière application. */
+  .recover-msg {
+    margin-bottom: var(--space-md);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
   .recover-tracks {
     display: flex;
     flex-direction: column;

@@ -463,7 +463,13 @@ describe('les huit listes passent par le rendu partagé', () => {
     const liste = lire2('src/components/v2/ListePistesV2.svelte');
     // La largeur du suffixe est FIXE, comme celle des actions : voir le bloc
     // « l'alignement de l'en-tête et des lignes » plus bas.
-    expect(liste).toMatch(/gabaritGrille\(colonnes\)\} \$\{LARGEUR_ACTIONS\}/);
+    //
+    // #1061 : la colonne d'actions a DEUX largeurs fixes — avec et sans le
+    // bouton « Lire à partir d'ici » — mais elle reste fixe, et c'est ce que
+    // cette garde tient. Le choix entre les deux est tenu par
+    // `largeurActionsSuitLaBarre.test.ts`.
+    expect(liste).toMatch(/gabaritGrille\(colonnes\)\} \$\{largeurDesActions\}/);
+    expect(liste).toMatch(/onLireDepuis \? LARGEUR_ACTIONS_DEPUIS : LARGEUR_ACTIONS/);
     expect(liste).toMatch(/apres \? ` \$\{largeurApres\}` : ''/);
     expect(liste).toMatch(/\{#if apres\}<span class="td act" role="cell">\{@render apres\(p, i\)\}<\/span>\{\/if\}/);
   });

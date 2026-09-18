@@ -69,6 +69,9 @@
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { ciblesPourAlbum, libelleCible, type CollectionCible, type EntreeCible } from '../../lib/collectionsCibles';
+  import { lireListeDepuis } from '../../lib/lectureEnMasse';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -747,6 +750,54 @@
     gridEl?.querySelector<HTMLElement>(`[data-letter="${L}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  /**
+   * 🔴 #1222 — FAIRE ENTRER UN ALBUM DANS UN DOSSIER DE « COLLECTIONS ».
+   *
+   * Lulu (JLuc), fil 1844 : « un bouton permettant le transfert des albums de
+   * la "Bibliothèque" vers les répertoires de "Collections" ». Treizième
+   * « écrit mais pas branché » de ce client : `api.addAlbumToCollection`
+   * existe, le serveur expose la route, et son SEUL appelant vivait dans
+   * l'ancienne interface (`LibraryView.svelte:144`).
+   *
+   * Les collections INTELLIGENTES ne sont pas proposées : leur contenu vient
+   * de leurs règles, pas d'une liste d'identifiants. Y « ajouter » un album
+   * n'aurait aucun sens. `GET /library/collections` ne rend que les
+   * manuelles — les intelligentes ont leur propre route.
+   */
+  let collectionsCibles = $state<CollectionCible[]>([]);
+  $effect(() => {
+    let vivant = true;
+    api.getCollections()
+      .then((cs) => { if (vivant) collectionsCibles = cs ?? []; })
+      .catch(() => { /* pas de collections, pas d'entrées : rien à dire */ });
+    return () => { vivant = false; };
+  });
+
+  async function ajouterACollection(a: Album, cible: EntreeCible) {
+    if (a.id == null) return;
+    try {
+      await api.addAlbumToCollection(cible.id, a.id);
+      notifications.success($tr('library.albumAddedToCollection' as any));
+      // Relire : c'est `album_ids` qui dit « il y est déjà » au prochain clic.
+      collectionsCibles = (await api.getCollections()) ?? collectionsCibles;
+    } catch {
+      notifications.error($tr('library.collectionAddError' as any));
+    }
+  }
+
+  /** Une entrée par collection. Celles qui contiennent déjà l'album restent
+   *  proposées, mais le disent : les retirer se lirait comme « cette
+   *  collection n'existe pas ». */
+  function entreesCollection(a: Album) {
+    if (a.id == null) return [];
+    return ciblesPourAlbum(collectionsCibles, a.id).map((c) => ({
+      libelle: c.deja
+        ? libelleCible(c, (k) => $tr(k as any))
+        : $tr('v2.col.addTo' as any).replace('{name}', c.nom),
+      faire: () => void ajouterACollection(a, c),
+    }));
+  }
+
   function tech(a: Album): string {
     const t = getQualityTier(a);
     const rate = RATES.find((r) => r.v === a.sample_rate)?.l;
@@ -1098,6 +1149,20 @@
   const nbPistesAnnonce = $derived(
     tracksLoading && !q && !fProvenance && nbPistesServeur != null ? nbPistesServeur : pistesFiltrees.length,
   );
+  /**
+   * « Lire à partir d'ici » sur l'onglet Titres — #1061, point 9 de FabienM.
+   *
+   * La suite, c'est l'ORDRE AFFICHÉ : `visibleTracks`, donc filtres et tri
+   * compris. Prendre la bibliothèque entière ferait jouer des titres que
+   * l'écran ne montre pas.
+   */
+  function lireLesTitresDepuis(i: number) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    lireListeDepuis(visibleTracks as any, i, gestesDeZone(zid))
+      .catch(signalerEchecLecture);
+  }
+
   function playTrack(t: Track) {
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
@@ -1814,6 +1879,7 @@
             <ListePistesV2
               pistes={visibleTracks}
               onLire={(p) => playTrack(p)}
+              onLireDepuis={(_p, i) => lireLesTitresDepuis(i)}
               ouvertureAlbum={(p) => {
                 const alb = albumDeLaPiste(p);
                 return alb ? () => ouvrirCalqueAlbum(alb) : null;
@@ -1908,6 +1974,7 @@
                         onEditer={depot ? null : () => (enEdition = a)}
                         onLire={() => lireAlbum(a)}
                         onOuvrir={() => ouvrirCalqueAlbum(a)}
+                        menu={depot ? [] : entreesCollection(a)}
                         nom={a.title}
                       >
                         <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />

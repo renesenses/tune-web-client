@@ -405,7 +405,23 @@ const playbackWarnings = new Map<string, { text: string; id: number }>();
 
 type Refus = { code?: string; zone_limit?: number; zones_actives?: number };
 
-export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
+/**
+ * `accepter` — des statuts d'échec qui portent quand même une RÉPONSE.
+ *
+ * #1076 : `POST /playlists/{id}/recover/apply` répond `422` quand rien n'a pu
+ * être appliqué, et le corps est alors le compte rendu complet
+ * (`applied`, `rejected`, `still_missing`). Sans ce crochet, l'appelant reçoit
+ * une exception et perd le motif de chaque refus — il traite un REFUS
+ * documenté comme une panne serveur.
+ *
+ * Opt-in, et volontairement : par défaut rien ne change, un non-2xx reste une
+ * erreur pour les cent autres routes.
+ */
+export async function fetchJSON<T>(
+  url: string,
+  options?: RequestInit,
+  accepter?: (statut: number) => boolean,
+): Promise<T> {
   let response: Response;
   try {
     const token = getToken();
@@ -432,7 +448,7 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     showNetworkError();
     throw e;
   }
-  if (!response.ok) {
+  if (!response.ok && !accepter?.(response.status)) {
     if (response.status === 401) {
       clearToken();
       throw erreurSentinelle('Session expired', 401);
@@ -3183,6 +3199,33 @@ export interface ScanReport {
   missing_dir_reasons?: string[];
   error_dirs?: string[];
   failed_paths?: string[];
+  /**
+   * Ce que le scan a ÉCARTÉ, nommément — #1068, livré côté serveur en v0.9.144
+   * et v0.9.146 (tune-server-rust#2060).
+   *
+   * 🔴 Ces listes ne sortent QUE par le fichier de rapport, donc par CETTE
+   * route : l'événement `library.scan.completed` est diffusé à tous les
+   * clients connectés, et ce sont des chemins de l'utilisateur.
+   *
+   * `skipped_paths_truncated` dit qu'au moins une liste a atteint son plafond.
+   * Voir `lib/rapportEcartes`.
+   */
+  skipped_unsupported_paths?: string[];
+  skipped_no_metadata_paths?: string[];
+  skipped_duplicate_paths?: string[];
+  skipped_empty_file_paths?: string[];
+  /** « chemin (motif) », une entrée par feuille CUE écartée. */
+  cue_sheets_skipped_paths?: string[];
+  skipped_paths_truncated?: boolean;
+  cue_sheets?: {
+    folders?: number;
+    albums?: number;
+    sheets_used?: number;
+    tracks?: number;
+    sheets_skipped?: number;
+    /** motif → nombre de feuilles écartées pour ce motif. */
+    sheets_skipped_by_reason?: Record<string, number>;
+  };
 }
 
 export function getScanReport() {
@@ -3671,11 +3714,25 @@ export function recoverPlaylist(playlistId: number) {
   });
 }
 
+/**
+ * Appliquer des remplacements de récupération — #1076.
+ *
+ * 🔴 Le `422` est ACCEPTÉ. Le serveur y répond « rien n'a pu être appliqué »
+ * avec le compte rendu complet : `rejected[].reason` nomme chaque refus
+ * (« la piste de remplacement n'existe pas », « la piste n'est plus dans cette
+ * playlist au moment d'écrire », « une piste de service ne remplace pas »).
+ * Le laisser jeter transformait un refus documenté en panne serveur, et
+ * l'écran n'avait plus qu'un `console.error` à offrir.
+ *
+ * Un `500` reste une panne et jette : là, le serveur nomme ce qui a déjà été
+ * écrit avant l'échec, et il n'y a pas de compte rendu à lire.
+ */
 export function applyRecovery(playlistId: number, replacements: Array<{ track_id: number; new_source: string; new_source_id: string }>) {
-  return fetchJSON<import('./types').RecoverApplyResponse>(`${BASE}/playlists/${playlistId}/recover/apply`, {
-    method: 'POST',
-    body: JSON.stringify({ replacements }),
-  });
+  return fetchJSON<import('./types').RecoverApplyResponse>(
+    `${BASE}/playlists/${playlistId}/recover/apply`,
+    { method: 'POST', body: JSON.stringify({ replacements }) },
+    (statut) => statut === 422,
+  );
 }
 
 // --- Playlist Manager v2 ---
@@ -6459,7 +6516,20 @@ export interface MetadataProposal {
 // (BIB-A2, BIB-C1, BIB-B3 — v0.9.137 à v0.9.140).
 // ---------------------------------------------------------------------------
 export interface AlbumEclate { id: number; title: string; artist?: string | null; year?: number | null; track_count: number; track_numbers?: number[] }
-export interface GroupeAlbumsEclates { numeros_complementaires?: boolean; meme_annee?: boolean; pistes?: number; albums: AlbumEclate[]; [k: string]: unknown }
+/**
+ * L'INDICE qui a rapproché les fiches d'un groupe — #1069.
+ *
+ * Servi par le serveur depuis la v0.9.143 (`dossier_et_titre`) et la v0.9.146
+ * (`pochette_identique`, tune-server-rust#3396 / PR #3876). Le champ arrivait
+ * déjà dans la réponse et personne ne le lisait : le type l'absorbait par son
+ * `[k: string]: unknown`. Mesuré sur le .18 le 18/09/2026 —
+ * `{"indice":"dossier_et_titre", …}` sur les 26 groupes.
+ *
+ * Laissé en `string` : un serveur plus récent peut en nommer un troisième, et
+ * l'écran doit alors montrer le code plutôt que rien.
+ */
+export type IndiceEclate = 'dossier_et_titre' | 'pochette_identique' | (string & {});
+export interface GroupeAlbumsEclates { numeros_complementaires?: boolean; meme_annee?: boolean; pistes?: number; indice?: IndiceEclate; dossier?: string | null; albums: AlbumEclate[]; [k: string]: unknown }
 /** Un album coupé en plusieurs fiches (`GET /library/albums/eclates`). */
 export function getAlbumsEclates() {
   return fetchJSON<{ count: number; groups: GroupeAlbumsEclates[] }>(`${BASE}/library/albums/eclates`).then((r) => r?.groups ?? []);
