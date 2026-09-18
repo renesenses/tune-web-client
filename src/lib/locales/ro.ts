@@ -3730,6 +3730,7 @@ export default {
   "v2.conv.toolsFound": "Unelte detectate: {list}",
   "v2.conv.running": "Conversie în curs",
   "v2.conv.albumsToConvert": "Albume de convertit",
+  "v2.conv.sourceFolder": "Dosar sursă:",
   "v2.conv.start": "Convertește",
   "v2.declick.title": "Anti-pocnet",
   "v2.declick.leadA": "Elimină artefactele lăsate de o codare: întârzierea codorului, umplutura de la final, pocnetele la îmbinări. Rezultatul este reexportat",

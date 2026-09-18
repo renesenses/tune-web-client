@@ -3730,6 +3730,7 @@ export default {
   "v2.conv.toolsFound": "감지된 도구: {list}",
   "v2.conv.running": "변환 중",
   "v2.conv.albumsToConvert": "변환할 앨범",
+  "v2.conv.sourceFolder": "원본 폴더:",
   "v2.conv.start": "변환",
   "v2.declick.title": "클릭 제거",
   "v2.declick.leadA": "인코딩이 남긴 잡음을 제거합니다: 인코더 지연, 끝부분 패딩, 이음매의 클릭음. 결과는 다음으로 다시 내보냅니다:",

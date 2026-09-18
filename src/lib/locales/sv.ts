@@ -3729,6 +3729,7 @@ export default {
   "v2.conv.toolsFound": "Upptäckta verktyg: {list}",
   "v2.conv.running": "Konvertering pågår",
   "v2.conv.albumsToConvert": "Album att konvertera",
+  "v2.conv.sourceFolder": "Källmapp:",
   "v2.conv.start": "Konvertera",
   "v2.declick.title": "Avknäppare",
   "v2.declick.leadA": "Tar bort artefakter från en kodning: kodarfördröjning, utfyllnad i slutet, knäppar vid skarvarna. Resultatet exporteras om",

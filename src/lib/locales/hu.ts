@@ -3688,6 +3688,7 @@ export default {
   "v2.conv.toolsFound": "Észlelt eszközök: {list}",
   "v2.conv.running": "Átalakítás folyamatban",
   "v2.conv.albumsToConvert": "Átalakítandó albumok",
+  "v2.conv.sourceFolder": "Forrásmappa:",
   "v2.conv.start": "Átalakítás",
   "v2.declick.title": "Kattanásmentesítő",
   "v2.declick.leadA": "Eltávolítja a kódolás nyomait: kódolói késleltetés, végi kitöltés, kattanások az illesztéseknél. Az eredmény újra exportálva",
