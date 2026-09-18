@@ -13,7 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
-  import type { GravureDrEtat, MetadataProposal, DoubtfulAlbum, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon } from '../../lib/api';
+  import type { GravureDrEtat, MetadataProposal, DoubtfulAlbum, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
   import { } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   // L'arbre des genres du client actuel, REPRIS tel quel plutôt que réécrit :
@@ -25,7 +25,7 @@
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
-  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'manquants';
+  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'compil' | 'manquants';
   let tab = $state<Tab>('proposals');
 
   let proposals = $state<MetadataProposal[]>([]);
@@ -129,6 +129,124 @@
     return () => { if (drMinuterie) { clearTimeout(drMinuterie); drMinuterie = null; } };
   });
 
+  /*
+    Onglet « Compilations » (#1172, Bertrand le 18/09/2026).
+
+    Le cas mesuré sur sa bibliothèque : « Coco María Presents » occupe ONZE
+    lignes album, une par artiste de piste, chacune à UNE seule piste. Aucun
+    autre écran ne sait les réunir — l'onglet « Doublons » ne les voit pas :
+    le détecteur d'albums éclatés rend 27 groupes et AUCUN ne les contient
+    (mesuré sur son serveur le 18/09). Il fallait donc un geste à la main.
+
+    Trois actions, dans l'ordre où elles se pensent :
+      1. marquer — la base retient le choix tout de suite, et le marqueur
+         d'édition manuelle empêche le scan de revenir dessus (serveur #4427) ;
+      2. réunir — les lignes n'en font plus qu'une, par la fusion qui existe ;
+      3. graver — écrire le drapeau DANS les fichiers. Toujours demandé,
+         jamais en effet de bord : Tune ne touche pas aux fichiers en passant.
+
+    Les deux dernières sont armées en deux clics, comme les fusions de
+    l'onglet « Doublons » : elles déplacent des pistes ou écrivent sur le
+    disque.
+  */
+  let cpQuery = $state('');
+  let cpAlbums = $state<AlbumDetailed[]>([]);
+  let cpLoading = $state(false);
+  let cpChoisis = $state<Set<number>>(new Set());
+  let cpBusy = $state(false);
+  let cpBilan = $state<string | null>(null);
+  let cpErr = $state<string | null>(null);
+
+  async function chercherCompil() {
+    const q = cpQuery.trim();
+    if (q.length < 2) { cpAlbums = []; return; }
+    cpLoading = true;
+    cpBilan = null;
+    try {
+      const r = await api.getAlbumsDetailed({ q }, 200, 0);
+      cpAlbums = r?.items ?? [];
+      cpErr = null;
+    } catch (e: any) {
+      cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
+      cpAlbums = [];
+    }
+    cpLoading = false;
+    // Une sélection qui survivrait à une recherche agirait sur des albums
+    // qu'on ne voit plus à l'écran.
+    cpChoisis = new Set();
+    arme = null;
+  }
+
+  function cocher(id: number) {
+    const s = new Set(cpChoisis);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    cpChoisis = s;
+    arme = null;
+  }
+  function toutCocher() {
+    cpChoisis = cpChoisis.size === cpAlbums.length ? new Set() : new Set(cpAlbums.map((a) => a.album_id));
+    arme = null;
+  }
+
+  /** Pose ou retire le drapeau sur les albums cochés. */
+  async function marquerCompil(valeur: boolean) {
+    if (!cpChoisis.size || cpBusy) return;
+    const ids = [...cpChoisis];
+    cpBusy = true;
+    try {
+      const r = await api.batchUpdateAlbums(ids, { is_compilation: valeur });
+      cpAlbums = cpAlbums.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: valeur } : a));
+      cpBilan = $t('v2.meta.compilMarked' as any).replace('{count}', String(r.updated));
+      cpErr = null;
+    } catch (e: any) {
+      cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
+    }
+    cpBusy = false;
+  }
+
+  /** Réunit les albums cochés en un seul disque. Deux clics. */
+  async function reunirCompil() {
+    if (cpChoisis.size < 2 || cpBusy) return;
+    if (arme !== 'cp:reunir') { arme = 'cp:reunir'; return; }
+    arme = null;
+    const ids = [...cpChoisis];
+    cpBusy = true;
+    try {
+      const r = await api.mergeAlbums(ids);
+      cpBilan = $t('v2.meta.compilMerged' as any)
+        .replace('{moved}', String(r.tracks_moved))
+        .replace('{total}', String(r.total_tracks));
+      cpErr = null;
+      cpChoisis = new Set();
+      await chercherCompil();
+    } catch (e: any) {
+      cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
+      cpBusy = false;
+      return;
+    }
+    cpBusy = false;
+  }
+
+  /** Grave le drapeau dans les fichiers des albums cochés. Deux clics. */
+  async function graverCompil() {
+    if (!cpChoisis.size || cpBusy) return;
+    if (arme !== 'cp:graver') { arme = 'cp:graver'; return; }
+    arme = null;
+    const ids = [...cpChoisis];
+    cpBusy = true;
+    try {
+      const b = await api.graverCompilation(ids);
+      cpBilan = $t('v2.meta.compilBurned' as any)
+        .replace('{written}', String(b.ecrits))
+        .replace('{skipped}', String(b.hors_format))
+        .replace('{failed}', String(b.echecs));
+      cpErr = null;
+    } catch (e: any) {
+      cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
+    }
+    cpBusy = false;
+  }
+
   $effect(() => { loadProposals(); });
 
   // Les albums douteux ne sont chargés qu'à l'ouverture de leur onglet.
@@ -181,6 +299,7 @@
       <button class:on={tab === 'doublons'} onclick={() => (tab = 'doublons')}>{$t('v2.meta.tabDoublons' as any)}{#if dblLoaded && !dblLoading}<span>{$formatNombre(dblAlbums.length + dblArtistes.length + dblPaires.length)}</span>{/if}</button>
       <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>{$t('v2.meta.tabGenres' as any)}</button>
       <button class:on={tab === 'dr'} onclick={() => (tab = 'dr')}>{$t('v2.meta.tabDr' as any)}{#if dr}<span>{$formatNombre(dr.a_graver)}</span>{/if}</button>
+      <button class:on={tab === 'compil'} onclick={() => (tab = 'compil')}>{$t('v2.meta.tabCompil' as any)}</button>
       <button class:on={tab === 'manquants'} onclick={() => (tab = 'manquants')}>{$t('v2.meta.tabMissing' as any)}</button>
     </nav>
   </header>
@@ -362,6 +481,62 @@
         {#if drErr}<div class="errline">{drErr}</div>{/if}
       {/if}
 
+    {:else if tab === 'compil'}
+      <p class="note">{$t('v2.meta.compilIntro' as any)}</p>
+      <div class="cpbar">
+        <input
+          class="cpq"
+          type="search"
+          placeholder={$t('v2.meta.compilSearch' as any)}
+          bind:value={cpQuery}
+          onkeydown={(e) => { if (e.key === 'Enter') chercherCompil(); }}
+        />
+        <button class="go" onclick={chercherCompil} disabled={cpLoading || cpQuery.trim().length < 2}>
+          {$t('v2.meta.compilFind' as any)}
+        </button>
+      </div>
+
+      {#if cpLoading}
+        <div class="state">{$t('v2.tool.loading' as any)}</div>
+      {:else if !cpAlbums.length}
+        <div class="state">{cpQuery.trim().length < 2 ? $t('v2.meta.compilStart' as any) : $t('v2.meta.compilNone' as any)}</div>
+      {:else}
+        <div class="cpacts">
+          <button class="lnk" onclick={toutCocher}>
+            {cpChoisis.size === cpAlbums.length ? $t('v2.meta.compilNoneSel' as any) : $t('v2.meta.compilAll' as any).replace('{count}', String(cpAlbums.length))}
+          </button>
+          <button class="go" onclick={() => marquerCompil(true)} disabled={cpBusy || !cpChoisis.size}>
+            {$t('v2.meta.compilMark' as any)} ({cpChoisis.size})
+          </button>
+          <button class="lnk" onclick={() => marquerCompil(false)} disabled={cpBusy || !cpChoisis.size}>
+            {$t('v2.meta.compilUnmark' as any)}
+          </button>
+          <button class="lnk" class:armed={arme === 'cp:reunir'} onclick={reunirCompil} disabled={cpBusy || cpChoisis.size < 2}>
+            {arme === 'cp:reunir' ? $t('v2.meta.confirm' as any) : $t('v2.meta.compilMerge' as any)}
+          </button>
+          <button class="lnk" class:armed={arme === 'cp:graver'} title={$t('v2.meta.compilBurnHint' as any)} onclick={graverCompil} disabled={cpBusy || !cpChoisis.size}>
+            {arme === 'cp:graver' ? $t('v2.meta.confirm' as any) : $t('v2.meta.compilBurn' as any)}
+          </button>
+        </div>
+        {#if cpBilan}<p class="note">{cpBilan}</p>{/if}
+        {#if cpErr}<div class="errline">{cpErr}</div>{/if}
+        <div class="list">
+          {#each cpAlbums as a (a.album_id)}
+            <label class="prop cprow">
+              <input type="checkbox" checked={cpChoisis.has(a.album_id)} onchange={() => cocher(a.album_id)} />
+              <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.album_id} size={0} alt={a.title ?? ''} fallbackInitials={a.title?.slice(0,1)} /></span>
+              <span class="pw">
+                <span class="pt">{a.title ?? '—'}{#if a.album_artist}<em>{a.album_artist}</em>{/if}</span>
+                <span class="sub">
+                  {$t('v2.meta.compilTracks' as any).replace('{count}', $formatNombre(a.track_count))}
+                  {#if a.is_compilation}<span class="cpflag">{$t('v2.album.compilation' as any)}</span>{/if}
+                </span>
+              </span>
+            </label>
+          {/each}
+        </div>
+      {/if}
+
     {:else if dLoading}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !doubtful.length}
@@ -430,6 +605,26 @@
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  /* Onglet « Compilations » (#1172). */
+  .cpbar{display:flex; gap:8px; align-items:center; margin:0 0 14px}
+  .cpq{flex:1 1 auto; min-width:0; height:34px; padding:0 12px; border-radius:var(--v2-r-pill);
+    border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt);
+    font:12.5px var(--v2-sans)}
+  .cpq:focus{outline:none; border-color:var(--v2-acc2)}
+  .cpacts{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px}
+  /* Armé = le prochain clic agit. `.grp .lnk.armed` ne porte pas jusqu'ici :
+     ces boutons ne sont pas dans une carte de groupe. */
+  .cpacts .lnk.armed{font-weight:700; border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .cprow{cursor:pointer}
+  .cprow input{flex:0 0 auto; accent-color:var(--v2-acc2)}
+  .cprow .cv{flex:0 0 auto; width:40px; height:40px; border-radius:6px; overflow:hidden}
+  .cprow .pt{display:block}
+  /* Le drapeau déjà posé, dit à côté du compte de pistes : sans lui, marquer
+     agit sans qu'on voie sur quoi. On n'affiche QUE le positif — voir
+     PastilleCompilation. */
+  .cpflag{margin-left:8px; padding:1px 7px; border-radius:var(--v2-r-pill);
+    border:1px solid var(--v2-acc2); color:var(--v2-acc-tint);
+    font:700 9.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase}
   .state{padding:30px 0; color:var(--v2-txt3)}
   .note{padding:4px 0 16px; font-size:12.5px; color:var(--v2-txt3)}
   .note b{color:var(--v2-txt2)}
