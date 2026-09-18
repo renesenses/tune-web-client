@@ -12,6 +12,7 @@
    */
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
+import { dossierDeLAlbum } from '../../lib/dossierDAlbum';
   import { albums } from '../../lib/stores/library';
   import { preferences } from '../../lib/stores/preferences';
   import { fold } from '../../lib/utils';
@@ -51,6 +52,42 @@
   const preset = $derived(presets.find((p) => p.id === presetId) ?? null);
   /** Un format que CE serveur ne peut pas produire : on le dit et on bloque. */
   const supported = $derived(!preset || caps?.formats?.[preset.format] !== false);
+
+  /**
+   * 🔴 #1156 — LE DOSSIER D'ORIGINE des albums retenus.
+   *
+   * Tades, fil 1677 : « J'aurais aimé trouver une fonction "afficher dans le
+   * dossier d'origine" afin de prendre une décision en connaissance de
+   * cause. » Une page web ne peut pas ouvrir l'explorateur du serveur — et le
+   * serveur n'est même pas toujours la machine de l'utilisateur. Ce qu'on peut
+   * faire, et qui suffit à décider, c'est NOMMER le dossier.
+   *
+   * `Album` ne porte pas de chemin : `cover_path` est un hachage, mesuré sur
+   * le .18. Le chemin vit sur la PISTE. On ne charge donc les pistes que des
+   * albums RETENUS — pas des deux cents vignettes affichées — et on garde le
+   * résultat : cocher puis décocher ne redemande rien au serveur.
+   */
+  const dossierDeLAlbumSur = (ts: any[]) => dossierDeLAlbum((ts ?? []).map((t) => t?.file_path));
+  let dossiers = $state<Map<number, string | null>>(new Map());
+  let dossiersEnCours = new Set<number>();
+  $effect(() => {
+    for (const id of picked) {
+      if (dossiers.has(id) || dossiersEnCours.has(id)) continue;
+      dossiersEnCours.add(id);
+      api.getAlbumTracks(id)
+        .then((ts) => {
+          // 🔴 Une nouvelle `Map` : muter celle du `$state` ne réveille rien.
+          dossiers = new Map(dossiers).set(id, dossierDeLAlbumSur(ts));
+        })
+        .catch(() => { dossiers = new Map(dossiers).set(id, null); })
+        .finally(() => dossiersEnCours.delete(id));
+    }
+  });
+  /** Les dossiers connus des albums retenus, dédoublonnés : dix albums d'un
+   *  même artiste tiennent souvent dans un seul dossier parent. */
+  const dossiersRetenus = $derived(
+    [...new Set([...picked].map((id) => dossiers.get(id)).filter((d): d is string => !!d))],
+  );
 
   function toggle(id: number | null) {
     if (id == null) return;
@@ -193,6 +230,13 @@
             {starting ? $t('v2.tool.starting' as any) : $t('v2.conv.start' as any)}
           </button>
         </div>
+        <!-- #1156 — d'où viennent les albums retenus. -->
+        {#if dossiersRetenus.length}
+          <div class="dossiers">
+            <span class="dl">{$t('v2.conv.sourceFolder' as any)}</span>
+            {#each dossiersRetenus as d (d)}<code class="dp" title={d}>{d}</code>{/each}
+          </div>
+        {/if}
         {#if !$albums.length}
           <div class="state">{$t('v2.tool.libraryEmpty' as any)}</div>
         {:else}
@@ -239,6 +283,13 @@
   .v2-conv{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .cnt{font:11.5px var(--v2-mono); color:var(--v2-acc-tint)}
+  /* #1156 — le dossier d'origine des albums retenus. */
+  .dossiers{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 10px;
+    font-size:12px; color:var(--v2-txt2)}
+  .dossiers .dl{font-weight:600; color:var(--v2-txt)}
+  .dossiers .dp{font-family:var(--v2-mono); font-size:11.5px; padding:2px 8px;
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .err{margin:0 30px 10px; padding:10px 14px; border-radius:10px; font-size:12.5px;
     color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}

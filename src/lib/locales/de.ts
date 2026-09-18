@@ -3741,6 +3741,7 @@ export default {
   "v2.conv.toolsFound": "Erkannte Werkzeuge: {list}",
   "v2.conv.running": "Konvertierung läuft",
   "v2.conv.albumsToConvert": "Zu konvertierende Alben",
+  "v2.conv.sourceFolder": "Quellordner:",
   "v2.conv.start": "Konvertieren",
   "v2.declick.title": "Entknackser",
   "v2.declick.leadA": "Entfernt die Artefakte einer Kodierung: Encoder-Verzögerung, Auffüllung am Ende, Klicks an den Nahtstellen. Das Ergebnis wird neu exportiert",
