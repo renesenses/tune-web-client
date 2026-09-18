@@ -32,6 +32,7 @@
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
+  import ProfilsV2 from './ProfilsV2.svelte';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -1961,6 +1962,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+            {:else if s.id === 'profiles'}
+              <ProfilsV2 />
             {:else if s.id === 'interface'}
               <div class="row">
                 <div class="lbl">

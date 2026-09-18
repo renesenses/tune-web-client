@@ -3224,6 +3224,7 @@ export default {
   "profiles.premiumRequired": "Los perfiles múltiples están reservados a la versión Premium.",
   "profiles.whoIsListening": "¿Quién escucha?",
   "profiles.title": "Perfiles",
+  "profiles.manage": "Gestionar perfiles",
   "profiles.switchHint": "Cambiar de perfil recarga la pantalla.",
   "queue.autoplayFailed": "No se ha podido modificar AutoPlay",
   "queue.resizePanel": "Arrastra para redimensionar · doble clic para restablecer",
