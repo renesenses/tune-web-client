@@ -1026,9 +1026,9 @@ export default {
   'dashboard.section.hourly': 'Tageszeit',
   'dashboard.section.by_zone': 'Nach Zone',
   'dashboard.section.by_source': 'Nach Quelle',
-  'dashboard.section.completion': 'Abgeschlossen vs. übersprungen',
-  'dashboard.completion.completed': 'Abgeschlossen',
-  'dashboard.completion.skipped': 'Übersprungen',
+  "dashboard.section.completion": "Im Verlauf gespeicherte Dauern",
+  "dashboard.completion.completed": "30 s oder mehr",
+  "dashboard.completion.skipped": "Weniger als 30 s",
   'dashboard.empty': 'Noch kein Hörverlauf vorhanden. Starte etwas 🎶',
 
   // Equalizer

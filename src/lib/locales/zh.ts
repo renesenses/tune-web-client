@@ -1027,9 +1027,9 @@ export default {
   'dashboard.section.hourly': '收听时段',
   'dashboard.section.by_zone': '按区域',
   'dashboard.section.by_source': '按来源',
-  'dashboard.section.completion': '播完 vs 跳过',
-  'dashboard.completion.completed': '已播完',
-  'dashboard.completion.skipped': '已跳过',
+  "dashboard.section.completion": "历史记录中的时长",
+  "dashboard.completion.completed": "30 秒及以上",
+  "dashboard.completion.skipped": "少于 30 秒",
   'dashboard.empty': '暂无收听历史。播放一些音乐吧 🎶',
 
   // Equalizer

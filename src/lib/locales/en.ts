@@ -1266,9 +1266,9 @@ export default {
   'dashboard.section.hourly': 'Hour of day',
   'dashboard.section.by_zone': 'By zone',
   'dashboard.section.by_source': 'By source',
-  'dashboard.section.completion': 'Completed vs skipped',
-  'dashboard.completion.completed': 'Completed',
-  'dashboard.completion.skipped': 'Skipped',
+  "dashboard.section.completion": "Durations recorded in history",
+  "dashboard.completion.completed": "30 s or more",
+  "dashboard.completion.skipped": "Less than 30 s",
   'dashboard.empty': 'No listening history yet. Start something 🎶',
 
   // Equalizer

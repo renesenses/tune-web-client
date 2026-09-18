@@ -1009,9 +1009,9 @@ export default {
   'dashboard.section.hourly': 'Timme på dygnet',
   'dashboard.section.by_zone': 'Per zon',
   'dashboard.section.by_source': 'Per källa',
-  'dashboard.section.completion': 'Färdigspelade vs överhoppade',
-  'dashboard.completion.completed': 'Färdigspelade',
-  'dashboard.completion.skipped': 'Överhoppade',
+  "dashboard.section.completion": "Längder registrerade i historiken",
+  "dashboard.completion.completed": "30 s eller mer",
+  "dashboard.completion.skipped": "Mindre än 30 s",
   'dashboard.empty': 'Ingen lyssningshistorik än. Sätt igång något 🎶',
 
   // Equalizer

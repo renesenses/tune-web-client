@@ -1027,9 +1027,9 @@ export default {
   'dashboard.section.hourly': '시간대별 청취',
   'dashboard.section.by_zone': '존별',
   'dashboard.section.by_source': '소스별',
-  'dashboard.section.completion': '완료 vs 건너뜀',
-  'dashboard.completion.completed': '완료',
-  'dashboard.completion.skipped': '건너뜀',
+  "dashboard.section.completion": "기록에 저장된 길이",
+  "dashboard.completion.completed": "30초 이상",
+  "dashboard.completion.skipped": "30초 미만",
   'dashboard.empty': '아직 청취 기록이 없습니다. 음악을 재생해 보세요 🎶',
 
   // Equalizer
