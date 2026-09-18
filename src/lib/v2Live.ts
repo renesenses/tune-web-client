@@ -36,8 +36,9 @@
  *
  * Ce n'est pas un fork du gestionnaire d'événements d'`App` : c'est le
  * sous-ensemble qui fait vivre le TRANSPORT. Les branches propres à l'app
- * historique — YouTube, zones navigateur, onboarding — n'y sont pas, et n'ont
- * rien à y faire.
+ * historique — YouTube et onboarding — n'y sont pas.
+ * L'arrêt de la zone navigateur, lui, doit atteindre son élément audio ici :
+ * App n'est pas monté sous cette coquille (#1171, serveur #4090).
  *
  * ⚠️ La fenêtre de grâce, elle, EST ici depuis le 09/09/2026, et ce n'est pas
  * une entorse : elle est indissociable de l'ÉCHEC DE LECTURE, qui ne pouvait
@@ -50,6 +51,7 @@
 import { get } from 'svelte/store';
 import * as api from './api';
 import { tuneWS } from './websocket';
+import { browserStopForZone } from './stores/browserAudio';
 import {
   zones,
   currentZone,
@@ -390,6 +392,12 @@ export function demarrerTransportV2(): () => void {
         startSeekTimer();
       }
       return;
+    }
+
+    // Le média chargé peut appartenir à une autre zone que celle affichée.
+    // Son propriétaire filtre l'arrêt ; une relecture API ne le remplace pas.
+    if (type === 'playback.stopped' && typeof event.data?.zone_id === 'number') {
+      browserStopForZone(event.data.zone_id);
     }
 
     // Les autres événements de lecture changent la PISTE ou la file : eux
