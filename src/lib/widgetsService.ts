@@ -28,7 +28,7 @@
  * l'écran.
  */
 import * as api from './api';
-import type { Element, Widget } from './accueilWidgets';
+import { playlistOuvrable, type Element, type Widget } from './accueilWidgets';
 
 /** Combien d'éléments par bande. Voir `accueilWidgets` : on ne borne pas. */
 const LIMITE = 50;
@@ -89,7 +89,27 @@ function albumDistant(o: any, i: number, prefixe: string, service: string): Elem
   };
 }
 
-/** Une playlist de service en `Element`. Même exigence sur la paire. */
+/**
+ * Une playlist de service en `Element`. Même exigence sur la paire.
+ *
+ * 🔴 ELLE S'OUVRE — #1108. Elle ne le faisait pas : `ouvrir` restait vide, et
+ * `PageWidgets` en tire DEUX gestes morts sur chaque vignette — pas de bouton
+ * d'ouverture sur la pochette (`{#if onOuvrir}` dans `PochetteActions`), et un
+ * titre `disabled={!el.ouvrir}`. C'est ce que schmitt décrit le 17/09/2026
+ * (« le lien sous la pochette ou la playlist permettant de développer sa
+ * composition n'est pas actif ») et que FabienM confirme le même jour sur la
+ * bande « Humeurs » en v0.9.152.
+ *
+ * ⚠️ #1016 avait réparé l'écran Streaming, mais par `ouvrirFiche()` de
+ * `StreamingV2` — que les BANDES ne traversent jamais : elles sont rendues par
+ * `PageWidgets`, pas par le gabarit `tile`. Cinq bandes restaient mortes :
+ * `-playlists-editoriales`, `-mes-playlists` et une par `-tag-<id>` sur
+ * l'écran du service, les mêmes `-tag-<id>` sur l'accueil (#987).
+ *
+ * On répare donc ICI, dans la fabrique, comme #1016 avait réparé dans
+ * `ouvrirFiche` : aucun appelant à toucher, et la prochaine bande de playlists
+ * naîtra ouvrable.
+ */
 function playlistDistante(o: any, i: number, prefixe: string, service: string): Element {
   const sid = texte(o, 'source_id', 'id');
   return {
@@ -105,6 +125,11 @@ function playlistDistante(o: any, i: number, prefixe: string, service: string): 
     // identifiant de service il n'y a pas de cle : mieux vaut aucune icone
     // qu'une icone morte.
     favoriDistant: sid ? { itemType: 'playlist' as const, serviceId: sid } : undefined,
+    // Même garde que pour le coeur et pour la lecture : sans identifiant, pas
+    // de route à interroger, donc pas de geste — un geste absent vaut mieux
+    // qu'un écran vide.
+    ouvrir: sid ? 'playlist' : null,
+    playlist: sid ? playlistOuvrable(o, sid, service) : undefined,
   };
 }
 
