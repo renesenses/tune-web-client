@@ -113,7 +113,12 @@ describe('StreamingView applique le dépilage', () => {
     // ferait examiner un commentaire en croyant lire le rendu.
     const debut = source.indexOf('{:else if selectedArtist}\n    <!-- Artist detail -->');
     expect(debut).toBeGreaterThan(-1);
-    const fin = source.indexOf('{:else if', debut + 10);
+    // Le PROCHAIN `{:else if` de la chaîne du haut, reconnu à son indentation
+    // de deux espaces. Chercher `{:else if` sans elle s'arrêtait au premier
+    // `{:else if` IMBRIQUÉ dans le bloc — depuis #1154, la branche d'erreur de
+    // la fiche en est un —, et la grille des albums tombait hors de la tranche
+    // examinée. La garde restait verte pour une mauvaise raison.
+    const fin = source.indexOf('\n  {:else if', debut + 10);
     expect(fin).toBeGreaterThan(debut);
     const bloc = source.slice(debut, fin);
     expect(bloc).toContain('selectAlbum(album, true)');

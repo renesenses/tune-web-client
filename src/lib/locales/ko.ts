@@ -464,6 +464,8 @@ export default {
   'search.durationShown': '표시된 {d}',
 
   // Streaming
+  'streaming.fichePistesEchec': '이 항목의 트랙을 불러오지 못했습니다.',
+  'streaming.ficheDelaiDepasse': '서비스가 제시간에 응답하지 않았습니다.',
   'streaming.selectService': '스트리밍 서비스를 선택하세요',
   'streaming.searchOn': '{service}에서 검색...',
   'streaming.myPlaylists': '내 재생목록',

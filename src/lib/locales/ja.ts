@@ -464,6 +464,8 @@ export default {
   'search.durationShown': '表示中 {d}',
 
   // Streaming
+  'streaming.fichePistesEchec': 'この項目のトラックを読み込めませんでした。',
+  'streaming.ficheDelaiDepasse': 'サービスから時間内に応答がありませんでした。',
   'streaming.selectService': 'ストリーミングサービスを選択してください',
   'streaming.searchOn': '{service}で検索...',
   'streaming.myPlaylists': 'マイプレイリスト',

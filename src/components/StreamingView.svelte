@@ -14,6 +14,7 @@
   // bas — voir la note de fusion du 04/09/2026.
   import { formatTime } from '../lib/utils';
   import { actionRetour, etapesDeRestauration } from '../lib/streamingRetour';
+  import { chargerPistes } from '../lib/chargementPistesStreaming';
   import AlbumArt from './partages/AlbumArt.svelte';
   import QualityBadge from './partages/QualityBadge.svelte';
   import ServiceBadge from './partages/ServiceBadge.svelte';
@@ -56,6 +57,81 @@
   let selectedArtist = $state<Artist | null>(null);
   let artistAlbums = $state<Album[]>([]);
   let loading = $state(false);
+  /**
+   * 🔴 #1154 — l'échec du chargement d'une fiche, DIT à l'écran.
+   *
+   * Tant qu'il n'existait pas, les quatre chargeurs de fiche partageaient un
+   * `catch` muet : « Chargement... » s'éteignait sur une liste vide, ou sur
+   * les pistes de la fiche précédente, sans que rien n'explique pourquoi.
+   */
+  let erreurPistes = $state<string | null>(null);
+  /**
+   * Numéro de la demande de fiche en cours.
+   *
+   * Les quatre chargeurs — album, discographie, playlist de service, playlist
+   * d'humeur YouTube — écrivent le MÊME `loading`. Sans ce numéro, la réponse
+   * d'une fiche abandonnée éteignait le témoin d'une fiche plus récente, ou
+   * publiait ses pistes sous le titre d'une autre. `goBack()` l'incrémente
+   * aussi : sortir d'une fiche pendant son chargement laissait sinon le témoin
+   * allumé sur l'écran du dessous.
+   */
+  let demandeFiche = 0;
+  /**
+   * Borne de patience d'une fiche de service, en millisecondes.
+   *
+   * La route passe par l'API du service : on est au-delà des 8 à 12 s qu'on
+   * accorde aux routes locales, et bien en deçà de l'infini d'aujourd'hui.
+   */
+  const DELAI_FICHE_MS = 30_000;
+
+  /** Ouvre une nouvelle demande de fiche et rend son numéro. */
+  function nouvelleDemandeFiche(): number {
+    erreurPistes = null;
+    loading = true;
+    return ++demandeFiche;
+  }
+
+  /**
+   * Le contenu d'une fiche, ou `null` quand il n'y a rien à publier.
+   *
+   * `null` couvre DEUX cas qu'il ne faut surtout pas confondre : l'échec, qui
+   * éteint le témoin et pose le motif, et la réponse périmée, qui ne touche à
+   * rien du tout — la fiche qu'elle alimentait n'est plus à l'écran.
+   */
+  async function contenuDeLaFiche<T>(jeton: number, demande: () => Promise<T[]>): Promise<T[] | null> {
+    const issue = await chargerPistes<T>({
+      demande,
+      estCourante: () => demandeFiche === jeton,
+      delaiMs: DELAI_FICHE_MS,
+      motifDelai: $tr('streaming.ficheDelaiDepasse'),
+      motifParDefaut: $tr('streaming.fichePistesEchec'),
+    });
+    if (issue.etat === 'perimee') return null;
+    loading = false;
+    if (issue.etat === 'pistes') return issue.pistes;
+    // Un écran qui tourne sans fin et un écran qui se vide sans un mot sont le
+    // même défaut : on le dit DEUX fois — sur la fiche, et en bandeau.
+    erreurPistes = issue.motif;
+    notifications.error(issue.motif);
+    return null;
+  }
+
+  /**
+   * Abandonne la demande de fiche en cours : sa réponse, quand elle viendra,
+   * sera périmée et ne touchera plus à rien.
+   */
+  function annulerDemandeFiche() {
+    demandeFiche++;
+    loading = false;
+    erreurPistes = null;
+  }
+
+  /** Relance la fiche affichée après un échec, sans changer de niveau. */
+  function rechargerFiche() {
+    if (selectedAlbum) { selectAlbum(selectedAlbum, selectedArtist != null); return; }
+    if (selectedStreamingPlaylist) { selectStreamingPlaylist(selectedStreamingPlaylist); return; }
+    if (selectedArtist) selectArtist(selectedArtist, true);
+  }
 
   let featuredSections = $state<FeaturedSection[]>([]);
   let featuredData = $state<Record<string, Album[]>>({});
@@ -309,6 +385,7 @@
 
   function resetForService(s: string | null) {
     // Reset all navigation state on service change to prevent UI freeze
+    annulerDemandeFiche();
     streamingAlbumOrigin.set(null);
     selectedAlbum = null;
     selectedArtist = null;
@@ -681,13 +758,13 @@
       source: 'youtube' as any };
     selectedAlbum = null;
     selectedArtist = null;
-    loading = true;
-    try {
-      playlistTracks = await api.getStreamingPlaylistTracks(service, item.playlistId);
-    } catch (e) {
-      console.error('Get YouTube playlist tracks error:', e);
-    }
-    loading = false;
+    const svc = service;
+    const jeton = nouvelleDemandeFiche();
+    const pistes = await contenuDeLaFiche<Track>(jeton, () =>
+      api.getStreamingPlaylistTracks(svc, item.playlistId),
+    );
+    if (pistes) playlistTracks = pistes;
+    else if (demandeFiche === jeton) playlistTracks = [];
   }
 
   let showFeatured = $derived(!searchQuery.trim() && !results);
@@ -759,13 +836,15 @@
     if (!service || !albumId) return;
     selectedAlbum = album;
     if (!depuisArtiste) selectedArtist = null;
-    loading = true;
-    try {
-      albumTracks = await api.getStreamingAlbumTracks(service, albumId);
-    } catch (e) {
-      console.error('Get streaming album tracks error:', e);
-    }
-    loading = false;
+    const svc = service;
+    const jeton = nouvelleDemandeFiche();
+    const pistes = await contenuDeLaFiche<Track>(jeton, () =>
+      api.getStreamingAlbumTracks(svc, albumId),
+    );
+    if (pistes) albumTracks = pistes;
+    // Vider sur échec est la moitié oubliée du #1154 : sans ça, la fiche
+    // affichait sous ce titre-ci les pistes de l'album précédent.
+    else if (demandeFiche === jeton) albumTracks = [];
   }
 
   /**
@@ -787,17 +866,20 @@
     if (!conserverProvenance) streamingAlbumOrigin.set(null);
     selectedArtist = artist;
     selectedAlbum = null;
-    loading = true;
-    try {
-      artistAlbums = await api.getStreamingArtistAlbums(service, artistId);
+    const svc = service;
+    const jeton = nouvelleDemandeFiche();
+    const albums = await contenuDeLaFiche<Album>(jeton, () =>
+      api.getStreamingArtistAlbums(svc, artistId),
+    );
+    if (albums) {
+      artistAlbums = albums;
       // Une première page pleine laisse supposer une suite ; une page courte
       // dit qu'il n'y a rien après, et le bouton ne s'affiche pas du tout.
-      artistePlus = artistAlbums.length >= TAILLE_DE_PAGE;
-    } catch (e) {
-      console.error('Get streaming artist albums error:', e);
+      artistePlus = albums.length >= TAILLE_DE_PAGE;
+    } else if (demandeFiche === jeton) {
+      artistAlbums = [];
       artistePlus = false;
     }
-    loading = false;
   }
 
   /// Combien d'albums le serveur rend par page — la même valeur que lui.
@@ -843,13 +925,13 @@
     selectedStreamingPlaylist = playlist;
     selectedAlbum = null;
     selectedArtist = null;
-    loading = true;
-    try {
-      playlistTracks = await api.getStreamingPlaylistTracks(service, playlist.source_id);
-    } catch (e) {
-      console.error('Get streaming playlist tracks error:', e);
-    }
-    loading = false;
+    const svc = service;
+    const jeton = nouvelleDemandeFiche();
+    const pistes = await contenuDeLaFiche<Track>(jeton, () =>
+      api.getStreamingPlaylistTracks(svc, playlist.source_id),
+    );
+    if (pistes) playlistTracks = pistes;
+    else if (demandeFiche === jeton) playlistTracks = [];
   }
 
   async function playStreamingPlaylist(playlist: StreamingPlaylist, startIndex?: number) {
@@ -947,6 +1029,10 @@
   }
 
   function goBack() {
+    // Quitter une fiche ANNULE son chargement : sans ça, `loading` restait
+    // allumé et c'est l'écran du dessous — la discographie, la grille du
+    // service — qui héritait du « Chargement... » (#1154).
+    annulerDemandeFiche();
     const suite = actionRetour({
       provenance: $streamingAlbumOrigin,
       album: selectedAlbum != null,
@@ -1055,6 +1141,22 @@
   </div>
 {/snippet}
 
+<!-- 🔴 #1154 — l'AUTRE sortie d'une fiche : celle où la liste n'arrive pas.
+     Avant, il n'y en avait qu'une, et l'échec se déguisait en fiche vide ou,
+     pire, gardait les pistes de la fiche précédente. Le motif vient du serveur
+     quand il en donne un ; il n'est répété que s'il dit autre chose que la
+     phrase générique. `zone.retry` est déjà traduit dans les onze langues et
+     dit exactement ça — on n'invente pas une clé de plus. -->
+{#snippet ficheEnErreur(motif: string)}
+  <div class="fiche-erreur">
+    <p class="fiche-erreur-titre">{$tr('streaming.fichePistesEchec')}</p>
+    {#if motif !== $tr('streaming.fichePistesEchec')}
+      <p class="fiche-erreur-motif">{motif}</p>
+    {/if}
+    <button class="scan-btn" onclick={rechargerFiche}>{$tr('zone.retry')}</button>
+  </div>
+{/snippet}
+
 <div class="streaming-view">
   {#if !service}
     <div class="empty-center service-picker-empty">
@@ -1124,6 +1226,8 @@
     </div>
     {#if loading}
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+    {:else if erreurPistes}
+      {@render ficheEnErreur(erreurPistes)}
     {:else}
       <div class="track-list">
         {#each albumTracks as t, index}
@@ -1207,6 +1311,8 @@
     </div>
     {#if loading}
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+    {:else if erreurPistes}
+      {@render ficheEnErreur(erreurPistes)}
     {:else}
       <div class="track-list">
         {#each playlistTracks as t, index}
@@ -1258,6 +1364,8 @@
     </div>
     {#if loading}
       <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+    {:else if erreurPistes}
+      {@render ficheEnErreur(erreurPistes)}
     {:else}
       <div class="albums-grid">
         {#each artistAlbums as album}
@@ -2510,6 +2618,32 @@
     font-family: var(--font-body);
     padding: var(--space-xl);
     justify-content: center;
+  }
+
+  /* #1154 : la fiche qui n'a PAS pu charger. Elle occupe la place qu'occupait
+     le « Chargement... » sans fin, et dit pourquoi. */
+  .fiche-erreur {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-xl);
+    text-align: center;
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+  }
+
+  .fiche-erreur-titre {
+    margin: 0;
+    color: var(--tune-text);
+  }
+
+  .fiche-erreur-motif {
+    margin: 0;
+    font-size: 0.85rem;
+    opacity: 0.8;
+    max-width: 48ch;
+    word-break: break-word;
   }
 
   .spinner {
