@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { estAParaitre, parutionMs, dateDeParution, pisteIndisponible } from '../albumAParaitre';
 import { versElement } from '../accueilWidgets';
@@ -6,6 +6,19 @@ import { versElement } from '../accueilWidgets';
 const MAINTENANT = Date.UTC(2026, 8, 17, 12, 0, 0);
 const DEMAIN = Math.floor(Date.UTC(2026, 8, 18) / 1000);
 const HIER = Math.floor(Date.UTC(2026, 8, 16) / 1000);
+
+// Le scenario est date : DEMAIN et HIER n'ont de sens que relativement a MAINTENANT.
+// Les fonctions qui recoivent MAINTENANT en parametre etaient donc deterministes, mais
+// `versElement` lit l'horloge REELLE — le temoin virait donc au rouge le 18/09/2026, quand
+// « demain » est devenu hier. On fige l'horloge pour tout le fichier : le scenario ne
+// depend plus du jour ou la CI tourne.
+beforeAll(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(MAINTENANT);
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 describe('point 10 — les albums à paraître sont grisés et injouables', () => {
   it('une date future dit « à paraître », une date passée non', () => {

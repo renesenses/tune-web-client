@@ -280,7 +280,14 @@
   class:tiroir={enTiroir} class:ouvert={enTiroir && $tiroirOuvert}
   aria-hidden={enTiroir && !$tiroirOuvert}>
   <div class="brand">
-    <div class="logo"><img src={glyph} alt="Tune" /></div>
+    <!-- Le logo MÈNE AU FORUM (#1116). L'ancienne coquille le faisait
+         (`components/Sidebar.svelte`, `.logo-link`) ; la nouvelle avait posé
+         un simple `<div>` et perdu la fonction au passage. Rétabli à
+         l'identique : même URL, même nouvel onglet, même `rel`. L'ancre PORTE
+         la classe `.logo` plutôt que de s'y ajouter — la pastille garde donc
+         exactement sa boîte, et le bouton de repli reste hors du lien. -->
+    <a class="logo" href="https://mozaiklabs.fr/forum" target="_blank"
+      rel="noopener noreferrer" title={$t('sidebar.forumMozaiklabs')}><img src={glyph} alt="Tune" /></a>
     <div class="txt">
       <div class="name">Tune</div>
       <div class="sub">MOZAIKLABS</div>
@@ -462,6 +469,10 @@
   .logo{width:40px; height:40px; border-radius:11px; display:grid; place-items:center;
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 4px 14px var(--v2-glow-strong)}
   .logo img{width:56%; height:auto; display:block}
+  /* Le logo est un lien (#1116) : pas de soulignement, et le même retour au
+     survol que dans l'ancienne coquille (`.logo-link:hover{opacity:.7}`). */
+  a.logo{text-decoration:none; transition:opacity .15s}
+  a.logo:hover{opacity:.7}
   .brand .name{font-weight:700; font-size:18px; line-height:1}
   .brand .sub{font-family:var(--v2-mono); font-size:9.5px; letter-spacing:.18em; color:var(--v2-txt2); margin-top:3px}
   /* La version, et son bouton quand une mise à jour attend. Il vit à côté du
