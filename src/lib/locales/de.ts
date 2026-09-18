@@ -464,6 +464,8 @@ export default {
   'search.durationShown': '{d} angezeigt',
 
   // Streaming
+  'streaming.fichePistesEchec': 'Die Titel dieses Eintrags konnten nicht geladen werden.',
+  'streaming.ficheDelaiDepasse': 'Der Dienst hat nicht rechtzeitig geantwortet.',
   'streaming.selectService': 'Wählen Sie einen Streaming-Dienst',
   'streaming.searchOn': 'Auf {service} suchen...',
   'streaming.myPlaylists': 'Meine Playlists',

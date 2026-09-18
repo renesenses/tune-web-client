@@ -433,6 +433,8 @@ export default {
   'search.durationShown': '{d} visade',
 
   // Streaming
+  'streaming.fichePistesEchec': 'Det gick inte att läsa in spåren för den här posten.',
+  'streaming.ficheDelaiDepasse': 'Tjänsten svarade inte i tid.',
   'streaming.selectService': 'Välj en streamingtjänst',
   'streaming.searchOn': 'Sök på {service}...',
   'streaming.myPlaylists': 'Mina spellistor',

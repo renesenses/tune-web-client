@@ -650,6 +650,8 @@ export default {
   "search.playlistError": "A lejátszási lista nem hozható létre.",
   "search.durationShown": "{d} megjelenítve",
   // Streaming
+  "streaming.fichePistesEchec": "Nem sikerült betölteni ehhez a tételhez tartozó számokat.",
+  "streaming.ficheDelaiDepasse": "A szolgáltatás nem válaszolt időben.",
   "streaming.selectService": "Válassz streamingszolgáltatást",
   "streaming.searchOn": "Keresés itt: {service}...",
   "streaming.myPlaylists": "Saját lejátszási listáim",
