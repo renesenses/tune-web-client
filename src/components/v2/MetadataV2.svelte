@@ -13,7 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
-  import type { GravureDrEtat, MetadataProposal, DoubtfulAlbum, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
+  import type { GravureDrEtat, MetadataProposal, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
   import { } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   // L'arbre des genres du client actuel, REPRIS tel quel plutôt que réécrit :
@@ -23,6 +23,7 @@
   import GenreTreeView from '../v2-heritage/GenreTreeView.svelte';
   import ManquantsV2 from './ManquantsV2.svelte';
   import { artisteApresFusion } from '../../lib/compilationArtiste';
+  import { grouperParArtisteDevine, type PisteDouteuse } from '../../lib/artisteDepuisChemin';
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
@@ -33,7 +34,7 @@
   let pending = $state(0);
   let autoApply = $state(false);
   let pLoading = $state(true);
-  let doubtful = $state<DoubtfulAlbum[]>([]);
+  let doubtful = $state<PisteDouteuse[]>([]);
   let dLoading = $state(false);
   let dLoaded = false;
   let error = $state<string | null>(null);
@@ -377,14 +378,84 @@
   $effect(() => { loadProposals(); });
 
   // Les albums douteux ne sont chargés qu'à l'ouverture de leur onglet.
+  /*
+    Onglet « Albums douteux » (#1199).
+
+    Mesuré sur le .18 : 1 595 entrées, et ce ne sont pas des albums mais des
+    PISTES — 1 592 pour une seule raison, l'artiste manque. L'information vit
+    dans le chemin : `…/Prince/Ultimate/01 - ….m4a`. 1 496 pistes couvertes,
+    pour 26 noms distincts.
+
+    On regroupe donc par nom deviné : l'utilisateur valide 26 décisions au lieu
+    de 1 496 lignes, et l'intrus se voit tout de suite — sur sa bibliothèque,
+    « NEW_FLAC » ressort comme un groupe de douze, qu'il décoche.
+  */
+  let dRetenus = $state<Set<string>>(new Set());
+  let dBusy = $state(false);
+  let dBilan = $state<string | null>(null);
+  let dGroupes = $derived(grouperParArtisteDevine(doubtful));
+  let dSansIndice = $derived(
+    doubtful.filter((p) => p.reasons?.includes('missing_artist')).length
+      - dGroupes.reduce((n, g) => n + g.pistes.length, 0),
+  );
+
+  function basculerGroupe(nom: string) {
+    const s = new Set(dRetenus);
+    if (s.has(nom)) s.delete(nom); else s.add(nom);
+    dRetenus = s;
+  }
+
+  /** Pose les artistes retenus : un appel par nom, pas par piste. */
+  async function poserArtistesDevines() {
+    if (!dRetenus.size || dBusy) return;
+    dBusy = true;
+    dBilan = null;
+    let pistes = 0;
+    let noms = 0;
+    try {
+      for (const g of dGroupes) {
+        if (!dRetenus.has(g.nom)) continue;
+        const r = await api.setTracksArtist(g.pistes.map((p) => p.id), g.nom);
+        pistes += r.updated;
+        noms += 1;
+      }
+      dBilan = $t('v2.meta.dArtistDone' as any)
+        .replace('{tracks}', $formatNombre(pistes))
+        .replace('{names}', $formatNombre(noms));
+      dRetenus = new Set();
+      // La liste vient du serveur : on la relit plutôt que de la corriger de
+      // mémoire — c'est lui qui décide ce qui est encore douteux.
+      dLoaded = false;
+      await chargerDouteuses();
+    } catch (e: any) {
+      error = e?.message ?? String(e);
+    }
+    dBusy = false;
+  }
+
+  async function chargerDouteuses() {
+    if (dLoaded) return;
+    dLoaded = true;
+    dLoading = true;
+    const tous: PisteDouteuse[] = [];
+    try {
+      for (let offset = 0; ; offset += 1000) {
+        const r = await api.getDoubtfulTracks(1000, offset);
+        tous.push(...r.items);
+        if (r.items.length === 0 || tous.length >= r.total) break;
+      }
+      doubtful = tous;
+    } catch {
+      error = 'Liste indisponible.';
+    }
+    dLoading = false;
+  }
+
   $effect(() => {
     if (tab !== 'doubtful' || dLoaded) return;
-    dLoaded = true; dLoading = true;
-    api.getDoubtfulAlbums()
-      .then((r) => { doubtful = r ?? []; })
-      .catch(() => { error = 'Liste indisponible.'; })
-      .finally(() => { dLoading = false; });
+    void chargerDouteuses();
   });
+
 
   async function decide(p: MetadataProposal, accept: boolean) {
     if (busy != null) return;
@@ -408,10 +479,6 @@
     album: 'Album', genre: $t('v2.fav.facetGenre' as any),
     year: $t('v2.lib.sortYear' as any), label: $t('v2.fav.facetLabel' as any),
     composer: $t('v2.meta.fComposer' as any) });
-  const REASONS: Record<string, string> = $derived({
-    no_year: $t('v2.meta.rNoYear' as any), no_genre: $t('v2.meta.rNoGenre' as any),
-    no_cover: $t('v2.meta.rNoCover' as any), no_artist: $t('v2.meta.rNoArtist' as any),
-    unknown_artist: $t('v2.lib.unknownArtist' as any) });
 </script>
 
 <section class="v2-meta tune-v2">
@@ -677,20 +744,45 @@
     {:else if !doubtful.length}
       <div class="state">{$t('v2.meta.noDoubtful' as any)}</div>
     {:else}
-      <div class="dgrid">
-        {#each doubtful as a (a.id)}
-          <article class="dcard">
-            <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0,1)} /></span>
-            <div class="dm">
-              <div class="dt">{a.title}</div>
-              <div class="da">{a.artist_resolved ?? a.artist_name ?? 'Artiste inconnu'}</div>
-              <div class="drs">
-                {#each a.reasons as r (r)}<span class="r">{REASONS[r] ?? r}</span>{/each}
-              </div>
-            </div>
-          </article>
-        {/each}
-      </div>
+      <p class="note">{$t('v2.meta.dArtistIntro' as any).replace('{count}', $formatNombre(doubtful.length))}</p>
+
+      {#if dGroupes.length}
+        <div class="cpacts">
+          <button class="go" disabled={dBusy || !dRetenus.size} onclick={poserArtistesDevines}>
+            {$t('v2.meta.dArtistApply' as any).replace('{count}', $formatNombre(
+              dGroupes.filter((g) => dRetenus.has(g.nom)).reduce((n, g) => n + g.pistes.length, 0),
+            ))}
+          </button>
+          <button class="lnk" disabled={dBusy} onclick={() => (dRetenus = new Set(dGroupes.map((g) => g.nom)))}>
+            {$t('v2.meta.dArtistAll' as any).replace('{count}', $formatNombre(dGroupes.length))}
+          </button>
+          <button class="lnk" disabled={dBusy || !dRetenus.size} onclick={() => (dRetenus = new Set())}>
+            {$t('v2.miss.selectNone' as any)}
+          </button>
+        </div>
+        {#if dBilan}<p class="note">{dBilan}</p>{/if}
+
+        <div class="list">
+          {#each dGroupes as g (g.nom)}
+            <label class="prop cprow">
+              <input type="checkbox" checked={dRetenus.has(g.nom)} onchange={() => basculerGroupe(g.nom)} />
+              <span class="pw">
+                <span class="pt">{g.nom}</span>
+                <span class="sub">
+                  {$t('v2.meta.dArtistTracks' as any).replace('{count}', $formatNombre(g.pistes.length))}
+                  <!-- Le chemin d'une piste du groupe : c'est lui qui justifie
+                       le nom, et il doit se lire avant de cocher. -->
+                  <span class="chemin">{g.pistes[0]?.file_path ?? ''}</span>
+                </span>
+              </span>
+            </label>
+          {/each}
+        </div>
+      {/if}
+
+      {#if dSansIndice > 0}
+        <p class="source">{$t('v2.meta.dArtistNoClue' as any).replace('{count}', $formatNombre(dSansIndice))}</p>
+      {/if}
     {/if}
 
     <!-- Pas de bouton « ouvrir l'éditeur » : la vue `metadata` est CET écran
@@ -751,6 +843,8 @@
      donc que l'artiste — c'est lui qui change d'une ligne à l'autre. */
   .cpgh{display:flex; align-items:baseline; gap:10px; margin:16px 0 6px; flex-wrap:wrap}
   .cpgt{font:600 13.5px var(--v2-sans); color:var(--v2-txt)}
+  .chemin{display:block; margin-top:2px; font:10.5px var(--v2-mono); color:var(--v2-txt3);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
   .cpgn{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
   .note.avert{color:var(--v2-acc-tint)}
   /* Armé = le prochain clic agit. `.grp .lnk.armed` ne porte pas jusqu'ici :

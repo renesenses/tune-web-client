@@ -2251,20 +2251,74 @@ export function getCompletenessStats() {
   return fetchJSON<CompletenessStats>(`${BASE}/library/stats/completeness`);
 }
 
-export interface DoubtfulAlbum {
-  id: number;
-  title: string;
-  artist_name: string | null;
-  artist_resolved: string | null;
-  genre: string | null;
-  year: number | null;
-  cover_path: string | null;
-  source: string | null;
-  reasons: string[];
+/**
+ * ⚠️ Cette forme n'a jamais correspondu à ce que `/metadata/doubtful` rend.
+ * La route sert des PISTES — `{id, title, artist_name, album_title,
+ * duration_ms, reasons, file_path}` — et jamais `artist_resolved`, `genre`,
+ * `year`, `cover_path` ni `source`. L'ancienne coquille lisait donc des
+ * champs toujours `undefined`.
+ *
+ * Le type est aligné sur la réalité ; `PisteDouteuse` en est la définition.
+ */
+type _PisteDouteuse = import('./artisteDepuisChemin').PisteDouteuse;
+export interface DoubtfulAlbum extends _PisteDouteuse {
+  /** 🔴 Jamais envoyés par la route — toujours `undefined`. Déclarés
+   *  facultatifs parce que l'ancienne coquille les lit encore ; ils ne
+   *  rendront jamais rien. Ne PAS s'en servir dans du code neuf. */
+  artist_resolved?: string | null;
+  genre?: string | null;
+  year?: number | null;
+  cover_path?: string | null;
+  source?: string | null;
 }
 
-export function getDoubtfulAlbums() {
-  return fetchJSON<DoubtfulAlbum[]>(`${BASE}/metadata/doubtful`);
+/**
+ * Les pistes que le serveur juge douteuses.
+ *
+ * 🔴 La route rend `{items, total, limit, offset}` et des PISTES — pas des
+ * albums. `getDoubtfulAlbums` promettait un `DoubtfulAlbum[]` et rendait
+ * l'objet tel quel : `doubtful.length` valait `undefined`, l'écran concluait
+ * « aucun album douteux » et les 1 595 entrées du .18 restaient invisibles.
+ * Mesuré le 18/09/2026.
+ */
+export async function getDoubtfulTracks(
+  limit = 1000,
+  offset = 0,
+): Promise<{ items: import('./artisteDepuisChemin').PisteDouteuse[]; total: number }> {
+  const r = await fetchJSON<{ items?: unknown[]; total?: number } | unknown[]>(
+    `${BASE}/metadata/doubtful?limit=${limit}&offset=${offset}`,
+  );
+  const items = (Array.isArray(r) ? r : (r?.items ?? [])) as import('./artisteDepuisChemin').PisteDouteuse[];
+  const total = Array.isArray(r) ? r.length : (r?.total ?? items.length);
+  return { items, total };
+}
+
+/**
+ * ⚠️ Conservée pour l'ancienne coquille, qui l'appelle encore
+ * (`MetadataView.svelte`). Elle rend enfin un TABLEAU : avant, elle passait
+ * l'objet `{items, …}` tel quel et `doubtful.length` valait `undefined`, si
+ * bien que l'écran concluait « aucun album douteux ». Les nouveaux appelants
+ * prennent `getDoubtfulTracks`, qui rend aussi le total.
+ */
+export async function getDoubtfulAlbums() {
+  return (await getDoubtfulTracks(1000, 0)).items;
+}
+
+/**
+ * Affecte UN artiste à un lot de pistes.
+ *
+ * L'artiste existant est réutilisé, jamais doublé — le serveur compare sans
+ * tenir compte de la casse. `created` dit lequel des deux s'est produit.
+ */
+export function setTracksArtist(trackIds: number[], artistName: string) {
+  return fetchJSON<{ updated: number; errors: number; artist_id: number; artist_name: string; created: boolean }>(
+    `${BASE}/metadata/batch/artist`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ track_ids: trackIds, artist_name: artistName }),
+    },
+  );
 }
 
 // --- Browse (directory navigation) ---
