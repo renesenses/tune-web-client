@@ -6351,6 +6351,11 @@ export function lancerGravureDr(): Promise<{ status: string; total: number; hors
   return apiPost('/library/dr/gravure', {});
 }
 
+/** Phase 5 UPnP : l'album existe-t-il aussi ailleurs (local ↔ serveur UPnP) ? */
+export function getAussiSur(albumId: number): Promise<{ aussi_sur: import('./aussiSur').AussiSur[] }> {
+  return apiFetch(`/library/albums/${albumId}/aussi-sur`);
+}
+
 export function decideMetadataProposal(
   id: number,
   accept: boolean,
