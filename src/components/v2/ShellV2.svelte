@@ -378,9 +378,14 @@
    * `vueDeRetour` porte le chemin du retour, comme pour la fiche artiste —
    * un seul mécanisme de retour dans cette coquille, pas deux.
    */
-  function ouvrirAlbumService(c: { service: string; albumId: string; titre: string }) {
+  function ouvrirAlbumService(c: { service: string; albumId: string; titre: string; pochette?: string | null }) {
     vueDeRetour.set('nowplaying');
-    ficheAlbumService.set({ service: c.service as any, id: c.albumId, titre: c.titre });
+    ficheAlbumService.set({
+      service: c.service as any,
+      id: c.albumId,
+      titre: c.titre,
+      pochette: c.pochette ?? null,
+    });
     activeView.set('streamingalbum');
   }
 
@@ -624,6 +629,8 @@
         <AlbumDetailV2
           album={{ id: null, title: $ficheAlbumService.titre,
                    source: $ficheAlbumService.service,
+                   // #1114 — sans elle, la fiche n'affiche que l'initiale.
+                   cover_path: $ficheAlbumService.pochette ?? null,
                    source_id: $ficheAlbumService.id } as any}
           service={$ficheAlbumService.service}
           onClose={fermerAlbumService} />

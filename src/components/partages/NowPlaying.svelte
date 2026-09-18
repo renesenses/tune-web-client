@@ -622,6 +622,10 @@
               service: ac.service,
               albumId: String(ac.album_id),
               titre: albumTitle ?? displayTrack?.album_title ?? '',
+              // #1114 — la pochette voyage avec l'album. Cet écran la tient
+              // déjà (c'est elle qui fait son fond flou) ; la fiche, elle, ne
+              // relit pas l'album distant et n'avait que l'initiale à montrer.
+              pochette: displayTrack?.cover_path ?? null,
             });
             return;
           }
