@@ -3010,6 +3010,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "Fără efect cât timp modul PURE este activ: setarea este păstrată și se reaplică la dezactivarea lui.",
   "dsp.crossfeedUnavailableProgressiveOff": "Deocamdată fără efect: pe o zonă de rețea, crossfeed-ul călătorește cu fluxul procesat pe măsură. Setați «Egalizator și procesare → rețea» pe «Pe măsură» în Setări pentru a-l auzi.",
   "dsp.crossfeedUnavailableNoLpcm": "Fără efect: acest player de rețea nu anunță că știe să citească PCM necomprimat, singurul format care transportă crossfeed-ul. Setarea este păstrată și va conta pentru altă ieșire.",
+  "dsp.crossfeedPremiumTransition": "Crossfeed face acum parte din Tune Premium. Setările sunt păstrate pentru reactivarea cu Premium.",
+  "dsp.crossfeedPluginUnavailable": "Extensia Crossfeed nu este disponibilă. Reactivați-o în Extensii; setările sunt păstrate.",
   "dsp.crossfeedUnavailable": "Fără efect pe această zonă.",
   "dsp.crossfeedTitle": "Crossfeed (căști)",
   "eq.againstWall": "Lângă perete",

@@ -3003,6 +3003,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "Senza effetto finché la modalità PURE è attiva: l'impostazione è conservata e riprenderà alla sua disattivazione.",
   "dsp.crossfeedUnavailableProgressiveOff": "Per ora senza effetto: su una zona di rete il crossfeed viaggia con il flusso elaborato man mano. Imposta «Equalizzatore ed elaborazione → rete» su «Man mano» nelle Impostazioni per sentirlo.",
   "dsp.crossfeedUnavailableNoLpcm": "Senza effetto: questo lettore di rete non dichiara di saper leggere il PCM non compresso, l'unico formato che trasporta il crossfeed. L'impostazione è conservata e varrà per un'altra uscita.",
+  "dsp.crossfeedPremiumTransition": "Crossfeed ora fa parte di Tune Premium. Le impostazioni vengono conservate per la riattivazione con Premium.",
+  "dsp.crossfeedPluginUnavailable": "Il plugin Crossfeed non è disponibile. Riattivalo in Plugin; le impostazioni vengono conservate.",
   "dsp.crossfeedUnavailable": "Senza effetto su questa zona.",
   "dsp.crossfeedTitle": "Crossfeed (cuffie)",
   "eq.againstWall": "Contro il muro",

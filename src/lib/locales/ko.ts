@@ -2978,6 +2978,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "PURE 모드가 켜져 있는 동안은 효과가 없습니다: 설정은 유지되며 PURE를 끄면 다시 적용됩니다.",
   "dsp.crossfeedUnavailableProgressiveOff": "현재는 효과가 없습니다: 네트워크 존에서 크로스피드는 순차 처리되는 스트림에 실려 전달됩니다. 설정에서 ‘이퀄라이저 및 처리 → 네트워크’를 ‘순차 전송’으로 바꾸면 들립니다.",
   "dsp.crossfeedUnavailableNoLpcm": "효과가 없습니다: 이 네트워크 플레이어는 비압축 PCM을 읽을 수 있다고 알리지 않습니다. 크로스피드를 전달하는 형식은 그것뿐입니다. 설정은 유지되며 다른 출력에서 적용됩니다.",
+  "dsp.crossfeedPremiumTransition": "크로스피드는 이제 Tune Premium 기능입니다. 설정은 보존되며 Premium에서 다시 활성화하면 사용할 수 있습니다.",
+  "dsp.crossfeedPluginUnavailable": "크로스피드 플러그인을 사용할 수 없습니다. 플러그인에서 다시 활성화하세요. 설정은 보존됩니다.",
   "dsp.crossfeedUnavailable": "이 존에서는 효과가 없습니다.",
   "dsp.crossfeedTitle": "크로스피드(헤드폰)",
   "eq.againstWall": "벽에 붙임",

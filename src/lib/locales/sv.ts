@@ -2954,6 +2954,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "Ingen effekt så länge PURE-läget är på: inställningen sparas och återupptas när PURE stängs av.",
   "dsp.crossfeedUnavailableProgressiveOff": "Ingen effekt än: i en nätverkszon följer crossfeed med strömmen som bearbetas löpande. Ställ ”EQ och bearbetning → nätverk” på ”Löpande” i Inställningar för att höra den.",
   "dsp.crossfeedUnavailableNoLpcm": "Ingen effekt: den här nätverksspelaren anger inte att den kan läsa okomprimerad PCM, det enda format som bär crossfeed. Inställningen sparas och gäller för en annan utgång.",
+  "dsp.crossfeedPremiumTransition": "Crossfeed ingår nu i Tune Premium. Dina inställningar sparas tills du återaktiverar det med Premium.",
+  "dsp.crossfeedPluginUnavailable": "Crossfeed-tillägget är inte tillgängligt. Återaktivera det under Tillägg; dina inställningar sparas.",
   "dsp.crossfeedUnavailable": "Ingen effekt i den här zonen.",
   "dsp.crossfeedTitle": "Crossfeed (hörlurar)",
   "eq.againstWall": "Mot väggen",

@@ -1341,6 +1341,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "Hatástalan, amíg a PURE mód aktív: a beállítás megmarad, és a PURE kikapcsolásakor újra érvényesül.",
   "dsp.crossfeedUnavailableProgressiveOff": "Egyelőre hatástalan: hálózati zónában a crossfeed a folyamatosan feldolgozott adatfolyammal utazik. Állítsa a „Hangszínszabályzó és feldolgozás → hálózat” beállítást „Folyamatosan” értékre a Beállításokban, hogy hallja.",
   "dsp.crossfeedUnavailableNoLpcm": "Hatástalan: ez a hálózati lejátszó nem jelzi, hogy tudna tömörítetlen PCM-et olvasni, pedig csak az a formátum viszi a crossfeedet. A beállítás megmarad, és egy másik kimenetnél érvényesül.",
+  "dsp.crossfeedPremiumTransition": "A Crossfeed mostantól a Tune Premium része. A beállítások megmaradnak a Premiummal történő újraaktiváláshoz.",
+  "dsp.crossfeedPluginUnavailable": "A Crossfeed bővítmény nem érhető el. Aktiválja újra a Bővítmények között; a beállítások megmaradnak.",
   "dsp.crossfeedUnavailable": "Ebben a zónában hatástalan.",
   // Bevezető
   "onboarding.welcomeTitle": "Üdvözöl a Tune Server",

@@ -1317,6 +1317,11 @@
         </div>
       </div>
     </section>
+  {:else}
+    <section class="crossfeed">
+      <h2 class="crossfeed-title">{$t('dsp.crossfeedTitle')}</h2>
+      <p class="crossfeed-desc crossfeed-indispo">{$t('dsp.crossfeedPremiumTransition')}</p>
+    </section>
   {/if}
 </section>
 

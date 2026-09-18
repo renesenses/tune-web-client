@@ -1383,6 +1383,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "No effect while PURE mode is on: the setting is kept and resumes once PURE is off.",
   "dsp.crossfeedUnavailableProgressiveOff": "No effect for now: on a network zone, crossfeed travels with the stream processed as it goes. Set “EQ and processing → network” to “Streamed” in Settings to hear it.",
   "dsp.crossfeedUnavailableNoLpcm": "No effect: this network player does not advertise that it can read uncompressed PCM, the only format that carries crossfeed. The setting is kept and will apply to another output.",
+  "dsp.crossfeedPremiumTransition": "Crossfeed is now part of Tune Premium. Your settings are kept for when you reactivate it with Premium.",
+  "dsp.crossfeedPluginUnavailable": "The crossfeed plugin is unavailable. Reactivate it in Plugins; your settings are kept.",
   "dsp.crossfeedUnavailable": "No effect on this zone.",
 
   // Onboarding

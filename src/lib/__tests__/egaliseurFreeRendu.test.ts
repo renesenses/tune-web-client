@@ -67,6 +67,7 @@ describe('égaliseur FREE réellement monté', () => {
     await expert();
     expect(host.querySelector('.premium-gate')).toBeNull();
     expect(host.querySelector('.crossfeed-toggle')).toBeNull();
+    expect(host.querySelector('.crossfeed')?.textContent).toContain('Vos réglages sont conservés');
     await moveBand();
     const request = writes.find(w => w.url.endsWith('/zones/1/eq'));
     expect(request?.body.bands[0].gain).toBe(3);

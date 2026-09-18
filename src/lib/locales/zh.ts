@@ -3003,6 +3003,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "PURE 模式开启期间无效：设置会保留，关闭 PURE 后恢复生效。",
   "dsp.crossfeedUnavailableProgressiveOff": "目前无效：在网络区域，交叉馈送随边处理边发送的音频流传输。请在设置中把“均衡器与处理 → 网络”设为“边处理边发送”即可听到。",
   "dsp.crossfeedUnavailableNoLpcm": "无效：该网络播放器未声明能够读取未压缩 PCM，而只有该格式能承载交叉馈送。设置会保留，并在其他输出上生效。",
+  "dsp.crossfeedPremiumTransition": "Crossfeed 现已成为 Tune Premium 功能。您的设置会保留，使用 Premium 重新启用后即可恢复。",
+  "dsp.crossfeedPluginUnavailable": "Crossfeed 插件不可用。请在插件页面重新启用；您的设置会保留。",
   "dsp.crossfeedUnavailable": "在此区域无效。",
   "dsp.crossfeedTitle": "交叉馈送（耳机）",
   "eq.againstWall": "贴墙摆放",

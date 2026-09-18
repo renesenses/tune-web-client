@@ -3003,6 +3003,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "Ohne Wirkung, solange der PURE-Modus aktiv ist: Die Einstellung bleibt erhalten und greift wieder, sobald PURE aus ist.",
   "dsp.crossfeedUnavailableProgressiveOff": "Derzeit ohne Wirkung: In einer Netzwerkzone reist Crossfeed mit dem im Fluss verarbeiteten Stream. Stellen Sie „EQ und Verarbeitung → Netzwerk“ in den Einstellungen auf „Im Fluss“, um ihn zu hören.",
   "dsp.crossfeedUnavailableNoLpcm": "Ohne Wirkung: Dieser Netzwerkplayer gibt nicht an, unkomprimiertes PCM lesen zu können – das einzige Format, das Crossfeed überträgt. Die Einstellung bleibt erhalten und gilt für einen anderen Ausgang.",
+  "dsp.crossfeedPremiumTransition": "Crossfeed gehört jetzt zu Tune Premium. Ihre Einstellungen bleiben für die erneute Aktivierung mit Premium erhalten.",
+  "dsp.crossfeedPluginUnavailable": "Das Crossfeed-Plugin ist nicht verfügbar. Aktivieren Sie es unter Plugins erneut; Ihre Einstellungen bleiben erhalten.",
   "dsp.crossfeedUnavailable": "Ohne Wirkung in dieser Zone.",
   "dsp.crossfeedTitle": "Crossfeed (Kopfhörer)",
   "eq.againstWall": "An der Wand",

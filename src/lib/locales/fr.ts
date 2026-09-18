@@ -1394,6 +1394,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "Sans effet tant que le mode PURE est actif : le réglage est conservé et reprendra dès sa désactivation.",
   "dsp.crossfeedUnavailableProgressiveOff": "Sans effet pour l'instant : sur une zone réseau, le crossfeed voyage avec le flux traité au fil de l'eau. Réglez « Égaliseur et traitements → réseau » sur « Au fil de l'eau » dans les Réglages pour l'entendre.",
   "dsp.crossfeedUnavailableNoLpcm": "Sans effet : ce lecteur réseau n'annonce pas savoir lire le PCM non compressé, le seul format qui transporte le crossfeed. Le réglage est conservé et vaudra pour une autre sortie.",
+  "dsp.crossfeedPremiumTransition": "Le crossfeed fait désormais partie de Tune Premium. Vos réglages sont conservés pour sa réactivation avec Premium.",
+  "dsp.crossfeedPluginUnavailable": "Le greffon crossfeed est indisponible. Réactivez-le dans les greffons ; vos réglages sont conservés.",
   "dsp.crossfeedUnavailable": "Sans effet sur cette zone.",
 
   // Onboarding

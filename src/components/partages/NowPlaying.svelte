@@ -1937,6 +1937,9 @@
           {/if}
           {#if showDspMenu}
             <div class="np-crossfeed">
+              {#if cfIndispo.motif === 'premium_required'}
+                <p class="cf-note cf-note-alerte">{$t('dsp.crossfeedPremiumTransition')}</p>
+              {:else}
               <div class="cf-ligne">
                 <label class="cf-bascule">
                   <input
@@ -1998,6 +2001,7 @@
                 <!-- Le serveur dit que le reglage n'a pas atteint le flux en
                      cours : le taire, c'est laisser croire a une panne. -->
                 <p class="cf-note cf-note-alerte">{$t('eq.effectNextTrack')}</p>
+              {/if}
               {/if}
             </div>
           {/if}

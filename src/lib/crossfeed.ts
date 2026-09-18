@@ -104,6 +104,10 @@ export function indisponibiliteCrossfeed(
  *  honnête, pas une clé manquante affichée telle quelle. */
 export function cleIndisponibiliteCrossfeed(motif: string): string {
   switch (motif) {
+    case 'premium_required':
+      return 'dsp.crossfeedPremiumTransition';
+    case 'plugin_unavailable':
+      return 'dsp.crossfeedPluginUnavailable';
     case 'non_local_output':
       return 'dsp.crossfeedUnavailableNetwork';
     case 'pure_mode':
