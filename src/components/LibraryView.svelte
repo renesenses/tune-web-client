@@ -37,6 +37,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import MetadataChips from './partages/MetadataChips.svelte';
   import type { Album, Artist, Track, TrackCredit, UserTag } from '../lib/types';
   import { t as tr, locale } from '../lib/i18n';
+  import { paliersDeFrequence, nommerFrequence, type LibelleServi } from '../lib/libellesFrequence';
   // #914 — l'infobulle ne s'affiche que si le texte DÉBORDE vraiment,
   // et suit les changements de taille et de contenu (`lib/infobulleTexte`).
   import { bulleTexte } from '../lib/infobulleTexte';
@@ -1036,9 +1037,20 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   /// « 44.1kHz », « 48kHz », « 176.4kHz » — une decimale seulement quand elle
   /// existe. Meme regle que la ligne de qualite d'un album, pour que la
   /// vignette et le badge disent la meme chose.
+  ///
+  /// 🔴 #1074 — les paliers DSD, quand le serveur les nomme. Une bibliothèque
+  /// DSD affichait ici `2822.4kHz` : vrai, et illisible. Le serveur rend
+  /// `DSD64` depuis la v0.9.155 (tune-server-rust#4171) ; sans lui, la forme
+  /// arithmétique d'avant est conservée telle quelle.
+  let libellesServis = $state<LibelleServi[]>([]);
+  $effect(() => {
+    let vivant = true;
+    api.getSampleRateLabels().then((l) => { if (vivant) libellesServis = l; });
+    return () => { vivant = false; };
+  });
+  const paliersFrequence = $derived(paliersDeFrequence(libellesServis, $locale));
   function formatSampleRate(sr: number): string {
-    if (sr < 1000) return `${sr}Hz`;
-    return `${(sr / 1000).toFixed(sr % 1000 === 0 ? 0 : 1)}kHz`;
+    return nommerFrequence(sr, paliersFrequence);
   }
 
   let albumSampleRates = $derived(

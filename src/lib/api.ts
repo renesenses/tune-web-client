@@ -11,6 +11,7 @@ import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
+import type { LibelleServi } from './libellesFrequence';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -1609,6 +1610,27 @@ export async function getAlbumDynamicRanges(): Promise<number[]> {
   } catch {
     // Un serveur antérieur à la v0.9.130 ne connaît pas la clé : pas de
     // commande, pas d'erreur à l'écran.
+    return [];
+  }
+}
+
+/**
+ * Les paliers de fréquence NOMMÉS par le serveur (#1074).
+ *
+ * `sample_rate_labels` arrive avec tune-server-rust#4171 (v0.9.155). Un
+ * serveur antérieur ne connaît pas la clé : on rend une liste vide, et le
+ * client retombe sur sa liste figée — le filtre PCM continue de marcher comme
+ * avant, sans un mot d'erreur à l'écran. Même repli que
+ * `getAlbumDynamicRanges` ci-dessus.
+ */
+export async function getSampleRateLabels(): Promise<LibelleServi[]> {
+  try {
+    const raw = await fetchJSON<any>(`${BASE}/library/albums/filters`);
+    const vals = Array.isArray(raw?.sample_rate_labels) ? raw.sample_rate_labels : [];
+    return vals
+      .filter((x: any) => x && Number.isFinite(Number(x.value)))
+      .map((x: any) => ({ value: Number(x.value), label: String(x.label ?? x.value), dsd: !!x.dsd }));
+  } catch {
     return [];
   }
 }
