@@ -22,6 +22,7 @@
   // habillage. Il est habillé par le conteneur, voir `.gt-v2`.
   import GenreTreeView from '../v2-heritage/GenreTreeView.svelte';
   import ManquantsV2 from './ManquantsV2.svelte';
+  import { artisteApresFusion } from '../../lib/compilationArtiste';
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
@@ -215,6 +216,51 @@
       .slice(0, 300);
   });
 
+  /**
+   * Les résultats REGROUPÉS par titre d'album.
+   *
+   * 🔴 Sans ce regroupement, taper « coco » sortait 23 lignes en vrac — et
+   * c'étaient DEUX compilations, « Club Coco ¡AHORA! » et « New Dimensions ».
+   * Un « Tout cocher » suivi de « Réunir » les aurait fondues en un seul
+   * disque. L'écran doit montrer ce qui va ensemble, pas une liste plate.
+   */
+  let cpGroupes = $derived.by(() => {
+    const par = new Map<string, { titre: string; albums: AlbumDetailed[] }>();
+    for (const a of cpAlbums) {
+      const cle = pliage(a.title ?? '');
+      let g = par.get(cle);
+      if (!g) { g = { titre: a.title ?? '—', albums: [] }; par.set(cle, g); }
+      g.albums.push(a);
+    }
+    return [...par.values()].sort(
+      (x, y) => y.albums.length - x.albums.length || x.titre.localeCompare(y.titre),
+    );
+  });
+
+  /** Les titres distincts présents dans la sélection. */
+  function titresChoisis(): string[] {
+    const t = new Set<string>();
+    for (const a of cpTous) if (cpChoisis.has(a.album_id)) t.add(pliage(a.title ?? ''));
+    return [...t];
+  }
+
+  /**
+   * Réunir n'a de sens que DANS un groupe. Une sélection à cheval sur deux
+   * titres fondrait deux disques différents — et c'est irréversible.
+   */
+  let cpMelange = $derived(cpChoisis.size > 0 && titresChoisis().length > 1);
+
+  function cocherGroupe(g: { albums: AlbumDetailed[] }) {
+    const ids = g.albums.map((a) => a.album_id);
+    const tous = ids.every((id) => cpChoisis.has(id));
+    const s = new Set(cpChoisis);
+    // Cocher un groupe REMPLACE la sélection : additionner deux groupes est
+    // précisément le geste qu'on veut rendre impossible par accident.
+    if (tous) { cpChoisis = new Set(); } else { cpChoisis = new Set(ids); }
+    void s;
+    arme = null;
+  }
+
   // Une sélection qui survivrait au changement de recherche agirait sur des
   // albums qu'on ne voit plus à l'écran.
   $effect(() => {
@@ -234,10 +280,7 @@
     cpChoisis = s;
     arme = null;
   }
-  function toutCocher() {
-    cpChoisis = cpChoisis.size === cpAlbums.length ? new Set() : new Set(cpAlbums.map((a) => a.album_id));
-    arme = null;
-  }
+
 
   /** Les albums cochés, le plus fourni en tête — l'ordre de lecture naturel. */
   function idsChoisisCiblePremiere(): number[] {
@@ -282,6 +325,15 @@
       // dans `master_id`.
       await api.batchUpdateAlbums(ids, { is_compilation: true });
       const r = await api.mergeAlbums(ids);
+      // 🔴 C2 — la fusion garde l'artiste du disque MAÎTRE. La règle et son
+      // pourquoi vivent dans `compilationArtiste.ts`, avec ses épreuves.
+      const aPoser = artisteApresFusion(
+        cpTous.filter((a) => ids.includes(a.album_id)).map((a) => a.album_artist),
+      );
+      if (aPoser && r.master_id != null) {
+        await api.batchUpdateAlbums([r.master_id], { artist_name: aPoser });
+        cpTous = cpTous.map((a) => (a.album_id === r.master_id ? { ...a, album_artist: aPoser } : a));
+      }
       cpTous = cpTous.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: true } : a));
       cpBilan = $t('v2.meta.compilMerged' as any)
         .replace('{moved}', String(r.tracks_moved))
@@ -575,8 +627,8 @@
         <div class="state">{cpQuery.trim().length < 2 ? $t('v2.meta.compilStart' as any) : $t('v2.meta.compilNone' as any)}</div>
       {:else}
         <div class="cpacts">
-          <button class="lnk" onclick={toutCocher}>
-            {cpChoisis.size === cpAlbums.length ? $t('v2.meta.compilNoneSel' as any) : $t('v2.meta.compilAll' as any).replace('{count}', String(cpAlbums.length))}
+          <button class="lnk" onclick={() => { cpChoisis = new Set(); arme = null; }} disabled={!cpChoisis.size}>
+            {$t('v2.meta.compilNoneSel' as any)}
           </button>
           <button class="go" onclick={() => marquerCompil(true)} disabled={cpBusy || !cpChoisis.size}>
             {$t('v2.meta.compilMark' as any)} ({cpChoisis.size})
@@ -584,30 +636,40 @@
           <button class="lnk" onclick={() => marquerCompil(false)} disabled={cpBusy || !cpChoisis.size}>
             {$t('v2.meta.compilUnmark' as any)}
           </button>
-          <button class="lnk" class:armed={arme === 'cp:reunir'} onclick={reunirCompil} disabled={cpBusy || cpChoisis.size < 2}>
+          <button class="lnk" class:armed={arme === 'cp:reunir'} onclick={reunirCompil} disabled={cpBusy || cpChoisis.size < 2 || cpMelange}>
             {arme === 'cp:reunir' ? $t('v2.meta.confirm' as any) : $t('v2.meta.compilMerge' as any)}
           </button>
           <button class="lnk" class:armed={arme === 'cp:graver'} title={$t('v2.meta.compilBurnHint' as any)} onclick={graverCompil} disabled={cpBusy || !cpChoisis.size}>
             {arme === 'cp:graver' ? $t('v2.meta.confirm' as any) : $t('v2.meta.compilBurn' as any)}
           </button>
         </div>
+        {#if cpMelange}<p class="note avert">{$t('v2.meta.compilMixed' as any)}</p>{/if}
         {#if cpBilan}<p class="note">{cpBilan}</p>{/if}
         {#if cpErr}<div class="errline">{cpErr}</div>{/if}
-        <div class="list">
-          {#each cpAlbums as a (a.album_id)}
-            <label class="prop cprow">
-              <input type="checkbox" checked={cpChoisis.has(a.album_id)} onchange={() => cocher(a.album_id)} />
-              <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.album_id} size={0} alt={a.title ?? ''} fallbackInitials={a.title?.slice(0,1)} /></span>
-              <span class="pw">
-                <span class="pt">{a.title ?? '—'}{#if a.album_artist}<em>{a.album_artist}</em>{/if}</span>
-                <span class="sub">
-                  {$t('v2.meta.compilTracks' as any).replace('{count}', $formatNombre(a.track_count))}
-                  {#if a.is_compilation}<span class="cpflag">{$t('v2.album.compilation' as any)}</span>{/if}
+        {#each cpGroupes as g (g.titre)}
+          <div class="cpgh">
+            <span class="cpgt">{g.titre}</span>
+            <span class="cpgn">{$t('v2.meta.compilGroup' as any).replace('{count}', $formatNombre(g.albums.length))}</span>
+            <button class="lnk sm" onclick={() => cocherGroupe(g)}>
+              {g.albums.every((a) => cpChoisis.has(a.album_id)) ? $t('v2.meta.compilNoneSel' as any) : $t('v2.meta.compilSelectGroup' as any)}
+            </button>
+          </div>
+          <div class="list">
+            {#each g.albums as a (a.album_id)}
+              <label class="prop cprow">
+                <input type="checkbox" checked={cpChoisis.has(a.album_id)} onchange={() => cocher(a.album_id)} />
+                <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.album_id} size={0} alt={a.title ?? ''} fallbackInitials={a.title?.slice(0,1)} /></span>
+                <span class="pw">
+                  <span class="pt">{a.album_artist ?? '—'}</span>
+                  <span class="sub">
+                    {$t('v2.meta.compilTracks' as any).replace('{count}', $formatNombre(a.track_count))}
+                    {#if a.is_compilation}<span class="cpflag">{$t('v2.album.compilation' as any)}</span>{/if}
+                  </span>
                 </span>
-              </span>
-            </label>
-          {/each}
-        </div>
+              </label>
+            {/each}
+          </div>
+        {/each}
       {/if}
 
     {:else if dLoading}
@@ -685,6 +747,12 @@
     font:12.5px var(--v2-sans)}
   .cpq:focus{outline:none; border-color:var(--v2-acc2)}
   .cpacts{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px}
+  /* En-tête de groupe : le titre porte le regroupement, la ligne ne répète
+     donc que l'artiste — c'est lui qui change d'une ligne à l'autre. */
+  .cpgh{display:flex; align-items:baseline; gap:10px; margin:16px 0 6px; flex-wrap:wrap}
+  .cpgt{font:600 13.5px var(--v2-sans); color:var(--v2-txt)}
+  .cpgn{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .note.avert{color:var(--v2-acc-tint)}
   /* Armé = le prochain clic agit. `.grp .lnk.armed` ne porte pas jusqu'ici :
      ces boutons ne sont pas dans une carte de groupe. */
   .cpacts .lnk.armed{font-weight:700; border-color:var(--v2-acc2); color:var(--v2-acc-tint)}

@@ -22,10 +22,16 @@
 //    écrivent sur le disque ;
 //  - une nouvelle recherche vide la sélection — sinon le geste porte sur des
 //    albums qu'on ne voit plus ;
-//  - les dix-sept libellés existent dans les onze langues.
+//  - les résultats sont REGROUPÉS par titre, et réunir refuse une sélection
+//    à cheval sur deux titres — sur « coco », 23 lignes pour DEUX compilations ;
+//  - après une fusion dont les artistes divergent, l'album passe sous
+//    « Various Artists » (C2) : la fusion garde sinon l'artiste du maître, et
+//    les douze Coco María sont ressorties sous « Ronald Snijders », un invité ;
+//  - les dix-neuf libellés existent dans les onze langues.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { artisteApresFusion } from '../compilationArtiste';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const sansCommentaires = (s: string) =>
@@ -140,13 +146,77 @@ describe('poser le tag compilation depuis Métadonnées', () => {
     expect(vue.slice(j, j + 200)).toContain('cpChoisis.size < 2');
   });
 
-  it('les dix-sept libellés existent dans les onze langues', () => {
+  it('🔴 les résultats sont regroupés par titre', () => {
+    // Taper « coco » sort 23 lignes sur la bibliothèque de Bertrand — et ce
+    // sont DEUX compilations. En liste plate, « Tout cocher » puis « Réunir »
+    // les fondait en un seul disque, sans retour possible.
+    const i = vue.indexOf('let cpGroupes = $derived.by(');
+    expect(i).toBeGreaterThan(-1);
+    const corps = vue.slice(i, vue.indexOf('\n  });', i));
+    expect(corps).toContain("pliage(a.title ?? '')");
+    expect(vue).toContain('{#each cpGroupes as g (g.titre)}');
+    // Et le « tout cocher » global a disparu : on coche un groupe, pas l'écran.
+    expect(vue).not.toContain('toutCocher');
+  });
+
+  it('réunir refuse une sélection à cheval sur deux titres', () => {
+    const i = vue.indexOf('let cpMelange = $derived(');
+    expect(i).toBeGreaterThan(-1);
+    expect(vue.slice(i, i + 160)).toContain('titresChoisis().length > 1');
+    // Le bouton doit VRAIMENT être inerte, pas seulement le message affiché.
+    const j = vue.indexOf("class:armed={arme === 'cp:reunir'}");
+    expect(j).toBeGreaterThan(-1);
+    expect(vue.slice(j, j + 220)).toContain('cpMelange');
+  });
+
+  it('🔴 C2 — l’écran repose l’artiste après la fusion', () => {
+    // La règle elle-même est éprouvée pour de vrai plus bas ; ici on tient
+    // seulement le fait qu'elle est BRANCHÉE, et sur le résultat de la fusion.
+    const i = vue.indexOf('async function reunirCompil(');
+    const corps = vue.slice(i, vue.indexOf('\n  }', i));
+    expect(corps).toContain('artisteApresFusion(');
+    expect(corps).toContain('artist_name: aPoser');
+    // La condition EXACTE, et rien d'autre devant : un `false &&` glissé là
+    // laissait tous les mots en place et la garde passait au vert.
+    expect(corps).toContain('if (aPoser && r.master_id != null) {');
+  });
+
+  it('les dix-neuf libellés existent dans les onze langues', () => {
     const cles = ['tabCompil','compilIntro','compilSearch','compilStart','compilNone',
-      'compilAll','compilNoneSel','compilMark','compilUnmark','compilMerge','compilBurn',
+      'compilGroup','compilSelectGroup','compilMixed',
+      'compilNoneSel','compilMark','compilUnmark','compilMerge','compilBurn',
       'compilBurnHint','compilTracks','compilMarked','compilMerged','compilBurned','compilUnavail'];
     for (const l of ['de','en','es','fr','hu','it','ja','ko','ro','sv','zh']) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const c of cles) expect(src, `${l} : v2.meta.${c}`).toContain(`"v2.meta.${c}":`);
     }
+  });
+});
+
+// La règle C2 elle-même — éprouvée sur des valeurs, pas sur du texte.
+//
+// 🔴 Ce bloc existe parce qu'une garde TEXTUELLE ne l'attrapait pas : on peut
+// changer la façon dont la liste d'artistes est calculée sans toucher une
+// ligne que le `grep` surveille, et le sabotage passait au vert.
+describe('artisteApresFusion — C2', () => {
+  it('plusieurs artistes distincts ⇒ Various Artists', () => {
+    // Le cas Coco María : douze lignes, douze invités.
+    expect(artisteApresFusion(['Acid Coco', 'Los Pirañas', 'Ronald Snijders'])).toBe('Various Artists');
+  });
+
+  it('un seul artiste ⇒ on ne touche à rien', () => {
+    // Le coffret d'un chef (les 63 CD de Fritz Reiner, #3855) : lui reprendre
+    // son nom serait la régression que C2 interdit explicitement.
+    expect(artisteApresFusion(['Fritz Reiner', 'Fritz Reiner', 'Fritz Reiner'])).toBeNull();
+  });
+
+  it('aucun artiste ⇒ on n’invente rien', () => {
+    expect(artisteApresFusion([null, undefined, '', '   '])).toBeNull();
+  });
+
+  it('les lignes sans artiste ne comptent pas pour un artiste de plus', () => {
+    // Sinon un coffret dont une ligne a perdu son artiste basculerait à tort
+    // en « Various Artists ».
+    expect(artisteApresFusion(['Fritz Reiner', '', null, '  Fritz Reiner  '])).toBeNull();
   });
 });
