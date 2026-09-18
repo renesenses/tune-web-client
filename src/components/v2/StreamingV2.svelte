@@ -38,6 +38,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
+  import { ouvrirArtisteDepuis, artisteDeService } from '../../lib/ouvrirArtisteDepuis';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
@@ -1185,10 +1186,18 @@
   voyait justement parce qu'il etait en favori.
 -->
 {#snippet artiste(ar: any)}
+  <!--
+    #1194 — FabienM, fil 1839, point 9 : « les vignettes d'artiste ne sont pas
+    cliquables ». La vignette ne recevait AUCUN geste d'ouverture, et le nom
+    était un `<span>`. `artisteDeService` réconcilie au passage `id` et
+    `source_id`, que les routes ne nomment pas pareil.
+  -->
+  {@const cible = artisteDeService(ar, active)}
   <div class="art">
     <span class="acv">
       <PochetteActions
         nom={ar.name}
+        onOuvrir={cible ? () => ouvrirArtisteDepuis(cible, 'streaming') : null}
         favoriExterne={favoriExterneService($favoriteStreamingKeys, {
           itemType: 'artist',
           service: ar?.source ?? active ?? '',
@@ -1206,7 +1215,11 @@
           source={ar?.source ?? active} fallbackInitials={ar.name?.slice(0,1)} />
       </PochetteActions>
     </span>
-    <span class="an" title={ar.name}>{ar.name}</span>
+    {#if cible}
+      <button class="an anbtn" title={ar.name} onclick={() => ouvrirArtisteDepuis(cible, 'streaming')}>{ar.name}</button>
+    {:else}
+      <span class="an" title={ar.name}>{ar.name}</span>
+    {/if}
   </div>
 {/snippet}
 
@@ -1404,6 +1417,9 @@
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .card{position:relative; display:flex; flex-direction:column}
+  /* #1194 — le nom devient un bouton : il garde EXACTEMENT l'allure du texte. */
+  .anbtn{background:none; border:none; padding:0; font:inherit; color:inherit; text-align:inherit; cursor:pointer}
+  .anbtn:hover{text-decoration:underline}
   /* Point 10 — la date d'un album annoncé, en clair sous son titre. */
   .cp{font:600 11px var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
