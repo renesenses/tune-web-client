@@ -26,8 +26,18 @@
     enregistrer: (valeurs: { name: string; description: string }) => Promise<unknown>;
     onClose: () => void;
     onSaved?: (valeurs: { name: string; description: string }) => void;
+    /**
+     * Supprimer l'objet édité. ABSENT = pas de bouton — c'est le cas de tous
+     * les appelants sauf les collections (#1143).
+     *
+     * La modale ne supprime PAS elle-même : elle ne connaît ni la route ni la
+     * sorte de l'objet (une collection manuelle et une intelligente n'ont ni
+     * l'une ni l'autre, et leurs identifiants se recouvrent). Elle rend le
+     * geste, l'appelant le tient — confirmation comprise.
+     */
+    supprimer?: (() => void | Promise<void>) | null;
   }
-  let { titre, nom, description = '', enregistrer, onClose, onSaved }: Props = $props();
+  let { titre, nom, description = '', enregistrer, onClose, onSaved, supprimer = null }: Props = $props();
 
   let saisieNom = $state(nom);
   let saisieDesc = $state(description ?? '');
@@ -81,6 +91,15 @@
         <textarea bind:value={saisieDesc} rows="3"></textarea>
       </label>
       <div class="pied">
+        <!-- À GAUCHE, séparée des deux autres : une action destructrice ne se
+             range pas à côté d'« Enregistrer », là où le pouce va tout seul.
+             C'est aussi ICI que FabienM l'a cherchée (#1143) — il a ouvert la
+             modale d'édition avant de regarder la vignette, deux fois. -->
+        {#if supprimer}
+          <button type="button" class="danger" onclick={() => void supprimer!()}>
+            {$t('common.delete' as any)}
+          </button>
+        {/if}
         <button type="button" class="sec" onclick={onClose}>{$t('common.cancel' as any)}</button>
         <button type="submit" class="pri" disabled={travail || !saisieNom.trim() || !modifie}>
           {$t('common.save' as any)}
@@ -138,4 +157,11 @@
   .sec:hover { color: var(--v2-txt); }
   .pri { border: 0; background: var(--v2-acc1); color: var(--v2-on-acc); }
   .pri:disabled { opacity: .5; cursor: default; }
+  /* `margin-right:auto` la pousse seule à gauche sans changer l'alignement
+     des deux autres. */
+  .danger {
+    margin-right: auto;
+    border: 1px solid var(--v2-danger-bd); background: transparent; color: var(--v2-danger);
+  }
+  .danger:hover { background: var(--v2-danger-soft); }
 </style>
