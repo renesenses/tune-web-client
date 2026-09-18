@@ -3199,6 +3199,33 @@ export interface ScanReport {
   missing_dir_reasons?: string[];
   error_dirs?: string[];
   failed_paths?: string[];
+  /**
+   * Ce que le scan a ÉCARTÉ, nommément — #1068, livré côté serveur en v0.9.144
+   * et v0.9.146 (tune-server-rust#2060).
+   *
+   * 🔴 Ces listes ne sortent QUE par le fichier de rapport, donc par CETTE
+   * route : l'événement `library.scan.completed` est diffusé à tous les
+   * clients connectés, et ce sont des chemins de l'utilisateur.
+   *
+   * `skipped_paths_truncated` dit qu'au moins une liste a atteint son plafond.
+   * Voir `lib/rapportEcartes`.
+   */
+  skipped_unsupported_paths?: string[];
+  skipped_no_metadata_paths?: string[];
+  skipped_duplicate_paths?: string[];
+  skipped_empty_file_paths?: string[];
+  /** « chemin (motif) », une entrée par feuille CUE écartée. */
+  cue_sheets_skipped_paths?: string[];
+  skipped_paths_truncated?: boolean;
+  cue_sheets?: {
+    folders?: number;
+    albums?: number;
+    sheets_used?: number;
+    tracks?: number;
+    sheets_skipped?: number;
+    /** motif → nombre de feuilles écartées pour ce motif. */
+    sheets_skipped_by_reason?: Record<string, number>;
+  };
 }
 
 export function getScanReport() {
