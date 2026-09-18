@@ -4011,6 +4011,8 @@ export default {
   "v2.pl.namePlaceholder": "Name der Playlist",
   "v2.pl.loading": "Playlists werden geladen…",
   "v2.queue.clear": "Warteschlange leeren",
+  "v2.queue.clearUpNext": "Folgendes leeren",
+  "v2.queue.clearUpNextTip": "Entfernt alles nach dem aktuellen Titel, ohne die Wiedergabe zu stoppen.",
   "v2.queue.loading": "Warteschlange wird geladen…",
   "v2.queue.noZone": "Keine aktive Zone — wählen Sie eine Zone, um ihre Warteschlange zu sehen.",
   "v2.queue.empty": "Die Warteschlange ist leer.",

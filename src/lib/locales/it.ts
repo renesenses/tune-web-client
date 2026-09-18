@@ -4011,6 +4011,8 @@ export default {
   "v2.pl.namePlaceholder": "Nome della playlist",
   "v2.pl.loading": "Caricamento delle playlist…",
   "v2.queue.clear": "Svuota la coda",
+  "v2.queue.clearUpNext": "Svuota i successivi",
+  "v2.queue.clearUpNextTip": "Rimuove tutto ciò che segue il brano corrente, senza interrompere la riproduzione.",
   "v2.queue.loading": "Caricamento della coda…",
   "v2.queue.noZone": "Nessuna zona attiva — scegli una zona per vederne la coda.",
   "v2.queue.empty": "La coda è vuota.",

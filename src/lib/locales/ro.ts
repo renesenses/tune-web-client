@@ -4011,6 +4011,8 @@ export default {
   "v2.pl.namePlaceholder": "Numele listei",
   "v2.pl.loading": "Se încarcă listele…",
   "v2.queue.clear": "Golește coada",
+  "v2.queue.clearUpNext": "Golește continuarea",
+  "v2.queue.clearUpNextTip": "Elimină tot ce urmează după piesa curentă, fără a opri redarea.",
   "v2.queue.loading": "Se încarcă coada…",
   "v2.queue.noZone": "Nicio zonă activă — alegeți o zonă pentru a-i vedea coada.",
   "v2.queue.empty": "Coada este goală.",
