@@ -239,15 +239,7 @@
     arme = null;
   }
 
-  /**
-   * Les albums cochés, le plus fourni EN TÊTE.
-   *
-   * 🔴 Le serveur fait survivre le PREMIER identifiant de la liste à une
-   * fusion (`album_cible = album_ids[0]`). Envoyer l'ordre de cochage ferait
-   * dépendre le disque gardé du geste de l'utilisateur — et sur Coco María,
-   * onze albums d'une piste, ce serait le hasard. On range donc comme
-   * `cibleAlbum` le fait pour les doublons : celui qui porte le plus.
-   */
+  /** Les albums cochés, le plus fourni en tête — l'ordre de lecture naturel. */
   function idsChoisisCiblePremiere(): number[] {
     return cpAlbums
       .filter((a) => cpChoisis.has(a.album_id))
@@ -261,11 +253,14 @@
     const ids = idsChoisisCiblePremiere();
     cpBusy = true;
     try {
-      // `fusionner: false` — marquer et réunir sont deux gestes distincts, et
-      // le second s'arme en deux clics.
-      const r = await api.poserCompilation(ids, valeur, false);
+      // 🔴 Le drapeau passe par `batch-update`, avec `is_compilation` : c'est
+      // la seule porte du serveur livré (0.9.155). Une route
+      // `/library/albums/compilation` a existé dans une seconde
+      // implémentation de #4427, fermée sans être fusionnée — l'appeler rend
+      // 404. Marquer et réunir restent deux gestes distincts, le second armé.
+      const r = await api.batchUpdateAlbums(ids, { is_compilation: valeur });
       cpTous = cpTous.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: valeur } : a));
-      cpBilan = $t('v2.meta.compilMarked' as any).replace('{count}', String(r.poses));
+      cpBilan = $t('v2.meta.compilMarked' as any).replace('{count}', String(r.updated));
       cpErr = null;
     } catch (e: any) {
       cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
@@ -281,12 +276,16 @@
     const ids = idsChoisisCiblePremiere();
     cpBusy = true;
     try {
-      // La fusion est faite PAR le serveur, dans le même geste que la pose :
-      // un aller-retour, et pas de fenêtre où les albums seraient marqués mais
-      // pas réunis.
-      const r = await api.poserCompilation(ids, true, true);
+      // Deux appels, parce que le serveur livré n'a pas de geste combiné :
+      // on pose le drapeau, puis on réunit par la fusion d'albums qui existe
+      // depuis longtemps. L'album maître est choisi par le serveur et rendu
+      // dans `master_id`.
+      await api.batchUpdateAlbums(ids, { is_compilation: true });
+      const r = await api.mergeAlbums(ids);
       cpTous = cpTous.map((a) => (ids.includes(a.album_id) ? { ...a, is_compilation: true } : a));
-      cpBilan = $t('v2.meta.compilMerged' as any).replace('{count}', String(r.fusionnes));
+      cpBilan = $t('v2.meta.compilMerged' as any)
+        .replace('{moved}', String(r.tracks_moved))
+        .replace('{total}', String(r.total_tracks));
       cpErr = null;
       cpChoisis = new Set();
       cpCharge = false;
@@ -308,14 +307,14 @@
     cpBusy = true;
     try {
       const b = await api.graverCompilation(ids);
-      // `sans_decision` n'est pas une erreur : le serveur refuse de graver une
-      // déduction du scan dans les fichiers de quelqu'un. Sans ce compte,
-      // « 0 fichier gravé » passerait pour une panne alors qu'il manque
-      // seulement un clic sur « Compilation ».
+      // `hors_format` n'est pas une erreur : le scan ne relit pas le drapeau
+      // dans un WAV ni un DSF, alors le serveur ne l'y écrit pas. Sans ce
+      // compte, l'écran annoncerait un « fait » que le prochain scan
+      // démentirait.
       cpBilan = $t('v2.meta.compilBurned' as any)
-        .replace('{written}', String(b.fichiers_ecrits ?? 0))
-        .replace('{failed}', String(b.echecs?.length ?? 0))
-        .replace('{undecided}', String(b.sans_decision?.length ?? 0));
+        .replace('{written}', String(b.ecrits ?? 0))
+        .replace('{skipped}', String(b.hors_format ?? 0))
+        .replace('{failed}', String(b.echecs ?? 0));
       cpErr = null;
     } catch (e: any) {
       cpErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
