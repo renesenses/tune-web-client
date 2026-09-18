@@ -3806,6 +3806,7 @@ export default {
   "v2.zone.cancel": "取消",
   "v2.zone.namePlaceholder": "区域名称",
   "v2.zone.none": "没有区域。请创建一个，或在「设置 → Audio」中声明一个输出。",
+  "v2.zone.unreachable": "无法获取区域 — 服务器尚未响应。",
   "v2.zone.mergeInto": "合并到 {name}",
   "v2.zone.mergeConfirm": "确认合并",
   "v2.zone.presenceRecent": "最近已关机",

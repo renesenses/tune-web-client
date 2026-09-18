@@ -3805,6 +3805,7 @@ export default {
   "v2.zone.cancel": "Avbryt",
   "v2.zone.namePlaceholder": "Zonens namn",
   "v2.zone.none": "Inga zoner. Skapa en, eller ange en utgång under Inställningar → Audio.",
+  "v2.zone.unreachable": "Zoner är inte tillgängliga – servern svarar inte än.",
   "v2.zone.mergeInto": "Slå ihop med {name}",
   "v2.zone.mergeConfirm": "Bekräfta sammanslagning",
   "v2.zone.presenceRecent": "Nyligen avstängd",
