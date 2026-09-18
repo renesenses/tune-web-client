@@ -4512,14 +4512,23 @@
     transform: translateX(100%);
   }
 
+  /* 🔴 `height: auto`, et non `100%` — #1140.
+
+     La paire `top` / `bottom` déclarée juste au-dessus dimensionne la colonne.
+     Un `height: 100%` la SUR-CONTRAINT (CSS 2.1 §10.6.4 : quand `top`,
+     `height` et `bottom` sont tous les trois déclarés, c'est `bottom` qui est
+     ignoré) : depuis que `top` vaut la réserve de la grappe, le panneau
+     mesurait la hauteur pleine du conteneur EN PARTANT de 66 px, dépassait
+     d'autant, et `.now-playing{overflow:hidden}` coupait la fin de la liste —
+     la dernière piste restait hors d'atteinte. */
   .queue-sheet.wide-layout.peek {
     transform: translateX(0);
-    height: 100%;
+    height: auto;
   }
 
   .queue-sheet.wide-layout.expanded {
     transform: translateX(0);
-    height: 100%;
+    height: auto;
     width: 420px;
   }
 
