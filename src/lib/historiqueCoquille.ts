@@ -57,6 +57,7 @@ import {
   opPourFiche,
   reculerAvecIntention,
 } from './historiqueNavigation';
+import { vueDepuisHash } from './routeAuChargement';
 
 /**
  * Ce qu'une entrée d'historique de la coquille v2 transporte.
@@ -97,10 +98,16 @@ export function estEtatCoquille(etat: unknown): etat is EtatCoquille {
 /**
  * L'adresse affichée pour un état. `#library`, `#library/artiste:12`.
  *
- * Rien ne LIT ce fragment au démarrage — l'aiguillage se fait sur
- * `history.state`, comme dans l'ancienne coquille. Il est là pour que la barre
- * d'adresse dise où l'on est, et pour que « précédent / suivant » soient sans
- * ambiguïté dans le menu déroulant du navigateur.
+ * Il est là pour que la barre d'adresse dise où l'on est, et pour que
+ * « précédent / suivant » soient sans ambiguïté dans le menu déroulant du
+ * navigateur. En COURS DE SESSION l'aiguillage se fait sur `history.state`,
+ * comme dans l'ancienne coquille, et pas sur ce fragment.
+ *
+ * ⚠️ « Rien ne LIT ce fragment au démarrage » — c'est ce que disait cette note,
+ * et c'était le défaut : recharger `#library` retombait sur l'Accueil. Le
+ * branchement lit désormais le fragment du CHARGEMENT, une fois, par
+ * `routeAuChargement`. Rien de plus : pendant la session, `history.state` reste
+ * seul maître.
  */
 export function adressePour(etat: EtatCoquille): string {
   return etat.detail ? `#${etat.vue}/${etat.detail}` : `#${etat.vue}`;
@@ -154,8 +161,17 @@ export function fermerDetail(): void {
 }
 
 export interface OptionsBranchement {
-  /** Injectable pour les tests ; `window` par défaut. */
-  fenetre?: Pick<Window, 'addEventListener' | 'removeEventListener'> & { history: History };
+  /**
+   * Injectable pour les tests ; `window` par défaut.
+   *
+   * `location` est FACULTATIF : une fenêtre de test qui n'en donne pas n'a pas
+   * d'adresse, donc aucune route à reposer — le branchement se comporte alors
+   * exactement comme avant ce lot.
+   */
+  fenetre?: Pick<Window, 'addEventListener' | 'removeEventListener'> & {
+    history: History;
+    location?: { hash: string };
+  };
 }
 
 /**
@@ -184,9 +200,38 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
     else historique.replaceState(etat, '', adressePour(etat));
   };
 
+  /**
+   * 🔴 LIRE L'ADRESSE AVANT DE L'ÉCRASER — le rechargement d'une route profonde.
+   *
+   * Bertrand, .18, v0.9.153 : `#library` puis F5 ramenait à l'Accueil ET
+   * réécrivait l'adresse en `#home`. Le coupable est la ligne d'ancrage
+   * ci-dessous, pas un routeur manquant : elle écrivait `get(activeView)`, qui
+   * vaut `'home'` au démarrage, par-dessus le fragment que l'utilisateur venait
+   * de demander. L'en-tête de ce module l'annonçait — « Rien ne LIT ce fragment
+   * au démarrage ».
+   *
+   * On pose donc la vue AVANT l'ancrage, et l'ancrage réécrit ensuite la même
+   * adresse. Trois raisons de le faire ICI et pas dans `ShellV2` :
+   *
+   *   • c'est le SEUL écrivain d'historique de cette coquille — y ajouter la
+   *     lecture garde un mécanisme unique, celui que #1133 vient de compléter ;
+   *   • l'écriture se fait par `replaceState`, jamais `pushState` : la pile ne
+   *     grandit pas d'un cran, et le premier Précédent reste utile ;
+   *   • le `set` a lieu AVANT les deux `subscribe` ci-dessous, donc leur premier
+   *     appel — celui que `premiereVue` / `premierDetail` avalent — porte déjà
+   *     la bonne valeur. Aucun effet réactif n'est en jeu, aucune boucle
+   *     possible : `brancherHistoriqueCoquille` s'exécute une fois par montage.
+   */
+  const vueDemandee = vueDepuisHash(fenetre.location?.hash ?? '');
+  if (vueDemandee && vueDemandee !== get(activeView)) activeView.set(vueDemandee);
+
   // L'entrée COURANTE est ancrée, pas empilée : au chargement, la page a déjà
   // son entrée. En empiler une ici ferait qu'un premier Précédent ne bougerait
   // pas de l'écran — l'utilisateur croirait le bouton mort.
+  //
+  // C'est aussi ce qui NORMALISE l'adresse : un fragment inconnu, ou un détail
+  // qu'on ne sait pas rouvrir, laisse l'adresse dire ce que l'écran montre
+  // vraiment.
   ecrire(false, get(activeView), get(detailOuvert));
 
   // `subscribe` appelle TOUT DE SUITE avec la valeur courante : sans ces deux
