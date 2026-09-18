@@ -17,6 +17,7 @@
   import * as api from '../../lib/api';
   import type { MergedPlugin } from '../../lib/api';
   import { fold } from '../../lib/utils';
+  import { activeView } from '../../lib/stores/navigation';
   import '../../styles/tune-v2.css';
 
   let plugins = $state<MergedPlugin[]>([]);
@@ -125,6 +126,12 @@
 
             <div class="pact">
               {#if p.installed}
+                <!-- Pont Roon (#4349) : son écran d'import s'ouvre depuis sa
+                     carte. Seulement s'il tourne — éteint, ses routes ne sont
+                     pas montées et l'écran n'aurait rien à lire. -->
+                {#if p.name === 'pont-roon' && isActive(p)}
+                  <button class="lnk" onclick={() => activeView.set('pontroon')}>{$t('common.open' as any)}</button>
+                {/if}
                 <label class="sw" title={isActive(p) ? $t('settings.disable' as any) : $t('plugins.enable' as any)}>
                   <input type="checkbox" checked={isActive(p)} disabled={busy === key(p)} onchange={() => toggle(p)} />
                   <span class="slider"></span>

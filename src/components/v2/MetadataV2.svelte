@@ -21,10 +21,11 @@
   // dupliquer en style v2 aurait été quatre cents lignes de risque pour un
   // habillage. Il est habillé par le conteneur, voir `.gt-v2`.
   import GenreTreeView from '../v2-heritage/GenreTreeView.svelte';
+  import ManquantsV2 from './ManquantsV2.svelte';
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
-  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr';
+  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'manquants';
   let tab = $state<Tab>('proposals');
 
   let proposals = $state<MetadataProposal[]>([]);
@@ -180,13 +181,18 @@
       <button class:on={tab === 'doublons'} onclick={() => (tab = 'doublons')}>{$t('v2.meta.tabDoublons' as any)}{#if dblLoaded && !dblLoading}<span>{$formatNombre(dblAlbums.length + dblArtistes.length + dblPaires.length)}</span>{/if}</button>
       <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>{$t('v2.meta.tabGenres' as any)}</button>
       <button class:on={tab === 'dr'} onclick={() => (tab = 'dr')}>{$t('v2.meta.tabDr' as any)}{#if dr}<span>{$formatNombre(dr.a_graver)}</span>{/if}</button>
+      <button class:on={tab === 'manquants'} onclick={() => (tab = 'manquants')}>{$t('v2.meta.tabMissing' as any)}</button>
     </nav>
   </header>
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
   <div class="scroll">
-    {#if tab === 'proposals'}
+    {#if tab === 'manquants'}
+      <!-- Yves, réunion du 17/09/2026 : retrouver pochettes, genres et années
+           manquants. Voir `lib/manquantsMetadonnees`. -->
+      <ManquantsV2 />
+    {:else if tab === 'proposals'}
       <div class="auto">
         <div class="al">
           <span>{$t('v2.meta.autoApply' as any)}</span>

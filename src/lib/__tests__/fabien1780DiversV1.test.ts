@@ -49,8 +49,12 @@ describe('les écrans', () => {
     expect(s).toContain('onOuvrir={() => ouvrirArtisteFavori(a)}');
     expect(s).toMatch(/<button class="an" title=\{a\.name\} onclick=\{\(\) => ouvrirArtisteFavori\(a\)\}>/);
     // Local → fiche locale ; service → fiche du service ; sinon par le nom.
-    expect(s).toMatch(/if \(a\?\.id != null\) \{ void ouvrirArtiste\(a\.id\); return; \}/);
-    expect(s).toContain("ficheArtisteService.set({ service: a.source, id: String(a.source_id), nom: a.name ?? '' })");
+    // Point 9 (17/09/2026) : le tri des trois cas vit désormais dans
+    // `lib/ouvrirArtisteDepuis`, avec la vue qui change vraiment.
+    expect(s).toContain("ouvrirArtisteDepuis(a, 'favorites')");
+    const nav = sans(lire('src/lib/ouvrirArtisteDepuis.ts'));
+    expect(nav).toContain("ficheArtisteService.set({ service: a.source as Source, id: String(a.source_id), nom: a.name ?? '' })");
+    expect(nav).toContain("activeView.set('streamingartist')");
   });
   it('Streaming › favoris : les titres en liste avec actions, lecture depuis la ligne (#1062)', () => {
     const s = sans(lire('src/components/v2/StreamingV2.svelte'));
@@ -59,7 +63,7 @@ describe('les écrans', () => {
   });
   it('Playlist ouverte : vignettes en mode tableau (#1057)', () => {
     const s = sans(lire('src/components/v2/PlaylistDetailV2.svelte'));
-    expect(s).toMatch(/<ListePistesV2 pistes=\{tracks\} pochetteEnTableau/);
+    expect(s).toMatch(/<ListePistesV2 pistes=\{pistesVues\} pochetteEnTableau/);
   });
   it('Gestionnaire de playlists : UNE racine en colonne (#1058)', () => {
     const s = sans(lire('src/components/v2-heritage/PlaylistManagerView.svelte'));

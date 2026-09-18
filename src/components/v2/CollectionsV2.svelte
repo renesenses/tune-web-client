@@ -46,6 +46,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import RenommerModale from './RenommerModale.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import { trierAlbums } from '../../lib/trierAlbums';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { preferences } from '../../lib/stores/preferences';
 
@@ -175,7 +176,18 @@
    *
    * 🔴 `dialogs.confirm`, jamais `window.confirm` : les dialogues natifs ne
    * s'affichent pas dans les vues web embarquées. L'ancienne interface, elle,
-   * supprimait SANS rien demander.
+   * supprimait SANS rien demander pour une collection manuelle
+   * (`CollectionsView.handleDelete`), et AVEC une confirmation `danger` pour
+   * une intelligente (`SmartCollectionsView.deleteCollection`). On reprend la
+   * seconde pour les deux : c'est la seule des deux qui protège.
+   *
+   * ## Elle est aussi dans l'ÉDITEUR — #1143
+   *
+   * FabienM l'a cherchée deux fois, sur deux versions, dans « Modifier la
+   * collection », avant de regarder la vignette. Les deux éditeurs reçoivent
+   * donc cette même fonction en rappel ; ils ne rappellent NI la route NI la
+   * confirmation — une seconde copie divergerait sur la sorte, donc sur la
+   * route, donc sur ce qui disparaît.
    */
   async function supprimerCollection(e: Entree) {
     const question = $t('v2.col.deleteAsk' as any).replace('{nom}', e.nom ?? '');
@@ -187,6 +199,10 @@
       // la clé de boucle : l'id seul viserait les deux sortes.
       entrees = entrees.filter((x) => !(x.sorte === e.sorte && x.id === e.id));
       if (ouverte && ouverte.sorte === e.sorte && ouverte.id === e.id) ouverte = null;
+      // Appelée DEPUIS un éditeur, il faut le refermer : laisser ouverte la
+      // fiche d'une collection qui n'existe plus proposerait de l'enregistrer.
+      if (enEdition && enEdition.sorte === e.sorte && enEdition.id === e.id) enEdition = null;
+      if (e.sorte === 'smart' && editeurSmart?.id === e.id) editeurSmart = null;
       notifications.success($t('collections.deleted' as any));
     } catch (err) {
       console.error('Delete collection error:', err);
@@ -236,11 +252,32 @@
    */
   let masseEnCours = $state(false);
   async function pistesDeLaCollection(): Promise<any[]> {
-    const ids = albums.map((a) => a?.id).filter((x): x is number => x != null);
-    if (!ids.length) return [];
-    const { tracks, failedAlbums } = await api.getAlbumTracksBatch(ids);
-    if (failedAlbums) notifications.error($t('collections.playError' as any));
-    return tracks;
+    const ids = albumsVus.map((a) => a?.id).filter((x): x is number => x != null);
+    // Les albums de SERVICE d'une collection intelligente (« Source = Qobuz »,
+    // #4299) n'ont pas d'identifiant de bibliothèque : leurs pistes viennent du
+    // service. Sans cela « Tout lire » les laissait tomber en silence.
+    const deService = albumsVus.filter(estAlbumDeService);
+    const [locales, services] = await Promise.all([
+      ids.length ? api.getAlbumTracksBatch(ids) : Promise.resolve({ tracks: [], failedAlbums: 0 }),
+      Promise.allSettled(deService.map((a) => api.getStreamingAlbumTracks(a.source, String(a.source_id)))),
+    ]);
+    if (locales.failedAlbums || services.some((r) => r.status === 'rejected')) {
+      notifications.error($t('collections.playError' as any));
+    }
+    return [
+      ...locales.tracks,
+      ...services.flatMap((r) => (r.status === 'fulfilled' ? r.value ?? [] : [])),
+    ];
+  }
+
+  /** Un album rendu par un SERVICE : pas d'id, une paire service + `source_id`. */
+  function estAlbumDeService(a: any): boolean {
+    return a?.id == null && !!a?.source && a?.source_id != null;
+  }
+  /** La clé de boucle d'un album — l'id ne suffit plus : plusieurs albums de
+   *  service ont `id: null`, et deux clés égales font planter la grille. */
+  function cleAlbum(a: any): string {
+    return a?.id != null ? `album:${a.id}` : `${a?.source}:${a?.source_id}`;
   }
   async function lireCollectionEntiere(aleatoire: boolean) {
     const zid = $currentZoneId;
@@ -275,12 +312,12 @@
       const liste = ((e.sorte === 'smart'
         ? await api.getSmartCollectionAlbums(e.id)
         : await api.getCollectionAlbums(e.id)) as any[]) ?? [];
-      const premier = liste.find((a) => a?.id != null);
+      const premier = liste.find((a) => a?.id != null || estAlbumDeService(a));
       if (!premier) {
         notifications.error($t('v2.col.emptyCollection' as any));
         return;
       }
-      await playAndSync(zid, { album_id: premier.id });
+      await playAndSync(zid, corpsAlbum(premier));
     } catch (err: any) {
       notifications.error(err?.message ?? $t('common.error' as any));
     }
@@ -327,6 +364,33 @@
     }
     albumsChargement = false;
   }
+  /**
+   * TRI d'une collection INTELLIGENTE — Bertrand, 17/09/2026 : « toujours pas
+   * de tri possible dans les playlists et collections » (capture : « 2026 »,
+   * intelligente). L'en-tête écartait les intelligentes, leur ordre étant dans
+   * leurs règles ; l'utilisateur veut pouvoir le changer à l'écran.
+   *
+   * Côté CLIENT, sur la liste reçue : `/smart-collections/{id}/albums` ne prend
+   * pas `?sort=`, et ses albums ne portent que titre, artiste et ANNÉE — ni
+   * date de sortie, ni date d'ajout. On ne propose donc que ces trois clés.
+   * `regles` = l'ordre défini par les règles, le défaut.
+   */
+  const TRIS_SMART = ['regles', 'artist', 'title', 'year'] as const;
+  type TriSmart = (typeof TRIS_SMART)[number];
+  let triSmart = $state<TriSmart>(lireChoix<TriSmart>('v2.collection.smart.tri', TRIS_SMART, 'regles'));
+  let sensSmart = $state<Sens>(lireChoix<Sens>('v2.collection.smart.sens', SENS, 'asc'));
+  $effect(() => { ecrireChoix('v2.collection.smart.tri', triSmart); });
+  $effect(() => { ecrireChoix('v2.collection.smart.sens', sensSmart); });
+  const LIBELLES_SMART: Record<TriSmart, string> = {
+    regles: 'v2.col.sortRules', artist: 'v2.lib.sortArtist', title: 'v2.lib.sortTitle', year: 'v2.lib.sortYear',
+  };
+  /** Ce que la grille AFFICHE — et ce que « Tout lire » enchaîne. */
+  const albumsVus = $derived(
+    ouverte?.sorte === 'smart'
+      ? trierAlbums(albums, triSmart === 'regles' ? 'pertinence' : triSmart, sensSmart)
+      : albums,
+  );
+
   function changerTri(tri: TriAlbums, sens: Sens) {
     triAlbums = tri;
     sensAlbums = sens;
@@ -558,6 +622,14 @@
   });
   let albumEnEdition = $state<any | null>(null);
 
+  /** Le corps de lecture d'un album : son id, ou `source` + `streaming_album_id`
+   *  (les deux vont TOUJOURS ensemble — voir `ArtistesV2`). */
+  function corpsAlbum(a: any): Record<string, unknown> {
+    return estAlbumDeService(a)
+      ? { streaming_album_id: String(a.source_id), source: a.source }
+      : { album_id: a.id };
+  }
+
   async function lireAlbum(a: any, ev?: MouseEvent) {
     ev?.stopPropagation();
     const zid = $currentZoneId;
@@ -566,7 +638,7 @@
       return;
     }
     try {
-      await playAndSync(zid, { album_id: a.id });
+      await playAndSync(zid, corpsAlbum(a));
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }
@@ -587,7 +659,23 @@
         {#if ouverte.description}<p class="v2-sous">{ouverte.description}</p>{/if}
       </div>
       <div class="v2-actions fa">
-        {#if ouverte.sorte !== 'smart'}
+        {#if ouverte.sorte === 'smart'}
+          <label class="tricol">
+            <span>{$t('v2.fav.sortBy' as any)}</span>
+            <select bind:value={triSmart} aria-label={$t('v2.fav.sortBy' as any)}>
+              {#each TRIS_SMART as k (k)}<option value={k}>{$t(LIBELLES_SMART[k] as any)}</option>{/each}
+            </select>
+            <button class="sens" onclick={() => (sensSmart = sensSmart === 'asc' ? 'desc' : 'asc')}
+              title={$t((sensSmart === 'asc' ? 'common.ascending' : 'common.descending') as any)}
+              aria-label={$t((sensSmart === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
+              {#if sensSmart === 'asc'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>
+              {:else}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
+              {/if}
+            </button>
+          </label>
+        {:else}
           <label class="tricol">
             <span>{$t('v2.fav.sortBy' as any)}</span>
             <select value={triAlbums} aria-label={$t('v2.fav.sortBy' as any)}
@@ -643,7 +731,7 @@
           {/each}
         </div>
         <div class="grid" bind:this={grilleEl}>
-        {#each albums as a (a.id)}
+        {#each albumsVus as a (cleAlbum(a))}
           <!-- Meme carte que la Bibliotheque : les cinq gestes sur la
                pochette, le texte cliquable, et la troisieme ligne. La carte
                n'est plus un bouton — `PochetteActions` en pose cinq, et un
@@ -796,11 +884,14 @@
       enregistrer={(v) => api.updateCollection(cible.id, v)}
       onClose={() => (enEdition = null)}
       onSaved={charger}
+      supprimer={() => supprimerCollection(cible)}
     />
   {/if}
 
   {#if fiche}
-    <AlbumDetailV2 album={fiche} onClose={retourCalqueAlbum} />
+    <!-- Un album de service s'ouvre AVEC son service : sans lui, la fiche
+         resterait sur « Chargement… » (#3709). -->
+    <AlbumDetailV2 album={fiche} service={estAlbumDeService(fiche) ? fiche.source : null} onClose={retourCalqueAlbum} />
   {/if}
 
   {#if albumEnEdition}
@@ -819,11 +910,17 @@
   {/if}
 
   {#if editeurSmart}
+    <!-- 🔴 L'entrée est retrouvée sur la PAIRE (sorte, id), jamais sur l'id
+         seul : les deux espaces se recouvrent, et l'id 1 désigne aussi une
+         collection manuelle. Absente de la liste — création — il n'y a rien à
+         supprimer, et le bouton ne se pose pas. -->
+    {@const cibleSmart = entrees.find((x) => x.sorte === 'smart' && x.id === editeurSmart!.id) ?? null}
     {#await import('./CollectionSmartEditeurV2.svelte') then m}
       <m.default
         id={editeurSmart.id}
         onClose={() => (editeurSmart = null)}
         onSaved={charger}
+        supprimer={cibleSmart ? () => supprimerCollection(cibleSmart) : null}
       />
     {/await}
   {/if}

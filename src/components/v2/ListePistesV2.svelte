@@ -1,3 +1,23 @@
+<script module lang="ts">
+  /**
+   * 🔴 LA LARGEUR DE LA COLONNE D'ACTIONS — une seule fois, pour tout l'écran.
+   *
+   * Elle vivait dans le script d'instance, donc invisible du dehors. L'écran
+   * Historique rend, dans le MÊME écran, des lignes de ce tableau et des
+   * lignes d'objet (album, playlist) qui ne passent pas par ici : pour que les
+   * deux tombent en face, la ligne d'objet doit composer sa grille avec cette
+   * largeur-ci — pas avec une copie (#1149).
+   *
+   * 208 px = SEPT boutons de 28 px + six gouttières de 2 px, la barre pleine
+   * de `PisteActions`. Le chiffre a déjà changé une fois (178 → 208 le
+   * 16/09/2026, quand le menu « … » a porté la barre à sept) : un témoin le
+   * recalcule en comptant les boutons, `largeurActionsSuitLaBarre.test.ts`.
+   */
+  export const LARGEUR_ACTIONS = '208px';
+  /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
+  export const LARGEUR_ACTIONS_PX = 208;
+</script>
+
 <script lang="ts">
   /**
    * Une liste de pistes — en TABLEAU au mode Essentiel, en lignes ailleurs.
@@ -42,7 +62,9 @@
   import LignePisteV2 from './LignePisteV2.svelte';
   import PisteActions from './PisteActions.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
+  import { pisteIndisponible } from '../../lib/albumAParaitre';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import ServiceBadge from '../partages/ServiceBadge.svelte';
 
   interface Props {
     pistes: Track[];
@@ -88,6 +110,41 @@
      * fait déjà `IndicateurLecture`, juste à côté.
      */
     pochetteEnTableau?: boolean;
+    /**
+     * 🔴 LA PROVENANCE DE CHAQUE LIGNE, au mode tableau — #1113.
+     *
+     * « Menu Recherche: il manque les vignettes des titres trouvés et leur
+     * source (Bibliothèque, Qobuz, Bandcamp, Tidal, Youtube) » — FabienM, fil
+     * 1829, 17/09/2026, v0.9.152. Sa capture montre la rangée de périmètre
+     * « OÙ : Bibliothèque 10 · Qobuz 205 · Bandcamp 53 · Youtube 1 » au-dessus
+     * d'UNE liste de titres : quatre provenances dans le même tableau, et pas
+     * une ligne qui dise laquelle. `fusionnerParType` estampille pourtant
+     * `source` sur chaque piste — la Recherche ne s'en servait que pour
+     * fabriquer la clé de sa boucle.
+     *
+     * ⚠️ OPT-IN, pour la même raison que la vignette juste au-dessus. Ce
+     * tableau sert aussi la Bibliothèque, les playlists et l'Historique, où
+     * toutes les lignes ont la MÊME provenance : y répéter la pastille serait
+     * du bruit. Seule la Recherche mêle les sources.
+     *
+     * ⚠️ La pastille vit DANS la cellule du titre, pas dans une colonne à
+     * elle : la règle du composant, écrite trois fois dans ce fichier.
+     *
+     * ⚠️ Elle EXCLUT l'incrustation de `AlbumArt`, qui est l'autre moitié de
+     * la même information. Deux pastilles pour une source, ce serait du volume
+     * et non de la qualité ; et l'incrustation ne convient pas ici de toute
+     * façon — `.tvig` fait 36 px en `overflow:hidden`, une pastille
+     * « BANDCAMP » y est plus large que son support, et cette incrustation
+     * écarte volontairement `local` (renesenses/tune-server-rust#3900), ce qui
+     * laisserait muette la ligne de bibliothèque au milieu de trois qui
+     * parlent.
+     *
+     * 🔴 AUCUN repli `?? 'local'` : c'est `source` telle qu'elle est. Une
+     * source inconnue ne rend AUCUNE pastille — `ServiceBadge` est une table
+     * fixe — plutôt qu'un « LOCAL » menteur sur une piste distante (règle
+     * tenue par `badgeUpnp.test.ts`).
+     */
+    sourceEnTableau?: boolean;
     /**
      * 🔴 Une FABRIQUE, pas un gestionnaire.
      *
@@ -135,6 +192,7 @@
   let {
     pistes, onLire, numerotation = 'rang',
     avecAlbum = true, pochette = true, pochetteEnTableau = false,
+    sourceEnTableau = false,
     ouvertureAlbum = null, apres,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
   }: Props = $props();
@@ -186,9 +244,9 @@
    * bouton Lire recouvrait le second chiffre. Ce nombre doit suivre la barre :
    * un témoin compte les boutons de `PisteActions` et le recalcule.
    */
-  const LARGEUR_ACTIONS = '208px';
-  /** Les mêmes largeurs en NOMBRE, pour le calcul du plancher (#853). */
-  const LARGEUR_ACTIONS_PX = 208;
+  // `LARGEUR_ACTIONS` et `LARGEUR_ACTIONS_PX` sont déclarés dans le
+  // `<script module>` en tête de fichier : l'Historique compose sa ligne
+  // d'objet avec la MÊME valeur (#1149).
   const largeurApresPx = $derived(parseFloat(largeurApres) || 0);
   const gabarit = $derived(
     `${gabaritGrille(colonnes)} ${LARGEUR_ACTIONS}${apres ? ` ${largeurApres}` : ''}`,
@@ -298,7 +356,10 @@
 
     {#each pistes as p, i (clef(p, i))}
       {@const etat = etatDe(p)}
-      <div class="trow" class:np={etat != null} aria-current={etat ? 'true' : undefined}
+      <!-- Point 10 (17/09/2026) — une piste que le service dit indisponible
+           est grisée et ne se lance pas : le lancer rendrait « no url ». -->
+      {@const indispo = pisteIndisponible(p)}
+      <div class="trow" class:np={etat != null} class:indispo aria-current={etat ? 'true' : undefined}
         role="row">
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
@@ -309,20 +370,28 @@
           {:else if c.verrouillee}
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus
                  large et la plus évidente de la ligne. -->
-            <button class="td titre" onclick={() => onLire(p, i)} title={p.title}>
+            <button class="td titre" onclick={() => { if (!indispo) onLire(p, i); }}
+              disabled={indispo} title={indispo ? $t('v2.str.coming' as any) : p.title}>
               <!-- L'indicateur est DANS la cellule du titre : une colonne de plus
                    décalerait l'en-tête, et la règle de ce composant est qu'un
                    seul gabarit vaut pour l'en-tête et pour les lignes.
                    La vignette (#3823) suit la MÊME règle, pour la même raison. -->
+              <!-- 🔴 #1113 — la pastille de la LIGNE remplace l'incrustation de
+                   la vignette, elle ne s'y ajoute pas : une source par ligne
+                   suffit, et l'incrustation de 36 px tronque son texte. -->
               {#if pochetteEnTableau}
                 <span class="tvig">
                   <AlbumArt coverPath={p.cover_path} albumId={p.album_id} size={36}
-                    alt={p.title ?? ''} source={p.source} />
+                    alt={p.title ?? ''} source={sourceEnTableau ? null : p.source} />
                 </span>
               {/if}
               <IndicateurLecture {etat} />
               <span class="ttxt">{cellule(p, i, c.cle) ?? ''}</span>
+              <!-- D'OÙ VIENT CETTE LIGNE — #1113. Telle quelle : une source
+                   absente ne rend aucune pastille, jamais un « LOCAL » faux. -->
+              {#if sourceEnTableau}<ServiceBadge source={p.source} compact />{/if}
               {#if p.source === 'upnp'}<DisponibiliteUpnp sourceId={p.source_id} />{/if}
+              {#if indispo}<span class="indispo-etiq">{$t('v2.str.coming' as any)}</span>{/if}
             </button>
           {:else}
             {@const v = cellule(p, i, c.cle)}
@@ -362,6 +431,11 @@
   .trow{border-radius:9px; color:var(--v2-txt2); min-height:46px}
   .trow:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .trow.np{color:var(--v2-acc1)}
+  /* Point 10 — la piste que le service ne sert pas encore. */
+  .trow.indispo{opacity:0.5}
+  .trow.indispo .titre{cursor:default}
+  .indispo-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-acc2);
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
 
   .td{font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   /* Les colonnes de chiffres s'alignent à droite, en chiffres tabulaires :

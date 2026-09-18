@@ -49,13 +49,18 @@ function ecransAvecCalque(): string[] {
  *
  * `ShellV2`  — sa fiche album de streaming n’est pas un calque : c’est la VUE
  *              `streamingalbum`, et un changement de vue EST déjà empilé.
- * `LibraryV2`— dette assumée. `opened` y a six écrivains, dont un asynchrone
- *              (`api.getAlbum(...).then`). Le brancher demande de lire cet
- *              écran pour lui-même ; il aura son propre lot.
+ *
+ * 🟢 `LibraryV2` A QUITTÉ CETTE LISTE — #1121, campagne du 18/09/2026.
+ *
+ * Sa dette (« six écrivains de `opened`, dont un asynchrone ») était exactement
+ * le point 10 du fil 1829 : « le BACK revient à l’accueil alors qu’il devrait
+ * revenir au menu Bibliothèque ». Les six écrivains passent maintenant par
+ * quatre portes nommées, et un témoin de COMPORTEMENT
+ * (`historiqueAlbumBibliotheque1121.test.ts`) clique une vignette puis appuie
+ * sur le Précédent du navigateur. Cette garde-ci reprend donc l’écran.
  */
 const EXCEPTIONS: Record<string, string> = {
   'ShellV2.svelte': 'la fiche y est une VUE (streamingalbum), déjà empilée',
-  'LibraryV2.svelte': 'dette assumée — six écrivains de `opened`, dont un asynchrone',
   /**
    * 🔴 `ArtistesV2` empile déjà — mais pour sa fiche ARTISTE (#828, #3843), pas
    * pour l'album qui s'ouvre PAR-DESSUS elle. Deux calques imbriqués, et
@@ -90,10 +95,25 @@ describe('#980 — les calques album empilent une entrée', () => {
     expect(manquants, `referment sans dépiler : ${manquants.join(', ')}`).toEqual([]);
   });
 
+  /**
+   * 🔴 DEUX FORMES pour le même contrat, et la garde doit voir les deux.
+   *
+   * La plupart des écrans n’ont qu’UN calque : `$detailOuvert == null` y suffit,
+   * puisque toute clé posée est forcément la leur. `LibraryV2` (#1121) coexiste
+   * avec le calque de l’onglet Artistes : il compare la clé ATTEINTE à celle
+   * qu’il a lui-même empilée. C’est plus strict, pas moins — mais c’est une
+   * autre écriture, et une garde qui n’en verrait qu’une repasserait `LibraryV2`
+   * en exception muette.
+   */
+  const REFERME_AU_RETOUR = [
+    /\$detailOuvert == null/,       // un seul calque : toute clé est la sienne
+    /voulu === cleCalqueEmpilee/,   // LibraryV2 : la clé qu’il a lui-même empilée
+  ];
+
   it('chacun referme son calque quand le Précédent dépile', () => {
     const manquants = ecransAvecCalque()
       .filter((f) => !(f in EXCEPTIONS))
-      .filter((f) => !/\$detailOuvert == null/.test(lire(f)));
+      .filter((f) => !REFERME_AU_RETOUR.some((r) => r.test(lire(f))));
     expect(manquants, `le Précédent n’y referme rien : ${manquants.join(', ')}`).toEqual([]);
   });
 
@@ -116,11 +136,11 @@ describe('#980 — les calques album empilent une entrée', () => {
     }
     // ShellV2 : sa fiche est bien rendue sous une condition de VUE.
     expect(lire('ShellV2.svelte')).toMatch(/\$activeView === 'streamingalbum'/);
-    // LibraryV2 : si elle est branchée un jour, l’exception doit tomber.
-    const lib = lire('LibraryV2.svelte');
-    if (lib.includes('ouvrirDetail')) {
-      throw new Error('LibraryV2 est branchée — retirer son exception de cette garde');
-    }
+    // LibraryV2 n’est plus une exception (#1121) : elle doit donc rester
+    // branchée. Si quelqu’un la débranche, ce sont les trois témoins ci-dessus
+    // qui rougissent — on vérifie ici qu’elle est bien DANS le champ balayé.
+    expect(tous, 'LibraryV2 ne monte plus de calque album').toContain('LibraryV2.svelte');
+    expect(Object.keys(EXCEPTIONS), 'LibraryV2 est redevenue une exception').not.toContain('LibraryV2.svelte');
     // ArtistesV2 : l'exception ne vaut que TANT QUE les deux calques coexistent.
     const art = lire('ArtistesV2.svelte');
     expect(art, 'ArtistesV2 n’a plus de calque artiste').toContain('ouvrirDetail(`artiste:');

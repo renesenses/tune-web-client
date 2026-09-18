@@ -16,6 +16,7 @@
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
   import { signalerEchecLecture } from '../../lib/echecLecture';
+  import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { activeView } from '../../lib/stores/navigation';
@@ -155,9 +156,33 @@
    * playlists locales d'un côté, et de l'autre UN appel par service
    * authentifié. Il n'existe pas de route qui rende les deux d'un coup.
    */
+  /**
+   * Les services AUTHENTIFIÉS qui ont répondu « je ne fournis pas de
+   * playlists » — nom du service → la phrase du serveur (#1148).
+   *
+   * Fabien, fil 1778, point 4 : « Menu playlists : quand on rentre dans le
+   * menu : erreur bandcamp ». Mesuré sur la .18 :
+   *
+   *   GET /api/v1/streaming/bandcamp/playlists
+   *     → 501  « Bandcamp ne fournit pas de playlists »
+   *
+   * Le bandeau rouge, lui, est parti avec #1007 — `fetchJSON` n'annonce plus
+   * un 501 comme une panne. Mais ce qui l'a remplacé était RIEN : le `catch`
+   * ci-dessous range `[]`, `svcEntries` écarte les listes vides, et la
+   * pastille Bandcamp disparaît de l'écran. Quelqu'un qui a connecté Bandcamp
+   * et vient chercher ses playlists n'apprend ni qu'il n'y en a pas, ni
+   * pourquoi.
+   *
+   * Le serveur a déjà écrit la bonne phrase (#859 côté serveur) : on la
+   * montre, telle quelle, sans la déguiser en incident.
+   */
+  let indisponibles = $state<Record<string, string>>({});
+  const sansPlaylists = $derived(Object.entries(indisponibles));
+
   function load() {
     loading = true;
     mosaiques = {};
+    indisponibles = {};
     Promise.all([
       api.getPlaylists().catch(() => [] as Playlist[]),
       api.getStreamingServices().catch(() => ({}) as Record<string, any>),
@@ -172,17 +197,25 @@
           .filter(([, s]: [string, any]) => s?.authenticated)
           .map(([n]) => n);
         const par: Record<string, StreamingPlaylist[]> = {};
+        const refus: Record<string, string> = {};
         await Promise.all(
           noms.map(async (n) => {
             try {
               par[n] = (await api.getStreamingPlaylists(n)) ?? [];
-            } catch {
+            } catch (e: any) {
               // Un service qui ne répond pas ne doit pas emporter les autres.
               par[n] = [];
+              // 501 = « ce service n'offre pas cette fonction », pas une
+              // panne : on garde son motif pour le dire à l'écran. Un 500 ou
+              // un 502, eux, ont DÉJÀ levé leur bandeau dans `fetchJSON` — les
+              // rendre ici en plus ferait dire deux fois la même chose.
+              const motif = String(e?.message ?? '').trim();
+              if (e?.status === 501 && motif) refus[n] = motif;
             }
           }),
         );
         services = par;
+        indisponibles = refus;
       })
       .catch(() => {
         local = [];
@@ -204,6 +237,28 @@
     if (zid == null || pl.id == null) return;
     playAndSync(zid, { playlist_id: pl.id }).catch(signalerEchecLecture);
   }
+
+  /**
+   * « Lecture aléatoire » depuis la VIGNETTE — Bertrand, 17/09/2026 (point 4 :
+   * « Playlists ou Smart playlists, ajouter bouton lecture aléatoire »). La
+   * fiche d'une playlist l'avait déjà ; la grille, non. Mélange côté client
+   * (`lireListeAleatoire`), comme la fiche et les collections : la zone garde
+   * son propre mode aléatoire.
+   */
+  async function lireLocalAleatoire(pl: Playlist) {
+    const zid = $currentZoneId;
+    if (zid == null || pl.id == null) return;
+    try {
+      const pistes = (await api.getPlaylistTracks(pl.id)) ?? [];
+      await lireListeAleatoire(pistes, gestesDeLecture(zid));
+    } catch (e) {
+      signalerEchecLecture(e);
+    }
+  }
+  const gestesDeLecture = (zid: number) => ({
+    lire: (c: any) => playAndSync(zid, c),
+    enfiler: (c: any) => api.addToQueue(zid, c),
+  });
   /**
    * DEUX ONGLETS, comme les collections.
    *
@@ -279,16 +334,24 @@
     if (onglet === 'smart') void chargerSmart();
   });
 
-  function lireSmart(sp: any) {
+  function lireSmart(sp: any, aleatoire = false) {
     const zid = $currentZoneId;
     if (zid == null || sp?.id == null) return;
     // Pas de route « lire la playlist intelligente » : on lit ses pistes et on
     // enfile la liste. Une règle n'a pas d'identité de file côté serveur.
+    //
+    // `lireListe`, plus `track_ids` : depuis #4299, une règle « Source =
+    // Qobuz » ramène des favoris de SERVICE (id nul), que `track_ids`
+    // écartait en silence. Et l'aléatoire (point 4, 17/09/2026) passe par le
+    // même mélange que les playlists.
     api
       .getSmartPlaylistTracks(sp.id)
       .then((pistes) => {
-        const ids = (pistes ?? []).map((t: any) => t.id).filter((x: any) => x != null);
-        if (ids.length) return playAndSync(zid, { track_ids: ids.slice(0, 500) });
+        const liste = (pistes ?? []).slice(0, 500);
+        if (!liste.length) return;
+        return aleatoire
+          ? lireListeAleatoire(liste, gestesDeLecture(zid))
+          : lireListe(liste, gestesDeLecture(zid));
       })
       .catch(signalerEchecLecture);
   }
@@ -503,6 +566,14 @@
     </nav>
   {/if}
 
+  <!-- Un service connecté dont la pastille N'EST PAS là : dire pourquoi, avec
+       la phrase du serveur (#1148). Discret, jamais rouge — ce n'est pas un
+       incident, c'est une fonction que le service n'offre pas. Pas de libellé
+       traduit à ajouter : le serveur écrit déjà la phrase. -->
+  {#each sansPlaylists as [nom, motif] (nom)}
+    <p class="sans-pl">{motif}</p>
+  {/each}
+
   <!-- Second niveau : le TYPE. Réservé à « cet appareil » — une playlist
        intelligente est une règle locale, un service n'en a pas. -->
   {#if source === LOCAL}
@@ -615,7 +686,8 @@
                        une RÈGLE, elle n'a pas d'identité dans `favorites` ni
                        dans `item_tags`. Un cœur qui ne s'allume pas serait
                        pire que pas de cœur. -->
-                  <PochetteActions onLire={() => lireSmart(sp)} nom={sp.name}>
+                  <PochetteActions onLire={() => lireSmart(sp)} nom={sp.name}
+                    menu={[{ libelle: $t('library.shuffle' as any), faire: () => lireSmart(sp, true) }]}>
                     {#if mos}
                       <MosaiquePochettes pochettes={mos} initiales={sp.name?.slice(0, 1)} alt={sp.name} />
                     {:else}
@@ -655,7 +727,10 @@
                     onLire={() => playLocal(pl)}
                     onOuvrir={() => ouvrirPl({ kind: 'local', pl })}
                     menu={pl.id != null
-                      ? [{ libelle: $t('v2.pl.share' as any), danger: true, faire: () => partager(pl) }]
+                      ? [
+                          { libelle: $t('library.shuffle' as any), faire: () => void lireLocalAleatoire(pl) },
+                          { libelle: $t('v2.pl.share' as any), danger: true, faire: () => partager(pl) },
+                        ]
                       : []}
                     nom={pl.name}
                   >
@@ -756,6 +831,9 @@
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .srcs .cpt{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
   .srcs button.on .cpt{color:var(--v2-on-acc); opacity:.75}
+  /* #1148 — « ce service ne fournit pas de playlists ». Le ton d'une note,
+     pas celui d'une alerte : rien n'est en panne. */
+  .sans-pl{margin:6px 30px 0; font-size:12px; color:var(--v2-txt3)}
 
   /* Second niveau : SOULIGNÉ, comme les rubriques de l'écran Streaming. */
   .onglets{display:flex; gap:4px; padding:4px 30px 0}

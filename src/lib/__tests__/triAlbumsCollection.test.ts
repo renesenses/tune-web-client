@@ -32,11 +32,15 @@ describe('tri des albums d’une collection', () => {
     expect(vue).not.toMatch(/albums\s*=\s*\[\.\.\.albums\]\.sort|albums\.sort\(/);
   });
 
-  it('le sélecteur n’existe que sur une collection manuelle', () => {
+  // Bertrand, 17/09/2026 : « toujours pas de tri possible dans les playlists
+  // et collections » — la collection INTELLIGENTE a désormais le sien, trié
+  // côté client (sa route ne prend pas `?sort=`), la manuelle garde le serveur.
+  it('une collection intelligente a son propre sélecteur, la manuelle garde le tri serveur', () => {
     const i = vue.indexOf('<label class="tricol">', vue.indexOf('<div class="v2-actions fa">'));
     expect(i).toBeGreaterThan(-1);
-    const avant = vue.slice(i - 80, i);
-    expect(avant).toMatch(/\{#if ouverte\.sorte !== 'smart'\}/);
+    expect(vue.slice(i - 80, i)).toMatch(/\{#if ouverte\.sorte === 'smart'\}/);
+    expect(vue).toMatch(/\{:else\}\s*<label class="tricol">/);
+    expect(vue).toMatch(/trierAlbums\(albums, triSmart === 'regles' \? 'pertinence' : triSmart, sensSmart\)/);
   });
 
   it('le choix est mémorisé, clé et sens', () => {

@@ -127,6 +127,9 @@ describe("l'ouverture depuis l'onglet Titres", () => {
     // l'album de CETTE piste est chargé. Ce qu'on protège est identique — la
     // loupe n'apparaît pas là où elle ne pourrait rien ouvrir.
     expect(src).toMatch(/ouvertureAlbum=\{\(p\) => \{/);
-    expect(src).toMatch(/return alb \? \(\) => \(opened = alb\) : null;/);
+    // 🔴 #1121 : l'ouverture passe désormais par la porte `ouvrirCalqueAlbum`,
+    // qui empile en plus l'entrée d'historique. Le contrat gardé ici est
+    // inchangé — la fabrique rend `null` quand il n'y a rien à ouvrir.
+    expect(src).toMatch(/return alb \? \(\) => ouvrirCalqueAlbum\(alb\) : null;/);
   });
 });

@@ -8,6 +8,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { estDeBibliotheque } from '../provenanceBibliotheque';
 import { describe, expect, it } from 'vitest';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
@@ -180,7 +181,11 @@ describe('fil 1647 — le périmètre de la recherche', () => {
     // offrait le cœur, les étiquettes et l'édition de la bibliothèque, et le
     // cœur écrivait `artist_id: "6760"` dans la table des favoris locaux.
     const sv = sansCommentaires(lire('src/components/v2/SearchV2.svelte'));
-    expect(sv).toContain("const estLocal = (x: any) => (x?.source ?? 'local') === 'local' && x?.id != null;");
+    // 17/09/2026 : la règle vit dans `estDeBibliotheque` (UPnP = bibliothèque),
+    // avec le même sens pour un artiste de service tamponné.
+    expect(sv).toContain('const estLocal = (x: any) => estDeBibliotheque(x);');
+    expect(estDeBibliotheque({ id: '6760', source: 'qobuz' })).toBe(false);
+    expect(estDeBibliotheque({ id: 12, source: 'local' })).toBe(true);
     expect(sv).toContain('favori={estLocal(ar) ? { artistId: ar.id! } : null}');
   });
 });

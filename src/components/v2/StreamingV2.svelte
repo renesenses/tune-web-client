@@ -30,12 +30,14 @@
     TAILLES_PAGE, chargerTaillePage, retenirTaillePage, type TaillePage,
   } from '../../lib/taillePageRecherche';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
+  import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
   import { activeView } from '../../lib/stores/navigation';
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
@@ -290,6 +292,22 @@
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   let bcCollection = $state<any[]>([]);
+  /**
+   * Les COPIES LOCALES des albums de la collection — Yves, 17/09/2026 : ses
+   * achats sont dans sa bibliothèque en FLAC, la collection les jouait en
+   * mp3-128. L'index est bâti une fois, au premier affichage de la collection.
+   * Voir `lib/bandcampCopieLocale`.
+   */
+  let copiesLocales = $state<Map<string, CopieLocale>>(new Map());
+  let copiesChargees = false;
+  function chargerCopiesLocales() {
+    if (copiesChargees) return;
+    copiesChargees = true;
+    api.getAllAlbums()
+      .then((albums) => { copiesLocales = indexerAlbumsLocaux(albums); })
+      .catch(() => { copiesChargees = false; });
+  }
+  const copieDe = (it: any) => copieLocale(it, copiesLocales);
   let paneLoading = $state(false);
 
   /**
@@ -423,7 +441,7 @@
       } else {
         bcNeedsLink = false;
         api.bandcampCollection()
-          .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; })
+          .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; chargerCopiesLocales(); })
           .catch((e: any) => {
             // 428 : aucun compte relie. Ce n'est pas une panne, c'est une
             // etape a franchir — on le dit au lieu d'afficher « rien ».
@@ -589,8 +607,15 @@
     // lecture ne prenait pas — le symptôme exact de Bertrand.
     //
     // Une seule liste y échappait : « Mon <service> », qui passe explicitement
-    // son quatrième argument (`fichePlaylist = p`). La recherche et l'éditorial
-    // n'avaient rien. On répare donc ICI, une fois, pour toutes les listes.
+    // son quatrième argument (`fichePlaylist = p`). La recherche n'avait rien.
+    // On répare donc ICI, une fois, pour toutes les listes RENDUES PAR `tile`.
+    //
+    // ⚠️ RECTIFICATIF — #1108. Ce commentaire disait « et l'éditorial », et
+    // c'était faux : l'onglet éditorial n'est pas rendu par `tile`, il est
+    // rendu par `PageWidgets` (plus bas), qui n'appelle jamais `ouvrirFiche`.
+    // Ses cinq bandes de playlists sont restées mortes cinq jours de plus, et
+    // deux testeurs les ont re-signalées le 17/09/2026. Elles se réparent dans
+    // les fabriques d'éléments (`playlistDistante`, `ficheDe`), pas ici.
     if (type === 'playlist' && sid && svc && svc !== BANDCAMP) {
         return () => {
             fichePlaylist = { ...p, source: svc };
@@ -708,6 +733,13 @@
   function playBc(it: any) {
     const zid = $currentZoneId;
     if (zid == null) return;
+    // La copie LOCALE d'abord : l'album acheté est dans la bibliothèque, en
+    // pleine résolution. Le flux Bandcamp (mp3-128) n'est qu'un repli.
+    const locale = copieDe(it);
+    if (locale) {
+      playAndSync(zid, { album_id: locale.albumId }).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
+      return;
+    }
     // L'extrait devient le REPLI, plus le chemin nominal : il ne reste que
     // pour ce qui n'a pas d'album derrière — une piste isolée d'un résultat de
     // recherche. Mieux vaut une file d'une piste que rien du tout.
@@ -736,6 +768,7 @@
       bcNeedsLink = false;
       const d: any = await api.bandcampCollection();
       bcCollection = d?.items ?? d?.collection ?? [];
+      chargerCopiesLocales();
     } catch { error = $t('v2.str.bandcampNotFound' as any); }
     bcLinking = false;
   }
@@ -956,7 +989,9 @@
           </div>
         </div>
       {:else if bcCollection.length}
-        <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@render tile(it, () => playBc(it))}{/each}</div>
+        <!-- Un article dont la copie est dans la bibliothèque se lit et
+             s'annonce depuis elle : sa qualité réelle, pas le mp3-128 du flux. -->
+        <div class="grid">{#each bcCollection as it, i (it.url ?? i)}{@const loc = copieDe(it)}{@render tile(loc ? { ...it, qualiteSource: 'local', format: loc.format, sample_rate: loc.sample_rate, bit_depth: loc.bit_depth, quality: null } : it, () => playBc(it))}{/each}</div>
       {:else}
         <div class="state">{$t('v2.stream.bcEmpty' as any)}</div>
       {/if}
@@ -1172,6 +1207,11 @@
 -->
 {#snippet tile(p: any, onPlay: () => void, type: 'track' | 'album' | 'artist' | 'playlist' | null = 'album', ouvrir: (() => void) | null = null)}
   {@const ouvre = ouvrir ?? ouvrirFiche(p, type)}
+  <!-- Point 10 (Yves Corbat, 17/09/2026) : un album ANNONCÉ porte sa date.
+       Il n'est PAS grisé en bloc et garde sa lecture : ses singles déjà
+       sortis s'écoutent — c'est piste par piste que l'indisponible se dit
+       (`pisteIndisponible`, dans les listes). -->
+  {@const aParaitre = estAParaitre(p)}
   <div class="card">
     <span class="cv">
       <PochetteActions
@@ -1199,12 +1239,18 @@
          plutot que de ne rien faire du tout. -->
     <button class="ct" title={pTitle(p)} onclick={ouvre ?? onPlay}>{pTitle(p)}</button>
     {#if pSub(p)}<span class="ca" title={pSub(p)}>{pSub(p)}</span>{/if}
+    {#if aParaitre}
+      {@const d = dateDeParution(p)}
+      <span class="cp">{d ? $t('v2.str.comingOn' as any).replace('{d}', d) : $t('v2.str.coming' as any)}</span>
+    {/if}
     <!-- TROISIEME LIGNE, comme dans la Bibliotheque : d'ou vient le disque et
          en quelle qualite. `p.quality` est la forme que rendent les services
          (`{codec, sample_rate, bit_depth}`) ; on la traduit dans celle que le
          composant attend, sans quoi il n'annoncerait que la source. -->
     <QualiteAlbum objet={{
-      source: p?.source ?? active,
+      // `qualiteSource` : la provenance de ce qu'on JOUERA (la copie locale d'un
+      // achat Bandcamp), sans toucher à `source`, qui porte le favori du service.
+      source: p?.qualiteSource ?? p?.source ?? active,
       format: p?.quality?.codec ?? p?.format ?? null,
       sample_rate: p?.quality?.sample_rate ?? p?.sample_rate ?? null,
       bit_depth: p?.quality?.bit_depth ?? p?.bit_depth ?? null,
@@ -1322,6 +1368,8 @@
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .card{position:relative; display:flex; flex-direction:column}
+  /* Point 10 — la date d'un album annoncé, en clair sous son titre. */
+  .cp{font:600 11px var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
   .open:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
   .cv{display:block; aspect-ratio:1; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card); transition:.18s}
   .card:hover .cv{box-shadow:0 10px 24px var(--v2-glow)}

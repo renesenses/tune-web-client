@@ -1,7 +1,7 @@
 <script lang="ts">
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   // 🔴 PLUS d'import de `get` : ce fichier n'a plus AUCUN lecteur de magasin
   // par `get()`. Les deux derniers étaient les effets `pendingLibraryArtist`
   // (#3708) et `pendingLibraryAlbum` (#3717), et c'était précisément le
@@ -78,6 +78,10 @@
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import ArtistesV2 from './ArtistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import {
+    detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant,
+  } from '../../lib/historiqueCoquille';
   import {
     albumsDistants, corpsLecture, pistesAlbumDistant, pistesDistantes, type DepotDistant } from '../../lib/tuneRemote';
   import '../../styles/tune-v2.css';
@@ -1040,10 +1044,18 @@
   const pistesFiltrees = $derived(pistesRecherche.filter(t => dansSource(t, fProvenance)));
   const visibleTracks = $derived(pistesFiltrees.slice(0, 500));
   let comptesArtistes = $state<ComptesArtistesSources>({ comptes: new Map(), total: 0 });
+  /**
+   * Fiche artiste OUVERTE : le menu « Source » compte SA discographie commune,
+   * services de streaming compris — #4330. Bertrand, .18, 17/09/2026 : « Source
+   * affiche des chiffres faux et pas les services de streaming ». `null` quand
+   * aucune fiche n'est ouverte : on retombe sur la grille des artistes.
+   */
+  let comptesFiche = $state<ComptesArtistesSources | null>(null);
+  const comptesOngletArtistes = $derived(comptesFiche ?? comptesArtistes);
   const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
   const comptesPistes = $derived(compterSources(pistesRecherche.map(t => [provenanceDe(t)])));
   const provenances = $derived.by(() => {
-    const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
+    const counts = new Map(tab === 'artists' ? comptesOngletArtistes.comptes
       : tab === 'tracks' ? comptesPistes : comptesAlbums);
     if (tab !== 'artists' && tab !== 'tracks') {
       counts.set('upnp', [...counts].reduce((n, [s, c]) => n + (s === 'upnp' || s.startsWith('upnp:') ? c : 0), 0));
@@ -1058,9 +1070,10 @@
         : libelleProvenance(a).localeCompare(libelleProvenance(b)));
   });
   // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
-  const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
+  const matchCountToutesSources = $derived(tab === 'artists' ? comptesOngletArtistes.total
     : tab === 'tracks' ? pistesRecherche.length : comptesAlbums.reduce((n, [, c]) => n + c, 0));
-  const comptesSourcesEnCharge = $derived((tab === 'tracks' || tab === 'artists') && (tracksLoading || tracksError != null));
+  // Une fiche ouverte a SES comptes, qui ne dépendent pas des pistes chargées.
+  const comptesSourcesEnCharge = $derived((tab === 'tracks' || (tab === 'artists' && comptesFiche == null)) && (tracksLoading || tracksError != null));
   const appartenancesArtistes = $derived(sourcesParArtiste(src, tracks));
 
   // La portée dossier inclut aussi les artistes de pistes de compilation.
@@ -1080,6 +1093,108 @@
     playAndSync(zid, depot ? (corpsLecture(depot, t) as any) : { track_id: t.id }).catch(signalerEchecLecture);
   }
   let opened = $state<Album | null>(null);
+
+  /**
+   * 🔴 LA FICHE D'ALBUM EMPILE UNE ENTRÉE D'HISTORIQUE — #1121.
+   *
+   * FabienM, fil forum 1829, point 10 (v0.9.152) : « BACK navigateur
+   * fonctionne mal sur menu Bibliothèque quand on clique sur un album par
+   * exemple, le BACK revient à l'accueil alors qu'il devrait revenir au menu
+   * Bibliothèque ».
+   *
+   * MESURÉ au navigateur sur la .18 (v0.9.153) avant d'écrire : l'URL reste
+   * `#library` du clic « Bibliothèque » jusqu'à la fiche ouverte. Le Précédent
+   * ne se trompe donc pas de destination — il dépile la seule entrée qui
+   * existait sous `#library`, celle de l'Accueil, et fait exactement son
+   * travail. Ce qui manquait, c'est l'entrée de la fiche : le calque n'écrit
+   * rien, puisque l'ouvrir ne change pas `activeView` et que seul
+   * `historiqueCoquille` — abonné à la VUE — écrivait.
+   *
+   * Huit écrans tiennent déjà la règle depuis #980 ; celui-ci en était
+   * l'exception NOMMÉE (`calquesAlbumEmpilent980.test.ts` : « dette assumée —
+   * six écrivains de `opened`, dont un asynchrone »). Cette dette est ici
+   * payée : les six écrivains passent désormais par QUATRE portes, et par
+   * elles seules.
+   *
+   * ⚠️ `untrack` — LE MODE DE PANNE DE CE CORRECTIF. Trois de ces portes sont
+   * appelées depuis un `$effect`. Sans `untrack`, y lire `opened` ou `tab`
+   * inscrirait une dépendance, et l'effet se relancerait sur sa propre
+   * écriture : une entrée empilée par rendu, la pile noyée, le Précédent
+   * inutilisable.
+   *
+   * ⚠️ CE QUI N'EST PAS TRAITÉ ICI, et pourquoi. `detailOuvert` ne porte
+   * QU'UNE clé, et l'onglet Artistes y range la sienne (`artiste:12`) pour son
+   * propre calque (`ArtistesV2`). Tant que cet onglet est à l'écran, on ne
+   * touche pas au magasin : l'écraser refermerait la fiche artiste posée
+   * dessous. C'est la dette des calques imbriqués, nommée telle quelle dans
+   * `calquesAlbumEmpilent980.test.ts`, et elle reste entière — la régler
+   * demande une PILE dans `historiqueCoquille`, pas trois lignes ici.
+   */
+  let cleCalqueEmpilee: string | null = null;
+
+  /** Porte 1 — OUVRIR : le calque se montre et l'entrée est empilée. */
+  function ouvrirCalqueAlbum(a: Album) {
+    untrack(() => {
+      opened = a;
+      // On pose la CLÉ, jamais l'objet : `history.state` refuse les proxies
+      // Svelte (en-tête de `lib/historiqueCoquille.ts`).
+      const cle = tab === 'artists' ? null : cleDetailAlbum(a);
+      cleCalqueEmpilee = cle;
+      if (cle) ouvrirDetail(cle);
+    });
+  }
+
+  /** Porte 2 — REFERMER, sans rien dire à l'historique. */
+  function fermerCalqueAlbum() {
+    opened = null;
+    cleCalqueEmpilee = null;
+  }
+
+  /**
+   * Porte 3 — LE BOUTON RETOUR DE LA FICHE : refermer ET dépiler, d'un geste.
+   *
+   * Refermer sans dépiler laisserait la pile un cran plus haut que le chemin
+   * parcouru, et le Précédent suivant ne ferait « rien » une fois de trop.
+   *
+   * 🔴 Et si RIEN n'a été empilé (onglet Artistes, album sans clé), on ne
+   * recule SURTOUT pas : `history.back()` dépilerait l'entrée de la
+   * Bibliothèque elle-même et ferait sortir de Tune.
+   */
+  function retourCalqueAlbum() {
+    if (cleCalqueEmpilee == null) { fermerCalqueAlbum(); return; }
+    fermerDetailEnReculant(fermerCalqueAlbum);
+  }
+
+  /**
+   * Porte 4 — REFERMER À LA MAIN : clic sur « Bibliothèque » dans la barre
+   * latérale, ou cible externe qui découvre la grille. On ne recule pas et on
+   * n'empile pas : on RÉÉCRIT l'entrée courante, sans quoi elle porterait un
+   * album que l'écran n'affiche plus.
+   */
+  function refermerCalqueAlbumSansReculer() {
+    const empilee = cleCalqueEmpilee;
+    fermerCalqueAlbum();
+    if (empilee != null) fermerDetail();
+  }
+
+  /**
+   * Le Précédent du navigateur a dépilé notre entrée : la coquille repose la
+   * clé de l'entrée atteinte dans `detailOuvert`, et le calque doit suivre.
+   * Sans ce raccord, le retour reposerait la bonne vue en laissant la fiche
+   * par-dessus — entrée en moins, écran inchangé.
+   *
+   * ⚠️ `untrack` : l'effet ÉCRIT `opened`, qu'il lit aussi. Il ne doit dépendre
+   * que du magasin, sinon sa propre écriture le relance.
+   */
+  $effect(() => {
+    const voulu = $detailOuvert;
+    untrack(() => {
+      if (!opened || cleCalqueEmpilee == null) return;
+      if (voulu === cleCalqueEmpilee) return;
+      fermerCalqueAlbum();
+    });
+  });
+
   /**
    * 🔴 Un clic sur « Bibliothèque » dans la barre latérale REFERME la fiche
    * d'album — #3843.
@@ -1102,7 +1217,9 @@
    */
   $effect(() => {
     $listResetNonce;
-    opened = null;
+    // #1121 : fermeture À LA MAIN — on RÉÉCRIT l'entrée courante, on ne
+    // recule pas. Reculer ici dépilerait l'entrée de la Bibliothèque.
+    refermerCalqueAlbumSansReculer();
   });
 
   /**
@@ -1155,8 +1272,9 @@
     artisteADemande = id;
     tab = 'artists';
     // La fiche d'album est un CALQUE par-dessus la grille : la laisser
-    // ouverte cacherait l'onglet Artistes qu'on vient d'ouvrir.
-    opened = null;
+    // ouverte cacherait l'onglet Artistes qu'on vient d'ouvrir. Fermeture à
+    // la main : l'entrée courante est réécrite, pas dépilée (#1121).
+    refermerCalqueAlbumSansReculer();
   });
 
   /**
@@ -1181,8 +1299,10 @@
     if (id == null) return;
     pendingLibraryAlbum.set(null);
     const connu = $albums.find((a) => a.id === id);
-    if (connu) { opened = connu; return; }
-    api.getAlbum(id).then((a) => { if (a) opened = a; }).catch(() => {});
+    // #1121 : les DEUX chemins passent par la porte d'ouverture — c'est le
+    // sixième écrivain, l'asynchrone, celui que la dette de #980 nommait.
+    if (connu) { ouvrirCalqueAlbum(connu); return; }
+    api.getAlbum(id).then((a) => { if (a) ouvrirCalqueAlbum(a); }).catch(() => {});
   });
 
   /**
@@ -1211,7 +1331,7 @@
     tab = 'albums';
     // Même raison que chez le jumeau Artistes : la fiche est un CALQUE, et la
     // laisser ouverte cacherait la grille qu'on vient de filtrer.
-    opened = null;
+    refermerCalqueAlbumSansReculer();
   });
 
   /**
@@ -1235,7 +1355,7 @@
    */
   function lireAlbum(a: Album) {
     if (depot) {
-      opened = a;
+      ouvrirCalqueAlbum(a);
       return;
     }
     const zid = $currentZoneId;
@@ -1395,8 +1515,8 @@
         bibliothèque on parle. C'est une portée, comme le fil d'Ariane des
         Répertoires — elle précède les critères qu'elle borne.
 
-        Toujours visible : une bibliothèque locale explique comment intégrer
-        une source distante. Les autres filtres ne retirent pas ses entrées.
+        Toujours visible : une bibliothèque locale explique qu'elle n'a pas
+        encore de source distante. Les autres filtres ne retirent pas ses entrées.
       -->
         <div class="drop" class:open={ddOpen === 'provenance'}>
           <button class="chip" class:active={fProvenance !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'provenance'} onclick={() => ddToggle('provenance')}>{$tr('v2.lib.source' as any)}{#if fProvenance}&nbsp;· {libelleProvenance(fProvenance)}{/if}
@@ -1409,7 +1529,9 @@
             {#if tab === 'albums' && !sourcesIntegrees.length && src.every(a => provenanceDe(a) === 'local')}
               <p>{$tr('upnp.sync.localOnly' as any)}</p>
             {/if}
-            <a href="#mediaservers">{$tr('nav.mediaservers' as any)}</a>
+            <!-- Plus de lien « Serveurs multimédia » ici : un menu de FILTRE
+                 n'est pas une navigation (Bertrand, 17/09/2026 : « Cette
+                 mention ne sert à rien »). -->
             {#each provenances as [cle, n] (cle)}
               <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{comptesSourcesEnCharge ? "…" : n}</em></button>
             {/each}
@@ -1640,7 +1762,7 @@
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
-        sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)}
+        sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} onComptesFiche={(c) => (comptesFiche = c)}
         ouvrirId={artisteADemande} onOuvert={() => (artisteADemande = null)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
@@ -1680,7 +1802,7 @@
               onLire={(p) => playTrack(p)}
               ouvertureAlbum={(p) => {
                 const alb = albumDeLaPiste(p);
-                return alb ? () => (opened = alb) : null;
+                return alb ? () => ouvrirCalqueAlbum(alb) : null;
               }}
             />
             {#if pistesFiltrees.length > visibleTracks.length}
@@ -1771,14 +1893,14 @@
                         etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
                         onEditer={depot ? null : () => (enEdition = a)}
                         onLire={() => lireAlbum(a)}
-                        onOuvrir={() => (opened = a)}
+                        onOuvrir={() => ouvrirCalqueAlbum(a)}
                         nom={a.title}
                       >
                         <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                       </PochetteActions>
                       {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
                     </div>
-                    <button class="meta" onclick={() => opened = a}>
+                    <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
                       <div class="ct" title={a.title}>{a.title}</div>
                       <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
                       <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
@@ -1797,7 +1919,7 @@
         {:else}
         <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
           {#each affiches as a (a.id)}
-            <button class="lrow" data-letter={firstLetter(a)} onclick={() => opened = a}>
+            <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
               <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
               <!-- La pastille reste DANS la cellule du titre : une septieme
                    colonne decalerait toutes les autres, et seule une poignee de
@@ -1835,14 +1957,14 @@
                   etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
                   onEditer={depot ? null : () => (enEdition = a)}
                   onLire={() => lireAlbum(a)}
-                  onOuvrir={() => (opened = a)}
+                  onOuvrir={() => ouvrirCalqueAlbum(a)}
                   nom={a.title}
                 >
                   <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
                 </PochetteActions>
                 {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
               </div>
-              <button class="meta" onclick={() => opened = a}>
+              <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
                 <div class="ct" title={a.title}>{a.title}</div>
                 <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
                 <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
@@ -1857,7 +1979,7 @@
   </div>
 
   {#if opened}
-    <AlbumDetailV2 album={opened} {depot} onClose={() => (opened = null)} />
+    <AlbumDetailV2 album={opened} {depot} onClose={retourCalqueAlbum} />
   {/if}
 
   {#if enEdition}

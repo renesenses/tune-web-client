@@ -5,6 +5,7 @@
   import type { Zone, DeviceBrand } from '../../lib/types';
   import * as api from '../../lib/api';
   import { identiteModifiee } from '../../lib/identiteAppareilZone';
+  import { saisieLibre } from '../../lib/marqueAppareilZone';
   import { t } from '../../lib/i18n';
 
   interface Props {
@@ -28,18 +29,28 @@
   let modelsForBrand = $derived(
     catalog.find((b) => b.name.toLowerCase() === selectedBrand.trim().toLowerCase())?.models ?? []
   );
-  // Marque en saisie libre : « Autre », ou une marque hors catalogue.
-  let brandIsCustom = $derived(
-    selectedBrand === CUSTOM ||
-      (selectedBrand.trim() !== '' &&
-        !catalog.some((b) => b.name.toLowerCase() === selectedBrand.trim().toLowerCase()))
-  );
-  // Modèle en saisie libre : marque libre, ou modèle hors liste.
+  /**
+   * #1107 — le mode de saisie est un ÉTAT PROPRE, jamais une déduction du
+   * texte tapé.
+   *
+   * `null` = personne n'a tranché : à l'ouverture seulement, le mode se déduit
+   * de la valeur reçue (une marque hors catalogue s'ouvre en saisie libre, et
+   * il faut attendre l'arrivée du catalogue pour le savoir). Dès que
+   * l'utilisateur choisit « Autre… » ou une entrée de la liste, SON choix
+   * commande — vider le champ ne le renverse plus, et taper un nom qui figure
+   * au catalogue ne lui confisque plus le champ en pleine frappe.
+   *
+   * La règle vit dans `lib/marqueAppareilZone.ts`, pour qu'un test l'APPELLE.
+   */
+  let marqueLibreChoisie = $state<boolean | null>(null);
+  let modeleLibreChoisi = $state<boolean | null>(null);
+
+  // Marque en saisie libre : choix de l'utilisateur, sinon marque hors catalogue.
+  let brandIsCustom = $derived(saisieLibre(marqueLibreChoisie, catalog, selectedBrand));
+  // Modèle en saisie libre : marque libre (aucune liste à proposer), ou choix
+  // de l'utilisateur, sinon modèle hors liste.
   let modelIsCustom = $derived(
-    brandIsCustom ||
-      selectedModel === CUSTOM ||
-      (selectedModel.trim() !== '' &&
-        !modelsForBrand.some((m) => m.name.toLowerCase() === selectedModel.trim().toLowerCase()))
+    brandIsCustom || saisieLibre(modeleLibreChoisi, modelsForBrand, selectedModel)
   );
 
   /**
@@ -59,10 +70,51 @@
   });
 
   function onBrandChange(v: string) {
-    selectedBrand = v;
-    // Changer de marque invalide le modèle (sauf saisie libre conservée).
-    if (v !== CUSTOM) selectedModel = '';
     deviceSaved = false;
+    if (v === CUSTOM) {
+      // #1107 : « Autre… » ouvre un champ VIDE. Y écrire le mot « Autre »,
+      // c'était faire porter le mode par le texte — et obliger l'utilisateur à
+      // effacer ce mot, geste qui refermait le champ. Le modèle en cours est
+      // conservé : il passe simplement en saisie libre avec la marque.
+      marqueLibreChoisie = true;
+      selectedBrand = '';
+      return;
+    }
+    marqueLibreChoisie = false;
+    selectedBrand = v;
+    // Changer de marque invalide le modèle, et son mode de saisie avec.
+    selectedModel = '';
+    modeleLibreChoisi = null;
+  }
+
+  function onModelChange(v: string) {
+    deviceSaved = false;
+    if (v === CUSTOM) {
+      modeleLibreChoisi = true;
+      selectedModel = '';
+      return;
+    }
+    modeleLibreChoisi = false;
+    selectedModel = v;
+  }
+
+  /**
+   * Le chemin de RETOUR vers la liste : sans lui, un « Autre… » choisi par
+   * mégarde enfermerait l'utilisateur en saisie libre jusqu'au remontage de
+   * l'écran. C'est le seul geste qui referme le champ libre — plus jamais une
+   * touche effacée.
+   */
+  function revenirALaListe(champ: 'marque' | 'modele') {
+    deviceSaved = false;
+    if (champ === 'marque') {
+      marqueLibreChoisie = false;
+      selectedBrand = '';
+      selectedModel = '';
+      modeleLibreChoisi = null;
+      return;
+    }
+    modeleLibreChoisi = false;
+    selectedModel = '';
   }
 
   /**
@@ -152,46 +204,62 @@
 {/if}
 
 <div class="device-grid">
-  <label class="device-field">
-    <span class="device-label">{$t('zoneConfig.brand')}</span>
-    {#if brandIsCustom}
-      <input
-        class="device-input"
-        type="text"
-        bind:value={selectedBrand}
-        placeholder={$t('zoneConfig.brandCustomPlaceholder')}
-        oninput={() => (deviceSaved = false)}
-      />
-    {:else}
-      <select class="device-input" value={selectedBrand} onchange={(e) => onBrandChange(e.currentTarget.value)}>
-        <option value="">{$t('zoneConfig.brandNone')}</option>
-        {#each catalog as b}
-          <option value={b.name}>{b.name}</option>
-        {/each}
-        <option value={CUSTOM}>{$t('zoneConfig.other')}</option>
-      </select>
+  <div class="device-field">
+    <label class="device-champ">
+      <span class="device-label">{$t('zoneConfig.brand')}</span>
+      {#if brandIsCustom}
+        <input
+          class="device-input"
+          type="text"
+          bind:value={selectedBrand}
+          placeholder={$t('zoneConfig.brandCustomPlaceholder')}
+          oninput={() => (deviceSaved = false)}
+        />
+      {:else}
+        <select class="device-input" value={selectedBrand} onchange={(e) => onBrandChange(e.currentTarget.value)}>
+          <option value="">{$t('zoneConfig.brandNone')}</option>
+          {#each catalog as b}
+            <option value={b.name}>{b.name}</option>
+          {/each}
+          <option value={CUSTOM}>{$t('zoneConfig.other')}</option>
+        </select>
+      {/if}
+    </label>
+    <!-- #1107 — le geste explicite de retour. Hors du <label> : un bouton
+         niché dedans se ferait aussi cliquer en visant le champ. -->
+    {#if brandIsCustom && catalog.length > 0}
+      <button class="device-retour" type="button" onclick={() => revenirALaListe('marque')}>
+        {$t('zoneConfig.backToList')}
+      </button>
     {/if}
-  </label>
-  <label class="device-field">
-    <span class="device-label">{$t('zoneConfig.model')}</span>
-    {#if modelIsCustom}
-      <input
-        class="device-input"
-        type="text"
-        bind:value={selectedModel}
-        placeholder={$t('zoneConfig.modelCustomPlaceholder')}
-        oninput={() => (deviceSaved = false)}
-      />
-    {:else}
-      <select class="device-input" bind:value={selectedModel} onchange={() => (deviceSaved = false)} disabled={!selectedBrand}>
-        <option value="">{$t('zoneConfig.modelNone')}</option>
-        {#each modelsForBrand as m}
-          <option value={m.name}>{m.name}</option>
-        {/each}
-        <option value={CUSTOM}>{$t('zoneConfig.other')}</option>
-      </select>
+  </div>
+  <div class="device-field">
+    <label class="device-champ">
+      <span class="device-label">{$t('zoneConfig.model')}</span>
+      {#if modelIsCustom}
+        <input
+          class="device-input"
+          type="text"
+          bind:value={selectedModel}
+          placeholder={$t('zoneConfig.modelCustomPlaceholder')}
+          oninput={() => (deviceSaved = false)}
+        />
+      {:else}
+        <select class="device-input" value={selectedModel} onchange={(e) => onModelChange(e.currentTarget.value)} disabled={!selectedBrand}>
+          <option value="">{$t('zoneConfig.modelNone')}</option>
+          {#each modelsForBrand as m}
+            <option value={m.name}>{m.name}</option>
+          {/each}
+          <option value={CUSTOM}>{$t('zoneConfig.other')}</option>
+        </select>
+      {/if}
+    </label>
+    {#if modelIsCustom && !brandIsCustom && modelsForBrand.length > 0}
+      <button class="device-retour" type="button" onclick={() => revenirALaListe('modele')}>
+        {$t('zoneConfig.backToList')}
+      </button>
     {/if}
-  </label>
+  </div>
 </div>
 
 {#if detectedMarque || detectedModele}
@@ -268,6 +336,22 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+  .device-champ {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .device-retour {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-body);
+    font-size: 11px;
+    color: var(--tune-accent);
+    cursor: pointer;
+    text-decoration: underline;
   }
   .device-label {
     font-family: var(--font-body);

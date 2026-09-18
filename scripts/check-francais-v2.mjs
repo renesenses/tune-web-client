@@ -18,9 +18,27 @@
  *
  * ## Portée
  *
- * ÉTROITE : `src/components/v2` seulement. Le client actuel porte la même
+ * ÉTROITE, et élargie UNE FOIS, après mesure.
+ *
+ * Au départ `src/components/v2` seulement : le client actuel porte la même
  * dette en bien plus gros, et une garde qui échoue des centaines de fois dès
  * le premier jour serait désactivée le lendemain. On tient ce qui est propre.
+ *
+ * 🔴 Le 18/09/2026, ce trou a coûté un défaut vu AU NAVIGATEUR : l'onglet
+ * Transferts du gestionnaire de playlists était peint en anglais dans une
+ * interface française. La troisième passe ci-dessous SAIT attraper ça — elle
+ * interdit tout texte visible hors `$t()`, anglais compris. Mais l'écran vit
+ * dans `src/components/v2-heritage`, un répertoire à côté, et la garde passait
+ * devant sans le voir.
+ *
+ * On a donc MESURÉ avant d'élargir, comme la portée d'origine l'exige :
+ *   - `src/components/v2-heritage` (13 fichiers) : 14 occurrences → corrigées,
+ *     puis la portée élargie. Bon marché.
+ *   - tout `src/components` : 198 occurrences. NON RETENU — c'est exactement
+ *     la garde qu'on désactive le lendemain.
+ *
+ * La liste reste donc explicite : on n'y ajoute un répertoire qu'après avoir
+ * compté ce qu'il ferait rougir, et corrigé.
  *
  * Ce qui est ÉCARTÉ, et pourquoi :
  *  - les commentaires : c'est de la documentation, elle est en français exprès ;
@@ -31,6 +49,9 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
+/** Les répertoires tenus propres. Une entrée s'ajoute APRÈS mesure et correction. */
+const PORTEE = ['src/components/v2', 'src/components/v2-heritage'];
+
 function fichiers(dir) {
   const out = [];
   for (const n of readdirSync(dir)) {
@@ -40,6 +61,9 @@ function fichiers(dir) {
   }
   return out;
 }
+
+/** Tous les fichiers de la portée, sans doublon. */
+const surveilles = () => [...new Set(PORTEE.flatMap((d) => fichiers(d)))];
 
 /** Les mêmes marqueurs que `check-i18n`, pour que les deux gardes s'accordent. */
 const FRANCAIS =
@@ -70,7 +94,7 @@ function sansCommentaires(src) {
 }
 
 const fautes = [];
-for (const f of fichiers('src/components/v2')) {
+for (const f of surveilles()) {
   const brut = readFileSync(f, 'utf8');
   const src = sansCommentaires(brut);
   for (const m of src.matchAll(LITTERAL)) {
@@ -129,14 +153,27 @@ const INTRADUISIBLE = new RegExp(
   '^(?:[\\W\\d\\s]|dB|kHz|Hz|FLAC|DSD|MP3|WAV|ALAC|AAC|DLNA|UPnP|AirPlay|OK|ID|URL|IP|MAC|EQ|DSP|PCM|LPCM|'
   + 'CSS|HTML|JSON|API|CPU|RAM|Tune|Qobuz|Tidal|Spotify|Deezer|Bandcamp|YouTube|Sonos|BluOS|Chromecast|Roon|'
   + 'Plex|SMB|NAS|USB|bit|kbps|ms|Wi-Fi|Discogs|Last\\.fm|Genius|ListenBrainz|MusicBrainz|WASAPI|ASIO|DoP|Auto|'
+  // ISRC : sigle de la norme ISO 3901, identique dans les onze langues. Le
+  // Hub l'affiche comme NOM de la méthode d'appariement (« ISRC 12 »), face à
+  // « Approximatif » et « Échec » qui, eux, sont traduits. Lui fabriquer une
+  // clé produirait onze fois la même valeur.
+  + 'ISRC|'
   + 'MOZAIKLABS|Radio France|Crossfeed|Podcasts|Playlists|Studio|Oxygen)+$',
 );
 
-for (const f of fichiers('src/components/v2')) {
+for (const f of surveilles()) {
   const src = sansCommentaires(readFileSync(f, 'utf8'));
   const i = src.indexOf('</script>');
   if (i < 0) continue;
-  let balisage = src.slice(i + 9);
+  // 🔴 Un composant peut porter DEUX scripts : `<script module>` en plus du
+  // script d'instance — `ListePistesV2` depuis #1149, qui exporte la largeur
+  // de sa colonne d'actions pour que l'Historique compose la même grille.
+  // Couper au PREMIER `</script>` faisait alors lire le script d'INSTANCE
+  // comme du balisage, et une signature TypeScript y ressortait en « texte nu
+  // » : `void) | null) | null; apres?: Snippet`. On blanchit donc les blocs de
+  // script restants, en gardant les sauts de ligne pour que les numéros
+  // signalés restent justes.
+  let balisage = src.slice(i + 9).replace(/<script[\s\S]*?<\/script>/g, blanchir);
   // Le bloc <style> ne s'affiche pas.
   const j = balisage.indexOf('<style');
   let fin = j > 0 ? balisage.slice(0, j) : balisage;
@@ -192,7 +229,7 @@ for (const f of NAVIGATION) {
 }
 
 if (fautes.length) {
-  console.error(`\n${fautes.length} chaîne(s) française(s) en dur dans le client v2 :\n`);
+  console.error(`\n${fautes.length} chaîne(s) en dur (hors $t) dans ${PORTEE.join(', ')} :\n`);
   for (const l of fautes) console.error('  ' + l);
   console.error(
     "\nUne chaîne en dur ne se traduit jamais : elle reste en francais dans les",
@@ -201,4 +238,4 @@ if (fautes.length) {
   process.exit(1);
 }
 
-console.log('client v2 : aucun francais en dur.');
+console.log(`aucun texte en dur hors $t() dans ${PORTEE.join(', ')}.`);

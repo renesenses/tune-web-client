@@ -34,3 +34,21 @@ describe('#993 — le fond de Lecture en cours', () => {
     expect(kiosque).toBeLessThanOrEqual(normal);
   });
 });
+
+describe('le fond de Lecture en cours suit la TEINTE du thème (17/09/2026)', () => {
+  it('une couche de la couleur du thème couvre la pochette assombrie, sans la remplacer', () => {
+    expect(src).toContain('<div class="bg-teinte" aria-hidden="true"></div>');
+    const i = src.indexOf('.bg-teinte {');
+    const bloc = src.slice(i, src.indexOf('}', i));
+    // Hors du nouveau client, le jeton manque : la couche est transparente.
+    expect(bloc).toContain('background: var(--v2-bg, transparent);');
+    const opacite = Number(bloc.match(/opacity:\s*([\d.]+)/)![1]);
+    expect(opacite).toBeGreaterThan(0.5);
+    expect(opacite).toBeLessThan(1); // la pochette reste perceptible
+  });
+
+  it('écartée sur les deux thèmes clairs, pour garder le contraste de #993', () => {
+    expect(src).toContain(':global(:root[data-v2-theme="clear-white"]) .bg-teinte');
+    expect(src).toContain(':global(:root[data-v2-theme="clear-grey"]) .bg-teinte');
+  });
+});
