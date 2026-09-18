@@ -10,6 +10,9 @@ export type LibraryTab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 
 
 export const libraryTab = writable<LibraryTab>('albums');
 export const libraryLoading = writable<boolean>(false);
+// V2 : la première page peut être visible pendant le complément (#1179).
+// L'erreur reste affichée jusqu'au prochain essai, sans effacer les albums reçus.
+export const libraryAlbumsLoadState = writable<'idle' | 'loading' | 'error' | 'partial-error'>('idle');
 
 // Albums
 export const albums = writable<Album[]>([]);

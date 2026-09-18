@@ -38,7 +38,8 @@
    * Voir `lib/tuneRemote` pour pourquoi c'est possible chez Tune et pas chez
    * un serveur UPnP tiers.
    */
-  import { albums, libraryLoading, libraryFolderScope } from '../../lib/stores/library';
+  import { albums, libraryLoading, libraryAlbumsLoadState, libraryFolderScope } from '../../lib/stores/library';
+  import { loadAlbums } from '../../lib/v2Bootstrap';
   // 🔴 `pendingLibraryFolder` n'existe PLUS : `main` l'a remplacé par le
   // magasin `libraryFolderScope` (voir `lib/porteeBibliotheque`) parce qu'un
   // dépôt consommé UNE fois dans l'initialiseur d'un `$state` n'était jamais
@@ -1754,6 +1755,17 @@
     </div>
   {/if}
 
+  {#if !depot && tab !== 'artists' && tab !== 'tracks'}
+    {#if $libraryAlbumsLoadState === 'error' || $libraryAlbumsLoadState === 'partial-error'}
+      <div class="chargement-albums" role="alert">
+        <span>{#if $libraryAlbumsLoadState === 'partial-error'}{$tr('oxygen.truncated')} {/if}{$tr('oxygen.loadError')}</span>
+        <button class="chip" onclick={() => void loadAlbums()}>{$tr('zone.retry')}</button>
+      </div>
+    {:else if $libraryAlbumsLoadState === 'loading' && $albums.length > 0}
+      <div class="chargement-albums" role="status">{$tr('v2.lib.loading' as any)}</div>
+    {/if}
+  {/if}
+
   <div class="body">
     {#if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
@@ -1770,9 +1782,11 @@
       <!-- « Votre » serait faux sur la bibliotheque d'une autre machine : on
            nomme le serveur, sinon un catalogue distant vide se lirait comme
            un defaut de la sienne. Mesure : 192.168.1.16 rend `[]`. -->
-      <div class="state">{depot
-          ? $tr('v2.lib.emptyDepot' as any).replace('{nom}', depot.nom).replace('{hote}', depot.hote)
-          : $tr('v2.lib.emptyLibrary' as any)}</div>
+      {#if depot || ($libraryAlbumsLoadState !== 'error' && $libraryAlbumsLoadState !== 'partial-error')}
+        <div class="state">{depot
+            ? $tr('v2.lib.emptyDepot' as any).replace('{nom}', depot.nom).replace('{hote}', depot.hote)
+            : $tr('v2.lib.emptyLibrary' as any)}</div>
+      {/if}
     {:else}
       <!-- `railUtile` : sur un tri chronologique, le rail est RETIRÉ plutôt
            que laissé à promettre un saut qui atterrirait au hasard. La frise
@@ -2053,6 +2067,7 @@
   .drop .menu button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .body{flex:1; min-height:0; display:flex; padding-left:18px}
+  .chargement-albums{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; color:var(--v2-txt2); font-size:14px}
   .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
   /* Rail A-Z : c'est un REPERE, il doit se lire d'un coup d'oeil et se viser
      au doigt. Auparavant 11 px colles a 1 px d'intervalle contre la grille —
