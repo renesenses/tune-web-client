@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': 'Zur Playlist hinzufügen',
   'queue.removeFromQueue': 'Aus Warteschlange entfernen',
   'queue.addToQueue': 'Zur Warteschlange hinzufügen',
+  "queue.unresolvedWarning": "{count} Titel von {service} konnten nicht aufgelöst werden und wurden ohne Angaben hinzugefügt.",
+  "queue.unresolvedUnknownService": "diesem Dienst",
   'queue.addFailed': "Konnte nicht zur Warteschlange hinzugefügt werden",
 
   // Home

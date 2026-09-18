@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': 'プレイリストに追加',
   'queue.removeFromQueue': 'キューから削除',
   'queue.addToQueue': 'キューに追加',
+  "queue.unresolvedWarning": "{service} の {count} 曲を解決できず、情報なしで追加されました。",
+  "queue.unresolvedUnknownService": "このサービス",
   'queue.addFailed': "キューに追加できませんでした",
 
   // Home

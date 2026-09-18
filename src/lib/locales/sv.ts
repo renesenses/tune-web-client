@@ -339,6 +339,8 @@ export default {
   'queue.addToPlaylist': 'Lägg till i spellista',
   'queue.removeFromQueue': 'Ta bort från kön',
   'queue.addToQueue': 'Lägg till i kön',
+  "queue.unresolvedWarning": "{count} spår från {service} kunde inte hämtas och lades till utan sin information.",
+  "queue.unresolvedUnknownService": "den här tjänsten",
   'queue.addFailed': "Kunde inte läggas till i kön",
 
   // Home
