@@ -19,10 +19,16 @@
  * ## Pourquoi un champ à part, et pas `fiche`
  *
  * `fiche` est documenté comme « l'album normalisé pour la fiche, quand `ouvrir`
- * vaut `album` ». Une playlist de widget n'ouvre rien — les deux notions se
- * recouvrent pour un album, pas au-delà. Détourner `fiche` aurait aussi fait
- * apparaître `onEditer` et `ouvrir` sur des objets qui n'en veulent pas. D'où
- * `favoriDistant`, qui ne dit QUE l'identité de favori.
+ * vaut `album` » : les deux notions se recouvrent pour un album, pas au-delà.
+ * Détourner `fiche` aurait fait apparaître `onEditer` et un calque ALBUM sur
+ * une playlist. D'où `favoriDistant`, qui ne dit QUE l'identité de favori.
+ *
+ * ⚠️ MISE À JOUR — #1108. La phrase « une playlist de widget n'ouvre rien »
+ * qui figurait ici décrivait le DÉFAUT, pas une règle : schmitt (fil 1671) et
+ * FabienM (fil 1829) ont signalé le même jour, 17/09/2026, que ni la pochette
+ * ni le titre n'ouvraient la composition. Une playlist ouvre désormais
+ * `playlist` — un champ à part, pour la même raison qu'ici — et jamais
+ * `fiche`.
  *
  * ## La prémisse, mesurée côté serveur
  *
@@ -71,13 +77,29 @@ describe('#3822 — Éditorial : la playlist d’un service porte le cœur', () 
     expect(els[0]?.favoriDistant).toBeFalsy();
   });
 
-  /** La playlist ne s'OUVRE toujours pas depuis un widget : le cœur s'ajoute,
-   *  il ne remplace rien et n'invente aucun geste. */
-  it('n’invente pas d’ouverture de fiche au passage', async () => {
+  /**
+   * Ce que ce cas garde vraiment : le cœur de #3822 n'a rien PRIS au passage.
+   *
+   * Il vérifiait aussi `ouvrir` vide — c'était le défaut #1108, corrigé depuis.
+   * Reste la règle qui, elle, tient : une playlist ouvre une fiche de
+   * PLAYLIST, jamais une fiche album. Les deux espaces d'identifiants sont
+   * disjoints chez Qobuz, et `…/albums/77/tracks` n'est pas
+   * `…/playlists/77/tracks` — un calque album y afficherait « 0 titre ».
+   */
+  it('ouvre une PLAYLIST, jamais une fiche album, et garde sa lecture', async () => {
     const els = await bande('qobuz-playlists-editoriales', [playlist()]);
-    expect(els[0].ouvrir).toBeFalsy();
-    expect(els[0].fiche).toBeUndefined();
+    expect(els[0].ouvrir).toBe('playlist');
+    expect(els[0].playlist).toMatchObject({ source_id: '77', source: 'qobuz', name: 'Jazz du dimanche' });
+    expect(els[0].fiche, 'une playlist n’ouvre pas de fiche album').toBeUndefined();
     expect(typeof els[0].jouer, 'la lecture doit survivre').toBe('function');
+  });
+
+  /** Sans identifiant, pas de route : pas de geste d'ouverture non plus — la
+   *  même garde que pour le cœur, un cran plus loin. */
+  it('n’ouvre rien sur une playlist sans identifiant de service', async () => {
+    const els = await bande('qobuz-playlists-editoriales', [playlist({ source_id: '' })]);
+    expect(els[0]?.ouvrir).toBeFalsy();
+    expect(els[0]?.playlist).toBeUndefined();
   });
 });
 
