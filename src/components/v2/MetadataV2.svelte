@@ -84,6 +84,26 @@
     const q = [c.format?.toUpperCase(), c.sample_rate ? `${Math.round(c.sample_rate / 100) / 10} kHz` : null, c.bit_depth ? `${c.bit_depth} bit` : null].filter(Boolean).join(' · ');
     return q || (c.file_path?.split('/').pop() ?? String(c.id));
   }
+  /**
+   * #1069 — CE QUI A RAPPROCHÉ les deux fiches.
+   *
+   * Le serveur le dit depuis la v0.9.143 et la v0.9.146
+   * (tune-server-rust#3396) ; l'écran n'en montrait rien. Or la décision de
+   * fusionner n'est pas la même selon l'indice : « même dossier et même
+   * titre » est presque sûr, « même pochette » peut rapprocher deux éditions
+   * d'un coffret qu'on veut garder distinctes.
+   *
+   * Un code inconnu est rendu TEL QUEL plutôt que tu : un serveur plus récent
+   * peut en nommer un troisième, et l'utilisateur doit pouvoir le lire.
+   */
+  function libelleIndice(code: string | undefined | null): string | null {
+    if (!code) return null;
+    switch (code) {
+      case 'dossier_et_titre': return $t('v2.meta.indiceDossierTitre' as any);
+      case 'pochette_identique': return $t('v2.meta.indicePochette' as any);
+      default: return code;
+    }
+  }
   function libelleCritere(code: string): string {
     switch (code) {
       case 'fichier_identique': return $t('v2.meta.critereFichier' as any);
@@ -561,7 +581,25 @@
               <article class="prop grp">
                 <div class="pw">
                   <div class="pt">{cible?.title ?? '—'}{#if cible?.artist}<em>{cible.artist}</em>{/if}</div>
+                  <!-- #1069 — l'indice qui a rapproché les fiches. La décision
+                       n'est pas la même selon lui : « même dossier et même
+                       titre » est presque sûr, « même pochette » peut
+                       rapprocher deux éditions d'un coffret. -->
+                  {#if libelleIndice(g.indice)}<div class="pf">{libelleIndice(g.indice)}</div>{/if}
                   <div class="sub">{$t('v2.meta.recoKeep' as any).replace('{name}', `${cible?.title ?? ''} (${cible?.track_count ?? 0})`)}</div>
+                  <!-- Les pochettes CÔTE À CÔTE : c'est la comparaison qui
+                       tranche, surtout quand c'est la pochette elle-même qui a
+                       servi d'indice. Le groupe ne porte pas de `cover_path`
+                       (mesuré sur le .18) — `AlbumArt` la résout par l'id. -->
+                  <div class="eclv">
+                    {#each g.albums ?? [] as a (a.id)}
+                      <span class="eclc" class:garde={a.id === cible?.id}
+                            title={`${a.title} — ${a.track_count}`}>
+                        <AlbumArt coverPath={null} albumId={a.id} size={0} alt={a.title}
+                          fallbackInitials={a.title?.slice(0, 1)} />
+                      </span>
+                    {/each}
+                  </div>
                   <div class="pa wrap">
                     {#each (g.albums ?? []).filter((a) => a.id !== cible?.id) as a (a.id)}
                       <button class="lnk" class:armed={arme === `album:${a.id}`} onclick={() => cible && agir(`album:${a.id}`, () => api.absorbAlbum(cible.id, a.id))}>
@@ -884,6 +922,13 @@
   .pt{font-size:14px; font-weight:700; display:flex; gap:9px; align-items:baseline}
   .pt em{font:11.5px var(--v2-sans); font-style:normal; color:var(--v2-txt3)}
   .pf{margin-top:4px; font:9.5px var(--v2-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--v2-acc2)}
+  /* #1069 — les pochettes du groupe, côte à côte. Celle qu'on GARDE est
+     soulignée : c'est la fiche qui absorbera les autres, et rien ne la
+     distinguait des autres vignettes. */
+  .eclv{display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 4px}
+  .eclc{width:56px; height:56px; border-radius:6px; overflow:hidden; flex:0 0 auto;
+    border:2px solid transparent}
+  .eclc.garde{border-color:var(--v2-acc1)}
   .diff{margin-top:8px; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .diff svg{width:15px; height:15px; color:var(--v2-txt3); flex:0 0 auto}
   .cur{font-size:13px; color:var(--v2-txt3); text-decoration:line-through}

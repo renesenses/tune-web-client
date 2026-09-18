@@ -37,6 +37,8 @@
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
   import { signalerEchecLecture } from '../../lib/echecLecture';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { lireListeDepuis } from '../../lib/lectureEnMasse';
   import type { Album, Artist, Track, UserTag } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -168,6 +170,14 @@
     albumsChargement = false;
   }
 
+  /** « Lire à partir d'ici » — #1061, point 9 de FabienM : les pistes de
+   *  l'étiquette, dans l'ordre affiché, depuis celle qu'on désigne. */
+  function lireLesPistesDepuis(i: number) {
+    const zid = $currentZoneId;
+    if (zid == null) return;
+    lireListeDepuis(pistes as any, i, gestesDeZone(zid)).catch(signalerEchecLecture);
+  }
+
   function lirePiste(t: Track) {
     const zid = $currentZoneId;
     if (zid == null || t.id == null) return;
@@ -266,7 +276,8 @@
           <div class="etat">{$t('v2.tags.noTrackWithTag' as any)}</div>
         {:else}
           <div class="pistes">
-            <ListePistesV2 pistes={pistes} onLire={(p) => lirePiste(p)} />
+            <ListePistesV2 pistes={pistes} onLire={(p) => lirePiste(p)}
+              onLireDepuis={(_p, i) => lireLesPistesDepuis(i)} />
           </div>
         {/if}
 
