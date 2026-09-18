@@ -5,11 +5,13 @@ import { getToken, clearToken } from './auth';
 import { get } from 'svelte/store';
 import { locale, t } from './i18n';
 import { profileHeader } from './profileHeader';
+import { texteNonResolues, type PisteNonResolue } from './pistesNonResolues';
 // `import type` : effacé à la compilation, donc aucun cycle à l'exécution
 // (`streamingFavorites` importe ce module-ci pour ses fonctions).
 import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
+import type { LibelleServi } from './libellesFrequence';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -410,7 +412,14 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
-      'Content-Type': 'application/json',
+      // #4447 — `Content-Type: application/json` UNIQUEMENT s'il y a quelque
+      // chose a envoyer. Annonce sur un POST sans corps, il fait echouer cote
+      // serveur les extracteurs `Option<Json<...>>`, qui ne rendent `None` que
+      // si l'en-tete est ABSENT : 400 « EOF while parsing a value at line 1
+      // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
+      // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
+      // qui decrit un corps inexistant ne decrit rien.
+      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
@@ -538,7 +547,14 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Accept-Language': acceptLang(),
-      'Content-Type': 'application/json',
+      // #4447 — `Content-Type: application/json` UNIQUEMENT s'il y a quelque
+      // chose a envoyer. Annonce sur un POST sans corps, il fait echouer cote
+      // serveur les extracteurs `Option<Json<...>>`, qui ne rendent `None` que
+      // si l'en-tete est ABSENT : 400 « EOF while parsing a value at line 1
+      // column 0 » sur /library/enrich-all (bouton « Retrouver genres et
+      // annees »), /metadata/auto-fix et /zones/{id}/queue/clear. Un en-tete
+      // qui decrit un corps inexistant ne decrit rien.
+      ...(options?.body != null ? { 'Content-Type': 'application/json' } : {}),
       ...profileHeader(),
       ...entetesRelais(),
     };
@@ -1407,11 +1423,27 @@ export interface AddToQueueRequest {
   tracks?: StreamingQueueItem[];
 }
 
-export function addToQueue(zoneId: number, body: AddToQueueRequest) {
-  return fetchJSON<{ queue_length: number }>(`${BASE}/zones/${zoneId}/queue/add`, {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
+/**
+ * Ajouter à la file — et DIRE ce que le serveur n'a pas su résoudre (#1086).
+ *
+ * Depuis tune-server-rust#4261 (v0.9.155) la réponse porte un champ additif
+ * `unresolved`. Une piste de service injoignable est enfilée quand même, sous
+ * « Unknown » : l'ajout a réussi, mais le résultat n'est pas celui qu'on
+ * croit, et rien ne le disait.
+ *
+ * 🔴 L'avertissement vit ICI et pas dans les écrans : `addToQueue` a plus de
+ * trente appelants, et aucun n'a de raison d'apprendre ce champ. Il reste un
+ * AVERTISSEMENT, jamais une erreur et jamais un `throw` — l'ajout a eu lieu,
+ * et faire reculer l'appelant serait faux.
+ */
+export async function addToQueue(zoneId: number, body: AddToQueueRequest) {
+  const res = await fetchJSON<{ queue_length: number; unresolved?: PisteNonResolue[] }>(
+    `${BASE}/zones/${zoneId}/queue/add`,
+    { method: 'POST', body: JSON.stringify(body) },
+  );
+  const avis = texteNonResolues(res?.unresolved, (cle) => get(t)(cle as any));
+  if (avis) notifications.error(avis, 8000);
+  return res;
 }
 
 export function removeFromQueue(zoneId: number, index: number) {
@@ -1438,10 +1470,26 @@ export function moveInQueue(zoneId: number, fromPosition: number, toPosition: nu
   });
 }
 
-export function clearQueue(zoneId: number) {
-  return fetchVoid(`${BASE}/zones/${zoneId}/queue/clear`, {
-    method: 'POST',
-  });
+/**
+ * Vider la file — en entier, ou seulement CE QUI SUIT.
+ *
+ * #1085 / tune-server-rust#4169 (livré en v0.9.155) : `{"keep_current": true}`
+ * retire les entrées d'après le curseur et ne touche ni à la piste en cours,
+ * ni à sa position, ni à ce qui précède — aucun arrêt.
+ *
+ * 🔴 Sans argument, le corps reste ABSENT : c'est la forme que les serveurs
+ * antérieurs à la .155 comprennent, et `fetchVoid` n'annonce alors aucun
+ * `Content-Type` (voir `api.entete-sans-corps.test.ts`). Envoyer
+ * `{"keep_current": false}` par souci de symétrie changerait la requête d'un
+ * geste qui, lui, n'a pas changé.
+ */
+export function clearQueue(zoneId: number, keepCurrent = false) {
+  return fetchVoid(
+    `${BASE}/zones/${zoneId}/queue/clear`,
+    keepCurrent
+      ? { method: 'POST', body: JSON.stringify({ keep_current: true }) }
+      : { method: 'POST' },
+  );
 }
 
 // --- Library ---
@@ -1562,6 +1610,27 @@ export async function getAlbumDynamicRanges(): Promise<number[]> {
   } catch {
     // Un serveur antérieur à la v0.9.130 ne connaît pas la clé : pas de
     // commande, pas d'erreur à l'écran.
+    return [];
+  }
+}
+
+/**
+ * Les paliers de fréquence NOMMÉS par le serveur (#1074).
+ *
+ * `sample_rate_labels` arrive avec tune-server-rust#4171 (v0.9.155). Un
+ * serveur antérieur ne connaît pas la clé : on rend une liste vide, et le
+ * client retombe sur sa liste figée — le filtre PCM continue de marcher comme
+ * avant, sans un mot d'erreur à l'écran. Même repli que
+ * `getAlbumDynamicRanges` ci-dessus.
+ */
+export async function getSampleRateLabels(): Promise<LibelleServi[]> {
+  try {
+    const raw = await fetchJSON<any>(`${BASE}/library/albums/filters`);
+    const vals = Array.isArray(raw?.sample_rate_labels) ? raw.sample_rate_labels : [];
+    return vals
+      .filter((x: any) => x && Number.isFinite(Number(x.value)))
+      .map((x: any) => ({ value: Number(x.value), label: String(x.label ?? x.value), dsd: !!x.dsd }));
+  } catch {
     return [];
   }
 }
