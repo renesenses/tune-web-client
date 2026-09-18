@@ -3978,6 +3978,8 @@ export default {
   "v2.meta.drUnavail": "Scrierea nu este disponibilă.",
   "v2.meta.tabDoublons": "Duplicate",
   "v2.meta.dupAlbums": "Albume fragmentate",
+  "v2.meta.indiceDossierTitre": "Același dosar și același titlu",
+  "v2.meta.indicePochette": "Copertă identică",
   "v2.meta.dupArtists": "Artiști duplicați",
   "v2.meta.dupTracks": "Piese duplicate",
   "v2.meta.regroupIn": "Regrupează în {name}",

@@ -3999,6 +3999,8 @@ export default {
   "v2.meta.drUnavail": "Gravure indisponible.",
   "v2.meta.tabDoublons": "Doublons",
   "v2.meta.dupAlbums": "Albums éclatés",
+  "v2.meta.indiceDossierTitre": "Même dossier et même titre",
+  "v2.meta.indicePochette": "Pochette identique",
   "v2.meta.dupArtists": "Artistes en double",
   "v2.meta.dupTracks": "Pistes en double",
   "v2.meta.regroupIn": "Regrouper dans {name}",

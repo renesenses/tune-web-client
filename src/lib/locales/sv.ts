@@ -3977,6 +3977,8 @@ export default {
   "v2.meta.drUnavail": "Skrivning ej tillgänglig.",
   "v2.meta.tabDoublons": "Dubbletter",
   "v2.meta.dupAlbums": "Delade album",
+  "v2.meta.indiceDossierTitre": "Samma mapp och samma titel",
+  "v2.meta.indicePochette": "Identiskt omslag",
   "v2.meta.dupArtists": "Dubbla artister",
   "v2.meta.dupTracks": "Dubbla spår",
   "v2.meta.regroupIn": "Slå ihop med {name}",

@@ -6514,7 +6514,20 @@ export interface MetadataProposal {
 // (BIB-A2, BIB-C1, BIB-B3 — v0.9.137 à v0.9.140).
 // ---------------------------------------------------------------------------
 export interface AlbumEclate { id: number; title: string; artist?: string | null; year?: number | null; track_count: number; track_numbers?: number[] }
-export interface GroupeAlbumsEclates { numeros_complementaires?: boolean; meme_annee?: boolean; pistes?: number; albums: AlbumEclate[]; [k: string]: unknown }
+/**
+ * L'INDICE qui a rapproché les fiches d'un groupe — #1069.
+ *
+ * Servi par le serveur depuis la v0.9.143 (`dossier_et_titre`) et la v0.9.146
+ * (`pochette_identique`, tune-server-rust#3396 / PR #3876). Le champ arrivait
+ * déjà dans la réponse et personne ne le lisait : le type l'absorbait par son
+ * `[k: string]: unknown`. Mesuré sur le .18 le 18/09/2026 —
+ * `{"indice":"dossier_et_titre", …}` sur les 26 groupes.
+ *
+ * Laissé en `string` : un serveur plus récent peut en nommer un troisième, et
+ * l'écran doit alors montrer le code plutôt que rien.
+ */
+export type IndiceEclate = 'dossier_et_titre' | 'pochette_identique' | (string & {});
+export interface GroupeAlbumsEclates { numeros_complementaires?: boolean; meme_annee?: boolean; pistes?: number; indice?: IndiceEclate; dossier?: string | null; albums: AlbumEclate[]; [k: string]: unknown }
 /** Un album coupé en plusieurs fiches (`GET /library/albums/eclates`). */
 export function getAlbumsEclates() {
   return fetchJSON<{ count: number; groups: GroupeAlbumsEclates[] }>(`${BASE}/library/albums/eclates`).then((r) => r?.groups ?? []);

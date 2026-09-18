@@ -3978,6 +3978,8 @@ export default {
   "v2.meta.drUnavail": "기록을 사용할 수 없습니다.",
   "v2.meta.tabDoublons": "중복",
   "v2.meta.dupAlbums": "분리된 앨범",
+  "v2.meta.indiceDossierTitre": "같은 폴더, 같은 제목",
+  "v2.meta.indicePochette": "동일한 커버",
   "v2.meta.dupArtists": "중복 아티스트",
   "v2.meta.dupTracks": "중복 트랙",
   "v2.meta.regroupIn": "{name}(으)로 병합",

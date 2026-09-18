@@ -3978,6 +3978,8 @@ export default {
   "v2.meta.drUnavail": "Escritura no disponible.",
   "v2.meta.tabDoublons": "Duplicados",
   "v2.meta.dupAlbums": "Álbumes divididos",
+  "v2.meta.indiceDossierTitre": "Misma carpeta y mismo título",
+  "v2.meta.indicePochette": "Portada idéntica",
   "v2.meta.dupArtists": "Artistas duplicados",
   "v2.meta.dupTracks": "Pistas duplicadas",
   "v2.meta.regroupIn": "Fusionar en {name}",
