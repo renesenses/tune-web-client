@@ -136,11 +136,24 @@ function duPlusRecent(a: HistoryEntry, b: HistoryEntry): number {
  *
  * ## Deux étapes, et l'ordre entre elles est le sujet
  *
- * **1 · Déduplication, le LOCAL prioritaire.** C'est un choix, et il tient :
- * une écoute présente des deux côtés est mieux décrite par le magasin local —
- * il porte les titres de radio que le serveur ne sait pas rattacher, et le vrai
- * nom de la zone. La liste combinée met donc le local devant, et le premier vu
- * gagne.
+ * **1 · Déduplication, le LOCAL prioritaire À INSTANT ÉGAL.** C'est un choix,
+ * et il tient : une écoute présente des deux côtés est mieux décrite par le
+ * magasin local — il porte les titres de radio que le serveur ne sait pas
+ * rattacher, et le vrai nom de la zone. La liste combinée met donc le local
+ * devant, et il garde la ligne quand les deux portent le même instant.
+ *
+ * 🔴 **Mais « premier vu gagne » ne suffisait pas — #1146.** La règle jouait
+ * quelle que soit la DATE : une piste écoutée aujourd'hui depuis un autre
+ * client (donc connue du seul serveur) et présente dans le magasin local avec
+ * une écoute d'il y a un mois ressortait datée d'il y a un mois. L'écoute
+ * récente disparaissait, et la ligne se rangeait tout en bas — un désordre
+ * apparent que le tri de l'étape 2 ne pouvait pas rattraper, puisqu'il ne peut
+ * ordonner que ce que la ligne PORTE.
+ *
+ * C'est exactement ce que promettait déjà l'en-tête de cette fonction — « sa
+ * plus récente écoute » — et ce que le corps ne faisait pas. Entre deux
+ * occurrences d'une même ligne, on garde donc la plus récente, et le local ne
+ * l'emporte qu'à égalité.
  *
  * **2 · Affichage, l'ordre CHRONOLOGIQUE.** 🔴 C'est ce qui manquait — #989.
  *
@@ -184,14 +197,20 @@ export function fusionnerHistorique(
     combine = [...local, ...serveur.filter((e) => !vus.has(e.track.title + e.playedAt))];
   }
 
-  const vues = new Set<string>();
-  const rendu: HistoryEntry[] = [];
+  // 🔴 #1146 — la ligne retenue est la plus RÉCENTE, pas la première vue.
+  //
+  // Une `Map` conserve la position de la PREMIÈRE insertion même quand on
+  // réécrit la valeur : l'ordre de la déduplication — local devant — survit
+  // donc intact, et seule la ligne retenue change.
+  const parCle = new Map<string, HistoryEntry>();
   for (const e of combine) {
     const cle = cleDeLigne(e);
-    if (vues.has(cle)) continue;
-    vues.add(cle);
-    rendu.push(e);
+    const tenante = parCle.get(cle);
+    // STRICTEMENT plus récente : à instant égal, c'est la tenante qui garde la
+    // place, donc la locale — la priorité posée à l'étape 1 est intacte.
+    if (tenante === undefined || instant(e) > instant(tenante)) parCle.set(cle, e);
   }
+  const rendu = [...parCle.values()];
   // `sort` est STABLE depuis ES2019 : à instant égal, l'ordre de la
   // déduplication survit — donc le local reste devant le serveur, ce qui est
   // exactement la priorité posée à l'étape 1.

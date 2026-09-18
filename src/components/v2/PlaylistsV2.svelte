@@ -156,9 +156,33 @@
    * playlists locales d'un côté, et de l'autre UN appel par service
    * authentifié. Il n'existe pas de route qui rende les deux d'un coup.
    */
+  /**
+   * Les services AUTHENTIFIÉS qui ont répondu « je ne fournis pas de
+   * playlists » — nom du service → la phrase du serveur (#1148).
+   *
+   * Fabien, fil 1778, point 4 : « Menu playlists : quand on rentre dans le
+   * menu : erreur bandcamp ». Mesuré sur la .18 :
+   *
+   *   GET /api/v1/streaming/bandcamp/playlists
+   *     → 501  « Bandcamp ne fournit pas de playlists »
+   *
+   * Le bandeau rouge, lui, est parti avec #1007 — `fetchJSON` n'annonce plus
+   * un 501 comme une panne. Mais ce qui l'a remplacé était RIEN : le `catch`
+   * ci-dessous range `[]`, `svcEntries` écarte les listes vides, et la
+   * pastille Bandcamp disparaît de l'écran. Quelqu'un qui a connecté Bandcamp
+   * et vient chercher ses playlists n'apprend ni qu'il n'y en a pas, ni
+   * pourquoi.
+   *
+   * Le serveur a déjà écrit la bonne phrase (#859 côté serveur) : on la
+   * montre, telle quelle, sans la déguiser en incident.
+   */
+  let indisponibles = $state<Record<string, string>>({});
+  const sansPlaylists = $derived(Object.entries(indisponibles));
+
   function load() {
     loading = true;
     mosaiques = {};
+    indisponibles = {};
     Promise.all([
       api.getPlaylists().catch(() => [] as Playlist[]),
       api.getStreamingServices().catch(() => ({}) as Record<string, any>),
@@ -173,17 +197,25 @@
           .filter(([, s]: [string, any]) => s?.authenticated)
           .map(([n]) => n);
         const par: Record<string, StreamingPlaylist[]> = {};
+        const refus: Record<string, string> = {};
         await Promise.all(
           noms.map(async (n) => {
             try {
               par[n] = (await api.getStreamingPlaylists(n)) ?? [];
-            } catch {
+            } catch (e: any) {
               // Un service qui ne répond pas ne doit pas emporter les autres.
               par[n] = [];
+              // 501 = « ce service n'offre pas cette fonction », pas une
+              // panne : on garde son motif pour le dire à l'écran. Un 500 ou
+              // un 502, eux, ont DÉJÀ levé leur bandeau dans `fetchJSON` — les
+              // rendre ici en plus ferait dire deux fois la même chose.
+              const motif = String(e?.message ?? '').trim();
+              if (e?.status === 501 && motif) refus[n] = motif;
             }
           }),
         );
         services = par;
+        indisponibles = refus;
       })
       .catch(() => {
         local = [];
@@ -587,6 +619,14 @@
     </nav>
   {/if}
 
+  <!-- Un service connecté dont la pastille N'EST PAS là : dire pourquoi, avec
+       la phrase du serveur (#1148). Discret, jamais rouge — ce n'est pas un
+       incident, c'est une fonction que le service n'offre pas. Pas de libellé
+       traduit à ajouter : le serveur écrit déjà la phrase. -->
+  {#each sansPlaylists as [nom, motif] (nom)}
+    <p class="sans-pl">{motif}</p>
+  {/each}
+
   <!-- Second niveau : le TYPE. Réservé à « cet appareil » — une playlist
        intelligente est une règle locale, un service n'en a pas. -->
   {#if source === LOCAL}
@@ -857,6 +897,9 @@
     background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .srcs .cpt{font:9.5px var(--v2-mono); color:var(--v2-txt3)}
   .srcs button.on .cpt{color:var(--v2-on-acc); opacity:.75}
+  /* #1148 — « ce service ne fournit pas de playlists ». Le ton d'une note,
+     pas celui d'une alerte : rien n'est en panne. */
+  .sans-pl{margin:6px 30px 0; font-size:12px; color:var(--v2-txt3)}
 
   /* Second niveau : SOULIGNÉ, comme les rubriques de l'écran Streaming. */
   .onglets{display:flex; gap:4px; padding:4px 30px 0}
