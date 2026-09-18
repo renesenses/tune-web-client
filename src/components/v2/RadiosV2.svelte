@@ -124,7 +124,7 @@
       const res: any = await api.playRadio(r.id, zid);
       // Zone navigateur : le serveur n'a pas de sortie audio, c'est la page
       // qui doit lire le flux qu'il renvoie.
-      if (isBrowserZone($currentZone) && res?.stream_url) browserPlay(res.stream_url);
+      if (isBrowserZone($currentZone) && res?.stream_url) browserPlay(res.stream_url, false, zid);
     } catch {
       error = `Lecture impossible : ${r.name}`;
     }

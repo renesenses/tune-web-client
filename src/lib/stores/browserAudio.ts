@@ -12,6 +12,10 @@ import { sourceDuLecteur } from '../urlDeFluxNavigateur';
 // The singleton <audio> element used for browser playback
 let audioElement: HTMLAudioElement | null = null;
 
+// Propriétaire de la source réellement chargée, indépendant de la zone
+// affichée. Inconnu quand un appelant ne fournit pas son identifiant (#1171).
+let sourceZoneId: number | null = null;
+
 // Current stream URL loaded into the audio element
 export const browserStreamUrl = writable<string | null>(null);
 
@@ -63,7 +67,7 @@ function getAudio(): HTMLAudioElement {
           const z = await api.getZone(zone.id);
           syncZone(z);
           if (isBrowserZone(z) && z.stream_url) {
-            browserPlay(z.stream_url, true);
+            browserPlay(z.stream_url, true, z.id);
           }
         } catch {
           /* non-fatal */
@@ -95,7 +99,7 @@ function getAudio(): HTMLAudioElement {
  * replayed the OLD buffered track — the album "repeated instead of advancing"
  * (Elie, browser output). Track-change callers pass `force: true`.
  */
-export function browserPlay(streamUrl: string, force = false) {
+export function browserPlay(streamUrl: string, force = false, zoneId?: number | null) {
   const audio = getAudio();
   const currentUrl = get(browserStreamUrl);
   // Une URL de TUNE part en relatif pour joindre l'hôte que le navigateur a su
@@ -116,6 +120,7 @@ export function browserPlay(streamUrl: string, force = false) {
       force && currentUrl === relativeUrl
         ? relativeUrl + (relativeUrl.includes('?') ? '&' : '?') + '_t=' + Date.now()
         : relativeUrl;
+    sourceZoneId = typeof zoneId === 'number' && Number.isInteger(zoneId) ? zoneId : null;
     audio.load();
     browserStreamUrl.set(relativeUrl);
   }
@@ -169,14 +174,14 @@ export function needsSourceReload(audio: {
  * (App.svelte) re-pointait bien l'élément sur `stream_url`, le bouton Lecture
  * non.
  */
-export function browserResume(streamUrl?: string | null) {
+export function browserResume(streamUrl?: string | null, zoneId?: number | null) {
   const audio = getAudio();
   if (streamUrl) {
     // Source morte pendant la pause → on la redemande au serveur. Sinon on
     // délègue à browserPlay, qui recharge si l'URL a changé et se contente de
     // relancer si elle est identique : c'est exactement ce que faisait déjà le
     // chemin événementiel, et il ne faut pas le perdre.
-    browserPlay(streamUrl, needsSourceReload(audio));
+    browserPlay(streamUrl, needsSourceReload(audio), zoneId);
     return;
   }
   if (audio.src) {
@@ -189,12 +194,20 @@ export function browserResume(streamUrl?: string | null) {
 /** Stop browser audio and clear the source */
 export function browserStop() {
   const audio = getAudio();
+  sourceZoneId = null;
   audio.pause();
   audio.removeAttribute('src');
   audio.load(); // reset
   browserStreamUrl.set(null);
   browserAudioPlaying.set(false);
   stopSeekTimer();
+}
+
+/** Un arrêt serveur ne doit atteindre que le média de cette zone. */
+export function browserStopForZone(zoneId: number): boolean {
+  if (!audioElement || sourceZoneId === null || sourceZoneId !== zoneId) return false;
+  browserStop();
+  return true;
 }
 
 /** Seek to a position in milliseconds */
@@ -215,6 +228,7 @@ export function browserSetVolume(volume: number) {
 
 /** Clean up the audio element (call on app destroy) */
 export function browserAudioDestroy() {
+  sourceZoneId = null;
   if (audioElement) {
     audioElement.pause();
     audioElement.removeAttribute('src');
