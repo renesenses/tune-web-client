@@ -185,8 +185,22 @@ describe('la notification de 402 parle la langue de l’interface', () => {
     expect(bloc, 'une chaîne française est encore codée en dur').not.toContain(
       'Tune Premium requis',
     );
+    /**
+     * ⚠️ #884 a DÉPLACÉ la cible de cette garde, sans changer son intention.
+     *
+     * `get(t)('premium.required')` vivait ici, inline, parce que `fetchJSON`
+     * était le seul chemin corrigé par #2419. Le balayage de #884 a porté la
+     * même règle aux onze points d'entrée HTTP du client, et pour qu'ils
+     * partagent UNE phrase et non onze, l'appel a migré dans l'aide
+     * `messageRefusPremium()` (`lib/premiumRefus.ts`), que `refusPremiumDe()`
+     * appelle. La garde suit le code : elle exige toujours une phrase TRADUITE
+     * — jamais un littéral — mais accepte les deux façons de l'obtenir.
+     * `refusPremiumDe` est lui-même sous la garde de balayage
+     * `refusPremiumBalayage884.test.ts`, qui vérifie la traduction en
+     * APPELANT le code, pas en le lisant.
+     */
     expect(bloc, 'la notification de 402 n’est pas traduite').toMatch(
-      /get\(t\)\('premium\.required'\)/,
+      /get\(t\)\('premium\.required'\)|refusPremiumDe\(|messageRefusPremium\(/,
     );
   });
 });

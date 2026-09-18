@@ -4,6 +4,7 @@
 import { notifications } from '../stores/notifications';
 import { getToken, clearToken } from '../auth';
 import { profileHeader } from '../profileHeader';
+import { messageRefusPremium, type CorpsRefusPremium } from '../premiumRefus';
 
 export const BASE = '/api/v1';
 
@@ -53,6 +54,27 @@ export async function fetchJSON<T>(url: string, options?: RequestInit): Promise<
     if (response.status === 401) {
       clearToken();
       throw new Error('Session expired');
+    }
+    /**
+     * 🔴 #884 — CE JUMEAU N'AVAIT JAMAIS ÉTÉ CORRIGÉ.
+     *
+     * `api.ts` intercepte le 402 depuis #2419 ; ce `fetchJSON`-ci, qui sert
+     * `api/metadata.ts` et `api/ingest.ts`, relayait encore le `message` du
+     * serveur — composé en FRANÇAIS par `require_premium` quand la route n'a
+     * pas passé ses en-têtes (50 routes sur 58 au 18/09/2026). Même aide
+     * partagée, même phrase, mêmes onze langues.
+     */
+    if (response.status === 402) {
+      let corps: CorpsRefusPremium = null;
+      try {
+        corps = (await response.json()) as CorpsRefusPremium;
+      } catch {
+        /* corps illisible : la phrase générique reste juste */
+      }
+      const refus = new Error(messageRefusPremium(corps)) as Error & { status?: number; code?: string };
+      refus.status = 402;
+      refus.code = corps?.code === 'free_zone_cap_reached' ? corps.code : 'premium_required';
+      throw refus;
     }
     throw await apiError(response);
   }

@@ -2,6 +2,7 @@
   import type { Zone, ZoneGroupResponse } from '../../lib/types';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
+  import { messageRefusPremium } from '../../lib/premiumRefus';
   import { get } from 'svelte/store';
   import FirResponseCurve from './FirResponseCurve.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
@@ -90,6 +91,24 @@
         body: bytes,
       });
       const data = await res.json();
+      /**
+       * 🔴 #884 — SEUL `fetch` NU DU CLIENT SUR UNE ROUTE GARDÉE PREMIUM.
+       *
+       * `routes/room_correction.rs` porte SIX `require_premium(` et pas un
+       * seul `require_premium_localise` : sur un serveur gratuit, cette
+       * réponse est un 402 dont le `message` est composé en français. Cet
+       * écran l'affichait tel quel (`data.error`), au milieu d'une interface
+       * traduite. Il ne passe pas par `lib/api.ts` — c'est un envoi en octets
+       * bruts — donc il applique la règle lui-même, avec la MÊME aide et donc
+       * la même phrase que les onze autres points d'entrée.
+       */
+      if (res.status === 402) {
+        irMessage = messageRefusPremium(data);
+        irError = true;
+        irLoading = false;
+        input.value = '';
+        return;
+      }
       if (data.ok) {
         irActive = true;
         irPath = data.ir_path;
