@@ -277,7 +277,7 @@
           type="text"
           bind:value={prompt}
           onkeydown={handlePromptKey}
-          placeholder="ex. « warm analog jazz », « driving late-night techno »…"
+          placeholder={$t('v2.ambiance.promptPlaceholder' as any)}
           class="prompt-input"
           disabled={loading}
         />
@@ -289,10 +289,20 @@
           {#if loading}
             <div class="spinner-sm"></div>
           {:else}
-            Rechercher
+            {$t('v2.ambiance.search' as any)}
           {/if}
         </button>
       </div>
+      <!--
+        #3836 — JeromeQ, fil 1751 : « dans Rock progressif apparaît Black Dog
+        et Whole Lotta Love de Led Zep ; ni Genesis ni Yes ». Le sous-titre
+        disait « recherche acoustique » ; il ne disait pas la CONSÉQUENCE — un
+        nom de genre tapé ici ne filtre pas le genre, il cherche un son. Et la
+        tour texte est entraînée en anglais : deux formulations, deux vecteurs,
+        deux listes. La traduction automatique existe (#1726) mais ne s'arme
+        qu'avec une clé IA configurée.
+      -->
+      <p class="prompt-aide">{$t('v2.ambiance.promptHint' as any)}</p>
       <div class="example-chips">
         {#each presets as p}
           <button class="chip" onclick={() => usePreset(p)} disabled={loading}>{p.label}</button>
@@ -578,6 +588,13 @@
   .prompt-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  .prompt-aide {
+    margin: 8px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--tune-text-muted, #8a8a8a);
   }
 
   .example-chips {
