@@ -565,6 +565,9 @@ export default {
   'playlist.recovered': '대안 찾음',
   'playlist.applyRecovery': '교체',
   'playlist.applyAll': '모두 교체',
+  "playlist.recoverPartial": "{applied}개를 교체했습니다. {rejected}개는 거부되었습니다.",
+  "playlist.recoverNoneApplied": "교체를 적용하지 못했습니다({rejected}개 거부).",
+  "playlist.recoverFailed": "교체에 실패했습니다.",
   'playlist.noIssues': '모든 곡이 사용 가능합니다',
 
   // Settings

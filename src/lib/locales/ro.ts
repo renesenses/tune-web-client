@@ -575,6 +575,9 @@ export default {
   'playlist.recovered': 'Alternativă găsită',
   'playlist.applyRecovery': 'Înlocuiește',
   'playlist.applyAll': 'Înlocuiește tot',
+  "playlist.recoverPartial": "{applied} înlocuire(i) aplicată(e), {rejected} respinsă(e).",
+  "playlist.recoverNoneApplied": "Nicio înlocuire nu a putut fi aplicată ({rejected} respinsă(e)).",
+  "playlist.recoverFailed": "Înlocuirea a eșuat.",
   'playlist.noIssues': 'Toate piesele sunt disponibile',
 
   // Settings

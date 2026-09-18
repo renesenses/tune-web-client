@@ -774,6 +774,9 @@ export default {
   'playlist.recovered': 'Alternative found',
   'playlist.applyRecovery': 'Replace',
   'playlist.applyAll': 'Replace all',
+  "playlist.recoverPartial": "{applied} replacement(s) applied, {rejected} rejected.",
+  "playlist.recoverNoneApplied": "No replacement could be applied ({rejected} rejected).",
+  "playlist.recoverFailed": "The replacement failed.",
   'playlist.noIssues': 'All tracks are available',
 
   // Settings

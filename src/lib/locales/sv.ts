@@ -534,6 +534,9 @@ export default {
   'playlist.recovered': 'Alternativ hittat',
   'playlist.applyRecovery': 'Ersätt',
   'playlist.applyAll': 'Ersätt alla',
+  "playlist.recoverPartial": "{applied} ersättning(ar) tillämpade, {rejected} avvisade.",
+  "playlist.recoverNoneApplied": "Ingen ersättning kunde tillämpas ({rejected} avvisade).",
+  "playlist.recoverFailed": "Ersättningen misslyckades.",
   'playlist.noIssues': 'Alla spår är tillgängliga',
 
   // Settings
