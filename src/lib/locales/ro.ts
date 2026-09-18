@@ -474,6 +474,8 @@ export default {
   'search.durationShown': '{d} afișate',
 
   // Streaming
+  'streaming.fichePistesEchec': 'Piesele acestei fișe nu au putut fi încărcate.',
+  'streaming.ficheDelaiDepasse': 'Serviciul nu a răspuns la timp.',
   'streaming.selectService': 'Selectează un serviciu de streaming',
   'streaming.searchOn': 'Caută pe {service}...',
   'streaming.myPlaylists': 'Playlisturile mele',
@@ -3394,7 +3396,7 @@ export default {
   "v2.nav.tags": "Etichete",
   "v2.nav.favorites": "Favorite",
   "v2.pl.tabLists": "Liste",
-  "v2.pl.tabSmart": "Inteligente",
+  "v2.pl.tabSmart": "Playlisturi inteligente",
   "v2.pl.rule": "regulă",
   "v2.pl.noSmart": "Nicio listă inteligentă.",
   "v2.pl.import": "Importă",
@@ -3543,8 +3545,8 @@ export default {
   "v2.col.tabManual": "Colecții",
   "v2.col.title": "Colecții",
   "v2.col.eyebrow": "Biblioteca dumneavoastră, aranjată",
-  "v2.col.smart": "Inteligentă",
-  "v2.col.manual": "Manuală",
+  "v2.col.smart": "Colecție inteligentă",
+  "v2.col.manual": "Colecție manuală",
   "v2.col.none": "Nicio colecție. Creați una cu butonul de mai sus.",
   "v2.col.emptyCollection": "Această colecție nu conține niciun album.",
   "v2.col.noZone": "Nicio zonă activă — selectați o zonă pentru redare.",

@@ -464,6 +464,8 @@ export default {
   'search.durationShown': '표시된 {d}',
 
   // Streaming
+  'streaming.fichePistesEchec': '이 항목의 트랙을 불러오지 못했습니다.',
+  'streaming.ficheDelaiDepasse': '서비스가 제시간에 응답하지 않았습니다.',
   'streaming.selectService': '스트리밍 서비스를 선택하세요',
   'streaming.searchOn': '{service}에서 검색...',
   'streaming.myPlaylists': '내 재생목록',
@@ -3394,7 +3396,7 @@ export default {
   "v2.nav.tags": "태그",
   "v2.nav.favorites": "즐겨찾기",
   "v2.pl.tabLists": "재생목록",
-  "v2.pl.tabSmart": "스마트",
+  "v2.pl.tabSmart": "스마트 플레이리스트",
   "v2.pl.rule": "규칙",
   "v2.pl.noSmart": "스마트 재생목록이 없습니다.",
   "v2.pl.import": "가져오기",
@@ -3543,8 +3545,8 @@ export default {
   "v2.col.tabManual": "컬렉션",
   "v2.col.title": "컬렉션",
   "v2.col.eyebrow": "정리된 라이브러리",
-  "v2.col.smart": "스마트",
-  "v2.col.manual": "수동",
+  "v2.col.smart": "스마트 컬렉션",
+  "v2.col.manual": "수동 컬렉션",
   "v2.col.none": "컬렉션이 없습니다. 위의 버튼으로 만드세요.",
   "v2.col.emptyCollection": "이 컬렉션에는 앨범이 없습니다.",
   "v2.col.noZone": "활성 존이 없습니다 — 재생할 존을 선택하세요.",

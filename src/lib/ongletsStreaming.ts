@@ -149,3 +149,49 @@ export function ongletInitial(
 ): string | null {
   return ongletsStreaming(services, bandcampLive)[0] ?? null;
 }
+
+/**
+ * La clé du SERVEUR pour un onglet — #1138.
+ *
+ * `BANDCAMP_EXT` est une clé LOCALE au client : elle ne sort d'ici que par
+ * accident. Tout ce qui se retient hors de l'écran — le magasin partagé
+ * `activeStreamingService`, l'état d'un raccourci persisté dans la
+ * configuration serveur, un lien de l'ancienne coquille — parle la langue du
+ * serveur. Sans cette traduction, un raccourci posé sur l'onglet Bandcamp
+ * enregistrerait `__bandcamp__`, que l'écran de l'ancienne interface ne sait
+ * pas ouvrir, et qui ne veut rien dire dans `/streaming/{svc}/…`.
+ */
+export function cleServeur(onglet: string | null | undefined): string | null {
+  if (!onglet) return null;
+  return onglet === BANDCAMP_EXT ? BANDCAMP_SVC : onglet;
+}
+
+/**
+ * L'onglet à ouvrir quand on ARRIVE en demandant un service — #1138.
+ *
+ * schmitt (Alain), fil 1671 : un raccourci posé depuis l'écran Qobuz doit
+ * rouvrir Qobuz. `ongletInitial` ne sait ouvrir que le premier de la rangée ;
+ * il faut donc une seconde porte, qui honore un souhait quand il est tenable
+ * et retombe sur la première dans tous les autres cas.
+ *
+ * 🔴 Le souhait est donné dans la langue du SERVEUR (voir `cleServeur`) : on
+ * le retraduit ici vers la clé de la rangée, sans quoi `bandcamp` ne
+ * retrouverait jamais l'onglet `__bandcamp__` qui l'a absorbé.
+ *
+ * 🔴 Un souhait qui n'est PAS dans la rangée — service déconnecté depuis, ou
+ * raccourci posé du temps où il l'était — ne laisse pas l'écran sur un onglet
+ * absent de sa propre rangée : c'est le défaut de #860, et on le refait ici si
+ * l'on se contente de rendre `souhaite`.
+ */
+export function ongletDeRestitution(
+  services: Record<string, EtatService> | null | undefined,
+  bandcampLive: boolean,
+  souhaite: string | null | undefined,
+): string | null {
+  const onglets = ongletsStreaming(services, bandcampLive);
+  if (souhaite) {
+    if (onglets.includes(souhaite)) return souhaite;
+    if (souhaite === BANDCAMP_SVC && onglets.includes(BANDCAMP_EXT)) return BANDCAMP_EXT;
+  }
+  return onglets[0] ?? null;
+}

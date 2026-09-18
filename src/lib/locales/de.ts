@@ -464,6 +464,8 @@ export default {
   'search.durationShown': '{d} angezeigt',
 
   // Streaming
+  'streaming.fichePistesEchec': 'Die Titel dieses Eintrags konnten nicht geladen werden.',
+  'streaming.ficheDelaiDepasse': 'Der Dienst hat nicht rechtzeitig geantwortet.',
   'streaming.selectService': 'Wählen Sie einen Streaming-Dienst',
   'streaming.searchOn': 'Auf {service} suchen...',
   'streaming.myPlaylists': 'Meine Playlists',
@@ -3394,7 +3396,7 @@ export default {
   "v2.nav.tags": "Etiketten",
   "v2.nav.favorites": "Favoriten",
   "v2.pl.tabLists": "Playlists",
-  "v2.pl.tabSmart": "Intelligente",
+  "v2.pl.tabSmart": "Intelligente Playlists",
   "v2.pl.rule": "Regel",
   "v2.pl.noSmart": "Keine intelligente Playlist.",
   "v2.pl.import": "Importieren",
@@ -3543,8 +3545,8 @@ export default {
   "v2.col.tabManual": "Sammlungen",
   "v2.col.title": "Sammlungen",
   "v2.col.eyebrow": "Ihre Bibliothek, geordnet",
-  "v2.col.smart": "Intelligent",
-  "v2.col.manual": "Manuell",
+  "v2.col.smart": "Intelligente Sammlung",
+  "v2.col.manual": "Manuelle Sammlung",
   "v2.col.none": "Noch keine Sammlung. Erstellen Sie eine mit der Schaltfläche oben.",
   "v2.col.emptyCollection": "Diese Sammlung enthält kein Album.",
   "v2.col.noZone": "Keine aktive Zone — wählen Sie eine Zone zum Abspielen.",

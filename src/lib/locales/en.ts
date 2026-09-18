@@ -673,6 +673,8 @@ export default {
   'search.durationShown': '{d} shown',
 
   // Streaming
+  'streaming.fichePistesEchec': 'Could not load the tracks for this item.',
+  'streaming.ficheDelaiDepasse': 'The service did not answer in time.',
   'streaming.selectService': 'Select a streaming service',
   'streaming.searchOn': 'Search on {service}...',
   'streaming.myPlaylists': 'My Playlists',
@@ -2100,7 +2102,7 @@ export default {
   "v2.nav.tags": "Tags",
   "v2.nav.favorites": "Favourites",
   "v2.pl.tabLists": "Playlists",
-  "v2.pl.tabSmart": "Smart",
+  "v2.pl.tabSmart": "Smart playlists",
   "v2.pl.rule": "rule",
   "v2.pl.noSmart": "No smart playlist.",
   "v2.pl.import": "Import",
@@ -2249,8 +2251,8 @@ export default {
   "v2.col.tabManual": "Collections",
   "v2.col.title": "Collections",
   "v2.col.eyebrow": "Your library, arranged",
-  "v2.col.smart": "Smart",
-  "v2.col.manual": "Manual",
+  "v2.col.smart": "Smart collection",
+  "v2.col.manual": "Manual collection",
   "v2.col.none": "No collection yet. Create one with the button above.",
   "v2.col.emptyCollection": "This collection contains no album.",
   "v2.col.noZone": "No active zone — select a zone to play.",

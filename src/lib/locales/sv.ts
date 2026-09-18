@@ -433,6 +433,8 @@ export default {
   'search.durationShown': '{d} visade',
 
   // Streaming
+  'streaming.fichePistesEchec': 'Det gick inte att läsa in spåren för den här posten.',
+  'streaming.ficheDelaiDepasse': 'Tjänsten svarade inte i tid.',
   'streaming.selectService': 'Välj en streamingtjänst',
   'streaming.searchOn': 'Sök på {service}...',
   'streaming.myPlaylists': 'Mina spellistor',
@@ -3393,7 +3395,7 @@ export default {
   "v2.nav.tags": "Etiketter",
   "v2.nav.favorites": "Favoriter",
   "v2.pl.tabLists": "Spellistor",
-  "v2.pl.tabSmart": "Smarta",
+  "v2.pl.tabSmart": "Smarta spellistor",
   "v2.pl.rule": "regel",
   "v2.pl.noSmart": "Ingen smart spellista.",
   "v2.pl.import": "Importera",
@@ -3542,8 +3544,8 @@ export default {
   "v2.col.tabManual": "Samlingar",
   "v2.col.title": "Samlingar",
   "v2.col.eyebrow": "Ditt bibliotek, ordnat",
-  "v2.col.smart": "Smart",
-  "v2.col.manual": "Manuell",
+  "v2.col.smart": "Smart samling",
+  "v2.col.manual": "Manuell samling",
   "v2.col.none": "Ingen samling. Skapa en med knappen ovan.",
   "v2.col.emptyCollection": "Den här samlingen innehåller inget album.",
   "v2.col.noZone": "Ingen aktiv zon — välj en zon för att spela.",
