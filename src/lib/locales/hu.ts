@@ -3767,6 +3767,7 @@ export default {
   "v2.zone.cancel": "Mégse",
   "v2.zone.namePlaceholder": "A zóna neve",
   "v2.zone.none": "Nincs zóna. Hozzon létre egyet, vagy adjon meg kimenetet a Beállítások → Audio alatt.",
+  "v2.zone.unreachable": "A zónák nem érhetők el – a kiszolgáló még nem válaszol.",
   "v2.zone.mergeInto": "Összevonás ide: {name}",
   "v2.zone.mergeConfirm": "Összevonás megerősítése",
   "v2.zone.presenceRecent": "Nemrég kikapcsolva",

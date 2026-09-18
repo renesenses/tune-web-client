@@ -3809,6 +3809,7 @@ export default {
   "v2.zone.cancel": "キャンセル",
   "v2.zone.namePlaceholder": "ゾーンの名前",
   "v2.zone.none": "ゾーンがありません。作成するか、設定 → Audio で出力を指定してください。",
+  "v2.zone.unreachable": "ゾーンを取得できません — サーバーがまだ応答していません。",
   "v2.zone.mergeInto": "{name} に統合",
   "v2.zone.mergeConfirm": "統合を確認",
   "v2.zone.presenceRecent": "最近オフになりました",
