@@ -1,4 +1,11 @@
 export default {
+  "sacdIso.title": "SACD ISO",
+  "sacdIso.available": "服务器上已检测到 sacd_extract。这并不保证每个 ISO 都能提取。",
+  "sacdIso.missing": "Tune 未检测到 sacd_extract。请在服务器上单独安装此工具；如果修改了 PATH，请重启 Tune 后重新扫描。Tune 不附带此工具。",
+  "sacdIso.unknown": "无法检查 sacd_extract 是否可用。请重试；这并不表示工具未安装。",
+  "sacdIso.loading": "正在检查 sacd_extract…",
+  "sacdIso.check": "重新检查",
+
   // Support premium
   "support.title": "高级支持",
   "support.newTicket": "新建工单",

@@ -1,4 +1,11 @@
 export default {
+  "sacdIso.title": "SACD ISO",
+  "sacdIso.available": "서버에서 sacd_extract를 찾았습니다. 모든 ISO의 추출을 보장하지는 않습니다.",
+  "sacdIso.missing": "Tune에서 sacd_extract를 찾지 못했습니다. 서버에 별도로 설치하세요. PATH를 변경했다면 Tune을 다시 시작한 후 다시 스캔하세요. Tune에는 이 도구가 포함되어 있지 않습니다.",
+  "sacdIso.unknown": "sacd_extract 사용 가능 여부를 확인할 수 없습니다. 다시 시도하세요. 도구가 없다는 의미는 아닙니다.",
+  "sacdIso.loading": "sacd_extract 확인 중…",
+  "sacdIso.check": "다시 확인",
+
   // Support premium
   "support.title": "프리미엄 지원",
   "support.newTicket": "새 티켓",
