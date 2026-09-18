@@ -17,7 +17,6 @@
   import { conserverRetourConvertisseur, consommerRetourConvertisseur } from '../../lib/retourConvertisseur';
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
-import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { albums } from '../../lib/stores/library';
   import { preferences } from '../../lib/stores/preferences';
   import { fold } from '../../lib/utils';
