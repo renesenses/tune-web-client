@@ -25,6 +25,7 @@ import { devices } from './stores/devices';
 import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
 import { loadLicense } from './stores/license';
 import { zoneInitiale } from './zoneInitiale';
+import { chargerLesZones } from './chargementDesZones';
 
 
 /**
@@ -49,8 +50,14 @@ async function defautDAppareil(): Promise<number | null> {
 
 /** Zones + sélection courante. Sans zone, aucune lecture n'est possible. */
 async function loadZones(): Promise<void> {
-  const list = await api.getZones();
-  zones.set(list);
+  // 🔴 #1096 — passe par `chargerLesZones`, qui RÉESSAIE et tient l'état du
+  // chargement. Un `await api.getZones()` nu ici jetait dans le
+  // `Promise.allSettled` ci-dessous : l'échec était avalé, le magasin restait
+  // à `[]`, et l'écran Zones concluait « Aucune zone » pendant que le serveur
+  // en portait quatorze. `null` = tous les essais ont échoué ; on ne touche
+  // alors NI à la liste NI à la sélection.
+  const list = await chargerLesZones((zs) => zones.set(zs));
+  if (list === null) return;
   // La zone mémorisée prime, mais seulement si elle existe ENCORE : une zone
   // supprimée depuis la dernière session laisserait sinon l'interface pointer
   // dans le vide, avec des boutons Lire silencieusement inertes.

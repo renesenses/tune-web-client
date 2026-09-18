@@ -3822,6 +3822,7 @@ export default {
   "v2.zone.cancel": "Cancel",
   "v2.zone.namePlaceholder": "Zone name",
   "v2.zone.none": "No zones. Create one, or declare an output under Settings → Audio.",
+  "v2.zone.unreachable": "Zones unavailable — the server is not responding yet.",
   "v2.zone.mergeInto": "Merge into {name}",
   "v2.zone.mergeConfirm": "Confirm merge",
   "v2.zone.presenceRecent": "Recently switched off",

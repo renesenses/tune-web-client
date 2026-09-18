@@ -3806,6 +3806,7 @@ export default {
   "v2.zone.cancel": "Annulla",
   "v2.zone.namePlaceholder": "Nome della zona",
   "v2.zone.none": "Nessuna zona. Creane una, o dichiara un'uscita in Impostazioni → Audio.",
+  "v2.zone.unreachable": "Zone non disponibili: il server non risponde ancora.",
   "v2.zone.mergeInto": "Unisci in {name}",
   "v2.zone.mergeConfirm": "Conferma unione",
   "v2.zone.presenceRecent": "Spenta di recente",

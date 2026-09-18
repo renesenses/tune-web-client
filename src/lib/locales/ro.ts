@@ -3806,6 +3806,7 @@ export default {
   "v2.zone.cancel": "Anulează",
   "v2.zone.namePlaceholder": "Numele zonei",
   "v2.zone.none": "Nicio zonă. Creați una sau declarați o ieșire în Setări → Audio.",
+  "v2.zone.unreachable": "Zone indisponibile — serverul nu răspunde încă.",
   "v2.zone.mergeInto": "Fuzionează în {name}",
   "v2.zone.mergeConfirm": "Confirmă fuziunea",
   "v2.zone.presenceRecent": "Oprită recent",
