@@ -356,6 +356,59 @@
       .catch(signalerEchecLecture);
   }
 
+  /**
+   * L'ÉDITEUR de règles, ouvert SUR cet écran.
+   *
+   * FabienM, fil 1778 point 8 : « Comment créer une playlist intelligente pour
+   * obtenir des titres avec des critères ? ». On ne pouvait pas d'ici. Le
+   * bouton de cet onglet basculait la vue sur l'écran de l'ancienne interface
+   * (#1011) — le seul à appeler `createSmartPlaylist`, `updateSmartPlaylist`
+   * et `deleteSmartPlaylist`.
+   *
+   * Il ouvre maintenant `PlaylistSmartEditeurV2`, qui reprend la GRAMMAIRE de
+   * cet écran-là sans la recopier (`lib/smartPlaylistChamps`). Le bouton reste
+   * le MÊME : deux portes vers la même fonction se seraient contredites, et
+   * c'est le doublon que #1127 vient de retirer de la rangée du gestionnaire.
+   *
+   * `{ id: null }` crée, `{ id: <n> }` modifie.
+   */
+  let editeurSmart = $state<{ id: number | null } | null>(null);
+
+  /**
+   * Supprime une playlist intelligente.
+   *
+   * ⚠️ `sp.id` vit dans l'espace d'identifiants des playlists INTELLIGENTES,
+   * pas dans celui des playlists classiques : les deux tables numérotent
+   * chacune de son côté, et la 7 de l'une n'est pas la 7 de l'autre. D'où
+   * `deleteSmartPlaylist`, jamais `deletePlaylist`.
+   *
+   * Confirmation obligatoire, et en `danger` : une règle qu'on efface ne se
+   * reconstitue pas. Par le socle `dialogs` — la boîte native ne s'ouvre pas
+   * dans un webview, le clic n'y produit RIEN (#166).
+   */
+  async function supprimerSmart(sp: any) {
+    if (sp?.id == null) return;
+    const ok = await dialogs.confirm(
+      $t('v2.spl.deleteAsk' as any).replace('{name}', String(sp.name ?? '')),
+      { danger: true },
+    );
+    if (!ok) return;
+    try {
+      await api.deleteSmartPlaylist(sp.id);
+      notifications.success($t('smartPlaylists.deleted').replace('{name}', String(sp.name ?? '')));
+      rechargerSmart();
+    } catch (e: any) {
+      notifications.error(errText(e) ?? $t('common.error' as any));
+    }
+  }
+
+  /** Relit la liste depuis le serveur plutôt que de la corriger à la main. */
+  function rechargerSmart() {
+    smartCharge = false;
+    smartMosaiques = {};
+    void chargerSmart();
+  }
+
   // ── Sauvegardes ──────────────────────────────────────────────────────────
   //
   // Bertrand les garde SUR cet écran (02/09/2026) : c'est ici qu'on risque de
@@ -667,11 +720,12 @@
     {:else if onglet === 'smart'}
       <!-- Les intelligentes : une grille, comme tout le reste de cet écran
            (« playlists en vue grille par défaut », Bertrand, 02/09/2026). -->
-      <!-- #1011 — le seul chemin vers l'ÉDITEUR : créer, modifier, supprimer
-           une règle. Sans lui, l'onglet listait des playlists que personne
-           ne pouvait créer ici (Fabien, fil 1778, point 8). -->
+      <!-- #1011 puis #1150 — LE SEUL chemin vers l'éditeur, et il ne quitte
+           plus l'écran : la règle se crée, se modifie et s'efface ici.
+           Avant la liste, vide ou non — c'est quand il n'y a rien que le
+           bouton sert le plus. -->
       <div class="grp creer">
-        <button class="v2-btn primaire" onclick={() => activeView.set('smartplaylists')}>{$t('smartPlaylists.new')}</button>
+        <button class="v2-btn primaire" onclick={() => (editeurSmart = { id: null })}>{$t('smartPlaylists.new')}</button>
       </div>
       {#if !smart.length}
         <div class="state">{$t('v2.pl.noSmart' as any)}</div>
@@ -687,7 +741,9 @@
                        dans `item_tags`. Un cœur qui ne s'allume pas serait
                        pire que pas de cœur. -->
                   <PochetteActions onLire={() => lireSmart(sp)} nom={sp.name}
-                    menu={[{ libelle: $t('library.shuffle' as any), faire: () => lireSmart(sp, true) }]}>
+                    onEditer={sp.id != null ? () => (editeurSmart = { id: sp.id }) : null}
+                    menu={[{ libelle: $t('library.shuffle' as any), faire: () => lireSmart(sp, true) },
+                           { libelle: $t('common.delete'), danger: true, faire: () => void supprimerSmart(sp) }]}>
                     {#if mos}
                       <MosaiquePochettes pochettes={mos} initiales={sp.name?.slice(0, 1)} alt={sp.name} />
                     {:else}
@@ -760,6 +816,16 @@
 
   {#if opened}
     <PlaylistDetailV2 item={opened} onClose={() => { opened = null; clearShortcutTarget(); }} onChanged={load} />
+  {/if}
+
+  {#if editeurSmart}
+    {@const cibleSmart = editeurSmart}
+    {#await import('./PlaylistSmartEditeurV2.svelte') then m}
+      <m.default
+        id={cibleSmart.id}
+        onClose={() => (editeurSmart = null)}
+        onSaved={rechargerSmart} />
+    {/await}
   {/if}
 
   {#if enEdition}
