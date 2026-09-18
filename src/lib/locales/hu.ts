@@ -2808,6 +2808,7 @@ export default {
   "zoneConfig.modelNone": "— Válassz típust —",
   "zoneConfig.modelCustomPlaceholder": "Típusnév",
   "zoneConfig.other": "Egyéb…",
+  "zoneConfig.backToList": "Választás a listából",
   "zoneConfig.detected": "Felismerve",
   "zoneConfig.identiteEffacee": "Ez nem az észlelt eszköz",
   "zoneConfig.identiteEffaceeHint": "Elveti a zóna UPnP-észlelését: a Tune többé nem jeleníti meg az észlelt gyártót és típust, és nem is támaszkodik rájuk, még újabb keresés után sem. A fent saját kezűleg választott gyártó és típus, ha van ilyen, megmarad.",

@@ -3208,6 +3208,7 @@ export default {
   "zoneConfig.modelNone": "— Choisir un modèle —",
   "zoneConfig.modelCustomPlaceholder": "Nom du modèle",
   "zoneConfig.other": "Autre…",
+  "zoneConfig.backToList": "Choisir dans la liste",
   "zoneConfig.detected": "Détecté",
   "zoneConfig.identiteEffacee": "Ce n'est pas l'appareil détecté",
   "zoneConfig.identiteEffaceeHint": "Récuse la détection UPnP de cette zone : Tune n'affiche plus la marque ni le modèle détectés et cesse de s'en servir, même après un nouveau balayage. Votre choix de marque et de modèle ci-dessus, s'il y en a un, est conservé.",

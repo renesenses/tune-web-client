@@ -3320,6 +3320,7 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Numele modelului",
   "zoneConfig.modelNone": "— Alege un model —",
   "zoneConfig.other": "Altul…",
+  "zoneConfig.backToList": "Alege din listă",
   "acoustic.progressHelp": "Progresul analizei acustice pe întreaga bibliotecă. Reia de unde a rămas după o repornire: nu se pierde nimic dacă opriți serverul.",
   "oxygen.enableHelp": "Adaugă o intrare Oxygen în navigare, lângă Bibliotecă. Biblioteca clasică rămâne neschimbată: este un al doilea mod de a o parcurge, nu un înlocuitor.",
   "oxygen.defaultViewHelp": "Vizualizarea cu care se deschide Oxygen. O puteți schimba oricând cu un clic din ecran; aici se stabilește doar punctul de plecare.",

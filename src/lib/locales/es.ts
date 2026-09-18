@@ -3320,6 +3320,7 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Nombre del modelo",
   "zoneConfig.modelNone": "— Elegir un modelo —",
   "zoneConfig.other": "Otro…",
+  "zoneConfig.backToList": "Elegir de la lista",
   "acoustic.progressHelp": "Avance del análisis acústico en toda la biblioteca. Se reanuda donde lo dejó tras un reinicio: no se pierde nada si detiene el servidor.",
   "oxygen.enableHelp": "Añade una entrada Oxygen a la navegación, junto a Biblioteca. Su biblioteca clásica no cambia: es otra forma de recorrerla, no un reemplazo.",
   "oxygen.defaultViewHelp": "La vista con la que se abre Oxygen. Puede cambiarla con un clic desde la propia pantalla; esto solo fija el punto de partida.",

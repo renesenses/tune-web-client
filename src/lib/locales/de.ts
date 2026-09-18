@@ -3320,6 +3320,7 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Name des Modells",
   "zoneConfig.modelNone": "— Modell wählen —",
   "zoneConfig.other": "Andere…",
+  "zoneConfig.backToList": "Aus der Liste wählen",
   "acoustic.progressHelp": "Fortschritt der akustischen Analyse über die gesamte Bibliothek. Nach einem Neustart wird dort fortgesetzt, wo sie aufgehört hat — nichts geht verloren.",
   "oxygen.enableHelp": "Fügt der Navigation einen Oxygen-Eintrag neben der Bibliothek hinzu. Ihre klassische Bibliothek bleibt unverändert: eine zweite Art zu stöbern, kein Ersatz.",
   "oxygen.defaultViewHelp": "Die Ansicht, mit der Oxygen startet. Sie können jederzeit mit einem Klick wechseln — dies legt nur den Ausgangspunkt fest.",

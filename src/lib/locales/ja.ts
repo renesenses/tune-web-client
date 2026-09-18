@@ -3320,6 +3320,7 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "機種名",
   "zoneConfig.modelNone": "— 機種を選択 —",
   "zoneConfig.other": "その他…",
+  "zoneConfig.backToList": "一覧から選ぶ",
   "acoustic.progressHelp": "ライブラリ全体の音響解析の進み具合。再起動しても続きから再開するため、サーバーを止めても失われません。",
   "oxygen.enableHelp": "ナビゲーションのライブラリの隣に Oxygen を追加します。従来のライブラリはそのまま。置き換えではなく、もう一つの見方です。",
   "oxygen.defaultViewHelp": "Oxygen を開いたときの表示。画面上でいつでも切り替えられます。ここで決まるのは最初の表示だけです。",

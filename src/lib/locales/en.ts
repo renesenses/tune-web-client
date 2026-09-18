@@ -3205,6 +3205,7 @@ export default {
   "zoneConfig.modelNone": "— Select a model —",
   "zoneConfig.modelCustomPlaceholder": "Model name",
   "zoneConfig.other": "Other…",
+  "zoneConfig.backToList": "Choose from the list",
   "zoneConfig.detected": "Detected",
   "zoneConfig.identiteEffacee": "This is not the detected device",
   "zoneConfig.identiteEffaceeHint": "Discards the UPnP detection for this zone: Tune no longer shows the detected brand and model, and stops relying on them, even after a new scan. Your own brand and model choice above, if any, is kept.",

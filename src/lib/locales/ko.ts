@@ -3320,6 +3320,7 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "모델 이름",
   "zoneConfig.modelNone": "— 모델 선택 —",
   "zoneConfig.other": "기타…",
+  "zoneConfig.backToList": "목록에서 선택",
   "acoustic.progressHelp": "라이브러리 전체의 음향 분석 진행도입니다. 재시작해도 중단된 지점부터 이어지므로 서버를 멈춰도 잃지 않습니다.",
   "oxygen.enableHelp": "탐색 메뉴의 라이브러리 옆에 Oxygen 항목을 추가합니다. 기존 라이브러리는 그대로이며, 대체가 아니라 또 다른 탐색 방식입니다.",
   "oxygen.defaultViewHelp": "Oxygen을 열 때의 보기입니다. 화면에서 언제든 한 번의 클릭으로 바꿀 수 있으며, 여기서는 시작 화면만 정합니다.",
