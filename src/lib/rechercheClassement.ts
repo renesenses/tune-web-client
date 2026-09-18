@@ -60,6 +60,122 @@ export function fusionnerParType(
   return { artistes, albums, pistes };
 }
 
+/* ------------------------------------------------------------------ */
+/* Le MÊME artiste, une seule vignette — #1135                         */
+/* ------------------------------------------------------------------ */
+
+/** Une provenance d'un artiste fusionné, et la LIGNE qu'elle a rendue. */
+export interface ProvenanceArtiste {
+  source: string;
+  /** La ligne telle que ce seau l'a rendue — son `id` ou son `source_id` est
+   *  ce qui permet d'ouvrir la fiche de CETTE source. */
+  artiste: AvecSource<Artist>;
+}
+
+export type ArtisteFusionne = AvecSource<Artist> & { sources: ProvenanceArtiste[] };
+
+/**
+ * Rapprocher le même artiste rendu par plusieurs sources — #1135.
+ *
+ * FabienM, fil 1762 : « je cherche "Pink Floyd", je vais avoir 3 résultats
+ * pour le même artiste, un pour le local, un pour Qobuz et un pour Bancamp.
+ * Il faut unifier et faire qu'une vignette avec un label par source (ce qui
+ * existait déjà pour l'interface actuelle). »
+ *
+ * ## C'est l'ANCIENNE interface qu'on reprend, pas une idée neuve
+ *
+ * `SearchView.groupedArtists` tient déjà exactement cette règle : une `Map`
+ * sur `name.toLowerCase()`, les provenances accumulées dans `_sources[]`, et
+ * la première `image_path` disponible reprise. La V2 avait perdu ce
+ * comportement en repartant d'une simple concaténation. Ici, la même règle,
+ * au même endroit que le reste du classement.
+ *
+ * ## Égalité STRICTE du nom, en minuscules — et rien de plus
+ *
+ * Sur la capture de Fabien voisinent « Pink Floyd », « New Pink Floyd »,
+ * « PinkFloyd » et « UK Pink Floyd Experience ». Normaliser plus loin
+ * (espaces, ponctuation, « The ») fusionnerait des homonymes et des groupes de
+ * reprise — et la recherche se juge sur la QUALITÉ du résultat, pas sur le
+ * volume. `PINK FLOYD` et `Pink Floyd` se rejoignent, `PinkFloyd` non. C'est
+ * la règle de l'ancien écran, et elle reste discutable au même endroit.
+ *
+ * ## 🔴 Ne pas perdre la source en dédupliquant
+ *
+ * Trois vignettes muettes remplacées par une vignette muette, ce serait
+ * échanger un défaut contre un autre : la rangée `OÙ` annonce
+ * « Bibliothèque · Qobuz · Bandcamp » et la vignette doit rester d'accord avec
+ * elle. D'où `sources[]`, rangé par PRÉFÉRENCE (`ordonnerSources`, la table
+ * `RANG_SOURCE` de #856 — une seule table, pas une seconde qui divergerait).
+ *
+ * ## Qui PRIME, et pourquoi
+ *
+ * La ligne retenue — celle qui porte l'identité de la vignette fusionnée — est
+ * celle de la source la MIEUX RANGÉE : le local d'abord, puis Qobuz, Tidal,
+ * Deezer, Bandcamp, YouTube. Deux raisons, pas une préférence esthétique :
+ *
+ *   1. c'est déjà la doctrine du fichier — « le local passe devant : c'est ce
+ *      que l'utilisateur possède déjà, et le lui proposer après une offre
+ *      marchande serait absurde » ;
+ *   2. l'identité décide des GESTES. Une ligne locale porte un `id` de
+ *      bibliothèque, donc le cœur, les étiquettes, le crayon et la fiche
+ *      locale ; une ligne de service n'a qu'un `source_id`. Faire primer le
+ *      service éteindrait des actions que l'utilisateur a pourtant sous la
+ *      main.
+ *
+ * Les autres provenances ne sont pas perdues pour autant : chacune garde SA
+ * ligne dans `sources[]`, ce qui permet à l'écran de mener à la fiche de
+ * chaque service depuis son badge, sans écran de désambiguïsation.
+ *
+ * ## Le PORTRAIT est repris là où il existe
+ *
+ * Qobuz rend souvent `image_path: null` quand Bandcamp a la photo. La vignette
+ * fusionnée garde la première image disponible, dans l'ordre d'arrivée — sans
+ * quoi dédupliquer ferait PERDRE le portrait.
+ *
+ * ## ⛔ Les ALBUMS ne passent pas par ici
+ *
+ * L'ancienne interface ne les fusionne pas (`groupedAlbums` pousse à plat,
+ * malgré son nom), et deux éditions d'un même titre ne sont pas un doublon :
+ * masters, années et pistes bonus diffèrent. Les rapprocher demanderait une
+ * notion d'ŒUVRE (ISRC / MBID) qui n'existe pas encore.
+ */
+export function regrouperArtistes(
+  artistes: readonly AvecSource<Artist>[],
+): ArtisteFusionne[] {
+  const parNom = new Map<string, { image: string | null; sources: ProvenanceArtiste[] }>();
+
+  let anonymes = 0;
+  for (const a of artistes ?? []) {
+    const nom = (a?.name ?? '').trim().toLowerCase();
+    // Un artiste SANS nom ne s'apparie à rien : il garde sa propre vignette
+    // plutôt que de se fondre avec tous les autres sans-nom.
+    const cle = nom || `\u0000${anonymes++}`;
+    const source = a?.source ?? 'local';
+
+    const deja = parNom.get(cle);
+    if (!deja) {
+      parNom.set(cle, { image: a?.image_path ?? null, sources: [{ source, artiste: a }] });
+      continue;
+    }
+    // Une même source rendue deux fois ne vaut qu'un badge.
+    if (!deja.sources.some((s) => s.source === source)) deja.sources.push({ source, artiste: a });
+    if (!deja.image && a?.image_path) deja.image = a.image_path;
+  }
+
+  const sortie: ArtisteFusionne[] = [];
+  for (const { image, sources } of parNom.values()) {
+    const rangees = ordonnerSources(sources, (s) => s.source);
+    const chef = rangees[0];
+    sortie.push({
+      ...chef.artiste,
+      source: chef.source,
+      image_path: chef.artiste?.image_path ?? image,
+      sources: rangees,
+    });
+  }
+  return sortie;
+}
+
 export type Meilleur =
   | { genre: 'artiste'; artiste: AvecSource<Artist> }
   | { genre: 'album'; album: AvecSource<Album> }
