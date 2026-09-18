@@ -16,7 +16,7 @@
   import { currentZoneId, zones } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { t as tr } from '../../lib/i18n';
-  import ListePistesV2 from './ListePistesV2.svelte';
+  import ListePistesV2, { LARGEUR_ACTIONS } from './ListePistesV2.svelte';
   import {
     entreesDepuisServeur,
     fusionnerHistorique,
@@ -71,6 +71,34 @@
     colonnesRetenues($preferences.v2Colonnes?.[$preferences.settingsLevel] ?? [],
                      $preferences.settingsLevel)[0]?.largeur ?? '44px',
   );
+
+  /**
+   * 🔴 ET LA DROITE DE LA LIGNE AUSSI — #1149.
+   *
+   * #1009 avait réconcilié la PREMIÈRE colonne, la gouttière et la marge
+   * gauche. La ligne d'objet gardait pourtant un gabarit à elle pour tout le
+   * reste — `var(--col1) auto 1fr auto auto` — dont les trois dernières
+   * colonnes ne sortaient d'aucune source commune. « il y a 3 min » sur la
+   * ligne d'ALBUM ne tombait donc pas au-dessus de « il y a 9 min » sur la
+   * ligne de PISTE, et deux colonnes `auto` se résolvant sur leur contenu, le
+   * décalage changeait d'une ligne à l'autre.
+   *
+   * Le tableau finit par DEUX colonnes fixes : la barre d'actions, puis le
+   * suffixe propre à cet écran (la zone, l'instant, le cœur radio). La ligne
+   * d'objet se compose maintenant des mêmes :
+   *
+   *   var(--col1)   la première colonne du tableau        (#1009)
+   *   minmax(0,1fr) tout ce qui est entre — le nom
+   *   --col-actions LARGEUR_ACTIONS, importée de ListePistesV2
+   *   --col-suffixe LARGEUR_SUFFIXE, la valeur passée en `largeurApres`
+   *
+   * Même boîte, même gouttière, mêmes deux colonnes de queue : leurs bords
+   * droits tombent au même endroit, quel que soit le nombre de colonnes de
+   * données cochées entre les deux. Rien n'est recopié — la barre d'actions a
+   * déjà changé de largeur une fois (178 → 208 px le 16/09/2026), et un nombre
+   * figé ici s'en serait détaché en silence.
+   */
+  const LARGEUR_SUFFIXE = '164px';
 
   let serveur = $state<HistoryEntry[]>([]);
   let favorisRadio = $state(new Set<string>());
@@ -211,7 +239,10 @@
     {#if !entrees.length}
       <div class="state">{$tr('history.noHistory')}</div>
     {:else}
-      <div class="list">
+      <!-- #1149 — les deux colonnes de queue du tableau, posées une fois pour
+           toutes les lignes d'objet de l'écran. `--col1` reste sur la ligne
+           elle-même : elle dépend des colonnes cochées (#1009). -->
+      <div class="list" style="--col-actions:{LARGEUR_ACTIONS}; --col-suffixe:{LARGEUR_SUFFIXE}">
         <!-- 🔴 #904 / #903 — DEUX niveaux. Une tranche de titres nus est un
              tableau ; un objet lancé est une ligne dépliable.
 
@@ -250,29 +281,41 @@
               style="--col1:{largeurPremiereColonne}"
               onclick={() => basculerPli(tranche.cle)}>
               <span class="pli" aria-hidden="true">{ouvert ? '−' : '+'}</span>
-              <span class="otype">{$tr(`v2.hist.ctx.${tranche.type}` as any)}</span>
-              <!-- Le nom vient, dans l'ordre : de la playlist de service
-                   résolue (#988), du serveur (`context_name`, .151), des
-                   pistes (album, artiste) ; et à défaut on pose le seul type,
-                   plutôt qu'un nom inventé. -->
-              <!-- #991 — l'objet replié est la seule ligne qu'on voit : il
-                   porte la pochette de la playlist quand le service l'a
-                   donnée, sinon celle de sa première piste. -->
-              <span class="onom">
-                {#if vignette}
-                  <span class="ovig">
-                    <AlbumArt coverPath={vignette.cover_path} albumId={vignette.album_id}
-                      size={36} alt={nom ?? ''} source={lot[0]?.track?.source ?? null} />
+              <!-- #1149 — QUATRE cellules, pas cinq : le type et le nom
+                   partagent la colonne centrale, celle qui absorbe tout ce que
+                   le tableau consacre à ses colonnes de données. -->
+              <span class="ocorps">
+                <span class="otype">{$tr(`v2.hist.ctx.${tranche.type}` as any)}</span>
+                <!-- Le nom vient, dans l'ordre : de la playlist de service
+                     résolue (#988), du serveur (`context_name`, .151), des
+                     pistes (album, artiste) ; et à défaut on pose le seul type,
+                     plutôt qu'un nom inventé. -->
+                <!-- #991 — l'objet replié est la seule ligne qu'on voit : il
+                     porte la pochette de la playlist quand le service l'a
+                     donnée, sinon celle de sa première piste. -->
+                <span class="onom">
+                  {#if vignette}
+                    <span class="ovig">
+                      <AlbumArt coverPath={vignette.cover_path} albumId={vignette.album_id}
+                        size={36} alt={nom ?? ''} source={lot[0]?.track?.source ?? null} />
+                    </span>
+                  {/if}
+                  <span class="otxt">
+                    <span class="otitre">{fiche?.nom ?? nom ?? $tr('v2.hist.ctx.sansNom' as any)}</span>
+                    <!-- #988, point 11 — l'artiste de l'album joué. -->
+                    {#if artiste}<span class="oart">{artiste}</span>{/if}
                   </span>
-                {/if}
-                <span class="otxt">
-                  <span class="otitre">{fiche?.nom ?? nom ?? $tr('v2.hist.ctx.sansNom' as any)}</span>
-                  <!-- #988, point 11 — l'artiste de l'album joué. -->
-                  {#if artiste}<span class="oart">{artiste}</span>{/if}
                 </span>
               </span>
-              <span class="ocompte">{lot.length}</span>
-              <span class="when">{depuis(tranche.quand)}</span>
+              <!-- Le compte occupe la colonne de la barre d'actions, calé à
+                   droite comme elle (`.act`). -->
+              <span class="ocompte-cell"><span class="ocompte">{lot.length}</span></span>
+              <!-- Et l'instant occupe la colonne du suffixe, avec la MÊME
+                   structure que les lignes de piste : `.quand`, puis la place
+                   du cœur radio. Sans ce second élément l'instant se collerait
+                   28 px plus à droite que sur les pistes — la grille serait
+                   juste, et le texte toujours décalé. -->
+              <span class="osuffixe"><span class="quand"><span class="when">{depuis(tranche.quand)}</span></span><span class="fav-vide" aria-hidden="true"></span></span>
             </button>
             {#if ouvert}
               <div class="tiroir">
@@ -381,7 +424,14 @@
      du tableau des pistes (`.trow` de `ListePistesV2` : gap 14px, padding 0 10px).
      La bordure est comptée dans la marge pour que le bord intérieur tombe au
      même endroit : 10px = 1px de bordure + 9px de remplissage. */
-  .objet{display:grid; grid-template-columns:var(--col1, 44px) auto 1fr auto auto;
+  /* #1149 — et les DEUX colonnes de queue du tableau : la barre d'actions puis
+     le suffixe. `--col-actions` et `--col-suffixe` sont posées sur `.list`
+     depuis `LARGEUR_ACTIONS` (importée de `ListePistesV2`) et
+     `LARGEUR_SUFFIXE` (la valeur passée en `largeurApres`). Plus aucun `auto` :
+     une colonne dimensionnée par son contenu ne peut pas tomber en face de
+     celle du tableau — c'est la leçon du 07/09/2026 sur l'en-tête. */
+  .objet{display:grid;
+    grid-template-columns:var(--col1, 44px) minmax(0,1fr) var(--col-actions) var(--col-suffixe);
     align-items:center; gap:14px;
     width:100%; text-align:left; padding:9px; border:1px solid var(--v2-line2);
     border-radius:9px; background:var(--v2-surface2, transparent); color:var(--v2-txt);
@@ -389,17 +439,37 @@
   .objet:hover{border-color:var(--v2-acc1)}
   .objet .pli{font:600 15px var(--v2-mono); color:var(--v2-txt3); text-align:right}
   .objet.ouvert .pli{color:var(--v2-acc1)}
+  /* La colonne centrale : le type puis le nom, sur une ligne, dans la seule
+     cellule qui absorbe les colonnes de données du tableau. */
+  .objet .ocorps{display:flex; align-items:center; gap:14px; min-width:0}
   .objet .otype{font:600 10.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase;
-    color:var(--v2-acc1)}
+    color:var(--v2-acc1); flex:none}
   .objet .onom{display:flex; align-items:center; gap:10px; min-width:0}
   .objet .ovig{flex:none; width:36px; height:36px}
   .objet .otxt{display:flex; flex-direction:column; min-width:0; line-height:1.25}
   .objet .otitre, .objet .oart{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .objet .oart{font-size:12px; color:var(--v2-txt3)}
+  /* Le compte tient la colonne des actions, calé à droite comme `.act` du
+     tableau : la pastille tombe ainsi au-dessus du dernier bouton de la barre,
+     et jamais sur la colonne de données voisine. */
+  .objet .ocompte-cell{display:flex; align-items:center; justify-content:flex-end}
   .objet .ocompte{font:11px var(--v2-mono); color:var(--v2-txt3);
     border:1px solid var(--v2-line2); border-radius:10px; padding:1px 7px}
-  .objet .when{font:11px var(--v2-mono); color:var(--v2-txt3); min-width:82px; text-align:right}
+  /* La colonne du suffixe, à l'identique de `.td.act` dans `ListePistesV2` :
+     flex, calé à droite, AUCUNE gouttière — une gouttière ici décalerait
+     l'instant d'autant par rapport aux lignes de piste.
+     `.when` n'a plus de mise en forme propre : elle prend celle de
+     `.quand .when`, la même que sur les lignes de piste. */
+  .objet .osuffixe{display:flex; align-items:center; justify-content:flex-end}
   .tiroir{padding-left:22px; border-left:2px solid var(--v2-line2); margin:2px 0 6px 8px}
+
+  /* Sous 720 px, `ListePistesV2` retire son en-tête et replie ses lignes sur
+     `minmax(0,1fr) auto` : il n'y a plus de colonnes à aligner. La ligne
+     d'objet se replie avec lui — sinon ses deux colonnes de queue, 372 px à
+     elles deux, écraseraient le nom sur un écran de 375 px. */
+  @media (max-width: 720px){
+    .objet{grid-template-columns:var(--col1, 44px) minmax(0,1fr) auto auto}
+  }
 
   /* La règle tactile qui vivait ici est devenue sans objet : le cœur est
      visible partout, et il l'était déjà sur tablette par ce seul chemin. */
