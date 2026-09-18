@@ -25,17 +25,31 @@ describe('recherche restreinte — point 8 (Yves Corbat, 17/09/2026)', () => {
     expect(respecteLesPhrases({ title: 'X' }, [])).toBe(true);
   });
 
-  it('le type est un choix unique', () => {
-    expect(sectionVisible('tout', 'albums')).toBe(true);
-    expect(sectionVisible('albums', 'albums')).toBe(true);
-    expect(sectionVisible('albums', 'artistes')).toBe(false);
-    expect(sectionVisible('labels', 'titres')).toBe(false);
+  /**
+   * 🔴 LA RÈGLE A CHANGÉ — #1145, et c'est délibéré.
+   *
+   * Le type était un CHOIX UNIQUE (« Tout » = un membre de l'union). La rangée
+   * des sources, elle, est un ENSEMBLE où vide vaut tout : deux modèles
+   * incompatibles sous deux rangées identiques à l'œil (FabienM, fil 1774,
+   * point 7). Les deux obéissent désormais à la même règle.
+   *
+   * L'ACQUIS DU POINT 8 EST TENU : un premier clic restreint à la pastille
+   * cliquée — c'est l'ensemble à un seul membre ci-dessous, et
+   * `pastillesMemeRegle1145.test.ts` le mesure à l'écran, en un clic.
+   */
+  it('le type suit la MÊME règle que les sources : vide vaut tout, puis cumul', () => {
+    expect(sectionVisible(new Set(), 'albums')).toBe(true);
+    expect(sectionVisible(new Set(['albums']), 'albums')).toBe(true);
+    expect(sectionVisible(new Set(['albums']), 'artistes')).toBe(false);
+    expect(sectionVisible(new Set(['labels']), 'titres')).toBe(false);
+    // Le CUMUL, que le choix unique interdisait.
+    expect(sectionVisible(new Set(['albums', 'titres']), 'titres')).toBe(true);
     expect(normaliser('AC/DC')).toBe('ac dc');
   });
 
   it('l’écran branche le type, les labels et les guillemets', () => {
     const src = readFileSync('src/components/v2/SearchV2.svelte', 'utf8');
-    expect(src).toContain("let typeRecherche = $state<TypeRecherche>('tout')");
+    expect(src).toContain('let typesActifs = $state<Set<TypeRecherche>>(new Set())');
     expect(src).toContain('respecteLesPhrases(x, phrases)');
     expect(src).toContain("tune:v2-facette");
     expect(src).toMatch(/local\?\.labels/);

@@ -126,8 +126,11 @@ describe('Recherche v2 (retours Bertrand, 05/09/2026)', () => {
   });
 
   it('le type de recherche part sur « Tout » : rien n’est masqué au départ', () => {
-    // Point 8 (17/09/2026) : les pastilles sont devenues un choix unique.
-    expect(src).toContain("let typeRecherche = $state<TypeRecherche>('tout')");
+    // Point 8 (17/09/2026) : un clic suffit pour ne garder que les albums.
+    // #1145 : ce n'est plus un choix unique mais un ENSEMBLE — vide au départ,
+    // donc rien de masqué, et la pastille « Tout » le DIT (les deux rangées
+    // suivent la même règle ; `pastillesMemeRegle1145.test.ts` la mesure).
+    expect(src).toContain('let typesActifs = $state<Set<TypeRecherche>>(new Set())');
   });
 
   it('la fusion met le local devant et marque la provenance', () => {

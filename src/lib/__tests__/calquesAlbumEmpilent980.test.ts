@@ -143,7 +143,12 @@ describe('#980 — les calques album empilent une entrée', () => {
     expect(Object.keys(EXCEPTIONS), 'LibraryV2 est redevenue une exception').not.toContain('LibraryV2.svelte');
     // ArtistesV2 : l'exception ne vaut que TANT QUE les deux calques coexistent.
     const art = lire('ArtistesV2.svelte');
-    expect(art, 'ArtistesV2 n’a plus de calque artiste').toContain('ouvrirDetail(`artiste:');
+    // 🔴 La clé ne s'écrit plus en toutes lettres ici — #1142. Elle vient de
+    // `cleDetailArtiste`, partagée avec l'écran qui ENVOIE vers la fiche : deux
+    // littéraux dans deux fichiers auraient fini par diverger, et l'entrée
+    // composée aurait été doublée par celle de l'écran d'arrivée.
+    expect(art, 'ArtistesV2 n’a plus de calque artiste').toMatch(/ouvrirDetail\(cle\)/);
+    expect(art, 'ArtistesV2 n’emploie plus la clé partagée').toContain('cleDetailArtiste(a.id)');
     expect(art, 'ArtistesV2 n’a plus de calque album').toMatch(/<AlbumDetailV2\b/);
   });
 });

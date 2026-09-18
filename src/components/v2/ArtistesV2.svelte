@@ -46,6 +46,7 @@
   import {
     detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant,
   } from '../../lib/historiqueCoquille';
+  import { cleDetailArtiste } from '../../lib/cleDetailArtiste';
   import { lireListe } from '../../lib/lectureEnMasse';
   import { melangee } from '../../lib/shuffle';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
@@ -229,7 +230,7 @@
     const voulu = $detailOuvert;
     untrack(() => {
       if (!ouvert) return;
-      if (voulu === `artiste:${ouvert.id}`) return;
+      if (voulu === cleDetailArtiste(ouvert.id)) return;
       fermerLaFiche();
     });
   });
@@ -380,7 +381,11 @@
     saveDetailScroll(CLE_DEFILEMENT, () => grilleEl);
     // La CLÉ, pas l'artiste : `a` est un proxy `$state` et `history.state`
     // refuse les proxies. Voir l'en-tête de `lib/historiqueCoquille.ts`.
-    if (a.id != null) ouvrirDetail(`artiste:${a.id}`);
+    // La MÊME fonction que l'écran qui ENVOIE ici (#1142) : deux littéraux
+    // dans deux fichiers divergeraient, et la fiche empilerait une seconde
+    // entrée par-dessus l'entrée composée.
+    const cle = cleDetailArtiste(a.id);
+    if (cle) ouvrirDetail(cle);
     ouvert = a;
     albums = [];
     albumsChargement = true;

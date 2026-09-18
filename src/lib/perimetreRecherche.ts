@@ -49,3 +49,91 @@
 export function doitViderLePerimetre(precedente: string | null, actuelle: string): boolean {
   return precedente !== null && precedente !== actuelle;
 }
+
+/* ------------------------------------------------------------------ */
+/* LA RÈGLE DES PASTILLES — #1145                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 🔴 UNE SEULE RÈGLE POUR LES DEUX RANGÉES.
+ *
+ * FabienM, fil 1774, point 7 (v0.9.147) :
+ *
+ *   « le clic sur la ligne "où" et "afficher" n'a pas le même comportement.
+ *     Si on clique sur un critère de "Afficher" ça sélectionne/déselectionne le
+ *     critère. En revanche si on clique sur un critère de "Où" ça
+ *     sélectionne/déselectionne tous les autres critères sauf celui
+ *     sélectionné. »
+ *
+ * Ce n'était pas un défaut d'affichage : c'étaient DEUX MODÈLES DE DONNÉES
+ * incompatibles sous deux rangées identiques à l'œil.
+ *
+ *   « OÙ »       un ENSEMBLE où VIDE VAUT TOUT. Vide au départ, donc les quatre
+ *                pastilles s'allumaient (`sourcesActives.size === 0 || …`), et
+ *                le premier clic en éteignait trois d'un coup — le « saut » que
+ *                FabienM décrit. Le FILTRE, lui, était bien cumulatif.
+ *   « AFFICHER » un CHOIX UNIQUE (`typeRecherche`), depuis le point 8 d'Yves
+ *                Corbat (17/09/2026) : une pastille allumée à la fois, « Tout »
+ *                au départ, et UN clic pour ne garder que les albums.
+ *
+ * Aucune des deux ne peut se comporter comme l'autre sans qu'on tranche, et
+ * c'est un arbitrage de produit, pas une correction. La règle retenue, unique,
+ * est celle-ci :
+ *
+ *   • une pastille « Tout » / « Toutes les sources » EXPLICITE ouvre chaque
+ *     rangée. Elle est allumée quand rien n'est restreint — et elle est la
+ *     SEULE allumée dans ce cas ;
+ *   • un clic sur une pastille alors que rien n'est restreint RESTREINT à
+ *     celle-là : un clic pour « ne garder que les albums », ce qu'Yves
+ *     demandait, et pour « ne garder que Qobuz » ;
+ *   • un clic sur une autre pastille l'AJOUTE — le cumul, dans les deux
+ *     rangées, qui existait côté sources et que le choix unique avait retiré
+ *     aux types ;
+ *   • un clic sur une pastille allumée la RETIRE ; retirer la dernière rallume
+ *     « Tout ».
+ *
+ * L'ensemble VIDE reste la représentation de « tout » — c'est ce que le filtre
+ * lit (`dansLePerimetreDe`) et ce qui évite un état « rien de coché » qui ne
+ * rendrait aucun résultat. Ce qui change, c'est qu'il est désormais DIT par une
+ * pastille au lieu d'être peint sur les quatre autres : plus rien ne s'éteint
+ * tout seul au premier clic.
+ *
+ * ⚠️ CE QUE L'UTILISATEUR VOIT CHANGER, et qu'il faut assumer : au départ, les
+ * quatre pastilles de source ne sont plus allumées. « Toutes les sources » l'est
+ * à leur place.
+ */
+
+/** Rien n'est restreint : la rangée porte tout ce qu'elle a trouvé. */
+export function sansRestriction(selection: ReadonlySet<string>): boolean {
+  return selection.size === 0;
+}
+
+/**
+ * La pastille est-elle ALLUMÉE ?
+ *
+ * 🔴 `has`, et RIEN d'autre. C'est ici que vivait le défaut : le « ou
+ * `size === 0` » de l'affichage allumait les quatre pastilles quand aucune
+ * n'était choisie, et le premier clic paraissait en éteindre trois.
+ */
+export function pastilleAllumee(selection: ReadonlySet<string>, cle: string): boolean {
+  return selection.has(cle);
+}
+
+/**
+ * L'élément est-il dans le périmètre ? VIDE VAUT TOUT — la règle du FILTRE,
+ * qui, elle, ne change pas.
+ */
+export function dansLePerimetreDe(selection: ReadonlySet<string>, cle: string): boolean {
+  return selection.size === 0 || selection.has(cle);
+}
+
+/**
+ * Basculer une pastille. Rend un ENSEMBLE NEUF : sous les runes, muter celui
+ * qu'on lit ne redéclenche rien.
+ */
+export function basculerPastille<T extends string>(selection: ReadonlySet<T>, cle: T): Set<T> {
+  const suivant = new Set<T>(selection);
+  if (suivant.has(cle)) suivant.delete(cle);
+  else suivant.add(cle);
+  return suivant;
+}
