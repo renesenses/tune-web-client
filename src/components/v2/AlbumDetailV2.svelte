@@ -6,6 +6,7 @@
    */
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
+  import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
   import { t as tr } from '../../lib/i18n';
   import { formatAnneeAlbum } from '../../lib/formats';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -62,6 +63,23 @@
   let tracks = $state<Track[]>([]);
   /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
   const depuisCue = $derived(tracks.some((t) => !!t.cue_media_path));
+
+  /**
+   * « Aussi sur … » (phase 5 UPnP) : l'album existe aussi de l'autre côté —
+   * local ↔ serveur UPnP. Pas pour un disque de service, de dépôt ni Bandcamp.
+   */
+  let aussiSur = $state<AussiSur[]>([]);
+  const mention = $derived(mentionAussiSur(aussiSur));
+  $effect(() => {
+    const id = album.id, d = depot, svc = service, bc = bandcamp;
+    aussiSur = [];
+    if (id == null || d || svc || bc) return;
+    let perime = false;
+    api.getAussiSur(id)
+      .then((r) => { if (!perime) aussiSur = r?.aussi_sur ?? []; })
+      .catch(() => { /* serveur sans la route : rien à dire */ });
+    return () => { perime = true; };
+  });
 
   /**
    * « Localiser sur le disque » (Bertrand, 09/09/2026).
@@ -574,6 +592,7 @@
              dès qu'une piste en porte. C'est une nature de disque, à côté de
              « compilation ». -->
         {#if depuisCue}<div class="qbadge cue" title={$tr('v2.album.cueTip' as any)}>{$tr('v2.album.cue' as any)}</div>{/if}
+        {#if mention}<div class="qbadge cue" title={$tr('v2.album.alsoOnTip' as any)}>{$tr(mention.cle as any).replace('{servers}', mention.serveurs.join(', '))}</div>{/if}
       </div>
       <h1>{album.title}</h1>
       <!-- Un vrai BOUTON, pas un `<div onclick>` : le clavier doit l'atteindre.
