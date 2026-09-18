@@ -68,6 +68,7 @@
 
     const niv = $audioLevels;
     const cretes = joue ? [niv.peak_left_db, niv.peak_right_db] : [PLANCHER_DB, PLANCHER_DB];
+    const overs = joue ? [niv.over_left, niv.over_right] : [false, false];
     const maintenant = performance.now();
 
     for (let ch = 0; ch < 2; ch++) {
@@ -77,16 +78,16 @@
         : { db: null, depuisMs: 0 };
     }
 
-    if (style === 'lamps') return dessinerLampes(ctx, l, h, cretes);
+    if (style === 'lamps') return dessinerLampes(ctx, l, h, cretes, overs);
     dessinerBargraphe(ctx, l, h);
   }
 
   /** Deux témoins compacts — le seul visuel que la barre de lecture accepte. */
-  function dessinerLampes(ctx: CanvasRenderingContext2D, l: number, h: number, cretes: number[]) {
+  function dessinerLampes(ctx: CanvasRenderingContext2D, l: number, h: number, cretes: number[], overs: boolean[]) {
     const r = Math.min(h / 2 - 1, 5);
     const ecart = r * 2 + 4;
     for (let ch = 0; ch < 2; ch++) {
-      const etat = joue ? surcharge(cretes[ch]) : 'aucune';
+      const etat = joue ? surcharge(cretes[ch], overs[ch]) : 'aucune';
       ctx.beginPath();
       ctx.arc(r + 1, h / 2 - ecart / 2 + ch * ecart, r, 0, Math.PI * 2);
       ctx.fillStyle =
@@ -134,7 +135,12 @@
       }
 
       // OVER à droite, comme sur l'appareil d'origine.
-      const etat = joue ? surcharge($audioLevels[ch === 0 ? 'peak_left_db' : 'peak_right_db']) : 'aucune';
+      const etat = joue
+        ? surcharge(
+            $audioLevels[ch === 0 ? 'peak_left_db' : 'peak_right_db'],
+            $audioLevels[ch === 0 ? 'over_left' : 'over_right'],
+          )
+        : 'aucune';
       ctx.fillStyle =
         etat === 'rouge' ? COULEURS.rouge : etat === 'ambre' ? COULEURS.ambre : COULEURS.eteint;
       ctx.fillRect(utile + 6, y, largeurOver, hb);

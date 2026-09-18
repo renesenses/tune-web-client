@@ -30,6 +30,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import { candidatsNouvelleZone, type CandidatZone } from '../../lib/appareilsNouvelleZone';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -70,6 +71,28 @@
   let draft = $state('');
   let creating = $state(false);
   let newName = $state('');
+  /**
+   * L'APPAREIL de la nouvelle zone — obligatoire depuis tune-server-rust #3835 :
+   * sans lui, `POST /zones` répond `zone_sans_appareil`. Voir
+   * `lib/appareilsNouvelleZone`.
+   */
+  let candidats = $state<CandidatZone[]>([]);
+  let choix = $state('');
+  const candidatChoisi = $derived(candidats.find((c) => c.cle === choix) ?? null);
+  async function ouvrirCreation() {
+    creating = true;
+    choix = '';
+    const [locaux, decouverts] = await Promise.all([
+      api.getAudioDevices().catch(() => []),
+      api.getDevices().catch(() => []),
+    ]);
+    candidats = candidatsNouvelleZone(locaux, decouverts, $zones, $t('zone.browserOutput' as any));
+  }
+  function fermerCreation() {
+    creating = false;
+    newName = '';
+    choix = '';
+  }
   let confirmDelete = $state<number | null>(null);
 
   /**
@@ -198,10 +221,13 @@
     act(() => api.renameZone(z.id as number, name));
   }
   function create() {
-    const name = newName.trim();
-    if (!name) { creating = false; return; }
-    newName = ''; creating = false;
-    act(() => api.createZone(name));
+    const c = candidatChoisi;
+    if (!c) return;
+    // Sans nom saisi, la zone prend celui de l'appareil — le geste de l'ancienne
+    // interface depuis la liste des appareils.
+    const name = newName.trim() || c.nom;
+    fermerCreation();
+    act(() => api.createZone(name, c.outputType, c.deviceId));
   }
   /** Suppression en DEUX temps : une zone supprimée emporte sa file et sa
    *  configuration, et rien ne la restaure. Le premier clic arme, le second
@@ -287,12 +313,24 @@
       {#if creating}
         <div class="newz">
           <!-- svelte-ignore a11y_autofocus -->
-          <input bind:value={newName} placeholder={$t('v2.zone.namePlaceholder' as any)} autofocus
-            onkeydown={(e) => { if (e.key === 'Enter') create(); if (e.key === 'Escape') { creating = false; newName = ''; } }} />
-          <button class="v2-btn primaire" onclick={create}>{$t('v2.zone.create' as any)}</button>
+          <select class="sel" bind:value={choix} aria-label={$t('zone.selectDevice' as any)}>
+            <option value="" disabled>{$t('zone.selectDevice' as any)}</option>
+            {#each [['navigateur', 'v2.zone.groupBrowser'], ['local', 'v2.zone.groupLocal'], ['reseau', 'v2.zone.groupNetwork']] as [g, cle] (g)}
+              {@const dansGroupe = candidats.filter((c) => c.groupe === g)}
+              {#if dansGroupe.length}
+                <optgroup label={$t(cle as any)}>
+                  {#each dansGroupe as c (c.cle)}<option value={c.cle}>{c.nom}</option>{/each}
+                </optgroup>
+              {/if}
+            {/each}
+          </select>
+          <input bind:value={newName} placeholder={candidatChoisi?.nom ?? $t('v2.zone.namePlaceholder' as any)} autofocus
+            onkeydown={(e) => { if (e.key === 'Enter') create(); if (e.key === 'Escape') fermerCreation(); }} />
+          <button class="v2-btn primaire" onclick={create} disabled={!candidatChoisi}>{$t('v2.zone.create' as any)}</button>
+          <button class="v2-btn" onclick={fermerCreation}>{$t('common.cancel' as any)}</button>
         </div>
       {:else}
-        <button class="v2-btn primaire" onclick={() => (creating = true)}>
+        <button class="v2-btn primaire" onclick={ouvrirCreation}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           {$t('zone.newZone' as any)}
         </button>
@@ -536,7 +574,7 @@
   .txt:focus{border-color:var(--v2-acc2); box-shadow:0 0 0 3px var(--v2-focus)}
   .v2-zones{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
-  .newz{display:flex; gap:8px}
+  .newz{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
   .newz input{height:40px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-acc2); background:var(--v2-surface2);
     color:var(--v2-txt); font:14px var(--v2-sans); padding:0 16px; outline:none; width:230px}
 

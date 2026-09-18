@@ -82,7 +82,11 @@ describe('« les hyperliens de l’album renvoient vers la page d’accueil »',
     // Une piste de service, ou une bibliothèque encore en cours de
     // chargement : abandonner en silence rejouerait le défaut signalé.
     const lib = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
-    expect(lib).toMatch(/api\.getAlbum\(id\)\.then\(\(a\) => \{ if \(a\) opened = a; \}\)/);
+    // 🔴 #1121 : le chemin ASYNCHRONE passe lui aussi par la porte
+    // `ouvrirCalqueAlbum` — c'est le sixième écrivain de `opened`, celui que la
+    // dette de #980 nommait. Ce qui est gardé ici ne change pas : l'album
+    // absent du magasin est demandé au serveur, et la fiche s'ouvre.
+    expect(lib).toMatch(/api\.getAlbum\(id\)\.then\(\(a\) => \{ if \(a\) ouvrirCalqueAlbum\(a\); \}\)/);
   });
 });
 

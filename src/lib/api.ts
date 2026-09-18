@@ -509,7 +509,26 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
       throw erreurSentinelle('Session expired', 401);
     }
     const err = await apiError(response);
-    if (response.status >= 500) {
+    /**
+     * 🔴 501 N'EST PAS UNE PANNE — ici non plus (#1148).
+     *
+     * `fetchJSON` exclut 501 de son bandeau depuis #1007 ; ce jumeau-ci était
+     * resté sur le seuil nu `>= 500`. Le même refus délibéré — le serveur dit
+     * « je ne sais pas faire ça », et écrit une phrase lisible pour le dire —
+     * y peignait encore un « Server error: … » rouge.
+     *
+     * ⚠️ MAIS `fetchVoid` porte les ÉCRITURES, et une écriture n'est pas une
+     * lecture. Quand `fetchJSON` se tait, l'écran appelant rend quand même
+     * quelque chose ; quand `fetchVoid` se tait, le geste demandé n'a pas eu
+     * lieu et RIEN ne l'annonce. On ne remplace donc pas le faux incident par
+     * un silence : on sert la phrase du serveur, calmement.
+     *
+     * Les vraies pannes (500, 502, 503) gardent leur bandeau rouge inchangé —
+     * l'exception est étroite, et c'est la moitié de la garde qui compte.
+     */
+    if (response.status === 501) {
+      notifications.info(err.message);
+    } else if (response.status >= 500) {
       notifications.error(`Server error: ${err.message}`);
     }
     throw err;
@@ -4773,6 +4792,29 @@ export function getBatchEnrichStatus() {
   );
 }
 
+/**
+ * Pochettes d'ALBUMS manquantes — `POST /library/artwork/enrich` (Cover Art
+ * Archive, puis Discogs quand un jeton est enregistré). Rend 202 et travaille
+ * en tâche de fond ; `skipped` quand aucun album n'est sans pochette.
+ * Demandé par Yves (réunion du 17/09/2026) pour l'écran Métadonnées.
+ */
+export function startAlbumArtworkEnrich() {
+  return fetchJSON<{ status: string; albums_to_process?: number; missing?: number; message?: string }>(
+    `${BASE}/library/artwork/enrich`,
+    { method: 'POST' },
+  );
+}
+
+/** Avancement de la passe ci-dessus : `result` est le dernier relevé écrit par
+ *  la tâche (`status: running` tant qu'elle tourne), `albums_without_cover`
+ *  le compte recalculé à l'instant. */
+export function getAlbumArtworkEnrichStatus() {
+  return fetchJSON<{
+    result: { status?: string; total?: number; searched?: number; enriched?: number; failed?: number } | null;
+    albums_without_cover: number;
+  }>(`${BASE}/library/artwork/enrich/status`);
+}
+
 // Artist image enrichment (community + Fanart/TheAudioDB/MusicBrainz by MBID,
 // then Discogs/Last.fm by name). Runs manually for everyone; the automatic
 // post-scan run is Premium-only.
@@ -5063,6 +5105,79 @@ export interface MergedPlugin {
 
 export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
   return fetchJSON<InstalledPlugin[]>(`${BASE}/plugins`);
+}
+
+/**
+ * Pont Roon (Premium) — renesenses/tune-server-rust#4349.
+ *
+ * Le rapport, champ pour champ, tel que le rend le greffon
+ * (`plugins/tune-pont-roon/src/lib.rs`, `importer`) : la structure `Rapport`
+ * de `tune-core/src/library/pont_roon.rs`, plus `preview`, `core`, `releve`,
+ * `absent_de_l_api` et `archive` que le greffon y ajoute.
+ */
+export interface RapportPontRoon {
+  artistes_total: number;
+  artistes_apparies: number;
+  artistes_inconnus: string[];
+  albums_total: number;
+  albums_apparies: number;
+  albums_inconnus: string[];
+  pistes_total: number;
+  pistes_appariees: number;
+  credits_a_ecrire: number;
+  credits_deja_presents: number;
+  credits_ecrits: number;
+  images_nommees: number;
+  images_portees: number;
+  images_artistes_a_poser: number;
+  images_artistes_posees: number;
+  images_albums_a_poser: number;
+  images_albums_posees: number;
+  preview: boolean;
+  core: string;
+  releve: string;
+  absent_de_l_api: string[];
+  archive: boolean;
+}
+
+/** `GET /ext/pont-roon/` — le droit Premium, et le dernier import écrit. */
+export interface EtatPontRoon {
+  premium: boolean;
+  dernier_rapport: RapportPontRoon | null;
+}
+
+export function getEtatPontRoon(): Promise<EtatPontRoon> {
+  return fetchJSON<EtatPontRoon>(`${BASE}/ext/pont-roon/`);
+}
+
+/**
+ * `POST /ext/pont-roon/import?apercu=…` — le corps est l'archive du
+ * moissonneur (ou son `export.json`) en OCTETS BRUTS, pas du multipart.
+ *
+ * Pas `fetchJSON` : il impose `Content-Type: application/json` et son `...options`
+ * écraserait l'en-tête d'authentification. Pas `apiPost` non plus : il sérialise
+ * le corps en JSON. L'échec passe par `apiError`, qui lit `detail` avant
+ * `error` — le 422 du greffon (`{"error":"export_pont_roon_illisible",
+ * "detail":"ce n'est pas un export du moissonneur"}`) arrive ainsi à l'écran
+ * avec son MOTIF et non avec son code.
+ */
+export async function importerPontRoon(
+  corps: Blob | ArrayBuffer,
+  apercu: boolean,
+): Promise<RapportPontRoon> {
+  const resp = await fetch(`${BASE}/ext/pont-roon/import?apercu=${apercu ? 'true' : 'false'}`, {
+    method: 'POST',
+    headers: authHeaders({
+      'Accept': 'application/json',
+      'Accept-Language': acceptLang(),
+      'Content-Type': 'application/octet-stream',
+      ...profileHeader(),
+    }),
+    body: corps,
+  });
+  if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
+  if (!resp.ok) throw await apiError(resp);
+  return (await resp.json()) as RapportPontRoon;
 }
 
 /** #3662 — le serveur ne rend AUCUN champ `status`

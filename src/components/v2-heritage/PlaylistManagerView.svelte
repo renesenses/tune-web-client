@@ -167,7 +167,10 @@
   }
 
   // --- NEW: Playlist Manager v2 tabs ---
-  let managerTab = $state<'playlists' | 'transfers' | 'smart-ai' | 'sync' | 'backup' | 'collab'>('playlists');
+  // Plus de 'smart-ai' ici : le générateur de playlists n'a qu'UNE porte, celle
+  // de la rangée du haut (`viewTab`). FabienM, fil 1829 point 2 (web#1111) :
+  // les deux rangées montaient le MÊME `SmartAIView` sous le MÊME libellé.
+  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab'>('playlists');
 
   // Transfer history
   let transferHistory = $state<any[]>([]);
@@ -1142,13 +1145,13 @@
     Playlists
   </button>
   <button class="view-tab" class:active={viewTab === 'smart'} onclick={() => viewTab = 'smart'}>
-    Smart Playlists
+    {$tr('smartPlaylists.title')}
   </button>
   <button class="view-tab" class:active={viewTab === 'smart-ai'} onclick={() => viewTab = 'smart-ai'}>
     {$tr('smartai.title')}
   </button>
   <button class="view-tab" class:active={viewTab === 'hub'} onclick={() => viewTab = 'hub'}>
-    Playlists Hub
+    {$tr('playlists.hubTitle')}
   </button>
 </div>
 
@@ -1302,11 +1305,10 @@
     <div class="pm-header">
       <h2>{$tr('playlist.manager')}</h2>
       <div class="pm-tabs">
-        <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>Playlists</button>
+        <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>{$tr('playlistManager.tabPlaylists')}</button>
         <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
-        <button class="pm-tab" class:active={managerTab === 'smart-ai'} onclick={() => managerTab = 'smart-ai'}>{$tr('smartai.title')}</button>
-        <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>Sync</button>
-        <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>Backup</button>
+        <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>{$tr('playlistManager.tabSync')}</button>
+        <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>{$tr('playlistManager.tabBackup')}</button>
         <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
       </div>
       <div class="pm-header-right">
@@ -1319,7 +1321,15 @@
             </button>
           {/if}
         </div>
-        <button class="create-btn" onclick={() => showCreate = true}>
+        <!--
+          Le bouton vit dans l'en-tête COMMUN aux onglets du gestionnaire, mais
+          le formulaire qu'il ouvre n'est rendu que dans la branche de l'onglet
+          Playlists : hors de cet onglet, le clic ne peignait rien. FabienM,
+          fil 1829 point 3 (web#1112). On ramène donc l'onglet Playlists avec
+          le formulaire, comme le testeur le demande — plutôt que de faire
+          disparaître le bouton, qui aurait rendu l'en-tête mouvant.
+        -->
+        <button class="create-btn" onclick={() => { managerTab = 'playlists'; showCreate = true; }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
           {$tr('playlist.new')}
         </button>
@@ -1332,7 +1342,7 @@
         <!-- Quick Transfer Section -->
         <div class="qt-section">
           <h3>{$tr('playlist.transfer')}</h3>
-          <p class="qt-hint">Transfer a playlist from one service to another.</p>
+          <p class="qt-hint">{$tr('playlistManager.transferHint')}</p>
 
           {#if qtResult}
             <!-- Transfer result -->
@@ -1341,7 +1351,7 @@
                 <h4>"{qtResult.playlist_name}" — {$tr('playlist.transferComplete')}</h4>
                 <button class="btn-action btn-sm-action" onclick={qtResetTransfer}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-                  New transfer
+                  {$tr('playlistManager.newTransfer')}
                 </button>
               </div>
               <div class="transfer-summary">
@@ -1414,9 +1424,9 @@
             <div class="qt-form">
               <div class="qt-row">
                 <div class="qt-field">
-                  <label class="qt-label">Source</label>
+                  <label class="qt-label">{$tr('playlist.source')}</label>
                   <select class="qt-select" bind:value={qtSourceService} onchange={(e) => qtLoadSourcePlaylists((e.target as HTMLSelectElement).value)}>
-                    <option value="">-- Service --</option>
+                    <option value="">{$tr('playlistManager.pickService')}</option>
                     {#each qtAvailableServices as svc}
                       <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
                     {/each}
@@ -1426,7 +1436,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
                 </div>
                 <div class="qt-field">
-                  <label class="qt-label">Target</label>
+                  <label class="qt-label">{$tr('playlist.target')}</label>
                   <select class="qt-select" bind:value={qtTargetService} disabled={!qtSourceService}>
                     {#each qtTargetServices as svc}
                       <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
@@ -1446,7 +1456,7 @@
                         <option value="">-- {$tr('playlist.selectPlaylist')} --</option>
                         {#each qtSourcePlaylists as pl}
                           <option value={'source_id' in pl ? (pl as StreamingPlaylist).source_id : String((pl as Playlist).id)}>
-                            {pl.name} ({('track_count' in pl ? pl.track_count : (pl as Playlist).track_count) ?? '?'} tracks)
+                            {pl.name} ({$tr('playlistManager.trackCount').replace('{count}', String(('track_count' in pl ? pl.track_count : (pl as Playlist).track_count) ?? '?'))})
                           </option>
                         {/each}
                       </select>
@@ -1454,7 +1464,7 @@
                   </div>
                   <div class="qt-field" style="flex: 1;">
                     <label class="qt-label">{$tr('playlist.name')}</label>
-                    <input type="text" class="qt-input" bind:value={qtTargetName} placeholder="Target playlist name..." />
+                    <input type="text" class="qt-input" bind:value={qtTargetName} placeholder={$tr('playlistManager.targetNamePlaceholder')} />
                   </div>
                 </div>
               {/if}
@@ -1509,12 +1519,6 @@
         </div>
       </div>
 
-    {:else if managerTab === 'smart-ai'}
-      <!-- Onglet Generateur de playlists -->
-      <div class="pm-tab-content">
-        <SmartAIView />
-      </div>
-
     {:else if managerTab === 'sync'}
       <!-- Sync Links Tab -->
       <div class="pm-tab-content">
@@ -1551,7 +1555,7 @@
       <!-- Backup Tab -->
       <div class="pm-tab-content">
         <div class="tab-actions">
-          <h3>Backup & Export</h3>
+          <h3>{$tr('playlistManager.backupExport')}</h3>
           <div class="tab-btns">
             <button class="btn-action" onclick={doBackup} disabled={backingUp}>
               {backingUp ? $tr('playlistManager.backingUp') : $tr('playlistManager.backupAll')}
@@ -1603,10 +1607,10 @@
           </div>
         {/if}
 
-        <h4 style="margin-top: 24px;">Batch Transfer</h4>
+        <h4 style="margin-top: 24px;">{$tr('playlistManager.batchTransfer')}</h4>
         <div class="batch-form">
           <select bind:value={batchSource}>
-            <option value="">Source...</option>
+            <option value="">{$tr('playlistManager.pickSource')}</option>
             {#each authenticatedServices as svc}
               <option value={svc}>{svc}</option>
             {/each}

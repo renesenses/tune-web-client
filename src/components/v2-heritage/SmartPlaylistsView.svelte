@@ -8,6 +8,12 @@
   import { notifications } from '../../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import { get } from 'svelte/store';
+  import { streamingServices } from '../../lib/stores/streaming';
+  import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
+  import { sourcesDisponibles, libelleSource } from '../../lib/sourcesRegle';
+  import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import {
     OPERATEURS,
     normaliserOperateur,
@@ -84,12 +90,21 @@
     { value: 'is_not', key: 'smartCollection.opRefNotIn' },
   ];
 
+  // « Source » se choisit dans une LISTE (#4299) : est / n'est pas. Le serveur
+  // ne ramène les favoris d'un service que sur une règle positive.
+  const SOURCE_OPERATORS: { value: string; label: string }[] = [
+    { value: 'equals', label: '=' },
+    { value: 'not_equals', label: '≠' },
+  ];
+  let statutsServices = $state<Record<string, any>>({});
+
   function isRefField(field: string): boolean {
     return field === 'in_collection' || field === 'in_playlist' || field === 'favorite';
   }
   function opsFor(field: string): readonly { value: string; key?: string; label?: string }[] {
     if (field === 'favorite') return FAV_OPERATORS;
     if (isRefField(field)) return REF_OPERATORS;
+    if (field === 'source') return SOURCE_OPERATORS;
     return OPERATORS;
   }
 
@@ -137,6 +152,11 @@
         ? $tr(r.value === 'album' ? 'smartCollection.favAlbum' : r.value === 'artist' ? 'smartCollection.favArtist' : 'smartCollection.favTrack')
         : refName(r.value);
       return `${fieldLabel} ${opLabel} « ${valueLabel} »`;
+    }
+    if (r.field === 'source') {
+      const fieldLabel = $tr('smartPlaylists.fieldSource');
+      const opLabel = r.operator === 'not_equals' ? '≠' : '=';
+      return `${fieldLabel} ${opLabel} « ${libelleSource(r.value, $tr('v2.lib.sourceLocal' as any))} »`;
     }
     // Le libellé du menu, pas la valeur interne : le résumé d'une règle doit se
     // lire « bit_depth ≥ "24" », pas « bit_depth gte "24" ».
@@ -287,17 +307,51 @@
     newRules = [{ field: 'genre', operator: 'contains', value: '' }];
   }
 
+  /**
+   * « Tout lire » — la liste peut être MIXTE depuis #4299 : une règle « Source
+   * = Qobuz » ramène des favoris de service, sans identifiant de bibliothèque.
+   * `track_ids` les écartait tous ; `lireListe` lance la tête et enfile le
+   * reste, locales et services confondus.
+   */
   async function playAll() {
-    if (!zone?.id || spTracks.length === 0) return;
-    const ids = spTracks.map(t => t.id).filter(Boolean) as number[];
-    if (ids.length > 0) {
-      await playAndSync(zone.id, { track_ids: ids });
-    }
+    const zid = zone?.id;
+    if (zid == null || spTracks.length === 0) return;
+    await lireListe(spTracks, {
+      lire: (c: any) => playAndSync(zid, c),
+      enfiler: (c: any) => api.addToQueue(zid, c),
+    }).catch(signalerEchecLecture);
   }
 
-  async function playTrack(trackId: number) {
+  /**
+   * « Lecture aléatoire » — Bertrand, 17/09/2026 (réunion avec Yves, point 4) :
+   * « Playlists ou Smart playlists, ajouter bouton lecture aléatoire ». Même
+   * mélange que les playlists et les collections (`lectureEnMasse`), sans
+   * toucher au mode aléatoire de la zone.
+   */
+  async function playShuffle() {
+    const zid = zone?.id;
+    if (zid == null || spTracks.length === 0) return;
+    await lireListeAleatoire(spTracks, {
+      lire: (c: any) => playAndSync(zid, c),
+      enfiler: (c: any) => api.addToQueue(zid, c),
+    }).catch(signalerEchecLecture);
+  }
+
+  /** Une ligne : par son identifiant si elle est locale, par service sinon. */
+  async function playTrack(t: Track) {
     if (!zone?.id) return;
-    await playAndSync(zone.id, { track_id: trackId });
+    if (t.id != null) {
+      await playAndSync(zone.id, { track_id: t.id }).catch(signalerEchecLecture);
+    } else if (t.source && t.source_id) {
+      await playAndSync(zone.id, {
+        source: t.source,
+        source_id: String(t.source_id),
+        title: t.title ?? null,
+        artist_name: t.artist_name ?? null,
+        album_title: t.album_title ?? null,
+        cover_path: t.cover_path ?? null,
+      } as any).catch(signalerEchecLecture);
+    }
   }
 
   function addRule() {
@@ -322,11 +376,17 @@
     if (!rules.length) return $tr('smartPlaylists.noRules');
     const parts = rules.slice(0, 2).map(displayRule);
     const mode = (sp.match_mode || '').replace(/"/g, '');
-    const summary = parts.join(mode === 'all' ? ' ET ' : ' OU ');
+    const summary = parts.join(mode === 'all' ? ` ${$tr('smartPlaylists.joinAll')} ` : ` ${$tr('smartPlaylists.joinAny')} `);
     return rules.length > 2 ? `${summary} … (+${rules.length - 2})` : summary;
   }
 
-  $effect(() => { loadSmartPlaylists(); loadRefOptions(); });
+  $effect(() => {
+    loadSmartPlaylists();
+    loadRefOptions();
+    // `get` : une lecture ponctuelle, qui n'abonne pas l'effet au magasin.
+    void statutsStreaming(get(streamingServices), api.getStreamingServices, (x) => streamingServices.set(x))
+      .then((st) => { statutsServices = st; });
+  });
 </script>
 
 <div class="sp-view">
@@ -361,6 +421,10 @@
           <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
           {$tr('smartPlaylists.playAll')} ({spTracks.length})
         </button>
+        <button class="edit-btn" onclick={playShuffle} disabled={spTracks.length === 0} title={$tr('library.shuffle')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+          {$tr('library.shuffle')}
+        </button>
         <button class="edit-btn" onclick={() => { const sp = selectedSp!; selectedSp = null; spTracks = []; startEdit(sp); }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
           {$tr('smartPlaylists.edit')}
@@ -374,7 +438,7 @@
           {#each spTracks as t, i}
             <!-- svelte-ignore a11y_click_events_have_key_events -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <div class="sp-track-row" onclick={() => t.id && playTrack(t.id)}>
+            <div class="sp-track-row" onclick={() => playTrack(t)}>
               <span class="sp-track-num">{i + 1}</span>
               <div class="sp-track-art"><AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={40} alt={t.title} /></div>
               <div class="sp-track-info">
@@ -395,7 +459,7 @@
   {:else}
     <!-- List view -->
     <div class="sp-list-header">
-      <h2>Smart Playlists</h2>
+      <h2>{$tr('smartPlaylists.title')}</h2>
       <button class="create-btn" onclick={() => { if (showCreate) { cancelForm(); } else { editingSp = null; newName = ''; newDescription = ''; newRules = [{ field: 'genre', operator: 'contains', value: '' }]; newMatchMode = 'all'; newSortBy = 'title'; newSortOrder = 'asc'; newMaxTracks = 200; showCreate = true; } }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         {$tr('smartPlaylists.new')}
@@ -455,6 +519,13 @@
                       <option value={`smart:${p.id}`}>{p.name}</option>
                     {/each}
                   </optgroup>
+                </select>
+              {:else if rule.field === 'source'}
+                <select bind:value={rule.value} class="sp-select sp-input-sm">
+                  <option value="" disabled>{$tr('smartCollection.refPick')}</option>
+                  {#each sourcesDisponibles(statutsServices, rule.value) as s (s)}
+                    <option value={s}>{libelleSource(s, $tr('v2.lib.sourceLocal' as any))}</option>
+                  {/each}
                 </select>
               {:else if rule.field === 'favorite'}
                 <select bind:value={rule.value} class="sp-select sp-input-sm">
@@ -541,7 +612,8 @@
 
 <style>
   .sp-view { padding: var(--space-lg) 28px; overflow-y: auto; height: 100%; }
-  .sp-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); }
+  /* L’écran est monté dans la coquille : son en-tête laisse la place à la grappe. */
+  .sp-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-lg); padding-right: var(--v2-grappe-w, 172px); }
   .sp-list-header h2 { font-family: var(--font-label); font-size: 28px; font-weight: 600; letter-spacing: -0.8px; color: var(--tune-text); margin: 0; }
   .create-btn { display: flex; align-items: center; gap: var(--space-xs); padding: var(--space-sm) var(--space-md); background: var(--tune-accent); color: white; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-label); font-size: 13px; font-weight: 600; transition: opacity 0.12s; }
   .create-btn:hover { opacity: 0.85; }

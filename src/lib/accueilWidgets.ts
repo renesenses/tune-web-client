@@ -25,8 +25,10 @@
  * dans le chargeur laisse au rendu un seul cas à traiter.
  */
 import * as api from './api';
+import { estSourceDeBibliotheque } from './provenanceBibliotheque';
 import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
+import { estAParaitre } from './albumAParaitre';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -55,17 +57,36 @@ export interface Element {
    * streaming », et « quand je clique sur la zone d'écoute active cela
    * m'ouvre l'écran Now playing ».
    */
-  ouvrir?: 'album' | 'zone' | null;
+  ouvrir?: 'album' | 'zone' | 'playlist' | null;
   /** Album normalisé pour la fiche, quand `ouvrir` vaut `album`. */
   fiche?: any;
+  /**
+   * Playlist de SERVICE normalisée pour `PlaylistDetailV2`, quand `ouvrir`
+   * vaut `playlist` — #1108.
+   *
+   * Un champ à part de `fiche`, pour la même raison qui avait fait naître
+   * `favoriDistant` : `fiche` est l'album qu'ouvre `ouvrir: 'album'`, et les
+   * deux natures ne se recouvrent pas. Les identifiants non plus — l'album 42
+   * de Qobuz n'est pas la playlist 42, et `/streaming/qobuz/albums/{id}/tracks`
+   * n'est pas `/streaming/qobuz/playlists/{id}/tracks`.
+   */
+  playlist?: any;
+  /**
+   * Album ANNONCÉ, pas encore sorti (point 10, 17/09/2026). La vignette est
+   * grisée et ne porte pas de disque de lecture : le service répond « no url »
+   * sur ses pistes, et un geste qui échoue vaut moins qu'un geste absent.
+   */
+  aParaitre?: boolean;
+  /** La date annoncée, telle que le service la donne (époque, secondes). */
+  parution?: number | null;
   /**
    * Objet de SERVICE à mettre en favori quand ce n'est pas un album — une
    * playlist Qobuz ou Tidal, aujourd'hui.
    *
    * Il fallait un champ à part plutôt qu'un détournement de `fiche` : `fiche`
-   * est l'album normalisé qu'ouvre `ouvrir: 'album'`, et une playlist n'ouvre
-   * rien ici. Les deux notions se recouvrent pour un album, pas pour le reste
-   * (#3822).
+   * est l'album normalisé qu'ouvre `ouvrir: 'album'`, et une playlist ouvre
+   * `playlist` (#1108), pas `fiche`. Les deux notions se recouvrent pour un
+   * album, pas pour le reste (#3822).
    */
   favoriDistant?: { itemType: StreamingItemType; serviceId: string } | null;
   /** Zone suivie par la vignette — bande « Zones d'écoute actives ». */
@@ -150,6 +171,35 @@ function champ(o: any, ...noms: string[]): string | undefined {
 }
 
 /**
+ * LA PLAYLIST DE SERVICE, NORMALISÉE POUR `PlaylistDetailV2` — #1108.
+ *
+ * Un SEUL normaliseur pour les deux fabriques de vignettes de bande
+ * (`ficheDe` ici, `playlistDistante` dans `widgetsService`), parce qu'un
+ * second aurait divergé au premier champ renommé par un service. C'est déjà
+ * la leçon du `?? onPlay` de #1016 : un geste « ouvrir » à deux
+ * implémentations concurrentes est pire que pas de geste du tout.
+ *
+ * 🔴 `source` VA TOUJOURS AVEC `source_id`. La fiche demande
+ * `/streaming/{source}/playlists/{source_id}/tracks` : sans la paire, elle
+ * interroge le mauvais service — le même piège que sur la lecture.
+ *
+ * Les noms de champs sont ceux que les deux routes rendent : Qobuz sert `id` /
+ * `name` sur `/featured`, `source_id` / `name` sur `/playlists`. On prend les
+ * deux plutôt que de parier.
+ */
+export function playlistOuvrable(o: any, sid: string, service: string) {
+  return {
+    source_id: sid,
+    name: champ(o, 'name', 'title') ?? '',
+    description: champ(o, 'description') ?? null,
+    cover_path: champ(o, 'cover_path', 'image_url', 'cover_url') ?? null,
+    track_count: typeof o?.track_count === 'number' ? o.track_count : 0,
+    duration_ms: typeof o?.duration_ms === 'number' ? o.duration_ms : 0,
+    source: service,
+  };
+}
+
+/**
  * Normalise un objet de n'importe quelle source en `Element`.
  *
  * ⚠️ L'identité retombe sur l'INDEX si l'objet n'en porte pas, et jamais sur
@@ -170,8 +220,11 @@ export interface OptsElement {
   genre?: 'album' | 'playlist' | 'aucun';
 }
 
-function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {}): Element {
+/** Exporté pour les tests : c'est ici que se décide ce qu'une vignette
+ *  porte, et notamment si elle est jouable (point 10). */
+export function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {}): Element {
   const id = champ(o, 'id', 'album_id', 'track_id', 'source_id', 'feed_url', 'uri') ?? '';
+  const aParaitre = estAParaitre(o);
   // La source de l'OBJET prime sur celle du widget : une bande locale peut
   // rendre un album importé d'un service, la déclaration ne le sait pas.
   const service = champ(o, 'source', 'service', 'provider') ?? opts.service ?? null;
@@ -195,7 +248,11 @@ function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {})
     // La source de l'objet PRIME sur celle du widget : une bande locale peut
     // rendre un album importé d'un service, la déclaration ne le sait pas.
     source: service,
+    // Un album annoncé garde son geste : ses singles déjà sortis s'écoutent.
+    // C'est la PISTE qui porte l'indisponibilité (`pisteIndisponible`).
     jouer: geste(o, service, opts.genre ?? 'album'),
+    aParaitre,
+    parution: typeof o?.released_at === 'number' ? o.released_at : null,
     ...ficheDe(o, service, opts.genre ?? 'album'),
   };
 }
@@ -209,22 +266,34 @@ function versElement(o: any, i: number, prefixe: string, opts: OptsElement = {})
  * un album au hasard.
  */
 function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | 'aucun') {
-  // Une playlist de service n'ouvre pas de fiche depuis un widget — mais elle
-  // se met en favori, comme sa vignette de l'écran Streaming et comme sa propre
-  // fiche (#3822). `streaming_favorites` prend `playlist` depuis #2370.
+  // 🔴 Une playlist de service S'OUVRE — #1108. Elle ne le faisait pas, et
+  // c'est tout le défaut : `PageWidgets` ne rend le bouton d'ouverture de la
+  // pochette que si `ouvrir` est posé, et DÉSACTIVE le bouton du titre sinon.
+  // Deux gestes morts sur la vignette, exactement ce que schmitt décrit le
+  // 17/09/2026 (« le lien sous la pochette ou la playlist permettant de
+  // développer sa composition n'est pas actif »).
+  //
+  // Elle se met aussi en favori, comme sa vignette de l'écran Streaming et
+  // comme sa propre fiche (#3822) — `streaming_favorites` prend `playlist`
+  // depuis #2370. Les deux gestes cohabitent sur la même vignette.
   if (genre === 'playlist') {
     const sid = champ(o, 'source_id', 'id');
     if (!service || !sid) return {};
-    return { favoriDistant: { itemType: 'playlist' as const, serviceId: String(sid) } };
+    return {
+      favoriDistant: { itemType: 'playlist' as const, serviceId: String(sid) },
+      ouvrir: 'playlist' as const,
+      playlist: playlistOuvrable(o, String(sid), service),
+    };
   }
   if (genre !== 'album') return {};
-  const dist = idDistant(o);
+  const svc = serviceDistant(service);
+  const dist = svc ? idDistant(o) : null;
   // 🔴 `0` n'est pas un identifiant local : c'est le remplissage de
   // `/home/continue-listening`. Le prendre pour vrai faisait passer des albums
   // Qobuz pour des albums de la bibliothèque — d'où le crayon et les
   // étiquettes sur les uns et pas sur les autres.
   const idLocal = idLocalValide(o?.album_id) ?? (dist ? null : idLocalValide(o?.id));
-  if (idLocal == null && !(service && dist)) return {};
+  if (idLocal == null && !(svc && dist)) return {};
   // Un identifiant qui désigne une PLAYLIST n'ouvre pas plus un album qu'un
   // identifiant de piste.
   if (idLocal == null && dist && dist.genre !== 'album') return {};
@@ -314,6 +383,31 @@ function ficheDe(o: any, service: string | null, genre: 'album' | 'playlist' | '
  *  - la fiche prenait ce même `0` pour un identifiant LOCAL, d'où le crayon et
  *    les étiquettes sur des albums Qobuz, et seulement sur ceux-là.
  */
+/**
+ * 🔴 `upnp` N'EST PAS UN SERVICE — bug du .18, 17/09/2026 : « Erreur de
+ * lecture : unknown service: upnp », depuis l'Accueil.
+ *
+ * `/library/albums/recent` rend des albums de BIBLIOTHÈQUE intégrés depuis un
+ * serveur UPnP (27 sur 50 sur le .18) :
+ *
+ *     {"id": 4429, "album_id": null, "source": "upnp",
+ *      "source_id": "uuid:258FC2D5-…|0ac4042f1994b976", …}
+ *
+ * `source` y dit la PROVENANCE, pas un service de streaming, et `source_id`
+ * est l'adresse de l'objet sur le serveur UPnP, pas un identifiant distant.
+ * Pris pour un service, l'album partait en `streaming_album_id` + `source:
+ * upnp`, que le registre des services refuse. Il se joue et s'ouvre par son
+ * `id` de bibliothèque, comme un album local.
+ */
+function estProvenanceBibliotheque(source: string | null | undefined): boolean {
+  return !!source && estSourceDeBibliotheque(source);
+}
+
+/** Le service de streaming à qui parler — jamais une provenance de bibliothèque. */
+function serviceDistant(service: string | null): string | null {
+  return service && !estProvenanceBibliotheque(service) ? service : null;
+}
+
 function idDistant(o: any): { id: string; genre: string } | null {
   const sid = champ(o, 'source_id');
   if (sid) return { id: String(sid), genre: 'album' };
@@ -334,20 +428,21 @@ export function geste(o: any, service: string | null, genre: 'album' | 'playlist
   if (local != null) return (z: number) => api.play(z, { album_id: local });
   if (o?.track_id != null) return (z: number) => api.play(z, { track_id: o.track_id });
 
-  const dist = idDistant(o);
-  if (service && dist) {
+  const svc = serviceDistant(service);
+  const dist = svc ? idDistant(o) : null;
+  if (svc && dist) {
     // Ce que l'identifiant DÉSIGNE prime sur le genre déclaré par le widget :
     // une entrée d'historique dont le contexte est une playlist ne se joue pas
     // comme un album.
     const quoi = dist.genre === 'playlist' || genre === 'playlist' ? 'playlist'
       : dist.genre === 'track' ? 'track' : 'album';
     if (quoi === 'playlist') {
-      return (z: number) => api.play(z, { streaming_playlist_id: dist.id, source: service as any });
+      return (z: number) => api.play(z, { streaming_playlist_id: dist.id, source: svc as any });
     }
     if (quoi === 'track') {
-      return (z: number) => api.play(z, { source: service as any, source_id: dist.id });
+      return (z: number) => api.play(z, { source: svc as any, source_id: dist.id });
     }
-    return (z: number) => api.play(z, { streaming_album_id: dist.id, source: service as any });
+    return (z: number) => api.play(z, { streaming_album_id: dist.id, source: svc as any });
   }
 
   // Un identifiant NU n'est un album que si l'appelant le dit. Sinon on ne

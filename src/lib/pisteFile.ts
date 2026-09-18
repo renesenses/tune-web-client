@@ -12,10 +12,13 @@
 
 import type { AddToQueueRequest } from './api';
 import type { Track } from './types';
+import { estDeBibliotheque } from './provenanceBibliotheque';
 
 /** Une piste locale : un identifiant, et rien d'autre à transporter. */
 export function estPisteLocale(t: Pick<Track, 'id' | 'source'>): boolean {
-  return t.id != null && (!t.source || t.source === 'local');
+  // Une piste UPnP intégrée à la bibliothèque est locale au sens de la file :
+  // elle a un `id`, et `upnp` n'est pas un service (voir `estDeBibliotheque`).
+  return estDeBibliotheque(t);
 }
 
 /**

@@ -1010,12 +1010,16 @@ function setSettingsLevel(level: SettingsLevel) {
     const choisi = choixBackends.find((c) => c.value === backend);
     const nom = choisi ? libelleBackend(choisi, get(t)) : backend.toUpperCase();
     try {
-      await fetch('/api/v1/system/config', {
+      const r = await fetch('/api/v1/system/config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ local_audio_backend: backend, local_exclusive_mode: newExclusive }),
       });
-      exclusiveMode = newExclusive;
+      // #4184 — en quittant ASIO, le serveur désarme l'exclusif qu'ASIO
+      // avait armé, même si on a répété `true` en écho : ce qui a été ÉCRIT
+      // fait foi.
+      const ecrit = await r.json().catch(() => null);
+      exclusiveMode = typeof ecrit?.local_exclusive_mode === 'boolean' ? ecrit.local_exclusive_mode : newExclusive;
       notifications.success(`${get(t)('settings.audioBackend')}: ${nom}. ${get(t)('settings.restartServerNeeded')}`);
     } catch {
       notifications.error(get(t)('settings.audioBackendError'));

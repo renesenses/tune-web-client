@@ -32,6 +32,7 @@
   import { estRefusPremium } from '../../lib/premiumRefus';
   import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
+  import { afficherDynamicRange, type AffichageDynamicRange } from '../../lib/dynamicRange';
   import { t } from '../../lib/i18n';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
@@ -1075,6 +1076,31 @@
         .catch(() => {});
     }
   });
+  /**
+   * LE DYNAMIC RANGE DE LA PISTE EN COURS — demande de Bertrand, 17/09/2026 :
+   * « ajoute la dr value dans cette vue à côté de FLAC, 44,1 kHz et 16-bit ».
+   *
+   * L'état de zone ne le porte pas : `current_track` n'a ni `dynamic_range`
+   * ni sa provenance (mesuré sur le .18). `GET /library/tracks/{id}` les rend
+   * tous deux — `"9"` / `"analysis"` pour « Décollage ». On les lit comme le
+   * nombre d'écoutes ci-dessus : à la demande, pour une piste LOCALE, et gardé
+   * à l'identifiant exact pour qu'une réponse tardive ne se pose pas sous la
+   * piste suivante. Absent ⇒ aucune puce : une piste sans mesure n'a pas de DR.
+   *
+   * L'affichage est celui de la fiche album (#1388, #3924) : `~12` pour une
+   * moyenne, et l'infobulle dit si la valeur vient du tag ou de l'analyse.
+   */
+  let trackDr = $state<AffichageDynamicRange | null>(null);
+  $effect(() => {
+    const dt = normalizedTrack;
+    const id = dt?.id ?? null;
+    trackDr = null;
+    if (id != null && dt?.source === 'local') {
+      api.getTrack(id)
+        .then((t) => { if (normalizedTrack?.id === id) trackDr = afficherDynamicRange(t as any); })
+        .catch(() => {});
+    }
+  });
   // Zone playing OR IFrame playing while yt-dlp loads
   let isEffectivePlaying = $derived(
     playState === 'playing' || (ytState.active && ytState.playing && playState === 'stopped')
@@ -1578,6 +1604,8 @@
   {/if}
   {#if resolvedCoverUrl}
     <div class="bg-blur" style="background-image: url({resolvedCoverUrl})"></div>
+    <!-- Teinte du THÈME par-dessus la pochette assombrie — voir `.bg-teinte`. -->
+    <div class="bg-teinte" aria-hidden="true"></div>
   {/if}
 
   <!-- Scrollable content wrapper: keeps the now-playing content scrollable on
@@ -1737,12 +1765,13 @@
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <p class="track-album truncate clickable" title={displayTrack.year ? `${displayTrack.album_title} (${displayTrack.year})` : displayTrack.album_title} onclick={() => navigateToAlbum(albumIdOf(displayTrack) ?? undefined, displayTrack.album_title ?? undefined)}>{displayTrack.album_title}{#if displayTrack.year} <span class="track-year clickable" onclick={(e) => { e.stopPropagation(); navigateToYear(displayTrack.year!); }}>({displayTrack.year})</span>{/if}</p>
           {/if}
-          {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth)}
+          {#if !isRadio && (displayTrack.format || displayTrack.sample_rate || displayTrack.bit_depth || trackDr)}
             <p class="track-tech-info">
               {#if displayTrack.format}<span class="tech-chip">{displayTrack.format.toUpperCase()}</span>{/if}
               {#if displayTrack.sample_rate}<span class="tech-chip">{displayTrack.sample_rate >= 1000000 ? (displayTrack.sample_rate / 1000000).toFixed(1) + ' MHz' : (displayTrack.sample_rate / 1000).toFixed(1) + ' kHz'}</span>{/if}
               {#if displayTrack.bit_depth}<span class="tech-chip">{displayTrack.bit_depth}-bit</span>{/if}
               {#if channelsOf(displayTrack)}<span class="tech-chip">{channelsOf(displayTrack)}ch</span>{/if}
+              {#if trackDr}<span class="tech-chip dr-chip" class:dr-deduit={trackDr.deduit} title={$t(trackDr.cleInfobulle)}>DR {trackDr.texte}</span>{/if}
             </p>
           {/if}
           {#if !isRadio && displayTrack.source === 'local' && trackPlays !== null && trackPlays > 0}
@@ -2183,6 +2212,8 @@
                  celui qu'on regarde vraiment. Meme calcul, meme libelle. -->
             {#if $upNextCount > 0}
               <span class="queue-sheet-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
+            {:else if $queueTracks.length > 0}
+              <span class="queue-sheet-remaining">{$t('queue.nothingNext')}</span>
             {/if}
             <svg class="queue-sheet-chevron" class:rotated={queueSheetState !== 'collapsed'} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
               <polyline points="18 15 12 9 6 15" />
@@ -2335,6 +2366,8 @@
                a entendre qu'on veut savoir (Dominique COMET). -->
           {#if $upNextCount > 0}
             <span class="qs-remaining">{$t('queue.upNextSummary').replace('{count}', String($upNextCount)).replace('{time}', formatDuration($upNextMs))}</span>
+          {:else if $queueTracks.length > 0}
+            <span class="qs-remaining">{$t('queue.nothingNext')}</span>
           {/if}
         </div>
         <div class="qs-header-actions">
@@ -2360,6 +2393,7 @@
           <div
             class="qs-item"
             class:qs-current={qsIsCurrent(index)}
+            class:qs-passee={index < $queuePosition}
             class:qs-dragging={qsDragIndex === index}
             class:qs-drop-above={qsDropIndex === index && qsDragIndex !== null && qsDragIndex > index}
             class:qs-drop-below={qsDropIndex === index && qsDragIndex !== null && qsDragIndex < index}
@@ -2590,6 +2624,69 @@
     transform: scale(1.2);
     z-index: 0;
     transition: background-image 1s ease-in-out;
+  }
+
+  /*
+    LA TEINTE DU THÈME — Bertrand, 17/09/2026 (point 5) : « Lecture en cours :
+    fond de la fenêtre principale n'est pas tout à fait en accord avec le
+    thème ».
+
+    `.bg-blur` assombrie à 0.12 (#993) donne un noir-gris NEUTRE ; les thèmes
+    sombres du nouveau client sont TEINTÉS (Midnight Orange #0B1020, Brown
+    #17110D, Black Blue #06111A…) : à côté de la barre latérale et du lecteur,
+    la fenêtre principale jurait. Une couche de la couleur du thème, à 78 %,
+    ramène le ton sans remplacer la pochette (arbitrage du 13/09 : assombrir,
+    pas remplacer) ni rendre du contraste — le fond reste aussi sombre.
+
+    `var(--v2-bg, transparent)` : hors du nouveau client le jeton n'existe
+    pas, la couche est transparente, rien ne change.
+  */
+  .bg-teinte {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--v2-bg, transparent);
+    opacity: 0.78;
+  }
+
+  /*
+    🔴 LES DEUX THÈMES CLAIRS — #1144.
+
+    Le voile du 17/09 avait été écarté d'eux avec ce motif : « un voile clair
+    sur la pochette noircie ferait un gris moyen sous du texte BLANC ». Le
+    motif est faux, et c'est tout le défaut : sur `clear-white` et
+    `clear-grey`, le texte n'est pas blanc. `tune-v2.css` y pose
+    `--v2-txt:#0C1620` et `#141C24` — quasi NOIR — et `ShellV2` monte cet
+    écran dans `.tune-v2`, qui ponte `--tune-text: var(--v2-txt)`.
+
+    Il ne restait donc sur ces deux thèmes que `.bg-blur` à `brightness(0.12)`,
+    un facteur MULTIPLICATIF : il plafonne toute pochette à `#1F1F1F` et rend
+    du NOIR sur une pochette noire. Mesuré par
+    `fondClairLectureEnCours1144.test.ts` : 1,15:1 sur `clear-white` et
+    1,22:1 sur `clear-grey` — du texte quasi noir sur un fond quasi noir,
+    très loin des 4,5:1 de WCAG AA. Le titre du ticket dit « texte
+    ILLISIBLE » ; ici il l'était au sens propre.
+
+    Le remède garde l'arbitrage du 13/09 — assombrir, pas remplacer — en le
+    RETOURNANT dans le bon sens : là où le texte est sombre, il faut ÉCLAIRCIR
+    le fond, pas le noircir. C'est déjà ce que fait `.light .tv-bg-blur` dans
+    `TvView.svelte`, à `brightness(1.15) saturate(0.7)` ; on reprend sa
+    recette plutôt que d'en inventer une seconde.
+
+    L'opacité monte de 0,78 à 0,88 : à 0,78 le fond le plus sombre tombait à
+    `#C7C7C7`, où `--v2-txt2` ne tenait plus que 3,60:1. À 0,88 il remonte à
+    4,63:1 (`clear-white`) et 4,52:1 (`clear-grey`), et le texte principal est
+    à 13,9:1 et 11,4:1. La pochette reste perceptible : elle module encore le
+    fond sur une trentaine de niveaux, contre sept sur les thèmes sombres.
+  */
+  :global(:root[data-v2-theme="clear-white"]) .bg-blur,
+  :global(:root[data-v2-theme="clear-grey"]) .bg-blur {
+    filter: blur(60px) brightness(1.05) saturate(0.7);
+  }
+  :global(:root[data-v2-theme="clear-white"]) .bg-teinte,
+  :global(:root[data-v2-theme="clear-grey"]) .bg-teinte {
+    opacity: 0.88;
   }
 
   .content-layout {
@@ -2895,6 +2992,9 @@
     opacity: 0.75;
   }
 
+  /* Une moyenne de pistes se distingue d'une mesure par un soulignement
+     pointillé, comme sur la fiche album (`lib/dynamicRange`). */
+  .tech-chip.dr-deduit { text-decoration: underline dotted currentColor; text-underline-offset: 2px; }
   .tech-chip {
     font-family: var(--font-label);
     font-size: 10px;
@@ -4445,14 +4545,23 @@
     transform: translateX(100%);
   }
 
+  /* 🔴 `height: auto`, et non `100%` — #1140.
+
+     La paire `top` / `bottom` déclarée juste au-dessus dimensionne la colonne.
+     Un `height: 100%` la SUR-CONTRAINT (CSS 2.1 §10.6.4 : quand `top`,
+     `height` et `bottom` sont tous les trois déclarés, c'est `bottom` qui est
+     ignoré) : depuis que `top` vaut la réserve de la grappe, le panneau
+     mesurait la hauteur pleine du conteneur EN PARTANT de 66 px, dépassait
+     d'autant, et `.now-playing{overflow:hidden}` coupait la fin de la liste —
+     la dernière piste restait hors d'atteinte. */
   .queue-sheet.wide-layout.peek {
     transform: translateX(0);
-    height: 100%;
+    height: auto;
   }
 
   .queue-sheet.wide-layout.expanded {
     transform: translateX(0);
-    height: 100%;
+    height: auto;
     width: 420px;
   }
 
@@ -4655,6 +4764,14 @@
 
   .qs-item:hover {
     background: var(--tune-surface-hover);
+  }
+
+  /* #1064 — ce qui PRÉCÈDE le curseur n'est pas à venir. Lancer la dernière
+     piste d'un album enfile l'album entier : les pistes d'avant restaient
+     affichées comme la suite, alors que rien ne suivra. Elles restent là
+     (on peut y remonter), mais estompées. */
+  .qs-item.qs-passee {
+    opacity: 0.5;
   }
 
   .qs-item.qs-current {

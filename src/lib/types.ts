@@ -173,6 +173,10 @@ export interface Track {
   track_number?: number;
   duration_ms?: number;
   file_path?: string | null;
+  /** #862 — la piste est DÉCOUPÉE dans une image (APE/FLAC/MP3 + feuille CUE) : le chemin de l'image. */
+  cue_media_path?: string | null;
+  cue_start_ms?: number | null;
+  cue_end_ms?: number | null;
   format?: AudioFormat | null;
   sample_rate?: number | null;
   bit_depth?: number | null;
@@ -627,6 +631,9 @@ export interface SearchResult {
   tracks: Track[];
   albums: Album[];
   artists: Artist[];
+  /** Labels de la bibliothèque dont le nom correspond (point 8, 17/09/2026).
+   *  Absent des serveurs antérieurs et des services. */
+  labels?: { name: string; album_count: number }[];
   /**
    * Playlists du CATALOGUE du service — celles que la recherche fait remonter,
    * pas celles que possède l'utilisateur (`StreamingPlaylist`, qui porte en

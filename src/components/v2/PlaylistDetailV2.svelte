@@ -19,6 +19,9 @@
   import type { Track, Playlist, StreamingPlaylist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import { lireListe } from '../../lib/lectureEnMasse';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import { CLES_TRI_PISTES, LIBELLES_TRI_PISTES, trierPistes, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
   import { favoritePlaylistIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
@@ -113,6 +116,21 @@
   const totalMs = $derived(tracks.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
 
   /**
+   * TRI des pistes — Bertrand, 17/09/2026 (voir `lib/trierPistes`). Mémorisé
+   * par écran. `ordre` = l'ordre de la playlist, le seul où déplacer une piste
+   * a un sens : hors de lui, les flèches de déplacement sont désactivées.
+   */
+  let triPistes = $state<CleTriPistes>(lireChoix<CleTriPistes>('v2.playlist.pistes.tri', CLES_TRI_PISTES, 'ordre'));
+  let sensPistes = $state<SensTriPistes>(lireChoix<SensTriPistes>('v2.playlist.pistes.sens', ['asc', 'desc'], 'asc'));
+  $effect(() => { ecrireChoix('v2.playlist.pistes.tri', triPistes); });
+  $effect(() => { ecrireChoix('v2.playlist.pistes.sens', sensPistes); });
+  const pistesVues = $derived(trierPistes(tracks, triPistes, sensPistes));
+  const ordreNaturel = $derived(triPistes === 'ordre' && sensPistes === 'asc');
+  /** L'index d'une piste AFFICHÉE dans la liste réelle — les routes d'écriture
+   *  parlent en rangs de la playlist, pas en rangs d'affichage. */
+  const rangReel = (t: Track) => tracks.indexOf(t);
+
+  /**
    * « Lecture aleatoire » de la liste — #1947.
    *
    * Aucune portee serveur ici : `api.shuffleAll` connait album, artiste, genre
@@ -139,6 +157,15 @@
   function playFrom(startIndex = 0) {
     const zid = $currentZoneId;
     if (zid == null) return;
+    // Liste TRIÉE : « lire depuis ici » suit l'ordre affiché, pas celui de la
+    // playlist — `start_index` du serveur ne connaît que ce dernier.
+    if (!ordreNaturel) {
+      void lireListe(pistesVues.slice(startIndex), {
+        lire: (c: any) => playAndSync(zid, c),
+        enfiler: (c: any) => api.addToQueue(zid, c),
+      }).catch(signalerEchecLecture);
+      return;
+    }
     if (item.kind === 'local') {
       playAndSync(zid, { playlist_id: item.pl.id as number, start_index: startIndex }).catch(signalerEchecLecture);
     } else {
@@ -318,7 +345,24 @@
       <!-- Fabien, fil 1780 (point 12, issue #1057) : la vignette des titres
            manquait sur une playlist Qobuz en mode tableau — même règle que
            l'Historique (#3823). -->
-      <ListePistesV2 pistes={tracks} pochetteEnTableau onLire={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <div class="tri">
+        <label class="tricol">
+          <span>{$tr('v2.fav.sortBy' as any)}</span>
+          <select bind:value={triPistes} aria-label={$tr('v2.fav.sortBy' as any)}>
+            {#each CLES_TRI_PISTES as k (k)}<option value={k}>{$tr(LIBELLES_TRI_PISTES[k] as any)}</option>{/each}
+          </select>
+          <button class="sens" type="button" onclick={() => (sensPistes = sensPistes === 'asc' ? 'desc' : 'asc')}
+            title={$tr((sensPistes === 'asc' ? 'common.ascending' : 'common.descending') as any)}
+            aria-label={$tr((sensPistes === 'asc' ? 'common.ascending' : 'common.descending') as any)}>
+            {#if sensPistes === 'asc'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>
+            {:else}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
+            {/if}
+          </button>
+        </label>
+      </div>
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau onLire={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
              compilé ici : ses styles le suivent.
@@ -329,15 +373,15 @@
              les lignes, et les colonnes ne tomberaient plus en face —
              `colonnesPistes` garde précisément cela. -->
         {#if edition && isLocal}
-          <button class="rm mv" onclick={() => deplacer(i, false)} disabled={i === 0 || deplacement}
+          <button class="rm mv" onclick={() => deplacer(i, false)} disabled={!ordreNaturel || i === 0 || deplacement}
             aria-label={$tr('playlist.moveUp')} title={$tr('playlist.moveUp')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
           </button>
-          <button class="rm mv" onclick={() => deplacer(i, true)} disabled={i === tracks.length - 1 || deplacement}
+          <button class="rm mv" onclick={() => deplacer(i, true)} disabled={!ordreNaturel || i === tracks.length - 1 || deplacement}
             aria-label={$tr('playlist.moveDown')} title={$tr('playlist.moveDown')}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
           </button>
-          <button class="rm" onclick={() => removeAt(i)} aria-label={$tr('v2.pl.remove' as any)}>
+          <button class="rm" onclick={() => removeAt(rangReel(_t))} aria-label={$tr('v2.pl.remove' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/></svg>
           </button>
         {/if}
@@ -383,6 +427,13 @@
   .play svg,.ghost svg{width:16px; height:16px}
 
   .tracks{display:flex; flex-direction:column; gap:1px}
+  .tri{display:flex; justify-content:flex-end; padding:0 0 10px}
+  .tricol{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; color:var(--v2-txt2)}
+  .tricol select{height:32px; border-radius:9px; border:1px solid var(--v2-line2); background:var(--v2-surface2);
+    color:var(--v2-txt); font:13px var(--v2-sans); padding:0 8px}
+  .tricol .sens{width:32px; height:32px; border-radius:9px; border:1px solid var(--v2-line2); background:transparent;
+    color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center}
+  .tricol .sens svg{width:15px; height:15px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
   /* La ligne est PARTAGEE : cette enveloppe ne fait que lui adjoindre le
      bouton « retirer », propre a la playlist. */

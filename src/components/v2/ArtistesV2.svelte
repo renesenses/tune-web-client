@@ -51,9 +51,6 @@
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import TriAlbums from '../partages/TriAlbums.svelte';
-  import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
-  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
@@ -65,10 +62,14 @@
   import {
     albumsDeStreamingPourArtiste,
     servicesInterrogeables,
+    statutsStreaming,
     type AlbumsDeService,
   } from '../../lib/albumsArtisteStreaming';
+  import { BIBLIOTHEQUE, type Exemplaire } from '../../lib/discographieCommune';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import ServiceBadge from '../partages/ServiceBadge.svelte';
+  import DiscographieCommune from './DiscographieCommune.svelte';
+  import BioEtTitresPhares from './BioEtTitresPhares.svelte';
+  import { chargerTitresPhares } from '../../lib/titresPharesArtiste';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
@@ -82,6 +83,12 @@
     sourcesEnCharge?: boolean;
     erreurSources?: string | null;
     onComptesSources?: (comptes: ComptesArtistesSources) => void;
+    /**
+     * Les comptes du menu « Source » quand une FICHE est ouverte — ceux de sa
+     * discographie commune, services compris (#4330) ; `null` à la fermeture,
+     * le menu reprend alors ceux de la grille des artistes.
+     */
+    onComptesFiche?: (comptes: ComptesArtistesSources | null) => void;
     /**
      * L'artiste à OUVRIR dès que la liste est là — « Aller à l'artiste » du
      * menu « … » d'une piste (Bertrand, 07/09/2026).
@@ -108,7 +115,7 @@
     /** Le nom du dossier, pour le dire quand la portée ne rend aucun artiste. */
     nomPortee?: string | null;
   }
-  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, ouvrirId = null, onOuvert, idsPortee = null, nomPortee = null }: Props = $props();
+  let { q = '', provenance = null, sourcesArtistes = new Map(), sourcesEnCharge = false, erreurSources = null, onComptesSources, onComptesFiche, ouvrirId = null, onOuvert, idsPortee = null, nomPortee = null }: Props = $props();
 
   /**
    * 🔴 On attend que la LISTE soit chargée : `artistes` est vide au montage, et
@@ -131,22 +138,13 @@
   let ouvert = $state<Artist | null>(null);
   let albums = $state<Album[]>([]);
   let albumsChargement = $state(false);
-  const albumsAffiches = $derived(albums.filter(a => dansSource(a, provenance)));
+  /** Le compte de l'en-tête : les vignettes de la discographie commune, et non
+   *  les seuls albums de la bibliothèque (« 1 albums » pour a-ha, 44 à l'écran). */
+  let comptesFiche = $state<ComptesArtistesSources | null>(null);
+  $effect(() => { if (!ouvert) { comptesFiche = null; onComptesFiche?.(null); } });
 
-  /**
-   * Tri des albums de la fiche (Bertrand, 16/09/2026 : « idem dans la vue
-   * Library / Artists »). Pas d'« Artiste » ici — ils ont tous le même — ni
-   * de « Pertinence » : le défaut est l'année, l'ordre d'une discographie.
-   * Côté client sur la liste reçue ; la date d'ajout est attachée par la
-   * route (tune-server-rust #4246). Mémorisé par écran.
-   */
-  const CLES_FICHE: readonly CleTriAlbums[] = ['year', 'title', 'release_date', 'added_at'];
-  let triAlbums = $state<CleTriAlbums>(lireChoix<CleTriAlbums>('v2.art.albums.tri', CLES_FICHE, 'year'));
-  let sensAlbums = $state<SensTri>(lireChoix<SensTri>('v2.art.albums.sens', ['asc', 'desc'], 'asc'));
-  $effect(() => { ecrireChoix('v2.art.albums.tri', triAlbums); });
-  $effect(() => { ecrireChoix('v2.art.albums.sens', sensAlbums); });
-  // Fusion #1046 × #1052 : on FILTRE par source (UPnP, #4201) puis on TRIE.
-  const albumsTries = $derived(trierAlbums(albumsAffiches, triAlbums, sensAlbums));
+  // Le tri de la fiche (#4246) a suivi la grille dans `DiscographieCommune`,
+  // avec ses clés et sa mémoire.
   let albumOuvert = $state<Album | null>(null);
   let enEdition = $state<Artist | null>(null);
   /**
@@ -256,7 +254,6 @@
    * l'ouvrir sans son service le laisserait sur « Chargement… » pour toujours.
    */
   let albumsService = $state<AlbumsDeService[]>([]);
-  const servicesAffiches = $derived(provenance == null ? albumsService : []);
   let albumsServiceChargement = $state(false);
   let albumOuvertService = $state<{ album: Album; service: string } | null>(null);
 
@@ -269,7 +266,12 @@
   async function chargerAlbumsDeService(a: Artist) {
     const jeton = ++jetonService;
     albumsService = [];
-    const services = servicesInterrogeables($streamingServices);
+    titresPhares = [];
+    albumsServiceChargement = true;
+    // Le magasin peut être VIDE dans le nouveau client : voir `statutsStreaming`.
+    const statuts = await statutsStreaming($streamingServices, api.getStreamingServices, (x) => streamingServices.set(x));
+    if (jeton !== jetonService) return;
+    const services = servicesInterrogeables(statuts);
     if (!services.length || !a.name) {
       albumsServiceChargement = false;
       return;
@@ -283,6 +285,37 @@
     if (jeton !== jetonService) return;
     albumsService = trouves;
     albumsServiceChargement = false;
+    // Étape 2 de #4330 : les titres phares, chez le premier service qui en rend
+    // — l'identifiant de l'artiste vient d'être résolu pour ses albums.
+    const titres = await chargerTitresPhares(trouves, (svc, id) => api.getStreamingArtistTopTracks(svc, id));
+    if (jeton !== jetonService) return;
+    titresPhares = titres;
+  }
+
+  /**
+   * BIOGRAPHIE et TITRES PHARES de la fiche — étape 2 de #4330 (FabienM,
+   * 17/09/2026). La biographie éditée dans la bibliothèque (`artist.bio`)
+   * prime ; à défaut, celle que `GET /library/artists/{id}/bio` sait rendre
+   * (l'ancienne interface l'affiche depuis longtemps).
+   */
+  let bioFiche = $state<string | null>(null);
+  let titresPhares = $state<Track[]>([]);
+  let jetonBio = 0;
+  async function chargerBio(a: Artist) {
+    const jeton = ++jetonBio;
+    // 🔴 Une variable LOCALE, pas `bioFiche` relu : cette fonction part, dans
+    // sa partie synchrone, de l'effet qui ouvre la fiche (`ouvrirId`). Relire
+    // l'état qu'on vient d'écrire y abonnerait l'effet — boucle sans fin
+    // (mesurée : le témoin écran de #3709 ne rendait plus la main).
+    const locale = a.bio?.trim() || null;
+    bioFiche = locale;
+    if (locale || a.id == null) return;
+    try {
+      const r = await api.getArtistBio(a.id);
+      if (jeton === jetonBio) bioFiche = r?.bio?.trim() || null;
+    } catch {
+      /* pas de biographie : le bloc ne s'affiche pas */
+    }
   }
 
   function lireAlbumDeService(al: Album, service: string) {
@@ -355,6 +388,7 @@
     // locale répond en un aller-retour, un service en deux. Les attendre
     // retarderait l'affichage de ce qu'on possède déjà.
     void chargerAlbumsDeService(a);
+    void chargerBio(a);
     try {
       albums = (await api.getArtistAlbums(a.id!)) ?? [];
     } catch {
@@ -459,6 +493,18 @@
     playAndSync(zid, { album_id: al.id }).catch(signalerEchecLecture);
   }
 
+  /** Une vignette de la discographie commune désigne un exemplaire : la
+   *  bibliothèque s'ouvre par son identifiant, un service par sa paire
+   *  service + `source_id` (#3709). */
+  function ouvrirExemplaire(ex: Exemplaire) {
+    if (ex.source === BIBLIOTHEQUE) albumOuvert = ex.album;
+    else albumOuvertService = { album: ex.album, service: ex.source };
+  }
+  function lireExemplaire(ex: Exemplaire) {
+    if (ex.source === BIBLIOTHEQUE) lireAlbum(ex.album);
+    else lireAlbumDeService(ex.album, ex.source);
+  }
+
   /**
    * Une à deux initiales, LETTRES ET CHIFFRES seulement.
    *
@@ -491,7 +537,7 @@
       </span>
       <div>
         <h1>{artiste.name}</h1>
-        <p class="cpt">{albumsAffiches.length} {$t('v2.art.albums' as any)}</p>
+        <p class="cpt">{comptesFiche?.total ?? albums.length} {$t('v2.art.albums' as any)}</p>
       </div>
     </div>
     <div class="fa">
@@ -506,90 +552,22 @@
     </div>
   </header>
 
-  <!-- UN seul conteneur défilant pour la fiche : les albums de la
-       bibliothèque, puis une section par service (#3709). Deux zones
-       défilantes empilées obligeraient à faire rouler deux ascenseurs pour
-       parcourir une discographie. -->
+  <!-- UN seul conteneur défilant pour la fiche. La grille est COMMUNE à la
+       bibliothèque et aux services — #4330 (FabienM, fil 1823), qui remplace
+       les sections séparées par service de #3709. -->
   <div class="corps">
+    <BioEtTitresPhares bio={bioFiche} titres={titresPhares} cle={artiste.id} />
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
-    {:else if !albumsAffiches.length && !servicesAffiches.length && !(provenance == null && albumsServiceChargement)}
+    {:else if !albums.length && !albumsService.length && !albumsServiceChargement}
       <div class="etat">{$t('v2.art.noAlbum' as any)}</div>
     {:else}
-      {#if albumsAffiches.length}
-        <div class="entete-albums">
-          <TriAlbums bind:cle={triAlbums} bind:sens={sensAlbums} cles={CLES_FICHE} />
-        </div>
-        <div class="gr">
-          {#each albumsTries as al (al.id)}
-            <div class="carte">
-              <div class="cv">
-                <PochetteActions
-                  favori={al.id != null ? { albumId: al.id } : null}
-                  etiquettes={al.id != null ? { itemType: 'album', itemId: al.id } : null}
-                  onLire={() => lireAlbum(al)}
-                  onOuvrir={() => (albumOuvert = al)}
-                  nom={al.title}
-                >
-                  <AlbumArt coverPath={al.cover_path} albumId={al.id} size={0} alt={al.title}
-                    fallbackInitials={al.title?.slice(0, 1)} />
-                </PochetteActions>
-              </div>
-              <button class="meta" onclick={() => (albumOuvert = al)}>
-                <span class="ct" title={al.title}>{al.title}</span>
-                <span class="ca" title={String(al.year ?? '')}>{al.year ?? ''}</span>
-              </button>
-            </div>
-          {/each}
-        </div>
-      {/if}
-
-      <!-- #3709 — « Il manque tous ses albums de Qobuz / Tidal / Bandcamp /
-           Youtube » (FabienM, fil 1726). Une section SÉPARÉE par service, sous
-           les albums de la bibliothèque : la grille locale est indexée sur
-           `al.id` et ses cœurs et étiquettes tiennent à un identifiant LOCAL
-           qu'un album de service n'a pas. Les mêler casserait la clé de boucle
-           et poserait des cœurs sans cible.
-           Même forme que l'interface actuelle (`LibraryView.svelte:3335`) :
-           badge du service, nombre d'albums, puis la grille. -->
-      {#if provenance == null && albumsServiceChargement}
-        <div class="etat">{$t('common.loading' as any)}</div>
-      {/if}
-      {#each servicesAffiches as sec (sec.service)}
-        <section class="svc">
-          <div class="svct">
-            <ServiceBadge source={sec.service} />
-            <span class="cpt">{sec.albums.length} {$t('v2.art.albums' as any)}</span>
-          </div>
-          <div class="gr">
-            {#each sec.albums as al, i (String(al.source_id ?? al.id ?? i))}
-              <div class="carte">
-                <div class="cv">
-                  <!-- Ni cœur ni étiquettes : les deux sont adossés à un
-                       identifiant de bibliothèque que cet album n'a pas. Il
-                       s'ouvre et il se lit, avec la paire service +
-                       `source_id`. -->
-                  <PochetteActions
-                    favori={null}
-                    etiquettes={null}
-                    onLire={() => lireAlbumDeService(al, sec.service)}
-                    onOuvrir={() => (albumOuvertService = { album: al, service: sec.service })}
-                    nom={al.title}
-                  >
-                    <AlbumArt coverPath={al.cover_path} albumId={null} size={0} alt={al.title}
-                      source={al.source} fallbackInitials={al.title?.slice(0, 1)} />
-                  </PochetteActions>
-                </div>
-                <button class="meta"
-                  onclick={() => (albumOuvertService = { album: al, service: sec.service })}>
-                  <span class="ct" title={al.title}>{al.title}</span>
-                  <span class="ca" title={String(al.year ?? '')}>{al.year ?? ''}</span>
-                </button>
-              </div>
-            {/each}
-          </div>
-        </section>
-      {/each}
+      <!-- Le filtre « Source » s'applique DANS la grille commune : le poser
+           sur la seule bibliothèque cachait tous les services (#4330). -->
+      <DiscographieCommune locaux={albums} services={albumsService}
+        servicesEnCharge={albumsServiceChargement} {provenance}
+        onComptesProvenance={(c) => { comptesFiche = c; onComptesFiche?.(c); }}
+        onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   </div>
 
@@ -690,20 +668,9 @@
     align-content: start;
     padding: 8px 30px 40px;
   }
-  /* #3709 — la fiche d'un artiste défile d'un SEUL bloc : les albums de la
-     bibliothèque, puis une section par service. `.gr` est la grille de
-     `.grille` sans son défilement ni son remplissage propres, qui remontent
-     dans `.corps`. */
+  /* La fiche d'un artiste défile d'un SEUL bloc (#3709) ; sa grille est
+     `DiscographieCommune` (#4330). */
   .corps { flex: 1; overflow-y: auto; padding: 8px 30px 40px; min-height: 0; }
-  .entete-albums { display: flex; justify-content: flex-end; padding: 0 0 10px; }
-  .gr {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-    gap: 22px 18px;
-    align-content: start;
-  }
-  .svc { margin-top: 30px; }
-  .svct { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; }
   .corps .etat { padding: 22px 0; }
   .carte {
     display: flex;

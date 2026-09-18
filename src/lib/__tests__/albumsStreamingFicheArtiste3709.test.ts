@@ -30,6 +30,7 @@ import {
   albumsDeStreamingPourArtiste,
   apparierArtiste,
   servicesInterrogeables,
+  statutsStreaming,
   type PasserellesStreaming,
 } from '../albumsArtisteStreaming';
 import { streamingServices } from '../stores/streaming';
@@ -79,6 +80,25 @@ describe('#3709 — quels services on interroge', () => {
   it('aucun statut connu ⇒ aucun service', () => {
     expect(servicesInterrogeables(null)).toEqual([]);
     expect(servicesInterrogeables({})).toEqual([]);
+  });
+});
+
+describe('#4330 — les statuts des services, chargés s’il le faut', () => {
+  const connecte = { qobuz: { enabled: true, authenticated: true } as never };
+  it('magasin garni : on s’en sert, sans appel', async () => {
+    let appele = false;
+    const r = await statutsStreaming(connecte, async () => { appele = true; return {}; }, () => {});
+    expect(r).toBe(connecte);
+    expect(appele).toBe(false);
+  });
+  it('magasin vide : on charge, et on RANGE pour les écrans suivants', async () => {
+    let range: unknown = null;
+    const r = await statutsStreaming({}, async () => connecte, (x) => { range = x; });
+    expect(r).toEqual(connecte);
+    expect(range).toEqual(connecte);
+  });
+  it('échec du chargement : rien, sans lever', async () => {
+    expect(await statutsStreaming(null, async () => { throw new Error('502'); }, () => {})).toEqual({});
   });
 });
 
@@ -169,6 +189,9 @@ class ResizeObserverInerte {
 }
 
 function corpsPour(url: string): unknown {
+  if (/\/streaming\/services/.test(url)) {
+    return { qobuz: { enabled: true, authenticated: true }, tidal: { enabled: true, authenticated: false } };
+  }
   if (/\/search\?/.test(url)) {
     return { local: { tracks: [], albums: [], artists: [], playlists: [] },
              services: { qobuz: { tracks: [], albums: [], artists: [{ id: 'Q7', name: 'Alain Souchon' }], playlists: [] } } };
@@ -176,6 +199,12 @@ function corpsPour(url: string): unknown {
   if (/\/streaming\/qobuz\/artists\/Q7\/albums/.test(url)) return CHEZ_QOBUZ;
   if (/\/streaming\/qobuz\/albums\/AL1\/tracks/.test(url)) {
     return [{ id: null, title: 'Quand je serai KO', source_id: 'T1' }];
+  }
+  if (/\/streaming\/qobuz\/artists\/Q7\/top-tracks/.test(url)) {
+    return [{ id: null, source_id: 'TT1', title: 'Foule sentimentale', artist_name: 'Alain Souchon' }];
+  }
+  if (/\/library\/artists\/3\/bio/.test(url)) {
+    return { artist: 'Alain Souchon', bio: 'Chanteur français né en 1944.' };
   }
   if (/\/library\/artists\/3\/albums/.test(url)) return LOCAUX;
   if (/\/library\/artists/.test(url)) return [ARTISTE];
@@ -227,10 +256,10 @@ afterEach(() => {
 
 /** `ouvrirId` ouvre la fiche dès que la liste est là — le même chemin que le
  *  clic sur une vignette, sans traverser la grille. */
-async function poserFiche(): Promise<HTMLDivElement> {
+async function poserFiche(extra: Record<string, unknown> = {}): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
-  monte = mount(ArtistesV2, { target: hote, props: { q: '', ouvrirId: 3 } });
+  monte = mount(ArtistesV2, { target: hote, props: { q: '', ouvrirId: 3, ...extra } });
   for (let i = 0; i < 12; i++) await respirer();
   flushSync();
   return hote;
@@ -249,7 +278,7 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
     ).toBe(true);
   });
 
-  it('les albums du service sont À L’ÉCRAN, sous ceux de la bibliothèque', async () => {
+  it('les albums du service sont À L’ÉCRAN, avec ceux de la bibliothèque', async () => {
     const el = await poserFiche();
     const vus = titres(el);
     expect(vus, `titres rendus : ${JSON.stringify(vus)}`).toContain('Au Ras Des Paquerettes');
@@ -257,15 +286,21 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
       vus,
       'les albums de Qobuz ne sont pas affichés — c’est exactement ce que Fabien signale',
     ).toContain('Ultra Moderne Solitude');
-    // L'ORDRE compte : la bibliothèque d'abord, les services ensuite.
-    expect(vus.indexOf('Au Ras Des Paquerettes')).toBeLessThan(vus.indexOf('Ultra Moderne Solitude'));
+    // #4330 : la grille est COMMUNE et triée (année par défaut) — la
+    // bibliothèque n'est plus un bloc placé avant les services.
   });
 
-  it('la section porte le badge du service et son compte', async () => {
+  it('#4330 — UNE grille : chaque vignette dit ses sources, plus de section par service', async () => {
+    // Les sections séparées de #3709 ont cédé la place à la discographie
+    // commune (FabienM, fil 1823).
     const el = await poserFiche();
-    const sections = Array.from(el.querySelectorAll('.svc'));
-    expect(sections, 'aucune section de service').toHaveLength(1);
-    expect(sections[0].querySelector('.svct')?.textContent).toContain('2');
+    expect(el.querySelectorAll('.svc'), 'une section par service a survécu').toHaveLength(0);
+    const sources = Object.fromEntries(
+      Array.from(el.querySelectorAll<HTMLElement>('.carte[data-sources]'))
+        .map((c) => [c.querySelector('.ct')?.textContent, c.dataset.sources]),
+    );
+    expect(sources['Au Ras Des Paquerettes']).toBe('local');
+    expect(sources['Ultra Moderne Solitude']).toBe('qobuz');
   });
 
   it('un service DÉCONNECTÉ n’est jamais interrogé', async () => {
@@ -276,11 +311,53 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
     ).toEqual([]);
   });
 
+  it('#4330 — magasin des services VIDE (nouveau client) : la fiche charge les statuts et interroge Qobuz', async () => {
+    // Mesuré sur le .18 le 17/09/2026 : aucun écran v2 ne remplit
+    // `streamingServices`, et la fiche n'interrogeait alors aucun service.
+    streamingServices.set({});
+    const el = await poserFiche();
+    expect(appels.some((u) => /\/streaming\/services/.test(u)), 'les statuts n’ont pas été demandés').toBe(true);
+    expect(
+      appels.some((u) => /\/streaming\/qobuz\/artists\/Q7\/albums/.test(u)),
+      `Qobuz n’a pas été interrogé. URL vues : ${appels.join(' | ')}`,
+    ).toBe(true);
+    expect(titres(el)).toContain('Ultra Moderne Solitude');
+    expect(appels.filter((u) => /tidal/.test(u)), 'Tidal est déconnecté').toEqual([]);
+  });
+
+  it('#4330 — le menu « Source » reçoit les comptes de la FICHE, services compris', async () => {
+    // Bertrand, .18, 17/09/2026 : « Source affiche des chiffres faux et pas les
+    // services de streaming ».
+    const recus: unknown[] = [];
+    await poserFiche({ onComptesFiche: (c: unknown) => recus.push(c) });
+    const dernier = recus.filter(Boolean).at(-1) as { total: number; comptes: Map<string, number> } | undefined;
+    expect(dernier, 'aucun compte de fiche remonté au menu').toBeTruthy();
+    expect(dernier!.total).toBe(3);
+    expect(Object.fromEntries(dernier!.comptes)).toEqual({ local: 1, qobuz: 2 });
+  });
+
+  it('#4330 — « Source · QOBUZ » garde les albums Qobuz au lieu de tout cacher', async () => {
+    const el = await poserFiche({ provenance: 'qobuz' });
+    const vus = titres(el);
+    expect(vus, `titres rendus : ${JSON.stringify(vus)}`).toContain('Ultra Moderne Solitude');
+    expect(vus).not.toContain('Au Ras Des Paquerettes');
+  });
+
+  it('#4330 étape 2 — la fiche montre la biographie et les titres phares du service', async () => {
+    const el = await poserFiche();
+    expect(el.textContent, 'biographie absente').toContain('Chanteur français né en 1944.');
+    expect(
+      appels.some((u) => /\/streaming\/qobuz\/artists\/Q7\/top-tracks/.test(u)),
+      `titres phares non demandés. URL vues : ${appels.join(' | ')}`,
+    ).toBe(true);
+    expect(el.textContent, 'titre phare absent').toContain('Foule sentimentale');
+  });
+
   it('ouvrir un album de service passe le SERVICE avec lui', async () => {
     // Sans le service, `AlbumDetailV2` ne peut apparier aucun album de
     // streaming et resterait sur « Chargement… ».
     const el = await poserFiche();
-    const carte = Array.from(el.querySelectorAll('.svc .carte .meta')) as HTMLElement[];
+    const carte = Array.from(el.querySelectorAll('.carte[data-sources="qobuz"] .meta')) as HTMLElement[];
     expect(carte.length, 'aucune vignette de service à ouvrir').toBeGreaterThan(0);
     carte[0].click();
     for (let i = 0; i < 8; i++) await respirer();

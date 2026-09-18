@@ -13,10 +13,9 @@
    */
   import * as api from '../../lib/api';
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
-  import { ouvrirArtiste, ouvrirArtisteParNom } from '../../lib/libraryNavigation';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
-  import { ficheArtisteService } from '../../lib/stores/streaming';
   import { notifications } from '../../lib/stores/notifications';
   import {
     currentProfileId, loadFavoriteIds, favoriteStreamingKeys,
@@ -592,13 +591,9 @@
       .catch((e) => { error = messageEchecLecture(e, 'library.playbackError'); });
   }
   /** Point 11 : un artiste favori s'ouvre — sa fiche locale, ou celle du service. */
+  // Point 9 (17/09/2026) : le clic ne faisait rien — voir lib/ouvrirArtisteDepuis.
   function ouvrirArtisteFavori(a: any) {
-    if (a?.id != null) { void ouvrirArtiste(a.id); return; }
-    if (a?.source && a?.source_id) {
-      ficheArtisteService.set({ service: a.source, id: String(a.source_id), nom: a.name ?? '' });
-      return;
-    }
-    if (a?.name) void ouvrirArtisteParNom(a.name);
+    void ouvrirArtisteDepuis(a, 'favorites');
   }
   function playTrack(t: any) {
     const zid = $currentZoneId;

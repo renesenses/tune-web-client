@@ -84,6 +84,42 @@ export function freqLabel(f: number): string {
   return f >= 1000 ? `${f / 1000}k` : `${f}`;
 }
 
+/**
+ * Les repères du GRAVE, sous la grille ISO — Bertrand, 17/09/2026 : « sous le
+ * spectrogramme, ajoute les fréquences à partir de 20 Hz ».
+ */
+export const GRAVES_HZ = [20, 31, 63];
+
+/**
+ * Les repères du grave, placés à leur position NOMINALE sur l'axe du serveur.
+ *
+ * `spectrumIsoTicks` écarte volontairement ce qu'une FFT trop courte ne
+ * RÉSOUT pas : à 44,1 kHz sur 2048 points, une raie vaut 21,5 Hz, et les
+ * premières bandes relisent les mêmes raies. Elle garde cette règle.
+ *
+ * Ces repères-ci répondent à une autre question : OÙ est 20 Hz sur l'axe. Le
+ * serveur range ses bandes de 20 Hz au plafond selon une échelle
+ * logarithmique (`levels.rs:271-277`) — la bande `b` couvre nominalement
+ * `20·r^(b/n)` à `20·r^((b+1)/n)`. La position `log(f/20) / log(max/20)` est
+ * donc exactement celle de la barre qui porte cette fréquence, que la barre
+ * soit résolue ou non. Seuls sont rendus ceux qui tombent SOUS le premier
+ * repère ISO retenu : au-dessus, la grille résolue fait autorité.
+ */
+export function spectrumGravesTicks(
+  sampleRate: number | null | undefined,
+  premierIsoHz: number | null | undefined,
+): SpectrumTick[] {
+  if (!sampleRate || !(sampleRate > 0)) return [];
+  const freqMax = Math.min(sampleRate / 2, SERVER_FREQ_MAX);
+  if (freqMax <= SERVER_FREQ_MIN) return [];
+  const plafond = premierIsoHz ?? Infinity;
+  const echelle = Math.log(freqMax / SERVER_FREQ_MIN);
+  return GRAVES_HZ.filter((hz) => hz < plafond && hz < freqMax).map((hz) => ({
+    hz,
+    pos: Math.log(hz / SERVER_FREQ_MIN) / echelle,
+  }));
+}
+
 /** Ce qu'une bande du serveur couvre vraiment, une fois la troncature appliquée. */
 export interface BandSpan {
   /** Borne basse RÉELLE, en Hz (raie FFT × résolution). */

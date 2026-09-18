@@ -57,12 +57,19 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  // 🔴 #1108 — le calque PLAYLIST. `AlbumDetailV2` ne sait pas afficher une
+  // playlist : les deux espaces d'identifiants sont disjoints et les routes
+  // aussi (`…/albums/{id}/tracks` n'est pas `…/playlists/{id}/tracks`).
+  // C'est la MÊME fiche que celle ouverte par l'écran Streaming (#1016) et par
+  // l'écran Playlists : un second afficheur de playlist aurait divergé.
+  import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
+  import { dateDeParution } from '../../lib/albumAParaitre';
   import '../../styles/tune-v2.css';
 
   interface Props {
@@ -468,6 +475,32 @@
   let serviceOuvert = $state<string | null>(null);
 
   /**
+   * 🔴 LE CALQUE PLAYLIST — #1108.
+   *
+   * Même mécanique que le calque album juste au-dessus : ouvrir empile une
+   * entrée d'historique (#980), le Retour de la page referme ET dépile, le
+   * Précédent du navigateur referme le calque.
+   *
+   * La clé s'écrit ici, comme `ArtistesV2` écrit la sienne (`artiste:${id}`) :
+   * une playlist de service se désigne par la PAIRE service + identifiant, et
+   * `playlist:` la sépare de `album:` — l'album 42 de Qobuz n'est pas sa
+   * playlist 42, et deux fiches sous une même clé se refermeraient l'une
+   * l'autre.
+   */
+  let playlistOuverte = $state<any | null>(null);
+  let servicePlaylistOuvert = $state<string | null>(null);
+  function fermerCalquePlaylist() {
+    playlistOuverte = null;
+    servicePlaylistOuvert = null;
+  }
+  function retourCalquePlaylist() {
+    fermerDetailEnReculant(fermerCalquePlaylist);
+  }
+  $effect(() => {
+    if ($detailOuvert == null && playlistOuverte) fermerCalquePlaylist();
+  });
+
+  /**
    * Un clic AILLEURS que sur le disque. Ouvre, ne joue pas.
    *
    * Une zone mène à « Lecture en cours », après y avoir bascule la selection :
@@ -477,6 +510,17 @@
     if (e.ouvrir === 'zone') {
       if (e.zoneId != null) currentZoneId.set(e.zoneId);
       activeView.set('nowplaying');
+      return;
+    }
+    // 🔴 #1108 — une PLAYLIST s'ouvre, elle aussi. Sans ce cas, `el.ouvrir`
+    // aurait beau être posé, le clic ne ferait RIEN : c'est la moitié du
+    // branchement, et une garde qui ne testerait que la fabrique la raterait.
+    if (e.ouvrir === 'playlist' && e.playlist) {
+      const svc = e.playlist.source ?? e.source ?? '';
+      const sid = e.playlist.source_id;
+      if (svc && sid) ouvrirDetail(`playlist:${svc}:${sid}`);
+      playlistOuverte = e.playlist;
+      servicePlaylistOuvert = svc || null;
       return;
     }
     if (e.ouvrir === 'album' && e.fiche) {
@@ -820,6 +864,9 @@
                       ? (el.fiche?.source_id ?? el.favoriDistant?.serviceId ?? null)
                       : null}
                   {@const typeFavori = el.favoriDistant?.itemType ?? 'album'}
+                  <!-- Point 10 (17/09/2026) : un album ANNONCÉ porte sa date.
+                       Il garde sa lecture : ses singles déjà sortis
+                       s'écoutent, et c'est la PISTE qui dit l'indisponible. -->
                   <div class="carte">
                     <div class="pochette">
                       <PochetteActions
@@ -847,6 +894,12 @@
                     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
                       <span class="ct" title={el.titre}>{el.titre}</span>
                       {#if el.sous}<span class="ca" title={el.sous}>{el.sous}</span>{/if}
+                      {#if el.aParaitre}
+                        {@const d = dateDeParution({ released_at: el.parution })}
+                        <span class="cp">{d
+                          ? $t('v2.str.comingOn' as any).replace('{d}', d)
+                          : $t('v2.str.coming' as any)}</span>
+                      {/if}
                     </button>
                     {#if el.zoneId != null}
                       <!-- Le mini-analyseur de la version actuelle, sous la
@@ -870,6 +923,16 @@
   <AlbumDetailV2 album={ficheOuverte} service={serviceOuvert} onClose={retourCalqueAlbum} />
 {/if}
 
+<!-- #1108 : la composition d'une playlist de bande. `kind: 'streaming'` — une
+     bande de widget ne sert QUE des playlists de service ; une playlist locale
+     n'y arrive par aucun chemin. -->
+{#if playlistOuverte}
+  <PlaylistDetailV2
+    item={{ kind: 'streaming', service: servicePlaylistOuvert ?? '', pl: playlistOuverte }}
+    onClose={retourCalquePlaylist}
+  />
+{/if}
+
 {#if enEdition}
   <AlbumEditModal
     album={enEdition}
@@ -886,6 +949,9 @@
 <style>
   .v2-home{display:flex; flex-direction:column; height:100%; min-width:0; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
+
+  /* Point 10 — la date d'un album annoncé, sous son titre. */
+  .cp{display:block; font:600 11px var(--v2-sans); color:var(--v2-acc2); margin-top:2px}
 
   .aide-edition{margin:0 0 8px; padding:0 2px; font-size:12px; color:var(--v2-txt2); line-height:1.45}
   .ajout{display:flex; flex-wrap:wrap; gap:6px; padding:6px 30px 10px}

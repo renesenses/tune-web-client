@@ -47,3 +47,27 @@ export interface ComptesArtistesSources {
   comptes: Map<string, number>;
   total: number;
 }
+
+/**
+ * 🔴 UNE provenance de BIBLIOTHÈQUE — `local`, `upnp`, `upnp:<udn>`, ou absente.
+ *
+ * Un serveur UPnP intégré à la bibliothèque (#4201) y dépose ses albums et ses
+ * pistes : ils ont un `id` de bibliothèque, et `source: "upnp"` dit leur
+ * PROVENANCE, pas un service de streaming. `source_id` y est l'adresse de
+ * l'objet sur le serveur UPnP, pas un identifiant distant.
+ *
+ * Trois prédicats répondaient « bibliothèque ? » par `source === 'local'`
+ * seul — la recherche, la clé d'historique d'un album et la file d'une piste.
+ * Un album UPnP ouvert depuis la Recherche partait donc demander ses pistes au
+ * « service » upnp : « unknown service: upnp » (Bertrand, .18, 17/09/2026 —
+ * après le même défaut sur l'Accueil le même jour).
+ */
+export function estSourceDeBibliotheque(source: string | null | undefined): boolean {
+  const s = String(source ?? '').trim().toLowerCase();
+  return s === '' || s === 'local' || s === 'upnp' || s.startsWith('upnp:');
+}
+
+/** Un objet de la BIBLIOTHÈQUE : un identifiant, et une provenance de bibliothèque. */
+export function estDeBibliotheque(x: { id?: unknown; source?: unknown } | null | undefined): boolean {
+  return x?.id != null && estSourceDeBibliotheque(x.source == null ? null : String(x.source));
+}
