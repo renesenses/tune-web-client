@@ -1469,10 +1469,26 @@ export function moveInQueue(zoneId: number, fromPosition: number, toPosition: nu
   });
 }
 
-export function clearQueue(zoneId: number) {
-  return fetchVoid(`${BASE}/zones/${zoneId}/queue/clear`, {
-    method: 'POST',
-  });
+/**
+ * Vider la file — en entier, ou seulement CE QUI SUIT.
+ *
+ * #1085 / tune-server-rust#4169 (livré en v0.9.155) : `{"keep_current": true}`
+ * retire les entrées d'après le curseur et ne touche ni à la piste en cours,
+ * ni à sa position, ni à ce qui précède — aucun arrêt.
+ *
+ * 🔴 Sans argument, le corps reste ABSENT : c'est la forme que les serveurs
+ * antérieurs à la .155 comprennent, et `fetchVoid` n'annonce alors aucun
+ * `Content-Type` (voir `api.entete-sans-corps.test.ts`). Envoyer
+ * `{"keep_current": false}` par souci de symétrie changerait la requête d'un
+ * geste qui, lui, n'a pas changé.
+ */
+export function clearQueue(zoneId: number, keepCurrent = false) {
+  return fetchVoid(
+    `${BASE}/zones/${zoneId}/queue/clear`,
+    keepCurrent
+      ? { method: 'POST', body: JSON.stringify({ keep_current: true }) }
+      : { method: 'POST' },
+  );
 }
 
 // --- Library ---
