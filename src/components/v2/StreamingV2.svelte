@@ -33,8 +33,8 @@
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
-  import { activeView } from '../../lib/stores/navigation';
-  import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult } from '../../lib/types';
+  import { activeView, vueDeRetour } from '../../lib/stores/navigation';
+  import type { Source, StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
@@ -58,7 +58,7 @@
     pseudoOnglet,
   } from '../../lib/ongletsStreaming';
   import { get } from 'svelte/store';
-  import { activeStreamingService } from '../../lib/stores/streaming';
+  import { activeStreamingService, ficheArtisteService } from '../../lib/stores/streaming';
   import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -673,6 +673,20 @@
     };
   }
 
+  /** La fiche existe déjà : recherche et favoris du compte partagent ce geste (#1178). */
+  function ouvertureArtiste(ar: any): (() => void) | null {
+    const service = ar?.source ?? active;
+    const id = ar?.source_id ?? ar?.id;
+    if (typeof service !== 'string' || !service.trim()) return null;
+    if (typeof id !== 'string' && typeof id !== 'number') return null;
+    if (!String(id).trim() || (typeof id === 'number' && !Number.isFinite(id))) return null;
+    return () => {
+      vueDeRetour.set('streaming');
+      ficheArtisteService.set({ service: service as Source, id: String(id), nom: ar?.name ?? '' });
+      activeView.set('streamingartist');
+    };
+  }
+
   function playAlbum(a: any) {
     const zid = $currentZoneId;
     if (zid == null || !active) return;
@@ -1178,17 +1192,17 @@
   — resultats de recherche, et artistes favoris du compte — a une retombee de
   cover pres ; elles n'en font plus qu'une, qui prend les deux.
 
-  Elle ne portait AUCUNE action : ni lecture, ni ouverture, ni coeur. La
-  lecture et l'ouverture manquent toujours, faute d'un geste a leur donner sur
-  cet ecran ; le coeur, lui, existe pour un artiste distant comme pour un
-  album, et sans lui on ne pouvait pas retirer de sa rangee un artiste qu'on y
-  voyait justement parce qu'il etait en favori.
+  Le coeur retire le favori du compte ; portrait et nom ouvrent maintenant
+  la fiche de service existante (#1178). Une identité incomplète reste du
+  texte, sans fabriquer une route ni lancer la lecture à la place.
 -->
 {#snippet artiste(ar: any)}
+  {@const ouvrir = ouvertureArtiste(ar)}
   <div class="art">
     <span class="acv">
       <PochetteActions
         nom={ar.name}
+        onOuvrir={ouvrir}
         favoriExterne={favoriExterneService($favoriteStreamingKeys, {
           itemType: 'artist',
           service: ar?.source ?? active ?? '',
@@ -1206,7 +1220,11 @@
           source={ar?.source ?? active} fallbackInitials={ar.name?.slice(0,1)} />
       </PochetteActions>
     </span>
-    <span class="an" title={ar.name}>{ar.name}</span>
+    {#if ouvrir}
+      <button class="an" title={ar.name} onclick={ouvrir}>{ar.name}</button>
+    {:else}
+      <span class="an" title={ar.name}>{ar.name}</span>
+    {/if}
   </div>
 {/snippet}
 
@@ -1449,4 +1467,6 @@
   /* Carrée comme un album — voir `ArtistesV2`. */
   .acv{display:block; width:110px; height:110px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
   .an{display:block; margin-top:9px; font:600 12.5px var(--v2-sans); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  button.an{width:100%; padding:0; border:0; background:none; color:inherit; text-align:inherit; cursor:pointer}
+  button.an:hover{text-decoration:underline}
 </style>
