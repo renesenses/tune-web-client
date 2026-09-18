@@ -47,6 +47,7 @@
   import RenommerModale from './RenommerModale.svelte';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { trierAlbums } from '../../lib/trierAlbums';
+  import { fold } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { preferences } from '../../lib/stores/preferences';
 
@@ -116,6 +117,33 @@
         : parDate(a, b, tri === 'recent'),
       ),
   );
+
+  /* ---------------- Rail A-Z de la LISTE des collections ------------------- */
+  /**
+   * 🔴 #1153 — « les barres de défilement alphabétique DES RÉPERTOIRES dans
+   * Collections ne fonctionnent pas, alors qu'elles sont opérationnelles dans
+   * la V0 » (Jean-Luc Cassé, fil 1784, 14/09/2026).
+   *
+   * Les « répertoires », ce sont les dossiers eux-mêmes. La V0
+   * (`CollectionsView.svelte`) porte DEUX rails : un sur les albums d'une
+   * collection ouverte, et un sur la liste des collections —
+   * `collectionLetters` / `scrollToCollectionLetter`. Le nouvel écran n'avait
+   * repris que le premier. Ici, ce n'était donc pas un rail qui ne répondait
+   * pas : il n'existait pas.
+   *
+   * Même arbitrage que partout ailleurs : le rail ne paraît que si la liste
+   * est rangée ALPHABÉTIQUEMENT. Rangée par date, une lettre ne désigne
+   * aucune position.
+   */
+  const railListe = $derived(tri === 'alpha' || tri === 'alphaInverse');
+  const lettresListe = $derived(
+    railListe ? new Set(visibles.map((e) => initiale(e.nom))) : new Set<string>(),
+  );
+  let grilleListeEl: HTMLDivElement | undefined = $state();
+  function sauterAListe(L: string) {
+    grilleListeEl?.querySelector<HTMLElement>(`[data-lettre="${L}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   /**
    * Le total d'ALBUMS de l'onglet courant (Lulu : « rajouter le nombre total
@@ -410,13 +438,52 @@
    * qu'un rail absent.
    */
   const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
-  function lettreDe(a: any): string {
-    const c = (a?.title ?? '')
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .charAt(0).toUpperCase();
+
+  /**
+   * \ud83d\udd34 #1153 \u2014 le rail suit le TRI, il ne suppose plus le titre.
+   *
+   * Jean-Luc Cass\u00e9, fil 1784, 14/09/2026 : \u00ab les barres de d\u00e9filement
+   * alphab\u00e9tique des r\u00e9pertoires dans Collections ne fonctionnent pas, alors
+   * qu'elles sont op\u00e9rationnelles dans la V0 \u00bb.
+   *
+   * Il lisait `a.title` en toutes circonstances, alors que la grille est
+   * rang\u00e9e PAR ARTISTE \u2014 c'est le tri par d\u00e9faut, et c'est le SERVEUR qui le
+   * fait (`?sort=artist`). Deux cons\u00e9quences, mesur\u00e9es le 18/09/2026 sur une
+   * collection ABBA/\u00ab Zoo \u00bb, \u00c9dith Piaf/\u00ab Mothers \u00bb, Frank Zappa/
+   * \u00ab Apostrophe \u00bb : le rail proposait A, M, Z \u2014 les initiales des titres \u2014
+   * quand la grille se lit A, E, F ; et cliquer une lettre propos\u00e9e
+   * atterrissait au milieu de la liste, sans rapport avec l'ordre affich\u00e9.
+   * Un rail qui vise autre chose que ce qu'on voit passe pour un rail mort.
+   *
+   * C'est exactement le d\u00e9faut que Lulu avait signal\u00e9 sur la Biblioth\u00e8que
+   * (forum 1671, 05-06/09/2026) et qui y a \u00e9t\u00e9 corrig\u00e9 : `LibraryV2.firstLetter`
+   * suit `sortKey`, et `railUtile` retire le rail sur un tri chronologique.
+   * Collections portait encore la copie d'AVANT ce correctif \u2014 les deux
+   * \u00e9crans avaient bien deux rails diff\u00e9rents. On reprend le sien.
+   */
+  const cleRail = $derived<'artist' | 'title' | null>(
+    ouverte?.sorte === 'smart'
+      ? (triSmart === 'artist' || triSmart === 'title' ? triSmart : null)
+      : (triAlbums === 'artist' || triAlbums === 'title' ? triAlbums : null),
+  );
+  /** L'initiale de rail d'un texte : accents repli\u00e9s, tout le reste sous \u00ab # \u00bb. */
+  function initiale(texte: string | null | undefined): string {
+    const c = fold(texte).trim().charAt(0).toUpperCase();
     return c >= 'A' && c <= 'Z' ? c : '#';
   }
-  const lettresPresentes = $derived(new Set(albums.map(lettreDe)));
+  function lettreDe(a: any): string {
+    return initiale(cleRail === 'artist' ? a?.artist_name : a?.title);
+  }
+  /**
+   * \u26a0\ufe0f Et sur un tri CHRONOLOGIQUE (ann\u00e9e, sortie, ajout \u2014 ou l'ordre des
+   * r\u00e8gles d'une collection intelligente), on le retire. Aucune lettre ne peut
+   * y correspondre \u00e0 une position : les initiales sont dispers\u00e9es dans toute
+   * la liste. Promettre un saut qui atterrit au hasard est pire que ne rien
+   * promettre. M\u00eame arbitrage que la Biblioth\u00e8que.
+   */
+  const lettresPresentes = $derived(
+    cleRail ? new Set(albumsVus.map(lettreDe)) : new Set<string>(),
+  );
   let grilleEl: HTMLDivElement | undefined = $state();
   function sauterA(L: string) {
     grilleEl?.querySelector<HTMLElement>(`[data-lettre="${L}"]`)
@@ -724,12 +791,16 @@
       <!-- Le rail et la grille sont FRERES : le rail est collant, la grille
            defile. Les imbriquer ferait defiler le rail avec elle. -->
       <div class="aveclettres">
+        <!-- `cleRail` : sur un tri chronologique, le rail est RETIRÉ plutôt
+             que laissé à promettre un saut qui atterrirait au hasard (#1153). -->
+        {#if cleRail}
         <div class="rail">
           {#each ALPHA as L (L)}
             <button class="rl" class:hot={lettresPresentes.has(L)} disabled={!lettresPresentes.has(L)}
               onclick={() => sauterA(L)}>{L}</button>
           {/each}
         </div>
+        {/if}
         <div class="grid" bind:this={grilleEl}>
         {#each albumsVus as a (cleAlbum(a))}
           <!-- Meme carte que la Bibliotheque : les cinq gestes sur la
@@ -825,11 +896,23 @@
         {/if}
       </div>
     {:else}
+      <!-- #1153 : le rail des « répertoires », que la V0 a et que le nouvel
+           écran n'avait pas. Rail et grille sont FRERES, comme dans le détail :
+           les imbriquer ferait défiler le rail avec la liste. -->
+      <div class="aveclettres" bind:this={grilleListeEl}>
+        {#if railListe}
+        <div class="rail">
+          {#each ALPHA as L (L)}
+            <button class="rl" class:hot={lettresListe.has(L)} disabled={!lettresListe.has(L)}
+              onclick={() => sauterAListe(L)}>{L}</button>
+          {/each}
+        </div>
+        {/if}
       <div class="grid">
         {#each visibles as e (e.sorte + ':' + e.id)}
           <!-- Un LISERE de couleur, pas un fond : une pochette doit rester
                lisible. -->
-          <div class="card" style="--teinte:{teinte(e.nom)}">
+          <div class="card" data-lettre={initiale(e.nom)} style="--teinte:{teinte(e.nom)}">
             <span class="cv teintee">
               <!-- Les deux sortes portent des `item_type` DISTINCTS : leurs
                    identifiants se recouvrent (l'id 1 est à la fois la
@@ -870,6 +953,7 @@
             </button>
           </div>
         {/each}
+      </div>
       </div>
     {/if}
     </div>
