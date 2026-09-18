@@ -509,7 +509,26 @@ async function fetchVoid(url: string, options?: RequestInit): Promise<void> {
       throw erreurSentinelle('Session expired', 401);
     }
     const err = await apiError(response);
-    if (response.status >= 500) {
+    /**
+     * 🔴 501 N'EST PAS UNE PANNE — ici non plus (#1148).
+     *
+     * `fetchJSON` exclut 501 de son bandeau depuis #1007 ; ce jumeau-ci était
+     * resté sur le seuil nu `>= 500`. Le même refus délibéré — le serveur dit
+     * « je ne sais pas faire ça », et écrit une phrase lisible pour le dire —
+     * y peignait encore un « Server error: … » rouge.
+     *
+     * ⚠️ MAIS `fetchVoid` porte les ÉCRITURES, et une écriture n'est pas une
+     * lecture. Quand `fetchJSON` se tait, l'écran appelant rend quand même
+     * quelque chose ; quand `fetchVoid` se tait, le geste demandé n'a pas eu
+     * lieu et RIEN ne l'annonce. On ne remplace donc pas le faux incident par
+     * un silence : on sert la phrase du serveur, calmement.
+     *
+     * Les vraies pannes (500, 502, 503) gardent leur bandeau rouge inchangé —
+     * l'exception est étroite, et c'est la moitié de la garde qui compte.
+     */
+    if (response.status === 501) {
+      notifications.info(err.message);
+    } else if (response.status >= 500) {
       notifications.error(`Server error: ${err.message}`);
     }
     throw err;
