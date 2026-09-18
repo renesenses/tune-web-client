@@ -4198,6 +4198,7 @@ export default {
   "v2.disco.noMatch": "Kein Album entspricht diesem Filter.",
   "v2.fas.albums": "Alben",
   "v2.fas.empty": "Für diesen Künstler gibt es nichts anzuzeigen.",
+  "v2.fas.topTracksFailed": "Die Top-Titel konnten nicht geladen werden – „Best of“ und „Radio“ brauchen sie.",
   "v2.fas.bestOf": "Best of abspielen",
   "v2.fas.radio": "Künstlerradio",
   "v2.rech.tracks": "Titel",
