@@ -376,7 +376,7 @@
     if (!rules.length) return $tr('smartPlaylists.noRules');
     const parts = rules.slice(0, 2).map(displayRule);
     const mode = (sp.match_mode || '').replace(/"/g, '');
-    const summary = parts.join(mode === 'all' ? ' ET ' : ' OU ');
+    const summary = parts.join(mode === 'all' ? ` ${$tr('smartPlaylists.joinAll')} ` : ` ${$tr('smartPlaylists.joinAny')} `);
     return rules.length > 2 ? `${summary} … (+${rules.length - 2})` : summary;
   }
 
@@ -459,7 +459,7 @@
   {:else}
     <!-- List view -->
     <div class="sp-list-header">
-      <h2>Smart Playlists</h2>
+      <h2>{$tr('smartPlaylists.title')}</h2>
       <button class="create-btn" onclick={() => { if (showCreate) { cancelForm(); } else { editingSp = null; newName = ''; newDescription = ''; newRules = [{ field: 'genre', operator: 'contains', value: '' }]; newMatchMode = 'all'; newSortBy = 'title'; newSortOrder = 'asc'; newMaxTracks = 200; showCreate = true; } }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         {$tr('smartPlaylists.new')}
