@@ -87,7 +87,11 @@ export const vueDeRetour = writable<View | null>(null);
  */
 export interface GestesNavigationService {
   /** La piste porte l'identifiant de son album chez le service. */
-  ouvrirAlbum: (cible: { service: string; albumId: string; titre: string }) => void;
+  /// `pochette` : #1114 — la fiche ouverte depuis « Lecture en cours »
+  /// n'affichait que l'initiale. L'appelant TIENT l'image (c'est elle qui fait
+  /// le fond flou de l'écran) ; la fiche, elle, ne relit pas l'album. Optionnel :
+  /// les appelants qui n'en ont pas continuent d'ouvrir sans.
+  ouvrirAlbum: (cible: { service: string; albumId: string; titre: string; pochette?: string | null }) => void;
   /**
    * Seulement un NOM : `StreamTrack` ne porte pas d'identifiant d'artiste.
    * C'est à la coquille de le résoudre avant d'ouvrir la fiche.
