@@ -464,6 +464,8 @@ export default {
   'search.durationShown': '已显示 {d}',
 
   // Streaming
+  'streaming.fichePistesEchec': '无法加载此条目的曲目。',
+  'streaming.ficheDelaiDepasse': '服务未在规定时间内响应。',
   'streaming.selectService': '选择流媒体服务',
   'streaming.searchOn': '在 {service} 上搜索...',
   'streaming.myPlaylists': '我的播放列表',
