@@ -574,6 +574,8 @@ export default {
   'queue.addToPlaylist': 'Ajouter à une playlist',
   'queue.removeFromQueue': 'Retirer de la file',
   'queue.addToQueue': 'Ajouter à la file',
+  "queue.unresolvedWarning": "{count} piste(s) de {service} n'ont pas pu être résolues et ont été ajoutées sans leurs informations.",
+  "queue.unresolvedUnknownService": "ce service",
   'library.albumQueued': 'Album ajouté à la file',
   'library.albumQueueFailed': 'Impossible d’ajouter cet album à la file',
   'queue.addFailed': "Impossible d'ajouter à la file",

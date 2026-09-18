@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': 'Aggiungi a una playlist',
   'queue.removeFromQueue': 'Rimuovi dalla coda',
   'queue.addToQueue': 'Aggiungi alla coda',
+  "queue.unresolvedWarning": "Non è stato possibile risolvere {count} brano/i di {service}: sono stati aggiunti senza i loro dati.",
+  "queue.unresolvedUnknownService": "questo servizio",
   'queue.addFailed': "Impossibile aggiungere alla coda",
 
   // Home

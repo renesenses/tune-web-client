@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': 'Añadir a una lista de reproducción',
   'queue.removeFromQueue': 'Eliminar de la cola',
   'queue.addToQueue': 'Añadir a la cola',
+  "queue.unresolvedWarning": "No se pudieron resolver {count} pista(s) de {service} y se añadieron sin sus datos.",
+  "queue.unresolvedUnknownService": "este servicio",
   'queue.addFailed': "No se ha podido añadir a la cola",
 
   // Home

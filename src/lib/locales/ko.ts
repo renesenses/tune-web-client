@@ -366,6 +366,8 @@ export default {
   'queue.addToPlaylist': '재생목록에 추가',
   'queue.removeFromQueue': '대기열에서 제거',
   'queue.addToQueue': '대기열에 추가',
+  "queue.unresolvedWarning": "{service}의 {count}개 트랙을 확인하지 못해 정보 없이 추가되었습니다.",
+  "queue.unresolvedUnknownService": "이 서비스",
   'queue.addFailed': "대기열에 추가하지 못했습니다",
 
   // Home

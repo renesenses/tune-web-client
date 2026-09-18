@@ -548,6 +548,8 @@ export default {
   "queue.addToPlaylist": "Hozzáadás lejátszási listához",
   "queue.removeFromQueue": "Eltávolítás a várólistáról",
   "queue.addToQueue": "Hozzáadás a várólistához",
+  "queue.unresolvedWarning": "{count} szám a(z) {service} szolgáltatásból nem oldható fel, és adatok nélkül került hozzáadásra.",
+  "queue.unresolvedUnknownService": "ez a szolgáltatás",
   "queue.addFailed": "Nem sikerült a lejátszási sorhoz adni",
   // Kezdőlap
   "home.morning": "Jó reggelt",
