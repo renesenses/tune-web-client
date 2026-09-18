@@ -3319,6 +3319,7 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "Modellens namn",
   "zoneConfig.modelNone": "— Välj en modell —",
   "zoneConfig.other": "Annat…",
+  "zoneConfig.backToList": "Välj från listan",
   "acoustic.progressHelp": "Den akustiska analysens förlopp över hela biblioteket. Den återupptas där den slutade efter omstart — inget går förlorat.",
   "oxygen.enableHelp": "Lägger till Oxygen i navigeringen bredvid Bibliotek. Ditt vanliga bibliotek påverkas inte — ett andra sätt att bläddra, inte en ersättning.",
   "oxygen.defaultViewHelp": "Vyn som Oxygen öppnas i. Du kan byta med ett klick från skärmen — detta anger bara startpunkten.",

@@ -3320,6 +3320,7 @@ export default {
   "zoneConfig.modelCustomPlaceholder": "型号名称",
   "zoneConfig.modelNone": "— 选择型号 —",
   "zoneConfig.other": "其他…",
+  "zoneConfig.backToList": "从列表中选择",
   "acoustic.progressHelp": "全库声学分析的进度。重启后从中断处继续，停止服务器不会丢失进度。",
   "oxygen.enableHelp": "在导航栏的\"音乐库\"旁加入 Oxygen 入口。原有音乐库不变：这是另一种浏览方式，而非替代。",
   "oxygen.defaultViewHelp": "打开 Oxygen 时显示的视图。你随时可在界面上一键切换，这里只决定起始视图。",
