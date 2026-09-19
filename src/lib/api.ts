@@ -6192,6 +6192,12 @@ export interface OtherVersionGroup {
     track_id: number | null;
     album_id: number | null;
     album_title: string | null;
+    /**
+     * L'interprete de CETTE version : celui de la piste, l'artiste d'album en
+     * repli (tune-server-rust#4468, livre en 0.9.157). Absent d'un serveur
+     * plus ancien.
+     */
+    artist_name?: string | null;
     cover_path: string | null;
     duration_ms: number | null;
   }[];
