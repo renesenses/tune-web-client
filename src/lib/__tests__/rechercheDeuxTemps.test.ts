@@ -47,33 +47,45 @@ describe('le jeton du deuxième temps', () => {
 describe('l’écran ne fait plus chercher le local deux fois', () => {
   const vue = sansCommentaires(lire('src/components/v2/SearchV2.svelte'));
 
-  it('🔴 il NOMME les sources dans l’appel fédéré', () => {
-    expect(vue).toContain('api.federatedSearch(query, [SOURCES_SERVICES])');
+  // 🔴 Cette garde a été réécrite quand le deuxième temps est passé au fil de
+  // l'eau : l'écran ne fabrique plus l'appel, il reçoit ses sources du PLAN
+  // (`planDuDeuxiemeTemps`). La propriété gardée n'a pas changé — l'appel
+  // fédéré NOMME toujours ses sources, donc le serveur ne refait plus le bloc
+  // local — mais elle ne s'écrit plus au même endroit. Épingler l'ancien
+  // libellé aurait été garder une orthographe, pas un comportement.
+
+  it('🔴 il NOMME toujours ses sources', () => {
+    expect(vue).toContain('api.federatedSearch(query, sources)');
   });
 
-  it('🔴 il ne l’appelle plus à nu', () => {
+  it('🔴 il ne l’appelle jamais à nu', () => {
     // `federatedSearch(query)` sans second argument = pas de `sources` = le
-    // bloc local refait pour rien.
+    // bloc local refait pour rien, 0,95 s mesurées sur le .18.
     expect(vue).not.toMatch(/api\.federatedSearch\(\s*query\s*\)/);
   });
 
-  it('il passe par la constante partagée, pas par une chaîne écrite sur place', () => {
-    expect(vue).toContain("from '../../lib/sourcesRecherche'");
+  it('les sources viennent du plan, jamais d’une chaîne écrite sur place', () => {
+    expect(vue).toContain('planDuDeuxiemeTemps(');
     expect(vue).not.toMatch(/federatedSearch\(query,\s*\['streaming'\]\)/);
+    expect(vue).not.toContain("'streaming'");
   });
 });
 
 describe('le PREMIER temps n’a pas bougé', () => {
   const vue = sansCommentaires(lire('src/components/v2/SearchV2.svelte'));
 
+  // Le deuxième temps est désormais lancé par `deuxiemeTemps(query, mine)` —
+  // la borne de droite change, la propriété gardée non.
+  const BORNE = 'deuxiemeTemps(query, mine)';
+
   it('🔴 le local part en parallèle, pas derrière les services', () => {
-    // Les deux appels sont lancés dans le même `setTimeout`, sans `await`
-    // entre eux : c'est ce qui fait que le local s'affiche à 0,24 s.
+    // Les deux sont lancés dans le même `setTimeout`, sans `await` entre eux :
+    // c'est ce qui fait que le local s'affiche à 0,24 s.
     const loc = vue.indexOf('api.searchLibrary(');
-    const fed = vue.indexOf('api.federatedSearch(');
+    const suite = vue.indexOf(BORNE);
     expect(loc).toBeGreaterThan(-1);
-    expect(fed).toBeGreaterThan(loc);
-    const entre = vue.slice(loc, fed);
+    expect(suite).toBeGreaterThan(loc);
+    const entre = vue.slice(loc, suite);
     expect(entre, 'un await entre les deux les remettrait à la file').not.toContain('await ');
   });
 
@@ -81,7 +93,7 @@ describe('le PREMIER temps n’a pas bougé', () => {
     // Sinon le voyant d'attente durerait jusqu'au dernier service, et l'écran
     // aurait l'air de chercher alors que les résultats locaux sont déjà là.
     const i = vue.indexOf('api.searchLibrary(');
-    const bloc = vue.slice(i, vue.indexOf('api.federatedSearch('));
+    const bloc = vue.slice(i, vue.indexOf(BORNE));
     expect(bloc).toContain('busy = false');
   });
 });
