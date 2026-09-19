@@ -1706,6 +1706,8 @@ export default {
   "settings.deactivateLicenseConfirm": "Disattivare la tua licenza Premium? Perderai l'accesso alle funzioni Premium.",
   "settings.licenseDeactivated": "Licenza disattivata",
   "settings.licenseValidated": "Licenza convalidata",
+  "v2.lic.revalidate": "Riconvalida la licenza",
+  "v2.lic.revalidateHint": "Richiede di nuovo a mozaiklabs.fr lo stato della chiave: utile dopo un rinnovo o se Premium non si sblocca.",
   "settings.licenseValidationError": "Errore di convalida",
   "settings.licenseValidatedNotPremium": "Licenza verificata, ma non sblocca Premium su questo server.",
   "settings.licenseNoKey": "Nessuna chiave di licenza è memorizzata su questo server.",

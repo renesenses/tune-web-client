@@ -48,6 +48,7 @@
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
+  import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
@@ -1002,6 +1003,48 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await api.deactivateLicense(); await loadLicense(); }
     catch { licErr = get(t)('settings.errDeactivateFailed'); }
     licBusy = false;
+  }
+
+  /**
+   * Revalider la licence — PORTÉ de l'ancienne interface (`SettingsView`,
+   * `handleValidateLicense`) avant la phase 5 : sans lui, une clé renouvelée
+   * ou un Premium qui ne s'ouvre pas n'avaient plus aucun recours en v2.
+   *
+   * 🔴 `POST /cloud/license/validate` répond HTTP 200 dans TOUS ses cas
+   * d'échec (#570) : le verdict vient de `verdictValidationLicence`, qui exige
+   * le statut `validated` ET un palier premium relu derrière. Jamais « Licence
+   * validée » sur la seule foi d'un appel qui n'a pas levé.
+   */
+  let licValidating = $state(false);
+  let licRepos = $state(false);
+  function reposLicence() {
+    licRepos = true;
+    setTimeout(() => { licRepos = false; }, 60_000);
+  }
+  async function validateLic() {
+    if (licValidating || licRepos) return;
+    licValidating = true; licErr = null;
+    const tr = get(t);
+    try {
+      const reponse = await api.validateLicense();
+      await loadLicense();
+      const etat = get(licenseState);
+      const verdict = verdictValidationLicence(reponse, {
+        tier: etat.tier,
+        conflitDeSession: etat.sessionConflict != null,
+      });
+      const texte = verdict.statutDistant === null
+        ? tr(verdict.cle as any)
+        : tr(verdict.cle as any).replace('{code}', String(verdict.statutDistant));
+      if (verdict.succes) notifications.success(texte);
+      else licErr = texte;
+      if (verdict.repos) reposLicence();
+    } catch (e: any) {
+      // La route LOCALE a son propre garde-fou de débit.
+      if (e?.status === 429) { licErr = tr('settings.licenseRateLimited' as any); reposLicence(); }
+      else licErr = e?.message ?? tr('settings.licenseValidationError' as any);
+    }
+    licValidating = false;
   }
 
   // ── Bibliotheque : dossiers, analyse, planification ───────────────────
@@ -2940,6 +2983,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <div class="lbl"><span>{$t('settings.releaseLicense' as any)}</span>
                     <span class="hint">{$t('settings.releaseLicenseHint' as any)}</span></div>
                   <button class="lnk danger" disabled={licBusy} onclick={deactivateLic}>{$t('settings.disable' as any)}</button>
+                </div>
+                <div class="row">
+                  <div class="lbl"><span>{$t('v2.lic.revalidate' as any)}</span>
+                    <span class="hint">{$t('v2.lic.revalidateHint' as any)}</span></div>
+                  <button class="lnk" disabled={licBusy || licValidating || licRepos} onclick={validateLic}>
+                    {licValidating ? $t('settings.validating' as any) : $t('settings.validate' as any)}
+                  </button>
                 </div>
               {:else}
                 <div class="row">

@@ -1716,6 +1716,8 @@ export default {
   "settings.deactivateLicenseConfirm": "Dezactivezi licența Premium? Vei pierde accesul la funcțiile Premium.",
   "settings.licenseDeactivated": "Licență dezactivată",
   "settings.licenseValidated": "Licență validată",
+  "v2.lic.revalidate": "Revalidează licența",
+  "v2.lic.revalidateHint": "Cere din nou mozaiklabs.fr starea cheii: util după o reînnoire sau dacă Premium nu se deblochează.",
   "settings.licenseValidationError": "Eroare la validare",
   "settings.licenseValidatedNotPremium": "Licența a fost verificată, dar nu deblochează Premium pe acest server.",
   "settings.licenseNoKey": "Nicio cheie de licență nu este salvată pe acest server.",

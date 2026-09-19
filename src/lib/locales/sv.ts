@@ -1658,6 +1658,8 @@ export default {
   "settings.deactivateLicenseConfirm": "Inaktivera din Premium-licens? Du förlorar tillgång till Premium-funktioner.",
   "settings.licenseDeactivated": "Licens inaktiverad",
   "settings.licenseValidated": "Licens validerad",
+  "v2.lic.revalidate": "Validera licensen igen",
+  "v2.lic.revalidateHint": "Frågar mozaiklabs.fr igen om nyckelns status: användbart efter en förnyelse eller om Premium inte låses upp.",
   "settings.licenseValidationError": "Valideringsfel",
   "settings.licenseValidatedNotPremium": "Licensen kontrollerades, men den låser inte upp Premium på den här servern.",
   "settings.licenseNoKey": "Ingen licensnyckel är sparad på den här servern.",

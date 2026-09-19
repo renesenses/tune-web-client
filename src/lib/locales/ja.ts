@@ -1706,6 +1706,8 @@ export default {
   "settings.deactivateLicenseConfirm": "Premium ライセンスを無効化しますか？ Premium 機能にアクセスできなくなります。",
   "settings.licenseDeactivated": "ライセンスを無効化しました",
   "settings.licenseValidated": "ライセンスを検証しました",
+  "v2.lic.revalidate": "ライセンスを再検証",
+  "v2.lic.revalidateHint": "mozaiklabs.fr にキーの状態を再確認します。更新後や Premium が有効にならない場合に役立ちます。",
   "settings.licenseValidationError": "検証エラー",
   "settings.licenseValidatedNotPremium": "ライセンスは確認できましたが、このサーバーでは Premium が有効になりません。",
   "settings.licenseNoKey": "このサーバーにはライセンスキーが登録されていません。",

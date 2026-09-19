@@ -1681,6 +1681,8 @@ export default {
   "settings.deactivateLicenseConfirm": "Premium 라이선스를 비활성화할까요? Premium 기능에 대한 접근 권한을 잃게 됩니다.",
   "settings.licenseDeactivated": "라이선스 비활성화됨",
   "settings.licenseValidated": "라이선스 검증됨",
+  "v2.lic.revalidate": "라이선스 재검증",
+  "v2.lic.revalidateHint": "mozaiklabs.fr에 키 상태를 다시 확인합니다. 갱신 후나 Premium이 열리지 않을 때 유용합니다.",
   "settings.licenseValidationError": "검증 오류",
   "settings.licenseValidatedNotPremium": "라이선스는 확인되었지만 이 서버에서 프리미엄이 열리지 않습니다.",
   "settings.licenseNoKey": "이 서버에 저장된 라이선스 키가 없습니다.",

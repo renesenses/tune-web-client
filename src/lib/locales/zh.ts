@@ -1706,6 +1706,8 @@ export default {
   "settings.deactivateLicenseConfirm": "停用您的 Premium 许可证？您将失去对 Premium 功能的访问权限。",
   "settings.licenseDeactivated": "许可证已停用",
   "settings.licenseValidated": "许可证已验证",
+  "v2.lic.revalidate": "重新验证许可证",
+  "v2.lic.revalidateHint": "重新向 mozaiklabs.fr 查询密钥状态：适用于续订之后，或 Premium 未解锁时。",
   "settings.licenseValidationError": "验证错误",
   "settings.licenseValidatedNotPremium": "许可证已核验，但未在此服务器上解锁 Premium。",
   "settings.licenseNoKey": "此服务器上未保存许可证密钥。",

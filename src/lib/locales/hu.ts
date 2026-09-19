@@ -1901,6 +1901,8 @@ export default {
   "settings.deactivateLicenseConfirm": "Deaktiválod a Premium licencedet? Elveszíted a hozzáférést a Premium funkciókhoz.",
   "settings.licenseDeactivated": "A licenc deaktiválva",
   "settings.licenseValidated": "A licenc érvényesítve",
+  "v2.lic.revalidate": "Licenc újraellenőrzése",
+  "v2.lic.revalidateHint": "Újra lekéri a kulcs állapotát a mozaiklabs.fr-től: hasznos megújítás után, vagy ha a Premium nem nyílik meg.",
   "settings.licenseValidationError": "Érvényesítési hiba",
   "settings.licenseValidatedNotPremium": "A licencet ellenőriztük, de ezen a kiszolgálón nem nyitja meg a Premiumot.",
   "settings.licenseNoKey": "Ezen a kiszolgálón nincs tárolt licenckulcs.",
