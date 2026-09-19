@@ -145,15 +145,17 @@ porter en v2, abandonner, ou garder le filet.
 - `getTopMixes` — `GET /home/top-mixes`
 - `getTopTracks` — `GET /library/history/top-tracks`
 
-## Radios et podcasts (7)
+## Radios et podcasts (7) — ✅ portées en v2 (`feat/v2-porte-radios`)
 
-- `deleteRadio` — `DELETE /radios/{}`
-- `exportRadiosUrl` — `GET /radios/export.m3u`
-- `getRadioFranceEpisodes` — `GET /podcasts/radiofrance/episodes`
-- `getRadioFranceShows` — `GET /podcasts/radiofrance/shows`
-- `importRadios` — `POST /radios/import/m3u`
-- `searchRadioFranceShows` — `GET /podcasts/radiofrance/shows/search`
-- `uploadRadioCover` — `POST /radios/{}/artwork`
+- `deleteRadio` — `DELETE /radios/{}` → `RadioEditModale` (modifier une station), bouton « Supprimer » après confirmation v2 (`dialogs.confirm`)
+- `exportRadiosUrl` — `GET /radios/export.m3u` → `RadiosV2`, en-tête, « Exporter M3U » — via `exporterRadiosM3u()`, qui télécharge cette URL AVEC l'en-tête d'authentification (le lien `<a download>` de l'ancien écran n'envoyait pas le jeton)
+- `getRadioFranceEpisodes` — `GET /podcasts/radiofrance/episodes` → `PodcastsV2`, Découvrir › Radio France, ouvrir une émission (fiche épisodes commune)
+- `getRadioFranceShows` — `GET /podcasts/radiofrance/shows` → `PodcastsV2`, Découvrir › Radio France, puces d'antenne (si le serveur déclare une clé : `radiofrance_api_key_set`)
+- `importRadios` — `POST /radios/import/m3u` → `RadiosV2`, en-tête, « Importer M3U/PLS » (plafond 25 Mo repris)
+- `searchRadioFranceShows` — `GET /podcasts/radiofrance/shows/search` → `PodcastsV2`, Découvrir › Radio France, champ de recherche
+- `uploadRadioCover` — `POST /radios/{}/artwork` → `RadioEditModale`, « Téléverser une image »
+
+Témoins : `src/lib/__tests__/porteV2RadiosPodcasts.test.ts`.
 
 ## YouTube (7)
 

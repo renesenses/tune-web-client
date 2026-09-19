@@ -4033,6 +4033,19 @@ export function exportRadiosUrl(): string {
   return `${BASE}/radios/export.m3u`;
 }
 
+/**
+ * Télécharger les radios en M3U, AVEC l'en-tête d'authentification.
+ *
+ * L'écran actuel posait `exportRadiosUrl()` sur un simple lien `<a download>` :
+ * un lien n'envoie pas le jeton `Authorization`, donc sur un serveur protégé
+ * le fichier enregistré était la réponse 401. On passe par `fetch`.
+ */
+export async function exporterRadiosM3u(): Promise<void> {
+  const res = await fetch(exportRadiosUrl(), { headers: authHeaders() });
+  if (!res.ok) throw await apiError(res);
+  enregistrerBlob(await res.blob(), 'radios.m3u');
+}
+
 
 // --- Profiles ---
 
@@ -4938,7 +4951,11 @@ export function previewSmartCollection(payload: { rules: any[]; match_mode?: str
 async function downloadCsv(path: string, filename: string) {
   const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
-  const blob = await res.blob();
+  enregistrerBlob(await res.blob(), filename);
+}
+
+/** Fait enregistrer `blob` par le navigateur sous `filename`. */
+function enregistrerBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

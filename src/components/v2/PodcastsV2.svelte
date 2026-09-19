@@ -15,6 +15,7 @@
    * réseau dont deux ne seront jamais regardés.
    */
   import * as api from '../../lib/api';
+  import { etatSourceRadioFrance } from '../../lib/radioFranceSource';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { currentZoneId } from '../../lib/stores/zones';
   import { preferences } from '../../lib/stores/preferences';
@@ -319,6 +320,87 @@
         radioFrance = [];
       });
   });
+
+  /**
+   * ÉMISSIONS Radio France par antenne, recherche et épisodes — portés depuis
+   * l'écran actuel (`PodcastsView`) avant la phase 5, qui le retire.
+   *
+   * Ces trois routes passent par l'API GraphQL de Radio France, qui exige une
+   * clé. On DEMANDE au serveur s'il en a une (`radiofrance_api_key_set`, via
+   * `etatSourceRadioFrance`) au lieu de la déduire d'un refus : sans clé, le
+   * 400 partait à chaque ouverture (#1026). Sans clé, la liste figée ci-dessus
+   * reste la seule source — comme sur l'écran actuel.
+   */
+  const RF_ANTENNES: [string, string][] = [
+    ['FRANCEINTER', 'France Inter'], ['FRANCECULTURE', 'France Culture'],
+    ['FRANCEMUSIQUE', 'France Musique'], ['FIP', 'FIP'], ['MOUV', "Mouv'"], ['FRANCEINFO', 'franceinfo'],
+  ];
+  let rfCle = $state(false);
+  let rfAntenne = $state('FRANCEINTER');
+  let rfEmissions = $state<any[]>([]);
+  let rfChargement = $state(false);
+  let rfRecherche = $state('');
+  let rfResultats = $state<any[] | null>(null);
+  let rfConfigLue = false;
+  $effect(() => {
+    if (tab !== 'discover' || rfConfigLue || !franceUniquement) return;
+    rfConfigLue = true;
+    api.getConfig()
+      .then((c) => etatSourceRadioFrance(c))
+      .catch(() => etatSourceRadioFrance(null))
+      .then((etat) => {
+        rfCle = etat.cleDeclaree;
+        if (etat.interrogerLesEmissions) void chargerRfEmissions(rfAntenne);
+      });
+  });
+
+  async function chargerRfEmissions(antenne: string) {
+    rfAntenne = antenne;
+    rfChargement = true;
+    try {
+      const d = await api.getRadioFranceShows(antenne);
+      rfEmissions = d?.shows ?? [];
+      rfCle = true;
+    } catch {
+      rfEmissions = [];
+    }
+    rfChargement = false;
+  }
+
+  async function chercherRf() {
+    const requete = rfRecherche.trim();
+    if (!requete) { rfResultats = null; return; }
+    rfChargement = true;
+    try {
+      rfResultats = (await api.searchRadioFranceShows(requete))?.shows ?? [];
+    } catch {
+      rfResultats = [];
+    }
+    rfChargement = false;
+  }
+
+  /** Ouvrir une émission : la même fiche que les podcasts, épisodes compris. */
+  async function ouvrirRfEmission(show: any) {
+    opened = {
+      name: show.title, author: show.station || 'Radio France',
+      feed_url: show.rss_url || '', cover_url: show.cover_url || '',
+    };
+    episodes = []; epLoading = true;
+    try {
+      const d = await api.getRadioFranceEpisodes(show.url, 30);
+      episodes = (d?.episodes ?? []).map((ep: any) => ({
+        title: ep.title,
+        description: ep.description,
+        audio_url: ep.audio_url,
+        duration_ms: (ep.duration_secs ?? 0) * 1000,
+        published: ep.published_date,
+        cover_url: ep.cover_url || show.cover_url || '',
+      }));
+    } catch {
+      error = $t('v2.pod.episodesUnavail' as any);
+    }
+    epLoading = false;
+  }
 
   // ── Recherche ────────────────────────────────────────────────────────────
   let recherche = $state('');
@@ -638,7 +720,7 @@
           onclick={() => (section = 'populaires')}>{$t('v2.pod.secPopular' as any)}</button>
         <button class:on={section === 'tous'} role="tab" aria-selected={section === 'tous'}
           onclick={() => (section = 'tous')}>{$t('v2.pod.secAll' as any)}</button>
-        {#if franceUniquement && radioFrance.length}
+        {#if franceUniquement && (radioFrance.length || rfCle)}
           <button class:on={section === 'radiofrance'} role="tab" aria-selected={section === 'radiofrance'}
             onclick={() => (section = 'radiofrance')}>Radio France</button>
         {/if}
@@ -669,6 +751,39 @@
         {/if}
 
       {:else if section === 'radiofrance' && franceUniquement}
+        {#if rfCle}
+          <div class="puces" role="tablist">
+            {#each RF_ANTENNES as [code, nom] (code)}
+              <button class:on={rfAntenne === code && rfResultats == null} role="tab"
+                aria-selected={rfAntenne === code && rfResultats == null}
+                onclick={() => { rfRecherche = ''; rfResultats = null; void chargerRfEmissions(code); }}>{nom}</button>
+            {/each}
+          </div>
+          <form class="rech" onsubmit={(e) => { e.preventDefault(); void chercherRf(); }}>
+            <input bind:value={rfRecherche} placeholder={$t('v2.pod.rfSearchPlaceholder' as any)} aria-label={$t('v2.pod.rfSearchPlaceholder' as any)} />
+            <button type="submit" disabled={rfChargement || !rfRecherche.trim()}>{$t('v2.pod.searchAction' as any)}</button>
+          </form>
+          {@const rfListe = rfResultats ?? rfEmissions}
+          {#if rfChargement}
+            <div class="state">{$t('common.loading' as any)}</div>
+          {:else if !rfListe.length}
+            <div class="state">{$t('v2.pod.rfNoShow' as any)}</div>
+          {:else}
+            <div class="grid rf-emissions">
+              {#each rfListe as show, i (show.url ?? show.id ?? `e${i}`)}
+                <div class="pc">
+                  <span class="cv">
+                    <PochetteActions onOuvrir={() => ouvrirRfEmission(show)} nom={show.title}>
+                      <AlbumArt coverPath={show.cover_url || null} albumId={null} size={0} alt={show.title} fallbackInitials={(show.title ?? '').slice(0,1)} />
+                    </PochetteActions>
+                  </span>
+                  <span class="nm">{show.title}</span>
+                  {#if show.station}<span class="au">{show.station}</span>{/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {/if}
         <div class="grid">{#each radioFrance.filter(match) as p, i (feedOf(p) ?? `r${i}`)}{@render tile(p, false)}{/each}</div>
 
       {:else}

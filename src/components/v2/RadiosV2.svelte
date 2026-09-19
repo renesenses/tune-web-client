@@ -21,6 +21,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { fold } from '../../lib/utils';
+  import { notifications } from '../../lib/stores/notifications';
   import { ecrireVue, lireVue, type VueEcran } from '../../lib/vueEcran';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -144,6 +145,52 @@
     } catch { /* le serveur signale déjà l'échec */ }
   }
 
+  /**
+   * IMPORTER / EXPORTER une liste M3U — portés depuis l'écran actuel
+   * (`RadiosView`) avant la phase 5, qui le retire.
+   *
+   * Même plafond que là-bas : un fichier démesuré dépassait la limite du
+   * corps côté serveur et laissait l'écran figé (Dominique : 78 Mo).
+   */
+  const MAX_IMPORT_MO = 25;
+  let importEnCours = $state(false);
+
+  async function recharger() {
+    try { radios = (await api.getRadios({ limit: 500 })) ?? []; } catch { /* la liste actuelle reste */ }
+  }
+
+  async function importer(e: Event) {
+    const champ = e.currentTarget as HTMLInputElement;
+    const fichier = champ.files?.[0];
+    champ.value = '';
+    if (!fichier) return;
+    if (fichier.size > MAX_IMPORT_MO * 1024 * 1024) {
+      notifications.error($t('radio.fileTooLarge' as any)
+        .replace('{size}', String(Math.round(fichier.size / 1048576)))
+        .replace('{max}', String(MAX_IMPORT_MO)));
+      return;
+    }
+    importEnCours = true;
+    try {
+      const r = await api.importRadios(fichier);
+      notifications.success($t('radio.importResult' as any)
+        .replace('{imported}', String(r.imported))
+        .replace('{skipped}', String(r.skipped)));
+      await recharger();
+    } catch (err: any) {
+      notifications.error(err?.message || $t('common.error' as any));
+    }
+    importEnCours = false;
+  }
+
+  async function exporter() {
+    try {
+      await api.exporterRadiosM3u();
+    } catch (err: any) {
+      notifications.error(err?.message || $t('common.error' as any));
+    }
+  }
+
   function tech(r: RadioStation): string {
     return [r.codec?.toUpperCase(), r.country].filter(Boolean).join(' · ');
   }
@@ -181,6 +228,15 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
         </button>
       </div>
+      <label class="v2-btn" class:occupe={importEnCours} title={$t('radio.import' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        {$t('radio.import' as any)}
+        <input type="file" accept=".m3u,.m3u8,.pls" hidden disabled={importEnCours} onchange={importer} />
+      </label>
+      <button class="v2-btn" onclick={exporter} title={$t('radio.export' as any)} disabled={!radios.length}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        {$t('radio.export' as any)}
+      </button>
       <button class="v2-btn primaire" onclick={nouvelleStation}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         {$t('v2.radio.create' as any)}
@@ -251,6 +307,13 @@
           : radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x));
         enEdition = null;
       }}
+      onDeleted={(id) => {
+        radios = radios.filter((x) => x.id !== id);
+        if (playingId === id) playingId = null;
+      }}
+      onCoverChanged={(maj) => {
+        radios = radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x));
+      }}
     />
   {/if}
 </section>
@@ -291,6 +354,8 @@
   .ronglets{display:flex; gap:8px; padding:0 30px 12px}
   .ronglets .rn{font:11px var(--v2-mono); opacity:.7; margin-left:5px}
   .bascule{display:flex; gap:4px}
+  label.v2-btn{cursor:pointer}
+  label.v2-btn.occupe{opacity:.5; cursor:progress}
   .bascule .v2-btn{padding:6px 9px}
   .bascule .v2-btn svg{width:15px; height:15px}
   .bascule .v2-btn.on{border-color:var(--v2-acc1); color:var(--v2-acc1)}

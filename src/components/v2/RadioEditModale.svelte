@@ -20,6 +20,7 @@
   import { portail } from '../../lib/portail';
   import { champsRadioAEnvoyer } from '../../lib/champsRadio';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   import type { RadioStation } from '../../lib/types';
 
   /**
@@ -40,8 +41,18 @@
     radio: RadioStation;
     onClose: () => void;
     onSaved?: (maj: RadioStation) => void;
+    /**
+     * La station vient d'être SUPPRIMÉE — l'écran la retire de sa liste.
+     *
+     * Porté depuis l'écran actuel (`RadiosView`, bouton corbeille) avant la
+     * phase 5 : sans lui, une station ajoutée par erreur ne pouvait plus être
+     * retirée depuis le nouveau client.
+     */
+    onDeleted?: (id: number) => void;
+    /** La pochette a changé ; la modale RESTE ouverte, la liste se met à jour. */
+    onCoverChanged?: (maj: RadioStation) => void;
   }
-  let { radio, onClose, onSaved }: Props = $props();
+  let { radio, onClose, onSaved, onDeleted, onCoverChanged }: Props = $props();
 
   let nom = $state(radio.name ?? '');
   let flux = $state(radio.stream_url ?? '');
@@ -97,6 +108,48 @@
     travail = false;
   }
 
+  /**
+   * Supprimer la station, après la confirmation v2 (jamais `window.confirm`).
+   * Même texte que l'écran actuel : `radio.deleteConfirm`.
+   */
+  async function supprimer() {
+    if (radio.id == null || travail) return;
+    if (!(await dialogs.confirm($t('radio.deleteConfirm' as any), { danger: true }))) return;
+    travail = true;
+    try {
+      await api.deleteRadio(radio.id);
+      onDeleted?.(radio.id);
+      onClose();
+    } catch (err: any) {
+      notifications.error(err?.message ?? $t('common.error' as any));
+    }
+    travail = false;
+  }
+
+  /**
+   * Téléverser une image comme pochette (`POST /radios/{id}/artwork`).
+   *
+   * L'URL de logo du formulaire reste le chemin ordinaire ; celui-ci sert
+   * quand on n'a qu'un FICHIER — le cas qui renvoyait à l'écran actuel.
+   */
+  let envoiPochette = $state(false);
+  async function televerserPochette(e: Event) {
+    const champ = e.currentTarget as HTMLInputElement;
+    const fichier = champ.files?.[0];
+    champ.value = '';
+    if (!fichier || radio.id == null) return;
+    envoiPochette = true;
+    try {
+      const maj = await api.uploadRadioCover(radio.id, fichier);
+      logo = maj.logo_url ?? logo;
+      onCoverChanged?.(maj);
+      notifications.success($t('radio.coverUploaded' as any));
+    } catch (err: any) {
+      notifications.error(err?.message ?? $t('common.error' as any));
+    }
+    envoiPochette = false;
+  }
+
   function auClavier(e: KeyboardEvent) {
     if (e.key === 'Escape') onClose();
   }
@@ -120,9 +173,19 @@
         <label><span>{$t('v2.radio.country' as any)}</span><input bind:value={pays} /></label>
       </div>
       <label><span>{$t('v2.radio.logo' as any)}</span><input bind:value={logo} type="url" /></label>
+      {#if !creation}
+        <!-- Un FICHIER image, à défaut d'une adresse : `uploadRadioCover`. -->
+        <label class="fichier">
+          <span class="bouton">{envoiPochette ? $t('radio.uploadingCover' as any) : $t('v2.radio.uploadCover' as any)}</span>
+          <input type="file" accept="image/*" hidden disabled={envoiPochette} onchange={televerserPochette} />
+        </label>
+      {/if}
       <label><span>{$t('v2.radio.site' as any)}</span><input bind:value={site} type="url" /></label>
 
       <div class="pied">
+        {#if !creation}
+          <button type="button" class="danger" disabled={travail} onclick={supprimer}>{$t('common.delete' as any)}</button>
+        {/if}
         <button type="button" class="sec" onclick={onClose}>{$t('common.cancel' as any)}</button>
         <button type="submit" class="pri" disabled={travail || !nom.trim() || !flux.trim() || !modifie}>
           {$t('common.save' as any)}
@@ -155,4 +218,9 @@
   .sec:hover{color:var(--v2-txt)}
   .pri{border:0; background:var(--v2-acc1); color:var(--v2-on-acc)}
   .pri:disabled{opacity:.5; cursor:default}
+  .danger{margin-right:auto; border:1px solid var(--v2-danger); background:transparent; color:var(--v2-danger)}
+  .danger:disabled{opacity:.5; cursor:default}
+  .fichier .bouton{display:inline-block; width:auto; margin:0; padding:7px 12px; border:1px dashed var(--v2-line2);
+    border-radius:8px; cursor:pointer; font:600 12px var(--v2-sans); letter-spacing:0; text-transform:none; color:var(--v2-txt2)}
+  .fichier .bouton:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
 </style>
