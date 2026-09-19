@@ -44,7 +44,7 @@
   // faisait rien, sans message (#3732).
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { togglePlayPause } from '../../lib/playback-controls';
-  import { formatTime } from '../../lib/utils';
+  import { formatTime, formatDuration } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
   import { salutation } from '../../lib/salutation';
@@ -143,6 +143,8 @@
     elements: Element[];
     chiffres: { cle: string; valeur: string }[];
     raison?: string;
+    /** Bilan de la bande (`Widget.resume`), quand elle en déclare un. */
+    resume?: api.ResumeAjoutsRecents | null;
   }
   let etats = $state<Etat[]>([]);
   const etatDe = (id: string) => etats.find((e) => e.id === id);
@@ -291,6 +293,13 @@
     // temps — l'effet repartait à chaque étape.
     const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones) };
     const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
+    // Le bilan part EN MÊME TEMPS que la liste, et son échec ne la touche
+    // pas : la bande reste utile sans compte.
+    if (w.resume) {
+      Promise.resolve(w.resume(ctx))
+        .then((r) => majEtat(id, { resume: r ?? null }))
+        .catch(() => majEtat(id, { resume: null }));
+    }
 
     avecDelai(Promise.resolve(p))
       .then((r: any) => {
@@ -707,6 +716,13 @@
                 </span>
               {/if}
               <h2>{$t(w.cleTitre as any)}</h2>
+              {#if et?.resume}
+                <!-- #3039 — le bilan de la MÊME fenêtre que la bande. -->
+                <span class="resume">{$t('library.recentCounts' as any)
+                  .replace('{a}', String(et.resume.album_count))
+                  .replace('{t}', String(et.resume.track_count))
+                  .replace('{h}', formatDuration(et.resume.duration_ms))}</span>
+              {/if}
               {#if edition}
                 <!-- #880 — le libellé vivait dans le seul `aria-label` : lu par un lecteur
                      d'écran, JAMAIS affiché à la souris. Sandro (fil 1679) a traversé
@@ -985,6 +1001,7 @@
   .bloc.cible{border-top-color:var(--v2-acc1)}
   .tete{display:flex; align-items:center; gap:9px; padding:0 30px 10px}
   .tete h2{font-size:15px; font-weight:700; flex:1}
+  .tete .resume{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap}
   .poignee{display:grid; place-items:center; width:24px; height:24px; border-radius:6px; cursor:grab;
     color:var(--v2-txt3); background:var(--v2-surface2)}
   .poignee:hover{color:var(--v2-txt)}

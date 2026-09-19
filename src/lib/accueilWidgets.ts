@@ -112,6 +112,15 @@ export interface Widget {
   /** Chiffres d'un widget de statistiques. */
   chiffres?: (ctx: Contexte) => Promise<{ cle: string; valeur: string }[]>;
   /**
+   * Le BILAN d'une bande, affiché sous son titre — « 7 albums · 71 pistes ·
+   * 5 h 55 min » pour les ajouts récents (#3039).
+   *
+   * Un champ de la bande, pas un widget « chiffres » de plus : le bilan porte
+   * sur la MÊME fenêtre que la liste, et deux widgets séparés pourraient être
+   * posés l'un sans l'autre. Échec silencieux : la bande reste utile sans lui.
+   */
+  resume?: (ctx: Contexte) => Promise<api.ResumeAjoutsRecents>;
+  /**
    * Ce que la bande contient, quand ça compte pour la disposition par défaut.
    *
    * `'a-moi'` marque ce qui appartient à l'utilisateur — ses albums favoris,
@@ -159,6 +168,8 @@ export interface Contexte {
  * règle d'affichage.
  */
 const LIMITE = 50;
+/** Plafond des ajouts récents — celui de l'ancien écran (#3039). */
+const PLAFOND_AJOUTS = 500;
 
 /** Première valeur non vide parmi les noms donnés. */
 function champ(o: any, ...noms: string[]): string | undefined {
@@ -591,6 +602,29 @@ export const WIDGETS: Widget[] = [
     charger: async () =>
       utiles(liste(await api.getRecentAlbums(LIMITE)).map((o, i) => versElement(o, i, 'alb'))),
   },
+  /**
+   * AJOUTS RÉCENTS SUR UNE FENÊTRE — renesenses/tune-server-rust#3039, Sevy
+   * Tabroc (forum 1630) : « les albums que j'ai récemment ajoutés », avec « la
+   * possibilité de choisir entre les derniers quinze jours et/ou le dernier
+   * mois ».
+   *
+   * L'écran qui le faisait (`LibraryView`, onglet « Ajouts récents ») part avec
+   * l'ancienne interface. `recemment-ajoutes` ci-dessus ne le remplace PAS :
+   * `/library/albums/recent` n'a pas de fenêtre, et ne dit rien du volume. Ici,
+   * `/home/recently-added?days=` et son bilan `/summary` sur la MÊME fenêtre —
+   * compte fait par le serveur sur la vraie date d'ajout.
+   *
+   * Une bande par fenêtre, les deux que le testeur demande. Le plafond est
+   * celui de l'ancien écran : au-delà, c'est une bibliothèque, pas un récent.
+   */
+  ...([15, 30] as const).map((jours): Widget => ({
+    id: `ajouts-${jours}-jours`,
+    cleTitre: `v2.home.wAdded${jours}`,
+    forme: 'bande',
+    charger: async () =>
+      utiles(liste(await api.getRecentlyAdded(jours, PLAFOND_AJOUTS)).map((o, i) => versElement(o, i, `aj${jours}-`))),
+    resume: () => api.getRecentlyAddedSummary(jours),
+  })),
   {
     id: 'recemment-ecoutes',
     cleTitre: 'v2.home.wRecentlyPlayed',
@@ -708,6 +742,46 @@ export const WIDGETS: Widget[] = [
     forme: 'bande',
     charger: async () =>
       utiles(liste(await api.getHomeRecommendations()).slice(0, LIMITE).map((o, i) => versElement(o, i, 'rec'))),
+  },
+  /**
+   * LES TITRES LES PLUS ÉCOUTÉS — `/library/history/top-tracks`. Le tableau de
+   * bord de l'ancienne interface les montrait (`DashboardHighlights`) ; il part
+   * avec elle. Une piste locale se joue par son `track_id` (`geste`).
+   */
+  {
+    id: 'plus-ecoutes',
+    cleTitre: 'v2.home.wTopTracks',
+    forme: 'bande',
+    charger: async () =>
+      utiles(liste(await api.getTopTracks(LIMITE)).map((o, i) => versElement(o, i, 'top'))),
+  },
+  /**
+   * MIX PAR GENRE — `/home/top-mixes` : pour chacun des cinq genres les plus
+   * écoutés, vingt pistes de la bibliothèque tirées au hasard. Venait lui
+   * aussi de `DashboardHighlights`.
+   *
+   * Le titre est le GENRE, pas le `title` du serveur : celui-ci est écrit en
+   * français côté serveur (« Mix Jazz ») et resterait tel quel dans les dix
+   * autres langues. Le clic joue les vingt pistes, dans l'ordre rendu.
+   */
+  {
+    id: 'mix-genres',
+    cleTitre: 'v2.home.wGenreMixes',
+    forme: 'bande',
+    charger: async () =>
+      utiles(
+        liste(await api.getTopMixes()).map((m: any, i: number) => {
+          const pistes: any[] = Array.isArray(m?.tracks) ? m.tracks : [];
+          const ids = pistes.map((p) => p?.id).filter((x): x is number => typeof x === 'number' && x > 0);
+          return {
+            id: `mix${i}-${champ(m, 'genre') ?? ''}`,
+            titre: champ(m, 'genre', 'title') ?? '—',
+            sous: pistes.map((p) => champ(p, 'artist_name')).filter(Boolean).slice(0, 3).join(', ') || undefined,
+            cover: champ(pistes.find((p) => champ(p, 'cover_path')) ?? {}, 'cover_path') ?? null,
+            jouer: ids.length ? (z: number) => api.play(z, { track_ids: ids }) : undefined,
+          };
+        }),
+      ),
   },
   {
     id: 'radios-artistes',

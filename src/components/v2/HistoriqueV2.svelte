@@ -37,6 +37,7 @@
   } from '../../lib/historiqueParContexte';
   import { NomsDePlaylists, type FichePlaylist } from '../../lib/nomsDePlaylists';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import StatistiquesEcouteV2 from './StatistiquesEcouteV2.svelte';
   import { preferences } from '../../lib/stores/preferences';
   import { colonnesRetenues } from '../../lib/colonnesPistes';
   import '../../styles/tune-v2.css';
@@ -99,6 +100,12 @@
    * figé ici s'en serait détaché en silence.
    */
   const LARGEUR_SUFFIXE = '164px';
+
+  /**
+   * Le JOURNAL (ce qui a joué, dans l'ordre) ou les STATISTIQUES (le tableau
+   * de bord de l'ancienne interface, qui part avec elle — phase 5, web#1257).
+   */
+  let onglet = $state<'journal' | 'stats'>('journal');
 
   let serveur = $state<HistoryEntry[]>([]);
   let favorisRadio = $state(new Set<string>());
@@ -227,16 +234,24 @@
       <div class="v2-eyebrow">{$tr('v2.hist.eyebrow' as any)}</div>
       <h1>{$tr('history.title')}</h1>
     </div>
-    {#if entrees.length}
-      <div class="v2-actions">
+    <div class="v2-actions">
+      {#if onglet === 'journal' && entrees.length}
         <div class="meta"><span>{entrees.length} {$tr('history.plays')}</span></div>
         <button class="v2-btn danger" onclick={vider} disabled={vidage}>{$tr('history.clear')}</button>
-      </div>
-    {/if}
+      {/if}
+      <nav class="onglets" role="tablist">
+        <button role="tab" aria-selected={onglet === 'journal'} class:on={onglet === 'journal'}
+          onclick={() => (onglet = 'journal')}>{$tr('v2.hist.tabJournal' as any)}</button>
+        <button role="tab" aria-selected={onglet === 'stats'} class:on={onglet === 'stats'}
+          onclick={() => (onglet = 'stats')}>{$tr('v2.hist.tabStats' as any)}</button>
+      </nav>
+    </div>
   </header>
 
   <div class="scroll">
-    {#if !entrees.length}
+    {#if onglet === 'stats'}
+      <StatistiquesEcouteV2 />
+    {:else if !entrees.length}
       <div class="state">{$tr('history.noHistory')}</div>
     {:else}
       <!-- #1149 — les deux colonnes de queue du tableau, posées une fois pour
@@ -371,6 +386,11 @@
   .v2-hist{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
   .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .onglets{display:flex; gap:4px}
+  .onglets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
+  .onglets button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .onglets button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
