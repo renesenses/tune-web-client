@@ -6449,6 +6449,8 @@ export interface ApplianceStatus {
   wifi_connected: boolean;
   wifi_ssid: string | null;
   wifi_signal: number | null;
+  /** Motif quand `nmcli` n'a pas répondu : l'état réseau est alors inconnu, pas vide. */
+  network_error?: string | null;
 }
 
 /** Like apiFetch/apiPost but surfaces the server's JSON error message. */
