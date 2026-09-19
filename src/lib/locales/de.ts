@@ -4739,6 +4739,12 @@ export default {
   "upnp.availability.disabled": "Server deaktiviert",
   "upnp.availability.unknown": "Status unbekannt",
   "upnp.availability.hint": "Letzter bekannter Serverstatus; der Katalog bleibt durchsuchbar.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "Wiedergabe verweigern, statt die Abtastrate umzurechnen, wenn der Ausgang die Rate der Quelle nicht abspielt.",
+  "bitperfect.refused": "Strikt bit-perfect: Wiedergabe verweigert — der Ausgang spielt {requested} kHz nicht ohne Umrechnung ab (er läuft mit {device} kHz). Deaktivieren Sie „Bit-perfect strict“ in den Zoneneinstellungen, um mit Umrechnung abzuspielen.",
+  "bitperfect.pureDegraded": "PURE eingeschränkt — {from} → {to} kHz, nicht bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz, nicht bit-perfect",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];
