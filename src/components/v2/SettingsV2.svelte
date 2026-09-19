@@ -1711,6 +1711,137 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await api.stopServer(); } catch { /* attendu : le serveur meurt */ }
   }
 
+  /**
+   * Éteindre la MACHINE — appliance Tune OS uniquement. Porté de l'ancienne
+   * interface.
+   *
+   * On ne remet PAS le bouton à son état initial ensuite : la machine s'arrête,
+   * et proposer de recommencer ferait croire que ça n'a pas marché. Une
+   * coupure réseau est attendue — le serveur peut mourir avant de répondre.
+   * Une réponse HTTP d'erreur, elle, prouve que la machine n'a pas accepté
+   * l'ordre : le bouton redevient utilisable et le dit.
+   */
+  let extinctionEnCours = $state(false);
+  async function eteindreLaMachine() {
+    if (!(await dialogs.confirm(get(t)('diagnostics.confirmShutdown' as any), { danger: true }))) return;
+    extinctionEnCours = true;
+    try {
+      await api.applianceShutdown();
+    } catch (e) {
+      const msg = errText(e);
+      // `null` : coupure de transport générique, attendue pendant l'extinction.
+      if (msg !== null) { extinctionEnCours = false; notifications.error(msg); }
+    }
+  }
+
+  /* --- Appliance Tune OS : stockage (docs/DATA-RELOCATION.md) -------------
+   *
+   * Porté de l'ancienne interface, seul écran qui le montrait : où vivent les
+   * données, les déplacer sur un disque, monter un disque détecté comme source
+   * de musique (cas Gil : SATA interne non monté), et installer Tune OS sur un
+   * disque interne. Deux de ces gestes sont IRRÉVERSIBLES — déplacer redémarre
+   * le serveur, installer EFFACE un disque — et gardent leurs verrous.
+   */
+  let dataStatus = $state<api.ApplianceDataStatus | null>(null);
+  let dataVolumes = $state<api.ApplianceVolume[]>([]);
+  let dataDisks = $state<api.ApplianceDisk[]>([]);
+  let dataUnmounted = $state<api.ApplianceUnmountedPartition[]>([]);
+  let dataMoving = $state(false);
+  let dataDone = $state(false);
+  let dataError = $state('');
+  let musicMountBusy = $state('');
+  let musicMountMsg = $state('');
+  let installBusy = $state(false);
+  let installDone = $state(false);
+  let installWritten = $state(0);
+  let installError = $state('');
+  let applianceLu = false; // pas réactif : une seule lecture
+
+  async function loadApplianceStorage() {
+    try {
+      dataStatus = await api.getApplianceDataStatus();
+      const st = await api.getApplianceStorage();
+      dataVolumes = st.volumes;
+      dataDisks = st.disks ?? [];
+      dataUnmounted = st.unmounted_partitions ?? [];
+    } catch { /* hors appliance ou serveur ancien : rien à montrer */ }
+  }
+  $effect(() => {
+    if (isAppliance === true && !applianceLu) { applianceLu = true; void loadApplianceStorage(); }
+  });
+
+  function octetsLisibles(n: number): string {
+    if (!n) return '0 o';
+    const u = ['o', 'Ko', 'Mo', 'Go', 'To'];
+    let i = 0; let v = n;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${u[i]}`;
+  }
+
+  async function relocateData(vol: api.ApplianceVolume) {
+    if (!vol.uuid || dataMoving) return;
+    const nom = vol.label || vol.device;
+    if (!(await dialogs.confirm(get(t)('settings.dataMoveConfirm').replace('{disk}', nom), { danger: true }))) return;
+    // Le garde a été lu AVANT la modale, qui rend la main : un second clic
+    // l'aurait franchi pendant l'attente. Deux relocalisations ne doivent pas
+    // partir — on revérifie.
+    if (dataMoving) return;
+    dataMoving = true; dataError = ''; dataDone = false;
+    try {
+      await api.applianceRelocateData(vol.uuid);
+      for (;;) {
+        await new Promise((res) => setTimeout(res, 2000));
+        dataStatus = await api.getApplianceDataStatus();
+        const j = dataStatus?.job;
+        if (!j) continue;
+        if (j.phase === 'done') { dataDone = true; await api.restartServer().catch(() => {}); break; }
+        if (j.phase === 'failed') { dataError = j.error || 'failed'; break; }
+      }
+    } catch (e: any) {
+      dataError = e?.message ?? String(e);
+    }
+    dataMoving = false;
+  }
+
+  async function useAsMusicSource(part: api.ApplianceUnmountedPartition) {
+    if (musicMountBusy) return;
+    musicMountBusy = part.uuid; musicMountMsg = '';
+    try {
+      const m = await api.applianceMountVolume(part.uuid);
+      await api.addMusicDir(m.mount_path);
+      musicMountMsg = get(t)('settings.diskMusicAdded').replace('{name}', part.label || part.name);
+      await loadApplianceStorage();
+      await refreshLibrary();
+    } catch (e: any) {
+      musicMountMsg = e?.message ?? String(e);
+    }
+    musicMountBusy = '';
+  }
+
+  async function installToDisk(disk: api.ApplianceDisk) {
+    if (installBusy) return;
+    const tape = await dialogs.prompt(
+      get(t)('settings.installConfirmPrompt').replace('{disk}', `${disk.name} (${disk.size} ${disk.model})`.trim()),
+    );
+    // Effacer un disque exige de TAPER le mot, pas un clic.
+    if (tape !== 'EFFACER') return;
+    if (installBusy) return; // même raison que `dataMoving`
+    installBusy = true; installError = ''; installDone = false;
+    try {
+      await api.applianceInstallToDisk(disk.name);
+      for (;;) {
+        await new Promise((res) => setTimeout(res, 2000));
+        const st = await api.applianceInstallStatus();
+        installWritten = st.written_bytes;
+        if (st.phase === 'done') { installDone = true; break; }
+        if (st.phase === 'failed') { installError = st.error || 'failed'; break; }
+      }
+    } catch (e: any) {
+      installError = e?.message ?? String(e);
+    }
+    installBusy = false;
+  }
+
   /** Traduit le refus du serveur. Repris tel quel du client actuel. */
   function updMotifRefus(res: any): string {
     const brut = String(res?.message ?? res?.status ?? '');
@@ -2643,6 +2774,80 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               <p class="hint">{$t('settings.dataLocationHint' as any)}</p>
 
+              {#if isAppliance === true}
+                <!-- Tune OS : où vivent les données, et les déplacer. -->
+                {#if dataStatus}
+                  <p class="hint">
+                    {dataStatus.db_path} · {octetsLisibles(dataStatus.data_size_bytes)} ·
+                    {dataStatus.on_external ? $t('settings.dataOnDisk' as any) : $t('settings.dataOnKey' as any)}
+                  </p>
+                {/if}
+                {#if dataDone}<p class="hint">{$t('settings.dataMoveDone' as any)}</p>{/if}
+                {#if dataError}<div class="errline">{dataError}</div>{/if}
+                {#if dataMoving && dataStatus?.job}
+                  <p class="hint">{$t('settings.dataMoving' as any)} — {octetsLisibles(dataStatus.job.copied_bytes)} / {octetsLisibles(dataStatus.job.total_bytes)}</p>
+                {:else if !dataDone}
+                  <div class="devlist">
+                    {#each dataVolumes as vol (vol.device)}
+                      <div class="dev ign">
+                        <span class="dn">{vol.label || vol.device}</span>
+                        <span class="dt">{vol.fs}</span>
+                        <span class="dh">
+                          {$t('settings.dataFree' as any).replace('{free}', octetsLisibles(vol.free_bytes)).replace('{size}', octetsLisibles(vol.size_bytes))}
+                        </span>
+                        {#if vol.is_data_target}
+                          <span class="sst ok">{$t('settings.dataCurrent' as any)}</span>
+                        {:else if vol.uuid}
+                          <button class="lnk" disabled={dataMoving} onclick={() => relocateData(vol)}>{$t('settings.dataMove' as any)}</button>
+                        {:else}<span></span>{/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+
+                <!-- Disques détectés mais non montés : en faire une source de musique. -->
+                {#if dataUnmounted.length}
+                  <p class="hint" style="margin-top:14px">{$t('settings.disksDetected' as any)}</p>
+                  {#if musicMountMsg}<p class="hint">{musicMountMsg}</p>{/if}
+                  <div class="devlist">
+                    {#each dataUnmounted as part (part.uuid)}
+                      <div class="dev ign">
+                        <span class="dn">{part.label || part.name}</span>
+                        <span class="dt">{part.fstype}</span>
+                        <span class="dh">{part.disk_model || part.disk}{part.tran === 'usb' ? ' · USB' : ''} · {part.size}</span>
+                        <button class="lnk" disabled={!!musicMountBusy} onclick={() => useAsMusicSource(part)}>
+                          {musicMountBusy === part.uuid ? '…' : $t('settings.diskUseAsMusic' as any)}
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+
+                <!-- Installer Tune OS sur un disque interne : EFFACE le disque. -->
+                {#if dataDisks.some((d) => !d.is_boot && d.tran !== 'usb')}
+                  <div class="danger-box">
+                    <p><b>{$t('settings.installTitle' as any)}</b> — {$t('settings.installHint' as any)}</p>
+                    {#if installDone}
+                      <p>{$t('settings.installDone' as any)}</p>
+                    {:else if installBusy}
+                      <p>{$t('settings.installWriting' as any)} — {octetsLisibles(installWritten)}</p>
+                    {:else}
+                      {#if installError}<div class="errline">{installError}</div>{/if}
+                      <div class="devlist">
+                        {#each dataDisks.filter((d) => !d.is_boot && d.tran !== 'usb') as disk (disk.name)}
+                          <div class="dev ign">
+                            <span class="dn">{disk.name}</span>
+                            <span class="dt">{disk.model}</span>
+                            <span class="dh">{disk.size}</span>
+                            <button class="lnk danger" onclick={() => installToDisk(disk)}>{$t('settings.installButton' as any)}</button>
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              {/if}
+
             {:else if s.id === 'exportCsv'}
               <p class="hint">
                 {$t('v2.hint.csvExport' as any)}
@@ -3364,6 +3569,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <button class="lnk danger" disabled={arretEnCours} onclick={arreterLeServeur}>
                   {arretEnCours ? $t('settings.stoppingServer' as any) : $t('settings.stopServer' as any)}
                 </button>
+                {#if isAppliance === true}
+                  <button class="lnk danger" disabled={extinctionEnCours} onclick={eteindreLaMachine}>
+                    {extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}
+                  </button>
+                {/if}
               </div>
               <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici
                    comme dans la coquille actuelle. -->
