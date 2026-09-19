@@ -17,7 +17,13 @@ describe('Recherche v2 (retours Bertrand, 05/09/2026)', () => {
 
   it("les SERVICES ne sont plus derrière un niveau d'interface", () => {
     // Le défaut : `if (advanced) { federatedSearch(...) } else { fed = {} }`.
-    expect(src).toContain('api.federatedSearch(query)');
+    //
+    // 🔴 Ce qui est gardé, c'est que l'appel EXISTE et n'est sous aucune
+    // condition de niveau — pas l'orthographe de ses arguments. La garde
+    // épinglait `api.federatedSearch(query)` au caractère près et rougissait
+    // sur l'ajout du jeton `streaming` (19/09/2026), qui ne remet aucun
+    // service derrière un niveau.
+    expect(src).toMatch(/api\.federatedSearch\(\s*query\b/);
     expect(src).not.toMatch(/if\s*\(\s*advanced\s*\)/);
     expect(src).not.toContain("atLeast($preferences.settingsLevel, 'intermediate')");
   });

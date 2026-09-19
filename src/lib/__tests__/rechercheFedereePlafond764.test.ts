@@ -52,6 +52,19 @@ describe('Le plafond de la recherche fédérée', () => {
     const v0 = readFileSync('src/components/SearchView.svelte', 'utf8');
     const v2 = readFileSync('src/components/v2/SearchV2.svelte', 'utf8');
     expect(v0).toContain('api.federatedSearch(searchQuery.trim(), activeSources)');
-    expect(v2).toContain('api.federatedSearch(query)');
+    // 🔴 Ce qui est gardé ici, c'est « PAS de plafond explicite », pas
+    // l'orthographe de l'appel. `limit` est le TROISIÈME paramètre : nommer
+    // les sources en deuxième ne le touche pas.
+    //
+    // La garde épinglait `api.federatedSearch(query)` au caractère près, et
+    // rougissait dès qu'on ajoutait un argument sans rapport avec le plafond
+    // (le jeton `streaming` du deuxième temps, 19/09/2026). Elle mesure
+    // désormais ce qu'elle annonce.
+    const appel = v2.match(/api\.federatedSearch\(([^)]*)\)/);
+    expect(appel, 'SearchV2 doit appeler la recherche fédérée').not.toBeNull();
+    const args = appel![1].split(',').map((a) => a.trim());
+    expect(args[0]).toBe('query');
+    expect(args.length, `un troisième argument imposerait un plafond : ${appel![0]}`)
+      .toBeLessThanOrEqual(2);
   });
 });
