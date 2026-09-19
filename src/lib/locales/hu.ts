@@ -701,6 +701,8 @@ export default {
   "playlist.remove": "Eltávolítás",
   "playlist.addToPlaylist": "Hozzáadás lejátszási listához",
   "playlist.addedTo": "Hozzáadva ehhez: <strong>{name}</strong>",
+  "playlist.addFailed": "A hozzáadás nem sikerült: a szolgáltatás elutasította ezt a lejátszási listát.",
+  "playlist.servicePlaylistsOf": "{service}-lejátszási listáid",
   "playlist.noExisting": "Nincs meglévő lejátszási lista",
   "playlist.newPlaylist": "Új lejátszási lista",
   "playlist.searchPlaceholder": "Keresés a lejátszási listákban...",

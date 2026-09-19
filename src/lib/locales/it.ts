@@ -517,6 +517,8 @@ export default {
   'playlist.addToPlaylist': 'Aggiungi a una playlist',
   'playlist.addedTo': 'Aggiunto a <strong>{name}</strong>',
   'playlist.noExisting': 'Nessuna playlist esistente',
+  'playlist.addFailed': 'Aggiunta non riuscita: il servizio ha rifiutato questa playlist.',
+  'playlist.servicePlaylistsOf': 'Le tue playlist {service}',
   'playlist.newPlaylist': 'Nuova playlist',
   'playlist.searchPlaceholder': 'Cerca playlist...',
   'playlist.localPlaylists': 'Le mie playlist',

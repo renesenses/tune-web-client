@@ -486,6 +486,8 @@ export default {
   'playlist.addToPlaylist': 'Lägg till i spellista',
   'playlist.addedTo': 'Tillagd i <strong>{name}</strong>',
   'playlist.noExisting': 'Inga befintliga spellistor',
+  'playlist.addFailed': 'Det gick inte att lägga till: tjänsten avvisade den här spellistan.',
+  'playlist.servicePlaylistsOf': 'Dina {service}-spellistor',
   'playlist.newPlaylist': 'Ny spellista',
   'playlist.searchPlaceholder': 'Sök spellistor...',
   'playlist.localPlaylists': 'Mina spellistor',

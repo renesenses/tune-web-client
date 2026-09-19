@@ -79,6 +79,7 @@
   import { t } from '../../lib/i18n';
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste } from '../../lib/menuPiste';
+  import { serviceDePlaylist } from '../../lib/playlistService';
   import type { Track } from '../../lib/types';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
 
@@ -350,6 +351,7 @@
         albumDeService,
         artisteDeService,
         etiquetable: cibleEtiquettes != null,
+        playlistDeService: serviceDePlaylist(piste),
       },
       {
         lire: () => lire(new MouseEvent('click')),
@@ -409,7 +411,10 @@
       </svg>
     </button>
   {/if}
-  {#if jouable}
+  <!-- #1268 : une piste de SERVICE ne va que dans une playlist de SON service
+       (`playlistService.ts`). Pour un service qui ne sait pas écrire, le bouton
+       ouvrait les playlists Tune et l'ajout s'y perdait en silence. -->
+  {#if jouable && (local || serviceDePlaylist(piste))}
     <button class="pa" onclick={(e) => { stop(e); modalePlaylist = true; }}
             title={$t('v2.pa.playlist' as any)} aria-label={$t('v2.pa.playlist' as any)}>
       <!-- 🔴 Le glyphe des PLAYLISTS, celui de la barre laterale — pas une

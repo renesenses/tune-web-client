@@ -517,6 +517,8 @@ export default {
   'playlist.addToPlaylist': 'Añadir a una lista de reproducción',
   'playlist.addedTo': 'Añadida a <strong>{name}</strong>',
   'playlist.noExisting': 'Sin listas de reproducción existentes',
+  'playlist.addFailed': 'No se pudo añadir: el servicio rechazó esta lista.',
+  'playlist.servicePlaylistsOf': 'Tus listas de {service}',
   'playlist.newPlaylist': 'Nueva lista de reproducción',
   'playlist.searchPlaceholder': 'Buscar listas...',
   'playlist.localPlaylists': 'Mis listas de reproducción',
