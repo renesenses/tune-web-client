@@ -53,6 +53,32 @@
 
   const creation = $derived(radio.id == null);
 
+  /*
+   * Téléverser une image comme pochette de la station — porté de l'ancien
+   * écran Radios, seul à le permettre. Ici on ne pouvait que coller une URL :
+   * un logo qu'on a sur son disque restait inutilisable. La route écrit tout
+   * de suite, indépendamment du formulaire ; l'adresse rendue remplace le
+   * champ « logo ».
+   */
+  let televersement = $state(false);
+  async function televerserPochette(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (!f || radio.id == null) return;
+    televersement = true;
+    try {
+      const maj = await api.uploadRadioCover(radio.id, f);
+      logo = maj.logo_url ?? logo;
+      onSaved?.(maj);
+      notifications.success($t('radio.coverUploaded' as any));
+    } catch (err: any) {
+      notifications.error(err?.message ?? $t('common.error' as any));
+    } finally {
+      televersement = false;
+    }
+  }
+
   const modifie = $derived(
     nom !== (radio.name ?? '') ||
       flux !== (radio.stream_url ?? '') ||
@@ -120,6 +146,12 @@
         <label><span>{$t('v2.radio.country' as any)}</span><input bind:value={pays} /></label>
       </div>
       <label><span>{$t('v2.radio.logo' as any)}</span><input bind:value={logo} type="url" /></label>
+      {#if !creation}
+        <label class="fichier">
+          <span>{televersement ? $t('radio.uploadingCover' as any) : $t('radio.orClickToUpload' as any)}</span>
+          <input type="file" accept="image/*" onchange={televerserPochette} disabled={televersement} />
+        </label>
+      {/if}
       <label><span>{$t('v2.radio.site' as any)}</span><input bind:value={site} type="url" /></label>
 
       <div class="pied">

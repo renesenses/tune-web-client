@@ -1,4 +1,5 @@
 <script lang="ts">
+  import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
   import { t } from '../../lib/i18n';
   import { zoneRequise } from '../../lib/zoneRequise';
   /**
@@ -80,7 +81,7 @@
   // sur Qobuz. Deux gestes differents, deux onglets (Bertrand, 28/08).
   // Bandcamp garde deux entrees seulement : il n'a pas de playlists, sa
   // « collection » EST l'ensemble de ce qu'on y possede.
-  type Sub = 'editorial' | 'genres' | 'playlists' | 'favorites' | 'mine';
+  type Sub = 'editorial' | 'genres' | 'playlists' | 'favorites' | 'mine' | 'ytmusic';
   let sub = $state<Sub>('editorial');
 
   let q = $state('');
@@ -353,6 +354,13 @@
    * `/ext/bandcamp/tags`, pas par `/streaming/…`, et elle a son propre onglet.
    */
   const ongletGenres = $derived(!isBc && aUnOngletGenres(svcGenres));
+  /**
+   * Tendances et Ambiances de YouTube Music, portées de l'ancien écran
+   * Streaming. Propre à YouTube par nature — ses routes sont
+   * `/streaming/youtube/charts` et `/moods` — et non une liste de services
+   * figée : la garde de l'onglet Genres (`streamingOngletGenres`) reste tenue.
+   */
+  const ongletYouTube = $derived(active === 'youtube');
   const SUBS = $derived<{ id: Sub; label: string }[]>(
     isBc
       // BANDCAMP A SON ONGLET GENRES, par une AUTRE route (Bertrand, 04/09/2026).
@@ -376,7 +384,8 @@
          // genres. Les genres avaient une section tout EN BAS de l'éditorial :
          // il fallait dérouler la page entière pour tomber dessus. C'est une
          // navigation, pas un complément de fin de page (Bertrand, 01/09/2026).
-         ...(ongletGenres ? [{ id: 'genres' as Sub, label: $t('common.genres' as any) }] : [])]
+         ...(ongletGenres ? [{ id: 'genres' as Sub, label: $t('common.genres' as any) }] : []),
+         ...(ongletYouTube ? [{ id: 'ytmusic' as Sub, label: $t('v2.str.discover' as any) }] : [])]
   );
   const label = (k: string) => (k === BANDCAMP ? 'Bandcamp' : k.charAt(0).toUpperCase() + k.slice(1));
 
@@ -988,6 +997,9 @@
 
     {:else if paneLoading}
       <div class="state">{$t('v2.common.loading' as any)}</div>
+
+    {:else if sub === 'ytmusic' && ongletYouTube}
+      <YouTubeDecouverteV2 />
 
     {:else if sub === 'editorial'}
       {#if isBc}

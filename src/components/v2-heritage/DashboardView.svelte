@@ -1,13 +1,13 @@
 <script lang="ts">
-  import * as api from '../lib/api';
-  import type { DashboardData, DashboardPeriod, SlotTrack } from '../lib/api';
-  import { t } from '../lib/i18n';
-  import { activeView } from '../lib/stores/navigation';
-  import { selectedAlbum, selectedArtist, libraryTab, commencerFicheAlbum, poserPistesAlbum, fermerFicheAlbum, artistAlbums } from '../lib/stores/library';
-  import { artworkSrc } from '../lib/api';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
+  import * as api from '../../lib/api';
+  import type { DashboardData, DashboardPeriod, SlotTrack } from '../../lib/api';
+  import { t } from '../../lib/i18n';
+  import { activeView } from '../../lib/stores/navigation';
+  import { selectedAlbum, selectedArtist, libraryTab, commencerFicheAlbum, poserPistesAlbum, fermerFicheAlbum, artistAlbums } from '../../lib/stores/library';
+  import { artworkSrc } from '../../lib/api';
+  import { currentZone, playAndSync } from '../../lib/stores/zones';
   import DashboardHighlights from './DashboardHighlights.svelte';
-  import HeartButton from './partages/HeartButton.svelte';
+  import HeartButton from '../partages/HeartButton.svelte';
 
   let tree = $state<Record<string, string[]>>({});
 
@@ -324,8 +324,8 @@
           a.download = 'tune-history.csv';
           a.click();
         }}
-        title="Export CSV"
-      >⬇ CSV</button>
+        title={$t('settings.exportCsv')}
+      >⬇ {$t('settings.exportCsv')}</button>
     </div>
   </header>
 
@@ -891,5 +891,11 @@
 
   @media (max-width: 700px) {
     .totals { grid-template-columns: repeat(2, 1fr); }
+  }
+  /* Monté DANS la coquille v2 (phase 5, lot 4) : la grappe de lecture est en
+     position absolue au-dessus des écrans ; sans cette réserve, la barre
+     d'outils de l'écran passerait dessous (garde `gouttiereGrappe`). */
+  .dashboard {
+    padding-right: var(--v2-grappe-w, 172px);
   }
 </style>

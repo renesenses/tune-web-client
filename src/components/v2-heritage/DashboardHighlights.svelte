@@ -13,21 +13,21 @@
    * avec ces six chargements indépendants.
    */
   import { onMount } from 'svelte';
-  import { formatNombre } from '../lib/formats';
-  import { activeView } from '../lib/stores/navigation';
-  import { currentZone, playAndSync } from '../lib/stores/zones';
-  import { playFromHere } from '../lib/playback';
-  import { } from '../lib/utils';
-  import { t } from '../lib/i18n';
-  import * as api from '../lib/api';
-  import AlbumArt from './partages/AlbumArt.svelte';
-  import ServiceBadge from './partages/ServiceBadge.svelte';
-  import type { Track, Source, TopTrack, TopArtist } from '../lib/types';
+  import { formatNombre } from '../../lib/formats';
+  import { activeView } from '../../lib/stores/navigation';
+  import { currentZone, playAndSync } from '../../lib/stores/zones';
+  import { playFromHere } from '../../lib/playback';
+  import { } from '../../lib/utils';
+  import { t } from '../../lib/i18n';
+  import * as api from '../../lib/api';
+  import AlbumArt from '../partages/AlbumArt.svelte';
+  import ServiceBadge from '../partages/ServiceBadge.svelte';
+  import type { Track, Source, TopTrack, TopArtist } from '../../lib/types';
   import {
     ouvrirAlbum as navigateToAlbum,
     ouvrirArtiste as navigateToArtist,
     ouvrirArtisteParNom as navigateArtistByName,
-    ouvrirBibliotheque as goToLibrary } from '../lib/libraryNavigation';
+    ouvrirBibliotheque as goToLibrary } from '../../lib/libraryNavigation';
 
   let zone = $derived($currentZone);
 

@@ -60,6 +60,7 @@ import {
 import { queueTracks, queuePosition, queueLength } from './stores/queue';
 import { handleAudioLevelsEvent } from './stores/audioLevels';
 import { notifications } from './stores/notifications';
+import { tachesDeFond } from './stores/tachesDeFond';
 import { t } from './i18n';
 import { signalerErreurServeur } from './echecLecture';
 import { playbackHistory } from './stores/history';
@@ -272,6 +273,13 @@ export function demarrerTransportV2(): () => void {
   const desabonnerEvents = tuneWS.onEvent((event: any) => {
     const type = event?.type as string | undefined;
     if (!type) return;
+
+    // Tâches de fond (#2227) — portées d'`App.svelte`, que cette coquille ne
+    // monte pas. La barre latérale en tire sa ligne « enrichissement en cours ».
+    if (type === 'system.background_tasks') {
+      tachesDeFond.set(Array.isArray(event.data?.tasks) ? event.data.tasks : []);
+      return;
+    }
 
     // Répétition et aléatoire : le `snapshot` en est la SEULE source.
     if (type === 'snapshot' && Array.isArray(event.data?.zones)) {

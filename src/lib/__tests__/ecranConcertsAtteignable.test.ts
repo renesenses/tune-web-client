@@ -21,7 +21,7 @@ function lire(chemin: string): string {
 const SIDEBAR = lire('../../components/Sidebar.svelte');
 const APP = lire('../../App.svelte');
 const NAVIGATION = lire('../stores/navigation.ts');
-const ECRAN = lire('../../components/ConcertsView.svelte');
+const ECRAN = lire('../../components/v2-heritage/ConcertsView.svelte');
 
 describe('écran Concerts — le chaînage complet', () => {
   it("'concerts' est une vue déclarée", () => {
@@ -29,7 +29,7 @@ describe('écran Concerts — le chaînage complet', () => {
   });
 
   it("l'application aiguille bien vers l'écran", () => {
-    expect(APP).toContain("import ConcertsView from './components/ConcertsView.svelte'");
+    expect(APP).toContain("import ConcertsView from './components/v2-heritage/ConcertsView.svelte'");
     expect(APP).toContain("$activeView === 'concerts'");
     expect(APP).toContain('<ConcertsView />');
   });

@@ -1,13 +1,13 @@
 <script lang="ts">
   import { get } from 'svelte/store';
-  import { dialogs } from '../lib/stores/dialogs';
-  import * as api from '../lib/api';
-  import { t } from '../lib/i18n';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import * as api from '../../lib/api';
+  import { t } from '../../lib/i18n';
   // #914 — l'infobulle ne s'affiche que si le texte DÉBORDE vraiment,
   // et suit les changements de taille et de contenu (`lib/infobulleTexte`).
-  import { bulleTexte } from '../lib/infobulleTexte';
-  import { notifications } from '../lib/stores/notifications';
-  import AlbumArt from './partages/AlbumArt.svelte';
+  import { bulleTexte } from '../../lib/infobulleTexte';
+  import { notifications } from '../../lib/stores/notifications';
+  import AlbumArt from '../partages/AlbumArt.svelte';
 
   interface OfflineDownload {
     id: string;
@@ -650,5 +650,11 @@
     .track-right {
       display: none;
     }
+  }
+  /* Monté DANS la coquille v2 (phase 5, lot 4) : la grappe de lecture est en
+     position absolue au-dessus des écrans ; sans cette réserve, la barre
+     d'outils de l'écran passerait dessous (garde `gouttiereGrappe`). */
+  .offline-view {
+    padding-right: var(--v2-grappe-w, 172px);
   }
 </style>

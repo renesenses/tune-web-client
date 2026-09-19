@@ -108,7 +108,7 @@ describe("Aucun appelant de ServiceBadge ne replie sur 'local'", () => {
   // d'affichage de provenance et restent en place.
   const APPELANTS = [
     'src/components/FavoritesView.svelte',
-    'src/components/DashboardHighlights.svelte',
+    'src/components/v2-heritage/DashboardHighlights.svelte',
     'src/components/HomeView.svelte',
     'src/components/LibraryView.svelte',
     'src/components/QueueView.svelte',
