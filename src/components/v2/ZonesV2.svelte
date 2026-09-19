@@ -29,12 +29,12 @@
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import { activeView } from '../../lib/stores/navigation';
-  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
-  import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
   import GroupesZonesV2 from './GroupesZonesV2.svelte';
   import LatenceZonesV2 from './LatenceZonesV2.svelte';
   import GroupesOaatV2 from './GroupesOaatV2.svelte';
+  import { activeView } from '../../lib/stores/navigation';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
+  import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
