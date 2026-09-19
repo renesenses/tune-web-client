@@ -103,3 +103,13 @@ SQLite ↔ PostgreSQL, documentation de l’API, documentation des greffons,
 portées par #1304 (télémétrie), #1305 (journaux, nettoyage, cache), #1306
 (base de données) et #1307 (documentation, « Quoi de neuf ») : voir les
 sections qui suivent.
+
+## Angle mort (hors `api.ts`) — journalisation, nettoyage, cache
+
+| Écran supprimé | Route | Chemin v2 |
+|---|---|---|
+| `SettingsView` | `GET` / `POST /system/log-level` (niveau des journaux serveur) | ✅ **porté** (`feat/v2-porte-maintenance`) : Réglages › Système › Santé du serveur (niveau Expert, comme avant), `api.getLogLevel` / `api.setLogLevel` ; l'écran dit que le niveau s'applique pleinement au redémarrage (`note` du serveur) et traite le `200 { error }` d'un niveau refusé comme un échec |
+| `DiagnosticsView` | `POST /system/cleanup` (nettoyage serveur) | ✅ **porté** : même section, `api.cleanupServer`, derrière `dialogs.confirm` (danger) ; affiche les champs que le serveur rend réellement (`duplicate_albums_merged`, `orphan_*`, `duplicate_tracks_removed`, `db_optimized`) — l'ancien écran lisait `stale_artwork_deleted`, `old_history_deleted`, `db_vacuumed`, qui n'existent plus |
+| `DiagnosticsView` | `POST /system/clear-cache` (« Vider le cache artwork ») | ✅ **porté** sous son vrai nom, « Effacer le rapport d'analyse » : `api.clearScanReport`, derrière `dialogs.confirm`. Le serveur (`config::clear_cache`) n'efface que le réglage `scan_result` et répond `{ cleared: true }` — l'ancien écran annonçait « true fichiers supprimés » |
+
+Témoin : `src/lib/__tests__/maintenanceServeurV2.test.ts`.
