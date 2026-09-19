@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { publierGreffons } from '../../lib/stores/greffonsStudio';
   import { t } from '../../lib/i18n';
   /**
    * Extensions — nouveau client (direction Levente). Niveau Expert.
@@ -29,7 +30,7 @@
   let tab = $state<'installed' | 'all'>('installed');
 
   async function reload() {
-    try { plugins = (await api.getMergedPlugins()) ?? []; error = null; }
+    try { plugins = (await api.getMergedPlugins()) ?? []; publierGreffons(plugins); error = null; }
     catch { error = $t('v2.plug.unavailable' as any); }
     loading = false;
   }
