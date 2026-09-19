@@ -2180,7 +2180,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <button class="lnk" onclick={startCovers}>{$t('v2.set.start' as any)}</button>
               </div>
-              <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
 
             {:else if s.id === 'ingest'}
@@ -2589,6 +2589,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {/if}
 
                       <!--
+                        BIT-PERFECT STRICT — renesenses/tune-server-rust#3973,
+                        option 3 de Bertrand. Par défaut, une sortie qui ne lit
+                        pas la fréquence de la source la reçoit CONVERTIE, et le
+                        chemin du signal le dit (« PURE dégradé — 192 → 96 kHz »).
+                        Coché, Tune refuse de jouer plutôt que de convertir.
+
+                        Masqué quand la zone ne publie pas `strict_bitperfect` :
+                        un vieux serveur l'ignorerait, et un interrupteur sans
+                        effet ment.
+                      -->
+                      {#if typeof z.strict_bitperfect === 'boolean'}
+                        <div class="strict-bloc">
+                          <label class="zf chk strict-bitperfect">
+                            <input type="checkbox" checked={z.strict_bitperfect}
+                              onchange={(e) => setZoneField(z, () => api.updateZoneStrictBitperfect(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                            <span>{$t('bitperfect.strictLabel' as any)}</span>
+                          </label>
+                          <p class="monote">{$t('bitperfect.strictHelp' as any)}</p>
+                        </div>
+                      {/if}
+
+                      <!--
                         CANAUX — chantier « multicanal », Bertrand 19/09/2026 :
                         « dans les réglages de l'appareil, permettre la sélection
                         du nombre de canaux », pour des utilisateurs en 5.1 que
@@ -2990,7 +3012,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/each}
                 </div>
               {/if}
-              <p class="hint">{#each emphaseParts($t('settings.backgroundTasksHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <p class="hint">{#each emphaseParts($t('settings.backgroundTasksHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <!--
                 🔴 LES DEUX GESTES DE SERVICE, en permanence — pas seulement
                 après une mise à jour. Ils vivent ICI, sous l'état du serveur,
@@ -3722,6 +3744,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
   .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
+  /* #3973 — « Bit-perfect strict » : sa ligne, sous les réglages de la zone. */
+  .strict-bloc{margin-top:10px}
+  .strict-bloc .zf.chk{align-self:auto; padding-bottom:0}
+  .strict-bloc .monote{margin-top:4px}
   .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:13px}
   /* Chantier multicanal — le sélecteur de disposition, aligné sur `.trim`. */
   .canaux{display:flex; align-items:center; gap:10px; margin-top:8px}

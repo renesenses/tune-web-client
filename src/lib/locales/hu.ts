@@ -3602,13 +3602,13 @@ export default {
   "settings.enrichMetadataHint": "Kiegészíti az előadókat, éveket, műfajokat és azonosítókat nyilvános adatbázisokból. A fájljai címkéit soha nem írja felül.",
   "settings.facetsNavHint": "Szempontok szerinti böngészés — műfaj, előadó, év, formátum… — nagy lemeztár bejárásához.",
   "settings.copyTokenNowWarning": "Másolja most: többé nem jelenik meg. Indítsa újra a kiszolgálót az aktiváláshoz.",
-  "settings.acousticPassesHint": "Ezek a menetek több percig tartanak. Előrehaladásuk a *Processing* alatt követhető.",
+  "settings.acousticPassesHint": "Ezek a menetek több percig tartanak. Előrehaladásuk a *{tab}* alatt követhető.",
   "settings.cloudScopeHint": "A *távoli elérés* (Tune Bridge) az *Audio* fülön állítható be. A beállítások mentése és visszaállítása a *Rendszer* fülön található.",
   "settings.configBackupHint": "A kiszolgáló beállításainak mentése — mappák, zónák, hangbeállítások. *Egyetlen zenefájlt* és *egyetlen szolgáltatásjelszót sem* tartalmaz.",
   "settings.fixedVolumeWarning": "A fix hangerő bekapcsolása ezen a *hálózati* zónán *100 %*-ot küld a készüléknek: az erősítő teljes hangerőre megy. Írja be: *100* a megerősítéshez.",
   "settings.removeFolderHint": "Egy mappa eltávolítása *egyetlen fájlt sem* töröl: csak kikerül a könyvtárból.",
   "settings.needsFullScanHint": "Ez a beállítás csak *teljes elemzés* után lép életbe.",
-  "settings.backgroundTasksHint": "A háttérfeldolgozás a *Processing* alatt követhető.",
+  "settings.backgroundTasksHint": "A háttérfeldolgozás a *{tab}* alatt követhető.",
   "settings.perZoneScopeHint": "Ezek a beállítások MINDEN zónához külön tartoznak: a kimenetet követik, nem a hallgatást.",
   "settings.levelsOpenMoreTabs": "A Haladó és a Szakértő szint további füleket nyit meg.",
   "settings.themePalettesHint": "Hat paletta. Az új kliens saját beállítása — a jelenlegi felület témája külön marad.",
@@ -4701,6 +4701,12 @@ export default {
   "upnp.availability.disabled": "Kiszolgáló letiltva",
   "upnp.availability.unknown": "Ismeretlen állapot",
   "upnp.availability.hint": "A kiszolgáló utolsó ismert állapota; a katalógus továbbra is böngészhető.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "A lejátszás megtagadása a mintavételi frekvencia átalakítása helyett, ha a kimenet nem tudja lejátszani a forrás frekvenciáját.",
+  "bitperfect.refused": "Szigorú bit-perfect: a lejátszás megtagadva — a kimenet nem tudja átalakítás nélkül lejátszani a(z) {requested} kHz-et (jelenleg {device} kHz-en fut). Az átalakítással történő lejátszáshoz kapcsold ki a „Bit-perfect strict” beállítást a zóna beállításaiban.",
+  "bitperfect.pureDegraded": "PURE korlátozott — {from} → {to} kHz, nem bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz, nem bit-perfect",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

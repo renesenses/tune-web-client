@@ -2335,13 +2335,13 @@ export default {
   "settings.enrichMetadataHint": "Complète artistes, années, genres et identifiants depuis les bases publiques. Les tags de vos fichiers ne sont jamais écrasés.",
   "settings.facetsNavHint": "Navigation par facettes — genre, artiste, année, format… — pour explorer une grosse discothèque.",
   "settings.copyTokenNowWarning": "Copiez-le maintenant : il ne sera plus jamais affiché. Redémarrez le serveur pour l'activer.",
-  "settings.acousticPassesHint": "Ces passes durent plusieurs minutes. Leur avancement se suit dans *Processing*.",
+  "settings.acousticPassesHint": "Ces passes durent plusieurs minutes. Leur avancement se suit dans *{tab}*.",
   "settings.cloudScopeHint": "L'*accès distant* (Tune Bridge) se règle dans l'onglet *Audio*. La sauvegarde et la restauration de la configuration vivent dans l'onglet *Système*.",
   "settings.configBackupHint": "Sauvegarde de la configuration du serveur — dossiers, zones, réglages audio. Ne contient *aucun fichier de musique* et *aucun mot de passe de service*.",
   "settings.fixedVolumeWarning": "Activer le volume fixe sur cette zone *réseau* envoie *100 %* à l'appareil : l'ampli part à fond. Tapez *100* pour confirmer.",
   "settings.removeFolderHint": "Retirer un dossier ne supprime *aucun fichier* : il sort simplement de la bibliothèque.",
   "settings.needsFullScanHint": "Ce réglage ne s'applique qu'après une *analyse complète*.",
-  "settings.backgroundTasksHint": "Les traitements de fond se suivent dans *Processing*.",
+  "settings.backgroundTasksHint": "Les traitements de fond se suivent dans *{tab}*.",
   "settings.perZoneScopeHint": "Ces réglages sont propres à CHAQUE zone : ils suivent la sortie, pas l'écoute.",
   "settings.levelsOpenMoreTabs": "Les niveaux Avancé et Expert ouvrent d'autres onglets.",
   "settings.themePalettesHint": "Six palettes. Réglage propre au nouveau client — le thème de l'interface actuelle reste séparé.",
@@ -4765,6 +4765,12 @@ export default {
   "upnp.availability.disabled": "Serveur désactivé",
   "upnp.availability.unknown": "État inconnu",
   "upnp.availability.hint": "Dernier état connu du serveur ; le catalogue reste consultable.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "Refuser la lecture plutôt que convertir la fréquence quand la sortie ne lit pas celle de la source.",
+  "bitperfect.refused": "Bit-perfect strict : lecture refusée — la sortie ne lit pas le {requested} kHz sans conversion (elle tourne à {device} kHz). Désactivez « Bit-perfect strict » dans les réglages de la zone pour jouer avec conversion.",
+  "bitperfect.pureDegraded": "PURE dégradé — {from} → {to} kHz, pas bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz, pas bit-perfect",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
