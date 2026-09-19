@@ -64,6 +64,9 @@ import { t } from './i18n';
 import { signalerErreurServeur } from './echecLecture';
 import { playbackHistory } from './stores/history';
 import { noterSiDebutDEcoute } from './historiqueEcoutes';
+import { appliquerEvenementAudioNavigateur } from './audioNavigateurSync';
+import { isBrowserZone, browserPlay, browserPause, browserResume, browserStop } from './stores/browserAudio';
+import { urlFlux } from './bridge';
 import {
   seekPositionMs,
   startSeekTimer,
@@ -429,6 +432,37 @@ export function demarrerTransportV2(): () => void {
          */
         const courante = get(currentZone) as any;
         const emettrice = (get(zones) as any[]).find((z) => z?.id === zid);
+
+        /**
+         * 🔴 #1171 — L'AUDIO NAVIGATEUR, QUE CETTE COQUILLE NE PILOTAIT PAS.
+         *
+         * Bilou, fil 1770 (0.9.148, Windows) : « vider la file d'attente ne
+         * coupe pas la lecture en cours ». Quand la zone sort sur le
+         * navigateur, c'est un élément `<audio>` local qui joue : le serveur ne
+         * peut pas l'arrêter, il émet `playback.stopped` et c'est au client
+         * d'appeler `browserStop()`.
+         *
+         * Cet appel vivait dans `App.svelte`, que `?v2` ne monte jamais. Ni
+         * l'arrêt, ni la pause, ni la reprise, ni le rechargement au changement
+         * de piste n'atteignaient donc l'élément. Même défaut que #889, au même
+         * endroit — la règle est partagée, pas recopiée.
+         *
+         * APRÈS `rechargerZones()` : c'est lui qui rafraîchit `stream_url`, et
+         * le changement de piste en a besoin.
+         */
+        appliquerEvenementAudioNavigateur(
+          type,
+          emettrice,
+          (zz) => isBrowserZone(zz as any),
+          (zz) => urlFlux((zz as any)?.stream_url, (zz as any)?.stream_url_remote) ?? undefined,
+          {
+            jouer: (src, forcer) => browserPlay(src, forcer),
+            pause: () => browserPause(),
+            reprendre: (src) => browserResume(src),
+            arreter: () => browserStop(),
+          },
+        );
+
         noterSiDebutDEcoute(
           type, zid, courante, emettrice,
           nowPlayingToTrack,

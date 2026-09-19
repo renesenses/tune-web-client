@@ -27,6 +27,7 @@ import { vueDepuisHash } from './lib/routeAuChargement';
   import { setupKeyboardShortcuts } from './lib/keyboard';
   import { playbackHistory } from './lib/stores/history';
   import { noterSiDebutDEcoute } from './lib/historiqueEcoutes';
+  import { appliquerEvenementAudioNavigateur } from './lib/audioNavigateurSync';
   import { handleAudioLevelsEvent } from './lib/stores/audioLevels';
   import { zoneInitiale } from './lib/zoneInitiale';
   import { startUpdatePolling, stopUpdatePolling, updateAvailable, latestVersion, currentVersion, updateBannerDismissed, dismissUpdateBanner } from './lib/stores/updates';
@@ -1297,28 +1298,26 @@ import AlarmsView from './components/AlarmsView.svelte';
               }
             }
 
-            // Browser audio sync — when the zone uses browser output,
-            // control the local HTML5 <audio> element based on WS events.
-            if (isBrowserZone(z)) {
-              if (type === 'playback.paused') {
-                browserPause();
-              } else if (type === 'playback.stopped') {
-                browserStop();
-              } else if (type === 'playback.resumed') {
-                // Même règle que resumeAndSync : browserResume sait
-                // recharger tout seul quand la source est morte.
-                browserResume(urlFlux(z?.stream_url, (z as any)?.stream_url_remote) ?? undefined);
-              } else if (type === 'playback.started' || type === 'playback.track_changed') {
-                // Force a reload on a track change: the next track may reuse the
-                // same per-zone stream URL, and without this the ended element
-                // just replays the old track (album "repeats" — Elie).
-                // A travers le relais, `stream_url` pointe sur une adresse LAN
-                // qui ne mene nulle part depuis l'exterieur. Le serveur annonce
-                // aussi `stream_url_remote` : c'est celle-la qu'il faut.
-                const src = urlFlux(z?.stream_url, (z as any)?.stream_url_remote);
-                if (src) browserPlay(src, type === 'playback.track_changed');
-              }
-            }
+            // L'audio navigateur — la MÊME règle que la nouvelle coquille.
+            //
+            // Elle vivait ici, et ici seulement : `?v2` monte `ShellV2` à la
+            // place de ce composant, et aucun événement du serveur n'atteignait
+            // l'élément `<audio>` — vider la file laissait le morceau aller
+            // jusqu'au bout (#1171, serveur #4090, Bilou). Elle est désormais
+            // dans `lib/audioNavigateurSync`, tenue par les deux.
+            appliquerEvenementAudioNavigateur(
+              type,
+              z,
+              (zz) => isBrowserZone(zz as any),
+              (zz) =>
+                urlFlux((zz as any)?.stream_url, (zz as any)?.stream_url_remote) ?? undefined,
+              {
+                jouer: (src, forcer) => browserPlay(src, forcer),
+                pause: () => browserPause(),
+                reprendre: (src) => browserResume(src),
+                arreter: () => browserStop(),
+              },
+            );
 
             // L'historique local — la MÊME règle que la nouvelle coquille.
             //
