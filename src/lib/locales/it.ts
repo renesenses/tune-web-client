@@ -3065,7 +3065,7 @@ export default {
   "dsp.crossfeedPresetStrong": "Forte",
   "dsp.crossfeedUnavailableNetwork": "Senza effetto su questa zona (uscita di rete): il crossfeed è applicato solo da un'uscita locale del server.",
   "dsp.crossfeedUnavailablePure": "Senza effetto finché la modalità PURE è attiva: l'impostazione è conservata e riprenderà alla sua disattivazione.",
-  "dsp.crossfeedUnavailableProgressiveOff": "Per ora senza effetto: su una zona di rete il crossfeed viaggia con il flusso elaborato man mano. Imposta «Equalizzatore ed elaborazione → rete» su «Man mano» nelle Impostazioni per sentirlo.",
+  "dsp.crossfeedUnavailableProgressiveOff": "Per ora senza effetto: su una zona di rete il crossfeed viaggia con il flusso elaborato man mano. Nelle Impostazioni imposta il livello di visualizzazione su «Esperto», poi Audio → «Elaborazione sui lettori di rete»: imposta «Equalizzatore ed elaborazione → rete» su «Man mano».",
   "dsp.crossfeedUnavailableNoLpcm": "Senza effetto: questo lettore di rete non dichiara di saper leggere il PCM non compresso, l'unico formato che trasporta il crossfeed. L'impostazione è conservata e varrà per un'altra uscita.",
   "dsp.crossfeedUnavailablePremium": "Nessun effetto: il crossfeed fa parte di Tune Premium. L'impostazione è conservata e riprenderà con una licenza Premium.",
   "dsp.crossfeedUnavailablePlugin": "Nessun effetto: l'estensione crossfeed non è installata o è disattivata. Attivala in Impostazioni → Estensioni; l'impostazione è conservata.",

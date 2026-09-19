@@ -1412,7 +1412,7 @@ export default {
   'dsp.crossfeedPresetStrong': 'Fort',
   "dsp.crossfeedUnavailableNetwork": "Sans effet sur cette zone (sortie réseau) : le crossfeed n'est appliqué que par une sortie locale du serveur.",
   "dsp.crossfeedUnavailablePure": "Sans effet tant que le mode PURE est actif : le réglage est conservé et reprendra dès sa désactivation.",
-  "dsp.crossfeedUnavailableProgressiveOff": "Sans effet pour l'instant : sur une zone réseau, le crossfeed voyage avec le flux traité au fil de l'eau. Réglez « Égaliseur et traitements → réseau » sur « Au fil de l'eau » dans les Réglages pour l'entendre.",
+  "dsp.crossfeedUnavailableProgressiveOff": "Sans effet pour l'instant : sur une zone réseau, le crossfeed voyage avec le flux traité au fil de l'eau. Dans Réglages, passez le niveau d'affichage sur « Expert », puis Audio → « Traitement sur les lecteurs réseau » : réglez « Égaliseur et traitements → réseau » sur « Au fil de l'eau ».",
   "dsp.crossfeedUnavailableNoLpcm": "Sans effet : ce lecteur réseau n'annonce pas savoir lire le PCM non compressé, le seul format qui transporte le crossfeed. Le réglage est conservé et vaudra pour une autre sortie.",
   "dsp.crossfeedUnavailablePremium": "Sans effet : le crossfeed fait partie de Tune Premium. Le réglage est conservé et reprendra avec une licence Premium.",
   "dsp.crossfeedUnavailablePlugin": "Sans effet : l'extension crossfeed n'est pas installée ou est désactivée. Activez-la dans Réglages → Extensions ; le réglage est conservé.",

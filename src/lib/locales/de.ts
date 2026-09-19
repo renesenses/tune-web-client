@@ -3065,7 +3065,7 @@ export default {
   "dsp.crossfeedPresetStrong": "Stark",
   "dsp.crossfeedUnavailableNetwork": "Ohne Wirkung in dieser Zone (Netzwerkausgang): Crossfeed wird nur von einem lokalen Ausgang des Servers angewendet.",
   "dsp.crossfeedUnavailablePure": "Ohne Wirkung, solange der PURE-Modus aktiv ist: Die Einstellung bleibt erhalten und greift wieder, sobald PURE aus ist.",
-  "dsp.crossfeedUnavailableProgressiveOff": "Derzeit ohne Wirkung: In einer Netzwerkzone reist Crossfeed mit dem im Fluss verarbeiteten Stream. Stellen Sie „EQ und Verarbeitung → Netzwerk“ in den Einstellungen auf „Im Fluss“, um ihn zu hören.",
+  "dsp.crossfeedUnavailableProgressiveOff": "Derzeit ohne Wirkung: In einer Netzwerkzone reist Crossfeed mit dem im Fluss verarbeiteten Stream. Stellen Sie in den Einstellungen die Anzeigestufe auf „Experte“, dann Audio → „Verarbeitung auf Netzwerkplayern“: „EQ und Verarbeitung → Netzwerk“ auf „Im Fluss“.",
   "dsp.crossfeedUnavailableNoLpcm": "Ohne Wirkung: Dieser Netzwerkplayer gibt nicht an, unkomprimiertes PCM lesen zu können – das einzige Format, das Crossfeed überträgt. Die Einstellung bleibt erhalten und gilt für einen anderen Ausgang.",
   "dsp.crossfeedUnavailablePremium": "Ohne Wirkung: Crossfeed gehört zu Tune Premium. Die Einstellung bleibt erhalten und greift mit einer Premium-Lizenz wieder.",
   "dsp.crossfeedUnavailablePlugin": "Ohne Wirkung: Die Crossfeed-Erweiterung ist nicht installiert oder deaktiviert. Aktivieren Sie sie unter Einstellungen → Erweiterungen; die Einstellung bleibt erhalten.",

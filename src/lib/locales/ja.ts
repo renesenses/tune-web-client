@@ -3063,7 +3063,7 @@ export default {
   "dsp.crossfeedPresetStrong": "強",
   "dsp.crossfeedUnavailableNetwork": "このゾーンでは効果がありません（ネットワーク出力）：クロスフィードはサーバーのローカル出力でのみ適用されます。",
   "dsp.crossfeedUnavailablePure": "PURE モードが有効な間は効果がありません：設定は保持され、PURE を無効にすると再び適用されます。",
-  "dsp.crossfeedUnavailableProgressiveOff": "現在は効果がありません：ネットワークゾーンでは、クロスフィードは逐次処理される流れに乗ります。設定で「イコライザーと処理 → ネットワーク」を「逐次」にすると聞こえます。",
+  "dsp.crossfeedUnavailableProgressiveOff": "現在は効果がありません：ネットワークゾーンでは、クロスフィードは逐次処理される流れに乗ります。設定で表示レベルを「エキスパート」にし、Audio →「ネットワークプレーヤーでの処理」で「イコライザーと処理 → ネットワーク」を「逐次」にしてください。",
   "dsp.crossfeedUnavailableNoLpcm": "効果がありません：このネットワークプレーヤーは非圧縮 PCM を読めると通知していません。クロスフィードを運べるのはその形式だけです。設定は保持され、別の出力で有効になります。",
   "dsp.crossfeedUnavailablePremium": "効果なし：クロスフィードは Tune Premium の機能です。設定は保持され、Premium ライセンスで再び有効になります。",
   "dsp.crossfeedUnavailablePlugin": "効果なし：クロスフィード拡張機能がインストールされていないか、無効になっています。「設定 → 拡張機能」で有効にしてください。設定は保持されます。",
