@@ -4746,6 +4746,12 @@ export default {
   "upnp.availability.disabled": "サーバー無効",
   "upnp.availability.unknown": "状態不明",
   "upnp.availability.hint": "サーバーの最終確認状態です。カタログは引き続き閲覧できます。",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "出力がソースのサンプルレートを再生できない場合、変換せずに再生を拒否します。",
+  "bitperfect.refused": "厳格な bit-perfect：再生を拒否しました — 出力は {requested} kHz を変換なしで再生できません（{device} kHz で動作中）。変換して再生するには、ゾーン設定で「Bit-perfect strict」をオフにしてください。",
+  "bitperfect.pureDegraded": "PURE 劣化 — {from} → {to} kHz、bit-perfect ではありません",
+  "bitperfect.rateConversion": "{from} → {to} kHz、bit-perfect ではありません",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];
