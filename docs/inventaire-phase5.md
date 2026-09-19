@@ -1,5 +1,19 @@
 # Phase 5 — l'inventaire de ce qui part avec l'ancienne interface
 
+> 🔴 **CORRECTION DU 19/09/2026 — la première conclusion de ce document était
+> FAUSSE, et le manque est désormais comblé.**
+>
+> Il concluait qu'aucune fonction qui marche n'était détruite ; mesurées, 114
+> fonctions de `api.ts` n'avaient de chemin que par les vues supprimées. Elles
+> ont été portées en v2 (#1270, #1279, #1284, #1296, #1299, #1302). Mesure
+> finale : 25 orphelines, aucune capacité perdue — voir
+> `capacites-sans-chemin-phase5.md`.
+>
+> ⚠️ La liste des fichiers ci-dessous date d'AVANT le portage : douze d'entre
+> eux ont été déplacés dans `partages/` ou `v2-heritage/` et ne sont plus
+> supprimés. Supprimés au final : 52 fichiers `.svelte`.
+
+
 Calculé par accessibilité depuis les deux coquilles, le 19/09/2026.
 À recalculer avant d'exécuter : `main` bouge.
 

@@ -142,38 +142,3 @@ describe('les routes appelées sont celles du serveur au tag v0.9.127', () => {
   });
 });
 
-describe("l'écran branche bien le filtre et le retour en arrière", () => {
-  const vue = readFileSync(join('src', 'components', 'MetadataView.svelte'), 'utf8');
-
-  it('la liste des groupes passe par le filtre des arbitrages', () => {
-    // Sans ce filtre, l'arbitrage serait écrit sur le serveur et invisible
-    // ici : le groupe reviendrait au rendu suivant.
-    expect(vue).toMatch(/duplicateGroups = \$derived\(groupesRetenus\(duplicateGroupsBruts, ensembleDistinctes\)\)/);
-  });
-
-  it('le compteur dérive de la liste filtrée, pas des groupes bruts', () => {
-    // Depuis #670, la pastille montre d'ABORD les paires audio du scan quand
-    // il y en a. Le repli — le cas des albums au même nom, celui que #1276
-    // arbitre — doit rester branché sur la liste FILTRÉE : sinon l'arbitrage
-    // serait écrit sur le serveur et la pastille continuerait à compter la
-    // paire écartée.
-    expect(vue).toMatch(/copiesEnTrop\(duplicateGroups\)/);
-    expect(vue).not.toMatch(/copiesEnTrop\(duplicateGroupsBruts\)/);
-  });
-
-  it('les paires audio du scan priment sur le repli par nom (#670)', () => {
-    // Les deux règles cohabitent : l'arbitrage de #1276 porte sur des ALBUMS
-    // rapprochés par titre/artiste/qualité, jamais sur les paires de PISTES
-    // par empreinte audio. Il n'y a donc rien à retirer aux secondes.
-    const debut = vue.indexOf('let duplicateCount = $derived(');
-    expect(debut).toBeGreaterThan(-1);
-    const corps = vue.slice(debut, debut + 200);
-    expect(corps).toMatch(/duplicates\.length > 0 \? duplicates\.length/);
-    expect(corps).toContain('copiesEnTrop(duplicateGroups)');
-  });
-
-  it('un arbitrage posé par erreur est révocable depuis l\'écran', () => {
-    expect(vue).toContain('revoquerPaireDistincte');
-    expect(vue).toContain('metadata.notDuplicatesRevoke');
-  });
-});

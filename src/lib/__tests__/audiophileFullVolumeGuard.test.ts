@@ -6,10 +6,6 @@ const transport = readFileSync(
   resolve(__dirname, '../../components/partages/TransportBar.svelte'),
   'utf-8',
 );
-const settings = readFileSync(
-  resolve(__dirname, '../../components/SettingsView.svelte'),
-  'utf-8',
-);
 const api = readFileSync(resolve(__dirname, '../api.ts'), 'utf-8');
 const store = readFileSync(resolve(__dirname, '../stores/audiophile.ts'), 'utf-8');
 
@@ -55,9 +51,6 @@ describe('garde plein volume transversale (#2445)', () => {
     expect(store).toContain("if (enabled === true && !confirmFullVolume)");
     expect(store).toContain("throw new Error('full_volume_confirmation_required')");
     expect(store).toContain('_confirm_full_volume: true');
-    // Le double geste déjà livré dans les Paramètres transmet explicitement
-    // son accord au même contrat, au lieu de bénéficier d'un passe-droit.
-    expect(settings).toContain('setVolumeLock(true, true)');
   });
 
   it('le POST PURE ne transmet le témoin que sur confirmation', () => {

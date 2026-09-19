@@ -36,8 +36,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { mount, unmount } from 'svelte';
-
-import OutputModuleBanner from '../../components/OutputModuleBanner.svelte';
 import {
   COMPTE_NON_RELIE,
   MODULE_NON_POSSEDE,
@@ -160,13 +158,6 @@ const TEMOIN_COMPTE_RELIE = {
 let monte: Record<string, unknown> | null = null;
 let hote: HTMLDivElement | null = null;
 
-/** Monte `OutputModuleBanner` pour de vrai et rend le DOM produit. */
-function rendre(instantane: unknown): HTMLDivElement {
-  hote = document.createElement('div');
-  document.body.appendChild(hote);
-  monte = mount(OutputModuleBanner, { target: hote, props: { instantane } });
-  return hote;
-}
 
 afterEach(() => {
   if (monte) unmount(monte);
@@ -178,105 +169,6 @@ afterEach(() => {
 /** Les bandeaux effectivement rendus. */
 const bandeaux = (h: HTMLElement) => [...h.querySelectorAll('.output-module-banner')];
 
-describe('#2392 — le refus est rendu par le composant réel', () => {
-  it("nomme le module, dit que l'installation n'est pas en cause, et dit où cliquer", () => {
-    const h = rendre(COMPTE_NON_RELIE_REEL);
-
-    expect(bandeaux(h)).toHaveLength(1);
-    const texte = h.textContent ?? '';
-
-    // 1. Le module est reconnu — c'est ce qui aurait évité la réinstallation.
-    expect(texte).toContain('diretta');
-    expect(texte).toContain(fr['outputModule.notLinkedTitle'].replace('{module}', 'diretta'));
-
-    // 2. Ce qui manque est la connexion du compte, et la clé n'est pas en cause.
-    expect(texte).toContain(fr['outputModule.notLinkedBody']);
-
-    // 3. Où cliquer — un bouton, pas seulement une phrase.
-    const action = h.querySelector('button.output-module-banner-action');
-    expect(action).not.toBeNull();
-    expect(action?.textContent?.trim()).toBe(fr['outputModule.notLinkedAction']);
-  });
-
-  it("n'affiche JAMAIS le code technique à l'écran", () => {
-    // Un code à l'écran n'a jamais épargné une réinstallation à personne. Il
-    // reste dans le rapport de diagnostic, qui est sa place.
-    const texte = rendre(COMPTE_NON_RELIE_REEL).textContent ?? '';
-    expect(texte).not.toContain('module_account_not_linked');
-    expect(texte).not.toContain('module_required');
-    // Ni le `message` anglais du serveur, explicitement « jamais destiné à être
-    // affiché tel quel » (`premium_guard.rs`) : il traversait une interface
-    // traduite en onze langues sur #2419.
-    expect(texte).not.toContain('paid add-on');
-  });
-
-  it('distingue « compte non relié » de « module non possédé » : ni le même texte, ni la même action', () => {
-    const nonRelie = rendre(COMPTE_NON_RELIE_REEL).textContent ?? '';
-    if (monte) unmount(monte);
-    monte = null;
-    hote?.remove();
-
-    const h2 = rendre(MODULE_NON_POSSEDE_REEL);
-    const nonPossede = h2.textContent ?? '';
-
-    expect(nonPossede).not.toBe(nonRelie);
-    expect(nonPossede).toContain(fr['outputModule.notOwnedTitle'].replace('{module}', 'diretta'));
-    expect(nonPossede).toContain(fr['outputModule.notOwnedBody']);
-
-    // « Non possédé » est un ACHAT : un lien vers la boutique, pas le bouton
-    // « relier mon compte » — relier un compte déjà relié ne répare rien.
-    expect(h2.querySelector('button.output-module-banner-action')).toBeNull();
-    const lien = h2.querySelector('a.output-module-banner-action') as HTMLAnchorElement | null;
-    expect(lien).not.toBeNull();
-    expect(lien?.getAttribute('href')).toBe('https://mozaiklabs.fr/pricing');
-    expect(nonPossede).not.toContain(fr['outputModule.notLinkedAction']);
-    expect(nonPossede).not.toContain(fr['outputModule.notLinkedBody']);
-  });
-
-  it("l'URL d'achat vient du serveur et n'est jamais inventée", () => {
-    const sansUrl = structuredClone(MODULE_NON_POSSEDE_REEL) as Record<string, any>;
-    delete sansUrl.providers[0].refusal.upgrade_url;
-    const h = rendre(sansUrl);
-    // Le bandeau reste — on prévient, on ne masque pas — mais sans lien mort.
-    expect(bandeaux(h)).toHaveLength(1);
-    expect(h.querySelector('a.output-module-banner-action')).toBeNull();
-  });
-
-  it('prévient même sur un code de refus inconnu, plutôt que de se taire', () => {
-    const h = rendre({
-      account_linked: true,
-      licensed_modules: [],
-      providers: [
-        { provider: 'diretta', required_module: 'diretta', devices: 0, refusal: { code: 'un_refus_futur' } },
-      ],
-    });
-    expect(bandeaux(h)).toHaveLength(1);
-    expect(h.textContent ?? '').toContain(fr['outputModule.unknownBody']);
-  });
-});
-
-describe('#2392 — le témoin : un compte relié ne voit rien changer', () => {
-  it('ne rend AUCUN bandeau quand le module est possédé, même sans appareil trouvé', () => {
-    const h = rendre(TEMOIN_COMPTE_RELIE);
-    expect(bandeaux(h)).toHaveLength(0);
-    // Rien de visible : pas un élément, pas un caractère. Svelte laisse une
-    // ancre `<!---->` pour son `{#each}` vide — un commentaire, que l'on ne
-    // confond pas avec « rien affiché ».
-    expect(h.querySelectorAll('*')).toHaveLength(0);
-    expect(h.textContent?.trim()).toBe('');
-    expect(h.innerHTML.replace(/<!--.*?-->/g, '')).toBe('');
-  });
-
-  it.each([
-    ['un serveur antérieur à #2392 (champ absent)', undefined],
-    ['aucun fournisseur hors-arbre compilé (`null`)', null],
-    ['une liste de fournisseurs vide', { account_linked: false, licensed_modules: [], providers: [] }],
-    ['un instantané qui n\'est pas un objet', 'nawak'],
-    ['`providers` qui n\'est pas un tableau', { providers: 42 }],
-  ])('ne rend AUCUN bandeau pour %s', (_libelle, instantane) => {
-    expect(bandeaux(rendre(instantane))).toHaveLength(0);
-  });
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // La décision, isolée du rendu
@@ -333,37 +225,6 @@ describe('refusAAfficher', () => {
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 
-describe('#2392 — le bandeau est réellement monté par les écrans', () => {
-  it("l'écran des ZONES lit `output_providers` et monte le bandeau", () => {
-    // C'est LA décision de ce correctif. Diagnostics est l'endroit logique,
-    // mais ce n'est pas là que l'utilisateur va quand aucun appareil
-    // n'apparaît : le testeur Diretta a réinstallé son OS sans jamais ouvrir
-    // Diagnostics. Il est venu ici.
-    const vue = lire('src/components/ZoneManagerView.svelte');
-    expect(vue).toContain("import OutputModuleBanner from './OutputModuleBanner.svelte'");
-    expect(vue).toContain('api.getServerDiagnostics()');
-    expect(vue).toContain('output_providers');
-    expect(vue).toContain('<OutputModuleBanner instantane={instantaneFournisseurs} />');
-  });
-
-  it("l'écran Diagnostics monte le même bandeau, sans requête supplémentaire", () => {
-    const vue = lire('src/components/DiagnosticsView.svelte');
-    expect(vue).toContain("import OutputModuleBanner from './OutputModuleBanner.svelte'");
-    expect(vue).toContain('<OutputModuleBanner instantane={serverDiag?.output_providers} />');
-  });
-
-  it('le bandeau est hors du bloc « aucune zone » : il prévient, il ne se masque pas', () => {
-    // Le bloc de correction FIR masquait son contenu sur les zones
-    // incompatibles, ce qui avait fait conclure à un abonné Premium que la
-    // fonction n'existait pas. On ne recommence pas.
-    const vue = lire('src/components/ZoneManagerView.svelte');
-    const bandeau = vue.indexOf('<OutputModuleBanner');
-    const blocVide = vue.indexOf('$zones.length === 0');
-    expect(bandeau).toBeGreaterThan(-1);
-    expect(blocVide).toBeGreaterThan(-1);
-    expect(bandeau).toBeLessThan(blocVide);
-  });
-});
 
 describe('#2392 — les onze langues sont remplies', () => {
   const CLES = [

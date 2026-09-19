@@ -40,20 +40,8 @@ import { resolve } from 'node:path';
  * autrement.
  */
 
-const libraryView = readFileSync(
-  resolve(process.cwd(), 'src/components/LibraryView.svelte'),
-  'utf-8',
-);
 const api = readFileSync(resolve(process.cwd(), 'src/lib/api.ts'), 'utf-8');
 
-/** Le corps de `shuffleAllLibrary`, isolé du reste du composant. */
-function corpsDeShuffleAllLibrary(): string {
-  const debut = libraryView.indexOf('async function shuffleAllLibrary(');
-  expect(debut).toBeGreaterThan(-1);
-  const fin = libraryView.indexOf('\n  }', libraryView.indexOf('finally {', debut));
-  expect(fin).toBeGreaterThan(debut);
-  return libraryView.slice(debut, fin);
-}
 
 describe('api.shuffleAll transporte le répertoire', () => {
   it('accepte une option `folder`', () => {
@@ -73,10 +61,6 @@ describe('api.shuffleAll transporte le répertoire', () => {
 });
 
 describe('shuffleAllLibrary transmet la portée de répertoire', () => {
-  it('lit `scopedFolder` — la variable qui porte la pastille', () => {
-    // Le cœur de #2801 : cette fonction ne la lisait pas une seule fois.
-    expect(corpsDeShuffleAllLibrary()).toContain('scopedFolder');
-  });
 
   it("la met sous la clé `folder` — vérifié sur la RÈGLE, plus sur sa recopie", () => {
     // #882 — recopiait `opts.folder = scopedFolder` à la lettre. La
@@ -84,11 +68,6 @@ describe('shuffleAllLibrary transmet la portée de répertoire', () => {
     expect(optionsAleatoire({ dossier: '/data/music' })).toEqual({ folder: '/data/music' });
   });
 
-  it("passe bien la portée de l'écran à la règle", () => {
-    // Ce que l'écran doit faire : lui donner `scopedFolder`. Le reste est
-    // affaire de la règle, éprouvée à part.
-    expect(corpsDeShuffleAllLibrary()).toMatch(/dossier:\s*scopedFolder/);
-  });
 
   it("laisse partir la recherche AVEC le répertoire, pas à sa place", () => {
     // La zone de recherche ne fait que restreindre le sous-arbre affiché : les
@@ -106,38 +85,4 @@ describe('shuffleAllLibrary transmet la portée de répertoire', () => {
   });
 });
 
-describe("le retour anticipé du genre ne désarme pas la portée de répertoire", () => {
-  it('la branche « genre parent / sans genre » est gardée par `!scopedFolder`', () => {
-    // Piège d'appelant désarmé : cette branche rend la main (`return`) AVANT
-    // la construction d'`opts`. Pastille active, elle jouerait les albums d'un
-    // genre qui n'est plus à l'écran — les trois onglets ne chargent alors que
-    // le sous-arbre — et la portée ajoutée plus bas ne serait jamais atteinte.
-    const corps = corpsDeShuffleAllLibrary();
-    const branche = corps.slice(corps.indexOf('if (', corps.indexOf('selectedParent')));
-    expect(corps).toMatch(
-      /if \(!scopedFolder && !searchQuery\.trim\(\) && \(selectedParent \|\| selectedNoGenre\)/,
-    );
-    // Et cette garde est bien ANTÉRIEURE au `return` de la branche.
-    expect(branche.indexOf('!scopedFolder')).toBeLessThan(branche.indexOf('return;'));
-  });
-});
 
-describe("le bouton dit ce qu'il va faire", () => {
-  it('`scopedFolder` compte comme une portée pour le libellé et pour l’infobulle', () => {
-    // Capture 1 de Marco Polo : pastille « 80s 12 INCH COLLECTION » active, le
-    // bouton annonce toujours « Tout lire en aléatoire ». Le bouton disait la
-    // vérité — c'est la portée qui était perdue ; maintenant qu'elle passe, le
-    // libellé doit suivre.
-    expect(libraryView).toMatch(/let shuffleEstPorte = \$derived\(\s*!!\(scopedFolder \|\|/);
-  });
-
-  it("le libellé et l'infobulle lisent la MÊME expression", () => {
-    // Elles portaient deux copies de la condition, à recopier à chaque ajout —
-    // c'est ainsi que `scopedFolder` a pu manquer aux deux.
-    const occurrences = libraryView.match(/shuffleEstPorte \?/g) ?? [];
-    expect(occurrences).toHaveLength(2);
-    expect(libraryView).not.toMatch(
-      /searchQuery\.trim\(\) \|\| selectedGenre \|\| selectedParent \|\| selectedNoGenre \?/,
-    );
-  });
-});

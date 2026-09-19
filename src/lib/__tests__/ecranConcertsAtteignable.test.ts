@@ -18,8 +18,10 @@ function lire(chemin: string): string {
   return readFileSync(resolve(__dirname, chemin), 'utf8');
 }
 
-const SIDEBAR = lire('../../components/Sidebar.svelte');
-const APP = lire('../../App.svelte');
+// Phase 5 : l'ancienne coquille (`App.svelte`, `components/Sidebar.svelte`)
+// est partie. Les MÊMES faits sont vérifiés sur la coquille qui reste.
+const SIDEBAR = lire('../../components/v2/Sidebar.svelte');
+const APP = lire('../../components/v2/ShellV2.svelte');
 const NAVIGATION = lire('../stores/navigation.ts');
 const ECRAN = lire('../../components/v2-heritage/ConcertsView.svelte');
 
@@ -29,13 +31,13 @@ describe('écran Concerts — le chaînage complet', () => {
   });
 
   it("l'application aiguille bien vers l'écran", () => {
-    expect(APP).toContain("import ConcertsView from './components/v2-heritage/ConcertsView.svelte'");
+    expect(APP).toContain("import ConcertsView from '../v2-heritage/ConcertsView.svelte'");
     expect(APP).toContain("$activeView === 'concerts'");
     expect(APP).toContain('<ConcertsView />');
   });
 
   it('la barre latérale porte une entrée, rendue une seule fois', () => {
-    const occurrences = SIDEBAR.split("{$t('nav.concerts')}").length - 1;
+    const occurrences = SIDEBAR.split("{ view: 'concerts', labelKey: 'nav.concerts'").length - 1;
     expect(
       occurrences,
       "l'entrée Concerts est absente, ou dupliquée par un déplacement",
@@ -43,16 +45,19 @@ describe('écran Concerts — le chaînage complet', () => {
   });
 
   it("l'entrée navigue vers la vue, et pas vers une autre", () => {
-    expect(SIDEBAR).toContain("navigate('concerts')");
+    // La barre v2 navigue par la vue de chaque entrée : `go(it.view)`.
+    expect(SIDEBAR).toContain("{ view: 'concerts', labelKey: 'nav.concerts'");
+    expect(SIDEBAR).toContain('onclick={() => go(it.view)}');
   });
 
   it("l'entrée disparaît quand le binaire n'embarque pas le greffon", () => {
     // Une entrée qui mène à une porte fermée est pire que pas d'entrée.
-    const entree = SIDEBAR.indexOf("{$t('nav.concerts')}");
-    const garde = SIDEBAR.lastIndexOf('{#if $concertsUtilisable}', entree);
-    expect(garde, 'la garde `$concertsUtilisable` manque').toBeGreaterThan(-1);
-    // Et elle doit être PROCHE : une garde lointaine serait celle d'autre chose.
-    expect(entree - garde).toBeLessThan(600);
+    // La barre v2 filtre sa liste au lieu d'entourer un bouton : la garde
+    // porte sur l'entrée `concerts`, et la boucle rend la liste FILTRÉE.
+    expect(SIDEBAR, 'la garde `$concertsUtilisable` manque').toContain(
+      "ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable)",
+    );
+    expect(SIDEBAR).toContain('{#each avanceVisibles as it (it.view)}');
   });
 
   it("l'état du greffon est bien demandé au serveur", () => {
