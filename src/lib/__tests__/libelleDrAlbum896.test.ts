@@ -10,20 +10,21 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { dictionnaire } from './onzeDictionnaires';
 
 const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh'];
 
 describe('#896 — le libellé de la facette Dynamic Range', () => {
   it('🔴 fr et en nomment l’ALBUM', async () => {
-    const fr = (await import('../locales/fr')).default as Record<string, string>;
-    const en = (await import('../locales/en')).default as Record<string, string>;
+    const fr = dictionnaire('fr');
+    const en = dictionnaire('en');
     expect(fr['oxygen.facet.dr'].toLowerCase()).toContain('album');
     expect(en['oxygen.facet.dr'].toLowerCase()).toContain('album');
     expect(fr['oxygen.facet.dr']).not.toBe('Dynamique');
   });
   for (const code of LANGUES) {
     it(`${code} : une infobulle dit d’où vient la valeur`, async () => {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       expect(dico['oxygen.facet.drHelp'], 'drHelp').toBeTruthy();
       expect(dico['oxygen.facet.drHelp']).toContain('ALBUM DYNAMIC RANGE');
     });
