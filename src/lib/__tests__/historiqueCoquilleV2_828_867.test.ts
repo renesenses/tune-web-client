@@ -34,6 +34,7 @@ import ShellV2 from '../../components/v2/ShellV2.svelte';
 import ArtistesV2 from '../../components/v2/ArtistesV2.svelte';
 import { activeView, pendingLibraryAlbum, vueDeRetour } from '../stores/navigation';
 import { brancherHistoriqueCoquille, detailOuvert } from '../historiqueCoquille';
+import { reculer } from './reculer';
 
 /** Les artistes que la grille affichera. Deux suffisent, il en faut un à ouvrir. */
 const ARTISTES = [
@@ -76,6 +77,7 @@ function poser(composant: any, props: Record<string, unknown> = {}): HTMLDivElem
 }
 
 const attendre = (ms = 60) => new Promise((r) => setTimeout(r, ms));
+
 
 /**
  * jsdom ne met pas en page : `scrollHeight` et `clientHeight` y valent zéro, et
@@ -170,8 +172,7 @@ describe('#828 / #867 — la coquille v2 ÉCRIT dans l’historique du navigateu
 
     // Le vrai geste : la traversée de session du navigateur, pas un appel au
     // module.
-    history.back();
-    await attendre();
+    await reculer();
     flushSync();
 
     expect(
@@ -192,13 +193,11 @@ describe('#828 / #867 — la coquille v2 ÉCRIT dans l’historique du navigateu
     flushSync();
     const hauteur = history.length;
 
-    history.back();
-    await attendre();
+    await reculer();
     flushSync();
     expect(history.length, 'le retour a EMPILÉ une entrée').toBe(hauteur);
 
-    history.back();
-    await attendre();
+    await reculer();
     flushSync();
     expect(get(activeView), 'deux retours ne ramènent pas à la vue de départ').toBe('home');
   });
@@ -305,8 +304,7 @@ describe('#864 — le retour repose OÙ L’ON ÉTAIT, pas en haut de la liste',
         detail: `artiste:${ARTISTES[0].id}`,
       });
 
-      history.back();
-      await attendre();
+      await reculer();
       flushSync();
       await attendre();
       flushSync();

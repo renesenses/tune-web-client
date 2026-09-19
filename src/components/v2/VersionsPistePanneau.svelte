@@ -27,7 +27,7 @@
    */
   import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
-  import { corpsVersionLocale, corpsVersionService, libellesVersionService, type VersionService } from '../../lib/versionsPiste';
+  import { corpsVersionLocale, corpsVersionService, libellesVersionLocale, libellesVersionService, type VersionService } from '../../lib/versionsPiste';
   import { t } from '../../lib/i18n';
   import { formatTime } from '../../lib/utils';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -131,15 +131,20 @@
     {:else}
       <div class="tuiles">
         {#each locales as v, i (v.track_id ?? `l${i}`)}
+          <!-- #1235 : l'album, puis l'interprète — ce qui départage deux formations. -->
+          {@const lib = libellesVersionLocale(v)}
           <div class="tuile">
             <button class="cv" onclick={() => lireLocale(v)} disabled={v.track_id == null}
               title={$t('common.play' as any)}>
-              <AlbumArt coverPath={v.cover_path} albumId={v.album_id} size={48} alt={v.album_title ?? ''} />
+              <AlbumArt coverPath={v.cover_path} albumId={v.album_id} size={48} alt={lib.album} />
             </button>
             <span class="txt">
               <button class="ti" onclick={() => ouvrirAlbum(v.album_id)} disabled={v.album_id == null}
-                title={v.album_title ?? ''}>{v.album_title ?? ''}</button>
-              <span class="sub">{v.duration_ms ? formatTime(v.duration_ms) : ''}</span>
+                title={lib.album}>{lib.album}</button>
+              <span class="sub">
+                {#if lib.interprete}<span class="interprete" title={lib.interprete}>{lib.interprete}</span>{/if}
+                {#if v.duration_ms}<span>{formatTime(v.duration_ms)}</span>{/if}
+              </span>
             </span>
           </div>
         {/each}
