@@ -573,6 +573,12 @@
 
   let showSignalPath = $state(false);
 
+  // #1097 — même lecture par étape que dans NowPlaying. Le verdict global
+  // reste le repli des serveurs anciens qui ne renseignent pas ce drapeau.
+  function etapeIntacte(step: { bit_perfect?: boolean }, verdict: boolean): boolean {
+    return step.bit_perfect ?? verdict;
+  }
+
   // Audiophile mode — l'état vit dans un store partagé : VolumeControl doit
   // lire le même (griser le curseur quand le verrou est armé).
   let audiophileLoading = $state(false);
@@ -1359,7 +1365,7 @@
         {#each zone.signal_path.steps as step, i}
           <div class="sp-row">
             <div class="sp-icon-col">
-              <div class="sp-icon" class:bp={zone.signal_path.bit_perfect}>
+              <div class="sp-icon" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}>
                 {#if step.name === 'Source'}
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" /></svg>
                 {:else if step.name === 'Transport' || step.name === 'Decoder'}
@@ -1369,11 +1375,11 @@
                 {/if}
               </div>
               {#if i < zone.signal_path.steps.length - 1}
-                <div class="sp-line" class:bp={zone.signal_path.bit_perfect}></div>
+                <div class="sp-line" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}></div>
               {/if}
             </div>
             <div class="sp-info">
-              <span class="sp-name">{trDesc(step.description)} <span class="sp-ndot" class:bp={zone.signal_path.bit_perfect}></span></span>
+              <span class="sp-name">{trDesc(step.description)} <span class="sp-ndot" class:bp={etapeIntacte(step, zone.signal_path.bit_perfect)}></span></span>
               {#if step.detail}
                 <span class="sp-detail">{trDetail(step.detail)}</span>
               {/if}

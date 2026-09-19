@@ -1043,9 +1043,9 @@ export default {
   'dashboard.section.hourly': 'Tageszeit',
   'dashboard.section.by_zone': 'Nach Zone',
   'dashboard.section.by_source': 'Nach Quelle',
-  'dashboard.section.completion': "Vollständig gehört vs. abgebrochen",
-  'dashboard.completion.completed': 'Abgeschlossen',
-  'dashboard.completion.skipped': "Abgebrochen",
+  "dashboard.section.completion": "Im Verlauf gespeicherte Dauern",
+  "dashboard.completion.completed": "30 s oder mehr",
+  "dashboard.completion.skipped": "Weniger als 30 s",
   'dashboard.empty': 'Noch kein Hörverlauf vorhanden. Starte etwas 🎶',
 
   // Equalizer
@@ -2731,6 +2731,7 @@ export default {
   "converter.retry": "Erneut versuchen",
   "converter.conversionError": "Konvertierungsfehler",
   "converter.loadAlbumsError": "Alben konnten nicht geladen werden",
+  "converter.folderUnavailable": "Der Quellordner dieses Albums konnte nicht ermittelt werden.",
   "converter.browseError": "Verzeichnis konnte nicht durchsucht werden",
   "converter.startError": "Konvertierung konnte nicht gestartet werden",
   "converter.cancelled": "Konvertierung abgebrochen",
@@ -4456,6 +4457,7 @@ export default {
   "v2.zones.browserUnattended": "Browser-Zone: kein Tab hört zu",
   "v2.zones.viewGrid": "Raster",
   "v2.zones.viewList": "Liste",
+  "v2.zones.listActionsHelp": "Wechseln Sie zur Ansicht {view}, um eine Zone umzubenennen, zusammenzuführen oder zu löschen.",
   "v2.zones.viewSwitch": "Ansicht",
   "v2.str.discover": "Entdecken",
   "v2.str.editorial": "Redaktion",

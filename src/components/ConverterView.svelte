@@ -1,4 +1,9 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
+  import { activeView, vueDeRetour } from '../lib/stores/navigation';
+  import { ouvrirLeRepertoire } from '../lib/stores/repertoireCible';
+  import { dossierDeLAlbum } from '../lib/dossierAlbum';
+  import { conserverRetourConvertisseur, consommerRetourConvertisseur } from '../lib/retourConvertisseur';
   import { get } from 'svelte/store';
   import * as api from '../lib/api';
   import type { Album, Track } from '../lib/types';
@@ -7,6 +12,13 @@
   import { isPremium } from '../lib/stores/license';
   import QualityBadge from './partages/QualityBadge.svelte';
 
+  const retour = consommerRetourConvertisseur('legacy');
+  let alive = true;
+  let locating = $state<number | null>(null);
+  let starting = $state(false);
+  let locationError = $state<string | null>(null);
+  onDestroy(() => { alive = false; stopPolling(); });
+
   // --- Source selection ---
   type SourceTab = 'library' | 'directories';
   let sourceTab = $state<SourceTab>('library');
@@ -14,7 +26,7 @@
   // Library albums
   let albums = $state<Album[]>([]);
   let albumsLoading = $state(true);
-  let selectedAlbumIds = $state<Set<number>>(new Set());
+  let selectedAlbumIds = $state<Set<number>>(new Set(retour?.selectedAlbumIds ?? []));
 
   // Track count for selected albums (fetched lazily)
   let selectedTrackCount = $state(0);
@@ -27,7 +39,7 @@
   let browseTracks = $state<Track[]>([]);
   let browseParent = $state<string | null>(null);
   let browseLoading = $state(false);
-  let selectedDirPaths = $state<Set<string>>(new Set());
+  let selectedDirPaths = $state<Set<string>>(new Set(retour?.selectedDirPaths ?? []));
 
   // --- Conversion settings ---
   interface ConversionPreset {
@@ -51,11 +63,11 @@
     { id: 'custom', label: 'Personnalise...', description: 'Choisir manuellement le format et les parametres', format: 'flac', quality: 'lossless', sampleRate: 'original', bitDepth: 'original', estimatedSizePerMin: '' },
   ];
 
-  let selectedPresetId = $state('cd-flac');
-  let customFormat = $state('flac');
-  let customQuality = $state('lossless');
-  let customSampleRate = $state('original');
-  let customBitDepth = $state('original');
+  let selectedPresetId = $state(retour?.selectedPresetId ?? 'cd-flac');
+  let customFormat = $state(retour?.customFormat ?? 'flac');
+  let customQuality = $state(retour?.customQuality ?? 'lossless');
+  let customSampleRate = $state(retour?.customSampleRate ?? 'original');
+  let customBitDepth = $state(retour?.customBitDepth ?? 'original');
 
   const formatOptions = [
     { value: 'flac', label: 'FLAC' },
@@ -124,14 +136,14 @@
 
   // --- Conversion state ---
   type ConversionState = 'idle' | 'converting' | 'done' | 'error';
-  let conversionState = $state<ConversionState>('idle');
-  let jobId = $state<string | null>(null);
-  let progress = $state(0);
-  let currentFile = $state('');
-  let convertedCount = $state(0);
-  let totalCount = $state(0);
-  let downloadSize = $state('');
-  let conversionError = $state('');
+  let conversionState = $state<ConversionState>(retour?.conversionState ?? 'idle');
+  let jobId = $state<string | null>(retour?.jobId ?? null);
+  let progress = $state(retour?.progress ?? 0);
+  let currentFile = $state(retour?.currentFile ?? '');
+  let convertedCount = $state(retour?.convertedCount ?? 0);
+  let totalCount = $state(retour?.totalCount ?? 0);
+  let downloadSize = $state(retour?.downloadSize ?? '');
+  let conversionError = $state(retour?.conversionError ?? '');
   let pollTimer = $state<ReturnType<typeof setInterval> | null>(null);
 
   // --- Selection info ---
@@ -295,7 +307,8 @@
 
   // --- Conversion actions ---
   async function startConversion() {
-    if (!hasSelection) return;
+    if (!hasSelection || starting) return;
+    starting = true;
     conversionState = 'converting';
     conversionError = '';
     progress = 0;
@@ -326,6 +339,8 @@
       conversionState = 'error';
       conversionError = e?.message || get(t)('converter.startError');
       notifications.error(conversionError);
+    } finally {
+      starting = false;
     }
   }
 
@@ -335,6 +350,7 @@
       if (!jobId) return;
       try {
         const status = await api.getConversionStatus(jobId);
+        if (!alive) return;
         progress = status.progress ?? 0;
         currentFile = status.current_file ?? '';
         convertedCount = status.converted ?? 0;
@@ -402,8 +418,10 @@
     stopPolling();
   }
 
+  if (retour?.jobId && retour.conversionState === 'converting') startPolling();
+
   // Album search/filter
-  let albumSearch = $state('');
+  let albumSearch = $state(retour?.albumSearch ?? '');
   let filteredAlbums = $derived(
     albumSearch.trim()
       ? albums.filter(a => {
@@ -413,6 +431,31 @@
         })
       : albums
   );
+
+  async function localiser(album: Album) {
+    if (album.id == null || locating != null || starting) return;
+    locating = album.id;
+    locationError = null;
+    try {
+      const tracks = await api.getAlbumTracks(album.id);
+      if (!alive || starting) return;
+      const dossier = dossierDeLAlbum(tracks);
+      if (!dossier) { locationError = $t('converter.folderUnavailable'); return; }
+      conserverRetourConvertisseur('legacy', {
+        selectedAlbumIds: [...selectedAlbumIds], selectedDirPaths: [...selectedDirPaths],
+        selectedPresetId, customFormat, customQuality, customSampleRate, customBitDepth,
+        albumSearch, jobId, conversionState, progress, currentFile, convertedCount,
+        totalCount, downloadSize, conversionError,
+      });
+      vueDeRetour.set('converter');
+      ouvrirLeRepertoire(dossier);
+      activeView.set('browse');
+    } catch {
+      if (alive) locationError = $t('converter.folderUnavailable');
+    } finally {
+      if (alive) locating = null;
+    }
+  }
 </script>
 
 <div class="converter-view">
@@ -420,6 +463,8 @@
     <h2>{$t('converter.title')}</h2>
     <p class="converter-subtitle">{$t('converter.subtitle')}</p>
   </header>
+
+  {#if locationError}<p role="alert">{locationError}</p>{/if}
 
   <!-- Source selection -->
   <section class="source-section">
@@ -479,6 +524,7 @@
       {:else}
         <div class="albums-grid">
           {#each filteredAlbums as album (album.id)}
+            <div class="album-source">
             <button
               class="album-card"
               class:selected={album.id != null && selectedAlbumIds.has(album.id)}
@@ -511,6 +557,9 @@
                 sampleRate={album.sample_rate} bitDepth={album.bit_depth}
                 source={album.source} /></div>
             </button>
+            <button class="action-btn source-folder" disabled={starting || locating != null || album.id == null}
+              onclick={() => localiser(album)}>{$t('v2.album.locate')}</button>
+            </div>
           {/each}
         </div>
       {/if}
@@ -758,6 +807,10 @@
 </div>
 
 <style>
+  .album-source { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+  .album-source .album-card { width: 100%; flex: 1; }
+  .source-folder { align-self: flex-start; }
+
   .converter-view {
     height: 100%;
     display: flex;

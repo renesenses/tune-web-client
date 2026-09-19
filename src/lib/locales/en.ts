@@ -1283,9 +1283,9 @@ export default {
   'dashboard.section.hourly': 'Hour of day',
   'dashboard.section.by_zone': 'By zone',
   'dashboard.section.by_source': 'By source',
-  'dashboard.section.completion': "Tracks completed vs interrupted",
-  'dashboard.completion.completed': 'Completed',
-  'dashboard.completion.skipped': "Interrupted",
+  "dashboard.section.completion": "Durations recorded in history",
+  "dashboard.completion.completed": "30 s or more",
+  "dashboard.completion.skipped": "Less than 30 s",
   'dashboard.empty': 'No listening history yet. Start something 🎶',
 
   // Equalizer
@@ -3383,6 +3383,7 @@ export default {
   "converter.retry": "Retry",
   "converter.conversionError": "Conversion error",
   "converter.loadAlbumsError": "Failed to load albums",
+  "converter.folderUnavailable": "Unable to determine this album’s source folder.",
   "converter.browseError": "Failed to browse directory",
   "converter.startError": "Failed to start conversion",
   "converter.cancelled": "Conversion cancelled",
@@ -4476,6 +4477,7 @@ export default {
   "v2.zones.browserUnattended": "Browser zone: no tab is listening",
   "v2.zones.viewGrid": "Grid",
   "v2.zones.viewList": "List",
+  "v2.zones.listActionsHelp": "To rename, merge or delete a zone, switch to {view} view.",
   "v2.zones.viewSwitch": "View",
   "v2.str.discover": "Discover",
   "v2.str.editorial": "Editorial",
