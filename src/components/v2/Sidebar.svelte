@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { healthStatus } from '../../lib/stores/health';
   import { niveauDeLaSonde } from '../../lib/santeServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
@@ -196,6 +197,12 @@
   // republie cet état après chaque geste.
   const studioVisible = $derived(entreesStudioVisibles(STUDIO, $etatGreffons));
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
+
+  // Concerts est un GREFFON : son entrée n'apparaît que si le serveur
+  // l'embarque (comme dans l'ancienne barre). Une entrée qui mène à une porte
+  // fermée est pire que pas d'entrée — et `null` (pas encore su) ne montre rien.
+  $effect(() => { void refreshConcertsPlugin(); });
+  const avanceVisibles = $derived(ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable));
 
   // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
   // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
@@ -465,7 +472,7 @@
     </nav>
 
     <nav class="grp reveal" class:show={showAdvanced} aria-hidden={!showAdvanced}>
-      {#each ADVANCED as it (it.view)}
+      {#each avanceVisibles as it (it.view)}
         <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
