@@ -35,6 +35,7 @@
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
+  import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { t } from '../../lib/i18n';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
@@ -808,7 +809,12 @@
               </div>
 
             {:else}
-              <div class="bande">
+              <!-- #1137 — molette et flèches, plutôt que d'attraper la barre.
+                   L'action ne prend l'événement que si la rangée peut
+                   réellement avancer : sinon la page ne défilerait plus dès
+                   qu'on survole une rangée. -->
+              <div class="bande" use:defilementHorizontal
+                   role="group" aria-label={$t(w.cleTitre as any)}>
                 {#each et.elements as el (el.id)}
                   <!--
                     La carte n'est PLUS un seul bouton.
