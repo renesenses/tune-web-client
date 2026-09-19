@@ -204,3 +204,17 @@ d’appareil, le LPCM DLNA ≠ le mode WAV). À compter comme perdues tant qu’
 - getAllAlbumsSeeded — GET /library/albums — ≡ getAlbumsPage
 - getTracks — GET /library/tracks — ≡ getAllTracks
 - updateZoneDlnaLpcm — PATCH /zones/{} — ≡ updateZoneWavMode
+
+## Angle mort (hors `api.ts`) — base de données
+
+Relevé de `feat/v2-porte-rapport-bogue` (#1301, section « Angle mort ») :
+capacités appelées par chemin en dur dans les écrans supprimés, sans fonction
+d'`api.ts`.
+
+| Écran supprimé | Route | Chemin v2 |
+|---|---|---|
+| `SettingsView` | `POST /system/database/test-connection` | ✅ **porté** (`feat/v2-porte-base-de-donnees`) : Réglages › Système › Base de données (Expert), `api.testDatabaseConnection` ; l'adresse part dans le corps JSON et non plus dans l'URL ; motif et `hint` du serveur affichés |
+| `SettingsView` | `POST /system/database/migrate?target=postgres` | ✅ **porté** : même section, `api.migrateDatabaseToPostgres`, ouvert seulement après un essai réussi de la même adresse, derrière `dialogs.confirm` (danger) ; attend le retour du serveur relancé sur PostgreSQL, ou dit qu'il reste sur SQLite (`restarting: false`) |
+| `SettingsView` | `POST /system/database/migrate?target=sqlite` (« Migrer vers SQLite ») | ⛔ **capacité morte, non portée** : `migrate_database` (`tune-server/src/routes/system/database.rs`, `origin/main`) ignore `target` (« this handler only implements SQLite → PostgreSQL ») et répond `400 missing 'url' field` à une requête sans adresse PostgreSQL ; sur un serveur déjà sous PostgreSQL il répond `400 this server already runs on PostgreSQL`. L'ancien écran ne lisait pas la réponse et affichait « Migration vers SQLite lancée… » |
+
+Témoin : `src/lib/__tests__/migrationPostgresV2.test.ts`.
