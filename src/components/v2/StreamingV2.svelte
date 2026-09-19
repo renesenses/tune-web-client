@@ -1,4 +1,5 @@
 <script lang="ts">
+  import BandcampManquantsV2 from './BandcampManquantsV2.svelte';
   import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
   import { t } from '../../lib/i18n';
   import { zoneRequise } from '../../lib/zoneRequise';
@@ -785,6 +786,23 @@
    * Le geste de l'auditeur ne change pas : il clique la vignette. La file, elle,
    * contient enfin l'album.
    */
+  /*
+   * La discographie d'un artiste Bandcamp, DANS Tune — portée de l'ancien
+   * écran. La recherche rend des artistes ; cet écran les jetait, et la seule
+   * sortie était la page Bandcamp elle-même.
+   */
+  let bcArtiste = $state<{ nom: string; disco: api.BandcampDiscographie | null; erreur: string | null } | null>(null);
+  async function ouvrirArtisteBc(url: string, nom: string) {
+    if (!url) return;
+    bcArtiste = { nom, disco: null, erreur: null };
+    try {
+      const disco = await api.bandcampArtist(url);
+      if (bcArtiste?.nom === nom) bcArtiste = { nom, disco, erreur: null };
+    } catch (e) {
+      if (bcArtiste?.nom === nom) bcArtiste = { nom, disco: null, erreur: (e as Error)?.message || $t('bandcamp.artistFailed' as any) };
+    }
+  }
+
   function playBc(it: any) {
     const zid = zoneRequise();
     if (zid == null) return;
@@ -915,6 +933,28 @@
 
     {:else if results || bcSearch}
       {#if bcSearch}
+        {#if bcArtiste}
+          <section class="sec">
+            <h2>{bcArtiste.nom} <button class="lnk" onclick={() => (bcArtiste = null)}>{$t('common.close' as any)}</button></h2>
+            {#if bcArtiste.erreur}
+              <div class="state">{bcArtiste.erreur}</div>
+            {:else if !bcArtiste.disco}
+              <div class="state">{$t('common.loading' as any)}</div>
+            {:else if !bcArtiste.disco.albums.length}
+              <div class="state">{$t('bandcamp.noResults' as any)}</div>
+            {:else}
+              <div class="grid">{#each bcArtiste.disco.albums as d (d.url)}
+                {@const it = { title: d.titre, url: d.url, pochette: d.pochette, artist: bcArtiste.nom, type: d.type }}
+                {@render tile(it, () => playBc(it))}{/each}</div>
+            {/if}
+          </section>
+        {/if}
+        {#if bcSearch.artistes?.length}
+          <section class="sec"><h2>{$t('v2.rech.artists' as any)}</h2>
+            <div class="chips">{#each bcSearch.artistes as a (a.url)}
+              <button class="chip" onclick={() => ouvrirArtisteBc(a.url, a.titre)}>{a.titre}</button>{/each}</div>
+          </section>
+        {/if}
         {#if bcSearch.albums?.length}
           <section class="sec"><h2>{$t('v2.rech.albums' as any)}</h2>
             <div class="grid">{#each bcSearch.albums as a, i (a.url ?? i)}{@render tile(a, () => playBc(a))}{/each}</div>
@@ -925,7 +965,7 @@
             <div class="grid">{#each bcSearch.pistes as a, i (a.url ?? i)}{@render tile(a, () => playBc(a), 'track')}{/each}</div>
           </section>
         {/if}
-        {#if !bcSearch.albums?.length && !bcSearch.pistes?.length}
+        {#if !bcSearch.albums?.length && !bcSearch.pistes?.length && !bcSearch.artistes?.length}
           <div class="state">{$t('v2.stream.bcNoResult' as any)}</div>
         {/if}
       {:else if results}
@@ -1070,6 +1110,7 @@
           downloadsAvailable={bcDownloadsAvailable} collectionVide={!bcCollection.length}
           onSessionChangee={() => { void rechargerCollection().catch(() => {}); }} />
         {#if bcCollection.length}
+          <BandcampManquantsV2 />
           <div class="grid">{#each bcCollection as it, i (it.url ?? i)}
             {@const cle = cleTelechargeable(it)}
             {@const dl = telechargementDe(bcTelechargements, cle)}

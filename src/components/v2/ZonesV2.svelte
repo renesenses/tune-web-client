@@ -32,6 +32,7 @@
   import OaatGroupsPanel from '../partages/OaatGroupsPanel.svelte';
   import MultiroomSettings from '../partages/MultiroomSettings.svelte';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { devices } from '../../lib/stores/devices';
   import { sortiesProposees } from '../../lib/sortiesDeZone';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -116,6 +117,28 @@
       notifications.error(err?.message || $t('zone.changeOutputError' as any));
     } finally {
       sortieEnCours = null;
+    }
+  }
+
+  /*
+   * Supprimer TOUTES les zones — porté de l'ancien gestionnaire. En offre
+   * gratuite, le quota de trois zones est consommé pour de bon par toute zone
+   * qui a joué une fois ; tout effacer (le serveur efface aussi les marques
+   * d'activation) est le seul moyen de recréer les trois qu'on veut vraiment.
+   */
+  let toutSupprimerEnCours = $state(false);
+  async function supprimerToutesLesZones() {
+    if (!(await dialogs.confirm($t('zone.deleteAllConfirm' as any), { danger: true }))) return;
+    toutSupprimerEnCours = true;
+    try {
+      await api.deleteAllZones();
+      currentZoneId.set(null);
+      zones.set(await api.getZones().catch(() => []));
+      notifications.success($t('zone.allZonesDeleted' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    } finally {
+      toutSupprimerEnCours = false;
     }
   }
 
@@ -664,6 +687,10 @@
              client, montés tels quels. -->
         <section class="paires"><OaatGroupsPanel /></section>
         <section class="paires"><MultiroomSettings /></section>
+        <section class="paires">
+          <button class="v2-btn" disabled={toutSupprimerEnCours} onclick={supprimerToutesLesZones}
+            title={$t('zone.deleteAllHint' as any)}>{$t('zone.deleteAll' as any)}</button>
+        </section>
       {/if}
   </div>
 </section>
