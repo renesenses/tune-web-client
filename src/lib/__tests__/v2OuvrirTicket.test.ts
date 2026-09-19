@@ -73,9 +73,4 @@ describe('les catégories proposées existent vraiment', () => {
     expect(cles.filter((k) => !(k in fr)), 'ces catégories s’afficheraient en clé brute').toEqual([]);
   });
 
-  it('celles du client actuel aussi, désormais', () => {
-    const v1 = readFileSync(join(process.cwd(), 'src/components/SupportView.svelte'), 'utf8');
-    const cles = [...v1.matchAll(/label: '(support\.category\.[a-z]+)'/g)].map((m) => m[1]);
-    expect(cles.filter((k) => !(k in fr))).toEqual([]);
-  });
 });

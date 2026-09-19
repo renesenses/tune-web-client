@@ -47,11 +47,10 @@ describe('Le plafond de la recherche fédérée', () => {
     expect(barre).toContain('api.SEARCH_PAGE_LIMIT');
   });
 
-  it('les deux écrans de recherche COMPLETS prennent le défaut', () => {
+  it('l’écran de recherche COMPLET prend le défaut', () => {
     // C'est là que le plafond se voyait — « seulement cinquante résultats ».
-    const v0 = readFileSync('src/components/SearchView.svelte', 'utf8');
+    // (Lisait aussi `SearchView.svelte`, parti avec la phase 5.)
     const v2 = readFileSync('src/components/v2/SearchV2.svelte', 'utf8');
-    expect(v0).toContain('api.federatedSearch(searchQuery.trim(), activeSources)');
     // 🔴 Ce qui est gardé ici, c'est « PAS de plafond explicite », pas
     // l'orthographe de l'appel. `limit` est le TROISIÈME paramètre : nommer
     // les sources en deuxième ne le touche pas.

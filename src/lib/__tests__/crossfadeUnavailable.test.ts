@@ -7,7 +7,6 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf-8
 describe('crossfade indisponible (#2211)', () => {
   it('aucun écran ne propose le réglage inerte', () => {
     const nowPlaying = read('src/components/partages/NowPlaying.svelte');
-    const settings = read('src/components/SettingsView.svelte');
     // ÉTENDU le 04/09/2026 : l'écran des Réglages du NOUVEAU client avait été
     // écrit avant cette suppression et reproduisait le réglage inerte. Le
     // garde ne visait que les deux écrans du client actuel, il ne l'a donc pas
@@ -16,8 +15,6 @@ describe('crossfade indisponible (#2211)', () => {
 
     expect(nowPlaying).not.toContain('toggleCrossfade');
     expect(nowPlaying).not.toContain('setCrossfade');
-    expect(settings).not.toContain('loadCrossfade');
-    expect(settings).not.toContain('settings.crossfadeHint');
     expect(settingsV2).not.toContain('settings.crossfadeHint');
     expect(settingsV2).not.toContain('applyCrossfade');
   });

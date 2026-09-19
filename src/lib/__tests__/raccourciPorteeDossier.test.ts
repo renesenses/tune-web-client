@@ -1,3 +1,14 @@
+// @vitest-environment jsdom
+//
+// 🔴 jsdom et minuteries simulées : ce banc rougissait AU HASARD sur `main`.
+// `navigateToShortcut` programme, pour un raccourci à CIBLE, un
+// `setTimeout(() => window.dispatchEvent(…), 150)`. En environnement node,
+// `window` n'existe pas : la minuterie partait après la fin du test et levait
+// « window is not defined » — ou non, selon que le processus vivait encore.
+// Signalé par la campagne web du 19/09 sur une porte complète, invisible en
+// relance isolée. Désormais : un vrai `window`, et les minuteries sont
+// VIDÉES dans la durée de vie de chaque test, jamais laissées derrière lui.
+//
 // Un raccourci sur la Bibliothèque PORTÉE À UN RÉPERTOIRE rouvrait TOUTE la
 // bibliothèque.
 //
@@ -17,7 +28,7 @@
 // Ce banc appelle les VRAIES fonctions sur les VRAIS magasins : une garde de
 // texte serait satisfaite par une ligne morte.
 import { get } from 'svelte/store';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { libraryFolderScope, libraryTab } from '../stores/library';
 import { activeView } from '../stores/navigation';
 import {
@@ -37,9 +48,17 @@ const raccourci = (state: Record<string, any>): Shortcut => ({
 });
 
 beforeEach(() => {
+  vi.useFakeTimers();
   activeView.set('library');
   libraryTab.set('albums');
   libraryFolderScope.set(null);
+});
+
+afterEach(() => {
+  // Vider ICI ce que `navigateToShortcut` a programmé : sur un vrai `window`,
+  // pendant que le test vit. Aucune minuterie ne survit à son test.
+  vi.runOnlyPendingTimers();
+  vi.useRealTimers();
 });
 
 describe('poser le raccourci : la portée part avec lui', () => {

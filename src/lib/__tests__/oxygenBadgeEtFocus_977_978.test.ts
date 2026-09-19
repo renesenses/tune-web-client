@@ -116,11 +116,6 @@ describe('#978 — le mode sans distraction vaut dans les DEUX coquilles', () =>
     expect(src).toContain('class:sans-distraction={$focusMode}');
   });
 
-  it('l’ancienne coquille le lit toujours — on n’a rien déplacé', () => {
-    const src = lire('src/App.svelte');
-    expect(src).toContain('class:focus-mode={$focusMode}');
-  });
-
   /**
    * 🔴 Les trois sorties. Sans barre latérale, un mode dont on ne sort pas
    * enferme l’utilisateur — c’est pour cela que `focusMode` n’est pas

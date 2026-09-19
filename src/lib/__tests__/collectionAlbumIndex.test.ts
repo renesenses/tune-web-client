@@ -45,16 +45,4 @@ describe('rail A–Z des albums d’une Collection', () => {
     expect(firstAlbumIndexForLetter(albums, 'Q')).toBe(-1);
   });
 
-  it('est réellement branché dans la grille, pas seulement calculé hors écran', () => {
-    const source = readFileSync(
-      resolve(__dirname, '../../components/CollectionsView.svelte'),
-      'utf8',
-    );
-
-    expect(source).toMatch(/<AlphaIndex\s+letters=\{albumLetters\}/);
-    expect(source).toMatch(/onSelect=\{scrollToAlbumLetter\}/);
-    expect(source).toContain("getCollectionAlbums(col.id, 'artist')");
-    expect(source).toContain("querySelectorAll('.album-card')");
-    expect(source).toMatch(/<div class="collection-albums-section">/);
-  });
 });

@@ -213,11 +213,7 @@ describe('#865 — le geste des journaux, partagé par les deux coquilles', () =
     const { readFileSync } = await import('node:fs');
     const { fileURLToPath } = await import('node:url');
     const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
-    for (const f of [
-      '../../components/DiagnosticsView.svelte',
-      '../../components/SettingsView.svelte',
-      '../../components/v2/TuneHealthV2.svelte',
-    ]) {
+    for (const f of ['../../components/v2/TuneHealthV2.svelte']) {
       const src = lire(f);
       expect(src.includes("/journaux'"), `${f} n’emprunte pas le module des journaux`).toBe(true);
       expect(

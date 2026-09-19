@@ -192,8 +192,4 @@ describe('#954 — les deux coquilles, et le souvenir', () => {
     expect(src).toMatch(/stopSeekTimer\(\);[\s\S]{0,400}?suivi = \{ clePiste: null/);
   });
 
-  it('l’ancienne coquille garde sa propre remise à zéro', () => {
-    const src = lire('src/App.svelte');
-    expect(src).toMatch(/playback\.track_changed'[\s\S]{0,500}?seekPositionMs\.set\(0\)/);
-  });
 });

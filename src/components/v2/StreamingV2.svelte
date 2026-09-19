@@ -1,4 +1,6 @@
 <script lang="ts">
+  import BandcampManquantsV2 from './BandcampManquantsV2.svelte';
+  import YouTubeDecouverteV2 from './YouTubeDecouverteV2.svelte';
   import { t } from '../../lib/i18n';
   import { zoneRequise } from '../../lib/zoneRequise';
   /**
@@ -30,12 +32,13 @@
   import {
     TAILLES_PAGE, chargerTaillePage, retenirTaillePage, type TaillePage,
   } from '../../lib/taillePageRecherche';
+  import { chargerRubriquesGenre, type BandeRubrique } from '../../lib/rubriquesGenre';
   import { corpsDeLectureBandcamp, corpsDeLectureCollection } from '../../lib/bandcampLecture';
   import { copieLocale, indexerAlbumsLocaux, type CopieLocale } from '../../lib/bandcampCopieLocale';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { messageEchecLecture } from '../../lib/echecLecture';
   import { activeView } from '../../lib/stores/navigation';
-  import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult } from '../../lib/types';
+  import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleDeService } from '../../lib/cibleEtiquette';
@@ -80,7 +83,7 @@
   // sur Qobuz. Deux gestes differents, deux onglets (Bertrand, 28/08).
   // Bandcamp garde deux entrees seulement : il n'a pas de playlists, sa
   // « collection » EST l'ensemble de ce qu'on y possede.
-  type Sub = 'editorial' | 'genres' | 'playlists' | 'favorites' | 'mine';
+  type Sub = 'editorial' | 'genres' | 'playlists' | 'favorites' | 'mine' | 'ytmusic';
   let sub = $state<Sub>('editorial');
 
   let q = $state('');
@@ -217,6 +220,17 @@
   let genreId = $state<string>('');
   let genreAlbums = $state<any[]>([]);
   let genreLoading = $state(false);
+  /**
+   * Les RUBRIQUES éditoriales du genre ouvert (#1300).
+   *
+   * L'écran n'en montrait qu'une — les nouveautés — parce que `api.ts`
+   * n'envoyait jamais `?section=`. Le serveur sait les restreindre au genre
+   * depuis tune-server-rust#4524 ; `chargerRubriquesGenre` demande celles que
+   * `/featured/sections` annonce et écarte tout ce qui ferait doublon sur un
+   * serveur qui ignore encore le paramètre.
+   */
+  let rubriques = $state<FeaturedSection[]>([]);
+  let bandesGenre = $state<BandeRubrique[]>([]);
 
   /** Liste des genres du service : UN seul appel par service, HORS de l'effet
    * du volet.
@@ -228,13 +242,19 @@
    */
   $effect(() => {
     const svc = active;
-    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = [];
+    svcGenres = []; genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; rubriques = [];
     // Bandcamp ne passe pas par /streaming : l'interroger la serait un 404.
     if (!svc || svc === BANDCAMP) return;
     let vivant = true;
     api.getStreamingGenres(svc)
       .then((g) => { if (vivant) svcGenres = normaliserGenres(g); })
       .catch(() => { if (vivant) svcGenres = []; });
+    // La liste des rubriques éditoriales du service (#1300). Un service qui
+    // n'en sert aucune — Tidal — laisse simplement le tableau vide, et l'écran
+    // d'un genre retombe sur sa grille d'avant.
+    api.getStreamingFeaturedSections(svc)
+      .then((r) => { if (vivant) rubriques = (r ?? []).filter((x) => !!x?.id); })
+      .catch(() => { if (vivant) rubriques = []; });
     return () => { vivant = false; };
   });
 
@@ -250,7 +270,7 @@
   async function ouvrirGenre(g: StreamingGenre) {
     const svc = active;
     if (!svc || svc === BANDCAMP) return;
-    genrePath = [g]; subGenres = []; genreAlbums = [];
+    genrePath = [g]; subGenres = []; genreAlbums = []; bandesGenre = [];
     if (ouvertureGenre(g) === 'albums') { genreId = g.id; return; }
     genreId = '';
     const mien = ++sousSeq;
@@ -276,7 +296,7 @@
 
   function retourGenres() {
     sousSeq++;
-    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; genreLoading = false;
+    genrePath = []; subGenres = []; genreId = ''; genreAlbums = []; bandesGenre = []; genreLoading = false;
   }
   // Genres Bandcamp : le serveur rend `genres` (libelle + sous-genres) ET
   // `tags` (liste plate) — on prend le premier, on retombe sur le second pour
@@ -353,6 +373,13 @@
    * `/ext/bandcamp/tags`, pas par `/streaming/…`, et elle a son propre onglet.
    */
   const ongletGenres = $derived(!isBc && aUnOngletGenres(svcGenres));
+  /**
+   * Tendances et Ambiances de YouTube Music, portées de l'ancien écran
+   * Streaming. Propre à YouTube par nature — ses routes sont
+   * `/streaming/youtube/charts` et `/moods` — et non une liste de services
+   * figée : la garde de l'onglet Genres (`streamingOngletGenres`) reste tenue.
+   */
+  const ongletYouTube = $derived(active === 'youtube');
   const SUBS = $derived<{ id: Sub; label: string }[]>(
     isBc
       // BANDCAMP A SON ONGLET GENRES, par une AUTRE route (Bertrand, 04/09/2026).
@@ -376,7 +403,8 @@
          // genres. Les genres avaient une section tout EN BAS de l'éditorial :
          // il fallait dérouler la page entière pour tomber dessus. C'est une
          // navigation, pas un complément de fin de page (Bertrand, 01/09/2026).
-         ...(ongletGenres ? [{ id: 'genres' as Sub, label: $t('common.genres' as any) }] : [])]
+         ...(ongletGenres ? [{ id: 'genres' as Sub, label: $t('common.genres' as any) }] : []),
+         ...(ongletYouTube ? [{ id: 'ytmusic' as Sub, label: $t('v2.str.discover' as any) }] : [])]
   );
   const label = (k: string) => (k === BANDCAMP ? 'Bandcamp' : k.charAt(0).toUpperCase() + k.slice(1));
 
@@ -540,17 +568,30 @@
 
   /** Albums d'un genre. Effet SEPARE du chargement du volet : le remettre
    *  dans l'autre ferait repartir les trois requetes editoriales a chaque
-   *  changement de puce. */
+   *  changement de puce.
+   *
+   *  #1300 — l'ecran EMPILE desormais les rubriques du genre au lieu de n'en
+   *  montrer qu'une. `chargerRubriquesGenre` tient la degradation : sur un
+   *  serveur anterieur a tune-server-rust#4524, qui jette `?section=`, elle
+   *  s'en apercoit a la deuxieme sonde et rend UNE bande — jamais sept copies
+   *  de la meme grille, jamais un ecran vide. */
   $effect(() => {
-    const svc = active, gid = genreId;
+    const svc = active, gid = genreId, rubs = rubriques;
     // Les genres ont QUITTE l'editorial : ils n'y sont plus une section de fin
     // de page (#709). L'y laisser aussi aurait fait deux chemins pour un seul
     // geste, et l'effet editorial rechargeait la liste a chaque puce.
-    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; return; }
+    if (!svc || svc === BANDCAMP || sub !== 'genres' || !gid) { genreAlbums = []; bandesGenre = []; return; }
     genreLoading = true;
-    api.getStreamingGenreAlbums(svc, gid, 40)
-      .then((a: any) => { if (genreId === gid) genreAlbums = a ?? []; })
-      .catch(() => { if (genreId === gid) genreAlbums = []; })
+    chargerRubriquesGenre(rubs, (section) =>
+      api.getStreamingGenreAlbums(svc, gid, 40, section) as Promise<unknown[]>)
+      .then((b) => {
+        if (genreId !== gid) return;
+        bandesGenre = b;
+        // La bande sans titre reste l'ancienne grille : l'ecran d'un serveur
+        // qui ne sait rien des rubriques est celui d'avant, au pixel pres.
+        genreAlbums = b.length === 1 && !b[0].cle ? (b[0].albums as any[]) : [];
+      })
+      .catch(() => { if (genreId === gid) { bandesGenre = []; genreAlbums = []; } })
       .finally(() => { if (genreId === gid) genreLoading = false; });
   });
 
@@ -776,6 +817,23 @@
    * Le geste de l'auditeur ne change pas : il clique la vignette. La file, elle,
    * contient enfin l'album.
    */
+  /*
+   * La discographie d'un artiste Bandcamp, DANS Tune — portée de l'ancien
+   * écran. La recherche rend des artistes ; cet écran les jetait, et la seule
+   * sortie était la page Bandcamp elle-même.
+   */
+  let bcArtiste = $state<{ nom: string; disco: api.BandcampDiscographie | null; erreur: string | null } | null>(null);
+  async function ouvrirArtisteBc(url: string, nom: string) {
+    if (!url) return;
+    bcArtiste = { nom, disco: null, erreur: null };
+    try {
+      const disco = await api.bandcampArtist(url);
+      if (bcArtiste?.nom === nom) bcArtiste = { nom, disco, erreur: null };
+    } catch (e) {
+      if (bcArtiste?.nom === nom) bcArtiste = { nom, disco: null, erreur: (e as Error)?.message || $t('bandcamp.artistFailed' as any) };
+    }
+  }
+
   function playBc(it: any) {
     const zid = zoneRequise();
     if (zid == null) return;
@@ -906,6 +964,28 @@
 
     {:else if results || bcSearch}
       {#if bcSearch}
+        {#if bcArtiste}
+          <section class="sec">
+            <h2>{bcArtiste.nom} <button class="lnk" onclick={() => (bcArtiste = null)}>{$t('common.close' as any)}</button></h2>
+            {#if bcArtiste.erreur}
+              <div class="state">{bcArtiste.erreur}</div>
+            {:else if !bcArtiste.disco}
+              <div class="state">{$t('common.loading' as any)}</div>
+            {:else if !bcArtiste.disco.albums.length}
+              <div class="state">{$t('bandcamp.noResults' as any)}</div>
+            {:else}
+              <div class="grid">{#each bcArtiste.disco.albums as d (d.url)}
+                {@const it = { title: d.titre, url: d.url, pochette: d.pochette, artist: bcArtiste.nom, type: d.type }}
+                {@render tile(it, () => playBc(it))}{/each}</div>
+            {/if}
+          </section>
+        {/if}
+        {#if bcSearch.artistes?.length}
+          <section class="sec"><h2>{$t('v2.rech.artists' as any)}</h2>
+            <div class="chips">{#each bcSearch.artistes as a (a.url)}
+              <button class="chip" onclick={() => ouvrirArtisteBc(a.url, a.titre)}>{a.titre}</button>{/each}</div>
+          </section>
+        {/if}
         {#if bcSearch.albums?.length}
           <section class="sec"><h2>{$t('v2.rech.albums' as any)}</h2>
             <div class="grid">{#each bcSearch.albums as a, i (a.url ?? i)}{@render tile(a, () => playBc(a))}{/each}</div>
@@ -916,7 +996,7 @@
             <div class="grid">{#each bcSearch.pistes as a, i (a.url ?? i)}{@render tile(a, () => playBc(a), 'track')}{/each}</div>
           </section>
         {/if}
-        {#if !bcSearch.albums?.length && !bcSearch.pistes?.length}
+        {#if !bcSearch.albums?.length && !bcSearch.pistes?.length && !bcSearch.artistes?.length}
           <div class="state">{$t('v2.stream.bcNoResult' as any)}</div>
         {/if}
       {:else if results}
@@ -989,6 +1069,9 @@
     {:else if paneLoading}
       <div class="state">{$t('v2.common.loading' as any)}</div>
 
+    {:else if sub === 'ytmusic' && ongletYouTube}
+      <YouTubeDecouverteV2 />
+
     {:else if sub === 'editorial'}
       {#if isBc}
         <!-- 🔴 Les genres ont QUITTE « Decouvrir » (Bertrand, 05/09/2026 :
@@ -1058,6 +1141,7 @@
           downloadsAvailable={bcDownloadsAvailable} collectionVide={!bcCollection.length}
           onSessionChangee={() => { void rechargerCollection().catch(() => {}); }} />
         {#if bcCollection.length}
+          <BandcampManquantsV2 />
           <div class="grid">{#each bcCollection as it, i (it.url ?? i)}
             {@const cle = cleTelechargeable(it)}
             {@const dl = telechargementDe(bcTelechargements, cle)}
@@ -1150,7 +1234,20 @@
         {#if genreLoading}
           <div class="state">{$t('common.loading' as any)}</div>
         {:else if genreAlbums.length}
+          <!-- La grille NUE : un serveur qui ignore `?section=` (0.9.156 et
+               avant) n'a qu'une liste a donner, et l'ecran reste celui d'avant
+               #1300 — pas de titre invente, pas de bande en double. -->
           <div class="grid">{#each genreAlbums as a, i ((a.source_id ?? a.id ?? i))}{@render tile(a, () => playAlbum(a))}{/each}</div>
+        {:else if bandesGenre.length}
+          <!-- #1300 — une bande par RUBRIQUE du genre. Les sept libelles
+               existaient deja dans les onze langues ; seule l'ancienne
+               coquille s'en servait. -->
+          {#each bandesGenre as b (b.id)}
+            <section class="sec">
+              <h2>{b.cle ? $t(b.cle as any) : b.nom}</h2>
+              <div class="grid">{#each b.albums as a, i (((a as any).source_id ?? (a as any).id ?? i))}{@render tile(a as any, () => playAlbum(a as any))}{/each}</div>
+            </section>
+          {/each}
         {:else if genreId}
           <div class="state">{$t('streaming.genreNoAlbums')}</div>
         {:else}

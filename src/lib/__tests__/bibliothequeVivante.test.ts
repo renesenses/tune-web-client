@@ -93,15 +93,4 @@ describe('la coquille v2 le branche', () => {
     expect(shell).toMatch(/\$effect\(\(\) => suivreLaBibliotheque\(\)\);/);
   });
 
-  it("🔴 ce que l'ancien client écoute, la v2 doit l'écouter aussi", () => {
-    // La garde qui compte. `main.ts` monte l'une OU l'autre : un événement
-    // traité d'un seul côté n'est traité qu'une fois sur deux. C'est le motif
-    // de ce client — douze fois, dont la langue au démarrage.
-    const v2 = sansCommentaires(lire('src/lib/v2Bootstrap.ts')) + shell;
-    for (const ev of ['library.scan.completed', 'library.updated']) {
-      const v0 = sansCommentaires(lire('src/components/LibraryView.svelte'));
-      expect(v0, `l'ancien client écoute ${ev}`).toContain(ev);
-      expect(v2, `la v2 doit écouter ${ev}`).toContain(ev);
-    }
-  });
 });

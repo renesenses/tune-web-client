@@ -59,21 +59,3 @@ describe('L’événement concerne-t-il la zone regardée ?', () => {
   });
 });
 
-describe('🔴 La branche `queue.cleared` d’App.svelte appelle bien ce filtre', () => {
-  it('ne vide plus le cache de file sans condition', async () => {
-    // Garde de CÂBLAGE : la règle ci-dessus ne sert à rien si l'appelant ne
-    // l'appelle pas. On vérifie que les trois remises à zéro du cache sont
-    // sous condition, et non plus au fil de la branche.
-    const source = await import('fs').then((fs) =>
-      fs.readFileSync('src/App.svelte', 'utf8'),
-    );
-    const branche = source.slice(
-      source.indexOf("type === 'playback.queue.cleared'"),
-      source.indexOf("} else if (zoneId) {", source.indexOf("type === 'playback.queue.cleared'")),
-    );
-    expect(branche).toContain('concerneLaZoneRegardee');
-    // `queueTracks.set([])` doit être précédé du filtre dans la même branche.
-    const avantLeVidage = branche.slice(0, branche.indexOf('queueTracks.set([])'));
-    expect(avantLeVidage).toContain('concerneLaZoneRegardee');
-  });
-});

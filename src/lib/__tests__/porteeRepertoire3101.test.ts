@@ -128,60 +128,21 @@ describe('nomDeDossier', () => {
 });
 
 describe('une seule source de vérité : `libraryFolderScope`', () => {
-  const v1 = sansCommentaires(lire('src/components/LibraryView.svelte'));
   const v2 = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
   const browse = sansCommentaires(lire('src/components/v2-heritage/BrowseView.svelte'));
   const nav = sansCommentaires(lire('src/lib/stores/navigation.ts'));
 
   it('le dépôt « consommé une fois » n’existe plus nulle part', () => {
-    for (const [nom, src] of Object.entries({ v1, v2, browse, nav })) {
+    for (const [nom, src] of Object.entries({ v2, browse, nav })) {
       expect(src, `${nom} porte encore pendingLibraryFolder`).not.toContain('pendingLibraryFolder');
     }
-    expect(v1).not.toContain('takePendingLibraryFolder');
     expect(v2).not.toContain('prendreDossierEnAttente');
   });
 
-  it('Répertoires ÉCRIT le magasin ; les deux clients le LISENT en dérivé', () => {
+  it('Répertoires ÉCRIT le magasin ; la Bibliothèque le LIT en dérivé', () => {
     expect(browse).toContain('libraryFolderScope.set(browseResult.path)');
-    expect(v1).toMatch(/let scopedFolder = \$derived\(\$libraryFolderScope\)/);
     expect(v2).toMatch(/const dossierPortee = \$derived\(\$libraryFolderScope\)/);
     expect(v2).toMatch(/const porteeActive = \$derived\(!!dossierPortee\)/);
-  });
-
-  it('v1 : le chargement automatique dépend de la portée et de `listeARecharger`, plus de « magasin vide »', () => {
-    const i = v1.indexOf('const portee = $libraryFolderScope;');
-    expect(i, 'l’effet de chargement doit LIRE la portée').toBeGreaterThan(0);
-    const effet = v1.slice(i, i + 1200);
-    expect(effet).toContain('viderListesHorsPortee(portee)');
-    expect(effet).toMatch(/listeARecharger\('albums', portee, \$albums\.length\)/);
-    expect(effet).toMatch(/listeARecharger\('artists', portee, \$artists\.length\)/);
-    expect(effet).toMatch(/listeARecharger\('tracks', portee, \$tracks\.length\)/);
-    // 🔴 Le trou du geste 1.
-    expect(v1).not.toMatch(/!albumsLoaded && \$albums\.length === 0\) loadAlbums\(\)/);
-  });
-
-  it('v1 : les trois chargements scopés VIDENT la liste et PRÉVIENNENT en cas d’échec', () => {
-    for (const liste of ['albums', 'artists', 'tracks']) {
-      expect(v1, `catch de ${liste}`).toMatch(new RegExp(`catch \\(e\\) \\{ echecPortee\\('${liste}', portee, e\\)`));
-    }
-    const i = v1.indexOf('function echecPortee(');
-    expect(i).toBeGreaterThan(0);
-    const corps = v1.slice(i, i + 500);
-    expect(corps).toContain('echecChargementPortee(liste, portee)');
-    expect(corps).toMatch(/notifications\.error\(\$tr\('library\.scopeLoadError'\)/);
-  });
-
-  it('v1 : les listes écrites portent la portée sous laquelle elles l’ont été', () => {
-    expect(v1).toMatch(/marquerListeChargee\('albums', portee\)/);
-    expect(v1).toMatch(/marquerListeChargee\('artists', portee\)/);
-    expect(v1).toMatch(/marquerListeChargee\('tracks', portee\)/);
-    expect(v1).toMatch(/marquerListeChargee\('albums', null\)/);
-    expect(v1).toMatch(/marquerListeChargee\('artists', null\)/);
-    expect(v1).toMatch(/marquerListeChargee\('tracks', null\)/);
-  });
-
-  it('v1 : la croix de la pastille passe par le magasin, pas par un état local', () => {
-    expect(v1).toMatch(/function clearFolderScope\(\) \{\s*libraryFolderScope\.set\(null\);\s*\}/);
   });
 
   it('v2 : la croix passe par le magasin, et un échec est DIT plutôt que tu', () => {

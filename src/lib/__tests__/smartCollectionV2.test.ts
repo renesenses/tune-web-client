@@ -233,16 +233,13 @@ describe('Le champ « répertoire »', () => {
     expect(operateursDe('folder')[0].value).toBe('starts_with');
   });
 
-  it('les DEUX éditeurs savent le saisir', () => {
+  it('l’éditeur sait le saisir', () => {
     // Le v2 filtre les champs par type (`SAISISSABLES`) : un type absent de
     // cette liste disparaît du sélecteur SANS erreur — le champ existerait
     // dans la grammaire et nulle part à l'écran.
     const v2 = sansCommentaires(lire('src/components/v2/CollectionSmartEditeurV2.svelte'));
     expect(v2, 'le v2 doit déclarer `folder` saisissable').toContain("'folder'");
     expect(v2).toContain('SmartFolderPicker');
-
-    const v1 = sansCommentaires(lire('src/components/SmartCollectionEditor.svelte'));
-    expect(v1).toContain('SmartFolderPicker');
   });
 
   it('le sélecteur tire ses dossiers de la BASE, pas du disque', () => {
