@@ -2545,6 +2545,49 @@ export function getTagsForItem(itemType: string, itemId: number) {
   return fetchJSON<import('./types').UserTag[]>(`${BASE}/tags/for/${itemType}/${itemId}`);
 }
 
+/**
+ * La moitié STREAMING des étiquettes — #1238.
+ *
+ * Livrée côté serveur en v0.9.144 (renesenses/tune-server-rust#3699,
+ * `routes/tags.rs`), jamais appelée par le client. Un objet de service se
+ * désigne par la PAIRE `source` + `source_id` en texte, jamais par un entier.
+ * Le retrait passe par un CORPS et non par le chemin : un `source_id` de
+ * Bandcamp peut porter une barre oblique.
+ *
+ * Les quatre champs d'affichage sont l'INSTANTANÉ que l'écran Étiquettes
+ * relira : le serveur ne rappelle pas le service pour les rendre.
+ */
+export interface ObjetDeServiceEtiquete {
+  item_type: string;
+  source: string;
+  source_id: string;
+  title?: string | null;
+  artist?: string | null;
+  album?: string | null;
+  cover_url?: string | null;
+}
+
+export function tagStreamingItem(tagId: number, objet: ObjetDeServiceEtiquete) {
+  return fetchJSON<void>(`${BASE}/tags/${tagId}/streaming-items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(objet),
+  });
+}
+
+export function untagStreamingItem(tagId: number, itemType: string, source: string, sourceId: string) {
+  return fetchJSON<void>(`${BASE}/tags/${tagId}/streaming-items/remove`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item_type: itemType, source, source_id: sourceId }),
+  });
+}
+
+export function getTagsForStreamingItem(itemType: string, source: string, sourceId: string) {
+  const q = new URLSearchParams({ item_type: itemType, source, source_id: sourceId });
+  return fetchJSON<import('./types').UserTag[]>(`${BASE}/tags/for-streaming?${q}`);
+}
+
 export function getTagAlbums(tagId: number) {
   return fetchJSON<{ albums: import('./types').Album[]; count: number }>(`${BASE}/tags/${tagId}/albums`);
 }
