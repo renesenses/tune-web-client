@@ -69,6 +69,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  import PartagesReseauV2 from './PartagesReseauV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -2801,6 +2802,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
 
+            {:else if s.id === 'networkShares'}
+              <PartagesReseauV2 onDossiersChanges={(dirs) => { musicDirs = dirs; }} />
             {:else if s.id === 'clearLibrary'}
               <!-- « Repartir à zéro » (#3585). La fonction existait côté
                    serveur et n'était exposée nulle part ici. -->

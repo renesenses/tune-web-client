@@ -99,6 +99,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'library',    titleKey: 'settings.library',      from: 'library', min: 'beginner' },
       { id: 'musicDirs',  titleKey: 'settings.musicDirs',    from: 'library', min: 'beginner', keywords: ['dossiers', 'chemins'] },
+      // Portage de l'ancienne interface (phase 5) : l'assistant SMB et l'état
+      // réel des montages (#2069) n'existaient que dans SettingsView.
+      { id: 'networkShares', titleKey: 'settings.smbMountsTitle', from: 'library', min: 'beginner',
+        keywords: ['smb', 'nas', 'partage', 'réseau', 'cifs', 'samba', 'montage', 'windows'] },
       { id: 'scanOpts',   titleKey: 'settings.scanOptions',  from: 'library', min: 'intermediate', keywords: ['analyse', 'scan'] },
       { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
         keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
