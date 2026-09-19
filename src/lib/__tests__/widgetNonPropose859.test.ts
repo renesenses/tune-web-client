@@ -10,6 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { dictionnaire } from './onzeDictionnaires';
 
 const src = readFileSync(resolve(process.cwd(), 'src/components/v2/PageWidgets.svelte'), 'utf-8')
   .replace(/\/\*[\s\S]*?\*\//g, '').replace(/<!--[\s\S]*?-->/g, '').replace(/^\s*\/\/.*$/gm, '');
@@ -31,7 +32,7 @@ describe('#859 — un 501 n’est pas un échec de widget', () => {
   });
   it('le libellé existe dans les onze langues', async () => {
     for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh']) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       expect(dico['v2.home.widgetUnsupported'], code).toBeTruthy();
     }
   });

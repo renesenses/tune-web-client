@@ -13,13 +13,14 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { dictionnaire } from './onzeDictionnaires';
 
 const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh'];
 
 describe('#999 — l’entrée de la barre dit ce qu’elle ouvre', () => {
   for (const code of LANGUES) {
     it(`${code} : ni « Processing » recopié, ni le même mot que le bandeau`, async () => {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       const nav = dico['v2.nav.processing'];
       const bandeau = dico['v2.health.eyebrow'];
       expect(nav, 'v2.nav.processing').toBeTruthy();
@@ -30,8 +31,8 @@ describe('#999 — l’entrée de la barre dit ce qu’elle ouvre', () => {
     });
   }
   it('🔴 fr et en nomment les journaux dans le bandeau — c’est ce que Fabien cherchait', async () => {
-    const fr = (await import('../locales/fr')).default as Record<string, string>;
-    const en = (await import('../locales/en')).default as Record<string, string>;
+    const fr = dictionnaire('fr');
+    const en = dictionnaire('en');
     expect(fr['v2.health.eyebrow'].toLowerCase()).toContain('journaux');
     expect(en['v2.health.eyebrow'].toLowerCase()).toContain('logs');
   });

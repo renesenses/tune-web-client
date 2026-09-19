@@ -11,6 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { dictionnaire } from './onzeDictionnaires';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const ecran = lire('src/components/v2/ZonesV2.svelte');
@@ -57,7 +58,7 @@ describe('#1006 — la carte de zone en grille', () => {
   });
   it('les pastilles courtes tiennent en deux mots, dans les onze langues', async () => {
     for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh']) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       for (const k of ['v2.zone.badgeNoOutput', 'v2.zone.badgeBrowser', 'v2.zone.badgeOffline']) {
         expect(dico[k], `${code} ${k}`).toBeTruthy();
         expect(dico[k].length, `${code} ${k} trop long`).toBeLessThanOrEqual(16);

@@ -28,6 +28,7 @@ import en from '../locales/en';
 import { settingsInitialTab } from '../stores/navigation';
 import { v2SettingsTarget } from '../stores/v2SettingsNav';
 import { preferences } from '../stores/preferences';
+import { dictionnaire } from './onzeDictionnaires';
 
 /** La commande que le serveur donne. C'est L'information utile. */
 const COMMANDE = 'brew update && brew upgrade tune-server';
@@ -157,7 +158,7 @@ describe('les onze langues portent les sept clés', () => {
       'settings.homebrewFailed',
     ];
     for (const l of langues) {
-      const dico = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+      const dico = dictionnaire(l);
       for (const c of cles) {
         expect(dico[c], `${l} : clé ${c} absente`).toBeTruthy();
         expect(dico[c], `${l} : clé ${c} vide`).not.toBe('');
@@ -166,7 +167,7 @@ describe('les onze langues portent les sept clés', () => {
     // Les deux clés à paramètre doivent GARDER leurs marqueurs, sinon la
     // substitution ne remplace rien et la phrase perd son information.
     for (const l of langues) {
-      const dico = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+      const dico = dictionnaire(l);
       expect(dico['settings.homebrewMismatch'], `${l} : {binaire} perdu`).toContain('{binaire}');
       expect(dico['settings.homebrewMismatch'], `${l} : {cellar} perdu`).toContain('{cellar}');
       expect(dico['settings.homebrewCannotSelfUpdate'], `${l} : {detail} perdu`).toContain(

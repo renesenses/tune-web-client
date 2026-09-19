@@ -40,6 +40,7 @@ import {
   type SettingLevelEntry,
 } from '../settingLevels';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -139,8 +140,7 @@ describe('les deux clés neuves existent dans les ONZE langues', () => {
   it('settings.hiddenHere et settings.hiddenHereReveal sont traduites partout', async () => {
     const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
     for (const l of langues) {
-      const mod = await import(`../locales/${l}.ts`);
-      const table = mod.default as Record<string, string>;
+      const table = dictionnaire(l);
       for (const k of ['settings.hiddenHere', 'settings.hiddenHereReveal']) {
         expect(table[k], `${k} absente de ${l}`).toBeTruthy();
         expect(table[k]).not.toBe(k);
