@@ -33,7 +33,8 @@
   import { bandesDuPrereglage, prereglageDesBandes } from '../../lib/eqPrereglages';
   import AudioVisualizer from './AudioVisualizer.svelte';
   import { afficherDynamicRange, type AffichageDynamicRange } from '../../lib/dynamicRange';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import { libelleConversion } from '../../lib/bitperfectStrict';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
   import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../../lib/stores/library';
@@ -2042,6 +2043,13 @@
               <span class="sp-dot"></span>
               <span class="sp-label">{zone.signal_path.bit_perfect ? $t('signal.bitPerfect') : $t('signal.transcoded')}</span>
             </div>
+            <!-- #3973 — une conversion de fréquence se DIT, sans ouvrir le
+                 détail : « PURE dégradé — 192 → 96 kHz, pas bit-perfect ».
+                 Rien sur un vieux serveur, qui ne publie pas `rate_conversion`. -->
+            {@const conversion = libelleConversion(zone.signal_path, $t, $locale)}
+            {#if conversion}
+              <p class="sp-conversion" class:degrade={zone.signal_path.pure_degraded}>{conversion}</p>
+            {/if}
             {#if showSignalDetail}
               <!-- svelte-ignore a11y_click_events_have_key_events -->
               <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -3071,6 +3079,16 @@
   }
 
   .signal-path-pill:hover .sp-label { color: var(--tune-text); }
+
+  .sp-conversion {
+    margin: 2px 0 0;
+    font-family: var(--font-label);
+    font-size: 11px;
+    color: var(--tune-text-muted);
+    letter-spacing: 0.3px;
+  }
+
+  .sp-conversion.degrade { color: var(--tune-text); font-weight: 600; }
 
   .signal-path-overlay {
     position: fixed;
