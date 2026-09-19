@@ -4744,6 +4744,12 @@ export default {
   "upnp.availability.disabled": "服务器已禁用",
   "upnp.availability.unknown": "状态未知",
   "upnp.availability.hint": "服务器的最后已知状态；仍可浏览目录。",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "当输出设备无法播放音源的采样率时，拒绝播放而不是转换采样率。",
+  "bitperfect.refused": "严格 bit-perfect：已拒绝播放 — 输出设备无法在不转换的情况下播放 {requested} kHz（其运行于 {device} kHz）。请在区域设置中关闭“Bit-perfect strict”以进行转换播放。",
+  "bitperfect.pureDegraded": "PURE 降级 — {from} → {to} kHz，非 bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz，非 bit-perfect",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
