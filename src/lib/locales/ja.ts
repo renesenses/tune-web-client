@@ -3629,6 +3629,7 @@ export default {
   "v2.pontRoon.absentFromApi": "Roon API から提供されない項目:",
   "v2.pontRoon.jsonOnly": "JSON エクスポートのみ: 画像は設定されません。",
   "v2.plug.incompatible": "このバージョンの Tune とは互換性がありません",
+  "v2.plug.uninstallConfirm": "「{name}」をアンインストールしますか？設定は削除されます。サーバーの再起動が必要な場合があります。",
   "settings.tabExtensions": "拡張機能",
   "settings.albumTechLine": "サムネイル下の技術情報",
   "settings.albumTechLineHint": "各ジャケットの下に形式・サンプリング周波数・ビット深度を表示します。エキスパートレベルのみ。",

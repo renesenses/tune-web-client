@@ -3629,6 +3629,7 @@ export default {
   "v2.pontRoon.absentFromApi": "Roon API에서 제공하지 않음:",
   "v2.pontRoon.jsonOnly": "JSON 내보내기만: 이미지는 설정되지 않습니다.",
   "v2.plug.incompatible": "이 버전의 Tune과 호환되지 않습니다",
+  "v2.plug.uninstallConfirm": "“{name}”을(를) 제거할까요? 설정이 삭제되며 서버를 다시 시작해야 할 수 있습니다.",
   "settings.tabExtensions": "확장",
   "settings.albumTechLine": "섬네일 아래 기술 정보",
   "settings.albumTechLineHint": "각 커버 아래에 형식, 샘플링 주파수, 비트 심도를 표시합니다. 전문가 수준 전용.",

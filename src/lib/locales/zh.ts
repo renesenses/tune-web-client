@@ -3629,6 +3629,7 @@ export default {
   "v2.pontRoon.absentFromApi": "Roon API 未提供:",
   "v2.pontRoon.jsonOnly": "仅 JSON 导出:不会设置任何图片。",
   "v2.plug.incompatible": "与此版本的 Tune 不兼容",
+  "v2.plug.uninstallConfirm": "卸载“{name}”？其设置将被删除，可能需要重启服务器。",
   "settings.tabExtensions": "扩展",
   "settings.albumTechLine": "缩略图下的技术信息行",
   "settings.albumTechLineHint": "在每张封面下显示格式、采样率与位深。仅限专家级别。",

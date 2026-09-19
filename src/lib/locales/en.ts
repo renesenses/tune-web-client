@@ -2317,6 +2317,7 @@ export default {
   "v2.pontRoon.absentFromApi": "Not provided by the Roon API:",
   "v2.pontRoon.jsonOnly": "JSON export only: no image will be set.",
   "v2.plug.incompatible": "Incompatible with this version of Tune",
+  "v2.plug.uninstallConfirm": "Uninstall “{name}”? Its settings are removed; a server restart may be required.",
   "settings.tabExtensions": "Extensions",
   "settings.albumTechLine": "Technical line under thumbnails",
   "settings.albumTechLineHint": "Format, sample rate and bit depth under each cover. Expert level only.",

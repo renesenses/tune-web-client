@@ -3587,6 +3587,7 @@ export default {
   "v2.pontRoon.absentFromApi": "A Roon API nem adja meg:",
   "v2.pontRoon.jsonOnly": "Csak JSON-export: kép nem kerül beállításra.",
   "v2.plug.incompatible": "Nem kompatibilis a Tune ezen változatával",
+  "v2.plug.uninstallConfirm": "Eltávolítja: „{name}”? A beállításai törlődnek; a szerver újraindítása szükséges lehet.",
   "settings.tabExtensions": "Bővítmények",
   "settings.albumTechLine": "Műszaki sor a bélyegképek alatt",
   "settings.albumTechLineHint": "Formátum, mintavételezés és bitmélység minden borító alatt. Csak Szakértő szinten.",

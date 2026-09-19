@@ -3629,6 +3629,7 @@ export default {
   "v2.pontRoon.absentFromApi": "Von der Roon-API nicht geliefert:",
   "v2.pontRoon.jsonOnly": "Nur JSON-Export: Es wird kein Bild gesetzt.",
   "v2.plug.incompatible": "Nicht kompatibel mit dieser Tune-Version",
+  "v2.plug.uninstallConfirm": "„{name}“ deinstallieren? Die Einstellungen werden gelöscht; ein Neustart des Servers kann nötig sein.",
   "settings.tabExtensions": "Erweiterungen",
   "settings.albumTechLine": "Technische Zeile unter den Miniaturen",
   "settings.albumTechLineHint": "Format, Abtastrate und Bittiefe unter jedem Cover. Nur auf Experten-Ebene.",

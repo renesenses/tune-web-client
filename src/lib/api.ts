@@ -5396,6 +5396,8 @@ export interface MergedPlugin {
   is_featured?: boolean;
   /** Entrée issue du catalogue marketplace (install via /marketplace). */
   marketplace?: boolean;
+  /** `wasm` pour un greffon posé sur disque par le marketplace (`GET /plugins`, `list_plugins`). */
+  type?: string;
   slug?: string;
   /**
    * Égaliseur en greffon FACULTATIF (v0.9.156). `GET /plugins/equalizer` rend

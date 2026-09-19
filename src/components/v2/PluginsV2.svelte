@@ -19,6 +19,8 @@
   import type { MergedPlugin } from '../../lib/api';
   import { fold } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { fusionnerCatalogue, routeDeDesinstallation } from '../../lib/catalogueGreffons';
   import '../../styles/tune-v2.css';
 
   let plugins = $state<MergedPlugin[]>([]);
@@ -30,7 +32,17 @@
   let tab = $state<'installed' | 'all'>('installed');
 
   async function reload() {
-    try { plugins = (await api.getMergedPlugins()) ?? []; publierGreffons(plugins); error = null; }
+    try {
+      // Le catalogue distant est FACULTATIF : hors ligne, l'onglet montre
+      // l'installé, comme l'ancien écran (voir lib/catalogueGreffons).
+      const [locaux, distant] = await Promise.all([
+        api.getMergedPlugins(),
+        api.getMarketplaceCatalog().catch(() => ({ plugins: [], count: 0 })),
+      ]);
+      plugins = fusionnerCatalogue(locaux ?? [], distant?.plugins ?? []);
+      publierGreffons(plugins);
+      error = null;
+    }
     catch { error = $t('v2.plug.unavailable' as any); }
     loading = false;
   }
@@ -66,8 +78,14 @@
     act(p, () => (isActive(p) ? api.disablePlugin(p.name) : api.enablePlugin(p.name)));
   const install = (p: MergedPlugin) =>
     act(p, () => (p.marketplace && p.slug ? api.installMarketplacePlugin(p.slug) : api.installPlugin(p.slug ?? p.name)));
-  const uninstall = (p: MergedPlugin) =>
-    act(p, () => api.uninstallMarketplacePlugin(p.slug ?? p.name));
+  async function uninstall(p: MergedPlugin) {
+    const nom = p.display_name || p.name;
+    if (!(await dialogs.confirm($t('v2.plug.uninstallConfirm' as any).replace('{name}', nom), { danger: true }))) return;
+    await act(p, () => (routeDeDesinstallation(p) === 'marketplace'
+      ? api.uninstallMarketplacePlugin(p.slug ?? p.name)
+      : api.uninstallPlugin(p.name)));
+  }
+  const update = (p: MergedPlugin) => act(p, () => api.updatePlugin(p.name));
 </script>
 
 <section class="v2-plug tune-v2">
@@ -137,6 +155,11 @@
                   <input type="checkbox" checked={isActive(p)} disabled={busy === key(p)} onchange={() => toggle(p)} />
                   <span class="slider"></span>
                 </label>
+                {#if p.update_available}
+                  <button class="lnk maj" disabled={busy === key(p)} onclick={() => update(p)}>
+                    {busy === key(p) ? $t('plugins.updating' as any) : $t('plugins.update' as any)}
+                  </button>
+                {/if}
                 <button class="lnk danger" disabled={busy === key(p)} onclick={() => uninstall(p)}>{$t('plugins.uninstall' as any)}</button>
               {:else}
                 <button class="go" disabled={!p.compatible || busy === key(p)} onclick={() => install(p)}
@@ -191,6 +214,7 @@
   .pact{display:flex; align-items:center; gap:12px; flex:0 0 auto}
   .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     border-radius:var(--v2-r-pill); padding:7px 14px; font:600 12px var(--v2-sans)}
+  .lnk.maj{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
   .lnk.danger:hover:not(:disabled){border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .lnk:disabled{opacity:.45; cursor:default}
   .go{height:34px; padding:0 18px; border-radius:var(--v2-r-pill); border:0; cursor:pointer; font:700 12.5px var(--v2-sans);

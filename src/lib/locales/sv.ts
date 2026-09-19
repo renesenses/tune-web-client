@@ -3628,6 +3628,7 @@ export default {
   "v2.pontRoon.absentFromApi": "Tillhandahålls inte av Roon-API:t:",
   "v2.pontRoon.jsonOnly": "Endast JSON-export: ingen bild sätts.",
   "v2.plug.incompatible": "Inkompatibel med den här versionen av Tune",
+  "v2.plug.uninstallConfirm": "Avinstallera ”{name}”? Inställningarna raderas; servern kan behöva startas om.",
   "settings.tabExtensions": "Tillägg",
   "settings.albumTechLine": "Teknisk rad under miniatyrerna",
   "settings.albumTechLineHint": "Format, frekvens och bitdjup under varje omslag. Endast på Expertnivå.",
