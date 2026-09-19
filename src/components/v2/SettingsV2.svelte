@@ -69,6 +69,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  // Phase 5 (web#1257) — gestes système qui n'avaient de chemin que par l'ancienne interface.
+  import MaintenanceBaseV2 from './MaintenanceBaseV2.svelte';
+  import ImportLecteurV2 from './ImportLecteurV2.svelte';
+  import LectureYoutubeV2 from './LectureYoutubeV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -1804,6 +1808,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await api.startBatchEnrich(); enrichRunning = true; await refreshEnrich(); }
     catch { enrichErr = get(t)('settings.errStartFailed'); }
   }
+  let artworkMsg = $state<string | null>(null);
+  async function startArtwork() {
+    const tr = get(t);
+    enrichErr = null;
+    artworkMsg = null;
+    try { await api.triggerEnrich(); artworkMsg = tr('settings.enrichStarted' as any); }
+    catch { enrichErr = tr('settings.errStartFailed' as any); }
+  }
   async function startCovers() {
     enrichErr = null;
     try { await api.enrichArtistImages(); await refreshEnrich(); }
@@ -2167,6 +2179,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <button class="lnk" onclick={startCovers}>{$t('v2.set.start' as any)}</button>
               </div>
+
+              <!-- Phase 5 (web#1257) : « Pochettes & images » n'avait de bouton
+                   que dans l'ancien onglet Bibliothèque. `POST /system/enrich`
+                   lance les pochettes d'albums PUIS les identifiants MusicBrainz
+                   et les portraits d'artistes — plus large que la ligne du dessus. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.enrichArtworkTitle' as any)}</span>
+                  {#if artworkMsg}<span class="hint">{artworkMsg}</span>{/if}
+                </div>
+                <button class="lnk enrich-artwork" onclick={startArtwork}>{$t('settings.enrichNow' as any)}</button>
+              </div>
               <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
 
@@ -2271,7 +2295,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <p class="hint">{#each emphaseParts($t('settings.cloudScopeHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
 
             {:else if s.id === 'import'}
-              <p class="hint">{$t('v2.hint.importWizard' as any)}</p>
+              <ImportLecteurV2 />
+
+            {:else if s.id === 'youtubePlayback'}
+              <LectureYoutubeV2 />
 
             {:else if s.id === 'database'}
               <div class="rows">
@@ -2292,6 +2319,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t('v2.hint.dbNotAttached' as any)}
                 </div>
               {/if}
+              <MaintenanceBaseV2 moteur={dbEngine} />
 
             {:else if s.id === 'dataLoc'}
               <div class="rows">

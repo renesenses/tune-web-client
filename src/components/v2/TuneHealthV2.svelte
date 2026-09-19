@@ -18,6 +18,8 @@
    */
   import * as api from '../../lib/api';
   import OutputModulesPanel from '../partages/OutputModulesPanel.svelte';
+  // Phase 5 (web#1257) : surveillance, tâches de fond et réarmement ASIO.
+  import SurveillanceServeurV2 from './SurveillanceServeurV2.svelte';
   import { tableauFournisseurs, type TableauFournisseurs } from '../../lib/refusModuleSortie';
   import { formatNombre } from '../../lib/formats';
   import { activeView } from '../../lib/stores/navigation';
@@ -57,6 +59,8 @@
   let refreshing = $state(false);
   /** #2392 — l'instantané `output_providers` ; `null` = serveur antérieur à v0.9.115, pas de panneau. */
   let modulesSortie = $state<TableauFournisseurs | null>(null);
+  /** L'état du balayage ASIO, lu dans le MÊME appel que les modules de sortie. */
+  let asioWarm = $state<api.AsioWarmScanStatus | null>(null);
 
   const anyRunning = $derived(cards.some((c) => c.etat === 'running'));
 
@@ -288,6 +292,7 @@
     // Un seul appel, celui de Diagnostics ; un serveur qui n'envoie pas
     // `output_providers` ne fait apparaître aucun panneau.
     const diag = await Promise.allSettled([api.getServerDiagnostics()]);
+    asioWarm = diag[0].status === 'fulfilled' ? (diag[0].value?.asio_warm_scan ?? null) : null;
     modulesSortie = diag[0].status === 'fulfilled'
       ? tableauFournisseurs(diag[0].value?.output_providers)
       : null;
@@ -420,6 +425,8 @@
           <OutputModulesPanel tableau={modulesSortie} variante="v2" />
         </section>
       {/if}
+
+      <SurveillanceServeurV2 asio={asioWarm} />
 
       <!-- #865 — les JOURNAUX. Le bloc est en dehors du `{#if modulesSortie}`
            et ne dépend d'aucune route facultative : il doit être là même —

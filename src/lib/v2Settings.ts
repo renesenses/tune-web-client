@@ -194,6 +194,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'streaming',   titleKey: 'settings.streaming', from: 'services', min: 'intermediate', keywords: ['qobuz', 'tidal', 'deezer'] },
       { id: 'tokens',      title: 'Services & Jetons',     from: 'services', min: 'intermediate', keywords: ['jetons', 'tokens', 'api', 'clés'] },
       { id: 'spotify',     title: 'Spotify Connect',       from: 'services', min: 'intermediate' },
+      // Phase 5 (web#1257) : l'activation de yt-dlp n'existait que dans l'ancien onglet Services.
+      { id: 'youtubePlayback', titleKey: 'settings.youtubePlaybackTitle', from: 'services', min: 'intermediate',
+        keywords: ['youtube', 'yt-dlp', 'lecture'] },
       { id: 'accessFrom',  titleKey: 'settings.accessFromDevice', from: 'system', min: 'intermediate', keywords: ['accès', 'distant', 'url'] },
     ],
   },
