@@ -72,9 +72,14 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
 
   it('et les quatorze écrans passent par le helper', () => {
     const avec = fichiersV2.filter((f) => lire(f).includes("from '../../lib/zoneRequise'"));
-    expect(avec.length).toBe(14);
+    // Au MOINS les quatorze d'origine : un écran v2 nouveau qui lit la zone
+    // passe par le même helper (les statistiques d'écoute, phase 5) — un compte
+    // exact rougissait pour ça, pas pour un geste redevenu muet. Le motif muet,
+    // lui, est gardé par le test précédent sur TOUS les fichiers.
+    expect(avec.length).toBeGreaterThanOrEqual(14);
     // L'écran que Bertrand nomme en fait partie.
     expect(avec).toContain('BioEtTitresPhares.svelte');
+    expect(avec).toContain('StatistiquesEcouteV2.svelte');
   });
 
   it('🔴 la garde COMPOSÉE de RadiosV2 a été séparée, pas contournée', () => {
