@@ -4989,6 +4989,10 @@ export async function exportPlaylist(playlistId: number, format: 'm3u' | 'json' 
 export function exportAlbumsCsv() { return downloadCsv('/export/albums.csv', 'albums.csv'); }
 export function exportTracksCsv() { return downloadCsv('/export/tracks.csv', 'tracks.csv'); }
 export function exportArtistsCsv() { return downloadCsv('/export/artists.csv', 'artists.csv'); }
+/** L'historique d'écoute en CSV — `GET /library/history/export`. Le bouton
+ *  « CSV » du tableau de bord de l'ancienne interface posait un simple lien,
+ *  SANS l'en-tête d'authentification : refusé dès qu'un compte est actif. */
+export function exportHistoryCsv() { return downloadCsv('/library/history/export?limit=10000', 'tune-history.csv'); }
 
 // --- Audiophile Mode ---
 

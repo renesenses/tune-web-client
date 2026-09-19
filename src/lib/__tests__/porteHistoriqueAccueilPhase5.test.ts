@@ -20,6 +20,7 @@ const getTopMixes = vi.fn();
 const getRecentlyAdded = vi.fn();
 const getRecentlyAddedSummary = vi.fn();
 const play = vi.fn();
+const exportHistoryCsv = vi.fn();
 
 vi.mock('../api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api')>()),
@@ -30,6 +31,7 @@ vi.mock('../api', async (importOriginal) => ({
   getRecentlyAdded: (...a: any[]) => getRecentlyAdded(...a),
   getRecentlyAddedSummary: (...a: any[]) => getRecentlyAddedSummary(...a),
   play: (...a: any[]) => play(...a),
+  exportHistoryCsv: (...a: any[]) => exportHistoryCsv(...a),
   getPlaybackHistory: async () => ({ items: [] }),
   getProfilePreferences: async () => ({}),
   setProfilePreferences: async () => ({}),
@@ -73,7 +75,7 @@ const bouton = (el: HTMLElement, libelle: string) =>
   [...el.querySelectorAll('button')].find((b) => (b.textContent ?? '').trim() === libelle) ?? null;
 
 beforeEach(() => {
-  for (const f of [getDashboard, getHistoryAtSlot, getTopTracks, getTopMixes, getRecentlyAdded, getRecentlyAddedSummary, play]) f.mockReset();
+  for (const f of [getDashboard, getHistoryAtSlot, getTopTracks, getTopMixes, getRecentlyAdded, getRecentlyAddedSummary, play, exportHistoryCsv]) f.mockReset();
   getDashboard.mockResolvedValue(TABLEAU);
   getHistoryAtSlot.mockResolvedValue({ weekday: 2, hour: 21, period: '30d', tracks: [
     { track_id: 91, title: 'Blue in Green', artist_name: 'Miles Davis', album_title: 'Kind of Blue',
@@ -141,6 +143,16 @@ describe('Historique → Statistiques : le tableau de bord de l’ancienne inter
     // Mardi = jour ISO 2, 21 h, sur la période affichée.
     expect(getHistoryAtSlot).toHaveBeenCalledWith('30d', 2, 21, 100);
     expect(h.textContent).toContain('Blue in Green');
+  });
+
+  it('l’export CSV de l’historique passe par la requête AUTHENTIFIÉE', async () => {
+    exportHistoryCsv.mockResolvedValue(undefined);
+    const h = poser(HistoriqueV2);
+    bouton(h, fr['v2.hist.tabStats'])!.click();
+    await respirer();
+    bouton(h, fr['settings.exportCsv'])!.click();
+    await respirer();
+    expect(exportHistoryCsv).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -135,15 +135,47 @@ porter en v2, abandonner, ou garder le filet.
 
 ## Historique, accueil et tableau de bord (9)
 
-- `getDashboard` — `GET /library/history/dashboard`
-- `getHistoryAtSlot` — `GET /library/history/at`
-- `getHistoryDashboard` — `GET /library/history/dashboard`
-- `getHomePage` — `GET /home`
-- `getRecentlyAdded` — `GET /home/recently-added${qs`
-- `getRecentlyAddedSummary` — `GET /home/recently-added/summary{}`
-- `getRecommendations` — `GET /library/recommendations`
-- `getTopMixes` — `GET /home/top-mixes`
-- `getTopTracks` — `GET /library/history/top-tracks`
+✅ **Porté ou couvert — plus aucune perte d’accès pour ce domaine** (branche
+`feat/v2-porte-historique`, témoins `src/lib/__tests__/porteHistoriqueAccueilPhase5.test.ts`).
+
+- `getDashboard` — `GET /library/history/dashboard` — ✅ **porté** : Historique,
+  onglet « Statistiques » (`v2/StatistiquesEcouteV2.svelte`) — période, totaux et
+  leurs légendes (#1155), tendance, classements artistes / albums / titres /
+  radios (album, titre et radio jouables), série, « il y a quelques années »,
+  genres rangés par l’arbre des genres, carte semaine × heure, par zone, par
+  source, durées enregistrées, et l’export CSV de l’historique
+  (`exportHistoryCsv`, `GET /library/history/export` — authentifié, ce que le
+  simple lien de l’écran d’origine n’était pas).
+- `getHistoryAtSlot` — `GET /library/history/at` — ✅ **porté** : même onglet, un
+  clic sur une case de la carte semaine × heure liste ce qui jouait alors ; chaque
+  titre se rejoue.
+- `getHistoryDashboard` — `GET /library/history/dashboard` — ✅ **couvert** :
+  même route que `getDashboard` (sans `period` ni `top_n`, donc non bornée). Aucun
+  écran ne l’appelait : `DashboardHighlights.svelte:97` ne la cite qu’en
+  commentaire, pour dire qu’il lui préfère `getDashboard`.
+- `getHomePage` — `GET /home` — ⛔ **non porté, capacité morte** : l’ancien
+  accueil (`HomeView.svelte:412`) n’en lisait que `profile_name`, que le serveur ne
+  rend pas (`tune-server/src/routes/home.rs`, `home_page` → `{"sections": …}`
+  seulement). Rien ne s’affichait. Les sections de `/home` ont chacune leur bande
+  v2 (`reprendre`, `recemment-ajoutes`, `plus-ecoutes`, `radios-artistes`,
+  `recommandations`).
+- `getRecentlyAdded` — `GET /home/recently-added` — ✅ **porté** : accueil, bandes
+  « Ajouts récents · 15 jours » et « · 30 jours » (`ajouts-15-jours`,
+  `ajouts-30-jours`, mode édition → Ajouter), plafond 500 comme l’onglet d’origine
+  (#3039).
+- `getRecentlyAddedSummary` — `GET /home/recently-added/summary` — ✅ **porté** :
+  le bilan « N albums · N pistes · durée » s’affiche sous le titre de ces deux
+  bandes, sur la même fenêtre (`Widget.resume`).
+- `getRecommendations` — `GET /library/recommendations` — ✅ **couvert** : le
+  serveur y rend `AlbumRepo::list_recent(limit)`
+  (`routes/library/albums.rs`, `recommendations`), exactement ce que rend
+  `GET /library/albums/recent` (`recent_albums`, même appel) — la bande d’accueil
+  « Récemment ajoutés » (`getRecentAlbums`). Les recommandations par genre écouté,
+  elles, sont la bande « Recommandations » (`/home/recommendations`).
+- `getTopMixes` — `GET /home/top-mixes` — ✅ **porté** : bande d’accueil « Mix par
+  genre » (`mix-genres`) ; un clic joue les pistes du mix.
+- `getTopTracks` — `GET /library/history/top-tracks` — ✅ **porté** : bande
+  d’accueil « Titres les plus écoutés » (`plus-ecoutes`).
 
 ## Radios et podcasts (7)
 

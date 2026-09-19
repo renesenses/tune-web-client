@@ -25,6 +25,7 @@
   import { playAndSync } from '../../lib/stores/zones';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { signalerEchecLecture } from '../../lib/echecLecture';
+  import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
 
   const PERIODES: DashboardPeriod[] = ['today', '7d', '30d', 'all'];
@@ -54,6 +55,46 @@
   }
 
   $effect(() => { void charger(periode); });
+
+  /**
+   * Les genres écoutés, RANGÉS par l'arbre des genres de l'utilisateur : un
+   * sous-genre compte pour sa branche. Un genre hors de l'arbre garde son
+   * propre nom — l'écran d'origine le rangeait sous « Hors arbre », une chaîne
+   * française en dur qui restait telle quelle dans les dix autres langues.
+   */
+  let arbre = $state<Record<string, string[]>>({});
+  $effect(() => {
+    api.getGenreTree().then((r) => { arbre = r?.tree ?? {}; }).catch(() => { arbre = {}; });
+  });
+  let tousLesGenres = $state(false);
+  const branches = $derived.by(() => {
+    const parents = new Map<string, string>();
+    const versParent = new Map<string, string>();
+    for (const [p, enfants] of Object.entries(arbre)) {
+      parents.set(p.toLowerCase(), p);
+      for (const e of enfants) versParent.set(e.toLowerCase(), p);
+    }
+    const seaux = new Map<string, number>();
+    for (const g of donnees?.by_genre ?? []) {
+      const bas = (g.genre || '').toLowerCase();
+      const b = parents.get(bas) ?? versParent.get(bas) ?? g.genre;
+      if (!b) continue;
+      seaux.set(b, (seaux.get(b) ?? 0) + g.plays);
+    }
+    return [...seaux.entries()].map(([nom, plays]) => ({ nom, plays })).sort((a, b) => b.plays - a.plays);
+  });
+  const branchesVisibles = $derived(tousLesGenres ? branches : branches.slice(0, 20));
+
+  let exportEnCours = $state(false);
+  async function exporter() {
+    exportEnCours = true;
+    try {
+      await api.exportHistoryCsv();
+    } catch {
+      notifications.error($t('v2.pl.exportError' as any));
+    }
+    exportEnCours = false;
+  }
 
   function duree(ms: number): string {
     if (!ms) return '0';
@@ -148,11 +189,12 @@
 </script>
 
 <div class="stats">
-  <div class="periodes" role="tablist">
+  <div class="periodes">
     {#each PERIODES as p (p)}
-      <button role="tab" aria-selected={periode === p} class:on={periode === p}
+      <button aria-pressed={periode === p} class:on={periode === p}
         onclick={() => (periode = p)}>{$t(`dashboard.period.${p}` as any)}</button>
     {/each}
+    <button class="export" onclick={exporter} disabled={exportEnCours}>{$t('settings.exportCsv' as any)}</button>
   </div>
 
   {#if chargement && !donnees}
@@ -277,6 +319,26 @@
       {/if}
     </div>
 
+    {#if branchesVisibles.length}
+      {@const max = branchesVisibles[0].plays}
+      <section class="carte">
+        <h3>{$t('dashboard.genreBranches' as any)}</h3>
+        <ul class="barres">
+          {#each branchesVisibles as b (b.nom)}
+            <li><span class="bl">{b.nom}</span>
+              <span class="bt"><span class="bf" style:width="{max ? (b.plays / max) * 100 : 0}%"></span></span>
+              <span class="compte">{b.plays}</span></li>
+          {/each}
+        </ul>
+        {#if branches.length > 20}
+          <button class="v2-btn plus" onclick={() => (tousLesGenres = !tousLesGenres)}>
+            {tousLesGenres ? $t('dashboard.showLess' as any)
+              : $t('dashboard.showMoreGenres' as any).replace('{n}', String(branches.length - 20))}
+          </button>
+        {/if}
+      </section>
+    {/if}
+
     {#if grilleMax > 0}
       <section class="carte">
         <h3>{$t('dashboard.section.weekday_hourly' as any)}</h3>
@@ -380,6 +442,8 @@
   .periodes button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:600 12px var(--v2-sans); padding:7px 13px; border-radius:var(--v2-r-pill)}
   .periodes button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .periodes .export{margin-left:auto}
+  .plus{margin-top:10px}
   .periodes button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .totaux{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px}
