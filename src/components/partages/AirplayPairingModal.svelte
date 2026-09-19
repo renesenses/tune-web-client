@@ -1,6 +1,6 @@
 <script lang="ts">
-  import * as api from '../lib/api';
-  import { t } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import { t } from '../../lib/i18n';
 
   // The AirPlay output device id (e.g. "airplay2:AA:BB:..") and its friendly name.
   let { deviceId, deviceName = '', onClose }: {

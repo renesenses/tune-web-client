@@ -7,8 +7,8 @@
   import * as api from '../lib/api';
   import { etiquetteCaracteristiques } from '../lib/caracteristiquesPeripherique';
   import { deviceHasBoundZone, deviceZoneActionKey, deviceZoneSuccessKey, deviceZoneTargetId } from '../lib/hiddenZoneRecovery';
-  import OaatGroupsPanel from './OaatGroupsPanel.svelte';
-  import AirplayPairingModal from './AirplayPairingModal.svelte';
+  import OaatGroupsPanel from './partages/OaatGroupsPanel.svelte';
+  import AirplayPairingModal from './partages/AirplayPairingModal.svelte';
   import OutputModuleBanner from './OutputModuleBanner.svelte';
   import type { Zone, ZoneGroupResponse, OutputType, DiscoveredDevice, StereoPairInfo, LocalAudioDevice } from '../lib/types';
 
