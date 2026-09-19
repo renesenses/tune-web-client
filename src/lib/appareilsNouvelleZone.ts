@@ -15,6 +15,7 @@
  * le serveur refuse désormais elle aussi.
  */
 import type { DiscoveredDevice, LocalAudioDevice, OutputType, Zone } from './types';
+import { zoneTypeLabel } from './zoneIdentity';
 import { deviceHasBoundZone, deviceZoneTargetId } from './hiddenZoneRecovery';
 
 export type GroupeAppareil = 'navigateur' | 'local' | 'reseau';
@@ -56,4 +57,38 @@ export function candidatsNouvelleZone(
     out.push({ cle: `${d.type}|${id}`, groupe: 'reseau', nom: d.name, outputType: d.type, deviceId: id });
   }
   return out;
+}
+
+/**
+ * Le libellé d'un appareil proposé — SON NOM, ET SON PROTOCOLE — #1234.
+ *
+ * Bertrand, présentation du 18/09/2026 : « Créer zone — manque le protocole ».
+ * Un même appareil s'annonce souvent plusieurs fois, une par protocole qu'il
+ * parle, et la liste montrait alors deux entrées qu'aucun signe ne
+ * distinguait. On en prend une au hasard, et on découvre la différence à
+ * l'usage : qualité, gestion du volume et reprise après coupure ne se valent
+ * pas d'un protocole à l'autre.
+ *
+ * Mesuré sur le .18 le 19/09/2026, `GET /devices` — dix appareils, dont :
+ *
+ *     dlna      DMP-A8
+ *     dlna      DMP-A8 (Tune)
+ *     airplay   eversolo,1
+ *     airplay   Chambre
+ *     oaat      Tune Endpoint
+ *
+ * 🔴 `zoneTypeLabel` est RÉUTILISÉ, pas réécrit. Il vit dans `zoneIdentity` et
+ * sert déjà les cartes de zone des Réglages (#1065) ; une seconde table de
+ * protocoles divergerait au premier ajout, et l'écran de création nommerait
+ * un protocole autrement que l'écran des zones.
+ *
+ * ⚠️ Il rend la CHAÎNE VIDE pour `local` — délibérément : « Local répète le
+ * nom ». Le groupe « Sorties du serveur » le dit déjà dans son en-tête, on
+ * n'ajoute donc rien. Idem pour le navigateur.
+ */
+export function libelleCandidat(c: CandidatZone | null | undefined): string {
+  const nom = (c?.nom ?? '').trim();
+  const proto = zoneTypeLabel(c?.outputType).trim();
+  if (!proto) return nom;
+  return nom ? `${nom} · ${proto}` : proto;
 }

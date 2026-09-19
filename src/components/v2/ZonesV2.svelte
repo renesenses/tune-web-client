@@ -31,7 +31,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
-  import { candidatsNouvelleZone, type CandidatZone } from '../../lib/appareilsNouvelleZone';
+  import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -325,7 +325,9 @@
               {@const dansGroupe = candidats.filter((c) => c.groupe === g)}
               {#if dansGroupe.length}
                 <optgroup label={$t(cle as any)}>
-                  {#each dansGroupe as c (c.cle)}<option value={c.cle}>{c.nom}</option>{/each}
+                  <!-- #1234 — le nom ET le protocole : deux entrées du même
+                       appareil ne se distinguaient par rien. -->
+                  {#each dansGroupe as c (c.cle)}<option value={c.cle}>{libelleCandidat(c)}</option>{/each}
                 </optgroup>
               {/if}
             {/each}
