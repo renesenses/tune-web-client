@@ -20,7 +20,8 @@
    */
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
-  import type { EqBand, MergedPlugin } from '../../lib/api';
+  import type { EqBand, EqProPreset, MergedPlugin } from '../../lib/api';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { activeView } from '../../lib/stores/navigation';
@@ -150,8 +151,89 @@
         error = null;
       })
       .catch(() => { error = $t('v2.eq.errUnavailable' as any); });
-    Promise.allSettled([lectureGreffon, lectureZone]).finally(() => { loading = false; });
+    // « Mes préréglages » ne se lisent que greffon présent : non installé, les
+    // routes `/eq/*` n'ont rien à rendre et l'écran n'affiche que le bouton.
+    const lecturePresets = lectureGreffon.then(() => (greffon?.installed === false ? undefined : chargerMesPresets()));
+    Promise.allSettled([lectureGreffon, lectureZone, lecturePresets]).finally(() => { loading = false; });
   });
+
+  /**
+   * MES PRÉRÉGLAGES — réglages nommés, enregistrés CÔTÉ SERVEUR
+   * (`tune-server/src/routes/eq_pro.rs`, `/eq/presets`) et donc partagés par
+   * tous les appareils. Seul l'ancien `EqualizerView` y menait (phase 5,
+   * web#1257 : aucune perte d'accès).
+   *
+   * Un préréglage emporte le sous-mode où il a été pris : `graphic` (la grille,
+   * canal droit compris s'il est délié) ou `parametric` (les bandes libres).
+   * Le rappeler repasse l'écran dans ce mode et ALLUME l'égaliseur — même garde
+   * que toucher une bande.
+   */
+  let mesPresets = $state<EqProPreset[]>([]);
+  let mesPresetsErr = $state<string | null>(null);
+  let nomPreset = $state('');
+  let enregistrementPreset = $state(false);
+
+  async function chargerMesPresets() {
+    const msgKo = $t('v2.eq.myPresetsLoadFailed' as any);
+    try { mesPresets = await api.listEqPresets(); mesPresetsErr = null; }
+    catch { mesPresetsErr = msgKo; }
+  }
+
+  async function enregistrerPreset() {
+    const name = nomPreset.trim();
+    if (!name || enregistrementPreset) return;
+    const msgOk = $t('eq.presetSaved' as any).replace('{name}', name);
+    const msgKo = $t('eq.presetSaveFailed' as any);
+    const eq_type = sousMode === 'parametrique' ? 'parametric' : 'graphic';
+    const bands: EqBand[] = sousMode === 'parametrique'
+      ? $state.snapshot(pBandes)
+      : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
+    enregistrementPreset = true;
+    try {
+      // Même nom = remplacer : l'ancien part, le nouveau le remplace.
+      const homonyme = mesPresets.find((x) => x.name === name);
+      if (homonyme) { try { await api.deleteEqPreset(homonyme.id); } catch { /* le doublon se verra dans la liste */ } }
+      const cree = await api.createEqPreset({ name, eq_type, bands });
+      mesPresets = [...mesPresets.filter((x) => x.name !== name), cree];
+      nomPreset = '';
+      notifications.success(msgOk);
+    } catch {
+      notifications.error(msgKo);
+    } finally {
+      enregistrementPreset = false;
+    }
+  }
+
+  function rappelerPreset(pr: EqProPreset) {
+    const bands = pr.bands ?? [];
+    if (pr.eq_type === 'parametric') {
+      pBandes = bands.map((b) => ({ ...b }));
+      sousMode = 'parametrique';
+    } else {
+      const surGrille = (liste: EqBand[]) => resample(liste.map((b) => b.gain), liste.map((b) => b.freq), BANDS);
+      const gauche = bands.filter((b) => b.channel === undefined || b.channel === 0);
+      const droite = bands.filter((b) => b.channel === 1);
+      if (!gauche.length) return;
+      gains = surGrille(gauche);
+      gainsRight = droite.length ? surGrille(droite) : null;
+      editing = 'left';
+      sousMode = 'graphique';
+    }
+    if (!enabled) enabled = true;
+    save();
+  }
+
+  async function supprimerPreset(pr: EqProPreset) {
+    const question = $t('v2.eq.myPresetDeleteConfirm' as any).replace('{name}', pr.name);
+    const msgKo = $t('v2.eq.myPresetDeleteFailed' as any);
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
+    try {
+      await api.deleteEqPreset(pr.id);
+      mesPresets = mesPresets.filter((x) => x.id !== pr.id);
+    } catch {
+      notifications.error(msgKo);
+    }
+  }
 
   /**
    * Installer PUIS activer, dans cet ordre — la même mécanique que
@@ -328,6 +410,32 @@
         {/each}
       </div>
 
+      <div class="mes-presets">
+        <span class="cl">{$t('eq.myPresets' as any)}</span>
+        {#if mesPresetsErr}
+          <span class="note">{mesPresetsErr}</span>
+        {:else if !mesPresets.length}
+          <span class="note">{$t('eq.noPresets' as any)}</span>
+        {/if}
+        {#each mesPresets as pr (pr.id)}
+          <span class="mp">
+            <button class="mp-apply" onclick={() => rappelerPreset(pr)}>{pr.name}</button>
+            <button class="mp-del" onclick={() => supprimerPreset(pr)}
+              aria-label={$t('eq.deletePreset' as any)} title={$t('eq.deletePreset' as any)}>×</button>
+          </span>
+        {/each}
+        {#if sousMode !== 'assistant'}
+          <span class="mp-save">
+            <input type="text" bind:value={nomPreset} placeholder={$t('eq.presetNamePlaceholder' as any)}
+              aria-label={$t('eq.savePreset' as any)}
+              onkeydown={(e) => { if (e.key === 'Enter') enregistrerPreset(); }} />
+            <button class="lnk sm" disabled={!nomPreset.trim() || enregistrementPreset} onclick={enregistrerPreset}>
+              {$t('eq.save' as any)}
+            </button>
+          </span>
+        {/if}
+      </div>
+
       {#if showExpert}
         <!--
           Graphique ou paramétrique. Niveau Expert seulement : le paramétrique
@@ -445,6 +553,16 @@
     font:600 12px var(--v2-sans); padding:8px 15px; border-radius:var(--v2-r-pill); transition:.15s}
   .presets button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
 
+  .mes-presets{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:0 0 16px}
+  .mp{display:inline-flex; align-items:center; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); overflow:hidden}
+  .mp-apply{border:0; background:transparent; color:var(--v2-txt2); cursor:pointer; font:600 12px var(--v2-sans); padding:7px 6px 7px 14px}
+  .mp-apply:hover{color:var(--v2-txt)}
+  .mp-del{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:15px; padding:4px 11px 4px 6px}
+  .mp-del:hover{color:var(--v2-danger)}
+  .mp-save{display:inline-flex; align-items:center; margin-left:auto}
+  .mp-save input{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); border-radius:8px;
+    padding:6px 10px; font:12px var(--v2-sans); width:160px}
+  .lnk:disabled{opacity:.45; cursor:default}
   .ctrls{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:0 0 18px}
   .cl{font:10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
   .cl.sep{margin-left:12px}
