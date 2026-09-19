@@ -3163,6 +3163,75 @@ export function rebuildFts() {
   return fetchJSON<{ status: string; rows_indexed: number; message: string }>(`${BASE}/system/database/rebuild-fts`, { method: 'POST' });
 }
 
+/** Ce que rend `POST /system/database/test-connection` (`routes/system/database.rs`). */
+export interface EssaiConnexionBase {
+  ok?: boolean;
+  version?: string;
+  database_created?: boolean;
+  error?: string;
+  hint?: string;
+}
+
+/**
+ * Essaie une adresse PostgreSQL avant d'y migrer la bibliothèque.
+ *
+ * L'adresse part dans un corps JSON, pas dans l'URL comme le faisait l'ancien
+ * `SettingsView` : elle porte un mot de passe, qui n'a rien à faire dans les
+ * journaux d'accès. Le serveur lit les deux (`DbConnQuery` puis
+ * `DbConnectionTest`).
+ *
+ * Les refus attendus — 400 (adresse mal formée), 501 (serveur compilé sans
+ * `postgres`), 503 (connexion impossible, avec `hint`) — sont rendus comme
+ * une RÉPONSE `{ ok: false, error, hint }` : c'est ce que l'écran doit
+ * afficher, pas un bandeau « Server error ».
+ */
+export function testDatabaseConnection(url: string) {
+  return fetchJSON<EssaiConnexionBase>(
+    `${BASE}/system/database/test-connection`,
+    { method: 'POST', body: JSON.stringify({ engine: 'postgresql', url }) },
+    (statut) => statut === 400 || statut === 501 || statut === 503,
+  );
+}
+
+/** Ce que rend `POST /system/database/migrate` quand la copie a abouti. */
+export interface ResultatMigrationBase {
+  status?: string;
+  /** Vrai : l'adresse est écrite dans `.env` et le serveur se relance sur PostgreSQL. */
+  restarting?: boolean;
+  env_path?: string | null;
+  tables_migrated?: number;
+  total_rows?: number;
+  duration_ms?: number;
+  errors?: string[];
+  error?: string;
+  hint?: string;
+}
+
+/**
+ * Copie la base SQLite vers PostgreSQL, puis — si l'adresse a pu être écrite
+ * dans le `.env` — relance le serveur sur PostgreSQL. La base SQLite n'est
+ * pas touchée. La réponse n'arrive qu'une fois la copie TERMINÉE.
+ *
+ * 🔴 Seul ce sens existe : `migrate_database` ignore `target` et exige une
+ * adresse PostgreSQL. Le « Migrer vers SQLite » de l'ancien écran postait
+ * `?target=sqlite` sans adresse et recevait un 400 qu'il ne lisait pas.
+ *
+ * Échec (400, 500 avec `hint`, 501) : levé en erreur portant le motif du
+ * serveur, pour que l'écran le dise.
+ */
+export async function migrateDatabaseToPostgres(url: string) {
+  const r = await fetchJSON<ResultatMigrationBase>(
+    `${BASE}/system/database/migrate`,
+    { method: 'POST', body: JSON.stringify({ url }) },
+    (statut) => statut === 400 || statut === 500 || statut === 501,
+  );
+  if (r?.status !== 'complete') {
+    const motif = [r?.error, r?.hint].filter(Boolean).join(' — ');
+    throw new Error(motif || String(r?.status ?? 'error'));
+  }
+  return r;
+}
+
 export function updateConfig(fields: Record<string, unknown>) {
   return fetchJSON<Record<string, unknown>>(`${BASE}/system/config`, {
     method: 'PATCH',
