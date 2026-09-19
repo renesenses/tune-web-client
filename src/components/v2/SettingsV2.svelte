@@ -51,7 +51,7 @@
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
-  import type { LocalAudioDevice } from '../../lib/types';
+  import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
   import SmbWizard from '../partages/SmbWizard.svelte';
   import { etatPartage } from '../../lib/smbMountState';
@@ -1095,6 +1095,97 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { smbMounts = await api.listSmbMounts(); } catch { smbMounts = []; }
   }
   $effect(() => { void loadSmbMounts(); });
+
+  /* --- Base : sauvegardes, export / import, index de recherche ------------
+   *
+   * Portés de l'ancienne interface, où ils vivaient dans deux écrans :
+   * l'export, l'import et l'index de recherche dans `SettingsView`, la
+   * création de sauvegarde dans le menu d'outils de `MetadataView`. La
+   * RESTAURATION y était écrite (`restoreBackup`) mais aucun bouton ne
+   * l'appelait : une sauvegarde se créait et ne se rendait jamais. Elle est
+   * offerte ici, derrière une confirmation marquée dangereuse — elle remplace
+   * la base.
+   */
+  let backups = $state<BackupInfo[]>([]);
+  let backupBusy = $state(false);
+  let restoring = $state<string | null>(null);
+  let dbImporting = $state(false);
+  let dbImportResult = $state<{ ok: boolean; texte: string } | null>(null);
+  let dbImportInput: HTMLInputElement | null = $state(null);
+  let ftsRebuilding = $state(false);
+  let ftsResult = $state<{ ok: boolean; texte: string } | null>(null);
+
+  async function loadBackups() {
+    // Route absente d'un serveur ancien : pas de liste, pas d'erreur.
+    try { backups = await api.getBackups(); } catch { backups = []; }
+  }
+  $effect(() => { void loadBackups(); });
+
+  async function createBackup() {
+    backupBusy = true;
+    try {
+      await api.createBackup();
+      await loadBackups();
+      notifications.success($t('maintenance.backupCreated' as any));
+    } catch {
+      notifications.error($t('maintenance.backupError' as any));
+    } finally {
+      backupBusy = false;
+    }
+  }
+
+  async function restoreBackup(filename: string) {
+    if (!(await dialogs.confirm($t('maintenance.restoreConfirm' as any), { danger: true }))) return;
+    restoring = filename;
+    try {
+      await api.restoreBackup(filename);
+      notifications.success($t('maintenance.restoreSuccess' as any));
+    } catch {
+      notifications.error($t('maintenance.restoreError' as any));
+    } finally {
+      restoring = null;
+    }
+  }
+
+  const tailleMo = (octets: number) => $formatNombre(Math.round((octets / 1024 / 1024) * 10) / 10);
+
+  function exportDatabase() {
+    window.location.href = api.exportDatabaseUrl();
+  }
+
+  async function onDbImportFile(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!(await dialogs.confirm($t('settings.importDbConfirm' as any).replace('{name}', file.name), { danger: true }))) {
+      input.value = '';
+      return;
+    }
+    dbImporting = true;
+    dbImportResult = null;
+    try {
+      const r = await api.importDatabase(file);
+      dbImportResult = { ok: true, texte: `${$t('settings.importDbSuccess' as any)} (${tailleMo(r.size)} MB). ${$t('settings.restartToApply' as any)}` };
+    } catch (err: any) {
+      dbImportResult = { ok: false, texte: `${$t('settings.importDbError' as any)} : ${err?.message ?? ''}` };
+    } finally {
+      dbImporting = false;
+      input.value = '';
+    }
+  }
+
+  async function rebuildFtsIndex() {
+    ftsRebuilding = true;
+    ftsResult = null;
+    try {
+      const r = await api.rebuildFts();
+      ftsResult = { ok: true, texte: `${$t('settings.ftsRebuilt' as any)} : ${$formatNombre(r.rows_indexed)} ${$t('settings.recordsIndexed' as any)}` };
+    } catch (err: any) {
+      ftsResult = { ok: false, texte: `${$t('common.error' as any)} : ${err?.message ?? ''}` };
+    } finally {
+      ftsRebuilding = false;
+    }
+  }
 
   async function refreshLibrary() {
     try {
@@ -2372,6 +2463,48 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t('v2.hint.dbNotAttached' as any)}
                 </div>
               {/if}
+
+              <!-- Sauvegardes : créer, lister, RESTAURER. -->
+              <div class="row">
+                <div class="lbl"><span>{$t('maintenance.backupRestore' as any)}</span></div>
+                <button class="lnk" disabled={backupBusy} onclick={createBackup}>{$t('maintenance.createBackup' as any)}</button>
+              </div>
+              <div class="devlist">
+                {#each backups as b (b.filename)}
+                  <div class="dev ign">
+                    <span class="dn mono">{b.filename}</span>
+                    <span class="dt">{tailleMo(b.size)} MB</span>
+                    <span class="dh">{new Date(b.created_at).toLocaleString()}</span>
+                    <button class="lnk danger" disabled={restoring !== null} onclick={() => restoreBackup(b.filename)}>
+                      {restoring === b.filename ? '…' : $t('maintenance.restore' as any)}
+                    </button>
+                  </div>
+                {:else}
+                  <p class="hint">{$t('maintenance.noBackups' as any)}</p>
+                {/each}
+              </div>
+
+              <!-- Export / import de la base entière. -->
+              <div class="acts" style="margin-top:14px">
+                <button class="lnk" onclick={exportDatabase}>{$t('settings.exportDatabase' as any)}</button>
+                <button class="lnk" disabled={dbImporting} onclick={() => dbImportInput?.click()}>
+                  {dbImporting ? $t('settings.importInProgress' as any) : $t('settings.importFile' as any)}
+                </button>
+                <input bind:this={dbImportInput} type="file" accept=".db,.sqlite,.sqlite3,.sql" style="display:none" onchange={onDbImportFile} />
+              </div>
+              {#if dbImportResult}<p class="hint" class:errline={!dbImportResult.ok}>{dbImportResult.texte}</p>{/if}
+
+              <!-- Index de recherche. -->
+              <div class="row" style="margin-top:14px">
+                <div class="lbl">
+                  <span>{$t('settings.searchIndex' as any)}</span>
+                  <span class="hint">{$t('settings.rebuildIndexHint' as any)}</span>
+                </div>
+                <button class="lnk" disabled={ftsRebuilding} onclick={rebuildFtsIndex}>
+                  {ftsRebuilding ? $t('settings.rebuilding' as any) : $t('settings.rebuildIndex' as any)}
+                </button>
+              </div>
+              {#if ftsResult}<p class="hint" class:errline={!ftsResult.ok}>{ftsResult.texte}</p>{/if}
 
             {:else if s.id === 'dataLoc'}
               <div class="rows">
