@@ -37,6 +37,7 @@
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
+  import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -1103,6 +1104,55 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let stats = $state<{ tracks: number; albums: number; artists: number; zones: number; devices: number } | null>(null);
   const clientStale = $derived(!!serverVersion && !!CLIENT_VERSION && serverVersion !== CLIENT_VERSION);
 
+  /**
+   * Phase 5 (web#1257) — « Quoi de neuf » et la documentation de l'API, que
+   * seule l'ancienne interface atteignait (`WhatsNew`, lien de `SettingsView`).
+   * Les deux s'ouvrent SUR PLACE, dans « À propos » : chargés à la demande,
+   * par `fetchJSON` — donc avec le jeton et à travers le relais, ce que le
+   * lien brut de l'ancien écran ne faisait pas.
+   */
+  let notesOuvertes = $state(false);
+  let notesEnCours = $state(false);
+  let notes = $state<NotesDeVersion | null>(null);
+  let notesEchec = $state(false);
+  async function basculerNotes() {
+    notesOuvertes = !notesOuvertes;
+    if (!notesOuvertes || notes || notesEnCours) return;
+    notesEnCours = true;
+    notesEchec = false;
+    try {
+      notes = lireNotesDeVersion(await api.getChangelog(get(locale)));
+    } catch {
+      notesEchec = true;
+    }
+    notesEnCours = false;
+  }
+  // Hors ligne, aucune entrée n'est « la version qui tourne » : le jeu de
+  // secours est figé et ancien (même règle que l'ancien panneau).
+  const versionCourante = $derived(
+    !notes || notes.horsLigne ? null : (notes.versionServeur ?? serverVersion ?? notes.entrees[0]?.version ?? null),
+  );
+
+  let apiDocsOuverte = $state(false);
+  let apiDocsEnCours = $state(false);
+  let apiDocs = $state<api.RouteDocumentee[] | null>(null);
+  let apiDocsErr = $state<string | null>(null);
+  async function basculerApiDocs() {
+    apiDocsOuverte = !apiDocsOuverte;
+    if (!apiDocsOuverte || apiDocs || apiDocsEnCours) return;
+    apiDocsEnCours = true;
+    apiDocsErr = null;
+    try {
+      const r = await api.getApiDocs();
+      apiDocs = Array.isArray(r?.endpoints) ? r.endpoints : [];
+    } catch (e) {
+      const motif = errText(e);
+      const base = get(t)('common.error' as any);
+      apiDocsErr = motif ? `${base} : ${motif}` : base;
+    }
+    apiDocsEnCours = false;
+  }
+
   $effect(() => {
     api.apiFetch('/system/update/check')
       .then((d: any) => {
@@ -1793,6 +1843,74 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       diagnosticEnCours = false;
     }
   }
+
+  /**
+   * Phase 5 (web#1257) — trois gestes de maintenance qui n'avaient de chemin
+   * que dans l'ancienne interface, en appels hors `api.ts` : le niveau des
+   * journaux (`SettingsView`), le nettoyage du serveur et « vider le cache »
+   * (`DiagnosticsView`). Ils vivent ici, sous l'état du serveur, à côté du
+   * téléchargement des journaux et du redémarrage.
+   */
+  const NIVEAUX_JOURNAUX = ['error', 'warn', 'info', 'debug', 'trace'];
+  let niveauJournaux = $state<string | null>(null);
+  let niveauEnCours = $state(false);
+  let niveauMsg = $state<{ ok: boolean; texte: string } | null>(null);
+  $effect(() => {
+    if (!sections.some((x) => x.id === 'health') || !atLeast(level, 'expert')) return;
+    api.getLogLevel()
+      .then((r) => { niveauJournaux = r?.level ?? 'info'; })
+      .catch(() => { niveauJournaux = null; });   // serveur antérieur : pas de sélecteur
+  });
+  function motifOuRien(e: unknown): string {
+    const m = errText(e);
+    return m ? ` : ${m}` : '';
+  }
+  async function changerNiveauJournaux(niveau: string) {
+    const avant = niveauJournaux;
+    niveauJournaux = niveau;
+    niveauEnCours = true;
+    niveauMsg = null;
+    try {
+      const r = await api.setLogLevel(niveau);
+      niveauJournaux = r?.level ?? niveau;
+      niveauMsg = { ok: true, texte: get(t)('v2.maint.logLevelSaved' as any).replace('{level}', niveauJournaux ?? niveau) };
+    } catch (e) {
+      niveauJournaux = avant;
+      niveauMsg = { ok: false, texte: get(t)('settings.logLevelError' as any) + motifOuRien(e) };
+    }
+    niveauEnCours = false;
+  }
+
+  let nettoyageEnCours = $state(false);
+  let nettoyage = $state<api.ResultatNettoyage | null>(null);
+  let nettoyageErr = $state<string | null>(null);
+  async function nettoyerLeServeur() {
+    if (!(await dialogs.confirm(get(t)('v2.maint.cleanupConfirm' as any), { danger: true }))) return;
+    nettoyageEnCours = true;
+    nettoyage = null;
+    nettoyageErr = null;
+    try {
+      nettoyage = await api.cleanupServer();
+    } catch (e) {
+      nettoyageErr = get(t)('common.error' as any) + motifOuRien(e);
+    }
+    nettoyageEnCours = false;
+  }
+
+  let rapportEnCours = $state(false);
+  let rapportMsg = $state<{ ok: boolean; texte: string } | null>(null);
+  async function effacerRapportAnalyse() {
+    if (!(await dialogs.confirm(get(t)('v2.maint.clearScanReportConfirm' as any)))) return;
+    rapportEnCours = true;
+    rapportMsg = null;
+    try {
+      await api.clearScanReport();
+      rapportMsg = { ok: true, texte: get(t)('v2.maint.clearScanReportDone' as any) };
+    } catch (e) {
+      rapportMsg = { ok: false, texte: get(t)('common.error' as any) + motifOuRien(e) };
+    }
+    rapportEnCours = false;
+  }
   async function arreterLeServeur() {
     if (!(await dialogs.confirm(get(t)('settings.stopServerConfirm' as any), { danger: true }))) return;
     arretEnCours = true;
@@ -2239,6 +2357,78 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       })
       .catch(() => {});
   });
+
+  /**
+   * Phase 5 (web#1257) — la bascule SQLite → PostgreSQL n'avait de chemin que
+   * dans l'ancien `SettingsView`, par `fetch` direct. Même déroulé : tester
+   * l'adresse, puis migrer — le bouton ne s'ouvre qu'après un essai réussi de
+   * CETTE adresse. La migration est confirmée (danger) : elle se termine par
+   * un redémarrage du serveur sur PostgreSQL.
+   *
+   * Le sens PostgreSQL → SQLite n'est PAS porté : le serveur ne l'implémente
+   * pas (`migrate_database` ignore `target` et exige une adresse PostgreSQL).
+   */
+  let pgUrl = $state('');
+  let pgEssaiEnCours = $state(false);
+  let pgUrlEprouvee = $state<string | null>(null);
+  let pgEssai = $state<{ ok: boolean; texte: string } | null>(null);
+  let pgMigration = $state(false);
+  let pgMigrationMsg = $state<{ ok: boolean; texte: string } | null>(null);
+  async function essayerPostgres() {
+    const url = pgUrl.trim();
+    const tr = get(t);
+    pgEssaiEnCours = true;
+    pgEssai = null;
+    pgUrlEprouvee = null;
+    pgMigrationMsg = null;
+    try {
+      const r = await api.testDatabaseConnection(url);
+      if (r?.ok === true) {
+        pgUrlEprouvee = url;
+        let texte = `PostgreSQL ${r.version ?? ''} — ${tr('settings.connectionOk' as any)}`;
+        if (r.database_created) texte += ` ${tr('v2.db.databaseCreated' as any)}`;
+        pgEssai = { ok: true, texte };
+      } else {
+        const motif = [r?.error, r?.hint].filter(Boolean).join(' — ');
+        pgEssai = { ok: false, texte: `${tr('common.error' as any)} : ${motif || '—'}` };
+      }
+    } catch (e) {
+      const motif = errText(e);
+      pgEssai = { ok: false, texte: motif ? `${tr('common.error' as any)} : ${motif}` : tr('common.error' as any) };
+    }
+    pgEssaiEnCours = false;
+  }
+  async function migrerVersPostgres() {
+    const url = pgUrl.trim();
+    if (!url || url !== pgUrlEprouvee) return;
+    const tr = get(t);
+    if (!(await dialogs.confirm(tr('v2.db.migrateConfirm' as any), { danger: true }))) return;
+    pgMigration = true;
+    pgMigrationMsg = null;
+    try {
+      const r = await api.migrateDatabaseToPostgres(url);
+      const lignes = String(r.total_rows ?? 0);
+      if (r.restarting) {
+        pgMigrationMsg = { ok: true, texte: tr('v2.db.migrateDone' as any).replace('{rows}', lignes) };
+        // Le serveur se relance sur PostgreSQL : on attend son retour, puis
+        // on recharge — même attente que le redémarrage de cet onglet.
+        attendreRetourEtRecharger({
+          sonder: () => api.getHealth(),
+          recharger: () => window.location.reload(),
+          renoncer: () => {
+            pgMigration = false;
+            notifications.error(get(t)('settings.updateReloadGaveUp' as any));
+          },
+        });
+        return;
+      }
+      pgMigrationMsg = { ok: false, texte: tr('v2.db.migrateNoRestart' as any).replace('{rows}', lignes) };
+    } catch (e) {
+      const motif = errText(e);
+      pgMigrationMsg = { ok: false, texte: motif ? `${tr('settings.migrationError' as any)} : ${motif}` : tr('settings.migrationError' as any) };
+    }
+    pgMigration = false;
+  }
 
   async function exportCsv(kind: 'albums' | 'tracks' | 'artists') {
     csvBusy = kind; sysErr = null;
@@ -2889,6 +3079,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </button>
               </div>
               {#if ftsResult}<p class="hint" class:errline={!ftsResult.ok}>{ftsResult.texte}</p>{/if}
+
+              <!-- Phase 5 (web#1257) : bascule SQLite → PostgreSQL, portée de
+                   l'ancien écran. Offerte seulement sur SQLite : c'est le
+                   seul sens que le serveur sait faire. -->
+              {#if dbEngine === 'sqlite'}
+                <div class="row" style="margin-top:14px">
+                  <div class="lbl">
+                    <span>{$t('settings.migrateToPostgres' as any)}</span>
+                    <span class="hint">{$t('v2.db.migrateHint' as any)}</span>
+                  </div>
+                </div>
+                <div class="inline">
+                  <input class="txt wide mono" type="text" autocomplete="off" spellcheck="false"
+                    aria-label={$t('settings.migrateToPostgres' as any)}
+                    placeholder="postgresql://user:password@localhost:5432/tune"
+                    bind:value={pgUrl} disabled={pgMigration}
+                    oninput={() => { pgEssai = null; pgUrlEprouvee = null; }} />
+                  <button class="lnk" disabled={!pgUrl.trim() || pgEssaiEnCours || pgMigration} onclick={essayerPostgres}>
+                    {pgEssaiEnCours ? $t('settings.testing' as any) : $t('settings.testConnection' as any)}
+                  </button>
+                  <button class="lnk danger" disabled={pgUrlEprouvee === null || pgUrlEprouvee !== pgUrl.trim() || pgMigration} onclick={migrerVersPostgres}>
+                    {pgMigration ? $t('settings.migrating' as any) : $t('settings.migrate' as any)}
+                  </button>
+                </div>
+                {#if pgEssai}<p class="hint" class:errline={!pgEssai.ok}>{pgEssai.texte}</p>{/if}
+                {#if pgMigrationMsg}<p class="hint" class:errline={!pgMigrationMsg.ok}>{pgMigrationMsg.texte}</p>{/if}
+              {/if}
 
             {:else if s.id === 'dataLoc'}
               <div class="rows">
@@ -3637,6 +3854,62 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+              <!-- Phase 5 (web#1257) : « Quoi de neuf » et documentation de
+                   l'API, portés de l'ancienne interface. -->
+              <div class="inline">
+                <button class="lnk" aria-expanded={notesOuvertes} onclick={basculerNotes}>{$t('whatsnew.title' as any)}</button>
+                {#if atLeast(level, 'expert')}
+                  <button class="lnk" aria-expanded={apiDocsOuverte} onclick={basculerApiDocs}>{$t('settings.apiDocs' as any)}</button>
+                {/if}
+              </div>
+              {#if notesOuvertes}
+                <div class="notes" role="region" aria-label={$t('whatsnew.title' as any)}>
+                  {#snippet groupeDeNotes(cle: string, items: string[])}
+                    {#if items.length}
+                      <p class="hint"><b>{$t(cle as any)}</b></p>
+                      <ul class="note-items">{#each items as it, j (j)}<li>{it}</li>{/each}</ul>
+                    {/if}
+                  {/snippet}
+                  {#if notesEnCours}
+                    <p class="hint">{$t('whatsnew.loading' as any)}</p>
+                  {:else if notesEchec}
+                    <div class="errline">{$t('whatsnew.error' as any)}</div>
+                  {:else if notes}
+                    {#if notes.nonTraduites}<p class="hint">{$t('whatsnew.notTranslated' as any)}</p>{/if}
+                    {#if notes.horsLigne}<div class="warnbox">{$t('whatsnew.error' as any)}</div>{/if}
+                    {#each notes.entrees as n, i (n.version)}
+                      <div class="note" class:courante={n.version === versionCourante}>
+                        <div class="kv">
+                          <b class="mono">v{n.version}</b>
+                          <span>{n.date}{#if i === 0 && !notes.horsLigne} · {$t('whatsNew.latest' as any)}{/if}</span>
+                        </div>
+                        {@render groupeDeNotes('whatsnew.newFeatures', n.features)}
+                        {@render groupeDeNotes('whatsnew.improvements', n.improvements)}
+                        {@render groupeDeNotes('whatsnew.fixes', n.fixes)}
+                      </div>
+                    {:else}
+                      <p class="hint">{$t('whatsnew.noNotes' as any)}</p>
+                    {/each}
+                  {/if}
+                </div>
+              {/if}
+              {#if apiDocsOuverte && atLeast(level, 'expert')}
+                <div class="notes" role="region" aria-label={$t('settings.apiDocs' as any)}>
+                  {#if apiDocsEnCours}
+                    <p class="hint">{$t('common.loading' as any)}</p>
+                  {:else if apiDocsErr}
+                    <div class="errline">{apiDocsErr}</div>
+                  {:else if apiDocs}
+                    <p class="hint">{$t('v2.set.apiDocsCount' as any).replace('{count}', String(apiDocs.length))}</p>
+                    <div class="rows">
+                      {#each apiDocs as r, i (i)}
+                        <div class="kv"><b class="mono">{r.method} {r.path}</b><span>{r.description}</span></div>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+
             {:else if s.id === 'license'}
               <div class="rows">
                 <div class="kv">
@@ -3742,6 +4015,53 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t('settings.downloadDiag' as any)}
                 </button>
               </div>
+
+              <!-- Phase 5 (web#1257) : niveau des journaux, nettoyage du
+                   serveur, rapport d'analyse — portés de l'ancienne interface. -->
+              {#if atLeast(level, 'expert') && niveauJournaux !== null}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.logLevel' as any)}</span>
+                    <span class="hint">{$t('v2.maint.logLevelHint' as any)}</span>
+                  </div>
+                  <select class="sel" aria-label={$t('settings.logLevel' as any)} value={niveauJournaux}
+                    disabled={niveauEnCours}
+                    onchange={(e) => changerNiveauJournaux((e.currentTarget as HTMLSelectElement).value)}>
+                    {#each NIVEAUX_JOURNAUX as n (n)}<option value={n}>{n}</option>{/each}
+                  </select>
+                </div>
+                {#if niveauMsg}<p class="hint" class:errline={!niveauMsg.ok}>{niveauMsg.texte}</p>{/if}
+              {/if}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('diagnostics.cleanupServer' as any)}</span>
+                  <span class="hint">{$t('v2.maint.cleanupHint' as any)}</span>
+                </div>
+                <button class="lnk danger" disabled={nettoyageEnCours} onclick={nettoyerLeServeur}>
+                  {nettoyageEnCours ? $t('diagnostics.cleaning' as any) : $t('diagnostics.cleanupServer' as any)}
+                </button>
+              </div>
+              {#if nettoyage}
+                <div class="rows" role="status">
+                  <div class="kv"><span>{$t('v2.maint.mergedAlbums' as any)}</span><b>{nettoyage.duplicate_albums_merged ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanAlbums' as any)}</span><b>{nettoyage.orphan_albums_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtists' as any)}</span><b>{nettoyage.orphan_artists_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.dupTracks' as any)}</span><b>{nettoyage.duplicate_tracks_removed ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtwork' as any)}</span><b>{nettoyage.orphan_artwork_deleted ?? 0}</b></div>
+                  {#if nettoyage.db_optimized}<div class="kv"><span>{$t('v2.maint.dbOptimized' as any)}</span><b>✓</b></div>{/if}
+                </div>
+              {/if}
+              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div>{/if}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('v2.maint.clearScanReport' as any)}</span>
+                  <span class="hint">{$t('v2.maint.clearScanReportHint' as any)}</span>
+                </div>
+                <button class="lnk" disabled={rapportEnCours} onclick={effacerRapportAnalyse}>
+                  {rapportEnCours ? '…' : $t('v2.maint.clearScanReport' as any)}
+                </button>
+              </div>
+              {#if rapportMsg}<p class="hint" class:errline={!rapportMsg.ok}>{rapportMsg.texte}</p>{/if}
 
             {:else if s.id === 'streaming'}
               {#if !Object.keys(svcs).length}
@@ -4393,6 +4713,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 {/if}
 
 <style>
+  /* Phase 5 — « Quoi de neuf » et documentation de l'API, ouverts sur place. */
+  .notes{margin-top:12px; max-height:420px; overflow-y:auto; padding-right:6px}
+  .note{padding:8px 0; border-bottom:1px solid var(--v2-line)}
+  .note.courante{border-left:2px solid var(--v2-acc1); padding-left:10px}
+  .note-items{margin:4px 0 8px 18px; font-size:12.5px; line-height:1.5; color:var(--v2-txt2)}
   /* LA MATRICE des colonnes. Une grille unique : l'en-tête et les lignes
      partagent le même gabarit, sinon les cases ne tombent pas sous leur mode.
      C'est la même règle que le tableau de pistes lui-même. */

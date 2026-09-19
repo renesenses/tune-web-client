@@ -54,6 +54,19 @@
   const installedCount = $derived(plugins.filter((p) => p.installed).length);
 
   function key(p: MergedPlugin) { return p.slug ?? p.name; }
+
+  /**
+   * Phase 5 (web#1257) — la documentation des greffons n'avait de chemin que
+   * par l'onglet « Docs » de l'ancien `PluginsView` (`fetch` direct). Le
+   * serveur ne rend plus qu'un LIEN (`{ url }`) : on l'affiche tel quel, et
+   * rien s'il est absent — pas de promesse d'une page qui n'existe pas.
+   */
+  let docsUrl = $state<string | null>(null);
+  $effect(() => {
+    api.getPluginDocsUrl()
+      .then((u) => { docsUrl = u; })
+      .catch(() => { docsUrl = null; });
+  });
   /** Le serveur envoie `enabled` pour les extensions intégrées et `status`
    *  pour les autres : on accepte les deux plutôt que d'en privilégier une. */
   function isActive(p: MergedPlugin): boolean {
@@ -108,6 +121,9 @@
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
   {#if restartNeeded}
     <div class="restart">{$t('v2.plug.restartNeeded' as any)}</div>
+  {/if}
+  {#if docsUrl}
+    <p class="docs"><a href={docsUrl} target="_blank" rel="noopener noreferrer">{$t('v2.plug.docs' as any)} ↗</a></p>
   {/if}
 
   <div class="scroll">
@@ -183,6 +199,8 @@
   .err{border:1px solid var(--v2-danger-bd); color:var(--v2-danger)}
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
   .restart{border:1px solid var(--v2-acc2); background:var(--v2-acc-soft); color:var(--v2-acc-tint)}
+  .docs{margin:0 30px 10px; font-size:12.5px}
+  .docs a{color:var(--v2-acc-tint)}
 
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}

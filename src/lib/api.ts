@@ -3152,6 +3152,70 @@ export function getStats() {
   return fetchJSON<SystemStats>(`${BASE}/system/stats`);
 }
 
+/**
+ * Niveau des journaux du serveur — `GET /system/log-level`.
+ *
+ * Réponse (`routes/system/diagnostics.rs`, `get_log_level`) :
+ * `{ level, available: ["error","warn","info","debug","trace"] }`.
+ *
+ * Avant la phase 5, lu et écrit par `fetch` direct dans l'ancien
+ * `SettingsView` : invisible pour l'inventaire des capacités.
+ */
+export function getLogLevel() {
+  return fetchJSON<{ level?: string; available?: string[] }>(`${BASE}/system/log-level`);
+}
+
+/**
+ * Enregistre le niveau des journaux — `POST /system/log-level {level}`.
+ *
+ * 🔴 Le serveur répond 200 MÊME quand il refuse un niveau inconnu, avec
+ * `{ error }` pour seul signal : on le transforme en échec, sinon l'écran
+ * annoncerait un succès. En cas d'acceptation il ajoute une `note` — le
+ * niveau ne prend pleinement effet qu'au redémarrage du serveur.
+ */
+export async function setLogLevel(level: string) {
+  const r = await fetchJSON<{ status?: string; level?: string; note?: string; error?: string }>(
+    `${BASE}/system/log-level`,
+    { method: 'POST', body: JSON.stringify({ level }) },
+  );
+  if (r?.error) throw new Error(r.error);
+  return r;
+}
+
+/** Ce que rend `POST /system/cleanup` (`routes/system/enrich.rs`, `cleanup`). */
+export interface ResultatNettoyage {
+  duplicate_albums_merged?: number;
+  orphan_albums_deleted?: number;
+  orphan_artists_deleted?: number;
+  duplicate_tracks_removed?: number;
+  orphan_artwork_deleted?: number;
+  db_optimized?: boolean;
+}
+
+/**
+ * Nettoyage de la bibliothèque côté serveur (administrateur) : fusion des
+ * albums en double, albums et artistes orphelins, pistes en double, images
+ * du cache qu'aucun album ni artiste ne référence, puis `ANALYZE`.
+ *
+ * Avant la phase 5 : `api.apiPost('/system/cleanup')` dans `DiagnosticsView`,
+ * qui lisait d'ailleurs des champs que le serveur ne rend plus
+ * (`stale_artwork_deleted`, `old_history_deleted`, `db_vacuumed`).
+ */
+export function cleanupServer() {
+  return fetchJSON<ResultatNettoyage>(`${BASE}/system/cleanup`, { method: 'POST' });
+}
+
+/**
+ * `POST /system/clear-cache` — malgré son nom, le serveur n'efface QUE le
+ * compte rendu de la dernière analyse (réglage `scan_result`, relu par
+ * `GET /scan/status` et le diagnostic) et répond `{ cleared: true }`.
+ * L'ancien écran l'appelait « Vider le cache artwork » et affichait
+ * « true fichiers supprimés ».
+ */
+export function clearScanReport() {
+  return fetchJSON<{ cleared?: boolean }>(`${BASE}/system/clear-cache`, { method: 'POST' });
+}
+
 export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
@@ -3162,6 +3226,75 @@ export function getDatabaseStatus() {
 
 export function rebuildFts() {
   return fetchJSON<{ status: string; rows_indexed: number; message: string }>(`${BASE}/system/database/rebuild-fts`, { method: 'POST' });
+}
+
+/** Ce que rend `POST /system/database/test-connection` (`routes/system/database.rs`). */
+export interface EssaiConnexionBase {
+  ok?: boolean;
+  version?: string;
+  database_created?: boolean;
+  error?: string;
+  hint?: string;
+}
+
+/**
+ * Essaie une adresse PostgreSQL avant d'y migrer la bibliothèque.
+ *
+ * L'adresse part dans un corps JSON, pas dans l'URL comme le faisait l'ancien
+ * `SettingsView` : elle porte un mot de passe, qui n'a rien à faire dans les
+ * journaux d'accès. Le serveur lit les deux (`DbConnQuery` puis
+ * `DbConnectionTest`).
+ *
+ * Les refus attendus — 400 (adresse mal formée), 501 (serveur compilé sans
+ * `postgres`), 503 (connexion impossible, avec `hint`) — sont rendus comme
+ * une RÉPONSE `{ ok: false, error, hint }` : c'est ce que l'écran doit
+ * afficher, pas un bandeau « Server error ».
+ */
+export function testDatabaseConnection(url: string) {
+  return fetchJSON<EssaiConnexionBase>(
+    `${BASE}/system/database/test-connection`,
+    { method: 'POST', body: JSON.stringify({ engine: 'postgresql', url }) },
+    (statut) => statut === 400 || statut === 501 || statut === 503,
+  );
+}
+
+/** Ce que rend `POST /system/database/migrate` quand la copie a abouti. */
+export interface ResultatMigrationBase {
+  status?: string;
+  /** Vrai : l'adresse est écrite dans `.env` et le serveur se relance sur PostgreSQL. */
+  restarting?: boolean;
+  env_path?: string | null;
+  tables_migrated?: number;
+  total_rows?: number;
+  duration_ms?: number;
+  errors?: string[];
+  error?: string;
+  hint?: string;
+}
+
+/**
+ * Copie la base SQLite vers PostgreSQL, puis — si l'adresse a pu être écrite
+ * dans le `.env` — relance le serveur sur PostgreSQL. La base SQLite n'est
+ * pas touchée. La réponse n'arrive qu'une fois la copie TERMINÉE.
+ *
+ * 🔴 Seul ce sens existe : `migrate_database` ignore `target` et exige une
+ * adresse PostgreSQL. Le « Migrer vers SQLite » de l'ancien écran postait
+ * `?target=sqlite` sans adresse et recevait un 400 qu'il ne lisait pas.
+ *
+ * Échec (400, 500 avec `hint`, 501) : levé en erreur portant le motif du
+ * serveur, pour que l'écran le dise.
+ */
+export async function migrateDatabaseToPostgres(url: string) {
+  const r = await fetchJSON<ResultatMigrationBase>(
+    `${BASE}/system/database/migrate`,
+    { method: 'POST', body: JSON.stringify({ url }) },
+    (statut) => statut === 400 || statut === 500 || statut === 501,
+  );
+  if (r?.status !== 'complete') {
+    const motif = [r?.error, r?.hint].filter(Boolean).join(' — ');
+    throw new Error(motif || String(r?.status ?? 'error'));
+  }
+  return r;
 }
 
 export function updateConfig(fields: Record<string, unknown>) {
@@ -3689,8 +3822,19 @@ export function getStreamingGenres(service: string, parentId?: string) {
   return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
 }
 
-export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50) {
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}`);
+/**
+ * Les albums d'un genre. Avec `section`, la RUBRIQUE éditoriale restreinte à ce
+ * genre (#1300, serveur tune-server-rust#3481) : `press-awards`,
+ * `ideal-discography`, `qobuzissims`… Sans elle, la réponse d'avant — les
+ * nouveautés du genre.
+ *
+ * Un serveur antérieur à tune-server-rust#4524 (0.9.156 et avant) ne rejette
+ * pas `section`, il l'ignore et re-sert les nouveautés : c'est
+ * `chargerRubriquesGenre` (`src/lib/rubriquesGenre.ts`) qui s'en aperçoit.
+ */
+export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string) {
+  const rubrique = section ? `&section=${encodeURIComponent(section)}` : '';
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
 }
 
 export function getStreamingPlaylists(service: string) {
@@ -4505,6 +4649,53 @@ export async function checkForUpdate(): Promise<any> {
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${BASE}/system/update/check`, { headers });
   return res.json();
+}
+
+/**
+ * Notes de version (« Quoi de neuf ») — `GET /system/changelog?lang=…`.
+ *
+ * À lire avec `lireNotesDeVersion` (`lib/notesDeVersion`). Avant la phase 5,
+ * appelée par `fetch` direct dans l'ancien `WhatsNew` : invisible pour
+ * l'inventaire des capacités. `limit` est envoyé comme avant ; le serveur
+ * l'ignore aujourd'hui.
+ */
+export function getChangelog(lang: string, limit = 10) {
+  return fetchJSON<unknown>(`${BASE}/system/changelog?limit=${limit}&lang=${encodeURIComponent(lang)}`);
+}
+
+/** Une route du catalogue que sert `GET /system/api-docs`. */
+export interface RouteDocumentee {
+  method: string;
+  path: string;
+  description: string;
+}
+
+/**
+ * Catalogue des routes de l'API — `GET /system/api-docs`
+ * (`routes/system/diagnostics.rs`, `api_docs`) :
+ * `{ version, total_endpoints, endpoints: [{ method, path, description }] }`.
+ *
+ * L'ancien `SettingsView` en faisait un LIEN vers la route, ouvert dans un
+ * nouvel onglet : il ne portait pas le jeton `Authorization` (auth activée)
+ * ni le préfixe du relais Tune Bridge. Lu ici par `fetchJSON`, il a les deux.
+ */
+export function getApiDocs() {
+  return fetchJSON<{ version?: string; total_endpoints?: number; endpoints?: RouteDocumentee[] }>(
+    `${BASE}/system/api-docs`,
+  );
+}
+
+/**
+ * Adresse de la documentation des greffons — `GET /plugins/docs`.
+ *
+ * Le serveur (`routes/plugins.rs`, `plugin_docs`) ne rend plus de Markdown
+ * mais un lien : `{ url: "https://mozaiklabs.fr/guide#plugins" }`. On ne
+ * garde qu'une adresse http(s) ; toute autre valeur vaut « pas de lien ».
+ */
+export async function getPluginDocsUrl(): Promise<string | null> {
+  const r = await fetchJSON<{ url?: unknown }>(`${BASE}/plugins/docs`);
+  const url = typeof r?.url === 'string' ? r.url.trim() : '';
+  return /^https?:\/\//i.test(url) ? url : null;
 }
 
 export async function installUpdate(force = false): Promise<any> {
@@ -6382,6 +6573,25 @@ export async function getBugReportMarkdown(): Promise<string> {
   const resp = await fetch(`${BASE}/system/bug-report/markdown`, { headers });
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   return resp.text();
+}
+
+/**
+ * Envoie le rapport de bogue au forum communautaire (fil modéré).
+ *
+ * Le SERVEUR compose le rapport (diagnostics + journaux récents), place la
+ * description de l'utilisateur en tête et le transmet à mozaiklabs.fr ; il
+ * répond `{ status, url, slug }`, `url` étant le fil créé. Aucune licence
+ * n'est exigée — c'est ce qui le distingue d'un ticket de support premium.
+ *
+ * Avant la phase 5, ce `POST` n'existait qu'en `fetch` direct dans
+ * `DiagnosticsView` : l'inventaire des capacités, qui ne lit que `api.ts`, ne
+ * pouvait pas le voir.
+ */
+export function submitBugReport(description: string): Promise<{ status?: string; url?: string; slug?: string }> {
+  return fetchJSON(`${BASE}/system/bug-report/submit`, {
+    method: 'POST',
+    body: JSON.stringify({ description: description.trim() }),
+  });
 }
 
 // --- Audio Converter ---
