@@ -247,15 +247,11 @@ describe('#3660 — l’écran AFFICHE ce que le serveur a retenu', () => {
   });
 });
 
-describe('#3660 — les DEUX coquilles portent l’éditeur', () => {
-  // L'éditeur est un composant PARTAGÉ : le brancher une fois couvre les deux
-  // interfaces. Encore faut-il que ce soit vrai — ces deux lignes le mesurent,
-  // et rougiraient le jour où une coquille s'en fabriquerait un autre.
+describe('#3660 — la coquille porte l’éditeur', () => {
+  // L'éditeur est un composant PARTAGÉ. Il était branché dans les DEUX
+  // coquilles ; l'ancienne est partie avec la phase 5, la règle tient toujours
+  // sur celle qui reste.
   const lire = (p: string) => readFileSync(resolve(__dirname, '../../', p), 'utf-8');
-
-  it('la coquille actuelle le monte (DevicesSettings, onglet Appareils)', () => {
-    expect(lire('components/DevicesSettings.svelte')).toContain('<ZoneDeviceEditor');
-  });
 
   it('la coquille ShellV2 le monte (SettingsV2)', () => {
     expect(lire('components/v2/SettingsV2.svelte')).toContain('<ZoneDeviceEditor');

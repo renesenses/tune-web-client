@@ -47,9 +47,6 @@ describe('Raccourcis : rouvrir l’ÉLÉMENT, pas la liste', () => {
     // Idem pour une playlist locale et celle d'un service.
     expect(pl).toContain('`playlists:${it.pl.id}`');
     expect(pl).toContain('`streamingplaylists:${it.service}:${it.pl.source_id}`');
-    // `smartcollections:` est la clé de l'écran du client actuel : un raccourci
-    // posé d'un côté doit se rouvrir de l'autre.
-    expect(lire('src/components/SmartCollectionsView.svelte')).toContain('smartcollections:');
   });
 
   it("l'onglet suit l'élément rouvert", () => {

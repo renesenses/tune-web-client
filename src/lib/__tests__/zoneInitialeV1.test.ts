@@ -86,12 +86,6 @@ describe('les deux coquilles appliquent la MÊME règle', () => {
     ).toBe(true);
   });
 
-  it('l interface actuelle aussi', () => {
-    expect(
-      lire('../../App.svelte').includes('zoneInitiale('),
-      'App.svelte a de nouveau sa propre règle : les deux vont redivergier'
-    ).toBe(true);
-  });
 
   it('plus aucune des deux ne retombe sur `list[0]` à la main', () => {
     expect(lire('../v2Bootstrap.ts')).not.toContain('list[0].id');

@@ -344,6 +344,25 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     }
   }
 
+  /** Même proposition, pour une PISTE lancée seule (porté de l'ancienne
+   *  Bibliothèque) : une meilleure copie peut exister d'un titre sans que
+   *  l'album entier en ait une. */
+  async function proposerMeilleureQualitePiste(trackId: number) {
+    try {
+      const r = await api.trackBetterQuality(trackId);
+      const b = r.better;
+      if (!b?.track_id || b.track_id === trackId) return;
+      notifications.withAction(
+        `${$tr('library.betterQualityAvailable')} : ${libelleQualite(b)}`,
+        $tr('library.playBetterQuality'),
+        () => {
+          const zid = zoneRequise();
+          if (zid != null) playAndSync(zid, { track_id: b.track_id! } as any).catch(signalerEchecLecture);
+        },
+      );
+    } catch { /* proposition silencieuse */ }
+  }
+
   async function proposerMeilleureQualite(albumId: number) {
     try {
       const r = await api.albumBetterQuality(albumId);
@@ -407,7 +426,11 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     if (depot) { enchainerDistant(tracks, startIndex).catch(signalerEchecLecture); return; }
     playAndSync(zid, { album_id: album.id, start_index: startIndex }).catch(signalerEchecLecture);
     // APRÈS le départ de la lecture : la proposition ne la retarde jamais.
-    void proposerMeilleureQualite(album.id);
+    // Lancé depuis une piste précise : c'est elle qu'on examine ; depuis le
+    // début, l'album entier.
+    const piste = startIndex > 0 ? (tracks[startIndex] as any) : null;
+    if (piste?.id != null) void proposerMeilleureQualitePiste(piste.id);
+    else void proposerMeilleureQualite(album.id);
   }
   /** Melange en place, sans hasard reel : la meme permutation pour un meme
    *  nombre de pistes. C'etait deja le cas ici, on ne fait que l'extraire. */

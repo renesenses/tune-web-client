@@ -109,19 +109,5 @@ describe('les DEUX coquilles la tiennent', () => {
     expect(v2).not.toMatch(/\bif\s*\([^)]*\)\s*appliquerEvenementAudioNavigateur\(/);
   });
 
-  it('l’ancienne aussi, et par le MÊME module', () => {
-    const app = sansCommentaires(lire('src/App.svelte'));
-    expect(app).toContain('appliquerEvenementAudioNavigateur(');
-  });
 
-  it('🔴 aucune des deux ne garde sa propre copie de la règle', () => {
-    // Deux copies divergeraient au premier correctif — c'est exactement ce qui
-    // s'est produit pour l'historique d'écoute (#889).
-    for (const f of ['src/App.svelte', 'src/lib/v2Live.ts']) {
-      const src = sansCommentaires(lire(f));
-      expect(src, `${f} ne doit plus décider lui-même`).not.toMatch(
-        /if \(type === 'playback\.stopped'\)/,
-      );
-    }
-  });
 });

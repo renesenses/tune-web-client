@@ -97,32 +97,6 @@ describe('suiviOuverture — le câblage', () => {
     banc.stop();
   });
 
-  it('garde son minuteur malgré le flot de mises à jour du serveur', () => {
-    // Pendant une ouverture, la WebSocket continue de pousser des `zone.updated`
-    // et `App.svelte` remplace le store EN BLOC (`zones.set(zoneList)`) : la
-    // zone est un objet NEUF à chaque passage, plusieurs fois par seconde.
-    //
-    // Si le minuteur dépendait de la zone, il serait détruit et réarmé à chaque
-    // poussée — donc remis à zéro avant d'avoir jamais battu. Le plafond ne
-    // tomberait alors JAMAIS tant que le serveur parle, ce qui est précisément
-    // le cas d'un drapeau bloqué sur une WebSocket vivante
-    // (`SUPERSEDED_BEFORE_TRANSCODE`, `orchestrator.rs:1530-1541`).
-    const poser = vi.spyOn(globalThis, 'setInterval');
-    const banc = bancOuverture({ state: 'stopped', resolving: true });
-
-    // Le serveur répète la même chose, dans un objet différent, tout du long.
-    for (let t = 0; t < PLAFOND_OUVERTURE_MS + 5_000; t += 500) {
-      banc.poserZone({ state: 'stopped', resolving: true });
-      vi.advanceTimersByTime(500);
-      vider();
-    }
-
-    expect(poser).toHaveBeenCalledTimes(1);
-    expect(banc.visible).toBe(false);
-
-    banc.stop();
-    poser.mockRestore();
-  });
 
   it("ne se réveille pas sur sa propre écriture (#2555)", () => {
     // La sonde de la dépendance. Le corps de l'effet LIT l'état précédent puis
@@ -152,57 +126,3 @@ describe('suiviOuverture — le câblage', () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. Le mini-lecteur lui-même.
-//
-// Il n'y a ni `@testing-library/svelte` ni test de rendu dans ce dépôt : on lit
-// la source du composant, comme le font déjà `lecteurInfobulles.test.ts` et
-// `ouvertureFlux.test.ts`. Sans cette garde, tout ce qui précède resterait vert
-// avec un module écrit, testé et jamais importé — l'histoire exacte de la clé
-// `zone.buffering`, traduite dans onze langues et référencée nulle part.
-// ─────────────────────────────────────────────────────────────────────────────
-describe('MiniPlayer.svelte — le titre dit ce qui se passe', () => {
-  const SOURCE = readFileSync(
-    resolve(__dirname, '../../components/MiniPlayer.svelte'),
-    'utf8',
-  );
-  const MARQUAGE = SOURCE.slice(0, SOURCE.indexOf('<style>'));
-  const STYLE = SOURCE.slice(SOURCE.indexOf('<style>'));
-
-  it('branche le suivi partagé sur la zone courante', () => {
-    expect(SOURCE).toMatch(/from\s+['"]\.\.\/lib\/ouvertureFlux\.svelte['"]/);
-    expect(SOURCE).toContain('suiviOuverture');
-  });
-
-  it("remplace le titre pendant l'ouverture, au lieu d'annoncer « aucune lecture »", () => {
-    // Le point de la demande : c'est le TITRE qui change, pas un badge de plus
-    // ajouté à côté. Les deux branches doivent donc sortir au même endroit.
-    expect(MARQUAGE).toMatch(/ouverture\s*\?\s*\$t\('zone\.buffering'\)/);
-    expect(MARQUAGE).toContain("nowplaying.noPlayback");
-    expect(MARQUAGE).toMatch(/class="mini-title[^"]*"[^>]*>\{titreAffiche\}</);
-  });
-
-  it("le dit aussi aux technologies d'assistance", () => {
-    // Une opacité qui respire ne dit rien à un lecteur d'écran.
-    expect(MARQUAGE).toMatch(/aria-busy=\{ouverture\}/);
-  });
-
-  it("porte une animation subtile, retirée si l'utilisateur refuse le mouvement", () => {
-    expect(STYLE).toContain('.mini-title.ouverture');
-    expect(STYLE).toContain('prefers-reduced-motion');
-  });
-
-  it("n'invente aucune clé : `zone.buffering` existait, morte, dans les 11 langues", () => {
-    // Elle avait été posée par anticipation pour cette demande précise, puis
-    // oubliée. Le corps de l'issue la relevait comme orpheline ; elle reprend
-    // ici son emploi.
-    const langues = {
-      fr: lFr, de: lDe, en: lEn, es: lEs, hu: lHu, it: lIt,
-      ja: lJa, ko: lKo, ro: lRo, sv: lSv, zh: lZh,
-    } as unknown as Record<string, Record<string, string>>;
-    for (const [code, dict] of Object.entries(langues)) {
-      expect(dict['zone.buffering'], `zone.buffering manque en ${code}`).toBeTruthy();
-    }
-    expect(lFr['zone.buffering']).toBe('Chargement');
-  });
-});

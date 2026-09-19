@@ -151,33 +151,3 @@ describe('grâce hors ligne — le message', () => {
   });
 });
 
-describe('grâce hors ligne — la vue', () => {
-  const vue = readFileSync(
-    resolve(__dirname, '../../components/SettingsView.svelte'),
-    'utf8',
-  );
-
-  it('affiche la bannière et la règle chiffrée', () => {
-    expect(vue).toContain('license-grace-banner');
-    expect(vue).toContain("settings.licenseGraceTitle");
-    expect(vue).toContain("settings.licenseOfflineRule");
-  });
-
-  it('réserve le ton d’avertissement à la fenêtre réellement écoulée', () => {
-    // `lapsed` ne doit s'appliquer que sur `expired` : peindre en orange un
-    // serveur encore parfaitement Premium serait un contresens.
-    expect(vue).toContain("class:lapsed={$offlineGrace.phase === 'expired'}");
-  });
-
-  it("n'affiche aucune donnée de licence dans la bannière", () => {
-    // Le bloc de grâce ne porte que des dates et des compteurs ; la clé n'a
-    // rien à y faire.
-    const debut = vue.indexOf('license-grace-banner');
-    const fin = vue.indexOf('license-grace-rule');
-    expect(debut).toBeGreaterThan(-1);
-    expect(fin).toBeGreaterThan(debut);
-    const bloc = vue.slice(debut, fin);
-    expect(bloc).not.toContain('licenseKey');
-    expect(bloc).not.toContain('hardwareFingerprint');
-  });
-});

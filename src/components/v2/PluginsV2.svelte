@@ -18,6 +18,7 @@
   import * as api from '../../lib/api';
   import type { MergedPlugin } from '../../lib/api';
   import { fold } from '../../lib/utils';
+  import { ajouterLaBoutique } from '../../lib/catalogueGreffons';
   import { activeView } from '../../lib/stores/navigation';
   import '../../styles/tune-v2.css';
 
@@ -30,7 +31,16 @@
   let tab = $state<'installed' | 'all'>('installed');
 
   async function reload() {
-    try { plugins = (await api.getMergedPlugins()) ?? []; publierGreffons(plugins); error = null; }
+    try {
+      // La boutique complète la liste locale (portée de l'ancien écran) ; son
+      // échec ne prive pas l'écran des greffons installés.
+      const [locaux, boutique] = await Promise.all([
+        api.getMergedPlugins(),
+        api.getMarketplaceCatalog().catch(() => ({ plugins: [] as any[] })),
+      ]);
+      plugins = ajouterLaBoutique(locaux ?? [], (boutique as any)?.plugins ?? []);
+      publierGreffons(plugins); error = null;
+    }
     catch { error = $t('v2.plug.unavailable' as any); }
     loading = false;
   }
@@ -66,8 +76,12 @@
     act(p, () => (isActive(p) ? api.disablePlugin(p.name) : api.enablePlugin(p.name)));
   const install = (p: MergedPlugin) =>
     act(p, () => (p.marketplace && p.slug ? api.installMarketplacePlugin(p.slug) : api.installPlugin(p.slug ?? p.name)));
+  // 🔴 Deux routes, selon l'origine — comme dans l'ancien écran. Tout passait
+  // par la boutique : un greffon installé autrement ne se désinstallait pas.
   const uninstall = (p: MergedPlugin) =>
-    act(p, () => api.uninstallMarketplacePlugin(p.slug ?? p.name));
+    act(p, () => (p.marketplace ? api.uninstallMarketplacePlugin(p.slug ?? p.name) : api.uninstallPlugin(p.name)));
+  // La pastille « mise à jour disponible » existait sans geste pour la faire.
+  const mettreAJour = (p: MergedPlugin) => act(p, () => api.updatePlugin(p.name));
 </script>
 
 <section class="v2-plug tune-v2">
@@ -137,6 +151,9 @@
                   <input type="checkbox" checked={isActive(p)} disabled={busy === key(p)} onchange={() => toggle(p)} />
                   <span class="slider"></span>
                 </label>
+                {#if p.update_available}
+                  <button class="lnk" disabled={busy === key(p)} onclick={() => mettreAJour(p)}>{$t('plugins.update' as any)}</button>
+                {/if}
                 <button class="lnk danger" disabled={busy === key(p)} onclick={() => uninstall(p)}>{$t('plugins.uninstall' as any)}</button>
               {:else}
                 <button class="go" disabled={!p.compatible || busy === key(p)} onclick={() => install(p)}
