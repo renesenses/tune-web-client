@@ -276,9 +276,12 @@
                  les trois sortes que `smart_refs` connaît. -->
             <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
               <option value="" disabled>{$t('smartCollection.refPick')}</option>
-              <option value="track">{$t('smartCollection.favTrack')}</option>
-              <option value="album">{$t('smartCollection.favAlbum')}</option>
-              <option value="artist">{$t('smartCollection.favArtist')}</option>
+              <!-- #1231 — les trois valeurs portent SIX sens selon l'objet
+                   édité, et « Favori est Piste » n'en disait aucun. Les
+                   libellés les nomment, sans rien retirer au moteur. -->
+              <option value="track">{$t('v2.smart.favPlTrack' as any)}</option>
+              <option value="album">{$t('v2.smart.favPlAlbum' as any)}</option>
+              <option value="artist">{$t('v2.smart.favPlArtist' as any)}</option>
             </select>
           {:else if r.field === 'source'}
             <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
