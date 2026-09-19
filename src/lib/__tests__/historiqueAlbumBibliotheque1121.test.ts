@@ -42,6 +42,7 @@ import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryArtist, 
 import { albums as albumsStore } from '../stores/library';
 import { brancherHistoriqueCoquille, detailOuvert } from '../historiqueCoquille';
 import type { Album } from '../types';
+import { reculer } from './reculer';
 
 /** Monter cet écran compile un composant de plus de deux mille lignes. */
 vi.setConfig({ testTimeout: 30_000 });
@@ -194,8 +195,7 @@ describe('#1121 — ouvrir un album de la Bibliothèque empile une entrée', () 
     expect(fiche(el), 'la fiche ne s’est pas ouverte').not.toBeNull();
 
     // Le vrai geste : la traversée de session du navigateur.
-    history.back();
-    await attendre();
+    await reculer();
     flushSync();
     await attendre();
     flushSync();
@@ -216,11 +216,9 @@ describe('#1121 — ouvrir un album de la Bibliothèque empile une entrée', () 
     await attendre();
     flushSync();
 
-    history.back();
-    await attendre();
+    await reculer();
     flushSync();
-    history.back();
-    await attendre();
+    await reculer();
     flushSync();
 
     expect(
@@ -269,8 +267,7 @@ describe('#1121 — les deux écueils du correctif', () => {
       'le Retour interne n’a pas dépilé : le curseur est resté sur la fiche',
     ).toMatchObject({ tune: 'v2', vue: 'library', detail: null });
 
-    history.back();
-    await attendre();
+    await reculer();
     flushSync();
     expect(
       get(activeView),
