@@ -492,9 +492,13 @@
       </div>
     {/if}
 
-    <p class="foot">
-      {$t('v2.hint.newTicketElsewhere' as any)}
-    </p>
+    <!-- 🔴 Le bas de page disait « ouvrir un nouveau ticket se fait depuis le
+         client actuel — ce formulaire n'est pas encore repris ici ». MESURÉ le
+         19/09/2026 : c'est FAUX depuis que cet écran poste
+         `attachments[]` et porte son bouton « Écrire au support » (l. 223 et
+         324). Le message a survécu au portage de la fonction qu'il décrivait
+         comme absente, et envoyait l'utilisateur vers une interface qui va
+         disparaître. -->
   </div>
 
   {#if opened}
