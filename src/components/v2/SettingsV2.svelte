@@ -1790,6 +1790,74 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       diagnosticEnCours = false;
     }
   }
+
+  /**
+   * Phase 5 (web#1257) — trois gestes de maintenance qui n'avaient de chemin
+   * que dans l'ancienne interface, en appels hors `api.ts` : le niveau des
+   * journaux (`SettingsView`), le nettoyage du serveur et « vider le cache »
+   * (`DiagnosticsView`). Ils vivent ici, sous l'état du serveur, à côté du
+   * téléchargement des journaux et du redémarrage.
+   */
+  const NIVEAUX_JOURNAUX = ['error', 'warn', 'info', 'debug', 'trace'];
+  let niveauJournaux = $state<string | null>(null);
+  let niveauEnCours = $state(false);
+  let niveauMsg = $state<{ ok: boolean; texte: string } | null>(null);
+  $effect(() => {
+    if (!sections.some((x) => x.id === 'health') || !atLeast(level, 'expert')) return;
+    api.getLogLevel()
+      .then((r) => { niveauJournaux = r?.level ?? 'info'; })
+      .catch(() => { niveauJournaux = null; });   // serveur antérieur : pas de sélecteur
+  });
+  function motifOuRien(e: unknown): string {
+    const m = errText(e);
+    return m ? ` : ${m}` : '';
+  }
+  async function changerNiveauJournaux(niveau: string) {
+    const avant = niveauJournaux;
+    niveauJournaux = niveau;
+    niveauEnCours = true;
+    niveauMsg = null;
+    try {
+      const r = await api.setLogLevel(niveau);
+      niveauJournaux = r?.level ?? niveau;
+      niveauMsg = { ok: true, texte: get(t)('v2.maint.logLevelSaved' as any).replace('{level}', niveauJournaux ?? niveau) };
+    } catch (e) {
+      niveauJournaux = avant;
+      niveauMsg = { ok: false, texte: get(t)('settings.logLevelError' as any) + motifOuRien(e) };
+    }
+    niveauEnCours = false;
+  }
+
+  let nettoyageEnCours = $state(false);
+  let nettoyage = $state<api.ResultatNettoyage | null>(null);
+  let nettoyageErr = $state<string | null>(null);
+  async function nettoyerLeServeur() {
+    if (!(await dialogs.confirm(get(t)('v2.maint.cleanupConfirm' as any), { danger: true }))) return;
+    nettoyageEnCours = true;
+    nettoyage = null;
+    nettoyageErr = null;
+    try {
+      nettoyage = await api.cleanupServer();
+    } catch (e) {
+      nettoyageErr = get(t)('common.error' as any) + motifOuRien(e);
+    }
+    nettoyageEnCours = false;
+  }
+
+  let rapportEnCours = $state(false);
+  let rapportMsg = $state<{ ok: boolean; texte: string } | null>(null);
+  async function effacerRapportAnalyse() {
+    if (!(await dialogs.confirm(get(t)('v2.maint.clearScanReportConfirm' as any)))) return;
+    rapportEnCours = true;
+    rapportMsg = null;
+    try {
+      await api.clearScanReport();
+      rapportMsg = { ok: true, texte: get(t)('v2.maint.clearScanReportDone' as any) };
+    } catch (e) {
+      rapportMsg = { ok: false, texte: get(t)('common.error' as any) + motifOuRien(e) };
+    }
+    rapportEnCours = false;
+  }
   async function arreterLeServeur() {
     if (!(await dialogs.confirm(get(t)('settings.stopServerConfirm' as any), { danger: true }))) return;
     arretEnCours = true;
@@ -3764,6 +3832,53 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t('settings.downloadDiag' as any)}
                 </button>
               </div>
+
+              <!-- Phase 5 (web#1257) : niveau des journaux, nettoyage du
+                   serveur, rapport d'analyse — portés de l'ancienne interface. -->
+              {#if atLeast(level, 'expert') && niveauJournaux !== null}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.logLevel' as any)}</span>
+                    <span class="hint">{$t('v2.maint.logLevelHint' as any)}</span>
+                  </div>
+                  <select class="sel" aria-label={$t('settings.logLevel' as any)} value={niveauJournaux}
+                    disabled={niveauEnCours}
+                    onchange={(e) => changerNiveauJournaux((e.currentTarget as HTMLSelectElement).value)}>
+                    {#each NIVEAUX_JOURNAUX as n (n)}<option value={n}>{n}</option>{/each}
+                  </select>
+                </div>
+                {#if niveauMsg}<p class="hint" class:errline={!niveauMsg.ok}>{niveauMsg.texte}</p>{/if}
+              {/if}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('diagnostics.cleanupServer' as any)}</span>
+                  <span class="hint">{$t('v2.maint.cleanupHint' as any)}</span>
+                </div>
+                <button class="lnk danger" disabled={nettoyageEnCours} onclick={nettoyerLeServeur}>
+                  {nettoyageEnCours ? $t('diagnostics.cleaning' as any) : $t('diagnostics.cleanupServer' as any)}
+                </button>
+              </div>
+              {#if nettoyage}
+                <div class="rows" role="status">
+                  <div class="kv"><span>{$t('v2.maint.mergedAlbums' as any)}</span><b>{nettoyage.duplicate_albums_merged ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanAlbums' as any)}</span><b>{nettoyage.orphan_albums_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtists' as any)}</span><b>{nettoyage.orphan_artists_deleted ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.dupTracks' as any)}</span><b>{nettoyage.duplicate_tracks_removed ?? 0}</b></div>
+                  <div class="kv"><span>{$t('v2.maint.orphanArtwork' as any)}</span><b>{nettoyage.orphan_artwork_deleted ?? 0}</b></div>
+                  {#if nettoyage.db_optimized}<div class="kv"><span>{$t('v2.maint.dbOptimized' as any)}</span><b>✓</b></div>{/if}
+                </div>
+              {/if}
+              {#if nettoyageErr}<div class="errline">{nettoyageErr}</div>{/if}
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('v2.maint.clearScanReport' as any)}</span>
+                  <span class="hint">{$t('v2.maint.clearScanReportHint' as any)}</span>
+                </div>
+                <button class="lnk" disabled={rapportEnCours} onclick={effacerRapportAnalyse}>
+                  {rapportEnCours ? '…' : $t('v2.maint.clearScanReport' as any)}
+                </button>
+              </div>
+              {#if rapportMsg}<p class="hint" class:errline={!rapportMsg.ok}>{rapportMsg.texte}</p>{/if}
 
             {:else if s.id === 'streaming'}
               {#if !Object.keys(svcs).length}
