@@ -141,7 +141,16 @@ describe('#889 — l’historique local des écoutes', () => {
     expect(src).toContain('playbackHistory');
     // Après `rechargerZones()`, jamais avant : c’est lui qui pose la NOUVELLE
     // piste dans `currentZone`. Noter avant réécrirait l’ancienne.
-    expect(src).toMatch(/rechargerZones\(\)\.then\([\s\S]{0,2000}?noterSiDebutDEcoute/);
+    //
+    // ⚠️ La garde portait sur une DISTANCE (2 000 caractères après le
+    // `.then(`). Elle est tombée au rouge le 19/09 quand la synchronisation de
+    // l'audio navigateur (#1171) s'est installée dans le même bloc — sans que
+    // l'ordre change d'un iota. Une proximité n'est pas un ordre : on mesure
+    // désormais l'ORDRE, qui est la propriété qu'on tient.
+    const rechargement = src.indexOf('rechargerZones().then(');
+    const note = src.indexOf('noterSiDebutDEcoute(', rechargement);
+    expect(rechargement, 'le rechargement doit exister').toBeGreaterThan(-1);
+    expect(note, 'la note doit venir APRÈS le rechargement').toBeGreaterThan(rechargement);
   });
 
   it('l’ANCIENNE coquille passe par la même fonction — elles ne divergeront plus', () => {
