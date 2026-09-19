@@ -57,6 +57,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
+  import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
@@ -699,15 +700,20 @@
   const yearCount = $derived(fYear == null ? 0 : src.filter((a) => albumYear(a) === fYear).length);
 
   /** Position du curseur. Il est TOUJOURS pose sur l'axe — c'est un repere de
-   *  parcours, pas un marqueur de filtre. Par defaut il se cale sur l'annee la
-   *  mieux fournie : le point ou la collection est la plus dense est le repere
-   *  le plus parlant a l'ouverture. */
-  const busiestYear = $derived.by(() => {
-    const { bars } = histogram;
-    if (!bars.length) return null;
-    return bars.reduce((best, b) => (b.n > best.n ? b : best), bars[0]).year;
+   *  parcours, pas un marqueur de filtre.
+   *
+   *  #1314 : a l'ouverture, il se calait sur l'annee la mieux fournie, a chaque
+   *  visite (« systematiquement sur l'annee ayant le plus d'album », Jean
+   *  Valjean, fil 1671). Il reprend desormais la derniere annee CHOISIE, et a
+   *  defaut l'annee la plus recente — voir `lib/anneeDOuverture.ts`. Le repere
+   *  retenu ne filtre rien : seul `fYear` (un clic) attenue la grille. */
+  let anneeRepere = $state<number | null>(lireAnneeRepere());
+  $effect(() => {
+    const an = fYear;
+    if (an != null) { anneeRepere = an; ecrireAnneeRepere(an); }
   });
-  const cursorYear = $derived(hoverYear ?? fYear ?? busiestYear);
+  const anneeParDefaut = $derived(anneeDOuverture(histogram.bars, anneeRepere));
+  const cursorYear = $derived(hoverYear ?? fYear ?? anneeParDefaut);
   /** Position en %, au CENTRE du trait de cette annee. */
   const cursorPct = $derived.by(() => {
     const { bars } = histogram;
