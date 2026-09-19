@@ -3151,6 +3151,70 @@ export function getStats() {
   return fetchJSON<SystemStats>(`${BASE}/system/stats`);
 }
 
+/**
+ * Niveau des journaux du serveur — `GET /system/log-level`.
+ *
+ * Réponse (`routes/system/diagnostics.rs`, `get_log_level`) :
+ * `{ level, available: ["error","warn","info","debug","trace"] }`.
+ *
+ * Avant la phase 5, lu et écrit par `fetch` direct dans l'ancien
+ * `SettingsView` : invisible pour l'inventaire des capacités.
+ */
+export function getLogLevel() {
+  return fetchJSON<{ level?: string; available?: string[] }>(`${BASE}/system/log-level`);
+}
+
+/**
+ * Enregistre le niveau des journaux — `POST /system/log-level {level}`.
+ *
+ * 🔴 Le serveur répond 200 MÊME quand il refuse un niveau inconnu, avec
+ * `{ error }` pour seul signal : on le transforme en échec, sinon l'écran
+ * annoncerait un succès. En cas d'acceptation il ajoute une `note` — le
+ * niveau ne prend pleinement effet qu'au redémarrage du serveur.
+ */
+export async function setLogLevel(level: string) {
+  const r = await fetchJSON<{ status?: string; level?: string; note?: string; error?: string }>(
+    `${BASE}/system/log-level`,
+    { method: 'POST', body: JSON.stringify({ level }) },
+  );
+  if (r?.error) throw new Error(r.error);
+  return r;
+}
+
+/** Ce que rend `POST /system/cleanup` (`routes/system/enrich.rs`, `cleanup`). */
+export interface ResultatNettoyage {
+  duplicate_albums_merged?: number;
+  orphan_albums_deleted?: number;
+  orphan_artists_deleted?: number;
+  duplicate_tracks_removed?: number;
+  orphan_artwork_deleted?: number;
+  db_optimized?: boolean;
+}
+
+/**
+ * Nettoyage de la bibliothèque côté serveur (administrateur) : fusion des
+ * albums en double, albums et artistes orphelins, pistes en double, images
+ * du cache qu'aucun album ni artiste ne référence, puis `ANALYZE`.
+ *
+ * Avant la phase 5 : `api.apiPost('/system/cleanup')` dans `DiagnosticsView`,
+ * qui lisait d'ailleurs des champs que le serveur ne rend plus
+ * (`stale_artwork_deleted`, `old_history_deleted`, `db_vacuumed`).
+ */
+export function cleanupServer() {
+  return fetchJSON<ResultatNettoyage>(`${BASE}/system/cleanup`, { method: 'POST' });
+}
+
+/**
+ * `POST /system/clear-cache` — malgré son nom, le serveur n'efface QUE le
+ * compte rendu de la dernière analyse (réglage `scan_result`, relu par
+ * `GET /scan/status` et le diagnostic) et répond `{ cleared: true }`.
+ * L'ancien écran l'appelait « Vider le cache artwork » et affichait
+ * « true fichiers supprimés ».
+ */
+export function clearScanReport() {
+  return fetchJSON<{ cleared?: boolean }>(`${BASE}/system/clear-cache`, { method: 'POST' });
+}
+
 export function getConfig() {
   return fetchJSON<any>(`${BASE}/system/config`);
 }
