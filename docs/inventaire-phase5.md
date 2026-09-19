@@ -1,5 +1,17 @@
 # Phase 5 — l'inventaire de ce qui part avec l'ancienne interface
 
+> 🔴 **CORRECTION DU 19/09/2026 — la conclusion de ce document est FAUSSE.**
+>
+> Il concluait qu'aucune fonction qui marche n'était détruite. Il comptait les
+> FICHIERS et les écrans ; il ne comptait pas les APPELS au serveur. Mesurés,
+> **114 fonctions de `api.ts` ne sont appelées que par les vues supprimées** :
+> appairage AirPlay, montage SMB, sauvegardes et restauration, import de la
+> base, groupes et délais de zones, préréglages d'égaliseur, greffons, YouTube,
+> appareils ignorés, édition d'une piste… Voir `capacites-sans-chemin-phase5.md`.
+>
+> Le reste de ce document (la liste des fichiers) reste juste.
+
+
 Calculé par accessibilité depuis les deux coquilles, le 19/09/2026.
 À recalculer avant d'exécuter : `main` bouge.
 

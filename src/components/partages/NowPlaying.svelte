@@ -339,8 +339,14 @@
   // invisible ici (#2037).
   let eqBands = $state<api.EqBand[]>([]);
   let eqEnabled = $state(true);
+  // Ce que le serveur a dit du DERNIER préréglage écrit : a-t-il atteint le
+  // flux en cours ? `null` = rien écrit ici, ou serveur antérieur à #1725 qui
+  // ne le dit pas — on n'affirme alors rien (#1258).
+  let eqPorteeLive = $state<boolean | null>(null);
   $effect(() => {
     const id = zone?.id;
+    // Une autre zone : ce que le serveur disait de la précédente ne vaut rien ici.
+    eqPorteeLive = null;
     if (id == null) { eqBands = []; eqEnabled = true; return; }
     api.getEq(id)
       .then((r) => {
@@ -390,7 +396,12 @@
       return;
     }
     try {
-      await api.setEq(zone.id, { bands, enabled: true });
+      const res = await api.setEq(zone.id, { bands, enabled: true });
+      // Le serveur dit si la courbe a atteint le flux EN COURS. Jetée, cette
+      // réponse laissait l'auditeur choisir « Rock », ne rien entendre changer,
+      // et conclure que l'égaliseur ne marche pas (#1258, même défaut que
+      // #1710/#1725/#1786 ailleurs).
+      eqPorteeLive = res?.applied_live ?? null;
       currentEqPreset = preset;
       // La courbe affichee vient du serveur, jamais d'une supposition. Ici on
       // vient de l'ecrire : on la montre sans attendre une relecture, sinon le
@@ -1951,6 +1962,12 @@
           {/if}
           {#if showEq}
             <NowPlayingEqPanel current={currentEqPreset} onSelect={setEqPreset} pureMode={zonePureMode} bands={eqBands} enabled={eqEnabled} locked={eqLocked} />
+            {#if eqPorteeLive === false && playState === 'playing'}
+              <!-- `false` hors lecture veut seulement dire « rien ne joue » :
+                   la note n'y aurait rien à annoncer. En lecture, elle dit ce
+                   que le serveur a dit — la courbe attend la piste suivante. -->
+              <p class="cf-note cf-note-alerte np-eq-portee">{$t('eq.effectNextTrack')}</p>
+            {/if}
           {/if}
           {#if showDspMenu}
             <div class="np-crossfeed">
