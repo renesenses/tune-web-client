@@ -2566,6 +2566,44 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <p class="monote">{$t('zoneConfig.monoLocalOnly' as any)}</p>
                       {/if}
 
+                      <!--
+                        CANAUX — chantier « multicanal », Bertrand 19/09/2026 :
+                        « dans les réglages de l'appareil, permettre la sélection
+                        du nombre de canaux », pour des utilisateurs en 5.1 que
+                        personne chez nous ne peut observer.
+
+                        🔴 On lit le STATUT DU SERVEUR (`channel_layout_status`)
+                        au lieu de redériver la règle ici. Le bloc mono juste
+                        au-dessus, lui, la redérive (`output_type !== 'local'`)
+                        et son propre commentaire admet qu'il ignore la seconde
+                        contrainte du serveur. Deux règles pour un même fait
+                        finissent par diverger ; le serveur est la seule qui
+                        décide de ce que le son subit.
+
+                        `unavailable` vaut vrai MÊME quand rien n'est déclaré :
+                        c'est ce qui doit verrouiller le sélecteur.
+                      -->
+                      {#if (z.channel_layouts_offered ?? []).length}
+                        <div class="canaux">
+                          <span class="tl">{$t('zoneConfig.channelsTitle' as any)}</span>
+                          <select class="sel"
+                            disabled={z.id == null || z.channel_layout_status?.unavailable}
+                            value={z.channel_layout ?? ''}
+                            onchange={(e) => setZoneField(z, () => api.updateZoneChannelLayout(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
+                            <option value="">{$t('zoneConfig.channelsFollow' as any)}</option>
+                            {#each z.channel_layouts_offered ?? [] as d (d.id)}
+                              <option value={d.id}>{$t(('zoneConfig.channels_' + d.id) as any)}</option>
+                            {/each}
+                          </select>
+                        </div>
+                        <!-- Pourquoi il est verrouillé, dans les mots du serveur.
+                             `detail` est une phrase en clair : un écran sans table
+                             de traduction peut l'afficher tel quel. -->
+                        {#if z.channel_layout_status?.unavailable}
+                          <p class="monote">{z.channel_layout_status?.detail ?? $t('zoneConfig.channelsUnavailable' as any)}</p>
+                        {/if}
+                      {/if}
+
                       <div class="trim">
                         <span class="tl">{$t('devices.gainTrim' as any)}</span>
                         <input type="range" min="-12" max="12" step="0.5" value={trimDe(z)}
@@ -3661,6 +3699,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
   .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
   .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:13px}
+  /* Chantier multicanal — le sélecteur de disposition, aligné sur `.trim`. */
+  .canaux{display:flex; align-items:center; gap:10px; margin-top:8px}
+  .canaux .tl{font-size:12.5px; color:var(--v2-txt2); min-width:96px}
   .trim .tl{font:600 10.5px var(--v2-mono); letter-spacing:.05em; color:var(--v2-txt3); text-transform:uppercase}
   .trim input[type=range]{flex:1; min-width:150px; max-width:320px; accent-color:var(--v2-acc1)}
   .trim .tv{font:12px var(--v2-mono); color:var(--v2-acc1); min-width:62px}

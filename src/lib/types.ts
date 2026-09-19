@@ -475,6 +475,29 @@ export interface Zone {
    * est présente à `false` sur les 18 zones). Défaut off.
    */
   mono_downmix?: boolean;
+  /**
+   * La DISPOSITION DE CANAUX déclarée pour l'appareil — chantier
+   * « multicanal ». Le nom stable d'une disposition, ou `null` quand on suit
+   * l'appareil.
+   */
+  channel_layout?: string | null;
+  /**
+   * 🔴 Ce que cette déclaration VAUT sur cette zone-ci.
+   *
+   * Même forme que `mono_downmix_status` (#3254) : `unavailable` est vrai dès
+   * que le réglage n'a pas de chemin — **y compris quand rien n'a été
+   * déclaré** — et c'est LUI qui doit verrouiller le sélecteur, pas une règle
+   * redérivée côté client. Un renderer DLNA négocie son propre format.
+   */
+  channel_layout_status?: {
+    requested: string | null;
+    effective: string | null;
+    unavailable: boolean;
+    reason: string | null;
+    detail: string | null;
+  };
+  /** Ce qu'il faut PROPOSER : les neuf dispositions quand l'appareil se tait. */
+  channel_layouts_offered?: { id: string; canaux: number }[];
   /** Marque choisie par l'utilisateur au catalogue (override). null si non défini. */
   brand?: string | null;
   /** Modèle choisi par l'utilisateur (override). null si non défini. */
