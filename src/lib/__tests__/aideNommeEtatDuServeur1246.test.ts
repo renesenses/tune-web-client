@@ -24,6 +24,7 @@ import { locale } from '../i18n';
 import { preferences } from '../stores/preferences';
 import { v2SettingsTarget } from '../stores/v2SettingsNav';
 import type { V2SettingsTabId } from '../v2Settings';
+import { dictionnaire } from './onzeDictionnaires';
 
 vi.setConfig({ testTimeout: 30_000 });
 
@@ -80,7 +81,7 @@ afterEach(() => {
 });
 
 async function dico(code: string): Promise<Record<string, string>> {
-  return (await import(`../locales/${code}`)).default as Record<string, string>;
+  return dictionnaire(code);
 }
 
 /** Monte les Réglages sur une carte, et rend le texte de la phrase d'aide. */
