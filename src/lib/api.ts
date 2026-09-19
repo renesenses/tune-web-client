@@ -3657,8 +3657,19 @@ export function getStreamingGenres(service: string, parentId?: string) {
   return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
 }
 
-export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50) {
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}`);
+/**
+ * Les albums d'un genre. Avec `section`, la RUBRIQUE éditoriale restreinte à ce
+ * genre (#1300, serveur tune-server-rust#3481) : `press-awards`,
+ * `ideal-discography`, `qobuzissims`… Sans elle, la réponse d'avant — les
+ * nouveautés du genre.
+ *
+ * Un serveur antérieur à tune-server-rust#4524 (0.9.156 et avant) ne rejette
+ * pas `section`, il l'ignore et re-sert les nouveautés : c'est
+ * `chargerRubriquesGenre` (`src/lib/rubriquesGenre.ts`) qui s'en aperçoit.
+ */
+export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string) {
+  const rubrique = section ? `&section=${encodeURIComponent(section)}` : '';
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
 }
 
 export function getStreamingPlaylists(service: string) {
