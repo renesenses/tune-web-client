@@ -60,6 +60,8 @@ import {
 import { queueTracks, queuePosition, queueLength } from './stores/queue';
 import { handleAudioLevelsEvent } from './stores/audioLevels';
 import { notifications } from './stores/notifications';
+import { healthStatus } from './stores/health';
+import { niveauApresAlerte } from './santeServeur';
 import { tachesDeFond } from './stores/tachesDeFond';
 import { t } from './i18n';
 import { signalerErreurServeur } from './echecLecture';
@@ -273,6 +275,17 @@ export function demarrerTransportV2(): () => void {
   const desabonnerEvents = tuneWS.onEvent((event: any) => {
     const type = event?.type as string | undefined;
     if (!type) return;
+
+    // Alerte de santé du serveur — portée d'`App.svelte`, que cette coquille ne
+    // monte pas : un serveur en état critique ne se signalait nulle part.
+    if (type === 'system.health_alert' && event.data) {
+      const niveau = event.data.level;
+      const message = event.data.message || get(t)('sidebar.serverStatus');
+      healthStatus.update((cur) => niveauApresAlerte(cur, niveau));
+      if (niveau === 'critical') notifications.error(message, 10000);
+      else if (niveau === 'warning') notifications.info(message, 6000);
+      return;
+    }
 
     // Tâches de fond (#2227) — portées d'`App.svelte`, que cette coquille ne
     // monte pas. La barre latérale en tire sa ligne « enrichissement en cours ».

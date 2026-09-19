@@ -3,10 +3,10 @@
   // bio d'artiste, crédit…). Un drapeau + un choix de raison ; l'appel part sur
   // POST /library/reports, qui enregistre en local et transmet au cloud
   // communautaire quand le partage est activé.
-  import * as api from '../lib/api';
-  import type { ReportEntity } from '../lib/api';
-  import { t as tr } from '../lib/i18n';
-  import { notifications } from '../lib/stores/notifications';
+  import * as api from '../../lib/api';
+  import type { ReportEntity } from '../../lib/api';
+  import { t as tr } from '../../lib/i18n';
+  import { notifications } from '../../lib/stores/notifications';
 
   interface Props {
     entity: ReportEntity;

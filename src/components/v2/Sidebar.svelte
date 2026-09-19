@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { healthStatus } from '../../lib/stores/health';
+  import { niveauDeLaSonde } from '../../lib/santeServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { libelleBanniereEnrichissement } from '../../lib/tachesDeFond';
   /**
@@ -195,6 +197,16 @@
   const studioVisible = $derived(entreesStudioVisibles(STUDIO, $etatGreffons));
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
 
+  // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
+  // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
+  function sonderSante() {
+    api.getHealthMonitor().then((r) => healthStatus.set(niveauDeLaSonde(r?.status))).catch(() => {});
+  }
+  $effect(() => {
+    sonderSante();
+    const minuterie = setInterval(sonderSante, 60_000);
+    return () => clearInterval(minuterie);
+  });
   // Tâches de fond : l'état initial, au cas où un enrichissement tourne déjà ;
   // le direct arrive par `v2Live` (#2227, porté d'App.svelte).
   $effect(() => {
@@ -401,7 +413,8 @@
     <a class="logo" href="https://mozaiklabs.fr/forum" target="_blank"
       rel="noopener noreferrer" title={$t('sidebar.forumMozaiklabs')}><img src={glyph} alt="Tune" /></a>
     <div class="txt">
-      <div class="name">Tune</div>
+      <div class="name">Tune{#if $healthStatus !== 'ok'}<span class="sante" class:crit={$healthStatus === 'critical'}
+        title="{$t('sidebar.serverStatus')} : {$healthStatus}" aria-label="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>{/if}</div>
       <div class="sub">MOZAIKLABS</div>
       {#if enrichissementEnCours}<div class="taches" aria-live="polite">{enrichissementEnCours}</div>{/if}
       {#if $updateAvailable}
@@ -658,5 +671,8 @@
   .nav.svc{padding-left:30px; font-size:13px}
   .v2-sidebar.collapsed .nav.svc{padding-left:0}
   .support{margin-top:6px}
+  .sante{display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%;
+    background:var(--v2-acc2); vertical-align:middle}
+  .sante.crit{background:var(--v2-danger)}
   .taches{margin-top:3px; font:10px var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

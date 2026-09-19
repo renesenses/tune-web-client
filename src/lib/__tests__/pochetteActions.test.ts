@@ -439,7 +439,9 @@ describe('Artistes — la vue est celle des artistes, pas des albums', () => {
     // les artistes afficherait « votre bibliothèque est vide » alors que les
     // artistes, eux, sont là.
     const src = bib();
-    const i = src.indexOf("{#if tab === 'artists'}");
+    // `{#if …}` ou `{:else if …}` : l'onglet « Ajouts récents » (#3039) passe
+    // désormais devant. Ce qui est gardé, c'est l'ORDRE face au garde vide.
+    const i = Math.max(src.indexOf("{#if tab === 'artists'}"), src.indexOf("{:else if tab === 'artists'}"));
     const j = src.indexOf('enCharge && sorted.length === 0');
     expect(i, 'la branche artistes a disparu').toBeGreaterThan(-1);
     expect(i, 'le garde « bibliothèque vide » passe AVANT les artistes').toBeLessThan(j);
