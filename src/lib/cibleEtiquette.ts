@@ -1,0 +1,120 @@
+/**
+ * Ce qu'on étiquette : un objet de la BIBLIOTHÈQUE, ou un objet de SERVICE — #1238.
+ *
+ * Patatorz (fil 1846, 19/09/2026) : « De manière à sélectionner des albums à
+ * écouter sur Qobuz ou Tidal, je les mets en favoris. Serait-il possible de
+ * créer une sorte de tag […] ? » Les étiquettes existaient, mais le client ne
+ * savait en poser que sur un objet désigné par un ENTIER de la bibliothèque.
+ * Un album Qobuz s'identifie « kxend2k5wdg06 » : il n'avait donc jamais de
+ * bouton d'étiquettes, alors que le serveur sait les tenir depuis la v0.9.144
+ * (`POST /tags/{id}/streaming-items`, renesenses/tune-server-rust#3699).
+ *
+ * Une seule forme pour les deux espaces, que le panneau et les pochettes se
+ * passent sans savoir de quel côté ils sont. C'est ICI que se décide quelle
+ * route part — et c'est ce que le test appelle.
+ */
+import * as api from './api';
+import { estSourceDeBibliotheque } from './provenanceBibliotheque';
+import type { UserTag } from './types';
+
+/** Un objet de la bibliothèque : un identifiant entier. */
+export interface CibleLocale {
+  itemType: string;
+  itemId: number;
+}
+
+/**
+ * Un objet de service : la paire `source` + `sourceId`, et l'instantané que
+ * l'écran Étiquettes relira sans rappeler le service.
+ */
+export interface CibleService {
+  itemType: string;
+  source: string;
+  sourceId: string;
+  titre?: string | null;
+  artiste?: string | null;
+  album?: string | null;
+  pochette?: string | null;
+}
+
+export type CibleEtiquette = CibleLocale | CibleService;
+
+export function estCibleService(c: CibleEtiquette): c is CibleService {
+  return (c as CibleService).source != null && (c as CibleService).sourceId != null;
+}
+
+/**
+ * La cible d'un objet de SERVICE, ou `null` quand il n'en est pas un.
+ *
+ * Accepte les formes que les écrans manipulent déjà : `source` + `source_id`
+ * (recherche, favoris, écran Étiquettes), `artist_name`/`artist`,
+ * `album_title`, `cover_path`/`cover_url`. Un objet de la bibliothèque (ou de
+ * source `local`/`upnp`) rend `null` : c'est l'identifiant entier qui le
+ * désigne, pas cette paire.
+ */
+export function cibleDeService(itemType: string, o: any): CibleService | null {
+  if (!o) return null;
+  const source = o.source == null ? '' : String(o.source).trim();
+  const sourceId = o.source_id == null ? '' : String(o.source_id).trim();
+  if (!source || !sourceId || estSourceDeBibliotheque(source)) return null;
+  return {
+    itemType,
+    source,
+    sourceId,
+    titre: o.title ?? o.name ?? null,
+    artiste: o.artist_name ?? o.artist ?? null,
+    album: o.album_title ?? null,
+    pochette: o.cover_path ?? o.cover_url ?? o.image_path ?? null,
+  };
+}
+
+/** Les étiquettes déjà posées sur la cible. */
+export function etiquettesPosees(c: CibleEtiquette): Promise<UserTag[]> {
+  return estCibleService(c)
+    ? api.getTagsForStreamingItem(c.itemType, c.source, c.sourceId)
+    : api.getTagsForItem(c.itemType, c.itemId);
+}
+
+/** Pose l'étiquette `tagId` sur la cible. */
+export function poserEtiquette(tagId: number, c: CibleEtiquette): Promise<void> {
+  if (!estCibleService(c)) return api.tagItem(tagId, c.itemType, c.itemId);
+  return api.tagStreamingItem(tagId, {
+    item_type: c.itemType,
+    source: c.source,
+    source_id: c.sourceId,
+    title: c.titre ?? null,
+    artist: c.artiste ?? null,
+    album: c.album ?? null,
+    cover_url: c.pochette ?? null,
+  });
+}
+
+/** Retire l'étiquette `tagId` de la cible. */
+export function retirerEtiquette(tagId: number, c: CibleEtiquette): Promise<void> {
+  return estCibleService(c)
+    ? api.untagStreamingItem(tagId, c.itemType, c.source, c.sourceId)
+    : api.untagItem(tagId, c.itemType, c.itemId);
+}
+
+/**
+ * Clé d'une ligne rendue par `/tags/{id}/albums|tracks` : l'identifiant pour
+ * la moitié locale, la paire pour la moitié streaming — qui porte `id: null`.
+ * Clé sur `id` seul, deux albums de service étiquetés font deux clés `null`
+ * identiques, et Svelte refuse de dessiner la liste.
+ */
+export function cleLigneEtiquetee(o: { id?: unknown; source?: unknown; source_id?: unknown }, i: number): string {
+  if (o?.id != null) return `l:${o.id}`;
+  if (o?.source != null && o?.source_id != null) return `s:${o.source}:${o.source_id}`;
+  return `i:${i}`;
+}
+
+/**
+ * Corps de lecture d'un ALBUM rendu par l'écran Étiquettes : l'identifiant
+ * pour la bibliothèque, la paire pour un service. `null` s'il ne désigne rien.
+ */
+export function corpsLectureAlbumEtiquete(a: { id?: number | null; source?: string | null; source_id?: string | null }):
+  Record<string, unknown> | null {
+  if (a?.id != null) return { album_id: a.id };
+  const c = cibleDeService('album', a);
+  return c ? { source: c.source, streaming_album_id: c.sourceId } : null;
+}
