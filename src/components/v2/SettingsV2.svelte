@@ -2167,7 +2167,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
                 <button class="lnk" onclick={startCovers}>{$t('v2.set.start' as any)}</button>
               </div>
-              <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
 
             {:else if s.id === 'ingest'}
@@ -2977,7 +2977,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/each}
                 </div>
               {/if}
-              <p class="hint">{#each emphaseParts($t('settings.backgroundTasksHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <p class="hint">{#each emphaseParts($t('settings.backgroundTasksHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <!--
                 🔴 LES DEUX GESTES DE SERVICE, en permanence — pas seulement
                 après une mise à jour. Ils vivent ICI, sous l'état du serveur,
