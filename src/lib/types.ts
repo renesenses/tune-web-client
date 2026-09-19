@@ -253,6 +253,8 @@ export interface SignalPathStep {
   description: string;
   bit_perfect?: boolean;
   detail?: string | null;
+  /** Code stable de l'étape, ex. `rate_conversion` sur le `Resampler` (#3973). */
+  code?: string;
 }
 
 export interface SignalPath {
@@ -269,6 +271,14 @@ export interface SignalPath {
   decisions?: string[];
   checksum?: string | null;
   checksum_verified?: boolean | null;
+  /** #3973 — mode PURE actif. Absent sur un vieux serveur. */
+  pure?: boolean;
+  /** #3973 — PURE actif MAIS pas bit-perfect, à cause d'une conversion de fréquence. */
+  pure_degraded?: boolean;
+  /** #3973 — « Bit-perfect strict » actif sur la zone. */
+  strict_bitperfect?: boolean;
+  /** #3973 — la conversion de fréquence appliquée, ou `null`. */
+  rate_conversion?: { from_hz: number; to_hz: number } | null;
 }
 
 /** Le PÉRIPHÉRIQUE que la sortie locale a réellement ouvert, face à celui que
@@ -475,6 +485,12 @@ export interface Zone {
    * est présente à `false` sur les 18 zones). Défaut off.
    */
   mono_downmix?: boolean;
+  /**
+   * « Bit-perfect strict » (#3973) : actif, la zone REFUSE de jouer plutôt que
+   * de convertir la fréquence. Absent sur un vieux serveur ⇒ l'interrupteur
+   * n'est pas proposé.
+   */
+  strict_bitperfect?: boolean;
   /**
    * La DISPOSITION DE CANAUX déclarée pour l'appareil — chantier
    * « multicanal ». Le nom stable d'une disposition, ou `null` quand on suit
