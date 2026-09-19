@@ -887,6 +887,8 @@ export default {
   'settings.clientVersion': '클라이언트 버전',
   'settings.serverVersion': '서버 버전',
   'settings.apiDocs': 'API 문서',
+  "v2.set.apiDocsCount": "서버가 문서화한 경로 {count}개.",
+  "v2.plug.docs": "확장 기능 문서",
 
   // Metadata
   'settings.metadataReadonly': '읽기 전용 모드 (오디오 파일 수정 안 함)',

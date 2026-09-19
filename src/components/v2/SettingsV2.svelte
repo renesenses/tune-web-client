@@ -36,6 +36,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -1049,6 +1050,55 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let health = $state<{ status: string; components?: Record<string, boolean> } | null>(null);
   let stats = $state<{ tracks: number; albums: number; artists: number; zones: number; devices: number } | null>(null);
   const clientStale = $derived(!!serverVersion && !!CLIENT_VERSION && serverVersion !== CLIENT_VERSION);
+
+  /**
+   * Phase 5 (web#1257) — « Quoi de neuf » et la documentation de l'API, que
+   * seule l'ancienne interface atteignait (`WhatsNew`, lien de `SettingsView`).
+   * Les deux s'ouvrent SUR PLACE, dans « À propos » : chargés à la demande,
+   * par `fetchJSON` — donc avec le jeton et à travers le relais, ce que le
+   * lien brut de l'ancien écran ne faisait pas.
+   */
+  let notesOuvertes = $state(false);
+  let notesEnCours = $state(false);
+  let notes = $state<NotesDeVersion | null>(null);
+  let notesEchec = $state(false);
+  async function basculerNotes() {
+    notesOuvertes = !notesOuvertes;
+    if (!notesOuvertes || notes || notesEnCours) return;
+    notesEnCours = true;
+    notesEchec = false;
+    try {
+      notes = lireNotesDeVersion(await api.getChangelog(get(locale)));
+    } catch {
+      notesEchec = true;
+    }
+    notesEnCours = false;
+  }
+  // Hors ligne, aucune entrée n'est « la version qui tourne » : le jeu de
+  // secours est figé et ancien (même règle que l'ancien panneau).
+  const versionCourante = $derived(
+    !notes || notes.horsLigne ? null : (notes.versionServeur ?? serverVersion ?? notes.entrees[0]?.version ?? null),
+  );
+
+  let apiDocsOuverte = $state(false);
+  let apiDocsEnCours = $state(false);
+  let apiDocs = $state<api.RouteDocumentee[] | null>(null);
+  let apiDocsErr = $state<string | null>(null);
+  async function basculerApiDocs() {
+    apiDocsOuverte = !apiDocsOuverte;
+    if (!apiDocsOuverte || apiDocs || apiDocsEnCours) return;
+    apiDocsEnCours = true;
+    apiDocsErr = null;
+    try {
+      const r = await api.getApiDocs();
+      apiDocs = Array.isArray(r?.endpoints) ? r.endpoints : [];
+    } catch (e) {
+      const motif = errText(e);
+      const base = get(t)('common.error' as any);
+      apiDocsErr = motif ? `${base} : ${motif}` : base;
+    }
+    apiDocsEnCours = false;
+  }
 
   $effect(() => {
     api.apiFetch('/system/update/check')
@@ -3553,6 +3603,62 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+              <!-- Phase 5 (web#1257) : « Quoi de neuf » et documentation de
+                   l'API, portés de l'ancienne interface. -->
+              <div class="inline">
+                <button class="lnk" aria-expanded={notesOuvertes} onclick={basculerNotes}>{$t('whatsnew.title' as any)}</button>
+                {#if atLeast(level, 'expert')}
+                  <button class="lnk" aria-expanded={apiDocsOuverte} onclick={basculerApiDocs}>{$t('settings.apiDocs' as any)}</button>
+                {/if}
+              </div>
+              {#if notesOuvertes}
+                <div class="notes" role="region" aria-label={$t('whatsnew.title' as any)}>
+                  {#snippet groupeDeNotes(cle: string, items: string[])}
+                    {#if items.length}
+                      <p class="hint"><b>{$t(cle as any)}</b></p>
+                      <ul class="note-items">{#each items as it, j (j)}<li>{it}</li>{/each}</ul>
+                    {/if}
+                  {/snippet}
+                  {#if notesEnCours}
+                    <p class="hint">{$t('whatsnew.loading' as any)}</p>
+                  {:else if notesEchec}
+                    <div class="errline">{$t('whatsnew.error' as any)}</div>
+                  {:else if notes}
+                    {#if notes.nonTraduites}<p class="hint">{$t('whatsnew.notTranslated' as any)}</p>{/if}
+                    {#if notes.horsLigne}<div class="warnbox">{$t('whatsnew.error' as any)}</div>{/if}
+                    {#each notes.entrees as n, i (n.version)}
+                      <div class="note" class:courante={n.version === versionCourante}>
+                        <div class="kv">
+                          <b class="mono">v{n.version}</b>
+                          <span>{n.date}{#if i === 0 && !notes.horsLigne} · {$t('whatsNew.latest' as any)}{/if}</span>
+                        </div>
+                        {@render groupeDeNotes('whatsnew.newFeatures', n.features)}
+                        {@render groupeDeNotes('whatsnew.improvements', n.improvements)}
+                        {@render groupeDeNotes('whatsnew.fixes', n.fixes)}
+                      </div>
+                    {:else}
+                      <p class="hint">{$t('whatsnew.noNotes' as any)}</p>
+                    {/each}
+                  {/if}
+                </div>
+              {/if}
+              {#if apiDocsOuverte && atLeast(level, 'expert')}
+                <div class="notes" role="region" aria-label={$t('settings.apiDocs' as any)}>
+                  {#if apiDocsEnCours}
+                    <p class="hint">{$t('common.loading' as any)}</p>
+                  {:else if apiDocsErr}
+                    <div class="errline">{apiDocsErr}</div>
+                  {:else if apiDocs}
+                    <p class="hint">{$t('v2.set.apiDocsCount' as any).replace('{count}', String(apiDocs.length))}</p>
+                    <div class="rows">
+                      {#each apiDocs as r, i (i)}
+                        <div class="kv"><b class="mono">{r.method} {r.path}</b><span>{r.description}</span></div>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              {/if}
+
             {:else if s.id === 'license'}
               <div class="rows">
                 <div class="kv">
@@ -4309,6 +4415,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 {/if}
 
 <style>
+  /* Phase 5 — « Quoi de neuf » et documentation de l'API, ouverts sur place. */
+  .notes{margin-top:12px; max-height:420px; overflow-y:auto; padding-right:6px}
+  .note{padding:8px 0; border-bottom:1px solid var(--v2-line)}
+  .note.courante{border-left:2px solid var(--v2-acc1); padding-left:10px}
+  .note-items{margin:4px 0 8px 18px; font-size:12.5px; line-height:1.5; color:var(--v2-txt2)}
   /* LA MATRICE des colonnes. Une grille unique : l'en-tête et les lignes
      partagent le même gabarit, sinon les cases ne tombent pas sous leur mode.
      C'est la même règle que le tableau de pistes lui-même. */

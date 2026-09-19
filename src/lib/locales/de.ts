@@ -887,6 +887,8 @@ export default {
   'settings.clientVersion': 'Client-Version',
   'settings.serverVersion': 'Server-Version',
   'settings.apiDocs': 'API-Dokumentation',
+  "v2.set.apiDocsCount": "{count} vom Server dokumentierte Routen.",
+  "v2.plug.docs": "Dokumentation der Erweiterungen",
 
   // Metadata
   'settings.metadataReadonly': 'Nur-Lesen-Modus (Audiodateien nie verändern)',

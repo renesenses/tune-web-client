@@ -887,6 +887,8 @@ export default {
   'settings.clientVersion': 'クライアントバージョン',
   'settings.serverVersion': 'サーバーバージョン',
   'settings.apiDocs': 'APIドキュメント',
+  "v2.set.apiDocsCount": "サーバーが文書化したルート：{count} 件。",
+  "v2.plug.docs": "拡張機能のドキュメント",
 
   // Metadata
   'settings.metadataReadonly': '読み取り専用モード（オーディオファイルを変更しない）',

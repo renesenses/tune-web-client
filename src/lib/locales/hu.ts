@@ -1082,6 +1082,8 @@ export default {
   "settings.clientVersion": "Kliens verziója",
   "settings.serverVersion": "Szerver verziója",
   "settings.apiDocs": "API-dokumentáció",
+  "v2.set.apiDocsCount": "{count} útvonalat dokumentál a szerver.",
+  "v2.plug.docs": "A bővítmények dokumentációja",
   // Metaadatok
   "settings.metadataReadonly": "Csak olvasható mód (soha ne módosítsa a hangfájlokat)",
   "settings.metadataReadonlyHelp": "Bekapcsolva a Tune soha nem ír címkéket a lemezen lévő hangfájlokba.",

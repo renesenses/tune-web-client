@@ -866,6 +866,8 @@ export default {
   'settings.clientVersion': 'Klientversion',
   'settings.serverVersion': 'Serverversion',
   'settings.apiDocs': 'API-dokumentation',
+  "v2.set.apiDocsCount": "{count} vägar dokumenterade av servern.",
+  "v2.plug.docs": "Dokumentation för tillägg",
 
   // Metadata
   'settings.metadataReadonly': 'Skrivskyddat läge (ändra aldrig ljudfiler)',

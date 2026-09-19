@@ -897,6 +897,8 @@ export default {
   'settings.clientVersion': 'Versiune client',
   'settings.serverVersion': 'Versiune server',
   'settings.apiDocs': 'Documentație API',
+  "v2.set.apiDocsCount": "{count} rute documentate de server.",
+  "v2.plug.docs": "Documentația extensiilor",
 
   // Metadata
   'settings.metadataReadonly': 'Mod doar-citire (nu modifica niciodată fișierele audio)',
