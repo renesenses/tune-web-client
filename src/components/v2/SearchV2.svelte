@@ -40,7 +40,7 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, getQualityTier } from '../../lib/utils';
-  import type { Album, Source, Track, SearchResult, FederatedSearchResult } from '../../lib/types';
+  import type { Album, Source, Track, SearchResult } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   // #1136 — le MÊME composant que partout ailleurs (~45 emplois, table de neuf
   // provenances, `local: { name: 'LOCAL' }` comprise). Pas un troisième style
@@ -61,7 +61,8 @@
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import type { Artist, Playlist, StreamingPlaylist } from '../../lib/types';
   import { streamingServices } from '../../lib/stores/streaming';
-  import { SOURCES_SERVICES } from '../../lib/sourcesRecherche';
+  import { servicesInterrogeables, statutsStreaming } from '../../lib/albumsArtisteStreaming';
+  import { chercherAuFilDeLEau, planDuDeuxiemeTemps } from '../../lib/rechercheAuFilDeLEau';
   import {
     fusionnerParType,
     regrouperArtistes,
@@ -249,19 +250,49 @@
         .then((r) => { if (mine === seq) local = r; })
         .catch(() => { if (mine === seq) local = null; })
         .finally(() => { if (mine === seq) busy = false; });
-      // 🔴 `SOURCES_SERVICES` et non rien : sans jeton, `/search` REFAIT tout
-      // le bloc `local` — 0,95 s de SQL mesurées sur le .18 — que cet écran
-      // JETTE, puisqu'il ne lit que `r.services` et tient son local de
-      // `searchLibrary` (0,24 s). Le jeton le dit au serveur, qui « ne calcule
-      // rien plutôt que jeter » (contrat `routes/filtre_sources.rs`).
-      api.federatedSearch(query, [SOURCES_SERVICES])
-        .then((r: FederatedSearchResult) => { if (mine === seq) fed = r.services ?? {}; })
-        .catch(() => { if (mine === seq) fed = {}; });
+      void deuxiemeTemps(query, mine);
       chercherPlaylists(query, mine);
       recentes = retenirRecherche(query);
     }, 240);
     return () => clearTimeout(t);
   });
+
+  /**
+   * LE DEUXIÈME TEMPS — chaque service posé dès qu'il répond.
+   *
+   * Bertrand, 19/09/2026 : « La recherche se fait en deux temps : local puis
+   * streaming. Il ne faut pas faire patienter l'utilisateur ».
+   *
+   * Un seul `/search` rendait les quatre services d'un coup : rien de Qobuz ne
+   * paraissait tant que YouTube n'avait pas répondu. Mesuré sur le .18 :
+   * 1,20 s pour les quatre à la file, 0,42 s pour le plus lent seul, 0,03 s
+   * pour Tidal.
+   *
+   * 🔴 LE REPLI n'est pas une précaution de style. Chercher service par
+   * service oblige cet écran à CONNAÎTRE la liste, donc à demander
+   * `/streaming/services` — et `statutsStreaming` avale ses erreurs en rendant
+   * `{}`. Sans repli, un échec de cet appel viderait la moitié streaming de
+   * l'écran sans un mot : le défaut de #1231, à l'identique. Liste vide ⇒ UN
+   * appel `sources=streaming`, exactement ce que faisait la version d'avant.
+   *
+   * `fed` est REMPLACÉ, jamais muté : Svelte 5 suit l'affectation, pas
+   * l'écriture dans l'objet.
+   */
+  async function deuxiemeTemps(query: string, mine: number) {
+    fed = {};
+    const statuts = await statutsStreaming(
+      get(streamingServices),
+      api.getStreamingServices,
+      (x) => streamingServices.set(x),
+    );
+    if (mine !== seq) return;
+    await chercherAuFilDeLEau(
+      planDuDeuxiemeTemps(servicesInterrogeables(statuts)),
+      (sources) => api.federatedSearch(query, sources),
+      (svc, resultats) => { fed = { ...fed, [svc]: resultats }; },
+      () => mine === seq,
+    );
+  }
 
   /* ---------------------------------------------------------------- */
   /* Playlists — absentes du nouvel écran, présentes dans l'actuel     */
