@@ -6596,6 +6596,37 @@ export interface AlbumEclate { id: number; title: string; artist?: string | null
 export type IndiceEclate = 'dossier_et_titre' | 'pochette_identique' | (string & {});
 export interface GroupeAlbumsEclates { numeros_complementaires?: boolean; meme_annee?: boolean; pistes?: number; indice?: IndiceEclate; dossier?: string | null; albums: AlbumEclate[]; [k: string]: unknown }
 /** Un album coupé en plusieurs fiches (`GET /library/albums/eclates`). */
+/**
+ * Les coffrets ripés en `CD1/`, `CD2/` dont les numéros de piste se marchent
+ * dessus — #4471 (serveur), suivi client renesenses/tune-web-client#4471.
+ *
+ * L'APERÇU et la RÉPARATION rendent la même forme : ce que l'écran montre
+ * avant est exactement ce que l'écriture fera. `applique` distingue les deux.
+ */
+export interface DisquesAbimes {
+  applique: boolean;
+  albums: number;
+  pistes: number;
+  details: { album_id: number; pistes: number; disques: number[] }[];
+}
+
+/** Ce qui SERAIT changé, sans rien changer. */
+export function getDisquesAbimes() {
+  return fetchJSON<DisquesAbimes>(`${BASE}/library/albums/disques-abimes`);
+}
+
+/**
+ * Écrit les numéros de disque que le DOSSIER dicte.
+ *
+ * ⚠️ Ne touche que la base, jamais les tags des fichiers : c'est réversible
+ * d'un rescan, réécrire un FLAC ne l'est pas.
+ */
+export function reparerDisquesAbimes() {
+  return fetchJSON<DisquesAbimes>(`${BASE}/library/albums/disques-abimes/reparer`, {
+    method: 'POST',
+  });
+}
+
 export function getAlbumsEclates() {
   return fetchJSON<{ count: number; groups: GroupeAlbumsEclates[] }>(`${BASE}/library/albums/eclates`).then((r) => r?.groups ?? []);
 }
