@@ -489,7 +489,7 @@
       } else {
         bcNeedsLink = false;
         api.bandcampCollection()
-          .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; bcDownloadsAvailable = !!d?.downloads_available; chargerCopiesLocales(); })
+          .then((d: any) => { bcCollection = d?.items ?? d?.collection ?? []; bcDownloadsAvailable = !!d?.downloads_available; chargerCopiesLocales(); completerCollection(d); })
           .catch((e: any) => {
             // 428 : aucun compte relie. Ce n'est pas une panne, c'est une
             // etape a franchir — on le dit au lieu d'afficher « rien ».
@@ -834,6 +834,30 @@
     bcCollection = d?.items ?? d?.collection ?? [];
     bcDownloadsAvailable = !!d?.downloads_available;
     chargerCopiesLocales();
+    completerCollection(d);
+  }
+  /**
+   * TOUTE la collection, pas sa première page — porté de l'ancien écran
+   * Bandcamp avant la phase 5 (web#1257).
+   *
+   * Bandcamp pagine par CURSEUR (100 achats par page) : cet écran n'en
+   * montrait que la première, et un acheteur de longue date ne voyait jamais
+   * le reste — ni sa copie locale. L'ancien écran lisait tout
+   * (`bandcampAllCollection`, boucle bornée à 50 pages) pour rapprocher la
+   * collection de la bibliothèque. La première page reste affichée tout de
+   * suite ; le reste la REMPLACE quand il arrive.
+   */
+  let jetonCollection = 0;
+  function completerCollection(premiere: any) {
+    if (!premiere?.more_available || !premiere?.last_token) return;
+    const j = ++jetonCollection;
+    api.bandcampAllCollection()
+      .then((tout) => {
+        if (j !== jetonCollection || !tout.length) return;
+        bcCollection = tout;
+        chargerCopiesLocales();
+      })
+      .catch(() => { /* la première page reste : mieux qu'un écran vide */ });
   }
   const currentSous = $derived(bcGenres.find((g) => g.slug === bcTag)?.sous ?? []);
 

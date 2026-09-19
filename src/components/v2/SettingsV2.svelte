@@ -1809,6 +1809,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await api.enrichArtistImages(); await refreshEnrich(); }
     catch { enrichErr = get(t)('settings.errStartFailed'); }
   }
+  /*
+   * Deux passes portées de l'écran actuel avant la phase 5 (web#1257), qui
+   * supprime la seule porte vers elles :
+   *  - la récupération FORCÉE des portraits — TOUS les artistes, y compris
+   *    ceux que la passe normale saute parce qu'ils « ont » déjà une image
+   *    (`POST /library/artwork/enrich-artists/force`) ;
+   *  - la recherche des POCHETTES manquantes de toute la bibliothèque
+   *    (`POST /library/artwork/rescan`).
+   * Toutes deux rendent la main tout de suite : on dit « lancé », pas « fait ».
+   */
+  let portraitsForces = $state(false);
+  async function forcerPortraits() {
+    enrichErr = null;
+    try {
+      await api.forceRefetchArtistImages();
+      portraitsForces = true;
+      await refreshEnrich();
+    } catch { enrichErr = get(t)('settings.errStartFailed'); }
+  }
+  let pochettesLancees = $state(false);
+  async function chercherPochettes() {
+    enrichErr = null;
+    try {
+      await api.rescanArtwork();
+      pochettesLancees = true;
+    } catch { enrichErr = get(t)('settings.errStartFailed'); }
+  }
 
   // ── Rangement des fichiers importes ───────────────────────────────────
   let ingest = $state<any | null>(null);
@@ -2166,6 +2193,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </span>
                 </div>
                 <button class="lnk" onclick={startCovers}>{$t('v2.set.start' as any)}</button>
+              </div>
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.forceRefetchArtistImages' as any)}</span>
+                  <span class="hint">{portraitsForces ? $t('settings.enrichArtistImagesStarted' as any) : $t('settings.forceRefetchArtistImagesHint' as any)}</span>
+                </div>
+                <button class="lnk" onclick={forcerPortraits}>{$t('v2.set.start' as any)}</button>
+              </div>
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.searchMissingCovers' as any)}</span>
+                  <span class="hint">{pochettesLancees ? $t('settings.searchingCovers' as any) : $t('tip.rescanArtwork' as any)}</span>
+                </div>
+                <button class="lnk" onclick={chercherPochettes}>{$t('v2.set.start' as any)}</button>
               </div>
               <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}

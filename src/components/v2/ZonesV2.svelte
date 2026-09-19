@@ -252,6 +252,54 @@
       if ($currentZoneId === z.id) currentZoneId.set(null);
     });
   }
+  /*
+   * CHANGER LA SORTIE d'une zone, et TOUT SUPPRIMER — deux gestes portés de
+   * l'écran actuel (`ZoneManagerView`) avant la phase 5 (web#1257).
+   *
+   * La sortie : `PATCH /zones/{id}` avec `output_type` + `output_device_id`.
+   * Aucun écran v2 n'envoyait ces deux champs : la route était atteinte (le
+   * mode WAV y passe), le CHAMP ne l'était pas. Les appareils proposés sont
+   * ceux de la création de zone (`candidatsNouvelleZone`), la zone elle-même
+   * retirée du calcul — sans quoi son propre appareil serait exclu comme
+   * « déjà lié ».
+   *
+   * Tout supprimer : `DELETE /zones`. Le serveur efface aussi les marques
+   * d'activation, ce qui remet le quota de l'offre Free à zéro — c'est pour
+   * cela que le geste existe. Deux temps, comme la suppression d'une zone.
+   */
+  let sortieDe = $state<number | null>(null);
+  let sortieCandidats = $state<CandidatZone[]>([]);
+  let sortieChoix = $state('');
+  async function ouvrirSortie(z: Zone, e: MouseEvent) {
+    e.stopPropagation();
+    if (z.id == null) return;
+    if (sortieDe === z.id) { sortieDe = null; return; }
+    sortieDe = z.id;
+    sortieChoix = '';
+    sortieCandidats = [];
+    const [locaux, decouverts] = await Promise.all([
+      api.getAudioDevices().catch(() => []),
+      api.getDevices().catch(() => []),
+    ]);
+    sortieCandidats = candidatsNouvelleZone(
+      locaux, decouverts, $zones.filter((x) => x.id !== z.id), $t('zone.browserOutput' as any),
+    );
+  }
+  function appliquerSortie(z: Zone) {
+    const c = sortieCandidats.find((x) => x.cle === sortieChoix);
+    if (!c || z.id == null) return;
+    sortieDe = null;
+    act(() => api.changeZoneOutput(z.id as number, c.outputType, c.deviceId ?? null));
+  }
+  let confirmTout = $state(false);
+  function toutSupprimer() {
+    confirmTout = false;
+    act(async () => {
+      await api.deleteAllZones();
+      currentZoneId.set(null);
+    });
+  }
+
   function setVol(z: Zone, v: number) {
     if (z.id == null) return;
     zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: v } : x)));
@@ -481,6 +529,10 @@
                   {confirmMerge === z.id ? $t('v2.zone.mergeConfirm' as any) : $t('v2.zone.mergeInto' as any).replace('{name}', j!.name)}
                 </button>
               {/if}
+              <button class:armed-sortie={sortieDe === z.id} onclick={(e) => ouvrirSortie(z, e)} disabled={busy}
+                aria-label={$t('zone.changeOutput' as any)} title={$t('zone.changeOutput' as any)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>
+              </button>
               <button onclick={(e) => startRename(z, e)} disabled={busy} aria-label="Renommer">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
               </button>
@@ -496,8 +548,38 @@
               {/if}
             </span>
           </div>
+          {#if sortieDe === z.id}
+            <div class="sortie">
+              <span class="cl">{$t('zone.changeOutput' as any)}</span>
+              <select class="sel" bind:value={sortieChoix} aria-label={$t('zone.selectDevice' as any)}>
+                <option value="" disabled>{$t('zone.selectDevice' as any)}</option>
+                {#each [['navigateur', 'v2.zone.groupBrowser'], ['local', 'v2.zone.groupLocal'], ['reseau', 'v2.zone.groupNetwork']] as [g, cle] (g)}
+                  {@const dansGroupe = sortieCandidats.filter((c) => c.groupe === g)}
+                  {#if dansGroupe.length}
+                    <optgroup label={$t(cle as any)}>
+                      {#each dansGroupe as c (c.cle)}<option value={c.cle}>{libelleCandidat(c)}</option>{/each}
+                    </optgroup>
+                  {/if}
+                {/each}
+              </select>
+              <button class="v2-btn primaire" onclick={() => appliquerSortie(z)} disabled={busy || !sortieChoix}>{$t('v2.meta.confirm' as any)}</button>
+              <button class="v2-btn" onclick={() => (sortieDe = null)}>{$t('common.cancel' as any)}</button>
+            </div>
+          {/if}
         {/each}
       </div>
+      {#if showExpert}
+        <div class="tout">
+          {#if confirmTout}
+            <span class="cl">{$t('zone.deleteAllConfirm' as any)}</span>
+            <button class="v2-btn danger armed" onclick={toutSupprimer} disabled={busy}>{$t('v2.meta.confirm' as any)}</button>
+            <button class="v2-btn" onclick={() => (confirmTout = false)}>{$t('common.cancel' as any)}</button>
+          {:else}
+            <button class="v2-btn danger" onclick={() => (confirmTout = true)} disabled={busy}
+              title={$t('zone.deleteAllHint' as any)}>{$t('zone.deleteAll' as any)}</button>
+          {/if}
+        </div>
+      {/if}
     {/if}
 
     <!--
@@ -714,5 +796,10 @@
   .zacts .danger:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .zacts .armed{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .zacts svg{width:14px; height:14px}
+  .zacts .armed-sortie{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .sortie{display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:8px 12px 12px 40px}
+  .sortie .cl, .tout .cl{font-size:12.5px; color:var(--v2-txt2)}
+  .tout{display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end; padding:14px 0 4px}
+  .tout .danger{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .zacts .merge{padding:0 10px; font-size:12px; white-space:nowrap}
 </style>

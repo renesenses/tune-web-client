@@ -353,6 +353,64 @@
 
   let q = $state('');
 
+  /*
+   * TRANCHE DE DYNAMIC RANGE et TRI ALÉATOIRE — portés de l'écran actuel
+   * avant la phase 5 (web#1257), qui supprime la seule porte vers eux.
+   *
+   * 🔴 Le filtre part au SERVEUR (`dr_min`/`dr_max`), pas au client : la
+   * LISTE d'albums ne porte pas le DR (`GET /library/albums` ne l'ajoute qu'à
+   * la fiche d'un album, `routes/library/albums.rs`). Filtrer `src` sur
+   * `dynamic_range` ne verrait rien. On demande donc au serveur QUELS albums
+   * tombent dans la tranche, et la grille ne garde que ceux-là.
+   *
+   * La commande n'est dessinée que si la bibliothèque porte des DR
+   * (`drValeurs` non vide) : ailleurs, elle ne filtrerait rien.
+   */
+  let drValeurs = $state<number[]>([]);
+  $effect(() => {
+    let vivant = true;
+    api.getAlbumDynamicRanges().then((v) => { if (vivant) drValeurs = v; }).catch(() => {});
+    return () => { vivant = false; };
+  });
+  let drMin = $state<number | null>(null);
+  let drMax = $state<number | null>(null);
+  let idsDr = $state<Set<number> | null>(null);
+  let jetonDr = 0;
+  $effect(() => {
+    const min = drMin, max = drMax;
+    if (min == null && max == null) { idsDr = null; return; }
+    const j = ++jetonDr;
+    api.getAllAlbumsSeeded(2000, null, null, undefined, undefined, { min, max })
+      .then((r) => {
+        if (j === jetonDr) idsDr = new Set(r.albums.map((a) => a.id).filter((x): x is number => x != null));
+      })
+      .catch(() => { if (j === jetonDr) idsDr = null; });
+  });
+  const lireBorneDr = (v: string): number | null => (v === '' ? null : Number(v));
+
+  /*
+   * Le tri aléatoire est un TIRAGE du serveur (#3074) : `sort=random` sans
+   * graine en fait tirer une, et `getAllAlbumsSeeded` la repasse aux lots
+   * suivants — sans quoi chaque lot re-tirerait et la grille montrerait des
+   * doublons. « Re-tirer » n'est rien d'autre que redemander sans graine.
+   */
+  let rangAleatoire = $state<Map<number, number> | null>(null);
+  let tirage = $state(0);
+  let jetonTirage = 0;
+  $effect(() => {
+    if (sortKey !== 'random') { rangAleatoire = null; return; }
+    void tirage;
+    const j = ++jetonTirage;
+    api.getAllAlbumsSeeded(2000, 'random', null)
+      .then((r) => {
+        if (j !== jetonTirage) return;
+        const m = new Map<number, number>();
+        r.albums.forEach((a, i) => { if (a.id != null) m.set(a.id, i); });
+        rangAleatoire = m;
+      })
+      .catch(() => { if (j === jetonTirage) rangAleatoire = null; });
+  });
+
   function tierMatches(a: Album, key: string): boolean {
     const t = getQualityTier(a);
     if (key === 'hires') return t === 'hires' || t === 'hires_max';
@@ -371,6 +429,7 @@
     // serveur — jamais « on ne sait pas, laissons passer ».
     if (fCompilation != null && (a.is_compilation ?? false) !== fCompilation) return false;
     if (!dansSource(a, fProvenance)) return false;
+    if (idsDr && (a.id == null || !idsDr.has(a.id))) return false;
     if (q && !fold(a.title).includes(fold(q)) && !fold(a.artist_name).includes(fold(q))) return false;
     return true;
   }
@@ -396,6 +455,14 @@
         );
       case 'added':
         return list.sort((a, b) => (b.added_at ?? 0) - (a.added_at ?? 0) || byTitle(a, b));
+      case 'random': {
+        // L'ordre est celui du TIRAGE du serveur ; en attendant qu'il arrive,
+        // le titre — jamais une grille vide.
+        const rang = rangAleatoire;
+        if (!rang) return list.sort(byTitle);
+        const r = (a: Album) => (a.id != null ? rang.get(a.id) : undefined) ?? Number.MAX_SAFE_INTEGER;
+        return list.sort((a, b) => r(a) - r(b) || byTitle(a, b));
+      }
       case 'dr':
         // Les albums SANS tag sortent en dernier, jamais à DR 0 : les annoncer
         // à zéro serait un mensonge (`NULLS LAST` côté serveur, même règle).
@@ -572,7 +639,7 @@
   // « Ajout récent » n'est propose que si la donnee existe : sur une
   // bibliotheque importee d'un ancien serveur, `added_at` est souvent vide,
   // et un tri qui ne trie rien est pire qu'un tri absent.
-  type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr';
+  type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr' | 'random';
   // `l` porte une CLÉ, pas un libellé : le menu de tri restait en français
   // quelle que soit la langue (Bertrand, 06/09/2026).
   const SORTS: { k: SortKey; l: string }[] = [
@@ -582,6 +649,9 @@
     // interface ne l'avait jamais repris. Décroissant : on trie par DR pour
     // remonter ses disques les PLUS dynamiques, pas les plus écrasés.
     { k: 'dr', l: 'library.sortDynamicRange' },
+    // Tri ALÉATOIRE (#3074) — porté de l'écran actuel avant la phase 5
+    // (web#1257). Voir `rangAleatoire`.
+    { k: 'random', l: 'library.sortRandom' },
   ];
   /**
    * 🔴 RETENU d'une visite à l'autre (Lulu, forum, 05/09/2026 : « figer le
@@ -1708,6 +1778,34 @@
           {/each}
         </div>
       </div>
+      {#if sortKey === 'random'}
+        <button class="viewtog" onclick={() => tirage++}
+          aria-label={$tr('library.reshuffle' as any)} title={$tr('library.reshuffle' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>
+        </button>
+      {/if}
+      {#if tab === 'albums' && drValeurs.length}
+        <span class="trancheDr" class:on={drMin != null || drMax != null}>
+          <span class="drlbl">{$tr('library.drRange' as any)}</span>
+          <select aria-label={$tr('library.drMin' as any)} title={$tr('library.drMin' as any)}
+            value={drMin == null ? '' : String(drMin)}
+            onchange={(e) => (drMin = lireBorneDr((e.currentTarget as HTMLSelectElement).value))}>
+            <option value="">{$tr('library.drAny' as any)}</option>
+            {#each drValeurs as v (v)}<option value={String(v)}>{v}</option>{/each}
+          </select>
+          <span aria-hidden="true">–</span>
+          <select aria-label={$tr('library.drMax' as any)} title={$tr('library.drMax' as any)}
+            value={drMax == null ? '' : String(drMax)}
+            onchange={(e) => (drMax = lireBorneDr((e.currentTarget as HTMLSelectElement).value))}>
+            <option value="">{$tr('library.drAny' as any)}</option>
+            {#each drValeurs as v (v)}<option value={String(v)}>{v}</option>{/each}
+          </select>
+          {#if drMin != null || drMax != null}
+            <button class="drclr" onclick={() => { drMin = null; drMax = null; }}
+              aria-label={$tr('library.drClear' as any)} title={$tr('library.drClear' as any)}>×</button>
+          {/if}
+        </span>
+      {/if}
       <button class="viewtog" onclick={() => (display = display === 'grid' ? 'list' : 'grid')}
         aria-label={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}
         title={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}>
@@ -2220,6 +2318,12 @@
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); display:grid; place-items:center}
   .viewtog:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .viewtog svg{width:16px; height:16px}
+  .trancheDr{display:inline-flex; align-items:center; gap:6px; height:38px; padding:0 10px; border-radius:10px;
+    border:1px solid var(--v2-line2); color:var(--v2-txt2); font-size:12.5px}
+  .trancheDr.on{border-color:var(--v2-acc2); color:var(--v2-txt)}
+  .trancheDr select{background:transparent; border:0; color:inherit; font:inherit; cursor:pointer}
+  .drlbl{font-weight:600}
+  .drclr{border:0; background:transparent; color:var(--v2-txt3); cursor:pointer; font-size:15px; padding:0 2px}
 
   /* Vues par facette : une section par valeur (artiste, genre, année, label). */
   .facets{flex:1; overflow-y:auto; padding:8px 30px 40px}
