@@ -69,7 +69,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
-  import PrereglageAppareilV2 from './PrereglageAppareilV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -119,6 +118,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * d'appareils.
    */
   import ZoneDeviceEditor from '../partages/ZoneDeviceEditor.svelte';
+  import PrereglageAppareilV2 from './PrereglageAppareilV2.svelte';
 
   /**
    * Trim de gain — ecrit ici plutot que repris : c'est un curseur et une
