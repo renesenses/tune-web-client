@@ -3842,6 +3842,25 @@ export function getStreamingPlaylists(service: string) {
 }
 
 /**
+ * Ajoute des pistes à une playlist DU SERVICE (#1268) —
+ * `POST /streaming/{service}/playlists/{id}/tracks`, `{ track_ids }` →
+ * `{ added }`. Les identifiants sont ceux du service (`source_id`).
+ */
+export function addStreamingPlaylistTracks(service: string, playlistId: string, trackIds: string[]) {
+  return fetchJSON<{ added: number }>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/playlists/${encodeURIComponent(playlistId)}/tracks`,
+    { method: 'POST', body: JSON.stringify({ track_ids: trackIds }) },
+  );
+}
+
+/** Crée une playlist sur le compte du service (#1268) — `POST /streaming/{service}/playlists` → `{ id }`. */
+export function createStreamingPlaylist(service: string, name: string) {
+  return fetchJSON<{ id: string }>(`${BASE}/streaming/${encodeURIComponent(service)}/playlists`, {
+    method: 'POST', body: JSON.stringify({ name }),
+  });
+}
+
+/**
  * UNE playlist d'un service, par son identifiant — #988.
  *
  * `GET /streaming/{service}/playlists/{id}` rend `{ name, cover_path,

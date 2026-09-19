@@ -726,6 +726,8 @@ export default {
   'playlist.addToPlaylist': 'Add to Playlist',
   'playlist.addedTo': 'Added to <strong>{name}</strong>',
   'playlist.noExisting': 'No existing playlists',
+  'playlist.addFailed': 'Could not add the track: the service refused this playlist.',
+  'playlist.servicePlaylistsOf': 'Your {service} playlists',
   'playlist.newPlaylist': 'New Playlist',
   'playlist.searchPlaceholder': 'Search playlists...',
   'playlist.localPlaylists': 'My Playlists',

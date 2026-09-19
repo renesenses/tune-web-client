@@ -527,6 +527,8 @@ export default {
   'playlist.addToPlaylist': 'Adaugă la playlist',
   'playlist.addedTo': 'Adăugat la <strong>{name}</strong>',
   'playlist.noExisting': 'Niciun playlist existent',
+  'playlist.addFailed': 'Adăugarea a eșuat: serviciul a refuzat acest playlist.',
+  'playlist.servicePlaylistsOf': 'Playlisturile tale {service}',
   'playlist.newPlaylist': 'Playlist nou',
   'playlist.searchPlaceholder': 'Caută playlisturi...',
   'playlist.localPlaylists': 'Playlisturile mele',
