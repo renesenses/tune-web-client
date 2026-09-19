@@ -3718,6 +3718,7 @@ export default {
   "settings.tabProfiles": "Profils",
   "profiles.hint": "Chaque profil garde ses favoris, son historique et ses préférences d'affichage.",
   "profiles.active": "Actif",
+  "profiles.photoChoose": "Choisir une photo",
   "profiles.createTitle": "Nouveau profil",
   "profiles.namePlaceholder": "Nom du profil",
   "profiles.createButton": "Créer",

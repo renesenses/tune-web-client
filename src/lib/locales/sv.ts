@@ -3244,6 +3244,7 @@ export default {
   "podcasts.result": "resultat",
   "podcasts.resultsPlural": "resultat",
   "profiles.active": "Aktiv",
+  "profiles.photoChoose": "Välj ett foto",
   "profiles.confirmDelete": "Radera profilen ”{name}”? Dess favoriter och historik går förlorade.",
   "profiles.createButton": "Skapa",
   "profiles.createFailed": "Profilen kunde inte skapas. Försök igen om en stund.",

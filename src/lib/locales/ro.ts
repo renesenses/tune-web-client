@@ -3247,6 +3247,7 @@ export default {
   "podcasts.result": "rezultat",
   "podcasts.resultsPlural": "rezultate",
   "profiles.active": "Activ",
+  "profiles.photoChoose": "Alege o fotografie",
   "profiles.confirmDelete": "Ștergi profilul „{name}”? Favoritele și istoricul lui se vor pierde.",
   "profiles.createButton": "Creează",
   "profiles.createFailed": "Profilul nu a putut fi creat. Încearcă din nou într-o clipă.",
