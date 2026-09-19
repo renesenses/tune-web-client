@@ -123,3 +123,13 @@ Témoin : `src/lib/__tests__/maintenanceServeurV2.test.ts`.
 | `PluginsView` | `GET /plugins/docs` | ✅ **porté** : Extensions v2, lien « Documentation des extensions » par `api.getPluginDocsUrl`. Le serveur ne rend plus qu'`{ url }` (`routes/plugins.rs`, `plugin_docs`) ; seule une adresse http(s) est rendue |
 
 Témoin : `src/lib/__tests__/documentationEtNotesV2.test.ts`.
+
+## Angle mort (hors `api.ts`) — base de données
+
+| Écran supprimé | Route | Chemin v2 |
+|---|---|---|
+| `SettingsView` | `POST /system/database/test-connection` | ✅ **porté** (`feat/v2-porte-base-de-donnees`) : Réglages › Système › Base de données (Expert), `api.testDatabaseConnection` ; l'adresse part dans le corps JSON et non plus dans l'URL ; motif et `hint` du serveur affichés |
+| `SettingsView` | `POST /system/database/migrate?target=postgres` | ✅ **porté** : même section, `api.migrateDatabaseToPostgres`, ouvert seulement après un essai réussi de la même adresse, derrière `dialogs.confirm` (danger) ; attend le retour du serveur relancé sur PostgreSQL, ou dit qu'il reste sur SQLite (`restarting: false`) |
+| `SettingsView` | `POST /system/database/migrate?target=sqlite` (« Migrer vers SQLite ») | ⛔ **capacité morte, non portée** : `migrate_database` (`tune-server/src/routes/system/database.rs`, `origin/main`) ignore `target` (« this handler only implements SQLite → PostgreSQL ») et répond `400 missing 'url' field` à une requête sans adresse PostgreSQL ; sur un serveur déjà sous PostgreSQL il répond `400 this server already runs on PostgreSQL`. L'ancien écran ne lisait pas la réponse et affichait « Migration vers SQLite lancée… » |
+
+Témoin : `src/lib/__tests__/migrationPostgresV2.test.ts`.

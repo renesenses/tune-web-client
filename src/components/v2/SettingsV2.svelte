@@ -2305,6 +2305,78 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       .catch(() => {});
   });
 
+  /**
+   * Phase 5 (web#1257) — la bascule SQLite → PostgreSQL n'avait de chemin que
+   * dans l'ancien `SettingsView`, par `fetch` direct. Même déroulé : tester
+   * l'adresse, puis migrer — le bouton ne s'ouvre qu'après un essai réussi de
+   * CETTE adresse. La migration est confirmée (danger) : elle se termine par
+   * un redémarrage du serveur sur PostgreSQL.
+   *
+   * Le sens PostgreSQL → SQLite n'est PAS porté : le serveur ne l'implémente
+   * pas (`migrate_database` ignore `target` et exige une adresse PostgreSQL).
+   */
+  let pgUrl = $state('');
+  let pgEssaiEnCours = $state(false);
+  let pgUrlEprouvee = $state<string | null>(null);
+  let pgEssai = $state<{ ok: boolean; texte: string } | null>(null);
+  let pgMigration = $state(false);
+  let pgMigrationMsg = $state<{ ok: boolean; texte: string } | null>(null);
+  async function essayerPostgres() {
+    const url = pgUrl.trim();
+    const tr = get(t);
+    pgEssaiEnCours = true;
+    pgEssai = null;
+    pgUrlEprouvee = null;
+    pgMigrationMsg = null;
+    try {
+      const r = await api.testDatabaseConnection(url);
+      if (r?.ok === true) {
+        pgUrlEprouvee = url;
+        let texte = `PostgreSQL ${r.version ?? ''} — ${tr('settings.connectionOk' as any)}`;
+        if (r.database_created) texte += ` ${tr('v2.db.databaseCreated' as any)}`;
+        pgEssai = { ok: true, texte };
+      } else {
+        const motif = [r?.error, r?.hint].filter(Boolean).join(' — ');
+        pgEssai = { ok: false, texte: `${tr('common.error' as any)} : ${motif || '—'}` };
+      }
+    } catch (e) {
+      const motif = errText(e);
+      pgEssai = { ok: false, texte: motif ? `${tr('common.error' as any)} : ${motif}` : tr('common.error' as any) };
+    }
+    pgEssaiEnCours = false;
+  }
+  async function migrerVersPostgres() {
+    const url = pgUrl.trim();
+    if (!url || url !== pgUrlEprouvee) return;
+    const tr = get(t);
+    if (!(await dialogs.confirm(tr('v2.db.migrateConfirm' as any), { danger: true }))) return;
+    pgMigration = true;
+    pgMigrationMsg = null;
+    try {
+      const r = await api.migrateDatabaseToPostgres(url);
+      const lignes = String(r.total_rows ?? 0);
+      if (r.restarting) {
+        pgMigrationMsg = { ok: true, texte: tr('v2.db.migrateDone' as any).replace('{rows}', lignes) };
+        // Le serveur se relance sur PostgreSQL : on attend son retour, puis
+        // on recharge — même attente que le redémarrage de cet onglet.
+        attendreRetourEtRecharger({
+          sonder: () => api.getHealth(),
+          recharger: () => window.location.reload(),
+          renoncer: () => {
+            pgMigration = false;
+            notifications.error(get(t)('settings.updateReloadGaveUp' as any));
+          },
+        });
+        return;
+      }
+      pgMigrationMsg = { ok: false, texte: tr('v2.db.migrateNoRestart' as any).replace('{rows}', lignes) };
+    } catch (e) {
+      const motif = errText(e);
+      pgMigrationMsg = { ok: false, texte: motif ? `${tr('settings.migrationError' as any)} : ${motif}` : tr('settings.migrationError' as any) };
+    }
+    pgMigration = false;
+  }
+
   async function exportCsv(kind: 'albums' | 'tracks' | 'artists') {
     csvBusy = kind; sysErr = null;
     try {
@@ -2923,6 +2995,33 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </button>
               </div>
               {#if ftsResult}<p class="hint" class:errline={!ftsResult.ok}>{ftsResult.texte}</p>{/if}
+
+              <!-- Phase 5 (web#1257) : bascule SQLite → PostgreSQL, portée de
+                   l'ancien écran. Offerte seulement sur SQLite : c'est le
+                   seul sens que le serveur sait faire. -->
+              {#if dbEngine === 'sqlite'}
+                <div class="row" style="margin-top:14px">
+                  <div class="lbl">
+                    <span>{$t('settings.migrateToPostgres' as any)}</span>
+                    <span class="hint">{$t('v2.db.migrateHint' as any)}</span>
+                  </div>
+                </div>
+                <div class="inline">
+                  <input class="txt wide mono" type="text" autocomplete="off" spellcheck="false"
+                    aria-label={$t('settings.migrateToPostgres' as any)}
+                    placeholder="postgresql://user:password@localhost:5432/tune"
+                    bind:value={pgUrl} disabled={pgMigration}
+                    oninput={() => { pgEssai = null; pgUrlEprouvee = null; }} />
+                  <button class="lnk" disabled={!pgUrl.trim() || pgEssaiEnCours || pgMigration} onclick={essayerPostgres}>
+                    {pgEssaiEnCours ? $t('settings.testing' as any) : $t('settings.testConnection' as any)}
+                  </button>
+                  <button class="lnk danger" disabled={pgUrlEprouvee === null || pgUrlEprouvee !== pgUrl.trim() || pgMigration} onclick={migrerVersPostgres}>
+                    {pgMigration ? $t('settings.migrating' as any) : $t('settings.migrate' as any)}
+                  </button>
+                </div>
+                {#if pgEssai}<p class="hint" class:errline={!pgEssai.ok}>{pgEssai.texte}</p>{/if}
+                {#if pgMigrationMsg}<p class="hint" class:errline={!pgMigrationMsg.ok}>{pgMigrationMsg.texte}</p>{/if}
+              {/if}
 
             {:else if s.id === 'dataLoc'}
               <div class="rows">
