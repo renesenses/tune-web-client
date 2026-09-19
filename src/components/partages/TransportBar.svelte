@@ -23,7 +23,7 @@
   import ZoneConfigModal from './ZoneConfigModal.svelte';
   import ZoneTypeIcon from './ZoneTypeIcon.svelte';
   import ZoneOutputDeviceNotice from './ZoneOutputDeviceNotice.svelte';
-  import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel } from '../../lib/zoneIdentity';
+  import { zoneTypeLabel, zoneDeviceName, zoneChipLabel, zoneFullLabel, uneZoneParAppareil } from '../../lib/zoneIdentity';
   import { t } from '../../lib/i18n';
   import { formatCompactQuality, getQualityTier, getQualityTierColor, formatQualityTooltip, estSansPerte } from '../../lib/utils';
   import type { OutputType, RepeatMode } from '../../lib/types';
@@ -407,14 +407,15 @@
    * donc sur la même ligne, la seconde explicitement nommée.
    */
   let transferringTo = $state<number | null>(null);
+  /** #1272 — les zones du menu : une par appareil, la zone pilotée gardée. */
+  let zonesDuMenu = $derived(uneZoneParAppareil($zones, $currentZoneId).slice(0, 50));
   let showTransferDropdown = $state(false);
   /** Les zones vers lesquelles transférer : toutes sauf la zone pilotée, en
    *  ligne, une seule par appareil (même repli que le menu des zones). */
   let ciblesDeTransfert = $derived(
-    $zones.filter((z, i, arr) =>
+    uneZoneParAppareil($zones, $currentZoneId).filter((z) =>
       z.id !== $currentZoneId
       && z.online !== false
-      && (!z.output_device_id || arr.findIndex(x => x.output_device_id === z.output_device_id) === i)
     ).slice(0, 50)
   );
 
@@ -1195,9 +1196,9 @@
         <div class="zone-popover">
           <div class="zone-popover-header">
             <span class="zone-popover-title">{$t('zone.zones')}</span>
-            <span class="zone-popover-count">{$zones.length}</span>
+            <span class="zone-popover-count">{zonesDuMenu.length}</span>
           </div>
-          {#each $zones.filter((z, i, arr) => !z.output_device_id || arr.findIndex(x => x.output_device_id === z.output_device_id) === i).slice(0, 50) as z (z.id)}
+          {#each zonesDuMenu as z (z.id)}
             <!--
               Une RANGÉE, et non un seul bouton : le transfert est une seconde
               action sur la même zone, et un bouton ne s'imbrique pas dans un

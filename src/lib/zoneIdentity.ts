@@ -187,3 +187,30 @@ export function zoneFullLabel(zone?: Zone | null): string {
   const proto = zoneTypeLabel(zone.output_type);
   return proto ? (head ? `${head} · ${proto}` : proto) : head;
 }
+
+/**
+ * Une seule zone par appareil de sortie, en gardant la zone PILOTÉE (#1272).
+ *
+ * Deux zones peuvent viser le même `output_device_id` : doublons hérités, ou
+ * deux zones créées sur un même Target Diretta. Les menus de la barre de
+ * lecture n'en montraient que la PREMIÈRE de la liste, quelle qu'elle soit —
+ * et la zone pilotée, par défaut et en pleine lecture, disparaissait de son
+ * propre sélecteur (Ludovic Audouin, 19/09/2026 : « dCS Vivaldi » masquée par
+ * « LVDS »).
+ *
+ * Dans chaque groupe, la zone `pilotee` l'emporte ; à défaut, la première.
+ * L'ordre de la liste est conservé. Une zone sans appareil n'est jamais
+ * regroupée.
+ */
+export function uneZoneParAppareil<Z extends Pick<Zone, 'id' | 'output_device_id'>>(
+  zones: readonly Z[],
+  pilotee: number | null | undefined,
+): Z[] {
+  const retenue = new Map<string, Z['id']>();
+  for (const z of zones) {
+    const appareil = z.output_device_id;
+    if (!appareil) continue;
+    if (!retenue.has(appareil) || z.id === pilotee) retenue.set(appareil, z.id);
+  }
+  return zones.filter((z) => !z.output_device_id || retenue.get(z.output_device_id) === z.id);
+}
