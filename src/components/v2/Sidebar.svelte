@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { healthStatus } from '../../lib/stores/health';
+  import { niveauDeLaSonde } from '../../lib/santeServeur';
   /**
    * Barre latérale du nouveau client (direction Levente).
    *
@@ -187,6 +189,17 @@
   // republie cet état après chaque geste.
   const studioVisible = $derived(entreesStudioVisibles(STUDIO, $etatGreffons));
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
+
+  // Santé du serveur — portée de l'ancienne barre : sonde toutes les minutes,
+  // pastille hors de « ok ». L'alerte en temps réel arrive par `v2Live`.
+  function sonderSante() {
+    api.getHealthMonitor().then((r) => healthStatus.set(niveauDeLaSonde(r?.status))).catch(() => {});
+  }
+  $effect(() => {
+    sonderSante();
+    const minuterie = setInterval(sonderSante, 60_000);
+    return () => clearInterval(minuterie);
+  });
 
   // 🔴 Naviguer REFERME le tiroir. Sans cela, au palier « tiroir » la barre
   // reste par-dessus l'écran qu'on vient de demander : on choisit une vue et
@@ -387,7 +400,8 @@
     <a class="logo" href="https://mozaiklabs.fr/forum" target="_blank"
       rel="noopener noreferrer" title={$t('sidebar.forumMozaiklabs')}><img src={glyph} alt="Tune" /></a>
     <div class="txt">
-      <div class="name">Tune</div>
+      <div class="name">Tune{#if $healthStatus !== 'ok'}<span class="sante" class:crit={$healthStatus === 'critical'}
+        title="{$t('sidebar.serverStatus')} : {$healthStatus}" aria-label="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>{/if}</div>
       <div class="sub">MOZAIKLABS</div>
       {#if $updateAvailable}
         <button class="maj-lien" onclick={ouvrirMaj}
@@ -643,4 +657,7 @@
   .nav.svc{padding-left:30px; font-size:13px}
   .v2-sidebar.collapsed .nav.svc{padding-left:0}
   .support{margin-top:6px}
+  .sante{display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%;
+    background:var(--v2-acc2); vertical-align:middle}
+  .sante.crit{background:var(--v2-danger)}
 </style>
