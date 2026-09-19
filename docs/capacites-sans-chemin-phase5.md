@@ -157,13 +157,41 @@ porter en v2, abandonner, ou garder le filet.
 
 ## YouTube (7)
 
-- `getYouTubeCharts` — `GET /streaming/youtube/charts`
-- `getYouTubeMoodPlaylists` — `GET /streaming/youtube/moods/{}`
-- `getYouTubeMoods` — `GET /streaming/youtube/moods`
-- `youtubeAuthDeviceCode` — `POST /streaming/youtube/auth/device-code`
-- `youtubeAuthLogout` — `POST /streaming/youtube/auth/logout`
-- `youtubeAuthPoll` — `POST /streaming/youtube/auth/poll`
-- `youtubeAuthStatus` — `GET /streaming/youtube/auth/status`
+État au 19/09/2026 (branche `feat/v2-porte-youtube`) : **rien n’est perdu**.
+Quatre fonctions ont un chemin v2 sous un autre nom ; trois sont **mortes côté
+serveur** et ne sont pas portées. Serveur lu sur `tune-server-rust` `origin/main`
+`23199ab4`.
+
+- `youtubeAuthDeviceCode` — ✅ **atteinte en v2 sous un autre nom** :
+  `authenticateStreaming('youtube')` (`POST /streaming/youtube/auth`, corps
+  vide ⇒ `{"device_flow": true}`) depuis **Réglages › Accès et jetons ›
+  Services de streaming** (`SettingsV2.svelte`, `connectSvc`). Même
+  gestionnaire serveur : `service_auth` sert `/{service}/auth` ET
+  `/{service}/auth/device-code` (`tune-streaming-http/src/lib.rs:407-408`).
+- `youtubeAuthPoll` — ✅ **autre nom** : la sonde `getStreamingServiceStatus('youtube')`
+  (`GET /streaming/youtube/status`) de `SettingsV2` (`startPoll`) ; le
+  gestionnaire `service_status` rejoue `authenticate({"poll": true})` tant que le
+  compte n’est pas connecté (`lib.rs:926-945`).
+- `youtubeAuthStatus` — ✅ **autre nom** : même sonde, et `getStreamingServices()`
+  au chargement ; l’écran affiche `username` (le compte), que
+  `/auth/status` renvoyait aussi sous l’alias `email`.
+- `youtubeAuthLogout` — ✅ **autre nom** : `disconnectStreaming('youtube')`
+  (`POST /streaming/youtube/disconnect`) depuis le même écran (`disconnectSvc`).
+  Même gestionnaire `service_logout` que `/{service}/auth/logout`
+  (`lib.rs:411-413`).
+  Témoin : `src/lib/__tests__/connexionYoutubeV2Phase5.test.ts` (monte
+  `SettingsV2`, clique « Se connecter » puis « Se déconnecter »).
+- `getYouTubeCharts` — ⛔ **morte, non portée** : `GET /streaming/youtube/charts`
+  est un bouchon, `{"charts": [], "message": "YouTube charts not yet implemented"}`
+  (`tune-streaming-http/src/lib.rs:1320-1322`). L’ancien écran attendait
+  `trending/songs/videos` et affichait donc toujours « Aucun résultat ».
+- `getYouTubeMoods` — ⛔ **morte, non portée** : bouchon,
+  `{"moods": [], "message": "YouTube moods not yet implemented"}`
+  (`lib.rs:1324-1326`).
+- `getYouTubeMoodPlaylists` — ⛔ **morte, non portée** :
+  `GET /streaming/youtube/moods/{params}` n’est **pas routée** — seules
+  `/youtube/home|charts|moods|library` le sont (`lib.rs:489-492`) ; et ses
+  paramètres ne pourraient venir que de `getYouTubeMoods`, vide.
 
 ## Hors ligne (5)
 
