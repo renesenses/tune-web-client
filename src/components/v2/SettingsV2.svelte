@@ -69,6 +69,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  import AppareilsIgnoresV2 from './AppareilsIgnoresV2.svelte';
+  import { sansAppareils } from '../../lib/appareilsIgnores';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -333,11 +335,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ...pr,
       hiddenDeviceIds: [...pr.hiddenDeviceIds.filter((i) => i.startsWith('audio:')), ...netIds] }));
   }
-  async function deleteDevice(deviceId: string, name: string) {
+  /**
+   * La croix IGNORE l'appareil, durablement (#1280) — portage de l'ancienne
+   * interface. `DELETE /devices/{id}` ne l'oubliait qu'en mémoire : la
+   * découverte le ré-enregistrait au passage suivant (« ils disparaissent bien
+   * sur le coup mais réapparaissent rapidement », Patatorz). L'inverse du
+   * geste vit juste en dessous, dans « Appareils ignorés ».
+   */
+  let ignoresRecharge = $state(0);
+  async function ignorerAppareil(deviceId: string, name: string) {
     try {
-      await api.deleteDevice(deviceId);
-      devices.update((l) => l.filter((d) => d.id !== deviceId));
-      notifications.success($t('settings.deviceDeleted' as any).replace('{name}', name));
+      const r = await api.ignoreDevice(deviceId);
+      // Le serveur a déjà retiré l'appareil de `GET /devices` ; la liste
+      // affichée a été chargée AVANT le geste.
+      devices.update((l) => sansAppareils(l, [deviceId, r.ignored?.device_id ?? '']));
+      ignoresRecharge += 1;
+      notifications.success($t('settings.deviceIgnored' as any).replace('{name}', name));
     } catch (e: any) {
       notifications.error(e?.message || $t('common.error' as any));
     }
@@ -3407,6 +3420,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               </div>
 
+            {:else if s.id === 'ignoredDevices'}
+              <AppareilsIgnoresV2 recharge={ignoresRecharge} />
             {:else if s.id === 'netDevices'}
               <div class="acts">
                 <button class="lnk" onclick={showAllNet}>{$t('settings.showAll' as any)}</button>
@@ -3438,7 +3453,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         </button>
                       {/if}
                     {/if}
-                    <button class="del" onclick={() => deleteDevice(d.id, d.name)} aria-label={$t('settings.deleteDevice' as any)}>
+                    <button class="del" onclick={() => ignorerAppareil(d.id, d.name)} aria-label={$t('settings.ignoreDevice' as any)} title={$t('settings.ignoreDevice' as any)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
                   </div>

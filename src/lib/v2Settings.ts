@@ -82,6 +82,9 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     sections: [
       { id: 'localAudio',    titleKey: 'settings.localAudio',          from: 'network', min: 'beginner', keywords: ['sortie', 'carte son', 'dac'] },
       { id: 'netDevices',    titleKey: 'settings.networkDevices',      from: 'network', min: 'intermediate', keywords: ['dlna', 'upnp', 'chromecast'] },
+      // Portage de l'ancienne interface (phase 5) : la croix d'un appareil
+      // réseau l'IGNORE durablement ; sans cette section, rien ne le ramène.
+      { id: 'ignoredDevices', titleKey: 'settings.ignoredDevices',     from: 'network', min: 'intermediate', keywords: ['ignorés', 'masqués', 'rétablir', 'réapparaître'] },
       { id: 'squeezebox',    titleKey: 'settings.squeezebox',          from: 'services', min: 'intermediate', keywords: ['lyrion', 'lms', 'slimproto'] },
       { id: 'hqplayer',      title: 'HQPlayer',                        from: 'services', min: 'expert',   keywords: ['upsampling', 'naa'] },
       { id: 'bridge',        title: 'Tune Bridge',                     from: 'network', min: 'expert',   keywords: ['pont', 'relais'] },
