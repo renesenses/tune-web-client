@@ -41,6 +41,7 @@ import {
 import type { Album, Source } from '../types';
 
 import { provenanceDe } from '../provenanceBibliotheque';
+import { dictionnaire } from './onzeDictionnaires';
 
 const OUTILS: Outils = {
   qualiteDe: () => true,
@@ -228,8 +229,8 @@ describe('la pilule dans la barre de filtres', () => {
 
 describe('les libellés sont traduits', () => {
   it('les trois clés existent en français ET en anglais', async () => {
-    const fr = (await import('../locales/fr')).default as Record<string, string>;
-    const en = (await import('../locales/en')).default as Record<string, string>;
+    const fr = dictionnaire('fr');
+    const en = dictionnaire('en');
     for (const cle of ['v2.lib.source', 'v2.lib.sourceAll', 'v2.lib.sourceLocal']) {
       expect(fr[cle], `${cle} absente du français`).toBeTruthy();
       expect(en[cle], `${cle} absente de l’anglais`).toBeTruthy();

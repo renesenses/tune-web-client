@@ -43,6 +43,7 @@ import {
   CHAMP_APPLIQUE,
 } from '../annonceSlimproto';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -290,7 +291,7 @@ describe('#3809 — l’intitulé départage les deux sens du protocole', () => 
   it('les deux clés existent dans les onze langues et ne sont pas vides', async () => {
     const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
     for (const code of langues) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       for (const cle of ['settings.slimprotoAnnonce', 'settings.slimprotoAnnonceHint']) {
         expect(dico[cle], `${code} / ${cle}`).toBeTruthy();
         expect((dico[cle] ?? '').trim().length, `${code} / ${cle}`).toBeGreaterThan(10);
@@ -302,7 +303,7 @@ describe('#3809 — l’intitulé départage les deux sens du protocole', () => 
     // C'est le libellé de l'AUTRE réglage. Deux cases voisines portant le même
     // mot rejoueraient le malentendu à l'identique.
     expect(fr['settings.slimprotoAnnonce']).not.toBe(fr['settings.squeezeboxEnabled']);
-    const en = (await import('../locales/en')).default as Record<string, string>;
+    const en = dictionnaire('en');
     expect(en['settings.slimprotoAnnonce']).not.toBe(en['settings.squeezeboxEnabled']);
     // Et il nomme ce qui est en jeu : l'annonce, et le port qu'on voit passer.
     expect(fr['settings.slimprotoAnnonceHint']).toContain('3483');
