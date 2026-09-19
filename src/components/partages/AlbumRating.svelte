@@ -1,7 +1,7 @@
 <script lang="ts">
-  import * as api from '../lib/api';
-  import { notifications } from '../lib/stores/notifications';
-  import { t as tr } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import { notifications } from '../../lib/stores/notifications';
+  import { t as tr } from '../../lib/i18n';
 
   interface Props {
     albumId: number;

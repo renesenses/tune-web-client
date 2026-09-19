@@ -26,11 +26,11 @@ import { observeHeight, observeWidth } from '../lib/actions/observeSize';
 import { formatTime, formatDuration,  fold, estAvecPerte } from '../lib/utils';
   import AlbumArt from './partages/AlbumArt.svelte';
 import TrackContextMenu from './partages/TrackContextMenu.svelte';
-import AlbumRating from './AlbumRating.svelte';
+import AlbumRating from './partages/AlbumRating.svelte';
 import CollapsibleSection from './CollapsibleSection.svelte';
   import ClampedText from './partages/ClampedText.svelte';
   import AlbumEditModal from './partages/AlbumEditModal.svelte';
-  import ArtistEditModal from './ArtistEditModal.svelte';
+  import ArtistEditModal from './partages/ArtistEditModal.svelte';
   import TrackEditModal from './TrackEditModal.svelte';
   import HeartButton from './partages/HeartButton.svelte';
   import AlphaIndex from './AlphaIndex.svelte';
@@ -55,7 +55,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import QualityBadge from './partages/QualityBadge.svelte';
   import ImportWizard from './partages/ImportWizard.svelte';
   import { displayFields } from '../lib/stores/displayFields';
-  import ReportButton from './ReportButton.svelte';
+  import ReportButton from './partages/ReportButton.svelte';
   import type { ArtistMetadata } from '../lib/types';
 
 

@@ -74,6 +74,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
+  import ArtistEditModal from '../partages/ArtistEditModal.svelte';
+  import ReportButton from '../partages/ReportButton.svelte';
 
   interface Props {
     /** Filtre texte partagé avec le reste de l'écran. */
@@ -137,6 +139,12 @@
 
   /** Artiste ouvert — on montre ses albums. */
   let ouvert = $state<Artist | null>(null);
+  /**
+   * L'éditeur COMPLET de l'artiste (nom, tri, image téléversée…), porté de
+   * l'ancienne Bibliothèque. La modale générique de la grille ne sait que
+   * renommer : l'image d'un artiste ne se changeait nulle part ici.
+   */
+  let editionComplete = $state<Artist | null>(null);
   let albums = $state<Album[]>([]);
   let albumsChargement = $state(false);
   /** Le compte de l'en-tête : les vignettes de la discographie commune, et non
@@ -550,6 +558,21 @@
         title={$t('library.playAllArtist' as any)}>
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('library.playAllArtist' as any)}
       </button>
+      {#if artiste.id != null}
+        <button class="fab creux" onclick={() => (editionComplete = artiste)} title={$t('library.editArtist' as any)}>
+          {$t('common.edit' as any)}
+        </button>
+        {#if artiste.image_path}
+          <ReportButton entity="artist_image" entityId={artiste.id}
+            mbid={artiste.musicbrainz_id ?? undefined}
+            reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} compact />
+        {/if}
+        {#if bioFiche}
+          <ReportButton entity="bio" entityId={artiste.id}
+            mbid={artiste.musicbrainz_id ?? undefined}
+            reasons={['incorrect', 'wrong_entity', 'offensive']} />
+        {/if}
+      {/if}
       <button class="fab creux" onclick={() => lireArtisteAleatoire(artiste)} disabled={masseEnCours}
         title={$t('library.shuffleArtist' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('library.shuffleArtist' as any)}
@@ -659,6 +682,18 @@
       );
     }}
     onClose={() => (enEdition = null)}
+  />
+{/if}
+
+{#if editionComplete}
+  <ArtistEditModal
+    artist={editionComplete}
+    onClose={() => (editionComplete = null)}
+    onSaved={(maj) => {
+      if (ouvert?.id === maj.id) ouvert = maj;
+      artistes = artistes.map((x) => (x.id === maj.id ? maj : x));
+      editionComplete = null;
+    }}
   />
 {/if}
 

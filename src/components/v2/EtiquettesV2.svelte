@@ -32,6 +32,8 @@
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { zoneRequise } from '../../lib/zoneRequise';
   import * as api from '../../lib/api';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -102,6 +104,36 @@
     pistes: pistes.length, listes: listes.length,
   });
   const total = $derived(albums.length + artistes.length + pistes.length + listes.length);
+
+  /*
+   * Renommer et supprimer une étiquette — portés de l'ancienne Bibliothèque,
+   * seule à les offrir. Cette interface savait en créer, jamais en corriger :
+   * une faute de frappe restait à vie, une étiquette obsolète aussi.
+   */
+  async function renommer(tag: UserTag) {
+    const saisi = await dialogs.prompt($t('library.renameTagPrompt' as any), tag.name);
+    if (saisi === null) return;
+    const nom = saisi.trim();
+    if (!nom || nom === tag.name || tag.id == null) return;
+    try {
+      await api.updateTag(tag.id, nom);
+      await charger();
+      if (ouverte?.id === tag.id) ouverte = { ...ouverte, name: nom };
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
+  async function supprimer(tag: UserTag) {
+    if (tag.id == null) return;
+    if (!(await dialogs.confirm($t('library.deleteTagConfirm' as any).replace('{name}', tag.name), { danger: true }))) return;
+    try {
+      await api.deleteTag(tag.id);
+      if (ouverte?.id === tag.id) ouverte = null;
+      await charger();
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
 
   async function charger() {
     chargement = true;
@@ -218,6 +250,10 @@
         <!-- Le total porte sur les QUATRE familles, et chaque onglet porte le
              sien : le compte annoncé correspond toujours à ce qu'on voit. -->
         <p class="v2-sous">{total} {$t('v2.tags.itemsWithTag' as any)}</p>
+      </div>
+      <div class="gestes">
+        <button class="v2-btn" onclick={() => renommer(tag)}>{$t('library.renameTag' as any)}</button>
+        <button class="v2-btn danger" onclick={() => supprimer(tag)}>{$t('library.deleteTag' as any)}</button>
       </div>
     </header>
 
@@ -354,6 +390,8 @@
   .detail h1{display:flex; align-items:center; gap:10px}
 
   .v2-tags{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
+  .gestes{display:flex; gap:8px; align-items:flex-start}
+  .gestes .danger:hover{color:var(--v2-danger)}
   .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 8px}
   .back:hover{color:var(--v2-txt)}
   .etat{padding:30px; color:var(--v2-txt3); font-size:13.5px; max-width:60ch}
