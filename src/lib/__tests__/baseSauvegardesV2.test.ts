@@ -57,6 +57,9 @@ describe('export / import de la base, index de recherche', () => {
 
   it('importer écrase la base : confirmation dangereuse AVANT l’envoi', () => {
     const corps = corpsDe('onDbImportFile');
+    // `> -1` d'abord : sans confirmation, indexOf vaut -1 et l'ordre seul
+    // passerait quand même (défaut trouvé par contre-épreuve le 19/09).
+    expect(corps.indexOf('dialogs.confirm('), 'plus de confirmation').toBeGreaterThan(-1);
     expect(corps.indexOf('dialogs.confirm(')).toBeLessThan(corps.indexOf('api.importDatabase('));
     expect(corps).toContain('{ danger: true }');
   });

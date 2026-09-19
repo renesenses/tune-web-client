@@ -50,6 +50,9 @@ describe('déplacer les données : confirmation dangereuse, jamais en double', (
 describe('éteindre la machine, et le tout réservé à l’appliance', () => {
   it('l’extinction est confirmée, et n’est offerte que sur Tune OS', () => {
     const c = corps('eteindreLaMachine');
+    // `> -1` d'abord : sans confirmation, indexOf vaut -1 et l'ordre seul
+    // passerait quand même (défaut trouvé par contre-épreuve le 19/09).
+    expect(c.indexOf('dialogs.confirm('), 'plus de confirmation').toBeGreaterThan(-1);
     expect(c.indexOf('dialogs.confirm(')).toBeLessThan(c.indexOf('api.applianceShutdown()'));
     const i = V2.indexOf('onclick={eteindreLaMachine}');
     expect(V2.lastIndexOf('{#if isAppliance === true}', i)).toBeGreaterThan(V2.lastIndexOf('{/if}', i));
