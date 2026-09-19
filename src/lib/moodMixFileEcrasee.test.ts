@@ -108,10 +108,10 @@ function corpsDeFonction(source: string, nom: string): string {
   throw new Error(`corps de ${nom} non refermé`);
 }
 
-describe('#528 — les deux écrans passent par lireOuAjouter', () => {
+describe('#528 — l’écran passe par lireOuAjouter', () => {
+  // `QueueView.svelte` était le second écran ; parti avec la phase 5.
   const ecrans = [
     ['partages/NowPlaying.svelte', 'handleNpMoodSelect'],
-    ['QueueView.svelte', 'handleMoodSelect'],
   ] as const;
 
   for (const [fichier, fonction] of ecrans) {

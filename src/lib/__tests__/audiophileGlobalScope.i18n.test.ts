@@ -35,19 +35,6 @@ describe('portée configurable du verrou de volume PURE (#2425, #2526)', () => {
     expect(transport).toContain('setZoneVolumeLock(z.id, enabled, fullVolumeConfirmed)');
   });
 
-  it('les réglages distinguent le défaut global et les trois choix par zone', () => {
-    const settings = readFileSync(
-      resolve(__dirname, '../../components/SettingsView.svelte'),
-      'utf-8',
-    );
-
-    expect(settings).toContain("$t('audiophile.lockVolume'");
-    expect(settings).toContain("$t('audiophile.lockVolumeHelp'");
-    expect(settings).toContain('<option value="inherit">');
-    expect(settings).toContain('<option value="on">');
-    expect(settings).toContain('<option value="off">');
-  });
-
   for (const [code, dictionnaire] of Object.entries(LANGUES)) {
     it(`${code} distingue le défaut, la zone courante et ses trois choix`, () => {
       const global = dictionnaire['audiophile.lockVolume'];

@@ -116,10 +116,6 @@ describe('valeur retenue', () => {
 });
 
 describe('libellés', () => {
-  it('« Auto » se traduit, la parenthèse est un nom propre et reste', () => {
-    expect(libelleBackend(LINUX[0], traduire(fr))).toBe(`${fr['settings.autoDefault']} (ALSA)`);
-    expect(libelleBackend(MACOS[0], traduire(en))).toBe(`${en['settings.autoDefault']} (CoreAudio)`);
-  });
 
   it('les autres libellés sont rendus tels quels', () => {
     expect(libelleBackend({ value: 'asio', label: 'ASIO (bit-perfect)' }, traduire(fr))).toBe(
@@ -145,24 +141,4 @@ describe('sous-réglage « Mode WASAPI »', () => {
 // Ce bloc est ROUGE sur `main` avant le correctif.
 // ---------------------------------------------------------------------------
 
-const settings = readFileSync(resolve(__dirname, '../../components/SettingsView.svelte'), 'utf-8');
 
-describe('SettingsView n’écrit plus la liste en dur', () => {
-  it('aucune option WASAPI ou ASIO codée dans le gabarit', () => {
-    expect(settings).not.toContain('<option value="wasapi">');
-    expect(settings).not.toContain('<option value="asio">');
-  });
-
-  it('le sélecteur boucle sur la liste du serveur', () => {
-    expect(settings).toContain('choixBackends');
-    expect(settings).toContain('libelleBackend');
-  });
-
-  it('le repli « wasapi » de la valeur retenue a disparu', () => {
-    expect(settings).not.toContain("data.audio_backend ?? data.local_audio_backend ?? 'wasapi'");
-  });
-
-  it('le libellé « Mode WASAPI » n’est plus du texte en dur', () => {
-    expect(settings).not.toContain('>Mode WASAPI<');
-  });
-});

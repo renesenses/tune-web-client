@@ -63,8 +63,9 @@ describe('messages et branchement (#1260)', () => {
       }
     }
   });
-  it('les DEUX écrans Réglages passent par etatWifi, plus par la longueur de la liste', () => {
-    for (const f of ['src/components/SettingsView.svelte', 'src/components/v2/SettingsV2.svelte']) {
+  it('l’écran Réglages passe par etatWifi, plus par la longueur de la liste', () => {
+    // `SettingsView.svelte` y figurait aussi ; parti avec la phase 5.
+    for (const f of ['src/components/v2/SettingsV2.svelte']) {
       const src = readFileSync(f, 'utf-8');
       expect(src, f).toMatch(/\$derived\(etatWifi\(/);
       expect(src, f).toContain('MESSAGE_ETAT_WIFI[wifiEtat]');

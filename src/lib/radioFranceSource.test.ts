@@ -52,31 +52,3 @@ describe('etatSourceRadioFrance', () => {
   });
 });
 
-/**
- * Le composant doit réellement passer par cette décision. Un module pur, testé
- * mais jamais branché, ne supprimerait aucun 400.
- *
- * ⚠️ Limite assumée : ce test lit la source, il ne monte pas le composant —
- * le dépôt n'a pas de banc de rendu Svelte.
- */
-describe('PodcastsView', () => {
-  const source = readFileSync(
-    resolve(__dirname, '../components/PodcastsView.svelte'),
-    'utf8',
-  );
-
-  it('consulte la configuration au lieu de provoquer le refus', () => {
-    expect(source).toContain('etatSourceRadioFrance');
-    expect(source).toContain('interrogerLesEmissions');
-  });
-
-  it("n'appelle plus loadRfShows sans condition à l'ouverture de l'écran", () => {
-    const corps = source.slice(
-      source.indexOf('async function loadRadioFrance'),
-      source.indexOf('async function loadRfShows'),
-    );
-    expect(corps.length).toBeGreaterThan(0);
-    const appels = corps.match(/^\s*loadRfShows\(/gm) ?? [];
-    expect(appels, 'loadRfShows doit rester derrière une garde').toHaveLength(0);
-  });
-});

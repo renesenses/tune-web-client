@@ -46,7 +46,6 @@ import hu from '../locales/hu';
 const lire = (chemin: string) => readFileSync(resolve(__dirname, chemin), 'utf8');
 
 const MENU = lire('../../components/partages/TrackContextMenu.svelte');
-const LIBRARY = lire('../../components/LibraryView.svelte');
 const API = lire('../api.ts');
 
 type Dict = Record<string, string | undefined>;
@@ -131,43 +130,20 @@ describe('menu contextuel d\u2019une piste — entrée « Autres versions »', (
   });
 });
 
-describe('LibraryView — l\'entrée est branchée aux DEUX menus de la fiche d\'album', () => {
+describe('le panneau « Autres versions » écrit le cas vide', () => {
   /**
-   * Borné à la fiche d'album depuis #2574 : l'onglet « Titres » monte lui aussi
-   * un TrackContextMenu, mais SANS « Autres versions » — la ligne dépliante
-   * `track-versions-row` qui en affiche le résultat n'y est pas rendue. Compter
-   * sur tous les montages du fichier reviendrait à exiger une entrée muette.
+   * Ce bloc gardait le branchement de l'entrée sur les DEUX menus de la fiche
+   * d'album de `LibraryView`, et la ligne dépliante `track-versions-row`.
+   * L'écran est parti avec l'ancienne interface (phase 5), et la mécanique
+   * avec lui : l'interface actuelle rend un PANNEAU dédié,
+   * `v2/VersionsPistePanneau.svelte`. Ce qui survit de la règle, c'est le seul
+   * fait qui ne dépende pas de la mécanique — un morceau sans autre version
+   * doit le DIRE.
    */
-  it('les deux montages de la fiche d\'album reçoivent onOtherVersions', () => {
-    const debut = LIBRARY.indexOf('{#if hasMultipleDiscs}');
-    const fin = LIBRARY.indexOf("{:else if $libraryTab === 'artists'}", debut);
-    expect(debut, 'ancre de la fiche d\'album introuvable').toBeGreaterThan(-1);
-    expect(fin, 'fin de la fiche d\'album introuvable').toBeGreaterThan(debut);
-    const fiche = LIBRARY.slice(debut, fin);
-    const montages = fiche.split('<TrackContextMenu').length - 1;
-    expect(montages, 'le nombre de menus de la fiche d\'album a changé').toBe(2);
-    const branchements = fiche.split('onOtherVersions={').length - 1;
-    expect(
-      branchements,
-      `onOtherVersions n'est branché que sur ${branchements} menu(s) sur ${montages} : ` +
-        'un album à un disque et un album à plusieurs disques n\'offriraient pas la même chose',
-    ).toBe(montages);
-  });
-
-  it('l\'action déplie une ligne sous la piste, elle ne navigue pas', () => {
-    expect(
-      LIBRARY.includes('toggleTrackVersions'),
-      "aucune bascule `toggleTrackVersions` : l'action ne déplie rien",
-    ).toBe(true);
-    expect(
-      LIBRARY.includes('track-versions-row'),
-      'aucune ligne dépliée `track-versions-row` — la surface retenue est celle des crédits',
-    ).toBe(true);
-  });
-
   it('le cas vide est écrit, pas laissé blanc', () => {
+    const panneau = lire('../../components/v2/VersionsPistePanneau.svelte');
     expect(
-      LIBRARY.includes("$tr('library.noOtherVersions')"),
+      panneau.includes("library.noOtherVersions"),
       'un morceau sans autre version afficherait un panneau vide',
     ).toBe(true);
   });

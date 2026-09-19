@@ -29,7 +29,6 @@
 // ceux qui ont CHOISI débutant ou intermédiaire.
 import { afterEach, describe, expect, it } from 'vitest';
 import { mount, unmount } from 'svelte';
-import SettingsLevelNote from '../../components/SettingsLevelNote.svelte';
 import {
   SETTING_LEVELS,
   allSettingKeys,
@@ -127,15 +126,6 @@ describe('le niveau proposé révèle vraiment quelque chose', () => {
 let monte: Record<string, unknown> | null = null;
 let hote: HTMLDivElement | null = null;
 
-function poser(props: Record<string, unknown>): HTMLDivElement {
-  hote = document.createElement('div');
-  document.body.appendChild(hote);
-  monte = mount(SettingsLevelNote as never, {
-    target: hote,
-    props: { hidden: [], current: 'beginner', onRaise: () => {}, ...props } as never,
-  });
-  return hote;
-}
 
 afterEach(() => {
   if (monte) unmount(monte);
@@ -144,42 +134,6 @@ afterEach(() => {
   hote = null;
 });
 
-describe('la note dit ce qui manque, à l\'endroit où ça manque', () => {
-  it('annonce le nombre de réglages masqués et offre le geste', () => {
-    const el = poser({
-      hidden: ['library.oxygenFacets', 'library.oxygenFacetLimit'],
-      current: 'intermediate',
-    });
-    const note = el.querySelector('.lvnote');
-    expect(note, 'aucune note rendue alors que deux réglages sont masqués').not.toBeNull();
-    expect(note!.getAttribute('data-hidden')).toBe('2');
-    expect(el.querySelector('.lvnote-text')!.textContent!.trim())
-      .toBe(fr['settings.hiddenHere'].replace('{n}', '2'));
-    expect(el.querySelector('.lvnote-raise')!.textContent!.trim())
-      .toBe(fr['settings.hiddenHereReveal']);
-  });
-
-  it('ne rend RIEN quand rien n\'est masqué (pas de bruit permanent)', () => {
-    const el = poser({ hidden: [], current: 'beginner' });
-    expect(el.querySelector('.lvnote')).toBeNull();
-  });
-
-  it('ne rend rien non plus au niveau expert : il n\'y a plus de cran au-dessus', () => {
-    const el = poser({ hidden: ['library.oxygenFacetLimit'], current: 'expert' });
-    expect(el.querySelector('.lvnote')).toBeNull();
-  });
-
-  it('le clic demande le niveau qui révèle le réglage — expert, pas intermédiaire', () => {
-    const demandes: string[] = [];
-    const el = poser({
-      hidden: ['library.oxygenFacetLimit'],
-      current: 'beginner',
-      onRaise: (l: string) => demandes.push(l),
-    });
-    el.querySelector<HTMLButtonElement>('.lvnote-raise')!.click();
-    expect(demandes).toEqual(['expert']);
-  });
-});
 
 describe('les deux clés neuves existent dans les ONZE langues', () => {
   it('settings.hiddenHere et settings.hiddenHereReveal sont traduites partout', async () => {
