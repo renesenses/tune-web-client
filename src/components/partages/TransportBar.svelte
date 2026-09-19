@@ -32,6 +32,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import { fullVolumeConfirmationRequired } from '../../lib/audiophileSafety';
+  import { zonesDuSelecteur } from '../../lib/zonesSelecteur';
   import {
     audiophileEnabled,
     audiophileLockVolume,
@@ -408,14 +409,16 @@
    */
   let transferringTo = $state<number | null>(null);
   let showTransferDropdown = $state(false);
-  /** Les zones vers lesquelles transférer : toutes sauf la zone pilotée, en
-   *  ligne, une seule par appareil (même repli que le menu des zones). */
+  /**
+   * Les lignes du menu des zones : une par appareil, et la zone PILOTÉE
+   * représente toujours le sien (#1272 — elle disparaissait de son propre
+   * sélecteur quand une autre zone partageait son appareil Diretta).
+   */
+  let zonesDuMenu = $derived(zonesDuSelecteur($zones, $currentZoneId));
+  /** Les zones vers lesquelles transférer : les lignes du menu des zones, sauf
+   *  la zone pilotée et les zones hors ligne. */
   let ciblesDeTransfert = $derived(
-    $zones.filter((z, i, arr) =>
-      z.id !== $currentZoneId
-      && z.online !== false
-      && (!z.output_device_id || arr.findIndex(x => x.output_device_id === z.output_device_id) === i)
-    ).slice(0, 50)
+    zonesDuMenu.filter((z) => z.id !== $currentZoneId && z.online !== false)
   );
 
   /**
@@ -1195,9 +1198,9 @@
         <div class="zone-popover">
           <div class="zone-popover-header">
             <span class="zone-popover-title">{$t('zone.zones')}</span>
-            <span class="zone-popover-count">{$zones.length}</span>
+            <span class="zone-popover-count">{zonesDuMenu.length}</span>
           </div>
-          {#each $zones.filter((z, i, arr) => !z.output_device_id || arr.findIndex(x => x.output_device_id === z.output_device_id) === i).slice(0, 50) as z (z.id)}
+          {#each zonesDuMenu as z (z.id)}
             <!--
               Une RANGÉE, et non un seul bouton : le transfert est une seconde
               action sur la même zone, et un bouton ne s'imbrique pas dans un
