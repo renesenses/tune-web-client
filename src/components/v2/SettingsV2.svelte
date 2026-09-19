@@ -18,6 +18,7 @@
   import { t } from '../../lib/i18n';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
   import { appareilDeLaZone } from '../../lib/vueZones';
+  import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
   import { tick } from 'svelte';
   import { get } from 'svelte/store';
@@ -644,6 +645,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let wifiPwd = $state('');
   let wifiErr = $state('');
   let wifiOk = $state('');
+  const wifiEtat = $derived(etatWifi(wifiStatus, wifiNets, wifiScanning));
 
   $effect(() => {
     api.getConfig().then(async (c: any) => {
@@ -655,7 +657,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   });
   async function scanWifi() {
     wifiScanning = true; wifiErr = '';
-    try { wifiNets = (await api.applianceWifiScan()).networks ?? []; }
+    // #1260 — relire l'état des cartes : c'est lui qui dit pourquoi la liste est vide.
+    try {
+      const [r] = await Promise.all([
+        api.applianceWifiScan(),
+        api.getApplianceStatus().then((st) => { wifiStatus = st; }).catch(() => {}),
+      ]);
+      wifiNets = r.networks ?? [];
+    }
     catch (e: any) { wifiErr = e?.message ?? String(e); }
     wifiScanning = false;
   }
@@ -3104,10 +3113,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </p>
                 {#if wifiOk}<p class="okline">{$t('settings.wifiConnectSuccess' as any).replace('{ssid}', wifiOk)}</p>{/if}
                 {#if wifiErr}<p class="warn">{wifiErr}</p>{/if}
-                {#if wifiScanning && !wifiNets.length}
+                {#if wifiEtat === 'recherche'}
                   <p class="hint">{$t('settings.wifiScanning' as any)}</p>
-                {:else if !wifiNets.length}
-                  <p class="hint">{$t('settings.wifiNoNetworks' as any)}</p>
+                {:else if wifiEtat !== 'liste'}
+                  <p class="hint">{$t(MESSAGE_ETAT_WIFI[wifiEtat] as any)}</p>
                 {:else}
                   <div class="devlist">
                     {#each wifiNets as net (net.ssid)}

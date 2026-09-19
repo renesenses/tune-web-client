@@ -25,6 +25,7 @@ import { telechargerJournaux } from '../lib/journaux';
   import { audiophileEnabled, audiophileGlobalLockVolume, audiophileLockVolume, setVolumeLock, refreshAudiophile, refreshVolumeLock } from '../lib/stores/audiophile';
   import { loopByDefault } from '../lib/stores/loopByDefault';
   import { devices } from '../lib/stores/devices';
+  import { etatWifi, MESSAGE_ETAT_WIFI } from '../lib/etatWifiAppliance';
   import {
     detailAppareilIgnore,
     libelleAppareilIgnore,
@@ -2220,13 +2221,16 @@ function setSettingsLevel(level: SettingsLevel) {
     wifiScanning = true;
     wifiError = '';
     try {
-      const r = await api.applianceWifiScan();
+      // #1260 — l'état des cartes dit pourquoi une liste est vide : on le
+      // relit à chaque recherche, la radio a pu être rallumée entre-temps.
+      const [r] = await Promise.all([api.applianceWifiScan(), loadWifiStatus()]);
       wifiNetworks = r.networks ?? [];
     } catch (e: any) {
       wifiError = e?.message ?? String(e);
     }
     wifiScanning = false;
   }
+  const wifiEtat = $derived(etatWifi(wifiStatus, wifiNetworks, wifiScanning));
 
   function selectWifi(ssid: string) {
     wifiSelectedSsid = wifiSelectedSsid === ssid ? null : ssid;
@@ -3702,10 +3706,10 @@ function setSettingsLevel(level: SettingsLevel) {
       {#if wifiError}
         <p class="wifi-feedback error">{wifiError}</p>
       {/if}
-      {#if wifiScanning && wifiNetworks.length === 0}
+      {#if wifiEtat === 'recherche'}
         <div class="loading"><div class="spinner small"></div> {$t('settings.wifiScanning')}</div>
-      {:else if wifiNetworks.length === 0}
-        <p class="diag-hint">{$t('settings.wifiNoNetworks')}</p>
+      {:else if wifiEtat !== 'liste'}
+        <p class="diag-hint">{$t(MESSAGE_ETAT_WIFI[wifiEtat] as any)}</p>
       {:else}
         <div class="wifi-list">
           {#each wifiNetworks as net (net.ssid)}
