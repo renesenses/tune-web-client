@@ -69,6 +69,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  // Appliance Tune OS : stockage et extinction, portés de l'ancienne interface (phase 5).
+  import ApplianceStockageV2 from './ApplianceStockageV2.svelte';
+  import ApplianceEteindreV2 from './ApplianceEteindreV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -2298,6 +2301,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="kv"><span>{$t('settings.dataLocation' as any)}</span><b class="mono">{dataLoc ?? '—'}</b></div>
               </div>
               <p class="hint">{$t('settings.dataLocationHint' as any)}</p>
+              {#if isAppliance}<ApplianceStockageV2 />{/if}
 
             {:else if s.id === 'exportCsv'}
               <p class="hint">
@@ -2992,6 +2996,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <button class="lnk danger" disabled={arretEnCours} onclick={arreterLeServeur}>
                   {arretEnCours ? $t('settings.stoppingServer' as any) : $t('settings.stopServer' as any)}
                 </button>
+                {#if isAppliance}<ApplianceEteindreV2 />{/if}
               </div>
               <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici
                    comme dans la coquille actuelle. -->
