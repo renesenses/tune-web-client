@@ -30,6 +30,7 @@
    */
   import { onMount } from 'svelte';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -173,7 +174,7 @@
   /** « Lire à partir d'ici » — #1061, point 9 de FabienM : les pistes de
    *  l'étiquette, dans l'ordre affiché, depuis celle qu'on désigne. */
   function lireLesPistesDepuis(i: number) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     lireListeDepuis(pistes as any, i, gestesDeZone(zid)).catch(signalerEchecLecture);
   }

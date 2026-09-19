@@ -1,5 +1,6 @@
 <script lang="ts">
   import { t } from '../../lib/i18n';
+  import { zoneRequise } from '../../lib/zoneRequise';
   /**
    * Streaming — nouveau client (direction Levente).
    *
@@ -729,7 +730,7 @@
   // parametre. `check-svelte` l'a arrete (07/09/2026).
   /** Point 9 du fil 1780 : la liste des favoris depuis le titre cliqué. */
   function lireFavorisDepuis(i: number) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     lireListeDepuis(favTracks as any, i, gestesDeZone(zid)).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
@@ -746,7 +747,7 @@
       .catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
   function playPlaylist(p: any) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     playAndSync(zid, { streaming_playlist_id: String(p.source_id ?? p.id), source: (p.source ?? active) as any })
       .catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
@@ -775,7 +776,7 @@
    * contient enfin l'album.
    */
   function playBc(it: any) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     // La copie LOCALE d'abord : l'album acheté est dans la bibliothèque, en
     // pleine résolution. Le flux Bandcamp (mp3-128) n'est qu'un repli.

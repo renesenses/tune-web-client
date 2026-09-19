@@ -14,6 +14,7 @@
    * redéroule la recherche sur son nom et tout reste dans cet écran.
    */
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { tick } from 'svelte';
   import { type TypeRecherche, TYPES_RECHERCHE, sectionVisible, phrasesEntreGuillemets, respecteLesPhrases } from '../../lib/rechercheRestreinte';
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
@@ -350,7 +351,7 @@
   }
 
   function lireAlbum(id: number) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     playAndSync(zid, { album_id: id }).catch(signalerEchecLecture);
   }
@@ -630,7 +631,7 @@
   );
 
   function lirePlaylist(pl: PlaylistTrouvee) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     if (pl.idLocal != null) { playAndSync(zid, { playlist_id: pl.idLocal }).catch(signalerEchecLecture); return; }
     if (pl.idService && pl.serviceSource) {
@@ -712,7 +713,7 @@
    */
   let masseEnCours = $state(false);
   async function lireTousLesTitres(aleatoire: boolean) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     masseEnCours = true;
     try {
@@ -737,14 +738,14 @@
    * composer une tête et une suite sur une liste mixte.
    */
   function lireLesTitresDepuis(i: number) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     lireListeDepuis(vusTitres as any, i, gestesDeZone(zid))
       .catch(signalerEchecLecture);
   }
 
   function lirePiste(t: any) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     if (estLocal(t)) { playAndSync(zid, { track_id: t.id }).catch(signalerEchecLecture); return; }
     if (t?.source && t?.source_id) {

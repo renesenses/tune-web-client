@@ -19,6 +19,7 @@
    * découpage gauche/droite finiraient par diverger.
    */
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import type { EqBand, MergedPlugin } from '../../lib/api';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
@@ -201,7 +202,7 @@
     timer = setTimeout(() => { timer = null; void save(); }, 300);
   }
   async function save() {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     const bands: EqBand[] = sousMode === 'parametrique'
       ? $state.snapshot(pBandes)

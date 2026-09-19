@@ -26,6 +26,7 @@
    * propre au v2 lui ferait tout ressaisir sans lui dire pourquoi.
    */
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
@@ -98,7 +99,7 @@
   let travail = $state(false);
 
   async function appliquer(silencieux = false) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     travail = true;
     try {
@@ -128,7 +129,7 @@
    *  la correction qu'on vient de retirer continuerait de jouer. */
   async function reinitialiser() {
     basses = 0; voix = 0; aigus = 0;
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     travail = true;
     try {

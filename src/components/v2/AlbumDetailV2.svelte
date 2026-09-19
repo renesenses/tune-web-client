@@ -6,6 +6,7 @@
    */
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
   import { t as tr } from '../../lib/i18n';
   import { formatAnneeAlbum } from '../../lib/formats';
@@ -301,7 +302,7 @@
   }
 
   function playAlbum(startIndex = 0) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     // 🔴 `source` va TOUJOURS avec `streaming_album_id`. Seul, l'identifiant
     // ne designe rien pour le serveur, qui retombe alors sur « reprendre la
@@ -356,7 +357,7 @@
   }
 
   function shuffle() {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     if (depot) { enchainerDistant(melanger(tracks)).catch(signalerEchecLecture); return; }
     // Album de SERVICE ou Bandcamp : pas d'`id` local, mais chaque piste est

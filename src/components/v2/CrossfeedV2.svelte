@@ -17,6 +17,7 @@
    * l'autre.
    */
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
@@ -79,7 +80,7 @@
     timer = setTimeout(() => { timer = null; void save(); }, 300);
   }
   async function save() {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     // Borné AVANT l'envoi : l'écran doit montrer la valeur qui sera
     // réellement appliquée, pas celle qu'on a demandée.

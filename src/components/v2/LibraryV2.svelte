@@ -8,6 +8,7 @@
   // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
   // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
   import { t as tr, locale } from '../../lib/i18n';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { paliersDeFrequence, type LibelleServi } from '../../lib/libellesFrequence';
   import { formatNombre } from '../../lib/formats';
   /**
@@ -1157,7 +1158,7 @@
    * l'écran ne montre pas.
    */
   function lireLesTitresDepuis(i: number) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     lireListeDepuis(visibleTracks as any, i, gestesDeZone(zid))
       .catch(signalerEchecLecture);
@@ -1449,7 +1450,7 @@
   // aléatoire DANS ce qu'il regarde, pas dans les 20 000 titres.
   let shuffling = $state(false);
   async function shuffleAll() {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     shuffling = true;
     try {

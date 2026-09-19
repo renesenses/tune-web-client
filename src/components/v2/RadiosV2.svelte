@@ -14,6 +14,7 @@
    * station reste silencieux.
    */
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { t } from '../../lib/i18n';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { isBrowserZone, browserPlay } from '../../lib/stores/browserAudio';
@@ -117,8 +118,12 @@
   }
 
   async function play(r: RadioStation) {
-    const zid = $currentZoneId;
-    if (r.id == null || zid == null) return;
+    // #1233 — garde COMPOSÉE, séparée : une radio sans identifiant est un
+    // défaut de donnée dont l'utilisateur n'a rien à faire ; une zone absente
+    // est une chose qu'il peut corriger, et qu'il faut donc lui dire.
+    if (r.id == null) return;
+    const zid = zoneRequise();
+    if (zid == null) return;
     playingId = r.id;
     try {
       const res: any = await api.playRadio(r.id, zid);
