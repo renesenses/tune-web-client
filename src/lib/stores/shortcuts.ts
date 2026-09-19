@@ -1,6 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { activeView, type View } from './navigation';
-import { libraryTab } from './library';
+import { libraryTab, libraryFolderScope } from './library';
 import { activeStreamingService, streamingGenreBreadcrumb, pendingStreamingAlbum, pendingStreamingArtist } from './streaming';
 import * as api from '../api';
 
@@ -109,6 +109,21 @@ export function captureCurrentView(): Partial<Shortcut> {
   // --- View-level configuration (not a discrete item) ---
   if (view === 'library') {
     state.tab = get(libraryTab);
+    // LA PORTÉE DE RÉPERTOIRE — sans elle, le raccourci ramène TOUTE la
+    // bibliothèque sous un nom qui promettait un dossier.
+    //
+    // 🔴 Bertrand, 19/09/2026, mesuré sur le .18 (`/system/config`) :
+    //
+    //     'Qobuz recordings'  view=library  state={"tab": "albums"}
+    //
+    // Il avait posé ce raccourci sur la Bibliothèque portée à
+    // `/mnt/recordings_usb/Qobuz`. Seul l'ONGLET était figé : la portée, elle,
+    // n'a jamais été capturée — elle est arrivée à l'écran (#3101) sans que le
+    // mécanisme des raccourcis l'apprenne. Le raccourci rouvrait donc les
+    // 4 384 albums au lieu des 795 du dossier.
+    //
+    // `null` est écrit tel quel, et c'est délibéré : voir `navigateToShortcut`.
+    state.folder = get(libraryFolderScope) ?? null;
   }
   // La RECHERCHE : sans ses critères, le raccourci ramène sur un écran vide.
   if (view === 'search') {
@@ -251,8 +266,21 @@ function targetFor(shortcut: Shortcut): ShortcutTarget | null {
 }
 
 export function navigateToShortcut(shortcut: Shortcut) {
-  if (shortcut.state?.tab && shortcut.view === 'library') {
-    libraryTab.set(shortcut.state.tab);
+  if (shortcut.view === 'library') {
+    if (shortcut.state?.tab) libraryTab.set(shortcut.state.tab);
+    // 🔴 Reposée INCONDITIONNELLEMENT, `null` compris : la portée est un
+    // magasin partagé qui survit à l'écran qui l'a posée. Ne la remettre que
+    // lorsqu'elle vaut quelque chose ferait hériter un raccourci « toute la
+    // bibliothèque » du dossier laissé par le précédent — le même écran
+    // mentirait alors dans l'autre sens.
+    //
+    // Un raccourci ANCIEN n'a pas de champ `folder` : `undefined` vaut alors
+    // « toute la bibliothèque », ce qui est exactement ce qu'il montrait.
+    //
+    // Avant `activeView.set` : `LibraryV2` lit la portée en dérivé dès son
+    // montage, et la poser après le laisserait charger tout un écran pour
+    // rien.
+    libraryFolderScope.set(shortcut.state?.folder ?? null);
   }
   if (shortcut.state?.streamingService && shortcut.view === 'streaming') {
     activeStreamingService.set(shortcut.state.streamingService);
