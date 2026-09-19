@@ -58,6 +58,42 @@
   let dblLoading = $state(false);
   let dblLoaded = false;
   let arme = $state<string | null>(null);
+  /**
+   * 🔴 #4471 — LES COFFRETS RIPÉS EN CD1/CD2.
+   *
+   * Un coffret ripé en sous-dossiers arrive bien dans UN album, mais ses
+   * titres se déclarent tous « disque 1 » : les numéros de piste se marchent
+   * dessus, l'album se lit dans un ordre indéfini et paraît plein de doublons.
+   *
+   * Le serveur le répare depuis le DOSSIER, qui lui est juste. Ici on montre
+   * d'abord ce qui SERAIT changé — la même détection que l'écriture, donc le
+   * même compte rendu — et on n'écrit que si on le demande.
+   *
+   * ⚠️ Ce n'est PAS la fusion de deux albums, qui vit dans la section
+   * « Albums en double » juste au-dessus : ici l'album est déjà un, c'est sa
+   * numérotation qui est fausse.
+   */
+  let disques = $state<import('../../lib/api').DisquesAbimes | null>(null);
+  let disquesEnCours = $state(false);
+  async function chargerDisques() {
+    try { disques = await api.getDisquesAbimes(); }
+    catch { disques = null; }
+  }
+  async function reparerDisques() {
+    if (disquesEnCours) return;
+    disquesEnCours = true;
+    try {
+      const r = await api.reparerDisquesAbimes();
+      disques = r;
+      error = null;
+      // La bibliothèque a changé sous l'écran : les autres onglets en dépendent.
+      await chargerDoublons();
+    } catch (e: any) {
+      error = e?.message ?? $t('v2.meta.decisionNotSaved' as any);
+    }
+    disquesEnCours = false;
+  }
+
   async function chargerDoublons() {
     dblLoading = true;
     const [al, ar, pa] = await Promise.all([
@@ -67,6 +103,9 @@
     ]);
     dblAlbums = al; dblArtistes = ar; dblPaires = pa;
     dblLoading = false;
+    // #4471 : même onglet, même moment — mais une requête à part, pour qu'un
+    // serveur antérieur (404) ne prive pas l'écran de ses trois autres listes.
+    void chargerDisques();
   }
   $effect(() => {
     if (tab !== 'doublons' || dblLoaded) return;
@@ -568,10 +607,36 @@
       {/if}
 
     {:else if tab === 'doublons'}
+      <!-- #4471 — HORS du `{#if dblLoading}` et hors du « rien à signaler » :
+           un coffret mal numéroté n'est pas un doublon, et l'écran doit
+           pouvoir le proposer même quand les trois autres listes sont vides. -->
+      {#if disques && disques.albums > 0}
+        <div class="dh">{$t('v2.meta.discsTitle' as any)} <span>{$formatNombre(disques.albums)}</span></div>
+        <article class="prop grp">
+          <div class="pw">
+            <div class="pt">{$t('v2.meta.discsWhat' as any)}</div>
+            <div class="sub">
+              {$t(disques.applique ? 'v2.meta.discsDone' as any : 'v2.meta.discsPreview' as any)
+                .replace('{albums}', $formatNombre(disques.albums))
+                .replace('{tracks}', $formatNombre(disques.pistes))}
+            </div>
+            <div class="pf">{$t('v2.meta.discsSafe' as any)}</div>
+            {#if !disques.applique}
+              <div class="pa wrap">
+                <button class="lnk" disabled={disquesEnCours} onclick={reparerDisques}>
+                  {disquesEnCours ? $t('v2.tool.loading' as any) : $t('v2.meta.discsFix' as any)}
+                </button>
+              </div>
+            {/if}
+          </div>
+        </article>
+      {/if}
       {#if dblLoading}
         <div class="state">{$t('v2.tool.loading' as any)}</div>
       {:else if !dblAlbums.length && !dblArtistes.length && !dblPaires.length}
-        <div class="state">{$t('v2.meta.noDup' as any)}</div>
+        {#if !disques || disques.albums === 0}
+          <div class="state">{$t('v2.meta.noDup' as any)}</div>
+        {/if}
       {:else}
         {#if dblAlbums.length}
           <div class="dh">{$t('v2.meta.dupAlbums' as any)} <span>{$formatNombre(dblAlbums.length)}</span></div>
