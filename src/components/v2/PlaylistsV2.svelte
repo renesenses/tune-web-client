@@ -496,6 +496,15 @@
     if (!f || importEnCours) return;
     importEnCours = true;
     try {
+      // Une playlist Linn (`.dpl`, Pierre Mack) a sa propre route, qui
+      // rapproche les pistes et crée la playlist d'un coup. Portée de
+      // l'ancienne interface, seul écran qui savait l'envoyer.
+      if (f.name.toLowerCase().endsWith('.dpl')) {
+        const l = await api.importLinnPlaylist(f);
+        notifications.success(`${l.name} — ${l.matched}/${l.total_entries}`);
+        load();
+        return;
+      }
       const r = await api.importPlaylistFile(f);
       // On annonce ce qui est RAPPROCHÉ, pas « importé » : une ligne du M3U
       // qui ne correspond à aucun fichier de la bibliothèque n'entre pas.
@@ -505,8 +514,9 @@
       load();
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
+    } finally {
+      importEnCours = false;
     }
-    importEnCours = false;
   }
 
   /**
@@ -594,7 +604,7 @@
           <label class="ghost" class:occupe={importEnCours}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M8 8l4-4 4 4M4 18v2h16v-2"/></svg>
             {importEnCours ? $t('common.loading' as any) : $t('v2.pl.import' as any)}
-            <input type="file" accept=".m3u,.m3u8" onchange={importer} disabled={importEnCours} />
+            <input type="file" accept=".m3u,.m3u8,.dpl" onchange={importer} disabled={importEnCours} />
           </label>
           <button class="ghost" class:on={panneauSauvegardes}
             onclick={() => { panneauSauvegardes = !panneauSauvegardes; if (panneauSauvegardes) void chargerInstantanes(); }}>

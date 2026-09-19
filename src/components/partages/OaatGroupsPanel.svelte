@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { notifications } from '../lib/stores/notifications';
-  import { t } from '../lib/i18n';
-  import * as api from '../lib/api';
+  import { notifications } from '../../lib/stores/notifications';
+  import { t } from '../../lib/i18n';
+  import * as api from '../../lib/api';
 
   interface OaatEndpoint {
     endpoint_id: string;
