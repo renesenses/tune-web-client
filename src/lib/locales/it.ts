@@ -4100,6 +4100,8 @@ export default {
   "v2.queue.clear": "Svuota la coda",
   "v2.queue.clearUpNext": "Svuota i successivi",
   "v2.queue.clearUpNextTip": "Rimuove tutto ciò che segue il brano corrente, senza interrompere la riproduzione.",
+  "v2.queue.addFile": "Aggiungi un file",
+  "v2.queue.addFileTip": "Aggiunge alla coda un file audio da questo dispositivo, fuori dalla libreria. Puoi anche trascinarlo sulla coda.",
   "v2.queue.loading": "Caricamento della coda…",
   "v2.queue.noZone": "Nessuna zona attiva — scegli una zona per vederne la coda.",
   "v2.queue.empty": "La coda è vuota.",

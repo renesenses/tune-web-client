@@ -31,6 +31,7 @@
   import type { Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import '../../styles/tune-v2.css';
+  import AjoutFichierFileV2 from './AjoutFichierFileV2.svelte';
 
   const level = $derived($preferences.settingsLevel);
   const showExpert = $derived(atLeast(level, 'expert'));
@@ -139,6 +140,26 @@
    */
   const viderLaSuite = () => act(() => api.clearQueue($currentZoneId!, true));
 
+  /**
+   * Fichiers audio HORS bibliothèque, déposés sur la file — portage de
+   * `QueueView` (phase 5). Le bouton « Ajouter un fichier » et le dépôt
+   * passent par le même `envoyer`.
+   */
+  let ajoutFichier: ReturnType<typeof AjoutFichierFileV2> | undefined = $state();
+  let survolFichiers = $state(false);
+  function surSurvol(e: DragEvent) {
+    if (!e.dataTransfer?.types.includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    survolFichiers = true;
+  }
+  async function surDepot(e: DragEvent) {
+    if (!e.dataTransfer?.types.includes('Files')) return;
+    e.preventDefault();
+    survolFichiers = false;
+    await ajoutFichier?.envoyer(Array.from(e.dataTransfer.files ?? []));
+  }
+
   function tech(t: Track): string {
     if (getQualityTier(t) === 'dsd') return 'DSD';
     const r = t.sample_rate ? `${Math.round(t.sample_rate / 100) / 10} kHz` : '';
@@ -147,7 +168,9 @@
   }
 </script>
 
-<section class="v2-queue tune-v2">
+<section class="v2-queue tune-v2" class:survol-fichiers={survolFichiers}
+  role="region" aria-label={$tr('nav.queue' as any)}
+  ondragover={surSurvol} ondragleave={() => (survolFichiers = false)} ondrop={surDepot}>
   <header class="v2-top">
     <div class="v2-titres">
       <div class="v2-eyebrow">{$tr('v2.lbl.currentZone' as any)}</div>
@@ -160,6 +183,7 @@
           {#if remainingMs}<span>{formatDuration(remainingMs)} restantes</span>{/if}
         </div>
       {/if}
+      <AjoutFichierFileV2 bind:this={ajoutFichier} zoneId={$currentZoneId} onAjoute={reload} />
       <!-- 🔴 HORS du `{#if tracks.length}` : c'est précisément quand la file se
            vide que l'Autoplay compte, et le cacher là le rendrait introuvable
            au moment où on le cherche. -->
@@ -254,6 +278,7 @@
 <style>
   .v2-queue{display:flex; flex-direction:column; height:100%; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow:hidden}
+  .v2-queue.survol-fichiers{outline:2px dashed var(--v2-acc2); outline-offset:-6px}
   .meta{display:flex; gap:16px; margin-left:auto; font:11.5px var(--v2-mono); color:var(--v2-txt3)}
 
   .err{display:flex; align-items:center; gap:12px; margin:0 30px 10px; padding:9px 14px; border-radius:10px;

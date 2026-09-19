@@ -4100,6 +4100,8 @@ export default {
   "v2.queue.clear": "清空队列",
   "v2.queue.clearUpNext": "清空后续",
   "v2.queue.clearUpNextTip": "移除当前曲目之后的全部内容，不中断播放。",
+  "v2.queue.addFile": "添加文件",
+  "v2.queue.addFileTip": "将此设备上的音频文件（库外）添加到队列。也可以直接拖放到队列上。",
   "v2.queue.loading": "正在加载队列…",
   "v2.queue.noZone": "没有活动区域 — 请选择一个区域以查看其队列。",
   "v2.queue.empty": "队列是空的。",

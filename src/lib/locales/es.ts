@@ -4100,6 +4100,8 @@ export default {
   "v2.queue.clear": "Vaciar la cola",
   "v2.queue.clearUpNext": "Vaciar lo siguiente",
   "v2.queue.clearUpNextTip": "Elimina todo lo que sigue a la pista actual, sin detener la reproducción.",
+  "v2.queue.addFile": "Añadir un archivo",
+  "v2.queue.addFileTip": "Añade a la cola un archivo de audio de este dispositivo, fuera de la biblioteca. También puede soltarlo sobre la cola.",
   "v2.queue.loading": "Cargando la cola…",
   "v2.queue.noZone": "Ninguna zona activa — elija una zona para ver su cola.",
   "v2.queue.empty": "La cola está vacía.",

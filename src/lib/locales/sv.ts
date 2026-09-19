@@ -4099,6 +4099,8 @@ export default {
   "v2.queue.clear": "Töm kön",
   "v2.queue.clearUpNext": "Rensa kommande",
   "v2.queue.clearUpNextTip": "Tar bort allt efter det aktuella spåret, utan att stoppa uppspelningen.",
+  "v2.queue.addFile": "Lägg till en fil",
+  "v2.queue.addFileTip": "Lägger till en ljudfil från den här enheten i kön, utanför biblioteket. Du kan också dra den till kön.",
   "v2.queue.loading": "Läser in kön…",
   "v2.queue.noZone": "Ingen aktiv zon — välj en zon för att se dess kö.",
   "v2.queue.empty": "Kön är tom.",

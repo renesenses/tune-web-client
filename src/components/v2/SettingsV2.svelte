@@ -69,6 +69,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  import PrereglageAppareilV2 from './PrereglageAppareilV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -2512,6 +2513,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {@const j = jumelleDeProtocole(z, $zones)!}
                         <p class="hint jumelle">{$t('v2.set.sameDeviceOtherProtocol' as any).replace('{name}', j.nom).replace('{protocol}', j.proto)}</p>
                       {/if}
+                      <!-- Préréglage communautaire (#1743), porté de DevicesSettings. -->
+                      <PrereglageAppareilV2 zone={z} />
                       <div class="zr">
                         <label class="zf">
                           <span>DSD</span>

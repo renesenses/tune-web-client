@@ -4122,6 +4122,8 @@ export default {
   "v2.queue.clear": "Vider la file",
   "v2.queue.clearUpNext": "Vider la suite",
   "v2.queue.clearUpNextTip": "Retire tout ce qui suit la piste en cours, sans arrêter la lecture.",
+  "v2.queue.addFile": "Ajouter un fichier",
+  "v2.queue.addFileTip": "Ajoute à la file un fichier audio pris sur cet appareil, hors bibliothèque. On peut aussi le glisser sur la file.",
   "v2.queue.loading": "Chargement de la file…",
   "v2.queue.noZone": "Aucune zone active — sélectionnez une zone pour voir sa file.",
   "v2.queue.empty": "La file est vide.",

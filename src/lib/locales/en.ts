@@ -4120,6 +4120,8 @@ export default {
   "v2.queue.clear": "Clear the queue",
   "v2.queue.clearUpNext": "Clear up next",
   "v2.queue.clearUpNextTip": "Removes everything after the current track, without stopping playback.",
+  "v2.queue.addFile": "Add a file",
+  "v2.queue.addFileTip": "Adds an audio file from this device to the queue, outside the library. You can also drop it onto the queue.",
   "v2.queue.loading": "Loading the queue…",
   "v2.queue.noZone": "No active zone — pick a zone to see its queue.",
   "v2.queue.empty": "The queue is empty.",

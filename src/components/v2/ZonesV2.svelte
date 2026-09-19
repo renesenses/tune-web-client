@@ -32,6 +32,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
+  import AppairageAirplayV2 from './AppairageAirplayV2.svelte';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -280,6 +281,19 @@
     return null;
   }
 
+  /**
+   * Appairage AirPlay 2 par code PIN (#1135) — portage de `ZoneManagerView`.
+   * Une zone AirPlay dont la sortie est connue porte le bouton dans la LISTE ;
+   * le panneau s'ouvre sous la liste, un appairage à la fois.
+   */
+  let appairage = $state<{ deviceId: string; nom: string } | null>(null);
+  const estAirplay = (z: Zone) => (z.output_type === 'airplay' || z.output_type === 'airplay2') && !!z.output_device_id;
+  function ouvrirAppairage(z: Zone, e: MouseEvent) {
+    e.stopPropagation();
+    if (!z.output_device_id) return;
+    appairage = { deviceId: z.output_device_id, nom: z.name };
+  }
+
   /** #1006 — la pochette de la carte ouvre « Lecture en cours » SUR cette zone. */
   function ouvrirLecture(z: Zone) {
     select(z);
@@ -481,6 +495,12 @@
                   {confirmMerge === z.id ? $t('v2.zone.mergeConfirm' as any) : $t('v2.zone.mergeInto' as any).replace('{name}', j!.name)}
                 </button>
               {/if}
+              {#if estAirplay(z)}
+                <button class="appairer" onclick={(e) => ouvrirAppairage(z, e)}
+                  title={$t('zone.airplayPair' as any)} aria-label={$t('zone.airplayPair' as any)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </button>
+              {/if}
               <button onclick={(e) => startRename(z, e)} disabled={busy} aria-label="Renommer">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
               </button>
@@ -498,6 +518,12 @@
           </div>
         {/each}
       </div>
+    {/if}
+
+    {#if appairage}
+      {#key appairage.deviceId}
+        <AppairageAirplayV2 deviceId={appairage.deviceId} deviceName={appairage.nom} onClose={() => (appairage = null)} />
+      {/key}
     {/if}
 
     <!--

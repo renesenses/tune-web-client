@@ -4100,6 +4100,8 @@ export default {
   "v2.queue.clear": "キューを空にする",
   "v2.queue.clearUpNext": "この先をクリア",
   "v2.queue.clearUpNextTip": "再生を止めずに、現在の曲より後をすべて削除します。",
+  "v2.queue.addFile": "ファイルを追加",
+  "v2.queue.addFileTip": "このデバイス上の音声ファイルを、ライブラリ外からキューに追加します。キューにドラッグ＆ドロップすることもできます。",
   "v2.queue.loading": "キューを読み込み中…",
   "v2.queue.noZone": "有効なゾーンがありません — キューを見るゾーンを選んでください。",
   "v2.queue.empty": "キューは空です。",
