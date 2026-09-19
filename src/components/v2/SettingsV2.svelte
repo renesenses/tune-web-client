@@ -2071,6 +2071,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await api.enrichArtistImages(); await refreshEnrich(); }
     catch { enrichErr = get(t)('settings.errStartFailed'); }
   }
+  /**
+   * Portés de l'ancienne interface, seul écran qui les offrait :
+   *
+   *  - la passe FORCÉE des portraits vise TOUS les artistes, y compris ceux
+   *    que la passe normale saute parce qu'ils ont déjà une image — le seul
+   *    moyen de remplacer un mauvais portrait ;
+   *  - la recherche des pochettes d'ALBUM manquantes (`/library/artwork/
+   *    rescan`), distincte des portraits d'artistes.
+   *
+   * Leur progression arrivait par les événements serveur, que cet écran
+   * n'écoute pas : on dit que c'est lancé, sans promettre de barre.
+   */
+  async function forceCovers() {
+    enrichErr = null;
+    try {
+      await api.forceRefetchArtistImages();
+      notifications.info(get(t)('settings.enrichArtistImagesStarted'));
+      await refreshEnrich();
+    } catch { enrichErr = get(t)('settings.errStartFailed'); }
+  }
+  let albumCoversBusy = $state(false);
+  async function rescanAlbumCovers() {
+    enrichErr = null;
+    albumCoversBusy = true;
+    try {
+      await api.rescanArtwork();
+      notifications.info(get(t)('settings.searchingCovers'));
+    } catch { enrichErr = get(t)('settings.errStartFailed'); }
+    finally { albumCoversBusy = false; }
+  }
 
   // ── Rangement des fichiers importes ───────────────────────────────────
   let ingest = $state<any | null>(null);
@@ -2427,7 +2457,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#if coversMissing != null}{$formatNombre(coversMissing)} artistes sans portrait.{:else}Recherche les portraits manquants.{/if}
                   </span>
                 </div>
-                <button class="lnk" onclick={startCovers}>{$t('v2.set.start' as any)}</button>
+                <div class="inline">
+                  <button class="lnk" onclick={startCovers}>{$t('v2.set.start' as any)}</button>
+                  <button class="lnk" onclick={forceCovers} title={$t('settings.forceRefetchArtistImagesHint' as any)}>
+                    {$t('settings.forceRefetchArtistImages' as any)}
+                  </button>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span></div>
+                <button class="lnk" disabled={albumCoversBusy} onclick={rescanAlbumCovers}>{$t('v2.set.start' as any)}</button>
               </div>
               <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
