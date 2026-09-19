@@ -104,6 +104,17 @@
   /** Une page suivante est en route — le bouton se desarme le temps qu'elle vienne. */
   let rechSuite = $state(false);
   let bcSearch = $state<any | null>(null);
+  /**
+   * La DISCOGRAPHIE d'un artiste Bandcamp trouvé par la recherche — portée de
+   * l'ancien écran Bandcamp avant la phase 5 (web#1257).
+   *
+   * La recherche rendait des artistes (`artistes`) et l'écran les JETAIT :
+   * seuls albums et titres étaient dessinés. Le serveur sait lire la page
+   * `/music` d'un artiste (`GET /ext/bandcamp/artist?url=`, #1768) ; l'ancien
+   * écran s'en servait pour qu'un clic sur un artiste reste DANS Tune.
+   */
+  let bcArtiste = $state<{ nom: string; url: string; disco: api.BandcampDiscographie | null; chargement: boolean; erreur: string }>({ nom: '', url: '', disco: null, chargement: false, erreur: '' });
+  let jetonArtisteBc = 0;
   let searching = $state(false);
   let seq = 0;
 
@@ -804,6 +815,25 @@
     playAndSync(zid, corps as any).catch((e) => { error = messageEchecLecture(e, 'v2.stream.playFailed'); });
   }
 
+  async function ouvrirArtisteBc(a: any) {
+    const url = String(a?.url ?? '');
+    if (!url) return;
+    const jeton = ++jetonArtisteBc;
+    bcArtiste = { nom: a?.titre ?? '', url, disco: null, chargement: true, erreur: '' };
+    try {
+      const disco = await api.bandcampArtist(url);
+      if (jeton === jetonArtisteBc) bcArtiste = { ...bcArtiste, disco, chargement: false };
+    } catch (e: any) {
+      if (jeton === jetonArtisteBc) {
+        bcArtiste = { ...bcArtiste, chargement: false, erreur: e?.message || $t('bandcamp.artistFailed' as any) };
+      }
+    }
+  }
+  function fermerArtisteBc() {
+    jetonArtisteBc++;
+    bcArtiste = { nom: '', url: '', disco: null, chargement: false, erreur: '' };
+  }
+
   /** Lot 3 : descendre un achat en FLAC, puis laisser le volet le suivre. */
   async function telechargerFlac(it: any) {
     const cle = cleTelechargeable(it);
@@ -915,7 +945,36 @@
             <div class="grid">{#each bcSearch.pistes as a, i (a.url ?? i)}{@render tile(a, () => playBc(a), 'track')}{/each}</div>
           </section>
         {/if}
-        {#if !bcSearch.albums?.length && !bcSearch.pistes?.length}
+        {#if bcSearch.artistes?.length}
+          <section class="sec bc-artistes"><h2>{$t('v2.rech.artists' as any)}</h2>
+            <div class="bc-noms">
+              {#each bcSearch.artistes as a, i (a.url ?? i)}
+                <button class="bc-nom" class:on={bcArtiste.url === a.url} onclick={() => ouvrirArtisteBc(a)}>
+                  <span>{a.titre}</span>{#if a.lieu}<small>{a.lieu}</small>{/if}
+                </button>
+              {/each}
+            </div>
+          </section>
+        {/if}
+        {#if bcArtiste.url}
+          <section class="sec bc-disco">
+            <div class="bc-disco-tete">
+              <h2>{bcArtiste.nom}{#if bcArtiste.disco} · {bcArtiste.disco.count} {$t('bandcamp.albums' as any)}{/if}</h2>
+              <a class="lnk" href={bcArtiste.url} target="_blank" rel="noopener noreferrer">{$t('bandcamp.openOnBandcamp' as any)}</a>
+              <button class="lnk" onclick={fermerArtisteBc}>{$t('common.close' as any)}</button>
+            </div>
+            {#if bcArtiste.chargement}
+              <div class="state">{$t('common.loading' as any)}</div>
+            {:else if bcArtiste.erreur}
+              <div class="state">{bcArtiste.erreur}</div>
+            {:else if bcArtiste.disco && !bcArtiste.disco.albums.length}
+              <div class="state">{$t('bandcamp.noResults' as any)}</div>
+            {:else if bcArtiste.disco}
+              <div class="grid">{#each bcArtiste.disco.albums as d, i (d.url ?? i)}{@render tile({ titre: d.titre, url: d.url, pochette: d.pochette ?? null, artiste: bcArtiste.nom }, () => playBc({ titre: d.titre, url: d.url, pochette: d.pochette ?? null, artiste: bcArtiste.nom }))}{/each}</div>
+            {/if}
+          </section>
+        {/if}
+        {#if !bcSearch.albums?.length && !bcSearch.pistes?.length && !bcSearch.artistes?.length}
           <div class="state">{$t('v2.stream.bcNoResult' as any)}</div>
         {/if}
       {:else if results}
@@ -1450,6 +1509,11 @@
   .notice code{font:11.5px var(--v2-mono); color:var(--v2-acc2)}
 
   .sec{padding:4px 0 22px}
+  .bc-noms{display:flex; flex-wrap:wrap; gap:8px}
+  .bc-nom{display:inline-flex; align-items:baseline; gap:6px; padding:6px 12px; border-radius:var(--v2-r-pill); border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt); cursor:pointer; font:inherit; font-size:13px}
+  .bc-nom small{color:var(--v2-txt3); font-size:11px}
+  .bc-nom.on{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
+  .bc-disco-tete{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap}
   /* #1042 — le sommaire des favoris : collé en haut du défilement. */
   .sommaire{position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:8px;
     padding:6px 0 10px; margin-bottom:6px; background:var(--v2-bg)}

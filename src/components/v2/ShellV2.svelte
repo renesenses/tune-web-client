@@ -26,6 +26,7 @@
   import SettingsV2 from './SettingsV2.svelte';
   import RadiosV2 from './RadiosV2.svelte';
   import AlarmesV2 from './AlarmesV2.svelte';
+  import ConcertsV2 from './ConcertsV2.svelte';
   import PodcastsV2 from './PodcastsV2.svelte';
   import QueueV2 from './QueueV2.svelte';
   import FavoritesV2 from './FavoritesV2.svelte';
@@ -678,6 +679,9 @@
         <TuneHealthV2 />
       {:else if $activeView === 'alarms'}
         <AlarmesV2 />
+      {:else if $activeView === 'concerts'}
+        <!-- Concerts à venir (greffon) — porté avant la phase 5 (web#1257). -->
+        <ConcertsV2 />
       {:else if $activeView === 'converter'}
         <ConverterV2 />
       {:else if $activeView === 'declick'}

@@ -25,6 +25,7 @@
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import * as api from '../../lib/api';
   import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
+  import { concertsUtilisable, refreshConcertsPlugin } from '../../lib/stores/concerts';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -186,6 +187,15 @@
   // leur entrée suit l'état réel (installé et actif), et l'écran Extensions
   // republie cet état après chaque geste.
   const studioVisible = $derived(entreesStudioVisibles(STUDIO, $etatGreffons));
+  /**
+   * CONCERTS — porté de l'ancienne barre avant la phase 5 (web#1257). Même
+   * garde qu'elle : l'entrée n'existe que si le greffon est présent dans CE
+   * binaire (`concertsUtilisable`), installé ou non — l'écran explique alors
+   * le geste qui manque, plutôt qu'une fonction qui disparaît.
+   */
+  const CONCERTS: Item = { view: 'concerts', labelKey: 'concerts.titre', icon: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0M3 3l4 4' };
+  const avancesVisibles = $derived($concertsUtilisable ? [...ADVANCED, CONCERTS] : ADVANCED);
+  $effect(() => { void refreshConcertsPlugin(); });
   $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
 
   // 🔴 Naviguer REFERME le tiroir. Sans cela, au palier « tiroir » la barre
@@ -437,7 +447,7 @@
     </nav>
 
     <nav class="grp reveal" class:show={showAdvanced} aria-hidden={!showAdvanced}>
-      {#each ADVANCED as it (it.view)}
+      {#each avancesVisibles as it (it.view)}
         <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showAdvanced ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>

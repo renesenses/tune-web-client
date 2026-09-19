@@ -176,8 +176,19 @@ porter en v2, abandonner, ou garder le filet.
 ## Bandcamp et concerts (3)
 
 - `bandcampArtist` — `GET /ext/bandcamp/artist`
+  → ✅ **porté** : `StreamingV2` (onglet Bandcamp, recherche) — les artistes
+  rendus par `/ext/bandcamp/search`, jusqu'ici jetés, sont dessinés ; un clic
+  ouvre la discographie dans l'écran (branche `feat/v2-porte-bandcamp-concerts`).
 - `getConcertsAVenir` — `GET /ext/concerts/upcoming`
+  → ✅ **porté** : `ConcertsV2` (nouvel écran, route `concerts` de `ShellV2`,
+  entrée « Concerts » de la barre v2, groupe Avancé, sous la même garde
+  `concertsUtilisable` que l'ancienne barre).
 - `setLocalisationConcerts` — `POST /ext/concerts/location`
+  → ⛔ **non porté, capacité morte** : aucun serveur livré ne monte cette route.
+  Le greffon `tune-concerts` d'origin/main (`plugins/tune-concerts/src/lib.rs`,
+  `router()`) ne monte que `/upcoming` ; `/location` n'existe que sur la
+  branche `feat/plugin-concerts-portillon-premium`, dont la PR
+  tune-server-rust#2933 a été FERMÉE sans fusion. L'ancien écran appelait un 404.
 
 ## Autres (7)
 
