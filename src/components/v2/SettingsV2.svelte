@@ -62,6 +62,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     transportAppareilIgnore,
     type AppareilIgnore,
   } from '../../lib/appareilsIgnores';
+  import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
+  import type { DevicePreset } from '../../lib/api';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
@@ -139,6 +141,42 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * laisser un curseur qui ne fait rien.
    */
   let trims = $state<Record<number, number>>({});
+
+  /*
+   * Réglages proposés pour un appareil identifié — ce que d'autres utilisateurs
+   * ont retenu pour la même marque et le même modèle. Porté de l'ancien écran
+   * Appareils, seul à les proposer. Jamais par-dessus un réglage posé à la
+   * main (règle dans `lib/reglagesProposes`). Lu une fois par zone.
+   */
+  let propositions = $state<Record<number, DevicePreset | null>>({});
+  let propositionEnCours = $state<number | null>(null);
+  const propositionsLues = new Set<number>();
+  $effect(() => {
+    for (const z of $zones) {
+      if (z.id == null || propositionsLues.has(z.id)) continue;
+      if (!zoneAProposer(z)) continue;
+      const zid = z.id;
+      propositionsLues.add(zid);
+      api.getZoneDevicePresets(zid)
+        .then((r) => { const p = propositionRetenue(r.presets); if (p) propositions = { ...propositions, [zid]: p }; })
+        .catch(() => { /* site injoignable : pas de proposition, pas d'erreur */ });
+    }
+  });
+  async function appliquerProposition(z: any) {
+    const zid = z.id as number;
+    const p = propositions[zid];
+    if (!p) return;
+    propositionEnCours = zid;
+    try {
+      await api.applyZoneDevicePreset(zid, p.settings);
+      propositions = { ...propositions, [zid]: null };
+      zones.set(await api.getZones());
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    } finally {
+      propositionEnCours = null;
+    }
+  }
   function trimDe(z: any): number {
     return trims[z.id ?? -1] ?? z.gain_trim_db ?? 0;
   }
@@ -3197,6 +3235,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
 
                       <div class="zde"><ZoneDeviceEditor zone={z} onSaved={(maj) => zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...maj } : x)))} /></div>
+
+                      {#if z.id != null && propositions[z.id]}
+                        {@const p = propositions[z.id]!}
+                        <div class="warn">
+                          <b>{$t('devices.presetTitle' as any).replace('{count}', String(p.occurrences))}</b>
+                          <span class="mono">{resumeProposition(p)}</span>
+                          <div class="inline" style="margin-top:8px">
+                            <button class="lnk" disabled={propositionEnCours === z.id} onclick={() => appliquerProposition(z)}>{$t('devices.presetApply' as any)}</button>
+                            <button class="lnk" onclick={() => { propositions = { ...propositions, [z.id ?? -1]: null }; }}>{$t('devices.presetDismiss' as any)}</button>
+                          </div>
+                        </div>
+                      {/if}
 
                       <!-- Renderers réseau SEULEMENT : ces réglages décrivent ce
                            qu'on envoie sur le fil (protocole, conteneur, profondeur).

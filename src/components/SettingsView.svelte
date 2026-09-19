@@ -59,7 +59,7 @@ import { telechargerJournaux } from '../lib/journaux';
   import SmbWizard from './partages/SmbWizard.svelte';
   import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
-  import MultiroomSettings from './MultiroomSettings.svelte';
+  import MultiroomSettings from './partages/MultiroomSettings.svelte';
   import DevicesSettings from './DevicesSettings.svelte';
 
   // ─── Per-zone settings: transport badge + Local/Network grouping ───────────

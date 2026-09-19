@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import * as api from '../lib/api';
-  import type { GroupDelay, Zone } from '../lib/types';
-  import { zones } from '../lib/stores/zones';
-  import { t } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import type { GroupDelay, Zone } from '../../lib/types';
+  import { zones } from '../../lib/stores/zones';
+  import { t } from '../../lib/i18n';
 
   const TECHS = ['snapcast', 'sonos', 'dlna', 'airplay', 'local'] as const;
   type Tech = typeof TECHS[number];

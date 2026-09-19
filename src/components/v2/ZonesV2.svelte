@@ -28,6 +28,12 @@
   import { appareilDeLaZone, lireVueZones, ecrireVueZones, type VueZones } from '../../lib/vueZones';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
+  import AirplayPairingModal from '../partages/AirplayPairingModal.svelte';
+  import OaatGroupsPanel from '../partages/OaatGroupsPanel.svelte';
+  import MultiroomSettings from '../partages/MultiroomSettings.svelte';
+  import { notifications } from '../../lib/stores/notifications';
+  import { devices } from '../../lib/stores/devices';
+  import { sortiesProposees } from '../../lib/sortiesDeZone';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
@@ -65,6 +71,75 @@
 
   const level = $derived($preferences.settingsLevel);
   const showExpert = $derived(atLeast(level, 'expert'));
+
+  /* --- Portés de l'ancien gestionnaire de zones (`ZoneManagerView`) --------
+   *
+   * Trois gestes n'existaient QUE là, et l'écran Zones de cette interface ne
+   * les offrait pas :
+   *
+   *  - l'appairage AirPlay par CODE (#1135) : les téléviseurs Samsung/LG et
+   *    l'Apple TV affichent un code qu'il faut retaper. La route
+   *    `/devices/{id}/pair` des Réglages enregistre un état ; c'est
+   *    `/outputs/{id}/airplay/pair-*` qui pilote le vrai échange HomeKit ;
+   *  - la mesure de latence d'une zone (aller-retour de contrôle, p50) ;
+   *  - les groupes OAAT et les délais multiroom, deux panneaux autonomes
+   *    montés tels quels (`partages/`).
+   */
+  const estAirplay = (z: Zone) => z.output_type === 'airplay' || z.output_type === 'airplay2';
+  let airplayPairing = $state<{ deviceId: string; deviceName: string } | null>(null);
+  function ouvrirAppairage(z: Zone, e: Event) {
+    e.stopPropagation();
+    if (!z.output_device_id) return;
+    airplayPairing = { deviceId: z.output_device_id, deviceName: z.name };
+  }
+
+  /*
+   * Changer la SORTIE d'une zone — porté du même écran (`changeZoneOutput`).
+   * Le relevé de la phase 5 l'avait cru couvert parce que la route
+   * (`PATCH /zones/{id}`) sert aussi au mode WAV : même route, autre champ.
+   * Les appareils sont lus à l'ouverture, en Expert seulement.
+   */
+  $effect(() => {
+    if (showExpert) api.getDevices().then((d) => devices.set(d ?? [])).catch(() => {});
+  });
+  let sortieEnCours = $state<number | null>(null);
+  async function changerSortie(z: Zone, appareilId: string) {
+    const d = $devices.find((x) => x.id === appareilId);
+    if (z.id == null || !d || d.id === z.output_device_id) return;
+    const zid = z.id;
+    sortieEnCours = zid;
+    try {
+      const maj = await api.changeZoneOutput(zid, d.type, d.id);
+      zones.update((zs) => zs.map((x) => (x.id === zid ? maj : x)));
+      notifications.success($t('zone.outputChanged' as any));
+    } catch (err: any) {
+      notifications.error(err?.message || $t('zone.changeOutputError' as any));
+    } finally {
+      sortieEnCours = null;
+    }
+  }
+
+  let mesureLatence = $state<number | null>(null);
+  let latences = $state<Record<number, number>>({});
+  async function mesurerLatence(z: Zone, e: Event) {
+    e.stopPropagation();
+    if (z.id == null) return;
+    const zid = z.id;
+    mesureLatence = zid;
+    try {
+      const r = await api.measureLatency();
+      const entree = (r.latencies ?? []).find((l: any) => l.zone_id === zid);
+      const rtt = entree?.control_rtt?.p50_ms;
+      // Pas de chiffre = pas de mesure : on nomme le motif du serveur au lieu
+      // d'afficher un « 0 ms » inventé.
+      if (typeof rtt !== 'number') throw new Error(entree?.status ?? 'probe_failed');
+      latences = { ...latences, [zid]: rtt };
+    } catch (err: any) {
+      notifications.error(`${$t('zone.latency' as any)} : ${err?.message ?? ''}`);
+    } finally {
+      mesureLatence = null;
+    }
+  }
 
   let busy = $state(false);
   let error = $state<string | null>(null);
@@ -454,6 +529,7 @@
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
                   {#if r}<span class="rc {r.cls}">{r.txt}</span>{/if}
                   {#if presenceTxt(z)}<span class="rc warn">{presenceTxt(z)}</span>{/if}
+                  {#if z.id != null && latences[z.id] !== undefined}<span class="rc">RTT {latences[z.id]} ms</span>{/if}
                 </span>
               </span>
             </button>
@@ -471,10 +547,29 @@
                 {#if z.fixed_volume}<span class="fl">{$t('v2.lbl.fixedVolume' as any)}</span>{/if}
                 {#if z.max_sample_rate}<span class="fl">≤ {Math.round(z.max_sample_rate / 100) / 10} kHz</span>{/if}
                 {#if z.dsd_mode && z.dsd_mode !== 'auto'}<span class="fl">DSD {z.dsd_mode}</span>{/if}
+                {#if sortiesProposees(z, $devices, $zones).length > 1}
+                  <select class="sortie" value={z.output_device_id ?? ''} disabled={sortieEnCours === z.id}
+                    title={$t('zone.changeOutput' as any)} aria-label={$t('zone.changeOutput' as any)}
+                    onclick={(e) => e.stopPropagation()}
+                    onchange={(e) => changerSortie(z, (e.currentTarget as HTMLSelectElement).value)}>
+                    {#each sortiesProposees(z, $devices, $zones) as d (d.id)}<option value={d.id}>{d.name}</option>{/each}
+                  </select>
+                {/if}
               </span>
             {/if}
 
             <span class="zacts">
+              {#if showExpert}
+                <button onclick={(e) => mesurerLatence(z, e)} disabled={mesureLatence === z.id}
+                  title={$t('zone.latency' as any)} aria-label={$t('zone.latency' as any)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </button>
+                {#if estAirplay(z) && z.output_device_id}
+                  <button onclick={(e) => ouvrirAppairage(z, e)} title={$t('zone.airplayPair' as any)} aria-label={$t('zone.airplayPair' as any)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </button>
+                {/if}
+              {/if}
               {#if jumelle(z)}
                 {@const j = jumelle(z)}
                 <button class="merge" class:armed={confirmMerge === z.id} onclick={(e) => fusionner(z, j!, e)} disabled={busy}>
@@ -563,8 +658,23 @@
           {/if}
         </section>
       {/if}
+
+      {#if showExpert}
+        <!-- Groupes OAAT et délais multiroom : panneaux autonomes de l'ancien
+             client, montés tels quels. -->
+        <section class="paires"><OaatGroupsPanel /></section>
+        <section class="paires"><MultiroomSettings /></section>
+      {/if}
   </div>
 </section>
+
+{#if airplayPairing}
+  <AirplayPairingModal
+    deviceId={airplayPairing.deviceId}
+    deviceName={airplayPairing.deviceName}
+    onClose={() => (airplayPairing = null)}
+  />
+{/if}
 
 <style>
   .paires{margin:26px 0 0; padding:16px 18px; border-radius:12px; border:1px solid var(--v2-line)}
@@ -706,6 +816,8 @@
   .fl{font:9.5px var(--v2-mono); color:var(--v2-txt3); border:1px solid var(--v2-line2); border-radius:999px; padding:3px 8px}
 
   .zacts{display:flex; gap:5px; flex:0 0 auto}
+  .sortie{max-width:160px; height:24px; border-radius:7px; border:1px solid var(--v2-line2);
+    background:transparent; color:var(--v2-txt2); font:11px var(--v2-sans)}
   .zacts button{height:28px; min-width:28px; padding:0 8px; border-radius:8px; border:1px solid transparent;
     background:transparent; color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center;
     font:600 11px var(--v2-sans)}
