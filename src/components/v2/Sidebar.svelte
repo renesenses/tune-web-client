@@ -24,6 +24,7 @@
   import { servicesConnectes } from '../../lib/ongletsStreaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import * as api from '../../lib/api';
+  import { etatGreffons, entreesStudioVisibles, rafraichirGreffons } from '../../lib/stores/greffonsStudio';
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
@@ -181,6 +182,11 @@
   const level = $derived($preferences.settingsLevel);
   const showAdvanced = $derived(atLeast(level, 'intermediate'));
   const showStudio = $derived(atLeast(level, 'expert'));
+  // #1261 — les quatre outils audio sont des greffons depuis la v0.9.156 :
+  // leur entrée suit l'état réel (installé et actif), et l'écran Extensions
+  // republie cet état après chaque geste.
+  const studioVisible = $derived(entreesStudioVisibles(STUDIO, $etatGreffons));
+  $effect(() => { void rafraichirGreffons(api.getMergedPlugins); });
 
   // 🔴 Naviguer REFERME le tiroir. Sans cela, au palier « tiroir » la barre
   // reste par-dessus l'écran qu'on vient de demander : on choisit une vue et
@@ -481,7 +487,7 @@
 
     <nav class="grp reveal" class:show={showStudio} aria-hidden={!showStudio}>
       <div class="grp-label">{$t('v2.nav.studio' as any)}</div>
-      {#each STUDIO as it (it.view)}
+      {#each studioVisible as it (it.view)}
         <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} tabindex={showStudio ? 0 : -1} title={enIcones ? $t(it.labelKey as any) : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
