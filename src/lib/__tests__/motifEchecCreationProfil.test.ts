@@ -71,8 +71,18 @@ describe('Le motif remonte jusqu’à l’écran', () => {
   });
 
   it('🔴 l’écran Profils ne présume plus le premium', () => {
-    const src = lire('src/components/ProfilesSettings.svelte');
-    expect(src).toContain('MESSAGE_ECHEC[resultat.motif]');
+    // 🔴 Cette garde visait `ProfilesSettings.svelte` — un écran que PLUS
+    // RIEN ne montait. Mesuré le 19/09/2026 : il n'était atteint ni par
+    // l'ancienne coquille ni par la nouvelle, et son propre voisin
+    // (`ProfilsV2`) le disait déjà en commentaire. Elle éprouvait donc du
+    // code mort pendant que l'écran VIVANT n'était gardé par personne.
+    // Déplacée, pas supprimée : la garantie vaut pour l'écran qu'on voit.
+    const src = lire('src/components/v2/ProfilsV2.svelte');
+    // 🔴 Le FAIT, pas l'orthographe : l'écran vivant nomme sa variable `r`.
+    // Épingler `resultat.motif` faisait rougir la garde pour un nom de
+    // variable, alors que la garantie — un message CHOISI d'après le motif —
+    // est tenue.
+    expect(src).toMatch(/MESSAGE_ECHEC\[[A-Za-z_$][\w$]*\.motif\]/);
     // Chaque motif a son message, et ils sont distincts : trois motifs qui
     // pointeraient la même clé reviendraient au défaut d'origine.
     for (const cle of ['profiles.premiumRequired', 'profiles.nameTaken', 'profiles.createFailed']) {
