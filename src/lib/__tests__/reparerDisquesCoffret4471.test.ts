@@ -65,7 +65,14 @@ describe('#4471 — l\'écran', () => {
     expect(iBloc).toBeGreaterThan(0);
     expect(iVide).toBeGreaterThan(iBloc);
     // Et « rien à signaler » ne s'affiche plus quand des disques attendent.
-    expect(vue).toContain('{#if !disques || disques.albums === 0}');
+    //
+    // 🔴 La garde porte sur le FAIT, pas sur la ligne : depuis que les
+    // coffrets éclatés partagent cet onglet, la condition s'est étendue
+    // (`&& !coffrets.length`). Épingler le texte exact l'aurait fait rougir
+    // pour un changement qui PRÉSERVE ce qu'elle protège.
+    const iNoDup = vue.indexOf("v2.meta.noDup");
+    const garde = vue.lastIndexOf('{#if ', iNoDup);
+    expect(vue.slice(garde, iNoDup)).toContain('disques.albums === 0');
   });
 
   it('🔴 le bouton DISPARAÎT une fois la réparation faite', () => {
