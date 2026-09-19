@@ -36,6 +36,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import {
     DELAI_MAJ_HOMEBREW_MS,
     divergenceHomebrew,
@@ -702,6 +703,58 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       notifications.error(e?.message ?? 'Erreur');
     }
     brBusy = false;
+  }
+
+  // ── Télémétrie (consentement) ──────────────────────────────────────────
+  // 🔴 Porté de l'ancien `SettingsView` avant la phase 5 : sans lui, le
+  // consentement devenait IMMODIFIABLE une fois l'ancienne interface retirée.
+  // L'état affiché est celui que le SERVEUR confirme (#3383), jamais une
+  // inversion locale — `etatTelemetrie` est la décision partagée.
+  let telActif = $state(false);
+  let telVerrou = $state(false);
+  let telInstance = $state<string | null>(null);
+  let telPause = $state(0);
+  let telCharge = $state(false);
+  let telBusy = $state(false);
+  let telErr = $state<string | null>(null);
+  async function chargerTelemetrie() {
+    try {
+      const r = await api.getTelemetryStatus();
+      const etat = etatTelemetrie(r, { actif: false, verrouEnvironnement: false });
+      telActif = etat.actif;
+      telVerrou = etat.verrouEnvironnement;
+      telInstance = r?.instance_id || r?.server_id || null;
+      telPause = pauseCloudLaPlusLongue(r?.rate_limits);
+      telCharge = true;
+    } catch {
+      // Serveur antérieur à la route : la bascule n'est pas offerte, plutôt
+      // qu'une case qui prétendrait un état inconnu.
+      telPause = 0;
+    }
+  }
+  $effect(() => {
+    if (sections.some((x) => x.id === 'cloud')) void chargerTelemetrie();
+  });
+  async function basculerTelemetrie(ev: Event) {
+    // Saisie AVANT tout `await` : `currentTarget` redevient `null` ensuite.
+    const caseCochee = ev.currentTarget as HTMLInputElement | null;
+    const souhait = !telActif;
+    telBusy = true;
+    telErr = null;
+    try {
+      const r = await api.setTelemetryConsent(souhait);
+      const etat = etatTelemetrie(r, { actif: souhait, verrouEnvironnement: telVerrou });
+      telActif = etat.actif;
+      telVerrou = etat.verrouEnvironnement;
+    } catch (e: any) {
+      const motif = errText(e);
+      const base = get(t)('settings.telemetryError' as any);
+      telErr = motif ? `${base} : ${motif}` : base;
+    }
+    telBusy = false;
+    // Le clic a déjà bougé la case : on la repose sur l'état CONFIRMÉ, sinon
+    // un refus (verrou, erreur) la laisserait mentir.
+    if (caseCochee) caseCochee.checked = telActif;
   }
 
   // ── Serveurs Tune sur le reseau ────────────────────────────────────────
@@ -2740,6 +2793,37 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'cloud'}
               <p class="hint">{#each emphaseParts($t('settings.cloudScopeHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <!-- Consentement à la télémétrie — porté de l'ancien écran
+                   (phase 5) : il ne doit JAMAIS devenir immodifiable. -->
+              {#if telCharge}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.telemetry' as any)}</span>
+                    <span class="hint">{$t('settings.telemetryHint' as any)}</span>
+                    <span class="hint">{$t('settings.telemetryOffScope' as any)}</span>
+                  </div>
+                  <label class="sw">
+                    <input type="checkbox" checked={telActif}
+                      disabled={telBusy || telVerrou}
+                      aria-label={$t('settings.telemetry' as any)}
+                      onchange={basculerTelemetrie} />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                {#if telVerrou}<div class="warnbox" role="status">{$t('settings.telemetryEnvLocked' as any)}</div>{/if}
+                {#if telInstance}
+                  <div class="rows">
+                    <div class="kv"><span>{$t('settings.instance' as any)}</span><b class="mono">{telInstance}</b></div>
+                  </div>
+                {/if}
+                {#if telPause > 0}
+                  <p class="hint" role="status">
+                    {$t('settings.cloudRateLimitPaused' as any)}
+                    {$t('settings.cloudRetryIn' as any)} {dureePause(telPause)}.
+                  </p>
+                {/if}
+                {#if telErr}<div class="errline">{telErr}</div>{/if}
+              {/if}
 
             {:else if s.id === 'import'}
               <p class="hint">{$t('v2.hint.importWizard' as any)}</p>

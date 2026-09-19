@@ -70,6 +70,7 @@ import type {
 import { baseApi, entetesRelais } from './bridge';
 import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
 import { messageRefusBitperfect } from './bitperfectStrict';
+import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
 
 /**
  * L'erreur d'un refus premium 402 — **seul** constructeur de cette forme dans
@@ -3269,6 +3270,37 @@ export function restartServer() {
  *  est attendue : le serveur meurt après avoir répondu. */
 export function stopServer() {
   return fetchJSON<{ stopping: boolean }>(`${BASE}/system/stop`, { method: 'POST' });
+}
+
+/**
+ * Consentement à la télémétrie — `GET /cloud/telemetry/status`.
+ *
+ * Réponse (`tune-server/src/routes/cloud.rs`, `telemetry_status`) :
+ * `{ enabled, env_override, server_id, rate_limits }`. `enabled` est l'état
+ * EFFECTIF (#3383) ; `env_override` dit que `TUNE_TELEMETRY=false` verrouille
+ * la machine. À lire avec `etatTelemetrie()`, jamais tel quel.
+ *
+ * Avant la phase 5, ces trois routes n'étaient appelées que par l'ancien
+ * `SettingsView`, en chemin en dur : l'inventaire des capacités, qui ne lit
+ * que les fonctions de ce fichier, ne pouvait pas les voir.
+ */
+export function getTelemetryStatus() {
+  return fetchJSON<ReponseTelemetrie & {
+    server_id?: string | null;
+    instance_id?: string | null;
+    rate_limits?: { retry_after_seconds?: number }[];
+  }>(`${BASE}/cloud/telemetry/status`);
+}
+
+/**
+ * DEMANDE l'activation (`true`) ou le refus (`false`) de la télémétrie.
+ *
+ * Le serveur ÉCRIT le choix et renvoie l'état effectif, qui peut différer de
+ * la demande (verrou `TUNE_TELEMETRY=false`) : l'écran doit afficher la
+ * réponse, pas sa demande — voir `etatTelemetrie()`.
+ */
+export function setTelemetryConsent(souhait: boolean) {
+  return fetchJSON<ReponseTelemetrie>(`${BASE}${routeDeBascule(souhait)}`, { method: 'POST' });
 }
 
 // Peer discovery
