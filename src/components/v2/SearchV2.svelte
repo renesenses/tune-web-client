@@ -61,6 +61,7 @@
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import type { Artist, Playlist, StreamingPlaylist } from '../../lib/types';
   import { streamingServices } from '../../lib/stores/streaming';
+  import { SOURCES_SERVICES } from '../../lib/sourcesRecherche';
   import {
     fusionnerParType,
     regrouperArtistes,
@@ -248,7 +249,12 @@
         .then((r) => { if (mine === seq) local = r; })
         .catch(() => { if (mine === seq) local = null; })
         .finally(() => { if (mine === seq) busy = false; });
-      api.federatedSearch(query)
+      // 🔴 `SOURCES_SERVICES` et non rien : sans jeton, `/search` REFAIT tout
+      // le bloc `local` — 0,95 s de SQL mesurées sur le .18 — que cet écran
+      // JETTE, puisqu'il ne lit que `r.services` et tient son local de
+      // `searchLibrary` (0,24 s). Le jeton le dit au serveur, qui « ne calcule
+      // rien plutôt que jeter » (contrat `routes/filtre_sources.rs`).
+      api.federatedSearch(query, [SOURCES_SERVICES])
         .then((r: FederatedSearchResult) => { if (mine === seq) fed = r.services ?? {}; })
         .catch(() => { if (mine === seq) fed = {}; });
       chercherPlaylists(query, mine);
