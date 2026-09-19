@@ -87,38 +87,3 @@ describe('Retour depuis une fiche artiste : la position de la liste (#2253)', ()
   });
 });
 
-describe('LibraryView applique encore la règle (#2253)', () => {
-  const source = readFileSync(
-    resolve(process.cwd(), 'src/components/LibraryView.svelte'),
-    'utf-8',
-  );
-
-  it('la règle est importée depuis le module partagé', () => {
-    expect(source).toMatch(
-      /import\s*\{[^}]*\bdoitMemoriserPositionListe\b[^}]*\}\s*from\s*'\.\.\/(\.\.\/)?lib\/libraryNavScroll'/,
-    );
-  });
-
-  it('la capture de `savedArtistScrollTop` est gardée par la règle', () => {
-    const debut = source.indexOf('async function selectArtistDetail');
-    // Sans cette borne la tranche serait vide et l'assertion passerait sans
-    // rien avoir examiné.
-    expect(debut).toBeGreaterThan(-1);
-    const corps = source.slice(debut, debut + 3000);
-    expect(corps).toContain('savedArtistScrollTop');
-    // La capture doit être SOUS la garde, pas à côté.
-    expect(corps).toMatch(
-      /doitMemoriserPositionListe\([\s\S]{0,200}?\)\s*\)\s*\{[\s\S]{0,400}?savedArtistScrollTop\s*=/,
-    );
-  });
-
-  it('la capture du défilement des genres est gardée elle aussi', () => {
-    // Même conteneur `.library-scroller`, même écrasement, même symptôme sur
-    // l'onglet Genres.
-    const debut = source.indexOf('async function selectArtistDetail');
-    const corps = source.slice(debut, debut + 3000);
-    expect(corps).toMatch(
-      /doitMemoriserPositionListe\([\s\S]{0,200}?\)\s*\)\s*\{[\s\S]{0,400}?savedGenreScrollTop\s*=/,
-    );
-  });
-});

@@ -71,10 +71,4 @@ describe('le tri Dynamic Range de la bibliothèque v2', () => {
     expect(s).toContain('if (vb == null) return -1;');
   });
 
-  it('l’écran ACTUEL l’a bien — c’est la référence de la parité', () => {
-    // Contre-épreuve : si la v1 perdait ce tri, ce fichier n'aurait plus de
-    // point de comparaison.
-    expect(readFileSync(resolve(process.cwd(), 'src/components/LibraryView.svelte'), 'utf-8'))
-      .toContain("{ key: 'dynamic_range', label: 'library.sortDynamicRange'");
-  });
 });

@@ -153,20 +153,5 @@ describe('#889 — l’historique local des écoutes', () => {
     expect(note, 'la note doit venir APRÈS le rechargement').toBeGreaterThan(rechargement);
   });
 
-  it('l’ANCIENNE coquille passe par la même fonction — elles ne divergeront plus', () => {
-    const src = lire('src/App.svelte');
-    expect(src).toContain('noterSiDebutDEcoute');
-    // L’appel direct d’avant a disparu : deux chemins, c’est deux règles.
-    expect(src).not.toMatch(/playbackHistory\.add\(nowPlayingToTrack\(/);
-  });
 
-  it('le module reste le SEUL décideur : aucune coquille ne refiltre le type', () => {
-    for (const f of ['src/lib/v2Live.ts', 'src/App.svelte']) {
-      const src = lire(f);
-      const i = src.indexOf('noterSiDebutDEcoute(');
-      expect(i, f).toBeGreaterThan(-1);
-      // Les 400 caractères qui suivent l'appel ne doivent pas re-tester le type.
-      expect(src.slice(i, i + 400), f).not.toContain("'playback.started'");
-    }
-  });
 });

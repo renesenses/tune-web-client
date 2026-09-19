@@ -28,7 +28,6 @@ import * as LOCALES from '../locales';
 
 const lire = (p: string) => readFileSync(resolve(__dirname, p), 'utf-8');
 const api = lire('../api.ts');
-const settingsView = lire('../../components/SettingsView.svelte');
 const settingsV2 = lire('../../components/v2/SettingsV2.svelte');
 
 const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh'] as const;
@@ -56,9 +55,8 @@ describe('#2723 — le sélecteur de qualité streaming ne revient pas', () => {
     );
   });
 
-  it('aucun des deux écrans ne rend le sélecteur', () => {
+  it('l’écran des réglages ne rend pas le sélecteur', () => {
     for (const [nom, source] of [
-      ['SettingsView.svelte', settingsView],
       ['v2/SettingsV2.svelte', settingsV2],
     ] as const) {
       for (const motif of ['StreamingQuality', 'streamQuality', 'quality-select']) {

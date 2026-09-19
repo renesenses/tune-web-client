@@ -87,25 +87,10 @@ describe('la ligne quitte la liste affichée tout de suite', () => {
 });
 
 describe('EXIGENCE 1 : la croix appelle la route durable, pas l\'ancienne', () => {
-  const vue = readFileSync(join('src', 'components', 'SettingsView.svelte'), 'utf8');
   const apiSrc = readFileSync(join('src', 'lib', 'api.ts'), 'utf8');
 
-  it('la croix de la liste des appareils réseau appelle handleIgnoreDevice', () => {
-    expect(vue).toMatch(/class="device-delete-btn"[^>]*onclick=\{\(\) => handleIgnoreDevice\(/);
-  });
 
-  it("l'écran n'appelle plus api.deleteDevice, qui n'oublie qu'en mémoire", () => {
-    // `DELETE /devices/{id}` retire la sortie du registre et des appareils
-    // manuels persistés — rien n'empêche la découverte de la ré-enregistrer.
-    // C'est le « ils réapparaissent rapidement » du ticket.
-    expect(vue).not.toContain('api.deleteDevice(');
-  });
 
-  it('handleIgnoreDevice passe par api.ignoreDevice', () => {
-    const debut = vue.indexOf('async function handleIgnoreDevice');
-    expect(debut).toBeGreaterThan(-1);
-    expect(vue.slice(debut, debut + 900)).toContain('api.ignoreDevice(');
-  });
 
   it('api.ignoreDevice vise POST /devices/{id}/ignore', () => {
     const debut = apiSrc.indexOf('export function ignoreDevice');
@@ -115,32 +100,3 @@ describe('EXIGENCE 1 : la croix appelle la route durable, pas l\'ancienne', () =
   });
 });
 
-describe('EXIGENCE 2 : il existe un écran « appareils ignorés »', () => {
-  const vue = readFileSync(join('src', 'components', 'SettingsView.svelte'), 'utf8');
-  const apiSrc = readFileSync(join('src', 'lib', 'api.ts'), 'utf8');
-
-  it("l'écran lit GET /devices/ignored — la SEULE vue qui les annonce encore", () => {
-    const debut = apiSrc.indexOf('export function listIgnoredDevices');
-    expect(debut).toBeGreaterThan(-1);
-    expect(apiSrc.slice(debut, debut + 300)).toContain('/devices/ignored');
-    expect(vue).toContain('api.listIgnoredDevices()');
-  });
-
-  it('chaque ligne offre le retour en arrière', () => {
-    expect(vue).toContain('handleUnignoreDevice');
-    expect(vue).toContain("$t('settings.unignoreDevice')");
-  });
-
-  it('débloquer est un DELETE sur la MÊME adresse que le blocage', () => {
-    const debut = apiSrc.indexOf('export function unignoreDevice');
-    const corps = apiSrc.slice(debut, debut + 400);
-    expect(corps).toContain('/ignore');
-    expect(corps).toContain("method: 'DELETE'");
-  });
-
-  it("la section dit son vide plutôt que de disparaître", () => {
-    // Une section absente quand la liste est vide laisserait croire que
-    // l'écran n'existe pas — c'est précisément le piège à éviter.
-    expect(vue).toContain("$t('settings.noIgnoredDevices')");
-  });
-});

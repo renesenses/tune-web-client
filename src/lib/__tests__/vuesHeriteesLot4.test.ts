@@ -18,6 +18,15 @@ describe('les écrans hérités ont un chemin dans la coquille v2', () => {
       expect(BARRE, `aucune entrée de barre pour « ${vue} »`).toContain(`{ view: '${vue}',`);
     });
   }
+  it('🔴 l’entrée Concerts disparaît quand le serveur n’embarque pas le greffon', () => {
+    // Porté de l'ancienne barre : une entrée qui mène à une porte fermée est
+    // pire que pas d'entrée. Et sans l'appel au serveur, l'état reste `null`
+    // et l'entrée n'apparaît jamais.
+    expect(BARRE).toContain("ADVANCED.filter((it) => it.view !== 'concerts' || $concertsUtilisable)");
+    expect(BARRE).toContain('{#each avanceVisibles as it (it.view)}');
+    expect(BARRE).toContain('refreshConcertsPlugin()');
+  });
+
   it('les recommandations sont montées avec le tableau de bord', () => {
     const i = SHELL.indexOf("{:else if $activeView === 'dashboard'}");
     expect(SHELL.slice(i, SHELL.indexOf('{:else if', i + 10))).toContain('<RecommendationsSection />');
