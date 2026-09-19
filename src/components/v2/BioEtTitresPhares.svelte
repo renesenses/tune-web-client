@@ -16,6 +16,7 @@
    * service (`lireListe`), comme le best of de la fiche de service.
    */
   import type { Track } from '../../lib/types';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { lireListe } from '../../lib/lectureEnMasse';
@@ -35,7 +36,7 @@
   const bioPropre = $derived((bio ?? '').trim());
 
   function lireDepuis(i: number) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     void lireListe(titres.slice(i), {
       lire: (c: any) => playAndSync(zid, c),

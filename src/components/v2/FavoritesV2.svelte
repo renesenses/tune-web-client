@@ -12,6 +12,7 @@
    *   Expert → ligne technique sur les titres.
    */
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
@@ -554,7 +555,7 @@
    * « reprendre la lecture en cours ».
    */
   function playAlbum(a: any) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     const corps = a?.id != null
       ? { album_id: a.id }
@@ -574,7 +575,7 @@
   // désormais dans `lib/gestesDeZone`, que les cinq écrans partagent.
   const gestes = gestesDeZone;
   async function lireLesPistes(aleatoire: boolean) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     masseEnCours = true;
     try {
@@ -586,7 +587,7 @@
     masseEnCours = false;
   }
   function lireDepuis(i: number) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     lireListeDepuis(vTracks as any, i, gestes(zid))
       .catch((e) => { error = messageEchecLecture(e, 'library.playbackError'); });
@@ -597,7 +598,7 @@
     void ouvrirArtisteDepuis(a, 'favorites');
   }
   function playTrack(t: any) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     const corps = t?.id != null
       ? { track_id: t.id }

@@ -23,6 +23,7 @@
    */
   import { onMount } from 'svelte';
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, Source, Track } from '../../lib/types';
   import { activeView, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
@@ -198,7 +199,7 @@
     albumOuvert = ex.album;
   }
   function lireExemplaire(ex: Exemplaire) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     if (ex.source === BIBLIOTHEQUE) {
       if (ex.album.id == null) return;
