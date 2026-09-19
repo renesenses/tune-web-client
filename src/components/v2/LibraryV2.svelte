@@ -249,6 +249,11 @@
   let fQuality = $state<string | null>(null);
   let fRate = $state<number | null>(null);
   let fFormat = $state<string | null>(null);
+  // Tranche de Dynamic Range (#2144), bornes INCLUSES et indépendantes —
+  // portée de l'ancienne Bibliothèque. Filtrée ici : chaque album de cette
+  // liste porte déjà son DR (voir `drNombre`).
+  let fDrMin = $state<number | null>(null);
+  let fDrMax = $state<number | null>(null);
   let fDepth = $state<number | null>(null);
   /**
    * COMPILATIONS seulement (#1957). Une bascule, pas un menu.
@@ -367,6 +372,13 @@
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
     if (fFormat && (a.format?.trim().toUpperCase() ?? '') !== fFormat) return false;
     if (fDepth != null && (a.bit_depth ?? 0) !== fDepth) return false;
+    if (fDrMin != null || fDrMax != null) {
+      // Un album sans DR ne répond pas à une question de DR : il sort.
+      const dr = drNombre(a);
+      if (dr == null) return false;
+      if (fDrMin != null && dr < fDrMin) return false;
+      if (fDrMax != null && dr > fDrMax) return false;
+    }
     // `?? false` : un serveur d'avant la v0.9.95, ou une bibliothèque pas
     // encore re-scannée, ne porte pas le champ. Il vaut « non », comme côté
     // serveur — jamais « on ne sait pas, laissons passer ».
@@ -614,6 +626,8 @@
    * panne, pas comme une bibliothèque non taguée.
    */
   const hasDr = $derived(src.some((a) => drNombre(a) != null));
+  /** Les DR réellement présents, croissants — pas une échelle inventée. */
+  const valeursDr = $derived([...new Set(src.map(drNombre).filter((v): v is number => v != null))].sort((x, y) => x - y));
   const availableSorts = $derived(
     SORTS.filter((s2) => (s2.k !== 'added' || hasAddedAt) && (s2.k !== 'dr' || hasDr)),
   );
@@ -1446,7 +1460,7 @@
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; fCompilation = null; fProvenance = null; }
+  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; fCompilation = null; fProvenance = null; fDrMin = null; fDrMax = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -1576,7 +1590,7 @@
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null && fCompilation == null && !fProvenance} onclick={reset}>Tout ({matchCount})</button>
+      <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>Tout ({matchCount})</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -1649,6 +1663,24 @@
       <!-- FORMAT des le niveau Essentiel : « FLAC ou MP3 ? » est la question de
            base dans une discotheque mixte, et la maquette v3 de Levente le
            place aussi au premier niveau. -->
+      <!-- Tranche DR (#2144) : dessinée SEULEMENT si des albums portent un
+           DR — ailleurs, une commande qui ne filtre rien. -->
+      {#if hasDr}
+        <span class="chip dr" class:active={fDrMin != null || fDrMax != null}>
+          <span>{$tr('library.drRange' as any)}</span>
+          <select aria-label={$tr('library.drMin' as any)} value={fDrMin == null ? '' : String(fDrMin)}
+            onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value; fDrMin = v === '' ? null : Number(v); }}>
+            <option value="">{$tr('library.drAny' as any)}</option>
+            {#each valeursDr as v (v)}<option value={String(v)}>{v}</option>{/each}
+          </select>
+          –
+          <select aria-label={$tr('library.drMax' as any)} value={fDrMax == null ? '' : String(fDrMax)}
+            onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value; fDrMax = v === '' ? null : Number(v); }}>
+            <option value="">{$tr('library.drAny' as any)}</option>
+            {#each valeursDr as v (v)}<option value={String(v)}>{v}</option>{/each}
+          </select>
+        </span>
+      {/if}
       {#if formats.length > 1}
         <div class="drop" class:open={ddOpen === 'format'}>
           <button class="chip" class:active={fFormat !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>Format{#if fFormat}&nbsp;· {fFormat}{/if}
@@ -2364,4 +2396,6 @@
   .cbot{display:flex; align-items:center; gap:6px; min-width:0}
   .cbot > :global(*){min-width:0}
   .cq{margin-top:4px; font:9.5px var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .chip.dr{display:inline-flex; align-items:center; gap:5px}
+  .chip.dr select{border:0; background:transparent; color:inherit; font:inherit; cursor:pointer}
 </style>

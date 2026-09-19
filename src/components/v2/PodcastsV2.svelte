@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { etatSourceRadioFrance } from '../../lib/radioFranceSource';
   /**
    * Podcasts — nouveau client (direction Levente).
    *
@@ -416,6 +417,67 @@
   // Quitter l'écran oublie la cible.
   $effect(() => () => clearShortcutTarget());
 
+  /*
+   * Radio France avec CLÉ D'API — porté de l'ancien écran Podcasts, seul à
+   * l'offrir : émissions par station, recherche, épisodes. Sans clé, la
+   * sélection fixe ci-dessus reste ce qu'on montre.
+   *
+   * La clé est DEMANDÉE au serveur (`radiofrance_api_key_set`) au lieu d'être
+   * déduite d'un refus de `/shows` : ce 400 partait à chaque ouverture sur
+   * toute machine sans clé (#1026). Règle dans `lib/radioFranceSource`.
+   */
+  const RF_STATIONS: [string, string][] = [
+    ['FRANCEINTER', 'France Inter'], ['FRANCECULTURE', 'France Culture'],
+    ['FRANCEMUSIQUE', 'France Musique'], ['FIP', 'FIP'], ['MOUV', "Mouv'"], ['FRANCEINFO', 'franceinfo'],
+  ];
+  let rfCle = $state(false);
+  let rfLu = false;
+  let rfStation = $state('FRANCEINTER');
+  let rfEmissions = $state<any[]>([]);
+  let rfRecherche = $state('');
+  let rfResultats = $state<any[]>([]);
+  let rfChargement = $state(false);
+  async function chargerEmissionsRf(station: string) {
+    rfChargement = true;
+    try { rfEmissions = (await api.getRadioFranceShows(station)).shows ?? []; }
+    catch { rfEmissions = []; }
+    finally { rfChargement = false; }
+  }
+  $effect(() => {
+    if (section !== 'radiofrance' || !franceUniquement || rfLu) return;
+    rfLu = true;
+    api.getConfig().catch(() => null).then((config) => {
+      const etat = etatSourceRadioFrance(config);
+      rfCle = etat.cleDeclaree;
+      if (etat.interrogerLesEmissions) void chargerEmissionsRf(rfStation);
+    });
+  });
+  async function chercherRf() {
+    if (!rfRecherche.trim()) { rfResultats = []; return; }
+    rfChargement = true;
+    try { rfResultats = (await api.searchRadioFranceShows(rfRecherche)).shows ?? []; }
+    catch { rfResultats = []; }
+    finally { rfChargement = false; }
+  }
+  async function ouvrirEmissionRf(show: any) {
+    // Une émission qui a un flux s'ouvre comme tout podcast : même fiche,
+    // même lecture, même raccourci.
+    if (show.rss_url) { void openPodcast({ feed_url: show.rss_url, title: show.title, cover_url: show.cover_url }); return; }
+    opened = { title: show.title, author: show.station || 'Radio France', cover_url: show.cover_url ?? null };
+    episodes = []; epLoading = true;
+    try {
+      const d = await api.getRadioFranceEpisodes(show.url, 30);
+      episodes = (d.episodes ?? []).map((ep: any) => ({
+        title: ep.title, description: ep.description, audio_url: ep.audio_url,
+        duration_ms: (ep.duration_secs ?? 0) * 1000, published: ep.published_date,
+        cover_url: ep.cover_url || show.cover_url || '',
+      }));
+    } catch {
+      error = $t('v2.pod.episodesUnavail' as any);
+    }
+    epLoading = false;
+  }
+
   async function openPodcast(p: any) {
     const feed = feedOf(p);
     if (!feed) return;
@@ -669,6 +731,29 @@
         {/if}
 
       {:else if section === 'radiofrance' && franceUniquement}
+        {#if rfCle}
+          <div class="rf-stations">
+            {#each RF_STATIONS as [id, nom] (id)}
+              <button class:on={rfStation === id} onclick={() => { rfStation = id; rfResultats = []; void chargerEmissionsRf(id); }}>{nom}</button>
+            {/each}
+          </div>
+          <div class="rf-recherche">
+            <input type="text" placeholder={$t('podcasts.searchPlaceholder' as any)} bind:value={rfRecherche}
+              onkeydown={(e) => { if (e.key === 'Enter') void chercherRf(); }} />
+            <button onclick={chercherRf} disabled={rfChargement}>{$t('podcasts.search' as any)}</button>
+          </div>
+          {#if rfChargement}
+            <div class="state">{$t('common.loading' as any)}</div>
+          {:else if (rfResultats.length ? rfResultats : rfEmissions).length}
+            <div class="rf-emissions">
+              {#each (rfResultats.length ? rfResultats : rfEmissions) as show, i (show.id ?? show.url ?? i)}
+                <button onclick={() => ouvrirEmissionRf(show)}><b>{show.title}</b><span>{show.station ?? ''}</span></button>
+              {/each}
+            </div>
+          {:else}
+            <div class="state">{$t('podcasts.noEpisodesFound' as any)}</div>
+          {/if}
+        {/if}
         <div class="grid">{#each radioFrance.filter(match) as p, i (feedOf(p) ?? `r${i}`)}{@render tile(p, false)}{/each}</div>
 
       {:else}
@@ -930,4 +1015,14 @@
     overflow:hidden; text-overflow:ellipsis}
   .et em{font:11px var(--v2-mono); font-style:normal; color:var(--v2-txt3)}
   .ed{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
+  .rf-stations,.rf-recherche{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px}
+  .rf-stations button,.rf-recherche button{padding:5px 11px; border-radius:999px; border:1px solid var(--v2-line2);
+    background:transparent; color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
+  .rf-stations button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); border-color:transparent}
+  .rf-recherche input{flex:1; min-width:180px; height:30px; padding:0 10px; border-radius:8px; border:1px solid var(--v2-line2);
+    background:transparent; color:var(--v2-txt); font:13px var(--v2-sans)}
+  .rf-emissions{display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px; margin-bottom:18px}
+  .rf-emissions button{display:flex; flex-direction:column; gap:2px; padding:10px 12px; border-radius:10px; border:1px solid var(--v2-line);
+    background:var(--v2-surface2); color:var(--v2-txt); text-align:left; cursor:pointer; font-size:13px}
+  .rf-emissions span{font-size:11px; color:var(--v2-txt3)}
 </style>
