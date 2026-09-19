@@ -1187,6 +1187,50 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
   }
 
+  /* --- Lecture YouTube : le module yt-dlp géré par le serveur ------------
+   *
+   * Porté de l'ancienne interface, seul écran qui savait l'installer. La
+   * CONNEXION YouTube, elle, n'a pas à l'être : les routes dédiées
+   * (`/youtube/auth/device-code`, `/poll`) et la route générique que ce client
+   * emploie aboutissent au même gestionnaire serveur. Mais sans ce module, un
+   * compte connecté ne lit rien.
+   */
+  let ytInstalled = $state(false);
+  let ytVersion = $state<string | null>(null);
+  let ytStatus = $state('absent');
+  let ytBusy = $state(false);
+  let ytPoll: ReturnType<typeof setInterval> | null = null;
+
+  async function refreshYoutubePlayback() {
+    try {
+      const s = await api.getYoutubeStatus();
+      ytInstalled = !!s.installed;
+      ytVersion = s.version ?? null;
+      ytStatus = s.status ?? (s.installed ? 'ready' : 'absent');
+      ytBusy = ytStatus === 'downloading';
+      if (ytStatus !== 'downloading' && ytPoll) { clearInterval(ytPoll); ytPoll = null; }
+    } catch { /* serveur antérieur à la route : la section reste en l'état */ }
+  }
+  $effect(() => {
+    void refreshYoutubePlayback();
+    return () => { if (ytPoll) { clearInterval(ytPoll); ytPoll = null; } };
+  });
+
+  async function enableYoutubePlayback() {
+    ytBusy = true;
+    try {
+      await api.enableYoutubePlayback();
+      // Le téléchargement se fait côté serveur : on sonde jusqu'à ce qu'il
+      // finisse, sans quoi le bouton resterait « en cours » pour toujours.
+      ytStatus = 'downloading';
+      if (ytPoll) clearInterval(ytPoll);
+      ytPoll = setInterval(refreshYoutubePlayback, 2000);
+    } catch (e: any) {
+      ytBusy = false;
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
+
   async function refreshLibrary() {
     try {
       const c: any = await api.getConfig();
@@ -3331,6 +3375,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/each}
                 </div>
               {/if}
+
+              <!-- Lecture YouTube : le module yt-dlp, installé par le serveur. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.youtubePlaybackTitle' as any)}</span>
+                  <span class="hint">{$t('settings.youtubePlaybackHelp' as any)}</span>
+                </div>
+                {#if ytInstalled}
+                  <span class="sst ok">{$t('settings.youtubePlaybackReady' as any)}{ytVersion ? ` (${ytVersion})` : ''}</span>
+                {:else}
+                  <button class="lnk" disabled={ytBusy} onclick={enableYoutubePlayback}>
+                    {ytBusy ? $t('settings.youtubePlaybackDownloading' as any) : $t('settings.youtubePlaybackEnable' as any)}
+                  </button>
+                {/if}
+              </div>
+              {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
             {:else if s.id === 'wifi'}
               {#if isAppliance === false}
