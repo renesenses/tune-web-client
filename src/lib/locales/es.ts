@@ -3067,6 +3067,8 @@ export default {
   "dsp.crossfeedUnavailablePure": "Sin efecto mientras el modo PURE esté activo: el ajuste se conserva y volverá a aplicarse al desactivarlo.",
   "dsp.crossfeedUnavailableProgressiveOff": "Sin efecto por ahora: en una zona de red, el crossfeed viaja con el flujo procesado sobre la marcha. Ponga «Ecualizador y procesamiento → red» en «Sobre la marcha» en los Ajustes para oírlo.",
   "dsp.crossfeedUnavailableNoLpcm": "Sin efecto: este reproductor de red no indica que sepa leer PCM sin comprimir, el único formato que transporta el crossfeed. El ajuste se conserva y valdrá para otra salida.",
+  "dsp.crossfeedUnavailablePremium": "Sin efecto: el crossfeed forma parte de Tune Premium. El ajuste se conserva y se reanudará con una licencia Premium.",
+  "dsp.crossfeedUnavailablePlugin": "Sin efecto: la extensión crossfeed no está instalada o está desactivada. Actívala en Ajustes → Extensiones; el ajuste se conserva.",
   "dsp.crossfeedUnavailable": "Sin efecto en esta zona.",
   "dsp.crossfeedTitle": "Crossfeed (auriculares)",
   "eq.againstWall": "Contra la pared",
