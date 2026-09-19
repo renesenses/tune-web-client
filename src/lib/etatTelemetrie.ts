@@ -75,3 +75,27 @@ export function etatTelemetrie(
 export function routeDeBascule(souhait: boolean): string {
   return souhait ? '/cloud/telemetry/enable' : '/cloud/telemetry/disable';
 }
+
+/**
+ * La plus longue pause cloud annoncée par `rate_limits` (secondes), ou 0.
+ *
+ * Reprise de l'ancien `SettingsView` (`longestCloudBackoffSeconds`) : la
+ * même réponse de statut porte les suspensions de synchronisation, et
+ * l'écran les affiche sous la bascule.
+ */
+export function pauseCloudLaPlusLongue(limites: unknown): number {
+  if (!Array.isArray(limites)) return 0;
+  return limites.reduce(
+    (plus, l) => Math.max(plus, Number((l as { retry_after_seconds?: unknown })?.retry_after_seconds) || 0),
+    0,
+  );
+}
+
+/** Durée lisible d'une pause : « 5 min », « 2 h », « 1 h 30 min ». */
+export function dureePause(secondes: number): string {
+  const minutes = Math.max(1, Math.ceil(secondes / 60));
+  if (minutes < 60) return `${minutes} min`;
+  const heures = Math.floor(minutes / 60);
+  const reste = minutes % 60;
+  return reste === 0 ? `${heures} h` : `${heures} h ${reste} min`;
+}
