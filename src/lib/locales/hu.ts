@@ -3322,6 +3322,7 @@ export default {
   "settings.tabProfiles": "Profilok",
   "profiles.hint": "Minden profil megőrzi a saját kedvenceit, előzményeit és megjelenítési beállításait.",
   "profiles.active": "Aktív",
+  "profiles.photoChoose": "Fénykép választása",
   "profiles.createTitle": "Új profil",
   "profiles.namePlaceholder": "A profil neve",
   "profiles.createButton": "Létrehozás",

@@ -3244,6 +3244,7 @@ export default {
   "podcasts.result": "条结果",
   "podcasts.resultsPlural": "条结果",
   "profiles.active": "当前",
+  "profiles.photoChoose": "选择照片",
   "profiles.confirmDelete": "删除配置文件“{name}”？其收藏和播放历史将丢失。",
   "profiles.createButton": "创建",
   "profiles.createFailed": "无法创建用户，请稍后重试。",

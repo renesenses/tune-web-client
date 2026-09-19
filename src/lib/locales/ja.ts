@@ -3242,6 +3242,7 @@ export default {
   "podcasts.result": "件",
   "podcasts.resultsPlural": "件",
   "profiles.active": "使用中",
+  "profiles.photoChoose": "写真を選ぶ",
   "profiles.confirmDelete": "プロフィール「{name}」を削除しますか？ お気に入りと履歴が失われます。",
   "profiles.createButton": "作成",
   "profiles.createFailed": "プロフィールを作成できませんでした。しばらくしてからもう一度お試しください。",
