@@ -204,3 +204,17 @@ d’appareil, le LPCM DLNA ≠ le mode WAV). À compter comme perdues tant qu’
 - getAllAlbumsSeeded — GET /library/albums — ≡ getAlbumsPage
 - getTracks — GET /library/tracks — ≡ getAllTracks
 - updateZoneDlnaLpcm — PATCH /zones/{} — ≡ updateZoneWavMode
+
+## Angle mort (hors `api.ts`) — documentation et « Quoi de neuf »
+
+Relevé de `feat/v2-porte-rapport-bogue` (#1301, section « Angle mort ») :
+capacités appelées par chemin en dur dans les écrans supprimés, sans fonction
+d'`api.ts`.
+
+| Écran supprimé | Route | Chemin v2 |
+|---|---|---|
+| `WhatsNew` | `GET /system/changelog?limit=10&lang=…` (« Quoi de neuf ») | ✅ **porté** (`feat/v2-porte-documentation`) : Réglages › Système › À propos, bouton « Quoi de neuf » (tous niveaux), `api.getChangelog` + `lib/notesDeVersion` ; hors ligne et notes non traduites dits comme avant. ⚠️ L'ouverture AUTOMATIQUE après une mise à jour (`checkWhatsNew` dans `App.svelte`, clé `tune_last_seen_version`) n'est pas reprise : c'est un comportement de la coquille, à trancher dans la phase 5 |
+| `SettingsView` | lien `GET /system/api-docs` | ✅ **porté** : même section (niveau Expert, comme avant), `api.getApiDocs` ; le catalogue s'affiche sur place — le lien brut ne portait ni le jeton ni le préfixe du relais |
+| `PluginsView` | `GET /plugins/docs` | ✅ **porté** : Extensions v2, lien « Documentation des extensions » par `api.getPluginDocsUrl`. Le serveur ne rend plus qu'`{ url }` (`routes/plugins.rs`, `plugin_docs`) ; seule une adresse http(s) est rendue |
+
+Témoin : `src/lib/__tests__/documentationEtNotesV2.test.ts`.
