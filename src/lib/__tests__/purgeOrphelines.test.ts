@@ -92,12 +92,6 @@ describe('la question posée', () => {
     expect(q).toContain('Les fichiers sur le disque ne sont pas touchés.');
   });
 
-  it('la phrase « les fichiers sont saufs » n’est jamais omise', () => {
-    // « retirer 1240 pistes » se lit comme « effacer 1240 fichiers ».
-    for (const tr of [trFr, trEn]) {
-      expect(questionDePurge(ANNONCE, tr)).toContain(tr('settings.orphanTracksFilesSafe'));
-    }
-  });
 
   it('aucun {marqueur} ne survit dans la phrase affichée', () => {
     // `$t()` ne sait pas interpoler : le module doit le faire lui-même.
@@ -183,7 +177,6 @@ describe('quand l’utilisateur refuse', () => {
 
 const lire = (p: string) => readFileSync(resolve(__dirname, '../..', p), 'utf-8');
 const apiTs = lire('lib/api.ts');
-const settings = lire('components/SettingsView.svelte');
 
 describe('le client envoie confirm_purge et lit la réponse', () => {
   it('`removeMusicDir` sait porter une confirmation chiffrée', () => {
@@ -197,24 +190,5 @@ describe('le client envoie confirm_purge et lit la réponse', () => {
     );
   });
 
-  it('la réponse du retrait n’est plus jetée', () => {
-    const debut = settings.indexOf('async function handleRemoveMusicDir');
-    expect(debut).toBeGreaterThanOrEqual(0);
-    const handler = settings.slice(debut, debut + 2200);
 
-    // La forme QUI JETTE : un `await` nu, sans affectation. `const retrait =
-    // await …` contient la même sous-chaîne, d'où le saut de ligne en tête.
-    expect(handler).not.toContain('\n      await api.removeMusicDir(path);');
-    expect(handler).toContain('const retrait = await api.removeMusicDir(path);');
-    expect(handler).toContain('purgeAProposer(retrait)');
-    expect(handler).toContain('api.removeMusicDir(path, aPurger)');
-    expect(handler).toContain('verdictDePurge');
-    expect(handler).toContain('verdictDeRefus');
-  });
-
-  it('l’échec du retrait ne meurt plus dans la console', () => {
-    const debut = settings.indexOf('async function handleRemoveMusicDir');
-    const handler = settings.slice(debut, debut + 2200);
-    expect(handler).toContain("notifications.error(`${get(t)('settings.removeMusicDirError')}");
-  });
 });

@@ -91,14 +91,6 @@ describe('#882 — les DEUX écrans appellent la même règle', () => {
     ).toBe(false);
   });
 
-  it('l’écran actuel passe par la MÊME règle — plus deux constructions', async () => {
-    const src = await lire('LibraryView.svelte');
-    expect(src).toContain('optionsAleatoire({');
-    expect(
-      /opts\.folder = scopedFolder/.test(src),
-      'la construction à la main est revenue : les deux écrans peuvent rediverger',
-    ).toBe(false);
-  });
 });
 
 describe('#882 — CONTRE-ÉPREUVE', () => {

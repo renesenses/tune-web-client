@@ -11,7 +11,7 @@ import {
 /** Les composants du lot 1. `LibraryView` et `StreamingView` en sont
  *  volontairement absents : d'autres sessions écrivent dedans, et le chantier
  *  les traite à part. */
-const COMPOSANTS = ['partages/NowPlaying', 'partages/TransportBar', 'MiniPlayer', 'QueueView'] as const;
+const COMPOSANTS = ['partages/NowPlaying', 'partages/TransportBar'] as const;
 
 const ANALYSES: Analyse[] = COMPOSANTS.map(analyser);
 

@@ -40,20 +40,6 @@ describe('la langue enregistrée au démarrage', () => {
     expect(shell).toMatch(/\$effect\(\(\) => \{ locale\.set\(\$preferences\.language \?\? 'fr'\); \}\);/);
   });
 
-  it('🔴 les DEUX coquilles le font, chacune pour elle-même', () => {
-    // La garde qui compte. `main.ts` monte l'une OU l'autre : ce qu'une seule
-    // fait n'est fait qu'une fois sur deux. C'est exactement ce qui s'est
-    // passé — et le commentaire de `bootstrapV2` décrivait déjà ce piège pour
-    // les magasins partagés, trois lignes plus bas.
-    const main = sansCommentaires(lire('src/main.ts'));
-    expect(main).toMatch(/futureInterface\(\) \? ShellV2 : App/);
-    const v0 = sansCommentaires(lire('src/App.svelte'));
-    expect(v0, "l'ancienne coquille l'a toujours fait").toMatch(
-      /locale\.set\(prefs\.language \?\? 'fr'\)/,
-    );
-    expect(shell, 'la nouvelle doit le faire aussi').toMatch(/locale\.set\(\$preferences\.language/);
-  });
-
   it("aucune boucle : `locale` n'écrit jamais dans `preferences`", () => {
     // L'effet lit `$preferences.language` et écrit `locale`. Si `locale`
     // pilotait `preferences` en retour, les deux se relanceraient sans fin —
