@@ -58,3 +58,26 @@ export function corpsVersionService(v: VersionService): Record<string, unknown> 
 export function corpsVersionLocale(v: VersionLocale): Record<string, unknown> | null {
   return v.track_id == null ? null : { track_id: v.track_id };
 }
+
+/**
+ * Ce qu'une tuile de SERVICE du panneau « Autres versions » écrit — #1115.
+ *
+ * FabienM (fil 1829, 0.9.152) : « il manque le nom de l'album à côté de chaque
+ * vignette ». La tuile n'avait qu'une ligne de texte : l'INTERPRÈTE pour une
+ * reprise, l'ALBUM pour une version. Il manquait donc toujours l'un des deux,
+ * alors que le serveur rend les deux pour chaque candidat (mesuré sur le .18
+ * le 19/09/2026, piste 25930 « Lovely Day » : 14 candidats Qobuz/Tidal, tous
+ * avec `artist_name` ET `album_title`).
+ *
+ * Deux lignes, dans le même ordre pour une version et pour une reprise :
+ * l'album (ce qui distingue deux versions d'un même interprète), puis
+ * l'interprète (ce qui distingue deux reprises). Le titre du morceau ne sert
+ * que de repli quand le service ne nomme pas l'album.
+ */
+export function libellesVersionService(
+  v: Pick<VersionService, 'title' | 'artist_name' | 'album_title'>,
+): { album: string; interprete: string | null } {
+  const album = (v.album_title ?? '').trim() || v.title;
+  const interprete = (v.artist_name ?? '').trim() || null;
+  return { album, interprete };
+}
