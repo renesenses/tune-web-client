@@ -4750,6 +4750,12 @@ export default {
   "upnp.availability.disabled": "Server dezactivat",
   "upnp.availability.unknown": "Stare necunoscută",
   "upnp.availability.hint": "Ultima stare cunoscută a serverului; catalogul poate fi consultat în continuare.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "Refuză redarea în loc să convertească frecvența atunci când ieșirea nu redă frecvența sursei.",
+  "bitperfect.refused": "Bit-perfect strict: redare refuzată — ieșirea nu redă {requested} kHz fără conversie (funcționează la {device} kHz). Dezactivează „Bit-perfect strict” în setările zonei pentru a reda cu conversie.",
+  "bitperfect.pureDegraded": "PURE degradat — {from} → {to} kHz, nu este bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz, nu este bit-perfect",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
