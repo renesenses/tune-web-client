@@ -1044,9 +1044,9 @@ export default {
   'dashboard.section.hourly': '收听时段',
   'dashboard.section.by_zone': '按区域',
   'dashboard.section.by_source': '按来源',
-  'dashboard.section.completion': "完整播放与中断对比",
-  'dashboard.completion.completed': '已播完',
-  'dashboard.completion.skipped': "已中断",
+  "dashboard.section.completion": "历史记录中的时长",
+  "dashboard.completion.completed": "30 秒及以上",
+  "dashboard.completion.skipped": "少于 30 秒",
   'dashboard.empty': '暂无收听历史。播放一些音乐吧 🎶',
 
   // Equalizer
@@ -2731,6 +2731,7 @@ export default {
   "converter.retry": "重试",
   "converter.conversionError": "转换错误",
   "converter.loadAlbumsError": "加载专辑失败",
+  "converter.folderUnavailable": "无法确定此专辑的源文件夹。",
   "converter.browseError": "浏览目录失败",
   "converter.startError": "启动转换失败",
   "converter.cancelled": "转换已取消",
@@ -4462,6 +4463,7 @@ export default {
   "v2.zones.browserUnattended": "浏览器区域：没有标签页在收听",
   "v2.zones.viewGrid": "网格",
   "v2.zones.viewList": "列表",
+  "v2.zones.listActionsHelp": "若要重命名、合并或删除区域，请切换到{view}视图。",
   "v2.zones.viewSwitch": "视图",
   "v2.str.discover": "发现",
   "v2.str.editorial": "编辑精选",

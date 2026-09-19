@@ -1044,9 +1044,9 @@ export default {
   'dashboard.section.hourly': '시간대별 청취',
   'dashboard.section.by_zone': '존별',
   'dashboard.section.by_source': '소스별',
-  'dashboard.section.completion': "끝까지 재생 대 중단",
-  'dashboard.completion.completed': '완료',
-  'dashboard.completion.skipped': "중단",
+  "dashboard.section.completion": "기록에 저장된 길이",
+  "dashboard.completion.completed": "30초 이상",
+  "dashboard.completion.skipped": "30초 미만",
   'dashboard.empty': '아직 청취 기록이 없습니다. 음악을 재생해 보세요 🎶',
 
   // Equalizer
@@ -2706,6 +2706,7 @@ export default {
   "converter.retry": "다시 시도",
   "converter.conversionError": "변환 오류",
   "converter.loadAlbumsError": "앨범 불러오기 실패",
+  "converter.folderUnavailable": "이 앨범의 원본 폴더를 확인할 수 없습니다.",
   "converter.browseError": "디렉터리 탐색 실패",
   "converter.startError": "변환 시작 실패",
   "converter.cancelled": "변환 취소됨",
@@ -4462,6 +4463,7 @@ export default {
   "v2.zones.browserUnattended": "브라우저 구역: 수신 중인 탭이 없습니다",
   "v2.zones.viewGrid": "그리드",
   "v2.zones.viewList": "목록",
+  "v2.zones.listActionsHelp": "구역 이름을 바꾸거나 병합 또는 삭제하려면 {view} 보기로 전환하세요.",
   "v2.zones.viewSwitch": "보기",
   "v2.str.discover": "둘러보기",
   "v2.str.editorial": "에디토리얼",

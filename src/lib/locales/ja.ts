@@ -1044,9 +1044,9 @@ export default {
   'dashboard.section.hourly': '時間帯別',
   'dashboard.section.by_zone': 'ゾーン別',
   'dashboard.section.by_source': 'ソース別',
-  'dashboard.section.completion': "最後まで再生 対 中断",
-  'dashboard.completion.completed': '完了',
-  'dashboard.completion.skipped': "中断",
+  "dashboard.section.completion": "履歴に記録された長さ",
+  "dashboard.completion.completed": "30秒以上",
+  "dashboard.completion.skipped": "30秒未満",
   'dashboard.empty': 'まだ再生履歴がありません。何か聴いてみましょう 🎶',
 
   // Equalizer
@@ -2729,6 +2729,7 @@ export default {
   "converter.retry": "再試行",
   "converter.conversionError": "変換エラー",
   "converter.loadAlbumsError": "アルバムの読み込みに失敗しました",
+  "converter.folderUnavailable": "このアルバムの元フォルダーを特定できません。",
   "converter.browseError": "ディレクトリの参照に失敗しました",
   "converter.startError": "変換の開始に失敗しました",
   "converter.cancelled": "変換をキャンセルしました",
@@ -4462,6 +4463,7 @@ export default {
   "v2.zones.browserUnattended": "ブラウザーゾーン：再生中のタブがありません",
   "v2.zones.viewGrid": "グリッド",
   "v2.zones.viewList": "リスト",
+  "v2.zones.listActionsHelp": "ゾーンの名前変更、統合、削除を行うには、{view}表示に切り替えてください。",
   "v2.zones.viewSwitch": "表示",
   "v2.str.discover": "見つける",
   "v2.str.editorial": "エディトリアル",
