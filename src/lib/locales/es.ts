@@ -3244,6 +3244,7 @@ export default {
   "podcasts.result": "resultado",
   "podcasts.resultsPlural": "resultados",
   "profiles.active": "Activo",
+  "profiles.photoChoose": "Elegir una foto",
   "profiles.confirmDelete": "¿Eliminar el perfil «{name}»? Se perderán sus favoritos y su historial.",
   "profiles.createButton": "Crear",
   "profiles.createFailed": "No se ha podido crear el perfil. Vuelve a intentarlo en un momento.",

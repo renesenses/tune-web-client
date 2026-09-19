@@ -3236,6 +3236,7 @@ export default {
   "podcasts.result": "결과",
   "podcasts.resultsPlural": "결과",
   "profiles.active": "사용 중",
+  "profiles.photoChoose": "사진 선택",
   "profiles.confirmDelete": "프로필 '{name}'을(를) 삭제할까요? 즐겨찾기와 기록이 사라집니다.",
   "profiles.createButton": "만들기",
   "profiles.createFailed": "프로필을 만들지 못했습니다. 잠시 후 다시 시도하세요.",
