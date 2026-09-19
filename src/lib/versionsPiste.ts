@@ -81,3 +81,25 @@ export function libellesVersionService(
   const interprete = (v.artist_name ?? '').trim() || null;
   return { album, interprete };
 }
+
+/**
+ * Ce qu'une tuile de la BIBLIOTHÈQUE du panneau « Autres versions » écrit — #1235.
+ *
+ * Bertrand, 18/09/2026 : « Autres versions — manque nom du groupe ». Deux
+ * pressages locaux d'un même titre par deux formations différentes ne se
+ * distinguaient que par la pochette : la tuile ne portait que l'album. La
+ * route ne transportait pas l'interprète sur ce chemin ; elle le fait depuis
+ * tune-server-rust#4468 (0.9.157), sous le même nom `artist_name` que les
+ * versions de service — celui de la PISTE, l'artiste d'album en repli.
+ *
+ * Même forme que `libellesVersionService` : l'album, puis l'interprète. Un
+ * serveur antérieur n'envoie pas le champ : la tuile reste alors ce qu'elle
+ * était, sans inventer de nom.
+ */
+export function libellesVersionLocale(
+  v: { album_title: string | null; artist_name?: string | null },
+): { album: string; interprete: string | null } {
+  const album = (v.album_title ?? '').trim();
+  const interprete = (v.artist_name ?? '').trim() || null;
+  return { album, interprete };
+}
