@@ -4749,6 +4749,12 @@ export default {
   "upnp.availability.disabled": "서버 비활성화됨",
   "upnp.availability.unknown": "상태 알 수 없음",
   "upnp.availability.hint": "마지막으로 확인된 서버 상태입니다. 카탈로그는 계속 탐색할 수 있습니다.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "출력 장치가 소스의 샘플레이트를 재생할 수 없을 때 변환하지 않고 재생을 거부합니다.",
+  "bitperfect.refused": "엄격한 bit-perfect: 재생 거부됨 — 출력 장치가 {requested} kHz를 변환 없이 재생할 수 없습니다({device} kHz로 동작 중). 변환하여 재생하려면 존 설정에서 “Bit-perfect strict”를 끄세요.",
+  "bitperfect.pureDegraded": "PURE 저하 — {from} → {to} kHz, bit-perfect 아님",
+  "bitperfect.rateConversion": "{from} → {to} kHz, bit-perfect 아님",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

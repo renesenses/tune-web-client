@@ -4707,6 +4707,12 @@ export default {
   "upnp.availability.disabled": "Kiszolgáló letiltva",
   "upnp.availability.unknown": "Ismeretlen állapot",
   "upnp.availability.hint": "A kiszolgáló utolsó ismert állapota; a katalógus továbbra is böngészhető.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "A lejátszás megtagadása a mintavételi frekvencia átalakítása helyett, ha a kimenet nem tudja lejátszani a forrás frekvenciáját.",
+  "bitperfect.refused": "Szigorú bit-perfect: a lejátszás megtagadva — a kimenet nem tudja átalakítás nélkül lejátszani a(z) {requested} kHz-et (jelenleg {device} kHz-en fut). Az átalakítással történő lejátszáshoz kapcsold ki a „Bit-perfect strict” beállítást a zóna beállításaiban.",
+  "bitperfect.pureDegraded": "PURE korlátozott — {from} → {to} kHz, nem bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz, nem bit-perfect",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

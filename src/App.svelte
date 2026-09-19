@@ -36,6 +36,7 @@ import { vueDepuisHash } from './lib/routeAuChargement';
   import { get } from 'svelte/store';
   import { concerneLaZoneRegardee } from './lib/zoneRegardee';
   import { t } from './lib/i18n';
+  import { messageRefusBitperfect } from './lib/bitperfectStrict';
   import * as api from './lib/api';
   import { libelleBanniereEnrichissement, enrichissementImagesTermine, type TacheDeFond } from './lib/tachesDeFond';
   import { cleBanniereEnrichissementApresScan } from './lib/enrichissementApresScan';
@@ -1102,7 +1103,8 @@ import AlarmsView from './components/AlarmsView.svelte';
           }
           // Surface playback errors to the user (output unavailable, pipeline
           // error, stream URL timeout, etc.) so they know WHY play failed.
-          const msg = event.data?.message || event.data?.error || 'Playback error';
+          // #3973 — refus « Bit-perfect strict » : phrase localisée depuis le code.
+          const msg = messageRefusBitperfect(event.data) || event.data?.message || event.data?.error || 'Playback error';
           const trackTitle = event.data?.track_title;
           showError(trackTitle ? `${msg} — ${trackTitle}` : msg);
           if (zoneId) syncZoneState(zoneId);

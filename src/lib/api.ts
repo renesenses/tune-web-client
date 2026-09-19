@@ -69,6 +69,7 @@ import type {
 
 import { baseApi, entetesRelais } from './bridge';
 import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
+import { messageRefusBitperfect } from './bitperfectStrict';
 
 /**
  * L'erreur d'un refus premium 402 — **seul** constructeur de cette forme dans
@@ -305,6 +306,12 @@ export interface ApiError extends Error {
    * autre défaut.
    */
   dejaAnnonce?: boolean;
+  /**
+   * Le corps JSON du refus, tel que le serveur l'a rendu. Certains refus
+   * portent plus qu'un code et un message : `bitperfect_strict_refused`
+   * (#3973) nomme les deux fréquences, dont l'interface construit sa phrase.
+   */
+  corps?: unknown;
 }
 
 async function apiError(response: Response): Promise<ApiError> {
@@ -357,6 +364,7 @@ async function apiError(response: Response): Promise<ApiError> {
   const err = new Error(detail) as ApiError;
   err.code = code;
   err.status = response.status;
+  if (corps && typeof corps === 'object') err.corps = corps;
   // Le delai d'un 429 doit survivre jusqu'a l'ecran. `erreurDepuisReponse` le
   // portait deja, pas ce chemin-ci : les LECTURES du support (liste des
   // tickets, fil, reponse, marquage lu) passent par `fetchJSON`, et elles
@@ -506,7 +514,19 @@ export async function fetchJSON<T>(
       // swallow (they fire play/next/resume without awaiting): a missing local
       // file or a zone with no output device. Localised so it matches the UI.
       const key = err.code ? PLAY_ERROR_KEYS[err.code] : undefined;
-      if (key) {
+      // #3973 — « Bit-perfect strict » a refusé la lecture. La phrase se
+      // construit depuis les fréquences du corps (422), dans la langue de
+      // l'interface ; elle REMPLACE aussi le message de l'erreur, pour qu'un
+      // écran à bandeau (`messageEchecLecture`) dise la même chose que le toast.
+      const refusStrict = messageRefusBitperfect({
+        ...((err.corps as Record<string, unknown> | undefined) ?? {}),
+        code: err.code,
+      });
+      if (refusStrict) {
+        err.message = refusStrict;
+        notifications.error(refusStrict, 10000);
+        err.dejaAnnonce = true;
+      } else if (key) {
         notifications.error(get(t)(key as any));
         // Dit à l'appelant que c'est fait : voir `ApiError.dejaAnnonce`.
         err.dejaAnnonce = true;
@@ -793,6 +813,15 @@ export function updateZoneMonoDownmix(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({ mono_downmix: enabled }),
+  });
+}
+
+/** #3973 — « Bit-perfect strict » : refuser la lecture plutôt que convertir la
+ *  fréquence quand la sortie ne lit pas celle de la source. */
+export function updateZoneStrictBitperfect(id: number, enabled: boolean) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ strict_bitperfect: enabled }),
   });
 }
 

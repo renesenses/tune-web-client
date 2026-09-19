@@ -4748,4 +4748,10 @@ export default {
   "upnp.availability.disabled": "Server inaktiverad",
   "upnp.availability.unknown": "Okänd status",
   "upnp.availability.hint": "Senast kända serverstatus; katalogen går fortfarande att bläddra i.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "Vägra uppspelning i stället för att konvertera samplingsfrekvensen när utgången inte kan spela källans frekvens.",
+  "bitperfect.refused": "Strikt bit-perfect: uppspelning nekad — utgången kan inte spela {requested} kHz utan konvertering (den körs i {device} kHz). Stäng av ”Bit-perfect strict” i zonens inställningar för att spela med konvertering.",
+  "bitperfect.pureDegraded": "PURE försämrad — {from} → {to} kHz, inte bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz, inte bit-perfect",
 } as const;
