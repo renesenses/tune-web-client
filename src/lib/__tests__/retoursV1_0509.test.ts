@@ -171,12 +171,20 @@ describe('Étiquettes — une PISTE s étiquette aussi', () => {
 
   it('la barre d actions porte le geste', () => {
     expect(src).toContain('panneauEtiquettes');
-    expect(src).toContain('itemType="track"');
+    expect(src).toContain("itemType: 'track'");
   });
 
-  it('seule une piste de la BIBLIOTHÈQUE le propose', () => {
-    // Une piste de service n'a pas d'identifiant numérique pour la route.
-    expect(src).toContain('{#if local && piste.id != null}');
+  // 🔄 Réécrit le 19/09/2026 (#1238). Ce témoin disait « seule une piste de la
+  // BIBLIOTHÈQUE le propose — une piste de service n'a pas d'identifiant
+  // numérique pour la route ». Le serveur a depuis une route à PAIRE
+  // (`POST /tags/{id}/streaming-items`, v0.9.144). L'intention — ne proposer le
+  // geste qu'à une piste qu'une route sait désigner — est gardée : le bouton suit
+  // `cibleEtiquettes`, entier pour la bibliothèque, paire pour un service, `null`
+  // sinon. Le comportement est prouvé en montant la barre
+  // (`etiquettesStreaming1238.test.ts`).
+  it('le geste suit une cible désignable — entier ou paire', () => {
+    expect(src).toContain('{#if cibleEtiquettes}');
+    expect(src).toContain("cibleDeService('track', piste)");
   });
 
   it('le panneau est chargé à la demande, pas à chaque ligne', () => {

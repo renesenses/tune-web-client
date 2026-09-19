@@ -1,10 +1,10 @@
 <script lang="ts">
-  import * as api from '../lib/api';
-  import { tip } from '../lib/tooltip';
-  import { t } from '../lib/i18n';
-  import { parseSmbAddress } from '../lib/smbAddress';
-  import { notifications } from '../lib/stores/notifications';
-  import type { BrowseRootEntry } from '../lib/types';
+  import * as api from '../../lib/api';
+  import { tip } from '../../lib/tooltip';
+  import { t } from '../../lib/i18n';
+  import { parseSmbAddress } from '../../lib/smbAddress';
+  import { notifications } from '../../lib/stores/notifications';
+  import type { BrowseRootEntry } from '../../lib/types';
 
   interface Props {
     onClose: () => void;

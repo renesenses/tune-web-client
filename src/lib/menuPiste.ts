@@ -79,6 +79,13 @@ export interface CapacitesPiste {
    * de le résoudre. Voir `GestesNavigationService`.
    */
   artisteDeService?: { service: string; nom: string } | null;
+  /**
+   * La piste peut-elle porter une étiquette ? Absent = seulement une piste de
+   * la BIBLIOTHÈQUE (comportement d'origine). #1238 : une piste de service
+   * désignée par `source` + `source_id` le peut aussi, par
+   * `POST /tags/{id}/streaming-items` — c'est l'appelant qui le sait.
+   */
+  etiquetable?: boolean;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -147,6 +154,7 @@ export function entreesMenuPiste(
    * absences, TROIS familles, et les confondre serait l'erreur :
    *
    *   A. Plus comme ça, Autres versions, Étiquettes — les trois routes prennent
+   *      (Étiquettes : plus depuis #1238, voir `etiquetable`.)
    *      un `i64` de `tracks`. Une piste de service n'en a pas.
    *   B. Ajouter à une playlist — tranché par #1848 : `playlist_tracks.track_id`
    *      est `NOT NULL REFERENCES tracks(id)`. Évolution de schéma, pas
@@ -174,7 +182,7 @@ export function entreesMenuPiste(
     ICONES.album,
     g.allerAlbum,
   );
-  pousser(deLaBibliotheque, 'v2.cover.tags', ICONES.tag, g.etiqueter);
+  pousser(c.etiquetable ?? deLaBibliotheque, 'v2.cover.tags', ICONES.tag, g.etiqueter);
   /**
    * « Tous les champs piste » — #851 (Pierre M, fil 1671, 10/09/2026).
    *
