@@ -31,8 +31,8 @@ import * as LOCALES from '../locales';
 const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh'] as const;
 const dict = (l: string) => (LOCALES as Record<string, Record<string, string>>)[l];
 
-const settingsView = readFileSync(
-  resolve(__dirname, '../../components/SettingsView.svelte'),
+const settingsV2 = readFileSync(
+  resolve(__dirname, '../../components/v2/SettingsV2.svelte'),
   'utf-8',
 );
 const ambianceView = readFileSync(
@@ -99,14 +99,16 @@ describe('#2104 — le texte d’aide désigne l’écran où le bloc vit', () =
   });
 
   it('le réglage de débit vit dans l’onglet ainsi nommé', () => {
-    // Garde de texte source : le sélecteur `acoustic-throttle` doit se trouver
-    // ENTRE l'ouverture du bloc `settingsTab === 'clap'` et le bloc suivant.
+    // Garde de texte source : le réglage de débit doit se trouver DANS le bloc
+    // de l'onglet acoustique, entre son ouverture et celle du bloc suivant.
     // S'il redéménage, ce test tombe et le texte d'aide devra suivre.
-    const ouverture = settingsView.indexOf("{#if settingsTab === 'clap'}");
+    // (Lisait `SettingsView.svelte` avant la phase 5 ; l'écran a changé, la
+    // règle non.)
+    const ouverture = settingsV2.indexOf("{:else if s.id === 'clap'}");
     expect(ouverture, "le bloc de l’onglet acoustique a disparu").toBeGreaterThan(-1);
-    const suivant = settingsView.indexOf('{#if settingsTab === ', ouverture + 1);
-    const debit = settingsView.indexOf('id="acoustic-throttle"');
-    expect(debit, 'le sélecteur de débit a disparu de SettingsView').toBeGreaterThan(-1);
+    const suivant = settingsV2.indexOf('{:else if s.id === ', ouverture + 1);
+    const debit = settingsV2.indexOf("$t('acoustic.throttle' as any)");
+    expect(debit, 'le sélecteur de débit a disparu des réglages').toBeGreaterThan(-1);
     expect(
       debit > ouverture && (suivant === -1 || debit < suivant),
       'le réglage de débit n’est plus dans l’onglet que le texte d’aide désigne',

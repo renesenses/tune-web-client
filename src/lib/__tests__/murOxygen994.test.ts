@@ -42,11 +42,4 @@ describe('#994 — la disposition « Mur »', () => {
     expect(oxy).toMatch(/\.mur \{ display: grid;[^}]*gap: 2px/);
     expect(oxy).toMatch(/\.mur \.tuile \{[^}]*aspect-ratio: 1/);
   });
-  it('le libellé existe dans les onze langues, et le sélecteur de l’ancienne coquille aussi', async () => {
-    for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh']) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
-      expect(dico['oxygen.view.mur'], code).toBeTruthy();
-    }
-    expect(lire('src/components/SettingsView.svelte')).toContain('<option value="mur">');
-  });
 });

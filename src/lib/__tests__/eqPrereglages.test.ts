@@ -165,7 +165,7 @@ describe('libellePrereglage', () => {
   });
 });
 
-describe('les deux écrans lisent la MÊME table', () => {
+describe('le panneau du lecteur lit la table partagée', () => {
   const NOW_PLAYING = readFileSync(
     resolve(process.cwd(), 'src/components/partages/NowPlaying.svelte'),
     'utf-8',
@@ -174,22 +174,11 @@ describe('les deux écrans lisent la MÊME table', () => {
     resolve(process.cwd(), 'src/components/partages/NowPlayingEqPanel.svelte'),
     'utf-8',
   );
-  const EQUALIZER = readFileSync(
-    resolve(process.cwd(), 'src/components/EqualizerView.svelte'),
-    'utf-8',
-  );
   const API = readFileSync(resolve(process.cwd(), 'src/lib/api.ts'), 'utf-8');
 
   it('le panneau ne tient plus sa propre liste de libellés', () => {
     expect(PANNEAU).toMatch(/from '\.\.\/(\.\.\/)?lib\/eqPrereglages'/);
     expect(PANNEAU, '« Vocal » est revenu dans le panneau').not.toContain("'vocal'");
-  });
-
-  it('l’écran Égaliseur non plus', () => {
-    expect(EQUALIZER).toMatch(/from '\.\.\/(\.\.\/)?lib\/eqPrereglages'/);
-    expect(EQUALIZER, 'la table en dur est revenue').not.toMatch(
-      /bass_boost:\s*\{\s*label/,
-    );
   });
 
   /** Le cœur du ticket : le panneau écrit des BANDES, pas un nom. */

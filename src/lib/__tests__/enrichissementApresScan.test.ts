@@ -7,7 +7,6 @@ import { cleBanniereEnrichissementApresScan } from '../enrichissementApresScan';
 import fr from '../locales/fr';
 import en from '../locales/en';
 
-const APP = readFileSync(resolve(__dirname, '../../App.svelte'), 'utf8');
 
 describe('motif d\'enrichissement publié à la fin du scan (#2507)', () => {
   it('rend visible le refus Premium et indique le chemin manuel', () => {
@@ -37,7 +36,4 @@ describe('motif d\'enrichissement publié à la fin du scan (#2507)', () => {
     })).toBeNull();
   });
 
-  it('branche le contrat sur library.scan.completed au lieu de toujours afficher « Prêt »', () => {
-    expect(APP).toContain('showScanCompletedBanner(event.data?.auto_enrichment)');
-  });
 });

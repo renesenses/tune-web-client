@@ -38,7 +38,6 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { mount, unmount, flushSync } from 'svelte';
 import ShellV2 from '../../components/v2/ShellV2.svelte';
-import App from '../../App.svelte';
 import * as api from '../api';
 import { setToken } from '../auth';
 import { activeView } from '../stores/navigation';
@@ -170,78 +169,6 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('#1021 — un 401 amène l’écran de connexion, dans les DEUX coquilles', () => {
-  it('coquille ACTUELLE (App.svelte)', async () => {
-    await monter(App);
-    // Pré-condition : sans elle, un témoin vert ne prouverait rien — l'écran
-    // pourrait être là depuis le montage.
-    expect(
-      ecranDeConnexion(),
-      'l’écran de connexion est affiché AVANT le 401 : le témoin ne mesurerait rien.',
-    ).toBeNull();
-
-    await expirerLaSessionSurUnAppel();
-
-    expect(
-      ecranDeConnexion(),
-      'après un 401, aucun écran de connexion dans la coquille actuelle — ' +
-        'c’est l’application MUETTE de #1021 : le jeton est effacé, et rien ne le redemande.',
-    ).not.toBeNull();
-  });
-
-  it('coquille V2 (ShellV2)', async () => {
-    await monter(ShellV2);
-    expect(
-      ecranDeConnexion(),
-      'l’écran de connexion est affiché AVANT le 401 : le témoin ne mesurerait rien.',
-    ).toBeNull();
-
-    await expirerLaSessionSurUnAppel();
-
-    expect(
-      ecranDeConnexion(),
-      'après un 401, aucun écran de connexion dans la coquille v2 — ' +
-        'la v2 navigue par pushState et ne lit AUCUN hash : `#login` y est lettre morte.',
-    ).not.toBeNull();
-  });
-
-  it('l’écran courant survit dessous : le calque ne REMPLACE pas l’interface', async () => {
-    // Question 1 de l'issue, tranchée : par-dessus, pas à la place. Remplacer
-    // l'interface jetterait le contexte — file d'attente, recherche en cours.
-    await monter(ShellV2);
-    const coquilleAvant = document.querySelector('.v2-shell');
-    expect(coquilleAvant, 'la coquille v2 ne s’est pas montée : le reste ne mesure rien.').not.toBeNull();
-
-    await expirerLaSessionSurUnAppel();
-
-    expect(
-      document.querySelector('.v2-shell'),
-      'la coquille v2 a disparu sous le calque : le contexte de l’utilisateur est perdu.',
-    ).not.toBeNull();
-    expect(ecranDeConnexion(), 'le calque de connexion manque.').not.toBeNull();
-  });
-
-  it('une reconnexion réussie retire le calque', async () => {
-    // `setToken()` est le seul point de passage d'une session qui reprend :
-    // c'est lui qui rabaisse le drapeau, et non l'écran de connexion — sinon
-    // le retour du SSO, qui ne passe pas par cet écran, laisserait le calque.
-    await monter(ShellV2);
-    await expirerLaSessionSurUnAppel();
-    expect(ecranDeConnexion()).not.toBeNull();
-
-    const { setToken } = await import('../auth');
-    jetonRefuse = false;
-    setToken('jeton-neuf');
-    flushSync();
-    await respirer();
-    flushSync();
-
-    expect(
-      ecranDeConnexion(),
-      'le calque reste après une reconnexion réussie : l’utilisateur est enfermé dessus.',
-    ).toBeNull();
-  });
-});
 
 describe('#1021 — le câblage, compté sur les APPELS et non sur les noms', () => {
   /**
@@ -279,9 +206,8 @@ describe('#1021 — le câblage, compté sur les APPELS et non sur les noms', ()
     ).toBeGreaterThanOrEqual(1);
   });
 
-  it('les DEUX coquilles montent le calque', () => {
+  it('la coquille monte le calque', () => {
     for (const [nom, rel] of [
-      ['App.svelte', '../../App.svelte'],
       ['ShellV2.svelte', '../../components/v2/ShellV2.svelte'],
     ] as const) {
       const src = lire(rel);

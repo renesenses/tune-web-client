@@ -171,20 +171,3 @@ describe('le retour d’écran ne détruit plus l’entrée qu’il quitte', () 
   });
 });
 
-describe('les vues déclarent leur intention', () => {
-  const source = (chemin: string) =>
-    readFileSync(resolve(__dirname, '../..', chemin), 'utf-8');
-
-  it('App.svelte décide par `opPourFiche` au lieu d’un `replaceState` inconditionnel', () => {
-    const app = source('App.svelte');
-    expect(app).toMatch(/opPourFiche/);
-    expect(app).toMatch(/finDuRetourProgrammatique/);
-  });
-
-  it('le goBack() de LibraryView annonce le retour', () => {
-    const vue = source('components/LibraryView.svelte');
-    expect(vue).toMatch(/reculerAvecIntention/);
-    // Plus de `history.back()` nu dans le goBack de la bibliothèque.
-    expect(vue).not.toMatch(/window\.history\.back\(\)/);
-  });
-});

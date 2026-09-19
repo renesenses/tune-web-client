@@ -70,32 +70,7 @@ describe('#1085 — l\'écran', () => {
   });
 });
 
-describe('#1085 — l\'événement, qui est le même pour les deux gestes', () => {
-  const app = readFileSync('src/App.svelte', 'utf8');
-
-  it('🔴 `keep_current` a sa propre branche, AVANT celle qui arrête tout', () => {
-    const iGarde = app.indexOf("type === 'playback.queue.cleared' && event.data?.keep_current");
-    const iArret = app.indexOf("type === 'playback.queue.cleared') {");
-    expect(iGarde).toBeGreaterThan(0);
-    expect(iArret).toBeGreaterThan(iGarde);
-  });
-
-  it('cette branche recharge la file et ne remet RIEN à zéro', () => {
-    const i = app.indexOf("event.data?.keep_current");
-    const j = app.indexOf("type === 'playback.queue.cleared') {", i);
-    const bloc = app.slice(i, j);
-    expect(bloc).toContain('fetchQueue()');
-    expect(bloc).toContain('syncZoneState(zoneId)');
-    // Contre-épreuve : aucune des trois remises à zéro de l'autre branche.
-    expect(bloc).not.toContain("state: 'stopped'");
-    expect(bloc).not.toContain('current_track: null');
-    expect(bloc).not.toContain('queueTracks.set([])');
-  });
-
-  it('la branche d\'arrêt, elle, garde ses remises à zéro', () => {
-    const i = app.indexOf("type === 'playback.queue.cleared') {");
-    const bloc = app.slice(i, i + 1800);
-    expect(bloc).toContain("state: 'stopped'");
-    expect(bloc).toContain('queueTracks.set([])');
-  });
-});
+// La troisième partie gardait le traitement de `playback.queue.cleared` dans
+// `App.svelte`, parti avec la phase 5. La coquille qui reste ne trie pas cet
+// événement : `v2Live` relit l'état des zones depuis le serveur sur TOUT
+// `playback.*`, et ne remet donc rien à zéro que le serveur n'ait remis.
