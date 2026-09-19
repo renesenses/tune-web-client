@@ -62,6 +62,7 @@ import { handleAudioLevelsEvent } from './stores/audioLevels';
 import { notifications } from './stores/notifications';
 import { healthStatus } from './stores/health';
 import { niveauApresAlerte } from './santeServeur';
+import { tachesDeFond } from './stores/tachesDeFond';
 import { t } from './i18n';
 import { signalerErreurServeur } from './echecLecture';
 import { playbackHistory } from './stores/history';
@@ -283,6 +284,13 @@ export function demarrerTransportV2(): () => void {
       healthStatus.update((cur) => niveauApresAlerte(cur, niveau));
       if (niveau === 'critical') notifications.error(message, 10000);
       else if (niveau === 'warning') notifications.info(message, 6000);
+      return;
+    }
+
+    // Tâches de fond (#2227) — portées d'`App.svelte`, que cette coquille ne
+    // monte pas. La barre latérale en tire sa ligne « enrichissement en cours ».
+    if (type === 'system.background_tasks') {
+      tachesDeFond.set(Array.isArray(event.data?.tasks) ? event.data.tasks : []);
       return;
     }
 

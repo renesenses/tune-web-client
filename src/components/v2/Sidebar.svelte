@@ -1,6 +1,8 @@
 <script lang="ts">
   import { healthStatus } from '../../lib/stores/health';
   import { niveauDeLaSonde } from '../../lib/santeServeur';
+  import { tachesDeFond } from '../../lib/stores/tachesDeFond';
+  import { libelleBanniereEnrichissement } from '../../lib/tachesDeFond';
   /**
    * Barre latérale du nouveau client (direction Levente).
    *
@@ -113,6 +115,11 @@
     // et autre chose dessus — ce n'est pas un geste de premier contact. Mais
     // on y ECOUTE de la musique : ce n'est pas non plus du reglage d'expert.
     { view: 'mediaservers', labelKey: 'nav.mediaservers', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
+    // Portés de l'ancienne interface (phase 5, lot 4) : sans ces entrées, les
+    // trois écrans n'avaient AUCUN chemin dans cette coquille.
+    { view: 'dashboard', labelKey: 'nav.dashboard', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
+    { view: 'concerts', labelKey: 'nav.concerts', icon: 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6' },
+    { view: 'offline', labelKey: 'offline.title', icon: 'M12 3v12M7 10l5 5 5-5M5 21h14' },
   ] as unknown as Item[];
   /**
    * SÉLECTIONS — ce que l'utilisateur a mis de côté lui-même.
@@ -200,6 +207,12 @@
     const minuterie = setInterval(sonderSante, 60_000);
     return () => clearInterval(minuterie);
   });
+  // Tâches de fond : l'état initial, au cas où un enrichissement tourne déjà ;
+  // le direct arrive par `v2Live` (#2227, porté d'App.svelte).
+  $effect(() => {
+    api.getBackgroundTasks().then((r) => tachesDeFond.set(r?.tasks ?? [])).catch(() => {});
+  });
+  const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning')));
 
   // 🔴 Naviguer REFERME le tiroir. Sans cela, au palier « tiroir » la barre
   // reste par-dessus l'écran qu'on vient de demander : on choisit une vue et
@@ -403,6 +416,7 @@
       <div class="name">Tune{#if $healthStatus !== 'ok'}<span class="sante" class:crit={$healthStatus === 'critical'}
         title="{$t('sidebar.serverStatus')} : {$healthStatus}" aria-label="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>{/if}</div>
       <div class="sub">MOZAIKLABS</div>
+      {#if enrichissementEnCours}<div class="taches" aria-live="polite">{enrichissementEnCours}</div>{/if}
       {#if $updateAvailable}
         <button class="maj-lien" onclick={ouvrirMaj}
           title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}>
@@ -660,4 +674,5 @@
   .sante{display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%;
     background:var(--v2-acc2); vertical-align:middle}
   .sante.crit{background:var(--v2-danger)}
+  .taches{margin-top:3px; font:10px var(--v2-mono); color:var(--v2-acc-tint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>

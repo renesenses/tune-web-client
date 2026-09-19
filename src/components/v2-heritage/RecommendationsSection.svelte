@@ -15,10 +15,10 @@
    * le canal des bandes d'EQ (#2313).
    */
   import { onMount } from 'svelte';
-  import * as api from '../lib/api';
-  import { t } from '../lib/i18n';
-  import { ouvrirAlbum } from '../lib/libraryNavigation';
-  import AlbumArt from './partages/AlbumArt.svelte';
+  import * as api from '../../lib/api';
+  import { t } from '../../lib/i18n';
+  import { ouvrirAlbum } from '../../lib/libraryNavigation';
+  import AlbumArt from '../partages/AlbumArt.svelte';
 
   let recommendations: any[] = $state([]);
   let recsLoaded = $state(false);
@@ -142,5 +142,11 @@
     max-width: 140px;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  /* Monté DANS la coquille v2 (phase 5, lot 4) : la grappe de lecture est en
+     position absolue au-dessus des écrans ; sans cette réserve, la barre
+     d'outils de l'écran passerait dessous (garde `gouttiereGrappe`). */
+  .top-section {
+    padding-right: var(--v2-grappe-w, 172px);
   }
 </style>

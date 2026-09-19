@@ -53,11 +53,13 @@ describe('#914 — les quatre vues les plus chargées', () => {
     const { readFileSync } = require('node:fs') as typeof import('node:fs');
     const { resolve } = require('node:path') as typeof import('node:path');
     for (const nom of TRAITEES) {
+      // `OfflineView` vit dans `v2-heritage/` depuis la phase 5 (lot 4).
+      const dossier = nom === 'OfflineView' ? 'v2-heritage/' : '';
       const src = readFileSync(
-        resolve(__dirname, '../../components', `${nom}.svelte`), 'utf8');
+        resolve(__dirname, '../../components', `${dossier}${nom}.svelte`), 'utf8');
       expect(src.includes('use:bulleTexte'), `${nom} n’emploie pas l’action`).toBe(true);
       expect(
-        src.includes("from '../lib/infobulleTexte'"),
+        /from '(\.\.\/){1,2}lib\/infobulleTexte'/.test(src),
         `${nom} n’importe pas le mécanisme`,
       ).toBe(true);
     }

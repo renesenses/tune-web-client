@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { t } from '../lib/i18n';
-  import { notifications } from '../lib/stores/notifications';
-  import * as api from '../lib/api';
-  import { estRefusPremium } from '../lib/premiumRefus';
-  import { concertsCharge, concertsAttendRedemarrage } from '../lib/stores/concerts';
-  import { activeView } from '../lib/stores/navigation';
+  import { t } from '../../lib/i18n';
+  import { notifications } from '../../lib/stores/notifications';
+  import * as api from '../../lib/api';
+  import { estRefusPremium } from '../../lib/premiumRefus';
+  import { concertsCharge, concertsAttendRedemarrage } from '../../lib/stores/concerts';
+  import { activeView } from '../../lib/stores/navigation';
 
   // L'écran répond à une question, une seule : « les artistes que j'écoute
   // jouent-ils près de chez moi ? » — demande de FabienM et Didier, fil 1540.
@@ -266,4 +266,10 @@
   .cc-dates li { display: flex; gap: 0.75rem; flex-wrap: wrap; padding: 0.15rem 0; }
   .cc-date { font-variant-numeric: tabular-nums; min-width: 6.5rem; }
   .cc-lieu { color: var(--text-muted, #aaa); }
+  /* Monté DANS la coquille v2 (phase 5, lot 4) : la grappe de lecture est en
+     position absolue au-dessus des écrans ; sans cette réserve, la barre
+     d'outils de l'écran passerait dessous (garde `gouttiereGrappe`). */
+  .cc {
+    padding-right: var(--v2-grappe-w, 172px);
+  }
 </style>
