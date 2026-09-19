@@ -887,6 +887,8 @@ export default {
   'settings.clientVersion': '客户端版本',
   'settings.serverVersion': '服务器版本',
   'settings.apiDocs': 'API 文档',
+  "v2.set.apiDocsCount": "服务器已记录 {count} 个路由。",
+  "v2.plug.docs": "扩展文档",
 
   // Metadata
   'settings.metadataReadonly': '只读模式（不修改音频文件）',

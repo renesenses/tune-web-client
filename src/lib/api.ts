@@ -4550,6 +4550,53 @@ export async function checkForUpdate(): Promise<any> {
   return res.json();
 }
 
+/**
+ * Notes de version (« Quoi de neuf ») — `GET /system/changelog?lang=…`.
+ *
+ * À lire avec `lireNotesDeVersion` (`lib/notesDeVersion`). Avant la phase 5,
+ * appelée par `fetch` direct dans l'ancien `WhatsNew` : invisible pour
+ * l'inventaire des capacités. `limit` est envoyé comme avant ; le serveur
+ * l'ignore aujourd'hui.
+ */
+export function getChangelog(lang: string, limit = 10) {
+  return fetchJSON<unknown>(`${BASE}/system/changelog?limit=${limit}&lang=${encodeURIComponent(lang)}`);
+}
+
+/** Une route du catalogue que sert `GET /system/api-docs`. */
+export interface RouteDocumentee {
+  method: string;
+  path: string;
+  description: string;
+}
+
+/**
+ * Catalogue des routes de l'API — `GET /system/api-docs`
+ * (`routes/system/diagnostics.rs`, `api_docs`) :
+ * `{ version, total_endpoints, endpoints: [{ method, path, description }] }`.
+ *
+ * L'ancien `SettingsView` en faisait un LIEN vers la route, ouvert dans un
+ * nouvel onglet : il ne portait pas le jeton `Authorization` (auth activée)
+ * ni le préfixe du relais Tune Bridge. Lu ici par `fetchJSON`, il a les deux.
+ */
+export function getApiDocs() {
+  return fetchJSON<{ version?: string; total_endpoints?: number; endpoints?: RouteDocumentee[] }>(
+    `${BASE}/system/api-docs`,
+  );
+}
+
+/**
+ * Adresse de la documentation des greffons — `GET /plugins/docs`.
+ *
+ * Le serveur (`routes/plugins.rs`, `plugin_docs`) ne rend plus de Markdown
+ * mais un lien : `{ url: "https://mozaiklabs.fr/guide#plugins" }`. On ne
+ * garde qu'une adresse http(s) ; toute autre valeur vaut « pas de lien ».
+ */
+export async function getPluginDocsUrl(): Promise<string | null> {
+  const r = await fetchJSON<{ url?: unknown }>(`${BASE}/plugins/docs`);
+  const url = typeof r?.url === 'string' ? r.url.trim() : '';
+  return /^https?:\/\//i.test(url) ? url : null;
+}
+
 export async function installUpdate(force = false): Promise<any> {
   // Must carry the admin token: since v0.9.43, POST /system/update/install is
   // RBAC-gated (admin) when auth is enabled. A bare fetch worked same-origin
