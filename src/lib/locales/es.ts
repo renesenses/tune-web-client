@@ -3644,13 +3644,13 @@ export default {
   "settings.enrichMetadataHint": "Completa artistas, años, géneros e identificadores desde bases públicas. Las etiquetas de sus archivos nunca se sobrescriben.",
   "settings.facetsNavHint": "Navegación por facetas — género, artista, año, formato… — para explorar una discoteca grande.",
   "settings.copyTokenNowWarning": "Cópielo ahora: no se volverá a mostrar. Reinicie el servidor para activarlo.",
-  "settings.acousticPassesHint": "Estas pasadas duran varios minutos. Su avance se sigue en *Processing*.",
+  "settings.acousticPassesHint": "Estas pasadas duran varios minutos. Su avance se sigue en *{tab}*.",
   "settings.cloudScopeHint": "El *acceso remoto* (Tune Bridge) se ajusta en la pestaña *Audio*. La copia y la restauración de la configuración están en la pestaña *Sistema*.",
   "settings.configBackupHint": "Copia de la configuración del servidor — carpetas, zonas, ajustes de audio. No contiene *ningún archivo de música* ni *ninguna contraseña de servicio*.",
   "settings.fixedVolumeWarning": "Activar el volumen fijo en esta zona de *red* envía *100 %* al aparato: el amplificador va a tope. Escriba *100* para confirmar.",
   "settings.removeFolderHint": "Quitar una carpeta no borra *ningún archivo*: simplemente sale de la biblioteca.",
   "settings.needsFullScanHint": "Este ajuste solo se aplica tras un *análisis completo*.",
-  "settings.backgroundTasksHint": "Los procesos en segundo plano se siguen en *Processing*.",
+  "settings.backgroundTasksHint": "Los procesos en segundo plano se siguen en *{tab}*.",
   "settings.perZoneScopeHint": "Estos ajustes son propios de CADA zona: siguen a la salida, no a la escucha.",
   "settings.levelsOpenMoreTabs": "Los niveles Avanzado y Experto abren otras pestañas.",
   "settings.themePalettesHint": "Seis paletas. Ajuste propio del nuevo cliente — el tema de la interfaz actual sigue aparte.",
@@ -4743,6 +4743,12 @@ export default {
   "upnp.availability.disabled": "Servidor desactivado",
   "upnp.availability.unknown": "Estado desconocido",
   "upnp.availability.hint": "Último estado conocido del servidor; el catálogo sigue disponible para consultar.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "Rechazar la reproducción en lugar de convertir la frecuencia cuando la salida no admite la de la fuente.",
+  "bitperfect.refused": "Bit-perfect estricto: reproducción rechazada — la salida no reproduce {requested} kHz sin conversión (funciona a {device} kHz). Desactiva «Bit-perfect strict» en los ajustes de la zona para reproducir con conversión.",
+  "bitperfect.pureDegraded": "PURE degradado — {from} → {to} kHz, no bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz, no bit-perfect",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

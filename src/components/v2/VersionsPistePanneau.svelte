@@ -27,7 +27,7 @@
    */
   import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
-  import { corpsVersionLocale, corpsVersionService, type VersionService } from '../../lib/versionsPiste';
+  import { corpsVersionLocale, corpsVersionService, libellesVersionService, type VersionService } from '../../lib/versionsPiste';
   import { t } from '../../lib/i18n';
   import { formatTime } from '../../lib/utils';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -182,15 +182,19 @@
         {/each}
         {#each flux as v, i ((v.service ?? '') + ':' + (v.source_id ?? v.album_id ?? `s${i}`))}
           {@const destination = v.source_id ?? v.album_id}
+          <!-- #1115 : l'album ET l'interprète, pour une version comme pour une reprise. -->
+          {@const lib = libellesVersionService(v)}
           <div class="tuile" class:inerte={!destination}>
             <button class="cv" onclick={() => lireFlux(v)} disabled={!destination}
               title={$t('common.play' as any)}>
-              <AlbumArt coverPath={v.cover_path} size={48} alt={v.album_title ?? v.title} />
+              <AlbumArt coverPath={v.cover_path} size={48} alt={lib.album} />
             </button>
             <span class="txt">
-              <span class="ti plat" title={v.album_title ?? v.title}
-                >{v.kind === 'reprise' ? (v.artist_name ?? v.title) : (v.album_title ?? v.title)}</span>
-              <span class="sub"><ServiceBadge source={v.service} compact /></span>
+              <span class="ti plat" title={lib.album}>{lib.album}</span>
+              <span class="sub">
+                {#if lib.interprete}<span class="interprete" title={lib.interprete}>{lib.interprete}</span>{/if}
+                <ServiceBadge source={v.service} compact />
+              </span>
             </span>
           </div>
         {/each}
@@ -234,5 +238,6 @@
   .ti:hover:not(:disabled):not(.plat){color:var(--v2-acc1, var(--tune-accent, currentColor))}
   .ti:disabled,.ti.plat{cursor:default}
   .sub{font:11.5px var(--v2-sans, inherit); color:var(--v2-txt3, inherit);
-    display:flex; align-items:center; gap:5px}
+    display:flex; align-items:center; gap:5px; min-width:0}
+  .interprete{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
 </style>

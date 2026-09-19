@@ -3644,13 +3644,13 @@ export default {
   "settings.enrichMetadataHint": "Completează artiști, ani, genuri și identificatori din bazele publice. Etichetele fișierelor dumneavoastră nu sunt niciodată suprascrise.",
   "settings.facetsNavHint": "Navigare pe fațete — gen, artist, an, format… — pentru a explora o discotecă mare.",
   "settings.copyTokenNowWarning": "Copiați-l acum: nu va mai fi afișat niciodată. Reporniți serverul pentru a-l activa.",
-  "settings.acousticPassesHint": "Aceste treceri durează câteva minute. Progresul lor se urmărește în *Processing*.",
+  "settings.acousticPassesHint": "Aceste treceri durează câteva minute. Progresul lor se urmărește în *{tab}*.",
   "settings.cloudScopeHint": "*Accesul la distanță* (Tune Bridge) se reglează în fila *Audio*. Salvarea și restaurarea configurației se află în fila *Sistem*.",
   "settings.configBackupHint": "Copie a configurației serverului — dosare, zone, setări audio. Nu conține *niciun fișier de muzică* și *nicio parolă de serviciu*.",
   "settings.fixedVolumeWarning": "Activarea volumului fix pe această zonă de *rețea* trimite *100 %* către aparat: amplificatorul merge la maximum. Tastați *100* pentru a confirma.",
   "settings.removeFolderHint": "Scoaterea unui dosar nu șterge *niciun fișier*: acesta doar iese din bibliotecă.",
   "settings.needsFullScanHint": "Această setare se aplică doar după o *analiză completă*.",
-  "settings.backgroundTasksHint": "Prelucrările de fundal se urmăresc în *Processing*.",
+  "settings.backgroundTasksHint": "Prelucrările de fundal se urmăresc în *{tab}*.",
   "settings.perZoneScopeHint": "Aceste setări aparțin FIECĂREI zone: urmează ieșirea, nu ascultarea.",
   "settings.levelsOpenMoreTabs": "Nivelurile Avansat și Expert deschid alte file.",
   "settings.themePalettesHint": "Șase palete. Setare proprie noului client — tema interfeței actuale rămâne separată.",
@@ -4743,6 +4743,12 @@ export default {
   "upnp.availability.disabled": "Server dezactivat",
   "upnp.availability.unknown": "Stare necunoscută",
   "upnp.availability.hint": "Ultima stare cunoscută a serverului; catalogul poate fi consultat în continuare.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "Refuză redarea în loc să convertească frecvența atunci când ieșirea nu redă frecvența sursei.",
+  "bitperfect.refused": "Bit-perfect strict: redare refuzată — ieșirea nu redă {requested} kHz fără conversie (funcționează la {device} kHz). Dezactivează „Bit-perfect strict” în setările zonei pentru a reda cu conversie.",
+  "bitperfect.pureDegraded": "PURE degradat — {from} → {to} kHz, nu este bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz, nu este bit-perfect",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

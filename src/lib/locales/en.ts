@@ -2332,13 +2332,13 @@ export default {
   "settings.enrichMetadataHint": "Fills in artists, years, genres and identifiers from public databases. Your file tags are never overwritten.",
   "settings.facetsNavHint": "Faceted browsing — genre, artist, year, format… — to explore a large collection.",
   "settings.copyTokenNowWarning": "Copy it now: it will never be shown again. Restart the server to activate it.",
-  "settings.acousticPassesHint": "These passes take several minutes. Their progress is followed in *Processing*.",
+  "settings.acousticPassesHint": "These passes take several minutes. Their progress is followed in *{tab}*.",
   "settings.cloudScopeHint": "*Remote access* (Tune Bridge) is set in the *Audio* tab. Backing up and restoring the configuration live in the *System* tab.",
   "settings.configBackupHint": "Backup of the server configuration — folders, zones, audio settings. Contains *no music file* and *no service password*.",
   "settings.fixedVolumeWarning": "Turning on fixed volume for this *network* zone sends *100 %* to the device: the amplifier goes full scale. Type *100* to confirm.",
   "settings.removeFolderHint": "Removing a folder deletes *no file*: it simply leaves the library.",
   "settings.needsFullScanHint": "This setting only applies after a *full scan*.",
-  "settings.backgroundTasksHint": "Background processing is followed in *Processing*.",
+  "settings.backgroundTasksHint": "Background processing is followed in *{tab}*.",
   "settings.perZoneScopeHint": "These settings belong to EACH zone: they follow the output, not the listening.",
   "settings.levelsOpenMoreTabs": "The Advanced and Expert levels open further tabs.",
   "settings.themePalettesHint": "Six palettes. Specific to the new client — the current interface keeps its own theme.",
@@ -4763,6 +4763,12 @@ export default {
   "upnp.availability.disabled": "Server disabled",
   "upnp.availability.unknown": "Unknown status",
   "upnp.availability.hint": "Last known server status; the catalog remains available to browse.",
+  // #3973 — « Bit-perfect strict » et conversion de fréquence
+  "bitperfect.strictLabel": "Bit-perfect strict",
+  "bitperfect.strictHelp": "Refuse playback rather than convert the sample rate when the output cannot play the source's rate.",
+  "bitperfect.refused": "Strict bit-perfect: playback refused — the output cannot play {requested} kHz without conversion (it runs at {device} kHz). Turn off “Bit-perfect strict” in the zone settings to play with conversion.",
+  "bitperfect.pureDegraded": "PURE degraded — {from} → {to} kHz, not bit-perfect",
+  "bitperfect.rateConversion": "{from} → {to} kHz, not bit-perfect",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
