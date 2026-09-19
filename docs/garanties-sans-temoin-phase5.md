@@ -7,7 +7,7 @@ survivre à son sujet.
 Ce document inventorie ce qui est parti. **Il ne dit pas qu'un fait est faux —
 il dit qu'il n'a plus de témoin.**
 
-Mesuré contre `origin/main` : **559 tests retirés**, dans 54 fichiers
+Mesuré contre `origin/main` : **508 tests retirés**, dans 49 fichiers
 supprimés entièrement et 79 fichiers amputés de leur seule partie morte.
 
 Méthode, et pourquoi elle compte : un fichier n'a été supprimé que si PLUS
@@ -18,7 +18,7 @@ vivants (`purgeOrphelines`, `positionLecture`, `zoneRegardee`…).
 
 ---
 
-## Fichiers supprimés (54)
+## Fichiers supprimés (49)
 
 ### `accueilInfobulles`
 - la feuille globale définit bien une classe de troncature
@@ -28,12 +28,6 @@ vivants (`purgeOrphelines`, `positionLecture`, `zoneRegardee`…).
 - chaque élément tronqué peut se lire au survol
 - l'infobulle porte la donnée, pas un libellé d'interface
 - un texte coupé à l’intérieur d’un élément déjà pourvu reste exempté
-
-### `assistantSmbPartagesDecouverts3637`
-- rend la liste des hôtes découverts, alors qu'ils ne portent aucun champ `shares`
-- le clic sur un hôte découvert APPELLE `scan-host` avec son ADRESSE
-- affiche les partages rendus par le serveur, et non « aucun partage »
-- le chemin par ADRESSE SAISIE continue de marcher, et n'appelle pas `scan-host` deux fois
 
 ### `bandcampInfobulles`
 - le composant tronque bien du texte (sinon ce test ne garde rien)
@@ -83,60 +77,17 @@ vivants (`purgeOrphelines`, `positionLecture`, `zoneRegardee`…).
 - ne propose plus le faux calibrage par demi-RTT
 - affiche explicitement la médiane du RTT de contrôle
 
-### `catalogueSource4473`
-- 🔴 le préfixe est celui du serveur, au caractère près
-- elle se relit, insensible à la casse et aux espaces
-- et elle ne mord pas sur les favoris ni sur la bibliothèque
-- chaque service connecté offre ses favoris ET son catalogue
-- 🔴 seul le chemin des ALBUMS sait aller au catalogue
-- 🔴 la bibliothèque n’a pas de catalogue distant
-- un service déconnecté n’offre ni l’un ni l’autre
-- le libellé se lit, il ne montre pas la valeur brute
-- un artiste nommé par une ÉGALITÉ
-- 🔴 « contient » n’est pas une requête qu’un service sait honorer
-- une valeur vide ne nomme rien
-- l’artiste l’emporte sur l’album quand les deux sont là
-- l’album seul suffit
-- 🔴 `title` est le champ que l’écran des collections écrit VRAIMENT
-- les deux graphies d’opérateur des deux éditeurs
-- une source catalogue sans cible : on nomme le service
-- avec une cible : rien à signaler
-- 🔴 les FAVORIS n’ont pas besoin de cible
-- il demande la liste AVEC les entrées de catalogue
-- le choix porte son libellé traduit
-- la branche catalogue passe AVANT celle des favoris
-- 🔴 l’avertissement est CALCULÉ, pas écrit en dur
-- 🔴 il demande la liste SANS catalogue
-- 🔴 et une valeur `catalogue:` héritée est dite inopérante ici
-- les quatre libellés existent partout
-- 🔴 le libellé du choix porte {service}
-
 ### `comptesLocauxBranche`
 - SettingsView importe le decideur
 - SettingsView derive les deux comptes locaux des stats du serveur
 - SettingsView rend le compte local a cote du total
 - le total, lui, reste affiche — on nomme les populations, on n'en cache aucune
 
-### `dashboardDurationLabels912`
-- (aucun titre extrait)
-
 ### `debordementMeilleurResultat849`
 - le badge lui-même peut se replier DANS cette carte
 - la portée reste LOCALE : QualityBadge n’est pas modifié pour tout le reste
 - la colonne du meilleur résultat est bien celle de 300 px qu’on a mesurée
 - 🔴 « ${nom} » est FAUX sur l’ancienne feuille
-
-### `ecranConcertsAtteignable`
-- 'concerts' est une vue déclarée
-- l'application aiguille bien vers l'écran
-- la barre latérale porte une entrée, rendue une seule fois
-- l'entrée navigue vers la vue, et pas vers une autre
-- l'entrée disparaît quand le binaire n'embarque pas le greffon
-- l'état du greffon est bien demandé au serveur
-- traite le refus d'offre comme un refus, pas comme une panne
-- offre les trois crans du périmètre, jamais un choix binaire
-- propose d'élargir quand la liste est vide
-- n'interroge pas le greffon tant que ses routes ne sont pas montées
 
 ### `etiquetteCreationAtteignable`
 - la création a plus d’un point d’appel
@@ -218,18 +169,6 @@ vivants (`purgeOrphelines`, `positionLecture`, `zoneRegardee`…).
 - une zone absente ou une piste sans source_id se dit, au lieu de sortir en silence
 - le second clic est désarmé tant que le premier n'a pas répondu
 - la bibliothèque locale, elle, confirmait déjà — et continue
-
-### `libellesTableauDeBord1155`
-- les quatre totaux portent une légende
-- les trois classements aussi
-- 🔴 la légende des albums dit que le compte porte sur les PISTES
-- 🔴 la légende des pistes écarte l'hypothèse de la durée
-- la légende est VISIBLE, pas seulement une infobulle
-- l'échelle est écrite
-- 🔴 aucune infobulle ne reste en anglais codé en dur
-- « Streak » passe par une clé
-- 🔴 « skippées » disparaît du français
-- 🔴 la place du cœur est RÉSERVÉE
 
 ### `logoBarreReduite`
 - la ligne du logo ne déborde pas des 52px réellement disponibles
@@ -583,8 +522,7 @@ vivants (`purgeOrphelines`, `positionLecture`, `zoneRegardee`…).
 ### `identiteAppareilEffacee3660` — 1 sur 9
 - la coquille actuelle le monte (DevicesSettings, onglet Appareils)
 
-### `infobullesQuatreVues914` — 2 sur 4
-- 🔴 plus aucun texte coupé sans infobulle
+### `infobullesQuatreVues914` — 1 sur 4
 - chacune porte bien l’action, et non un `title=` écrit à la main
 
 ### `langueAuDemarrage` — 1 sur 7
