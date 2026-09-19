@@ -35,6 +35,7 @@
 import { get } from 'svelte/store';
 import { t } from './i18n';
 import { notifications } from './stores/notifications';
+import { messageRefusBitperfect } from './bitperfectStrict';
 
 /**
  * Un échec nommé se lit plus longtemps qu'un succès : le message du serveur
@@ -191,8 +192,14 @@ export function signalerErreurServeur(data: {
   message?: string;
   error?: string;
   track_title?: string;
+  code?: string;
+  requested_hz?: number;
+  device_hz?: number;
 } | null | undefined): void {
-  const msg = data?.message || data?.error || get(t)('library.playbackError');
+  // #3973 — un refus nommé par `code` se dit dans la langue de l'interface :
+  // le texte `error` de l'événement est en français, quelle que soit la langue
+  // choisie. Code inconnu ou fréquences absentes : texte du serveur, inchangé.
+  const msg = messageRefusBitperfect(data) || data?.message || data?.error || get(t)('library.playbackError');
   const titre = data?.track_title;
   // Même bus anti-empilement : c'est PAR CE CHEMIN qu'arrive le redémarrage de
   // serveur, une notification par zone, toutes le même texte.

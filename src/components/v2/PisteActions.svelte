@@ -80,6 +80,7 @@
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste } from '../../lib/menuPiste';
   import type { Track } from '../../lib/types';
+  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
 
   interface Props {
     piste: Track;
@@ -116,6 +117,16 @@
   let ancreMenu = $state<DOMRect | null>(null);
 
   const local = $derived(estPisteLocale(piste));
+  /**
+   * #1238 — ce que le bouton Étiquettes désigne : la piste de la bibliothèque
+   * par son entier, une piste de service par sa paire `source` + `source_id`
+   * (`POST /tags/{id}/streaming-items`). `null` = aucun bouton.
+   */
+  const cibleEtiquettes = $derived<CibleEtiquette | null>(
+    local && piste.id != null
+      ? { itemType: 'track', itemId: piste.id }
+      : cibleDeService('track', piste),
+  );
   /**
    * 🔴 La clé passe par `favKeyOf`, JAMAIS par `streamingFavKey` en direct.
    *
@@ -331,12 +342,14 @@
       {
         jouable,
         // Les trois routes de bibliothèque prennent un `i64` : une piste de
-        // service n'a ni voisins acoustiques, ni versions, ni étiquettes.
+        // service n'a ni voisins acoustiques, ni versions. (Les étiquettes,
+        // si : `etiquetable` ci-dessous, #1238.)
         idBibliotheque: local && piste.id != null ? piste.id : null,
         artistId: piste.artist_id ?? null,
         albumId: typeof piste.album_id === 'number' ? piste.album_id : null,
         albumDeService,
         artisteDeService,
+        etiquetable: cibleEtiquettes != null,
       },
       {
         lire: () => lire(new MouseEvent('click')),
@@ -412,7 +425,7 @@
       </svg>
     </button>
   {/if}
-  {#if local && piste.id != null}
+  {#if cibleEtiquettes}
     <button class="pa" class:on={panneauEtiquettes} aria-expanded={panneauEtiquettes}
             onclick={(e) => { e.stopPropagation(); panneauEtiquettes = !panneauEtiquettes; }}
             title={$t('v2.cover.tags' as any)} aria-label={$t('v2.cover.tags' as any)}>
@@ -455,9 +468,9 @@
   {/await}
 {/if}
 
-{#if panneauEtiquettes && piste.id != null}
+{#if panneauEtiquettes && cibleEtiquettes}
   {#await import('./EtiquettesPanneau.svelte') then m}
-    <m.default itemType="track" itemId={piste.id} nom={piste.title}
+    <m.default cible={cibleEtiquettes} nom={piste.title}
       onClose={() => (panneauEtiquettes = false)} />
   {/await}
 {/if}
