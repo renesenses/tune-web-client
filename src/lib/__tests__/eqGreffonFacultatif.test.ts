@@ -12,6 +12,7 @@
 // « non installé ».
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
+import { dictionnaire } from './onzeDictionnaires';
 
 const ordre: string[] = [];
 const mocks = vi.hoisted(() => ({
@@ -176,7 +177,7 @@ describe('Égaliseur — greffon facultatif', () => {
 describe('Égaliseur — les clés du greffon existent dans les onze langues', () => {
   it('sept clés, onze dictionnaires', async () => {
     for (const code of LOCALES) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       for (const cle of CLES) expect(dico[cle], `${code} / ${cle}`).toBeTruthy();
     }
   });

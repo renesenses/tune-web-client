@@ -22,6 +22,7 @@ import ZoneDeviceEditor from '../../components/partages/ZoneDeviceEditor.svelte'
 import { locale } from '../i18n';
 import type { Zone } from '../types';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -341,7 +342,7 @@ describe('#1107 — l’intitulé du retour, dans les onze langues', () => {
   it('`zoneConfig.backToList` existe partout et n’est pas vide', async () => {
     const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
     for (const code of langues) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       expect(dico['zoneConfig.backToList'], `${code} / zoneConfig.backToList`).toBeTruthy();
     }
   });
