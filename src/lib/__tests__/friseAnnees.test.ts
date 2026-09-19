@@ -35,7 +35,7 @@ describe('Frise des années : la grille suit le curseur (Bertrand, 05/09/2026)',
   it('le curseur suit la même règle que la grille', () => {
     // Sinon le curseur montrerait une année et la grille en afficherait une
     // autre.
-    expect(lib).toContain('const cursorYear = $derived(hoverYear ?? fYear ?? busiestYear)');
+    expect(lib).toContain('const cursorYear = $derived(hoverYear ?? fYear ?? anneeParDefaut)');
   });
 
   it('les compteurs de FACETTES ne suivent pas le survol', () => {
