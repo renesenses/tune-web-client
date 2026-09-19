@@ -36,6 +36,7 @@
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
   import RefusHomebrewBloc from '../partages/RefusHomebrew.svelte';
   import ProfilsV2 from './ProfilsV2.svelte';
+  import ImportLecteurV2 from './ImportLecteurV2.svelte';
   import { etatTelemetrie, pauseCloudLaPlusLongue, dureePause } from '../../lib/etatTelemetrie';
   import { lireNotesDeVersion, type NotesDeVersion } from '../../lib/notesDeVersion';
   import {
@@ -3016,7 +3017,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
             {:else if s.id === 'import'}
-              <p class="hint">{$t('v2.hint.importWizard' as any)}</p>
+              <!-- Phase 5 (web#1257) : import Roon / Plex, aperçu puis confirmation. -->
+              <ImportLecteurV2 />
 
             {:else if s.id === 'database'}
               <div class="rows">
