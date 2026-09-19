@@ -37,6 +37,7 @@ import { mount, unmount } from 'svelte';
 import OxygenFacetRail from '../../components/v2-heritage/OxygenFacetRail.svelte';
 import type { FacetValue } from '../api';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -142,8 +143,7 @@ describe('la clé de traduction existe dans les ONZE langues', () => {
   it('oxygen.facetShowAll est traduite partout', async () => {
     const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
     for (const l of langues) {
-      const mod = await import(`../locales/${l}.ts`);
-      const table = mod.default as Record<string, string>;
+      const table = dictionnaire(l);
       const v = table['oxygen.facetShowAll'];
       expect(v, `oxygen.facetShowAll absente de ${l}`).toBeTruthy();
       expect(v).not.toBe('oxygen.facetShowAll');

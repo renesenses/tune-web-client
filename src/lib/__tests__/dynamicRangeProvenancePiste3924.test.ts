@@ -30,6 +30,7 @@ import { preferences } from '../stores/preferences';
 import { locale } from '../i18n';
 import type { Track } from '../types';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -201,7 +202,7 @@ describe('#3924 — l’infobulle existe dans les onze langues', () => {
   it('`library.dynamicRangeAnalysisTip` est traduite partout, et distincte des deux autres', async () => {
     const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
     for (const code of langues) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       const tip = dico['library.dynamicRangeAnalysisTip'];
       expect(tip, `${code} / library.dynamicRangeAnalysisTip`).toBeTruthy();
       expect((tip ?? '').trim().length, code).toBeGreaterThan(20);

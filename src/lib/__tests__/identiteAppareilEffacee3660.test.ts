@@ -30,6 +30,7 @@ import ZoneDeviceEditor from '../../components/partages/ZoneDeviceEditor.svelte'
 import { locale } from '../i18n';
 import type { Zone } from '../types';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -262,7 +263,7 @@ describe('#3660 — l’intitulé, dans les onze langues', () => {
   it('les deux clés existent partout et ne sont pas vides', async () => {
     const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
     for (const code of langues) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       for (const cle of ['zoneConfig.identiteEffacee', 'zoneConfig.identiteEffaceeHint']) {
         expect(dico[cle], `${code} / ${cle}`).toBeTruthy();
         expect((dico[cle] ?? '').trim().length, `${code} / ${cle}`).toBeGreaterThan(5);

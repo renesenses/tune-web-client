@@ -25,6 +25,7 @@ import { selectedAlbum, albumTracks } from '../stores/library';
 import { afficherDynamicRange } from '../dynamicRange';
 import type { Album } from '../types';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -120,7 +121,7 @@ describe('la règle d’affichage — même valeur, provenance différente', () 
   it('les deux infobulles sont DISTINCTES dans les onze langues', async () => {
     const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
     for (const l of langues) {
-      const m = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+      const m = dictionnaire(l);
       const mesure = m['library.dynamicRangeTip'];
       const moyenne = m['library.dynamicRangeAverageTip'];
       expect(mesure, `${l} : infobulle de mesure`).toBeTruthy();
