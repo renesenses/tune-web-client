@@ -53,6 +53,13 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
+  import {
+    detailAppareilIgnore,
+    libelleAppareilIgnore,
+    sansAppareils,
+    transportAppareilIgnore,
+    type AppareilIgnore,
+  } from '../../lib/appareilsIgnores';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
@@ -333,13 +340,65 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ...pr,
       hiddenDeviceIds: [...pr.hiddenDeviceIds.filter((i) => i.startsWith('audio:')), ...netIds] }));
   }
-  async function deleteDevice(deviceId: string, name: string) {
+  /* --- Ignorer un appareil, DURABLEMENT (#1280, porté de l'ancienne interface)
+   *
+   * Cette croix appelait `DELETE /devices/{id}` : la sortie quittait le
+   * registre en mémoire, et la découverte la ré-enregistrait au passage
+   * suivant — « ils disparaissent bien sur le coup mais réapparaissent
+   * rapidement » (Patatorz). L'ancienne interface avait été corrigée ; celle-ci
+   * portait encore la forme fautive. La route durable est
+   * `POST /devices/{id}/ignore` : elle fige l'identité, retire la sortie tout
+   * de suite, et masque sa zone s'il en a une.
+   *
+   * Et le geste doit rester RÉVERSIBLE : un appareil ignoré n'est plus annoncé
+   * nulle part, pas même dans le sélecteur de création de zone. Sans la section
+   * « Appareils ignorés », l'utilisateur n'aurait plus aucun moyen de le
+   * retrouver — c'était le cas de cette interface jusqu'ici.
+   */
+  let ignoredDevices = $state<AppareilIgnore[]>([]);
+  let ignoreBusy = $state(false);
+
+  async function loadIgnoredDevices() {
     try {
-      await api.deleteDevice(deviceId);
-      devices.update((l) => l.filter((d) => d.id !== deviceId));
-      notifications.success($t('settings.deviceDeleted' as any).replace('{name}', name));
+      const r = await api.listIgnoredDevices();
+      ignoredDevices = r.items ?? [];
+    } catch {
+      // Serveur plus ancien que la route, ou hors ligne : pas de liste, pas
+      // d'erreur — la section reste simplement vide.
+      ignoredDevices = [];
+    }
+  }
+  $effect(() => { void loadIgnoredDevices(); });
+
+  async function ignoreDevice(deviceId: string, name: string) {
+    ignoreBusy = true;
+    try {
+      const r = await api.ignoreDevice(deviceId);
+      // Le serveur a déjà retiré l'appareil de `GET /devices` ; la liste
+      // affichée a été chargée AVANT le geste. Sans ce retrait local, la ligne
+      // resterait à l'écran et le clic aurait l'air sans effet.
+      devices.update((l) => sansAppareils(l, [deviceId, r.ignored?.device_id ?? '']));
+      await loadIgnoredDevices();
+      notifications.success($t('settings.deviceIgnored' as any).replace('{name}', name));
     } catch (e: any) {
       notifications.error(e?.message || $t('common.error' as any));
+    } finally {
+      ignoreBusy = false;
+    }
+  }
+
+  async function unignoreDevice(d: AppareilIgnore) {
+    ignoreBusy = true;
+    try {
+      await api.unignoreDevice(d.device_id);
+      await loadIgnoredDevices();
+      // L'appareil ne revient qu'au prochain passage de découverte : on le dit,
+      // plutôt que de laisser croire à un échec devant une liste inchangée.
+      notifications.success($t('settings.deviceUnignored' as any).replace('{name}', libelleAppareilIgnore(d)));
+    } catch (e: any) {
+      notifications.error(e?.message || $t('common.error' as any));
+    } finally {
+      ignoreBusy = false;
     }
   }
   async function clearDevices() {
@@ -3438,7 +3497,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         </button>
                       {/if}
                     {/if}
-                    <button class="del" onclick={() => deleteDevice(d.id, d.name)} aria-label={$t('settings.deleteDevice' as any)}>
+                    <button class="del" disabled={ignoreBusy} onclick={() => ignoreDevice(d.id, d.name)}
+                      title={$t('settings.ignoreDevice' as any)} aria-label={$t('settings.ignoreDevice' as any)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
                   </div>
@@ -3448,6 +3508,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {:else if netError}Liste indisponible — serveur injoignable.
                     {:else}{$t('settings.noNetworkDevices' as any)}{/if}
                   </p>
+                {/each}
+              </div>
+
+            {:else if s.id === 'ignoredDevices'}
+              <p class="hint">{$t('settings.ignoredDevicesIntro' as any)}</p>
+              <div class="devlist">
+                {#each ignoredDevices as d (d.device_id)}
+                  <div class="dev ign">
+                    <span class="dn">{libelleAppareilIgnore(d)}</span>
+                    <span class="dt">{transportAppareilIgnore(d)}</span>
+                    <span class="dh">{detailAppareilIgnore(d)}</span>
+                    <button class="lnk" disabled={ignoreBusy} onclick={() => unignoreDevice(d)}>
+                      {$t('settings.unignoreDevice' as any)}
+                    </button>
+                  </div>
+                {:else}
+                  <p class="hint">{$t('settings.noIgnoredDevices' as any)}</p>
                 {/each}
               </div>
 
@@ -3848,6 +3925,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .dev.net{grid-template-columns:auto minmax(0,1fr) auto auto auto; cursor:default}
+  .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
   .dev .dh{font:10px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .dev .pin{width:110px; height:28px; border-radius:8px; border:1px solid var(--v2-acc2);
     background:var(--v2-surface2); color:var(--v2-txt); font:12px var(--v2-mono); padding:0 9px; outline:none}
