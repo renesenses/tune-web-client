@@ -8,6 +8,7 @@
    * Détail technique (fréquence/profondeur) réservé à l'Expert, comme ailleurs.
    */
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { t as tr } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -140,7 +141,7 @@
    */
   let melangeEnCours = $state(false);
   async function lireAleatoire() {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     melangeEnCours = true;
     try {
@@ -155,7 +156,7 @@
     melangeEnCours = false;
   }
   function playFrom(startIndex = 0) {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     // Liste TRIÉE : « lire depuis ici » suit l'ordre affiché, pas celui de la
     // playlist — `start_index` du serveur ne connaît que ce dernier.
@@ -184,7 +185,7 @@
     }
   }
   function addQueue() {
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     const ids = tracks.map((t) => t.id).filter((x): x is number => x != null);
     if (ids.length) api.addToQueue(zid, { track_ids: ids }).catch(() => {});

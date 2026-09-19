@@ -10,6 +10,7 @@
    * Le clic ouvre l'overlay PlaylistDetailV2 (la section est `position:relative`).
    */
   import * as api from '../../lib/api';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { shareLink } from '../../lib/playlistShare';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -540,7 +541,7 @@
   // `PochetteActions`, qui a deja arrete le geste.
   function playStreaming(service: string, pl: StreamingPlaylist, e?: MouseEvent) {
     e?.stopPropagation();
-    const zid = $currentZoneId;
+    const zid = zoneRequise();
     if (zid == null) return;
     // `service`, PAS `pl.source` : voir `PlaylistDetailV2`. Le champ n'existe
     // pas sur ces objets, et son absence faisait reprendre la lecture en cours
