@@ -25,11 +25,15 @@ describe('Retours Bertrand du 05/09/2026', () => {
     // un producteur français : sous un sélecteur réglé sur les États-Unis, son
     // onglet n'a pas plus de sens que la sélection française d'à côté.
     expect(pod).toContain('const franceUniquement = $derived(selectionDisponible)');
-    expect(pod).toContain('{#if franceUniquement && radioFrance.length}');
+    // L'onglet s'offre aussi quand le serveur déclare une clé Radio France
+    // (émissions par antenne, portées depuis l'ancien écran avant la phase 5) —
+    // mais TOUJOURS sous la condition « France ».
+    expect(pod).toContain('{#if franceUniquement && (radioFrance.length || rfCle)}');
     expect(pod).toContain("{:else if section === 'radiofrance' && franceUniquement}");
     // Hors de France on ne demande meme pas : un appel reseau pour un onglet
     // qui ne s'affichera pas.
     expect(pod).toContain('rfLoaded || !franceUniquement');
+    expect(pod).toContain('rfConfigLue || !franceUniquement');
   });
 
   it('Podcasts : changer de pays depuis la Sélection MÈNE quelque part', () => {
