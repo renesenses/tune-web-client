@@ -58,6 +58,7 @@ export const ICONES = {
   tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z',
   /** Une fiche de champs — le tiroir « Tous les champs piste » (#851). */
   champs: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
+  modifier: 'M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z',
 } as const;
 /** Ce que la piste permet, décidé par l'appelant qui seul connaît le contexte. */
 export interface CapacitesPiste {
@@ -99,6 +100,13 @@ export interface GestesPiste {
   etiqueter?: () => void;
   /** Ouvre le tiroir « Tous les champs piste » — #851, lecture des tags. */
   champsDuFichier?: () => void;
+  /**
+   * « Modifier la piste » — titre, numéros, artiste, album, genre, année.
+   * Seul l'ancien écran Bibliothèque ouvrait `TrackEditModal` (`PUT
+   * /library/tracks/{id}`, `POST /library/artists` pour un artiste nouveau) :
+   * la phase 5 l'aurait emporté.
+   */
+  modifier?: () => void;
 }
 export function entreesMenuPiste(
   c: CapacitesPiste,
@@ -199,5 +207,6 @@ export function entreesMenuPiste(
    * réservé à la bibliothèque, comme ses trois voisines de la famille A.
    */
   pousser(deLaBibliotheque, 'trackTags.title', ICONES.champs, g.champsDuFichier);
+  pousser(deLaBibliotheque, 'metadata.editTrack', ICONES.modifier, g.modifier);
   return e;
 }

@@ -23,7 +23,7 @@
 // le stub n'en rend pas.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import TrackEditModal from '../../components/TrackEditModal.svelte';
+import TrackEditModal from '../../components/partages/TrackEditModal.svelte';
 import type { Track } from '../types';
 
 const ID = 42;

@@ -1,9 +1,9 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import * as api from '../lib/api';
-  import type { Track, Album, Artist } from '../lib/types';
-  import type { MetadataCategory } from '../lib/api/metadata';
-  import { t } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import type { Track, Album, Artist } from '../../lib/types';
+  import type { MetadataCategory } from '../../lib/api/metadata';
+  import { t } from '../../lib/i18n';
 
   interface Props {
     track: Track;

@@ -26,6 +26,7 @@
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
+  import OutilsAlbumV2 from './OutilsAlbumV2.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { queuePosition } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
@@ -217,6 +218,13 @@
     api.getAlbum(id).then((a) => { if (vivant) fiche = a; }).catch(() => {});
     return () => { vivant = false; };
   });
+
+  /** Après une ré-identification : relire la fiche (DR, titre, identifiants). */
+  function relireFiche() {
+    const id = album.id;
+    if (id == null || depot || service || bandcamp) return;
+    api.getAlbum(id).then((a) => { if (album.id === id) fiche = a; }).catch(() => {});
+  }
 
   /** Le badge DR, et ce qu'il doit dire de sa provenance. */
   const dr = $derived(afficherDynamicRange(fiche));
@@ -659,6 +667,13 @@
       </div>
     </div>
   </div>
+
+  <!-- Note, ré-identification, signalement de pochette, meilleure version :
+       les gestes de bibliothèque que seule l'ancienne interface portait
+       (phase 5). Un album LOCAL seulement — voir `OutilsAlbumV2`. -->
+  {#if album.id != null && !depot && !service && !bandcamp}
+    <OutilsAlbumV2 albumId={album.id} avecPochette={!!album.cover_path} onRelu={relireFiche} />
+  {/if}
 
   <!-- Présentation de l'album (#3586). Voir le commentaire de `basculerBio`
        pour la raison du bouton : la route sort sur le réseau. -->

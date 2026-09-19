@@ -31,7 +31,7 @@ import CollapsibleSection from './CollapsibleSection.svelte';
   import ClampedText from './partages/ClampedText.svelte';
   import AlbumEditModal from './partages/AlbumEditModal.svelte';
   import ArtistEditModal from './ArtistEditModal.svelte';
-  import TrackEditModal from './TrackEditModal.svelte';
+  import TrackEditModal from './partages/TrackEditModal.svelte';
   import HeartButton from './partages/HeartButton.svelte';
   import AlphaIndex from './AlphaIndex.svelte';
   import MetadataChips from './partages/MetadataChips.svelte';

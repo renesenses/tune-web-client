@@ -117,21 +117,45 @@ porter en v2, abandonner, ou garder le filet.
 
 ## Bibliothèque : édition, notation, ré-identification, signalement (15)
 
-- `albumBetterQuality` — `GET /library/albums/{}/better-quality`
-- `createArtist` — `POST /library/artists`
-- `deleteTag` — `DELETE /tags/{}`
-- `enrichArtist` — `GET /metadata/artists/{}/enrich`
-- `getAlbumRating` — `GET /library/albums/{}/rating`
-- `getArtistCredits` — `GET /library/artists/{}/credits`
-- `getArtistMetadata` — `GET /library/artists/{}/metadata`
-- `quickFavTrack` — `POST /library/tracks/{}/quick-fav`
-- `rateAlbum` — `POST /library/albums/{}/rate`
-- `reidentifyAlbum` — `POST /library/albums/{}/reidentify`
-- `reportMetadata` — `POST /library/reports`
-- `trackBetterQuality` — `GET /library/tracks/{}/better-quality`
-- `updateTag` — `PUT /tags/{}`
-- `updateTrack` — `PUT /library/tracks/{}`
-- `uploadArtistImage` — `POST /library/artists/{}/image/upload`
+✅ **Portée en v2** (branche `feat/v2-porte-bibliotheque`) — 14 fonctions ont
+désormais un écran du nouveau client, une est couverte par un autre nom.
+Témoins : `src/lib/__tests__/porteBibliothequeV2Phase5.test.ts`.
+
+- `albumBetterQuality` — `GET /library/albums/{}/better-quality` → fiche album
+  (`AlbumDetailV2` › `OutilsAlbumV2`) : bandeau « Vous possédez une meilleure
+  version », ouvrir ou jouer cette version
+- `createArtist` — `POST /library/artists` → menu « … » d’une piste ›
+  « Modifier la piste » (`PisteActions` › `partages/TrackEditModal`, déplacée
+  depuis `components/`) : artiste saisi inexistant
+- `deleteTag` — `DELETE /tags/{}` → Étiquettes (`EtiquettesV2`), fiche d’une
+  étiquette › « Supprimer » (confirmation v2)
+- `enrichArtist` — `GET /metadata/artists/{}/enrich` → fiche artiste
+  (`ArtistesV2` › `OutilsArtisteV2`) : « Enrichir la biographie » / « Ré-enrichir »
+- `getAlbumRating` — `GET /library/albums/{}/rating` → fiche album
+  (`OutilsAlbumV2`) : étoiles et commentaire relus à l’ouverture
+- `getArtistCredits` — `GET /library/artists/{}/credits` → fiche artiste
+  (`OutilsArtisteV2`) : bloc « Crédits » (instruments, nombre de pistes)
+- `getArtistMetadata` — `GET /library/artists/{}/metadata` → fiche artiste
+  (`OutilsArtisteV2`) : membres, artistes similaires, anecdotes
+- `quickFavTrack` — `POST /library/tracks/{}/quick-fav` → **non porté, couvert
+  par un autre nom** : le cœur de chaque ligne de piste (`PisteActions` ›
+  `basculerFavoriLocal` › `addFavorite`/`removeFavorite`, `POST
+  /profiles/{}/favorites/add|remove`). Le serveur (`quick_fav_track`,
+  `tune-server/src/routes/library/tracks.rs`) ne fait que basculer la même
+  table de favoris du profil (`ProfileRepo::add_favorite/remove_favorite`)
+- `rateAlbum` — `POST /library/albums/{}/rate` → fiche album (`OutilsAlbumV2`)
+- `reidentifyAlbum` — `POST /library/albums/{}/reidentify` → fiche album
+  (`OutilsAlbumV2`) : « Ré-identifier », verdict rendu tel quel
+- `reportMetadata` — `POST /library/reports` → `SignalerV2` : pochette (fiche
+  album), biographie et image (fiche artiste)
+- `trackBetterQuality` — `GET /library/tracks/{}/better-quality` → menu « … »
+  d’une piste › « Autres versions » (`VersionsPistePanneau`) : meilleure
+  version annoncée en tête
+- `updateTag` — `PUT /tags/{}` → Étiquettes (`EtiquettesV2`) › « Renommer »
+- `updateTrack` — `PUT /library/tracks/{}` → menu « … » d’une piste ›
+  « Modifier la piste » (`TrackEditModal`)
+- `uploadArtistImage` — `POST /library/artists/{}/image/upload` → fiche
+  artiste (`OutilsArtisteV2`) : « Envoyer image »
 
 ## Historique, accueil et tableau de bord (9)
 

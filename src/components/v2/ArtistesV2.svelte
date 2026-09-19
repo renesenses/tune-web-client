@@ -40,7 +40,7 @@
    */
   import { onMount, untrack } from 'svelte';
   import {
-    activeView, listResetNonce, vueDeRetour,
+    activeView, listResetNonce, vueDeRetour, pendingSearchQuery,
     saveDetailScroll, restoreDetailScroll,
   } from '../../lib/stores/navigation';
   import {
@@ -74,6 +74,7 @@
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
+  import OutilsArtisteV2 from './OutilsArtisteV2.svelte';
 
   interface Props {
     /** Filtre texte partagé avec le reste de l'écran. */
@@ -319,6 +320,28 @@
     }
   }
 
+  /**
+   * Image envoyée depuis la fiche (`OutilsArtisteV2`) : elle remplace celle de
+   * la liste SANS réassigner `ouvert`, dont dépendent les effets d'ouverture.
+   * `null` = image retirée (signalée comme fausse).
+   */
+  let imagesEnvoyees = $state<Record<number, string | null>>({});
+  function imageDe(a: Artist): string | null | undefined {
+    return a.id != null && a.id in imagesEnvoyees ? imagesEnvoyees[a.id] : a.image_path;
+  }
+  function poserImage(id: number, chemin: string | null) {
+    imagesEnvoyees = { ...imagesEnvoyees, [id]: chemin };
+  }
+  /** Un artiste similaire : sa fiche s'il est dans la bibliothèque, la
+   *  recherche sinon — le chemin de l'ancienne fiche. */
+  function ouvrirSimilaire(nom: string) {
+    const bas = nom.toLowerCase();
+    const trouve = artistes.find((x) => (x.name ?? '').toLowerCase() === bas);
+    if (trouve) { void ouvrir(trouve); return; }
+    pendingSearchQuery.set(nom);
+    activeView.set('search');
+  }
+
   function lireAlbumDeService(al: Album, service: string) {
     const zid = $currentZoneId;
     // 🔴 `source` va TOUJOURS avec `streaming_album_id` : seul, l'identifiant
@@ -537,7 +560,7 @@
     <button class="retour" onclick={retourFiche}>← {$t('common.back' as any)}</button>
     <div class="ident">
       <span class="av">
-        <AlbumArt coverPath={artiste.image_path} size={0} alt={artiste.name}
+        <AlbumArt coverPath={imageDe(artiste)} size={0} alt={artiste.name}
           fallbackInitials={initiales(artiste.name)} />
       </span>
       <div>
@@ -562,6 +585,12 @@
        les sections séparées par service de #3709. -->
   <div class="corps">
     <BioEtTitresPhares bio={bioFiche} titres={titresPhares} cle={artiste.id} />
+    {#if artiste.id != null}
+      <OutilsArtisteV2 artistId={artiste.id} mbid={artiste.musicbrainz_id ?? null}
+        aBio={!!bioFiche} aImage={!!imageDe(artiste)}
+        onBio={(b) => (bioFiche = b)} onImage={(p) => poserImage(artiste.id!, p)}
+        onSimilaire={ouvrirSimilaire} />
+    {/if}
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
     {:else if !albums.length && !albumsService.length && !albumsServiceChargement}
@@ -615,7 +644,7 @@
               onOuvrir={() => ouvrirDepuisGrille(a)}
               nom={a.name}
             >
-              <AlbumArt coverPath={a.image_path} size={0} alt={a.name}
+              <AlbumArt coverPath={imageDe(a)} size={0} alt={a.name}
                 fallbackInitials={initiales(a.name)} />
             </PochetteActions>
           </div>

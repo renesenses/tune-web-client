@@ -47,6 +47,8 @@
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { notifications } from '../../lib/stores/notifications';
 
   let etiquettes = $state<UserTag[]>([]);
   let chargement = $state(true);
@@ -191,6 +193,50 @@
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
+  /**
+   * RENOMMER et SUPPRIMER une étiquette — portés depuis la Bibliothèque de
+   * l'ancienne interface (`LibraryView`, mode « gérer les étiquettes »), seul
+   * écran qui appelait `PUT` et `DELETE /tags/{id}`. Sans eux, la phase 5
+   * (retrait de l'ancienne interface) laissait une étiquette mal nommée ou
+   * posée par erreur impossible à corriger.
+   *
+   * Même geste qu'avant : saisie et confirmation par les dialogues de
+   * l'application (jamais `window.prompt`/`confirm`), mêmes clés de langue.
+   */
+  let gestion = $state(false);
+  async function renommer(tag: UserTag) {
+    if (tag.id == null || gestion) return;
+    const saisie = await dialogs.prompt($t('library.renameTagPrompt' as any), tag.name);
+    const nom = saisie?.trim();
+    if (!nom || nom === tag.name) return;
+    gestion = true;
+    try {
+      await api.updateTag(tag.id, nom);
+      etiquettes = etiquettes.map((x) => (x.id === tag.id ? { ...x, name: nom } : x));
+      if (ouverte?.id === tag.id) ouverte = { ...ouverte, name: nom };
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+    gestion = false;
+  }
+  async function supprimer(tag: UserTag) {
+    if (tag.id == null || gestion) return;
+    const ok = await dialogs.confirm(
+      $t('library.deleteTagConfirm' as any).replace('{name}', tag.name),
+      { danger: true },
+    );
+    if (!ok) return;
+    gestion = true;
+    try {
+      await api.deleteTag(tag.id);
+      etiquettes = etiquettes.filter((x) => x.id !== tag.id);
+      if (ouverte?.id === tag.id) { ouverte = null; clearShortcutTarget(); }
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+    gestion = false;
+  }
+
   onMount(() => {
     void charger();
   });
@@ -207,6 +253,10 @@
         <!-- Le total porte sur les QUATRE familles, et chaque onglet porte le
              sien : le compte annoncé correspond toujours à ce qu'on voit. -->
         <p class="v2-sous">{total} {$t('v2.tags.itemsWithTag' as any)}</p>
+      </div>
+      <div class="gerer">
+        <button class="sec" onclick={() => renommer(tag)} disabled={gestion}>{$t('library.renameTag' as any)}</button>
+        <button class="sec danger" onclick={() => supprimer(tag)} disabled={gestion}>{$t('library.deleteTag' as any)}</button>
       </div>
     </header>
 
@@ -341,6 +391,12 @@
   /* Le titre d'une étiquette porte sa PASTILLE de couleur : il aligne donc son
      texte sur elle, là où les autres écrans se contentent du réglage partagé. */
   .detail h1{display:flex; align-items:center; gap:10px}
+  .gerer{display:flex; gap:8px; align-self:flex-end}
+  .gerer .sec{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    font:600 12px var(--v2-sans); padding:8px 14px; border-radius:var(--v2-r-pill)}
+  .gerer .sec:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .gerer .sec.danger:hover{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+  .gerer .sec:disabled{opacity:.55; cursor:default}
 
   .v2-tags{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
   .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 8px}

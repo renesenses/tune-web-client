@@ -112,6 +112,9 @@
    *  champs, que la plupart des lignes n'ouvriront jamais. */
   let tiroirChamps = $state(false);
   let panneauVersions = $state(false);
+  /** « Modifier la piste » — la modale d'édition, la MÊME que l'ancienne
+   *  Bibliothèque (déplacée dans `partages/`), chargée à la demande. */
+  let modaleEdition = $state(false);
   /** L'ancre du menu « … » : sa position ÉCRAN, relevée au clic. */
   let ancreMenu = $state<DOMRect | null>(null);
 
@@ -349,6 +352,7 @@
         allerAlbum,
         etiqueter: () => (panneauEtiquettes = true),
         champsDuFichier: () => (tiroirChamps = true),
+        modifier: () => (modaleEdition = true),
       },
     ),
   );
@@ -468,6 +472,12 @@
 {#if tiroirChamps && piste.id != null}
   {#await import('../partages/TrackTagsDrawer.svelte') then m}
     <m.default trackId={piste.id} onClose={() => (tiroirChamps = false)} />
+  {/await}
+{/if}
+
+{#if modaleEdition && piste.id != null}
+  {#await import('../partages/TrackEditModal.svelte') then m}
+    <m.default track={piste} onClose={() => (modaleEdition = false)} />
   {/await}
 {/if}
 

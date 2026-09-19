@@ -51,6 +51,35 @@
   const flux = $derived(groupe?.streaming ?? []);
   const vide = $derived(!chargement && !erreur && locales.length === 0 && flux.length === 0);
 
+  /**
+   * « Vous possédez une meilleure version » — `GET /library/tracks/{id}/better-quality`.
+   *
+   * L'ancienne Bibliothèque le proposait en toast au lancement d'une piste ;
+   * c'était son seul appelant, et la phase 5 le retire. Les « autres
+   * versions » sont l'endroit où l'on cherche une variante : la meilleure
+   * possédée y est annoncée EN TÊTE, avec son geste. Silencieuse en cas
+   * d'échec, comme avant : ce n'est qu'une proposition.
+   */
+  let meilleure = $state<api.BetterQuality | null>(null);
+  $effect(() => {
+    const id = trackId;
+    let vivant = true;
+    meilleure = null;
+    api.trackBetterQuality(id)
+      .then((r) => {
+        const b = r?.better;
+        if (vivant && b?.track_id && b.track_id !== id) meilleure = b;
+      })
+      .catch(() => {});
+    return () => { vivant = false; };
+  });
+  function libelleQualite(b: api.BetterQuality): string {
+    const fmt = (b.format ?? '').toUpperCase();
+    const sr = b.sample_rate ? `${Math.round(b.sample_rate / 1000)} kHz` : '';
+    const bd = b.bit_depth && b.bit_depth > 1 ? ` / ${b.bit_depth} bit` : '';
+    return `${$t('library.betterQualityAvailable' as any)} : ${[fmt, sr].filter(Boolean).join(' ') + bd}`;
+  }
+
   $effect(() => {
     const id = trackId;
     let vivant = true;
@@ -122,6 +151,14 @@
       <button class="x" onclick={onClose} aria-label={$t('v2.common.close' as any)}>×</button>
     </header>
 
+    {#if meilleure}
+      {@const b = meilleure}
+      <div class="meilleure" role="status">
+        <span>{libelleQualite(b)}</span>
+        <button onclick={() => lireLocale({ track_id: b.track_id ?? null })}>{$t('library.playBetterQuality' as any)}</button>
+      </div>
+    {/if}
+
     {#if chargement}
       <p class="etat">{$t('v2.common.loading' as any)}</p>
     {:else if erreur}
@@ -176,6 +213,12 @@
   .x{position:absolute; top:-4px; right:-6px; width:28px; height:28px; border:0; background:transparent;
     color:var(--v2-txt3, inherit); font-size:20px; line-height:1; cursor:pointer; border-radius:6px}
   .x:hover{background:var(--v2-hover, rgba(255,255,255,.06)); color:var(--v2-txt, inherit)}
+  .meilleure{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 12px; padding:8px 12px;
+    border-radius:10px; border:1px solid var(--v2-acc2, currentColor); background:var(--v2-acc-soft, transparent);
+    font:600 12.5px var(--v2-sans, inherit); color:var(--v2-acc-tint, inherit)}
+  .meilleure button{border:1px solid var(--v2-line2, currentColor); background:transparent; color:var(--v2-txt, inherit);
+    border-radius:var(--v2-r-pill, 999px); padding:5px 12px; cursor:pointer; font:600 12px var(--v2-sans, inherit)}
+  .meilleure button:hover{border-color:var(--v2-acc2, currentColor)}
   .etat{font:13px var(--v2-sans, inherit); color:var(--v2-txt3, inherit); padding:10px 0}
   .tuiles{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px}
   .tuile{display:flex; align-items:center; gap:10px; min-width:0;
