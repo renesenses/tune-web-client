@@ -57,6 +57,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, multipleDSD, fold, formatDuration,  type QualityTier } from '../../lib/utils';
   import type { Album, Track } from '../../lib/types';
+  import { intertitresAnnee } from '../../lib/intertitresAnnee';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -759,6 +760,15 @@
    * c'est le bon repère pour ces deux tris, et elle existe déjà.
    */
   const railUtile = $derived(sortKey === 'title' || sortKey === 'artist');
+
+  /**
+   * #1313 — triée par année, la grille et la liste s'ouvrent sur un
+   * INTERTITRE à chaque changement d'année (« les années n'apparaissent pas
+   * lors du défilement », Jean Valjean, fil 1671). Le rail étant retiré sur ce
+   * tri et la frise réservée au niveau Intermédiaire, c'était le seul écran de
+   * la Bibliothèque sans aucun repère. Voir `lib/intertitresAnnee.ts`.
+   */
+  const intertitres = $derived(sortKey === 'year' ? intertitresAnnee(affiches, albumYear) : null);
 
   const present = $derived(railUtile ? new Set(affiches.map(firstLetter)) : new Set<string>());
   let gridEl: HTMLDivElement | undefined = $state();
@@ -2037,7 +2047,13 @@
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
         {:else}
         <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
-          {#each affiches as a (a.id)}
+          {#each affiches as a, i (a.id)}
+            {@const it = intertitres?.get(i)}
+            {#if it}
+              <h3 class="yinter" data-annee={it.annee ?? ''}>
+                <span>{it.annee ?? $tr('v2.lib.unknownYear' as any)}</span><span class="yn">{it.n}</span>
+              </h3>
+            {/if}
             <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
               <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
               <!-- La pastille reste DANS la cellule du titre : une septieme
@@ -2068,7 +2084,13 @@
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
         {:else}
         <div class="grid" class:expert={showExpert} bind:this={gridEl}>
-          {#each affiches as a (a.id)}
+          {#each affiches as a, i (a.id)}
+            {@const it = intertitres?.get(i)}
+            {#if it}
+              <h3 class="yinter" data-annee={it.annee ?? ''}>
+                <span>{it.annee ?? $tr('v2.lib.unknownYear' as any)}</span><span class="yn">{it.n}</span>
+              </h3>
+            {/if}
             <div class="card" data-letter={firstLetter(a)}>
               <div class="cover">
                 <PochetteActions
@@ -2356,6 +2378,12 @@
   .trk .tt em{font:11px var(--v2-sans); font-style:normal; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis}
   .trk .td{font:11.5px var(--v2-mono); color:var(--v2-txt3)}
 
+  /* #1313 : l'intertitre d'année traverse toute la grille (`1 / -1`) et reste
+     collé en haut pendant le défilement, pour qu'on sache toujours où l'on est. */
+  .yinter{grid-column:1 / -1; position:sticky; top:0; z-index:2; display:flex; align-items:baseline; gap:8px;
+    margin:0; padding:6px 0 5px; background:var(--v2-bg); border-bottom:1px solid var(--v2-line);
+    font:700 15px var(--v2-sans); color:var(--v2-txt)}
+  .yinter .yn{font:600 11px var(--v2-mono); color:var(--v2-txt3)}
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
