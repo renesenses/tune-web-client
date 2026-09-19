@@ -22,7 +22,7 @@
 // défaut : c'est justement pour cela qu'il n'y est pas ici.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import SmbWizard from '../../components/SmbWizard.svelte';
+import SmbWizard from '../../components/partages/SmbWizard.svelte';
 
 /** Ce que `list_shares` rend vraiment : un hôte, sans ses partages. */
 const HOTE_DECOUVERT = {
