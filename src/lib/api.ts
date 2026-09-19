@@ -769,6 +769,26 @@ export function updateZoneGapless(id: number, enabled: boolean) {
   });
 }
 
+/**
+ * La DISPOSITION DE CANAUX déclarée pour l'appareil d'une zone — chantier
+ * « multicanal ».
+ *
+ * `layout` = le nom stable d'une disposition (`stereo`, `surround51`,
+ * `surround714`…), ou la CHAÎNE VIDE pour revenir à « suivre l'appareil » :
+ * côté serveur, la clé est alors supprimée, pour que l'absence de réglage et
+ * le défaut soient un seul et même état.
+ *
+ * 🔴 C'est une DÉCLARATION, pas un forçage. Elle sert à proposer et à
+ * étiqueter ; aucun canal n'est fabriqué. Un nom inconnu est refusé par le
+ * serveur plutôt qu'écrit.
+ */
+export function updateZoneChannelLayout(id: number, layout: string) {
+  return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ channel_layout: layout }),
+  });
+}
+
 export function updateZoneMonoDownmix(id: number, enabled: boolean) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
