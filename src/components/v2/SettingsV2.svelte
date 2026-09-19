@@ -65,11 +65,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { V2_SETTINGS, type V2SettingsTabId, tabLabel } from '../../lib/v2Settings';
   import PluginsV2 from './PluginsV2.svelte';
+  import PartagesReseauV2 from './PartagesReseauV2.svelte';
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
-  import PartagesReseauV2 from './PartagesReseauV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
