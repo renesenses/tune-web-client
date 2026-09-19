@@ -204,3 +204,14 @@ d’appareil, le LPCM DLNA ≠ le mode WAV). À compter comme perdues tant qu’
 - getAllAlbumsSeeded — GET /library/albums — ≡ getAlbumsPage
 - getTracks — GET /library/tracks — ≡ getAllTracks
 - updateZoneDlnaLpcm — PATCH /zones/{} — ≡ updateZoneWavMode
+
+## Angle mort (hors `api.ts`) — télémétrie
+
+Relevé de `feat/v2-porte-rapport-bogue` (#1301, section « Angle mort ») : huit
+capacités appelées par chemin en dur dans les écrans supprimés, sans fonction
+d'`api.ts`. Celle-ci est **prioritaire** : le consentement ne doit jamais
+devenir immodifiable.
+
+| Écran supprimé | Route | Chemin v2 |
+|---|---|---|
+| `SettingsView` (`etatTelemetrie.ts`) | `GET /cloud/telemetry/status`, `POST /cloud/telemetry/enable\|disable` | ✅ **porté** (`feat/v2-porte-telemetrie`) : Réglages › Système › Cloud, bascule « Télémétrie » par `api.getTelemetryStatus` / `api.setTelemetryConsent` ; état effectif du serveur (#3383), verrou `TUNE_TELEMETRY` dit, identifiant d'instance et pause cloud affichés. Témoin : `src/lib/__tests__/telemetrieV2.test.ts` |
