@@ -34,6 +34,8 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { corpsDeLecture, estPisteLocale } from '../pisteFile';
 import { entreesDepuisServeur } from '../historiqueLecture';
+import { entreesMenuPiste } from '../menuPiste';
+import { cibleDeService, estCibleService } from '../cibleEtiquette';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 function sansCommentaires(src: string): string {
@@ -123,17 +125,36 @@ describe('point 2 — le menu « … » d’un titre d’historique', () => {
     //     `NOT NULL REFERENCES tracks(id)`, la route répond 201 sur une liste
     //     restée vide. « ABSENTE du menu, pas grisée. »
     // Ce témoin garde la LIMITE : la lever demande le serveur, pas le client.
+    //
+    // 🔄 Réécrit le 19/09/2026 (#1238) : les ÉTIQUETTES sortent de cette liste.
+    // Leur limite venait du serveur, et le serveur l'a levée en v0.9.144
+    // (`POST /tags/{id}/streaming-items`, renesenses/tune-server-rust#3699) —
+    // exactement la condition que ce témoin posait. L'INTENTION est gardée
+    // plus bas : l'entrée n'apparaît que si l'appelant dit la piste
+    // `etiquetable`, jamais sur une piste qu'aucune route ne sait désigner.
     const menu = sansCommentaires(lire('src/lib/menuPiste.ts'));
     for (const cle of [
       'library.playSimilar',
       'library.otherVersions',
       'nowplaying.addToPlaylist',
-      'v2.cover.tags',
     ]) {
       expect(menu, `${cle} n’est plus réservée à la bibliothèque`).toMatch(
         new RegExp(`pousser\\(deLaBibliotheque, '${cle.replace('.', '\\.')}'`),
       );
     }
+  });
+
+  it('« Étiquettes » : ouverte à une piste de service désignable, fermée sinon (#1238)', () => {
+    const noop = () => {};
+    const service = { jouable: true, idBibliotheque: null, artistId: null, albumId: null };
+    const cles = (c: Parameters<typeof entreesMenuPiste>[0]) =>
+      entreesMenuPiste(c, { etiqueter: noop }).map((e) => e.cle);
+    expect(cles({ ...service, etiquetable: true }), 'une piste de service étiquetable n’a pas l’entrée')
+      .toContain('v2.cover.tags');
+    // Pas d'icône morte : sans cible (ni entier ni paire), pas d'entrée.
+    expect(cles({ ...service, etiquetable: false })).not.toContain('v2.cover.tags');
+    expect(cles(service), 'sans avis de l’appelant, seule la bibliothèque étiquette').not.toContain('v2.cover.tags');
+    expect(cles({ ...service, idBibliotheque: 12 })).toContain('v2.cover.tags');
   });
 
   it('les trois gestes de FILE restent ouverts à toute piste jouable', () => {
@@ -174,11 +195,20 @@ describe('points 3 et 5 — un album de SERVICE s’ouvre et se met en favori', 
     expect(src()).toMatch(/itemType: 'album',\s*service: String\(a\.source\)/);
   });
 
-  it('les ÉTIQUETTES restent locales — le serveur ne sait pas faire', () => {
-    // `item_id: i64` côté route, quand un album Qobuz s'identifie
-    // « kxend2k5wdg06 ». Une icône morte serait pire que pas d'icône.
-    // Ce témoin garde la LIMITE, pour qu'on ne la lève pas sans le serveur.
-    expect(src()).toContain("etiquettes={local_ ? { itemType: 'album', itemId: a.id! } : null}");
+  it('les ÉTIQUETTES d’un album de service passent par la paire (#1238)', () => {
+    // 🔄 Réécrit le 19/09/2026 (#1238). Ce témoin gardait une LIMITE — « `item_id:
+    // i64` côté route […] Une icône morte serait pire que pas d'icône » — pour
+    // qu'on ne la lève pas SANS le serveur. Le serveur l'a levée en v0.9.144
+    // (`POST /tags/{id}/streaming-items`, vérifié en GET sur le .18 v0.9.156).
+    // L'intention demeure : pas d'icône morte. L'album local garde son entier,
+    // l'album de service passe par `cibleDeService`, qui rend `null` — donc pas
+    // d'icône — quand la paire manque.
+    expect(src()).toContain(
+      "etiquettes={local_ ? { itemType: 'album', itemId: a.id! } : cibleDeService('album', a)}",
+    );
+    const qobuz = cibleDeService('album', { source: 'qobuz', source_id: 'kxend2k5wdg06' });
+    expect(qobuz && estCibleService(qobuz)).toBe(true);
+    expect(cibleDeService('album', { source: 'qobuz', source_id: null })).toBeNull();
   });
 
   it('le TITRE mène à la fiche dans les deux cas', () => {

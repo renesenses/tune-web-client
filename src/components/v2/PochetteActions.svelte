@@ -53,6 +53,7 @@
   } from '../../lib/stores/profile';
   import { basculerFavoriLocal, estFavoriLocal, type RefLocale } from '../../lib/favorisLocaux';
   import type { Snippet } from 'svelte';
+  import type { CibleEtiquette } from '../../lib/cibleEtiquette';
 
   interface Props {
     /** La pochette : `AlbumArt`, `MosaiquePochettes`, ce que l'appelant veut. */
@@ -71,8 +72,13 @@
      * On partage l'APPARENCE et la position ; seule la bascule diffère.
      */
     favoriExterne?: { actif: boolean; basculer: () => void | Promise<void> } | null;
-    /** Cible des étiquettes. Absent = pas de bouton d'étiquettes. */
-    etiquettes?: { itemType: string; itemId: number } | null;
+    /**
+     * Cible des étiquettes. Absent = pas de bouton d'étiquettes.
+     *
+     * #1238 : un objet de la bibliothèque (`itemId`) OU de service
+     * (`source` + `sourceId`, voir `lib/cibleEtiquette`).
+     */
+    etiquettes?: CibleEtiquette | null;
     /** Ouvre l'édition. Absent = pas de bouton d'édition. */
     onEditer?: (() => void) | null;
     /** Lance la lecture. Absent = pas de bouton central. */
@@ -257,8 +263,7 @@
 {#if panneauOuvert && etiquettes}
   {#await import('./EtiquettesPanneau.svelte') then m}
     <m.default
-      itemType={etiquettes.itemType}
-      itemId={etiquettes.itemId}
+      cible={etiquettes}
       {nom}
       onClose={() => (panneauOuvert = false)}
     />

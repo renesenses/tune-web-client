@@ -43,10 +43,12 @@
   import type { Album, Artist, Track, UserTag } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleDeService, cleLigneEtiquetee, corpsLectureAlbumEtiquete } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { corpsDeLecture } from '../../lib/pisteFile';
 
   let etiquettes = $state<UserTag[]>([]);
   let chargement = $state(true);
@@ -179,16 +181,25 @@
     lireListeDepuis(pistes as any, i, gestesDeZone(zid)).catch(signalerEchecLecture);
   }
 
+  /**
+   * #1238 — les routes `/tags/{id}/albums|tracks` rendent AUSSI la moitié
+   * streaming, avec `id: null` et la paire `source` + `source_id`. Ces deux
+   * gestes ne savaient lire que l'entier : un clic sur une ligne Qobuz ne
+   * faisait rien, en silence. Le corps vient désormais de la même règle que
+   * partout ailleurs (`corpsDeLecture` pour une piste).
+   */
   function lirePiste(t: Track) {
     const zid = $currentZoneId;
-    if (zid == null || t.id == null) return;
-    playAndSync(zid, { track_id: t.id }).catch(signalerEchecLecture);
+    const corps = corpsDeLecture(t);
+    if (zid == null || !corps) return;
+    playAndSync(zid, corps as any).catch(signalerEchecLecture);
   }
 
   function lireAlbum(a: Album) {
     const zid = $currentZoneId;
-    if (zid == null || a.id == null) return;
-    playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
+    const corps = corpsLectureAlbumEtiquete(a as any);
+    if (zid == null || !corps) return;
+    playAndSync(zid, corps as any).catch(signalerEchecLecture);
   }
 
   onMount(() => {
@@ -226,12 +237,12 @@
           <div class="etat">{$t('v2.tags.noAlbumWithTag' as any)}</div>
         {:else}
           <div class="grille">
-            {#each albums as a (a.id)}
+            {#each albums as a, i (cleLigneEtiquetee(a, i))}
               <div class="carte">
                 <div class="cv">
                   <PochetteActions
                     favori={a.id != null ? { albumId: a.id } : null}
-                    etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                    etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : cibleDeService('album', a)}
                     onLire={() => lireAlbum(a)}
                     onOuvrir={() => { ouvrirCalqueAlbum(a); albumOuvert = a; }}
                     nom={a.title}
