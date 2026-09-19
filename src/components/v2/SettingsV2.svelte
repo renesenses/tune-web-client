@@ -66,6 +66,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
   import { licenseState, loadLicense } from '../../lib/stores/license';
+  import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple } from '../../lib/dates';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
@@ -1056,6 +1057,52 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       licErr = e?.message ?? get(t)('settings.errActivationRejected');
     }
     licBusy = false;
+  }
+  /**
+   * Revalider la licence — porté de l'ancienne interface, seul écran qui
+   * savait le demander. Une licence à clé que personne ne revalide retombe en
+   * gratuit : c'est le geste qui la remet d'aplomb.
+   *
+   * 🔴 `POST /cloud/license/validate` répond 200 dans TOUS ses cas d'échec, et
+   * le verdict vit dans le corps. L'ancien code annonçait « Licence validée »
+   * dès que l'appel local aboutissait ; Bruno Lescarret l'a lu trois fois et
+   * est resté seize jours en gratuit (#570). Le verdict passe donc par la
+   * règle partagée, qui exige que l'état RELU montre le palier.
+   */
+  let licValidating = $state(false);
+  let licCooldown = $state(false);
+  function licReposer() {
+    licCooldown = true;
+    setTimeout(() => { licCooldown = false; }, 60_000);
+  }
+  async function validateLic() {
+    if (licValidating || licCooldown) return;
+    licValidating = true; licErr = null;
+    try {
+      const reponse = await api.validateLicense();
+      await loadLicense();
+      // Le palier peut arriver avant les droits par fonction : une seconde
+      // lecture, un peu plus tard, les rattrape — comme l'ancien écran.
+      setTimeout(() => { void loadLicense(); }, 1500);
+      const etat = get(licenseState);
+      const verdict = verdictValidationLicence(reponse, {
+        tier: etat.tier,
+        conflitDeSession: etat.sessionConflict != null,
+      });
+      const texte = verdict.statutDistant === null
+        ? get(t)(verdict.cle)
+        : get(t)(verdict.cle).replace('{code}', String(verdict.statutDistant));
+      if (verdict.succes) notifications.success(texte);
+      else notifications.error(texte);
+      // Le plafond de requêtes est un refus du serveur DISTANT, traduit en 200
+      // par la route locale : le `catch` ne pouvait pas le voir.
+      if (verdict.repos) licReposer();
+    } catch (e: any) {
+      if (e?.status === 429) { notifications.error(get(t)('settings.licenseRateLimited')); licReposer(); }
+      else notifications.error(e?.message ?? get(t)('settings.licenseValidationError'));
+    } finally {
+      licValidating = false;
+    }
   }
   async function deactivateLic() {
     if (licBusy) return;
@@ -3215,6 +3262,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               {/if}
 
               {#if lic.licenseKey}
+                <div class="row">
+                  <div class="lbl"><span>{$t('settings.validate' as any)}</span></div>
+                  <button class="lnk" disabled={licValidating || licCooldown} onclick={validateLic}>
+                    {licValidating ? $t('settings.validating' as any) : $t('settings.validate' as any)}
+                  </button>
+                </div>
                 <div class="row">
                   <div class="lbl"><span>{$t('settings.releaseLicense' as any)}</span>
                     <span class="hint">{$t('settings.releaseLicenseHint' as any)}</span></div>
