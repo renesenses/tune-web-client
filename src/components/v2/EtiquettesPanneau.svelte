@@ -25,14 +25,28 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
+  import {
+    etiquettesPosees, poserEtiquette, retirerEtiquette, type CibleEtiquette,
+  } from '../../lib/cibleEtiquette';
 
+  /**
+   * #1238 — la cible est un objet de la bibliothèque (`itemId` entier) OU un
+   * objet de service (`source` + `sourceId`). `lib/cibleEtiquette` choisit la
+   * route ; ce panneau n'en sait rien. `itemType` + `itemId` restent acceptés
+   * pour les appelants qui ne connaissent que la bibliothèque.
+   */
   interface Props {
-    itemType: string;
-    itemId: number;
+    cible?: CibleEtiquette | null;
+    itemType?: string;
+    itemId?: number;
     nom?: string;
     onClose: () => void;
   }
-  let { itemType, itemId, nom = '', onClose }: Props = $props();
+  let { cible = null, itemType = '', itemId, nom = '', onClose }: Props = $props();
+
+  const laCible = $derived<CibleEtiquette | null>(
+    cible ?? (itemType && itemId != null ? { itemType, itemId } : null),
+  );
 
   let posees = $state<any[]>([]);
   let toutes = $state<any[]>([]);
@@ -47,9 +61,10 @@
 
   async function charger() {
     chargement = true;
+    const c = laCible;
     const [p, a] = await Promise.allSettled([
-      api.getTagsForItem(itemType, itemId),
-      api.getTags(itemType),
+      c ? etiquettesPosees(c) : Promise.resolve([]),
+      api.getTags(c?.itemType),
     ]);
     posees = p.status === 'fulfilled' ? ((p.value as any[]) ?? []) : [];
     toutes = a.status === 'fulfilled' ? ((a.value as any[]) ?? []) : [];
@@ -60,7 +75,8 @@
     if (travail) return;
     travail = true;
     try {
-      await api.tagItem(tag.id, itemType, itemId);
+      if (!laCible) throw new Error($t('common.error' as any));
+      await poserEtiquette(tag.id, laCible);
       posees = [...posees, tag];
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
@@ -72,7 +88,8 @@
     if (travail) return;
     travail = true;
     try {
-      await api.untagItem(tag.id, itemType, itemId);
+      if (!laCible) throw new Error($t('common.error' as any));
+      await retirerEtiquette(tag.id, laCible);
       posees = posees.filter((x) => x.id !== tag.id);
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
@@ -88,7 +105,8 @@
       const cree = await api.createTag(nomTag);
       if (cree?.id) {
         // Deux appels : le serveur n'a pas de route qui crée ET pose.
-        await api.tagItem(cree.id, itemType, itemId);
+        if (!laCible) throw new Error($t('common.error' as any));
+        await poserEtiquette(cree.id, laCible);
         posees = [...posees, cree];
         toutes = [...toutes, cree];
         saisie = '';
