@@ -5587,15 +5587,54 @@ export interface ImportResponse {
 // client. Corriger le seul préfixe aurait remplacé le 404 par un 401 — la
 // fonctionnalité serait restée cassée, avec un symptôme différent.
 
+/**
+ * L'erreur d'un import refusé, avec la phrase du serveur.
+ *
+ * Les refus d'import (`routes/system/import.rs`, `refus_dimport`) ont la forme
+ * `{ error: "<code>", detail: "<phrase>" }` : c'est `detail` qui dit quoi
+ * corriger (« aucune piste lisible dans ce CSV. En-tête reçu : … »), alors que
+ * `erreurDepuisReponse` prendrait le code. L'ancien message recopiait le corps
+ * JSON brut.
+ */
+async function erreurDImport(res: Response): Promise<Error> {
+  const texte = (await res.text().catch(() => '')).trim();
+  let motif = '';
+  try {
+    const j = JSON.parse(texte);
+    motif = String(j?.detail ?? j?.message ?? j?.error ?? '');
+  } catch {
+    if (texte && !texte.startsWith('<')) motif = texte.slice(0, 300);
+  }
+  const err = new Error(motif ? `${res.status} — ${motif}` : `${res.status} ${res.statusText}`) as ApiError;
+  err.status = res.status;
+  return err;
+}
+
+/** Suivi d'un import lancé (`202 {task_id}`) — `GET /system/import/status/{task_id}`. */
+export interface EtatImport extends Partial<Omit<ImportReport, 'details'>> {
+  task_id?: string;
+  /** `running`, `completed`, `completed_with_errors`, ou `unknown` (tâche inconnue). */
+  status?: string;
+  imported?: number;
+  skipped?: number;
+  errors?: number;
+}
+
+/**
+ * L'import réel ne rend que `202 {task_id}` : sur 50 000 lignes il travaille
+ * derrière. Le rapport (mêmes champs que l'aperçu, au premier niveau) se lit
+ * ici une fois la tâche terminée (tune-server-rust #3914, R5).
+ */
+export function getImportStatus(taskId: string) {
+  return fetchJSON<EtatImport>(`${BASE}/system/import/status/${encodeURIComponent(taskId)}`);
+}
+
 export async function importRoon(file: File, preview = false): Promise<ImportReport> {
   const form = new FormData();
   form.append('file', file);
   const url = `${BASE}/system/import/roon?preview=${preview}`;
   const res = await fetch(url, { method: 'POST', headers: authHeaders(), body: form });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Import Roon failed (${res.status}): ${text || res.statusText}`);
-  }
+  if (!res.ok) throw await erreurDImport(res);
   return res.json() as Promise<ImportReport>;
 }
 
@@ -5604,10 +5643,7 @@ export async function importPlex(file: File, preview = false): Promise<ImportRep
   form.append('file', file);
   const url = `${BASE}/system/import/plex?preview=${preview}`;
   const res = await fetch(url, { method: 'POST', headers: authHeaders(), body: form });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`Import Plex failed (${res.status}): ${text || res.statusText}`);
-  }
+  if (!res.ok) throw await erreurDImport(res);
   return res.json() as Promise<ImportReport>;
 }
 

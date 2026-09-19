@@ -42,7 +42,8 @@ exclus.
 | même gestionnaire serveur | `youtubeAuthDeviceCode`, `youtubeAuthPoll`, `youtubeAuthLogout`, `youtubeAuthStatus` — les routes dédiées et la route générique de la v2 aboutissent à `service_auth` |
 | chargeurs de listes remplacés | `getAlbums`, `getAllAlbumsSeeded`, `getTracks` |
 | présentation, pas capacité | `listGroups` (grappes de zones), `getHomePage` (l'accueil v2 est une page de widgets) |
-| **n'ont jamais fonctionné** | `importRoon`, `importPlex` (contrat rompu des deux côtés, mis de côté le 01/09), `importPlaylists` (bouchon serveur « not yet implemented »), `listSnapcastClients`, `assignSnapcastClient` (ni type de sortie ni route `assign` côté serveur) |
+| **n'ont jamais fonctionné** | `importPlaylists` (bouchon serveur « not yet implemented »), `listSnapcastClients`, `assignSnapcastClient` (ni type de sortie ni route `assign` côté serveur) |
+| ~~n'ont jamais fonctionné~~ — **classement faux, corrigé** | `importRoon`, `importPlex` : le contrat a été réparé côté serveur par tune-server-rust #3914 (`import_roon_entree` / `import_plex_entree` lisent le fichier téléversé, `?preview=true` calcule le rapport sans écrire, l'import réel rend `202 {task_id}` suivi par `/system/import/status/{id}`). C'était donc une **perte** : portée par `feat/v2-porte-import-roon-plex` (Réglages › Système › Import, `ImportLecteurV2`) |
 | écran déjà mort | `onboardingStep`, `skipOnboarding` — `OnboardingView` n'était monté par personne (14/09) |
 
 ## Défauts de l'interface actuelle corrigés pendant le portage
