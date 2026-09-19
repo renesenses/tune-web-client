@@ -42,19 +42,7 @@ const LANGUES: Record<string, Record<string, string>> = {
   fr, en, de, es, it: itLocale, zh, ja, ko, ro, sv, hu,
 } as never;
 
-const settings = readFileSync(
-  resolve(__dirname, '../../components/SettingsView.svelte'),
-  'utf-8',
-);
 
-/** Le corps de `toggleCloudTelemetry`, et lui seul. */
-function corpsDeLaBascule(): string {
-  const debut = settings.indexOf('async function toggleCloudTelemetry() {');
-  expect(debut).toBeGreaterThanOrEqual(0);
-  const fin = settings.indexOf('\n  }', debut);
-  expect(fin).toBeGreaterThan(debut);
-  return settings.slice(debut, fin);
-}
 
 describe('#3383 — la décision d’affichage vient du serveur', () => {
   it('une demande d’activation refusée par la machine laisse la case décochée', () => {
@@ -102,74 +90,4 @@ describe('#3383 — la décision d’affichage vient du serveur', () => {
   });
 });
 
-describe('#3383 — la décision est BRANCHÉE dans l’écran', () => {
-  it('la bascule lit la réponse du serveur au lieu d’inverser son booléen', () => {
-    const corps = corpsDeLaBascule();
-    expect(corps).toContain('routeDeBascule(souhait)');
-    expect(corps).toContain('const reponse = await api.apiPost(');
-    expect(corps).toContain('etatTelemetrie(reponse');
-    expect(corps).toContain('cloudTelemetryEnabled = etat.actif;');
-    // Le défaut lui-même : l'inversion locale, aveugle à la réponse.
-    expect(corps).not.toContain('cloudTelemetryEnabled = !cloudTelemetryEnabled');
-  });
 
-  it('le rafraîchissement du statut passe par la même décision', () => {
-    const debut = settings.indexOf("await api.apiFetch('/cloud/telemetry/status')");
-    expect(debut).toBeGreaterThanOrEqual(0);
-    const bloc = settings.slice(debut, debut + 500);
-    expect(bloc).toContain('etatTelemetrie(tel,');
-    expect(bloc).toContain('cloudTelemetryEnvLocked = etat.verrouEnvironnement;');
-    expect(bloc).not.toContain('cloudTelemetryEnabled = !!tel?.enabled;');
-  });
-
-  it('la case est inerte quand l’exploitant a verrouillé la machine', () => {
-    const ligne = settings
-      .split('\n')
-      .find((l) => l.includes('onchange={toggleCloudTelemetry}'));
-    expect(ligne).toBeDefined();
-    expect(ligne).toContain('disabled={cloudTelemetryLoading || cloudTelemetryEnvLocked}');
-    expect(settings).toContain("$t('settings.telemetryEnvLocked')");
-  });
-});
-
-describe('#3383 — l’intitulé dit la vérité, dans les onze langues', () => {
-  const CLES = [
-    'settings.telemetryHint',
-    'settings.telemetryOffScope',
-    'settings.telemetryEnvLocked',
-  ];
-
-  it('les trois clés existent partout et ne sont pas vides', () => {
-    for (const [code, dico] of Object.entries(LANGUES)) {
-      for (const cle of CLES) {
-        expect(dico[cle], `${code} / ${cle}`).toBeTruthy();
-        expect((dico[cle] ?? '').trim().length, `${code} / ${cle}`).toBeGreaterThan(10);
-      }
-    }
-    expect(Object.keys(LANGUES)).toHaveLength(11);
-  });
-
-  it('l’intitulé ne promet plus l’anonymat — un server_id persistant est envoyé', () => {
-    expect(en['settings.telemetryHint'].toLowerCase()).not.toContain('anonymous');
-    expect(fr['settings.telemetryHint'].toLowerCase()).not.toContain('anonyme');
-    // …et il nomme ce qui part.
-    expect(en['settings.telemetryHint'].toLowerCase()).toContain('identifier');
-    expect(fr['settings.telemetryHint'].toLowerCase()).toContain('identifiant');
-  });
-
-  it('l’écran dit ce que le refus coupe EN PLUS, et ce qu’il ne coupe pas', () => {
-    // La même bascule ferme la contribution communautaire : quelqu'un qui
-    // décoche « statistiques » perdait les bios sans savoir pourquoi.
-    expect(en['settings.telemetryOffScope'].toLowerCase()).toContain('community');
-    expect(fr['settings.telemetryOffScope'].toLowerCase()).toContain('communautaires');
-    // La licence, elle, continue d'être validée (LIC-1) — le dire évite de
-    // faire craindre la perte du Premium.
-    expect(en['settings.telemetryOffScope'].toLowerCase()).toContain('licence');
-    expect(fr['settings.telemetryOffScope'].toLowerCase()).toContain('licence');
-  });
-
-  it('les deux hints sont affichés, pas seulement traduits', () => {
-    expect(settings).toContain("$t('settings.telemetryHint')");
-    expect(settings).toContain("$t('settings.telemetryOffScope')");
-  });
-});

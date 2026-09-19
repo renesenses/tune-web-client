@@ -168,13 +168,6 @@ const sansCommentaires = (s: string) =>
  * le réclamait — c'est le seul point qu'un test de module ne peut pas voir.
  */
 describe('#1947 — les surfaces qui n’avaient pas ces boutons les ont', () => {
-  it('la fiche d’album du client actuel a une « lecture aléatoire »', () => {
-    const src = sansCommentaires(lireSrc('src/components/LibraryView.svelte'));
-    expect(src).toContain('lireAlbumAleatoire');
-    // Le tirage porte sur l'album, par le serveur — pas sur la page affichée.
-    expect(src).toContain("api.shuffleAll(zone.id, { album_id: id })");
-    expect(src).toContain('class="play-all-btn shuffle-album-btn"');
-  });
   it('la fiche d’artiste du nouveau client a les deux boutons', () => {
     const src = sansCommentaires(lireSrc('src/components/v2/ArtistesV2.svelte'));
     expect(src).toContain('lireToutArtiste');
@@ -215,7 +208,6 @@ describe('#1947 — les surfaces qui n’avaient pas ces boutons les ont', () =>
   });
   it('aucune de ces surfaces n’arme le drapeau de la zone', () => {
     for (const f of [
-      'src/components/LibraryView.svelte',
       'src/components/v2/ArtistesV2.svelte',
       'src/components/v2/PlaylistDetailV2.svelte',
       'src/components/v2/CollectionsV2.svelte',

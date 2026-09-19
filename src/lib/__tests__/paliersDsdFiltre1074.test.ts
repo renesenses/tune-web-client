@@ -109,11 +109,6 @@ describe('#1074 — le branchement', () => {
     expect(vue).not.toContain('{r.l} kHz');
   });
 
-  it('l\'ancienne interface passe par le même nommage', () => {
-    const vue = readFileSync('src/components/LibraryView.svelte', 'utf8');
-    expect(vue).toContain('nommerFrequence(sr, paliersFrequence)');
-  });
-
   it('l\'appel serveur retombe en silence sur un serveur antérieur', () => {
     const api = readFileSync('src/lib/api.ts', 'utf8');
     const i = api.indexOf('export async function getSampleRateLabels(');

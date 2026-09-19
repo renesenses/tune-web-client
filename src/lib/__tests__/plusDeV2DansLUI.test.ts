@@ -14,11 +14,10 @@
  * Tout le reste — 1 069 clés `v2.*`, 60 fichiers `components/v2/`, 48 jetons
  * `--v2-*`, 60 identifiants `…V2` — est de la plomberie que personne ne lit.
  *
- * ⚠️ `?v2=0` RESTE écrit tel quel, et c'est délibéré : c'est le filet de
- * secours réel, le paramètre d'URL qui ramène à l'interface précédente quand
- * un écran se bloque. Le renommer dans le texte sans renommer le drapeau le
- * rendrait FAUX. Il disparaîtra avec le drapeau, à la suppression de
- * l'ancienne interface.
+ * `?v2=0` était resté écrit tel quel : c'était le filet réel, le paramètre
+ * d'URL qui ramenait à l'interface précédente. La phase 5 a retiré cette
+ * interface, le drapeau et l'interrupteur avec elle — leurs libellés et les
+ * tests qui les tenaient sont partis ensemble.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -36,46 +35,16 @@ describe('aucun numéro de version dans le texte visible', () => {
         const m = ligne.match(/^\s*"([^"]+)"\s*:\s*"((?:\\.|[^"])*)"/);
         if (!m) continue;
         const [, cle, val] = m;
-        // `?v2=0` est le FILET, un paramètre d'URL littéral : il reste.
-        const sansFilet = val.replace(/\?v2=0/g, '').replace(/\?v2\b/g, '');
-        if (/\b[Vv](?:ersion\s*)?[12]\b/.test(sansFilet)) coupables.push(`${l} / ${cle}`);
+        // Plus d'exemption pour `?v2=0` : le drapeau est parti avec la phase 5,
+        // aucune chaîne n'a plus de raison de le citer.
+        if (/\b[Vv](?:ersion\s*)?[12]\b|\?v2\b/.test(val)) coupables.push(`${l} / ${cle}`);
       }
     }
     expect(coupables, `chaînes nommant encore une version : ${coupables.join(', ')}`).toEqual([]);
   });
 
-  it('⚠️ …mais le filet `?v2=0` est TOUJOURS là', () => {
-    // Le retirer du texte sans renommer le drapeau rendrait la phrase fausse
-    // et l'échappatoire introuvable.
-    for (const l of LANGUES) {
-      expect(valeur(l, 'settings.uiChoiceHint'), l).toContain('?v2=0');
-    }
-  });
-
   it('aucun écran n a « V2 » en dur', () => {
     const vue = readFileSync('src/components/v2/AvatarMenu.svelte', 'utf8');
     expect(vue).not.toMatch(/>[^<]*\bV2\b/);
-  });
-});
-
-describe('le couple de l interrupteur dit ce qu il est', () => {
-  it('🔴 « Actuelle » nommait l ANCIENNE — or la nouvelle est le défaut', () => {
-    // Depuis la phase 4 (#1032), un appareil qui n'a jamais choisi ouvre la
-    // nouvelle. Appeler l'ancienne « Actuelle » désignait comme courant ce que
-    // plus personne n'obtient par défaut.
-    expect(valeur('fr', 'settings.uiCurrent')).toBe('Précédente');
-    expect(valeur('fr', 'settings.uiFuture')).toBe('Nouvelle');
-    expect(valeur('en', 'settings.uiCurrent')).toBe('Previous');
-    expect(valeur('en', 'settings.uiFuture')).toBe('New');
-  });
-
-  it('les deux libellés sont traduits partout, et distincts', () => {
-    for (const l of LANGUES) {
-      const a = valeur(l, 'settings.uiCurrent');
-      const b = valeur(l, 'settings.uiFuture');
-      expect(a, `${l} uiCurrent`).not.toBe('');
-      expect(b, `${l} uiFuture`).not.toBe('');
-      expect(a, `${l} : les deux libellés se confondent`).not.toBe(b);
-    }
   });
 });

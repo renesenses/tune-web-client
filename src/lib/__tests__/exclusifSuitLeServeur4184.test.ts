@@ -18,8 +18,4 @@ describe('#4184 — le sélecteur exclusif lit ce que le serveur a écrit', () =
     expect(src).toMatch(/const r = await api\.updateConfig\(fields\)/);
     expect(src).toMatch(/typeof r\?\.local_exclusive_mode === 'boolean'\) exclusiveMode = r\.local_exclusive_mode/);
   });
-  it('ancienne interface : la bascule de backend lit la réponse du PATCH', () => {
-    const src = lire('../../components/SettingsView.svelte');
-    expect(src).toMatch(/typeof ecrit\?\.local_exclusive_mode === 'boolean' \? ecrit\.local_exclusive_mode : newExclusive/);
-  });
 });

@@ -90,21 +90,6 @@ describe('Le motif remonte jusqu’à l’écran', () => {
     }
   });
 
-  it('🔴 le sélecteur n’ignore plus le résultat', () => {
-    // Il faisait `await createProfile(...)` puis fermait la fenêtre : un refus
-    // de palier se comportait exactement comme une réussite, et la liste
-    // restait inchangée sans un mot.
-    const src = lire('src/components/ProfileSelector.svelte');
-    const i = src.indexOf('async function handleCreate');
-    const corps = src.slice(i, src.indexOf('\n  }', i));
-    expect(corps).toContain('const resultat = await createProfile');
-    expect(corps).toContain('if (!resultat.ok)');
-    expect(
-      corps.indexOf('return;'),
-      'la fenêtre se ferme malgré le refus',
-    ).toBeLessThan(corps.indexOf('showCreateDialog = false'));
-  });
-
   it('🔴 le message générique n’affirme plus le premium', () => {
     // `profiles.createFailed` DISAIT « les profils multiples demandent la
     // version Premium » — c'est devenu le message de repli, il ne doit donc

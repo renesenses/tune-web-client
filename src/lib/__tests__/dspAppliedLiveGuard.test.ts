@@ -24,23 +24,27 @@ import { resolve } from 'node:path';
  * la portée. Les deux moitiés d'une même promesse.
  */
 describe('garde : un réglage DSP écrit rapporte sa portée', () => {
-  const source = readFileSync(
-    resolve(__dirname, '../../components/EqualizerView.svelte'),
-    'utf-8',
-  );
+  const lire = (f: string) =>
+    readFileSync(resolve(__dirname, '../../components', f), 'utf-8');
 
-  /** Les appels d'écriture DSP, avec le champ de portée que chacun rend. */
-  const ECRITURES = [
-    { appel: 'api.setEq(', champ: 'applied_live' },
-    { appel: 'api.setDsp(', champ: 'applied_live' },
+  /**
+   * Les écrivains DSP de l'interface, avec le champ de portée que chacun rend
+   * et la fonction qui le lit. La garde lisait `EqualizerView.svelte` ; cet
+   * écran est parti avec l'ancienne interface (phase 5). La RÈGLE, elle, n'a
+   * pas bougé : elle suit ses écrivains ici.
+   */
+  const ECRIVAINS = [
+    { fichier: 'v2/EqualizerV2.svelte', appel: 'api.setEq(', champ: 'applied_live', lecteur: 'reportReach' },
+    { fichier: 'v2/CrossfeedV2.svelte', appel: 'api.setDsp(', champ: 'crossfeed_applied_live', lecteur: 'reportReach' },
+    { fichier: 'v2/ProfilerV2.svelte', appel: 'api.setDsp(', champ: 'eq_applied_live', lecteur: 'signalerPortee' },
   ];
 
-  it('chaque appel d’écriture capture la réponse du serveur', () => {
-    for (const { appel } of ECRITURES) {
-      const occurrences = source.split(appel).length - 1;
-      expect(occurrences, `${appel} devrait exister dans EqualizerView`).toBeGreaterThan(0);
+  for (const { fichier, appel, champ, lecteur } of ECRIVAINS) {
+    it(`${fichier} capture la réponse au lieu de la jeter`, () => {
+      const source = lire(fichier);
+      expect(source.split(appel).length - 1, `${appel} devrait exister dans ${fichier}`).toBeGreaterThan(0);
 
-      // `await api.setDsp(...)` sans affectation = réponse jetée. C'était
+      // `await api.setDsp(...)` en tête d'instruction = réponse jetée. C'était
       // exactement la forme de `saveCrossfeed()` avant #1710 lot 4.
       const jetes = source.split('\n').filter((l) => {
         const t = l.trim();
@@ -48,31 +52,29 @@ describe('garde : un réglage DSP écrit rapporte sa portée', () => {
       });
       expect(
         jetes,
-        `${appel} : réponse jetée — le serveur dit si le réglage a atteint le son, ` +
-          `il faut la capturer et appeler signalerPortee()`,
+        `${fichier} : réponse jetée — le serveur dit si le réglage a atteint le ` +
+          `son, il faut la capturer et la passer à ${lecteur}()`,
       ).toEqual([]);
-    }
-  });
+    });
 
-  it('la portée est effectivement signalée pour chaque champ rendu', () => {
-    // Les trois champs que le serveur peut rendre. Aucun ne doit rester sans
-    // lecteur : un champ ajouté côté serveur et jamais lu ici, c'est le même
-    // silence qui recommence.
-    for (const champ of ['applied_live', 'eq_applied_live', 'crossfeed_applied_live']) {
+    it(`${fichier} signale la portée que le serveur lui rend`, () => {
+      const source = lire(fichier);
       expect(
-        source.includes(`signalerPortee(res?.${champ})`),
-        `${champ} n'est lu par aucun signalerPortee() dans EqualizerView`,
+        new RegExp(`${lecteur}\\(res\\?\\.${champ}\\)`).test(source),
+        `${champ} n'est lu par aucun ${lecteur}() dans ${fichier}`,
       ).toBe(true);
-    }
-  });
+    });
 
-  it('signalerPortee distingue « faux » de « absent »', () => {
-    // `=== false` et non `!valeur` : un serveur antérieur omet le champ, et on
-    // n'affirme rien de ce qu'il ne dit pas. Relâcher ce test ferait annoncer
-    // « prendra effet à la piste suivante » à tous les serveurs anciens.
-    expect(source).toContain('appliqueAChaud === false');
-    expect(source).not.toContain('if (!appliqueAChaud');
-  });
+    it(`${fichier} distingue « faux » de « absent »`, () => {
+      const source = lire(fichier);
+      // `=== false` et non `!valeur` : un serveur antérieur omet le champ, et
+      // on n'affirme rien de ce qu'il ne dit pas. Relâcher ce test ferait
+      // annoncer « prendra effet à la piste suivante » à tous les serveurs
+      // anciens.
+      const corps = source.slice(source.indexOf(`function ${lecteur}(`));
+      expect(corps.slice(0, 400)).toContain('=== false');
+    });
+  }
 });
 
 /**

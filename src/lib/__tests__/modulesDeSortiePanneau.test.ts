@@ -239,20 +239,8 @@ describe('#2392 — le panneau est rendu par le composant réel', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 
-describe('#2392 — le panneau est monté par les deux écrans de diagnostic', () => {
-  it('Diagnostics (client actuel) le monte sous le titre « Modules de sortie », derrière `{#if}`', () => {
-    const vue = lire('src/components/DiagnosticsView.svelte');
-    expect(vue).toContain("import OutputModulesPanel from './partages/OutputModulesPanel.svelte'");
-    expect(vue).toContain('tableauFournisseurs(serverDiag?.output_providers)');
-    expect(vue).toContain("{$t('diagnostics.outputModules')}");
-    expect(vue).toContain('<OutputModulesPanel tableau={tableauModules} />');
-    // Le panneau n'existe pas sur un serveur ancien : la section est conditionnelle.
-    const si = vue.indexOf('{#if tableauModules}');
-    const panneau = vue.indexOf('<OutputModulesPanel');
-    expect(si).toBeGreaterThan(-1);
-    expect(si).toBeLessThan(panneau);
-  });
-  it('Tune Health (nouveau client) le monte aussi, sur la même route', () => {
+describe('#2392 — le panneau est monté par l’écran de diagnostic', () => {
+  it('Tune Health le monte, sur la route des diagnostics', () => {
     const vue = lire('src/components/v2/TuneHealthV2.svelte');
     expect(vue).toContain("import OutputModulesPanel from '../partages/OutputModulesPanel.svelte'");
     expect(vue).toContain('api.getServerDiagnostics()');

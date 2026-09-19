@@ -101,29 +101,25 @@ describe('Badge UPNP (D1bis, 14/09/2026)', () => {
 });
 
 describe("Aucun appelant de ServiceBadge ne replie sur 'local'", () => {
-  // Les sites d'AFFICHAGE mesurés en v0.9.149 : trois dans FavoritesView.
-  // `srcOf` (clé de FILTRE, dont la liste de puces contient déjà 'local' sans
-  // condition) et `QualiteAlbum` (arbitrage du 05/09 — « avec Local
-  // d'ailleurs ! », gardé par `retoursQuerite.test.ts`) ne sont pas des replis
-  // d'affichage de provenance et restent en place.
+  // Les sites d'AFFICHAGE vivants, mesurés le 19/09/2026 après la phase 5 —
+  // tous les appelants de <ServiceBadge> sauf `QualiteAlbum` (arbitrage du
+  // 05/09 — « avec Local d'ailleurs ! », gardé par `retoursQuerite.test.ts`),
+  // qui n'est pas un repli d'affichage de provenance.
   const APPELANTS = [
-    'src/components/FavoritesView.svelte',
+    // Sauvé par le portage (lot 4) : de nouveau monté dans la coquille.
     'src/components/v2-heritage/DashboardHighlights.svelte',
-    'src/components/HomeView.svelte',
-    'src/components/LibraryView.svelte',
-    'src/components/QueueView.svelte',
-    'src/components/SearchView.svelte',
-    'src/components/StreamingView.svelte',
     'src/components/partages/AlbumArt.svelte',
     'src/components/partages/NowPlaying.svelte',
     'src/components/partages/TransportBar.svelte',
-    'src/components/v2/ArtistesV2.svelte',
+    'src/components/v2/DiscographieCommune.svelte',
+    'src/components/v2/SearchV2.svelte',
     'src/components/v2/VersionsPistePanneau.svelte',
     // Appelant ajouté le 18/09/2026 par #1113 : la pastille de provenance sur
     // chaque ligne du tableau de pistes. Elle passe `p.source` telle quelle —
     // une piste dont la source n'est pas lue ne doit pas se dire « LOCAL ».
     'src/components/v2/ListePistesV2.svelte',
   ];
+
 
   for (const f of APPELANTS) {
     it(`${f} ne passe pas de repli 'local' à <ServiceBadge>`, () => {
@@ -136,22 +132,12 @@ describe("Aucun appelant de ServiceBadge ne replie sur 'local'", () => {
     });
   }
 
-  it("SearchView ne fabrique pas non plus de provenance 'local' par défaut", () => {
-    // Ici le repli ne se lisait pas sur la balise : il était posé en amont, sur
-    // l'entrée `_sources` que la pastille consomme ensuite (`s.source`). Et la
-    // branche `local` de cette vue rend un `<span>LOCAL</span>` EN DUR, sans
-    // passer par ServiceBadge — le mensonge sautait donc le composant.
-    const sv = lire('src/components/SearchView.svelte');
-    const fautes = sv
-      .split('\n')
-      .map((l, i) => [i + 1, l] as const)
-      .filter(([, l]) => /_source\s*\?\?\s*['"]local['"]/.test(l))
-      // `estLocal` et la clé de regroupement ne peignent rien : ils décident
-      // de ce qui est JOUABLE en local et de ce qui se range ensemble.
-      .filter(([, l]) => !/const key =|typeof t\.id === 'number'/.test(l))
-      .map(([n, l]) => `SearchView.svelte:${n}: ${l.trim()}`);
-    expect(fautes, fautes.join('\n')).toEqual([]);
-    // Et le type dit la vérité : une entrée peut n'avoir AUCUNE source connue.
-    expect(sv).toContain('_sources: { source: string | undefined; artist: Artist }[]');
-  });
+  // Retiré en phase 5 : ce témoin lisait `components/SearchView.svelte`, où le
+  // repli n'était pas posé sur la balise mais en amont, sur l'entrée `_sources`
+  // (`_source ?? 'local'`), et où la branche locale peignait un `<span>LOCAL</span>`
+  // EN DUR. L'écran de recherche actuel (`v2/SearchV2.svelte`) n'a ni cette
+  // entrée ni ce span : ses seuls `source ?? 'local'` servent au COMPTAGE, au
+  // filtrage et aux clés de liste — la catégorie que ce témoin exemptait déjà.
+  // Le rebaser tel quel donnerait un vert qui ne garde rien ; la boucle
+  // ci-dessus, elle, couvre bien SearchV2 pour la forme qui peint.
 });
