@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AjoutsRecentsV2 from './AjoutsRecentsV2.svelte';
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick, untrack } from 'svelte';
@@ -825,7 +826,7 @@
   // ne peut pas diverger de la grille.
   //
   // Artistes et Pistes partagent le chargement des pistes pour résoudre leurs sources.
-  type Tab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels';
+  type Tab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels' | 'recent';
   // Mêmes clés que les onglets des Favoris : ce sont les mêmes familles, et
   // les traduire deux fois les ferait diverger.
   const TABS: { id: Tab; label: string; adv?: boolean }[] = [
@@ -835,6 +836,8 @@
     { id: 'genres', label: 'nav.genres', adv: true },
     { id: 'years', label: 'v2.lib.tabYears', adv: true },
     { id: 'labels', label: 'v2.lib.tabLabels', adv: true },
+    // #3039 — porté de l'ancienne Bibliothèque, seule à l'offrir.
+    { id: 'recent', label: 'library.recentlyAdded' },
   ];
   // L'ONGLET aussi : revenir à la Bibliothèque après avoir consulté les Titres
   // pour retomber sur les Albums est le même agacement, d'un cran plus haut.
@@ -1835,7 +1838,9 @@
   {/if}
 
   <div class="body">
-    {#if tab === 'artists'}
+    {#if tab === 'recent'}
+      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} />
+    {:else if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
            déduction depuis les albums chargés. Ils ne passent donc pas par les
            gardes « bibliothèque vide » ci-dessous : une bibliothèque dont les

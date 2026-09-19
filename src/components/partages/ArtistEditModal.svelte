@@ -1,9 +1,9 @@
 <script lang="ts">
-  import * as api from '../lib/api';
-  import { tip } from '../lib/tooltip';
-  import { artworkSrc } from '../lib/api';
-  import type { Artist } from '../lib/types';
-  import { t } from '../lib/i18n';
+  import * as api from '../../lib/api';
+  import { tip } from '../../lib/tooltip';
+  import { artworkSrc } from '../../lib/api';
+  import type { Artist } from '../../lib/types';
+  import { t } from '../../lib/i18n';
 
   interface Props {
     artist: Artist;

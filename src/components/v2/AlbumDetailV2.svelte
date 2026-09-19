@@ -23,6 +23,9 @@
   import type { Album, Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
+import AlbumRating from '../partages/AlbumRating.svelte';
+import ReportButton from '../partages/ReportButton.svelte';
+import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
@@ -301,6 +304,62 @@
     for (let i = 1; i < suite.length; i++) await api.addToQueue(zid, corpsLecture(d, suite[i]) as any);
   }
 
+  /*
+   * Portés de l'ancienne Bibliothèque, seule à les offrir sur un album LOCAL :
+   * la note, la ré-identification (#2128), le signalement de la pochette, et
+   * la proposition « meilleure qualité disponible ».
+   */
+  let reidentification = $state(false);
+  async function reidentifier() {
+    if (album.id == null) return;
+    const id = album.id;
+    reidentification = true;
+    const tid = notifications.info($tr('library.reidentifying'), 0);
+    try {
+      const r = await api.reidentifyAlbum(id);
+      notifications.dismiss(tid);
+      // Le verdict est rendu tel quel, y compris décevant : « même pressage »
+      // et « rien trouvé » sont des réponses (fil forum #1455).
+      if (r.verdict === 'no_tracks') { notifications.error($tr('library.reidentifyNoTracks')); return; }
+      if (r.verdict === 'not_found') {
+        notifications.error($tr('library.reidentifyNotFound').replace('{title}', r.searched_title ?? ''));
+        return;
+      }
+      if (r.verdict === 'unchanged') { notifications.info($tr('library.reidentifyUnchanged'), 9000); return; }
+      let msg = $tr('library.reidentifySuccess')
+        .replace('{title}', r.release_title ?? '')
+        .replace('{matched}', String(r.tracks_matched ?? 0))
+        .replace('{total}', String(r.tracks_total ?? 0));
+      if (r.fields_left_as_is?.length) {
+        msg += ` — ${$tr('library.reidentifyKept').replace('{fields}', r.fields_left_as_is.join(', '))}`;
+      }
+      notifications.success(msg, 9000);
+      // Relire la fiche pour montrer ce qui vient d'être écrit.
+      album = await api.getAlbum(id);
+    } catch (e: any) {
+      notifications.dismiss(tid);
+      notifications.error(`${$tr('library.reidentifyFailed')} : ${e?.message || e}`);
+    } finally {
+      reidentification = false;
+    }
+  }
+
+  async function proposerMeilleureQualite(albumId: number) {
+    try {
+      const r = await api.albumBetterQuality(albumId);
+      const autre = autreAlbumMeilleur(r.better, albumId);
+      if (autre == null || !r.better) return;
+      notifications.withAction(
+        `${$tr('library.betterQualityAvailable')} : ${libelleQualite(r.better)}`,
+        $tr('library.playBetterQuality'),
+        () => {
+          const zid = zoneRequise();
+          if (zid != null) playAndSync(zid, { album_id: autre, start_index: 0 }).catch(signalerEchecLecture);
+        },
+      );
+    } catch { /* proposition silencieuse : jamais d'erreur pour ça */ }
+  }
+
   function playAlbum(startIndex = 0) {
     const zid = zoneRequise();
     if (zid == null) return;
@@ -347,6 +406,8 @@
     if (album.id == null) return;
     if (depot) { enchainerDistant(tracks, startIndex).catch(signalerEchecLecture); return; }
     playAndSync(zid, { album_id: album.id, start_index: startIndex }).catch(signalerEchecLecture);
+    // APRÈS le départ de la lecture : la proposition ne la retarde jamais.
+    void proposerMeilleureQualite(album.id);
   }
   /** Melange en place, sans hasard reel : la meme permutation pour un meme
    *  nombre de pistes. C'etait deja le cas ici, on ne fait que l'extraire. */
@@ -657,6 +718,20 @@
           </button>
         {/if}
       </div>
+      <!-- Album LOCAL seulement : ces trois gestes travaillent sur la fiche de
+           la bibliothèque. -->
+      {#if album.id != null && !depot}
+        <div class="actions local">
+          <AlbumRating albumId={album.id} />
+          <button class="ghost" onclick={reidentifier} disabled={reidentification}>
+            {reidentification ? $tr('library.reidentifying') : $tr('library.reidentify')}
+          </button>
+          {#if album.cover_path}
+            <ReportButton entity="cover" entityId={album.id}
+              reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} />
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 
@@ -743,6 +818,7 @@
      aucune marque : c'est la valeur nue. */
   .dr.deduit{text-decoration:underline dotted currentColor; text-underline-offset:3px; text-decoration-thickness:1px}
   .actions{display:flex; gap:12px; margin-top:8px}
+  .actions.local{flex-wrap:wrap; align-items:center}
   .play,.ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
     font:700 14px var(--v2-sans); cursor:pointer; border:0}
   .play{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2)); box-shadow:0 6px 18px var(--v2-glow-strong)}
