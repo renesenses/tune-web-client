@@ -204,3 +204,17 @@ d’appareil, le LPCM DLNA ≠ le mode WAV). À compter comme perdues tant qu’
 - getAllAlbumsSeeded — GET /library/albums — ≡ getAlbumsPage
 - getTracks — GET /library/tracks — ≡ getAllTracks
 - updateZoneDlnaLpcm — PATCH /zones/{} — ≡ updateZoneWavMode
+
+## Angle mort (hors `api.ts`) — journalisation, nettoyage, cache
+
+Relevé de `feat/v2-porte-rapport-bogue` (#1301, section « Angle mort ») :
+capacités appelées par chemin en dur dans les écrans supprimés, sans fonction
+d'`api.ts`.
+
+| Écran supprimé | Route | Chemin v2 |
+|---|---|---|
+| `SettingsView` | `GET` / `POST /system/log-level` (niveau des journaux serveur) | ✅ **porté** (`feat/v2-porte-maintenance`) : Réglages › Système › Santé du serveur (niveau Expert, comme avant), `api.getLogLevel` / `api.setLogLevel` ; l'écran dit que le niveau s'applique pleinement au redémarrage (`note` du serveur) et traite le `200 { error }` d'un niveau refusé comme un échec |
+| `DiagnosticsView` | `POST /system/cleanup` (nettoyage serveur) | ✅ **porté** : même section, `api.cleanupServer`, derrière `dialogs.confirm` (danger) ; affiche les champs que le serveur rend réellement (`duplicate_albums_merged`, `orphan_*`, `duplicate_tracks_removed`, `db_optimized`) — l'ancien écran lisait `stale_artwork_deleted`, `old_history_deleted`, `db_vacuumed`, qui n'existent plus |
+| `DiagnosticsView` | `POST /system/clear-cache` (« Vider le cache artwork ») | ✅ **porté** sous son vrai nom, « Effacer le rapport d'analyse » : `api.clearScanReport`, derrière `dialogs.confirm`. Le serveur (`config::clear_cache`) n'efface que le réglage `scan_result` et répond `{ cleared: true }` — l'ancien écran annonçait « true fichiers supprimés » |
+
+Témoin : `src/lib/__tests__/maintenanceServeurV2.test.ts`.
