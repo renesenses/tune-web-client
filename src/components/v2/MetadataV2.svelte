@@ -75,6 +75,36 @@
    */
   let disques = $state<import('../../lib/api').DisquesAbimes | null>(null);
   let disquesEnCours = $state(false);
+  /**
+   * 🔴 LES COFFRETS ÉCLATÉS — un album par disque, à réunir.
+   *
+   * Distinct du bloc voisin : là, l'album est déjà un et sa numérotation est
+   * fausse ; ici il y a autant d'albums que de disques. Mesuré sur le .18 :
+   * 61 coffrets, 148 albums — *Radio Nova, La boîte Bleue* en compte 25.
+   *
+   * ⚠️ UN coffret à la fois. Le serveur ne propose pas de tout regrouper, et
+   * l'écran non plus : vingt-cinq absorptions en un clic ne se relisent pas.
+   */
+  let coffrets = $state<import('../../lib/api').CoffretEclate[]>([]);
+  let coffretEnCours = $state<number | null>(null);
+  async function chargerCoffrets() {
+    try { coffrets = (await api.getCoffretsEclates())?.coffrets ?? []; }
+    catch { coffrets = []; }
+  }
+  async function regrouper(c: import('../../lib/api').CoffretEclate) {
+    if (c.cible == null || coffretEnCours != null) return;
+    coffretEnCours = c.cible;
+    try {
+      await api.regrouperCoffret(c.cible);
+      error = null;
+      await chargerCoffrets();
+      await chargerDoublons();
+    } catch (e: any) {
+      error = e?.message ?? $t('v2.meta.decisionNotSaved' as any);
+    }
+    coffretEnCours = null;
+  }
+
   async function chargerDisques() {
     try { disques = await api.getDisquesAbimes(); }
     catch { disques = null; }
@@ -106,6 +136,7 @@
     // #4471 : même onglet, même moment — mais une requête à part, pour qu'un
     // serveur antérieur (404) ne prive pas l'écran de ses trois autres listes.
     void chargerDisques();
+    void chargerCoffrets();
   }
   $effect(() => {
     if (tab !== 'doublons' || dblLoaded) return;
@@ -610,6 +641,30 @@
       <!-- #4471 — HORS du `{#if dblLoading}` et hors du « rien à signaler » :
            un coffret mal numéroté n'est pas un doublon, et l'écran doit
            pouvoir le proposer même quand les trois autres listes sont vides. -->
+      <!-- Les coffrets ÉCLATÉS, avant les mal numérotés : réunir d'abord,
+           renuméroter ensuite. -->
+      {#if coffrets.length}
+        <div class="dh">{$t('v2.meta.boxTitle' as any)} <span>{$formatNombre(coffrets.length)}</span></div>
+        <div class="list">
+          {#each coffrets as c (c.cible)}
+            <article class="prop grp">
+              <div class="pw">
+                <div class="pt">{c.titre}</div>
+                <div class="pf">{$t('v2.meta.boxDiscs' as any).replace('{n}', String(c.disques.length))}</div>
+                <div class="sub">{c.dossier}</div>
+                <div class="pa wrap">
+                  <button class="lnk" disabled={coffretEnCours != null || c.cible == null}
+                    onclick={() => regrouper(c)}>
+                    {coffretEnCours === c.cible
+                      ? $t('v2.tool.loading' as any)
+                      : $t('v2.meta.boxMerge' as any)}
+                  </button>
+                </div>
+              </div>
+            </article>
+          {/each}
+        </div>
+      {/if}
       {#if disques && disques.albums > 0}
         <div class="dh">{$t('v2.meta.discsTitle' as any)} <span>{$formatNombre(disques.albums)}</span></div>
         <article class="prop grp">
@@ -634,7 +689,7 @@
       {#if dblLoading}
         <div class="state">{$t('v2.tool.loading' as any)}</div>
       {:else if !dblAlbums.length && !dblArtistes.length && !dblPaires.length}
-        {#if !disques || disques.albums === 0}
+        {#if (!disques || disques.albums === 0) && !coffrets.length}
           <div class="state">{$t('v2.meta.noDup' as any)}</div>
         {/if}
       {:else}

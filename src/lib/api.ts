@@ -6610,6 +6610,39 @@ export interface DisquesAbimes {
   details: { album_id: number; pistes: number; disques: number[] }[];
 }
 
+/**
+ * Un coffret ÉCLATÉ en un album par disque — chantier « coffrets ».
+ *
+ * Distinct des coffrets MAL NUMÉROTÉS (`DisquesAbimes`, juste en dessous) :
+ * là, l'album est déjà un et sa numérotation est fausse ; ici, il y a autant
+ * d'albums que de disques et il faut les réunir.
+ */
+export interface CoffretEclate {
+  titre: string;
+  dossier: string;
+  cible: number | null;
+  disques: { disque: number; album_id: number }[];
+}
+
+export function getCoffretsEclates() {
+  return fetchJSON<{ count: number; albums: number; coffrets: CoffretEclate[] }>(
+    `${BASE}/library/albums/coffrets`,
+  );
+}
+
+/**
+ * Réunit UN coffret, désigné par son disque 1.
+ *
+ * ⚠️ Un coffret à la fois : un bouton « tout regrouper » sur vingt-cinq
+ * disques est un geste qu'on ne peut pas relire avant de le faire.
+ */
+export function regrouperCoffret(cible: number) {
+  return fetchJSON<{ cible: number; absorbes: number; titre: string }>(
+    `${BASE}/library/albums/coffrets/${cible}/regrouper`,
+    { method: 'POST' },
+  );
+}
+
 /** Ce qui SERAIT changé, sans rien changer. */
 export function getDisquesAbimes() {
   return fetchJSON<DisquesAbimes>(`${BASE}/library/albums/disques-abimes`);
