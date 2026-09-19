@@ -4302,6 +4302,7 @@ export default {
   "v2.smart.matchAny": "いずれかの条件",
   "v2.smart.and": "かつ",
   "v2.smart.addRule": "条件を追加",
+  "v2.smart.sourceFavoris": "このプロフィールの {service} のお気に入りです。サービスの全カタログではありません。",
   "v2.smart.removeRule": "この条件を削除",
   "v2.smart.previewing": "プレビュー中…",
   "v2.smart.previewNone": "条件を追加すると結果が表示されます",

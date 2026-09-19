@@ -4322,6 +4322,7 @@ export default {
   "v2.smart.matchAny": "Any rule",
   "v2.smart.and": "and",
   "v2.smart.addRule": "Add a rule",
+  "v2.smart.sourceFavoris": "This profile's {service} favourites — not the service's whole catalogue.",
   "v2.smart.removeRule": "Remove this rule",
   "v2.smart.previewing": "Previewing…",
   "v2.smart.previewNone": "Add a rule to see what it keeps",

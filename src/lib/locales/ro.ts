@@ -4302,6 +4302,7 @@ export default {
   "v2.smart.matchAny": "Cel puțin o regulă",
   "v2.smart.and": "și",
   "v2.smart.addRule": "Adaugă o regulă",
+  "v2.smart.sourceFavoris": "Favoritele {service} ale acestui profil — nu tot catalogul serviciului.",
   "v2.smart.removeRule": "Elimină această regulă",
   "v2.smart.previewing": "Se generează previzualizarea…",
   "v2.smart.previewNone": "Adăugați o regulă pentru a vedea ce selectează",

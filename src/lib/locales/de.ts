@@ -4302,6 +4302,7 @@ export default {
   "v2.smart.matchAny": "Mindestens eine Regel",
   "v2.smart.and": "und",
   "v2.smart.addRule": "Regel hinzufügen",
+  "v2.smart.sourceFavoris": "Die {service}-Favoriten dieses Profils — nicht der ganze Katalog des Dienstes.",
   "v2.smart.removeRule": "Diese Regel entfernen",
   "v2.smart.previewing": "Vorschau läuft…",
   "v2.smart.previewNone": "Fügen Sie eine Regel hinzu, um das Ergebnis zu sehen",

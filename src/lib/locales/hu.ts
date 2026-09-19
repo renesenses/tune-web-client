@@ -4260,6 +4260,7 @@ export default {
   "v2.smart.matchAny": "Legalább egy szabály",
   "v2.smart.and": "és",
   "v2.smart.addRule": "Szabály hozzáadása",
+  "v2.smart.sourceFavoris": "A profil {service}-kedvencei — nem a szolgáltatás teljes katalógusa.",
   "v2.smart.removeRule": "Szabály eltávolítása",
   "v2.smart.previewing": "Előnézet készül…",
   "v2.smart.previewNone": "Adjon hozzá egy szabályt, hogy lássa az eredményt",

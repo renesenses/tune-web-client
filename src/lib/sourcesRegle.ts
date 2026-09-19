@@ -62,3 +62,26 @@ export function libelleSource(source: string, local: string): string {
   if (s === 'local') return local;
   return NOMS[s] ?? (source ? source.charAt(0).toUpperCase() + source.slice(1) : '');
 }
+
+/**
+ * Une source de SERVICE ne désigne pas tout le catalogue, mais ce que Tune en
+ * connaît durablement pour ce profil : ses **favoris**.
+ *
+ * 🔴 #1231 — Bertrand, 18/09/2026 : « Smart Collection, source qobuz retourne
+ * 0 album ». Sa playlist d'essai `Test Qobuz Coltrane` — `artist = John
+ * Coltrane` ET `source = qobuz` — rendait **0 piste**, et c'était la BONNE
+ * réponse : ses 21 favoris de pistes Qobuz ne contiennent aucun Coltrane. La
+ * règle porte sur les favoris, pas sur le catalogue Qobuz.
+ *
+ * Le comportement est celui décidé le 17/09 et documenté côté serveur
+ * (`source_streaming.rs`). Mais rien à l'écran ne le disait, et « Source :
+ * Qobuz » se lit naturellement comme « tout ce qui vient de Qobuz ». L'écran
+ * doit nommer ce qu'il fait.
+ *
+ * `local` et `upnp` sont la bibliothèque elle-même : rien à préciser pour
+ * elles.
+ */
+export function estSourceDeService(source: string): boolean {
+  const s = (source ?? '').trim().toLowerCase();
+  return s !== '' && !SOURCES_BIBLIOTHEQUE.includes(s) && !s.startsWith('upnp:');
+}
