@@ -20,6 +20,9 @@ import type { StreamingServiceStatus } from './types';
 import { servicesInterrogeables } from './albumsArtisteStreaming';
 
 export const SOURCES_BIBLIOTHEQUE: readonly string[] = ['local', 'upnp'];
+
+/** Le préfixe d'une source « catalogue », partagé avec le serveur (#4473). */
+export const PREFIXE_CATALOGUE = 'catalogue:';
 const ORDRE_SERVICES: readonly string[] = ['qobuz', 'tidal', 'youtube', 'bandcamp'];
 
 const NOMS: Readonly<Record<string, string>> = {
@@ -41,6 +44,7 @@ const NOMS: Readonly<Record<string, string>> = {
 export function sourcesDisponibles(
   statuts: Record<string, StreamingServiceStatus> | null | undefined,
   actuelle?: string | null,
+  avecCatalogue = false,
 ): string[] {
   const rang = (s: string) => {
     const i = ORDRE_SERVICES.indexOf(s);
@@ -50,16 +54,51 @@ export function sourcesDisponibles(
     .map((s) => s.toLowerCase())
     .filter((s) => !SOURCES_BIBLIOTHEQUE.includes(s))
     .sort((a, b) => rang(a) - rang(b) || a.localeCompare(b));
-  const liste = [...SOURCES_BIBLIOTHEQUE, ...services];
+  // #4473 — un service peut offrir DEUX choix, et ils ne veulent pas dire la
+  // même chose : ses favoris (gratuit, hors ligne) et son catalogue (une
+  // recherche, bornée à l'artiste ou l'album que la règle nomme). Le catalogue
+  // suit son service dans la liste, pour qu'on voie les deux côte à côte.
+  //
+  // 🔴 `avecCatalogue` n'est PAS une préférence d'affichage : seul le chemin
+  // des ALBUMS sait aller au catalogue (`smart_collections::
+  // avec_albums_de_catalogue`). Le chemin des PISTES ignore le préfixe et
+  // traduirait la règle en `source = 'catalogue:qobuz'` — zéro piste, sans un
+  // mot. Proposer le choix là serait refaire #1231 : une case qui promet ce
+  // que le moteur ne rend pas.
+  const liste = [
+    ...SOURCES_BIBLIOTHEQUE,
+    ...services.flatMap((s) => (avecCatalogue ? [s, `${PREFIXE_CATALOGUE}${s}`] : [s])),
+  ];
   const v = (actuelle ?? '').trim();
   if (v && !liste.some((s) => s.toLowerCase() === v.toLowerCase())) liste.push(v);
   return liste;
 }
 
+/**
+ * Le service désigné par une valeur `catalogue:<service>`, s'il y en a un.
+ *
+ * 🔴 La MÊME convention que le serveur (`tune-smart-http/src/catalogue.rs`,
+ * `PREFIXE_CATALOGUE`). Deux graphies divergentes rendraient une règle que
+ * l'écran écrit et que le moteur ignore — exactement le défaut de #4469.
+ */
+export function serviceDuCatalogue(source: string): string | null {
+  const s = (source ?? '').trim().toLowerCase();
+  if (!s.startsWith(PREFIXE_CATALOGUE)) return null;
+  const nom = s.slice(PREFIXE_CATALOGUE.length).trim();
+  return nom || null;
+}
+
 /** Le libellé d'une source ; `local` passe par la traduction de l'écran. */
-export function libelleSource(source: string, local: string): string {
+export function libelleSource(source: string, local: string, catalogue?: string): string {
   const s = (source ?? '').toLowerCase();
   if (s === 'local') return local;
+  // #4473 — « Catalogue Qobuz », pas « Catalogue:qobuz ». Sans le gabarit
+  // traduit, la valeur brute se montrerait telle quelle à l'utilisateur.
+  const cat = serviceDuCatalogue(s);
+  if (cat) {
+    const nom = NOMS[cat] ?? cat.charAt(0).toUpperCase() + cat.slice(1);
+    return (catalogue ?? 'Catalogue {service}').replace('{service}', nom);
+  }
   return NOMS[s] ?? (source ? source.charAt(0).toUpperCase() + source.slice(1) : '');
 }
 
