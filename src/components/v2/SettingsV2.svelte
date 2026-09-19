@@ -53,6 +53,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
+  import SmbWizard from '../partages/SmbWizard.svelte';
+  import { etatPartage } from '../../lib/smbMountState';
   import {
     detailAppareilIgnore,
     libelleAppareilIgnore,
@@ -1074,6 +1076,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let schedTime = $state('03:00');
   let schedBusy = $state(false);
   let libErr = $state<string | null>(null);
+
+  /* --- Partages réseau (SMB), portés de l'ancienne interface ---------------
+   *
+   * L'assistant (découverte des hôtes, liste des partages, test, montage)
+   * n'était ouvert que par `SettingsView` : ici, on ne pouvait déclarer qu'un
+   * chemin déjà monté par le système. Et l'état RÉEL de chaque partage
+   * (#2069) — monté ou non, avec la cause que mount.cifs a rendue — n'était lu
+   * nulle part : « toujours présents sur l'interface », disait Éric, parce que
+   * la liste des dossiers affiche un chemin configuré, monté ou pas.
+   */
+  let smbMounts = $state<api.SmbMount[]>([]);
+  let showSmbWizard = $state(false);
+  async function loadSmbMounts() {
+    // Un serveur antérieur à la 0.9.91 rend 404 sur cette route : échec
+    // silencieux, la liste reste masquée — elle ne doit pas priver la section
+    // de ses dossiers.
+    try { smbMounts = await api.listSmbMounts(); } catch { smbMounts = []; }
+  }
+  $effect(() => { void loadSmbMounts(); });
 
   async function refreshLibrary() {
     try {
@@ -2820,6 +2841,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>{$t('v2.tags.add' as any)}</button>
                 </div>
               </div>
+              <div class="inline" style="margin-top:8px">
+                <button class="lnk" onclick={() => (showSmbWizard = true)}>{$t('settings.addSmbShare' as any)}</button>
+              </div>
               {#if musicDirs.length}
                 <div class="dirs">
                   {#each musicDirs as d (d)}
@@ -2837,6 +2861,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
+              <!-- Partages réseau et leur état réel (#2069). Masquée s'il n'y en
+                   a aucun, ou si le serveur ne publie pas la route. -->
+              {#if smbMounts.length}
+                <div class="devlist smb">
+                  <span class="hint">{$t('settings.smbMountsTitle' as any)}</span>
+                  {#each smbMounts as m (m.server + '/' + m.share)}
+                    {@const e = etatPartage(m)}
+                    <div class="dev ign" class:ko={e.enEchec}>
+                      <span class="dn">\\{m.server}\{m.share}</span>
+                      <span class="dt">{e.enEchec ? $t('settings.smbNotMounted' as any) : $t('settings.smbMounted' as any)}</span>
+                      <!-- SMB 1 est obsolète et non chiffré : y retomber peut être
+                           la seule façon de lire un streamer, mais pas en silence. -->
+                      <span class="dh" title={e.signalerSmb1 ? $t('settings.smb1Hint' as any) : undefined}>{e.signalerSmb1 ? 'SMB 1.0' : (m.mount_path ?? '')}</span>
+                      <span></span>
+                    </div>
+                    {#if e.cause}<div class="errline">{e.cause}</div>{/if}
+                  {/each}
+                </div>
+              {/if}
 
             {:else if s.id === 'clearLibrary'}
               <!-- « Repartir à zéro » (#3585). La fonction existait côté
@@ -3685,6 +3728,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   </div>
 </section>
 
+{#if showSmbWizard}
+  <SmbWizard
+    onClose={() => (showSmbWizard = false)}
+    onMusicDirsChanged={async () => {
+      // Un partage vient d'être monté : il entre dans les dossiers déclarés,
+      // et sa ligne d'état doit apparaître.
+      await refreshLibrary();
+      await loadSmbMounts();
+    }}
+  />
+{/if}
+
 <style>
   /* LA MATRICE des colonnes. Une grille unique : l'en-tête et les lignes
      partagent le même gabarit, sinon les cases ne tombent pas sous leur mode.
@@ -3926,6 +3981,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .dev.net{grid-template-columns:auto minmax(0,1fr) auto auto auto; cursor:default}
   .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
+  .dev.ign.ko .dt{color:var(--v2-danger)}
+  .devlist.smb{margin-top:14px}
   .dev .dh{font:10px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .dev .pin{width:110px; height:28px; border-radius:8px; border:1px solid var(--v2-acc2);
     background:var(--v2-surface2); color:var(--v2-txt); font:12px var(--v2-mono); padding:0 9px; outline:none}

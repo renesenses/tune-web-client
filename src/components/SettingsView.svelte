@@ -56,7 +56,7 @@ import { telechargerJournaux } from '../lib/journaux';
   import { licenseState, isPremium, loadLicense, offlineGrace } from '../lib/stores/license';
   import { verdictValidationLicence } from '../lib/licenceValidation';
   import { etatTelemetrie, routeDeBascule } from '../lib/etatTelemetrie';
-  import SmbWizard from './SmbWizard.svelte';
+  import SmbWizard from './partages/SmbWizard.svelte';
   import { etatPartage } from '../lib/smbMountState';
   import FolderWizard from './FolderWizard.svelte';
   import MultiroomSettings from './MultiroomSettings.svelte';
