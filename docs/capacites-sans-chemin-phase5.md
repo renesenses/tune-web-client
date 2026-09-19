@@ -204,3 +204,51 @@ d’appareil, le LPCM DLNA ≠ le mode WAV). À compter comme perdues tant qu’
 - getAllAlbumsSeeded — GET /library/albums — ≡ getAlbumsPage
 - getTracks — GET /library/tracks — ≡ getAllTracks
 - updateZoneDlnaLpcm — PATCH /zones/{} — ≡ updateZoneWavMode
+
+## Angle mort : appels qui ne passent pas par une fonction d’`api.ts`
+
+La méthode ci-dessus ne lit que les fonctions exportées par `api.ts`. Un écran
+supprimé qui appelle une route par `fetch('/api/v1/…')` direct, par un lien
+`href="/api/v1/…"`, ou par les enveloppes génériques `api.apiFetch` /
+`apiPost` / `apiPatch` / `apiDelete` avec un chemin en dur, lui échappe. Relevé
+du 19/09/2026 sur les 118 fichiers que supprime la phase 5
+(`git diff --diff-filter=D origin/main...origin/chore/phase5-retirer-ancienne-interface`),
+comparé au code vivant et aux seize PR de portage ouvertes (#1274 à #1294).
+
+### `fetch` direct et liens
+
+| Écran supprimé | Route | Chemin v2 |
+|---|---|---|
+| `DiagnosticsView` | `POST /system/bug-report/submit` (rapport de bogue au forum, sans licence) | ✅ **porté** (`feat/v2-porte-rapport-bogue`) : `SupportV2`, volet Diagnostic › « Signaler un bogue », par `api.submitBugReport` |
+| `DiagnosticsView` | `GET /system/bug-report/markdown` (aperçu du rapport) | ✔️ déjà atteint par `api.getBugReportMarkdown` (`SupportV2`, pièce jointe d’un ticket) ; aperçu désormais aussi dans « Signaler un bogue » |
+| `SettingsView` | `GET` / `PATCH /system/config` (`dsd_lpcm_stream`, `replaygain_*`, `local_audio_backend`, `local_exclusive_mode`) | ✔️ déjà atteint : `SettingsV2` lit et écrit ces mêmes champs |
+| `SettingsView` | `GET` / `POST /system/log-level` (niveau des journaux serveur) | ⛔ **aucun chemin v2** |
+| `SettingsView` | `POST /system/database/test-connection`, `POST /system/database/migrate?target=postgres\|sqlite` (bascule SQLite ↔ PostgreSQL) | ⛔ **aucun chemin v2** |
+| `SettingsView` | lien `GET /system/api-docs` (documentation de l’API) | ⛔ **aucun chemin v2** |
+| `PluginsView` | `GET /plugins/docs` (documentation des greffons) | ⛔ **aucun chemin v2** (#1282 ne le porte pas) |
+| `WhatsNew` | `GET /system/changelog?limit=10&lang=…` (« Quoi de neuf », dix dernières versions) | ⛔ **aucun chemin v2** — `SettingsV2` ne montre que les notes de la mise à jour disponible (`/system/update/check`) |
+| `RadiosView`, `RadioFavoritesView` | lien `GET /radio-favorites/export` | ✔️ déjà atteint : `FavoritesV2` |
+| `ProfileSelector`, `SettingsView` | `window.location = /cloud/sso/authorize` | ✔️ déjà atteint : `AvatarMenu`, `LoginView` |
+
+### Enveloppes génériques avec chemin en dur
+
+| Écran supprimé | Route | Chemin v2 |
+|---|---|---|
+| `DiagnosticsView` | `POST /system/restart` | ✔️ `api.restartServer` (`SettingsV2`) |
+| `DiagnosticsView` | `POST /system/scan` | ✔️ `api.triggerScan` (`SettingsV2`) |
+| `DiagnosticsView` | `POST /system/cleanup` (nettoyage serveur) | ⛔ **aucun chemin v2** |
+| `DiagnosticsView` | `POST /system/clear-cache` (vider le cache) | ⛔ **aucun chemin v2** |
+| `SettingsView` | `GET /cloud/telemetry/status`, `POST /cloud/telemetry/enable\|disable` (`etatTelemetrie.ts`) | ⛔ **aucun chemin v2** — le consentement à la télémétrie ne serait plus modifiable |
+| `SettingsView` | `GET /cloud/bridge/status`, `POST /cloud/bridge/enable\|disable` | ✔️ `SettingsV2` |
+| `SettingsView` | `GET` / `POST /hqplayer/config`, `GET /hqplayer/status` | ✔️ `SettingsV2` |
+| `SettingsView` | `GET /system/update/check`, `PATCH /system/config` (`quality_split`) | ✔️ `SettingsV2` |
+| `SettingsView`, `ProfileSelector` | `GET /cloud/sso/status` | ✔️ `AvatarMenu`, `PageWidgets`, `stores/preferences` |
+| `SettingsView` | `GET /system/settings/metadata-fields` | ✔️ `lib/api/metadata.ts` (`AlbumEditModal`, `stores/displayFields`) |
+| `RadiosView`, `RadioFavoritesView` | `GET /radio-favorites`, `DELETE /radio-favorites[/{id}]` | ✔️ `FavoritesV2` |
+| `MetadataView` | `POST /library/albums` | sans objet : code mort dans l’ancienne interface (voir `getAlbums`, #1294) |
+| `SupportView` | `POST /support/tickets` | ✔️ `api.createSupportTicketMultipart` (`SupportV2`) |
+
+**Reste sans chemin : huit capacités** — niveau des journaux, bascule
+SQLite ↔ PostgreSQL, documentation de l’API, documentation des greffons,
+« Quoi de neuf », nettoyage serveur, vidage du cache, télémétrie. À arbitrer
+comme les autres domaines : porter, abandonner ou garder le filet.

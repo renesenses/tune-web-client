@@ -6352,6 +6352,25 @@ export async function getBugReportMarkdown(): Promise<string> {
   return resp.text();
 }
 
+/**
+ * Envoie le rapport de bogue au forum communautaire (fil modéré).
+ *
+ * Le SERVEUR compose le rapport (diagnostics + journaux récents), place la
+ * description de l'utilisateur en tête et le transmet à mozaiklabs.fr ; il
+ * répond `{ status, url, slug }`, `url` étant le fil créé. Aucune licence
+ * n'est exigée — c'est ce qui le distingue d'un ticket de support premium.
+ *
+ * Avant la phase 5, ce `POST` n'existait qu'en `fetch` direct dans
+ * `DiagnosticsView` : l'inventaire des capacités, qui ne lit que `api.ts`, ne
+ * pouvait pas le voir.
+ */
+export function submitBugReport(description: string): Promise<{ status?: string; url?: string; slug?: string }> {
+  return fetchJSON(`${BASE}/system/bug-report/submit`, {
+    method: 'POST',
+    body: JSON.stringify({ description: description.trim() }),
+  });
+}
+
 // --- Audio Converter ---
 
 export function getConverterPresets(): Promise<{ id: string; label: string; format: string; quality: string; sample_rate: string; bit_depth: string; estimated_size_per_min: string }[]> {
