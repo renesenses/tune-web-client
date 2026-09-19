@@ -40,7 +40,7 @@
    */
   import { onMount, untrack } from 'svelte';
   import {
-    activeView, listResetNonce, vueDeRetour,
+    activeView, listResetNonce, vueDeRetour, pendingSearchQuery,
     saveDetailScroll, restoreDetailScroll,
   } from '../../lib/stores/navigation';
   import {
@@ -51,6 +51,10 @@
   import { melangee } from '../../lib/shuffle';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
+  import { normaliserMetadonnees, bioDans, bilanEnrichissement } from '../../lib/metadonneesArtiste';
+  import { uniqueInstruments } from '../../lib/library/credits';
+  import { locale as langueCourante } from '../../lib/i18n';
+  import type { ArtistMetadata, TrackCredit } from '../../lib/types';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -74,6 +78,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
+  import ArtistEditModal from '../partages/ArtistEditModal.svelte';
+  import ReportButton from '../partages/ReportButton.svelte';
 
   interface Props {
     /** Filtre texte partagé avec le reste de l'écran. */
@@ -137,6 +143,12 @@
 
   /** Artiste ouvert — on montre ses albums. */
   let ouvert = $state<Artist | null>(null);
+  /**
+   * L'éditeur COMPLET de l'artiste (nom, tri, image téléversée…), porté de
+   * l'ancienne Bibliothèque. La modale générique de la grille ne sait que
+   * renommer : l'image d'un artiste ne se changeait nulle part ici.
+   */
+  let editionComplete = $state<Artist | null>(null);
   let albums = $state<Album[]>([]);
   let albumsChargement = $state(false);
   /** Le compte de l'en-tête : les vignettes de la discographie commune, et non
@@ -302,6 +314,54 @@
   let bioFiche = $state<string | null>(null);
   let titresPhares = $state<Track[]>([]);
   let jetonBio = 0;
+  /*
+   * Métadonnées (similaires, membres), crédits (instruments joués) et
+   * enrichissement — portés de l'ancienne Bibliothèque, seule à les montrer.
+   * 🔴 Même précaution que `chargerBio` : appelée depuis l'effet d'ouverture,
+   * cette fonction n'écrit qu'APRÈS un `await` et ne relit aucun état.
+   */
+  let metaFiche = $state<ArtistMetadata | null>(null);
+  let creditsFiche = $state<TrackCredit[]>([]);
+  let enrichissement = $state(false);
+  let jetonMeta = 0;
+  async function chargerMetadonnees(id: number | null | undefined) {
+    const jeton = ++jetonMeta;
+    metaFiche = null;
+    creditsFiche = [];
+    if (id == null) return;
+    const [m, c] = await Promise.all([
+      api.getArtistMetadata(id).then(normaliserMetadonnees).catch(() => null),
+      api.getArtistCredits(id).catch(() => [] as TrackCredit[]),
+    ]);
+    if (jeton !== jetonMeta) return;
+    metaFiche = m;
+    creditsFiche = c ?? [];
+  }
+  async function enrichir() {
+    const a = ouvert;
+    if (a?.id == null || enrichissement) return;
+    enrichissement = true;
+    try {
+      const m = normaliserMetadonnees(await api.enrichArtist(a.id));
+      metaFiche = { ...(metaFiche ?? {}), ...m } as ArtistMetadata;
+      // La bio rapportée remplace l'absence de bio, jamais une bio éditée.
+      const bio = bioDans(m, $langueCourante);
+      if (bio && !a.bio?.trim()) bioFiche = bio;
+      const cle = bilanEnrichissement(m);
+      if (cle === 'library.noInfoFound') notifications.info($t(cle as any));
+      else notifications.success($t(cle as any));
+    } catch {
+      notifications.error($t('library.enrichUnavailable' as any));
+    } finally {
+      enrichissement = false;
+    }
+  }
+  function ouvrirSimilaire(nom: string) {
+    const trouve = artistes.find((x) => x.name.toLowerCase() === nom.toLowerCase());
+    if (trouve) void ouvrir(trouve);
+    else { pendingSearchQuery.set(nom); activeView.set('search'); }
+  }
+
   async function chargerBio(a: Artist) {
     const jeton = ++jetonBio;
     // 🔴 Une variable LOCALE, pas `bioFiche` relu : cette fonction part, dans
@@ -394,6 +454,7 @@
     // retarderait l'affichage de ce qu'on possède déjà.
     void chargerAlbumsDeService(a);
     void chargerBio(a);
+    void chargerMetadonnees(a.id);
     try {
       albums = (await api.getArtistAlbums(a.id!)) ?? [];
     } catch {
@@ -550,6 +611,21 @@
         title={$t('library.playAllArtist' as any)}>
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('library.playAllArtist' as any)}
       </button>
+      {#if artiste.id != null}
+        <button class="fab creux" onclick={() => (editionComplete = artiste)} title={$t('library.editArtist' as any)}>
+          {$t('common.edit' as any)}
+        </button>
+        {#if artiste.image_path}
+          <ReportButton entity="artist_image" entityId={artiste.id}
+            mbid={artiste.musicbrainz_id ?? undefined}
+            reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} compact />
+        {/if}
+        {#if bioFiche}
+          <ReportButton entity="bio" entityId={artiste.id}
+            mbid={artiste.musicbrainz_id ?? undefined}
+            reasons={['incorrect', 'wrong_entity', 'offensive']} />
+        {/if}
+      {/if}
       <button class="fab creux" onclick={() => lireArtisteAleatoire(artiste)} disabled={masseEnCours}
         title={$t('library.shuffleArtist' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('library.shuffleArtist' as any)}
@@ -562,6 +638,33 @@
        les sections séparées par service de #3709. -->
   <div class="corps">
     <BioEtTitresPhares bio={bioFiche} titres={titresPhares} cle={artiste.id} />
+    {#if artiste.id != null}
+      <section class="apropos">
+        <button class="fab creux" onclick={enrichir} disabled={enrichissement}>
+          {enrichissement ? '…' : $t((bioFiche ? 'library.reEnrich' : 'library.enrichBio') as any)}
+        </button>
+        {#if metaFiche?.similar_artists?.length}
+          <h3>{$t('artist.similarArtists' as any)}</h3>
+          <div class="puces">
+            {#each metaFiche.similar_artists as sa (sa.name)}
+              <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
+            {/each}
+          </div>
+        {/if}
+        {#if metaFiche?.members?.length}
+          <h3>{$t('artist.members' as any)}</h3>
+          <ul class="membres">
+            {#each metaFiche.members as m (m.name)}<li><b>{m.name}</b> {m.role}</li>{/each}
+          </ul>
+        {/if}
+        {#if creditsFiche.length}
+          <h3>{$t('artist.credits' as any)}</h3>
+          <div class="puces">
+            {#each uniqueInstruments(creditsFiche) as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
+          </div>
+        {/if}
+      </section>
+    {/if}
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
     {:else if !albums.length && !albumsService.length && !albumsServiceChargement}
@@ -659,6 +762,18 @@
       );
     }}
     onClose={() => (enEdition = null)}
+  />
+{/if}
+
+{#if editionComplete}
+  <ArtistEditModal
+    artist={editionComplete}
+    onClose={() => (editionComplete = null)}
+    onSaved={(maj) => {
+      if (ouvert?.id === maj.id) ouvert = maj;
+      artistes = artistes.map((x) => (x.id === maj.id ? maj : x));
+      editionComplete = null;
+    }}
   />
 {/if}
 
@@ -778,4 +893,12 @@
   .fab.creux:hover:not(:disabled){border-color:var(--v2-acc2, #b8862b); color:var(--v2-acc-tint, #e6c176)}
   .fab:disabled{opacity:.5; cursor:default}
   .fab svg{width:15px; height:15px}
+  .apropos{margin:14px 0 18px; display:flex; flex-direction:column; gap:8px; align-items:flex-start}
+  .apropos h3{margin:8px 0 0; font:600 11px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .puces{display:flex; flex-wrap:wrap; gap:6px}
+  .puce{padding:4px 10px; border-radius:999px; border:1px solid var(--v2-line2); background:transparent;
+    color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
+  .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .puce.fixe{cursor:default}
+  .membres{margin:0; padding-left:18px; color:var(--v2-txt2); font-size:13px}
 </style>

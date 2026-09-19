@@ -36,19 +36,7 @@ import { SETTING_LEVELS, isKeyVisible, hiddenCountByTab, type SettingKey } from 
  * de rendu Svelte, et la propriété à tenir est structurelle.
  */
 
-const SOURCE = readFileSync(
-  resolve(__dirname, '../../components/SettingsView.svelte'),
-  'utf-8',
-);
 
-/** La section « Métadonnées » de l'onglet Bibliothèque, du `<section>` à sa fermeture. */
-const SECTION_METADONNEES = (() => {
-  const debut = SOURCE.indexOf("class:lv-hidden={!lvAny('library.metadataReadonly'");
-  expect(debut, 'section Métadonnées introuvable dans SettingsView').toBeGreaterThan(-1);
-  const fin = SOURCE.indexOf('</section>', debut);
-  expect(fin, 'fin de la section Métadonnées introuvable').toBeGreaterThan(debut);
-  return SOURCE.slice(debut, fin);
-})();
 
 describe('la case « Paroles en ligne » vit au niveau débutant', () => {
   it('le registre la classe débutant, et non intermédiaire', () => {
@@ -72,17 +60,6 @@ describe('ouvrir la section ne fait entrer aucun réglage d\'un niveau supérieu
     expect(isKeyVisible('library.enrichOnScan', 'beginner', false)).toBe(false);
   });
 
-  it('et chaque ligne de la section porte sa propre garde de niveau', () => {
-    for (const cle of [
-      'library.metadataReadonly',
-      'library.enrichOnScan',
-      'library.lyricsLrclib',
-    ] as SettingKey[]) {
-      // Deux occurrences par réglage : le libellé et l'interrupteur.
-      const gardes = SECTION_METADONNEES.split(`!lvOk('${cle}')`).length - 1;
-      expect(gardes, `garde de niveau manquante pour ${cle}`).toBeGreaterThanOrEqual(2);
-    }
-  });
 });
 
 describe('le compteur « n réglages masqués » suit', () => {

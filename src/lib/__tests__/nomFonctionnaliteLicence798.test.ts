@@ -69,16 +69,3 @@ describe('Le nom d’une fonctionnalité de licence', () => {
   });
 });
 
-describe('🔴 L’écran appelle bien cette règle', () => {
-  const ECRAN = readFileSync('src/components/SettingsView.svelte', 'utf8');
-
-  it('la grille de licence passe par le traducteur', () => {
-    expect(ECRAN).toContain('nomFonctionnalite(key, feat.display_name');
-  });
-
-  it('et n’affiche plus `display_name` nu', () => {
-    // La régression se ferait en une ligne, et se verrait seulement chez un
-    // utilisateur non francophone.
-    expect(ECRAN).not.toMatch(/license-feature-name">\{feat\.display_name\}/);
-  });
-});

@@ -38,8 +38,11 @@ describe('une source de service se distingue de la bibliothèque', () => {
 describe('l’éditeur le dit à l’écran', () => {
   const vue = sansCommentaires(lire('src/components/v2/PlaylistSmartEditeurV2.svelte'));
 
+  // #4473 a glissé une branche AVANT celle-ci : `catalogue:qobuz` est aussi
+  // une source de service, et ne parle pas des favoris. La phrase des favoris
+  // reste donc la branche de repli — c'est ce que la forme `{:else if` dit.
   it('la précision s’affiche pour un service, et pour lui seul', () => {
-    expect(vue).toContain("{#if estSourceDeService(r.value ?? '')}");
+    expect(vue).toContain("{:else if estSourceDeService(r.value ?? '')}");
     expect(vue).toContain("v2.smart.sourceFavoris");
   });
 

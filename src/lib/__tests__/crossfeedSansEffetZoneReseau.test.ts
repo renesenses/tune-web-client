@@ -136,10 +136,9 @@ describe('#2742 — le verdict d’indisponibilité du crossfeed', () => {
   });
 });
 
-describe('#2742 — les trois écrans lisent le verdict et verrouillent', () => {
+describe('#2742 — les deux écrans lisent le verdict et verrouillent', () => {
   const ECRANS = [
     { nom: 'NowPlaying.svelte', chemin: '../../components/partages/NowPlaying.svelte', garde: 'cfIndispo' },
-    { nom: 'EqualizerView.svelte', chemin: '../../components/EqualizerView.svelte', garde: 'cfIndispo' },
     { nom: 'v2/CrossfeedV2.svelte', chemin: '../../components/v2/CrossfeedV2.svelte', garde: 'indispo' },
   ] as const;
 

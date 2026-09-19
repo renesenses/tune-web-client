@@ -70,9 +70,12 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     expect(coupables, `gestes encore muets : ${coupables.join(', ')}`).toEqual([]);
   });
 
-  it('et les quatorze écrans passent par le helper', () => {
+  it('et les quinze écrans passent par le helper', () => {
     const avec = fichiersV2.filter((f) => lire(f).includes("from '../../lib/zoneRequise'"));
-    expect(avec.length).toBe(14);
+    // Quinze depuis la phase 5, lot 4 : `YouTubeDecouverteV2` (tendances et
+    // ambiances YouTube Music) lance la lecture, donc passe par le helper.
+    expect(avec.length).toBe(15);
+    expect(avec).toContain('YouTubeDecouverteV2.svelte');
     // L'écran que Bertrand nomme en fait partie.
     expect(avec).toContain('BioEtTitresPhares.svelte');
   });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import DashboardView from '../../components/DashboardView.svelte';
+import DashboardView from '../../components/v2-heritage/DashboardView.svelte';
 import { locale, type Locale } from '../i18n';
 import * as api from '../api';
 
