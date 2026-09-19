@@ -1294,9 +1294,9 @@ export default {
   'dashboard.section.by_zone': 'Par zone',
   'dashboard.section.by_source': 'Par source',
   'dashboard.section.weekday_hourly': 'Quand tu écoutes (semaine × heure)',
-  'dashboard.section.completion': "Pistes terminées vs interrompues",
-  'dashboard.completion.completed': 'Terminées',
-  'dashboard.completion.skipped': "Interrompues",
+  "dashboard.section.completion": "Durées enregistrées dans l’historique",
+  "dashboard.completion.completed": "30 s et plus",
+  "dashboard.completion.skipped": "Moins de 30 s",
   'dashboard.empty': 'Pas encore d\'historique d\'écoute. Lance quelque chose 🎶',
 
   // Equalizer
@@ -3386,6 +3386,7 @@ export default {
   "converter.retry": "Réessayer",
   "converter.conversionError": "Erreur de conversion",
   "converter.loadAlbumsError": "Impossible de charger les albums",
+  "converter.folderUnavailable": "Impossible de déterminer le dossier source de cet album.",
   "converter.browseError": "Impossible de parcourir le répertoire",
   "converter.startError": "Erreur lors du lancement de la conversion",
   "converter.cancelled": "Conversion annulée",
@@ -4478,6 +4479,7 @@ export default {
   "v2.zones.browserUnattended": "Zone navigateur : aucun onglet n’écoute",
   "v2.zones.viewGrid": "Grille",
   "v2.zones.viewList": "Liste",
+  "v2.zones.listActionsHelp": "Pour renommer, fusionner ou supprimer une zone, passez en vue {view}.",
   "v2.zones.viewSwitch": "Affichage",
   "v2.str.discover": "Découvrir",
   "v2.str.editorial": "Éditorial",

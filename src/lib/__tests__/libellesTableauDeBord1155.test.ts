@@ -102,7 +102,14 @@ describe('#1155 — plus un mot d\'anglais sur un écran français', () => {
       // jamais — ou verte pour la mauvaise raison si on l'inversait.
       const valeur = ligne.slice(ligne.indexOf(':') + 1);
       expect(valeur, cle).not.toMatch(/skipp/i);
-      expect(valeur.toLowerCase(), cle).toContain('interrompu');
+      // #1207 a renommé ces groupes d'après ce qu'ils comptent VRAIMENT — la
+      // durée enregistrée, pas une écoute « terminée » ou « interrompue » :
+      // « Durées enregistrées dans l'historique » et « Moins de 30 s ». La
+      // garde positive suit ce libellé ; exiger « interrompu » encodait un mot,
+      // pas l'intention de #1155 (plus d'anglais).
+      expect(valeur.toLowerCase(), cle).toMatch(
+        cle === 'dashboard.completion.skipped' ? /moins de 30 s/ : /durées enregistrées/
+      );
     }
   });
 });

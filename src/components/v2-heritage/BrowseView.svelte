@@ -233,6 +233,12 @@
 </script>
 
 <div class="browse-view">
+  {#if !browseResult && $vueDeRetour}
+    <button class="back-btn" onclick={goUp}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="15 18 9 12 15 6" /></svg>
+      {$tr('common.back')}
+    </button>
+  {/if}
   {#if browseResult}
     <!-- Directory view -->
     <div class="browse-header">

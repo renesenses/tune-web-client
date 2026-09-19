@@ -1053,9 +1053,9 @@ export default {
   'dashboard.section.hourly': 'Ora din zi',
   'dashboard.section.by_zone': 'După zonă',
   'dashboard.section.by_source': 'După sursă',
-  'dashboard.section.completion': "Piese terminate față de întrerupte",
-  'dashboard.completion.completed': 'Finalizate',
-  'dashboard.completion.skipped': "Întrerupte",
+  "dashboard.section.completion": "Durate înregistrate în istoric",
+  "dashboard.completion.completed": "30 s sau mai mult",
+  "dashboard.completion.skipped": "Mai puțin de 30 s",
   'dashboard.empty': 'Încă niciun istoric de ascultare. Pornește ceva 🎶',
 
   // Equalizer
@@ -2741,6 +2741,7 @@ export default {
   "converter.retry": "Reîncearcă",
   "converter.conversionError": "Eroare la conversie",
   "converter.loadAlbumsError": "Încărcarea albumelor a eșuat",
+  "converter.folderUnavailable": "Nu se poate determina dosarul sursă al acestui album.",
   "converter.browseError": "Răsfoirea directorului a eșuat",
   "converter.startError": "Pornirea conversiei a eșuat",
   "converter.cancelled": "Conversie anulată",
@@ -4456,6 +4457,7 @@ export default {
   "v2.zones.browserUnattended": "Zonă browser: nicio filă nu ascultă",
   "v2.zones.viewGrid": "Grilă",
   "v2.zones.viewList": "Listă",
+  "v2.zones.listActionsHelp": "Pentru a redenumi, uni sau șterge o zonă, treceți la vizualizarea {view}.",
   "v2.zones.viewSwitch": "Vizualizare",
   "v2.str.discover": "Descoperă",
   "v2.str.editorial": "Editorial",

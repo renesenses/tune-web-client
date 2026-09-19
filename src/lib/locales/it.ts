@@ -1043,9 +1043,9 @@ export default {
   'dashboard.section.hourly': 'Ora di ascolto',
   'dashboard.section.by_zone': 'Per zona',
   'dashboard.section.by_source': 'Per sorgente',
-  'dashboard.section.completion': "Brani completati contro interrotti",
-  'dashboard.completion.completed': 'Completati',
-  'dashboard.completion.skipped': "Interrotti",
+  "dashboard.section.completion": "Durate registrate nella cronologia",
+  "dashboard.completion.completed": "30 s o più",
+  "dashboard.completion.skipped": "Meno di 30 s",
   'dashboard.empty': 'Nessuna cronologia di ascolto. Avvia qualcosa 🎶',
 
   // Equalizer
@@ -2731,6 +2731,7 @@ export default {
   "converter.retry": "Riprova",
   "converter.conversionError": "Errore di conversione",
   "converter.loadAlbumsError": "Impossibile caricare gli album",
+  "converter.folderUnavailable": "Impossibile determinare la cartella di origine di questo album.",
   "converter.browseError": "Impossibile esplorare la cartella",
   "converter.startError": "Impossibile avviare la conversione",
   "converter.cancelled": "Conversione annullata",
@@ -4456,6 +4457,7 @@ export default {
   "v2.zones.browserUnattended": "Zona browser: nessuna scheda è in ascolto",
   "v2.zones.viewGrid": "Griglia",
   "v2.zones.viewList": "Elenco",
+  "v2.zones.listActionsHelp": "Per rinominare, unire o eliminare una zona, passa alla vista {view}.",
   "v2.zones.viewSwitch": "Vista",
   "v2.str.discover": "Scopri",
   "v2.str.editorial": "Editoriale",

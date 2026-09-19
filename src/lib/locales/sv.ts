@@ -1026,9 +1026,9 @@ export default {
   'dashboard.section.hourly': 'Timme på dygnet',
   'dashboard.section.by_zone': 'Per zon',
   'dashboard.section.by_source': 'Per källa',
-  'dashboard.section.completion': "Färdigspelade mot avbrutna",
-  'dashboard.completion.completed': 'Färdigspelade',
-  'dashboard.completion.skipped': "Avbrutna",
+  "dashboard.section.completion": "Längder registrerade i historiken",
+  "dashboard.completion.completed": "30 s eller mer",
+  "dashboard.completion.skipped": "Mindre än 30 s",
   'dashboard.empty': 'Ingen lyssningshistorik än. Sätt igång något 🎶',
 
   // Equalizer
@@ -2683,6 +2683,7 @@ export default {
   "converter.retry": "Försök igen",
   "converter.conversionError": "Konverteringsfel",
   "converter.loadAlbumsError": "Kunde inte ladda album",
+  "converter.folderUnavailable": "Det gick inte att hitta albumets källmapp.",
   "converter.browseError": "Kunde inte bläddra i katalogen",
   "converter.startError": "Kunde inte starta konverteringen",
   "converter.cancelled": "Konvertering avbruten",
@@ -4455,6 +4456,7 @@ export default {
   "v2.zones.browserUnattended": "Webbläsarzon: ingen flik lyssnar",
   "v2.zones.viewGrid": "Rutnät",
   "v2.zones.viewList": "Lista",
+  "v2.zones.listActionsHelp": "Byt till vyn {view} för att byta namn på, slå samman eller ta bort en zon.",
   "v2.zones.viewSwitch": "Vy",
   "v2.str.discover": "Upptäck",
   "v2.str.editorial": "Redaktionellt",
