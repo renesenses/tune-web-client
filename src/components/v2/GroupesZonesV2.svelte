@@ -25,8 +25,12 @@
   let occupe = $state(false);
 
   async function charger() {
-    // Serveur sans la route : pas de groupes, sans alarme.
-    try { groupes = (await api.listGroups()) ?? []; } catch { groupes = []; }
+    // Serveur sans la route, ou réponse qui n'est pas une liste : pas de
+    // groupes, sans alarme — plutôt qu'un écran Zones qui plante au rendu.
+    try {
+      const r: unknown = await api.listGroups();
+      groupes = Array.isArray(r) ? r : [];
+    } catch { groupes = []; }
   }
   $effect(() => { void charger(); });
 

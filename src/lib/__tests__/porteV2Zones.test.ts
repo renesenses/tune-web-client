@@ -147,6 +147,14 @@ describe('groupes de zones dans Zones v2', () => {
     await attendre();
     expect(m.groupZones).toHaveBeenCalledWith(4, [4, 3]);
   });
+
+  it('une réponse qui n’est pas une liste ne fait pas planter l’écran', async () => {
+    m.listGroups.mockResolvedValue({ version: 1 });
+    const el = poser(ZonesV2);
+    await attendre();
+    expect(el.querySelector('section.groupes'), 'l’écran doit rester utilisable').not.toBeNull();
+    expect(el.querySelectorAll('section.groupes .groupe')).toHaveLength(0);
+  });
 });
 
 describe('latence de commande (Expert)', () => {

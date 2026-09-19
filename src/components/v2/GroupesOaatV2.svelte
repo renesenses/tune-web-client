@@ -59,7 +59,7 @@
   async function charger() {
     try {
       const r = await api.getOaatGroups();
-      groupes = r?.oaat_groups ?? [];
+      groupes = Array.isArray(r?.oaat_groups) ? r.oaat_groups : [];
       erreur = null;
       await Promise.all(groupes.map((g) => rafraichirEtat(g.id)));
     } catch {
