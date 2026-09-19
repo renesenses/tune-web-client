@@ -32,6 +32,9 @@
   import { activeView } from '../../lib/stores/navigation';
   import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
   import { candidatsNouvelleZone, libelleCandidat, type CandidatZone } from '../../lib/appareilsNouvelleZone';
+  import GroupesZonesV2 from './GroupesZonesV2.svelte';
+  import LatenceZonesV2 from './LatenceZonesV2.svelte';
+  import GroupesOaatV2 from './GroupesOaatV2.svelte';
 
   /**
    * Grille ou liste. La GRILLE est le défaut — c'est la vue demandée — et la
@@ -563,6 +566,17 @@
           {/if}
         </section>
       {/if}
+
+    <!-- Portage de ZoneManagerView (phase 5) : les groupes pour tous, la
+         latence et le multiroom OAAT au niveau Expert — comme les paires
+         stéréo, ce sont des gestes d'installation. -->
+    {#if $zones.length}
+      <GroupesZonesV2 zones={$zones} onChange={refresh} />
+    {/if}
+    {#if showExpert}
+      <LatenceZonesV2 />
+      <GroupesOaatV2 />
+    {/if}
   </div>
 </section>
 
