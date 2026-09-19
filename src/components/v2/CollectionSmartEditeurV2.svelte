@@ -41,7 +41,13 @@
   import * as api from '../../lib/api';
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
-  import { sourcesDisponibles, libelleSource } from '../../lib/sourcesRegle';
+  import {
+    sourcesDisponibles,
+    libelleSource,
+    estSourceDeService,
+    serviceDuCatalogue,
+  } from '../../lib/sourcesRegle';
+  import { manqueUneCible } from '../../lib/regleSourceAide';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import {
@@ -193,6 +199,10 @@
   }
 
   const completes = $derived(regles.filter(regleComplete));
+
+  // #4473 — une source `catalogue:` sans artiste ni album nommé : le serveur
+  // la refusera. On le dit ici, pendant qu'on peut encore corriger la règle.
+  const catalogueSansCible = $derived(manqueUneCible(regles));
   const pretAEnregistrer = $derived(!chargement && nom.trim().length > 0 && completes.length > 0);
 
   /* ---------------- Aperçu ---------------- */
@@ -317,10 +327,27 @@
           {:else if type === 'source'}
             <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
               <option value="" disabled>{$t('smartCollection.refPick')}</option>
-              {#each sourcesDisponibles(statutsServices, r.value) as s (s)}
-                <option value={s}>{libelleSource(s, $t('v2.lib.sourceLocal' as any))}</option>
+              {#each sourcesDisponibles(statutsServices, r.value, true) as s (s)}
+                <option value={s}>{libelleSource(s, $t('v2.lib.sourceLocal' as any), $t('v2.smart.sourceCatalogue' as any))}</option>
               {/each}
             </select>
+            <!-- 🔴 #1231 — Bertrand : « Smart Collection : source qobuz retourne
+                 0 album ». C'était la bonne réponse : la règle porte sur les
+                 FAVORIS Qobuz, pas sur le catalogue. Rien ne le disait. -->
+            {#if serviceDuCatalogue(r.value ?? '')}
+              <!-- #4473 — le catalogue ne s'énumère pas : la règle doit dire
+                   QUOI chercher, sinon le serveur refuse. -->
+              <span class="precision">
+                {$t('v2.smart.sourceCatalogueAide' as any)}
+              </span>
+            {:else if estSourceDeService(r.value ?? '')}
+              <span class="precision">
+                {$t('v2.smart.sourceFavoris' as any).replace(
+                  '{service}',
+                  libelleSource(r.value ?? '', $t('v2.lib.sourceLocal' as any)),
+                )}
+              </span>
+            {/if}
           {:else if type === 'folder'}
             <SmartFolderPicker value={r.value ?? ''} onChange={(v) => changerValeur(i, v)} />
           {:else if type === 'collection_ref'}
@@ -395,6 +422,11 @@
     </div>
   </div>
 
+  <!-- #4473 — au-dessus du pied, pleine largeur : un avertissement rangé
+       entre « Annuler » et « Enregistrer » se lit comme un bouton. -->
+  {#if catalogueSansCible}
+    <p class="avert">{$t('v2.smart.catalogueSansCible' as any)}</p>
+  {/if}
   <div class="pied">
     <!-- Seulement en MODIFICATION, et seule à gauche : une suppression ne se
          range pas contre « Enregistrer ». -->
@@ -457,6 +489,14 @@
 
   .pied{display:flex; justify-content:flex-end; gap:12px; padding:14px 30px 22px;
     border-top:1px solid var(--v2-line)}
+  /* #4473 — l'avertissement occupe la gauche du pied ; les deux boutons ne
+     bougent pas d'un pixel. Il n'interdit PAS d'enregistrer : la règle reste
+     modifiable ensuite, et une règle incomplète n'abîme rien. */
+  .avert{margin:0; padding:10px 30px 0; color:var(--v2-danger);
+    font:500 13px/1.35 var(--v2-sans)}
+  /* La phrase qui dit ce que la source désigne vraiment (#1231, #4473) :
+     sous le sélecteur, en retrait, sans voler la lecture de la règle. */
+  .precision{flex-basis:100%; color:var(--v2-txt3); font:400 12px/1.35 var(--v2-sans)}
   .ghost,.play,.danger{height:42px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 14px var(--v2-sans); cursor:pointer}
   /* `margin-right:auto` : elle part à gauche, les deux autres ne bougent pas. */
   .danger{margin-right:auto; color:var(--v2-danger); background:transparent; border:1px solid var(--v2-danger-bd)}
