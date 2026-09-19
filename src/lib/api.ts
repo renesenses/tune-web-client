@@ -3721,8 +3721,19 @@ export function getStreamingGenres(service: string, parentId?: string) {
   return fetchJSON<import('./types').StreamingGenre[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres${params}`);
 }
 
-export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50) {
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}`);
+/**
+ * Les albums d'un genre. Avec `section`, la RUBRIQUE éditoriale restreinte à ce
+ * genre (#1300, serveur tune-server-rust#3481) : `press-awards`,
+ * `ideal-discography`, `qobuzissims`… Sans elle, la réponse d'avant — les
+ * nouveautés du genre.
+ *
+ * Un serveur antérieur à tune-server-rust#4524 (0.9.156 et avant) ne rejette
+ * pas `section`, il l'ignore et re-sert les nouveautés : c'est
+ * `chargerRubriquesGenre` (`src/lib/rubriquesGenre.ts`) qui s'en aperçoit.
+ */
+export function getStreamingGenreAlbums(service: string, genreId: string, limit = 50, section?: string) {
+  const rubrique = section ? `&section=${encodeURIComponent(section)}` : '';
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/genres/${encodeURIComponent(genreId)}/albums?limit=${limit}${rubrique}`);
 }
 
 export function getStreamingPlaylists(service: string) {
@@ -6414,6 +6425,25 @@ export async function getBugReportMarkdown(): Promise<string> {
   const resp = await fetch(`${BASE}/system/bug-report/markdown`, { headers });
   if (!resp.ok) throw await erreurDepuisReponse(resp);
   return resp.text();
+}
+
+/**
+ * Envoie le rapport de bogue au forum communautaire (fil modéré).
+ *
+ * Le SERVEUR compose le rapport (diagnostics + journaux récents), place la
+ * description de l'utilisateur en tête et le transmet à mozaiklabs.fr ; il
+ * répond `{ status, url, slug }`, `url` étant le fil créé. Aucune licence
+ * n'est exigée — c'est ce qui le distingue d'un ticket de support premium.
+ *
+ * Avant la phase 5, ce `POST` n'existait qu'en `fetch` direct dans
+ * `DiagnosticsView` : l'inventaire des capacités, qui ne lit que `api.ts`, ne
+ * pouvait pas le voir.
+ */
+export function submitBugReport(description: string): Promise<{ status?: string; url?: string; slug?: string }> {
+  return fetchJSON(`${BASE}/system/bug-report/submit`, {
+    method: 'POST',
+    body: JSON.stringify({ description: description.trim() }),
+  });
 }
 
 // --- Audio Converter ---
