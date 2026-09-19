@@ -41,7 +41,7 @@ const src = () =>
 
 describe('le tri Dynamic Range de la bibliothèque v2', () => {
   it('🔴 la clé de tri existe — elle s’arrêtait à « added »', () => {
-    expect(src()).toContain("type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr';");
+    expect(src()).toContain("type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr' | 'random';");
     expect(src()).toContain("{ k: 'dr', l: 'library.sortDynamicRange' }");
   });
 
