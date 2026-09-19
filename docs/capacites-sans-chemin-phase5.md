@@ -133,3 +133,9 @@ Témoin : `src/lib/__tests__/documentationEtNotesV2.test.ts`.
 | `SettingsView` | `POST /system/database/migrate?target=sqlite` (« Migrer vers SQLite ») | ⛔ **capacité morte, non portée** : `migrate_database` (`tune-server/src/routes/system/database.rs`, `origin/main`) ignore `target` (« this handler only implements SQLite → PostgreSQL ») et répond `400 missing 'url' field` à une requête sans adresse PostgreSQL ; sur un serveur déjà sous PostgreSQL il répond `400 this server already runs on PostgreSQL`. L'ancien écran ne lisait pas la réponse et affichait « Migration vers SQLite lancée… » |
 
 Témoin : `src/lib/__tests__/migrationPostgresV2.test.ts`.
+
+## Angle mort (hors `api.ts`) — télémétrie
+
+| Écran supprimé | Route | Chemin v2 |
+|---|---|---|
+| `SettingsView` (`etatTelemetrie.ts`) | `GET /cloud/telemetry/status`, `POST /cloud/telemetry/enable\|disable` | ✅ **porté** (`feat/v2-porte-telemetrie`) : Réglages › Système › Cloud, bascule « Télémétrie » par `api.getTelemetryStatus` / `api.setTelemetryConsent` ; état effectif du serveur (#3383), verrou `TUNE_TELEMETRY` dit, identifiant d'instance et pause cloud affichés. Témoin : `src/lib/__tests__/telemetrieV2.test.ts` |
