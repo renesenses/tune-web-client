@@ -106,6 +106,8 @@ describe("Aucun appelant de ServiceBadge ne replie sur 'local'", () => {
   // 05/09 — « avec Local d'ailleurs ! », gardé par `retoursQuerite.test.ts`),
   // qui n'est pas un repli d'affichage de provenance.
   const APPELANTS = [
+    // Sauvé par le portage (lot 4) : de nouveau monté dans la coquille.
+    'src/components/v2-heritage/DashboardHighlights.svelte',
     'src/components/partages/AlbumArt.svelte',
     'src/components/partages/NowPlaying.svelte',
     'src/components/partages/TransportBar.svelte',

@@ -47,6 +47,7 @@
   // de pastille : celui-là existe, il sait déjà nommer la bibliothèque.
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleDeService } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { estDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import QualiteAlbum from './QualiteAlbum.svelte';
@@ -1141,11 +1142,9 @@
                        `streaming_favorites` clefée `service` + `service_id` en
                        TEXTE. La correction n'avait jamais été propagée ici.
 
-                       Les ÉTIQUETTES restent absentes, et ce n'est pas un
-                       oubli : la route serveur prend `item_id: i64` quand un
-                       album Qobuz s'identifie « kxend2k5wdg06 ». Les brancher
-                       demande une évolution du SERVEUR. Mieux vaut une icône
-                       absente qu'une icône morte. -->
+                       Les ÉTIQUETTES d'un album de service passent par la
+                       paire `source` + `source_id` (`POST /tags/{id}/
+                       streaming-items`, serveur v0.9.144) — #1238. -->
                   <PochetteActions
                     favori={local_ ? { albumId: a.id! } : null}
                     favoriExterne={!local_ && a.source && a.source_id
@@ -1158,7 +1157,7 @@
                           coverUrl: a.cover_path ?? undefined,
                         })
                       : null}
-                    etiquettes={local_ ? { itemType: 'album', itemId: a.id! } : null}
+                    etiquettes={local_ ? { itemType: 'album', itemId: a.id! } : cibleDeService('album', a)}
                     onEditer={local_ ? () => (albumEnEdition = a) : null}
                     onLire={local_ || (a.source && a.source_id) ? () => ouvrirOuLire(a) : null}
                     onOuvrir={local_ || (a.source && a.source_id) ? () => ouvrirFiche(a) : null}

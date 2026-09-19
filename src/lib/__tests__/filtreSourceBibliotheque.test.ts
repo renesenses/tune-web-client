@@ -202,7 +202,11 @@ describe('la pilule dans la barre de filtres', () => {
     expect(reset).toContain('fProvenance = null');
     // …et il ne s'allume pas tant qu'une source est choisie, sinon il
     // prétendrait qu'aucun filtre n'est posé.
-    expect(SOURCE_LIBRARYV2).toContain('&& !fProvenance} onclick={reset}');
+    // Le FAIT, pas la fin exacte de la ligne : d'autres filtres (tranche DR,
+    // phase 5 lot 5) s'ajoutent à la même condition sans la changer.
+    const actif = SOURCE_LIBRARYV2.match(/class:active=\{([^}]*)\} onclick=\{reset\}/)?.[1] ?? '';
+    expect(actif, 'la condition du bouton « Tout » est introuvable').not.toBe('');
+    expect(actif).toContain('!fProvenance');
   });
 
   it('reste accessible avec une seule source, SANS lien « Serveurs multimédia »', () => {

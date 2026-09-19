@@ -51,12 +51,24 @@
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
-  import type { LocalAudioDevice } from '../../lib/types';
+  import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
+  import SmbWizard from '../partages/SmbWizard.svelte';
+  import { etatPartage } from '../../lib/smbMountState';
+  import {
+    detailAppareilIgnore,
+    libelleAppareilIgnore,
+    sansAppareils,
+    transportAppareilIgnore,
+    type AppareilIgnore,
+  } from '../../lib/appareilsIgnores';
+  import { zoneAProposer, propositionRetenue, resumeProposition } from '../../lib/reglagesProposes';
+  import type { DevicePreset } from '../../lib/api';
   import { zoneNavigateurExistante, zonesNavigateurEnDouble } from '../../lib/zoneNavigateur';
   import { audiophileEnabled, audiophileLockVolume, setVolumeLock, refreshVolumeLock } from '../../lib/stores/audiophile';
   import { loopByDefault } from '../../lib/stores/loopByDefault';
   import { licenseState, loadLicense } from '../../lib/stores/license';
+  import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
   import { dateSimple } from '../../lib/dates';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
@@ -129,6 +141,42 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * laisser un curseur qui ne fait rien.
    */
   let trims = $state<Record<number, number>>({});
+
+  /*
+   * Réglages proposés pour un appareil identifié — ce que d'autres utilisateurs
+   * ont retenu pour la même marque et le même modèle. Porté de l'ancien écran
+   * Appareils, seul à les proposer. Jamais par-dessus un réglage posé à la
+   * main (règle dans `lib/reglagesProposes`). Lu une fois par zone.
+   */
+  let propositions = $state<Record<number, DevicePreset | null>>({});
+  let propositionEnCours = $state<number | null>(null);
+  const propositionsLues = new Set<number>();
+  $effect(() => {
+    for (const z of $zones) {
+      if (z.id == null || propositionsLues.has(z.id)) continue;
+      if (!zoneAProposer(z)) continue;
+      const zid = z.id;
+      propositionsLues.add(zid);
+      api.getZoneDevicePresets(zid)
+        .then((r) => { const p = propositionRetenue(r.presets); if (p) propositions = { ...propositions, [zid]: p }; })
+        .catch(() => { /* site injoignable : pas de proposition, pas d'erreur */ });
+    }
+  });
+  async function appliquerProposition(z: any) {
+    const zid = z.id as number;
+    const p = propositions[zid];
+    if (!p) return;
+    propositionEnCours = zid;
+    try {
+      await api.applyZoneDevicePreset(zid, p.settings);
+      propositions = { ...propositions, [zid]: null };
+      zones.set(await api.getZones());
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    } finally {
+      propositionEnCours = null;
+    }
+  }
   function trimDe(z: any): number {
     return trims[z.id ?? -1] ?? z.gain_trim_db ?? 0;
   }
@@ -333,13 +381,65 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       ...pr,
       hiddenDeviceIds: [...pr.hiddenDeviceIds.filter((i) => i.startsWith('audio:')), ...netIds] }));
   }
-  async function deleteDevice(deviceId: string, name: string) {
+  /* --- Ignorer un appareil, DURABLEMENT (#1280, porté de l'ancienne interface)
+   *
+   * Cette croix appelait `DELETE /devices/{id}` : la sortie quittait le
+   * registre en mémoire, et la découverte la ré-enregistrait au passage
+   * suivant — « ils disparaissent bien sur le coup mais réapparaissent
+   * rapidement » (Patatorz). L'ancienne interface avait été corrigée ; celle-ci
+   * portait encore la forme fautive. La route durable est
+   * `POST /devices/{id}/ignore` : elle fige l'identité, retire la sortie tout
+   * de suite, et masque sa zone s'il en a une.
+   *
+   * Et le geste doit rester RÉVERSIBLE : un appareil ignoré n'est plus annoncé
+   * nulle part, pas même dans le sélecteur de création de zone. Sans la section
+   * « Appareils ignorés », l'utilisateur n'aurait plus aucun moyen de le
+   * retrouver — c'était le cas de cette interface jusqu'ici.
+   */
+  let ignoredDevices = $state<AppareilIgnore[]>([]);
+  let ignoreBusy = $state(false);
+
+  async function loadIgnoredDevices() {
     try {
-      await api.deleteDevice(deviceId);
-      devices.update((l) => l.filter((d) => d.id !== deviceId));
-      notifications.success($t('settings.deviceDeleted' as any).replace('{name}', name));
+      const r = await api.listIgnoredDevices();
+      ignoredDevices = r.items ?? [];
+    } catch {
+      // Serveur plus ancien que la route, ou hors ligne : pas de liste, pas
+      // d'erreur — la section reste simplement vide.
+      ignoredDevices = [];
+    }
+  }
+  $effect(() => { void loadIgnoredDevices(); });
+
+  async function ignoreDevice(deviceId: string, name: string) {
+    ignoreBusy = true;
+    try {
+      const r = await api.ignoreDevice(deviceId);
+      // Le serveur a déjà retiré l'appareil de `GET /devices` ; la liste
+      // affichée a été chargée AVANT le geste. Sans ce retrait local, la ligne
+      // resterait à l'écran et le clic aurait l'air sans effet.
+      devices.update((l) => sansAppareils(l, [deviceId, r.ignored?.device_id ?? '']));
+      await loadIgnoredDevices();
+      notifications.success($t('settings.deviceIgnored' as any).replace('{name}', name));
     } catch (e: any) {
       notifications.error(e?.message || $t('common.error' as any));
+    } finally {
+      ignoreBusy = false;
+    }
+  }
+
+  async function unignoreDevice(d: AppareilIgnore) {
+    ignoreBusy = true;
+    try {
+      await api.unignoreDevice(d.device_id);
+      await loadIgnoredDevices();
+      // L'appareil ne revient qu'au prochain passage de découverte : on le dit,
+      // plutôt que de laisser croire à un échec devant une liste inchangée.
+      notifications.success($t('settings.deviceUnignored' as any).replace('{name}', libelleAppareilIgnore(d)));
+    } catch (e: any) {
+      notifications.error(e?.message || $t('common.error' as any));
+    } finally {
+      ignoreBusy = false;
     }
   }
   async function clearDevices() {
@@ -996,6 +1096,52 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     }
     licBusy = false;
   }
+  /**
+   * Revalider la licence — porté de l'ancienne interface, seul écran qui
+   * savait le demander. Une licence à clé que personne ne revalide retombe en
+   * gratuit : c'est le geste qui la remet d'aplomb.
+   *
+   * 🔴 `POST /cloud/license/validate` répond 200 dans TOUS ses cas d'échec, et
+   * le verdict vit dans le corps. L'ancien code annonçait « Licence validée »
+   * dès que l'appel local aboutissait ; Bruno Lescarret l'a lu trois fois et
+   * est resté seize jours en gratuit (#570). Le verdict passe donc par la
+   * règle partagée, qui exige que l'état RELU montre le palier.
+   */
+  let licValidating = $state(false);
+  let licCooldown = $state(false);
+  function licReposer() {
+    licCooldown = true;
+    setTimeout(() => { licCooldown = false; }, 60_000);
+  }
+  async function validateLic() {
+    if (licValidating || licCooldown) return;
+    licValidating = true; licErr = null;
+    try {
+      const reponse = await api.validateLicense();
+      await loadLicense();
+      // Le palier peut arriver avant les droits par fonction : une seconde
+      // lecture, un peu plus tard, les rattrape — comme l'ancien écran.
+      setTimeout(() => { void loadLicense(); }, 1500);
+      const etat = get(licenseState);
+      const verdict = verdictValidationLicence(reponse, {
+        tier: etat.tier,
+        conflitDeSession: etat.sessionConflict != null,
+      });
+      const texte = verdict.statutDistant === null
+        ? get(t)(verdict.cle)
+        : get(t)(verdict.cle).replace('{code}', String(verdict.statutDistant));
+      if (verdict.succes) notifications.success(texte);
+      else notifications.error(texte);
+      // Le plafond de requêtes est un refus du serveur DISTANT, traduit en 200
+      // par la route locale : le `catch` ne pouvait pas le voir.
+      if (verdict.repos) licReposer();
+    } catch (e: any) {
+      if (e?.status === 429) { notifications.error(get(t)('settings.licenseRateLimited')); licReposer(); }
+      else notifications.error(e?.message ?? get(t)('settings.licenseValidationError'));
+    } finally {
+      licValidating = false;
+    }
+  }
   async function deactivateLic() {
     if (licBusy) return;
     licBusy = true; licErr = null;
@@ -1015,6 +1161,160 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let schedTime = $state('03:00');
   let schedBusy = $state(false);
   let libErr = $state<string | null>(null);
+
+  /* --- Partages réseau (SMB), portés de l'ancienne interface ---------------
+   *
+   * L'assistant (découverte des hôtes, liste des partages, test, montage)
+   * n'était ouvert que par `SettingsView` : ici, on ne pouvait déclarer qu'un
+   * chemin déjà monté par le système. Et l'état RÉEL de chaque partage
+   * (#2069) — monté ou non, avec la cause que mount.cifs a rendue — n'était lu
+   * nulle part : « toujours présents sur l'interface », disait Éric, parce que
+   * la liste des dossiers affiche un chemin configuré, monté ou pas.
+   */
+  let smbMounts = $state<api.SmbMount[]>([]);
+  let showSmbWizard = $state(false);
+  async function loadSmbMounts() {
+    // Un serveur antérieur à la 0.9.91 rend 404 sur cette route : échec
+    // silencieux, la liste reste masquée — elle ne doit pas priver la section
+    // de ses dossiers.
+    try { smbMounts = await api.listSmbMounts(); } catch { smbMounts = []; }
+  }
+  $effect(() => { void loadSmbMounts(); });
+
+  /* --- Base : sauvegardes, export / import, index de recherche ------------
+   *
+   * Portés de l'ancienne interface, où ils vivaient dans deux écrans :
+   * l'export, l'import et l'index de recherche dans `SettingsView`, la
+   * création de sauvegarde dans le menu d'outils de `MetadataView`. La
+   * RESTAURATION y était écrite (`restoreBackup`) mais aucun bouton ne
+   * l'appelait : une sauvegarde se créait et ne se rendait jamais. Elle est
+   * offerte ici, derrière une confirmation marquée dangereuse — elle remplace
+   * la base.
+   */
+  let backups = $state<BackupInfo[]>([]);
+  let backupBusy = $state(false);
+  let restoring = $state<string | null>(null);
+  let dbImporting = $state(false);
+  let dbImportResult = $state<{ ok: boolean; texte: string } | null>(null);
+  let dbImportInput: HTMLInputElement | null = $state(null);
+  let ftsRebuilding = $state(false);
+  let ftsResult = $state<{ ok: boolean; texte: string } | null>(null);
+
+  async function loadBackups() {
+    // Route absente d'un serveur ancien : pas de liste, pas d'erreur.
+    try { backups = await api.getBackups(); } catch { backups = []; }
+  }
+  $effect(() => { void loadBackups(); });
+
+  async function createBackup() {
+    backupBusy = true;
+    try {
+      await api.createBackup();
+      await loadBackups();
+      notifications.success($t('maintenance.backupCreated' as any));
+    } catch {
+      notifications.error($t('maintenance.backupError' as any));
+    } finally {
+      backupBusy = false;
+    }
+  }
+
+  async function restoreBackup(filename: string) {
+    if (!(await dialogs.confirm($t('maintenance.restoreConfirm' as any), { danger: true }))) return;
+    restoring = filename;
+    try {
+      await api.restoreBackup(filename);
+      notifications.success($t('maintenance.restoreSuccess' as any));
+    } catch {
+      notifications.error($t('maintenance.restoreError' as any));
+    } finally {
+      restoring = null;
+    }
+  }
+
+  const tailleMo = (octets: number) => $formatNombre(Math.round((octets / 1024 / 1024) * 10) / 10);
+
+  function exportDatabase() {
+    window.location.href = api.exportDatabaseUrl();
+  }
+
+  async function onDbImportFile(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (!(await dialogs.confirm($t('settings.importDbConfirm' as any).replace('{name}', file.name), { danger: true }))) {
+      input.value = '';
+      return;
+    }
+    dbImporting = true;
+    dbImportResult = null;
+    try {
+      const r = await api.importDatabase(file);
+      dbImportResult = { ok: true, texte: `${$t('settings.importDbSuccess' as any)} (${tailleMo(r.size)} MB). ${$t('settings.restartToApply' as any)}` };
+    } catch (err: any) {
+      dbImportResult = { ok: false, texte: `${$t('settings.importDbError' as any)} : ${err?.message ?? ''}` };
+    } finally {
+      dbImporting = false;
+      input.value = '';
+    }
+  }
+
+  async function rebuildFtsIndex() {
+    ftsRebuilding = true;
+    ftsResult = null;
+    try {
+      const r = await api.rebuildFts();
+      ftsResult = { ok: true, texte: `${$t('settings.ftsRebuilt' as any)} : ${$formatNombre(r.rows_indexed)} ${$t('settings.recordsIndexed' as any)}` };
+    } catch (err: any) {
+      ftsResult = { ok: false, texte: `${$t('common.error' as any)} : ${err?.message ?? ''}` };
+    } finally {
+      ftsRebuilding = false;
+    }
+  }
+
+  /* --- Lecture YouTube : le module yt-dlp géré par le serveur ------------
+   *
+   * Porté de l'ancienne interface, seul écran qui savait l'installer. La
+   * CONNEXION YouTube, elle, n'a pas à l'être : les routes dédiées
+   * (`/youtube/auth/device-code`, `/poll`) et la route générique que ce client
+   * emploie aboutissent au même gestionnaire serveur. Mais sans ce module, un
+   * compte connecté ne lit rien.
+   */
+  let ytInstalled = $state(false);
+  let ytVersion = $state<string | null>(null);
+  let ytStatus = $state('absent');
+  let ytBusy = $state(false);
+  let ytPoll: ReturnType<typeof setInterval> | null = null;
+
+  async function refreshYoutubePlayback() {
+    try {
+      const s = await api.getYoutubeStatus();
+      ytInstalled = !!s.installed;
+      ytVersion = s.version ?? null;
+      ytStatus = s.status ?? (s.installed ? 'ready' : 'absent');
+      ytBusy = ytStatus === 'downloading';
+      if (ytStatus !== 'downloading' && ytPoll) { clearInterval(ytPoll); ytPoll = null; }
+    } catch { /* serveur antérieur à la route : la section reste en l'état */ }
+  }
+  $effect(() => {
+    void refreshYoutubePlayback();
+    return () => { if (ytPoll) { clearInterval(ytPoll); ytPoll = null; } };
+  });
+
+  async function enableYoutubePlayback() {
+    ytBusy = true;
+    try {
+      await api.enableYoutubePlayback();
+      // Le téléchargement se fait côté serveur : on sonde jusqu'à ce qu'il
+      // finisse, sans quoi le bouton resterait « en cours » pour toujours.
+      ytStatus = 'downloading';
+      if (ytPoll) clearInterval(ytPoll);
+      ytPoll = setInterval(refreshYoutubePlayback, 2000);
+    } catch (e: any) {
+      ytBusy = false;
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
 
   async function refreshLibrary() {
     try {
@@ -1449,6 +1749,137 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await api.stopServer(); } catch { /* attendu : le serveur meurt */ }
   }
 
+  /**
+   * Éteindre la MACHINE — appliance Tune OS uniquement. Porté de l'ancienne
+   * interface.
+   *
+   * On ne remet PAS le bouton à son état initial ensuite : la machine s'arrête,
+   * et proposer de recommencer ferait croire que ça n'a pas marché. Une
+   * coupure réseau est attendue — le serveur peut mourir avant de répondre.
+   * Une réponse HTTP d'erreur, elle, prouve que la machine n'a pas accepté
+   * l'ordre : le bouton redevient utilisable et le dit.
+   */
+  let extinctionEnCours = $state(false);
+  async function eteindreLaMachine() {
+    if (!(await dialogs.confirm(get(t)('diagnostics.confirmShutdown' as any), { danger: true }))) return;
+    extinctionEnCours = true;
+    try {
+      await api.applianceShutdown();
+    } catch (e) {
+      const msg = errText(e);
+      // `null` : coupure de transport générique, attendue pendant l'extinction.
+      if (msg !== null) { extinctionEnCours = false; notifications.error(msg); }
+    }
+  }
+
+  /* --- Appliance Tune OS : stockage (docs/DATA-RELOCATION.md) -------------
+   *
+   * Porté de l'ancienne interface, seul écran qui le montrait : où vivent les
+   * données, les déplacer sur un disque, monter un disque détecté comme source
+   * de musique (cas Gil : SATA interne non monté), et installer Tune OS sur un
+   * disque interne. Deux de ces gestes sont IRRÉVERSIBLES — déplacer redémarre
+   * le serveur, installer EFFACE un disque — et gardent leurs verrous.
+   */
+  let dataStatus = $state<api.ApplianceDataStatus | null>(null);
+  let dataVolumes = $state<api.ApplianceVolume[]>([]);
+  let dataDisks = $state<api.ApplianceDisk[]>([]);
+  let dataUnmounted = $state<api.ApplianceUnmountedPartition[]>([]);
+  let dataMoving = $state(false);
+  let dataDone = $state(false);
+  let dataError = $state('');
+  let musicMountBusy = $state('');
+  let musicMountMsg = $state('');
+  let installBusy = $state(false);
+  let installDone = $state(false);
+  let installWritten = $state(0);
+  let installError = $state('');
+  let applianceLu = false; // pas réactif : une seule lecture
+
+  async function loadApplianceStorage() {
+    try {
+      dataStatus = await api.getApplianceDataStatus();
+      const st = await api.getApplianceStorage();
+      dataVolumes = st.volumes;
+      dataDisks = st.disks ?? [];
+      dataUnmounted = st.unmounted_partitions ?? [];
+    } catch { /* hors appliance ou serveur ancien : rien à montrer */ }
+  }
+  $effect(() => {
+    if (isAppliance === true && !applianceLu) { applianceLu = true; void loadApplianceStorage(); }
+  });
+
+  function octetsLisibles(n: number): string {
+    if (!n) return '0 o';
+    const u = ['o', 'Ko', 'Mo', 'Go', 'To'];
+    let i = 0; let v = n;
+    while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${u[i]}`;
+  }
+
+  async function relocateData(vol: api.ApplianceVolume) {
+    if (!vol.uuid || dataMoving) return;
+    const nom = vol.label || vol.device;
+    if (!(await dialogs.confirm(get(t)('settings.dataMoveConfirm').replace('{disk}', nom), { danger: true }))) return;
+    // Le garde a été lu AVANT la modale, qui rend la main : un second clic
+    // l'aurait franchi pendant l'attente. Deux relocalisations ne doivent pas
+    // partir — on revérifie.
+    if (dataMoving) return;
+    dataMoving = true; dataError = ''; dataDone = false;
+    try {
+      await api.applianceRelocateData(vol.uuid);
+      for (;;) {
+        await new Promise((res) => setTimeout(res, 2000));
+        dataStatus = await api.getApplianceDataStatus();
+        const j = dataStatus?.job;
+        if (!j) continue;
+        if (j.phase === 'done') { dataDone = true; await api.restartServer().catch(() => {}); break; }
+        if (j.phase === 'failed') { dataError = j.error || 'failed'; break; }
+      }
+    } catch (e: any) {
+      dataError = e?.message ?? String(e);
+    }
+    dataMoving = false;
+  }
+
+  async function useAsMusicSource(part: api.ApplianceUnmountedPartition) {
+    if (musicMountBusy) return;
+    musicMountBusy = part.uuid; musicMountMsg = '';
+    try {
+      const m = await api.applianceMountVolume(part.uuid);
+      await api.addMusicDir(m.mount_path);
+      musicMountMsg = get(t)('settings.diskMusicAdded').replace('{name}', part.label || part.name);
+      await loadApplianceStorage();
+      await refreshLibrary();
+    } catch (e: any) {
+      musicMountMsg = e?.message ?? String(e);
+    }
+    musicMountBusy = '';
+  }
+
+  async function installToDisk(disk: api.ApplianceDisk) {
+    if (installBusy) return;
+    const tape = await dialogs.prompt(
+      get(t)('settings.installConfirmPrompt').replace('{disk}', `${disk.name} (${disk.size} ${disk.model})`.trim()),
+    );
+    // Effacer un disque exige de TAPER le mot, pas un clic.
+    if (tape !== 'EFFACER') return;
+    if (installBusy) return; // même raison que `dataMoving`
+    installBusy = true; installError = ''; installDone = false;
+    try {
+      await api.applianceInstallToDisk(disk.name);
+      for (;;) {
+        await new Promise((res) => setTimeout(res, 2000));
+        const st = await api.applianceInstallStatus();
+        installWritten = st.written_bytes;
+        if (st.phase === 'done') { installDone = true; break; }
+        if (st.phase === 'failed') { installError = st.error || 'failed'; break; }
+      }
+    } catch (e: any) {
+      installError = e?.message ?? String(e);
+    }
+    installBusy = false;
+  }
+
   /** Traduit le refus du serveur. Repris tel quel du client actuel. */
   function updMotifRefus(res: any): string {
     const brut = String(res?.message ?? res?.status ?? '');
@@ -1809,6 +2240,36 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await api.enrichArtistImages(); await refreshEnrich(); }
     catch { enrichErr = get(t)('settings.errStartFailed'); }
   }
+  /**
+   * Portés de l'ancienne interface, seul écran qui les offrait :
+   *
+   *  - la passe FORCÉE des portraits vise TOUS les artistes, y compris ceux
+   *    que la passe normale saute parce qu'ils ont déjà une image — le seul
+   *    moyen de remplacer un mauvais portrait ;
+   *  - la recherche des pochettes d'ALBUM manquantes (`/library/artwork/
+   *    rescan`), distincte des portraits d'artistes.
+   *
+   * Leur progression arrivait par les événements serveur, que cet écran
+   * n'écoute pas : on dit que c'est lancé, sans promettre de barre.
+   */
+  async function forceCovers() {
+    enrichErr = null;
+    try {
+      await api.forceRefetchArtistImages();
+      notifications.info(get(t)('settings.enrichArtistImagesStarted'));
+      await refreshEnrich();
+    } catch { enrichErr = get(t)('settings.errStartFailed'); }
+  }
+  let albumCoversBusy = $state(false);
+  async function rescanAlbumCovers() {
+    enrichErr = null;
+    albumCoversBusy = true;
+    try {
+      await api.rescanArtwork();
+      notifications.info(get(t)('settings.searchingCovers'));
+    } catch { enrichErr = get(t)('settings.errStartFailed'); }
+    finally { albumCoversBusy = false; }
+  }
 
   // ── Rangement des fichiers importes ───────────────────────────────────
   let ingest = $state<any | null>(null);
@@ -2165,9 +2626,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {#if coversMissing != null}{$formatNombre(coversMissing)} artistes sans portrait.{:else}Recherche les portraits manquants.{/if}
                   </span>
                 </div>
-                <button class="lnk" onclick={startCovers}>{$t('v2.set.start' as any)}</button>
+                <div class="inline">
+                  <button class="lnk" onclick={startCovers}>{$t('v2.set.start' as any)}</button>
+                  <button class="lnk" onclick={forceCovers} title={$t('settings.forceRefetchArtistImagesHint' as any)}>
+                    {$t('settings.forceRefetchArtistImages' as any)}
+                  </button>
+                </div>
               </div>
-              <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+
+              <div class="row">
+                <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span></div>
+                <button class="lnk" disabled={albumCoversBusy} onclick={rescanAlbumCovers}>{$t('v2.set.start' as any)}</button>
+              </div>
+              <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
 
             {:else if s.id === 'ingest'}
@@ -2293,11 +2764,127 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </div>
               {/if}
 
+              <!-- Sauvegardes : créer, lister, RESTAURER. -->
+              <div class="row">
+                <div class="lbl"><span>{$t('maintenance.backupRestore' as any)}</span></div>
+                <button class="lnk" disabled={backupBusy} onclick={createBackup}>{$t('maintenance.createBackup' as any)}</button>
+              </div>
+              <div class="devlist">
+                {#each backups as b (b.filename)}
+                  <div class="dev ign">
+                    <span class="dn mono">{b.filename}</span>
+                    <span class="dt">{tailleMo(b.size)} MB</span>
+                    <span class="dh">{new Date(b.created_at).toLocaleString()}</span>
+                    <button class="lnk danger" disabled={restoring !== null} onclick={() => restoreBackup(b.filename)}>
+                      {restoring === b.filename ? '…' : $t('maintenance.restore' as any)}
+                    </button>
+                  </div>
+                {:else}
+                  <p class="hint">{$t('maintenance.noBackups' as any)}</p>
+                {/each}
+              </div>
+
+              <!-- Export / import de la base entière. -->
+              <div class="acts" style="margin-top:14px">
+                <button class="lnk" onclick={exportDatabase}>{$t('settings.exportDatabase' as any)}</button>
+                <button class="lnk" disabled={dbImporting} onclick={() => dbImportInput?.click()}>
+                  {dbImporting ? $t('settings.importInProgress' as any) : $t('settings.importFile' as any)}
+                </button>
+                <input bind:this={dbImportInput} type="file" accept=".db,.sqlite,.sqlite3,.sql" style="display:none" onchange={onDbImportFile} />
+              </div>
+              {#if dbImportResult}<p class="hint" class:errline={!dbImportResult.ok}>{dbImportResult.texte}</p>{/if}
+
+              <!-- Index de recherche. -->
+              <div class="row" style="margin-top:14px">
+                <div class="lbl">
+                  <span>{$t('settings.searchIndex' as any)}</span>
+                  <span class="hint">{$t('settings.rebuildIndexHint' as any)}</span>
+                </div>
+                <button class="lnk" disabled={ftsRebuilding} onclick={rebuildFtsIndex}>
+                  {ftsRebuilding ? $t('settings.rebuilding' as any) : $t('settings.rebuildIndex' as any)}
+                </button>
+              </div>
+              {#if ftsResult}<p class="hint" class:errline={!ftsResult.ok}>{ftsResult.texte}</p>{/if}
+
             {:else if s.id === 'dataLoc'}
               <div class="rows">
                 <div class="kv"><span>{$t('settings.dataLocation' as any)}</span><b class="mono">{dataLoc ?? '—'}</b></div>
               </div>
               <p class="hint">{$t('settings.dataLocationHint' as any)}</p>
+
+              {#if isAppliance === true}
+                <!-- Tune OS : où vivent les données, et les déplacer. -->
+                {#if dataStatus}
+                  <p class="hint">
+                    {dataStatus.db_path} · {octetsLisibles(dataStatus.data_size_bytes)} ·
+                    {dataStatus.on_external ? $t('settings.dataOnDisk' as any) : $t('settings.dataOnKey' as any)}
+                  </p>
+                {/if}
+                {#if dataDone}<p class="hint">{$t('settings.dataMoveDone' as any)}</p>{/if}
+                {#if dataError}<div class="errline">{dataError}</div>{/if}
+                {#if dataMoving && dataStatus?.job}
+                  <p class="hint">{$t('settings.dataMoving' as any)} — {octetsLisibles(dataStatus.job.copied_bytes)} / {octetsLisibles(dataStatus.job.total_bytes)}</p>
+                {:else if !dataDone}
+                  <div class="devlist">
+                    {#each dataVolumes as vol (vol.device)}
+                      <div class="dev ign">
+                        <span class="dn">{vol.label || vol.device}</span>
+                        <span class="dt">{vol.fs}</span>
+                        <span class="dh">
+                          {$t('settings.dataFree' as any).replace('{free}', octetsLisibles(vol.free_bytes)).replace('{size}', octetsLisibles(vol.size_bytes))}
+                        </span>
+                        {#if vol.is_data_target}
+                          <span class="sst ok">{$t('settings.dataCurrent' as any)}</span>
+                        {:else if vol.uuid}
+                          <button class="lnk" disabled={dataMoving} onclick={() => relocateData(vol)}>{$t('settings.dataMove' as any)}</button>
+                        {:else}<span></span>{/if}
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+
+                <!-- Disques détectés mais non montés : en faire une source de musique. -->
+                {#if dataUnmounted.length}
+                  <p class="hint" style="margin-top:14px">{$t('settings.disksDetected' as any)}</p>
+                  {#if musicMountMsg}<p class="hint">{musicMountMsg}</p>{/if}
+                  <div class="devlist">
+                    {#each dataUnmounted as part (part.uuid)}
+                      <div class="dev ign">
+                        <span class="dn">{part.label || part.name}</span>
+                        <span class="dt">{part.fstype}</span>
+                        <span class="dh">{part.disk_model || part.disk}{part.tran === 'usb' ? ' · USB' : ''} · {part.size}</span>
+                        <button class="lnk" disabled={!!musicMountBusy} onclick={() => useAsMusicSource(part)}>
+                          {musicMountBusy === part.uuid ? '…' : $t('settings.diskUseAsMusic' as any)}
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+
+                <!-- Installer Tune OS sur un disque interne : EFFACE le disque. -->
+                {#if dataDisks.some((d) => !d.is_boot && d.tran !== 'usb')}
+                  <div class="danger-box">
+                    <p><b>{$t('settings.installTitle' as any)}</b> — {$t('settings.installHint' as any)}</p>
+                    {#if installDone}
+                      <p>{$t('settings.installDone' as any)}</p>
+                    {:else if installBusy}
+                      <p>{$t('settings.installWriting' as any)} — {octetsLisibles(installWritten)}</p>
+                    {:else}
+                      {#if installError}<div class="errline">{installError}</div>{/if}
+                      <div class="devlist">
+                        {#each dataDisks.filter((d) => !d.is_boot && d.tran !== 'usb') as disk (disk.name)}
+                          <div class="dev ign">
+                            <span class="dn">{disk.name}</span>
+                            <span class="dt">{disk.model}</span>
+                            <span class="dh">{disk.size}</span>
+                            <button class="lnk danger" onclick={() => installToDisk(disk)}>{$t('settings.installButton' as any)}</button>
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+              {/if}
 
             {:else if s.id === 'exportCsv'}
               <p class="hint">
@@ -2576,6 +3163,28 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {/if}
 
                       <!--
+                        BIT-PERFECT STRICT — renesenses/tune-server-rust#3973,
+                        option 3 de Bertrand. Par défaut, une sortie qui ne lit
+                        pas la fréquence de la source la reçoit CONVERTIE, et le
+                        chemin du signal le dit (« PURE dégradé — 192 → 96 kHz »).
+                        Coché, Tune refuse de jouer plutôt que de convertir.
+
+                        Masqué quand la zone ne publie pas `strict_bitperfect` :
+                        un vieux serveur l'ignorerait, et un interrupteur sans
+                        effet ment.
+                      -->
+                      {#if typeof z.strict_bitperfect === 'boolean'}
+                        <div class="strict-bloc">
+                          <label class="zf chk strict-bitperfect">
+                            <input type="checkbox" checked={z.strict_bitperfect}
+                              onchange={(e) => setZoneField(z, () => api.updateZoneStrictBitperfect(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                            <span>{$t('bitperfect.strictLabel' as any)}</span>
+                          </label>
+                          <p class="monote">{$t('bitperfect.strictHelp' as any)}</p>
+                        </div>
+                      {/if}
+
+                      <!--
                         CANAUX — chantier « multicanal », Bertrand 19/09/2026 :
                         « dans les réglages de l'appareil, permettre la sélection
                         du nombre de canaux », pour des utilisateurs en 5.1 que
@@ -2626,6 +3235,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
 
                       <div class="zde"><ZoneDeviceEditor zone={z} onSaved={(maj) => zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...maj } : x)))} /></div>
+
+                      {#if z.id != null && propositions[z.id]}
+                        {@const p = propositions[z.id]!}
+                        <div class="warn">
+                          <b>{$t('devices.presetTitle' as any).replace('{count}', String(p.occurrences))}</b>
+                          <span class="mono">{resumeProposition(p)}</span>
+                          <div class="inline" style="margin-top:8px">
+                            <button class="lnk" disabled={propositionEnCours === z.id} onclick={() => appliquerProposition(z)}>{$t('devices.presetApply' as any)}</button>
+                            <button class="lnk" onclick={() => { propositions = { ...propositions, [z.id ?? -1]: null }; }}>{$t('devices.presetDismiss' as any)}</button>
+                          </div>
+                        </div>
+                      {/if}
 
                       <!-- Renderers réseau SEULEMENT : ces réglages décrivent ce
                            qu'on envoie sur le fil (protocole, conteneur, profondeur).
@@ -2761,6 +3382,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <button class="lnk" disabled={dirBusy || !newDir.trim()} onclick={addDir}>{$t('v2.tags.add' as any)}</button>
                 </div>
               </div>
+              <div class="inline" style="margin-top:8px">
+                <button class="lnk" onclick={() => (showSmbWizard = true)}>{$t('settings.addSmbShare' as any)}</button>
+              </div>
               {#if musicDirs.length}
                 <div class="dirs">
                   {#each musicDirs as d (d)}
@@ -2778,6 +3402,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">{$t('settings.noFolderDeclared' as any)}</p>
               {/if}
               {#if libErr}<div class="errline">{libErr}</div>{/if}
+              <!-- Partages réseau et leur état réel (#2069). Masquée s'il n'y en
+                   a aucun, ou si le serveur ne publie pas la route. -->
+              {#if smbMounts.length}
+                <div class="devlist smb">
+                  <span class="hint">{$t('settings.smbMountsTitle' as any)}</span>
+                  {#each smbMounts as m (m.server + '/' + m.share)}
+                    {@const e = etatPartage(m)}
+                    <div class="dev ign" class:ko={e.enEchec}>
+                      <span class="dn">\\{m.server}\{m.share}</span>
+                      <span class="dt">{e.enEchec ? $t('settings.smbNotMounted' as any) : $t('settings.smbMounted' as any)}</span>
+                      <!-- SMB 1 est obsolète et non chiffré : y retomber peut être
+                           la seule façon de lire un streamer, mais pas en silence. -->
+                      <span class="dh" title={e.signalerSmb1 ? $t('settings.smb1Hint' as any) : undefined}>{e.signalerSmb1 ? 'SMB 1.0' : (m.mount_path ?? '')}</span>
+                      <span></span>
+                    </div>
+                    {#if e.cause}<div class="errline">{e.cause}</div>{/if}
+                  {/each}
+                </div>
+              {/if}
 
             {:else if s.id === 'clearLibrary'}
               <!-- « Repartir à zéro » (#3585). La fonction existait côté
@@ -2937,6 +3580,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
               {#if lic.licenseKey}
                 <div class="row">
+                  <div class="lbl"><span>{$t('settings.validate' as any)}</span></div>
+                  <button class="lnk" disabled={licValidating || licCooldown} onclick={validateLic}>
+                    {licValidating ? $t('settings.validating' as any) : $t('settings.validate' as any)}
+                  </button>
+                </div>
+                <div class="row">
                   <div class="lbl"><span>{$t('settings.releaseLicense' as any)}</span>
                     <span class="hint">{$t('settings.releaseLicenseHint' as any)}</span></div>
                   <button class="lnk danger" disabled={licBusy} onclick={deactivateLic}>{$t('settings.disable' as any)}</button>
@@ -2977,7 +3626,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/each}
                 </div>
               {/if}
-              <p class="hint">{#each emphaseParts($t('settings.backgroundTasksHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <p class="hint">{#each emphaseParts($t('settings.backgroundTasksHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <!--
                 🔴 LES DEUX GESTES DE SERVICE, en permanence — pas seulement
                 après une mise à jour. Ils vivent ICI, sous l'état du serveur,
@@ -2992,6 +3641,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <button class="lnk danger" disabled={arretEnCours} onclick={arreterLeServeur}>
                   {arretEnCours ? $t('settings.stoppingServer' as any) : $t('settings.stopServer' as any)}
                 </button>
+                {#if isAppliance === true}
+                  <button class="lnk danger" disabled={extinctionEnCours} onclick={eteindreLaMachine}>
+                    {extinctionEnCours ? $t('diagnostics.shuttingDown' as any) : $t('diagnostics.shutdown' as any)}
+                  </button>
+                {/if}
               </div>
               <!-- Point 3 du fil 1780 : les journaux et le diagnostic, ici
                    comme dans la coquille actuelle. -->
@@ -3096,6 +3750,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/each}
                 </div>
               {/if}
+
+              <!-- Lecture YouTube : le module yt-dlp, installé par le serveur. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.youtubePlaybackTitle' as any)}</span>
+                  <span class="hint">{$t('settings.youtubePlaybackHelp' as any)}</span>
+                </div>
+                {#if ytInstalled}
+                  <span class="sst ok">{$t('settings.youtubePlaybackReady' as any)}{ytVersion ? ` (${ytVersion})` : ''}</span>
+                {:else}
+                  <button class="lnk" disabled={ytBusy} onclick={enableYoutubePlayback}>
+                    {ytBusy ? $t('settings.youtubePlaybackDownloading' as any) : $t('settings.youtubePlaybackEnable' as any)}
+                  </button>
+                {/if}
+              </div>
+              {#if ytStatus.startsWith('failed')}<div class="errline">{ytStatus}</div>{/if}
 
             {:else if s.id === 'wifi'}
               {#if isAppliance === false}
@@ -3438,7 +4108,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         </button>
                       {/if}
                     {/if}
-                    <button class="del" onclick={() => deleteDevice(d.id, d.name)} aria-label={$t('settings.deleteDevice' as any)}>
+                    <button class="del" disabled={ignoreBusy} onclick={() => ignoreDevice(d.id, d.name)}
+                      title={$t('settings.ignoreDevice' as any)} aria-label={$t('settings.ignoreDevice' as any)}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
                   </div>
@@ -3448,6 +4119,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {:else if netError}Liste indisponible — serveur injoignable.
                     {:else}{$t('settings.noNetworkDevices' as any)}{/if}
                   </p>
+                {/each}
+              </div>
+
+            {:else if s.id === 'ignoredDevices'}
+              <p class="hint">{$t('settings.ignoredDevicesIntro' as any)}</p>
+              <div class="devlist">
+                {#each ignoredDevices as d (d.device_id)}
+                  <div class="dev ign">
+                    <span class="dn">{libelleAppareilIgnore(d)}</span>
+                    <span class="dt">{transportAppareilIgnore(d)}</span>
+                    <span class="dh">{detailAppareilIgnore(d)}</span>
+                    <button class="lnk" disabled={ignoreBusy} onclick={() => unignoreDevice(d)}>
+                      {$t('settings.unignoreDevice' as any)}
+                    </button>
+                  </div>
+                {:else}
+                  <p class="hint">{$t('settings.noIgnoredDevices' as any)}</p>
                 {/each}
               </div>
 
@@ -3608,6 +4296,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   </div>
 </section>
 
+{#if showSmbWizard}
+  <SmbWizard
+    onClose={() => (showSmbWizard = false)}
+    onMusicDirsChanged={async () => {
+      // Un partage vient d'être monté : il entre dans les dossiers déclarés,
+      // et sa ligne d'état doit apparaître.
+      await refreshLibrary();
+      await loadSmbMounts();
+    }}
+  />
+{/if}
+
 <style>
   /* LA MATRICE des colonnes. Une grille unique : l'en-tête et les lignes
      partagent le même gabarit, sinon les cases ne tombent pas sous leur mode.
@@ -3707,6 +4407,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
   .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
+  /* #3973 — « Bit-perfect strict » : sa ligne, sous les réglages de la zone. */
+  .strict-bloc{margin-top:10px}
+  .strict-bloc .zf.chk{align-self:auto; padding-bottom:0}
+  .strict-bloc .monote{margin-top:4px}
   .trim{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:13px}
   /* Chantier multicanal — le sélecteur de disposition, aligné sur `.trim`. */
   .canaux{display:flex; align-items:center; gap:10px; margin-top:8px}
@@ -3848,6 +4552,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .acts{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
   .lnk.danger:hover{border-color:var(--v2-danger-bd); color:var(--v2-danger)}
   .dev.net{grid-template-columns:auto minmax(0,1fr) auto auto auto; cursor:default}
+  .dev.ign{grid-template-columns:minmax(0,1fr) auto auto auto; cursor:default}
+  .dev.ign.ko .dt{color:var(--v2-danger)}
+  .devlist.smb{margin-top:14px}
   .dev .dh{font:10px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
   .dev .pin{width:110px; height:28px; border-radius:8px; border:1px solid var(--v2-acc2);
     background:var(--v2-surface2); color:var(--v2-txt); font:12px var(--v2-mono); padding:0 9px; outline:none}

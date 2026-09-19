@@ -154,6 +154,12 @@
    */
   import SmartPlaylistsView from '../v2-heritage/SmartPlaylistsView.svelte';
   import AmbianceView from '../v2-heritage/AmbianceView.svelte';
+  // Portés de l'ancienne interface, seule à les offrir (phase 5, lot 4) :
+  // l'allure reste celle d'origine, comme pour les autres vues héritées.
+  import ConcertsView from '../v2-heritage/ConcertsView.svelte';
+  import OfflineView from '../v2-heritage/OfflineView.svelte';
+  import DashboardView from '../v2-heritage/DashboardView.svelte';
+  import RecommendationsSection from '../v2-heritage/RecommendationsSection.svelte';
   import BrowseView from '../v2-heritage/BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
   import AvatarMenu from './AvatarMenu.svelte';
@@ -698,6 +704,15 @@
         <OxygenView />
       {:else if $activeView === 'ambiance'}
         <AmbianceView />
+      {:else if $activeView === 'concerts'}
+        <ConcertsView />
+      {:else if $activeView === 'offline'}
+        <OfflineView />
+      {:else if $activeView === 'dashboard'}
+        <!-- Les recommandations vivaient sur l'ancien accueil ; l'accueil v2 est
+             une page de widgets, elles rejoignent les statistiques d'écoute. -->
+        <DashboardView />
+        <RecommendationsSection />
       {:else if $activeView === 'smartplaylists'}
         <SmartPlaylistsView />
       {:else if $activeView === 'playlistmanager'}

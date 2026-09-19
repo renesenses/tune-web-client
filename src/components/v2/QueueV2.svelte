@@ -20,6 +20,7 @@
   import { t as tr } from '../../lib/i18n';
   import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
+  import { estFichierAudio } from '../../lib/fichiersAudio';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
@@ -94,6 +95,48 @@
     }
   }
 
+  /*
+   * Glisser un fichier audio HORS bibliothèque dans la file en cours — porté
+   * de l'ancienne file (Sergio : « glisser dans la playlist de la lecture en
+   * cours »). Le fichier est téléversé, puis AJOUTÉ à la file comme élément
+   * `source: 'upload'` : il ne remplace pas ce qui joue.
+   */
+  let depotSurvol = $state(false);
+  let televersement = $state(false);
+  function survolDepot(e: DragEvent) {
+    if (!e.dataTransfer?.types.includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    depotSurvol = true;
+  }
+  async function deposerFichiers(e: DragEvent) {
+    if (!e.dataTransfer?.types.includes('Files')) return;
+    e.preventDefault();
+    depotSurvol = false;
+    const zid = $currentZoneId;
+    const fichiers = Array.from(e.dataTransfer?.files ?? []).filter((f) => estFichierAudio(f.name));
+    if (!fichiers.length || zid == null) return;
+    televersement = true;
+    for (const f of fichiers) {
+      try {
+        const r = await api.uploadAudioFile(f);
+        await api.addToQueue(zid, {
+          source: 'upload',
+          source_id: r.file_path,
+          title: r.title,
+          artist_name: r.artist,
+          album_title: r.album,
+          duration_ms: r.duration_ms,
+        });
+        notifications.success(r.title);
+      } catch (err: any) {
+        notifications.error(`${f.name} : ${err?.message ?? $tr('queue.uploadError')}`);
+      }
+    }
+    televersement = false;
+    reload();
+  }
+
   // Se relance sur changement de zone : chaque zone a SA file.
   $effect(() => { void $currentZoneId; loading = true; reload(); });
 
@@ -147,7 +190,11 @@
   }
 </script>
 
-<section class="v2-queue tune-v2">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<section class="v2-queue tune-v2" class:depot={depotSurvol}
+  ondragover={survolDepot} ondragleave={() => (depotSurvol = false)} ondrop={deposerFichiers}>
+  {#if depotSurvol}<div class="depot-voile">{$tr('queue.dropFilesHere')}</div>{/if}
+  {#if televersement}<div class="depot-barre">{$tr('queue.uploading')}</div>{/if}
   <header class="v2-top">
     <div class="v2-titres">
       <div class="v2-eyebrow">{$tr('v2.lbl.currentZone' as any)}</div>
@@ -299,4 +346,8 @@
   .ord svg{width:13px; height:13px}
   .del:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .del svg{width:12px; height:12px}
+  .v2-queue.depot{outline:2px dashed var(--v2-acc2); outline-offset:-6px}
+  .depot-voile{position:sticky; top:0; z-index:5; padding:14px; text-align:center; border-radius:10px;
+    background:var(--v2-acc-soft); color:var(--v2-acc-tint); font:600 13px var(--v2-sans)}
+  .depot-barre{padding:8px 12px; font:12px var(--v2-sans); color:var(--v2-txt2)}
 </style>

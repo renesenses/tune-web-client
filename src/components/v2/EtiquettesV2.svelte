@@ -32,6 +32,8 @@
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { zoneRequise } from '../../lib/zoneRequise';
   import * as api from '../../lib/api';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -43,10 +45,12 @@
   import type { Album, Artist, Track, UserTag } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleDeService, cleLigneEtiquetee, corpsLectureAlbumEtiquete } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { corpsDeLecture } from '../../lib/pisteFile';
 
   let etiquettes = $state<UserTag[]>([]);
   let chargement = $state(true);
@@ -100,6 +104,36 @@
     pistes: pistes.length, listes: listes.length,
   });
   const total = $derived(albums.length + artistes.length + pistes.length + listes.length);
+
+  /*
+   * Renommer et supprimer une étiquette — portés de l'ancienne Bibliothèque,
+   * seule à les offrir. Cette interface savait en créer, jamais en corriger :
+   * une faute de frappe restait à vie, une étiquette obsolète aussi.
+   */
+  async function renommer(tag: UserTag) {
+    const saisi = await dialogs.prompt($t('library.renameTagPrompt' as any), tag.name);
+    if (saisi === null) return;
+    const nom = saisi.trim();
+    if (!nom || nom === tag.name || tag.id == null) return;
+    try {
+      await api.updateTag(tag.id, nom);
+      await charger();
+      if (ouverte?.id === tag.id) ouverte = { ...ouverte, name: nom };
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
+  async function supprimer(tag: UserTag) {
+    if (tag.id == null) return;
+    if (!(await dialogs.confirm($t('library.deleteTagConfirm' as any).replace('{name}', tag.name), { danger: true }))) return;
+    try {
+      await api.deleteTag(tag.id);
+      if (ouverte?.id === tag.id) ouverte = null;
+      await charger();
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    }
+  }
 
   async function charger() {
     chargement = true;
@@ -179,16 +213,25 @@
     lireListeDepuis(pistes as any, i, gestesDeZone(zid)).catch(signalerEchecLecture);
   }
 
+  /**
+   * #1238 — les routes `/tags/{id}/albums|tracks` rendent AUSSI la moitié
+   * streaming, avec `id: null` et la paire `source` + `source_id`. Ces deux
+   * gestes ne savaient lire que l'entier : un clic sur une ligne Qobuz ne
+   * faisait rien, en silence. Le corps vient désormais de la même règle que
+   * partout ailleurs (`corpsDeLecture` pour une piste).
+   */
   function lirePiste(t: Track) {
     const zid = $currentZoneId;
-    if (zid == null || t.id == null) return;
-    playAndSync(zid, { track_id: t.id }).catch(signalerEchecLecture);
+    const corps = corpsDeLecture(t);
+    if (zid == null || !corps) return;
+    playAndSync(zid, corps as any).catch(signalerEchecLecture);
   }
 
   function lireAlbum(a: Album) {
     const zid = $currentZoneId;
-    if (zid == null || a.id == null) return;
-    playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
+    const corps = corpsLectureAlbumEtiquete(a as any);
+    if (zid == null || !corps) return;
+    playAndSync(zid, corps as any).catch(signalerEchecLecture);
   }
 
   onMount(() => {
@@ -208,6 +251,10 @@
              sien : le compte annoncé correspond toujours à ce qu'on voit. -->
         <p class="v2-sous">{total} {$t('v2.tags.itemsWithTag' as any)}</p>
       </div>
+      <div class="gestes">
+        <button class="v2-btn" onclick={() => renommer(tag)}>{$t('library.renameTag' as any)}</button>
+        <button class="v2-btn danger" onclick={() => supprimer(tag)}>{$t('library.deleteTag' as any)}</button>
+      </div>
     </header>
 
     {#if albumsChargement}
@@ -226,12 +273,12 @@
           <div class="etat">{$t('v2.tags.noAlbumWithTag' as any)}</div>
         {:else}
           <div class="grille">
-            {#each albums as a (a.id)}
+            {#each albums as a, i (cleLigneEtiquetee(a, i))}
               <div class="carte">
                 <div class="cv">
                   <PochetteActions
                     favori={a.id != null ? { albumId: a.id } : null}
-                    etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                    etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : cibleDeService('album', a)}
                     onLire={() => lireAlbum(a)}
                     onOuvrir={() => { ouvrirCalqueAlbum(a); albumOuvert = a; }}
                     nom={a.title}
@@ -343,6 +390,8 @@
   .detail h1{display:flex; align-items:center; gap:10px}
 
   .v2-tags{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt); font-family:var(--v2-sans)}
+  .gestes{display:flex; gap:8px; align-items:flex-start}
+  .gestes .danger:hover{color:var(--v2-danger)}
   .back{background:transparent; border:0; color:var(--v2-txt2); cursor:pointer; font:600 13px var(--v2-sans); padding:0 0 8px}
   .back:hover{color:var(--v2-txt)}
   .etat{padding:30px; color:var(--v2-txt3); font-size:13.5px; max-width:60ch}

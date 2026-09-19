@@ -23,6 +23,7 @@
   import type { EqBand, MergedPlugin } from '../../lib/api';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { activeView } from '../../lib/stores/navigation';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -257,6 +258,65 @@
     if (gainsRight !== null && editing === 'right') gainsRight = next; else gains = next;
     save();
   }
+  /*
+   * « Mes préréglages » — enregistrés CÔTÉ SERVEUR, donc partagés entre
+   * appareils. Portés de l'ancien écran Égaliseur, seul à les offrir : ici on
+   * choisissait parmi sept courbes figées, jamais la sienne.
+   */
+  let mesPresets = $state<api.EqProPreset[]>([]);
+  async function chargerMesPresets() {
+    try { mesPresets = await api.listEqPresets(); } catch { mesPresets = []; }
+  }
+  $effect(() => { void chargerMesPresets(); });
+
+  async function enregistrerPreset() {
+    const saisi = await dialogs.prompt($t('eq.presetNamePlaceholder' as any));
+    const nom = saisi?.trim();
+    if (!nom) return;
+    const eq_type = sousMode === 'parametrique' ? 'parametric' : 'graphic';
+    const bands: EqBand[] = sousMode === 'parametrique'
+      ? $state.snapshot(pBandes)
+      : bandesGraphiques(BANDS, gains, null, GRID_Q[bandCount] ?? 1.0);
+    try {
+      // Même nom = remplacer : supprimer l'ancien, puis recréer.
+      const homonyme = mesPresets.find((p) => p.name === nom);
+      if (homonyme) { try { await api.deleteEqPreset(homonyme.id); } catch { /* le doublon restera visible */ } }
+      const cree = await api.createEqPreset({ name: nom, eq_type, bands });
+      mesPresets = [...mesPresets.filter((p) => p.name !== nom), cree];
+      notifications.success($t('eq.presetSaved' as any).replace('{name}', nom));
+    } catch {
+      notifications.error($t('eq.presetSaveFailed' as any));
+    }
+  }
+
+  function appliquerMonPreset(p: api.EqProPreset) {
+    const bandes = p.bands ?? [];
+    if (p.eq_type === 'parametric') {
+      pBandes = bandes.map((b) => ({ ...b }));
+      sousMode = 'parametrique';
+    } else {
+      const g = bandes.map((b) => b.gain);
+      const grille = bandes.map((b) => b.freq);
+      // Enregistré sur une autre grille : on rééchantillonne sur la courante.
+      gains = g.length === BANDS.length ? g : resample(g, grille, BANDS);
+      sousMode = 'graphique';
+    }
+    if (!enabled) enabled = true;
+    void save();
+  }
+
+  async function supprimerMonPreset(p: api.EqProPreset) {
+    const avant = mesPresets;
+    mesPresets = mesPresets.filter((x) => x.id !== p.id);
+    try {
+      await api.deleteEqPreset(p.id);
+    } catch {
+      // La suppression n'a pas eu lieu : la liste revient, et on le dit.
+      mesPresets = avant;
+      notifications.error($t('common.error' as any));
+    }
+  }
+
   function reset() {
     gains = Array(BANDS.length).fill(0);
     if (gainsRight !== null) gainsRight = Array(BANDS.length).fill(0);
@@ -326,6 +386,17 @@
         {#each PRESETS as p (p.key)}
           <button onclick={() => applyPreset(p)}>{$t(p.labelKey as any)}</button>
         {/each}
+      </div>
+      <div class="presets mes">
+        <span class="mesl">{$t('eq.myPresets' as any)}</span>
+        {#each mesPresets as p (p.id)}
+          <span class="mien">
+            <button onclick={() => appliquerMonPreset(p)}>{p.name}</button>
+            <button class="x" onclick={() => supprimerMonPreset(p)}
+              title={$t('eq.deletePreset' as any)} aria-label={$t('eq.deletePreset' as any)}>×</button>
+          </span>
+        {/each}
+        <button onclick={enregistrerPreset}>+ {$t('eq.savePreset' as any)}</button>
       </div>
 
       {#if showExpert}
@@ -441,6 +512,10 @@
   .plugin-install:disabled{opacity:.55; cursor:progress}
 
   .presets{display:flex; gap:7px; flex-wrap:wrap; padding:2px 0 16px}
+  .presets.mes{align-items:center; margin-top:-8px}
+  .mesl{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .mien{display:inline-flex}
+  .mien .x{padding:0 7px}
   .presets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:600 12px var(--v2-sans); padding:8px 15px; border-radius:var(--v2-r-pill); transition:.15s}
   .presets button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}

@@ -54,7 +54,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
-  import { sourcesDisponibles, libelleSource, estSourceDeService } from '../../lib/sourcesRegle';
+  import { sourcesDisponibles, libelleSource, estSourceDeService, serviceDuCatalogue } from '../../lib/sourcesRegle';
   import { errText } from '../../lib/utils';
   import {
     CHAMPS,
@@ -293,7 +293,14 @@
             <!-- #1231 — un service ne désigne pas son catalogue, mais les
                  favoris qu'on y a. Sans cette phrase, « 0 résultat » se lit
                  comme une panne alors que c'est la bonne réponse. -->
-            {#if estSourceDeService(r.value ?? '')}
+            <!-- #4473 — une règle `catalogue:` héritée d'ailleurs reste lisible,
+                 mais le chemin des PISTES ne sait pas l'honorer : on le dit,
+                 au lieu de laisser croire aux favoris. -->
+            {#if serviceDuCatalogue(r.value ?? '')}
+              <span class="precision">
+                {$t('v2.smart.catalogueHorsPlaylist' as any)}
+              </span>
+            {:else if estSourceDeService(r.value ?? '')}
               <span class="precision">
                 {$t('v2.smart.sourceFavoris' as any).replace(
                   '{service}',
@@ -386,6 +393,12 @@
 
   .pied{display:flex; justify-content:flex-end; gap:12px; padding:14px 30px 22px;
     border-top:1px solid var(--v2-line)}
+  /* #4473 — l'avertissement occupe la gauche du pied ; les deux boutons ne
+     bougent pas d'un pixel. Il n'interdit PAS d'enregistrer : la règle reste
+     modifiable ensuite, et une règle incomplète n'abîme rien. */
+  /* La phrase qui dit ce que la source désigne vraiment (#1231, #4473) :
+     sous le sélecteur, en retrait, sans voler la lecture de la règle. */
+  .precision{flex-basis:100%; color:var(--v2-txt3); font:400 12px/1.35 var(--v2-sans)}
   .ghost,.play{height:42px; padding:0 20px; border-radius:var(--v2-r-pill); font:700 14px var(--v2-sans); cursor:pointer}
   .ghost{color:var(--v2-txt); background:transparent; border:1px solid var(--v2-line2)}
   .ghost:hover{border-color:var(--v2-acc2); color:var(--v2-acc-tint)}
