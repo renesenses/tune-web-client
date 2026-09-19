@@ -4302,6 +4302,7 @@ export default {
   "v2.smart.matchAny": "任一条件",
   "v2.smart.and": "且",
   "v2.smart.addRule": "添加条件",
+  "v2.smart.sourceFavoris": "此配置文件的 {service} 收藏 — 并非该服务的全部曲库。",
   "v2.smart.removeRule": "移除此条件",
   "v2.smart.previewing": "正在预览…",
   "v2.smart.previewNone": "添加条件即可查看结果",

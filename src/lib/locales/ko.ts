@@ -4302,6 +4302,7 @@ export default {
   "v2.smart.matchAny": "하나 이상의 규칙",
   "v2.smart.and": "그리고",
   "v2.smart.addRule": "규칙 추가",
+  "v2.smart.sourceFavoris": "이 프로필의 {service} 즐겨찾기 — 서비스 전체 카탈로그가 아닙니다.",
   "v2.smart.removeRule": "이 규칙 제거",
   "v2.smart.previewing": "미리 보는 중…",
   "v2.smart.previewNone": "규칙을 추가하면 결과가 표시됩니다",

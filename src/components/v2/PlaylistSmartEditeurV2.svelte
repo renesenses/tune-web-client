@@ -54,7 +54,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
-  import { sourcesDisponibles, libelleSource } from '../../lib/sourcesRegle';
+  import { sourcesDisponibles, libelleSource, estSourceDeService } from '../../lib/sourcesRegle';
   import { errText } from '../../lib/utils';
   import {
     CHAMPS,
@@ -287,6 +287,17 @@
                 <option value={s}>{libelleSource(s, $t('v2.lib.sourceLocal' as any))}</option>
               {/each}
             </select>
+            <!-- #1231 — un service ne désigne pas son catalogue, mais les
+                 favoris qu'on y a. Sans cette phrase, « 0 résultat » se lit
+                 comme une panne alors que c'est la bonne réponse. -->
+            {#if estSourceDeService(r.value ?? '')}
+              <span class="precision">
+                {$t('v2.smart.sourceFavoris' as any).replace(
+                  '{service}',
+                  libelleSource(r.value ?? '', $t('v2.lib.sourceLocal' as any)),
+                )}
+              </span>
+            {/if}
           {:else}
             <input class="txt" value={r.value ?? ''} placeholder={$t('smartPlaylists.valuePlaceholder')}
               oninput={(e) => changerValeur(i, e.currentTarget.value)} />

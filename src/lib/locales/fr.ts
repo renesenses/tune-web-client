@@ -4324,6 +4324,7 @@ export default {
   "v2.smart.matchAny": "Au moins une règle",
   "v2.smart.and": "et",
   "v2.smart.addRule": "Ajouter une règle",
+  "v2.smart.sourceFavoris": "Les favoris {service} de ce profil — pas tout le catalogue du service.",
   "v2.smart.removeRule": "Retirer cette règle",
   "v2.smart.previewing": "Aperçu en cours…",
   "v2.smart.previewNone": "Ajoutez une règle pour voir ce qu'elle retient",
