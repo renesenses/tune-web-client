@@ -69,6 +69,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
+  import HorsLigneV2 from './HorsLigneV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
    *
@@ -2491,6 +2492,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'sauvegardeReglages'}
               <SauvegardeReglagesV2 />
+
+            {:else if s.id === 'offline'}
+              <HorsLigneV2 />
             {:else if s.id === 'perZone'}
               {#if !$zones.length}
                 <p class="hint">{$t('settings.noZoneCreateOne' as any)}</p>

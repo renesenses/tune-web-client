@@ -108,6 +108,13 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },
       /**
+       * Écoute hors ligne — portée depuis `OfflineView` avant la phase 5
+       * (web#1257) : sans elle, plus aucun écran ne gérait le cache hors ligne
+       * (synchroniser, retirer une piste, tout effacer).
+       */
+      { id: 'offline',    titleKey: 'offline.title',         from: 'offline', min: 'intermediate',
+        keywords: ['hors ligne', 'hors-ligne', 'offline', 'téléchargements', 'cache', 'synchroniser'] },
+      /**
        * REPARTIR À ZÉRO (#3585, volet 1) — `min: 'beginner'`, et c'est un
        * choix, pas un oubli.
        *
