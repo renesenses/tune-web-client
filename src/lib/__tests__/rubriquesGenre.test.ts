@@ -3,18 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getStreamingGenreAlbums } from '../api';
 import { CLE_RUBRIQUE, chargerRubriquesGenre, empreinteAlbums } from '../rubriquesGenre';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import type { FeaturedSection } from '../types';
-import dico_de from '../locales/de';
-import dico_en from '../locales/en';
-import dico_es from '../locales/es';
-import dico_fr from '../locales/fr';
-import dico_hu from '../locales/hu';
-import dico_it from '../locales/it';
-import dico_ja from '../locales/ja';
-import dico_ko from '../locales/ko';
-import dico_ro from '../locales/ro';
-import dico_sv from '../locales/sv';
-import dico_zh from '../locales/zh';
 
 /** Les sept rubriques que Qobuz sert, dans l'ordre du serveur. */
 const SEPT: FeaturedSection[] = [
@@ -161,20 +153,30 @@ describe('Dégradations de bord', () => {
 });
 
 describe('Les sept clés de traduction existent dans les onze langues', () => {
-  // Les dictionnaires CHARGÉS, pas leur texte source : `hu.ts` écrit ses clés
-  // entre guillemets doubles, et une garde de texte l'aurait cru vide. Import
-  // statique : un import dynamique construit par gabarit fait râler
-  // `vite:dynamic-import-vars` et charge les onze fichiers en pleine suite.
-  const DICOS: Record<string, Record<string, string>> = {
-    de: dico_de as any, en: dico_en as any, es: dico_es as any, fr: dico_fr as any,
-    hu: dico_hu as any, it: dico_it as any, ja: dico_ja as any, ko: dico_ko as any,
-    ro: dico_ro as any, sv: dico_sv as any, zh: dico_zh as any,
-  };
+  // Les onze fichiers lus comme TEXTE, et non importés. Aucune clé n'est
+  // AJOUTÉE par ce lot — les sept existent depuis longtemps ; la garde vérifie
+  // seulement qu'aucune ne manque à l'appel au moment où l'écran s'en sert.
+  // Une garde de texte se justifie ici parce que ce qu'elle garde EST du
+  // texte : une valeur de dictionnaire, pas une logique.
+  //
+  // Le motif que les autres fichiers emploient — `await import(
+  // \`../locales/${code}\`)` pour les onze langues, dans un test à 5 s — est
+  // celui qui expire par intermittence sur Shrek en pleine suite. Mesuré :
+  // `origin/main` VIERGE passe (4 exécutions, 551 fichiers), `origin/main`
+  // PLUS UN SEUL fichier d'essai trivial rougit (`bandeauFermable1043`,
+  // `Test timed out in 5000ms`). Le défaut ne vient donc pas de ce lot ; il
+  // n'est pas contourné, et ce fichier ne l'imite pas.
+  //
+  // `hu.ts` écrit ses clés entre guillemets doubles : la reconnaissance ne
+  // présume pas du guillemet.
+  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
 
-  for (const [lang, dico] of Object.entries(DICOS)) {
+  for (const lang of LANGUES) {
     it(`${lang} traduit les sept rubriques`, () => {
+      const src = readFileSync(resolve(process.cwd(), `src/lib/locales/${lang}.ts`), 'utf-8');
       for (const cle of Object.values(CLE_RUBRIQUE)) {
-        expect(dico[cle], `${lang} : ${cle} manque`).toBeTruthy();
+        const pose = new RegExp(`["']${cle.replace(/\./g, '\\.')}["']\\s*:\\s*["']\\S`);
+        expect(pose.test(src), `${lang} : ${cle} manque ou n'a pas de valeur`).toBe(true);
       }
     });
   }
