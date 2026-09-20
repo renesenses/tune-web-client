@@ -250,7 +250,11 @@
                  les actions comme sur l'interface actuelle. »
                  C'est la seule ligne de cet écran qu'on regarde à coup sûr, et
                  c'était la seule sans gestes. -->
-            <PisteActions piste={current} />
+            <!-- « Lire à partir d'ici » sur la piste EN COURS : c'est un
+                 saut au rang courant, donc une reprise du titre depuis son
+                 début. Le geste que la file sait faire, et le seul sens que
+                 « la suite » ait ici. -->
+            <PisteActions piste={current} onLireDepuis={() => jump(pos)} />
           </div>
         </section>
       {/if}
@@ -273,7 +277,11 @@
                    fleches et la croix restent : monter, descendre et retirer
                    sont propres a la FILE, elles n'ont de sens nulle part
                    ailleurs. -->
-              <PisteActions piste={t} />
+              <!-- « Lire à partir d'ici » = le saut de file, celui que le
+                   grand bouton de la ligne fait déjà. Dans la file, « la
+                   suite » n'est pas une liste à renvoyer au serveur : elle est
+                   DÉJÀ la file, et `jumpInQueue` la reprend à ce rang. -->
+              <PisteActions piste={t} onLireDepuis={() => jump(idx)} />
               {#if showExpert}
                 <span class="ord">
                   <button onclick={() => move(idx, idx - 1)} disabled={busy || idx <= pos + 1} aria-label="Monter">

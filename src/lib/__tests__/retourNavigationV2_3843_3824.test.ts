@@ -197,7 +197,9 @@ describe('#3824 — le Retour de la fiche artiste rend la main à la Recherche',
     await attendre(120);
     flushSync();
     expect(
-      el.querySelector('header.fiche button.retour'),
+      // #1356 : l'en-tête de fiche est désormais `EnTeteArtiste`, partagé avec
+      // la fiche de service — `header.tete`. Même nœud, même bouton Retour.
+      el.querySelector('header.tete button.retour'),
       'la fiche artiste ne s’est pas ouverte',
     ).not.toBeNull();
   });
@@ -215,7 +217,7 @@ describe('#3824 — le Retour de la fiche artiste rend la main à la Recherche',
     await attendre(120);
     flushSync();
 
-    const retour = el.querySelector<HTMLButtonElement>('header.fiche button.retour');
+    const retour = el.querySelector<HTMLButtonElement>('header.tete button.retour');
     expect(retour, 'pas de bouton Retour sur la fiche artiste').not.toBeNull();
     retour!.click();
     flushSync();
@@ -243,7 +245,7 @@ describe('#3824 — le Retour de la fiche artiste rend la main à la Recherche',
     flushSync();
     await attendre(120);
     flushSync();
-    el.querySelector<HTMLButtonElement>('header.fiche button.retour')!.click();
+    el.querySelector<HTMLButtonElement>('header.tete button.retour')!.click();
     flushSync();
     expect(get(vueDeRetour), 'le dépôt de retour n’a pas été vidé après usage').toBeNull();
   });

@@ -14,7 +14,16 @@
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
 
-  let { onOuvrir }: { onOuvrir: (a: Album) => void } = $props();
+  /**
+   * `vue` — la bascule grille/liste de la Bibliothèque agit ICI aussi.
+   *
+   * Jean Valjean, fil 1856, 20/09/2026 : « Il n'est pas possible de choisir
+   * liste ou grille. » Le bouton était bien rendu au-dessus de cette vue,
+   * mais rien ne descendait jusqu'à elle : un clic sans effet. Une commande
+   * affichée doit agir ou ne pas être là ; celle-ci a un sens sur une grille
+   * d'albums, on la câble plutôt que de la retirer.
+   */
+  let { onOuvrir, vue = 'grid' }: { onOuvrir: (a: Album) => void; vue?: 'grid' | 'list' } = $props();
 
   const FENETRES = [15, 30];
   /** Au-delà, c'est une bibliothèque, pas un « récent ». */
@@ -70,6 +79,16 @@
     <div class="etat">{$tr('common.loading' as any)}</div>
   {:else if !albums.length}
     <div class="etat">{$tr('library.noRecentAlbums' as any)}</div>
+  {:else if vue === 'list'}
+    <div class="liste">
+      {#each albums as a (a.id)}
+        <button class="ligne" onclick={() => onOuvrir(a as Album)}>
+          <span class="vign"><AlbumArt coverPath={a.cover_path ?? null} albumId={a.id ?? null} size={0} alt={a.title ?? ''} /></span>
+          <span class="ltitre">{a.title ?? ''}</span>
+          <span class="lartiste">{a.artist_name ?? ''}</span>
+        </button>
+      {/each}
+    </div>
   {:else}
     <div class="grille">
       {#each albums as a (a.id)}
@@ -84,7 +103,22 @@
 </div>
 
 <style>
-  .recents{padding:4px 0 24px}
+  /* #1323 — LA VUE PORTE SON PROPRE ASCENSEUR.
+     `LibraryV2` pose `.v2-lib{height:100%; overflow:hidden}` et, dedans,
+     `.body{flex:1; min-height:0; display:flex}` : le corps est haut comme
+     l'écran et COUPE ce qui dépasse. Étirée par `align-items:stretch`, cette
+     vue prenait exactement sa hauteur, sa grille débordait, et le débordement
+     était effacé — ni ascenseur ni molette sur 2 806 albums (Jean Valjean,
+     fils 1855/1856, 0.9.158, Windows/Firefox). Les six autres vues du même
+     corps (`.grid`, `.rows`, `.tracklist`, `.facets`, `.fliste`, `.grille`
+     d'ArtistesV2) le faisaient déjà ; celle-ci était la seule sans.
+     `min-height:0` est indispensable : sans lui l'enfant en flex refuse de
+     rétrécir sous la taille de son contenu et l'ascenseur ne s'arme jamais.
+     Gouttière de droite : le corps n'en donne qu'à gauche (18 px), et
+     l'ascenseur occupe désormais le bord droit. */
+  .recents{flex:1; min-width:0; min-height:0; overflow-y:auto; padding:4px 18px 40px 0}
+  .recents::-webkit-scrollbar{width:9px}
+  .recents::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .tete{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px}
   .regle{margin:0; font-size:13px; color:var(--v2-txt2)}
   .fenetres{display:flex; gap:6px}
@@ -95,6 +129,22 @@
   .etat{padding:24px 0; color:var(--v2-txt3); font-size:13px}
   .grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:16px}
   .carte{display:flex; flex-direction:column; gap:6px; padding:0; border:0; background:transparent; text-align:left; cursor:pointer; color:inherit}
+
+  /* LA VUE LISTE. Mêmes proportions que `.lrow` de la Bibliothèque — vignette
+     de 44 px, titre puis artiste — pour que la bascule change la forme et non
+     l'écran. Les deux cellules de texte existent TOUJOURS, vides s'il n'y a
+     rien à y mettre : posées sous un `{#if}`, une ligne sans artiste n'aurait
+     que deux cellules et son titre s'étalerait sur la colonne voisine, le
+     désalignement corrigé sur la liste d'albums le 05/09/2026. */
+  .liste{display:flex; flex-direction:column; gap:1px}
+  .ligne{display:grid; grid-template-columns:44px minmax(0,2fr) minmax(0,1.4fr); align-items:center;
+    gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
+    color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s}
+  .ligne:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .vign{width:44px; height:44px; border-radius:6px; overflow:hidden}
+  .ltitre{min-width:0; font-size:13.5px; font-weight:600; color:var(--v2-txt);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .lartiste{min-width:0; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .titre{font-size:13px; color:var(--v2-txt); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .artiste{font-size:12px; color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 </style>

@@ -36,6 +36,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
+  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
@@ -63,6 +64,47 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   /** Identifiant distant de l'album, quand il vient d'un service. */
   const sidDistant = $derived(service ? ((album as any).source_id ?? null) : null);
+
+  /**
+   * ÉTIQUETER L'ALBUM DEPUIS SA FICHE.
+   *
+   * Chaque LIGNE de piste avait son bouton d'étiquettes (`PisteActions`),
+   * chaque VIGNETTE d'album aussi (`PochetteActions`) — la fiche de l'album,
+   * elle, n'en avait aucun. Cinq gestes dans sa barre d'actions, et pas un
+   * pour ranger le disque qu'on est justement en train de regarder.
+   *
+   * La désignation est celle que `lib/cibleEtiquette` tient déjà pour tout le
+   * reste du client, et on n'en écrit pas une seconde :
+   *
+   *  - bibliothèque (y compris un serveur UPnP intégré) → l'identifiant ;
+   *  - service, et Bandcamp → la paire `source` + `source_id`. `StreamingV2`
+   *    donne à la fiche Bandcamp `source: 'bandcamp'` et `source_id: <url>` —
+   *    le serveur ne valide QUE l'`item_type` (`TAGGABLE_ITEM_TYPES`), la
+   *    source est une chaîne libre, et `tags.rs` cite Bandcamp en exemple.
+   *
+   * `source` et `source_id` retombent sur les propriétés `service` / `bandcamp`
+   * quand l'album ne les porte pas lui-même : la fiche d'un service ouverte
+   * depuis la Recherche reçoit parfois l'objet nu du service, sans sa source.
+   *
+   * 🔴 UN cas reste NON étiquetable, et le bouton disparaît alors : le DÉPÔT
+   * DISTANT. Son `album.id` est l'identifiant d'un AUTRE serveur Tune ; posé
+   * sur `/tags/{id}/items`, il étiquetterait l'album de la bibliothèque locale
+   * qui porte ce numéro — un inconnu. C'est exactement la garde que
+   * `LibraryV2` applique déjà à ses vignettes (`depot || a.id == null`).
+   */
+  const cibleEtiquettes = $derived<CibleEtiquette | null>(
+    depot
+      ? null
+      : album.id != null
+      ? { itemType: 'album', itemId: album.id }
+      : cibleDeService('album', {
+          ...(album as any),
+          source: (album as any).source ?? service ?? (bandcamp ? 'bandcamp' : null),
+          source_id: (album as any).source_id ?? bandcamp ?? null,
+        }),
+  );
+  /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
+  let etiquettesOuvertes = $state(false);
 
   let tracks = $state<Track[]>([]);
   /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
@@ -613,10 +655,49 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    * La source effective est le SERVICE de la fiche : `album.source` est nul
    * sur un album servi par `/streaming/qobuz/…`.
    */
+  /**
+   * 🔴 L'ARTISTE REPLIÉ SUR LES PISTES — #1361 bis, Bertrand le 20/09/2026 :
+   * « le click sur Agnes Obel n'ouvre pas la page artiste ».
+   *
+   * La cause première est ailleurs (les fabriques d'album de service jetaient
+   * `artist_id`, et celle de la coquille ne portait même pas le nom), et elle
+   * est réparée là-bas. Ce repli est le FILET : cette fiche est montée par
+   * DIX écrans, et le onzième qui oubliera un champ ne doit pas faire
+   * réapparaître un nom mort.
+   *
+   * ⚠️ Il exige l'UNANIMITÉ des pistes. Un album n'a qu'un artiste d'album,
+   * et `tracks[0]` serait faux sur une compilation ou un coffret — Bertrand,
+   * 19/09/2026 : « les compilations et les coffrets ne sont pas parfaitement
+   * gérés mais cela est corrigé à la main ». Une seule piste qui diffère, ou
+   * une seule sans identifiant, et on renonce : pas de lien plutôt qu'un lien
+   * qui mène ailleurs.
+   */
+  const artisteReplie = $derived.by(() => {
+    const propre = album.artist_id;
+    if (propre != null && String(propre).trim() !== '') return null;
+    if (!tracks.length) return null;
+    const ids = new Set<string>();
+    const noms = new Set<string>();
+    for (const t of tracks) {
+      const id = (t as any).artist_id;
+      if (id == null || String(id).trim() === '') return null;
+      ids.add(String(id).trim());
+      noms.add((t.artist_name ?? '').trim());
+    }
+    if (ids.size !== 1 || noms.size !== 1) return null;
+    const nom = [...noms][0];
+    return nom ? { id: [...ids][0], nom } : null;
+  });
+
+  /** Le nom AFFICHÉ : celui de l'album, ou celui que les pistes s'accordent. */
+  const nomArtiste = $derived(
+    (album.artist_name ?? '').trim() || artisteReplie?.nom || '',
+  );
+
   const destination = $derived(destinationArtiste({
     source: service ?? (album as any).source ?? null,
-    artist_id: album.artist_id as any,
-    artist_name: album.artist_name ?? null,
+    artist_id: (album.artist_id ?? artisteReplie?.id ?? null) as any,
+    artist_name: nomArtiste || null,
   }));
   const artisteDeService = $derived.by(() => {
     if (!$gestesNavigationService || !destination) return null;
@@ -685,10 +766,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
            la navigation passe par les magasins. Sans identifiant d'artiste
            (album de service, dépôt distant, base ancienne), le nom reste du
            TEXTE : un lien mort serait pire que pas de lien. -->
-      {#if album.artist_id != null || artisteDeService}
-        <button type="button" class="artist lien" onclick={allerArtiste}>{album.artist_name ?? ''}</button>
+      {#if nomArtiste && (album.artist_id != null || artisteDeService)}
+        <button type="button" class="artist lien" onclick={allerArtiste}>{nomArtiste}</button>
       {:else}
-        <div class="artist">{album.artist_name ?? ''}</div>
+        <div class="artist">{nomArtiste}</div>
       {/if}
       <div class="facts">
         {#if $formatAnneeAlbum(album)}<span>{$formatAnneeAlbum(album)}</span>{/if}
@@ -738,6 +819,18 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             aria-label={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}>
             <svg viewBox="0 0 24 24" fill={enFavori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
+          </button>
+        {/if}
+        <!-- ÉTIQUETTES — même niveau visuel que les autres (`ghost`), et
+             ABSENT quand l'album n'est pas désignable (dépôt distant, album
+             sans identifiant ni paire) : voir `cibleEtiquettes`. Un bouton
+             absent ne promet rien, un bouton qui échoue à l'usage si. -->
+        {#if cibleEtiquettes}
+          <button class="ghost" onclick={() => (etiquettesOuvertes = true)}
+            aria-haspopup="dialog" aria-expanded={etiquettesOuvertes}
+            title={$tr('v2.cover.tags' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
+            {$tr('v2.cover.tags' as any)}
           </button>
         {/if}
       </div>
@@ -807,6 +900,16 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   </div>
 </div>
 
+<!-- Le PANNEAU partagé, chargé à la demande — exactement ce que fait
+     `PochetteActions` depuis la vignette. Il se pose lui-même en surcouche
+     (`use:portail`), donc hors du cadre défilant de la fiche. -->
+{#if etiquettesOuvertes && cibleEtiquettes}
+  {#await import('./EtiquettesPanneau.svelte') then m}
+    <m.default cible={cibleEtiquettes} nom={album.title}
+      onClose={() => (etiquettesOuvertes = false)} />
+  {/await}
+{/if}
+
 <style>
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
@@ -840,7 +943,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
      jeton de couleur, et sans peser sur la ligne. Une mesure d'album ne porte
      aucune marque : c'est la valeur nue. */
   .dr.deduit{text-decoration:underline dotted currentColor; text-underline-offset:3px; text-decoration-thickness:1px}
-  .actions{display:flex; gap:12px; margin-top:8px}
+  /* `flex-wrap` : la rangée ne se coupait PAS, et à largeur de téléphone les
+     cinq boutons débordaient déjà du cadre — en ajouter un sixième aurait
+     poussé le cœur dehors. La seconde rangée (`.actions.local`) enroulait
+     depuis toujours ; celle-ci n'avait simplement jamais reçu la règle.
+     Sans effet au-dessus du seuil de débordement : l'écran large garde sa
+     ligne unique. */
+  .actions{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:8px}
   .actions.local{flex-wrap:wrap; align-items:center}
   .play,.ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
     font:700 14px var(--v2-sans); cursor:pointer; border:0}
