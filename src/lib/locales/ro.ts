@@ -2407,6 +2407,7 @@ export default {
   "v2.home.editTip": "Adăugați, eliminați sau reordonați widgeturile",
   "v2.home.editHint": "Trageți de mâner pentru a reordona un widget sau faceți clic pe cruce pentru a-l elimina.",
   "v2.home.allAdded": "Toate widgeturile sunt deja pe pagina dumneavoastră.",
+  "v2.home.alreadyPlaced": "Deja pe pagina dumneavoastră",
   "v2.home.emptyHint": "Pagina dumneavoastră este goală. Treceți la „Modifică” pentru a adăuga widgeturi.",
   "v2.home.widgetEmpty": "Deocamdată nu este nimic de arătat aici.",
   "v2.home.widgetFailed": "Acest widget nu a putut fi încărcat.",
