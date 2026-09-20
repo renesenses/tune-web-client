@@ -946,8 +946,20 @@
    *
    * Le tri etait deja masque ici par `showTools && tab !== 'tracks'` : la
    * regle existait, elle n'etait appliquee qu'a un controle sur cinq.
+   *
+   * ⚠️ `recent` A ÉTÉ OUBLIÉ. La règle ci-dessus date d'avant l'onglet
+   * « Ajouts récents » (#3039), qui monte le composant `AjoutsRecentsV2` :
+   * ce composant a sa PROPRE source (`/home/recently-added`), sa propre
+   * fenêtre 15/30 jours, et ne reçoit ni `q`, ni `fQuality`, ni `fYear`, ni
+   * `sortKey`. Toutes ces commandes y étaient donc rendues MORTES — « le fait
+   * de cocher ajouts récents bloque tout, la seule partie qui se met à jour »
+   * (Jean Valjean, fil 1856, 20/09/2026 11 h 25, 0.9.158, Windows/Firefox).
    */
-  const showFilters = $derived(tab !== 'artists' && tab !== 'tracks');
+  const showFilters = $derived(tab !== 'artists' && tab !== 'tracks' && tab !== 'recent');
+
+  /** Recherche et Source : elles filtrent les albums et les artistes, pas la
+   *  fenêtre des Ajouts récents, qui vient d'une autre route. */
+  const showSearch = $derived(tab !== 'recent');
 
   /** Tri et bascule grille/liste : outils de confort, pas de recherche. */
   /** Tri et bascule grille/liste : outils de confort, pas de recherche.
@@ -958,8 +970,16 @@
   /** A–Z / Années : une navigation dans les ALBUMS. La vue Artistes a son
    *  propre rail A–Z, et « Années » n'a aucun sens sur un artiste. */
   /** Frise, rail A–Z et choix de l'annee : une navigation dans les ALBUMS.
-   *  Elle n'a pas plus de sens sur les titres que sur les artistes. */
-  const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks');
+   *  Elle n'a pas plus de sens sur les titres que sur les artistes.
+   *
+   *  Ni sur les Ajouts récents : cette vue est classée par date d'AJOUT, sur
+   *  une fenêtre de 15 ou 30 jours qu'elle porte elle-même. Une frise des
+   *  années de parution posée au-dessus ne pilote rien — et c'est justement
+   *  la recette du testeur (« Ajouts récents, Tout, Années, Origine sinon
+   *  édition »). Le rail A–Z, lui, n'a jamais été rendu ici (`tab === 'albums'`
+   *  plus bas) : un rail alphabétique sur un classement chronologique
+   *  promettrait un saut qui atterrirait au hasard. */
+  const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && tab !== 'recent');
 
 
   /** Facette d'un album pour l'onglet courant. `null` = non renseigne, et on
@@ -1680,7 +1700,12 @@
 
         Toujours visible : une bibliothèque locale explique qu'elle n'a pas
         encore de source distante. Les autres filtres ne retirent pas ses entrées.
+
+        Sauf sur les Ajouts récents : `AjoutsRecentsV2` interroge
+        `/home/recently-added`, qui ne connaît pas la provenance. Le menu s'y
+        ouvrait et se cochait sans que rien ne bouge.
       -->
+      {#if showSearch}
         <div class="drop" class:open={ddOpen === 'provenance'}>
           <button class="chip" class:active={fProvenance !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'provenance'} onclick={() => ddToggle('provenance')}>{$tr('v2.lib.source' as any)}{#if fProvenance}&nbsp;· {libelleProvenance(fProvenance)}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -1700,6 +1725,7 @@
             {/each}
           </div>
         </div>
+      {/if}
     {#if showFilters}
       <div class="drop" class:open={ddOpen === 'quality'}>
         <button class="chip" class:active={fQuality !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
@@ -1786,17 +1812,27 @@
     <!-- Le champ partagé (`.v2-rech`), comme sur tous les autres écrans. Il
          faisait ici 320 × 42 avec sa loupe en flux, ailleurs 300 × 40 avec la
          loupe en absolu : deux dessins pour un seul geste. -->
-    <div class="v2-rech">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-      <input placeholder={$tr('v2.lib.searchPlaceholder' as any)} bind:value={q} />
-      {#if q}
-        <button class="clr" onclick={() => (q = '')} aria-label={$tr('common.clear' as any)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      {/if}
-    </div>
+    {#if showSearch}
+      <div class="v2-rech">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input placeholder={$tr('v2.lib.searchPlaceholder' as any)} bind:value={q} />
+        {#if q}
+          <button class="clr" onclick={() => (q = '')} aria-label={$tr('common.clear' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        {/if}
+      </div>
+    {/if}
 
+    <!-- 🔴 Le TRI part sur les Ajouts récents, la BASCULE reste.
+         `AjoutsRecentsV2` est trié par date d'ajout, c'est sa définition : lui
+         proposer « Titre », « Artiste » ou « Aléatoire » promet un ordre qu'il
+         ne peut pas prendre. La bascule grille/liste, elle, n'est pas un tri —
+         c'est la forme du même contenu, et le testeur la demande
+         explicitement. Elle lui est donc CÂBLÉE (prop `vue`) au lieu d'être
+         retirée. -->
     {#if showTools && tab !== 'tracks'}
+      {#if tab !== 'recent'}
       <div class="drop right">
         <button class="chip plain">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h7M4 18h4M17 5v14M14 16l3 3 3-3"/></svg>
@@ -1818,6 +1854,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
         </button>
+      {/if}
       {/if}
       <button class="viewtog" onclick={() => (display = display === 'grid' ? 'list' : 'grid')}
         aria-label={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}
@@ -1844,7 +1881,11 @@
     Les deux BOUTONS de navigation, eux, restent reserves a l'Intermediaire :
     la frise est bien une option avancee, la pastille est un temoin d'etat.
   -->
-  {#if showTimeline || fYear != null}
+  <!-- `tab !== 'recent'` : la pastille d'année est un témoin d'état, mais un
+       témoin qui décrit une grille d'albums qu'on ne regarde pas. Sur les
+       Ajouts récents elle annoncerait un filtre qui n'y agit pas, et son clic
+       n'aurait aucun effet visible. Elle revient dès qu'on quitte l'onglet. -->
+  {#if tab !== 'recent' && (showTimeline || fYear != null)}
     <div class="navmode">
       {#if showTimeline}
         <button class:on={navMode === 'alpha'} onclick={() => { navMode = 'alpha'; fYear = null; }}>A–Z</button>
@@ -1947,7 +1988,7 @@
 
   <div class="body">
     {#if tab === 'recent'}
-      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} />
+      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display} />
     {:else if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
            déduction depuis les albums chargés. Ils ne passent donc pas par les
