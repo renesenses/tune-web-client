@@ -36,6 +36,7 @@
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
+  import { molettePortee } from '../../lib/molettePortee';
   import { t, locale } from '../../lib/i18n';
   import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer } from '../../lib/chiffresAccueil';
   import { trace } from '../../lib/iconesChiffres';
@@ -716,6 +717,16 @@
     // que `clearInterval` la laisserait vivre après le démontage de la page.
     return () => { clearInterval(horloge); repriseProfil(); };
   });
+
+  /**
+   * Le SEUL défileur de la page — #1327, point 1.
+   *
+   * `header.v2-top` (« Éditorial / Qobuz / Modifier », celui de la capture de
+   * Didier) est son FRÈRE dans une colonne en `overflow:hidden` : la molette
+   * posée dessus n'avait rien à faire défiler. `use:molettePortee` la lui
+   * porte. Voir `lib/molettePortee`.
+   */
+  let zoneDefilante = $state<HTMLDivElement | null>(null);
 </script>
 
 <section class="v2-home tune-v2">
@@ -723,7 +734,7 @@
        dit le 08/09/2026 que « le bouton modifier est trop proche de l'icône
        rechercher ». Il portait ses propres `.outils` / `.ghost` ; il passe aux
        classes partagées, comme les autres. -->
-  <header class="v2-top">
+  <header class="v2-top" use:molettePortee={() => zoneDefilante}>
     <div class="v2-titres">
       <div class="v2-eyebrow">{salut ? banniere : $t(cleEyebrow as any)}</div>
       <h1>{$t(cleTitre as any)}</h1>
@@ -772,7 +783,7 @@
     </div>
   {/if}
 
-  <div class="scroll">
+  <div class="scroll" bind:this={zoneDefilante}>
     {#if !charge}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !disposition.length}

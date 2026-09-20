@@ -55,6 +55,7 @@
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
   import { sourcesDisponibles, libelleSource, estSourceDeService, serviceDuCatalogue } from '../../lib/sourcesRegle';
+  import { manqueUneCible } from '../../lib/regleSourceAide';
   import { errText } from '../../lib/utils';
   import {
     CHAMPS,
@@ -173,6 +174,12 @@
     regles = regles.map((r, k) => (k === i ? { ...r, value: v } : r));
   }
 
+  // #4473, second volet — une source `catalogue:` sans artiste ni album nommé :
+  // le serveur la refusera. On le dit ici, pendant qu'on peut encore corriger
+  // la règle. `'piste'` : dans une playlist, `title` est le titre de la PISTE,
+  // pas celui d'un album — il ne peut donc pas servir de cible.
+  const catalogueSansCible = $derived(manqueUneCible(regles, 'piste'));
+
   // La validation de l'ancien écran, mot pour mot : un nom, rien de plus.
   const pretAEnregistrer = $derived(!chargement && nom.trim().length > 0);
 
@@ -286,19 +293,20 @@
           {:else if r.field === 'source'}
             <select class="sel" value={r.value ?? ''} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
               <option value="" disabled>{$t('smartCollection.refPick')}</option>
-              {#each sourcesDisponibles(statutsServices, r.value) as s (s)}
-                <option value={s}>{libelleSource(s, $t('v2.lib.sourceLocal' as any))}</option>
+              {#each sourcesDisponibles(statutsServices, r.value, true) as s (s)}
+                <option value={s}>{libelleSource(s, $t('v2.lib.sourceLocal' as any), $t('v2.smart.sourceCatalogue' as any))}</option>
               {/each}
             </select>
             <!-- #1231 — un service ne désigne pas son catalogue, mais les
                  favoris qu'on y a. Sans cette phrase, « 0 résultat » se lit
                  comme une panne alors que c'est la bonne réponse. -->
-            <!-- #4473 — une règle `catalogue:` héritée d'ailleurs reste lisible,
-                 mais le chemin des PISTES ne sait pas l'honorer : on le dit,
-                 au lieu de laisser croire aux favoris. -->
+            <!-- #4473, second volet — le chemin des PISTES sait désormais
+                 aller au catalogue (`smart_playlists::avec_pistes_de_catalogue`).
+                 Même phrase que l'éditeur de collections : il faut dire QUOI
+                 chercher, sinon le serveur refuse. -->
             {#if serviceDuCatalogue(r.value ?? '')}
               <span class="precision">
-                {$t('v2.smart.catalogueHorsPlaylist' as any)}
+                {$t('v2.smart.sourceCatalogueAide' as any)}
               </span>
             {:else if estSourceDeService(r.value ?? '')}
               <span class="precision">
@@ -343,6 +351,11 @@
     </div>
   </div>
 
+  <!-- #4473 — au-dessus du pied, pleine largeur : un avertissement rangé
+       entre « Annuler » et « Enregistrer » se lit comme un bouton. -->
+  {#if catalogueSansCible}
+    <p class="avert">{$t('v2.smart.catalogueSansCible' as any)}</p>
+  {/if}
   <div class="pied">
     <button class="ghost" onclick={onClose}>{$t('common.cancel' as any)}</button>
     <button class="play" onclick={enregistrer} disabled={!pretAEnregistrer || travail}>
@@ -396,6 +409,8 @@
   /* #4473 — l'avertissement occupe la gauche du pied ; les deux boutons ne
      bougent pas d'un pixel. Il n'interdit PAS d'enregistrer : la règle reste
      modifiable ensuite, et une règle incomplète n'abîme rien. */
+  .avert{margin:0; padding:10px 30px 0; color:var(--v2-danger);
+    font:500 13px/1.35 var(--v2-sans)}
   /* La phrase qui dit ce que la source désigne vraiment (#1231, #4473) :
      sous le sélecteur, en retrait, sans voler la lecture de la règle. */
   .precision{flex-basis:100%; color:var(--v2-txt3); font:400 12px/1.35 var(--v2-sans)}

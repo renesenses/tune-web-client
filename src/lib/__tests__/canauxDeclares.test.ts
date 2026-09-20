@@ -62,11 +62,18 @@ describe('multicanal — l\'écran', () => {
     }
   });
 
-  it('il DIT pourquoi, avec les mots du serveur', () => {
-    // `detail` est une phrase en clair : un écran sans table de traduction
-    // peut l'afficher tel quel. La clé i18n n'est qu'un repli.
-    expect(vue).toContain('z.channel_layout_status?.detail ??');
-    expect(vue).toContain('zoneConfig.channelsUnavailable');
+  it('il DIT pourquoi, dans la langue de l’utilisateur', () => {
+    // 🔴 Cette garde épinglait l'inverse : « `detail` est une phrase en clair :
+    // un écran sans table de traduction peut l'afficher tel quel ». C'est vrai
+    // d'un écran nu ; celui-ci en a une, et le résultat a été vu le 20/09/2026
+    // sur une installation ANGLAISE — « cette zone ne sort pas par une carte
+    // son locale… » au milieu de Settings › Devices.
+    //
+    // On lit donc le CODE (`reason`), que le serveur destine explicitement à
+    // la machine (« le client les traduit », `canaux_declares.rs`), et jamais
+    // la phrase. Voir `cleContrainteCanaux` dans `lib/vueZones`.
+    expect(vue).toContain('cleContrainteCanaux(z.channel_layout_status?.reason)');
+    expect(vue.replace(/<!--[\s\S]*?-->/g, '')).not.toContain('channel_layout_status?.detail');
   });
 
   it('rien ne s\'affiche si le serveur n\'offre rien', () => {
