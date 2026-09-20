@@ -23,6 +23,28 @@
  * contre 1,7e9. Le tri paraîtrait marcher — les services d'abord, la
  * bibliothèque ensuite, dans le bon ordre chacun — et serait faux.
  *
+ * ## Deux dates du côté service, et une seule qui veut dire quelque chose
+ *
+ * Un favori de service porte désormais DEUX dates :
+ *
+ *  - `created_at` — celle du SERVICE, et le service la refait. Mesure du
+ *    19/09/2026 sur le .18 : vingt et un favoris Qobuz, vingt et une dates
+ *    distinctes, toutes dans une fenêtre de SEIZE SECONDES
+ *    (2026-09-16T08:11:50Z … 08:12:06Z). Ce n'est pas l'histoire d'un
+ *    auditeur, c'est l'instant où une recopie les a recréés chez Qobuz ;
+ *  - `first_seen_at` — celle où TUNE a vu le favori pour la première fois,
+ *    posée une fois et jamais réécrite par une resynchronisation
+ *    (renesenses/tune-server-rust, lot `batch/favoris-date-locale-20260920`).
+ *
+ * `dateDe` préfère la seconde et retombe sur la première. C'est tout le
+ * correctif de #1060 côté client : le tri marchait déjà, il triait une donnée
+ * qui ne voulait rien dire, et des dates égales retombaient sur le titre — le
+ * « c'est l'ordre alphabétique » que Fabien décrit depuis la 0.9.151.
+ *
+ * Le repli n'est pas une précaution de style : un serveur antérieur à ce lot
+ * ne rend PAS `first_seen_at`, et l'écran doit alors ranger exactement comme
+ * avant.
+ *
  * ## Ce que « date » veut dire n'est pas la même chose des deux côtés
  *
  * Pour un favori de service, `created_at` est le moment où on a posé le cœur.
@@ -46,6 +68,8 @@ interface Favori {
   name?: string | null;
   source?: string | null;
   created_at?: string | null;
+  /** Date de PREMIÈRE VUE par Tune, ISO — absente d'un serveur d'avant #1060. */
+  first_seen_at?: string | null;
   added_at?: number | null;
 }
 
@@ -78,9 +102,15 @@ export function sourcesPresentes(items: readonly Favori[]): string[] {
  * l'an 5138, aucune bibliothèque n'en portera).
  */
 export function dateDe(o: Favori): number | null {
-  if (typeof o?.created_at === 'string' && o.created_at) {
-    const t = Date.parse(o.created_at);
-    if (!Number.isNaN(t)) return t;
+  // La date LOCALE d'abord : c'est la seule que le service ne peut pas
+  // refaire (#1060). Une chaîne illisible ne compte pas pour une date — on
+  // passe à la suivante au lieu de rendre `null` et de reléguer le favori en
+  // fin de liste.
+  for (const iso of [o?.first_seen_at, o?.created_at]) {
+    if (typeof iso === 'string' && iso) {
+      const t = Date.parse(iso);
+      if (!Number.isNaN(t)) return t;
+    }
   }
   const n = o?.added_at;
   if (typeof n === 'number' && Number.isFinite(n) && n > 0) {
