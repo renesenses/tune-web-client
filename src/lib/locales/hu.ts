@@ -3190,7 +3190,6 @@ export default {
   "v2.smart.sourceCatalogue": "{service} katalógus",
   "v2.smart.sourceCatalogueAide": "A szolgáltatás katalógusában keres. Vegyen fel egy „Előadó egyenlő…” vagy „Album egyenlő…” szabályt, amely megmondja, mit keressen.",
   "v2.smart.catalogueSansCible": "A „Katalógus” forráshoz kell egy „Előadó egyenlő…” vagy „Album egyenlő…” szabály: egyetlen szolgáltatás sem sorolja fel a teljes katalógusát.",
-  "v2.smart.catalogueHorsPlaylist": "A katalógusban csak intelligens gyűjteményből lehet keresni; itt ez a forrás nem ad eredményt.",
   "v2.smart.favColAlbum": "Kedvenc album",
   "v2.smart.favColArtist": "Kedvenc előadó",
   "v2.smart.favColTrack": "Kedvenc számot tartalmaz",

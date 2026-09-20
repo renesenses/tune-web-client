@@ -3232,7 +3232,6 @@ export default {
   "v2.smart.sourceCatalogue": "{service} のカタログ",
   "v2.smart.sourceCatalogueAide": "サービスのカタログを検索します。何を探すかを示す「アーティストが…」または「アルバムが…」のルールを追加してください。",
   "v2.smart.catalogueSansCible": "「カタログ」ソースには「アーティストが…」または「アルバムが…」のルールが必要です。全カタログを列挙できるサービスはありません。",
-  "v2.smart.catalogueHorsPlaylist": "カタログを検索できるのはスマートコレクションからのみです。ここではこのソースは何も返しません。",
   "v2.smart.favColAlbum": "お気に入りのアルバム",
   "v2.smart.favColArtist": "お気に入りのアーティスト",
   "v2.smart.favColTrack": "お気に入りの曲を含む",
