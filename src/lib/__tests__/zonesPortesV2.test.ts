@@ -16,7 +16,10 @@ const corps = (nom: string) => {
 
 describe('appairage AirPlay par code (#1135)', () => {
   it('une zone AirPlay avec un appareil ouvre la fenêtre d’appairage', () => {
-    expect(V2).toMatch(/\{#if estAirplay\(z\) && z\.output_device_id\}\s*<button onclick=\{\(e\) => ouvrirAppairage\(z, e\)\}/);
+    // #1392 — l'appairage a quitté la rangée d'icônes nues pour le menu de la
+    // zone : la condition se lit dans les capacités passées à `entreesMenuZone`.
+    expect(V2).toMatch(/appairable:\s*estAirplay\(z\) && !!z\.output_device_id/);
+    expect(V2).toContain('appairer: () => ouvrirAppairage(z),');
     expect(V2).toContain("import AirplayPairingModal from '../partages/AirplayPairingModal.svelte';");
     expect(V2).toMatch(/\{#if airplayPairing\}\s*<AirplayPairingModal/);
   });

@@ -28,6 +28,8 @@
   import { appareilDeLaZone, lireVueZones, ecrireVueZones, type VueZones } from '../../lib/vueZones';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
+  import MenuZone from './MenuZone.svelte';
+  import { entreesMenuZone, type EntreeMenuZone } from '../../lib/menuZone';
   import AirplayPairingModal from '../partages/AirplayPairingModal.svelte';
   import OaatGroupsPanel from '../partages/OaatGroupsPanel.svelte';
   import MultiroomSettings from '../partages/MultiroomSettings.svelte';
@@ -88,8 +90,8 @@
    */
   const estAirplay = (z: Zone) => z.output_type === 'airplay' || z.output_type === 'airplay2';
   let airplayPairing = $state<{ deviceId: string; deviceName: string } | null>(null);
-  function ouvrirAppairage(z: Zone, e: Event) {
-    e.stopPropagation();
+  function ouvrirAppairage(z: Zone, e?: Event) {
+    e?.stopPropagation();
     if (!z.output_device_id) return;
     airplayPairing = { deviceId: z.output_device_id, deviceName: z.name };
   }
@@ -144,8 +146,8 @@
 
   let mesureLatence = $state<number | null>(null);
   let latences = $state<Record<number, number>>({});
-  async function mesurerLatence(z: Zone, e: Event) {
-    e.stopPropagation();
+  async function mesurerLatence(z: Zone, e?: Event) {
+    e?.stopPropagation();
     if (z.id == null) return;
     const zid = z.id;
     mesureLatence = zid;
@@ -192,7 +194,6 @@
     newName = '';
     choix = '';
   }
-  let confirmDelete = $state<number | null>(null);
 
   /**
    * Paires stéréo — deux zones, une voie chacune.
@@ -267,7 +268,6 @@
   // 0) ; l'écran propose de fusionner la zone hors ligne dans sa jumelle en
   // ligne (phase 1), et dit depuis quand une zone ne répond plus (phase 2).
   let doublons = $state<import('../../lib/api').ZonesDoublon[]>([]);
-  let confirmMerge = $state<number | null>(null);
   async function chargerDoublons() {
     try { doublons = await api.getZonesDoublons(); } catch { doublons = []; }
   }
@@ -291,10 +291,15 @@
       default: return null;
     }
   }
-  function fusionner(z: Zone, cible: { id: number; name: string }, e: MouseEvent) {
-    e.stopPropagation();
-    if (confirmMerge !== z.id) { confirmMerge = z.id ?? null; return; }
-    confirmMerge = null;
+  /**
+   * #1392 — la fusion demande sa confirmation au socle `dialogs`, plus au
+   * bouton lui-même. Le bouton « armé » vivait DANS la ligne : depuis un menu
+   * qui se referme au clic, il n'y aurait plus rien à armer.
+   */
+  async function fusionner(z: Zone, cible: { id: number; name: string }, e?: MouseEvent) {
+    e?.stopPropagation();
+    const question = $t('v2.zone.mergeInto' as any).replace('{name}', cible.name);
+    if (!(await dialogs.confirm(`${question} — ${$t('v2.zone.mergeConfirm' as any)}`, { danger: true }))) return;
     act(async () => {
       await api.mergeZoneInto(z.id as number, cible.id);
       if ($currentZoneId === z.id) currentZoneId.set(cible.id);
@@ -313,8 +318,8 @@
   function select(z: Zone) {
     if (z.id != null) currentZoneId.set(z.id);
   }
-  function startRename(z: Zone, e: MouseEvent) {
-    e.stopPropagation();
+  function startRename(z: Zone, e?: MouseEvent) {
+    e?.stopPropagation();
     renaming = z.id; draft = z.name;
   }
   function commitRename(z: Zone) {
@@ -332,17 +337,21 @@
     fermerCreation();
     act(() => api.createZone(name, c.outputType, c.deviceId));
   }
-  /** Suppression en DEUX temps : une zone supprimée emporte sa file et sa
-   *  configuration, et rien ne la restaure. Le premier clic arme, le second
-   *  applique. */
-  function askDelete(z: Zone, e: MouseEvent) {
-    e.stopPropagation();
-    confirmDelete = confirmDelete === z.id ? null : z.id;
-  }
-  function doDelete(z: Zone, e: MouseEvent) {
-    e.stopPropagation();
-    confirmDelete = null;
+  /**
+   * #1392 — une confirmation qui NOMME ce qui est perdu.
+   *
+   * C'était un geste en DEUX TEMPS : un clic arme la corbeille, le second
+   * applique. Ce mécanisme tenait parce que les deux clics tombaient sur la
+   * même ligne ; depuis un menu qui se referme au premier, il ne reste rien à
+   * armer. Et « Confirmer la suppression ? » ne disait pas ce qu'on perd —
+   * une zone supprimée emporte sa file, son volume, sa sortie et son DSP, et
+   * rien ne la restaure.
+   */
+  async function supprimerZone(z: Zone, e?: MouseEvent) {
+    e?.stopPropagation();
     if (z.id == null) return;
+    const question = $t('v2.zone.deleteExplain' as any).replace('{name}', z.name);
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
     act(async () => {
       await api.deleteZone(z.id as number);
       // La zone active vient d'être supprimée : on ne laisse pas l'interface
@@ -383,6 +392,31 @@
     select(z);
     activeView.set('nowplaying');
   }
+  /**
+   * #1392 — le menu de CETTE zone : la même liste dans les deux vues.
+   *
+   * L'écran mesure ce que la zone permet, `lib/menuZone` décide de ce qui
+   * figure au menu. Rien n'est grisé : ce qui ne s'applique pas est absent.
+   */
+  function entreesDe(z: Zone): EntreeMenuZone[] {
+    const j = jumelle(z);
+    return entreesMenuZone(
+      {
+        expert: showExpert,
+        appairable: estAirplay(z) && !!z.output_device_id,
+        jumelle: j ? j.name : null,
+      },
+      {
+        renommer: () => startRename(z),
+        reglages: () => reglagesDeLaZone(z),
+        latence: () => { void mesurerLatence(z); },
+        appairer: () => ouvrirAppairage(z),
+        fusionner: () => { if (j) void fusionner(z, j); },
+        supprimer: () => { void supprimerZone(z); },
+      },
+    );
+  }
+
   /** #1006 — le lien vers les réglages DE CETTE zone (Réglages → Appareils → Par zone). */
   function reglagesDeLaZone(z: Zone) {
     v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined });
@@ -408,7 +442,6 @@
           {$t('v2.zones.viewGrid' as any)}
         </button>
         <button class="v2-btn" class:on={vue === 'liste'} aria-pressed={vue === 'liste'}
-          aria-describedby={vue === 'grille' && $zones.length ? 'zones-list-help' : undefined}
           onclick={() => choisirVue('liste')} title={$t('v2.zones.viewList' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
           {$t('v2.zones.viewList' as any)}
@@ -460,7 +493,6 @@
     {:else if !$zones.length}
       <div class="state">{$t('v2.zone.none' as any)}</div>
     {:else if vue === 'grille'}
-      <p id="zones-list-help" class="list-help">{$t('v2.zones.listActionsHelp' as any).replace('{view}', $t('v2.zones.viewList' as any))}</p>
       <!--
         Vue GRILLE — quatre colonnes, de grosses cartes.
 
@@ -521,10 +553,7 @@
                 oninput={(e) => setVol(z, Number((e.currentTarget as HTMLInputElement).value))}
                 aria-label={`Volume de ${z.name}`} />
               <span class="vn">{Math.round((z.volume ?? 0) * 100)}</span>
-              <button class="creg" onclick={() => reglagesDeLaZone(z)}
-                title={$t('v2.zone.openSettings' as any)} aria-label={$t('v2.zone.openSettings' as any)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-              </button>
+              <MenuZone entrees={entreesDe(z)} nom={z.name} occupe={busy} />
             </div>
           </div>
         {/each}
@@ -582,36 +611,7 @@
             {/if}
 
             <span class="zacts">
-              {#if showExpert}
-                <button onclick={(e) => mesurerLatence(z, e)} disabled={mesureLatence === z.id}
-                  title={$t('zone.latency' as any)} aria-label={$t('zone.latency' as any)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                </button>
-                {#if estAirplay(z) && z.output_device_id}
-                  <button onclick={(e) => ouvrirAppairage(z, e)} title={$t('zone.airplayPair' as any)} aria-label={$t('zone.airplayPair' as any)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  </button>
-                {/if}
-              {/if}
-              {#if jumelle(z)}
-                {@const j = jumelle(z)}
-                <button class="merge" class:armed={confirmMerge === z.id} onclick={(e) => fusionner(z, j!, e)} disabled={busy}>
-                  {confirmMerge === z.id ? $t('v2.zone.mergeConfirm' as any) : $t('v2.zone.mergeInto' as any).replace('{name}', j!.name)}
-                </button>
-              {/if}
-              <button onclick={(e) => startRename(z, e)} disabled={busy} aria-label="Renommer">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-              </button>
-              {#if confirmDelete === z.id}
-                <button class="danger armed" onclick={(e) => doDelete(z, e)} disabled={busy}>{$t('v2.meta.confirm' as any)}</button>
-                <button onclick={(e) => askDelete(z, e)} aria-label="Annuler">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                </button>
-              {:else}
-                <button class="danger" onclick={(e) => askDelete(z, e)} disabled={busy} aria-label="Supprimer">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
-                </button>
-              {/if}
+              <MenuZone entrees={entreesDe(z)} nom={z.name} occupe={busy} />
             </span>
           </div>
         {/each}
@@ -741,7 +741,6 @@
   .scroll{flex:1; overflow-y:auto; padding:6px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px 0; color:var(--v2-txt3)}
-  .list-help{margin:0 0 12px; color:var(--v2-txt3); font-size:13px; line-height:1.5}
   .list{display:flex; flex-direction:column; gap:8px}
 
   /* ── Vue GRILLE ────────────────────────────────────────────────────────
@@ -802,11 +801,6 @@
   .cvol input[type=range]{flex:1; min-width:0; accent-color:var(--v2-acc1); cursor:pointer}
   .cvol .vn{font:11.5px var(--v2-mono); color:var(--v2-txt3); width:24px; text-align:right; flex:0 0 auto}
   /* #1006 — le lien vers les réglages de la zone, au bout de la rangée du volume. */
-  .creg{flex:0 0 auto; width:26px; height:26px; display:grid; place-items:center; border-radius:8px;
-    border:1px solid transparent; background:transparent; color:var(--v2-txt3); cursor:pointer; padding:0}
-  .creg svg{width:15px; height:15px; color:inherit}
-  .creg:hover{color:var(--v2-txt); border-color:var(--v2-line2); background:var(--v2-surface)}
-  .creg:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:1px}
 
   /* La bascule grille / liste : deux boutons d'action ordinaires, celui qui
      est actif porte la teinte. Pas un troisième dessin de bouton. */
@@ -845,13 +839,4 @@
   .zacts{display:flex; gap:5px; flex:0 0 auto}
   .sortie{max-width:160px; height:24px; border-radius:7px; border:1px solid var(--v2-line2);
     background:transparent; color:var(--v2-txt2); font:11px var(--v2-sans)}
-  .zacts button{height:28px; min-width:28px; padding:0 8px; border-radius:8px; border:1px solid transparent;
-    background:transparent; color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center;
-    font:600 11px var(--v2-sans)}
-  .zacts button:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-line2)}
-  .zacts button:disabled{opacity:.4; cursor:default}
-  .zacts .danger:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger-bd)}
-  .zacts .armed{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
-  .zacts svg{width:14px; height:14px}
-  .zacts .merge{padding:0 10px; font-size:12px; white-space:nowrap}
 </style>

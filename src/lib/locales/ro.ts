@@ -2760,6 +2760,8 @@ export default {
   "v2.zone.none": "Nicio zonă. Creați una sau declarați o ieșire în Setări → Audio.",
   "v2.zone.unreachable": "Zone indisponibile — serverul nu răspunde încă.",
   "v2.zone.mergeInto": "Fuzionează în {name}",
+  "v2.zone.actions": "Acțiuni pentru zonă",
+  "v2.zone.deleteExplain": "Ștergeți „{name}”? Redarea se oprește, iar zona își ia coada, volumul, ieșirea și DSP-ul. Dispozitivul rămâne disponibil.",
   "v2.zone.mergeConfirm": "Confirmă fuziunea",
   "v2.zone.presenceRecent": "Oprită recent",
   "v2.zone.badgeNoOutput": "Fără ieșire",

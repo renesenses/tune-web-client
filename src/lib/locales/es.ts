@@ -2760,6 +2760,8 @@ export default {
   "v2.zone.none": "Ninguna zona. Cree una, o declare una salida en Ajustes → Audio.",
   "v2.zone.unreachable": "Zonas no disponibles: el servidor aún no responde.",
   "v2.zone.mergeInto": "Fusionar en {name}",
+  "v2.zone.actions": "Acciones de la zona",
+  "v2.zone.deleteExplain": "¿Eliminar «{name}»? La reproducción se detiene y la zona se lleva su cola, volumen, salida y DSP. El dispositivo sigue disponible.",
   "v2.zone.mergeConfirm": "Confirmar fusión",
   "v2.zone.presenceRecent": "Apagada recientemente",
   "v2.zone.badgeNoOutput": "Sin salida",
