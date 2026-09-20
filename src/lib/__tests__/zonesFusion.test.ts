@@ -29,9 +29,12 @@ describe('fusion des zones en double', () => {
     const src = sansCommentaires(lire('src/components/v2/ZonesV2.svelte'));
     expect(src).toContain('api.mergeZoneInto(');
     expect(src).toContain('api.getZonesDoublons()');
-    expect(src).toContain('onclick={(e) => fusionner(z, j!, e)}');
-    // La fusion se confirme d'un second clic, comme la suppression.
-    expect(src).toContain("confirmMerge === z.id ? $t('v2.zone.mergeConfirm'");
+    // #1392 — la fusion est une ENTRÉE du menu de la zone, et sa confirmation
+    // passe au socle `dialogs` : le bouton « armé » vivait dans la ligne, or un
+    // menu se referme au premier clic — il n'y aurait plus rien à armer.
+    expect(src).toContain('fusionner: () => { if (j) void fusionner(z, j); },');
+    expect(src).toContain("$t('v2.zone.mergeConfirm'");
+    expect(src).toContain('dialogs.confirm(');
     for (const code of ['eteinte_recemment', 'absente_depuis', 'jamais_vue']) {
       expect(src).toContain(`'${code}'`);
     }
