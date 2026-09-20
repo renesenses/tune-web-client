@@ -293,9 +293,14 @@ describe('#1134 — le recensement des vues qui ne sont pas des destinations de 
       .map(([v]) => v)
       .sort();
     // `tv` : un MODE, pas un écran (le défaut d'Alain).
-    // `login` / `offline` / `onboarding` : des ÉTATS que l'application constate
-    // elle-même — les mêmes trois que `routeAuChargement` refuse de reposer.
-    expect(jamais).toEqual(['login', 'offline', 'onboarding', 'tv']);
+    // `login` / `onboarding` : des ÉTATS que l'application constate elle-même —
+    // les mêmes que `routeAuChargement` refuse de reposer.
+    //
+    // « offline » a été retiré de cette liste le 20/09/2026 avec l'écran
+    // « Écoute hors-ligne » lui-même (Bertrand : « écran écoute hors-ligne à
+    // supprimer »). La PROPRIÉTÉ gardée ne change pas : une vue qui n'est pas
+    // une destination ne s'empile pas.
+    expect(jamais).toEqual(['login', 'onboarding', 'tv']);
   });
 
   it('`tv` n’est une destination pour AUCUN bouton, d’où qu’il soit porté', () => {
