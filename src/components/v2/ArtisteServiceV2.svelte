@@ -35,8 +35,8 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { t as tr } from '../../lib/i18n';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
+  import EnTeteArtiste from './EnTeteArtiste.svelte';
   import { notifications } from '../../lib/stores/notifications';
-  import AlbumArt from '../partages/AlbumArt.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
@@ -67,6 +67,20 @@
    * d'abord, la grille grandit ensuite.
    */
   let locaux = $state<Album[]>([]);
+  /**
+   * L'ARTISTE de la bibliothèque qui porte ce nom, s'il existe — #1356.
+   *
+   * Bertrand, 20/09/2026 : « mêmes actions ! », « sans en perdre ! ». Deux des
+   * gestes de la fiche de bibliothèque — « Toutes les pistes » et « Lecture
+   * aléatoire » — ont une cible ici DÈS LORS que la bibliothèque connaît cet
+   * artiste. `chargerComplements` le RÉSOLVAIT déjà, par le nom replié exact,
+   * pour aller chercher ses albums locaux ; il le jetait ensuite. On le garde :
+   * rien de nouveau n'est interrogé.
+   *
+   * 🔴 Pas de résolution approchée : un rapprochement à peu près lancerait la
+   * discographie d'un AUTRE artiste. C'est la même garde que celle des albums.
+   */
+  let artisteLocal = $state<Artist | null>(null);
   let autresServices = $state<AlbumsDeService[]>([]);
   let complementsEnCharge = $state(false);
   const sectionsServices = $derived<AlbumsDeService[]>(
@@ -168,6 +182,7 @@
 
   async function chargerComplements(mien: number, service: Source, nomArtiste: string) {
     locaux = [];
+    artisteLocal = null;
     autresServices = [];
     if (!nomArtiste.trim()) return;
     complementsEnCharge = true;
@@ -179,7 +194,8 @@
       (async () => {
         const trouve = ((await api.searchLibrary(nomArtiste, 20))?.artists ?? [])
           .find((a) => a.id != null && plier(a.name) === plier(nomArtiste));
-        return trouve ? ((await api.getArtistAlbums(trouve.id!)) ?? []) : [];
+        // L'artiste EN PLUS de ses albums : voir `artisteLocal` (#1356).
+        return { artiste: trouve ?? null, albums: trouve ? ((await api.getArtistAlbums(trouve.id!)) ?? []) : [] };
       })(),
       albumsDeStreamingPourArtiste(nomArtiste, autres, {
         resoudreArtiste: async (svc, nom) =>
@@ -188,7 +204,10 @@
       }),
     ]);
     if (mien !== jeton) return;
-    if (loc.status === 'fulfilled') locaux = loc.value;
+    if (loc.status === 'fulfilled') {
+      locaux = loc.value.albums;
+      artisteLocal = loc.value.artiste;
+    }
     if (svc.status === 'fulfilled') autresServices = svc.value;
     complementsEnCharge = false;
   }
@@ -268,6 +287,52 @@
     }
     enMasse = false;
   }
+
+  /**
+   * « Toutes les pistes » et « Lecture aléatoire » — PORTÉS de la fiche de
+   * bibliothèque (#1356).
+   *
+   * 🔴 MESURÉS AVANT D'ÊTRE PORTÉS. Ces deux gestes portent sur une
+   * DISCOGRAPHIE, et un service n'en rend pas les pistes : ses trois routes
+   * donnent l'artiste, ses albums et ses titres phares, rien de plus. La seule
+   * cible réelle est donc la bibliothèque — et elle n'existe que si elle
+   * connaît cet artiste. D'où la condition : pas d'`artisteLocal`, pas de
+   * boutons. Un bouton visible qui ne fait rien se lit comme une panne (#1231).
+   *
+   * Ce qu'ils jouent est donc exactement ce que la fiche montre déjà sous
+   * « Bibliothèque » dans la discographie commune : rien de promis en plus.
+   *
+   * Les appels sont les MÊMES que ceux d'`ArtistesV2` — `getArtistTracks` puis
+   * `lireListe` avec le contexte artiste (#2442), `shuffleAll({artist_id})` qui
+   * tire sur la discographie entière côté serveur (#1947).
+   */
+  let enMasseLocale = $state(false);
+  async function lireDiscographieLocale(aleatoire: boolean) {
+    const a = artisteLocal;
+    const zid = $currentZoneId;
+    if (a?.id == null) return;
+    if (zid == null) {
+      notifications.error($tr('v2.art.noZone' as any));
+      return;
+    }
+    enMasseLocale = true;
+    try {
+      if (aleatoire) {
+        const r = await api.shuffleAll(zid, { artist_id: a.id });
+        if (!r.track_count) notifications.error($tr('library.noTracks' as any));
+      } else {
+        const pistes = (await api.getArtistTracks(a.id)) ?? [];
+        const n = await lireListe(pistes, {
+          lire: (c: any) => playAndSync(zid, { ...c, context_type: 'artist', context_id: String(a.id) }),
+          enfiler: (c: any) => api.addToQueue(zid, c),
+        });
+        if (!n) notifications.error($tr('library.noTracks' as any));
+      }
+    } catch (e: any) {
+      notifications.error(e?.message ?? $tr('common.error' as any));
+    }
+    enMasseLocale = false;
+  }
 </script>
 
 {#if albumOuvert}
@@ -281,38 +346,44 @@
   {/if}
 {:else}
 <section class="v2-fas tune-v2">
-  <header class="tete">
-    <button class="retour" onclick={retour} aria-label={$tr('common.back' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
-    </button>
-    <div class="portrait">
-      <AlbumArt coverPath={artiste?.image_path ?? null} albumId={null} size={0}
-                alt={nom} fallbackInitials={nom.slice(0, 1)} />
-    </div>
-    <div class="ident">
-      <h1>{nom}</h1>
-      {#if cible}<span class="svc">{cible.service}</span>{/if}
+  <!-- L'en-tête est le MÊME composant que celui de la fiche de bibliothèque
+       (#1356) : c'est la forme d'ici qui a été retenue, elle ne bouge pas. -->
+  <EnTeteArtiste
+    {nom}
+    provenance={cible?.service ?? null}
+    imagePath={artiste?.image_path ?? null}
+    initiales={nom.slice(0, 1)}
+    onRetour={retour}>
+    {#snippet actions()}
       {#if titres.length}
-        <div class="gestes">
-          <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
-            {$tr('v2.fas.bestOf' as any)}
-          </button>
-          <button class="v2-btn ghost" disabled={enMasse} onclick={() => jouerLesTitres(true)}>
-            {$tr('v2.fas.radio' as any)}
-          </button>
-        </div>
+        <button class="v2-btn" disabled={enMasse} onclick={() => jouerLesTitres(false)}>
+          {$tr('v2.fas.bestOf' as any)}
+        </button>
+        <button class="v2-btn ghost" disabled={enMasse} onclick={() => jouerLesTitres(true)}>
+          {$tr('v2.fas.radio' as any)}
+        </button>
       {:else if titresEnEchec && !chargement}
         <!-- #910 — dire pourquoi les deux gestes manquent, et laisser
              réessayer. Ils ne sont PAS retirés : le service n'a pas répondu. -->
-        <div class="gestes">
-          <span class="echec">{$tr('v2.fas.topTracksFailed' as any)}</span>
-          <button class="v2-btn ghost" onclick={() => cible && charger(cible.service as Source, cible.id)}>
-            {$tr('zone.retry' as any)}
-          </button>
-        </div>
+        <span class="echec">{$tr('v2.fas.topTracksFailed' as any)}</span>
+        <button class="v2-btn ghost" onclick={() => cible && charger(cible.service as Source, cible.id)}>
+          {$tr('zone.retry' as any)}
+        </button>
       {/if}
-    </div>
-  </header>
+      <!-- PORTÉS de la fiche de bibliothèque, et seulement quand elle connaît
+           cet artiste : voir `lireDiscographieLocale` (#1356). -->
+      {#if artisteLocal?.id != null}
+        <button class="v2-btn" disabled={enMasseLocale} onclick={() => lireDiscographieLocale(false)}
+          title={$tr('library.playAllArtist' as any)}>
+          {$tr('library.playAllArtist' as any)}
+        </button>
+        <button class="v2-btn ghost" disabled={enMasseLocale} onclick={() => lireDiscographieLocale(true)}
+          title={$tr('library.shuffleArtist' as any)}>
+          {$tr('library.shuffleArtist' as any)}
+        </button>
+      {/if}
+    {/snippet}
+  </EnTeteArtiste>
 
   {#if chargement}
     <div class="etat">{$tr('v2.common.loading' as any)}</div>
@@ -336,15 +407,9 @@
 <style>
   .v2-fas{height:100%; overflow-y:auto; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); padding:0 30px 40px}
-  .tete{display:flex; align-items:center; gap:18px; padding:18px 0 22px}
-  .retour{width:34px; height:34px; border-radius:9px; border:1px solid var(--v2-line2);
-    background:transparent; color:var(--v2-txt2); cursor:pointer; display:grid; place-items:center; flex:none}
-  .retour:hover{color:var(--v2-txt); border-color:var(--v2-txt3)}
-  .retour svg{width:17px; height:17px}
-  .portrait{width:92px; height:92px; border-radius:50%; overflow:hidden; flex:none; background:var(--v2-line2)}
-  .ident h1{margin:0; font:600 26px/1.15 var(--v2-sans)}
-  .svc{font:11px var(--v2-mono); color:var(--v2-txt3); text-transform:uppercase; letter-spacing:.06em}
-  .gestes{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+  /* L'en-tête — `.tete`, `.retour`, `.portrait`, `.ident`, `.gestes` — vit
+     désormais dans `EnTeteArtiste`, partagé avec la fiche de bibliothèque
+     (#1356). Ne reste ici que ce qui est rendu dans CETTE portée. */
   /* #910 — pourquoi les deux gestes manquent. */
   .echec{font-size:12.5px; line-height:1.4; color:var(--v2-txt2); align-self:center}
   .etat{padding:40px 0; color:var(--v2-txt3)}
