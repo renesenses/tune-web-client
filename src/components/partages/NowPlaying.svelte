@@ -638,6 +638,13 @@
               // déjà (c'est elle qui fait son fond flou) ; la fiche, elle, ne
               // relit pas l'album distant et n'avait que l'initiale à montrer.
               pochette: displayTrack?.cover_path ?? null,
+              // #1361 bis — le même raisonnement que la pochette juste
+              // au-dessus : cet écran TIENT le nom de l'artiste et, pour un
+              // service, son identifiant. La fiche ne relit pas l'album, et
+              // n'affichait donc aucun artiste.
+              artiste: displayTrack?.artist_name ?? null,
+              artisteId: (displayTrack as any)?.artist_id != null
+                ? String((displayTrack as any).artist_id) : null,
             });
             return;
           }
@@ -971,6 +978,7 @@
   }
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../../lib/stores/ytPlayer';
   import { onDestroy, onMount } from 'svelte';
+  import { egaliseurReglable, rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
   import { get } from 'svelte/store';
   import { currentProfileId, favoriteTrackIds, loadProfiles } from '../../lib/stores/profile';
 
@@ -1146,6 +1154,9 @@
 
   onMount(() => {
     restoreSheetSize();
+    // Une fois, au montage : le bouton EQ n'a de sens que si le greffon est
+    // installé (v0.9.156). Silencieux en cas d'échec — voir `stores/egaliseur`.
+    void rafraichirGreffonEgaliseur();
     window.addEventListener('keydown', handleKeydown);
     window.addEventListener('keydown', handleQsKeydown);
   });
@@ -1831,10 +1842,23 @@
                 {$t('nowplaying.lyrics')}
               </button>
             {/if}
+            <!-- 🔴 L'ÉGALISEUR EST UN GREFFON FACULTATIF depuis la v0.9.156 :
+                 la migration ne l'installe plus, et ce bouton ouvrait un
+                 réglage sans effet chez qui ne l'a pas (Bertrand, 20/09/2026 :
+                 « Je n'ai pas d'Equaliseur. Pourquoi cette mention de EQ
+                 ici ? »).
+
+                 On ne masque que ce qu'on SAIT absent : un serveur antérieur,
+                 qui ne répond pas sur `/plugins`, garde son bouton. Voir
+                 `stores/egaliseur`. L'entrée « Égaliseur » de la barre reste,
+                 elle, toujours visible : c'est par là qu'on l'installe, et
+                 l'écran propose le geste. -->
+            {#if $egaliseurReglable}
             <button class="np-credits-btn" class:active={showEq} onclick={() => { showEq = !showEq; showCredits = false; showLyrics = false; karaokeMode = false; }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" /></svg>
               EQ
             </button>
+            {/if}
             {#if !isRadio && normalizedTrack?.id != null}
               <button class="np-credits-btn" onclick={handleShare}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>

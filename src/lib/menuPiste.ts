@@ -72,7 +72,10 @@ export interface CapacitesPiste {
    * `null` pour une piste locale, et pour un service qui n'a pas renseigné
    * l'album de cette piste.
    */
-  albumDeService?: { service: string; albumId: string; titre: string } | null;
+  albumDeService?: {
+    service: string; albumId: string; titre: string;
+    artiste?: string | null; artisteId?: string | null;
+  } | null;
   /**
    * L'artiste de la piste chez son service. Un NOM, pas un identifiant :
    * `StreamTrack` ne porte pas d'identifiant d'artiste — c'est à la coquille

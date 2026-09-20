@@ -270,7 +270,9 @@ describe('#864 — le retour repose OÙ L’ON ÉTAIT, pas en haut de la liste',
     flushSync();
     await attendre();
     flushSync();
-    const retour = el.querySelector<HTMLButtonElement>('header.fiche button.retour');
+    // #1356 : l'en-tête de fiche est désormais `EnTeteArtiste`, partagé avec
+    // la fiche de service — `header.tete`. Même nœud, même bouton Retour.
+    const retour = el.querySelector<HTMLButtonElement>('header.tete button.retour');
     expect(retour, 'la fiche artiste ne s’est pas ouverte').not.toBeNull();
     expect(grille(el), 'la grille est encore là : le calque ne l’a pas remplacée').toBeNull();
 
@@ -299,7 +301,7 @@ describe('#864 — le retour repose OÙ L’ON ÉTAIT, pas en haut de la liste',
       flushSync();
       await attendre();
       flushSync();
-      expect(el.querySelector('header.fiche'), 'la fiche ne s’est pas ouverte').not.toBeNull();
+      expect(el.querySelector('header.tete'), 'la fiche ne s’est pas ouverte').not.toBeNull();
       expect(history.state, 'ouvrir une fiche n’écrit rien dans l’historique').toMatchObject({
         detail: `artiste:${ARTISTES[0].id}`,
       });
@@ -310,7 +312,7 @@ describe('#864 — le retour repose OÙ L’ON ÉTAIT, pas en haut de la liste',
       flushSync();
 
       expect(
-        el.querySelector('header.fiche'),
+        el.querySelector('header.tete'),
         'le Précédent du navigateur laisse la fiche ouverte',
       ).toBeNull();
       expect(

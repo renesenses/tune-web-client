@@ -157,7 +157,6 @@
   // Portés de l'ancienne interface, seule à les offrir (phase 5, lot 4) :
   // l'allure reste celle d'origine, comme pour les autres vues héritées.
   import ConcertsView from '../v2-heritage/ConcertsView.svelte';
-  import OfflineView from '../v2-heritage/OfflineView.svelte';
   import DashboardView from '../v2-heritage/DashboardView.svelte';
   import RecommendationsSection from '../v2-heritage/RecommendationsSection.svelte';
   import BrowseView from '../v2-heritage/BrowseView.svelte';
@@ -384,13 +383,21 @@
    * `vueDeRetour` porte le chemin du retour, comme pour la fiche artiste —
    * un seul mécanisme de retour dans cette coquille, pas deux.
    */
-  function ouvrirAlbumService(c: { service: string; albumId: string; titre: string; pochette?: string | null }) {
+  function ouvrirAlbumService(c: {
+    service: string; albumId: string; titre: string; pochette?: string | null;
+    artiste?: string | null; artisteId?: string | null;
+  }) {
     vueDeRetour.set('nowplaying');
     ficheAlbumService.set({
       service: c.service as any,
       id: c.albumId,
       titre: c.titre,
       pochette: c.pochette ?? null,
+      // 🔴 L'ARTISTE VOYAGE AVEC L'ALBUM. Cette fiche ne relit pas l'album
+      // distant : sans ces deux champs, elle n'affichait AUCUN nom d'artiste,
+      // et le lien vers sa page n'existait pas.
+      artiste: c.artiste ?? null,
+      artisteId: c.artisteId ?? null,
     });
     activeView.set('streamingalbum');
   }
@@ -635,6 +642,8 @@
         <AlbumDetailV2
           album={{ id: null, title: $ficheAlbumService.titre,
                    source: $ficheAlbumService.service,
+                   artist_name: $ficheAlbumService.artiste ?? null,
+                   artist_id: $ficheAlbumService.artisteId ?? null,
                    // #1114 — sans elle, la fiche n'affiche que l'initiale.
                    cover_path: $ficheAlbumService.pochette ?? null,
                    source_id: $ficheAlbumService.id } as any}
@@ -706,8 +715,6 @@
         <AmbianceView />
       {:else if $activeView === 'concerts'}
         <ConcertsView />
-      {:else if $activeView === 'offline'}
-        <OfflineView />
       {:else if $activeView === 'dashboard'}
         <!-- Les recommandations vivaient sur l'ancien accueil ; l'accueil v2 est
              une page de widgets, elles rejoignent les statistiques d'écoute. -->

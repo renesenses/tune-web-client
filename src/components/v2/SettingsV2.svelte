@@ -4143,12 +4143,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             bind:value={cred[name].pass} disabled={svcBusy === name}
                             onkeydown={(e) => { if (e.key === 'Enter') connectSvc(name); }} />
                           <button class="lnk" disabled={svcBusy === name || !cred[name]?.user || !cred[name]?.pass}
-                            onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : 'Se connecter'}</button>
+                            onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
                         </div>
 
                       {:else}
                         <button class="lnk" disabled={svcBusy === name || !st.enabled}
-                          onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : 'Se connecter'}</button>
+                          onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : $t('settings.signIn' as any)}</button>
                       {/if}
 
                       {#if svcErr[name]}<div class="serr">{svcErr[name]}</div>{/if}

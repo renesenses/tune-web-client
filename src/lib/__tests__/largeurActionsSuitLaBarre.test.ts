@@ -32,20 +32,21 @@ describe('🔴 la colonne d’actions suit la barre (DR recouvert, 16/09/2026)',
   const barre = sansCommentaires(lire('src/components/v2/PisteActions.svelte'));
   const liste = sansCommentaires(lire('src/components/v2/ListePistesV2.svelte'));
 
-  const tous = (barre.match(/<button class="pa[" ]/g) ?? []).length;
-  // #1061 — « Lire à partir d'ici » est OPT-IN : la barre en rend sept, ou
-  // huit quand l'écran fournit la suite. Deux largeurs, une seule règle.
-  const optionnels = (barre.match(/<button class="pa" data-depuis/g) ?? []).length;
-  const boutons = tous - optionnels;
+  const boutons = (barre.match(/<button class="pa[" ]/g) ?? []).length;
+  // #1061 — « Lire à partir d'ici » a été OPT-IN jusqu'au 20/09/2026 : la
+  // barre en rendait sept, ou huit quand l'écran fournissait la suite, d'où
+  // DEUX largeurs. Bertrand : « Sur toutes les lignes où il y a une piste ».
+  // Le bouton y est toujours, donc la colonne n'a plus qu'une largeur.
+  const depuis = (barre.match(/<button class="pa" data-depuis/g) ?? []).length;
   const cote = /\.pa\{[^}]*\bwidth:(\d+)px/.exec(barre);
   const gouttiere = /\.pactions\{[^}]*\bgap:(\d+)px/.exec(barre);
   const largeur = (n: number) => n * Number(cote![1]) + (n - 1) * Number(gouttiere![1]);
 
-  it('la barre a bien SEPT boutons de 28 px, espacés de 2 px', () => {
+  it('la barre a bien HUIT boutons de 28 px, espacés de 2 px', () => {
     // Si ce nombre change, la largeur doit changer avec — c'est l'épreuve
     // suivante qui le tient. Celle-ci fixe le point de départ mesuré.
-    expect(boutons).toBe(7);
-    expect(optionnels).toBe(1);
+    expect(boutons).toBe(8);
+    expect(depuis).toBe(1);
     expect(cote?.[1]).toBe('28');
     expect(gouttiere?.[1]).toBe('2');
   });
@@ -62,22 +63,17 @@ describe('🔴 la colonne d’actions suit la barre (DR recouvert, 16/09/2026)',
     expect(Number(nombre![1])).toBe(Number(px![1]));
   });
 
-  it('🔴 #1061 — et la MÊME règle avec le bouton « à partir d\'ici »', () => {
-    const attendu = largeur(boutons + optionnels);
-    const px = /const LARGEUR_ACTIONS_DEPUIS = '(\d+)px';/.exec(liste);
-    const nombre = /const LARGEUR_ACTIONS_DEPUIS_PX = (\d+);/.exec(liste);
-    expect(px, 'LARGEUR_ACTIONS_DEPUIS introuvable').not.toBeNull();
-    expect(Number(px![1])).toBe(attendu);
-    expect(Number(nombre![1])).toBe(Number(px![1]));
-    // Contre-épreuve : la colonne n'est PAS élargie pour tout le monde — les
-    // écrans sans le bouton garderaient 30 px de trop sur leur dernière
-    // colonne de données, le défaut du 16/09 exactement.
-    expect(attendu).not.toBe(largeur(boutons));
-    expect(liste).toContain('onLireDepuis ? LARGEUR_ACTIONS_DEPUIS : LARGEUR_ACTIONS');
+  it('🔴 20/09/2026 — il n\'y a plus DEUX largeurs', () => {
+    // La seconde constante n'existait que tant que le bouton était optionnel.
+    // La garder avec la même valeur serait la prochaine divergence : deux
+    // chiffres pour une seule vérité, c'est le défaut que ce témoin corrige.
+    expect(liste).not.toContain('LARGEUR_ACTIONS_DEPUIS');
+    expect(liste).not.toContain('onLireDepuis ? LARGEUR_ACTIONS_DEPUIS : LARGEUR_ACTIONS');
   });
 
-  it('CONTRE-ÉPREUVE : à 178 px, le témoin aurait rougi', () => {
-    // Le chiffre d'avant, contre la barre d'aujourd'hui.
+  it('CONTRE-ÉPREUVE : à 178 px comme à 208 px, le témoin aurait rougi', () => {
+    // Les deux chiffres d'avant, contre la barre d'aujourd'hui.
     expect(178).not.toBe(largeur(boutons));
+    expect(208).not.toBe(largeur(boutons));
   });
 });

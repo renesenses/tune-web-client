@@ -70,11 +70,15 @@ describe('#1233 — plus un seul geste muet dans v2', () => {
     expect(coupables, `gestes encore muets : ${coupables.join(', ')}`).toEqual([]);
   });
 
-  it('et les quinze écrans passent par le helper', () => {
+  it('et les seize écrans passent par le helper', () => {
     const avec = fichiersV2.filter((f) => lire(f).includes("from '../../lib/zoneRequise'"));
     // Quinze depuis la phase 5, lot 4 : `YouTubeDecouverteV2` (tendances et
     // ambiances YouTube Music) lance la lecture, donc passe par le helper.
-    expect(avec.length).toBe(15);
+    // Seize depuis le 20/09/2026 : `ListePistesV2` lance elle-même « Lire à
+    // partir d'ici » quand l'écran ne le fournit pas, et ce geste-là doit
+    // réclamer la zone comme les autres.
+    expect(avec.length).toBe(16);
+    expect(avec).toContain('ListePistesV2.svelte');
     expect(avec).toContain('YouTubeDecouverteV2.svelte');
     // L'écran que Bertrand nomme en fait partie.
     expect(avec).toContain('BioEtTitresPhares.svelte');

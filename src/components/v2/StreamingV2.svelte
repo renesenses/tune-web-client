@@ -716,6 +716,14 @@
       const a = {
         id: null, source_id: String(sid), source: svc,
         title: pTitle(p), artist_name: p?.artist_name ?? p?.artist ?? '',
+        // 🔴 #1361 bis — `StreamAlbum` porte `artist_id` (l'identifiant de
+        // l'artiste CHEZ LE SERVICE, `traits.rs:75`) et cette fabrique le
+        // jetait. Sans lui, `destinationArtiste` ne pouvait plus rendre
+        // `artiste-service` : le clic sur le nom repartait en recherche
+        // fédérée, qui peut ne rien trouver et retomber muettement sur
+        // l'écran Recherche. Bertrand, 20/09/2026 : « le click sur Agnes
+        // Obel n'ouvre pas la page artiste ».
+        artist_id: p?.artist_id ?? null,
         cover_path: pCover(p), year: p?.year ?? null,
         format: p?.quality?.codec ?? p?.format ?? null,
         sample_rate: p?.quality?.sample_rate ?? p?.sample_rate ?? null,
@@ -1321,11 +1329,10 @@
   — resultats de recherche, et artistes favoris du compte — a une retombee de
   cover pres ; elles n'en font plus qu'une, qui prend les deux.
 
-  Elle ne portait AUCUNE action : ni lecture, ni ouverture, ni coeur. La
-  lecture et l'ouverture manquent toujours, faute d'un geste a leur donner sur
-  cet ecran ; le coeur, lui, existe pour un artiste distant comme pour un
-  album, et sans lui on ne pouvait pas retirer de sa rangee un artiste qu'on y
-  voyait justement parce qu'il etait en favori.
+  Le coeur retire le favori du compte ; portrait et nom ouvrent maintenant
+  la fiche de service existante (#1178, #1194). Une identité de service
+  incomplète ne fabrique AUCUNE route de service : il reste le nom, et la
+  recherche exacte en bibliothèque — jamais la lecture à la place.
 -->
 {#snippet artiste(ar: any)}
   <!--
@@ -1333,6 +1340,11 @@
     cliquables ». La vignette ne recevait AUCUN geste d'ouverture, et le nom
     était un `<span>`. `artisteDeService` réconcilie au passage `id` et
     `source_id`, que les routes ne nomment pas pareil.
+
+    #1178 / serveur #3864 (JP Robbe, 18/09) demandait le même geste et posait
+    en plus la garde d'identité : un identifiant vide, blanc ou d'un autre
+    type, ou un service vide, ne doit fabriquer AUCUNE route. Cette garde vit
+    désormais dans `artisteDeService`, où le code a été déplacé.
   -->
   {@const cible = artisteDeService(ar, active)}
   <div class="art">
@@ -1568,7 +1580,9 @@
   .flac:disabled{opacity:.5; cursor:default}
   .card{position:relative; display:flex; flex-direction:column}
   /* #1194 — le nom devient un bouton : il garde EXACTEMENT l'allure du texte. */
-  .anbtn{background:none; border:none; padding:0; font:inherit; color:inherit; text-align:inherit; cursor:pointer}
+  /* `width:100%` vient de #1178 (JP Robbe) : le bouton porte le nom sur toute
+     la largeur de la vignette, comme le faisait le `<span>`. */
+  .anbtn{width:100%; background:none; border:none; padding:0; font:inherit; color:inherit; text-align:inherit; cursor:pointer}
   .anbtn:hover{text-decoration:underline}
   /* Point 10 — la date d'un album annoncé, en clair sous son titre. */
   .cp{font:600 11px var(--v2-sans); color:var(--v2-acc2); margin-top:2px}

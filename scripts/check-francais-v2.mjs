@@ -47,7 +47,7 @@
  *  - les chaînes de moins de quatre caractères, trop souvent techniques.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 /** Les répertoires tenus propres. Une entrée s'ajoute APRÈS mesure et correction. */
 const PORTEE = ['src/components/v2', 'src/components/v2-heritage'];
@@ -158,8 +158,119 @@ const INTRADUISIBLE = new RegExp(
   // « Approximatif » et « Échec » qui, eux, sont traduits. Lui fabriquer une
   // clé produirait onze fois la même valeur.
   + 'ISRC|'
-  + 'MOZAIKLABS|Radio France|Crossfeed|Podcasts|Playlists|Studio|Oxygen)+$',
+  // SQLite, PostgreSQL : noms de moteurs, affichés par Réglages › Base (#1295).
+  + 'SQLite|PostgreSQL|'
+  + 'MOZAIKLABS|Radio France|Crossfeed|Podcasts|Playlists?|Studio|Oxygen)+$',
 );
+
+/**
+ * 🔴 QUATRIÈME passe : les littéraux RENDUS par une expression du balisage
+ * (#1295).
+ *
+ *     onclick={() => connectSvc(name)}>{svcBusy === name ? '…' : 'Se connecter'}</button>
+ *
+ * est resté en français dans les onze langues, et aucune des trois passes ne
+ * l'a vu :
+ *  - la PREMIÈRE lit bien le littéral, mais n'y reconnaît pas du français :
+ *    « Se connecter » n'a ni accent ni mot-outil de sa liste ;
+ *  - la TROISIÈME interdit TOUT texte visible hors `$t()` — mais elle ne lit
+ *    que le texte entre deux balises (`>([^<>{}]+)<`) et s'arrête aux
+ *    accolades : une expression `{… ? '…' : '…'}` lui échappe entièrement.
+ *
+ * Cette passe applique la règle de la troisième (tout texte visible passe par
+ * `$t()`, anglais compris) aux littéraux qu'une expression de TEXTE rend :
+ * branches d'un ternaire (`? 'x' : 'y'`), repli (`?? 'x'`, `|| 'x'`).
+ *
+ * Ce qui n'est PAS lu, parce que ça n'atteint pas l'écran comme texte :
+ *  - les expressions d'ATTRIBUT (`class={on ? 'on' : ''}`) — le parcours
+ *    saute l'intérieur des balises ;
+ *  - les blocs `{#if}`, `{:else}`, `{/if}`, `{@html}` ;
+ *  - les gabarits (`\`playlist.${x}\``) : leur texte est une clé en morceaux.
+ *
+ * Ce qui est écarté, comme ailleurs : une clé (`v2.set.copy`, que
+ * `$t(x ? 'a.b' : 'c.d')` passe en branche), les intraduisibles, et un
+ * IDENTIFIANT — un mot seul, sans espace ni accent, commençant par une
+ * minuscule (`'local'`, `'notFound'`) : il indexe une table ou compose une
+ * clé. Risque résiduel, le même que la première passe : un mot affiché, nu,
+ * en minuscules et sans accent (`'inconnu'`) passe.
+ *
+ * Mesuré à l'ajout (19/09/2026) : 19 littéraux dans la portée, TOUS de vrais
+ * textes en dur. « Se connecter » (le défaut de #1295, deux fois) est corrigé ; les
+ * dix-sept autres sont GELÉS dans `DETTE_EXPRESSIONS` ci-dessous — la garde
+ * rougit sur tout littéral NOUVEAU, et sur toute dette qui réapparaît plus
+ * souvent qu'elle n'est gelée. On retire une entrée en la corrigeant ; on
+ * n'en ajoute jamais.
+ */
+function expressionsDeTexte(balisage) {
+  const out = [];
+  const n = balisage.length;
+  // L'index qui suit l'accolade fermante de celle ouverte en `k`, chaînes
+  // et accolades imbriquées comprises.
+  const finAccolade = (k) => {
+    let prof = 0;
+    let q = null;
+    for (let p = k; p < n; p++) {
+      const c = balisage[p];
+      if (q) {
+        if (c === '\\') { p++; continue; }
+        if (c === q) q = null;
+        continue;
+      }
+      if (c === '"' || c === "'" || c === '`') q = c;
+      else if (c === '{') prof++;
+      else if (c === '}' && --prof === 0) return p + 1;
+    }
+    return n;
+  };
+  let i = 0;
+  while (i < n) {
+    const c = balisage[i];
+    if (c === '<' && /[A-Za-z\/!]/.test(balisage[i + 1] ?? '')) {
+      // Dans une balise : ses attributs ne s'affichent pas comme texte.
+      let q = null;
+      let p = i + 1;
+      for (; p < n; p++) {
+        const d = balisage[p];
+        if (q) { if (d === q) q = null; continue; }
+        if (d === '"' || d === "'") q = d;
+        else if (d === '{') p = finAccolade(p) - 1;
+        else if (d === '>') break;
+      }
+      i = p + 1;
+    } else if (c === '{') {
+      const f = finAccolade(i);
+      const expr = balisage.slice(i + 1, f - 1);
+      if (!/^\s*[#:\/@]/.test(expr)) out.push({ index: i + 1, expr });
+      i = f;
+    } else i++;
+  }
+  return out;
+}
+
+/** Littéraux en position de RÉSULTAT : `? 'x'`, `: 'x'`, `?? 'x'`, `|| 'x'`. */
+const RENDU = /(?:\?\?|\|\||[?:])\s*(['"])((?:(?!\1)[^\\\n])*)\1/g;
+
+/**
+ * Dette mesurée le 19/09/2026 — `fichier|texte` → nombre d'occurrences
+ * tolérées. Ne fait que DÉCROÎTRE.
+ */
+const DETTE_EXPRESSIONS = new Map([
+  ['src/components/v2/PlaylistsV2.svelte|Créez-en une avec « Nouvelle playlist ».', 1],
+  ['src/components/v2/PluginsV2.svelte|Installer', 1],
+  ['src/components/v2/SettingsV2.svelte|établie', 1],
+  ['src/components/v2/SettingsV2.svelte|rompue', 1],
+  ['src/components/v2/SettingsV2.svelte|Export…', 3],
+  ['src/components/v2/SettingsV2.svelte|Albums (CSV)', 1],
+  ['src/components/v2/SettingsV2.svelte|Titres (CSV)', 1],
+  ['src/components/v2/SettingsV2.svelte|Artistes (CSV)', 1],
+  ['src/components/v2/SettingsV2.svelte|Activer', 2],
+  ['src/components/v2/SettingsV2.svelte|Désactiver', 1],
+  ['src/components/v2/StreamingV2.svelte|Liaison…', 1],
+  ['src/components/v2/StreamingV2.svelte|Relier', 1],
+  ['src/components/v2-heritage/PlaylistManagerView.svelte|Sync...', 1],
+  ['src/components/v2-heritage/PlaylistManagerView.svelte|Sync', 1],
+]);
+const detteVue = new Map();
 
 for (const f of surveilles()) {
   const src = sansCommentaires(readFileSync(f, 'utf8'));
@@ -200,6 +311,22 @@ for (const f of surveilles()) {
     if (!/[A-Za-zÀ-ÿ]{2}/.test(texte)) continue;
     const ligne = src.slice(0, i + 9 + m.index).split('\n').length;
     fautes.push(`${f}:${ligne}  texte nu (hors $t) : ${texte.replace(/\s+/g, ' ').slice(0, 80)}`);
+  }
+
+  // Quatrième passe (#1295) : voir `expressionsDeTexte`.
+  for (const { index, expr } of expressionsDeTexte(fin)) {
+    for (const m of expr.matchAll(RENDU)) {
+      const texte = m[2].trim();
+      if (texte.length < 2 || !/[A-Za-zÀ-ÿ]{2}/.test(texte)) continue;
+      if (CLE.test(texte) || INTRADUISIBLE.test(texte)) continue;
+      if (/^[a-z][A-Za-z0-9_]*$/.test(texte)) continue;
+      const cle = `${f.split(sep).join('/')}|${texte}`;
+      const deja = (detteVue.get(cle) ?? 0) + 1;
+      detteVue.set(cle, deja);
+      if (deja <= (DETTE_EXPRESSIONS.get(cle) ?? 0)) continue;
+      const ligne = src.slice(0, i + 9 + index + m.index).split('\n').length;
+      fautes.push(`${f}:${ligne}  littéral rendu par une expression (hors $t) : ${texte.slice(0, 80)}`);
+    }
   }
 }
 

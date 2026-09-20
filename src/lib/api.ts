@@ -2283,6 +2283,28 @@ export function getLibraryStats() {
   return fetchJSON<{ tracks: number; albums: number; artists: number }>(`${BASE}/library/stats`);
 }
 
+/**
+ * Les chiffres d'ÉCOUTE — la seconde famille de la ligne de l'accueil
+ * (tune-server-rust#4527).
+ *
+ * `unique_genres` n'existe que depuis #4527 : il est donc OPTIONNEL, et son
+ * absence fait disparaître la carte au lieu de l'afficher à zéro.
+ */
+export function getDashboardStats() {
+  return fetchJSON<{
+    total_listens: number;
+    total_duration_ms: number;
+    unique_tracks: number;
+    unique_artists: number;
+    unique_genres?: number;
+  }>(`${BASE}/dashboard/stats`);
+}
+
+/** Les genres de la bibliothèque — on n'en lit ici que le NOMBRE. */
+export function getGenres() {
+  return fetchJSON<{ name: string; count: number }[]>(`${BASE}/library/genres`);
+}
+
 export function updateAlbum(id: number, data: { title?: string; artist_id?: number; artist_name?: string; year?: number; genre?: string; label?: string; catalog_number?: string }) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`, {
     method: 'PUT',
@@ -3561,11 +3583,54 @@ export function cancelScan() {
 
 /** Instantané des tâches de fond en cours (enrichissements, pochettes, images
  *  d'artistes…). Le direct arrive par l'événement WS `system.background_tasks` ;
- *  cet appel sert au chargement, quand une passe tourne déjà (#2227). */
+ *  cet appel sert au chargement, quand une passe tourne déjà (#2227).
+ *
+ *  Depuis 0.9.159 (serveur #4574) la réponse porte AUSSI l'état suspendable de
+ *  chaque traitement : `pausable[]`, `all_paused`, `scan_pausable`. Ces champs
+ *  sont facultatifs — un serveur plus ancien n'en envoie aucun, et l'écran
+ *  n'affiche alors aucun bouton Pause plutôt qu'un bouton qui rendrait 404. */
 export function getBackgroundTasks() {
-  return fetchJSON<{ tasks: import('./tachesDeFond').TacheDeFond[] }>(
+  return fetchJSON<import('./tachesDeFond').InstantaneTachesDeFond>(
     `${BASE}/system/background-tasks`
   );
+}
+
+/**
+ * Suspendre / reprendre un traitement de fond (serveur #4574).
+ *
+ * `apiPost` et non `fetchVoid` : ces routes rendent le corps COMPLET du
+ * `GET /system/background-tasks`, ce qui évite un second aller-retour pour
+ * redessiner les cartes après le clic. `cancelScan()` juste au-dessus fait
+ * l'inverse parce que le serveur lui répond 204 — les deux contrats sont
+ * différents, et `apiPost` jette sur un corps vide.
+ *
+ * `id` est celui du serveur : `replaygain`, `fingerprints`, `dynamic_range`,
+ * `acoustic`, `enrichment`, `artist_images`. Un identifiant inconnu rend 404.
+ */
+export function pauseBackgroundTask(id: string) {
+  return apiPost(
+    `/system/background-tasks/${encodeURIComponent(id)}/pause`
+  ) as Promise<import('./tachesDeFond').InstantaneTachesDeFond>;
+}
+
+export function resumeBackgroundTask(id: string) {
+  return apiPost(
+    `/system/background-tasks/${encodeURIComponent(id)}/resume`
+  ) as Promise<import('./tachesDeFond').InstantaneTachesDeFond>;
+}
+
+/** L'interrupteur général : suspendre tous les traitements de fond. */
+export function pauseAllBackgroundTasks() {
+  return apiPost('/system/background-tasks/pause-all') as Promise<
+    import('./tachesDeFond').InstantaneTachesDeFond
+  >;
+}
+
+/** L'interrupteur général : tout reprendre. */
+export function resumeAllBackgroundTasks() {
+  return apiPost('/system/background-tasks/resume-all') as Promise<
+    import('./tachesDeFond').InstantaneTachesDeFond
+  >;
 }
 
 export function getBackups() {
@@ -6305,35 +6370,6 @@ export function skipOnboarding() {
   return fetchJSON(`${BASE}/onboarding/skip`, { method: 'POST' });
 }
 
-// --- Offline Manager ---
-export function getOfflineStatus() {
-  return fetchJSON<{ total: number; size_bytes: number; pending: number }>(`${BASE}/offline/status`);
-}
-
-export function getOfflineDownloads() {
-  return fetchJSON<any[]>(`${BASE}/offline/downloads`);
-}
-
-export function downloadForOffline(body: { source: string; source_id: string; type: string }) {
-  return fetchJSON(`${BASE}/offline/download`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
-
-export function removeOfflineDownload(id: string) {
-  return fetchJSON(`${BASE}/offline/downloads/${id}`, { method: 'DELETE' });
-}
-
-export function syncOffline() {
-  return fetchJSON(`${BASE}/offline/sync`, { method: 'POST' });
-}
-
-export function clearOffline() {
-  return fetchJSON(`${BASE}/offline/clear`, { method: 'POST' });
-}
-
 // -- OAAT Multi-Room Groups --
 
 export function getOaatGroups(): Promise<any> {
@@ -6658,11 +6694,72 @@ export async function getBugReportMarkdown(): Promise<string> {
  * `DiagnosticsView` : l'inventaire des capacités, qui ne lit que `api.ts`, ne
  * pouvait pas le voir.
  */
-export function submitBugReport(description: string): Promise<{ status?: string; url?: string; slug?: string }> {
-  return fetchJSON(`${BASE}/system/bug-report/submit`, {
+export interface BugReportEnvoye {
+  status?: string;
+  url?: string;
+  slug?: string;
+  /** Captures que le FORUM dit avoir rangées. `null`/absent sur un service
+   *  antérieur à #4564 : on n'invente alors aucun chiffre. */
+  images?: number | null;
+}
+
+/**
+ * Bornes des captures, alignées sur celles du serveur
+ * (`BUG_REPORT_MAX_IMAGES`, `BUG_REPORT_MAX_IMAGE_BYTES`) et, au bout de la
+ * chaîne, sur celles du forum. Exportées pour que l'écran REFUSE avec la même
+ * règle au lieu d'en écrire une seconde, qui divergerait.
+ */
+export const BUG_REPORT_MAX_IMAGES = 3;
+export const BUG_REPORT_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+
+export async function submitBugReport(
+  description: string,
+  images: File[] = [],
+): Promise<BugReportEnvoye> {
+  // Sans capture : le chemin JSON historique, inchangé (#4564).
+  if (images.length === 0) {
+    return fetchJSON(`${BASE}/system/bug-report/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ description: description.trim() }),
+    });
+  }
+
+  // Avec captures : multipart. `fetchJSON` ne convient pas — il pose
+  // `Content-Type: application/json` dès qu'un corps existe, ce qui priverait
+  // le multipart de sa frontière et ferait refuser l'envoi côté serveur.
+  const form = new FormData();
+  form.append('description', description.trim());
+  for (const f of images) form.append('images[]', f, f.name);
+
+  const token = getToken();
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Accept-Language': acceptLang(),
+    ...profileHeader(),
+    ...entetesRelais(),
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const resp = await fetch(`${BASE}/system/bug-report/submit`, {
     method: 'POST',
-    body: JSON.stringify({ description: description.trim() }),
+    headers,
+    body: form,
   });
+  if (!resp.ok) {
+    // Le serveur compose une PHRASE dans `message` (« … n'est pas une
+    // image. ») et met le code machine dans `error`. `erreurDepuisReponse`
+    // préfère `error` : elle montrerait `image_type` au testeur. On lit donc
+    // `message` en premier ici, là où l'on connaît le contrat.
+    let detail = `${resp.status}`;
+    try {
+      const j = await resp.json();
+      detail = j?.message ?? j?.error ?? detail;
+    } catch { /* corps illisible : le statut reste */ }
+    const err = new Error(String(detail)) as ApiError;
+    err.status = resp.status;
+    throw err;
+  }
+  return resp.json();
 }
 
 // --- Audio Converter ---
