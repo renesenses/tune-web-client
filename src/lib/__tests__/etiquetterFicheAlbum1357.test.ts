@@ -29,8 +29,17 @@ import PlaylistDetailV2 from '../../components/v2/PlaylistDetailV2.svelte';
 import { locale } from '../i18n';
 import lFr from '../locales/fr';
 import type { Album } from '../types';
+// Le panneau est monté par `AlbumDetailV2` à travers un `{#await import(...)}`.
+// L'importer ICI, statiquement, fait payer sa transformation Vite à la
+// COLLECTE — hors du budget d'un cas, et sans chargement paresseux dans un
+// banc, que la garde #1333 interdit à juste titre. Sur une passe complète à
+// douze processus, cette transformation-là se comptait en dizaines de
+// secondes, et le premier cas attendait un panneau pas encore né.
+import '../../components/v2/EtiquettesPanneau.svelte';
 
 vi.setConfig({ testTimeout: 30_000 });
+
+
 
 const fr = lFr as unknown as Record<string, string>;
 const ETIQUETTES = fr['v2.cover.tags'];
@@ -48,17 +57,26 @@ async function souffler(n = 10) {
 }
 
 /**
- * Attend qu'une condition soit vraie, bornée.
+ * Attend qu'une condition soit vraie, bornée PAR LE TEMPS.
  *
  * 🔴 Un nombre fixe de tours ne suffit PAS ici : le panneau est chargé par un
  * `import()` paresseux, et la TOUTE PREMIÈRE résolution passe par la
  * transformation Vite du module — largement plus longue que les suivantes,
  * déjà en cache. Un `souffler(14)` rendait donc le premier témoin du fichier
  * rouge et les suivants verts : un faux rouge d'ordonnancement.
+ *
+ * 🔴 Et un nombre de TOURS n'est pas une durée : 400 tours de `setTimeout(0)`
+ * valent une fraction de seconde sur une machine au repos, et bien plus sous
+ * une passe complète à douze processus. La borne est donc une DURÉE, très en
+ * deçà du `testTimeout` : une machine chargée attend plus longtemps au lieu
+ * d'abandonner plus tôt. C'est ce qui rendait ce banc rouge par intermittence
+ * sur des branches qui n'y touchaient pas.
  */
-async function attendreQue(condition: () => boolean, tours = 400) {
-  for (let i = 0; i < tours && !condition(); i++) { await respirer(); flushSync(); }
+async function attendreQue(condition: () => boolean, limiteMs = 20_000) {
+  const fin = Date.now() + limiteMs;
+  while (!condition() && Date.now() < fin) { await respirer(); flushSync(); }
   flushSync();
+  return condition();
 }
 /** La requête de lecture du panneau est partie : il est ouvert et chargé. */
 const panneauInterroge = () => requetes.some((r) => r.url.includes('/tags/for'));
