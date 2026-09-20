@@ -3538,6 +3538,7 @@ export default {
   "v2.home.editTip": "ウィジェットの追加・削除・並べ替え",
   "v2.home.editHint": "ハンドルをドラッグするとウィジェットを並べ替えられます。×をクリックすると削除できます。",
   "v2.home.allAdded": "すべてのウィジェットがすでにページ上にあります。",
+  "v2.home.alreadyPlaced": "すでにページ上にあります",
   "v2.home.emptyHint": "ページが空です。「編集」に切り替えてウィジェットを追加してください。",
   "v2.home.widgetEmpty": "ここに表示できるものは今のところありません。",
   "v2.home.widgetFailed": "このウィジェットを読み込めませんでした。",
