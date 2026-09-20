@@ -36,6 +36,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
+  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
@@ -63,6 +64,47 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   /** Identifiant distant de l'album, quand il vient d'un service. */
   const sidDistant = $derived(service ? ((album as any).source_id ?? null) : null);
+
+  /**
+   * ÉTIQUETER L'ALBUM DEPUIS SA FICHE.
+   *
+   * Chaque LIGNE de piste avait son bouton d'étiquettes (`PisteActions`),
+   * chaque VIGNETTE d'album aussi (`PochetteActions`) — la fiche de l'album,
+   * elle, n'en avait aucun. Cinq gestes dans sa barre d'actions, et pas un
+   * pour ranger le disque qu'on est justement en train de regarder.
+   *
+   * La désignation est celle que `lib/cibleEtiquette` tient déjà pour tout le
+   * reste du client, et on n'en écrit pas une seconde :
+   *
+   *  - bibliothèque (y compris un serveur UPnP intégré) → l'identifiant ;
+   *  - service, et Bandcamp → la paire `source` + `source_id`. `StreamingV2`
+   *    donne à la fiche Bandcamp `source: 'bandcamp'` et `source_id: <url>` —
+   *    le serveur ne valide QUE l'`item_type` (`TAGGABLE_ITEM_TYPES`), la
+   *    source est une chaîne libre, et `tags.rs` cite Bandcamp en exemple.
+   *
+   * `source` et `source_id` retombent sur les propriétés `service` / `bandcamp`
+   * quand l'album ne les porte pas lui-même : la fiche d'un service ouverte
+   * depuis la Recherche reçoit parfois l'objet nu du service, sans sa source.
+   *
+   * 🔴 UN cas reste NON étiquetable, et le bouton disparaît alors : le DÉPÔT
+   * DISTANT. Son `album.id` est l'identifiant d'un AUTRE serveur Tune ; posé
+   * sur `/tags/{id}/items`, il étiquetterait l'album de la bibliothèque locale
+   * qui porte ce numéro — un inconnu. C'est exactement la garde que
+   * `LibraryV2` applique déjà à ses vignettes (`depot || a.id == null`).
+   */
+  const cibleEtiquettes = $derived<CibleEtiquette | null>(
+    depot
+      ? null
+      : album.id != null
+      ? { itemType: 'album', itemId: album.id }
+      : cibleDeService('album', {
+          ...(album as any),
+          source: (album as any).source ?? service ?? (bandcamp ? 'bandcamp' : null),
+          source_id: (album as any).source_id ?? bandcamp ?? null,
+        }),
+  );
+  /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
+  let etiquettesOuvertes = $state(false);
 
   let tracks = $state<Track[]>([]);
   /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
@@ -740,6 +782,18 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
           </button>
         {/if}
+        <!-- ÉTIQUETTES — même niveau visuel que les autres (`ghost`), et
+             ABSENT quand l'album n'est pas désignable (dépôt distant, album
+             sans identifiant ni paire) : voir `cibleEtiquettes`. Un bouton
+             absent ne promet rien, un bouton qui échoue à l'usage si. -->
+        {#if cibleEtiquettes}
+          <button class="ghost" onclick={() => (etiquettesOuvertes = true)}
+            aria-haspopup="dialog" aria-expanded={etiquettesOuvertes}
+            title={$tr('v2.cover.tags' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
+            {$tr('v2.cover.tags' as any)}
+          </button>
+        {/if}
       </div>
       <!-- Album LOCAL seulement : ces trois gestes travaillent sur la fiche de
            la bibliothèque. -->
@@ -807,6 +861,16 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   </div>
 </div>
 
+<!-- Le PANNEAU partagé, chargé à la demande — exactement ce que fait
+     `PochetteActions` depuis la vignette. Il se pose lui-même en surcouche
+     (`use:portail`), donc hors du cadre défilant de la fiche. -->
+{#if etiquettesOuvertes && cibleEtiquettes}
+  {#await import('./EtiquettesPanneau.svelte') then m}
+    <m.default cible={cibleEtiquettes} nom={album.title}
+      onClose={() => (etiquettesOuvertes = false)} />
+  {/await}
+{/if}
+
 <style>
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
@@ -840,7 +904,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
      jeton de couleur, et sans peser sur la ligne. Une mesure d'album ne porte
      aucune marque : c'est la valeur nue. */
   .dr.deduit{text-decoration:underline dotted currentColor; text-underline-offset:3px; text-decoration-thickness:1px}
-  .actions{display:flex; gap:12px; margin-top:8px}
+  /* `flex-wrap` : la rangée ne se coupait PAS, et à largeur de téléphone les
+     cinq boutons débordaient déjà du cadre — en ajouter un sixième aurait
+     poussé le cœur dehors. La seconde rangée (`.actions.local`) enroulait
+     depuis toujours ; celle-ci n'avait simplement jamais reçu la règle.
+     Sans effet au-dessus du seuil de débordement : l'écran large garde sa
+     ligne unique. */
+  .actions{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:8px}
   .actions.local{flex-wrap:wrap; align-items:center}
   .play,.ghost{display:inline-flex; align-items:center; gap:9px; height:44px; padding:0 20px; border-radius:var(--v2-r-pill);
     font:700 14px var(--v2-sans); cursor:pointer; border:0}
