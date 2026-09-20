@@ -501,7 +501,8 @@ export function demarrerTransportV2(): () => void {
        * complète et réécrivait `queueTracks` en bloc. Alex Campbell,
        * 20/09/2026, playlist Qobuz de 1454 titres : « that seems to break my
        * session ». Mesuré sur sa file : onze événements d'une lecture
-       * ordinaire, sept rechargements, 336 Ko chacun.
+       * ordinaire, huit rechargements complets, 336 Ko chacun — 2688 Ko pour
+       * une lecture qui n'a rien changé à la file.
        *
        * L'ancienne interface l'évitait explicitement, et le disait :
        * « no fetchQueue() here — playback.started/track_changed already

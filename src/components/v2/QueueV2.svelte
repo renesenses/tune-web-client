@@ -164,7 +164,7 @@
    * Alex Campbell, 20/09/2026, playlist Qobuz de 1454 titres : « that seems to
    * break my session ». Cet écran rendait les 1453 lignes restantes, chacune
    * avec sa pochette, sa ligne technique et sa barre d'actions. Mesuré :
-   * 1453 lignes, 3 706 ms de fil principal bloqué — et il repartait à chaque
+   * 1453 lignes, 3 914 ms de fil principal bloqué — et il repartait à chaque
    * rechargement de la file.
    *
    * L'ancienne interface tenait la sienne par du confinement CSS

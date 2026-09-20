@@ -7,7 +7,7 @@
  * `QueueV2.svelte` rendait toutes les lignes restantes de la file. Sur la
  * playlist Qobuz de 1454 titres d'Alex Campbell (20/09/2026), cela fait 1453
  * lignes — chacune avec sa pochette, sa ligne technique et sa barre d'actions
- * — construites d'un seul tenant : 3,7 s de fil principal bloqué à chaque
+ * — construites d'un seul tenant : 3,9 s de fil principal bloqué à chaque
  * rendu, mesuré. Refs #1126.
  *
  * Le confinement CSS (`content-visibility: auto`) que porte l'ancien écran
@@ -51,7 +51,7 @@ export const MARGE_LIGNES = 12;
  * Le premier rendu a lieu avant que l'élément soit dans le document : son
  * `clientHeight` vaut alors zéro. Rendre la liste entière « en attendant »
  * annulerait tout le bénéfice — c'est précisément ce premier rendu qui coûte
- * 3,7 s. On suppose donc un grand écran, ce qui donne une fenêtre généreuse,
+ * 3,9 s. On suppose donc un grand écran, ce qui donne une fenêtre généreuse,
  * corrigée dès la première mesure réelle.
  */
 export const HAUTEUR_VUE_PAR_DEFAUT = 1000;
