@@ -374,14 +374,35 @@
     if (youtubePollingInterval) clearInterval(youtubePollingInterval);
   }
 
+  /**
+   * Sortir de l'assistant — en le terminant ou en le passant.
+   *
+   * 🔴 Le drapeau local ne suffit PAS, et c'est ce qui a produit le défaut
+   * mesuré sur le .18 le 20/09/2026 : `tune_onboarding_completed` est propre
+   * à l'appareil, le serveur n'apprenait donc jamais que l'assistant avait
+   * été mené à son terme. `onboarding_complete` restait faux, et le navigateur
+   * suivant — un téléphone, un profil neuf — se voyait proposer l'assistant
+   * de première installation d'un serveur vieux de plusieurs mois.
+   *
+   * `api.onboardingStep()` et `api.skipOnboarding()` étaient écrits depuis le
+   * premier jour, et sans aucun appelant : le classique « écrit mais pas
+   * branché ». Les voici branchés.
+   *
+   * 🔴 L'ordre compte. Le drapeau local se pose d'ABORD et l'aller-retour est
+   * un envoi, pas une condition : l'assistant se ferme même si le serveur
+   * refuse ou ne répond pas. On ne retient personne dans un assistant fini à
+   * cause d'un aller-retour réseau.
+   */
   function finishOnboarding() {
     localStorage.setItem('tune_onboarding_completed', 'true');
+    api.onboardingStep('complete').catch(() => { /* le drapeau local a déjà tranché */ });
     activeView.set('library');
     onComplete();
   }
 
   function skipOnboarding() {
     localStorage.setItem('tune_onboarding_completed', 'true');
+    api.skipOnboarding().catch(() => { /* le drapeau local a déjà tranché */ });
     onComplete();
   }
 

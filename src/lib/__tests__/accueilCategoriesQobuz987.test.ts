@@ -66,7 +66,11 @@ describe('#987 — branchement : l’accueil apprend, PageWidgets retient', () =
     // `parId` et `disponibles` lisent le catalogue COMPLET, appris compris.
     expect(src).toContain('const catalogueComplet = $derived([...catalogue, ...appris]);');
     expect(src).toContain('const parId = (id: string) => catalogueComplet.find((w) => w.id === id);');
-    expect(src).toContain('const disponibles = $derived(catalogueComplet.filter((w) => !disposition.includes(w.id)));');
+    // #1059 — la répartition a remplacé le filtre en place (déjà posés et
+    // identifiants inconnus du catalogue sont désormais nommés, pas tus).
+    // Ce qui compte ici est INCHANGÉ : elle lit le catalogue COMPLET.
+    expect(src).toContain('const reparti = $derived(repartirWidgets(catalogueComplet, disposition));');
+    expect(src).toContain('const disponibles = $derived(reparti.disponibles);');
     // Et aucun effet n'appelle `chargerWidget` — la règle de la page tient.
     expect(/\$effect\(\(\) => \{[^}]*chargerWidget/.test(src)).toBe(false);
   });

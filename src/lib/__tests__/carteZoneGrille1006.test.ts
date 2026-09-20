@@ -16,7 +16,11 @@ import { dictionnaire } from './onzeDictionnaires';
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const ecran = lire('src/components/v2/ZonesV2.svelte');
 const debut = ecran.indexOf('<div class="grille">');
-const carte = ecran.slice(debut, ecran.indexOf('{:else}', debut)).replace(/<!--[\s\S]*?-->/g, '');
+// 🔴 La carte se termine au `{/each}` de la grille, PAS au premier `{:else}` :
+// depuis que la vignette a un repli (`{#if pochette}…{:else}…{/if}`, #1394), un
+// `{:else}` apparaît AVANT la fin de la carte, et couper là amputait le balisage
+// — la garde cherchait alors `cpick` dans un fragment qui s'arrêtait plus haut.
+const carte = ecran.slice(debut, ecran.indexOf('{/each}', debut)).replace(/<!--[\s\S]*?-->/g, '');
 const sansCommentaires = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 describe('#1006 — la carte de zone en grille', () => {
@@ -28,7 +32,7 @@ describe('#1006 — la carte de zone en grille', () => {
     expect(dedans).not.toContain('<button');
     expect(dedans).not.toContain('<a ');
     expect(carte).toContain('<button class="cpoch"');
-    expect(carte).toContain('<button class="creg"');
+    expect(carte).toContain('<MenuZone entrees={entreesDe(z)}');
   });
   it('🔴 la pochette de ce qui joue ouvre Lecture en cours SUR cette zone', () => {
     expect(carte).toContain('onclick={() => ouvrirLecture(z)}');
@@ -39,7 +43,9 @@ describe('#1006 — la carte de zone en grille', () => {
     expect(fn).toContain("activeView.set('nowplaying');");
   });
   it('🔴 le lien vers les réglages vise CETTE zone, et les Réglages la mettent en avant', () => {
-    expect(carte).toContain('onclick={() => reglagesDeLaZone(z)}');
+    // #1392 — le chemin vers les réglages de la zone n'est plus un bouton nu
+    // sur la carte : c'est une ENTRÉE du menu, la même dans les deux vues.
+    expect(sansCommentaires(ecran)).toContain('reglages: () => reglagesDeLaZone(z),');
     expect(ecran).toContain("v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined });");
     const reglages = lire('src/components/v2/SettingsV2.svelte');
     expect(reglages).toContain('cibleZone = target.zone ?? null;');

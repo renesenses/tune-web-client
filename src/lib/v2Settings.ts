@@ -175,7 +175,11 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     icon: 'M3 5h18v11H3zM8 20h8M12 16v4',
     sections: [
       { id: 'displayPrefs', titleKey: 'settings.tabDisplay', from: 'general', min: 'beginner',
-        keywords: ['affichage', 'pochettes', 'mosaïque', 'collections', 'densité', 'grille'] },
+        keywords: ['affichage', 'pochettes', 'mosaïque', 'collections', 'densité', 'grille',
+          // #4368 : le réglage se cherche par ce qu'il touche — « autres
+          // versions » — et par les noms de services que l'utilisateur voit
+          // sur les tuiles, pas par le mot « ordre » tout seul.
+          'versions', 'autres versions', 'ordre', 'source', 'qobuz', 'bandcamp'] },
     ],
   },
   {

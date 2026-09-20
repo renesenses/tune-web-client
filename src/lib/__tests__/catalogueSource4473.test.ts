@@ -53,11 +53,10 @@ describe('#4473 — les deux choix se voient côte à côte', () => {
     ]);
   });
 
-  it('🔴 seul le chemin des ALBUMS sait aller au catalogue', () => {
-    // Le chemin des PISTES ignore le préfixe : il traduirait la règle en
-    // `source = 'catalogue:qobuz'` et rendrait zéro piste, sans un mot. Le
-    // proposer là serait refaire #1231 — une case qui promet ce que le moteur
-    // ne rend pas. Par défaut, donc, PAS de catalogue.
+  it('🔴 le drapeau reste OPTIONNEL : un écran dont le moteur ne suit pas se tait', () => {
+    // `avecCatalogue` dit que le moteur SAIT honorer la valeur. Proposer une
+    // case qu'il ignore, c'est refaire #1231. Par défaut, donc, pas de
+    // catalogue — les deux éditeurs, eux, le demandent explicitement.
     expect(sourcesDisponibles({ qobuz: statut(true) })).toEqual(['local', 'upnp', 'qobuz']);
   });
 
@@ -189,37 +188,97 @@ describe('#4473 — l’éditeur de COLLECTIONS propose le catalogue', () => {
   });
 });
 
-describe('#4473 — l’éditeur de PLAYLISTS ne le propose PAS', () => {
+// 🔴 Second volet de #4473 — le cas d'ORIGINE, `Test Qobuz Coltrane`, est une
+// PLAYLIST. Le serveur y va désormais au catalogue
+// (`smart_playlists::avec_pistes_de_catalogue`) ; l'éditeur doit donc offrir le
+// choix, et non plus dire qu'il ne rendra rien.
+describe('#4473 — l’éditeur de PLAYLISTS le propose AUSSI', () => {
   const vue = sansCommentaires(lire('src/components/v2/PlaylistSmartEditeurV2.svelte'));
 
-  it('🔴 il demande la liste SANS catalogue', () => {
-    expect(vue).toContain('sourcesDisponibles(statutsServices, r.value)');
-    expect(vue).not.toContain('sourcesDisponibles(statutsServices, r.value, true)');
+  it('🔴 il demande la liste AVEC les entrées de catalogue', () => {
+    expect(vue).toContain('sourcesDisponibles(statutsServices, r.value, true)');
   });
 
-  it('🔴 et une valeur `catalogue:` héritée est dite inopérante ici', () => {
-    // Sans cette phrase, la règle se lirait comme les favoris et rendrait 0
-    // piste sans explication — le défaut de #1231, à l'identique.
-    expect(vue).toContain("{#if serviceDuCatalogue(r.value ?? '')}");
-    expect(vue).toContain("$t('v2.smart.catalogueHorsPlaylist' as any)");
-    expect(vue).not.toContain('v2.smart.sourceCatalogueAide');
+  it('le choix porte son libellé traduit', () => {
+    expect(vue).toContain("$t('v2.smart.sourceCatalogue' as any)");
+  });
+
+  it('la branche catalogue passe AVANT celle des favoris, et dit quoi chercher', () => {
+    const cat = vue.indexOf("{#if serviceDuCatalogue(r.value ?? '')}");
+    const fav = vue.indexOf("{:else if estSourceDeService(r.value ?? '')}");
+    expect(cat, 'branche catalogue absente').toBeGreaterThan(-1);
+    expect(fav, 'branche favoris absente').toBeGreaterThan(-1);
+    expect(cat).toBeLessThan(fav);
+    expect(vue).toContain('v2.smart.sourceCatalogueAide');
+  });
+
+  it('🔴 l’avertissement est CALCULÉ, et lit les règles comme des PISTES', () => {
+    // `'piste'` n'est pas un détail : sans lui, « catalogue Qobuz + titre =
+    // Giant Steps » passerait ici (titre lu comme un album) et le serveur le
+    // refuserait après coup.
+    expect(vue).toContain("const catalogueSansCible = $derived(manqueUneCible(regles, 'piste'));");
+    expect(vue).toContain('{#if catalogueSansCible}');
+    expect(vue).toContain("$t('v2.smart.catalogueSansCible' as any)");
+  });
+
+  it('🔴 la phrase « le catalogue ne marche pas ici » a disparu partout', () => {
+    // Elle est devenue fausse. Une phrase périmée est pire qu'absente : elle
+    // dissuade d'une source qui fonctionne.
+    expect(vue).not.toContain('catalogueHorsPlaylist');
+  });
+});
+
+describe('#4473 — `title` ne veut pas dire la même chose des deux côtés', () => {
+  it('🔴 dans une COLLECTION, `title` est le titre de l’ALBUM', () => {
+    expect(cibleDuCatalogue([{ field: 'title', op: '=', value: 'Blue Train' }], 'album')).toBe(
+      'Blue Train',
+    );
+  });
+
+  it('🔴 dans une PLAYLIST, `title` est le titre de la PISTE : jamais une cible', () => {
+    // `regles_sql::colonne_piste` le traduit par `t.title`. Aucun service ne
+    // cherche « la piste intitulée X » dans tout son catalogue ; le serveur
+    // s'en sert pour TRIER ce que l'artiste ou l'album a rendu.
+    expect(cibleDuCatalogue([{ field: 'title', op: '=', value: 'Giant Steps' }], 'piste')).toBeNull();
+    expect(
+      manqueUneCible(
+        [
+          { field: 'source', op: '=', value: 'catalogue:qobuz' },
+          { field: 'title', op: '=', value: 'Giant Steps' },
+        ],
+        'piste',
+      ),
+    ).toBe('qobuz');
+  });
+
+  it('l’album nommé reste une cible des deux côtés', () => {
+    for (const objet of ['album', 'piste'] as const) {
+      expect(cibleDuCatalogue([{ field: 'album', op: '=', value: 'Blue Train' }], objet)).toBe(
+        'Blue Train',
+      );
+      expect(cibleDuCatalogue([{ field: 'artist', op: '=', value: 'Coltrane' }], objet)).toBe(
+        'Coltrane',
+      );
+    }
   });
 });
 
 describe('#4473 — les onze langues', () => {
   const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
 
-  it('les quatre libellés existent partout', () => {
+  it('les trois libellés existent partout', () => {
     for (const l of LANGUES) {
       const src = lire(`src/lib/locales/${l}.ts`);
       for (const k of [
         '"v2.smart.sourceCatalogue":',
         '"v2.smart.sourceCatalogueAide":',
         '"v2.smart.catalogueSansCible":',
-        '"v2.smart.catalogueHorsPlaylist":',
       ]) {
         expect(src, `${l} — ${k}`).toContain(k);
       }
+      // 🔴 Retirée du même geste : elle disait que le catalogue ne marche pas
+      // dans une playlist, ce qui est faux depuis le second volet.
+      expect(src, `${l} — clé périmée`).not.toContain('"v2.smart.catalogueHorsPlaylist":');
     }
   });
 
