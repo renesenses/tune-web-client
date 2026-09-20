@@ -125,3 +125,88 @@ describe('trierEtFiltrer — filtre', () => {
     expect(tous).toEqual(avant);
   });
 });
+
+// ---------------------------------------------------------------------------
+// La date LOCALE prime — renesenses/tune-web-client#1060
+// ---------------------------------------------------------------------------
+
+/**
+ * 🔴 Fabien, fils forum 1812 puis 1839, mot pour mot : « Menu Favoris - Qobuz:
+ * tri par ajout récent ne fonctionne pas. C'est l'ordre alphabétique qui est
+ * pris en compte. »
+ *
+ * Le tri n'est pas en cause — c'est la DONNÉE. Mesure du 19/09/2026 sur le
+ * serveur de Bertrand : vingt et un favoris Qobuz, vingt et un `created_at`
+ * distincts, tous dans une fenêtre de SEIZE SECONDES (2026-09-16T08:11:50Z …
+ * 08:12:06Z). `created_at` est la date du SERVICE : l'instant où une recopie a
+ * (re)créé le favori chez Qobuz, pas celui où l'auditeur a aimé le morceau.
+ * Trier là-dessus rend l'ordre d'une boucle, et des dates égales retombent sur
+ * `comparerTitres` — l'ordre alphabétique qu'il décrit.
+ *
+ * Le serveur pose désormais `first_seen_at` : la date où TUNE a vu le favori
+ * pour la première fois, jamais réécrite par une resynchronisation
+ * (renesenses/tune-server-rust, lot `batch/favoris-date-locale-20260920`). Le
+ * tri la PRÉFÈRE quand elle est là, et retombe sur celle du service sinon —
+ * un serveur plus ancien ne la rend pas, et l'écran doit continuer à ranger
+ * comme avant.
+ */
+const vuLe = (title: string, first_seen_at: string | null, created_at: string) => ({
+  id: null, title, source: 'qobuz', first_seen_at, created_at,
+});
+
+describe('dateDe — la date locale prime sur celle du service (#1060)', () => {
+  it('lit `first_seen_at` quand le serveur la donne', () => {
+    expect(dateDe(vuLe('x', '2026-03-01T10:00:00Z', '2026-09-16T08:11:50Z')))
+      .toBe(Date.parse('2026-03-01T10:00:00Z'));
+  });
+
+  it('retombe sur `created_at` quand elle est absente, nulle ou illisible', () => {
+    const service = Date.parse('2026-09-16T08:11:50Z');
+    expect(dateDe({ id: null, title: 'x', created_at: '2026-09-16T08:11:50Z' })).toBe(service);
+    expect(dateDe(vuLe('x', null, '2026-09-16T08:11:50Z'))).toBe(service);
+    expect(dateDe({ ...vuLe('x', null, '2026-09-16T08:11:50Z'), first_seen_at: 'pas une date' }))
+      .toBe(service);
+  });
+
+  it('ne change rien à un objet de bibliothèque', () => {
+    expect(dateDe(locale)).toBe(1418673220 * 1000);
+  });
+});
+
+describe('trierEtFiltrer — « Ajout récent » (#1060)', () => {
+  // Le cas de Fabien, réduit à trois : le service les a tous recréés dans la
+  // même seconde, Tune les a vus à des mois d'écart.
+  const recopies = [
+    vuLe('Aaa, vu en septembre', '2026-09-01T09:00:00Z', '2026-09-16T08:11:50Z'),
+    vuLe('Bbb, vu en janvier', '2026-01-01T09:00:00Z', '2026-09-16T08:11:50Z'),
+    vuLe('Ccc, vu en juin', '2026-06-01T09:00:00Z', '2026-09-16T08:11:50Z'),
+  ];
+
+  it('range sur la date locale, pas sur l’alphabet', () => {
+    // Sans elle, les trois dates de service sont ÉGALES et le départage est
+    // alphabétique : Aaa, Bbb, Ccc — exactement ce que Fabien voit.
+    expect(trierEtFiltrer(recopies, null, 'recent').map(titreDe)).toEqual([
+      'Aaa, vu en septembre', 'Ccc, vu en juin', 'Bbb, vu en janvier',
+    ]);
+    expect(trierEtFiltrer(recopies, null, 'ancien').map(titreDe)).toEqual([
+      'Bbb, vu en janvier', 'Ccc, vu en juin', 'Aaa, vu en septembre',
+    ]);
+  });
+
+  it('un serveur qui ne rend pas la date locale range comme avant', () => {
+    const avant = [
+      { id: null, title: 'Zzz', source: 'qobuz', created_at: '2026-09-16T08:12:06Z' },
+      { id: null, title: 'Aaa', source: 'qobuz', created_at: '2026-09-16T08:11:50Z' },
+    ];
+    expect(trierEtFiltrer(avant, null, 'recent').map(titreDe)).toEqual(['Zzz', 'Aaa']);
+  });
+
+  it('mélange les deux : chaque favori est rangé sur la date qu’il porte', () => {
+    const melange = [
+      vuLe('Locale', '2026-05-01T09:00:00Z', '2026-09-16T08:11:50Z'),
+      { id: null, title: 'Service seul', source: 'tidal', created_at: '2026-07-01T09:00:00Z' },
+    ];
+    expect(trierEtFiltrer(melange, null, 'recent').map(titreDe))
+      .toEqual(['Service seul', 'Locale']);
+  });
+});

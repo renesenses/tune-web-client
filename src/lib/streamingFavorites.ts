@@ -237,6 +237,13 @@ export interface PlaylistFavorite {
    */
   favorite_added_at?: string | null;
   created_at?: string | null;
+  /**
+   * Date de PREMIÈRE VUE par Tune (#1060), jamais réécrite par une
+   * resynchronisation. Absente d'un serveur d'avant le lot
+   * `batch/favoris-date-locale-20260920` ; `dateDe` retombe alors sur
+   * `created_at`.
+   */
+  first_seen_at?: string | null;
 }
 
 /** Forme minimale d'une ligne de `streaming_favorites`, tous types confondus. */
@@ -250,6 +257,8 @@ interface FavoriDeService {
    *  déclare depuis #2001 et le serveur la rend — elle se perdait au passage
    *  de type, avant même d'atteindre la fusion. */
   created_at?: string | null;
+  /** #1060 : la date locale, même chemin et même piège que ci-dessus. */
+  first_seen_at?: string | null;
 }
 
 /**
@@ -306,6 +315,7 @@ export function fusionnerPlaylistsFavorites(
       source: service,
       source_id: serviceId,
       created_at: f.created_at ?? null,
+      first_seen_at: f.first_seen_at ?? null,
     });
   }
   return out;

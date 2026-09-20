@@ -4094,6 +4094,21 @@ export interface StreamingFavorite {
    * Mesuré sur le .18 le 04/09/2026.
    */
   created_at?: string | null;
+  /**
+   * Quand TUNE a vu ce favori pour la première fois, en ISO — jamais réécrite
+   * (renesenses/tune-web-client#1060).
+   *
+   * `created_at` est la date du SERVICE, et le service la REFAIT : mesure du
+   * 19/09/2026 sur le .18, vingt et un favoris Qobuz portant vingt et une
+   * dates distinctes réparties sur seize secondes — l'instant où une recopie
+   * les a recréés chez Qobuz, pas celui où l'auditeur a aimé les morceaux. Le
+   * tri « Ajout récent » y lisait l'ordre d'une boucle.
+   *
+   * Champ ADDITIF : `created_at` n'a pas bougé, et un serveur antérieur au lot
+   * `batch/favoris-date-locale-20260920` ne rend pas celui-ci. `dateDe`
+   * préfère cette date-ci quand elle est là et retombe sur l'autre sinon.
+   */
+  first_seen_at?: string | null;
 }
 
 export function getProfileStreamingFavorites(
