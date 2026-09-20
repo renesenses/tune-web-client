@@ -88,6 +88,25 @@ function allerA(el: HTMLElement, mode: string) {
   throw new Error(`le mode « ${mode} » n’est pas atteignable`);
 }
 
+/**
+ * Attend qu'une condition soit vraie, plutôt qu'un délai fixe.
+ *
+ * 🔴 UNE ATTENTE EN MILLISECONDES EST UN FAUX ROUGE QUI DORT. Ce fichier monte
+ * l'écran entier de la Bibliothèque ; sous la charge d'une suite complète, le
+ * même montage a pris 60 ms une fois et plus de six secondes une autre. Un
+ * `setTimeout` fixe rend alors un échec qui ne dit rien du code — exactement
+ * ce que `etiquetterFicheAlbum1357` a coûté ailleurs.
+ */
+async function attendreQue(predicat: () => boolean, limite = 4000): Promise<void> {
+  const fin = Date.now() + limite;
+  while (Date.now() < fin) {
+    flushSync();
+    if (predicat()) return;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  flushSync();
+}
+
 /** Pose sur un nœud les dimensions que le navigateur rendrait. */
 function mesurer(el: Element, d: Record<string, number>) {
   for (const [k, v] of Object.entries(d)) {
@@ -278,7 +297,11 @@ describe('#929 — le suivi ne coûte rien, même sur 4 338 albums', () => {
 describe('#929 — sur l’écran monté, la marque « centré » suit le défilement', () => {
   async function carrouselOuvert() {
     const el = await ecranMonte();
+    await attendreQue(() => !!el.querySelector('.card, .lrow'));
     allerA(el, 'carousel');
+    // On attend que la bande soit PEINTE et qu'un album y soit désigné : le
+    // marquage passe par une trame, et le montage peut être lent sous charge.
+    await attendreQue(() => !!el.querySelector('.ccard.centre'));
     const bande = el.querySelector<HTMLElement>('.carrou');
     expect(bande, 'pas de carrousel monté').not.toBeNull();
     return { el, bande: bande! };
@@ -306,8 +329,7 @@ describe('#929 — sur l’écran monté, la marque « centré » suit le défil
     const g = geometrieCarrousel(bande.clientWidth, bande.parentElement?.clientHeight ?? 0);
     mesurer(bande, { scrollLeft: g.pas * 6 });
     bande.dispatchEvent(new Event('scroll'));
-    await new Promise((r) => setTimeout(r, 60));
-    flushSync();
+    await attendreQue(() => cartes.indexOf(el.querySelector('.ccard.centre')!) !== avant);
 
     const apres = cartes.indexOf(el.querySelector('.ccard.centre')!);
     expect(apres, 'la marque n’a pas bougé : elle ne suit pas le défilement').toBeGreaterThan(avant);
@@ -364,7 +386,9 @@ describe('#929 — agrandir sans repousser les voisines', () => {
 describe('#929 — le rail A–Z suit l’orientation de ce qu’il désigne', () => {
   it('🔴 en carrousel, le rail se couche SOUS la bande', async () => {
     const el = await ecranMonte();
+    await attendreQue(() => !!el.querySelector('.card, .lrow'));
     allerA(el, 'carousel');
+    await attendreQue(() => !!el.querySelector('.carrou'));
 
     const rail = el.querySelector<HTMLElement>('.rail');
     expect(rail, 'le rail A–Z a disparu du carrousel').not.toBeNull();
@@ -405,6 +429,7 @@ describe('#929 — le rail A–Z suit l’orientation de ce qu’il désigne', (
 describe('#929 — la bascule dit où l’on est, et combien il y a de crans', () => {
   it('🔴 trois pastilles sur la vue Albums, dont une seule allumée, sur le mode courant', async () => {
     const el = await ecranMonte();
+    await attendreQue(() => !!el.querySelector('.card, .lrow'));
     const points = () => [...bascule(el).querySelectorAll('.vpts i')];
 
     expect(points().length, 'rien n’indique qu’il existe un troisième cran').toBe(3);
@@ -417,10 +442,9 @@ describe('#929 — la bascule dit où l’on est, et combien il y a de crans', (
 
   it('🔴 deux pastilles là où il n’y a que deux crans', async () => {
     const el = await ecranMonte();
+    await attendreQue(() => !!el.querySelector('button.tab[data-onglet="recent"]'));
     el.querySelector<HTMLButtonElement>('button.tab[data-onglet="recent"]')!.click();
-    flushSync();
-    await attendre();
-    flushSync();
+    await attendreQue(() => bascule(el).querySelectorAll('.vpts i').length === 2);
     expect(
       bascule(el).querySelectorAll('.vpts i').length,
       'la bascule annonce trois crans là où elle n’en offre que deux',
