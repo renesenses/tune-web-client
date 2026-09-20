@@ -5,10 +5,10 @@
   import { currentZone } from '../../lib/stores/zones';
   import { dialogs } from '../../lib/stores/dialogs';
   import { tip } from '../../lib/tooltip';
-  import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, stopSeekTimer, nowPlayingToTrack } from '../../lib/stores/nowPlaying';
+  import { seekPositionMs, currentTrack, playbackState, shuffleEnabled, repeatMode, nowPlayingToTrack } from '../../lib/stores/nowPlaying';
   import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
   import type { QueueSheetState } from '../../lib/stores/queue';
-  import { currentZoneId, zones } from '../../lib/stores/zones';
+  import { currentZoneId } from '../../lib/stores/zones';
   import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality } from '../../lib/utils';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../../lib/npWheelGesture';
   import { largeurReserveeFileAttente } from '../../lib/fileAttenteReserve';
@@ -1538,24 +1538,29 @@
 
   let qsClearingQueue = $state(false);
 
+  /**
+   * 🔴 Vider la file NE COUPE PLUS la lecture (règle de Bertrand, 20/09/2026).
+   *
+   * Ce chemin-ci faisait pire que d'appeler la route qui arrêtait : il
+   * REPEIGNAIT l'écran en « arrêté » — piste courante à `null`, état
+   * `stopped`, chrono remis à zéro, panneau replié. Même une fois le serveur
+   * corrigé, l'utilisateur aurait vu une lecture arrêtée pendant qu'elle
+   * continuait.
+   *
+   * On relit donc la file au serveur au lieu de la deviner : après
+   * `keep_current`, il reste la piste en cours, sa position et ce qui la
+   * précède — pas une file vide. Et on ne touche ni à l'état de la zone, ni
+   * au chrono, ni au panneau : rien ne s'est arrêté.
+   */
   async function qsHandleClearQueue() {
     if (zone?.id == null) return;
     if (!zone?.id || $queueTracks.length === 0) return;
     qsClearingQueue = true;
     try {
       await api.clearQueue(zone.id);
-      queueTracks.set([]);
-      queuePosition.set(0);
-      const zoneId = zone.id;
-      zones.update((zs) =>
-        zs.map((z) => {
-          if (z.id !== zoneId) return z;
-          return { ...z, current_track: null, state: 'stopped' as const, position_ms: 0 };
-        })
-      );
-      stopSeekTimer();
-      seekPositionMs.set(0);
-      queueSheetState = 'collapsed';
+      const qs = await api.getQueue(zone.id);
+      queueTracks.set(qs.tracks);
+      queuePosition.set(qs.position);
     } catch (e) {
       console.error('Queue sheet clear error:', e);
       notifications.error($t('nowplaying.clearQueueError'));
@@ -2409,7 +2414,7 @@
             <button class="qs-action-btn" onclick={qsHandleSaveAsPlaylist} disabled={qsSavingQueue} title={$t('nowplaying.saveAsPlaylist')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /></svg>
             </button>
-            <button class="qs-action-btn qs-clear-btn" onclick={qsHandleClearQueue} disabled={qsClearingQueue} title={$t('nowplaying.clearQueue')}>
+            <button class="qs-action-btn qs-clear-btn" onclick={qsHandleClearQueue} disabled={qsClearingQueue} title={`${$t('nowplaying.clearQueue')} — ${$t('queue.clearTip')}`}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
             </button>
           {/if}
