@@ -655,10 +655,49 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    * La source effective est le SERVICE de la fiche : `album.source` est nul
    * sur un album servi par `/streaming/qobuz/…`.
    */
+  /**
+   * 🔴 L'ARTISTE REPLIÉ SUR LES PISTES — #1361 bis, Bertrand le 20/09/2026 :
+   * « le click sur Agnes Obel n'ouvre pas la page artiste ».
+   *
+   * La cause première est ailleurs (les fabriques d'album de service jetaient
+   * `artist_id`, et celle de la coquille ne portait même pas le nom), et elle
+   * est réparée là-bas. Ce repli est le FILET : cette fiche est montée par
+   * DIX écrans, et le onzième qui oubliera un champ ne doit pas faire
+   * réapparaître un nom mort.
+   *
+   * ⚠️ Il exige l'UNANIMITÉ des pistes. Un album n'a qu'un artiste d'album,
+   * et `tracks[0]` serait faux sur une compilation ou un coffret — Bertrand,
+   * 19/09/2026 : « les compilations et les coffrets ne sont pas parfaitement
+   * gérés mais cela est corrigé à la main ». Une seule piste qui diffère, ou
+   * une seule sans identifiant, et on renonce : pas de lien plutôt qu'un lien
+   * qui mène ailleurs.
+   */
+  const artisteReplie = $derived.by(() => {
+    const propre = album.artist_id;
+    if (propre != null && String(propre).trim() !== '') return null;
+    if (!tracks.length) return null;
+    const ids = new Set<string>();
+    const noms = new Set<string>();
+    for (const t of tracks) {
+      const id = (t as any).artist_id;
+      if (id == null || String(id).trim() === '') return null;
+      ids.add(String(id).trim());
+      noms.add((t.artist_name ?? '').trim());
+    }
+    if (ids.size !== 1 || noms.size !== 1) return null;
+    const nom = [...noms][0];
+    return nom ? { id: [...ids][0], nom } : null;
+  });
+
+  /** Le nom AFFICHÉ : celui de l'album, ou celui que les pistes s'accordent. */
+  const nomArtiste = $derived(
+    (album.artist_name ?? '').trim() || artisteReplie?.nom || '',
+  );
+
   const destination = $derived(destinationArtiste({
     source: service ?? (album as any).source ?? null,
-    artist_id: album.artist_id as any,
-    artist_name: album.artist_name ?? null,
+    artist_id: (album.artist_id ?? artisteReplie?.id ?? null) as any,
+    artist_name: nomArtiste || null,
   }));
   const artisteDeService = $derived.by(() => {
     if (!$gestesNavigationService || !destination) return null;
@@ -727,10 +766,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
            la navigation passe par les magasins. Sans identifiant d'artiste
            (album de service, dépôt distant, base ancienne), le nom reste du
            TEXTE : un lien mort serait pire que pas de lien. -->
-      {#if album.artist_id != null || artisteDeService}
-        <button type="button" class="artist lien" onclick={allerArtiste}>{album.artist_name ?? ''}</button>
+      {#if nomArtiste && (album.artist_id != null || artisteDeService)}
+        <button type="button" class="artist lien" onclick={allerArtiste}>{nomArtiste}</button>
       {:else}
-        <div class="artist">{album.artist_name ?? ''}</div>
+        <div class="artist">{nomArtiste}</div>
       {/if}
       <div class="facts">
         {#if $formatAnneeAlbum(album)}<span>{$formatAnneeAlbum(album)}</span>{/if}

@@ -289,7 +289,14 @@
       album_title: piste.album_title ?? null,
     });
     return d?.type === 'album-service'
-      ? { service: d.service, albumId: d.albumId, titre: d.titre }
+      ? {
+          service: d.service, albumId: d.albumId, titre: d.titre,
+          // #1361 bis — la piste porte le nom de son artiste ET, pour un
+          // service, son identifiant chez lui (`map_track`, #1361). Les
+          // laisser ici, c'était ouvrir une fiche d'album sans artiste.
+          artiste: piste.artist_name ?? null,
+          artisteId: (piste as any).artist_id != null ? String((piste as any).artist_id) : null,
+        }
       : null;
   });
   // 🔴 #956 — `destinationArtiste` tranche : une piste Qobuz porte un

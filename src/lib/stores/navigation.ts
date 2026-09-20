@@ -91,7 +91,15 @@ export interface GestesNavigationService {
   /// n'affichait que l'initiale. L'appelant TIENT l'image (c'est elle qui fait
   /// le fond flou de l'écran) ; la fiche, elle, ne relit pas l'album. Optionnel :
   /// les appelants qui n'en ont pas continuent d'ouvrir sans.
-  ouvrirAlbum: (cible: { service: string; albumId: string; titre: string; pochette?: string | null }) => void;
+  /// `artiste` / `artisteId` : #1361 bis — la fiche d'un album de service
+  /// n'AFFICHAIT aucun artiste et n'offrait donc aucun lien vers lui. Elle ne
+  /// relit pas l'album distant : ce que l'appelant ne lui donne pas, elle ne
+  /// l'a jamais. Les deux sont facultatifs — un appelant qui n'en a pas ouvre
+  /// comme avant, et `AlbumDetailV2` se replie alors sur ses pistes.
+  ouvrirAlbum: (cible: {
+    service: string; albumId: string; titre: string; pochette?: string | null;
+    artiste?: string | null; artisteId?: string | null;
+  }) => void;
   /**
    * Seulement un NOM : `StreamTrack` ne porte pas d'identifiant d'artiste.
    * C'est à la coquille de le résoudre avant d'ouvrir la fiche.
