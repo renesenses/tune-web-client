@@ -84,7 +84,22 @@
 </div>
 
 <style>
-  .recents{padding:4px 0 24px}
+  /* #1323 — LA VUE PORTE SON PROPRE ASCENSEUR.
+     `LibraryV2` pose `.v2-lib{height:100%; overflow:hidden}` et, dedans,
+     `.body{flex:1; min-height:0; display:flex}` : le corps est haut comme
+     l'écran et COUPE ce qui dépasse. Étirée par `align-items:stretch`, cette
+     vue prenait exactement sa hauteur, sa grille débordait, et le débordement
+     était effacé — ni ascenseur ni molette sur 2 806 albums (Jean Valjean,
+     fils 1855/1856, 0.9.158, Windows/Firefox). Les six autres vues du même
+     corps (`.grid`, `.rows`, `.tracklist`, `.facets`, `.fliste`, `.grille`
+     d'ArtistesV2) le faisaient déjà ; celle-ci était la seule sans.
+     `min-height:0` est indispensable : sans lui l'enfant en flex refuse de
+     rétrécir sous la taille de son contenu et l'ascenseur ne s'arme jamais.
+     Gouttière de droite : le corps n'en donne qu'à gauche (18 px), et
+     l'ascenseur occupe désormais le bord droit. */
+  .recents{flex:1; min-width:0; min-height:0; overflow-y:auto; padding:4px 18px 40px 0}
+  .recents::-webkit-scrollbar{width:9px}
+  .recents::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .tete{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:16px}
   .regle{margin:0; font-size:13px; color:var(--v2-txt2)}
   .fenetres{display:flex; gap:6px}
