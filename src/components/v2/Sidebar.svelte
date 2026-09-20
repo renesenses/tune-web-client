@@ -71,54 +71,47 @@
   //    des l'Essentiel. L'ecran Recherche complet (bibliotheque + services +
   //    acoustique) reste atteignable, mais a partir d'Avance : il fait bien
   //    plus que filtrer une grille, et son cout d'attention le justifie.
+  /**
+   * L'ORDRE EST CELUI DE BERTRAND, 20/09/2026, donné en liste :
+   *
+   *   Accueil · Lecture en cours · File d'attente · Historique · Bibliothèque
+   *   Oxygen · Streaming · Radio en direct · Podcasts · Ambiance · Répertoires
+   *   Serveurs multimédia · Zones · Recherche
+   *
+   * 🔴 Cette liste ENTRELACE les deux étages. Pour que l'ordre affiché soit
+   * exactement le sien, trois entrées changent d'étage — c'est un choix
+   * explicite de sa part, pas un effet de bord :
+   *
+   *   - FILE D'ATTENTE et OXYGEN montent dans le noyau : un débutant les voit
+   *     désormais.
+   *   - RECHERCHE descend en avancé. Elle y était entrée le 28/08 sur sa
+   *     demande (« important ») ; elle en sort le 20/09 sur la même autorité.
+   *     Le champ de la Bibliothèque, lui, reste visible dès l'Essentiel — ce
+   *     qui reste caché au débutant, c'est l'écran complet (services +
+   *     acoustique), pas le fait de chercher.
+   *
+   * TABLEAU DE BORD est RETIRÉ de la barre : ses widgets vivent dans la page
+   * d'accueil. ⚠️ Aucun autre chemin ne menait à cet écran — il n'est plus
+   * atteignable que par son adresse `/dashboard`, que `routeAuChargement`
+   * continue de reposer.
+   */
   const CORE: Item[] = [
     { view: 'home', labelKey: 'nav.home', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
-    // LECTURE EN COURS dans le noyau. L'écran existait et était monté, mais
-    // rien dans la barre n'y menait : on ne l'atteignait qu'en cliquant la
-    // piste dans la barre de transport — un geste que personne ne devine.
-    // Signalé par Bertrand le 02/09/2026 : « il manque l'écran Lecture en
-    // cours ».
     { view: 'nowplaying', labelKey: 'nav.nowplaying', icon: 'M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0m12-3a3 3 0 1 1-6 0 3 3 0 0 1 6 0' },
-    // HISTORIQUE dans le NOYAU (Bertrand, 05/09/2026 : « manque Historique »).
-    // Il forme une paire avec « Lecture en cours » — ce qui joue, ce qui a
-    // joué — et c'est le chemin par lequel on retrouve un titre entendu à la
-    // radio dont on n'a pas noté le nom. Le mettre dans « Avancé » l'aurait
-    // laissé invisible au niveau Essentiel, ce qui est exactement le défaut
-    // signalé : l'écran existait, la vue était déclarée, rien n'y menait.
+    { view: 'queue', labelKey: 'nav.queue', icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
     { view: 'history', labelKey: 'nav.history', icon: 'M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2' },
     { view: 'library', labelKey: 'nav.library', icon: 'M4 5v14M9 5v14M14 6l5 13' },
+    { view: 'oxygen', labelKey: 'v2.nav.oxygen', icon: 'M4 5h16M4 10h16M4 15h10M4 20h10M14 17l3 3 3-5' },
+    { view: 'streaming', labelKey: 'v2.nav.streaming', icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0' },
     { view: 'radios', labelKey: 'v2.nav.radios', icon: 'M12 12h.01M7.5 7.5a6 6 0 0 0 0 9M16.5 7.5a6 6 0 0 1 0 9M4.5 4.5a10 10 0 0 0 0 15M19.5 4.5a10 10 0 0 1 0 15' },
     { view: 'podcasts', labelKey: 'v2.nav.podcasts', icon: 'M12 4a7 7 0 0 0 0 14M12 4a7 7 0 0 1 0 14M9 20h6' },
-    // STREAMING dans le noyau (Bertrand, 28/08) : pour qui ecoute surtout en
-    // ligne, c'est la porte d'entree principale — la reserver a l'Avance
-    // rendait le client inutilisable en Essentiel sur une petite bibliotheque.
-    { view: 'streaming', labelKey: 'v2.nav.streaming', icon: 'M4 15a8 8 0 0 1 16 0M7.5 15a4.5 4.5 0 0 1 9 0' },
-    // RECHERCHE dans le noyau (Bertrand, 28/08 : « important »). Le champ de
-    // la Bibliotheque ne cherche QUE dans les albums locaux ; cet ecran-ci
-    // couvre aussi les services et l'acoustique. Le reserver a l'Avance,
-    // c'etait cacher la fonction que l'on cherche en premier.
-    { view: 'search', labelKey: 'nav.search', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
   ];
   const ADVANCED: Item[] = [
-    // OXYGEN — l'exploration de la bibliotheque par facettes, en table. C'est
-    // une autre facon de parcourir ce que la Bibliotheque montre en grille :
-    // sa place est aupres d'elle, pas dans le Studio, qui traite le SON.
-    { view: 'oxygen', labelKey: 'v2.nav.oxygen', icon: 'M4 5h16M4 10h16M4 15h10M4 20h10M14 17l3 3 3-5' },
-    // REPERTOIRES : parcourir les DOSSIERS, quand on sait ou une piste vit sur
-    // le disque et que les balises ne le disent pas.
-    { view: 'browse', labelKey: 'nav.browse', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
-    // AMBIANCE : choisir par l'humeur plutot que par le nom.
     { view: 'ambiance', labelKey: 'nav.ambiance', icon: 'M4 9v6M9 5v14M14 8v8M19 11v2' },
-    { view: 'queue', labelKey: 'nav.queue', icon: 'M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z' },
-    { view: 'zonemanager', labelKey: 'nav.zonemanager', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
-    // SERVEURS MULTIMEDIA en Avance (Bertrand, 28/08). Parcourir la
-    // bibliotheque d'une AUTRE machine suppose de savoir qu'il y a un reseau
-    // et autre chose dessus — ce n'est pas un geste de premier contact. Mais
-    // on y ECOUTE de la musique : ce n'est pas non plus du reglage d'expert.
+    { view: 'browse', labelKey: 'nav.browse', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
     { view: 'mediaservers', labelKey: 'nav.mediaservers', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
-    // Portés de l'ancienne interface (phase 5, lot 4) : sans ces entrées, les
-    // trois écrans n'avaient AUCUN chemin dans cette coquille.
-    { view: 'dashboard', labelKey: 'nav.dashboard', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
+    { view: 'zonemanager', labelKey: 'nav.zonemanager', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
+    { view: 'search', labelKey: 'nav.search', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
     { view: 'concerts', labelKey: 'nav.concerts', icon: 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6' },
   ] as unknown as Item[];
   /**
