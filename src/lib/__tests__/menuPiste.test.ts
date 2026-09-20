@@ -176,7 +176,12 @@ describe('« je veux à minima le contenu de la v0 »', () => {
       'la Bibliothèque ne lit plus le dépôt : le clic changerait d’écran sans rien ouvrir').toBe(true);
     expect(/pendingLibraryArtist\.set\(null\)/.test(bib),
       'le dépôt n’est plus vidé : la fiche se rouvrirait à chaque retour').toBe(true);
-    expect(/tab = 'artists'/.test(bib),
+    // ⚠️ `tabChoisi`, et non `tab` : depuis #1372 l'onglet RETENU et l'onglet
+    // MONTRÉ sont deux choses. `tab` est un dérivé — « Ajouts récents » n'est
+    // pas offert sur un dépôt distant, faute de route chez lui — et seul
+    // `tabChoisi` s'écrit. Le contrat gardé ici est inchangé : ce geste doit
+    // poser l'onglet des artistes.
+    expect(/tabChoisi = 'artists'/.test(bib),
       'l’onglet des artistes n’est plus ouvert : la vue ne serait même pas montée').toBe(true);
     // Basculer d'onglet est la MOITIÉ du geste ; encore faut-il ouvrir la fiche.
     // ⚠️ Le motif exigeait `<ArtistesV2 {q} ouvrirId=` — donc l'ORDRE des

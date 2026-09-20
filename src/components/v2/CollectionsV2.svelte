@@ -58,6 +58,10 @@
     nom: string;
     description?: string | null;
     albums: number | null;
+    /** Combien d'albums rangés ici ont disparu de la base — le nombre que le
+        serveur dit dans `orphan_album_ids` (#901, #3285). `null` quand il n'y
+        a rien à dire, ou quand le serveur est trop ancien pour le dire. */
+    manquants: number | null;
     covers: string[];
     /** Date de création, pour le tri par date. Les DEUX familles la portent. */
     creee: string | null;
@@ -571,6 +575,10 @@
           nom: c.name,
           description: c.description,
           albums: Array.isArray(c.album_ids) ? c.album_ids.length : null,
+          manquants:
+            typeof c.orphan_album_ids === 'number' && c.orphan_album_ids > 0
+              ? c.orphan_album_ids
+              : null,
           covers: Array.isArray(c.covers) ? c.covers : [],
           creee: c.created_at ?? null,
         });
@@ -584,6 +592,7 @@
           nom: c.name,
           description: c.description,
           albums: typeof c.album_count === 'number' ? c.album_count : null,
+          manquants: null,
           covers: Array.isArray((c as any).covers) ? (c as any).covers : [],
           creee: (c as any).created_at ?? null,
         });
@@ -985,6 +994,13 @@
               <!-- Plus d'étiquette « Intelligente » par carte : l'onglet le dit
                    déjà, et la répéter sur chaque vignette serait du bruit. -->
               <span class="ca" title={String(e.albums ?? 0)}>{e.albums ?? 0}</span>
+              {#if e.manquants}
+                <span class="mq" title={$t('collections.missingHint' as any)}
+                  >{(e.manquants > 1
+                    ? $t('collections.missingMany' as any)
+                    : $t('collections.missingOne' as any)
+                  ).replace('{count}', String(e.manquants))}</span>
+              {/if}
             </button>
           </div>
         {/each}
@@ -1118,6 +1134,7 @@
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   .ct{font-weight:600; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ca{font:11px var(--v2-mono); color:var(--v2-txt3); display:flex; align-items:center; gap:6px}
+  .mq{font:11px var(--v2-mono); color:var(--v2-warn, #c8922b); display:flex; align-items:center; gap:4px}
   .tag{font-style:normal; padding:1px 6px; border-radius:var(--v2-r-pill); background:var(--v2-surface2); color:var(--v2-txt2)}
   .fa{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
   .fab{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
