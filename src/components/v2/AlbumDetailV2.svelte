@@ -65,6 +65,81 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   /** Identifiant distant de l'album, quand il vient d'un service. */
   const sidDistant = $derived(service ? ((album as any).source_id ?? null) : null);
 
+  /* ══════════════════════════════════════════════════════════════════════
+     L'EN-TÊTE D'UN ALBUM DE SERVICE, COMPLÉTÉ À LA SOURCE — #1342.
+
+     FabienM, fil forum 1859 (20/09/2026), point 4 : « Lien vers l'album depuis
+     l'action "Aller à l'album" renvoie à une page incomplète […] Il manque sur
+     la figure 2 la vignette de l'album et le nom de l'artiste ».
+
+     🔴 LA CAUSE N'EST PAS DANS L'APPELANT, ELLE EST ICI. Une fiche d'album de
+     service est montée avec ce que l'appelant a bien voulu mettre dans la
+     charge utile, et CETTE FICHE NE RELIT JAMAIS L'ALBUM : pour un service
+     elle ne demande que `getStreamingAlbumTracks`. D'où des pistes complètes
+     sous un en-tête vide. Chaque appelant qui oublie un champ rouvre le même
+     trou — #1114 l'avait bouché pour « Lecture en cours » en ajoutant
+     `pochette` à la charge, et le menu « … » d'une piste, second appelant,
+     est resté dehors treize jours.
+
+     🔴 LA ROUTE EXISTE, ET ELLE REND TOUT. Mesuré sur le .18 le 20/09/2026 :
+
+       GET /api/v1/streaming/qobuz/albums/atua1kxxk4tis
+       {"artist_id":"35865","artist_name":"Neil Young",
+        "cover_path":"https://static.qobuz.com/images/covers/is/4t/…_600.jpg",
+        "source_id":"atua1kxxk4tis","title":"Second Song","year":2026,
+        "track_count":1,"quality":{…},"released_at":1786053600}
+
+     Le ticket laissait cette voie ouverte sans l'avoir vérifiée ; elle l'est.
+
+     ⚠️ ON NE DEMANDE QUE CE QUI MANQUE. Un en-tête déjà complet (le cas de
+     tous les écrans qui passent l'album entier) ne déclenche aucun appel : ce
+     filet coûte une requête aux seules fiches qui s'ouvriraient nues.
+
+     ⚠️ ET IL NE REMPLACE RIEN. Les champs portés par l'appelant priment, y
+     compris sur la réponse du service : un écran qui sait mieux (une édition
+     précise, un titre nettoyé) garde le dernier mot.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  /** Ce que le service sait de cet album, quand il a fallu le lui demander. */
+  let detailService = $state<Record<string, unknown> | null>(null);
+
+  const vide = (v: unknown) => v == null || (typeof v === 'string' && v.trim() === '');
+
+  /** L'en-tête a-t-il de quoi se rendre — pochette, artiste, année ? */
+  const enTeteComplet = (a: any) =>
+    !vide(a?.cover_path) && !vide(a?.artist_name) && (a?.year != null || !vide(a?.release_date));
+
+  $effect(() => {
+    const svc = service, sid = sidDistant;
+    const manque = !enTeteComplet(album);
+    detailService = null;
+    if (!svc || !sid || !manque) return;
+    let perime = false;
+    api.getStreamingAlbum(svc, String(sid))
+      .then((d) => { if (!perime) detailService = d as unknown as Record<string, unknown>; })
+      // Un échec laisse la fiche exactement comme avant : pas d'erreur à
+      // l'écran pour un complément, la liste des pistes vaut le déplacement.
+      .catch(() => {});
+    return () => { perime = true; };
+  });
+
+  /**
+   * L'album TEL QU'IL S'AFFICHE : celui qu'on a reçu, ses trous comblés.
+   *
+   * Seuls les champs d'EN-TÊTE sont repris, et seulement s'ils sont vides —
+   * le reste de la fiche (lecture, étiquettes, file d'attente) continue de
+   * travailler sur l'objet d'origine, dont l'identité ne change pas.
+   */
+  const albumAffiche = $derived.by(() => {
+    const d = detailService;
+    if (!d) return album;
+    const fusion: any = { ...(album as any) };
+    for (const cle of ['cover_path', 'artist_name', 'artist_id', 'year', 'release_date', 'original_year', 'original_date']) {
+      if (vide(fusion[cle])) fusion[cle] = (d as any)[cle] ?? null;
+    }
+    return fusion as Album;
+  });
+
   /**
    * ÉTIQUETER L'ALBUM DEPUIS SA FICHE.
    *
@@ -673,7 +748,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    * qui mène ailleurs.
    */
   const artisteReplie = $derived.by(() => {
-    const propre = album.artist_id;
+    const propre = albumAffiche.artist_id;
     if (propre != null && String(propre).trim() !== '') return null;
     if (!tracks.length) return null;
     const ids = new Set<string>();
@@ -691,12 +766,12 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   /** Le nom AFFICHÉ : celui de l'album, ou celui que les pistes s'accordent. */
   const nomArtiste = $derived(
-    (album.artist_name ?? '').trim() || artisteReplie?.nom || '',
+    (albumAffiche.artist_name ?? '').trim() || artisteReplie?.nom || '',
   );
 
   const destination = $derived(destinationArtiste({
     source: service ?? (album as any).source ?? null,
-    artist_id: (album.artist_id ?? artisteReplie?.id ?? null) as any,
+    artist_id: (albumAffiche.artist_id ?? artisteReplie?.id ?? null) as any,
     artist_name: nomArtiste || null,
   }));
   const artisteDeService = $derived.by(() => {
@@ -739,7 +814,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   </button>
 
   <div class="head">
-    <div class="art"><AlbumArt coverPath={album.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
+    <!-- #1342 — `albumAffiche` : la pochette que l'appelant n'a pas portée
+         vient du service, sinon la fiche reste un carré gris à l'initiale. -->
+    <div class="art"><AlbumArt coverPath={albumAffiche.cover_path} albumId={depot ? null : album.id} size={0} alt={album.title} source={album.source} fallbackInitials={album.title?.slice(0,1)} /></div>
     <div class="meta">
       <!-- 🔴 La pastille « compilation » vit À CÔTÉ du badge de qualité, pas
            dans la ligne de faits : c'est une NATURE de disque, pas une mesure,
@@ -766,13 +843,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
            la navigation passe par les magasins. Sans identifiant d'artiste
            (album de service, dépôt distant, base ancienne), le nom reste du
            TEXTE : un lien mort serait pire que pas de lien. -->
-      {#if nomArtiste && (album.artist_id != null || artisteDeService)}
+      {#if nomArtiste && (albumAffiche.artist_id != null || artisteDeService)}
         <button type="button" class="artist lien" onclick={allerArtiste}>{nomArtiste}</button>
       {:else}
         <div class="artist">{nomArtiste}</div>
       {/if}
       <div class="facts">
-        {#if $formatAnneeAlbum(album)}<span>{$formatAnneeAlbum(album)}</span>{/if}
+        {#if $formatAnneeAlbum(albumAffiche)}<span>{$formatAnneeAlbum(albumAffiche)}</span>{/if}
         <span>{tracks.length} titre{tracks.length > 1 ? 's' : ''}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
         <!-- #1388 : `DR 12` pour une mesure inscrite dans le fichier,

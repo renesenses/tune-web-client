@@ -371,7 +371,23 @@
       tetesAffiche = (tetes ?? []).map((a: any) => {
         const nom = (a.artist_name || a.name || '');
         const fiche = parNom.get(nom.toLowerCase());
-        return { nom, image_path: fiche?.image_path ?? null, id: fiche?.id ?? null, plays: a.plays ?? a.play_count ?? null };
+        // 🔴 #1341 — L'IDENTIFIANT VIENT DU SERVEUR, pas d'un rapprochement de
+        // chaînes. Mesuré sur le .18 le 20/09/2026,
+        // `GET /library/history/top-artists?limit=8` rend, pour chaque ligne :
+        //   {"artist_id":882,"artist_name":"Morcheeba","id":882,"name":"Morcheeba","plays":144}
+        // Les deux champs sont là, et cette fabrique les jetait pour chercher
+        // l'artiste par son NOM dans les 5 000 premiers de la bibliothèque. Un
+        // nom que la casse ou un « & » sépare de son homologue rendait
+        // `id: null`, et la vignette n'avait plus rien à ouvrir. Le
+        // rapprochement par nom reste — mais pour le PORTRAIT seul, que la
+        // route de l'historique ne donne pas.
+        const idServeur = typeof a.artist_id === 'number' ? a.artist_id
+          : typeof a.id === 'number' ? a.id : null;
+        return {
+          nom, image_path: fiche?.image_path ?? null,
+          id: idServeur ?? fiche?.id ?? null,
+          plays: a.plays ?? a.play_count ?? null,
+        };
       }).filter((a: any) => a.nom);
       ajoutsRecents = recents ?? [];
     });
@@ -742,6 +758,34 @@
   }
 
   /**
+   * Une TÊTE D'AFFICHE ouvre la fiche de son artiste — #1341.
+   *
+   * FabienM, fil forum 1859 (20/09/2026), point 2 : « Menu recherche: section
+   * "Artistes les plus écoutés": les artistes ne sont pas cliquables, il faut
+   * quand on clique sur une vignette d'un artiste renvoyer vers la page de
+   * l'artiste ».
+   *
+   * La vignette n'avait AUCUN gestionnaire, et le bouton du nom ne faisait que
+   * pré-remplir la requête (`q = a.nom`) : le mot revenait dans la barre, les
+   * résultats se rafraîchissaient, et l'artiste restait fermé. C'est le geste
+   * que #3717 avait déjà condamné sur les vignettes de RÉSULTATS ; cette
+   * rangée-ci, celle de l'écran de découverte, n'avait pas été reprise.
+   *
+   * On ne réinvente rien : [`ouvrirArtiste`] est le chemin des trois autres
+   * tuiles d'artiste de cet écran.
+   *
+   * 🔴 SANS IDENTIFIANT, ON NE ROUTE PAS. `id` peut rester nul — le serveur
+   * ne le donne pas pour un artiste qui n'est plus en bibliothèque. Poser
+   * `activeView = 'library'` sans cible déposerait l'auditeur sur la GRILLE
+   * des artistes, c'est-à-dire ailleurs que là où il allait. Le geste d'avant
+   * — la recherche sur le nom — reste alors le seul honnête.
+   */
+  function ouvrirTeteAffiche(a: { nom: string; id: number | null }) {
+    if (a?.id == null) { q = a?.nom ?? q; return; }
+    ouvrirArtiste({ id: a.id, name: a.nom });
+  }
+
+  /**
    * « Tout lire » et « Lire les resultats en aleatoire » — #1947.
    *
    * Le client actuel les porte sur ses resultats (`SearchView.playAllTracks`) ;
@@ -909,10 +953,16 @@
           <div class="arow">
             {#each tetesAffiche as a (a.nom)}
               <div class="artile">
-                <span class="acv">
+                <!-- #1341 — LA VIGNETTE EST LE GESTE : c'est elle que FabienM
+                     clique. Un vrai bouton, que le clavier atteint comme les
+                     vignettes de résultats. Son nom accessible est celui de
+                     l'artiste : aucune clé nouvelle, donc rien à porter dans
+                     onze dictionnaires. -->
+                <button type="button" class="acv" onclick={() => ouvrirTeteAffiche(a)}
+                  aria-label={a.nom} title={a.nom}>
                   <AlbumArt coverPath={a.image_path} albumId={null} size={0} alt={a.nom} fallbackInitials={a.nom?.slice(0,1)} />
-                </span>
-                <button class="meta" onclick={() => (q = a.nom)}><span class="an" title={a.nom}>{a.nom}</span></button>
+                </button>
+                <button class="meta" onclick={() => ouvrirTeteAffiche(a)}><span class="an" title={a.nom}>{a.nom}</span></button>
               </div>
             {/each}
           </div>
@@ -1382,7 +1432,12 @@
   .arow::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:999px}
   .artile{flex:0 0 auto; width:112px; border:0; background:transparent; color:inherit; cursor:pointer; text-align:center; padding:0}
   /* Carrée comme un album — voir `ArtistesV2`. */
-  .acv{display:block; width:112px; height:112px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
+  /* #1341 — la vignette des têtes d'affiche est un BOUTON : les remises à
+     zéro qui suivent lui rendent l'allure de la tuile qu'elle était. */
+  .acv{display:block; width:112px; height:112px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card);
+       border:0; padding:0; background:transparent; color:inherit; font:inherit}
+  button.acv{cursor:pointer}
+  button.acv:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:3px}
   .artile .an{display:block; margin-top:9px; font:600 13px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .artile:hover .an{color:var(--v2-acc-tint)}
   /* #1135 / #1136 — la rangée de provenances, SOUS la vignette : elle ne rogne
