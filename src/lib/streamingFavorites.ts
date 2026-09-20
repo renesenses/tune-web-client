@@ -28,6 +28,7 @@ import {
 import * as api from './api';
 import { notifications } from './stores/notifications';
 import { t } from './i18n';
+import { BANDCAMP_SVC, cleServeur } from './ongletsStreaming';
 
 /**
  * `playlist` a rejoint la liste pour #2370 (Didier, fil 1541) : on pouvait
@@ -132,6 +133,57 @@ export function identiteDeFavori(serviceId: string): string {
   return i < 0 ? serviceId : serviceId.slice(0, i);
 }
 
+/**
+ * La référence de favori d'une VIGNETTE de service, telle que les écrans
+ * tiennent leurs articles — #1400, moitié client de
+ * `tune-server-rust#4577` point 3 (FabienM, 0.9.158, fil 1862 point 4 :
+ * « on ne peut pas mettre un artiste ou un album issus de Bandcamp en favori,
+ * pas d'icône cœur »).
+ *
+ * Deux écarts séparaient un article Bandcamp du reste, et les deux se
+ * corrigent ici plutôt que dans chaque écran :
+ *
+ * 1. 🔴 **La clé d'ONGLET n'est pas la clé du SERVEUR.** L'onglet Bandcamp
+ *    du client s'appelle `__bandcamp__` (`BANDCAMP_EXT`) parce que le service
+ *    générique et l'extension se disputaient la rangée (#860). Cette clé est
+ *    LOCALE : `streaming_favorites` range `bandcamp`. Un cœur posé sous
+ *    `__bandcamp__` n'aurait jamais retrouvé le favori rendu par le serveur.
+ *    On repasse donc par `cleServeur`, la traduction qui existe déjà — pas
+ *    une seconde.
+ * 2. 🔴 **Bandcamp ne numérote pas ses albums.** Les articles viennent de
+ *    `/ext/bandcamp/…` et portent `url`, jamais `source_id` : `favKeyOf`
+ *    rendait `null`, et `PochetteActions` n'affiche aucun cœur quand la
+ *    référence est nulle. L'identité d'un album Bandcamp EST l'adresse
+ *    publique de sa page — celle que `ouvrirFiche`, `playAlbum` et le
+ *    serveur (`album_depuis_url`) emploient déjà.
+ *
+ * ⚠️ **Le repli sur `url` ne vaut QUE pour un album.** Une PISTE Bandcamp est
+ * identifiée par son URL de flux mp3-128 (`resolve_direct_url`, et c'est ce
+ * que la barre de lecture met en favori) ; la lui remplacer par l'adresse de
+ * sa page fabriquerait une SECONDE vérité à côté de la première — deux cœurs
+ * qui ne parlent pas du même objet, exactement le défaut de Didier (#1478)
+ * que ce module existe pour avoir refermé. Une piste sans `source_id` reste
+ * donc sans cœur, comme aujourd'hui.
+ *
+ * Ne normalise RIEN d'autre : la coupe de la signature resignée appartient à
+ * `identiteDeFavori`, que `favKeyOf` applique juste après.
+ */
+export function refFavoriDeVignette(
+  itemType: StreamingItemType,
+  objet: { source?: unknown; source_id?: unknown; url?: unknown } | null | undefined,
+  ongletActif: string | null | undefined,
+): Pick<StreamingRef, 'itemType' | 'service' | 'serviceId'> {
+  const onglet = (objet?.source as string | null | undefined) ?? ongletActif;
+  const service = cleServeur(onglet) ?? '';
+  const brut = objet?.source_id;
+  const serviceId = brut == null ? '' : String(brut);
+  if (serviceId.trim()) return { itemType, service, serviceId };
+  if (service === BANDCAMP_SVC && itemType === 'album' && objet?.url) {
+    return { itemType, service, serviceId: String(objet.url) };
+  }
+  return { itemType, service, serviceId: '' };
+}
+
 export function favKeyOf(ref: Pick<StreamingRef, 'itemType' | 'service' | 'serviceId'> | null | undefined): string | null {
   if (!ref) return null;
   const id = identiteDeFavori((ref.serviceId ?? '').trim());
@@ -185,6 +237,13 @@ export interface PlaylistFavorite {
    */
   favorite_added_at?: string | null;
   created_at?: string | null;
+  /**
+   * Date de PREMIÈRE VUE par Tune (#1060), jamais réécrite par une
+   * resynchronisation. Absente d'un serveur d'avant le lot
+   * `batch/favoris-date-locale-20260920` ; `dateDe` retombe alors sur
+   * `created_at`.
+   */
+  first_seen_at?: string | null;
 }
 
 /** Forme minimale d'une ligne de `streaming_favorites`, tous types confondus. */
@@ -198,6 +257,8 @@ interface FavoriDeService {
    *  déclare depuis #2001 et le serveur la rend — elle se perdait au passage
    *  de type, avant même d'atteindre la fusion. */
   created_at?: string | null;
+  /** #1060 : la date locale, même chemin et même piège que ci-dessus. */
+  first_seen_at?: string | null;
 }
 
 /**
@@ -254,6 +315,7 @@ export function fusionnerPlaylistsFavorites(
       source: service,
       source_id: serviceId,
       created_at: f.created_at ?? null,
+      first_seen_at: f.first_seen_at ?? null,
     });
   }
   return out;

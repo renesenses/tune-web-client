@@ -8,6 +8,9 @@ import {
 import { chainesUniques } from '../clesUniques';
 import type { Instantanes as InstantanesRenderer } from '../reglagesRendererEnregistres';
 import { estDataUrlImage } from '../avatarLocal';
+import {
+  estOrdreVersions, ORDRE_VERSIONS_DEFAUT, type OrdreVersions,
+} from '../versionsPiste';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -234,6 +237,18 @@ export interface Preferences {
    * voit pas.
    */
   avatarCompte: string;
+  /**
+   * L'ordre du panneau « Autres versions » — tune-server-rust#4368.
+   *
+   * `pertinence` (défaut) : l'ordre rendu par le serveur, son barème de #2372.
+   * `source` : regroupé par source, Qobuz / Tidal / YouTube, Bandcamp en
+   * dernier — la demande de FabienM (fil 1829, point 11).
+   *
+   * Rangée ici, donc dans `ui_preferences` synchronisé serveur, comme les
+   * autres préférences d'écran : le choix suit le profil d'un navigateur à
+   * l'autre au lieu d'être à refaire à chaque poste.
+   */
+  ordreAutresVersions: OrdreVersions;
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -269,6 +284,10 @@ const defaults: Preferences = {
   settingsLevel: 'expert',
   avatarImage: '',
   avatarCompte: '',
+  // #4368 : le classement par pertinence du serveur reste le défaut. Il est
+  // un arbitrage (#2372), pas un accident — on l'offre en choix, on ne le
+  // remplace pas.
+  ordreAutresVersions: ORDRE_VERSIONS_DEFAUT,
 };
 
 /** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
@@ -406,6 +425,12 @@ function loadPrefs(): Preferences {
       // valeur qui n'est pas une chaîne ne peut apparier personne, et la garder
       // ferait porter la comparaison sur un objet.
       if (typeof p.avatarCompte !== 'string') p.avatarCompte = '';
+      // #4368 — ce blob est relu depuis `ui_preferences`, donc du SERVEUR :
+      // une valeur inconnue (version ultérieure, blob abîmé) retombe sur le
+      // défaut plutôt que de laisser le panneau sur un mode qui n'existe pas.
+      if (!estOrdreVersions((raw as { ordreAutresVersions?: unknown })?.ordreAutresVersions)) {
+        p.ordreAutresVersions = ORDRE_VERSIONS_DEFAUT;
+      }
       return p;
     }
   } catch { /* ignore */ }

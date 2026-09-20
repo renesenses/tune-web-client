@@ -1,6 +1,7 @@
 import { writable, get } from 'svelte/store';
 import * as api from '../api';
 import type { StreamingItemType } from '../streamingFavorites';
+import { cleJumelage } from '../cleJumelage';
 
 export interface Profile {
   id: number;
@@ -132,12 +133,18 @@ export const favoriteStreamingTrackKeys = writable<Set<string>>(new Set());
  * Volontairement exacte-normalisée, sans approximation : un titre orthographié
  * différemment ne correspond pas, et c'est assumé côté serveur. Toute latitude
  * prise ici ferait diverger le cœur affiché de ce que retiennent les règles.
+ *
+ * 🔴 L'IMPLÉMENTATION VIT DANS `lib/cleJumelage.ts`, et il n'y en a qu'une.
+ * Le filtre de l'écran Favoris en a besoin lui aussi (#1081) et doit rester
+ * PUR — il ne peut pas importer ce module-ci, qui tire `svelte/store` et
+ * `api`. Deux normalisations divergentes allumeraient un cœur que le filtre ne
+ * rangerait pas : c'est exactement le défaut #1081.
  */
 export function clePisteJumelee(
   titre: string | null | undefined,
   artiste: string | null | undefined,
 ): string {
-  return `${(titre ?? '').trim().toLowerCase()}\u0000${(artiste ?? '').trim().toLowerCase()}`;
+  return cleJumelage(titre, artiste);
 }
 
 export function streamingFavKey(
