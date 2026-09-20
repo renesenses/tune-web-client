@@ -16,7 +16,11 @@ import { dictionnaire } from './onzeDictionnaires';
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 const ecran = lire('src/components/v2/ZonesV2.svelte');
 const debut = ecran.indexOf('<div class="grille">');
-const carte = ecran.slice(debut, ecran.indexOf('{:else}', debut)).replace(/<!--[\s\S]*?-->/g, '');
+// 🔴 La carte se termine au `{/each}` de la grille, PAS au premier `{:else}` :
+// depuis que la vignette a un repli (`{#if pochette}…{:else}…{/if}`, #1394), un
+// `{:else}` apparaît AVANT la fin de la carte, et couper là amputait le balisage
+// — la garde cherchait alors `cpick` dans un fragment qui s'arrêtait plus haut.
+const carte = ecran.slice(debut, ecran.indexOf('{/each}', debut)).replace(/<!--[\s\S]*?-->/g, '');
 const sansCommentaires = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 describe('#1006 — la carte de zone en grille', () => {

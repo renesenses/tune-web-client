@@ -25,7 +25,9 @@
   import { t } from '../../lib/i18n';
   import { zonesAppairables, parametresPaire, voieDeLaZone } from '../../lib/pairesStereo';
   import '../../styles/tune-v2.css';
-  import { appareilDeLaZone, lireVueZones, ecrireVueZones, type VueZones } from '../../lib/vueZones';
+  import { appareilDeLaZone, lireVueZones, ecrireVueZones, etatLectureDeZone, type VueZones } from '../../lib/vueZones';
+  import EtatZone from './EtatZone.svelte';
+  import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import { chargerCatalogueTuneTested, indexer, appareilTuneTeste, type AppareilTuneTested } from '../../lib/tuneTested';
   import BadgeTuneTested from './BadgeTuneTested.svelte';
   import MenuZone from './MenuZone.svelte';
@@ -522,15 +524,38 @@
           {@const np = z.current_track}
           <div class="carte" class:active={z.id === $currentZoneId} class:offline={z.online === false}>
             <div class="ctete">
+<!--
+                🔴 LA VIGNETTE A TOUJOURS QUELQUE CHOSE À MONTRER (#1394).
+                Mesuré sur le .18 le 20/09/2026 : ONZE cartes sur douze
+                n'avaient aucune image, parce que seule la pochette était
+                dessinée et que presque rien ne joue à un instant donné. La
+                chaîne de repli décidée avec Bertrand : pochette, puis photo de
+                l'appareil quand elle existera, puis l'icône de TYPE DE SORTIE
+                — ce dernier maillon ne peut pas manquer, le type est toujours
+                connu là où neuf zones sur quatorze n'ont aucune identité
+                d'appareil (voir `lib/vueZones`).
+
+                Le clic suit ce qu'il y a dessous : la pochette ouvre Lecture en
+                cours (#1006), l'icône n'a aucune lecture à ouvrir et se
+                contente d'activer la zone, comme le reste de la carte.
+              -->
               {#if np?.cover_path || np?.album_id}
                 <button class="cpoch" onclick={() => ouvrirLecture(z)}
                   title={$t('v2.zone.openNowPlaying' as any)} aria-label={$t('v2.zone.openNowPlaying' as any)}>
                   <AlbumArt coverPath={np?.cover_path ?? null} albumId={np?.album_id ?? null} size={64} alt={np?.title ?? ''} />
                 </button>
+              {:else}
+                <button class="cpoch crepli" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
+                  <span class="cvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
+                </button>
               {/if}
               <button class="cpick" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
                 <span class="chaut">
+                  <!-- La pastille dit la zone ACTIVE (accent du thème, c'est un
+                       état d'interface) ; `EtatZone` dit ce qui JOUE (jeton
+                       sémantique + forme). Deux informations, deux langages. -->
                   <span class="dot" class:on={z.id === $currentZoneId}></span>
+                  <EtatZone etat={etatLectureDeZone(z)} />
                   {#if sortieSecondaire(z)}<span class="cot">{sortieSecondaire(z)}</span>{/if}
                   {#if z.is_default}<span class="cdef">{$t('v2.zone.default' as any)}</span>{/if}
                 </span>
@@ -576,6 +601,7 @@
                   <span class="zn">{z.name}{#if z.is_default}<em>{$t('v2.zone.default' as any)}</em>{/if}</span>
                 {/if}
                 <span class="zi">
+                  <EtatZone etat={etatLectureDeZone(z)} />
                   {#if showExpert}<span class="ot">{OUTPUTS[z.output_type ?? 'local'] ?? z.output_type}</span>{/if}
                   {#if z.current_track?.title}<span class="np">♪ {z.current_track.title}</span>{/if}
                   {#if voie(z)}<span class="voie">{voie(z) === 'left' ? $t('v2.zone.leftChannel' as any) : $t('v2.zone.rightChannel' as any)}</span>{/if}
@@ -769,6 +795,12 @@
   .cpoch{flex:0 0 auto; padding:15px 0 12px 14px; border:0; background:transparent; cursor:pointer;
     display:flex; align-items:flex-start}
   .cpoch:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-3px}
+  /* Le maillon de repli : même boîte que la pochette, traitement plus sobre —
+     c'est un pictogramme, pas une image. */
+  .crepli{cursor:pointer}
+  .cvide{display:grid; place-items:center; width:64px; height:64px; border-radius:10px;
+    border:1px dashed var(--v2-line2); background:var(--v2-surface); color:var(--v2-txt3)}
+  .crepli:hover .cvide{color:var(--v2-txt2); border-color:var(--v2-txt3)}
   .cpoch :global(.album-art){border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,.35); transition:transform .15s}
   .cpoch:hover :global(.album-art){transform:scale(1.04)}
   .cpick{display:flex; flex-direction:column; align-items:flex-start; gap:0;
