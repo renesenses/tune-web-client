@@ -63,6 +63,7 @@
   import {
     BANDCAMP_EXT,
     cleServeur,
+    ongletApresDemande,
     ongletDeRestitution,
     ongletsStreaming,
     pseudoOnglet,
@@ -470,6 +471,46 @@
   $effect(() => {
     const svc = cleServeur(active);
     if (svc) activeStreamingService.set(svc);
+  });
+
+  /**
+   * Ouvrir un service : l'onglet, et l'ecran qui va avec.
+   *
+   * UN SEUL geste pour DEUX chemins — la rangee d'onglets de la page et la
+   * barre laterale (#1358). Tant que la remise a zero (sous-onglet, recherche,
+   * resultats) n'etait ecrite que dans le `onclick` du bouton, tout autre
+   * chemin vers un service ouvrait le bon onglet en gardant la recherche du
+   * precedent sous les yeux.
+   */
+  function ouvrirOnglet(name: string) {
+    active = name;
+    sub = 'editorial';
+    q = '';
+    results = null;
+    bcSearch = null;
+  }
+
+  /**
+   * Le service demande de l'EXTERIEUR, suivi tant que l'ecran est monte —
+   * #1358.
+   *
+   * FabienM, fil 1862 : cliquer « Bandcamp » dans le sous-menu Streaming de la
+   * barre laterale ne changeait rien tant qu'on etait deja sur cet ecran. La
+   * barre POSE pourtant le service (`allerService`, `Sidebar.svelte`) ; c'est
+   * ici qu'on ne le relisait jamais — le montage l'avait lu une fois avec
+   * `get(...)`, une lecture qui ne s'abonne a rien.
+   *
+   * 🔴 `$activeStreamingService`, PAS `get(activeStreamingService)` : c'est
+   * toute la correction. La forme `get()` rend la valeur de l'instant et
+   * n'inscrit aucune dependance — l'effet ne se rejouerait plus jamais.
+   *
+   * 🔴 Le sens inverse est deja tenu par l'effet ci-dessus, et la fonction
+   * rend `null` quand la cible est l'onglet courant : les deux effets se
+   * croisent sans boucler.
+   */
+  $effect(() => {
+    const cible = ongletApresDemande(services, bandcampLive, active, $activeStreamingService);
+    if (cible) ouvrirOnglet(cible);
   });
 
   /**
@@ -939,7 +980,7 @@
              de l'extension porte désormais le compte lu sur la clé `bandcamp`,
              sans quoi la liaison de compte redeviendrait invisible. -->
         {@const qui = pseudoOnglet(name, services)}
-        <button class:on={active === name} onclick={() => { active = name; sub = 'editorial'; q = ''; results = null; bcSearch = null; }}>
+        <button class:on={active === name} onclick={() => ouvrirOnglet(name)}>
           {label(name)}
           {#if qui}<span class="who">{qui}</span>{/if}
         </button>

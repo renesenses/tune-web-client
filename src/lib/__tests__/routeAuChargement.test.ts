@@ -287,7 +287,9 @@ describe('la liste des routes vient du CODE, pas d’un relevé d’écran', () 
       'zonemanager', 'playlistmanager', 'playlists']) {
       expect(routes, `« ${attendue} » manque à la liste des routes`).toContain(attendue);
     }
-    for (const exclue of ['tv', 'login', 'offline', 'onboarding',
+    // « offline » a quitté cette liste avec son écran, le 20/09/2026 : une vue
+    // qui n'existe plus ne peut pas être une destination.
+    for (const exclue of ['tv', 'login', 'onboarding',
       'streamingalbum', 'streamingartist']) {
       expect(routes, `« ${exclue} » n’est pas une destination et ne doit pas se reposer`)
         .not.toContain(exclue);
