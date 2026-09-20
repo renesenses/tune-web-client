@@ -486,6 +486,51 @@ const liste = (r: any): any[] =>
  */
 const utiles = (els: Element[]): Element[] => els.filter((e) => e.titre !== '—' || e.cover);
 
+/** Les quatre chiffres de la semaine, dans l'ordre d'affichage. */
+const CHIFFRES_SEMAINE = ['lectures', 'heures-ecoutees', 'titres-ecoutes', 'artistes-ecoutes'] as const;
+
+/**
+ * Le tableau de bord, partagé entre les widgets qui en vivent.
+ *
+ * `PageWidgets` charge ses widgets EN PARALLÈLE : sans ce partage, les trois
+ * extraits déclencheraient trois fois la même requête au même instant.
+ *
+ * 🔴 Le partage dure exactement le temps de la requête, PAS une seconde de
+ * plus. Ma première version gardait la réponse quinze secondes « le temps
+ * d'un chargement de page » : un rechargement demandé par l'utilisateur
+ * juste après une écoute lui aurait resservi les anciens chiffres, sans
+ * qu'il comprenne pourquoi. Dédoublonner ce qui est simultané, oui ; mettre
+ * en cache, non — ce n'est pas la même chose.
+ */
+const EN_VOL = new Map<string, Promise<api.DashboardData>>();
+function tableauDeBord(periode: api.DashboardPeriod): Promise<api.DashboardData> {
+  const deja = EN_VOL.get(periode);
+  if (deja) return deja;
+  const promesse = api
+    .getDashboard(periode, { topN: LIMITE })
+    .finally(() => EN_VOL.delete(periode));
+  EN_VOL.set(periode, promesse);
+  return promesse;
+}
+
+/**
+ * Le sous-titre d'un extrait du tableau de bord : le NOMBRE de lectures, seul.
+ *
+ * 🔴 Pas de mot à côté, et ce n'est pas de la paresse. `sous` est une DONNÉE
+ * produite ici, pas du balisage : `check-i18n` ne la lit pas. Y écrire
+ * « 12 lectures » mettrait donc du français dans une interface anglaise sans
+ * qu'aucune garde ne bronche — c'est très exactement le défaut trouvé le
+ * 20/09/2026 sur `channel_layout_status.detail`. Le titre du widget dit déjà
+ * de quoi on parle ; le chiffre est formaté dans la langue de l'utilisateur.
+ */
+function lectures(n: number, langue: string): string {
+  try {
+    return new Intl.NumberFormat(langue).format(n);
+  } catch {
+    return String(n);
+  }
+}
+
 export const WIDGETS: Widget[] = [
   {
     id: 'zones',
@@ -822,6 +867,91 @@ export const WIDGETS: Widget[] = [
           : Promise.resolve(null),
       ]);
       return cartes(ids, { bibliotheque, ecoute, genres }, ctx.langue ?? 'fr').map((c) => ({
+        cle: c.cleLibelle,
+        valeur: c.texte,
+        id: c.id,
+        icone: c.icone,
+        vue: c.vue,
+      }));
+    },
+  },
+  /**
+   * ── EXTRAITS DU TABLEAU DE BORD (Bertrand, 20/09/2026) ─────────────────
+   *
+   * « À partir du tableau de bord, extraire : widget Artistes les plus
+   * écoutés, gros widget top Artists / Albums / Tracks, widget Radios les
+   * plus écoutées. »
+   *
+   * Les trois vivent de la MÊME réponse — `GET /library/history/dashboard`
+   * porte déjà `top_artists`, `top_albums`, `top_tracks` et `top_radios`.
+   * C'est donc un déplacement, pas une réécriture : aucune route nouvelle,
+   * aucun travail serveur.
+   *
+   * 🔴 D'où `tableauDeBord()` juste en dessous : `PageWidgets` charge ses
+   * widgets EN PARALLÈLE. Trois widgets qui appellent chacun la route, c'est
+   * trois fois la même requête — sur une grosse histoire, elle n'est pas
+   * gratuite. La promesse est partagée le temps du chargement.
+   */
+  {
+    id: 'top-artistes',
+    cleTitre: 'v2.home.wTopArtists',
+    forme: 'bande',
+    charger: async (ctx) =>
+      utiles(
+        (await tableauDeBord('30d')).top_artists.slice(0, LIMITE).map((a, i) => ({
+          id: `top-art-${i}-${a.artist_name}`,
+          titre: a.artist_name,
+          sous: lectures(a.plays, ctx.langue ?? 'fr'),
+          cover: a.cover_path ?? null,
+        })),
+      ),
+  },
+  {
+    id: 'top-radios',
+    cleTitre: 'v2.home.wTopRadios',
+    forme: 'bande',
+    charger: async (ctx) =>
+      utiles(
+        // `top_radios` est ABSENT de la réponse quand la liste est vide
+        // (`skip_serializing_if` côté serveur) — pas `[]`, absent.
+        ((await tableauDeBord('30d')).top_radios ?? []).slice(0, LIMITE).map((r, i) => {
+          const el = {
+            id: `top-rad-${i}-${r.station_name}`,
+            titre: r.station_name,
+            sous: lectures(r.plays, ctx.langue ?? 'fr'),
+            cover: r.cover_path ?? r.cover_url ?? null,
+          };
+          // Même piège que `radios-artistes` : une station se joue par SA
+          // route, sinon son identifiant partirait en `album_id`.
+          return r.radio_id != null
+            ? { ...el, jouer: (z: number) => api.playRadio(r.radio_id as number, z) }
+            : el;
+        }),
+      ),
+  },
+  /**
+   * LA SEMAINE ÉCOULÉE — « Widget Stats de la semaine ».
+   *
+   * Rien de neuf côté serveur : `getDashboard` accepte déjà `'7d'`, et ses
+   * totaux ont la même forme que ceux de `/dashboard/stats`. On les y ramène
+   * pour réutiliser le catalogue `chiffresAccueil` — mêmes libellés, mêmes
+   * icônes, même formatage des heures et des nombres que la ligne de chiffres
+   * de la bibliothèque. Un second formateur aurait divergé.
+   */
+  {
+    id: 'stats-semaine',
+    cleTitre: 'v2.home.wWeekStats',
+    forme: 'chiffres',
+    charger: async () => [],
+    chiffres: async (ctx) => {
+      const t = (await tableauDeBord('7d')).totals;
+      const ecoute = {
+        total_listens: t.plays,
+        total_duration_ms: t.listening_ms,
+        unique_tracks: t.unique_tracks,
+        unique_artists: t.unique_artists,
+      };
+      return cartes(CHIFFRES_SEMAINE, { ecoute }, ctx.langue ?? 'fr').map((c) => ({
         cle: c.cleLibelle,
         valeur: c.texte,
         id: c.id,

@@ -58,7 +58,12 @@ describe('Accueil — le registre', () => {
     for (const w of WIDGETS) {
       expect(['bande', 'chiffres', 'zones-cartes']).toContain(w.forme);
     }
-    expect(WIDGETS.filter((w) => w.forme === 'chiffres').map((w) => w.id)).toEqual(['statistiques']);
+    // 20/09/2026 — « Widget Stats de la semaine » (Bertrand). La forme
+    // `chiffres` a donc un SECOND utilisateur : ce n'est pas une forme
+    // nouvelle, mais la garde nomme ses utilisateurs un par un, et c'est
+    // bien ainsi — le troisième devra encore passer par une décision.
+    expect(WIDGETS.filter((w) => w.forme === 'chiffres').map((w) => w.id))
+      .toEqual(['statistiques', 'stats-semaine']);
     expect(WIDGETS.filter((w) => w.forme === 'zones-cartes').map((w) => w.id)).toEqual(['zones-cartes']);
   });
 
