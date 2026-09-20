@@ -3311,6 +3311,7 @@ export default {
   "v2.lib.emptyDepot": "{nom}({hote})에 앨범이 없습니다.",
   "v2.lib.viewList": "목록 보기",
   "v2.lib.viewGrid": "그리드 보기",
+  "v2.lib.viewCarousel": "캐러셀 보기",
   "v2.lib.starting": "시작 중…",
   "v2.fav.noMatch": "이 검색에 대한 결과가 없습니다.",
   "v2.fav.emptyAlbums": "즐겨찾기한 앨범이 없습니다.",

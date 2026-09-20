@@ -63,7 +63,13 @@ describe('onglet « Ajouts récents » (#3039) porté dans la Bibliothèque v2',
     const balise = L.match(/<AjoutsRecentsV2\b[^>]*\/>/)?.[0];
     expect(balise, '<AjoutsRecentsV2 …/> n’est plus monté dans LibraryV2').toBeTruthy();
     expect(balise).toContain('onOuvrir={ouvrirCalqueAlbum}');
-    expect(balise).toContain('vue={display}');
+    // #929 — la bascule a désormais un TROISIÈME cran, le carrousel, que cet
+    // écran ne sait pas rendre : il reçoit le mode RABATTU sur la grille. La
+    // garde porte donc sur ce qui compte — le mode de l'écran lui est bien
+    // descendu — et non sur la forme exacte de l'expression, qui a déjà cassé
+    // cette ligne une fois. Qu'il ne reçoive jamais `carousel` est mesuré sur
+    // l'écran monté, par `carrouselAlbums929.test.ts`.
+    expect(balise).toMatch(/vue=\{[^}]*\bdisplay\b/);
   });
   it('🔴 liste et décompte portent sur la MÊME fenêtre, et un résultat périmé est jeté', () => {
     expect(R).toContain('api.getRecentlyAdded(fenetre, PLAFOND)');
