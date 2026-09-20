@@ -948,7 +948,7 @@
    * regle existait, elle n'etait appliquee qu'a un controle sur cinq.
    *
    * ⚠️ `recent` A ÉTÉ OUBLIÉ. La règle ci-dessus date d'avant l'onglet
-   * « Ajouts récents » (#3039), qui monte `<AjoutsRecentsV2 onOuvrir=… />` :
+   * « Ajouts récents » (#3039), qui monte le composant `AjoutsRecentsV2` :
    * ce composant a sa PROPRE source (`/home/recently-added`), sa propre
    * fenêtre 15/30 jours, et ne reçoit ni `q`, ni `fQuality`, ni `fYear`, ni
    * `sortKey`. Toutes ces commandes y étaient donc rendues MORTES — « le fait

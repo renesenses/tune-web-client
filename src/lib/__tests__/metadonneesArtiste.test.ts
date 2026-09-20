@@ -54,7 +54,16 @@ describe('onglet « Ajouts récents » (#3039) porté dans la Bibliothèque v2',
   const R = readFileSync('src/components/v2/AjoutsRecentsV2.svelte', 'utf8');
   it('l’onglet existe et monte le composant, qui ouvre la fiche album', () => {
     expect(L).toContain("{ id: 'recent', label: 'library.recentlyAdded' }");
-    expect(L).toContain('<AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} />');
+    // #1367 — la balise n'est plus auto-fermée nue : la bascule grille/liste
+    // lui descend désormais `vue`. On garde la garde sur ce qui compte (le
+    // composant est monté, et il reçoit de quoi ouvrir la fiche) sans figer
+    // la liste de ses props, qui a déjà cassé cette ligne une fois. Le
+    // comportement, lui, est mesuré sur l'écran monté par
+    // `ajoutsRecentsCommandesInertes1367.test.ts`.
+    const balise = L.match(/<AjoutsRecentsV2\b[^>]*\/>/)?.[0];
+    expect(balise, '<AjoutsRecentsV2 …/> n’est plus monté dans LibraryV2').toBeTruthy();
+    expect(balise).toContain('onOuvrir={ouvrirCalqueAlbum}');
+    expect(balise).toContain('vue={display}');
   });
   it('🔴 liste et décompte portent sur la MÊME fenêtre, et un résultat périmé est jeté', () => {
     expect(R).toContain('api.getRecentlyAdded(fenetre, PLAFOND)');
