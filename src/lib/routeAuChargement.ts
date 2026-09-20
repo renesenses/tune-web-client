@@ -102,11 +102,12 @@ const VUES: Record<View, boolean> = {
   // fragment et personne ne le lisait (voir `lib/auth.ts`). La session expirée
   // se dit par un calque partagé, pas par une adresse.
   login: false,
-  // `offline` et `onboarding` sont des ÉTATS que l'application constate
-  // elle-même. Les reposer depuis l'adresse afficherait « hors ligne » à un
-  // serveur joignable, ou l'assistant de première installation à une
+  // `onboarding` est un ÉTAT que l'application constate elle-même. Le reposer
+  // depuis l'adresse afficherait l'assistant de première installation à une
   // installation déjà faite.
-  offline: false,
+  //
+  // `offline` a disparu avec son écran le 20/09/2026 (Bertrand : « écran
+  // écoute hors-ligne à supprimer »).
   onboarding: false,
   // Les fiches de STREAMING tiennent leur contenu dans un magasin
   // (`ficheAlbumService`) que rien ne remplit au chargement : `ShellV2` teste

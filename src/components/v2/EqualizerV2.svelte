@@ -19,6 +19,7 @@
    * découpage gauche/droite finiraient par diverger.
    */
   import * as api from '../../lib/api';
+  import { rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { EqBand, MergedPlugin } from '../../lib/api';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
@@ -175,6 +176,10 @@
       if (inst?.restart_required || act?.restart_required) redemarrageRequis = true;
       notifications.success(msgOk);
       rechargement++;
+      // Le bouton EQ de Lecture en cours suit le même magasin : sans ce
+      // rafraîchissement, il ne reviendrait qu'au prochain chargement de la
+      // page — on aurait installé l'égaliseur sans le voir apparaître.
+      void rafraichirGreffonEgaliseur();
     } catch {
       error = msgKo;
       notifications.error(msgKo);

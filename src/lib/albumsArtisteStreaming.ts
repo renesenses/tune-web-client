@@ -114,16 +114,50 @@ export async function statutsStreaming(
 }
 
 /**
+ * Normalise un nom d'artiste pour le rapprochement — #1373.
+ *
+ * Minuscules, accents retirés, ponctuation et espaces réduits, article de tête
+ * (`the`, `le`, `la`, `les`) enlevé. Rien de plus : chaque règle ajoutée ici
+ * élargit ce qui se rapproche, et l'élargir à tort est le seul vrai risque.
+ *
+ * C'est le PENDANT de `artist_releases.rs::nom_normalise` côté serveur, qui
+ * rapproche déjà les mêmes noms pour « Nouveautés de vos artistes ». Deux
+ * écrans qui rapprochent des noms doivent le faire de la même façon.
+ */
+export function nomNormalise(nom: string): string {
+  const sansAccents = (nom ?? '')
+    .toLowerCase()
+    .normalize('NFD')
+    // Les diacritiques décomposés par NFD — et rien d'autre : on ne touche ni
+    // aux alphabets non latins, ni aux chiffres.
+    .replace(/[\u0300-\u036f]/g, '');
+  const mots = sansAccents.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  // Un nom RÉDUIT à un article reste ce nom : « The » seul doit rendre « the »,
+  // pas la chaîne vide — sans quoi tous les noms vides se rapprocheraient
+  // entre eux.
+  const sansArticle =
+    mots.length > 1 && ['the', 'le', 'la', 'les'].includes(mots[0]) ? mots.slice(1) : mots;
+  return sansArticle.join(' ');
+}
+
+/**
  * Lequel des artistes rendus par le service est le nôtre.
  *
- * Le nom EXACT (casse ignorée) prime ; à défaut, le premier — le service
- * classe ses résultats par pertinence. C'est la règle de l'interface actuelle,
- * reprise telle quelle : la changer ici ferait diverger deux écrans qui
- * doivent montrer la même chose.
+ * 🔴 #1373 — LE NOM, ou RIEN. La règle d'avant retenait le nom exact « à
+ * défaut, le premier », en s'appuyant sur le classement par pertinence du
+ * service. Pour une RECHERCHE, c'est raisonnable ; pour une FICHE D'ARTISTE,
+ * c'est une machine à fausses attributions : quand le service ne connaît pas
+ * l'artiste, il rend quand même des résultats, et toute la discographie
+ * affichée devient celle de quelqu'un d'autre. FabienM, 0.9.158 : sa fiche
+ * « Matt Elliott » proposait les albums de Keystone Homeschool.
  *
- * ⚠️ Un rapprochement par NOM reste faillible — « M » et « -M- » sont le même
- * artiste et deux chaînes. On ne peut pas faire mieux : le service ne connaît
- * pas l'identifiant de notre table, et aucune correspondance n'est stockée.
+ * Sans correspondance, on rend `null` : le service n'aura pas de section. Une
+ * section vide ne dit rien ; une section fausse ment.
+ *
+ * ⚠️ Conséquence assumée : « M » et « -M- » sont le même artiste et deux
+ * chaînes que la normalisation ne rejoint pas. Le service ne connaît pas
+ * l'identifiant de notre table, aucune correspondance n'est stockée, et une
+ * fiche incomplète vaut mieux qu'une fiche fausse.
  */
 export function apparierArtiste(
   candidats: { id?: unknown; source_id?: unknown; name: string }[] | null | undefined,
@@ -131,9 +165,11 @@ export function apparierArtiste(
 ): string | null {
   const liste = candidats ?? [];
   if (!liste.length) return null;
-  const cible = nom.toLowerCase();
-  const choisi = liste.find((a) => (a?.name ?? '').toLowerCase() === cible) ?? liste[0];
-  const id = choisi?.id ?? choisi?.source_id ?? null;
+  const cible = nomNormalise(nom);
+  if (!cible) return null;
+  const choisi = liste.find((a) => nomNormalise(a?.name ?? '') === cible);
+  if (!choisi) return null;
+  const id = choisi.id ?? choisi.source_id ?? null;
   return id == null || id === '' ? null : String(id);
 }
 
