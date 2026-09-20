@@ -13,6 +13,7 @@ import { get } from 'svelte/store';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { creerBandeauLisible } from '../bandeauLisible';
+import { dictionnaire } from './onzeDictionnaires';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 
@@ -85,7 +86,7 @@ describe('branchement — la croix existe et appelle `fermer`', () => {
   });
   it('le libellé existe dans les onze langues', async () => {
     for (const code of ['fr', 'en', 'de', 'es', 'it', 'ro', 'sv', 'hu', 'ja', 'ko', 'zh']) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       expect(dico['zone.bannerDismiss'], code).toBeTruthy();
     }
   });

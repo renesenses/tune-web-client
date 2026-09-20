@@ -208,7 +208,7 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'cloud',      title: 'Cloud',                         from: 'system', min: 'intermediate', keywords: ['sauvegarde', 'relais', 'télémétrie', 'telemetry', 'statistiques', 'consentement', 'vie privée'] },
       { id: 'database',   titleKey: 'settings.database',          from: 'system', min: 'expert', keywords: ['base', 'sqlite', 'postgres'] },
       { id: 'dataLoc',    titleKey: 'settings.dataLocation',      from: 'system', min: 'expert', keywords: ['emplacement', 'données'] },
-      { id: 'import',     titleKey: 'import.title',               from: 'system', min: 'expert' },
+      { id: 'import',     titleKey: 'import.title',               from: 'system', min: 'expert', keywords: ['import', 'roon', 'plex', 'migrer', 'autre lecteur'] },
       { id: 'config',     titleKey: 'settings.configSection',     from: 'system', min: 'expert', keywords: ['configuration', 'fichier'] },
       { id: 'exportCsv',  titleKey: 'settings.exportCsv',         from: 'system', min: 'expert', keywords: ['export', 'csv'] },
     ],

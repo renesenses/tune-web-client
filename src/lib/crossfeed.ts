@@ -112,6 +112,13 @@ export function cleIndisponibiliteCrossfeed(motif: string): string {
       return 'dsp.crossfeedUnavailableProgressiveOff';
     case 'network_renderer_no_lpcm':
       return 'dsp.crossfeedUnavailableNoLpcm';
+    // #1266 — les deux motifs de DROITS arrivés en 0.9.156 avec l'extraction
+    // du SDK. Ils tombaient dans le repli : « Sans effet sur cette zone. », sans
+    // dire s'il fallait changer de licence ou activer l'extension.
+    case 'premium_required':
+      return 'dsp.crossfeedUnavailablePremium';
+    case 'plugin_unavailable':
+      return 'dsp.crossfeedUnavailablePlugin';
     default:
       return 'dsp.crossfeedUnavailable';
   }
