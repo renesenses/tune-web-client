@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { dictionnaire } from './onzeDictionnaires';
 
 const LOCALES = ['fr', 'en', 'de', 'es', 'it', 'ja', 'ko', 'ro', 'sv', 'zh', 'hu'];
 
@@ -17,7 +18,7 @@ describe('#3836 — Ambiance doit DIRE qu’elle cherche un son, pas un genre', 
 
   it('les trois clés existent dans les onze langues', async () => {
     for (const code of LOCALES) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       for (const cle of ['v2.ambiance.promptHint', 'v2.ambiance.promptPlaceholder', 'v2.ambiance.search']) {
         expect(dico[cle], `${code} / ${cle}`).toBeTruthy();
       }
@@ -25,7 +26,7 @@ describe('#3836 — Ambiance doit DIRE qu’elle cherche un son, pas un genre', 
   });
 
   it('l’avertissement nomme les deux pièges : le genre, et la langue', async () => {
-    const fr = (await import('../locales/fr')).default as Record<string, string>;
+    const fr = dictionnaire('fr');
     const hint = fr['v2.ambiance.promptHint'];
     expect(hint).toMatch(/SON/);
     expect(hint).toMatch(/genre/i);

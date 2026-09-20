@@ -20,12 +20,12 @@
 // Trois cas par interface : valeur MESURÉE, valeur DÉDUITE, valeur ABSENTE.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import LibraryView from '../../components/LibraryView.svelte';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
 import { selectedAlbum, albumTracks } from '../stores/library';
 import { afficherDynamicRange } from '../dynamicRange';
 import type { Album } from '../types';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -48,17 +48,6 @@ const ALBUM = (dr: Partial<Album>): Album =>
   ({ id: 7, title: 'Un album mesuré', artist_name: 'X', ...dr }) as Album;
 
 /** Monte l'ANCIENNE interface sur la fiche de cet album. */
-function poserAncienne(album: Album): HTMLDivElement {
-  vi.stubGlobal('fetch', vi.fn(async () => reponse({})));
-  selectedAlbum.set(album);
-  albumTracks.set([]);
-  hote = document.createElement('div');
-  document.body.appendChild(hote);
-  monte = mount(LibraryView, { target: hote, props: {} as any });
-  flushSync();
-  return hote;
-}
-
 /**
  * Monte la NOUVELLE interface. Elle reçoit l'album de la GRILLE — servie par
  * la route de liste, qui ne porte AUCUNE des deux clés : c'est bien la fiche
@@ -132,7 +121,7 @@ describe('la règle d’affichage — même valeur, provenance différente', () 
   it('les deux infobulles sont DISTINCTES dans les onze langues', async () => {
     const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
     for (const l of langues) {
-      const m = (await import(`../locales/${l}.ts`)).default as Record<string, string>;
+      const m = dictionnaire(l);
       const mesure = m['library.dynamicRangeTip'];
       const moyenne = m['library.dynamicRangeAverageTip'];
       expect(mesure, `${l} : infobulle de mesure`).toBeTruthy();
@@ -164,49 +153,6 @@ describe('la règle d’affichage — même valeur, provenance différente', () 
   });
 });
 
-describe('ANCIENNE interface — le badge de LibraryView dit d’où sort la valeur', () => {
-  it('MESURÉE : « DR 12 », sans marque, infobulle de mesure', () => {
-    const el = poserAncienne(ALBUM({ dynamic_range: '12', dynamic_range_source: 'album_tag' }));
-    const badge = el.querySelector('.dr-badge') as HTMLElement;
-    expect(badge).not.toBeNull();
-    expect(badge.textContent?.trim()).toBe('DR 12');
-    expect(badge.textContent).not.toContain('~');
-    expect(badge.classList.contains('dr-deduit')).toBe(false);
-    expect(badge.getAttribute('title')).toBe(fr['library.dynamicRangeTip']);
-  });
-
-  it('DÉDUITE : « DR ~12 », marquée, et l’infobulle parle de la moyenne', () => {
-    const el = poserAncienne(ALBUM({ dynamic_range: '12', dynamic_range_source: 'track_average' }));
-    const badge = el.querySelector('.dr-badge') as HTMLElement;
-    expect(badge).not.toBeNull();
-    expect(badge.textContent?.trim()).toBe('DR ~12');
-    // La marque visuelle est portée par une classe, pas par un style en ligne :
-    // c'est elle qui déclenche le soulignement pointillé du bloc `<style>`.
-    expect(badge.classList.contains('dr-deduit')).toBe(true);
-    expect(badge.getAttribute('title')).toBe(fr['library.dynamicRangeAverageTip']);
-    expect(badge.getAttribute('title')).not.toBe(fr['library.dynamicRangeTip']);
-  });
-
-  it('les deux cas ne se ressemblent PAS — c’est tout l’objet du contrat', () => {
-    const mesure = poserAncienne(ALBUM({ dynamic_range: '12', dynamic_range_source: 'album_tag' }));
-    const t1 = (mesure.querySelector('.dr-badge') as HTMLElement).textContent?.trim();
-    const c1 = (mesure.querySelector('.dr-badge') as HTMLElement).className;
-    const b1 = (mesure.querySelector('.dr-badge') as HTMLElement).getAttribute('title');
-    unmount(monte!); monte = null; hote!.remove(); hote = null;
-
-    const moyenne = poserAncienne(ALBUM({ dynamic_range: '12', dynamic_range_source: 'track_average' }));
-    const badge2 = moyenne.querySelector('.dr-badge') as HTMLElement;
-    expect(badge2.textContent?.trim()).not.toBe(t1);
-    expect(badge2.className).not.toBe(c1);
-    expect(badge2.getAttribute('title')).not.toBe(b1);
-  });
-
-  it('ABSENTE : aucun badge, comme avant', () => {
-    const el = poserAncienne(ALBUM({}));
-    expect(el.querySelector('.dr-badge')).toBeNull();
-    expect(el.textContent).not.toContain('DR ');
-  });
-});
 
 describe('NOUVELLE interface — AlbumDetailV2 affiche enfin un Dynamic Range', () => {
   it('MESURÉE : « DR 12 », sans marque, infobulle de mesure', async () => {

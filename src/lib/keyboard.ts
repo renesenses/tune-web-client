@@ -2,6 +2,34 @@ import { get } from 'svelte/store';
 import { currentZone, nextAndSync, previousAndSync, resumeAndSync, stopAndSync } from './stores/zones';
 import { playbackState, seekPositionMs, mutedVolume, currentTrack } from './stores/nowPlaying';
 import * as api from './api';
+import { activeView, mobileNowPlayingOpen } from './stores/navigation';
+
+/**
+ * #1309 — une flèche est-elle un raccourci de LECTURE ?
+ *
+ * Les quatre flèches avançaient la piste de 10 s ou bougeaient le volume de
+ * 1 % sur TOUS les écrans, et bloquaient le défilement. Dans la bibliothèque,
+ * elles ne pouvaient donc jamais faire défiler les pochettes : elles
+ * envoyaient une avance à la zone pilotée — et, sur un renderer absent,
+ * l'erreur brute « output … is not registered » (Mac Brehilt, 19/09/2026).
+ *
+ * - Une touche déjà consommée par un composant (une rangée qui défile,
+ *   `defilementHorizontal.ts`) n'est jamais rejouée ici.
+ * - Maj+← / Maj+→ (piste précédente / suivante) restent actifs partout.
+ * - Les flèches seules ne pilotent la lecture que sur l'écran de lecture.
+ */
+export function flecheDeLecture(
+  e: Pick<KeyboardEvent, 'code' | 'shiftKey' | 'defaultPrevented'>,
+  surEcranDeLecture: boolean,
+): boolean {
+  if (e.defaultPrevented) return false;
+  if (e.shiftKey && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) return true;
+  return surEcranDeLecture;
+}
+
+function surEcranDeLecture(): boolean {
+  return get(activeView) === 'nowplaying' || get(mobileNowPlayingOpen);
+}
 
 export function setupKeyboardShortcuts(): () => void {
   function handler(e: KeyboardEvent) {
@@ -10,6 +38,7 @@ export function setupKeyboardShortcuts(): () => void {
 
     const zone = get(currentZone);
     if (!zone?.id) return;
+    if (e.code.startsWith('Arrow') && !flecheDeLecture(e, surEcranDeLecture())) return;
 
     switch (e.code) {
       case 'Space': {

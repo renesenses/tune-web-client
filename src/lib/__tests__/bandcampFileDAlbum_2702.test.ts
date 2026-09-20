@@ -109,55 +109,5 @@ describe('#2778 — « Ma collection » se joue, et par l’album entier', () =>
   });
 });
 
-// ---------------------------------------------------------------------------
-// LA GARDE : l'écran APPELLE bien ce qui précède.
-//
-// Une fonction correcte que personne n'appelle ne corrige rien : c'est le
-// « écrit mais pas branché » que ce ticket documentait déjà côté serveur.
-// ---------------------------------------------------------------------------
-const ECRAN = readFileSync(
-  resolve(__dirname, '../../components/BandcampView.svelte'),
-  'utf8',
-);
-/** Le source sans ses commentaires : un commentaire ne branche rien. */
-const CODE = ECRAN.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
-/** Le corps d'une fonction Svelte, accolades comptées. */
-function corpsDe(nom: string): string {
-  const debut = CODE.indexOf(`function ${nom}(`);
-  if (debut === -1) return '';
-  const ouvrante = CODE.indexOf('{', CODE.indexOf(')', debut));
-  let profondeur = 0;
-  for (let i = ouvrante; i < CODE.length; i++) {
-    if (CODE[i] === '{') profondeur++;
-    else if (CODE[i] === '}' && --profondeur === 0) return CODE.slice(ouvrante, i + 1);
-  }
-  return '';
-}
 
-describe('#2702 — l’écran Bandcamp envoie bien le corps d’album', () => {
-  it('🔴 `ecouter` passe par `corpsDeLectureBandcamp`', () => {
-    // Aiguille assemblée : écrite en clair elle vivrait dans CE fichier, pas
-    // dans celui qu'on inspecte — mais l'habitude protège du témoin qui se
-    // trouve lui-même.
-    const appel = ['corpsDeLecture', 'Bandcamp('].join('');
-    expect(corpsDe('ecouter')).toContain(appel);
-  });
-
-  it('🔴 `ecouter` n’envoie PLUS la piste distante seule à `playAndSync`', () => {
-    const corps = corpsDe('ecouter');
-    expect(corps).not.toContain(['playAndSync(zone.id, piste_', 'distante('].join(''));
-  });
-
-  it('`jouer_collection` existe et passe par `corpsDeLectureCollection`', () => {
-    expect(corpsDe('jouer_collection')).toContain(
-      ['corpsDeLecture', 'Collection('].join(''),
-    );
-  });
-
-  it('la mise en FILE d’une piste seule reste ce qu’elle était', () => {
-    // `mettre_en_file` est un autre geste : ranger UNE piste derrière ce qui
-    // joue. Il ne doit pas être emporté par ce correctif.
-    expect(corpsDe('mettre_en_file')).toContain(['piste_', 'distante('].join(''));
-  });
-});

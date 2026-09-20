@@ -40,27 +40,23 @@
 import { describe, expect, it } from 'vitest';
 import { analyser, sansInfobulle } from './infobullesTronquees';
 
-/** Les quatre vues de ce lot. */
-const TRAITEES = ['LibraryView', 'Sidebar', 'MediaServersView', 'OfflineView'];
+// Trois des quatre vues de ce lot (LibraryView, Sidebar, MediaServersView)
+// sont parties avec la phase 5, comme ProfileSelector. `OfflineView` a été
+// SAUVÉE par le portage (lot 4) : elle vit dans `v2-heritage/`, et reste gardée.
+const TRAITEES = ['OfflineView'];
 
-describe('#914 — les quatre vues les plus chargées', () => {
+describe('#914 — les vues les plus chargées (celle qui reste)', () => {
   it('🔴 plus aucun texte coupé sans infobulle', () => {
     const nus = sansInfobulle(TRAITEES.map(analyser));
     expect(nus, `il reste ${nus.length} texte(s) coupé(s) illisible(s)`).toEqual([]);
   });
 
-  it('chacune porte bien l’action, et non un `title=` écrit à la main', () => {
+  it('elle porte bien l’action, et non un `title=` écrit à la main', () => {
     const { readFileSync } = require('node:fs') as typeof import('node:fs');
     const { resolve } = require('node:path') as typeof import('node:path');
-    for (const nom of TRAITEES) {
-      const src = readFileSync(
-        resolve(__dirname, '../../components', `${nom}.svelte`), 'utf8');
-      expect(src.includes('use:bulleTexte'), `${nom} n’emploie pas l’action`).toBe(true);
-      expect(
-        src.includes("from '../lib/infobulleTexte'"),
-        `${nom} n’importe pas le mécanisme`,
-      ).toBe(true);
-    }
+    const src = readFileSync(resolve(__dirname, '../../components/v2-heritage/OfflineView.svelte'), 'utf8');
+    expect(src.includes('use:bulleTexte'), 'OfflineView n’emploie pas l’action').toBe(true);
+    expect(/from '(\.\.\/){1,2}lib\/infobulleTexte'/.test(src), 'OfflineView n’importe pas le mécanisme').toBe(true);
   });
 });
 
@@ -75,7 +71,6 @@ describe('#914 — CONTRE-ÉPREUVE : le reste du chantier est intact', () => {
   const RESTANTES: Record<string, number> = {
     BrowseView: 4,
     OxygenView: 10,
-    ProfileSelector: 2,
   };
 
   it('elles portent toujours exactement ce qu’elles portaient', () => {

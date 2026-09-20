@@ -20,6 +20,7 @@
   import { portail } from '../../lib/portail';
   import { champsRadioAEnvoyer } from '../../lib/champsRadio';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   import type { RadioStation } from '../../lib/types';
 
   /**
@@ -40,8 +41,10 @@
     radio: RadioStation;
     onClose: () => void;
     onSaved?: (maj: RadioStation) => void;
+    /** Station supprimée : l'appelant la retire de sa liste. */
+    onDeleted?: (id: number) => void;
   }
-  let { radio, onClose, onSaved }: Props = $props();
+  let { radio, onClose, onSaved, onDeleted }: Props = $props();
 
   let nom = $state(radio.name ?? '');
   let flux = $state(radio.stream_url ?? '');
@@ -52,6 +55,47 @@
   let travail = $state(false);
 
   const creation = $derived(radio.id == null);
+
+  /** Supprimer la station — porté de l'ancien écran Radios, seul à le permettre. */
+  async function supprimer() {
+    if (radio.id == null) return;
+    if (!(await dialogs.confirm($t('radio.deleteConfirm' as any), { danger: true }))) return;
+    travail = true;
+    try {
+      await api.deleteRadio(radio.id);
+      onDeleted?.(radio.id);
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('common.error' as any));
+    } finally {
+      travail = false;
+    }
+  }
+
+  /*
+   * Téléverser une image comme pochette de la station — porté de l'ancien
+   * écran Radios, seul à le permettre. Ici on ne pouvait que coller une URL :
+   * un logo qu'on a sur son disque restait inutilisable. La route écrit tout
+   * de suite, indépendamment du formulaire ; l'adresse rendue remplace le
+   * champ « logo ».
+   */
+  let televersement = $state(false);
+  async function televerserPochette(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (!f || radio.id == null) return;
+    televersement = true;
+    try {
+      const maj = await api.uploadRadioCover(radio.id, f);
+      logo = maj.logo_url ?? logo;
+      onSaved?.(maj);
+      notifications.success($t('radio.coverUploaded' as any));
+    } catch (err: any) {
+      notifications.error(err?.message ?? $t('common.error' as any));
+    } finally {
+      televersement = false;
+    }
+  }
 
   const modifie = $derived(
     nom !== (radio.name ?? '') ||
@@ -120,9 +164,19 @@
         <label><span>{$t('v2.radio.country' as any)}</span><input bind:value={pays} /></label>
       </div>
       <label><span>{$t('v2.radio.logo' as any)}</span><input bind:value={logo} type="url" /></label>
+      {#if !creation}
+        <label class="fichier">
+          <span>{televersement ? $t('radio.uploadingCover' as any) : $t('radio.orClickToUpload' as any)}</span>
+          <input type="file" accept="image/*" onchange={televerserPochette} disabled={televersement} />
+        </label>
+      {/if}
       <label><span>{$t('v2.radio.site' as any)}</span><input bind:value={site} type="url" /></label>
 
       <div class="pied">
+        {#if !creation}
+          <button type="button" class="sec danger" disabled={travail} onclick={supprimer}>{$t('common.delete' as any)}</button>
+          <span class="pousse"></span>
+        {/if}
         <button type="button" class="sec" onclick={onClose}>{$t('common.cancel' as any)}</button>
         <button type="submit" class="pri" disabled={travail || !nom.trim() || !flux.trim() || !modifie}>
           {$t('common.save' as any)}
@@ -152,6 +206,8 @@
   .pied{display:flex; justify-content:flex-end; gap:8px; margin-top:16px}
   .pied button{border-radius:8px; font:600 13px var(--v2-sans); padding:8px 14px; cursor:pointer}
   .sec{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2)}
+  .sec.danger:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+  .pousse{flex:1}
   .sec:hover{color:var(--v2-txt)}
   .pri{border:0; background:var(--v2-acc1); color:var(--v2-on-acc)}
   .pri:disabled{opacity:.5; cursor:default}

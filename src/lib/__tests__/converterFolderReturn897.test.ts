@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
 import ConverterV2 from '../../components/v2/ConverterV2.svelte';
-import ConverterView from '../../components/ConverterView.svelte';
 import BrowseView from '../../components/v2-heritage/BrowseView.svelte';
 import * as api from '../api';
 import { albums } from '../stores/library';
@@ -66,7 +65,6 @@ afterEach(async () => {
 });
 const variants = [
   { name: 'v2', component: ConverterV2, card: '.card', selected: '.card.sel', preset: '.chips button', chosen: '.chips button.on', start: '.go', filter: '.v2-rech input' },
-  { name: 'legacy', component: ConverterView, card: '.album-card', selected: '.album-card.selected', preset: '.preset-card', chosen: '.preset-card.active', start: '.convert-btn', filter: '.album-search' },
 ];
 
 describe.each(variants)('#897 $name real converter/directory navigation', (v) => {

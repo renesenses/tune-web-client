@@ -132,11 +132,16 @@ describe('point 2 — le menu « … » d’un titre d’historique', () => {
     // exactement la condition que ce témoin posait. L'INTENTION est gardée
     // plus bas : l'entrée n'apparaît que si l'appelant dit la piste
     // `etiquetable`, jamais sur une piste qu'aucune route ne sait désigner.
+    //
+    // 🔄 Réécrit le 19/09/2026 (#1268) : « Ajouter à une playlist » sort à son
+    // tour. Une playlist TUNE reste fermée à une piste de service (#1848), mais
+    // une playlist DE SON SERVICE lui est ouverte
+    // (`POST /streaming/{service}/playlists/{id}/tracks`). L'intention est
+    // gardée plus bas, en appelant la règle.
     const menu = sansCommentaires(lire('src/lib/menuPiste.ts'));
     for (const cle of [
       'library.playSimilar',
       'library.otherVersions',
-      'nowplaying.addToPlaylist',
     ]) {
       expect(menu, `${cle} n’est plus réservée à la bibliothèque`).toMatch(
         new RegExp(`pousser\\(deLaBibliotheque, '${cle.replace('.', '\\.')}'`),
@@ -155,6 +160,16 @@ describe('point 2 — le menu « … » d’un titre d’historique', () => {
     expect(cles({ ...service, etiquetable: false })).not.toContain('v2.cover.tags');
     expect(cles(service), 'sans avis de l’appelant, seule la bibliothèque étiquette').not.toContain('v2.cover.tags');
     expect(cles({ ...service, idBibliotheque: 12 })).toContain('v2.cover.tags');
+  });
+
+  it('« Ajouter à une playlist » : seulement vers une playlist de SON service (#1268)', () => {
+    const noop = () => {};
+    const service = { jouable: true, idBibliotheque: null, artistId: null, albumId: null };
+    const cles = (c: Parameters<typeof entreesMenuPiste>[0]) =>
+      entreesMenuPiste(c, { ajouterAPlaylist: noop }).map((e) => e.cle);
+    expect(cles(service), 'sans playlist de service, l’entrée reste absente (#1848)').not.toContain('nowplaying.addToPlaylist');
+    expect(cles({ ...service, playlistDeService: 'qobuz' })).toContain('nowplaying.addToPlaylist');
+    expect(cles({ ...service, idBibliotheque: 12 })).toContain('nowplaying.addToPlaylist');
   });
 
   it('les trois gestes de FILE restent ouverts à toute piste jouable', () => {

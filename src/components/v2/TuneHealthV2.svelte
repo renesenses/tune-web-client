@@ -28,6 +28,7 @@
   import { heureSeule } from '../../lib/dates';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
+  import { dialogs } from '../../lib/stores/dialogs';
   // #865 — le geste des journaux, PARTAGÉ avec `DiagnosticsView`. Voir
   // `lib/journaux.ts` : aucune copie de la route ni du nom de fichier ici.
   import { lireJournaux, telechargerJournaux } from '../../lib/journaux';
@@ -57,6 +58,48 @@
   let refreshing = $state(false);
   /** #2392 — l'instantané `output_providers` ; `null` = serveur antérieur à v0.9.115, pas de panneau. */
   let modulesSortie = $state<TableauFournisseurs | null>(null);
+
+  /*
+   * Portés de l'ancien écran Diagnostics, seul à les offrir.
+   *
+   * ASIO : après un plantage pendant la détection des pilotes, le serveur
+   * BLOQUE la détection au démarrage suivant — sans quoi il replanterait en
+   * boucle. Seul un geste de l'utilisateur la réarme ; sans ce bouton, elle
+   * restait bloquée à vie dans cette interface.
+   *
+   * Réseau : multicast SSDP, port 8888, Internet, DNS, renderers vus — les
+   * questions à poser quand « aucun appareil n'apparaît ». Lu à la demande.
+   */
+  let asioBloque = $state(false);
+  let asioRearmement = $state(false);
+  let asioRearme = $state(false);
+  async function rearmerAsio() {
+    if (!(await dialogs.confirm($t('diagnostics.asioWarmConfirm' as any)))) return;
+    asioRearmement = true;
+    try {
+      await api.rearmAsioWarmScan();
+      asioRearme = true;
+      asioBloque = false;
+      notifications.success($t('diagnostics.asioWarmRearmed' as any));
+    } catch (e) {
+      notifications.error(errText(e) ?? $t('common.error' as any));
+    } finally {
+      asioRearmement = false;
+    }
+  }
+
+  let reseau = $state<Awaited<ReturnType<typeof api.getNetworkDiagnostics>> | null>(null);
+  let reseauOuvert = $state(false);
+  let reseauChargement = $state(false);
+  async function lireReseau() {
+    reseauChargement = true;
+    try { reseau = await api.getNetworkDiagnostics(); } catch { reseau = null; }
+    reseauChargement = false;
+  }
+  function basculerReseau() {
+    reseauOuvert = !reseauOuvert;
+    if (reseauOuvert) void lireReseau();
+  }
 
   const anyRunning = $derived(cards.some((c) => c.etat === 'running'));
 
@@ -291,6 +334,7 @@
     modulesSortie = diag[0].status === 'fulfilled'
       ? tableauFournisseurs(diag[0].value?.output_providers)
       : null;
+    asioBloque = diag[0].status === 'fulfilled' && !!(diag[0].value as any)?.asio_warm_scan?.blocked_after_crash;
 
     cards = out;
     lastAt = $heureSeule(new Date());
@@ -421,6 +465,43 @@
         </section>
       {/if}
 
+      {#if asioBloque || asioRearme}
+        <section class="modules" role={asioRearme ? undefined : 'alert'}>
+          {#if asioRearme}
+            <h2>{$t('diagnostics.asioWarmRearmed' as any)}</h2>
+          {:else}
+            <h2>{$t('diagnostics.asioWarmTitle' as any)}</h2>
+            <div class="sub">{$t('diagnostics.asioWarmMessage' as any)}</div>
+            <button class="lnk" onclick={rearmerAsio} disabled={asioRearmement}>
+              {$t((asioRearmement ? 'diagnostics.asioWarmRearming' : 'diagnostics.asioWarmRearm') as any)}
+            </button>
+          {/if}
+        </section>
+      {/if}
+
+      <section class="modules">
+        <button class="lnk" onclick={basculerReseau} aria-expanded={reseauOuvert}>{$t('diagnostics.network' as any)}</button>
+        {#if reseauOuvert}
+          {#if reseauChargement}
+            <div class="sub">{$t('common.loading' as any)}</div>
+          {:else if reseau}
+            <ul class="reseau">
+              <li>{reseau.multicast_ssdp ? '✅' : '❌'} {$t('diagnostics.multicastSsdp' as any)}</li>
+              <li>{reseau.port_8888 ? '✅' : '❌'} {$t('diagnostics.port8888' as any)}</li>
+              <li>{reseau.internet ? '✅' : '❌'} {$t('diagnostics.internet' as any)}</li>
+              {#each Object.entries(reseau.dns_resolution ?? {}) as [domaine, ok] (domaine)}
+                <li class="ind">{ok ? '✅' : '❌'} {$t('diagnostics.dnsResolution' as any)} · <code>{domaine}</code></li>
+              {/each}
+              {#each reseau.renderers ?? [] as rd (rd.host + rd.name)}
+                <li class="ind">{rd.available ? '✅' : '❌'} {rd.name} <code>{rd.host}</code></li>
+              {/each}
+            </ul>
+          {:else}
+            <div class="sub">{$t('diagnostics.networkUnavailable' as any)}</div>
+          {/if}
+        {/if}
+      </section>
+
       <!-- #865 — les JOURNAUX. Le bloc est en dehors du `{#if modulesSortie}`
            et ne dépend d'aucune route facultative : il doit être là même —
            surtout — quand le serveur va mal. -->
@@ -486,6 +567,8 @@
   .nogauge{margin-top:11px; font:10.5px var(--v2-mono); color:var(--v2-txt3); font-style:italic}
   .detail{margin-top:9px; font-size:11.5px; color:var(--v2-txt3)}
   .foot{margin-top:22px; font-size:12.5px; color:var(--v2-txt3)}
+  .reseau{list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--v2-txt2)}
+  .reseau .ind{padding-left:18px}
   .modules{margin-top:22px; border:1px solid var(--v2-line); border-radius:14px; background:var(--v2-surface2); padding:16px 18px 18px}
   .modules h2{font-size:15px; font-weight:700}
   .modules .sub{margin-bottom:12px}

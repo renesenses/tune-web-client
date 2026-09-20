@@ -47,10 +47,6 @@ import hu from '../locales/hu';
  * on n'y touche pas, et aucun test ici ne la redemande.
  */
 
-const SETTINGS = readFileSync(
-  resolve(__dirname, '../../components/SettingsView.svelte'),
-  'utf8',
-);
 const API = readFileSync(resolve(__dirname, '../api.ts'), 'utf8');
 
 const LOCALES = { fr, en, de, es, it: it_, ja, ko, ro, sv, zh, hu } as Record<
@@ -72,10 +68,6 @@ describe("bouton « Forcer la récupération » des images d'artistes (dfd3c93)"
     expect(API).toContain('/library/artwork/enrich-artists/force');
   });
 
-  it('le bouton existe dans les réglages et appelle cette fonction', () => {
-    expect(SETTINGS).toContain('forceRefetchArtistImages');
-    expect(SETTINGS).toContain('settings.forceRefetchArtistImages');
-  });
 
   it('les 11 langues ont le libellé et son infobulle', () => {
     for (const [code, dict] of Object.entries(LOCALES)) {
@@ -107,9 +99,6 @@ describe('la récupération forcée ne doit JAMAIS être court-circuitée', () =
 });
 
 describe('infobulle du « Scan complet » (ac0a01f)', () => {
-  it('le bouton porte toujours son title', () => {
-    expect(SETTINGS).toContain("title={$t('settings.fullScanTitle')}");
-  });
 
   it('les 11 langues annoncent la ré-extraction des pochettes embarquées', () => {
     // Le texte perdu ne disait plus que « relit tous les tags audio » : Thibaud

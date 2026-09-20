@@ -86,6 +86,12 @@ export interface CapacitesPiste {
    * `POST /tags/{id}/streaming-items` — c'est l'appelant qui le sait.
    */
   etiquetable?: boolean;
+  /**
+   * Le service dont la piste peut rejoindre une playlist DU COMPTE — #1268.
+   * `null`/absent : pas de playlist de service possible (piste locale, ou
+   * service sans écriture). Voir `lib/playlistService.ts`.
+   */
+  playlistDeService?: string | null;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -146,7 +152,18 @@ export function entreesMenuPiste(
    * #1848 tranche : « Cette action doit donc être ABSENTE du menu pour une
    * piste de service, pas grisée. »
    */
-  pousser(deLaBibliotheque, 'nowplaying.addToPlaylist', ICONES.playlist, g.ajouterAPlaylist);
+  //
+  // #1268 : sauf vers une playlist DE SON SERVICE. Une piste Qobuz ne peut
+  // pas entrer dans une playlist Tune, mais elle peut entrer dans une playlist
+  // Qobuz du compte — `POST /streaming/{service}/playlists/{id}/tracks`. Le
+  // même geste ouvre alors la liste des playlists du service, jamais celles
+  // de Tune (`AddToPlaylistModal`).
+  pousser(
+    deLaBibliotheque || !!c.playlistDeService,
+    'nowplaying.addToPlaylist',
+    ICONES.playlist,
+    g.ajouterAPlaylist,
+  );
   /**
    * « Aller à l'artiste » et « Aller à l'album » — #3777, famille C.
    *

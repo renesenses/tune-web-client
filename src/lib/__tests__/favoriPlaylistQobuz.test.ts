@@ -195,35 +195,3 @@ describe('fusionnerPlaylistsFavorites : la date d\'ajout survit à la fusion', (
   });
 });
 
-/**
- * Garde de code : le mécanisme ci-dessus ne sert à rien si le bouton qui
- * alimente la table n'existe pas. C'est très exactement l'état que Didier
- * décrivait pour les albums avant la 0.9.88 — « la mécanique était déjà
- * générique : il manquait le bouton, pas le moteur ».
- */
-describe("l'écran d'une playlist de service porte le cœur", () => {
-  const source = readFileSync(
-    resolve(process.cwd(), 'src/components/StreamingView.svelte'),
-    'utf-8',
-  );
-
-  /** Le bloc de la fiche playlist, isolé — pour ne pas confondre avec le cœur
-   *  de la fiche ALBUM, qui existe depuis la 0.9.88 et passerait sinon le test
-   *  à la place de celui qu'on cherche. */
-  const fichePlaylist = (() => {
-    const debut = source.indexOf('<!-- Streaming playlist detail -->');
-    expect(debut, 'la fiche playlist doit exister dans StreamingView').toBeGreaterThan(-1);
-    const fin = source.indexOf('{:else if', debut);
-    expect(fin, 'la fiche playlist doit être délimitée').toBeGreaterThan(debut);
-    return source.slice(debut, fin);
-  })();
-
-  it('pose un HeartButton de type playlist sur la fiche', () => {
-    expect(fichePlaylist).toContain('HeartButton');
-    expect(fichePlaylist).toContain("itemType: 'playlist'");
-  });
-
-  it("désigne la playlist par son identifiant de service, pas par son rang", () => {
-    expect(fichePlaylist).toContain('selectedStreamingPlaylist.source_id');
-  });
-});

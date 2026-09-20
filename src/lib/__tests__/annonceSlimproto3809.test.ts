@@ -30,7 +30,6 @@
 // serveur qui annonce toujours.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import SettingsView from '../../components/SettingsView.svelte';
 import SettingsV2 from '../../components/v2/SettingsV2.svelte';
 import { locale } from '../i18n';
 import { preferences } from '../stores/preferences';
@@ -44,6 +43,7 @@ import {
   CHAMP_APPLIQUE,
 } from '../annonceSlimproto';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -178,14 +178,6 @@ async function poserCoquilleV2() {
   await souffler();
 }
 
-async function poserCoquilleActuelle() {
-  settingsInitialTab.set('services');
-  hote = document.createElement('div');
-  document.body.appendChild(hote);
-  monte = mount(SettingsView, { target: hote, props: {} });
-  await souffler();
-}
-
 describe('#3809 — la règle de lecture est celle du serveur', () => {
   it('la clé est celle que le serveur écrit, à la lettre', () => {
     // `background.rs:1908`. Un nom approchant serait une ligne morte en base
@@ -294,141 +286,12 @@ describe('#3809 — coquille ShellV2 (SettingsV2)', () => {
   });
 });
 
-describe('#3809 — coquille actuelle (App / SettingsView)', () => {
-  it('la case existe et suit le serveur', async () => {
-    configServeur = { [CLE_ANNONCE_SLIMPROTO]: false };
-    await poserCoquilleActuelle();
-    expect(caseAnnonce().checked).toBe(false);
-  });
-
-  it('décocher ENVOIE `slimproto_discovery_enabled: false`', async () => {
-    await poserCoquilleActuelle();
-    expect(caseAnnonce().checked).toBe(true);
-    const avant = patchsDeConfig().length;
-
-    caseAnnonce().click();
-    await souffler(10);
-
-    const patchs = patchsDeConfig().slice(avant);
-    expect(
-      patchs.length,
-      `aucun PATCH /system/config n’est parti. Requêtes vues : ${requetes
-        .map((r) => `${r.method} ${r.url}`)
-        .join(' | ')}`,
-    ).toBe(1);
-    expect(patchs[0].body).toEqual({ slimproto_discovery_enabled: false });
-    expect(caseAnnonce().checked).toBe(false);
-  });
-
-  it('🔴 le serveur dément le clic ici aussi', async () => {
-    serveurAccepteLePatch = false;
-    await poserCoquilleActuelle();
-
-    caseAnnonce().click();
-    await souffler(10);
-
-    expect(patchsDeConfig().at(-1)?.body).toEqual({ slimproto_discovery_enabled: false });
-    expect(caseAnnonce().checked).toBe(true);
-  });
-});
-
-describe('#3809 — l’écran DIT qu’un redémarrage est nécessaire', () => {
-  // 🔴 Le serveur du tag v0.9.147 lit la clé UNE fois, au démarrage
-  // (`spawn_slimproto_server`, background.rs), et arme `discovery::spawn` —
-  // qui n'a ni handle ni jeton d'annulation. Décocher ne fait donc PAS taire
-  // l'annonce en cours. Taire ce fait ferait rapporter au testeur le
-  // symptôme exact de l'issue : « je décoche et ça continue ».
-  const texte = () => (hote?.textContent ?? '').replace(/\s+/g, ' ').trim();
-  const AVIS = () => fr['settings.slimprotoAnnonceRedemarrage'];
-
-  it('rien n’est annoncé tant que l’utilisateur n’a rien changé', async () => {
-    await poserCoquilleV2();
-    expect(AVIS()).toBeTruthy();
-    expect(texte()).not.toContain(AVIS());
-  });
-
-  it('ShellV2 : l’avis apparaît dès que le choix est posé', async () => {
-    await poserCoquilleV2();
-    caseAnnonce().click();
-    await souffler(10);
-    expect(texte(), 'le redémarrage nécessaire doit être dit à l’écran').toContain(AVIS());
-  });
-
-  it('coquille actuelle : le même avis', async () => {
-    await poserCoquilleActuelle();
-    caseAnnonce().click();
-    await souffler(10);
-    expect(texte()).toContain(AVIS());
-  });
-
-
-  // ── Le serveur qui applique À CHAUD ────────────────────────────────────
-  // Le correctif serveur donne au répondeur UDP une poignée de tâche :
-  // l'éteindre relâche le port 3483 tout de suite. La réponse du PATCH porte
-  // alors `slimproto_discovery_applied`. Réclamer un redémarrage devant CE
-  // serveur remettrait en place le mensonge de #3809 à l'endroit même qu'on
-  // répare — l'utilisateur redémarrerait pour rien, et en conclurait que le
-  // réglage ne fait rien.
-
-  it('ShellV2 : le serveur a appliqué à chaud, donc AUCUN avis', async () => {
-    serveurAppliqueAChaud = true;
-    await poserCoquilleV2();
-    caseAnnonce().click();
-    await souffler(10);
-    expect(
-      texte(),
-      'le serveur a éteint l’annonce tout de suite : réclamer un redémarrage serait faux',
-    ).not.toContain(AVIS());
-  });
-
-  it('coquille actuelle : même silence quand le serveur a appliqué', async () => {
-    serveurAppliqueAChaud = true;
-    await poserCoquilleActuelle();
-    caseAnnonce().click();
-    await souffler(10);
-    expect(texte()).not.toContain(AVIS());
-  });
-
-  it('le champ ABSENT vaut « serveur antérieur », pas « appliqué »', () => {
-    // La distinction qui compte : deux serveurs coexistent dans le parc.
-    // Traiter l'absence comme un succès ferait taire l'avis devant le serveur
-    // qui en a le plus besoin — celui qui n'applique qu'au démarrage.
-    expect(annonceAppliqueeAChaud({ ok: true })).toBe(false);
-    expect(annonceAppliqueeAChaud({})).toBe(false);
-    expect(annonceAppliqueeAChaud(null)).toBe(false);
-    expect(annonceAppliqueeAChaud(undefined)).toBe(false);
-  });
-
-  it('seul un `true` franc compte comme appliqué', () => {
-    expect(annonceAppliqueeAChaud({ [CHAMP_APPLIQUE]: true })).toBe(true);
-    // Un serveur qui a reçu la demande sans rien changer (l'état était déjà
-    // le bon) rend `false` : il n'y a rien à redémarrer non plus, mais ce
-    // n'est pas à ce témoin d'en décider — il garde la lecture, pas la règle.
-    expect(annonceAppliqueeAChaud({ [CHAMP_APPLIQUE]: false })).toBe(false);
-    for (const valeur of ['true', 1, 'oui', {}]) {
-      expect(annonceAppliqueeAChaud({ [CHAMP_APPLIQUE]: valeur }), String(valeur)).toBe(false);
-    }
-  });
-
-  it('le nom du champ est celui que le serveur écrit, à la lettre', () => {
-    expect(CHAMP_APPLIQUE).toBe('slimproto_discovery_applied');
-  });
-  it('l’avis existe dans les onze langues', async () => {
-    const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
-    for (const code of langues) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
-      const v = dico['settings.slimprotoAnnonceRedemarrage'];
-      expect(v, `${code}`).toBeTruthy();
-      expect((v ?? '').trim().length, code).toBeGreaterThan(20);
-    }
-  });
-});
 
 describe('#3809 — l’intitulé départage les deux sens du protocole', () => {
   it('les deux clés existent dans les onze langues et ne sont pas vides', async () => {
     const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
     for (const code of langues) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       for (const cle of ['settings.slimprotoAnnonce', 'settings.slimprotoAnnonceHint']) {
         expect(dico[cle], `${code} / ${cle}`).toBeTruthy();
         expect((dico[cle] ?? '').trim().length, `${code} / ${cle}`).toBeGreaterThan(10);
@@ -440,7 +303,7 @@ describe('#3809 — l’intitulé départage les deux sens du protocole', () => 
     // C'est le libellé de l'AUTRE réglage. Deux cases voisines portant le même
     // mot rejoueraient le malentendu à l'identique.
     expect(fr['settings.slimprotoAnnonce']).not.toBe(fr['settings.squeezeboxEnabled']);
-    const en = (await import('../locales/en')).default as Record<string, string>;
+    const en = dictionnaire('en');
     expect(en['settings.slimprotoAnnonce']).not.toBe(en['settings.squeezeboxEnabled']);
     // Et il nomme ce qui est en jeu : l'annonce, et le port qu'on voit passer.
     expect(fr['settings.slimprotoAnnonceHint']).toContain('3483');

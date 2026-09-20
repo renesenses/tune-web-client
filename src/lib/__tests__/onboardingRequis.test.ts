@@ -92,10 +92,6 @@ describe('l’assistant est ATTEIGNABLE depuis les deux coquilles', () => {
     expect(lire('src/components/v2/ShellV2.svelte')).toMatch(MONTAGE);
   });
 
-  it('la coquille actuelle le monte', () => {
-    expect(lire('src/App.svelte')).toMatch(MONTAGE);
-  });
-
   it('l’enveloppe monte le VRAI assistant, celui qui est branché', () => {
     // `OnboardingView` — 1 117 lignes — n'a jamais été atteignable : elle
     // pendait à `$activeView === 'onboarding'`, valeur que personne ne pose.
@@ -104,9 +100,4 @@ describe('l’assistant est ATTEIGNABLE depuis les deux coquilles', () => {
     expect(enveloppe, 'OnboardingView n’a jamais été branchée').not.toMatch(/<OnboardingView[\s/>]/);
   });
 
-  it('la règle n’est écrite qu’UNE fois', () => {
-    // Elle a quatre niveaux de repli et un piège : deux copies divergeront.
-    expect(lire('src/App.svelte'), 'App a gardé sa propre copie de la règle')
-      .not.toMatch(/function checkOnboarding\s*\(/);
-  });
 });

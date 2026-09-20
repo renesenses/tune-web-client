@@ -26,7 +26,6 @@ const sansCommentaires = (s: string) =>
 
 const ECRANS = [
   { nom: 'nouveau client', fichier: 'src/components/v2/ConverterV2.svelte', album: 'a' },
-  { nom: 'client actuel', fichier: 'src/components/ConverterView.svelte', album: 'album' },
 ];
 
 describe.each(ECRANS)('Convertisseur — $nom', ({ fichier, album }) => {
