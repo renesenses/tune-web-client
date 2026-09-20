@@ -46,6 +46,7 @@
   import { ouvrirArtisteDepuis, artisteDeService } from '../../lib/ouvrirArtisteDepuis';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import { favoriExterneService, refFavoriDeVignette } from '../../lib/streamingFavorites';
+  import { molettePortee } from '../../lib/molettePortee';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
@@ -945,6 +946,14 @@
   }
   const currentSous = $derived(bcGenres.find((g) => g.slug === bcTag)?.sous ?? []);
 
+  /**
+   * Le SEUL défileur de l'écran — #1327, point 1.
+   *
+   * L'en-tête et les deux rangées d'onglets sont ses FRÈRES, sous un parent en
+   * `overflow:hidden` : une molette posée dessus n'avait rien à faire défiler.
+   * `use:molettePortee` la lui porte. Voir `lib/molettePortee`.
+   */
+  let zoneDefilante = $state<HTMLDivElement | null>(null);
   const pTitle = (p: any) => p?.name ?? p?.title ?? p?.titre ?? $t('v2.common.untitled' as any);
   const pCover = (p: any) => p?.cover_path ?? p?.image ?? p?.picture ?? p?.pochette ?? null;
   const pSub = (p: any) =>
@@ -955,7 +964,7 @@
 </script>
 
 <section class="v2-str tune-v2">
-  <header class="v2-top">
+  <header class="v2-top" use:molettePortee={() => zoneDefilante}>
     <div class="v2-titres">
       <div class="v2-eyebrow">{$t('v2.stream.services' as any)}</div>
       <h1>{$t('v2.nav.streaming' as any)}</h1>
@@ -974,7 +983,7 @@
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label={$t('v2.common.close' as any)}>×</button></div>{/if}
 
   {#if tabs.length}
-    <nav class="svcs">
+    <nav class="svcs" use:molettePortee={() => zoneDefilante}>
       {#each tabs as name (name)}
         <!-- Le pseudo suit l'onglet qui SURVIT au dédoublonnage (#860) : celui
              de l'extension porte désormais le compte lu sur la clé `bandcamp`,
@@ -988,7 +997,7 @@
     </nav>
 
     {#if active}
-      <nav class="subs">
+      <nav class="subs" use:molettePortee={() => zoneDefilante}>
         {#each SUBS as sb (sb.id)}
           <button class:on={sub === sb.id} onclick={() => (sub = sb.id)}>{sb.label}</button>
         {/each}
@@ -996,7 +1005,7 @@
     {/if}
   {/if}
 
-  <div class="scroll">
+  <div class="scroll" bind:this={zoneDefilante}>
     {#if loading}
       <div class="state">{$t('v2.stream.loading' as any)}</div>
 
@@ -1652,11 +1661,30 @@
   .ct:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px; border-radius:4px}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
-  .arow{display:flex; gap:22px; overflow-x:auto; padding-bottom:6px; scrollbar-width:none}
+  /* 🔴 #1382 — LA RANGÉE VA À LA LIGNE, et sa barre se voit.
+     Fil 1863, 20/09/2026, 0.9.158 Linux : « Page Qobuz > favoris > artistes:
+     Absence de barre de defilement horizontal ou vertical pour la categorie
+     Artistes. Impossible de naviguer dans cette liste ».
+
+     Trois règles se cumulaient pour ne laisser AUCUNE affordance : `display:
+     flex` sans `flex-wrap` (une seule ligne, donc jamais de barre verticale),
+     `overflow-x:auto` (le reste est dans le DOM, hors champ), et
+     `scrollbar-width:none` + `::-webkit-scrollbar{display:none}` (la barre
+     horizontale explicitement effacée sur les DEUX moteurs). Ni barre, ni
+     retour à la ligne, et aucune molette : le contenu était inatteignable.
+
+     C'est le motif de #879, déjà corrigé DEUX fois — `SearchV2` (retour à la
+     ligne + barre fine) et `FavoritesV2` (grille). On s'aligne sur le premier,
+     au caractère près : les favoris artistes d'un COMPTE sont un inventaire,
+     pas une rangée éditoriale de dix noms. Le commentaire ci-dessous le disait
+     déjà, il ne l'appliquait qu'aux résultats de recherche. */
+  .arow{display:flex; flex-wrap:wrap; gap:22px; overflow-x:auto; padding-bottom:8px; scrollbar-width:thin}
+  .arow::-webkit-scrollbar{height:8px}
+  .arow::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:999px}
   /* La grille d'artistes des RESULTATS de recherche : elle va a la ligne.
-     `.arow` defile horizontalement et cache sa barre de defilement — parfait
-     pour une rangee editoriale de dix noms, illisible pour cinquante
-     resultats (Fabien, v0.9.140 : « artistes en 1 seule ligne, impossible de
+     `.arow` va desormais a la ligne elle aussi (#1382) — elle reste distincte
+     par sa gouttiere et sa largeur libre, la ou `.agrid` colonne a pas fixe
+     (Fabien, v0.9.140 : « artistes en 1 seule ligne, impossible de
      tout voir »). */
   .agrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:22px 16px;
     justify-items:center}
@@ -1672,7 +1700,11 @@
   .voirplus:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-acc2)}
   .voirplus:disabled{opacity:.55; cursor:default}
   .voirplus:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
-  .arow::-webkit-scrollbar{display:none}
+  /* 🔴 #1382 — la seconde moitié du masquage vivait ICI, cinquante lignes plus
+     bas que la première et APRÈS elle : à spécificité égale, c'est la dernière
+     qui gagne. La retirer sans celle-ci n'aurait rien changé sur Blink ni sur
+     WebKit, et la barre serait restée invisible sur les deux moteurs les plus
+     répandus. */
   .art{flex:0 0 auto; width:110px; text-align:center}
   /* Carrée comme un album — voir `ArtistesV2`. */
   .acv{display:block; width:110px; height:110px; border-radius:var(--v2-r-card); overflow:hidden; box-shadow:var(--v2-sh-card)}
