@@ -29,6 +29,7 @@ import { estSourceDeBibliotheque } from './provenanceBibliotheque';
 import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
 import { estAParaitre } from './albumAParaitre';
+import { CHOIX_DEFAUT, cartes, sourcesNecessaires } from './chiffresAccueil';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -110,7 +111,7 @@ export interface Widget {
   /** Rend les éléments à afficher. Peut lever : l'appelant l'attrape. */
   charger: (ctx: Contexte) => Promise<Element[]>;
   /** Chiffres d'un widget de statistiques. */
-  chiffres?: (ctx: Contexte) => Promise<{ cle: string; valeur: string }[]>;
+  chiffres?: (ctx: Contexte) => Promise<ChiffreAffiche[]>;
   /**
    * Ce que la bande contient, quand ça compte pour la disposition par défaut.
    *
@@ -128,8 +129,26 @@ export interface Widget {
   categorie?: 'playlists-editoriales' | 'a-moi';
 }
 
+/**
+ * Une carte de la ligne de chiffres : sa valeur déjà FORMATÉE, son icône et
+ * la vue qu'elle ouvre. `id`, `icone` et `vue` sont facultatifs pour que les
+ * widgets de chiffres écrits avant #4527 restent valides.
+ */
+export interface ChiffreAffiche {
+  cle: string;
+  valeur: string;
+  id?: string;
+  icone?: string;
+  vue?: string | null;
+}
+
 export interface Contexte {
   profileId: number | null;
+  /** Les chiffres que CE profil a choisis pour la ligne de l'accueil. Vide ou
+   *  absent : le choix par défaut (#4527). */
+  chiffresChoisis?: string[];
+  /** La langue de l'écran — les nombres s'écrivent `1 110` ou `1,110`. */
+  langue?: string;
   /** Albums déjà chargés par la coquille — évite un appel pour « au hasard ». */
   albums: any[];
   /**
@@ -780,17 +799,35 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wStats',
     forme: 'chiffres',
     charger: async () => [],
-    chiffres: async () => {
-      const s: any = await api.getLibraryStats();
-      const heures = Math.round((s?.total_duration_ms ?? 0) / 3_600_000);
-      const gio = (s?.total_size_bytes ?? 0) / 1024 ** 3;
-      return [
-        { cle: 'v2.home.sAlbums', valeur: String(s?.albums ?? 0) },
-        { cle: 'v2.home.sArtists', valeur: String(s?.artists ?? 0) },
-        { cle: 'v2.home.sListens', valeur: String(s?.listens ?? 0) },
-        { cle: 'v2.home.sHours', valeur: String(heures) },
-        { cle: 'v2.home.sSize', valeur: `${gio.toFixed(1)} Gio` },
-      ];
+    /**
+     * LA LIGNE DE CHIFFRES, d'après la maquette de Levente et les arbitrages
+     * de Bertrand du 19/09/2026 (tune-server-rust#4527).
+     *
+     * Elle n'impose plus cinq chiffres : chacun compose les siens dans un
+     * CATALOGUE (`lib/chiffresAccueil`), bibliothèque et écoute mêlées.
+     *
+     * 🔴 On n'interroge QUE les sources des chiffres affichés — pas de
+     * `/library/genres` (115 lignes) si aucune carte de genre n'est là — et
+     * un appel qui échoue n'emporte pas les autres : sa famille de chiffres
+     * s'efface, les autres restent.
+     */
+    chiffres: async (ctx) => {
+      const ids = ctx.chiffresChoisis?.length ? ctx.chiffresChoisis : CHOIX_DEFAUT;
+      const besoin = sourcesNecessaires(ids);
+      const [bibliotheque, ecoute, genres] = await Promise.all([
+        besoin.bibliotheque ? api.getLibraryStats().catch(() => null) : Promise.resolve(null),
+        besoin.ecoute ? api.getDashboardStats().catch(() => null) : Promise.resolve(null),
+        besoin.genres
+          ? api.getGenres().then((g: any[]) => g.length).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      return cartes(ids, { bibliotheque, ecoute, genres }, ctx.langue ?? 'fr').map((c) => ({
+        cle: c.cleLibelle,
+        valeur: c.texte,
+        id: c.id,
+        icone: c.icone,
+        vue: c.vue,
+      }));
     },
   },
 ];

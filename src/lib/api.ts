@@ -2283,6 +2283,28 @@ export function getLibraryStats() {
   return fetchJSON<{ tracks: number; albums: number; artists: number }>(`${BASE}/library/stats`);
 }
 
+/**
+ * Les chiffres d'ÉCOUTE — la seconde famille de la ligne de l'accueil
+ * (tune-server-rust#4527).
+ *
+ * `unique_genres` n'existe que depuis #4527 : il est donc OPTIONNEL, et son
+ * absence fait disparaître la carte au lieu de l'afficher à zéro.
+ */
+export function getDashboardStats() {
+  return fetchJSON<{
+    total_listens: number;
+    total_duration_ms: number;
+    unique_tracks: number;
+    unique_artists: number;
+    unique_genres?: number;
+  }>(`${BASE}/dashboard/stats`);
+}
+
+/** Les genres de la bibliothèque — on n'en lit ici que le NOMBRE. */
+export function getGenres() {
+  return fetchJSON<{ name: string; count: number }[]>(`${BASE}/library/genres`);
+}
+
 export function updateAlbum(id: number, data: { title?: string; artist_id?: number; artist_name?: string; year?: number; genre?: string; label?: string; catalog_number?: string }) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`, {
     method: 'PUT',

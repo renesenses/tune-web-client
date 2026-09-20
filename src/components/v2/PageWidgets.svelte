@@ -36,7 +36,9 @@
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
+  import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer } from '../../lib/chiffresAccueil';
+  import { trace } from '../../lib/iconesChiffres';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
   // Les vignettes de l'accueil jouent par `el.jouer`, qui appelle `api.play`
@@ -54,6 +56,7 @@
     DISPOSITION_DEFAUT,
     type Element,
     type Widget,
+    type ChiffreAffiche,
   } from '../../lib/accueilWidgets';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
@@ -84,6 +87,8 @@
      * l'accueil.
      */
     cle?: string;
+    /** #4527 — la clé sous laquelle les chiffres choisis sont rangés. */
+    cleChiffres?: string;
     cleEyebrow?: string;
     cleTitre?: string;
     /**
@@ -99,6 +104,8 @@
     catalogue = WIDGETS,
     dispositionDefaut = DISPOSITION_DEFAUT,
     cle: CLE = 'home_widgets',
+    /** #4527 — les chiffres choisis pour la ligne, une clé par page. */
+    cleChiffres: CLE_CHIFFRES = 'home_stats',
     cleEyebrow = 'v2.home.eyebrow',
     cleTitre = 'v2.home.title',
     salut = false,
@@ -119,6 +126,22 @@
    * catalogue ait pu le nommer — et perdu au prochain enregistrement.
    */
   let dispositionEnregistree: string[] | null = null;
+
+  /**
+   * LES CHIFFRES CHOISIS pour la ligne de l'accueil — #4527.
+   *
+   * Rangés sous LEUR clé, à côté de la disposition : composer la ligne ne
+   * doit pas déplacer les widgets, et déplacer un widget ne doit pas
+   * recomposer la ligne.
+   *
+   * 🔴 `chiffresEnregistres` garde la liste TELLE QU'ENREGISTRÉE, y compris
+   * les identifiants que cette version ne connaît pas — un chiffre ajouté par
+   * une version plus récente, ou servi par un serveur plus récent. Sans cette
+   * copie, ouvrir l'accueil puis enregistrer l'effacerait : c'est le défaut
+   * déjà payé sur la disposition (#987).
+   */
+  let chiffres = $state<string[]>([...CHOIX_DEFAUT]);
+  let chiffresEnregistres: string[] | null = null;
   let charge = $state(false);
   let edition = $state(false);
   let ajoutOuvert = $state(false);
@@ -141,7 +164,7 @@
     id: string;
     phase: 'attente' | 'charge' | 'echec' | 'non-propose';
     elements: Element[];
-    chiffres: { cle: string; valeur: string }[];
+    chiffres: ChiffreAffiche[];
     raison?: string;
   }
   let etats = $state<Etat[]>([]);
@@ -238,6 +261,14 @@
     }
     try {
       const prefs = await api.getProfilePreferences(pid);
+      // #4527 — le choix de chiffres vit sous SA clé, à côté de la
+      // disposition. Une liste vide est un choix légitime (« aucune carte »),
+      // d'où le test sur le type et non sur la longueur.
+      const c = prefs?.[CLE_CHIFFRES];
+      if (Array.isArray(c)) {
+        chiffresEnregistres = c.map(String);
+        chiffres = [...chiffresEnregistres];
+      }
       const d = prefs?.[CLE];
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
@@ -257,7 +288,14 @@
     const pid = $currentProfileId;
     if (pid == null) return;
     try {
-      await api.setProfilePreferences(pid, { [CLE]: disposition });
+      // 🔴 Les identifiants INCONNUS de cette version sont conservés : on
+      // enregistre le choix courant PLUS ce qu'on avait lu sans savoir le
+      // nommer. Sans cela, ouvrir l'accueil avec une version plus ancienne
+      // effacerait un chiffre choisi avec une plus récente.
+      await api.setProfilePreferences(pid, {
+        [CLE]: disposition,
+        [CLE_CHIFFRES]: choixAEnregistrer(chiffres, chiffresEnregistres),
+      });
     } catch (e: any) {
       notifications.error(e?.message ?? $t('common.error' as any));
     }
@@ -289,7 +327,8 @@
     // `get()` et non `$store` : lus avec `$`, ces deux magasins deviendraient
     // des DÉPENDANCES de l'effet appelant, et la bibliothèque arrive en deux
     // temps — l'effet repartait à chaque étape.
-    const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones) };
+    const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones),
+                  chiffresChoisis: chiffres, langue: get(locale) };
     const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
 
     avecDelai(Promise.resolve(p))
@@ -407,7 +446,8 @@
   function rechargerWidget(id: string) {
     const w = parId(id);
     if (!w || !etats.some((e) => e.id === id)) return;
-    const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones) };
+    const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones),
+                  chiffresChoisis: chiffres, langue: get(locale) };
     Promise.resolve(w.charger(ctx))
       .then((r: any) => majEtat(id, { phase: 'charge', elements: r ?? [] }))
       .catch(() => {});
@@ -735,11 +775,53 @@
                 <button class="relancer" onclick={() => relancerWidget(id)}>{$t('v2.pod.retry' as any)}</button>
               </div>
             {:else if w.forme === 'chiffres'}
+              <!-- La ligne de chiffres, d'après la maquette Levente
+                   (`stats-bar-redesign`) : une pilule par chiffre, icône dans
+                   un cercle, valeur, puis libellé en capitales couleur accent.
+                   Les cotes de Figma sont à l'échelle 1,372 ; elles sont
+                   reprises ici à l'échelle 1, où elles tombent juste :
+                   hauteur 36, rayon 20, texte 16, cercle 24. -->
               <div class="chiffres">
-                {#each et.chiffres as c (c.cle)}
-                  <div class="stat"><span class="v">{c.valeur}</span><span class="l">{$t(c.cle as any)}</span></div>
+                {#each et.chiffres as c (c.id ?? c.cle)}
+                  {#if c.vue}
+                    <button class="stat" onclick={() => activeView.set(c.vue as any)}
+                            title={$t('v2.home.statOpen' as any)}>
+                      <span class="ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        >{@html trace(c.icone ?? '')}</svg>
+                      </span>
+                      <span class="v">{c.valeur}</span><span class="l">{$t(c.cle as any)}</span>
+                    </button>
+                  {:else}
+                    <div class="stat">
+                      <span class="ico" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        >{@html trace(c.icone ?? '')}</svg>
+                      </span>
+                      <span class="v">{c.valeur}</span><span class="l">{$t(c.cle as any)}</span>
+                    </div>
+                  {/if}
                 {/each}
               </div>
+              {#if edition}
+                <!-- #4527 — composer SA ligne. Le choix vit là où il se voit,
+                     pas dans un écran de réglages : on coche, la ligne change
+                     au-dessus. -->
+                <div class="choix-chiffres">
+                  <p class="aide">{$t('v2.home.statsPick' as any)}</p>
+                  <div class="opts">
+                    {#each CHIFFRES as ch (ch.id)}
+                      <label class="opt" class:on={chiffres.includes(ch.id)}>
+                        <input type="checkbox" checked={chiffres.includes(ch.id)}
+                               onchange={() => { chiffres = basculer(chiffres, ch.id); void enregistrer(); relancerWidget(w.id); }} />
+                        <span>{$t(ch.cleLibelle as any)}</span>
+                      </label>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
             {:else if !et.elements.length}
               <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>
 
@@ -1093,8 +1175,37 @@
   .ct{font:600 12.5px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .ca{font:11px var(--v2-mono); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 
-  .chiffres{display:flex; flex-wrap:wrap; gap:22px; padding:0 30px 12px}
-  .stat{display:flex; flex-direction:column}
-  .stat .v{font:800 22px var(--v2-sans); letter-spacing:-.01em}
-  .stat .l{font:10.5px var(--v2-mono); color:var(--v2-txt3); text-transform:uppercase; letter-spacing:.06em}
+  /* La ligne de chiffres — maquette `stats-bar-redesign` de Levente, relevée
+     dans Figma le 19/09/2026. Ses cotes y sont à l'échelle 1,372 (21,96 px
+     pour 16, 27,45 pour 20, 32,94 pour 24…) : on reprend l'échelle 1. */
+  .chiffres{display:flex; flex-wrap:wrap; gap:20px; padding:0 30px 12px}
+  .stat{display:flex; align-items:center; gap:10px; padding:6px 14px; min-height:36px;
+    border-radius:20px; border:1px solid color-mix(in srgb, var(--v2-acc1) 15%, transparent);
+    background:color-mix(in srgb, var(--v2-surface2) 75%, transparent);
+    backdrop-filter:blur(20px); color:inherit; font:inherit; text-align:left}
+  button.stat{cursor:pointer}
+  button.stat:hover{border-color:color-mix(in srgb, var(--v2-acc1) 45%, transparent)}
+  .stat .ico{display:grid; place-items:center; width:24px; height:24px; flex:0 0 24px;
+    border-radius:50%; color:var(--v2-acc1);
+    border:1px solid color-mix(in srgb, var(--v2-acc1) 25%, transparent);
+    background:color-mix(in srgb, var(--v2-acc1) 8%, transparent)}
+  .stat .ico svg{width:13px; height:13px}
+  .stat .v{font:700 16px/1 var(--v2-mono); letter-spacing:-.01em}
+  .stat .l{font:600 16px/1 var(--v2-mono); color:var(--v2-acc1);
+    text-transform:uppercase; letter-spacing:.08em}
+
+  .choix-chiffres{padding:0 30px 14px}
+  .choix-chiffres .aide{margin:0 0 8px; font:12px var(--v2-sans); color:var(--v2-txt3)}
+  .choix-chiffres .opts{display:flex; flex-wrap:wrap; gap:8px}
+  .choix-chiffres .opt{display:flex; align-items:center; gap:6px; cursor:pointer;
+    padding:5px 11px; border-radius:var(--v2-r-pill); font:13px var(--v2-sans);
+    border:1px solid var(--v2-line2); color:var(--v2-txt2)}
+  .choix-chiffres .opt.on{border-color:var(--v2-acc2); color:var(--v2-txt)}
+
+  /* Sur un écran étroit, les pilules passent à la ligne plutôt que de
+     déborder : la ligne de la maquette fait 1600 px de large. */
+  @media (max-width:720px){
+    .chiffres{gap:10px; padding:0 16px 12px}
+    .stat .v, .stat .l{font-size:14px}
+  }
 </style>
