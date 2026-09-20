@@ -89,11 +89,29 @@ export function artisteDePiste(p: any): any | null {
  *
  * Rend `null` quand il manque de quoi ouvrir quoi que ce soit — mieux vaut un
  * geste absent qu'un geste qui échoue.
+ *
+ * 🔴 #1178 / serveur #3864 (JP Robbe, 18/09/2026) posait la même garde dans
+ * `StreamingV2` avant que ce module n'existe. Elle est portée ici, sur trois
+ * points que le test brut `!id` manquait :
+ *
+ * - **`id: 0`** est un identifiant valide et `!0` est vrai : la vignette
+ *   « Identifiant zéro » partait chercher un artiste local au lieu d'ouvrir sa
+ *   fiche de service ;
+ * - un identifiant **blanc** (`'   '`) ou d'un **autre type** (un objet) n'est
+ *   pas une route : `String(x)` en fabriquait une, morte ;
+ * - un service **vide ou blanc** n'est pas un service.
  */
+function identifiantDeService(v: unknown): string | null {
+  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : null;
+  if (typeof v !== 'string') return null;
+  return v.trim() ? v : null;
+}
+
 export function artisteDeService(ar: any, service: string | null | undefined): any | null {
-  const id = ar?.source_id ?? ar?.id;
-  const src = ar?.source ?? service;
+  const id = identifiantDeService(ar?.source_id ?? ar?.id);
+  const brutSrc = ar?.source ?? service;
+  const src = typeof brutSrc === 'string' && brutSrc.trim() ? brutSrc : null;
   if (!ar?.name && !id) return null;
   if (!id || !src) return ar?.name ? { name: ar.name } : null;
-  return { ...ar, source: src, source_id: String(id) };
+  return { ...ar, source: src, source_id: id };
 }
