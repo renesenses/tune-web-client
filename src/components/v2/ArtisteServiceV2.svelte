@@ -11,7 +11,7 @@
    * Le serveur, lui, savait déjà tout faire — trois routes exposées pour six
    * services (`tune-streaming-http/src/lib.rs:313-320`) :
    *   • `/{service}/artists/{id}`            → `getStreamingArtist`
-   *   • `/{service}/artists/{id}/albums`     → `getStreamingArtistAlbums`
+   *   • `/{service}/artists/{id}/albums`     → `getStreamingArtistAlbumsAll`
    *   • `/{service}/artists/{id}/top-tracks` → `getStreamingArtistTopTracks`
    * Les deux premières avaient leur enveloppe cliente et aucun consommateur en
    * v2 ; la troisième n'avait même pas d'enveloppe.
@@ -139,7 +139,8 @@
     const [a, tt, al] = await Promise.allSettled([
       api.getStreamingArtist(service, id),
       api.getStreamingArtistTopTracks(service, id),
-      api.getStreamingArtistAlbums(service, id),
+      // #1343 — la discographie ne s'arrête plus à la première page de 50.
+      api.getStreamingArtistAlbumsAll(service, id),
     ]);
     if (mien !== jeton) return;
     if (a.status === 'fulfilled') artiste = a.value;
@@ -200,7 +201,7 @@
       albumsDeStreamingPourArtiste(nomArtiste, autres, {
         resoudreArtiste: async (svc, nom) =>
           (await api.federatedSearch(nom, [svc], 5))?.services?.[svc]?.artists ?? [],
-        albumsDeLArtiste: (svc, id) => api.getStreamingArtistAlbums(svc, id),
+        albumsDeLArtiste: (svc, id) => api.getStreamingArtistAlbumsAll(svc, id),
       }),
     ]);
     if (mien !== jeton) return;
