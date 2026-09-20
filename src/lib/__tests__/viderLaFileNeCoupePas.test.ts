@@ -42,6 +42,7 @@ import * as api from '../api';
 import { currentZoneId, zones } from '../stores/zones';
 import { queueTracks, queuePosition } from '../stores/queue';
 import type { Track, Zone } from '../types';
+import QueueV2 from '../../components/v2/QueueV2.svelte';
 
 /** Le coût n'est pas le test, c'est la transformation Svelte au premier
  *  montage — voir `sortieMonoZone.test.ts`, même plafond, même raison. */
@@ -116,8 +117,24 @@ describe('la couche API — le drapeau est le DÉFAUT, pas une option', () => {
 });
 
 describe('QueueV2 — le vrai écran, le vrai clic', () => {
+  /**
+   * 🔴 L'ÉCRAN EST IMPORTÉ À LA COLLECTE, PAS DANS LE CAS — #1326 / #1333.
+   *
+   * Un `await import('….svelte')` posé DANS un cas fait payer la compilation du
+   * composant par vite au chronomètre de ce cas. Sous charge (huit portes
+   * simultanées sur Shrek), le chronomètre saute : vitest déclare le cas expiré,
+   * `afterEach` retire l'hôte, le cas suivant s'ouvre — puis la continuation
+   * abandonnée reprend et exécute son `mount(…, { target: cible! })`. `cible`
+   * est une variable de MODULE : elle désigne alors l'hôte du cas SUIVANT. Deux
+   * écrans dans la même boîte, et un faux rouge qui accuse le code de terrain.
+   *
+   * L'import statique déplace la compilation vers la COLLECTE, hors de tout
+   * chronomètre, et rend `mount` SYNCHRONE ici : plus aucune continuation ne peut
+   * se poser dans l'hôte du cas suivant. `QueueV2.svelte` n'a pas de
+   * `<script module>` : l'importer avant les `vi.stubGlobal(…)` ne déclenche rien.
+   * Gardé par `composantsALaCollecte1333.test.ts`.
+   */
   async function ecran() {
-    const { default: QueueV2 } = await import('../../components/v2/QueueV2.svelte');
     monte = mount(QueueV2, { target: cible, props: {} });
     flushSync();
     await vi.waitFor(() => expect(cible.querySelector('.v2-actions')).toBeTruthy());
