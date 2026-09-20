@@ -25,6 +25,14 @@
   // #4144 — ce que la carte ReplayGain a le droit d'afficher, y compris face à
   // un serveur qui ne connaît pas la route.
   import { jaugeReplayGain } from '../../lib/santeReplayGain';
+  // #1352 — la pause des traitements de fond. La lecture de l'instantané vit
+  // dans `lib/tachesDeFond.ts`, hors du composant : elle se garde sans monter
+  // l'écran, et l'absence de `pausable` (serveur < 0.9.159) s'y lit UNE fois.
+  import {
+    pausesParTraitement,
+    serveurSaitSuspendre,
+    type InstantaneTachesDeFond,
+  } from '../../lib/tachesDeFond';
   import { heureSeule } from '../../lib/dates';
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
@@ -45,6 +53,17 @@
     detail?: string;
     /** Le serveur n'expose pas d'avancement pour ce chantier. */
     sansJauge?: boolean;
+    /**
+     * L'identifiant SERVEUR du traitement suspendable que cette carte montre,
+     * quand il en existe un (#1352).
+     *
+     * Absent sur la carte du scan, à dessein : le scan n'est pas suspendable
+     * (`scan_pausable: false`) — il garde son « Arrêter », qui est ailleurs.
+     * Les identifiants de cartes (`rg`, `dr`, `clap`…) sont plus anciens que
+     * ceux du serveur et ne s'y superposent pas ; la correspondance est ici et
+     * nulle part ailleurs.
+     */
+    traitement?: string;
   };
 
   /** L'analyse ReplayGain est-elle armée ? Le DR dépend du même interrupteur
@@ -58,6 +77,76 @@
   let refreshing = $state(false);
   /** #2392 — l'instantané `output_providers` ; `null` = serveur antérieur à v0.9.115, pas de panneau. */
   let modulesSortie = $state<TableauFournisseurs | null>(null);
+
+  // ── #1352 : la pause des traitements de fond ───────────────────────────
+  //
+  // L'écran REGARDAIT tourner des passes de plusieurs heures sans offrir le
+  // moindre geste : sur le .18, la plage dynamique en est à 57 % de 47 118
+  // pistes, et elle décode pendant qu'on écoute. Le seul bouton d'arrêt de
+  // tout Tune était « Arrêter » sur le scan, et il est dans les Réglages.
+  /** Suspendu ou non, par identifiant serveur. Vide = le serveur ne sait pas
+   *  suspendre (< 0.9.159) : aucune carte ne portera de bouton. */
+  let pauses = $state<Record<string, boolean>>({});
+  let pausePossible = $state(false);
+  let toutEnPause = $state(false);
+  /** L'identifiant dont le clic est en vol, pour ne pas le rejouer. `'*'` pour
+   *  l'interrupteur général. */
+  let bascule = $state<string | null>(null);
+
+  /** Ranger un instantané rendu par le serveur — celui du `GET` comme celui
+   *  que rendent les quatre routes de pause, qui ont le MÊME corps. */
+  function rangerLInstantane(inst: InstantaneTachesDeFond | null) {
+    pausePossible = serveurSaitSuspendre(inst);
+    pauses = pausesParTraitement(inst);
+    toutEnPause = !!inst?.all_paused;
+  }
+
+  async function basculerTraitement(id: string, versLaPause: boolean) {
+    bascule = id;
+    try {
+      rangerLInstantane(
+        versLaPause ? await api.pauseBackgroundTask(id) : await api.resumeBackgroundTask(id),
+      );
+      // Les cartes lisent leur avancement ailleurs : on les relit pour que le
+      // badge et la jauge redisent la même chose au même instant.
+      void collect();
+    } catch (e) {
+      notifications.error(errText(e) ?? $t('common.error' as any));
+    } finally {
+      bascule = null;
+    }
+  }
+
+  async function basculerTout(versLaPause: boolean) {
+    bascule = '*';
+    try {
+      rangerLInstantane(
+        versLaPause ? await api.pauseAllBackgroundTasks() : await api.resumeAllBackgroundTasks(),
+      );
+      void collect();
+    } catch (e) {
+      notifications.error(errText(e) ?? $t('common.error' as any));
+    } finally {
+      bascule = null;
+    }
+  }
+
+  /**
+   * Cette carte doit-elle porter un bouton ?
+   *
+   * Oui si le traitement TRAVAILLE, ou s'il est SUSPENDU — sans le second cas,
+   * la pause serait un aller sans retour : une carte suspendue retombe souvent
+   * à « au repos » du point de vue de sa propre route d'avancement, et plus
+   * rien ne porterait « Reprendre ».
+   *
+   * Non sur une carte au repos, terminée, éteinte ou d'état inconnu : un bouton
+   * qui ne ferait rien n'a pas sa place sur un écran dont toute la règle est de
+   * ne montrer que ce qu'il sait.
+   */
+  function boutonSurLaCarte(c: Card): boolean {
+    if (!pausePossible || !c.traitement) return false;
+    return c.etat === 'running' || !!pauses[c.traitement];
+  }
 
   /*
    * Portés de l'ancien écran Diagnostics, seul à les offrir.
@@ -156,15 +245,15 @@
         ? $t('v2.health.deferredPaths' as any).replace('{n}', $formatNombre(reportees))
         : undefined;
       if (!s?.available) {
-        out.push({ id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
+        out.push({ id: 'clap', traitement: 'acoustic', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
           etat: 'off', ligne: $t('v2.health.clapAbsent' as any) });
       } else if (!s.enabled) {
-        out.push({ id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
+        out.push({ id: 'clap', traitement: 'acoustic', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
           etat: 'off', ligne: $t('v2.health.clapDisabled' as any),
           detail: $t('v2.health.clapAnalysed' as any).replace('{n}', $formatNombre(done)) });
       } else {
         out.push({
-          id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
+          id: 'clap', traitement: 'acoustic', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
           // Il ne reste QUE des reports : « au repos », avec la cause en
           // détail — pas « terminée », pas une jauge immobile sans un mot.
           etat: attendLesFichiers ? 'idle'
@@ -176,7 +265,7 @@
           fait, total: total || undefined });
       }
     } else {
-      out.push({ id: 'clap', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
+      out.push({ id: 'clap', traitement: 'acoustic', titre: $t('v2.health.cardClap' as any), sous: $t('v2.health.cardClapSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
     }
 
@@ -200,7 +289,7 @@
       cfgDrActive = analysis;
       const jauge = jaugeReplayGain(mode !== 'off', cfg[1].status === 'fulfilled' ? cfg[1].value : null);
       out.push({
-        id: 'rg', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
+        id: 'rg', traitement: 'replaygain', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
         etat: jauge.etat,
         ligne: $t('v2.health.rgLine' as any).replace('{m}', modeLabel)
           .replace('{s}', analysis ? $t('v2.health.rgSourceBoth' as any) : $t('v2.health.rgSourceTags' as any)),
@@ -222,7 +311,7 @@
         ].filter(Boolean).join(' ') || undefined,
         sansJauge: jauge.sansJauge });
     } else {
-      out.push({ id: 'rg', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
+      out.push({ id: 'rg', traitement: 'replaygain', titre: 'ReplayGain', sous: $t('v2.health.cardRgSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any), sansJauge: true });
     }
 
@@ -256,7 +345,7 @@
       const restantes = Math.max(0, total - avec - ecartees - reportees);
 
       out.push({
-        id: 'dr',
+        id: 'dr', traitement: 'dynamic_range',
         titre: $t('v2.health.cardDr' as any),
         sous: $t('v2.health.cardDrSub' as any),
         etat: !analyseActive ? 'off' : restantes === 0 && reportees === 0 ? 'done' : 'idle',
@@ -285,7 +374,7 @@
     } else {
       // Serveur antérieur au comptage : se déclarer indisponible, surtout pas
       // afficher « 0 piste » — qui se lirait comme une bibliothèque sans DR.
-      out.push({ id: 'dr', titre: $t('v2.health.cardDr' as any), sous: $t('v2.health.cardDrSub' as any),
+      out.push({ id: 'dr', traitement: 'dynamic_range', titre: $t('v2.health.cardDr' as any), sous: $t('v2.health.cardDrSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any), sansJauge: true });
     }
 
@@ -295,7 +384,7 @@
       const s = en[0].value;
       const done = s?.enriched ?? 0, total = s?.total ?? 0;
       out.push({
-        id: 'enrich', titre: $t('v2.health.cardEnrich' as any), sous: $t('v2.health.cardEnrichSub' as any),
+        id: 'enrich', traitement: 'enrichment', titre: $t('v2.health.cardEnrich' as any), sous: $t('v2.health.cardEnrichSub' as any),
         etat: s?.status === 'running' ? 'running' : s?.status === 'done' ? 'done' : 'idle',
         ligne: total
           ? $t('v2.health.enrichProgress' as any).replace('{n}', $formatNombre(done)).replace('{t}', $formatNombre(total))
@@ -303,7 +392,7 @@
         fait: done, total: total || undefined,
         detail: s?.errors ? $t('v2.health.enrichErrors' as any).replace('{n}', $formatNombre(s.errors)) : undefined });
     } else {
-      out.push({ id: 'enrich', titre: $t('v2.health.cardEnrich' as any), sous: $t('v2.health.cardEnrichSub' as any),
+      out.push({ id: 'enrich', traitement: 'enrichment', titre: $t('v2.health.cardEnrich' as any), sous: $t('v2.health.cardEnrichSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
     }
 
@@ -314,7 +403,7 @@
       const r = s?.result;
       const manquantes = s?.artists_without_image ?? 0;
       out.push({
-        id: 'covers', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
+        id: 'covers', traitement: 'artist_images', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
         etat: r?.phase && r.phase !== 'done' ? 'running' : r ? 'done' : 'idle',
         ligne: r?.total
           ? $t('v2.health.coversLine' as any).replace('{n}', $formatNombre(r.processed ?? 0))
@@ -323,9 +412,15 @@
         fait: r?.processed, total: r?.total,
         detail: manquantes ? $t('v2.health.coversMissing' as any).replace('{n}', $formatNombre(manquantes)) : undefined });
     } else {
-      out.push({ id: 'covers', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
+      out.push({ id: 'covers', traitement: 'artist_images', titre: $t('v2.health.cardCovers' as any), sous: $t('v2.health.cardCoversSub' as any),
         etat: 'inconnu', ligne: $t('v2.health.unavailable' as any) });
     }
+
+    // ── Pause des traitements de fond (#1352) ─────────────────────────────
+    // `Promise.allSettled` comme partout ici : un serveur < 0.9.159 rend 404,
+    // l'écran se tait sur la pause et le reste des cartes n'en souffre pas.
+    const tdf = await Promise.allSettled([api.getBackgroundTasks()]);
+    rangerLInstantane(tdf[0].status === 'fulfilled' ? tdf[0].value : null);
 
     // ── Modules de sortie (#2392) ─────────────────────────────────────────
     // Un seul appel, celui de Diagnostics ; un serveur qui n'envoie pas
@@ -421,6 +516,18 @@
         {#if lastAt}<span>{$t('v2.health.readAt' as any).replace('{h}', lastAt)}</span>{/if}
         {#if anyRunning}<span class="live">{$t('v2.health.autoFollow' as any)}</span>{/if}
       </div>
+      <!-- #1352 — l'interrupteur général. En tête d'écran, à côté d'Actualiser :
+           c'est le geste d'un soir d'écoute, il ne se cherche pas carte par
+           carte. Absent tant que le serveur ne sait pas suspendre. -->
+      {#if pausePossible}
+        <button
+          class="lnk"
+          onclick={() => basculerTout(!toutEnPause)}
+          disabled={bascule !== null}
+        >
+          {$t((toutEnPause ? 'v2.health.resumeAll' : 'v2.health.pauseAll') as any)}
+        </button>
+      {/if}
       <button class="v2-btn" onclick={() => collect()} disabled={refreshing}>
         {$t((refreshing ? 'v2.health.refreshing' : 'v2.health.refresh') as any)}
       </button>
@@ -434,13 +541,21 @@
       <div class="cards">
         {#each cards as c (c.id)}
           {@const p = pct(c)}
-          <article class="card {ETATS[c.etat].cls}">
+          {@const enPause = !!(c.traitement && pauses[c.traitement])}
+          <article class="card {enPause ? 'pause' : ETATS[c.etat].cls}">
             <div class="chead">
               <div>
                 <h2>{c.titre}</h2>
                 <div class="sub">{c.sous}</div>
               </div>
-              <span class="badge {ETATS[c.etat].cls}">{ETATS[c.etat].txt}</span>
+              <!-- #1352 — « En pause » PRIME sur l'état propre de la carte : un
+                   traitement suspendu dont la route d'avancement continue de
+                   dire « en cours » afficherait sinon deux vérités à la fois. -->
+              {#if enPause}
+                <span class="badge pause">{$t('v2.health.stPaused' as any)}</span>
+              {:else}
+                <span class="badge {ETATS[c.etat].cls}">{ETATS[c.etat].txt}</span>
+              {/if}
             </div>
 
             <div class="line">{c.ligne}</div>
@@ -453,6 +568,18 @@
             {/if}
 
             {#if c.detail}<div class="detail">{c.detail}</div>{/if}
+
+            {#if boutonSurLaCarte(c)}
+              <div class="cactions">
+                <button
+                  class="lnk sm"
+                  onclick={() => basculerTraitement(c.traitement!, !enPause)}
+                  disabled={bascule !== null}
+                >
+                  {$t((enPause ? 'v2.health.resume' : 'v2.health.pause') as any)}
+                </button>
+              </div>
+            {/if}
           </article>
         {/each}
       </div>
@@ -558,6 +685,11 @@
   .badge.run{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .badge.ok{color:var(--v2-acc-tint); border-color:var(--v2-acc2)}
   .badge.unk{color:var(--v2-danger); border-color:var(--v2-danger-bd)}
+  /* #1352 — une carte suspendue se distingue d'une carte au repos SANS passer
+     pour une erreur : c'est un état voulu, pas une panne. */
+  .badge.pause{color:var(--v2-txt2); border-color:var(--v2-txt3)}
+  .card.pause{border-color:var(--v2-txt3)}
+  .cactions{margin-top:13px; display:flex; gap:10px; flex-wrap:wrap}
 
   .line{margin-top:13px; font-size:13px; color:var(--v2-txt2); line-height:1.5}
   .bar{margin-top:11px; height:6px; border-radius:4px; background:var(--v2-line); overflow:hidden}
