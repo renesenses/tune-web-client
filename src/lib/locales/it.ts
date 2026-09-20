@@ -3298,6 +3298,7 @@ export default {
   "v2.lib.emptyDepot": "{nom} ({hote}) non espone alcun album.",
   "v2.lib.viewList": "Vista elenco",
   "v2.lib.viewGrid": "Vista griglia",
+  "v2.lib.viewCarousel": "Vista carosello",
   "v2.lib.starting": "Avvio…",
   "v2.fav.noMatch": "Nessun risultato per questa ricerca.",
   "v2.fav.emptyAlbums": "Nessun album nei preferiti.",

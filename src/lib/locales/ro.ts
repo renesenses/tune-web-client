@@ -3298,6 +3298,7 @@ export default {
   "v2.lib.emptyDepot": "{nom} ({hote}) nu expune niciun album.",
   "v2.lib.viewList": "Vizualizare listă",
   "v2.lib.viewGrid": "Vizualizare grilă",
+  "v2.lib.viewCarousel": "Vizualizare carusel",
   "v2.lib.starting": "Se pornește…",
   "v2.fav.noMatch": "Niciun rezultat pentru această căutare.",
   "v2.fav.emptyAlbums": "Niciun album la favorite.",
