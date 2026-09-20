@@ -29,11 +29,18 @@ describe('#887 — les sous-genres du Streaming restent à l’écran', () => {
   it('🔴 la rangée est enfant direct du conteneur qui défile — rien ne bloque l’ancrage', () => {
     expect(exacte('.scroll')['overflow-y']).toBe('auto');
     const gabarit = source.replace(/<!--[\s\S]*?-->/g, '');
+    // 🔴 On repère `.scroll` par son OUVERTURE DE BALISE, sans le `>` final :
+    // le jour où la div reçoit un attribut de plus (`bind:this`, une action),
+    // un `indexOf('<div class="scroll">')` rend **-1**, la tranche part de zéro,
+    // et le cas compte les `<div>` de TOUT le fichier — un rouge qui n'accuse
+    // rien de ce qu'il garde. Mesuré le 20/09/2026 : « expected 34 to be 33 ».
+    const debut = gabarit.indexOf('<div class="scroll"');
+    expect(debut, 'le conteneur `.scroll` est introuvable dans le gabarit').toBeGreaterThan(-1);
     for (const m of gabarit.matchAll(/<div class="chips sous">/g)) {
       // Entre l'ouverture de `.scroll` et cette rangée : uniquement des blocs
       // Svelte (`{#if}`, `{:else}`) et des éléments déjà REFERMÉS — donc
       // aucune `<div` ouverte non refermée.
-      const avant = gabarit.slice(gabarit.indexOf('<div class="scroll">') + 1, m.index);
+      const avant = gabarit.slice(debut + 1, m.index);
       const ouvertes = (avant.match(/<div\b/g) ?? []).length;
       const fermees = (avant.match(/<\/div>/g) ?? []).length;
       expect(ouvertes, 'une <div> ouverte entre .scroll et .chips.sous').toBe(fermees);

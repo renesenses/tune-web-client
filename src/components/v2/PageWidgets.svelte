@@ -36,6 +36,7 @@
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
+  import { molettePortee } from '../../lib/molettePortee';
   import { t, locale } from '../../lib/i18n';
   import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer } from '../../lib/chiffresAccueil';
   import { trace } from '../../lib/iconesChiffres';
@@ -58,6 +59,7 @@
     type Widget,
     type ChiffreAffiche,
   } from '../../lib/accueilWidgets';
+  import { repartirWidgets } from '../../lib/ajoutWidgets';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
@@ -212,7 +214,16 @@
     ]);
   }
 
-  const disponibles = $derived(catalogueComplet.filter((w) => !disposition.includes(w.id)));
+  /**
+   * Les trois populations de l'écran d'ajout — #1059.
+   *
+   * 🔴 Un widget déjà posé n'est PAS caché, il est grisé : FabienM a cherché
+   * « Humeurs » dans cette liste pendant une heure alors qu'il l'avait déjà
+   * sur sa page, et n'a compris qu'en le retirant. Un widget absent de la
+   * liste ne disait pas s'il était déjà là ou s'il n'existait pas.
+   */
+  const reparti = $derived(repartirWidgets(catalogueComplet, disposition));
+  const disponibles = $derived(reparti.disponibles);
 
   // ── Carte de zone (widget « En écoute ») ────────────────────────────────
   //
@@ -253,9 +264,22 @@
     await togglePlayPause(z, z.current_track ?? null, z.state);
   }
 
+  /**
+   * 🔴 #1152 — LE CHARGEMENT A-T-IL RÉELLEMENT EU LIEU ?
+   *
+   * `charge` ne le dit pas : il vaut `true` même quand `charger()` a renoncé
+   * faute de profil connu (voir ci-dessous). Sans ce second témoin, la reprise
+   * posée dans `onMount` ne saurait pas distinguer « déjà servi » de
+   * « jamais parti », et rechargerait la page à chaque changement de profil.
+   */
+  let lance = false;
+
   async function charger() {
     const pid = $currentProfileId;
     if (pid == null) {
+      // On rend la page malgré tout — un cadre vide vaut mieux qu'un écran
+      // blanc — mais on ne charge RIEN : sans profil, les préférences n'ont
+      // pas d'adresse. La reprise de `onMount` s'en occupe dès qu'il arrive.
       charge = true;
       return;
     }
@@ -281,6 +305,7 @@
       // d'afficher une page vide.
     }
     charge = true;
+    lance = true;
     chargerTout();
   }
 
@@ -640,9 +665,41 @@
   const profil = $derived($profiles.find((p) => p.id === $currentProfileId) ?? null);
   const banniere = $derived(salutation($t, profil, nomNuage, heure));
 
+  /**
+   * 🔴 #1152 — « LES WIDGETS NE CHARGENT QU'APRÈS PLUSIEURS RAFRAÎCHISSEMENTS ».
+   *
+   * `charger()` commence par lire `$currentProfileId`, et RENONÇAIT quand il
+   * valait `null` — sans que rien ne le rappelle jamais. Or ce magasin part de
+   * ce que le navigateur avait retenu (`loadProfileId()`), et `loadProfiles()`
+   * ne le renseigne qu'APRÈS un aller-retour réseau : premier usage, stockage
+   * vidé, navigation privée, profil supprimé, ou simplement un serveur lent à
+   * répondre, et l'accueil se montait avant de savoir qui écoute.
+   *
+   * Le résultat à l'écran est exactement le titre du ticket : `charge` passait
+   * à `true`, la page se dessinait, et chaque bande restait sur
+   * « Chargement… » — sans erreur, sans bouton « Réessayer » (il n'apparaît
+   * qu'en phase `echec`), donc sans aucun geste possible. Il fallait
+   * rafraîchir, et le rafraîchissement finissait par marcher parce que
+   * `currentProfileId.subscribe(saveProfileId)` avait entre-temps persisté
+   * l'identifiant : au tour suivant, il était là dès la première ligne.
+   *
+   * ⚠️ UNE SOUSCRIPTION IMPÉRATIVE, JAMAIS UN `$effect` — la règle de ce
+   * fichier, et elle a coûté trois tours le 02/09/2026 (voir `chargerTout`) :
+   * `chargerWidget` ÉCRIT `etats`, un effet qui l'appelle en dépendrait, et
+   * Svelte interrompt le cycle — plus rien ne charge. `store.subscribe()`
+   * n'est pas suivi par la réactivité : la boucle est impossible par
+   * construction. C'est déjà ainsi que la bande des zones se tient à jour.
+   *
+   * La souscription émet SYNCHRONEMENT la valeur courante : quand le profil
+   * est déjà connu — le cas ordinaire — `charger()` part au montage, comme
+   * avant, et le `lance` interdit le second départ.
+   */
   onMount(() => {
-    void charger();
-    if (!salut) return;
+    const repriseProfil = currentProfileId.subscribe((pid) => {
+      if (lance || pid == null) return;
+      void charger();
+    });
+    if (!salut) return repriseProfil;
     const horloge = setInterval(() => (heure = new Date().getHours()), 600_000);
     void (async () => {
       const p = get(profiles).find((x) => x.id === get(currentProfileId));
@@ -656,8 +713,20 @@
         // que d'en inventer un.
       }
     })();
-    return () => clearInterval(horloge);
+    // La souscription de reprise se défait AUSSI sur ce chemin : ne rendre
+    // que `clearInterval` la laisserait vivre après le démontage de la page.
+    return () => { clearInterval(horloge); repriseProfil(); };
   });
+
+  /**
+   * Le SEUL défileur de la page — #1327, point 1.
+   *
+   * `header.v2-top` (« Éditorial / Qobuz / Modifier », celui de la capture de
+   * Didier) est son FRÈRE dans une colonne en `overflow:hidden` : la molette
+   * posée dessus n'avait rien à faire défiler. `use:molettePortee` la lui
+   * porte. Voir `lib/molettePortee`.
+   */
+  let zoneDefilante = $state<HTMLDivElement | null>(null);
 </script>
 
 <section class="v2-home tune-v2">
@@ -665,14 +734,14 @@
        dit le 08/09/2026 que « le bouton modifier est trop proche de l'icône
        rechercher ». Il portait ses propres `.outils` / `.ghost` ; il passe aux
        classes partagées, comme les autres. -->
-  <header class="v2-top">
+  <header class="v2-top" use:molettePortee={() => zoneDefilante}>
     <div class="v2-titres">
       <div class="v2-eyebrow">{salut ? banniere : $t(cleEyebrow as any)}</div>
       <h1>{$t(cleTitre as any)}</h1>
     </div>
     <div class="v2-actions">
       {#if edition}
-        <button class="v2-btn" onclick={() => (ajoutOuvert = !ajoutOuvert)} disabled={!disponibles.length}>
+        <button class="v2-btn" onclick={() => (ajoutOuvert = !ajoutOuvert)} disabled={!catalogueComplet.length}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           {$t('v2.home.add' as any)}
         </button>
@@ -704,10 +773,17 @@
           <button class="puce" onclick={() => ajouter(w.id)}>+ {$t(w.cleTitre as any)}</button>
         {/each}
       {/if}
+      <!-- #1059 — ce qui est DÉJÀ sur la page, grisé et inerte. Sans cette
+           moitié, l'absence d'un widget de la liste ci-dessus ne dit pas s'il
+           est déjà posé ou s'il n'existe pas : c'est ce qui a mis une heure à
+           FabienM sur la catégorie « Humeurs » (fil 1812, point 6). -->
+      {#each reparti.places as w (w.id)}
+        <span class="posee" title={$t('v2.home.alreadyPlaced' as any)}>✓ {$t(w.cleTitre as any)}</span>
+      {/each}
     </div>
   {/if}
 
-  <div class="scroll">
+  <div class="scroll" bind:this={zoneDefilante}>
     {#if !charge}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !disposition.length}
@@ -1001,6 +1077,25 @@
               </div>
             {/if}
           </section>
+        {:else if edition}
+          <!-- #1059 — un identifiant de la disposition que le catalogue ne
+               nomme pas. Il arrive : une catégorie de playlists Qobuz tombe en
+               silence côté serveur (`.ok()?`) et la copie de #987 garde — à
+               raison — l'identifiant pour ne pas l'effacer. Sans cette carte,
+               il n'est NI rendu, NI proposé à l'ajout : invisible des deux
+               côtés, et l'utilisateur n'a plus aucun geste dessus, pas même
+               celui de le retirer. On ne la montre qu'en mode édition : hors
+               de là, elle serait un message d'erreur permanent sur une page
+               que rien ne permet de réparer. -->
+          <section class="bloc absent">
+            <div class="tete">
+              <h2>{id}</h2>
+              <button class="retirer" onclick={() => retirer(id)}
+                      title={$t('v2.home.remove' as any)}
+                      aria-label={$t('v2.home.remove' as any)}>×</button>
+            </div>
+            <div class="state mince">{$t('v2.home.widgetUnsupported' as any)}</div>
+          </section>
         {/if}
       {/each}
     {/if}
@@ -1046,6 +1141,13 @@
   .puce{border:1px dashed var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
   .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2); border-style:solid}
+  /* #1059 — déjà sur la page : lisible, mais visiblement inerte. Le trait
+     plein et l'opacité disent « celui-ci, tu l'as déjà » sans le cacher. */
+  .posee{border:1px solid var(--v2-line2); color:var(--v2-txt2); opacity:.55;
+    font:600 12px var(--v2-sans); padding:6px 12px; border-radius:var(--v2-r-pill)}
+  /* #1059 — le fantôme : une carte SOBRE, jamais alarmante. Elle n'existe
+     qu'en mode édition, et son seul geste est la croix de retrait. */
+  .bloc.absent h2{color:var(--v2-txt3); font-style:italic}
   .vide{color:var(--v2-txt3); font-size:13px}
 
   /* `min-width: 0` : sans lui, une bande large POUSSE la colonne au lieu de
