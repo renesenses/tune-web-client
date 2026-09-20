@@ -2333,6 +2333,8 @@ export default {
   "zoneConfig.monoLocalOnly": "Cette zone ne passe pas par une sortie locale : le réglage est enregistré, mais il ne changera rien ici. La sommation a lieu dans la chaîne audio du serveur, qui n'existe que pour une carte son ou un DAC raccordé au serveur.",
   "zoneConfig.channelsTitle": "Canaux",
   "zoneConfig.channelsFollow": "Suivre l'appareil",
+  "zoneConfig.channelsUnavailableNonLocal": "Cette zone ne sort pas par une carte son locale : le renderer négocie lui-même son format.",
+  "zoneConfig.channelsUnavailableBeyondDevice": "L'appareil annonce moins de canaux que la disposition choisie.",
   "zoneConfig.channelsUnavailable": "Ce réglage n'a pas d'effet sur cette zone.",
   "zoneConfig.channels_mono": "Mono",
   "zoneConfig.channels_stereo": "Stéréo",
