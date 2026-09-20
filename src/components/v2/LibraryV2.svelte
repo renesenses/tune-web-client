@@ -949,8 +949,39 @@
   ];
   // L'ONGLET aussi : revenir à la Bibliothèque après avoir consulté les Titres
   // pour retomber sur les Albums est le même agacement, d'un cran plus haut.
-  let tab = $state<Tab>(lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'));
-  $effect(() => ecrireChoix('lib.tab', tab));
+  let tabChoisi = $state<Tab>(lireChoix('lib.tab', TABS.map((t2) => t2.id), 'albums'));
+  // C'est le CHOIX qu'on retient, jamais sa substitution ci-dessous : ouvrir
+  // un serveur distant ne doit pas effacer l'onglet où l'on était chez soi.
+  $effect(() => ecrireChoix('lib.tab', tabChoisi));
+
+  /**
+   * 🔴 #1372 — LES ONGLETS RÉELLEMENT OFFERTS, et l'onglet réellement MONTRÉ.
+   *
+   * Jean Valjean, fil 1856, 20/09/2026 : sous l'en-tête « Tune Server —
+   * 192.168.1.10:8888 », l'onglet « Ajouts récents » affichait la
+   * bibliothèque LOCALE, et l'écrivait — « Pistes et albums ajoutés à la
+   * bibliothèque locale ». `AjoutsRecentsV2` a sa propre source,
+   * `/home/recently-added`, une route locale sans paramètre d'hôte, et
+   * `LibraryV2` le montait sans lui passer `depot` : c'était le seul point du
+   * corps à ignorer le dépôt, alors que le reste du fichier le suit partout
+   * (`albumsD`, `facetteCourante`, les vignettes, `AlbumDetailV2 {depot}`).
+   *
+   * ⚠️ ON NE LUI PASSE PAS `depot` : il n'y a rien à lui passer. Le protocole
+   * du dépôt distant (`tuneRemote.ts`) n'expose que `/library/albums`,
+   * `/library/albums/{id}/tracks` et `/library/tracks` — aucune route
+   * « ajouts récents » n'existe chez l'hôte distant. Un onglet qui ne peut pas
+   * répondre pour le serveur qu'on regarde ne doit pas être offert : c'est la
+   * règle déjà appliquée au bouton « ajouter des dossiers » (`{#if !depot}`),
+   * retiré sur un dépôt parce qu'il agirait sur une autre machine.
+   *
+   * 🔴 ET LA SUBSTITUTION EST INDISPENSABLE, pas cosmétique. `lib.tab` est
+   * persisté d'une visite à l'autre : masquer le seul BOUTON laisserait le
+   * corps monter `AjoutsRecentsV2` au retour d'une visite locale passée sur
+   * cet onglet — la route locale repartirait, avec un onglet invisible en
+   * prime. On lit donc partout `tab`, jamais `tabChoisi`.
+   */
+  const ONGLETS = $derived(TABS.filter((t2) => !depot || t2.id !== 'recent'));
+  const tab = $derived<Tab>(ONGLETS.some((t2) => t2.id === tabChoisi) ? tabChoisi : 'albums');
 
   /**
    * Les filtres portent sur les ALBUMS — qualité, fréquence, format,
@@ -1070,7 +1101,7 @@
       // Les onglets de facette sont reserves au niveau intermediaire : y
       // envoyer un debutant le poserait sur un onglet qu'il ne voit pas.
       if (!atLeast(level, 'intermediate')) return;
-      tab = d.onglet;
+      tabChoisi = d.onglet;
       q = '';
       const valeur = String(d.valeur ?? '');
       tick().then(() => {
@@ -1481,7 +1512,7 @@
     if (id == null) return;
     pendingLibraryArtist.set(null);
     artisteADemande = id;
-    tab = 'artists';
+    tabChoisi = 'artists';
     // La fiche d'album est un CALQUE par-dessus la grille : la laisser
     // ouverte cacherait l'onglet Artistes qu'on vient d'ouvrir. Fermeture à
     // la main : l'entrée courante est réécrite, pas dépilée (#1121).
@@ -1539,7 +1570,7 @@
     pendingLibraryYear.set(null);
     fYear = an;
     navMode = 'years';
-    tab = 'albums';
+    tabChoisi = 'albums';
     // Même raison que chez le jumeau Artistes : la fiche est un CALQUE, et la
     // laisser ouverte cacherait la grille qu'on vient de filtrer.
     refermerCalqueAlbumSansReculer();
@@ -1667,9 +1698,11 @@
       </button>
     {/if}
     <nav class="tabs">
-      {#each TABS as t (t.id)}
+      <!-- #1372 — `ONGLETS`, et non `TABS` : « Ajouts récents » n'est pas
+           offert sur un dépôt distant, faute de route chez lui. -->
+      {#each ONGLETS as t (t.id)}
         {#if !t.adv || atLeast(level, 'intermediate')}
-          <button class="tab" class:active={tab === t.id} onclick={() => (tab = t.id)}>{$tr(t.label as any)}</button>
+          <button class="tab" class:active={tab === t.id} onclick={() => (tabChoisi = t.id)}>{$tr(t.label as any)}</button>
         {/if}
       {/each}
     </nav>

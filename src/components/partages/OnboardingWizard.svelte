@@ -13,6 +13,70 @@
   let step = $state(1);
   const totalSteps = 4;
 
+  /**
+   * Reprendre une installation (#902).
+   *
+   * Le mécanisme existait — `api.importConfig` — mais seulement dans Réglages
+   * › Système, là où l'on ne va pas quand on vient de monter une machine
+   * neuve. Le testeur demandait exactement cela : « il aurait été bien qu'on
+   * me le propose ».
+   *
+   * L'offre est à l'ACCUEIL, avant l'étape des dossiers : une restauration
+   * apporte dossiers, zones et réglages audio, la proposer après que
+   * l'utilisateur les a saisis à la main effacerait son travail.
+   *
+   * 🔴 Deux gestes, pas un. La restauration ÉCRASE et rien ne la défait ; on
+   * lit et on analyse le fichier d'abord, on ne l'applique qu'ensuite. Pas le
+   * mot à taper de l'écran des réglages, en revanche : ici il n'y a encore
+   * rien à perdre, et un rite de plus sur une installation neuve n'achète
+   * aucune sécurité.
+   */
+  let rstData = $state<any | null>(null);
+  let rstName = $state('');
+  let rstBusy = $state(false);
+  let rstFait = $state(false);
+  let rstErr = $state<string | null>(null);
+
+  async function rstChoisi(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (!f) return;
+    rstErr = null;
+    try {
+      rstData = JSON.parse(await f.text());
+      rstName = f.name;
+    } catch {
+      rstData = null;
+      rstName = '';
+      rstErr = get(t)('settings.restoreConfigBadFile');
+    }
+  }
+
+  function rstAnnuler() {
+    rstData = null;
+    rstName = '';
+    rstErr = null;
+  }
+
+  async function rstConfirmer() {
+    if (!rstData) return;
+    rstBusy = true;
+    rstErr = null;
+    try {
+      await api.importConfig(rstData);
+      notifications.success(get(t)('settings.importConfigSuccess'));
+      rstFait = true;
+      rstAnnuler();
+      // Les dossiers restaurés doivent être visibles à l'étape suivante :
+      // sans cela l'assistant redemanderait ce qu'il vient de recevoir.
+      await loadMusicRoots();
+    } catch (err: any) {
+      rstErr = `${get(t)('settings.importConfigError')} : ${err?.message ?? err}`;
+    }
+    rstBusy = false;
+  }
+
   // Step 2: Music library
   let musicRoots = $state<BrowseRootEntry[]>([]);
   let newMusicDirPath = $state('');
@@ -381,6 +445,33 @@
             </svg>
             <span>{$t('onboarding.featureMultiroom')}</span>
           </div>
+        </div>
+
+        <div class="reprise">
+          <h2>{$t('onboarding.restoreTitle')}</h2>
+          <p class="reprise-desc">{$t('onboarding.restoreDesc')}</p>
+          <p class="reprise-limites">{$t('onboarding.restoreLimits')}</p>
+
+          {#if rstFait}
+            <p class="reprise-ok">{$t('settings.importConfigSuccess')}</p>
+          {:else if rstData}
+            <p class="reprise-fichier">{rstName}</p>
+            <div class="reprise-gestes">
+              <button class="btn-secondary" onclick={rstConfirmer} disabled={rstBusy}>
+                {rstBusy ? $t('common.loading') : $t('settings.restoreConfig')}
+              </button>
+              <button class="btn-skip" onclick={rstAnnuler} disabled={rstBusy}>
+                {$t('common.cancel')}
+              </button>
+            </div>
+          {:else}
+            <label class="btn-secondary reprise-choix">
+              {$t('onboarding.restoreChoose')}
+              <input type="file" accept="application/json,.json" onchange={rstChoisi} />
+            </label>
+          {/if}
+
+          {#if rstErr}<p class="reprise-err">{rstErr}</p>{/if}
         </div>
 
         <button class="btn-primary" onclick={() => step = 2}>
@@ -774,6 +865,16 @@
   }
 
   .welcome-desc,
+  .reprise{margin:18px auto 4px; max-width:420px; padding:14px 16px; border:1px solid var(--tune-border, rgba(128,128,128,.3)); border-radius:10px; text-align:left}
+  .reprise h2{font-size:15px; margin:0 0 6px}
+  .reprise-desc{font-size:13px; margin:0 0 6px; opacity:.85}
+  .reprise-limites{font-size:12px; margin:0 0 10px; opacity:.7}
+  .reprise-fichier{font-size:12px; margin:0 0 8px; font-family:var(--v2-mono, monospace)}
+  .reprise-gestes{display:flex; gap:8px; align-items:center}
+  .reprise-choix{display:inline-block; cursor:pointer}
+  .reprise-choix input{display:none}
+  .reprise-ok{font-size:13px; margin:0; color:var(--tune-accent)}
+  .reprise-err{font-size:12px; margin:8px 0 0; color:var(--tune-danger, #d05353)}
   .step-desc {
     font-family: var(--font-body);
     font-size: 15px;
