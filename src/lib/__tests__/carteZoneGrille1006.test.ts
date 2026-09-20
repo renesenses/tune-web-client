@@ -28,7 +28,7 @@ describe('#1006 — la carte de zone en grille', () => {
     expect(dedans).not.toContain('<button');
     expect(dedans).not.toContain('<a ');
     expect(carte).toContain('<button class="cpoch"');
-    expect(carte).toContain('<button class="creg"');
+    expect(carte).toContain('<MenuZone entrees={entreesDe(z)}');
   });
   it('🔴 la pochette de ce qui joue ouvre Lecture en cours SUR cette zone', () => {
     expect(carte).toContain('onclick={() => ouvrirLecture(z)}');
@@ -39,7 +39,9 @@ describe('#1006 — la carte de zone en grille', () => {
     expect(fn).toContain("activeView.set('nowplaying');");
   });
   it('🔴 le lien vers les réglages vise CETTE zone, et les Réglages la mettent en avant', () => {
-    expect(carte).toContain('onclick={() => reglagesDeLaZone(z)}');
+    // #1392 — le chemin vers les réglages de la zone n'est plus un bouton nu
+    // sur la carte : c'est une ENTRÉE du menu, la même dans les deux vues.
+    expect(sansCommentaires(ecran)).toContain('reglages: () => reglagesDeLaZone(z),');
     expect(ecran).toContain("v2SettingsTarget.set({ tab: 'devices', section: 'perZone', zone: z.id ?? undefined });");
     const reglages = lire('src/components/v2/SettingsV2.svelte');
     expect(reglages).toContain('cibleZone = target.zone ?? null;');
