@@ -84,6 +84,8 @@ import {
   clePisteEnCours,
   type SuiviPosition,
 } from './positionLecture';
+import { positionFileAnnoncee } from './suiviPisteEnCours';
+import { doitRechargerLaFile } from './rechargementFile';
 
 /**
  * Écart au-delà duquel la position du serveur corrige l'interpolation locale.
@@ -490,7 +492,36 @@ export function demarrerTransportV2(): () => void {
           (piste, nom) => playbackHistory.add(piste, nom),
         );
       });
-      void rechargerFile();
+
+      /**
+       * 🔴 #1126 — LA FILE RECHARGÉE EN ENTIER À CHAQUE ÉVÉNEMENT.
+       *
+       * Ici se trouvait un `void rechargerFile()` SANS condition : pause,
+       * reprise, volume, changement d'état — chacun redemandait la file
+       * complète et réécrivait `queueTracks` en bloc. Alex Campbell,
+       * 20/09/2026, playlist Qobuz de 1454 titres : « that seems to break my
+       * session ». Mesuré sur sa file : onze événements d'une lecture
+       * ordinaire, sept rechargements, 336 Ko chacun.
+       *
+       * L'ancienne interface l'évitait explicitement, et le disait :
+       * « no fetchQueue() here — playback.started/track_changed already
+       * refetch the queue above, and playback.resumed never changes it »
+       * (`App.svelte`, #1126). La bascule v2 a perdu la note avec l'écran.
+       *
+       * Le serveur porte `queue_position` DANS l'événement, et le fait exprès
+       * depuis #1096 : une avance de piste ne déplace qu'un pointeur. On le
+       * prend tel quel, sans le moindre aller-retour.
+       *
+       * La garde vit dans `rechargementFile`, et elle est écrite à l'envers —
+       * elle liste ce qui NE change pas la file. Un événement neuf recharge
+       * donc par défaut : couper trop produirait une file qui ment, ce qui ne
+       * se voit pas.
+       */
+      const positionAnnoncee = positionFileAnnoncee(event.data);
+      if (positionAnnoncee !== null && concerneLaZoneCourante(event)) {
+        queuePosition.set(positionAnnoncee);
+      }
+      if (doitRechargerLaFile(type, positionAnnoncee !== null)) void rechargerFile();
     }
   });
 

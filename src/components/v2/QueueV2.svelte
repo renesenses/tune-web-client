@@ -31,6 +31,7 @@
   import { formatDuration, formatTime, getQualityTier } from '../../lib/utils';
   import type { Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import { fenetreListe } from '../../lib/fenetreListe';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -157,6 +158,74 @@
   );
   const remainingMs = $derived(upNext.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
 
+  /**
+   * 🔴 #1126 — LA FILE ENTIÈRE CONSTRUITE D'UN SEUL TENANT.
+   *
+   * Alex Campbell, 20/09/2026, playlist Qobuz de 1454 titres : « that seems to
+   * break my session ». Cet écran rendait les 1453 lignes restantes, chacune
+   * avec sa pochette, sa ligne technique et sa barre d'actions. Mesuré :
+   * 1453 lignes, 3 706 ms de fil principal bloqué — et il repartait à chaque
+   * rechargement de la file.
+   *
+   * L'ancienne interface tenait la sienne par du confinement CSS
+   * (`content-visibility`, #1126). C'était un demi-remède : il épargne la MISE
+   * EN PAGE des lignes hors champ, pas leur CONSTRUCTION. On ne construit donc
+   * que ce qui peut être vu, et on remplace le reste par deux cales de la
+   * hauteur exacte — la barre de défilement reste celle de la file entière, et
+   * la dernière piste reste atteignable.
+   *
+   * `offsetTop` est mesuré DANS le conteneur, que `position: relative` rend
+   * offsetParent de la liste : contrairement à `getBoundingClientRect`, il ne
+   * bouge pas avec le défilement, donc rien à recalculer pour le lire.
+   */
+  const HAUTEUR_LIGNE_ESTIMEE = 55;
+
+  let scroller = $state<HTMLElement | null>(null);
+  let listeEl = $state<HTMLElement | null>(null);
+  let defilement = $state(0);
+  let hauteurVue = $state(0);
+  let hauteurLigne = $state(HAUTEUR_LIGNE_ESTIMEE);
+  let mesurePrevue = false;
+
+  function mesurer() {
+    mesurePrevue = false;
+    if (!scroller) return;
+    hauteurVue = scroller.clientHeight;
+    defilement = scroller.scrollTop - (listeEl?.offsetTop ?? 0);
+    // La hauteur réelle d'une ligne se lit d'une ligne à la SUIVANTE : l'écart
+    // porte aussi l'interligne de la liste, que `offsetHeight` ignore. Sans
+    // lui, les cales dérivent d'un pixel par ligne — 1,4 écran sur la file
+    // d'Alex.
+    const lignes = listeEl?.querySelectorAll<HTMLElement>('.row');
+    if (lignes && lignes.length >= 2) {
+      const ecart = lignes[1].offsetTop - lignes[0].offsetTop;
+      if (ecart > 0) hauteurLigne = ecart;
+    }
+  }
+
+  /** Le défilement arrive par rafales : une mesure par image, pas par pixel. */
+  function auDefilement() {
+    if (mesurePrevue) return;
+    mesurePrevue = true;
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(mesurer);
+    else mesurer();
+  }
+
+  $effect(() => {
+    // `upNext.length` en dépendance : changer de file change la fenêtre.
+    void upNext.length;
+    mesurer();
+  });
+
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('resize', auDefilement);
+    return () => window.removeEventListener('resize', auDefilement);
+  });
+
+  const fenetre = $derived(fenetreListe(upNext.length, hauteurLigne, defilement, hauteurVue));
+  const visibles = $derived(upNext.slice(fenetre.debut, fenetre.fin));
+
   async function act(fn: () => Promise<unknown>) {
     if (busy) return;
     busy = true;
@@ -225,7 +294,7 @@
 
   {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
 
-  <div class="scroll">
+  <div class="scroll" bind:this={scroller} onscroll={auDefilement}>
     {#if loading}
       <div class="state">{$tr('v2.queue.loading' as any)}</div>
     {:else if $currentZoneId == null}
@@ -261,8 +330,13 @@
 
       <section class="sec">
         <h2>À suivre{#if !upNext.length}&nbsp;— rien{/if}</h2>
-        <div class="list">
-          {#each upNext as t, i (String(t.id ?? '') + '@' + (pos + 1 + i))}
+        <div class="list" bind:this={listeEl}>
+          <!-- Les cales portent la hauteur EXACTE de ce qui n'est pas
+               construit : la barre de défilement reste celle de la file
+               entière, et rien ne saute quand la fenêtre se déplace. -->
+          {#if fenetre.avant > 0}<div class="cale" style:height="{fenetre.avant}px" aria-hidden="true"></div>{/if}
+          {#each visibles as t, k (String(t.id ?? '') + '@' + (pos + 1 + fenetre.debut + k))}
+            {@const i = fenetre.debut + k}
             {@const idx = pos + 1 + i}
             <div class="row" class:np={t.id != null && t.id === $currentTrackId}>
               <button class="play" onclick={() => jump(idx)} disabled={busy} aria-label={`Lire ${t.title}`}>
@@ -297,6 +371,7 @@
               </button>
             </div>
           {/each}
+          {#if fenetre.apres > 0}<div class="cale" style:height="{fenetre.apres}px" aria-hidden="true"></div>{/if}
         </div>
       </section>
     {/if}
@@ -312,7 +387,10 @@
     font-size:12.5px; border:1px solid var(--v2-danger-bd); background:var(--v2-acc-soft)}
   .err button{margin-left:auto; border:0; background:transparent; color:inherit; font-size:16px; cursor:pointer}
 
-  .scroll{flex:1; overflow-y:auto; padding:4px 0 40px}
+  /* `position: relative` n'est pas décoratif : il fait de ce conteneur
+     l'offsetParent de la liste, ce qui rend `offsetTop` lisible sans
+     recalcul de mise en page (#1126). */
+  .scroll{flex:1; position:relative; overflow-y:auto; padding:4px 0 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:30px; color:var(--v2-txt3)}
   .sec{padding:6px 30px 20px}
@@ -329,6 +407,9 @@
   .ndur{font:12px var(--v2-mono); color:var(--v2-txt3); flex:0 0 auto}
 
   .list{display:flex; flex-direction:column; gap:1px}
+  /* La place des lignes non construites. `flex:0 0 auto` : sans lui le
+     conteneur flex les écraserait, et la file entière remonterait. */
+  .cale{flex:0 0 auto}
   .row{display:grid; grid-template-columns:1fr auto auto auto auto auto; align-items:center; gap:12px;
     padding:0 8px; border-radius:9px; color:var(--v2-txt2)}
   .row:hover{background:var(--v2-hover); color:var(--v2-txt)}
