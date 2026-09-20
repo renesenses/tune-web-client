@@ -51,7 +51,7 @@ const OUTILS: Outils = {
 };
 
 const AUCUN: FiltresBibliotheque = {
-  qualite: null, frequence: null, annee: null, format: null, profondeur: null,
+  qualite: [], frequence: [], annee: null, format: [], profondeur: [],
   recherche: '', compilation: null, provenance: null,
 };
 
@@ -171,7 +171,7 @@ describe('correspond — ce que la grille rend', () => {
   });
 
   it('la source se CUMULE avec les autres filtres', () => {
-    const f: FiltresBibliotheque = { ...AUCUN, provenance: `upnp:${ASSET}`, format: 'FLAC' };
+    const f: FiltresBibliotheque = { ...AUCUN, provenance: `upnp:${ASSET}`, format: ['FLAC'] };
     expect(BIBLIO.filter((a) => correspond(a, f, OUTILS)).map((a) => a.title)).toEqual(['D']);
   });
 });
@@ -239,7 +239,7 @@ describe('les libellés sont traduits', () => {
 });
 
 it('un filtre de format ne fait pas disparaître les autres sources du menu', () => {
-  const counts = comptesProvenance(BIBLIO, { ...AUCUN, format: 'MP3' }, OUTILS);
+  const counts = comptesProvenance(BIBLIO, { ...AUCUN, format: ['MP3'] }, OUTILS);
   expect(new Map(counts).get('local')).toBe(0);
   expect(new Map(counts).get(`upnp:${ASSET}`)).toBe(1);
   expect(new Map(counts).get(`upnp:${SONOS}`)).toBe(0);
