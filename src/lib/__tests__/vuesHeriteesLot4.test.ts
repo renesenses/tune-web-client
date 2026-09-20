@@ -14,8 +14,18 @@ describe('les écrans hérités ont un chemin dans la coquille v2', () => {
   // « offline » / `OfflineView` a été RETIRÉ le 20/09/2026, sur demande de
   // Bertrand. Les deux autres écrans hérités gardent leur chemin, et c'est ce
   // que cette boucle vérifie toujours.
-  for (const [vue, comp] of [['concerts', 'ConcertsView'], ['dashboard', 'DashboardView']]) {
-    it(`« ${vue} » est routé vers ${comp}, et listé dans la barre`, () => {
+  //
+  // 🔴 20/09/2026 — « dashboard » n'est PLUS listé dans la barre. Bertrand a
+  // donné un nouvel ordre de barre dont il est absent : « (tableau de bord des
+  // widgets dans la page d'accueil) ». Son ROUTAGE reste gardé ici — c'est le
+  // contrat qui compte, et `routeAuChargement` repose toujours `/dashboard`.
+  // La porte de barre, elle, n'est plus un fait à garder : ce serait garder le
+  // contraire de la décision.
+  for (const [vue, comp, dansLaBarre] of [
+    ['concerts', 'ConcertsView', true],
+    ['dashboard', 'DashboardView', false],
+  ] as [string, string, boolean][]) {
+    it(`« ${vue} » est routé vers ${comp}${dansLaBarre ? ', et listé dans la barre' : ' (hors barre depuis le 20/09)'}`, () => {
       expect(existsSync(`src/components/v2-heritage/${comp}.svelte`)).toBe(true);
       // ⚠️ On mesure le CONTENU de la branche, et non l'adjacence immédiate
       // du composant. Le motif exigeait `{:else if …}` puis, au plus un
@@ -29,7 +39,12 @@ describe('les écrans hérités ont un chemin dans la coquille v2', () => {
       expect(i, `« ${vue} » n’est routé nulle part dans la coquille`).toBeGreaterThan(-1);
       const branche = SHELL.slice(i, SHELL.indexOf('{:else if', i + 10));
       expect(branche, `la branche « ${vue} » ne monte pas ${comp}`).toContain(`<${comp} />`);
-      expect(BARRE, `aucune entrée de barre pour « ${vue} »`).toContain(`{ view: '${vue}',`);
+      if (dansLaBarre) {
+        expect(BARRE, `aucune entrée de barre pour « ${vue} »`).toContain(`{ view: '${vue}',`);
+      } else {
+        // Et pas de moignon : l'entrée est partie pour de bon, pas commentée.
+        expect(BARRE, `« ${vue} » traîne encore dans la barre`).not.toContain(`{ view: '${vue}',`);
+      }
     });
   }
   it('🔴 « Écoute hors-ligne » a bien DISPARU, sans laisser de moignon', () => {
