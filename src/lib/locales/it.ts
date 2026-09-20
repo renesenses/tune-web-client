@@ -3235,7 +3235,6 @@ export default {
   "v2.smart.sourceCatalogue": "Catalogo {service}",
   "v2.smart.sourceCatalogueAide": "Cerca nel catalogo del servizio. Aggiungi una regola «Artista è…» o «Album è…» per dire cosa cercare.",
   "v2.smart.catalogueSansCible": "Una sorgente «Catalogo» ha bisogno di una regola «Artista è…» o «Album è…»: nessun servizio elenca il proprio catalogo intero.",
-  "v2.smart.catalogueHorsPlaylist": "Il catalogo si può cercare solo da una raccolta intelligente; qui questa sorgente non restituirà nulla.",
   "v2.smart.favColAlbum": "Album preferito",
   "v2.smart.favColArtist": "Artista preferito",
   "v2.smart.favColTrack": "Contiene una traccia preferita",

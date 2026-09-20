@@ -3234,7 +3234,6 @@ export default {
   "v2.smart.sourceCatalogue": "Katalog {service}",
   "v2.smart.sourceCatalogueAide": "Söker i tjänstens katalog. Lägg till en regel ”Artist är…” eller ”Album är…” som säger vad som ska sökas.",
   "v2.smart.catalogueSansCible": "En källa ”Katalog” behöver en regel ”Artist är…” eller ”Album är…”: ingen tjänst listar hela sin katalog.",
-  "v2.smart.catalogueHorsPlaylist": "Katalogen kan bara sökas från en smart samling; här ger den här källan ingenting.",
   "v2.smart.favColAlbum": "Favoritalbum",
   "v2.smart.favColArtist": "Favoritartist",
   "v2.smart.favColTrack": "Innehåller ett favoritspår",

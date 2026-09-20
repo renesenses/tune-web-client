@@ -3235,7 +3235,6 @@ export default {
   "v2.smart.sourceCatalogue": "Katalog {service}",
   "v2.smart.sourceCatalogueAide": "Durchsucht den Katalog des Dienstes. Fügen Sie eine Regel „Interpret ist …“ oder „Album ist …“ hinzu, die sagt, wonach gesucht wird.",
   "v2.smart.catalogueSansCible": "Eine Quelle „Katalog“ braucht eine Regel „Interpret ist …“ oder „Album ist …“: Kein Dienst führt seinen ganzen Katalog auf.",
-  "v2.smart.catalogueHorsPlaylist": "Der Katalog lässt sich nur aus einer intelligenten Sammlung durchsuchen; hier liefert diese Quelle nichts.",
   "v2.smart.favColAlbum": "Lieblingsalbum",
   "v2.smart.favColArtist": "Lieblingsinterpret",
   "v2.smart.favColTrack": "Enthält einen Lieblingstitel",

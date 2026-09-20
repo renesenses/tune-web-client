@@ -3235,7 +3235,6 @@ export default {
   "v2.smart.sourceCatalogue": "{service} 曲库",
   "v2.smart.sourceCatalogueAide": "在该服务的曲库中搜索。请添加一条“艺人是…”或“专辑是…”的规则，说明要找什么。",
   "v2.smart.catalogueSansCible": "“曲库”来源需要一条“艺人是…”或“专辑是…”的规则：没有任何服务会列出自己的全部曲库。",
-  "v2.smart.catalogueHorsPlaylist": "只能从智能收藏中搜索曲库；在这里，该来源不会返回任何内容。",
   "v2.smart.favColAlbum": "收藏的专辑",
   "v2.smart.favColArtist": "收藏的艺人",
   "v2.smart.favColTrack": "包含收藏的曲目",

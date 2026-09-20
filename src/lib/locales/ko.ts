@@ -3235,7 +3235,6 @@ export default {
   "v2.smart.sourceCatalogue": "{service} 카탈로그",
   "v2.smart.sourceCatalogueAide": "서비스의 카탈로그를 검색합니다. 무엇을 찾을지 알려주는 ‘아티스트가 …’ 또는 ‘앨범이 …’ 규칙을 추가하세요.",
   "v2.smart.catalogueSansCible": "‘카탈로그’ 소스에는 ‘아티스트가 …’ 또는 ‘앨범이 …’ 규칙이 필요합니다. 전체 카탈로그를 나열하는 서비스는 없습니다.",
-  "v2.smart.catalogueHorsPlaylist": "카탈로그는 스마트 컬렉션에서만 검색할 수 있습니다. 여기서는 이 소스가 아무것도 반환하지 않습니다.",
   "v2.smart.favColAlbum": "즐겨찾는 앨범",
   "v2.smart.favColArtist": "즐겨찾는 아티스트",
   "v2.smart.favColTrack": "즐겨찾는 트랙을 포함",
