@@ -89,6 +89,33 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/**
+ * Attend une condition, et ÉCHOUE EN LE DISANT si elle n'arrive pas — #1335.
+ *
+ * 🔴 La fenêtre est chargée à la demande (`{#await import(…)}` dans
+ * `PisteActions.svelte:493`). En production, c'est un fragment JS déjà bâti,
+ * servi en quelques millisecondes. Sous vitest, c'est vite qui COMPILE
+ * `AddToPlaylistModal` à cet instant — et sous huit portes `npm test`
+ * simultanées, cela dépasse largement les deux secondes que la boucle d'avant
+ * s'accordait (400 tours de 5 ms).
+ *
+ * Cette boucle-là ne disait rien en expirant : l'exécution CONTINUAIT, la liste
+ * était vide, et le rouge accusait `AddToPlaylistModal` de ne lister aucune
+ * playlist — 14 portes rouges sur 24, mesurées sur Shrek le 20/09/2026.
+ *
+ * `vi.waitFor` est l'usage du dépôt (`viderLaFileNeCoupePas.test.ts`). Il lève
+ * en nommant l'attente, et son budget suit le chronomètre du cas.
+ */
+async function attendreQue(condition: () => boolean, quoi: string) {
+  await vi.waitFor(
+    () => {
+      flushSync();
+      if (!condition()) throw new Error(`attente expirée : ${quoi}`);
+    },
+    { timeout: 25_000, interval: 10 },
+  );
+}
+
 /** Ouvre « … » puis l'entrée « Ajouter à une playlist », si elle existe. */
 async function ouvrirAjout(piste: Track): Promise<boolean> {
   monte = mount(PisteActions, { target: hote!, props: { piste } });
@@ -101,12 +128,12 @@ async function ouvrirAjout(piste: Track): Promise<boolean> {
     .find((b) => (b.textContent ?? '').includes(fr['nowplaying.addToPlaylist']));
   if (!entree) return false;
   entree.click();
-  // La fenêtre est chargée à la demande (`{#await import(…)}`) : on attend
-  // qu'elle soit posée ET qu'elle ait fini de charger sa liste.
-  for (let i = 0; i < 400 && !document.querySelector('.modal .modal-body .playlist-list'); i++) {
-    await new Promise((r) => setTimeout(r, 5));
-    flushSync();
-  }
+  // Posée ET sa liste chargée : `.playlist-list` vit dans le `{:else}` du
+  // `{#if loading}` de la fenêtre, donc son apparition dit les deux.
+  await attendreQue(
+    () => !!document.querySelector('.modal .modal-body .playlist-list'),
+    'la fenêtre « Ajouter à une playlist » et sa liste',
+  );
   await souffler();
   return true;
 }
@@ -141,10 +168,10 @@ describe('#1268 — un titre Qobuz va dans une playlist Qobuz du compte', () => 
     const b = hote!.querySelector<HTMLButtonElement>(`button.pa[aria-label="${fr['v2.pa.playlist']}"]`);
     expect(b, 'le bouton playlist de la barre est absent').toBeTruthy();
     b!.click();
-    for (let i = 0; i < 400 && !document.querySelector('.modal .playlist-list'); i++) {
-      await new Promise((r) => setTimeout(r, 5));
-      flushSync();
-    }
+    await attendreQue(
+      () => !!document.querySelector('.modal .playlist-list'),
+      'la fenêtre ouverte par le bouton « playlist » de la barre',
+    );
     await souffler();
     expect(nomsProposes()).toEqual(['Soirées jazz', 'Route']);
   });
