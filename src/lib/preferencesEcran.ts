@@ -45,3 +45,20 @@ export function ecrireChoix(cle: string, valeur: string): void {
     localStorage.setItem(PREFIXE + cle, valeur);
   } catch { /* stockage indisponible : le choix ne dure que la session */ }
 }
+
+/**
+ * Lit un choix NUMÉRIQUE — la graine d'un tirage aléatoire, par exemple
+ * (#4558) : elle n'appartient à aucune liste permise, mais doit être un entier
+ * positif. Une valeur illisible, négative ou absente rend `null`, à charge de
+ * l'appelant d'en tirer une neuve.
+ */
+export function lireNombre(cle: string): number | null {
+  try {
+    const v = localStorage.getItem(PREFIXE + cle);
+    if (v == null) return null;
+    const n = Number(v);
+    return Number.isInteger(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
+}
