@@ -27,7 +27,8 @@
    */
   import { portail } from '../../lib/portail';
   import * as api from '../../lib/api';
-  import { corpsVersionLocale, corpsVersionService, libellesVersionLocale, libellesVersionService, type VersionService } from '../../lib/versionsPiste';
+  import { corpsVersionLocale, corpsVersionService, libellesVersionLocale, libellesVersionService, ordonnerVersionsService, type VersionService } from '../../lib/versionsPiste';
+  import { preferences } from '../../lib/stores/preferences';
   import { t } from '../../lib/i18n';
   import { formatTime } from '../../lib/utils';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -48,7 +49,18 @@
   let erreur = $state(false);
 
   const locales = $derived(groupe?.versions ?? []);
-  const flux = $derived(groupe?.streaming ?? []);
+  /**
+   * #4368 — l'ordre du bloc streaming suit le réglage « Ordre des autres
+   * versions » (Réglages ▸ Affichage). Le bloc LOCAL, lui, est rendu avant
+   * dans les deux modes : c'est un tableau séparé de la route, et « local
+   * d'abord » n'a jamais dépendu du barème.
+   *
+   * `ordonnerVersionsService` PARTITIONNE, elle ne trie pas : elle ne mute pas
+   * `groupe.streaming` et, en mode « pertinence », rend le tableau reçu tel
+   * quel. Deux tuiles déjà affichées ne peuvent donc pas s'échanger de place
+   * quand la liste se complète — voir la règle, dans `versionsPiste.ts`.
+   */
+  const flux = $derived(ordonnerVersionsService(groupe?.streaming ?? [], $preferences.ordreAutresVersions));
   const vide = $derived(!chargement && !erreur && locales.length === 0 && flux.length === 0);
 
   $effect(() => {
