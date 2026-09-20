@@ -306,7 +306,9 @@
     const trouves = await albumsDeStreamingPourArtiste(a.name, services, {
       resoudreArtiste: async (svc, nom) =>
         (await api.federatedSearch(nom, [svc], 5))?.services?.[svc]?.artists ?? [],
-      albumsDeLArtiste: (svc, id) => api.getStreamingArtistAlbums(svc, id),
+      // #1343 — TOUTES les pages, pas seulement les cinquante premiers
+      // albums : « Second Song » de Neil Young est à `offset=50` chez Qobuz.
+      albumsDeLArtiste: (svc, id) => api.getStreamingArtistAlbumsAll(svc, id),
     });
     if (jeton !== jetonService) return;
     albumsService = trouves;
