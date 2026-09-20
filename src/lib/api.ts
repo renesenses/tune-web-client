@@ -430,6 +430,7 @@ export async function fetchJSON<T>(
   url: string,
   options?: RequestInit,
   accepter?: (statut: number) => boolean,
+  sansBandeau = false,
 ): Promise<T> {
   let response: Response;
   try {
@@ -509,7 +510,39 @@ export async function fetchJSON<T>(
      * traiter le refus — et il le fait déjà.
      */
     if (response.status >= 500 && response.status !== 501) {
-      notifications.error(`Server error: ${err.message}`);
+      /**
+       * 🔴 UNE RANGÉE ABSENTE N'EST PAS UNE PANNE DE L'APPLICATION — Levente,
+       * relayé par Bertrand le 20/09/2026 :
+       *
+       *     Server error: qobuz /playlist/getTags: 500
+       *     {"message":"An unexpected error occurred (Root=1-6ab00353-…)",…}
+       *
+       * Lu en cliquant simplement sur l'ACCUEIL. `Root=1-…` est un
+       * identifiant de trace AWS : le 500 vient de chez Qobuz, et le message
+       * est sa charge recopiée mot pour mot par `apiError` (une réponse en
+       * texte brut n'est pas analysée, elle est reprise telle quelle).
+       *
+       * `sansBandeau` est posé par les appels dont l'échec a DÉJÀ un endroit
+       * où se voir : les rangées éditoriales de l'accueil, qui portent leur
+       * propre état discret et leur bouton « réessayer »
+       * (`PageWidgets.chargerWidget`, phase `echec`). Lever en plus un
+       * bandeau global revenait à annoncer une panne de tout Tune parce
+       * qu'un carrousel de playlists n'a pas chargé.
+       *
+       * C'est la même distinction que #1007 a établie pour le 501, mais sur
+       * un autre axe : là, c'est le STATUT qui ne disait pas « panne » ; ici,
+       * c'est l'APPELANT qui a déjà de quoi le dire lui-même. Le détail n'est
+       * pas perdu — il part en console, là où on le cherche.
+       *
+       * ⚠️ Opt-in, et étroitement : un appel qui n'a personne pour porter son
+       * échec doit continuer à crier. Élargir ce drapeau ferait taire les
+       * vraies pannes.
+       */
+      if (sansBandeau) {
+        console.warn('[api] rangée éditoriale en échec, sans bandeau :', url, response.status, err.message);
+      } else {
+        notifications.error(`Server error: ${err.message}`);
+      }
     } else {
       // Surface actionable playback failures that callers would otherwise
       // swallow (they fire play/next/resume without awaiting): a missing local
@@ -3924,8 +3957,13 @@ export function getStreamingFeaturedSections(service: string) {
   return fetchJSON<FeaturedSection[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/sections`);
 }
 
+/**
+ * Une rubrique éditoriale du service. `sansBandeau` : ses deux seuls appelants
+ * sont des `charger` de widget (`accueilWidgets.ts`, `widgetsService.ts`), et
+ * une rangée qui échoue affiche déjà son propre état — voir `fetchJSON`.
+ */
 export function getStreamingFeatured(service: string, section: string, limit = 20) {
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/${encodeURIComponent(section)}?limit=${limit}`);
+  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/${encodeURIComponent(section)}?limit=${limit}`, undefined, undefined, true);
 }
 
 export function getStreamingNewReleases(service: string, limit = 50) {
@@ -3949,7 +3987,11 @@ export interface PlaylistTagGroup {
  *  tableau vide pour les services qui n'ont pas de catégories. */
 export function getStreamingFeaturedPlaylistsByTag(service: string, genre?: string) {
   const params = genre ? `?genre=${encodeURIComponent(genre)}` : '';
-  return fetchJSON<PlaylistTagGroup[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured-playlists/by-tag${params}`);
+  // `sansBandeau` : c'est CET appel que Levente a vu crier depuis l'accueil le
+  // 20/09/2026. Ses deux appelants (`widgetsService.categoriesPlaylistsPourAccueil`
+  // et `catalogueService`) rattrapent déjà l'échec par un `.catch(() => [])` —
+  // le bandeau global était une seconde annonce du même échec, en plus brutale.
+  return fetchJSON<PlaylistTagGroup[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured-playlists/by-tag${params}`, undefined, undefined, true);
 }
 
 export function getStreamingGenres(service: string, parentId?: string) {
