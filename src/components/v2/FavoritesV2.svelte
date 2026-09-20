@@ -29,6 +29,7 @@
   import {
     trierEtFiltrer, sourcesPresentes, SOURCE_BIBLIOTHEQUE, type TriFavoris,
   } from '../../lib/favorisTriFiltre';
+  import { clesAvecJumeauLocal, LIMITE_RECHERCHE } from '../../lib/favorisJumeles';
   import { fold } from '../../lib/utils';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -233,11 +234,41 @@
         collections = [];
       }
       error = null;
+      // Les jumelages APRÈS coup, sans bloquer l'affichage (#1081).
+      void resoudreJumelages(tracks);
     } catch {
       error = 'Favoris indisponibles.';
     }
     loading = false;
   }
+  /**
+   * 🔴 #1081 — les favoris de SERVICE que l'utilisateur possède aussi en local.
+   *
+   * Décision de Bertrand du 20/09/2026 : le jumelage compte comme bibliothèque.
+   * Une piste dont le cœur vient d'un jumelage doit figurer sous le filtre
+   * « Bibliothèque » — c'est ce que promet le cœur plein vu dans la
+   * bibliothèque.
+   *
+   * Le lien n'est porté par AUCUN champ (mesure du 20/09 sur le .18 : ni le
+   * favori de service ni la piste locale ne référence l'autre). Il faut donc le
+   * demander à la bibliothèque, titre par titre.
+   *
+   * ⚠️ SANS `await`, comme `reprendreFavorisDesServices` : les favoris sont
+   * déjà affichés, la puce « Bibliothèque » les rejoint quand la réponse
+   * arrive. Une bibliothèque lente ne doit pas retarder l'écran.
+   */
+  let jumelesLocaux = $state<Set<string>>(new Set());
+
+  async function resoudreJumelages(liste: readonly any[]): Promise<void> {
+    try {
+      jumelesLocaux = await clesAvecJumeauLocal(liste, (q) =>
+        api.searchLibrary(q, LIMITE_RECHERCHE),
+      );
+    } catch {
+      /* On ne sait rien de plus qu'avant : l'écran garde son comportement. */
+    }
+  }
+
   // Rechargé si le profil change : les favoris sont personnels.
   $effect(() => { void $currentProfileId; reload(); });
 
@@ -297,10 +328,17 @@
   const fTracks = $derived(tracks.filter((t) => encoreFavori(t, 'track') && (match(t.title) || match(t.artist_name))));
   const fArtists = $derived(artists.filter((a) => encoreFavori(a, 'artist') && match(a.name)));
 
+  /*
+   * ⚠️ `jumelesLocaux` n'est passé QUE pour l'onglet Titres : la clé est un
+   * couple titre+artiste, et un album homonyme d'une piste favorite se
+   * glisserait sous « Bibliothèque » sans en être.
+   */
   const sourcesOnglet = $derived(
-    sourcesPresentes(
-      tab === 'albums' ? fAlbums : tab === 'tracks' ? fTracks : tab === 'artists' ? fArtists : [],
-    ),
+    tab === 'tracks'
+      ? sourcesPresentes(fTracks, jumelesLocaux)
+      : sourcesPresentes(
+          tab === 'albums' ? fAlbums : tab === 'artists' ? fArtists : [],
+        ),
   );
   $effect(() => {
     if (sourceFiltre && !sourcesOnglet.includes(sourceFiltre)) sourceFiltre = null;
@@ -329,7 +367,7 @@
   );
 
   const vAlbums = $derived(trierEtFiltrer(fAlbums, sourceFiltre, tri));
-  const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri));
+  const vTracks = $derived(trierEtFiltrer(fTracks, sourceFiltre, tri, jumelesLocaux));
   const vArtists = $derived(trierEtFiltrer(fArtists, sourceFiltre, tri));
 
   /** Nom lisible d'une source : la bibliotheque se traduit, un service porte son nom. */
