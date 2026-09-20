@@ -3893,6 +3893,8 @@ export default {
   "v2.zone.none": "Keine Zonen. Erstellen Sie eine, oder legen Sie unter Einstellungen → Audio einen Ausgang an.",
   "v2.zone.unreachable": "Zonen nicht verfügbar – der Server antwortet noch nicht.",
   "v2.zone.mergeInto": "In {name} zusammenführen",
+  "v2.zone.actions": "Zonenaktionen",
+  "v2.zone.deleteExplain": "„{name}“ löschen? Die Wiedergabe stoppt, und die Zone nimmt ihre Warteschlange, Lautstärke, Ausgabe und DSP mit. Das Gerät bleibt verfügbar.",
   "v2.zone.mergeConfirm": "Zusammenführung bestätigen",
   "v2.zone.presenceRecent": "Kürzlich ausgeschaltet",
   "v2.zone.badgeNoOutput": "Kein Ausgang",

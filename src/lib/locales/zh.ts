@@ -3893,6 +3893,8 @@ export default {
   "v2.zone.none": "没有区域。请创建一个，或在「设置 → Audio」中声明一个输出。",
   "v2.zone.unreachable": "无法获取区域 — 服务器尚未响应。",
   "v2.zone.mergeInto": "合并到 {name}",
+  "v2.zone.actions": "区域操作",
+  "v2.zone.deleteExplain": "删除「{name}」？播放将停止，该区域的队列、音量、输出和 DSP 一并移除。设备本身仍然可用。",
   "v2.zone.mergeConfirm": "确认合并",
   "v2.zone.presenceRecent": "最近已关机",
   "v2.zone.badgeNoOutput": "无输出",
