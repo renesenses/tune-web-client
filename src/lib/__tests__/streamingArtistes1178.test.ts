@@ -81,7 +81,9 @@ describe('Streaming : ouvrir un artiste puis revenir', () => {
     bouton!.click(); flushSync();
     await vi.waitFor(() => expect(hote.querySelector('.v2-fas h1')?.textContent).toBe('Fiche chargée par HTTP'));
     expect(get(ficheArtisteService)).toEqual({ service, id, nom: artiste.name });
-    expect(hote.querySelector('.v2-fas .svc')?.textContent).toBe(service);
+    // `.svc` est devenu `.prov` : l'en-tête de la fiche est le composant commun
+    // `EnTeteArtiste` depuis #1356 (19/09). Même élément, même contenu.
+    expect(hote.querySelector('.v2-fas .prov')?.textContent).toBe(service);
     expect(get(activeView)).toBe('streamingartist');
     const chemin = `/api/v1/streaming/${service}/artists/${encodeURIComponent(id)}`;
     expect(requetes).toContain(chemin);
