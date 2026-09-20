@@ -136,7 +136,59 @@ function poserLaCoquille(): HTMLDivElement {
   return hote;
 }
 
+/**
+ * LE CHRONOMÈTRE DOIT COUVRIR LE DÉCOR QUE LE CAS POSE — #1349.
+ *
+ * Les neuf cas montent `ShellV2` : la coquille v2 entière, ses douze routes
+ * lues au montage, `LibraryV2` et ses 2 200 lignes. Le fichier passe de 760 ms
+ * sur un Mac à vide à 6–12,3 s sous huit portes `npm test` simultanées sur
+ * Shrek (mesuré sur 24 portes le 20/09/2026), et les 5 000 ms par défaut de
+ * vitest n'ont pas été taillées pour cela. Même mécanisme que #1347.
+ */
+const DELAI_MONTAGE = 60_000;
+
+/** Un temps de REPOS : « et s'il devait en arriver un SECOND ? ». */
 const respirer = (ms = 60) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Attend une condition, et ÉCHOUE EN LE DISANT si elle n'arrive pas — #1349.
+ *
+ * 🔴 Ce fichier attendait le bandeau d'erreur avec un budget FIXE de 60 ms.
+ * Entre le clic sur Lire et le bandeau, il y a `playAndSync` → `api.play` →
+ * `fetch` → réponse 400 → `notifications.error` → rendu de `ToastContainer` :
+ * un pari sur la vitesse de la machine, pas une attente d'un résultat. Le
+ * budget épuisé, l'exécution CONTINUAIT — la liste des bandeaux était vide, et
+ * l'assertion accusait le code de production :
+ *
+ *     AssertionError: le clic sur Lire a échoué et l’écran n’a rien dit :
+ *       le `.catch(() => {})` est de retour (#3732): expected '' to contain 'no tracks to play'
+ *
+ * Ce rouge nomme le canal 1 de #3732 — les 19 `.catch(() => {})` qui avalaient
+ * l'erreur HTTP de `POST /play` — alors qu'il est corrigé et que ce banc-ci en
+ * est le témoin. Reproduit de façon déterministe, sans charge, en retardant de
+ * 200 ms `playAndSync` dans le code de production. 5 portes rouges sur 24 lors
+ * de la campagne du 19/09/2026.
+ *
+ * `vi.waitFor` est l'usage du dépôt (`viderLaFileNeCoupePas`,
+ * `playlistDuService1268` depuis #1338). Il lève en NOMMANT l'attente, et son
+ * budget suit le chronomètre du cas.
+ *
+ * ⚠️ Ce qui reste un `respirer()`, et doit le rester : le temps de REPOS après
+ * l'arrivée attendue. « Ce refus ne pose QU'UN bandeau » se mesure en laissant
+ * venir un second bandeau, pas en s'arrêtant au premier.
+ */
+async function attendreQue(condition: () => boolean, quoi: string): Promise<void> {
+  await vi.waitFor(
+    () => {
+      flushSync();
+      if (!condition()) throw new Error(`attente expirée : ${quoi}`);
+    },
+    { timeout: 45_000, interval: 10 },
+  );
+}
+
+/** La coquille a ouvert sa WebSocket ET y a posé son écouteur d'événements. */
+const socketEcoute = () => sockets.some((s) => typeof s.onmessage === 'function');
 
 /** Le texte des bandeaux d'ERREUR effectivement rendus dans le document. */
 function bandeauxErreur(): string[] {
@@ -180,7 +232,7 @@ afterEach(() => {
 });
 
 describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', () => {
-  it('le conteneur de bandeaux est MONTÉ — sinon les 119 messages v2 partent dans le vide', () => {
+  it('le conteneur de bandeaux est MONTÉ — sinon les 119 messages v2 partent dans le vide', { timeout: DELAI_MONTAGE }, () => {
     poserLaCoquille();
     // Canal 3. `notifications` est un magasin ; `ToastContainer` est le SEUL
     // composant du client qui le rend, et `App.svelte` était le seul à le
@@ -194,18 +246,24 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     ).toContain('témoin de montage');
   });
 
-  it('une erreur HTTP de POST /play s’écrit à l’écran, avec le motif du serveur', async () => {
+  it('une erreur HTTP de POST /play s’écrit à l’écran, avec le motif du serveur', { timeout: DELAI_MONTAGE }, async () => {
     // Canal 1. Le serveur refuse la lecture : `400 {"error":"no tracks to play"}`
     // — le refus mesuré de `routes/playback.rs`, qui ne laisse AUCUNE trace,
     // ni au journal serveur ni à l'écran.
     refusDePlay = { status: 400, corps: { error: 'no tracks to play', detail: 'no tracks to play' } };
     const el = poserLaCoquille();
-    await respirer();
-    flushSync();
+    await attendreQue(
+      () => !!el.querySelector('button.centre'),
+      'la grille d’albums et le bouton Lire de sa pochette',
+    );
 
     const lire = el.querySelector('button.centre') as HTMLButtonElement | null;
     expect(lire, 'le bouton Lire de la pochette n’est pas rendu — témoin sans objet').not.toBeNull();
     lire!.click();
+    await attendreQue(
+      () => bandeauxErreur().length > 0,
+      'un bandeau d’erreur après le clic sur Lire — sans lui, le `.catch(() => {})` de #3732 est de retour',
+    );
     await respirer();
     flushSync();
 
@@ -216,7 +274,7 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     ).toContain('no tracks to play');
   });
 
-  it('un refus que la couche API traduit déjà ne pose QU’UN bandeau', async () => {
+  it('un refus que la couche API traduit déjà ne pose QU’UN bandeau', { timeout: DELAI_MONTAGE }, async () => {
     // `fetchJSON` traduit lui-même `file_not_found` et `zone_no_output_device`
     // et pose son propre bandeau, parce que ses appelants historiques
     // n'attendaient pas leur promesse. Maintenant que les appels de lecture
@@ -224,12 +282,20 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     // remplacé par du bruit serait un autre défaut.
     refusDePlay = { status: 400, corps: { error: 'zone_no_output_device', detail: 'zone has no output' } };
     const el = poserLaCoquille();
-    await respirer();
-    flushSync();
+    await attendreQue(
+      () => !!el.querySelector('button.centre'),
+      'la grille d’albums et le bouton Lire de sa pochette',
+    );
 
     const lire = el.querySelector('button.centre') as HTMLButtonElement | null;
     expect(lire, 'le bouton Lire de la pochette n’est pas rendu — témoin sans objet').not.toBeNull();
     lire!.click();
+    await attendreQue(
+      () => bandeauxErreur().length > 0,
+      'le bandeau du refus traduit par la couche API',
+    );
+    // 🔴 Et on laisse venir le SECOND, s'il doit venir : c'est exactement ce
+    // que ce cas garde. S'arrêter au premier affaiblirait la garde.
     await respirer();
     flushSync();
 
@@ -240,11 +306,11 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     expect(vus[0].length, 'le bandeau restant est vide').toBeGreaterThan(10);
   });
 
-  it('un `zone.playback_error` FATAL s’écrit à l’écran, en nommant l’appareil ET les disponibles', async () => {
+  it('un `zone.playback_error` FATAL s’écrit à l’écran, en nommant l’appareil ET les disponibles', { timeout: DELAI_MONTAGE }, async () => {
     // Canal 2, et le cas de terrain exact. La charge utile est celle que le
     // serveur pousse réellement (`poller.rs`), y compris `fatal: true`.
     poserLaCoquille();
-    await respirer();
+    await attendreQue(socketEcoute, 'la WebSocket de la coquille et son écouteur');
 
     pousserEvenement({
       type: 'zone.playback_error',
@@ -270,15 +336,17 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     ).toContain('Haut-parleurs');
   });
 
-  it('un échec non fatal, PENDANT la fenêtre de grâce, ne pose AUCUN bandeau d’erreur', async () => {
+  it('un échec non fatal, PENDANT la fenêtre de grâce, ne pose AUCUN bandeau d’erreur', { timeout: DELAI_MONTAGE }, async () => {
     // Le revers exigé : remplacer le silence par du bruit serait un autre
     // défaut. Un pré-transcodage HI-RES lent (Tidal/Qobuz) fait émettre au
     // serveur une erreur passagère juste après le Lire, alors que la lecture
     // démarre ensuite (#1146). La v1 affiche « chargement… » ; la v2 doit
     // faire la même distinction, sinon chaque album HI-RES crie à l'erreur.
     const el = poserLaCoquille();
-    await respirer();
-    flushSync();
+    await attendreQue(
+      () => !!el.querySelector('button.centre'),
+      'la grille d’albums et le bouton Lire de sa pochette',
+    );
 
     // La fenêtre s'ouvre par le VRAI chemin : `playAndSync` appelle
     // `ouvrirAttente()`. Un clic qui réussit suffit — c'est le geste que le
@@ -286,8 +354,10 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     const lire = el.querySelector('button.centre') as HTMLButtonElement | null;
     expect(lire, 'le bouton Lire de la pochette n’est pas rendu — témoin sans objet').not.toBeNull();
     lire!.click();
-    await respirer();
-    flushSync();
+    await attendreQue(
+      () => playPendingUntil.has(1),
+      'la fenêtre de grâce ouverte par `playAndSync`',
+    );
     expect(
       playPendingUntil.has(1),
       'la fenêtre de grâce ne s’est pas ouverte : ce témoin ne mesurerait rien',
@@ -304,7 +374,7 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     ).not.toContain('already being decoded');
   });
 
-  it('un échec FATAL pendant la fenêtre de grâce s’affiche QUAND MÊME', async () => {
+  it('un échec FATAL pendant la fenêtre de grâce s’affiche QUAND MÊME', { timeout: DELAI_MONTAGE }, async () => {
     // Le cœur de la distinction, et le cas de terrain exact. Le serveur
     // rapporte un périphérique qui refuse de s'ouvrir en MOINS D'UNE SECONDE
     // après le Lire — donc en plein dans les trente secondes de la fenêtre.
@@ -334,7 +404,7 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     expect(el).toBeTruthy();
   });
 
-  it('douze clics sur un DAC absent ne posent pas douze bandeaux identiques', async () => {
+  it('douze clics sur un DAC absent ne posent pas douze bandeaux identiques', { timeout: DELAI_MONTAGE }, async () => {
     // Remplacer le silence par un mur de bandeaux serait un autre défaut. Chez
     // le testeur du 09/09, douze clics ont produit douze `zone.playback_error`
     // rigoureusement identiques ; le conteneur n'en empile proprement que trois.
@@ -350,12 +420,12 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     ).toBe(1);
   });
 
-  it('le même échec non fatal, HORS fenêtre de grâce, s’écrit bien à l’écran', async () => {
+  it('le même échec non fatal, HORS fenêtre de grâce, s’écrit bien à l’écran', { timeout: DELAI_MONTAGE }, async () => {
     // La contre-épreuve du cas précédent : sans elle, « ne rien afficher pour
     // un non-fatal » passerait pour un succès alors que ce serait le défaut
     // d'origine reproduit sous condition.
     poserLaCoquille();
-    await respirer();
+    await attendreQue(socketEcoute, 'la WebSocket de la coquille et son écouteur');
     playPendingUntil.clear();
 
     pousserEvenement({
@@ -369,7 +439,7 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     ).toContain('pipeline error');
   });
 
-  it('le bandeau se ferme au CLAVIER — un message qu’on ne peut fermer qu’à la souris n’est pas fermable', () => {
+  it('le bandeau se ferme au CLAVIER — un message qu’on ne peut fermer qu’à la souris n’est pas fermable', { timeout: DELAI_MONTAGE }, () => {
     poserLaCoquille();
     notifications.error('témoin clavier');
     flushSync();
