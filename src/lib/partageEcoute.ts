@@ -32,6 +32,15 @@ export interface PistePartagee {
 export interface CartePartage {
   token: string;
   url: string;
+  /**
+   * Le lien ABSOLU calculé par le serveur — v0.9.159, tune-server-rust#4576.
+   *
+   * Il porte l'adresse par laquelle le serveur est joignable sur le réseau,
+   * celle qu'il met déjà dans les URL de flux. Absent quand le serveur n'a
+   * qu'une boucle locale à offrir, et absent des serveurs antérieurs : on
+   * retombe alors sur `location.origin`, comme avant.
+   */
+  url_absolue?: string | null;
   track: PistePartagee;
 }
 
@@ -53,10 +62,14 @@ export function texteDePartage(carte: CartePartage | null | undefined, origine =
   let ligne = [t, a].filter(Boolean).join(' — ');
   if (al) ligne = ligne ? `${ligne} (${al})` : al;
 
+  // Xavier Joly, 20/09/2026 : son partage est parti avec
+  // « http://localhost:8888/shared/… ». `location.origin`, c'est l'adresse
+  // tapée dans SA barre d'adresse — le lien ne s'ouvre alors que chez lui.
+  // Le serveur, lui, connaît son adresse réseau : quand il la donne
+  // (`url_absolue`), elle prime. Sinon, on garde l'ancien comportement.
+  const absolu = propre(carte?.url_absolue);
   const chemin = propre(carte?.url);
-  // `url` est relative (« /shared/<token> ») : sans origine, un lien collé
-  // dans un message ne mène nulle part.
-  const lien = chemin && origine ? `${origine.replace(/\/$/, '')}${chemin}` : chemin;
+  const lien = absolu || (chemin && origine ? `${origine.replace(/\/$/, '')}${chemin}` : chemin);
 
   return [ligne, lien].filter(Boolean).join('\n');
 }
