@@ -143,8 +143,8 @@ const OUTILS: Outils = {
   },
 };
 const AUCUN: FiltresBibliotheque = {
-  qualite: null, frequence: null, annee: null,
-  format: null, profondeur: null, recherche: '', compilation: null,
+  qualite: [], frequence: [], annee: null,
+  format: [], profondeur: [], recherche: '', compilation: null,
   provenance: null,
 };
 const alb = (id: number, o: Partial<Album> = {}): Album =>
@@ -177,7 +177,7 @@ describe('le filtre « compilations » de la bibliothèque (#1957)', () => {
 
   it('le compte tient compte des AUTRES filtres', () => {
     expect(comptesCompilation(BIBLIO, AUCUN, OUTILS)).toBe(1);
-    expect(comptesCompilation(BIBLIO, { ...AUCUN, format: 'MP3' }, OUTILS)).toBe(0);
+    expect(comptesCompilation(BIBLIO, { ...AUCUN, format: ['MP3'] }, OUTILS)).toBe(0);
   });
 
   // La règle des facettes : une facette se compte SANS elle-même, sinon le
