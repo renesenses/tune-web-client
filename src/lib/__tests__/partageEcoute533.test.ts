@@ -73,3 +73,46 @@ describe('🔴 L’appel lui-même', () => {
     expect(bloc).toContain("notifications.error($t('nowplaying.shareError'");
   });
 });
+
+// Le lien ABSOLU rendu par le serveur (tune-server-rust#4574) prime sur
+// l'adresse de la barre du navigateur. Xavier Joly, 20/09/2026 : son partage
+// est parti avec « http://localhost:8888/shared/… », illisible ailleurs.
+describe('le lien collé porte l’adresse du SERVEUR, pas celle du navigateur', () => {
+  const carte = {
+    token: 'abc',
+    url: '/shared/abc',
+    url_absolue: 'http://192.168.1.79:8888/shared/abc',
+    track: { title: 'Noche En L’alhambra', artist_name: 'KOUROU FIA', album_title: 'Cokora' },
+  };
+
+  it('le cas de Xavier : ouvert sur localhost, le lien part avec l’adresse réseau', () => {
+    const texte = texteDePartage(carte, 'http://localhost:8888');
+    expect(texte).toContain('http://192.168.1.79:8888/shared/abc');
+    expect(texte).not.toContain('localhost');
+  });
+
+  it('contre-épreuve : sans lien absolu, l’origine du navigateur sert encore', () => {
+    const sansAbsolu = { ...carte, url_absolue: null };
+    expect(texteDePartage(sansAbsolu, 'http://192.168.1.79:8888')).toContain(
+      'http://192.168.1.79:8888/shared/abc',
+    );
+    const ancienServeur = { token: 'abc', url: '/shared/abc', track: carte.track };
+    expect(texteDePartage(ancienServeur, 'http://tune.local:8888')).toContain(
+      'http://tune.local:8888/shared/abc',
+    );
+  });
+
+  it('un lien absolu vide ne masque pas le repli', () => {
+    const vide = { ...carte, url_absolue: '   ' };
+    expect(texteDePartage(vide, 'http://192.168.1.79:8888')).toContain(
+      'http://192.168.1.79:8888/shared/abc',
+    );
+  });
+
+  it('le titre reste sur sa ligne, le lien sur la sienne', () => {
+    const lignes = texteDePartage(carte, 'http://localhost:8888').split('\n');
+    expect(lignes).toHaveLength(2);
+    expect(lignes[0]).toBe('Noche En L’alhambra — KOUROU FIA (Cokora)');
+    expect(lignes[1]).toBe('http://192.168.1.79:8888/shared/abc');
+  });
+});
