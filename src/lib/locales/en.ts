@@ -1431,6 +1431,7 @@ export default {
   "v2.home.editTip": "Add, remove or reorder widgets",
   "v2.home.editHint": "Drag the handle to reorder a widget, or click the cross to remove it.",
   "v2.home.allAdded": "Every widget is already on your page.",
+  "v2.home.alreadyPlaced": "Already on your page",
   "v2.home.emptyHint": "Your page is empty. Use “Edit” to add widgets.",
   "v2.home.widgetEmpty": "Nothing to show here yet.",
   "v2.home.widgetFailed": "This widget could not be loaded.",

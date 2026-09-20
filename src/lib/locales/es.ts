@@ -2407,6 +2407,7 @@ export default {
   "v2.home.editTip": "Añadir, quitar o reordenar los widgets",
   "v2.home.editHint": "Arrastre el asa para reordenar un widget, o haga clic en la cruz para quitarlo.",
   "v2.home.allAdded": "Todos los widgets ya están en su página.",
+  "v2.home.alreadyPlaced": "Ya está en su página",
   "v2.home.emptyHint": "Su página está vacía. Pase a «Editar» para añadir widgets.",
   "v2.home.widgetEmpty": "Por ahora no hay nada que mostrar aquí.",
   "v2.home.widgetFailed": "No se pudo cargar este widget.",

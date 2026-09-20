@@ -2365,6 +2365,7 @@ export default {
   "v2.home.editTip": "Widgetek hozzáadása, eltávolítása vagy átrendezése",
   "v2.home.editHint": "Húzza a fogantyút a widget átrendezéséhez, vagy kattintson a keresztre az eltávolításhoz.",
   "v2.home.allAdded": "Minden widget már az oldalán van.",
+  "v2.home.alreadyPlaced": "Már az oldalán van",
   "v2.home.emptyHint": "Az oldala üres. Váltson „Szerkesztés” módba widgetek hozzáadásához.",
   "v2.home.widgetEmpty": "Itt egyelőre nincs mit mutatni.",
   "v2.home.widgetFailed": "Ezt a widgetet nem sikerült betölteni.",
