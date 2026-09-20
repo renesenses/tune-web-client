@@ -7207,6 +7207,25 @@ export function regrouperCoffret(cible: number) {
   );
 }
 
+/**
+ * Composer un coffret À LA MAIN — Bertrand, 20/09/2026.
+ *
+ * 🔴 `albumIds` est ORDONNÉ, et l'ordre EST celui des disques : le premier
+ * devient le disque 1 et absorbe les autres. Ce n'est pas un détail de
+ * présentation, c'est le contrat de la route — un `Set` côté écran le
+ * perdrait en silence.
+ *
+ * Distinct de `regrouperCoffret` juste au-dessus, qui réunit un coffret que
+ * le serveur a DÉTECTÉ (marqueur chiffré, dossiers frères). Celle-ci ne
+ * détecte rien : elle obéit.
+ */
+export function composerCoffret(albumIds: number[]) {
+  return fetchJSON<{ cible: number; absorbes: number; disques: number; titre: string }>(
+    `${BASE}/library/albums/coffret`,
+    { method: 'POST', body: JSON.stringify({ album_ids: albumIds }) },
+  );
+}
+
 /** Ce qui SERAIT changé, sans rien changer. */
 export function getDisquesAbimes() {
   return fetchJSON<DisquesAbimes>(`${BASE}/library/albums/disques-abimes`);
