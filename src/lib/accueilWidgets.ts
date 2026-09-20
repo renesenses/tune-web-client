@@ -498,6 +498,39 @@ const utiles = (els: Element[]): Element[] => els.filter((e) => e.titre !== '—
 /** Combien de rangs par colonne du gros widget des tops. */
 const RANG_TOPS = 5;
 
+/**
+ * Ce qu'on DEMANDE au tableau de bord, et sur quelle période.
+ *
+ * 🔴 MESURÉ sur le .18 le 20/09/2026, parce que la première version a échoué
+ * en plein écran d'accueil : « This widget could not be loaded. (delai) ».
+ * La route `GET /library/history/dashboard` coûte ~300 ms PAR ENTRÉE rendue
+ * — elle résout les pochettes une par une, et ne met rien en cache :
+ *
+ *   | période | top_n | temps  |
+ *   |---------|-------|--------|
+ *   | today   |   1   |  1,9 s |
+ *   | today   |  50   | 15,8 s |
+ *   | 7d      |  12   |  6,3 s |
+ *   | 30d     |   5   |  8,4 s |
+ *   | 30d     |  12   | 14,4 s |
+ *
+ * Le budget d'un widget est de 8 s (`PageWidgets`, DELAI_MS). Deux
+ * conséquences, et la première est ma faute :
+ *
+ *  - je demandais `LIMITE` (50) alors que ces widgets affichent 12 lignes au
+ *    plus, et 5 par colonne pour les tops. On ne demande plus que ce qu'on
+ *    montre ;
+ *  - la période passe de 30 à 7 JOURS. Sur 30 jours, même en ne demandant que
+ *    5 entrées, la route dépasse le budget — le widget ne pouvait pas marcher.
+ *    Sept jours tient, et pour un accueil « ce que j'écoute en ce moment » est
+ *    de toute façon plus juste que « ces trente derniers jours ».
+ *
+ * Tant que le serveur résout les pochettes une par une, ces widgets restent
+ * à la merci d'une machine chargée. Le vrai correctif est là-bas.
+ */
+const PERIODE_TOPS = '7d' as const;
+const TOPS_DEMANDES = 12;
+
 /** Les quatre chiffres de la semaine, dans l'ordre d'affichage. */
 const CHIFFRES_SEMAINE = ['lectures', 'heures-ecoutees', 'titres-ecoutes', 'artistes-ecoutes'] as const;
 
@@ -519,7 +552,7 @@ function tableauDeBord(periode: api.DashboardPeriod): Promise<api.DashboardData>
   const deja = EN_VOL.get(periode);
   if (deja) return deja;
   const promesse = api
-    .getDashboard(periode, { topN: LIMITE })
+    .getDashboard(periode, { topN: TOPS_DEMANDES })
     .finally(() => EN_VOL.delete(periode));
   EN_VOL.set(periode, promesse);
   return promesse;
@@ -910,7 +943,7 @@ export const WIDGETS: Widget[] = [
     forme: 'bande',
     charger: async (ctx) =>
       utiles(
-        (await tableauDeBord('30d')).top_artists.slice(0, LIMITE).map((a, i) => ({
+        (await tableauDeBord(PERIODE_TOPS)).top_artists.slice(0, TOPS_DEMANDES).map((a, i) => ({
           id: `top-art-${i}-${a.artist_name}`,
           titre: a.artist_name,
           sous: lectures(a.plays, ctx.langue ?? 'fr'),
@@ -926,7 +959,7 @@ export const WIDGETS: Widget[] = [
       utiles(
         // `top_radios` est ABSENT de la réponse quand la liste est vide
         // (`skip_serializing_if` côté serveur) — pas `[]`, absent.
-        ((await tableauDeBord('30d')).top_radios ?? []).slice(0, LIMITE).map((r, i) => {
+        ((await tableauDeBord(PERIODE_TOPS)).top_radios ?? []).slice(0, TOPS_DEMANDES).map((r, i) => {
           const el = {
             id: `top-rad-${i}-${r.station_name}`,
             titre: r.station_name,
@@ -956,7 +989,7 @@ export const WIDGETS: Widget[] = [
     forme: 'chiffres',
     charger: async () => [],
     chiffres: async (ctx) => {
-      const t = (await tableauDeBord('7d')).totals;
+      const t = (await tableauDeBord(PERIODE_TOPS)).totals;
       const ecoute = {
         total_listens: t.plays,
         total_duration_ms: t.listening_ms,
@@ -989,7 +1022,7 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wTops',
     forme: 'tops',
     charger: async (ctx) => {
-      const d = await tableauDeBord('30d');
+      const d = await tableauDeBord(PERIODE_TOPS);
       const n = (v: number) => lectures(v, ctx.langue ?? 'fr');
       const artistes = d.top_artists.slice(0, RANG_TOPS).map((a, i) => ({
         id: `tops-art-${i}-${a.artist_name}`,

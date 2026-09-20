@@ -60,10 +60,22 @@ describe('widgets extraits du tableau de bord', () => {
     expect(els[0].jouer).toBeUndefined();
   });
 
+  it('🔴 ne demande QUE ce qu’il affiche, et sur sept jours', async () => {
+    // La route coûte ~300 ms PAR ENTRÉE et ne met rien en cache : mesuré le
+    // 20/09/2026 sur le .18 — 50 entrées = 15,8 s, pour un budget de 8 s.
+    // Demander 50 lignes pour en montrer 12 a fait échouer les trois widgets
+    // en plein écran d'accueil. Et sur 30 jours, même 5 entrées dépassent.
+    const dash = vi.spyOn(api, 'getDashboard').mockResolvedValue(reponse());
+    await widgetParId('tops')!.charger(ctx);
+    expect(dash).toHaveBeenCalledTimes(1);
+    expect(dash.mock.calls[0][0]).toBe('7d');
+    expect(dash.mock.calls[0][1]?.topN).toBeLessThanOrEqual(12);
+  });
+
   it('« Votre semaine » interroge la période 7d et formate ses chiffres', async () => {
     const dash = vi.spyOn(api, 'getDashboard').mockResolvedValue(reponse());
     const chiffres = await widgetParId('stats-semaine')!.chiffres!(ctx);
-    expect(dash.mock.calls.some((c) => c[0] === '7d')).toBe(true);
+    expect(dash.mock.calls.every((c) => c[0] === '7d')).toBe(true);
     expect(chiffres.length).toBe(4);
     expect(chiffres.every((c) => typeof c.valeur === 'string' && c.valeur.length > 0)).toBe(true);
   });
