@@ -53,7 +53,25 @@
  * lignes de favoris, donc la date du cœur n'existe pas de ce côté. Les deux
  * répondent à « quand est-ce arrivé chez moi », ce qui est le sens du tri —
  * mais ce n'est pas la même mesure, et le savoir évite de conclure à un bogue.
+ *
+ * ## Le JUMELAGE compte comme bibliothèque (#1081, décision du 20/09/2026)
+ *
+ * Une piste locale porte un cœur plein dès qu'un favori de SERVICE a le même
+ * titre et le même artiste : c'est le jumelage, et il est volontaire
+ * (`HeartButton`, `PisteActions`). Mais le filtre rangeait l'objet d'après son
+ * `id`, donc sous le nom du service — et l'onglet « Bibliothèque » ne montrait
+ * pas le titre dont l'utilisateur venait de voir le cœur plein chez lui.
+ *
+ * Mesure sur le .18 le 20/09/2026, profil 1 : 0 favori de piste LOCAL, 53
+ * favoris de service, dont **23 possédés localement**. L'onglet
+ * « Bibliothèque » montrait 0 ligne, la puce n'apparaissait même pas.
+ *
+ * L'objet garde donc UNE ligne et gagne une seconde appartenance de filtre :
+ * `sourcesDe` rend « bibliothèque ET qobuz » pour un favori jumelé. On n'en
+ * fabrique aucune : les 23 favoris jumelés touchent 44 pistes locales, les
+ * déplier répéterait le même morceau trois fois.
  */
+import { cleJumelage } from './cleJumelage';
 
 /** Les tris proposés. */
 export type TriFavoris = 'alpha' | 'alphaInverse' | 'recent' | 'ancien';
@@ -66,12 +84,22 @@ interface Favori {
   id?: number | null;
   title?: string | null;
   name?: string | null;
+  artist_name?: string | null;
   source?: string | null;
   created_at?: string | null;
   /** Date de PREMIÈRE VUE par Tune, ISO — absente d'un serveur d'avant #1060. */
   first_seen_at?: string | null;
   added_at?: number | null;
 }
+
+/**
+ * Les clés titre+artiste des favoris de service qui ont un jumeau LOCAL.
+ *
+ * Calculées par `clesAvecJumeauLocal`. Vide ou absent = on ne sait rien, et
+ * l'écran se comporte comme avant : aucun favori de service ne rejoint
+ * « Bibliothèque ». Un ensemble vide ne doit JAMAIS ouvrir la porte.
+ */
+export type ClesJumelees = ReadonlySet<string>;
 
 /** Bibliothèque ou service : c'est l'`id` qui tranche, pas `source`. */
 export function sourceDe(o: Favori): string {
@@ -80,15 +108,34 @@ export function sourceDe(o: Favori): string {
 }
 
 /**
+ * Toutes les appartenances de filtre d'un objet — une, ou deux quand il est
+ * jumelé (#1081).
+ *
+ * ⚠️ `jumeles` ne vaut que pour l'onglet TITRES : la clé est un couple
+ * titre+artiste, et un album homonyme d'une piste favorite se glisserait sous
+ * « Bibliothèque » sans en être. Les appelants ne passent l'ensemble que là.
+ */
+export function sourcesDe(o: Favori, jumeles?: ClesJumelees | null): string[] {
+  const propre = sourceDe(o);
+  if (propre === SOURCE_BIBLIOTHEQUE) return [SOURCE_BIBLIOTHEQUE];
+  if (!jumeles?.size) return [propre];
+  return jumeles.has(cleJumelage(o?.title, o?.artist_name))
+    ? [SOURCE_BIBLIOTHEQUE, propre]
+    : [propre];
+}
+
+/**
  * Sources réellement présentes, bibliothèque d'abord puis les services par
  * ordre alphabétique.
  *
  * On ne propose PAS une liste fixe de services : une puce « Tidal » sur un
  * écran sans aucun favori Tidal promet un filtre qui ne rendra rien, et laisse
- * croire que les favoris ont disparu.
+ * croire que les favoris ont disparu. Symétriquement, la puce
+ * « Bibliothèque » doit paraître dès qu'UN favori jumelé s'y range, même sans
+ * aucun favori local — c'est le cas mesuré sur le .18.
  */
-export function sourcesPresentes(items: readonly Favori[]): string[] {
-  const vues = new Set(items.map(sourceDe));
+export function sourcesPresentes(items: readonly Favori[], jumeles?: ClesJumelees | null): string[] {
+  const vues = new Set(items.flatMap((o) => sourcesDe(o, jumeles)));
   const services = [...vues].filter((s) => s !== SOURCE_BIBLIOTHEQUE).sort();
   return vues.has(SOURCE_BIBLIOTHEQUE) ? [SOURCE_BIBLIOTHEQUE, ...services] : services;
 }
@@ -136,13 +183,20 @@ function comparerTitres(a: Favori, b: Favori): number {
  * `source` à `null` veut dire « toutes ». Un objet sans date part TOUJOURS en
  * fin de liste, dans les deux sens du tri par date : le ranger avec les plus
  * anciens laisserait croire qu'on connaît sa date.
+ *
+ * Le filtre est une APPARTENANCE, pas une égalité (#1081) : un favori jumelé
+ * appartient à « Bibliothèque » et à son service. Il reste UN objet — « toutes
+ * les sources » rend exactement la liste reçue, ni plus longue ni dédoublée.
  */
 export function trierEtFiltrer<T extends Favori>(
   items: readonly T[],
   source: string | null,
   tri: TriFavoris,
+  jumeles?: ClesJumelees | null,
 ): T[] {
-  const gardes = source ? items.filter((o) => sourceDe(o) === source) : [...items];
+  const gardes = source
+    ? items.filter((o) => sourcesDe(o, jumeles).includes(source))
+    : [...items];
 
   if (tri === 'alpha') return gardes.sort(comparerTitres);
   if (tri === 'alphaInverse') return gardes.sort((a, b) => comparerTitres(b, a));

@@ -45,7 +45,7 @@
   import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
   import { ouvrirArtisteDepuis, artisteDeService } from '../../lib/ouvrirArtisteDepuis';
   import QualiteAlbum from './QualiteAlbum.svelte';
-  import { favoriExterneService } from '../../lib/streamingFavorites';
+  import { favoriExterneService, refFavoriDeVignette } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
@@ -1467,9 +1467,16 @@
           : null}
         favoriExterne={type
           ? favoriExterneService($favoriteStreamingKeys, {
-              itemType: type,
-              service: p?.source ?? active ?? '',
-              serviceId: String(p?.source_id ?? ''),
+              // 🔴 #1400 — la référence ne se compose PLUS ici. Cette vignette
+              // écrivait `service: p?.source ?? active`, donc la clé d'ONGLET
+              // `__bandcamp__` au lieu de la clé du serveur, et
+              // `serviceId: String(p?.source_id ?? '')`, donc du VIDE pour un
+              // article Bandcamp — qui porte `url`, pas `source_id`. Les deux
+              // ensemble faisaient rendre `null` à `favKeyOf`, et un cœur
+              // absent sur tout l'écran Bandcamp. La règle vit dans
+              // `refFavoriDeVignette`, avec ce qu'elle ne fait PAS pour une
+              // piste.
+              ...refFavoriDeVignette(type, p, active),
               title: pTitle(p),
               artist: p?.artist_name ?? p?.artist ?? undefined,
               coverUrl: pCover(p) ?? undefined,

@@ -83,6 +83,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
+  import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
@@ -2701,6 +2702,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     }))} />
                   <span class="slider"></span>
                 </label>
+              </div>
+
+              <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
+                   « Il faut grouper par source et tous les résultats Qobuz
+                   doivent être avant Bandcamp ». L'entrelacement qu'il voit
+                   est le barème de PERTINENCE du serveur (#2372), un
+                   arbitrage, pas un défaut : Bertrand (20/09/2026) tranche en
+                   OFFRANT le choix, sans déplacer le défaut. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.versionsOrder' as any)}</span>
+                  <span class="hint">{$t('settings.versionsOrderHint' as any)}</span>
+                </div>
+                <select class="sel" value={$preferences.ordreAutresVersions ?? ORDRE_VERSIONS_DEFAUT}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estOrdreVersions(v)) preferences.update((pr) => ({ ...pr, ordreAutresVersions: v })); }}>
+                  <option value="pertinence">{$t('settings.versionsOrderRelevance' as any)}</option>
+                  <option value="source">{$t('settings.versionsOrderSource' as any)}</option>
+                </select>
               </div>
 
             {:else if s.id === 'profiles'}
