@@ -59,12 +59,13 @@ export function sourcesDisponibles(
   // recherche, bornée à l'artiste ou l'album que la règle nomme). Le catalogue
   // suit son service dans la liste, pour qu'on voie les deux côte à côte.
   //
-  // 🔴 `avecCatalogue` n'est PAS une préférence d'affichage : seul le chemin
-  // des ALBUMS sait aller au catalogue (`smart_collections::
-  // avec_albums_de_catalogue`). Le chemin des PISTES ignore le préfixe et
-  // traduirait la règle en `source = 'catalogue:qobuz'` — zéro piste, sans un
-  // mot. Proposer le choix là serait refaire #1231 : une case qui promet ce
-  // que le moteur ne rend pas.
+  // 🔴 `avecCatalogue` n'est PAS une préférence d'affichage : il dit que le
+  // moteur SAIT honorer la valeur. Les deux chemins le savent désormais —
+  // `smart_collections::avec_albums_de_catalogue` pour les albums (v0.9.158)
+  // et `smart_playlists::avec_pistes_de_catalogue` pour les pistes (second
+  // volet de #4473). Le jour où un troisième écran réutilise cette liste sans
+  // que son moteur suive, il doit laisser le drapeau à `false` : proposer une
+  // case que le moteur ignore, c'est refaire #1231.
   const liste = [
     ...SOURCES_BIBLIOTHEQUE,
     ...services.flatMap((s) => (avecCatalogue ? [s, `${PREFIXE_CATALOGUE}${s}`] : [s])),
