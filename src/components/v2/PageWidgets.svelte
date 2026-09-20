@@ -253,9 +253,22 @@
     await togglePlayPause(z, z.current_track ?? null, z.state);
   }
 
+  /**
+   * 🔴 #1152 — LE CHARGEMENT A-T-IL RÉELLEMENT EU LIEU ?
+   *
+   * `charge` ne le dit pas : il vaut `true` même quand `charger()` a renoncé
+   * faute de profil connu (voir ci-dessous). Sans ce second témoin, la reprise
+   * posée dans `onMount` ne saurait pas distinguer « déjà servi » de
+   * « jamais parti », et rechargerait la page à chaque changement de profil.
+   */
+  let lance = false;
+
   async function charger() {
     const pid = $currentProfileId;
     if (pid == null) {
+      // On rend la page malgré tout — un cadre vide vaut mieux qu'un écran
+      // blanc — mais on ne charge RIEN : sans profil, les préférences n'ont
+      // pas d'adresse. La reprise de `onMount` s'en occupe dès qu'il arrive.
       charge = true;
       return;
     }
@@ -281,6 +294,7 @@
       // d'afficher une page vide.
     }
     charge = true;
+    lance = true;
     chargerTout();
   }
 
@@ -640,9 +654,41 @@
   const profil = $derived($profiles.find((p) => p.id === $currentProfileId) ?? null);
   const banniere = $derived(salutation($t, profil, nomNuage, heure));
 
+  /**
+   * 🔴 #1152 — « LES WIDGETS NE CHARGENT QU'APRÈS PLUSIEURS RAFRAÎCHISSEMENTS ».
+   *
+   * `charger()` commence par lire `$currentProfileId`, et RENONÇAIT quand il
+   * valait `null` — sans que rien ne le rappelle jamais. Or ce magasin part de
+   * ce que le navigateur avait retenu (`loadProfileId()`), et `loadProfiles()`
+   * ne le renseigne qu'APRÈS un aller-retour réseau : premier usage, stockage
+   * vidé, navigation privée, profil supprimé, ou simplement un serveur lent à
+   * répondre, et l'accueil se montait avant de savoir qui écoute.
+   *
+   * Le résultat à l'écran est exactement le titre du ticket : `charge` passait
+   * à `true`, la page se dessinait, et chaque bande restait sur
+   * « Chargement… » — sans erreur, sans bouton « Réessayer » (il n'apparaît
+   * qu'en phase `echec`), donc sans aucun geste possible. Il fallait
+   * rafraîchir, et le rafraîchissement finissait par marcher parce que
+   * `currentProfileId.subscribe(saveProfileId)` avait entre-temps persisté
+   * l'identifiant : au tour suivant, il était là dès la première ligne.
+   *
+   * ⚠️ UNE SOUSCRIPTION IMPÉRATIVE, JAMAIS UN `$effect` — la règle de ce
+   * fichier, et elle a coûté trois tours le 02/09/2026 (voir `chargerTout`) :
+   * `chargerWidget` ÉCRIT `etats`, un effet qui l'appelle en dépendrait, et
+   * Svelte interrompt le cycle — plus rien ne charge. `store.subscribe()`
+   * n'est pas suivi par la réactivité : la boucle est impossible par
+   * construction. C'est déjà ainsi que la bande des zones se tient à jour.
+   *
+   * La souscription émet SYNCHRONEMENT la valeur courante : quand le profil
+   * est déjà connu — le cas ordinaire — `charger()` part au montage, comme
+   * avant, et le `lance` interdit le second départ.
+   */
   onMount(() => {
-    void charger();
-    if (!salut) return;
+    const repriseProfil = currentProfileId.subscribe((pid) => {
+      if (lance || pid == null) return;
+      void charger();
+    });
+    if (!salut) return repriseProfil;
     const horloge = setInterval(() => (heure = new Date().getHours()), 600_000);
     void (async () => {
       const p = get(profiles).find((x) => x.id === get(currentProfileId));
@@ -656,7 +702,9 @@
         // que d'en inventer un.
       }
     })();
-    return () => clearInterval(horloge);
+    // La souscription de reprise se défait AUSSI sur ce chemin : ne rendre
+    // que `clearInterval` la laisserait vivre après le démontage de la page.
+    return () => { clearInterval(horloge); repriseProfil(); };
   });
 </script>
 

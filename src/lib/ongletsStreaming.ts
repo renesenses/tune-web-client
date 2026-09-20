@@ -195,3 +195,48 @@ export function ongletDeRestitution(
   }
   return onglets[0] ?? null;
 }
+
+/**
+ * L'onglet à ouvrir quand un service est demandé ALORS QUE L'ÉCRAN EST DÉJÀ
+ * LÀ — #1358. Rend `null` pour « ne change rien ».
+ *
+ * FabienM, fil 1862, 20/09/2026, point 1 :
+ *
+ * > « quand on clique dans le sous menu il ne se passe rien. Dans l'exemple,
+ * > j'ai cliqué dans le sous menu Bandcamp et je reste dans l'onglet Qobuz.
+ * > Pour changer de service, je dois cliquer sur les onglets dans la page »
+ *
+ * `ongletDeRestitution` ne sait répondre qu'AU MONTAGE, et `StreamingV2` ne la
+ * consultait qu'une fois, en lecture non réactive (`get(...)`). Depuis l'écran
+ * Streaming, la barre latérale posait donc bien le service dans le magasin —
+ * sa propre ligne s'allumait, la capture du fil le montre — mais plus personne
+ * ne le lisait. Deux états pour un seul choix, et l'écran affichait Bandcamp
+ * sélectionné à gauche et Qobuz à droite en même temps.
+ *
+ * 🔴 DEUX DIFFÉRENCES avec `ongletDeRestitution`, et elles sont le sujet :
+ *
+ * 1. **Un souhait intenable ne ramène PAS au premier onglet.** Au montage,
+ *    retomber sur le premier est le seul choix raisonnable (#860 : ne jamais
+ *    rester sur un onglet absent de sa propre rangée). En cours de route, ce
+ *    serait un écran qui saute tout seul de Qobuz à Bandcamp parce qu'un
+ *    raccourci d'ailleurs a écrit un service déconnecté. On ne touche à rien.
+ * 2. **Le service DÉJÀ ouvert ne rend rien.** L'écran republie son onglet dans
+ *    ce même magasin (#1138) : sans cette sortie, l'écriture de l'un
+ *    réveillerait la lecture de l'autre, qui réécrirait, sans fin.
+ */
+export function ongletApresDemande(
+  services: Record<string, EtatService> | null | undefined,
+  bandcampLive: boolean,
+  actif: string | null | undefined,
+  demande: string | null | undefined,
+): string | null {
+  if (!demande) return null;
+  const onglets = ongletsStreaming(services, bandcampLive);
+  const cible = onglets.includes(demande)
+    ? demande
+    : demande === BANDCAMP_SVC && onglets.includes(BANDCAMP_EXT)
+      ? BANDCAMP_EXT
+      : null;
+  if (!cible || cible === actif) return null;
+  return cible;
+}

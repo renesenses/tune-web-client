@@ -3860,6 +3860,66 @@ export function getStreamingArtistAlbums(service: string, artistId: string, offs
   return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums${p}`);
 }
 
+/**
+ * La taille d'une PAGE de `/artists/{id}/albums`, et elle n'est pas
+ * négociable : le serveur appelle `get_artist_albums_page(&artist_id,
+ * q.offset)` et n'accepte QUE `offset` (`tune-streaming-http/src/lib.rs:611`).
+ * Un `limit=200` sur cette route ne change rien — mesuré sur le .18 le
+ * 20/09/2026 : 50 albums rendus, quelle que soit la valeur demandée.
+ */
+export const ALBUMS_ARTISTE_PAGE = 50;
+
+/**
+ * Combien de pages au plus. Neil Young en compte **811** chez Qobuz (mesuré :
+ * `offset=800` rend 11 albums, `offset=1000` en rend 0) — les rapatrier
+ * toutes, pour chaque service, à chaque ouverture de fiche, coûterait seize
+ * allers-retours là où la grille n'en montrera qu'une poignée. Six pages, soit
+ * 300 albums, c'est six fois ce que la fiche voyait et cela borne la dépense.
+ */
+export const ALBUMS_ARTISTE_PAGES_MAX = 6;
+
+/**
+ * Les albums d'un artiste chez un service, AU-DELÀ DE LA PREMIÈRE PAGE — #1343.
+ *
+ * FabienM, fil forum 1859 (20/09/2026), point 5 : « La liste des albums d'un
+ * artiste est incomplète. Neil Young vient de sortir un album "Second Song",
+ * il est référencé dans Qobuz […] mais je ne vois pas cet album quand
+ * j'accède à la page de l'artiste Neil Young. »
+ *
+ * 🔴 LA CAUSE, MESURÉE SUR LE .18 LE 20/09/2026 — et ce n'est PAS celle que
+ * la fiche supposait. Le ticket avançait que Qobuz rattacherait l'album à une
+ * SECONDE entité (« Neil Young & The Chrome Hearts ») que la résolution par
+ * nom ne retient pas. La mesure dit le contraire :
+ *
+ *     GET /streaming/qobuz/search?q=Second Song Neil Young
+ *       → album "Second Song", artist_id "35865", artist_name "Neil Young"
+ *     GET /streaming/qobuz/artists/35865/albums            → 50 albums, PAS lui
+ *     GET /streaming/qobuz/artists/35865/albums?offset=50  → 50 albums, DONT lui
+ *
+ * L'album est bien sous l'entité « Neil Young », celle-là même que le client
+ * résout. Il est simplement à la DEUXIÈME page, et le client n'en demandait
+ * qu'une : `offset` existe depuis toujours dans la signature, et aucun
+ * appelant ne s'en servait.
+ *
+ * On enchaîne donc les pages tant qu'elles sont PLEINES — une page courte dit
+ * la fin — et jamais plus de [`ALBUMS_ARTISTE_PAGES_MAX`].
+ */
+export async function getStreamingArtistAlbumsAll(
+  service: string,
+  artistId: string,
+  pagesMax = ALBUMS_ARTISTE_PAGES_MAX,
+): Promise<Album[]> {
+  const tout: Album[] = [];
+  for (let page = 0; page < pagesMax; page++) {
+    const lot = await getStreamingArtistAlbums(service, artistId, page * ALBUMS_ARTISTE_PAGE);
+    if (!lot?.length) break;
+    tout.push(...lot);
+    // Une page incomplète est la dernière : redemander rendrait du vide.
+    if (lot.length < ALBUMS_ARTISTE_PAGE) break;
+  }
+  return tout;
+}
+
 export function getStreamingFeaturedSections(service: string) {
   return fetchJSON<FeaturedSection[]>(`${BASE}/streaming/${encodeURIComponent(service)}/featured/sections`);
 }

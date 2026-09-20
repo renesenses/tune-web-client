@@ -33,7 +33,7 @@
 // les feuilles des composants concernés étant COMPILÉES par Svelte (portée
 // comprise) et posées dans le document. Retirer la règle du composant rend le
 // témoin rouge.
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { readFileSync } from 'node:fs';
 import { compile } from 'svelte/compiler';
@@ -44,7 +44,10 @@ import { albums as albumsStore, libraryFolderScope } from '../stores/library';
 import { locale } from '../i18n';
 import type { Album } from '../types';
 
-vi.setConfig({ testTimeout: 60_000 });
+// Le cas avait déjà son budget ; le HOOK, lui, gardait les 10 000 ms par
+// défaut de vitest — c'est LUI qui expirait (#1354). Les deux sont désormais
+// à la taille d'une machine saturée.
+vi.setConfig({ testTimeout: 60_000, hookTimeout: 60_000 });
 
 class ResizeObserverInerte { observe() {} unobserve() {} disconnect() {} }
 for (const [prop, valeur] of [['clientHeight', 2000], ['clientWidth', 1400]] as const) {
@@ -58,6 +61,22 @@ for (const [prop, valeur] of [['clientHeight', 2000], ['clientWidth', 1400]] as 
  * exactement comme en production. Sans cette compilation, le `.grille` de
  * `ArtistesV2` (qui, lui, défile) s'appliquerait au `.grille` des Ajouts
  * récents et le témoin passerait au vert sans rien avoir corrigé.
+ *
+ * ## UNE SEULE fois par fichier — #1354
+ *
+ * `compile()` coûte **~600 ms** pour ces quatre composants, mesuré sur Shrek
+ * (40 cœurs) À VIDE. Dans le `beforeEach`, cette passe était payée DIX fois,
+ * une par cas, par le chronomètre d'un hook qui gardait les 10 000 ms par
+ * défaut de vitest. Sous douze portes simultanées, un worker reçoit une
+ * fraction de cœur, le hook dépasse dix secondes, et TOUS les cas du fichier
+ * tombent ensemble en accusant `AjoutsRecentsV2` de n'avoir pas d'ascenseur —
+ * c'est-à-dire le défaut #1323, corrigé et livré. Aucun navigateur ne compile
+ * de composant pour afficher la page : le coût était celui du banc, pas de la
+ * production.
+ *
+ * Les feuilles ne dépendent d'AUCUN cas — même source, même sortie. On les
+ * compile donc une fois et on les LAISSE dans le `<head>` pour toute la durée
+ * du fichier, comme Vite pose la feuille d'un composant une fois pour toutes.
  */
 const COMPOSANTS = [
   'src/components/v2/LibraryV2.svelte',
@@ -68,7 +87,7 @@ const COMPOSANTS = [
 
 interface Feuille { chemin: string; portee: string; el: HTMLStyleElement }
 
-function injecterFeuilles(): Feuille[] {
+function compilerFeuilles(): Feuille[] {
   return COMPOSANTS.map((chemin) => {
     const src = readFileSync(resolve(process.cwd(), chemin), 'utf-8');
     const { css } = compile(src, { css: 'external', filename: chemin });
@@ -185,13 +204,21 @@ async function cliquerOnglet(el: HTMLElement, libelle: string): Promise<void> {
   flushSync();
 }
 
+beforeAll(() => {
+  feuilles = compilerFeuilles();
+});
+
+afterAll(() => {
+  for (const f of feuilles) f.el.remove();
+  feuilles = [];
+});
+
 beforeEach(() => {
   locale.set('fr');
   activeView.set('home');
   libraryFolderScope.set(null);
   albumsStore.set([]);
   localStorage.clear();
-  feuilles = injecterFeuilles();
   vi.stubGlobal('ResizeObserver', ResizeObserverInerte);
   vi.stubGlobal('fetch', vi.fn(async (entree: unknown) => {
     const url = String(typeof entree === 'string' ? entree : (entree as Request)?.url ?? entree);
@@ -211,8 +238,6 @@ afterEach(() => {
   monte = null;
   hote?.remove();
   hote = null;
-  for (const f of feuilles) f.el.remove();
-  feuilles = [];
   albumsStore.set([]);
   activeView.set('home');
   localStorage.clear();
