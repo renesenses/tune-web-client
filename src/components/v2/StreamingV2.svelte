@@ -716,6 +716,14 @@
       const a = {
         id: null, source_id: String(sid), source: svc,
         title: pTitle(p), artist_name: p?.artist_name ?? p?.artist ?? '',
+        // 🔴 #1361 bis — `StreamAlbum` porte `artist_id` (l'identifiant de
+        // l'artiste CHEZ LE SERVICE, `traits.rs:75`) et cette fabrique le
+        // jetait. Sans lui, `destinationArtiste` ne pouvait plus rendre
+        // `artiste-service` : le clic sur le nom repartait en recherche
+        // fédérée, qui peut ne rien trouver et retomber muettement sur
+        // l'écran Recherche. Bertrand, 20/09/2026 : « le click sur Agnes
+        // Obel n'ouvre pas la page artiste ».
+        artist_id: p?.artist_id ?? null,
         cover_path: pCover(p), year: p?.year ?? null,
         format: p?.quality?.codec ?? p?.format ?? null,
         sample_rate: p?.quality?.sample_rate ?? p?.sample_rate ?? null,
