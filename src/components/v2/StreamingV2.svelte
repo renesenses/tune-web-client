@@ -68,7 +68,7 @@
     pseudoOnglet,
   } from '../../lib/ongletsStreaming';
   import { get } from 'svelte/store';
-  import { activeStreamingService, ficheArtisteService } from '../../lib/stores/streaming';
+  import { activeStreamingService } from '../../lib/stores/streaming';
   import type { StreamingGenre } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -1330,8 +1330,9 @@
   cover pres ; elles n'en font plus qu'une, qui prend les deux.
 
   Le coeur retire le favori du compte ; portrait et nom ouvrent maintenant
-  la fiche de service existante (#1178). Une identité incomplète reste du
-  texte, sans fabriquer une route ni lancer la lecture à la place.
+  la fiche de service existante (#1178, #1194). Une identité de service
+  incomplète ne fabrique AUCUNE route de service : il reste le nom, et la
+  recherche exacte en bibliothèque — jamais la lecture à la place.
 -->
 {#snippet artiste(ar: any)}
   <!--

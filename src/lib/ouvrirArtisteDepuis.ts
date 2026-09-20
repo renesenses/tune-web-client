@@ -73,6 +73,13 @@ export function artisteDePiste(p: any): any | null {
   return nom ? { name: nom } : null;
 }
 
+/** Un identifiant de service utilisable, ou `null` — voir la garde de #1178. */
+function identifiantDeService(v: unknown): string | null {
+  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : null;
+  if (typeof v !== 'string') return null;
+  return v.trim() ? v : null;
+}
+
 /**
  * Un artiste de SERVICE tel que les écrans le reçoivent, ramené à la forme que
  * [`ouvrirArtisteDepuis`] attend.
@@ -101,12 +108,6 @@ export function artisteDePiste(p: any): any | null {
  *   pas une route : `String(x)` en fabriquait une, morte ;
  * - un service **vide ou blanc** n'est pas un service.
  */
-function identifiantDeService(v: unknown): string | null {
-  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : null;
-  if (typeof v !== 'string') return null;
-  return v.trim() ? v : null;
-}
-
 export function artisteDeService(ar: any, service: string | null | undefined): any | null {
   const id = identifiantDeService(ar?.source_id ?? ar?.id);
   const brutSrc = ar?.source ?? service;
