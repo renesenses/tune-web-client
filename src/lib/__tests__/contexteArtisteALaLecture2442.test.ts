@@ -67,7 +67,9 @@ async function poserFiche(): Promise<HTMLDivElement> {
 
 /** « Tout lire » — le premier `.fab`, le second étant l'aléatoire (`.creux`). */
 function boutonToutLire(el: HTMLElement): HTMLButtonElement {
-  const b = el.querySelector('.fa .fab:not(.creux)') as HTMLButtonElement;
+  // #1356 : la rangée d'actions de la fiche s'appelle `.gestes` — c'est celle
+  // de l'en-tête partagé avec la fiche de service. Même bouton, même place.
+  const b = el.querySelector('.gestes .fab:not(.creux)') as HTMLButtonElement;
   expect(b, 'le bouton « Tout lire » a disparu de la fiche artiste').not.toBeNull();
   return b;
 }
