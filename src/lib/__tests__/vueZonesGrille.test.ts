@@ -104,7 +104,11 @@ describe('la grille est branchée dans l’écran Zones', () => {
 
   it('🔴 la carte porte l’appareil ET le badge Tune tested', () => {
     const debut = ecran.indexOf('<div class="grille">');
-    const fin = ecran.indexOf('{:else}', debut);
+    // 🔴 La carte se termine au `{/each}` de la grille, PAS au premier `{:else}` :
+    // depuis que la vignette a un repli (`{#if pochette}…{:else}…{/if}`, #1394), un
+    // `{:else}` apparaît AVANT la fin de la carte, et couper là amputait le balisage
+    // — la garde cherchait alors `cpick` dans un fragment qui s'arrêtait plus haut.
+    const fin = ecran.indexOf('{/each}', debut);
     expect(debut).toBeGreaterThan(0);
     const carte = ecran.slice(debut, fin);
     expect(carte).toContain('appareilOuSortie(z)');
@@ -115,7 +119,7 @@ describe('la grille est branchée dans l’écran Zones', () => {
   it('les gestes destructifs restent à la liste', () => {
     // Une carte qu'on clique pour ACTIVER une zone ne porte pas de corbeille.
     const debut = ecran.indexOf('<div class="grille">');
-    const carte = ecran.slice(debut, ecran.indexOf('{:else}', debut));
+    const carte = ecran.slice(debut, ecran.indexOf('{/each}', debut));
     expect(carte).not.toContain('askDelete');
     expect(carte).not.toContain('startRename');
   });

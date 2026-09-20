@@ -80,3 +80,46 @@ export function appareilDeLaZone(zone: ZoneIdentifiable): string | null {
   }
   return null;
 }
+
+/**
+ * L'état de LECTURE d'une zone — trois valeurs, et rien de plus.
+ *
+ * 🔴 Pourquoi ça ne peut pas être une couleur seule.
+ *
+ * L'écran Zones n'affichait l'état nulle part : la pastille `.dot` de la carte
+ * dit la zone ACTIVE (celle que les gestes visent), pas celle qui joue, et
+ * elle est peinte à l'accent du thème. Sur un thème `black-green`, tout est
+ * vert — pastille, cadre de la zone active, curseurs, boutons — et « qui
+ * joue ? » ne se lit plus d'un coup d'œil.
+ *
+ * L'état est donc porté d'abord par une FORME (barres animées, glyphe pause,
+ * tiret) et par un LIBELLÉ, la couleur ne venant qu'en renfort, prise aux
+ * jetons SÉMANTIQUES `--tune-success` / `--tune-warning`. `tune-v2.css` dit
+ * déjà pourquoi ceux-là ne sont pas repeints aux couleurs du thème : « ils
+ * portent un SENS, pas une identité visuelle ; les repeindre effacerait
+ * l'information ». On applique la règle de la maison, on n'en invente pas une.
+ */
+export type EtatLecture = 'playing' | 'paused' | 'idle';
+
+export interface ZoneJouable {
+  state?: unknown;
+  current_track?: unknown;
+}
+
+/**
+ * `state` fait foi. En son absence — serveur ancien, zone jamais interrogée —
+ * la présence d'une piste courante ne suffit PAS à conclure « ça joue » :
+ * `current_track` survit à une pause et même à un arrêt, c'est la DERNIÈRE
+ * piste, pas la piste EN COURS. Sans `state`, on ne prétend rien : `idle`.
+ */
+export function etatLectureDeZone(z: ZoneJouable): EtatLecture {
+  const s = typeof z.state === 'string' ? z.state.toLowerCase() : '';
+  if (s === 'playing') return 'playing';
+  if (s === 'paused') return 'paused';
+  return 'idle';
+}
+
+/** La clé i18n du libellé d'état. Jamais un texte : voir `check-i18n`. */
+export function cleEtatLecture(e: EtatLecture): string {
+  return e === 'playing' ? 'zone.playing' : e === 'paused' ? 'zone.paused' : 'zone.stopped';
+}
