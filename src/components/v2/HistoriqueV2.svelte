@@ -364,12 +364,22 @@
                      porte la pochette de la playlist quand le service l'a
                      donnée, sinon celle de sa première piste. -->
                 <span class="onom">
-                  {#if vignette}
-                    <span class="ovig">
-                      <AlbumArt coverPath={vignette.cover_path} albumId={vignette.album_id}
-                        size={36} alt={nom ?? ''} source={lot[0]?.track?.source ?? null} />
-                    </span>
-                  {/if}
+                  <!-- 🔴 #1360 — LA VIGNETTE EST TOUJOURS LÀ, même sans pochette.
+                       FabienM, fil 1859, 20/09/2026 : « Il manque des vignettes à
+                       mon historique ». Ce `{#if vignette}` était la seule ligne
+                       de l'écran à pouvoir n'en afficher AUCUNE : `pochetteDObjet`
+                       rend `null` dès qu'aucune piste du lot ne porte ni
+                       `cover_path` ni `album_id` — une radio, une piste UPnP, un
+                       album local sans pochette. Les lignes de PISTE, elles,
+                       montent `AlbumArt` sans condition (`ListePistesV2`,
+                       `pochetteEnTableau`), et `AlbumArt` dessine lui-même son
+                       image de remplacement quand il n'a rien. La colonne était
+                       donc régulière et TROUÉE aux objets, texte glissé à gauche.
+                       On lui confie le cas vide, comme partout ailleurs. -->
+                  <span class="ovig">
+                    <AlbumArt coverPath={vignette?.cover_path ?? null} albumId={vignette?.album_id ?? null}
+                      size={36} alt={nom ?? ''} source={lot[0]?.track?.source ?? null} />
+                  </span>
                   <span class="otxt">
                     <span class="otitre">{fiche?.nom ?? nom ?? $tr('v2.hist.ctx.sansNom' as any)}</span>
                     <!-- #988, point 11 — l'artiste de l'album joué. -->
