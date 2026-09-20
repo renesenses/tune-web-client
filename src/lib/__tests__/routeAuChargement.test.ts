@@ -46,6 +46,35 @@ function reponsePour(url: string) {
 let hote: HTMLDivElement | null = null;
 let monte: Record<string, any> | null = null;
 
+/**
+ * LE CHRONOMÈTRE DOIT COUVRIR LE DÉCOR QUE LE CAS POSE — #1350, le mécanisme
+ * de #1347 sur un autre banc.
+ *
+ * 🔴 Onze des quatorze cas de ce fichier montent `ShellV2` : la coquille v2
+ * ENTIÈRE, ses douze routes lues au montage, `LibraryV2` et ses 2 200 lignes,
+ * la grille d'albums, la barre de transport. C'est tout leur objet — le témoin
+ * refuse d'appeler `vueDepuisHash` en vase clos, parce qu'une fonction juste
+ * que personne n'appelle ne prouve rien (« écrit mais pas branché »).
+ *
+ * Ils gardaient pourtant les 5 000 ms PAR DÉFAUT de vitest, un budget taillé
+ * pour un test unitaire. Le fichier entier passe de 340 ms sur un Mac à vide à
+ * 6 à 12,4 s sous huit portes `npm test` simultanées sur Shrek (mesuré sur
+ * 24 portes le 20/09/2026) : les cas les plus lourds s'approchent du budget, et
+ * il suffit d'un cran de lenteur de plus pour qu'ils le franchissent.
+ *
+ * Reproduit de façon déterministe en gonflant le décor — `/library/albums`
+ * rendant 2 500 albums au lieu d'un tableau vide :
+ *
+ *     × 🔴 et l’ADRESSE reste #library … 6868ms → Test timed out in 5000ms.
+ *     × un DÉTAIL dans l’adresse repose au moins la vue … 7621ms → Test timed out in 5000ms.
+ *
+ * Ce n'est PAS un défaut de production : la coquille se monte en 20 à 95 ms par
+ * cas dès que la machine n'est pas saturée. C'est le budget du cas qui était
+ * faux. 60 s est l'usage du dépôt (`sortieMonoZone`, `viderLaFileNeCoupePas`,
+ * `favorisDeFacette`).
+ */
+const DELAI_MONTAGE = 60_000;
+
 const attendre = (ms = 40) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -95,7 +124,7 @@ afterEach(() => {
 });
 
 describe('la route de l’adresse survit au chargement', () => {
-  it('🔴 charger sur #library rend la BIBLIOTHÈQUE, pas l’Accueil', () => {
+  it('🔴 charger sur #library rend la BIBLIOTHÈQUE, pas l’Accueil', { timeout: DELAI_MONTAGE }, () => {
     const el = chargerAvec('#library');
 
     expect(
@@ -106,7 +135,7 @@ describe('la route de l’adresse survit au chargement', () => {
     expect(get(activeView)).toBe('library');
   });
 
-  it('🔴 et l’ADRESSE reste #library — elle ne doit pas être réécrite en #home', () => {
+  it('🔴 et l’ADRESSE reste #library — elle ne doit pas être réécrite en #home', { timeout: DELAI_MONTAGE }, () => {
     chargerAvec('#library');
 
     expect(
@@ -119,7 +148,7 @@ describe('la route de l’adresse survit au chargement', () => {
     });
   });
 
-  it('🔴 #playlists EXISTE — le signalement le croyait mort', () => {
+  it('🔴 #playlists EXISTE — le signalement le croyait mort', { timeout: DELAI_MONTAGE }, () => {
     // Bertrand a relevé « ce nom de route n'existe pas » : le code dit le
     // contraire, `ShellV2` monte `PlaylistsV2` sur cette vue. Ce qui n'existait
     // pas, c'est la LECTURE du fragment.
@@ -129,14 +158,14 @@ describe('la route de l’adresse survit au chargement', () => {
     expect(location.hash).toBe('#playlists');
   });
 
-  it('une route profonde quelconque tient aussi : #zonemanager', () => {
+  it('une route profonde quelconque tient aussi : #zonemanager', { timeout: DELAI_MONTAGE }, () => {
     const el = chargerAvec('#zonemanager');
 
     expect(ecran(el).zones, '#zonemanager ne rend pas le gestionnaire de zones').not.toBeNull();
     expect(location.hash).toBe('#zonemanager');
   });
 
-  it('un DÉTAIL dans l’adresse repose au moins la vue : #library/artiste:12', () => {
+  it('un DÉTAIL dans l’adresse repose au moins la vue : #library/artiste:12', { timeout: DELAI_MONTAGE }, () => {
     // Rouvrir la fiche demanderait de recharger l'artiste par l'API — limite
     // assumée, identique à celle de `historiqueCoquille`. Mais retomber sur
     // l'Accueil parce qu'il y a un détail serait pire que de ne rien faire.
@@ -148,7 +177,7 @@ describe('la route de l’adresse survit au chargement', () => {
 });
 
 describe('une route INCONNUE ne laisse pas l’utilisateur perdu', () => {
-  it('🔴 elle retombe sur l’Accueil, mais en le DISANT à la console', () => {
+  it('🔴 elle retombe sur l’Accueil, mais en le DISANT à la console', { timeout: DELAI_MONTAGE }, () => {
     const dit = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const el = chargerAvec('#nimportequoi');
 
@@ -165,7 +194,7 @@ describe('une route INCONNUE ne laisse pas l’utilisateur perdu', () => {
     expect(message, 'la console ne dit pas quelles routes existent').toContain('library');
   });
 
-  it('une vue qui existe mais n’est pas une destination ne se repose pas : #login', () => {
+  it('une vue qui existe mais n’est pas une destination ne se repose pas : #login', { timeout: DELAI_MONTAGE }, () => {
     const el = chargerAvec('#login');
 
     expect(ecran(el).accueil, '#login a reposé un écran qu’on ne demande pas').not.toBeNull();
@@ -196,7 +225,7 @@ describe('une route INCONNUE ne laisse pas l’utilisateur perdu', () => {
 });
 
 describe('AUCUNE boucle, AUCUNE entrée de plus', () => {
-  it('le chargement sur #library n’empile rien : il ancre, comme avant', () => {
+  it('le chargement sur #library n’empile rien : il ancre, comme avant', { timeout: DELAI_MONTAGE }, () => {
     // Le piège nommé : une restauration qui `pushState` au chargement mettrait
     // une entrée de plus sous le doigt de l'utilisateur, et le premier Précédent
     // ne bougerait pas de l'écran.
@@ -211,7 +240,7 @@ describe('AUCUNE boucle, AUCUNE entrée de plus', () => {
     expect(history.length, 'le chargement a EMPILÉ une entrée au lieu de l’ancrer').toBe(avant);
   });
 
-  it('dix passes réactives après le chargement ne bougent pas la pile', async () => {
+  it('dix passes réactives après le chargement ne bougent pas la pile', { timeout: DELAI_MONTAGE }, async () => {
     chargerAvec('#library');
     const hauteur = history.length;
     const adresse = location.hash;
@@ -229,7 +258,7 @@ describe('AUCUNE boucle, AUCUNE entrée de plus', () => {
     expect(location.hash, 'l’adresse a bougé toute seule après le chargement').toBe(adresse);
   });
 
-  it('naviguer APRÈS un chargement profond empile normalement — une seule fois', () => {
+  it('naviguer APRÈS un chargement profond empile normalement — une seule fois', { timeout: DELAI_MONTAGE }, () => {
     chargerAvec('#library');
     const hauteur = history.length;
 
@@ -241,7 +270,7 @@ describe('AUCUNE boucle, AUCUNE entrée de plus', () => {
     expect(location.hash).toBe('#queue');
   });
 
-  it('un chargement SANS fragment se comporte exactement comme avant', () => {
+  it('un chargement SANS fragment se comporte exactement comme avant', { timeout: DELAI_MONTAGE }, () => {
     const el = chargerAvec('');
 
     expect(ecran(el).accueil).not.toBeNull();
