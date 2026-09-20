@@ -248,15 +248,26 @@
     { key: 'cd', label: 'CD' }, { key: 'lossy', label: 'Compressé', cle: 'v2.lib.qualityLossy' },
   ];
 
-  let fQuality = $state<string | null>(null);
-  let fRate = $state<number | null>(null);
-  let fFormat = $state<string | null>(null);
+  /**
+   * Les facettes à valeurs listées portent un TABLEAU — #898.
+   *
+   * Cyrille Moutia, fil 1665 : « je sélectionne aiff + flac et je filtre aussi
+   * sur des fréquences d'échantillonnage différentes ». Oxygen sait le faire
+   * depuis le 28/08 ; sa précision du 04/09 19h46 demande les DEUX écrans.
+   * Arbitrage de Bertrand, 11/09/2026 : OU dans une facette, ET entre elles.
+   *
+   * `[]` est l'absence de filtre. Tout est appliqué SUR PLACE, sur une
+   * bibliothèque déjà chargée (`matches`) : aucune route ne change ici.
+   */
+  let fQuality = $state<string[]>([]);
+  let fRate = $state<number[]>([]);
+  let fFormat = $state<string[]>([]);
   // Tranche de Dynamic Range (#2144), bornes INCLUSES et indépendantes —
   // portée de l'ancienne Bibliothèque. Filtrée ici : chaque album de cette
   // liste porte déjà son DR (voir `drNombre`).
   let fDrMin = $state<number | null>(null);
   let fDrMax = $state<number | null>(null);
-  let fDepth = $state<number | null>(null);
+  let fDepth = $state<number[]>([]);
   /**
    * COMPILATIONS seulement (#1957). Une bascule, pas un menu.
    *
@@ -359,6 +370,21 @@
   }
   function ddEchap(e: KeyboardEvent) { if (e.key === 'Escape') ddClose(); }
 
+  /**
+   * Cocher ou décocher UNE valeur d'une facette — #898.
+   *
+   * Un nouveau tableau, jamais une mutation : `$state` suit la RÉFÉRENCE, et
+   * un `push` sur place ne relancerait ni la grille ni les comptes.
+   *
+   * 🔴 Le menu ne se referme pas après un clic, contrairement aux pastilles
+   * d'avant. C'est le geste que la capture d'Audirvana montre : on coche
+   * plusieurs cases d'affilée. Refermer après la première rendrait la
+   * sélection multiple possible mais indécouvrable.
+   */
+  function basculeFacette<T>(liste: T[], v: T): T[] {
+    return liste.includes(v) ? liste.filter((x) => x !== v) : [...liste, v];
+  }
+
   let q = $state('');
 
   function tierMatches(a: Album, key: string): boolean {
@@ -367,13 +393,15 @@
     return t === key;
   }
   function matches(a: Album): boolean {
-    if (fQuality && !tierMatches(a, fQuality)) return false;
-    if (fRate && (a.sample_rate ?? 0) !== fRate) return false; // exact
+    // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
+    // facettes cochées le sont toutes les deux (ET) — #898.
+    if (fQuality.length && !fQuality.some((c) => tierMatches(a, c))) return false;
+    if (fRate.length && !fRate.includes(a.sample_rate ?? 0)) return false; // exact
     // 🔴 L'annee EFFECTIVE, pas seulement l'annee choisie : balayer la frise
     // filtre la grille en direct. Voir `anneeEffective`.
     if (anneeEffective != null && albumYear(a) !== anneeEffective) return false;
-    if (fFormat && (a.format?.trim().toUpperCase() ?? '') !== fFormat) return false;
-    if (fDepth != null && (a.bit_depth ?? 0) !== fDepth) return false;
+    if (fFormat.length && !fFormat.includes(a.format?.trim().toUpperCase() ?? '')) return false;
+    if (fDepth.length && !fDepth.includes(a.bit_depth ?? 0)) return false;
     if (fDrMin != null || fDrMax != null) {
       // Un album sans DR ne répond pas à une question de DR : il sort.
       const dr = drNombre(a);
@@ -1577,7 +1605,7 @@
     playAndSync(zid, { album_id: a.id }).catch(signalerEchecLecture);
   }
 
-  function reset() { fQuality = null; fRate = null; q = ''; fYear = null; fFormat = null; fDepth = null; fCompilation = null; fProvenance = null; fDrMin = null; fDrMax = null; }
+  function reset() { fQuality = []; fRate = []; q = ''; fYear = null; fFormat = []; fDepth = []; fCompilation = null; fProvenance = null; fDrMin = null; fDrMax = null; }
 
   // « Aléatoire » — lecture au hasard de toute la bibliothèque, en respectant
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
@@ -1709,7 +1737,7 @@
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality && !fRate && !q && fYear == null && !fFormat && fDepth == null && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>Tout ({matchCount})</button>
+      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>Tout ({matchCount})</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -1761,7 +1789,7 @@
       {/if}
     {#if showFilters}
       <div class="drop" class:open={ddOpen === 'quality'}>
-        <button class="chip" class:active={fQuality !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality}&nbsp;· {QUALITIES.find(x => x.key === fQuality)?.label}{/if}
+        <button class="chip" class:active={fQuality.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality.length}&nbsp;· {fQuality.map((k) => { const it = QUALITIES.find(x => x.key === k); return it ? (it.cle ? $tr(it.cle as any) : it.label) : k; }).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           <!-- Une valeur a ZERO reste VISIBLE mais inerte : la faire
@@ -1769,19 +1797,19 @@
                pose. Le compte dit pourquoi elle ne repond pas. -->
           {#each QUALITIES as it (it.key)}
             {@const n = nQualite.get(it.key) ?? 0}
-            <button class:on={fQuality === it.key} disabled={n === 0 && fQuality !== it.key}
-              onclick={() => { fQuality = fQuality === it.key ? null : (it.key as string); ddClose(); }}>{it.cle ? $tr(it.cle as any) : it.label} <em>{n}</em></button>
+            <button class:on={fQuality.includes(it.key)} aria-pressed={fQuality.includes(it.key)} disabled={n === 0 && !fQuality.includes(it.key)}
+              onclick={() => (fQuality = basculeFacette(fQuality, it.key as string))}>{it.cle ? $tr(it.cle as any) : it.label} <em>{n}</em></button>
           {/each}
         </div>
       </div>
       <div class="drop" class:open={ddOpen === 'rate'}>
-        <button class="chip" class:active={fRate !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>Fréquence{#if fRate}&nbsp;· {RATES.find(r => r.v === fRate)?.l}{/if}
+        <button class="chip" class:active={fRate.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>Fréquence{#if fRate.length}&nbsp;· {fRate.map((v) => RATES.find(r => r.v === v)?.l ?? v).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           {#each RATES as r (r.v)}
             {@const n = nFrequence.get(r.v) ?? 0}
-            <button class:on={fRate === r.v} disabled={n === 0 && fRate !== r.v}
-              onclick={() => { fRate = fRate === r.v ? null : r.v; ddClose(); }}>{r.l} <em>{n}</em></button>
+            <button class:on={fRate.includes(r.v)} aria-pressed={fRate.includes(r.v)} disabled={n === 0 && !fRate.includes(r.v)}
+              onclick={() => (fRate = basculeFacette(fRate, r.v))}>{r.l} <em>{n}</em></button>
           {/each}
         </div>
       </div>
@@ -1808,11 +1836,12 @@
       {/if}
       {#if formats.length > 1}
         <div class="drop" class:open={ddOpen === 'format'}>
-          <button class="chip" class:active={fFormat !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>Format{#if fFormat}&nbsp;· {fFormat}{/if}
+          <button class="chip" class:active={fFormat.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>Format{#if fFormat.length}&nbsp;· {fFormat.join(', ')}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each formats as [f, n] (f)}
-              <button class:on={fFormat === f} onclick={() => { fFormat = fFormat === f ? null : f; ddClose(); }}>{f} <em>{n}</em></button>
+              <button class:on={fFormat.includes(f)} aria-pressed={fFormat.includes(f)}
+                onclick={() => (fFormat = basculeFacette(fFormat, f))}>{f} <em>{n}</em></button>
             {/each}
           </div>
         </div>
@@ -1832,11 +1861,12 @@
       {/if}
       {#if showExpert && depths.length > 1}
         <div class="drop" class:open={ddOpen === 'depth'}>
-          <button class="chip" class:active={fDepth !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'depth'} onclick={() => ddToggle('depth')}>Profondeur{#if fDepth}&nbsp;· {fDepth}-bit{/if}
+          <button class="chip" class:active={fDepth.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'depth'} onclick={() => ddToggle('depth')}>Profondeur{#if fDepth.length}&nbsp;· {fDepth.join(', ')}-bit{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each depths as [d, n] (d)}
-              <button class:on={fDepth === d} onclick={() => { fDepth = fDepth === d ? null : d; ddClose(); }}>{d}-bit <em>{n}</em></button>
+              <button class:on={fDepth.includes(d)} aria-pressed={fDepth.includes(d)}
+                onclick={() => (fDepth = basculeFacette(fDepth, d))}>{d}-bit <em>{n}</em></button>
             {/each}
           </div>
         </div>

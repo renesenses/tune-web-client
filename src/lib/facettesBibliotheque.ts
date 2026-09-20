@@ -28,12 +28,40 @@ import { sourceCorrespond } from './provenanceBibliotheque';
  */
 import type { Album } from './types';
 
+/**
+ * Les filtres de la bibliothèque.
+ *
+ * ## Plusieurs valeurs par facette — #898
+ *
+ * Cyrille Moutia, fil 1665 : « je sélectionne aiff + flac et je filtre aussi
+ * sur des fréquences d'échantillonnage différentes ». Arbitrage de Bertrand du
+ * 11/09/2026 : OU À L'INTÉRIEUR d'une facette, ET ENTRE les facettes.
+ *
+ * Les facettes à valeurs listées portent donc un TABLEAU, et non plus un
+ * scalaire. `[]` est l'absence de filtre — jamais `null` : une facette absente
+ * et une facette vide se lisent pareil, et un seul cas vaut mieux que deux.
+ *
+ * 🔴 Les quatre autres champs ne sont pas des facettes à valeurs listées, et
+ * restent scalaires à dessein :
+ *  - `annee` est piloté par la FRISE (survol, curseur, navigation alphabétique)
+ *    — un tableau y demanderait un autre geste que le clic, donc un autre
+ *    écran ;
+ *  - `compilation` est une bascule à une seule valeur offerte (voir plus bas) ;
+ *  - `provenance` est partagée avec les onglets Artistes et Pistes, qui ne
+ *    savent pas encore croiser plusieurs sources ;
+ *  - `recherche` est du texte libre, pas une facette.
+ * Ces quatre-là restent à instruire ; ce contrat-ci ne les tranche pas.
+ */
 export interface FiltresBibliotheque {
-  qualite: string | null;
-  frequence: number | null;
+  /** Paliers de qualité cochés. `[]` = pas de filtre. */
+  qualite: string[];
+  /** Fréquences d'échantillonnage cochées, en Hz. `[]` = pas de filtre. */
+  frequence: number[];
   annee: number | null;
-  format: string | null;
-  profondeur: number | null;
+  /** Formats cochés, en MAJUSCULES. `[]` = pas de filtre. */
+  format: string[];
+  /** Quantifications cochées, en bits. `[]` = pas de filtre. */
+  profondeur: number[];
   recherche: string;
   /**
    * Compilations seulement (#1957). `null` = pas de filtre.
@@ -102,11 +130,17 @@ export function correspond(
   o: Outils,
   sauf: Facette | null = null,
 ): boolean {
-  if (sauf !== 'qualite' && f.qualite && !o.qualiteDe(a, f.qualite)) return false;
-  if (sauf !== 'frequence' && f.frequence && (a.sample_rate ?? 0) !== f.frequence) return false;
+  // Une facette cochée est satisfaite par UNE de ses valeurs (OU) ; deux
+  // facettes cochées doivent l'être toutes les deux (ET) — #898.
+  if (sauf !== 'qualite' && f.qualite.length
+      && !f.qualite.some((c) => o.qualiteDe(a, c))) return false;
+  if (sauf !== 'frequence' && f.frequence.length
+      && !f.frequence.includes(a.sample_rate ?? 0)) return false;
   if (sauf !== 'annee' && f.annee != null && o.anneeDe(a) !== f.annee) return false;
-  if (sauf !== 'format' && f.format && (a.format?.trim().toUpperCase() ?? '') !== f.format) return false;
-  if (sauf !== 'profondeur' && f.profondeur != null && (a.bit_depth ?? 0) !== f.profondeur) return false;
+  if (sauf !== 'format' && f.format.length
+      && !f.format.includes(a.format?.trim().toUpperCase() ?? '')) return false;
+  if (sauf !== 'profondeur' && f.profondeur.length
+      && !f.profondeur.includes(a.bit_depth ?? 0)) return false;
   // `?? false` : un album servi par une route qui ne porte pas le champ, ou
   // par un serveur antérieur à la v0.9.95, n'est pas une compilation CONNUE.
   // C'est la même convention que le serveur, qui décode `NULL` en « non ».
