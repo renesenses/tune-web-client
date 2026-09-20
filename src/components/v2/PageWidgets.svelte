@@ -78,6 +78,16 @@
   import { dateDeParution } from '../../lib/albumAParaitre';
   import '../../styles/tune-v2.css';
 
+  /**
+   * Les trois colonnes du gros widget des tops, dans l'ordre d'affichage.
+   * Les libellés sont des CLÉS : voir `check-i18n`.
+   */
+  const COLONNES_TOPS = [
+    { cle: 'artistes', cleTitre: 'v2.home.wTopArtists' },
+    { cle: 'albums', cleTitre: 'v2.home.wTopAlbums' },
+    { cle: 'titres', cleTitre: 'v2.home.wTopTracks' },
+  ] as const;
+
   interface Props {
     /** Les widgets proposables sur cette page. Par défaut : ceux de l'accueil. */
     catalogue?: Widget[];
@@ -901,6 +911,37 @@
             {:else if !et.elements.length}
               <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>
 
+            {:else if w.forme === 'tops'}
+              <!-- LE GROS WIDGET DES TOPS — trois colonnes à partir d'une
+                   seule réponse. Les éléments arrivent aplatis, marqués par
+                   `colonne` ; on les range ici, c'est le rôle de la forme.
+
+                   Trois colonnes à 280 px minimum : en dessous de 900 px de
+                   large, elles se replient l'une sous l'autre plutôt que de
+                   comprimer des titres déjà longs. -->
+              <div class="tops">
+                {#each COLONNES_TOPS as col (col.cle)}
+                  {@const dedans = et.elements.filter((e) => e.colonne === col.cle)}
+                  {#if dedans.length}
+                    <section class="topcol">
+                      <h4>{$t(col.cleTitre as any)}</h4>
+                      <ol>
+                        {#each dedans as el, rang (el.id)}
+                          <li>
+                            <span class="rang">{rang + 1}</span>
+                            <span class="vign"><AlbumArt coverPath={el.cover ?? null} size={40} alt={el.titre} /></span>
+                            <span class="txt">
+                              <span class="t">{el.titre}</span>
+                              {#if el.sous}<span class="s">{el.sous}</span>{/if}
+                            </span>
+                          </li>
+                        {/each}
+                      </ol>
+                    </section>
+                  {/if}
+                {/each}
+              </div>
+
             {:else if w.forme === 'zones-cartes'}
               <!-- La CARTE de zone, d'après la maquette Levente : pochette à
                    gauche, pastilles techniques en haut, titre et artiste en
@@ -1310,4 +1351,21 @@
     .chiffres{gap:10px; padding:0 16px 12px}
     .stat .v, .stat .l{font-size:14px}
   }
+
+  /* ── Le gros widget des tops (20/09/2026) ────────────────────────────── */
+  .tops{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px}
+  .topcol h4{margin:0 0 10px; font:700 11px var(--v2-sans); letter-spacing:.1em;
+    text-transform:uppercase; color:var(--v2-txt3)}
+  .topcol ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
+  .topcol li{display:flex; align-items:center; gap:11px; min-width:0; padding:5px 7px;
+    border-radius:9px}
+  .topcol li:hover{background:var(--v2-hover)}
+  .topcol .rang{flex:0 0 auto; width:16px; text-align:right; font:600 12px var(--v2-mono);
+    color:var(--v2-txt3)}
+  .topcol .vign{flex:0 0 auto; width:40px; height:40px; border-radius:7px; overflow:hidden}
+  .topcol .txt{display:flex; flex-direction:column; gap:2px; min-width:0}
+  .topcol .t{font:600 13px var(--v2-sans); color:var(--v2-txt);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .topcol .s{font:11.5px var(--v2-sans); color:var(--v2-txt2);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 </style>

@@ -90,6 +90,15 @@ export interface Element {
    * album, pas pour le reste (#3822).
    */
   favoriDistant?: { itemType: StreamingItemType; serviceId: string } | null;
+  /**
+   * Colonne du gros widget des tops — `forme: 'tops'`.
+   *
+   * Le widget rend TROIS listes côte à côte à partir d'une seule réponse ;
+   * `charger` les aplatit en une liste unique, et cette marque dit à laquelle
+   * chaque élément appartient. C'est le même procédé que `zoneId` pour les
+   * cartes de zones : le registre reste plat, la forme range.
+   */
+  colonne?: 'artistes' | 'albums' | 'titres';
   /** Zone suivie par la vignette — bande « Zones d'écoute actives ». */
   zoneId?: number | null;
   /** Cette zone joue-t-elle ? Pilote le mini-analyseur sous la vignette. */
@@ -101,7 +110,7 @@ export interface Element {
  * vignette de bande. C'est la troisième forme, ajoutée le 06/09/2026 —
  * « Créé un deuxième widget ! » (Bertrand), après la maquette Figma.
  */
-export type Forme = 'bande' | 'chiffres' | 'zones-cartes';
+export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops';
 
 export interface Widget {
   id: string;
@@ -485,6 +494,9 @@ const liste = (r: any): any[] =>
  * vraies, et on cherche une pochette manquante là où il n'y a pas d'objet.
  */
 const utiles = (els: Element[]): Element[] => els.filter((e) => e.titre !== '—' || e.cover);
+
+/** Combien de rangs par colonne du gros widget des tops. */
+const RANG_TOPS = 5;
 
 /** Les quatre chiffres de la semaine, dans l'ordre d'affichage. */
 const CHIFFRES_SEMAINE = ['lectures', 'heures-ecoutees', 'titres-ecoutes', 'artistes-ecoutes'] as const;
@@ -958,6 +970,49 @@ export const WIDGETS: Widget[] = [
         icone: c.icone,
         vue: c.vue,
       }));
+    },
+  },
+  /**
+   * LE GROS WIDGET DES TOPS — artistes, albums et titres côte à côte.
+   *
+   * Bertrand, 20/09/2026 : « gros widget top Artists / Albums / Tracks ». Il
+   * ne remplace PAS `top-artistes` : « en complément », dit-il — un petit
+   * widget pour qui ne veut que les artistes, un gros pour qui veut les trois.
+   *
+   * Une seule requête pour les trois colonnes, partagée avec les deux autres
+   * extraits par `tableauDeBord()`. Les trois listes sont aplaties en une, et
+   * `colonne` dit à laquelle chaque élément appartient : le registre des
+   * widgets reste plat, c'est la FORME qui range.
+   */
+  {
+    id: 'tops',
+    cleTitre: 'v2.home.wTops',
+    forme: 'tops',
+    charger: async (ctx) => {
+      const d = await tableauDeBord('30d');
+      const n = (v: number) => lectures(v, ctx.langue ?? 'fr');
+      const artistes = d.top_artists.slice(0, RANG_TOPS).map((a, i) => ({
+        id: `tops-art-${i}-${a.artist_name}`,
+        titre: a.artist_name,
+        sous: n(a.plays),
+        cover: a.cover_path ?? null,
+        colonne: 'artistes' as const,
+      }));
+      const albums = d.top_albums.slice(0, RANG_TOPS).map((a, i) => ({
+        id: `tops-alb-${i}-${a.album_title}`,
+        titre: a.album_title,
+        sous: a.artist_name,
+        cover: a.cover_path,
+        colonne: 'albums' as const,
+      }));
+      const titres = d.top_tracks.slice(0, RANG_TOPS).map((t, i) => ({
+        id: `tops-tit-${i}-${t.title}`,
+        titre: t.title,
+        sous: t.artist_name,
+        cover: t.cover_path ?? null,
+        colonne: 'titres' as const,
+      }));
+      return utiles([...artistes, ...albums, ...titres]);
     },
   },
 ];

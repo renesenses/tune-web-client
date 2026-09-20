@@ -75,10 +75,30 @@ describe('widgets extraits du tableau de bord', () => {
     expect(els[0].sous).toMatch(/^[\d\s .,]+$/);
   });
 
+  it('le gros widget rend TROIS colonnes marquées, d’une seule requête', async () => {
+    const dash = vi.spyOn(api, 'getDashboard').mockResolvedValue(
+      reponse({
+        top_albums: [{ album_title: 'Abbey Road', artist_name: 'The Beatles', cover_path: '/a.jpg', plays: 9 }],
+        top_tracks: [{ track_id: 1, title: 'Come Together', artist_name: 'The Beatles', plays: 7, listening_ms: 1 }],
+      }),
+    );
+    const els = await widgetParId('tops')!.charger(ctx);
+    expect(els.map((e) => e.colonne)).toEqual(['artistes', 'albums', 'titres']);
+    // UNE seule requête pour les trois colonnes.
+    expect(dash).toHaveBeenCalledTimes(1);
+  });
+
+  it('une colonne vide ne casse pas les deux autres', async () => {
+    vi.spyOn(api, 'getDashboard').mockResolvedValue(reponse());
+    const els = await widgetParId('tops')!.charger(ctx);
+    expect(els.map((e) => e.colonne)).toEqual(['artistes']);
+  });
+
   it('les trois titres existent dans les 11 langues', () => {
     for (const lg of LANGUES) {
       const src = readFileSync(resolve(__dirname, `../locales/${lg}.ts`), 'utf8');
-      for (const cle of ['v2.home.wTopArtists', 'v2.home.wTopRadios', 'v2.home.wWeekStats']) {
+      for (const cle of ['v2.home.wTopArtists', 'v2.home.wTopRadios', 'v2.home.wWeekStats',
+        'v2.home.wTops', 'v2.home.wTopAlbums', 'v2.home.wTopTracks']) {
         expect(src.includes(`"${cle}"`) || src.includes(`'${cle}'`), `${cle} absente de ${lg}`).toBe(true);
       }
     }
@@ -86,7 +106,7 @@ describe('widgets extraits du tableau de bord', () => {
 
   it('🔴 aucun ne s’impose sur l’accueil : la disposition par défaut ne bouge pas', () => {
     // « personne ne doit voir son écran changer sans l'avoir demandé ».
-    for (const id of ['top-artistes', 'top-radios', 'stats-semaine']) {
+    for (const id of ['top-artistes', 'top-radios', 'stats-semaine', 'tops']) {
       expect(DISPOSITION_DEFAUT).not.toContain(id);
     }
   });

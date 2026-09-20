@@ -56,7 +56,10 @@ describe('Accueil — le registre', () => {
     // elle est qu'aucune forme nouvelle n'arrive SANS DÉCISION. Chaque
     // exception est donc énumérée ici, et une quatrième fera rougir la garde.
     for (const w of WIDGETS) {
-      expect(['bande', 'chiffres', 'zones-cartes']).toContain(w.forme);
+      // 20/09/2026 — QUATRIÈME forme, sur décision de Bertrand : « gros widget
+      // top Artists / Albums / Tracks ». Trois colonnes ne sont pas une bande,
+      // et les comprimer en bande aurait perdu le classement.
+      expect(['bande', 'chiffres', 'zones-cartes', 'tops']).toContain(w.forme);
     }
     // 20/09/2026 — « Widget Stats de la semaine » (Bertrand). La forme
     // `chiffres` a donc un SECOND utilisateur : ce n'est pas une forme
@@ -65,6 +68,7 @@ describe('Accueil — le registre', () => {
     expect(WIDGETS.filter((w) => w.forme === 'chiffres').map((w) => w.id))
       .toEqual(['statistiques', 'stats-semaine']);
     expect(WIDGETS.filter((w) => w.forme === 'zones-cartes').map((w) => w.id)).toEqual(['zones-cartes']);
+    expect(WIDGETS.filter((w) => w.forme === 'tops').map((w) => w.id)).toEqual(['tops']);
   });
 
   it('le premier widget des zones n’a PAS été remplacé', () => {
