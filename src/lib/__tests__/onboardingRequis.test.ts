@@ -59,8 +59,52 @@ describe('quand proposer l’assistant', () => {
     expect(memoriser).toHaveBeenCalled();
   });
 
-  it('l’état dédié dit que ce n’est pas complet : on propose', async () => {
-    expect(await onboardingRequis(sources({ statut: async () => ({ complete: false }) }))).toBe(true);
+  /*
+   * 🔴 Mesuré sur le .18 le 20/09/2026, en lecture seule :
+   *
+   *     GET /api/v1/onboarding/status
+   *     {"complete":false,"current_step":0,"steps":[… six fois done:false]}
+   *     GET /api/v1/library/stats
+   *     {"albums":4363,"artists":1638,"listens":1268,"tracks":47118, …}
+   *
+   * Un serveur configuré depuis des mois, et un état dédié qui jure que
+   * l'installation n'a pas commencé. Ce n'est pas une information : c'est une
+   * CONTRADICTION, et la bibliothèque est le témoin le plus dur des deux —
+   * 47 118 pistes ne s'indexent pas toutes seules avant la première étape.
+   *
+   * La cause a été trouvée en aval : l'assistant ne prévenait JAMAIS le
+   * serveur qu'il avait fini (voir la garde de branchement plus bas), si bien
+   * que `onboarding_complete` est resté faux sur toutes les installations du
+   * monde. Le départage va donc dans le sens du silence.
+   */
+  it('l’état dédié dit « pas terminé » alors que la bibliothèque est PLEINE : on se tait', async () => {
+    const aLaMesureDu18 = sources({ statut: async () => ({ complete: false }), pistes: async () => 47118 });
+    expect(await onboardingRequis(aLaMesureDu18)).toBe(false);
+  });
+
+  it('la contradiction ne se mémorise PAS : le serveur peut encore dire vrai', async () => {
+    // Se taire n'est pas conclure. Poser le drapeau local ici rendrait le
+    // silence définitif sur cet appareil, y compris si le serveur finissait
+    // par annoncer une installation réellement neuve.
+    const memoriser = vi.fn();
+    await onboardingRequis(sources({ statut: async () => ({ complete: false }), pistes: async () => 47118, memoriser }));
+    expect(memoriser).not.toHaveBeenCalled();
+  });
+
+  /*
+   * 🔴 LA CONTRE-ÉPREUVE. Sans elle la garde ci-dessus ne garde rien : on
+   * aurait simplement éteint l'assistant pour tout le monde. Une installation
+   * réellement vierge — zéro piste — doit TOUJOURS le voir, que l'état dédié
+   * réponde, qu'il dise « pas terminé », ou qu'il ne réponde pas du tout.
+   */
+  it('une installation RÉELLEMENT vierge voit toujours l’assistant', async () => {
+    for (const statut of [
+      async () => ({ complete: false }),
+      async () => null,
+      async () => ({}),
+    ] as SourcesOnboarding['statut'][]) {
+      expect(await onboardingRequis(sources({ statut, pistes: async () => 0 }))).toBe(true);
+    }
   });
 
   it('dernier recours : une bibliothèque vide trahit une installation neuve', async () => {
@@ -74,9 +118,17 @@ describe('quand proposer l’assistant', () => {
   });
 
   it('un statut « complete » ne déclenche pas l’assistant', async () => {
-    // `complete: true` ne doit pas être lu comme « il y a un statut, donc on
-    // propose » : seul `complete === false` déclenche.
     expect(await onboardingRequis(sources({ statut: async () => ({ complete: true }) }))).toBe(false);
+  });
+
+  it('le statut « terminé » suffit, même sur une bibliothèque vide', async () => {
+    // Une installation terminée peut n'avoir aucun fichier local : elle
+    // n'écoute que du streaming. Le compte de pistes ne doit pas la renvoyer
+    // à l'assistant qu'elle vient de finir.
+    const memoriser = vi.fn();
+    const s = sources({ statut: async () => ({ complete: true }), pistes: async () => 0, memoriser });
+    expect(await onboardingRequis(s)).toBe(false);
+    expect(memoriser, 'un « terminé » affirmé se retient').toHaveBeenCalled();
   });
 });
 
@@ -100,4 +152,64 @@ describe('l’assistant est ATTEIGNABLE depuis les deux coquilles', () => {
     expect(enveloppe, 'OnboardingView n’a jamais été branchée').not.toMatch(/<OnboardingView[\s/>]/);
   });
 
+});
+
+/**
+ * L'assistant PRÉVIENT le serveur qu'il a fini.
+ *
+ * 🔴 C'est la cause du défaut mesuré sur le .18, et elle est du genre « écrit
+ * mais pas branché » : `api.onboardingStep()` et `api.skipOnboarding()`
+ * existent dans `lib/api.ts` depuis le premier jour et n'avaient AUCUN
+ * appelant. L'assistant ne posait que son drapeau local — propre à
+ * l'appareil. Le serveur ne franchissait donc jamais son étape finale :
+ * `onboarding_complete` est resté faux sur toutes les installations, et
+ * chaque navigateur neuf repartait de zéro.
+ *
+ * La garde lit le CORPS des deux sorties, pas le fichier entier : un import,
+ * un commentaire, ou un appel ajouté ailleurs la satisferaient à tort.
+ */
+describe('l’assistant prévient le serveur quand il a fini', () => {
+  const source = lire('src/components/partages/OnboardingWizard.svelte');
+
+  /** Le corps d'une fonction, accolades appariées — pas sa seule déclaration. */
+  function corpsDe(nom: string): string {
+    const declaration = source.indexOf(`function ${nom}(`);
+    expect(declaration, `fonction ${nom} introuvable`).toBeGreaterThan(-1);
+    const ouvrante = source.indexOf('{', declaration);
+    expect(ouvrante, `corps de ${nom} introuvable`).toBeGreaterThan(-1);
+    let profondeur = 0;
+    let i = ouvrante;
+    for (; i < source.length; i++) {
+      if (source[i] === '{') profondeur++;
+      else if (source[i] === '}' && --profondeur === 0) break;
+    }
+    expect(profondeur, `accolades non appariées dans ${nom}`).toBe(0);
+    return source.slice(ouvrante + 1, i);
+  }
+
+  it('« terminer » franchit l’étape finale côté serveur', () => {
+    const corps = corpsDe('finishOnboarding');
+    expect(corps, 'le drapeau local seul est propre à CET appareil').toMatch(/api\.onboardingStep\(\s*['"]complete['"]/);
+  });
+
+  it('« passer » le dit aussi au serveur', () => {
+    // Passer l'assistant est une décision, pas un abandon : le serveur doit
+    // la connaître, sinon le prochain navigateur la redemande.
+    expect(corpsDe('skipOnboarding')).toMatch(/api\.skipOnboarding\(/);
+  });
+
+  it('un serveur muet ne bloque pas l’utilisateur', () => {
+    // L'appel est un envoi, pas une condition : l'assistant se ferme même si
+    // le serveur refuse. D'où le drapeau local posé AVANT, et le rattrapage
+    // d'erreur sur l'appel.
+    for (const nom of ['finishOnboarding', 'skipOnboarding']) {
+      const corps = corpsDe(nom);
+      expect(corps, `${nom} : l’appel doit être rattrapé`).toMatch(/\.catch\(/);
+      const drapeau = corps.indexOf("localStorage.setItem('tune_onboarding_completed'");
+      const appel = corps.indexOf('api.');
+      expect(drapeau, `${nom} : drapeau local introuvable`).toBeGreaterThan(-1);
+      expect(appel, `${nom} : appel serveur introuvable`).toBeGreaterThan(-1);
+      expect(drapeau, `${nom} : le drapeau local se pose AVANT l’aller-retour`).toBeLessThan(appel);
+    }
+  });
 });
