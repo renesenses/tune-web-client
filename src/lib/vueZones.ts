@@ -123,3 +123,33 @@ export function etatLectureDeZone(z: ZoneJouable): EtatLecture {
 export function cleEtatLecture(e: EtatLecture): string {
   return e === 'playing' ? 'zone.playing' : e === 'paused' ? 'zone.paused' : 'zone.stopped';
 }
+
+/**
+ * Pourquoi le sélecteur de canaux est verrouillé — la CLÉ, pas la phrase.
+ *
+ * 🔴 L'écran affichait `channel_layout_status.detail`, une phrase envoyée en
+ * clair par le serveur. Son commentaire l'assumait : « un écran sans table de
+ * traduction peut l'afficher tel quel ». C'est vrai d'un écran nu ; celui-ci
+ * en a une — et le résultat, vu sur une installation en anglais le 20/09/2026,
+ * était « cette zone ne sort pas par une carte son locale : le renderer
+ * négocie son propre format » au milieu de Settings › Devices.
+ *
+ * Le serveur fait pourtant ce qu'il faut : `CanauxContrainte::code()` rend un
+ * code STABLE — `sortie_non_locale`, `au_dela_de_l_appareil` — et son propre
+ * commentaire dit « destinés à la machine ; LE CLIENT LES TRADUIT ». Ce code
+ * arrive dans `reason`, à côté de `detail`, et n'était pas lu.
+ *
+ * Même forme que `cleIndisponibiliteCrossfeed` : un code inconnu — motif
+ * ajouté par un serveur plus récent — retombe sur la phrase générique plutôt
+ * que d'afficher son code brut.
+ */
+export function cleContrainteCanaux(motif: string | null | undefined): string {
+  switch (motif) {
+    case 'sortie_non_locale':
+      return 'zoneConfig.channelsUnavailableNonLocal';
+    case 'au_dela_de_l_appareil':
+      return 'zoneConfig.channelsUnavailableBeyondDevice';
+    default:
+      return 'zoneConfig.channelsUnavailable';
+  }
+}

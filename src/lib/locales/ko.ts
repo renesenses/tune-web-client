@@ -1813,6 +1813,8 @@ export default {
   "zoneConfig.monoLocalOnly": "이 존은 로컬 출력을 사용하지 않습니다. 설정은 저장되지만 여기서는 아무것도 바뀌지 않습니다. 합산은 서버의 오디오 경로에서 이루어지며, 그것은 서버에 연결된 사운드 카드나 DAC에만 존재합니다.",
   "zoneConfig.channelsTitle": "채널",
   "zoneConfig.channelsFollow": "장치를 따름",
+  "zoneConfig.channelsUnavailableNonLocal": "이 존은 로컬 사운드 카드를 쓰지 않습니다. 렌더러가 자체적으로 포맷을 협상합니다.",
+  "zoneConfig.channelsUnavailableBeyondDevice": "선택한 구성보다 적은 채널을 기기가 보고합니다.",
   "zoneConfig.channelsUnavailable": "이 설정은 이 존에 영향을 주지 않습니다.",
   "zoneConfig.channels_mono": "모노",
   "zoneConfig.channels_stereo": "스테레오",

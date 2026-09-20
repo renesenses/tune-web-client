@@ -1801,6 +1801,8 @@ export default {
   "zoneConfig.monoLocalOnly": "Den här zonen använder ingen lokal utgång: inställningen sparas, men den ändrar ingenting här. Summeringen sker i serverns ljudkedja, som bara finns för ett ljudkort eller en DAC ansluten till servern.",
   "zoneConfig.channelsTitle": "Kanaler",
   "zoneConfig.channelsFollow": "Följ enheten",
+  "zoneConfig.channelsUnavailableNonLocal": "Den här zonen använder inget lokalt ljudkort: renderaren förhandlar sitt eget format.",
+  "zoneConfig.channelsUnavailableBeyondDevice": "Enheten anger färre kanaler än den valda uppställningen.",
   "zoneConfig.channelsUnavailable": "Den här inställningen har ingen effekt på den här zonen.",
   "zoneConfig.channels_mono": "Mono",
   "zoneConfig.channels_stereo": "Stereo",
