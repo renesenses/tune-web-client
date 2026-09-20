@@ -102,6 +102,28 @@ export function peutDefiler(el: Pick<HTMLElement, 'scrollLeft' | 'scrollWidth' |
 }
 
 /**
+ * Cet élément-ci peut-il encore avancer VERTICALEMENT de `delta` ? — #1327.
+ *
+ * Extraite de `pagePeutDefiler` pour que `lib/molettePortee` (le point 1 du
+ * même ticket : l'en-tête qui n'a rien à faire défiler) juge un défileur avec
+ * EXACTEMENT la même règle, au lieu d'en écrire une seconde qui dériverait.
+ *
+ * Le `> 1` absorbe les sous-pixels : un conteneur dont `scrollHeight` dépasse
+ * `clientHeight` d'un demi-pixel d'arrondi ne défile pas pour autant. Et
+ * l'arrondi va VERS le bord qu'on teste, pour la raison écrite au-dessus de
+ * `peutDefiler`.
+ */
+export function peutDefilerVerticalement(
+  el: Pick<HTMLElement, 'scrollTop' | 'scrollHeight' | 'clientHeight'>,
+  delta: number,
+): boolean {
+  if (!delta) return false;
+  const max = el.scrollHeight - el.clientHeight;
+  if (max <= 1) return false;
+  return delta < 0 ? Math.floor(el.scrollTop) > 0 : Math.ceil(el.scrollTop) < max;
+}
+
+/**
  * Un ancêtre de la rangée peut-il encore défiler VERTICALEMENT de `delta` ?
  * — #1327.
  *
@@ -118,9 +140,7 @@ export function peutDefiler(el: Pick<HTMLElement, 'scrollLeft' | 'scrollWidth' |
 export function pagePeutDefiler(el: Pick<HTMLElement, 'parentElement'>, delta: number): boolean {
   if (!delta) return false;
   for (let p = el.parentElement; p; p = p.parentElement) {
-    const max = p.scrollHeight - p.clientHeight;
-    if (max <= 1) continue;
-    if (delta < 0 ? Math.floor(p.scrollTop) > 0 : Math.ceil(p.scrollTop) < max) return true;
+    if (peutDefilerVerticalement(p, delta)) return true;
   }
   return false;
 }

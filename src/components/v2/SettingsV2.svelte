@@ -17,7 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { appareilDeLaZone } from '../../lib/vueZones';
+  import { appareilDeLaZone, cleContrainteCanaux } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
   import { tick } from 'svelte';
@@ -83,6 +83,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { tip } from '../../lib/tooltip';
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
+  import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
@@ -2703,6 +2704,25 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
+                   « Il faut grouper par source et tous les résultats Qobuz
+                   doivent être avant Bandcamp ». L'entrelacement qu'il voit
+                   est le barème de PERTINENCE du serveur (#2372), un
+                   arbitrage, pas un défaut : Bertrand (20/09/2026) tranche en
+                   OFFRANT le choix, sans déplacer le défaut. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.versionsOrder' as any)}</span>
+                  <span class="hint">{$t('settings.versionsOrderHint' as any)}</span>
+                </div>
+                <select class="sel" value={$preferences.ordreAutresVersions ?? ORDRE_VERSIONS_DEFAUT}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estOrdreVersions(v)) preferences.update((pr) => ({ ...pr, ordreAutresVersions: v })); }}>
+                  <option value="pertinence">{$t('settings.versionsOrderRelevance' as any)}</option>
+                  <option value="source">{$t('settings.versionsOrderSource' as any)}</option>
+                </select>
+              </div>
+
             {:else if s.id === 'profiles'}
               <ProfilsV2 />
             {:else if s.id === 'interface'}
@@ -3517,11 +3537,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {/each}
                           </select>
                         </div>
-                        <!-- Pourquoi il est verrouillé, dans les mots du serveur.
-                             `detail` est une phrase en clair : un écran sans table
-                             de traduction peut l'afficher tel quel. -->
+                        <!-- Pourquoi il est verrouillé, dans la langue de
+                             l'utilisateur. On lit le CODE (`reason`), pas la
+                             phrase (`detail`) : `detail` arrive en français
+                             quelle que soit la langue de l'interface — vu sur
+                             une installation anglaise le 20/09/2026. Le serveur
+                             le dit lui-même de ses codes : « destinés à la
+                             machine ; le client les traduit ». -->
                         {#if z.channel_layout_status?.unavailable}
-                          <p class="monote">{z.channel_layout_status?.detail ?? $t('zoneConfig.channelsUnavailable' as any)}</p>
+                          <p class="monote">{$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)}</p>
                         {/if}
                       {/if}
 

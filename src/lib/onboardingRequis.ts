@@ -50,16 +50,51 @@ function ditQueCestFait(valeur: unknown): boolean {
 /**
  * `true` s'il faut proposer l'assistant.
  *
- * Les quatre niveaux, dans l'ordre, du moins cher au plus cher :
+ * Trois niveaux, dans l'ordre, du moins cher au plus cher :
  *
  * 1. l'appareil se souvient que c'est fait → non ;
- * 2. la configuration du serveur le dit → non, et on le mémorise ;
- * 3. l'état dédié dit que ce n'est pas complet → oui ;
- * 4. la bibliothèque est vide → oui.
+ * 2. le serveur AFFIRME que c'est fait — configuration ou état dédié → non,
+ *    et on le mémorise ;
+ * 3. la bibliothèque est vide → oui.
  *
  * Une panne à n'importe quel étage rend `false` : devant l'incertitude on ne
  * met pas un assistant de première installation sous le nez de quelqu'un qui
  * écoute de la musique depuis un an.
+ *
+ * ## Pourquoi « pas terminé » ne suffit plus à déclencher (20/09/2026)
+ *
+ * Il y avait un quatrième niveau, avant celui de la bibliothèque : « l'état
+ * dédié dit `complete === false` → oui ». Mesuré sur le serveur de Bertrand,
+ * en service depuis des mois :
+ *
+ *     GET /api/v1/onboarding/status  → {"complete":false,"current_step":0}
+ *     GET /api/v1/library/stats      → {"tracks":47118,"albums":4363, …}
+ *
+ * Tout navigateur neuf, tout téléphone ouvrant Tune pour la première fois sur
+ * ce serveur recevait l'assistant de première installation. Exactement le
+ * piège que l'avertissement du haut de ce fichier décrit — sauf qu'il venait
+ * du serveur, pas du `localStorage`.
+ *
+ * La cause est en aval : l'assistant ne franchissait jamais l'étape finale
+ * côté serveur (il ne posait que son drapeau local), si bien que
+ * `onboarding_complete` valait `false` sur toutes les installations du monde.
+ * C'est réparé dans `OnboardingWizard`, mais les serveurs déjà installés
+ * garderont leur `false` pour toujours : personne n'ira repasser l'assistant
+ * qu'ils n'ont jamais vu.
+ *
+ * Donc : un `complete === false` en face d'une bibliothèque pleine n'est pas
+ * une information, c'est une CONTRADICTION, et on la départage par le témoin
+ * le plus dur — 47 118 pistes ne s'indexent pas avant la première étape.
+ *
+ * 🔴 Ce qui rend la garde légitime, c'est son revers : une installation
+ * réellement vierge (zéro piste) voit TOUJOURS l'assistant, que l'état dédié
+ * dise « pas terminé », réponde autre chose, ou ne réponde pas. Sans ce
+ * revers on n'aurait pas arbitré une contradiction, on aurait éteint
+ * l'assistant pour tout le monde.
+ *
+ * 🔴 Et on ne mémorise rien dans ce cas : se taire n'est pas conclure. Poser
+ * le drapeau local sur une contradiction la rendrait définitive sur cet
+ * appareil, même si le serveur finissait par dire vrai.
  */
 export async function onboardingRequis(s: SourcesOnboarding): Promise<boolean> {
   if (s.drapeauLocal()) return false;
@@ -69,8 +104,13 @@ export async function onboardingRequis(s: SourcesOnboarding): Promise<boolean> {
       s.memoriser();
       return false;
     }
+    // Seule l'AFFIRMATION « c'est fait » est retenue de l'état dédié. Sa
+    // négation ne prouve rien : voir ci-dessus.
     const statut = await s.statut().catch(() => null);
-    if (statut && statut.complete === false) return true;
+    if (statut && statut.complete === true) {
+      s.memoriser();
+      return false;
+    }
     return (await s.pistes()) === 0;
   } catch {
     return false;
