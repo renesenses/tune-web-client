@@ -2283,6 +2283,28 @@ export function getLibraryStats() {
   return fetchJSON<{ tracks: number; albums: number; artists: number }>(`${BASE}/library/stats`);
 }
 
+/**
+ * Les chiffres d'ÉCOUTE — la seconde famille de la ligne de l'accueil
+ * (tune-server-rust#4527).
+ *
+ * `unique_genres` n'existe que depuis #4527 : il est donc OPTIONNEL, et son
+ * absence fait disparaître la carte au lieu de l'afficher à zéro.
+ */
+export function getDashboardStats() {
+  return fetchJSON<{
+    total_listens: number;
+    total_duration_ms: number;
+    unique_tracks: number;
+    unique_artists: number;
+    unique_genres?: number;
+  }>(`${BASE}/dashboard/stats`);
+}
+
+/** Les genres de la bibliothèque — on n'en lit ici que le NOMBRE. */
+export function getGenres() {
+  return fetchJSON<{ name: string; count: number }[]>(`${BASE}/library/genres`);
+}
+
 export function updateAlbum(id: number, data: { title?: string; artist_id?: number; artist_name?: string; year?: number; genre?: string; label?: string; catalog_number?: string }) {
   return fetchJSON<Album>(`${BASE}/library/albums/${id}`, {
     method: 'PUT',
@@ -6346,35 +6368,6 @@ export function onboardingStep(step: string, body?: any) {
 
 export function skipOnboarding() {
   return fetchJSON(`${BASE}/onboarding/skip`, { method: 'POST' });
-}
-
-// --- Offline Manager ---
-export function getOfflineStatus() {
-  return fetchJSON<{ total: number; size_bytes: number; pending: number }>(`${BASE}/offline/status`);
-}
-
-export function getOfflineDownloads() {
-  return fetchJSON<any[]>(`${BASE}/offline/downloads`);
-}
-
-export function downloadForOffline(body: { source: string; source_id: string; type: string }) {
-  return fetchJSON(`${BASE}/offline/download`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
-
-export function removeOfflineDownload(id: string) {
-  return fetchJSON(`${BASE}/offline/downloads/${id}`, { method: 'DELETE' });
-}
-
-export function syncOffline() {
-  return fetchJSON(`${BASE}/offline/sync`, { method: 'POST' });
-}
-
-export function clearOffline() {
-  return fetchJSON(`${BASE}/offline/clear`, { method: 'POST' });
 }
 
 // -- OAAT Multi-Room Groups --
