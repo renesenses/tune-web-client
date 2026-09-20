@@ -102,6 +102,64 @@
   let bogueErreur = $state<string | null>(null);
   let bogueCopie = $state(false);
 
+  /**
+   * #4564 — LES CAPTURES.
+   *
+   * Jean Valjean, fil 1855 : « Je ne peux pas mettre de copies d'écran,
+   * l'ajout de fichier a disparu ». Quatre minutes plus tard il rouvrait un
+   * fil à la main pour la seule raison d'y joindre sa capture. Et l'écart
+   * était DANS CET ÉCRAN : le geste voisin, « Écrire au support », porte un
+   * champ de fichier depuis toujours (l. ~570) — celui-ci, non.
+   *
+   * Les bornes viennent d'`api.ts`, qui les tient du serveur, qui les tient du
+   * forum : une seule règle sur toute la chaîne. Les redéclarer ici en
+   * produirait une seconde, qui divergerait au premier changement.
+   */
+  let bogueImages = $state<File[]>([]);
+  let bogueImagesErreur = $state<string | null>(null);
+  /** Captures que le forum dit avoir rangées, une fois l'envoi accepté. */
+  let bogueCaptures = $state<number | null>(null);
+
+  const TYPES_IMAGE = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+
+  /**
+   * Trie ce que le testeur a choisi et REFUSE avec une phrase.
+   *
+   * Refuser ici plutôt que de laisser le serveur le faire n'est pas un
+   * doublon : c'est la différence entre un message immédiat sous le champ et
+   * un aller-retour réseau — avec, au bout, un envoi rejeté et un testeur qui
+   * recommence. Le serveur garde sa propre borne : elle, elle est la garde.
+   */
+  function choisirCaptures(liste: FileList | null) {
+    const fichiers = Array.from(liste ?? []);
+    bogueImagesErreur = null;
+
+    if (fichiers.length > api.BUG_REPORT_MAX_IMAGES) {
+      bogueImagesErreur = tr1('v2.sup.bugImagesTooMany', { max: api.BUG_REPORT_MAX_IMAGES });
+      bogueImages = [];
+      return;
+    }
+    const mauvaisType = fichiers.find((f) => {
+      const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+      return !TYPES_IMAGE.includes(ext);
+    });
+    if (mauvaisType) {
+      bogueImagesErreur = tr1('v2.sup.bugImagesType', { nom: mauvaisType.name });
+      bogueImages = [];
+      return;
+    }
+    const tropLourd = fichiers.find((f) => f.size > api.BUG_REPORT_MAX_IMAGE_BYTES);
+    if (tropLourd) {
+      bogueImagesErreur = tr1('v2.sup.bugImagesTooLarge', {
+        nom: tropLourd.name,
+        max: Math.round(api.BUG_REPORT_MAX_IMAGE_BYTES / (1024 * 1024)),
+      });
+      bogueImages = [];
+      return;
+    }
+    bogueImages = fichiers;
+  }
+
   async function apercuBogue() {
     bogueApercuEnCours = true;
     bogueApercuEchec = false;
@@ -131,8 +189,11 @@
     bogueEnvoi = true;
     bogueErreur = null;
     try {
-      const r = await api.submitBugReport(bogueDesc);
+      const r = await api.submitBugReport(bogueDesc, bogueImages);
       bogueFil = typeof r?.url === 'string' ? r.url : '';
+      // #4564 — ce que le FORUM dit avoir rangé, pas ce qu'on a envoyé. Une
+      // capture perdue en route doit se voir ici, pas se deviner sur le fil.
+      bogueCaptures = typeof r?.images === 'number' ? r.images : null;
       bogueEnvoye = true;
     } catch (e: any) {
       console.error('Support: envoi du rapport de bogue', e);
@@ -147,6 +208,7 @@
   function nouveauBogue() {
     bogueDesc = ''; bogueApercu = null; bogueApercuEchec = false;
     bogueEnvoye = false; bogueFil = ''; bogueErreur = null;
+    bogueImages = []; bogueImagesErreur = null; bogueCaptures = null;
   }
 
   /* ---------------- Mon système ---------------- */
@@ -438,6 +500,11 @@
         {#if bogueEnvoye}
           <div class="notice bogue-ok">
             <p>{$t('v2.sup.bugSent' as any)}</p>
+            <!-- #4564 — le nombre que le FORUM dit avoir rangé. Rien n'est
+                 affiché quand il ne le dit pas : on n'invente pas un chiffre. -->
+            {#if bogueCaptures !== null && bogueCaptures > 0}
+              <p class="sub">{tr1('v2.sup.bugImagesSent', { n: bogueCaptures })}</p>
+            {/if}
             <div class="bogue-actions">
               {#if bogueFil}
                 <a class="lnk" href={bogueFil} target="_blank" rel="noopener noreferrer">{$t('v2.sup.bugViewThread' as any)}</a>
@@ -450,6 +517,20 @@
             <span>{$t('v2.sup.bugDesc' as any)}</span>
             <textarea class="txt zone bogue-desc" bind:value={bogueDesc} rows="5"
               placeholder={$t('v2.sup.bugDescHint' as any)} disabled={bogueEnvoi}></textarea>
+          </label>
+          <!-- #4564 — les captures. Même forme que le champ de fichier du
+               geste voisin « Écrire au support » : c'est ce voisinage qui a
+               produit la phrase du testeur (« l'ajout de fichier a disparu »). -->
+          <label class="champ">
+            <span>{$t('v2.sup.bugImages' as any)}</span>
+            <input type="file" multiple accept="image/png,image/jpeg,image/gif,image/webp"
+              disabled={bogueEnvoi}
+              onchange={(e) => choisirCaptures((e.currentTarget as HTMLInputElement).files)} />
+            <em class="bogue-hint">{$t('v2.sup.bugImagesHint' as any)}</em>
+            {#if bogueImages.length}
+              <em class="bogue-fnoms">{bogueImages.map((f) => f.name).join(', ')}</em>
+            {/if}
+            {#if bogueImagesErreur}<span class="bogue-err">{bogueImagesErreur}</span>{/if}
           </label>
           <div class="bogue-actions">
             <button class="go bogue-envoi" onclick={envoyerBogue} disabled={bogueEnvoi}>
@@ -754,6 +835,9 @@
   .bogue .lnk:disabled{opacity:.5; cursor:default}
   .bogue-ok p{margin-bottom:12px}
   .bogue-err{font-size:12.5px; color:var(--v2-danger); line-height:1.5}
+  /* #4564 — les captures. */
+  .bogue-hint{font-size:12px; color:var(--v2-txt3); font-style:normal}
+  .bogue-fnoms{font-size:12px; color:var(--v2-txt2); font-style:normal}
   .bogue-apercu{max-height:320px; overflow:auto; padding:12px 14px; border-radius:10px; border:1px solid var(--v2-line);
     background:var(--v2-surface2); font:11.5px/1.5 var(--v2-mono); color:var(--v2-txt2); white-space:pre-wrap}
 
