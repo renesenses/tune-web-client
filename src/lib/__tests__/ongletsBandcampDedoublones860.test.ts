@@ -32,6 +32,7 @@
 // aucune ligne de source : débrancher le dédoublonnage le fait rougir.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
+import StreamingV2 from '../../components/v2/StreamingV2.svelte';
 import {
   BANDCAMP_EXT,
   BANDCAMP_SVC,
@@ -213,9 +214,37 @@ describe('#860 — l’écran monté ne rend qu’UNE tuile Bandcamp', () => {
     vi.restoreAllMocks();
   });
 
+  /**
+   * 🔴 L'ÉCRAN EST IMPORTÉ À LA COLLECTE, PAS DANS LE CAS — #1326.
+   *
+   * Ce banc chargeait `StreamingV2` par un `await import()` posé DANS le cas.
+   * Le composant fait plus de mille cinq cents lignes : sous la charge de la
+   * porte (huit portes simultanées sur Shrek, 20/09/2026), sa compilation par
+   * vite dépassait les trente secondes du chronomètre, et vitest déclarait le
+   * cas expiré.
+   *
+   * Le rouge qui suivait était PIRE que l'expiration. `afterEach` retirait
+   * l'hôte, le cas suivant s'ouvrait avec le sien — puis la continuation
+   * abandonnée du premier cas reprenait et exécutait son `mount(…, { target:
+   * hote! })`. `hote` est une variable de MODULE : elle désignait désormais
+   * l'hôte du cas SUIVANT. Deux `StreamingV2` dans le même hôte, la rangée
+   * rendue deux fois, et le cas du pseudo accusait « [Bandcamp berthos |
+   * Bandcamp berthos] » — c'est-à-dire le défaut #860 lui-même, corrigé depuis,
+   * et que `ongletsStreaming()` ne peut structurellement pas produire. Mesuré :
+   * 17 portes rouges sur 24 à huit portes, 0 sur 16 à quatre.
+   *
+   * L'import statique déplace la compilation vers la COLLECTE, hors de tout
+   * chronomètre de cas — la parade de #1317 pour les onze dictionnaires. Et il
+   * rend `mount` SYNCHRONE dans cette fonction : plus aucune continuation ne
+   * peut se poser dans l'hôte du cas suivant, quelle que soit la lenteur.
+   *
+   * ⚠️ Importer avant le `vi.stubGlobal('fetch', …)` ne déclenche rien :
+   * `StreamingV2.svelte` n'a pas de `<script module>`, ses appels partent de son
+   * `$effect`, donc du montage. C'est déjà la pratique des autres bancs d'écran
+   * (`historiqueCoquilleV2_828_867` importe `ShellV2` en tête de fichier).
+   */
   async function monterEcran(opts: { extensionMuette?: boolean } = {}) {
     serveur(opts);
-    const { default: StreamingV2 } = await import('../../components/v2/StreamingV2.svelte');
     monte = mount(StreamingV2 as any, { target: hote! });
     // Deux requêtes en `Promise.allSettled`, puis les chargements de panneau.
     for (let i = 0; i < 40; i++) {
