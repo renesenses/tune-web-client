@@ -41,6 +41,68 @@ export type TacheDeFond = {
 export const TACHE_IMAGES_ARTISTES = 'artist_artwork';
 
 /**
+ * Un traitement de fond SUSPENDABLE, tel que le serveur le publie depuis
+ * 0.9.159 (#4574).
+ *
+ * ⚠️ Ne pas confondre avec [`TacheDeFond`] : celle-ci est une tâche INSCRITE au
+ * registre le temps qu'elle vit (elle disparaît quand elle finit), celui-ci est
+ * un traitement NOMMÉ qui existe en permanence et porte un état. Les deux
+ * arrivent dans la même réponse et ne se recouvrent pas : la cascade
+ * ReplayGain, par exemple, n'est jamais dans `tasks`.
+ */
+export type TraitementSuspendable = {
+  /** `replaygain`, `fingerprints`, `dynamic_range`, `acoustic`, `enrichment`,
+   *  `artist_images`. */
+  id: string;
+  /** `en_cours` | `en_pause` | `au_repos`. */
+  state: string;
+  paused: boolean;
+};
+
+/** La réponse de `GET /system/background-tasks`.
+ *
+ *  Tout sauf `tasks` est FACULTATIF : un serveur antérieur à 0.9.159 n'envoie
+ *  que `tasks`, et l'écran doit alors se taire sur la pause plutôt que d'offrir
+ *  un bouton qui rendrait 404. */
+export type InstantaneTachesDeFond = {
+  tasks: TacheDeFond[];
+  pausable?: TraitementSuspendable[];
+  all_paused?: boolean;
+  scan_pausable?: boolean;
+};
+
+/**
+ * Quels traitements sont suspendus, par identifiant.
+ *
+ * Écrit ici et non dans le composant pour être jouable sans monter d'écran, et
+ * surtout parce que l'ABSENCE de `pausable` doit se lire une seule fois : un
+ * serveur qui ne connaît pas la pause rend un dictionnaire vide, et aucune
+ * carte ne portera de bouton.
+ */
+export function pausesParTraitement(
+  instantane: InstantaneTachesDeFond | null | undefined,
+): Record<string, boolean> {
+  const sortie: Record<string, boolean> = {};
+  for (const t of instantane?.pausable ?? []) {
+    if (t && typeof t.id === 'string') sortie[t.id] = !!t.paused;
+  }
+  return sortie;
+}
+
+/**
+ * Le serveur sait-il suspendre ses traitements ?
+ *
+ * C'est la condition d'affichage des boutons. `pausable` absent OU vide ⇒ non :
+ * un tableau vide est ce que rendrait un serveur qui aurait la clé sans aucun
+ * traitement, et un bouton sans destinataire ne vaut pas mieux qu'un 404.
+ */
+export function serveurSaitSuspendre(
+  instantane: InstantaneTachesDeFond | null | undefined,
+): boolean {
+  return (instantane?.pausable?.length ?? 0) > 0;
+}
+
+/**
  * Texte du bandeau « une tâche de fond tourne », ou `null` quand plus rien ne
  * tourne — c'est ce `null` qui referme le bandeau.
  *

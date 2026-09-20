@@ -27,6 +27,7 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
+  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
 
   type Item =
     | { kind: 'local'; pl: Playlist }
@@ -102,6 +103,34 @@
   }
   const isLocal = $derived(item.kind === 'local');
   const title = $derived(item.pl.name);
+
+  /**
+   * ÉTIQUETER LA PLAYLIST DEPUIS SA FICHE — le même trou que la fiche album.
+   *
+   * La vignette de `PlaylistsV2` porte le bouton depuis #1238 (`pl.id != null`) ;
+   * la fiche, elle, n'avait ni bouton ni panneau. `playlist` fait partie des
+   * quatre `TAGGABLE_ITEM_TYPES` du serveur, pour les DEUX espaces.
+   *
+   * Locale → son identifiant. De service → la paire `source` + `source_id`,
+   * par l'aide partagée. `source` retombe sur le service de l'item : une
+   * `StreamingPlaylist` le porte, mais le laisser deviner évite le cas où la
+   * liste vient d'une réponse qui ne l'a pas recopié.
+   *
+   * `null` — donc pas de bouton — pour une playlist locale sans identifiant :
+   * il n'y a alors rien à désigner.
+   */
+  const cibleEtiquettes = $derived<CibleEtiquette | null>(
+    item.kind === 'local'
+      ? item.pl.id != null
+        ? { itemType: 'playlist', itemId: item.pl.id }
+        : null
+      : cibleDeService('playlist', {
+          ...(item.pl as any),
+          source: item.pl.source ?? item.service,
+          source_id: item.pl.source_id,
+        }),
+  );
+  let etiquettesOuvertes = $state(false);
 
   function load() {
     loading = true; error = null;
@@ -301,6 +330,18 @@
           {$tr(enFavori ? 'favorites.inFavorites' : 'favorites.addAlbum')}
         </button>
 
+        <!-- ÉTIQUETTES — vaut pour les deux sortes de playlist, la locale par
+             son identifiant, celle d'un service par la paire. Absent quand il
+             n'y a rien à désigner : voir `cibleEtiquettes`. -->
+        {#if cibleEtiquettes}
+          <button class="ghost sm" onclick={() => (etiquettesOuvertes = true)}
+            aria-haspopup="dialog" aria-expanded={etiquettesOuvertes}
+            title={$tr('v2.cover.tags' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
+            {$tr('v2.cover.tags' as any)}
+          </button>
+        {/if}
+
         <!-- EXPORT : la route ne connaît que les playlists locales, une playlist
              de service n'ayant pas d'identifiant chez nous. -->
         {#if isLocal}
@@ -390,6 +431,14 @@
     {/if}
   </div>
 </div>
+
+<!-- Le PANNEAU partagé, chargé à la demande — celui des vignettes. -->
+{#if etiquettesOuvertes && cibleEtiquettes}
+  {#await import('./EtiquettesPanneau.svelte') then m}
+    <m.default cible={cibleEtiquettes} nom={title}
+      onClose={() => (etiquettesOuvertes = false)} />
+  {/await}
+{/if}
 
 <style>
   .v2-pldetail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);

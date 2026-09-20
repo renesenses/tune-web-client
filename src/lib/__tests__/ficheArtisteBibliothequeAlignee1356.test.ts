@@ -271,7 +271,7 @@ describe('#1356 — « Enrichir la biographie » agit sur la biographie, et se l
 });
 
 describe('#1356 — les actions : l’union des deux fiches, mesurée', () => {
-  it('🔴 la bibliothèque GARDE ses quatre gestes', async () => {
+  it('🔴 la bibliothèque GARDE ses cinq gestes', async () => {
     const el = await ficheOuverte();
     const gestes = el.querySelector<HTMLElement>('header.tete .gestes');
     expect(gestes, 'pas de rangée d’actions dans un `header.tete` : l’en-tête partagé n’est pas monté').not.toBeNull();
@@ -279,6 +279,9 @@ describe('#1356 — les actions : l’union des deux fiches, mesurée', () => {
     expect(texte, '« Toutes les pistes » a été perdu').toContain('Toutes les pistes');
     expect(texte, '« Lecture aléatoire » a été perdu').toContain('Lecture aléatoire');
     expect(texte, '« Modifier » a été perdu').toContain('Modifier');
+    // 🔴 « Étiquettes » est arrivé dans `main` (#1357) PENDANT ce chantier, au
+    // milieu du bloc déplacé : la fusion l'avait mangé. On le garde nommément.
+    expect(texte, '« Étiquettes » (#1357) a été perdu dans le déplacement du bloc').toContain('Étiquettes');
     expect(
       gestes!.querySelector('.report-btn'),
       'les boutons de signalement ont été perdus',

@@ -162,6 +162,18 @@
   let albumOuvert = $state<Album | null>(null);
   let enEdition = $state<Artist | null>(null);
   /**
+   * Étiquettes de la FICHE artiste — le même trou que celui de la fiche album.
+   *
+   * La vignette de la grille porte le bouton depuis #1238 ; la fiche ouverte,
+   * elle, n'avait que « Tout lire », « Modifier » et « Aléatoire ».
+   *
+   * Seul un artiste de la BIBLIOTHÈQUE est étiquetable ici, et c'est la même
+   * règle que la vignette juste au-dessus (`a.id != null ? … : null`) : cette
+   * fiche-ci ne s'ouvre que sur un artiste indexé. La fiche d'un artiste de
+   * SERVICE est un autre écran (`ArtisteServiceV2`), qui n'est pas traité ici.
+   */
+  let etiquettesArtiste = $state<Artist | null>(null);
+  /**
    * 🔴 Le pendant de l'effet de `LibraryV2` — #3843.
    *
    * La fiche ARTISTE est un second calque, tenu ici et non dans `LibraryV2` :
@@ -694,6 +706,13 @@
           <button class="fab creux" onclick={() => (editionComplete = artiste)} title={$t('library.editArtist' as any)}>
             {$t('common.edit' as any)}
           </button>
+          <!-- ÉTIQUETTES : le geste que la VIGNETTE avait et que la fiche
+               n'avait pas (#1357). Même panneau, même cible. -->
+          <button class="fab creux" onclick={() => (etiquettesArtiste = artiste)}
+            aria-haspopup="dialog" title={$t('v2.cover.tags' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
+            {$t('v2.cover.tags' as any)}
+          </button>
           {#if artiste.image_path}
             <ReportButton entity="artist_image" entityId={artiste.id}
               mbid={artiste.musicbrainz_id ?? undefined}
@@ -853,6 +872,15 @@
       editionComplete = null;
     }}
   />
+{/if}
+
+{#if etiquettesArtiste?.id != null}
+  {@const cibleArtiste = { itemType: 'artist', itemId: etiquettesArtiste.id }}
+  {@const nomArtiste = etiquettesArtiste.name}
+  {#await import('./EtiquettesPanneau.svelte') then m}
+    <m.default cible={cibleArtiste} nom={nomArtiste}
+      onClose={() => (etiquettesArtiste = null)} />
+  {/await}
 {/if}
 
 <style>
