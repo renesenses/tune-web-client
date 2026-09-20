@@ -231,6 +231,44 @@ describe('#929 — rien ne se monte tant que le mode n’est pas choisi', () => 
   });
 });
 
+describe('#929 — le troisième cran n’existe que là où il rend quelque chose', () => {
+  it('🔴 hors de la vue Albums, la bascule garde DEUX modes et aucun carrousel ne se monte', async () => {
+    const el = await ecranMonte();
+    allerA(el, 'carousel');
+
+    const recents = el.querySelector<HTMLButtonElement>('button.tab[data-onglet="recent"]');
+    expect(recents, 'l’onglet « Ajouts récents » n’est plus nommé dans le DOM').not.toBeNull();
+    recents!.click();
+    flushSync();
+    await attendre();
+    flushSync();
+
+    expect(
+      el.querySelector('.carrou'),
+      'le carrousel fuit hors de la vue Albums, sur un onglet qui ne le rend pas',
+    ).toBeNull();
+
+    // Un clic ramène d'abord le mode retenu vers ce que cet onglet sait
+    // rendre : il PART donc du carrousel, sans effacer le choix.
+    expect(bascule(el).dataset.vue, 'le mode retenu a été effacé au changement d’onglet').toBe('carousel');
+    bascule(el).click();
+    flushSync();
+
+    // Et à partir de là, la bascule n'a plus que deux crans : un troisième qui
+    // ne changerait rien à l'écran se lirait comme une panne.
+    const vues = new Set<string>();
+    for (let i = 0; i < 4; i++) {
+      vues.add(bascule(el).dataset.vue!);
+      bascule(el).click();
+      flushSync();
+    }
+    expect(
+      [...vues].sort(),
+      'la bascule offre un cran mort hors de la vue Albums',
+    ).toEqual(['grid', 'list']);
+  });
+});
+
 describe('#929 — la molette et le clavier ne volent pas le défilement de la page', () => {
   /**
    * Pose sur un nœud les dimensions que le navigateur rendrait. jsdom ne met

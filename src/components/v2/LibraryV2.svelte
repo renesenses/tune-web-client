@@ -1751,7 +1751,10 @@
            offert sur un dépôt distant, faute de route chez lui. -->
       {#each ONGLETS as t (t.id)}
         {#if !t.adv || atLeast(level, 'intermediate')}
-          <button class="tab" class:active={tab === t.id} onclick={() => (tabChoisi = t.id)}>{$tr(t.label as any)}</button>
+          <!-- `data-onglet` : l'onglet se nomme dans le DOM. #929 s'en sert
+               pour prouver que le carrousel ne fuit pas hors de la vue Albums,
+               sans dépendre du libellé traduit ni de la position. -->
+          <button class="tab" data-onglet={t.id} class:active={tab === t.id} onclick={() => (tabChoisi = t.id)}>{$tr(t.label as any)}</button>
         {/if}
       {/each}
     </nav>
