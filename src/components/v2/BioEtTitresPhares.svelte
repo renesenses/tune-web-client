@@ -15,6 +15,7 @@
    * Lire depuis un titre enchaîne la SUITE de la liste affichée, locale ou de
    * service (`lireListe`), comme le best of de la fiche de service.
    */
+  import type { Snippet } from 'svelte';
   import type { Track } from '../../lib/types';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { t } from '../../lib/i18n';
@@ -30,8 +31,20 @@
     titres?: Track[];
     /** Change à chaque artiste : remet la biographie repliée. */
     cle?: unknown;
+    /**
+     * Ce qui AGIT sur la biographie, rendu dans son bloc — #1356.
+     *
+     * Bertrand, 20/09/2026 : « Enrichir la biographie » flottait au milieu de
+     * la fiche de bibliothèque, dans une section `.apropos` qui n'a rien à
+     * voir avec elle. C'est sur la biographie qu'il agit ; il se lit sous elle.
+     *
+     * 🔴 Le bloc s'ouvre alors même SANS biographie : c'est le cas où ce
+     * bouton sert le plus. Sans cette garde, l'artiste qui n'a pas encore de
+     * bio serait justement celui qui ne pourrait pas l'enrichir.
+     */
+    actionsBio?: Snippet;
   }
-  let { bio = null, titres = [], cle = undefined }: Props = $props();
+  let { bio = null, titres = [], cle = undefined, actionsBio = undefined }: Props = $props();
 
   const bioPropre = $derived((bio ?? '').trim());
 
@@ -45,12 +58,17 @@
   }
 </script>
 
-{#if bioPropre}
-  <section class="bloc">
+{#if bioPropre || actionsBio}
+  <section class="bloc bio-bloc">
     <h2>{$t('v2.art.bio' as any)}</h2>
-    <ClampedText lines={4} resetKey={cle}>
-      <p class="bio">{bioPropre}</p>
-    </ClampedText>
+    {#if bioPropre}
+      <ClampedText lines={4} resetKey={cle}>
+        <p class="bio">{bioPropre}</p>
+      </ClampedText>
+    {/if}
+    {#if actionsBio}
+      <div class="bio-actions">{@render actionsBio()}</div>
+    {/if}
   </section>
 {/if}
 
@@ -70,4 +88,6 @@
     text-transform: uppercase; letter-spacing: .05em;
   }
   .bio { margin: 0; font-size: 14px; line-height: 1.55; color: var(--v2-txt2); white-space: pre-line; max-width: 80ch; }
+  /* Sous la biographie, jamais au milieu de la page (#1356). */
+  .bio-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 </style>
