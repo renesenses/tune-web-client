@@ -13,7 +13,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync, type Component } from 'svelte';
 import ConcertsView from '../../components/v2-heritage/ConcertsView.svelte';
-import OfflineView from '../../components/v2-heritage/OfflineView.svelte';
 import DashboardView from '../../components/v2-heritage/DashboardView.svelte';
 import AjoutsRecentsV2 from '../../components/v2/AjoutsRecentsV2.svelte';
 import YouTubeDecouverteV2 from '../../components/v2/YouTubeDecouverteV2.svelte';
@@ -41,8 +40,6 @@ function corpsPour(url: string): unknown {
   }
   if (url.includes('/library/albums')) return [{ ...ALBUM, title: 'Selected Ambient Works', artist_name: 'Aphex Twin' }];
   // Concerts : le greffon n'est pas installé sur le .18 — 404 traité plus bas.
-  if (url.includes('/offline/status')) return { total: 0, pending: 0, completed: 0, size_bytes: 0, cache_dir: 'offline_cache' };
-  if (url.includes('/offline/downloads')) return [];
   // Les palmarès rendent des LISTES ; le tableau de bord, un objet. Les
   // confondre fait échouer la simulation, pas l'écran.
   if (/\/library\/history\/top-(tracks|artists|albums)/.test(url)) return [];
@@ -155,12 +152,12 @@ describe('écrans hérités montés dans la coquille v2', () => {
     expect(el.textContent?.trim().length, 'l’écran est vide').toBeGreaterThan(0);
   });
 
-  it('Hors ligne se monte et demande l’état au serveur', async () => {
-    const el = await monter(OfflineView as any, {});
-    sansErreurDExecution();
-    expect(appels.some((u) => u.includes('/offline/status'))).toBe(true);
-    expect(el.textContent?.trim().length).toBeGreaterThan(0);
-  });
+  // 🔴 L'écran « Écoute hors-ligne » a été RETIRÉ le 20/09/2026 sur demande de
+  // Bertrand : son cas de montage est parti avec lui. Ce qui en reste est la
+  // garde de son ABSENCE, dans `vuesHeriteesLot4.test.ts` (« Écoute hors-ligne
+  // a bien DISPARU, sans laisser de moignon ») — sans quoi la suppression ne
+  // serait tenue par rien. Le décor `/offline/*` part avec le cas : un décor
+  // que plus aucun cas ne lit se périme en silence.
 
   it('🔴 Tableau de bord : un corps SANS `hourly` ne blanchit pas l’écran', async () => {
     // Le cas qui levait : `data.hourly.length` sur un serveur qui n'envoie pas

@@ -112,8 +112,15 @@ describe('#3709 — quel artiste du service est le nôtre', () => {
     ).toBe('A2');
   });
 
-  it('à défaut, le PREMIER — le service classe par pertinence', () => {
-    expect(apparierArtiste([{ id: 'A1', name: 'Souchon Alain' }], 'Alain Souchon')).toBe('A1');
+  // ⚠️ Attente RÉVISÉE par #1373. Elle figeait le repli « à défaut, le
+  // PREMIER », qui est exactement ce que FabienM a vu en 0.9.158 : sa fiche
+  // « Matt Elliott » recevait la discographie de Keystone Homeschool, parce que
+  // le service, ne connaissant pas l'artiste, rend quand même des résultats.
+  // « Souchon Alain » n'est pas « Alain Souchon » pour la normalisation (ordre
+  // des mots) : ce service n'aura donc pas de section, au lieu d'en avoir une
+  // fausse.
+  it('sans correspondance de nom, AUCUN artiste n’est adopté (#1373)', () => {
+    expect(apparierArtiste([{ id: 'A1', name: 'Souchon Alain' }], 'Alain Souchon')).toBeNull();
   });
 
   it('`source_id` fait foi quand `id` manque, et rien ⇒ null', () => {
@@ -368,5 +375,49 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
       'la fiche ouverte n’a pas demandé les pistes du service.\n' +
         `URL vues : ${appels.join(' | ')}`,
     ).toBe(true);
+  });
+});
+
+// #1373 — FabienM, 0.9.158 : sa fiche « Matt Elliott » proposait les albums de
+// Keystone Homeschool. La règle d'avant prenait le nom exact « à défaut, le
+// PREMIER » résultat du service : quand le service ne connaît pas l'artiste, il
+// rend quand même des résultats, et la fiche devient celle de quelqu'un d'autre.
+describe('#1373 — le NOM, ou rien', () => {
+  const candidats = (...noms: string[]) => noms.map((name, i) => ({ id: `id-${i}`, name }));
+
+  it('le cas de Fabien : aucun nom ne correspond ⇒ aucune section', () => {
+    expect(apparierArtiste(candidats('Keystone Homeschool', 'Matt Ellis'), 'Matt Elliott')).toBeNull();
+  });
+
+  it('le bon artiste est retenu, même s’il n’est pas premier', () => {
+    expect(apparierArtiste(candidats('Keystone Homeschool', 'Matt Elliott'), 'Matt Elliott')).toBe('id-1');
+  });
+
+  it('casse, accents, ponctuation et article de tête ne séparent pas', () => {
+    expect(apparierArtiste(candidats('the beatles'), 'The Beatles')).toBe('id-0');
+    expect(apparierArtiste(candidats('Beatles'), 'The Beatles')).toBe('id-0');
+    expect(apparierArtiste(candidats('AC/DC'), 'AC-DC')).toBe('id-0');
+    expect(apparierArtiste(candidats('Björk'), 'Bjork')).toBe('id-0');
+    expect(apparierArtiste(candidats('Sigur Rós'), 'sigur ros')).toBe('id-0');
+  });
+
+  it('🔴 contre-épreuve : un nom PROCHE ne suffit pas', () => {
+    expect(apparierArtiste(candidats('Matt Elliott Trio'), 'Matt Elliott')).toBeNull();
+    expect(apparierArtiste(candidats('Bach'), 'Johann Sebastian Bach')).toBeNull();
+  });
+
+  it('un nom réduit à un article reste ce nom', () => {
+    expect(apparierArtiste(candidats('The'), 'The')).toBe('id-0');
+  });
+
+  it('un nom vide ou sans lettre ne se rapproche de rien', () => {
+    expect(apparierArtiste(candidats('Matt Elliott'), '')).toBeNull();
+    expect(apparierArtiste(candidats('Matt Elliott'), '   ')).toBeNull();
+    expect(apparierArtiste(candidats('???'), '???')).toBeNull();
+  });
+
+  it('source_id sert quand id manque, et un identifiant vide ne vaut rien', () => {
+    expect(apparierArtiste([{ source_id: 'sid', name: 'Matt Elliott' }], 'Matt Elliott')).toBe('sid');
+    expect(apparierArtiste([{ id: '', name: 'Matt Elliott' }], 'Matt Elliott')).toBeNull();
   });
 });
