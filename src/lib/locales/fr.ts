@@ -3339,6 +3339,7 @@ export default {
   "v2.lib.emptyDepot": "{nom} ({hote}) n’expose aucun album.",
   "v2.lib.viewList": "Affichage liste",
   "v2.lib.viewGrid": "Affichage grille",
+  "v2.lib.viewCarousel": "Affichage carrousel",
   "v2.lib.starting": "Lancement…",
   "v2.fav.noMatch": "Aucun résultat pour cette recherche.",
   "v2.fav.emptyAlbums": "Aucun album en favori.",

@@ -76,6 +76,16 @@
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { ciblesPourAlbum, libelleCible, type CollectionCible, type EntreeCible } from '../../lib/collectionsCibles';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
+  // #929 — le carrousel emprunte le geste des rangées éditoriales, il ne le
+  // réécrit pas. C'est l'action de #1137, corrigée par #1327 : molette,
+  // `Maj`+molette, flèches ←/→, et surtout la règle « la page passe d'abord ».
+  import { defilementHorizontal } from '../../lib/defilementHorizontal';
+  // #929, second jet — la géométrie de la bande et l'album central. Tout y est
+  // CALCULÉ à partir de la place disponible : aucune vignette n'est interrogée,
+  // donc le suivi coûte la même chose sur 4 338 albums que sur cinquante.
+  import {
+    centrageCarrousel, geometrieCarrousel, type GeometrieCarrousel,
+  } from '../../lib/centreCarrousel';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
@@ -742,9 +752,35 @@
     if (!availableSorts.some((s2) => s2.k === sortKey)) sortKey = 'title';
   });
 
-  // ── Affichage grille / liste ──────────────────────────────────────────
-  type Display = 'grid' | 'list';
-  let display = $state<Display>(lireChoix('lib.display', ['grid', 'list'] as const, 'grid'));
+  // ── Affichage grille / liste / carrousel ──────────────────────────────
+  /**
+   * #929 — TROIS modes de parcours, et le carrousel est le troisième.
+   *
+   * OLIVE, fil 1483, 19/08/2026 : « Pourrait-on envisager une vue des albums
+   * en 3D comme sur JRiver ». La réponse de Bertrand, le même jour, déplace la
+   * demande et c'est celle-là qu'on sert :
+   *
+   * > « On écoute en grand, mais on parcourt sa bibliothèque en petit, sur une
+   * > grille pensée pour un bureau. […] Le plaisir vient des pochettes en
+   * > grand, pas de la troisième dimension — et les deux ne sont pas liés. »
+   *
+   * 🔴 IL S'AJOUTE, IL NE REMPLACE PAS. La grille reste le mode par défaut et
+   * reste atteignable d'un clic : la réserve posée le 19/08 — « superbe sur
+   * cinquante albums, hostile sur deux mille » — vaut toujours, et c'est
+   * l'utilisateur qui tranche pour sa discothèque, pas nous.
+   */
+  type Display = 'grid' | 'list' | 'carousel';
+  const AFFICHAGES = ['grid', 'list', 'carousel'] as const;
+  /** Le libellé d'un mode. La bascule annonce celui où elle MÈNE. */
+  const LIBELLE_AFFICHAGE: Record<Display, string> = {
+    grid: 'v2.lib.viewGrid', list: 'v2.lib.viewList', carousel: 'v2.lib.viewCarousel',
+  };
+  /**
+   * 🔴 `lireChoix` VALIDE contre cette liste : un `'carousel'` écrit puis
+   * retiré de `AFFICHAGES` retomberait silencieusement sur la grille. C'est ce
+   * qui rend le choix durable, et c'est ce que le témoin de rechargement garde.
+   */
+  let display = $state<Display>(lireChoix('lib.display', AFFICHAGES, 'grid'));
   $effect(() => ecrireChoix('lib.display', display));
 
   /** Histogramme : une barre par année, du minimum au maximum RÉELS de la
@@ -857,7 +893,11 @@
   const present = $derived(railUtile ? new Set(affiches.map(firstLetter)) : new Set<string>());
   let gridEl: HTMLDivElement | undefined = $state();
   function jump(L: string) {
-    gridEl?.querySelector<HTMLElement>(`[data-letter="${L}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // `inline:'start'` — #929 : en carrousel, la lettre se rejoint en LARGEUR.
+    // Sans lui, le rail A–Z restait muet dans ce mode (`block` ne décide que du
+    // sens vertical). Il ne coûte rien à la grille ni à la liste, qui ne
+    // débordent pas horizontalement.
+    gridEl?.querySelector<HTMLElement>(`[data-letter="${L}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
   }
 
   /**
@@ -982,6 +1022,40 @@
    */
   const ONGLETS = $derived(TABS.filter((t2) => !depot || t2.id !== 'recent'));
   const tab = $derived<Tab>(ONGLETS.some((t2) => t2.id === tabChoisi) ? tabChoisi : 'albums');
+  /**
+   * 🔴 Le carrousel n'est proposé QUE là où il rend quelque chose.
+   *
+   * Seul l'onglet Albums porte la branche carrousel ; les facettes, les
+   * pistes et les ajouts récents ont leurs propres rendus. Sans cette garde,
+   * la bascule y offrirait un troisième cran sans effet — un clic mort, que
+   * la Bibliothèque vient justement de payer ailleurs (#1957, la pastille
+   * d'année qui ne se retirait plus). Un carrousel déjà choisi y retombe donc
+   * sur la grille, sans effacer le choix retenu pour la vue Albums.
+   */
+  const modesAffichage = $derived<readonly Display[]>(
+    tab === 'albums' ? AFFICHAGES : (['grid', 'list'] as const),
+  );
+  const affichageSuivant = $derived<Display>(
+    modesAffichage.indexOf(display) < 0
+      ? 'grid'
+      : modesAffichage[(modesAffichage.indexOf(display) + 1) % modesAffichage.length],
+  );
+  /** Le carrousel est-il RÉELLEMENT à l'écran ? Le rail et le corps s'y règlent. */
+  const enCarrousel = $derived(display === 'carousel' && tab === 'albums');
+
+  /**
+   * #929, second jet — l'album mis en avant, et la taille de la bande.
+   *
+   * 🔴 Les deux viennent de `centrageCarrousel`, jamais d'une mesure faite
+   * ici : deux endroits qui décideraient de la géométrie divergeraient, et
+   * l'album DÉSIGNÉ ne serait plus celui qui GRANDIT.
+   */
+  let iCentre = $state(0);
+  let geoCarrou = $state<GeometrieCarrousel>(geometrieCarrousel(0, 0));
+  // Des fonctions stables : recréées à chaque rendu, elles relanceraient
+  // l'action en boucle.
+  const marquerCentre = (i: number) => { iCentre = i; };
+  const poserGeometrie = (g: GeometrieCarrousel) => { geoCarrou = g; };
 
   /**
    * Les filtres portent sur les ALBUMS — qualité, fréquence, format,
@@ -1702,7 +1776,10 @@
            offert sur un dépôt distant, faute de route chez lui. -->
       {#each ONGLETS as t (t.id)}
         {#if !t.adv || atLeast(level, 'intermediate')}
-          <button class="tab" class:active={tab === t.id} onclick={() => (tabChoisi = t.id)}>{$tr(t.label as any)}</button>
+          <!-- `data-onglet` : l'onglet se nomme dans le DOM. #929 s'en sert
+               pour prouver que le carrousel ne fuit pas hors de la vue Albums,
+               sans dépendre du libellé traduit ni de la position. -->
+          <button class="tab" data-onglet={t.id} class:active={tab === t.id} onclick={() => (tabChoisi = t.id)}>{$tr(t.label as any)}</button>
         {/if}
       {/each}
     </nav>
@@ -1919,14 +1996,38 @@
         </button>
       {/if}
       {/if}
-      <button class="viewtog" onclick={() => (display = display === 'grid' ? 'list' : 'grid')}
-        aria-label={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}
-        title={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}>
+      <!-- #929 — la bascule tourne sur TROIS modes. `data-vue` porte le mode
+           COURANT : c'est ce que lit le témoin, et c'est ce qui rend le
+           troisième mode atteignable sans inventer un second bouton. L'icône
+           et le libellé, eux, annoncent le mode où le clic MÈNE. -->
+      <button class="viewtog" data-vue={display} onclick={() => (display = affichageSuivant)}
+        aria-label={$tr(LIBELLE_AFFICHAGE[affichageSuivant] as any)}
+        title={$tr(LIBELLE_AFFICHAGE[affichageSuivant] as any)}>
         {#if display === 'grid'}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        {:else if display === 'list'}
+          <!-- Trois pochettes de front, celle du milieu en avant : le geste du
+               carrousel, sans promettre une troisième dimension qu'on ne rend pas. -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="4" height="10"/><rect x="8.5" y="4" width="7" height="16"/><rect x="18" y="7" width="4" height="10"/></svg>
         {:else}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         {/if}
+        <!--
+          #929 — LA BASCULE DIT OÙ L'ON EST.
+
+          Sur sa capture, Bertrand ne voyait qu'une icône de grille isolée :
+          rien n'indiquait le mode courant ni qu'il existât un troisième cran.
+          L'icône, elle, annonce la DESTINATION — c'est la convention de ce
+          bouton depuis qu'il existe, et la changer tromperait ceux qui la
+          connaissent. Une pastille par cran, allumée sur le mode courant,
+          ajoute le repère manquant sans toucher au contrôle.
+
+          `aria-hidden` : le libellé du bouton dit déjà tout à un lecteur
+          d'écran, et trois puces vides n'y ajouteraient que du bruit.
+        -->
+        <span class="vpts" aria-hidden="true">
+          {#each modesAffichage as m (m)}<i class:on={m === display}></i>{/each}
+        </span>
       </button>
     {/if}
   </div>
@@ -2049,9 +2150,12 @@
     </div>
   {/if}
 
-  <div class="body">
+  <div class="body" class:encarrousel={enCarrousel}>
     {#if tab === 'recent'}
-      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display} />
+      <!-- #929 — le carrousel est le mode de parcours de la vue ALBUMS. Les
+           ajouts récents n'en connaissent que deux ; ils retombent donc sur la
+           grille plutôt que de recevoir un mode qu'ils ne savent pas rendre. -->
+      <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
     {:else if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
            déduction depuis les albums chargés. Ils ne passent donc pas par les
@@ -2075,7 +2179,7 @@
            que laissé à promettre un saut qui atterrirait au hasard. La frise
            des années reste le repère de ces deux tris. -->
       {#if navMode === 'alpha' && tab === 'albums' && railUtile}
-        <div class="rail">
+        <div class="rail" class:couche={enCarrousel}>
           {#each ALPHA as L (L)}
             <button class="rl" class:hot={present.has(L)} disabled={!present.has(L)} onclick={() => jump(L)}>{L}</button>
           {/each}
@@ -2249,6 +2353,64 @@
         </div>
         {/if}
 
+      {:else if display === 'carousel'}
+        <!--
+          #929 — LE CARROUSEL.
+
+          🔴 Il itère `affiches`, la MÊME source que la grille et la liste.
+          Pas de `.slice()`, pas de second tri, pas de « les cinquante
+          premiers » : le nombre d'albums affichés ne change pas quand on
+          change de mode, et les filtres et le tri de l'écran continuent de
+          décider. C'est le deuxième témoin du ticket.
+
+          🔴 Il n'existe QUE dans cette branche. Monter une seconde liste en
+          permanence sous la grille est le sujet de #1256, et on n'y ajoute
+          pas : `{:else if}` garantit qu'un seul mode est dans l'arbre.
+
+          🔴 Le geste est celui des rangées éditoriales, EMPRUNTÉ et non
+          recopié (`use:defilementHorizontal`, #1137 puis #1327). Il porte la
+          molette, `Maj`+molette et les flèches, et il laisse la molette
+          verticale à la page tant qu'elle peut descendre — le défaut que
+          Gros Bidon a signalé le 20/09 et qu'on ne réintroduit pas.
+
+          Pas d'intertitre d'année ici : couché, il couperait la rangée en
+          tronçons sans en dire l'endroit. La frise et le rail restent les
+          repères, et `jump()` sait désormais viser aussi en largeur.
+        -->
+        {#if !affiches.length}
+          <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
+        {:else}
+        <div class="carrou" use:defilementHorizontal bind:this={gridEl}
+             use:centrageCarrousel={{ nombre: affiches.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
+             style="--ccw:{geoCarrou.cote}px; --cch:{geoCarrou.hauteurCarte}px; --ccg:{geoCarrou.gouttiere}px; --ccp:{geoCarrou.margeBord}px; --cce:{geoCarrou.echelle}"
+             role="group" aria-label={$tr('v2.lib.viewCarousel' as any)}>
+          {#each affiches as a, i (a.id)}
+            <div class="ccard" class:centre={i === iCentre} data-letter={firstLetter(a)}>
+              <div class="cover">
+                <PochetteActions
+                  favori={depot || a.id == null ? null : { albumId: a.id }}
+                  etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+                  onEditer={depot ? null : () => (enEdition = a)}
+                  onLire={() => lireAlbum(a)}
+                  onOuvrir={() => ouvrirCalqueAlbum(a)}
+                  menu={depot ? [] : entreesCollection(a)}
+                  nom={a.title}
+                >
+                  <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+                </PochetteActions>
+                {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
+              </div>
+              <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
+                <div class="ct" title={a.title}>{a.title}</div>
+                <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+                <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
+                {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+              </button>
+            </div>
+          {/each}
+        </div>
+        {/if}
+
       {:else}
         {#if !affiches.length}
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
@@ -2364,6 +2526,23 @@
   .drop .menu button.on{color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
 
   .body{flex:1; min-height:0; display:flex; padding-left:18px}
+  /*
+    #929 — EN CARROUSEL, LE RAIL PASSE SOUS LA BANDE.
+
+    Sur la capture de Bertrand, le rail A–Z restait une colonne verticale
+    courant sur toute la hauteur, à côté d'une rangée horizontale. Un rail est
+    un repère SPATIAL : il dit où l'on est dans la liste, et il ne peut le dire
+    qu'en pointant dans la direction où la liste se déroule. Vertical contre
+    une bande horizontale, il oblige l'oeil à traduire une direction en une
+    autre, et ses lettres ne désignent plus rien de ce qu'on voit.
+
+    On le couche donc, et on le met SOUS la bande — c'est là qu'il y a de la
+    place, et c'est là que l'oeil le cherche quand la liste va vers la droite.
+    `column-reverse` parce que le rail est le PREMIER enfant du corps : en
+    `column` il se retrouverait au-dessus, entre la barre d'outils et les
+    pochettes.
+  */
+  .body.encarrousel{flex-direction:column-reverse}
   .state{flex:1; display:grid; place-items:center; color:var(--v2-txt3); font-size:15px}
   /* Rail A-Z : c'est un REPERE, il doit se lire d'un coup d'oeil et se viser
      au doigt. Auparavant 11 px colles a 1 px d'intervalle contre la grille —
@@ -2371,6 +2550,11 @@
   .rail{display:flex; flex-direction:column; justify-content:center; gap:2px;
     padding:10px 12px 10px 4px; margin-right:6px; position:sticky; top:0;
     border-right:1px solid var(--v2-line)}
+  /* Couché : il se déroule en ligne, se pose sur un filet horizontal, et perd
+     son adhérence verticale — `sticky` n'a plus de sens sur une seule ligne. */
+  .rail.couche{flex-direction:row; position:static; margin:6px 0 0; padding:6px 12px;
+    overflow-x:auto; scrollbar-width:none;
+    border-right:0; border-top:1px solid var(--v2-line)}
   .rl{width:22px; height:20px; display:grid; place-items:center; border:0; background:transparent;
     font:600 11px var(--v2-mono); color:var(--v2-txt3); cursor:pointer; border-radius:5px; transition:.12s}
   .rl:disabled{opacity:.22; cursor:default}
@@ -2449,6 +2633,12 @@
     border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); display:grid; place-items:center}
   .viewtog:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
   .viewtog svg{width:16px; height:16px}
+  /* #929 — une pastille par cran, allumée sur le mode courant. Le bouton
+     empile icone puis pastilles : 16 + 3 + 4 = 23 px dans une boite de 38. */
+  .viewtog:has(.vpts){display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px}
+  .vpts{display:flex; gap:3px}
+  .vpts i{width:4px; height:4px; border-radius:50%; background:var(--v2-line2)}
+  .vpts i.on{background:var(--v2-acc1)}
 
   /* Vues par facette : une section par valeur (artiste, genre, année, label). */
   .facets{flex:1; overflow-y:auto; padding:8px 30px 40px}
@@ -2557,6 +2747,75 @@
   .grid{flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr));
     gap:22px 18px; align-content:start; padding:8px 30px 40px}
   .grid::-webkit-scrollbar{width:9px}.grid::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  /*
+    #929 — LE CARROUSEL : UNE BANDE, ET L'ALBUM DU MILIEU EN GRAND.
+
+    Bertrand, 20/09/2026, capture d'un 27 pouces à l'appui : « il faudrait
+    mettre en plus gros l'album du milieu et actif », et la bande n'occupait
+    qu'un tiers de la hauteur. Les deux se règlent au même endroit — la
+    géométrie est CALCULÉE (voir `lib/centreCarrousel`) et descendue ici en
+    variables. Aucune taille de pochette n'est écrite dans ce fichier : une
+    constante en dur ne peut pas être juste à la fois sur un portable et sur
+    un 27 pouces.
+
+      --ccw  le côté d'une pochette      --ccg  la gouttière
+      --cch  la hauteur d'une carte      --ccp  le retrait aux deux bouts
+      --cce  l'agrandissement de la pochette centrale
+
+    🔴 PAS DE `scroll-snap`. Les flèches déplacent la bande de `PAS_FLECHE`
+    (220 px, la mesure des rangées éditoriales), et le pas d'une vignette de
+    carrousel en vaut de 175 à 700 selon l'écran. Un calage par proximité
+    ramènerait la bande là d'où elle vient à chaque flèche : la touche
+    paraîtrait morte. La mise en avant, elle, n'a pas besoin de calage — elle
+    se recalcule en continu depuis la position de défilement.
+
+    `align-items:center` et une origine de transformation au centre : la
+    pochette centrale grandit symétriquement, et la place réservée au-dessus
+    et au-dessous lui est garantie par le calcul (`hauteurBande <= hauteur`).
+  */
+  .carrou{flex:1; min-height:0; display:flex; align-items:center; gap:var(--ccg);
+    overflow-x:auto; overflow-y:hidden; padding:0 var(--ccp); scrollbar-width:thin; outline:none}
+  .carrou::-webkit-scrollbar{height:9px}
+  .carrou::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
+  /* Le focus se voit : l'action rend la rangée atteignable au clavier, et une
+     cible de tabulation invisible est une cible perdue. */
+  .carrou:focus-visible{box-shadow:inset 0 0 0 2px var(--v2-acc1); border-radius:var(--v2-r-card)}
+  /*
+    🔴 `flex:0 0` — la vignette ne se laisse ni étirer ni comprimer. Sans lui,
+    le défaut (`1 1 auto`) écraserait quatre mille pochettes dans la largeur de
+    l'écran, et le pas cesserait d'être constant : le calcul de l'album central
+    désignerait alors n'importe qui.
+
+    Même économie que la grille : hors du cadre, une vignette de trente nœuds
+    ne coûte ni style, ni disposition, ni peinture.
+  */
+  .ccard{flex:0 0 var(--ccw); width:var(--ccw);
+    border:0; background:transparent; text-align:left; padding:0; color:inherit;
+    transform-origin:center center; transition:transform .22s ease;
+    content-visibility:auto; contain-intrinsic-size:auto var(--ccw) auto var(--cch)}
+  /*
+    🔴 UNE TRANSFORMATION, ET RIEN QUI OCCUPE DE LA PLACE.
+
+    Une largeur, une marge ou une police plus grande décaleraient toute la
+    bande à chaque fois qu'une pochette devient centrale : le calage se
+    mettrait à glisser sous les doigts, et l'album désigné ne serait plus
+    celui qu'on vise. `transform` est ignoré de la mise en page — la géométrie
+    ne bouge pas d'un pixel.
+
+    `z-index` sans `position` : un élément de `flex` y répond, et la pochette
+    agrandie passe ainsi au-dessus de ses voisines. Elle ne les touche pas
+    pour autant — la gouttière est calculée pour absorber l'agrandissement.
+  */
+  .ccard.centre{transform:scale(var(--cce)); z-index:1}
+  /*
+    🔴 « Une pochette qui enfle à chaque cran est insupportable pour qui a
+    désactivé les animations. » Le changement de taille reste — c'est lui qui
+    DIT quel album est courant, et le retirer retirerait la fonction — mais il
+    devient instantané.
+  */
+  @media (prefers-reduced-motion: reduce){
+    .ccard{transition:none}
+  }
   .card{border:0; background:transparent; text-align:left; padding:0; transition:.18s; opacity:1; color:inherit;
     /*
       Les vignettes hors écran ne sont plus rendues.

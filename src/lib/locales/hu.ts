@@ -3275,6 +3275,7 @@ export default {
   "v2.lib.emptyDepot": "A(z) {nom} ({hote}) egyetlen albumot sem kínál.",
   "v2.lib.viewList": "Lista nézet",
   "v2.lib.viewGrid": "Rács nézet",
+  "v2.lib.viewCarousel": "Körhinta nézet",
   "v2.lib.starting": "Indítás…",
   "v2.fav.noMatch": "Nincs találat erre a keresésre.",
   "v2.fav.emptyAlbums": "Nincs kedvenc album.",

@@ -3316,6 +3316,7 @@ export default {
   "v2.lib.emptyDepot": "{nom} ({hote}) visar inga album.",
   "v2.lib.viewList": "Listvy",
   "v2.lib.viewGrid": "Rutnätsvy",
+  "v2.lib.viewCarousel": "Karusellvy",
   "v2.lib.starting": "Startar…",
   "v2.fav.noMatch": "Inget resultat för den här sökningen.",
   "v2.fav.emptyAlbums": "Inga favoritalbum.",
