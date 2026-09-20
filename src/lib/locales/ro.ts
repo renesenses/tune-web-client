@@ -3226,7 +3226,6 @@ export default {
   "v2.smart.sourceCatalogue": "Catalog {service}",
   "v2.smart.sourceCatalogueAide": "Caută în catalogul serviciului. Adăugați o regulă „Artist este…” sau „Album este…” care spune ce anume să caute.",
   "v2.smart.catalogueSansCible": "O sursă „Catalog” are nevoie de o regulă „Artist este…” sau „Album este…”: niciun serviciu nu își enumeră tot catalogul.",
-  "v2.smart.catalogueHorsPlaylist": "Catalogul poate fi căutat doar dintr-o colecție inteligentă; aici această sursă nu va returna nimic.",
   "v2.smart.favColAlbum": "Album favorit",
   "v2.smart.favColArtist": "Artist favorit",
   "v2.smart.favColTrack": "Conține o piesă favorită",
