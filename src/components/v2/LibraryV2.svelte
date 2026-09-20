@@ -50,7 +50,7 @@
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
   import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
-  import { melangee } from '../../lib/shuffle';
+  import { melangee, rangAleatoire, graineAleatoire } from '../../lib/shuffle';
   import { optionsAleatoire } from '../../lib/porteeAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
@@ -80,7 +80,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
-  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
+  import { lireChoix, ecrireChoix, lireNombre } from '../../lib/preferencesEcran';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
@@ -411,6 +411,14 @@
         );
       case 'added':
         return list.sort((a, b) => (b.added_at ?? 0) - (a.added_at ?? 0) || byTitle(a, b));
+      case 'random':
+        // Rang dérivé de `(id, graine)` : reproductible tant que la graine ne
+        // change pas. `byTitle` en second départage la collision de rang, pour
+        // que l'ordre reste TOTAL — sans quoi deux albums pourraient permuter
+        // d'un recalcul à l'autre selon l'implémentation du tri du moteur.
+        return list.sort((a, b) =>
+          rangAleatoire(cleTirage(a), graineTirage) - rangAleatoire(cleTirage(b), graineTirage) || byTitle(a, b),
+        );
       case 'dr':
         // Les albums SANS tag sortent en dernier, jamais à DR 0 : les annoncer
         // à zéro serait un mensonge (`NULLS LAST` côté serveur, même règle).
@@ -587,7 +595,7 @@
   // « Ajout récent » n'est propose que si la donnee existe : sur une
   // bibliotheque importee d'un ancien serveur, `added_at` est souvent vide,
   // et un tri qui ne trie rien est pire qu'un tri absent.
-  type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr';
+  type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr' | 'random';
   // `l` porte une CLÉ, pas un libellé : le menu de tri restait en français
   // quelle que soit la langue (Bertrand, 06/09/2026).
   const SORTS: { k: SortKey; l: string }[] = [
@@ -597,6 +605,24 @@
     // interface ne l'avait jamais repris. Décroissant : on trie par DR pour
     // remonter ses disques les PLUS dynamiques, pas les plus écrasés.
     { k: 'dr', l: 'library.sortDynamicRange' },
+    /**
+     * 🔴 #4558 — Steve Taylor, fil 1671, 19/09/2026 : « Could you reinstate
+     * the "random" sort for albums in the library view please? »
+     *
+     * Le tri aléatoire (#3074, livré en v0.9.131) vivait dans l'ancienne
+     * interface, que la phase 5 a retirée (`d5ed7deb`) ; la v2 ne l'avait
+     * jamais repris. Ses deux libellés étaient restés dans les onze
+     * dictionnaires, sans consommateur.
+     *
+     * TRI CLIENT, et non `sort=random&seed=` du serveur — qui sait pourtant le
+     * faire (`albums.rs:115`). Repasser par le chemin TRIÉ du serveur
+     * rouvrirait deux défauts mesurés : il perd `added_at` (voir
+     * `v2Bootstrap.loadAlbums`, mesure du 05/09) et il ne sert pas
+     * `dynamic_range` (#4521) — l'écran perdrait deux de ses autres tris pour
+     * en gagner un. Et il n'y a rien à paginer : la v2 tient toute sa
+     * bibliothèque en mémoire et trie les cinq autres critères elle-même.
+     */
+    { k: 'random', l: 'library.sortRandom' },
   ];
   /**
    * 🔴 RETENU d'une visite à l'autre (Lulu, forum, 05/09/2026 : « figer le
@@ -605,6 +631,30 @@
    */
   let sortKey = $state<SortKey>(lireChoix('lib.sort', SORTS.map((s2) => s2.k), 'title'));
   $effect(() => ecrireChoix('lib.sort', sortKey));
+  /**
+   * La GRAINE du tri aléatoire (#4558). C'est elle, et elle seule, qui fixe
+   * l'ordre : `sorted` est un `$derived.by` recalculé à chaque frappe de
+   * recherche, à chaque filtre et à l'arrivée de la seconde page d'albums —
+   * un mélange tiré là re-battrait les cartes sous le doigt. Le rang venant de
+   * `(id, graine)`, l'ordre relatif de deux albums ne dépend jamais des
+   * autres : il tient donc aussi sous un filtre, et une liste qui s'allonge
+   * n'en déplace aucun.
+   *
+   * Retenue d'une visite à l'autre, comme le choix de tri lui-même : revenir
+   * sur la Bibliothèque pour retrouver un ordre neuf ferait perdre l'album
+   * qu'on venait de repérer.
+   */
+  let graineTirage = $state<number>(lireNombre('lib.sortSeed') ?? graineAleatoire());
+  $effect(() => ecrireChoix('lib.sortSeed', String(graineTirage)));
+  /** « Re-tirer au hasard » n'est rien d'autre que « nouvelle graine ». */
+  function reTirer(): void { graineTirage = graineAleatoire(); }
+  /**
+   * Ce sur quoi porte le tirage. `id` peut être nul — un album d'un dépôt
+   * distant n'en a pas toujours — et deux albums sans identifiant ne doivent
+   * pas partager le même rang : on retombe alors sur le titre, qui les
+   * distingue, plutôt que sur un 0 commun.
+   */
+  const cleTirage = (a: Album) => a.id ?? a.title ?? '';
   const hasAddedAt = $derived(src.some((a) => (a.added_at ?? 0) > 0));
   /**
    * Le DR d'un album, en nombre — `null` quand il n'est pas tagué.
@@ -1759,6 +1809,16 @@
           {/each}
         </div>
       </div>
+      <!-- #4558 — le re-tirage n'a de sens que sur un tirage, et #3074 avait
+           jugé les deux moitiés indissociables : un ordre aléatoire figé qu'on
+           ne peut pas relancer ne sert qu'une fois. -->
+      {#if sortKey === 'random'}
+        <button class="viewtog" onclick={reTirer}
+          aria-label={$tr('library.reshuffle' as any)} title={$tr('library.reshuffle' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+        </button>
+      {/if}
       <button class="viewtog" onclick={() => (display = display === 'grid' ? 'list' : 'grid')}
         aria-label={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}
         title={$tr((display === 'grid' ? 'v2.lib.viewList' : 'v2.lib.viewGrid') as any)}>

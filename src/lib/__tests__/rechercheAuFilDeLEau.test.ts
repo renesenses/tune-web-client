@@ -40,6 +40,32 @@ const reponse = (...svcs: string[]) =>
 const apres = <T,>(ms: number, v: T) =>
   new Promise<T>((res) => setTimeout(() => res(v), ms));
 
+/**
+ * Un QUAI : une promesse que le cas résout lui-même, quand il veut — #1336.
+ *
+ * 🔴 L'ordre d'arrivée ne se fabrique pas avec l'horloge. La version d'avant
+ * donnait à chaque service un `setTimeout` — tidal 10 ms, qobuz 20 ms — et
+ * pariait sur l'ordre des échéances. Or `chercherAuFilDeLEau` lance les appels
+ * par un `plan.services.map(…)`, dans l'ordre du plan : les trois minuteries ne
+ * partent PAS au même instant. Il suffit d'une préemption de plus de 10 ms
+ * entre deux tours du `.map` — ordinaire sous huit portes `npm test`
+ * simultanées — pour que l'échéance de qobuz précède celle de tidal. Mesuré
+ * sur Shrek le 20/09/2026 : 1 porte rouge sur 24, et le rouge accusait
+ * `chercherAuFilDeLEau` de poser dans le désordre.
+ *
+ * Avec un quai, l'ordre d'arrivée est une DONNÉE du cas, pas un pari. Et le cas
+ * y gagne : il peut lire l'état après CHAQUE arrivée, ce que la version
+ * chronométrée ne permettait pas.
+ */
+function quai<T>() {
+  let livrer!: (v: T) => void;
+  const promesse = new Promise<T>((res) => { livrer = res; });
+  return { promesse, livrer };
+}
+
+/** Laisse les `.then()` de la volée s'exécuter. */
+const souffler = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+
 describe('le PLAN du deuxième temps', () => {
   it('des services connus : un appel par service', () => {
     expect(planDuDeuxiemeTemps(['qobuz', 'tidal'])).toEqual({
@@ -93,33 +119,61 @@ describe('le bloc d’un service se lit sous SON nom', () => {
 
 describe('par service : chacun se pose DÈS QU’IL répond', () => {
   it('🔴 le rapide n’attend pas le lent', async () => {
-    const delais: Record<string, number> = { tidal: 10, qobuz: 20, youtube: 200 };
+    // Demandés dans l'ordre youtube, qobuz, tidal ; ils répondent dans l'ordre
+    // INVERSE, et chacun doit se poser dès SON arrivée.
+    const quais: Record<string, ReturnType<typeof quai<FederatedSearchResult>>> = {
+      youtube: quai(), qobuz: quai(), tidal: quai(),
+    };
     const poses: string[] = [];
-    await chercherAuFilDeLEau(
+    const volee = chercherAuFilDeLEau(
       planDuDeuxiemeTemps(['youtube', 'qobuz', 'tidal']),
-      ([svc]) => apres(delais[svc], reponse(svc)),
+      ([svc]) => quais[svc].promesse,
       (svc) => poses.push(svc),
       () => true,
     );
+
+    // 🔴 Après CHAQUE arrivée : une implémentation qui attendrait toute la
+    // volée avant de poser passait la version chronométrée ; ici elle tombe
+    // dès la première mesure.
+    expect(poses, 'rien n’est posé avant la première réponse').toEqual([]);
+    quais.tidal.livrer(reponse('tidal'));
+    await souffler();
+    expect(poses, 'tidal a répondu, il doit être posé — seul').toEqual(['tidal']);
+    quais.qobuz.livrer(reponse('qobuz'));
+    await souffler();
+    expect(poses).toEqual(['tidal', 'qobuz']);
+    quais.youtube.livrer(reponse('youtube'));
+    await volee;
     // L'ORDRE D'ARRIVÉE, pas celui de la demande : une volée séquentielle
     // rendrait ['youtube','qobuz','tidal'].
     expect(poses).toEqual(['tidal', 'qobuz', 'youtube']);
   });
 
-  it('🔴 la volée entière dure le PLUS LENT, pas la somme', async () => {
-    const DELAI = 60;
+  it('🔴 la volée part EN MÊME TEMPS, elle ne fait pas la queue', async () => {
+    // La propriété visée est la simultanéité, pas une durée : on compte les
+    // appels OUVERTS au même instant. Mesurer un chronomètre — « moins de la
+    // moitié de la somme » — donnait la même réponse tant que la machine était
+    // libre, et rougissait au hasard dès qu'elle ne l'était plus (#1336).
     const services = ['a', 'b', 'c', 'd'];
-    const debut = Date.now();
-    await chercherAuFilDeLEau(
+    const quais = Object.fromEntries(
+      services.map((s) => [s, quai<FederatedSearchResult>()]),
+    ) as Record<string, ReturnType<typeof quai<FederatedSearchResult>>>;
+    let ouverts = 0;
+    let creteOuverts = 0;
+    const volee = chercherAuFilDeLEau(
       planDuDeuxiemeTemps(services),
-      ([svc]) => apres(DELAI, reponse(svc)),
+      ([svc]) => {
+        ouverts++;
+        creteOuverts = Math.max(creteOuverts, ouverts);
+        return quais[svc].promesse.then((r) => { ouverts--; return r; });
+      },
       () => {},
       () => true,
     );
-    const ecoule = Date.now() - debut;
-    const aLaFile = DELAI * services.length;
-    expect(ecoule, `${ecoule} ms pour ${services.length} services à ${DELAI} ms`)
-      .toBeLessThan(aLaFile / 2);
+    expect(creteOuverts, `${creteOuverts} appel(s) ouvert(s) en même temps`)
+      .toBe(services.length);
+    for (const s of services) quais[s].livrer(reponse(s));
+    await volee;
   });
 
   it('🔴 chaque appel ne demande QUE son service', async () => {
@@ -191,14 +245,18 @@ describe('une frappe pendant la volée annule ce qui reste', () => {
   it('🔴 `aJour` est relu à CHAQUE réponse, pas une fois au départ', async () => {
     let courant = true;
     const poses: string[] = [];
+    const quais = { rapide: quai<FederatedSearchResult>(), lent: quai<FederatedSearchResult>() };
     const volee = chercherAuFilDeLEau(
       planDuDeuxiemeTemps(['rapide', 'lent']),
-      ([svc]) => apres(svc === 'rapide' ? 10 : 120, reponse(svc)),
+      ([svc]) => quais[svc as 'rapide' | 'lent'].promesse,
       (svc) => poses.push(svc),
       () => courant,
     );
-    await apres(60, null);
+    quais.rapide.livrer(reponse('rapide'));
+    await souffler();
+    expect(poses, 'la première réponse arrive AVANT la frappe').toEqual(['rapide']);
     courant = false; // l'utilisateur a tapé
+    quais.lent.livrer(reponse('lent'));
     await volee;
     expect(poses).toEqual(['rapide']);
   });
@@ -206,14 +264,15 @@ describe('une frappe pendant la volée annule ce qui reste', () => {
   it('🔴 le REPLI aussi relit `aJour`', async () => {
     let courant = true;
     const poser = vi.fn();
+    const q = quai<FederatedSearchResult>();
     const volee = chercherAuFilDeLEau(
       planDuDeuxiemeTemps([]),
-      () => apres(80, reponse('qobuz')),
+      () => q.promesse,
       poser,
       () => courant,
     );
-    await apres(20, null);
-    courant = false;
+    courant = false; // l'utilisateur a tapé PENDANT l'appel
+    q.livrer(reponse('qobuz'));
     await volee;
     expect(poser).not.toHaveBeenCalled();
   });

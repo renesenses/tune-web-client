@@ -54,6 +54,8 @@ import {
   shortcuts,
   type Shortcut,
 } from '../stores/shortcuts';
+import StreamingV2 from '../../components/v2/StreamingV2.svelte';
+import Sidebar from '../../components/v2/Sidebar.svelte';
 
 /** Monter `StreamingV2` compile un composant de plus de mille lignes. */
 vi.setConfig({ testTimeout: 60_000 });
@@ -136,8 +138,24 @@ function ongletAllume(): string | null {
   return b ? (b.textContent ?? '').replace(/\s+/g, ' ').trim() : null;
 }
 
+/**
+ * 🔴 L'ÉCRAN EST IMPORTÉ À LA COLLECTE, PAS DANS LE CAS — #1326 / #1333.
+ *
+ * Un `await import('….svelte')` posé DANS un cas fait payer la compilation du
+ * composant par vite au chronomètre de ce cas. Sous charge (huit portes
+ * simultanées sur Shrek), le chronomètre saute : vitest déclare le cas expiré,
+ * `afterEach` retire l'hôte, le cas suivant s'ouvre — puis la continuation
+ * abandonnée reprend et exécute son `mount(…, { target: hote! })`. `hote`
+ * est une variable de MODULE : elle désigne alors l'hôte du cas SUIVANT. Deux
+ * écrans dans la même boîte, et un faux rouge qui accuse le code de terrain.
+ *
+ * L'import statique déplace la compilation vers la COLLECTE, hors de tout
+ * chronomètre, et rend `mount` SYNCHRONE ici : plus aucune continuation ne peut
+ * se poser dans l'hôte du cas suivant. `StreamingV2.svelte` n'a pas de
+ * `<script module>` : l'importer avant les `vi.stubGlobal(…)` ne déclenche rien.
+ * Gardé par `composantsALaCollecte1333.test.ts`.
+ */
 async function monterEcran() {
-  const { default: StreamingV2 } = await import('../../components/v2/StreamingV2.svelte');
   monte = mount(StreamingV2 as any, { target: hote! });
   for (let i = 0; i < 60; i++) {
     await Promise.resolve();
@@ -252,8 +270,8 @@ describe('#1138 — la colonne de gauche porte une entrée par service connecté
     );
   }
 
+  // Même motif, même parade : `Sidebar` est importé en tête de fichier.
   async function monterBarre() {
-    const { default: Sidebar } = await import('../../components/v2/Sidebar.svelte');
     monte = mount(Sidebar as any, { target: hote! });
     await laisserTourner(40);
   }

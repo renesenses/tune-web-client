@@ -133,17 +133,30 @@ async function attendre(tours = 6) {
  *  suivant le clic, mais une dizaine de tours plus tard. On attend la
  *  condition au lieu de parier sur un nombre de tours.
  *
- *  🔴 Le budget est LARGE — 6 s. Une première version à 400 ms passait à vide
- *  et rougissait sur une machine chargée : la suite complète, lancée pendant
- *  une compilation, a mis 291 s au lieu de 40 s, et l'import dynamique n'avait
- *  pas rendu la main. Un témoin qui dépend de la charge ne prouve rien. */
-async function attendreQue(condition: () => boolean, tours = 600): Promise<boolean> {
-  for (let i = 0; i < tours; i++) {
-    if (condition()) return true;
-    await new Promise((r) => setTimeout(r, 10));
-    flushSync();
-  }
-  return condition();
+ *  🔴 Le budget doit couvrir une COMPILATION, pas un rendu — #1335.
+ *
+ *  L'éditeur est chargé à la demande (`{#await import(…)}` dans
+ *  `CollectionsV2.svelte:1037`). En production, c'est un fragment JS déjà bâti.
+ *  Sous vitest, c'est vite qui compile `CollectionSmartEditeurV2` à cet
+ *  instant — et sous huit portes `npm test` simultanées, les 6 s que cette
+ *  fonction s'accordait (600 tours de 10 ms) n'y suffisent pas.
+ *
+ *  Pire que le budget : la version d'avant rendait un booléen que PERSONNE ne
+ *  lisait. Expirée, elle laissait l'exécution continuer, et le rouge qui
+ *  suivait — « l'éditeur de collection intelligente ne s'est pas ouvert:
+ *  expected null to be truthy » — accusait `CollectionsV2`. 3 portes rouges
+ *  sur 24, mesurées sur Shrek le 20/09/2026.
+ *
+ *  `vi.waitFor` lève en NOMMANT l'attente, et son budget suit le chronomètre
+ *  du cas, porté à 60 s pour les quatre cas qui ouvrent l'éditeur. */
+async function attendreQue(condition: () => boolean, quoi: string): Promise<void> {
+  await vi.waitFor(
+    () => {
+      flushSync();
+      if (!condition()) throw new Error(`attente expirée : ${quoi}`);
+    },
+    { timeout: 45_000, interval: 10 },
+  );
 }
 
 async function poser(): Promise<HTMLDivElement> {
@@ -209,7 +222,7 @@ describe('#1143 — supprimer une collection, là où Fabien l’a cherché', ()
     suppr!.click();
     await attendre(2);
     repondre(true);
-    await attendreQue(() => suppressions().length > 0);
+    await attendreQue(() => suppressions().length > 0, 'la requête de suppression');
     expect(suppressions()).toEqual([`${BASE}/library/smart-collections/1`]);
   });
 
@@ -227,10 +240,10 @@ describe('#1143 — supprimer une collection, là où Fabien l’a cherché', ()
     expect(h.textContent).toContain('test');
   });
 
-  it('🔴 l’ÉDITEUR d’une intelligente porte « Supprimer » — c’est là que Fabien a regardé', { timeout: 30000 }, async () => {
+  it('🔴 l’ÉDITEUR d’une intelligente porte « Supprimer » — c’est là que Fabien a regardé', { timeout: 60_000 }, async () => {
     const h = await poser();
     parAria(carte(h, 'test'), fr['v2.cover.edit'])!.click();
-    await attendreQue(() => !!h.querySelector('.v2-smart .pied'));
+    await attendreQue(() => !!h.querySelector('.v2-smart .pied'), 'le pied de l’éditeur intelligent');
     const pied = h.querySelector('.v2-smart .pied');
     expect(pied, 'l’éditeur de collection intelligente ne s’est pas ouvert').toBeTruthy();
     // La capture de FabienM montre ce pied avec DEUX boutons : Annuler,
@@ -244,14 +257,14 @@ describe('#1143 — supprimer une collection, là où Fabien l’a cherché', ()
     suppr!.click();
     await attendre(2);
     repondre(true);
-    await attendreQue(() => suppressions().length > 0);
+    await attendreQue(() => suppressions().length > 0, 'la requête de suppression');
     expect(suppressions()).toEqual([`${BASE}/library/smart-collections/1`]);
   });
 
-  it('🔴 l’éditeur d’une intelligente : ANNULER ne supprime rien', { timeout: 30000 }, async () => {
+  it('🔴 l’éditeur d’une intelligente : ANNULER ne supprime rien', { timeout: 60_000 }, async () => {
     const h = await poser();
     parAria(carte(h, 'test'), fr['v2.cover.edit'])!.click();
-    await attendreQue(() => !!h.querySelector('.v2-smart .pied'));
+    await attendreQue(() => !!h.querySelector('.v2-smart .pied'), 'le pied de l’éditeur intelligent');
     const pied = h.querySelector('.v2-smart .pied');
     expect(pied, 'l’éditeur ne s’est pas ouvert').toBeTruthy();
     parLibelle(pied!, fr['common.delete'])!.click();
@@ -262,11 +275,11 @@ describe('#1143 — supprimer une collection, là où Fabien l’a cherché', ()
     expect(h.querySelector('.v2-smart'), 'l’éditeur s’est fermé sur un refus').toBeTruthy();
   });
 
-  it('🔴 l’éditeur d’une MANUELLE porte « Supprimer » et appelle l’AUTRE route, au même id', { timeout: 30000 }, async () => {
+  it('🔴 l’éditeur d’une MANUELLE porte « Supprimer » et appelle l’AUTRE route, au même id', { timeout: 60_000 }, async () => {
     const h = await poser();
     ongletManuel(h);
     parAria(carte(h, 'Favoris de Fabien'), fr['v2.cover.edit'])!.click();
-    await attendreQue(() => !!document.querySelector('.fond .panneau'));
+    await attendreQue(() => !!document.querySelector('.fond .panneau'), 'le panneau de l’éditeur manuel');
     // `RenommerModale` se pose par portail : elle vit à la racine du document.
     const modale = document.querySelector('.fond .panneau');
     expect(modale, 'la modale de modification ne s’est pas ouverte').toBeTruthy();
@@ -285,11 +298,11 @@ describe('#1143 — supprimer une collection, là où Fabien l’a cherché', ()
     expect(suppressions()).toEqual([`${BASE}/library/collections/1`]);
   });
 
-  it('🔴 l’éditeur d’une manuelle : ANNULER ne supprime rien', { timeout: 30000 }, async () => {
+  it('🔴 l’éditeur d’une manuelle : ANNULER ne supprime rien', { timeout: 60_000 }, async () => {
     const h = await poser();
     ongletManuel(h);
     parAria(carte(h, 'Favoris de Fabien'), fr['v2.cover.edit'])!.click();
-    await attendreQue(() => !!document.querySelector('.fond .panneau'));
+    await attendreQue(() => !!document.querySelector('.fond .panneau'), 'le panneau de l’éditeur manuel');
     const modale = document.querySelector('.fond .panneau');
     expect(modale, 'la modale ne s’est pas ouverte').toBeTruthy();
     parLibelle(modale!, fr['common.delete'])!.click();
