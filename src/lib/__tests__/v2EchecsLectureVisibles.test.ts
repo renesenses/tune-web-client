@@ -311,6 +311,7 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     // serveur pousse réellement (`poller.rs`), y compris `fatal: true`.
     poserLaCoquille();
     await attendreQue(socketEcoute, 'la WebSocket de la coquille et son écouteur');
+    await respirer();
 
     pousserEvenement({
       type: 'zone.playback_error',
@@ -358,6 +359,8 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
       () => playPendingUntil.has(1),
       'la fenêtre de grâce ouverte par `playAndSync`',
     );
+    await respirer();
+    flushSync();
     expect(
       playPendingUntil.has(1),
       'la fenêtre de grâce ne s’est pas ouverte : ce témoin ne mesurerait rien',
@@ -426,6 +429,7 @@ describe('#3732 — un échec de lecture ATTEINT l’écran de la coquille v2', 
     // d'origine reproduit sous condition.
     poserLaCoquille();
     await attendreQue(socketEcoute, 'la WebSocket de la coquille et son écouteur');
+    await respirer();
     playPendingUntil.clear();
 
     pousserEvenement({
