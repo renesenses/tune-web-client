@@ -439,7 +439,9 @@ describe('Artistes — la vue est celle des artistes, pas des albums', () => {
     // les artistes afficherait « votre bibliothèque est vide » alors que les
     // artistes, eux, sont là.
     const src = bib();
-    const i = src.indexOf("{#if tab === 'artists'}");
+    // `{#if …}` ou `{:else if …}` : l'onglet « Ajouts récents » (#3039) passe
+    // désormais devant. Ce qui est gardé, c'est l'ORDRE face au garde vide.
+    const i = Math.max(src.indexOf("{#if tab === 'artists'}"), src.indexOf("{:else if tab === 'artists'}"));
     const j = src.indexOf('enCharge && sorted.length === 0');
     expect(i, 'la branche artistes a disparu').toBeGreaterThan(-1);
     expect(i, 'le garde « bibliothèque vide » passe AVANT les artistes').toBeLessThan(j);
@@ -486,11 +488,29 @@ describe('Artistes — la vue est celle des artistes, pas des albums', () => {
       'la vignette d’artiste ne porte plus le rayon des albums',
     ).toBe(true);
 
-    // 3. L'en-tête de fiche suit la même règle : un rond là et un carré ici
-    //    ferait deux conventions pour le même objet.
+    // 3. 🔴 L'EN-TÊTE DE FICHE NE SUIT PLUS CETTE RÈGLE — #1356.
+    //
+    //    Cette assertion exigeait le carré ÉGALEMENT dans l'en-tête de fiche,
+    //    « un rond là et un carré ici ferait deux conventions ». Bertrand a
+    //    tranché l'inverse le 20/09/2026, captures à l'appui : la fiche de
+    //    bibliothèque doit ressembler à celle de streaming, dont le portrait
+    //    est ROND depuis toujours. Les deux en-têtes partagent maintenant un
+    //    seul composant, `EnTeteArtiste` — il n'y a donc plus deux
+    //    conventions, il n'y en a qu'une, et elle est ronde.
+    //
+    //    Les trois mesures du 03/09 tiennent toujours LÀ OÙ ELLES ONT ÉTÉ
+    //    PRISES, c'est-à-dire sur la VIGNETTE DE GRILLE, garde ci-dessus : une
+    //    image de service est carrée (un cercle en jette 21 %) et le cadre de
+    //    `PochetteActions` est carré. L'en-tête, lui, n'a pas de
+    //    `PochetteActions` autour.
     expect(
-      /\.av\s*\{[^}]*border-radius:\s*var\(--v2-r-card\)/.test(src),
-      'l’en-tête de fiche est resté rond',
+      src.includes('<EnTeteArtiste'),
+      'la fiche n’emploie plus l’en-tête partagé : la forme du portrait peut rediverger',
+    ).toBe(true);
+    const entete = lire('../../components/v2/EnTeteArtiste.svelte');
+    expect(
+      /\.portrait\{[^}]*border-radius:\s*50%/.test(entete),
+      'le portrait de l’en-tête partagé n’est plus rond',
     ).toBe(true);
   });
 

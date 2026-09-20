@@ -25,7 +25,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import ArtistesV2 from '../../components/v2/ArtistesV2.svelte';
-import LibraryView from '../../components/LibraryView.svelte';
 import { currentZoneId, zones } from '../stores/zones';
 import { libraryTab, selectedArtist, artistAlbums } from '../stores/library';
 
@@ -68,7 +67,9 @@ async function poserFiche(): Promise<HTMLDivElement> {
 
 /** « Tout lire » — le premier `.fab`, le second étant l'aléatoire (`.creux`). */
 function boutonToutLire(el: HTMLElement): HTMLButtonElement {
-  const b = el.querySelector('.fa .fab:not(.creux)') as HTMLButtonElement;
+  // #1356 : la rangée d'actions de la fiche s'appelle `.gestes` — c'est celle
+  // de l'en-tête partagé avec la fiche de service. Même bouton, même place.
+  const b = el.querySelector('.gestes .fab:not(.creux)') as HTMLButtonElement;
   expect(b, 'le bouton « Tout lire » a disparu de la fiche artiste').not.toBeNull();
   return b;
 }
@@ -170,60 +171,3 @@ describe("#2442 — « Tout lire » sur un artiste ANNONCE l'artiste au serveur"
 let hoteV1: HTMLDivElement | null = null;
 let monteV1: Record<string, unknown> | null = null;
 
-async function poserFicheArtisteV1(): Promise<HTMLDivElement> {
-  zones.set([{ id: 1, name: 'Salon', state: 'stopped', online: true, volume: 0.4 }] as never);
-  currentZoneId.set(1);
-  libraryTab.set('artists');
-  selectedArtist.set(ARTISTE as never);
-  artistAlbums.set(ALBUMS as never);
-  hoteV1 = document.createElement('div');
-  document.body.appendChild(hoteV1);
-  monteV1 = mount(LibraryView, { target: hoteV1, props: {} });
-  for (let i = 0; i < 8; i++) await respirer();
-  flushSync();
-  return hoteV1;
-}
-
-describe('#2442 — même annonce dans l’interface actuelle (v1)', () => {
-  afterEach(() => {
-    if (monteV1) unmount(monteV1);
-    monteV1 = null;
-    if (hoteV1) hoteV1.remove();
-    hoteV1 = null;
-    selectedArtist.set(null);
-    artistAlbums.set([]);
-  });
-
-  it('« Toutes les pistes » envoie context_type=artist avec les pistes', async () => {
-    const el = await poserFicheArtisteV1();
-    const boutons = Array.from(
-      el.querySelectorAll('.artist-play-actions .artist-play-btn'),
-    ) as HTMLButtonElement[];
-    expect(boutons.length, 'les boutons de lecture de la fiche artiste ont disparu').toBe(2);
-
-    boutons[0].click();
-    for (let i = 0; i < 8; i++) await respirer();
-    flushSync();
-
-    const corps = corpsDuPlay();
-    expect(corps.context_type).toBe('artist');
-    expect(corps.context_id).toBe('3');
-    expect(corps.track_ids).toEqual([101, 102]);
-  });
-
-  it('« Lecture aléatoire » l’envoie aussi — c’est le même artiste demandé', async () => {
-    const el = await poserFicheArtisteV1();
-    const boutons = Array.from(
-      el.querySelectorAll('.artist-play-actions .artist-play-btn'),
-    ) as HTMLButtonElement[];
-    boutons[1].click();
-    for (let i = 0; i < 8; i++) await respirer();
-    flushSync();
-
-    const corps = corpsDuPlay();
-    expect(corps.context_type).toBe('artist');
-    expect(corps.context_id).toBe('3');
-    // L'ordre est mélangé : on ne compare que l'ensemble.
-    expect([...(corps.track_ids as number[])].sort()).toEqual([101, 102]);
-  });
-});

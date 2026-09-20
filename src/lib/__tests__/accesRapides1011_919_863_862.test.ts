@@ -10,6 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { dictionnaire } from './onzeDictionnaires';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8')
   .replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -83,7 +84,7 @@ describe('#862 — la pastille CUE sur la fiche album', () => {
   });
   it('l’infobulle existe dans les onze langues', async () => {
     for (const code of LANGUES) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       expect(dico['v2.album.cueTip'], code).toContain('CUE');
     }
   });

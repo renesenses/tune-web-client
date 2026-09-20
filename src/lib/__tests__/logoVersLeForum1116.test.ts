@@ -21,42 +21,28 @@
 // forum. Ce qu'on regarde ici, c'est l'ancre réellement peinte autour de
 // l'image du logo, et ses attributs réels lus sur le DOM.
 //
-// 🔴 ET C'EST UN RÉTABLISSEMENT, PAS UNE REFONTE : l'URL, la cible et le `rel`
-// attendus ne sont pas écrits à la main ici, ils sont EXTRAITS de l'ancienne
-// coquille. Le témoin compare donc deux comportements ; si quelqu'un change le
-// lien du forum d'un seul côté, il tombe.
+// 🔴 L'URL, la cible et le `rel` attendus étaient EXTRAITS de l'ancienne
+// coquille, pour que le témoin compare deux comportements plutôt qu'un texte.
+// Cette coquille est partie avec la phase 5 : les trois valeurs sont désormais
+// écrites en clair plus bas, et ce témoin ne compare plus que la barre vivante
+// à ce qui est attendu d'elle.
 import { describe, it, expect, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import SidebarV2 from '../../components/v2/Sidebar.svelte';
 
 /* ------------------------------------------------------------------ */
 /* Le contrat de référence : l'ancre du logo de l'ANCIENNE coquille.   */
 /* ------------------------------------------------------------------ */
 
-const ancienne = readFileSync(
-  resolve(__dirname, '../../components/Sidebar.svelte'),
-  'utf-8',
-);
-
-/** L'ancre qui enveloppe `<img … class="logo-img">` dans l'ancienne barre. */
-const ancreAncienne = /<a\s([^>]*?)>\s*<img[^>]*class="logo-img"/.exec(ancienne);
-expect(
-  ancreAncienne,
-  "l'ancienne coquille ne porte plus d'ancre autour de son logo : " +
-    'la référence de ce témoin a disparu, il faut le réécrire',
-).not.toBeNull();
-
-const attribut = (nom: string): string => {
-  const m = new RegExp(`${nom}="([^"]*)"`).exec(ancreAncienne![1]);
-  expect(m, `l'ancre de l'ancienne coquille n'a pas d'attribut ${nom}`).not.toBeNull();
-  return m![1];
-};
-
-const URL_FORUM = attribut('href');
-const CIBLE = attribut('target');
-const REL = attribut('rel');
+/**
+ * La référence, autrefois LUE dans `components/Sidebar.svelte`. Cette coquille
+ * est partie avec l'ancienne interface (phase 5) : les trois valeurs qu'elle
+ * fournissait sont désormais écrites ici. Le fait gardé est le même — le logo
+ * de la barre mène au forum, dans un nouvel onglet, sans fuite d'origine.
+ */
+const URL_FORUM = 'https://mozaiklabs.fr/forum';
+const CIBLE = '_blank';
+const REL = 'noopener noreferrer';
 
 /* ------------------------------------------------------------------ */
 /* Montage de la NOUVELLE barre.                                      */
@@ -84,9 +70,7 @@ function marque(): HTMLElement {
 }
 
 describe('#1116 — le logo de la nouvelle barre mène au forum', () => {
-  it('la référence lue dans l\'ancienne coquille est bien le forum, en nouvel onglet', () => {
-    // Garde-fou : si l'extraction ci-dessus attrapait une autre ancre, tout le
-    // reste du témoin comparerait le lien v2 à n'importe quoi.
+  it('la référence attendue est bien le forum, en nouvel onglet', () => {
     expect(URL_FORUM).toBe('https://mozaiklabs.fr/forum');
     expect(CIBLE).toBe('_blank');
     expect(REL).toContain('noopener');
@@ -105,14 +89,14 @@ describe('#1116 — le logo de la nouvelle barre mène au forum', () => {
     ).not.toBeNull();
   });
 
-  it('cette ancre mène à la même URL que l\'ancienne barre', () => {
+  it('cette ancre mène à l\'URL du forum', () => {
     const ancre = marque().querySelector('.logo img')!.closest('a')!;
     // `getAttribute` et pas `.href` : jsdom résout `.href` contre `location`,
     // ce qui masquerait une URL relative posée par erreur.
     expect(ancre.getAttribute('href')).toBe(URL_FORUM);
   });
 
-  it("elle s'ouvre comme l'ancienne : nouvel onglet, et sans fuite d'origine", () => {
+  it("elle s'ouvre en nouvel onglet, et sans fuite d'origine", () => {
     const ancre = marque().querySelector('.logo img')!.closest('a')!;
     expect(ancre.getAttribute('target')).toBe(CIBLE);
     const rel = ancre.getAttribute('rel') ?? '';

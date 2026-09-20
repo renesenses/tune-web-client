@@ -30,6 +30,7 @@ import ZoneDeviceEditor from '../../components/partages/ZoneDeviceEditor.svelte'
 import { locale } from '../i18n';
 import type { Zone } from '../types';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
 
@@ -247,15 +248,11 @@ describe('#3660 — l’écran AFFICHE ce que le serveur a retenu', () => {
   });
 });
 
-describe('#3660 — les DEUX coquilles portent l’éditeur', () => {
-  // L'éditeur est un composant PARTAGÉ : le brancher une fois couvre les deux
-  // interfaces. Encore faut-il que ce soit vrai — ces deux lignes le mesurent,
-  // et rougiraient le jour où une coquille s'en fabriquerait un autre.
+describe('#3660 — la coquille porte l’éditeur', () => {
+  // L'éditeur est un composant PARTAGÉ. Il était branché dans les DEUX
+  // coquilles ; l'ancienne est partie avec la phase 5, la règle tient toujours
+  // sur celle qui reste.
   const lire = (p: string) => readFileSync(resolve(__dirname, '../../', p), 'utf-8');
-
-  it('la coquille actuelle le monte (DevicesSettings, onglet Appareils)', () => {
-    expect(lire('components/DevicesSettings.svelte')).toContain('<ZoneDeviceEditor');
-  });
 
   it('la coquille ShellV2 le monte (SettingsV2)', () => {
     expect(lire('components/v2/SettingsV2.svelte')).toContain('<ZoneDeviceEditor');
@@ -266,7 +263,7 @@ describe('#3660 — l’intitulé, dans les onze langues', () => {
   it('les deux clés existent partout et ne sont pas vides', async () => {
     const langues = ['fr', 'en', 'de', 'es', 'it', 'zh', 'ja', 'ko', 'ro', 'sv', 'hu'];
     for (const code of langues) {
-      const dico = (await import(`../locales/${code}`)).default as Record<string, string>;
+      const dico = dictionnaire(code);
       for (const cle of ['zoneConfig.identiteEffacee', 'zoneConfig.identiteEffaceeHint']) {
         expect(dico[cle], `${code} / ${cle}`).toBeTruthy();
         expect((dico[cle] ?? '').trim().length, `${code} / ${cle}`).toBeGreaterThan(5);

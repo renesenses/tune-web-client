@@ -37,8 +37,38 @@ import { mount, unmount } from 'svelte';
 import OxygenFacetRail from '../../components/v2-heritage/OxygenFacetRail.svelte';
 import type { FacetValue } from '../api';
 import lFr from '../locales/fr';
+import { dictionnaire } from './onzeDictionnaires';
 
 const fr = lFr as unknown as Record<string, string>;
+
+/**
+ * LE CHRONOMÈTRE DOIT COUVRIR LE DÉCOR QUE LE CAS POSE — #1347.
+ *
+ * 🔴 Ce banc modèle une GRANDE bibliothèque : c'est tout son objet. Ses cas
+ * servent au rail 200, 300, 640 puis 900 valeurs de facette, et le rail les
+ * construit toutes, en une passe synchrone, dans jsdom. Sur un Mac à vide cela
+ * coûte de 34 à 148 ms. Sous huit portes `npm test` simultanées sur Shrek —
+ * quarante cœurs pour quinze fois plus de processus — le même travail coûte de
+ * 1 354 à 5 807 ms, soit un facteur ~40.
+ *
+ * Or ces cas gardaient les 5 000 ms PAR DÉFAUT de vitest, un budget taillé
+ * pour un test unitaire. Le plus lourd (900 valeurs) les dépassait :
+ *
+ *     × il n’apparaît pas non plus quand le plafond est déjà « sans limite » 5807ms
+ *     Error: Test timed out in 5000ms.
+ *
+ * 6 portes rouges sur 24 (8 portes × 3 tours), mesurées les 19 et 20/09/2026.
+ *
+ * Ce n'est PAS un défaut de production : le rail rend la même liste en 148 ms
+ * dès que la machine n'est pas saturée, et aucun utilisateur ne subit huit
+ * portes `npm test` simultanées. C'est le budget du cas qui était faux.
+ *
+ * Le décor, lui, ne bouge pas : ce sont les 8 873 artistes de la bibliothèque
+ * de Bertrand que ces nombres représentent, et les réduire affaiblirait ce que
+ * le banc garde. 60 s est l'usage du dépôt (`sortieMonoZone`,
+ * `viderLaFileNeCoupePas`, `favorisDeFacette`).
+ */
+const DELAI_MONTAGE = 60_000;
 
 let monte: Record<string, unknown> | null = null;
 let hote: HTMLDivElement | null = null;
@@ -77,7 +107,7 @@ afterEach(() => {
 const bouton = (el: HTMLElement) => el.querySelector<HTMLButtonElement>('.allvals');
 
 describe('la facette butée sur son plafond offre une issue, sur place', () => {
-  it('« Tout afficher » apparaît quand la liste est tronquée', () => {
+  it('« Tout afficher » apparaît quand la liste est tronquée', { timeout: DELAI_MONTAGE }, () => {
     const el = poserRail({ limit: 200, serverFacets: { artist: valeurs(200) } });
     const b = bouton(el);
     expect(b, '« Tout afficher » absent sur une facette tronquée').not.toBeNull();
@@ -85,18 +115,18 @@ describe('la facette butée sur son plafond offre une issue, sur place', () => {
     expect(b!.getAttribute('aria-label')).toBe(fr['oxygen.facetShowAll']);
   });
 
-  it('il n’apparaît PAS quand la facette tient tout entière', () => {
+  it('il n’apparaît PAS quand la facette tient tout entière', { timeout: DELAI_MONTAGE }, () => {
     // Sinon c'est un bruit permanent qui ne mène nulle part.
     const el = poserRail({ limit: 200, serverFacets: { artist: valeurs(37) } });
     expect(bouton(el)).toBeNull();
   });
 
-  it('il n’apparaît pas non plus quand le plafond est déjà « sans limite »', () => {
+  it('il n’apparaît pas non plus quand le plafond est déjà « sans limite »', { timeout: DELAI_MONTAGE }, () => {
     const el = poserRail({ limit: 0, serverFacets: { artist: valeurs(900) } });
     expect(bouton(el)).toBeNull();
   });
 
-  it('le clic remonte LA facette au parent — un seul geste, sur place', () => {
+  it('le clic remonte LA facette au parent — un seul geste, sur place', { timeout: DELAI_MONTAGE }, () => {
     const demandes: string[] = [];
     const el = poserRail({
       limit: 200,
@@ -107,7 +137,7 @@ describe('la facette butée sur son plafond offre une issue, sur place', () => {
     expect(demandes).toEqual(['artist']);
   });
 
-  it('une fois le plafond levé, le bouton disparaît et la liste entière est rendue', () => {
+  it('une fois le plafond levé, le bouton disparaît et la liste entière est rendue', { timeout: DELAI_MONTAGE }, () => {
     const el = poserRail({
       limit: 200,
       sansPlafond: ['artist'],
@@ -124,13 +154,13 @@ describe('le plafond levé vaut aussi pour les facettes agrégées côté client
   // ce point, « Tout afficher » n'aurait rien fait sur ces facettes-là.
   const pistes = Array.from({ length: 300 }, (_, i) => ({ id: i, genre: `Genre ${i}` }));
 
-  it('sans le geste, la liste reste plafonnée', () => {
+  it('sans le geste, la liste reste plafonnée', { timeout: DELAI_MONTAGE }, () => {
     const el = poserRail({ facets: ['genre'], limit: 50, tracks: pistes });
     expect(el.querySelectorAll('.val').length).toBe(50);
     expect(bouton(el)).not.toBeNull();
   });
 
-  it('avec le geste, elle est entière', () => {
+  it('avec le geste, elle est entière', { timeout: DELAI_MONTAGE }, () => {
     const el = poserRail({ facets: ['genre'], limit: 50, sansPlafond: ['genre'], tracks: pistes });
     expect(el.querySelectorAll('.val').length).toBe(300);
     expect(bouton(el)).toBeNull();
@@ -142,8 +172,7 @@ describe('la clé de traduction existe dans les ONZE langues', () => {
   it('oxygen.facetShowAll est traduite partout', async () => {
     const langues = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
     for (const l of langues) {
-      const mod = await import(`../locales/${l}.ts`);
-      const table = mod.default as Record<string, string>;
+      const table = dictionnaire(l);
       const v = table['oxygen.facetShowAll'];
       expect(v, `oxygen.facetShowAll absente de ${l}`).toBeTruthy();
       expect(v).not.toBe('oxygen.facetShowAll');

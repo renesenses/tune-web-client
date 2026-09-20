@@ -41,7 +41,10 @@ const src = () =>
 
 describe('le tri Dynamic Range de la bibliothèque v2', () => {
   it('🔴 la clé de tri existe — elle s’arrêtait à « added »', () => {
-    expect(src()).toContain("type SortKey = 'title' | 'artist' | 'year' | 'added' | 'dr';");
+    // Une clé de PLUS est permise (« random », tune-server-rust#4558) : ce
+    // qu'on garde ici, c'est que `dr` suive `added`, pas la longueur de la
+    // liste.
+    expect(src()).toMatch(/type SortKey = 'title' \| 'artist' \| 'year' \| 'added' \| 'dr'[ ;|]/);
     expect(src()).toContain("{ k: 'dr', l: 'library.sortDynamicRange' }");
   });
 
@@ -71,10 +74,4 @@ describe('le tri Dynamic Range de la bibliothèque v2', () => {
     expect(s).toContain('if (vb == null) return -1;');
   });
 
-  it('l’écran ACTUEL l’a bien — c’est la référence de la parité', () => {
-    // Contre-épreuve : si la v1 perdait ce tri, ce fichier n'aurait plus de
-    // point de comparaison.
-    expect(readFileSync(resolve(process.cwd(), 'src/components/LibraryView.svelte'), 'utf-8'))
-      .toContain("{ key: 'dynamic_range', label: 'library.sortDynamicRange'");
-  });
 });

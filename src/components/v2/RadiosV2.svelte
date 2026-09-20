@@ -26,6 +26,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import RadioEditModale from './RadioEditModale.svelte';
+  import { notifications } from '../../lib/stores/notifications';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -69,6 +70,29 @@
    * favori, et l'écran retombe sur « toutes » dès que la dernière est retirée.
    */
   let ongletFavoris = $state(false);
+
+  /*
+   * Importer / exporter une liste M3U — portés de l'ancien écran Radios, seul
+   * à les offrir. L'export est la route elle-même, téléchargée par le lien.
+   */
+  let importEnCours = $state(false);
+  async function importerM3u(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const f = input.files?.[0];
+    input.value = '';
+    if (!f || importEnCours) return;
+    importEnCours = true;
+    try {
+      const r = await api.importRadios(f);
+      notifications.success($t('radio.importResult' as any)
+        .replace('{imported}', String(r.imported)).replace('{skipped}', String(r.skipped)));
+      radios = (await api.getRadios({ limit: 500 })) ?? radios;
+    } catch (err: any) {
+      notifications.error(err?.message ?? $t('common.error' as any));
+    } finally {
+      importEnCours = false;
+    }
+  }
 
   $effect(() => {
     loading = true; error = null;
@@ -181,6 +205,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
         </button>
       </div>
+      <label class="v2-btn" class:occupe={importEnCours}>
+        {$t('radio.import' as any)}
+        <input type="file" accept=".m3u,.m3u8,.pls" onchange={importerM3u} disabled={importEnCours} hidden />
+      </label>
+      <a class="v2-btn" href={api.exportRadiosUrl()} download="radios.m3u">{$t('radio.export' as any)}</a>
       <button class="v2-btn primaire" onclick={nouvelleStation}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         {$t('v2.radio.create' as any)}
@@ -251,6 +280,7 @@
           : radios.map((x) => (x.id === maj.id ? { ...x, ...maj } : x));
         enEdition = null;
       }}
+      onDeleted={(id) => { radios = radios.filter((x) => x.id !== id); enEdition = null; }}
     />
   {/if}
 </section>

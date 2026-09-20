@@ -29,9 +29,6 @@
 // `.radios-barre` ; l'en-tête est dans le scroller).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount } from 'svelte';
-import MediaServersView from '../../components/MediaServersView.svelte';
-import PlaylistsView from '../../components/PlaylistsView.svelte';
-import RadiosView from '../../components/RadiosView.svelte';
 import { restoreDetailScroll, saveDetailScroll } from '../stores/navigation';
 
 // Les vues appellent l'API au montage ; jsdom n'a pas de serveur. L'échec est
@@ -69,52 +66,8 @@ function enTeteHorsDuScroller(racine: HTMLElement, selEnTete: string, selScrolle
   expect(entete!.compareDocumentPosition(scroller!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 }
 
-describe('Serveurs multimédia : l’en-tête ne peut plus partir au défilement', () => {
-  it('l’en-tête et la recherche sont hors de `.ms-body`, qui porte la liste', () => {
-    const el = poser(MediaServersView);
-    enTeteHorsDuScroller(el, '.ms-header', '.ms-body');
-    // Le contenu, lui, est bien DANS le conteneur qui défile — sans quoi
-    // l'invariant serait tenu par une coquille vide.
-    const corps = el.querySelector('.ms-body')!;
-    expect(corps.children.length).toBeGreaterThan(0);
-  });
-});
 
-describe('Playlists : l’en-tête ne peut plus partir au défilement', () => {
-  it('l’en-tête est hors de `.playlists-body`, qui porte la liste', () => {
-    const el = poser(PlaylistsView);
-    enTeteHorsDuScroller(el, '.playlists-header', '.playlists-body');
-    expect(el.querySelector('.playlists-body')!.children.length).toBeGreaterThan(0);
-  });
-});
 
-describe('Radio Live : un seul ancrage, plus aucun décalage en dur', () => {
-  it('les trois lignes du haut vivent dans la MÊME barre ancrée', () => {
-    const el = poser(RadiosView);
-    const barre = el.querySelector('.radios-barre');
-    expect(barre, '`.radios-barre` absente').not.toBeNull();
-    for (const sel of ['.radios-header', '.stations-actions', '.filters']) {
-      const ligne = el.querySelector(sel);
-      expect(ligne, `${sel} absente`).not.toBeNull();
-      // C'est le cœur du correctif : la barre « Ajouter / Importer /
-      // Exporter » que Jean Valjean ne voyait plus est ANCRÉE AVEC l'en-tête,
-      // et non calée dessous par un `top: 66px` mesuré à l'œil.
-      expect(barre!.contains(ligne!)).toBe(true);
-    }
-  });
-
-  it('ce qui défile reste EN DEHORS de la barre ancrée', () => {
-    const el = poser(RadiosView);
-    const barre = el.querySelector('.radios-barre');
-    expect(barre, '`.radios-barre` absente').not.toBeNull();
-    // Sinon « tout est ancré » et plus rien ne défile : l'ancrage n'aurait
-    // aucun sens. Sans station chargée la vue rend `.empty-state` ; c'est lui
-    // qui occupe la place de la liste, et il doit être hors de la barre.
-    const corps = el.querySelector('.radios-grid, .empty-state');
-    expect(corps, 'ni liste ni état vide rendus').not.toBeNull();
-    expect(barre!.contains(corps!)).toBe(false);
-  });
-});
 
 describe('la position de la liste survit au déplacement du conteneur', () => {
   // Le conteneur de défilement n'est plus la racine de la vue : il NAÎT avec

@@ -186,20 +186,3 @@ describe('restaurer sans retomber en haut', () => {
   });
 });
 
-describe('les vues ne visent plus un conteneur nommé en dur', () => {
-  const source = (chemin: string) =>
-    readFileSync(resolve(__dirname, '../..', chemin), 'utf-8');
-
-  it('App.svelte mémorise la position sur le conteneur qui défile', () => {
-    const app = source('App.svelte');
-    expect(app).toMatch(/conteneurDefilant/);
-    // La capture et la restauration ne doivent plus nommer `.view-scroller`.
-    const visesEnDur = [...app.matchAll(/querySelector\('\.view-scroller'\)/g)];
-    expect(visesEnDur).toHaveLength(0);
-  });
-
-  it('LibraryView restaure la liste sur le conteneur qui défile', () => {
-    const vue = source('components/LibraryView.svelte');
-    expect(vue).toMatch(/conteneurDefilant/);
-  });
-});

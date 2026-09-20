@@ -172,35 +172,3 @@ describe('le relevé de production ne fabrique plus vingt-six rayons', () => {
   });
 });
 
-describe('la page Radios regroupe et filtre sur la clé, pas sur la chaîne brute', () => {
-  /**
-   * Ce dépôt n'a pas de harnais de rendu Svelte : on lit la source, et la
-   * propriété tenue est structurelle. Elle est nécessaire — le module
-   * ci-dessus peut être parfait et la page continuer d'afficher `{g}` brut.
-   */
-  const SOURCE = readFileSync(
-    resolve(__dirname, '../../components/RadiosView.svelte'),
-    'utf-8',
-  );
-
-  it('la source est bien celle de la page Radios', () => {
-    expect(SOURCE).toContain('filterGenre');
-    expect(SOURCE.length).toBeGreaterThan(1000);
-  });
-
-  it("la liste des rayons ne se dérive plus d'un Set de chaînes brutes", () => {
-    expect(SOURCE).not.toContain('new Set(radios.map(r => r.genre)');
-    expect(SOURCE).toContain('radioGenreShelves(radios)');
-  });
-
-  it('le filtre compare des clés de rayon', () => {
-    expect(SOURCE).not.toContain('r.genre === filterGenre');
-    expect(SOURCE).toContain('radioGenreShelf(r.genre)?.key === filterGenre');
-  });
-
-  it('les pastilles affichent un libellé traduit', () => {
-    // Deux occurrences attendues : la puce de filtre et la pastille de carte.
-    expect(SOURCE.split('radioGenreLabel(').length - 1).toBeGreaterThanOrEqual(3);
-    expect(SOURCE).not.toContain('>{radio.genre}<');
-  });
-});

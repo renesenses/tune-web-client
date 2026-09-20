@@ -30,52 +30,8 @@ import {
  * que la fusion avait emporté.
  */
 
-const appSource = readFileSync(resolve(__dirname, '../App.svelte'), 'utf-8');
 
-/** Le corps de la branche `playback.started` / `playback.track_changed`. */
-function brancheDemarrageOuChangement(): string {
-  const debut = appSource.indexOf(
-    "if (type === 'playback.started' || type === 'playback.track_changed') {",
-    appSource.indexOf('// Optimistic update'),
-  );
-  const fin = appSource.indexOf('// Fetch full zone state from API', debut);
-  expect(debut).toBeGreaterThan(0);
-  expect(fin).toBeGreaterThan(debut);
-  return appSource.slice(debut, fin);
-}
 
-describe('câblage dans App.svelte (perdu par la fusion f14553f)', () => {
-  it('consomme la décision partagée au lieu de la réécrire sur place', () => {
-    expect(appSource).toContain("from './lib/suiviPisteEnCours'");
-    expect(appSource).toContain('positionFileAnnoncee');
-    expect(appSource).toContain('doitRechargerLaFileEntiere');
-    expect(appSource).toContain('doitReessayerCheminSignal');
-  });
-
-  it('#1096 : ne recharge plus la file entière sans condition', () => {
-    const branche = brancheDemarrageOuChangement();
-    // Le défaut à ne pas laisser revenir : `fetchQueue()` posé nu dans la
-    // branche, donc exécuté à chaque avance de piste. Il ne doit y avoir qu'un
-    // seul appel, et sous la garde.
-    expect(branche.match(/fetchQueue\(\)/g)).toHaveLength(1);
-    expect(branche).toMatch(
-      /if \(doitRechargerLaFileEntiere\(type, serveurPorteLaPositionDeFile\)\) \{\s*\n\s*fetchQueue\(\);/,
-    );
-  });
-
-  it('#1096 : prend la position portée par l’événement', () => {
-    const branche = brancheDemarrageOuChangement();
-    expect(branche).toContain('positionFileAnnoncee(event.data)');
-    expect(branche).toContain('queuePosition.set(');
-  });
-
-  it('#72/#75 : relance la synchro tant que le chemin du signal manque', () => {
-    const branche = brancheDemarrageOuChangement();
-    expect(branche).toContain('doitReessayerCheminSignal(');
-    expect(branche).toContain('syncZoneState(zoneId)');
-    expect(branche).toContain('delaiEssaiCheminSignal(');
-  });
-});
 
 describe('position annoncée par le serveur (#1096)', () => {
   it('prend l’index annoncé, y compris la première piste', () => {

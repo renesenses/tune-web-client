@@ -124,33 +124,3 @@ describe('etapesDeRestauration', () => {
   });
 });
 
-describe('StreamingView applique la restauration à deux niveaux', () => {
-  const source = readFileSync(
-    resolve(process.cwd(), 'src/components/StreamingView.svelte'),
-    'utf-8',
-  );
-
-  const debut = source.indexOf('async function restaurerContexte(');
-  const corps = debut === -1 ? '' : source.slice(debut, source.indexOf('\n  }', debut));
-
-  it('restaurerContexte existe toujours', () => {
-    expect(debut).toBeGreaterThan(-1);
-  });
-
-  it("restaurerContexte s'en remet à etapesDeRestauration", () => {
-    // Sans ça, la décision prouvée ci-dessus ne serait branchée sur rien et la
-    // suite resterait verte pendant que le défaut revient dans le composant.
-    expect(corps).toContain('etapesDeRestauration(');
-  });
-
-  it("restaurerContexte ne rouvre plus l'album en écrasant l'artiste", () => {
-    // La ligne fautive, mot pour mot : l'album rouvert sans sa provenance.
-    expect(corps).not.toContain('selectAlbum(ctx.selectedAlbum)');
-  });
-
-  it('etapesDeRestauration est bien importé par le composant', () => {
-    expect(source).toMatch(
-      /import\s*\{[^}]*\betapesDeRestauration\b[^}]*\}\s*from\s*'\.\.\/(\.\.\/)?lib\/streamingRetour'/,
-    );
-  });
-});

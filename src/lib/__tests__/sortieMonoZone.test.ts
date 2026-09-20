@@ -3,6 +3,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { fr } from '../locales';
 import type { Zone } from '../types';
+import ZoneConfigModal from '../../components/partages/ZoneConfigModal.svelte';
 
 /**
  * ⏱️ Délai porté à 60 s pour ce fichier.
@@ -115,8 +116,24 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/**
+ * 🔴 L'ÉCRAN EST IMPORTÉ À LA COLLECTE, PAS DANS LE CAS — #1326 / #1333.
+ *
+ * Un `await import('….svelte')` posé DANS un cas fait payer la compilation du
+ * composant par vite au chronomètre de ce cas. Sous charge (huit portes
+ * simultanées sur Shrek), le chronomètre saute : vitest déclare le cas expiré,
+ * `afterEach` retire l'hôte, le cas suivant s'ouvre — puis la continuation
+ * abandonnée reprend et exécute son `mount(…, { target: cible! })`. `cible`
+ * est une variable de MODULE : elle désigne alors l'hôte du cas SUIVANT. Deux
+ * écrans dans la même boîte, et un faux rouge qui accuse le code de terrain.
+ *
+ * L'import statique déplace la compilation vers la COLLECTE, hors de tout
+ * chronomètre, et rend `mount` SYNCHRONE ici : plus aucune continuation ne peut
+ * se poser dans l'hôte du cas suivant. `ZoneConfigModal.svelte` n'a pas de
+ * `<script module>` : l'importer avant les `vi.stubGlobal(…)` ne déclenche rien.
+ * Gardé par `composantsALaCollecte1333.test.ts`.
+ */
 async function ouvrirPanneau(zone: Zone) {
-  const { default: ZoneConfigModal } = await import('../../components/partages/ZoneConfigModal.svelte');
   monte = mount(ZoneConfigModal, {
     target: cible,
     props: {

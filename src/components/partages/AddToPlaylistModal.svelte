@@ -1,8 +1,9 @@
 <script lang="ts">
   import * as api from '../../lib/api';
   import { tip } from '../../lib/tooltip';
-  import type { Playlist, Track, StreamingTrackInfo } from '../../lib/types';
+  import type { Track, StreamingTrackInfo } from '../../lib/types';
   import { t } from '../../lib/i18n';
+  import { serviceDePlaylist } from '../../lib/playlistService';
 
   interface Props {
     track: Track;
@@ -10,17 +11,40 @@
   }
   let { track, onClose }: Props = $props();
 
-  let playlists = $state<Playlist[]>([]);
+  /**
+   * #1268 — une piste de SERVICE va dans une playlist DE SON SERVICE.
+   *
+   * Pour une piste Qobuz, la fenêtre liste les playlists du compte Qobuz
+   * (`GET /streaming/qobuz/playlists`) et y écrit
+   * (`POST /streaming/qobuz/playlists/{id}/tracks`). Jamais les playlists
+   * Tune : une playlist Tune ne peut pas porter une piste de service
+   * (tune-server-rust#1848), et l'ajout y était perdu en silence (201 sur une
+   * liste restée vide). Pour une piste de la bibliothèque, rien ne change.
+   */
+  const service = $derived(serviceDePlaylist(track));
+
+  /** Une destination, de Tune ou du service : la liste n'a pas à savoir laquelle. */
+  interface Cible { cle: string; nom: string; n: number }
+
+  let cibles = $state<Cible[]>([]);
   let loading = $state(true);
-  let adding = $state<number | null>(null);
+  let adding = $state<string | null>(null);
   let showCreate = $state(false);
   let newName = $state('');
   let success = $state<string | null>(null);
+  /** Un échec d'écriture se DIT : le service peut refuser (playlist suivie, pas possédée). */
+  let echec = $state(false);
 
   async function loadPlaylists() {
     loading = true;
     try {
-      playlists = await api.getPlaylists();
+      if (service) {
+        const l = await api.getStreamingPlaylists(service);
+        cibles = (l ?? []).map((p) => ({ cle: String(p.source_id), nom: p.name, n: p.track_count ?? 0 }));
+      } else {
+        const l = await api.getPlaylists();
+        cibles = (l ?? []).filter((p) => p.id != null).map((p) => ({ cle: String(p.id), nom: p.name, n: p.track_count ?? 0 }));
+      }
     } catch (e) {
       console.error('Load playlists error:', e);
     }
@@ -48,32 +72,46 @@
     return { trackIds: [], streamingTracks: [st] };
   }
 
-  async function addToPlaylist(playlist: Playlist) {
-    if (!playlist.id) return;
-    adding = playlist.id;
-    try {
+  /** Écrit la piste dans la destination `cle` — chez le service, ou chez Tune. */
+  async function ecrire(cle: string) {
+    if (service) {
+      await api.addStreamingPlaylistTracks(service, cle, [String(track.source_id)]);
+    } else {
       const { trackIds, streamingTracks } = buildAddArgs();
-      await api.addPlaylistTracks(playlist.id, trackIds, undefined, streamingTracks);
-      success = playlist.name;
+      await api.addPlaylistTracks(Number(cle), trackIds, undefined, streamingTracks);
+    }
+  }
+
+  async function addToPlaylist(c: Cible) {
+    adding = c.cle;
+    echec = false;
+    try {
+      await ecrire(c.cle);
+      success = c.nom;
       setTimeout(() => onClose(), 800);
     } catch (e) {
       console.error('Add to playlist error:', e);
       adding = null;
+      echec = true;
     }
   }
 
   async function createAndAdd() {
     if (!newName.trim()) return;
+    echec = false;
     try {
-      const pl = await api.createPlaylist(newName.trim());
-      if (pl.id) {
-        const { trackIds, streamingTracks } = buildAddArgs();
-        await api.addPlaylistTracks(pl.id, trackIds, undefined, streamingTracks);
-        success = pl.name;
+      const nom = newName.trim();
+      const cle = service
+        ? (await api.createStreamingPlaylist(service, nom)).id
+        : (await api.createPlaylist(nom)).id;
+      if (cle != null && String(cle) !== '') {
+        await ecrire(String(cle));
+        success = nom;
         setTimeout(() => onClose(), 800);
       }
     } catch (e) {
       console.error('Create playlist error:', e);
+      echec = true;
     }
   }
 
@@ -101,6 +139,7 @@
     {:else}
       <div class="modal-header">
         <h3>{$t('playlist.addToPlaylist')}</h3>
+        {#if service}<p class="pl-service">{$t('playlist.servicePlaylistsOf').replace('{service}', service.charAt(0).toUpperCase() + service.slice(1))}</p>{/if}
         <button class="close-btn" onclick={onClose} use:tip={'common.close'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -111,7 +150,7 @@
           <div class="loading"><div class="spinner"></div></div>
         {:else}
           <div class="playlist-list">
-            {#each playlists as pl}
+            {#each cibles as pl (pl.cle)}
               <button
                 class="playlist-option"
                 disabled={adding !== null}
@@ -121,18 +160,21 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
                 </div>
                 <div class="pl-info">
-                  <span class="pl-name">{pl.name}</span>
-                  <span class="pl-count">{pl.track_count ?? 0} {$t('common.tracks')}</span>
+                  <span class="pl-name">{pl.nom}</span>
+                  <span class="pl-count">{pl.n} {$t('common.tracks')}</span>
                 </div>
-                {#if adding === pl.id}
+                {#if adding === pl.cle}
                   <div class="spinner small"></div>
                 {/if}
               </button>
             {/each}
           </div>
 
-          {#if playlists.length === 0}
+          {#if cibles.length === 0}
             <p class="empty-hint">{$t('playlist.noExisting')}</p>
+          {/if}
+          {#if echec}
+            <p class="empty-hint echec" role="alert">{$t('playlist.addFailed')}</p>
           {/if}
         {/if}
       </div>
@@ -297,6 +339,16 @@
     font-size: 13px;
     text-align: center;
     padding: 16px;
+  }
+  .empty-hint.echec {
+    color: var(--tune-error, #e5484d);
+    padding-top: 0;
+  }
+  .pl-service {
+    margin: 0 auto 0 10px;
+    color: var(--tune-text-muted);
+    font-family: var(--font-body);
+    font-size: 12px;
   }
 
   .modal-footer {

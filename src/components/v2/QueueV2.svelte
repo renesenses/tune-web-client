@@ -20,6 +20,7 @@
   import { t as tr } from '../../lib/i18n';
   import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
+  import { estFichierAudio } from '../../lib/fichiersAudio';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
     from '../../lib/stores/nowPlaying';
   import IndicateurLecture from './IndicateurLecture.svelte';
@@ -94,6 +95,48 @@
     }
   }
 
+  /*
+   * Glisser un fichier audio HORS bibliothèque dans la file en cours — porté
+   * de l'ancienne file (Sergio : « glisser dans la playlist de la lecture en
+   * cours »). Le fichier est téléversé, puis AJOUTÉ à la file comme élément
+   * `source: 'upload'` : il ne remplace pas ce qui joue.
+   */
+  let depotSurvol = $state(false);
+  let televersement = $state(false);
+  function survolDepot(e: DragEvent) {
+    if (!e.dataTransfer?.types.includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    depotSurvol = true;
+  }
+  async function deposerFichiers(e: DragEvent) {
+    if (!e.dataTransfer?.types.includes('Files')) return;
+    e.preventDefault();
+    depotSurvol = false;
+    const zid = $currentZoneId;
+    const fichiers = Array.from(e.dataTransfer?.files ?? []).filter((f) => estFichierAudio(f.name));
+    if (!fichiers.length || zid == null) return;
+    televersement = true;
+    for (const f of fichiers) {
+      try {
+        const r = await api.uploadAudioFile(f);
+        await api.addToQueue(zid, {
+          source: 'upload',
+          source_id: r.file_path,
+          title: r.title,
+          artist_name: r.artist,
+          album_title: r.album,
+          duration_ms: r.duration_ms,
+        });
+        notifications.success(r.title);
+      } catch (err: any) {
+        notifications.error(`${f.name} : ${err?.message ?? $tr('queue.uploadError')}`);
+      }
+    }
+    televersement = false;
+    reload();
+  }
+
   // Se relance sur changement de zone : chaque zone a SA file.
   $effect(() => { void $currentZoneId; loading = true; reload(); });
 
@@ -124,20 +167,20 @@
   const jump = (i: number) => act(() => api.jumpInQueue($currentZoneId!, i));
   const remove = (i: number) => act(() => api.removeFromQueue($currentZoneId!, i));
   const move = (from: number, to: number) => act(() => api.moveInQueue($currentZoneId!, from, to));
-  const clear = () => act(() => api.clearQueue($currentZoneId!));
   /**
-   * #1085 — VIDER LA SUITE, sans arrêter la lecture.
+   * 🔴 UN SEUL geste, et il n'arrête pas la lecture.
    *
-   * Le geste « Vider » arrête et vide tout ; il n'y avait rien entre lui et
-   * retirer les pistes une par une. Le serveur sait le faire depuis la
-   * v0.9.155 (tune-server-rust#4169) : `keep_current` retire ce qui suit le
-   * curseur et laisse la piste en cours jouer.
+   * Règle de Bertrand du 20/09/2026 : « Vider la file d'attente ne doit pas
+   * couper la lecture en cours. » Cet écran portait DEUX boutons issus de
+   * #1085 — « Vider » (qui coupait) et « Vider la suite » (qui ne coupait
+   * pas). Le premier était celui que les testeurs trouvaient, et c'est celui
+   * qui produisait le défaut remonté par Laurent, Bilou, Cyrille et GgB.
    *
-   * Le bouton ne s'affiche que s'il y a bien quelque chose APRÈS — sur la
-   * dernière piste, il n'aurait rien à retirer et « vider » une file d'un seul
-   * morceau prêterait à confusion avec le geste d'arrêt d'à côté.
+   * `api.clearQueue` porte désormais `keep_current` par défaut : la piste en
+   * cours continue, ce qui la suit est retiré. Arrêter se fait par le bouton
+   * de transport (double-clic, ou la touche `S`) — le geste qui le nomme.
    */
-  const viderLaSuite = () => act(() => api.clearQueue($currentZoneId!, true));
+  const clear = () => act(() => api.clearQueue($currentZoneId!));
 
   function tech(t: Track): string {
     if (getQualityTier(t) === 'dsd') return 'DSD';
@@ -147,7 +190,11 @@
   }
 </script>
 
-<section class="v2-queue tune-v2">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<section class="v2-queue tune-v2" class:depot={depotSurvol}
+  ondragover={survolDepot} ondragleave={() => (depotSurvol = false)} ondrop={deposerFichiers}>
+  {#if depotSurvol}<div class="depot-voile">{$tr('queue.dropFilesHere')}</div>{/if}
+  {#if televersement}<div class="depot-barre">{$tr('queue.uploading')}</div>{/if}
   <header class="v2-top">
     <div class="v2-titres">
       <div class="v2-eyebrow">{$tr('v2.lbl.currentZone' as any)}</div>
@@ -169,12 +216,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
         {$tr('queue.autoplayLabel' as any)}
       </button>
-      {#if upNext.length}
-        <button class="v2-btn" onclick={viderLaSuite} disabled={busy}
-                title={$tr('v2.queue.clearUpNextTip' as any)}>{$tr('v2.queue.clearUpNext' as any)}</button>
-      {/if}
       {#if tracks.length}
-        <button class="v2-btn danger" onclick={clear} disabled={busy}>{$tr('v2.queue.clear' as any)}</button>
+        <button class="v2-btn danger" onclick={clear} disabled={busy}
+                title={$tr('queue.clearTip' as any)}>{$tr('v2.queue.clear' as any)}</button>
       {/if}
     </div>
   </header>
@@ -206,7 +250,11 @@
                  les actions comme sur l'interface actuelle. »
                  C'est la seule ligne de cet écran qu'on regarde à coup sûr, et
                  c'était la seule sans gestes. -->
-            <PisteActions piste={current} />
+            <!-- « Lire à partir d'ici » sur la piste EN COURS : c'est un
+                 saut au rang courant, donc une reprise du titre depuis son
+                 début. Le geste que la file sait faire, et le seul sens que
+                 « la suite » ait ici. -->
+            <PisteActions piste={current} onLireDepuis={() => jump(pos)} />
           </div>
         </section>
       {/if}
@@ -229,7 +277,11 @@
                    fleches et la croix restent : monter, descendre et retirer
                    sont propres a la FILE, elles n'ont de sens nulle part
                    ailleurs. -->
-              <PisteActions piste={t} />
+              <!-- « Lire à partir d'ici » = le saut de file, celui que le
+                   grand bouton de la ligne fait déjà. Dans la file, « la
+                   suite » n'est pas une liste à renvoyer au serveur : elle est
+                   DÉJÀ la file, et `jumpInQueue` la reprend à ce rang. -->
+              <PisteActions piste={t} onLireDepuis={() => jump(idx)} />
               {#if showExpert}
                 <span class="ord">
                   <button onclick={() => move(idx, idx - 1)} disabled={busy || idx <= pos + 1} aria-label="Monter">
@@ -299,4 +351,8 @@
   .ord svg{width:13px; height:13px}
   .del:hover:not(:disabled){color:var(--v2-danger); border-color:var(--v2-danger-bd)}
   .del svg{width:12px; height:12px}
+  .v2-queue.depot{outline:2px dashed var(--v2-acc2); outline-offset:-6px}
+  .depot-voile{position:sticky; top:0; z-index:5; padding:14px; text-align:center; border-radius:10px;
+    background:var(--v2-acc-soft); color:var(--v2-acc-tint); font:600 13px var(--v2-sans)}
+  .depot-barre{padding:8px 12px; font:12px var(--v2-sans); color:var(--v2-txt2)}
 </style>

@@ -59,9 +59,4 @@ describe('point 8 — la zone d’écoute', () => {
     );
   });
 
-  it('l’écran ACTUEL l’affichait déjà — c’est la référence de Fabien', () => {
-    // Contre-épreuve du constat : si cette ligne disparaissait, le point 8
-    // n'aurait plus de point de comparaison et ce fichier perdrait son sens.
-    expect(lire('src/components/HistoryView.svelte')).toContain('{entry.zoneName}');
-  });
 });

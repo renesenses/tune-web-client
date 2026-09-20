@@ -100,11 +100,16 @@ describe('#2742 — le verdict d’indisponibilité du crossfeed', () => {
     expect(cleIndisponibiliteCrossfeed('network_renderer_no_lpcm')).toBe(
       'dsp.crossfeedUnavailableNoLpcm',
     );
+    // #1266 — les motifs de DROITS de la 0.9.156 ont chacun leur phrase : le
+    // repli ne disait pas s'il fallait changer de licence ou activer l'extension
+    // (Ludovic Audouin, zone Diretta, 19/09/2026).
+    expect(cleIndisponibiliteCrossfeed('premium_required')).toBe('dsp.crossfeedUnavailablePremium');
+    expect(cleIndisponibiliteCrossfeed('plugin_unavailable')).toBe('dsp.crossfeedUnavailablePlugin');
     // Une contrainte ajoutée côté serveur ne doit pas afficher son code brut.
     expect(cleIndisponibiliteCrossfeed('contrainte_future')).toBe('dsp.crossfeedUnavailable');
   });
 
-  it('les cinq clés existent dans les onze langues du dépôt', async () => {
+  it('les sept clés existent dans les onze langues du dépôt', async () => {
     // La porte i18n vérifie qu'aucune langue ne DIVERGE des autres ; elle ne
     // dit pas qu'une clé rendue par ce module existe quelque part. Une faute
     // de frappe dans le `switch` ci-dessus donnerait donc une porte verte et
@@ -114,6 +119,8 @@ describe('#2742 — le verdict d’indisponibilité du crossfeed', () => {
       'dsp.crossfeedUnavailablePure',
       'dsp.crossfeedUnavailableProgressiveOff',
       'dsp.crossfeedUnavailableNoLpcm',
+      'dsp.crossfeedUnavailablePremium',
+      'dsp.crossfeedUnavailablePlugin',
       'dsp.crossfeedUnavailable',
     ];
     const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
@@ -129,10 +136,9 @@ describe('#2742 — le verdict d’indisponibilité du crossfeed', () => {
   });
 });
 
-describe('#2742 — les trois écrans lisent le verdict et verrouillent', () => {
+describe('#2742 — les deux écrans lisent le verdict et verrouillent', () => {
   const ECRANS = [
     { nom: 'NowPlaying.svelte', chemin: '../../components/partages/NowPlaying.svelte', garde: 'cfIndispo' },
-    { nom: 'EqualizerView.svelte', chemin: '../../components/EqualizerView.svelte', garde: 'cfIndispo' },
     { nom: 'v2/CrossfeedV2.svelte', chemin: '../../components/v2/CrossfeedV2.svelte', garde: 'indispo' },
   ] as const;
 

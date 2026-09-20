@@ -84,9 +84,57 @@ const SERVICES_SANS_IDENTIFIANT_DE_PISTE: ReadonlySet<string> = new Set(['radio'
  *  Un identifiant vide n'est pas une clé : il ferait cocher le cœur de tous
  *  les objets sans identifiant du même service. Un identifiant PARTAGÉ non
  *  plus — voir `SERVICES_SANS_IDENTIFIANT_DE_PISTE` juste au-dessus. */
+/** L'hôte des flux Bandcamp. Les CDN se numérotent (`t4`, `t5`…) : on
+ *  reconnaît le DOMAINE, pas un sous-domaine précis. */
+const DOMAINE_FLUX_BANDCAMP = 'bcbits.com';
+
+/** Une URL de flux Bandcamp, telle que `data-tralbum` la sert.
+ *
+ *  Les deux conditions comptent. L'hôte seul attraperait les pochettes
+ *  (`f4.bcbits.com/img/…`), dont l'URL est stable et sert d'identité ailleurs ;
+ *  `/stream/` seul attraperait les flux d'un autre service.
+ *
+ *  🔴 Le domaine se compare par COMPOSANT, jamais par fin de chaîne :
+ *  `evilbcbits.com` se termine par `bcbits.com`, et une garde en `endsWith`
+ *  lui laisserait tronquer nos identifiants. */
+function estUnFluxBandcamp(id: string): boolean {
+  const reste = id.startsWith('https://')
+    ? id.slice(8)
+    : id.startsWith('http://')
+      ? id.slice(7)
+      : null;
+  if (reste == null) return false;
+  const finHote = reste.indexOf('/');
+  if (finHote < 0) return false;
+  const hote = reste.slice(0, finHote);
+  const bonDomaine =
+    hote === DOMAINE_FLUX_BANDCAMP || hote.endsWith(`.${DOMAINE_FLUX_BANDCAMP}`);
+  return bonDomaine && reste.slice(finHote).startsWith('/stream/');
+}
+
+/** L'identité durable d'un favori de service — le PENDANT EXACT de
+ *  `tune_core::streaming::favorites_identity::identite_de_favori`.
+ *
+ *  Bandcamp **resigne** l'URL de flux d'une piste à chaque lecture de page :
+ *  mesuré le 20/09/2026 à trois secondes d'écart, même chemin, jetons neufs.
+ *  Le serveur range donc le favori sous l'URL privée de sa requête ; sans la
+ *  même coupe ici, le cœur reste ÉTEINT sur un favori pourtant conservé
+ *  (FabienM, 0.9.158, fil forum 1862 point 4).
+ *
+ *  Volontairement tolérante : un identifiant vide, un identifiant qui n'est
+ *  pas une URL, une page d'album ou une pochette ressortent tels quels. Ce
+ *  n'est pas une validation, c'est une normalisation. */
+export function identiteDeFavori(serviceId: string): string {
+  if (!estUnFluxBandcamp(serviceId)) return serviceId;
+  // Couper au PREMIER des deux séparateurs : une URL peut porter un fragment
+  // sans requête, et un `?` après `#` appartiendrait alors au fragment.
+  const i = serviceId.search(/[?#]/);
+  return i < 0 ? serviceId : serviceId.slice(0, i);
+}
+
 export function favKeyOf(ref: Pick<StreamingRef, 'itemType' | 'service' | 'serviceId'> | null | undefined): string | null {
   if (!ref) return null;
-  const id = (ref.serviceId ?? '').trim();
+  const id = identiteDeFavori((ref.serviceId ?? '').trim());
   const svc = (ref.service ?? '').trim();
   if (!id || !svc) return null;
   if (ref.itemType === 'track' && SERVICES_SANS_IDENTIFIANT_DE_PISTE.has(svc)) return null;

@@ -19,6 +19,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { verdictEnvoiBandcamp } from '../bandcampEnvoi';
+import { dictionnaire } from './onzeDictionnaires';
 
 const NAVIGATEUR = true;
 const SORTIE_REELLE = false;
@@ -80,8 +81,7 @@ describe('#2076 — le message qui remplace l’accusation existe partout', () =
     // verrait la clef brute, ou pire, un message d'une autre langue.
     const locales = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
     for (const code of locales) {
-      const mod = await import(`../locales/${code}.ts`);
-      const dict = mod.default as Record<string, string>;
+      const dict = dictionnaire(code);
       expect(dict['bandcamp.noStream'], `bandcamp.noStream manque dans ${code}`).toBeTruthy();
     }
   });

@@ -40,17 +40,21 @@
    */
   import { onMount, untrack } from 'svelte';
   import {
-    activeView, listResetNonce, vueDeRetour,
+    activeView, listResetNonce, vueDeRetour, pendingSearchQuery,
     saveDetailScroll, restoreDetailScroll,
   } from '../../lib/stores/navigation';
   import {
     detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant,
   } from '../../lib/historiqueCoquille';
   import { cleDetailArtiste } from '../../lib/cleDetailArtiste';
-  import { lireListe } from '../../lib/lectureEnMasse';
+  import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { melangee } from '../../lib/shuffle';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
+  import { normaliserMetadonnees, bioDans, bilanEnrichissement } from '../../lib/metadonneesArtiste';
+  import { uniqueInstruments } from '../../lib/library/credits';
+  import { locale as langueCourante } from '../../lib/i18n';
+  import type { ArtistMetadata, TrackCredit } from '../../lib/types';
   import { t } from '../../lib/i18n';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
@@ -70,10 +74,13 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
+  import EnTeteArtiste from './EnTeteArtiste.svelte';
   import { chargerTitresPhares } from '../../lib/titresPharesArtiste';
   import PochetteActions from './PochetteActions.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import RenommerModale from './RenommerModale.svelte';
+  import ArtistEditModal from '../partages/ArtistEditModal.svelte';
+  import ReportButton from '../partages/ReportButton.svelte';
 
   interface Props {
     /** Filtre texte partagé avec le reste de l'écran. */
@@ -137,6 +144,12 @@
 
   /** Artiste ouvert — on montre ses albums. */
   let ouvert = $state<Artist | null>(null);
+  /**
+   * L'éditeur COMPLET de l'artiste (nom, tri, image téléversée…), porté de
+   * l'ancienne Bibliothèque. La modale générique de la grille ne sait que
+   * renommer : l'image d'un artiste ne se changeait nulle part ici.
+   */
+  let editionComplete = $state<Artist | null>(null);
   let albums = $state<Album[]>([]);
   let albumsChargement = $state(false);
   /** Le compte de l'en-tête : les vignettes de la discographie commune, et non
@@ -148,6 +161,18 @@
   // avec ses clés et sa mémoire.
   let albumOuvert = $state<Album | null>(null);
   let enEdition = $state<Artist | null>(null);
+  /**
+   * Étiquettes de la FICHE artiste — le même trou que celui de la fiche album.
+   *
+   * La vignette de la grille porte le bouton depuis #1238 ; la fiche ouverte,
+   * elle, n'avait que « Tout lire », « Modifier » et « Aléatoire ».
+   *
+   * Seul un artiste de la BIBLIOTHÈQUE est étiquetable ici, et c'est la même
+   * règle que la vignette juste au-dessus (`a.id != null ? … : null`) : cette
+   * fiche-ci ne s'ouvre que sur un artiste indexé. La fiche d'un artiste de
+   * SERVICE est un autre écran (`ArtisteServiceV2`), qui n'est pas traité ici.
+   */
+  let etiquettesArtiste = $state<Artist | null>(null);
   /**
    * 🔴 Le pendant de l'effet de `LibraryV2` — #3843.
    *
@@ -302,6 +327,54 @@
   let bioFiche = $state<string | null>(null);
   let titresPhares = $state<Track[]>([]);
   let jetonBio = 0;
+  /*
+   * Métadonnées (similaires, membres), crédits (instruments joués) et
+   * enrichissement — portés de l'ancienne Bibliothèque, seule à les montrer.
+   * 🔴 Même précaution que `chargerBio` : appelée depuis l'effet d'ouverture,
+   * cette fonction n'écrit qu'APRÈS un `await` et ne relit aucun état.
+   */
+  let metaFiche = $state<ArtistMetadata | null>(null);
+  let creditsFiche = $state<TrackCredit[]>([]);
+  let enrichissement = $state(false);
+  let jetonMeta = 0;
+  async function chargerMetadonnees(id: number | null | undefined) {
+    const jeton = ++jetonMeta;
+    metaFiche = null;
+    creditsFiche = [];
+    if (id == null) return;
+    const [m, c] = await Promise.all([
+      api.getArtistMetadata(id).then(normaliserMetadonnees).catch(() => null),
+      api.getArtistCredits(id).catch(() => [] as TrackCredit[]),
+    ]);
+    if (jeton !== jetonMeta) return;
+    metaFiche = m;
+    creditsFiche = c ?? [];
+  }
+  async function enrichir() {
+    const a = ouvert;
+    if (a?.id == null || enrichissement) return;
+    enrichissement = true;
+    try {
+      const m = normaliserMetadonnees(await api.enrichArtist(a.id));
+      metaFiche = { ...(metaFiche ?? {}), ...m } as ArtistMetadata;
+      // La bio rapportée remplace l'absence de bio, jamais une bio éditée.
+      const bio = bioDans(m, $langueCourante);
+      if (bio && !a.bio?.trim()) bioFiche = bio;
+      const cle = bilanEnrichissement(m);
+      if (cle === 'library.noInfoFound') notifications.info($t(cle as any));
+      else notifications.success($t(cle as any));
+    } catch {
+      notifications.error($t('library.enrichUnavailable' as any));
+    } finally {
+      enrichissement = false;
+    }
+  }
+  function ouvrirSimilaire(nom: string) {
+    const trouve = artistes.find((x) => x.name.toLowerCase() === nom.toLowerCase());
+    if (trouve) void ouvrir(trouve);
+    else { pendingSearchQuery.set(nom); activeView.set('search'); }
+  }
+
   async function chargerBio(a: Artist) {
     const jeton = ++jetonBio;
     // 🔴 Une variable LOCALE, pas `bioFiche` relu : cette fonction part, dans
@@ -394,6 +467,7 @@
     // retarderait l'affichage de ce qu'on possède déjà.
     void chargerAlbumsDeService(a);
     void chargerBio(a);
+    void chargerMetadonnees(a.id);
     try {
       albums = (await api.getArtistAlbums(a.id!)) ?? [];
     } catch {
@@ -473,6 +547,43 @@
     }
     masseEnCours = false;
   }
+  /**
+   * « Écouter le best of » et « Radio de l'artiste » — PORTÉS depuis la fiche
+   * de service (#1356, arbitrage de Bertrand du 20/09/2026 : « mêmes actions,
+   * sans en perdre »).
+   *
+   * 🔴 MESURÉ AVANT D'ÊTRE PORTÉ, et c'est la règle de #1231 : un bouton
+   * visible qui ne fait rien se lit comme une panne. Ces deux gestes n'ont de
+   * cible que si un service a rendu des titres phares pour cet artiste. La
+   * fiche les charge DÉJÀ (`chargerTitresPhares`, étape 2 de #4330) et les
+   * montre dans `BioEtTitresPhares` ; chaque piste y est estampillée de sa
+   * source, donc `corpsDeLecture` sait la désigner. Il n'y a rien à inventer :
+   * la même liste, les mêmes deux gestes que la fiche de service.
+   *
+   * Donc la MÊME condition qu'elle : pas de titres phares, pas de boutons.
+   */
+  async function lireTitresPhares(aleatoire: boolean) {
+    const zid = $currentZoneId;
+    if (zid == null) {
+      notifications.error($t('v2.art.noZone' as any));
+      return;
+    }
+    if (!titresPhares.length) return;
+    masseEnCours = true;
+    try {
+      const gestes = gestesMasse(zid);
+      const n = aleatoire
+        ? await lireListeAleatoire(titresPhares, gestes)
+        : await lireListe(titresPhares, gestes);
+      // Zéro veut dire « rien n'était désignable » : l'écran doit le dire,
+      // sans quoi le bouton paraîtrait mort.
+      if (!n) notifications.error($t('v2.fas.empty' as any));
+    } catch (e: any) {
+      notifications.error(e?.message ?? $t('v2.fas.empty' as any));
+    }
+    masseEnCours = false;
+  }
+
   async function lireArtiste(a: Artist) {
     const zid = $currentZoneId;
     if (zid == null) {
@@ -531,37 +642,125 @@
   });
 </script>
 
+<!--
+  « Enrichir la biographie » — rendu DANS le bloc de la biographie (#1356).
+
+  Bertrand, 20/09/2026 : le bouton flottait seul au milieu de la fiche, en
+  tête d'une section `À propos` qui liste les artistes proches, les membres et
+  les instruments — rien qui le concerne. C'est sur la biographie qu'il agit,
+  il se lit sous elle.
+
+  Un EXTRAIT plutôt qu'un bloc recopié : `BioEtTitresPhares` est le bloc
+  commun aux deux fiches (#4330), et la fiche de service n'a pas ce geste —
+  elle n'a pas d'enregistrement local à enrichir. Elle ne passe donc rien, et
+  ne montre rien.
+-->
+{#snippet enrichirBio()}
+  <button class="fab creux" onclick={enrichir} disabled={enrichissement}>
+    {enrichissement ? '…' : $t((bioFiche ? 'library.reEnrich' : 'library.enrichBio') as any)}
+  </button>
+{/snippet}
+
 {#if ouvert}
   {@const artiste = ouvert}
-  <header class="fiche">
-    <button class="retour" onclick={retourFiche}>← {$t('common.back' as any)}</button>
-    <div class="ident">
-      <span class="av">
-        <AlbumArt coverPath={artiste.image_path} size={0} alt={artiste.name}
-          fallbackInitials={initiales(artiste.name)} />
-      </span>
-      <div>
-        <h1>{artiste.name}</h1>
-        <p class="cpt">{comptesFiche?.total ?? albums.length} {$t('v2.art.albums' as any)}</p>
-      </div>
-    </div>
-    <div class="fa">
-      <button class="fab" onclick={() => lireToutArtiste(artiste)} disabled={masseEnCours}
-        title={$t('library.playAllArtist' as any)}>
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('library.playAllArtist' as any)}
-      </button>
-      <button class="fab creux" onclick={() => lireArtisteAleatoire(artiste)} disabled={masseEnCours}
-        title={$t('library.shuffleArtist' as any)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('library.shuffleArtist' as any)}
-      </button>
-    </div>
-  </header>
+  <!--
+    🔴 UN SEUL CONTENEUR POUR TOUTE LA FICHE — #1356.
+
+    `LibraryV2` monte cet écran dans `.body{display:flex}`. L'en-tête et le
+    corps y étaient des FRÈRES DIRECTS : le navigateur en faisait deux
+    COLONNES. L'en-tête prenait la gauche, et les titres phares, coincés dans
+    ce qui restait, perdaient leurs colonnes Canaux / BPM / Genre / Qualité
+    derrière une barre de défilement horizontale (captures de Bertrand,
+    20/09/2026). La fiche de service n'avait jamais eu ce défaut : elle
+    enveloppe tout dans sa `<section class="v2-fas">`.
+  -->
+  <div class="fiche-pleine">
+    <EnTeteArtiste
+      nom={artiste.name}
+      provenance={$t('library.title' as any)}
+      imagePath={artiste.image_path}
+      initiales={initiales(artiste.name)}
+      sousTitre={`${comptesFiche?.total ?? albums.length} ${$t('v2.art.albums' as any)}`}
+      onRetour={retourFiche}>
+      {#snippet actions()}
+        <button class="fab" onclick={() => lireToutArtiste(artiste)} disabled={masseEnCours}
+          title={$t('library.playAllArtist' as any)}>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>{$t('library.playAllArtist' as any)}
+        </button>
+        <button class="fab creux" onclick={() => lireArtisteAleatoire(artiste)} disabled={masseEnCours}
+          title={$t('library.shuffleArtist' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$t('library.shuffleArtist' as any)}
+        </button>
+        <!-- Les deux gestes PORTÉS de la fiche de service (#1356). Ils ne
+             s'affichent qu'avec des titres phares à jouer : voir
+             `lireTitresPhares`. -->
+        {#if titresPhares.length}
+          <button class="fab creux" onclick={() => lireTitresPhares(false)} disabled={masseEnCours}>
+            {$t('v2.fas.bestOf' as any)}
+          </button>
+          <button class="fab creux" onclick={() => lireTitresPhares(true)} disabled={masseEnCours}>
+            {$t('v2.fas.radio' as any)}
+          </button>
+        {/if}
+        {#if artiste.id != null}
+          <button class="fab creux" onclick={() => (editionComplete = artiste)} title={$t('library.editArtist' as any)}>
+            {$t('common.edit' as any)}
+          </button>
+          <!-- ÉTIQUETTES : le geste que la VIGNETTE avait et que la fiche
+               n'avait pas (#1357). Même panneau, même cible. -->
+          <button class="fab creux" onclick={() => (etiquettesArtiste = artiste)}
+            aria-haspopup="dialog" title={$t('v2.cover.tags' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/><circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/></svg>
+            {$t('v2.cover.tags' as any)}
+          </button>
+          {#if artiste.image_path}
+            <ReportButton entity="artist_image" entityId={artiste.id}
+              mbid={artiste.musicbrainz_id ?? undefined}
+              reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} compact />
+          {/if}
+          {#if bioFiche}
+            <ReportButton entity="bio" entityId={artiste.id}
+              mbid={artiste.musicbrainz_id ?? undefined}
+              reasons={['incorrect', 'wrong_entity', 'offensive']} />
+          {/if}
+        {/if}
+      {/snippet}
+    </EnTeteArtiste>
 
   <!-- UN seul conteneur défilant pour la fiche. La grille est COMMUNE à la
        bibliothèque et aux services — #4330 (FabienM, fil 1823), qui remplace
        les sections séparées par service de #3709. -->
   <div class="corps">
-    <BioEtTitresPhares bio={bioFiche} titres={titresPhares} cle={artiste.id} />
+    <BioEtTitresPhares bio={bioFiche} titres={titresPhares} cle={artiste.id}
+      actionsBio={artiste.id != null ? enrichirBio : undefined} />
+    <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
+         Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :
+         sans cette garde, elle resterait à l'écran vide, avec sa marge, entre
+         les titres phares et la discographie. Vérifié au DOM monté. -->
+    {#if artiste.id != null && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || creditsFiche.length)}
+      <section class="apropos">
+        {#if metaFiche?.similar_artists?.length}
+          <h3>{$t('artist.similarArtists' as any)}</h3>
+          <div class="puces">
+            {#each metaFiche.similar_artists as sa (sa.name)}
+              <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
+            {/each}
+          </div>
+        {/if}
+        {#if metaFiche?.members?.length}
+          <h3>{$t('artist.members' as any)}</h3>
+          <ul class="membres">
+            {#each metaFiche.members as m (m.name)}<li><b>{m.name}</b> {m.role}</li>{/each}
+          </ul>
+        {/if}
+        {#if creditsFiche.length}
+          <h3>{$t('artist.credits' as any)}</h3>
+          <div class="puces">
+            {#each uniqueInstruments(creditsFiche) as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
+          </div>
+        {/if}
+      </section>
+    {/if}
     {#if albumsChargement}
       <div class="etat">{$t('common.loading' as any)}</div>
     {:else if !albums.length && !albumsService.length && !albumsServiceChargement}
@@ -588,6 +787,7 @@
     <AlbumDetailV2 album={fiche.album} service={fiche.service}
       onClose={() => (albumOuvertService = null)} />
   {/if}
+  </div>
 
 {:else if chargement || (provenance != null && sourcesEnCharge)}
   <div class="etat">{$t('common.loading' as any)}</div>
@@ -662,6 +862,27 @@
   />
 {/if}
 
+{#if editionComplete}
+  <ArtistEditModal
+    artist={editionComplete}
+    onClose={() => (editionComplete = null)}
+    onSaved={(maj) => {
+      if (ouvert?.id === maj.id) ouvert = maj;
+      artistes = artistes.map((x) => (x.id === maj.id ? maj : x));
+      editionComplete = null;
+    }}
+  />
+{/if}
+
+{#if etiquettesArtiste?.id != null}
+  {@const cibleArtiste = { itemType: 'artist', itemId: etiquettesArtiste.id }}
+  {@const nomArtiste = etiquettesArtiste.name}
+  {#await import('./EtiquettesPanneau.svelte') then m}
+    <m.default cible={cibleArtiste} nom={nomArtiste}
+      onClose={() => (etiquettesArtiste = null)} />
+  {/await}
+{/if}
+
 <style>
   .zone { display: flex; flex: 1; min-height: 0; }
   .grille {
@@ -675,7 +896,7 @@
   }
   /* La fiche d'un artiste défile d'un SEUL bloc (#3709) ; sa grille est
      `DiscographieCommune` (#4330). */
-  .corps { flex: 1; overflow-y: auto; padding: 8px 30px 40px; min-height: 0; }
+  .corps { flex: 1; overflow-y: auto; padding: 0 0 40px; min-height: 0; }
   .corps .etat { padding: 22px 0; }
   .carte {
     display: flex;
@@ -757,18 +978,20 @@
   .rail button.chaud:hover { color: var(--v2-on-acc); background: var(--v2-acc1); }
   .rail button:disabled { opacity: .35; cursor: default; }
 
-  .fiche { padding: 18px 30px 6px; }
-  .retour {
-    background: transparent; border: 0; color: var(--v2-txt2); cursor: pointer;
-    font: 600 13px var(--v2-sans); padding: 0 0 10px;
+  /*
+    🔴 LA FICHE EST UNE COLONNE, PAS DEUX — #1356.
+
+    `LibraryV2` monte cet écran dans `.body{display:flex}`. Sans ce conteneur,
+    l'en-tête et le corps sont deux ITEMS de ce flex, donc deux COLONNES : les
+    titres phares perdaient les leurs (Canaux, BPM, Genre, Qualité) derrière
+    une barre de défilement horizontale. `min-width:0` va avec : sans lui, un
+    tableau large repousserait la colonne au lieu de défiler.
+  */
+  .fiche-pleine {
+    flex: 1; min-width: 0; min-height: 0;
+    display: flex; flex-direction: column;
+    padding: 0 30px;
   }
-  .retour:hover { color: var(--v2-txt); }
-  .ident { display: flex; align-items: center; gap: 16px; }
-  .av { display: block; width: 84px; height: 84px; border-radius: var(--v2-r-card); overflow: hidden; flex: none; }
-  .av :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .fiche h1 { font-size: 26px; font-weight: 800; letter-spacing: -.01em; }
-  .cpt { font: 11px var(--v2-mono); color: var(--v2-txt3); margin-top: 4px; }
-  .fa{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
   .fab{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
     border:0; border-radius:var(--v2-r-pill, 999px); cursor:pointer;
     font:700 13px var(--v2-sans, inherit); color:var(--v2-on-acc, #14110a);
@@ -778,4 +1001,12 @@
   .fab.creux:hover:not(:disabled){border-color:var(--v2-acc2, #b8862b); color:var(--v2-acc-tint, #e6c176)}
   .fab:disabled{opacity:.5; cursor:default}
   .fab svg{width:15px; height:15px}
+  .apropos{margin:0 0 18px; display:flex; flex-direction:column; gap:8px; align-items:flex-start}
+  .apropos h3{margin:8px 0 0; font:600 11px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .puces{display:flex; flex-wrap:wrap; gap:6px}
+  .puce{padding:4px 10px; border-radius:999px; border:1px solid var(--v2-line2); background:transparent;
+    color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
+  .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .puce.fixe{cursor:default}
+  .membres{margin:0; padding-left:18px; color:var(--v2-txt2); font-size:13px}
 </style>

@@ -74,17 +74,14 @@ describe("Historique dans le nouveau client (Bertrand, 05/09/2026)", () => {
     expect(v2).toContain('basculerFav');
   });
 
-  it('la logique est PARTAGÉE avec le client actuel, pas recopiée', () => {
-    const v1 = sansCommentaires(lire('src/components/HistoryView.svelte'));
+  it('la logique vit dans les modules partagés, pas recopiée dans l’écran', () => {
+    // Partagée avec `HistoryView.svelte` jusqu'à la phase 5 ; l'écran est parti,
+    // les modules restent la seule source de la règle.
     const v2 = sansCommentaires(lire('src/components/v2/HistoriqueV2.svelte'));
-    for (const src of [v1, v2]) {
-      expect(src).toContain('historiqueLecture');
-      expect(src).toContain('fusionnerHistorique');
-      expect(src).toContain('rejouerEntree');
-      expect(src).toContain('basculerFavoriRadio');
-    }
-    // Aucun des deux écrans ne refait le rejeu lui-même.
-    expect(v1).not.toContain('playAndSync(');
+    expect(v2).toContain('historiqueLecture');
+    expect(v2).toContain('fusionnerHistorique');
+    expect(v2).toContain('rejouerEntree');
+    expect(v2).toContain('basculerFavoriRadio');
     expect(v2).not.toContain('playAndSync(');
   });
 

@@ -169,11 +169,4 @@ describe('canConfirmImport', () => {
     expect(canConfirmImport({ total_rows: 1200, matched: 0 }, true)).toBe(false);
     expect(canConfirmImport(null, false)).toBe(false);
   });
-
-  it("est bien celui que l'écran appelle", () => {
-    const source = sansCommentaires(lire('../../components/SettingsView.svelte'));
-    expect(source).toMatch(/disabled=\{!canConfirmImport\(importReport, importImporting\)\}/);
-    // La condition d'avant, qui grisait le bouton sur une bibliothèque vide.
-    expect(source, "l'écran regrise le bouton sur matched === 0").not.toMatch(/importReport\.matched === 0/);
-  });
 });

@@ -211,12 +211,10 @@ const sansCommentaires = (s: string) =>
  * ci-dessus le prouvent.
  */
 describe('#1848 — les surfaces qui n’avaient aucun menu en montent un', () => {
+  // Cinq de ces six surfaces étaient des vues de l'ancienne interface, partie
+  // avec la phase 5. La règle tient sur celle qui reste, et sur toute surface
+  // qui rejoindrait cette liste.
   const SURFACES: [string, string][] = [
-    ['StreamingView', 'piste={t}'],
-    ['SearchView', 'piste={track}'],
-    ['QueueView', 'piste={queueTrack}'],
-    ['PlaylistsView', 'piste={t}'],
-    ['FavoritesView', 'piste={t}'],
     ['partages/NowPlaying', 'piste={queueTrack}'],
   ];
   for (const [ecran, prop] of SURFACES) {
@@ -237,10 +235,4 @@ describe('#1848 — les surfaces qui n’avaient aucun menu en montent un', () =
       expect(src).toContain('rangeableEnPlaylist');
     });
   }
-  it('la Bibliothèque a gagné « Lire ensuite » sur ses trois menus', () => {
-    const src = sansCommentaires(lire('src/components/LibraryView.svelte'));
-    expect(src.split('<TrackContextMenu').length - 1, 'le nombre de menus a changé').toBe(3);
-    expect(src.split('onPlayNext={() => playNext(t)}').length - 1,
-      'les trois menus de la Bibliothèque n’offrent pas tous « Lire ensuite »').toBe(3);
-  });
 });

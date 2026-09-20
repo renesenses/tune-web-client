@@ -137,38 +137,10 @@ describe('#870 — les DEUX écrans d’édition appliquent la règle', () => {
     hote.remove();
   });
 
-  it('v1 : `saveEdit` ne bâtit plus son objet à la main', () => {
-    // Cet écran n'avait pas été relu quand la fiche a été ouverte ; il portait
-    // le même blocage. Le monter demanderait la moitié de l'application — on
-    // tient donc SA fonction, et uniquement elle.
-    const src = readFileSync(
-      resolve(__dirname, '../../components/RadiosView.svelte'),
-      'utf-8',
-    );
-    const debut = src.indexOf('async function saveEdit()');
-    expect(debut, '`saveEdit` a disparu de RadiosView').toBeGreaterThanOrEqual(0);
-    const corps = src.slice(debut, src.indexOf('\n  }', debut));
-    expect(
-      /champsRadioAEnvoyer\(/.test(corps),
-      '`saveEdit` rebâtit son objet : le blocage y revient',
-    ).toBe(true);
-    // `saveEdit` mentionne forcément `stream_url` — c'est ce qu'il PASSE à la
-    // règle. Ce qui doit être vrai, c'est que l'appel réseau ne reçoive plus
-    // d'objet bâti sur place : il prend le résultat de la règle, donc pas
-    // d'accolade dans ses arguments.
-    const appel = corps.slice(corps.indexOf('api.updateRadio('));
-    const args = appel.slice(appel.indexOf('(') + 1, appel.indexOf(')'));
-    expect(
-      /\{/.test(args),
-      `l’appel réseau porte encore un objet littéral : ${args.trim()}`,
-    ).toBe(false);
-    expect(args).toContain('aEnvoyer');
-  });
-
   it('la bascule du cœur n’est PAS touchée : elle envoyait déjà `{ favorite }` seul', () => {
     // C'est pour ça que dé-favoriser marchait quand le reste était figé — la
     // fiche l'annonçait comme bloqué, c'était inexact.
-    for (const ecran of ['components/RadiosView.svelte', 'components/v2/RadiosV2.svelte']) {
+    for (const ecran of ['components/v2/RadiosV2.svelte']) {
       const src = readFileSync(resolve(__dirname, '../../', ecran), 'utf-8');
       expect(/updateRadio\([^)]*\{\s*favorite:/.test(src), ecran).toBe(true);
     }

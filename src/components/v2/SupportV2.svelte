@@ -83,6 +83,144 @@
   }
   $effect(() => { if (volet === 'diagnostic') void diagnostiquer(); });
 
+  /* ---------------- Signaler un bogue (forum) ----------------
+   *
+   * Porté de `DiagnosticsView` (client actuel) avant la phase 5, qui le
+   * supprime. Ce n'est PAS un ticket : le rapport part sur le FORUM, dans un
+   * fil modéré, et n'exige aucune licence — c'est le seul canal de retour d'un
+   * utilisateur gratuit. Le serveur compose lui-même le rapport (diagnostics +
+   * journaux récents) et y place la description en tête ; l'aperçu n'est donc
+   * qu'une lecture, pas un préalable à l'envoi.
+   */
+  let bogueDesc = $state('');
+  let bogueApercu = $state<string | null>(null);
+  let bogueApercuEnCours = $state(false);
+  let bogueApercuEchec = $state(false);
+  let bogueEnvoi = $state(false);
+  let bogueEnvoye = $state(false);
+  let bogueFil = $state('');
+  let bogueErreur = $state<string | null>(null);
+  let bogueCopie = $state(false);
+
+  /**
+   * #4564 — LES CAPTURES.
+   *
+   * Jean Valjean, fil 1855 : « Je ne peux pas mettre de copies d'écran,
+   * l'ajout de fichier a disparu ». Quatre minutes plus tard il rouvrait un
+   * fil à la main pour la seule raison d'y joindre sa capture. Et l'écart
+   * était DANS CET ÉCRAN : le geste voisin, « Écrire au support », porte un
+   * champ de fichier depuis toujours (l. ~570) — celui-ci, non.
+   *
+   * Les bornes viennent d'`api.ts`, qui les tient du serveur, qui les tient du
+   * forum : une seule règle sur toute la chaîne. Les redéclarer ici en
+   * produirait une seconde, qui divergerait au premier changement.
+   */
+  let bogueImages = $state<File[]>([]);
+  let bogueImagesErreur = $state<string | null>(null);
+  /** Captures que le forum dit avoir rangées, une fois l'envoi accepté. */
+  let bogueCaptures = $state<number | null>(null);
+  /** Le fil est parti, mais le forum n'a pas confirmé toutes les captures. */
+  let bogueCapturesPerdues = $state(false);
+
+  const TYPES_IMAGE = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+
+  /**
+   * Trie ce que le testeur a choisi et REFUSE avec une phrase.
+   *
+   * Refuser ici plutôt que de laisser le serveur le faire n'est pas un
+   * doublon : c'est la différence entre un message immédiat sous le champ et
+   * un aller-retour réseau — avec, au bout, un envoi rejeté et un testeur qui
+   * recommence. Le serveur garde sa propre borne : elle, elle est la garde.
+   */
+  function choisirCaptures(liste: FileList | null) {
+    const fichiers = Array.from(liste ?? []);
+    bogueImagesErreur = null;
+
+    if (fichiers.length > api.BUG_REPORT_MAX_IMAGES) {
+      bogueImagesErreur = tr1('v2.sup.bugImagesTooMany', { max: api.BUG_REPORT_MAX_IMAGES });
+      bogueImages = [];
+      return;
+    }
+    const mauvaisType = fichiers.find((f) => {
+      const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+      return !TYPES_IMAGE.includes(ext);
+    });
+    if (mauvaisType) {
+      bogueImagesErreur = tr1('v2.sup.bugImagesType', { nom: mauvaisType.name });
+      bogueImages = [];
+      return;
+    }
+    const tropLourd = fichiers.find((f) => f.size > api.BUG_REPORT_MAX_IMAGE_BYTES);
+    if (tropLourd) {
+      bogueImagesErreur = tr1('v2.sup.bugImagesTooLarge', {
+        nom: tropLourd.name,
+        max: Math.round(api.BUG_REPORT_MAX_IMAGE_BYTES / (1024 * 1024)),
+      });
+      bogueImages = [];
+      return;
+    }
+    bogueImages = fichiers;
+  }
+
+  async function apercuBogue() {
+    bogueApercuEnCours = true;
+    bogueApercuEchec = false;
+    try {
+      bogueApercu = await api.getBugReportMarkdown();
+    } catch (e) {
+      console.error('Support: aperçu du rapport de bogue', e);
+      bogueApercu = null;
+      bogueApercuEchec = true;
+    }
+    bogueApercuEnCours = false;
+  }
+
+  async function copierBogue() {
+    if (!bogueApercu) return;
+    // Même contenu qu'un envoi : la description d'abord, puis le rapport.
+    const desc = bogueDesc.trim();
+    const complet = desc ? `${desc}\n\n---\n\n${bogueApercu}` : bogueApercu;
+    if (await copyText(complet)) {
+      bogueCopie = true;
+      setTimeout(() => (bogueCopie = false), 2000);
+    }
+  }
+
+  async function envoyerBogue() {
+    if (bogueEnvoi || bogueEnvoye) return;
+    bogueEnvoi = true;
+    bogueErreur = null;
+    try {
+      const r = await api.submitBugReport(bogueDesc, bogueImages);
+      bogueFil = typeof r?.url === 'string' ? r.url : '';
+      // #4564 — ce que le FORUM dit avoir rangé, pas ce qu'on a envoyé. Une
+      // capture perdue en route doit se voir ici, pas se deviner sur le fil.
+      bogueCaptures = typeof r?.images === 'number' ? r.images : null;
+      // 🔴 LA GARDE DE SÉQUENCE. Un service communautaire antérieur à
+      // l'extension `images[]` accepte le multipart, crée le fil, et JETTE les
+      // fichiers en silence — `validate()` ignore les clés qu'il ne connaît
+      // pas. Le testeur croirait sa capture partie : exactement le défaut que
+      // #4564 corrige, par une autre porte. On compare donc ce qu'on a envoyé
+      // à ce que le forum CONFIRME, et on le dit.
+      bogueCapturesPerdues = bogueImages.length > 0 && (bogueCaptures ?? 0) < bogueImages.length;
+      bogueEnvoye = true;
+    } catch (e: any) {
+      console.error('Support: envoi du rapport de bogue', e);
+      // Le motif du serveur (« cloud rejected the report »…) reste lisible :
+      // sans lui, le testeur n'a rien de plus à nous dire que « échec ».
+      const motif = typeof e?.message === 'string' && e.message ? ` (${e.message})` : '';
+      bogueErreur = tr1('v2.sup.bugSendError') + motif;
+    }
+    bogueEnvoi = false;
+  }
+
+  function nouveauBogue() {
+    bogueDesc = ''; bogueApercu = null; bogueApercuEchec = false;
+    bogueEnvoye = false; bogueFil = ''; bogueErreur = null;
+    bogueImages = []; bogueImagesErreur = null; bogueCaptures = null;
+    bogueCapturesPerdues = false;
+  }
+
   /* ---------------- Mon système ---------------- */
   const schema = $derived(modeleSysteme($zones, String($currentVersion ?? '')));
   const plan = $derived(planSysteme(schema));
@@ -366,6 +504,66 @@
         </button>
       </div>
 
+      <div class="bogue">
+        <h2>{$t('v2.sup.bugTitle' as any)}</h2>
+        <p class="sub">{$t('v2.sup.bugIntro' as any)}</p>
+        {#if bogueEnvoye}
+          <div class="notice bogue-ok">
+            <p>{$t('v2.sup.bugSent' as any)}</p>
+            <!-- #4564 — le nombre que le FORUM dit avoir rangé. Rien n'est
+                 affiché quand il ne le dit pas : on n'invente pas un chiffre. -->
+            {#if bogueCaptures !== null && bogueCaptures > 0}
+              <p class="sub">{tr1('v2.sup.bugImagesSent', { n: bogueCaptures })}</p>
+            {/if}
+            {#if bogueCapturesPerdues}
+              <p class="bogue-err">{$t('v2.sup.bugImagesNotAttached' as any)}</p>
+            {/if}
+            <div class="bogue-actions">
+              {#if bogueFil}
+                <a class="lnk" href={bogueFil} target="_blank" rel="noopener noreferrer">{$t('v2.sup.bugViewThread' as any)}</a>
+              {/if}
+              <button class="lnk" onclick={nouveauBogue}>{$t('v2.sup.bugAnother' as any)}</button>
+            </div>
+          </div>
+        {:else}
+          <label class="champ">
+            <span>{$t('v2.sup.bugDesc' as any)}</span>
+            <textarea class="txt zone bogue-desc" bind:value={bogueDesc} rows="5"
+              placeholder={$t('v2.sup.bugDescHint' as any)} disabled={bogueEnvoi}></textarea>
+          </label>
+          <!-- #4564 — les captures. Même forme que le champ de fichier du
+               geste voisin « Écrire au support » : c'est ce voisinage qui a
+               produit la phrase du testeur (« l'ajout de fichier a disparu »). -->
+          <label class="champ">
+            <span>{$t('v2.sup.bugImages' as any)}</span>
+            <input type="file" multiple accept="image/png,image/jpeg,image/gif,image/webp"
+              disabled={bogueEnvoi}
+              onchange={(e) => choisirCaptures((e.currentTarget as HTMLInputElement).files)} />
+            <em class="bogue-hint">{$t('v2.sup.bugImagesHint' as any)}</em>
+            {#if bogueImages.length}
+              <em class="bogue-fnoms">{bogueImages.map((f) => f.name).join(', ')}</em>
+            {/if}
+            {#if bogueImagesErreur}<span class="bogue-err">{bogueImagesErreur}</span>{/if}
+          </label>
+          <div class="bogue-actions">
+            <button class="go bogue-envoi" onclick={envoyerBogue} disabled={bogueEnvoi}>
+              {bogueEnvoi ? $t('v2.sup.sending' as any) : $t('v2.sup.bugSend' as any)}
+            </button>
+            <button class="lnk" onclick={apercuBogue} disabled={bogueApercuEnCours}>
+              {bogueApercuEnCours ? $t('v2.sup.bugPreviewLoading' as any) : $t('v2.sup.bugPreview' as any)}
+            </button>
+            {#if bogueApercu}
+              <button class="lnk" onclick={copierBogue}>
+                {bogueCopie ? $t('v2.sup.bugCopied' as any) : $t('v2.sup.bugCopy' as any)}
+              </button>
+            {/if}
+          </div>
+          {#if bogueErreur}<p class="bogue-err">{bogueErreur}</p>{/if}
+          {#if bogueApercuEchec}<p class="sub">{$t('v2.sup.bugPreviewError' as any)}</p>{/if}
+          {#if bogueApercu}<pre class="bogue-apercu">{bogueApercu}</pre>{/if}
+        {/if}
+      </div>
+
     {:else if volet === 'systeme'}
       <div class="sys">
         <p class="sub">{$t('v2.sup.sysHint' as any)}</p>
@@ -638,6 +836,23 @@
   .dv{font:12px var(--v2-mono); color:var(--v2-txt)}
   .dv.ok{color:var(--v2-acc1)}
   .dv.ko{color:var(--v2-danger)}
+
+  /* Signaler un bogue */
+  .bogue{padding:18px 30px 30px; margin-top:4px; border-top:1px solid var(--v2-line);
+    display:flex; flex-direction:column; gap:14px; max-width:760px}
+  .bogue h2{font-size:17px; font-weight:800}
+  .bogue .sub{font-size:13px; color:var(--v2-txt3); max-width:620px; line-height:1.5}
+  .bogue-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .bogue .lnk{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
+    border-radius:999px; padding:7px 15px; font:600 11.5px var(--v2-sans); text-decoration:none}
+  .bogue .lnk:disabled{opacity:.5; cursor:default}
+  .bogue-ok p{margin-bottom:12px}
+  .bogue-err{font-size:12.5px; color:var(--v2-danger); line-height:1.5}
+  /* #4564 — les captures. */
+  .bogue-hint{font-size:12px; color:var(--v2-txt3); font-style:normal}
+  .bogue-fnoms{font-size:12px; color:var(--v2-txt2); font-style:normal}
+  .bogue-apercu{max-height:320px; overflow:auto; padding:12px 14px; border-radius:10px; border:1px solid var(--v2-line);
+    background:var(--v2-surface2); font:11.5px/1.5 var(--v2-mono); color:var(--v2-txt2); white-space:pre-wrap}
 
   /* Mon systeme */
   .sys{padding:6px 30px 30px; display:flex; flex-direction:column; align-items:flex-start; gap:16px}

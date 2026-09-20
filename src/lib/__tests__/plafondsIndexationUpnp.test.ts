@@ -27,6 +27,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { dictionnaire } from './onzeDictionnaires';
 import {
   CLES, PALIERS, DEFAUTS, lirePlafonds, versPatch, axeDeLaCle, libellePalier, verdictDe,
 } from '../indexationUpnp';
@@ -237,8 +238,8 @@ describe('l’écran Serveurs multimédia', () => {
 
 describe('les libellés sont traduits', () => {
   it('les quatorze clés existent en français ET en anglais', async () => {
-    const fr = (await import('../locales/fr')).default as Record<string, string>;
-    const en = (await import('../locales/en')).default as Record<string, string>;
+    const fr = dictionnaire('fr');
+    const en = dictionnaire('en');
     const cles = [
       'v2.ms.index', 'v2.ms.indexing', 'v2.ms.indexLimits', 'v2.ms.limitTracks',
       'v2.ms.limitTracksHint', 'v2.ms.limitContainers', 'v2.ms.limitContainersHint',
@@ -254,7 +255,7 @@ describe('les libellés sont traduits', () => {
   it('les trois aides EXPLIQUENT, elles ne répètent pas le titre', async () => {
     // « Plafond de dossiers » ne veut rien dire pour qui n'a pas lu le code :
     // l'aide doit porter la raison, pas reformuler l'étiquette.
-    const fr = (await import('../locales/fr')).default as Record<string, string>;
+    const fr = dictionnaire('fr');
     for (const cle of ['v2.ms.limitTracksHint', 'v2.ms.limitContainersHint', 'v2.ms.limitDepthHint']) {
       expect(fr[cle].length, `${cle} est trop courte pour expliquer quoi que ce soit`).toBeGreaterThan(60);
     }
