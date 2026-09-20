@@ -157,7 +157,6 @@
   // Portés de l'ancienne interface, seule à les offrir (phase 5, lot 4) :
   // l'allure reste celle d'origine, comme pour les autres vues héritées.
   import ConcertsView from '../v2-heritage/ConcertsView.svelte';
-  import OfflineView from '../v2-heritage/OfflineView.svelte';
   import DashboardView from '../v2-heritage/DashboardView.svelte';
   import RecommendationsSection from '../v2-heritage/RecommendationsSection.svelte';
   import BrowseView from '../v2-heritage/BrowseView.svelte';
@@ -716,13 +715,25 @@
         <AmbianceView />
       {:else if $activeView === 'concerts'}
         <ConcertsView />
-      {:else if $activeView === 'offline'}
-        <OfflineView />
       {:else if $activeView === 'dashboard'}
         <!-- Les recommandations vivaient sur l'ancien accueil ; l'accueil v2 est
-             une page de widgets, elles rejoignent les statistiques d'écoute. -->
-        <DashboardView />
-        <RecommendationsSection />
+             une page de widgets, elles rejoignent les statistiques d'écoute.
+
+             🔴 #1344 — ET ELLES LES REJOIGNENT DANS UN SEUL CONTENEUR.
+             FabienM, fil 1859, 20/09/2026 : « Impossible de scroller pour faire
+             défiler par le bas, espace perdu en dessous de Recommandations ».
+             Les deux composants étaient des frères DIRECTS de `.main`, qui est
+             `display:flex` et `overflow:hidden` : les recommandations se
+             posaient donc À CÔTÉ du tableau de bord — toute la hauteur pour
+             trois vignettes — et ce qui dépassait en bas à gauche était coupé,
+             faute d'un conteneur de défilement. Une seule cause, la mise en
+             page ; un seul correctif, ce `.dash` qui les EMPILE et porte
+             l'ascenseur que tous les autres écrans de la coquille ont déjà
+             (`.scroll` dans `HistoriqueV2`, `SearchV2`, …). -->
+        <div class="dash">
+          <DashboardView />
+          <RecommendationsSection />
+        </div>
       {:else if $activeView === 'smartplaylists'}
         <SmartPlaylistsView />
       {:else if $activeView === 'playlistmanager'}
@@ -873,6 +884,28 @@
      `<TransportBar />`, qui est pourtant son FRÈRE dans la mise en page.
      Le calque est désormais borné à la zone de contenu, et la barre reste. */
   .main{min-width:0; overflow:hidden; display:flex; position:relative}
+
+  /* #1344 — LE TABLEAU DE BORD ET SES RECOMMANDATIONS, EMPILÉS ET DÉFILANTS.
+     `display:block` et non `flex` : en colonne flex, les deux blocs
+     resteraient des éléments flexibles et se laisseraient écraser sous leur
+     contenu (`flex-shrink:1` par défaut) au lieu de déborder — l'ascenseur ne
+     s'armerait jamais. En flux normal, chacun prend sa hauteur, la somme
+     dépasse, et `overflow-y:auto` fait le reste.
+     `overflow-x:hidden` : la bande horizontale des recommandations porte déjà
+     son propre défilement, elle ne doit pas en pousser un second sur la page.
+     La réserve de la grappe est posée par les écrans eux-mêmes
+     (`.dashboard{padding-right:var(--v2-grappe-w)}`), on ne la double pas ici. */
+  .main > .dash{flex:1 1 auto; min-width:0; min-height:0; overflow-y:auto; overflow-x:hidden}
+  /* Les recommandations prennent la MÊME gouttière et la même laisse que le
+     tableau de bord qu'elles suivent : posées à la racine du conteneur, elles
+     s'étalaient sur toute la largeur sous un bloc centré à 1100 px.
+     Les valeurs sont celles de `.dashboard`, à l'identique — 28 px à gauche,
+     et à droite la réserve de la grappe, qui y REMPLACE les 28 px (la règle
+     `padding-right:var(--v2-grappe-w)` de `DashboardView` vient après son
+     `padding: … 28px`). Les deux blocs s'alignent donc au pixel.
+     `:global` parce que `.top-section` appartient au composant enfant. */
+  .dash > :global(.top-section){max-width:1100px; margin:0 auto;
+    padding:0 var(--v2-grappe-w, 172px) var(--space-lg) 28px}
 
   /* ---- PETIT ÉCRAN ----------------------------------------------------
      La rangée n'a plus qu'UNE colonne : la barre latérale est passée en

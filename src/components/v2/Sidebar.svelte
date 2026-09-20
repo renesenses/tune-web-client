@@ -120,7 +120,6 @@
     // trois écrans n'avaient AUCUN chemin dans cette coquille.
     { view: 'dashboard', labelKey: 'nav.dashboard', icon: 'M4 20V10M10 20V4M16 20v-7M22 20H2' },
     { view: 'concerts', labelKey: 'nav.concerts', icon: 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6' },
-    { view: 'offline', labelKey: 'offline.title', icon: 'M12 3v12M7 10l5 5 5-5M5 21h14' },
   ] as unknown as Item[];
   /**
    * SÉLECTIONS — ce que l'utilisateur a mis de côté lui-même.

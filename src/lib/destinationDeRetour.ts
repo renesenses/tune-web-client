@@ -109,15 +109,16 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   // (`#tv&zone=12`) ». La vue TV s'entre par un geste qui lui est propre et
   // porte son contexte ; aucun mécanisme générique ne doit la reconstituer.
   tv: 'jamais',
-  // `login`, `offline`, `onboarding` — des ÉTATS que l'application constate
-  // elle-même, jamais des écrans demandés. `App.svelte` le dit déjà pour le
-  // premier : « RIEN ne pose jamais cette vue ». Aujourd'hui aucun code ne les
-  // pose, donc aucune de ces trois lignes ne change quoi que ce soit : elles
-  // sont ici pour que le jour où l'une sera posée, le Retour ne renvoie pas un
-  // utilisateur connecté sur un écran de connexion. Ce sont les mêmes trois
-  // que `routeAuChargement` refuse de reposer, pour la même raison.
+  // `login`, `onboarding` — des ÉTATS que l'application constate elle-même,
+  // jamais des écrans demandés. `App.svelte` le dit déjà pour le premier :
+  // « RIEN ne pose jamais cette vue ». Aujourd'hui aucun code ne les pose,
+  // donc aucune de ces deux lignes ne change quoi que ce soit : elles sont ici
+  // pour que le jour où l'une sera posée, le Retour ne renvoie pas un
+  // utilisateur connecté sur un écran de connexion. Ce sont les mêmes que
+  // `routeAuChargement` refuse de reposer, pour la même raison.
+  //
+  // `offline` a disparu avec son écran le 20/09/2026.
   login: 'jamais',
-  offline: 'jamais',
   onboarding: 'jamais',
 
   // ─── Celles qui dépendent de leur magasin ────────────────────────────────
