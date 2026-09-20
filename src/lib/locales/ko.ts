@@ -2760,6 +2760,8 @@ export default {
   "v2.zone.none": "존이 없습니다. 하나 만들거나 설정 → Audio 에서 출력을 지정하세요.",
   "v2.zone.unreachable": "존을 불러올 수 없습니다 — 서버가 아직 응답하지 않습니다.",
   "v2.zone.mergeInto": "{name}(으)로 병합",
+  "v2.zone.actions": "존 작업",
+  "v2.zone.deleteExplain": "'{name}'을(를) 삭제할까요? 재생이 멈추고 존의 대기열, 음량, 출력, DSP가 함께 사라집니다. 기기 자체는 그대로 남습니다.",
   "v2.zone.mergeConfirm": "병합 확인",
   "v2.zone.presenceRecent": "최근 꺼짐",
   "v2.zone.badgeNoOutput": "출력 없음",

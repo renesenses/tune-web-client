@@ -2776,6 +2776,8 @@ export default {
   "v2.zone.none": "No zones. Create one, or declare an output under Settings → Audio.",
   "v2.zone.unreachable": "Zones unavailable — the server is not responding yet.",
   "v2.zone.mergeInto": "Merge into {name}",
+  "v2.zone.actions": "Zone actions",
+  "v2.zone.deleteExplain": "Delete “{name}”? Playback stops, and the zone takes its queue, volume, output and DSP with it. The device itself stays available.",
   "v2.zone.mergeConfirm": "Confirm merge",
   "v2.zone.presenceRecent": "Recently switched off",
   "v2.zone.badgeNoOutput": "No output",
