@@ -583,14 +583,39 @@
           <div class="trks">
             {#each vue.items as it, i (it.id ?? i)}
               <div class="trk">
+                <!-- Les trois icônes de cette ligne sont les tracés OFFICIELS
+                     de lucide (`play`, `step-forward`, `list-plus`) — Bertrand,
+                     20/09/2026 : « Tous les boutons utilisés doivent être tirés
+                     de lucide-icons ». Les deux anciennes étaient des dessins
+                     maison, et la nouvelle aurait juré à côté d'elles. -->
+                <span class="tlire">
                 <button class="tplay" onclick={() => lire(it)} aria-label={`Lire ${txt(it.title)}`}>
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>
+                  </svg>
                 </button>
+                <!-- « Lire à partir d'ici » : ce serveur UPnP ne rend pas des
+                     `Track`, `lireListeDepuis` ne s'y applique donc pas. La
+                     suite, c'est `enchainer` sur le reste du dossier — le geste
+                     que « Tout lire » fait déjà sur la liste entière. -->
+                <button class="tdepuis" disabled={!!action}
+                        onclick={() => enchainer(vue.items.slice(i), `depuis:${i}`)}
+                        title={$t('common.playFromHere' as any)}
+                        aria-label={$t('common.playFromHere' as any)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/>
+                    <path d="M3 4v16"/>
+                  </svg>
+                </button>
+                </span>
                 <span class="ti">{txt(it.title)}</span>
                 <span class="tar">{[it.artist, it.album].filter(Boolean).map(txt).join(' · ')}</span>
                 <span class="td">{it.duration_ms ? formatTime(it.duration_ms) : ''}</span>
                 <button class="tq" onclick={() => enfiler(it)} aria-label={$t('v2.ms.addToQueue' as any)}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 5H3"/><path d="M11 12H3"/><path d="M16 19H3"/>
+                    <path d="M18 9v6"/><path d="M21 12h-6"/>
+                  </svg>
                 </button>
               </div>
             {/each}
@@ -736,13 +761,20 @@
   .pill svg{width:14px; height:14px}
 
   .trks{display:flex; flex-direction:column; gap:1px}
-  .trk{display:grid; grid-template-columns:32px 1fr auto auto 32px; align-items:center; gap:14px;
+  .trk{display:grid; grid-template-columns:58px 1fr auto auto 32px; align-items:center; gap:14px;
     padding:9px 10px; border-radius:9px; color:var(--v2-txt2)}
   .trk:hover{background:var(--v2-surface2); color:var(--v2-txt)}
-  .tplay,.tq{width:28px; height:28px; border:0; border-radius:8px; cursor:pointer; display:grid; place-items:center;
+  /* Les deux gestes de lecture tiennent dans la PREMIERE colonne : la grille
+     garde ses cinq colonnes, et l'ecart entre les deux boutons est celui de
+     `PisteActions` (2 px), pas la gouttiere de 14 px de la ligne. */
+  .tlire{display:flex; gap:2px}
+  .tplay,.tdepuis,.tq{width:28px; height:28px; border:0; border-radius:8px; cursor:pointer; display:grid; place-items:center;
     background:transparent; color:var(--v2-txt3)}
-  .tplay:hover,.tq:hover{color:var(--v2-acc1); background:var(--v2-acc-soft)}
-  .tplay svg{width:13px; height:13px; margin-left:1px} .tq svg{width:15px; height:15px}
+  .tplay:hover,.tdepuis:hover,.tq:hover{color:var(--v2-acc1); background:var(--v2-acc-soft)}
+  .tplay svg{width:13px; height:13px; margin-left:1px}
+  .tdepuis svg{width:15px; height:15px}
+  .tdepuis:disabled{opacity:.5; cursor:default}
+  .tq svg{width:15px; height:15px}
   .ti{font:500 14px var(--v2-sans); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .tar{font:12px var(--v2-sans); color:var(--v2-txt3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     max-width:340px}

@@ -19,6 +19,9 @@
    */
   import PisteActions from '../v2/PisteActions.svelte';
   import { formatTime } from '../../lib/utils';
+  import { lireListeDepuis } from '../../lib/lectureEnMasse';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { signalerEchecLecture } from '../../lib/echecLecture';
   import type { Track } from '../../lib/types';
   import { acousticStatus, acousticEnabled, acousticProgress, refreshAcousticStatus } from '../../lib/stores/acoustic';
   import AcousticProgress from '../partages/AcousticProgress.svelte';
@@ -219,6 +222,24 @@
       notifications.error($t('library.playbackError'));
     }
     playingIndex = null;
+  }
+
+  /**
+   * « Lire à partir d'ici » — Bertrand, 20/09/2026 : le bouton doit être sur
+   * TOUTES les lignes qui portent une piste, et cet écran était l'un des deux
+   * qui montaient la barre sans le fournir.
+   *
+   * La suite, ici, c'est la liste acoustique dans son ordre de classement —
+   * celui que l'écran affiche. `lireListeDepuis` la tronque au rang et la
+   * confie aux deux gestes de la zone, comme les cinq écrans du client v2.
+   */
+  function playFrom(index: number): void {
+    const zid = zone?.id;
+    if (zid == null) {
+      notifications.error($t('queue.noZoneSelected'));
+      return;
+    }
+    lireListeDepuis(tracks, index, gestesDeZone(zid)).catch(signalerEchecLecture);
   }
 
   function trackIds(): number[] {
@@ -465,7 +486,7 @@
             {/if}
             <span class="track-duration">{formatTime(track.duration_ms)}</span>
             <span class="track-actions" onclick={(e) => e.stopPropagation()}>
-              <PisteActions piste={track} />
+              <PisteActions piste={track} onLireDepuis={() => playFrom(i)} />
             </span>
           </div>
         {/each}
