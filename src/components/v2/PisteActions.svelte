@@ -291,6 +291,14 @@
     return d?.type === 'album-service'
       ? {
           service: d.service, albumId: d.albumId, titre: d.titre,
+          // 🔴 #1342 — LA POCHETTE, elle aussi. `StreamTrack.cover_path` EST
+          // celle de l'album : `map_track` la remplit par `Self::pochette(album)`
+          // (`qobuz.rs:1256`), et la mesure du 20/09/2026 le confirme —
+          // `/streaming/qobuz/albums/atua1kxxk4tis/tracks` rend
+          // `cover_path: ".../atua1kxxk4tis_600.jpg"` sur la piste.
+          // Le champ existait dans le contrat depuis #1114 ; cet appelant-ci
+          // ne l'a jamais rempli, d'où le carré gris à l'initiale de FabienM.
+          pochette: piste.cover_path ?? null,
           // #1361 bis — la piste porte le nom de son artiste ET, pour un
           // service, son identifiant chez lui (`map_track`, #1361). Les
           // laisser ici, c'était ouvrir une fiche d'album sans artiste.
