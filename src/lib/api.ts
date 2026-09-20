@@ -6430,35 +6430,6 @@ export function skipOnboarding() {
   return fetchJSON(`${BASE}/onboarding/skip`, { method: 'POST' });
 }
 
-// --- Offline Manager ---
-export function getOfflineStatus() {
-  return fetchJSON<{ total: number; size_bytes: number; pending: number }>(`${BASE}/offline/status`);
-}
-
-export function getOfflineDownloads() {
-  return fetchJSON<any[]>(`${BASE}/offline/downloads`);
-}
-
-export function downloadForOffline(body: { source: string; source_id: string; type: string }) {
-  return fetchJSON(`${BASE}/offline/download`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-}
-
-export function removeOfflineDownload(id: string) {
-  return fetchJSON(`${BASE}/offline/downloads/${id}`, { method: 'DELETE' });
-}
-
-export function syncOffline() {
-  return fetchJSON(`${BASE}/offline/sync`, { method: 'POST' });
-}
-
-export function clearOffline() {
-  return fetchJSON(`${BASE}/offline/clear`, { method: 'POST' });
-}
-
 // -- OAAT Multi-Room Groups --
 
 export function getOaatGroups(): Promise<any> {
