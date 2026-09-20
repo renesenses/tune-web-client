@@ -93,7 +93,14 @@ export const ficheArtisteService =
  * « Chargement… » pour toujours.
  */
 export const ficheAlbumService =
-  writable<{ service: Source; id: string; titre: string; pochette?: string | null } | null>(null);
+  writable<{
+    service: Source; id: string; titre: string; pochette?: string | null;
+    /** #1361 bis — l'artiste de l'album, pour l'AFFICHER et le rendre cliquable. */
+    artiste?: string | null;
+    /** Son identifiant CHEZ LE SERVICE (#956) : avec lui, sa fiche s'ouvre
+     *  sans passer par une recherche fédérée qui peut échouer. */
+    artisteId?: string | null;
+  } | null>(null);
 
 /// Playlist de service à rouvrir en arrivant sur StreamingView (#2370).
 ///

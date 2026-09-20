@@ -638,6 +638,13 @@
               // déjà (c'est elle qui fait son fond flou) ; la fiche, elle, ne
               // relit pas l'album distant et n'avait que l'initiale à montrer.
               pochette: displayTrack?.cover_path ?? null,
+              // #1361 bis — le même raisonnement que la pochette juste
+              // au-dessus : cet écran TIENT le nom de l'artiste et, pour un
+              // service, son identifiant. La fiche ne relit pas l'album, et
+              // n'affichait donc aucun artiste.
+              artiste: displayTrack?.artist_name ?? null,
+              artisteId: (displayTrack as any)?.artist_id != null
+                ? String((displayTrack as any).artist_id) : null,
             });
             return;
           }

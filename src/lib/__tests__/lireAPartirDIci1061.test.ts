@@ -22,7 +22,7 @@ const sansCommentaires = (s: string) =>
 describe('#1061 — le bouton, dans la barre partagée', () => {
   const barre = lire('src/components/v2/PisteActions.svelte');
 
-  it('il porte le libellé déjà traduit, et il est OPT-IN', () => {
+  it('il porte le libellé déjà traduit, et la barre le rend sur demande', () => {
     expect(barre).toContain("$t('common.playFromHere'");
     expect(barre).toContain('data-depuis');
     expect(barre).toContain('onLireDepuis?: (() => void) | null;');
@@ -51,11 +51,16 @@ describe('#1061 — la liste passe le RANG, pas la liste', () => {
 
   it('`onLireDepuis` reçoit piste et index, comme `onLire`', () => {
     expect(liste).toContain('onLireDepuis?: ((piste: Track, index: number) => void) | null;');
-    expect(liste).toContain('onLireDepuis={onLireDepuis ? () => onLireDepuis(p, i) : null}');
+    // 20/09/2026 — la prop n'est plus une CONDITION mais un remplacement :
+    // le bouton est rendu sur toutes les lignes, l'écran ne fait que choisir
+    // ce que « la suite » veut dire. Voir `lireDepuisPartout1061b.test.ts`,
+    // qui monte, clique et regarde où part la lecture.
+    expect(liste).toContain('onLireDepuis={() => lireDepuis(p, i)}');
+    expect(liste).not.toContain('onLireDepuis ? () => onLireDepuis(p, i) : null');
   });
 
   it('les DEUX rendus le portent — tableau et lignes', () => {
-    const n = (liste.match(/onLireDepuis \? \(\) => onLireDepuis\(p, i\) : null/g) ?? []).length;
+    const n = (liste.match(/onLireDepuis=\{\(\) => lireDepuis\(p, i\)\}/g) ?? []).length;
     // Une fois dans la cellule d'actions du tableau, deux fois dans le rendu
     // en lignes (avec suffixe et sans).
     expect(n).toBe(3);
@@ -85,13 +90,21 @@ describe('#1061 — les écrans qui ont une liste ordonnée', () => {
     });
   }
 
-  it('🔴 l\'Historique ne le pose PAS, et c\'est délibéré', () => {
-    // Un journal d'écoutes est antichronologique : « la suite » y voudrait
-    // dire « ce que j'ai écouté AVANT ». Le geste n'y a pas de sens, et le
-    // poser quand même serait une réponse à une question que personne n'a
-    // posée.
+  it('🔴 RECTIFICATIF — l\'Historique le porte, lui aussi', () => {
+    // Cette épreuve disait l'inverse, et voici son motif d'alors : « Un
+    // journal d'écoutes est antichronologique : la suite y voudrait dire ce
+    // que j'ai écouté AVANT ». Bertrand a tranché autrement le 20/09/2026 —
+    // « Sur toutes les lignes où il y a une piste » — et la formulation de
+    // FabienM lui donne raison : « le titre sélectionné suivi des titres qui
+    // suivent dans la liste AFFICHÉE À L'ÉCRAN ». Dans l'Historique, la liste
+    // affichée est antichronologique : c'est elle qui part, dans son ordre.
+    //
+    // L'écran ne pose aucun `onLireDepuis=` : il prend le défaut de
+    // `ListePistesV2`, qui lit `pistes` — les pistes du lot, dans l'ordre rendu.
     const s = sansCommentaires(lire('src/components/v2/HistoriqueV2.svelte'));
     expect(s).not.toContain('onLireDepuis=');
+    const liste = lire('src/components/v2/ListePistesV2.svelte');
+    expect(liste).toContain('lireListeDepuis(pistes, i, gestesDeZone(zid))');
   });
 });
 

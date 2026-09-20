@@ -21,9 +21,12 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     // même dessin.
     expect(src, 'la disquette est revenue').not.toContain('M19 21H5a2 2 0 0 1-2-2V5');
     expect(src, 'skip-forward est revenu sur « lire ensuite »').not.toContain('<path d="M19 5v14"/>');
-    // « Ajouter à une playlist » reprend le glyphe des Playlists de la barre
-    // latérale : lisible sans légende parce qu'on le voit déjà chaque jour.
-    expect(src).toContain('M18 15V8l3 .6');
+    // « Ajouter à une playlist » reprend le glyphe des Playlists : lucide
+    // `list-music`, tracé officiel depuis le 20/09/2026 (Bertrand : « Tous
+    // les boutons utilisés doivent être tirés de lucide-icons »). C'était un
+    // dessin maison qui s'en approchait.
+    expect(src).toContain('M21 16V5');
+    expect(src).toContain('<circle cx="18" cy="16" r="3"/>');
   });
 
   it("un ecran qui porte la barre n'a plus son PROPRE cœur", () => {
@@ -33,7 +36,10 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
     // `HeartButton trackId=…` ne pouvait pas atteindre faute d'identifiant
     // local.
     const amb = sansCommentaires(lire('src/components/v2-heritage/AmbianceView.svelte'));
-    expect(amb).toContain('<PisteActions piste={track} />');
+    // La barre porte en plus « Lire à partir d'ici » depuis le 20/09/2026 :
+    // l'écran fournit la suite (son classement acoustique), il ne pose plus
+    // la barre nue.
+    expect(amb).toContain('<PisteActions piste={track} onLireDepuis={() => playFrom(i)} />');
     expect(amb, 'deux cœurs sur la même ligne').not.toContain('HeartButton');
   });
 
