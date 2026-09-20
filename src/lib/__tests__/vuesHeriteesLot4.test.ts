@@ -14,7 +14,18 @@ describe('les écrans hérités ont un chemin dans la coquille v2', () => {
   for (const [vue, comp] of [['concerts', 'ConcertsView'], ['offline', 'OfflineView'], ['dashboard', 'DashboardView']]) {
     it(`« ${vue} » est routé vers ${comp}, et listé dans la barre`, () => {
       expect(existsSync(`src/components/v2-heritage/${comp}.svelte`)).toBe(true);
-      expect(SHELL).toMatch(new RegExp(`\\{:else if \\$activeView === '${vue}'\\}\\s*(<!--[\\s\\S]*?-->\\s*)?<${comp} />`));
+      // ⚠️ On mesure le CONTENU de la branche, et non l'adjacence immédiate
+      // du composant. Le motif exigeait `{:else if …}` puis, au plus un
+      // commentaire près, `<DashboardView />` : #1344 a dû envelopper le
+      // tableau de bord et ses recommandations dans un conteneur de
+      // défilement (`<div class="dash">`), et cette garde rougissait sans
+      // qu'aucun routage ne bouge. Le contrat gardé est le routage, pas la
+      // mise en page — c'est déjà ainsi que le témoin des recommandations,
+      // juste en dessous, s'y prend.
+      const i = SHELL.indexOf(`{:else if $activeView === '${vue}'}`);
+      expect(i, `« ${vue} » n’est routé nulle part dans la coquille`).toBeGreaterThan(-1);
+      const branche = SHELL.slice(i, SHELL.indexOf('{:else if', i + 10));
+      expect(branche, `la branche « ${vue} » ne monte pas ${comp}`).toContain(`<${comp} />`);
       expect(BARRE, `aucune entrée de barre pour « ${vue} »`).toContain(`{ view: '${vue}',`);
     });
   }
