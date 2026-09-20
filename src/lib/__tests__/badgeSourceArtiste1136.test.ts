@@ -43,6 +43,9 @@ import { mount, unmount, flushSync } from 'svelte';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import SearchV2 from '../../components/v2/SearchV2.svelte';
+// #1326 / #1333 — un composant se prend à la COLLECTE, jamais par `await
+// import()` dans un cas : la compilation quitte le chronomètre du cas.
+import ServiceBadge from '../../components/partages/ServiceBadge.svelte';
 import { setSearchCriteria } from '../stores/shortcuts';
 import { preferences } from '../stores/preferences';
 
@@ -196,8 +199,7 @@ describe('#1136 — chaque vignette d’artiste dit sa source, la locale compris
     // fausse. `ServiceBadge` ne connaît pas `napster` : il ne peint rien.
     const el = document.createElement('div');
     document.body.appendChild(el);
-    const { default: Badge } = await import('../../components/partages/ServiceBadge.svelte');
-    const m = mount(Badge as any, { target: el, props: { source: 'napster', compact: true } });
+    const m = mount(ServiceBadge as any, { target: el, props: { source: 'napster', compact: true } });
     flushSync();
     expect(el.querySelectorAll('.service-badge').length).toBe(0);
     unmount(m);
