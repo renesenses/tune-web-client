@@ -18,7 +18,7 @@
  * de secondes pour garder une seule ligne.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import {
   FICHIER_VERSION,
   contenuVersionJson,
@@ -73,8 +73,34 @@ describe('greffon Vite', () => {
   });
 });
 
+const CONFIG_VITE = new URL('../../vite.config.ts', import.meta.url);
+const DEPOT_GIT = new URL('../../.git', import.meta.url);
+
 describe('câblage dans vite.config.ts', () => {
-  const config = readFileSync(new URL('../../vite.config.ts', import.meta.url), 'utf-8');
+  // La porte de Shrek recopie le dépôt SANS `vite.config.ts` (proxy local, il
+  // ne doit jamais voyager) ni `.git`. Là-bas ces deux gardes n'ont pas d'objet
+  // — et leur `ENOENT` faisait tomber le FICHIER entier, donc un rouge
+  // permanent que personne ne pouvait distinguer d'une régression.
+  //
+  // On ne se contente pas de sauter quand le fichier manque : dans un dépôt
+  // COMPLET (`.git` présent), un `vite.config.ts` absent est un vrai défaut, et
+  // la garde doit le dire fort. Sauter sur la seule absence du fichier ferait
+  // d'elle une garde qui ne garde plus rien — y compris en CI.
+  if (!existsSync(CONFIG_VITE)) {
+    const arbreRecopie = !existsSync(DEPOT_GIT);
+    it.skipIf(arbreRecopie)(
+      'vite.config.ts doit être lisible pour que le câblage soit gardé',
+      () => {
+        expect.fail(
+          '`vite.config.ts` manque alors que le dépôt est complet (`.git` présent) : ' +
+            'le câblage du greffon `version.json` n est plus gardé par personne.'
+        );
+      }
+    );
+    return;
+  }
+
+  const config = readFileSync(CONFIG_VITE, 'utf-8');
 
   it('monte le greffon dans la liste des plugins', () => {
     expect(
