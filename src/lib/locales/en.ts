@@ -4358,6 +4358,7 @@ export default {
   "v2.sup.bugImagesType": "“{nom}” is not an image.",
   "v2.sup.bugImagesTooLarge": "“{nom}” is larger than {max} MB.",
   "v2.sup.bugImagesSent": "{n} screenshot(s) attached to the thread.",
+  "v2.sup.bugImagesNotAttached": "Your screenshots could not be attached to the thread: the forum service did not accept them. Add them directly on the thread.",
   "v2.sup.sysHint": "Your server, its zones and the devices they drive. A dashed zone is offline. This is the diagram support will ask you for.",
   "v2.sup.sysEmpty": "No zone configured: there is nothing to draw.",
   "v2.sup.sysCopy": "Copy diagram (Mermaid)",

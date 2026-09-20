@@ -119,6 +119,8 @@
   let bogueImagesErreur = $state<string | null>(null);
   /** Captures que le forum dit avoir rangées, une fois l'envoi accepté. */
   let bogueCaptures = $state<number | null>(null);
+  /** Le fil est parti, mais le forum n'a pas confirmé toutes les captures. */
+  let bogueCapturesPerdues = $state(false);
 
   const TYPES_IMAGE = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 
@@ -194,6 +196,13 @@
       // #4564 — ce que le FORUM dit avoir rangé, pas ce qu'on a envoyé. Une
       // capture perdue en route doit se voir ici, pas se deviner sur le fil.
       bogueCaptures = typeof r?.images === 'number' ? r.images : null;
+      // 🔴 LA GARDE DE SÉQUENCE. Un service communautaire antérieur à
+      // l'extension `images[]` accepte le multipart, crée le fil, et JETTE les
+      // fichiers en silence — `validate()` ignore les clés qu'il ne connaît
+      // pas. Le testeur croirait sa capture partie : exactement le défaut que
+      // #4564 corrige, par une autre porte. On compare donc ce qu'on a envoyé
+      // à ce que le forum CONFIRME, et on le dit.
+      bogueCapturesPerdues = bogueImages.length > 0 && (bogueCaptures ?? 0) < bogueImages.length;
       bogueEnvoye = true;
     } catch (e: any) {
       console.error('Support: envoi du rapport de bogue', e);
@@ -209,6 +218,7 @@
     bogueDesc = ''; bogueApercu = null; bogueApercuEchec = false;
     bogueEnvoye = false; bogueFil = ''; bogueErreur = null;
     bogueImages = []; bogueImagesErreur = null; bogueCaptures = null;
+    bogueCapturesPerdues = false;
   }
 
   /* ---------------- Mon système ---------------- */
@@ -504,6 +514,9 @@
                  affiché quand il ne le dit pas : on n'invente pas un chiffre. -->
             {#if bogueCaptures !== null && bogueCaptures > 0}
               <p class="sub">{tr1('v2.sup.bugImagesSent', { n: bogueCaptures })}</p>
+            {/if}
+            {#if bogueCapturesPerdues}
+              <p class="bogue-err">{$t('v2.sup.bugImagesNotAttached' as any)}</p>
             {/if}
             <div class="bogue-actions">
               {#if bogueFil}

@@ -4338,6 +4338,7 @@ export default {
   "v2.sup.bugImagesType": "«{nom}» no es una imagen.",
   "v2.sup.bugImagesTooLarge": "«{nom}» supera {max} MB.",
   "v2.sup.bugImagesSent": "{n} captura(s) adjunta(s) al hilo.",
+  "v2.sup.bugImagesNotAttached": "No se han podido adjuntar sus capturas al hilo: el servicio del foro no las ha aceptado. Añádalas directamente en el hilo.",
   "v2.sup.sysHint": "Su servidor, sus zonas y los dispositivos que controlan. Una zona con línea discontinua está desconectada. Es el esquema que le pedirá el soporte.",
   "v2.sup.sysEmpty": "Ninguna zona configurada: no hay nada que representar.",
   "v2.sup.sysCopy": "Copiar el esquema (Mermaid)",

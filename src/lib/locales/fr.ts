@@ -4360,6 +4360,7 @@ export default {
   "v2.sup.bugImagesType": "« {nom} » n’est pas une image.",
   "v2.sup.bugImagesTooLarge": "« {nom} » dépasse {max} Mo.",
   "v2.sup.bugImagesSent": "{n} capture(s) jointe(s) au fil.",
+  "v2.sup.bugImagesNotAttached": "Vos captures n’ont pas pu être jointes au fil : le service du forum ne les a pas acceptées. Déposez-les directement sur le fil.",
   "v2.sup.sysHint": "Votre serveur, ses zones et les appareils qu'elles pilotent. Une zone en pointillés est hors ligne. C'est ce schéma que le support vous demandera.",
   "v2.sup.sysEmpty": "Aucune zone configurée : il n'y a rien à représenter.",
   "v2.sup.sysCopy": "Copier le schéma (Mermaid)",

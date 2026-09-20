@@ -4337,6 +4337,7 @@ export default {
   "v2.sup.bugImagesType": "”{nom}” är inte en bild.",
   "v2.sup.bugImagesTooLarge": "”{nom}” är större än {max} MB.",
   "v2.sup.bugImagesSent": "{n} skärmbild(er) bifogade till tråden.",
+  "v2.sup.bugImagesNotAttached": "Dina skärmbilder kunde inte bifogas tråden: forumtjänsten tog inte emot dem. Lägg till dem direkt i tråden.",
   "v2.sup.sysHint": "Din server, dess zoner och enheterna de styr. En streckad zon är offline. Det är det här schemat supporten kommer att be om.",
   "v2.sup.sysEmpty": "Ingen zon konfigurerad: det finns inget att visa.",
   "v2.sup.sysCopy": "Kopiera schemat (Mermaid)",

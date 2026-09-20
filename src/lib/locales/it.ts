@@ -4338,6 +4338,7 @@ export default {
   "v2.sup.bugImagesType": "«{nom}» non è un'immagine.",
   "v2.sup.bugImagesTooLarge": "«{nom}» supera {max} MB.",
   "v2.sup.bugImagesSent": "{n} schermata/e allegata/e alla discussione.",
+  "v2.sup.bugImagesNotAttached": "Non è stato possibile allegare le schermate alla discussione: il servizio del forum non le ha accettate. Aggiungile direttamente nella discussione.",
   "v2.sup.sysHint": "Il tuo server, le sue zone e i dispositivi che pilotano. Una zona tratteggiata è offline. È lo schema che l'assistenza ti chiederà.",
   "v2.sup.sysEmpty": "Nessuna zona configurata: non c'è nulla da rappresentare.",
   "v2.sup.sysCopy": "Copia lo schema (Mermaid)",

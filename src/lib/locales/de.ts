@@ -4338,6 +4338,7 @@ export default {
   "v2.sup.bugImagesType": "„{nom}“ ist kein Bild.",
   "v2.sup.bugImagesTooLarge": "„{nom}“ ist größer als {max} MB.",
   "v2.sup.bugImagesSent": "{n} Bildschirmfoto(s) an den Beitrag angehängt.",
+  "v2.sup.bugImagesNotAttached": "Ihre Bildschirmfotos konnten dem Beitrag nicht angehängt werden: der Forumsdienst hat sie nicht angenommen. Fügen Sie sie direkt im Beitrag hinzu.",
   "v2.sup.sysHint": "Ihr Server, seine Zonen und die Geräte, die sie ansteuern. Eine gestrichelte Zone ist offline. Nach diesem Schema wird der Support Sie fragen.",
   "v2.sup.sysEmpty": "Keine Zone eingerichtet: Es gibt nichts darzustellen.",
   "v2.sup.sysCopy": "Schema kopieren (Mermaid)",

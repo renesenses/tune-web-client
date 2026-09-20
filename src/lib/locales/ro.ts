@@ -4338,6 +4338,7 @@ export default {
   "v2.sup.bugImagesType": "„{nom}” nu este o imagine.",
   "v2.sup.bugImagesTooLarge": "„{nom}” depășește {max} MB.",
   "v2.sup.bugImagesSent": "{n} captură(i) atașată(e) la discuție.",
+  "v2.sup.bugImagesNotAttached": "Capturile nu au putut fi atașate discuției: serviciul forumului nu le-a acceptat. Adăugați-le direct în discuție.",
   "v2.sup.sysHint": "Serverul dvs., zonele sale și dispozitivele pe care le comandă. O zonă punctată este offline. Este schema pe care v-o va cere asistența.",
   "v2.sup.sysEmpty": "Nicio zonă configurată: nu există nimic de reprezentat.",
   "v2.sup.sysCopy": "Copiază schema (Mermaid)",

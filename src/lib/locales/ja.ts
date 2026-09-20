@@ -4338,6 +4338,7 @@ export default {
   "v2.sup.bugImagesType": "「{nom}」は画像ではありません。",
   "v2.sup.bugImagesTooLarge": "「{nom}」は {max} MB を超えています。",
   "v2.sup.bugImagesSent": "{n} 枚のスクリーンショットをスレッドに添付しました。",
+  "v2.sup.bugImagesNotAttached": "スクリーンショットをスレッドに添付できませんでした。フォーラムのサービスが受け付けませんでした。スレッドに直接追加してください。",
   "v2.sup.sysHint": "サーバーと、そのゾーン、ゾーンが制御する機器です。破線のゾーンはオフラインです。サポートが求めるのはこの図です。",
   "v2.sup.sysEmpty": "ゾーンが設定されていないため、表示するものがありません。",
   "v2.sup.sysCopy": "図をコピー (Mermaid)",

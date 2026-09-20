@@ -4338,6 +4338,7 @@ export default {
   "v2.sup.bugImagesType": "“{nom}”不是图片。",
   "v2.sup.bugImagesTooLarge": "“{nom}”超过 {max} MB。",
   "v2.sup.bugImagesSent": "已向帖子附加 {n} 张截图。",
+  "v2.sup.bugImagesNotAttached": "无法将您的截图附加到帖子：论坛服务未接受它们。请直接在帖子中添加。",
   "v2.sup.sysHint": "您的服务器、区域，以及它们驱动的设备。虚线区域表示离线。技术支持需要的正是这张图。",
   "v2.sup.sysEmpty": "未配置任何区域，没有可显示的内容。",
   "v2.sup.sysCopy": "复制图示 (Mermaid)",
