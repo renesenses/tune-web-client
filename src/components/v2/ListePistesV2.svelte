@@ -8,25 +8,24 @@
    * deux tombent en face, la ligne d'objet doit composer sa grille avec cette
    * largeur-ci — pas avec une copie (#1149).
    *
-   * 208 px = SEPT boutons de 28 px + six gouttières de 2 px, la barre pleine
-   * de `PisteActions`. Le chiffre a déjà changé une fois (178 → 208 le
-   * 16/09/2026, quand le menu « … » a porté la barre à sept) : un témoin le
-   * recalcule en comptant les boutons, `largeurActionsSuitLaBarre.test.ts`.
-   */
-  export const LARGEUR_ACTIONS = '208px';
-  /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
-  export const LARGEUR_ACTIONS_PX = 208;
-  /**
-   * 🔴 La MÊME règle, avec le bouton « Lire à partir d'ici » (#1061).
+   * 238 px = HUIT boutons de 28 px + sept gouttières de 2 px, la barre pleine
+   * de `PisteActions`. Le chiffre a déjà changé deux fois (178 → 208 le
+   * 16/09/2026, quand le menu « … » a porté la barre à sept ; 208 → 238 le
+   * 20/09/2026, quand « Lire à partir d'ici » a cessé d'être optionnel) : un
+   * témoin le recalcule en comptant les boutons,
+   * `largeurActionsSuitLaBarre.test.ts`.
    *
-   * 238 px = HUIT boutons de 28 px + sept gouttières de 2 px. Le bouton est
-   * opt-in — seul l'écran sait ce que « la suite » veut dire — donc la colonne
-   * l'est aussi : l'élargir partout volerait 30 px à la dernière colonne de
-   * données des écrans qui ne le posent pas, exactement le défaut du 16/09
-   * (la colonne DR lue « 1▶ »). Le témoin recalcule les DEUX chiffres.
+   * 🔴 IL N'Y A PLUS DEUX LARGEURS. Elles ont existé tant que « Lire à partir
+   * d'ici » était opt-in (#1061) : l'élargir partout aurait volé 30 px à la
+   * dernière colonne de données des écrans qui ne le posaient pas. Bertrand,
+   * 20/09/2026 : « Sur toutes les lignes où il y a une piste, ajoute le bouton
+   * lire à partir de après celui de Lire ». Le bouton est désormais sur
+   * TOUTES les lignes de cette liste, donc la colonne n'a qu'une largeur — et
+   * deux constantes pour une seule valeur seraient la prochaine divergence.
    */
-  export const LARGEUR_ACTIONS_DEPUIS = '238px';
-  export const LARGEUR_ACTIONS_DEPUIS_PX = 238;
+  export const LARGEUR_ACTIONS = '238px';
+  /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
+  export const LARGEUR_ACTIONS_PX = 238;
 </script>
 
 <script lang="ts">
@@ -76,6 +75,10 @@
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
   import { activeView } from '../../lib/stores/navigation';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { lireListeDepuis } from '../../lib/lectureEnMasse';
+  import { signalerEchecLecture } from '../../lib/echecLecture';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
 
@@ -86,14 +89,24 @@
     onLire: (piste: Track, index: number) => void;
     /**
      * « Lire à partir d'ici » sur CHAQUE ligne — #1061, FabienM, fil 1812,
-     * point 9. Le geste existait dans trois écrans sous trois formes (bouton
-     * explicite dans l'ancienne interface et le gestionnaire hérité, clic
-     * implicite dans `PlaylistDetailV2`) et nulle part dans les Favoris V2.
+     * point 9, puis Bertrand le 20/09/2026 : « Sur toutes les lignes où il y a
+     * une piste, ajoute le bouton lire à partir de après celui de Lire ».
      *
-     * OPT-IN : la barre d'actions reçoit UNE piste, ce composant reçoit la
-     * liste, mais seul l'ÉCRAN sait ce que « la suite » veut dire — son ordre
-     * d'affichage et sa source par défaut pour une liste mixte. Il reçoit donc
-     * le rang, comme `onLire`.
+     * 🔴 CE N'EST PLUS UN OPT-IN, C'EST UN REMPLACEMENT. Le motif d'avant
+     * disait « seul l'ÉCRAN sait ce que la suite veut dire — son ordre
+     * d'affichage et sa source par défaut pour une liste mixte », et six
+     * écrans sur douze ne le passaient pas : le bouton manquait sur les
+     * titres phares d'un artiste, l'Historique, les titres voisins de la
+     * Recherche, les résultats et les favoris d'un service.
+     *
+     * Or l'argument ne tenait pas : `pistes` EST l'ordre d'affichage — c'est
+     * ce que l'écran a remis à ce composant — et `lectureEnMasse.planDeLecture`
+     * tranche déjà la source, liste mixte comprise. Le défaut ci-dessous fait
+     * donc exactement ce que les cinq écrans qui passaient la prop écrivaient
+     * à la main : `lireListeDepuis(pistes, rang, gestesDeZone(zone))`.
+     *
+     * La prop reste, pour les listes dont la suite n'est PAS la liste rendue :
+     * l'Historique rejoue une entrée de journal, la file saute à un rang.
      */
     onLireDepuis?: ((piste: Track, index: number) => void) | null;
     /**
@@ -222,6 +235,27 @@
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
   }: Props = $props();
 
+  /**
+   * « Lire à partir d'ici », par DÉFAUT — Bertrand, 20/09/2026.
+   *
+   * L'écran garde la main (`onLireDepuis`) quand sa suite n'est pas la liste
+   * rendue. Sans lui, la suite EST la liste rendue, dans son ordre : c'est la
+   * seule chose que ce composant puisse affirmer, et c'est ce que les cinq
+   * écrans qui passaient la prop écrivaient mot pour mot.
+   *
+   * 🔴 Sans zone, on ne joue rien — mais on le DIT (#1233). `playAndSync` a
+   * besoin d'un identifiant de zone, et l'inventer enverrait la lecture
+   * ailleurs ; sortir en silence, c'est le défaut des « Titres phares non
+   * cliquables » du 18/09/2026. Le bouton, lui, reste rendu : la colonne ne
+   * doit pas changer de largeur selon l'état des zones.
+   */
+  function lireDepuis(p: Track, i: number): void {
+    if (onLireDepuis) { onLireDepuis(p, i); return; }
+    const zid = zoneRequise();
+    if (zid == null) return;
+    lireListeDepuis(pistes, i, gestesDeZone(zid)).catch(signalerEchecLecture);
+  }
+
   const mode = $derived($preferences.settingsLevel);
   /**
    * 🔴 Une SEULE source de vérité : `MODES_BRANCHES`, via `modeEnTableau`.
@@ -246,7 +280,7 @@
    * L'en-tête et les lignes sont des grilles SÉPARÉES qui partagent le même
    * `grid-template-columns`. Une colonne dimensionnée par son contenu — `auto`,
    * `max-content` — se résout donc dans chacune indépendamment : à zéro dans
-   * l'en-tête, où la cellule d'actions est vide, et à ~208 px dans les lignes.
+   * l'en-tête, où la cellule d'actions est vide, et à ~238 px dans les lignes.
    * Les colonnes en `fr` absorbent l'écart, et TOUS les en-têtes dérivent vers
    * la droite. Signalé par Bertrand le 07/09/2026, capture à l'appui : « TIME »
    * deux cents pixels à droite de « 5:24 ».
@@ -259,7 +293,7 @@
    * C'est la leçon de la vue Liste de la Bibliothèque, écrite le 05/09 et que
    * j'ai réintroduite ici. Une garde la tient désormais.
    *
-   * 208 px = SEPT boutons de 28 px + six gouttières de 2 px, la barre pleine.
+   * 238 px = HUIT boutons de 28 px + sept gouttières de 2 px, la barre pleine.
    *
    * 🔴 Elle valait 178 px — six boutons — jusqu'au 16/09/2026. Le menu « … »
    * (a5be266a, 07/09) avait porté la barre à sept sans toucher à ce chiffre :
@@ -273,9 +307,10 @@
   // `<script module>` en tête de fichier : l'Historique compose sa ligne
   // d'objet avec la MÊME valeur (#1149).
   const largeurApresPx = $derived(parseFloat(largeurApres) || 0);
-  // #1061 : la colonne suit la barre, bouton « à partir d'ici » compris.
-  const largeurDesActions = $derived(onLireDepuis ? LARGEUR_ACTIONS_DEPUIS : LARGEUR_ACTIONS);
-  const largeurDesActionsPx = $derived(onLireDepuis ? LARGEUR_ACTIONS_DEPUIS_PX : LARGEUR_ACTIONS_PX);
+  // #1061 : la colonne suit la barre, bouton « à partir d'ici » compris — et
+  // il y est sur TOUTES les lignes depuis le 20/09/2026, donc une seule valeur.
+  const largeurDesActions = LARGEUR_ACTIONS;
+  const largeurDesActionsPx = LARGEUR_ACTIONS_PX;
   const gabarit = $derived(
     `${gabaritGrille(colonnes)} ${largeurDesActions}${apres ? ` ${largeurApres}` : ''}`,
   );
@@ -332,7 +367,7 @@
           piste={p}
           numero={numerotation === 'aucune' ? null : Number(numero(p, i))}
           onLire={() => onLire(p, i)}
-          onLireDepuis={onLireDepuis ? () => onLireDepuis(p, i) : null}
+          onLireDepuis={() => lireDepuis(p, i)}
           {avecAlbum}
           {pochette}
           onOuvrirAlbum={ouvrir}
@@ -361,7 +396,7 @@
         piste={p}
         numero={numerotation === 'aucune' ? null : Number(numero(p, i))}
         onLire={() => onLire(p, i)}
-        onLireDepuis={onLireDepuis ? () => onLireDepuis(p, i) : null}
+        onLireDepuis={() => lireDepuis(p, i)}
         {avecAlbum}
         {pochette}
         onOuvrirAlbum={ouvrir}
@@ -452,7 +487,7 @@
           {/if}
         {/each}
         <span class="td act" role="cell"><PisteActions piste={p}
-          onLireDepuis={onLireDepuis ? () => onLireDepuis(p, i) : null} /></span>
+          onLireDepuis={() => lireDepuis(p, i)} /></span>
         {#if apres}<span class="td act" role="cell">{@render apres(p, i)}</span>{/if}
       </div>
     {/each}

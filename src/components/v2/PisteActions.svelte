@@ -384,37 +384,46 @@
 <span class="pactions" class:a-favori={favori}>
   {#if jouable}
     <button class="pa" onclick={lire} title={$t('v2.pa.play' as any)} aria-label={$t('v2.pa.play' as any)}>
-      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4l14 8-14 8z"/></svg>
+      <!-- lucide `play` — tracé officiel, sans retouche. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>
+      </svg>
     </button>
     {#if onLireDepuis}
       <button class="pa" data-depuis onclick={(e) => { stop(e); onLireDepuis?.(); }}
               title={$t('common.playFromHere' as any)} aria-label={$t('common.playFromHere' as any)}>
-        <!-- Une lecture qui EMPORTE la suite : la barre de lecture, puis les
-             lignes qui suivent. Distincte du triangle seul, qui ne lit que la
-             ligne, et du dessin de « lire ensuite », qui insère en tête. -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <path d="M4 6.5l5 3-5 3z" fill="currentColor" stroke="none"/>
-          <path d="M12 6.5h8M12 12h8M12 17.5h8"/>
+        <!-- lucide `step-forward` — le dessin de la maquette : la barre, puis
+             le triangle. C'est la deuxième icône de la ligne de piste dans la
+             Figma « Claude » (page 1, cadre « Track list »), juste après
+             `play`, et c'est Bertrand qui l'y a posée le 20/09/2026.
+             Distincte du triangle seul, qui ne lit que la ligne. -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/>
+          <path d="M3 4v16"/>
         </svg>
       </button>
     {/if}
-    <!-- Une LISTE dont la lecture entre en tete. L'icone precedente etait
-         `skip-forward` — celle de « piste suivante » de la barre de transport :
-         deux gestes tres differents sous le meme dessin. -->
+    <!-- Une LISTE dont la lecture entre en TETE : lucide `list-start`, tracé
+         officiel. L'icone d'avant etait un dessin maison — une liste plus un
+         triangle — qui se confondait avec celle de « lire a partir d'ici » une
+         fois les deux boutons cote a cote. Avant elle, `skip-forward` : celle
+         de « piste suivante » de la barre de transport, deux gestes tres
+         differents sous le meme dessin. -->
     <button class="pa" onclick={ensuite} disabled={occupe}
             title={$t('v2.pa.next' as any)} aria-label={$t('v2.pa.next' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <path d="M4 7h9M4 12h9M4 17h6"/>
-        <path d="M16 5.6l4.8 2.9-4.8 2.9z" fill="currentColor" stroke="none"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 5h6"/><path d="M3 12h13"/><path d="M3 19h13"/>
+        <path d="m16 8-3-3 3-3"/><path d="M21 19V7a2 2 0 0 0-2-2h-6"/>
       </svg>
     </button>
     <button class="pa" onclick={aLaFile} disabled={occupe}
             title={$t('v2.pa.queue' as any)} aria-label={$t('v2.pa.queue' as any)}>
-      <!-- La MEME liste, un plus a la fin : c'est l'accent qui distingue les
-           deux gestes, pas le dessin. -->
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <path d="M4 7h11M4 12h11M4 17h7"/>
-        <path d="M18 14.5v6M15 17.5h6"/>
+      <!-- lucide `list-plus`, tracé officiel. La MEME liste que « lire
+           ensuite », un plus en plus : c'est l'accent qui distingue les deux
+           gestes, pas le dessin. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 5H3"/><path d="M11 12H3"/><path d="M16 19H3"/>
+        <path d="M18 9v6"/><path d="M21 12h-6"/>
       </svg>
     </button>
   {/if}
@@ -431,9 +440,8 @@
            que la barre laterale porte deja pour « Playlists » le rend lisible
            sans legende. -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 7h11M4 12h11M4 17h7"/>
-        <path d="M18 15V8l3 .6"/>
-        <circle cx="16" cy="16" r="2"/>
+        <path d="M16 5H3"/><path d="M11 12H3"/><path d="M11 19H3"/>
+        <path d="M21 16V5"/><circle cx="18" cy="16" r="3"/>
       </svg>
     </button>
   {/if}
@@ -441,9 +449,10 @@
     <button class="pa" class:on={panneauEtiquettes} aria-expanded={panneauEtiquettes}
             onclick={(e) => { e.stopPropagation(); panneauEtiquettes = !panneauEtiquettes; }}
             title={$t('v2.cover.tags' as any)} aria-label={$t('v2.cover.tags' as any)}>
+      <!-- lucide `tag`, tracé officiel. -->
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z"/>
-        <circle cx="6.5" cy="6.5" r="1.2" fill="currentColor"/>
+        <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/>
+        <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>
       </svg>
     </button>
   {/if}
@@ -451,7 +460,12 @@
     <button class="pa coeur" class:on={favori} onclick={basculerCoeur} disabled={occupe}
             title={$t(favori ? 'v2.pa.unfav' as any : 'v2.pa.fav' as any)}
             aria-label={$t(favori ? 'v2.pa.unfav' as any : 'v2.pa.fav' as any)}>
-      <svg viewBox="0 0 24 24" fill={favori ? 'currentColor' : 'none'} stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <!-- lucide `heart`, tracé officiel. Le REMPLISSAGE reste piloté par
+           l'état : plein quand la piste est en favori, vide sinon. -->
+      <svg viewBox="0 0 24 24" fill={favori ? 'currentColor' : 'none'} stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>
+      </svg>
   </button>
   {/if}
   <!-- 🔴 Le « … », dernier de la barre, comme dans le client actuel. Il NOMME
@@ -462,8 +476,9 @@
     <button class="pa" class:on={ancreMenu != null} aria-haspopup="menu" aria-expanded={ancreMenu != null}
             onclick={ouvrirMenu} title={$t('library.moreOptions' as any)}
             aria-label={$t('library.moreOptions' as any)}>
-      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
-        <circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/>
+      <!-- lucide `ellipsis`, tracé officiel. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
       </svg>
     </button>
   {/if}
