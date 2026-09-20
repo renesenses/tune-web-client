@@ -6701,11 +6701,72 @@ export async function getBugReportMarkdown(): Promise<string> {
  * `DiagnosticsView` : l'inventaire des capacités, qui ne lit que `api.ts`, ne
  * pouvait pas le voir.
  */
-export function submitBugReport(description: string): Promise<{ status?: string; url?: string; slug?: string }> {
-  return fetchJSON(`${BASE}/system/bug-report/submit`, {
+export interface BugReportEnvoye {
+  status?: string;
+  url?: string;
+  slug?: string;
+  /** Captures que le FORUM dit avoir rangées. `null`/absent sur un service
+   *  antérieur à #4564 : on n'invente alors aucun chiffre. */
+  images?: number | null;
+}
+
+/**
+ * Bornes des captures, alignées sur celles du serveur
+ * (`BUG_REPORT_MAX_IMAGES`, `BUG_REPORT_MAX_IMAGE_BYTES`) et, au bout de la
+ * chaîne, sur celles du forum. Exportées pour que l'écran REFUSE avec la même
+ * règle au lieu d'en écrire une seconde, qui divergerait.
+ */
+export const BUG_REPORT_MAX_IMAGES = 3;
+export const BUG_REPORT_MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+
+export async function submitBugReport(
+  description: string,
+  images: File[] = [],
+): Promise<BugReportEnvoye> {
+  // Sans capture : le chemin JSON historique, inchangé (#4564).
+  if (images.length === 0) {
+    return fetchJSON(`${BASE}/system/bug-report/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ description: description.trim() }),
+    });
+  }
+
+  // Avec captures : multipart. `fetchJSON` ne convient pas — il pose
+  // `Content-Type: application/json` dès qu'un corps existe, ce qui priverait
+  // le multipart de sa frontière et ferait refuser l'envoi côté serveur.
+  const form = new FormData();
+  form.append('description', description.trim());
+  for (const f of images) form.append('images[]', f, f.name);
+
+  const token = getToken();
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Accept-Language': acceptLang(),
+    ...profileHeader(),
+    ...entetesRelais(),
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const resp = await fetch(`${BASE}/system/bug-report/submit`, {
     method: 'POST',
-    body: JSON.stringify({ description: description.trim() }),
+    headers,
+    body: form,
   });
+  if (!resp.ok) {
+    // Le serveur compose une PHRASE dans `message` (« … n'est pas une
+    // image. ») et met le code machine dans `error`. `erreurDepuisReponse`
+    // préfère `error` : elle montrerait `image_type` au testeur. On lit donc
+    // `message` en premier ici, là où l'on connaît le contrat.
+    let detail = `${resp.status}`;
+    try {
+      const j = await resp.json();
+      detail = j?.message ?? j?.error ?? detail;
+    } catch { /* corps illisible : le statut reste */ }
+    const err = new Error(String(detail)) as ApiError;
+    err.status = resp.status;
+    throw err;
+  }
+  return resp.json();
 }
 
 // --- Audio Converter ---
