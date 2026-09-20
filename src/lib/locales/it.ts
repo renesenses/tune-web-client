@@ -2660,6 +2660,8 @@ export default {
   "zoneConfig.monoLocalOnly": "Questa zona non usa un'uscita locale: l'impostazione viene salvata, ma qui non cambierà nulla. La somma avviene nella catena audio del server, che esiste solo per una scheda audio o un DAC collegato al server.",
   "zoneConfig.channelsTitle": "Canali",
   "zoneConfig.channelsFollow": "Segui il dispositivo",
+  "zoneConfig.channelsUnavailableNonLocal": "Questa zona non usa una scheda audio locale: il renderer negozia il proprio formato.",
+  "zoneConfig.channelsUnavailableBeyondDevice": "Il dispositivo dichiara meno canali della disposizione scelta.",
   "zoneConfig.channelsUnavailable": "Questa impostazione non ha effetto su questa zona.",
   "zoneConfig.channels_mono": "Mono",
   "zoneConfig.channels_stereo": "Stereo",

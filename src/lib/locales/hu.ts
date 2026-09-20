@@ -2889,6 +2889,8 @@ export default {
   "zoneConfig.monoLocalOnly": "Ez a zóna nem helyi kimenetet használ: a beállítás mentésre kerül, de itt semmit sem változtat. Az összegzés a kiszolgáló hangláncában történik, amely csak a kiszolgálóhoz csatlakoztatott hangkártya vagy DAC esetén létezik.",
   "zoneConfig.channelsTitle": "Csatornák",
   "zoneConfig.channelsFollow": "Az eszköz követése",
+  "zoneConfig.channelsUnavailableNonLocal": "Ez a zóna nem helyi hangkártyát használ: a renderelő maga egyezteti a formátumot.",
+  "zoneConfig.channelsUnavailableBeyondDevice": "Az eszköz kevesebb csatornát jelez, mint a választott elrendezés.",
   "zoneConfig.channelsUnavailable": "Ennek a beállításnak nincs hatása erre a zónára.",
   "zoneConfig.channels_mono": "Monó",
   "zoneConfig.channels_stereo": "Sztereó",

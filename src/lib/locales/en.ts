@@ -3309,6 +3309,8 @@ export default {
   "zoneConfig.monoLocalOnly": "This zone does not use a local output: the setting is saved, but it will change nothing here. The summing happens in the server's audio chain, which only exists for a sound card or a DAC wired to the server.",
   "zoneConfig.channelsTitle": "Channels",
   "zoneConfig.channelsFollow": "Follow the device",
+  "zoneConfig.channelsUnavailableNonLocal": "This zone does not use a local sound card: the renderer negotiates its own format.",
+  "zoneConfig.channelsUnavailableBeyondDevice": "The device reports fewer channels than the layout you picked.",
   "zoneConfig.channelsUnavailable": "This setting has no effect on this zone.",
   "zoneConfig.channels_mono": "Mono",
   "zoneConfig.channels_stereo": "Stereo",

@@ -17,7 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { appareilDeLaZone } from '../../lib/vueZones';
+  import { appareilDeLaZone, cleContrainteCanaux } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
   import { tick } from 'svelte';
@@ -3517,11 +3517,15 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             {/each}
                           </select>
                         </div>
-                        <!-- Pourquoi il est verrouillé, dans les mots du serveur.
-                             `detail` est une phrase en clair : un écran sans table
-                             de traduction peut l'afficher tel quel. -->
+                        <!-- Pourquoi il est verrouillé, dans la langue de
+                             l'utilisateur. On lit le CODE (`reason`), pas la
+                             phrase (`detail`) : `detail` arrive en français
+                             quelle que soit la langue de l'interface — vu sur
+                             une installation anglaise le 20/09/2026. Le serveur
+                             le dit lui-même de ses codes : « destinés à la
+                             machine ; le client les traduit ». -->
                         {#if z.channel_layout_status?.unavailable}
-                          <p class="monote">{z.channel_layout_status?.detail ?? $t('zoneConfig.channelsUnavailable' as any)}</p>
+                          <p class="monote">{$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)}</p>
                         {/if}
                       {/if}
 
