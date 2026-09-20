@@ -1537,19 +1537,29 @@ export function moveInQueue(zoneId: number, fromPosition: number, toPosition: nu
 }
 
 /**
- * Vider la file — en entier, ou seulement CE QUI SUIT.
+ * Vider la file — SANS couper la lecture en cours.
  *
- * #1085 / tune-server-rust#4169 (livré en v0.9.155) : `{"keep_current": true}`
- * retire les entrées d'après le curseur et ne touche ni à la piste en cours,
- * ni à sa position, ni à ce qui précède — aucun arrêt.
+ * 🔴 RÈGLE PRODUIT (Bertrand, 20/09/2026, encore constatée en v0.9.157/.158) :
+ * « Vider la file d'attente ne doit pas couper la lecture en cours. » Elle
+ * clôt un fil vieux de trois mois : tune-server-rust#3669 (Laurent),
+ * #4090 (Bilou), #4163/#4169 (Cyrille), #4321 (GgB).
  *
- * 🔴 Sans argument, le corps reste ABSENT : c'est la forme que les serveurs
+ * Arrêter reste possible, mais par le geste qui le NOMME : le double-clic sur
+ * le bouton de lecture de la barre de transport, ou la touche `S`
+ * (`TransportBar.svelte`, `lib/arretTransport`).
+ *
+ * Le défaut est donc `true`, et c'est délibéré : un appelant qui oublie le
+ * drapeau obtient la règle, pas l'arrêt. Le serveur sait le faire depuis la
+ * v0.9.155 (tune-server-rust#4169) : `{"keep_current": true}` tronque après le
+ * curseur — la piste en cours, sa position et ce qui la précède restent, et
+ * AUCUN `stop` n'est envoyé.
+ *
+ * `keepCurrent = false` reste joignable (le défaut du serveur, inchangé : il
+ * a d'autres clients). Le corps est alors ABSENT — la forme que les serveurs
  * antérieurs à la .155 comprennent, et `fetchVoid` n'annonce alors aucun
- * `Content-Type` (voir `api.entete-sans-corps.test.ts`). Envoyer
- * `{"keep_current": false}` par souci de symétrie changerait la requête d'un
- * geste qui, lui, n'a pas changé.
+ * `Content-Type` (voir `api.entete-sans-corps.test.ts`).
  */
-export function clearQueue(zoneId: number, keepCurrent = false) {
+export function clearQueue(zoneId: number, keepCurrent = true) {
   return fetchVoid(
     `${BASE}/zones/${zoneId}/queue/clear`,
     keepCurrent

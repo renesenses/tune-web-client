@@ -61,9 +61,9 @@ describe('#4447 — Content-Type et corps de requete', () => {
     expect(contentType(appels[0].init)).toBeUndefined();
   });
 
-  it("clearQueue (POST sans corps, via fetchVoid) n'annonce pas application/json", async () => {
+  it("clearQueue(_, false) (POST sans corps, via fetchVoid) n'annonce pas application/json", async () => {
     const appels = espion();
-    await api.clearQueue(1);
+    await api.clearQueue(1, false);
     expect(appels).toHaveLength(1);
     expect(appels[0].init.body).toBeUndefined();
     expect(contentType(appels[0].init)).toBeUndefined();
