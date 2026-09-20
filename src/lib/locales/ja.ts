@@ -169,6 +169,8 @@ export default {
   // Zone
   'zone.zones': 'ゾーン',
   'zone.noOutputBanner': 'このゾーンには音声出力がありません。出力を選ぶまで音は出ません。',
+  'zone.outputMissingBanner': 'このゾーンの機器が見つかりません。再び現れれば自動的に再接続されます。ゾーンを削除する必要はありません。作り直すと音量、再生待ち、設定が失われます。',
+  'zone.outputMissingBannerAction': '別の出力を選ぶ',
   'zone.noOutputBannerAction': '出力を選ぶ',
   'zone.bannerDismiss': 'この警告を閉じる',
   'zone.browserUnattendedBanner': 'このゾーンはブラウザーで再生していますが、音を受け取っているタブがありません。そのパソコンで Tune を開くか、別のゾーンを選んでください。',

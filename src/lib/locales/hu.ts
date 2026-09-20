@@ -239,6 +239,8 @@ export default {
   // Zóna
   "zone.zones": "ZÓNÁK",
   "zone.noOutputBanner": "Ennek a zónának nincs hangkimenete: amíg nem választasz egyet, nem lesz hallható semmi.",
+  "zone.outputMissingBanner": "Ennek a zónának az eszköze nem található – magától újracsatlakozik, amint ismét megjelenik. Nem kell törölni a zónát: újralétrehozásakor elveszne a hangereje, a lejátszási sora és a beállításai.",
+  "zone.outputMissingBannerAction": "Másik kimenet választása",
   "zone.noOutputBannerAction": "Válassz kimenetet",
   "zone.bannerDismiss": "Figyelmeztetés bezárása",
   "zone.browserUnattendedBanner": "Ez a zóna a böngészőben játszik le, de egyetlen lap sem fogadja a hangot. Nyisd meg a Tune-t azon a számítógépen, vagy válassz másik zónát.",

@@ -169,6 +169,8 @@ export default {
   // Zone
   'zone.zones': 'ZONE',
   'zone.noOutputBanner': 'Questa zona non ha un\'uscita audio: non si sentirà nulla finché non ne sceglierai una.',
+  'zone.outputMissingBanner': 'Il dispositivo di questa zona non si trova: si ricollegherà da solo appena ricomparirà. Non serve eliminare la zona: ricrearla ne perderebbe volume, coda e impostazioni.',
+  'zone.outputMissingBannerAction': 'Scegli un’altra uscita',
   'zone.noOutputBannerAction': 'Scegli un\'uscita',
   'zone.bannerDismiss': 'Chiudi questo avviso',
   'zone.browserUnattendedBanner': 'Questa zona riproduce nel browser, ma nessuna scheda riceve l\'audio. Apri Tune su quel computer o scegli un\'altra zona.',

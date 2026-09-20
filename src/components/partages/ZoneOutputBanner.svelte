@@ -51,11 +51,22 @@
     <span>
       {$motif === 'no_output'
         ? $t('zone.noOutputBanner')
-        : $t('zone.browserUnattendedBanner')}
+        : $motif === 'output_missing'
+          ? $t('zone.outputMissingBanner')
+          : $t('zone.browserUnattendedBanner')}
     </span>
     {#if $motif === 'no_output'}
       <button class="zone-output-banner-action" onclick={() => activeView.set('zonemanager')}>
         {$t('zone.noOutputBannerAction')}
+      </button>
+    {:else if $motif === 'output_missing'}
+      <!-- 🔴 #4601 / #4580 — « Choisir une autre sortie », et SURTOUT PAS
+           « Supprimer la zone ». C'est le geste que tout ce chantier cherche
+           à éviter : deux testeurs l'ont fait et ont perdu le volume, la file
+           et les réglages de leur zone pour rien — elle se rattache seule dès
+           que l'appareil réapparaît. -->
+      <button class="zone-output-banner-action" onclick={() => activeView.set('zonemanager')}>
+        {$t('zone.outputMissingBannerAction')}
       </button>
     {/if}
     <!-- #1043 — une croix : le bandeau se ferme pour l'incident courant, et

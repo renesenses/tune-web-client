@@ -170,6 +170,8 @@ export default {
   // Zone
   'zone.zones': 'ZONE',
   'zone.noOutputBanner': 'Această zonă nu are nicio ieșire audio: nu se va auzi nimic până când nu alegeți una.',
+  'zone.outputMissingBanner': 'Dispozitivul acestei zone nu poate fi găsit — se va reconecta singur de îndată ce reapare. Nu este nevoie să ștergeți zona: recrearea i-ar pierde volumul, coada și setările.',
+  'zone.outputMissingBannerAction': 'Alege altă ieșire',
   'zone.noOutputBannerAction': 'Alegeți o ieșire',
   'zone.bannerDismiss': 'Închide această avertizare',
   'zone.browserUnattendedBanner': 'Această zonă redă în browser, dar nicio filă nu primește sunetul. Deschideți Tune pe acel computer sau alegeți altă zonă.',
