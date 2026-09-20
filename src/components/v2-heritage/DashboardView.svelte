@@ -333,7 +333,7 @@
     <div class="state">…</div>
   {:else if error}
     <div class="state error">{error}</div>
-  {:else if data && data.totals.plays === 0}
+  {:else if data && !data.totals?.plays}
     <div class="state">{$t('dashboard.empty')}</div>
   {:else if data}
     <!-- Totals -->
@@ -350,22 +350,22 @@
         CET ÉCRAN la signification des chiffres ».
       -->
       <div class="total-card">
-        <div class="total-num">{data.totals.plays.toLocaleString()}</div>
+        <div class="total-num">{(data.totals?.plays ?? 0).toLocaleString()}</div>
         <div class="total-label">{$t('dashboard.totals.plays')}</div>
         <div class="total-hint">{$t('dashboard.hint.plays' as any)}</div>
       </div>
       <div class="total-card">
-        <div class="total-num">{formatMs(data.totals.listening_ms)}</div>
+        <div class="total-num">{formatMs(data.totals?.listening_ms ?? 0)}</div>
         <div class="total-label">{$t('dashboard.totals.listening_time')}</div>
         <div class="total-hint">{$t('dashboard.hint.listeningTime' as any)}</div>
       </div>
       <div class="total-card">
-        <div class="total-num">{data.totals.unique_tracks.toLocaleString()}</div>
+        <div class="total-num">{(data.totals?.unique_tracks ?? 0).toLocaleString()}</div>
         <div class="total-label">{$t('dashboard.totals.unique_tracks')}</div>
         <div class="total-hint">{$t('dashboard.hint.uniqueTracks' as any)}</div>
       </div>
       <div class="total-card">
-        <div class="total-num">{data.totals.unique_artists.toLocaleString()}</div>
+        <div class="total-num">{(data.totals?.unique_artists ?? 0).toLocaleString()}</div>
         <div class="total-label">{$t('dashboard.totals.unique_artists')}</div>
         <div class="total-hint">{$t('dashboard.hint.uniqueArtists' as any)}</div>
       </div>
@@ -394,7 +394,12 @@
 
     <!-- Two-column grid -->
     <div class="grid">
-      {#if data.top_artists.length > 0}
+      <!-- 🔴 `?.length` et non `.length` : un serveur qui n'envoie pas l'un de
+         ces tableaux (version antérieure, réponse tronquée) faisait lever le
+         rendu, et l'écran entier restait BLANC. Constaté en le montant
+         (`ecransPortesMontes`), sur un corps sans `hourly`. Les champs
+         `top_radios` et `on_this_day` étaient déjà gardés ainsi. -->
+    {#if data.top_artists?.length}
         <div class="card">
           <h3>{$t('dashboard.section.top_artists')}</h3>
           <div class="axis-hint">{$t('dashboard.hint.topArtists' as any)}</div>
@@ -414,7 +419,7 @@
         </div>
       {/if}
 
-      {#if data.top_albums.length > 0}
+      {#if data.top_albums?.length}
         <div class="card">
           <h3>{$t('dashboard.section.top_albums')}</h3>
           <div class="axis-hint">{$t('dashboard.hint.topAlbums' as any)}</div>
@@ -439,7 +444,7 @@
         </div>
       {/if}
 
-      {#if data.top_tracks.length > 0}
+      {#if data.top_tracks?.length}
         <div class="card">
           <h3>{$t('dashboard.section.top_tracks')}</h3>
           <div class="axis-hint">{$t('dashboard.hint.topTracks' as any)}</div>
@@ -588,7 +593,7 @@
     {/if}
 
     <!-- Hourly heatmap (24h aggregate, all days combined) -->
-    {#if data.hourly.length > 0}
+    {#if data.hourly?.length}
       <div class="card">
         <h3>{$t('dashboard.section.hourly')}</h3>
         <div class="hourly-row">
@@ -609,12 +614,12 @@
 
     <!-- By zone & by source -->
     <div class="grid">
-      {#if data.by_zone.length > 0}
+      {#if data.by_zone?.length}
         <div class="card">
           <h3>{$t('dashboard.section.by_zone')}</h3>
           <ul class="bar-list">
             {#each data.by_zone as z}
-              {@const max = Math.max(...data.by_zone.map(x => x.plays))}
+              {@const max = Math.max(...(data.by_zone ?? []).map(x => x.plays))}
               <li>
                 <div class="bar-label" title={z.zone_name ?? `Zone #${z.zone_id}`}>{z.zone_name ?? `Zone #${z.zone_id}`}</div>
                 <div class="bar-track"><div class="bar-fill" style:width="{(z.plays / max) * 100}%"></div></div>
@@ -625,12 +630,12 @@
         </div>
       {/if}
 
-      {#if data.by_source.length > 0}
+      {#if data.by_source?.length}
         <div class="card">
           <h3>{$t('dashboard.section.by_source')}</h3>
           <ul class="bar-list">
             {#each data.by_source as s}
-              {@const max = Math.max(...data.by_source.map(x => x.plays))}
+              {@const max = Math.max(...(data.by_source ?? []).map(x => x.plays))}
               <li>
                 <div class="bar-label" title={s.source ?? '—'}>{s.source ?? '—'}</div>
                 <div class="bar-track"><div class="bar-fill" style:width="{(s.plays / max) * 100}%"></div></div>
@@ -643,7 +648,7 @@
     </div>
 
     <!-- Completion -->
-    {#if data.completion.completed + data.completion.skipped > 0}
+    {#if (data.completion?.completed ?? 0) + (data.completion?.skipped ?? 0) > 0}
       <div class="card">
         <h3>{$t('dashboard.section.completion')}</h3>
         <div class="completion-bar">
