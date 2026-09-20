@@ -282,6 +282,8 @@
   }
 
   function draw(timestamp: number) {
+    // Ce rappel est consommé, même si le dessin s'arrête après la pause.
+    animId = null;
     if (!canvas) return;
 
     // Throttle to ~30fps
@@ -597,14 +599,14 @@
   }
 
   function startAnimation() {
-    if (animId) return;
+    if (animId !== null) return;
     lastFrame = performance.now();
     lastTargetUpdate = 0;
     animId = requestAnimationFrame(draw);
   }
 
   function stopAnimation() {
-    if (animId) {
+    if (animId !== null) {
       cancelAnimationFrame(animId);
       animId = null;
     }
@@ -615,6 +617,8 @@
     if (playing) {
       visible = true;
       generateTargets();
+      // Une reprise avant le masquage conserve le canvas et sa visibilité.
+      if (canvas) startAnimation();
     }
   });
 

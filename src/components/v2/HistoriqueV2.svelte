@@ -11,7 +11,9 @@
    * quatre chemins, favoris de radio — vit dans `lib/historiqueLecture`,
    * partagée avec l'écran du client actuel. Ici, il n'y a que l'écran.
    */
+  import { onMount } from 'svelte';
   import * as api from '../../lib/api';
+  import { tuneWS } from '../../lib/websocket';
   import { playbackHistory, type HistoryEntry } from '../../lib/stores/history';
   import { currentZoneId, zones } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
@@ -151,11 +153,77 @@
   const cleEntree = (e: HistoryEntry) =>
     `${e.track.id ?? e.track.source_id ?? e.track.title ?? ''}@${e.playedAt}`;
 
-  $effect(() => {
-    api.getPlaybackHistory(100)
-      .then((r) => { serveur = entreesDepuisServeur(r?.items ?? []); })
-      .catch(() => { serveur = []; });
-    chargerFavorisRadio().then((s) => { favorisRadio = s; });
+  let invalidateHistory = () => {};
+  let reloadHistory = () => {};
+
+  onMount(() => {
+    let active = true;
+    let generation = 0;
+    let loading = false;
+    let pending = false;
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    async function reload() {
+      if (!active || vidage || document.hidden) return;
+      if (loading) { pending = true; return; }
+      loading = true;
+      const requestedGeneration = generation;
+      try {
+        const response = await api.getPlaybackHistory(100);
+        if (active && !vidage && requestedGeneration === generation) {
+          serveur = entreesDepuisServeur(response?.items ?? []);
+        }
+      } catch {
+        // Keep the last successful snapshot on a transient network failure.
+      } finally {
+        loading = false;
+        if (pending) { pending = false; void reload(); }
+      }
+    }
+
+    function invalidate() {
+      generation += 1;
+      pending = false;
+      if (debounce !== null) clearTimeout(debounce);
+      debounce = null;
+    }
+    invalidateHistory = invalidate;
+    reloadHistory = () => { void reload(); };
+
+    function visibilityChanged() {
+      if (document.hidden) {
+        if (interval !== null) clearInterval(interval);
+        interval = null;
+        if (debounce !== null) clearTimeout(debounce);
+        debounce = null;
+        return;
+      }
+      // Playback events can precede the history write, especially for browser
+      // outputs. Catch up while this screen is visible, including after a lost
+      // event or a delayed write; never poll every zone snapshot/position tick.
+      if (interval === null) interval = setInterval(() => { void reload(); }, 5000);
+      void reload();
+    }
+    const unsubscribe = tuneWS.onEvent((event) => {
+      if (!['playback.started', 'playback.track_changed', '_connected'].includes(event.type)) return;
+      if (document.hidden || vidage) return;
+      if (debounce !== null) clearTimeout(debounce);
+      debounce = setTimeout(() => { debounce = null; void reload(); }, 100);
+    });
+    document.addEventListener('visibilitychange', visibilityChanged);
+    visibilityChanged();
+    chargerFavorisRadio().then((s) => { if (active) favorisRadio = s; });
+
+    return () => {
+      active = false;
+      invalidate();
+      if (interval !== null) clearInterval(interval);
+      document.removeEventListener('visibilitychange', visibilityChanged);
+      unsubscribe();
+      invalidateHistory = () => {};
+      reloadHistory = () => {};
+    };
   });
 
   /**
@@ -208,6 +276,7 @@
   }
 
   async function vider() {
+    invalidateHistory();
     vidage = true;
     try {
       await api.clearPlaybackHistory();
@@ -218,6 +287,7 @@
       notifications.error($tr('settings.deletionError'));
     }
     vidage = false;
+    reloadHistory();
   }
 </script>
 
