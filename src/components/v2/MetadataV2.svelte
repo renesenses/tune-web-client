@@ -27,7 +27,7 @@
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
-  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'compil' | 'manquants';
+  type Tab = 'proposals' | 'doubtful' | 'doublons' | 'genres' | 'dr' | 'compil' | 'coffret' | 'manquants';
   let tab = $state<Tab>('proposals');
 
   let proposals = $state<MetadataProposal[]>([]);
@@ -373,6 +373,96 @@
   }
 
 
+  /* ------------------------------------------------------------------ */
+  /* COFFRETS composés À LA MAIN — Bertrand, 20/09/2026                   */
+  /* ------------------------------------------------------------------ */
+  /**
+   * « Par exemple je voudrais créer un coffret pour 101 de Depeche Mode »,
+   * capture à l'appui : deux albums, *101 - Disc A* et *101 - Disc B*.
+   * « Et je veux l'interface pour le faire (proche de compilations). »
+   *
+   * 🔴 POURQUOI PAS L'ONGLET COMPILATIONS. Son « Réunir en un seul disque »
+   * écrase les disques et renumérote à la suite — c'est ce qu'il faut pour une
+   * compilation, et c'est exactement ce qu'il ne faut pas pour un coffret. Ici
+   * les disques restent séparés : disque 1, disque 2, …
+   *
+   * 🔴 POURQUOI PAS LA DÉTECTION AUTOMATIQUE (onglet Doublons). Elle ne lit
+   * que des marqueurs CHIFFRÉS et ne groupe que des dossiers FRÈRES : le
+   * « Disc A » de Bertrand lui est invisible, deux fois plutôt qu'une.
+   *
+   * 🔴 UNE LISTE ORDONNÉE, PAS UN ENSEMBLE. Contrairement à Compilations, où
+   * l'ordre n'a aucun sens, l'ordre des cases cochées EST l'ordre des disques
+   * — c'est le contrat de la route. Un `Set` le perdrait, et l'écran ne
+   * pourrait pas le montrer.
+   */
+  let cfQuery = $state('');
+  let cfChoisis = $state<number[]>([]);
+  let cfBusy = $state(false);
+  let cfBilan = $state<string | null>(null);
+  let cfErr = $state<string | null>(null);
+
+  /** Les albums affichés, À PLAT. */
+  let cfAlbums = $derived.by(() => {
+    const q = pliage(cfQuery.trim());
+    if (q.length < 2) return [];
+    // 🔴 PAS de regroupement par titre, contrairement à Compilations : les
+    // disques d'un coffret portent des titres DIFFÉRENTS (« … Disc A »,
+    // « … Disc B »), et les ranger en groupes séparés les éloignerait
+    // justement l'un de l'autre. Le tri par titre les met côte à côte.
+    return cpTous
+      .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
+      .sort((x, y) => (x.title ?? '').localeCompare(y.title ?? ''))
+      .slice(0, 300);
+  });
+
+  /** Le rang d'un album dans la sélection, ou `0` s'il n'y est pas. */
+  function rangCoffret(id: number): number {
+    return cfChoisis.indexOf(id) + 1;
+  }
+
+  function cocherCoffret(id: number) {
+    const i = cfChoisis.indexOf(id);
+    // 🔴 Une NOUVELLE liste, pas un `splice` sur le proxy : une référence
+    // détachée ne redéclencherait pas le rendu.
+    cfChoisis = i === -1 ? [...cfChoisis, id] : cfChoisis.filter((x) => x !== id);
+    arme = null;
+  }
+
+  // Une sélection qui survivrait au changement de recherche agirait sur des
+  // albums qu'on ne voit plus à l'écran — la règle de l'onglet voisin.
+  $effect(() => {
+    cfQuery;
+    cfChoisis = [];
+    arme = null;
+  });
+
+  $effect(() => {
+    if (tab !== 'coffret') return;
+    chargerAlbumsCompil();
+  });
+
+  /** Réunit les albums cochés en UN coffret, dans l'ordre coché. Deux clics. */
+  async function composerCoffret() {
+    if (cfChoisis.length < 2 || cfBusy) return;
+    if (arme !== 'cf:composer') { arme = 'cf:composer'; return; }
+    arme = null;
+    cfBusy = true;
+    try {
+      const r = await api.composerCoffret(cfChoisis);
+      cfBilan = $t('v2.meta.boxDone' as any)
+        .replace('{count}', String(r.disques))
+        .replace('{title}', r.titre ?? '');
+      cfErr = null;
+      cfChoisis = [];
+      // La bibliothèque a changé : la liste en mémoire est périmée.
+      cpCharge = false;
+      await chargerAlbumsCompil();
+    } catch (e: any) {
+      cfErr = e?.message ?? $t('v2.meta.compilUnavail' as any);
+    }
+    cfBusy = false;
+  }
+
   /** Les albums cochés, le plus fourni en tête — l'ordre de lecture naturel. */
   function idsChoisisCiblePremiere(): number[] {
     return cpAlbums
@@ -584,6 +674,7 @@
       <button class:on={tab === 'genres'} onclick={() => (tab = 'genres')}>{$t('v2.meta.tabGenres' as any)}</button>
       <button class:on={tab === 'dr'} onclick={() => (tab = 'dr')}>{$t('v2.meta.tabDr' as any)}{#if dr}<span>{$formatNombre(dr.a_graver)}</span>{/if}</button>
       <button class:on={tab === 'compil'} onclick={() => (tab = 'compil')}>{$t('v2.meta.tabCompil' as any)}</button>
+      <button class:on={tab === 'coffret'} onclick={() => (tab = 'coffret')}>{$t('v2.meta.tabCoffret' as any)}</button>
       <button class:on={tab === 'manquants'} onclick={() => (tab = 'manquants')}>{$t('v2.meta.tabMissing' as any)}</button>
     </nav>
   </header>
@@ -897,6 +988,58 @@
         {/each}
       {/if}
 
+    {:else if tab === 'coffret'}
+      <p class="note">{$t('v2.meta.boxIntro' as any)}</p>
+      <div class="cpbar">
+        <input
+          class="cpq"
+          type="search"
+          placeholder={$t('v2.meta.compilSearch' as any)}
+          bind:value={cfQuery}
+        />
+      </div>
+
+      {#if cpLoading}
+        <div class="state">{$t('v2.tool.loading' as any)}</div>
+      {:else if !cfAlbums.length}
+        <div class="state">{cfQuery.trim().length < 2 ? $t('v2.meta.compilStart' as any) : $t('v2.meta.compilNone' as any)}</div>
+      {:else}
+        <div class="cpacts">
+          <button class="lnk" onclick={() => { cfChoisis = []; arme = null; }} disabled={!cfChoisis.length}>
+            {$t('v2.meta.compilNoneSel' as any)}
+          </button>
+          <button class="go" class:armed={arme === 'cf:composer'} onclick={composerCoffret} disabled={cfBusy || cfChoisis.length < 2}>
+            {arme === 'cf:composer' ? $t('v2.meta.confirm' as any) : $t('v2.meta.boxCompose' as any)} ({cfChoisis.length})
+          </button>
+        </div>
+        <p class="note">{$t('v2.meta.boxOrder' as any)}</p>
+        {#if cfBilan}<p class="note">{cfBilan}</p>{/if}
+        {#if cfErr}<div class="errline">{cfErr}</div>{/if}
+        <div class="list">
+          {#each cfAlbums as a (a.album_id)}
+            {@const rang = rangCoffret(a.album_id)}
+            <label class="prop cprow">
+              <input type="checkbox" checked={rang > 0} onchange={() => cocherCoffret(a.album_id)} />
+              <span class="cv"><AlbumArt coverPath={a.cover_path} albumId={a.album_id} size={0} alt={a.title ?? ''} fallbackInitials={a.title?.slice(0,1)} /></span>
+              <span class="pw">
+                <span class="pt">{a.title ?? '—'}</span>
+                <span class="sub">
+                  {a.album_artist ?? '—'} ·
+                  {$t('v2.meta.compilTracks' as any).replace('{count}', $formatNombre(a.track_count))}
+                </span>
+              </span>
+              <!-- Le RANG, visible : c'est le numéro de disque que l'album
+                   portera. Sans lui, l'ordre de la sélection serait une règle
+                   invisible, et l'utilisateur découvrirait son coffret après
+                   coup. -->
+              {#if rang > 0}
+                <span class="cfrang">{$t('v2.meta.boxDisc' as any).replace('{n}', String(rang))}</span>
+              {/if}
+            </label>
+          {/each}
+        </div>
+      {/if}
+
     {:else if dLoading}
       <div class="state">{$t('v2.tool.loading' as any)}</div>
     {:else if !doubtful.length}
@@ -1015,6 +1158,8 @@
   /* Le drapeau déjà posé, dit à côté du compte de pistes : sans lui, marquer
      agit sans qu'on voie sur quoi. On n'affiche QUE le positif — voir
      PastilleCompilation. */
+  .cfrang{margin-left:auto; font:600 11px var(--v2-sans); color:var(--v2-acc1);
+    border:1px solid var(--v2-acc1); border-radius:var(--v2-r-pill); padding:2px 9px; white-space:nowrap}
   .cpflag{margin-left:8px; padding:1px 7px; border-radius:var(--v2-r-pill);
     border:1px solid var(--v2-acc2); color:var(--v2-acc-tint);
     font:700 9.5px var(--v2-mono); letter-spacing:.06em; text-transform:uppercase}
