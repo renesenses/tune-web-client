@@ -74,7 +74,7 @@ describe('🔴 L’appel lui-même', () => {
   });
 });
 
-// Le lien ABSOLU rendu par le serveur (tune-server-rust#4574) prime sur
+// Le lien ABSOLU rendu par le serveur (tune-server-rust#4576) prime sur
 // l'adresse de la barre du navigateur. Xavier Joly, 20/09/2026 : son partage
 // est parti avec « http://localhost:8888/shared/… », illisible ailleurs.
 describe('le lien collé porte l’adresse du SERVEUR, pas celle du navigateur', () => {
