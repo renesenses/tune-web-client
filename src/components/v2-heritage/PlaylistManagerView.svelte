@@ -391,6 +391,70 @@
   }
 
   let suppressionEnCours = $state<string | null>(null);
+  let suppressionLot = $state(false);
+
+  /**
+   * Supprimer la SÉLECTION, depuis la barre — « à côté de merge ».
+   *
+   * La barre est le seul endroit que l'on trouve sans chercher : la corbeille
+   * par carte ne se révélait qu'au survol, sous le nom. Une seule question
+   * pour tout le lot, parce qu'en poser une par playlist ferait cliquer huit
+   * fois sur un geste définitif.
+   */
+  async function supprimerLaSelection() {
+    const cles = Array.from(mergeSelected);
+    if (cles.length === 0) return;
+    const service = serviceVerrouille ?? 'local';
+    const question = $tr('playlistManager.confirmDeleteSelection' as any)
+      .replace('{count}', String(cles.length))
+      .replace('{service}', service === 'local' ? $tr('playlist.local') : serviceName(service));
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
+
+    suppressionLot = true;
+    const echoues: string[] = [];
+    for (const cle of cles) {
+      const id = cleIdentifiant(cle);
+      try {
+        if (service === 'local') {
+          await api.deletePlaylist(Number(id));
+        } else {
+          await api.deleteServicePlaylist(service, id);
+        }
+      } catch {
+        echoues.push(id);
+      }
+    }
+    // On recharge l'endroit concerné plutôt que de retirer les cartes une à
+    // une : le serveur vient d'oublier sa liste mémorisée, elle est fraîche.
+    if (service === 'local') {
+      try { localPlaylists = await api.getPlaylists(); } catch {}
+    } else {
+      try {
+        const fraiches = await api.getStreamingPlaylists(service);
+        streamingPlaylists = { ...streamingPlaylists, [service]: fraiches };
+      } catch {}
+    }
+    mergeSelected = new Set();
+    mergeName = '';
+    mergeNameTouched = false;
+    suppressionLot = false;
+    if (echoues.length > 0) {
+      notifications.error(
+        $tr('playlistManager.deleteSelectionPartial' as any).replace(
+          '{count}',
+          String(echoues.length),
+        ),
+      );
+    }
+  }
+
+  /** La sélection est-elle supprimable ? Local toujours, service s'il l'annonce. */
+  let selectionSupprimable = $derived(
+    mergeSelected.size > 0 &&
+      (serviceVerrouille === null ||
+        serviceVerrouille === 'local' ||
+        serviceSaitSupprimer(serviceVerrouille)),
+  );
 
   /**
    * Supprime une playlist CHEZ le service. Irréversible de notre côté — d'où
@@ -733,6 +797,15 @@
   ]);
 
   async function loadAll() {
+    // 🔴 Les capacités des services étaient chargées UNIQUEMENT à l'ouverture
+    // de l'onglet Sync. Sur l'onglet Playlists, `serviceCapabilities` restait
+    // `{}`, donc `serviceSaitSupprimer()` rendait toujours `false` et la
+    // corbeille n'apparaissait sur AUCUNE carte. Bertrand : « Où se trouve le
+    // bouton pour delete une playlist ? » — nulle part, en réalité.
+    api
+      .getPlaylistManagerServices()
+      .then((c) => (serviceCapabilities = c))
+      .catch(() => {});
     loading = true;
     loadedCount = 0;
     loadingStatus = $tr('playlistManager.loadingLocal');
@@ -2071,6 +2144,18 @@
         >
           {merging ? $tr('playlistManager.merging') : $tr('playlistManager.merge')}
         </button>
+        {#if selectionSupprimable}
+          <!-- « à côté de merge ?? » — Bertrand, 21/09. La corbeille par carte
+               ne se révélait qu'au survol, sous le nom ; celle-ci est là dès
+               qu'une case est cochée, et agit sur tout le lot. -->
+          <button
+            class="danger-btn"
+            onclick={supprimerLaSelection}
+            disabled={suppressionLot}
+          >
+            {suppressionLot ? $tr('playlistManager.deleting' as any) : $tr('common.delete')}
+          </button>
+        {/if}
         <button class="cancel-btn" onclick={cancelMerge}>{$tr('common.cancel')}</button>
       </div>
       {#if mergeSelected.size < 2}
@@ -4477,6 +4562,13 @@
   .pl-actions button:hover{color:var(--tune-text)}
   .pl-actions button.danger:hover{color:var(--tune-danger); border-color:var(--tune-danger)}
   .merge-hint{margin:6px 0 0; font-size:11.5px; color:var(--tune-text-secondary)}
+  /* Le geste destructeur de la barre : lisible, mais jamais aussi présent que
+     la fusion — c'est elle qu'on vient faire ici. */
+  .danger-btn{padding:7px 14px; border-radius:8px; cursor:pointer;
+    border:1px solid var(--tune-danger); background:transparent;
+    color:var(--tune-danger); font-size:13px}
+  .danger-btn:hover:not(:disabled){background:var(--tune-danger); color:#fff}
+  .danger-btn:disabled{opacity:.5; cursor:default}
 
   /* Les trois autres coins (maquette Levente). Même révélation au survol que
      le coin de sélection, et mêmes cibles de 26 px. */

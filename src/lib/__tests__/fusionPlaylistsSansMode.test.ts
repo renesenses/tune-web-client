@@ -249,4 +249,57 @@ describe('#playlists — fusionner sans mode', () => {
     expect(apres.slice(0, 800)).toContain('api.getStreamingPlaylists(');
     expect(apres.slice(0, 800)).toContain('api.getPlaylists()');
   });
+
+  /*
+   | 🔴 « Où se trouve le bouton pour delete une playlist ? » (Bertrand,
+   | 21/09). Nulle part, en réalité : `serviceCapabilities` n'était chargé
+   | qu'à l'ouverture de l'onglet Sync, donc sur l'onglet Playlists il valait
+   | `{}` et `serviceSaitSupprimer()` rendait TOUJOURS false. La corbeille par
+   | carte n'apparaissait sur aucune carte de service.
+   |
+   | Et sa place : « à côté de merge ?? ». La barre de sélection est le seul
+   | endroit qu'on trouve sans chercher.
+   */
+  it('🔴 les capacités des services sont chargées pour TOUT l\'écran', () => {
+    const corps = sansCommentaires.slice(
+      sansCommentaires.indexOf('async function loadAll()'),
+    );
+    // Dans `loadAll`, donc à chaque ouverture de l'écran — et plus seulement
+    // dans `loadManagerData`, derrière l'onglet Sync.
+    expect(corps.slice(0, 500)).toContain('.getPlaylistManagerServices()');
+    expect((sansCommentaires.match(/getPlaylistManagerServices\(\)/g) ?? []).length).toBeGreaterThan(1);
+  });
+
+  it('la barre de sélection porte le bouton de suppression', () => {
+    const barre = sansCommentaires.slice(sansCommentaires.indexOf('class="merge-bar"'));
+    const onglet = barre.indexOf('onclick={supprimerLaSelection}');
+    const annule = barre.indexOf('onclick={cancelMerge}');
+    expect(onglet, 'pas de suppression dans la barre').toBeGreaterThan(-1);
+    expect(annule, 'plus de bouton Annuler').toBeGreaterThan(-1);
+    // Posé AVANT Annuler, donc à côté de Fusionner.
+    expect(onglet).toBeLessThan(annule);
+  });
+
+  it('une seule question pour tout le lot, et elle précède les appels', () => {
+    // Borné à la fonction : au-delà, d'autres écrans confirment aussi, et un
+    // `indexOf` non borné ferait passer le témoin pour de mauvaises raisons.
+    const debutFn = sansCommentaires.indexOf('async function supprimerLaSelection(');
+    const corps = sansCommentaires.slice(
+      debutFn,
+      sansCommentaires.indexOf('\n  }\n', debutFn),
+    );
+    const question = corps.indexOf('dialogs.confirm');
+    const boucle = corps.indexOf('for (const cle of cles)');
+    expect(question, 'aucune confirmation').toBeGreaterThan(-1);
+    expect(boucle, 'aucune boucle de suppression').toBeGreaterThan(-1);
+    expect(question).toBeLessThan(boucle);
+    // La question est posée UNE fois : elle est hors de la boucle.
+    expect(corps.slice(boucle).indexOf('dialogs.confirm')).toBe(-1);
+  });
+
+  it('le bouton ne s\'offre pas chez un service qui ne sait pas supprimer', () => {
+    expect(sansCommentaires).toContain('let selectionSupprimable = $derived(');
+    expect(sansCommentaires).toContain('serviceSaitSupprimer(serviceVerrouille)');
+    expect(sansCommentaires).toContain('{#if selectionSupprimable}');
+  });
 });
