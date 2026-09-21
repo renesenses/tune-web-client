@@ -367,6 +367,48 @@ describe('#playlists — fusionner sans mode', () => {
     expect(sansCommentaires).toContain("if (cleService(cle) !== cibleFusion) n += 1;");
   });
 
+  /*
+   | 🔴 « Et les 4 covers sur la cover de la playlist !! » (Bertrand, 21/09).
+   | La playlist TIDAL tout juste fusionnée n'avait qu'une note de musique :
+   | le service fabrique sa pochette plus tard. Et une playlist locale n'en a
+   | JAMAIS — le serveur ne rend que `id, name, track_count`.
+   |
+   | L'écran Playlists (`PlaylistsV2`) compose depuis le 01/09 une mosaïque
+   | 2×2 — « divise en 4 pour montrer que c'est un assemblage ». Le
+   | gestionnaire l'ignorait.
+   */
+  it('🔴 une carte sans pochette reçoit la mosaïque, pas la note de musique', () => {
+    expect(sansCommentaires).toContain("import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';");
+    expect(sansCommentaires).toContain('{:else if mosaiques[cle]}');
+    // Même dédoublonnage que l'écran Playlists : pas de copie qui divergerait.
+    expect(sansCommentaires).toContain("import { quatreDistinctes } from '../../lib/mosaique';");
+    const i = sansCommentaires.indexOf('async function chargerMosaique(');
+    expect(i, 'chargerMosaique a disparu').toBeGreaterThan(-1);
+    const corps = sansCommentaires.slice(i, i + 900);
+    expect(corps).toContain('quatreDistinctes(');
+    // Local ET service : la playlist fusionnée chez TIDAL est le cas d'origine.
+    expect(corps).toContain('api.getPlaylistTracks(');
+    expect(corps).toContain('api.getStreamingPlaylistTracks(');
+  });
+
+  it('une pochette fournie par le service est GARDÉE', () => {
+    // La mosaïque est un repli : l'image que le service montre partout ailleurs
+    // prime sur celle qu'on compose.
+    const pochette = sansCommentaires.indexOf('{#if item.coverPath}');
+    const mosaique = sansCommentaires.indexOf('{:else if mosaiques[cle]}');
+    expect(pochette).toBeGreaterThan(-1);
+    expect(mosaique).toBeGreaterThan(pochette);
+    // Et on ne demande pas de pistes pour une carte qui a déjà sa pochette.
+    expect(sansCommentaires).toContain('if (item.coverPath) continue;');
+  });
+
+  it('chaque mosaïque n\'est demandée qu\'UNE fois', () => {
+    // Sans ce registre, l'effet repasserait à chaque changement de la liste et
+    // redemanderait les pistes : une boucle réseau.
+    expect(sansCommentaires).toContain('const mosaiquesDemandees = new Set<string>();');
+    expect(sansCommentaires).toContain('if (mosaiquesDemandees.has(cle)) continue;');
+  });
+
   it('la suppression du lot vise le service de CHAQUE carte', () => {
     const debutFn = sansCommentaires.indexOf('async function supprimerLaSelection(');
     const corps = sansCommentaires.slice(

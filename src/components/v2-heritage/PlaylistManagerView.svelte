@@ -18,6 +18,8 @@
   import { pisteIndisponible } from '../../lib/albumAParaitre';
   import ClampedText from '../partages/ClampedText.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
+  import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
+  import { quatreDistinctes } from '../../lib/mosaique';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
   import { listResetNonce } from '../../lib/stores/navigation';
@@ -1003,6 +1005,60 @@
     }
 
     return items;
+  });
+
+  /**
+   * LES MOSAÏQUES — « Et les 4 covers sur la cover de la playlist !! »
+   * (Bertrand, 21/09).
+   *
+   * Une playlist tout juste fusionnée n'a pas de pochette : Tidal et Qobuz
+   * fabriquent la leur de leur côté, plus tard. Et une playlist LOCALE n'en a
+   * jamais — le serveur ne rend que `id, name, track_count`. Le gestionnaire
+   * posait alors une note de musique, là où l'écran Playlists (`PlaylistsV2`)
+   * compose depuis le 01/09 une mosaïque 2×2 : la règle de Bertrand, « divise
+   * en 4 pour montrer que c'est un assemblage ».
+   *
+   * Même composant, même dédoublonnage (`quatreDistinctes`), et seulement
+   * pour les cartes SANS pochette : une playlist de service qui a déjà la
+   * sienne la garde — c'est celle que le service montre partout ailleurs.
+   *
+   * ⚠️ Une requête par carte sans pochette. Elles partent APRÈS l'affichage,
+   * ne bloquent rien, et un échec ne coûte que sa propre vignette.
+   */
+  let mosaiques = $state<Record<string, string[]>>({});
+  const mosaiquesDemandees = new Set<string>();
+
+  async function chargerMosaique(item: DisplayPlaylist): Promise<void> {
+    const id = identifiantDe(item);
+    if (!id) return;
+    const cle = mergeKey(item.service, id);
+    try {
+      const pistes =
+        item.service === 'local'
+          ? await api.getPlaylistTracks(Number(id))
+          : await api.getStreamingPlaylistTracks(item.service, id);
+      const vues = quatreDistinctes(
+        (pistes ?? []).map((t: any) => ({
+          cover_path: t?.cover_path ?? null,
+          title: t?.album_title ?? null,
+        })),
+      );
+      if (vues.length) mosaiques = { ...mosaiques, [cle]: vues };
+    } catch {
+      // Sa vignette garde la note de musique ; les autres ne sont pas touchées.
+    }
+  }
+
+  $effect(() => {
+    for (const item of displayPlaylists) {
+      if (item.coverPath) continue;
+      const cle = mergeKey(item.service, identifiantDe(item));
+      // Une seule demande par carte : l'effet repasse à chaque changement de
+      // la liste, et redemander à chaque passage ferait une boucle réseau.
+      if (mosaiquesDemandees.has(cle)) continue;
+      mosaiquesDemandees.add(cle);
+      void chargerMosaique(item);
+    }
   });
 
   /**
@@ -2316,6 +2372,8 @@
             <button class="pl-pochette" onclick={() => selectItem(item)} aria-label={item.name}>
               {#if item.coverPath}
                 <AlbumArt coverPath={item.coverPath} size={0} alt={item.name} />
+              {:else if mosaiques[cle]}
+                <MosaiquePochettes pochettes={mosaiques[cle]} alt={item.name} />
               {:else}
                 <span class="pl-vide">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
