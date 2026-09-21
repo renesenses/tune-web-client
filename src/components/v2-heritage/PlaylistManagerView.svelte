@@ -156,6 +156,37 @@
     return String(item.local?.id ?? item.streaming?.source_id ?? '');
   }
 
+  /**
+   * LES TROIS AUTRES COINS DE LA CARTE (maquette Levente).
+   *
+   * Tous les trois se branchent sur de l'EXISTANT, mesuré sur le .18 le
+   * 21/09/2026 avant d'écrire une ligne — aucun travail serveur :
+   *
+   *   · cœur       `HeartButton` accepte déjà `playlistId` ;
+   *   · crayon     `api.updatePlaylist(id, { name })` ;
+   *   · étiquettes `EtiquettesPanneau` accepte `itemType="playlist"`, et la
+   *                route le prouve : POST /tags/{id}/items rend 201, la
+   *                relecture montre l'étiquette, DELETE rend 204.
+   *
+   * 🔴 Ils ne s'affichent que sur une playlist LOCALE. Une playlist de service
+   * n'a pas d'identifiant de bibliothèque à donner à ces trois routes : ce qui
+   * ne s'applique pas est ABSENT, jamais grisé.
+   */
+  let etiquettesCible = $state<{ id: number; nom: string } | null>(null);
+
+  async function renommerPlaylist(id: number, nomActuel: string) {
+    const nouveau = await dialogs.prompt($tr('playlistManager.renamePrompt' as any), nomActuel);
+    const propre = (nouveau ?? '').trim();
+    // Annulé, vidé, ou inchangé : on ne repart pas au serveur pour rien.
+    if (!propre || propre === nomActuel) return;
+    try {
+      await api.updatePlaylist(id, { name: propre });
+      localPlaylists = await api.getPlaylists();
+    } catch (err: any) {
+      notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
+    }
+  }
+
   /** Le service d'une clé `service:id`, sans amputer l'identifiant. */
   function cleService(cle: string): string {
     const coupe = cle.indexOf(':');
@@ -1924,6 +1955,28 @@
               </span>
             </div>
 
+            {#if item.type === 'local' && item.local?.id}
+              <!-- Cœur en haut à gauche, crayon en haut à droite, étiquettes en
+                   bas à droite : les trois autres coins de la maquette. -->
+              <span class="pl-coin-hg"><HeartButton playlistId={item.local.id} size={15} /></span>
+              <button
+                class="pl-coin-hd"
+                title={$tr('playlistManager.renamePrompt' as any)}
+                aria-label={$tr('playlistManager.renamePrompt' as any)}
+                onclick={(e) => { e.stopPropagation(); item.local?.id && renommerPlaylist(item.local.id, item.name); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+              </button>
+              <button
+                class="pl-coin-bd"
+                title={$tr('v2.nav.tags' as any)}
+                aria-label={$tr('v2.nav.tags' as any)}
+                onclick={(e) => { e.stopPropagation(); item.local?.id && (etiquettesCible = { id: item.local.id, nom: item.name }); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z" /><circle cx="6.5" cy="6.5" r="1.2" /></svg>
+              </button>
+            {/if}
+
             <div class="pl-actions">
               {#if item.type === 'streaming' && item.streaming}
                 <button onclick={(e) => { e.stopPropagation(); openImport(item.service, item.streaming!); }} title={$tr('playlist.import')} aria-label={$tr('playlist.import')}>
@@ -1946,6 +1999,19 @@
     {/if}
   {/if}
 </div>
+
+{#if etiquettesCible}
+  <!-- Monté UNE fois pour toute la grille, comme les autres écrans le font :
+       un panneau par carte en aurait posé autant que de playlists. -->
+  {#await import('../v2/EtiquettesPanneau.svelte') then m}
+    <m.default
+      itemType="playlist"
+      itemId={etiquettesCible.id}
+      nom={etiquettesCible.nom}
+      onClose={() => (etiquettesCible = null)}
+    />
+  {/await}
+{/if}
 
 <!-- Import Dialog Overlay -->
 {#if importTarget}
@@ -4170,4 +4236,20 @@
   .pl-actions button:hover{color:var(--tune-text)}
   .pl-actions button.danger:hover{color:var(--tune-danger); border-color:var(--tune-danger)}
   .merge-hint{margin:6px 0 0; font-size:11.5px; color:var(--tune-text-secondary)}
+
+  /* Les trois autres coins (maquette Levente). Même révélation au survol que
+     le coin de sélection, et mêmes cibles de 26 px. */
+  .pl-coin-hg, .pl-coin-hd, .pl-coin-bd{position:absolute; width:26px; height:26px;
+    display:grid; place-items:center; border-radius:7px; cursor:pointer;
+    border:1px solid var(--tune-border); background:var(--tune-bg);
+    color:var(--tune-text-secondary); opacity:0; transition:opacity .12s}
+  .pl-coin-hg{left:8px; top:8px}
+  .pl-coin-hd{right:8px; top:8px}
+  .pl-coin-bd{right:8px; bottom:8px}
+  .pl-carte:hover .pl-coin-hg,
+  .pl-carte:hover .pl-coin-hd,
+  .pl-carte:hover .pl-coin-bd,
+  .pl-coin-hd:focus-visible, .pl-coin-bd:focus-visible{opacity:1}
+  .pl-coin-hg:focus-within{opacity:1}
+  .pl-coin-hd:hover, .pl-coin-bd:hover{color:var(--tune-text)}
 </style>

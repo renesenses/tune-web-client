@@ -1832,6 +1832,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "Nincs szám ezen a lejátszási listán",
   "playlistManager.mergeTooltip": "Több lejátszási lista összevonása",
   "playlistManager.cancelMerge": "Összevonás megszakítása",
+  "playlistManager.renamePrompt": "Lejátszási lista átnevezése",
   "playlistManager.selectPlaylist": "„{name}” kiválasztása",
   "playlistManager.sameServiceOnly": "Csak azonos szolgáltatás lejátszási listái vonhatók össze.",
   "playlistManager.selectAtLeastTwo": "Válasszon legalább kettőt az összevonáshoz.",

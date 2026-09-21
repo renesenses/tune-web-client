@@ -1749,6 +1749,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "Nessuna traccia in questa playlist",
   "playlistManager.mergeTooltip": "Unisci più playlist",
   "playlistManager.cancelMerge": "Annulla unione",
+  "playlistManager.renamePrompt": "Rinomina la playlist",
   "playlistManager.selectPlaylist": "Seleziona «{name}»",
   "playlistManager.sameServiceOnly": "Si possono unire solo playlist dello stesso servizio.",
   "playlistManager.selectAtLeastTwo": "Selezionane almeno due per unirle.",

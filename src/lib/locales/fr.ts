@@ -2246,6 +2246,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "Aucune piste dans cette playlist",
   "playlistManager.mergeTooltip": "Fusionner plusieurs playlists",
   "playlistManager.cancelMerge": "Annuler fusion",
+  "playlistManager.renamePrompt": "Renommer la playlist",
   "playlistManager.selectPlaylist": "Sélectionner « {name} »",
   "playlistManager.sameServiceOnly": "On ne fusionne que des playlists d'un même service.",
   "playlistManager.selectAtLeastTwo": "Sélectionnez-en au moins deux pour fusionner.",

@@ -1755,6 +1755,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "Nicio piesă în acest playlist",
   "playlistManager.mergeTooltip": "Îmbină mai multe playlisturi",
   "playlistManager.cancelMerge": "Anulează îmbinarea",
+  "playlistManager.renamePrompt": "Redenumește playlistul",
   "playlistManager.selectPlaylist": "Selectează „{name}”",
   "playlistManager.sameServiceOnly": "Se pot îmbina doar playlisturi din același serviciu.",
   "playlistManager.selectAtLeastTwo": "Selectează cel puțin două pentru îmbinare.",

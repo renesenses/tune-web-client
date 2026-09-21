@@ -2243,6 +2243,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "No track in this playlist",
   "playlistManager.mergeTooltip": "Merge multiple playlists",
   "playlistManager.cancelMerge": "Cancel merge",
+  "playlistManager.renamePrompt": "Rename playlist",
   "playlistManager.selectPlaylist": "Select “{name}”",
   "playlistManager.sameServiceOnly": "Only playlists from the same service can be merged.",
   "playlistManager.selectAtLeastTwo": "Select at least two to merge.",

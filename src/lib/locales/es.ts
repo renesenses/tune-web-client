@@ -1749,6 +1749,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "No hay ninguna pista en esta lista de reproducción",
   "playlistManager.mergeTooltip": "Fusionar varias listas de reproducción",
   "playlistManager.cancelMerge": "Cancelar fusión",
+  "playlistManager.renamePrompt": "Renombrar la lista",
   "playlistManager.selectPlaylist": "Seleccionar «{name}»",
   "playlistManager.sameServiceOnly": "Solo se pueden fusionar listas del mismo servicio.",
   "playlistManager.selectAtLeastTwo": "Selecciona al menos dos para fusionar.",

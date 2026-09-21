@@ -1733,6 +1733,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "이 플레이리스트에 트랙 없음",
   "playlistManager.mergeTooltip": "여러 플레이리스트 병합",
   "playlistManager.cancelMerge": "병합 취소",
+  "playlistManager.renamePrompt": "재생목록 이름 변경",
   "playlistManager.selectPlaylist": "'{name}' 선택",
   "playlistManager.sameServiceOnly": "같은 서비스의 재생목록만 병합할 수 있습니다.",
   "playlistManager.selectAtLeastTwo": "병합하려면 두 개 이상 선택하세요.",

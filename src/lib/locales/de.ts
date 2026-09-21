@@ -1749,6 +1749,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "Kein Titel in dieser Playlist",
   "playlistManager.mergeTooltip": "Mehrere Playlists zusammenführen",
   "playlistManager.cancelMerge": "Zusammenführen abbrechen",
+  "playlistManager.renamePrompt": "Playlist umbenennen",
   "playlistManager.selectPlaylist": "„{name}“ auswählen",
   "playlistManager.sameServiceOnly": "Es lassen sich nur Playlists desselben Dienstes zusammenführen.",
   "playlistManager.selectAtLeastTwo": "Wählen Sie mindestens zwei zum Zusammenführen.",

@@ -1747,6 +1747,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "このプレイリストに曲がありません",
   "playlistManager.mergeTooltip": "複数のプレイリストを結合",
   "playlistManager.cancelMerge": "結合をキャンセル",
+  "playlistManager.renamePrompt": "プレイリスト名を変更",
   "playlistManager.selectPlaylist": "「{name}」を選択",
   "playlistManager.sameServiceOnly": "同じサービスのプレイリスト同士しか統合できません。",
   "playlistManager.selectAtLeastTwo": "統合するには2つ以上選択してください。",

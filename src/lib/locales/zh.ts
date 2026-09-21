@@ -1749,6 +1749,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "此播放列表中无曲目",
   "playlistManager.mergeTooltip": "合并多个播放列表",
   "playlistManager.cancelMerge": "取消合并",
+  "playlistManager.renamePrompt": "重命名播放列表",
   "playlistManager.selectPlaylist": "选择「{name}」",
   "playlistManager.sameServiceOnly": "只能合并同一服务的播放列表。",
   "playlistManager.selectAtLeastTwo": "请至少选择两个以合并。",

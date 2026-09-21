@@ -1721,6 +1721,7 @@ export default {
   "playlistManager.noTracksInPlaylist": "Inget spår i den här spellistan",
   "playlistManager.mergeTooltip": "Slå ihop flera spellistor",
   "playlistManager.cancelMerge": "Avbryt ihopslagning",
+  "playlistManager.renamePrompt": "Byt namn på spellistan",
   "playlistManager.selectPlaylist": "Välj ”{name}”",
   "playlistManager.sameServiceOnly": "Endast spellistor från samma tjänst kan slås ihop.",
   "playlistManager.selectAtLeastTwo": "Välj minst två för att slå ihop.",

@@ -70,6 +70,38 @@ describe('#playlists — fusionner sans mode', () => {
     expect(sansCommentaires).not.toContain('class="playlist-list"');
   });
 
+  it('les quatre coins de la carte sont là, et rien que sur une playlist LOCALE', () => {
+    // Mesuré sur le .18 le 21/09/2026 avant d'écrire : les trois routes
+    // acceptent bien une playlist (étiquette 201 puis relue, favori 201 puis
+    // relu, renommage par updatePlaylist). Aucun travail serveur.
+    //
+    // 🔴 Une playlist de SERVICE n'a pas d'identifiant de bibliothèque à leur
+    // donner : les trois coins n'existent que pour une playlist locale. Ce qui
+    // ne s'applique pas est absent, jamais grisé.
+    const i = sansCommentaires.indexOf('class="pl-grille"');
+    const carte = sansCommentaires.slice(i, sansCommentaires.indexOf('{/each}', i));
+    expect(carte).toContain('class="pl-coin"');        // sélection, bas gauche
+    expect(carte).toContain('class="pl-coin-hg"');     // cœur, haut gauche
+    expect(carte).toContain('class="pl-coin-hd"');     // crayon, haut droit
+    expect(carte).toContain('class="pl-coin-bd"');     // étiquettes, bas droit
+
+    // Les trois derniers vivent DANS la garde `type === 'local'`.
+    const garde = carte.indexOf("item.type === 'local' && item.local?.id");
+    expect(garde).toBeGreaterThan(-1);
+    expect(carte.indexOf('class="pl-coin-hg"')).toBeGreaterThan(garde);
+  });
+
+  it('chaque coin réutilise ce qui existe, sans redessiner un sélecteur', () => {
+    expect(sansCommentaires).toContain('<HeartButton playlistId=');
+    expect(sansCommentaires).toContain("itemType=\"playlist\"");
+    expect(sansCommentaires).toContain('api.updatePlaylist(');
+  });
+
+  it('le panneau d’étiquettes est monté UNE fois pour toute la grille', () => {
+    // Un panneau par carte en aurait posé autant que de playlists.
+    expect((sansCommentaires.match(/EtiquettesPanneau/g) ?? []).length).toBe(1);
+  });
+
   it('🔴 le bloc <style> a ses accolades ÉQUILIBRÉES', () => {
     // Écrite après m'être fait avoir : en retirant une règle CSS morte, j'ai
     // supprimé la ligne du SÉLECTEUR et laissé ses propriétés orphelines. Les
