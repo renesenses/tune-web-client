@@ -395,6 +395,34 @@
     activeView.set('nowplaying');
   }
   /**
+   * #1394 — poser la photo de l'appareil.
+   *
+   * Un `<input type="file">` caché, déclenché par l'entrée de menu : c'est le
+   * seul moyen d'ouvrir le sélecteur de fichiers du système sans demander à
+   * l'utilisateur de traverser les Réglages — lesquels sont en niveau
+   * intermédiaire, donc invisibles par défaut.
+   */
+  let champFichier = $state<HTMLInputElement | null>(null);
+  let zoneAImager = $state<Zone | null>(null);
+  function choisirImage(z: Zone) {
+    zoneAImager = z;
+    champFichier?.click();
+  }
+  async function imageChoisie(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const fichier = input.files?.[0];
+    const z = zoneAImager;
+    // On vide le champ TOUT DE SUITE : sans ça, reposer deux fois la même
+    // photo ne déclenche pas d'événement `change` la seconde fois.
+    input.value = '';
+    zoneAImager = null;
+    if (!fichier || !z || z.id == null) return;
+    act(async () => {
+      await api.uploadZoneImage(z.id as number, fichier);
+    });
+  }
+
+  /**
    * #1392 — le menu de CETTE zone : la même liste dans les deux vues.
    *
    * L'écran mesure ce que la zone permet, `lib/menuZone` décide de ce qui
@@ -410,6 +438,7 @@
       },
       {
         renommer: () => startRename(z),
+        image: () => choisirImage(z),
         reglages: () => reglagesDeLaZone(z),
         latence: () => { void mesurerLatence(z); },
         appairer: () => ouvrirAppairage(z),
@@ -543,6 +572,12 @@
                 <button class="cpoch" onclick={() => ouvrirLecture(z)}
                   title={$t('v2.zone.openNowPlaying' as any)} aria-label={$t('v2.zone.openNowPlaying' as any)}>
                   <AlbumArt coverPath={np?.cover_path ?? null} albumId={np?.album_id ?? null} size={64} alt={np?.title ?? ''} />
+                </button>
+              {:else if z.image_path}
+                <!-- Maillon 2 : la PHOTO de l'appareil (#1394). Rien ne joue,
+                     mais la zone reste reconnaissable. -->
+                <button class="cpoch crepli" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
+                  <AlbumArt coverPath={z.image_path} albumId={null} size={64} alt={z.name} />
                 </button>
               {:else}
                 <button class="cpoch crepli" onclick={() => select(z)} aria-label={`Activer ${z.name}`}>
@@ -719,6 +754,11 @@
         </section>
       {/if}
   </div>
+
+<!-- #1394 — hors de toute carte : le champ sert à TOUTES les zones, et un
+     champ par carte en aurait posé quatorze pour un seul usage à la fois. -->
+<input type="file" accept="image/*" bind:this={champFichier} onchange={imageChoisie}
+  style="display:none" aria-hidden="true" tabindex="-1" />
 </section>
 
 {#if airplayPairing}

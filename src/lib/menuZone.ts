@@ -51,6 +51,7 @@ export interface EntreeMenuZone {
  */
 export const ICONES_ZONE = {
   renommer: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z',
+  image: 'M3 5h18v14H3zM3 16l5-5 4 3.5L16 11l5 5M9 9.5a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0',
   reglages:
     'M9 12a3 3 0 1 0 6 0a3 3 0 1 0-6 0M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 '
     + '1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 '
@@ -76,6 +77,16 @@ export interface CapacitesZone {
 /** Les gestes, déjà liés à leur zone par l'écran. */
 export interface GestesZone {
   renommer: () => void;
+  /**
+   * Changer la photo de l'appareil (#1394).
+   *
+   * 🔴 C'est le chemin PRINCIPAL, pas un raccourci — décision de Bertrand du
+   * 20/09/2026. L'écran Réglages › Appareils, où la photo se règle aussi, est
+   * en niveau « intermédiaire » (`lib/v2Settings`), et le niveau par défaut
+   * est DÉBUTANT : sans cette entrée, l'utilisateur ordinaire — celui dont les
+   * cartes sont sans image — n'aurait aucun moyen d'en poser une.
+   */
+  image: () => void;
   reglages: () => void;
   latence: () => void;
   appairer: () => void;
@@ -91,6 +102,7 @@ export interface GestesZone {
 export function entreesMenuZone(c: CapacitesZone, g: GestesZone): EntreeMenuZone[] {
   const out: EntreeMenuZone[] = [
     { cle: 'zone.rename', icone: ICONES_ZONE.renommer, faire: g.renommer },
+    { cle: 'v2.zone.changeImage', icone: ICONES_ZONE.image, faire: g.image },
     { cle: 'v2.zone.openSettings', icone: ICONES_ZONE.reglages, faire: g.reglages },
   ];
   if (c.expert) {

@@ -518,6 +518,14 @@ export interface Zone {
   brand?: string | null;
   /** Modèle choisi par l'utilisateur (override). null si non défini. */
   model?: string | null;
+  /**
+   * La photo de l'appareil, posée par l'utilisateur (#1394).
+   *
+   * Un condensat servi par la route d'artwork, comme l'image d'un artiste —
+   * pas un chemin de fichier. Socle de la vignette de la carte de zone quand
+   * rien ne joue : voir la chaîne de repli dans `lib/vueZones`.
+   */
+  image_path?: string | null;
   /** Marque détectée en UPnP pour le device assigné (pré-remplissage). */
   /** Le serveur cherche encore une URL jouable (extraction YouTube longue). */
   resolving?: boolean;

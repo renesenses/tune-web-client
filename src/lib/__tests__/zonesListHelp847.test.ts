@@ -94,7 +94,8 @@ describe('#847 / #1392 — la gestion d’une zone vit dans les DEUX vues', () =
     // Le niveau par défaut est EXPERT : la latence figure donc au menu, entre
     // les réglages et la suppression. Voir `lib/menuZone`.
     expect(items()).toEqual([
-      fr['zone.rename'], fr['v2.zone.openSettings'], fr['zone.latency'], fr['zone.deleteZone'],
+      fr['zone.rename'], fr['v2.zone.changeImage'], fr['v2.zone.openSettings'],
+      fr['zone.latency'], fr['zone.deleteZone'],
     ]);
     const danger = host.querySelectorAll('.mz-panneau .mz-item.danger');
     expect(danger.length).toBe(1);
@@ -148,7 +149,8 @@ describe('#847 / #1392 — la gestion d’une zone vit dans les DEUX vues', () =
     roue().click();
     flushSync();
     expect(items()).toEqual([
-      fr['zone.rename'], fr['v2.zone.openSettings'], fr['zone.latency'], fr['zone.deleteZone'],
+      fr['zone.rename'], fr['v2.zone.changeImage'], fr['v2.zone.openSettings'],
+      fr['zone.latency'], fr['zone.deleteZone'],
     ]);
     expect(get(currentZoneId)).toBe(1);
     expect(mutations).toEqual([]);

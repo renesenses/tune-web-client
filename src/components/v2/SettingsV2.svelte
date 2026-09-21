@@ -134,6 +134,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * d'appareils.
    */
   import ZoneDeviceEditor from '../partages/ZoneDeviceEditor.svelte';
+  import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
+  import AlbumArt from '../partages/AlbumArt.svelte';
+  import type { Zone } from '../../lib/types';
 
   /**
    * Trim de gain — ecrit ici plutot que repris : c'est un curseur et une
@@ -193,6 +196,45 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let highlight = $state<string | null>(null);
   /** #1006 — la zone visée par la carte de l'écran Zones, mise en avant dans « Par zone ». */
   let cibleZone = $state<number | null>(null);
+
+  /**
+   * #1394 — la photo de l'appareil d'une zone.
+   *
+   * Un seul champ de fichier pour toutes les zones : quatorze cartes en
+   * auraient posé quatorze pour un usage à la fois. Il est vidé dès la
+   * sélection, sinon reposer deux fois la même photo ne déclenche pas de
+   * second `change`.
+   */
+  let champPhotoZone = $state<HTMLInputElement | null>(null);
+  let zonePhotoCible = $state<number | null>(null);
+  function choisirImageZone(z: Zone) {
+    zonePhotoCible = z.id ?? null;
+    champPhotoZone?.click();
+  }
+  async function photoZoneChoisie(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const fichier = input.files?.[0];
+    const zid = zonePhotoCible;
+    input.value = '';
+    zonePhotoCible = null;
+    if (!fichier || zid == null) return;
+    try {
+      const r = await api.uploadZoneImage(zid, fichier);
+      zones.update((l) => l.map((x) => (x.id === zid ? { ...x, image_path: r.image_path } : x)));
+    } catch (err: any) {
+      notifications.error(err?.message ?? $t('v2.home.widgetFailed' as any));
+    }
+  }
+  async function retirerImageZone(z: Zone) {
+    if (z.id == null) return;
+    const zid = z.id;
+    try {
+      await api.deleteZoneImage(zid);
+      zones.update((l) => l.map((x) => (x.id === zid ? { ...x, image_path: null } : x)));
+    } catch (err: any) {
+      notifications.error(err?.message ?? $t('v2.home.widgetFailed' as any));
+    }
+  }
 
   // Cible venue de la recherche du menu avatar : consommée UNE fois, sinon un
   // retour ultérieur sur les Réglages rejouerait l'ancienne cible.
@@ -3561,6 +3603,34 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       </div>
                       <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
 
+                      <!-- #1394 — LA PHOTO DE L'APPAREIL, dans le bloc où
+                           l'appareil est déjà identifié par sa marque et son
+                           modèle. Pas en tête de carte : la carte est longue
+                           (DSD, débit, canaux, gain…) et la vignette n'a de
+                           sens qu'à côté de ce qu'elle illustre.
+                           L'emplacement existe TOUJOURS, même sans photo —
+                           sinon l'affordance disparaît là où on en a besoin. -->
+                      <div class="zphoto">
+                        <button class="zpv" onclick={() => choisirImageZone(z)}
+                          aria-label={$t('v2.zone.changeImage' as any)} title={$t('v2.zone.changeImage' as any)}>
+                          {#if z.image_path}
+                            <AlbumArt coverPath={z.image_path} albumId={null} size={72} alt={z.name} />
+                          {:else}
+                            <span class="zpvide"><ZoneTypeIcon type={z.output_type ?? null} size={26} /></span>
+                          {/if}
+                          <span class="zpveil">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                              stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                          </span>
+                        </button>
+                        <div class="zpt">
+                          <span class="tl">{$t('v2.zone.deviceImage' as any)}</span>
+                          <p class="hint">{$t('v2.zone.deviceImageHint' as any)}</p>
+                          {#if z.image_path}
+                            <button class="v2-btn sm" onclick={() => retirerImageZone(z)}>{$t('v2.zone.removeImage' as any)}</button>
+                          {/if}
+                        </div>
+                      </div>
                       <div class="zde"><ZoneDeviceEditor zone={z} onSaved={(maj) => zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, ...maj } : x)))} /></div>
 
                       {#if z.id != null && propositions[z.id]}
@@ -4738,6 +4808,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   />
 {/if}
 
+<input type="file" accept="image/*" bind:this={champPhotoZone} onchange={photoZoneChoisie}
+  style="display:none" aria-hidden="true" tabindex="-1" />
+
 <style>
   /* Phase 5 — « Quoi de neuf » et documentation de l'API, ouverts sur place. */
   .notes{margin-top:12px; max-height:420px; overflow-y:auto; padding-right:6px}
@@ -5017,4 +5090,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     display:flex; align-items:center; gap:12px; flex-wrap:wrap}
   .bad{color:var(--v2-bad, #ef4444)}
   .hidden-file{display:none}
+
+  /* #1394 — la photo de l'appareil, en tête du bloc DEVICE. */
+  .zphoto{display:flex; gap:14px; align-items:flex-start; margin:12px 0 4px}
+  .zpv{position:relative; width:72px; height:72px; border-radius:10px; overflow:hidden;
+    border:0; padding:0; background:var(--v2-surface); cursor:pointer; flex:0 0 auto}
+  .zpv:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px}
+  .zpvide{display:grid; place-items:center; width:100%; height:100%;
+    border:1px dashed var(--v2-line2); border-radius:10px; color:var(--v2-txt3)}
+  .zpveil{position:absolute; inset:0; display:grid; place-items:center; opacity:0;
+    background:var(--v2-scrim); color:var(--v2-txt); transition:opacity .12s ease}
+  .zpveil svg{width:18px; height:18px}
+  .zpv:hover .zpveil, .zpv:focus-visible .zpveil{opacity:1}
+  .zpt{display:flex; flex-direction:column; gap:5px; min-width:0}
 </style>
