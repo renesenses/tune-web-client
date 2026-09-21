@@ -50,8 +50,21 @@
 
 import { writable, type Readable } from 'svelte/store';
 
-/** Les deux valeurs de `output_reach` qui méritent un bandeau. */
-export type AvertissementBandeau = 'no_output' | 'browser_unattended';
+/**
+ * Les valeurs de `output_reach` qui méritent un bandeau.
+ *
+ * 🔴 `output_missing` — renesenses/tune-server-rust#4601, #4580. Deux
+ * testeurs ont SUPPRIMÉ ET RECRÉÉ une zone pour la faire refonctionner. Leur
+ * zone avait bien un appareil : il avait seulement disparu du registre vivant
+ * — un renderer DLNA qui change d'identifiant en redémarrant, un bail DHCP
+ * renouvelé. Le serveur rendait `ok`, et l'écran n'avait rien à dire.
+ *
+ * ⚠️ Distinct de `no_output`, et la distinction n'est pas cosmétique :
+ * `no_output` est la zone qui n'a JAMAIS eu d'appareil. Celui-ci promet un
+ * rattachement automatique — le promettre à une zone jamais configurée serait
+ * un mensonge.
+ */
+export type AvertissementBandeau = 'no_output' | 'browser_unattended' | 'output_missing';
 
 /**
  * Durée minimale d'affichage du bandeau, en millisecondes.
@@ -84,7 +97,9 @@ export const BANDEAU_DUREE_MIN_MS = 8000;
  * champ, pas de bandeau : on ne devine rien à partir de `online`.
  */
 export function avertissementDe(reach: string | null | undefined): AvertissementBandeau | null {
-  return reach === 'no_output' || reach === 'browser_unattended' ? reach : null;
+  return reach === 'no_output' || reach === 'browser_unattended' || reach === 'output_missing'
+    ? reach
+    : null;
 }
 
 export interface BandeauLisible {
