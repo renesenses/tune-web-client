@@ -297,6 +297,25 @@ describe('#playlists — fusionner sans mode', () => {
     expect(corps.slice(boucle).indexOf('dialogs.confirm')).toBe(-1);
   });
 
+  /*
+   | 🔴 Mesuré sur le .18 le 21/09 : la playlist fusionnée apparaît tout de
+   | suite (le serveur oublie sa liste mémorisée), mais la carte annonçait
+   | « 0 tracks » quand le détail en comptait 7. Qobuz n'a pas rattrapé
+   | l'ajout au moment où l'on relit sa liste utilisateur — et ce zéro-là
+   | serait mémorisé deux minutes.
+   |
+   | Le compte versé fait foi : il vient du serveur, qui l'a compté à l'ajout.
+   */
+  it('🔴 le compte de la playlist fusionnée ne vient pas de la liste du service', () => {
+    const apres = sansCommentaires.slice(sansCommentaires.indexOf('mergeResult = result;'));
+    const fenetre = apres.slice(0, 1400);
+    expect(fenetre).toContain("const verses = Number((result as any)?.total_tracks ?? 0);");
+    expect(fenetre).toContain('track_count: verses');
+    // Et seulement pour CELLE-LÀ : les autres cartes gardent le compte du
+    // service, qui est juste.
+    expect(fenetre).toContain('String(pl.source_id) === idNeuve');
+  });
+
   it('le bouton ne s\'offre pas chez un service qui ne sait pas supprimer', () => {
     expect(sansCommentaires).toContain('let selectionSupprimable = $derived(');
     expect(sansCommentaires).toContain('serviceSaitSupprimer(serviceVerrouille)');

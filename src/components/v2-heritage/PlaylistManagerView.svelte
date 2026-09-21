@@ -334,7 +334,23 @@
       } else {
         try {
           const fraiches = await api.getStreamingPlaylists(ne);
-          streamingPlaylists = { ...streamingPlaylists, [ne]: fraiches };
+          // 🔴 Qobuz annonce `0 tracks` sur une playlist qu'il vient de
+          // créer : sa liste utilisateur n'a pas encore rattrapé l'ajout, et
+          // ce zéro-là serait mémorisé deux minutes. Mesuré le 21/09 — la
+          // carte disait « 0 tracks » quand le détail en comptait 7.
+          //
+          // Le compte que NOUS avons versé fait foi : il vient du serveur,
+          // qui l'a compté à l'ajout.
+          const idNeuve = String((result as any)?.playlist_id ?? '');
+          const verses = Number((result as any)?.total_tracks ?? 0);
+          streamingPlaylists = {
+            ...streamingPlaylists,
+            [ne]: idNeuve
+              ? fraiches.map((pl) =>
+                  String(pl.source_id) === idNeuve ? { ...pl, track_count: verses } : pl,
+                )
+              : fraiches,
+          };
         } catch {}
       }
     } catch (err: any) {
