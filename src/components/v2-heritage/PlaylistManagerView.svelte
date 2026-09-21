@@ -14,6 +14,7 @@
   import { pisteAppliquee, resumeApplication } from '../../lib/recuperationPlaylist';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import { pisteIndisponible } from '../../lib/albumAParaitre';
   import ClampedText from '../partages/ClampedText.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
@@ -1351,8 +1352,22 @@
     {:else}
       <div class="track-list">
         {#each detailTracks as t, index}
+          <!--
+            Une piste que le SERVICE dit indisponible est grisée, étiquetée, et
+            ne se lance pas : la lancer rendrait « no url ». Demandé par
+            Bertrand le 21/09/2026 sur « tttroys playlist » — 186 de ses 1 454
+            pistes sont dans ce cas, dont la PREMIÈRE, qui s'affichait comme
+            les autres.
+
+            🔴 Le mécanisme existait déjà (`pisteIndisponible`, point 10 du
+            17/09) dans `ListePistesV2` et `LignePisteV2` — mais cet écran-ci a
+            sa propre liste de pistes et n'en profitait pas. Troisième liste,
+            troisième oubli : c'est le prix d'avoir trois rendus de piste.
+          -->
+          {@const indispo = pisteIndisponible(t)}
           <div
             class="track-item"
+            class:indispo
             class:playing={estLaPisteEnLecture(t, $currentTrackId, $currentTrack)}
             aria-current={estLaPisteEnLecture(t, $currentTrackId, $currentTrack) ? 'true' : undefined}
             class:drag-over={dragOverIndex === index}
@@ -1367,7 +1382,7 @@
             <!-- Clic de ligne = toute la playlist en file à partir de cette piste,
                  sinon la file ne contient qu'une piste et rien ne s'enchaîne
                  (« l'enchaînement ne marche pas », Bertrand, Qobuz sur .18). -->
-            <button class="track-play" onclick={() => playFromIndex(index)}>
+            <button class="track-play" onclick={() => { if (!indispo) playFromIndex(index); }} disabled={indispo}>
               <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
               <span class="track-thumb">
                 <AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? t.title ?? ''} />
@@ -1378,6 +1393,7 @@
                   <span class="track-artist truncate" use:bulleTexte>{t.artist_name}</span>
                 {/if}
               </div>
+              {#if indispo}<span class="track-indispo">{$tr('playlist.unavailable')}</span>{/if}
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
             </button>
@@ -4278,4 +4294,12 @@
   .pl-coin-hd:focus-visible, .pl-coin-bd:focus-visible{opacity:1}
   .pl-coin-hg:focus-within{opacity:1}
   .pl-coin-hd:hover, .pl-coin-bd:hover{color:var(--tune-text)}
+
+  /* Piste indisponible chez le service : grisée, étiquetée, inerte. Même
+     traitement que `LignePisteV2` — une seule apparence pour un seul fait. */
+  .track-item.indispo{opacity:.5}
+  .track-item.indispo .track-play{cursor:default}
+  .track-indispo{font-size:10px; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--tune-text-muted); border:1px solid var(--tune-border);
+    border-radius:4px; padding:1px 6px; white-space:nowrap}
 </style>
