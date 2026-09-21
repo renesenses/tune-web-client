@@ -116,9 +116,20 @@ describe('#playlists — fusionner sans mode', () => {
     // La carte ne doit PLUS être une référence de positionnement, sinon les
     // coins retombent dessus au premier remaniement.
     expect(style).not.toMatch(/\.pl-carte\{[^}]*position:relative/);
-    // Et les coins restent FRÈRES du bouton de pochette, jamais dedans.
+    // 🔴 ET SURTOUT : les quatre coins sont DANS la vignette.
+    //
+    // Ce test ne vérifiait que « pas à l'intérieur du bouton de pochette », et
+    // il est passé au vert alors que le bloc entier avait glissé APRÈS
+    // `.pl-texte` — hors de toute boîte positionnée. Bertrand l'a vu avant
+    // moi : « bouton de sélection ok mais les autres néant ». Une garde qui
+    // dit où une chose n'est PAS ne dit pas où elle est.
     const i = sansCommentaires.indexOf('class="pl-vignette"');
-    const boite = sansCommentaires.slice(i, sansCommentaires.indexOf('class="pl-texte"', i));
+    const finVignette = sansCommentaires.indexOf('class="pl-texte"', i);
+    const boite = sansCommentaires.slice(i, finVignette);
+    for (const coin of ['class="pl-coin"', 'class="pl-coin-hg"', 'class="pl-coin-hd"', 'class="pl-coin-bd"']) {
+      expect(boite, `${coin} hors de la vignette`).toContain(coin);
+    }
+    // Et ils restent FRÈRES du bouton de pochette, jamais dedans (#1006).
     const ouvre = boite.indexOf('class="pl-pochette"');
     const ferme = boite.indexOf('</button>', ouvre);
     expect(boite.slice(ouvre, ferme)).not.toContain('pl-coin');

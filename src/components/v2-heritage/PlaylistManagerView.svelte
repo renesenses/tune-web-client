@@ -1943,16 +1943,6 @@
 
 
 
-            </div>
-
-            <div class="pl-texte">
-              <span class="pl-nom">{item.name}</span>
-              <span class="pl-compte">{item.trackCount} {$tr('common.tracks')}</span>
-              <span class="pl-badge" style="border-color: {serviceColor(item.service)}; color: {serviceColor(item.service)}">
-                {item.service === 'local' ? $tr('playlist.local') : serviceName(item.service)}
-              </span>
-            </div>
-
             {#if item.type === 'local' && item.local?.id}
               <!--
                 🔴 LES QUATRE COINS N'EXISTENT QUE SUR UNE PLAYLIST LOCALE.
@@ -2000,6 +1990,16 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z" /><circle cx="6.5" cy="6.5" r="1.2" /></svg>
               </button>
             {/if}
+            </div>
+
+            <div class="pl-texte">
+              <span class="pl-nom">{item.name}</span>
+              <span class="pl-compte">{item.trackCount} {$tr('common.tracks')}</span>
+              <span class="pl-badge" style="border-color: {serviceColor(item.service)}; color: {serviceColor(item.service)}">
+                {item.service === 'local' ? $tr('playlist.local') : serviceName(item.service)}
+              </span>
+            </div>
+
 
             <div class="pl-actions">
               {#if item.type === 'streaming' && item.streaming}
