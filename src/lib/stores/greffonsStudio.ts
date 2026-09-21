@@ -25,14 +25,25 @@ export const VUES_GREFFONS: Record<string, string> = {
  *
  * - greffon absent de la liste, ou champ `installed` absent : serveur d'avant
  *   la v0.9.156 ⇒ on montre, comme avant (jamais de faux « absent ») ;
- * - égaliseur non installé mais porteur d'une configuration (`install_proposed`) :
- *   on montre — c'est son écran qui propose l'installation en un geste
- *   (tune-web-client#1216) ;
  * - sinon : installé ET actif.
+ *
+ * 🔴 L'ÉGALISEUR N'A PLUS D'EXCEPTION — Bertrand, 21/09/2026 : « je veux que
+ * l'égaliseur s'efface de la sidebar ».
+ *
+ * Il en avait une : non installé mais porteur d'une configuration
+ * (`install_proposed`), son entrée restait, parce que son écran proposait
+ * l'installation en un geste (#1216). L'intention était bonne et le résultat
+ * ne l'était pas : sur une machine SANS égaliseur, l'entrée « Égaliseur »
+ * restait dans la barre indéfiniment et laissait croire à une fonction
+ * disponible. Une entrée qui mène à une porte fermée est pire que pas
+ * d'entrée — la règle que la barre applique déjà à Concerts.
+ *
+ * ⚠️ Ce que ce retrait coûte, et c'est assumé : l'installation en un clic
+ * depuis la barre disparaît. Elle reste accessible par l'écran Extensions,
+ * qui est le chemin normal de tous les autres greffons.
  */
 export function entreeStudioVisible(p: MergedPlugin | undefined): boolean {
   if (!p || typeof p.installed !== 'boolean') return true;
-  if (p.name === 'equalizer' && (p as any).install_proposed === true) return true;
   return p.installed && (p.enabled ?? (p as any).status === 'active');
 }
 

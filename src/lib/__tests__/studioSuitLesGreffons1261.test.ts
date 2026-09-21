@@ -45,9 +45,23 @@ describe('#1261 — la section STUDIO suit l’état réel des greffons', () => 
     expect(vues(entreesStudioVisibles(STUDIO, etat))).toContain('crossfeed');
   });
 
-  it('égaliseur non installé mais réglé (install_proposed) : l’entrée reste — son écran propose l’installation', () => {
-    const etat = { ...ETAT_DU_18, equalizer: g('equalizer', { installed: false, install_proposed: true }) };
-    expect(vues(entreesStudioVisibles(STUDIO, etat))).toContain('equalizer');
+  it('🔴 RECTIFICATIF — un égaliseur non installé s’efface, `install_proposed` ou non', () => {
+    // Cette épreuve exigeait l'INVERSE : l'entrée restait quand le greffon
+    // portait une configuration, pour que son écran propose l'installation en
+    // un geste (#1216). Bertrand a tranché autrement le 21/09/2026 : « je veux
+    // que l'égaliseur s'efface de la sidebar ». Une entrée qui mène à une porte
+    // fermée est pire que pas d'entrée.
+    const regle = { ...ETAT_DU_18, equalizer: g('equalizer', { installed: false, install_proposed: true }) };
+    expect(vues(entreesStudioVisibles(STUDIO, regle))).not.toContain('equalizer');
+    // Et le cas nu, celui du .18 : non installé, sans configuration.
+    expect(vues(entreesStudioVisibles(STUDIO, ETAT_DU_18))).not.toContain('equalizer');
+  });
+
+  it('installé ET actif : l’entrée revient', () => {
+    // La contre-épreuve : on masque ce qu'on SAIT absent, pas l'égaliseur en
+    // général. Quelqu'un qui l'installe doit le retrouver dans la barre.
+    const installe = { ...ETAT_DU_18, equalizer: g('equalizer', { installed: true, enabled: true }) };
+    expect(vues(entreesStudioVisibles(STUDIO, installe))).toContain('equalizer');
   });
 
   it('vieux serveur (champ installed absent) ou greffon absent de la liste : on montre, comme avant', () => {
