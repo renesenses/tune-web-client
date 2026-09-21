@@ -22,6 +22,27 @@ const PLAY_ERROR_KEYS: Record<string, string> = {
   zone_no_output_device: 'playback.errorNoOutputDevice',
 };
 
+/**
+ * Les codes dont on affiche la phrase DU SERVEUR, telle quelle.
+ *
+ * 🔴 #4601, #4580 — deux testeurs ont SUPPRIMÉ ET RECRÉÉ une zone pour la
+ * faire refonctionner. Le refus était **totalement muet** : un 409
+ * `zone_output_unavailable` n'était pas dans `PLAY_ERROR_KEYS`, donc
+ * `fetchJSON` le jetait sans un mot, et l'utilisateur en déduisait que la
+ * zone était cassée.
+ *
+ * ⚠️ Et une clé i18n statique ne suffisait pas non plus. Le serveur envoie
+ * désormais une phrase **nommée et actionnable** — elle dit quel appareil,
+ * quelle cause probable, et surtout : « Inutile de supprimer la zone puis de
+ * la recréer : elle se rattache seule dès que l'appareil réapparaît, et la
+ * recréer perdrait son volume, sa file et ses réglages. » Aucune constante du
+ * client ne peut dire cela : le nom de l'appareil n'est connu que du serveur.
+ *
+ * Le serveur la rend déjà dans la langue de l'interface (`Accept-Language`,
+ * posé par `acceptLang()` sur chaque requête).
+ */
+const MESSAGES_RENDUS_PAR_LE_SERVEUR = new Set<string>(['zone_output_unavailable']);
+
 /** Current UI locale, sent as Accept-Language so server-provided strings
  *  (metadata labels, errors, …) match the app's chosen language. */
 const acceptLang = (): string => {
@@ -559,6 +580,17 @@ export async function fetchJSON<T>(
       if (refusStrict) {
         err.message = refusStrict;
         notifications.error(refusStrict, 10000);
+        err.dejaAnnonce = true;
+      } else if (
+        err.code
+        && MESSAGES_RENDUS_PAR_LE_SERVEUR.has(err.code)
+        && typeof err.message === 'string'
+        && err.message.trim() !== ''
+      ) {
+        // 🔴 La phrase du SERVEUR, telle quelle — voir
+        // `MESSAGES_RENDUS_PAR_LE_SERVEUR`. 10 s comme le refus bit-perfect :
+        // elle est longue, et elle demande à être lue jusqu'au bout.
+        notifications.error(err.message, 10000);
         err.dejaAnnonce = true;
       } else if (key) {
         notifications.error(get(t)(key as any));

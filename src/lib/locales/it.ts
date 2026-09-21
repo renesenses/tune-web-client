@@ -169,6 +169,8 @@ export default {
   // Zone
   'zone.zones': 'ZONE',
   'zone.noOutputBanner': 'Questa zona non ha un\'uscita audio: non si sentirà nulla finché non ne sceglierai una.',
+  'zone.outputMissingBanner': 'Il dispositivo di questa zona non si trova: si ricollegherà da solo appena ricomparirà. Non serve eliminare la zona: ricrearla ne perderebbe volume, coda e impostazioni.',
+  'zone.outputMissingBannerAction': 'Scegli un’altra uscita',
   'zone.noOutputBannerAction': 'Scegli un\'uscita',
   'zone.bannerDismiss': 'Chiudi questo avviso',
   'zone.browserUnattendedBanner': 'Questa zona riproduce nel browser, ma nessuna scheda riceve l\'audio. Apri Tune su quel computer o scegli un\'altra zona.',
@@ -3321,6 +3323,7 @@ export default {
   "v2.lib.emptyDepot": "{nom} ({hote}) non espone alcun album.",
   "v2.lib.viewList": "Vista elenco",
   "v2.lib.viewGrid": "Vista griglia",
+  "v2.lib.viewCarousel": "Vista carosello",
   "v2.lib.starting": "Avvio…",
   "v2.fav.noMatch": "Nessun risultato per questa ricerca.",
   "v2.fav.emptyAlbums": "Nessun album nei preferiti.",

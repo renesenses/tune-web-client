@@ -170,6 +170,8 @@ export default {
   // Zone
   'zone.zones': 'ZONE',
   'zone.noOutputBanner': 'Această zonă nu are nicio ieșire audio: nu se va auzi nimic până când nu alegeți una.',
+  'zone.outputMissingBanner': 'Dispozitivul acestei zone nu poate fi găsit — se va reconecta singur de îndată ce reapare. Nu este nevoie să ștergeți zona: recrearea i-ar pierde volumul, coada și setările.',
+  'zone.outputMissingBannerAction': 'Alege altă ieșire',
   'zone.noOutputBannerAction': 'Alegeți o ieșire',
   'zone.bannerDismiss': 'Închide această avertizare',
   'zone.browserUnattendedBanner': 'Această zonă redă în browser, dar nicio filă nu primește sunetul. Deschideți Tune pe acel computer sau alegeți altă zonă.',
@@ -3321,6 +3323,7 @@ export default {
   "v2.lib.emptyDepot": "{nom} ({hote}) nu expune niciun album.",
   "v2.lib.viewList": "Vizualizare listă",
   "v2.lib.viewGrid": "Vizualizare grilă",
+  "v2.lib.viewCarousel": "Vizualizare carusel",
   "v2.lib.starting": "Se pornește…",
   "v2.fav.noMatch": "Niciun rezultat pentru această căutare.",
   "v2.fav.emptyAlbums": "Niciun album la favorite.",

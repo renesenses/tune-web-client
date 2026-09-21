@@ -169,6 +169,8 @@ export default {
   // Zone
   'zone.zones': '존',
   'zone.noOutputBanner': '이 존에는 오디오 출력이 없습니다. 출력을 선택하기 전까지는 소리가 나지 않습니다.',
+  'zone.outputMissingBanner': '이 존의 기기를 찾을 수 없습니다. 다시 나타나면 자동으로 연결됩니다. 존을 삭제할 필요가 없습니다. 다시 만들면 음량, 재생 목록, 설정이 사라집니다.',
+  'zone.outputMissingBannerAction': '다른 출력 선택',
   'zone.noOutputBannerAction': '출력 선택',
   'zone.bannerDismiss': '이 경고 닫기',
   'zone.browserUnattendedBanner': '이 존은 브라우저에서 재생 중이지만 소리를 받는 탭이 없습니다. 해당 컴퓨터에서 Tune을 열거나 다른 존을 선택하세요.',
@@ -3321,6 +3323,7 @@ export default {
   "v2.lib.emptyDepot": "{nom}({hote})에 앨범이 없습니다.",
   "v2.lib.viewList": "목록 보기",
   "v2.lib.viewGrid": "그리드 보기",
+  "v2.lib.viewCarousel": "캐러셀 보기",
   "v2.lib.starting": "시작 중…",
   "v2.fav.noMatch": "이 검색에 대한 결과가 없습니다.",
   "v2.fav.emptyAlbums": "즐겨찾기한 앨범이 없습니다.",

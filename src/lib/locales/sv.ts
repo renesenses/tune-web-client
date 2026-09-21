@@ -141,6 +141,8 @@ export default {
   // Zone
   'zone.zones': 'ZONER',
   'zone.noOutputBanner': 'Den här zonen har ingen ljudutgång: inget hörs förrän du väljer en.',
+  'zone.outputMissingBanner': 'Den här zonens enhet kan inte hittas – den återansluter av sig själv så snart den dyker upp igen. Zonen behöver inte tas bort: att skapa den på nytt skulle förlora volym, kö och inställningar.',
+  'zone.outputMissingBannerAction': 'Välj en annan utgång',
   'zone.noOutputBannerAction': 'Välj en utgång',
   'zone.bannerDismiss': 'Stäng den här varningen',
   'zone.browserUnattendedBanner': 'Den här zonen spelar i webbläsaren, men ingen flik tar emot ljudet. Öppna Tune på den datorn eller välj en annan zon.',
@@ -3320,6 +3322,7 @@ export default {
   "v2.lib.emptyDepot": "{nom} ({hote}) visar inga album.",
   "v2.lib.viewList": "Listvy",
   "v2.lib.viewGrid": "Rutnätsvy",
+  "v2.lib.viewCarousel": "Karusellvy",
   "v2.lib.starting": "Startar…",
   "v2.fav.noMatch": "Inget resultat för den här sökningen.",
   "v2.fav.emptyAlbums": "Inga favoritalbum.",

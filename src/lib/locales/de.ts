@@ -169,6 +169,8 @@ export default {
   // Zone
   'zone.zones': 'ZONEN',
   'zone.noOutputBanner': 'Diese Zone hat keinen Audioausgang: Es ist nichts zu hören, bis Sie einen auswählen.',
+  'zone.outputMissingBanner': 'Das Gerät dieser Zone ist nicht auffindbar – es verbindet sich von selbst wieder, sobald es erscheint. Die Zone muss nicht gelöscht werden: beim Neuanlegen gingen Lautstärke, Warteschlange und Einstellungen verloren.',
+  'zone.outputMissingBannerAction': 'Andere Ausgabe wählen',
   'zone.noOutputBannerAction': 'Ausgang wählen',
   'zone.bannerDismiss': 'Diesen Hinweis schließen',
   'zone.browserUnattendedBanner': 'Diese Zone spielt im Browser, aber kein Tab empfängt den Ton. Öffnen Sie Tune auf diesem Computer oder wählen Sie eine andere Zone.',
@@ -3321,6 +3323,7 @@ export default {
   "v2.lib.emptyDepot": "{nom} ({hote}) stellt kein Album bereit.",
   "v2.lib.viewList": "Listenansicht",
   "v2.lib.viewGrid": "Rasteransicht",
+  "v2.lib.viewCarousel": "Karussellansicht",
   "v2.lib.starting": "Wird gestartet…",
   "v2.fav.noMatch": "Kein Ergebnis für diese Suche.",
   "v2.fav.emptyAlbums": "Kein Album in den Favoriten.",
