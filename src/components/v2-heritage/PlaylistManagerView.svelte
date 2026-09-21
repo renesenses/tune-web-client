@@ -302,6 +302,15 @@
       service: cleService(cle),
       playlist_id: cleIdentifiant(cle),
     }));
+    // « Au même endroit » : la sélection étant confinée à un service, la
+    // fusion atterrit dans celui-là.
+    //
+    // 🔴 Le serveur JETAIT ce champ — `MergeRequest` ne le déclarait pas, et
+    // serde écarte en silence un champ inconnu. La fusion de huit playlists
+    // Qobuz créait donc une playlist LOCALE, et vide par-dessus le marché.
+    // Corrigé côté serveur ; gardé ici parce que c'est lui qui nomme la
+    // cible (tune-server-rust#4649).
+    const cibleDeFusion = serviceVerrouille ?? 'local';
     merging = true;
     mergeResult = null;
     try {
@@ -309,16 +318,25 @@
         playlists,
         target_name: mergeName.trim(),
         deduplicate: mergeDedup,
-        // « Au même endroit » : la sélection étant confinée à un service, la
-        // fusion atterrit dans celui-là.
-        target_service: serviceVerrouille ?? undefined,
+        target_service: cibleDeFusion,
       });
       mergeResult = result;
       mergeSelected = new Set();
       mergeName = '';
       mergeNameTouched = false;
-      // Reload local playlists
-      try { localPlaylists = await api.getPlaylists(); } catch {}
+      // 🔴 La nouvelle playlist n'est pas forcément LOCALE : depuis que la
+      // fusion atterrit « au même endroit », elle naît chez le service. On
+      // recharge donc la liste de l'endroit où elle est née, sinon elle
+      // n'apparaît qu'au prochain passage sur l'écran.
+      const ne = (result as any)?.service ?? cibleDeFusion ?? 'local';
+      if (ne === 'local') {
+        try { localPlaylists = await api.getPlaylists(); } catch {}
+      } else {
+        try {
+          const fraiches = await api.getStreamingPlaylists(ne);
+          streamingPlaylists = { ...streamingPlaylists, [ne]: fraiches };
+        } catch {}
+      }
     } catch (err: any) {
       notifications.error($tr('playlistManager.mergeError').replace('{error}', errText(err) ?? $tr('common.serverUnreachable')));
     }

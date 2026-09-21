@@ -55,8 +55,10 @@ describe('#playlists — fusionner sans mode', () => {
 
   it('la fusion atterrit dans le service de la sélection', () => {
     // « Au même endroit » : la sélection étant confinée à un service, c'est
-    // lui la cible. Un seul état pour les deux règles.
-    expect(sansCommentaires).toContain('target_service: serviceVerrouille');
+    // lui la cible. Un seul état pour les deux règles — nommé depuis le
+    // 21/09, parce que le rechargement d'après en a besoin aussi.
+    expect(sansCommentaires).toContain("const cibleDeFusion = serviceVerrouille ?? 'local';");
+    expect(sansCommentaires).toContain('target_service: cibleDeFusion');
   });
 
   it('les cartes des autres services deviennent inertes, pas invisibles', () => {
@@ -227,5 +229,24 @@ describe('#playlists — fusionner sans mode', () => {
     expect(confirme, 'aucune confirmation').toBeGreaterThan(-1);
     expect(appel, 'aucun appel de suppression').toBeGreaterThan(-1);
     expect(appel).toBeGreaterThan(confirme);
+  });
+
+  /*
+   | 🔴 « Cela merge en local : erreur !! » (Bertrand, 21/09). Huit playlists
+   | Qobuz cochées, et la fusion créait une playlist LOCALE — vide.
+   |
+   | La cause vivait côté serveur (`MergeRequest` ne déclarait pas
+   | `target_service`, serde le jetait), mais l'écran a sa part : c'est lui
+   | qui nomme la cible, et c'est lui qui doit recharger la liste où la
+   | playlist est NÉE. Recharger le local après une fusion chez Qobuz la
+   | rendait invisible jusqu'au prochain passage sur l'écran.
+   */
+  it('🔴 la fusion nomme sa cible, et recharge la liste où la playlist est née', () => {
+    expect(sansCommentaires).toContain("const cibleDeFusion = serviceVerrouille ?? 'local';");
+    expect(sansCommentaires).toContain('target_service: cibleDeFusion,');
+    // Le rechargement choisit, il ne suppose pas.
+    const apres = sansCommentaires.slice(sansCommentaires.indexOf('mergeResult = result;'));
+    expect(apres.slice(0, 800)).toContain('api.getStreamingPlaylists(');
+    expect(apres.slice(0, 800)).toContain('api.getPlaylists()');
   });
 });
