@@ -1070,6 +1070,8 @@ export default {
   "library.noZoneSelectedShort": "ゾーンが選択されていません",
   "library.noZoneSelectedSelectZone": "ゾーンが選択されていません — ゾーンを選択してください",
   "library.shufflePlaying": "シャッフル: {count} 曲",
+  "asio.rearmAction": "ASIO スキャンを再有効化",
+  "asio.rearmDone": "ASIO スキャンを再有効化しました。次回 Tune 起動時に実行されます。いまドライバーは開きません。",
   "library.playbackError": "再生エラー",
   "library.sortReleaseDate": "リリース日",
   "library.sortAddedDate": "追加日",

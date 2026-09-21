@@ -1070,6 +1070,8 @@ export default {
   "library.noZoneSelectedShort": "Ninguna zona seleccionada",
   "library.noZoneSelectedSelectZone": "Ninguna zona seleccionada — selecciona una zona",
   "library.shufflePlaying": "Aleatorio: {count} pistas",
+  "asio.rearmAction": "Rearmar el barrido ASIO",
+  "asio.rearmDone": "Barrido ASIO rearmado. Se reanudará en el próximo inicio de Tune: ahora no se abre ningún controlador.",
   "library.playbackError": "Error de reproducción",
   "library.sortReleaseDate": "Fecha de lanzamiento",
   "library.sortAddedDate": "Fecha de adición",
