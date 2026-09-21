@@ -1138,6 +1138,8 @@ export default {
   "library.noZoneSelectedShort": "Nincs kiválasztott zóna",
   "library.noZoneSelectedSelectZone": "Nincs kiválasztott zóna — válassz egyet",
   "library.shufflePlaying": "Véletlenszerű: {count} szám",
+  "asio.rearmAction": "ASIO-keresés újraélesítése",
+  "asio.rearmDone": "Az ASIO-keresés újraélesítve. A Tune következő indításakor fut le: most semmilyen illesztőprogram nem nyílik meg.",
   "library.playbackError": "Lejátszási hiba",
   "library.sortReleaseDate": "Megjelenés dátuma",
   "library.sortAddedDate": "Hozzáadás dátuma",

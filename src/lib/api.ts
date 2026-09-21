@@ -5808,6 +5808,24 @@ export function getServerDiagnostics() {
   }>(`${BASE}/system/diagnostics`);
 }
 
+/**
+ * Réarmer le balayage ASIO en postant sur la route **que le serveur annonce**
+ * (#4556). `rearmAsioWarmScan` juste en dessous vise la même route en dur ;
+ * celle-ci est employée quand l'événement en porte une, pour qu'un changement
+ * de route côté serveur ne se traduise pas par un bouton mort chez
+ * l'utilisateur.
+ *
+ * ⚠️ Route ADMIN : un 401/403 est un refus normal ici, et l'appelant retombe
+ * alors sur la phrase seule.
+ */
+export function rearmerParLaRouteAnnoncee(route: string) {
+  return fetchJSON<{
+    status: 'rearmed' | 'already_ready';
+    retry: 'next_restart';
+    message: string;
+  }>(route.startsWith('/api/') ? route : `${BASE}${route}`, { method: 'POST' });
+}
+
 export function rearmAsioWarmScan() {
   return fetchJSON<{
     status: 'rearmed' | 'already_ready';

@@ -1054,6 +1054,8 @@ export default {
   "library.noZoneSelectedShort": "선택된 존 없음",
   "library.noZoneSelectedSelectZone": "선택된 존 없음 — 존을 선택하세요",
   "library.shufflePlaying": "셔플: {count}개 트랙",
+  "asio.rearmAction": "ASIO 검색 재활성화",
+  "asio.rearmDone": "ASIO 검색을 다시 활성화했습니다. 다음 Tune 시작 시 실행됩니다. 지금은 드라이버를 열지 않습니다.",
   "library.playbackError": "재생 오류",
   "library.sortReleaseDate": "발매일",
   "library.sortAddedDate": "추가된 날짜",

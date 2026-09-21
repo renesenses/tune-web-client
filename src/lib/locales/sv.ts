@@ -1033,6 +1033,8 @@ export default {
   "library.noZoneSelectedShort": "Ingen zon vald",
   "library.noZoneSelectedSelectZone": "Ingen zon vald — välj en zon",
   "library.shufflePlaying": "Blanda: {count} spår",
+  "asio.rearmAction": "Återaktivera ASIO-sökningen",
+  "asio.rearmDone": "ASIO-sökningen är återaktiverad. Den körs vid Tunes nästa start: ingen drivrutin öppnas nu.",
   "library.playbackError": "Uppspelningsfel",
   "library.sortReleaseDate": "Utgivningsdatum",
   "library.sortAddedDate": "Datum tillagt",

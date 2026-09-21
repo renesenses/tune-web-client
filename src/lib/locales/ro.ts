@@ -1076,6 +1076,8 @@ export default {
   "library.noZoneSelectedShort": "Nicio zonă selectată",
   "library.noZoneSelectedSelectZone": "Nicio zonă selectată — selectează o zonă",
   "library.shufflePlaying": "Amestecare: {count} piese",
+  "asio.rearmAction": "Rearmează scanarea ASIO",
+  "asio.rearmDone": "Scanarea ASIO a fost rearmată. Va reporni la următoarea pornire a Tune: acum nu se deschide niciun driver.",
   "library.playbackError": "Eroare la redare",
   "library.sortReleaseDate": "Data lansării",
   "library.sortAddedDate": "Data adăugării",
