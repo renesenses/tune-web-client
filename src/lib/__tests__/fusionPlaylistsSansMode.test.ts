@@ -161,4 +161,71 @@ describe('#playlists — fusionner sans mode', () => {
   it('le coin de sélection est un bouton à deux états, pas une case cachée', () => {
     expect(sansCommentaires).toContain('aria-pressed={cochee}');
   });
+
+  /*
+   | 🔴 « Bouton merge grisé » (Bertrand, 21/09, capture : HUIT playlists
+   | cochées). Le motif n'était pas la sélection mais le NOM vide — le
+   | `disabled` du bouton porte `!mergeName.trim()` et rien ne le disait.
+   |
+   | Deux gardes, parce que le correctif a deux moitiés : proposer un nom, et
+   | nommer le motif quand le champ est quand même vide.
+   */
+  it('🔴 le champ de nom vide est un motif ÉNONCÉ, pas un gris muet', () => {
+    // La condition du gris, telle qu'elle est écrite.
+    expect(sansCommentaires).toContain("!mergeName.trim()");
+    // Et son explication, dans la branche qui suit « moins de deux ».
+    const barre = sansCommentaires.slice(sansCommentaires.indexOf('class="merge-bar"'));
+    const hint = barre.indexOf("playlistManager.nameRequired");
+    const deux = barre.indexOf("playlistManager.selectAtLeastTwo");
+    expect(hint, 'aucune indication pour le champ vide').toBeGreaterThan(-1);
+    expect(deux, 'indication « au moins deux » disparue').toBeGreaterThan(-1);
+  });
+
+  it('un nom est PROPOSÉ dès la deuxième carte cochée, et la saisie le protège', () => {
+    expect(sansCommentaires).toContain('function nomDeFusionPropose()');
+    expect(sansCommentaires).toContain('mergedNameDefault');
+    // Le garde-fou : l'effet ne doit jamais écraser ce qui a été tapé. La
+    // sortie précoce est la PREMIÈRE ligne du corps de l'effet — vérifiée
+    // ici par son voisinage immédiat, pas par sa seule présence dans le
+    // fichier.
+    // L'écran porte plusieurs `$effect` : on vise celui de la fusion par sa
+    // première ligne, pas par son rang.
+    const debut = sansCommentaires.indexOf('if (mergeNameTouched) return;');
+    expect(debut, 'la sortie précoce a disparu').toBeGreaterThan(-1);
+    expect(sansCommentaires.slice(Math.max(0, debut - 40), debut)).toContain('$effect(() => {');
+    expect(sansCommentaires).toContain('oninput={() => (mergeNameTouched = true)}');
+  });
+
+  /*
+   | 🔴 « pas de bouton pour supprimer une playlist Tidal ! » (Bertrand,
+   | 21/09). La carte locale porte une corbeille depuis toujours ; la carte
+   | de service n'en avait aucune — et pas par oubli d'interface : côté
+   | serveur, `delete_playlist` n'était redéfinie que par Qobuz et AUCUNE
+   | route ne l'appelait.
+   |
+   | La garde qui compte n'est pas la présence du bouton mais sa CONDITION :
+   | posé d'après la capacité annoncée par le serveur, jamais d'après le nom
+   | du service, sinon il rendrait 501 au clic ailleurs.
+   */
+  it('🔴 la corbeille d\'une playlist de service suit la capacité ANNONCÉE', () => {
+    expect(sansCommentaires).toContain('function serviceSaitSupprimer(');
+    expect(sansCommentaires).toContain("serviceCapabilities[service]?.supports_delete === true");
+    expect(sansCommentaires).toContain('{#if serviceSaitSupprimer(item.service)}');
+    // Et pas une liste de noms écrite à la main.
+    expect(sansCommentaires).not.toMatch(/supprimables?\s*=\s*\[/);
+  });
+
+  it('la suppression chez un service demande confirmation', () => {
+    const corps = sansCommentaires.slice(
+      sansCommentaires.indexOf('async function supprimerPlaylistDeService('),
+    );
+    expect(corps.slice(0, 900)).toContain('dialogs.confirm');
+    expect(corps.slice(0, 900)).toContain('danger: true');
+    // L'appel ne part qu'APRÈS la confirmation.
+    const confirme = corps.indexOf('dialogs.confirm');
+    const appel = corps.indexOf('api.deleteServicePlaylist');
+    expect(confirme, 'aucune confirmation').toBeGreaterThan(-1);
+    expect(appel, 'aucun appel de suppression').toBeGreaterThan(-1);
+    expect(appel).toBeGreaterThan(confirme);
+  });
 });

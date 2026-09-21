@@ -239,6 +239,16 @@
     return coupe === -1 ? '' : cle.slice(coupe + 1);
   }
   let mergeName = $state('');
+  /**
+   * Le champ a-t-il été TOUCHÉ par l'utilisateur ?
+   *
+   * 🔴 Bertrand, 21/09 : « Bouton merge grisé » — huit playlists cochées, le
+   * bouton éteint. La cause n'était pas la sélection mais le NOM : le bouton
+   * porte `!mergeName.trim()` dans son `disabled`, et rien ne disait que le
+   * champ vide était le motif. On propose donc un nom dès la deuxième carte
+   * cochée, et ce drapeau évite d'écraser ce que l'utilisateur a tapé.
+   */
+  let mergeNameTouched = $state(false);
   let mergeDedup = $state(true);
   let merging = $state(false);
   let mergeResult = $state<{ id: number; name: string; total_tracks: number } | null>(null);
@@ -261,7 +271,24 @@
   function cancelMerge() {
     mergeSelected = new Set();
     mergeName = '';
+    mergeNameTouched = false;
     mergeResult = null;
+  }
+
+  /**
+   * Le nom proposé : celui de la première playlist cochée, et le nombre des
+   * autres. Éditable — c'est une proposition, pas une contrainte.
+   */
+  function nomDeFusionPropose(): string {
+    const cles = Array.from(mergeSelected);
+    if (cles.length < 2) return '';
+    const premiere = displayPlaylists.find(
+      (p) => mergeKey(p.service, identifiantDe(p)) === cles[0],
+    );
+    if (!premiere) return '';
+    return $tr('playlistManager.mergedNameDefault' as any)
+      .replace('{name}', premiere.name)
+      .replace('{count}', String(cles.length - 1));
   }
 
   async function doMerge() {
@@ -289,6 +316,7 @@
       mergeResult = result;
       mergeSelected = new Set();
       mergeName = '';
+      mergeNameTouched = false;
       // Reload local playlists
       try { localPlaylists = await api.getPlaylists(); } catch {}
     } catch (err: any) {
@@ -327,7 +355,55 @@
   let batchResult = $state<any>(null);
 
   // Service capabilities
-  let serviceCapabilities = $state<Record<string, { authenticated: boolean; supports_write: boolean }>>({});
+  let serviceCapabilities = $state<
+    Record<string, { authenticated: boolean; supports_write: boolean; supports_delete?: boolean }>
+  >({});
+
+  /**
+   * Le service sait-il supprimer une playlist chez lui ?
+   *
+   * 🔴 La réponse vient du SERVEUR (`/playlist-manager/services`), pas d'une
+   * liste de noms tenue ici : `delete_playlist` a une implémentation par
+   * défaut qui rend 501, et seuls Qobuz et Tidal la redéfinissent. Un bouton
+   * posé d'après le nom du service aurait échoué au clic chez les autres.
+   * Même règle que le cœur des favoris (#4577).
+   */
+  function serviceSaitSupprimer(service: string): boolean {
+    return serviceCapabilities[service]?.supports_delete === true;
+  }
+
+  let suppressionEnCours = $state<string | null>(null);
+
+  /**
+   * Supprime une playlist CHEZ le service. Irréversible de notre côté — d'où
+   * la confirmation, que la suppression locale n'a jamais eue parce qu'une
+   * playlist locale se refait.
+   */
+  async function supprimerPlaylistDeService(item: DisplayPlaylist) {
+    const id = identifiantDe(item);
+    if (!id) return;
+    const question = $tr('playlistManager.confirmDeleteService' as any)
+      .replace('{name}', item.name)
+      .replace('{service}', serviceName(item.service));
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
+    suppressionEnCours = mergeKey(item.service, id);
+    try {
+      await api.deleteServicePlaylist(item.service, id);
+      // La carte disparaît : on retire la playlist de la liste DE SON
+      // SERVICE — `streamingPlaylists` est un dictionnaire par service, pas
+      // une liste à plat — plutôt que de recharger tout l'écran.
+      streamingPlaylists = {
+        ...streamingPlaylists,
+        [item.service]: (streamingPlaylists[item.service] ?? []).filter(
+          (p) => String(p.source_id) !== id,
+        ),
+      };
+      mergeSelected = new Set([...mergeSelected].filter((c) => c !== mergeKey(item.service, id)));
+    } catch (err: any) {
+      notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
+    }
+    suppressionEnCours = null;
+  }
 
   // Quick Transfer (standalone transfer from Transfers tab)
   let qtSourceService = $state('');
@@ -771,6 +847,21 @@
     }
 
     return items;
+  });
+
+  /**
+   * Proposer le nom dès la deuxième carte cochée.
+   *
+   * Posé ICI, après `displayPlaylists` dont il lit les noms. Il ne réécrit
+   * jamais une saisie : `mergeNameTouched` le tient, et le champ vidé à la
+   * main reste vide — l'indication sous la barre dit alors pourquoi le bouton
+   * est gris.
+   */
+  $effect(() => {
+    if (mergeNameTouched) return;
+    if (mergeSelected.size < 2) return;
+    const propose = nomDeFusionPropose();
+    if (propose && propose !== mergeName) mergeName = propose;
   });
 
   async function selectLocal(pl: Playlist) {
@@ -1948,6 +2039,7 @@
           type="text"
           placeholder={$tr('playlistManager.mergedNamePlaceholder')}
           bind:value={mergeName}
+          oninput={() => (mergeNameTouched = true)}
           class="merge-input"
         />
         <label class="merge-dedup">
@@ -1967,6 +2059,9 @@
         <!-- Dire POURQUOI le bouton ne part pas, plutôt que de le griser en
              silence : une seule playlist ne se fusionne avec rien. -->
         <p class="merge-hint">{$tr('playlistManager.selectAtLeastTwo' as any)}</p>
+      {:else if !mergeName.trim()}
+        <!-- L'AUTRE motif du gris, celui qui a mordu : le nom manque. -->
+        <p class="merge-hint">{$tr('playlistManager.nameRequired' as any)}</p>
       {/if}
     {/if}
 
@@ -2094,6 +2189,21 @@
                 <button onclick={(e) => { e.stopPropagation(); openImport(item.service, item.streaming!); }} title={$tr('playlist.import')} aria-label={$tr('playlist.import')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                 </button>
+                <!-- « pas de bouton pour supprimer une playlist Tidal ! ».
+                     Posé seulement si le SERVEUR annonce la capacité : chez
+                     un service qui ne sait pas supprimer, le clic rendrait
+                     501. -->
+                {#if serviceSaitSupprimer(item.service)}
+                  <button
+                    class="danger"
+                    disabled={suppressionEnCours === mergeKey(item.service, identifiantDe(item))}
+                    onclick={(e) => { e.stopPropagation(); supprimerPlaylistDeService(item); }}
+                    title={$tr('common.delete')}
+                    aria-label={$tr('common.delete')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                  </button>
+                {/if}
               {/if}
               {#if item.type === 'local' && item.local?.id}
                 <button onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title={$tr('playlistManager.share')} aria-label={$tr('playlistManager.share')}>

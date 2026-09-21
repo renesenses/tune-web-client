@@ -4333,11 +4333,31 @@ export function applyRecovery(playlistId: number, replacements: Array<{ track_id
 
 // --- Playlist Manager v2 ---
 
+/**
+ * Supprime une playlist CHEZ le service de streaming.
+ *
+ * Bertrand, 21/09 : « pas de bouton pour supprimer une playlist Tidal ! ».
+ * Le geste n'existait nulle part — `delete_playlist` vivait dans le trait
+ * serveur sans qu'aucune route ne l'appelle. Le service doit annoncer
+ * `supports_delete` (voir `getPlaylistManagerServices`) : sinon la route
+ * rend 501, et l'écran ne pose pas le bouton.
+ *
+ * Les playlists locales passent par `deletePlaylist(id)`, pas par ici.
+ */
+export function deleteServicePlaylist(service: string, playlistId: string) {
+  return fetchJSON<{ deleted: boolean; service: string; playlist_id: string }>(
+    `${BASE}/playlist-manager/playlists/${encodeURIComponent(service)}/${encodeURIComponent(playlistId)}`,
+    { method: 'DELETE' },
+  );
+}
+
 export function getPlaylistManagerServices() {
   // cache-bust: auth state can flip during a session (login/logout/token
   // refresh) and FastAPI doesn't set Cache-Control on this endpoint, so
   // browsers happily reuse the previous response. Force a fresh fetch.
-  return fetchJSON<Record<string, { authenticated: boolean; supports_write: boolean }>>(
+  return fetchJSON<
+    Record<string, { authenticated: boolean; supports_write: boolean; supports_delete?: boolean }>
+  >(
     `${BASE}/playlist-manager/services?_=${Date.now()}`,
     { cache: 'no-store' },
   );
