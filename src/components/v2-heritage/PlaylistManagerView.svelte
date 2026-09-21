@@ -119,8 +119,54 @@
   let newDescription = $state('');
 
   // Merge mode
-  let mergeMode = $state(false);
-  let mergeSelected = $state<Set<string>>(new Set());  // keys: `${service}:${id}`
+  /**
+   * LA SÉLECTION, sans mode préalable (Bertrand + maquette Levente, 20/09/2026).
+   *
+   * 🔴 Avant, fusionner demandait de DÉCOUVRIR un mode : un bouton
+   * « Fusionner » basculait l'écran, et seulement alors des cases
+   * apparaissaient sur les lignes. Bertrand : « il me semble que la fusion ne
+   * marche pas ! » — elle marchait, mais personne ne trouvait la porte.
+   *
+   * Désormais : on coche le coin d'une carte, et la barre d'actions APPARAÎT.
+   * Le mode n'existe plus.
+   */
+  let mergeSelected = $state<Set<string>>(new Set());  // clés : `${service}:${id}`
+
+  /**
+   * Le service auquel la sélection est confinée — décision de Bertrand :
+   * on ne coche pas des playlists de services différents.
+   *
+   * C'est aussi la RÉPONSE au « où atterrit la fusion ? » : au même endroit,
+   * donc dans ce service. Un seul état pour deux règles, elles ne peuvent
+   * donc pas diverger.
+   */
+  let serviceVerrouille = $derived.by(() => {
+    const premiere = mergeSelected.values().next();
+    return premiere.done ? null : cleService(premiere.value);
+  });
+
+  /**
+   * L'identifiant d'une entrée, local ou de service.
+   *
+   * Écrit UNE fois : la même expression était recopiée quatre fois dans le
+   * balisage, et une copie qui diverge coche une carte sans en décocher
+   * l'autre.
+   */
+  function identifiantDe(item: DisplayPlaylist): string {
+    return String(item.local?.id ?? item.streaming?.source_id ?? '');
+  }
+
+  /** Le service d'une clé `service:id`, sans amputer l'identifiant. */
+  function cleService(cle: string): string {
+    const coupe = cle.indexOf(':');
+    return coupe === -1 ? cle : cle.slice(0, coupe);
+  }
+
+  /** L'identifiant d'une clé `service:id`, deux-points compris. */
+  function cleIdentifiant(cle: string): string {
+    const coupe = cle.indexOf(':');
+    return coupe === -1 ? '' : cle.slice(coupe + 1);
+  }
   let mergeName = $state('');
   let mergeDedup = $state(true);
   let merging = $state(false);
@@ -131,6 +177,10 @@
   }
 
   function toggleMergeSelect(service: string, id: string) {
+    // 🔴 La règle tenue ICI, et pas seulement dans le balisage : un bouton
+    // `disabled` empêche le clic de la souris, il n'empêche pas un appel. La
+    // garde vit donc dans la fonction, là où elle ne peut pas être contournée.
+    if (serviceVerrouille !== null && serviceVerrouille !== service) return;
     const key = mergeKey(service, id);
     const next = new Set(mergeSelected);
     if (next.has(key)) next.delete(key); else next.add(key);
@@ -138,7 +188,6 @@
   }
 
   function cancelMerge() {
-    mergeMode = false;
     mergeSelected = new Set();
     mergeName = '';
     mergeResult = null;
@@ -146,10 +195,15 @@
 
   async function doMerge() {
     if (mergeSelected.size < 2 || !mergeName.trim()) return;
-    const playlists = Array.from(mergeSelected).map((key) => {
-      const [service, id] = key.split(':', 2);
-      return { service, playlist_id: id };
-    });
+    // 🔴 `key.split(':', 2)` AMPUTAIT l'identifiant : en JavaScript, le second
+    // argument TRONQUE le tableau, il ne rejoint pas le reste. Un identifiant
+    // portant un deux-points partait coupé, et la fusion échouait sans dire
+    // pourquoi. Les identifiants locaux sont numériques, donc ça ne mordait
+    // pas encore — ça aurait mordu au premier service qui en met.
+    const playlists = Array.from(mergeSelected).map((cle) => ({
+      service: cleService(cle),
+      playlist_id: cleIdentifiant(cle),
+    }));
     merging = true;
     mergeResult = null;
     try {
@@ -157,11 +211,13 @@
         playlists,
         target_name: mergeName.trim(),
         deduplicate: mergeDedup,
+        // « Au même endroit » : la sélection étant confinée à un service, la
+        // fusion atterrit dans celui-là.
+        target_service: serviceVerrouille ?? undefined,
       });
       mergeResult = result;
       mergeSelected = new Set();
       mergeName = '';
-      mergeMode = false;
       // Reload local playlists
       try { localPlaylists = await api.getPlaylists(); } catch {}
     } catch (err: any) {
@@ -1752,15 +1808,9 @@
         </button>
       {/each}
     </div>
-    <button
-      class="merge-toggle-btn"
-      class:active={mergeMode}
-      onclick={() => { mergeMode = !mergeMode; if (!mergeMode) cancelMerge(); }}
-      title={$tr('playlistManager.mergeTooltip')}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-      {mergeMode ? $tr('playlistManager.cancelMerge') : $tr('playlistManager.merge')}
-    </button>
+    <!-- Le bouton de MODE « Fusionner » a disparu : on sélectionne d'abord,
+         par le coin d'une carte, et la barre d'actions apparaît ensuite.
+         Voir le commentaire de `mergeSelected`. -->
 
     {#if mergeResult}
       <div class="backup-result" style="margin-bottom: 8px;">
@@ -1790,7 +1840,7 @@
       <div class="empty">{$tr('playlist.noPlaylists')}</div>
     {/if}
 
-    {#if mergeMode && mergeSelected.size > 0}
+    {#if mergeSelected.size > 0}
       <div class="merge-bar">
         <span class="merge-count">{$tr('playlistManager.playlistsSelected').replace('{count}', String(mergeSelected.size))}</span>
         <input
@@ -1812,52 +1862,83 @@
         </button>
         <button class="cancel-btn" onclick={cancelMerge}>{$tr('common.cancel')}</button>
       </div>
+      {#if mergeSelected.size < 2}
+        <!-- Dire POURQUOI le bouton ne part pas, plutôt que de le griser en
+             silence : une seule playlist ne se fusionne avec rien. -->
+        <p class="merge-hint">{$tr('playlistManager.selectAtLeastTwo' as any)}</p>
+      {/if}
     {/if}
 
     {#if displayPlaylists.length > 0}
-      <div class="playlist-list">
+      <!--
+        LA GRILLE (maquette Levente, 20/09/2026). C'était une liste verticale.
+
+        Ce qui change vraiment n'est pas la forme mais le GESTE : le coin bas
+        gauche de chaque carte coche la playlist, et la barre de fusion
+        apparaît au-dessus. Plus de mode à découvrir — c'est ce qui faisait
+        dire « la fusion ne marche pas ».
+
+        🔴 La sélection est CONFINÉE à un service (décision de Bertrand) : dès
+        qu'une carte est cochée, les cartes des autres services deviennent
+        inertes et s'estompent. On ne grise pas en silence, l'infobulle dit
+        pourquoi. C'est aussi ce qui donne sa cible à la fusion — « au même
+        endroit » — sans second réglage à tenir cohérent.
+      -->
+      <div class="pl-grille">
         {#each displayPlaylists as item}
-          <div class="playlist-item" class:merge-selected={mergeMode && mergeSelected.has(mergeKey(item.service, String(item.local?.id ?? item.streaming?.source_id ?? '')))}>
-            {#if mergeMode}
-              <input
-                type="checkbox"
-                class="merge-check"
-                checked={mergeSelected.has(mergeKey(item.service, String(item.local?.id ?? item.streaming?.source_id ?? '')))}
-                onchange={() => toggleMergeSelect(item.service, String(item.local?.id ?? item.streaming?.source_id ?? ''))}
-              />
-            {/if}
-            <button class="playlist-btn" onclick={() => mergeMode ? toggleMergeSelect(item.service, String(item.local?.id ?? item.streaming?.source_id ?? '')) : selectItem(item)}>
-              <div class="playlist-icon" class:streaming-icon={item.type === 'streaming'}>
-                {#if item.coverPath}
-                  <AlbumArt coverPath={item.coverPath} size={48} alt={item.name} />
-                {:else}
+          {@const cle = mergeKey(item.service, identifiantDe(item))}
+          {@const cochee = mergeSelected.has(cle)}
+          {@const inerte = serviceVerrouille !== null && serviceVerrouille !== item.service}
+          <div class="pl-carte" class:cochee class:inerte>
+            <button class="pl-pochette" onclick={() => selectItem(item)} aria-label={item.name}>
+              {#if item.coverPath}
+                <AlbumArt coverPath={item.coverPath} size={0} alt={item.name} />
+              {:else}
+                <span class="pl-vide">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
-                {/if}
-              </div>
-              <div class="playlist-info">
-                <span class="playlist-name">{item.name}</span>
-                <span class="playlist-meta">
-                  <span class="source-dot" style="background: {serviceColor(item.service)}"></span>
-                  {item.service === 'local' ? $tr('playlist.local') : serviceName(item.service)}
-                  &middot;
-                  {item.trackCount} {$tr('common.tracks')}
                 </span>
-              </div>
-              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+              {/if}
             </button>
-            {#if item.type === 'streaming' && item.streaming}
-              <button class="import-mini-btn" onclick={(e) => { e.stopPropagation(); openImport(item.service, item.streaming!); }} title={$tr('playlist.import')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-              </button>
-            {/if}
-            {#if item.type === 'local' && item.local?.id}
-              <button class="share-btn" onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title={$tr('playlistManager.share')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-              </button>
-              <button class="delete-btn" onclick={() => item.local?.id && deletePlaylist(item.local.id)} title={$tr('common.delete')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-              </button>
-            {/if}
+
+            <!-- LE COIN. `aria-pressed` et non une case cachée : c'est un
+                 bouton à deux états, et un lecteur d'écran doit l'entendre. -->
+            <button
+              class="pl-coin"
+              class:on={cochee}
+              disabled={inerte}
+              aria-pressed={cochee}
+              aria-label={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+              title={inerte
+                ? $tr('playlistManager.sameServiceOnly' as any)
+                : $tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+              onclick={(e) => { e.stopPropagation(); toggleMergeSelect(item.service, identifiantDe(item)); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
+            </button>
+
+            <div class="pl-texte">
+              <span class="pl-nom">{item.name}</span>
+              <span class="pl-compte">{item.trackCount} {$tr('common.tracks')}</span>
+              <span class="pl-badge" style="border-color: {serviceColor(item.service)}; color: {serviceColor(item.service)}">
+                {item.service === 'local' ? $tr('playlist.local') : serviceName(item.service)}
+              </span>
+            </div>
+
+            <div class="pl-actions">
+              {#if item.type === 'streaming' && item.streaming}
+                <button onclick={(e) => { e.stopPropagation(); openImport(item.service, item.streaming!); }} title={$tr('playlist.import')} aria-label={$tr('playlist.import')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                </button>
+              {/if}
+              {#if item.type === 'local' && item.local?.id}
+                <button onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title={$tr('playlistManager.share')} aria-label={$tr('playlistManager.share')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                </button>
+                <button class="danger" onclick={(e) => { e.stopPropagation(); item.local?.id && deletePlaylist(item.local.id); }} title={$tr('common.delete')} aria-label={$tr('common.delete')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                </button>
+              {/if}
+            </div>
           </div>
         {/each}
       </div>
@@ -2323,14 +2404,6 @@
   .snapshot-meta { font-size: 12px; color: var(--tune-text-secondary); }
   .snapshot-actions { display: flex; gap: 6px; flex-shrink: 0; }
   .btn-danger { background: rgba(248, 113, 113, 0.12); color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
-  .merge-toggle-btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 12px; border: 1px solid var(--tune-border); border-radius: 6px;
-    background: none; color: var(--tune-text-secondary); font-size: 12px;
-    cursor: pointer; transition: all 0.12s; margin-left: 8px;
-  }
-  .merge-toggle-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
-  .merge-toggle-btn.active { background: var(--tune-accent); color: white; border-color: var(--tune-accent); }
 
   .merge-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--tune-accent)22; border: 1px solid var(--tune-accent)66; border-radius: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .merge-count { font-weight: 600; font-size: 13px; color: var(--tune-text-primary); }
@@ -4059,4 +4132,42 @@
       flex-direction: column;
     }
   }
+
+  /* ── La grille de playlists (maquette Levente, 20/09/2026) ─────────────
+     Elle remplace `.playlist-list`. Cartes de 168 px minimum : en dessous,
+     un nom de playlist sur deux se coupe au milieu d'un mot. */
+  .pl-grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(168px, 1fr));
+    gap:18px; padding:4px 0}
+  .pl-carte{position:relative; display:flex; flex-direction:column; gap:8px;
+    border-radius:12px; transition:opacity .15s}
+  .pl-carte.inerte{opacity:.38}
+  .pl-pochette{position:relative; width:100%; aspect-ratio:1; border:0; padding:0;
+    border-radius:10px; overflow:hidden; cursor:pointer; background:var(--tune-surface);
+    display:block}
+  .pl-carte.cochee .pl-pochette{box-shadow:0 0 0 2px var(--tune-accent)}
+  .pl-pochette:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
+  .pl-vide{display:grid; place-items:center; width:100%; height:100%; color:var(--tune-text-muted)}
+  .pl-vide svg{width:34px; height:34px}
+
+  /* Le coin de sélection : posé SUR la pochette, en bas à gauche. */
+  .pl-coin{position:absolute; left:8px; bottom:8px; width:26px; height:26px;
+    display:grid; place-items:center; border-radius:7px; cursor:pointer;
+    border:1px solid var(--tune-border); background:var(--tune-bg); color:transparent;
+    opacity:0; transition:opacity .12s}
+  .pl-carte:hover .pl-coin, .pl-coin:focus-visible, .pl-coin.on{opacity:1}
+  .pl-coin.on{background:var(--tune-accent); border-color:var(--tune-accent); color:#fff}
+  .pl-coin:disabled{cursor:default}
+  .pl-texte{display:flex; flex-direction:column; gap:3px; min-width:0}
+  .pl-nom{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .pl-compte{font-size:11.5px; color:var(--tune-text-secondary)}
+  .pl-badge{align-self:flex-start; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
+    border:1px solid; border-radius:4px; padding:1px 6px}
+  .pl-actions{display:flex; gap:6px; opacity:0; transition:opacity .12s}
+  .pl-carte:hover .pl-actions, .pl-actions:focus-within{opacity:1}
+  .pl-actions button{width:26px; height:26px; display:grid; place-items:center; border-radius:7px;
+    border:1px solid var(--tune-border); background:transparent; color:var(--tune-text-secondary);
+    cursor:pointer}
+  .pl-actions button:hover{color:var(--tune-text)}
+  .pl-actions button.danger:hover{color:var(--tune-danger); border-color:var(--tune-danger)}
+  .merge-hint{margin:6px 0 0; font-size:11.5px; color:var(--tune-text-secondary)}
 </style>
