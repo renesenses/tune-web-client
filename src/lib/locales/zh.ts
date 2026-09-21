@@ -1749,6 +1749,8 @@ export default {
   "playlistManager.noTracksInPlaylist": "此播放列表中无曲目",
   "playlistManager.mergeTooltip": "合并多个播放列表",
   "playlistManager.cancelMerge": "取消合并",
+  "playlistManager.premiumTransfers": "在服务之间转移播放列表属于 Tune Premium。「Playlists converter」插件提供该功能，可单个或批量转移。",
+  "playlistManager.premiumSync": "同步链接属于 Tune Premium。「Playlists converter」插件提供该功能。",
   "playlistManager.renamePrompt": "重命名播放列表",
   "playlistManager.selectPlaylist": "选择「{name}」",
   "playlistManager.sameServiceOnly": "只能合并同一服务的播放列表。",

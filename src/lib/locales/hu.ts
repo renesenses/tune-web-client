@@ -1832,6 +1832,8 @@ export default {
   "playlistManager.noTracksInPlaylist": "Nincs szám ezen a lejátszási listán",
   "playlistManager.mergeTooltip": "Több lejátszási lista összevonása",
   "playlistManager.cancelMerge": "Összevonás megszakítása",
+  "playlistManager.premiumTransfers": "A lejátszási listák szolgáltatások közötti átvitele a Tune Premium része. A „Playlists converter” bővítmény hozza el, egyesével vagy kötegelve.",
+  "playlistManager.premiumSync": "A szinkronizálási hivatkozások a Tune Premium részei. A „Playlists converter” bővítmény hozza el őket.",
   "playlistManager.renamePrompt": "Lejátszási lista átnevezése",
   "playlistManager.selectPlaylist": "„{name}” kiválasztása",
   "playlistManager.sameServiceOnly": "Csak azonos szolgáltatás lejátszási listái vonhatók össze.",

@@ -2243,6 +2243,8 @@ export default {
   "playlistManager.noTracksInPlaylist": "No track in this playlist",
   "playlistManager.mergeTooltip": "Merge multiple playlists",
   "playlistManager.cancelMerge": "Cancel merge",
+  "playlistManager.premiumTransfers": "Transferring playlists between services is part of Tune Premium. The “Playlists converter” plugin brings it, one at a time or in batch.",
+  "playlistManager.premiumSync": "Sync links are part of Tune Premium. The “Playlists converter” plugin brings them.",
   "playlistManager.renamePrompt": "Rename playlist",
   "playlistManager.selectPlaylist": "Select “{name}”",
   "playlistManager.sameServiceOnly": "Only playlists from the same service can be merged.",

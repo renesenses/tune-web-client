@@ -57,7 +57,6 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   queue: 'destination',
   playlists: 'destination',
   playlistmanager: 'destination',
-  playlistshub: 'destination',
   smartplaylists: 'destination',
   'smart-ai': 'destination',
   ambiance: 'destination',

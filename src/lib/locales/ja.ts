@@ -1747,6 +1747,8 @@ export default {
   "playlistManager.noTracksInPlaylist": "このプレイリストに曲がありません",
   "playlistManager.mergeTooltip": "複数のプレイリストを結合",
   "playlistManager.cancelMerge": "結合をキャンセル",
+  "playlistManager.premiumTransfers": "サービス間のプレイリスト移行は Tune Premium の機能です。「Playlists converter」プラグインが、1件ずつでも一括でも提供します。",
+  "playlistManager.premiumSync": "同期リンクは Tune Premium の機能です。「Playlists converter」プラグインが提供します。",
   "playlistManager.renamePrompt": "プレイリスト名を変更",
   "playlistManager.selectPlaylist": "「{name}」を選択",
   "playlistManager.sameServiceOnly": "同じサービスのプレイリスト同士しか統合できません。",

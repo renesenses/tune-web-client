@@ -1721,6 +1721,8 @@ export default {
   "playlistManager.noTracksInPlaylist": "Inget spår i den här spellistan",
   "playlistManager.mergeTooltip": "Slå ihop flera spellistor",
   "playlistManager.cancelMerge": "Avbryt ihopslagning",
+  "playlistManager.premiumTransfers": "Att flytta spellistor mellan tjänster ingår i Tune Premium. Tillägget ”Playlists converter” ger det, en i taget eller i grupp.",
+  "playlistManager.premiumSync": "Synkroniseringslänkar ingår i Tune Premium. Tillägget ”Playlists converter” ger dem.",
   "playlistManager.renamePrompt": "Byt namn på spellistan",
   "playlistManager.selectPlaylist": "Välj ”{name}”",
   "playlistManager.sameServiceOnly": "Endast spellistor från samma tjänst kan slås ihop.",

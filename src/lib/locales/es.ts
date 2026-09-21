@@ -1749,6 +1749,8 @@ export default {
   "playlistManager.noTracksInPlaylist": "No hay ninguna pista en esta lista de reproducción",
   "playlistManager.mergeTooltip": "Fusionar varias listas de reproducción",
   "playlistManager.cancelMerge": "Cancelar fusión",
+  "playlistManager.premiumTransfers": "Transferir listas entre servicios forma parte de Tune Premium. El complemento «Playlists converter» lo aporta, de una en una o por lotes.",
+  "playlistManager.premiumSync": "Los enlaces de sincronización forman parte de Tune Premium. El complemento «Playlists converter» los aporta.",
   "playlistManager.renamePrompt": "Renombrar la lista",
   "playlistManager.selectPlaylist": "Seleccionar «{name}»",
   "playlistManager.sameServiceOnly": "Solo se pueden fusionar listas del mismo servicio.",

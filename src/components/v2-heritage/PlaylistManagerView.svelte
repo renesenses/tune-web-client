@@ -4,6 +4,7 @@
   import { currentZone, zones, playAndSync } from '../../lib/stores/zones';
   import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../../lib/stores/nowPlaying';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { isPremium } from '../../lib/stores/license';
   import { playlists as playlistsStore, pendingPlaylistId } from '../../lib/stores/playlists';
   import { streamingServices } from '../../lib/stores/streaming';
   import * as api from '../../lib/api';
@@ -19,10 +20,9 @@
   import HeartButton from '../partages/HeartButton.svelte';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
-  import PlaylistsHub from './PlaylistsHub.svelte';
   import { listResetNonce } from '../../lib/stores/navigation';
 
-  let viewTab = $state<'manual' | 'smart' | 'smart-ai' | 'hub'>('manual');
+  let viewTab = $state<'manual' | 'smart' | 'smart-ai'>('manual');
 
   async function handleSharePlaylist(playlistId: number) {
     try {
@@ -1269,17 +1269,17 @@
   <button class="view-tab" class:active={viewTab === 'smart-ai'} onclick={() => viewTab = 'smart-ai'}>
     {$tr('smartai.title')}
   </button>
-  <button class="view-tab" class:active={viewTab === 'hub'} onclick={() => viewTab = 'hub'}>
-    {$tr('playlists.hubTitle')}
-  </button>
+  <!-- L'onglet « Playlists Hub » a disparu (Bertrand, 21/09/2026). C'était un
+       POC de la v0.7.30 dont trois des quatre sous-onglets — Transferts,
+       Liens auto-sync, Snapshots — faisaient doublon avec ceux de ce
+       gestionnaire. Le transfert devient un greffon premium,
+       « Playlists converter ». -->
 </div>
 
 {#if viewTab === 'smart'}
   <SmartPlaylistsView />
 {:else if viewTab === 'smart-ai'}
   <SmartAIView />
-{:else if viewTab === 'hub'}
-  <PlaylistsHub />
 {:else}
 <div class="pm-view">
   {#if selectedPlaylist || selectedStreamingPl}
@@ -1471,220 +1471,235 @@
     </div>
 
     {#if managerTab === 'transfers'}
-      <!-- Transfer Tab: Quick Transfer + History -->
-      <div class="pm-tab-content">
-        <!-- Quick Transfer Section -->
-        <div class="qt-section">
-          <h3>{$tr('playlist.transfer')}</h3>
-          <p class="qt-hint">{$tr('playlistManager.transferHint')}</p>
+      {#if $isPremium}
+        <!-- Transfer Tab: Quick Transfer + History -->
+        <div class="pm-tab-content">
+          <!-- Quick Transfer Section -->
+          <div class="qt-section">
+            <h3>{$tr('playlist.transfer')}</h3>
+            <p class="qt-hint">{$tr('playlistManager.transferHint')}</p>
 
-          {#if qtResult}
-            <!-- Transfer result -->
-            <div class="qt-result">
-              <div class="qt-result-header">
-                <h4>"{qtResult.playlist_name}" — {$tr('playlist.transferComplete')}</h4>
-                <button class="btn-action btn-sm-action" onclick={qtResetTransfer}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-                  {$tr('playlistManager.newTransfer')}
-                </button>
-              </div>
-              <div class="transfer-summary">
-                <button class="summary-stat matched" class:active={qtFilter === 'matched'} onclick={() => qtFilter = qtFilter === 'matched' ? 'all' : 'matched'}>{qtResult.matched} {$tr('playlist.matched')}</button>
-                <button class="summary-stat approximate" class:active={qtFilter === 'approximate'} onclick={() => qtFilter = qtFilter === 'approximate' ? 'all' : 'approximate'}>{qtResult.approximate} {$tr('playlist.approximate')}</button>
-                <button class="summary-stat not-found" class:active={qtFilter === 'not_found'} onclick={() => qtFilter = qtFilter === 'not_found' ? 'all' : 'not_found'}>{qtResult.not_found} {$tr('playlist.notFound')}</button>
-              </div>
-              {#if qtResult.tracks.length > 0}
-                <div class="transfer-tracks qt-tracks">
-                  {#each qtResult.tracks.filter(t => qtFilter === 'all' || t.status === qtFilter) as track, i}
-                    {@const trackIndex = qtResult.tracks.indexOf(track)}
-                    <div class="transfer-track-row status-{track.status}">
-                      <span class="transfer-status-dot"></span>
-                      <div class="transfer-track-info">
-                        <div class="transfer-track-main">
-                          <span class="transfer-track-title" use:bulleTexte>{track.title}</span>
-                          {#if track.artist_name}
-                            <span class="transfer-track-artist" use:bulleTexte>{track.artist_name}</span>
-                          {/if}
-                          <span class="transfer-track-status">
-                            {#if track.match_method === 'manual'}
-                              {$tr('playlist.manualMatch')}
-                            {:else}
-                              {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+            {#if qtResult}
+              <!-- Transfer result -->
+              <div class="qt-result">
+                <div class="qt-result-header">
+                  <h4>"{qtResult.playlist_name}" — {$tr('playlist.transferComplete')}</h4>
+                  <button class="btn-action btn-sm-action" onclick={qtResetTransfer}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                    {$tr('playlistManager.newTransfer')}
+                  </button>
+                </div>
+                <div class="transfer-summary">
+                  <button class="summary-stat matched" class:active={qtFilter === 'matched'} onclick={() => qtFilter = qtFilter === 'matched' ? 'all' : 'matched'}>{qtResult.matched} {$tr('playlist.matched')}</button>
+                  <button class="summary-stat approximate" class:active={qtFilter === 'approximate'} onclick={() => qtFilter = qtFilter === 'approximate' ? 'all' : 'approximate'}>{qtResult.approximate} {$tr('playlist.approximate')}</button>
+                  <button class="summary-stat not-found" class:active={qtFilter === 'not_found'} onclick={() => qtFilter = qtFilter === 'not_found' ? 'all' : 'not_found'}>{qtResult.not_found} {$tr('playlist.notFound')}</button>
+                </div>
+                {#if qtResult.tracks.length > 0}
+                  <div class="transfer-tracks qt-tracks">
+                    {#each qtResult.tracks.filter(t => qtFilter === 'all' || t.status === qtFilter) as track, i}
+                      {@const trackIndex = qtResult.tracks.indexOf(track)}
+                      <div class="transfer-track-row status-{track.status}">
+                        <span class="transfer-status-dot"></span>
+                        <div class="transfer-track-info">
+                          <div class="transfer-track-main">
+                            <span class="transfer-track-title" use:bulleTexte>{track.title}</span>
+                            {#if track.artist_name}
+                              <span class="transfer-track-artist" use:bulleTexte>{track.artist_name}</span>
                             {/if}
-                          </span>
-                        </div>
-                        {#if track.status === 'approximate' && track.target_title}
-                          <div class="transfer-match-info">
-                            <span class="match-label">{$tr('playlist.matchedAs')}</span>
-                            <span class="match-title" use:bulleTexte>{track.target_title}</span>
-                            {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
-                            {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
+                            <span class="transfer-track-status">
+                              {#if track.match_method === 'manual'}
+                                {$tr('playlist.manualMatch')}
+                              {:else}
+                                {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                              {/if}
+                            </span>
                           </div>
-                        {/if}
-                        {#if track.match_method === 'manual' && track.target_title}
-                          <div class="transfer-match-info">
-                            <span class="match-title" use:bulleTexte>{track.target_title}</span>
-                            {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
-                            {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
-                          </div>
-                        {/if}
-                        {#if (track.status === 'not_found' || track.status === 'approximate') && track.alternatives && track.alternatives.length > 0}
-                          <button class="alt-toggle" onclick={() => qtToggleAlternatives(trackIndex)}>
-                            {qtExpandedAlternatives.has(trackIndex) ? $tr('playlist.hideAlternatives') : `${$tr('playlist.showAlternatives')} (${track.alternatives.length})`}
-                          </button>
-                          {#if qtExpandedAlternatives.has(trackIndex)}
-                            <div class="alternatives">
-                              {#each track.alternatives as alt}
-                                <div class="alt-row">
-                                  <span class="alt-title" use:bulleTexte>{alt.title}</span>
-                                  <span class="alt-artist" use:bulleTexte>{alt.artist_name}</span>
-                                  <span class="alt-score">{Math.round(alt.score * 100)}%</span>
-                                  <button class="alt-pick" onclick={() => qtPickAlternative(track, alt)}>
-                                    {track.status === 'approximate' ? $tr('playlist.replace') : $tr('playlist.choose')}
-                                  </button>
-                                </div>
-                              {/each}
+                          {#if track.status === 'approximate' && track.target_title}
+                            <div class="transfer-match-info">
+                              <span class="match-label">{$tr('playlist.matchedAs')}</span>
+                              <span class="match-title" use:bulleTexte>{track.target_title}</span>
+                              {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
+                              {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
                             </div>
                           {/if}
-                        {/if}
+                          {#if track.match_method === 'manual' && track.target_title}
+                            <div class="transfer-match-info">
+                              <span class="match-title" use:bulleTexte>{track.target_title}</span>
+                              {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
+                              {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
+                            </div>
+                          {/if}
+                          {#if (track.status === 'not_found' || track.status === 'approximate') && track.alternatives && track.alternatives.length > 0}
+                            <button class="alt-toggle" onclick={() => qtToggleAlternatives(trackIndex)}>
+                              {qtExpandedAlternatives.has(trackIndex) ? $tr('playlist.hideAlternatives') : `${$tr('playlist.showAlternatives')} (${track.alternatives.length})`}
+                            </button>
+                            {#if qtExpandedAlternatives.has(trackIndex)}
+                              <div class="alternatives">
+                                {#each track.alternatives as alt}
+                                  <div class="alt-row">
+                                    <span class="alt-title" use:bulleTexte>{alt.title}</span>
+                                    <span class="alt-artist" use:bulleTexte>{alt.artist_name}</span>
+                                    <span class="alt-score">{Math.round(alt.score * 100)}%</span>
+                                    <button class="alt-pick" onclick={() => qtPickAlternative(track, alt)}>
+                                      {track.status === 'approximate' ? $tr('playlist.replace') : $tr('playlist.choose')}
+                                    </button>
+                                  </div>
+                                {/each}
+                              </div>
+                            {/if}
+                          {/if}
+                        </div>
                       </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            {:else}
+              <!-- Transfer form -->
+              <div class="qt-form">
+                <div class="qt-row">
+                  <div class="qt-field">
+                    <label class="qt-label">{$tr('playlist.source')}</label>
+                    <select class="qt-select" bind:value={qtSourceService} onchange={(e) => qtLoadSourcePlaylists((e.target as HTMLSelectElement).value)}>
+                      <option value="">{$tr('playlistManager.pickService')}</option>
+                      {#each qtAvailableServices as svc}
+                        <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
+                      {/each}
+                    </select>
+                  </div>
+                  <div class="qt-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
+                  </div>
+                  <div class="qt-field">
+                    <label class="qt-label">{$tr('playlist.target')}</label>
+                    <select class="qt-select" bind:value={qtTargetService} disabled={!qtSourceService}>
+                      {#each qtTargetServices as svc}
+                        <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
+                      {/each}
+                    </select>
+                  </div>
+                </div>
+
+                {#if qtSourceService}
+                  <div class="qt-playlist-row">
+                    <div class="qt-field" style="flex: 2;">
+                      <label class="qt-label">{$tr('playlist.selectPlaylist')}</label>
+                      {#if qtLoadingPlaylists}
+                        <div class="qt-loading"><div class="spinner"></div></div>
+                      {:else}
+                        <select class="qt-select" bind:value={qtSourcePlaylistId} onchange={(e) => qtSelectPlaylist((e.target as HTMLSelectElement).value)}>
+                          <option value="">-- {$tr('playlist.selectPlaylist')} --</option>
+                          {#each qtSourcePlaylists as pl}
+                            <option value={'source_id' in pl ? (pl as StreamingPlaylist).source_id : String((pl as Playlist).id)}>
+                              {pl.name} ({$tr('playlistManager.trackCount').replace('{count}', String(('track_count' in pl ? pl.track_count : (pl as Playlist).track_count) ?? '?'))})
+                            </option>
+                          {/each}
+                        </select>
+                      {/if}
                     </div>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          {:else}
-            <!-- Transfer form -->
-            <div class="qt-form">
-              <div class="qt-row">
-                <div class="qt-field">
-                  <label class="qt-label">{$tr('playlist.source')}</label>
-                  <select class="qt-select" bind:value={qtSourceService} onchange={(e) => qtLoadSourcePlaylists((e.target as HTMLSelectElement).value)}>
-                    <option value="">{$tr('playlistManager.pickService')}</option>
-                    {#each qtAvailableServices as svc}
-                      <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
-                    {/each}
-                  </select>
-                </div>
-                <div class="qt-arrow">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
-                </div>
-                <div class="qt-field">
-                  <label class="qt-label">{$tr('playlist.target')}</label>
-                  <select class="qt-select" bind:value={qtTargetService} disabled={!qtSourceService}>
-                    {#each qtTargetServices as svc}
-                      <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
-                    {/each}
-                  </select>
-                </div>
-              </div>
+                    <div class="qt-field" style="flex: 1;">
+                      <label class="qt-label">{$tr('playlist.name')}</label>
+                      <input type="text" class="qt-input" bind:value={qtTargetName} placeholder={$tr('playlistManager.targetNamePlaceholder')} />
+                    </div>
+                  </div>
+                {/if}
 
-              {#if qtSourceService}
-                <div class="qt-playlist-row">
-                  <div class="qt-field" style="flex: 2;">
-                    <label class="qt-label">{$tr('playlist.selectPlaylist')}</label>
-                    {#if qtLoadingPlaylists}
-                      <div class="qt-loading"><div class="spinner"></div></div>
+                <div class="qt-actions">
+                  <button
+                    class="btn-action qt-transfer-btn"
+                    onclick={doQuickTransfer}
+                    disabled={qtTransferring || !qtSourcePlaylistId || !qtSourceService}
+                  >
+                    {#if qtTransferring}
+                      <div class="spinner-small"></div>
+                      {$tr('playlist.transferring')}
                     {:else}
-                      <select class="qt-select" bind:value={qtSourcePlaylistId} onchange={(e) => qtSelectPlaylist((e.target as HTMLSelectElement).value)}>
-                        <option value="">-- {$tr('playlist.selectPlaylist')} --</option>
-                        {#each qtSourcePlaylists as pl}
-                          <option value={'source_id' in pl ? (pl as StreamingPlaylist).source_id : String((pl as Playlist).id)}>
-                            {pl.name} ({$tr('playlistManager.trackCount').replace('{count}', String(('track_count' in pl ? pl.track_count : (pl as Playlist).track_count) ?? '?'))})
-                          </option>
-                        {/each}
-                      </select>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
+                      {$tr('playlist.transfer')}
                     {/if}
-                  </div>
-                  <div class="qt-field" style="flex: 1;">
-                    <label class="qt-label">{$tr('playlist.name')}</label>
-                    <input type="text" class="qt-input" bind:value={qtTargetName} placeholder={$tr('playlistManager.targetNamePlaceholder')} />
-                  </div>
+                  </button>
                 </div>
-              {/if}
-
-              <div class="qt-actions">
-                <button
-                  class="btn-action qt-transfer-btn"
-                  onclick={doQuickTransfer}
-                  disabled={qtTransferring || !qtSourcePlaylistId || !qtSourceService}
-                >
-                  {#if qtTransferring}
-                    <div class="spinner-small"></div>
-                    {$tr('playlist.transferring')}
-                  {:else}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
-                    {$tr('playlist.transfer')}
-                  {/if}
-                </button>
               </div>
-            </div>
-          {/if}
-        </div>
-
-        <!-- Transfer History -->
-        <div class="qt-history-section">
-          <div class="tab-actions">
-            <h3>{$tr('playlistManager.transferHistory')}</h3>
+            {/if}
           </div>
-          {#if historyLoading}
-            <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
-          {:else if transferHistory.length === 0}
-            <div class="empty">{$tr('playlistManager.noTransfers')}</div>
-          {:else}
-            <div class="history-list">
-              {#each transferHistory as entry}
-                <div class="history-row">
-                  <div class="history-op">{entry.operation}</div>
-                  <div class="history-info">
-                    <span class="history-name">{entry.source_playlist_name || '?'}</span>
-                    <span class="history-arrow">{entry.source_service} → {entry.target_service}</span>
-                  </div>
-                  <div class="history-stats">
-                    <span class="stat-ok">{entry.matched} ok</span>
-                    <span class="stat-approx">{entry.approximate} ~</span>
-                    <span class="stat-miss">{entry.not_found} ✕</span>
-                  </div>
-                  <span class="history-date">{entry.started_at?.substring(0, 16)}</span>
-                </div>
-              {/each}
+
+          <!-- Transfer History -->
+          <div class="qt-history-section">
+            <div class="tab-actions">
+              <h3>{$tr('playlistManager.transferHistory')}</h3>
             </div>
+            {#if historyLoading}
+              <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+            {:else if transferHistory.length === 0}
+              <div class="empty">{$tr('playlistManager.noTransfers')}</div>
+            {:else}
+              <div class="history-list">
+                {#each transferHistory as entry}
+                  <div class="history-row">
+                    <div class="history-op">{entry.operation}</div>
+                    <div class="history-info">
+                      <span class="history-name">{entry.source_playlist_name || '?'}</span>
+                      <span class="history-arrow">{entry.source_service} → {entry.target_service}</span>
+                    </div>
+                    <div class="history-stats">
+                      <span class="stat-ok">{entry.matched} ok</span>
+                      <span class="stat-approx">{entry.approximate} ~</span>
+                      <span class="stat-miss">{entry.not_found} ✕</span>
+                    </div>
+                    <span class="history-date">{entry.started_at?.substring(0, 16)}</span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        </div>
+
+      {:else}
+        <div class="pm-tab-content">
+          <p class="pm-premium">{$tr('playlistManager.premiumTransfers' as any)}</p>
+        </div>
+      {/if}
+    {:else if managerTab === 'sync'}
+      {#if $isPremium}
+        <!-- Sync Links Tab -->
+        <div class="pm-tab-content">
+          <div class="tab-actions">
+            <h3>{$tr('playlistManager.syncLinks')}</h3>
+          </div>
+          {#if syncLoading}
+            <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+          {:else if syncLinks.length === 0}
+            <div class="empty">{$tr('playlistManager.noSyncLinks')}</div>
+          {:else}
+            {#each syncLinks as link}
+              <div class="sync-row">
+                <div class="sync-info">
+                  <span>Playlist #{link.local_playlist_id}</span>
+                  <span class="sync-arrow">↔ {link.service} / {link.service_playlist_id}</span>
+                  <span class="sync-dir">{link.sync_direction}</span>
+                </div>
+                <div class="sync-actions">
+                  <button class="btn-sm" onclick={() => triggerSync(link.id)} disabled={syncing.has(link.id)}>
+                    {syncing.has(link.id) ? 'Sync...' : 'Sync'}
+                  </button>
+                  <button class="btn-sm danger" onclick={() => deleteLink(link.id)}>✕</button>
+                </div>
+                {#if link.last_synced_at}
+                  <span class="sync-date">{$tr('playlistManager.last')}: {link.last_synced_at.substring(0, 16)}</span>
+                {/if}
+              </div>
+            {/each}
           {/if}
         </div>
-      </div>
 
-    {:else if managerTab === 'sync'}
-      <!-- Sync Links Tab -->
-      <div class="pm-tab-content">
-        <div class="tab-actions">
-          <h3>{$tr('playlistManager.syncLinks')}</h3>
+      {:else}
+        <!-- Coupure nette, comme le crossfeed et le convertisseur : on ne grise
+             pas, on DIT pourquoi. La fonction rejoint le greffon premium
+             « Playlists converter » (Bertrand, 21/09/2026). -->
+        <div class="pm-tab-content">
+          <p class="pm-premium">{$tr('playlistManager.premiumSync' as any)}</p>
         </div>
-        {#if syncLoading}
-          <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
-        {:else if syncLinks.length === 0}
-          <div class="empty">{$tr('playlistManager.noSyncLinks')}</div>
-        {:else}
-          {#each syncLinks as link}
-            <div class="sync-row">
-              <div class="sync-info">
-                <span>Playlist #{link.local_playlist_id}</span>
-                <span class="sync-arrow">↔ {link.service} / {link.service_playlist_id}</span>
-                <span class="sync-dir">{link.sync_direction}</span>
-              </div>
-              <div class="sync-actions">
-                <button class="btn-sm" onclick={() => triggerSync(link.id)} disabled={syncing.has(link.id)}>
-                  {syncing.has(link.id) ? 'Sync...' : 'Sync'}
-                </button>
-                <button class="btn-sm danger" onclick={() => deleteLink(link.id)}>✕</button>
-              </div>
-              {#if link.last_synced_at}
-                <span class="sync-date">{$tr('playlistManager.last')}: {link.last_synced_at.substring(0, 16)}</span>
-              {/if}
-            </div>
-          {/each}
-        {/if}
-      </div>
-
+      {/if}
     {:else if managerTab === 'backup'}
       <!-- Backup Tab -->
       <div class="pm-tab-content">
@@ -4302,4 +4317,8 @@
   .track-indispo{font-size:10px; letter-spacing:.04em; text-transform:uppercase;
     color:var(--tune-text-muted); border:1px solid var(--tune-border);
     border-radius:4px; padding:1px 6px; white-space:nowrap}
+
+  /* Le message de coupure premium d'un onglet. */
+  .pm-premium{margin:0; padding:22px; text-align:center; color:var(--tune-text-secondary);
+    font-size:13px; line-height:1.7; border:1px dashed var(--tune-border); border-radius:10px}
 </style>

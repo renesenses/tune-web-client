@@ -1733,6 +1733,8 @@ export default {
   "playlistManager.noTracksInPlaylist": "이 플레이리스트에 트랙 없음",
   "playlistManager.mergeTooltip": "여러 플레이리스트 병합",
   "playlistManager.cancelMerge": "병합 취소",
+  "playlistManager.premiumTransfers": "서비스 간 재생목록 이전은 Tune Premium 기능입니다. 'Playlists converter' 플러그인이 개별 또는 일괄로 제공합니다.",
+  "playlistManager.premiumSync": "동기화 링크는 Tune Premium 기능입니다. 'Playlists converter' 플러그인이 제공합니다.",
   "playlistManager.renamePrompt": "재생목록 이름 변경",
   "playlistManager.selectPlaylist": "'{name}' 선택",
   "playlistManager.sameServiceOnly": "같은 서비스의 재생목록만 병합할 수 있습니다.",

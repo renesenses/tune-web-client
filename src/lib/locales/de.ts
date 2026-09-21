@@ -1749,6 +1749,8 @@ export default {
   "playlistManager.noTracksInPlaylist": "Kein Titel in dieser Playlist",
   "playlistManager.mergeTooltip": "Mehrere Playlists zusammenführen",
   "playlistManager.cancelMerge": "Zusammenführen abbrechen",
+  "playlistManager.premiumTransfers": "Das Übertragen von Playlists zwischen Diensten gehört zu Tune Premium. Das Plugin „Playlists converter“ bringt es, einzeln oder im Stapel.",
+  "playlistManager.premiumSync": "Synchronisierungs-Links gehören zu Tune Premium. Das Plugin „Playlists converter“ bringt sie.",
   "playlistManager.renamePrompt": "Playlist umbenennen",
   "playlistManager.selectPlaylist": "„{name}“ auswählen",
   "playlistManager.sameServiceOnly": "Es lassen sich nur Playlists desselben Dienstes zusammenführen.",

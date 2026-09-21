@@ -1755,6 +1755,8 @@ export default {
   "playlistManager.noTracksInPlaylist": "Nicio piesă în acest playlist",
   "playlistManager.mergeTooltip": "Îmbină mai multe playlisturi",
   "playlistManager.cancelMerge": "Anulează îmbinarea",
+  "playlistManager.premiumTransfers": "Transferul playlisturilor între servicii face parte din Tune Premium. Pluginul „Playlists converter” îl aduce, individual sau în lot.",
+  "playlistManager.premiumSync": "Legăturile de sincronizare fac parte din Tune Premium. Pluginul „Playlists converter” le aduce.",
   "playlistManager.renamePrompt": "Redenumește playlistul",
   "playlistManager.selectPlaylist": "Selectează „{name}”",
   "playlistManager.sameServiceOnly": "Se pot îmbina doar playlisturi din același serviciu.",

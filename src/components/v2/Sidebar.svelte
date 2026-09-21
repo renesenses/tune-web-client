@@ -143,7 +143,7 @@
     // `PlaylistsV2` reste atteignable : les favoris y mènent
     // (`ouvrirAilleurs('playlists', …)`) et il peut être écran de démarrage.
     // D'où l'alias, sans quoi aucune entrée ne s'allumerait quand on y est.
-    { view: 'playlistmanager', labelKey: 'v2.nav.playlists', aussi: ['playlists', 'smartplaylists', 'playlistshub', 'smart-ai'],
+    { view: 'playlistmanager', labelKey: 'v2.nav.playlists', aussi: ['playlists', 'smartplaylists', 'smart-ai'],
       icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     { view: 'tags', labelKey: 'v2.nav.tags', icon: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42zM6.5 6.5h.01' },
     { view: 'favorites', labelKey: 'v2.nav.favorites', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
