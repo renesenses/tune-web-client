@@ -3,7 +3,7 @@ import { entreesMenuZone, ICONES_ZONE, type GestesZone } from '../menuZone';
 
 function gestes(): GestesZone {
   return {
-    renommer: vi.fn(), reglages: vi.fn(), latence: vi.fn(),
+    renommer: vi.fn(), image: vi.fn(), reglages: vi.fn(), latence: vi.fn(),
     appairer: vi.fn(), fusionner: vi.fn(), supprimer: vi.fn(),
   };
 }
@@ -12,7 +12,7 @@ const cles = (c: Parameters<typeof entreesMenuZone>[0]) => entreesMenuZone(c, ge
 describe('#1392 — le menu d’une zone', () => {
   it('tient en trois entrées hors mode expert, la suppression en dernier', () => {
     expect(cles({ expert: false, appairable: false, jumelle: null })).toEqual([
-      'zone.rename', 'v2.zone.openSettings', 'zone.deleteZone',
+      'zone.rename', 'v2.zone.changeImage', 'v2.zone.openSettings', 'zone.deleteZone',
     ]);
   });
 
@@ -45,6 +45,7 @@ describe('#1392 — le menu d’une zone', () => {
     const e = entreesMenuZone({ expert: true, appairable: true, jumelle: 'Salon' }, g);
     for (const x of e) x.faire();
     expect(g.renommer).toHaveBeenCalledOnce();
+    expect(g.image).toHaveBeenCalledOnce();
     expect(g.reglages).toHaveBeenCalledOnce();
     expect(g.latence).toHaveBeenCalledOnce();
     expect(g.appairer).toHaveBeenCalledOnce();

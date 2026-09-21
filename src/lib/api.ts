@@ -1026,6 +1026,37 @@ export function getDeviceCatalog() {
 
 /** Affecte la marque + le modèle choisis par l'utilisateur à une zone.
  *  Chaîne vide = efface l'override (retour à la détection UPnP). */
+/**
+ * La photo de l'appareil d'une zone (#1394).
+ *
+ * `FormData` SANS en-tête `Content-Type` : le navigateur pose lui-même la
+ * frontière du multipart, et la fixer à la main produit un corps que le
+ * serveur ne sait pas découper. Même forme que `uploadArtistImage`.
+ *
+ * 🔴 Rien ne part au catalogue communautaire ici : la photo reste sur CE
+ * serveur. L'envoi vers mozaiklabs, son consentement et sa file de modération
+ * sont une tranche à part — et une photo n'est jamais redescendue chez
+ * quelqu'un d'autre avant approbation.
+ */
+export async function uploadZoneImage(id: number, file: File): Promise<{ image_path: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await fetch(`${BASE}/zones/${id}/image`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: formData,
+  });
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/** Retire la photo : la vignette retombe sur le pictogramme de type de sortie. */
+export function deleteZoneImage(id: number) {
+  return fetchJSON<{ image_path: null }>(`${BASE}/zones/${id}/image`, { method: 'DELETE' });
+}
+
 export function updateZoneDevice(id: number, brand: string, model: string) {
   return fetchJSON<Zone>(`${BASE}/zones/${id}`, {
     method: 'PATCH',
