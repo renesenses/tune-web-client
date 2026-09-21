@@ -1941,21 +1941,7 @@
               {/if}
             </button>
 
-            <!-- LE COIN. `aria-pressed` et non une case cachée : c'est un
-                 bouton à deux états, et un lecteur d'écran doit l'entendre. -->
-            <button
-              class="pl-coin"
-              class:on={cochee}
-              disabled={inerte}
-              aria-pressed={cochee}
-              aria-label={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
-              title={inerte
-                ? $tr('playlistManager.sameServiceOnly' as any)
-                : $tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
-              onclick={(e) => { e.stopPropagation(); toggleMergeSelect(item.service, identifiantDe(item)); }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
-            </button>
+
 
             </div>
 
@@ -1968,8 +1954,34 @@
             </div>
 
             {#if item.type === 'local' && item.local?.id}
+              <!--
+                🔴 LES QUATRE COINS N'EXISTENT QUE SUR UNE PLAYLIST LOCALE.
+
+                Bertrand, vu à l'écran le 21/09/2026 : « aucun des 5 CTA sur la
+                cover pour les playlists des services de streaming ». Le coin de
+                SÉLECTION y était encore, à tort.
+
+                Conséquence assumée : on ne fusionne plus que des playlists
+                locales depuis cet écran. La route, elle, sait fusionner des
+                playlists de service — c'est l'interface qui ne le propose pas.
+              -->
+<!-- LE COIN. `aria-pressed` et non une case cachée : c'est un
+                   bouton à deux états, et un lecteur d'écran doit l'entendre. -->
+              <button
+                class="pl-coin"
+                class:on={cochee}
+                disabled={inerte}
+                aria-pressed={cochee}
+                aria-label={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+                title={inerte
+                  ? $tr('playlistManager.sameServiceOnly' as any)
+                  : $tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+                onclick={(e) => { e.stopPropagation(); toggleMergeSelect(item.service, identifiantDe(item)); }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
+              </button>
               <!-- Cœur en haut à gauche, crayon en haut à droite, étiquettes en
-                   bas à droite : les trois autres coins de la maquette. -->
+                   bas à droite. -->
               <span class="pl-coin-hg"><HeartButton playlistId={item.local.id} size={15} /></span>
               <button
                 class="pl-coin-hd"

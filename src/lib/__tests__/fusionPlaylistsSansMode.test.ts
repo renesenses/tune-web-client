@@ -85,10 +85,14 @@ describe('#playlists — fusionner sans mode', () => {
     expect(carte).toContain('class="pl-coin-hd"');     // crayon, haut droit
     expect(carte).toContain('class="pl-coin-bd"');     // étiquettes, bas droit
 
-    // Les trois derniers vivent DANS la garde `type === 'local'`.
+    // 🔴 LES QUATRE vivent dans la garde `type === 'local'`. Bertrand :
+    // « aucun des 5 CTA sur la cover pour les playlists des services de
+    // streaming ». Le coin de SÉLECTION s'y affichait encore à tort.
     const garde = carte.indexOf("item.type === 'local' && item.local?.id");
     expect(garde).toBeGreaterThan(-1);
-    expect(carte.indexOf('class="pl-coin-hg"')).toBeGreaterThan(garde);
+    for (const coin of ['class="pl-coin"', 'class="pl-coin-hg"', 'class="pl-coin-hd"', 'class="pl-coin-bd"']) {
+      expect(carte.indexOf(coin), `${coin} hors de la garde locale`).toBeGreaterThan(garde);
+    }
   });
 
   it('chaque coin réutilise ce qui existe, sans redessiner un sélecteur', () => {
