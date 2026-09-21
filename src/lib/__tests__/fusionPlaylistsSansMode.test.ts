@@ -102,6 +102,24 @@ describe('#playlists — fusionner sans mode', () => {
     expect((sansCommentaires.match(/EtiquettesPanneau/g) ?? []).length).toBe(1);
   });
 
+  it('🔴 les quatre coins sont ancrés à la POCHETTE, pas à la carte', () => {
+    // Bertrand, vu à l'écran : « le bouton de sélection est mal placé, il doit
+    // être au coin bas gauche de la pochette ». Ils étaient positionnés contre
+    // `.pl-carte`, qui contient AUSSI le nom, le badge et les actions : les
+    // coins du bas atterrissaient sous le texte.
+    const style = ECRAN.slice(ECRAN.lastIndexOf('<style>'));
+    expect(style).toMatch(/\.pl-vignette\{[^}]*position:relative/);
+    // La carte ne doit PLUS être une référence de positionnement, sinon les
+    // coins retombent dessus au premier remaniement.
+    expect(style).not.toMatch(/\.pl-carte\{[^}]*position:relative/);
+    // Et les coins restent FRÈRES du bouton de pochette, jamais dedans.
+    const i = sansCommentaires.indexOf('class="pl-vignette"');
+    const boite = sansCommentaires.slice(i, sansCommentaires.indexOf('class="pl-texte"', i));
+    const ouvre = boite.indexOf('class="pl-pochette"');
+    const ferme = boite.indexOf('</button>', ouvre);
+    expect(boite.slice(ouvre, ferme)).not.toContain('pl-coin');
+  });
+
   it('🔴 le bloc <style> a ses accolades ÉQUILIBRÉES', () => {
     // Écrite après m'être fait avoir : en retirant une règle CSS morte, j'ai
     // supprimé la ligne du SÉLECTEUR et laissé ses propriétés orphelines. Les

@@ -1921,6 +1921,16 @@
           {@const cochee = mergeSelected.has(cle)}
           {@const inerte = serviceVerrouille !== null && serviceVerrouille !== item.service}
           <div class="pl-carte" class:cochee class:inerte>
+            <!-- 🔴 LA VIGNETTE EST LA BOÎTE DE RÉFÉRENCE DES QUATRE COINS.
+                 Ils étaient positionnés contre la CARTE entière : les deux du
+                 haut tombaient juste par accident, et les deux du bas
+                 atterrissaient sous le nom et le badge, loin de la pochette.
+                 Bertrand : « le bouton de sélection doit être au coin bas
+                 gauche de la POCHETTE ». Les coins sont donc frères du bouton
+                 de pochette, dans une boîte qui a exactement sa taille — et
+                 jamais DEDANS : un bouton dans un bouton est du balisage
+                 invalide que les navigateurs défont (#1006). -->
+            <div class="pl-vignette">
             <button class="pl-pochette" onclick={() => selectItem(item)} aria-label={item.name}>
               {#if item.coverPath}
                 <AlbumArt coverPath={item.coverPath} size={0} alt={item.name} />
@@ -1946,6 +1956,8 @@
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
             </button>
+
+            </div>
 
             <div class="pl-texte">
               <span class="pl-nom">{item.name}</span>
@@ -4204,10 +4216,12 @@
      un nom de playlist sur deux se coupe au milieu d'un mot. */
   .pl-grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(168px, 1fr));
     gap:18px; padding:4px 0}
-  .pl-carte{position:relative; display:flex; flex-direction:column; gap:8px;
+  .pl-carte{display:flex; flex-direction:column; gap:8px;
     border-radius:12px; transition:opacity .15s}
+  /* La boîte de référence des quatre coins : exactement la pochette. */
+  .pl-vignette{position:relative; width:100%; aspect-ratio:1}
   .pl-carte.inerte{opacity:.38}
-  .pl-pochette{position:relative; width:100%; aspect-ratio:1; border:0; padding:0;
+  .pl-pochette{width:100%; height:100%; border:0; padding:0;
     border-radius:10px; overflow:hidden; cursor:pointer; background:var(--tune-surface);
     display:block}
   .pl-carte.cochee .pl-pochette{box-shadow:0 0 0 2px var(--tune-accent)}
