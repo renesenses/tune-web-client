@@ -38,6 +38,7 @@
    * s'enregistre sans le perdre — mais on ne peut pas en créer ici.
    */
   import { onMount } from 'svelte';
+  import type { UserTag } from '../../lib/types';
   import * as api from '../../lib/api';
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
@@ -113,10 +114,12 @@
   ];
 
   /** Les étiquettes de l'utilisateur, pour la liste d'une règle « Étiquette ». */
-  let etiquettes = $state<{ id: number; name: string; count?: number }[]>([]);
+  let etiquettes = $state<UserTag[]>([]);
   onMount(() => {
     api.getTags()
-      .then((l) => { etiquettes = (l ?? []).slice().sort((a: any, b: any) => a.name.localeCompare(b.name)); })
+      // `UserTag.id` peut être nul : une étiquette sans identifiant ne peut
+      // pas être visée par une règle, elle n'est donc pas proposée.
+      .then((l) => { etiquettes = (l ?? []).filter((x) => x.id != null).sort((a, b) => a.name.localeCompare(b.name)); })
       .catch(() => { /* la règle reste proposée, sa liste vide dit qu'il n'y a rien à choisir */ });
   });
   /** Les statuts des services, pour la liste d'une règle « Source » (#4299). */
