@@ -392,13 +392,29 @@ describe('#playlists — fusionner sans mode', () => {
   });
 
   it('une pochette fournie par le service est GARDÉE', () => {
-    // La mosaïque est un repli : l'image que le service montre partout ailleurs
-    // prime sur celle qu'on compose.
-    const pochette = sansCommentaires.indexOf('{#if item.coverPath}');
+    // La mosaïque COMPOSÉE est un repli : ce que le service fournit — ses
+    // quatre pochettes, ou à défaut son image unique — passe avant.
+    const quatre = sansCommentaires.indexOf('{#if item.covers && item.covers.length > 0}');
+    const pochette = sansCommentaires.indexOf('{:else if item.coverPath}');
     const mosaique = sansCommentaires.indexOf('{:else if mosaiques[cle]}');
-    expect(pochette).toBeGreaterThan(-1);
+    expect(quatre, 'les pochettes du service ne sont plus lues').toBeGreaterThan(-1);
+    expect(pochette).toBeGreaterThan(quatre);
     expect(mosaique).toBeGreaterThan(pochette);
     // Et on ne demande pas de pistes pour une carte qui a déjà sa pochette.
+    expect(sansCommentaires).toContain('if (item.coverPath) continue;');
+  });
+
+  /*
+   | « Est-il possible d'associer 4 covers distinctes à toutes les playlists
+   | Qobuz ? » (Bertrand, 21/09). Qobuz les donne DÉJÀ, en tableau, dans la
+   | liste des playlists : le serveur les transmet sous `covers`, et l'écran
+   | les pose sans une seule requête de plus.
+   */
+  it('🔴 les quatre pochettes Qobuz viennent de la LISTE, sans requête', () => {
+    expect(sansCommentaires).toContain('covers: pl.covers,');
+    expect(sansCommentaires).toContain('<MosaiquePochettes pochettes={item.covers}');
+    // Et le chargeur de repli ne s'en mêle pas : une carte qui a ses pochettes
+    // a aussi sa `coverPath`, donc l'effet la saute.
     expect(sansCommentaires).toContain('if (item.coverPath) continue;');
   });
 

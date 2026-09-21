@@ -971,6 +971,8 @@
     service: string;
     name: string;
     trackCount: number;
+    /** Les pochettes de la mosaïque, quand le service les fournit (Qobuz). */
+    covers?: string[];
     coverPath?: string | null;
   }
 
@@ -1000,6 +1002,7 @@
           name: pl.name,
           trackCount: pl.track_count,
           coverPath: pl.cover_path,
+          covers: pl.covers,
         });
       }
     }
@@ -2370,7 +2373,13 @@
                  invalide que les navigateurs défont (#1006). -->
             <div class="pl-vignette">
             <button class="pl-pochette" onclick={() => selectItem(item)} aria-label={item.name}>
-              {#if item.coverPath}
+              {#if item.covers && item.covers.length > 0}
+                <!-- Les quatre pochettes que QOBUZ fournit déjà dans la liste :
+                     aucune requête de plus, là où le repli en coûte une par
+                     carte. Toujours quatre cases, même avec une seule image
+                     — la règle du 01/09. -->
+                <MosaiquePochettes pochettes={item.covers} alt={item.name} />
+              {:else if item.coverPath}
                 <AlbumArt coverPath={item.coverPath} size={0} alt={item.name} />
               {:else if mosaiques[cle]}
                 <MosaiquePochettes pochettes={mosaiques[cle]} alt={item.name} />
