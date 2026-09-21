@@ -134,16 +134,48 @@
   let mergeSelected = $state<Set<string>>(new Set());  // clés : `${service}:${id}`
 
   /**
-   * Le service auquel la sélection est confinée — décision de Bertrand :
-   * on ne coche pas des playlists de services différents.
+   * Le service de la PREMIÈRE carte cochée.
    *
-   * C'est aussi la RÉPONSE au « où atterrit la fusion ? » : au même endroit,
-   * donc dans ce service. Un seul état pour deux règles, elles ne peuvent
-   * donc pas diverger.
+   * 🔴 Ce fut longtemps un VERROU : cocher une carte TIDAL rendait inertes
+   * toutes les cartes Qobuz. Bertrand, 21/09 : « Quand je vais merger des
+   * playlists de Tidal et Qobuz, quand vais-je choisir la cible ? » —
+   * jamais, puisqu'il ne pouvait pas mélanger. Le verrou est tombé ; il ne
+   * reste qu'une PROPOSITION de cible, que le sélecteur de la barre peut
+   * remplacer.
    */
-  let serviceVerrouille = $derived.by(() => {
+  let premierServiceCoche = $derived.by(() => {
     const premiere = mergeSelected.values().next();
     return premiere.done ? null : cleService(premiere.value);
+  });
+
+  /** Les services représentés dans la sélection, sans doublon. */
+  let servicesCoches = $derived.by(() => {
+    const vus = new Set<string>();
+    for (const cle of mergeSelected) vus.add(cleService(cle));
+    return vus;
+  });
+
+  /**
+   * La cible de la fusion, CHOISIE.
+   *
+   * Vide tant que l'utilisateur n'a rien dit : c'est alors le service de la
+   * première carte cochée qui sert, pour que le cas courant — tout d'un
+   * même service — ne demande aucun geste.
+   */
+  let cibleChoisie = $state('');
+  let cibleFusion = $derived(cibleChoisie || premierServiceCoche || 'local');
+
+  /** La sélection mélange-t-elle plusieurs services ? */
+  let selectionMixte = $derived(servicesCoches.size > 1);
+
+  /**
+   * Une fusion CROISÉE cherche chaque titre dans le catalogue de la cible :
+   * un aller-retour réseau par titre. Le dire avant, pas après.
+   */
+  let titresAApparier = $derived.by(() => {
+    let n = 0;
+    for (const cle of mergeSelected) if (cleService(cle) !== cibleFusion) n += 1;
+    return n;
   });
 
   /**
@@ -251,17 +283,20 @@
   let mergeNameTouched = $state(false);
   let mergeDedup = $state(true);
   let merging = $state(false);
-  let mergeResult = $state<{ id: number; name: string; total_tracks: number } | null>(null);
+  type IntrouvableFusion = { title: string; artist: string; service: string };
+  let mergeResult = $state<{
+    name: string;
+    total_tracks: number;
+    service?: string;
+    not_found?: number;
+    unmatched?: IntrouvableFusion[];
+  } | null>(null);
 
   function mergeKey(service: string, id: string): string {
     return `${service}:${id}`;
   }
 
   function toggleMergeSelect(service: string, id: string) {
-    // 🔴 La règle tenue ICI, et pas seulement dans le balisage : un bouton
-    // `disabled` empêche le clic de la souris, il n'empêche pas un appel. La
-    // garde vit donc dans la fonction, là où elle ne peut pas être contournée.
-    if (serviceVerrouille !== null && serviceVerrouille !== service) return;
     const key = mergeKey(service, id);
     const next = new Set(mergeSelected);
     if (next.has(key)) next.delete(key); else next.add(key);
@@ -272,6 +307,7 @@
     mergeSelected = new Set();
     mergeName = '';
     mergeNameTouched = false;
+    cibleChoisie = '';
     mergeResult = null;
   }
 
@@ -310,7 +346,7 @@
     // Qobuz créait donc une playlist LOCALE, et vide par-dessus le marché.
     // Corrigé côté serveur ; gardé ici parce que c'est lui qui nomme la
     // cible (tune-server-rust#4649).
-    const cibleDeFusion = serviceVerrouille ?? 'local';
+    const cibleDeFusion = cibleFusion;
     merging = true;
     mergeResult = null;
     try {
@@ -420,16 +456,25 @@
   async function supprimerLaSelection() {
     const cles = Array.from(mergeSelected);
     if (cles.length === 0) return;
-    const service = serviceVerrouille ?? 'local';
+    // 🔴 Chaque playlist se supprime CHEZ ELLE. Depuis que la sélection peut
+    // mélanger les services, prendre « le » service de la sélection enverrait
+    // un identifiant Qobuz à Tidal.
+    const touches = Array.from(servicesCoches);
     const question = $tr('playlistManager.confirmDeleteSelection' as any)
       .replace('{count}', String(cles.length))
-      .replace('{service}', service === 'local' ? $tr('playlist.local') : serviceName(service));
+      .replace(
+        '{service}',
+        touches
+          .map((s) => (s === 'local' ? $tr('playlist.local') : serviceName(s)))
+          .join(', '),
+      );
     if (!(await dialogs.confirm(question, { danger: true }))) return;
 
     suppressionLot = true;
     const echoues: string[] = [];
     for (const cle of cles) {
       const id = cleIdentifiant(cle);
+      const service = cleService(cle);
       try {
         if (service === 'local') {
           await api.deletePlaylist(Number(id));
@@ -440,15 +485,17 @@
         echoues.push(id);
       }
     }
-    // On recharge l'endroit concerné plutôt que de retirer les cartes une à
-    // une : le serveur vient d'oublier sa liste mémorisée, elle est fraîche.
-    if (service === 'local') {
-      try { localPlaylists = await api.getPlaylists(); } catch {}
-    } else {
-      try {
-        const fraiches = await api.getStreamingPlaylists(service);
-        streamingPlaylists = { ...streamingPlaylists, [service]: fraiches };
-      } catch {}
+    // On recharge les endroits concernés plutôt que de retirer les cartes une
+    // à une : le serveur vient d'oublier ses listes mémorisées.
+    for (const service of touches) {
+      if (service === 'local') {
+        try { localPlaylists = await api.getPlaylists(); } catch {}
+      } else {
+        try {
+          const fraiches = await api.getStreamingPlaylists(service);
+          streamingPlaylists = { ...streamingPlaylists, [service]: fraiches };
+        } catch {}
+      }
     }
     mergeSelected = new Set();
     mergeName = '';
@@ -464,12 +511,14 @@
     }
   }
 
-  /** La sélection est-elle supprimable ? Local toujours, service s'il l'annonce. */
+  /**
+   * La sélection est-elle supprimable ? Local toujours, un service s'il
+   * l'annonce — et TOUS les services touchés doivent l'annoncer, sinon le
+   * bouton promettrait ce qu'il ne peut pas tenir sur une partie du lot.
+   */
   let selectionSupprimable = $derived(
     mergeSelected.size > 0 &&
-      (serviceVerrouille === null ||
-        serviceVerrouille === 'local' ||
-        serviceSaitSupprimer(serviceVerrouille)),
+      Array.from(servicesCoches).every((s) => s === 'local' || serviceSaitSupprimer(s)),
   );
 
   /**
@@ -2116,6 +2165,28 @@
         <span class="stat-ok">{$tr('playlistManager.mergeCreated').replace('{name}', mergeResult.name).replace('{count}', String(mergeResult.total_tracks))}</span>
         <button class="cancel-btn" onclick={() => mergeResult = null}>{$tr('common.ok')}</button>
       </div>
+      {#if mergeResult.unmatched && mergeResult.unmatched.length > 0}
+        <!-- Les titres NON retrouvés dans le catalogue de la cible, NOMMÉS
+             (choix de Bertrand, 21/09). Un simple compte laisserait chercher
+             lesquels dans une playlist de deux cents titres. -->
+        <details class="fusion-absents" open>
+          <summary>
+            {$tr('playlistManager.unmatchedHeader' as any).replace(
+              '{count}',
+              String(mergeResult.unmatched.length),
+            )}
+          </summary>
+          <ul>
+            {#each mergeResult.unmatched as t}
+              <li>
+                <span class="fa-titre">{t.title}</span>
+                {#if t.artist}<span class="fa-artiste">{t.artist}</span>{/if}
+                <span class="fa-service">{t.service === 'local' ? $tr('playlist.local') : serviceName(t.service)}</span>
+              </li>
+            {/each}
+          </ul>
+        </details>
+      {/if}
     {/if}
 
     {#if showCreate}
@@ -2149,6 +2220,24 @@
           oninput={() => (mergeNameTouched = true)}
           class="merge-input"
         />
+        <!-- LE SÉLECTEUR DE CIBLE — « quand vais-je choisir la cible ? » :
+             ici, et TOUJOURS visible (choix de Bertrand, 21/09). Le laisser
+             apparaître seulement sur une sélection mixte aurait caché la
+             seule réponse à la question, et rendu le cas courant illisible
+             quand il compte : quand on veut justement changer d'endroit. -->
+        <label class="merge-cible">
+          {$tr('playlistManager.mergeTarget' as any)}
+          <select
+            value={cibleFusion}
+            onchange={(e) => (cibleChoisie = e.currentTarget.value)}
+            class="merge-select"
+          >
+            <option value="local">{$tr('playlist.local')}</option>
+            {#each authenticatedServices as svc}
+              <option value={svc}>{serviceName(svc)}</option>
+            {/each}
+          </select>
+        </label>
         <label class="merge-dedup">
           <input type="checkbox" bind:checked={mergeDedup} />
           {$tr('playlistManager.deduplicate')}
@@ -2181,6 +2270,16 @@
       {:else if !mergeName.trim()}
         <!-- L'AUTRE motif du gris, celui qui a mordu : le nom manque. -->
         <p class="merge-hint">{$tr('playlistManager.nameRequired' as any)}</p>
+      {:else if titresAApparier > 0}
+        <!-- Une fusion croisée cherche chaque titre dans le catalogue de la
+             cible : un aller-retour réseau par titre. Le dire AVANT, pas
+             après — c'est la différence entre « c'est long » et « c'est
+             planté ». -->
+        <p class="merge-hint">
+          {$tr('playlistManager.crossServiceNotice' as any)
+            .replace('{count}', String(titresAApparier))
+            .replace('{target}', cibleFusion === 'local' ? $tr('playlist.local') : serviceName(cibleFusion))}
+        </p>
       {/if}
     {/if}
 
@@ -2193,18 +2292,17 @@
         apparaît au-dessus. Plus de mode à découvrir — c'est ce qui faisait
         dire « la fusion ne marche pas ».
 
-        🔴 La sélection est CONFINÉE à un service (décision de Bertrand) : dès
-        qu'une carte est cochée, les cartes des autres services deviennent
-        inertes et s'estompent. On ne grise pas en silence, l'infobulle dit
-        pourquoi. C'est aussi ce qui donne sa cible à la fusion — « au même
-        endroit » — sans second réglage à tenir cohérent.
+        🔴 La sélection FUT confinée à un service : cocher une carte TIDAL
+        rendait inertes toutes les cartes Qobuz. Bertrand, 21/09 : « Quand
+        je vais merger des playlists de Tidal et Qobuz, quand vais-je choisir
+        la cible ? » — jamais, puisqu'il ne pouvait pas mélanger. Le verrou
+        est tombé, et la cible se choisit dans la barre.
       -->
       <div class="pl-grille">
         {#each displayPlaylists as item}
           {@const cle = mergeKey(item.service, identifiantDe(item))}
           {@const cochee = mergeSelected.has(cle)}
-          {@const inerte = serviceVerrouille !== null && serviceVerrouille !== item.service}
-          <div class="pl-carte" class:cochee class:inerte>
+          <div class="pl-carte" class:cochee>
             <!-- 🔴 LA VIGNETTE EST LA BOÎTE DE RÉFÉRENCE DES QUATRE COINS.
                  Ils étaient positionnés contre la CARTE entière : les deux du
                  haut tombaient juste par accident, et les deux du bas
@@ -2264,12 +2362,9 @@
             <button
               class="pl-coin"
               class:on={cochee}
-              disabled={inerte}
               aria-pressed={cochee}
               aria-label={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
-              title={inerte
-                ? $tr('playlistManager.sameServiceOnly' as any)
-                : $tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+              title={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
               onclick={(e) => { e.stopPropagation(); toggleMergeSelect(item.service, identifiantDe(item)); }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
@@ -4548,7 +4643,6 @@
     border-radius:12px; transition:opacity .15s}
   /* La boîte de référence des quatre coins : exactement la pochette. */
   .pl-vignette{position:relative; width:100%; aspect-ratio:1}
-  .pl-carte.inerte{opacity:.38}
   .pl-pochette{width:100%; height:100%; border:0; padding:0;
     border-radius:10px; overflow:hidden; cursor:pointer; background:var(--tune-surface);
     display:block}
@@ -4580,6 +4674,21 @@
   .merge-hint{margin:6px 0 0; font-size:11.5px; color:var(--tune-text-secondary)}
   /* Le geste destructeur de la barre : lisible, mais jamais aussi présent que
      la fusion — c'est elle qu'on vient faire ici. */
+  .fusion-absents{margin:0 0 10px; padding:8px 12px; border-radius:8px;
+    border:1px solid var(--tune-border); background:var(--tune-bg-elevated, transparent);
+    font-size:12.5px}
+  .fusion-absents summary{cursor:pointer; color:var(--tune-warning)}
+  .fusion-absents ul{margin:8px 0 0; padding:0 0 0 16px; max-height:220px; overflow:auto}
+  .fusion-absents li{margin:2px 0; color:var(--tune-text-secondary)}
+  .fa-titre{color:var(--tune-text)}
+  .fa-artiste{margin-left:6px}
+  .fa-artiste::before{content:"— "}
+  .fa-service{margin-left:6px; opacity:.7}
+  .fa-service::before{content:"· "}
+  .merge-cible{display:flex; align-items:center; gap:6px; font-size:12.5px;
+    color:var(--tune-text-secondary); white-space:nowrap}
+  .merge-select{padding:6px 8px; border-radius:7px; border:1px solid var(--tune-border);
+    background:var(--tune-bg); color:var(--tune-text); font-size:12.5px; cursor:pointer}
   .danger-btn{padding:7px 14px; border-radius:8px; cursor:pointer;
     border:1px solid var(--tune-danger); background:transparent;
     color:var(--tune-danger); font-size:13px}

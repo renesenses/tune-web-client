@@ -49,22 +49,30 @@ describe('#playlists — fusionner sans mode', () => {
     const i = sansCommentaires.indexOf('function toggleMergeSelect');
     expect(i).toBeGreaterThan(-1);
     const corps = sansCommentaires.slice(i, sansCommentaires.indexOf('\n  }', i));
-    expect(corps).toContain('serviceVerrouille !== null && serviceVerrouille !== service');
-    expect(corps).toContain('return;');
+    // 🔴 Le verrou A ÉTÉ RETIRÉ le 21/09 : « Quand je vais merger des
+    // playlists de Tidal et Qobuz, quand vais-je choisir la cible ? » — il
+    // rendait la question sans réponse. Ce témoin garde sa disparition, pour
+    // qu'un retour en arrière ne passe pas inaperçu.
+    expect(corps).not.toContain('serviceVerrouille');
+    expect(sansCommentaires).not.toContain('class:inerte');
   });
 
-  it('la fusion atterrit dans le service de la sélection', () => {
-    // « Au même endroit » : la sélection étant confinée à un service, c'est
-    // lui la cible. Un seul état pour les deux règles — nommé depuis le
-    // 21/09, parce que le rechargement d'après en a besoin aussi.
-    expect(sansCommentaires).toContain("const cibleDeFusion = serviceVerrouille ?? 'local';");
+  it('la fusion atterrit dans la cible, proposée puis modifiable', () => {
+    // « Au même endroit » valait tant que la sélection était confinée à un
+    // service. Depuis le 21/09 elle ne l'est plus : la cible est proposée
+    // (le service de la première carte) et le sélecteur peut la changer.
+    expect(sansCommentaires).toContain('const cibleDeFusion = cibleFusion;');
     expect(sansCommentaires).toContain('target_service: cibleDeFusion');
+    expect(sansCommentaires).toContain(
+      "let cibleFusion = $derived(cibleChoisie || premierServiceCoche || 'local');",
+    );
   });
 
-  it('les cartes des autres services deviennent inertes, pas invisibles', () => {
-    // Les cacher ferait croire à un filtre ; les estomper dit « pas celles-là ».
-    expect(sansCommentaires).toContain('class:inerte');
-    expect(sansCommentaires).toContain('playlistManager.sameServiceOnly');
+  it('aucune carte n\'est rendue inerte par la sélection', () => {
+    // Le verrou est tombé : plus de cartes estompées, plus d'infobulle « on
+    // ne fusionne que des playlists d'un même service ».
+    expect(sansCommentaires).not.toContain('class:inerte');
+    expect(sansCommentaires).not.toContain('playlistManager.sameServiceOnly');
   });
 
   it('la grille a remplacé la liste', () => {
@@ -242,7 +250,6 @@ describe('#playlists — fusionner sans mode', () => {
    | rendait invisible jusqu'au prochain passage sur l'écran.
    */
   it('🔴 la fusion nomme sa cible, et recharge la liste où la playlist est née', () => {
-    expect(sansCommentaires).toContain("const cibleDeFusion = serviceVerrouille ?? 'local';");
     expect(sansCommentaires).toContain('target_service: cibleDeFusion,');
     // Le rechargement choisit, il ne suppose pas.
     const apres = sansCommentaires.slice(sansCommentaires.indexOf('mergeResult = result;'));
@@ -318,7 +325,56 @@ describe('#playlists — fusionner sans mode', () => {
 
   it('le bouton ne s\'offre pas chez un service qui ne sait pas supprimer', () => {
     expect(sansCommentaires).toContain('let selectionSupprimable = $derived(');
-    expect(sansCommentaires).toContain('serviceSaitSupprimer(serviceVerrouille)');
+    // TOUS les services touchés doivent savoir supprimer : avec une sélection
+    // mixte, n'en vérifier qu'un promettrait ce qu'on ne peut pas tenir.
+    expect(sansCommentaires).toContain(
+      "Array.from(servicesCoches).every((s) => s === 'local' || serviceSaitSupprimer(s))",
+    );
     expect(sansCommentaires).toContain('{#if selectionSupprimable}');
+  });
+
+  /*
+   | 🔴 « Quand je vais merger des playlists de Tidal et Qobuz, quand vais-je
+   | choisir la cible ? » (Bertrand, 21/09). Jamais : le verrou l'empêchait
+   | de mélanger, donc la cible était implicite.
+   |
+   | Ses deux réponses : le sélecteur est TOUJOURS visible, et les titres non
+   | retrouvés sont LISTÉS, pas comptés.
+   */
+  it('🔴 le sélecteur de cible est dans la barre, sans condition', () => {
+    const barre = sansCommentaires.slice(sansCommentaires.indexOf('class="merge-bar"'));
+    const selecteur = barre.indexOf('class="merge-cible"');
+    expect(selecteur, 'aucun sélecteur de cible').toBeGreaterThan(-1);
+    // Pas derrière un `{#if}` de mixité : il serait invisible quand il sert
+    // le plus — quand on veut justement changer d'endroit.
+    expect(barre.slice(0, selecteur)).not.toContain('{#if selectionMixte}');
+    // Il AFFICHE la cible effective et ÉCRIT le choix : un `bind:` sur le
+    // seul choix montrerait une case vide tant qu'on n'a rien dit.
+    expect(sansCommentaires).toContain('value={cibleFusion}');
+    expect(sansCommentaires).toContain('(cibleChoisie = e.currentTarget.value)');
+  });
+
+  it('les titres non retrouvés sont NOMMÉS', () => {
+    expect(sansCommentaires).toContain('mergeResult.unmatched');
+    expect(sansCommentaires).toContain('{#each mergeResult.unmatched as t}');
+    expect(sansCommentaires).toContain('{t.title}');
+  });
+
+  it('le coût d\'une fusion croisée est annoncé AVANT', () => {
+    expect(sansCommentaires).toContain('let titresAApparier = $derived.by(');
+    expect(sansCommentaires).toContain('playlistManager.crossServiceNotice');
+    // Compté sur ce qui n'est PAS déjà chez la cible.
+    expect(sansCommentaires).toContain("if (cleService(cle) !== cibleFusion) n += 1;");
+  });
+
+  it('la suppression du lot vise le service de CHAQUE carte', () => {
+    const debutFn = sansCommentaires.indexOf('async function supprimerLaSelection(');
+    const corps = sansCommentaires.slice(
+      debutFn,
+      sansCommentaires.indexOf('\n  }\n', debutFn),
+    );
+    expect(corps).toContain('const service = cleService(cle);');
+    // Et surtout pas « le » service de la sélection, qui n'existe plus.
+    expect(corps).not.toContain('serviceVerrouille');
   });
 });
