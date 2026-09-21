@@ -388,6 +388,7 @@ export default {
   'playlist.recover': '利用可否を確認',
   'playlist.recovering': '確認中...',
   'playlist.available': '利用可能',
+  "playlist.edit": "開いて編集",
   'playlist.unavailable': '利用不可',
   'playlist.recovered': '代替が見つかりました',
   'playlist.applyRecovery': '置き換え',

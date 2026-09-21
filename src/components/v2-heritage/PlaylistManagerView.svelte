@@ -173,7 +173,46 @@
    * n'a pas d'identifiant de bibliothèque à donner à ces trois routes : ce qui
    * ne s'applique pas est ABSENT, jamais grisé.
    */
-  let etiquettesCible = $state<{ id: number; nom: string } | null>(null);
+  /** La cible du panneau d'étiquettes : locale (`itemId`) ou de service. */
+  let etiquettesCible = $state<any | null>(null);
+
+  /** Ce qu'il faut étiqueter, selon le type de la carte. */
+  function cibleEtiquetteDe(item: DisplayPlaylist): any {
+    if (item.type === 'local' && item.local?.id != null) {
+      return { itemType: 'playlist', itemId: item.local.id };
+    }
+    // Mesuré sur le .18 le 21/09/2026 : POST /tags/{id}/streaming-items avec
+    // `item_type: "playlist"` rend 201, et la relecture montre l'étiquette.
+    // Une playlist de service s'étiquette donc aussi bien qu'une locale.
+    return {
+      itemType: 'playlist',
+      source: item.service,
+      sourceId: String(item.streaming?.source_id ?? ''),
+      titre: item.name,
+      pochette: item.coverPath ?? null,
+    };
+  }
+
+  /** Le favori : identifiant local, ou paire service + identifiant. */
+  function favoriDe(item: DisplayPlaylist): any {
+    return item.type === 'local' && item.local?.id != null
+      ? { playlistId: item.local.id }
+      : {
+          streaming: {
+            itemType: 'playlist',
+            service: item.service,
+            serviceId: String(item.streaming?.source_id ?? ''),
+            title: item.name,
+            coverUrl: item.coverPath ?? undefined,
+          },
+        };
+  }
+
+  /** Lire la playlist, quelle que soit son origine. */
+  function lirePlaylist(item: DisplayPlaylist) {
+    if (item.type === 'local' && item.local?.id != null) playPlaylist(item.local.id);
+    else if (item.streaming) void playStreamingPlaylist(item.streaming);
+  }
 
   async function renommerPlaylist(id: number, nomActuel: string) {
     const nouveau = await dialogs.prompt($tr('playlistManager.renamePrompt' as any), nomActuel);
@@ -1974,53 +2013,71 @@
 
 
 
-            {#if item.type === 'local' && item.local?.id}
-              <!--
-                🔴 LES QUATRE COINS N'EXISTENT QUE SUR UNE PLAYLIST LOCALE.
+            <!--
+              LES CINQ APPELS À L'ACTION, sur CHAQUE pochette — locale comme de
+              service (Bertrand, 21/09/2026 : « je veux les 5 sur chaque cover
+              de playlist »).
 
-                Bertrand, vu à l'écran le 21/09/2026 : « aucun des 5 CTA sur la
-                cover pour les playlists des services de streaming ». Le coin de
-                SÉLECTION y était encore, à tort.
+              Mesuré sur le .18 avant d'écrire, parce que « ça marche pour une
+              playlist de service » ne se devine pas :
 
-                Conséquence assumée : on ne fusionne plus que des playlists
-                locales depuis cet écran. La route, elle, sait fusionner des
-                playlists de service — c'est l'interface qui ne le propose pas.
-              -->
-<!-- LE COIN. `aria-pressed` et non une case cachée : c'est un
-                   bouton à deux états, et un lecteur d'écran doit l'entendre. -->
-              <button
-                class="pl-coin"
-                class:on={cochee}
-                disabled={inerte}
-                aria-pressed={cochee}
-                aria-label={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
-                title={inerte
-                  ? $tr('playlistManager.sameServiceOnly' as any)
-                  : $tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
-                onclick={(e) => { e.stopPropagation(); toggleMergeSelect(item.service, identifiantDe(item)); }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
-              </button>
-              <!-- Cœur en haut à gauche, crayon en haut à droite, étiquettes en
-                   bas à droite. -->
-              <span class="pl-coin-hg"><HeartButton playlistId={item.local.id} size={15} /></span>
-              <button
-                class="pl-coin-hd"
-                title={$tr('playlistManager.renamePrompt' as any)}
-                aria-label={$tr('playlistManager.renamePrompt' as any)}
-                onclick={(e) => { e.stopPropagation(); item.local?.id && renommerPlaylist(item.local.id, item.name); }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-              </button>
-              <button
-                class="pl-coin-bd"
-                title={$tr('v2.nav.tags' as any)}
-                aria-label={$tr('v2.nav.tags' as any)}
-                onclick={(e) => { e.stopPropagation(); item.local?.id && (etiquettesCible = { id: item.local.id, nom: item.name }); }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z" /><circle cx="6.5" cy="6.5" r="1.2" /></svg>
-              </button>
-            {/if}
+                · étiquettes  POST /tags/{id}/streaming-items {item_type:
+                              "playlist"} → 201, relu, puis retiré par
+                              /remove → 204 ;
+                · favori      `StreamingItemType` et `ServiceFavType` portent
+                              tous deux « playlist(s) », et `HeartButton`
+                              accepte déjà une cible de service ;
+                · lecture     `playStreamingPlaylist` existait ;
+                · sélection   la route de fusion prend {service, playlist_id}.
+
+              Le CRAYON ouvre la playlist — c'est là qu'on la renomme
+              (Bertrand : « edit la playlist et permet de la renommer »). Il ne
+              renomme donc pas depuis la carte, ce qui règle au passage le seul
+              point impossible : aucune route ne renomme une playlist CHEZ un
+              service.
+            -->
+            <span class="pl-coin-hg"><HeartButton {...favoriDe(item)} size={15} /></span>
+
+            <button
+              class="pl-coin-hd"
+              title={$tr('playlist.edit')}
+              aria-label={$tr('playlist.edit')}
+              onclick={(e) => { e.stopPropagation(); selectItem(item); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+            </button>
+
+            <button
+              class="pl-coin"
+              class:on={cochee}
+              disabled={inerte}
+              aria-pressed={cochee}
+              aria-label={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+              title={inerte
+                ? $tr('playlistManager.sameServiceOnly' as any)
+                : $tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+              onclick={(e) => { e.stopPropagation(); toggleMergeSelect(item.service, identifiantDe(item)); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
+            </button>
+
+            <button
+              class="pl-coin-bd"
+              title={$tr('v2.nav.tags' as any)}
+              aria-label={$tr('v2.nav.tags' as any)}
+              onclick={(e) => { e.stopPropagation(); etiquettesCible = cibleEtiquetteDe(item); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z" /><circle cx="6.5" cy="6.5" r="1.2" /></svg>
+            </button>
+
+            <button
+              class="pl-lire"
+              title={$tr('common.play')}
+              aria-label={$tr('common.play')}
+              onclick={(e) => { e.stopPropagation(); lirePlaylist(item); }}
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z" /></svg>
+            </button>
             </div>
 
             <div class="pl-texte">
@@ -2060,9 +2117,8 @@
        un panneau par carte en aurait posé autant que de playlists. -->
   {#await import('../v2/EtiquettesPanneau.svelte') then m}
     <m.default
-      itemType="playlist"
-      itemId={etiquettesCible.id}
-      nom={etiquettesCible.nom}
+      cible={etiquettesCible}
+      nom={etiquettesCible.titre ?? ''}
       onClose={() => (etiquettesCible = null)}
     />
   {/await}
@@ -4321,4 +4377,12 @@
   /* Le message de coupure premium d'un onglet. */
   .pm-premium{margin:0; padding:22px; text-align:center; color:var(--tune-text-secondary);
     font-size:13px; line-height:1.7; border:1px dashed var(--tune-border); border-radius:10px}
+
+  /* Le cinquième appel à l'action : lire, au CENTRE de la pochette. */
+  .pl-lire{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:44px; height:44px; display:grid; place-items:center; border-radius:50%;
+    border:0; cursor:pointer; background:var(--tune-accent); color:var(--tune-bg);
+    opacity:0; transition:opacity .12s}
+  .pl-carte:hover .pl-lire, .pl-lire:focus-visible{opacity:1}
+  .pl-lire:hover{filter:brightness(1.08)}
 </style>

@@ -456,6 +456,7 @@ export default {
   "playlist.recover": "Elérhetőség ellenőrzése",
   "playlist.recovering": "Ellenőrzés...",
   "playlist.available": "Elérhető",
+  "playlist.edit": "Megnyitás és szerkesztés",
   "playlist.unavailable": "Nem érhető el",
   "playlist.recovered": "Alternatíva található",
   "playlist.applyRecovery": "Csere",

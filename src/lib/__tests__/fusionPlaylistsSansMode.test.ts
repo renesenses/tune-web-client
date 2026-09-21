@@ -70,34 +70,46 @@ describe('#playlists — fusionner sans mode', () => {
     expect(sansCommentaires).not.toContain('class="playlist-list"');
   });
 
-  it('les quatre coins de la carte sont là, et rien que sur une playlist LOCALE', () => {
-    // Mesuré sur le .18 le 21/09/2026 avant d'écrire : les trois routes
-    // acceptent bien une playlist (étiquette 201 puis relue, favori 201 puis
-    // relu, renommage par updatePlaylist). Aucun travail serveur.
+  it('🔴 les CINQ appels à l’action sont sur CHAQUE pochette, service compris', () => {
+    // Bertrand, 21/09/2026 : « je veux les 5 sur chaque cover de playlist ».
+    // Ils avaient d'abord été réservés au local, sur sa demande précédente —
+    // et l'écran filtré sur Qobuz devenait inerte, ce qu'il a vu tout de suite.
     //
-    // 🔴 Une playlist de SERVICE n'a pas d'identifiant de bibliothèque à leur
-    // donner : les trois coins n'existent que pour une playlist locale. Ce qui
-    // ne s'applique pas est absent, jamais grisé.
+    // Mesuré avant d'écrire : une playlist de SERVICE s'étiquette
+    // (POST /tags/{id}/streaming-items → 201), se met en favori
+    // (`ServiceFavType` porte « playlists »), se lit
+    // (`playStreamingPlaylist`) et se sélectionne (la fusion prend
+    // {service, playlist_id}).
     const i = sansCommentaires.indexOf('class="pl-grille"');
     const carte = sansCommentaires.slice(i, sansCommentaires.indexOf('{/each}', i));
-    expect(carte).toContain('class="pl-coin"');        // sélection, bas gauche
-    expect(carte).toContain('class="pl-coin-hg"');     // cœur, haut gauche
-    expect(carte).toContain('class="pl-coin-hd"');     // crayon, haut droit
-    expect(carte).toContain('class="pl-coin-bd"');     // étiquettes, bas droit
-
-    // 🔴 LES QUATRE vivent dans la garde `type === 'local'`. Bertrand :
-    // « aucun des 5 CTA sur la cover pour les playlists des services de
-    // streaming ». Le coin de SÉLECTION s'y affichait encore à tort.
+    for (const cta of ['class="pl-coin-hg"', 'class="pl-coin-hd"', 'class="pl-coin"',
+                       'class="pl-coin-bd"', 'class="pl-lire"']) {
+      expect(carte, `${cta} absent`).toContain(cta);
+    }
+    // 🔴 Et aucun des cinq n'est enfermé dans la garde « locale ».
+    //
+    // Cette garde EXISTE encore plus bas, à juste titre : partager et
+    // supprimer n'ont pas de sens sur une playlist qui vit chez un service.
+    // Les cinq appels doivent donc tous la PRÉCÉDER — ils vivent dans la
+    // vignette, elle vient après.
     const garde = carte.indexOf("item.type === 'local' && item.local?.id");
-    expect(garde).toBeGreaterThan(-1);
-    for (const coin of ['class="pl-coin"', 'class="pl-coin-hg"', 'class="pl-coin-hd"', 'class="pl-coin-bd"']) {
-      expect(carte.indexOf(coin), `${coin} hors de la garde locale`).toBeGreaterThan(garde);
+    expect(garde, 'la garde locale a disparu : le test ne garde plus rien').toBeGreaterThan(-1);
+    for (const cta of ['class="pl-coin-hg"', 'class="pl-coin-hd"', 'class="pl-coin"',
+                       'class="pl-coin-bd"', 'class="pl-lire"']) {
+      expect(carte.indexOf(cta), `${cta} de nouveau réservé au local`).toBeLessThan(garde);
     }
   });
 
-  it('chaque coin réutilise ce qui existe, sans redessiner un sélecteur', () => {
-    expect(sansCommentaires).toContain('<HeartButton playlistId=');
-    expect(sansCommentaires).toContain("itemType=\"playlist\"");
+  it('chaque appel réutilise ce qui existe, sans redessiner un sélecteur', () => {
+    // Le cœur et les étiquettes reçoivent une cible CONSTRUITE selon le type
+    // de la carte : identifiant de bibliothèque pour une locale, paire
+    // source + identifiant pour une playlist de service.
+    expect(sansCommentaires).toContain('<HeartButton {...favoriDe(item)}');
+    expect(sansCommentaires).toContain('etiquettesCible = cibleEtiquetteDe(item)');
+    expect(sansCommentaires).toContain('cible={etiquettesCible}');
+    // Le crayon OUVRE la playlist — c'est dans l'écran ouvert qu'on renomme.
+    // Aucune route ne renomme une playlist chez un service.
+    expect(sansCommentaires).toContain("$tr('playlist.edit')");
     expect(sansCommentaires).toContain('api.updatePlaylist(');
   });
 

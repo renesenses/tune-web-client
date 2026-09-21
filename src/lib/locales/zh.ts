@@ -388,6 +388,7 @@ export default {
   'playlist.recover': '检查可用性',
   'playlist.recovering': '检查中...',
   'playlist.available': '可用',
+  "playlist.edit": "打开并编辑",
   'playlist.unavailable': '不可用',
   'playlist.recovered': '已找到替代',
   'playlist.applyRecovery': '替换',

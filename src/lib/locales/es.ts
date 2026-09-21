@@ -388,6 +388,7 @@ export default {
   'playlist.recover': 'Comprobar disponibilidad',
   'playlist.recovering': 'Comprobando...',
   'playlist.available': 'Disponible',
+  "playlist.edit": "Abrir y editar",
   'playlist.unavailable': 'No disponible',
   'playlist.recovered': 'Alternativa encontrada',
   'playlist.applyRecovery': 'Reemplazar',

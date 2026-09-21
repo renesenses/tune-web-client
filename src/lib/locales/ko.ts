@@ -388,6 +388,7 @@ export default {
   'playlist.recover': '사용 가능 여부 확인',
   'playlist.recovering': '확인 중...',
   'playlist.available': '사용 가능',
+  "playlist.edit": "열어서 편집",
   'playlist.unavailable': '사용 불가',
   'playlist.recovered': '대안 찾음',
   'playlist.applyRecovery': '교체',
