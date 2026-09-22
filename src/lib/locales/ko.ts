@@ -2785,6 +2785,7 @@ export default {
   "v2.cf.perZoneB": ".",
   "v2.cf.amount": "강도",
   "v2.cf.amountHint": "반대쪽 채널이 다른 귀에 얼마나 전달되는지.",
+  "v2.cf.amountScaleHint": "100%에서는 양쪽 귀에 같은 신호가 전달되어 음상이 모노가 됩니다.",
   "v2.cf.amountAria": "크로스피드 강도",
   "v2.cf.delay": "지연",
   "v2.cf.delayHint": "소리가 머리를 돌아가는 데 걸리는 시간입니다. 이것이 거리감을 만듭니다.",

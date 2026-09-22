@@ -2785,6 +2785,7 @@ export default {
   "v2.cf.perZoneB": ".",
   "v2.cf.amount": "Intensitate",
   "v2.cf.amountHint": "Ce proporție din canalul opus ajunge în cealaltă ureche.",
+  "v2.cf.amountScaleHint": "La 100 %, ambele urechi primesc același semnal: imaginea devine mono.",
   "v2.cf.amountAria": "Intensitatea crossfeed-ului",
   "v2.cf.delay": "Întârziere",
   "v2.cf.delayHint": "Timpul în care sunetul ocolește capul. El creează distanța.",

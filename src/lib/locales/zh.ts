@@ -2785,6 +2785,7 @@ export default {
   "v2.cf.perZoneB": "。",
   "v2.cf.amount": "强度",
   "v2.cf.amountHint": "对侧声道有多少比例进入另一只耳朵。",
+  "v2.cf.amountScaleHint": "在 100% 时，两耳听到相同的信号，声像变为单声道。",
   "v2.cf.amountAria": "Crossfeed 强度",
   "v2.cf.delay": "延迟",
   "v2.cf.delayHint": "声音绕过头部所需的时间。正是它造就了距离感。",

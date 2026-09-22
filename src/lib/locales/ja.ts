@@ -2785,6 +2785,7 @@ export default {
   "v2.cf.perZoneB": "。",
   "v2.cf.amount": "強さ",
   "v2.cf.amountHint": "反対側のチャンネルがどれだけもう一方の耳に届くか。",
+  "v2.cf.amountScaleHint": "100% では両耳に同じ信号が届き、音像はモノラルになります。",
   "v2.cf.amountAria": "クロスフィードの強さ",
   "v2.cf.delay": "遅延",
   "v2.cf.delayHint": "音が頭を回り込むのにかかる時間です。これが距離感を生みます。",
