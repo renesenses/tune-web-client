@@ -2286,6 +2286,26 @@
                   </button>
                 {/if}
               </h2>
+              <!-- 🔴 #1419 — la bascule grille/liste est offerte sur ces
+                   onglets : la facette ouverte doit donc lire `display`. La
+                   grille était écrite en dur, et le clic ne changeait rien
+                   (Jean Valjean, fil 1856). Mêmes lignes que la vue Albums,
+                   même gabarit `--lcols` ; pas d'intertitres d'année ici, la
+                   facette EST déjà une valeur. -->
+              {#if display === 'list'}
+              <div class="rows facetrows" style="--lcols:{colonnesListe}">
+                {#each g.albums as a (a.id)}
+                  <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
+                    <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+                    <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
+                    <span class="la">{a.artist_name ?? ''}</span>
+                    <span class="ly">{albumYear(a) ?? ''}</span>
+                    {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
+                    {#if showTech}<span class="lq">{tech(a)}</span>{/if}
+                  </button>
+                {/each}
+              </div>
+              {:else}
               <div class="grid facetgrid" class:expert={showExpert}>
                 {#each g.albums as a (a.id)}
                   <div class="card">
@@ -2311,6 +2331,7 @@
                   </div>
                 {/each}
               </div>
+              {/if}
             </section>
           {/each}
         </div>
@@ -2698,6 +2719,8 @@
   .facet .fcoeur:focus-visible{opacity:1; outline:2px solid var(--v2-acc1); outline-offset:2px}
   .facet .fcoeur.on{opacity:1; color:var(--v2-acc1)}
   .facetgrid{overflow:visible; padding:0}
+  /* #1419 — la liste d'une facette défile avec la page, comme sa grille. */
+  .rows.facetrows{overflow:visible; padding:0; flex:none}
 
   /* Affichage liste : même données, densité maximale. */
   .rows{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:1px; padding:4px 30px 40px}
