@@ -24,6 +24,8 @@ const mocks = vi.hoisted(() => ({
   installPlugin: vi.fn(),
   enablePlugin: vi.fn(),
   setDsp: vi.fn(),
+  // tune-server-rust#4685 — `CompensationNiveauV2` lit `GET /zones/{id}/dsp`.
+  getDsp: vi.fn(),
 }));
 
 vi.mock('../api', () => mocks);
@@ -74,6 +76,7 @@ beforeEach(() => {
   mocks.getEqExpertSettings.mockResolvedValue({ expert_bands: 10 });
   mocks.getEq.mockResolvedValue({ enabled: true, bands: [] });
   mocks.setEq.mockResolvedValue({ applied_live: true });
+  mocks.getDsp.mockResolvedValue({});
   mocks.installPlugin.mockImplementation(async () => { ordre.push('install'); return { success: true, message: '', restart_required: false }; });
   mocks.enablePlugin.mockImplementation(async () => { ordre.push('enable'); return { name: 'equalizer', enabled: true, restart_required: false }; });
   currentZoneId.set(1);
