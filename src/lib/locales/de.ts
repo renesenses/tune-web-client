@@ -313,6 +313,13 @@ export default {
   'search.noResults': 'Keine Ergebnisse für „{query}"',
   'search.shownOf': '{shown} von {total}',
   'search.shownOfAtLeast': '{shown} von mindestens {total}',
+  'search.durationShown': '{d} angezeigt',
+  'search.createPlaylist': 'Wiedergabeliste erstellen',
+  'search.playlistNamePrompt': 'Name der neuen Wiedergabeliste',
+  'search.playlistCreated': 'Wiedergabeliste „{name}“ mit {n} Titeln erstellt.',
+  'search.playlistCreatedPartial': 'Wiedergabeliste „{name}“ mit den {n} angezeigten Titeln erstellt, von {total} Treffern.',
+  'search.playlistNoLocalTracks': 'Kein Titel der lokalen Bibliothek in diesen Ergebnissen.',
+  'search.playlistError': 'Die Wiedergabeliste konnte nicht erstellt werden.',
 
   // Streaming
   'streaming.noPlaylists': 'Keine Playlists',
