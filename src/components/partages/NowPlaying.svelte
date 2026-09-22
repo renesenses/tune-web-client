@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { atteintLeSon } from '../../lib/porteeReglage';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
@@ -402,7 +403,8 @@
       // réponse laissait l'auditeur choisir « Rock », ne rien entendre changer,
       // et conclure que l'égaliseur ne marche pas (#1258, même défaut que
       // #1710/#1725/#1786 ailleurs).
-      eqPorteeLive = res?.applied_live ?? null;
+      // #4680 — `portee` d'abord : une relance réseau s'entend dans l'instant.
+      eqPorteeLive = atteintLeSon(res?.applied_live, res?.portee) ?? null;
       currentEqPreset = preset;
       // La courbe affichee vient du serveur, jamais d'une supposition. Ici on
       // vient de l'ecrire : on la montre sans attendre une relecture, sinon le

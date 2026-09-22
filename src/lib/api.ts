@@ -2815,6 +2815,12 @@ export interface EqSetResult extends EqSettings {
    * d'affirmer quoi que ce soit d'un serveur qui ne le dit pas.
    */
   applied_live?: boolean;
+  /**
+   * QUAND le reglage s'entend (tune-server-rust#4680) : `restart` = zone
+   * reseau dont le flux est relance dans l'instant, PAS la piste suivante.
+   * Lire par `atteintLeSon()` (`lib/porteeReglage.ts`).
+   */
+  portee?: import('./porteeReglage').PorteeDuReglage;
 }
 
 export function getEq(zoneId: number) {
