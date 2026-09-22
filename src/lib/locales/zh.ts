@@ -3234,6 +3234,7 @@ export default {
   "v2.disco.lossy": "有损",
   "v2.disco.reset": "显示全部",
   "v2.disco.noMatch": "没有符合此筛选条件的专辑。",
+  "v2.disco.related": "其他 / 相关",
   "v2.fas.albums": "专辑",
   "v2.fas.empty": "该艺术家暂无可显示的内容。",
   "v2.fas.topTracksFailed": "无法加载热门曲目——“Best of”和“电台”需要它们。",

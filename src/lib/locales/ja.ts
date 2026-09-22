@@ -3234,6 +3234,7 @@ export default {
   "v2.disco.lossy": "非可逆圧縮",
   "v2.disco.reset": "すべて表示",
   "v2.disco.noMatch": "このフィルターに一致するアルバムはありません。",
+  "v2.disco.related": "その他 / 関連",
   "v2.fas.albums": "アルバム",
   "v2.fas.empty": "このアーティストに表示できるものはありません。",
   "v2.fas.topTracksFailed": "人気曲を読み込めませんでした。「Best of」と「ラジオ」にはこれが必要です。",

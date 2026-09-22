@@ -3234,6 +3234,7 @@ export default {
   "v2.disco.lossy": "Con pérdida",
   "v2.disco.reset": "Mostrar todo",
   "v2.disco.noMatch": "Ningún álbum coincide con este filtro.",
+  "v2.disco.related": "Otros / Relacionados",
   "v2.fas.albums": "Álbumes",
   "v2.fas.empty": "No hay nada que mostrar para este artista.",
   "v2.fas.topTracksFailed": "No se han podido cargar las canciones destacadas: «Best of» y «Radio» las necesitan.",

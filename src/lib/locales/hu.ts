@@ -3192,6 +3192,7 @@ export default {
   "v2.disco.lossy": "Veszteséges",
   "v2.disco.reset": "Összes mutatása",
   "v2.disco.noMatch": "Egy album sem felel meg ennek a szűrőnek.",
+  "v2.disco.related": "Egyéb / Kapcsolódó",
   "v2.fas.albums": "Albumok",
   "v2.fas.empty": "Ehhez az előadóhoz nincs megjeleníthető tartalom.",
   "v2.fas.topTracksFailed": "A népszerű számokat nem sikerült betölteni – a „Best of” és a „Rádió” ezekre épül.",
