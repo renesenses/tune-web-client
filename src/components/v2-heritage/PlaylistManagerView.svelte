@@ -4,6 +4,7 @@
   import { currentZone, zones, playAndSync } from '../../lib/stores/zones';
   import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../../lib/stores/nowPlaying';
   import { dialogs } from '../../lib/stores/dialogs';
+  import { isPremium } from '../../lib/stores/license';
   import { playlists as playlistsStore, pendingPlaylistId } from '../../lib/stores/playlists';
   import { streamingServices } from '../../lib/stores/streaming';
   import * as api from '../../lib/api';
@@ -14,14 +15,16 @@
   import { pisteAppliquee, resumeApplication } from '../../lib/recuperationPlaylist';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import { pisteIndisponible } from '../../lib/albumAParaitre';
   import ClampedText from '../partages/ClampedText.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
+  import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
+  import { quatreDistinctes } from '../../lib/mosaique';
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
-  import PlaylistsHub from './PlaylistsHub.svelte';
   import { listResetNonce } from '../../lib/stores/navigation';
 
-  let viewTab = $state<'manual' | 'smart' | 'smart-ai' | 'hub'>('manual');
+  let viewTab = $state<'manual' | 'smart' | 'smart-ai'>('manual');
 
   async function handleSharePlaylist(playlistId: number) {
     try {
@@ -119,12 +122,177 @@
   let newDescription = $state('');
 
   // Merge mode
-  let mergeMode = $state(false);
-  let mergeSelected = $state<Set<string>>(new Set());  // keys: `${service}:${id}`
+  /**
+   * LA SÉLECTION, sans mode préalable (Bertrand + maquette Levente, 20/09/2026).
+   *
+   * 🔴 Avant, fusionner demandait de DÉCOUVRIR un mode : un bouton
+   * « Fusionner » basculait l'écran, et seulement alors des cases
+   * apparaissaient sur les lignes. Bertrand : « il me semble que la fusion ne
+   * marche pas ! » — elle marchait, mais personne ne trouvait la porte.
+   *
+   * Désormais : on coche le coin d'une carte, et la barre d'actions APPARAÎT.
+   * Le mode n'existe plus.
+   */
+  let mergeSelected = $state<Set<string>>(new Set());  // clés : `${service}:${id}`
+
+  /**
+   * Le service de la PREMIÈRE carte cochée.
+   *
+   * 🔴 Ce fut longtemps un VERROU : cocher une carte TIDAL rendait inertes
+   * toutes les cartes Qobuz. Bertrand, 21/09 : « Quand je vais merger des
+   * playlists de Tidal et Qobuz, quand vais-je choisir la cible ? » —
+   * jamais, puisqu'il ne pouvait pas mélanger. Le verrou est tombé ; il ne
+   * reste qu'une PROPOSITION de cible, que le sélecteur de la barre peut
+   * remplacer.
+   */
+  let premierServiceCoche = $derived.by(() => {
+    const premiere = mergeSelected.values().next();
+    return premiere.done ? null : cleService(premiere.value);
+  });
+
+  /** Les services représentés dans la sélection, sans doublon. */
+  let servicesCoches = $derived.by(() => {
+    const vus = new Set<string>();
+    for (const cle of mergeSelected) vus.add(cleService(cle));
+    return vus;
+  });
+
+  /**
+   * La cible de la fusion, CHOISIE.
+   *
+   * Vide tant que l'utilisateur n'a rien dit : c'est alors le service de la
+   * première carte cochée qui sert, pour que le cas courant — tout d'un
+   * même service — ne demande aucun geste.
+   */
+  let cibleChoisie = $state('');
+  let cibleFusion = $derived(cibleChoisie || premierServiceCoche || 'local');
+
+  /** La sélection mélange-t-elle plusieurs services ? */
+  let selectionMixte = $derived(servicesCoches.size > 1);
+
+  /**
+   * Une fusion CROISÉE cherche chaque titre dans le catalogue de la cible :
+   * un aller-retour réseau par titre. Le dire avant, pas après.
+   */
+  let titresAApparier = $derived.by(() => {
+    let n = 0;
+    for (const cle of mergeSelected) if (cleService(cle) !== cibleFusion) n += 1;
+    return n;
+  });
+
+  /**
+   * L'identifiant d'une entrée, local ou de service.
+   *
+   * Écrit UNE fois : la même expression était recopiée quatre fois dans le
+   * balisage, et une copie qui diverge coche une carte sans en décocher
+   * l'autre.
+   */
+  function identifiantDe(item: DisplayPlaylist): string {
+    return String(item.local?.id ?? item.streaming?.source_id ?? '');
+  }
+
+  /**
+   * LES TROIS AUTRES COINS DE LA CARTE (maquette Levente).
+   *
+   * Tous les trois se branchent sur de l'EXISTANT, mesuré sur le .18 le
+   * 21/09/2026 avant d'écrire une ligne — aucun travail serveur :
+   *
+   *   · cœur       `HeartButton` accepte déjà `playlistId` ;
+   *   · crayon     `api.updatePlaylist(id, { name })` ;
+   *   · étiquettes `EtiquettesPanneau` accepte `itemType="playlist"`, et la
+   *                route le prouve : POST /tags/{id}/items rend 201, la
+   *                relecture montre l'étiquette, DELETE rend 204.
+   *
+   * 🔴 Ils ne s'affichent que sur une playlist LOCALE. Une playlist de service
+   * n'a pas d'identifiant de bibliothèque à donner à ces trois routes : ce qui
+   * ne s'applique pas est ABSENT, jamais grisé.
+   */
+  /** La cible du panneau d'étiquettes : locale (`itemId`) ou de service. */
+  let etiquettesCible = $state<any | null>(null);
+
+  /** Ce qu'il faut étiqueter, selon le type de la carte. */
+  function cibleEtiquetteDe(item: DisplayPlaylist): any {
+    if (item.type === 'local' && item.local?.id != null) {
+      return { itemType: 'playlist', itemId: item.local.id };
+    }
+    // Mesuré sur le .18 le 21/09/2026 : POST /tags/{id}/streaming-items avec
+    // `item_type: "playlist"` rend 201, et la relecture montre l'étiquette.
+    // Une playlist de service s'étiquette donc aussi bien qu'une locale.
+    return {
+      itemType: 'playlist',
+      source: item.service,
+      sourceId: String(item.streaming?.source_id ?? ''),
+      titre: item.name,
+      pochette: item.coverPath ?? null,
+    };
+  }
+
+  /** Le favori : identifiant local, ou paire service + identifiant. */
+  function favoriDe(item: DisplayPlaylist): any {
+    return item.type === 'local' && item.local?.id != null
+      ? { playlistId: item.local.id }
+      : {
+          streaming: {
+            itemType: 'playlist',
+            service: item.service,
+            serviceId: String(item.streaming?.source_id ?? ''),
+            title: item.name,
+            coverUrl: item.coverPath ?? undefined,
+          },
+        };
+  }
+
+  /** Lire la playlist, quelle que soit son origine. */
+  function lirePlaylist(item: DisplayPlaylist) {
+    if (item.type === 'local' && item.local?.id != null) playPlaylist(item.local.id);
+    else if (item.streaming) void playStreamingPlaylist(item.streaming);
+  }
+
+  async function renommerPlaylist(id: number, nomActuel: string) {
+    const nouveau = await dialogs.prompt($tr('playlistManager.renamePrompt' as any), nomActuel);
+    const propre = (nouveau ?? '').trim();
+    // Annulé, vidé, ou inchangé : on ne repart pas au serveur pour rien.
+    if (!propre || propre === nomActuel) return;
+    try {
+      await api.updatePlaylist(id, { name: propre });
+      localPlaylists = await api.getPlaylists();
+    } catch (err: any) {
+      notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
+    }
+  }
+
+  /** Le service d'une clé `service:id`, sans amputer l'identifiant. */
+  function cleService(cle: string): string {
+    const coupe = cle.indexOf(':');
+    return coupe === -1 ? cle : cle.slice(0, coupe);
+  }
+
+  /** L'identifiant d'une clé `service:id`, deux-points compris. */
+  function cleIdentifiant(cle: string): string {
+    const coupe = cle.indexOf(':');
+    return coupe === -1 ? '' : cle.slice(coupe + 1);
+  }
   let mergeName = $state('');
+  /**
+   * Le champ a-t-il été TOUCHÉ par l'utilisateur ?
+   *
+   * 🔴 Bertrand, 21/09 : « Bouton merge grisé » — huit playlists cochées, le
+   * bouton éteint. La cause n'était pas la sélection mais le NOM : le bouton
+   * porte `!mergeName.trim()` dans son `disabled`, et rien ne disait que le
+   * champ vide était le motif. On propose donc un nom dès la deuxième carte
+   * cochée, et ce drapeau évite d'écraser ce que l'utilisateur a tapé.
+   */
+  let mergeNameTouched = $state(false);
   let mergeDedup = $state(true);
   let merging = $state(false);
-  let mergeResult = $state<{ id: number; name: string; total_tracks: number } | null>(null);
+  type IntrouvableFusion = { title: string; artist: string; service: string };
+  let mergeResult = $state<{
+    name: string;
+    total_tracks: number;
+    service?: string;
+    not_found?: number;
+    unmatched?: IntrouvableFusion[];
+  } | null>(null);
 
   function mergeKey(service: string, id: string): string {
     return `${service}:${id}`;
@@ -138,18 +306,49 @@
   }
 
   function cancelMerge() {
-    mergeMode = false;
     mergeSelected = new Set();
     mergeName = '';
+    mergeNameTouched = false;
+    cibleChoisie = '';
     mergeResult = null;
+  }
+
+  /**
+   * Le nom proposé : celui de la première playlist cochée, et le nombre des
+   * autres. Éditable — c'est une proposition, pas une contrainte.
+   */
+  function nomDeFusionPropose(): string {
+    const cles = Array.from(mergeSelected);
+    if (cles.length < 2) return '';
+    const premiere = displayPlaylists.find(
+      (p) => mergeKey(p.service, identifiantDe(p)) === cles[0],
+    );
+    if (!premiere) return '';
+    return $tr('playlistManager.mergedNameDefault' as any)
+      .replace('{name}', premiere.name)
+      .replace('{count}', String(cles.length - 1));
   }
 
   async function doMerge() {
     if (mergeSelected.size < 2 || !mergeName.trim()) return;
-    const playlists = Array.from(mergeSelected).map((key) => {
-      const [service, id] = key.split(':', 2);
-      return { service, playlist_id: id };
-    });
+    // 🔴 `key.split(':', 2)` AMPUTAIT l'identifiant : en JavaScript, le second
+    // argument TRONQUE le tableau, il ne rejoint pas le reste. Un identifiant
+    // portant un deux-points partait coupé, et la fusion échouait sans dire
+    // pourquoi. Les identifiants locaux sont numériques, donc ça ne mordait
+    // pas encore — ça aurait mordu au premier service qui en met.
+    const playlists = Array.from(mergeSelected).map((cle) => ({
+      service: cleService(cle),
+      playlist_id: cleIdentifiant(cle),
+    }));
+    // « Au même endroit » : la sélection étant confinée à un service, la
+    // fusion atterrit dans celui-là.
+    //
+    // 🔴 Le serveur JETAIT ce champ — `MergeRequest` ne le déclarait pas, et
+    // serde écarte en silence un champ inconnu. La fusion de huit playlists
+    // Qobuz créait donc une playlist LOCALE, et vide par-dessus le marché.
+    // Corrigé côté serveur ; gardé ici parce que c'est lui qui nomme la
+    // cible (tune-server-rust#4649).
+    const cibleDeFusion = cibleFusion;
     merging = true;
     mergeResult = null;
     try {
@@ -157,13 +356,41 @@
         playlists,
         target_name: mergeName.trim(),
         deduplicate: mergeDedup,
+        target_service: cibleDeFusion,
       });
       mergeResult = result;
       mergeSelected = new Set();
       mergeName = '';
-      mergeMode = false;
-      // Reload local playlists
-      try { localPlaylists = await api.getPlaylists(); } catch {}
+      mergeNameTouched = false;
+      // 🔴 La nouvelle playlist n'est pas forcément LOCALE : depuis que la
+      // fusion atterrit « au même endroit », elle naît chez le service. On
+      // recharge donc la liste de l'endroit où elle est née, sinon elle
+      // n'apparaît qu'au prochain passage sur l'écran.
+      const ne = (result as any)?.service ?? cibleDeFusion ?? 'local';
+      if (ne === 'local') {
+        try { localPlaylists = await api.getPlaylists(); } catch {}
+      } else {
+        try {
+          const fraiches = await api.getStreamingPlaylists(ne);
+          // 🔴 Qobuz annonce `0 tracks` sur une playlist qu'il vient de
+          // créer : sa liste utilisateur n'a pas encore rattrapé l'ajout, et
+          // ce zéro-là serait mémorisé deux minutes. Mesuré le 21/09 — la
+          // carte disait « 0 tracks » quand le détail en comptait 7.
+          //
+          // Le compte que NOUS avons versé fait foi : il vient du serveur,
+          // qui l'a compté à l'ajout.
+          const idNeuve = String((result as any)?.playlist_id ?? '');
+          const verses = Number((result as any)?.total_tracks ?? 0);
+          streamingPlaylists = {
+            ...streamingPlaylists,
+            [ne]: idNeuve
+              ? fraiches.map((pl) =>
+                  String(pl.source_id) === idNeuve ? { ...pl, track_count: verses } : pl,
+                )
+              : fraiches,
+          };
+        } catch {}
+      }
     } catch (err: any) {
       notifications.error($tr('playlistManager.mergeError').replace('{error}', errText(err) ?? $tr('common.serverUnreachable')));
     }
@@ -200,7 +427,132 @@
   let batchResult = $state<any>(null);
 
   // Service capabilities
-  let serviceCapabilities = $state<Record<string, { authenticated: boolean; supports_write: boolean }>>({});
+  let serviceCapabilities = $state<
+    Record<string, { authenticated: boolean; supports_write: boolean; supports_delete?: boolean }>
+  >({});
+
+  /**
+   * Le service sait-il supprimer une playlist chez lui ?
+   *
+   * 🔴 La réponse vient du SERVEUR (`/playlist-manager/services`), pas d'une
+   * liste de noms tenue ici : `delete_playlist` a une implémentation par
+   * défaut qui rend 501, et seuls Qobuz et Tidal la redéfinissent. Un bouton
+   * posé d'après le nom du service aurait échoué au clic chez les autres.
+   * Même règle que le cœur des favoris (#4577).
+   */
+  function serviceSaitSupprimer(service: string): boolean {
+    return serviceCapabilities[service]?.supports_delete === true;
+  }
+
+  let suppressionEnCours = $state<string | null>(null);
+  let suppressionLot = $state(false);
+
+  /**
+   * Supprimer la SÉLECTION, depuis la barre — « à côté de merge ».
+   *
+   * La barre est le seul endroit que l'on trouve sans chercher : la corbeille
+   * par carte ne se révélait qu'au survol, sous le nom. Une seule question
+   * pour tout le lot, parce qu'en poser une par playlist ferait cliquer huit
+   * fois sur un geste définitif.
+   */
+  async function supprimerLaSelection() {
+    const cles = Array.from(mergeSelected);
+    if (cles.length === 0) return;
+    // 🔴 Chaque playlist se supprime CHEZ ELLE. Depuis que la sélection peut
+    // mélanger les services, prendre « le » service de la sélection enverrait
+    // un identifiant Qobuz à Tidal.
+    const touches = Array.from(servicesCoches);
+    const question = $tr('playlistManager.confirmDeleteSelection' as any)
+      .replace('{count}', String(cles.length))
+      .replace(
+        '{service}',
+        touches
+          .map((s) => (s === 'local' ? $tr('playlist.local') : serviceName(s)))
+          .join(', '),
+      );
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
+
+    suppressionLot = true;
+    const echoues: string[] = [];
+    for (const cle of cles) {
+      const id = cleIdentifiant(cle);
+      const service = cleService(cle);
+      try {
+        if (service === 'local') {
+          await api.deletePlaylist(Number(id));
+        } else {
+          await api.deleteServicePlaylist(service, id);
+        }
+      } catch {
+        echoues.push(id);
+      }
+    }
+    // On recharge les endroits concernés plutôt que de retirer les cartes une
+    // à une : le serveur vient d'oublier ses listes mémorisées.
+    for (const service of touches) {
+      if (service === 'local') {
+        try { localPlaylists = await api.getPlaylists(); } catch {}
+      } else {
+        try {
+          const fraiches = await api.getStreamingPlaylists(service);
+          streamingPlaylists = { ...streamingPlaylists, [service]: fraiches };
+        } catch {}
+      }
+    }
+    mergeSelected = new Set();
+    mergeName = '';
+    mergeNameTouched = false;
+    suppressionLot = false;
+    if (echoues.length > 0) {
+      notifications.error(
+        $tr('playlistManager.deleteSelectionPartial' as any).replace(
+          '{count}',
+          String(echoues.length),
+        ),
+      );
+    }
+  }
+
+  /**
+   * La sélection est-elle supprimable ? Local toujours, un service s'il
+   * l'annonce — et TOUS les services touchés doivent l'annoncer, sinon le
+   * bouton promettrait ce qu'il ne peut pas tenir sur une partie du lot.
+   */
+  let selectionSupprimable = $derived(
+    mergeSelected.size > 0 &&
+      Array.from(servicesCoches).every((s) => s === 'local' || serviceSaitSupprimer(s)),
+  );
+
+  /**
+   * Supprime une playlist CHEZ le service. Irréversible de notre côté — d'où
+   * la confirmation, que la suppression locale n'a jamais eue parce qu'une
+   * playlist locale se refait.
+   */
+  async function supprimerPlaylistDeService(item: DisplayPlaylist) {
+    const id = identifiantDe(item);
+    if (!id) return;
+    const question = $tr('playlistManager.confirmDeleteService' as any)
+      .replace('{name}', item.name)
+      .replace('{service}', serviceName(item.service));
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
+    suppressionEnCours = mergeKey(item.service, id);
+    try {
+      await api.deleteServicePlaylist(item.service, id);
+      // La carte disparaît : on retire la playlist de la liste DE SON
+      // SERVICE — `streamingPlaylists` est un dictionnaire par service, pas
+      // une liste à plat — plutôt que de recharger tout l'écran.
+      streamingPlaylists = {
+        ...streamingPlaylists,
+        [item.service]: (streamingPlaylists[item.service] ?? []).filter(
+          (p) => String(p.source_id) !== id,
+        ),
+      };
+      mergeSelected = new Set([...mergeSelected].filter((c) => c !== mergeKey(item.service, id)));
+    } catch (err: any) {
+      notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
+    }
+    suppressionEnCours = null;
+  }
 
   // Quick Transfer (standalone transfer from Transfers tab)
   let qtSourceService = $state('');
@@ -512,6 +864,15 @@
   ]);
 
   async function loadAll() {
+    // 🔴 Les capacités des services étaient chargées UNIQUEMENT à l'ouverture
+    // de l'onglet Sync. Sur l'onglet Playlists, `serviceCapabilities` restait
+    // `{}`, donc `serviceSaitSupprimer()` rendait toujours `false` et la
+    // corbeille n'apparaissait sur AUCUNE carte. Bertrand : « Où se trouve le
+    // bouton pour delete une playlist ? » — nulle part, en réalité.
+    api
+      .getPlaylistManagerServices()
+      .then((c) => (serviceCapabilities = c))
+      .catch(() => {});
     loading = true;
     loadedCount = 0;
     loadingStatus = $tr('playlistManager.loadingLocal');
@@ -610,6 +971,8 @@
     service: string;
     name: string;
     trackCount: number;
+    /** Les pochettes de la mosaïque, quand le service les fournit (Qobuz). */
+    covers?: string[];
     coverPath?: string | null;
   }
 
@@ -639,11 +1002,81 @@
           name: pl.name,
           trackCount: pl.track_count,
           coverPath: pl.cover_path,
+          covers: pl.covers,
         });
       }
     }
 
     return items;
+  });
+
+  /**
+   * LES MOSAÏQUES — « Et les 4 covers sur la cover de la playlist !! »
+   * (Bertrand, 21/09).
+   *
+   * Une playlist tout juste fusionnée n'a pas de pochette : Tidal et Qobuz
+   * fabriquent la leur de leur côté, plus tard. Et une playlist LOCALE n'en a
+   * jamais — le serveur ne rend que `id, name, track_count`. Le gestionnaire
+   * posait alors une note de musique, là où l'écran Playlists (`PlaylistsV2`)
+   * compose depuis le 01/09 une mosaïque 2×2 : la règle de Bertrand, « divise
+   * en 4 pour montrer que c'est un assemblage ».
+   *
+   * Même composant, même dédoublonnage (`quatreDistinctes`), et seulement
+   * pour les cartes SANS pochette : une playlist de service qui a déjà la
+   * sienne la garde — c'est celle que le service montre partout ailleurs.
+   *
+   * ⚠️ Une requête par carte sans pochette. Elles partent APRÈS l'affichage,
+   * ne bloquent rien, et un échec ne coûte que sa propre vignette.
+   */
+  let mosaiques = $state<Record<string, string[]>>({});
+  const mosaiquesDemandees = new Set<string>();
+
+  async function chargerMosaique(item: DisplayPlaylist): Promise<void> {
+    const id = identifiantDe(item);
+    if (!id) return;
+    const cle = mergeKey(item.service, id);
+    try {
+      const pistes =
+        item.service === 'local'
+          ? await api.getPlaylistTracks(Number(id))
+          : await api.getStreamingPlaylistTracks(item.service, id);
+      const vues = quatreDistinctes(
+        (pistes ?? []).map((t: any) => ({
+          cover_path: t?.cover_path ?? null,
+          title: t?.album_title ?? null,
+        })),
+      );
+      if (vues.length) mosaiques = { ...mosaiques, [cle]: vues };
+    } catch {
+      // Sa vignette garde la note de musique ; les autres ne sont pas touchées.
+    }
+  }
+
+  $effect(() => {
+    for (const item of displayPlaylists) {
+      if (item.coverPath) continue;
+      const cle = mergeKey(item.service, identifiantDe(item));
+      // Une seule demande par carte : l'effet repasse à chaque changement de
+      // la liste, et redemander à chaque passage ferait une boucle réseau.
+      if (mosaiquesDemandees.has(cle)) continue;
+      mosaiquesDemandees.add(cle);
+      void chargerMosaique(item);
+    }
+  });
+
+  /**
+   * Proposer le nom dès la deuxième carte cochée.
+   *
+   * Posé ICI, après `displayPlaylists` dont il lit les noms. Il ne réécrit
+   * jamais une saisie : `mergeNameTouched` le tient, et le champ vidé à la
+   * main reste vide — l'indication sous la barre dit alors pourquoi le bouton
+   * est gris.
+   */
+  $effect(() => {
+    if (mergeNameTouched) return;
+    if (mergeSelected.size < 2) return;
+    const propose = nomDeFusionPropose();
+    if (propose && propose !== mergeName) mergeName = propose;
   });
 
   async function selectLocal(pl: Playlist) {
@@ -1181,17 +1614,17 @@
   <button class="view-tab" class:active={viewTab === 'smart-ai'} onclick={() => viewTab = 'smart-ai'}>
     {$tr('smartai.title')}
   </button>
-  <button class="view-tab" class:active={viewTab === 'hub'} onclick={() => viewTab = 'hub'}>
-    {$tr('playlists.hubTitle')}
-  </button>
+  <!-- L'onglet « Playlists Hub » a disparu (Bertrand, 21/09/2026). C'était un
+       POC de la v0.7.30 dont trois des quatre sous-onglets — Transferts,
+       Liens auto-sync, Snapshots — faisaient doublon avec ceux de ce
+       gestionnaire. Le transfert devient un greffon premium,
+       « Playlists converter ». -->
 </div>
 
 {#if viewTab === 'smart'}
   <SmartPlaylistsView />
 {:else if viewTab === 'smart-ai'}
   <SmartAIView />
-{:else if viewTab === 'hub'}
-  <PlaylistsHub />
 {:else}
 <div class="pm-view">
   {#if selectedPlaylist || selectedStreamingPl}
@@ -1264,8 +1697,22 @@
     {:else}
       <div class="track-list">
         {#each detailTracks as t, index}
+          <!--
+            Une piste que le SERVICE dit indisponible est grisée, étiquetée, et
+            ne se lance pas : la lancer rendrait « no url ». Demandé par
+            Bertrand le 21/09/2026 sur « tttroys playlist » — 186 de ses 1 454
+            pistes sont dans ce cas, dont la PREMIÈRE, qui s'affichait comme
+            les autres.
+
+            🔴 Le mécanisme existait déjà (`pisteIndisponible`, point 10 du
+            17/09) dans `ListePistesV2` et `LignePisteV2` — mais cet écran-ci a
+            sa propre liste de pistes et n'en profitait pas. Troisième liste,
+            troisième oubli : c'est le prix d'avoir trois rendus de piste.
+          -->
+          {@const indispo = pisteIndisponible(t)}
           <div
             class="track-item"
+            class:indispo
             class:playing={estLaPisteEnLecture(t, $currentTrackId, $currentTrack)}
             aria-current={estLaPisteEnLecture(t, $currentTrackId, $currentTrack) ? 'true' : undefined}
             class:drag-over={dragOverIndex === index}
@@ -1280,7 +1727,7 @@
             <!-- Clic de ligne = toute la playlist en file à partir de cette piste,
                  sinon la file ne contient qu'une piste et rien ne s'enchaîne
                  (« l'enchaînement ne marche pas », Bertrand, Qobuz sur .18). -->
-            <button class="track-play" onclick={() => playFromIndex(index)}>
+            <button class="track-play" onclick={() => { if (!indispo) playFromIndex(index); }} disabled={indispo}>
               <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
               <span class="track-thumb">
                 <AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? t.title ?? ''} />
@@ -1291,6 +1738,7 @@
                   <span class="track-artist truncate" use:bulleTexte>{t.artist_name}</span>
                 {/if}
               </div>
+              {#if indispo}<span class="track-indispo">{$tr('playlist.unavailable')}</span>{/if}
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
             </button>
@@ -1368,220 +1816,235 @@
     </div>
 
     {#if managerTab === 'transfers'}
-      <!-- Transfer Tab: Quick Transfer + History -->
-      <div class="pm-tab-content">
-        <!-- Quick Transfer Section -->
-        <div class="qt-section">
-          <h3>{$tr('playlist.transfer')}</h3>
-          <p class="qt-hint">{$tr('playlistManager.transferHint')}</p>
+      {#if $isPremium}
+        <!-- Transfer Tab: Quick Transfer + History -->
+        <div class="pm-tab-content">
+          <!-- Quick Transfer Section -->
+          <div class="qt-section">
+            <h3>{$tr('playlist.transfer')}</h3>
+            <p class="qt-hint">{$tr('playlistManager.transferHint')}</p>
 
-          {#if qtResult}
-            <!-- Transfer result -->
-            <div class="qt-result">
-              <div class="qt-result-header">
-                <h4>"{qtResult.playlist_name}" — {$tr('playlist.transferComplete')}</h4>
-                <button class="btn-action btn-sm-action" onclick={qtResetTransfer}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
-                  {$tr('playlistManager.newTransfer')}
-                </button>
-              </div>
-              <div class="transfer-summary">
-                <button class="summary-stat matched" class:active={qtFilter === 'matched'} onclick={() => qtFilter = qtFilter === 'matched' ? 'all' : 'matched'}>{qtResult.matched} {$tr('playlist.matched')}</button>
-                <button class="summary-stat approximate" class:active={qtFilter === 'approximate'} onclick={() => qtFilter = qtFilter === 'approximate' ? 'all' : 'approximate'}>{qtResult.approximate} {$tr('playlist.approximate')}</button>
-                <button class="summary-stat not-found" class:active={qtFilter === 'not_found'} onclick={() => qtFilter = qtFilter === 'not_found' ? 'all' : 'not_found'}>{qtResult.not_found} {$tr('playlist.notFound')}</button>
-              </div>
-              {#if qtResult.tracks.length > 0}
-                <div class="transfer-tracks qt-tracks">
-                  {#each qtResult.tracks.filter(t => qtFilter === 'all' || t.status === qtFilter) as track, i}
-                    {@const trackIndex = qtResult.tracks.indexOf(track)}
-                    <div class="transfer-track-row status-{track.status}">
-                      <span class="transfer-status-dot"></span>
-                      <div class="transfer-track-info">
-                        <div class="transfer-track-main">
-                          <span class="transfer-track-title" use:bulleTexte>{track.title}</span>
-                          {#if track.artist_name}
-                            <span class="transfer-track-artist" use:bulleTexte>{track.artist_name}</span>
-                          {/if}
-                          <span class="transfer-track-status">
-                            {#if track.match_method === 'manual'}
-                              {$tr('playlist.manualMatch')}
-                            {:else}
-                              {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+            {#if qtResult}
+              <!-- Transfer result -->
+              <div class="qt-result">
+                <div class="qt-result-header">
+                  <h4>"{qtResult.playlist_name}" — {$tr('playlist.transferComplete')}</h4>
+                  <button class="btn-action btn-sm-action" onclick={qtResetTransfer}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                    {$tr('playlistManager.newTransfer')}
+                  </button>
+                </div>
+                <div class="transfer-summary">
+                  <button class="summary-stat matched" class:active={qtFilter === 'matched'} onclick={() => qtFilter = qtFilter === 'matched' ? 'all' : 'matched'}>{qtResult.matched} {$tr('playlist.matched')}</button>
+                  <button class="summary-stat approximate" class:active={qtFilter === 'approximate'} onclick={() => qtFilter = qtFilter === 'approximate' ? 'all' : 'approximate'}>{qtResult.approximate} {$tr('playlist.approximate')}</button>
+                  <button class="summary-stat not-found" class:active={qtFilter === 'not_found'} onclick={() => qtFilter = qtFilter === 'not_found' ? 'all' : 'not_found'}>{qtResult.not_found} {$tr('playlist.notFound')}</button>
+                </div>
+                {#if qtResult.tracks.length > 0}
+                  <div class="transfer-tracks qt-tracks">
+                    {#each qtResult.tracks.filter(t => qtFilter === 'all' || t.status === qtFilter) as track, i}
+                      {@const trackIndex = qtResult.tracks.indexOf(track)}
+                      <div class="transfer-track-row status-{track.status}">
+                        <span class="transfer-status-dot"></span>
+                        <div class="transfer-track-info">
+                          <div class="transfer-track-main">
+                            <span class="transfer-track-title" use:bulleTexte>{track.title}</span>
+                            {#if track.artist_name}
+                              <span class="transfer-track-artist" use:bulleTexte>{track.artist_name}</span>
                             {/if}
-                          </span>
-                        </div>
-                        {#if track.status === 'approximate' && track.target_title}
-                          <div class="transfer-match-info">
-                            <span class="match-label">{$tr('playlist.matchedAs')}</span>
-                            <span class="match-title" use:bulleTexte>{track.target_title}</span>
-                            {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
-                            {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
+                            <span class="transfer-track-status">
+                              {#if track.match_method === 'manual'}
+                                {$tr('playlist.manualMatch')}
+                              {:else}
+                                {$tr(`playlist.${track.status === 'not_found' ? 'notFound' : track.status === 'approximate' ? 'approximate' : 'matched'}`)}
+                              {/if}
+                            </span>
                           </div>
-                        {/if}
-                        {#if track.match_method === 'manual' && track.target_title}
-                          <div class="transfer-match-info">
-                            <span class="match-title" use:bulleTexte>{track.target_title}</span>
-                            {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
-                            {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
-                          </div>
-                        {/if}
-                        {#if (track.status === 'not_found' || track.status === 'approximate') && track.alternatives && track.alternatives.length > 0}
-                          <button class="alt-toggle" onclick={() => qtToggleAlternatives(trackIndex)}>
-                            {qtExpandedAlternatives.has(trackIndex) ? $tr('playlist.hideAlternatives') : `${$tr('playlist.showAlternatives')} (${track.alternatives.length})`}
-                          </button>
-                          {#if qtExpandedAlternatives.has(trackIndex)}
-                            <div class="alternatives">
-                              {#each track.alternatives as alt}
-                                <div class="alt-row">
-                                  <span class="alt-title" use:bulleTexte>{alt.title}</span>
-                                  <span class="alt-artist" use:bulleTexte>{alt.artist_name}</span>
-                                  <span class="alt-score">{Math.round(alt.score * 100)}%</span>
-                                  <button class="alt-pick" onclick={() => qtPickAlternative(track, alt)}>
-                                    {track.status === 'approximate' ? $tr('playlist.replace') : $tr('playlist.choose')}
-                                  </button>
-                                </div>
-                              {/each}
+                          {#if track.status === 'approximate' && track.target_title}
+                            <div class="transfer-match-info">
+                              <span class="match-label">{$tr('playlist.matchedAs')}</span>
+                              <span class="match-title" use:bulleTexte>{track.target_title}</span>
+                              {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
+                              {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
                             </div>
                           {/if}
-                        {/if}
+                          {#if track.match_method === 'manual' && track.target_title}
+                            <div class="transfer-match-info">
+                              <span class="match-title" use:bulleTexte>{track.target_title}</span>
+                              {#if track.target_artist}<span class="match-artist" use:bulleTexte>- {track.target_artist}</span>{/if}
+                              {#if track.score}<span class="match-score">{Math.round(track.score * 100)}%</span>{/if}
+                            </div>
+                          {/if}
+                          {#if (track.status === 'not_found' || track.status === 'approximate') && track.alternatives && track.alternatives.length > 0}
+                            <button class="alt-toggle" onclick={() => qtToggleAlternatives(trackIndex)}>
+                              {qtExpandedAlternatives.has(trackIndex) ? $tr('playlist.hideAlternatives') : `${$tr('playlist.showAlternatives')} (${track.alternatives.length})`}
+                            </button>
+                            {#if qtExpandedAlternatives.has(trackIndex)}
+                              <div class="alternatives">
+                                {#each track.alternatives as alt}
+                                  <div class="alt-row">
+                                    <span class="alt-title" use:bulleTexte>{alt.title}</span>
+                                    <span class="alt-artist" use:bulleTexte>{alt.artist_name}</span>
+                                    <span class="alt-score">{Math.round(alt.score * 100)}%</span>
+                                    <button class="alt-pick" onclick={() => qtPickAlternative(track, alt)}>
+                                      {track.status === 'approximate' ? $tr('playlist.replace') : $tr('playlist.choose')}
+                                    </button>
+                                  </div>
+                                {/each}
+                              </div>
+                            {/if}
+                          {/if}
+                        </div>
                       </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            {:else}
+              <!-- Transfer form -->
+              <div class="qt-form">
+                <div class="qt-row">
+                  <div class="qt-field">
+                    <label class="qt-label">{$tr('playlist.source')}</label>
+                    <select class="qt-select" bind:value={qtSourceService} onchange={(e) => qtLoadSourcePlaylists((e.target as HTMLSelectElement).value)}>
+                      <option value="">{$tr('playlistManager.pickService')}</option>
+                      {#each qtAvailableServices as svc}
+                        <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
+                      {/each}
+                    </select>
+                  </div>
+                  <div class="qt-arrow">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
+                  </div>
+                  <div class="qt-field">
+                    <label class="qt-label">{$tr('playlist.target')}</label>
+                    <select class="qt-select" bind:value={qtTargetService} disabled={!qtSourceService}>
+                      {#each qtTargetServices as svc}
+                        <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
+                      {/each}
+                    </select>
+                  </div>
+                </div>
+
+                {#if qtSourceService}
+                  <div class="qt-playlist-row">
+                    <div class="qt-field" style="flex: 2;">
+                      <label class="qt-label">{$tr('playlist.selectPlaylist')}</label>
+                      {#if qtLoadingPlaylists}
+                        <div class="qt-loading"><div class="spinner"></div></div>
+                      {:else}
+                        <select class="qt-select" bind:value={qtSourcePlaylistId} onchange={(e) => qtSelectPlaylist((e.target as HTMLSelectElement).value)}>
+                          <option value="">-- {$tr('playlist.selectPlaylist')} --</option>
+                          {#each qtSourcePlaylists as pl}
+                            <option value={'source_id' in pl ? (pl as StreamingPlaylist).source_id : String((pl as Playlist).id)}>
+                              {pl.name} ({$tr('playlistManager.trackCount').replace('{count}', String(('track_count' in pl ? pl.track_count : (pl as Playlist).track_count) ?? '?'))})
+                            </option>
+                          {/each}
+                        </select>
+                      {/if}
                     </div>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          {:else}
-            <!-- Transfer form -->
-            <div class="qt-form">
-              <div class="qt-row">
-                <div class="qt-field">
-                  <label class="qt-label">{$tr('playlist.source')}</label>
-                  <select class="qt-select" bind:value={qtSourceService} onchange={(e) => qtLoadSourcePlaylists((e.target as HTMLSelectElement).value)}>
-                    <option value="">{$tr('playlistManager.pickService')}</option>
-                    {#each qtAvailableServices as svc}
-                      <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
-                    {/each}
-                  </select>
-                </div>
-                <div class="qt-arrow">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
-                </div>
-                <div class="qt-field">
-                  <label class="qt-label">{$tr('playlist.target')}</label>
-                  <select class="qt-select" bind:value={qtTargetService} disabled={!qtSourceService}>
-                    {#each qtTargetServices as svc}
-                      <option value={svc}>{svc === 'local' ? $tr('playlist.local') : serviceName(svc)}</option>
-                    {/each}
-                  </select>
-                </div>
-              </div>
+                    <div class="qt-field" style="flex: 1;">
+                      <label class="qt-label">{$tr('playlist.name')}</label>
+                      <input type="text" class="qt-input" bind:value={qtTargetName} placeholder={$tr('playlistManager.targetNamePlaceholder')} />
+                    </div>
+                  </div>
+                {/if}
 
-              {#if qtSourceService}
-                <div class="qt-playlist-row">
-                  <div class="qt-field" style="flex: 2;">
-                    <label class="qt-label">{$tr('playlist.selectPlaylist')}</label>
-                    {#if qtLoadingPlaylists}
-                      <div class="qt-loading"><div class="spinner"></div></div>
+                <div class="qt-actions">
+                  <button
+                    class="btn-action qt-transfer-btn"
+                    onclick={doQuickTransfer}
+                    disabled={qtTransferring || !qtSourcePlaylistId || !qtSourceService}
+                  >
+                    {#if qtTransferring}
+                      <div class="spinner-small"></div>
+                      {$tr('playlist.transferring')}
                     {:else}
-                      <select class="qt-select" bind:value={qtSourcePlaylistId} onchange={(e) => qtSelectPlaylist((e.target as HTMLSelectElement).value)}>
-                        <option value="">-- {$tr('playlist.selectPlaylist')} --</option>
-                        {#each qtSourcePlaylists as pl}
-                          <option value={'source_id' in pl ? (pl as StreamingPlaylist).source_id : String((pl as Playlist).id)}>
-                            {pl.name} ({$tr('playlistManager.trackCount').replace('{count}', String(('track_count' in pl ? pl.track_count : (pl as Playlist).track_count) ?? '?'))})
-                          </option>
-                        {/each}
-                      </select>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
+                      {$tr('playlist.transfer')}
                     {/if}
-                  </div>
-                  <div class="qt-field" style="flex: 1;">
-                    <label class="qt-label">{$tr('playlist.name')}</label>
-                    <input type="text" class="qt-input" bind:value={qtTargetName} placeholder={$tr('playlistManager.targetNamePlaceholder')} />
-                  </div>
+                  </button>
                 </div>
-              {/if}
-
-              <div class="qt-actions">
-                <button
-                  class="btn-action qt-transfer-btn"
-                  onclick={doQuickTransfer}
-                  disabled={qtTransferring || !qtSourcePlaylistId || !qtSourceService}
-                >
-                  {#if qtTransferring}
-                    <div class="spinner-small"></div>
-                    {$tr('playlist.transferring')}
-                  {:else}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 014-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 01-4 4H3" /></svg>
-                    {$tr('playlist.transfer')}
-                  {/if}
-                </button>
               </div>
-            </div>
-          {/if}
-        </div>
-
-        <!-- Transfer History -->
-        <div class="qt-history-section">
-          <div class="tab-actions">
-            <h3>{$tr('playlistManager.transferHistory')}</h3>
+            {/if}
           </div>
-          {#if historyLoading}
-            <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
-          {:else if transferHistory.length === 0}
-            <div class="empty">{$tr('playlistManager.noTransfers')}</div>
-          {:else}
-            <div class="history-list">
-              {#each transferHistory as entry}
-                <div class="history-row">
-                  <div class="history-op">{entry.operation}</div>
-                  <div class="history-info">
-                    <span class="history-name">{entry.source_playlist_name || '?'}</span>
-                    <span class="history-arrow">{entry.source_service} → {entry.target_service}</span>
-                  </div>
-                  <div class="history-stats">
-                    <span class="stat-ok">{entry.matched} ok</span>
-                    <span class="stat-approx">{entry.approximate} ~</span>
-                    <span class="stat-miss">{entry.not_found} ✕</span>
-                  </div>
-                  <span class="history-date">{entry.started_at?.substring(0, 16)}</span>
-                </div>
-              {/each}
+
+          <!-- Transfer History -->
+          <div class="qt-history-section">
+            <div class="tab-actions">
+              <h3>{$tr('playlistManager.transferHistory')}</h3>
             </div>
+            {#if historyLoading}
+              <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+            {:else if transferHistory.length === 0}
+              <div class="empty">{$tr('playlistManager.noTransfers')}</div>
+            {:else}
+              <div class="history-list">
+                {#each transferHistory as entry}
+                  <div class="history-row">
+                    <div class="history-op">{entry.operation}</div>
+                    <div class="history-info">
+                      <span class="history-name">{entry.source_playlist_name || '?'}</span>
+                      <span class="history-arrow">{entry.source_service} → {entry.target_service}</span>
+                    </div>
+                    <div class="history-stats">
+                      <span class="stat-ok">{entry.matched} ok</span>
+                      <span class="stat-approx">{entry.approximate} ~</span>
+                      <span class="stat-miss">{entry.not_found} ✕</span>
+                    </div>
+                    <span class="history-date">{entry.started_at?.substring(0, 16)}</span>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        </div>
+
+      {:else}
+        <div class="pm-tab-content">
+          <p class="pm-premium">{$tr('playlistManager.premiumTransfers' as any)}</p>
+        </div>
+      {/if}
+    {:else if managerTab === 'sync'}
+      {#if $isPremium}
+        <!-- Sync Links Tab -->
+        <div class="pm-tab-content">
+          <div class="tab-actions">
+            <h3>{$tr('playlistManager.syncLinks')}</h3>
+          </div>
+          {#if syncLoading}
+            <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
+          {:else if syncLinks.length === 0}
+            <div class="empty">{$tr('playlistManager.noSyncLinks')}</div>
+          {:else}
+            {#each syncLinks as link}
+              <div class="sync-row">
+                <div class="sync-info">
+                  <span>Playlist #{link.local_playlist_id}</span>
+                  <span class="sync-arrow">↔ {link.service} / {link.service_playlist_id}</span>
+                  <span class="sync-dir">{link.sync_direction}</span>
+                </div>
+                <div class="sync-actions">
+                  <button class="btn-sm" onclick={() => triggerSync(link.id)} disabled={syncing.has(link.id)}>
+                    {syncing.has(link.id) ? 'Sync...' : 'Sync'}
+                  </button>
+                  <button class="btn-sm danger" onclick={() => deleteLink(link.id)}>✕</button>
+                </div>
+                {#if link.last_synced_at}
+                  <span class="sync-date">{$tr('playlistManager.last')}: {link.last_synced_at.substring(0, 16)}</span>
+                {/if}
+              </div>
+            {/each}
           {/if}
         </div>
-      </div>
 
-    {:else if managerTab === 'sync'}
-      <!-- Sync Links Tab -->
-      <div class="pm-tab-content">
-        <div class="tab-actions">
-          <h3>{$tr('playlistManager.syncLinks')}</h3>
+      {:else}
+        <!-- Coupure nette, comme le crossfeed et le convertisseur : on ne grise
+             pas, on DIT pourquoi. La fonction rejoint le greffon premium
+             « Playlists converter » (Bertrand, 21/09/2026). -->
+        <div class="pm-tab-content">
+          <p class="pm-premium">{$tr('playlistManager.premiumSync' as any)}</p>
         </div>
-        {#if syncLoading}
-          <div class="loading"><div class="spinner"></div>{$tr('common.loading')}</div>
-        {:else if syncLinks.length === 0}
-          <div class="empty">{$tr('playlistManager.noSyncLinks')}</div>
-        {:else}
-          {#each syncLinks as link}
-            <div class="sync-row">
-              <div class="sync-info">
-                <span>Playlist #{link.local_playlist_id}</span>
-                <span class="sync-arrow">↔ {link.service} / {link.service_playlist_id}</span>
-                <span class="sync-dir">{link.sync_direction}</span>
-              </div>
-              <div class="sync-actions">
-                <button class="btn-sm" onclick={() => triggerSync(link.id)} disabled={syncing.has(link.id)}>
-                  {syncing.has(link.id) ? 'Sync...' : 'Sync'}
-                </button>
-                <button class="btn-sm danger" onclick={() => deleteLink(link.id)}>✕</button>
-              </div>
-              {#if link.last_synced_at}
-                <span class="sync-date">{$tr('playlistManager.last')}: {link.last_synced_at.substring(0, 16)}</span>
-              {/if}
-            </div>
-          {/each}
-        {/if}
-      </div>
-
+      {/if}
     {:else if managerTab === 'backup'}
       <!-- Backup Tab -->
       <div class="pm-tab-content">
@@ -1752,21 +2215,37 @@
         </button>
       {/each}
     </div>
-    <button
-      class="merge-toggle-btn"
-      class:active={mergeMode}
-      onclick={() => { mergeMode = !mergeMode; if (!mergeMode) cancelMerge(); }}
-      title={$tr('playlistManager.mergeTooltip')}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-      {mergeMode ? $tr('playlistManager.cancelMerge') : $tr('playlistManager.merge')}
-    </button>
+    <!-- Le bouton de MODE « Fusionner » a disparu : on sélectionne d'abord,
+         par le coin d'une carte, et la barre d'actions apparaît ensuite.
+         Voir le commentaire de `mergeSelected`. -->
 
     {#if mergeResult}
       <div class="backup-result" style="margin-bottom: 8px;">
         <span class="stat-ok">{$tr('playlistManager.mergeCreated').replace('{name}', mergeResult.name).replace('{count}', String(mergeResult.total_tracks))}</span>
         <button class="cancel-btn" onclick={() => mergeResult = null}>{$tr('common.ok')}</button>
       </div>
+      {#if mergeResult.unmatched && mergeResult.unmatched.length > 0}
+        <!-- Les titres NON retrouvés dans le catalogue de la cible, NOMMÉS
+             (choix de Bertrand, 21/09). Un simple compte laisserait chercher
+             lesquels dans une playlist de deux cents titres. -->
+        <details class="fusion-absents" open>
+          <summary>
+            {$tr('playlistManager.unmatchedHeader' as any).replace(
+              '{count}',
+              String(mergeResult.unmatched.length),
+            )}
+          </summary>
+          <ul>
+            {#each mergeResult.unmatched as t}
+              <li>
+                <span class="fa-titre">{t.title}</span>
+                {#if t.artist}<span class="fa-artiste">{t.artist}</span>{/if}
+                <span class="fa-service">{t.service === 'local' ? $tr('playlist.local') : serviceName(t.service)}</span>
+              </li>
+            {/each}
+          </ul>
+        </details>
+      {/if}
     {/if}
 
     {#if showCreate}
@@ -1790,15 +2269,34 @@
       <div class="empty">{$tr('playlist.noPlaylists')}</div>
     {/if}
 
-    {#if mergeMode && mergeSelected.size > 0}
+    {#if mergeSelected.size > 0}
       <div class="merge-bar">
         <span class="merge-count">{$tr('playlistManager.playlistsSelected').replace('{count}', String(mergeSelected.size))}</span>
         <input
           type="text"
           placeholder={$tr('playlistManager.mergedNamePlaceholder')}
           bind:value={mergeName}
+          oninput={() => (mergeNameTouched = true)}
           class="merge-input"
         />
+        <!-- LE SÉLECTEUR DE CIBLE — « quand vais-je choisir la cible ? » :
+             ici, et TOUJOURS visible (choix de Bertrand, 21/09). Le laisser
+             apparaître seulement sur une sélection mixte aurait caché la
+             seule réponse à la question, et rendu le cas courant illisible
+             quand il compte : quand on veut justement changer d'endroit. -->
+        <label class="merge-cible">
+          {$tr('playlistManager.mergeTarget' as any)}
+          <select
+            value={cibleFusion}
+            onchange={(e) => (cibleChoisie = e.currentTarget.value)}
+            class="merge-select"
+          >
+            <option value="local">{$tr('playlist.local')}</option>
+            {#each authenticatedServices as svc}
+              <option value={svc}>{serviceName(svc)}</option>
+            {/each}
+          </select>
+        </label>
         <label class="merge-dedup">
           <input type="checkbox" bind:checked={mergeDedup} />
           {$tr('playlistManager.deduplicate')}
@@ -1810,54 +2308,193 @@
         >
           {merging ? $tr('playlistManager.merging') : $tr('playlistManager.merge')}
         </button>
+        {#if selectionSupprimable}
+          <!-- « à côté de merge ?? » — Bertrand, 21/09. La corbeille par carte
+               ne se révélait qu'au survol, sous le nom ; celle-ci est là dès
+               qu'une case est cochée, et agit sur tout le lot. -->
+          <button
+            class="danger-btn"
+            onclick={supprimerLaSelection}
+            disabled={suppressionLot}
+          >
+            {suppressionLot ? $tr('playlistManager.deleting' as any) : $tr('common.delete')}
+          </button>
+        {/if}
         <button class="cancel-btn" onclick={cancelMerge}>{$tr('common.cancel')}</button>
       </div>
+      {#if mergeSelected.size < 2}
+        <!-- Dire POURQUOI le bouton ne part pas, plutôt que de le griser en
+             silence : une seule playlist ne se fusionne avec rien. -->
+        <p class="merge-hint">{$tr('playlistManager.selectAtLeastTwo' as any)}</p>
+      {:else if !mergeName.trim()}
+        <!-- L'AUTRE motif du gris, celui qui a mordu : le nom manque. -->
+        <p class="merge-hint">{$tr('playlistManager.nameRequired' as any)}</p>
+      {:else if titresAApparier > 0}
+        <!-- Une fusion croisée cherche chaque titre dans le catalogue de la
+             cible : un aller-retour réseau par titre. Le dire AVANT, pas
+             après — c'est la différence entre « c'est long » et « c'est
+             planté ». -->
+        <p class="merge-hint">
+          {$tr('playlistManager.crossServiceNotice' as any)
+            .replace('{count}', String(titresAApparier))
+            .replace('{target}', cibleFusion === 'local' ? $tr('playlist.local') : serviceName(cibleFusion))}
+        </p>
+      {/if}
     {/if}
 
     {#if displayPlaylists.length > 0}
-      <div class="playlist-list">
+      <!--
+        LA GRILLE (maquette Levente, 20/09/2026). C'était une liste verticale.
+
+        Ce qui change vraiment n'est pas la forme mais le GESTE : le coin bas
+        gauche de chaque carte coche la playlist, et la barre de fusion
+        apparaît au-dessus. Plus de mode à découvrir — c'est ce qui faisait
+        dire « la fusion ne marche pas ».
+
+        🔴 La sélection FUT confinée à un service : cocher une carte TIDAL
+        rendait inertes toutes les cartes Qobuz. Bertrand, 21/09 : « Quand
+        je vais merger des playlists de Tidal et Qobuz, quand vais-je choisir
+        la cible ? » — jamais, puisqu'il ne pouvait pas mélanger. Le verrou
+        est tombé, et la cible se choisit dans la barre.
+      -->
+      <div class="pl-grille">
         {#each displayPlaylists as item}
-          <div class="playlist-item" class:merge-selected={mergeMode && mergeSelected.has(mergeKey(item.service, String(item.local?.id ?? item.streaming?.source_id ?? '')))}>
-            {#if mergeMode}
-              <input
-                type="checkbox"
-                class="merge-check"
-                checked={mergeSelected.has(mergeKey(item.service, String(item.local?.id ?? item.streaming?.source_id ?? '')))}
-                onchange={() => toggleMergeSelect(item.service, String(item.local?.id ?? item.streaming?.source_id ?? ''))}
-              />
-            {/if}
-            <button class="playlist-btn" onclick={() => mergeMode ? toggleMergeSelect(item.service, String(item.local?.id ?? item.streaming?.source_id ?? '')) : selectItem(item)}>
-              <div class="playlist-icon" class:streaming-icon={item.type === 'streaming'}>
-                {#if item.coverPath}
-                  <AlbumArt coverPath={item.coverPath} size={48} alt={item.name} />
-                {:else}
+          {@const cle = mergeKey(item.service, identifiantDe(item))}
+          {@const cochee = mergeSelected.has(cle)}
+          <div class="pl-carte" class:cochee>
+            <!-- 🔴 LA VIGNETTE EST LA BOÎTE DE RÉFÉRENCE DES QUATRE COINS.
+                 Ils étaient positionnés contre la CARTE entière : les deux du
+                 haut tombaient juste par accident, et les deux du bas
+                 atterrissaient sous le nom et le badge, loin de la pochette.
+                 Bertrand : « le bouton de sélection doit être au coin bas
+                 gauche de la POCHETTE ». Les coins sont donc frères du bouton
+                 de pochette, dans une boîte qui a exactement sa taille — et
+                 jamais DEDANS : un bouton dans un bouton est du balisage
+                 invalide que les navigateurs défont (#1006). -->
+            <div class="pl-vignette">
+            <button class="pl-pochette" onclick={() => selectItem(item)} aria-label={item.name}>
+              {#if item.covers && item.covers.length > 0}
+                <!-- Les quatre pochettes que QOBUZ fournit déjà dans la liste :
+                     aucune requête de plus, là où le repli en coûte une par
+                     carte. Toujours quatre cases, même avec une seule image
+                     — la règle du 01/09. -->
+                <MosaiquePochettes pochettes={item.covers} alt={item.name} />
+              {:else if item.coverPath}
+                <AlbumArt coverPath={item.coverPath} size={0} alt={item.name} />
+              {:else if mosaiques[cle]}
+                <MosaiquePochettes pochettes={mosaiques[cle]} alt={item.name} />
+              {:else}
+                <span class="pl-vide">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
-                {/if}
-              </div>
-              <div class="playlist-info">
-                <span class="playlist-name">{item.name}</span>
-                <span class="playlist-meta">
-                  <span class="source-dot" style="background: {serviceColor(item.service)}"></span>
-                  {item.service === 'local' ? $tr('playlist.local') : serviceName(item.service)}
-                  &middot;
-                  {item.trackCount} {$tr('common.tracks')}
                 </span>
-              </div>
-              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="9 18 15 12 9 6" /></svg>
+              {/if}
             </button>
-            {#if item.type === 'streaming' && item.streaming}
-              <button class="import-mini-btn" onclick={(e) => { e.stopPropagation(); openImport(item.service, item.streaming!); }} title={$tr('playlist.import')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-              </button>
-            {/if}
-            {#if item.type === 'local' && item.local?.id}
-              <button class="share-btn" onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title={$tr('playlistManager.share')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
-              </button>
-              <button class="delete-btn" onclick={() => item.local?.id && deletePlaylist(item.local.id)} title={$tr('common.delete')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-              </button>
-            {/if}
+
+
+
+            <!--
+              LES CINQ APPELS À L'ACTION, sur CHAQUE pochette — locale comme de
+              service (Bertrand, 21/09/2026 : « je veux les 5 sur chaque cover
+              de playlist »).
+
+              Mesuré sur le .18 avant d'écrire, parce que « ça marche pour une
+              playlist de service » ne se devine pas :
+
+                · étiquettes  POST /tags/{id}/streaming-items {item_type:
+                              "playlist"} → 201, relu, puis retiré par
+                              /remove → 204 ;
+                · favori      `StreamingItemType` et `ServiceFavType` portent
+                              tous deux « playlist(s) », et `HeartButton`
+                              accepte déjà une cible de service ;
+                · lecture     `playStreamingPlaylist` existait ;
+                · sélection   la route de fusion prend {service, playlist_id}.
+
+              Le CRAYON ouvre la playlist — c'est là qu'on la renomme
+              (Bertrand : « edit la playlist et permet de la renommer »). Il ne
+              renomme donc pas depuis la carte, ce qui règle au passage le seul
+              point impossible : aucune route ne renomme une playlist CHEZ un
+              service.
+            -->
+            <span class="pl-coin-hg"><HeartButton {...favoriDe(item)} size={15} /></span>
+
+            <button
+              class="pl-coin-hd"
+              title={$tr('playlist.edit')}
+              aria-label={$tr('playlist.edit')}
+              onclick={(e) => { e.stopPropagation(); selectItem(item); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+            </button>
+
+            <button
+              class="pl-coin"
+              class:on={cochee}
+              aria-pressed={cochee}
+              aria-label={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+              title={$tr('playlistManager.selectPlaylist' as any).replace('{name}', item.name)}
+              onclick={(e) => { e.stopPropagation(); toggleMergeSelect(item.service, identifiantDe(item)); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="13" height="13"><path d="M20 6L9 17l-5-5" /></svg>
+            </button>
+
+            <button
+              class="pl-coin-bd"
+              title={$tr('v2.nav.tags' as any)}
+              aria-label={$tr('v2.nav.tags' as any)}
+              onclick={(e) => { e.stopPropagation(); etiquettesCible = cibleEtiquetteDe(item); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z" /><circle cx="6.5" cy="6.5" r="1.2" /></svg>
+            </button>
+
+            <button
+              class="pl-lire"
+              title={$tr('common.play')}
+              aria-label={$tr('common.play')}
+              onclick={(e) => { e.stopPropagation(); lirePlaylist(item); }}
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M8 5v14l11-7z" /></svg>
+            </button>
+            </div>
+
+            <div class="pl-texte">
+              <span class="pl-nom">{item.name}</span>
+              <span class="pl-compte">{item.trackCount} {$tr('common.tracks')}</span>
+              <span class="pl-badge" style="border-color: {serviceColor(item.service)}; color: {serviceColor(item.service)}">
+                {item.service === 'local' ? $tr('playlist.local') : serviceName(item.service)}
+              </span>
+            </div>
+
+
+            <div class="pl-actions">
+              {#if item.type === 'streaming' && item.streaming}
+                <button onclick={(e) => { e.stopPropagation(); openImport(item.service, item.streaming!); }} title={$tr('playlist.import')} aria-label={$tr('playlist.import')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                </button>
+                <!-- « pas de bouton pour supprimer une playlist Tidal ! ».
+                     Posé seulement si le SERVEUR annonce la capacité : chez
+                     un service qui ne sait pas supprimer, le clic rendrait
+                     501. -->
+                {#if serviceSaitSupprimer(item.service)}
+                  <button
+                    class="danger"
+                    disabled={suppressionEnCours === mergeKey(item.service, identifiantDe(item))}
+                    onclick={(e) => { e.stopPropagation(); supprimerPlaylistDeService(item); }}
+                    title={$tr('common.delete')}
+                    aria-label={$tr('common.delete')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                  </button>
+                {/if}
+              {/if}
+              {#if item.type === 'local' && item.local?.id}
+                <button onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title={$tr('playlistManager.share')} aria-label={$tr('playlistManager.share')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
+                </button>
+                <button class="danger" onclick={(e) => { e.stopPropagation(); item.local?.id && deletePlaylist(item.local.id); }} title={$tr('common.delete')} aria-label={$tr('common.delete')}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                </button>
+              {/if}
+            </div>
           </div>
         {/each}
       </div>
@@ -1865,6 +2502,18 @@
     {/if}
   {/if}
 </div>
+
+{#if etiquettesCible}
+  <!-- Monté UNE fois pour toute la grille, comme les autres écrans le font :
+       un panneau par carte en aurait posé autant que de playlists. -->
+  {#await import('../v2/EtiquettesPanneau.svelte') then m}
+    <m.default
+      cible={etiquettesCible}
+      nom={etiquettesCible.titre ?? ''}
+      onClose={() => (etiquettesCible = null)}
+    />
+  {/await}
+{/if}
 
 <!-- Import Dialog Overlay -->
 {#if importTarget}
@@ -2323,14 +2972,6 @@
   .snapshot-meta { font-size: 12px; color: var(--tune-text-secondary); }
   .snapshot-actions { display: flex; gap: 6px; flex-shrink: 0; }
   .btn-danger { background: rgba(248, 113, 113, 0.12); color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
-  .merge-toggle-btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 12px; border: 1px solid var(--tune-border); border-radius: 6px;
-    background: none; color: var(--tune-text-secondary); font-size: 12px;
-    cursor: pointer; transition: all 0.12s; margin-left: 8px;
-  }
-  .merge-toggle-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
-  .merge-toggle-btn.active { background: var(--tune-accent); color: white; border-color: var(--tune-accent); }
 
   .merge-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--tune-accent)22; border: 1px solid var(--tune-accent)66; border-radius: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .merge-count { font-weight: 600; font-size: 13px; color: var(--tune-text-primary); }
@@ -4059,4 +4700,101 @@
       flex-direction: column;
     }
   }
+
+  /* ── La grille de playlists (maquette Levente, 20/09/2026) ─────────────
+     Elle remplace `.playlist-list`. Cartes de 168 px minimum : en dessous,
+     un nom de playlist sur deux se coupe au milieu d'un mot. */
+  .pl-grille{display:grid; grid-template-columns:repeat(auto-fill, minmax(168px, 1fr));
+    gap:18px; padding:4px 0}
+  .pl-carte{display:flex; flex-direction:column; gap:8px;
+    border-radius:12px; transition:opacity .15s}
+  /* La boîte de référence des quatre coins : exactement la pochette. */
+  .pl-vignette{position:relative; width:100%; aspect-ratio:1}
+  .pl-pochette{width:100%; height:100%; border:0; padding:0;
+    border-radius:10px; overflow:hidden; cursor:pointer; background:var(--tune-surface);
+    display:block}
+  .pl-carte.cochee .pl-pochette{box-shadow:0 0 0 2px var(--tune-accent)}
+  .pl-pochette:focus-visible{outline:2px solid var(--tune-accent); outline-offset:2px}
+  .pl-vide{display:grid; place-items:center; width:100%; height:100%; color:var(--tune-text-muted)}
+  .pl-vide svg{width:34px; height:34px}
+
+  /* Le coin de sélection : posé SUR la pochette, en bas à gauche. */
+  .pl-coin{position:absolute; left:8px; bottom:8px; width:26px; height:26px;
+    display:grid; place-items:center; border-radius:7px; cursor:pointer;
+    border:1px solid var(--tune-border); background:var(--tune-bg); color:transparent;
+    opacity:0; transition:opacity .12s}
+  .pl-carte:hover .pl-coin, .pl-coin:focus-visible, .pl-coin.on{opacity:1}
+  .pl-coin.on{background:var(--tune-accent); border-color:var(--tune-accent); color:#fff}
+  .pl-coin:disabled{cursor:default}
+  .pl-texte{display:flex; flex-direction:column; gap:3px; min-width:0}
+  .pl-nom{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .pl-compte{font-size:11.5px; color:var(--tune-text-secondary)}
+  .pl-badge{align-self:flex-start; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
+    border:1px solid; border-radius:4px; padding:1px 6px}
+  .pl-actions{display:flex; gap:6px; opacity:0; transition:opacity .12s}
+  .pl-carte:hover .pl-actions, .pl-actions:focus-within{opacity:1}
+  .pl-actions button{width:26px; height:26px; display:grid; place-items:center; border-radius:7px;
+    border:1px solid var(--tune-border); background:transparent; color:var(--tune-text-secondary);
+    cursor:pointer}
+  .pl-actions button:hover{color:var(--tune-text)}
+  .pl-actions button.danger:hover{color:var(--tune-danger); border-color:var(--tune-danger)}
+  .merge-hint{margin:6px 0 0; font-size:11.5px; color:var(--tune-text-secondary)}
+  /* Le geste destructeur de la barre : lisible, mais jamais aussi présent que
+     la fusion — c'est elle qu'on vient faire ici. */
+  .fusion-absents{margin:0 0 10px; padding:8px 12px; border-radius:8px;
+    border:1px solid var(--tune-border); background:var(--tune-bg-elevated, transparent);
+    font-size:12.5px}
+  .fusion-absents summary{cursor:pointer; color:var(--tune-warning)}
+  .fusion-absents ul{margin:8px 0 0; padding:0 0 0 16px; max-height:220px; overflow:auto}
+  .fusion-absents li{margin:2px 0; color:var(--tune-text-secondary)}
+  .fa-titre{color:var(--tune-text)}
+  .fa-artiste{margin-left:6px}
+  .fa-artiste::before{content:"— "}
+  .fa-service{margin-left:6px; opacity:.7}
+  .fa-service::before{content:"· "}
+  .merge-cible{display:flex; align-items:center; gap:6px; font-size:12.5px;
+    color:var(--tune-text-secondary); white-space:nowrap}
+  .merge-select{padding:6px 8px; border-radius:7px; border:1px solid var(--tune-border);
+    background:var(--tune-bg); color:var(--tune-text); font-size:12.5px; cursor:pointer}
+  .danger-btn{padding:7px 14px; border-radius:8px; cursor:pointer;
+    border:1px solid var(--tune-danger); background:transparent;
+    color:var(--tune-danger); font-size:13px}
+  .danger-btn:hover:not(:disabled){background:var(--tune-danger); color:#fff}
+  .danger-btn:disabled{opacity:.5; cursor:default}
+
+  /* Les trois autres coins (maquette Levente). Même révélation au survol que
+     le coin de sélection, et mêmes cibles de 26 px. */
+  .pl-coin-hg, .pl-coin-hd, .pl-coin-bd{position:absolute; width:26px; height:26px;
+    display:grid; place-items:center; border-radius:7px; cursor:pointer;
+    border:1px solid var(--tune-border); background:var(--tune-bg);
+    color:var(--tune-text-secondary); opacity:0; transition:opacity .12s}
+  .pl-coin-hg{left:8px; top:8px}
+  .pl-coin-hd{right:8px; top:8px}
+  .pl-coin-bd{right:8px; bottom:8px}
+  .pl-carte:hover .pl-coin-hg,
+  .pl-carte:hover .pl-coin-hd,
+  .pl-carte:hover .pl-coin-bd,
+  .pl-coin-hd:focus-visible, .pl-coin-bd:focus-visible{opacity:1}
+  .pl-coin-hg:focus-within{opacity:1}
+  .pl-coin-hd:hover, .pl-coin-bd:hover{color:var(--tune-text)}
+
+  /* Piste indisponible chez le service : grisée, étiquetée, inerte. Même
+     traitement que `LignePisteV2` — une seule apparence pour un seul fait. */
+  .track-item.indispo{opacity:.5}
+  .track-item.indispo .track-play{cursor:default}
+  .track-indispo{font-size:10px; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--tune-text-muted); border:1px solid var(--tune-border);
+    border-radius:4px; padding:1px 6px; white-space:nowrap}
+
+  /* Le message de coupure premium d'un onglet. */
+  .pm-premium{margin:0; padding:22px; text-align:center; color:var(--tune-text-secondary);
+    font-size:13px; line-height:1.7; border:1px dashed var(--tune-border); border-radius:10px}
+
+  /* Le cinquième appel à l'action : lire, au CENTRE de la pochette. */
+  .pl-lire{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:44px; height:44px; display:grid; place-items:center; border-radius:50%;
+    border:0; cursor:pointer; background:var(--tune-accent); color:var(--tune-bg);
+    opacity:0; transition:opacity .12s}
+  .pl-carte:hover .pl-lire, .pl-lire:focus-visible{opacity:1}
+  .pl-lire:hover{filter:brightness(1.08)}
 </style>

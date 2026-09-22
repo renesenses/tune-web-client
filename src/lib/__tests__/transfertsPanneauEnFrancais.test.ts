@@ -30,6 +30,7 @@ import {
   streamingPlaylistsLoaded,
 } from '../stores/playlists';
 import { currentProfileId } from '../stores/profile';
+import { licenseState } from '../stores/license';
 
 // Monter une vue de 4 000 lignes compile beaucoup : 5 s donneraient un rouge
 // de CHARGE, pas de contenu.
@@ -132,6 +133,12 @@ class ResizeObserverInerte {
 }
 
 beforeEach(() => {
+  // 🔴 LICENCE PREMIUM POSÉE POUR CE TEST (21/09/2026). Le panneau Transferts
+  // est passé derrière une coupure premium : sans licence, il ne peint plus
+  // son contenu mais le message qui l'explique, et la garde ne trouvait plus
+  // « Transfert rapide ». Ce n'est pas la garde qui se trompait — c'est
+  // l'écran qui a changé de contrat, et le test dit désormais lequel.
+  licenseState.update((s) => ({ ...s, tier: 'premium' }));
   localStorage.clear();
   locale.set('fr');
   pendingPlaylistId.set(null);

@@ -1132,6 +1132,13 @@ export interface StreamingPlaylist {
   track_count: number;
   duration_ms: number;
   cover_path?: string | null;
+  /**
+   * Jusqu'à quatre pochettes distinctes pour la mosaïque 2×2 — rendues par
+   * Qobuz, qui les donne en tableau (tune-server-rust#4649). Absent chez les
+   * services qui n'ont qu'une image, et sur les playlists éditoriales dont
+   * l'illustration dessinée doit rester entière.
+   */
+  covers?: string[];
   source: Source;
 }
 

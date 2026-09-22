@@ -53,7 +53,6 @@ const VUES: Record<View, boolean> = {
   queue: true,
   playlists: true,
   playlistmanager: true,
-  playlistshub: true,
   smartplaylists: true,
   'smart-ai': true,
   ambiance: true,
