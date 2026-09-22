@@ -4462,7 +4462,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {/each}
                   </div>
                 {:else if !sbLoading}
-                  <p class="hint">{$t('settings.squeezeboxNoPlayers' as any)}</p>
+                  <!--
+                    Le serveur dit POURQUOI la liste est vide depuis la
+                    v0.9.153, et personne ne le lisait : l'écran affichait
+                    « Aucun lecteur Squeezebox trouvé » que LMS soit muet,
+                    illisible, ou… que Tune se soit interrogé lui-même
+                    (renesenses/tune-server-rust#4703, Belkadi Yacine,
+                    fil 1507). Le message du serveur remplace donc la phrase
+                    générique quand il existe ; sinon rien ne change, y
+                    compris face à un serveur plus ancien.
+                  -->
+                  <p class="hint">{sbStatus?.diagnostic?.message || $t('settings.squeezeboxNoPlayers' as any)}</p>
                 {/if}
               {/if}
 
