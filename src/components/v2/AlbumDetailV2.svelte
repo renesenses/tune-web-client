@@ -20,6 +20,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import { qualiteEnTeteAlbum } from '../../lib/qualiteEnTeteAlbum';
+  import { pochettesDePisteDistinctes } from '../../lib/pochetteDePisteDistincte';
   import type { Album, Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -184,6 +185,26 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   let tracks = $state<Track[]>([]);
   /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
   const depuisCue = $derived(tracks.some((t) => !!t.cue_media_path));
+
+  /**
+   * #4650 — au moins une piste porte une pochette PROPRE, différente de celle
+   * de l'album.
+   *
+   * Fuccaro (forum 1317) : les quatre singles de *Hackney Diamonds* — dont
+   * « Angry » — sont rangés dans l'album et portent chacun leur propre
+   * jaquette. Le serveur les sert déjà dans `cover_path` de la piste (la
+   * lecture est un `COALESCE(tracks.cover_path, albums.cover_path)`), mais la
+   * liste ci-dessous n'affichait AUCUNE vignette : la raison écrite plus bas
+   * — « sans pochette, les vingt porteraient la même » — cesse d'être vraie
+   * exactement dans ce cas-là, et seulement dans celui-là.
+   *
+   * La comparaison porte sur la pochette servie pour l'ALBUM : une piste dont
+   * l'image est celle de son album n'est pas une pochette propre, même quand
+   * le champ est rempli.
+   */
+  const pochettesDePisteDistinctesIci = $derived(
+    pochettesDePisteDistinctes(tracks, (albumAffiche as any)?.cover_path ?? null),
+  );
 
   /**
    * « Aussi sur … » (phase 5 UPnP) : l'album existe aussi de l'autre côté —
@@ -964,11 +985,17 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
            lignes qu'avant — sans pochette, les vingt porteraient la même, et
            sans le titre de l'album, déjà en tête d'écran.
            `numerotation="piste"` : c'est le rang DANS L'ALBUM qui compte ici,
-           pas la position dans la liste affichée. -->
+           pas la position dans la liste affichée.
+
+           #4650 — « les vingt porteraient la même » est vrai, SAUF quand une
+           piste porte sa propre jaquette (les singles de *Hackney Diamonds*).
+           La vignette n'apparaît alors que pour cet album-là, et elle est le
+           seul moyen de distinguer le single de l'album sur cette page. -->
       <ListePistesV2
         pistes={tracks}
         numerotation="piste"
-        pochette={false}
+        pochette={pochettesDePisteDistinctesIci}
+        pochetteEnTableau={pochettesDePisteDistinctesIci}
         avecAlbum={false}
         onLire={(_p, i) => playAlbum(i)}
         onLireDepuis={(_p, i) => playAlbum(i)}
