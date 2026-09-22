@@ -116,10 +116,17 @@ describe('widgets extraits du tableau de bord', () => {
     }
   });
 
-  it('🔴 aucun ne s’impose sur l’accueil : la disposition par défaut ne bouge pas', () => {
-    // « personne ne doit voir son écran changer sans l'avoir demandé ».
-    for (const id of ['top-artistes', 'top-radios', 'stats-semaine', 'tops']) {
+  it('🔴 seuls les DEUX remplaçants du tableau de bord s’imposent (#1426)', () => {
+    // « personne ne doit voir son écran changer sans l'avoir demandé » — la
+    // règle tient pour tout ce qui n'est pas un accès PERDU dans la même
+    // version. La 0.9.161 a retiré l'entrée « Tableau de bord » de la barre
+    // (#1415) : ses deux remplaçants entrent au défaut sur arbitrage de
+    // Bertrand du 22/09/2026 (#1426). Les deux autres, non.
+    for (const id of ['top-radios', 'tops']) {
       expect(DISPOSITION_DEFAUT).not.toContain(id);
+    }
+    for (const id of ['top-artistes', 'stats-semaine']) {
+      expect(DISPOSITION_DEFAUT).toContain(id);
     }
   });
 });

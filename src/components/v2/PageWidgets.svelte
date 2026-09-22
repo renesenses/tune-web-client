@@ -898,10 +898,15 @@
                   {/if}
                 {/each}
               </div>
-              {#if edition}
+              {#if edition && w.chiffresComposables}
                 <!-- #4527 — composer SA ligne. Le choix vit là où il se voit,
                      pas dans un écran de réglages : on coche, la ligne change
-                     au-dessus. -->
+                     au-dessus.
+                     #1426 — mais SEULEMENT pour le widget qui lit ce choix.
+                     `stats-semaine` sert une liste figée : son sélecteur
+                     n'aurait rien changé au-dessus de lui, et depuis qu'il
+                     est dans la disposition par défaut, tout le monde le
+                     verrait. -->
                 <div class="choix-chiffres">
                   <p class="aide">{$t('v2.home.statsPick' as any)}</p>
                   <div class="opts">
