@@ -6094,6 +6094,12 @@ export interface RapportPontRoon {
 export interface EtatPontRoon {
   premium: boolean;
   dernier_rapport: RapportPontRoon | null;
+  /**
+   * Le plafond de l'archive, en octets, au-delà duquel le serveur refuse
+   * l'envoi (413). Absent sur les serveurs antérieurs, qui coupaient la
+   * connexion au milieu de l'envoi à 600 Mio sans rien dire.
+   */
+  archive_max_octets?: number;
 }
 
 export function getEtatPontRoon(): Promise<EtatPontRoon> {
@@ -6111,20 +6117,34 @@ export function getEtatPontRoon(): Promise<EtatPontRoon> {
  * "detail":"ce n'est pas un export du moissonneur"}`) arrive ainsi à l'écran
  * avec son MOTIF et non avec son code.
  */
+/** Le `code` d'un envoi d'archive interrompu par une coupure réseau. */
+export const ENVOI_PONT_ROON_COUPE = 'envoi_pont_roon_coupe';
+
 export async function importerPontRoon(
   corps: Blob | ArrayBuffer,
   apercu: boolean,
 ): Promise<RapportPontRoon> {
-  const resp = await fetch(`${BASE}/ext/pont-roon/import?apercu=${apercu ? 'true' : 'false'}`, {
-    method: 'POST',
-    headers: authHeaders({
-      'Accept': 'application/json',
-      'Accept-Language': acceptLang(),
-      'Content-Type': 'application/octet-stream',
-      ...profileHeader(),
-    }),
-    body: corps,
-  });
+  let resp: Response;
+  try {
+    resp = await fetch(`${BASE}/ext/pont-roon/import?apercu=${apercu ? 'true' : 'false'}`, {
+      method: 'POST',
+      headers: authHeaders({
+        'Accept': 'application/json',
+        'Accept-Language': acceptLang(),
+        'Content-Type': 'application/octet-stream',
+        ...profileHeader(),
+      }),
+      body: corps,
+    });
+  } catch (e) {
+    // 🔴 Fabien, archive de 600 Mo : Firefox affichait « NetworkError when
+    // attempting to fetch resource ». Le serveur avait coupé la connexion en
+    // plein envoi, à son plafond. `fetch` ne lève `TypeError` que sur une
+    // panne de TRANSPORT : on la nomme, pour que l'écran dise ce qui s'est
+    // passé au lieu de la phrase du navigateur.
+    if (e instanceof TypeError) throw erreurSentinelle(e.message, 0, ENVOI_PONT_ROON_COUPE);
+    throw e;
+  }
   if (resp.status === 401) { clearToken(); throw erreurSentinelle('Session expired', 401); }
   // #884 — le refus premium AVANT le chemin d'erreur générique : le `message`
   // du serveur est composé en français par `require_premium`, il ne doit jamais
