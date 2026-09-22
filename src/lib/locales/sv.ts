@@ -3499,6 +3499,8 @@ export default {
   "settings.tabDisplay": "Visning",
   "settings.collectionsMosaic": "Omslagsmosaik på samlingar",
   "settings.collectionsMosaicHint": "Fyra omslag per samling. Avmarkera för ett enda omslag, som i den tidigare klienten.",
+  "settings.showStopButton": "Visa Stoppa-knappen",
+  "settings.showStopButtonHint": "Tar tillbaka Stoppa-knappen till transportfältet. Båda gesterna finns redan och ändras inte: dubbelklick på Spela upp och tangenten S.",
   "settings.versionsOrder": "Ordning för ”Andra versioner”",
   "settings.versionsOrderHint": "Efter relevans: de versioner som ligger närmast låten först. Efter källa: ditt bibliotek, sedan Qobuz, Tidal, YouTube och Bandcamp sist.",
   "settings.versionsOrderRelevance": "Efter relevans",

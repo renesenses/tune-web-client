@@ -3458,6 +3458,8 @@ export default {
   "settings.tabDisplay": "Megjelenítés",
   "settings.collectionsMosaic": "Borítómozaik a gyűjteményeken",
   "settings.collectionsMosaicHint": "Négy borító gyűjteményenként. Vegye ki a pipát az egyetlen borítóhoz, mint a korábbi kliensben.",
+  "settings.showStopButton": "A Leállítás gomb megjelenítése",
+  "settings.showStopButtonHint": "Visszahozza a Leállítás gombot a lejátszósávra. Mindkét mozdulat már most is létezik és megmarad: dupla kattintás a Lejátszás gombon és az S billentyű.",
   "settings.versionsOrder": "A „További változatok” sorrendje",
   "settings.versionsOrderHint": "Relevancia szerint: a számhoz legközelebbi változatok elöl. Forrás szerint: a saját könyvtár, majd Qobuz, Tidal, YouTube, és utolsóként a Bandcamp.",
   "settings.versionsOrderRelevance": "Relevancia szerint",

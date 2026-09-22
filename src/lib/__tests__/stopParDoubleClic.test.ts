@@ -26,9 +26,31 @@ const sansCommentaires = (s: string) =>
 describe('Stop au double-clic (idée de Bertrand, 05/09/2026)', () => {
   const bar = sansCommentaires(lire('src/components/partages/TransportBar.svelte'));
 
-  it('le bouton stop autonome a disparu de la barre', () => {
-    expect(bar).not.toContain('control-btn stop-btn');
-    expect(bar).not.toContain("$t('common.stop')");
+  /**
+   * ⚠️ 22/09/2026, #1428 — le cas change de forme, PAS d'intention.
+   *
+   * Il disait « le bouton a disparu de la barre ». Il ne peut plus le dire au
+   * pied de la lettre : le bouton existe de nouveau dans le gabarit, derrière
+   * un réglage. Ce qui reste vrai, et qui est la décision de Bertrand du
+   * 22/09, c'est que **par défaut il ne se dessine pas**.
+   *
+   * On ne le mesure donc plus par l'ABSENCE d'un texte — un tel garde-fou
+   * aurait été satisfait par n'importe quelle réécriture — mais par le
+   * BRANCHEMENT : le bouton est sous le réglage, et le réglage est à `false`.
+   * La preuve à l'écran (rien de rendu pour qui n'a rien coché) est dans
+   * `boutonStopReglage1428.test.ts`, qui MONTE la barre.
+   */
+  it('le bouton stop n’existe que sous le réglage, et le réglage est décoché', () => {
+    const i = bar.indexOf('control-btn stop-btn');
+    expect(i, 'le bouton stop a disparu du gabarit').toBeGreaterThan(-1);
+    // Le `{#if` qui le précède immédiatement est bien celui du réglage.
+    const avant = bar.slice(0, i);
+    expect(avant.slice(avant.lastIndexOf('{#if')))
+      .toContain('$preferences.afficherBoutonStop');
+    expect(lire('src/lib/stores/preferences.ts')).toContain('afficherBoutonStop: false,');
+    // Et la clé de libellé qu'il emploie n'est pas une invention : elle
+    // existait déjà, dans les onze langues.
+    expect(bar).toContain("$t('common.stop' as any)");
     expect(bar).not.toContain("transport.stop'");
   });
 

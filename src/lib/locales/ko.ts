@@ -3500,6 +3500,8 @@ export default {
   "settings.tabDisplay": "표시",
   "settings.collectionsMosaic": "컬렉션에 커버 모자이크 표시",
   "settings.collectionsMosaicHint": "컬렉션마다 커버 4장. 체크를 해제하면 이전 클라이언트처럼 커버 한 장만 표시합니다.",
+  "settings.showStopButton": "정지 버튼 표시",
+  "settings.showStopButtonHint": "정지 버튼을 재생 표시줄에 다시 표시합니다. 두 가지 동작은 이미 있으며 그대로입니다: 재생 두 번 클릭, 그리고 S 키.",
   "settings.versionsOrder": "“다른 버전” 정렬 순서",
   "settings.versionsOrderHint": "관련도순: 이 곡에 가장 가까운 버전부터 표시합니다. 소스순: 라이브러리, 그다음 Qobuz, Tidal, YouTube, 마지막으로 Bandcamp 순으로 표시합니다.",
   "settings.versionsOrderRelevance": "관련도순",

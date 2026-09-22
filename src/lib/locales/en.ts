@@ -3520,6 +3520,8 @@ export default {
   "settings.tabDisplay": "Display",
   "settings.collectionsMosaic": "Cover mosaic on collections",
   "settings.collectionsMosaicHint": "Four covers assembled per collection. Uncheck for a single cover, like the previous client’s screen.",
+  "settings.showStopButton": "Show the Stop button",
+  "settings.showStopButtonHint": "Brings the Stop button back to the transport bar. Both gestures already exist and stay: double-click Play, and the S key.",
   "settings.versionsOrder": "Order of “Other versions”",
   "settings.versionsOrderHint": "By relevance: the versions closest to the track come first. By source: your library, then Qobuz, Tidal, YouTube, and Bandcamp last.",
   "settings.versionsOrderRelevance": "By relevance",

@@ -973,7 +973,39 @@
       `arretTransport.ts` reste : la condition (pas de stop sur une radio, pas
       de stop sans zone) sert au double-clic exactement comme elle servait au
       bouton, et un test l'APPELLE.
+
+      ── #1428, 22/09/2026 ────────────────────────────────────────────────
+      Ce qui précède reste vrai POUR LE DÉFAUT, et le défaut n'a pas bougé.
+      Un testeur a réclamé le bouton (jfpaquet, fil 1879 : « ET LA DISPARITION
+      DU BOUTON STOP NE ME PLAÎT PAS DU TOUT ») ; Bertrand tranche en offrant
+      le CHOIX — Réglages ▸ Affichage ▸ « Afficher le bouton Stop », DÉCOCHÉ
+      par défaut. Décoché, ce bloc ne rend rien et l'écran est celui de la
+      v0.9.161, au pixel près.
+
+      🔴 Il appelle `arreter()` — la MÊME fonction que le double-clic, qui
+      passe par `stopAndSync` et par `arretPossible`. Pas de second chemin
+      d'arrêt : c'est précisément la divergence que le retrait de 09/09 avait
+      supprimée, et la rouvrir serait la vraie régression.
     -->
+    {#if $preferences.afficherBoutonStop && displayTrack?.source !== 'radio'}
+      <button
+        class="control-btn stop-btn"
+        disabled={!stopPossible}
+        onclick={arreter}
+        aria-label={$t('common.stop' as any)}
+        title={`${$t('common.stop' as any)} · ${$t('transport.dblClickStop' as any)}`}
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <!-- 10×10 et non 12×12 : le carré de 12 px est la signature du
+               TÉMOIN d'état retiré le 09/09 (un `<span>` qui se lisait comme
+               un bouton sans en être un), et `arretTransport.test.ts` le
+               bannit encore de toute l'application. Celui-ci est un vrai
+               bouton, dans un `<button>`, et il garde sa propre forme. -->
+          <rect x="7" y="7" width="10" height="10" rx="1.5" />
+        </svg>
+      </button>
+    {/if}
+
     {#if displayTrack?.source !== 'radio'}
       <!-- La règle vit dans lib/boutonSuivant : le mini-lecteur porte le même
            bouton, et les deux copies avaient déjà divergé. Elle reproduit

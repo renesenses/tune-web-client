@@ -3522,6 +3522,8 @@ export default {
   "settings.tabDisplay": "Affichage",
   "settings.collectionsMosaic": "Mosaïque de pochettes sur les collections",
   "settings.collectionsMosaicHint": "Quatre pochettes assemblées par collection. Décochez pour une pochette unique, comme l’écran de l’ancien client.",
+  "settings.showStopButton": "Afficher le bouton Stop",
+  "settings.showStopButtonHint": "Ramène le bouton Stop dans la barre de transport. Les deux gestes existent déjà et ne changent pas : double-clic sur Lecture, et la touche S.",
   "settings.versionsOrder": "Ordre des « Autres versions »",
   "settings.versionsOrderHint": "Par pertinence : les versions les plus proches du morceau d’abord. Par source : la bibliothèque, puis Qobuz, Tidal, YouTube, et Bandcamp en dernier.",
   "settings.versionsOrderRelevance": "Par pertinence",

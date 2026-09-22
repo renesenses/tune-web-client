@@ -3500,6 +3500,8 @@ export default {
   "settings.tabDisplay": "Visualizzazione",
   "settings.collectionsMosaic": "Mosaico di copertine sulle raccolte",
   "settings.collectionsMosaicHint": "Quattro copertine per raccolta. Deseleziona per una sola copertina, come nel client precedente.",
+  "settings.showStopButton": "Mostra il pulsante Ferma",
+  "settings.showStopButtonHint": "Riporta il pulsante Ferma nella barra di trasporto. Entrambi i gesti esistono già e restano: doppio clic su Riproduci e il tasto S.",
   "settings.versionsOrder": "Ordine di «Altre versioni»",
   "settings.versionsOrderHint": "Per pertinenza: prima le versioni più vicine al brano. Per sorgente: la tua libreria, poi Qobuz, Tidal, YouTube e Bandcamp per ultimo.",
   "settings.versionsOrderRelevance": "Per pertinenza",

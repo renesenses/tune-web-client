@@ -63,14 +63,34 @@ describe('la barre appelle la règle, et n’a pas de bouton stop', () => {
     expect(barre).not.toContain("!!zone?.id && displayTrack?.source !== 'radio'");
   });
 
-  it('🔴 aucun bouton stop autonome dans la barre', () => {
-    // Décision de Bertrand, prise le 05/09 et redite le 09/09. Le code, pas les
-    // commentaires : le récit de l'aller-retour cite forcément le mot.
+  /**
+   * 🔴 22/09/2026, #1428 — le bouton revient, mais DÉCOCHÉ.
+   *
+   * Ce cas interdisait le bouton. Il ne l'interdit plus : Bertrand a tranché
+   * le 22/09 en OFFRANT le choix (Réglages ▸ Affichage), après qu'un testeur
+   * l'a réclamé (jfpaquet, fil 1879). Ce qui ne bouge pas, et qui est tout
+   * l'arbitrage, c'est le DÉFAUT — l'écran de qui n'a rien demandé reste celui
+   * de la v0.9.161.
+   *
+   * Un `not.toContain` ne sait pas dire « seulement sous condition » : il est
+   * remplacé par la condition elle-même. Le rendu, lui, se mesure à l'écran
+   * dans `boutonStopReglage1428.test.ts`.
+   */
+  it('🔴 le bouton stop n’apparaît que sous le réglage, décoché par défaut', () => {
     const code = barre.replace(/<!--[\s\S]*?-->/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    // Jamais l'ancienne condition nue : elle affichait le bouton pour tout le
+    // monde dès qu'un arrêt était possible.
     expect(code).not.toContain('{#if stopPossible}');
-    expect(code).not.toContain('control-btn stop-btn');
     expect(code).not.toContain('transport.stop');
-    expect(code).not.toContain("common.stop");
+    const i = code.indexOf('control-btn stop-btn');
+    expect(i, 'le bouton stop a disparu du gabarit').toBeGreaterThan(-1);
+    const avant = code.slice(0, i);
+    expect(avant.slice(avant.lastIndexOf('{#if')))
+      .toContain('$preferences.afficherBoutonStop');
+    const prefs = readFileSync(resolve(__dirname, '../stores/preferences.ts'), 'utf-8');
+    expect(prefs).toContain('afficherBoutonStop: boolean;');
+    expect(prefs, 'le défaut a bougé — ce n’est plus l’arbitrage du 22/09')
+      .toContain('afficherBoutonStop: false,');
   });
 
   it('🔴 la règle SERT encore — elle garde le double-clic', () => {
@@ -86,8 +106,23 @@ describe('la barre appelle la règle, et n’a pas de bouton stop', () => {
     expect(barre).toContain('await stopAndSync(zone.id)');
     // Une seule occurrence de l'appel : pas de seconde implémentation.
     expect(barre.split('stopAndSync(zone.id)').length - 1).toBe(1);
-    // Et un seul appelant : le double-clic.
+    // Et un seul appelant DANS LE SCRIPT : le double-clic. Le bouton du
+    // réglage #1428 ne rouvre pas une seconde implémentation — il câble
+    // `onclick={arreter}` sur la MÊME fonction, ce que le cas suivant mesure.
     expect(barre.split('await arreter()').length - 1).toBe(1);
+  });
+
+  it('🔴 #1428 — le bouton du réglage appelle `arreter`, pas un second arrêt', () => {
+    const code = barre.replace(/<!--[\s\S]*?-->/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const i = code.indexOf('control-btn stop-btn');
+    expect(i).toBeGreaterThan(-1);
+    // Le corps de la balise, jusqu'à son `>` fermant.
+    const balise = code.slice(i, code.indexOf('>', i));
+    expect(balise, 'le bouton stop a son propre chemin d’arrêt').toContain('onclick={arreter}');
+    expect(balise).not.toContain('stopAndSync');
+    expect(balise).not.toContain('api.stop');
+    // Et il porte la MÊME condition d'éligibilité que le double-clic.
+    expect(balise).toContain('disabled={!stopPossible}');
   });
 
   it('l’infobulle ANNONCE le double-clic — sinon personne ne le devine', () => {
@@ -143,6 +178,10 @@ describe('🔴 le bouton unique a bien TROIS états', () => {
         .replace(/\/\*[\s\S]*?\*\//g, ' ');
       if (code.includes('playback-indicator')) fautifs.push(`${f.split('/').pop()} → playback-indicator`);
       // Le carré de « stop » à 12 px, la forme exacte du témoin retiré.
+      //
+      // #1428 (22/09/2026) ne l'autorise PAS à revenir : le bouton Stop
+      // optionnel est un vrai `<button>` cliquable, pas un témoin, et il
+      // porte sa propre icône (10×10). Ce bannissement reste entier.
       if (/x="6" y="6" width="12" height="12"/.test(code)) fautifs.push(`${f.split('/').pop()} → carré 12×12`);
     }
     expect(fautifs).toEqual([]);
