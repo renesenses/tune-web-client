@@ -9,6 +9,7 @@
  * corrigé à la main quand la passe automatique échouait.
  */
 import type { Album } from './types';
+import { ordreNaturel } from './ordreNaturel';
 
 export type Manque = 'cover' | 'genre' | 'year';
 
@@ -47,7 +48,7 @@ export function albumsAvecManque(albums: Album[], quoi: Manque): Album[] {
     .sort(
       (x, y) =>
         (y.track_count ?? 0) - (x.track_count ?? 0) ||
-        (x.title ?? '').localeCompare(y.title ?? ''),
+        ordreNaturel(x.title, y.title),
     );
 }
 

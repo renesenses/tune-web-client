@@ -9,6 +9,7 @@
   // défaut — `get()` n'abonne à rien sous les runes. Si un `get(` réapparaît
   // ici, c'est presque sûrement la même faute : préférer `$monMagasin`.
   import { t as tr, locale } from '../../lib/i18n';
+  import { ordreNaturel } from '../../lib/ordreNaturel';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { paliersDeFrequence, type LibelleServi } from '../../lib/libellesFrequence';
   import { formatNombre } from '../../lib/formats';
@@ -430,7 +431,8 @@
 
   const sorted = $derived.by(() => {
     const list = [...src];
-    const byTitle = (a: Album, b: Album) => fold(a.title).localeCompare(fold(b.title));
+    // #1434 — « Disc 2 » avant « Disc 10 » : l'ordre des NOMBRES, pas du texte.
+    const byTitle = (a: Album, b: Album) => ordreNaturel(fold(a.title), fold(b.title));
     switch (sortKey) {
       case 'artist':
         return list.sort((a, b) => fold(a.artist_name).localeCompare(fold(b.artist_name)) || byTitle(a, b));
