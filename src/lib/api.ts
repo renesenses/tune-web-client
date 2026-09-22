@@ -2597,6 +2597,32 @@ export function indexerServeurMedia(serverId: string, conteneur: string = '0') {
   );
 }
 
+/** Ce qu'un retrait de bibliothèque emporterait — NE MODIFIE RIEN (#4624).
+ *
+ *  Le geste manquait entièrement : « Indexer » entre, rien ne sort. Le seul
+ *  retrait qu'écrivait le serveur exigeait un Browse complet du serveur
+ *  distant, donc un serveur ALLUMÉ — inaccessible précisément dans le cas où
+ *  l'on veut retirer (Jean Valjean, fil 1869, MusicBee éteint). */
+export function apercuRetraitServeurMedia(serverId: string) {
+  return fetchJSON<import('./types').RetraitUpnpApercu>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/bibliotheque`,
+  );
+}
+
+/** Retire de la bibliothèque tout ce qui vient de CE serveur média (#4624).
+ *
+ *  `pistes` est le nombre qui a été AFFICHÉ à l'utilisateur : le serveur
+ *  refuse (409) si le compte a bougé entre l'aperçu et la confirmation, plutôt
+ *  que de supprimer autre chose que ce qui a été confirmé. Aucun fichier
+ *  distant n'est touché. */
+export function retirerServeurMediaDeLaBibliotheque(serverId: string, pistes: number) {
+  return fetchJSON<import('./types').RetraitUpnpApercu>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/bibliotheque` +
+      `?pistes=${encodeURIComponent(String(pistes))}`,
+    { method: 'DELETE' },
+  );
+}
+
 /** Cherche DANS un serveur de médias, par son action ContentDirectory Search.
  *
  *  `container` restreint au dossier affiché ; `'0'` cherche tout le serveur. */
