@@ -21,6 +21,8 @@
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { fold } from '../../lib/utils';
+  import { radioGenreShelf, radioGenreLabel, type RadioGenreShelf }
+    from '../../lib/radioGenres';
   import { ecrireVue, lireVue, type VueEcran } from '../../lib/vueEcran';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -102,22 +104,60 @@
       .finally(() => { loading = false; });
   });
 
-  /** Genres réellement présents, comptés — pas une liste figée qui
-   *  proposerait des rubriques vides. */
-  const genres = $derived.by(() => {
-    const m = new Map<string, number>();
+  /**
+   * Genres réellement présents, comptés — pas une liste figée qui
+   * proposerait des rubriques vides.
+   *
+   * 🔴 SILVIU (testeur roumain, v0.9.161) — les puces disaient « Éclectique,
+   * Classique, Jazz, Rock, Électronique, Hip-Hop, Monde, Reggae, Blues,
+   * Chanson française, Contemporaine, Culture » dans une interface roumaine.
+   *
+   * Ce n'était pas du français écrit en dur ICI : le genre est une colonne
+   * TEXTE LIBRE du serveur (`radio_stations.genre`), semée en français
+   * canonique et recopiée verbatim de l'annuaire mozaiklabs. Cet écran
+   * dérivait ses puces des chaînes brutes — `new Set(radios.map(r.genre))` —
+   * et affichait donc la donnée telle quelle, quelle que soit la langue.
+   *
+   * `lib/radioGenres.ts` existait déjà pour exactement ça : replier les
+   * vingt-six orthographes sur une quinzaine de clés `radioGenre.*`,
+   * traduites dans les onze langues. Il était ÉCRIT MAIS PAS BRANCHÉ — aucun
+   * composant ne l'importait, seul son test le connaissait. On le branche.
+   *
+   * Un genre hors vocabulaire n'est pas caché : son rayon porte sa valeur
+   * brute. On n'invente pas de traduction pour un mot qu'on ne connaît pas.
+   *
+   * ⚠️ Le PAYS reste en français sur la vignette : `GET /api/v1/radios` ne
+   * sert aucun code ISO (`country` est un texte libre, « Royaume-Uni »,
+   * « États-Unis », « Japon »…). Rien à replier côté client sans inventer une
+   * table ; c'est au serveur d'ajouter `country_code`.
+   */
+  /** Le libellé d'un rayon dans la langue courante. */
+  const libelle = (rayon: RadioGenreShelf) => radioGenreLabel(rayon, (k) => $t(k as any));
+
+  const rayons = $derived.by(() => {
+    const m = new Map<string, { rayon: RadioGenreShelf; n: number }>();
     for (const r of radios) {
-      const g = r.genre?.trim();
-      if (g) m.set(g, (m.get(g) ?? 0) + 1);
+      const rayon = radioGenreShelf(r.genre);
+      if (!rayon) continue;
+      const e = m.get(rayon.key);
+      if (e) e.n += 1;
+      else m.set(rayon.key, { rayon, n: 1 });
     }
-    return [...m.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 12);
+    return [...m.values()]
+      .sort((a, b) => b.n - a.n || libelle(a.rayon).localeCompare(libelle(b.rayon)))
+      .slice(0, 12);
   });
 
   function matches(r: RadioStation): boolean {
-    if (genre && r.genre?.trim() !== genre) return false;
+    if (genre && radioGenreShelf(r.genre)?.key !== genre) return false;
     if (q) {
       const n = fold(q);
-      if (!fold(r.name).includes(n) && !fold(r.genre).includes(n) && !fold(r.country).includes(n)) return false;
+      // Le libellé AFFICHÉ compte autant que la valeur brute : un lecteur
+      // roumain tape « Clasică », pas « Classique ».
+      const rayon = radioGenreShelf(r.genre);
+      const traduit = rayon ? libelle(rayon) : '';
+      if (!fold(r.name).includes(n) && !fold(r.genre).includes(n)
+        && !fold(traduit).includes(n) && !fold(r.country).includes(n)) return false;
     }
     return true;
   }
@@ -217,11 +257,12 @@
     </div>
   </header>
 
-  {#if showFilters && genres.length}
+  {#if showFilters && rayons.length}
     <div class="chips">
-      <button class="chip" class:active={!genre} onclick={() => (genre = null)}>Tous ({shown.length})</button>
-      {#each genres as [g, n] (g)}
-        <button class="chip" class:active={genre === g} onclick={() => (genre = genre === g ? null : g)}>{g} <span>{n}</span></button>
+      <button class="chip" class:active={!genre} onclick={() => (genre = null)}>{$t('v2.radio.allGenres' as any)} ({shown.length})</button>
+      {#each rayons as { rayon, n } (rayon.key)}
+        <button class="chip" class:active={genre === rayon.key}
+          onclick={() => (genre = genre === rayon.key ? null : rayon.key)}>{libelle(rayon)} <span>{n}</span></button>
       {/each}
     </div>
   {/if}
@@ -308,7 +349,7 @@
       {#if playingId === r.id}<span class="onair">{$t('v2.lbl.liveNow' as any)}</span>{/if}
     </span>
     <span class="nm">{r.name}</span>
-    {#if r.genre}<span class="gn">{r.genre}</span>{/if}
+    {#if radioGenreShelf(r.genre)}<span class="gn">{libelle(radioGenreShelf(r.genre)!)}</span>{/if}
     <!-- #863 — Jean Valjean : « pouvoir voir le format d'émission ». Le codec
          existait, réservé à Expert ; il se lit dès Avancé, comme les filtres.
          Essentiel reste épuré. -->

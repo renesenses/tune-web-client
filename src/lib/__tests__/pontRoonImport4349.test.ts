@@ -37,6 +37,10 @@ type Appel = { url: string; method: string; body: unknown; contentType?: string 
 let appels: Appel[] = [];
 let premium = true;
 let refusApercu: { status: number; corps: unknown } | null = null;
+/** `archive_max_octets` annoncé par `GET /ext/pont-roon/` ; `undefined` = serveur ancien. */
+let plafond: number | undefined;
+/** L'envoi échoue au TRANSPORT : `fetch` lève, comme Firefox chez Fabien. */
+let coupureEnvoi = false;
 
 function reponse(status: number, corps: unknown): Response {
   return {
@@ -53,6 +57,8 @@ beforeEach(() => {
   appels = [];
   premium = true;
   refusApercu = null;
+  plafond = undefined;
+  coupureEnvoi = false;
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -60,13 +66,16 @@ beforeEach(() => {
       const h = (init?.headers ?? {}) as Record<string, string>;
       appels.push({ url: u, method: (init?.method ?? 'GET').toUpperCase(), body: init?.body, contentType: h['Content-Type'] });
       if (u.includes('/ext/pont-roon/import')) {
+        if (coupureEnvoi) throw new TypeError('NetworkError when attempting to fetch resource.');
         const apercu = u.includes('apercu=true');
         if (apercu && refusApercu) return reponse(refusApercu.status, refusApercu.corps);
         return reponse(200, apercu
           ? { ...RAPPORT, preview: true }
           : { ...RAPPORT, preview: false, credits_ecrits: 12, images_artistes_posees: 2, images_albums_posees: 1 });
       }
-      if (u.includes('/ext/pont-roon/')) return reponse(200, { premium, dernier_rapport: null });
+      if (u.includes('/ext/pont-roon/')) {
+        return reponse(200, { premium, dernier_rapport: null, ...(plafond != null ? { archive_max_octets: plafond } : {}) });
+      }
       return reponse(200, {});
     }),
   );
@@ -173,5 +182,75 @@ describe('Pont Roon — aperçu puis import (#4349)', () => {
     expect(el.querySelector('.premium')).not.toBeNull();
     expect(el.querySelector('input[type="file"]')).toBeNull();
     expect(el.querySelector('button.go')).toBeNull();
+  });
+});
+
+/**
+ * L'archive de Fabien, 22/09/2026 : 600 Mo, et Firefox répondait « Échec :
+ * NetworkError when attempting to fetch resource ». Le serveur coupait la
+ * connexion à son plafond (600 Mio). Il annonce désormais ce plafond
+ * (`archive_max_octets`) et rend un 413 lisible ; l'écran doit s'en servir.
+ */
+describe('Pont Roon — la taille de l’archive', () => {
+  const MO = 1024 * 1024;
+  /** `Intl` sépare « 600 Mo » d'une espace fine insécable : on la ramène. */
+  const texteErreur = (el: HTMLElement) =>
+    (el.querySelector('.err')?.textContent ?? '').replace(/[\u00a0\u202f]/g, ' ');
+  /** Une archive dont le navigateur annonce `octets` — sans les allouer. */
+  const archiveDe = (octets: number) => {
+    const f = ARCHIVE();
+    Object.defineProperty(f, 'size', { value: octets, configurable: true });
+    return f;
+  };
+
+  it('🔴 au-delà du plafond annoncé : message clair, en Mo, et RIEN n’est envoyé', async () => {
+    plafond = 512 * MO;
+    const el = await poserEcran();
+    await choisirFichier(el, archiveDe(600 * MO));
+    expect(imports(), 'une archive trop grosse ne doit pas partir').toEqual([]);
+    const err = texteErreur(el);
+    expect(err).toContain('600 Mo');
+    expect(err).toContain('512 Mo');
+    expect(boutonImporter(el).disabled).toBe(true);
+  });
+
+  it('sous le plafond, l’aperçu part comme avant', async () => {
+    plafond = 8 * 1024 * MO;
+    const el = await poserEcran();
+    await choisirFichier(el, archiveDe(600 * MO));
+    expect(imports().map((a) => a.url.split('?')[1])).toEqual(['apercu=true']);
+    expect(el.querySelector('.err')).toBeNull();
+  });
+
+  it('un 413 devient la même phrase, tailles comprises — pas le détail brut du serveur', async () => {
+    plafond = 8 * 1024 * MO;
+    refusApercu = { status: 413, corps: { error: 'export_pont_roon_illisible', detail: 'archive de plus de 8192 Mio' } };
+    const el = await poserEcran();
+    // Le serveur peut refuser ce que le client n'a pas su arrêter (plafond
+    // abaissé entre-temps) : la réponse doit rester lisible.
+    await choisirFichier(el, archiveDe(600 * MO));
+    const err = texteErreur(el);
+    expect(err).toContain('600 Mo');
+    expect(err).toContain('8 Go');
+    expect(err).not.toContain('archive de plus de');
+  });
+
+  it('un 413 sans plafond connu dit encore que c’est la taille', async () => {
+    refusApercu = { status: 413, corps: { error: 'export_pont_roon_illisible', detail: 'archive de plus de 600 Mio' } };
+    const el = await poserEcran();
+    await choisirFichier(el, archiveDe(700 * MO));
+    const err = texteErreur(el);
+    expect(err).toContain('700 Mo');
+    expect(err).not.toContain('archive de plus de');
+  });
+
+  it('🔴 connexion coupée pendant l’envoi : l’explication, pas « NetworkError »', async () => {
+    coupureEnvoi = true;
+    const el = await poserEcran();
+    await choisirFichier(el, archiveDe(600 * MO));
+    const err = texteErreur(el);
+    expect(err).not.toContain('NetworkError');
+    expect(err).toContain('connexion a été coupée');
+    expect(err).toContain('600 Mo');
   });
 });
