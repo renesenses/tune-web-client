@@ -49,6 +49,7 @@
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
+  import { ouvrirArtisteParNom } from '../../lib/libraryNavigation';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
   import { salutation } from '../../lib/salutation';
   import { notifications } from '../../lib/stores/notifications';
@@ -583,6 +584,12 @@
    * sans cela on ouvrirait l'ecran sur une AUTRE zone que celle cliquee.
    */
   function ouvrirElement(e: Element) {
+    // Les classements (« Vos tops », « Artistes les plus écoutés ») n'ont
+    // qu'un NOM d'artiste : le même rapprochement que le Tableau de bord.
+    if (e.ouvrir === 'artiste') {
+      if (e.artiste) void ouvrirArtisteParNom(e.artiste);
+      return;
+    }
     if (e.ouvrir === 'zone') {
       if (e.zoneId != null) currentZoneId.set(e.zoneId);
       activeView.set('nowplaying');
@@ -927,13 +934,33 @@
                       <h4>{$t(col.cleTitre as any)}</h4>
                       <ol>
                         {#each dedans as el, rang (el.id)}
+                          <!-- 🔴 « rien n'est cliquable !! » (Bertrand,
+                               22/09/2026). La ligne entière est UN bouton :
+                               elle OUVRE ce qui s'ouvre (artiste, album de
+                               la bibliothèque), sinon elle JOUE. Un album
+                               qui s'ouvre ET se joue garde un second bouton
+                               de lecture, comme le disque d'une vignette. -->
                           <li>
-                            <span class="rang">{rang + 1}</span>
-                            <span class="vign"><AlbumArt coverPath={el.cover ?? null} size={40} alt={el.titre} /></span>
-                            <span class="txt">
-                              <span class="t">{el.titre}</span>
-                              {#if el.sous}<span class="s">{el.sous}</span>{/if}
-                            </span>
+                            <button type="button" class="toprang"
+                              onclick={() => (el.ouvrir ? ouvrirElement(el) : jouer(el))}
+                              disabled={!el.ouvrir && !el.jouer}
+                              aria-label={el.ouvrir
+                                ? `${$t('common.open' as any)} — ${el.titre}`
+                                : `${$t('common.play' as any)} — ${el.titre}`}>
+                              <span class="rang">{rang + 1}</span>
+                              <span class="vign"><AlbumArt coverPath={el.cover ?? null} size={40} alt="" /></span>
+                              <span class="txt">
+                                <span class="t">{el.titre}</span>
+                                {#if el.sous}<span class="s">{el.sous}</span>{/if}
+                              </span>
+                            </button>
+                            {#if el.ouvrir && el.jouer}
+                              <button type="button" class="toplire" onclick={() => jouer(el)}
+                                aria-label={`${$t('common.play' as any)} — ${el.titre}`}
+                                title={$t('common.play' as any)}>
+                                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+                              </button>
+                            {/if}
                           </li>
                         {/each}
                       </ol>
@@ -1357,9 +1384,19 @@
   .topcol h4{margin:0 0 10px; font:700 11px var(--v2-sans); letter-spacing:.1em;
     text-transform:uppercase; color:var(--v2-txt3)}
   .topcol ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
-  .topcol li{display:flex; align-items:center; gap:11px; min-width:0; padding:5px 7px;
-    border-radius:9px}
+  .topcol li{display:flex; align-items:center; gap:6px; min-width:0; border-radius:9px}
   .topcol li:hover{background:var(--v2-hover)}
+  .topcol .toprang{flex:1 1 auto; display:flex; align-items:center; gap:11px; min-width:0;
+    padding:5px 7px; border:0; border-radius:9px; background:none; color:inherit;
+    font:inherit; text-align:left; cursor:pointer}
+  .topcol .toprang:disabled{cursor:default}
+  .topcol .toprang:focus-visible, .topcol .toplire:focus-visible{outline:2px solid var(--v2-acc1);
+    outline-offset:-2px}
+  .topcol .toplire{flex:0 0 auto; display:grid; place-items:center; width:30px; height:30px;
+    margin-right:6px; border:0; border-radius:50%; background:none; color:var(--v2-txt2);
+    cursor:pointer; opacity:0}
+  .topcol li:hover .toplire, .topcol .toplire:focus-visible{opacity:1}
+  .topcol .toplire:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .topcol .rang{flex:0 0 auto; width:16px; text-align:right; font:600 12px var(--v2-mono);
     color:var(--v2-txt3)}
   .topcol .vign{flex:0 0 auto; width:40px; height:40px; border-radius:7px; overflow:hidden}
