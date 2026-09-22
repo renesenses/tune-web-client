@@ -32,6 +32,7 @@
   import type { Track } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { fenetreListe } from '../../lib/fenetreListe';
+  import { pisteDeFile } from '../../lib/pisteDeFile';
   import '../../styles/tune-v2.css';
 
   const level = $derived($preferences.settingsLevel);
@@ -141,7 +142,12 @@
   // Se relance sur changement de zone : chaque zone a SA file.
   $effect(() => { void $currentZoneId; loading = true; reload(); });
 
-  const tracks = $derived($queueTracks);
+  // 🔴 #1430 — `id` d'une ligne de file est `queue_items.id`, la piste est
+  // `track_id`. Sans ce remplacement, le cœur, « Lire », « Ajouter à la file »,
+  // les étiquettes et la surbrillance « en cours » visaient une autre piste.
+  // Les gestes de file (sauter, monter, retirer) travaillent au RANG : la
+  // correspondance rang ↔ ligne est conservée par `map`.
+  const tracks = $derived($queueTracks.map(pisteDeFile));
   const pos = $derived($queuePosition);
   const current = $derived(tracks[pos] ?? null);
   const upNext = $derived(tracks.slice(pos + 1));
