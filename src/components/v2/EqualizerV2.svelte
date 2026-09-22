@@ -33,6 +33,7 @@
   import { NEUTRAL_PARAMETRIC_BAND } from '../../lib/eqReset';
   import ParametricEq from '../partages/ParametricEq.svelte';
   import ProfilerV2 from './ProfilerV2.svelte';
+  import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import { bandesGraphiques } from '../../lib/eqGraphicChannels';
   import '../../styles/tune-v2.css';
 
@@ -72,6 +73,8 @@
    * seulement quelle liste part.
    */
   let sousMode = $state<'graphique' | 'parametrique' | 'assistant'>('graphique');
+  /** Incrémenté à chaque courbe enregistrée : `CompensationNiveauV2` se relit. */
+  let revisionDsp = $state(0);
   let pBandes = $state<EqBand[]>([]);
 
   const PRESETS: { key: string; labelKey: string; gains: number[] }[] = [
@@ -217,6 +220,8 @@
     try {
       const res: any = await api.setEq(zid, { bands, enabled });
       reportReach(atteintLeSon(res?.applied_live, res?.portee));
+      // La courbe a changé : ce que la compensation rend aussi (#4685).
+      revisionDsp++;
       error = null;
     } catch (e: any) {
       // Un refus silencieux, c'est un égaliseur qui « ne marche pas » : les
@@ -477,6 +482,9 @@
 
 
       {/if}
+      <!-- tune-server-rust#4685 — hors du choix de mode : la compensation vaut
+           pour la courbe, quelle que soit la façon de la composer. -->
+      <CompensationNiveauV2 revision={revisionDsp} />
     {/if}
   </div>
 </section>

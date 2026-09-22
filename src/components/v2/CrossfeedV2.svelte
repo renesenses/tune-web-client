@@ -27,9 +27,12 @@
     reglagesCrossfeed, presetActif, bornesCrossfeed, niveauEnPourcent,
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../../lib/crossfeed';
+  import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import '../../styles/tune-v2.css';
 
   let enabled = $state(false);
+  /** Incrémenté à chaque réglage enregistré : `CompensationNiveauV2` se relit. */
+  let revisionDsp = $state(0);
   let amount = $state(0.30);
   let delay = $state(0.50);
   let loading = $state(true);
@@ -97,6 +100,8 @@
       // « Prendra effet à la piste suivante » serait faux là où le serveur
       // vient de dire « jamais » (tune-server-rust#2742).
       if (!indispo.indisponible) reportReach(res?.crossfeed_applied_live);
+      // Le dosage a changé : ce que la compensation rend aussi (#4685).
+      revisionDsp++;
       error = null;
     } catch (e: any) {
       if (e?.message !== 'premium_required') error = $t('v2.cf.errSave' as any);
@@ -244,6 +249,8 @@
           </div>
         </div>
       </div>
+
+      <CompensationNiveauV2 revision={revisionDsp} />
     {/if}
   </div>
 </section>

@@ -2917,6 +2917,24 @@ export interface CrossfeedStatus {
 // optional because the server fills in defaults and callers PUT partial
 // updates (e.g. only eq_profile, or only crossfeed). Kept open-ended so
 // existing callers that pass other DSP sub-objects still type-check.
+/** Compensation de niveau de l'égaliseur et du crossfeed
+ *  (tune-server-rust#4685), publiée par `GET`/`PUT /zones/{id}/dsp`.
+ *
+ *  `eq_db` / `crossfeed_db` : ce que chaque étage fait au niveau MOYEN
+ *  (négatif = il en retire), 0 quand il n'est pas actif sur la zone.
+ *  `compensation_db` : ce que la sortie locale rend par le volume quand
+ *  l'interrupteur est ouvert, 0 sinon — une demande, que le volume maximal
+ *  rabote (il ne dépasse jamais la pleine échelle). Absent d'un serveur
+ *  antérieur : ne rien afficher. */
+export interface LevelCompensation {
+  enabled: boolean;
+  eq_db: number;
+  crossfeed_db: number;
+  compensation_db: number;
+  /** La compensation passe par le volume de la sortie LOCALE. */
+  local_output_only: boolean;
+}
+
 export interface DspSettings {
   eq_profile?: any;
   crossfeed?: CrossfeedSettings;
@@ -2925,6 +2943,8 @@ export interface DspSettings {
   /** tune-server-rust#4683 — les bornes que le serveur applique. Absent d'un
    *  serveur antérieur : `bornesCrossfeed` retombe sur les constantes. */
   crossfeed_limits?: CrossfeedLimits | null;
+  /** #4685 — en lecture : l'état complet ; en écriture : `{ enabled }`. */
+  level_compensation?: LevelCompensation | { enabled: boolean };
   [key: string]: any;
 }
 
