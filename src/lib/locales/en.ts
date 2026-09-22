@@ -3457,6 +3457,7 @@ export default {
   "v2.plug.emptyInstalled": "No extension installed.",
   "v2.plug.empty": "No extension.",
   "v2.radio.loadFailed": "Could not load the stations.",
+  "v2.radio.allGenres": "All",
   "v2.zones.browserUnattended": "Browser zone: no tab is listening",
   "v2.zones.viewGrid": "Grid",
   "v2.zones.viewList": "List",

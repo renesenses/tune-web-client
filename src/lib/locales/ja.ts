@@ -3437,6 +3437,7 @@ export default {
   "v2.plug.emptyInstalled": "インストール済みの拡張機能はありません。",
   "v2.plug.empty": "拡張機能はありません。",
   "v2.radio.loadFailed": "放送局を読み込めませんでした。",
+  "v2.radio.allGenres": "すべて",
   "v2.zones.browserUnattended": "ブラウザーゾーン：再生中のタブがありません",
   "v2.zones.viewGrid": "グリッド",
   "v2.zones.viewList": "リスト",

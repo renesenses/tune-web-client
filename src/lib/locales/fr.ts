@@ -3459,6 +3459,7 @@ export default {
   "v2.plug.emptyInstalled": "Aucune extension installée.",
   "v2.plug.empty": "Aucune extension.",
   "v2.radio.loadFailed": "Impossible de charger les stations.",
+  "v2.radio.allGenres": "Tous",
   "v2.zones.browserUnattended": "Zone navigateur : aucun onglet n’écoute",
   "v2.zones.viewGrid": "Grille",
   "v2.zones.viewList": "Liste",

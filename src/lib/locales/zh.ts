@@ -3437,6 +3437,7 @@ export default {
   "v2.plug.emptyInstalled": "没有已安装的扩展。",
   "v2.plug.empty": "没有扩展。",
   "v2.radio.loadFailed": "无法加载电台。",
+  "v2.radio.allGenres": "全部",
   "v2.zones.browserUnattended": "浏览器区域：没有标签页在收听",
   "v2.zones.viewGrid": "网格",
   "v2.zones.viewList": "列表",

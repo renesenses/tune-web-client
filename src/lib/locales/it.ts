@@ -3437,6 +3437,7 @@ export default {
   "v2.plug.emptyInstalled": "Nessuna estensione installata.",
   "v2.plug.empty": "Nessuna estensione.",
   "v2.radio.loadFailed": "Impossibile caricare le stazioni.",
+  "v2.radio.allGenres": "Tutti",
   "v2.zones.browserUnattended": "Zona browser: nessuna scheda è in ascolto",
   "v2.zones.viewGrid": "Griglia",
   "v2.zones.viewList": "Elenco",

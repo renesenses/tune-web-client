@@ -3395,6 +3395,7 @@ export default {
   "v2.plug.emptyInstalled": "Nincs telepített bővítmény.",
   "v2.plug.empty": "Nincs bővítmény.",
   "v2.radio.loadFailed": "Az állomások nem tölthetők be.",
+  "v2.radio.allGenres": "Összes",
   "v2.zones.browserUnattended": "Böngésző zóna: egyetlen lap sem hallgatja",
   "v2.zones.viewGrid": "Rács",
   "v2.zones.viewList": "Lista",
