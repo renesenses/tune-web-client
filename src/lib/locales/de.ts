@@ -1071,6 +1071,8 @@ export default {
   "library.noZoneSelectedShort": "Keine Zone ausgewählt",
   "library.noZoneSelectedSelectZone": "Keine Zone ausgewählt — wähle eine Zone",
   "library.shufflePlaying": "Zufallswiedergabe: {count} Titel",
+  "asio.rearmAction": "ASIO-Suche neu scharfschalten",
+  "asio.rearmDone": "ASIO-Suche neu scharfgeschaltet. Sie läuft beim nächsten Start von Tune wieder: jetzt wird kein Treiber geöffnet.",
   "library.playbackError": "Wiedergabefehler",
   "library.sortReleaseDate": "Veröffentlichungsdatum",
   "library.sortAddedDate": "Hinzugefügt am",

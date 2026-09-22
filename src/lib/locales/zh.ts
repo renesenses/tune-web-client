@@ -1071,6 +1071,8 @@ export default {
   "library.noZoneSelectedShort": "未选择区域",
   "library.noZoneSelectedSelectZone": "未选择区域 — 请选择一个区域",
   "library.shufflePlaying": "随机播放：{count} 首曲目",
+  "asio.rearmAction": "重新启用 ASIO 扫描",
+  "asio.rearmDone": "已重新启用 ASIO 扫描。将在 Tune 下次启动时执行：现在不会打开任何驱动。",
   "library.playbackError": "播放错误",
   "library.sortReleaseDate": "发行日期",
   "library.sortAddedDate": "添加日期",

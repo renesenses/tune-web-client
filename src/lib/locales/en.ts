@@ -1192,6 +1192,8 @@ export default {
   "library.noZoneSelectedShort": "No zone selected",
   "library.noZoneSelectedSelectZone": "No zone selected — select a zone",
   "library.shufflePlaying": "Shuffle: {count} tracks",
+  "asio.rearmAction": "Re-arm the ASIO scan",
+  "asio.rearmDone": "ASIO scan re-armed. It will resume at Tune’s next start: no driver is opened right now.",
   "library.playbackError": "Playback error",
   "library.sortReleaseDate": "Release date",
   "library.sortAddedDate": "Date added",

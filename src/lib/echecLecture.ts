@@ -34,6 +34,8 @@
  */
 import { get } from 'svelte/store';
 import { t } from './i18n';
+import { offreDeRearmement } from './rearmementAsio';
+import { rearmerParLaRouteAnnoncee } from './api';
 import { notifications } from './stores/notifications';
 import { messageRefusBitperfect } from './bitperfectStrict';
 
@@ -195,6 +197,10 @@ export function signalerErreurServeur(data: {
   code?: string;
   requested_hz?: number;
   device_hz?: number;
+  /** #4556 — le motif PRÉCIS ; `code` ne porte que la famille. */
+  reason?: string;
+  can_rearm?: boolean;
+  rearm_endpoint?: string;
 } | null | undefined): void {
   // #3973 — un refus nommé par `code` se dit dans la langue de l'interface :
   // le texte `error` de l'événement est en français, quelle que soit la langue
@@ -203,5 +209,38 @@ export function signalerErreurServeur(data: {
   const titre = data?.track_title;
   // Même bus anti-empilement : c'est PAR CE CHEMIN qu'arrive le redémarrage de
   // serveur, une notification par zone, toutes le même texte.
-  annoncerSansEmpiler(titre ? `${msg} — ${titre}` : msg);
+  const texte = titre ? `${msg} — ${titre}` : msg;
+  // 🔴 #4556 — LE REFUS QUI ACCUSE LE MATÉRIEL, ET LE BOUTON QUI LE LÈVE.
+  //
+  // Après un plantage de pilote ASIO, le serveur n'énumère plus ASIO au
+  // démarrage suivant : il refuse la zone EN SACHANT qu'il n'a pas regardé.
+  // Le témoin est un fichier, donc redémarrer n'y change rien — seul un
+  // réarmement l'efface, et il était enterré dans l'écran Diagnostics.
+  //
+  // Le bouton se pose donc là où le défaut se manifeste. `offreDeRearmement`
+  // tranche seule, et rend la route QUE LE SERVEUR ANNONCE.
+  const offre = offreDeRearmement(data);
+  if (!offre) {
+    annoncerSansEmpiler(texte);
+    return;
+  }
+  notifications.withAction(texte, get(t)('asio.rearmAction' as any), () => {
+    void rearmer(offre.route, texte);
+  });
+}
+
+/** Le geste du bouton, sorti pour rester lisible — et testable. */
+async function rearmer(route: string, texteDuRefus: string): Promise<void> {
+  try {
+    await rearmerParLaRouteAnnoncee(route);
+    // ⚠️ Le serveur n'ouvre AUCUN pilote dans le processus courant : le
+    // réarmement ne prend effet qu'au PROCHAIN DÉMARRAGE. Le taire ferait
+    // croire à une réparation immédiate, et l'utilisateur rappuierait sur
+    // Lire pour rien.
+    notifications.success(get(t)('asio.rearmDone' as any), 10000);
+  } catch {
+    // Route ADMIN : un 401/403 est un refus normal ici. On retombe sur la
+    // phrase du serveur plutôt que d'inventer une explication.
+    notifications.error(texteDuRefus, 10000);
+  }
 }

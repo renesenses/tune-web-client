@@ -1195,6 +1195,8 @@ export default {
   "library.noZoneSelectedShort": "Aucune zone sélectionnée",
   "library.noZoneSelectedSelectZone": "Aucune zone sélectionnée — sélectionnez une zone",
   "library.shufflePlaying": "Lecture aléatoire : {count} pistes",
+  "asio.rearmAction": "Réarmer le balayage ASIO",
+  "asio.rearmDone": "Balayage ASIO réarmé. Il reprendra au prochain démarrage de Tune : aucun pilote n’est ouvert maintenant.",
   "library.playbackError": "Erreur de lecture",
   "library.sortReleaseDate": "Date de sortie",
   "library.sortAddedDate": "Date d'ajout",
