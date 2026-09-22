@@ -32,9 +32,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { queuePosition } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
-  import { favoriteAlbumIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
+  import { favoriteAlbumIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
-  import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
+  import { favKeyOf, refFavoriDeFiche, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { tip } from '../../lib/tooltip';
@@ -153,7 +153,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    *
    *  - bibliothèque (y compris un serveur UPnP intégré) → l'identifiant ;
    *  - service, et Bandcamp → la paire `source` + `source_id`. `StreamingV2`
-   *    donne à la fiche Bandcamp `source: 'bandcamp'` et `source_id: <url>` —
+   *    donne à la fiche Bandcamp `source: '__bandcamp__'` (la clé d'ONGLET)
+   *    et `source_id: <url>` ; `cibleDeService` la retraduit en `bandcamp`,
+   *    la clé du serveur (#1409 — ce commentaire disait « 'bandcamp' »,
+   *    et l'étiquette partait sous `__bandcamp__`) —
    *    le serveur ne valide QUE l'`item_type` (`TAGGABLE_ITEM_TYPES`), la
    *    source est une chaîne libre, et `tags.rs` cite Bandcamp en exemple.
    *
@@ -352,9 +355,12 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    * `source_id`, et ils vivent dans deux tables. Le premier chemin sur le
    * second ne retirerait rien, en silence (#1478).
    */
-  const cleService = $derived(
-    service && sidDistant ? streamingFavKey('album', service, String(sidDistant)) : null,
-  );
+  // 🔴 #1409 — la référence passe par `refFavoriDeFiche`, la même règle que
+  // la vignette : un album Bandcamp (propriété `bandcamp`, `service` nul) a
+  // désormais son cœur, sous la clé du SERVEUR `bandcamp` et jamais sous la
+  // clé d'onglet `__bandcamp__`.
+  const refService = $derived(depot ? null : refFavoriDeFiche(album as any, service, bandcamp));
+  const cleService = $derived(favKeyOf(refService));
   const enFavori = $derived(
     album.id != null ? $favoriteAlbumIds.has(album.id)
       : cleService != null && $favoriteStreamingKeys.has(cleService),
@@ -365,9 +371,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     bascule = true;
     try {
       if (album.id != null) await basculerFavoriLocal({ albumId: album.id });
-      else if (service && sidDistant) {
+      else if (refService) {
         await toggleStreamingFavorite({
-          itemType: 'album', service, serviceId: String(sidDistant),
+          ...refService,
           title: album.title, artist: album.artist_name ?? undefined,
           coverUrl: album.cover_path ?? undefined,
         });
@@ -877,9 +883,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
         <button class="ghost" onclick={addQueue} disabled={fileOccupee}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>{$tr('v2.album.addQueue' as any)}
         </button>
-        <!-- Le cœur n'apparaît que si l'album est DÉSIGNABLE : un album
-             Bandcamp, identifié par une URL, n'entre dans aucune des deux
-             tables de favoris. Un bouton absent ne promet rien. -->
+        <!-- Le cœur n'apparaît que si l'album est DÉSIGNABLE (`id` local, ou
+             référence de service — Bandcamp compris depuis #1409, désigné par
+             l'URL de sa page comme sur sa vignette). Un bouton absent ne
+             promet rien. -->
         <!-- Le dossier n'existe que pour un album LOCAL, et seulement si ses
              pistes portent un chemin : le bouton n'apparaît qu'alors. -->
         {#if dossier}
@@ -889,7 +896,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.album.locate' as any)}
           </button>
         {/if}
-        {#if album.id != null || (service && sidDistant)}
+        {#if album.id != null || refService}
           <button class="ghost coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
             aria-pressed={enFavori}
             title={$tr(enFavori ? 'favorites.removeAlbum' : 'favorites.addAlbum')}

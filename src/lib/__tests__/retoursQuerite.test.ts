@@ -183,7 +183,11 @@ describe('Vignettes et fiche album (Bertrand, 05/09/2026)', () => {
     expect(det).toContain('basculerFavoriLocal({ albumId: album.id })');
     expect(det).toContain('toggleStreamingFavorite({');
     // Absent quand l'album n'est désignable ni d'un côté ni de l'autre.
-    expect(det).toContain('{#if album.id != null || (service && sidDistant)}');
+    // #1409 : la désignation de service passe par `refFavoriDeFiche` (la règle
+    // de la vignette), qui couvre aussi l'album Bandcamp ; son revers — pas de
+    // cœur sans identité — est éprouvé en montant la fiche dans
+    // `ficheAlbumBandcamp1409.test.ts`.
+    expect(det).toContain('{#if album.id != null || refService}');
   });
 });
 
