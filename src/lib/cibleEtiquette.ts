@@ -77,6 +77,14 @@ export function etiquettesPosees(c: CibleEtiquette): Promise<UserTag[]> {
 
 /** Pose l'étiquette `tagId` sur la cible. */
 export function poserEtiquette(tagId: number, c: CibleEtiquette): Promise<void> {
+  // 🔴 Un identifiant local est STRICTEMENT positif. Deux lignes `item_id = 0`
+  // ont été trouvées sur le .18 le 22/09/2026 : elles ne désignaient aucun
+  // album et gonflaient le compteur de leur étiquette. Le serveur les refuse
+  // désormais en 400 ; on ne les envoie plus, et l'échec REMONTE — une
+  // étiquette qu'on croit posée alors qu'elle ne l'est pas ment à l'écran.
+  if (!estCibleService(c) && !(Number.isInteger(c.itemId) && c.itemId > 0)) {
+    return Promise.reject(new Error(`identifiant local invalide : ${c.itemId}`));
+  }
   if (!estCibleService(c)) return api.tagItem(tagId, c.itemType, c.itemId);
   return api.tagStreamingItem(tagId, {
     item_type: c.itemType,
