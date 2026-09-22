@@ -3563,6 +3563,8 @@ export default {
   "settings.tabDisplay": "Visualización",
   "settings.collectionsMosaic": "Mosaico de portadas en las colecciones",
   "settings.collectionsMosaicHint": "Cuatro portadas por colección. Desmarca para una sola portada, como en el cliente anterior.",
+  "settings.showStopButton": "Mostrar el botón Detener",
+  "settings.showStopButtonHint": "Devuelve el botón Detener a la barra de transporte. Los dos gestos ya existen y no cambian: doble clic en Reproducir y la tecla S.",
   "settings.versionsOrder": "Orden de «Otras versiones»",
   "settings.versionsOrderHint": "Por relevancia: primero las versiones más parecidas al tema. Por fuente: tu biblioteca, luego Qobuz, Tidal, YouTube y Bandcamp al final.",
   "settings.versionsOrderRelevance": "Por relevancia",

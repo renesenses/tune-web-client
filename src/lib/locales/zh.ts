@@ -3563,6 +3563,8 @@ export default {
   "settings.tabDisplay": "显示",
   "settings.collectionsMosaic": "合辑显示封面拼贴",
   "settings.collectionsMosaicHint": "每个合辑显示四张封面。取消勾选可只显示一张封面，与旧客户端一致。",
+  "settings.showStopButton": "显示停止按钮",
+  "settings.showStopButtonHint": "在播放控制栏中重新显示停止按钮。两种操作本来就存在，且保持不变：双击播放按钮，以及 S 键。",
   "settings.versionsOrder": "“其他版本”的排列顺序",
   "settings.versionsOrderHint": "按相关度：与该曲目最接近的版本排在前面。按来源：先是本地曲库，然后是 Qobuz、Tidal、YouTube，Bandcamp 排在最后。",
   "settings.versionsOrderRelevance": "按相关度",

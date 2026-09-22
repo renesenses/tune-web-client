@@ -3563,6 +3563,8 @@ export default {
   "settings.tabDisplay": "Afișare",
   "settings.collectionsMosaic": "Mozaic de coperte pe colecții",
   "settings.collectionsMosaicHint": "Patru coperte pe colecție. Debifați pentru o singură copertă, ca în clientul anterior.",
+  "settings.showStopButton": "Afișează butonul Oprește",
+  "settings.showStopButtonHint": "Aduce înapoi butonul Oprește în bara de transport. Ambele gesturi există deja și rămân: dublu clic pe Redare și tasta S.",
   "settings.versionsOrder": "Ordinea secțiunii „Alte versiuni”",
   "settings.versionsOrderHint": "După relevanță: mai întâi versiunile cele mai apropiate de piesă. După sursă: biblioteca ta, apoi Qobuz, Tidal, YouTube, iar Bandcamp la final.",
   "settings.versionsOrderRelevance": "După relevanță",

@@ -179,7 +179,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
           // #4368 : le réglage se cherche par ce qu'il touche — « autres
           // versions » — et par les noms de services que l'utilisateur voit
           // sur les tuiles, pas par le mot « ordre » tout seul.
-          'versions', 'autres versions', 'ordre', 'source', 'qobuz', 'bandcamp'] },
+          'versions', 'autres versions', 'ordre', 'source', 'qobuz', 'bandcamp',
+          // #1428 : le réglage se cherche par le nom du BOUTON — « stop »,
+          // « arrêt » — et par l'endroit où il manque, la barre de transport.
+          'stop', 'bouton stop', 'arrêt', 'arrêter', 'transport', 'barre de transport', 'lecture'] },
     ],
   },
   {

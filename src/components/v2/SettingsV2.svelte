@@ -2754,6 +2754,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- #1428 — jfpaquet (fil 1879, 21/09/2026) : « ET LA
+                   DISPARITION DU BOUTON STOP NE ME PLAÎT PAS DU TOUT ». Le
+                   bouton a été retiré deux fois (05/09 puis 09/09) et la
+                   décision tient : le stop est une commande d'APPAREIL. Elle
+                   devient un CHOIX, décoché par défaut — l'écran de qui n'a
+                   rien demandé ne bouge pas. L'infobulle nomme les deux gestes
+                   qui existent déjà, puisque c'est ce qu'aucun écran ne disait. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.showStopButton' as any)}</span>
+                  <span class="hint">{$t('settings.showStopButtonHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.afficherBoutonStop}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, afficherBoutonStop: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz
                    doivent être avant Bandcamp ». L'entrelacement qu'il voit

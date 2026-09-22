@@ -3563,6 +3563,8 @@ export default {
   "settings.tabDisplay": "表示",
   "settings.collectionsMosaic": "コレクションにジャケットのモザイクを表示",
   "settings.collectionsMosaicHint": "コレクションごとに4枚のジャケット。チェックを外すと、以前のクライアントと同じ1枚表示になります。",
+  "settings.showStopButton": "停止ボタンを表示",
+  "settings.showStopButtonHint": "停止ボタンをトランスポートバーに戻します。2つの操作はすでに存在し、変わりません：再生ボタンのダブルクリックと S キー。",
   "settings.versionsOrder": "「他のバージョン」の並び順",
   "settings.versionsOrderHint": "関連度順: この曲に近いバージョンから表示します。ソース順: ライブラリ、続いて Qobuz、Tidal、YouTube、最後に Bandcamp の順に表示します。",
   "settings.versionsOrderRelevance": "関連度順",

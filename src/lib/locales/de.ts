@@ -3563,6 +3563,8 @@ export default {
   "settings.tabDisplay": "Anzeige",
   "settings.collectionsMosaic": "Cover-Mosaik auf Sammlungen",
   "settings.collectionsMosaicHint": "Vier Cover je Sammlung. Abwählen für ein einzelnes Cover, wie im bisherigen Client.",
+  "settings.showStopButton": "Stopp-Schaltfläche anzeigen",
+  "settings.showStopButtonHint": "Holt die Stopp-Schaltfläche zurück in die Transportleiste. Beide Gesten gibt es bereits und sie bleiben: Doppelklick auf Wiedergabe und die Taste S.",
   "settings.versionsOrder": "Reihenfolge der „Anderen Versionen“",
   "settings.versionsOrderHint": "Nach Relevanz: die dem Titel ähnlichsten Versionen zuerst. Nach Quelle: Ihre Bibliothek, dann Qobuz, Tidal, YouTube und zuletzt Bandcamp.",
   "settings.versionsOrderRelevance": "Nach Relevanz",
