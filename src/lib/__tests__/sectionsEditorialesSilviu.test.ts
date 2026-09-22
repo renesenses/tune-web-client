@@ -1,4 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { get } from 'svelte/store';
 import { locale, t } from '../i18n';
 import * as locales from '../locales';
@@ -147,5 +149,37 @@ describe('ce qui reste au SERVEUR — les catégories de playlists Qobuz', () =>
     const w = await catalogueService('qobuz');
     const g = w.find((x) => x.id === 'qobuz-tag-label');
     expect(g?.cleTitre).toBe('Histoires de labels');
+  });
+});
+
+describe('l’écran Streaming — deux messages vides restés en français', () => {
+  /**
+   * Trouvés en balayant la MÊME page que la capture 4, avec la forme que
+   * `check-i18n` ne voit pas : du texte collé à une accolade
+   * (`Aucun favori dans votre compte {label(active)}.`). Sa forme `VISIBLE`
+   * s'arrête aux accolades, exactement comme pour « {n} à suivre » sur la
+   * file d'attente.
+   */
+  const SOURCE = readFileSync(
+    resolve(__dirname, '../../..', 'src/components/v2/StreamingV2.svelte'), 'utf8');
+
+  it('ne dit plus « Aucune playlist dans votre compte » en dur', () => {
+    expect(SOURCE).not.toContain('Aucune playlist dans votre compte');
+    expect(SOURCE).toContain("'v2.str.noPlaylistsInAccount'");
+  });
+
+  it('ne dit plus « Aucun favori dans votre compte » en dur', () => {
+    expect(SOURCE).not.toContain('Aucun favori dans votre compte');
+    expect(SOURCE).toContain("'v2.str.noFavoritesInAccount'");
+  });
+
+  it('les deux clés existent dans les onze langues, avec leur jeton {s}', () => {
+    for (const cle of ['v2.str.noPlaylistsInAccount', 'v2.str.noFavoritesInAccount']) {
+      for (const langue of LANGUES) {
+        const v = DICTS[langue][cle];
+        expect(v, `${cle} manque dans ${langue}.ts`).toBeTruthy();
+        expect(v, `${cle} perd {s} en ${langue}`).toContain('{s}');
+      }
+    }
   });
 });

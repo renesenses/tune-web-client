@@ -3453,6 +3453,8 @@ export default {
   "v2.str.noPreview": "Niciun fragment disponibil pentru această piesă.",
   "v2.str.bandcampNotFound": "Cont negăsit — verificați numele de utilizator Bandcamp.",
   "v2.str.noEditorial": "{s} nu propune nicio selecție editorială momentan. Folosiți căutarea.",
+  "v2.str.noPlaylistsInAccount": "Nicio listă de redare în contul dumneavoastră {s}.",
+  "v2.str.noFavoritesInAccount": "Niciun favorit în contul dumneavoastră {s}.",
   "v2.str.comingOn": "Apare pe {d}",
   "v2.str.coming": "În curând",
   "v2.set.noLimit": "Fără limită",

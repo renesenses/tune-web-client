@@ -3452,6 +3452,8 @@ export default {
   "v2.str.noPreview": "Ingen förhandslyssning finns för det här spåret.",
   "v2.str.bandcampNotFound": "Kontot hittades inte — kontrollera Bandcamp-användarnamnet.",
   "v2.str.noEditorial": "{s} erbjuder ingen redaktionell samling just nu. Använd sökningen.",
+  "v2.str.noPlaylistsInAccount": "Ingen spellista i ditt {s}-konto.",
+  "v2.str.noFavoritesInAccount": "Ingen favorit i ditt {s}-konto.",
   "v2.str.comingOn": "Släpps {d}",
   "v2.str.coming": "Kommer snart",
   "v2.set.noLimit": "Ingen gräns",

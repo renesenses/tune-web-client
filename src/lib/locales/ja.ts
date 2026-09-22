@@ -3453,6 +3453,8 @@ export default {
   "v2.str.noPreview": "この曲のプレビューはありません。",
   "v2.str.bandcampNotFound": "アカウントが見つかりません — Bandcamp のユーザー名を確認してください。",
   "v2.str.noEditorial": "{s} には現在エディトリアル選曲がありません。検索をご利用ください。",
+  "v2.str.noPlaylistsInAccount": "{s} アカウントにプレイリストがありません。",
+  "v2.str.noFavoritesInAccount": "{s} アカウントにお気に入りがありません。",
   "v2.str.comingOn": "{d} 発売予定",
   "v2.str.coming": "発売予定",
   "v2.set.noLimit": "制限なし",

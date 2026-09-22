@@ -3453,6 +3453,8 @@ export default {
   "v2.str.noPreview": "Für diesen Titel ist keine Vorschau verfügbar.",
   "v2.str.bandcampNotFound": "Konto nicht gefunden — prüfen Sie den Bandcamp-Benutzernamen.",
   "v2.str.noEditorial": "{s} bietet derzeit keine redaktionelle Auswahl. Nutzen Sie die Suche.",
+  "v2.str.noPlaylistsInAccount": "Keine Playlist in Ihrem {s}-Konto.",
+  "v2.str.noFavoritesInAccount": "Kein Favorit in Ihrem {s}-Konto.",
   "v2.str.comingOn": "Erscheint am {d}",
   "v2.str.coming": "Demnächst",
   "v2.set.noLimit": "Keine Begrenzung",

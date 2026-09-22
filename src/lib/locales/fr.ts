@@ -3475,6 +3475,8 @@ export default {
   "v2.str.noPreview": "Aucun extrait disponible pour ce titre.",
   "v2.str.bandcampNotFound": "Compte introuvable — vérifiez le nom d’utilisateur Bandcamp.",
   "v2.str.noEditorial": "{s} ne propose aucune sélection éditoriale pour l’instant. Utilisez la recherche.",
+  "v2.str.noPlaylistsInAccount": "Aucune playlist dans votre compte {s}.",
+  "v2.str.noFavoritesInAccount": "Aucun favori dans votre compte {s}.",
   "v2.str.comingOn": "À paraître le {d}",
   "v2.str.coming": "À paraître",
   "v2.set.noLimit": "Aucune limite",

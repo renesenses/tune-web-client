@@ -3453,6 +3453,8 @@ export default {
   "v2.str.noPreview": "此曲目没有可用的试听。",
   "v2.str.bandcampNotFound": "未找到账户 — 请检查 Bandcamp 用户名。",
   "v2.str.noEditorial": "{s} 目前没有编辑精选。请使用搜索。",
+  "v2.str.noPlaylistsInAccount": "您的 {s} 账户中没有播放列表。",
+  "v2.str.noFavoritesInAccount": "您的 {s} 账户中没有收藏。",
   "v2.str.comingOn": "{d} 发行",
   "v2.str.coming": "即将发行",
   "v2.set.noLimit": "无限制",
