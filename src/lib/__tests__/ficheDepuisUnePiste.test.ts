@@ -29,7 +29,12 @@ describe("Un identifiant de PISTE n'ouvre pas un album (Bertrand, 05/09/2026)", 
     // Elle passe la paire service + identifiant de piste, que le serveur sait
     // apparier. Mieux vaut un geste absent qu'un écran vide — pas deux gestes
     // absents.
-    expect(src).toContain("jouer: geste(o, service, opts.genre ?? 'album')");
+    //
+    // 🔴 22/09/2026 : cette garde de TEXTE est restée verte alors que la
+    // lecture partait en `streaming_album_id` avec l'identifiant de piste
+    // (« qobuz /album/get: 404 »). Le comportement est désormais gardé par
+    // `accueilRecentsQobuzEtTops.test.ts`, qui joue la tuile.
+    expect(src).toContain("jouer: geste(o, service, opts.genre ?? 'album', opts.historique ?? false)");
   });
 });
 
