@@ -1943,6 +1943,22 @@ export interface SqueezeboxStatus {
   lms_host: string | null;
   lms_discovered: boolean;
   players: SqueezeboxPlayer[];
+  /**
+   * Ce que le serveur a compris d'un recensement VIDE — pourquoi la liste est
+   * vide, et quoi faire. Émis par `/squeezebox/status` depuis la v0.9.153, il
+   * n'était lu par AUCUN écran : le panneau retombait sur son propre
+   * « Aucun lecteur Squeezebox trouvé », quelle qu'en soit la cause
+   * (renesenses/tune-server-rust#4703).
+   *
+   * Codes connus : `lms_sans_platine` (LMS répond, aucune platine annoncée),
+   * `lms_recensement_impossible` (LMS répond, sa liste est illisible),
+   * `lms_est_tune_lui_meme` (l'adresse désigne le pont Squeezebox de Tune :
+   * Tune s'interroge lui-même et le recensement sera toujours vide).
+   *
+   * Absent ou `null` dès qu'au moins une platine est recensée, et sur un
+   * serveur antérieur à la v0.9.153.
+   */
+  diagnostic?: { code?: string; message?: string } | null;
 }
 
 export function getSqueezeboxStatus() {
