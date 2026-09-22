@@ -670,6 +670,52 @@ export default {
   'radioGenre.culture': 'Culture',
   'radioGenre.generalist': 'Généraliste',
   'radioGenre.contemporary': 'Contemporaine',
+
+  // Fuites de francais - les quatre genres que le serveur sert et que ce
+  // catalogue ne connaissait pas encore (tune-server-rust #4713).
+
+  'radioGenre.soul': 'Soul',
+  'radioGenre.funk': 'Funk',
+  'radioGenre.folk': 'Folk',
+  'radioGenre.ambient': 'Ambient',
+
+  // Les seize collections intelligentes LIVREES. Le semis les ecrit en
+  // francais en base ; le serveur joint leur cle stable (#4714), le client
+  // la traduit. Une collection RENOMMEE par l utilisateur n a pas de cle et
+  // garde son nom verbatim.
+
+  'smartCollection.default.audiophile': '💎 Audiophile',
+  'smartCollection.default.audiophile.description': 'Enregistrements haute résolution',
+  'smartCollection.default.soundtracks': '🎬 Bandes originales',
+  'smartCollection.default.soundtracks.description': 'Bandes originales de films',
+  'smartCollection.default.classical': '🎻 Classique',
+  'smartCollection.default.classical.description': 'Musique classique et orchestrale',
+  'smartCollection.default.electroAmbient': '🎧 Electro & Ambient',
+  'smartCollection.default.electroAmbient.description': 'Électronique et ambient',
+  'smartCollection.default.frenchTouch': '🇫🇷 French Touch',
+  'smartCollection.default.frenchTouch.description': 'Chanson française',
+  'smartCollection.default.jazz': '🎷 Jazz',
+  'smartCollection.default.jazz.description': 'Tous les albums de jazz',
+  'smartCollection.default.rock': '🎸 Rock',
+  'smartCollection.default.rock.description': 'Rock, alt-rock, prog-rock',
+  'smartCollection.default.sacdDsd': '💿 SACD / DSD',
+  'smartCollection.default.sacdDsd.description': 'Super Audio CD et DSD',
+  'smartCollection.default.soulFunk': '🕺 Soul & Funk',
+  'smartCollection.default.soulFunk.description': 'Soul, Funk, R&B',
+  'smartCollection.default.recent': '🆕 Récents',
+  'smartCollection.default.recent.description': 'Ajoutés dans les 90 derniers jours',
+  'smartCollection.default.noCover': '🖼️ Sans pochette',
+  'smartCollection.default.noCover.description': 'Albums sans couverture',
+  'smartCollection.default.piano': '🎹 Piano',
+  'smartCollection.default.piano.description': 'Piano solo et concertos',
+  'smartCollection.default.vocalACappella': '🎤 Vocal / A cappella',
+  'smartCollection.default.vocalACappella.description': 'Musique vocale et a cappella',
+  'smartCollection.default.blues': '🎵 Blues',
+  'smartCollection.default.blues.description': 'Blues et blues-rock',
+  'smartCollection.default.world': '🌍 World Music',
+  'smartCollection.default.world.description': 'Musiques du monde et folk',
+  'smartCollection.default.pop': '🎺 Pop',
+  'smartCollection.default.pop.description': 'Pop et synth-pop',
   'radio.name': 'Nom',
   'radio.genre': 'Genre',
   'radio.import': 'Importer M3U/PLS',

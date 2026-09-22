@@ -155,11 +155,23 @@ const nom = (s: string) => (s === 'qobuz' ? 'Qobuz' : s === 'tidal' ? 'Tidal' : 
  *
  *  2. Les CATÉGORIES de playlists (`Histoires de labels`, `Les Pépites de
  *     l'équipe`, `Dans le casque de…`, `Artistes`, `Nouveautés`) viennent de
- *     Qobuz, et le serveur choisit délibérément le français en les
- *     dépaquetant — `qobuz.rs:2517-2523` : `obj.get("fr").or_else(|| …)`.
- *     Aucune table côté client ne peut réparer ça honnêtement : le remède est
- *     que le serveur lise la langue de la requête. Elles restent donc rendues
- *     telles que le service les nomme, et la PR le dit.
+ *     Qobuz. Le serveur choisissait délibérément le français en les
+ *     dépaquetant — `qobuz.rs:2519`, `obj.get("fr").or_else(|| …)` — alors
+ *     que l'anglais était dans la même réponse. Aucune table côté client ne
+ *     pouvait réparer ça honnêtement : le remède était que le serveur lise la
+ *     langue de la requête.
+ *
+ *     ✅ C'EST FAIT (tune-server-rust #4720, 22/09/2026). `PlaylistTag` porte
+ *     désormais `name_i18n`, le faisceau complet, et `tune-streaming-http`
+ *     choisit la langue d'après l'`Accept-Language` — la langue demandée si
+ *     le service la sert, l'anglais sinon, jamais le français par défaut.
+ *     `Vary: Accept-Language` accompagne le cache de trente minutes.
+ *
+ *     🔴 LE CLIENT N'A DONC RIEN À FAIRE, ET SURTOUT RIEN À FORCER. Chaque
+ *     requête part déjà avec `Accept-Language: <langue de l'interface>`
+ *     (`api.ts`, `acceptLang()`), et `name` arrive traduit. Poser ici une
+ *     table de libellés, ou relire `name_i18n` côté client, rejouerait le
+ *     défaut dans une autre couche. On affiche ce qu'on reçoit.
  *
  * ── POURQUOI UNE TABLE, ET PAS `v2.svc.sec.${id}` ────────────────────────
  *

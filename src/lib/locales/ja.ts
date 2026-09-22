@@ -570,6 +570,52 @@ export default {
   'radioGenre.culture': 'カルチャー',
   'radioGenre.generalist': '総合',
   'radioGenre.contemporary': 'コンテンポラリー',
+
+  // Fuites de francais - les quatre genres que le serveur sert et que ce
+  // catalogue ne connaissait pas encore (tune-server-rust #4713).
+
+  'radioGenre.soul': 'ソウル',
+  'radioGenre.funk': 'ファンク',
+  'radioGenre.folk': 'フォーク',
+  'radioGenre.ambient': 'アンビエント',
+
+  // Les seize collections intelligentes LIVREES. Le semis les ecrit en
+  // francais en base ; le serveur joint leur cle stable (#4714), le client
+  // la traduit. Une collection RENOMMEE par l utilisateur n a pas de cle et
+  // garde son nom verbatim.
+
+  'smartCollection.default.audiophile': '💎 オーディオファイル',
+  'smartCollection.default.audiophile.description': 'ハイレゾ録音',
+  'smartCollection.default.soundtracks': '🎬 サウンドトラック',
+  'smartCollection.default.soundtracks.description': '映画のサウンドトラック',
+  'smartCollection.default.classical': '🎻 クラシック',
+  'smartCollection.default.classical.description': 'クラシックと管弦楽',
+  'smartCollection.default.electroAmbient': '🎧 エレクトロ & アンビエント',
+  'smartCollection.default.electroAmbient.description': 'エレクトロニックとアンビエント',
+  'smartCollection.default.frenchTouch': '🇫🇷 フレンチタッチ',
+  'smartCollection.default.frenchTouch.description': 'シャンソン',
+  'smartCollection.default.jazz': '🎷 ジャズ',
+  'smartCollection.default.jazz.description': 'すべてのジャズアルバム',
+  'smartCollection.default.rock': '🎸 ロック',
+  'smartCollection.default.rock.description': 'ロック、オルタナ、プログレ',
+  'smartCollection.default.sacdDsd': '💿 SACD / DSD',
+  'smartCollection.default.sacdDsd.description': 'Super Audio CD と DSD',
+  'smartCollection.default.soulFunk': '🕺 ソウル & ファンク',
+  'smartCollection.default.soulFunk.description': 'ソウル、ファンク、R&B',
+  'smartCollection.default.recent': '🆕 最近追加',
+  'smartCollection.default.recent.description': '過去 90 日間に追加',
+  'smartCollection.default.noCover': '🖼️ ジャケットなし',
+  'smartCollection.default.noCover.description': 'ジャケットのないアルバム',
+  'smartCollection.default.piano': '🎹 ピアノ',
+  'smartCollection.default.piano.description': 'ピアノ独奏と協奏曲',
+  'smartCollection.default.vocalACappella': '🎤 ヴォーカル / アカペラ',
+  'smartCollection.default.vocalACappella.description': 'ヴォーカルとアカペラ',
+  'smartCollection.default.blues': '🎵 ブルース',
+  'smartCollection.default.blues.description': 'ブルースとブルースロック',
+  'smartCollection.default.world': '🌍 ワールドミュージック',
+  'smartCollection.default.world.description': 'ワールドミュージックとフォーク',
+  'smartCollection.default.pop': '🎺 ポップ',
+  'smartCollection.default.pop.description': 'ポップとシンセポップ',
   'radio.name': '名前',
   'radio.genre': 'ジャンル',
   'radio.import': 'M3U/PLSをインポート',

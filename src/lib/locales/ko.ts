@@ -570,6 +570,52 @@ export default {
   'radioGenre.culture': '문화',
   'radioGenre.generalist': '종합',
   'radioGenre.contemporary': '현대음악',
+
+  // Fuites de francais - les quatre genres que le serveur sert et que ce
+  // catalogue ne connaissait pas encore (tune-server-rust #4713).
+
+  'radioGenre.soul': '소울',
+  'radioGenre.funk': '펑크',
+  'radioGenre.folk': '포크',
+  'radioGenre.ambient': '앰비언트',
+
+  // Les seize collections intelligentes LIVREES. Le semis les ecrit en
+  // francais en base ; le serveur joint leur cle stable (#4714), le client
+  // la traduit. Une collection RENOMMEE par l utilisateur n a pas de cle et
+  // garde son nom verbatim.
+
+  'smartCollection.default.audiophile': '💎 오디오파일',
+  'smartCollection.default.audiophile.description': '고해상도 녹음',
+  'smartCollection.default.soundtracks': '🎬 사운드트랙',
+  'smartCollection.default.soundtracks.description': '영화 사운드트랙',
+  'smartCollection.default.classical': '🎻 클래식',
+  'smartCollection.default.classical.description': '클래식과 관현악',
+  'smartCollection.default.electroAmbient': '🎧 일렉트로 & 앰비언트',
+  'smartCollection.default.electroAmbient.description': '일렉트로닉과 앰비언트',
+  'smartCollection.default.frenchTouch': '🇫🇷 프렌치 터치',
+  'smartCollection.default.frenchTouch.description': '샹송',
+  'smartCollection.default.jazz': '🎷 재즈',
+  'smartCollection.default.jazz.description': '모든 재즈 앨범',
+  'smartCollection.default.rock': '🎸 록',
+  'smartCollection.default.rock.description': '록, 얼터너티브 록, 프로그레시브 록',
+  'smartCollection.default.sacdDsd': '💿 SACD / DSD',
+  'smartCollection.default.sacdDsd.description': 'Super Audio CD와 DSD',
+  'smartCollection.default.soulFunk': '🕺 소울 & 펑크',
+  'smartCollection.default.soulFunk.description': '소울, 펑크, R&B',
+  'smartCollection.default.recent': '🆕 최근 추가',
+  'smartCollection.default.recent.description': '최근 90일 이내 추가',
+  'smartCollection.default.noCover': '🖼️ 커버 없음',
+  'smartCollection.default.noCover.description': '커버가 없는 앨범',
+  'smartCollection.default.piano': '🎹 피아노',
+  'smartCollection.default.piano.description': '피아노 독주와 협주곡',
+  'smartCollection.default.vocalACappella': '🎤 보컬 / 아카펠라',
+  'smartCollection.default.vocalACappella.description': '보컬과 아카펠라 음악',
+  'smartCollection.default.blues': '🎵 블루스',
+  'smartCollection.default.blues.description': '블루스와 블루스 록',
+  'smartCollection.default.world': '🌍 월드뮤직',
+  'smartCollection.default.world.description': '월드뮤직과 포크',
+  'smartCollection.default.pop': '🎺 팝',
+  'smartCollection.default.pop.description': '팝과 신스팝',
   'radio.name': '이름',
   'radio.genre': '장르',
   'radio.import': 'M3U/PLS 가져오기',

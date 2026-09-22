@@ -162,6 +162,17 @@ const ALIASES: Readonly<Record<string, string>> = {
   contemporaine: 'radioGenre.contemporary',
   contemporain: 'radioGenre.contemporary',
   contemporary: 'radioGenre.contemporary',
+
+  // 🔴 Les quatre genres que le SERVEUR sait nommer et que ce relevé du
+  // 30/08/2026 ignorait — `cle_genre`, `tune-server/src/routes/`
+  // `radios_libelles.rs:94` et suivantes. Sans eux, `cleClienteDuGenre()`
+  // rejetait `radio.genre.soul` et la pastille retombait sur `genre_label`,
+  // figé à la langue de la requête.
+  soul: 'radioGenre.soul',
+  funk: 'radioGenre.funk',
+  folk: 'radioGenre.folk',
+  ambient: 'radioGenre.ambient',
+  ambiant: 'radioGenre.ambient',
 };
 
 /**
@@ -174,6 +185,73 @@ export const RADIO_GENRE_KEYS: readonly string[] = [...new Set(Object.values(ALI
 
 /** Préfixe des rayons hors vocabulaire — jamais une clé de traduction. */
 const RAW_PREFIX = 'raw:';
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * LE SERVEUR PARLE MAINTENANT EN CLÉS — ET C'EST LUI QUI GAGNE
+ *
+ * tune-server-rust #4713 (`tune-server/src/routes/radios_libelles.rs`) joint
+ * désormais à chaque station `genre_key` (`radio.genre.eclectic`…) et
+ * `genre_label` (le genre déjà traduit dans la langue de l'`Accept-Language`).
+ *
+ * La table `ALIASES` ci-dessus devient un REPLI, pour deux cas et deux
+ * seulement :
+ *
+ *   1. un serveur antérieur à la v0.9.162, qui ne sert aucune clé ;
+ *   2. une station au genre libre — « Shoegaze » tapé à la main — que le
+ *      serveur ne reconnaît pas non plus, et laisse donc sans clé.
+ *
+ * Pourquoi le serveur gagne : il lit la valeur EN BASE, il connaît les formes
+ * qu'il a lui-même semées (y compris celles que ce client n'a jamais vues —
+ * `soul`, `funk`, `folk`, `ambient`), et sa table est mise à jour avec
+ * l'annuaire. La table d'ici est un relevé du 30/08/2026 : elle vieillit.
+ *
+ * Pourquoi ce n'est pas `genre_label` qui gagne, alors qu'il est déjà
+ * traduit : il est figé à la LANGUE DE LA REQUÊTE. La liste des stations est
+ * chargée une fois au montage ; changer de langue ensuite laisserait les
+ * pastilles dans l'ancienne. `genre_key` passée par `$t` suit la langue
+ * instantanément. `genre_label` sert donc de repli — précieux — quand la clé
+ * du serveur est plus récente que le catalogue embarqué.
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/** Préfixe des clés de genre servies par le serveur. */
+const PREFIXE_SERVEUR = 'radio.genre.';
+
+/**
+ * Les suffixes où les deux vocabulaires divergent.
+ *
+ * Le serveur nomme le genre en anglais (`frenchSong`), ce client l'avait
+ * nommé en français (`chansonFrancaise`) quand il était seul à le connaître.
+ * Renommer la clé du client obligerait à toucher les onze catalogues pour
+ * rien : on traduit la clé, pas les fichiers de langue.
+ */
+const SUFFIXES_DIVERGENTS: Readonly<Record<string, string>> = {
+  frenchSong: 'chansonFrancaise',
+};
+
+/**
+ * La clé du catalogue EMBARQUÉ correspondant à une clé du serveur, ou `null`
+ * si ce client ne la connaît pas.
+ *
+ * Le `null` est la partie utile : il dit « je ne sais pas traduire ça », ce
+ * qui fait retomber l'appelant sur `genre_label`. Sans ce filtre, une clé
+ * inconnue partirait dans `$t()` qui rendrait la CLÉ NUE à l'écran —
+ * « radio.genre.soul » sur la pastille.
+ */
+export function cleClienteDuGenre(cleServeur: string | null | undefined): string | null {
+  const brut = (cleServeur ?? '').trim();
+  if (!brut.startsWith(PREFIXE_SERVEUR)) return null;
+  const suffixe = brut.slice(PREFIXE_SERVEUR.length);
+  if (suffixe === '') return null;
+  const cle = `radioGenre.${SUFFIXES_DIVERGENTS[suffixe] ?? suffixe}`;
+  return RADIO_GENRE_KEYS.includes(cle) ? cle : null;
+}
+
+/** Ce que ce module lit d'une station — bien moins que `RadioStation`. */
+export interface GenreDeStation {
+  genre?: string | null;
+  genre_key?: string | null;
+  genre_label?: string | null;
+}
 
 /**
  * Replie une valeur de genre brute sur son rayon.
@@ -197,6 +275,40 @@ export function radioGenreShelf(raw: string | null | undefined): RadioGenreShelf
 }
 
 /**
+ * Le rayon d'une STATION — la forme à appeler depuis un écran.
+ *
+ * Trois sources, dans cet ordre, et une seule gagne :
+ *
+ *   1. `genre_key` du serveur, quand ce client sait la traduire. La pastille
+ *      suit alors la langue sans recharger la liste ;
+ *   2. `genre_label` du serveur — déjà traduit — quand la clé existe mais
+ *      qu'elle est plus récente que le catalogue embarqué. Le rayon garde la
+ *      clé du serveur comme identifiant : deux stations du même genre
+ *      inconnu se rejoignent quand même ;
+ *   3. la table locale sur `genre` brut, pour un serveur antérieur à la
+ *      v0.9.162 — et, au bout, la valeur brute elle-même.
+ *
+ * Aucune de ces branches ne peut rendre une clé nue à l'écran : l'étape 1 ne
+ * garde que les clés réellement présentes dans les onze catalogues.
+ */
+export function radioGenreRayon(station: GenreDeStation): RadioGenreShelf | null {
+  const brut = (station.genre ?? '').trim();
+  const cleServeur = (station.genre_key ?? '').trim();
+  const libelleServeur = (station.genre_label ?? '').trim();
+
+  const cleCliente = cleClienteDuGenre(cleServeur);
+  if (cleCliente) {
+    // `raw` ne sert que de repli d'affichage, et ne servira pas ici puisque
+    // `i18nKey` est posée ; on y met quand même la valeur la plus lisible.
+    return { key: cleCliente, i18nKey: cleCliente, raw: brut || libelleServeur };
+  }
+  if (cleServeur !== '' && libelleServeur !== '') {
+    return { key: cleServeur, i18nKey: null, raw: libelleServeur };
+  }
+  return radioGenreShelf(brut);
+}
+
+/**
  * Le libellé à afficher pour un rayon, dans la langue courante.
  *
  * `translate` est le `$t` du composant : le module ne connaît pas la langue,
@@ -217,12 +329,10 @@ export function radioGenreLabel(
  * `$t` du composant. Trier sur les clés donnerait un ordre alphabétique
  * anglais à un lecteur japonais.
  */
-export function radioGenreShelves(
-  stations: readonly { genre?: string | null }[],
-): RadioGenreShelf[] {
+export function radioGenreShelves(stations: readonly GenreDeStation[]): RadioGenreShelf[] {
   const rayons = new Map<string, RadioGenreShelf>();
   for (const station of stations) {
-    const rayon = radioGenreShelf(station.genre);
+    const rayon = radioGenreRayon(station);
     if (rayon && !rayons.has(rayon.key)) rayons.set(rayon.key, rayon);
   }
   return [...rayons.values()];

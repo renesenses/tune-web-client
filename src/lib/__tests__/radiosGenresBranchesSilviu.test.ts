@@ -58,7 +58,10 @@ const CORPS = sansCommentaires(SOURCE);
 describe('page Radio — capture Silviu (roumain, v0.9.161)', () => {
   it('branche enfin lib/radioGenres — l’écran l’importe', () => {
     expect(CORPS).toContain("from '../../lib/radioGenres'");
-    expect(CORPS).toContain('radioGenreShelf');
+    // `radioGenreShelf` a cédé la place à `radioGenreRayon` le 22/09/2026 :
+    // la clé du SERVEUR l'emporte désormais, et la table locale n'est plus
+    // que le repli qu'elle appelle en dernier.
+    expect(CORPS).toContain('radioGenreRayon');
     expect(CORPS).toContain('radioGenreLabel');
   });
 
@@ -78,7 +81,7 @@ describe('page Radio — capture Silviu (roumain, v0.9.161)', () => {
     // `r.genre?.trim() !== genre` remettait « jazz » et « Jazz » dans deux
     // rayons ; c'est le défaut que radioGenres corrige, et il ne revient pas.
     expect(CORPS).not.toContain("r.genre?.trim() !== genre");
-    expect(CORPS).toContain('radioGenreShelf(r.genre)?.key !== genre');
+    expect(CORPS).toContain('radioGenreRayon(r)?.key !== genre');
   });
 });
 
@@ -130,25 +133,43 @@ describe('les genres semés en français se lisent en roumain', () => {
   });
 });
 
-describe('le PAYS reste l’affaire du serveur', () => {
+describe('le PAYS est servi en CODE, et rendu dans la langue du lecteur', () => {
   /**
-   * Constat, pas correctif. `GET /api/v1/radios` sert `country` en texte
-   * libre français et aucun code ISO — le type le dit, et le client ne doit
-   * pas fabriquer la table que la donnée ne porte pas.
+   * 🔴 CE BLOC DISAIT L'INVERSE JUSQU'AU 22/09/2026.
+   *
+   * Il constatait que `GET /api/v1/radios` ne servait aucun code ISO et
+   * interdisait au client de fabriquer la table que la donnée ne portait
+   * pas — « c'est au serveur d'ajouter `country_code` ». Le serveur l'a fait
+   * (tune-server-rust #4713, `tune-server/src/routes/radios_libelles.rs:136`)
+   * et ce raccordement est la PR qui le branche.
+   *
+   * L'interdiction, elle, TIENT TOUJOURS : le client ne tient aucune table de
+   * pays. Il lit un code et délègue à `Intl.DisplayNames`.
    */
-  it('le type RadioStation ne porte aucun code pays', () => {
+  it('le type RadioStation porte enfin le code ISO du serveur', () => {
     const types = readFileSync(resolve(RACINE, 'src/lib/types.ts'), 'utf8');
     const bloc = types.slice(types.indexOf('export interface RadioStation'));
-    const corps = bloc.slice(0, bloc.indexOf('}'));
+    const corps = bloc.slice(0, bloc.indexOf('\n}'));
     expect(corps).toContain('country?: string | null;');
-    expect(corps).not.toContain('country_code');
-    expect(corps).not.toContain('countryCode');
+    expect(corps).toContain('country_code?: string | null;');
+    expect(corps).toContain('genre_key?: string | null;');
+    expect(corps).toContain('genre_label?: string | null;');
   });
 
-  it('le client ne fabrique pas de table de pays', () => {
-    // Si un jour quelqu'un ajoute `radioPays.ts`, ce test doit tomber et la
-    // discussion doit repartir du serveur.
+  it('le client ne fabrique toujours PAS de table de pays', () => {
+    // La garde d'origine, intacte : ce qui était interdit le reste. Le
+    // module d'affichage ne contient aucun nom de pays — il lit un code.
     expect(CORPS).not.toContain('radioPays');
+    const pays = readFileSync(resolve(RACINE, 'src/lib/paysAffichage.ts'), 'utf8');
+    const code = pays.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    expect(code).toContain('Intl.DisplayNames');
+    for (const nom of ['Royaume-Uni', 'Regatul Unit', 'États-Unis', 'Japon']) {
+      expect(code, `« ${nom} » écrit en dur : c'est une table déguisée`).not.toContain(nom);
+    }
+  });
+
+  it('l’écran rend le pays par le module, et garde `country` en repli', () => {
+    expect(CORPS).toContain('nomDuPays(r.country_code');
     expect(CORPS).toContain('r.country');
   });
 });

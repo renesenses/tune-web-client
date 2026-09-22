@@ -570,6 +570,52 @@ export default {
   'radioGenre.culture': '文化',
   'radioGenre.generalist': '综合',
   'radioGenre.contemporary': '当代',
+
+  // Fuites de francais - les quatre genres que le serveur sert et que ce
+  // catalogue ne connaissait pas encore (tune-server-rust #4713).
+
+  'radioGenre.soul': '灵魂乐',
+  'radioGenre.funk': '放克',
+  'radioGenre.folk': '民谣',
+  'radioGenre.ambient': '氛围',
+
+  // Les seize collections intelligentes LIVREES. Le semis les ecrit en
+  // francais en base ; le serveur joint leur cle stable (#4714), le client
+  // la traduit. Une collection RENOMMEE par l utilisateur n a pas de cle et
+  // garde son nom verbatim.
+
+  'smartCollection.default.audiophile': '💎 发烧录音',
+  'smartCollection.default.audiophile.description': '高解析度录音',
+  'smartCollection.default.soundtracks': '🎬 电影原声',
+  'smartCollection.default.soundtracks.description': '电影原声带',
+  'smartCollection.default.classical': '🎻 古典',
+  'smartCollection.default.classical.description': '古典与管弦乐',
+  'smartCollection.default.electroAmbient': '🎧 电子与氛围',
+  'smartCollection.default.electroAmbient.description': '电子与氛围音乐',
+  'smartCollection.default.frenchTouch': '🇫🇷 法式浪潮',
+  'smartCollection.default.frenchTouch.description': '法式香颂',
+  'smartCollection.default.jazz': '🎷 爵士',
+  'smartCollection.default.jazz.description': '所有爵士专辑',
+  'smartCollection.default.rock': '🎸 摇滚',
+  'smartCollection.default.rock.description': '摇滚、另类摇滚、前卫摇滚',
+  'smartCollection.default.sacdDsd': '💿 SACD / DSD',
+  'smartCollection.default.sacdDsd.description': 'Super Audio CD 与 DSD',
+  'smartCollection.default.soulFunk': '🕺 灵魂与放克',
+  'smartCollection.default.soulFunk.description': '灵魂乐、放克、R&B',
+  'smartCollection.default.recent': '🆕 最近添加',
+  'smartCollection.default.recent.description': '最近 90 天内添加',
+  'smartCollection.default.noCover': '🖼️ 无封面',
+  'smartCollection.default.noCover.description': '没有封面的专辑',
+  'smartCollection.default.piano': '🎹 钢琴',
+  'smartCollection.default.piano.description': '钢琴独奏与协奏曲',
+  'smartCollection.default.vocalACappella': '🎤 人声 / 无伴奏合唱',
+  'smartCollection.default.vocalACappella.description': '人声与无伴奏合唱',
+  'smartCollection.default.blues': '🎵 蓝调',
+  'smartCollection.default.blues.description': '蓝调与蓝调摇滚',
+  'smartCollection.default.world': '🌍 世界音乐',
+  'smartCollection.default.world.description': '世界音乐与民谣',
+  'smartCollection.default.pop': '🎺 流行',
+  'smartCollection.default.pop.description': '流行与合成器流行',
   'radio.name': '名称',
   'radio.genre': '类型',
   'radio.import': '导入 M3U/PLS',
