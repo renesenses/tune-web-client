@@ -134,6 +134,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * d'appareils.
    */
   import ZoneDeviceEditor from '../partages/ZoneDeviceEditor.svelte';
+  /**
+   * #1427 — la correction acoustique (FIR), là où le testeur la cherche.
+   *
+   * C'est le MÊME composant que celui du panneau du clic droit, pas une
+   * seconde copie : ce bloc a déjà divergé une fois entre les deux, et un
+   * abonné en a conclu que la fonction n'existait pas.
+   */
+  import CorrectionAcoustiqueZone from '../partages/CorrectionAcoustiqueZone.svelte';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import type { Zone } from '../../lib/types';
@@ -3602,6 +3610,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
                       </div>
                       <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
+
+                      <!--
+                        #1427 — CORRECTION ACOUSTIQUE (FIR), à sa place.
+
+                        GgB (fil 1671, 21/09/2026) : « Il y a une raison
+                        particulière a la disparition de la prise en compte des
+                        fichiers FIR (wav) dans les paramètres de la zone ? » Le
+                        bloc n'a jamais été porté ici : le seul accès livré était
+                        un clic droit sur la pastille de zone de la barre de
+                        lecture — non annoncé, et sans équivalent tactile. Or
+                        c'est ICI que mène « Ouvrir les réglages » de la roue
+                        crantée d'une zone, et c'est ici qu'on le cherche.
+
+                        Il est placé avec ce qui traite le SON (DSD, débit,
+                        canaux, gain), avant la photo et l'éditeur d'appareil qui
+                        décrivent le matériel.
+
+                        Aucune condition sur le type de sortie : le serveur
+                        applique l'IR aux lecteurs réseau aussi.
+                      -->
+                      <CorrectionAcoustiqueZone zone={z} />
 
                       <!-- #1394 — LA PHOTO DE L'APPAREIL, dans le bloc où
                            l'appareil est déjà identifié par sa marque et son
