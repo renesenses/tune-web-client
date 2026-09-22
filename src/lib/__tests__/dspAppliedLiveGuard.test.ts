@@ -60,7 +60,9 @@ describe('garde : un réglage DSP écrit rapporte sa portée', () => {
     it(`${fichier} signale la portée que le serveur lui rend`, () => {
       const source = lire(fichier);
       expect(
-        new RegExp(`${lecteur}\\(res\\?\\.${champ}\\)`).test(source),
+        // `atteintLeSon(res?.champ, res?.portee)` compte aussi : il lit le
+        // même champ, et d'abord la portée que le serveur dit (#4680).
+        new RegExp(`${lecteur}\\((?:atteintLeSon\\()?res\\?\\.${champ}[,)]`).test(source),
         `${champ} n'est lu par aucun ${lecteur}() dans ${fichier}`,
       ).toBe(true);
     });

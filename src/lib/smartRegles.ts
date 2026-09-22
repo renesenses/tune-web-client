@@ -16,7 +16,9 @@ export type TypeChamp =
   | 'text' | 'int' | 'nullable' | 'timestamp' | 'count'
   | 'credit' | 'collection_ref' | 'playlist_ref' | 'favorite' | 'folder'
   // La PROVENANCE, choisie dans une liste (#4299) — voir `lib/sourcesRegle`.
-  | 'source';
+  | 'source'
+  // Une ÉTIQUETTE de l'utilisateur, choisie dans une liste. Valeur : `tags.id`.
+  | 'tag_ref';
 
 export interface Champ {
   value: string;
@@ -55,6 +57,11 @@ export const CHAMPS: readonly Champ[] = [
   { value: 'in_collection',  labelKey: 'smartCollection.fieldInCollection', type: 'collection_ref' },
   { value: 'in_playlist',    labelKey: 'smartCollection.fieldInPlaylist',   type: 'playlist_ref' },
   { value: 'favorite',       labelKey: 'smartCollection.fieldFavorite',     type: 'favorite' },
+  // Bertrand, 21/09/2026 : « impossible de choisir un tag comme règle de smart
+  // collection ». Les étiquettes existaient, aucune règle ne les lisait — ni
+  // ici, ni côté serveur (`smart_refs`, champ `tag`). L'album correspond s'il
+  // porte l'étiquette, ou si son ARTISTE la porte.
+  { value: 'tag',            labelKey: 'smartCollection.fieldTag',          type: 'tag_ref' },
 ];
 
 export interface Operateur {
@@ -121,6 +128,12 @@ export const OPERATEURS: Record<TypeChamp, readonly Operateur[]> = {
     { value: 'is', labelKey: 'smartCollection.opRefIn' },
     { value: 'is_not', labelKey: 'smartCollection.opRefNotIn' },
   ],
+  // « porte » / « ne porte pas » — `is` / `is_not`, les deux seuls que
+  // `smart_refs` sait nier proprement.
+  tag_ref: [
+    { value: 'is', labelKey: 'smartCollection.opHasTag' },
+    { value: 'is_not', labelKey: 'smartCollection.opHasNotTag' },
+  ],
   count: [
     { value: '>=', label: '≥' }, { value: '>', label: '>' },
     { value: '<', label: '<' }, { value: '=', label: '=' },
@@ -175,5 +188,7 @@ export function valeurInitiale(op: string, type: TypeChamp): any {
   // `regleComplete` la refuse tant que rien n'est choisi. Sans cela on
   // enregistrerait une reference vide, que le serveur rejette.
   if (type === 'collection_ref' || type === 'playlist_ref') return '';
+  // Même règle pour une étiquette : vide, et refusée tant que rien n'est choisi.
+  if (type === 'tag_ref') return '';
   return '';
 }

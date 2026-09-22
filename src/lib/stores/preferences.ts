@@ -172,6 +172,27 @@ export interface Preferences {
    */
   v2CollectionsMosaique: boolean;
   /**
+   * Afficher le bouton Stop dans la barre de transport — #1428.
+   *
+   * Le bouton autonome a existé, a été retiré le 05/09/2026 au profit du
+   * double-clic sur Lecture, remis le 08/09 sur une lecture erronée d'un
+   * message de Bertrand, et retiré de nouveau le 09/09. La décision tient :
+   * le stop est une commande d'APPAREIL, pas une commande de MUSIQUE, et elle
+   * n'a pas à occuper une place permanente au milieu des commandes de lecture.
+   *
+   * Un testeur l'a pourtant réclamé (jfpaquet, fil 1879, 21/09/2026 : « ET LA
+   * DISPARITION DU BOUTON STOP NE ME PLAÎT PAS DU TOUT »). Bertrand tranche le
+   * 22/09/2026 en OFFRANT le choix sans déplacer le défaut : `false`, comme
+   * aujourd'hui. Coché, le bouton revient — et il appelle le MÊME `arreter()`
+   * que le double-clic et que la touche `S`, pas une seconde action.
+   *
+   * 🔴 Le défaut est la moitié de la décision : une installation qui n'a
+   * jamais vu ce réglage — clé absente du blob enregistré — doit rester à
+   * l'identique. `{ ...defaults, ...raw }` s'en charge, et un test le mesure
+   * (`boutonStopReglage1428.test.ts`).
+   */
+  afficherBoutonStop: boolean;
+  /**
    * Les COLONNES du tableau de pistes, par mode d'interface.
    *
    * Chantier du 07/09/2026 (maquette Levente) : en mode Essentiel, une liste
@@ -274,6 +295,9 @@ const defaults: Preferences = {
   v2AlbumTechLine: false,
   searchExact: false,
   v2CollectionsMosaique: true,
+  // #1428 — DÉCOCHÉ, et c'est la décision de Bertrand du 22/09/2026, pas un
+  // oubli : l'écran de qui n'a rien demandé ne bouge pas d'un pixel.
+  afficherBoutonStop: false,
   peakMeterStyle: STYLE_CRETE_DEFAUT,
   v2Colonnes: { ...DEFAUTS_COLONNES },
   reglagesRendererEnregistres: {},

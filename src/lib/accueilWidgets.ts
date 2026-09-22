@@ -129,6 +129,21 @@ export interface Widget {
   /** Chiffres d'un widget de statistiques. */
   chiffres?: (ctx: Contexte) => Promise<ChiffreAffiche[]>;
   /**
+   * Ce widget honore-t-il `ctx.chiffresChoisis` ? — #1426.
+   *
+   * Seul un widget qui LIT le choix du profil a le droit d'en offrir le
+   * sélecteur en mode « Modifier ». `stats-semaine` sert une liste figée
+   * (`CHIFFRES_SEMAINE`) : lui laisser le panneau de #4527 afficherait un
+   * réglage qui ne change rien à ce qu'il surmonte — exactement le défaut
+   * déjà payé sur la correction acoustique (« dire que ça ne fera rien ici
+   * plutôt que de MASQUER le réglage » vaut aussi dans l'autre sens : ne pas
+   * proposer un réglage sans effet).
+   *
+   * Tant que `stats-semaine` était hors de la disposition par défaut,
+   * personne ne le voyait. L'y faire entrer le montrait à tout le monde.
+   */
+  chiffresComposables?: boolean;
+  /**
    * Ce que la bande contient, quand ça compte pour la disposition par défaut.
    *
    * `'a-moi'` marque ce qui appartient à l'utilisateur — ses albums favoris,
@@ -1003,6 +1018,9 @@ export const WIDGETS: Widget[] = [
     id: 'statistiques',
     cleTitre: 'v2.home.wStats',
     forme: 'chiffres',
+    /** #1426 — le SEUL widget qui lise `ctx.chiffresChoisis` : le seul à
+     *  offrir le sélecteur de #4527. */
+    chiffresComposables: true,
     charger: async () => [],
     /**
      * LA LIGNE DE CHIFFRES, d'après la maquette de Levente et les arbitrages
@@ -1186,11 +1204,37 @@ export const WIDGETS: Widget[] = [
  *
  * Il s'ajoute depuis le mode édition, comme les dix-neuf autres.
  */
+/**
+ * 🔴 #1426 — les DEUX exceptions, et pourquoi elles n'en sont pas vraiment.
+ *
+ * La 0.9.161 a retiré l'entrée « Tableau de bord » de la barre (PR #1415,
+ * `121bb1ba`, décision du 20/09) et porté ses widgets vers l'accueil
+ * (PR #1416) — mais hors du défaut, au nom de la règle ci-dessus. Solde vu
+ * du siège du testeur : l'entrée disparaît, et rien n'apparaît. C'est ce que
+ * FabienM signale (fil 1870), ce que Jean Valjean confirme, et ce que
+ * FabienM précise le 22/09 : « pour ceux qui ne l'ajoute pas à leur écran
+ * d'accueil et qui souhaiteraient tout de même consulter quelques
+ * statistiques ».
+ *
+ * Arbitrage de Bertrand du 22/09/2026 : `top-artistes` et `stats-semaine`
+ * entrent dans le défaut. La règle n'est pas abandonnée — elle cédait ici
+ * devant une PERTE d'accès créée dans la même version, pas devant l'envie
+ * d'ajouter un widget.
+ *
+ * Ils entrent EN QUEUE : le haut de page d'un accueil existant ne bouge pas.
+ * Et ils n'entrent que pour qui n'a RIEN enregistré : `PageWidgets.charger()`
+ * remplace la disposition dès que les préférences du profil en portent une.
+ *
+ * `top-radios` et le gros widget `tops` restent hors du défaut : ils ne
+ * remplacent aucun accès perdu.
+ */
 export const DISPOSITION_DEFAUT = [
   'reprendre',
   'nouveautes-artistes',
   'recemment-ajoutes',
   'statistiques',
+  'top-artistes',
+  'stats-semaine',
 ];
 
 export function widgetParId(id: string): Widget | undefined {

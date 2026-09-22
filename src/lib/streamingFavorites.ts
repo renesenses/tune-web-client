@@ -184,6 +184,38 @@ export function refFavoriDeVignette(
   return { itemType, service, serviceId: '' };
 }
 
+/**
+ * La référence de favori de la FICHE d'un album de service — #1409.
+ *
+ * Depuis #1400 la VIGNETTE d'un album Bandcamp porte son cœur ; la fiche du
+ * même album n'en avait aucun. `AlbumDetailV2` ne composait la référence que
+ * pour un album de SERVICE (`service` + `source_id`), et un album Bandcamp y
+ * arrive par une autre porte — la propriété `bandcamp` (l'URL de sa page),
+ * `service` restant `null`. Le cœur n'était donc jamais dessiné.
+ *
+ * On ne pose pas une troisième règle : la fiche repasse par
+ * `refFavoriDeVignette`, donc par `cleServeur` (`__bandcamp__` → `bandcamp`)
+ * et par le repli sur l'URL de page propre à l'album Bandcamp. Vignette et
+ * fiche composent ainsi la MÊME clé, et montrent le même état.
+ *
+ * `null` quand l'album n'est pas désignable par une paire service +
+ * identifiant : un album de la bibliothèque (son `id` le désigne), ou un objet
+ * sans identifiant exploitable.
+ */
+export function refFavoriDeFiche(
+  album: { id?: unknown; source?: unknown; source_id?: unknown; url?: unknown } | null | undefined,
+  service: string | null | undefined,
+  bandcamp: string | null | undefined,
+): Pick<StreamingRef, 'itemType' | 'service' | 'serviceId'> | null {
+  if (!album || album.id != null) return null;
+  let objet: { source?: unknown; source_id?: unknown; url?: unknown };
+  if (service) objet = { source: service, source_id: album.source_id };
+  else if (bandcamp) objet = { source: BANDCAMP_SVC, source_id: album.source_id ?? bandcamp, url: album.url ?? bandcamp };
+  else return null;
+  const ref = refFavoriDeVignette('album', objet, null);
+  return favKeyOf(ref) ? ref : null;
+}
+
 export function favKeyOf(ref: Pick<StreamingRef, 'itemType' | 'service' | 'serviceId'> | null | undefined): string | null {
   if (!ref) return null;
   const id = identiteDeFavori((ref.serviceId ?? '').trim());

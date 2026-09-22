@@ -1041,6 +1041,24 @@ export interface MediaServer {
   last_seen_secs?: number;
 }
 
+/** Ce que rendent les deux routes de retrait d'une bibliothèque UPnP (#4624).
+ *
+ *  `GET  /network/media-servers/{udn}/bibliotheque` avant confirmation,
+ *  `DELETE …?pistes=N` après. Les comptes `favoris` et `playlists` ne BLOQUENT
+ *  pas le retrait (décision de Bertrand du 22/09/2026) : ils sont là pour être
+ *  annoncés à l'utilisateur avant qu'il tranche. */
+export interface RetraitUpnpApercu {
+  /** Titres venus de ce serveur ; après le retrait, titres RETIRÉS. */
+  pistes: number;
+  albums: number;
+  /** Parmi `pistes`, celles en favoris — directement ou via leur album. */
+  favoris: number;
+  /** Parmi `pistes`, celles présentes dans au moins une playlist. */
+  playlists: number;
+  /** Abonnements de synchronisation de ce serveur, emportés avec le reste. */
+  sources: number;
+}
+
 /** Ce que rend `POST /network/media-servers/{id}/indexer` (#4129, #4154).
  *
  *  ⚠️ `parcours.plafond` n'est renseigné que si un plafond a MORDU. Il porte

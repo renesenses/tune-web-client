@@ -770,7 +770,7 @@
     {:else}
       <!-- Le filtre « Source » s'applique DANS la grille commune : le poser
            sur la seule bibliothèque cachait tous les services (#4330). -->
-      <DiscographieCommune locaux={albums} services={albumsService}
+      <DiscographieCommune locaux={albums} services={albumsService} nomArtiste={ouvert?.name ?? null}
         servicesEnCharge={albumsServiceChargement} {provenance}
         onComptesProvenance={(c) => { comptesFiche = c; onComptesFiche?.(c); }}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { atteintLeSon } from '../../lib/porteeReglage';
   /**
    * Tune Master Profiler — l'assistant de réglage, repris dans le v2.
    *
@@ -115,7 +116,7 @@
         },
       });
       enregistrerLocal();
-      signalerPortee(res?.eq_applied_live);
+      signalerPortee(atteintLeSon(res?.eq_applied_live, res?.eq_portee));
       if (!silencieux) notifications.success($t('eq.profilerApplied' as any));
     } catch (e: any) {
       // `fetchJSON` montre déjà sa fenêtre dédiée sur un 402 Premium : en
@@ -143,7 +144,7 @@
         },
       });
       enregistrerLocal();
-      signalerPortee(res?.eq_applied_live);
+      signalerPortee(atteintLeSon(res?.eq_applied_live, res?.eq_portee));
       notifications.success($t('eq.profilerDisabled' as any));
     } catch (e: any) {
       if (e?.message !== 'premium_required') notifications.error($t('v2.eq.errRefused' as any));

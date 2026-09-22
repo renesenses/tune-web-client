@@ -52,6 +52,7 @@
     MediaServerContainer,
     MediaServerItem,
   } from '../../lib/types';
+  import { dialogs } from '../../lib/stores/dialogs';
   import { t } from '../../lib/i18n';
   import '../../styles/tune-v2.css';
 
@@ -130,6 +131,59 @@
       indexation = false;
     }
   }
+  // ── Retrait de la bibliothèque (#4624) ───────────────────────────────────
+  //
+  // Le chemin de SORTIE manquait : « Indexer » fait entrer, « Suspendre la
+  // synchronisation » gèle, rien ne retire. Le seul retrait écrit côté serveur
+  // exigeait un Browse COMPLET du serveur distant — donc un serveur ALLUMÉ,
+  // inaccessible précisément dans le cas où l'on veut retirer (Jean Valjean,
+  // fil 1869 : MusicBee éteint, albums fantômes injouables).
+  //
+  // Trois choix, qui viennent de Bertrand (22/09/2026) :
+  //
+  //  1. LE RETRAIT SE FAIT PAR SERVEUR MÉDIA, pas par source abonnée. Une
+  //     indexation ponctuelle n'écrit AUCUNE appartenance : un retrait borné
+  //     aux sources abonnées ne retirerait rien dans le cas du testeur, et
+  //     n'aurait d'ailleurs aucune ligne à laquelle s'accrocher à l'écran.
+  //  2. FAVORIS ET PLAYLISTS NE BLOQUENT PAS, mais ils sont ANNONCÉS. On
+  //     compte d'abord, on le dit dans la question, et l'utilisateur tranche.
+  //  3. L'ACTION VIT DANS LA LIGNE DU SERVEUR, à côté d'« Indexer » : le geste
+  //     inverse se trouve là où se trouve le geste qui l'a causé.
+  let retrait = $state(false);
+  let retire = $state<string | null>(null);
+
+  async function retirerDeLaBibliotheque() {
+    const s = open;
+    if (!s || retrait) return;
+    retrait = true;
+    retire = null;
+    try {
+      const vu = await api.apercuRetraitServeurMedia(s.id);
+      if (!vu.pistes && !vu.albums && !vu.sources) {
+        retire = $t('v2.ms.removeNone' as any);
+        return;
+      }
+      // Le compte est annoncé AVANT, et c'est ce même compte qui repart au
+      // serveur : s'il a bougé entre-temps, le serveur refuse plutôt que de
+      // supprimer autre chose que ce qui a été confirmé.
+      let question = $t('v2.ms.removeAsk' as any)
+        .replace('{tracks}', String(vu.pistes))
+        .replace('{albums}', String(vu.albums));
+      if (vu.favoris || vu.playlists) {
+        question += ' ' + $t('v2.ms.removeLinks' as any)
+          .replace('{favorites}', String(vu.favoris))
+          .replace('{playlists}', String(vu.playlists));
+      }
+      if (!(await dialogs.confirm(question, { danger: true }))) return;
+      const fait = await api.retirerServeurMediaDeLaBibliotheque(s.id, vu.pistes);
+      retire = $t('v2.ms.removeDone' as any).replace('{tracks}', String(fait.pistes));
+    } catch {
+      error = $t('v2.ms.removeFailed' as any);
+    } finally {
+      retrait = false;
+    }
+  }
+
   let action = $state<string | null>(null);
 
   // Recherche dans le serveur distant.
@@ -420,7 +474,20 @@
       </button>
       <button class="idx ghost" aria-expanded={plafondsOuverts}
         onclick={() => (plafondsOuverts = !plafondsOuverts)}>{$t('v2.ms.indexLimits' as any)}</button>
+      <!-- RETIRER (#4624). Le geste inverse d'« Indexer », posé juste à côté
+           de lui : c'est là qu'on le cherche. Il ne sort pas sur le réseau,
+           donc il marche serveur distant ÉTEINT — le cas nominal. -->
+      <button class="idx danger" disabled={retrait} onclick={retirerDeLaBibliotheque}>
+        {retrait ? $t('v2.ms.removing' as any) : $t('v2.ms.remove' as any)}
+      </button>
     </nav>
+
+    {#if retire}
+      <div class="bilan">
+        <p class="chiffres">{retire}</p>
+        <button class="clr" onclick={() => (retire = null)} aria-label={$t('common.clear' as any)}>×</button>
+      </div>
+    {/if}
 
     {#if plafondsOuverts}
       <!-- Les TROIS plafonds. Chacun dit ce qu'il borne : « conteneurs » et
@@ -661,6 +728,9 @@
   .idx:hover:not(:disabled){border-color:var(--v2-acc1); color:var(--v2-acc-tint)}
   .idx:disabled{opacity:.55; cursor:progress}
   .idx.ghost{background:transparent; color:var(--v2-txt2)}
+  /* Le retrait est DESTRUCTIF : il se lit comme tel avant d'etre clique. */
+  .idx.danger{background:var(--v2-danger-soft); border-color:var(--v2-danger-bd); color:var(--v2-danger)}
+  .idx.danger:hover:not(:disabled){border-color:var(--v2-danger); color:var(--v2-danger)}
   .plafonds{display:flex; flex-wrap:wrap; gap:16px; padding:0 30px 12px}
   .plafond{display:flex; flex-direction:column; gap:3px; min-width:200px; max-width:320px}
   .plafond .ttl{font:600 12px var(--v2-sans); color:var(--v2-txt)}

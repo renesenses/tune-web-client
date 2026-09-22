@@ -21,18 +21,25 @@
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
+  import { dialogs } from '../../lib/stores/dialogs';
   import {
-    CF_PRESETS, CF_MAX_AMOUNT, CF_MAX_DELAY,
-    reglagesCrossfeed, presetActif,
+    CF_PRESETS,
+    reglagesCrossfeed, presetActif, bornesCrossfeed, niveauEnPourcent,
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../../lib/crossfeed';
+  import CompensationNiveauV2 from './CompensationNiveauV2.svelte';
   import '../../styles/tune-v2.css';
 
   let enabled = $state(false);
+  /** Incrémenté à chaque réglage enregistré : `CompensationNiveauV2` se relit. */
+  let revisionDsp = $state(0);
   let amount = $state(0.30);
   let delay = $state(0.50);
   let loading = $state(true);
   let error = $state<string | null>(null);
+  /** Le bout des curseurs : celui du SERVEUR quand il le publie
+   *  (`crossfeed_limits`, tune-server-rust#4683), sinon nos constantes. */
+  let bornes = $state(bornesCrossfeed(null));
 
   const zoneName = $derived($currentZone?.name ?? null);
   const active = $derived(presetActif(amount, delay));
@@ -52,6 +59,7 @@
       .then((d) => {
         const cf = d?.crossfeed;
         status = d?.crossfeed_status ?? null;
+        bornes = bornesCrossfeed(d?.crossfeed_limits);
         if (cf) { enabled = !!cf.enabled; amount = cf.amount ?? 0.3; delay = cf.delay_ms ?? 0.5; }
         error = null;
       })
@@ -84,7 +92,7 @@
     if (zid == null) return;
     // Borné AVANT l'envoi : l'écran doit montrer la valeur qui sera
     // réellement appliquée, pas celle qu'on a demandée.
-    const crossfeed = reglagesCrossfeed(enabled, amount, delay);
+    const crossfeed = reglagesCrossfeed(enabled, amount, delay, bornes);
     amount = crossfeed.amount; delay = crossfeed.delay_ms;
     try {
       const res: any = await api.setDsp(zid, { crossfeed });
@@ -92,6 +100,8 @@
       // « Prendra effet à la piste suivante » serait faux là où le serveur
       // vient de dire « jamais » (tune-server-rust#2742).
       if (!indispo.indisponible) reportReach(res?.crossfeed_applied_live);
+      // Le dosage a changé : ce que la compensation rend aussi (#4685).
+      revisionDsp++;
       error = null;
     } catch (e: any) {
       if (e?.message !== 'premium_required') error = $t('v2.cf.errSave' as any);
@@ -103,6 +113,54 @@
     if (!enabled) enabled = true;
     save();
   }
+
+  /*
+   * « Mes préréglages » (tune-server-rust#4684) — enregistrés CÔTÉ SERVEUR,
+   * donc partagés entre appareils et inclus dans la sauvegarde de
+   * configuration, sur le modèle de ceux de l'égaliseur. Appliquer = envoyer
+   * leurs valeurs par le chemin ordinaire (`save`), qui dit aussi si le réglage
+   * a atteint le son. Serveur antérieur : la liste reste vide, sans erreur.
+   */
+  let mesPresets = $state<api.CrossfeedPresetServeur[]>([]);
+  async function chargerMesPresets() {
+    try { mesPresets = await api.listCrossfeedPresets(); } catch { mesPresets = []; }
+  }
+  $effect(() => { void chargerMesPresets(); });
+
+  async function enregistrerPreset() {
+    const saisi = await dialogs.prompt($t('eq.presetNamePlaceholder' as any));
+    const nom = saisi?.trim();
+    if (!nom) return;
+    const { amount: a, delay_ms } = reglagesCrossfeed(enabled, amount, delay, bornes);
+    try {
+      // Même nom = le serveur met à jour le préréglage existant (même id).
+      const p = await api.saveCrossfeedPreset({ name: nom, amount: a, delay_ms });
+      mesPresets = [...mesPresets.filter((x) => x.id !== p.id), p];
+      notifications.success($t('eq.presetSaved' as any).replace('{name}', p.name));
+    } catch (e: any) {
+      if (e?.message !== 'premium_required') notifications.error($t('eq.presetSaveFailed' as any));
+    }
+  }
+
+  function appliquerMonPreset(p: api.CrossfeedPresetServeur) {
+    applyPreset({ amount: p.amount, delay: p.delay_ms });
+  }
+
+  async function supprimerMonPreset(p: api.CrossfeedPresetServeur) {
+    const avant = mesPresets;
+    mesPresets = mesPresets.filter((x) => x.id !== p.id);
+    try {
+      await api.deleteCrossfeedPreset(p.id);
+    } catch {
+      // La suppression n'a pas eu lieu : la liste revient, et on le dit.
+      mesPresets = avant;
+      notifications.error($t('common.error' as any));
+    }
+  }
+  /** Le préréglage personnel qui correspond aux curseurs, s'il y en a un. */
+  const monActif = $derived(
+    mesPresets.find((p) => Math.abs(p.amount - amount) < 0.005 && Math.abs(p.delay_ms - delay) < 0.005)?.id ?? null
+  );
 </script>
 
 <section class="v2-cf tune-v2">
@@ -151,15 +209,31 @@
           {/each}
         </div>
 
+        <div class="presets mes" class:off={!enabled}>
+          <span class="mesl">{$t('eq.myPresets' as any)}</span>
+          {#each mesPresets as p (p.id)}
+            <span class="mien">
+              <button class:on={monActif === p.id} disabled={!enabled || indispo.indisponible}
+                onclick={() => appliquerMonPreset(p)}>{p.name}</button>
+              <button class="x" onclick={() => supprimerMonPreset(p)}
+                title={$t('eq.deletePreset' as any)} aria-label={$t('eq.deletePreset' as any)}>×</button>
+            </span>
+          {/each}
+          <button disabled={!enabled || indispo.indisponible} onclick={enregistrerPreset}>+ {$t('eq.savePreset' as any)}</button>
+        </div>
+
         <div class="row" class:off={!enabled}>
           <div class="lbl">
             <span>{$t('v2.cf.amount' as any)}</span>
-            <span class="hint">{$t('v2.cf.amountHint' as any)}</span>
+            <span class="hint">{$t('v2.cf.amountHint' as any)} {$t('v2.cf.amountScaleHint' as any)}</span>
           </div>
           <div class="sl">
-            <input type="range" min="0" max={CF_MAX_AMOUNT} step="0.01" bind:value={amount}
+            <!-- tune-server-rust#4683 — la course du curseur va de 0 à la
+                 borne du serveur, et s'affiche de 0 à 100 % : elle
+                 affichait `amount × 100`, soit « 50 % » en butée. -->
+            <input type="range" min="0" max={bornes.amountMax} step="0.01" bind:value={amount}
               disabled={!enabled || indispo.indisponible} oninput={queueSave} aria-label={$t('v2.cf.amountAria' as any)} />
-            <span class="val">{Math.round(amount * 100)} %</span>
+            <span class="val">{niveauEnPourcent(amount, bornes.amountMax)} %</span>
           </div>
         </div>
 
@@ -169,12 +243,14 @@
             <span class="hint">{$t('v2.cf.delayHint' as any)}</span>
           </div>
           <div class="sl">
-            <input type="range" min="0" max={CF_MAX_DELAY} step="0.1" bind:value={delay}
+            <input type="range" min="0" max={bornes.delayMax} step="0.1" bind:value={delay}
               disabled={!enabled || indispo.indisponible} oninput={queueSave} aria-label={$t('v2.cf.delayAria' as any)} />
             <span class="val">{delay.toFixed(1)} ms</span>
           </div>
         </div>
       </div>
+
+      <CompensationNiveauV2 revision={revisionDsp} />
     {/if}
   </div>
 </section>
@@ -217,6 +293,10 @@
   .presets button:hover:not(:disabled){color:var(--v2-txt); border-color:var(--v2-acc2)}
   .presets button.on{color:var(--v2-on-acc); border-color:transparent; background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .presets button:disabled{cursor:default}
+  .presets.mes{align-items:center; padding-top:10px}
+  .mesl{font:10px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--v2-txt3)}
+  .mien{display:inline-flex}
+  .mien .x{padding:0 7px}
 
   .sl{display:flex; align-items:center; gap:14px; flex:0 0 auto}
   .sl input{width:220px; accent-color:var(--v2-acc1)}

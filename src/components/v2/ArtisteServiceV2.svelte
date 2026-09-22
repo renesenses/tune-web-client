@@ -84,7 +84,9 @@
   let autresServices = $state<AlbumsDeService[]>([]);
   let complementsEnCharge = $state(false);
   const sectionsServices = $derived<AlbumsDeService[]>(
-    cible && albums.length ? [{ service: cible.service, albums }, ...autresServices] : autresServices,
+    // `artistId` : l'identifiant OUVERT chez ce service — ce qui départage ses
+    // albums de ceux d'autres artistes que le service range sous lui (#4651).
+    cible && albums.length ? [{ service: cible.service, albums, artistId: String(cible.id) }, ...autresServices] : autresServices,
   );
   /** L'album ouvert, et d'où il vient : `null` = la bibliothèque. */
   let albumOuvert = $state<Album | null>(null);
@@ -399,6 +401,7 @@
     {#if albums.length || locaux.length || autresServices.length || complementsEnCharge}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
       <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge}
+        nomArtiste={artiste?.name || cible?.nom || null}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   {/if}

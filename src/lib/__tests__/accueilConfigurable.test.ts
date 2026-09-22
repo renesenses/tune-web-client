@@ -84,8 +84,16 @@ describe('Accueil — le registre', () => {
 
   it('la disposition par défaut est celle de l’accueil ACTUEL', () => {
     // Personne ne doit voir son écran changer sans l'avoir demandé.
+    //
+    // #1426 (arbitrage de Bertrand, 22/09/2026) — DEUX exceptions, et la
+    // règle reste : la 0.9.161 a retiré l'entrée « Tableau de bord » de la
+    // barre (#1415) en laissant ses remplaçants hors du défaut (#1416).
+    // L'entrée disparaissait, et rien n'apparaissait. Les deux widgets qui
+    // la remplacent entrent donc au défaut, EN QUEUE — un accueil déjà
+    // enregistré ne bouge pas, et le haut de page ne bouge pas non plus.
     expect(DISPOSITION_DEFAUT).toEqual([
       'reprendre', 'nouveautes-artistes', 'recemment-ajoutes', 'statistiques',
+      'top-artistes', 'stats-semaine',
     ]);
     for (const id of DISPOSITION_DEFAUT) {
       expect(widgetParId(id), `le défaut cite « ${id} », absent du registre`).toBeTruthy();

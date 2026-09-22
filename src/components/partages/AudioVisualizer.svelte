@@ -397,15 +397,30 @@
      * BARRES touche aux métadonnées de la piste. `sampleRate` n'entre que dans
      * l'axe, qui n'est pas une barre.
      */
+    /**
+     * 🔴 #1454 — Didier, fil 1889, 22/09/2026, FLAC 96 kHz : « l'échelle de
+     * fréquence clignote », APRÈS le correctif de #1002 qui est dans sa build.
+     *
+     * La TAILLE DE FFT annoncée suit la longueur de la trame
+     * (`n = m.next_power_of_two().min(8192)`), et `m` varie. À 44,1 kHz 1764 et
+     * 1080 donnent tous deux 2048 — rien ne bougeait. À 96 kHz une fenêtre
+     * pleine fait 4096 et une écourtée 2048 : la clé de format basculait à
+     * chaque trame courte, la mémoire était jetée, et l'axe retombait sur la
+     * trame courte. Elle ne fait donc plus partie de la CLÉ ; elle est
+     * mémorisée comme une capacité de plus, et c'est la plus grande vue qui
+     * nourrit l'axe — sans quoi la troncature rejouée par `spectrumIsoTicks`
+     * ferait clignoter les repères par un second chemin, à table identique.
+     */
     capacite = capaciteMaintenue(
       capacite,
-      cleFormat(sampleRate, annonceSpectre?.fftSize, annonceSpectre?.resolus?.length ?? 0),
+      cleFormat(sampleRate, annonceSpectre?.resolus?.length ?? 0),
       annonceSpectre?.resolus,
+      annonceSpectre?.fftSize,
     );
     const iso = mini
       ? []
       : spectrumIsoTicks(sampleRate, serverBandCount, {
-          fftSize: annonceSpectre?.fftSize,
+          fftSize: capacite.fftSize,
           resolus: capacite.resolus,
         });
     // 20, 31, 63 Hz sous le premier repère résolu — voir `spectrumGravesTicks`.

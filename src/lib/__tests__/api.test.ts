@@ -773,3 +773,22 @@ describe('avertissements de lecture UPnP', () => {
     expect(notifications.info).not.toHaveBeenCalled();
   });
 });
+
+describe('retrait d’une bibliothèque UPnP par serveur média (#4624)', () => {
+  it("l'aperçu est une LECTURE : aucune méthode d'écriture", async () => {
+    mockFetch({ pistes: 3, albums: 1, favoris: 1, playlists: 1, sources: 0 });
+    const vu = await api.apercuRetraitServeurMedia('uuid:a_b');
+    expect(fetchCalls[0].url).toContain('/network/media-servers/uuid%3Aa_b/bibliotheque');
+    // Une route d'aperçu qui partirait en DELETE supprimerait AVANT que
+    // l'utilisateur ait vu le compte : c'est tout le contraire du geste.
+    expect(fetchCalls[0].init?.method ?? 'GET').toBe('GET');
+    expect(vu).toEqual({ pistes: 3, albums: 1, favoris: 1, playlists: 1, sources: 0 });
+  });
+
+  it('le retrait REPASSE le compte affiché, pour que le serveur refuse un compte périmé', async () => {
+    mockFetch({ pistes: 3, albums: 1, favoris: 0, playlists: 0, sources: 0 });
+    await api.retirerServeurMediaDeLaBibliotheque('uuid:a_b', 3);
+    expect(fetchCalls[0].init?.method).toBe('DELETE');
+    expect(fetchCalls[0].url).toContain('/network/media-servers/uuid%3Aa_b/bibliotheque?pistes=3');
+  });
+});

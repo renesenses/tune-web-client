@@ -1943,6 +1943,22 @@ export interface SqueezeboxStatus {
   lms_host: string | null;
   lms_discovered: boolean;
   players: SqueezeboxPlayer[];
+  /**
+   * Ce que le serveur a compris d'un recensement VIDE — pourquoi la liste est
+   * vide, et quoi faire. Émis par `/squeezebox/status` depuis la v0.9.153, il
+   * n'était lu par AUCUN écran : le panneau retombait sur son propre
+   * « Aucun lecteur Squeezebox trouvé », quelle qu'en soit la cause
+   * (renesenses/tune-server-rust#4703).
+   *
+   * Codes connus : `lms_sans_platine` (LMS répond, aucune platine annoncée),
+   * `lms_recensement_impossible` (LMS répond, sa liste est illisible),
+   * `lms_est_tune_lui_meme` (l'adresse désigne le pont Squeezebox de Tune :
+   * Tune s'interroge lui-même et le recensement sera toujours vide).
+   *
+   * Absent ou `null` dès qu'au moins une platine est recensée, et sur un
+   * serveur antérieur à la v0.9.153.
+   */
+  diagnostic?: { code?: string; message?: string } | null;
 }
 
 export function getSqueezeboxStatus() {
@@ -2290,8 +2306,11 @@ export async function getAllTracks(pageSize = 2000): Promise<Track[]> {
   return all;
 }
 
-export function searchLibrary(q: string, limit = 50) {
-  return fetchJSON<SearchResult>(`${BASE}/library/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+export function searchLibrary(q: string, limit = 50, offset = 0) {
+  // #4663 — `offset` n'est envoyé que s'il porte une valeur : la première page
+  // reste l'URL d'avant, octet pour octet.
+  const suite = offset > 0 ? `&offset=${offset}` : '';
+  return fetchJSON<SearchResult>(`${BASE}/library/search?q=${encodeURIComponent(q)}&limit=${limit}${suite}`);
 }
 
 /** Result of a natural-language acoustic (CLAP text-tower) search: tracks ranked
@@ -2597,6 +2616,32 @@ export function indexerServeurMedia(serverId: string, conteneur: string = '0') {
   );
 }
 
+/** Ce qu'un retrait de bibliothèque emporterait — NE MODIFIE RIEN (#4624).
+ *
+ *  Le geste manquait entièrement : « Indexer » entre, rien ne sort. Le seul
+ *  retrait qu'écrivait le serveur exigeait un Browse complet du serveur
+ *  distant, donc un serveur ALLUMÉ — inaccessible précisément dans le cas où
+ *  l'on veut retirer (Jean Valjean, fil 1869, MusicBee éteint). */
+export function apercuRetraitServeurMedia(serverId: string) {
+  return fetchJSON<import('./types').RetraitUpnpApercu>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/bibliotheque`,
+  );
+}
+
+/** Retire de la bibliothèque tout ce qui vient de CE serveur média (#4624).
+ *
+ *  `pistes` est le nombre qui a été AFFICHÉ à l'utilisateur : le serveur
+ *  refuse (409) si le compte a bougé entre l'aperçu et la confirmation, plutôt
+ *  que de supprimer autre chose que ce qui a été confirmé. Aucun fichier
+ *  distant n'est touché. */
+export function retirerServeurMediaDeLaBibliotheque(serverId: string, pistes: number) {
+  return fetchJSON<import('./types').RetraitUpnpApercu>(
+    `${BASE}/network/media-servers/${encodeURIComponent(serverId)}/bibliotheque` +
+      `?pistes=${encodeURIComponent(String(pistes))}`,
+    { method: 'DELETE' },
+  );
+}
+
 /** Cherche DANS un serveur de médias, par son action ContentDirectory Search.
  *
  *  `container` restreint au dossier affiché ; `'0'` cherche tout le serveur. */
@@ -2815,6 +2860,12 @@ export interface EqSetResult extends EqSettings {
    * d'affirmer quoi que ce soit d'un serveur qui ne le dit pas.
    */
   applied_live?: boolean;
+  /**
+   * QUAND le reglage s'entend (tune-server-rust#4680) : `restart` = zone
+   * reseau dont le flux est relance dans l'instant, PAS la piste suivante.
+   * Lire par `atteintLeSon()` (`lib/porteeReglage.ts`).
+   */
+  portee?: import('./porteeReglage').PorteeDuReglage;
 }
 
 export function getEq(zoneId: number) {
@@ -2908,12 +2959,76 @@ export interface CrossfeedStatus {
 // optional because the server fills in defaults and callers PUT partial
 // updates (e.g. only eq_profile, or only crossfeed). Kept open-ended so
 // existing callers that pass other DSP sub-objects still type-check.
+/** Compensation de niveau de l'égaliseur et du crossfeed
+ *  (tune-server-rust#4685), publiée par `GET`/`PUT /zones/{id}/dsp`.
+ *
+ *  `eq_db` / `crossfeed_db` : ce que chaque étage fait au niveau MOYEN
+ *  (négatif = il en retire), 0 quand il n'est pas actif sur la zone.
+ *  `compensation_db` : ce que la sortie locale rend par le volume quand
+ *  l'interrupteur est ouvert, 0 sinon — une demande, que le volume maximal
+ *  rabote (il ne dépasse jamais la pleine échelle). Absent d'un serveur
+ *  antérieur : ne rien afficher. */
+export interface LevelCompensation {
+  enabled: boolean;
+  eq_db: number;
+  crossfeed_db: number;
+  compensation_db: number;
+  /** La compensation passe par le volume de la sortie LOCALE. */
+  local_output_only: boolean;
+}
+
 export interface DspSettings {
   eq_profile?: any;
   crossfeed?: CrossfeedSettings;
   /** #2742 — verdict du serveur sur cette zone. Voir CrossfeedStatus. */
   crossfeed_status?: CrossfeedStatus | null;
+  /** tune-server-rust#4683 — les bornes que le serveur applique. Absent d'un
+   *  serveur antérieur : `bornesCrossfeed` retombe sur les constantes. */
+  crossfeed_limits?: CrossfeedLimits | null;
+  /** #4685 — en lecture : l'état complet ; en écriture : `{ enabled }`. */
+  level_compensation?: LevelCompensation | { enabled: boolean };
   [key: string]: any;
+}
+
+/** Bornes publiées par `GET /zones/{id}/dsp` (tune-server-rust#4683).
+ *  `amount_max` est le point mono : le « 100 % » du curseur de niveau. */
+export interface CrossfeedLimits {
+  amount_max: number;
+  delay_ms_max: number;
+}
+
+// Préréglages NOMMÉS du crossfeed — CRUD serveur (tune-server-rust#4684,
+// `routes/crossfeed.rs`), sur le modèle de « Mes presets » de l'égaliseur :
+// une liste globale au serveur, partagée entre appareils, incluse dans la
+// sauvegarde de configuration. Un préréglage ne porte que le son (niveau,
+// retard) ; l'APPLIQUER, c'est envoyer ses valeurs à `setDsp`. Enregistrer un
+// nom déjà pris le met à jour. Écritures gardées Premium + greffon installé.
+export interface CrossfeedPresetServeur {
+  id: string;
+  name: string;
+  amount: number;
+  delay_ms: number;
+  created_at?: number;
+}
+
+export async function listCrossfeedPresets(): Promise<CrossfeedPresetServeur[]> {
+  const r = await fetchJSON<{ presets: CrossfeedPresetServeur[] }>(`${BASE}/crossfeed/presets`);
+  return Array.isArray(r?.presets) ? r.presets : [];
+}
+
+export function saveCrossfeedPreset(body: {
+  name: string;
+  amount: number;
+  delay_ms: number;
+}): Promise<CrossfeedPresetServeur> {
+  return fetchJSON<CrossfeedPresetServeur>(`${BASE}/crossfeed/presets`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteCrossfeedPreset(id: string): Promise<void> {
+  return fetchVoid(`${BASE}/crossfeed/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 export function getDsp(zoneId: number) {
