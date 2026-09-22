@@ -2290,8 +2290,11 @@ export async function getAllTracks(pageSize = 2000): Promise<Track[]> {
   return all;
 }
 
-export function searchLibrary(q: string, limit = 50) {
-  return fetchJSON<SearchResult>(`${BASE}/library/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+export function searchLibrary(q: string, limit = 50, offset = 0) {
+  // #4663 — `offset` n'est envoyé que s'il porte une valeur : la première page
+  // reste l'URL d'avant, octet pour octet.
+  const suite = offset > 0 ? `&offset=${offset}` : '';
+  return fetchJSON<SearchResult>(`${BASE}/library/search?q=${encodeURIComponent(q)}&limit=${limit}${suite}`);
 }
 
 /** Result of a natural-language acoustic (CLAP text-tower) search: tracks ranked

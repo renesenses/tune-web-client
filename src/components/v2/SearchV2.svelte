@@ -41,6 +41,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, getQualityTier } from '../../lib/utils';
   import type { Album, Source, Track, SearchResult } from '../../lib/types';
+  import { fusionnerSuite, rangSuivant, restantLocal, type FamilleLocale } from '../../lib/rechercheSuiteLocale';
   import AlbumArt from '../partages/AlbumArt.svelte';
   // #1136 — le MÊME composant que partout ailleurs (~45 emplois, table de neuf
   // provenances, `local: { name: 'LOCAL' }` comprise). Pas un troisième style
@@ -247,7 +248,7 @@
     const mine = ++seq;
     busy = true;
     const t = setTimeout(() => {
-      api.searchLibrary(requeteExacte(query), 40)
+      api.searchLibrary(requeteExacte(query), PAGE_LOCALE)
         .then((r) => { if (mine === seq) local = r; })
         .catch(() => { if (mine === seq) local = null; })
         .finally(() => { if (mine === seq) busy = false; });
@@ -617,6 +618,9 @@
    * chargement serait promettre ce que la chaîne ne sait pas faire.
    */
   const PAS_ARTISTES = 12, PAS_ALBUMS = 24, PAS_TITRES = 40;
+  /** Ce que l'écran demande à la bibliothèque, par page (#4663 : plus un
+   *  plafond muet — la suite se demande). */
+  const PAGE_LOCALE = 40;
   let montreArtistes = $state(PAS_ARTISTES);
   let montreAlbums = $state(PAS_ALBUMS);
   let montreTitres = $state(PAS_TITRES);
@@ -633,6 +637,45 @@
   const resteAlbums = $derived(albums.length - vusAlbums.length);
   const resteTitres = $derived(titres.length - vusTitres.length);
   const libelleVoirPlus = (n: number) => $t('v2.rech.seeMore' as any).replace('{n}', String(n));
+
+  /**
+   * 🔴 #4663 — LA SUITE LOCALE, quand tout ce qui a été reçu est déjà montré.
+   *
+   * « Voir plus » ci-dessus ne fait que RÉVÉLER. Mais la bibliothèque locale,
+   * elle, sait donner la suite : `/library/search` dit combien il en reste
+   * (`totals`) et la rend par `?offset=`. jfpaquet voyait `Tracks 40` pour 119,
+   * et aucun bouton — 40 reçues, 40 montrées.
+   *
+   * Le reste local n'entre dans le compte que si la bibliothèque est dans le
+   * périmètre : annoncer des lignes locales sous « Qobuz seul » serait un
+   * chiffre qui ment.
+   */
+  const localDansPerimetre = $derived(dansLePerimetreDe(sourcesActives, 'local'));
+  const restant = (f: FamilleLocale) => (localDansPerimetre ? restantLocal(local, f) : null);
+  const restantArtistes = $derived(voirArtistes ? restant('artists') : null);
+  const restantAlbums = $derived(voirAlbums ? restant('albums') : null);
+  const restantTitres = $derived(voirTitres ? restant('tracks') : null);
+  let suiteEnCours = $state<FamilleLocale | null>(null);
+  async function chargerSuite(f: FamilleLocale) {
+    const base = local;
+    const query = q.trim();
+    if (!base || suiteEnCours || query.length < 2) return;
+    const mine = seq;
+    suiteEnCours = f;
+    try {
+      const page = await api.searchLibrary(requeteExacte(query), PAGE_LOCALE, rangSuivant(base, f));
+      // Une frappe entre-temps : la réponse parle d'une autre recherche.
+      if (mine !== seq || local !== base) return;
+      local = fusionnerSuite(base, page, f);
+      if (f === 'tracks') montreTitres += PAS_TITRES;
+      else if (f === 'albums') montreAlbums += PAS_ALBUMS;
+      else montreArtistes += PAS_ARTISTES;
+    } catch (e) {
+      notifications.error(String((e as Error)?.message ?? e));
+    } finally {
+      suiteEnCours = null;
+    }
+  }
   const lesPlaylists = $derived(voirPlaylists ? playlists.filter((pl) => respecteLesPhrases(pl, phrases)) : []);
 
   // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
@@ -911,15 +954,18 @@
         <!-- #1135 — les ARTISTES sont comptés APRÈS fusion : annoncer 42 au-
              dessus de 30 vignettes serait le même chiffre qui ment. Les
              compteurs de la rangée « OÙ », eux, restent par SEAU. -->
-        {@const n = ty === 'artistes' ? regrouperArtistes(groupes.artistes.filter(dansLePerimetre)).length
+        <!-- #4663 — et ce que la bibliothèque n'a pas encore rendu : « Tracks
+             40 » pour 119 correspondances était la limite, pas un compte. -->
+        {@const reste = ty === 'artistes' ? restant('artists') : ty === 'albums' ? restant('albums') : ty === 'titres' ? restant('tracks') : null}
+        {@const n = (ty === 'artistes' ? regrouperArtistes(groupes.artistes.filter(dansLePerimetre)).length
           : ty === 'labels' ? nbLabels
           : ty === 'albums' ? groupes.albums.filter(dansLePerimetre).length
           : ty === 'titres' ? groupes.pistes.filter(dansLePerimetre).length
-          : playlists.filter((pl) => respecteLesPhrases(pl, phrases)).length}
+          : playlists.filter((pl) => respecteLesPhrases(pl, phrases)).length) + (reste?.n ?? 0)}
         <button class="pill" class:on={pastilleAllumee(typesActifs, ty)}
           aria-pressed={pastilleAllumee(typesActifs, ty)}
           onclick={() => basculerType(ty)}
-          >{$t(LIBELLE_TYPE[ty] as any)} <b>{n}</b></button>
+          >{$t(LIBELLE_TYPE[ty] as any)} <b>{n}{reste?.auMoins ? '+' : ''}</b></button>
       {/each}
     </div>
   {/if}
@@ -1149,6 +1195,10 @@
               {#if resteArtistes > 0}
                 <button class="voirplus" onclick={() => (montreArtistes += PAS_ARTISTES)}
                   >{libelleVoirPlus(resteArtistes)}</button>
+              {:else if restantArtistes?.n}
+                <button class="voirplus" data-suite="artists" disabled={suiteEnCours != null}
+                  onclick={() => chargerSuite('artists')}
+                  >{libelleVoirPlus(restantArtistes.n)}{restantArtistes.auMoins ? '+' : ''}</button>
               {/if}
             </div>
           {/if}
@@ -1240,6 +1290,10 @@
           {#if resteAlbums > 0}
             <button class="voirplus" onclick={() => (montreAlbums += PAS_ALBUMS)}
               >{libelleVoirPlus(resteAlbums)}</button>
+          {:else if restantAlbums?.n}
+            <button class="voirplus" data-suite="albums" disabled={suiteEnCours != null}
+              onclick={() => chargerSuite('albums')}
+              >{libelleVoirPlus(restantAlbums.n)}{restantAlbums.auMoins ? '+' : ''}</button>
           {/if}
         </section>
       {/if}
@@ -1272,6 +1326,10 @@
           {#if resteTitres > 0}
             <button class="voirplus" onclick={() => (montreTitres += PAS_TITRES)}
               >{libelleVoirPlus(resteTitres)}</button>
+          {:else if restantTitres?.n}
+            <button class="voirplus" data-suite="tracks" disabled={suiteEnCours != null}
+              onclick={() => chargerSuite('tracks')}
+              >{libelleVoirPlus(restantTitres.n)}{restantTitres.auMoins ? '+' : ''}</button>
           {/if}
         </section>
       {/if}
