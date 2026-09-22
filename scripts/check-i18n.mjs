@@ -122,9 +122,12 @@ console.log('i18n check: no hardcoded French in visible text.');
  * affichait ses onze libellés en clair — 21 clés au total, invisibles parce
  * que le premier contrôle ne cherche que du français en dur, jamais l'inverse.
  *
- * fr.ts est la source : elle sert de repli à toutes les langues, donc une clé
- * qui y manque est cassée partout. en.ts est exigée aussi, sans quoi une
- * interface anglaise retombe en français sans prévenir.
+ * fr.ts est la SOURCE du catalogue : c'est elle qu'on compare aux dix autres,
+ * donc une clé qui y manque n'est réclamée à personne. en.ts est exigée tout
+ * autant — c'est elle qui sert de REPLI à toutes les langues depuis la
+ * capture de Silviu (testeur roumain, v0.9.161) : `i18n.ts` repliait sur le
+ * français, et une clé absente d'un dictionnaire rendait du français à qui
+ * n'en lit pas un mot. Une clé qui manque aux deux est cassée partout.
  * ---------------------------------------------------------------------- */
 
 /**
@@ -204,8 +207,8 @@ if (unknown.size > 0) {
   console.error(`\n${unknown.size} clé(s) appelée(s) mais absente(s) des traductions :\n`);
   for (const [key, where] of [...unknown].sort()) console.error(`  ${key}\n      ${where}`);
   console.error(`
-Une clé absente de fr.ts n'a AUCUN repli : elle s'affiche telle quelle à
-l'écran. Ajoutez-la à src/lib/locales/fr.ts et en.ts.
+Une clé absente de fr.ts ET de en.ts n'a AUCUN repli : elle s'affiche telle
+quelle à l'écran. Ajoutez-la à src/lib/locales/fr.ts et en.ts.
 `);
   process.exit(1);
 }

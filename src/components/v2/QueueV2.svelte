@@ -18,6 +18,10 @@
    */
   import * as api from '../../lib/api';
   import { t as tr } from '../../lib/i18n';
+  // Le SÉPARATEUR de milliers suit la langue : « 1 453 » en français,
+  // « 1.453 » en roumain, « 1,453 » en anglais. Une file de 1454 titres
+  // est un cas réel (#1126).
+  import { formatNombre } from '../../lib/formats';
   import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { estFichierAudio } from '../../lib/fichiersAudio';
@@ -50,7 +54,7 @@
       queuePosition.set(qs.position ?? 0);
       error = null;
     } catch {
-      error = "File d'attente indisponible.";
+      error = $tr('v2.queue.loadFailed' as any);
     }
     loading = false;
   }
@@ -272,8 +276,11 @@
     <div class="v2-actions">
       {#if tracks.length}
         <div class="meta">
-          <span>{upNext.length} à suivre</span>
-          {#if remainingMs}<span>{formatDuration(remainingMs)} restantes</span>{/if}
+          <!-- 🔴 Silviu (roumain, v0.9.161) : ces deux compteurs étaient
+               écrits en FRANÇAIS en dur au milieu d'un écran par ailleurs
+               traduit. Ils passent par le magasin, comme le reste. -->
+          <span>{$tr('v2.queue.upNextCount' as any).replace('{n}', $formatNombre(upNext.length))}</span>
+          {#if remainingMs}<span>{$tr('v2.queue.remaining' as any).replace('{d}', formatDuration(remainingMs))}</span>{/if}
         </div>
       {/if}
       <!-- 🔴 HORS du `{#if tracks.length}` : c'est précisément quand la file se
@@ -292,7 +299,7 @@
     </div>
   </header>
 
-  {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label="Fermer">×</button></div>{/if}
+  {#if error}<div class="err">{error}<button onclick={() => (error = null)} aria-label={$tr('v2.common.close' as any)}>×</button></div>{/if}
 
   <div class="scroll" bind:this={scroller} onscroll={auDefilement}>
     {#if loading}
@@ -329,7 +336,7 @@
       {/if}
 
       <section class="sec">
-        <h2>À suivre{#if !upNext.length}&nbsp;— rien{/if}</h2>
+        <h2>{$tr('v2.queue.upNext' as any)}{#if !upNext.length}&nbsp;— {$tr('v2.queue.upNextNone' as any)}{/if}</h2>
         <div class="list" bind:this={listeEl}>
           <!-- Les cales portent la hauteur EXACTE de ce qui n'est pas
                construit : la barre de défilement reste celle de la file
@@ -339,7 +346,7 @@
             {@const i = fenetre.debut + k}
             {@const idx = pos + 1 + i}
             <div class="row" class:np={t.id != null && t.id === $currentTrackId}>
-              <button class="play" onclick={() => jump(idx)} disabled={busy} aria-label={`Lire ${t.title}`}>
+              <button class="play" onclick={() => jump(idx)} disabled={busy} aria-label={$tr('v2.queue.playTrack' as any).replace('{t}', t.title ?? '')}>
                 <span class="n">{i + 1}</span>
                 <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
@@ -358,10 +365,10 @@
               <PisteActions piste={t} onLireDepuis={() => jump(idx)} />
               {#if showExpert}
                 <span class="ord">
-                  <button onclick={() => move(idx, idx - 1)} disabled={busy || idx <= pos + 1} aria-label="Monter">
+                  <button onclick={() => move(idx, idx - 1)} disabled={busy || idx <= pos + 1} aria-label={$tr('v2.queue.moveUp' as any)}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 15l6-6 6 6"/></svg>
                   </button>
-                  <button onclick={() => move(idx, idx + 1)} disabled={busy || i === upNext.length - 1} aria-label="Descendre">
+                  <button onclick={() => move(idx, idx + 1)} disabled={busy || i === upNext.length - 1} aria-label={$tr('v2.queue.moveDown' as any)}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M6 9l6 6 6-6"/></svg>
                   </button>
                 </span>
