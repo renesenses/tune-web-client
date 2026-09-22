@@ -971,12 +971,15 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
            lignes qu'avant — sans pochette, les vingt porteraient la même, et
            sans le titre de l'album, déjà en tête d'écran.
            `numerotation="piste"` : c'est le rang DANS L'ALBUM qui compte ici,
-           pas la position dans la liste affichée. -->
+           pas la position dans la liste affichée.
+           `enTetesDisque` (#1431) : « Disque N » avant chaque disque d'un
+           coffret ; rien sur un album d'un seul disque sans sous-titre. -->
       <ListePistesV2
         pistes={tracks}
         numerotation="piste"
         pochette={false}
         avecAlbum={false}
+        enTetesDisque
         onLire={(_p, i) => playAlbum(i)}
         onLireDepuis={(_p, i) => playAlbum(i)}
       />
