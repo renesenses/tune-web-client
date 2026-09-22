@@ -400,6 +400,13 @@ export default {
   'search.noResults': 'Aucun résultat pour "{query}"',
   'search.shownOf': '{shown} sur {total}',
   'search.shownOfAtLeast': '{shown} sur au moins {total}',
+  'search.durationShown': '{d} affichées',
+  'search.createPlaylist': 'Créer une liste de lecture',
+  'search.playlistNamePrompt': 'Nom de la nouvelle liste de lecture',
+  'search.playlistCreated': 'Liste « {name} » créée avec {n} pistes.',
+  'search.playlistCreatedPartial': 'Liste « {name} » créée avec les {n} pistes affichées, sur {total} correspondances.',
+  'search.playlistNoLocalTracks': 'Aucune piste de la bibliothèque locale dans ces résultats.',
+  'search.playlistError': 'Impossible de créer la liste de lecture.',
 
   // Streaming
   'streaming.noPlaylists': 'Aucune playlist',

@@ -313,6 +313,13 @@ export default {
   'search.noResults': 'Nessun risultato per "{query}"',
   'search.shownOf': '{shown} di {total}',
   'search.shownOfAtLeast': '{shown} di almeno {total}',
+  'search.durationShown': '{d} mostrati',
+  'search.createPlaylist': 'Crea una playlist',
+  'search.playlistNamePrompt': 'Nome della nuova playlist',
+  'search.playlistCreated': 'Playlist «{name}» creata con {n} brani.',
+  'search.playlistCreatedPartial': 'Playlist «{name}» creata con i {n} brani mostrati, su {total} corrispondenze.',
+  'search.playlistNoLocalTracks': 'Nessun brano della libreria locale in questi risultati.',
+  'search.playlistError': 'Impossibile creare la playlist.',
 
   // Streaming
   'streaming.noPlaylists': 'Nessuna playlist',
