@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   /**
    * Extensions → Pont Roon (Premium) — renesenses/tune-server-rust#4349.
    *
@@ -22,6 +22,7 @@
    */
   import * as api from '../../lib/api';
   import type { ApiError, EtatPontRoon, RapportPontRoon } from '../../lib/api';
+  import { depassePlafond, tailleLisible } from '../../lib/pontRoonTaille';
   import '../../styles/tune-v2.css';
 
   const URL_DOC = 'https://github.com/renesenses/tune-server-rust/blob/main/docs/pont-roon.md';
@@ -50,12 +51,40 @@
 
   const peutImporter = $derived(!!fichier && !!apercu && !occupe);
 
-  /** Le motif du serveur, tel quel ; un 402 devient la phrase Premium. */
-  function motif(e: unknown): string {
+  const taille = (octets: number) => tailleLisible(octets, $locale);
+
+  /**
+   * « Trop gros », dans la langue de l'écran. Le plafond est nommé quand le
+   * serveur l'a annoncé (`archive_max_octets`), tu sinon.
+   */
+  function tropGros(f: File): string {
+    const max = etat?.archive_max_octets;
+    return typeof max === 'number' && max > 0
+      ? $t('v2.pontRoon.tooLarge' as any).replace('{size}', taille(f.size)).replace('{max}', taille(max))
+      : $t('v2.pontRoon.tooLargeServer' as any).replace('{size}', taille(f.size));
+  }
+
+  /**
+   * Le motif du serveur, tel quel ; un 402 devient la phrase Premium.
+   *
+   * 🔴 Deux échecs ont leur propre phrase (Fabien, archive de 600 Mo,
+   * 22/09/2026) :
+   *  - 413 : le serveur refuse la taille. Son `detail` est écrit en français
+   *    (« archive de plus de N Mio ») : il ne doit pas atteindre un écran
+   *    anglais.
+   *  - la connexion coupée en plein envoi (`fetch` lève `TypeError`) : le
+   *    navigateur ne dit que « NetworkError when attempting to fetch
+   *    resource », sans un mot sur la cause probable — la taille.
+   */
+  function motif(e: unknown, f: File): string {
     const err = e as ApiError;
     if (err?.status === 402) {
       refusPremium = true;
       return $t('v2.pontRoon.premiumRequired' as any);
+    }
+    if (err?.status === 413) return tropGros(f);
+    if (err?.code === api.ENVOI_PONT_ROON_COUPE) {
+      return $t('v2.pontRoon.uploadCut' as any).replace('{size}', taille(f.size));
     }
     return err?.message || String(e);
   }
@@ -68,13 +97,19 @@
     rapportFinal = null;
     erreur = null;
     if (!f) return;
+    // Au-delà du plafond ANNONCÉ, on n'envoie rien : l'envoi durerait des
+    // minutes pour finir sur un refus.
+    if (depassePlafond(f.size, etat?.archive_max_octets)) {
+      erreur = tropGros(f);
+      return;
+    }
     occupe = 'apercu';
     try {
       const r = await api.importerPontRoon(f, true);
       // Un autre fichier choisi pendant l'aperçu : ce résultat ne le concerne plus.
       if (fichier === f) apercu = r;
     } catch (e) {
-      if (fichier === f) erreur = motif(e);
+      if (fichier === f) erreur = motif(e, f);
     }
     occupe = null;
   }
@@ -90,7 +125,7 @@
       apercu = null;
       if (etat) etat = { ...etat, dernier_rapport: rapportFinal };
     } catch (e) {
-      erreur = motif(e);
+      erreur = motif(e, f);
     }
     occupe = null;
   }
