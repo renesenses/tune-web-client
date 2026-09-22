@@ -51,7 +51,21 @@ const table = (nonResolues: number) =>
   Array.from({ length: 32 }, (_, i) => i >= nonResolues);
 const LONGUE = table(8);   // trame de 1764 échantillons
 const COURTE = table(10);  // trame de 1080 échantillons
-const CLE = cleFormat(44100, 2048, 32);
+/**
+ * 🔴 #1454 (22/09/2026) — `cleFormat` ne prend PLUS la taille de FFT.
+ *
+ * Elle y était, et ce banc l'exigeait (« le débit, la taille de FFT et le
+ * nombre de bandes comptent tous les trois »). C'était l'hypothèse fausse :
+ * côté serveur la taille suit la LONGUEUR DE LA TRAME
+ * (`n = m.next_power_of_two().min(8192)`), pas le format. À 44,1 kHz — le seul
+ * format sur lequel #1002 a été mesuré — 1764 et 1080 trames donnent tous deux
+ * 2048, donc rien ne se voyait. À 96 kHz elle bascule entre 4096 et 2048 à
+ * chaque trame écourtée, et toute la mémoire de ce module était jetée.
+ *
+ * Le format, c'est le débit et le nombre de bandes. La taille de FFT est
+ * désormais MÉMORISÉE comme une capacité. Voir `axeSpectre96k1454.test.ts`.
+ */
+const CLE = cleFormat(44100, 32);
 
 describe('la capacité retenue est la plus large vue pour ce format', () => {
   it('une première trame pose la capacité', () => {
@@ -96,17 +110,16 @@ describe('la capacité retenue est la plus large vue pour ce format', () => {
   /** Changer de format rend l'ancienne capacité caduque. */
   it('un changement de format jette la capacité', () => {
     let c = capaciteMaintenue(CAPACITE_VIDE, CLE, LONGUE);
-    const autre = cleFormat(96000, 4096, 32);
+    const autre = cleFormat(96000, 32);
     c = capaciteMaintenue(c, autre, COURTE);
     expect(c.cle).toBe(autre);
     expect(c.resolus).toEqual(COURTE);
   });
 
-  it('le débit, la taille de FFT et le nombre de bandes comptent tous les trois', () => {
-    const a = cleFormat(44100, 2048, 32);
-    expect(a).not.toBe(cleFormat(48000, 2048, 32));
-    expect(a).not.toBe(cleFormat(44100, 4096, 32));
-    expect(a).not.toBe(cleFormat(44100, 2048, 16));
+  it('le débit et le nombre de bandes comptent — la taille de FFT, non (#1454)', () => {
+    const a = cleFormat(44100, 32);
+    expect(a).not.toBe(cleFormat(48000, 32));
+    expect(a).not.toBe(cleFormat(44100, 16));
   });
 
   it('une trame sans table ne détruit pas ce qu’on savait', () => {
