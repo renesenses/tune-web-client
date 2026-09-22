@@ -248,6 +248,20 @@
     else if (item.streaming) void playStreamingPlaylist(item.streaming);
   }
 
+  /**
+   * Renommer une playlist LOCALE.
+   *
+   * 🔴 Cette fonction existait depuis le 21/09/2026, avec sa traduction dans
+   * les onze langues — et AUCUN appelant. Le crayon de la vignette ouvre la
+   * playlist, « c'est là qu'on la renomme » disait le commentaire ; mais
+   * l'en-tête du détail n'avait que Importer, Récupérer, Transférer, Comparer
+   * et Tout lire. Bertrand, 22/09/2026 : « Comment modifier le nom d'une
+   * playlist en mode édition ?? », puis « Je n'y arrive pas !! ». On ne
+   * pouvait pas : le bouton n'existait nulle part.
+   *
+   * Une playlist de SERVICE n'est pas concernée : aucune route ne la renomme
+   * chez Tidal ou Qobuz. Ce qui ne s'applique pas est absent, jamais grisé.
+   */
   async function renommerPlaylist(id: number, nomActuel: string) {
     const nouveau = await dialogs.prompt($tr('playlistManager.renamePrompt' as any), nomActuel);
     const propre = (nouveau ?? '').trim();
@@ -256,6 +270,10 @@
     try {
       await api.updatePlaylist(id, { name: propre });
       localPlaylists = await api.getPlaylists();
+      // Le titre du détail vient de `selectedPlaylist`, pas de la liste :
+      // sans cette ligne, l'écran ouvert garderait l'ancien nom jusqu'au
+      // retour en arrière.
+      if (selectedPlaylist?.id === id) selectedPlaylist = { ...selectedPlaylist, name: propre };
     } catch (err: any) {
       notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
     }
@@ -1660,6 +1678,15 @@
           <button class="import-btn" onclick={() => openImport(selectedService, selectedStreamingPl!)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
             {$tr('playlist.import')}
+          </button>
+        {/if}
+        {#if selectedPlaylist?.id != null}
+          <!-- Le renommage vit ICI, où le crayon de la vignette amène. Une
+               playlist de service n'a pas ce bouton : rien ne la renomme chez
+               Tidal ou Qobuz. -->
+          <button class="rename-btn" onclick={() => renommerPlaylist(selectedPlaylist!.id!, selectedPlaylist!.name)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+            {$tr('v2.pl.rename' as any)}
           </button>
         {/if}
         {#if selectedPlaylist}
@@ -4223,7 +4250,21 @@
     cursor: pointer;
   }
 
-  /* Recover button */
+  /* Renommer — même gabarit que les autres boutons de l'en-tête du détail. */
+  .rename-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: all 0.12s ease-out;
+  }
   .recover-btn {
     display: flex;
     align-items: center;
@@ -4239,6 +4280,10 @@
     transition: all 0.12s ease-out;
   }
 
+  .rename-btn:hover {
+    border-color: #FF9800;
+    color: #FF9800;
+  }
   .recover-btn:hover {
     border-color: #FF9800;
     color: #FF9800;
