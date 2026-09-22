@@ -2,14 +2,18 @@
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { playFromHere } from '../../lib/playback';
   import * as api from '../../lib/api';
-  import { formatTime, formatAudioBadge } from '../../lib/utils';
+  import { formatTime, formatAudioBadge, fold } from '../../lib/utils';
   import type { Track } from '../../lib/types';
   import { t as tr } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
+  import PochetteActions from '../v2/PochetteActions.svelte';
   import { quatreDistinctes } from '../../lib/mosaique';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { preferences } from '../../lib/stores/preferences';
+  import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { get } from 'svelte/store';
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
@@ -141,6 +145,38 @@
   const mosaiquesDemandees = new Set<number>();
 
   /**
+   * Le NOMBRE DE PISTES de chaque playlist intelligente, par identifiant.
+   *
+   * Il ne vient d'aucun champ : la liste `/library/smart-playlists` ne rend ni
+   * `track_count` ni équivalent — son contenu est calculé. On le MESURE donc
+   * sur ce que le serveur rend, c'est-à-dire la longueur de la liste de pistes
+   * déjà demandée pour les pochettes. C'est exactement le nombre que la fiche
+   * affiche quand on ouvre la playlist, plafond `max_tracks` compris : deux
+   * chiffres différents pour la même playlist seraient pires qu'un seul.
+   *
+   * `null` — absent de la table — tant que la mesure n'est pas faite. Afficher
+   * « 0 » en attendant ferait passer une playlist pleine pour une playlist
+   * vide.
+   */
+  let comptes = $state<Record<number, number>>({});
+
+  /**
+   * Oublie ce qu'on sait d'une playlist : ses pochettes et son compte.
+   *
+   * Modifier les règles change le CONTENU, donc les deux. Sans cet oubli,
+   * `mosaiquesDemandees` empêcherait toute nouvelle mesure et la carte
+   * garderait l'ancienne mosaïque et l'ancien compte jusqu'au rechargement de
+   * la page.
+   */
+  function oublierContenu(id: number): void {
+    mosaiquesDemandees.delete(id);
+    const { [id]: _m, ...restePochettes } = mosaiques;
+    const { [id]: _c, ...resteComptes } = comptes;
+    mosaiques = restePochettes;
+    comptes = resteComptes;
+  }
+
+  /**
    * Charge les pochettes APRÈS l'affichage de la grille, jamais avant.
    *
    * ⚠️ Une requête PAR playlist, et ici chacune RECALCULE la sélection côté
@@ -161,9 +197,13 @@
           const vues = quatreDistinctes(
             (pistes ?? []).map((t: any) => ({ cover_path: t?.cover_path, title: t?.album_title ?? t?.album })),
           );
+          // Le compte est posé même quand AUCUNE pochette n'est exploitable :
+          // une playlist de pistes sans image a bien un nombre de pistes.
+          comptes = { ...comptes, [id]: (pistes ?? []).length };
           if (vues.length) mosaiques = { ...mosaiques, [id]: vues };
         } catch {
-          // Une playlist dont le contenu ne se calcule pas garde son étoile.
+          // Une playlist dont le contenu ne se calcule pas garde son initiale,
+          // et ne ment pas sur son compte : on redemandera.
           mosaiquesDemandees.delete(id);
         }
       }),
@@ -176,6 +216,133 @@
       void chargerMosaiques(smartPlaylists);
     } catch (e) {
       console.error('Load smart playlists error:', e);
+    }
+  }
+
+  /* ------------------------------------------------------------------------
+   * La PRÉSENTATION de la liste, reprise de `v2/CollectionsV2` (onglet
+   * « smart »).
+   *
+   * Demande de Bertrand du 22/09/2026 : « Harmonise la présentation des smart
+   * playlists idem smart collections ». Les deux écrans montrent la même
+   * chose — une liste d'objets calculés par des règles — et ne la montraient
+   * pas du tout de la même façon : une bande colorée avec une étoile et deux
+   * icônes d'un côté, une grille de vignettes carrées avec leurs cinq gestes
+   * de l'autre.
+   *
+   * On reprend donc, à l'identique : la teinte dérivée du nom, la grande
+   * vignette enveloppée de `PochetteActions`, le bloc `.meta`, le rail A-Z et
+   * le tri mémorisé. Ce qui n'existe PAS pour une playlist intelligente n'est
+   * pas repris — voir le balisage de la carte.
+   * --------------------------------------------------------------------- */
+
+  /**
+   * La teinte d'une playlist, DÉRIVÉE de son nom.
+   *
+   * Même fonction que `CollectionsV2` — même formule, donc la même playlist et
+   * la collection homonyme portent le même liseré, et une playlist garde sa
+   * couleur d'une session à l'autre sans que rien ne soit stocké.
+   */
+  function teinte(nom: string): string {
+    let h = 0;
+    for (let i = 0; i < nom.length; i++) h = (h * 31 + nom.charCodeAt(i)) % 360;
+    return `hsl(${h} 62% 58%)`;
+  }
+
+  /** L'initiale de rail d'un texte : accents repliés, tout le reste sous « # ». */
+  function initiale(texte: string | null | undefined): string {
+    const c = fold(texte).trim().charAt(0).toUpperCase();
+    return c >= 'A' && c <= 'Z' ? c : '#';
+  }
+
+  /**
+   * Tri de la liste, mémorisé par écran (`lireChoix` / `ecrireChoix`).
+   *
+   * Deux clés seulement, et c'est une différence assumée avec les collections :
+   * `/library/smart-playlists` ne rend pas de date de création, on ne peut donc
+   * pas proposer « plus récent / plus ancien » sans l'inventer. Le NOMBRE DE
+   * PISTES le remplace — c'est la seule autre donnée que la carte affiche.
+   *
+   * Le sens est un bouton à part, comme dans l'en-tête d'une collection
+   * ouverte : la clé dit sur QUOI on trie, le bouton dans quel sens.
+   */
+  const TRIS = ['nom', 'pistes'] as const;
+  type Tri = (typeof TRIS)[number];
+  const SENS = ['asc', 'desc'] as const;
+  type Sens = (typeof SENS)[number];
+  let tri = $state<Tri>(lireChoix<Tri>('v2.smartplaylists.tri', TRIS, 'nom'));
+  let sens = $state<Sens>(lireChoix<Sens>('v2.smartplaylists.sens', SENS, 'asc'));
+  $effect(() => { ecrireChoix('v2.smartplaylists.tri', tri); });
+  $effect(() => { ecrireChoix('v2.smartplaylists.sens', sens); });
+  const LIBELLES_TRI: Record<Tri, string> = {
+    nom: 'smartPlaylists.sortName',
+    pistes: 'smartPlaylists.sortTracks',
+  };
+
+  function parNom(a: SmartPlaylist, b: SmartPlaylist): number {
+    // `sensitivity: 'base'` : « Été » et « ete » se suivent. `numeric` pour que
+    // « Best 2 » vienne avant « Best 10 ».
+    return (a.name ?? '').localeCompare(b.name ?? '', undefined, { sensitivity: 'base', numeric: true });
+  }
+
+  /**
+   * ⚠️ Une playlist dont le compte n'est PAS encore mesuré se range en fin de
+   * liste dans les deux sens. La mettre en tête d'un tri croissant la ferait
+   * passer pour la plus courte, alors qu'on ne sait simplement pas encore.
+   */
+  function comparer(a: SmartPlaylist, b: SmartPlaylist): number {
+    if (tri === 'nom') return sens === 'asc' ? parNom(a, b) : -parNom(a, b);
+    const ca = comptes[a.id];
+    const cb = comptes[b.id];
+    const va = ca == null;
+    const vb = cb == null;
+    if (va && vb) return parNom(a, b);
+    if (va) return 1;
+    if (vb) return -1;
+    return (sens === 'asc' ? ca - cb : cb - ca) || parNom(a, b);
+  }
+
+  const visibles = $derived(smartPlaylists.slice().sort(comparer));
+
+  /**
+   * Rail alphabétique de la liste, comme dans Collections (#1153).
+   *
+   * Il ne paraît que sur le tri par NOM : rangée par nombre de pistes, une
+   * lettre ne désigne aucune position, et un saut qui atterrit au hasard se lit
+   * comme un rail mort.
+   */
+  const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+  const railListe = $derived(tri === 'nom');
+  const lettresListe = $derived(
+    railListe ? new Set(visibles.map((sp) => initiale(sp.name))) : new Set<string>(),
+  );
+  let grilleListeEl: HTMLDivElement | undefined = $state();
+  function sauterAListe(L: string) {
+    grilleListeEl?.querySelector<HTMLElement>(`[data-lettre="${L}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /**
+   * LIRE une playlist depuis sa vignette — le geste central de
+   * `PochetteActions`.
+   *
+   * On relit ses pistes plutôt que de réutiliser celles de la mosaïque : la
+   * mosaïque n'en garde que quatre CHEMINS de pochette, pas les pistes. Même
+   * enchaînement que « Tout lire » de la fiche (`lireListe` : la tête part, le
+   * reste s'enfile), la liste pouvant être mixte depuis #4299.
+   */
+  async function lireSmartPlaylist(sp: SmartPlaylist) {
+    const zid = zone?.id;
+    if (zid == null) return;
+    try {
+      const pistes = await api.getSmartPlaylistTracks(sp.id);
+      if (!pistes?.length) return;
+      await lireListe(pistes, {
+        lire: (c: any) => playAndSync(zid, c),
+        enfiler: (c: any) => api.addToQueue(zid, c),
+      });
+    } catch (e) {
+      signalerEchecLecture(e);
     }
   }
 
@@ -242,10 +409,25 @@
     }
   }
 
+  /**
+   * SUPPRIMER une playlist intelligente — derrière le menu, et derrière une
+   * confirmation.
+   *
+   * La croix « × » de la carte supprimait SANS rien demander, à portée de
+   * pouce d'une carte entièrement cliquable. C'est l'arbitrage déjà posé par
+   * `CollectionsV2` qu'on reprend : l'entrée vit dans le menu d'actions de la
+   * pochette, teintée `danger`, et elle demande confirmation.
+   *
+   * 🔴 `dialogs.confirm`, jamais `window.confirm` : les dialogues natifs ne
+   * s'affichent pas dans les vues web embarquées.
+   */
   async function handleDelete(sp: SmartPlaylist) {
+    const question = $tr('smartPlaylists.deleteAsk').replace('{nom}', sp.name ?? '');
+    if (!(await dialogs.confirm(question, { danger: true }))) return;
     try {
       await api.deleteSmartPlaylist(sp.id);
       smartPlaylists = smartPlaylists.filter(s => s.id !== sp.id);
+      oublierContenu(sp.id);
       if (selectedSp?.id === sp.id) {
         selectedSp = null;
         spTracks = [];
@@ -283,6 +465,9 @@
         max_tracks: newMaxTracks,
       });
       notifications.success($tr('smartPlaylists.updated').replace('{name}', newName));
+      // Les règles ont changé : le contenu aussi. Sans cet oubli, la carte
+      // garderait l'ancienne mosaïque et l'ancien compte.
+      oublierContenu(editingSp.id);
       editingSp = null;
       showCreate = false;
       newName = '';
@@ -571,42 +756,93 @@
       </div>
     {/if}
 
-    <div class="grid">
-      {#each smartPlaylists as sp}
-        <!-- svelte-ignore a11y_click_events_have_key_events -->
-        <div
-          class="card"
-          role="button"
-          tabindex="0"
-          onclick={() => selectSp(sp)}
-          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectSp(sp); }}
-        >
-          <div class="card-head">
-            {#if sp.id != null && mosaiques[sp.id]}
-              <!-- La mosaïque DIT ce que la playlist contient ; l'étoile ne
-                   disait que « intelligente ». Elle reste le repli tant que
-                   les pochettes ne sont pas chargées, ou si elles manquent. -->
-              <span class="card-mosaique">
-                <MosaiquePochettes pochettes={mosaiques[sp.id]} alt={sp.name} />
-              </span>
+    <!-- Le tri de la liste, à droite comme dans Collections. Il est au-dessus
+         de la grille et non dans l'en-tête : l'en-tête laisse sa droite à la
+         grappe de la coquille. -->
+    {#if smartPlaylists.length > 0}
+      <div class="sp-barre">
+        <label class="tricol">
+          <span>{$tr('v2.fav.sortBy')}</span>
+          <select bind:value={tri} aria-label={$tr('v2.fav.sortBy')}>
+            {#each TRIS as k (k)}<option value={k}>{$tr(LIBELLES_TRI[k])}</option>{/each}
+          </select>
+          <button class="sens" onclick={() => (sens = sens === 'asc' ? 'desc' : 'asc')}
+            title={$tr(sens === 'asc' ? 'common.ascending' : 'common.descending')}
+            aria-label={$tr(sens === 'asc' ? 'common.ascending' : 'common.descending')}>
+            {#if sens === 'asc'}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg>
             {:else}
-              <span class="card-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-              </span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
             {/if}
-            <span class="card-name">{sp.name}</span>
-            <button class="edit-icon" onclick={(e) => { e.stopPropagation(); startEdit(sp); }} title={$tr('smartPlaylists.edit')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-            </button>
-            <button class="del" onclick={(e) => { e.stopPropagation(); handleDelete(sp); }} title={$tr('common.delete')}>×</button>
-          </div>
-          <div class="card-rules">{ruleSummary(sp)}</div>
-          {#if sp.description}<div class="card-desc">{sp.description}</div>{/if}
+          </button>
+        </label>
+      </div>
+    {/if}
+
+    <!-- Rail et grille sont FRÈRES, comme dans Collections : les imbriquer
+         ferait défiler le rail avec la liste. -->
+    <div class="aveclettres" bind:this={grilleListeEl}>
+      {#if railListe && smartPlaylists.length > 0}
+        <div class="rail">
+          {#each ALPHA as L (L)}
+            <button class="rl" class:hot={lettresListe.has(L)} disabled={!lettresListe.has(L)}
+              onclick={() => sauterAListe(L)}>{L}</button>
+          {/each}
         </div>
-      {/each}
-      {#if smartPlaylists.length === 0 && !showCreate}
-        <p class="sp-empty">{$tr('smartPlaylists.emptyList')}</p>
       {/if}
+      <div class="grid">
+        {#each visibles as sp (sp.id)}
+          <!-- Un LISERÉ de couleur, pas un fond : la mosaïque doit rester
+               lisible. Même formule de teinte que les collections. -->
+          <div class="card" data-lettre={initiale(sp.name)} style="--teinte:{teinte(sp.name)}">
+            <span class="cv teintee">
+              <!-- NI cœur NI étiquettes, et ce n'est pas un oubli : une
+                   playlist intelligente n'a ni l'un ni l'autre côté API —
+                   `favorisLocaux` et `cibleEtiquette` ne connaissent pas de
+                   `smartPlaylistId`. Un bouton qui ne mène à rien vaut moins
+                   qu'un bouton absent. Restent les quatre gestes qui
+                   existent : éditer, lire, ouvrir, supprimer. -->
+              <PochetteActions
+                onEditer={() => startEdit(sp)}
+                onLire={() => lireSmartPlaylist(sp)}
+                onOuvrir={() => selectSp(sp)}
+                menu={[{
+                  libelle: $tr('common.delete'),
+                  danger: true,
+                  faire: () => void handleDelete(sp),
+                }]}
+                nom={sp.name}
+              >
+                <!-- Mosaïque ou pochette UNIQUE, au choix (Réglages →
+                     Affichage) : le même interrupteur que les collections,
+                     sinon deux écrans harmonisés se sépareraient au premier
+                     réglage. `[0]` : la mosaïque cycle sur cette liste, on
+                     prend sa première case. -->
+                {#if $preferences.v2CollectionsMosaique}
+                  <MosaiquePochettes pochettes={mosaiques[sp.id] ?? []} initiales={sp.name?.slice(0, 1)} alt={sp.name} />
+                {:else}
+                  <AlbumArt coverPath={mosaiques[sp.id]?.[0] ?? null} albumId={null} size={0} alt={sp.name}
+                    fallbackInitials={sp.name?.slice(0, 1)} />
+                {/if}
+              </PochetteActions>
+            </span>
+            <button class="meta" onclick={() => selectSp(sp)}>
+              <span class="ct" title={sp.name}>{sp.name}</span>
+              <!-- Le compte MESURÉ. « … » tant qu'il ne l'est pas : « 0 »
+                   ferait passer une playlist pleine pour une playlist vide. -->
+              <span class="ca">{comptes[sp.id] != null ? `${comptes[sp.id]} ${$tr('common.tracks')}` : '…'}</span>
+              <!-- Le résumé des règles ne disparaît pas : c'est ce qui dit
+                   POURQUOI ces pistes-là sont dedans. En entier dans
+                   l'infobulle, la carte n'ayant qu'une ligne à lui donner. -->
+              <span class="cr" title={ruleSummary(sp)}>{ruleSummary(sp)}</span>
+              {#if sp.description}<span class="cd" title={sp.description}>{sp.description}</span>{/if}
+            </button>
+          </div>
+        {/each}
+        {#if smartPlaylists.length === 0 && !showCreate}
+          <p class="sp-empty">{$tr('smartPlaylists.emptyList')}</p>
+        {/if}
+      </div>
     </div>
   {/if}
 </div>
@@ -636,29 +872,61 @@
   .sp-form-actions { display: flex; gap: var(--space-sm); }
   .cancel-btn { background: none; border: 1px solid var(--tune-border); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); color: var(--tune-text-secondary); cursor: pointer; font-family: var(--font-label); font-size: 13px; }
 
-  /* Grid (idem Smart Collections) */
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.8rem; }
-  .card {
-    text-align: left; padding: 0.9rem 1rem;
-    background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.06);
-    border-left: 4px solid var(--tune-accent, #6366f1);
-    border-top: none; border-right: none; border-bottom: none;
-    border-radius: 8px; cursor: pointer; transition: background 120ms ease;
-  }
-  .card:hover { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12); }
-  .card-head { display: flex; align-items: center; gap: 0.5rem; }
-  .card-icon { color: var(--tune-accent, #6366f1); display: inline-flex; }
-  /* Même gabarit que l'étoile qu'elle remplace : la carte ne bouge pas quand
-     les pochettes arrivent. */
-  .card-mosaique { display: inline-flex; width: 32px; height: 32px; flex: 0 0 32px; border-radius: var(--radius-sm, 4px); overflow: hidden; }
-  .card-name { flex: 1; font-weight: 600; color: var(--tune-text); font-size: 0.95rem; }
-  .edit-icon { background: transparent; border: none; color: var(--tune-text-muted); cursor: pointer; opacity: 0.5; padding: 0 0.2rem; display: inline-flex; align-items: center; }
-  .edit-icon:hover { opacity: 1; color: var(--tune-accent); }
-  .del { background: transparent; border: none; color: var(--tune-text-muted); font-size: 1.1rem; cursor: pointer; opacity: 0.5; padding: 0 0.2rem; }
-  .del:hover { opacity: 1; color: #dc2626; }
-  .card-rules { font-size: 0.78rem; color: var(--tune-text-muted); margin-top: 0.3rem; line-height: 1.4; }
-  .card-desc { font-size: 0.78rem; color: var(--tune-text-muted); margin-top: 0.3rem; font-style: italic; }
+  /* ------------------------------------------------------------------------
+     La GRILLE, reprise telle quelle de `v2/CollectionsV2` (22/09/2026).
+
+     Les cartes étaient des bandes de 250 px, fond teinté et liseré à gauche,
+     avec une étoile de 14 px pour toute image. Ce sont désormais les mêmes
+     vignettes carrées que les collections intelligentes : `.card` / `.cv` /
+     `.meta`, les jetons `--v2-` de la coquille (l'écran est monté dans
+     `.tune-v2`, qui les définit), et le liseré de teinte autour de la
+     pochette plutôt que sur le bord de la carte.
+     --------------------------------------------------------------------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 18px; padding: 12px 0 30px; }
+  .card { display: flex; flex-direction: column; gap: 6px; background: transparent; border: 0; padding: 0; text-align: left; color: inherit; }
+  /* Le cadre porte le carré : la mosaïque le remplit, une pochette seule aussi. */
+  .cv { display: block; aspect-ratio: 1; width: 100%; border-radius: var(--v2-r-card); overflow: hidden; background: var(--v2-surface); }
+  .cv :global(img) { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cv.teintee { box-shadow: 0 0 0 2px var(--teinte); border-radius: var(--v2-r-card); }
+  /* La carte n'est pas un `<button>` : `PochetteActions` en pose cinq, et des
+     boutons imbriqués sont du HTML invalide — c'est aussi ce qui a fait
+     disparaître le `role="button"` de l'ancienne carte. */
+  .meta { display: flex; flex-direction: column; gap: 6px; width: 100%; border: 0; background: transparent;
+    padding: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; min-width: 0; }
+  .ct { font-weight: 600; font-size: 13.5px; color: var(--v2-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ca { font: 11px var(--v2-mono); color: var(--v2-txt3); display: flex; align-items: center; gap: 6px; }
+  /* Le résumé des règles : une ligne, l'infobulle porte le reste. */
+  .cr { font: 11px var(--v2-mono); color: var(--v2-txt2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cd { font-size: 11.5px; color: var(--v2-txt3); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sp-empty { font-family: var(--font-body); font-size: 14px; color: var(--tune-text-muted); text-align: center; padding: var(--space-2xl); grid-column: 1 / -1; }
+
+  /* Tri de la liste — mêmes commandes que Collections. */
+  .sp-barre { display: flex; justify-content: flex-end; padding-right: var(--v2-grappe-w, 172px); }
+  .tricol { display: inline-flex; align-items: center; gap: 8px; }
+  .tricol span { font: 9.5px var(--v2-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--v2-txt3); }
+  .tricol select { height: 30px; padding: 0 8px; border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill);
+    background: var(--v2-surface2); color: var(--v2-txt2); font: 12.5px inherit; cursor: pointer; }
+  .tricol select:hover { border-color: var(--v2-acc2); color: var(--v2-txt); }
+  .tricol .sens { width: 30px; height: 30px; display: grid; place-items: center; padding: 0;
+    border: 1px solid var(--v2-line2); border-radius: var(--v2-r-pill); background: var(--v2-surface2);
+    color: var(--v2-txt2); cursor: pointer; }
+  .tricol .sens:hover { border-color: var(--v2-acc2); color: var(--v2-txt); }
+  .tricol .sens svg { width: 14px; height: 14px; }
+
+  /* Rail A-Z de la liste, repris de Collections (#1153) : les lettres
+     ABSENTES sont grisées et inertes — un rail qui propose une lettre ne
+     menant nulle part est pire qu'un rail absent. */
+  .aveclettres { display: flex; min-height: 0; }
+  .aveclettres .grid { flex: 1; min-width: 0; }
+  .rail { display: flex; flex-direction: column; justify-content: center; gap: 2px;
+    padding: 10px 12px 10px 4px; margin-right: 6px; position: sticky; top: 0; align-self: flex-start;
+    border-right: 1px solid var(--v2-line); }
+  .rl { width: 22px; height: 20px; display: grid; place-items: center; border: 0; background: transparent;
+    font: 600 11px var(--v2-mono); color: var(--v2-txt3); cursor: pointer; border-radius: 5px; transition: .12s; }
+  .rl:disabled { opacity: .22; cursor: default; }
+  .rl.hot { color: var(--v2-txt2); }
+  .rl.hot:hover { color: var(--v2-on-acc); background: linear-gradient(135deg, var(--v2-acc1), var(--v2-acc2)); }
+  .rl:focus-visible { outline: 2px solid var(--v2-acc2); outline-offset: 1px; }
 
   /* Detail */
   .sp-header { margin-bottom: var(--space-md); }
