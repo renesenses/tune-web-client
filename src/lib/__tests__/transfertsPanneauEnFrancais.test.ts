@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 //
 // Bertrand, au navigateur sur la .18 (v0.9.153), 18/09/2026 — pas d'issue,
 // constat direct : l'écran Playlists → onglet **Transferts** s'affiche en
@@ -106,7 +108,38 @@ async function souffler(n = 3) {
   }
 }
 
-async function ouvrirLesTransferts(): Promise<HTMLElement> {
+/**
+ * L'onglet Transferts est-il MASQUÉ ? (Bertrand, 22/09/2026 : « Masque tout
+ * cela en attendant Tune Circle ».)
+ *
+ * On lit l'interrupteur à la source plutôt que de supposer : le jour où il
+ * repasse à vrai, ces gardes reprennent leur travail toutes seules, sans
+ * qu'on ait à se souvenir de les réveiller.
+ */
+function ongletsAvancesMasques(): boolean {
+  const vue = readFileSync(
+    resolve(__dirname, '../../components/v2-heritage/PlaylistManagerView.svelte'),
+    'utf-8',
+  );
+  return /const ONGLETS_AVANCES = false;/.test(vue);
+}
+
+async function ouvrirLesTransferts(): Promise<HTMLElement | null> {
+  if (ongletsAvancesMasques()) {
+    // Masqué : il n'y a rien à peindre, et la garde ne doit pas rougir pour
+    // ça. Ce qu'on vérifie alors, c'est que l'onglet est bien ABSENT — pas
+    // peint en anglais dans un coin.
+    hote = document.createElement('div');
+    document.body.appendChild(hote);
+    monte = mount(PlaylistManagerView, { target: hote, props: { onAddToPlaylist: () => {} } });
+    flushSync();
+    await souffler(4);
+    const libelles = [...hote.querySelectorAll<HTMLButtonElement>('button.pm-tab')].map(
+      (b) => b.textContent?.trim(),
+    );
+    expect(libelles).not.toContain(fr['playlistManager.tabTransfers']);
+    return null;
+  }
   hote = document.createElement('div');
   document.body.appendChild(hote);
   monte = mount(PlaylistManagerView, { target: hote, props: { onAddToPlaylist: () => {} } });
@@ -186,6 +219,7 @@ afterEach(() => {
 describe('Playlists → Transferts : le panneau est peint en français', () => {
   it("🔴 aucun texte en dur n'est peint dans le panneau Transferts", async () => {
     const panneau = await ouvrirLesTransferts();
+    if (!panneau) return; // onglet masqué : rien à peindre
     const fautes = enDur(panneau);
     expect(
       fautes,
@@ -196,6 +230,8 @@ describe('Playlists → Transferts : le panneau est peint en français', () => {
   it("🔴 la rangée d'onglets du gestionnaire est peinte en français", async () => {
     await ouvrirLesTransferts();
     const rangee = hote!.querySelector<HTMLElement>('.pm-tabs')!;
+    // Masqué ou non, la rangée existe : ce qu'elle peint doit venir du
+    // dictionnaire, y compris réduite au seul onglet Playlists.
     const fautes = enDur(rangee);
     expect(fautes, `onglets peints en dur :\n  ${fautes.join('\n  ')}`).toEqual([]);
   });
