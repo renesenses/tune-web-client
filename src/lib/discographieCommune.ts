@@ -131,9 +131,13 @@ export function qualiteDe(ex: Exemplaire): Qualite | null {
  * bibliothèque d'abord) ; le tri visible est l'affaire de l'écran.
  *
  * 🔴 Un même service rend parfois DEUX fois la même édition sous deux
- * identifiants (Qobuz, rééditions de catalogue). On garde le premier
- * exemplaire par source : deux pastilles « QOBUZ » sur une vignette ne
- * diraient rien de plus.
+ * identifiants (Qobuz, rééditions de catalogue). On garde UN exemplaire par
+ * source : deux pastilles « QOBUZ » sur une vignette ne diraient rien de plus.
+ *
+ * 🔴 Lequel : celui qui a le PLUS de titres, pas le premier arrivé. Neil
+ * Young, « Second Song » (#4652, fil 1875) : Qobuz rend le single d'avant-
+ * sortie (1 titre, rang 61) avant l'album (7 titres, rang 89), même titre. Le
+ * premier arrivé gagnait, et l'album n'était plus atteignable depuis la page.
  */
 export function fusionnerDiscographie(
   locaux: Album[] | null | undefined,
@@ -146,7 +150,13 @@ export function fusionnerDiscographie(
     // une clé qui ne peut rencontrer aucune autre.
     const k = cle || `∅:${source}:${String(album?.id ?? album?.source_id ?? parCle.size)}`;
     const liste = parCle.get(k) ?? [];
-    if (liste.some((e) => e.source === source) && cle) return;
+    const deja = cle ? liste.findIndex((e) => e.source === source) : -1;
+    if (deja > -1) {
+      if (Number(album?.track_count ?? 0) > Number(liste[deja].album?.track_count ?? 0)) {
+        liste[deja] = { source, album };
+      }
+      return;
+    }
     liste.push({ source, album });
     parCle.set(k, liste);
   };

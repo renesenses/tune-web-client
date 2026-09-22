@@ -61,7 +61,9 @@ describe('recherche restreinte — point 8 (Yves Corbat, 17/09/2026)', () => {
     expect(readFileSync('src/lib/v2Settings.ts', 'utf8')).toContain("id: 'searchExact'");
     expect(readFileSync('src/components/v2/SettingsV2.svelte', 'utf8')).toContain("s.id === 'searchExact'");
     const rech = readFileSync('src/components/v2/SearchV2.svelte', 'utf8');
-    expect(rech).toContain('api.searchLibrary(requeteExacte(query), 40)');
+    // #4663 : la page locale est nommée, et la suite passe par la même requête.
+    expect(rech).toContain('api.searchLibrary(requeteExacte(query), PAGE_LOCALE)');
+    expect(rech).toContain('api.searchLibrary(requeteExacte(query), PAGE_LOCALE, rangSuivant(base, f))');
     expect(rech).toContain('phrasesEntreGuillemets(requeteExacte(q))');
   });
 });

@@ -255,7 +255,13 @@ describe('#2362 — la sortie mono est atteignable depuis le panneau de zone', (
 describe('#2362 — témoin : le panneau de zone garde ses autres réglages', () => {
   it('conserve renommage, groupe, décalage de synchro, correction de pièce et suppression', { timeout: DELAI_MONTAGE }, async () => {
     const racine = await ouvrirPanneau(zoneLocale());
-    const titres = [...racine.querySelectorAll('.section-title')].map((h) => h.textContent?.trim());
+    // #1427 — la correction acoustique est devenue un composant PARTAGÉ avec
+    // Réglages ▸ Appareils ▸ Réglages par zone, avec ses classes propres
+    // (`.fir-tl`) : un composant Svelte scope son `<style>`, donc reprendre
+    // `.section-title` l'aurait laissé sans habillage dans l'autre écran. Le
+    // témoin vérifie toujours la même chose — le panneau porte la section —
+    // mais il ne la cherche plus par la classe d'un seul des deux hôtes.
+    const titres = [...racine.querySelectorAll('.section-title, .fir-tl')].map((h) => h.textContent?.trim());
 
     expect(titres).toContain(fr['zone.groupedPlayback']);
     expect(titres).toContain(fr['zone.syncOffset']);

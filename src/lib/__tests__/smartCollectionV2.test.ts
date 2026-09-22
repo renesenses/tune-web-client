@@ -14,7 +14,9 @@ describe('Grammaire des règles : une seule, partagée', () => {
     // Recopier vingt-deux champs dans un second éditeur aurait donné deux
     // vocabulaires qui divergent à la première addition.
     // 25 depuis l'ajout de « répertoire » (localisation sur le disque).
-    expect(CHAMPS.length).toBe(25);
+    // 26 depuis « étiquette » (Bertrand, 21/09 : « impossible de choisir un
+    // tag comme règle de smart collection »).
+    expect(CHAMPS.length).toBe(26);
     for (const c of CHAMPS) {
       expect(OPERATEURS[c.type], `${c.value} : type sans opérateurs`).toBeTruthy();
       expect(OPERATEURS[c.type].length).toBeGreaterThan(0);

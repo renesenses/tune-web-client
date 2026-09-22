@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { atteintLeSon } from '../../lib/porteeReglage';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
@@ -20,7 +21,7 @@
   import { texteDePartage, partageUtilisable } from '../../lib/partageEcoute';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import {
-    CF_PRESETS, presetActif, reglagesCrossfeed,
+    CF_PRESETS, presetActif, reglagesCrossfeed, bornesCrossfeed, niveauEnPourcent,
     indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed,
   } from '../../lib/crossfeed';
   import AlbumArt from './AlbumArt.svelte';
@@ -221,6 +222,9 @@
   // controle ; a defaut du champ, le type de sortie de la zone tranche.
   let cfStatut = $state<api.CrossfeedStatus | null>(null);
   let cfIndispo = $derived(indisponibiliteCrossfeed(cfStatut, $currentZone?.output_type));
+  // Le bout des curseurs : celui du SERVEUR quand il le publie
+  // (`crossfeed_limits`, tune-server-rust#4683), sinon `lib/crossfeed`.
+  let cfBornes = $state(bornesCrossfeed(null));
   let cfTimer: ReturnType<typeof setTimeout> | null = null;
 
   async function chargerCrossfeed() {
@@ -229,6 +233,7 @@
       const dsp = await api.getDsp(zone.id);
       const cf = dsp?.crossfeed;
       cfStatut = dsp?.crossfeed_status ?? null;
+      cfBornes = bornesCrossfeed(dsp?.crossfeed_limits);
       if (cf) {
         cfEnabled = !!cf.enabled;
         cfAmount = cf.amount ?? 0.3;
@@ -251,7 +256,7 @@
     if (zone?.id == null) return;
     try {
       const res = await api.setDsp(zone.id, {
-        crossfeed: reglagesCrossfeed(cfEnabled, cfAmount, cfDelay),
+        crossfeed: reglagesCrossfeed(cfEnabled, cfAmount, cfDelay, cfBornes),
       });
       // Le serveur dit si le reglage a atteint le flux EN COURS. Sans ca, on
       // pousse le curseur, rien ne change a l'oreille, et ca se raconte
@@ -402,7 +407,8 @@
       // réponse laissait l'auditeur choisir « Rock », ne rien entendre changer,
       // et conclure que l'égaliseur ne marche pas (#1258, même défaut que
       // #1710/#1725/#1786 ailleurs).
-      eqPorteeLive = res?.applied_live ?? null;
+      // #4680 — `portee` d'abord : une relance réseau s'entend dans l'instant.
+      eqPorteeLive = atteintLeSon(res?.applied_live, res?.portee) ?? null;
       currentEqPreset = preset;
       // La courbe affichee vient du serveur, jamais d'une supposition. Ici on
       // vient de l'ecrire : on la montre sans attendre une relecture, sinon le
@@ -2028,13 +2034,13 @@
                 <input
                   type="range"
                   min="0"
-                  max="0.5"
+                  max={cfBornes.amountMax}
                   step="0.01"
                   bind:value={cfAmount}
                   oninput={planifierCrossfeed}
                   disabled={!cfEnabled || cfIndispo.indisponible}
                 />
-                <output>{cfAmount.toFixed(2)}</output>
+                <output>{niveauEnPourcent(cfAmount, cfBornes.amountMax)} %</output>
               </label>
 
               <label class="cf-curseur">
@@ -2042,7 +2048,7 @@
                 <input
                   type="range"
                   min="0"
-                  max="5"
+                  max={cfBornes.delayMax}
                   step="0.1"
                   bind:value={cfDelay}
                   oninput={planifierCrossfeed}

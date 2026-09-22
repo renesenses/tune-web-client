@@ -20,6 +20,14 @@
   import { lireListe, lireListeAleatoire, lireListeDepuis } from '../../lib/lectureEnMasse';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { notifications } from '../../lib/stores/notifications';
+  // 🔴 `dialogs.prompt`, et JAMAIS `window.prompt` : les dialogues natifs ne
+  // s'ouvrent pas dans un webview, le clic ne fait rien et rien ne le dit
+  // (#166).
+  import { dialogs } from '../../lib/stores/dialogs';
+  // tune-server-rust#4710 — le calcul des deux gestes de masse, hors composant :
+  // il se teste sans rendre de Svelte, et ce fichier est touché en parallèle
+  // par plusieurs chantiers.
+  import { dureeTotaleMs, nombreAvecDuree, identifiantsEnregistrables } from '../../lib/rechercheResultatsMasse';
   import { get } from 'svelte/store';
   import { currentSearchCriteria, setSearchCriteria } from '../../lib/stores/shortcuts';
   import {
@@ -41,6 +49,7 @@
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, getQualityTier } from '../../lib/utils';
   import type { Album, Source, Track, SearchResult } from '../../lib/types';
+  import { fusionnerSuite, rangSuivant, restantLocal, type FamilleLocale } from '../../lib/rechercheSuiteLocale';
   import AlbumArt from '../partages/AlbumArt.svelte';
   // #1136 — le MÊME composant que partout ailleurs (~45 emplois, table de neuf
   // provenances, `local: { name: 'LOCAL' }` comprise). Pas un troisième style
@@ -247,7 +256,7 @@
     const mine = ++seq;
     busy = true;
     const t = setTimeout(() => {
-      api.searchLibrary(requeteExacte(query), 40)
+      api.searchLibrary(requeteExacte(query), PAGE_LOCALE)
         .then((r) => { if (mine === seq) local = r; })
         .catch(() => { if (mine === seq) local = null; })
         .finally(() => { if (mine === seq) busy = false; });
@@ -617,6 +626,9 @@
    * chargement serait promettre ce que la chaîne ne sait pas faire.
    */
   const PAS_ARTISTES = 12, PAS_ALBUMS = 24, PAS_TITRES = 40;
+  /** Ce que l'écran demande à la bibliothèque, par page (#4663 : plus un
+   *  plafond muet — la suite se demande). */
+  const PAGE_LOCALE = 40;
   let montreArtistes = $state(PAS_ARTISTES);
   let montreAlbums = $state(PAS_ALBUMS);
   let montreTitres = $state(PAS_TITRES);
@@ -633,6 +645,45 @@
   const resteAlbums = $derived(albums.length - vusAlbums.length);
   const resteTitres = $derived(titres.length - vusTitres.length);
   const libelleVoirPlus = (n: number) => $t('v2.rech.seeMore' as any).replace('{n}', String(n));
+
+  /**
+   * 🔴 #4663 — LA SUITE LOCALE, quand tout ce qui a été reçu est déjà montré.
+   *
+   * « Voir plus » ci-dessus ne fait que RÉVÉLER. Mais la bibliothèque locale,
+   * elle, sait donner la suite : `/library/search` dit combien il en reste
+   * (`totals`) et la rend par `?offset=`. jfpaquet voyait `Tracks 40` pour 119,
+   * et aucun bouton — 40 reçues, 40 montrées.
+   *
+   * Le reste local n'entre dans le compte que si la bibliothèque est dans le
+   * périmètre : annoncer des lignes locales sous « Qobuz seul » serait un
+   * chiffre qui ment.
+   */
+  const localDansPerimetre = $derived(dansLePerimetreDe(sourcesActives, 'local'));
+  const restant = (f: FamilleLocale) => (localDansPerimetre ? restantLocal(local, f) : null);
+  const restantArtistes = $derived(voirArtistes ? restant('artists') : null);
+  const restantAlbums = $derived(voirAlbums ? restant('albums') : null);
+  const restantTitres = $derived(voirTitres ? restant('tracks') : null);
+  let suiteEnCours = $state<FamilleLocale | null>(null);
+  async function chargerSuite(f: FamilleLocale) {
+    const base = local;
+    const query = q.trim();
+    if (!base || suiteEnCours || query.length < 2) return;
+    const mine = seq;
+    suiteEnCours = f;
+    try {
+      const page = await api.searchLibrary(requeteExacte(query), PAGE_LOCALE, rangSuivant(base, f));
+      // Une frappe entre-temps : la réponse parle d'une autre recherche.
+      if (mine !== seq || local !== base) return;
+      local = fusionnerSuite(base, page, f);
+      if (f === 'tracks') montreTitres += PAS_TITRES;
+      else if (f === 'albums') montreAlbums += PAS_ALBUMS;
+      else montreArtistes += PAS_ARTISTES;
+    } catch (e) {
+      notifications.error(String((e as Error)?.message ?? e));
+    } finally {
+      suiteEnCours = null;
+    }
+  }
   const lesPlaylists = $derived(voirPlaylists ? playlists.filter((pl) => respecteLesPhrases(pl, phrases)) : []);
 
   // Déclaré APRÈS `dansLePerimetre` : il s'en sert. Le meilleur résultat doit
@@ -813,6 +864,88 @@
     masseEnCours = false;
   }
   /**
+   * La DURÉE TOTALE des résultats — tune-server-rust#4710, reprise de #3190.
+   *
+   * jfpaquet (fil 1644) : « il serait utile que Tune affiche, en plus de
+   * "pistes", la durée totale, comme le fait Spotify ». Livré en v0.9.141 dans
+   * `SearchView.svelte`, parti avec lui le 19/09 (`d5ed7deb`), jamais repris
+   * ici — `formatDuration` était importé dans ce fichier et JAMAIS appelé.
+   *
+   * La portée est `titres` : la liste FILTRÉE complète, celle-là même que le
+   * compteur de la rangée « QUOI » annonce et que « Tout lire » lit. Pas
+   * `vusTitres` — « Voir plus » RÉVÈLE, il ne change pas ce qu'on a trouvé.
+   *
+   * 🔴 Et le libellé qualifie toujours (`{d} affichées`) : le serveur plafonne
+   * sa page et cet écran ne connaît pas encore le total réel des
+   * correspondances (c'est tune-server-rust#4663). Écrire « 3 h 12 » nu, sous
+   * une liste peut-être tronquée, publierait un chiffre faux avec l'autorité
+   * d'une durée.
+   */
+  const dureeTitresMs = $derived(dureeTotaleMs(titres as any));
+  const titresAvecDuree = $derived(nombreAvecDuree(titres as any));
+  const libelleDureeTitres = $derived(
+    dureeTitresMs <= 0 ? '' : $t('search.durationShown' as any).replace('{d}', formatDuration(dureeTitresMs)),
+  );
+
+  /**
+   * CRÉER UNE LISTE DE LECTURE depuis les résultats — #4710, reprise de #3191.
+   *
+   * jfpaquet cherche « Autumn Leaves » dans une collection de jazz et veut
+   * FIGER cette sélection. Les deux seules actions de masse de cet écran
+   * enfilent dans la file, volatile par nature.
+   *
+   * Les deux briques serveur existent déjà (`POST /playlists`,
+   * `POST /playlists/{id}/tracks`) : il manquait le geste qui les relie.
+   *
+   * ## Ce qui est enregistré, et pourquoi le message le DIT
+   *
+   * Les pistes de la BIBLIOTHÈQUE seules — une liste locale prend des
+   * identifiants de bibliothèque, et cet écran est le seul du client à mêler
+   * bibliothèque et services. Une liste tronquée en silence PERSISTE : elle
+   * sera prise pour exhaustive des mois plus tard, là où une liste tronquée à
+   * l'écran se corrige en refaisant la recherche. Le message dit donc toujours
+   * combien de pistes sont entrées, et sur combien de résultats.
+   */
+  let creationPlaylist = $state(false);
+  const idsEnregistrables = $derived(identifiantsEnregistrables(titres as any, estLocal));
+
+  async function creerPlaylistDepuisResultats() {
+    if (creationPlaylist) return;
+    const ids = idsEnregistrables;
+    if (ids.length === 0) {
+      notifications.error($t('search.playlistNoLocalTracks' as any));
+      return;
+    }
+    const saisi = await dialogs.prompt($t('search.playlistNamePrompt' as any), q.trim());
+    if (saisi === null) return;
+    const nom = saisi.trim() || q.trim();
+    if (!nom) return;
+    creationPlaylist = true;
+    try {
+      const pl = await api.createPlaylist(nom);
+      // Message technique, jamais affiché : il part au `catch` juste dessous,
+      // qui rend `search.playlistError` traduit. En anglais parce que la garde
+      // `check-francais-v2` balaie tout le `<script>` — y compris ce qui ne
+      // sort jamais de la console.
+      if (pl?.id == null) throw new Error('created playlist has no id');
+      await api.addPlaylistTracks(pl.id, ids);
+      const message =
+        ids.length < titres.length
+          ? $t('search.playlistCreatedPartial' as any)
+              .replace('{name}', nom)
+              .replace('{n}', String(ids.length))
+              .replace('{total}', String(titres.length))
+          : $t('search.playlistCreated' as any).replace('{name}', nom).replace('{n}', String(ids.length));
+      notifications.success(message);
+    } catch (e) {
+      console.error('creation de liste depuis la recherche', e);
+      notifications.error($t('search.playlistError' as any));
+    } finally {
+      creationPlaylist = false;
+    }
+  }
+
+  /**
    * « Lire à partir d'ici » sur les résultats — #1061, point 9 de FabienM.
    *
    * `vusTitres` est la liste RENDUE : la tranche visible, dans l'ordre où le
@@ -911,15 +1044,18 @@
         <!-- #1135 — les ARTISTES sont comptés APRÈS fusion : annoncer 42 au-
              dessus de 30 vignettes serait le même chiffre qui ment. Les
              compteurs de la rangée « OÙ », eux, restent par SEAU. -->
-        {@const n = ty === 'artistes' ? regrouperArtistes(groupes.artistes.filter(dansLePerimetre)).length
+        <!-- #4663 — et ce que la bibliothèque n'a pas encore rendu : « Tracks
+             40 » pour 119 correspondances était la limite, pas un compte. -->
+        {@const reste = ty === 'artistes' ? restant('artists') : ty === 'albums' ? restant('albums') : ty === 'titres' ? restant('tracks') : null}
+        {@const n = (ty === 'artistes' ? regrouperArtistes(groupes.artistes.filter(dansLePerimetre)).length
           : ty === 'labels' ? nbLabels
           : ty === 'albums' ? groupes.albums.filter(dansLePerimetre).length
           : ty === 'titres' ? groupes.pistes.filter(dansLePerimetre).length
-          : playlists.filter((pl) => respecteLesPhrases(pl, phrases)).length}
+          : playlists.filter((pl) => respecteLesPhrases(pl, phrases)).length) + (reste?.n ?? 0)}
         <button class="pill" class:on={pastilleAllumee(typesActifs, ty)}
           aria-pressed={pastilleAllumee(typesActifs, ty)}
           onclick={() => basculerType(ty)}
-          >{$t(LIBELLE_TYPE[ty] as any)} <b>{n}</b></button>
+          >{$t(LIBELLE_TYPE[ty] as any)} <b>{n}{reste?.auMoins ? '+' : ''}</b></button>
       {/each}
     </div>
   {/if}
@@ -1149,6 +1285,10 @@
               {#if resteArtistes > 0}
                 <button class="voirplus" onclick={() => (montreArtistes += PAS_ARTISTES)}
                   >{libelleVoirPlus(resteArtistes)}</button>
+              {:else if restantArtistes?.n}
+                <button class="voirplus" data-suite="artists" disabled={suiteEnCours != null}
+                  onclick={() => chargerSuite('artists')}
+                  >{libelleVoirPlus(restantArtistes.n)}{restantArtistes.auMoins ? '+' : ''}</button>
               {/if}
             </div>
           {/if}
@@ -1240,6 +1380,10 @@
           {#if resteAlbums > 0}
             <button class="voirplus" onclick={() => (montreAlbums += PAS_ALBUMS)}
               >{libelleVoirPlus(resteAlbums)}</button>
+          {:else if restantAlbums?.n}
+            <button class="voirplus" data-suite="albums" disabled={suiteEnCours != null}
+              onclick={() => chargerSuite('albums')}
+              >{libelleVoirPlus(restantAlbums.n)}{restantAlbums.auMoins ? '+' : ''}</button>
           {/if}
         </section>
       {/if}
@@ -1247,10 +1391,26 @@
       {#if titres.length}
         <section class="grp">
           <h2>{$t('v2.rech.tracks' as any)}
+            <!-- #4710 / #3190 : la durée complète le compteur, elle ne le
+                 concurrence pas. Son `title` dit sur combien de lignes elle
+                 porte — une piste de service sans durée annoncée compte pour
+                 zéro, et le total serait sinon muet sur son assiette. -->
+            {#if libelleDureeTitres}
+              <span class="grp-duree" title={`${titresAvecDuree} / ${titres.length}`}>{libelleDureeTitres}</span>
+            {/if}
             <button class="lnk" onclick={() => lireTousLesTitres(false)} disabled={masseEnCours}
               title={$t('browse.playAll' as any)}>{$t('browse.playAll' as any)}</button>
             <button class="lnk" onclick={() => lireTousLesTitres(true)} disabled={masseEnCours}
               title={$t('library.shuffleResults' as any)}>{$t('library.shuffleResults' as any)}</button>
+            <!-- #4710 / #3191 : les deux actions ci-dessus enfilent dans la
+                 file, volatile. Celle-ci FIGE la sélection. Elle n'apparaît
+                 que s'il y a quelque chose d'enregistrable : une recherche qui
+                 ne rend que du Qobuz ne doit pas proposer un geste qui échoue. -->
+            {#if idsEnregistrables.length > 0}
+              <button class="lnk" onclick={creerPlaylistDepuisResultats} disabled={creationPlaylist}
+                title={$t('search.createPlaylist' as any)}
+                >{creationPlaylist ? $t('common.loading' as any) : $t('search.createPlaylist' as any)}</button>
+            {/if}
           </h2>
           <div class="list">
             <!-- La pochette de l'album de chaque piste — Bertrand, 17/09/2026 :
@@ -1272,6 +1432,10 @@
           {#if resteTitres > 0}
             <button class="voirplus" onclick={() => (montreTitres += PAS_TITRES)}
               >{libelleVoirPlus(resteTitres)}</button>
+          {:else if restantTitres?.n}
+            <button class="voirplus" data-suite="tracks" disabled={suiteEnCours != null}
+              onclick={() => chargerSuite('tracks')}
+              >{libelleVoirPlus(restantTitres.n)}{restantTitres.auMoins ? '+' : ''}</button>
           {/if}
         </section>
       {/if}
@@ -1489,6 +1653,12 @@
   .grp h2 .lnk{margin-left:auto; border:0; background:transparent; color:var(--v2-txt3); cursor:pointer;
     font:600 11px var(--v2-sans)}
   .grp h2 .lnk:hover{color:var(--v2-danger)}
+  /* #4710 — les trois actions restent GROUPÉES à droite : sans cela, chaque
+     `.lnk` porte son propre `margin-left:auto` et l'espace se répartit entre
+     elles, ce qui les éparpille dès qu'il y en a plus de deux. */
+  .grp h2 .lnk ~ .lnk{margin-left:0}
+  /* #4710 / #3190 — la durée, en retrait du titre : elle le complète. */
+  .grp h2 .grp-duree{font:400 13px var(--v2-sans); color:var(--v2-txt3)}
   .chips{display:flex; flex-wrap:wrap; gap:9px}
   .chip{display:inline-flex; align-items:center; border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill);
     background:var(--v2-surface2); overflow:hidden}

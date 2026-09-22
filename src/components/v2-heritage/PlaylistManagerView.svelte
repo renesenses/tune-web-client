@@ -248,6 +248,20 @@
     else if (item.streaming) void playStreamingPlaylist(item.streaming);
   }
 
+  /**
+   * Renommer une playlist LOCALE.
+   *
+   * 🔴 Cette fonction existait depuis le 21/09/2026, avec sa traduction dans
+   * les onze langues — et AUCUN appelant. Le crayon de la vignette ouvre la
+   * playlist, « c'est là qu'on la renomme » disait le commentaire ; mais
+   * l'en-tête du détail n'avait que Importer, Récupérer, Transférer, Comparer
+   * et Tout lire. Bertrand, 22/09/2026 : « Comment modifier le nom d'une
+   * playlist en mode édition ?? », puis « Je n'y arrive pas !! ». On ne
+   * pouvait pas : le bouton n'existait nulle part.
+   *
+   * Une playlist de SERVICE n'est pas concernée : aucune route ne la renomme
+   * chez Tidal ou Qobuz. Ce qui ne s'applique pas est absent, jamais grisé.
+   */
   async function renommerPlaylist(id: number, nomActuel: string) {
     const nouveau = await dialogs.prompt($tr('playlistManager.renamePrompt' as any), nomActuel);
     const propre = (nouveau ?? '').trim();
@@ -256,6 +270,10 @@
     try {
       await api.updatePlaylist(id, { name: propre });
       localPlaylists = await api.getPlaylists();
+      // Le titre du détail vient de `selectedPlaylist`, pas de la liste :
+      // sans cette ligne, l'écran ouvert garderait l'ancien nom jusqu'au
+      // retour en arrière.
+      if (selectedPlaylist?.id === id) selectedPlaylist = { ...selectedPlaylist, name: propre };
     } catch (err: any) {
       notifications.error(errText(err) ?? $tr('common.serverUnreachable'));
     }
@@ -401,6 +419,24 @@
   // Plus de 'smart-ai' ici : le générateur de playlists n'a qu'UNE porte, celle
   // de la rangée du haut (`viewTab`). FabienM, fil 1829 point 2 (web#1111) :
   // les deux rangées montaient le MÊME `SmartAIView` sous le MÊME libellé.
+  /**
+   * Les quatre onglets avancés — Transferts, Synchro, Sauvegarde,
+   * Collaboratives — sont MASQUÉS.
+   *
+   * Bertrand, 22/09/2026 : « Masque tout cela en attendant Tune Circle et que
+   * je réfléchisse ». Ils fonctionnent pourtant (routes mesurées sur le .18 :
+   * `/playlist-manager/history`, `/playlist-manager/links`,
+   * `/playlist-manager/backups`, `/playlists/collaborative`) — c'est leur
+   * PLACE qui n'est pas arrêtée : la sauvegarde recoupe les instantanés du
+   * futur greffon Playlists converter, et les playlists collaboratives
+   * relèvent de Tune Circle.
+   *
+   * Rien n'est supprimé : leur code, leurs routes et leurs traductions
+   * restent. Ce booléen les fait revenir d'un seul geste, le jour où la
+   * question est tranchée.
+   */
+  const ONGLETS_AVANCES = false;
+
   let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab'>('playlists');
 
   // Transfer history
@@ -748,6 +784,12 @@
   }
 
   async function loadManagerData() {
+    // Masqués : un raccourci ou un état ancien ne doit pas ramener sur un
+    // onglet qu'on ne peut plus quitter faute de bouton.
+    if (!ONGLETS_AVANCES && managerTab !== 'playlists') {
+      managerTab = 'playlists';
+      return;
+    }
     if (managerTab === 'transfers') {
       historyLoading = true;
       try { transferHistory = await api.getTransferHistory(); } catch {}
@@ -1662,6 +1704,15 @@
             {$tr('playlist.import')}
           </button>
         {/if}
+        {#if selectedPlaylist?.id != null}
+          <!-- Le renommage vit ICI, où le crayon de la vignette amène. Une
+               playlist de service n'a pas ce bouton : rien ne la renomme chez
+               Tidal ou Qobuz. -->
+          <button class="rename-btn" onclick={() => renommerPlaylist(selectedPlaylist!.id!, selectedPlaylist!.name)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
+            {$tr('v2.pl.rename' as any)}
+          </button>
+        {/if}
         {#if selectedPlaylist}
           <button class="recover-btn" onclick={openRecover}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" /></svg>
@@ -1785,10 +1836,12 @@
       <h2>{$tr('playlist.manager')}</h2>
       <div class="pm-tabs">
         <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>{$tr('playlistManager.tabPlaylists')}</button>
-        <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
-        <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>{$tr('playlistManager.tabSync')}</button>
-        <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>{$tr('playlistManager.tabBackup')}</button>
-        <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
+        {#if ONGLETS_AVANCES}
+          <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
+          <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>{$tr('playlistManager.tabSync')}</button>
+          <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>{$tr('playlistManager.tabBackup')}</button>
+          <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
+        {/if}
       </div>
       <div class="pm-header-right">
         <div class="search-box">
@@ -4223,7 +4276,21 @@
     cursor: pointer;
   }
 
-  /* Recover button */
+  /* Renommer — même gabarit que les autres boutons de l'en-tête du détail. */
+  .rename-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    background: none;
+    border: 1px solid var(--tune-border);
+    color: var(--tune-text-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 13px;
+    transition: all 0.12s ease-out;
+  }
   .recover-btn {
     display: flex;
     align-items: center;
@@ -4239,6 +4306,10 @@
     transition: all 0.12s ease-out;
   }
 
+  .rename-btn:hover {
+    border-color: #FF9800;
+    color: #FF9800;
+  }
   .recover-btn:hover {
     border-color: #FF9800;
     color: #FF9800;

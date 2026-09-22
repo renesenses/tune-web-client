@@ -38,6 +38,7 @@
    * s'enregistre sans le perdre — mais on ne peut pas en créer ici.
    */
   import { onMount } from 'svelte';
+  import type { UserTag } from '../../lib/types';
   import * as api from '../../lib/api';
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
@@ -109,8 +110,18 @@
   /** Les champs que CET éditeur sait saisir. Voir l'en-tête. */
   const SAISISSABLES: TypeChamp[] = [
     'text', 'int', 'nullable', 'timestamp', 'count', 'favorite',
-    'collection_ref', 'playlist_ref', 'folder', 'source',
+    'collection_ref', 'playlist_ref', 'folder', 'source', 'tag_ref',
   ];
+
+  /** Les étiquettes de l'utilisateur, pour la liste d'une règle « Étiquette ». */
+  let etiquettes = $state<UserTag[]>([]);
+  onMount(() => {
+    api.getTags()
+      // `UserTag.id` peut être nul : une étiquette sans identifiant ne peut
+      // pas être visée par une règle, elle n'est donc pas proposée.
+      .then((l) => { etiquettes = (l ?? []).filter((x) => x.id != null).sort((a, b) => a.name.localeCompare(b.name)); })
+      .catch(() => { /* la règle reste proposée, sa liste vide dit qu'il n'y a rien à choisir */ });
+  });
   /** Les statuts des services, pour la liste d'une règle « Source » (#4299). */
   let statutsServices = $state<Record<string, any>>({});
   onMount(() => {
@@ -369,6 +380,15 @@
               <optgroup label={$t('smartCollection.groupSmartPlaylists')}>
                 {#each refs.smartPlaylists as p (p.id)}<option value={`smart:${p.id}`}>{p.name}</option>{/each}
               </optgroup>
+            </select>
+          {:else if type === 'tag_ref'}
+            <!-- Une étiquette se CHOISIT, elle ne se tape pas : la règle
+                 porte son identifiant, qu'un nom tapé ne donnerait pas. -->
+            <select class="sel" value={String(r.value ?? '')} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
+              <option value="" disabled>{$t('smartCollection.refPick')}</option>
+              {#each etiquettes as e (e.id)}
+                <option value={String(e.id)}>{e.name}{e.count != null ? ` (${e.count})` : ''}</option>
+              {/each}
             </select>
           {:else if type === 'favorite'}
             <!-- 🔴 La valeur d'un FAVORI est sa SORTE, pas un oui/non.

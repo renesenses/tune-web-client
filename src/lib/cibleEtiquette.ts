@@ -15,6 +15,7 @@
  */
 import * as api from './api';
 import { estSourceDeBibliotheque } from './provenanceBibliotheque';
+import { cleServeur } from './ongletsStreaming';
 import type { UserTag } from './types';
 
 /** Un objet de la bibliothèque : un identifiant entier. */
@@ -54,7 +55,14 @@ export function estCibleService(c: CibleEtiquette): c is CibleService {
  */
 export function cibleDeService(itemType: string, o: any): CibleService | null {
   if (!o) return null;
-  const source = o.source == null ? '' : String(o.source).trim();
+  // 🔴 #1409 — la source part sur le réseau : c'est la clé du SERVEUR, jamais
+  // la clé d'ONGLET. La fiche d'un album Bandcamp porte `__bandcamp__`
+  // (`BANDCAMP_EXT`, identifiant local de l'onglet) ; posée telle quelle, une
+  // étiquette était rangée sous `__bandcamp__` — le serveur ne valide que
+  // l'`item_type` — et jamais retrouvée sous `bandcamp`. On repasse par
+  // `cleServeur`, la traduction qui existe déjà, ici où TOUTES les cibles de
+  // service naissent, plutôt que dans chaque écran.
+  const source = cleServeur(o.source == null ? '' : String(o.source).trim()) ?? '';
   const sourceId = o.source_id == null ? '' : String(o.source_id).trim();
   if (!source || !sourceId || estSourceDeBibliotheque(source)) return null;
   return {
@@ -77,6 +85,14 @@ export function etiquettesPosees(c: CibleEtiquette): Promise<UserTag[]> {
 
 /** Pose l'étiquette `tagId` sur la cible. */
 export function poserEtiquette(tagId: number, c: CibleEtiquette): Promise<void> {
+  // 🔴 Un identifiant local est STRICTEMENT positif. Deux lignes `item_id = 0`
+  // ont été trouvées sur le .18 le 22/09/2026 : elles ne désignaient aucun
+  // album et gonflaient le compteur de leur étiquette. Le serveur les refuse
+  // désormais en 400 ; on ne les envoie plus, et l'échec REMONTE — une
+  // étiquette qu'on croit posée alors qu'elle ne l'est pas ment à l'écran.
+  if (!estCibleService(c) && !(Number.isInteger(c.itemId) && c.itemId > 0)) {
+    return Promise.reject(new Error(`identifiant local invalide : ${c.itemId}`));
+  }
   if (!estCibleService(c)) return api.tagItem(tagId, c.itemType, c.itemId);
   return api.tagStreamingItem(tagId, {
     item_type: c.itemType,
