@@ -3128,6 +3128,7 @@ export default {
   "v2.sup.attachDiag": "附上日志与系统信息",
   "v2.sup.attachDiagHint": "它们描述您的安装环境和服务器最近的错误。没有它们，诊断往往需要多次往返。",
   "v2.sup.files": "附件",
+  "v2.sup.fileRemove": "移除",
   "v2.sup.send": "发送",
   "v2.sup.errSend": "发送失败。",
   "v2.sup.errRateLimited": "发送过于频繁：请在 {delay} 秒后重试。",

@@ -3128,6 +3128,7 @@ export default {
   "v2.sup.attachDiag": "Adjuntar los registros y la ficha del sistema",
   "v2.sup.attachDiagHint": "Describen su instalación y los últimos errores del servidor. Sin ellos, un diagnóstico suele requerir varias idas y venidas.",
   "v2.sup.files": "Archivos adjuntos",
+  "v2.sup.fileRemove": "Quitar",
   "v2.sup.send": "Enviar",
   "v2.sup.errSend": "El envío ha fallado.",
   "v2.sup.errRateLimited": "Demasiados envíos: inténtelo de nuevo en {delay} segundos.",

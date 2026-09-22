@@ -3128,6 +3128,7 @@ export default {
   "v2.sup.attachDiag": "Protokolle und Systembericht anhängen",
   "v2.sup.attachDiagHint": "Sie beschreiben Ihre Installation und die letzten Serverfehler. Ohne sie braucht eine Diagnose oft mehrere Rückfragen.",
   "v2.sup.files": "Anhänge",
+  "v2.sup.fileRemove": "Entfernen",
   "v2.sup.send": "Senden",
   "v2.sup.errSend": "Das Senden ist fehlgeschlagen.",
   "v2.sup.errRateLimited": "Zu viele Nachrichten: versuchen Sie es in {delay} Sekunden erneut.",

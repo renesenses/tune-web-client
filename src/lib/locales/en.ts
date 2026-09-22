@@ -3148,6 +3148,7 @@ export default {
   "v2.sup.attachDiag": "Attach the logs and the system report",
   "v2.sup.attachDiagHint": "They describe your setup and the server's latest errors. Without them, a diagnosis often takes several rounds.",
   "v2.sup.files": "Attachments",
+  "v2.sup.fileRemove": "Remove",
   "v2.sup.send": "Send",
   "v2.sup.errSend": "Sending failed.",
   "v2.sup.errRateLimited": "Too many messages: try again in {delay} seconds.",

@@ -3128,6 +3128,7 @@ export default {
   "v2.sup.attachDiag": "Atașați jurnalele și fișa de sistem",
   "v2.sup.attachDiagHint": "Ele descriu instalarea dumneavoastră și ultimele erori ale serverului. Fără ele, un diagnostic cere adesea mai multe schimburi.",
   "v2.sup.files": "Atașamente",
+  "v2.sup.fileRemove": "Elimină",
   "v2.sup.send": "Trimite",
   "v2.sup.errSend": "Trimiterea a eșuat.",
   "v2.sup.errRateLimited": "Prea multe trimiteri: reîncercați peste {delay} secunde.",

@@ -3128,6 +3128,7 @@ export default {
   "v2.sup.attachDiag": "ログとシステム情報を添付",
   "v2.sup.attachDiagHint": "お使いの構成とサーバーの直近のエラーが含まれます。これがないと、診断に何度もやり取りが必要になりがちです。",
   "v2.sup.files": "添付ファイル",
+  "v2.sup.fileRemove": "削除",
   "v2.sup.send": "送信",
   "v2.sup.errSend": "送信に失敗しました。",
   "v2.sup.errRateLimited": "送信が多すぎます。{delay} 秒後に再試行してください。",
