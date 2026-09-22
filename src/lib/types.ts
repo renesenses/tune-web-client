@@ -1165,6 +1165,36 @@ export interface RadioStation {
   tags?: string | null;
   codec?: string | null;
   country?: string | null;
+  /**
+   * Code ISO 3166-1 alpha-2 du pays — `GB`, `US`, `NL`…
+   *
+   * 🔴 Silviu (testeur roumain, v0.9.161) lisait « Royaume-Uni », « États-Unis »
+   * et « Japon » dans une interface roumaine : `country` est une colonne TEXTE
+   * LIBRE, semée en français (`tune-core/migrations/radios/annuaire_mozaiklabs_
+   * 2026_08_30.sql:138` et suivantes). Le serveur ajoute désormais le code à
+   * côté du nom (tune-server-rust #4713,
+   * `tune-server/src/routes/radios_libelles.rs:136`) ; le client le rend dans
+   * SA langue avec `Intl.DisplayNames`, sans table à tenir.
+   *
+   * ABSENT sur un serveur antérieur à la v0.9.162, et absent aussi d'une
+   * station dont le pays est écrit à la main sous une forme inconnue : le
+   * repli est `country`, tel quel.
+   */
+  country_code?: string | null;
+  /**
+   * Clé stable du genre — `radio.genre.eclectic` et ses voisines
+   * (`radios_libelles.rs:144`). Le genre musical n'a pas de norme ISO : c'est
+   * donc une clé, pas un code. Le client la traduit lui-même, ce qui la rend
+   * sensible au changement de langue SANS recharger la liste.
+   */
+  genre_key?: string | null;
+  /**
+   * Le genre déjà traduit par le serveur, dans la langue de l'`Accept-Language`
+   * de la requête (`radios_libelles.rs:145`). Sert de repli quand le catalogue
+   * embarqué ne connaît pas encore la clé — un serveur plus RÉCENT que le
+   * client.
+   */
+  genre_label?: string | null;
   homepage_url?: string | null;
   favorite: boolean;
 }
@@ -1429,6 +1459,26 @@ export interface SmartCollection {
   id: number;
   name: string;
   description: string | null;
+  /**
+   * Clé stable de la collection LIVRÉE — `smartCollection.default.recent`,
+   * `…noCover`, `…classical`, `…soundtracks`…
+   *
+   * Le semis écrit les seize collections par défaut en français
+   * (`tune-core/src/db/migrations.rs:546` et `:614`). Le serveur joint
+   * désormais la clé À CÔTÉ du nom (tune-server-rust #4714,
+   * `tune-smart-http/src/smart_collections.rs:117`), sans rien écrire en base.
+   *
+   * 🔴 ABSENTE dès que l'utilisateur a renommé la collection : son nom à lui
+   * est alors le seul affichable, et le client le rend VERBATIM.
+   *
+   * 🔴 `name` reste la seule valeur ENVOYÉE au serveur — c'est la clé de
+   * filtre de `/library/tracks?collection=<name>` et le corps de la
+   * modification. On traduit ce qu'on AFFICHE, jamais ce qu'on renvoie.
+   */
+  name_key?: string | null;
+  /** Même chose pour la description, suffixée `.description`. Elle disparaît
+   *  seule si l'utilisateur a réécrit la description en gardant le nom. */
+  description_key?: string | null;
   icon: string | null;
   color: string | null;
   // Le routeur renvoie le tableau JSON decode ; les anciennes reponses

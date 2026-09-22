@@ -15,14 +15,15 @@
    */
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
-  import { t } from '../../lib/i18n';
+  import { t, locale } from '../../lib/i18n';
   import { currentZoneId, currentZone } from '../../lib/stores/zones';
   import { isBrowserZone, browserPlay } from '../../lib/stores/browserAudio';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { fold } from '../../lib/utils';
-  import { radioGenreShelf, radioGenreLabel, type RadioGenreShelf }
+  import { radioGenreRayon, radioGenreLabel, type RadioGenreShelf }
     from '../../lib/radioGenres';
+  import { nomDuPays } from '../../lib/paysAffichage';
   import { ecrireVue, lireVue, type VueEcran } from '../../lib/vueEcran';
   import type { RadioStation } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -126,18 +127,31 @@
    * Un genre hors vocabulaire n'est pas caché : son rayon porte sa valeur
    * brute. On n'invente pas de traduction pour un mot qu'on ne connaît pas.
    *
-   * ⚠️ Le PAYS reste en français sur la vignette : `GET /api/v1/radios` ne
-   * sert aucun code ISO (`country` est un texte libre, « Royaume-Uni »,
-   * « États-Unis », « Japon »…). Rien à replier côté client sans inventer une
-   * table ; c'est au serveur d'ajouter `country_code`.
+   * ── LE SERVEUR A PRIS LE RELAIS (v0.9.162) ──────────────────────────────
+   *
+   * tune-server-rust #4713 joint désormais `genre_key`, `genre_label` et
+   * `country_code` à chaque station. `radioGenreRayon()` fait l'arbitrage :
+   * la clé du serveur d'abord, son libellé déjà traduit ensuite, la table
+   * locale en dernier — celle-ci ne sert plus que face à un serveur
+   * antérieur, ou pour une station au genre libre.
+   *
+   * ✅ Le PAYS n'est plus en français : `country_code` est un code ISO 3166-1
+   * alpha-2, rendu dans la langue du lecteur par `Intl.DisplayNames`
+   * (`lib/paysAffichage.ts`). Le client ne tient toujours AUCUNE table de
+   * pays — il lit un code et délègue au navigateur. Sans code — serveur plus
+   * ancien, pays écrit à la main —, `country` est rendu tel quel : c'est
+   * exactement l'affichage d'avant, jamais une pastille vide.
    */
   /** Le libellé d'un rayon dans la langue courante. */
   const libelle = (rayon: RadioGenreShelf) => radioGenreLabel(rayon, (k) => $t(k as any));
 
+  /** Le pays d'une station, dans la langue du lecteur. */
+  const pays = (r: RadioStation) => nomDuPays(r.country_code, $locale, r.country);
+
   const rayons = $derived.by(() => {
     const m = new Map<string, { rayon: RadioGenreShelf; n: number }>();
     for (const r of radios) {
-      const rayon = radioGenreShelf(r.genre);
+      const rayon = radioGenreRayon(r);
       if (!rayon) continue;
       const e = m.get(rayon.key);
       if (e) e.n += 1;
@@ -149,15 +163,17 @@
   });
 
   function matches(r: RadioStation): boolean {
-    if (genre && radioGenreShelf(r.genre)?.key !== genre) return false;
+    if (genre && radioGenreRayon(r)?.key !== genre) return false;
     if (q) {
       const n = fold(q);
       // Le libellé AFFICHÉ compte autant que la valeur brute : un lecteur
-      // roumain tape « Clasică », pas « Classique ».
-      const rayon = radioGenreShelf(r.genre);
+      // roumain tape « Clasică », pas « Classique » — et « Regatul Unit »,
+      // pas « Royaume-Uni ». Les deux formes du pays sont donc cherchées.
+      const rayon = radioGenreRayon(r);
       const traduit = rayon ? libelle(rayon) : '';
       if (!fold(r.name).includes(n) && !fold(r.genre).includes(n)
-        && !fold(traduit).includes(n) && !fold(r.country).includes(n)) return false;
+        && !fold(traduit).includes(n) && !fold(r.country).includes(n)
+        && !fold(pays(r)).includes(n)) return false;
     }
     return true;
   }
@@ -209,7 +225,7 @@
   }
 
   function tech(r: RadioStation): string {
-    return [r.codec?.toUpperCase(), r.country].filter(Boolean).join(' · ');
+    return [r.codec?.toUpperCase(), pays(r)].filter(Boolean).join(' · ');
   }
 </script>
 
@@ -349,7 +365,7 @@
       {#if playingId === r.id}<span class="onair">{$t('v2.lbl.liveNow' as any)}</span>{/if}
     </span>
     <span class="nm">{r.name}</span>
-    {#if radioGenreShelf(r.genre)}<span class="gn">{libelle(radioGenreShelf(r.genre)!)}</span>{/if}
+    {#if radioGenreRayon(r)}<span class="gn">{libelle(radioGenreRayon(r)!)}</span>{/if}
     <!-- #863 — Jean Valjean : « pouvoir voir le format d'émission ». Le codec
          existait, réservé à Expert ; il se lit dès Avancé, comme les filtres.
          Essentiel reste épuré. -->

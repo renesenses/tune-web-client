@@ -645,6 +645,52 @@ export default {
   "radioGenre.culture": "Kultúra",
   "radioGenre.generalist": "Általános",
   "radioGenre.contemporary": "Kortárs",
+
+  // Fuites de francais - les quatre genres que le serveur sert et que ce
+  // catalogue ne connaissait pas encore (tune-server-rust #4713).
+
+  "radioGenre.soul": "Soul",
+  "radioGenre.funk": "Funk",
+  "radioGenre.folk": "Folk",
+  "radioGenre.ambient": "Ambient",
+
+  // Les seize collections intelligentes LIVREES. Le semis les ecrit en
+  // francais en base ; le serveur joint leur cle stable (#4714), le client
+  // la traduit. Une collection RENOMMEE par l utilisateur n a pas de cle et
+  // garde son nom verbatim.
+
+  "smartCollection.default.audiophile": "💎 Audiofil",
+  "smartCollection.default.audiophile.description": "Nagy felbontású felvételek",
+  "smartCollection.default.soundtracks": "🎬 Filmzenék",
+  "smartCollection.default.soundtracks.description": "Filmzenék és betétdalok",
+  "smartCollection.default.classical": "🎻 Klasszikus",
+  "smartCollection.default.classical.description": "Klasszikus és zenekari zene",
+  "smartCollection.default.electroAmbient": "🎧 Electro & Ambient",
+  "smartCollection.default.electroAmbient.description": "Elektronikus és ambient",
+  "smartCollection.default.frenchTouch": "🇫🇷 French Touch",
+  "smartCollection.default.frenchTouch.description": "Francia sanzon",
+  "smartCollection.default.jazz": "🎷 Jazz",
+  "smartCollection.default.jazz.description": "Minden jazzalbum",
+  "smartCollection.default.rock": "🎸 Rock",
+  "smartCollection.default.rock.description": "Rock, alt-rock, prog-rock",
+  "smartCollection.default.sacdDsd": "💿 SACD / DSD",
+  "smartCollection.default.sacdDsd.description": "Super Audio CD és DSD",
+  "smartCollection.default.soulFunk": "🕺 Soul & Funk",
+  "smartCollection.default.soulFunk.description": "Soul, funk, R&B",
+  "smartCollection.default.recent": "🆕 Nemrég hozzáadva",
+  "smartCollection.default.recent.description": "Az elmúlt 90 napban hozzáadva",
+  "smartCollection.default.noCover": "🖼️ Borító nélkül",
+  "smartCollection.default.noCover.description": "Borító nélküli albumok",
+  "smartCollection.default.piano": "🎹 Zongora",
+  "smartCollection.default.piano.description": "Szólózongora és versenyművek",
+  "smartCollection.default.vocalACappella": "🎤 Ének / A cappella",
+  "smartCollection.default.vocalACappella.description": "Ének- és a cappella zene",
+  "smartCollection.default.blues": "🎵 Blues",
+  "smartCollection.default.blues.description": "Blues és bluesrock",
+  "smartCollection.default.world": "🌍 Világzene",
+  "smartCollection.default.world.description": "Világzene és folk",
+  "smartCollection.default.pop": "🎺 Pop",
+  "smartCollection.default.pop.description": "Pop és synth-pop",
   "radio.name": "Név",
   "radio.genre": "Műfaj",
   "radio.import": "M3U/PLS importálása",

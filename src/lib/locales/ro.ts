@@ -576,6 +576,52 @@ export default {
   'radioGenre.culture': 'Cultură',
   'radioGenre.generalist': 'Generalist',
   'radioGenre.contemporary': 'Contemporană',
+
+  // Fuites de francais - les quatre genres que le serveur sert et que ce
+  // catalogue ne connaissait pas encore (tune-server-rust #4713).
+
+  'radioGenre.soul': 'Soul',
+  'radioGenre.funk': 'Funk',
+  'radioGenre.folk': 'Folk',
+  'radioGenre.ambient': 'Ambient',
+
+  // Les seize collections intelligentes LIVREES. Le semis les ecrit en
+  // francais en base ; le serveur joint leur cle stable (#4714), le client
+  // la traduit. Une collection RENOMMEE par l utilisateur n a pas de cle et
+  // garde son nom verbatim.
+
+  'smartCollection.default.audiophile': '💎 Audiofil',
+  'smartCollection.default.audiophile.description': 'Înregistrări de înaltă rezoluție',
+  'smartCollection.default.soundtracks': '🎬 Coloane sonore',
+  'smartCollection.default.soundtracks.description': 'Coloane sonore de film',
+  'smartCollection.default.classical': '🎻 Clasică',
+  'smartCollection.default.classical.description': 'Muzică clasică și orchestrală',
+  'smartCollection.default.electroAmbient': '🎧 Electro & Ambient',
+  'smartCollection.default.electroAmbient.description': 'Electronică și ambient',
+  'smartCollection.default.frenchTouch': '🇫🇷 French Touch',
+  'smartCollection.default.frenchTouch.description': 'Chanson franceză',
+  'smartCollection.default.jazz': '🎷 Jazz',
+  'smartCollection.default.jazz.description': 'Toate albumele de jazz',
+  'smartCollection.default.rock': '🎸 Rock',
+  'smartCollection.default.rock.description': 'Rock, alt-rock, prog-rock',
+  'smartCollection.default.sacdDsd': '💿 SACD / DSD',
+  'smartCollection.default.sacdDsd.description': 'Super Audio CD și DSD',
+  'smartCollection.default.soulFunk': '🕺 Soul & Funk',
+  'smartCollection.default.soulFunk.description': 'Soul, funk, R&B',
+  'smartCollection.default.recent': '🆕 Recente',
+  'smartCollection.default.recent.description': 'Adăugate în ultimele 90 de zile',
+  'smartCollection.default.noCover': '🖼️ Fără copertă',
+  'smartCollection.default.noCover.description': 'Albume fără copertă',
+  'smartCollection.default.piano': '🎹 Pian',
+  'smartCollection.default.piano.description': 'Pian solo și concerte',
+  'smartCollection.default.vocalACappella': '🎤 Vocal / A cappella',
+  'smartCollection.default.vocalACappella.description': 'Muzică vocală și a cappella',
+  'smartCollection.default.blues': '🎵 Blues',
+  'smartCollection.default.blues.description': 'Blues și blues-rock',
+  'smartCollection.default.world': '🌍 Muzica lumii',
+  'smartCollection.default.world.description': 'Muzica lumii și folk',
+  'smartCollection.default.pop': '🎺 Pop',
+  'smartCollection.default.pop.description': 'Pop și synth-pop',
   'radio.name': 'Nume',
   'radio.genre': 'Gen',
   'radio.import': 'Importă M3U/PLS',

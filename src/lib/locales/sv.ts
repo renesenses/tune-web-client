@@ -549,6 +549,52 @@ export default {
   'radioGenre.culture': 'Kultur',
   'radioGenre.generalist': 'Allmänt',
   'radioGenre.contemporary': 'Samtida',
+
+  // Fuites de francais - les quatre genres que le serveur sert et que ce
+  // catalogue ne connaissait pas encore (tune-server-rust #4713).
+
+  'radioGenre.soul': 'Soul',
+  'radioGenre.funk': 'Funk',
+  'radioGenre.folk': 'Folk',
+  'radioGenre.ambient': 'Ambient',
+
+  // Les seize collections intelligentes LIVREES. Le semis les ecrit en
+  // francais en base ; le serveur joint leur cle stable (#4714), le client
+  // la traduit. Une collection RENOMMEE par l utilisateur n a pas de cle et
+  // garde son nom verbatim.
+
+  'smartCollection.default.audiophile': '💎 Audiofil',
+  'smartCollection.default.audiophile.description': 'Högupplösta inspelningar',
+  'smartCollection.default.soundtracks': '🎬 Filmmusik',
+  'smartCollection.default.soundtracks.description': 'Soundtrack från film',
+  'smartCollection.default.classical': '🎻 Klassiskt',
+  'smartCollection.default.classical.description': 'Klassisk och orkestral musik',
+  'smartCollection.default.electroAmbient': '🎧 Electro & Ambient',
+  'smartCollection.default.electroAmbient.description': 'Elektroniskt och ambient',
+  'smartCollection.default.frenchTouch': '🇫🇷 French Touch',
+  'smartCollection.default.frenchTouch.description': 'Fransk chanson',
+  'smartCollection.default.jazz': '🎷 Jazz',
+  'smartCollection.default.jazz.description': 'Alla jazzalbum',
+  'smartCollection.default.rock': '🎸 Rock',
+  'smartCollection.default.rock.description': 'Rock, alt-rock, prog-rock',
+  'smartCollection.default.sacdDsd': '💿 SACD / DSD',
+  'smartCollection.default.sacdDsd.description': 'Super Audio CD och DSD',
+  'smartCollection.default.soulFunk': '🕺 Soul & Funk',
+  'smartCollection.default.soulFunk.description': 'Soul, funk, R&B',
+  'smartCollection.default.recent': '🆕 Nyligen tillagda',
+  'smartCollection.default.recent.description': 'Tillagda de senaste 90 dagarna',
+  'smartCollection.default.noCover': '🖼️ Utan omslag',
+  'smartCollection.default.noCover.description': 'Album utan omslag',
+  'smartCollection.default.piano': '🎹 Piano',
+  'smartCollection.default.piano.description': 'Solopiano och konserter',
+  'smartCollection.default.vocalACappella': '🎤 Vokalt / A cappella',
+  'smartCollection.default.vocalACappella.description': 'Vokal- och a cappella-musik',
+  'smartCollection.default.blues': '🎵 Blues',
+  'smartCollection.default.blues.description': 'Blues och bluesrock',
+  'smartCollection.default.world': '🌍 Världsmusik',
+  'smartCollection.default.world.description': 'Världsmusik och folk',
+  'smartCollection.default.pop': '🎺 Pop',
+  'smartCollection.default.pop.description': 'Pop och synthpop',
   'radio.name': 'Namn',
   'radio.genre': 'Genre',
   'radio.import': 'Importera M3U/PLS',
