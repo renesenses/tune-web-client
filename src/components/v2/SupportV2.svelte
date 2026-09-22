@@ -21,6 +21,7 @@
   import { currentZone } from '../../lib/stores/zones';
   import { t, locale } from '../../lib/i18n';
   import { messageErreurSupport } from '../../lib/supportErrors';
+  import { cumulerFichiers, retirerFichier } from '../../lib/piecesJointes';
   import { get } from 'svelte/store';
   import { dateEtHeure } from '../../lib/dates';
   import { zones } from '../../lib/stores/zones';
@@ -133,12 +134,14 @@
    * recommence. Le serveur garde sa propre borne : elle, elle est la garde.
    */
   function choisirCaptures(liste: FileList | null) {
-    const fichiers = Array.from(liste ?? []);
+    // #4664 — chaque sélection S'AJOUTE aux captures déjà choisies : le
+    // sélecteur natif ne rend que la dernière. Un refus laisse la liste
+    // précédente intacte au lieu de la vider.
+    const fichiers = cumulerFichiers(bogueImages, liste);
     bogueImagesErreur = null;
 
     if (fichiers.length > api.BUG_REPORT_MAX_IMAGES) {
       bogueImagesErreur = tr1('v2.sup.bugImagesTooMany', { max: api.BUG_REPORT_MAX_IMAGES });
-      bogueImages = [];
       return;
     }
     const mauvaisType = fichiers.find((f) => {
@@ -147,7 +150,6 @@
     });
     if (mauvaisType) {
       bogueImagesErreur = tr1('v2.sup.bugImagesType', { nom: mauvaisType.name });
-      bogueImages = [];
       return;
     }
     const tropLourd = fichiers.find((f) => f.size > api.BUG_REPORT_MAX_IMAGE_BYTES);
@@ -156,7 +158,6 @@
         nom: tropLourd.name,
         max: Math.round(api.BUG_REPORT_MAX_IMAGE_BYTES / (1024 * 1024)),
       });
-      bogueImages = [];
       return;
     }
     bogueImages = fichiers;
@@ -538,10 +539,27 @@
             <span>{$t('v2.sup.bugImages' as any)}</span>
             <input type="file" multiple accept="image/png,image/jpeg,image/gif,image/webp"
               disabled={bogueEnvoi}
-              onchange={(e) => choisirCaptures((e.currentTarget as HTMLInputElement).files)} />
+              onchange={(e) => {
+                const champ = e.currentTarget as HTMLInputElement;
+                choisirCaptures(champ.files);
+                // Vider le champ : sans cela, rechoisir le même fichier après
+                // l'avoir retiré ne déclenche aucun `change`.
+                champ.value = '';
+              }} />
             <em class="bogue-hint">{$t('v2.sup.bugImagesHint' as any)}</em>
             {#if bogueImages.length}
-              <em class="bogue-fnoms">{bogueImages.map((f) => f.name).join(', ')}</em>
+              <ul class="pj-liste">
+                {#each bogueImages as f, i (i + ':' + f.name)}
+                  <li>
+                    <em class="bogue-fnoms">{f.name}</em>
+                    <button type="button" class="lnk" disabled={bogueEnvoi}
+                      aria-label={`${$t('v2.sup.fileRemove' as any)} ${f.name}`}
+                      onclick={() => { bogueImages = retirerFichier(bogueImages, i); bogueImagesErreur = null; }}>
+                      {$t('v2.sup.fileRemove' as any)}
+                    </button>
+                  </li>
+                {/each}
+              </ul>
             {/if}
             {#if bogueImagesErreur}<span class="bogue-err">{bogueImagesErreur}</span>{/if}
           </label>
@@ -655,10 +673,28 @@
 
         <label class="champ">
           <span>{$t('v2.sup.files' as any)}</span>
+          <!-- #4664 — chaque sélection S'AJOUTE à la liste. L'affectation
+               d'avant (`fichiers = Array.from(files)`) la remplaçait : trois
+               captures choisies une par une, une seule arrivait au ticket. -->
           <input type="file" multiple
-            onchange={(e) => { fichiers = Array.from((e.currentTarget as HTMLInputElement).files ?? []); }} />
+            onchange={(e) => {
+              const champ = e.currentTarget as HTMLInputElement;
+              fichiers = cumulerFichiers(fichiers, champ.files);
+              champ.value = '';
+            }} />
           {#if fichiers.length}
-            <em class="fnoms">{fichiers.map((f) => f.name).join(', ')}</em>
+            <ul class="pj-liste">
+              {#each fichiers as f, i (i + ':' + f.name)}
+                <li>
+                  <em class="fnoms">{f.name}</em>
+                  <button type="button" class="lnk"
+                    aria-label={`${$t('v2.sup.fileRemove' as any)} ${f.name}`}
+                    onclick={() => (fichiers = retirerFichier(fichiers, i))}>
+                    {$t('v2.sup.fileRemove' as any)}
+                  </button>
+                </li>
+              {/each}
+            </ul>
           {/if}
         </label>
 
@@ -756,6 +792,8 @@
   .case{display:flex; align-items:flex-start; gap:10px; font-size:13px}
   .case em{display:block; margin-top:3px; font-style:normal; font-size:12px; color:var(--v2-txt3); line-height:1.55}
   .fnoms{font-style:normal; font-size:12px; color:var(--v2-txt3)}
+  .pj-liste{list-style:none; margin:4px 0 0; padding:0; display:flex; flex-direction:column; gap:2px}
+  .pj-liste li{display:flex; align-items:center; gap:8px}
   .redac .actions{display:flex; align-items:center; gap:10px}
   .redac .go{height:40px; padding:0 20px; border-radius:var(--v2-r-pill); border:0; cursor:pointer;
     font:700 13px var(--v2-sans); background:var(--v2-acc1); color:var(--v2-on-acc)}

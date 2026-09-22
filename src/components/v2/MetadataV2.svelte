@@ -13,6 +13,7 @@
    */
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
+  import { ordreNaturel } from '../../lib/ordreNaturel';
   import type { GravureDrEtat, MetadataProposal, GroupeAlbumsEclates, GroupeArtistes, PaireDoublonNommee, AlbumEclate, ArtisteHomographe, CopieDoublon, AlbumDetailed } from '../../lib/api';
   import { } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -303,7 +304,7 @@
     if (q.length < 2) return [];
     return cpTous
       .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
-      .sort((x, y) => (x.title ?? '').localeCompare(y.title ?? '') || (x.album_artist ?? '').localeCompare(y.album_artist ?? ''))
+      .sort((x, y) => ordreNaturel(x.title, y.title) || (x.album_artist ?? '').localeCompare(y.album_artist ?? ''))
       .slice(0, 300);
   });
 
@@ -409,9 +410,11 @@
     // disques d'un coffret portent des titres DIFFÉRENTS (« … Disc A »,
     // « … Disc B »), et les ranger en groupes séparés les éloignerait
     // justement l'un de l'autre. Le tri par titre les met côte à côte.
+    // 🔴 #1434 — par NOMBRE : « Disc 2 » avant « Disc 10 ». En texte, le
+    // « CD 10 » d'un coffret Radio Nova passait avant le « CD 2 ».
     return cpTous
       .filter((a) => pliage(a.title ?? '').includes(q) || pliage(a.album_artist ?? '').includes(q))
-      .sort((x, y) => (x.title ?? '').localeCompare(y.title ?? ''))
+      .sort((x, y) => ordreNaturel(x.title, y.title))
       .slice(0, 300);
   });
 

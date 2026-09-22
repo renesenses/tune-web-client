@@ -161,7 +161,11 @@ describe('#1112 — « + Nouvelle playlist » agit depuis tous les onglets', () 
   it('🔴 le clic ouvre le formulaire de création, quel que soit l’onglet du gestionnaire', async () => {
     const el = await monterLeGestionnaire();
     const total = onglets(el, 'pm-tab').length;
-    expect(total).toBeGreaterThan(1);
+    // Depuis le 22/09/2026, la rangée peut être réduite au seul onglet
+    // Playlists : les quatre onglets avancés sont masqués derrière
+    // `ONGLETS_AVANCES`. La garde porte sur « depuis CHAQUE onglet peint »,
+    // pas sur leur nombre.
+    expect(total).toBeGreaterThan(0);
 
     for (let i = 0; i < total; i++) {
       const rangee = onglets(el, 'pm-tab');

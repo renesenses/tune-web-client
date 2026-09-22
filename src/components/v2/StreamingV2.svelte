@@ -1317,7 +1317,7 @@
       {#if myPlaylists.length}
         <div class="grid">{#each myPlaylists as p (p.source_id)}{@render tile(p, () => playPlaylist(p), 'playlist', () => (fichePlaylist = p))}{/each}</div>
       {:else}
-        <div class="state">Aucune playlist dans votre compte {label(active ?? '')}.</div>
+        <div class="state">{$t('v2.str.noPlaylistsInAccount' as any).replace('{s}', label(active ?? ''))}</div>
       {/if}
 
     {:else}
@@ -1368,7 +1368,7 @@
         </section>
       {/if}
       {#if !favAlbums.length && !favArtists.length && !favTracks.length}
-        <div class="state">Aucun favori dans votre compte {label(active ?? '')}.</div>
+        <div class="state">{$t('v2.str.noFavoritesInAccount' as any).replace('{s}', label(active ?? ''))}</div>
       {/if}
     {/if}
   </div>

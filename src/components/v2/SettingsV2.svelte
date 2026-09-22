@@ -134,6 +134,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
    * d'appareils.
    */
   import ZoneDeviceEditor from '../partages/ZoneDeviceEditor.svelte';
+  /**
+   * #1427 — la correction acoustique (FIR), là où le testeur la cherche.
+   *
+   * C'est le MÊME composant que celui du panneau du clic droit, pas une
+   * seconde copie : ce bloc a déjà divergé une fois entre les deux, et un
+   * abonné en a conclu que la fonction n'existait pas.
+   */
+  import CorrectionAcoustiqueZone from '../partages/CorrectionAcoustiqueZone.svelte';
   import ZoneTypeIcon from '../partages/ZoneTypeIcon.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import type { Zone } from '../../lib/types';
@@ -2746,6 +2754,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 </label>
               </div>
 
+              <!-- #1428 — jfpaquet (fil 1879, 21/09/2026) : « ET LA
+                   DISPARITION DU BOUTON STOP NE ME PLAÎT PAS DU TOUT ». Le
+                   bouton a été retiré deux fois (05/09 puis 09/09) et la
+                   décision tient : le stop est une commande d'APPAREIL. Elle
+                   devient un CHOIX, décoché par défaut — l'écran de qui n'a
+                   rien demandé ne bouge pas. L'infobulle nomme les deux gestes
+                   qui existent déjà, puisque c'est ce qu'aucun écran ne disait. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.showStopButton' as any)}</span>
+                  <span class="hint">{$t('settings.showStopButtonHint' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" checked={$preferences.afficherBoutonStop}
+                    onchange={(e) => preferences.update((pr) => ({
+                      ...pr, afficherBoutonStop: (e.currentTarget as HTMLInputElement).checked,
+                    }))} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
               <!-- tune-server-rust#4368 — FabienM (fil 1829, point 11) :
                    « Il faut grouper par source et tous les résultats Qobuz
                    doivent être avant Bandcamp ». L'entrelacement qu'il voit
@@ -3495,11 +3524,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span>{$t('v2.lbl.fixedVolume' as any)}</span>
                         </label>
                         <label class="zf chk">
-                          <input type="checkbox" checked={z.upnp_renderer ?? false}
-                            onchange={(e) => setZoneField(z, () => api.updateZoneUpnpRenderer(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
-                          <span>{$t('devices.upnpRenderer' as any)}</span>
-                        </label>
-                        <label class="zf chk">
                           <input type="checkbox" checked={z.mono_downmix ?? false}
                             onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
                           <span>{$t('zoneConfig.monoTitle' as any)}</span>
@@ -3526,6 +3550,54 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {#if (z.output_type ?? '') !== 'local'}
                         <p class="monote">{$t('zoneConfig.monoLocalOnly' as any)}</p>
                       {/if}
+
+                      <!--
+                        PUBLIER LA ZONE SUR LE RÉSEAU —
+                        renesenses/tune-server-rust#4626, étape 1 arbitrée par
+                        Bertrand le 22/09/2026 : « rendre visible ce qui
+                        existe ».
+
+                        La publication MediaRenderer par zone est livrée depuis
+                        #1750 (`zone_{id}_upnp_renderer`, PATCH /zones/{id}) et
+                        n'était annoncée NULLE PART : la case s'appelait
+                        « Renderer UPnP » et vivait sans une ligne d'aide,
+                        sixième et avant-dernière d'une rangée de six réglages
+                        (trois listes, trois cases). Un testeur qui cherchait
+                        exactement cette fonction (fil forum 1867) ne l'a pas
+                        trouvée et l'a demandée comme une nouveauté.
+
+                        Deux changements, aucun sur le comportement : le
+                        libellé dit ce que la case FAIT plutôt que le protocole
+                        qu'elle emploie, et elle sort de la rangée pour prendre
+                        sa ligne d'aide — même gabarit que « Bit-perfect
+                        strict » juste en dessous.
+                      -->
+                      <div class="publi-bloc">
+                        <label class="zf chk publier-zone">
+                          <input type="checkbox" checked={z.upnp_renderer ?? false}
+                            onchange={(e) => setZoneField(z, () => api.updateZoneUpnpRenderer(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                          <span>{$t('devices.upnpRenderer' as any)}</span>
+                        </label>
+                        <p class="monote">{$t('devices.upnpRendererHint' as any)}</p>
+                        <!--
+                          Ce que le serveur fait VRAIMENT quand on décoche, dit
+                          là où on décoche. Mesuré sur `origin/main` le
+                          22/09/2026 et déjà écrit dans
+                          `docs/UPNP-RENDERER.md` §4 : l'annonce s'arrête net et
+                          la façade rend 404, mais AUCUN `ssdp:byebye` n'est
+                          émis — le point de contrôle garde son entrée en cache
+                          jusqu'à l'expiration du `max-age`, 1800 s.
+
+                          Ne s'affiche que quand la case est cochée : c'est
+                          l'instant d'avant le décochage, le seul où cette
+                          phrase sert. La taire coûterait un ticket « j'ai
+                          décoché et je la vois encore » — le même défaut que
+                          #3254 a corrigé en publiant ses motifs.
+                        -->
+                        {#if z.upnp_renderer}
+                          <p class="monote">{$t('devices.upnpRendererStopHint' as any)}</p>
+                        {/if}
+                      </div>
 
                       <!--
                         BIT-PERFECT STRICT — renesenses/tune-server-rust#3973,
@@ -3602,6 +3674,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if z.fixed_volume}<span class="tf">{$t('devices.gainTrimFixedVolume' as any)}</span>{/if}
                       </div>
                       <p class="monote">{$t('devices.gainTrimHint' as any)}</p>
+
+                      <!--
+                        #1427 — CORRECTION ACOUSTIQUE (FIR), à sa place.
+
+                        GgB (fil 1671, 21/09/2026) : « Il y a une raison
+                        particulière a la disparition de la prise en compte des
+                        fichiers FIR (wav) dans les paramètres de la zone ? » Le
+                        bloc n'a jamais été porté ici : le seul accès livré était
+                        un clic droit sur la pastille de zone de la barre de
+                        lecture — non annoncé, et sans équivalent tactile. Or
+                        c'est ICI que mène « Ouvrir les réglages » de la roue
+                        crantée d'une zone, et c'est ici qu'on le cherche.
+
+                        Il est placé avec ce qui traite le SON (DSD, débit,
+                        canaux, gain), avant la photo et l'éditeur d'appareil qui
+                        décrivent le matériel.
+
+                        Aucune condition sur le type de sortie : le serveur
+                        applique l'IR aux lecteurs réseau aussi.
+                      -->
+                      <CorrectionAcoustiqueZone zone={z} />
 
                       <!-- #1394 — LA PHOTO DE L'APPAREIL, dans le bloc où
                            l'appareil est déjà identifié par sa marque et son
@@ -4462,7 +4555,17 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     {/each}
                   </div>
                 {:else if !sbLoading}
-                  <p class="hint">{$t('settings.squeezeboxNoPlayers' as any)}</p>
+                  <!--
+                    Le serveur dit POURQUOI la liste est vide depuis la
+                    v0.9.153, et personne ne le lisait : l'écran affichait
+                    « Aucun lecteur Squeezebox trouvé » que LMS soit muet,
+                    illisible, ou… que Tune se soit interrogé lui-même
+                    (renesenses/tune-server-rust#4703, Belkadi Yacine,
+                    fil 1507). Le message du serveur remplace donc la phrase
+                    générique quand il existe ; sinon rien ne change, y
+                    compris face à un serveur plus ancien.
+                  -->
+                  <p class="hint">{sbStatus?.diagnostic?.message || $t('settings.squeezeboxNoPlayers' as any)}</p>
                 {/if}
               {/if}
 
@@ -4915,6 +5018,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
   .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
+  /* #4626 — « Publier cette zone sur le réseau » : sa ligne et son aide, même
+     gabarit que « Bit-perfect strict » ci-dessous. */
+  .publi-bloc{margin-top:10px}
+  .publi-bloc .zf.chk{align-self:auto; padding-bottom:0}
+  .publi-bloc .monote{margin-top:4px}
   /* #3973 — « Bit-perfect strict » : sa ligne, sous les réglages de la zone. */
   .strict-bloc{margin-top:10px}
   .strict-bloc .zf.chk{align-self:auto; padding-bottom:0}

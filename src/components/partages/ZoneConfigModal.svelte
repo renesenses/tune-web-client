@@ -2,9 +2,8 @@
   import type { Zone, ZoneGroupResponse } from '../../lib/types';
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
-  import { messageRefusPremium } from '../../lib/premiumRefus';
   import { get } from 'svelte/store';
-  import FirResponseCurve from './FirResponseCurve.svelte';
+  import CorrectionAcoustiqueZone from './CorrectionAcoustiqueZone.svelte';
   import ZoneDeviceEditor from './ZoneDeviceEditor.svelte';
 
   interface Props {
@@ -56,89 +55,6 @@
   let confirmDelete = $state(false);
   let loading = $state(false);
   let error = $state('');
-
-  // FIR Room Correction
-  let irActive = $state(false);
-  let irPath = $state<string | null>(null);
-  let irLoading = $state(true);
-  let irMessage = $state<string | null>(null);
-  let irError = $state(false);
-  /** Incrémenté après chaque upload réussi → la courbe de réponse se recharge. */
-  let irRefresh = $state(0);
-
-  async function loadIrStatus() {
-    if (!zone.id) { irLoading = false; return; }
-    try {
-      const res = await api.fetchJSON<any>(`${api.BASE}/room-correction/ir/status/${zone.id}`);
-      irActive = res?.active ?? false;
-      irPath = res?.ir_path ?? null;
-    } catch { /* ignore */ }
-    irLoading = false;
-  }
-  loadIrStatus();
-
-  async function handleIrUpload(e: Event) {
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file || !zone.id) return;
-    irMessage = null;
-    irLoading = true;
-    try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const res = await fetch(`${api.BASE}/room-correction/ir/upload/${zone.id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/octet-stream' },
-        body: bytes,
-      });
-      const data = await res.json();
-      /**
-       * 🔴 #884 — SEUL `fetch` NU DU CLIENT SUR UNE ROUTE GARDÉE PREMIUM.
-       *
-       * `routes/room_correction.rs` porte SIX `require_premium(` et pas un
-       * seul `require_premium_localise` : sur un serveur gratuit, cette
-       * réponse est un 402 dont le `message` est composé en français. Cet
-       * écran l'affichait tel quel (`data.error`), au milieu d'une interface
-       * traduite. Il ne passe pas par `lib/api.ts` — c'est un envoi en octets
-       * bruts — donc il applique la règle lui-même, avec la MÊME aide et donc
-       * la même phrase que les onze autres points d'entrée.
-       */
-      if (res.status === 402) {
-        irMessage = messageRefusPremium(data);
-        irError = true;
-        irLoading = false;
-        input.value = '';
-        return;
-      }
-      if (data.ok) {
-        irActive = true;
-        irPath = data.ir_path;
-        irMessage = $t('zoneConfig.irLoaded').replace('{size}', (file.size / 1024).toFixed(0));
-        irError = false;
-        irRefresh++;
-      } else {
-        irMessage = $t('common.error') + ' : ' + data.error;
-        irError = true;
-      }
-    } catch (e: any) {
-      irMessage = $t('common.error') + ' : ' + (e?.message || String(e));
-      irError = true;
-    }
-    irLoading = false;
-    input.value = '';
-  }
-
-  async function clearIr() {
-    if (!zone.id) return;
-    irLoading = true;
-    try {
-      await fetch(`${api.BASE}/room-correction/ir/clear/${zone.id}`, { method: 'POST' });
-      irActive = false;
-      irPath = null;
-      irMessage = $t('zoneConfig.firDisabled');
-      irError = false;
-    } catch { irMessage = $t('common.error'); irError = true; }
-    irLoading = false;
-  }
 
   /**
    * Sortie mono (#2362).
@@ -713,55 +629,19 @@
     </div>
 
     <!--
-      La correction de piece vaut pour TOUTE zone : une zone, un appareil, un
-      FIR.
+      #1427 — LE MÊME bloc que Réglages ▸ Appareils ▸ Réglages par zone.
 
-      Cette section etait reservee aux sorties LOCALES. Le serveur, lui, a ete
-      etendu aux zones reseau et le dit dans son propre code : `zone_has_active_ir`
-      force le transcodage « so the FIR reaches network renderers, not just
-      local », et `load_convolver` charge `ir_path_{zone}` pour le flux servi a
-      un renderer DLNA/UPnP/AirPlay.
+      Il vivait ici seul, et le seul geste qui ouvre ce panneau est un clic
+      droit sur la pastille de zone : GgB (fil 1671) a conclu que la fonction
+      avait disparu. Le bloc est devenu un composant partagé ; ce panneau le
+      garde, parce qu'il ne coûte rien à qui connaît le geste.
 
-      L'ecran est reste sur l'ancienne condition. Un abonne qui ecoute sur un
-      lecteur reseau ne voyait donc JAMAIS la fonction et concluait qu'elle
-      n'existait pas — c'est le cas d'Alexander Jam, abonne Premium venu
-      chercher exactement cela.
+      L'en-tête de `CorrectionAcoustiqueZone` porte le reste de l'histoire —
+      dont la condition `output_type === 'local'` qui avait déjà fait croire
+      une première fois que la fonction n'existait pas.
     -->
     <div class="modal-section">
-      <h3 class="section-title">{$t('zoneConfig.firTitle')}</h3>
-      <p class="section-desc">{$t('zoneConfig.firDesc')}</p>
-      {#if irLoading}
-        <div class="ir-status">{$t('common.loading')}</div>
-      {:else if irActive}
-        <div class="ir-status ir-active">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12" /></svg>
-          {$t('zoneConfig.firActive')}
-          {#if irPath}<span class="ir-path">{irPath.split('/').pop()}</span>{/if}
-        </div>
-        <div class="ir-actions">
-          <label class="btn btn-secondary ir-upload-btn">
-            {$t('zoneConfig.replace')}
-            <input type="file" accept=".wav" class="ir-file-input" onchange={handleIrUpload} />
-          </label>
-          <button class="btn btn-danger-outline" onclick={clearIr}>{$t('zoneConfig.disable')}</button>
-        </div>
-        {#if zone.id !== null}
-          <FirResponseCurve
-            zoneId={zone.id}
-            refreshKey={irRefresh}
-            currentSampleRate={zone.current_track?.sample_rate ?? null}
-          />
-        {/if}
-      {:else}
-        <label class="btn btn-primary ir-upload-btn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>
-          {$t('zoneConfig.loadIrFile')}
-          <input type="file" accept=".wav" class="ir-file-input" onchange={handleIrUpload} />
-        </label>
-      {/if}
-      {#if irMessage}
-        <div class="ir-message" class:ir-error={irError}>{irMessage}</div>
-      {/if}
+      <CorrectionAcoustiqueZone {zone} />
     </div>
 
     <div class="modal-section danger-section">
@@ -1106,17 +986,6 @@
     flex: 1;
   }
 
-  .ir-status {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 13px; color: var(--tune-text-muted); margin-bottom: 8px;
-  }
-  .ir-active { color: var(--tune-success, #4ade80); font-weight: 600; }
-  .ir-path { font-size: 11px; color: var(--tune-text-muted); font-weight: 400; }
-  .ir-actions { display: flex; gap: 8px; margin-bottom: 8px; }
-  .ir-upload-btn {
-    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
-  }
-  .ir-file-input { display: none; }
   /* 🔴 #920 — des classes PROPRES à cette section. Le premier jet réutilisait
      `.mono-toggle` et `.mono-note` de la section voisine : la garde de #2362,
      qui cherche ces classes pour vérifier la sortie mono, tombait sur MES
@@ -1150,12 +1019,6 @@
   }
   .ir-message { font-size: 12px; color: var(--tune-text-muted); margin-top: 4px; }
   .ir-message.ir-error { color: var(--tune-error, #ef4444); }
-  .btn-danger-outline {
-    background: none; border: 1px solid var(--tune-error, #ef4444);
-    color: var(--tune-error, #ef4444); padding: 6px 12px;
-    border-radius: var(--radius-sm); font-size: 12px; cursor: pointer;
-  }
-  .btn-danger-outline:hover { background: rgba(239, 68, 68, 0.1); }
   .btn-primary {
     background: var(--tune-accent); color: white; border: none;
     padding: 8px 14px; border-radius: var(--radius-sm);

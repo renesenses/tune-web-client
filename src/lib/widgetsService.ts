@@ -137,6 +137,71 @@ function playlistDistante(o: any, i: number, prefixe: string, service: string): 
 const nom = (s: string) => (s === 'qobuz' ? 'Qobuz' : s === 'tidal' ? 'Tidal' : s);
 
 /**
+ * Les sections éditoriales dont le NOM est à nous, et qu'on peut donc traduire.
+ *
+ * ── LE DÉFAUT ────────────────────────────────────────────────────────────
+ *
+ * Silviu, testeur roumain, v0.9.161 : l'écran éditorial Qobuz affiche ses
+ * intitulés de rangée dans une autre langue que l'interface. Deux origines,
+ * qu'il faut séparer parce qu'elles n'ont pas le même remède :
+ *
+ *  1. Les sept sections de `GET /streaming/{s}/featured/sections` ne viennent
+ *     PAS de Qobuz. C'est le serveur qui les écrit, en ANGLAIS et en dur —
+ *     `tune-core/src/streaming/qobuz.rs:2379-2411` : `New Releases`,
+ *     `Best Sellers`, `Press Awards`, `Editor Picks`, `Most Streamed`,
+ *     `Ideal Discography`, `Qobuzissimes`. Leur `id` est stable et connu ;
+ *     c'est donc NOTRE libellé, et il doit être une clé de traduction. C'est
+ *     ce que cette table fait.
+ *
+ *  2. Les CATÉGORIES de playlists (`Histoires de labels`, `Les Pépites de
+ *     l'équipe`, `Dans le casque de…`, `Artistes`, `Nouveautés`) viennent de
+ *     Qobuz. Le serveur choisissait délibérément le français en les
+ *     dépaquetant — `qobuz.rs:2519`, `obj.get("fr").or_else(|| …)` — alors
+ *     que l'anglais était dans la même réponse. Aucune table côté client ne
+ *     pouvait réparer ça honnêtement : le remède était que le serveur lise la
+ *     langue de la requête.
+ *
+ *     ✅ C'EST FAIT (tune-server-rust #4720, 22/09/2026). `PlaylistTag` porte
+ *     désormais `name_i18n`, le faisceau complet, et `tune-streaming-http`
+ *     choisit la langue d'après l'`Accept-Language` — la langue demandée si
+ *     le service la sert, l'anglais sinon, jamais le français par défaut.
+ *     `Vary: Accept-Language` accompagne le cache de trente minutes.
+ *
+ *     🔴 LE CLIENT N'A DONC RIEN À FAIRE, ET SURTOUT RIEN À FORCER. Chaque
+ *     requête part déjà avec `Accept-Language: <langue de l'interface>`
+ *     (`api.ts`, `acceptLang()`), et `name` arrive traduit. Poser ici une
+ *     table de libellés, ou relire `name_i18n` côté client, rejouerait le
+ *     défaut dans une autre couche. On affiche ce qu'on reçoit.
+ *
+ * ── POURQUOI UNE TABLE, ET PAS `v2.svc.sec.${id}` ────────────────────────
+ *
+ * Tidal ne sert aucune section, mais ses identifiants à lui viendraient de
+ * `/pages/home` et changeraient sans préavis. Une clé construite à la volée
+ * donnerait `v2.svc.sec.<inconnu>` affiché tel quel — pire que le nom du
+ * service. On ne traduit que ce qu'on a MESURÉ ; le reste retombe sur le nom
+ * que le service envoie.
+ *
+ * `qobuzissims` (sic, l'identifiant du serveur) est absent volontairement :
+ * « Qobuzissimes » est un nom de marque, il ne se traduit pas.
+ */
+const CLES_SECTIONS: Readonly<Record<string, string>> = {
+  'new-releases': 'v2.svc.sec.newReleases',
+  'best-sellers': 'v2.svc.sec.bestSellers',
+  'press-awards': 'v2.svc.sec.pressAwards',
+  'editor-picks': 'v2.svc.sec.editorPicks',
+  'most-streamed': 'v2.svc.sec.mostStreamed',
+  'ideal-discography': 'v2.svc.sec.idealDiscography',
+};
+
+/** La clé d'une section éditoriale connue, `null` pour toute autre. */
+export function cleSectionEditoriale(id: string): string | null {
+  return CLES_SECTIONS[id] ?? null;
+}
+
+/** Les identifiants de section traduits — pour le test de parité. */
+export const SECTIONS_TRADUITES: readonly string[] = Object.keys(CLES_SECTIONS);
+
+/**
  * Le catalogue d'un service, mesuré à l'ouverture.
  *
  * Les sections éditoriales et les genres sont demandés au service ; une
@@ -202,8 +267,8 @@ export async function catalogueService(service: string): Promise<Widget[]> {
       ),
   });
 
-  // Les sections ÉDITORIALES, telles que le service les nomme. Aucune n'est
-  // écrite en dur : Qobuz en rend sept, Tidal aucune, et la liste peut bouger
+  // Les sections ÉDITORIALES, telles que le service les nomme. La LISTE n'est
+  // pas écrite en dur : Qobuz en rend sept, Tidal aucune, et elle peut bouger
   // sans qu'on ait à toucher ce fichier.
   for (const s of liste(sections)) {
     const sid = texte(s, 'id');
@@ -212,10 +277,7 @@ export async function catalogueService(service: string): Promise<Widget[]> {
     if (SECTIONS_DEJA_EN_BANDE.has(sid)) continue;
     w.push({
       id: `${service}-sec-${sid}`,
-      // Le nom vient du SERVICE : pas de clé de traduction pour un libellé
-      // qu'on ne connaît qu'à l'exécution. `PageWidgets` rend la clé telle
-      // quelle quand elle n'en est pas une.
-      cleTitre: texte(s, 'name') ?? sid,
+      cleTitre: cleSectionEditoriale(sid) ?? texte(s, 'name') ?? sid,
       forme: 'bande',
       charger: async () =>
         utiles(

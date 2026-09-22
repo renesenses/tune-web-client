@@ -58,7 +58,14 @@ export interface Element {
    * streaming », et « quand je clique sur la zone d'écoute active cela
    * m'ouvre l'écran Now playing ».
    */
-  ouvrir?: 'album' | 'zone' | 'playlist' | null;
+  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | null;
+  /**
+   * Nom de l'artiste à ouvrir, quand `ouvrir` vaut `artiste`. Un NOM et pas un
+   * identifiant : les classements viennent de l'historique, qui n'en porte
+   * aucun (`TopArtistEntry` = `{artist_name, plays, listening_ms,
+   * cover_path}`). `ouvrirArtisteParNom` fait le rapprochement exact.
+   */
+  artiste?: string;
   /** Album normalisé pour la fiche, quand `ouvrir` vaut `album`. */
   fiche?: any;
   /**
@@ -121,6 +128,21 @@ export interface Widget {
   charger: (ctx: Contexte) => Promise<Element[]>;
   /** Chiffres d'un widget de statistiques. */
   chiffres?: (ctx: Contexte) => Promise<ChiffreAffiche[]>;
+  /**
+   * Ce widget honore-t-il `ctx.chiffresChoisis` ? — #1426.
+   *
+   * Seul un widget qui LIT le choix du profil a le droit d'en offrir le
+   * sélecteur en mode « Modifier ». `stats-semaine` sert une liste figée
+   * (`CHIFFRES_SEMAINE`) : lui laisser le panneau de #4527 afficherait un
+   * réglage qui ne change rien à ce qu'il surmonte — exactement le défaut
+   * déjà payé sur la correction acoustique (« dire que ça ne fera rien ici
+   * plutôt que de MASQUER le réglage » vaut aussi dans l'autre sens : ne pas
+   * proposer un réglage sans effet).
+   *
+   * Tant que `stats-semaine` était hors de la disposition par défaut,
+   * personne ne le voyait. L'y faire entrer le montrait à tout le monde.
+   */
+  chiffresComposables?: boolean;
   /**
    * Ce que la bande contient, quand ça compte pour la disposition par défaut.
    *
@@ -246,6 +268,14 @@ export interface OptsElement {
    * albums locaux n'etaient donc pas jouables.
    */
   genre?: 'album' | 'playlist' | 'aucun';
+  /**
+   * L'objet est une ligne d'HISTORIQUE d'écoute (`/library/history`).
+   *
+   * Son `source_id` y désigne la PISTE jouée, jamais l'album : le serveur
+   * (`record_listen`) écrit l'identifiant du morceau diffusé, et range ce que
+   * l'auditeur avait demandé dans `context_type` / `context_id`. Voir `geste`.
+   */
+  historique?: boolean;
 }
 
 /** Exporté pour les tests : c'est ici que se décide ce qu'une vignette
@@ -278,7 +308,7 @@ export function versElement(o: any, i: number, prefixe: string, opts: OptsElemen
     source: service,
     // Un album annoncé garde son geste : ses singles déjà sortis s'écoutent.
     // C'est la PISTE qui porte l'indisponibilité (`pisteIndisponible`).
-    jouer: geste(o, service, opts.genre ?? 'album'),
+    jouer: geste(o, service, opts.genre ?? 'album', opts.historique ?? false),
     aParaitre,
     parution: typeof o?.released_at === 'number' ? o.released_at : null,
     ...ficheDe(o, service, opts.genre ?? 'album'),
@@ -450,13 +480,55 @@ function idLocalValide(v: any): number | null {
   return typeof v === 'number' && v > 0 ? v : null;
 }
 
-export function geste(o: any, service: string | null, genre: 'album' | 'playlist' | 'aucun') {
+/**
+ * 🔴 LA LIGNE D'HISTORIQUE D'UN SERVICE — bug du .18, 22/09/2026 : une tuile
+ * « Récemment écoutés » Qobuz répondait « Erreur de lecture : qobuz
+ * /album/get: 404 No result matching given argument ».
+ *
+ * La ligne vaut, mesurée sur le .18 :
+ *
+ *     {"source":"qobuz", "source_id":"9140031", "context_type":"track",
+ *      "album_id":null, "album_title":"Random Access Memories"}
+ *
+ * `source_id` est celui de la PISTE (« Get Lucky ») : `record_listen` écrit
+ * l'identifiant du morceau diffusé, avec `track_id: None`. `idDistant` le
+ * prenait pour un album, et la tuile partait en `streaming_album_id` — que
+ * Qobuz ne connaît pas. `ficheDe` avait déjà la garde pour l'OUVERTURE
+ * (05/09) ; la lecture ne l'avait pas.
+ *
+ * Ce que l'auditeur avait demandé est dans `context_*` : un album demandé se
+ * rejoue depuis la piste où il en était (`context_position`, son rang dans la
+ * file), tout le reste rejoue la piste elle-même.
+ */
+function gesteHistorique(o: any, svc: string) {
+  const ctx = champ(o, 'context_id');
+  if (o?.context_type === 'album' && ctx) {
+    const rang = typeof o?.context_position === 'number' && o.context_position >= 0
+      ? { start_index: o.context_position }
+      : {};
+    return (z: number) => api.play(z, { streaming_album_id: ctx, source: svc as any, ...rang });
+  }
+  const sid = champ(o, 'source_id');
+  if (sid) return (z: number) => api.play(z, { source: svc as any, source_id: sid });
+  return undefined;
+}
+
+export function geste(
+  o: any,
+  service: string | null,
+  genre: 'album' | 'playlist' | 'aucun',
+  historique = false,
+) {
   if (genre === 'aucun') return undefined;
   const local = idLocalValide(o?.album_id);
   if (local != null) return (z: number) => api.play(z, { album_id: local });
   if (o?.track_id != null) return (z: number) => api.play(z, { track_id: o.track_id });
 
   const svc = serviceDistant(service);
+  if (svc && historique) {
+    const g = gesteHistorique(o, svc);
+    if (g) return g;
+  }
   const dist = svc ? idDistant(o) : null;
   if (svc && dist) {
     // Ce que l'identifiant DÉSIGNE prime sur le genre déclaré par le widget :
@@ -574,6 +646,64 @@ function lectures(n: number, langue: string): string {
   } catch {
     return String(n);
   }
+}
+
+/**
+ * 🔴 LES GESTES DES CLASSEMENTS — Bertrand, 22/09/2026, sur le gros widget
+ * « Vos tops » : « rien n'est cliquable !! ». Les trois colonnes rendaient
+ * des lignes inertes, et la bande « Artistes les plus écoutés » des cartes au
+ * titre désactivé.
+ *
+ * Ce que porte `GET /library/history/dashboard` (serveur, `history_repo.rs`,
+ * `TopArtistEntry` / `TopAlbumEntry` / `TopTrackEntry`) décide de ce qu'on
+ * peut offrir, et rien d'autre :
+ *
+ *  - un ARTISTE n'a que son nom → on l'ouvre par `ouvrirArtisteParNom`,
+ *    comme le Tableau de bord ;
+ *  - un ALBUM a un `album_id` quand le titre se retrouve dans la
+ *    bibliothèque → il s'ouvre et se joue comme une vignette locale. Sinon,
+ *    son `source_id` est le `MAX(source_id)` des lignes d'historique — celui
+ *    d'une PISTE, pas de l'album (même piège que « Récemment écoutés »). On
+ *    joue donc cette piste, comme `playTopAlbum` du Tableau de bord, et on
+ *    n'offre PAS de fiche : elle demanderait `/albums/<id de piste>`.
+ *  - un TITRE se joue : `track_id` local d'abord, sinon la paire service +
+ *    identifiant de piste.
+ */
+function gesteArtisteTop(nom: string | null | undefined): Pick<Element, 'ouvrir' | 'artiste'> {
+  return nom ? { ouvrir: 'artiste', artiste: nom } : {};
+}
+
+function gestesAlbumTop(a: api.DashboardData['top_albums'][number]): Partial<Element> {
+  const local = idLocalValide(a.album_id);
+  if (local != null) {
+    return {
+      jouer: (z: number) => api.play(z, { album_id: local }),
+      ouvrir: 'album',
+      fiche: {
+        id: local,
+        source_id: null,
+        source: null,
+        title: a.album_title ?? '',
+        artist_name: a.artist_name ?? '',
+        cover_path: a.cover_path ?? null,
+        year: null,
+        format: null,
+        sample_rate: null,
+        bit_depth: null,
+      },
+    };
+  }
+  const svc = serviceDistant(a.source ?? null);
+  const sid = a.source_id;
+  return svc && sid ? { jouer: (z: number) => api.play(z, { source: svc as any, source_id: sid }) } : {};
+}
+
+function gestePisteTop(t: api.DashboardData['top_tracks'][number]): Element['jouer'] {
+  const local = idLocalValide(t.track_id);
+  if (local != null) return (z: number) => api.play(z, { track_id: local });
+  const svc = serviceDistant(t.source ?? null);
+  const sid = t.source_id;
+  return svc && sid ? (z: number) => api.play(z, { source: svc as any, source_id: sid }) : undefined;
 }
 
 export const WIDGETS: Widget[] = [
@@ -705,7 +835,7 @@ export const WIDGETS: Widget[] = [
     cleTitre: 'v2.home.wRecentlyPlayed',
     forme: 'bande',
     charger: async () =>
-      utiles(liste(await api.getPlaybackHistory(LIMITE)).map((o, i) => versElement(o, i, 'hist'))),
+      utiles(liste(await api.getPlaybackHistory(LIMITE)).map((o, i) => versElement(o, i, 'hist', { historique: true }))),
   },
   {
     id: 'hasard',
@@ -888,6 +1018,9 @@ export const WIDGETS: Widget[] = [
     id: 'statistiques',
     cleTitre: 'v2.home.wStats',
     forme: 'chiffres',
+    /** #1426 — le SEUL widget qui lise `ctx.chiffresChoisis` : le seul à
+     *  offrir le sélecteur de #4527. */
+    chiffresComposables: true,
     charger: async () => [],
     /**
      * LA LIGNE DE CHIFFRES, d'après la maquette de Levente et les arbitrages
@@ -948,6 +1081,7 @@ export const WIDGETS: Widget[] = [
           titre: a.artist_name,
           sous: lectures(a.plays, ctx.langue ?? 'fr'),
           cover: a.cover_path ?? null,
+          ...gesteArtisteTop(a.artist_name),
         })),
       ),
   },
@@ -1024,26 +1158,29 @@ export const WIDGETS: Widget[] = [
     charger: async (ctx) => {
       const d = await tableauDeBord(PERIODE_TOPS);
       const n = (v: number) => lectures(v, ctx.langue ?? 'fr');
-      const artistes = d.top_artists.slice(0, RANG_TOPS).map((a, i) => ({
+      const artistes: Element[] = d.top_artists.slice(0, RANG_TOPS).map((a, i) => ({
         id: `tops-art-${i}-${a.artist_name}`,
         titre: a.artist_name,
         sous: n(a.plays),
         cover: a.cover_path ?? null,
         colonne: 'artistes' as const,
+        ...gesteArtisteTop(a.artist_name),
       }));
-      const albums = d.top_albums.slice(0, RANG_TOPS).map((a, i) => ({
+      const albums: Element[] = d.top_albums.slice(0, RANG_TOPS).map((a, i) => ({
         id: `tops-alb-${i}-${a.album_title}`,
         titre: a.album_title,
         sous: a.artist_name,
         cover: a.cover_path,
         colonne: 'albums' as const,
+        ...gestesAlbumTop(a),
       }));
-      const titres = d.top_tracks.slice(0, RANG_TOPS).map((t, i) => ({
+      const titres: Element[] = d.top_tracks.slice(0, RANG_TOPS).map((t, i) => ({
         id: `tops-tit-${i}-${t.title}`,
         titre: t.title,
         sous: t.artist_name,
         cover: t.cover_path ?? null,
         colonne: 'titres' as const,
+        jouer: gestePisteTop(t),
       }));
       return utiles([...artistes, ...albums, ...titres]);
     },
@@ -1067,11 +1204,37 @@ export const WIDGETS: Widget[] = [
  *
  * Il s'ajoute depuis le mode édition, comme les dix-neuf autres.
  */
+/**
+ * 🔴 #1426 — les DEUX exceptions, et pourquoi elles n'en sont pas vraiment.
+ *
+ * La 0.9.161 a retiré l'entrée « Tableau de bord » de la barre (PR #1415,
+ * `121bb1ba`, décision du 20/09) et porté ses widgets vers l'accueil
+ * (PR #1416) — mais hors du défaut, au nom de la règle ci-dessus. Solde vu
+ * du siège du testeur : l'entrée disparaît, et rien n'apparaît. C'est ce que
+ * FabienM signale (fil 1870), ce que Jean Valjean confirme, et ce que
+ * FabienM précise le 22/09 : « pour ceux qui ne l'ajoute pas à leur écran
+ * d'accueil et qui souhaiteraient tout de même consulter quelques
+ * statistiques ».
+ *
+ * Arbitrage de Bertrand du 22/09/2026 : `top-artistes` et `stats-semaine`
+ * entrent dans le défaut. La règle n'est pas abandonnée — elle cédait ici
+ * devant une PERTE d'accès créée dans la même version, pas devant l'envie
+ * d'ajouter un widget.
+ *
+ * Ils entrent EN QUEUE : le haut de page d'un accueil existant ne bouge pas.
+ * Et ils n'entrent que pour qui n'a RIEN enregistré : `PageWidgets.charger()`
+ * remplace la disposition dès que les préférences du profil en portent une.
+ *
+ * `top-radios` et le gros widget `tops` restent hors du défaut : ils ne
+ * remplacent aucun accès perdu.
+ */
 export const DISPOSITION_DEFAUT = [
   'reprendre',
   'nouveautes-artistes',
   'recemment-ajoutes',
   'statistiques',
+  'top-artistes',
+  'stats-semaine',
 ];
 
 export function widgetParId(id: string): Widget | undefined {

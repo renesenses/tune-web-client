@@ -432,11 +432,26 @@
         aria-label={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}
         title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}></button>
     {/if}
-    <button class="collapse" onclick={toggleCollapse}
-      aria-label={enIcones ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}
-      title={enIcones ? $t('v2.nav.expand' as any) : $t('v2.nav.collapse' as any)}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
-    </button>
+    <!-- ⚙ LES RÉGLAGES, EN HAUT À GAUCHE — #1433 (recette v0.9.161 de
+         Bertrand, 21/09/2026). Le seul chemin vers l'écran Réglages passait
+         par le menu de l'avatar. Même destination que lui (`settings`, sans
+         section imposée) : il n'y a qu'UN écran de réglages. Libellé et
+         infobulle réutilisent `v2.nav.settings`, déjà traduit partout ; cible
+         de 32 px. Le groupe `.actions-marque` le tient collé au bouton de
+         repli, pour que « MOZAIKLABS » garde sa largeur (mesuré en Chrome
+         sans tête : 74 px de texte, la rangée tient au pixel près). -->
+    <div class="actions-marque">
+      <button class="reglages" class:active={$activeView === 'settings'} onclick={() => go('settings')}
+        aria-label={$t('v2.nav.settings' as any)} title={$t('v2.nav.settings' as any)}
+        aria-current={$activeView === 'settings' ? 'page' : undefined}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 7 19.4a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H1a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 2.6 7a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 2.6V1a2 2 0 1 1 4 0v.1A1.7 1.7 0 0 0 17 2.6a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+      </button>
+      <button class="collapse" onclick={toggleCollapse}
+        aria-label={enIcones ? $t('v2.nav.expandAria' as any) : $t('v2.nav.collapseAria' as any)}
+        title={enIcones ? $t('v2.nav.expand' as any) : $t('v2.nav.collapse' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+      </button>
+    </div>
   </div>
 
   <div class="navscroll">
@@ -601,12 +616,28 @@
   /* `position:static` : il reprend sa place dans la colonne, sous le logo. En
      absolu il resterait au-dessus, quel que soit l'ordre d'empilement. */
   .v2-sidebar.collapsed .collapse{position:static; margin-left:0; transform:rotate(180deg)}
+  /* Repliée, la roue et le repli s'empilent sous le logo, comme lui. */
+  .v2-sidebar.collapsed .actions-marque{flex-direction:column; margin:0; gap:6px}
 
   /* L'icône d'un raccourci est un EMOJI choisi par l'utilisateur, pas un
      tracé : il occupe la même case que les pictogrammes pour que la colonne
      reste alignée. */
   .emo{width:17px; height:17px; display:grid; place-items:center; font-size:14px; line-height:1; flex:none}
   .brand{position:relative; display:flex; align-items:center; gap:11px; padding:2px 8px 14px}
+  /* #1433 — la roue des Réglages et le bouton de repli, groupés à droite.
+     `margin-right:-6px` prend six des huit pixels de marge interne de la
+     marque : sans eux la rangée déborde de 6 px (logo 40 + 11 + texte 74 +
+     11 + 32 + 26 = 194 pour 188 disponibles). `.txt` peut rétrécir
+     (`min-width:0`) : la ligne des tâches s'ellipse déjà d'elle-même. */
+  .actions-marque{margin-left:auto; margin-right:-6px; display:flex; align-items:center; flex:none}
+  .actions-marque .collapse{margin-left:0}
+  .brand .txt{min-width:0}
+  .reglages{width:32px; height:32px; border-radius:8px; border:0; padding:0; cursor:pointer;
+    background:transparent; color:var(--v2-txt3); display:grid; place-items:center; transition:.15s}
+  .reglages:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .reglages.active{color:var(--v2-acc1)}
+  .reglages:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .reglages svg{width:17px; height:17px}
   .collapse{margin-left:auto; width:26px; height:26px; border-radius:8px; border:0; cursor:pointer;
     background:transparent; color:var(--v2-txt3); display:grid; place-items:center; transition:.15s}
   .collapse:hover{color:var(--v2-txt); background:var(--v2-hover)}

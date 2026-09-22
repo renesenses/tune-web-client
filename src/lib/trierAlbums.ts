@@ -1,4 +1,5 @@
 import type { Album } from './types';
+import { ordreNaturel } from './ordreNaturel';
 
 /**
  * Trie les albums d'un artiste par année, dans le sens demandé.
@@ -25,7 +26,8 @@ import type { Album } from './types';
  */
 export function trierAlbumsParAnnee(albums: Album[], sens: 'asc' | 'desc'): Album[] {
   const signe = sens === 'asc' ? 1 : -1;
-  const parTitre = (a: Album, b: Album) => (a.title ?? '').localeCompare(b.title ?? '');
+  // #1434 — « Disc 2 » avant « Disc 10 » : l'ordre des NOMBRES, pas du texte.
+  const parTitre = (a: Album, b: Album) => ordreNaturel(a.title, b.title);
 
   return [...albums].sort((a, b) => {
     const ya = a.year ?? 0;

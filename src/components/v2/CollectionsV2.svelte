@@ -50,13 +50,33 @@
   import { fold } from '../../lib/utils';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { preferences } from '../../lib/stores/preferences';
+  import { collectionNomAffiche, collectionDescriptionAffichee }
+    from '../../lib/collectionsLibelles';
 
   type Sorte = 'normale' | 'smart';
   interface Entree {
     sorte: Sorte;
     id: number;
+    /**
+     * Le nom STOCKÉ, mot pour mot celui du serveur.
+     *
+     * 🔴 C'est une DONNÉE, pas un libellé : c'est lui qu'on renvoie au
+     * serveur — corps de `PUT /library/smart-collections/{id}` quand on
+     * renomme, valeur de la facette `/library/tracks?collection=<name>`. Il
+     * ne doit JAMAIS être traduit. Ce qui s'affiche passe par
+     * `libelleTradu()`.
+     */
     nom: string;
     description?: string | null;
+    /**
+     * Clé stable servie par le serveur pour une collection LIVRÉE
+     * (`smartCollection.default.*`, tune-server-rust #4714). `null` dès que
+     * l'utilisateur a renommé la collection : son nom est alors le seul
+     * affichable, et il est rendu verbatim.
+     */
+    nomCle: string | null;
+    /** Idem pour la description, qui perd sa clé seule si elle est réécrite. */
+    descriptionCle: string | null;
     albums: number | null;
     /** Combien d'albums rangés ici ont disparu de la base — le nombre que le
         serveur dit dans `orphan_album_ids` (#901, #3285). `null` quand il n'y
@@ -98,8 +118,40 @@
   let tri = $state<Tri>(lireChoix<Tri>('v2.collections.tri', TRIS, 'alpha'));
   $effect(() => { ecrireChoix('v2.collections.tri', tri); });
 
+  /**
+   * Le nom AFFICHÉ d'une collection, et sa description affichée.
+   *
+   * 🔴 Silviu (testeur roumain, v0.9.161) lisait « 🖼️ Sans pochette »,
+   * « 🆕 Récents », « 🎻 Classique » et « 🎬 Bandes Originales » au milieu
+   * d'une interface roumaine. Rien n'était écrit en dur ici : le semis écrit
+   * les seize collections par défaut en français
+   * (`tune-core/src/db/migrations.rs:546` et `:614`), et cet écran affichait
+   * `c.name` tel quel, faute d'avoir autre chose.
+   *
+   * Le serveur joint désormais `name_key` / `description_key` (#4714). Ces
+   * deux fonctions les traduisent, et retombent sur la valeur stockée quand
+   * la clé manque — serveur ancien, OU collection renommée par
+   * l'utilisateur, dont le nom à lui est rendu verbatim.
+   *
+   * 🔴 Elles ne servent qu'à l'AFFICHAGE. `e.nom` reste la valeur envoyée au
+   * serveur : la modale de renommage et la facette de filtre le lisent, et
+   * `libelleTradu()` n'y apparaît pas.
+   */
+  const libelleTradu = (e: Entree): string =>
+    collectionNomAffiche({ name: e.nom, name_key: e.nomCle }, (k) => $t(k as any));
+  const descriptionTraduite = (e: Entree): string | null =>
+    collectionDescriptionAffichee(
+      { description: e.description, description_key: e.descriptionCle },
+      (k) => $t(k as any),
+    );
+
   function parNom(a: Entree, b: Entree): number {
-    return a.nom.localeCompare(b.nom, undefined, { sensitivity: 'base', numeric: true });
+    // On range sur ce qui est LU, pas sur ce qui est stocké : un lecteur
+    // roumain verrait sinon « Recente » classé à la lettre R du français.
+    return libelleTradu(a).localeCompare(libelleTradu(b), undefined, {
+      sensitivity: 'base',
+      numeric: true,
+    });
   }
   function parDate(a: Entree, b: Entree, recentDabord: boolean): number {
     const ta = a.creee ? Date.parse(a.creee) : NaN;
@@ -141,7 +193,7 @@
    */
   const railListe = $derived(tri === 'alpha' || tri === 'alphaInverse');
   const lettresListe = $derived(
-    railListe ? new Set(visibles.map((e) => initiale(e.nom))) : new Set<string>(),
+    railListe ? new Set(visibles.map((e) => initiale(libelleTradu(e)))) : new Set<string>(),
   );
   let grilleListeEl: HTMLDivElement | undefined = $state();
   function sauterAListe(L: string) {
@@ -222,7 +274,7 @@
    * route, donc sur ce qui disparaît.
    */
   async function supprimerCollection(e: Entree) {
-    const question = $t('v2.col.deleteAsk' as any).replace('{nom}', e.nom ?? '');
+    const question = $t('v2.col.deleteAsk' as any).replace('{nom}', libelleTradu(e));
     if (!(await dialogs.confirm(question, { danger: true }))) return;
     try {
       if (e.sorte === 'smart') await api.deleteSmartCollection(e.id);
@@ -574,6 +626,10 @@
           id: c.id,
           nom: c.name,
           description: c.description,
+          // Une collection MANUELLE est toujours l'œuvre de l'utilisateur :
+          // rien n'est semé, donc aucune clé, jamais.
+          nomCle: null,
+          descriptionCle: null,
           albums: Array.isArray(c.album_ids) ? c.album_ids.length : null,
           manquants:
             typeof c.orphan_album_ids === 'number' && c.orphan_album_ids > 0
@@ -591,6 +647,10 @@
           id: c.id,
           nom: c.name,
           description: c.description,
+          // Servies depuis la v0.9.162 seulement : `?? null` est le repli
+          // pour un serveur plus ancien, qui n'en envoie aucune.
+          nomCle: (c as any).name_key ?? null,
+          descriptionCle: (c as any).description_key ?? null,
           albums: typeof c.album_count === 'number' ? c.album_count : null,
           manquants: null,
           covers: Array.isArray((c as any).covers) ? (c as any).covers : [],
@@ -687,7 +747,9 @@
 
   async function ouvrir(e: Entree) {
     ouverte = e;
-    setShortcutTarget({ key: cleCible(e), restore: { id: e.id, name: e.nom }, label: e.nom });
+    // `restore.name` est la valeur STOCKEE — elle sert a retrouver la
+    // collection, pas a l'afficher ; `label` est ce qui se lit.
+    setShortcutTarget({ key: cleCible(e), restore: { id: e.id, name: e.nom }, label: libelleTradu(e) });
     albums = [];
     await chargerAlbums(e);
   }
@@ -765,8 +827,8 @@
       <div class="v2-titres">
         <button class="back" onclick={() => { ouverte = null; clearShortcutTarget(); }}>← {$t('common.back' as any)}</button>
         <div class="v2-eyebrow">{ouverte.sorte === 'smart' ? $t('v2.col.smart' as any) : $t('v2.col.manual' as any)}</div>
-        <h1>{ouverte.nom}</h1>
-        {#if ouverte.description}<p class="v2-sous">{ouverte.description}</p>{/if}
+        <h1>{libelleTradu(ouverte)}</h1>
+        {#if descriptionTraduite(ouverte)}<p class="v2-sous">{descriptionTraduite(ouverte)}</p>{/if}
       </div>
       <div class="v2-actions fa">
         {#if ouverte.sorte === 'smart'}
@@ -820,6 +882,21 @@
           title={$t('v2.cover.edit' as any)} aria-label={$t('v2.cover.edit' as any)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
           {$t('v2.cover.edit' as any)}
+        </button>
+        <!-- LA SUPPRESSION, À CÔTÉ DE « MODIFIER ».
+             Bertrand, 21/09/2026 : « On ne peut pas supprimer une smart
+             collection. Pas normal ! » — puis « ok vu le bouton supprimer ».
+             Elle existait, mais au SURVOL, derrière le coin bas-gauche de la
+             vignette, et dans l'éditeur. C'est la DEUXIÈME personne qui la
+             cherche : FabienM l'avait déjà cherchée deux fois (#1143), ce qui
+             l'avait fait ajouter dans l'éditeur. La fiche ouverte est
+             l'endroit où l'on regarde : elle y est, visible sans survol.
+             Même fonction que les deux autres portes — même confirmation
+             `danger`, même route selon la sorte. -->
+        <button class="v2-btn danger" onclick={() => void supprimerCollection(ouverte!)}
+          title={$t('common.delete' as any)} aria-label={$t('common.delete' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          {$t('common.delete' as any)}
         </button>
       </div>
     </header>
@@ -956,7 +1033,10 @@
         {#each visibles as e (e.sorte + ':' + e.id)}
           <!-- Un LISERE de couleur, pas un fond : une pochette doit rester
                lisible. -->
-          <div class="card" data-lettre={initiale(e.nom)} style="--teinte:{teinte(e.nom)}">
+          <!-- La lettre du rail suit le libelle LU ; la teinte reste derivee du nom
+               STOCKE, pour qu'une collection ne change pas de couleur en changeant
+               de langue. -->
+          <div class="card" data-lettre={initiale(libelleTradu(e))} style="--teinte:{teinte(e.nom)}">
             <span class="cv teintee">
               <!-- Les deux sortes portent des `item_type` DISTINCTS : leurs
                    identifiants se recouvrent (l'id 1 est à la fois la
@@ -974,7 +1054,7 @@
                   danger: true,
                   faire: () => void supprimerCollection(e),
                 }]}
-                nom={e.nom}
+                nom={libelleTradu(e)}
               >
                 <!-- Mosaïque ou pochette UNIQUE, au choix (Réglages →
                      Affichage). Gros Bidon préférait l'écran compact de
@@ -982,15 +1062,15 @@
                      `covers[0]` : la mosaïque cycle déjà sur cette liste, on
                      prend simplement sa première case. -->
                 {#if $preferences.v2CollectionsMosaique}
-                  <MosaiquePochettes pochettes={e.covers} initiales={e.nom?.slice(0, 1)} alt={e.nom} />
+                  <MosaiquePochettes pochettes={e.covers} initiales={libelleTradu(e).slice(0, 1)} alt={libelleTradu(e)} />
                 {:else}
-                  <AlbumArt coverPath={e.covers[0] ?? null} albumId={null} size={0} alt={e.nom}
-                    fallbackInitials={e.nom?.slice(0, 1)} />
+                  <AlbumArt coverPath={e.covers[0] ?? null} albumId={null} size={0} alt={libelleTradu(e)}
+                    fallbackInitials={libelleTradu(e).slice(0, 1)} />
                 {/if}
               </PochetteActions>
             </span>
             <button class="meta" onclick={() => ouvrir(e)}>
-              <span class="ct" title={e.nom}>{e.nom}</span>
+              <span class="ct" title={libelleTradu(e)}>{libelleTradu(e)}</span>
               <!-- Plus d'étiquette « Intelligente » par carte : l'onglet le dit
                    déjà, et la répéter sur chaque vignette serait du bruit. -->
               <span class="ca" title={String(e.albums ?? 0)}>{e.albums ?? 0}</span>
@@ -1012,6 +1092,14 @@
 
   {#if enEdition}
     {@const cible = enEdition}
+    <!-- 🔴 LA MODALE REÇOIT LE NOM STOCKÉ, PAS LE LIBELLÉ TRADUIT.
+         Ce que ce formulaire montre, il le RENVOIE : `api.updateCollection`
+         écrit en base le contenu du champ. Y mettre la traduction
+         rebaptiserait « 🆕 Récents » en « 🆕 Recente » à la première ouverture
+         de l'éditeur par un lecteur roumain — et la collection perdrait du
+         même coup sa clé, donc sa traduction, pour tout le monde.
+         La règle tient en une ligne : on traduit ce qu'on AFFICHE, jamais ce
+         qu'on renvoie. -->
     <RenommerModale
       titre={$t('v2.edit.collection' as any)}
       nom={cible.nom}
@@ -1111,6 +1199,10 @@
   .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:18px; padding:12px 30px 30px}
   .card{display:flex; flex-direction:column; gap:6px; background:transparent; border:0; padding:0; text-align:left; color:inherit}
   .cv.teintee{box-shadow:0 0 0 2px var(--teinte); border-radius:var(--v2-r-card)}
+  /* « Supprimer » dans l'en-tête de la fiche : visible, jamais aussi présent
+     que « Lire ». Le rouge ne vient qu'au survol. */
+  .v2-btn.danger{color:var(--v2-danger)}
+  .v2-btn.danger:hover{background:var(--v2-danger-soft); border-color:var(--v2-danger-bd)}
   /* Ascenseur alphabetique, repris a l'identique de la Bibliotheque pour que
      les deux ecrans se parcourent de la meme facon. */
   .aveclettres{display:flex; min-height:0; flex:1}

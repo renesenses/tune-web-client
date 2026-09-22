@@ -47,8 +47,12 @@ describe('le vocabulaire est un ensemble de clés, jamais de libellés', () => {
     expect(NOMS).toContain('hu');
   });
 
-  it('couvre les seize genres du catalogue livré', () => {
-    expect(RADIO_GENRE_KEYS.length).toBe(16);
+  it('couvre les VINGT genres que le serveur sait nommer', () => {
+    // Seize jusqu'au 22/09/2026 ; le serveur en nomme vingt depuis #4713
+    // (`cle_genre`, `tune-server/src/routes/radios_libelles.rs:94`), dont
+    // `soul`, `funk`, `folk` et `ambient` que ce relevé ignorait. Une clé
+    // servie et non traduite s'afficherait TELLE QUELLE.
+    expect(RADIO_GENRE_KEYS.length).toBe(20);
   });
 
   it('chaque clé est un identifiant ASCII, sans accent ni espace', () => {
@@ -59,7 +63,7 @@ describe('le vocabulaire est un ensemble de clés, jamais de libellés', () => {
 });
 
 describe('traductions', () => {
-  it.each(NOMS)('les seize genres sont traduits en %s', (langue) => {
+  it.each(NOMS)('les vingt genres sont traduits en %s', (langue) => {
     const dico = LANGUES[langue];
     for (const cle of RADIO_GENRE_KEYS) {
       expect(dico[cle], `${langue} → ${cle}`).toBeTruthy();
@@ -120,13 +124,16 @@ describe('repliement des variantes sur un rayon unique', () => {
   });
 
   it("un genre inconnu n'est pas jeté : il garde son propre rayon et son mot", () => {
-    const rayon = radioGenreShelf('Ambient');
+    // « Ambient » servait ici d'inconnu jusqu'au 22/09/2026 ; il est entré au
+    // vocabulaire avec les vingt genres du serveur (#4713). « Shoegaze » le
+    // remplace — il n'est dans AUCUNE des deux tables.
+    const rayon = radioGenreShelf('Shoegaze');
     expect(rayon).not.toBeNull();
     expect(rayon!.i18nKey).toBeNull();
-    expect(rayon!.raw).toBe('Ambient');
-    expect(radioGenreLabel(rayon!, (k) => `TRADUIT:${k}`)).toBe('Ambient');
+    expect(rayon!.raw).toBe('Shoegaze');
+    expect(radioGenreLabel(rayon!, (k) => `TRADUIT:${k}`)).toBe('Shoegaze');
     // …et deux orthographes d'un même mot inconnu se rejoignent quand même.
-    expect(radioGenreShelf('ambient')!.key).toBe(rayon!.key);
+    expect(radioGenreShelf('shoegaze')!.key).toBe(rayon!.key);
     // …sans jamais se faire passer pour une clé de traduction.
     expect(rayon!.key.startsWith('radioGenre.')).toBe(false);
   });

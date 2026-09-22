@@ -31,6 +31,7 @@
   } from '../../lib/favorisTriFiltre';
   import { clesAvecJumeauLocal, LIMITE_RECHERCHE } from '../../lib/favorisJumeles';
   import { fold } from '../../lib/utils';
+import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import type { Album, Track, Artist } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
@@ -366,7 +367,22 @@
       (p?.id != null ? $favoritePlaylistIds.has(p.id) : encoreFavori(p, 'playlist')) && match(p?.name),
     ),
   );
-  const vCollections = $derived(collections.filter((c) => match(c?.name)));
+  /**
+   * Le nom AFFICHE d'une collection favorite.
+   *
+   * Meme defaut que sur l'ecran Collections : les seize collections
+   * intelligentes LIVREES sont semees en francais en base, et cette liste
+   * rendait `c.name` tel quel. Le serveur joint leur cle stable depuis #4714 ;
+   * une collection renommee par l'utilisateur n'en a pas, et garde son nom.
+   *
+   * La RECHERCHE lit les deux formes : on tape ce qu'on voit, mais le nom
+   * stocke reste trouvable.
+   */
+  const libelleCol = (c: any): string =>
+    collectionNomAffiche(c ?? {}, (k) => $t(k as any));
+  const vCollections = $derived(
+    collections.filter((c) => match(c?.name) || match(libelleCol(c))),
+  );
 
   // Meme regle que les playlists : le magasin porte la verite, donc une
   // facette qu'on vient de decocher quitte l'ecran sans rechargement.
@@ -943,7 +959,7 @@
                   </svg>
                 {/if}
               </span>
-              <span class="sn" title={c.name}>{c.name}</span>
+              <span class="sn" title={libelleCol(c)}>{libelleCol(c)}</span>
               {#if c.album_count != null}<span class="sc">{c.album_count}</span>{/if}
             </button>
           {/each}

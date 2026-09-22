@@ -56,22 +56,57 @@
  * au prix de la réactivité de l'affichage. C'est un arbitrage, pas un correctif.
  */
 
-/** Ce qui identifie un format d'analyse. Change ⇒ la capacité est caduque. */
+/**
+ * Ce qui identifie un format d'analyse. Change ⇒ la capacité est caduque.
+ *
+ * 🔴 #1454 — la TAILLE DE FFT N'EN FAIT PLUS PARTIE, et c'était le défaut.
+ *
+ * Elle y était, au nom de « le format change (débit, taille de FFT, nombre de
+ * bandes) ⇒ on repart de zéro ». Mais côté serveur elle n'est pas une propriété
+ * du format : elle suit la longueur de la trame reçue
+ * (`tune-core/src/audio/levels.rs`) —
+ *
+ * ```rust
+ * let m = samples.len();
+ * let n = m.next_power_of_two().min(SPECTRUM_FFT_MAX);   // 8192
+ * ```
+ *
+ * — et #1002 a mesuré que `m` varie d'une trame à l'autre (1764, 1080, 1764).
+ *
+ * À 44,1 kHz ces deux valeurs donnent toutes deux `n = 2048` : la clé ne
+ * bougeait pas, et le correctif de #1002 tenait — c'est le format sur lequel il
+ * a été mesuré. À **96 kHz**, une fenêtre pleine de 40 ms fait ~3840 trames
+ * (`n = 4096`) et une fenêtre écourtée ~1080 (`n = 2048`) : la clé basculait à
+ * chaque trame courte, toute la mémoire anti-clignotement était jetée, et l'axe
+ * retombait sur la trame courte. Le symptôme de #1002, revenu en hi-res
+ * (Didier, fil 1889, 22/09/2026).
+ *
+ * Ce qui identifie vraiment le format, c'est le DÉBIT et le NOMBRE DE BANDES.
+ * La taille de FFT, elle, est désormais MÉMORISÉE comme une capacité de plus.
+ */
 export function cleFormat(
   sampleRate: number | null | undefined,
-  fftSize: number | null | undefined,
   nbBandes: number,
 ): string {
-  return `${sampleRate ?? 0}/${fftSize ?? 0}/${nbBandes}`;
+  return `${sampleRate ?? 0}/${nbBandes}`;
 }
 
 export interface CapaciteSpectre {
   cle: string;
   /** La table `spectrum_resolved` la plus large vue pour ce format. */
   resolus: boolean[] | null;
+  /**
+   * La plus GRANDE taille de FFT annoncée pour ce format — #1454.
+   *
+   * Elle entre dans `spectrumIsoTicks`, qui rejoue sur elle la troncature du
+   * serveur : à table `spectrum_resolved` identique, 2048 et 4096 ne rendent
+   * pas les mêmes repères. La laisser suivre la trame faisait donc clignoter
+   * l'axe par un second chemin, indépendant de la table.
+   */
+  fftSize: number | null;
 }
 
-export const CAPACITE_VIDE: CapaciteSpectre = { cle: '', resolus: null };
+export const CAPACITE_VIDE: CapaciteSpectre = { cle: '', resolus: null, fftSize: null };
 
 /** Combien de bandes cette table déclare résolues. */
 function largeur(resolus: boolean[] | null | undefined): number {
@@ -94,11 +129,29 @@ export function capaciteMaintenue(
   precedente: CapaciteSpectre,
   cle: string,
   resolus: boolean[] | null | undefined,
+  fftSize?: number | null,
 ): CapaciteSpectre {
   const recue = resolus && resolus.length > 0 ? resolus : null;
-  if (cle !== precedente.cle) return { cle, resolus: recue };
-  if (!recue) return precedente;
-  return largeur(recue) > largeur(precedente.resolus)
-    ? { cle, resolus: recue }
-    : precedente;
+  // Une taille absente, nulle ou dégénérée n'apprend rien : un serveur
+  // antérieur à `spectrum_fft_size` n'en annonce aucune, et `spectrumIsoTicks`
+  // a déjà son repli. Elle ne doit pas effacer ce qu'on savait.
+  const brute = Number(fftSize);
+  const taille = Number.isFinite(brute) && brute > 1 ? brute : null;
+
+  if (cle !== precedente.cle) return { cle, resolus: recue, fftSize: taille };
+
+  // 🔴 #1454 — même doctrine que la table : on retient la plus LARGE vue pour
+  // ce format. Une analyse qui a su travailler sur 4096 points sait le refaire ;
+  // une trame écourtée est un artefact de découpage, pas une baisse de capacité.
+  const meilleureTaille =
+    taille != null && (precedente.fftSize == null || taille > precedente.fftSize)
+      ? taille
+      : precedente.fftSize;
+
+  if (!recue || largeur(recue) <= largeur(precedente.resolus)) {
+    return meilleureTaille === precedente.fftSize
+      ? precedente
+      : { ...precedente, fftSize: meilleureTaille };
+  }
+  return { cle, resolus: recue, fftSize: meilleureTaille };
 }
