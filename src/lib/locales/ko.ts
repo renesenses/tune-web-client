@@ -3448,6 +3448,7 @@ export default {
   "v2.plug.emptyInstalled": "설치된 확장이 없습니다.",
   "v2.plug.empty": "확장이 없습니다.",
   "v2.radio.loadFailed": "방송국을 불러올 수 없습니다.",
+  "v2.radio.allGenres": "전체",
   "v2.zones.browserUnattended": "브라우저 구역: 수신 중인 탭이 없습니다",
   "v2.zones.viewGrid": "그리드",
   "v2.zones.viewList": "목록",

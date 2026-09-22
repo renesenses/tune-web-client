@@ -3447,6 +3447,7 @@ export default {
   "v2.plug.emptyInstalled": "Inga tillägg installerade.",
   "v2.plug.empty": "Inga tillägg.",
   "v2.radio.loadFailed": "Kunde inte läsa in stationerna.",
+  "v2.radio.allGenres": "Alla",
   "v2.zones.browserUnattended": "Webbläsarzon: ingen flik lyssnar",
   "v2.zones.viewGrid": "Rutnät",
   "v2.zones.viewList": "Lista",

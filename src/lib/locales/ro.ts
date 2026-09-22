@@ -3448,6 +3448,7 @@ export default {
   "v2.plug.emptyInstalled": "Nicio extensie instalată.",
   "v2.plug.empty": "Nicio extensie.",
   "v2.radio.loadFailed": "Nu s-au putut încărca posturile.",
+  "v2.radio.allGenres": "Toate",
   "v2.zones.browserUnattended": "Zonă browser: nicio filă nu ascultă",
   "v2.zones.viewGrid": "Grilă",
   "v2.zones.viewList": "Listă",
