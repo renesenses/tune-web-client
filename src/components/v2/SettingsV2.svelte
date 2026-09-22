@@ -3524,11 +3524,6 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <span>{$t('v2.lbl.fixedVolume' as any)}</span>
                         </label>
                         <label class="zf chk">
-                          <input type="checkbox" checked={z.upnp_renderer ?? false}
-                            onchange={(e) => setZoneField(z, () => api.updateZoneUpnpRenderer(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
-                          <span>{$t('devices.upnpRenderer' as any)}</span>
-                        </label>
-                        <label class="zf chk">
                           <input type="checkbox" checked={z.mono_downmix ?? false}
                             onchange={(e) => setZoneField(z, () => api.updateZoneMonoDownmix(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
                           <span>{$t('zoneConfig.monoTitle' as any)}</span>
@@ -3555,6 +3550,54 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                       {#if (z.output_type ?? '') !== 'local'}
                         <p class="monote">{$t('zoneConfig.monoLocalOnly' as any)}</p>
                       {/if}
+
+                      <!--
+                        PUBLIER LA ZONE SUR LE RÉSEAU —
+                        renesenses/tune-server-rust#4626, étape 1 arbitrée par
+                        Bertrand le 22/09/2026 : « rendre visible ce qui
+                        existe ».
+
+                        La publication MediaRenderer par zone est livrée depuis
+                        #1750 (`zone_{id}_upnp_renderer`, PATCH /zones/{id}) et
+                        n'était annoncée NULLE PART : la case s'appelait
+                        « Renderer UPnP » et vivait sans une ligne d'aide,
+                        sixième et avant-dernière d'une rangée de six réglages
+                        (trois listes, trois cases). Un testeur qui cherchait
+                        exactement cette fonction (fil forum 1867) ne l'a pas
+                        trouvée et l'a demandée comme une nouveauté.
+
+                        Deux changements, aucun sur le comportement : le
+                        libellé dit ce que la case FAIT plutôt que le protocole
+                        qu'elle emploie, et elle sort de la rangée pour prendre
+                        sa ligne d'aide — même gabarit que « Bit-perfect
+                        strict » juste en dessous.
+                      -->
+                      <div class="publi-bloc">
+                        <label class="zf chk publier-zone">
+                          <input type="checkbox" checked={z.upnp_renderer ?? false}
+                            onchange={(e) => setZoneField(z, () => api.updateZoneUpnpRenderer(z.id as number, (e.currentTarget as HTMLInputElement).checked))} />
+                          <span>{$t('devices.upnpRenderer' as any)}</span>
+                        </label>
+                        <p class="monote">{$t('devices.upnpRendererHint' as any)}</p>
+                        <!--
+                          Ce que le serveur fait VRAIMENT quand on décoche, dit
+                          là où on décoche. Mesuré sur `origin/main` le
+                          22/09/2026 et déjà écrit dans
+                          `docs/UPNP-RENDERER.md` §4 : l'annonce s'arrête net et
+                          la façade rend 404, mais AUCUN `ssdp:byebye` n'est
+                          émis — le point de contrôle garde son entrée en cache
+                          jusqu'à l'expiration du `max-age`, 1800 s.
+
+                          Ne s'affiche que quand la case est cochée : c'est
+                          l'instant d'avant le décochage, le seul où cette
+                          phrase sert. La taire coûterait un ticket « j'ai
+                          décoché et je la vois encore » — le même défaut que
+                          #3254 a corrigé en publiant ses motifs.
+                        -->
+                        {#if z.upnp_renderer}
+                          <p class="monote">{$t('devices.upnpRendererStopHint' as any)}</p>
+                        {/if}
+                      </div>
 
                       <!--
                         BIT-PERFECT STRICT — renesenses/tune-server-rust#3973,
@@ -4965,6 +5008,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   /* Repliable, comme dans le client actuel : sept réglages de plus déployés
      en permanence sur chacune des 14 zones noieraient les quatre courants. */
   .monote{margin-top:9px; font-size:12px; line-height:1.55; color:var(--v2-txt3)}
+  /* #4626 — « Publier cette zone sur le réseau » : sa ligne et son aide, même
+     gabarit que « Bit-perfect strict » ci-dessous. */
+  .publi-bloc{margin-top:10px}
+  .publi-bloc .zf.chk{align-self:auto; padding-bottom:0}
+  .publi-bloc .monote{margin-top:4px}
   /* #3973 — « Bit-perfect strict » : sa ligne, sous les réglages de la zone. */
   .strict-bloc{margin-top:10px}
   .strict-bloc .zf.chk{align-self:auto; padding-bottom:0}
