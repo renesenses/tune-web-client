@@ -18,6 +18,10 @@
    */
   import * as api from '../../lib/api';
   import { t as tr } from '../../lib/i18n';
+  // Le SÉPARATEUR de milliers suit la langue : « 1 453 » en français,
+  // « 1.453 » en roumain, « 1,453 » en anglais. Une file de 1454 titres
+  // est un cas réel (#1126).
+  import { formatNombre } from '../../lib/formats';
   import { currentZoneId, zones, syncZone } from '../../lib/stores/zones';
   import { notifications } from '../../lib/stores/notifications';
   import { estFichierAudio } from '../../lib/fichiersAudio';
@@ -275,7 +279,7 @@
           <!-- 🔴 Silviu (roumain, v0.9.161) : ces deux compteurs étaient
                écrits en FRANÇAIS en dur au milieu d'un écran par ailleurs
                traduit. Ils passent par le magasin, comme le reste. -->
-          <span>{$tr('v2.queue.upNextCount' as any).replace('{n}', String(upNext.length))}</span>
+          <span>{$tr('v2.queue.upNextCount' as any).replace('{n}', $formatNombre(upNext.length))}</span>
           {#if remainingMs}<span>{$tr('v2.queue.remaining' as any).replace('{d}', formatDuration(remainingMs))}</span>{/if}
         </div>
       {/if}

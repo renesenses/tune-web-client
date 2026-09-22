@@ -128,6 +128,10 @@ describe('file d’attente — capture Silviu (roumain, v0.9.161)', () => {
     const reste = tr('v2.queue.remaining').replace('{d}', '14h 49min');
 
     expect(compteur).toBe('183 în continuare');
+    // Le séparateur de milliers suit la langue : une file de 1454 titres
+    // (#1126) s'écrit « 1.453 » en roumain, pas « 1 453 ».
+    expect(SOURCE_QUEUE).toContain('$formatNombre(upNext.length)');
+    expect((1453).toLocaleString('ro')).toBe('1.453');
     expect(reste).toBe('14h 49min rămase');
     expect(tr('v2.queue.upNext')).toBe('În continuare');
 
