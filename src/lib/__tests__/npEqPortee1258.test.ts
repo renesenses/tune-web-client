@@ -42,7 +42,7 @@ describe('#1258 — le préréglage du lecteur rapporte sa portée', () => {
     });
     expect(jetes, 'réponse de setEq jetée : le serveur dit si la courbe a atteint le son').toEqual([]);
     expect(corps, 'applied_live n’est pas lu dans setEqPreset').toMatch(
-      /eqPorteeLive\s*=\s*res\?\.applied_live\s*\?\?\s*null/,
+      /eqPorteeLive\s*=\s*(?:atteintLeSon\()?res\?\.applied_live[,)\s]/,
     );
   });
 

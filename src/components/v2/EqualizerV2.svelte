@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { atteintLeSon } from '../../lib/porteeReglage';
   /**
    * Égaliseur — nouveau client (direction Levente).
    *
@@ -215,7 +216,7 @@
       : bandesGraphiques(BANDS, gains, gainsRight, GRID_Q[bandCount] ?? 1.0);
     try {
       const res: any = await api.setEq(zid, { bands, enabled });
-      reportReach(res?.applied_live);
+      reportReach(atteintLeSon(res?.applied_live, res?.portee));
       error = null;
     } catch (e: any) {
       // Un refus silencieux, c'est un égaliseur qui « ne marche pas » : les
