@@ -401,6 +401,24 @@
   // Plus de 'smart-ai' ici : le générateur de playlists n'a qu'UNE porte, celle
   // de la rangée du haut (`viewTab`). FabienM, fil 1829 point 2 (web#1111) :
   // les deux rangées montaient le MÊME `SmartAIView` sous le MÊME libellé.
+  /**
+   * Les quatre onglets avancés — Transferts, Synchro, Sauvegarde,
+   * Collaboratives — sont MASQUÉS.
+   *
+   * Bertrand, 22/09/2026 : « Masque tout cela en attendant Tune Circle et que
+   * je réfléchisse ». Ils fonctionnent pourtant (routes mesurées sur le .18 :
+   * `/playlist-manager/history`, `/playlist-manager/links`,
+   * `/playlist-manager/backups`, `/playlists/collaborative`) — c'est leur
+   * PLACE qui n'est pas arrêtée : la sauvegarde recoupe les instantanés du
+   * futur greffon Playlists converter, et les playlists collaboratives
+   * relèvent de Tune Circle.
+   *
+   * Rien n'est supprimé : leur code, leurs routes et leurs traductions
+   * restent. Ce booléen les fait revenir d'un seul geste, le jour où la
+   * question est tranchée.
+   */
+  const ONGLETS_AVANCES = false;
+
   let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab'>('playlists');
 
   // Transfer history
@@ -748,6 +766,12 @@
   }
 
   async function loadManagerData() {
+    // Masqués : un raccourci ou un état ancien ne doit pas ramener sur un
+    // onglet qu'on ne peut plus quitter faute de bouton.
+    if (!ONGLETS_AVANCES && managerTab !== 'playlists') {
+      managerTab = 'playlists';
+      return;
+    }
     if (managerTab === 'transfers') {
       historyLoading = true;
       try { transferHistory = await api.getTransferHistory(); } catch {}
@@ -1785,10 +1809,12 @@
       <h2>{$tr('playlist.manager')}</h2>
       <div class="pm-tabs">
         <button class="pm-tab" class:active={managerTab === 'playlists'} onclick={() => managerTab = 'playlists'}>{$tr('playlistManager.tabPlaylists')}</button>
-        <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
-        <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>{$tr('playlistManager.tabSync')}</button>
-        <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>{$tr('playlistManager.tabBackup')}</button>
-        <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
+        {#if ONGLETS_AVANCES}
+          <button class="pm-tab" class:active={managerTab === 'transfers'} onclick={() => { managerTab = 'transfers'; loadManagerData(); }}>{$tr('playlistManager.tabTransfers')}</button>
+          <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>{$tr('playlistManager.tabSync')}</button>
+          <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>{$tr('playlistManager.tabBackup')}</button>
+          <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
+        {/if}
       </div>
       <div class="pm-header-right">
         <div class="search-box">
