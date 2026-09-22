@@ -821,6 +821,21 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.12 2.12 0 0 0-3-3L5 17v3z"/><path d="M13.5 6.5l4 4"/></svg>
           {$t('v2.cover.edit' as any)}
         </button>
+        <!-- LA SUPPRESSION, À CÔTÉ DE « MODIFIER ».
+             Bertrand, 21/09/2026 : « On ne peut pas supprimer une smart
+             collection. Pas normal ! » — puis « ok vu le bouton supprimer ».
+             Elle existait, mais au SURVOL, derrière le coin bas-gauche de la
+             vignette, et dans l'éditeur. C'est la DEUXIÈME personne qui la
+             cherche : FabienM l'avait déjà cherchée deux fois (#1143), ce qui
+             l'avait fait ajouter dans l'éditeur. La fiche ouverte est
+             l'endroit où l'on regarde : elle y est, visible sans survol.
+             Même fonction que les deux autres portes — même confirmation
+             `danger`, même route selon la sorte. -->
+        <button class="v2-btn danger" onclick={() => void supprimerCollection(ouverte!)}
+          title={$t('common.delete' as any)} aria-label={$t('common.delete' as any)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+          {$t('common.delete' as any)}
+        </button>
       </div>
     </header>
 
@@ -1111,6 +1126,10 @@
   .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:18px; padding:12px 30px 30px}
   .card{display:flex; flex-direction:column; gap:6px; background:transparent; border:0; padding:0; text-align:left; color:inherit}
   .cv.teintee{box-shadow:0 0 0 2px var(--teinte); border-radius:var(--v2-r-card)}
+  /* « Supprimer » dans l'en-tête de la fiche : visible, jamais aussi présent
+     que « Lire ». Le rouge ne vient qu'au survol. */
+  .v2-btn.danger{color:var(--v2-danger)}
+  .v2-btn.danger:hover{background:var(--v2-danger-soft); border-color:var(--v2-danger-bd)}
   /* Ascenseur alphabetique, repris a l'identique de la Bibliotheque pour que
      les deux ecrans se parcourent de la meme facon. */
   .aveclettres{display:flex; min-height:0; flex:1}
