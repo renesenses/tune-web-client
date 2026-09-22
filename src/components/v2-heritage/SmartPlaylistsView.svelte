@@ -8,6 +8,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
+  import { quatreDistinctes } from '../../lib/mosaique';
   import { get } from 'svelte/store';
   import { streamingServices } from '../../lib/stores/streaming';
   import { statutsStreaming } from '../../lib/albumsArtisteStreaming';
@@ -128,9 +130,50 @@
     { value: 'random', key: 'smartPlaylists.sortRandom' },
   ];
 
+  /**
+   * Les quatre pochettes de chaque playlist intelligente, par identifiant.
+   *
+   * Une playlist intelligente n'a pas de pochette à elle : son contenu est
+   * calculé. Les images viennent donc de ses PISTES, comme pour les playlists
+   * ordinaires (`PlaylistsV2`) et le gestionnaire de playlists.
+   */
+  let mosaiques = $state<Record<number, string[]>>({});
+  const mosaiquesDemandees = new Set<number>();
+
+  /**
+   * Charge les pochettes APRÈS l'affichage de la grille, jamais avant.
+   *
+   * ⚠️ Une requête PAR playlist, et ici chacune RECALCULE la sélection côté
+   * serveur : la grille ne doit donc rien attendre. Elle s'affiche avec son
+   * étoile, les mosaïques la rejoignent au fil de l'eau, et un échec ne coûte
+   * que sa propre vignette. `mosaiquesDemandees` empêche de redemander la même
+   * playlist à chaque re-rendu.
+   */
+  async function chargerMosaiques(liste: SmartPlaylist[]): Promise<void> {
+    await Promise.allSettled(
+      (liste ?? []).map(async (sp) => {
+        const id = sp?.id;
+        if (id == null || mosaiquesDemandees.has(id)) return;
+        mosaiquesDemandees.add(id);
+        try {
+          const pistes = await api.getSmartPlaylistTracks(id);
+          // Distinctes : deux titres du même album ne prennent pas deux cases.
+          const vues = quatreDistinctes(
+            (pistes ?? []).map((t: any) => ({ cover_path: t?.cover_path, title: t?.album_title ?? t?.album })),
+          );
+          if (vues.length) mosaiques = { ...mosaiques, [id]: vues };
+        } catch {
+          // Une playlist dont le contenu ne se calcule pas garde son étoile.
+          mosaiquesDemandees.delete(id);
+        }
+      }),
+    );
+  }
+
   async function loadSmartPlaylists() {
     try {
       smartPlaylists = await api.getSmartPlaylists();
+      void chargerMosaiques(smartPlaylists);
     } catch (e) {
       console.error('Load smart playlists error:', e);
     }
@@ -539,9 +582,18 @@
           onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectSp(sp); }}
         >
           <div class="card-head">
-            <span class="card-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-            </span>
+            {#if sp.id != null && mosaiques[sp.id]}
+              <!-- La mosaïque DIT ce que la playlist contient ; l'étoile ne
+                   disait que « intelligente ». Elle reste le repli tant que
+                   les pochettes ne sont pas chargées, ou si elles manquent. -->
+              <span class="card-mosaique">
+                <MosaiquePochettes pochettes={mosaiques[sp.id]} alt={sp.name} />
+              </span>
+            {:else}
+              <span class="card-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+              </span>
+            {/if}
             <span class="card-name">{sp.name}</span>
             <button class="edit-icon" onclick={(e) => { e.stopPropagation(); startEdit(sp); }} title={$tr('smartPlaylists.edit')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -596,6 +648,9 @@
   .card:hover { background: rgba(var(--tune-accent-rgb, 99, 102, 241), 0.12); }
   .card-head { display: flex; align-items: center; gap: 0.5rem; }
   .card-icon { color: var(--tune-accent, #6366f1); display: inline-flex; }
+  /* Même gabarit que l'étoile qu'elle remplace : la carte ne bouge pas quand
+     les pochettes arrivent. */
+  .card-mosaique { display: inline-flex; width: 32px; height: 32px; flex: 0 0 32px; border-radius: var(--radius-sm, 4px); overflow: hidden; }
   .card-name { flex: 1; font-weight: 600; color: var(--tune-text); font-size: 0.95rem; }
   .edit-icon { background: transparent; border: none; color: var(--tune-text-muted); cursor: pointer; opacity: 0.5; padding: 0 0.2rem; display: inline-flex; align-items: center; }
   .edit-icon:hover { opacity: 1; color: var(--tune-accent); }
