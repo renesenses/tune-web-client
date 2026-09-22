@@ -3216,6 +3216,7 @@ export default {
   "v2.sup.attachDiag": "Joindre les journaux et la fiche système",
   "v2.sup.attachDiagHint": "Ils décrivent votre installation et les dernières erreurs du serveur. Sans eux, un diagnostic demande souvent plusieurs allers-retours.",
   "v2.sup.files": "Pièces jointes",
+  "v2.sup.fileRemove": "Retirer",
   "v2.sup.send": "Envoyer",
   "v2.sup.errSend": "L'envoi a échoué.",
   "v2.sup.errRateLimited": "Trop d'envois : réessayez dans {delay} secondes.",

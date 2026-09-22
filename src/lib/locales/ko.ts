@@ -3194,6 +3194,7 @@ export default {
   "v2.sup.attachDiag": "로그와 시스템 정보 첨부",
   "v2.sup.attachDiagHint": "설치 환경과 서버의 최근 오류가 담깁니다. 없으면 진단에 여러 차례 오가는 일이 많습니다.",
   "v2.sup.files": "첨부 파일",
+  "v2.sup.fileRemove": "제거",
   "v2.sup.send": "보내기",
   "v2.sup.errSend": "보내지 못했습니다.",
   "v2.sup.errRateLimited": "요청이 너무 많습니다. {delay}초 후에 다시 시도하세요.",

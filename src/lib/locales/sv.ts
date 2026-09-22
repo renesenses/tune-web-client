@@ -3193,6 +3193,7 @@ export default {
   "v2.sup.attachDiag": "Bifoga loggar och systemrapport",
   "v2.sup.attachDiagHint": "De beskriver din installation och serverns senaste fel. Utan dem kräver en diagnos ofta flera turer.",
   "v2.sup.files": "Bilagor",
+  "v2.sup.fileRemove": "Ta bort",
   "v2.sup.send": "Skicka",
   "v2.sup.errSend": "Sändningen misslyckades.",
   "v2.sup.errRateLimited": "För många meddelanden: försök igen om {delay} sekunder.",

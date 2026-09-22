@@ -3152,6 +3152,7 @@ export default {
   "v2.sup.attachDiag": "Naplók és rendszerlap csatolása",
   "v2.sup.attachDiagHint": "Leírják a telepítését és a kiszolgáló legutóbbi hibáit. Nélkülük a diagnózis gyakran több fordulót igényel.",
   "v2.sup.files": "Mellékletek",
+  "v2.sup.fileRemove": "Eltávolítás",
   "v2.sup.send": "Küldés",
   "v2.sup.errSend": "A küldés nem sikerült.",
   "v2.sup.errRateLimited": "Túl sok üzenet: próbálja újra {delay} másodperc múlva.",
