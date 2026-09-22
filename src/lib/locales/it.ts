@@ -3168,6 +3168,7 @@ export default {
   "v2.disco.lossy": "Compresso",
   "v2.disco.reset": "Mostra tutto",
   "v2.disco.noMatch": "Nessun album corrisponde a questo filtro.",
+  "v2.disco.related": "Altri / Correlati",
   "v2.fas.albums": "Album",
   "v2.fas.empty": "Niente da mostrare per questo artista.",
   "v2.fas.topTracksFailed": "Non è stato possibile caricare i brani principali: «Best of» e «Radio» ne hanno bisogno.",

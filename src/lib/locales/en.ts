@@ -3188,6 +3188,7 @@ export default {
   "v2.disco.lossy": "Lossy",
   "v2.disco.reset": "Show all",
   "v2.disco.noMatch": "No album matches this filter.",
+  "v2.disco.related": "Other / Related",
   "v2.fas.albums": "Albums",
   "v2.fas.empty": "Nothing to show for this artist.",
   "v2.fas.topTracksFailed": "Top tracks could not be loaded — “Best of” and “Radio” need them.",

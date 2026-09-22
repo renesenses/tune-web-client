@@ -18,6 +18,7 @@
    */
   import type { Album } from '../../lib/types';
   import type { AlbumsDeService } from '../../lib/albumsArtisteStreaming';
+  import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
     BIBLIOTHEQUE, compterFocus, comptesProvenanceFiche, dansProvenance, filtrerFocus, fusionnerDiscographie,
     type EntreeDiscographie, type Exemplaire, type Qualite,
@@ -45,10 +46,28 @@
     provenance?: string | null;
     /** Les comptes de ce filtre, pour que le menu parle de CETTE discographie. */
     onComptesProvenance?: (c: ComptesArtistesSources) => void;
+    /**
+     * Le nom de l'artiste de la fiche — ce qui départage, avec l'identifiant
+     * résolu chez chaque service, ses albums de ceux qui ne font que le citer
+     * (#4651, `lib/discographieConnexes`).
+     */
+    nomArtiste?: string | null;
   }
-  let { locaux = [], services = [], servicesEnCharge = false, onOuvrir, onLire, provenance = null, onComptesProvenance }: Props = $props();
+  let { locaux = [], services = [], servicesEnCharge = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null }: Props = $props();
 
-  const toutes = $derived(fusionnerDiscographie(locaux, services));
+  /**
+   * #4651 — Qobuz range sous un artiste des reprises et des albums d'autres
+   * artistes (15 sur 52 pour Agnes Obel, mesuré sur le .18). La grille
+   * principale ne garde que ceux DE l'artiste ; les autres ne sont pas jetés,
+   * ils passent sous « Autres / Connexes », comme le testeur l'a proposé.
+   * Les deux groupes sont fusionnés SÉPARÉMENT : « The Curse » d'Echoes of
+   * Maya ne se replie plus sur « The Curse » d'Agnes Obel.
+   */
+  const partage = $derived(partagerDiscographie(services, nomArtiste));
+  const toutes = $derived(fusionnerDiscographie(locaux, partage.propres));
+  const connexes = $derived(
+    fusionnerDiscographie([], partage.connexes).filter((e) => dansProvenance(e, provenance)),
+  );
   $effect(() => { onComptesProvenance?.(comptesProvenanceFiche(toutes)); });
   const entrees = $derived(toutes.filter((e) => dansProvenance(e, provenance)));
   const comptes = $derived(compterFocus(entrees));
@@ -93,9 +112,9 @@
    * quand le sien les laisse vides (un album Qobuz n'a pas de date d'ajout,
    * sa copie locale si) — puis on retrouve la vignette par référence.
    */
-  const triees = $derived.by(() => {
+  function trier(liste: EntreeDiscographie[], cle: CleTriAlbums, sens: SensTri): EntreeDiscographie[] {
     const parAlbum = new Map<Album, EntreeDiscographie>();
-    const albums = filtrees.map((e) => {
+    const albums = liste.map((e) => {
       const complet = { ...e.principal.album } as Album;
       for (const ex of e.exemplaires) {
         complet.year ??= ex.album.year;
@@ -105,8 +124,10 @@
       parAlbum.set(complet, e);
       return complet;
     });
-    return trierAlbums(albums, triAlbums, sensAlbums).map((a) => parAlbum.get(a)!);
-  });
+    return trierAlbums(albums, cle, sens).map((a) => parAlbum.get(a)!);
+  }
+  const triees = $derived(trier(filtrees, triAlbums, sensAlbums));
+  const connexesTriees = $derived(trier(connexes, triAlbums, sensAlbums));
 
   /** L'exemplaire local d'une vignette, s'il y en a un — il porte le cœur. */
   const local = (e: EntreeDiscographie) => e.exemplaires.find((x) => x.source === BIBLIOTHEQUE)?.album ?? null;
@@ -162,47 +183,62 @@
   {:else}
     <div class="gr">
       {#each triees as e (e.cle)}
-        {@const al = e.principal.album}
-        {@const loc = local(e)}
-        <div class="carte" data-sources={e.sources.join(' ')}>
-          <div class="cv">
-            <PochetteActions
-              favori={loc?.id != null ? { albumId: loc.id } : null}
-              etiquettes={loc?.id != null ? { itemType: 'album', itemId: loc.id } : null}
-              onLire={() => onLire(e.principal)}
-              onOuvrir={() => onOuvrir(e.principal)}
-              nom={al.title}
-            >
-              <!-- `source` n'est PAS passé à `AlbumArt` : il y poserait sa
-                   propre puce, et la vignette en afficherait deux. -->
-              <AlbumArt coverPath={al.cover_path ?? loc?.cover_path ?? null}
-                albumId={e.principal.source === BIBLIOTHEQUE ? al.id : null} size={0} alt={al.title}
-                fallbackInitials={al.title?.slice(0, 1)} />
-            </PochetteActions>
-            <div class="pastilles">
-              {#each e.sources as s (s)}
-                {#if s === BIBLIOTHEQUE}
-                  <span class="biblio" title={$t('v2.disco.library' as any)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>
-                  </span>
-                {:else}
-                  <ServiceBadge source={s} compact />
-                {/if}
-              {/each}
-            </div>
-          </div>
-          <button class="meta" onclick={() => onOuvrir(e.principal)}>
-            <span class="ct" title={al.title}>{al.title}</span>
-            <span class="ca">{al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? ''}</span>
-          </button>
-        </div>
+        {@render carte(e)}
       {/each}
     </div>
     {#if servicesEnCharge}
       <div class="etat">{$t('common.loading' as any)}</div>
     {/if}
   {/if}
+
+  {#if connexesTriees.length}
+    <section class="connexes" data-section="connexes">
+      <h3 class="titre-connexes">{$t('v2.disco.related' as any)} <span class="cpt">{connexesTriees.length}</span></h3>
+      <div class="gr">
+        {#each connexesTriees as e (e.cle)}
+          {@render carte(e)}
+        {/each}
+      </div>
+    </section>
+  {/if}
 </div>
+
+{#snippet carte(e: EntreeDiscographie)}
+  {@const al = e.principal.album}
+  {@const loc = local(e)}
+  <div class="carte" data-sources={e.sources.join(' ')}>
+    <div class="cv">
+      <PochetteActions
+        favori={loc?.id != null ? { albumId: loc.id } : null}
+        etiquettes={loc?.id != null ? { itemType: 'album', itemId: loc.id } : null}
+        onLire={() => onLire(e.principal)}
+        onOuvrir={() => onOuvrir(e.principal)}
+        nom={al.title}
+      >
+        <!-- `source` n'est PAS passé à `AlbumArt` : il y poserait sa
+             propre puce, et la vignette en afficherait deux. -->
+        <AlbumArt coverPath={al.cover_path ?? loc?.cover_path ?? null}
+          albumId={e.principal.source === BIBLIOTHEQUE ? al.id : null} size={0} alt={al.title}
+          fallbackInitials={al.title?.slice(0, 1)} />
+      </PochetteActions>
+      <div class="pastilles">
+        {#each e.sources as s (s)}
+          {#if s === BIBLIOTHEQUE}
+            <span class="biblio" title={$t('v2.disco.library' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 4v16M10 4v16M15 5l4 15"/></svg>
+            </span>
+          {:else}
+            <ServiceBadge source={s} compact />
+          {/if}
+        {/each}
+      </div>
+    </div>
+    <button class="meta" onclick={() => onOuvrir(e.principal)}>
+      <span class="ct" title={al.title}>{al.title}</span>
+      <span class="ca">{al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? ''}</span>
+    </button>
+  </div>
+{/snippet}
 
 <style>
   .disco { display: flex; flex-direction: column; }
@@ -267,6 +303,11 @@
     display: block; margin-top: 2px;
     font: 11px var(--v2-mono); color: var(--v2-txt3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .connexes { margin-top: 28px; }
+  .titre-connexes {
+    display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
+    font: 600 13px var(--v2-sans); color: var(--v2-txt2);
   }
   .etat { padding: 22px 0; color: var(--v2-txt3); font-size: 13.5px; }
 </style>

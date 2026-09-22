@@ -3168,6 +3168,7 @@ export default {
   "v2.disco.lossy": "Comprimat",
   "v2.disco.reset": "Arată tot",
   "v2.disco.noMatch": "Niciun album nu corespunde acestui filtru.",
+  "v2.disco.related": "Altele / Conexe",
   "v2.fas.albums": "Albume",
   "v2.fas.empty": "Nimic de afișat pentru acest artist.",
   "v2.fas.topTracksFailed": "Piesele de top nu au putut fi încărcate — „Best of” și „Radio” au nevoie de ele.",

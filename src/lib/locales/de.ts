@@ -3168,6 +3168,7 @@ export default {
   "v2.disco.lossy": "Verlustbehaftet",
   "v2.disco.reset": "Alle anzeigen",
   "v2.disco.noMatch": "Kein Album entspricht diesem Filter.",
+  "v2.disco.related": "Andere / Verwandte",
   "v2.fas.albums": "Alben",
   "v2.fas.empty": "Für diesen Künstler gibt es nichts anzuzeigen.",
   "v2.fas.topTracksFailed": "Die Top-Titel konnten nicht geladen werden – „Best of“ und „Radio“ brauchen sie.",

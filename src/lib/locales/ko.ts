@@ -3168,6 +3168,7 @@ export default {
   "v2.disco.lossy": "손실 압축",
   "v2.disco.reset": "모두 보기",
   "v2.disco.noMatch": "이 필터와 일치하는 앨범이 없습니다.",
+  "v2.disco.related": "기타 / 관련",
   "v2.fas.albums": "앨범",
   "v2.fas.empty": "이 아티스트에 대해 표시할 내용이 없습니다.",
   "v2.fas.topTracksFailed": "인기 트랙을 불러오지 못했습니다 — ‘Best of’와 ‘라디오’에 필요합니다.",
