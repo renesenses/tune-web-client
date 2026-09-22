@@ -83,6 +83,10 @@ describe('les deux écrans', () => {
     const s = lire('src/components/v2/DiscographieCommune.svelte');
     expect(s).toMatch(/CLES_FICHE: readonly CleTriAlbums\[\] = \['year', 'title', 'release_date', 'added_at'\]/);
     expect(s).toMatch(/lireChoix<CleTriAlbums>\('v2\.art\.albums\.tri', CLES_FICHE, 'year'\)/);
-    expect(s).toMatch(/trierAlbums\(albums, triAlbums, sensAlbums\)/);
+    // #4651 : le tri sert deux grilles (discographie, « Autres / Connexes ») ;
+    // les deux passent par le même module, avec les mêmes clé et sens.
+    expect(s).toMatch(/trierAlbums\(albums, cle, sens\)/);
+    expect(s).toMatch(/trier\(filtrees, triAlbums, sensAlbums\)/);
+    expect(s).toMatch(/trier\(connexes, triAlbums, sensAlbums\)/);
   });
 });
