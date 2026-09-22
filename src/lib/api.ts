@@ -2913,7 +2913,51 @@ export interface DspSettings {
   crossfeed?: CrossfeedSettings;
   /** #2742 — verdict du serveur sur cette zone. Voir CrossfeedStatus. */
   crossfeed_status?: CrossfeedStatus | null;
+  /** tune-server-rust#4683 — les bornes que le serveur applique. Absent d'un
+   *  serveur antérieur : `bornesCrossfeed` retombe sur les constantes. */
+  crossfeed_limits?: CrossfeedLimits | null;
   [key: string]: any;
+}
+
+/** Bornes publiées par `GET /zones/{id}/dsp` (tune-server-rust#4683).
+ *  `amount_max` est le point mono : le « 100 % » du curseur de niveau. */
+export interface CrossfeedLimits {
+  amount_max: number;
+  delay_ms_max: number;
+}
+
+// Préréglages NOMMÉS du crossfeed — CRUD serveur (tune-server-rust#4684,
+// `routes/crossfeed.rs`), sur le modèle de « Mes presets » de l'égaliseur :
+// une liste globale au serveur, partagée entre appareils, incluse dans la
+// sauvegarde de configuration. Un préréglage ne porte que le son (niveau,
+// retard) ; l'APPLIQUER, c'est envoyer ses valeurs à `setDsp`. Enregistrer un
+// nom déjà pris le met à jour. Écritures gardées Premium + greffon installé.
+export interface CrossfeedPresetServeur {
+  id: string;
+  name: string;
+  amount: number;
+  delay_ms: number;
+  created_at?: number;
+}
+
+export async function listCrossfeedPresets(): Promise<CrossfeedPresetServeur[]> {
+  const r = await fetchJSON<{ presets: CrossfeedPresetServeur[] }>(`${BASE}/crossfeed/presets`);
+  return Array.isArray(r?.presets) ? r.presets : [];
+}
+
+export function saveCrossfeedPreset(body: {
+  name: string;
+  amount: number;
+  delay_ms: number;
+}): Promise<CrossfeedPresetServeur> {
+  return fetchJSON<CrossfeedPresetServeur>(`${BASE}/crossfeed/presets`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteCrossfeedPreset(id: string): Promise<void> {
+  return fetchVoid(`${BASE}/crossfeed/presets/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 export function getDsp(zoneId: number) {

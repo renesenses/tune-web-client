@@ -2727,6 +2727,7 @@ export default {
   "v2.cf.perZoneB": ".",
   "v2.cf.amount": "Intensität",
   "v2.cf.amountHint": "Welcher Anteil des gegenüberliegenden Kanals ins andere Ohr gelangt.",
+  "v2.cf.amountScaleHint": "Bei 100 % hören beide Ohren dasselbe: Das Klangbild wird mono.",
   "v2.cf.amountAria": "Crossfeed-Intensität",
   "v2.cf.delay": "Verzögerung",
   "v2.cf.delayHint": "Die Zeit, die der Schall braucht, um den Kopf zu umlaufen. Sie erzeugt die Distanz.",

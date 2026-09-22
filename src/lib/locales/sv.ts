@@ -2726,6 +2726,7 @@ export default {
   "v2.cf.perZoneB": ".",
   "v2.cf.amount": "Intensitet",
   "v2.cf.amountHint": "Hur stor del av motsatt kanal som når det andra örat.",
+  "v2.cf.amountScaleHint": "Vid 100 % får båda öronen samma signal: ljudbilden blir mono.",
   "v2.cf.amountAria": "Crossfeed-intensitet",
   "v2.cf.delay": "Fördröjning",
   "v2.cf.delayHint": "Tiden ljudet tar att gå runt huvudet. Det är den som skapar avståndet.",

@@ -2685,6 +2685,7 @@ export default {
   "v2.cf.perZoneB": ".",
   "v2.cf.amount": "Erősség",
   "v2.cf.amountHint": "A szemközti csatorna mekkora része jut a másik fülbe.",
+  "v2.cf.amountScaleHint": "100%-on mindkét fül ugyanazt kapja: a hangkép monóvá válik.",
   "v2.cf.amountAria": "Crossfeed erőssége",
   "v2.cf.delay": "Késleltetés",
   "v2.cf.delayHint": "Az az idő, amíg a hang megkerüli a fejet. Ez teremti a távolságot.",

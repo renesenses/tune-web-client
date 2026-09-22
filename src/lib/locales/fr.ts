@@ -2742,6 +2742,7 @@ export default {
   "v2.cf.perZoneB": ".",
   "v2.cf.amount": "Intensité",
   "v2.cf.amountHint": "Quelle proportion du canal opposé passe dans l'autre oreille.",
+  "v2.cf.amountScaleHint": "À 100 %, les deux oreilles reçoivent la même chose : l'image devient mono.",
   "v2.cf.amountAria": "Intensité du crossfeed",
   "v2.cf.delay": "Retard",
   "v2.cf.delayHint": "Le temps que met le son à contourner la tête. C'est lui qui crée la distance.",

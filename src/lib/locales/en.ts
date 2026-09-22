@@ -2740,6 +2740,7 @@ export default {
   "v2.cf.perZoneB": ".",
   "v2.cf.amount": "Amount",
   "v2.cf.amountHint": "How much of the opposite channel reaches the other ear.",
+  "v2.cf.amountScaleHint": "At 100%, both ears receive the same signal: the image becomes mono.",
   "v2.cf.amountAria": "Crossfeed amount",
   "v2.cf.delay": "Delay",
   "v2.cf.delayHint": "The time sound takes to travel around the head. That is what creates the distance.",

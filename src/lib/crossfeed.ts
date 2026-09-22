@@ -1,12 +1,47 @@
-import type { CrossfeedSettings, CrossfeedStatus } from './api';
+import type { CrossfeedLimits, CrossfeedSettings, CrossfeedStatus } from './api';
 
 /** Bornes acceptées par le serveur (`/zones/{id}/dsp`). Au-delà, il rogne
  *  lui-même — on le fait avant d'envoyer pour que l'écran montre la valeur
- *  qui sera réellement appliquée, pas celle qu'on a demandée. */
+ *  qui sera réellement appliquée, pas celle qu'on a demandée.
+ *
+ *  Repli seulement : un serveur qui porte tune-server-rust#4683 publie les
+ *  siennes (`crossfeed_limits`, voir `bornesCrossfeed`).
+ *
+ *  0,5 n'est pas un plafond de prudence mais le bout de l'échelle du NIVEAU
+ *  (tune-server-rust#4683) : le moteur garde le Mid et multiplie le Side par
+ *  `1 − 2·amount`. À 0,5 le Side est entièrement replié — les deux oreilles
+ *  reçoivent la même chose, l'image est mono. Au-delà il changerait de signe,
+ *  et à 1,0 la gauche et la droite seraient simplement échangées. */
 export const CF_MIN_AMOUNT = 0;
 export const CF_MAX_AMOUNT = 0.5;
 export const CF_MIN_DELAY = 0;
 export const CF_MAX_DELAY = 5;
+
+export interface BornesCrossfeed {
+  amountMax: number;
+  delayMax: number;
+}
+
+/** Les bornes que le SERVEUR applique, s'il les publie ; sinon les nôtres.
+ *  Une valeur absente, nulle ou non finie retombe sur la constante : mieux
+ *  vaut un curseur un peu court qu'un curseur à zéro. */
+export function bornesCrossfeed(limits: CrossfeedLimits | null | undefined): BornesCrossfeed {
+  const ok = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0;
+  return {
+    amountMax: ok(limits?.amount_max) ? limits.amount_max : CF_MAX_AMOUNT,
+    delayMax: ok(limits?.delay_ms_max) ? limits.delay_ms_max : CF_MAX_DELAY,
+  };
+}
+
+/** Le NIVEAU tel que l'écran l'affiche : la course du curseur, de 0 à 100 %.
+ *
+ *  tune-server-rust#4683 — l'écran affichait `amount × 100`, soit « 50 % » le
+ *  curseur en butée : un curseur qui semblait s'arrêter à mi-course. 100 %
+ *  désigne désormais le bout de l'échelle, le point mono (`amountMax`). */
+export function niveauEnPourcent(amount: number, amountMax: number = CF_MAX_AMOUNT): number {
+  if (!(amountMax > 0) || !Number.isFinite(amount)) return 0;
+  return Math.round(borner(amount / amountMax, 0, 1) * 100);
+}
 
 export interface CrossfeedPreset {
   key: string;
@@ -25,18 +60,21 @@ export const CF_PRESETS: CrossfeedPreset[] = [
   { key: 'strong', labelKey: 'dsp.crossfeedPresetStrong', amount: 0.4, delay: 0.7 },
 ];
 
-const borner = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+function borner(v: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, v));
+}
 
 /** La charge utile à envoyer, bornée. */
 export function reglagesCrossfeed(
   enabled: boolean,
   amount: number,
-  delay_ms: number
+  delay_ms: number,
+  bornes: BornesCrossfeed = { amountMax: CF_MAX_AMOUNT, delayMax: CF_MAX_DELAY },
 ): CrossfeedSettings {
   return {
     enabled,
-    amount: borner(amount, CF_MIN_AMOUNT, CF_MAX_AMOUNT),
-    delay_ms: borner(delay_ms, CF_MIN_DELAY, CF_MAX_DELAY),
+    amount: borner(amount, CF_MIN_AMOUNT, bornes.amountMax),
+    delay_ms: borner(delay_ms, CF_MIN_DELAY, bornes.delayMax),
   };
 }
 
