@@ -2314,6 +2314,8 @@ export default {
   "smartPlaylists.opIsNotEmpty": "n'est pas vide",
   "smartPlaylists.sortDuration": "Durée",
   "smartPlaylists.sortRandom": "Aléatoire",
+  "smartPlaylists.sortPlayCount": "Les plus lues",
+  "smartPlaylists.sortAdded": "Ajouts récents",
   "smartPlaylists.created": "Smart playlist \"{name}\" créée",
   "smartPlaylists.deleted": "\"{name}\" supprimée",
   "smartPlaylists.updated": "Smart playlist \"{name}\" modifiée",

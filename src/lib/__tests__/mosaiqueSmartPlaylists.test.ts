@@ -97,10 +97,14 @@ describe('Smart playlists : la carte est celle des smart collections', () => {
     expect(collections).toContain(formule);
     expect(liste).toContain('<div class="card" data-lettre={initiale(sp.name)} style="--teinte:{teinte(sp.name)}">');
     expect(liste).toContain('<span class="cv teintee">');
-    expect(liste).toContain('<button class="meta" onclick={() => selectSp(sp)}>');
+    // Ancré sur le bouton, pas sur sa ligne entière : l'infobulle qui porte
+    // désormais le résumé des règles ne doit pas faire échouer la garde.
+    expect(liste).toContain('<button class="meta" onclick={() => selectSp(sp)}');
     // Le résumé des règles ne disparaît pas : c'est ce qui dit POURQUOI ces
     // pistes-là sont dedans.
-    expect(liste).toContain('<span class="cr" title={ruleSummary(sp)}>{ruleSummary(sp)}</span>');
+    // Le résumé des règles a quitté la carte (Bertrand : « cache la ») : il ne
+    // vit plus que dans l'infobulle du bloc meta, gardée par le test dédié.
+    expect(liste).toContain('ruleSummary(sp)');
   });
 
   it('le rail A-Z et le tri sont ceux des collections, et le tri est mémorisé', () => {
@@ -127,5 +131,23 @@ describe('Smart playlists : la carte est celle des smart collections', () => {
     // La question de suppression NOMME la playlist visée.
     expect(fr).toMatch(/"smartPlaylists\.deleteAsk": "[^"]*\{nom\}/);
     expect(vue).toContain("$tr('smartPlaylists.deleteAsk').replace('{nom}', sp.name ?? '')");
+  });
+
+  it('une playlist SANS règle dit son critère, pas « aucune règle »', () => {
+    // Trois des six playlists du .18 n'ont aucune règle (« 50 Random Tracks »,
+    // « Most Played », « Recently Added ») : leur sélection tient dans leur
+    // tri et leur plafond, que le serveur porte (`sort_by`, `max_tracks`).
+    expect(vue).toContain('function critereSansRegle(');
+    expect(vue).toMatch(/if \(!rules\.length\) return critereSansRegle\(sp\);/);
+    expect(vue).toContain("play_count: 'smartPlaylists.sortPlayCount'");
+    expect(vue).toContain("smartPlaylists.sortAdded");
+    // Un tri que la table ne connaît pas se montre tel quel, il ne disparaît pas.
+    expect(vue).toContain('LIBELLE_TRI[tri] ? $tr(LIBELLE_TRI[tri] as any) : tri');
+  });
+
+  it('la carte ne MONTRE pas la règle : elle vit dans l’infobulle', () => {
+    // Bertrand, 22/09/2026 : « Ne display pas la règle !! cache la ».
+    expect(vue).not.toContain('class="cr"');
+    expect(vue).toContain('title={`${sp.name} — ${ruleSummary(sp)}`}');
   });
 });

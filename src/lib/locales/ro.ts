@@ -1820,6 +1820,8 @@ export default {
   "smartPlaylists.opIsNotEmpty": "nu este gol",
   "smartPlaylists.sortDuration": "Durată",
   "smartPlaylists.sortRandom": "Aleatoriu",
+  "smartPlaylists.sortPlayCount": "Cele mai ascultate",
+  "smartPlaylists.sortAdded": "Adăugate recent",
   "smartPlaylists.created": "Playlist inteligent „{name}” creat",
   "smartPlaylists.deleted": "„{name}” șters",
   "smartPlaylists.updated": "Playlist inteligent „{name}” actualizat",

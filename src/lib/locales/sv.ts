@@ -1786,6 +1786,8 @@ export default {
   "smartPlaylists.opIsNotEmpty": "är inte tomt",
   "smartPlaylists.sortDuration": "Längd",
   "smartPlaylists.sortRandom": "Slumpmässigt",
+  "smartPlaylists.sortPlayCount": "Mest spelade",
+  "smartPlaylists.sortAdded": "Nyligen tillagda",
   "smartPlaylists.created": "Smart spellista \"{name}\" skapad",
   "smartPlaylists.deleted": "\"{name}\" borttagen",
   "smartPlaylists.updated": "Smart spellista \"{name}\" uppdaterad",

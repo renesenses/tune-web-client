@@ -1814,6 +1814,8 @@ export default {
   "smartPlaylists.opIsNotEmpty": "不为空",
   "smartPlaylists.sortDuration": "时长",
   "smartPlaylists.sortRandom": "随机",
+  "smartPlaylists.sortPlayCount": "播放最多",
+  "smartPlaylists.sortAdded": "最近添加",
   "smartPlaylists.created": "Smart Playlist“{name}”已创建",
   "smartPlaylists.deleted": "“{name}”已删除",
   "smartPlaylists.updated": "Smart Playlist“{name}”已更新",

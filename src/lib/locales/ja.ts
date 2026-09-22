@@ -1812,6 +1812,8 @@ export default {
   "smartPlaylists.opIsNotEmpty": "が空でない",
   "smartPlaylists.sortDuration": "再生時間",
   "smartPlaylists.sortRandom": "ランダム",
+  "smartPlaylists.sortPlayCount": "再生回数が多い順",
+  "smartPlaylists.sortAdded": "最近追加された順",
   "smartPlaylists.created": "Smart Playlist「{name}」を作成しました",
   "smartPlaylists.deleted": "「{name}」を削除しました",
   "smartPlaylists.updated": "Smart Playlist「{name}」を更新しました",

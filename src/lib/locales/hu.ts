@@ -1897,6 +1897,8 @@ export default {
   "smartPlaylists.opIsNotEmpty": "nem üres",
   "smartPlaylists.sortDuration": "Hossz",
   "smartPlaylists.sortRandom": "Véletlenszerű",
+  "smartPlaylists.sortPlayCount": "Legtöbbször játszott",
+  "smartPlaylists.sortAdded": "Nemrég hozzáadott",
   "smartPlaylists.created": "A(z) „{name}” okos lejátszási lista létrehozva",
   "smartPlaylists.deleted": "A(z) „{name}” törölve",
   "smartPlaylists.updated": "A(z) „{name}” okos lejátszási lista frissítve",

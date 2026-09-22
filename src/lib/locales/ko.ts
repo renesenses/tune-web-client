@@ -1798,6 +1798,8 @@ export default {
   "smartPlaylists.opIsNotEmpty": "비어 있지 않음",
   "smartPlaylists.sortDuration": "재생 시간",
   "smartPlaylists.sortRandom": "무작위",
+  "smartPlaylists.sortPlayCount": "많이 재생한 순",
+  "smartPlaylists.sortAdded": "최근 추가순",
   "smartPlaylists.created": "Smart Playlist \"{name}\" 생성됨",
   "smartPlaylists.deleted": "\"{name}\" 삭제됨",
   "smartPlaylists.updated": "Smart Playlist \"{name}\" 업데이트됨",

@@ -548,9 +548,45 @@
     return lireRegles(sp.rules);
   }
 
+  /**
+   * Le critère d'une playlist SANS règle — et il y en a (Bertrand, 22/09/2026 :
+   * « n'affiche pas la règle ! »).
+   *
+   * Trois des six playlists du .18 n'ont aucune règle : « 50 Random Tracks »,
+   * « Most Played », « Recently Added ». Leur sélection tient dans leur TRI et
+   * leur plafond, pas dans une règle. Répondre « aucune règle » ne disait donc
+   * rien de ce qu'elles contiennent, alors que le serveur le porte :
+   * `sort_by` et `max_tracks`.
+   */
+  const LIBELLE_TRI: Record<string, string> = {
+    title: 'common.title',
+    artist: 'common.artist',
+    album: 'common.album',
+    year: 'smartPlaylists.fieldYear',
+    duration: 'smartPlaylists.sortDuration',
+    random: 'smartPlaylists.sortRandom',
+    play_count: 'smartPlaylists.sortPlayCount',
+    added: 'smartPlaylists.sortAdded',
+    created_at: 'smartPlaylists.sortAdded',
+    date_added: 'smartPlaylists.sortAdded',
+  };
+
+  function critereSansRegle(sp: SmartPlaylist): string {
+    const tri = (sp as any).sort_by as string | undefined;
+    // Un tri inconnu du serveur se montre TEL QUEL plutôt que d'être tu :
+    // mieux vaut un mot brut qu'une carte qui ne dit rien.
+    const libelle = tri ? (LIBELLE_TRI[tri] ? $tr(LIBELLE_TRI[tri] as any) : tri) : null;
+    const max = (sp as any).max_tracks as number | undefined;
+    const bouts = [
+      libelle ? `${$tr('smartPlaylists.sort' as any)} ${libelle}` : null,
+      max ? `${$tr('smartPlaylists.max' as any)} ${max}` : null,
+    ].filter(Boolean);
+    return bouts.length ? bouts.join(' · ') : $tr('smartPlaylists.noRules');
+  }
+
   function ruleSummary(sp: SmartPlaylist): string {
     const rules = parseRules(sp);
-    if (!rules.length) return $tr('smartPlaylists.noRules');
+    if (!rules.length) return critereSansRegle(sp);
     const parts = rules.slice(0, 2).map(displayRule);
     const mode = (sp.match_mode || '').replace(/"/g, '');
     const summary = parts.join(mode === 'all' ? ` ${$tr('smartPlaylists.joinAll')} ` : ` ${$tr('smartPlaylists.joinAny')} `);
@@ -826,15 +862,15 @@
                 {/if}
               </PochetteActions>
             </span>
-            <button class="meta" onclick={() => selectSp(sp)}>
+            <!-- Bertrand, 22/09/2026 : « Ne display pas la règle !! cache la ».
+                 La carte ne montre donc QUE le nom et le compte. Le résumé des
+                 règles reste en infobulle : il ne prend aucune place, et
+                 répond quand on le cherche. -->
+            <button class="meta" onclick={() => selectSp(sp)} title={`${sp.name} — ${ruleSummary(sp)}`}>
               <span class="ct" title={sp.name}>{sp.name}</span>
               <!-- Le compte MESURÉ. « … » tant qu'il ne l'est pas : « 0 »
                    ferait passer une playlist pleine pour une playlist vide. -->
               <span class="ca">{comptes[sp.id] != null ? `${comptes[sp.id]} ${$tr('common.tracks')}` : '…'}</span>
-              <!-- Le résumé des règles ne disparaît pas : c'est ce qui dit
-                   POURQUOI ces pistes-là sont dedans. En entier dans
-                   l'infobulle, la carte n'ayant qu'une ligne à lui donner. -->
-              <span class="cr" title={ruleSummary(sp)}>{ruleSummary(sp)}</span>
               {#if sp.description}<span class="cd" title={sp.description}>{sp.description}</span>{/if}
             </button>
           </div>
@@ -896,7 +932,6 @@
   .ct { font-weight: 600; font-size: 13.5px; color: var(--v2-txt); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ca { font: 11px var(--v2-mono); color: var(--v2-txt3); display: flex; align-items: center; gap: 6px; }
   /* Le résumé des règles : une ligne, l'infobulle porte le reste. */
-  .cr { font: 11px var(--v2-mono); color: var(--v2-txt2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cd { font-size: 11.5px; color: var(--v2-txt3); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sp-empty { font-family: var(--font-body); font-size: 14px; color: var(--tune-text-muted); text-align: center; padding: var(--space-2xl); grid-column: 1 / -1; }
 
