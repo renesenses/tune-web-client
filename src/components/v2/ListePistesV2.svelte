@@ -81,6 +81,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
+  import { enTetesDisque as calculerEnTetes } from '../../lib/enTetesDisque';
 
   interface Props {
     pistes: Track[];
@@ -226,6 +227,20 @@
      * l'en-tête (vide) et dans les lignes.
      */
     largeurApres?: string;
+    /**
+     * 🔴 Un en-tête « Disque N » avant chaque disque — #1431.
+     *
+     * Marco Polo, fil 1885 : les pistes d'un coffret réuni s'enchaînaient sans
+     * dire de quel disque elles venaient. OPT-IN : seule la fiche d'album
+     * rend les pistes d'UN album dans l'ordre disque/piste ; sur une playlist
+     * ou la file, deux pistes voisines peuvent venir de deux albums et un
+     * « Disque 2 » y mentirait.
+     *
+     * Les lignes ne bougent pas (`enTetesDisque` n'ordonne rien) : le rang
+     * passé à `onLire` reste celui de `pistes`. Un seul disque sans
+     * sous-titre : aucun en-tête, la règle d'Oxygen.
+     */
+    enTetesDisque?: boolean;
   }
   let {
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
@@ -233,7 +248,11 @@
     sourceEnTableau = false,
     ouvertureAlbum = null, apres,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
+    enTetesDisque = false,
   }: Props = $props();
+
+  // #1431 — pour chaque rang, l'en-tête à poser AVANT la ligne, ou `null`.
+  const enTetes = $derived(enTetesDisque ? calculerEnTetes(pistes) : []);
 
   /**
    * « Lire à partir d'ici », par DÉFAUT — Bertrand, 20/09/2026.
@@ -354,6 +373,16 @@
   }
 </script>
 
+{#snippet enTeteDisque(i: number)}
+  {@const e = enTetes[i]}
+  {#if e}
+    <div class="dischead">
+      <span class="discno">{$t('library.disc' as any).replace('{num}', String(e.disque))}</span>
+      {#if e.sousTitre}<span class="discsub">{e.sousTitre}</span>{/if}
+    </div>
+  {/if}
+{/snippet}
+
 {#if !enTableau}
   <!-- Les modes HORS tableau — Avancé seul depuis le 09/09/2026, Expert étant
        passé au tableau. Ce rendu est inchangé à la virgule près : le suffixe
@@ -361,6 +390,7 @@
        garde vérifie qu'Avancé l'emprunte toujours. -->
   {#each pistes as p, i (clef(p, i))}
     {@const ouvrir = ouvertureAlbum?.(p, i) ?? null}
+    {@render enTeteDisque(i)}
     {#if apres}
       <div class="avecSuffixe">
         <LignePisteV2
@@ -421,6 +451,7 @@
 
     {#each pistes as p, i (clef(p, i))}
       {@const etat = etatDe(p)}
+      {@render enTeteDisque(i)}
       <!-- Point 10 (17/09/2026) — une piste que le service dit indisponible
            est grisée et ne se lance pas : le lancer rendrait « no url ». -->
       {@const indispo = pisteIndisponible(p)}
@@ -502,6 +533,12 @@
      `overflow-x` : la grille ne pouvait pas déborder, donc elle écrasait. */
   .tbl{display:flex; flex-direction:column; min-width:0; overflow-x:auto}
   .tbl::-webkit-scrollbar{height:9px}
+  /* #1431 — l'en-tête de disque : une ligne de texte, hors de la grille des
+     colonnes (il n'a pas de cellules), la forme de `.dischead` d'Oxygen. */
+  .dischead{display:flex; align-items:baseline; gap:10px; padding:14px 10px 4px}
+  .discno{font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--v2-txt3)}
+  .discsub{font-size:12px; color:var(--v2-txt2)}
   .tbl::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .thead, .trow{display:grid; grid-template-columns:var(--tcols); align-items:center;
     gap:14px; padding:0 10px; min-width:var(--tmin, 0)}
