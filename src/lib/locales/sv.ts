@@ -3135,6 +3135,7 @@ export default {
   "v2.queue.upNextNone": "inget",
   "v2.queue.playTrack": "Spela {t}",
   "v2.queue.moveUp": "Flytta upp",
+  "v2.liste.poignee": "Ändra ordning: dra eller piltangenter upp/ned",
   "v2.queue.moveDown": "Flytta ner",
   "v2.radio.searchPlaceholder": "Sök en station",
   "v2.radio.loading": "Läser in stationer…",

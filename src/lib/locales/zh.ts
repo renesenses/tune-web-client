@@ -3136,6 +3136,7 @@ export default {
   "v2.queue.upNextNone": "无",
   "v2.queue.playTrack": "播放 {t}",
   "v2.queue.moveUp": "上移",
+  "v2.liste.poignee": "重新排序：拖动或上下方向键",
   "v2.queue.moveDown": "下移",
   "v2.radio.searchPlaceholder": "搜索电台",
   "v2.radio.loading": "正在加载电台…",

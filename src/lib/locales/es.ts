@@ -3136,6 +3136,7 @@ export default {
   "v2.queue.upNextNone": "nada",
   "v2.queue.playTrack": "Reproducir {t}",
   "v2.queue.moveUp": "Subir",
+  "v2.liste.poignee": "Reordenar: arrastrar o flechas arriba/abajo",
   "v2.queue.moveDown": "Bajar",
   "v2.radio.searchPlaceholder": "Buscar una emisora",
   "v2.radio.loading": "Cargando las emisoras…",

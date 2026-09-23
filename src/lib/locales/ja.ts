@@ -3136,6 +3136,7 @@ export default {
   "v2.queue.upNextNone": "なし",
   "v2.queue.playTrack": "{t} を再生",
   "v2.queue.moveUp": "上へ",
+  "v2.liste.poignee": "並べ替え：ドラッグ、または上下の矢印キー",
   "v2.queue.moveDown": "下へ",
   "v2.radio.searchPlaceholder": "放送局を検索",
   "v2.radio.loading": "放送局を読み込み中…",

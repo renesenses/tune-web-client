@@ -3156,6 +3156,7 @@ export default {
   "v2.queue.upNextNone": "nothing",
   "v2.queue.playTrack": "Play {t}",
   "v2.queue.moveUp": "Move up",
+  "v2.liste.poignee": "Reorder: drag, or up/down arrow keys",
   "v2.queue.moveDown": "Move down",
   "v2.radio.searchPlaceholder": "Search for a station",
   "v2.radio.loading": "Loading stations…",

@@ -3136,6 +3136,7 @@ export default {
   "v2.queue.upNextNone": "없음",
   "v2.queue.playTrack": "{t} 재생",
   "v2.queue.moveUp": "위로",
+  "v2.liste.poignee": "순서 변경: 드래그 또는 위/아래 화살표 키",
   "v2.queue.moveDown": "아래로",
   "v2.radio.searchPlaceholder": "방송국 검색",
   "v2.radio.loading": "방송국을 불러오는 중…",

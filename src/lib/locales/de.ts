@@ -3136,6 +3136,7 @@ export default {
   "v2.queue.upNextNone": "nichts",
   "v2.queue.playTrack": "{t} abspielen",
   "v2.queue.moveUp": "Nach oben",
+  "v2.liste.poignee": "Neu anordnen: ziehen oder Pfeiltasten auf/ab",
   "v2.queue.moveDown": "Nach unten",
   "v2.radio.searchPlaceholder": "Einen Sender suchen",
   "v2.radio.loading": "Sender werden geladen…",

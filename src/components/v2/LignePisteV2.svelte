@@ -70,9 +70,18 @@
     /** « Lire à partir d'ici » — #1061. Posé par la LISTE, qui seule connaît
      *  la suite. Absent = la barre d'actions est celle d'avant. */
     onLireDepuis?: (() => void) | null;
+    /**
+     * La CLÉ i18n de l'étiquette d'une piste indisponible.
+     *
+     * Par défaut « À paraître » (`v2.str.coming`) : le cas d'un album qui
+     * sort. Une playlist, elle, contient des pistes RETIRÉES du catalogue —
+     * Bertrand, 21/09/2026, sur « tttroys playlist » : ce n'est pas la même
+     * chose, et l'écran qui le sait le dit (`playlist.unavailable`).
+     */
+    etiquetteIndispo?: string;
   }
   let { piste, onLire, onLireDepuis = null, numero = null, pochette = true, avecAlbum = true,
-        onOuvrirAlbum = null }: Props = $props();
+        onOuvrirAlbum = null, etiquetteIndispo = 'v2.str.coming' }: Props = $props();
 
   /**
    * 🔴 Les colonnes sont CALCULÉES, pas figées dans la feuille.
@@ -169,7 +178,7 @@
       <span class="tl">
         <IndicateurLecture etat={etatLigne} />
         <span class="tt" title={piste.title}>{piste.title}</span>
-        {#if indispo}<span class="indispo-etiq">{$t('v2.str.coming' as any)}</span>{/if}
+        {#if indispo}<span class="indispo-etiq">{$t(etiquetteIndispo as any)}</span>{/if}
       </span>
       {#if piste.source === 'upnp'}<DisponibiliteUpnp sourceId={piste.source_id} />{/if}
       {#if sousTitre}<em title={sousTitre}>{sousTitre}</em>{/if}

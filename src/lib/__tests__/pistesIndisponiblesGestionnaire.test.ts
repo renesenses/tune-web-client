@@ -12,15 +12,17 @@ import { pisteIndisponible } from '../albumAParaitre';
  * qui s'affichait exactement comme les autres.
  *
  * 🔴 Le mécanisme existait depuis le 17/09 dans `ListePistesV2` et
- * `LignePisteV2`. Le gestionnaire a sa PROPRE liste de pistes : troisième
- * rendu, troisième oubli. Ce test garde les trois d'un coup.
+ * `LignePisteV2`. Le gestionnaire avait alors sa PROPRE liste de pistes :
+ * troisième rendu, troisième oubli. Depuis le 23/09/2026 il rend la liste
+ * commune (Bertrand) : il n'y a plus que DEUX rendus à garder — et l'écran
+ * doit toujours nommer la chose avec le bon mot, par la prop prévue pour ça.
  */
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf8');
 const ECRANS = {
-  gestionnaire: 'src/components/v2-heritage/PlaylistManagerView.svelte',
   liste: 'src/components/v2/ListePistesV2.svelte',
   ligne: 'src/components/v2/LignePisteV2.svelte',
 };
+const GESTIONNAIRE = 'src/components/v2-heritage/PlaylistManagerView.svelte';
 
 describe('pistes indisponibles', () => {
   it('le prédicat ne se déclenche que sur un `disponible` FAUX', () => {
@@ -32,7 +34,7 @@ describe('pistes indisponibles', () => {
     expect(pisteIndisponible(null)).toBe(false);
   });
 
-  it('🔴 les TROIS rendus de piste la grisent', () => {
+  it('🔴 les DEUX rendus de piste la grisent', () => {
     for (const [nom, chemin] of Object.entries(ECRANS)) {
       const src = lire(chemin);
       expect(src, `${nom} n'importe pas le prédicat`).toContain('pisteIndisponible');
@@ -41,18 +43,28 @@ describe('pistes indisponibles', () => {
   });
 
   it('et ne la lancent pas : la lire rendrait « no url »', () => {
-    const g = lire(ECRANS.gestionnaire);
-    expect(g).toContain('if (!indispo) playFromIndex(index)');
-    expect(g).toContain('disabled={indispo}');
+    expect(lire(ECRANS.liste)).toContain('if (!indispo) onLire(p, i)');
+    expect(lire(ECRANS.liste)).toContain('disabled={indispo}');
     expect(lire(ECRANS.ligne)).toContain('if (!indispo) onLire()');
   });
 
-  it('le gestionnaire la NOMME, et avec le bon mot', () => {
-    const g = lire(ECRANS.gestionnaire);
-    // `playlist.unavailable` = « Indisponible ». Les deux autres écrans
-    // utilisent `v2.str.coming` = « À paraître », qui ne veut pas dire la
-    // même chose : une piste retirée du catalogue n'est pas à venir.
-    expect(g).toContain("$tr('playlist.unavailable')");
+  it('🔴 le gestionnaire ne rend plus de piste lui-même : il passe par la liste commune', () => {
+    const g = lire(GESTIONNAIRE);
+    expect(g).toMatch(/<ListePistesV2 pistes=\{detailTracks\}/);
+    expect(g).not.toContain('pisteIndisponible');
+    expect(g).not.toContain('track-item');
+  });
+
+  it('et la NOMME encore avec le bon mot, par la prop de la liste', () => {
+    // `playlist.unavailable` = « Indisponible ». Le défaut de la liste est
+    // `v2.str.coming` = « À paraître », qui ne veut pas dire la même chose :
+    // une piste retirée du catalogue n'est pas à venir. L'écran le dit.
+    expect(lire(GESTIONNAIRE)).toContain('etiquetteIndispo="playlist.unavailable"');
+    for (const chemin of Object.values(ECRANS)) {
+      const src = lire(chemin);
+      expect(src, `${chemin} ignore la prop`).toContain('$t(etiquetteIndispo as any)');
+      expect(src, `${chemin} garde un libellé en dur`).not.toContain("$t('v2.str.coming' as any)");
+    }
     const fr = lire('src/lib/locales/fr.ts');
     expect(fr).toContain("'playlist.unavailable': 'Indisponible'");
   });
