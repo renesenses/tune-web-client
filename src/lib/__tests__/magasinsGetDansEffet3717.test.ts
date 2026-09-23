@@ -29,6 +29,10 @@
 //
 // `SearchV2` faisait `q = ar.name` sur ses TROIS tuiles d'artiste : cliquer
 // un artiste relançait une recherche sur son nom au lieu d'ouvrir sa fiche.
+//
+// Depuis #1494 la fiche ouverte est la PAGE COMMUNE (`streamingartist`,
+// `service: null` pour un artiste local), plus celle de la Bibliothèque : ce
+// que ces témoins gardent, c'est que le clic OUVRE et ne relance pas.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { readFileSync } from 'fs';
@@ -36,6 +40,7 @@ import { get } from 'svelte/store';
 import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import SearchV2 from '../../components/v2/SearchV2.svelte';
 import { activeView, pendingLibraryAlbum, pendingLibraryArtist } from '../stores/navigation';
+import { ficheArtisteService } from '../stores/streaming';
 import { albums as albumsStore } from '../stores/library';
 import type { Album } from '../types';
 
@@ -101,6 +106,7 @@ beforeEach(() => {
   activeView.set('home');
   pendingLibraryAlbum.set(null);
   pendingLibraryArtist.set(null);
+  ficheArtisteService.set(null);
   artistesTrouves = [];
   vi.stubGlobal(
     'fetch',
@@ -132,6 +138,7 @@ afterEach(() => {
   activeView.set('home');
   pendingLibraryAlbum.set(null);
   pendingLibraryArtist.set(null);
+  ficheArtisteService.set(null);
   albumsStore.set([]);
   vi.unstubAllGlobals();
 });
@@ -215,7 +222,7 @@ describe('#3717 — une vignette d’artiste OUVRE sa fiche', () => {
   const tuileNom = (el: HTMLElement) =>
     el.querySelector('.basartistes .artile button.meta') as HTMLElement | null;
 
-  it('le clic POSE la cible et va à la Bibliothèque — il ne relance PAS la recherche', async () => {
+  it('le clic POSE la cible et va à la page commune — il ne relance PAS la recherche', async () => {
     const el = await poserRecherche([ARTISTE_LOCAL]);
     const nom = tuileNom(el);
     expect(nom, 'aucune vignette d’artiste dans les résultats').not.toBeNull();
@@ -227,10 +234,10 @@ describe('#3717 — une vignette d’artiste OUVRE sa fiche', () => {
     flushSync();
 
     expect(
-      get(pendingLibraryArtist),
-      'la cible n’a pas été posée : la Bibliothèque n’a rien à ouvrir',
-    ).toBe(994);
-    expect(get(activeView), 'on ne va pas à la Bibliothèque').toBe('library');
+      get(ficheArtisteService),
+      'la cible n’a pas été posée : la page commune n’a rien à ouvrir',
+    ).toEqual({ service: null, id: '994', nom: 'Depeche Mode' });
+    expect(get(activeView), 'on ne va pas à la page commune').toBe('streamingartist');
 
     // Le symptôme exact du ticket : le champ se remplissait du nom cherché.
     expect(
@@ -248,8 +255,8 @@ describe('#3717 — une vignette d’artiste OUVRE sa fiche', () => {
     pochette!.click();
     flushSync();
 
-    expect(get(pendingLibraryArtist), 'la pochette n’ouvre pas la fiche').toBe(994);
-    expect(get(activeView)).toBe('library');
+    expect(get(ficheArtisteService), 'la pochette n’ouvre pas la fiche').toEqual({ service: null, id: '994', nom: 'Depeche Mode' });
+    expect(get(activeView)).toBe('streamingartist');
   });
 
   it('un artiste de SERVICE n’a pas de fiche : on affine la recherche, on ne va nulle part', async () => {
@@ -266,6 +273,7 @@ describe('#3717 — une vignette d’artiste OUVRE sa fiche', () => {
       get(pendingLibraryArtist),
       'une cible de bibliothèque a été posée pour un artiste de service',
     ).toBeNull();
+    expect(get(ficheArtisteService), 'une fiche a été visée sans identifiant de service').toBeNull();
     expect(get(activeView), 'on a quitté la recherche pour rien').toBe('search');
 
     const champ = el.querySelector('input') as HTMLInputElement;

@@ -77,9 +77,22 @@ export const pendingStreamingArtist = writable<Artist | null>(null);
  * Le contenu est le strict nécessaire pour appeler les trois routes et
  * afficher un nom pendant le chargement — surtout pas un `Artist`, dont
  * l'`id` numérique n'a aucun sens pour un artiste de service.
+ *
+ * 🔴 `service: null` — UN ARTISTE DE LA BIBLIOTHÈQUE (#1232, étape 1).
+ *
+ * Arbitrage de FabienM du 18/09/2026, repris par Bertrand : « une seule page
+ * quel que soit l'endroit du clic, la page de streaming servant de référence ».
+ * Cette fiche-ci est l'élue ; elle ne savait montrer qu'un artiste distant.
+ * `service: null` la désigne pour un artiste LOCAL, `id` portant alors
+ * l'identifiant de `/library/artists` rendu en texte — le champ ne change pas
+ * de type, seuls les routes interrogées et les gestes offerts changent.
+ *
+ * ⚠️ Personne ne pose encore cette forme : la convergence du routage est
+ * l'étape 3, volontairement laissée de côté tant que la fiche élue ne sait pas
+ * tout montrer. Router avant ferait PERDRE des fonctions au testeur.
  */
 export const ficheArtisteService =
-  writable<{ service: Source; id: string; nom: string } | null>(null);
+  writable<{ service: Source | null; id: string; nom: string } | null>(null);
 
 /**
  * La cible de la FICHE ALBUM DE SERVICE de la coquille v2 — #1361, #3626.
