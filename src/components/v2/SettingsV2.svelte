@@ -2780,7 +2780,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    doivent être avant Bandcamp ». L'entrelacement qu'il voit
                    est le barème de PERTINENCE du serveur (#2372), un
                    arbitrage, pas un défaut : Bertrand (20/09/2026) tranche en
-                   OFFRANT le choix, sans déplacer le défaut. -->
+                   OFFRANT le choix, sans déplacer le défaut.
+                   Le 23/09/2026 il déplace le DÉFAUT sur « par source » ; le
+                   sélecteur, lui, ne change pas, et un choix déjà enregistré
+                   reste intact (fusion `{ ...defaults, ...raw }` de
+                   `loadPrefs`, gardée par ordreAutresVersions4368.test.ts). -->
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.versionsOrder' as any)}</span>
