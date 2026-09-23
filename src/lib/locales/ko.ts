@@ -923,6 +923,9 @@ export default {
   "settings.followMeLabel": "떠난 구역 일시정지",
   "settings.followMeHint": "구역을 전환할 때 떠난 구역의 재생을 일시정지하여 뒤에서 계속 재생되지 않도록 합니다. 기본값은 꺼짐(멀티룸을 위해 구역은 독립적).",
   "settings.searchExact": "정확히 일치 검색",
+  "settings.shuffleMaxTracks": "셔플 시 가져올 트랙 수",
+  "settings.shuffleMaxTracksHint": "셔플 재생이 대기열에 넣는 최대 트랙 수입니다.",
+  "settings.shuffleMaxTracksRange": "{min}~{max}",
   "settings.searchExactLabel": "정확히 일치 검색",
   "settings.searchExactHint": "입력한 단어를 그 순서대로 아티스트, 앨범, 트랙 이름에서 찾습니다(큰따옴표로 묶은 것과 같음).",
 
