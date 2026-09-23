@@ -37,8 +37,10 @@ describe('#1193 — la colonne ARTISTE renvoie à la fiche de l’artiste', () =
 
   it('le clic mène à la bonne fiche selon la provenance', async () => {
     await ouvrirArtisteDepuis(artisteDePiste({ artist_id: 12, artist_name: 'Elliott Smith' }), 'playlists');
-    expect(get(pendingLibraryArtist)).toBe(12);
-    expect(get(activeView)).toBe('library');
+    // #1494 — la PAGE COMMUNE pour un artiste local aussi.
+    expect(get(ficheArtisteService)).toEqual({ service: null, id: '12', nom: 'Elliott Smith' });
+    expect(get(pendingLibraryArtist)).toBeNull();
+    expect(get(activeView)).toBe('streamingartist');
     expect(get(vueDeRetour)).toBe('playlists');
 
     activeView.set('playlists');
@@ -54,6 +56,7 @@ describe('#1193 — la colonne ARTISTE renvoie à la fiche de l’artiste', () =
     (api.searchLibrary as any).mockResolvedValueOnce({ artists: [{ id: 5, name: 'Airbourne' }] });
     await ouvrirArtisteDepuis(artisteDePiste({ artist_name: 'Air' }), 'playlists');
     expect(get(pendingLibraryArtist)).toBeNull();
+    expect(get(ficheArtisteService)).toBeNull();
     expect(get(activeView)).toBe('library');
   });
 

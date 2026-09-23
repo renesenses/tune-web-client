@@ -155,10 +155,14 @@ describe('#3825 — la Recherche ouvre la fiche au lieu de se relancer', () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
     const src = readFileSync(resolve(process.cwd(), 'src/components/v2/SearchV2.svelte'), 'utf-8');
-    expect(src).toContain("activeView.set('streamingartist')");
-    expect(src).toContain("ficheArtisteService.set({ service: ar.source as Source, id: String(ar.source_id), nom: ar.name ?? '' })");
+    // #1494 — la Recherche ne pose plus la cible elle-même : c'est le chemin
+    // de référence qui le fait, et `vueArtisteUnique1494.test.ts` le CLIQUE.
+    expect(src).toContain("ouvrirArtisteDepuis(ar, 'search')");
+    const nav = readFileSync(resolve(process.cwd(), 'src/lib/ouvrirArtisteDepuis.ts'), 'utf-8');
+    expect(nav).toContain("activeView.set('streamingartist')");
+    expect(nav).toContain("ficheArtisteService.set({ service: a.source as Source, id: String(a.source_id), nom: a.name ?? '' })");
     // Le repli demeure — mais SEULEMENT sans service ni identifiant : un
     // service qu'on ne sait pas interroger n'a pas de fiche à ouvrir.
-    expect(src).toContain("if (!ar?.source || !ar?.source_id) { q = ar.name; return; }");
+    expect(src).toContain("if (!estLocal(ar) && (!ar?.source || !ar?.source_id)) { q = ar.name; return; }");
   });
 });

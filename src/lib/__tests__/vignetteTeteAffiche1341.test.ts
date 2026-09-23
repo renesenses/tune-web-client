@@ -33,6 +33,7 @@ import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import SearchV2 from '../../components/v2/SearchV2.svelte';
 import { activeView, pendingLibraryArtist, vueDeRetour } from '../stores/navigation';
+import { ficheArtisteService } from '../stores/streaming';
 import { setSearchCriteria } from '../stores/shortcuts';
 
 vi.setConfig({ testTimeout: 30_000 });
@@ -77,6 +78,7 @@ beforeEach(() => {
   localStorage.clear();
   activeView.set('search');
   pendingLibraryArtist.set(null);
+  ficheArtisteService.set(null);
   vueDeRetour.set(null as never);
   vi.stubGlobal(
     'fetch',
@@ -104,6 +106,7 @@ afterEach(() => {
   setSearchCriteria(null);
   activeView.set('search');
   pendingLibraryArtist.set(null);
+  ficheArtisteService.set(null);
   vi.unstubAllGlobals();
 });
 
@@ -146,8 +149,9 @@ describe('#1341 — la vignette d’une tête d’affiche ouvre sa fiche', () =>
     const el = await decouvrir();
     tuiles(el)[0].querySelector<HTMLButtonElement>('button.acv')!.click();
     flushSync();
-    expect(get(pendingLibraryArtist), 'aucune fiche visée').toBe(882);
-    expect(get(activeView)).toBe('library');
+    // #1494 — la PAGE COMMUNE, `service: null` pour un artiste local.
+    expect(get(ficheArtisteService), 'aucune fiche visée').toEqual({ service: null, id: '882', nom: 'Morcheeba' });
+    expect(get(activeView)).toBe('streamingartist');
     // #3824 — la fiche doit savoir refermer VERS la recherche.
     expect(get(vueDeRetour)).toBe('search');
   });
@@ -158,16 +162,16 @@ describe('#1341 — la vignette d’une tête d’affiche ouvre sa fiche', () =>
     const el = await decouvrir();
     tuiles(el)[1].querySelector<HTMLButtonElement>('button.acv')!.click();
     flushSync();
-    expect(get(pendingLibraryArtist)).toBe(7001);
-    expect(get(activeView)).toBe('library');
+    expect(get(ficheArtisteService)).toMatchObject({ service: null, id: '7001' });
+    expect(get(activeView)).toBe('streamingartist');
   });
 
   it('le NOM ouvre la fiche lui aussi, au lieu de relancer la recherche', async () => {
     const el = await decouvrir();
     tuiles(el)[0].querySelector<HTMLButtonElement>('button.meta')!.click();
     flushSync();
-    expect(get(pendingLibraryArtist)).toBe(882);
-    expect(get(activeView)).toBe('library');
+    expect(get(ficheArtisteService)).toMatchObject({ service: null, id: '882' });
+    expect(get(activeView)).toBe('streamingartist');
   });
 
   it('SANS identifiant, on ne route pas : le geste d’avant, et la Bibliothèque intacte', async () => {
@@ -177,6 +181,7 @@ describe('#1341 — la vignette d’une tête d’affiche ouvre sa fiche', () =>
     tuiles(el)[2].querySelector<HTMLButtonElement>('button.acv')!.click();
     flushSync();
     expect(get(pendingLibraryArtist), 'une fiche a été visée sans identifiant').toBe(null);
+    expect(get(ficheArtisteService), 'une fiche a été visée sans identifiant').toBe(null);
     expect(get(activeView), 'la coquille est partie sur la grille de la Bibliothèque').toBe('search');
     const barre = hote!.querySelector<HTMLInputElement>('input[type="search"], input');
     expect(barre?.value, 'le repli — la recherche sur le nom — n’a pas eu lieu').toBe('Infiniti');
