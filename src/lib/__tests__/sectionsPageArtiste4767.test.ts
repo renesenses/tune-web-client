@@ -125,11 +125,17 @@ describe('#4767 — les écrans sont branchés', () => {
     expect(api).toContain('export function getArtistAlbums(');
     expect(api).toContain('export function getArtistAlbumsSections(');
 
-    const art = lire('src/components/v2/ArtistesV2.svelte');
+    // #1501 — la page artiste est la PAGE COMMUNE, ouverte sur un artiste
+    // local : les sections l'ont suivie quand la fiche de la Bibliothèque a
+    // été retirée.
+    const art = lire('src/components/v2/ArtisteServiceV2.svelte');
     expect(art).toContain('getArtistAlbumsSections');
-    expect(art, 'la clé absente vaut section vide').toContain('d?.compilations ?? []');
-    expect(art).toContain('d?.appearances ?? []');
+    expect(art, 'la clé absente vaut section vide').toContain('d.value?.compilations ?? []');
+    expect(art).toContain('d.value?.appearances ?? []');
     expect(art, 'le focus part de la page artiste').toContain('artisteFocus');
+    expect(art, 'les sections ne sont pas transmises à la grille').toContain('{compilations} {apparitions}');
+    // Et la grille de la Bibliothèque n'en porte plus : une seule page.
+    expect(lire('src/components/v2/ArtistesV2.svelte')).not.toContain('getArtistAlbumsSections');
   });
 
   it('la grille rend les deux sections, et seulement si elles portent quelque chose', () => {
