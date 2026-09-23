@@ -155,12 +155,14 @@ describe('#3708 — le nom de l’artiste MÈNE à sa fiche', () => {
     (nomArtiste(el) as HTMLElement).click();
     flushSync();
 
-    // La forme de #1485 : un artiste de la BIBLIOTHÈQUE, `service: null`,
-    // l'identifiant en texte — celle que `ShellV2` monte sous `streamingartist`.
-    expect(
-      get(ficheArtisteService),
-      'la cible n’a pas été posée : la page commune n’a rien à ouvrir',
-    ).toMatchObject({ service: null, id: '994' });
+    // #1494 — UNE seule vue artiste : le clic ouvre la page commune, pour un
+    // artiste local comme de service. La cible est donc `ficheArtisteService`
+    // avec `service: null` (l'objet EST local), l'identifiant en texte — la
+    // forme de #1485, celle que `ShellV2` monte sous `streamingartist`.
+    const cible = get(ficheArtisteService);
+    expect(cible, 'la cible n’a pas été posée : la page commune n’a rien à ouvrir').not.toBeNull();
+    expect(String(cible!.id)).toBe('994');
+    expect(cible!.service, 'un artiste LOCAL ne porte aucun service').toBeNull();
     expect(get(activeView), 'on ne va pas à la page commune').toBe('streamingartist');
     // Et JAMAIS la cible de l'ancienne fiche (#1501) : deux écrans se
     // disputeraient le clic.

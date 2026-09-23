@@ -3389,6 +3389,7 @@ export default {
   "v2.tags.noArtistWithTag": "Ningún artista tiene esta etiqueta.",
   "v2.tags.noTrackWithTag": "Ninguna pista tiene esta etiqueta.",
   "v2.tags.noPlaylistWithTag": "Ninguna lista tiene esta etiqueta.",
+  "v2.tags.noCollectionWithTag": "Ninguna colección tiene esta etiqueta.",
   "v2.album.play": "Reproducir",
   "v2.album.cue": "CUE",
   "v2.album.cueTip": "Álbum dividido a partir de una imagen de audio y su hoja CUE",
