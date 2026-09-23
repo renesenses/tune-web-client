@@ -90,6 +90,7 @@ import type {
 
 import { baseApi, entetesRelais } from './bridge';
 import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
+import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
 
@@ -590,7 +591,19 @@ export async function fetchJSON<T>(
         // 🔴 La phrase du SERVEUR, telle quelle — voir
         // `MESSAGES_RENDUS_PAR_LE_SERVEUR`. 10 s comme le refus bit-perfect :
         // elle est longue, et elle demande à être lue jusqu'au bout.
-        notifications.error(err.message, 10000);
+        //
+        // #4556 — et quand ce refus-là porte de quoi AGIR (`reason`,
+        // `can_rearm`, `rearm_endpoint`), le bouton part avec la phrase. Sans
+        // cette ligne, c'est justement le chemin de l'utilisateur qui appuie
+        // sur Lire qui restait sans issue : `dejaAnnonce` ci-dessous fait
+        // sortir tous les `signalerEchecLecture` avant qu'ils regardent.
+        if (
+          !proposerLeRearmement(err.message, {
+            ...((err.corps as Record<string, unknown> | undefined) ?? {}),
+          })
+        ) {
+          notifications.error(err.message, 10000);
+        }
         err.dejaAnnonce = true;
       } else if (key) {
         notifications.error(get(t)(key as any));
@@ -5959,6 +5972,56 @@ export function rearmerParLaRouteAnnoncee(route: string) {
     retry: 'next_restart';
     message: string;
   }>(route.startsWith('/api/') ? route : `${BASE}${route}`, { method: 'POST' });
+}
+
+/**
+ * 🔴 #4556 — LE REFUS QUI ACCUSE LE MATÉRIEL, ET LE BOUTON QUI LE LÈVE.
+ *
+ * Après un plantage de pilote ASIO, le serveur pose un témoin **sur disque** et
+ * n'énumère plus ASIO au démarrage suivant : il refuse la zone EN SACHANT
+ * qu'il n'a pas regardé. Le témoin étant un fichier, redémarrer n'y change
+ * rien — seul un réarmement l'efface, et il était enterré dans l'écran
+ * Diagnostics, qu'un auditeur n'ouvre jamais de lui-même.
+ *
+ * Le bouton se pose donc **là où le défaut se manifeste**, et par les deux
+ * chemins qu'un refus emprunte :
+ *
+ *   - l'événement `zone.playback_error` (WebSocket) → `signalerErreurServeur` ;
+ *   - le **409 du `POST /play`**, traité ici même par `fetchJSON` — c'est le
+ *     chemin qu'emprunte l'utilisateur qui appuie sur Lire, et il n'avait pas
+ *     le bouton.
+ *
+ * Rend `true` quand l'offre a été posée, `false` quand l'appelant doit faire
+ * son toast ordinaire. `offreDeRearmement` tranche seule, et la route vient
+ * **du serveur**, jamais d'une constante du client.
+ *
+ * Vit dans `api.ts` — et non dans `echecLecture.ts`, où l'autre appelant
+ * habite — parce que `rearmerParLaRouteAnnoncee` est ici : l'inverse ferait un
+ * cycle d'imports.
+ */
+export function proposerLeRearmement(
+  texte: string,
+  donnees: DonneesEchecLecture | null | undefined,
+): boolean {
+  const offre = offreDeRearmement(donnees);
+  if (!offre) return false;
+  notifications.withAction(texte, get(t)('asio.rearmAction' as any), () => {
+    void (async () => {
+      try {
+        await rearmerParLaRouteAnnoncee(offre.route);
+        // ⚠️ Le serveur n'ouvre AUCUN pilote dans le processus courant : le
+        // réarmement ne prend effet qu'au PROCHAIN DÉMARRAGE. Le taire ferait
+        // croire à une réparation immédiate, et l'utilisateur rappuierait sur
+        // Lire pour rien.
+        notifications.success(get(t)('asio.rearmDone' as any), 10000);
+      } catch {
+        // Route ADMIN : un 401/403 est un refus normal ici. On retombe sur la
+        // phrase du serveur plutôt que d'inventer une explication.
+        notifications.error(texte, 10000);
+      }
+    })();
+  });
+  return true;
 }
 
 export function rearmAsioWarmScan() {
