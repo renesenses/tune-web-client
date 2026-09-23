@@ -41,8 +41,11 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
-  import { activeView, pendingLibraryAlbum, vueDeRetour, gestesNavigationService, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryAlbum, vueDeRetour, gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
+  import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { detailOuvert, fermerDetail } from '../../lib/historiqueCoquille';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
@@ -812,19 +815,69 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     return null;
   });
 
+  /**
+   * 🔴 REFERMER LA FICHE SANS RECULER DANS L'HISTORIQUE — #1486.
+   *
+   * FabienM, 23/09/2026 : « Lien artiste sur un album de Qobuz ou Bandcamp ne
+   * renvoie pas sur la page artiste mais renvoie sur l'accueil du Streaming »,
+   * et son déroulé finit par « 3 - Je retourne à la page accueil editorial du
+   * menu Streaming Qobuz ».
+   *
+   * Ce n'est PAS le repli de #956 — il mènerait à l'écran Recherche, et il
+   * pose un bandeau. Ce qui reste, c'est le RECUL d'historique de la
+   * fermeture, qui laisse une traversée EN VOL derrière la navigation :
+   *
+   *   clic  → onClose()  = `fermerDetailEnReculant` → `history.back()`
+   *         → ouvrirArtiste(...)                    → `activeView = streamingartist`
+   *   ↳ tour suivant : si la traversée aboutit, `surRetour` repose la vue de
+   *     l'entrée précédente — `streaming` — PAR-DESSUS la fiche artiste.
+   *
+   * ⚠️ CE « SI » N'EST PAS TRANCHÉ, et il faut le dire : jsdom, lui, AVALE la
+   * traversée dès qu'un `pushState` la suit (mesuré — aucun `popstate`,
+   * `history.length` qui monte), et aucune vue navigateur n'est possible sur
+   * ce poste. On ne sait donc pas si Chrome la jette aussi.
+   *
+   * Mais on n'a pas besoin de le savoir pour s'en passer : une navigation qui
+   * ne dépile RIEN n'a aucune course à arbitrer. C'est aussi pourquoi le
+   * correctif de #1359 paraissait tenir — le seul chemin qu'il avait mesuré,
+   * « Lecture en cours », n'est pas un calque : la vue `streamingalbum` de
+   * `ShellV2` referme par un `activeView.set(...)` SYNCHRONE, sans recul.
+   *
+   * On referme donc le calque SANS dépiler : l'abonnement de `detailOuvert`
+   * réécrit l'entrée courante (`replace`, voir `opPourFiche`) et le changement
+   * de vue empile la sienne. Le Précédent depuis la fiche artiste ramène bien
+   * à l'écran d'où l'on est parti, et la pile ne garde pas un cran mort.
+   *
+   * Les DIX écrans qui montent cette fiche se referment tous sur
+   * `detailOuvert` (`$effect` : `if ($detailOuvert == null && …)`) : aucun
+   * appelant n'a à changer. Les deux qui n'empilent pas — la vue
+   * `streamingalbum` de la coquille, la fiche locale d'`ArtistesV2` — ne
+   * reconnaissent pas leur clé ici et gardent leur `onClose`.
+   */
+  function quitterLaFiche() {
+    const cle = cleDetailAlbum(albumAffiche as any);
+    if (cle && $detailOuvert === cle) { fermerDetail(); return; }
+    onClose();
+  }
+
   function allerArtiste() {
+    // La fiche se referme AVANT de router : sans cela l'écran d'arrivée
+    // s'ouvrirait derrière un album resté au premier plan, et le clic
+    // n'aurait rien paru faire.
     if (destination?.type === 'artiste') {
-      pendingLibraryArtist.set(destination.artistId);
-      activeView.set('library');
-      onClose();
+      quitterLaFiche();
+      // Le chemin de référence (#3824) : il pose aussi `vueDeRetour`, que
+      // cette fiche oubliait — le Retour de la fiche artiste retombait sur la
+      // grille de la Bibliothèque au lieu de l'écran d'où l'on venait.
+      void ouvrirArtisteDepuis({ id: destination.artistId, source: 'local' }, get(activeView));
       return;
     }
     if (artisteDeService) {
-      // Le calque se referme AVANT de router : sans cela la fiche artiste
-      // s'ouvrirait derrière un album resté au premier plan, et le clic
-      // n'aurait rien paru faire — le même piège que la branche locale.
-      onClose();
-      $gestesNavigationService?.ouvrirArtiste(artisteDeService);
+      quitterLaFiche();
+      // `depuis` se lit APRÈS la fermeture : la vue `streamingalbum` de la
+      // coquille, elle, referme EN changeant de vue — c'est cette vue-là, et
+      // pas la fiche qu'on vient de quitter, qui est le point de retour.
+      $gestesNavigationService?.ouvrirArtiste({ ...artisteDeService, depuis: get(activeView) });
     }
   }
 
