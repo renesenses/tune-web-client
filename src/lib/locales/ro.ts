@@ -1932,6 +1932,7 @@ export default {
   "zoneConfig.channels_immersive32": "32 canaux",
   "zoneConfig.firTitle": "Corecție de cameră (FIR)",
   "zoneConfig.firDesc": "Încarcă un fișier de impuls (WAV) generat de REW, ARTA sau Dirac pentru a corecta acustica camerei.",
+  "zoneConfig.firFormats": "Un fișier WAV mono aplică același filtru pe ambele canale; un WAV stereo corectează fiecare canal independent. Exportă filtrul la frecvența de eșantionare a fluxului redat: Tune nu îl reeșantionează.",
   "zoneConfig.firActive": "FIR activ",
   "zoneConfig.replace": "Înlocuiește",
   "zoneConfig.disable": "Dezactivează",

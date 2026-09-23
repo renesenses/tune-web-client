@@ -1910,6 +1910,7 @@ export default {
   "zoneConfig.channels_immersive32": "32 canaux",
   "zoneConfig.firTitle": "룸 보정 (FIR)",
   "zoneConfig.firDesc": "REW, ARTA 또는 Dirac으로 생성된 임펄스 파일(WAV)을 로드하여 룸 음향을 보정하세요.",
+  "zoneConfig.firFormats": "모노 WAV는 같은 필터를 두 채널에 적용하고, 스테레오 WAV는 각 채널을 개별적으로 보정합니다. 필터는 재생 중인 스트림과 같은 샘플링 레이트로 내보내세요. Tune은 리샘플링하지 않습니다.",
   "zoneConfig.firActive": "FIR 활성화됨",
   "zoneConfig.replace": "교체",
   "zoneConfig.disable": "비활성화",
