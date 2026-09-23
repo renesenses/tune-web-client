@@ -1902,6 +1902,7 @@ export default {
   "zoneConfig.channelsUnavailableNonLocal": "이 존은 로컬 사운드 카드를 쓰지 않습니다. 렌더러가 자체적으로 포맷을 협상합니다.",
   "zoneConfig.channelsUnavailableBeyondDevice": "선택한 구성보다 적은 채널을 기기가 보고합니다.",
   "zoneConfig.channelsUnavailable": "이 설정은 이 존에 영향을 주지 않습니다.",
+  "zoneConfig.channelsEffective": "실제 출력: {layout}",
   "zoneConfig.channels_mono": "모노",
   "zoneConfig.channels_stereo": "스테레오",
   "zoneConfig.channels_surround51": "5.1",

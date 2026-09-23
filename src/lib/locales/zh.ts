@@ -1918,6 +1918,7 @@ export default {
   "zoneConfig.channelsUnavailableNonLocal": "此区域不使用本地声卡：渲染器自行协商格式。",
   "zoneConfig.channelsUnavailableBeyondDevice": "设备报告的声道数少于所选布局。",
   "zoneConfig.channelsUnavailable": "此设置对该区域无效。",
+  "zoneConfig.channelsEffective": "实际输出：{layout}",
   "zoneConfig.channels_mono": "单声道",
   "zoneConfig.channels_stereo": "立体声",
   "zoneConfig.channels_surround51": "5.1",

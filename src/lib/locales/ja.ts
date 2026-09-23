@@ -1916,6 +1916,7 @@ export default {
   "zoneConfig.channelsUnavailableNonLocal": "このゾーンはローカルのサウンドカードを使いません。レンダラーが自身でフォーマットを決めます。",
   "zoneConfig.channelsUnavailableBeyondDevice": "選択した構成より少ないチャンネル数を機器が報告しています。",
   "zoneConfig.channelsUnavailable": "この設定はこのゾーンには影響しません。",
+  "zoneConfig.channelsEffective": "実際の出力：{layout}",
   "zoneConfig.channels_mono": "モノラル",
   "zoneConfig.channels_stereo": "ステレオ",
   "zoneConfig.channels_surround51": "5.1",

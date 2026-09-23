@@ -1918,6 +1918,7 @@ export default {
   "zoneConfig.channelsUnavailableNonLocal": "Questa zona non usa una scheda audio locale: il renderer negozia il proprio formato.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Il dispositivo dichiara meno canali della disposizione scelta.",
   "zoneConfig.channelsUnavailable": "Questa impostazione non ha effetto su questa zona.",
+  "zoneConfig.channelsEffective": "Uscita reale: {layout}",
   "zoneConfig.channels_mono": "Mono",
   "zoneConfig.channels_stereo": "Stereo",
   "zoneConfig.channels_surround51": "5.1",

@@ -3563,6 +3563,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {@const j = jumelleDeProtocole(z, $zones)!}
                         <p class="hint jumelle">{$t('v2.set.sameDeviceOtherProtocol' as any).replace('{name}', j.nom).replace('{protocol}', j.proto)}</p>
                       {/if}
+                      <!--
+                        NIVEAU ESSENTIEL — Bertrand, 23/09/2026 : le choix de la
+                        disposition multicanal doit être VISIBLE en mode
+                        Essentiel. La section « Réglages par zone » descend donc
+                        à `beginner` (voir `lib/v2Settings`), mais PAS tout ce
+                        qu'elle contient : DSD, débit maximal, gain, FIR,
+                        éditeur d'appareil sont rangés `expert` ou
+                        `intermediate` par l'écran actuel (`lib/settingLevels`)
+                        et le restent ici. Deux gardes de niveau encadrent le
+                        bloc CANAUX, qui reste à sa place — avec ce qui traite
+                        le son — plutôt que d'être copié dans une section à
+                        part : un réglage à deux endroits finit par diverger.
+                      -->
+                      {#if atLeast(level, 'intermediate')}
                       <div class="zr">
                         <label class="zf">
                           <span>DSD</span>
@@ -3690,6 +3704,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <p class="monote">{$t('bitperfect.strictHelp' as any)}</p>
                         </div>
                       {/if}
+                      {/if}
 
                       <!--
                         CANAUX — chantier « multicanal », Bertrand 19/09/2026 :
@@ -3731,8 +3746,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if z.channel_layout_status?.unavailable}
                           <p class="monote">{$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)}</p>
                         {/if}
+                        <!-- Ce que la zone SORT vraiment (`effective`), quand
+                             ça ne coïncide pas avec ce qui est choisi : un
+                             5.1 demandé que l'appareil ramène en stéréo, ou
+                             « Suivre l'appareil » qui a tranché pour lui.
+                             Jamais affiché quand c'est identique — la ligne
+                             ne répéterait que le sélecteur. Le libellé passe
+                             par les clés `zoneConfig.channels_<id>` du
+                             sélecteur ; un id inconnu — serveur plus récent —
+                             retombe sur l'id brut plutôt que sur la clé. -->
+                        {#if z.channel_layout_status?.effective && z.channel_layout_status.effective !== (z.channel_layout || null)}
+                          {@const eff = z.channel_layout_status.effective}
+                          {@const cle = 'zoneConfig.channels_' + eff}
+                          <p class="monote canaux-effectif">{$t('zoneConfig.channelsEffective' as any).replace('{layout}', $t(cle as any) === cle ? eff : $t(cle as any))}</p>
+                        {/if}
                       {/if}
 
+                      {#if atLeast(level, 'intermediate')}
                       <div class="trim">
                         <span class="tl">{$t('devices.gainTrim' as any)}</span>
                         <input type="range" min="-12" max="12" step="0.5" value={trimDe(z)}
@@ -3829,6 +3859,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             <button class="lnk" onclick={() => { fvAsk = null; fvTyped = ''; }}>{$t('common.cancel' as any)}</button>
                           </div>
                         </div>
+                      {/if}
                       {/if}
                     </div>
                   {/each}
