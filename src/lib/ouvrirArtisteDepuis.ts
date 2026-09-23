@@ -14,10 +14,22 @@
  * pour que la fiche referme vers l'écran d'où l'on vient (#3824).
  */
 import * as api from './api';
-import { activeView, pendingLibraryArtist, vueDeRetour, type View } from './stores/navigation';
+import { get } from 'svelte/store';
+import {
+  activeView,
+  pendingLibraryArtist,
+  pendingSearchQuery,
+  vueDeRetour,
+  type View,
+} from './stores/navigation';
 import { ficheArtisteService } from './stores/streaming';
 import { trouverArtisteExact } from './libraryNavigation';
 import { estDeBibliotheque } from './provenanceBibliotheque';
+import { cleServeur } from './ongletsStreaming';
+import { messageRepli, resoudreArtisteDeService, type ChercherArtistes } from './repliArtisteService';
+import { notifications } from './stores/notifications';
+import { setSearchCriteria } from './stores/shortcuts';
+import { t } from './i18n';
 import type { Source } from './types';
 
 export async function ouvrirArtisteDepuis(a: any, depuis: View): Promise<void> {
@@ -44,6 +56,104 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View): Promise<void> {
   vueDeRetour.set(depuis);
   if (id !== null) pendingLibraryArtist.set(id);
   activeView.set('library');
+}
+
+/**
+ * Ouvrir la fiche d'un artiste de SERVICE, par identifiant ou par nom.
+ *
+ * ── D'où ça vient ─────────────────────────────────────────────────────────
+ *
+ * Cette résolution vivait DANS `ShellV2` (`ouvrirArtisteServiceParNom`), armée
+ * dans `gestesNavigationService`. Elle en sort pour deux raisons, toutes deux
+ * mesurées sur #1486 :
+ *
+ *  1. **Elle n'était pas exécutable par une garde.** Un témoin ne pouvait que
+ *     lire le texte de la coquille, et un texte présent ne prouve pas qu'il
+ *     s'exécute — le motif que `repliArtisteService` documente déjà. Ici la
+ *     recherche est INJECTABLE : la garde la fournit et lit le service
+ *     réellement interrogé.
+ *  2. **Elle laissait sortir une clé d'ONGLET.** Voir juste en dessous.
+ *
+ * ── 🔴 `__bandcamp__` N'EST PAS UN SERVICE — #1486 ────────────────────────
+ *
+ * FabienM, 23/09/2026 : « Lien artiste sur un album de Qobuz ou Bandcamp ne
+ * renvoie pas sur la page artiste ». La fiche d'un album Bandcamp porte
+ * `source: '__bandcamp__'` — `BANDCAMP_EXT`, la clé de l'ONGLET, locale au
+ * client. Elle partait telle quelle dans la recherche fédérée. Mesuré sur le
+ * .18 le 23/09/2026, les deux requêtes côte à côte :
+ *
+ *     GET /search?q=Agnes Obel&limit=3&sources=bandcamp
+ *       → services.bandcamp.artists[0] = {"id":"https://agnesobel.bandcamp.com",
+ *                                         "name":"Agnes Obel"}
+ *     GET /search?q=Agnes Obel&limit=3&sources=__bandcamp__
+ *       → services: {}                                        ← RIEN
+ *
+ * Le service ne rendait aucun artiste, et on retombait sur le repli. Et la
+ * fiche, elle, s'ouvre bien une fois la clé traduite :
+ *
+ *     GET /streaming/bandcamp/artists/https%3A%2F%2Fagnesobel.bandcamp.com
+ *       → {"id":"https://agnesobel.bandcamp.com","name":""}          (200)
+ *
+ * `cleServeur` porte cette traduction depuis #1138 ; il ne manquait qu'à
+ * l'appeler, ici, au seul endroit où la clé quitte le client.
+ *
+ * ── `depuis` ──────────────────────────────────────────────────────────────
+ *
+ * La coquille posait `vueDeRetour` sur `'nowplaying'`, EN DUR : le Retour de
+ * la fiche artiste ramenait à « Lecture en cours » même quand on venait de
+ * l'éditorial Qobuz. Même contrat que [`ouvrirArtisteDepuis`] au-dessus —
+ * l'émetteur dit d'où il part, la fiche le lit (#3824).
+ */
+export async function ouvrirArtisteDeServiceParNom(
+  cible: { service: string; nom: string; id?: string | null },
+  depuis: View,
+  options: { chercher?: ChercherArtistes } = {},
+): Promise<void> {
+  // La clé du SERVEUR, jamais celle de l'onglet — voir l'en-tête.
+  const service = cleServeur(cible?.service);
+  if (!service) return;
+  const c = { service, nom: cible?.nom ?? '' };
+
+  // #956 — l'identifiant du service est déjà là (album ou piste servis par le
+  // service) : on ouvre la fiche sans rien deviner.
+  if (cible?.id != null && String(cible.id).trim() !== '') {
+    vueDeRetour.set(depuis);
+    ficheArtisteService.set({ service: service as Source, id: String(cible.id).trim(), nom: c.nom });
+    activeView.set('streamingartist');
+    return;
+  }
+
+  const chercher: ChercherArtistes =
+    options.chercher ??
+    (async (nom, svc) => {
+      const r = await api.federatedSearch(nom, [svc], 5);
+      return r?.services?.[svc]?.artists ?? [];
+    });
+
+  const issue = await resoudreArtisteDeService(c, chercher);
+  if (issue.type === 'repli') {
+    /**
+     * 🔴 #956 — LE REPLI PARLE. Sandro, fil 1769 : « l'interface tourne en
+     * boucle et me renvoie simplement sur la grille des résultats de recherche
+     * du début ». Le geste est le bon — un écran vide serait pire que la
+     * recherche qu'il remplace — mais il était MUET, et un retour silencieux
+     * au point de départ se lit comme une panne.
+     *
+     * `injoignable` garde sa trace : c'est la seule branche qui peut produire
+     * son symptôme sans qu'aucune mesure ne l'explique.
+     */
+    if (issue.raison === 'injoignable') {
+      console.warn('[artiste de service] la recherche a levé', service, c.nom, issue.erreur);
+    }
+    notifications.info(messageRepli(issue.raison, c, get(t)));
+    setSearchCriteria({ q: c.nom, source: service });
+    pendingSearchQuery.set(c.nom);
+    activeView.set('search');
+    return;
+  }
+  vueDeRetour.set(depuis);
+  ficheArtisteService.set({ service: service as Source, id: issue.id, nom: c.nom });
+  activeView.set('streamingartist');
 }
 
 /**
