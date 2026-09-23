@@ -20,6 +20,15 @@
    *   /tags/1/tracks     200  {tracks:[…],    count, tag_id}
    *   /tags/1/playlists  200  {playlists:[…], count, tag_id}
    *
+   * Et depuis renesenses/tune-server-rust#4798, une cinquième, à part :
+   *
+   *   /tags/1/smart-playlists  200  {smart_playlists:[…], count, tag_id}
+   *
+   * À part, parce que `playlists.id` et `smart_playlists.id` se recouvrent :
+   * le serveur ne résout jamais un `smart_playlist` dans `playlists`. Ici,
+   * elles rejoignent l'onglet « Playlists » marquées `smart`, sous leur propre
+   * clé, et s'ouvrent dans leur propre onglet.
+   *
    * On pouvait donc DÉJÀ étiqueter un artiste depuis sa pochette (ArtistesV2,
    * Favoris) — seul cet écran ne savait pas le relire. Une phrase de
    * commentaire tenait la moitié de la fonction hors service : c'est pourquoi
@@ -51,6 +60,7 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { corpsDeLecture } from '../../lib/pisteFile';
+  import { ouvrirParRaccourci, ouvrirSmartPlaylist } from '../../lib/ouvrirParRaccourci';
 
   let etiquettes = $state<UserTag[]>([]);
   let chargement = $state(true);
@@ -184,20 +194,27 @@
     albums = []; artistes = []; pistes = []; listes = [];
     famille = 'albums';
     albumsChargement = true;
-    // Les quatre EN PARALLÈLE, chacune au mieux : une famille qui échoue ne
-    // doit pas vider les trois autres, et les compteurs des onglets doivent
+    // Les cinq EN PARALLÈLE, chacune au mieux : une famille qui échoue ne
+    // doit pas vider les autres, et les compteurs des onglets doivent
     // être justes dès l'ouverture — un onglet « Artistes » sans nombre
-    // n'invite pas à cliquer, donc ne serait pas trouvé.
-    const [a, ar, p, l] = await Promise.all([
+    // n'invite pas à cliquer, donc ne serait pas trouvé. La cinquième route
+    // (#4798) peut manquer sur un serveur plus ancien : au mieux, elle aussi.
+    const [a, ar, p, l, sp] = await Promise.all([
       api.getTagAlbums(tag.id!).catch(() => null),
       api.getTagArtists(tag.id!).catch(() => null),
       api.getTagTracks(tag.id!).catch(() => null),
       api.getTagPlaylists(tag.id!).catch(() => null),
+      api.getTagSmartPlaylists(tag.id!).catch(() => null),
     ]);
     albums = a?.albums ?? [];
     artistes = ar?.artists ?? [];
     pistes = p?.tracks ?? [];
-    listes = l?.playlists ?? [];
+    // Les playlists intelligentes rejoignent l'onglet Playlists, marquées
+    // `smart` : jamais rapprochées d'une playlist par le numéro seul.
+    listes = [
+      ...(l?.playlists ?? []),
+      ...(sp?.smart_playlists ?? []).map((x: any) => ({ ...x, smart: true })),
+    ];
     // On se pose sur la première famille NON VIDE : ouvrir une étiquette qui
     // ne porte que des artistes sur un onglet Albums vide se lit comme une
     // panne, et c'est exactement le défaut signalé.
@@ -334,17 +351,36 @@
           <div class="etat">{$t('v2.tags.noPlaylistWithTag' as any)}</div>
         {:else}
           <div class="simples">
-            {#each listes as pl (pl.id ?? pl.name)}
-              <div class="simple">
-                <span class="si" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                       stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 6h11M4 12h11M4 18h7"/><path d="M18 9v9"/><circle cx="16" cy="18" r="2"/>
-                  </svg>
+            <!-- 🔴 La clé porte la SORTE : une playlist intelligente et une
+                 playlist ordinaire peuvent avoir le même id (#4798), et deux
+                 clés égales feraient disparaître l'onglet entier. -->
+            {#each listes as pl (pl.smart ? `s-${pl.id}` : `p-${pl.id ?? pl.name}`)}
+              {@const locale = pl.id != null}
+              <!-- Une playlist LOCALE ou INTELLIGENTE s'ouvre dans son écran ;
+                   une playlist de service (id nul) n'a pas encore d'écran qui
+                   l'accueille : on l'affiche sans la rendre cliquable. -->
+              <svelte:element this={locale ? 'button' : 'div'} class="simple" class:inerte={!locale}
+                              onclick={!locale ? undefined
+                                : pl.smart ? () => ouvrirSmartPlaylist(pl)
+                                : () => ouvrirParRaccourci('playlists', `playlists:${pl.id}`, pl.id, pl.name ?? '')}>
+                <span class="si" aria-hidden="true" title={pl.smart ? $t('v2.pl.tabSmart' as any) : undefined}>
+                  {#if pl.smart}
+                    <!-- La playlist INTELLIGENTE se distingue à l'œil, comme
+                         la collection intelligente : son contenu est une règle. -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
+                    </svg>
+                  {:else}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 6h11M4 12h11M4 18h7"/><path d="M18 9v9"/><circle cx="16" cy="18" r="2"/>
+                    </svg>
+                  {/if}
                 </span>
                 <span class="sn" title={pl.name}>{pl.name}</span>
                 {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
-              </div>
+              </svelte:element>
             {/each}
           </div>
         {/if}
@@ -421,8 +457,14 @@
   .pistes{display:flex; flex-direction:column; gap:1px; padding:12px 30px 40px}
 
   .simples{display:flex; flex-direction:column; gap:2px; padding:12px 24px 40px}
-  .simple{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px;
-    padding:9px 12px; border-radius:9px; color:var(--v2-txt2)}
+  /* Un `button` pour les playlists qui s'ouvrent (#4798), un `div` pour les
+     autres : même habillage, la réinitialisation du bouton en plus. */
+  .simple{display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:12px; width:100%;
+    padding:9px 12px; border:0; border-radius:9px; background:transparent; color:var(--v2-txt2);
+    text-align:left; cursor:pointer; font:inherit}
+  .simple:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .simple.inerte{cursor:default}
+  .simple.inerte:hover{background:transparent; color:var(--v2-txt2)}
   .simple .si{display:inline-flex; color:var(--v2-acc1)}
   .simple .si svg{width:17px; height:17px}
   .simple .sn{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px}
