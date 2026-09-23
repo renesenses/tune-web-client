@@ -69,20 +69,25 @@ describe('Smart playlists : la carte est celle des smart collections', () => {
     expect(vue).toMatch(/oublierContenu\(editingSp\.id\)/);
   });
 
-  it('les quatre gestes qui EXISTENT sont sur la pochette, pas sur la bande', () => {
+  it('les CINQ gestes sont sur la pochette, pas sur la bande', () => {
     expect(vue).toContain("import PochetteActions from '../v2/PochetteActions.svelte'");
     expect(liste).toContain('onEditer={() => startEdit(sp)}');
     expect(liste).toContain('onLire={() => lireSmartPlaylist(sp)}');
     expect(liste).toContain('onOuvrir={() => selectSp(sp)}');
     expect(liste).toContain('faire: () => void handleDelete(sp),');
-    // 🔴 NI cœur NI étiquettes : une playlist intelligente n'a ni l'un ni
-    // l'autre côté API — `favorisLocaux` et `cibleEtiquette` ne connaissent
-    // aucun `smartPlaylistId`. Un bouton qui ne mène à rien vaut moins qu'un
-    // bouton absent.
-    expect(liste).not.toContain('favori=');
-    expect(liste).not.toContain('etiquettes=');
-    expect(lire('lib/favorisLocaux.ts')).not.toContain('smartPlaylistId');
-    expect(lire('lib/cibleEtiquette.ts')).not.toContain('smart_playlist');
+    // 🔄 RENVERSÉE le 23/09/2026 (#4798). Cette garde exigeait l'ABSENCE du
+    // cœur et des étiquettes : le serveur ne connaissait pas ce type d'objet,
+    // et un bouton qui mène à un refus vaut moins qu'un bouton absent. Depuis
+    // renesenses/tune-server-rust#4798, `smart_playlist` est étiquetable et
+    // favorisable — Bertrand veut les cinq gestes, comme sur les smart
+    // collections. La garde exige donc désormais leur PRÉSENCE, et sous leur
+    // propre type : `smartPlaylistId` et `smart_playlist`, jamais
+    // `playlistId`/`playlist`, dont l'espace d'identifiants recouvre le leur.
+    expect(liste).toContain('favori={{ smartPlaylistId: sp.id }}');
+    expect(liste).toContain('etiquettes={cibleSmartPlaylist(sp.id)}');
+    expect(liste).not.toContain('playlistId: sp.id');
+    expect(lire('lib/favorisLocaux.ts')).toContain('smartPlaylistId');
+    expect(lire('lib/cibleEtiquette.ts')).toContain("itemType: 'smart_playlist'");
     // L'ancienne croix « × », qui supprimait sans rien demander à portée de
     // pouce d'une carte entièrement cliquable, a disparu.
     expect(liste).not.toContain('class="del"');

@@ -53,6 +53,11 @@
   import { notifications } from '../../lib/stores/notifications';
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
+  import {
+    bornesFileAleatoire, bornerFileAleatoire, lireFileAleatoire, versPatchFileAleatoire,
+    FILE_ALEATOIRE_DEFAUT, FILE_ALEATOIRE_MIN_REPLI, FILE_ALEATOIRE_MAX_REPLI,
+    type BornesFileAleatoire,
+  } from '../../lib/fileAleatoire';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
@@ -284,6 +289,46 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await api.updateConfig({ zone_auto_create: v }); }
     catch { autoCreate = before; }   // pas d'etat menteur si le serveur refuse
     finally { autoCreateBusy = false; }
+  }
+
+  // « Titres tirés en lecture aléatoire » — config serveur `shuffle_max_tracks`
+  // (tune-server-rust#2901). Les BORNES viennent du serveur, jamais d'ici :
+  // `bornesFileAleatoire` ne retombe sur 1 / 5 000 que pour un serveur qui ne
+  // les publie pas encore.
+  let fileAleatoire = $state<number | null>(null);
+  let fileAleatoireSaisie = $state<string>('');
+  let fileAleatoireBornes = $state<BornesFileAleatoire>({
+    min: FILE_ALEATOIRE_MIN_REPLI, max: FILE_ALEATOIRE_MAX_REPLI,
+  });
+  let fileAleatoireBusy = $state(false);
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => {
+        fileAleatoireBornes = bornesFileAleatoire(c);
+        fileAleatoire = lireFileAleatoire(c, fileAleatoireBornes);
+        fileAleatoireSaisie = String(fileAleatoire);
+      })
+      .catch(() => { fileAleatoire = null; });
+  });
+  /** Enregistre la limite, bornée AVANT l'envoi — une saisie vide ou hors
+   *  bornes ne part jamais telle quelle, et le champ montre ce qui a été
+   *  réellement écrit. */
+  async function setFileAleatoire(brut: string) {
+    if (fileAleatoire === null) return;
+    const valeur = bornerFileAleatoire(brut.trim(), fileAleatoireBornes);
+    fileAleatoireSaisie = String(valeur);
+    if (valeur === fileAleatoire) return;
+    const avant = fileAleatoire;
+    fileAleatoire = valeur;
+    fileAleatoireBusy = true;
+    try { await api.updateConfig(versPatchFileAleatoire(brut.trim(), fileAleatoireBornes)); }
+    catch {
+      // pas d'etat menteur si le serveur refuse
+      fileAleatoire = avant;
+      fileAleatoireSaisie = String(avant);
+      notifications.error(get(t)('renderer.saveError' as any));
+    }
+    finally { fileAleatoireBusy = false; }
   }
 
   // « Sorties audio locales » — plusieurs reglages serveur + la liste des
@@ -2668,6 +2713,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+              <!-- Limite de la file d'attente en lecture aléatoire (#2901).
+                   `min` / `max` sortent des bornes PUBLIÉES par le serveur :
+                   les recopier ici figerait le champ le jour où il élargit sa
+                   plage. -->
+              {#if fileAleatoire !== null}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.shuffleMaxTracks' as any)}</span>
+                    <span class="hint">{$t('settings.shuffleMaxTracksHint' as any)}</span>
+                    <span class="hint">
+                      {$t('settings.defaultValueColon' as any)} {$formatNombre(FILE_ALEATOIRE_DEFAUT)}
+                      — {$t('settings.shuffleMaxTracksRange' as any)
+                        .replace('{min}', $formatNombre(fileAleatoireBornes.min))
+                        .replace('{max}', $formatNombre(fileAleatoireBornes.max))}
+                    </span>
+                  </div>
+                  <input class="txt num" type="number"
+                    min={fileAleatoireBornes.min} max={fileAleatoireBornes.max} step="1"
+                    disabled={fileAleatoireBusy}
+                    aria-label={$t('settings.shuffleMaxTracks' as any)}
+                    bind:value={fileAleatoireSaisie}
+                    onchange={(e) => setFileAleatoire((e.currentTarget as HTMLInputElement).value)} />
+                </div>
+              {/if}
 
             {:else if s.id === 'voice'}
               <div class="row">
