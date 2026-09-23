@@ -37,20 +37,29 @@
 // ⚠️ On lit la POSITION du curseur (`history.state`), jamais `history.length` :
 // ni jsdom ni Chrome ne décrémentent la hauteur sur un `back()`.
 //
+// ## Depuis #1494 : la destination a changé, l'invariant reste
+//
+// Le clic n'ouvre plus la fiche de la Bibliothèque mais la PAGE COMMUNE
+// (`ArtisteServiceV2`, vue `streamingartist`, `service: null` pour un artiste
+// local). C'est une VUE, pas un calque dans une vue : il n'y a plus d'entrée
+// composée à tenir ni de grille traversée. Ce que ce fichier garde, c'est
+// l'invariant du signalement — UN geste, UNE entrée, et le Précédent rend les
+// résultats — sur le nouvel écran d'arrivée, remonté comme `ShellV2` le fait.
+//
 // ⚠️ Aucun délai calibré : attentes BORNÉES sur condition.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import SearchV2 from '../../components/v2/SearchV2.svelte';
-import LibraryV2 from '../../components/v2/LibraryV2.svelte';
+import ArtisteServiceV2 from '../../components/v2/ArtisteServiceV2.svelte';
 import {
   activeView, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, vueDeRetour,
 } from '../stores/navigation';
+import { ficheArtisteService } from '../stores/streaming';
 import { albums as albumsStore, artists as artistsStore } from '../stores/library';
 import { setSearchCriteria } from '../stores/shortcuts';
 import { preferences } from '../stores/preferences';
 import { brancherHistoriqueCoquille, detailOuvert } from '../historiqueCoquille';
-import { cleDetailArtiste } from '../cleDetailArtiste';
 
 /** Deux écrans de plus de mille lignes chacun se compilent ici. */
 vi.setConfig({ testTimeout: 60_000 });
@@ -61,8 +70,8 @@ const ARTISTE = { id: 42, name: 'Pink Floyd', image_path: null };
 const ALBUM = { id: 60, title: 'Wish You Were Here', artist_name: 'Pink Floyd', artist_id: 42, year: 1975 };
 const LOCAL = { ...vide, artists: [ARTISTE], albums: [ALBUM] };
 
-/** La clé de l'entrée composée — la MÊME des deux côtés, par construction. */
-const CLE = cleDetailArtiste(ARTISTE.id)!;
+/** La cible que la page commune attend pour un artiste LOCAL (#1485). */
+const CIBLE = { service: null, id: String(ARTISTE.id), nom: ARTISTE.name };
 
 class ResizeObserverInerte {
   observe() {} unobserve() {} disconnect() {}
@@ -103,6 +112,9 @@ beforeEach(() => {
     if (/\/library\/search/.test(u)) return reponse(LOCAL);
     if (/\/search\?/.test(u)) return reponse({ local: LOCAL, services: {}, radios: [] });
     if (/\/library\/artists\/42\/albums/.test(u)) return reponse([ALBUM]);
+    if (/\/library\/artists\/42\/bio/.test(u)) return reponse({ bio: null });
+    if (/\/library\/artists\/42\/metadata/.test(u)) return reponse({});
+    if (/\/library\/artists\/42(\?|$)/.test(u)) return reponse(ARTISTE);
     if (/\/library\/artists/.test(u)) return reponse([ARTISTE]);
     if (/\/library\/albums/.test(u)) return reponse([ALBUM]);
     return reponse([]);
@@ -117,6 +129,7 @@ beforeEach(() => {
   pendingLibraryArtist.set(null);
   pendingLibraryAlbum.set(null);
   pendingLibraryYear.set(null);
+  ficheArtisteService.set(null);
   setSearchCriteria(null);
   history.replaceState(null, '', '/');
 });
@@ -131,6 +144,7 @@ afterEach(() => {
   activeView.set('home');
   detailOuvert.set(null);
   vueDeRetour.set(null);
+  ficheArtisteService.set(null);
   setSearchCriteria(null);
   albumsStore.set([]);
   artistsStore.set([]);
@@ -157,17 +171,15 @@ const vignetteArtiste = (el: HTMLElement) =>
 
 /**
  * Ce que fait `ShellV2` quand la vue change : il DÉMONTE l'écran quitté et
- * MONTE celui d'arrivée (`{#if $activeView === 'library'}`). C'est ce remontage
- * qui vide et regarnit `detailOuvert`, et c'est là que l'entrée composée se
- * faisait écraser.
+ * MONTE celui d'arrivée (`{#if $activeView === 'streamingartist'}`). Avant
+ * #1494 c'était la Bibliothèque, et c'est son remontage qui vidait et
+ * regarnissait `detailOuvert` — là que l'entrée composée se faisait écraser.
  */
-async function monterLaBibliotheque(el: HTMLDivElement): Promise<void> {
+async function monterLaPageCommune(el: HTMLDivElement): Promise<void> {
   unmount(monte!);
   monte = null;
-  albumsStore.set([ALBUM] as any);
-  artistsStore.set([ARTISTE] as any);
-  monte = mount(LibraryV2, { target: el, props: {} as any });
-  await jusqua(() => get(detailOuvert) === CLE);
+  monte = mount(ArtisteServiceV2, { target: el, props: {} as any });
+  await jusqua(() => (el.textContent ?? '').includes(ALBUM.title));
 }
 
 describe('#1142 — le décor', () => {
@@ -179,41 +191,43 @@ describe('#1142 — le décor', () => {
 });
 
 describe('#1142 — un geste, UNE entrée d’historique', () => {
-  it('🔴 le clic sur un artiste écrit l’entrée de la FICHE, pas celle de la grille', async () => {
+  it('🔴 le clic sur un artiste écrit l’entrée de la PAGE, et rien d’autre', async () => {
     const el = await poserResultats();
 
     vignetteArtiste(el)!.click();
-    await jusqua(() => get(activeView) === 'library');
+    await jusqua(() => get(activeView) !== 'search');
 
-    expect(get(activeView), 'le clic ne mène plus à la Bibliothèque').toBe('library');
-    expect(get(pendingLibraryArtist), 'la cible n’est plus posée').toBe(ARTISTE.id);
+    // #1494 — la page COMMUNE, pas la fiche de la Bibliothèque.
+    expect(get(activeView), 'le clic ne mène plus à la page commune').toBe('streamingartist');
+    expect(get(ficheArtisteService), 'la cible n’est plus posée').toEqual(CIBLE);
+    expect(get(pendingLibraryArtist), 'la cible de l’ANCIENNE fiche est encore posée').toBeNull();
     expect(
       history.state,
-      'l’entrée empilée est celle de la GRILLE, un écran que ce parcours ne montre jamais',
-    ).toMatchObject({ tune: 'v2', vue: 'library', detail: CLE });
-    expect(location.hash, 'l’adresse ne dit pas la fiche ouverte').toBe(`#library/${CLE}`);
+      'l’entrée empilée n’est pas celle de la page commune',
+    ).toMatchObject({ tune: 'v2', vue: 'streamingartist', detail: null });
+    expect(location.hash, 'l’adresse ne dit pas la page ouverte').toBe('#streamingartist');
   });
 
-  it('🔴 l’écran d’arrivée n’empile PAS une seconde entrée en reposant la même clé', async () => {
+  it('🔴 l’écran d’arrivée n’empile PAS une seconde entrée', async () => {
     const el = await poserResultats();
     vignetteArtiste(el)!.click();
-    await jusqua(() => get(activeView) === 'library');
+    await jusqua(() => get(activeView) === 'streamingartist');
     const curseur = history.state;
 
-    await monterLaBibliotheque(el);
+    await monterLaPageCommune(el);
 
-    expect(get(detailOuvert), 'la Bibliothèque n’a pas ouvert la fiche demandée').toBe(CLE);
+    expect(el.textContent, 'la page commune n’a pas ouvert l’artiste demandé').toContain(ARTISTE.name);
     expect(
       history.state,
-      'le remontage a réécrit l’entrée composée, puis en a empilé une seconde',
+      'le remontage a empilé une seconde entrée',
     ).toEqual(curseur);
   });
 
   it('🔴 LE SIGNALEMENT : le Précédent rend la PAGE DE RÉSULTATS, pas la Bibliothèque', async () => {
     const el = await poserResultats();
     vignetteArtiste(el)!.click();
-    await jusqua(() => get(activeView) === 'library');
-    await monterLaBibliotheque(el);
+    await jusqua(() => get(activeView) === 'streamingartist');
+    await monterLaPageCommune(el);
 
     history.back();
     await jusqua(() => get(activeView) === 'search');
@@ -230,8 +244,8 @@ describe('#1142 — un geste, UNE entrée d’historique', () => {
   it('un SECOND Précédent rend l’Accueil : la pile suit le chemin RÉELLEMENT parcouru', async () => {
     const el = await poserResultats();
     vignetteArtiste(el)!.click();
-    await jusqua(() => get(activeView) === 'library');
-    await monterLaBibliotheque(el);
+    await jusqua(() => get(activeView) === 'streamingartist');
+    await monterLaPageCommune(el);
 
     history.back();
     await jusqua(() => get(activeView) === 'search');
@@ -244,11 +258,11 @@ describe('#1142 — un geste, UNE entrée d’historique', () => {
     ).toBe('home');
   });
 
-  it('AUCUNE boucle : l’entrée composée ne se réécrit pas toute seule', async () => {
+  it('AUCUNE boucle : l’entrée de la page ne se réécrit pas toute seule', async () => {
     const el = await poserResultats();
     vignetteArtiste(el)!.click();
-    await jusqua(() => get(activeView) === 'library');
-    await monterLaBibliotheque(el);
+    await jusqua(() => get(activeView) === 'streamingartist');
+    await monterLaPageCommune(el);
     const hauteur = history.length;
     const curseur = history.state;
 
@@ -263,7 +277,7 @@ describe('#1142 — un geste, UNE entrée d’historique', () => {
 
     expect(history.length, 'la pile grandit toute seule : le Précédent est noyé').toBe(hauteur);
     expect(history.state, 'l’entrée courante bouge toute seule').toEqual(curseur);
-    expect(get(detailOuvert), 'la clé ouverte bouge toute seule').toBe(CLE);
+    expect(get(ficheArtisteService), 'la cible bouge toute seule').toEqual(CIBLE);
   });
 });
 
@@ -271,7 +285,7 @@ describe('#1142 — ce que le correctif ne doit PAS emporter', () => {
   it('l’intention ne survit pas au geste : un changement de vue ordinaire reste une racine', async () => {
     const el = await poserResultats();
     vignetteArtiste(el)!.click();
-    await jusqua(() => get(activeView) === 'library');
+    await jusqua(() => get(activeView) === 'streamingartist');
 
     // Une autre vue, tout de suite après : son entrée ne doit porter AUCUN
     // détail — sans quoi l'adresse dirait « #radios/artiste:42 ».
@@ -293,9 +307,11 @@ describe('#1142 — ce que le correctif ne doit PAS emporter', () => {
     expect(badge, 'la pastille de provenance a disparu de la vignette').not.toBeNull();
 
     badge!.click();
-    await jusqua(() => get(activeView) === 'library');
+    await jusqua(() => get(activeView) !== 'search');
 
-    expect(history.state, 'la pastille de provenance empile encore l’entrée de la grille')
-      .toMatchObject({ tune: 'v2', vue: 'library', detail: CLE });
+    expect(get(activeView)).toBe('streamingartist');
+    expect(get(ficheArtisteService)).toEqual(CIBLE);
+    expect(history.state, 'la pastille de provenance n’écrit pas la même entrée que la vignette')
+      .toMatchObject({ tune: 'v2', vue: 'streamingartist', detail: null });
   });
 });

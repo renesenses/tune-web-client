@@ -10,6 +10,7 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
   import PochetteActions from '../v2/PochetteActions.svelte';
+  import { cibleSmartPlaylist } from '../../lib/cibleEtiquette';
   import { quatreDistinctes } from '../../lib/mosaique';
   import { dialogs } from '../../lib/stores/dialogs';
   import { preferences } from '../../lib/stores/preferences';
@@ -832,13 +833,17 @@
                lisible. Même formule de teinte que les collections. -->
           <div class="card" data-lettre={initiale(sp.name)} style="--teinte:{teinte(sp.name)}">
             <span class="cv teintee">
-              <!-- NI cœur NI étiquettes, et ce n'est pas un oubli : une
-                   playlist intelligente n'a ni l'un ni l'autre côté API —
-                   `favorisLocaux` et `cibleEtiquette` ne connaissent pas de
-                   `smartPlaylistId`. Un bouton qui ne mène à rien vaut moins
-                   qu'un bouton absent. Restent les quatre gestes qui
-                   existent : éditer, lire, ouvrir, supprimer. -->
+              <!-- Les CINQ gestes, comme sur les smart collections (#4798).
+                   Le cœur et les étiquettes manquaient à dessein tant que le
+                   serveur ne connaissait pas ce type d'objet ; il le sert
+                   depuis renesenses/tune-server-rust#4798. Le favori porte
+                   `smartPlaylistId` et l'étiquette le type `smart_playlist`,
+                   JAMAIS `playlistId`/`playlist` avec le même numéro : les
+                   deux tables partagent leurs identifiants, et l'id 1 y
+                   désigne deux playlists différentes. -->
               <PochetteActions
+                favori={{ smartPlaylistId: sp.id }}
+                etiquettes={cibleSmartPlaylist(sp.id)}
                 onEditer={() => startEdit(sp)}
                 onLire={() => lireSmartPlaylist(sp)}
                 onOuvrir={() => selectSp(sp)}

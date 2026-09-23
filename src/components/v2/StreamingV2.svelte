@@ -420,7 +420,7 @@
       api.bandcampTags(),
     ]).then(([svc, bc]) => {
       if (svc.status === 'fulfilled') services = svc.value ?? {};
-      else error = 'Services indisponibles.';
+      else error = $t('v2.stream.servicesUnavailable' as any);
       if (bc.status === 'fulfilled') {
         bandcampLive = true;
         const v: any = bc.value ?? {};

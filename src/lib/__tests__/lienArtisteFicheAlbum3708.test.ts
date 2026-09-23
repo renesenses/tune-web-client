@@ -23,6 +23,7 @@ import { get } from 'svelte/store';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
 import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import { activeView, pendingLibraryArtist } from '../stores/navigation';
+import { ficheArtisteService } from '../stores/streaming';
 import { albums as albumsStore } from '../stores/library';
 import type { Album } from '../types';
 
@@ -144,11 +145,16 @@ describe('#3708 — le nom de l’artiste MÈNE à sa fiche', () => {
     (nomArtiste(el) as HTMLElement).click();
     flushSync();
 
-    expect(
-      get(pendingLibraryArtist),
-      'la cible n’a pas été posée : la Bibliothèque n’a rien à ouvrir',
-    ).toBe(994);
-    expect(get(activeView), 'on ne va pas à la Bibliothèque').toBe('library');
+    // #1494 — UNE seule vue artiste : le clic ouvre la page commune, pour un
+    // artiste local comme de service. La cible est donc `ficheArtisteService`
+    // avec `service: null` (l'objet EST local), plus `pendingLibraryArtist`,
+    // et la vue `streamingartist`, plus la grille de la Bibliothèque.
+    const cible = get(ficheArtisteService);
+    expect(cible, 'la cible n’a pas été posée : la page artiste n’a rien à ouvrir').not.toBeNull();
+    expect(String(cible!.id)).toBe('994');
+    expect(cible!.service, 'un artiste LOCAL ne porte aucun service').toBeNull();
+    expect(get(pendingLibraryArtist), 'l’ancienne cible de la Bibliothèque ne doit plus être posée').toBeNull();
+    expect(get(activeView), 'on va à la page artiste commune').toBe('streamingartist');
   });
 
   it('il REFERME la fiche — sinon l’onglet Artistes s’ouvre derrière un calque', async () => {
