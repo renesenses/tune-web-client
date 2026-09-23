@@ -63,7 +63,8 @@ export interface Element {
    * Nom de l'artiste à ouvrir, quand `ouvrir` vaut `artiste`. Un NOM et pas un
    * identifiant : les classements viennent de l'historique, qui n'en porte
    * aucun (`TopArtistEntry` = `{artist_name, plays, listening_ms,
-   * cover_path}`). `ouvrirArtisteParNom` fait le rapprochement exact.
+   * cover_path}`). `ouvrirArtisteDepuis` fait le rapprochement exact, puis
+   * ouvre la FICHE (23/09/2026 : il ouvrait la grille de la Bibliothèque).
    */
   artiste?: string;
   /** Album normalisé pour la fiche, quand `ouvrir` vaut `album`. */
@@ -658,8 +659,8 @@ function lectures(n: number, langue: string): string {
  * `TopArtistEntry` / `TopAlbumEntry` / `TopTrackEntry`) décide de ce qu'on
  * peut offrir, et rien d'autre :
  *
- *  - un ARTISTE n'a que son nom → on l'ouvre par `ouvrirArtisteParNom`,
- *    comme le Tableau de bord ;
+ *  - un ARTISTE n'a que son nom → on l'ouvre par `ouvrirArtisteDepuis`,
+ *    le chemin des Favoris et de la Recherche ;
  *  - un ALBUM a un `album_id` quand le titre se retrouve dans la
  *    bibliothèque → il s'ouvre et se joue comme une vignette locale. Sinon,
  *    son `source_id` est le `MAX(source_id)` des lignes d'historique — celui

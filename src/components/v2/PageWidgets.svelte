@@ -49,7 +49,7 @@
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
-  import { ouvrirArtisteParNom } from '../../lib/libraryNavigation';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
   import { salutation } from '../../lib/salutation';
   import { notifications } from '../../lib/stores/notifications';
@@ -584,10 +584,27 @@
    * sans cela on ouvrirait l'ecran sur une AUTRE zone que celle cliquee.
    */
   function ouvrirElement(e: Element) {
-    // Les classements (« Vos tops », « Artistes les plus écoutés ») n'ont
-    // qu'un NOM d'artiste : le même rapprochement que le Tableau de bord.
+    /**
+     * Les classements (« Vos tops », « Artistes les plus écoutés ») n'ont
+     * qu'un NOM d'artiste : le rapprochement exact, puis la FICHE.
+     *
+     * 🔴 Bertrand, 23/09/2026 : « Homepage, widget "Vos tops" : click sur un
+     * artiste doit afficher sa page artiste ! ». Le clic partait dans
+     * `libraryNavigation.ouvrirArtisteParNom`, la navigation de l'ANCIENNE
+     * coquille : elle pose `selectedArtist` + `libraryTab`, que plus aucun
+     * écran de ce client ne lit (l'ancienne coquille est partie le 19/09,
+     * #1257). Il ne restait que son `activeView.set('library')` — on quittait
+     * l'accueil pour la grille de la Bibliothèque, sans fiche. Exactement le
+     * point 9 d'Yves Corbat sur les Favoris (17/09), d'où `ouvrirArtisteDepuis`.
+     *
+     * On passe donc par CE module, le seul chemin vivant : `pendingLibraryArtist`
+     * pour un artiste de la bibliothèque, `streamingartist` pour un artiste de
+     * service, et `vueDeRetour` pour que le Retour de la fiche ramène ICI —
+     * `$activeView` et non `'home'` en dur : les écrans éditoriaux Qobuz et
+     * Tidal montent la même page de widgets.
+     */
     if (e.ouvrir === 'artiste') {
-      if (e.artiste) void ouvrirArtisteParNom(e.artiste);
+      if (e.artiste) void ouvrirArtisteDepuis({ name: e.artiste }, $activeView);
       return;
     }
     if (e.ouvrir === 'zone') {
