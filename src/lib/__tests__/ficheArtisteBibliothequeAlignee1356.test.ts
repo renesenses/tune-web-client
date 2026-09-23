@@ -34,8 +34,9 @@ import { mount, unmount, flushSync } from 'svelte';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import ArtistesV2 from '../../components/v2/ArtistesV2.svelte';
+import ArtisteServiceV2 from '../../components/v2/ArtisteServiceV2.svelte';
 import { activeView, vueDeRetour } from '../stores/navigation';
-import { streamingServices } from '../stores/streaming';
+import { ficheArtisteService, streamingServices } from '../stores/streaming';
 
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 
@@ -60,6 +61,10 @@ function corpsPour(url: string) {
   if (/\/streaming\/services(\?|$)/.test(url)) return { qobuz: { authenticated: true } };
   if (/\/streaming\/qobuz\/artists\/q-1\/top-tracks/.test(url)) return TOP;
   if (/\/streaming\/qobuz\/artists\/q-1\/albums/.test(url)) return ALBUMS_SERVICE;
+  // L'artiste tel que le service le rend, biographie comprise (Qobuz la publie) :
+  // sans elle le bloc de la biographie ne serait pas monte, et le temoin de la
+  // fiche de service ne mesurerait rien.
+  if (/\/streaming\/qobuz\/artists\/q-1(\?|$)/.test(url)) return { ...ARTISTE_SERVICE, bio: BIO };
   if (/\/search\?/.test(url)) return { services: { qobuz: { artists: [ARTISTE_SERVICE] } } };
   // L'ORDRE compte : `/library/artists/7/albums` matcherait aussi COLLECTIONS.
   if (/\/library\/artists\/\d+\/albums/.test(url)) return [];
@@ -117,6 +122,7 @@ beforeEach(() => {
   activeView.set('home');
   vueDeRetour.set(null);
   streamingServices.set({} as any);
+  ficheArtisteService.set(null);
 });
 
 afterEach(() => {
@@ -264,9 +270,32 @@ describe('#1356 — « Enrichir la biographie » agit sur la biographie, et se l
     ).toContain('{#if bioPropre || actionsBio}');
   });
 
-  it('la fiche de SERVICE ne montre pas ce bouton : elle n’a pas d’enregistrement local à enrichir', () => {
-    const svc = lire('../../components/v2/ArtisteServiceV2.svelte');
-    expect(svc, 'la fiche de service passe un geste d’enrichissement').not.toContain('actionsBio');
+  it('la fiche de SERVICE ne montre pas ce bouton : elle n’a pas d’enregistrement local à enrichir', async () => {
+    // 🔴 MONTÉE, PLUS LUE — #1232, étape 2.
+    //
+    // Ce témoin cherchait la chaîne `actionsBio` dans le source
+    // d’`ArtisteServiceV2`. Depuis que cette fiche est AUSSI celle d’un artiste
+    // de la bibliothèque, elle passe légitimement `actionsBio` — mais pour lui
+    // seul. La garde de texte rougissait donc à tort, sur un correctif qui ne
+    // touche pas à ce qu’elle protège. On mesure l’arbre RÉELLEMENT monté sur
+    // un artiste de SERVICE : plus fort, et insensible à la forme du source.
+    hote = document.createElement('div');
+    document.body.appendChild(hote);
+    ficheArtisteService.set({ service: 'qobuz' as any, id: 'q-1', nom: 'Adèle Viret' });
+    monte = mount(ArtisteServiceV2, { target: hote });
+    flushSync();
+    await attendre(300);
+    flushSync();
+
+    const bloc = hote.querySelector<HTMLElement>('.bio-bloc');
+    expect(
+      bloc,
+      'le bloc de la biographie n’est pas monté : le témoin ne mesure plus rien',
+    ).not.toBeNull();
+    expect(
+      bloc!.querySelector('.bio-actions button'),
+      'la fiche de service offre un geste d’enrichissement sur un artiste distant',
+    ).toBeNull();
   });
 });
 

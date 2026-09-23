@@ -743,7 +743,7 @@
       <h2>{opened.subject}</h2>
       <div class="thmeta">
         <span class="st {STATUS[opened.status]?.c ?? ''}">{STATUS[opened.status]?.t ?? opened.status}</span>
-        <span class="dt">ouvert le {when(opened.created_at)}</span>
+        <span class="dt">{$t('v2.sup.openedOn' as any).replace('{date}', when(opened.created_at))}</span>
       </div>
 
       <div class="msgs">
