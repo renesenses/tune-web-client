@@ -41,13 +41,19 @@ describe('#956 — les trois gestes « Aller à l’artiste » passent par le ro
     const src = sansCommentaires(lire(SITES[0]));
     expect(src).toContain("source: service ?? (album as any).source ?? null");
   });
-  it('🔴 la coquille ouvre la fiche directement quand l’identifiant est là', () => {
-    const src = sansCommentaires(lire('src/components/v2/ShellV2.svelte'));
-    const fn = src.slice(src.indexOf('async function ouvrirArtisteServiceParNom'), src.indexOf('resoudreArtisteDeService(c'));
-    expect(fn).toContain("c.id != null");
-    expect(fn).toContain("ficheArtisteService.set({ service: c.service as any, id: String(c.id).trim(), nom: c.nom })");
+  /**
+   * 🔴 CE QUE CETTE GARDE LISAIT A DÉMÉNAGÉ — #1486. La résolution était une
+   * fonction locale de `ShellV2` ; elle vit dans `lib/ouvrirArtisteDepuis`,
+   * où `lienArtisteAlbumService1486.test.ts` l'APPELLE et lit ce qu'elle pose.
+   * Ce témoin-ci ne garde plus que la FORME du contrat.
+   */
+  it('🔴 la résolution ouvre la fiche directement quand l’identifiant est là', () => {
+    const src = sansCommentaires(lire('src/lib/ouvrirArtisteDepuis.ts'));
+    const fn = src.slice(src.indexOf('export async function ouvrirArtisteDeServiceParNom'), src.indexOf('const chercher:'));
+    expect(fn).toContain('cible?.id != null');
+    expect(fn).toContain("ficheArtisteService.set({ service: service as Source, id: String(cible.id).trim(), nom: c.nom })");
     expect(fn).toContain("activeView.set('streamingartist')");
-    expect(lire('src/lib/stores/navigation.ts')).toContain('ouvrirArtiste: (cible: { service: string; nom: string; id?: string | null }) => void;');
+    expect(lire('src/lib/stores/navigation.ts')).toContain('ouvrirArtiste: (cible: { service: string; nom: string; id?: string | null; depuis?: View | null }) => void;');
   });
   it('la lecture en cours traite aussi le nouveau cas', () => {
     const src = sansCommentaires(lire('src/components/partages/NowPlaying.svelte'));

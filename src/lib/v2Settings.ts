@@ -68,7 +68,10 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     id: 'general', labelKey: 'settings.tabGeneral', min: 'beginner',
     icon: 'M4 6h16M4 12h10M4 18h13',
     sections: [
-      { id: 'playback',   titleKey: 'settings.playback',  from: 'general', min: 'beginner', keywords: ['lecture', 'volume'] },
+      // #2901 : la limite du tirage aléatoire se cherche par ce qu'elle
+      // touche — la file d'attente, l'aléatoire — et par le chiffre lui-même.
+      { id: 'playback',   titleKey: 'settings.playback',  from: 'general', min: 'beginner',
+        keywords: ['lecture', 'volume', 'aléatoire', 'shuffle', 'file d\'attente', 'limite', '500', 'titres'] },
       { id: 'interface',  titleKey: 'settings.interface', from: 'general', min: 'beginner', keywords: ['langue', 'thème', 'affichage'] },
       // Bertrand, 16/09/2026 : la v2 savait basculer de profil (menu avatar),
       // jamais en créer un. L'onglet Profils de l'écran actuel arrive ici.

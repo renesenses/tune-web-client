@@ -46,11 +46,16 @@
  *  - une chaîne qui a la forme d'une clé (`v2.lib.sortTitle`) ;
  *  - les chaînes de moins de quatre caractères, trop souvent techniques.
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, sep } from 'node:path';
+import { noeudsDeTexte, ENTITES_HTML } from './lib/balisage.mjs';
 
 /** Les répertoires tenus propres. Une entrée s'ajoute APRÈS mesure et correction. */
-const PORTEE = ['src/components/v2', 'src/components/v2-heritage'];
+const PORTEE = process.env.FRANCAIS_V2_PORTEE
+  // En test, la contre-épreuve pointe la garde sur ses fixtures plutôt que
+  // d'écrire dans l'arbre du client (`src/lib/__tests__/gardesTexteColle.test.ts`).
+  ? process.env.FRANCAIS_V2_PORTEE.split(',')
+  : ['src/components/v2', 'src/components/v2-heritage'];
 
 function fichiers(dir) {
   const out = [];
@@ -153,6 +158,11 @@ const INTRADUISIBLE = new RegExp(
   '^(?:[\\W\\d\\s]|dB|kHz|Hz|FLAC|DSD|MP3|WAV|ALAC|AAC|DLNA|UPnP|AirPlay|OK|ID|URL|IP|MAC|EQ|DSP|PCM|LPCM|'
   + 'CSS|HTML|JSON|API|CPU|RAM|Tune|Qobuz|Tidal|Spotify|Deezer|Bandcamp|YouTube|Sonos|BluOS|Chromecast|Roon|'
   + 'Plex|SMB|NAS|USB|bit|kbps|ms|Wi-Fi|Discogs|Last\\.fm|Genius|ListenBrainz|MusicBrainz|WASAPI|ASIO|DoP|Auto|'
+  // Unités et sigles relevés le 23/09/2026, quand le marcheur a remplacé
+  // `>([^<>{}]+)<` : ils bordaient tous une expression, et aucun ne se
+  // traduit — `DR 14`, `128 MB`, `RTT 12 ms`, `90 BPM`, `25 km`, `≈ 4 Mo / min`,
+  // `A vs B`, `HQPlayer @ hôte:port`, `12 ok`.
+  + 'DR|MB|GB|TB|KB|Mo|Go|To|RTT|BPM|km|min|vs|ok|HQPlayer|'
   // ISRC : sigle de la norme ISO 3901, identique dans les onze langues. Le
   // Hub l'affiche comme NOM de la méthode d'appariement (« ISRC 12 »), face à
   // « Approximatif » et « Échec » qui, eux, sont traduits. Lui fabriquer une
@@ -255,7 +265,6 @@ const RENDU = /(?:\?\?|\|\||[?:])\s*(['"])((?:(?!\1)[^\\\n])*)\1/g;
  * tolérées. Ne fait que DÉCROÎTRE.
  */
 const DETTE_EXPRESSIONS = new Map([
-  ['src/components/v2/PlaylistsV2.svelte|Créez-en une avec « Nouvelle playlist ».', 1],
   ['src/components/v2/PluginsV2.svelte|Installer', 1],
   ['src/components/v2/SettingsV2.svelte|établie', 1],
   ['src/components/v2/SettingsV2.svelte|rompue', 1],
@@ -299,17 +308,37 @@ for (const f of surveilles()) {
   // On les blanchit comme les commentaires, en gardant les sauts de ligne pour
   // que les numéros signalés restent justes.
   fin = fin.replace(/<(code|pre)\b[^>]*>[\s\S]*?<\/\1>/g, blanchir);
-  for (const m of fin.matchAll(/>([^<>{}]+)</g)) {
+  // 🔴 Le texte nu est lu par un MARCHEUR, plus par `>([^<>{}]+)<` (23/09/2026).
+  //
+  // Cette forme-là exigeait un texte borné par `>` et `<` SANS accolade. Un
+  // libellé qui MÊLE une expression et du texte n'a pas cette forme :
+  //
+  //     <span>{upNext.length} à suivre</span>
+  //     <h2>À suivre{#if !upNext.length}&nbsp;— rien{/if}</h2>
+  //
+  // Elle échouait dès le premier caractère — `>` suivi d'un `{`, ou un texte
+  // suivi d'un `{` au lieu d'un `<`. « à suivre », « restantes » et
+  // « À suivre » sont ainsi restés en français dans les onze langues jusqu'à
+  // la capture de Silviu (testeur roumain, v0.9.161, #1451).
+  //
+  // `noeudsDeTexte` parcourt le balisage au lieu de l'apparier : il saute les
+  // balises et les expressions `{…}`, et ce qui reste est du texte, quelle que
+  // soit sa bordure. La RÈGLE ne bouge pas — tout texte visible passe par
+  // `$t()`. C'est la lecture qui était aveugle.
+  //
+  // Mesuré à l'élargissement sur `main` : 52 textes nouvellement vus. 44 de
+  // vraies fuites, corrigées dans la même PR ; les 8 autres étaient des unités
+  // et des sigles (`DR`, `MB`, `RTT`, `BPM`, `km`, `/ min`, `vs`, `HQPlayer @`)
+  // ajoutés à `INTRADUISIBLE`. Aucune dette gelée : la garde part à zéro.
+  for (const { index, texte: brut } of noeudsDeTexte(fin)) {
     // Les entités HTML décodées AVANT l'examen : `&times;` n'est pas un mot,
     // et `&lt; 15 m²` est une mesure. Les réclamer en traduction ferait fuir
     // la garde pour rien.
-    const texte = m[1]
-      .replace(/&(?:times|lt|gt|amp|nbsp|hellip|mdash|ndash|middot|deg|laquo|raquo|times|divide|plusmn|le|ge|ne|rarr|larr|check|bull);/g, ' ')
-      .trim();
+    const texte = brut.replace(ENTITES_HTML, ' ').trim();
     if (texte.length < 2) continue;
     if (INTRADUISIBLE.test(texte)) continue;
     if (!/[A-Za-zÀ-ÿ]{2}/.test(texte)) continue;
-    const ligne = src.slice(0, i + 9 + m.index).split('\n').length;
+    const ligne = src.slice(0, i + 9 + index).split('\n').length;
     fautes.push(`${f}:${ligne}  texte nu (hors $t) : ${texte.replace(/\s+/g, ' ').slice(0, 80)}`);
   }
 
@@ -346,8 +375,56 @@ for (const f of surveilles()) {
  * On ne cherche donc plus un mot français ici : on interdit la FORME. Dans
  * les fichiers de navigation, une entrée porte `labelKey`, jamais `label`.
  */
+/**
+ * 🔴 CINQUIÈME passe : la PHRASE d'un `<script>`, quels que soient ses mots.
+ *
+ * Deuxième moitié de l'enquête Silviu (#1451). La file d'attente servait
+ * `error = "File d'attente indisponible."` et rien ne l'a vu — alors que la
+ * PREMIÈRE passe lit bel et bien les littéraux du `<script>`.
+ *
+ * Elle les lit, mais elle les JUGE avec `FRANCAIS`, et cette phrase-là
+ * n'a ni accent, ni mot-outil de la liste : « File », « d'attente »,
+ * « indisponible ». Vérifié en remettant la ligne d'origine sur `main` — la
+ * garde reste verte. Le trou n'était donc pas la portée, c'était le
+ * dictionnaire : une phrase française peut très bien n'employer aucun des
+ * quarante mots qu'on surveille.
+ *
+ * On ne cherche donc plus des mots ici : on interdit une FORME. Un littéral
+ * qui commence par une MAJUSCULE, porte une ESPACE et finit par une
+ * PONCTUATION DE FIN est une phrase destinée à l'écran, en français comme en
+ * anglais — et une phrase destinée à l'écran passe par `$t()`.
+ *
+ * Étroite exprès : un identifiant (`'notFound'`), un fragment (`'Ajouter'`),
+ * un gabarit, un chemin, une classe CSS n'ont pas cette forme. C'est ce qui
+ * la rend supportable.
+ *
+ * Mesuré à l'ajout (23/09/2026) sur `main` : 16 littéraux dans la portée,
+ * TOUS de vrais messages d'échec affichés — « Favoris indisponibles. »,
+ * « Lecture impossible. », « Volume refusé. »… Aucun faux positif, tous
+ * corrigés dans la même PR. Aucune dette gelée.
+ */
+const PHRASE = /(['"])((?:(?!\1)[^\\\n]){4,})\1/g;
+for (const f of surveilles()) {
+  const src = sansCommentaires(readFileSync(f, 'utf8'));
+  const finScript = src.lastIndexOf('</script>');
+  const script = finScript < 0 ? src : src.slice(0, finScript);
+  for (const m of script.matchAll(PHRASE)) {
+    const texte = m[2].trim();
+    // Une majuscule pour commencer, une espace, une ponctuation pour finir.
+    if (!/^[A-ZÀ-Þ]/.test(texte)) continue;
+    if (!/\s/.test(texte)) continue;
+    if (!/[.!?…]$/.test(texte)) continue;
+    if (CLE.test(texte) || INTRADUISIBLE.test(texte)) continue;
+    // Déjà signalée par la première passe : on ne la compte pas deux fois.
+    if (FRANCAIS.test(texte)) continue;
+    const ligne = script.slice(0, m.index).split('\n').length;
+    fautes.push(`${f}:${ligne}  phrase en dur dans le script (hors $t) : ${texte.slice(0, 80)}`);
+  }
+}
+
 const NAVIGATION = ['src/components/v2/Sidebar.svelte', 'src/components/v2/ShellV2.svelte'];
 for (const f of NAVIGATION) {
+  if (!existsSync(f)) continue;
   const src = sansCommentaires(readFileSync(f, 'utf8'));
   for (const m of src.matchAll(/\blabel:\s*['"]/g)) {
     const ligne = src.slice(0, m.index).split('\n').length;
