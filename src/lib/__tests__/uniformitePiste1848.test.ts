@@ -168,12 +168,15 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     expect(rendus).not.toContain(fr['nowplaying.addToPlaylist']);
     // Les routes de bibliothèque prennent un `i64` : gestes morts, donc absents.
     expect(rendus).not.toContain(fr['library.playSimilar']);
-    expect(rendus).not.toContain(fr['library.otherVersions']);
     expect(rendus).not.toContain(fr['trackTags.title']);
+    // « Autres versions », SI : depuis le 23/09/2026 elle se rapproche par
+    // titre + artiste pour une piste de service (`lib/versionsParTitre`).
+    expect(rendus).toContain(fr['library.otherVersions']);
     // Ce qu'elle sait faire, elle le propose — c'est ce qui manquait. Les
     // étiquettes, oui : la paire `source` + `source_id` suffit (#1238).
     expect(rendus).toEqual([
-      fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'], fr['v2.cover.tags'],
+      fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
+      fr['library.otherVersions'], fr['v2.cover.tags'],
     ]);
   });
   /**
@@ -187,6 +190,9 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     const rendus = libelles(ouvrir(SERVICE));
     expect(rendus).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
+      // 23/09/2026 — « Autres versions » par titre + artiste, même libellé,
+      // même place que pour une piste de la bibliothèque.
+      fr['library.otherVersions'],
       fr['nowplaying.addToPlaylist'], fr['v2.cover.tags'],
     ]);
   });

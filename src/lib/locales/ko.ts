@@ -1139,6 +1139,7 @@ export default {
   "library.goToAlbum": "앨범으로 이동",
   "library.otherVersions": "다른 버전",
   "library.noOtherVersions": "다른 버전을 찾을 수 없습니다",
+  "library.otherVersionsByTitle": "제목과 아티스트로 대조 — 근사 결과",
   "library.editArtist": "아티스트 편집",
   "library.reEnrich": "다시 보강",
   "library.enrichBio": "약력 보강",

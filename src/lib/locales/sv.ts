@@ -1118,6 +1118,7 @@ export default {
   "library.goToAlbum": "Gå till album",
   "library.otherVersions": "Andra versioner",
   "library.noOtherVersions": "Ingen annan version hittades",
+  "library.otherVersionsByTitle": "Matchad på titel och artist – ungefärliga resultat",
   "library.editArtist": "Redigera artist",
   "library.reEnrich": "Berika igen",
   "library.enrichBio": "Berika biografi",

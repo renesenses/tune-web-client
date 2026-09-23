@@ -46,6 +46,7 @@
   import { t as tr } from '../../lib/i18n';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { serviceDePlaylist } from '../../lib/playlistService';
+  import { cibleParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
   import TrackContextMenu from './TrackContextMenu.svelte';
   import type { Track } from '../../lib/types';
   interface Props {
@@ -171,6 +172,8 @@
         ? () => { $gestesNavigationService?.ouvrirAlbum(albumDeService!); }
         : undefined),
   );
+  /** La cible titre + artiste d'une piste sans identifiant de bibliothèque. */
+  const cibleVersions: CibleParTitre | null = $derived(cibleParTitre(piste));
   const capacites = $derived({
     jouable,
     idBibliotheque,
@@ -186,6 +189,10 @@
     // #1268 — une piste Qobuz/Tidal/Deezer/Spotify rejoint une playlist DE SON
     // SERVICE ; `AddToPlaylistModal` bifurque sur la piste, pas sur l'écran.
     playlistDeService: serviceDePlaylist(piste),
+    // 23/09/2026 — « Autres versions » sur une piste de SERVICE, par titre +
+    // artiste. Même décision que `v2/PisteActions.svelte` (`cibleParTitre`) :
+    // la parité des deux menus se joue ici (`uniformitePiste1848`).
+    versionsParTitre: cibleVersions != null,
   });
   function lire() {
     const zid = get(currentZoneId);
@@ -260,9 +267,16 @@
     />
   {/if}
 </div>
+<!-- Le MÊME panneau dans les deux modes, comme `PisteActions` : par `trackId`
+     pour la bibliothèque, par `parTitre` pour une piste de service (23/09/2026). -->
 {#if panneauVersions && idBibliotheque != null}
   {#await import('../v2/VersionsPistePanneau.svelte') then m}
     <m.default trackId={idBibliotheque} titre={piste.title}
+      onClose={() => (panneauVersions = false)} />
+  {/await}
+{:else if panneauVersions && cibleVersions}
+  {#await import('../v2/VersionsPistePanneau.svelte') then m}
+    <m.default parTitre={cibleVersions} titre={piste.title}
       onClose={() => (panneauVersions = false)} />
   {/await}
 {/if}
