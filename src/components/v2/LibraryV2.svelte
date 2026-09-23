@@ -2712,14 +2712,26 @@
   /* Le coeur reste discret tant qu'il est vide : c'est un titre de section,
      pas une barre d'actions. Une fois plein, il prend la couleur d'accent et
      ne s'efface plus — c'est l'etat, pas une decoration au survol. */
-  .facet .fcoeur{flex:none; display:flex; align-items:center; justify-content:center;
+  /* 🔴 Le MÊME bouton vit à DEUX endroits : dans l'en-tête d'une facette
+     ouverte (`.facet h2`) et sur chaque ligne de la liste des facettes
+     (`.fl`). Les règles n'étaient écrites que pour le premier : dans la
+     liste, le bouton n'héritait d'aucun style et le navigateur lui posait
+     son fond par défaut — un carré GRIS opaque sous chaque cœur, sur tout
+     l'onglet Genres (Bertrand, 22/09/2026, v0.9.161).
+     Les deux emplacements partagent donc désormais les mêmes règles. */
+  .facet .fcoeur,
+  .fl .fcoeur{flex:none; display:flex; align-items:center; justify-content:center;
     width:26px; height:26px; padding:0; border:0; border-radius:8px; cursor:pointer;
     background:transparent; color:var(--v2-txt3); opacity:.45;
     transition:opacity .12s ease, color .12s ease, background .12s ease}
-  .facet h2:hover .fcoeur{opacity:1}
-  .facet .fcoeur:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .facet .fcoeur:focus-visible{opacity:1; outline:2px solid var(--v2-acc1); outline-offset:2px}
-  .facet .fcoeur.on{opacity:1; color:var(--v2-acc1)}
+  .facet h2:hover .fcoeur,
+  .fl:hover .fcoeur{opacity:1}
+  .facet .fcoeur:hover,
+  .fl .fcoeur:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .facet .fcoeur:focus-visible,
+  .fl .fcoeur:focus-visible{opacity:1; outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .facet .fcoeur.on,
+  .fl .fcoeur.on{opacity:1; color:var(--v2-acc1)}
   .facetgrid{overflow:visible; padding:0}
   /* #1419 — la liste d'une facette défile avec la page, comme sa grille. */
   .rows.facetrows{overflow:visible; padding:0; flex:none}
