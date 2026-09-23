@@ -10,7 +10,6 @@
    */
   import { onMount } from 'svelte';
   import { activeView } from '../../lib/stores/navigation';
-  import { entrerEnModeGrandEcran } from '../../lib/modeGrandEcran';
   import { preferences } from '../../lib/stores/preferences';
   import { LEVEL_LABEL_KEYS, type SettingsLevel } from '../../lib/uiLevel';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
@@ -446,28 +445,6 @@
       <div class="hint">{$t('settings.themeScopeHint' as any)}</div>
 
       <div class="sep"></div>
-      <!--
-        🔴 #1141 — LE MODE GRAND ÉCRAN N'AVAIT QU'UNE PORTE, ET ELLE ÉTAIT MUETTE.
-
-        Bilou, fil 1770, 13/09/2026 : « comment passer au mode grand écran en
-        nouvelle version V1 ??? », et deux lignes plus haut « il n'y a pas le
-        choix vu-mètres […] et ce choix n'apparaît pas dans les paramètres
-        d'ailleurs ». Les deux phrases n'en font qu'une : les vu-mètres à
-        aiguille n'existent QUE dans cet écran (`vuMeter` n'est lu que par
-        `TvView`), et `activeView.set('tv')` n'avait qu'un appelant dans tout
-        le dépôt — une icône SANS LIBELLÉ de la grappe haut-droite, rendue sous
-        le seul `{#if $activeView === 'nowplaying'}`.
-
-        Ici, et non dans la barre latérale : son ordre est celui que Bertrand a
-        donné en liste le 20/09/2026, et une garde le fige (`ordreBarreLaterale`).
-        Y insérer une entrée serait un arbitrage produit, pas un correctif.
-        Ce menu porte déjà « Interface » et « Thèmes » — la présentation — et il
-        est rendu depuis TOUS les écrans, ce qui est exactement ce qui manquait.
-      -->
-      <button class="item" onclick={() => { entrerEnModeGrandEcran((vue) => activeView.set(vue)); close(); }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></svg>
-        {$t('nowplaying.tvMode' as any)}
-      </button>
       <!-- Bertrand, 16/09/2026 : la v2 ne savait que BASCULER de profil (et
            seulement à partir de deux). Le chemin vers la gestion — créer,
            renommer, supprimer — est ici, toujours visible : c'est le seul

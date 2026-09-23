@@ -36,25 +36,30 @@
  * font qu'une : il ne trouve pas les vu-mètres parce qu'il ne trouve pas
  * l'écran qui les porte.
  *
- * ## Où la seconde porte a été posée, et pourquoi pas ailleurs
+ * ## Le geste retenu — arbitrage de Bertrand, 23/09/2026
  *
- * Dans le MENU DE COMPTE (`v2/AvatarMenu`), qui porte déjà « Interface » et
- * « Thèmes » — la présentation — et que la grappe rend depuis **tous** les
- * écrans, sans garde de vue.
+ * **Donner un libellé visible à l'icône qui existe déjà.** C'est le geste
+ * minimal, et il règle exactement la plainte : Bilou ne trouve plus la porte.
  *
- * 🔴 **Pas dans la barre latérale.** Son ordre est celui que Bertrand a donné
- * en liste le 20/09/2026, et `ordreBarreLaterale.test.ts` le fige exprès
- * (« sans garde, un remaniement ultérieur remettrait naturellement ces entrées
- * à leur ancienne place »). Y insérer une entrée serait un arbitrage produit,
- * pas un correctif : cela revient à Bertrand.
+ * Deux placements ont été écartés, et il faut le dire ici pour qu'on ne les
+ * « rétablisse » pas demain :
  *
- * ## Pourquoi un module
+ *   • **la barre latérale** — son ordre est celui que Bertrand a donné en liste
+ *     le 20/09/2026, et `ordreBarreLaterale.test.ts` le fige exprès (« sans
+ *     garde, un remaniement ultérieur remettrait naturellement ces entrées à
+ *     leur ancienne place ») ;
+ *   • **le menu du compte** — il porte des réglages PERSONNELS (profils,
+ *     thèmes, interface, connexion). Un mode d'affichage n'y a pas sa place, et
+ *     un testeur qui cherche l'écran aux vu-mètres n'ira jamais y cliquer.
  *
- * Parce que le geste a maintenant DEUX portes — le bouton de la grappe et
- * l'entrée du menu — et que deux copies divergeraient au premier correctif.
- * C'est exactement ce qui est arrivé à l'historique des écoutes (#889). La
- * règle est pure et le plein écran INJECTÉ : la garde fournit la racine et
- * regarde ce qu'on lui demande.
+ * ## Pourquoi un module, avec un seul appelant
+ *
+ * Parce que la règle qu'il porte n'était pas éprouvable là où elle vivait : un
+ * `try` / `.catch()` écrit à la ligne dans `ShellV2` ne se teste pas. Or elle
+ * est tout sauf anodine — le plein écran ne doit JAMAIS empêcher l'ouverture
+ * de la vue. Ici elle est pure et la racine INJECTÉE : la garde fournit une
+ * racine qui refuse, qui lève, ou qui n'existe pas, et vérifie que la vue
+ * s'ouvre quand même.
  *
  * ## Ce que ce module ne fait PAS
  *
@@ -89,9 +94,8 @@ export function demanderPleinEcran(racine: RacinePleinEcran | null | undefined):
 /**
  * Entrer en mode Grand écran : le plein écran, puis la vue.
  *
- * `aller` est injecté — c'est `activeView.set` chez l'un, `go` chez l'autre,
- * et la barre latérale a en plus une liste à réinitialiser et un tiroir à
- * refermer.
+ * `aller` est injecté plutôt qu'importé : c'est ce qui rend la règle
+ * éprouvable sans monter la coquille.
  *
  * 🔴 L'ORDRE COMPTE, et l'échec du premier ne doit pas emporter le second :
  * une porte qui n'ouvre rien quand le navigateur refuse le plein écran serait

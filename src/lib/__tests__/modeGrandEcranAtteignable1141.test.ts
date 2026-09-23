@@ -41,7 +41,10 @@ const SIDEBAR = lire('../../components/v2/Sidebar.svelte');
 const SHELL = lire('../../components/v2/ShellV2.svelte');
 const NAVIGATION = lire('../stores/navigation.ts');
 
-describe('#1141 — le mode Grand écran est ATTEIGNABLE par son nom', () => {
+/** Les onze langues servies par le client. */
+const LANGUES = ['fr', 'en', 'de', 'es', 'it', 'hu', 'ja', 'ko', 'ro', 'sv', 'zh'];
+
+describe('#1141 — le mode Grand écran PORTE SON NOM', () => {
   it("'tv' est une vue déclarée, et la coquille l'aiguille", () => {
     expect(NAVIGATION).toContain("'tv'");
     expect(SHELL).toContain("$activeView === 'tv'");
@@ -49,52 +52,81 @@ describe('#1141 — le mode Grand écran est ATTEIGNABLE par son nom', () => {
   });
 
   /**
-   * 🔴 LE TÉMOIN. Avant ce correctif, `activeView.set('tv')` n'avait qu'UN
-   * appelant dans tout le dépôt : le bouton muet de la grappe de `ShellV2`.
+   * 🔴 LE TÉMOIN. Avant ce correctif, le bouton ne disait son nom que dans son
+   * `title` et son `aria-label` — un pictogramme muet parmi quatre ronds
+   * identiques. Le libellé doit être RENDU, dans le corps du bouton.
    */
-  it('le menu de compte porte une entrée NOMMÉE, rendue une seule fois', () => {
-    const occurrences = MENU.split("{$t('nowplaying.tvMode' as any)}").length - 1;
+  it('le bouton rend un LIBELLÉ visible, et pas seulement un `title`', () => {
+    const bouton = SHELL.slice(
+      SHELL.indexOf('<button class="raccourci tv"'),
+      SHELL.indexOf('</button>', SHELL.indexOf('<button class="raccourci tv"')),
+    );
+    expect(bouton.length, 'le bouton du mode TV est introuvable').toBeGreaterThan(0);
     expect(
-      occurrences,
-      "l'entrée « Mode Grand écran » est absente du menu, ou dupliquée",
-    ).toBe(1);
-    expect(MENU).toContain('entrerEnModeGrandEcran((vue) => activeView.set(vue)); close();');
+      bouton,
+      "le nom ne vit que dans le `title` : c'est le défaut de #1141",
+    ).toContain('<span class="tv-nom">{$t(\'nowplaying.tvMode\' as any)}</span>');
+  });
+
+  /**
+   * Le libellé s'efface au seul palier `tiroir` (≤ 760 px), où cinq ronds
+   * occupent déjà la moitié d'une fenêtre de 390 px.
+   */
+  it("le libellé ne s'efface qu'au palier `tiroir`", () => {
+    expect(SHELL).toContain("class:nomme={$formatEcran !== 'tiroir'}");
+    expect(SHELL).toContain("{#if $formatEcran !== 'tiroir'}<span class=\"tv-nom\">");
+  });
+
+  /**
+   * 🔴 Bertrand, 23/09/2026 : « dis-le plutôt que de réduire la cible de clic ».
+   * Le bouton nommé s'ÉTIRE (`width:auto`) et refuse d'être comprimé
+   * (`flex:0 0 auto`) ; sa hauteur reste celle de ses voisins.
+   */
+  it('la cible de clic ne rétrécit jamais', () => {
+    expect(SHELL).toContain('.raccourci{width:32px; height:32px;');
+    const regle = SHELL.slice(SHELL.indexOf('.raccourci.tv.nomme{'));
+    expect(regle).toContain('width:auto');
+    expect(regle).toContain('flex:0 0 auto');
+    // Aucune largeur/hauteur RÉDUITE n'est posée sur la variante nommée.
+    const corps = regle.slice(0, regle.indexOf('}'));
+    expect(corps).not.toMatch(/height:\s*(?!32px)\d/);
   });
 
   /**
    * 🔴 ET NON DANS LA BARRE LATÉRALE. Son ordre est celui que Bertrand a donné
    * en liste le 20/09/2026, et `ordreBarreLaterale.test.ts` le fige. Y insérer
-   * une entrée serait un arbitrage produit, pas un correctif — la garde le dit
-   * ici pour que personne ne « corrige » ce choix par inadvertance.
+   * une entrée serait un arbitrage produit — la garde le dit ici pour que
+   * personne ne « corrige » ce choix par inadvertance.
    */
   it("n'a PAS été inséré dans la barre latérale, dont l'ordre est arbitré", () => {
     expect(SIDEBAR).not.toContain("view: 'tv'");
   });
 
-  it("l'entrée porte un LIBELLÉ traduit, non une icône muette", () => {
-    // Tout le défaut tient là : le bouton de la grappe ne dit son nom que dans
-    // son `title` et son `aria-label`.
+  /**
+   * 🔴 Ni dans le menu du compte. Bertrand, 23/09/2026 : il porte des réglages
+   * PERSONNELS (profils, thèmes, interface, connexion) ; un mode d'affichage
+   * n'y a pas sa place, et un testeur qui cherche les vu-mètres n'y clique pas.
+   */
+  it("n'a PAS été inséré dans le menu du compte", () => {
+    expect(MENU).not.toContain('nowplaying.tvMode');
+    expect(MENU).not.toContain('modeGrandEcran');
+  });
+
+  it('le libellé est TRADUIT dans les onze langues', () => {
+    for (const langue of LANGUES) {
+      const dico = lire(`../locales/${langue}.ts`);
+      const m = dico.match(/"nowplaying\.tvMode":\s*"([^"]*)"/);
+      expect(m, `nowplaying.tvMode manque en ${langue}`).not.toBeNull();
+      expect((m as RegExpMatchArray)[1].trim(), `nowplaying.tvMode est vide en ${langue}`)
+        .not.toBe('');
+    }
+    // Les deux langues de référence, en clair : une clé peut exister et porter
+    // le texte d'une AUTRE entrée.
     expect((fr as Record<string, string>)['nowplaying.tvMode']).toBe('Mode Grand écran');
     expect((en as Record<string, string>)['nowplaying.tvMode']).toBe('Big screen mode');
   });
 
-  /**
-   * Le menu de compte est rendu par la grappe SANS garde de vue, là où le
-   * bouton du mode TV vit sous `{#if $activeView === 'nowplaying'}`. C'est
-   * toute la différence : une porte depuis n'importe quel écran.
-   */
-  it('le menu est rendu depuis TOUS les écrans, sans garde de vue', () => {
-    const grappe = SHELL.slice(SHELL.indexOf('<GlobalSearchBar />'));
-    expect(grappe).toContain('<AvatarMenu />');
-    const avant = grappe.slice(0, grappe.indexOf('<AvatarMenu />'));
-    expect(avant, 'une garde de vue s’est glissée devant le menu')
-      .not.toContain("{#if $activeView ===");
-  });
-
-  it('les DEUX portes passent par le même geste', () => {
-    // Sans cela, l'entrée du menu ouvrirait la vue sans plein écran — deux
-    // portes, deux comportements, la divergence qu'on vient de corriger.
-    expect(MENU).toContain("import { entrerEnModeGrandEcran } from '../../lib/modeGrandEcran'");
+  it('le geste passe par le module partagé', () => {
     expect(SHELL).toContain("import { entrerEnModeGrandEcran } from '../../lib/modeGrandEcran'");
     expect(SHELL).toContain('entrerEnModeGrandEcran((vue) => activeView.set(vue));');
   });
