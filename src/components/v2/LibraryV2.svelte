@@ -51,6 +51,7 @@
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
   import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
+  import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { melangee, rangAleatoire, graineAleatoire } from '../../lib/shuffle';
   import { optionsAleatoire } from '../../lib/porteeAleatoire';
   import { notifications } from '../../lib/stores/notifications';
@@ -165,12 +166,15 @@
     idsPortee = null;
     if (!d) return;
     let perime = false;
-    api.getAlbumsDetailed({ folder: dossierPortee }, 5000, 0)
-      .then((r) => {
+    // 🔴 Fil 1880 — PAGINÉ, pas un appel unique. La route borne ce qu'elle
+    // rend (`clamp(1, 2000)`) : demander 5 000 en rendait 2 000 sans le dire,
+    // et l'écran prenait ces 2 000 pour la portée entière. Comme elle ordonne
+    // par artiste de carte, la coupe emportait d'abord les compilations —
+    // « les albums "VA-xxx" ont disparu ». Voir `porteeDossierAlbums`.
+    idsAlbumsDeLaPortee((limite, rang) => api.getAlbumsDetailed({ folder: d }, limite, rang))
+      .then((ids) => {
         if (perime) return;
-        idsPortee = new Set(
-          (r.items ?? []).map((a: any) => a.album_id).filter((x: any) => typeof x === 'number'),
-        );
+        idsPortee = ids;
       })
       .catch(() => {
         if (perime) return;
