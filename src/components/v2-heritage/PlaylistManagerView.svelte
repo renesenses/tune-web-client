@@ -13,6 +13,7 @@
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../../lib/types';
   import { t as tr } from '../../lib/i18n';
   import { pisteAppliquee, resumeApplication } from '../../lib/recuperationPlaylist';
+  import { estPisteLocale } from '../../lib/pisteFile';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
@@ -1249,7 +1250,12 @@
     if (!zone?.id) return;
     try {
       const source = t.source || selectedService;
-      if (source && source !== 'local' && t.source_id) {
+      // 🔴 Une piste UPnP de la bibliothèque (#4201) a un `id` ET un
+      // `source_id` : sans le prédicat partagé, elle partait comme un objet de
+      // service. La bibliothèque passe donc EN PREMIER.
+      if (estPisteLocale(t)) {
+        await api.addToQueue(zone.id, { track_id: t.id! });
+      } else if (source && source !== 'local' && t.source_id) {
         await api.addToQueue(zone.id, {
           source: source as any,
           source_id: t.source_id,
