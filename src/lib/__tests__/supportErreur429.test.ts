@@ -11,7 +11,7 @@
  * c'est le seul niveau où la régression se voit.
  */
 import { describe, it, expect } from 'vitest';
-import { fr as frBrut, en as enBrut } from '../locales';
+import { fr as frBrut, en as enBrut } from './onzeDictionnaires';
 
 const fr = frBrut as Record<string, string>;
 const en = enBrut as Record<string, string>;

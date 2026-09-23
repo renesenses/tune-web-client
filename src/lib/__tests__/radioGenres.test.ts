@@ -7,7 +7,7 @@ import {
   radioGenreShelves,
   radioGenreLabel,
 } from '../radioGenres';
-import * as locales from '../locales';
+import * as locales from './lesOnzeLangues';
 
 /**
  * Garde : un genre de radio = UN rayon, quelle que soit son orthographe, et un

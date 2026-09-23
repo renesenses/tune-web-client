@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import { fr } from '../locales';
+import { fr } from './onzeDictionnaires';
 import type { Zone } from '../types';
 import ZoneConfigModal from '../../components/partages/ZoneConfigModal.svelte';
 

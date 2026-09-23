@@ -9,7 +9,7 @@ import {
   reglagesCrossfeed,
 } from '../crossfeed';
 import * as api from '../api';
-import * as LOCALES from '../locales';
+import * as LOCALES from './lesOnzeLangues';
 
 /**
  * tune-server-rust#4683 — « pouvoir pousser le curseur jusqu'à 100 % »

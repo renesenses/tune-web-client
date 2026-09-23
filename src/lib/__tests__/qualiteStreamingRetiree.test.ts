@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { V2_SETTINGS } from '../v2Settings';
 import { SETTING_LEVELS } from '../settingLevels';
-import * as LOCALES from '../locales';
+import * as LOCALES from './lesOnzeLangues';
 
 /**
  * #2723 — le sélecteur « Qualité streaming » est RETIRÉ tant qu'il ne pilote

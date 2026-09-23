@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { get } from 'svelte/store';
 import { locale, t } from '../i18n';
-import * as locales from '../locales';
+import * as locales from './lesOnzeLangues';
 
 /**
  * Garde : l'écran FILE D'ATTENTE ne parle plus français à qui ne l'a pas

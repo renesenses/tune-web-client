@@ -21,5 +21,8 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['src/**/*.test.ts'],
+    // Les onze dictionnaires, enregistrés avant chaque banc : i18n.ts ne les
+    // importe plus en statique (tune-server-rust#4800, cause 4).
+    setupFiles: ['src/lib/__tests__/setupLocales.ts'],
   },
 });

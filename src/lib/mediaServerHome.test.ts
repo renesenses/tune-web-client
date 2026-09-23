@@ -5,7 +5,7 @@ import {
   CONTENEUR_ALBUMS,
   RAYONS_TUNE,
 } from './mediaServerHome';
-import * as locales from './locales';
+import * as locales from './__tests__/lesOnzeLangues';
 
 const srv = (manufacturer: string, model: string) => ({ manufacturer, model });
 
