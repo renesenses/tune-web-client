@@ -29,6 +29,7 @@ import * as api from './api';
 import { notifications } from './stores/notifications';
 import { t } from './i18n';
 import { BANDCAMP_SVC, cleServeur } from './ongletsStreaming';
+import { streamingServices } from './stores/streaming';
 
 /**
  * `playlist` a rejoint la liste pour #2370 (Didier, fil 1541) : on pouvait
@@ -157,13 +158,25 @@ export function identiteDeFavori(serviceId: string): string {
  *    publique de sa page — celle que `ouvrirFiche`, `playAlbum` et le
  *    serveur (`album_depuis_url`) emploient déjà.
  *
- * ⚠️ **Le repli sur `url` ne vaut QUE pour un album.** Une PISTE Bandcamp est
- * identifiée par son URL de flux mp3-128 (`resolve_direct_url`, et c'est ce
- * que la barre de lecture met en favori) ; la lui remplacer par l'adresse de
- * sa page fabriquerait une SECONDE vérité à côté de la première — deux cœurs
- * qui ne parlent pas du même objet, exactement le défaut de Didier (#1478)
- * que ce module existe pour avoir refermé. Une piste sans `source_id` reste
- * donc sans cœur, comme aujourd'hui.
+ * ⭐ **L'ARTISTE a rejoint l'album le 23/09/2026** — `tune-server-rust#4577`,
+ * la moitié du point 4 de FabienM que #1400 avait laissée : « on ne peut pas
+ * mettre un ARTISTE ou un album issus de Bandcamp en favori ». L'album fut
+ * traité, l'artiste ne le fut nulle part. Son identité est la même chose que
+ * celle de l'album — l'adresse publique de sa page, `https://<lui>.bandcamp.com`
+ * — et c'est déjà la clé que `bandcampArtist(url)` et `/ext/bandcamp/artist`
+ * emploient tous les deux. Bandcamp ne numérote pas plus ses artistes que ses
+ * albums : sans ce repli, `favKeyOf` rendait `null` et aucun écran ne pouvait
+ * dessiner le cœur.
+ *
+ * ⚠️ **Le repli sur `url` ne vaut QUE pour un album ou un artiste.** Une PISTE
+ * Bandcamp est identifiée par son URL de flux mp3-128 (`resolve_direct_url`,
+ * et c'est ce que la barre de lecture met en favori) ; la lui remplacer par
+ * l'adresse de sa page fabriquerait une SECONDE vérité à côté de la première —
+ * deux cœurs qui ne parlent pas du même objet, exactement le défaut de Didier
+ * (#1478) que ce module existe pour avoir refermé. Une piste sans `source_id`
+ * reste donc sans cœur, comme aujourd'hui. Une PLAYLIST non plus : Bandcamp
+ * n'en publie pas, et ouvrir le repli à un type qui n'existe pas ne se
+ * mesurerait nulle part.
  *
  * Ne normalise RIEN d'autre : la coupe de la signature resignée appartient à
  * `identiteDeFavori`, que `favKeyOf` applique juste après.
@@ -178,7 +191,11 @@ export function refFavoriDeVignette(
   const brut = objet?.source_id;
   const serviceId = brut == null ? '' : String(brut);
   if (serviceId.trim()) return { itemType, service, serviceId };
-  if (service === BANDCAMP_SVC && itemType === 'album' && objet?.url) {
+  if (
+    service === BANDCAMP_SVC &&
+    (itemType === 'album' || itemType === 'artist') &&
+    objet?.url
+  ) {
     return { itemType, service, serviceId: String(objet.url) };
   }
   return { itemType, service, serviceId: '' };
@@ -404,12 +421,45 @@ export async function toggleStreamingFavorite(ref: StreamingRef): Promise<boolea
     return wasFav;
   }
 
-  const svcType = serviceFavType(ref.itemType);
-  const recopie = wasFav
-    ? api.removeStreamingFavorite(ref.service, svcType, ref.serviceId)
-    : api.addStreamingFavorite(ref.service, svcType, ref.serviceId);
-  recopie.catch((e) => signalerRecopieManquee(ref.service, e));
+  // 🔴 #4577 point 3 — on n'écrit plus chez un service qui a DIT qu'il
+  // refuserait. Le cœur de Tune, lui, vient d'être posé : il vit dans
+  // `streaming_favorites`, pas chez le service.
+  if (favorisRecopiablesVers(ref.service)) {
+    const svcType = serviceFavType(ref.itemType);
+    const recopie = wasFav
+      ? api.removeStreamingFavorite(ref.service, svcType, ref.serviceId)
+      : api.addStreamingFavorite(ref.service, svcType, ref.serviceId);
+    recopie.catch((e) => signalerRecopieManquee(ref.service, e));
+  }
   return !wasFav;
+}
+
+/**
+ * Ce service accepte-t-il qu'on écrive ses favoris ? — `tune-server-rust#4577`.
+ *
+ * Le serveur le DIT depuis la v0.9.159 : `GET /api/v1/streaming/services`
+ * porte `favoris_ecrivables` par service (`registry.rs::status_all`), et
+ * Bandcamp y répond `false` — « ajouter un favori demande une session d'achat,
+ * que Tune n'a pas ; la liste de souhaits se modifie sur bandcamp.com ». Le
+ * client ne lisait pas ce champ : dans le journal de FabienM (0.9.158, fil
+ * 1862), **seize** `POST`/`DELETE` sont partis vers
+ * `/streaming/bandcamp/favorites/…` pour y récolter seize 501, dont huit
+ * `DELETE` en dix secondes — quelqu'un qui reclique parce que rien ne se passe.
+ *
+ * 🔴 **L'absence n'est pas un refus.** Un serveur d'avant la v0.9.159 ne
+ * publie pas le champ, et un magasin pas encore rempli ne publie rien du tout :
+ * les deux valent `true`, c'est-à-dire le comportement d'avant. Répondre
+ * `false` sur un silence couperait la recopie chez Qobuz et Tidal, là où elle
+ * fonctionne, dès qu'un client neuf parlerait à un serveur ancien.
+ *
+ * ⚠️ Ce n'est PAS la question du 501 : `signalerRecopieManquee` l'ignore déjà
+ * et le cœur de Tune tient. Ce qu'on retire ici, c'est l'appel lui-même —
+ * un aller-retour par clic dont on sait d'avance qu'il échouera.
+ */
+export function favorisRecopiablesVers(service: string | null | undefined): boolean {
+  const nom = (service ?? '').trim();
+  if (!nom) return true;
+  return get(streamingServices)[nom]?.favoris_ecrivables !== false;
 }
 
 /**
