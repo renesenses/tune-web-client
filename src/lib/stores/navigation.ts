@@ -109,7 +109,14 @@ export interface GestesNavigationService {
    * service porte l'identifiant de son artiste chez le service). Sans, la
    * coquille résout le nom par une recherche, avec repli explicite.
    */
-  ouvrirArtiste: (cible: { service: string; nom: string; id?: string | null }) => void;
+  /**
+   * `depuis` : l'écran d'où part le clic, pour que le Retour de la fiche
+   * artiste y ramène — même contrat que `ouvrirArtisteDepuis` (#3824). La
+   * coquille le posait sur `'nowplaying'` EN DUR, ce qui était juste pour son
+   * premier appelant et faux pour l'éditorial d'un service (#1486). Facultatif :
+   * un émetteur qui ne le dit pas garde l'ancien comportement.
+   */
+  ouvrirArtiste: (cible: { service: string; nom: string; id?: string | null; depuis?: View | null }) => void;
 }
 export const gestesNavigationService = writable<GestesNavigationService | null>(null);
 export function requestListReset() {

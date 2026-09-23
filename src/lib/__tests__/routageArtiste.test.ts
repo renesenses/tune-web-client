@@ -111,21 +111,22 @@ describe('Où mène le nom d’artiste de la lecture en cours', () => {
 
 describe('La lecture en cours alimente les DEUX contrats', () => {
   /**
-   * 🔴 Cet écran est monté par les DEUX coquilles. L'ancienne lit
-   * `selectedArtist` + `libraryTab` ; la nouvelle ne lit ni l'un ni l'autre.
-   * Poser les seuls magasins de l'ancienne, c'est exactement le défaut que
-   * Fabien a signalé sur la v0.9.140 — le clic changeait d'écran sans rien
-   * ouvrir.
+   * 🔴 Cet écran était monté par les DEUX coquilles, et la fiche artiste
+   * posait les magasins des deux — poser les seuls magasins de l'ancienne,
+   * c'est le défaut que Fabien a signalé sur la v0.9.140 : le clic changeait
+   * d'écran sans rien ouvrir. L'ancienne coquille n'existe plus, et depuis
+   * #1494 la fiche artiste est la PAGE COMMUNE, atteinte par le chemin de
+   * référence `ouvrirArtisteDepuis` — qui tranche local / service et pose la
+   * cible que l'écran d'arrivée consomme. La règle gardée ici : le geste ne
+   * recopie pas la bifurcation, il passe par ce chemin.
    */
-  it('la fiche artiste pose le magasin des DEUX clients', () => {
+  it('la fiche artiste passe par le chemin de référence, avec un artiste LOCAL', () => {
     const bloc = /async function ouvrirFicheArtiste\([\s\S]*?\n  \}/.exec(np());
     expect(bloc, 'ouvrirFicheArtiste a disparu').not.toBeNull();
-    expect(bloc![0].includes("libraryTab.set('artists')"),
-      'le contrat du client actuel n’est plus alimenté').toBe(true);
-    expect(bloc![0].includes('pendingLibraryArtist.set(artistId)'),
-      'le contrat du NOUVEAU client n’est plus alimenté : le clic changerait d’écran sans rien ouvrir').toBe(true);
-    expect(bloc![0].includes("activeView.set('library')"),
-      'on ne change plus de vue').toBe(true);
+    expect(/ouvrirArtisteDepuis\(\{ id: artistId, name: artistName, source: 'local' \}/.test(bloc![0]),
+      'la fiche artiste ne passe plus par `ouvrirArtisteDepuis` : le clic ouvrirait une autre page que les autres écrans').toBe(true);
+    expect(bloc![0].includes('pendingLibraryArtist.set('),
+      'la bifurcation local / service est recopiée ici').toBe(false);
   });
 
   it('la recherche pose la requête ET le périmètre, pour les deux clients', () => {
