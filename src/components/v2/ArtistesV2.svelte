@@ -47,6 +47,7 @@
     detailOuvert, ouvrirDetail, fermerDetail, fermerDetailEnReculant,
   } from '../../lib/historiqueCoquille';
   import { cleDetailArtiste } from '../../lib/cleDetailArtiste';
+  import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { melangee } from '../../lib/shuffle';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
@@ -431,9 +432,16 @@
   const presentes = $derived(new Set(affiches.map(lettre)));
 
   let grilleEl = $state<HTMLElement | null>(null);
+  /**
+   * 🔴 #1487 — même rail, même défaut que la Bibliothèque : les cartes portent
+   * `content-visibility:auto` (règle `.carte`), donc une estimation de 210 px
+   * tant qu'elles n'ont jamais été rendues. Un saut animé les traverse, les
+   * fait rétrécir à leur taille réelle en cours de route, et atterrit plus loin
+   * que la lettre demandée — au PREMIER clic seulement. On vise, puis on relit.
+   * `grilleEl` est le conteneur défilant (`.grille` porte `overflow-y:auto`).
+   */
   function sauter(L: string) {
-    grilleEl?.querySelector<HTMLElement>(`[data-lettre="${L}"]`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    sauterVersAncre(grilleEl, `[data-lettre="${L}"]`);
   }
 
   async function charger() {
