@@ -23,6 +23,20 @@
    * montrer ferait PERDRE des fonctions au testeur — c'est toute la raison du
    * découpage.
    *
+   * ## Les cinq blocs portés — #1232, étape 2
+   *
+   * L'inventaire de #1478 a chiffré le delta restant une fois déduites les
+   * trois briques déjà communes (`EnTeteArtiste`, `BioEtTitresPhares`,
+   * `DiscographieCommune`) : cinq blocs n'existaient que dans `ArtistesV2` —
+   * édition, étiquettes, enrichissement et biographie, « À propos »
+   * (similaires, membres, instruments), signalement. Ils sont ici.
+   *
+   * 🔴 CONDITIONNÉS À `estLocal`, ET PAS À `artisteLocal`. La fiche de service
+   * résout DÉJÀ un artiste de bibliothèque du même nom (#1356), et s'y
+   * raccrocher aurait fait apparaître cinq blocs sur la seule fiche que le
+   * testeur atteint aujourd'hui. L'étape 2 ne doit rien lui montrer de neuf :
+   * ce qu'elle prépare ne se verra qu'à l'étape 3.
+   *
    * ## La fiche d'un artiste de streaming — #3825, socle de #2568
    *
    * 🔴 Cet écran n'existait pas. C'est tout le défaut : `SearchV2.ouvrirArtiste`
@@ -47,8 +61,8 @@
   import { onMount } from 'svelte';
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
-  import type { Album, Artist, Source, Track } from '../../lib/types';
-  import { activeView, vueDeRetour } from '../../lib/stores/navigation';
+  import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
+  import { activeView, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
   import { ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
@@ -59,7 +73,12 @@
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { signalerEchecLecture } from '../../lib/echecLecture';
-  import { t as tr } from '../../lib/i18n';
+  import { t as tr, locale as langueCourante } from '../../lib/i18n';
+  import { normaliserMetadonnees, bioDans, bilanEnrichissement } from '../../lib/metadonneesArtiste';
+  import { uniqueInstruments } from '../../lib/library/credits';
+  import { trouverArtisteExact } from '../../lib/libraryNavigation';
+  import ArtistEditModal from '../partages/ArtistEditModal.svelte';
+  import ReportButton from '../partages/ReportButton.svelte';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import EnTeteArtiste from './EnTeteArtiste.svelte';
   import { notifications } from '../../lib/stores/notifications';
@@ -131,6 +150,99 @@
    * l'écran. Repris tel quel de la fiche de bibliothèque, qui l'avait mesuré.
    */
   let comptesFiche = $state<ComptesArtistesSources | null>(null);
+
+  /**
+   * L'ARTISTE SUR LEQUEL LES GESTES LOCAUX PORTENT — #1232, étape 2.
+   *
+   * 🔴 `estLocal`, et pas seulement `artisteLocal`. Une fiche de SERVICE
+   * résout déjà un artiste de bibliothèque du même nom pour aller chercher ses
+   * albums (#1356) ; s'y raccrocher ferait apparaître édition, étiquettes,
+   * enrichissement, « À propos » et signalement sur la seule fiche que le
+   * testeur atteint aujourd'hui. L'étape 2 prépare l'étape 3, elle ne se voit
+   * pas encore.
+   */
+  const artisteEditable = $derived.by<Artist | null>(() =>
+    estLocal && artisteLocal?.id != null ? artisteLocal : null,
+  );
+
+  /*
+   * Métadonnées (similaires, membres), crédits (instruments joués) et
+   * enrichissement — portés d'`ArtistesV2`, seule à les montrer.
+   * 🔴 Même précaution que `chargerBioLocale` : appelée depuis l'effet
+   * d'ouverture, cette fonction n'écrit qu'APRÈS un `await` et ne relit aucun
+   * état réactif, sinon l'effet se relancerait sur sa propre écriture.
+   */
+  let metaFiche = $state<ArtistMetadata | null>(null);
+  let creditsFiche = $state<TrackCredit[]>([]);
+  let enrichissement = $state(false);
+  let jetonMeta = 0;
+  /** L'éditeur COMPLET de l'artiste (nom, tri, image téléversée…). */
+  let editionComplete = $state<Artist | null>(null);
+  /** Le panneau d'étiquettes, chargé à la demande. */
+  let etiquettesArtiste = $state<Artist | null>(null);
+
+  async function chargerMetadonnees(id: number | null | undefined) {
+    const jeton = ++jetonMeta;
+    metaFiche = null;
+    creditsFiche = [];
+    if (id == null) return;
+    const [m, c] = await Promise.all([
+      api.getArtistMetadata(id).then(normaliserMetadonnees).catch(() => null),
+      api.getArtistCredits(id).catch(() => [] as TrackCredit[]),
+    ]);
+    if (jeton !== jetonMeta) return;
+    metaFiche = m;
+    creditsFiche = c ?? [];
+  }
+
+  async function enrichir() {
+    const a = artisteEditable;
+    if (a?.id == null || enrichissement) return;
+    enrichissement = true;
+    try {
+      const m = normaliserMetadonnees(await api.enrichArtist(a.id));
+      metaFiche = { ...(metaFiche ?? {}), ...m } as ArtistMetadata;
+      // La bio rapportée remplace l'absence de bio, jamais une bio éditée.
+      const rapportee = bioDans(m, $langueCourante);
+      if (rapportee && !a.bio?.trim()) bio = rapportee;
+      const cle = bilanEnrichissement(m);
+      if (cle === 'library.noInfoFound') notifications.info($tr(cle as any));
+      else notifications.success($tr(cle as any));
+    } catch {
+      notifications.error($tr('library.enrichUnavailable' as any));
+    } finally {
+      enrichissement = false;
+    }
+  }
+
+  /**
+   * UN ARTISTE SIMILAIRE, ouvert par son NOM — porté d'`ArtistesV2`.
+   *
+   * Là-bas, la fiche vivait dans l'écran-liste et cherchait dans les artistes
+   * déjà chargés. Ici il n'y a pas de liste : on interroge la bibliothèque et
+   * on n'accepte qu'une correspondance EXACTE — jamais un approchant, qui
+   * ouvrirait la fiche d'un AUTRE artiste. La même garde que
+   * `ouvrirArtisteDepuis` (#1194).
+   *
+   * Trouvé, on recharge CETTE fiche sur le voisin ; sinon on retombe sur la
+   * Recherche, comme le faisait `ArtistesV2`.
+   */
+  async function ouvrirSimilaire(nomVoisin: string) {
+    let id: number | null = null;
+    try {
+      id = trouverArtisteExact((await api.searchLibrary(nomVoisin, 5))?.artists, nomVoisin);
+    } catch {
+      /* repli sur la recherche */
+    }
+    if (id != null) {
+      ficheArtisteService.set({ service: null, id: String(id), nom: nomVoisin });
+      return;
+    }
+    pendingSearchQuery.set(nomVoisin);
+    ficheArtisteService.set(null);
+    vueDeRetour.set(null);
+    activeView.set('search');
+  }
   const sectionsServices = $derived<AlbumsDeService[]>(
     // `artistId` : l'identifiant OUVERT chez ce service — ce qui départage ses
     // albums de ceux d'autres artistes que le service range sous lui (#4651).
@@ -187,6 +299,12 @@
     titresEnEchec = false;
     albums = [];
     bio = null;
+    // #1232, étape 2 — les blocs locaux ne suivent pas d'une fiche à l'autre :
+    // sans cette remise à zéro, « À propos » de l'artiste précédent resterait
+    // affiché sous celui-ci.
+    editionComplete = null;
+    etiquettesArtiste = null;
+    void chargerMetadonnees(null);
     // `allSettled` : un service qui refuse les titres phares ne doit pas
     // emporter les albums avec lui. Une fiche à moitié pleine vaut mieux
     // qu'un écran vide — c'est la règle du reste de l'application.
@@ -261,6 +379,11 @@
     artisteLocal = null;
     autresServices = [];
     comptesFiche = null;
+    editionComplete = null;
+    etiquettesArtiste = null;
+    // #1232, étape 2 — similaires, membres et instruments joués. Ils partent
+    // SANS bloquer : la discographie n'a pas à les attendre.
+    void chargerMetadonnees(id);
     const [a, al] = await Promise.allSettled([
       api.getArtist(id),
       api.getArtistAlbums(id),
@@ -489,6 +612,26 @@
   }
 </script>
 
+<!--
+  « Enrichir la biographie » — rendu DANS le bloc de la biographie (#1356),
+  porté ici par #1232 étape 2.
+
+  Bertrand, 20/09/2026 : le bouton flottait seul au milieu de la fiche, en tête
+  d'une section « À propos » qui liste les artistes proches, les membres et les
+  instruments — rien qui le concerne. C'est sur la biographie qu'il agit, il se
+  lit sous elle.
+
+  Un EXTRAIT plutôt qu'un bloc recopié : `BioEtTitresPhares` est le bloc commun
+  aux deux fiches (#4330), et un artiste de SERVICE n'a pas d'enregistrement
+  local à enrichir — cette fiche ne passe donc rien quand elle en montre un, et
+  ne montre rien.
+-->
+{#snippet enrichirBio()}
+  <button class="v2-btn ghost" onclick={enrichir} disabled={enrichissement}>
+    {enrichissement ? '…' : $tr((bio ? 'library.reEnrich' : 'library.enrichBio') as any)}
+  </button>
+{/snippet}
+
 {#if albumOuvert}
   <!-- `service` EN MÊME TEMPS que l'album : `AlbumDetailV2` n'apparie un album
        de streaming que sur la paire service + `source_id`, et l'ouvrir sans son
@@ -543,6 +686,36 @@
           {$tr('library.shuffleArtist' as any)}
         </button>
       {/if}
+      <!-- #1232, étape 2 — ÉDITION, ÉTIQUETTES et SIGNALEMENT, portés
+           d'`ArtistesV2`. Ils n'ont de sens que sur un enregistrement de la
+           bibliothèque : un artiste de service n'en a pas, et la fiche ouverte
+           sur l'un d'eux ne les montre donc pas (voir `artisteEditable`).
+
+           🔴 `RenommerModale`, l'autre modale d'`ArtistesV2`, n'est PAS
+           portée : elle appartient à la VIGNETTE de la grille, pas à la fiche.
+           La fiche, elle, ouvre l'éditeur complet — nom, nom de tri,
+           biographie, image téléversée. -->
+      {#if artisteEditable}
+        {@const local = artisteEditable}
+        <button class="v2-btn ghost" onclick={() => (editionComplete = local)}
+          title={$tr('library.editArtist' as any)}>
+          {$tr('common.edit' as any)}
+        </button>
+        <button class="v2-btn ghost" onclick={() => (etiquettesArtiste = local)}
+          aria-haspopup="dialog" title={$tr('v2.cover.tags' as any)}>
+          {$tr('v2.cover.tags' as any)}
+        </button>
+        {#if local.image_path}
+          <ReportButton entity="artist_image" entityId={local.id!}
+            mbid={local.musicbrainz_id ?? undefined}
+            reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} compact />
+        {/if}
+        {#if bio}
+          <ReportButton entity="bio" entityId={local.id!}
+            mbid={local.musicbrainz_id ?? undefined}
+            reasons={['incorrect', 'wrong_entity', 'offensive']} />
+        {/if}
+      {/if}
     {/snippet}
   </EnTeteArtiste>
 
@@ -554,7 +727,37 @@
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={bio} titres={titres} cle={cible?.id} />
+    <BioEtTitresPhares bio={bio} titres={titres} cle={cible?.id}
+      actionsBio={artisteEditable ? enrichirBio : undefined} />
+
+    <!-- 🔴 « À propos » ne s'ouvre QUE si elle a quelque chose à dire (#1356).
+         Le bouton d'enrichissement l'a quittée pour rejoindre la biographie :
+         sans cette garde, elle resterait à l'écran vide, avec sa marge, entre
+         les titres phares et la discographie. -->
+    {#if artisteEditable && (metaFiche?.similar_artists?.length || metaFiche?.members?.length || creditsFiche.length)}
+      <section class="apropos">
+        {#if metaFiche?.similar_artists?.length}
+          <h3>{$tr('artist.similarArtists' as any)}</h3>
+          <div class="puces">
+            {#each metaFiche.similar_artists as sa (sa.name)}
+              <button class="puce" title={sa.reason} onclick={() => ouvrirSimilaire(sa.name)}>{sa.name}</button>
+            {/each}
+          </div>
+        {/if}
+        {#if metaFiche?.members?.length}
+          <h3>{$tr('artist.members' as any)}</h3>
+          <ul class="membres">
+            {#each metaFiche.members as m (m.name)}<li><b>{m.name}</b> {m.role}</li>{/each}
+          </ul>
+        {/if}
+        {#if creditsFiche.length}
+          <h3>{$tr('artist.credits' as any)}</h3>
+          <div class="puces">
+            {#each uniqueInstruments(creditsFiche) as instr (instr)}<span class="puce fixe">{instr}</span>{/each}
+          </div>
+        {/if}
+      </section>
+    {/if}
 
     {#if albums.length || locaux.length || autresServices.length || complementsEnCharge}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
@@ -565,6 +768,33 @@
     {/if}
   {/if}
 </section>
+{/if}
+
+<!-- #1232, étape 2 — les deux calques portés d'`ArtistesV2`. Rendus HORS de la
+     `<section>` : ils se superposent à la fiche, ils n'y défilent pas. -->
+{#if editionComplete}
+  <ArtistEditModal
+    artist={editionComplete}
+    onClose={() => (editionComplete = null)}
+    onSaved={(maj) => {
+      // La fiche suit l'édition sans être rechargée : le nom, le portrait et
+      // la biographie viennent d'être écrits, les redemander au serveur ne
+      // rendrait rien de plus.
+      artiste = maj;
+      artisteLocal = maj;
+      bio = maj.bio?.trim() || bio;
+      editionComplete = null;
+    }}
+  />
+{/if}
+
+{#if etiquettesArtiste?.id != null}
+  {@const cibleArtiste = { itemType: 'artist', itemId: etiquettesArtiste.id }}
+  {@const nomArtiste = etiquettesArtiste.name}
+  {#await import('./EtiquettesPanneau.svelte') then m}
+    <m.default cible={cibleArtiste} nom={nomArtiste}
+      onClose={() => (etiquettesArtiste = null)} />
+  {/await}
 {/if}
 
 <style>
@@ -578,6 +808,16 @@
   .etat{padding:40px 0; color:var(--v2-txt3)}
   h2{margin:22px 0 10px; font:600 13px var(--v2-sans); color:var(--v2-txt2);
     text-transform:uppercase; letter-spacing:.05em}
+  /* « À propos » — la forme exacte d'`ArtistesV2` (#1232, étape 2). */
+  .apropos{margin:0 0 18px; display:flex; flex-direction:column; gap:8px; align-items:flex-start}
+  .apropos h3{margin:8px 0 0; font:600 11px var(--v2-mono); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--v2-txt3)}
+  .puces{display:flex; flex-wrap:wrap; gap:6px}
+  .puce{padding:4px 10px; border-radius:999px; border:1px solid var(--v2-line2); background:transparent;
+    color:var(--v2-txt2); font:12px var(--v2-sans); cursor:pointer}
+  .puce:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  .puce.fixe{cursor:default}
+  .membres{margin:0; padding-left:18px; color:var(--v2-txt2); font-size:13px}
   @media (max-width: 640px){
     .v2-fas{padding:0 16px 40px}
   }
