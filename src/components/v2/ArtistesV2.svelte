@@ -61,6 +61,7 @@
   import { onMount } from 'svelte';
   import { saveDetailScroll, restoreDetailScroll } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
+  import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { initialesArtiste } from '../../lib/initialesArtiste';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import * as api from '../../lib/api';
@@ -126,12 +127,15 @@
    * la BIBLIOTHÈQUE (`service: null`). `'library'` est la vue de RETOUR : la
    * page referme vers cette grille, et non vers la Recherche d'où l'on serait
    * venu plus tôt — le dépôt n'appartient qu'au geste qui l'a posé.
+   *
+   * `provenance` suit le geste (#4201) : sous « Source · Sonos », la page ne
+   * montre et ne joue que ce qui vient de Sonos, comme la fiche le faisait.
    */
   function ouvrirArtiste(a: Artist) {
     // AVANT de basculer : la vue va être démontée, et une position mesurée
     // après coup vaudrait toujours zéro.
     saveDetailScroll(CLE_DEFILEMENT, () => grilleEl);
-    void ouvrirArtisteDepuis({ id: a.id, name: a.name, source: 'local' }, 'library');
+    void ouvrirArtisteDepuis({ id: a.id, name: a.name, source: 'local' }, 'library', { provenance });
   }
 
   /** Sans accents ni casse : « Éric » doit se ranger et se chercher comme « Eric ». */
@@ -162,9 +166,16 @@
   const presentes = $derived(new Set(affiches.map(lettre)));
 
   let grilleEl = $state<HTMLElement | null>(null);
+  /**
+   * 🔴 #1487 — même rail, même défaut que la Bibliothèque : les cartes portent
+   * `content-visibility:auto` (règle `.carte`), donc une estimation de 210 px
+   * tant qu'elles n'ont jamais été rendues. Un saut animé les traverse, les
+   * fait rétrécir à leur taille réelle en cours de route, et atterrit plus loin
+   * que la lettre demandée — au PREMIER clic seulement. On vise, puis on relit.
+   * `grilleEl` est le conteneur défilant (`.grille` porte `overflow-y:auto`).
+   */
   function sauter(L: string) {
-    grilleEl?.querySelector<HTMLElement>(`[data-lettre="${L}"]`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    sauterVersAncre(grilleEl, `[data-lettre="${L}"]`);
   }
 
   async function charger() {

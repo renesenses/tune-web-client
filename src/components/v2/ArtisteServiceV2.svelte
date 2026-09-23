@@ -87,6 +87,9 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { cibleRaccourciArtiste } from '../../lib/raccourciArtiste';
+  import type { FocusArtiste, OrigineSection } from '../../lib/focusArtiste';
+  import { dansSource } from '../../lib/provenanceBibliotheque';
+  import { melangee } from '../../lib/shuffle';
 
   const cible = $derived($ficheArtisteService);
   /**
@@ -98,6 +101,17 @@
    * au hasard. C'est la même garde que celle de `artisteDePiste` (#1193).
    */
   const estLocal = $derived(cible != null && cible.service == null);
+  /**
+   * LA SOURCE DE BIBLIOTHÈQUE CHOISIE — #1501, tenu de #4201.
+   *
+   * La grille de la Bibliothèque est filtrée par son menu « Source » (`local`,
+   * `upnp:Sonos`…), et la fiche qu'elle ouvrait restait DANS cette source : sa
+   * discographie comme « Toutes les pistes » et « Lecture aléatoire ». La
+   * consigne arrive ici par la cible, posée par `ouvrirFicheArtisteLocale`
+   * quand le geste part de la grille ; pour un artiste de service elle est
+   * sans objet.
+   */
+  const provenance = $derived(estLocal ? (cible?.provenance ?? null) : null);
 
   let artiste = $state<Artist | null>(null);
   let titres = $state<Track[]>([]);
@@ -123,6 +137,17 @@
    * d'abord, la grille grandit ensuite.
    */
   let locaux = $state<Album[]>([]);
+  /**
+   * #4767 — les deux sections que FabienM demande d'après Roon, servies par
+   * la MÊME route que la discographie (`?sections=1`). Elles vivaient dans la
+   * fiche de la Bibliothèque ; elles la suivent ici (#1501), pour un artiste
+   * LOCAL — c'est lui que la route connaît. Vides tant que rien n'est chargé ;
+   * `DiscographieCommune` ne rend une section que si elle porte quelque chose.
+   */
+  let compilations = $state<Album[]>([]);
+  let apparitions = $state<Album[]>([]);
+  /** L'artiste sur lequel la fiche d'album ouverte est focalisée (#4767). */
+  let artisteFocus = $state<FocusArtiste | null>(null);
   /**
    * L'ARTISTE de la bibliothèque qui porte ce nom, s'il existe — #1356.
    *
@@ -277,6 +302,7 @@
   }
   function fermerCalqueAlbum() {
     albumOuvert = null;
+    artisteFocus = null;
   }
   function retourCalqueAlbum() {
     fermerDetailEnReculant(fermerCalqueAlbum);
@@ -301,6 +327,8 @@
     titresEnEchec = false;
     albums = [];
     bio = null;
+    compilations = [];
+    apparitions = [];
     // #1232, étape 2 — les blocs locaux ne suivent pas d'une fiche à l'autre :
     // sans cette remise à zéro, « À propos » de l'artiste précédent resterait
     // affiché sous celui-ci.
@@ -378,6 +406,8 @@
     albums = [];
     bio = null;
     locaux = [];
+    compilations = [];
+    apparitions = [];
     artisteLocal = null;
     autresServices = [];
     comptesFiche = null;
@@ -386,9 +416,10 @@
     // #1232, étape 2 — similaires, membres et instruments joués. Ils partent
     // SANS bloquer : la discographie n'a pas à les attendre.
     void chargerMetadonnees(id);
-    const [a, al] = await Promise.allSettled([
+    const [a, d] = await Promise.allSettled([
       api.getArtist(id),
-      api.getArtistAlbums(id),
+      // #4767 — la discographie ET ses deux sections, en un aller-retour.
+      api.getArtistAlbumsSections(id),
     ]);
     if (mien !== jeton) return;
     if (a.status === 'fulfilled' && a.value) {
@@ -398,7 +429,13 @@
       // une cible sans qu'aucune résolution par le nom soit nécessaire.
       artisteLocal = a.value;
     }
-    if (al.status === 'fulfilled') locaux = (al.value ?? []) as Album[];
+    if (d.status === 'fulfilled') {
+      locaux = (d.value?.albums ?? []) as Album[];
+      // Clé ABSENTE = section vide : le serveur ne rend jamais un tableau
+      // vide, et `?? []` dit ici la même chose que lui.
+      compilations = (d.value?.compilations ?? []) as Album[];
+      apparitions = (d.value?.appearances ?? []) as Album[];
+    }
     chargement = false;
     void chargerBioLocale(mien, id, artiste?.bio ?? null);
     void chargerComplements(mien, null, artiste?.name || cible?.nom || '', true);
@@ -478,9 +515,19 @@
     }
   }
 
-  function ouvrirExemplaire(ex: Exemplaire) {
+  function ouvrirExemplaire(ex: Exemplaire, origine: OrigineSection = null) {
     ouvrirCalqueAlbum(ex.album);
     serviceOuvert = ex.source === BIBLIOTHEQUE ? null : ex.source;
+    // #4767 — venu de « Compilations » ou d'« Apparitions », l'album s'ouvre
+    // focalisé sur l'artiste de la page : la fiche ne montre que SES titres,
+    // sous une pastille qui le dit et qui rend l'album entier d'un clic. Le
+    // focus n'a de sens que pour un album de la BIBLIOTHÈQUE, ouvert depuis un
+    // artiste de la bibliothèque — l'artiste de piste vient de la base, pas
+    // d'un service.
+    artisteFocus =
+      origine && ex.source === BIBLIOTHEQUE && estLocal && artisteLocal?.id != null
+        ? { id: artisteLocal.id, nom: artisteLocal.name }
+        : null;
     albumOuvert = ex.album;
   }
   function lireExemplaire(ex: Exemplaire) {
@@ -540,6 +587,7 @@
     // Recherche, un écran d'où il ne vient pas (#1232, étape 1).
     const local = estLocal;
     albumOuvert = null;
+    artisteFocus = null;
     ficheArtisteService.set(null);
     vueDeRetour.set(null);
     activeView.set(ou ?? (local ? 'library' : 'search'));
@@ -599,11 +647,22 @@
    * Ce qu'ils jouent est donc exactement ce que la fiche montre déjà sous
    * « Bibliothèque » dans la discographie commune : rien de promis en plus.
    *
-   * Les appels sont les MÊMES que ceux d'`ArtistesV2` — `getArtistTracks` puis
-   * `lireListe` avec le contexte artiste (#2442), `shuffleAll({artist_id})` qui
-   * tire sur la discographie entière côté serveur (#1947).
+   * Les appels sont les MÊMES que ceux de la fiche retirée — `getArtistTracks`
+   * puis `lireListe` avec le contexte artiste (#2442), `shuffleAll({artist_id})`
+   * qui tire sur la discographie entière côté serveur (#1947).
+   *
+   * Sous une SOURCE choisie (#4201), les deux gestes ne jouent que les pistes
+   * qui en viennent : la liste est filtrée ici et part en `track_ids`, le
+   * serveur ne connaissant pas ce filtre ; l'aléatoire mélange cette liste
+   * plutôt que de tirer sur toute la discographie.
    */
   let enMasseLocale = $state(false);
+  async function lirePistesSource(zid: number, a: Artist, pistes: Track[]) {
+    const ids = pistes.flatMap((p) => (p.id == null ? [] : [p.id]));
+    if (!ids.length) return 0;
+    await playAndSync(zid, { track_ids: ids, context_type: 'artist', context_id: String(a.id) } as any);
+    return ids.length;
+  }
   async function lireDiscographieLocale(aleatoire: boolean) {
     const a = artisteLocal;
     const zid = $currentZoneId;
@@ -614,7 +673,11 @@
     }
     enMasseLocale = true;
     try {
-      if (aleatoire) {
+      if (provenance != null) {
+        const pistes = ((await api.getArtistTracks(a.id)) ?? []).filter((p) => dansSource(p, provenance));
+        const n = await lirePistesSource(zid, a, aleatoire ? melangee(pistes) : pistes);
+        if (!n) notifications.error($tr('library.noTracks' as any));
+      } else if (aleatoire) {
         const r = await api.shuffleAll(zid, { artist_id: a.id });
         if (!r.track_count) notifications.error($tr('library.noTracks' as any));
       } else {
@@ -659,7 +722,7 @@
   {#if serviceOuvert}
     <AlbumDetailV2 album={albumOuvert} service={serviceOuvert} onClose={retourCalqueAlbum} />
   {:else}
-    <AlbumDetailV2 album={albumOuvert} depot={null} onClose={retourCalqueAlbum} />
+    <AlbumDetailV2 album={albumOuvert} depot={null} {artisteFocus} onClose={retourCalqueAlbum} />
   {/if}
 {:else}
 <section class="v2-fas tune-v2">
@@ -779,11 +842,14 @@
       </section>
     {/if}
 
-    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge}
+    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
+      <!-- Le filtre « Source » s'applique DANS la grille commune (#4330, #4201) :
+           le poser sur la seule bibliothèque cachait tous les services. -->
       <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge}
-        nomArtiste={artiste?.name || cible?.nom || null}
+        nomArtiste={artiste?.name || cible?.nom || null} {provenance}
         onComptesProvenance={(c) => (comptesFiche = c)}
+        {compilations} {apparitions}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   {/if}

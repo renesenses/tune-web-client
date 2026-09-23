@@ -32,12 +32,26 @@ import { setSearchCriteria } from './stores/shortcuts';
 import { t } from './i18n';
 import type { Source } from './types';
 
-export async function ouvrirArtisteDepuis(a: any, depuis: View): Promise<void> {
+/**
+ * Ce que l'émetteur peut dire de plus sur le geste.
+ *
+ * `provenance` — #1501, tenu de #4201 : la grille de la Bibliothèque est
+ * filtrée par le menu « Source » (`local`, `upnp:Sonos`…), et la fiche
+ * d'artiste qu'elle ouvrait restait DANS cette source — sa discographie comme
+ * « Toutes les pistes ». La page commune reçoit la même consigne, par la
+ * cible, et pour un artiste LOCAL seulement : un service n'a pas de source de
+ * bibliothèque.
+ */
+export interface OptionsOuvrirArtiste {
+  provenance?: string | null;
+}
+
+export async function ouvrirArtisteDepuis(a: any, depuis: View, options: OptionsOuvrirArtiste = {}): Promise<void> {
   if (!a) return;
   if (a.id != null && estDeBibliotheque(a)) {
     // #1494 — la PAGE COMMUNE, plus la fiche de la Bibliothèque : voir
     // `ouvrirFicheArtisteLocale` en bas de ce module.
-    ouvrirFicheArtisteLocale(a.id, a.name ?? '', depuis);
+    ouvrirFicheArtisteLocale(a.id, a.name ?? '', depuis, options.provenance);
     return;
   }
   if (a.source && a.source_id) {
@@ -54,7 +68,7 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View): Promise<void> {
     id = trouverArtisteExact((await api.searchLibrary(a.name, 5))?.artists, a.name);
   } catch { /* repli ci-dessous */ }
   if (id !== null) {
-    ouvrirFicheArtisteLocale(id, a.name, depuis);
+    ouvrirFicheArtisteLocale(id, a.name, depuis, options.provenance);
     return;
   }
   vueDeRetour.set(depuis);
@@ -254,12 +268,27 @@ export function artisteDeService(ar: any, service: string | null | undefined): a
  * un calque dans une vue — le changement de vue écrit son entrée, et il n'y a
  * plus de grille traversée ni de clé composée à tenir.
  *
- * La fiche de la Bibliothèque (`ArtistesV2`, `#library/artiste:<id>`) reste
- * en place pour l'instant : la retirer est hors tranche, à décider une fois
- * la page commune éprouvée depuis tous les points d'entrée.
+ * La fiche de la Bibliothèque (`ArtistesV2`, `#library/artiste:<id>`) est
+ * RETIRÉE par #1501 : la grille de l'onglet Artistes passe elle aussi par ici,
+ * et il n'y a plus qu'une page d'artiste dans le client.
+ *
+ * `provenance` — la source de bibliothèque choisie dans le menu « Source »
+ * de la Bibliothèque (#4201), quand le geste part de là ; la page la lit pour
+ * ne montrer et ne jouer que ce qui vient de cette source. Absente, la clé
+ * n'est pas écrite : la cible reste `{ service, id, nom }`.
  */
-export function ouvrirFicheArtisteLocale(id: number | string, nom: string | null | undefined, depuis: View): void {
+export function ouvrirFicheArtisteLocale(
+  id: number | string,
+  nom: string | null | undefined,
+  depuis: View,
+  provenance?: string | null,
+): void {
   vueDeRetour.set(depuis);
-  ficheArtisteService.set({ service: null, id: String(id), nom: nom ?? '' });
+  ficheArtisteService.set({
+    service: null,
+    id: String(id),
+    nom: nom ?? '',
+    ...(provenance != null ? { provenance } : {}),
+  });
   activeView.set('streamingartist');
 }

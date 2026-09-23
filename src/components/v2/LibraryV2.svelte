@@ -60,6 +60,7 @@
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
+  import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -894,12 +895,27 @@
 
   const present = $derived(railUtile ? new Set(affiches.map(firstLetter)) : new Set<string>());
   let gridEl: HTMLDivElement | undefined = $state();
+  /**
+   * 🔴 #1487 — LE SAUT SE VÉRIFIE, IL NE SE CALCULE PLUS UNE BONNE FOIS.
+   *
+   * « Je clique sur la lettre N et j'accède aux albums commençant par P. En
+   * revanche, si je clique une 2ᵉ fois sur N, ça me renvoie bien aux albums
+   * commençant par N » (FabienM, fil « v0.9.162 : divers bugs », 23/09/2026).
+   *
+   * C'était un `scrollIntoView({ behavior: 'smooth' })`. Sur une grille en
+   * `content-visibility:auto` (voir la règle `.card` plus bas), les vignettes
+   * jamais rendues valent 210 px d'estimation ; l'animation les traverse, les
+   * fait rendre, et chacune rétrécit à sa taille réelle PENDANT le trajet. Le
+   * chiffre visé au départ ne désigne plus la même rangée à l'arrivée. Au
+   * second clic, tout est déjà mesuré : plus rien ne bouge, le saut tombe
+   * juste. Le détail et le remède sont dans `lib/sautAlphabetique`.
+   *
+   * `gridEl` est bien le conteneur DÉFILANT dans les trois affichages —
+   * `.grid`, `.rows` et `.carrou` portent chacun leur `overflow` —, et c'est
+   * aussi lui qui abrite les ancres.
+   */
   function jump(L: string) {
-    // `inline:'start'` — #929 : en carrousel, la lettre se rejoint en LARGEUR.
-    // Sans lui, le rail A–Z restait muet dans ce mode (`block` ne décide que du
-    // sens vertical). Il ne coûte rien à la grille ni à la liste, qui ne
-    // débordent pas horizontalement.
-    gridEl?.querySelector<HTMLElement>(`[data-letter="${L}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    sauterVersAncre(gridEl, `[data-letter="${L}"]`);
   }
 
   /**
