@@ -52,6 +52,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
+  import { chargerCollectionsCibles, entreesAjoutCollection, type CollectionCible } from '../../lib/albumVersCollection';
+  import { styleMenuAncre } from '../../lib/ancrageMenu';
+  import { portail } from '../../lib/portail';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
   // par lui, sans quoi on jouerait un tout autre morceau du meme numero.
@@ -191,6 +194,58 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   );
   /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
   let etiquettesOuvertes = $state(false);
+
+  /* ══════════════════════════════════════════════════════════════════════
+     « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
+
+     La fiche avait sept boutons et aucun pour ranger l'album dans un dossier
+     de « Collections » : le geste n'existait que sur la VIGNETTE de la
+     Bibliothèque (#1222), par le menu du coin bas-gauche. Le geste est le
+     même — `lib/albumVersCollection`, une seule implémentation — et la garde
+     aussi : un album de la BIBLIOTHÈQUE (`album.id != null && !depot`),
+     comme le bloc local ci-dessous. Un dépôt distant porte le numéro d'un
+     AUTRE serveur ; un album de service n'en a pas.
+
+     Les collections sont RELUES à chaque ouverture du menu : une collection
+     créée entre-temps doit apparaître, et `album_ids` dire « il y est déjà ».
+     Le panneau est `position:fixed` et porté à la racine (`use:portail`),
+     posé par `styleMenuAncre` : la fiche défile, un panneau `absolute` y
+     serait rogné — voir `lib/ancrageMenu`.
+     ══════════════════════════════════════════════════════════════════════ */
+  const LARGEUR_MENU_COLLECTION = 240;
+  let collectionsCibles = $state<CollectionCible[]>([]);
+  let menuCollectionOuvert = $state(false);
+  let ancreCollection = $state<{ top: number; bottom: number; right: number } | null>(null);
+  const entreesCollection = $derived(
+    depot || album.id == null
+      ? []
+      : entreesAjoutCollection(collectionsCibles, album.id, (k) => $tr(k as any), (relues) => (collectionsCibles = relues)),
+  );
+  async function basculerMenuCollection(e: MouseEvent) {
+    e.stopPropagation();
+    if (menuCollectionOuvert) { menuCollectionOuvert = false; return; }
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    ancreCollection = { top: r.top, bottom: r.bottom, right: r.right };
+    collectionsCibles = await chargerCollectionsCibles();
+    menuCollectionOuvert = true;
+  }
+  function fermerMenuCollection() { menuCollectionOuvert = false; }
+  function auClavierCollection(e: KeyboardEvent) {
+    if (e.key === 'Escape') menuCollectionOuvert = false;
+  }
+  function choisirCollection(e: MouseEvent, faire: () => void) {
+    e.stopPropagation();
+    menuCollectionOuvert = false;
+    faire();
+  }
+  /** Aucune collection : on mène à l'écran qui sait en créer. La fiche se
+   *  referme AVANT de router, comme `allerArtiste`. */
+  function allerCollections(e: MouseEvent) {
+    e.stopPropagation();
+    menuCollectionOuvert = false;
+    quitterLaFiche();
+    activeView.set('collections');
+  }
 
   let tracks = $state<Track[]>([]);
   /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
@@ -1026,6 +1081,16 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.cover.tags' as any)}
           </button>
         {/if}
+        <!-- AJOUTER À UNE COLLECTION — même garde que le bloc local : un
+             album de la BIBLIOTHÈQUE. Voir l'en-tête du `<script>`. -->
+        {#if album.id != null && !depot}
+          <button class="ghost" onclick={basculerMenuCollection}
+            aria-haspopup="menu" aria-expanded={menuCollectionOuvert}
+            title={$tr('v2.album.addToCollection' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zM12 10v6M9 13h6"/></svg>
+            {$tr('v2.album.addToCollection' as any)}
+          </button>
+        {/if}
       </div>
       <!-- Album LOCAL seulement : ces trois gestes travaillent sur la fiche de
            la bibliothèque. -->
@@ -1124,8 +1189,43 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       onClose={() => (etiquettesOuvertes = false)} />
   {/await}
 {/if}
+<!-- Le menu « Ajouter à une collection » : une entrée par collection
+     MANUELLE, ou l'état vide qui mène à l'écran Collections. Porté à la
+     racine et posé en `fixed` : la fiche défile. -->
+<svelte:window onclick={fermerMenuCollection} onkeydown={auClavierCollection}
+  onresize={fermerMenuCollection} onscrollcapture={fermerMenuCollection} />
+{#if menuCollectionOuvert && ancreCollection}
+  <div class="coll-menu tune-v2" role="menu" tabindex="-1" use:portail
+    aria-label={$tr('v2.album.addToCollection' as any)}
+    style={styleMenuAncre(ancreCollection, Math.max(2, entreesCollection.length), window, LARGEUR_MENU_COLLECTION)}>
+    {#if entreesCollection.length}
+      {#each entreesCollection as e (e.id)}
+        <button type="button" role="menuitem" class="coll-item" class:deja={e.deja}
+          onclick={(ev) => choisirCollection(ev, e.faire)}>{e.libelle}</button>
+      {/each}
+    {:else}
+      <p class="coll-vide">{$tr('v2.album.noCollection' as any)}</p>
+      <button type="button" role="menuitem" class="coll-item coll-lien" onclick={allerCollections}>
+        {$tr('v2.nav.collections' as any)}
+      </button>
+    {/if}
+  </div>
+{/if}
 
 <style>
+  /* Le menu des collections. `fixed` + `use:portail` : voir l'en-tête du
+     `<script>`. Même gabarit que le panneau de `MenuZone`. */
+  .coll-menu{position:fixed; z-index:60; width:240px; padding:6px; display:flex; flex-direction:column; gap:1px;
+    border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);
+    color:var(--v2-txt); font-family:var(--v2-sans); box-shadow:0 18px 40px rgba(0,0,0,.5)}
+  .coll-item{display:block; width:100%; min-height:34px; padding:7px 10px; border:0; border-radius:8px;
+    background:transparent; color:var(--v2-txt); font:13px var(--v2-sans); text-align:left; cursor:pointer;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .coll-item:hover{background:var(--v2-surface2)}
+  .coll-item:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-2px}
+  .coll-item.deja{color:var(--v2-txt3)}
+  .coll-lien{color:var(--v2-acc-tint)}
+  .coll-vide{margin:0; padding:7px 10px; font-size:12px; line-height:1.4; color:var(--v2-txt3); white-space:normal}
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
   .close{position:sticky; top:0; margin-bottom:8px; width:40px; height:40px; border-radius:12px; cursor:pointer;

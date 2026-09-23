@@ -2578,6 +2578,8 @@ export default {
   "v2.col.tabManual": "收藏集",
   "v2.col.title": "收藏集",
   "v2.col.addTo": "添加到“{name}”",
+  "v2.album.addToCollection": "添加到收藏集",
+  "v2.album.noCollection": "还没有收藏集，请在“收藏集”中创建。",
   "v2.col.alreadyIn": "已在“{name}”中",
   "v2.col.removeAlbum": "从此收藏中移除",
   "v2.col.removeAlbumFailed": "无法移除该专辑。",

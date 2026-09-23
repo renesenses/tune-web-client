@@ -2578,6 +2578,8 @@ export default {
   "v2.col.tabManual": "Colecții",
   "v2.col.title": "Colecții",
   "v2.col.addTo": "Adaugă la „{name}”",
+  "v2.album.addToCollection": "Adaugă la o colecție",
+  "v2.album.noCollection": "Nicio colecție încă — creează una în „Colecții”.",
   "v2.col.alreadyIn": "Deja în „{name}”",
   "v2.col.removeAlbum": "Elimină din această colecție",
   "v2.col.removeAlbumFailed": "Albumul nu a putut fi eliminat.",

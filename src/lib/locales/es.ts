@@ -2578,6 +2578,8 @@ export default {
   "v2.col.tabManual": "Colecciones",
   "v2.col.title": "Colecciones",
   "v2.col.addTo": "Añadir a «{name}»",
+  "v2.album.addToCollection": "Añadir a una colección",
+  "v2.album.noCollection": "Aún no hay colecciones: cree una en «Colecciones».",
   "v2.col.alreadyIn": "Ya está en «{name}»",
   "v2.col.removeAlbum": "Quitar de esta colección",
   "v2.col.removeAlbumFailed": "No se ha podido quitar el álbum.",

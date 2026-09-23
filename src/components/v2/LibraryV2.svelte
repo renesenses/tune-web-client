@@ -77,7 +77,7 @@
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
   import { gestesDeZone } from '../../lib/gestesDeZone';
-  import { ciblesPourAlbum, libelleCible, type CollectionCible, type EntreeCible } from '../../lib/collectionsCibles';
+  import { chargerCollectionsCibles, entreesAjoutCollection, type CollectionCible } from '../../lib/albumVersCollection';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
   // #929 — le carrousel emprunte le geste des rangées éditoriales, il ne le
   // réécrit pas. C'est l'action de #1137, corrigée par #1327 : molette,
@@ -935,39 +935,23 @@
    * de leurs règles, pas d'une liste d'identifiants. Y « ajouter » un album
    * n'aurait aucun sens. `GET /library/collections` ne rend que les
    * manuelles — les intelligentes ont leur propre route.
+   *
+   * Le geste lui-même (route, notifications, relecture) vit dans
+   * `lib/albumVersCollection` depuis le 23/09/2026 : la fiche album l'appelle
+   * aussi, et une seule implémentation vaut mieux que deux copies.
    */
   let collectionsCibles = $state<CollectionCible[]>([]);
   $effect(() => {
     let vivant = true;
-    api.getCollections()
-      .then((cs) => { if (vivant) collectionsCibles = cs ?? []; })
-      .catch(() => { /* pas de collections, pas d'entrées : rien à dire */ });
+    chargerCollectionsCibles().then((cs) => { if (vivant) collectionsCibles = cs; });
     return () => { vivant = false; };
   });
 
-  async function ajouterACollection(a: Album, cible: EntreeCible) {
-    if (a.id == null) return;
-    try {
-      await api.addAlbumToCollection(cible.id, a.id);
-      notifications.success($tr('library.albumAddedToCollection' as any));
-      // Relire : c'est `album_ids` qui dit « il y est déjà » au prochain clic.
-      collectionsCibles = (await api.getCollections()) ?? collectionsCibles;
-    } catch {
-      notifications.error($tr('library.collectionAddError' as any));
-    }
-  }
-
   /** Une entrée par collection. Celles qui contiennent déjà l'album restent
    *  proposées, mais le disent : les retirer se lirait comme « cette
-   *  collection n'existe pas ». */
+   *  collection n'existe pas ». La liste est RELUE après l'ajout (`apres`). */
   function entreesCollection(a: Album) {
-    if (a.id == null) return [];
-    return ciblesPourAlbum(collectionsCibles, a.id).map((c) => ({
-      libelle: c.deja
-        ? libelleCible(c, (k) => $tr(k as any))
-        : $tr('v2.col.addTo' as any).replace('{name}', c.nom),
-      faire: () => void ajouterACollection(a, c),
-    }));
+    return entreesAjoutCollection(collectionsCibles, a.id, (k) => $tr(k as any), (relues) => (collectionsCibles = relues));
   }
 
   function tech(a: Album): string {
@@ -2425,12 +2409,16 @@
             {/if}
             <div class="card" data-letter={firstLetter(a)}>
               <div class="cover">
+                <!-- 🔴 La grille PAR DÉFAUT n'avait pas le menu de collections
+                     que la grille de facette et le carrousel portaient déjà
+                     (#1222) : c'est pourtant elle que voit tout le monde. -->
                 <PochetteActions
                   favori={depot || a.id == null ? null : { albumId: a.id }}
                   etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
                   onEditer={depot ? null : () => (enEdition = a)}
                   onLire={() => lireAlbum(a)}
                   onOuvrir={() => ouvrirCalqueAlbum(a)}
+                  menu={depot ? [] : entreesCollection(a)}
                   nom={a.title}
                 >
                   <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
