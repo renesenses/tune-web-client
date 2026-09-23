@@ -3347,6 +3347,7 @@ export default {
   "v2.tags.noArtistWithTag": "Egyetlen előadó sem hordozza ezt a címkét.",
   "v2.tags.noTrackWithTag": "Egyetlen szám sem hordozza ezt a címkét.",
   "v2.tags.noPlaylistWithTag": "Egyetlen lejátszási lista sem hordozza ezt a címkét.",
+  "v2.tags.noCollectionWithTag": "Egyetlen gyűjtemény sem hordozza ezt a címkét.",
   "v2.album.play": "Lejátszás",
   "v2.album.cue": "CUE",
   "v2.album.cueTip": "Egy hangképből és CUE-lapjából felosztott album",

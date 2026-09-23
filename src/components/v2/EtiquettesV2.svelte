@@ -29,6 +29,17 @@
    * elles rejoignent l'onglet « Playlists » marquées `smart`, sous leur propre
    * clé, et s'ouvrent dans leur propre onglet.
    *
+   * Et deux de plus pour les collections (#4798, second volet), un onglet
+   * « Collections » à elles :
+   *
+   *   /tags/1/collections        200  {collections:[…],       count, tag_id}
+   *   /tags/1/smart-collections  200  {smart_collections:[…], count, tag_id}
+   *
+   * Même règle : un dossier (réglage JSON `collections`) et une collection
+   * intelligente (table `smart_collections`) partagent leurs identifiants —
+   * l'id 1 est à la fois « favorites » et « Audiophile ». La sorte vient de
+   * la ROUTE qui a rendu la ligne, jamais du numéro.
+   *
    * On pouvait donc DÉJÀ étiqueter un artiste depuis sa pochette (ArtistesV2,
    * Favoris) — seul cet écran ne savait pas le relire. Une phrase de
    * commentaire tenait la moitié de la fonction hors service : c'est pourquoi
@@ -60,7 +71,8 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { corpsDeLecture } from '../../lib/pisteFile';
-  import { ouvrirParRaccourci, ouvrirSmartPlaylist } from '../../lib/ouvrirParRaccourci';
+  import { ouvrirParRaccourci, ouvrirSmartPlaylist, ouvrirCollection } from '../../lib/ouvrirParRaccourci';
+  import { collectionNomAffiche } from '../../lib/collectionsLibelles';
 
   let etiquettes = $state<UserTag[]>([]);
   let chargement = $state(true);
@@ -69,6 +81,8 @@
   let artistes = $state<Artist[]>([]);
   let pistes = $state<Track[]>([]);
   let listes = $state<any[]>([]);
+  /** Dossiers ET collections intelligentes, chacune marquée `smart` par sa route (#4798). */
+  let dossiers = $state<any[]>([]);
   let albumsChargement = $state(false);
   let albumOuvert = $state<Album | null>(null);
   /**
@@ -100,7 +114,7 @@
     if ($detailOuvert == null && albumOuvert) fermerCalqueAlbum();
   });
 
-  type Famille = 'albums' | 'artistes' | 'pistes' | 'listes';
+  type Famille = 'albums' | 'artistes' | 'pistes' | 'listes' | 'dossiers';
   let famille = $state<Famille>('albums');
 
   const ONGLETS: { id: Famille; cle: string }[] = [
@@ -108,12 +122,13 @@
     { id: 'artistes', cle: 'favorites.artists' },
     { id: 'pistes', cle: 'favorites.tracks' },
     { id: 'listes', cle: 'favorites.playlists' },
+    { id: 'dossiers', cle: 'v2.nav.collections' },
   ];
   const compte = $derived<Record<Famille, number>>({
     albums: albums.length, artistes: artistes.length,
-    pistes: pistes.length, listes: listes.length,
+    pistes: pistes.length, listes: listes.length, dossiers: dossiers.length,
   });
-  const total = $derived(albums.length + artistes.length + pistes.length + listes.length);
+  const total = $derived(albums.length + artistes.length + pistes.length + listes.length + dossiers.length);
 
   /*
    * Renommer et supprimer une étiquette — portés de l'ancienne Bibliothèque,
@@ -191,20 +206,23 @@
   async function ouvrir(tag: UserTag) {
     ouverte = tag;
     setShortcutTarget({ key: cleCible(tag), restore: { id: tag.id, name: tag.name }, label: tag.name });
-    albums = []; artistes = []; pistes = []; listes = [];
+    albums = []; artistes = []; pistes = []; listes = []; dossiers = [];
     famille = 'albums';
     albumsChargement = true;
-    // Les cinq EN PARALLÈLE, chacune au mieux : une famille qui échoue ne
+    // Les sept EN PARALLÈLE, chacune au mieux : une famille qui échoue ne
     // doit pas vider les autres, et les compteurs des onglets doivent
     // être justes dès l'ouverture — un onglet « Artistes » sans nombre
-    // n'invite pas à cliquer, donc ne serait pas trouvé. La cinquième route
-    // (#4798) peut manquer sur un serveur plus ancien : au mieux, elle aussi.
-    const [a, ar, p, l, sp] = await Promise.all([
+    // n'invite pas à cliquer, donc ne serait pas trouvé. Les trois routes
+    // de #4798 peuvent manquer sur un serveur plus ancien : au mieux, elles
+    // aussi.
+    const [a, ar, p, l, sp, co, sc] = await Promise.all([
       api.getTagAlbums(tag.id!).catch(() => null),
       api.getTagArtists(tag.id!).catch(() => null),
       api.getTagTracks(tag.id!).catch(() => null),
       api.getTagPlaylists(tag.id!).catch(() => null),
       api.getTagSmartPlaylists(tag.id!).catch(() => null),
+      api.getTagCollections(tag.id!).catch(() => null),
+      api.getTagSmartCollections(tag.id!).catch(() => null),
     ]);
     albums = a?.albums ?? [];
     artistes = ar?.artists ?? [];
@@ -214,6 +232,12 @@
     listes = [
       ...(l?.playlists ?? []),
       ...(sp?.smart_playlists ?? []).map((x: any) => ({ ...x, smart: true })),
+    ];
+    // Même geste pour les collections : la sorte vient de la ROUTE, et c'est
+    // elle qui fera la clé de raccourci (`collections:` / `smartcollections:`).
+    dossiers = [
+      ...(co?.collections ?? []),
+      ...(sc?.smart_collections ?? []).map((x: any) => ({ ...x, smart: true })),
     ];
     // On se pose sur la première famille NON VIDE : ouvrir une étiquette qui
     // ne porte que des artistes sur un onglet Albums vide se lit comme une
@@ -346,7 +370,7 @@
           </div>
         {/if}
 
-      {:else}
+      {:else if famille === 'listes'}
         {#if !listes.length}
           <div class="etat">{$t('v2.tags.noPlaylistWithTag' as any)}</div>
         {:else}
@@ -381,6 +405,42 @@
                 <span class="sn" title={pl.name}>{pl.name}</span>
                 {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}
               </svelte:element>
+            {/each}
+          </div>
+        {/if}
+
+      {:else}
+        {#if !dossiers.length}
+          <div class="etat">{$t('v2.tags.noCollectionWithTag' as any)}</div>
+        {:else}
+          <div class="simples">
+            <!-- 🔴 La clé porte la SORTE : un dossier et une collection
+                 intelligente peuvent avoir le même id (#4798), et deux clés
+                 égales feraient disparaître l'onglet entier. -->
+            {#each dossiers as c (c.smart ? `sc-${c.id}` : `c-${c.id}`)}
+              {@const nom = c.smart ? collectionNomAffiche(c, (k) => $t(k as any)) : (c.name ?? '')}
+              <!-- Chaque ligne s'ouvre dans l'écran Collections, sous SA clé
+                   de raccourci : la sorte vient de la route, jamais du numéro. -->
+              <button class="simple" onclick={() => ouvrirCollection({ id: c.id, name: nom, smart: !!c.smart })}>
+                <span class="si" aria-hidden="true"
+                      title={c.smart ? $t('v2.col.smart' as any) : $t('v2.col.manual' as any)}>
+                  {#if c.smart}
+                    <!-- La collection INTELLIGENTE se distingue à l'œil : son
+                         contenu est une règle, comme la playlist intelligente. -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
+                    </svg>
+                  {:else}
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    </svg>
+                  {/if}
+                </span>
+                <span class="sn" title={nom}>{nom}</span>
+                {#if c.album_count != null}<span class="sc">{c.album_count}</span>{/if}
+              </button>
             {/each}
           </div>
         {/if}

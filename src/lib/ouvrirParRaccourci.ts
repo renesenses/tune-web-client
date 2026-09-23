@@ -45,3 +45,25 @@ export function ouvrirSmartPlaylist(sp: { id?: number | null; name?: string | nu
   if (sp?.id == null) return;
   void ouvrirParRaccourci('smartplaylists', `smartplaylists:${sp.id}`, sp.id, sp.name ?? '');
 }
+
+/**
+ * Ouvrir un DOSSIER ou une collection INTELLIGENTE dans l'écran Collections
+ * (#4798, second volet). La clé porte la SORTE — `collections:` ou
+ * `smartcollections:` — et jamais le numéro seul : les deux espaces
+ * d'identifiants se recouvrent (l'id 1 est à la fois « favorites » et
+ * « Audiophile »), et `CollectionsV2` apparie par la clé ET la sorte. La sorte
+ * vient de la ROUTE qui a rendu la ligne, pas d'une déduction.
+ */
+export function ouvrirCollection(c: {
+  id?: number | null;
+  name?: string | null;
+  smart?: boolean;
+}): void {
+  if (c?.id == null) return;
+  void ouvrirParRaccourci(
+    'collections',
+    `${c.smart ? 'smartcollections' : 'collections'}:${c.id}`,
+    c.id,
+    c.name ?? '',
+  );
+}

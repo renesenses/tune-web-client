@@ -3389,6 +3389,7 @@ export default {
   "v2.tags.noArtistWithTag": "Niciun artist nu are această etichetă.",
   "v2.tags.noTrackWithTag": "Nicio piesă nu are această etichetă.",
   "v2.tags.noPlaylistWithTag": "Nicio listă nu are această etichetă.",
+  "v2.tags.noCollectionWithTag": "Nicio colecție nu are această etichetă.",
   "v2.album.play": "Redă",
   "v2.album.cue": "CUE",
   "v2.album.cueTip": "Album împărțit dintr-o imagine audio și foaia sa CUE",
