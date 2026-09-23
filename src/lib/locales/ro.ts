@@ -945,6 +945,9 @@ export default {
   "settings.followMeLabel": "Pune pe pauză zona părăsită",
   "settings.followMeHint": "La schimbarea zonei, pune pe pauză redarea din zona pe care o părăsești, ca să nu continue nimic în spate. Dezactivat implicit (zonele rămân independente pentru multi-room).",
   "settings.searchExact": "Căutare exactă",
+  "settings.shuffleMaxTracks": "Piese extrase la redare aleatorie",
+  "settings.shuffleMaxTracksHint": "Numărul maxim de piese pe care o redare aleatorie le pune în coadă.",
+  "settings.shuffleMaxTracksRange": "de la {min} la {max}",
   "settings.searchExactLabel": "Căutare exactă",
   "settings.searchExactHint": "Caută cuvintele introduse ca frază, în această ordine, în numele unui artist, album sau piese — ca între ghilimele.",
 

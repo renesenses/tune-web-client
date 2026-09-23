@@ -22,6 +22,7 @@
   import {
     currentProfileId, loadFavoriteIds, favoriteStreamingKeys,
     favoriteAlbumIds, favoriteTrackIds, favoriteArtistIds, favoritePlaylistIds,
+    favoriteSmartPlaylistIds,
     favoriteStreamingTrackKeys, clePisteJumelee, streamingFavKey,
     favoriteFacetKeys, facetFavKey,
   } from '../../lib/stores/profile';
@@ -226,6 +227,19 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
         (f.playlists ?? []) as any,
         s.filter((x) => x.item_type === 'playlist') as any,
       ) as any;
+      // Les playlists INTELLIGENTES en favori (#4798) rejoignent le même
+      // onglet, marquées `smart` : leurs identifiants recouvrent ceux des
+      // playlists, on ne les rapproche donc JAMAIS par le numéro seul. Une
+      // seule requête pour les noms, au mieux — un serveur qui ne les sert
+      // pas ne doit pas vider l'onglet.
+      const idsSmartPl = new Set(f.smartPlaylistIds ?? []);
+      if (idsSmartPl.size) {
+        const sps = await api.getSmartPlaylists().catch(() => [] as any[]);
+        playlists = [
+          ...playlists,
+          ...(sps ?? []).filter((sp: any) => idsSmartPl.has(sp.id)).map((sp: any) => ({ ...sp, smart: true })),
+        ];
+      }
       // Les deux familles de collections au mieux : une seule qui manque ne
       // doit pas vider l'onglet de l'autre.
       const ids = new Set(f.collectionIds ?? []);
@@ -364,7 +378,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    */
   const vPlaylists = $derived(
     playlists.filter((p: any) =>
-      (p?.id != null ? $favoritePlaylistIds.has(p.id) : encoreFavori(p, 'playlist')) && match(p?.name),
+      // La sorte AVANT le numéro : une playlist intelligente se lit dans SON
+      // ensemble, jamais dans celui des playlists du même id (#4798).
+      (p?.smart
+        ? $favoriteSmartPlaylistIds.has(p.id)
+        : p?.id != null ? $favoritePlaylistIds.has(p.id) : encoreFavori(p, 'playlist')) && match(p?.name),
     ),
   );
   /**
@@ -554,8 +572,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    * `tick()` est nécessaire : l'écran cible n'est pas encore monté au moment
    * du changement de vue, et son écouteur n'existe donc pas encore. Émettre
    * tout de suite ne toucherait personne.
+   *
+   * L'écran Étiquettes porte la même mécanique dans `lib/ouvrirParRaccourci` ;
+   * celle-ci reste ici parce que ses gardes en lisent le texte.
    */
-  async function ouvrirAilleurs(vue: 'playlists' | 'collections', cle: string, id: number, nom: string) {
+  async function ouvrirAilleurs(vue: 'playlists' | 'smartplaylists' | 'collections', cle: string, id: number, nom: string) {
     activeView.set(vue as any);
     await tick();
     window.dispatchEvent(
@@ -564,8 +585,14 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       }),
     );
   }
+  // Une playlist INTELLIGENTE part vers SON onglet, sous SA clé (#4798) :
+  // `smartplaylists:` et jamais `playlists:` — les deux tables partagent leurs
+  // identifiants, et `SmartPlaylistsView` n'écoute que son propre préfixe.
   const ouvrirPlaylist = (pl: any) =>
-    pl?.id != null && ouvrirAilleurs('playlists', `playlists:${pl.id}`, pl.id, pl.name);
+    pl?.id != null &&
+    (pl.smart
+      ? ouvrirAilleurs('smartplaylists', `smartplaylists:${pl.id}`, pl.id, pl.name)
+      : ouvrirAilleurs('playlists', `playlists:${pl.id}`, pl.id, pl.name));
   const ouvrirCollection = (c: any) =>
     c?.id != null &&
     ouvrirAilleurs('collections', `${c.smart ? 'smartcollections' : 'collections'}:${c.id}`, c.id, c.name);
@@ -881,7 +908,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                service, et deux `null` retombant sur le même nom se disputeraient
                la clé — Svelte s'arrête alors sur `each_key_duplicate` et
                l'onglet entier disparaît. -->
-          {#each vPlaylists as pl, i (clef(pl, i))}
+          <!-- 🔴 Une playlist INTELLIGENTE a sa propre clé `s-…` : son id
+               recouvre celui d'une playlist ordinaire, et deux lignes de même
+               clé feraient disparaître l'onglet (#4798). -->
+          {#each vPlaylists as pl, i (pl.smart ? `s-${pl.id}` : clef(pl, i))}
             {@const locale = pl.id != null}
             {@const coeur = locale ? null : coeurService(pl, 'playlist')}
             <!-- Une playlist de SERVICE n'a pas encore d'écran qui l'accueille :
@@ -890,11 +920,20 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                  déjà tenue par le nom d'artiste d'un album de service. -->
             <svelte:element this={locale ? 'button' : 'div'} class="simple" class:inerte={!locale}
                             onclick={locale ? () => ouvrirPlaylist(pl) : undefined}>
-              <span class="si" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                     stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 6h13M3 12h13M3 18h9"/><path d="M19 8v9.5"/><circle cx="17" cy="18" r="2"/>
-                </svg>
+              <span class="si" aria-hidden="true" title={pl.smart ? $t('v2.pl.tabSmart' as any) : undefined}>
+                {#if pl.smart}
+                  <!-- La playlist INTELLIGENTE se distingue à l'œil, comme la
+                       collection intelligente : son contenu est une règle. -->
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                       stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 5h18l-7 8v6l-4 2v-8z"/>
+                  </svg>
+                {:else}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                       stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h13M3 12h13M3 18h9"/><path d="M19 8v9.5"/><circle cx="17" cy="18" r="2"/>
+                  </svg>
+                {/if}
               </span>
               <span class="sn" title={pl.name}>{pl.name}</span>
               {#if pl.track_count != null}<span class="sc">{pl.track_count}</span>{/if}

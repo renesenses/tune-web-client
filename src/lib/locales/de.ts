@@ -939,6 +939,9 @@ export default {
   "settings.followMeLabel": "Verlassene Zone pausieren",
   "settings.followMeHint": "Beim Zonenwechsel die Wiedergabe der verlassenen Zone pausieren, damit nichts hinter dir weiterläuft. Standardmäßig aus (Zonen bleiben unabhängig für Multiroom).",
   "settings.searchExact": "Exakte Suche",
+  "settings.shuffleMaxTracks": "Titel bei Zufallswiedergabe",
+  "settings.shuffleMaxTracksHint": "Maximale Anzahl Titel, die eine Zufallswiedergabe in die Warteschlange stellt.",
+  "settings.shuffleMaxTracksRange": "von {min} bis {max}",
   "settings.searchExactLabel": "Exakte Suche",
   "settings.searchExactHint": "Sucht die eingegebenen Wörter als Phrase, in dieser Reihenfolge, im Namen eines Interpreten, Albums oder Titels – als stünden sie in Anführungszeichen.",
 

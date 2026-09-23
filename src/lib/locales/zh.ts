@@ -939,6 +939,9 @@ export default {
   "settings.followMeLabel": "暂停离开的区域",
   "settings.followMeHint": "切换区域时，暂停你离开的区域的播放，这样身后就不会继续播放。默认关闭（多房间下区域保持独立）。",
   "settings.searchExact": "精确搜索",
+  "settings.shuffleMaxTracks": "随机播放抽取的曲目数",
+  "settings.shuffleMaxTracksHint": "随机播放放入播放队列的最大曲目数。",
+  "settings.shuffleMaxTracksRange": "{min} 至 {max}",
   "settings.searchExactLabel": "精确搜索",
   "settings.searchExactHint": "按输入顺序将词语作为短语，在艺人、专辑或曲目名称中查找——相当于加上双引号。",
 

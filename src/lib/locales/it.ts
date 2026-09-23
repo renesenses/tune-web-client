@@ -939,6 +939,9 @@ export default {
   "settings.followMeLabel": "Metti in pausa la zona lasciata",
   "settings.followMeHint": "Cambiando zona, mette in pausa la riproduzione della zona che lasci così nulla continua alle tue spalle. Disattivato di default (zone indipendenti per il multiroom).",
   "settings.searchExact": "Ricerca esatta",
+  "settings.shuffleMaxTracks": "Brani estratti in riproduzione casuale",
+  "settings.shuffleMaxTracksHint": "Numero massimo di brani che una riproduzione casuale mette in coda.",
+  "settings.shuffleMaxTracksRange": "da {min} a {max}",
   "settings.searchExactLabel": "Ricerca esatta",
   "settings.searchExactHint": "Cerca le parole digitate come frase, in quest’ordine, nel nome di un artista, album o brano, come se fossero tra virgolette.",
 

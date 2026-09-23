@@ -939,6 +939,9 @@ export default {
   "settings.followMeLabel": "Pausar la zona que dejas",
   "settings.followMeHint": "Al cambiar de zona, pausa la reproducción de la zona que dejas para que nada siga sonando detrás de ti. Desactivado por defecto (zonas independientes para multisala).",
   "settings.searchExact": "Búsqueda exacta",
+  "settings.shuffleMaxTracks": "Pistas extraídas en reproducción aleatoria",
+  "settings.shuffleMaxTracksHint": "Número máximo de pistas que una reproducción aleatoria pone en la cola.",
+  "settings.shuffleMaxTracksRange": "de {min} a {max}",
   "settings.searchExactLabel": "Búsqueda exacta",
   "settings.searchExactHint": "Busca las palabras escritas como una frase, en ese orden, en el nombre de un artista, álbum o pista, como si estuvieran entre comillas dobles.",
 
