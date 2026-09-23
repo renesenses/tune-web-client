@@ -1,6 +1,7 @@
 <script lang="ts">
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
+  import { pisteDeFile } from '../../lib/pisteDeFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
   import { currentZone } from '../../lib/stores/zones';
@@ -2445,7 +2446,14 @@
 
       <!-- Track list -->
       <div class="qs-track-list">
-        {#each $queueTracks as queueTrack, index}
+        <!-- 🔴 #1430 — `id` d'une ligne de file est `queue_items.id`, la piste
+             est `track_id`. Le menu « … » (« Autres versions », « Plus comme
+             ça », « Étiquettes », « Tous les champs piste »), `rangeableEnPlaylist`
+             et le bouton playlist visaient donc une AUTRE piste. `QueueV2`
+             applique déjà `pisteDeFile` ; les gestes de file (lire à ce rang,
+             glisser, retirer) travaillent à l'`index` et ne changent pas. -->
+        {#each $queueTracks as ligneDeFile, index}
+          {@const queueTrack = pisteDeFile(ligneDeFile)}
           <div
             class="qs-item"
             class:qs-current={qsIsCurrent(index)}

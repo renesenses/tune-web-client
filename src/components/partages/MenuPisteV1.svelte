@@ -44,6 +44,8 @@
   import { destinationAlbum } from '../../lib/routageAlbum';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
+  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { serviceDePlaylist } from '../../lib/playlistService';
   import TrackContextMenu from './TrackContextMenu.svelte';
   import type { Track } from '../../lib/types';
   interface Props {
@@ -71,15 +73,35 @@
   let occupe = $state(false);
   let panneauVersions = $state(false);
   let panneauEtiquettes = $state(false);
+  /** Le tiroir « Tous les champs piste » — #851, comme dans `PisteActions`. */
+  let tiroirChamps = $state(false);
   let modalePlaylist = $state(false);
   const local = $derived(estPisteLocale(piste));
   /**
-   * Les trois routes de bibliothèque — voisins acoustiques, autres versions,
-   * étiquettes — prennent un `i64`. Une piste de service n'en a pas : les
-   * entrées correspondantes sont ABSENTES, pas grisées.
+   * Les routes de bibliothèque — voisins acoustiques, autres versions, champs
+   * du fichier — prennent un `i64`. Une piste de service n'en a pas : les
+   * entrées correspondantes sont ABSENTES, pas grisées. (Les étiquettes, si :
+   * `cibleEtiquettes` ci-dessous, #1238.)
    */
   const idBibliotheque = $derived(local && piste.id != null ? piste.id : null);
   const jouable = $derived(corpsDeLecture(piste) != null);
+  /**
+   * #1238 — ce que « Étiquettes » désigne : la piste de la bibliothèque par
+   * son entier, une piste de service par sa paire `source` + `source_id`
+   * (`POST /tags/{id}/streaming-items`). `null` = aucune entrée.
+   *
+   * 🔴 Réunion du 23/09/2026 : « s'assurer que toutes les pistes ont le menu
+   * complet ». Ce menu passait `idBibliotheque` seul, et une piste Qobuz
+   * perdait ici l'entrée que `v2/PisteActions.svelte` lui offre depuis #1238 —
+   * dans le tiroir de file du NowPlaying, le même titre n'avait pas les mêmes
+   * gestes que dans la file V2. Même décision, même module (`cibleDeService`),
+   * pas de copie : c'est le reproche d'origine de #1848.
+   */
+  const cibleEtiquettes: CibleEtiquette | null = $derived(
+    local && piste.id != null
+      ? { itemType: 'track', itemId: piste.id }
+      : cibleDeService('track', piste),
+  );
   /**
    * L'album et l'artiste de la piste CHEZ SON SERVICE — #869, famille C.
    *
@@ -157,6 +179,13 @@
     albumId: allerAlbum ? 1 : null,
     albumDeService,
     artisteDeService,
+    // 🔴 Les DEUX capacités que `v2/PisteActions.svelte:371-372` passe et que
+    // ce menu oubliait — la parité des deux menus se joue ici, et le témoin
+    // `uniformitePiste1848` les compare montés.
+    etiquetable: cibleEtiquettes != null,
+    // #1268 — une piste Qobuz/Tidal/Deezer/Spotify rejoint une playlist DE SON
+    // SERVICE ; `AddToPlaylistModal` bifurque sur la piste, pas sur l'écran.
+    playlistDeService: serviceDePlaylist(piste),
   });
   function lire() {
     const zid = get(currentZoneId);
@@ -227,6 +256,7 @@
       onGoToArtist={allerArtiste}
       onGoToAlbum={allerAlbum}
       onTag={() => (panneauEtiquettes = true)}
+      onChampsDuFichier={() => (tiroirChamps = true)}
     />
   {/if}
 </div>
@@ -236,10 +266,20 @@
       onClose={() => (panneauVersions = false)} />
   {/await}
 {/if}
-{#if panneauEtiquettes && idBibliotheque != null}
+<!-- #1238 — la CIBLE, et non plus `itemType` + `itemId` : une piste de service
+     passe par `source` + `source_id`, c'est `lib/cibleEtiquette` qui choisit la
+     route. Même montage que `PisteActions`. -->
+{#if panneauEtiquettes && cibleEtiquettes}
   {#await import('../v2/EtiquettesPanneau.svelte') then m}
-    <m.default itemType="track" itemId={idBibliotheque} nom={piste.title}
+    <m.default cible={cibleEtiquettes} nom={piste.title}
       onClose={() => (panneauEtiquettes = false)} />
+  {/await}
+{/if}
+<!-- #851 — le tiroir des champs du fichier, le MÊME que `PisteActions` monte :
+     il vit dans `partages/`, pas une copie. Il prend un `i64` de `tracks`. -->
+{#if tiroirChamps && idBibliotheque != null}
+  {#await import('./TrackTagsDrawer.svelte') then m}
+    <m.default trackId={idBibliotheque} onClose={() => (tiroirChamps = false)} />
   {/await}
 {/if}
 {#if modalePlaylist}
