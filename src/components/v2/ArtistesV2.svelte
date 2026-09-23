@@ -48,6 +48,7 @@
   } from '../../lib/historiqueCoquille';
   import { cleDetailArtiste } from '../../lib/cleDetailArtiste';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
+  import { initialesArtiste } from '../../lib/initialesArtiste';
   import { lireListe, lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { melangee } from '../../lib/shuffle';
   import { dansSource, sourceCorrespond, compterSources, type ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
@@ -632,20 +633,11 @@
   }
 
   /**
-   * Une à deux initiales, LETTRES ET CHIFFRES seulement.
-   *
-   * Sans le filtre, « Accentus - Laurence E. » donnait « A- » : le tiret est
-   * un mot pour `split`, sa première lettre est le tiret lui-même. Constaté
-   * sur capture le 02/09/2026, avec « A- » débordant de son cercle.
+   * Une à deux initiales, LETTRES ET CHIFFRES seulement — la règle vit
+   * désormais dans `lib/initialesArtiste`, partagée avec la fiche élue
+   * (#1232, étape 1). Rien n'a changé de son comportement.
    */
-  const initiales = (n: string | null | undefined) =>
-    (n ?? '')
-      .split(/\s+/)
-      .map((m) => m.replace(/[^\p{L}\p{N}]/gu, '').charAt(0))
-      .filter(Boolean)
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+  const initiales = initialesArtiste;
 
   onMount(() => {
     void charger();

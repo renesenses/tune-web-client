@@ -105,15 +105,27 @@ describe('#956 — résoudre un artiste de service, ou dire pourquoi on n’a pa
    * Sans ces trois lignes la coquille repartirait en silence : le module
    * saurait pourquoi, et personne ne le saurait.
    */
-  it('ShellV2 utilise le module, PARLE, et trace la branche muette', () => {
-    const src = lire('src/components/v2/ShellV2.svelte');
+  /**
+   * 🔴 LA RÉSOLUTION A QUITTÉ `ShellV2` — #1486. Elle vit dans
+   * `lib/ouvrirArtisteDepuis`, à côté du chemin de navigation de référence,
+   * précisément pour qu'une garde puisse l'EXÉCUTER — ce qu'aucune garde ne
+   * pouvait faire tant qu'elle était une fonction locale d'une coquille de
+   * 1 200 lignes. Ces deux témoins restent textuels : ils veillent sur ce qui
+   * s'ÉCRIT (une trace, un message), pas sur ce qui se calcule. Le
+   * comportement, lui, est mesuré par `lienArtisteAlbumService1486.test.ts`.
+   */
+  it('la résolution utilise le module, PARLE, et trace la branche muette', () => {
+    const src = lire('src/lib/ouvrirArtisteDepuis.ts');
     expect(src).toContain('resoudreArtisteDeService');
     expect(src).toMatch(/notifications\.info\(messageRepli\(/);
     expect(src).toMatch(/issue\.raison === 'injoignable'[\s\S]{0,200}console\.warn/);
+    // Et la coquille l'appelle toujours : le geste reste armé.
+    expect(lire('src/components/v2/ShellV2.svelte')).toContain('ouvrirArtisteDeServiceParNom');
   });
 
   it('elle ne se contente plus du `catch` silencieux d’avant', () => {
-    const src = lire('src/components/v2/ShellV2.svelte');
-    expect(src).not.toContain("catch { /* le repli ci-dessous s'en charge */ }");
+    for (const f of ['src/components/v2/ShellV2.svelte', 'src/lib/ouvrirArtisteDepuis.ts']) {
+      expect(lire(f)).not.toContain("catch { /* le repli ci-dessous s'en charge */ }");
+    }
   });
 });
