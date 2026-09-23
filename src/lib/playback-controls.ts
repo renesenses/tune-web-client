@@ -18,6 +18,7 @@ import type { Zone, NowPlaying } from './types';
 import { playAndSync, nextAndSync, previousAndSync, resumeAndSync } from './stores/zones';
 import { ytPlayerState, ytLoading, pauseVideo, resumeVideo } from './stores/ytPlayer';
 import { isBrowserZone, browserPause } from './stores/browserAudio';
+import { estSourceDeBibliotheque } from './provenanceBibliotheque';
 
 export type PlayState = 'playing' | 'paused' | 'stopped' | string;
 
@@ -43,10 +44,13 @@ export async function togglePlayPause(
     }
   } else if (zone?.id && playState === 'stopped' && track) {
     const trackId = (track as any).track_id ?? track.id;
+    // 🔴 Une piste UPnP de la BIBLIOTHÈQUE (#4201) porte `source: 'upnp'` et un
+    // identifiant de bibliothèque : elle se relance par `track_id`, pas comme
+    // un objet de service. `estSourceDeBibliotheque` est le prédicat partagé.
     const body =
       track.source === 'radio' && track.source_id
         ? { source: 'radio' as any, source_id: track.source_id }
-        : track.source && track.source !== 'local' && track.source_id
+        : track.source && !estSourceDeBibliotheque(track.source) && track.source_id
           ? { source: track.source as any, source_id: track.source_id }
           : trackId != null
             ? { track_id: trackId }
