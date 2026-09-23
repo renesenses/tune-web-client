@@ -23,6 +23,11 @@
     type EtatPpm, type StyleCreteMetre,
   } from '../../lib/peakMetre';
   import { retombeAuRepos, tempsDeDessiner } from '../../lib/cadenceCreteMetre';
+  // #1256 — la cadence est un RÉGLAGE depuis le 23/09/2026. Le cran par défaut
+  // (`fluide`) rend exactement les 30 i/s livrés : rien ne bouge pour qui n'a
+  // rien demandé.
+  import { cranOuDefaut } from '../../lib/cadenceAnimations';
+  import { preferences } from '../../lib/stores/preferences';
 
   interface Props {
     style: StyleCreteMetre;
@@ -152,16 +157,23 @@
   // jusqu'à 120 Hz), et s'ARRÊTE hors lecture une fois tout retombé au
   // plancher. L'effet lit `joue` : la reprise de la lecture la relance. Les
   // deux règles vivent dans `lib/cadenceCreteMetre.ts`, où le test les appelle.
+  //
+  // #1256 (23/09) — la cadence vient des Réglages. `cran` est LU DANS l'effet :
+  // changer le réglage démonte la boucle et la remonte à la nouvelle cadence,
+  // sans rechargement. C'est le seul cadenceur de cette boucle, et il n'y en
+  // aura pas deux — deux cadenceurs en série qui ne tombent pas d'accord font
+  // disparaître une image sur deux (variante C de #1499).
   $effect(() => {
     const c = toile;
     const enLecture = joue;
+    const cran = cranOuDefaut($preferences.cadenceAnimations);
     if (!c || style === 'off') return;
     const ctx = c.getContext('2d');
     if (!ctx) return;
     let raf = 0;
     let dernier = -Infinity;
     const battre = (maintenant: number) => {
-      if (tempsDeDessiner(maintenant, dernier)) {
+      if (tempsDeDessiner(maintenant, dernier, cran)) {
         dernier = maintenant;
         const dpr = Math.min(2, globalThis.devicePixelRatio || 1);
         const l = largeur || c.clientWidth || 120;

@@ -5,6 +5,11 @@
   import { freqLabel, spectrumGravesTicks, spectrumIsoTicks, type AnnonceSpectre } from '../../lib/spectrumScale';
   import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../../lib/axeSpectre';
   import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../../lib/waveformHistory';
+  // #1256 — la cadence de dessin est un RÉGLAGE depuis le 23/09/2026. Le cran
+  // par défaut (`fluide`) rend `Math.round(1000 / 30) = 33`, la valeur exacte
+  // du `FRAME_INTERVAL` livré : rien ne bouge pour qui n'a rien demandé.
+  import { cranOuDefaut, intervalleVisualiseurMs } from '../../lib/cadenceAnimations';
+  import { preferences } from '../../lib/stores/preferences';
 
   interface Props {
     playing: boolean;
@@ -93,7 +98,17 @@
   let lastFrame = 0;
   let lastTargetUpdate = 0;
   const TARGET_INTERVAL = 120; // ms between new random targets (~8 Hz)
-  const FRAME_INTERVAL = 33;  // ~30 fps
+  /**
+   * #1256 — l'intervalle entre deux dessins, en millisecondes.
+   *
+   * 🔴 `$derived`, et non une constante : le réglage change sans rechargement,
+   * et `draw` relit la valeur à chaque réveil. Au cran par défaut il vaut 33,
+   * le `FRAME_INTERVAL = 33` de toujours — un test le mesure.
+   *
+   * 🔴 Affichage seulement. Cette boucle LIT `audio_levels` et le dessine :
+   * ralentir le dessin ne touche à aucun échantillon audio.
+   */
+  const FRAME_INTERVAL = $derived(intervalleVisualiseurMs(cranOuDefaut($preferences.cadenceAnimations)));
 
   let realLevels: AudioLevels | null = $state(null);
   let lastRealUpdate = 0;
