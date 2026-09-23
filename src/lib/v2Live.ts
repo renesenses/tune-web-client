@@ -486,10 +486,30 @@ export function demarrerTransportV2(): () => void {
           },
         );
 
+        /**
+         * 🔴 #1010 — LA PISTE VIENT DE L'ÉVÉNEMENT, PAS DE L'INSTANTANÉ.
+         *
+         * Fabien, 0.9.148, point 2 : une Ambiance lancée en « Tout lire » ne
+         * laisse que les trois premiers titres.
+         *
+         * `rechargerZones()` ci-dessus est une requête AUTONOME : une par
+         * événement, jamais sérialisée, et sa réponse décrit l'état du serveur
+         * à l'instant où elle arrive. Rien ne l'apparie à l'événement qui l'a
+         * demandée — sur un enchaînement sans blanc, `courante.current_track`
+         * peut encore porter la piste d'avant. Et un doublon ne produit pas
+         * une mauvaise ligne : `playbackHistory.add` le refuse, donc il n'en
+         * produit AUCUNE, en silence.
+         *
+         * Le serveur porte pourtant le `NowPlaying` complet dans la charge
+         * (`now_playing_event_data`, exprès depuis #1096). On le prend.
+         * L'instantané reste le repli, pour la charge vide que le serveur émet
+         * quand la zone a disparu entre-temps.
+         */
         noterSiDebutDEcoute(
           type, zid, courante, emettrice,
           nowPlayingToTrack,
           (piste, nom) => playbackHistory.add(piste, nom),
+          event?.data,
         );
       });
 
