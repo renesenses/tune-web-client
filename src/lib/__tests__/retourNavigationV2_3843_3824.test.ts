@@ -177,7 +177,7 @@ describe('#3843 — « Bibliothèque » dans la barre referme la fiche album', (
 });
 
 describe('#3824 — le Retour de la fiche artiste rend la main à la Recherche', () => {
-  it('cliquer un artiste de la Recherche ouvre sa fiche dans la Bibliothèque', async () => {
+  it('cliquer un artiste de la Recherche ouvre sa fiche — la page COMMUNE depuis #1494', async () => {
     // Même précaution qu'au-dessus : sans cette marche, l'assertion du retour
     // serait verte contre un bouton qui n'existe pas.
     const el = poserLaCoquille();
@@ -193,7 +193,8 @@ describe('#3824 — le Retour de la fiche artiste rend la main à la Recherche',
     expect(tuile, 'la Recherche ne propose aucun artiste — le témoin ne mesure rien').not.toBeNull();
     tuile!.click();
     flushSync();
-    expect(get(activeView)).toBe('library');
+    // #1494 — la page commune (`streamingartist`), plus la fiche de la Bibliothèque.
+    expect(get(activeView)).toBe('streamingartist');
     await attendre(120);
     flushSync();
     expect(

@@ -1885,6 +1885,44 @@ export function getArtistAlbums(id: number) {
   return fetchJSON<Album[]>(`${BASE}/library/artists/${id}/albums`);
 }
 
+/**
+ * La discographie de l'artiste DÉCOUPÉE en sections — #4767.
+ *
+ * Une section vide est ABSENTE de la réponse, jamais un tableau vide : rien
+ * ne doit avoir à décider ici s'il affiche un titre au-dessus de rien.
+ */
+export interface AlbumsArtisteSections {
+  albums: Album[];
+  /** Compilations portant au moins une piste de l'artiste. */
+  compilations?: Album[];
+  /** Albums d'un AUTRE artiste portant au moins une piste de celui-ci. */
+  appearances?: Album[];
+}
+
+/**
+ * Ce que rend la route, quelle que soit la version du serveur en face.
+ *
+ * 🔴 Un serveur qui ne connaît pas `?sections=1` IGNORE le drapeau et rend le
+ * tableau nu d'avant. Le client web et le serveur ne sont pas publiés
+ * ensemble : sans ce repli, une interface à jour devant un serveur plus
+ * ancien afficherait une page artiste VIDE. Un tableau vaut donc une
+ * discographie sans sections.
+ */
+export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
+  if (Array.isArray(brut)) return { albums: brut as Album[] };
+  const o = (brut ?? {}) as AlbumsArtisteSections;
+  return { albums: o.albums ?? [], compilations: o.compilations, appearances: o.appearances };
+}
+
+/**
+ * `?sections=1` et non une route à part : sans le drapeau, la même route rend
+ * le tableau nu que lisent les clients natifs et le serveur média.
+ */
+export function getArtistAlbumsSections(id: number) {
+  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?sections=1`)
+    .then(sectionsDepuisReponse);
+}
+
 export function getTrackCredits(trackId: number) {
   return fetchJSON<import('./types').TrackCredit[]>(`${BASE}/library/tracks/${trackId}/credits`);
 }
@@ -2799,6 +2837,29 @@ export function getTagPlaylists(tagId: number) {
 export function getTagSmartPlaylists(tagId: number) {
   return fetchJSON<{ smart_playlists: any[]; count: number }>(
     `${BASE}/tags/${tagId}/smart-playlists`,
+  );
+}
+
+/**
+ * Les DOSSIERS (collections manuelles) d'une étiquette (#4798, second volet).
+ * Chaque ligne a la forme SERVIE de `/library/collections` — `album_count`
+ * compris. Route à part de `/smart-collections` : les deux espaces
+ * d'identifiants se recouvrent (l'id 1 est à la fois « favorites » et
+ * « Audiophile »), le serveur ne résout un `collection` que dans le réglage
+ * `collections`.
+ */
+export function getTagCollections(tagId: number) {
+  return fetchJSON<{ collections: any[]; count: number }>(`${BASE}/tags/${tagId}/collections`);
+}
+
+/**
+ * Les collections INTELLIGENTES d'une étiquette (#4798, second volet). Chaque
+ * ligne a la forme de `/library/smart-collections` (`name_key` compris, pour
+ * traduire les seize du semis), sans `album_count`.
+ */
+export function getTagSmartCollections(tagId: number) {
+  return fetchJSON<{ smart_collections: any[]; count: number }>(
+    `${BASE}/tags/${tagId}/smart-collections`,
   );
 }
 
