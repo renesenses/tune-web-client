@@ -89,6 +89,14 @@ export const favoritePlaylistIds = writable<Set<number>>(new Set());
  */
 export const favoriteCollectionIds = writable<Set<number>>(new Set());
 export const favoriteSmartCollectionIds = writable<Set<number>>(new Set());
+/**
+ * Playlists INTELLIGENTES en favori — son propre ensemble, pour la même raison
+ * que les collections (#4798) : `playlists.id` et `smart_playlists.id` se
+ * recouvrent, l'id 1 existe dans les deux tables. Rangées avec
+ * `favoritePlaylistIds`, mettre une playlist intelligente en favori allumerait
+ * le cœur d'une playlist ordinaire du même numéro.
+ */
+export const favoriteSmartPlaylistIds = writable<Set<number>>(new Set());
 
 // Favoris de FACETTE — le label d'abord (#2442). Des CHAÎNES, pas des ids : un
 // label n'a pas d'identifiant côté serveur, il est désigné par sa valeur telle
@@ -163,6 +171,7 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoritePlaylistIds.set(new Set());
     favoriteCollectionIds.set(new Set());
     favoriteSmartCollectionIds.set(new Set());
+    favoriteSmartPlaylistIds.set(new Set());
     favoriteFacetKeys.set(new Set());
     favoriteStreamingKeys.set(new Set());
     favoriteStreamingTrackKeys.set(new Set());
@@ -176,6 +185,7 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoritePlaylistIds.set(new Set((favs.playlists ?? []).map((p: any) => p.id)));
     favoriteCollectionIds.set(new Set(favs.collectionIds ?? []));
     favoriteSmartCollectionIds.set(new Set(favs.smartCollectionIds ?? []));
+    favoriteSmartPlaylistIds.set(new Set(favs.smartPlaylistIds ?? []));
   } catch (e) {
     console.error('Load favorite ids error:', e);
   }
