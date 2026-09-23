@@ -494,6 +494,14 @@
           <h2>{$t('onboarding.restoreTitle')}</h2>
           <p class="reprise-desc">{$t('onboarding.restoreDesc')}</p>
           <p class="reprise-limites">{$t('onboarding.restoreLimits')}</p>
+          <!-- #902 — DIRE où se trouve la reprise complète, à l'endroit exact
+               où l'utilisateur vient de lire qu'elle ne l'est pas. Le
+               mécanisme existe côté serveur (routes `system/config-backup`, dont
+               l'instantané porte zones, jetons scellés, playlists, favoris,
+               radios et alarmes) et il est adossé à la licence : le taire
+               laisserait croire que « reprendre sa machine » n'existe nulle
+               part. Constat, pas argumentaire. -->
+          <p class="reprise-premium">{$t('onboarding.restorePremium')}</p>
 
           {#if rstFait}
             <p class="reprise-ok">{$t('settings.importConfigSuccess')}</p>
@@ -912,6 +920,7 @@
   .reprise h2{font-size:15px; margin:0 0 6px}
   .reprise-desc{font-size:13px; margin:0 0 6px; opacity:.85}
   .reprise-limites{font-size:12px; margin:0 0 10px; opacity:.7}
+  .reprise-premium{font-size:12px; margin:0 0 10px; opacity:.7}
   .reprise-fichier{font-size:12px; margin:0 0 8px; font-family:var(--v2-mono, monospace)}
   .reprise-gestes{display:flex; gap:8px; align-items:center}
   .reprise-choix{display:inline-block; cursor:pointer}

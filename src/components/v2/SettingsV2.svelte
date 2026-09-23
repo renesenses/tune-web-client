@@ -3299,6 +3299,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <!-- #902 — Cette sauvegarde-ci ne porte ni les zones, ni les
+                   jetons de services. Celle qui les porte existe
+                   (les routes `system/config-backup`, instantané complet) et
+                   elle est adossée à la licence : le dire ICI, où l'utilisateur vient
+                   chercher ses zones, plutôt que de le laisser deviner. -->
+              <p class="hint">{#each emphaseParts($t('settings.configBackupPremium' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <div class="inline" style="margin-top:12px">
                 <button class="lnk" disabled={cfgBusy} onclick={doExportConfig}>
                   {cfgBusy ? $t('common.loading' as any) : $t('settings.exportConfig' as any)}

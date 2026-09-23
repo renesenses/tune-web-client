@@ -106,6 +106,12 @@ const porte = (texte: string, mots: string[]) => mots.some((m) => bas(texte).inc
 const DESC = 'onboarding.restoreDesc';
 const LIMITES = 'onboarding.restoreLimits';
 const AIDE = 'settings.configBackupHint';
+/**
+ * Les deux textes qui disent où se trouve la reprise COMPLÈTE (décision de
+ * Bertrand, 23/09) : elle reste Premium, et l'écran doit le dire.
+ */
+const PREMIUM_ASSISTANT = 'onboarding.restorePremium';
+const PREMIUM_REGLAGES = 'settings.configBackupPremium';
 
 describe('#902 — la reprise ne promet que ce que le dump de `settings` emporte', () => {
   it('les trois textes existent dans les onze dictionnaires', () => {
@@ -158,6 +164,54 @@ describe('#902 — la reprise ne promet que ce que le dump de `settings` emporte
     expect(fautifs, "on fait refaire à la main un réglage qui est déjà revenu").toEqual([]);
   });
 
+  it('les deux textes de la reprise complète existent dans les onze dictionnaires', () => {
+    for (const l of LANGUES) {
+      const d = MOTS[l].dict;
+      for (const k of [PREMIUM_ASSISTANT, PREMIUM_REGLAGES]) {
+        expect(typeof d[k], `${l}.${k}`).toBe('string');
+        expect(d[k].trim().length, `${l}.${k} vide`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('🔴 ils nomment Tune Premium — c’est le constat que Bertrand a tranché', () => {
+    // La reprise complète RESTE Premium. Ce qui n'est pas admis, c'est de la
+    // taire : l'utilisateur lit que ses zones ne suivent pas, et rien ne lui
+    // dit que quelque chose les emporte.
+    const muets = LANGUES.filter(
+      (l) =>
+        !MOTS[l].dict[PREMIUM_ASSISTANT].includes('Premium') ||
+        !MOTS[l].dict[PREMIUM_REGLAGES].includes('Premium'),
+    );
+    expect(muets, 'la reprise complète est payante et l’écran ne le dit pas').toEqual([]);
+  });
+
+  it('🔴 ils nomment les ZONES — ce que l’utilisateur venait justement chercher', () => {
+    // `ConfigSnapshot` porte zones, playlists, favorites, radio_stations,
+    // alarms, eq_presets, room_profiles et `sealed_tokens`. La phrase ne vaut
+    // que si elle nomme ce que la ligne du dessus vient de retirer.
+    const muets = LANGUES.filter(
+      (l) =>
+        !porte(MOTS[l].dict[PREMIUM_ASSISTANT], MOTS[l].zone) ||
+        !porte(MOTS[l].dict[PREMIUM_REGLAGES], MOTS[l].zone),
+    );
+    expect(muets, 'une reprise « complète » qui ne dit pas qu’elle emporte les zones').toEqual([]);
+  });
+
+  it('🔴 ils disent OÙ la trouver — sinon le constat est un cul-de-sac', () => {
+    // L'onglet existe : `v2Settings.ts` déclare `id: 'license'`, libellé
+    // `settings.tunePremiumLicense`. La phrase y renvoie, dans chaque langue,
+    // par le libellé DE CETTE LANGUE.
+    const muets = LANGUES.filter((l) => {
+      const onglet = MOTS[l].dict['settings.tunePremiumLicense'];
+      return (
+        !bas(MOTS[l].dict[PREMIUM_ASSISTANT]).includes(bas(onglet)) ||
+        !bas(MOTS[l].dict[PREMIUM_REGLAGES]).includes(bas(onglet))
+      );
+    });
+    expect(muets, 'on annonce une fonction sans dire où elle se trouve').toEqual([]);
+  });
+
   it("l'assistant rend bien les trois clés — sinon la correction serait orpheline", () => {
     const src = readFileSync(
       resolve(process.cwd(), 'src/components/partages/OnboardingWizard.svelte'),
@@ -170,5 +224,18 @@ describe('#902 — la reprise ne promet que ce que le dump de `settings` emporte
       'utf-8',
     );
     expect(reglages).toContain(AIDE);
+  });
+
+  it('🔴 les deux écrans RENDENT la phrase — écrite mais pas branchée ne dit rien', () => {
+    const assistant = readFileSync(
+      resolve(process.cwd(), 'src/components/partages/OnboardingWizard.svelte'),
+      'utf-8',
+    );
+    expect(assistant).toContain(PREMIUM_ASSISTANT);
+    const reglages = readFileSync(
+      resolve(process.cwd(), 'src/components/v2/SettingsV2.svelte'),
+      'utf-8',
+    );
+    expect(reglages).toContain(PREMIUM_REGLAGES);
   });
 });
