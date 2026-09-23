@@ -902,6 +902,9 @@ export default {
   "settings.followMeLabel": "Pausa zonen du lämnar",
   "settings.followMeHint": "När du byter zon pausas uppspelningen i zonen du var i, så att inget fortsätter spela bakom dig. Av som standard (zoner förblir oberoende för flera rum).",
   "settings.searchExact": "Exakt sökning",
+  "settings.shuffleMaxTracks": "Spår som dras vid slumpuppspelning",
+  "settings.shuffleMaxTracksHint": "Högsta antal spår som en slumpuppspelning lägger i kön.",
+  "settings.shuffleMaxTracksRange": "från {min} till {max}",
   "settings.searchExactLabel": "Exakt sökning",
   "settings.searchExactHint": "Söker de inskrivna orden som en fras, i den ordningen, i namnet på en artist, ett album eller ett spår – som inom citattecken.",
 
