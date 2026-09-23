@@ -1816,7 +1816,7 @@
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>Tout ({matchCount})</button>
+      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -1868,7 +1868,7 @@
       {/if}
     {#if showFilters}
       <div class="drop" class:open={ddOpen === 'quality'}>
-        <button class="chip" class:active={fQuality.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality.length}&nbsp;· {fQuality.map((k) => { const it = QUALITIES.find(x => x.key === k); return it ? (it.cle ? $tr(it.cle as any) : it.label) : k; }).join(', ')}{/if}
+        <button class="chip" class:active={fQuality.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>{$tr('v2.tcol.quality' as any)}{#if fQuality.length}&nbsp;· {fQuality.map((k) => { const it = QUALITIES.find(x => x.key === k); return it ? (it.cle ? $tr(it.cle as any) : it.label) : k; }).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           <!-- Une valeur a ZERO reste VISIBLE mais inerte : la faire
@@ -1882,7 +1882,7 @@
         </div>
       </div>
       <div class="drop" class:open={ddOpen === 'rate'}>
-        <button class="chip" class:active={fRate.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>Fréquence{#if fRate.length}&nbsp;· {fRate.map((v) => RATES.find(r => r.v === v)?.l ?? v).join(', ')}{/if}
+        <button class="chip" class:active={fRate.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>{$tr('v2.tcol.sampleRate' as any)}{#if fRate.length}&nbsp;· {fRate.map((v) => RATES.find(r => r.v === v)?.l ?? v).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           {#each RATES as r (r.v)}
@@ -1915,7 +1915,7 @@
       {/if}
       {#if formats.length > 1}
         <div class="drop" class:open={ddOpen === 'format'}>
-          <button class="chip" class:active={fFormat.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>Format{#if fFormat.length}&nbsp;· {fFormat.join(', ')}{/if}
+          <button class="chip" class:active={fFormat.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>{$tr('v2.tcol.format' as any)}{#if fFormat.length}&nbsp;· {fFormat.join(', ')}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each formats as [f, n] (f)}
@@ -1940,7 +1940,7 @@
       {/if}
       {#if showExpert && depths.length > 1}
         <div class="drop" class:open={ddOpen === 'depth'}>
-          <button class="chip" class:active={fDepth.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'depth'} onclick={() => ddToggle('depth')}>Profondeur{#if fDepth.length}&nbsp;· {fDepth.join(', ')}-bit{/if}
+          <button class="chip" class:active={fDepth.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'depth'} onclick={() => ddToggle('depth')}>{$tr('v2.tcol.bitDepth' as any)}{#if fDepth.length}&nbsp;· {fDepth.join(', ')}-bit{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each depths as [d, n] (d)}
@@ -2059,7 +2059,7 @@
       {/if}
       {#if fYear != null}
         <button class="yearpill" onclick={() => (fYear = null)}>
-          {fYear} · {yearCount} album{yearCount > 1 ? 's' : ''}
+          {fYear} · {$tr((yearCount > 1 ? 'v2.lib.yearAlbumsMany' : 'v2.lib.yearAlbumsOne') as any).replace('{n}', String(yearCount))}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       {/if}
@@ -2210,7 +2210,7 @@
               }}
             />
             {#if pistesFiltrees.length > visibleTracks.length}
-              <div class="state">{visibleTracks.length} titres affichés sur {pistesFiltrees.length} — affinez la recherche.</div>
+              <div class="state">{$tr('v2.lib.shownOfTotal' as any).replace('{n}', String(visibleTracks.length)).replace('{total}', String(pistesFiltrees.length))}</div>
             {/if}
           {/if}
         </div>

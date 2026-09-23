@@ -246,7 +246,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       // Les jumelages APRÈS coup, sans bloquer l'affichage (#1081).
       void resoudreJumelages(tracks);
     } catch {
-      error = 'Favoris indisponibles.';
+      error = $t('v2.fav.loadFailed' as any);
     }
     loading = false;
   }
@@ -464,7 +464,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
         // Le filtre est refait ICI : voir le commentaire de `stations`.
         stations = (brut as any[]).filter((r) => r?.favorite);
         if (titres.status === 'rejected' && sts.status === 'rejected') {
-          error = 'Favoris radio indisponibles.';
+          error = $t('v2.fav.radioLoadFailed' as any);
         }
       })
       .finally(() => {
@@ -507,7 +507,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       await api.apiDelete(`/radio-favorites/${fav.id}`);
       radio = radio.filter((x) => x.id !== fav.id);
     } catch {
-      error = 'Suppression impossible.';
+      error = $t('v2.fav.deleteFailed' as any);
     }
   }
 
@@ -520,7 +520,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       await api.apiDelete('/radio-favorites');
       radio = [];
     } catch {
-      error = 'Suppression impossible.';
+      error = $t('v2.fav.deleteFailed' as any);
     }
   }
 
@@ -701,7 +701,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       await api.removeFavorite(pid, body);
       await reload();
       await loadFavoriteIds(pid);
-    } catch { error = 'Retrait impossible.'; }
+    } catch { error = $t('settings.errRemoveFailed' as any); }
     busy = false;
   }
 </script>
@@ -1011,7 +1011,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
         {/if}
       {:else}
         <div class="rf-actions">
-          <span class="rf-cpt">{radio.length} titre{radio.length > 1 ? 's' : ''}</span>
+          <span class="rf-cpt">{$t((radio.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(radio.length))}</span>
           <button class="rf-btn accent" onclick={() => (creationPlaylist = true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             {$t('v2.fav.radioMakePlaylist' as any)}

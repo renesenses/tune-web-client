@@ -722,7 +722,7 @@
                    endroit de l'écran où le titre ne menait nulle part. -->
               <button class="meta" onclick={() => ouvrirPl({ kind: 'streaming', service: source, pl })}>
                 <span class="ct" title={pl.name}>{pl.name}</span>
-                <span class="ca" title={`${pl.track_count} titres${pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}`}>{pl.track_count} titres{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
+                <span class="ca" title={`${pl.track_count} titres${pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}`}>{$t((pl.track_count > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(pl.track_count))}{pl.duration_ms ? ' · ' + formatDuration(pl.duration_ms) : ''}</span>
               </button>
             </div>
           {/each}
@@ -812,13 +812,13 @@
                 </span>
                 <button class="meta" onclick={() => ouvrirPl({ kind: 'local', pl })}>
                   <span class="ct" title={pl.name}>{pl.name}</span>
-                  <span class="ca" title={`${pl.track_count ?? 0} titre${(pl.track_count ?? 0) > 1 ? 's' : ''}`}>{pl.track_count ?? 0} titre{(pl.track_count ?? 0) > 1 ? 's' : ''}</span>
+                  <span class="ca" title={`${pl.track_count ?? 0} titre${(pl.track_count ?? 0) > 1 ? 's' : ''}`}>{$t(((pl.track_count ?? 0) > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String((pl.track_count ?? 0)))}</span>
                 </button>
               </div>
             {/each}
           </div>
         {:else}
-          <div class="state empty">Aucune playlist pour l'instant.{showAdvanced ? ' Créez-en une avec « Nouvelle playlist ».' : ''}</div>
+          <div class="state empty">{$t('v2.pl.emptyNone' as any)}{showAdvanced ? ' ' + $t('v2.pl.emptyCreateHint' as any) : ''}</div>
         {/if}
       </section>
 
