@@ -15,6 +15,7 @@
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import * as controls from '../../lib/playback-controls';
   import { suivantDesactive } from '../../lib/boutonSuivant';
+import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import AlbumArt from './AlbumArt.svelte';
   import ServiceBadge from './ServiceBadge.svelte';
@@ -241,7 +242,11 @@
     if (!track) return 'none';
     if (track.source === 'radio') return 'radio';
     // `!== 'radio'` retiré : la ligne au-dessus a déjà renvoyé pour la radio.
-    if (track.source && track.source !== 'local' && track.source_id) return 'streaming';
+    // 🔴 `estSourceDeBibliotheque` et non `source === 'local'` : une piste UPnP
+    // de la bibliothèque (#4201) porte `source: 'upnp'` ET un `source_id`
+    // (`<udn>|<hash>`). Elle partait en favori DE SERVICE, alors qu'elle a un
+    // `tracks.id` et relève des favoris de bibliothèque.
+    if (track.source && !estSourceDeBibliotheque(track.source) && track.source_id) return 'streaming';
     if (libId(track) != null) return 'library';
     return 'none';
   }
