@@ -1,6 +1,11 @@
 import './styles/tune-theme.css';
 import ShellV2 from './components/v2/ShellV2.svelte';
 import { mount } from 'svelte';
+import { installerRechargementApresMiseAJour } from './lib/rechargementApresMiseAJour';
+
+// Avant le montage : un onglet ouvert sur l'ancienne version doit pouvoir
+// se rattraper dès le premier morceau introuvable (tune-server-rust#4847).
+installerRechargementApresMiseAJour();
 
 // Une seule interface. L'ancienne coquille — `App.svelte` et les 51
 // composants qu'elle seule montait (dont 28 écrans), le paramètre `?v2` et la
