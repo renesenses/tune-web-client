@@ -60,10 +60,15 @@ describe("l'écran Étiquettes lit les quatre familles", () => {
       expect(bloc).toContain(fn);
   });
 
-  it('une famille en échec ne vide pas les trois autres', () => {
+  it('une famille en échec ne vide pas les autres', () => {
     const i = src.indexOf('Promise.all([');
     const bloc = src.slice(i, i + 500);
-    expect(bloc.match(/\.catch\(\(\) => null\)/g)).toHaveLength(4);
+    // Cinq depuis #4798 : les playlists INTELLIGENTES ont leur propre route
+    // (`/tags/{id}/smart-playlists`) et rejoignent l'onglet Playlists. Elle
+    // part « au mieux » comme les quatre autres — un serveur plus ancien ne
+    // la sert pas, et cela ne doit pas vider l'écran.
+    expect(bloc.match(/\.catch\(\(\) => null\)/g)).toHaveLength(5);
+    expect(bloc).toContain('getTagSmartPlaylists');
   });
 
   it("l'ouverture se pose sur la première famille NON VIDE", () => {
