@@ -52,6 +52,7 @@
   import { displayFields } from '../../lib/stores/displayFields';
   import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../../lib/lyrics';
   import { chargerParolesEnLigne } from '../../lib/lyricsOnline';
+  import { boucleImages } from '../../lib/boucleImages';
   import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../../lib/types';
 
   let isFavorite = $state(false);
@@ -1030,20 +1031,29 @@
   });
 
   let positionRadio = $state(0);
+  /**
+   * 🔴 Ticket 150 — cette boucle avançait la position karaoké à CHAQUE image de
+   * l'écran, soit 120 fois par seconde sur un MacBook ProMotion, et chaque
+   * écriture re-parcourt les lignes synchronisées dans `NowPlayingLyrics`. Une
+   * ligne de paroles ne change pas cent vingt fois par seconde ; ~30 i/s
+   * suffisent et c'est la cadence des deux instruments voisins.
+   *
+   * Elle ne s'arrêtait pas non plus quand la lecture s'arrêtait — sur une
+   * pause, le surlignage continuait d'avancer sur un flux qui ne jouait plus —
+   * ni quand l'onglet passait en arrière-plan. `boucleImages` porte les trois
+   * règles.
+   */
   $effect(() => {
-    if (!isRadio || !showLyrics || !karaokeMode) return;
-    let raf = 0;
-    const battre = () => {
+    if (!isRadio || !showLyrics || !karaokeMode || !isEffectivePlaying) return;
+    return boucleImages(() => {
       positionRadio = positionParoles({
         estRadio: true,
         positionZoneMs: null,
         ancrageRadioMs: ancrageRadio,
         maintenantMs: performance.now(),
       });
-      raf = requestAnimationFrame(battre);
-    };
-    raf = requestAnimationFrame(battre);
-    return () => cancelAnimationFrame(raf);
+      return true;
+    });
   });
 
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)

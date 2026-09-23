@@ -1,6 +1,7 @@
 <script lang="ts">
   import { estDuDSD } from '../../lib/utils';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
+  import { boucleImages } from '../../lib/boucleImages';
   import { audioLevels, levelsForZone, type AudioLevels } from '../../lib/stores/audioLevels';
   import { freqLabel, spectrumGravesTicks, spectrumIsoTicks, type AnnonceSpectre } from '../../lib/spectrumScale';
   import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../../lib/axeSpectre';
@@ -36,7 +37,8 @@
   }: Props = $props();
 
   let canvas: HTMLCanvasElement | undefined = $state();
-  let animId: number | null = null;
+  /** Annulateur de la boucle d'images courante. `null` = aucune en vol. */
+  let arreterBoucle: (() => void) | null = null;
   let visible = $state(false);
 
   // Simulated bar values (32 bars for spectrum)
@@ -90,12 +92,22 @@
   // serveur, empilée trame par trame. Voir ../lib/waveformHistory.ts pour le
   // détail et pour ce que ce mode dessinait avant #2182 (des sinusoïdes).
   const waveHistory = new WaveformHistory();
-  let lastFrame = 0;
   let lastTargetUpdate = 0;
   const TARGET_INTERVAL = 120; // ms between new random targets (~8 Hz)
-  const FRAME_INTERVAL = 33;  // ~30 fps
 
-  let realLevels: AudioLevels | null = $state(null);
+  /**
+   * 🔴 Ticket 150 — PAS de `$state`.
+   *
+   * Cette valeur n'est lue que par la boucle de dessin et par l'effet
+   * ci-dessous ; elle n'apparaît dans aucun balisage. En `$state`, Svelte 5 en
+   * faisait un proxy PROFOND (le tableau `spectrum_db` compris) à chaque trame
+   * du serveur — ~24 par seconde — et surtout l'effet « en lecture » la lisait,
+   * donc se ré-exécutait à chaque trame et refaisait l'agrégation des 32
+   * bandes. Mesuré avant : 54 agrégations par seconde pour 30 images
+   * dessinées. Les 24 de trop ne changeaient aucun pixel, et tournaient aussi
+   * quand l'onglet était caché.
+   */
+  let realLevels: AudioLevels | null = null;
   let lastRealUpdate = 0;
   // FUSION 04/09/2026 : la source PAR ZONE vient de la ligne du client v2 (la
   // bande « Zones d'écoute actives » en affiche plusieurs côte à côte), le
@@ -281,21 +293,17 @@
     return cachedAccent;
   }
 
-  function draw(timestamp: number) {
-    // Ce rappel est consommé, même si le dessin s'arrête après la pause.
-    animId = null;
-    if (!canvas) return;
-
-    // Throttle to ~30fps
-    if (timestamp - lastFrame < FRAME_INTERVAL) {
-      animId = requestAnimationFrame(draw);
-      return;
-    }
+  /**
+   * Une image. Rend `false` pour GARER la boucle — voir `lib/boucleImages`,
+   * qui porte la cadence (~30 i/s), la garde d'onglet caché et l'annulation au
+   * démontage. La limitation à 30 i/s était ici ; elle y est restée jusqu'à la
+   * 0.9.158 incluse, mais sans garde de visibilité ni annulateur partagé.
+   */
+  function draw(timestamp: number): boolean {
+    if (!canvas) return false;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    lastFrame = timestamp;
+    if (!ctx) return false;
 
     // When not playing, clear real levels and decay to zero
     if (!playing) {
@@ -342,7 +350,7 @@
       // La forme d'onde ne « retombe » pas : elle est vidée à l'arrêt (le
       // signal a cessé, il n'y a plus rien de mesuré à montrer).
       if (maxVal < 0.005 && waveHistory.length === 0) {
-        return;
+        return false;
       }
     }
 
@@ -354,9 +362,7 @@
       drawWaveform(ctx, w, h, dpr, accent);
     }
 
-    if (visible) {
-      animId = requestAnimationFrame(draw);
-    }
+    return visible;
   }
 
   function drawSpectrum(
@@ -614,24 +620,35 @@
   }
 
   function startAnimation() {
-    if (animId !== null) return;
-    lastFrame = performance.now();
+    if (arreterBoucle) return;
     lastTargetUpdate = 0;
-    animId = requestAnimationFrame(draw);
+    arreterBoucle = boucleImages((maintenant) => {
+      const continuer = draw(maintenant);
+      // La boucle s'est garée toute seule (lecture arrêtée, tout retombé) :
+      // sans cet oubli, `startAnimation` croirait une boucle encore en vol et
+      // la reprise de la lecture ne redessinerait plus rien.
+      if (!continuer) arreterBoucle = null;
+      return continuer;
+    });
   }
 
   function stopAnimation() {
-    if (animId !== null) {
-      cancelAnimationFrame(animId);
-      animId = null;
-    }
+    arreterBoucle?.();
+    arreterBoucle = null;
   }
 
   // Show when playing, fade-out and hide after decay
   $effect(() => {
     if (playing) {
       visible = true;
-      generateTargets();
+      // 🔴 Ticket 150 — `untrack`. Cet effet n'a qu'un travail : la première
+      // image d'une reprise ne doit pas partir de barres périmées. Il ne doit
+      // PAS se rejouer à chaque trame du serveur — la boucle de dessin refait
+      // l'agrégation à l'image suivante de toute façon. `realLevels` n'est
+      // plus réactif (voir sa déclaration) ; `untrack` ferme la même porte du
+      // côté de l'appelant, pour que rajouter un `$state` dans
+      // `generateTargets` ne rouvre pas la fuite en silence.
+      untrack(() => generateTargets());
       // Une reprise avant le masquage conserve le canvas et sa visibilité.
       if (canvas) startAnimation();
     }
