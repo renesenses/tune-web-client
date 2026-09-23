@@ -57,6 +57,22 @@ const utiles = (els: Element[]): Element[] => els.filter((e) => e.titre !== '—
  *
  * 🔴 L'INDEX fait toujours partie de la clé : deux entrées de même identifiant
  * arrêteraient Svelte sur `each_key_duplicate`, et l'écran entier disparaît.
+ *
+ * 🔴 `artist_id` VOYAGE AVEC L'ALBUM — #1486. FabienM, 23/09/2026 : « Lien
+ * artiste sur un album de Qobuz ou Bandcamp ne renvoie pas sur la page
+ * artiste ». #1359 avait bouché ce trou dans `StreamingV2.ouvrirFiche`, la
+ * fabrique du gabarit `tile` — mais l'onglet ÉDITORIAL ne la traverse jamais,
+ * il est rendu par `PageWidgets`, dont la fabrique est celle-ci. Elle jetait
+ * le champ, et `destinationArtiste` ne pouvait alors plus rendre
+ * `artiste-service` : le clic repartait en recherche fédérée.
+ *
+ * Le champ EST servi — c'est le point qui était resté « non établi » au dépôt
+ * du 21/09. Mesuré sur le .18 le 23/09/2026, la route exacte de la bande sur
+ * laquelle il a cliqué :
+ *
+ *     GET /api/v1/streaming/qobuz/new-releases?limit=2
+ *     [{"artist_id":"551325","artist_name":"Agnes Obel",
+ *       "source_id":"e3j7lzexax05q","title":"The Meaning of Flowers", …}, …]
  */
 function albumDistant(o: any, i: number, prefixe: string, service: string): Element {
   const sid = texte(o, 'source_id', 'id');
@@ -79,6 +95,7 @@ function albumDistant(o: any, i: number, prefixe: string, service: string): Elem
           source: service,
           title: titre,
           artist_name: texte(o, 'artist_name', 'artist') ?? '',
+          artist_id: o?.artist_id ?? null,
           cover_path: cover,
           year: o?.year ?? null,
           format: o?.quality?.codec ?? o?.format ?? null,

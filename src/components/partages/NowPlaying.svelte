@@ -38,8 +38,9 @@
   import { libelleConversion } from '../../lib/bitperfectStrict';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
-  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear } from '../../lib/stores/navigation';
+  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear } from '../../lib/stores/navigation';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { destinationDeRetour } from '../../lib/destinationDeRetour';
@@ -507,37 +508,23 @@
   }
 
   /**
-   * Le nom d'artiste de la lecture en cours ne mène pas au même endroit selon
-   * D'OÙ vient la piste (Bertrand, 07/09/2026 : « click sur l'artiste ne
-   * renvoie pas là où il faut. Si local : page artiste. Si radio : écran
-   * recherche/résultats avec les bons paramètres »).
+   * Ouvrir la PAGE COMMUNE d'un artiste de la bibliothèque — #1494.
    *
    * La DÉCISION vit dans `lib/routageArtiste`, pas ici : une garde écrite
    * contre ce composant ne pourrait que lire son texte. On n'exécute ici que
    * ce que le module a décidé.
    *
-   * 🔴 LES DEUX CONTRATS SONT ALIMENTÉS, comme le fait déjà `navigateToAlbum`.
-   * Cet écran est monté par les DEUX coquilles : l'ancienne lit
-   * `selectedArtist` + `libraryTab`, la nouvelle ne lit ni l'un ni l'autre —
-   * elle consomme `pendingLibraryArtist`. Poser les seuls magasins de
-   * l'ancienne, c'est le défaut que Fabien a signalé sur la v0.9.140 : le clic
-   * changeait d'écran sans rien ouvrir.
+   * Cette fonction posait à la main les magasins des DEUX coquilles
+   * (`selectedArtist` + `libraryTab` pour l'ancienne, `pendingLibraryArtist`
+   * pour la nouvelle) puis partait sur la Bibliothèque. L'ancienne coquille
+   * n'existe plus, et la Bibliothèque n'est plus la destination : c'est la
+   * page commune, par `ouvrirArtisteDepuis` — le chemin de référence, qui
+   * tranche local / service et pose `vueDeRetour` pour que le Retour de la
+   * page ramène ici (#3824).
    */
   async function ouvrirFicheArtiste(artistId: number, artistName: string) {
     selectedAlbum.set(null);
-    try {
-      const [artist, albums] = await Promise.all([
-        api.getArtist(artistId).catch(() => null),
-        api.getArtistAlbums(artistId).catch(() => []),
-      ]);
-      selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
-      artistAlbums.set(albums ?? []);
-    } catch {
-      selectedArtist.set({ id: artistId, name: artistName } as any);
-    }
-    libraryTab.set('artists');           // contrat du client ACTUEL
-    pendingLibraryArtist.set(artistId);  // contrat du NOUVEAU client
-    activeView.set('library');
+    await ouvrirArtisteDepuis({ id: artistId, name: artistName, source: 'local' }, get(activeView));
   }
 
   /** Vers la Recherche, avec la requête ET le périmètre demandés. */

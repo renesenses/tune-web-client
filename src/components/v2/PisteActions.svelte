@@ -73,7 +73,8 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favKeyOf, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
-  import { activeView, gestesNavigationService, pendingLibraryAlbum, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../../lib/stores/navigation';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { destinationAlbum } from '../../lib/routageAlbum';
   import { t } from '../../lib/i18n';
@@ -327,8 +328,10 @@
 
   function allerArtiste() {
     if (destination?.type === 'artiste') {
-      pendingLibraryArtist.set(destination.artistId);
-      activeView.set('library');
+      // #1494 — la PAGE COMMUNE, par le chemin de référence : la bifurcation
+      // local / service ne se recopie plus ici. `depuis` = l'écran où l'on
+      // est, pour que le Retour de la page y ramène (#3824).
+      void ouvrirArtisteDepuis({ id: destination.artistId, name: piste.artist_name ?? null, source: 'local' }, get(activeView));
       return;
     }
     if (artisteDeService) $gestesNavigationService?.ouvrirArtiste(artisteDeService);
