@@ -40,6 +40,20 @@ export interface CibleService {
 
 export type CibleEtiquette = CibleLocale | CibleService;
 
+/**
+ * La cible d'une playlist INTELLIGENTE (#4798).
+ *
+ * Un type à elle, `smart_playlist`, et jamais `playlist` avec son numéro :
+ * `smart_playlists.id` recouvre `playlists.id` — l'id 1 existe dans les deux
+ * tables. Sous `playlist`, l'étiquette se poserait sur une AUTRE playlist,
+ * sans que rien ne le dise. C'est ICI que le type est écrit, une fois, pour
+ * que les écrans (onglet Smart playlists, Étiquettes) ne le recomposent pas.
+ * Le serveur le relit par `/tags/{id}/smart-playlists`, à part lui aussi.
+ */
+export function cibleSmartPlaylist(id: number): CibleLocale {
+  return { itemType: 'smart_playlist', itemId: id };
+}
+
 export function estCibleService(c: CibleEtiquette): c is CibleService {
   return (c as CibleService).source != null && (c as CibleService).sourceId != null;
 }
