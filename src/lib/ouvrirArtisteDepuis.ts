@@ -23,9 +23,9 @@ import type { Source } from './types';
 export async function ouvrirArtisteDepuis(a: any, depuis: View): Promise<void> {
   if (!a) return;
   if (a.id != null && estDeBibliotheque(a)) {
-    vueDeRetour.set(depuis);
-    pendingLibraryArtist.set(a.id);
-    activeView.set('library');
+    // #1494 — la PAGE COMMUNE, plus la fiche de la Bibliothèque : voir
+    // `ouvrirFicheArtisteLocale` en bas de ce module.
+    ouvrirFicheArtisteLocale(a.id, a.name ?? '', depuis);
     return;
   }
   if (a.source && a.source_id) {
@@ -41,8 +41,11 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View): Promise<void> {
   try {
     id = trouverArtisteExact((await api.searchLibrary(a.name, 5))?.artists, a.name);
   } catch { /* repli ci-dessous */ }
+  if (id !== null) {
+    ouvrirFicheArtisteLocale(id, a.name, depuis);
+    return;
+  }
   vueDeRetour.set(depuis);
-  if (id !== null) pendingLibraryArtist.set(id);
   activeView.set('library');
 }
 
@@ -115,4 +118,38 @@ export function artisteDeService(ar: any, service: string | null | undefined): a
   if (!ar?.name && !id) return null;
   if (!id || !src) return ar?.name ? { name: ar.name } : null;
   return { ...ar, source: src, source_id: id };
+}
+
+/**
+ * Ouvrir la PAGE COMMUNE pour un artiste de la BIBLIOTHÈQUE — #1494.
+ *
+ * Bertrand, 23/09/2026 : « Écran Search : quand je clique sur l'artiste, je
+ * veux ouvrir la vue artiste !! » — et, à « laquelle ? » : la page artiste
+ * commune. Depuis #1485 (#1232, étapes 1 et 2), `ArtisteServiceV2` sait
+ * montrer un artiste local : `service: null`, et `id` porte l'identifiant de
+ * `/library/artists` en texte. Aucun clic n'y menait ; c'est ce que fait cette
+ * fonction, et elle est le SEUL endroit qui pose cette forme.
+ *
+ * 🔴 LA BIFURCATION LOCAL / SERVICE VIT ICI, ET NULLE PART AILLEURS. Avant ce
+ * lot, cinq écrans en recopiaient les deux branches à la main — `SearchV2`,
+ * `AlbumDetailV2`, `PisteActions`, `MenuPisteV1`, `NowPlaying` — et faire
+ * pointer la branche locale vers la page commune ici n'aurait changé que les
+ * Favoris, « Vos tops » et la colonne Artiste : les quatre autres auraient
+ * continué d'ouvrir l'ancienne fiche. Ils passent tous par
+ * [`ouvrirArtisteDepuis`] désormais — `AlbumDetailV2` par #1489, qui le fait
+ * au même moment —, et `vueArtisteUnique1494.test.ts` interdit toute nouvelle
+ * recopie.
+ *
+ * UNE entrée d'historique par clic (#1142) : la page commune est une VUE, pas
+ * un calque dans une vue — le changement de vue écrit son entrée, et il n'y a
+ * plus de grille traversée ni de clé composée à tenir.
+ *
+ * La fiche de la Bibliothèque (`ArtistesV2`, `#library/artiste:<id>`) reste
+ * en place pour l'instant : la retirer est hors tranche, à décider une fois
+ * la page commune éprouvée depuis tous les points d'entrée.
+ */
+export function ouvrirFicheArtisteLocale(id: number | string, nom: string | null | undefined, depuis: View): void {
+  vueDeRetour.set(depuis);
+  ficheArtisteService.set({ service: null, id: String(id), nom: nom ?? '' });
+  activeView.set('streamingartist');
 }
