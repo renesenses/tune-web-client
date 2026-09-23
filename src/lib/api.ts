@@ -1885,6 +1885,44 @@ export function getArtistAlbums(id: number) {
   return fetchJSON<Album[]>(`${BASE}/library/artists/${id}/albums`);
 }
 
+/**
+ * La discographie de l'artiste DÉCOUPÉE en sections — #4767.
+ *
+ * Une section vide est ABSENTE de la réponse, jamais un tableau vide : rien
+ * ne doit avoir à décider ici s'il affiche un titre au-dessus de rien.
+ */
+export interface AlbumsArtisteSections {
+  albums: Album[];
+  /** Compilations portant au moins une piste de l'artiste. */
+  compilations?: Album[];
+  /** Albums d'un AUTRE artiste portant au moins une piste de celui-ci. */
+  appearances?: Album[];
+}
+
+/**
+ * Ce que rend la route, quelle que soit la version du serveur en face.
+ *
+ * 🔴 Un serveur qui ne connaît pas `?sections=1` IGNORE le drapeau et rend le
+ * tableau nu d'avant. Le client web et le serveur ne sont pas publiés
+ * ensemble : sans ce repli, une interface à jour devant un serveur plus
+ * ancien afficherait une page artiste VIDE. Un tableau vaut donc une
+ * discographie sans sections.
+ */
+export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
+  if (Array.isArray(brut)) return { albums: brut as Album[] };
+  const o = (brut ?? {}) as AlbumsArtisteSections;
+  return { albums: o.albums ?? [], compilations: o.compilations, appearances: o.appearances };
+}
+
+/**
+ * `?sections=1` et non une route à part : sans le drapeau, la même route rend
+ * le tableau nu que lisent les clients natifs et le serveur média.
+ */
+export function getArtistAlbumsSections(id: number) {
+  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?sections=1`)
+    .then(sectionsDepuisReponse);
+}
+
 export function getTrackCredits(trackId: number) {
   return fetchJSON<import('./types').TrackCredit[]>(`${BASE}/library/tracks/${trackId}/credits`);
 }
@@ -2788,6 +2826,41 @@ export function getTagTracks(tagId: number) {
 
 export function getTagPlaylists(tagId: number) {
   return fetchJSON<{ playlists: any[]; count: number }>(`${BASE}/tags/${tagId}/playlists`);
+}
+
+/**
+ * Les playlists INTELLIGENTES d'une étiquette (#4798) — route à part, pas une
+ * moitié de `/playlists` : les deux tables partagent leurs identifiants, et le
+ * serveur ne résout un `smart_playlist` que dans `smart_playlists`. Chaque
+ * ligne a la forme de `/library/smart-playlists`.
+ */
+export function getTagSmartPlaylists(tagId: number) {
+  return fetchJSON<{ smart_playlists: any[]; count: number }>(
+    `${BASE}/tags/${tagId}/smart-playlists`,
+  );
+}
+
+/**
+ * Les DOSSIERS (collections manuelles) d'une étiquette (#4798, second volet).
+ * Chaque ligne a la forme SERVIE de `/library/collections` — `album_count`
+ * compris. Route à part de `/smart-collections` : les deux espaces
+ * d'identifiants se recouvrent (l'id 1 est à la fois « favorites » et
+ * « Audiophile »), le serveur ne résout un `collection` que dans le réglage
+ * `collections`.
+ */
+export function getTagCollections(tagId: number) {
+  return fetchJSON<{ collections: any[]; count: number }>(`${BASE}/tags/${tagId}/collections`);
+}
+
+/**
+ * Les collections INTELLIGENTES d'une étiquette (#4798, second volet). Chaque
+ * ligne a la forme de `/library/smart-collections` (`name_key` compris, pour
+ * traduire les seize du semis), sans `album_count`.
+ */
+export function getTagSmartCollections(tagId: number) {
+  return fetchJSON<{ smart_collections: any[]; count: number }>(
+    `${BASE}/tags/${tagId}/smart-collections`,
+  );
 }
 
 // --- Playlists ---
@@ -4750,6 +4823,12 @@ export interface FavoriteRef {
    */
   collection_id?: number;
   smart_collection_id?: number;
+  /**
+   * Playlist INTELLIGENTE (#4798) — même règle que les collections : son
+   * espace d'identifiants recouvre celui de `playlist_id` (l'id 1 existe dans
+   * les deux tables), le serveur les distingue par `item_type`. Jamais déduit.
+   */
+  smart_playlist_id?: number;
 }
 
 /** Les quatre types INTERROGEABLES par `getFavorites`. */
@@ -4758,11 +4837,16 @@ export type LocalFavoriteType = 'track' | 'album' | 'artist' | 'playlist';
 /**
  * Ce que `favItem` sait produire.
  *
- * Les collections s'ajoutent aux quatre ci-dessus mais ne les rejoignent PAS
- * dans `LocalFavoriteType` : ce dernier sert de paramètre de requête à
- * `getFavorites`, et le serveur n'y accepte que ces quatre-là.
+ * Les collections et la playlist intelligente s'ajoutent aux quatre ci-dessus
+ * mais ne les rejoignent PAS dans `LocalFavoriteType` : ce dernier sert de
+ * paramètre de requête à `getFavorites`, et le serveur n'y accepte que ces
+ * quatre-là.
  */
-type FavoriteItemType = LocalFavoriteType | 'collection' | 'smart_collection';
+type FavoriteItemType =
+  | LocalFavoriteType
+  | 'collection'
+  | 'smart_collection'
+  | 'smart_playlist';
 
 function favItem(p: FavoriteRef): { item_type: FavoriteItemType; item_id: number } | null {
   if (p.track_id != null) return { item_type: 'track', item_id: p.track_id };
@@ -4772,6 +4856,8 @@ function favItem(p: FavoriteRef): { item_type: FavoriteItemType; item_id: number
   if (p.collection_id != null) return { item_type: 'collection', item_id: p.collection_id };
   if (p.smart_collection_id != null)
     return { item_type: 'smart_collection', item_id: p.smart_collection_id };
+  if (p.smart_playlist_id != null)
+    return { item_type: 'smart_playlist', item_id: p.smart_playlist_id };
   return null;
 }
 
@@ -4816,6 +4902,13 @@ export async function getFavorites(
    */
   collectionIds: number[];
   smartCollectionIds: number[];
+  /**
+   * Les playlists intelligentes sortent aussi en IDENTIFIANTS (#4798) : l'écran
+   * Favoris les apparie avec `getSmartPlaylists()`, une seule requête, comme il
+   * le fait pour les collections. Jamais mêlées à `playlists` — l'id 1 y
+   * désignerait une autre playlist.
+   */
+  smartPlaylistIds: number[];
 }> {
   const q = type ? `?item_type=${type}` : '';
   const rows = await fetchJSON<
@@ -4854,6 +4947,7 @@ export async function getFavorites(
     playlists,
     collectionIds: lignes('collection').map((r) => r.item_id),
     smartCollectionIds: lignes('smart_collection').map((r) => r.item_id),
+    smartPlaylistIds: lignes('smart_playlist').map((r) => r.item_id),
   };
 }
 

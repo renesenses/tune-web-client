@@ -50,6 +50,7 @@
     favoritePlaylistIds,
     favoriteCollectionIds,
     favoriteSmartCollectionIds,
+    favoriteSmartPlaylistIds,
   } from '../../lib/stores/profile';
   import { basculerFavoriLocal, estFavoriLocal, type RefLocale } from '../../lib/favorisLocaux';
   import type { Snippet } from 'svelte';
@@ -129,6 +130,7 @@
           $favoritePlaylistIds,
           $favoriteCollectionIds,
           $favoriteSmartCollectionIds,
+          $favoriteSmartPlaylistIds,
         )
       : false,
   );
