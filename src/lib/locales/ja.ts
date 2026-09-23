@@ -3840,6 +3840,22 @@ export default {
   "v2.set.progressOf": "{total} 件中 {n} 件",
   "v2.sup.openedOn": "{date} に作成",
   "v2.plug.requiresTune": "Tune {plage} が必要です。",
+  // Titres bannis — renesenses/tune-server-rust#4806
+  "ban.ban": "この曲を除外する",
+  "ban.unban": "除外を解除",
+  "ban.badge": "除外中",
+  "ban.playConfirm": "「{title}」は除外されています。それでも再生しますか？",
+  "ban.banned": "「{title}」を除外しました。今後は自動的に再生されません。",
+  "ban.unbanned": "「{title}」の除外を解除しました。",
+  "ban.error": "この曲の除外設定を変更できませんでした。",
+  "ban.title": "除外した曲",
+  "ban.eyebrow": "あなたが外したもの",
+  "ban.intro": "除外した曲はアルバム内にグレー表示のまま残りますが、自動再生（シャッフル、スマートプレイリスト、連続再生）では二度と再生されません。意図的にクリックすると、確認のうえ再生します。",
+  "ban.empty": "除外した曲はありません。",
+  "ban.loadError": "除外した曲を読み込めませんでした。",
+  "ban.retry": "再試行",
+  "ban.count": "除外した曲 {n} 件",
+  "ban.orphan": "ライブラリに存在しない曲",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

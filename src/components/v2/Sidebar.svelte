@@ -147,6 +147,11 @@
       icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     { view: 'tags', labelKey: 'v2.nav.tags', icon: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42zM6.5 6.5h.01' },
     { view: 'favorites', labelKey: 'v2.nav.favorites', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
+    // #4806 — « Titres bannis » : ce que l'utilisateur a ÉCARTÉ lui-même,
+    // l'envers des favoris. Le client web n'a pas d'écran d'albums masqués
+    // (`/albums/hidden` n'y est pas branché) : l'entrée vit ici, avec les
+    // autres sélections, pour tout revoir et débannir.
+    { view: 'bannedtracks', labelKey: 'ban.title', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M5.6 5.6l12.8 12.8' },
   ];
 
   const STUDIO: Item[] = [

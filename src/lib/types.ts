@@ -223,6 +223,16 @@ export interface Track {
   /** Dernière écoute, horodatage ISO — `null` pour une piste jamais jouée
    *  (#3518). Va toujours de pair avec `play_count`. */
   last_played_at?: string | null;
+  /**
+   * Titre BANNI par le profil qui regarde (serveur #4806, `attacher_banni`).
+   *
+   * Même contrat que `play_count` : toujours posé quand la lecture a réussi,
+   * `false` par défaut — et jamais un filtre. La piste reste dans la liste,
+   * c'est l'écran qui la grise et la barre ; un clic délibéré la joue après
+   * confirmation. Absent chez un serveur d'avant #4806 : rien n'est grisé.
+   * Passer par `lib/titreBanni.ts` (`estBannie`) plutôt que lire la clé.
+   */
+  banned?: boolean;
 }
 
 export interface Playlist {

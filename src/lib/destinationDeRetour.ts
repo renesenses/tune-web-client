@@ -92,6 +92,8 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   bandcamp: 'destination',
   concerts: 'destination',
   pontroon: 'destination',
+  // #4806 — l'écran « Titres bannis », voisin des sélections de l'utilisateur.
+  bannedtracks: 'destination',
 
   // ─── Celles où un Retour ne doit JAMAIS mener, et pourquoi ───────────────
   //

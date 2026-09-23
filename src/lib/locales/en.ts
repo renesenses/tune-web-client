@@ -3860,6 +3860,22 @@ export default {
   "v2.set.progressOf": "{n} of {total}",
   "v2.sup.openedOn": "opened on {date}",
   "v2.plug.requiresTune": "Requires Tune {plage}.",
+  // Titres bannis — renesenses/tune-server-rust#4806
+  "ban.ban": "Ban this track",
+  "ban.unban": "Unban",
+  "ban.badge": "Banned",
+  "ban.playConfirm": "“{title}” is banned. Play it anyway?",
+  "ban.banned": "“{title}” is banned: it will never be played automatically again.",
+  "ban.unbanned": "“{title}” is no longer banned.",
+  "ban.error": "Could not change the ban on this track.",
+  "ban.title": "Banned tracks",
+  "ban.eyebrow": "What you set aside",
+  "ban.intro": "A banned track stays visible in its album, greyed out, but is never played automatically again: not by shuffle, not by a smart playlist, not by auto-play. A deliberate click plays it, after confirmation.",
+  "ban.empty": "No banned tracks.",
+  "ban.loadError": "Could not load the banned tracks.",
+  "ban.retry": "Retry",
+  "ban.count": "{n} banned track(s)",
+  "ban.orphan": "Track no longer in the library",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

@@ -3862,6 +3862,22 @@ export default {
   "v2.set.progressOf": "{n} sur {total}",
   "v2.sup.openedOn": "ouvert le {date}",
   "v2.plug.requiresTune": "Requiert Tune {plage}.",
+  // Titres bannis — renesenses/tune-server-rust#4806
+  "ban.ban": "Bannir ce titre",
+  "ban.unban": "Débannir",
+  "ban.badge": "Banni",
+  "ban.playConfirm": "« {title} » est banni. Le lire quand même ?",
+  "ban.banned": "« {title} » est banni : il ne sera plus joué automatiquement.",
+  "ban.unbanned": "« {title} » est débanni.",
+  "ban.error": "Impossible de modifier le bannissement de ce titre.",
+  "ban.title": "Titres bannis",
+  "ban.eyebrow": "Ce que vous avez écarté",
+  "ban.intro": "Un titre banni reste visible dans son album, grisé, mais n’est plus jamais joué automatiquement : ni en aléatoire, ni par une smart playlist, ni en enchaînement. Un clic délibéré le joue, après confirmation.",
+  "ban.empty": "Aucun titre banni.",
+  "ban.loadError": "Impossible de charger les titres bannis.",
+  "ban.retry": "Réessayer",
+  "ban.count": "{n} titre(s) banni(s)",
+  "ban.orphan": "Piste absente de la bibliothèque",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];

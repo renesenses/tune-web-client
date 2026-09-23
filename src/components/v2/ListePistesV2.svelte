@@ -73,6 +73,7 @@
   import PisteActions from './PisteActions.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
+  import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
   import { activeView } from '../../lib/stores/navigation';
   import { gestesDeZone } from '../../lib/gestesDeZone';
@@ -359,6 +360,19 @@
   const npPiste = $derived($currentTrack);
   const npEtat = $derived($playbackState);
   const etatDe = (p: Track) => etatDeLaLigne(p, npId, npPiste, npEtat);
+  /**
+   * #4806 — en mode TABLEAU, le titre banni est grisé et barré ICI (le mode
+   * lignes le fait dans `LignePisteV2`) ; un clic délibéré le joue après
+   * confirmation. Le magasin est lu UNE fois, pour la même raison que les
+   * trois du dessus.
+   */
+  const surcharges = $derived($surchargesBannissement);
+  const bannieDe = (p: Track) => estBannie(p, surcharges);
+  async function lireDelibere(p: Track, i: number) {
+    if (pisteIndisponible(p)) return;
+    if (!(await confirmerLectureBannie(p))) return;
+    onLire(p, i);
+  }
 
   function numero(p: Track, i: number): string | null {
     if (numerotation === 'aucune') return null;
@@ -455,7 +469,8 @@
       <!-- Point 10 (17/09/2026) — une piste que le service dit indisponible
            est grisée et ne se lance pas : le lancer rendrait « no url ». -->
       {@const indispo = pisteIndisponible(p)}
-      <div class="trow" class:np={etat != null} class:indispo aria-current={etat ? 'true' : undefined}
+      {@const bannie = bannieDe(p)}
+      <div class="trow" class:np={etat != null} class:indispo class:bannie aria-current={etat ? 'true' : undefined}
         role="row">
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
@@ -466,7 +481,7 @@
           {:else if c.verrouillee}
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus
                  large et la plus évidente de la ligne. -->
-            <button class="td titre" onclick={() => { if (!indispo) onLire(p, i); }}
+            <button class="td titre" onclick={() => void lireDelibere(p, i)}
               disabled={indispo} title={indispo ? $t('v2.str.coming' as any) : p.title}>
               <!-- L'indicateur est DANS la cellule du titre : une colonne de plus
                    décalerait l'en-tête, et la règle de ce composant est qu'un
@@ -488,6 +503,7 @@
               {#if sourceEnTableau}<ServiceBadge source={p.source} compact />{/if}
               {#if p.source === 'upnp'}<DisponibiliteUpnp sourceId={p.source_id} />{/if}
               {#if indispo}<span class="indispo-etiq">{$t('v2.str.coming' as any)}</span>{/if}
+              {#if bannie}<span class="bannie-etiq">{$t('ban.badge' as any)}</span>{/if}
             </button>
           {:else}
             {@const v = cellule(p, i, c.cle)}
@@ -558,6 +574,11 @@
   .lien-artiste:hover{text-decoration:underline; color:var(--v2-txt)}
 
   .trow.indispo{opacity:0.5}
+  /* #4806 — le titre banni : grisé et barré, visible, jouable d'un clic délibéré. */
+  .trow.bannie{opacity:0.45}
+  .trow.bannie .ttxt{text-decoration:line-through}
+  .bannie-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-txt3);
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
   .trow.indispo .titre{cursor:default}
   .indispo-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-acc2);
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}

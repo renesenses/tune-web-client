@@ -3840,6 +3840,22 @@ export default {
   "v2.set.progressOf": "{total} 项中的 {n} 项",
   "v2.sup.openedOn": "创建于 {date}",
   "v2.plug.requiresTune": "需要 Tune {plage}。",
+  // Titres bannis — renesenses/tune-server-rust#4806
+  "ban.ban": "屏蔽此曲目",
+  "ban.unban": "取消屏蔽",
+  "ban.badge": "已屏蔽",
+  "ban.playConfirm": "“{title}”已被屏蔽。仍要播放吗？",
+  "ban.banned": "“{title}”已被屏蔽：不会再自动播放。",
+  "ban.unbanned": "“{title}”已取消屏蔽。",
+  "ban.error": "无法更改此曲目的屏蔽状态。",
+  "ban.title": "已屏蔽的曲目",
+  "ban.eyebrow": "您搁置的内容",
+  "ban.intro": "被屏蔽的曲目仍会灰显在其专辑中，但不会再被自动播放：随机播放、智能播放列表和自动续播都会跳过它。主动点击后经确认即可播放。",
+  "ban.empty": "没有已屏蔽的曲目。",
+  "ban.loadError": "无法加载已屏蔽的曲目。",
+  "ban.retry": "重试",
+  "ban.count": "{n} 首已屏蔽的曲目",
+  "ban.orphan": "曲目已不在资料库中",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

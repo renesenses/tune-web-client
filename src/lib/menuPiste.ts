@@ -58,6 +58,10 @@ export const ICONES = {
   tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z',
   /** Une fiche de champs — le tiroir « Tous les champs piste » (#851). */
   champs: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
+  /** Un cercle barré — « Bannir ce titre » (#4806). */
+  ban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M5.6 5.6l12.8 12.8',
+  /** Le même cercle, rouvert — « Débannir ». */
+  unban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M8 12l3 3 5-6',
 } as const;
 /** Ce que la piste permet, décidé par l'appelant qui seul connaît le contexte. */
 export interface CapacitesPiste {
@@ -95,6 +99,13 @@ export interface CapacitesPiste {
    * service sans écriture). Voir `lib/playlistService.ts`.
    */
   playlistDeService?: string | null;
+  /**
+   * La piste est BANNIE (#4806) : l'entrée devient « Débannir ». Absent =
+   * pas bannie. N'a de sens que pour une piste de BIBLIOTHÈQUE — une piste de
+   * service n'a ni l'une ni l'autre des deux entrées (tranche locale seule,
+   * Bertrand 23/09/2026).
+   */
+  bannie?: boolean;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -115,6 +126,10 @@ export interface GestesPiste {
   etiqueter?: () => void;
   /** Ouvre le tiroir « Tous les champs piste » — #851, lecture des tags. */
   champsDuFichier?: () => void;
+  /** « Bannir ce titre » (#4806) — plus jamais joué automatiquement. */
+  bannir?: () => void;
+  /** « Débannir » — l'inverse, sur une piste déjà bannie. */
+  debannir?: () => void;
 }
 export function entreesMenuPiste(
   c: CapacitesPiste,
@@ -227,5 +242,19 @@ export function entreesMenuPiste(
    * réservé à la bibliothèque, comme ses trois voisines de la famille A.
    */
   pousser(deLaBibliotheque, 'trackTags.title', ICONES.champs, g.champsDuFichier);
+  /**
+   * « Bannir ce titre » / « Débannir » — `renesenses/tune-server-rust#4806`.
+   *
+   * Bertrand, 23/09/2026 : un titre banni n'est plus jamais joué par une
+   * sélection automatique, reste visible mais grisé dans son album, et se
+   * débannit depuis le même menu ou depuis l'écran « Titres bannis ».
+   *
+   * Bibliothèque SEULE pour cette tranche : `POST /library/tracks/{id}/ban`
+   * prend un `i64`. Une piste de service n'a AUCUNE des deux entrées —
+   * absente, pas grisée, comme ses voisines de la famille A. Et jamais les
+   * deux à la fois : la piste est bannie ou ne l'est pas.
+   */
+  pousser(deLaBibliotheque && !c.bannie, 'ban.ban', ICONES.ban, g.bannir);
+  pousser(deLaBibliotheque && c.bannie === true, 'ban.unban', ICONES.unban, g.debannir);
   return e;
 }

@@ -3798,6 +3798,22 @@ export default {
   "v2.set.progressOf": "{total} elemből {n}",
   "v2.sup.openedOn": "megnyitva: {date}",
   "v2.plug.requiresTune": "Tune {plage} szükséges.",
+  // Titres bannis — renesenses/tune-server-rust#4806
+  "ban.ban": "Szám kitiltása",
+  "ban.unban": "Tiltás feloldása",
+  "ban.badge": "Kitiltva",
+  "ban.playConfirm": "„{title}” ki van tiltva. Mégis lejátssza?",
+  "ban.banned": "„{title}” ki lett tiltva: többé nem játszódik le automatikusan.",
+  "ban.unbanned": "„{title}” tiltása feloldva.",
+  "ban.error": "A szám tiltását nem sikerült módosítani.",
+  "ban.title": "Kitiltott számok",
+  "ban.eyebrow": "Amit félretett",
+  "ban.intro": "A kitiltott szám látható marad az albumában, kiszürkítve, de soha többé nem játszódik le automatikusan: sem véletlenszerű lejátszásban, sem okos lejátszási listából, sem folytatásként. Egy szándékos kattintás megerősítés után lejátssza.",
+  "ban.empty": "Nincs kitiltott szám.",
+  "ban.loadError": "A kitiltott számokat nem sikerült betölteni.",
+  "ban.retry": "Újra",
+  "ban.count": "{n} kitiltott szám",
+  "ban.orphan": "A szám már nincs a könyvtárban",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

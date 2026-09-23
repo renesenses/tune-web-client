@@ -2891,6 +2891,44 @@ export function getSimilarTracks(trackId: number, limit = 50) {
   );
 }
 
+/* ------------------------------------------------------------------------ *
+ * Titres bannis — `renesenses/tune-server-rust#4806` (serveur : PR #4818).
+ *
+ * Bibliothèque LOCALE seulement : les trois routes prennent un `i64` de
+ * `tracks`. Le drapeau `banned` des listes de pistes, lui, arrive avec chaque
+ * ligne (`Track.banned`) — voir `lib/titreBanni.ts`.
+ * ------------------------------------------------------------------------ */
+
+/** Une ligne de `GET /library/tracks/banned` (`hidden_repo.rs::BannedTrack`). */
+export interface BannedTrack {
+  track_id: number;
+  /** Titre vivant si la piste existe encore, sinon l'instantané figé au bannissement. */
+  title: string;
+  artist: string | null;
+  album_id: number | null;
+  album_title: string | null;
+  banned_at: string | null;
+  /** `false` = marqueur orphelin : l'id ne désigne plus de piste vivante. */
+  resolved: boolean;
+}
+
+/** `POST /library/tracks/{id}/ban` — 404 si l'id ne désigne aucune piste. */
+export function banTrack(trackId: number) {
+  return apiPost(`/library/tracks/${trackId}/ban`) as Promise<{ track_id: number; banned: boolean }>;
+}
+
+/** `DELETE /library/tracks/{id}/ban` — idempotent. */
+export function unbanTrack(trackId: number) {
+  return apiDelete(`/library/tracks/${trackId}/ban`) as Promise<{ track_id: number; banned: boolean } | null>;
+}
+
+/** `GET /library/tracks/banned` — l'écran « Titres bannis » du profil. */
+export function listBannedTracks() {
+  return fetchJSON<{ profile_id?: number; total: number; items: BannedTrack[] }>(
+    `${BASE}/library/tracks/banned`,
+  );
+}
+
 // `setEqualizer(zoneId, preset)` — écrire l'égaliseur en n'envoyant QU'UN NOM
 // — a été retirée (#532). Elle ne pouvait pas tenir sa promesse : avant
 // `eq_presets.rs`, `set_eq` recopiait `body.preset` dans sa réponse sans
