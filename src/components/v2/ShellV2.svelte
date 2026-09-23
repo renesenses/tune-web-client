@@ -15,12 +15,9 @@
   import LibraryV2 from './LibraryV2.svelte';
   import HomeV2 from './HomeV2.svelte';
   import SearchV2 from './SearchV2.svelte';
-  import * as api from '../../lib/api';
-  import { ficheAlbumService, ficheArtisteService } from '../../lib/stores/streaming';
-  import { get } from 'svelte/store';
-  import { resoudreArtisteDeService, messageRepli } from '../../lib/repliArtisteService';
-  import { setSearchCriteria } from '../../lib/stores/shortcuts';
-  import { pendingSearchQuery, gestesNavigationService } from '../../lib/stores/navigation';
+  import { ficheAlbumService } from '../../lib/stores/streaming';
+  import { ouvrirArtisteDeServiceParNom } from '../../lib/ouvrirArtisteDepuis';
+  import { gestesNavigationService } from '../../lib/stores/navigation';
   import ArtisteServiceV2 from './ArtisteServiceV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import PlaylistsV2 from './PlaylistsV2.svelte';
@@ -406,56 +403,20 @@
   /**
    * Résoudre un NOM d'artiste en identifiant de service, puis ouvrir sa fiche.
    *
-   * 🔴 Une piste de service ne porte pas l'identifiant de son artiste — seul
-   * son nom voyage avec elle. On le résout par la recherche fédérée, comme
-   * `ArtistesV2` le fait déjà pour les albums d'un artiste local, et on
-   * réemploie l'appariement d'`albumsArtisteStreaming` plutôt que d'en
-   * écrire un second :
-   * il préfère l'égalité exacte du nom et ne retombe sur le premier candidat
-   * qu'à défaut.
+   * 🔴 LE CORPS EST SORTI D'ICI — #1486. Il vit dans
+   * `lib/ouvrirArtisteDepuis.ouvrirArtisteDeServiceParNom`, à côté du chemin
+   * de navigation de référence. Deux raisons, l'une et l'autre mesurées : une
+   * garde écrite contre cette coquille ne pouvait que lire son TEXTE, et la
+   * clé d'onglet `__bandcamp__` sortait d'ici sans être traduite. La fonction
+   * déplacée porte le détail.
    *
-   * ⚠️ REPLI EXPLICITE. Si le service ne connaît pas ce nom, il n'y a pas de
-   * fiche à ouvrir : on revient au geste d'avant — la recherche, périmètre
-   * ouvert sur la source. Un écran vide serait pire que la recherche qu'il
-   * remplace.
+   * `depuis` : d'où l'on part, pour que le Retour de la fiche artiste y
+   * ramène. Il valait `'nowplaying'` EN DUR, ce qui était juste pour son
+   * premier appelant et faux pour tous les autres. Les émetteurs qui ne le
+   * disent pas gardent l'ancien comportement.
    */
-  async function ouvrirArtisteServiceParNom(c: { service: string; nom: string; id?: string | null }) {
-    // #956 — l'identifiant du service est déjà là (album ou piste servis par
-    // le service) : on ouvre la fiche sans rien deviner.
-    if (c.id != null && String(c.id).trim() !== '') {
-      vueDeRetour.set('nowplaying');
-      ficheArtisteService.set({ service: c.service as any, id: String(c.id).trim(), nom: c.nom });
-      activeView.set('streamingartist');
-      return;
-    }
-    const issue = await resoudreArtisteDeService(c, async (nom, service) => {
-      const r = await api.federatedSearch(nom, [service], 5);
-      return r?.services?.[service]?.artists ?? [];
-    });
-    if (issue.type === 'repli') {
-      /**
-       * 🔴 #956 — LE REPLI PARLE MAINTENANT. Sandro, fil 1769 : « l'interface
-       * tourne en boucle et me renvoie simplement sur la grille des résultats
-       * de recherche du début ». Le geste est le bon — un écran vide serait
-       * pire que la recherche qu'il remplace — mais il était MUET, et un
-       * retour silencieux au point de départ se lit comme une panne.
-       *
-       * `injoignable` garde sa trace : c'est la seule branche qui peut
-       * produire son symptôme sans qu'aucune mesure ne l'explique, et le
-       * `catch` d'avant l'avalait.
-       */
-      if (issue.raison === 'injoignable') {
-        console.warn('[artiste de service] la recherche a levé', c.service, c.nom, issue.erreur);
-      }
-      notifications.info(messageRepli(issue.raison, c, get(t)));
-      setSearchCriteria({ q: c.nom, source: c.service });
-      pendingSearchQuery.set(c.nom);
-      activeView.set('search');
-      return;
-    }
-    vueDeRetour.set('nowplaying');
-    ficheArtisteService.set({ service: c.service as any, id: issue.id, nom: c.nom });
-    activeView.set('streamingartist');
+  function ouvrirArtisteServiceParNom(c: { service: string; nom: string; id?: string | null; depuis?: View | null }) {
+    void ouvrirArtisteDeServiceParNom(c, c.depuis ?? 'nowplaying');
   }
 
   /**

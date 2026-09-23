@@ -154,13 +154,15 @@ describe('« je veux à minima le contenu de la v0 »', () => {
     // « Autres versions » : le panneau.
     expect(src.includes("import('./VersionsPistePanneau.svelte')"),
       '« Autres versions » n’ouvre plus de panneau').toBe(true);
-    // « Aller à l'artiste » : le dépôt ET la vue. Depuis #956 la cible vient
-    // de `destinationArtiste` — une piste Qobuz porte un `artist_id` de
-    // SERVICE, et `piste.artist_id` posé tel quel envoyait dans la Bibliothèque.
-    expect(/pendingLibraryArtist\.set\(destination\.artistId\)/.test(src),
-      '« Aller à l’artiste » ne pose plus la cible').toBe(true);
-    expect(/allerArtiste[\s\S]{0,220}activeView\.set\('library'\)/.test(src),
-      '« Aller à l’artiste » ne change plus de vue').toBe(true);
+    // « Aller à l'artiste » : depuis #956 la cible vient de `destinationArtiste`
+    // — une piste Qobuz porte un `artist_id` de SERVICE, et `piste.artist_id`
+    // posé tel quel envoyait dans la Bibliothèque. Depuis #1494 le geste passe
+    // par `ouvrirArtisteDepuis`, le chemin de référence, qui ouvre la page
+    // COMMUNE ; la bifurcation local / service ne se recopie plus ici.
+    expect(/function allerArtiste\(\) \{[\s\S]{0,600}ouvrirArtisteDepuis\(\{ id: destination\.artistId/.test(src),
+      '« Aller à l’artiste » ne passe plus par le chemin de référence').toBe(true);
+    expect(/pendingLibraryArtist\.set\(/.test(src),
+      '« Aller à l’artiste » recopie la bifurcation au lieu de passer par `ouvrirArtisteDepuis`').toBe(false);
   });
 
   /**
