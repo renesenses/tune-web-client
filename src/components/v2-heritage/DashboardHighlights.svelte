@@ -17,6 +17,7 @@
   import { activeView } from '../../lib/stores/navigation';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { playFromHere } from '../../lib/playback';
+  import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { } from '../../lib/utils';
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
@@ -114,9 +115,12 @@
   async function playTopTrack(track: TopTrack) {
     if (!zone?.id) return;
     try {
-      if (track.track_id && (!track.source || track.source === 'local')) {
+      // 🔴 `estSourceDeBibliotheque` et non `source === 'local'` : une piste
+      // UPnP de la bibliothèque (#4201) a un `track_id`, et `searchStreaming`
+      // n'a pas de service « upnp » à interroger.
+      if (track.track_id && estSourceDeBibliotheque(track.source)) {
         await playAndSync(zone.id, { track_id: track.track_id });
-      } else if (track.source && track.source !== 'local') {
+      } else if (track.source && !estSourceDeBibliotheque(track.source)) {
         const results = await api.searchStreaming(track.source as Source, `${track.title} ${track.artist_name ?? ''}`, 5);
         const match = results.tracks?.find((t: any) => t.title === track.title);
         if (match?.source_id) {
