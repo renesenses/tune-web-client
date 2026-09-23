@@ -9,6 +9,7 @@
    * à une, sans jamais casser la navigation.
    */
   import { activeView, vueDeRetour, focusMode, type View } from '../../lib/stores/navigation';
+  import { entrerEnModeGrandEcran } from '../../lib/modeGrandEcran';
   import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
@@ -478,13 +479,12 @@
     activeView.set(ou ?? 'nowplaying');
   }
 
+  /**
+   * #1141 — le geste est partagé avec l'entrée de la barre latérale, qui mène
+   * désormais au même écran. Deux copies divergeraient au premier correctif.
+   */
   function modeTv() {
-    try {
-      document.documentElement.requestFullscreen?.()?.catch(() => {});
-    } catch {
-      /* le plein écran peut être refusé : la vue s'ouvre quand même */
-    }
-    activeView.set('tv');
+    entrerEnModeGrandEcran((vue) => activeView.set(vue));
   }
 
   /** Pose d'un raccourci sur la vue COURANTE, depuis n'importe quel écran. */
