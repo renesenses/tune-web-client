@@ -33,11 +33,10 @@
   import {
     basculerPastille, dansLePerimetreDe, doitViderLePerimetre, pastilleAllumee, sansRestriction,
   } from '../../lib/perimetreRecherche';
-  import { activeView, pendingLibraryArtist, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
-  import { allerAuDetail, detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
+  import { activeView, pendingSearchQuery } from '../../lib/stores/navigation';
+  import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
-  import { cleDetailArtiste } from '../../lib/cleDetailArtiste';
-  import { ficheArtisteService } from '../../lib/stores/streaming';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { requeteAuMontage } from '../../lib/rechercheContexte';
   import type { AcousticSearchResult } from '../../lib/api';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -751,61 +750,31 @@
   }
 
   /**
-   * Ouvrir une VIGNETTE D'ARTISTE — #3717.
+   * Ouvrir une VIGNETTE D'ARTISTE — #3717, #3825, #1142, #1494.
    *
    * Les trois tuiles d'artiste de ce bandeau (le meilleur résultat, la
    * pochette, le nom) faisaient toutes `q = ar.name` : cliquer un artiste
-   * RELANÇAIT la recherche sur son nom au lieu d'ouvrir sa fiche. Le mot
-   * cherché revenait, les résultats se rafraîchissaient, et l'artiste restait
-   * fermé — un clic qui a l'air cassé plutôt qu'inerte.
+   * RELANÇAIT la recherche sur son nom au lieu d'ouvrir sa fiche (#3717). Puis
+   * l'écran a porté DEUX destinations à la main : la fiche de la Bibliothèque
+   * pour un artiste local (`pendingLibraryArtist` + entrée composée, #1142),
+   * la page de service pour un artiste de service (#3825).
    *
-   * On ne réinvente aucun chemin : c'est le contrat déjà posé par
-   * `AlbumDetailV2.allerArtiste` et `PisteActions.allerArtiste`, consommé par
-   * `LibraryV2` (`$pendingLibraryArtist`) — on POSE la cible, puis on change
-   * de vue.
+   * 🔴 UNE SEULE VUE ARTISTE — #1494. Bertrand, 23/09/2026 : « Écran Search :
+   * quand je clique sur l'artiste, je veux ouvrir la vue artiste !! » — la
+   * page COMMUNE, local comme service. Le tri n'est plus fait ici : c'est
+   * [`ouvrirArtisteDepuis`], le chemin des Favoris, de « Vos tops » et de la
+   * colonne Artiste, qui tranche — et qui pose `vueDeRetour` pour que le
+   * Retour de la page ramène aux résultats (#3824). UNE entrée d'historique
+   * par clic (#1142) : la page commune est une vue, pas un calque dans une
+   * vue, et la grille de la Bibliothèque n'est plus traversée.
    *
-   * Un artiste LOCAL et un artiste de SERVICE ne se désignent pas pareil :
-   * `pendingLibraryArtist` est un identifiant de la table `artists`, un
-   * artiste de service n'en a pas — il a un service et un `source_id`. Deux
-   * cibles, deux dépôts, deux vues. Mais désormais DEUX FICHES : jusqu'à
-   * #3825, l'artiste de service n'avait pas d'écran d'arrivée et le clic
-   * relançait la recherche sur son nom (`q = ar.name`) — un geste qui a l'air
-   * cassé plutôt qu'inerte, exactement ce que #3717 venait de corriger pour
-   * l'artiste local.
+   * Ce qui reste à cet écran : le repli d'un artiste de service SANS
+   * identifiant — un service qu'on ne sait pas interroger n'a pas de fiche à
+   * ouvrir, et affiner la recherche sur son nom est le seul geste honnête.
    */
   function ouvrirArtiste(ar: any) {
-    if (!estLocal(ar)) {
-      // Sans les deux, pas de fiche : le repli d'avant reste le seul geste
-      // honnête. Un service sans identifiant ne s'interroge pas.
-      if (!ar?.source || !ar?.source_id) { q = ar.name; return; }
-      vueDeRetour.set('search');
-      ficheArtisteService.set({ service: ar.source as Source, id: String(ar.source_id), nom: ar.name ?? '' });
-      activeView.set('streamingartist');
-      return;
-    }
-    // 🔴 Le chemin RETOUR, posé en même temps que la cible — #3824. Sans lui
-    // la fiche referme son calque et découvre la grille de la Bibliothèque,
-    // « l'accueil de la bibliothèque » que FabienM décrit. La Recherche est le
-    // seul à savoir que c'est d'elle qu'on part : elle le dit, la fiche le lit.
-    vueDeRetour.set('search');
-    pendingLibraryArtist.set(ar.id);
-    /**
-     * 🔴 UNE entrée d'historique pour UN geste — #1142.
-     *
-     * `activeView.set('library')` empilait l'entrée de la GRILLE, que ce
-     * parcours ne montre jamais : la fiche s'ouvre par-dessus dans la foulée et
-     * empilait la sienne. Deux crans pour un clic, et le premier Précédent
-     * ramenait sur la Bibliothèque au lieu des résultats — mot pour mot le
-     * signalement. `allerAuDetail` écrit l'entrée COMPOSÉE `#library/artiste:42`
-     * et laisse `ArtistesV2` reposer la même clé sans rien empiler de plus.
-     *
-     * Sans clé (artiste sans identifiant de bibliothèque), on retombe sur le
-     * changement de vue nu : mieux vaut l'entrée de la grille qu'une entrée qui
-     * porterait une fiche que personne ne sait rouvrir.
-     */
-    const cle = cleDetailArtiste(ar.id);
-    if (cle) allerAuDetail('library', cle);
-    else activeView.set('library');
+    if (!estLocal(ar) && (!ar?.source || !ar?.source_id)) { q = ar.name; return; }
+    void ouvrirArtisteDepuis(ar, 'search');
   }
 
   /**

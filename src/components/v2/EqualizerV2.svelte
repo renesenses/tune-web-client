@@ -275,6 +275,54 @@
    * choisissait parmi sept courbes figées, jamais la sienne.
    */
   let mesPresets = $state<api.EqProPreset[]>([]);
+
+  /**
+   * QUEL préréglage est en vigueur — Thierry Clémont, 22/09/2026 : « quelle
+   * égalisation est-elle choisie ? aucun moyen de le savoir alors qu'il eût
+   * suffi de la surligner ».
+   *
+   * Rien ne le mémorisait : ni l'écran, ni le serveur, qui ne garde que les
+   * bandes. On le RETROUVE donc en comparant la courbe affichée à chaque
+   * préréglage — la seule façon honnête, et celle qui survit à un
+   * rechargement de page comme à un changement de zone. Dès qu'un curseur
+   * bouge, plus rien ne correspond : la marque s'éteint toute seule, ce qui
+   * est exactement ce qu'on veut dire.
+   */
+  function memeGain(a: number | null | undefined, b: number | null | undefined): boolean {
+    // Un dixième de dB : les courbes voyagent en JSON et repassent par des
+    // arrondis d'affichage ; exiger l'égalité binaire ferait clignoter la
+    // marque sans raison.
+    return Math.abs((a ?? 0) - (b ?? 0)) < 0.05;
+  }
+
+  /** Le préréglage intégré dont la courbe est exactement celle affichée. */
+  const presetActif: string | null = $derived.by(() => {
+    if (sousMode !== 'graphique') return null;
+    // Les sept courbes sont écrites sur la grille à DIX bandes : sur une
+    // autre résolution, la comparaison n'aurait pas de sens.
+    if (bandCount !== 10) return null;
+    if (gainsRight !== null) return null;
+    return PRESETS.find((p) => p.gains.every((g, i) => memeGain(g, gains[i])))?.key ?? null;
+  });
+
+  /** Le préréglage PERSONNEL dont la courbe est celle affichée. */
+  const mienActif: string | null = $derived.by(() => {
+    const courant = sousMode === 'parametrique' ? pBandes : null;
+    for (const p of mesPresets) {
+      const bandes = p.bands ?? [];
+      if (!bandes.length) continue;
+      if (p.eq_type === 'parametric') {
+        if (sousMode !== 'parametrique' || !courant) continue;
+        if (bandes.length !== courant.length) continue;
+        if (bandes.every((b, i) => b.freq === courant[i].freq && memeGain(b.gain, courant[i].gain))) return p.id;
+      } else {
+        if (sousMode !== 'graphique' || gainsRight !== null) continue;
+        if (bandes.length !== BANDS.length) continue;
+        if (bandes.every((b, i) => b.freq === BANDS[i] && memeGain(b.gain, gains[i]))) return p.id;
+      }
+    }
+    return null;
+  });
   async function chargerMesPresets() {
     try { mesPresets = await api.listEqPresets(); } catch { mesPresets = []; }
   }
@@ -395,14 +443,16 @@
     {:else}
       <div class="presets">
         {#each PRESETS as p (p.key)}
-          <button onclick={() => applyPreset(p)}>{$t(p.labelKey as any)}</button>
+          {@const actif = presetActif === p.key}
+          <button class:actif aria-pressed={actif} onclick={() => applyPreset(p)}>{$t(p.labelKey as any)}</button>
         {/each}
       </div>
       <div class="presets mes">
         <span class="mesl">{$t('eq.myPresets' as any)}</span>
         {#each mesPresets as p (p.id)}
+          {@const actif = mienActif === p.id}
           <span class="mien">
-            <button onclick={() => appliquerMonPreset(p)}>{p.name}</button>
+            <button class:actif aria-pressed={actif} onclick={() => appliquerMonPreset(p)}>{p.name}</button>
             <button class="x" onclick={() => supprimerMonPreset(p)}
               title={$t('eq.deletePreset' as any)} aria-label={$t('eq.deletePreset' as any)}>×</button>
           </span>
@@ -533,6 +583,11 @@
   .presets button{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt2); cursor:pointer;
     font:600 12px var(--v2-sans); padding:8px 15px; border-radius:var(--v2-r-pill); transition:.15s}
   .presets button:hover{color:var(--v2-txt); border-color:var(--v2-acc2)}
+  /* Le préréglage EN VIGUEUR. Bordure ET fond teinté : la seule bordure se
+     confond avec le survol, et un écran se lit d'un coup d'œil, sans
+     promener la souris. */
+  .presets button.actif{color:var(--v2-acc1); border-color:var(--v2-acc1);
+    background:color-mix(in srgb, var(--v2-acc1) 14%, transparent)}
 
   .ctrls{display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:0 0 18px}
   .cl{font:10px var(--v2-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--v2-txt3)}
