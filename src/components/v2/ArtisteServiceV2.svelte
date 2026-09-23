@@ -1,6 +1,29 @@
 <script lang="ts">
   /**
-   * LA FICHE D'UN ARTISTE DE STREAMING — #3825, socle de #2568.
+   * LA FICHE ARTISTE ÉLUE — #3825, socle de #2568, puis #1232.
+   *
+   * ## Ce qu'elle accepte désormais — #1232, étape 1
+   *
+   * Arbitrage de FabienM du 18/09/2026, repris par Bertrand le 23/09 : « une
+   * seule page quel que soit l'endroit du clic, la page de streaming servant
+   * de référence ». Le relevé de #1478 a montré pourquoi il n'était PAS
+   * appliqué — pas « mal » appliqué, pas appliqué du tout : aucune des dix
+   * origines de clic ne choisit une fiche, toutes choisissent d'après la
+   * NATURE de l'objet, et la fiche élue ne savait montrer qu'un artiste
+   * distant.
+   *
+   * Elle en sait donc deux maintenant, départagés par `ficheArtisteService` :
+   *   • `service` renseigné → l'artiste de ce service, les trois routes ;
+   *   • `service: null`     → un artiste de la BIBLIOTHÈQUE, `id` portant son
+   *     identifiant local rendu en texte.
+   *
+   * 🔴 RIEN N'EST ENCORE ROUTÉ VERS LA SECONDE ENTRÉE, et c'est voulu : la
+   * convergence du routage est l'étape 3, la réduction d'`ArtistesV2` à sa
+   * liste l'étape 4. Basculer le routage avant que cette fiche sache tout
+   * montrer ferait PERDRE des fonctions au testeur — c'est toute la raison du
+   * découpage.
+   *
+   * ## La fiche d'un artiste de streaming — #3825, socle de #2568
    *
    * 🔴 Cet écran n'existait pas. C'est tout le défaut : `SearchV2.ouvrirArtiste`
    * se terminait par `if (!estLocal(ar)) { q = ar.name; return; }` — cliquer un
@@ -29,6 +52,9 @@
   import { ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
+  import type { ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
+  import { chargerTitresPhares } from '../../lib/titresPharesArtiste';
+  import { initialesArtiste } from '../../lib/initialesArtiste';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
@@ -42,6 +68,15 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
 
   const cible = $derived($ficheArtisteService);
+  /**
+   * LA FICHE EST OUVERTE SUR UN ARTISTE DE LA BIBLIOTHÈQUE — #1232, étape 1.
+   *
+   * `service: null` est le discriminant, et non « `id` ressemble à un
+   * nombre » : un service rend des identifiants numériques (`q-42` chez Qobuz,
+   * mais `12345` chez d'autres), et les confondre ouvrirait un artiste local
+   * au hasard. C'est la même garde que celle de `artisteDePiste` (#1193).
+   */
+  const estLocal = $derived(cible != null && cible.service == null);
 
   let artiste = $state<Artist | null>(null);
   let titres = $state<Track[]>([]);
@@ -83,10 +118,26 @@
   let artisteLocal = $state<Artist | null>(null);
   let autresServices = $state<AlbumsDeService[]>([]);
   let complementsEnCharge = $state(false);
+  /**
+   * La biographie affichée. Un artiste de SERVICE la porte sur lui (Qobuz la
+   * publie) ; un artiste LOCAL a d'abord celle qu'on a éditée dans la
+   * bibliothèque, et à défaut celle que `GET /library/artists/{id}/bio` sait
+   * rendre — même règle et même ordre que la fiche de bibliothèque (#1232).
+   */
+  let bio = $state<string | null>(null);
+  /**
+   * Le compte de l'en-tête : les vignettes de la DISCOGRAPHIE COMMUNE, et non
+   * les seuls albums de la bibliothèque — « 1 albums » pour a-ha, 44 à
+   * l'écran. Repris tel quel de la fiche de bibliothèque, qui l'avait mesuré.
+   */
+  let comptesFiche = $state<ComptesArtistesSources | null>(null);
   const sectionsServices = $derived<AlbumsDeService[]>(
     // `artistId` : l'identifiant OUVERT chez ce service — ce qui départage ses
     // albums de ceux d'autres artistes que le service range sous lui (#4651).
-    cible && albums.length ? [{ service: cible.service, albums, artistId: String(cible.id) }, ...autresServices] : autresServices,
+    // `cible.service` non nul : la première section est celle du service
+    // d'ORIGINE, et un artiste local n'en a pas — sa grille est `locaux` plus
+    // les services résolus par le nom (#1232, étape 1).
+    cible?.service && albums.length ? [{ service: cible.service, albums, artistId: String(cible.id) }, ...autresServices] : autresServices,
   );
   /** L'album ouvert, et d'où il vient : `null` = la bibliothèque. */
   let albumOuvert = $state<Album | null>(null);
@@ -135,6 +186,7 @@
     titres = [];
     titresEnEchec = false;
     albums = [];
+    bio = null;
     // `allSettled` : un service qui refuse les titres phares ne doit pas
     // emporter les albums avec lui. Une fiche à moitié pleine vaut mieux
     // qu'un écran vide — c'est la règle du reste de l'application.
@@ -177,15 +229,88 @@
     if (al.status === 'fulfilled') {
       albums = (al.value ?? []).map((x) => ({ ...x, source: (x.source ?? service) as Album['source'] }));
     }
+    bio = artiste?.bio ?? null;
     chargement = false;
     void chargerComplements(mien, service, artiste?.name || cible?.nom || '');
   }
 
-  const plier = (x: string | null | undefined) => cleEdition(x);
-
-  async function chargerComplements(mien: number, service: Source, nomArtiste: string) {
+  /**
+   * L'ENTRÉE « ARTISTE DE LA BIBLIOTHÈQUE » — #1232, étape 1.
+   *
+   * Le miroir exact de `charger` : là où un service rend l'artiste, ses albums
+   * et ses titres phares, la bibliothèque rend l'artiste et ses albums —
+   * `locaux`, pas `albums`, qui est la grille du service d'origine et reste
+   * vide ici. Les titres phares, eux, n'existent PAS en bibliothèque : ce
+   * classement vient des services, et `chargerComplements` va les chercher
+   * chez celui qui en rend, comme le fait déjà la fiche de bibliothèque
+   * (`chargerTitresPhares`, étape 2 de #4330). Rien de nouveau n'est interrogé.
+   *
+   * 🔴 `getArtist` et non une recherche par le nom : cette fiche est ouverte
+   * sur un IDENTIFIANT, et chercher « M » dans la table qui porte « -M- » est
+   * exactement l'échec que la prop `ouvrirId` d'`ArtistesV2` avait corrigé.
+   */
+  async function chargerLocal(id: number) {
+    const mien = ++jeton;
+    chargement = true;
+    artiste = null;
+    titres = [];
+    titresEnEchec = false;
+    albums = [];
+    bio = null;
     locaux = [];
     artisteLocal = null;
+    autresServices = [];
+    comptesFiche = null;
+    const [a, al] = await Promise.allSettled([
+      api.getArtist(id),
+      api.getArtistAlbums(id),
+    ]);
+    if (mien !== jeton) return;
+    if (a.status === 'fulfilled' && a.value) {
+      artiste = a.value;
+      // L'artiste local EST celui de la fiche : les gestes conditionnés par
+      // `artisteLocal` (« Toutes les pistes », « Lecture aléatoire ») ont donc
+      // une cible sans qu'aucune résolution par le nom soit nécessaire.
+      artisteLocal = a.value;
+    }
+    if (al.status === 'fulfilled') locaux = (al.value ?? []) as Album[];
+    chargement = false;
+    void chargerBioLocale(mien, id, artiste?.bio ?? null);
+    void chargerComplements(mien, null, artiste?.name || cible?.nom || '', true);
+  }
+
+  /**
+   * La biographie d'un artiste local : celle qu'on a éditée d'abord, celle que
+   * le serveur sait rendre ensuite. Même ordre que la fiche de bibliothèque —
+   * une bio éditée ne doit jamais être recouverte par une bio rapportée.
+   */
+  async function chargerBioLocale(mien: number, id: number, bioEditee: string | null) {
+    const editee = bioEditee?.trim() || null;
+    bio = editee;
+    if (editee) return;
+    try {
+      const r = await api.getArtistBio(id);
+      if (mien === jeton) bio = r?.bio?.trim() || null;
+    } catch {
+      /* pas de biographie : le bloc ne s'affiche pas */
+    }
+  }
+
+  const plier = (x: string | null | undefined) => cleEdition(x);
+
+  /**
+   * `localDejaCharge` — l'entrée locale a DÉJÀ l'artiste et ses albums.
+   *
+   * 🔴 Sans ce drapeau, la remise à zéro en tête de fonction effacerait ce que
+   * `chargerLocal` vient de poser, et la recherche par le nom irait rechercher
+   * un artiste qu'on tient par son identifiant — avec le risque, pour un nom
+   * que `searchLibrary` ne rend pas dans ses vingt premiers, de le perdre.
+   */
+  async function chargerComplements(mien: number, service: Source | null, nomArtiste: string, localDejaCharge = false) {
+    if (!localDejaCharge) {
+      locaux = [];
+      artisteLocal = null;
+    }
     autresServices = [];
     if (!nomArtiste.trim()) return;
     complementsEnCharge = true;
@@ -195,6 +320,8 @@
     const autres = servicesInterrogeables(statuts).filter((s) => s !== service);
     const [loc, svc] = await Promise.allSettled([
       (async () => {
+        // Déjà tenu par l'identifiant : on ne le recherche pas par le nom.
+        if (localDejaCharge) return { artiste: artisteLocal, albums: locaux };
         const trouve = ((await api.searchLibrary(nomArtiste, 20))?.artists ?? [])
           .find((a) => a.id != null && plier(a.name) === plier(nomArtiste));
         // L'artiste EN PLUS de ses albums : voir `artisteLocal` (#1356).
@@ -207,12 +334,23 @@
       }),
     ]);
     if (mien !== jeton) return;
-    if (loc.status === 'fulfilled') {
+    if (!localDejaCharge && loc.status === 'fulfilled') {
       locaux = loc.value.albums;
       artisteLocal = loc.value.artiste;
     }
     if (svc.status === 'fulfilled') autresServices = svc.value;
     complementsEnCharge = false;
+    // #1232, étape 1 — LES TITRES PHARES D'UN ARTISTE LOCAL. Une bibliothèque
+    // ne sait pas lesquels de ses titres sont « phares » : le classement vient
+    // des services, dont l'identifiant vient d'être résolu pour la
+    // discographie. Exactement ce que fait la fiche de bibliothèque.
+    // Un artiste de service, lui, a déjà les siens par `top-tracks` : on ne
+    // touche pas à sa branche.
+    if (localDejaCharge && svc.status === 'fulfilled') {
+      const phares = await chargerTitresPhares(svc.value, (s, id) => api.getStreamingArtistTopTracks(s, id));
+      if (mien !== jeton) return;
+      titres = phares;
+    }
   }
 
   function ouvrirExemplaire(ex: Exemplaire) {
@@ -235,7 +373,16 @@
 
   $effect(() => {
     const c = cible;
-    if (c) void charger(c.service, c.id);
+    if (!c) return;
+    // #1232, étape 1 — deux entrées, un seul aiguillage, et il est ICI.
+    if (c.service == null) {
+      const n = Number(c.id);
+      // Un identifiant local qui n'est pas un nombre n'est pas une route : on
+      // ne fabrique pas d'appel mort.
+      if (Number.isFinite(n)) void chargerLocal(n);
+      return;
+    }
+    void charger(c.service, c.id);
   });
 
   onMount(() => () => { jeton++; });
@@ -245,10 +392,14 @@
 
   function retour() {
     const ou = $vueDeRetour;
+    // 🔴 Lu AVANT de vider le magasin : `estLocal` en dérive, et le lire après
+    // rendrait toujours faux — le repli d'un artiste local retomberait sur la
+    // Recherche, un écran d'où il ne vient pas (#1232, étape 1).
+    const local = estLocal;
     albumOuvert = null;
     ficheArtisteService.set(null);
     vueDeRetour.set(null);
-    activeView.set(ou ?? 'search');
+    activeView.set(ou ?? (local ? 'library' : 'search'));
   }
 
   /**
@@ -350,12 +501,19 @@
 {:else}
 <section class="v2-fas tune-v2">
   <!-- L'en-tête est le MÊME composant que celui de la fiche de bibliothèque
-       (#1356) : c'est la forme d'ici qui a été retenue, elle ne bouge pas. -->
+       (#1356) : c'est la forme d'ici qui a été retenue, elle ne bouge pas.
+
+       #1232, étape 1 — trois détails suivent la NATURE de l'artiste :
+       la provenance affichée, les initiales de repli (deux pour un artiste
+       local, comme la fiche de bibliothèque depuis le 02/09 ; la fiche de
+       service garde la sienne, inchangée) et le compte d'albums, qui n'existe
+       que côté bibliothèque. -->
   <EnTeteArtiste
     {nom}
-    provenance={cible?.service ?? null}
+    provenance={estLocal ? $tr('library.title' as any) : (cible?.service ?? null)}
     imagePath={artiste?.image_path ?? null}
-    initiales={nom.slice(0, 1)}
+    initiales={estLocal ? initialesArtiste(nom) : nom.slice(0, 1)}
+    sousTitre={estLocal ? `${comptesFiche?.total ?? locaux.length} ${$tr('v2.art.albums' as any)}` : null}
     onRetour={retour}>
     {#snippet actions()}
       {#if titres.length}
@@ -396,12 +554,13 @@
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
-    <BioEtTitresPhares bio={artiste?.bio ?? null} titres={titres} cle={cible?.id} />
+    <BioEtTitresPhares bio={bio} titres={titres} cle={cible?.id} />
 
     {#if albums.length || locaux.length || autresServices.length || complementsEnCharge}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
       <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge}
         nomArtiste={artiste?.name || cible?.nom || null}
+        onComptesProvenance={(c) => (comptesFiche = c)}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   {/if}
