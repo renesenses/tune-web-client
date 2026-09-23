@@ -61,7 +61,7 @@
   $effect(() => {
     api.getPodcastSubscriptions()
       .then((r) => { subs = r ?? []; })
-      .catch(() => { error = 'Abonnements indisponibles.'; })
+      .catch(() => { error = $t('v2.pod.subsUnavailable' as any); })
       .finally(() => { subsLoading = false; });
   });
 
@@ -508,7 +508,7 @@
         duration_ms: ep.duration_ms,
       });
     } catch {
-      error = 'Lecture impossible.';
+      error = $t('v2.stream.playFailed' as any);
     } finally {
       setTimeout(() => { playingUrl = null; }, 2000);
     }
@@ -829,7 +829,7 @@
       -->
       {#snippet failed(erreur: unknown, reessayer: () => void)}
         <div class="state err-inline">
-          <span>Cet écran a échoué : {(erreur as Error)?.message ?? String(erreur)}</span>
+          <span>{$t('v2.pod.screenFailed' as any).replace('{msg}', (erreur as Error)?.message ?? String(erreur))}</span>
           <button class="relancer" onclick={reessayer}>{$t('v2.pod.retry' as any)}</button>
         </div>
       {/snippet}

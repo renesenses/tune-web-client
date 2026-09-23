@@ -629,7 +629,7 @@
       }
       doubtful = tous;
     } catch {
-      error = 'Liste indisponible.';
+      error = $t('v2.meta.listUnavailable' as any);
     }
     dLoading = false;
   }
@@ -720,7 +720,7 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                   <span class="new">{p.proposed ?? '—'}</span>
                 </div>
-                <div class="src">{$formatNombre(p.servers_count)} bibliothèque{p.servers_count > 1 ? 's' : ''} portent cette valeur</div>
+                <div class="src">{$t((p.servers_count > 1 ? 'v2.meta.libsWithValueMany' : 'v2.meta.libsWithValueOne') as any).replace('{n}', $formatNombre(p.servers_count))}</div>
               </div>
               <div class="pa">
                 <button class="go" disabled={busy === p.id} onclick={() => decide(p, true)}>{$t('v2.meta.accept' as any)}</button>

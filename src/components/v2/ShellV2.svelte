@@ -500,7 +500,7 @@
       nomRaccourci = '';
       poseRaccourci = false;
     } catch (e: any) {
-      notifications.error(e?.message ?? 'Raccourci impossible.');
+      notifications.error(e?.message ?? $t('v2.nav.shortcutFailed' as any));
     }
     pose = false;
   }

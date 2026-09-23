@@ -2617,7 +2617,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       {#if tab}
         <div class="panehead">
           {#if hiddenCount > 0}
-            <span class="masked">{hiddenCount} section{hiddenCount > 1 ? 's' : ''} de plus à un niveau supérieur</span>
+            <span class="masked">{$t((hiddenCount > 1 ? 'v2.set.hiddenSectionsMany' : 'v2.set.hiddenSectionsOne') as any).replace('{n}', String(hiddenCount))}</span>
           {/if}
           {#if !atLeast(level, 'expert')}
             <span class="masked">{$t('settings.levelsOpenMoreTabs' as any)}</span>
@@ -2951,14 +2951,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               {#if enrichRunning && enrichTotal > 0}
                 <div class="bar2"><span style="width:{Math.min(100, Math.round((enrichDone / enrichTotal) * 100))}%"></span></div>
-                <div class="hint">{$formatNombre(enrichDone)} sur {$formatNombre(enrichTotal)}</div>
+                <div class="hint">{$t('v2.set.progressOf' as any).replace('{n}', $formatNombre(enrichDone)).replace('{total}', $formatNombre(enrichTotal))}</div>
               {/if}
 
               <div class="row">
                 <div class="lbl">
                   <span>{$t('v2.lbl.artistPortraits' as any)}</span>
                   <span class="hint">
-                    {#if coversMissing != null}{$formatNombre(coversMissing)} artistes sans portrait.{:else}Recherche les portraits manquants.{/if}
+                    {#if coversMissing != null}{$t('v2.set.artistsWithoutPortrait' as any).replace('{n}', $formatNombre(coversMissing))}{:else}{$t('v2.set.searchingPortraits' as any)}{/if}
                   </span>
                 </div>
                 <div class="inline">
@@ -3433,7 +3433,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'spotify'}
               {#if spc && spc.available === false}
                 <p class="hint">
-                  Le récepteur Spotify Connect n'est pas disponible sur ce serveur.
+                  {$t('v2.set.spotifyUnavailable' as any)}
                   {#if spc.reason}<br />{spc.reason}{/if}
                 </p>
               {:else}
@@ -3443,7 +3443,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="row">
                   <div class="lbl">
                     <span>{$t('settings.enableReceiver' as any)}</span>
-                    {#if spc?.active}<span class="hint">Actif{#if spc.device_name} sous le nom « {spc.device_name} »{/if}.</span>{/if}
+                    {#if spc?.active}<span class="hint">{#if spc.device_name}{$t('v2.set.receiverActiveAs' as any).replace('{nom}', spc.device_name)}{:else}{$t('v2.set.receiverActive' as any)}{/if}</span>{/if}
                   </div>
                   <label class="sw">
                     <input type="checkbox" checked={!!spc?.enabled} disabled={spcBusy}
@@ -3822,11 +3822,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               {#if scanReport}
                 <div class="okbox">
-                  Dernière passe — {$formatNombre(scanReport.inserted ?? 0)} ajoutés,
-                  {$formatNombre(scanReport.updated ?? 0)} mis à jour,
-                  {$formatNombre(scanReport.skipped ?? 0)} ignorés.
+                  {$t('v2.set.scanReport' as any)
+                    .replace('{a}', $formatNombre(scanReport.inserted ?? 0))
+                    .replace('{m}', $formatNombre(scanReport.updated ?? 0))
+                    .replace('{i}', $formatNombre(scanReport.skipped ?? 0))}
                   {#if scanReport.failed_paths?.length}
-                    <b>{scanReport.failed_paths.length} chemin(s) en échec.</b>
+                    <b>{$t('v2.set.scanFailedPaths' as any).replace('{n}', String(scanReport.failed_paths.length))}</b>
                   {/if}
                 </div>
                 <!--
@@ -3976,9 +3977,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <!-- Le client web est embarque dans la release du serveur :
                      deux numeros differents = un vieux client est servi. -->
                 <div class="warnbox">
-                  Le client affiché ({CLIENT_VERSION}) ne correspond pas au serveur ({serverVersion}).
-                  Un ancien client est servi : videz le cache du navigateur, et vérifiez que la
-                  release a bien reconstruit le client web.
+                  {$t('v2.set.versionMismatch' as any)
+                    .replace('{client}', String(CLIENT_VERSION))
+                    .replace('{serveur}', String(serverVersion ?? ''))}
                 </div>
               {/if}
               {#if updateInfo?.update_available}
@@ -4718,8 +4719,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                 {:else}
                   <p class="hint">
-                    {#if !netLoaded}Recherche des appareils…
-                    {:else if netError}Liste indisponible — serveur injoignable.
+                    {#if !netLoaded}{$t('v2.set.searchingDevices' as any)}
+                    {:else if netError}{$t('v2.set.devicesUnavailable' as any)}
                     {:else}{$t('settings.noNetworkDevices' as any)}{/if}
                   </p>
                 {/each}
