@@ -85,6 +85,8 @@
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
+  import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
+  import { cibleRaccourciArtiste } from '../../lib/raccourciArtiste';
 
   const cible = $derived($ficheArtisteService);
   /**
@@ -512,6 +514,24 @@
 
   /** Le nom affiché tant que la fiche charge : celui que l'appelant portait. */
   const nom = $derived(artiste?.name || cible?.nom || '');
+
+  /**
+   * LA PAGE SE DÉCLARE COMME CIBLE DE RACCOURCI — #1501.
+   *
+   * Même mécanisme générique que les listes de lecture, les collections ou les
+   * étiquettes (`setShortcutTarget`) : sans lui, un raccourci posé ici ne
+   * retenait que la vue, et le rouvrir montait cette page sans cible. La
+   * cible suit l'artiste affiché (le nom arrive après le chargement, et il
+   * sert de libellé), et elle est retirée au démontage : un raccourci posé
+   * depuis l'écran suivant ne doit pas viser un artiste qu'on a quitté.
+   */
+  $effect(() => {
+    const c = cible;
+    const libelle = nom;
+    if (!c) { clearShortcutTarget(); return; }
+    setShortcutTarget(cibleRaccourciArtiste(c, libelle));
+  });
+  $effect(() => () => clearShortcutTarget());
 
   function retour() {
     const ou = $vueDeRetour;

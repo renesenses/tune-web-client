@@ -3,6 +3,7 @@ import { activeView, type View } from './navigation';
 import { libraryTab, libraryFolderScope } from './library';
 import { activeStreamingService, streamingGenreBreadcrumb, pendingStreamingAlbum, pendingStreamingArtist } from './streaming';
 import * as api from '../api';
+import { ouvrirArtisteDepuis } from '../ouvrirArtisteDepuis';
 
 export interface Shortcut {
   id: string;
@@ -266,6 +267,22 @@ function targetFor(shortcut: Shortcut): ShortcutTarget | null {
 }
 
 export function navigateToShortcut(shortcut: Shortcut) {
+  // #1501 — UN RACCOURCI SUR UN ARTISTE rouvre la PAGE COMMUNE, par le chemin
+  // UNIQUE de #1494 : c'est `ouvrirArtisteDepuis` qui pose la cible ET la vue,
+  // pour un artiste local comme pour un artiste de service. Poser la vue seule
+  // monterait la page sans cible — vide. Voir `lib/raccourciArtiste`.
+  //
+  // Le Retour de la page ramène d'où l'on a cliqué le raccourci, sauf si l'on
+  // était déjà sur une page d'artiste : y revenir sans cible serait la même
+  // page vide.
+  if (shortcut.view === 'streamingartist') {
+    const cible = targetFor(shortcut);
+    if (cible?.restore) {
+      const depuis = get(activeView);
+      void ouvrirArtisteDepuis(cible.restore, depuis === 'streamingartist' ? 'home' : depuis);
+      return;
+    }
+  }
   if (shortcut.view === 'library') {
     if (shortcut.state?.tab) libraryTab.set(shortcut.state.tab);
     // 🔴 Reposée INCONDITIONNELLEMENT, `null` compris : la portée est un

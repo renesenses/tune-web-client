@@ -49,7 +49,7 @@
   // lu quand la Bibliothèque était déjà montée. On prend sa version.
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
-  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, type View } from '../../lib/stores/navigation';
+  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryYear, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { melangee, rangAleatoire, graineAleatoire } from '../../lib/shuffle';
   import { optionsAleatoire } from '../../lib/porteeAleatoire';
@@ -1347,19 +1347,14 @@
   });
   const pistesFiltrees = $derived(pistesRecherche.filter(t => dansSource(t, fProvenance)));
   const visibleTracks = $derived(pistesFiltrees.slice(0, 500));
+  // #1501 — l'onglet Artistes n'a plus de fiche : ce sont TOUJOURS les comptes
+  // de la grille. Ceux d'une discographie commune (#4330) se lisent désormais
+  // sur la page commune, qui porte son propre compte dans son en-tête.
   let comptesArtistes = $state<ComptesArtistesSources>({ comptes: new Map(), total: 0 });
-  /**
-   * Fiche artiste OUVERTE : le menu « Source » compte SA discographie commune,
-   * services de streaming compris — #4330. Bertrand, .18, 17/09/2026 : « Source
-   * affiche des chiffres faux et pas les services de streaming ». `null` quand
-   * aucune fiche n'est ouverte : on retombe sur la grille des artistes.
-   */
-  let comptesFiche = $state<ComptesArtistesSources | null>(null);
-  const comptesOngletArtistes = $derived(comptesFiche ?? comptesArtistes);
   const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
   const comptesPistes = $derived(compterSources(pistesRecherche.map(t => [provenanceDe(t)])));
   const provenances = $derived.by(() => {
-    const counts = new Map(tab === 'artists' ? comptesOngletArtistes.comptes
+    const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
       : tab === 'tracks' ? comptesPistes : comptesAlbums);
     if (tab !== 'artists' && tab !== 'tracks') {
       counts.set('upnp', [...counts].reduce((n, [s, c]) => n + (s === 'upnp' || s.startsWith('upnp:') ? c : 0), 0));
@@ -1374,10 +1369,9 @@
         : libelleProvenance(a).localeCompare(libelleProvenance(b)));
   });
   // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
-  const matchCountToutesSources = $derived(tab === 'artists' ? comptesOngletArtistes.total
+  const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
     : tab === 'tracks' ? pistesRecherche.length : comptesAlbums.reduce((n, [, c]) => n + c, 0));
-  // Une fiche ouverte a SES comptes, qui ne dépendent pas des pistes chargées.
-  const comptesSourcesEnCharge = $derived((tab === 'tracks' || (tab === 'artists' && comptesFiche == null)) && (tracksLoading || tracksError != null));
+  const comptesSourcesEnCharge = $derived((tab === 'tracks' || tab === 'artists') && (tracksLoading || tracksError != null));
   const appartenancesArtistes = $derived(sourcesParArtiste(src, tracks));
 
   // La portée dossier inclut aussi les artistes de pistes de compilation.
@@ -1440,13 +1434,12 @@
    * écriture : une entrée empilée par rendu, la pile noyée, le Précédent
    * inutilisable.
    *
-   * ⚠️ CE QUI N'EST PAS TRAITÉ ICI, et pourquoi. `detailOuvert` ne porte
-   * QU'UNE clé, et l'onglet Artistes y range la sienne (`artiste:12`) pour son
-   * propre calque (`ArtistesV2`). Tant que cet onglet est à l'écran, on ne
-   * touche pas au magasin : l'écraser refermerait la fiche artiste posée
-   * dessous. C'est la dette des calques imbriqués, nommée telle quelle dans
-   * `calquesAlbumEmpilent980.test.ts`, et elle reste entière — la régler
-   * demande une PILE dans `historiqueCoquille`, pas trois lignes ici.
+   * 🟢 LA DETTE DES CALQUES IMBRIQUÉS EST ÉTEINTE — #1501. `detailOuvert` ne
+   * porte qu'une clé, et l'onglet Artistes y rangeait la sienne (`artiste:12`)
+   * pour son propre calque : tant qu'il était à l'écran, l'album ouvert
+   * par-dessus n'empilait rien, faute de PILE dans `historiqueCoquille`. La
+   * fiche d'artiste est désormais une VUE (la page commune), plus un calque
+   * dans celle-ci : cet écran est le SEUL à écrire dans le magasin.
    */
   let cleCalqueEmpilee: string | null = null;
 
@@ -1456,7 +1449,7 @@
       opened = a;
       // On pose la CLÉ, jamais l'objet : `history.state` refuse les proxies
       // Svelte (en-tête de `lib/historiqueCoquille.ts`).
-      const cle = tab === 'artists' ? null : cleDetailAlbum(a);
+      const cle = cleDetailAlbum(a);
       cleCalqueEmpilee = cle;
       if (cle) ouvrirDetail(cle);
     });
@@ -1529,7 +1522,7 @@
    * le cas qu'on corrige, puisque le défaut est précisément qu'on ne remonte
    * pas.
    *
-   * ⚠️ Déclaré AVANT les trois effets `pendingLibrary*`. Au montage, les
+   * ⚠️ Déclaré AVANT les effets `pendingLibrary*`. Au montage, les
    * effets d'un composant tournent dans l'ordre de DÉCLARATION : placé après,
    * celui-ci refermerait la fiche que « Aller à l'album » vient d'ouvrir.
    */
@@ -1555,45 +1548,10 @@
    * bibliothèque encore en cours de chargement. On le demande alors au
    * serveur plutôt que d'abandonner en silence.
    */
-  /**
-   * L'ARTISTE demandé de l'extérieur — « Aller à l'artiste » du menu « … »
-   * d'une piste (Bertrand, 07/09/2026).
-   *
-   * 🔴 DEUX gestes, pas un : basculer sur l'onglet Artistes ne suffit pas, il
-   * faut encore OUVRIR la fiche. C'est la moitié qu'on oublie — poser un
-   * magasin que personne ne lit est le défaut le plus fréquent de ce client.
-   *
-   * L'identifiant est consommé ICI puis passé à `ArtistesV2` en propriété :
-   * deux consommateurs d'un même dépôt se le voleraient selon l'ordre de
-   * montage, et l'onglet n'est monté que quand on l'a choisi.
-   *
-   * 🔴 `$pendingLibraryArtist`, PAS `get(pendingLibraryArtist)` — #3708.
-   *
-   * `get()` lit la valeur et se désabonne aussitôt : sous les runes il
-   * n'inscrit AUCUNE dépendance, et l'effet ne tournait donc qu'au montage.
-   * Mesuré le 09/09/2026 avec un composant sonde (un `$effect` lisant
-   * `get(store)`, journal après `store.set(42)` : `[null]` — une seule
-   * passe). Cela suffisait tant que la cible n'était posée que depuis une
-   * AUTRE vue : `ShellV2` monte `{#if $activeView === 'library'}<LibraryV2/>`,
-   * donc changer de vue remontait l'écran et rejouait l'effet. Depuis la fiche
-   * d'album, on est DÉJÀ dans la Bibliothèque : rien n'était remonté, et poser
-   * le magasin n'aurait rien fait à l'écran.
-   *
-   * L'effet écrit ce qu'il lit (`set(null)`), ce qui le rejoue une fois : la
-   * seconde passe sort sur `id == null` sans rien écraser.
-   */
-  let artisteADemande = $state<number | null>(null);
-  $effect(() => {
-    const id = $pendingLibraryArtist;
-    if (id == null) return;
-    pendingLibraryArtist.set(null);
-    artisteADemande = id;
-    tabChoisi = 'artists';
-    // La fiche d'album est un CALQUE par-dessus la grille : la laisser
-    // ouverte cacherait l'onglet Artistes qu'on vient d'ouvrir. Fermeture à
-    // la main : l'entrée courante est réécrite, pas dépilée (#1121).
-    refermerCalqueAlbumSansReculer();
-  });
+  // #1501 — plus d'ARTISTE demandé de l'extérieur. « Aller à l'artiste »
+  // (menu « … » d'une piste, Lecture en cours, fiche d'album) ouvre la page
+  // commune par `ouvrirArtisteDepuis` (#1494) : la Bibliothèque n'a plus de
+  // fiche à ouvrir, et `pendingLibraryArtist` n'a plus de lecteur.
 
   /**
    * L'ALBUM demandé de l'extérieur — jumeau exact de l'effet ci-dessus.
@@ -2165,8 +2123,7 @@
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
-        sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} onComptesFiche={(c) => (comptesFiche = c)}
-        ouvrirId={artisteADemande} onOuvert={() => (artisteADemande = null)} />
+        sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
     {:else if tab !== 'tracks' && sorted.length === 0}

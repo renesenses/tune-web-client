@@ -13,16 +13,25 @@
 // `activeView`, `LibraryV2:867` le consomme. « Écrit mais pas branché », du
 // côté de l'ÉMETTEUR.
 //
+// 🟢 Depuis #1489 et #1501, la cible n'est plus `pendingLibraryArtist` mais la
+// PAGE COMMUNE : le clic passe par `ouvrirArtisteDepuis` (#1494), qui pose
+// `ficheArtisteService` (`service: null`, l'identifiant en texte) et la vue
+// `streamingartist`. Le contrat gardé ici est le même — le nom est un lien, il
+// MÈNE quelque part, et sans identifiant il reste du texte — la destination a
+// changé.
+//
 // 🔴 CES TÉMOINS CLIQUENT, ILS NE LISENT PAS. Un test qui chercherait
-// « pendingLibraryArtist » dans le source de la fiche resterait vert si le
+// « ouvrirArtisteDepuis » dans le source de la fiche resterait vert si le
 // nom redevenait un `<div>` — et vert aussi si le magasin était posé sans que
 // personne le consomme, ce qui est exactement le défaut d'à côté.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import AlbumDetailV2 from '../../components/v2/AlbumDetailV2.svelte';
-import LibraryV2 from '../../components/v2/LibraryV2.svelte';
 import { activeView, pendingLibraryArtist } from '../stores/navigation';
+import { ficheArtisteService } from '../stores/streaming';
 import { albums as albumsStore } from '../stores/library';
 import type { Album } from '../types';
 
@@ -78,6 +87,7 @@ let monte: Record<string, unknown> | null = null;
 beforeEach(() => {
   activeView.set('home');
   pendingLibraryArtist.set(null);
+  ficheArtisteService.set(null);
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => {
@@ -107,6 +117,7 @@ afterEach(() => {
   hote = null;
   activeView.set('home');
   pendingLibraryArtist.set(null);
+  ficheArtisteService.set(null);
   albumsStore.set([]);
   vi.unstubAllGlobals();
 });
@@ -139,16 +150,21 @@ describe('#3708 — le nom de l’artiste MÈNE à sa fiche', () => {
     expect(nom!.tabIndex, 'le nom d’artiste est hors du parcours de tabulation').toBeGreaterThanOrEqual(0);
   });
 
-  it('le clic POSE la cible et change de vue — le contrat de PisteActions', async () => {
+  it('le clic POSE la cible et change de vue — la page commune, comme PisteActions (#1494)', async () => {
     const el = await poserFiche(ALBUM);
     (nomArtiste(el) as HTMLElement).click();
     flushSync();
 
+    // La forme de #1485 : un artiste de la BIBLIOTHÈQUE, `service: null`,
+    // l'identifiant en texte — celle que `ShellV2` monte sous `streamingartist`.
     expect(
-      get(pendingLibraryArtist),
-      'la cible n’a pas été posée : la Bibliothèque n’a rien à ouvrir',
-    ).toBe(994);
-    expect(get(activeView), 'on ne va pas à la Bibliothèque').toBe('library');
+      get(ficheArtisteService),
+      'la cible n’a pas été posée : la page commune n’a rien à ouvrir',
+    ).toMatchObject({ service: null, id: '994' });
+    expect(get(activeView), 'on ne va pas à la page commune').toBe('streamingartist');
+    // Et JAMAIS la cible de l'ancienne fiche (#1501) : deux écrans se
+    // disputeraient le clic.
+    expect(get(pendingLibraryArtist), 'la bifurcation est recopiée vers la Bibliothèque').toBeNull();
   });
 
   it('il REFERME la fiche — sinon l’onglet Artistes s’ouvre derrière un calque', async () => {
@@ -175,52 +191,30 @@ describe('#3708 — le nom de l’artiste MÈNE à sa fiche', () => {
 
 // ── L'autre moitié : le CONSOMMATEUR ───────────────────────────────────────
 //
-// 🔴 Poser le magasin ne suffit pas. `LibraryV2` le consommait dans un
-// `$effect` qui lit `get(pendingLibraryArtist)` : `get()` se désabonne
-// aussitôt et n'inscrit aucune dépendance sous les runes — l'effet ne tournait
-// qu'AU MONTAGE. Cela marchait depuis `NowPlaying` (on changeait de vue, donc
-// `ShellV2` remontait l'écran) et PAS depuis la fiche d'album, où l'on est
-// déjà dans la Bibliothèque. Ce témoin monte la Bibliothèque, PUIS pose la
-// cible : aucun remontage.
-describe('#3708 — la Bibliothèque DÉJÀ montée honore la cible', () => {
-  async function poserBibliotheque(): Promise<HTMLDivElement> {
-    activeView.set('library');
-    albumsStore.set([ALBUM]);
-    hote = document.createElement('div');
-    document.body.appendChild(hote);
-    monte = mount(LibraryV2, { target: hote, props: {} as any });
-    for (let i = 0; i < 8; i++) await respirer();
-    flushSync();
-    return hote;
-  }
+// 🔴 Poser le magasin ne suffit pas. `LibraryV2` consommait
+// `pendingLibraryArtist` dans un `$effect` qui lisait `get(store)` — et `get()`
+// se désabonne aussitôt, l'effet ne tournait qu'AU MONTAGE (#3708). Ce
+// consommateur N'EXISTE PLUS : depuis #1501 la fiche d'artiste de la
+// Bibliothèque est retirée, et c'est `ShellV2` qui monte la page commune sous
+// `streamingartist` — éprouvé EN CLIQUANT par `vueArtisteUnique1494.test.ts`
+// et `artistesGrillePageCommune1501.test.ts`.
+//
+// Ce qui reste à garder ici, c'est qu'il n'y ait pas DEUX consommateurs : une
+// Bibliothèque qui relirait le dépôt ouvrirait une seconde page pour le même
+// clic. Un témoin de comportement ne peut pas prouver une absence de lecteur ;
+// celui-ci lit donc le source, et c'est le seul du fichier à le faire.
+describe('#3708 → #1501 — la Bibliothèque n’a plus de consommateur à offrir', () => {
+  const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
+  const sansCommentaires = (s: string) =>
+    s.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-  it('la cible posée APRÈS le montage est consommée', async () => {
-    await poserBibliotheque();
-    // Rien en attente au montage : c'est bien le geste d'après qui compte.
-    expect(get(pendingLibraryArtist)).toBeNull();
-
-    pendingLibraryArtist.set(994);
-    for (let i = 0; i < 8; i++) await respirer();
-    flushSync();
-
-    expect(
-      get(pendingLibraryArtist),
-      'la cible dort encore dans le magasin : l’écran ne l’a pas vue, ' +
-        'le clic sur l’artiste n’aurait rien fait',
-    ).toBeNull();
+  it('`LibraryV2` ne lit plus `pendingLibraryArtist`', () => {
+    const bib = sansCommentaires(lire('src/components/v2/LibraryV2.svelte'));
+    expect(bib, 'la Bibliothèque relit le dépôt de l’ancienne fiche').not.toContain('pendingLibraryArtist');
   });
 
-  it('et l’onglet Artistes est celui qui s’affiche', async () => {
-    const el = await poserBibliotheque();
-    pendingLibraryArtist.set(994);
-    for (let i = 0; i < 10; i++) await respirer();
-    flushSync();
-
-    const actif = el.querySelector(".tabs .tab.active") as HTMLElement | null;
-    expect(actif, 'aucun onglet actif dans la Bibliothèque').not.toBeNull();
-    expect(
-      actif!.textContent?.toLowerCase(),
-      'l’onglet n’a pas basculé sur les Artistes',
-    ).toContain('artiste');
+  it('la coquille monte bien la page d’arrivée sous la vue que le clic pose', () => {
+    const coquille = sansCommentaires(lire('src/components/v2/ShellV2.svelte'));
+    expect(coquille).toMatch(/\$activeView === 'streamingartist'/);
   });
 });
