@@ -21,6 +21,9 @@
   import { getQualityTier, formatDuration,  errText } from '../../lib/utils';
   import { qualiteEnTeteAlbum } from '../../lib/qualiteEnTeteAlbum';
   import { pochettesDePisteDistinctes } from '../../lib/pochetteDePisteDistincte';
+  import {
+    focusRestreint, pistesAuxRangs, rangDansLAlbum, rangsDeLArtiste, type FocusArtiste,
+  } from '../../lib/focusArtiste';
   import type { Album, Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -59,9 +62,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   // ses pistes se lisent par leur `stream_url`. Demande par Bertrand le
   // 05/09/2026 : « Click sur un album doit ouvrir l'album ! ». Jusque-la, un
   // clic LANCAIT l'extrait, sans jamais montrer ce que l'album contenait.
-  let { album, depot = null, service = null, bandcamp = null, onClose }:
+  let { album, depot = null, service = null, bandcamp = null, artisteFocus = null, onClose }:
     { album: Album; depot?: DepotDistant | null; service?: string | null;
-      bandcamp?: string | null; onClose: () => void } = $props();
+      bandcamp?: string | null; artisteFocus?: FocusArtiste | null;
+      onClose: () => void } = $props();
 
   /** Identifiant distant de l'album, quand il vient d'un service. */
   const sidDistant = $derived(service ? ((album as any).source_id ?? null) : null);
@@ -188,6 +192,34 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   let tracks = $state<Track[]>([]);
   /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
   const depuisCue = $derived(tracks.some((t) => !!t.cue_media_path));
+
+  /* ══════════════════════════════════════════════════════════════════════
+     LE FOCUS PAR ARTISTE — #4767.
+
+     Ouverte depuis « Compilations » ou « Apparitions » de la page artiste, la
+     fiche ne montre que les titres de cet artiste, sous une pastille qui le
+     dit et qui rend l'album entier. Modèle : la capture Roon « Affichage des
+     morceaux interprétés par … » de FabienM (fil 1875).
+
+     🔴 Le focus ne change QUE ce qui est affiché. L'en-tête (compte de
+     pistes, durée, qualité, dossier, pochettes), « Aléatoire » et la file
+     continuent de parler de l'ALBUM — c'est un album qu'on regarde, pas une
+     sélection. Ce que le focus doit tenir, en revanche, c'est le rang : le
+     serveur interprète `start_index` sur l'album ENTIER, donc « lire à partir
+     d'ici » passe par `rangDansLAlbum`. Sans cette traduction, cliquer la
+     2ᵉ ligne affichée jouerait la 2ᵉ piste de la galette.
+     ══════════════════════════════════════════════════════════════════════ */
+  /** La pastille a été refermée : l'album entier, jusqu'à la prochaine fiche. */
+  let focusReferme = $state(false);
+  // Une autre fiche s'ouvre (ou un autre focus arrive) : la pastille revient.
+  $effect(() => { void album?.id; void artisteFocus?.id; focusReferme = false; });
+  const rangsDuFocus = $derived(rangsDeLArtiste(tracks, artisteFocus?.id ?? null));
+  const focusActif = $derived(
+    artisteFocus != null && !focusReferme && focusRestreint(tracks, rangsDuFocus),
+  );
+  /** Les rangs AFFICHÉS, dans l'album entier — l'identité hors focus. */
+  const rangsVisibles = $derived(focusActif ? rangsDuFocus : tracks.map((_, i) => i));
+  const pistesVisibles = $derived(pistesAuxRangs(tracks, rangsVisibles));
 
   /**
    * #4650 — au moins une piste porte une pochette PROPRE, différente de celle
@@ -523,9 +555,12 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     } catch { /* proposition silencieuse : jamais d'erreur pour ça */ }
   }
 
-  function playAlbum(startIndex = 0) {
+  function playAlbum(rangAffiche = 0) {
     const zid = zoneRequise();
     if (zid == null) return;
+    // #4767 — le rang cliqué est celui de la liste AFFICHÉE ; `start_index`
+    // se compte sur l'album entier. Hors focus, la traduction est l'identité.
+    const startIndex = rangDansLAlbum(rangsVisibles, rangAffiche);
     // 🔴 `source` va TOUJOURS avec `streaming_album_id`. Seul, l'identifiant
     // ne designe rien pour le serveur, qui retombe alors sur « reprendre la
     // lecture en cours » — le defaut releve sur les playlists Qobuz.
@@ -1000,8 +1035,21 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
            piste porte sa propre jaquette (les singles de *Hackney Diamonds*).
            La vignette n'apparaît alors que pour cet album-là, et elle est le
            seul moyen de distinguer le single de l'album sur cette page. -->
+      {#if focusActif && artisteFocus}
+        <!-- #4767 — la pastille de Roon : elle DIT ce qui est filtré, et son
+             × est la seule action. Refermée, l'album entier revient sans
+             aller-retour réseau — les pistes sont déjà là. -->
+        <div class="focus-artiste">
+          <span class="fchip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>
+            {$tr('v2.album.artistOnly' as any).replace('{artist}', artisteFocus.nom)}
+            <button onclick={() => (focusReferme = true)} aria-label={$tr('v2.album.artistOnlyClear' as any)}
+              title={$tr('v2.album.artistOnlyClear' as any)}>×</button>
+          </span>
+        </div>
+      {/if}
       <ListePistesV2
-        pistes={tracks}
+        pistes={pistesVisibles}
         numerotation="piste"
         pochette={pochettesDePisteDistinctesIci}
         pochetteEnTableau={pochettesDePisteDistinctesIci}
@@ -1078,6 +1126,19 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   .play svg,.ghost svg{width:16px; height:16px}
 
   .tracks{display:flex; flex-direction:column; gap:1px}
+  /* #4767 — la pastille de focus : visible sans crier, au-dessus de la liste
+     qu'elle explique. Même dessin que la puce de portée de la Bibliothèque. */
+  .focus-artiste{padding:2px 0 10px}
+  .fchip{display:inline-flex; align-items:center; gap:8px; padding:6px 8px 6px 12px;
+    border-radius:var(--v2-r-pill); font:600 12px var(--v2-sans);
+    color:var(--v2-acc1); background:var(--v2-acc-soft);
+    border:1px solid color-mix(in srgb, var(--v2-acc1) 40%, transparent)}
+  .fchip svg{width:14px; height:14px; flex:none}
+  .fchip button{display:flex; align-items:center; justify-content:center; width:18px; height:18px;
+    padding:0; border:0; border-radius:50%; cursor:pointer; font:600 14px var(--v2-sans);
+    background:transparent; color:inherit; line-height:1}
+  .fchip button:hover{background:color-mix(in srgb, var(--v2-acc1) 22%, transparent)}
+  .fchip button:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
   .state{padding:24px 6px; color:var(--v2-txt3)} .state.err{color:var(--v2-danger)}
   /* Les regles de LIGNE ont disparu avec la boucle qu'elles habillaient :
      la fiche monte `ListePistesV2`, qui porte les siennes. Le compilateur

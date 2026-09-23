@@ -71,6 +71,7 @@
     type AlbumsDeService,
   } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, type Exemplaire } from '../../lib/discographieCommune';
+  import type { FocusArtiste, OrigineSection } from '../../lib/focusArtiste';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import DiscographieCommune from './DiscographieCommune.svelte';
   import BioEtTitresPhares from './BioEtTitresPhares.svelte';
@@ -152,6 +153,14 @@
   let editionComplete = $state<Artist | null>(null);
   let albums = $state<Album[]>([]);
   let albumsChargement = $state(false);
+  /**
+   * #4767 — les deux sections que FabienM demande d'après Roon, servies par
+   * la MÊME route que la discographie (`?sections=1`). Vides tant que rien
+   * n'est chargé ; `DiscographieCommune` ne rend une section que si elle
+   * porte quelque chose.
+   */
+  let compilations = $state<Album[]>([]);
+  let apparitions = $state<Album[]>([]);
   /** Le compte de l'en-tête : les vignettes de la discographie commune, et non
    *  les seuls albums de la bibliothèque (« 1 albums » pour a-ha, 44 à l'écran). */
   let comptesFiche = $state<ComptesArtistesSources | null>(null);
@@ -160,6 +169,8 @@
   // Le tri de la fiche (#4246) a suivi la grille dans `DiscographieCommune`,
   // avec ses clés et sa mémoire.
   let albumOuvert = $state<Album | null>(null);
+  /** L'artiste sur lequel la fiche d'album ouverte est focalisée (#4767). */
+  let artisteFocus = $state<FocusArtiste | null>(null);
   let enEdition = $state<Artist | null>(null);
   /**
    * Étiquettes de la FICHE artiste — le même trou que celui de la fiche album.
@@ -463,6 +474,8 @@
     if (cle) ouvrirDetail(cle);
     ouvert = a;
     albums = [];
+    compilations = [];
+    apparitions = [];
     albumsChargement = true;
     // Les services partent EN PARALLÈLE et sans bloquer : la bibliothèque
     // locale répond en un aller-retour, un service en deux. Les attendre
@@ -471,9 +484,16 @@
     void chargerBio(a);
     void chargerMetadonnees(a.id);
     try {
-      albums = (await api.getArtistAlbums(a.id!)) ?? [];
+      const d = await api.getArtistAlbumsSections(a.id!);
+      albums = d?.albums ?? [];
+      // Clé ABSENTE = section vide : le serveur ne rend jamais un tableau
+      // vide, et `?? []` dit ici la même chose que lui.
+      compilations = d?.compilations ?? [];
+      apparitions = d?.appearances ?? [];
     } catch {
       albums = [];
+      compilations = [];
+      apparitions = [];
     }
     albumsChargement = false;
   }
@@ -614,9 +634,18 @@
   /** Une vignette de la discographie commune désigne un exemplaire : la
    *  bibliothèque s'ouvre par son identifiant, un service par sa paire
    *  service + `source_id` (#3709). */
-  function ouvrirExemplaire(ex: Exemplaire) {
-    if (ex.source === BIBLIOTHEQUE) albumOuvert = ex.album;
-    else albumOuvertService = { album: ex.album, service: ex.source };
+  function ouvrirExemplaire(ex: Exemplaire, origine: OrigineSection = null) {
+    // #4767 — venu de « Compilations » ou d'« Apparitions », l'album s'ouvre
+    // focalisé sur l'artiste de la page : la fiche ne montre que SES titres,
+    // sous une pastille qui le dit et qui rend l'album entier d'un clic. Le
+    // focus n'a de sens que pour un album de la BIBLIOTHÈQUE — l'artiste de
+    // piste vient de la base, pas d'un service.
+    if (ex.source === BIBLIOTHEQUE) {
+      artisteFocus = origine && ouvert?.id != null ? { id: ouvert.id, nom: ouvert.name } : null;
+      albumOuvert = ex.album;
+    } else {
+      albumOuvertService = { album: ex.album, service: ex.source };
+    }
   }
   function lireExemplaire(ex: Exemplaire) {
     if (ex.source === BIBLIOTHEQUE) lireAlbum(ex.album);
@@ -773,12 +802,14 @@
       <DiscographieCommune locaux={albums} services={albumsService} nomArtiste={ouvert?.name ?? null}
         servicesEnCharge={albumsServiceChargement} {provenance}
         onComptesProvenance={(c) => { comptesFiche = c; onComptesFiche?.(c); }}
+        {compilations} {apparitions}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   </div>
 
   {#if albumOuvert}
-    <AlbumDetailV2 album={albumOuvert} depot={null} onClose={() => (albumOuvert = null)} />
+    <AlbumDetailV2 album={albumOuvert} depot={null} {artisteFocus}
+      onClose={() => { albumOuvert = null; artisteFocus = null; }} />
   {/if}
 
   <!-- 🔴 `service` est passé AVEC l'album : la fiche n'apparie un album de

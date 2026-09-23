@@ -1885,6 +1885,44 @@ export function getArtistAlbums(id: number) {
   return fetchJSON<Album[]>(`${BASE}/library/artists/${id}/albums`);
 }
 
+/**
+ * La discographie de l'artiste DÉCOUPÉE en sections — #4767.
+ *
+ * Une section vide est ABSENTE de la réponse, jamais un tableau vide : rien
+ * ne doit avoir à décider ici s'il affiche un titre au-dessus de rien.
+ */
+export interface AlbumsArtisteSections {
+  albums: Album[];
+  /** Compilations portant au moins une piste de l'artiste. */
+  compilations?: Album[];
+  /** Albums d'un AUTRE artiste portant au moins une piste de celui-ci. */
+  appearances?: Album[];
+}
+
+/**
+ * Ce que rend la route, quelle que soit la version du serveur en face.
+ *
+ * 🔴 Un serveur qui ne connaît pas `?sections=1` IGNORE le drapeau et rend le
+ * tableau nu d'avant. Le client web et le serveur ne sont pas publiés
+ * ensemble : sans ce repli, une interface à jour devant un serveur plus
+ * ancien afficherait une page artiste VIDE. Un tableau vaut donc une
+ * discographie sans sections.
+ */
+export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
+  if (Array.isArray(brut)) return { albums: brut as Album[] };
+  const o = (brut ?? {}) as AlbumsArtisteSections;
+  return { albums: o.albums ?? [], compilations: o.compilations, appearances: o.appearances };
+}
+
+/**
+ * `?sections=1` et non une route à part : sans le drapeau, la même route rend
+ * le tableau nu que lisent les clients natifs et le serveur média.
+ */
+export function getArtistAlbumsSections(id: number) {
+  return fetchJSON<unknown>(`${BASE}/library/artists/${id}/albums?sections=1`)
+    .then(sectionsDepuisReponse);
+}
+
 export function getTrackCredits(trackId: number) {
   return fetchJSON<import('./types').TrackCredit[]>(`${BASE}/library/tracks/${trackId}/credits`);
 }
