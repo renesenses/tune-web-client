@@ -120,7 +120,11 @@ describe('#3626 — le lien artiste de « Lecture en cours » ne mène plus à u
     expect(np).toContain('ouvrirRecherche(dest.requete, dest.source);');
     const shell = readFileSync(resolve(process.cwd(), 'src/components/v2/ShellV2.svelte'), 'utf-8');
     expect(shell).toContain('ouvrirArtiste: ouvrirArtisteServiceParNom,');
-    // Et la résolution retombe sur la recherche quand le service ignore le nom.
-    expect(shell).toContain('setSearchCriteria({ q: c.nom, source: c.service });');
+    // 🔴 La RÉSOLUTION a quitté la coquille — #1486. Elle vit dans
+    // `lib/ouvrirArtisteDepuis`, où une garde peut l'EXÉCUTER au lieu de lire
+    // son texte (voir `lienArtisteAlbumService1486.test.ts`). Le repli vers la
+    // recherche, lui, est toujours là quand le service ignore le nom.
+    const module = readFileSync(resolve(process.cwd(), 'src/lib/ouvrirArtisteDepuis.ts'), 'utf-8');
+    expect(module).toContain('setSearchCriteria({ q: c.nom, source: service });');
   });
 });
