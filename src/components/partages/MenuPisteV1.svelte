@@ -39,7 +39,8 @@
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { queuePosition } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
-  import { activeView, gestesNavigationService, pendingLibraryAlbum, pendingLibraryArtist } from '../../lib/stores/navigation';
+  import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../../lib/stores/navigation';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { destinationAlbum } from '../../lib/routageAlbum';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
@@ -50,7 +51,7 @@
     /**
      * Aller à l'artiste, quand l'écran sait le faire pour CETTE piste. Omis,
      * l'entrée disparaît. Une piste de la bibliothèque n'a pas besoin de ce
-     * relais : le composant retombe sur `pendingLibraryArtist`.
+     * relais : le composant passe par `ouvrirArtisteDepuis` (#1494).
      */
     onAllerArtiste?: () => void;
     /** Idem pour l'album. */
@@ -124,10 +125,15 @@
     }
     return null;
   });
-  /** Aller à l'artiste : le relais de l'écran, la fiche de bibliothèque, ou le service. */
+  /**
+   * Aller à l'artiste : le relais de l'écran, ou la PAGE COMMUNE (#1494).
+   * Un artiste local passe par `ouvrirArtisteDepuis`, le chemin de référence,
+   * plutôt que de recopier ici la bifurcation local / service ; `depuis` est
+   * l'écran où l'on est, pour que le Retour de la page y ramène (#3824).
+   */
   const allerArtiste = $derived(
     onAllerArtiste ?? (destination?.type === 'artiste'
-      ? () => { pendingLibraryArtist.set((destination as any).artistId); activeView.set('library'); }
+      ? () => { void ouvrirArtisteDepuis({ id: (destination as any).artistId, name: piste.artist_name ?? null, source: 'local' }, get(activeView)); }
       : artisteDeService
         ? () => { $gestesNavigationService?.ouvrirArtiste(artisteDeService!); }
         : undefined),
