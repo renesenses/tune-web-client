@@ -3384,6 +3384,7 @@ export default {
   "v2.tags.noArtistWithTag": "Kein Interpret trägt dieses Tag.",
   "v2.tags.noTrackWithTag": "Kein Titel trägt dieses Tag.",
   "v2.tags.noPlaylistWithTag": "Keine Playlist trägt dieses Tag.",
+  "v2.tags.noCollectionWithTag": "Keine Sammlung trägt dieses Tag.",
   "v2.album.play": "Abspielen",
   "v2.album.cue": "CUE",
   "v2.album.cueTip": "Album aus einem Audio-Image und seinem CUE-Sheet aufgeteilt",

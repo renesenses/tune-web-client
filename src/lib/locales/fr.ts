@@ -3406,6 +3406,7 @@ export default {
   "v2.tags.noArtistWithTag": "Aucun artiste ne porte cette étiquette.",
   "v2.tags.noTrackWithTag": "Aucun titre ne porte cette étiquette.",
   "v2.tags.noPlaylistWithTag": "Aucune playlist ne porte cette étiquette.",
+  "v2.tags.noCollectionWithTag": "Aucune collection ne porte cette étiquette.",
   "v2.album.play": "Lire",
   "v2.album.cue": "CUE",
   "v2.album.cueTip": "Album découpé depuis une image audio et sa feuille CUE",

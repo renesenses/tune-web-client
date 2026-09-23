@@ -2802,6 +2802,29 @@ export function getTagSmartPlaylists(tagId: number) {
   );
 }
 
+/**
+ * Les DOSSIERS (collections manuelles) d'une étiquette (#4798, second volet).
+ * Chaque ligne a la forme SERVIE de `/library/collections` — `album_count`
+ * compris. Route à part de `/smart-collections` : les deux espaces
+ * d'identifiants se recouvrent (l'id 1 est à la fois « favorites » et
+ * « Audiophile »), le serveur ne résout un `collection` que dans le réglage
+ * `collections`.
+ */
+export function getTagCollections(tagId: number) {
+  return fetchJSON<{ collections: any[]; count: number }>(`${BASE}/tags/${tagId}/collections`);
+}
+
+/**
+ * Les collections INTELLIGENTES d'une étiquette (#4798, second volet). Chaque
+ * ligne a la forme de `/library/smart-collections` (`name_key` compris, pour
+ * traduire les seize du semis), sans `album_count`.
+ */
+export function getTagSmartCollections(tagId: number) {
+  return fetchJSON<{ smart_collections: any[]; count: number }>(
+    `${BASE}/tags/${tagId}/smart-collections`,
+  );
+}
+
 // --- Playlists ---
 
 // --- Smart Playlists ---

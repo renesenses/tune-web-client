@@ -67,8 +67,13 @@ describe("l'écran Étiquettes lit les quatre familles", () => {
     // (`/tags/{id}/smart-playlists`) et rejoignent l'onglet Playlists. Elle
     // part « au mieux » comme les quatre autres — un serveur plus ancien ne
     // la sert pas, et cela ne doit pas vider l'écran.
-    expect(bloc.match(/\.catch\(\(\) => null\)/g)).toHaveLength(5);
+    // Sept avec le second volet de #4798 : les DOSSIERS et les collections
+    // INTELLIGENTES ont chacun leur route (`/tags/{id}/collections`,
+    // `/tags/{id}/smart-collections`) et un onglet « Collections » à eux.
+    expect(bloc.match(/\.catch\(\(\) => null\)/g)).toHaveLength(7);
     expect(bloc).toContain('getTagSmartPlaylists');
+    expect(bloc).toContain('getTagCollections');
+    expect(bloc).toContain('getTagSmartCollections');
   });
 
   it("l'ouverture se pose sur la première famille NON VIDE", () => {
@@ -81,7 +86,8 @@ describe("l'écran Étiquettes lit les quatre familles", () => {
   it('le compte annoncé porte sur les quatre familles', () => {
     // Annoncer un nombre d'albums au-dessus de quatre onglets ferait mentir
     // l'en-tête dès qu'on change d'onglet.
-    expect(src).toMatch(/total = \$derived\(albums\.length \+ artistes\.length \+ pistes\.length \+ listes\.length\)/);
+    // Cinq onglets depuis le second volet de #4798 : les collections comptent.
+    expect(src).toMatch(/total = \$derived\(albums\.length \+ artistes\.length \+ pistes\.length \+ listes\.length \+ dossiers\.length\)/);
     expect(src).toContain("$t('v2.tags.itemsWithTag' as any)");
   });
 
