@@ -313,7 +313,7 @@
     if (busy) return;
     busy = true;
     try { await fn(); await refresh(); }
-    catch (e: any) { error = e?.message ?? 'Action impossible.'; }
+    catch (e: any) { error = e?.message ?? $t('settings.errActionFailed' as any); }
     busy = false;
   }
 
@@ -364,7 +364,7 @@
   function setVol(z: Zone, v: number) {
     if (z.id == null) return;
     zones.update((l) => l.map((x) => (x.id === z.id ? { ...x, volume: v } : x)));
-    api.setVolume(z.id, v / 100).catch(() => { error = 'Volume refusé.'; refresh(); });
+    api.setVolume(z.id, v / 100).catch(() => { error = $t('v2.zone.volumeRefused' as any); refresh(); });
   }
 
   const OUTPUTS: Record<string, string> = {

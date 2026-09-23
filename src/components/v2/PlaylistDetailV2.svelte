@@ -306,7 +306,7 @@
       {/if}
       {#if item.pl.description}<div class="desc">{item.pl.description}</div>{/if}
       <div class="facts">
-        <span>{tracks.length} titre{tracks.length > 1 ? 's' : ''}</span>
+        <span>{$tr((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
         {#if totalMs}<span>{formatDuration(totalMs)}</span>{/if}
       </div>
       <div class="actions">
