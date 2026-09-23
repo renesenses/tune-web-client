@@ -79,12 +79,60 @@
     descriptionCle: string | null;
     albums: number | null;
     /** Combien d'albums rangés ici ont disparu de la base — le nombre que le
-        serveur dit dans `orphan_album_ids` (#901, #3285). `null` quand il n'y
+        serveur dit dans `orphan_album_count` (#901, #3285). `null` quand il n'y
         a rien à dire, ou quand le serveur est trop ancien pour le dire. */
     manquants: number | null;
+    /** QUI manque, pas seulement combien — ce que Lulu demande depuis le
+        04/09 (fils 1664 puis 1891, « un clic sur le nombre des manquants »).
+        `titre` est nul quand l'album a disparu avant que le serveur n'ait su
+        conserver son nom : il ne reste que l'identifiant, et on ne l'invente
+        pas. Vide face à un serveur d'avant #901, qui ne donne que le compte. */
+    manquantsDetail: { id: number; titre: string | null; artiste: string | null }[];
     covers: string[];
     /** Date de création, pour le tri par date. Les DEUX familles la portent. */
     creee: string | null;
+  }
+
+  /**
+   * Combien d'albums rangés dans ce dossier ont disparu de la base.
+   *
+   * 🔴 Le nombre vient du SERVEUR, jamais d'une soustraction faite ici : le
+   * client ne reçoit que les albums vivants (`dossier_servi`), il n'a aucun
+   * moyen de compter ce qui manque.
+   *
+   * Deux formes de serveur, sans rupture d'écran :
+   *   - depuis #901, le compte est dans `orphan_album_count` et
+   *     `orphan_album_ids` porte enfin la LISTE ;
+   *   - avant #901, `orphan_album_ids` portait — malgré son nom — le nombre.
+   * On lit donc le champ nommé d'abord, et on retombe sur l'ancienne forme.
+   */
+  function compteManquants(c: any): number {
+    if (typeof c?.orphan_album_count === 'number') return c.orphan_album_count;
+    if (typeof c?.orphan_album_ids === 'number') return c.orphan_album_ids;
+    return Array.isArray(c?.orphan_album_ids) ? c.orphan_album_ids.length : 0;
+  }
+
+  /**
+   * QUI manque. `orphan_albums` porte le détail nommé ; à défaut, la liste
+   * nue des identifiants. Un serveur d'avant #901 ne donne ni l'un ni l'autre
+   * — la liste reste vide, et l'écran le dit au lieu d'afficher du vide.
+   */
+  function detailManquants(c: any): { id: number; titre: string | null; artiste: string | null }[] {
+    if (Array.isArray(c?.orphan_albums)) {
+      return c.orphan_albums
+        .filter((a: any) => a && typeof a.id === 'number')
+        .map((a: any) => ({
+          id: a.id,
+          titre: typeof a.title === 'string' && a.title ? a.title : null,
+          artiste: typeof a.artist === 'string' && a.artist ? a.artist : null,
+        }));
+    }
+    if (Array.isArray(c?.orphan_album_ids)) {
+      return c.orphan_album_ids
+        .filter((id: any) => typeof id === 'number')
+        .map((id: number) => ({ id, titre: null, artiste: null }));
+    }
+    return [];
   }
 
   type Onglet = 'smart' | 'manuelle';
@@ -233,6 +281,8 @@
   let ouverte = $state<Entree | null>(null);
   /** Collection en cours de renommage — le bouton haut-droit de la pochette. */
   let enEdition = $state<Entree | null>(null);
+  /** Le dossier dont on regarde les albums manquants (#901). */
+  let manquantsOuverts = $state<Entree | null>(null);
 
   /**
    * SUPPRIMER une collection — #983.
@@ -631,10 +681,8 @@
           nomCle: null,
           descriptionCle: null,
           albums: Array.isArray(c.album_ids) ? c.album_ids.length : null,
-          manquants:
-            typeof c.orphan_album_ids === 'number' && c.orphan_album_ids > 0
-              ? c.orphan_album_ids
-              : null,
+          manquants: compteManquants(c) > 0 ? compteManquants(c) : null,
+          manquantsDetail: detailManquants(c),
           covers: Array.isArray(c.covers) ? c.covers : [],
           creee: c.created_at ?? null,
         });
@@ -652,7 +700,10 @@
           nomCle: (c as any).name_key ?? null,
           descriptionCle: (c as any).description_key ?? null,
           albums: typeof c.album_count === 'number' ? c.album_count : null,
+          // Une collection INTELLIGENTE est une requête, pas une liste rangée
+          // à la main : elle ne peut pas porter d'identifiant orphelin.
           manquants: null,
+          manquantsDetail: [],
           covers: Array.isArray((c as any).covers) ? (c as any).covers : [],
           creee: (c as any).created_at ?? null,
         });
@@ -1074,19 +1125,65 @@
               <!-- Plus d'étiquette « Intelligente » par carte : l'onglet le dit
                    déjà, et la répéter sur chaque vignette serait du bruit. -->
               <span class="ca" title={String(e.albums ?? 0)}>{e.albums ?? 0}</span>
-              {#if e.manquants}
-                <span class="mq" title={$t('collections.missingHint' as any)}
-                  >{(e.manquants > 1
-                    ? $t('collections.missingMany' as any)
-                    : $t('collections.missingOne' as any)
-                  ).replace('{count}', String(e.manquants))}</span>
-              {/if}
             </button>
+            <!-- 🔴 LA MENTION EST SORTIE DU BOUTON DE LA VIGNETTE, et c'est
+                 le geste que Lulu a demandé lui-même (fil 1891) : « un clic
+                 sur le nombre des manquants ». Un bouton dans un bouton n'est
+                 pas du HTML valide — elle devient donc un frère de `.meta`,
+                 dans la même carte en colonne, sans rien changer à la mise en
+                 page. L'infobulle `title=` reste, mais elle ne porte plus
+                 seule l'explication : elle n'existe pas au tactile. -->
+            {#if e.manquants}
+              <button class="mq" title={$t('collections.missingHint' as any)}
+                onclick={(ev) => { ev.stopPropagation(); manquantsOuverts = e; }}
+                >{(e.manquants > 1
+                  ? $t('collections.missingMany' as any)
+                  : $t('collections.missingOne' as any)
+                ).replace('{count}', String(e.manquants))}</button>
+            {/if}
           </div>
         {/each}
       </div>
       </div>
     {/if}
+    </div>
+  {/if}
+
+  {#if manquantsOuverts}
+    {@const dossier = manquantsOuverts}
+    <!-- Les albums manquants, NOMMÉS quand le serveur a su garder leur nom.
+         Un identifiant seul n'est pas caché : c'est ce qu'on sait, et c'est
+         encore assez pour retrouver la trace d'un album dans un journal. -->
+    <div
+      class="mqf"
+      role="presentation"
+      onclick={(ev) => { if (ev.target === ev.currentTarget) manquantsOuverts = null; }}
+    >
+      <div class="mqp" role="dialog" aria-modal="true" aria-label={$t('collections.missingListTitle' as any)}>
+        <header>
+          <strong>{$t('collections.missingListTitle' as any)}</strong>
+          <span class="mqs">{libelleTradu(dossier)}</span>
+          <button class="mqx" onclick={() => (manquantsOuverts = null)} aria-label={$t('common.close' as any)}>×</button>
+        </header>
+        <p class="mqh">{$t('collections.missingHint' as any)}</p>
+        {#if dossier.manquantsDetail.length}
+          <ul>
+            {#each dossier.manquantsDetail as m (m.id)}
+              <li>
+                {#if m.titre}
+                  <span class="mqt">{m.titre}</span>
+                  {#if m.artiste}<span class="mqa">{m.artiste}</span>{/if}
+                {:else}
+                  <span class="mqt inc"
+                    >{$t('collections.missingUnknown' as any).replace('{id}', String(m.id))}</span>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {:else}
+          <p class="mqh">{$t('collections.missingNoList' as any)}</p>
+        {/if}
+      </div>
     </div>
   {/if}
 
@@ -1226,7 +1323,25 @@
   .cv :global(img){width:100%; height:100%; object-fit:cover; display:block}
   .ct{font-weight:600; font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ca{font:11px var(--v2-mono); color:var(--v2-txt3); display:flex; align-items:center; gap:6px}
-  .mq{font:11px var(--v2-mono); color:var(--v2-warn, #c8922b); display:flex; align-items:center; gap:4px}
+  .mq{font:11px var(--v2-mono); color:var(--v2-warn, #c8922b); display:flex; align-items:center; gap:4px;
+    border:0; background:transparent; padding:0; text-align:left; cursor:pointer; width:100%;
+    text-decoration:underline; text-underline-offset:2px}
+  .mq:hover{color:var(--v2-acc-tint, #e6c176)}
+  .mqf{position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+    padding:16px; background:rgba(0,0,0,.55)}
+  .mqp{width:min(520px, 100%); max-height:min(70vh, 640px); overflow:auto; padding:18px;
+    border-radius:var(--v2-r-card, 12px); background:var(--v2-surface, #1b1b1b);
+    border:1px solid var(--v2-line2, rgba(255,255,255,.16)); color:var(--v2-txt, inherit)}
+  .mqp header{display:flex; align-items:baseline; gap:8px; margin-bottom:8px}
+  .mqs{font:11px var(--v2-mono); color:var(--v2-txt3); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .mqx{margin-left:auto; border:0; background:transparent; color:inherit; font-size:20px; line-height:1; cursor:pointer}
+  .mqh{font-size:12px; color:var(--v2-txt2); margin:0 0 12px}
+  .mqp ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+  .mqp li{display:flex; flex-direction:column; gap:2px; padding-bottom:8px;
+    border-bottom:1px solid var(--v2-line, rgba(255,255,255,.08))}
+  .mqt{font-size:13.5px; font-weight:600}
+  .mqt.inc{font:12px var(--v2-mono); color:var(--v2-txt3); font-weight:400}
+  .mqa{font:11px var(--v2-mono); color:var(--v2-txt3)}
   .tag{font-style:normal; padding:1px 6px; border-radius:var(--v2-r-pill); background:var(--v2-surface2); color:var(--v2-txt2)}
   .fa{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
   .fab{display:inline-flex; align-items:center; gap:8px; height:38px; padding:0 16px;
