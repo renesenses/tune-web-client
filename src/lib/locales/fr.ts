@@ -1063,6 +1063,9 @@ export default {
   "settings.followMeLabel": "Mettre en pause la zone quittée",
   "settings.followMeHint": "En changeant de zone, met en pause la lecture de la zone que vous quittez pour que rien ne continue derrière vous. Désactivé par défaut (zones indépendantes pour le multi-room).",
   "settings.searchExact": "Recherche exacte",
+  "settings.shuffleMaxTracks": "Titres tirés en lecture aléatoire",
+  "settings.shuffleMaxTracksHint": "Nombre maximal de titres qu'une lecture aléatoire place dans la file d'attente.",
+  "settings.shuffleMaxTracksRange": "de {min} à {max}",
   "settings.searchExactLabel": "Recherche exacte",
   "settings.searchExactHint": "Cherche les mots saisis tels quels, dans cet ordre, dans le nom d’un artiste, d’un album ou d’un titre — comme s’ils étaient entre guillemets. Les doubles guillemets restent utilisables sans ce réglage.",
 

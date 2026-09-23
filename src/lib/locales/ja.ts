@@ -939,6 +939,9 @@ export default {
   "settings.followMeLabel": "離れたゾーンを一時停止",
   "settings.followMeHint": "ゾーンを切り替えるとき、離れたゾーンの再生を一時停止して、後ろで再生が続かないようにします。既定はオフ（マルチルーム用にゾーンは独立）。",
   "settings.searchExact": "完全一致検索",
+  "settings.shuffleMaxTracks": "シャッフルで取り込む曲数",
+  "settings.shuffleMaxTracksHint": "シャッフル再生がキューに入れる曲数の上限。",
+  "settings.shuffleMaxTracksRange": "{min}～{max}",
   "settings.searchExactLabel": "完全一致検索",
   "settings.searchExactHint": "入力した語句をその順序のまま、アーティスト・アルバム・トラック名から検索します（二重引用符で囲んだ場合と同じ）。",
 

@@ -1059,6 +1059,9 @@ export default {
   "settings.followMeLabel": "Pause the zone you leave",
   "settings.followMeHint": "When switching zones, pause playback on the zone you were on so nothing keeps playing behind you. Off by default (zones stay independent for multi-room).",
   "settings.searchExact": "Exact search",
+  "settings.shuffleMaxTracks": "Tracks drawn when shuffling",
+  "settings.shuffleMaxTracksHint": "Maximum number of tracks a shuffle puts into the queue.",
+  "settings.shuffleMaxTracksRange": "from {min} to {max}",
   "settings.searchExactLabel": "Exact search",
   "settings.searchExactHint": "Match the typed words as a phrase, in that order, in an artist, album or track name — as if they were in double quotes. Double quotes still work without this setting.",
 

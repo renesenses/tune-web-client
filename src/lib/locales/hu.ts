@@ -1013,6 +1013,9 @@ export default {
   "settings.followMeLabel": "Az elhagyott zóna szüneteltetése",
   "settings.followMeHint": "Zónaváltáskor szünetelteti a lejátszást azon a zónán, ahol voltál, hogy semmi ne szóljon tovább mögötted. Alapból kikapcsolva (a zónák függetlenek maradnak a többszobás lejátszáshoz).",
   "settings.searchExact": "Pontos keresés",
+  "settings.shuffleMaxTracks": "Véletlenszerű lejátszáskor kiválasztott számok",
+  "settings.shuffleMaxTracksHint": "A várólistára kerülő számok legnagyobb száma véletlenszerű lejátszáskor.",
+  "settings.shuffleMaxTracksRange": "{min} és {max} között",
   "settings.searchExactLabel": "Pontos keresés",
   "settings.searchExactHint": "A beírt szavakat kifejezésként, ebben a sorrendben keresi előadó, album vagy szám nevében – mintha idézőjelben lennének.",
   // Squeezebox / Lyrion
