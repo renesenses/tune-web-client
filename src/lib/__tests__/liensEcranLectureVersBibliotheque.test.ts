@@ -13,6 +13,9 @@
 // client, deux qui ne l'alimentaient pas.
 //
 //   1. `ouvrirFicheArtiste`         → `pendingLibraryArtist`   ✔ déjà branché
+//      (depuis #1494 cette sortie ne mène plus à la Bibliothèque mais à la
+//      page artiste COMMUNE, par `ouvrirArtisteDepuis` : elle est sortie du
+//      relevé ci-dessous, qui ne compte plus que TROIS sorties)
 //   2. `navigateToAlbum` par ID     → `pendingLibraryAlbum`    ✔ déjà branché
 //   3. `navigateToAlbum` par TITRE  → rien                     ✘ grille nue
 //   4. `navigateToYear`             → `yearFilter`             ✘ rien filtré
@@ -264,13 +267,14 @@ describe('toute sortie de l’écran de lecture vers la Bibliothèque nourrit le
   })();
 
   it('la garde voit bien les sorties — sinon elle est verte pour rien', () => {
-    // Elles étaient QUATRE au 09/09/2026. La borne basse suffit : ce qui
+    // Elles étaient QUATRE au 09/09/2026, TROIS depuis #1494 (la fiche
+    // artiste part sur la page commune). La borne basse suffit : ce qui
     // compte est qu'aucune ne soit muette, pas leur nombre exact.
     expect(
       releve.length,
       'aucun `activeView.set(\'library\')` trouvé : fichier déplacé, ou ' +
         'la navigation a changé de forme et cette garde ne mesure plus rien',
-    ).toBeGreaterThanOrEqual(4);
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it('🔴 aucune n’oublie de poser sa cible', () => {
