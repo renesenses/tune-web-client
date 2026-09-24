@@ -24,6 +24,7 @@
     type EntreeDiscographie, type Exemplaire, type Qualite,
   } from '../../lib/discographieCommune';
   import { trierAlbums, type CleTriAlbums, type SensTri } from '../../lib/trierAlbums';
+  import type { OrigineSection } from '../../lib/focusArtiste';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import type { ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
   import { t } from '../../lib/i18n';
@@ -39,9 +40,23 @@
     services?: AlbumsDeService[];
     /** Des services répondent encore : la grille peut encore grandir. */
     servicesEnCharge?: boolean;
-    /** Ouvre l'exemplaire PRINCIPAL d'une vignette. */
-    onOuvrir: (ex: Exemplaire) => void;
+    /**
+     * Ouvre l'exemplaire PRINCIPAL d'une vignette.
+     *
+     * `origine` dit de quelle SECTION vient le clic (#4767) : depuis
+     * « Compilations » ou « Apparitions », la fiche d'album s'ouvre focalisée
+     * sur l'artiste de la page. `null` depuis la discographie.
+     */
+    onOuvrir: (ex: Exemplaire, origine: OrigineSection) => void;
     onLire: (ex: Exemplaire) => void;
+    /**
+     * #4767 — les compilations portant au moins une piste de l'artiste, et
+     * les albums d'un AUTRE artiste où il tient au moins un titre. Servies
+     * par `GET /library/artists/{id}/albums?sections=1` ; absentes quand il
+     * n'y en a pas, et la section n'est alors pas rendue.
+     */
+    compilations?: Album[];
+    apparitions?: Album[];
     /** Le filtre « Source » de la Bibliothèque, appliqué AVANT le Focus. */
     provenance?: string | null;
     /** Les comptes de ce filtre, pour que le menu parle de CETTE discographie. */
@@ -53,7 +68,7 @@
      */
     nomArtiste?: string | null;
   }
-  let { locaux = [], services = [], servicesEnCharge = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null }: Props = $props();
+  let { locaux = [], services = [], servicesEnCharge = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [] }: Props = $props();
 
   /**
    * #4651 — Qobuz range sous un artiste des reprises et des albums d'autres
@@ -129,6 +144,16 @@
   const triees = $derived(trier(filtrees, triAlbums, sensAlbums));
   const connexesTriees = $derived(trier(connexes, triAlbums, sensAlbums));
 
+  /**
+   * #4767 — les deux sections de FabienM. Fusionnées SÉPARÉMENT, comme
+   * « Autres / Connexes » : une compilation homonyme d'un album de l'artiste
+   * ne doit pas se replier sur lui. Le filtre « Source » ne s'y applique pas
+   * — elles ne viennent que de la bibliothèque — mais le TRI, si : un seul
+   * réglage pour toute la page.
+   */
+  const compilationsTriees = $derived(trier(fusionnerDiscographie(compilations, []), triAlbums, sensAlbums));
+  const apparitionsTriees = $derived(trier(fusionnerDiscographie(apparitions, []), triAlbums, sensAlbums));
+
   /** L'exemplaire local d'une vignette, s'il y en a un — il porte le cœur. */
   const local = (e: EntreeDiscographie) => e.exemplaires.find((x) => x.source === BIBLIOTHEQUE)?.album ?? null;
 
@@ -201,9 +226,37 @@
       </div>
     </section>
   {/if}
+
+  <!-- #4767 — les deux sections que FabienM demande d'après Roon. Rendues
+       SEULEMENT quand elles portent quelque chose : une section vide ne
+       s'explique pas, et le serveur ne renvoie même pas la clé. Le compte est
+       la longueur de la liste rendue — rien d'autre ne le porte, donc rien ne
+       peut diverger. Ouvrir une de ces vignettes focalise la fiche d'album
+       sur l'artiste de la page. -->
+  {#if compilationsTriees.length}
+    <section class="connexes" data-section="compilations">
+      <h3 class="titre-connexes">{$t('v2.disco.compilations' as any)} <span class="cpt">{compilationsTriees.length}</span></h3>
+      <div class="gr">
+        {#each compilationsTriees as e (e.cle)}
+          {@render carte(e, 'compilations')}
+        {/each}
+      </div>
+    </section>
+  {/if}
+
+  {#if apparitionsTriees.length}
+    <section class="connexes" data-section="apparitions">
+      <h3 class="titre-connexes">{$t('v2.disco.appearances' as any)} <span class="cpt">{apparitionsTriees.length}</span></h3>
+      <div class="gr">
+        {#each apparitionsTriees as e (e.cle)}
+          {@render carte(e, 'apparitions')}
+        {/each}
+      </div>
+    </section>
+  {/if}
 </div>
 
-{#snippet carte(e: EntreeDiscographie)}
+{#snippet carte(e: EntreeDiscographie, origine: OrigineSection = null)}
   {@const al = e.principal.album}
   {@const loc = local(e)}
   <div class="carte" data-sources={e.sources.join(' ')}>
@@ -212,7 +265,7 @@
         favori={loc?.id != null ? { albumId: loc.id } : null}
         etiquettes={loc?.id != null ? { itemType: 'album', itemId: loc.id } : null}
         onLire={() => onLire(e.principal)}
-        onOuvrir={() => onOuvrir(e.principal)}
+        onOuvrir={() => onOuvrir(e.principal, origine)}
         nom={al.title}
       >
         <!-- `source` n'est PAS passé à `AlbumArt` : il y poserait sa
@@ -233,7 +286,7 @@
         {/each}
       </div>
     </div>
-    <button class="meta" onclick={() => onOuvrir(e.principal)}>
+    <button class="meta" onclick={() => onOuvrir(e.principal, origine)}>
       <span class="ct" title={al.title}>{al.title}</span>
       <span class="ca">{al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? ''}</span>
     </button>

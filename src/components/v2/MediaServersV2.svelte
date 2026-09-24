@@ -354,14 +354,14 @@
     const zid = $currentZoneId;
     if (zid == null || !it.res_url) return;
     try { await playAndSync(zid, corps(it) as any); }
-    catch { error = 'Lecture impossible.'; }
+    catch { error = $t('v2.stream.playFailed' as any); }
   }
 
   async function enfiler(it: MediaServerItem) {
     const zid = $currentZoneId;
     if (zid == null || !it.res_url) return;
     try { await api.addToQueue(zid, corps(it) as any); }
-    catch { error = 'Ajout impossible.'; }
+    catch { error = $t('v2.ms.addFailed' as any); }
   }
 
   /** Lance une suite de pistes : la premiere joue, les autres s'empilent. */
@@ -579,7 +579,7 @@
         <!-- Dire la verite sur la portee : sans cela, une absence de resultat
              se lirait comme « ce titre n'est pas sur le serveur ». -->
         <div class="warn">
-          {open.name} ne sait pas chercher dans son index — filtrage du dossier affiché uniquement.
+          {$t('v2.ms.noIndexSearch' as any).replace('{nom}', open.name)}
         </div>
       {:else if q.trim()}
         <div class="scope">
@@ -637,7 +637,7 @@
 
         {#if vue.items.length}
           <div class="ihead">
-            <h2>{vue.items.length} titre{vue.items.length > 1 ? 's' : ''}</h2>
+            <h2>{$t((vue.items.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(vue.items.length))}</h2>
             <div class="acts">
               <button class="pill" disabled={!!action} onclick={() => enchainer(vue.items, 'all')}>
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8V4z"/></svg>{$t('v2.lbl.playAll' as any)}

@@ -39,7 +39,7 @@
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { molettePortee } from '../../lib/molettePortee';
   import { t, locale } from '../../lib/i18n';
-  import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer } from '../../lib/chiffresAccueil';
+  import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer, choixAuChargement } from '../../lib/chiffresAccueil';
   import { trace } from '../../lib/iconesChiffres';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
@@ -62,6 +62,7 @@
     type ChiffreAffiche,
   } from '../../lib/accueilWidgets';
   import { repartirWidgets } from '../../lib/ajoutWidgets';
+  import { creneauxParalleles } from '../../lib/creneauxParalleles';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import AudioVisualizer from '../partages/AudioVisualizer.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
@@ -227,6 +228,36 @@
   }
 
   /**
+   * 🔴 #1152 — LES HUIT SECONDES NE DOIVENT PAS COURIR DANS LA FILE DU
+   * NAVIGATEUR.
+   *
+   * `chargerTout` lançait les widgets d'un seul coup, et chacun armait son
+   * `avecDelai` AU MOMENT DE L'APPEL. Un navigateur n'ouvre pourtant que six
+   * connexions par origine en HTTP/1.1 : passé la sixième requête de la page —
+   * et `DISPOSITION_DEFAUT` en compte six à elle seule, avant la ligne de
+   * chiffres et les appels de la coquille — les suivantes ATTENDENT un socket,
+   * leur budget s'écoulant pendant l'attente. Un serveur sain qui répond en
+   * cinq secondes faisait alors tomber en `(delai)` tout ce qui n'était pas
+   * parti dans les premières.
+   *
+   * C'est le seul mécanisme connu qui rende compte de la capture de Yacine
+   * (14/09/2026, fil 1785) : TROIS routes sans rapport tombant ensemble, dont
+   * deux lectures SQLite locales. Une file d'attente commune les explique ;
+   * une lenteur de route, non.
+   *
+   * Le plafond est posé à TROIS, pas à six : la coquille a ses propres appels
+   * (zones, profils, bibliothèque, licence) et ils doivent garder de la place.
+   * Rien ne va plus vite pour autant — même ordre, même instant d'arrivée pour
+   * le dernier ; c'est le compte à rebours qui ne démarre qu'au départ réel.
+   *
+   * ⚠️ Pas un `$state` : comme `demandes`, cet objet est lu et écrit par
+   * `chargerWidget`, et le rendre réactif rouvrirait la boucle de dépendance
+   * racontée sous `chargerTout`.
+   */
+  const PARALLELE_MAX = 3;
+  const creneau = creneauxParalleles(PARALLELE_MAX);
+
+  /**
    * Les trois populations de l'écran d'ajout — #1059.
    *
    * 🔴 Un widget déjà posé n'est PAS caché, il est grisé : FabienM a cherché
@@ -300,11 +331,11 @@
       // #4527 — le choix de chiffres vit sous SA clé, à côté de la
       // disposition. Une liste vide est un choix légitime (« aucune carte »),
       // d'où le test sur le type et non sur la longueur.
-      const c = prefs?.[CLE_CHIFFRES];
-      if (Array.isArray(c)) {
-        chiffresEnregistres = c.map(String);
-        chiffres = [...chiffresEnregistres];
-      }
+      // #1519 — et un choix DÉJÀ enregistré l'emporte tel quel : ajouter une
+      // carte au défaut (les titres, 24/09) n'en ajoute aucune ici.
+      const lu = choixAuChargement(prefs?.[CLE_CHIFFRES]);
+      chiffres = lu.choix;
+      chiffresEnregistres = lu.enregistres;
       const d = prefs?.[CLE];
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
@@ -365,14 +396,25 @@
      */
     etats.push({ id, phase: 'attente', elements: [], chiffres: [] });
 
-    // `get()` et non `$store` : lus avec `$`, ces deux magasins deviendraient
-    // des DÉPENDANCES de l'effet appelant, et la bibliothèque arrive en deux
-    // temps — l'effet repartait à chaque étape.
-    const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones),
-                  chiffresChoisis: chiffres, langue: get(locale) };
-    const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
-
-    avecDelai(Promise.resolve(p))
+    /**
+     * 🔴 #1152 — LE CONTEXTE SE LIT AU DÉPART, PAS À LA MISE EN FILE.
+     *
+     * La tâche n'est construite qu'au moment où un créneau se libère : c'est
+     * ce qui empêche `avecDelai` de compter l'attente. Lire les magasins ICI,
+     * dans la tâche, est donc obligatoire ET meilleur — `albums` arrive en
+     * deux temps, et un widget servi en troisième vague voit désormais la
+     * bibliothèque telle qu'elle est quand il part.
+     *
+     * `get()` et non `$store` : lus avec `$`, ces magasins deviendraient des
+     * DÉPENDANCES de l'appelant, et la bibliothèque arrivant en deux temps,
+     * l'effet repartait à chaque étape.
+     */
+    creneau(() => {
+      const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones),
+                    chiffresChoisis: chiffres, langue: get(locale) };
+      const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
+      return avecDelai(Promise.resolve(p));
+    })
       .then((r: any) => {
         majEtat(id, w.forme === 'chiffres'
           ? { phase: 'charge', chiffres: r ?? [] }

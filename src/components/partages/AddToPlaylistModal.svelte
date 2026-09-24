@@ -4,6 +4,7 @@
   import type { Track, StreamingTrackInfo } from '../../lib/types';
   import { t } from '../../lib/i18n';
   import { serviceDePlaylist } from '../../lib/playlistService';
+  import { estPisteLocale } from '../../lib/pisteFile';
 
   interface Props {
     track: Track;
@@ -51,9 +52,27 @@
     loading = false;
   }
 
+  /**
+   * 🔴 La BIBLIOTHÈQUE se reconnaît par `estPisteLocale`, jamais par
+   * `source === 'local'`.
+   *
+   * Une piste déposée par un serveur UPnP intégré (#4201) porte
+   * `source: 'upnp'` — sa PROVENANCE — et un `id` de bibliothèque bien réel.
+   * Le test par chaîne l'envoyait donc dans la branche « service » :
+   * `{ track_ids: [], streaming_tracks: [{ source: 'upnp', source_id:
+   * '<udn>|<hash>' }] }`. Le serveur refuse cette forme par un 422
+   * (`tune-server/src/routes/playlists.rs`, `add_tracks` : une ligne de
+   * playlist locale ne peut porter qu'un `tracks.id`) — une piste UPnP
+   * n'entrait dans AUCUNE playlist par cette fenêtre.
+   *
+   * `estPisteLocale` est le prédicat partagé (`lib/pisteFile.ts`), celui-là
+   * même dont `serviceDePlaylist` se sert déjà en amont pour décider quelles
+   * playlists lister : les deux décisions de cette fenêtre parlent enfin de la
+   * même règle.
+   */
   function buildAddArgs(): { trackIds: number[]; streamingTracks: StreamingTrackInfo[] | undefined } {
-    if (track.id && (!track.source || track.source === 'local')) {
-      return { trackIds: [track.id], streamingTracks: undefined };
+    if (estPisteLocale(track)) {
+      return { trackIds: [track.id!], streamingTracks: undefined };
     }
     // Streaming track — send as streaming_tracks
     const st: StreamingTrackInfo = {

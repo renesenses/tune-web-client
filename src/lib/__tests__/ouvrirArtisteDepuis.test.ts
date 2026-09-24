@@ -16,10 +16,12 @@ describe('point 9 — un clic sur un artiste favori ouvre sa fiche', () => {
     ficheArtisteService.set(null as any);
   });
 
-  it('artiste de la bibliothèque : la fiche v2, retour vers les Favoris', async () => {
+  it('artiste de la bibliothèque : la PAGE COMMUNE (#1494), retour vers les Favoris', async () => {
     await ouvrirArtisteDepuis({ id: 42, name: 'Miles Davis' }, 'favorites');
-    expect(get(activeView)).toBe('library');
-    expect(get(pendingLibraryArtist)).toBe(42);
+    expect(get(activeView)).toBe('streamingartist');
+    // La forme de #1485 : `service: null`, l'identifiant de bibliothèque en texte.
+    expect(get(ficheArtisteService)).toEqual({ service: null, id: '42', nom: 'Miles Davis' });
+    expect(get(pendingLibraryArtist), 'la cible de l’ancienne fiche est encore posée').toBeNull();
     expect(get(vueDeRetour)).toBe('favorites');
   });
 
@@ -33,13 +35,16 @@ describe('point 9 — un clic sur un artiste favori ouvre sa fiche', () => {
   it('nom seul : correspondance exacte, sinon onglet Artistes sans fiche', async () => {
     (api.searchLibrary as any).mockResolvedValueOnce({ artists: [{ id: 7, name: 'Air' }] });
     await ouvrirArtisteDepuis({ name: 'Air' }, 'favorites');
-    expect(get(pendingLibraryArtist)).toBe(7);
-    expect(get(activeView)).toBe('library');
+    expect(get(ficheArtisteService)).toEqual({ service: null, id: '7', nom: 'Air' });
+    expect(get(activeView)).toBe('streamingartist');
 
-    pendingLibraryArtist.set(null);
+    ficheArtisteService.set(null);
+    activeView.set('favorites');
     (api.searchLibrary as any).mockResolvedValueOnce({ artists: [{ id: 8, name: 'Airbourne' }] });
     await ouvrirArtisteDepuis({ name: 'Air' }, 'favorites');
+    expect(get(ficheArtisteService)).toBeNull();
     expect(get(pendingLibraryArtist)).toBeNull();
+    expect(get(activeView)).toBe('library');
   });
 
   it("l'écran Favoris n'utilise plus la navigation de l'ancienne coquille", () => {

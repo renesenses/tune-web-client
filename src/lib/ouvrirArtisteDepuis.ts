@@ -14,18 +14,44 @@
  * pour que la fiche referme vers l'écran d'où l'on vient (#3824).
  */
 import * as api from './api';
-import { activeView, pendingLibraryArtist, vueDeRetour, type View } from './stores/navigation';
+import { get } from 'svelte/store';
+import {
+  activeView,
+  pendingLibraryArtist,
+  pendingSearchQuery,
+  vueDeRetour,
+  type View,
+} from './stores/navigation';
 import { ficheArtisteService } from './stores/streaming';
 import { trouverArtisteExact } from './libraryNavigation';
 import { estDeBibliotheque } from './provenanceBibliotheque';
+import { cleServeur } from './ongletsStreaming';
+import { messageRepli, resoudreArtisteDeService, type ChercherArtistes } from './repliArtisteService';
+import { notifications } from './stores/notifications';
+import { setSearchCriteria } from './stores/shortcuts';
+import { t } from './i18n';
 import type { Source } from './types';
 
-export async function ouvrirArtisteDepuis(a: any, depuis: View): Promise<void> {
+/**
+ * Ce que l'émetteur peut dire de plus sur le geste.
+ *
+ * `provenance` — #1501, tenu de #4201 : la grille de la Bibliothèque est
+ * filtrée par le menu « Source » (`local`, `upnp:Sonos`…), et la fiche
+ * d'artiste qu'elle ouvrait restait DANS cette source — sa discographie comme
+ * « Toutes les pistes ». La page commune reçoit la même consigne, par la
+ * cible, et pour un artiste LOCAL seulement : un service n'a pas de source de
+ * bibliothèque.
+ */
+export interface OptionsOuvrirArtiste {
+  provenance?: string | null;
+}
+
+export async function ouvrirArtisteDepuis(a: any, depuis: View, options: OptionsOuvrirArtiste = {}): Promise<void> {
   if (!a) return;
   if (a.id != null && estDeBibliotheque(a)) {
-    vueDeRetour.set(depuis);
-    pendingLibraryArtist.set(a.id);
-    activeView.set('library');
+    // #1494 — la PAGE COMMUNE, plus la fiche de la Bibliothèque : voir
+    // `ouvrirFicheArtisteLocale` en bas de ce module.
+    ouvrirFicheArtisteLocale(a.id, a.name ?? '', depuis, options.provenance);
     return;
   }
   if (a.source && a.source_id) {
@@ -41,9 +67,110 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View): Promise<void> {
   try {
     id = trouverArtisteExact((await api.searchLibrary(a.name, 5))?.artists, a.name);
   } catch { /* repli ci-dessous */ }
+  if (id !== null) {
+    ouvrirFicheArtisteLocale(id, a.name, depuis, options.provenance);
+    return;
+  }
   vueDeRetour.set(depuis);
-  if (id !== null) pendingLibraryArtist.set(id);
   activeView.set('library');
+}
+
+/**
+ * Ouvrir la fiche d'un artiste de SERVICE, par identifiant ou par nom.
+ *
+ * ── D'où ça vient ─────────────────────────────────────────────────────────
+ *
+ * Cette résolution vivait DANS `ShellV2` (`ouvrirArtisteServiceParNom`), armée
+ * dans `gestesNavigationService`. Elle en sort pour deux raisons, toutes deux
+ * mesurées sur #1486 :
+ *
+ *  1. **Elle n'était pas exécutable par une garde.** Un témoin ne pouvait que
+ *     lire le texte de la coquille, et un texte présent ne prouve pas qu'il
+ *     s'exécute — le motif que `repliArtisteService` documente déjà. Ici la
+ *     recherche est INJECTABLE : la garde la fournit et lit le service
+ *     réellement interrogé.
+ *  2. **Elle laissait sortir une clé d'ONGLET.** Voir juste en dessous.
+ *
+ * ── 🔴 `__bandcamp__` N'EST PAS UN SERVICE — #1486 ────────────────────────
+ *
+ * FabienM, 23/09/2026 : « Lien artiste sur un album de Qobuz ou Bandcamp ne
+ * renvoie pas sur la page artiste ». La fiche d'un album Bandcamp porte
+ * `source: '__bandcamp__'` — `BANDCAMP_EXT`, la clé de l'ONGLET, locale au
+ * client. Elle partait telle quelle dans la recherche fédérée. Mesuré sur le
+ * .18 le 23/09/2026, les deux requêtes côte à côte :
+ *
+ *     GET /search?q=Agnes Obel&limit=3&sources=bandcamp
+ *       → services.bandcamp.artists[0] = {"id":"https://agnesobel.bandcamp.com",
+ *                                         "name":"Agnes Obel"}
+ *     GET /search?q=Agnes Obel&limit=3&sources=__bandcamp__
+ *       → services: {}                                        ← RIEN
+ *
+ * Le service ne rendait aucun artiste, et on retombait sur le repli. Et la
+ * fiche, elle, s'ouvre bien une fois la clé traduite :
+ *
+ *     GET /streaming/bandcamp/artists/https%3A%2F%2Fagnesobel.bandcamp.com
+ *       → {"id":"https://agnesobel.bandcamp.com","name":""}          (200)
+ *
+ * `cleServeur` porte cette traduction depuis #1138 ; il ne manquait qu'à
+ * l'appeler, ici, au seul endroit où la clé quitte le client.
+ *
+ * ── `depuis` ──────────────────────────────────────────────────────────────
+ *
+ * La coquille posait `vueDeRetour` sur `'nowplaying'`, EN DUR : le Retour de
+ * la fiche artiste ramenait à « Lecture en cours » même quand on venait de
+ * l'éditorial Qobuz. Même contrat que [`ouvrirArtisteDepuis`] au-dessus —
+ * l'émetteur dit d'où il part, la fiche le lit (#3824).
+ */
+export async function ouvrirArtisteDeServiceParNom(
+  cible: { service: string; nom: string; id?: string | null },
+  depuis: View,
+  options: { chercher?: ChercherArtistes } = {},
+): Promise<void> {
+  // La clé du SERVEUR, jamais celle de l'onglet — voir l'en-tête.
+  const service = cleServeur(cible?.service);
+  if (!service) return;
+  const c = { service, nom: cible?.nom ?? '' };
+
+  // #956 — l'identifiant du service est déjà là (album ou piste servis par le
+  // service) : on ouvre la fiche sans rien deviner.
+  if (cible?.id != null && String(cible.id).trim() !== '') {
+    vueDeRetour.set(depuis);
+    ficheArtisteService.set({ service: service as Source, id: String(cible.id).trim(), nom: c.nom });
+    activeView.set('streamingartist');
+    return;
+  }
+
+  const chercher: ChercherArtistes =
+    options.chercher ??
+    (async (nom, svc) => {
+      const r = await api.federatedSearch(nom, [svc], 5);
+      return r?.services?.[svc]?.artists ?? [];
+    });
+
+  const issue = await resoudreArtisteDeService(c, chercher);
+  if (issue.type === 'repli') {
+    /**
+     * 🔴 #956 — LE REPLI PARLE. Sandro, fil 1769 : « l'interface tourne en
+     * boucle et me renvoie simplement sur la grille des résultats de recherche
+     * du début ». Le geste est le bon — un écran vide serait pire que la
+     * recherche qu'il remplace — mais il était MUET, et un retour silencieux
+     * au point de départ se lit comme une panne.
+     *
+     * `injoignable` garde sa trace : c'est la seule branche qui peut produire
+     * son symptôme sans qu'aucune mesure ne l'explique.
+     */
+    if (issue.raison === 'injoignable') {
+      console.warn('[artiste de service] la recherche a levé', service, c.nom, issue.erreur);
+    }
+    notifications.info(messageRepli(issue.raison, c, get(t)));
+    setSearchCriteria({ q: c.nom, source: service });
+    pendingSearchQuery.set(c.nom);
+    activeView.set('search');
+    return;
+  }
+  vueDeRetour.set(depuis);
+  ficheArtisteService.set({ service: service as Source, id: issue.id, nom: c.nom });
+  activeView.set('streamingartist');
 }
 
 /**
@@ -71,6 +198,53 @@ export function artisteDePiste(p: any): any | null {
   if (id != null && estBibliotheque) return { id, name: nom, source: src ?? 'local' };
   if (id != null && src) return { name: nom, source: src, source_id: String(id) };
   return nom ? { name: nom } : null;
+}
+
+/**
+ * L'artiste d'une VIGNETTE d'album ou de piste de service, prêt pour
+ * [`ouvrirArtisteDeServiceParNom`] — ou `null`.
+ *
+ * 🔴 #956, POINT 1 DE SANDRO (fil 1769, 12/09/2026), le volet resté dehors
+ * quand la .159 a corrigé le reste du ticket :
+ *
+ *   « Je cherche un artiste (ex: "Leprous") sur Qobuz. L'interface affiche une
+ *     grille d'albums. À ce stade, le nom de l'artiste sous les pochettes
+ *     n'est PAS cliquable. »
+ *
+ * Le triage du 20/09 le nommait déjà « un second défaut, distinct, et rien
+ * dans la .159 ne le touche ». Il ne l'a pas été davantage par #1359 ni par
+ * #1489, qui corrigent le lien de la FICHE d'album — pas la deuxième ligne de
+ * la vignette, restée un `<span>` inerte (`StreamingV2`, gabarit `tile`).
+ *
+ * Trois gardes, et c'est pour cela que la forme est calculée ici plutôt qu'au
+ * gabarit :
+ *
+ * - **seuls un ALBUM et une PISTE portent un nom d'artiste.** La deuxième
+ *   ligne d'une PLAYLIST est un NOMBRE de pistes (`pSub`, « 12 titres ») :
+ *   la rendre cliquable ouvrirait une recherche sur « 12 titres ».
+ * - **pas de nom, pas de bouton** — un lien mort est pire que pas de lien,
+ *   même règle que `artisteDePiste` et `artisteDeService` au-dessus.
+ * - **pas de service, pas de bouton** : cet écran n'affiche que du service,
+ *   et `ouvrirArtisteDeServiceParNom` renonce sans clé serveur.
+ *
+ * `id` est rendu tel quel quand le service l'a servi — l'album Qobuz porte
+ * `artist_id` (`StreamAlbum`, `traits.rs:75`), et la résolution ouvre alors la
+ * fiche SANS interroger la recherche fédérée. Absent (un article Bandcamp n'en
+ * a pas), c'est le nom qui est résolu, avec le repli qui PARLE de #956.
+ */
+export function artisteDeVignetteService(
+  p: any,
+  type: string | null | undefined,
+  service: string | null | undefined,
+): { service: string; nom: string; id: string | null } | null {
+  if (type !== 'album' && type !== 'track') return null;
+  const brutNom = p?.artist_name ?? p?.artist ?? p?.artiste;
+  const nom = typeof brutNom === 'string' ? brutNom.trim() : '';
+  if (!nom) return null;
+  const brutSrc = p?.source ?? service;
+  const svc = typeof brutSrc === 'string' && brutSrc.trim() ? brutSrc.trim() : null;
+  if (!svc) return null;
+  return { service: svc, nom, id: identifiantDeService(p?.artist_id) };
 }
 
 /** Un identifiant de service utilisable, ou `null` — voir la garde de #1178. */
@@ -115,4 +289,53 @@ export function artisteDeService(ar: any, service: string | null | undefined): a
   if (!ar?.name && !id) return null;
   if (!id || !src) return ar?.name ? { name: ar.name } : null;
   return { ...ar, source: src, source_id: id };
+}
+
+/**
+ * Ouvrir la PAGE COMMUNE pour un artiste de la BIBLIOTHÈQUE — #1494.
+ *
+ * Bertrand, 23/09/2026 : « Écran Search : quand je clique sur l'artiste, je
+ * veux ouvrir la vue artiste !! » — et, à « laquelle ? » : la page artiste
+ * commune. Depuis #1485 (#1232, étapes 1 et 2), `ArtisteServiceV2` sait
+ * montrer un artiste local : `service: null`, et `id` porte l'identifiant de
+ * `/library/artists` en texte. Aucun clic n'y menait ; c'est ce que fait cette
+ * fonction, et elle est le SEUL endroit qui pose cette forme.
+ *
+ * 🔴 LA BIFURCATION LOCAL / SERVICE VIT ICI, ET NULLE PART AILLEURS. Avant ce
+ * lot, cinq écrans en recopiaient les deux branches à la main — `SearchV2`,
+ * `AlbumDetailV2`, `PisteActions`, `MenuPisteV1`, `NowPlaying` — et faire
+ * pointer la branche locale vers la page commune ici n'aurait changé que les
+ * Favoris, « Vos tops » et la colonne Artiste : les quatre autres auraient
+ * continué d'ouvrir l'ancienne fiche. Ils passent tous par
+ * [`ouvrirArtisteDepuis`] désormais — `AlbumDetailV2` par #1489, qui le fait
+ * au même moment —, et `vueArtisteUnique1494.test.ts` interdit toute nouvelle
+ * recopie.
+ *
+ * UNE entrée d'historique par clic (#1142) : la page commune est une VUE, pas
+ * un calque dans une vue — le changement de vue écrit son entrée, et il n'y a
+ * plus de grille traversée ni de clé composée à tenir.
+ *
+ * La fiche de la Bibliothèque (`ArtistesV2`, `#library/artiste:<id>`) est
+ * RETIRÉE par #1501 : la grille de l'onglet Artistes passe elle aussi par ici,
+ * et il n'y a plus qu'une page d'artiste dans le client.
+ *
+ * `provenance` — la source de bibliothèque choisie dans le menu « Source »
+ * de la Bibliothèque (#4201), quand le geste part de là ; la page la lit pour
+ * ne montrer et ne jouer que ce qui vient de cette source. Absente, la clé
+ * n'est pas écrite : la cible reste `{ service, id, nom }`.
+ */
+export function ouvrirFicheArtisteLocale(
+  id: number | string,
+  nom: string | null | undefined,
+  depuis: View,
+  provenance?: string | null,
+): void {
+  vueDeRetour.set(depuis);
+  ficheArtisteService.set({
+    service: null,
+    id: String(id),
+    nom: nom ?? '',
+    ...(provenance != null ? { provenance } : {}),
+  });
+  activeView.set('streamingartist');
 }

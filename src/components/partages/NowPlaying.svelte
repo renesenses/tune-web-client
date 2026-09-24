@@ -10,7 +10,7 @@
   import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
   import type { QueueSheetState } from '../../lib/stores/queue';
   import { currentZoneId } from '../../lib/stores/zones';
-  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality } from '../../lib/utils';
+  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, copyText } from '../../lib/utils';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../../lib/npWheelGesture';
   import { largeurReserveeFileAttente } from '../../lib/fileAttenteReserve';
   import * as api from '../../lib/api';
@@ -18,7 +18,7 @@
   import CreteMetre from './CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { preferences } from '../../lib/stores/preferences';
-  import { texteDePartage, partageUtilisable } from '../../lib/partageEcoute';
+  import { partagerEcoute } from '../../lib/partageEcoute';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import {
     CF_PRESETS, presetActif, reglagesCrossfeed, bornesCrossfeed, niveauEnPourcent,
@@ -38,8 +38,9 @@
   import { libelleConversion } from '../../lib/bitperfectStrict';
   import { libelleAleatoire, libelleRepetition } from '../../lib/etatTransport';
   import { notifications } from '../../lib/stores/notifications';
-  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, artistAlbums, libraryTab, yearFilter } from '../../lib/stores/library';
-  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear } from '../../lib/stores/navigation';
+  import { selectedArtist, selectedAlbum, commencerFicheAlbum, poserPistesAlbum, libraryTab, yearFilter } from '../../lib/stores/library';
+  import { activeView, previousView, pendingSearchQuery, pendingLibraryAlbum, pendingLibraryYear } from '../../lib/stores/navigation';
+  import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { destinationDeRetour } from '../../lib/destinationDeRetour';
@@ -51,6 +52,7 @@
   import { displayFields } from '../../lib/stores/displayFields';
   import { fetchTrackLyrics, fetchLyricsByMeta, metaLyricsQuery, radioAnchorFrom, positionParoles, type LyricsMiss } from '../../lib/lyrics';
   import { chargerParolesEnLigne } from '../../lib/lyricsOnline';
+  import { boucleImages } from '../../lib/boucleImages';
   import type { RepeatMode, Track, TrackCredit, NowPlaying } from '../../lib/types';
 
   let isFavorite = $state(false);
@@ -430,21 +432,39 @@
 
   async function handleShare() {
     if (zone?.id == null) return;
-    try {
-      const carte = await api.shareNowPlaying(zone.id);
-      // #533 : le serveur ne rend PAS de champ `text` — c'est `undefined` qui
-      // partait au presse-papiers. Le texte se compose ici.
-      if (!partageUtilisable(carte)) {
+    const zoneId = zone.id;
+    // #1521 — `navigator.clipboard` n'existe QU'EN contexte sécurisé, et les
+    // testeurs atteignent Tune en HTTP clair sur une IP de réseau local :
+    // l'appel jetait, et le `catch` accusait le partage alors que le partage
+    // avait réussi. `copyText()` (lib/utils.ts) retombe sur
+    // `execCommand('copy')` et DIT s'il a écrit ou non ; `partagerEcoute`
+    // sépare les trois causes qui partageaient un seul message.
+    const issue = await partagerEcoute({
+      demanderCarte: () => api.shareNowPlaying(zoneId),
+      copier: copyText,
+      origine: location.origin,
+    });
+    switch (issue.etat) {
+      case 'copie':
+        notifications.success($t('nowplaying.copiedToClipboard'));
+        break;
+      case 'sansPiste':
+        notifications.error($t('nowplaying.shareNothing' as any));
+        break;
+      case 'copieRefusee':
+        // Le partage EXISTE : on donne le lien à recopier à la main plutôt que
+        // d'annoncer un échec qui n'a pas eu lieu. Il reste affiché plus
+        // longtemps — on ne lit pas une adresse en cinq secondes.
+        notifications.error(
+          $t('nowplaying.shareCopyRefused' as any).replace('{lien}', issue.lien),
+          15000,
+        );
+        break;
+      default:
+        // L'échec ne meurt plus dans la console : le bouton disait « rien »
+        // depuis que la route est passée en POST.
+        console.error('Share error:', issue.erreur);
         notifications.error($t('nowplaying.shareError' as any));
-        return;
-      }
-      await navigator.clipboard.writeText(texteDePartage(carte, location.origin));
-      notifications.success($t('nowplaying.copiedToClipboard'));
-    } catch (e) {
-      // L'échec ne meurt plus dans la console : le bouton disait « rien »
-      // depuis que la route est passée en POST.
-      console.error('Share error:', e);
-      notifications.error($t('nowplaying.shareError' as any));
     }
   }
 
@@ -507,37 +527,23 @@
   }
 
   /**
-   * Le nom d'artiste de la lecture en cours ne mène pas au même endroit selon
-   * D'OÙ vient la piste (Bertrand, 07/09/2026 : « click sur l'artiste ne
-   * renvoie pas là où il faut. Si local : page artiste. Si radio : écran
-   * recherche/résultats avec les bons paramètres »).
+   * Ouvrir la PAGE COMMUNE d'un artiste de la bibliothèque — #1494.
    *
    * La DÉCISION vit dans `lib/routageArtiste`, pas ici : une garde écrite
    * contre ce composant ne pourrait que lire son texte. On n'exécute ici que
    * ce que le module a décidé.
    *
-   * 🔴 LES DEUX CONTRATS SONT ALIMENTÉS, comme le fait déjà `navigateToAlbum`.
-   * Cet écran est monté par les DEUX coquilles : l'ancienne lit
-   * `selectedArtist` + `libraryTab`, la nouvelle ne lit ni l'un ni l'autre —
-   * elle consomme `pendingLibraryArtist`. Poser les seuls magasins de
-   * l'ancienne, c'est le défaut que Fabien a signalé sur la v0.9.140 : le clic
-   * changeait d'écran sans rien ouvrir.
+   * Cette fonction posait à la main les magasins des DEUX coquilles
+   * (`selectedArtist` + `libraryTab` pour l'ancienne, `pendingLibraryArtist`
+   * pour la nouvelle) puis partait sur la Bibliothèque. L'ancienne coquille
+   * n'existe plus, et la Bibliothèque n'est plus la destination : c'est la
+   * page commune, par `ouvrirArtisteDepuis` — le chemin de référence, qui
+   * tranche local / service et pose `vueDeRetour` pour que le Retour de la
+   * page ramène ici (#3824).
    */
   async function ouvrirFicheArtiste(artistId: number, artistName: string) {
     selectedAlbum.set(null);
-    try {
-      const [artist, albums] = await Promise.all([
-        api.getArtist(artistId).catch(() => null),
-        api.getArtistAlbums(artistId).catch(() => []),
-      ]);
-      selectedArtist.set(artist ?? ({ id: artistId, name: artistName } as any));
-      artistAlbums.set(albums ?? []);
-    } catch {
-      selectedArtist.set({ id: artistId, name: artistName } as any);
-    }
-    libraryTab.set('artists');           // contrat du client ACTUEL
-    pendingLibraryArtist.set(artistId);  // contrat du NOUVEAU client
-    activeView.set('library');
+    await ouvrirArtisteDepuis({ id: artistId, name: artistName, source: 'local' }, get(activeView));
   }
 
   /** Vers la Recherche, avec la requête ET le périmètre demandés. */
@@ -1043,20 +1049,29 @@
   });
 
   let positionRadio = $state(0);
+  /**
+   * 🔴 Ticket 150 — cette boucle avançait la position karaoké à CHAQUE image de
+   * l'écran, soit 120 fois par seconde sur un MacBook ProMotion, et chaque
+   * écriture re-parcourt les lignes synchronisées dans `NowPlayingLyrics`. Une
+   * ligne de paroles ne change pas cent vingt fois par seconde ; ~30 i/s
+   * suffisent et c'est la cadence des deux instruments voisins.
+   *
+   * Elle ne s'arrêtait pas non plus quand la lecture s'arrêtait — sur une
+   * pause, le surlignage continuait d'avancer sur un flux qui ne jouait plus —
+   * ni quand l'onglet passait en arrière-plan. `boucleImages` porte les trois
+   * règles.
+   */
   $effect(() => {
-    if (!isRadio || !showLyrics || !karaokeMode) return;
-    let raf = 0;
-    const battre = () => {
+    if (!isRadio || !showLyrics || !karaokeMode || !isEffectivePlaying) return;
+    return boucleImages(() => {
       positionRadio = positionParoles({
         estRadio: true,
         positionZoneMs: null,
         ancrageRadioMs: ancrageRadio,
         maintenantMs: performance.now(),
       });
-      raf = requestAnimationFrame(battre);
-    };
-    raf = requestAnimationFrame(battre);
-    return () => cancelAnimationFrame(raf);
+      return true;
+    });
   });
 
   // Fallback to ytPlayer track when zone has no current_track (yt-dlp loading phase)

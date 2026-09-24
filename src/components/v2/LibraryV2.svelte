@@ -49,8 +49,9 @@
   // lu quand la Bibliothèque était déjà montée. On prend sa version.
   // `pendingLibraryAlbum`, lui, reste : c'est le contrat des liens de la
   // lecture en cours (Fabien), et il est toujours consommé plus bas.
-  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryArtist, pendingLibraryYear, type View } from '../../lib/stores/navigation';
+  import { activeView, listResetNonce, pendingLibraryAlbum, pendingLibraryYear, type View } from '../../lib/stores/navigation';
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
+  import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { melangee, rangAleatoire, graineAleatoire } from '../../lib/shuffle';
   import { optionsAleatoire } from '../../lib/porteeAleatoire';
   import { notifications } from '../../lib/stores/notifications';
@@ -60,6 +61,7 @@
   import type { Album, Track } from '../../lib/types';
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
+  import { sauterVersAncre } from '../../lib/sautAlphabetique';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -164,12 +166,15 @@
     idsPortee = null;
     if (!d) return;
     let perime = false;
-    api.getAlbumsDetailed({ folder: dossierPortee }, 5000, 0)
-      .then((r) => {
+    // 🔴 Fil 1880 — PAGINÉ, pas un appel unique. La route borne ce qu'elle
+    // rend (`clamp(1, 2000)`) : demander 5 000 en rendait 2 000 sans le dire,
+    // et l'écran prenait ces 2 000 pour la portée entière. Comme elle ordonne
+    // par artiste de carte, la coupe emportait d'abord les compilations —
+    // « les albums "VA-xxx" ont disparu ». Voir `porteeDossierAlbums`.
+    idsAlbumsDeLaPortee((limite, rang) => api.getAlbumsDetailed({ folder: d }, limite, rang))
+      .then((ids) => {
         if (perime) return;
-        idsPortee = new Set(
-          (r.items ?? []).map((a: any) => a.album_id).filter((x: any) => typeof x === 'number'),
-        );
+        idsPortee = ids;
       })
       .catch(() => {
         if (perime) return;
@@ -894,12 +899,27 @@
 
   const present = $derived(railUtile ? new Set(affiches.map(firstLetter)) : new Set<string>());
   let gridEl: HTMLDivElement | undefined = $state();
+  /**
+   * 🔴 #1487 — LE SAUT SE VÉRIFIE, IL NE SE CALCULE PLUS UNE BONNE FOIS.
+   *
+   * « Je clique sur la lettre N et j'accède aux albums commençant par P. En
+   * revanche, si je clique une 2ᵉ fois sur N, ça me renvoie bien aux albums
+   * commençant par N » (FabienM, fil « v0.9.162 : divers bugs », 23/09/2026).
+   *
+   * C'était un `scrollIntoView({ behavior: 'smooth' })`. Sur une grille en
+   * `content-visibility:auto` (voir la règle `.card` plus bas), les vignettes
+   * jamais rendues valent 210 px d'estimation ; l'animation les traverse, les
+   * fait rendre, et chacune rétrécit à sa taille réelle PENDANT le trajet. Le
+   * chiffre visé au départ ne désigne plus la même rangée à l'arrivée. Au
+   * second clic, tout est déjà mesuré : plus rien ne bouge, le saut tombe
+   * juste. Le détail et le remède sont dans `lib/sautAlphabetique`.
+   *
+   * `gridEl` est bien le conteneur DÉFILANT dans les trois affichages —
+   * `.grid`, `.rows` et `.carrou` portent chacun leur `overflow` —, et c'est
+   * aussi lui qui abrite les ancres.
+   */
   function jump(L: string) {
-    // `inline:'start'` — #929 : en carrousel, la lettre se rejoint en LARGEUR.
-    // Sans lui, le rail A–Z restait muet dans ce mode (`block` ne décide que du
-    // sens vertical). Il ne coûte rien à la grille ni à la liste, qui ne
-    // débordent pas horizontalement.
-    gridEl?.querySelector<HTMLElement>(`[data-letter="${L}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'start' });
+    sauterVersAncre(gridEl, `[data-letter="${L}"]`);
   }
 
   /**
@@ -1347,19 +1367,14 @@
   });
   const pistesFiltrees = $derived(pistesRecherche.filter(t => dansSource(t, fProvenance)));
   const visibleTracks = $derived(pistesFiltrees.slice(0, 500));
+  // #1501 — l'onglet Artistes n'a plus de fiche : ce sont TOUJOURS les comptes
+  // de la grille. Ceux d'une discographie commune (#4330) se lisent désormais
+  // sur la page commune, qui porte son propre compte dans son en-tête.
   let comptesArtistes = $state<ComptesArtistesSources>({ comptes: new Map(), total: 0 });
-  /**
-   * Fiche artiste OUVERTE : le menu « Source » compte SA discographie commune,
-   * services de streaming compris — #4330. Bertrand, .18, 17/09/2026 : « Source
-   * affiche des chiffres faux et pas les services de streaming ». `null` quand
-   * aucune fiche n'est ouverte : on retombe sur la grille des artistes.
-   */
-  let comptesFiche = $state<ComptesArtistesSources | null>(null);
-  const comptesOngletArtistes = $derived(comptesFiche ?? comptesArtistes);
   const comptesAlbums = $derived(comptesProvenance(src, filtresActifs, outilsFacettes));
   const comptesPistes = $derived(compterSources(pistesRecherche.map(t => [provenanceDe(t)])));
   const provenances = $derived.by(() => {
-    const counts = new Map(tab === 'artists' ? comptesOngletArtistes.comptes
+    const counts = new Map(tab === 'artists' ? comptesArtistes.comptes
       : tab === 'tracks' ? comptesPistes : comptesAlbums);
     if (tab !== 'artists' && tab !== 'tracks') {
       counts.set('upnp', [...counts].reduce((n, [s, c]) => n + (s === 'upnp' || s.startsWith('upnp:') ? c : 0), 0));
@@ -1374,10 +1389,9 @@
         : libelleProvenance(a).localeCompare(libelleProvenance(b)));
   });
   // Les artistes peuvent appartenir à plusieurs sources : ne pas sommer leurs comptes.
-  const matchCountToutesSources = $derived(tab === 'artists' ? comptesOngletArtistes.total
+  const matchCountToutesSources = $derived(tab === 'artists' ? comptesArtistes.total
     : tab === 'tracks' ? pistesRecherche.length : comptesAlbums.reduce((n, [, c]) => n + c, 0));
-  // Une fiche ouverte a SES comptes, qui ne dépendent pas des pistes chargées.
-  const comptesSourcesEnCharge = $derived((tab === 'tracks' || (tab === 'artists' && comptesFiche == null)) && (tracksLoading || tracksError != null));
+  const comptesSourcesEnCharge = $derived((tab === 'tracks' || tab === 'artists') && (tracksLoading || tracksError != null));
   const appartenancesArtistes = $derived(sourcesParArtiste(src, tracks));
 
   // La portée dossier inclut aussi les artistes de pistes de compilation.
@@ -1440,13 +1454,12 @@
    * écriture : une entrée empilée par rendu, la pile noyée, le Précédent
    * inutilisable.
    *
-   * ⚠️ CE QUI N'EST PAS TRAITÉ ICI, et pourquoi. `detailOuvert` ne porte
-   * QU'UNE clé, et l'onglet Artistes y range la sienne (`artiste:12`) pour son
-   * propre calque (`ArtistesV2`). Tant que cet onglet est à l'écran, on ne
-   * touche pas au magasin : l'écraser refermerait la fiche artiste posée
-   * dessous. C'est la dette des calques imbriqués, nommée telle quelle dans
-   * `calquesAlbumEmpilent980.test.ts`, et elle reste entière — la régler
-   * demande une PILE dans `historiqueCoquille`, pas trois lignes ici.
+   * 🟢 LA DETTE DES CALQUES IMBRIQUÉS EST ÉTEINTE — #1501. `detailOuvert` ne
+   * porte qu'une clé, et l'onglet Artistes y rangeait la sienne (`artiste:12`)
+   * pour son propre calque : tant qu'il était à l'écran, l'album ouvert
+   * par-dessus n'empilait rien, faute de PILE dans `historiqueCoquille`. La
+   * fiche d'artiste est désormais une VUE (la page commune), plus un calque
+   * dans celle-ci : cet écran est le SEUL à écrire dans le magasin.
    */
   let cleCalqueEmpilee: string | null = null;
 
@@ -1456,7 +1469,7 @@
       opened = a;
       // On pose la CLÉ, jamais l'objet : `history.state` refuse les proxies
       // Svelte (en-tête de `lib/historiqueCoquille.ts`).
-      const cle = tab === 'artists' ? null : cleDetailAlbum(a);
+      const cle = cleDetailAlbum(a);
       cleCalqueEmpilee = cle;
       if (cle) ouvrirDetail(cle);
     });
@@ -1529,7 +1542,7 @@
    * le cas qu'on corrige, puisque le défaut est précisément qu'on ne remonte
    * pas.
    *
-   * ⚠️ Déclaré AVANT les trois effets `pendingLibrary*`. Au montage, les
+   * ⚠️ Déclaré AVANT les effets `pendingLibrary*`. Au montage, les
    * effets d'un composant tournent dans l'ordre de DÉCLARATION : placé après,
    * celui-ci refermerait la fiche que « Aller à l'album » vient d'ouvrir.
    */
@@ -1555,45 +1568,10 @@
    * bibliothèque encore en cours de chargement. On le demande alors au
    * serveur plutôt que d'abandonner en silence.
    */
-  /**
-   * L'ARTISTE demandé de l'extérieur — « Aller à l'artiste » du menu « … »
-   * d'une piste (Bertrand, 07/09/2026).
-   *
-   * 🔴 DEUX gestes, pas un : basculer sur l'onglet Artistes ne suffit pas, il
-   * faut encore OUVRIR la fiche. C'est la moitié qu'on oublie — poser un
-   * magasin que personne ne lit est le défaut le plus fréquent de ce client.
-   *
-   * L'identifiant est consommé ICI puis passé à `ArtistesV2` en propriété :
-   * deux consommateurs d'un même dépôt se le voleraient selon l'ordre de
-   * montage, et l'onglet n'est monté que quand on l'a choisi.
-   *
-   * 🔴 `$pendingLibraryArtist`, PAS `get(pendingLibraryArtist)` — #3708.
-   *
-   * `get()` lit la valeur et se désabonne aussitôt : sous les runes il
-   * n'inscrit AUCUNE dépendance, et l'effet ne tournait donc qu'au montage.
-   * Mesuré le 09/09/2026 avec un composant sonde (un `$effect` lisant
-   * `get(store)`, journal après `store.set(42)` : `[null]` — une seule
-   * passe). Cela suffisait tant que la cible n'était posée que depuis une
-   * AUTRE vue : `ShellV2` monte `{#if $activeView === 'library'}<LibraryV2/>`,
-   * donc changer de vue remontait l'écran et rejouait l'effet. Depuis la fiche
-   * d'album, on est DÉJÀ dans la Bibliothèque : rien n'était remonté, et poser
-   * le magasin n'aurait rien fait à l'écran.
-   *
-   * L'effet écrit ce qu'il lit (`set(null)`), ce qui le rejoue une fois : la
-   * seconde passe sort sur `id == null` sans rien écraser.
-   */
-  let artisteADemande = $state<number | null>(null);
-  $effect(() => {
-    const id = $pendingLibraryArtist;
-    if (id == null) return;
-    pendingLibraryArtist.set(null);
-    artisteADemande = id;
-    tabChoisi = 'artists';
-    // La fiche d'album est un CALQUE par-dessus la grille : la laisser
-    // ouverte cacherait l'onglet Artistes qu'on vient d'ouvrir. Fermeture à
-    // la main : l'entrée courante est réécrite, pas dépilée (#1121).
-    refermerCalqueAlbumSansReculer();
-  });
+  // #1501 — plus d'ARTISTE demandé de l'extérieur. « Aller à l'artiste »
+  // (menu « … » d'une piste, Lecture en cours, fiche d'album) ouvre la page
+  // commune par `ouvrirArtisteDepuis` (#1494) : la Bibliothèque n'a plus de
+  // fiche à ouvrir, et `pendingLibraryArtist` n'a plus de lecteur.
 
   /**
    * L'ALBUM demandé de l'extérieur — jumeau exact de l'effet ci-dessus.
@@ -1816,7 +1794,7 @@
       <span class="chip count plain">{$tr('v2.lib.trackCount' as any).replace('{count}', $formatNombre(nbPistesAnnonce))}</span>
     {/if}
     {#if showFilters}
-      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>Tout ({matchCount})</button>
+      <button class="chip count" class:active={!fQuality.length && !fRate.length && !q && fYear == null && !fFormat.length && !fDepth.length && fCompilation == null && !fProvenance && fDrMin == null && fDrMax == null} onclick={reset}>{$tr('v2.lib.chipAll' as any).replace('{n}', String(matchCount))}</button>
       <!--
         DERNIERS AJOUTS. Bilou, forum, 05/09/2026 : « manque les derniers ajouts
         en vue bibliothèque ». Le tri existait, enfoui dans le menu « Titre ▾ » ;
@@ -1868,7 +1846,7 @@
       {/if}
     {#if showFilters}
       <div class="drop" class:open={ddOpen === 'quality'}>
-        <button class="chip" class:active={fQuality.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>Qualité{#if fQuality.length}&nbsp;· {fQuality.map((k) => { const it = QUALITIES.find(x => x.key === k); return it ? (it.cle ? $tr(it.cle as any) : it.label) : k; }).join(', ')}{/if}
+        <button class="chip" class:active={fQuality.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>{$tr('v2.tcol.quality' as any)}{#if fQuality.length}&nbsp;· {fQuality.map((k) => { const it = QUALITIES.find(x => x.key === k); return it ? (it.cle ? $tr(it.cle as any) : it.label) : k; }).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           <!-- Une valeur a ZERO reste VISIBLE mais inerte : la faire
@@ -1882,7 +1860,7 @@
         </div>
       </div>
       <div class="drop" class:open={ddOpen === 'rate'}>
-        <button class="chip" class:active={fRate.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>Fréquence{#if fRate.length}&nbsp;· {fRate.map((v) => RATES.find(r => r.v === v)?.l ?? v).join(', ')}{/if}
+        <button class="chip" class:active={fRate.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>{$tr('v2.tcol.sampleRate' as any)}{#if fRate.length}&nbsp;· {fRate.map((v) => RATES.find(r => r.v === v)?.l ?? v).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           {#each RATES as r (r.v)}
@@ -1915,7 +1893,7 @@
       {/if}
       {#if formats.length > 1}
         <div class="drop" class:open={ddOpen === 'format'}>
-          <button class="chip" class:active={fFormat.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>Format{#if fFormat.length}&nbsp;· {fFormat.join(', ')}{/if}
+          <button class="chip" class:active={fFormat.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>{$tr('v2.tcol.format' as any)}{#if fFormat.length}&nbsp;· {fFormat.join(', ')}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each formats as [f, n] (f)}
@@ -1940,7 +1918,7 @@
       {/if}
       {#if showExpert && depths.length > 1}
         <div class="drop" class:open={ddOpen === 'depth'}>
-          <button class="chip" class:active={fDepth.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'depth'} onclick={() => ddToggle('depth')}>Profondeur{#if fDepth.length}&nbsp;· {fDepth.join(', ')}-bit{/if}
+          <button class="chip" class:active={fDepth.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'depth'} onclick={() => ddToggle('depth')}>{$tr('v2.tcol.bitDepth' as any)}{#if fDepth.length}&nbsp;· {fDepth.join(', ')}-bit{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each depths as [d, n] (d)}
@@ -2059,7 +2037,7 @@
       {/if}
       {#if fYear != null}
         <button class="yearpill" onclick={() => (fYear = null)}>
-          {fYear} · {yearCount} album{yearCount > 1 ? 's' : ''}
+          {fYear} · {$tr((yearCount > 1 ? 'v2.lib.yearAlbumsMany' : 'v2.lib.yearAlbumsOne') as any).replace('{n}', String(yearCount))}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       {/if}
@@ -2165,8 +2143,7 @@
            albums ne sont pas encore arrivés a déjà ses artistes. -->
       <ArtistesV2 {q} idsPortee={idsArtistesPortee} nomPortee={porteeActive ? nomPortee : null}
         provenance={fProvenance} sourcesArtistes={appartenancesArtistes}
-        sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} onComptesFiche={(c) => (comptesFiche = c)}
-        ouvrirId={artisteADemande} onOuvert={() => (artisteADemande = null)} />
+        sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
     {:else if tab !== 'tracks' && sorted.length === 0}
@@ -2210,7 +2187,7 @@
               }}
             />
             {#if pistesFiltrees.length > visibleTracks.length}
-              <div class="state">{visibleTracks.length} titres affichés sur {pistesFiltrees.length} — affinez la recherche.</div>
+              <div class="state">{$tr('v2.lib.shownOfTotal' as any).replace('{n}', String(visibleTracks.length)).replace('{total}', String(pistesFiltrees.length))}</div>
             {/if}
           {/if}
         </div>
@@ -2712,14 +2689,26 @@
   /* Le coeur reste discret tant qu'il est vide : c'est un titre de section,
      pas une barre d'actions. Une fois plein, il prend la couleur d'accent et
      ne s'efface plus — c'est l'etat, pas une decoration au survol. */
-  .facet .fcoeur{flex:none; display:flex; align-items:center; justify-content:center;
+  /* 🔴 Le MÊME bouton vit à DEUX endroits : dans l'en-tête d'une facette
+     ouverte (`.facet h2`) et sur chaque ligne de la liste des facettes
+     (`.fl`). Les règles n'étaient écrites que pour le premier : dans la
+     liste, le bouton n'héritait d'aucun style et le navigateur lui posait
+     son fond par défaut — un carré GRIS opaque sous chaque cœur, sur tout
+     l'onglet Genres (Bertrand, 22/09/2026, v0.9.161).
+     Les deux emplacements partagent donc désormais les mêmes règles. */
+  .facet .fcoeur,
+  .fl .fcoeur{flex:none; display:flex; align-items:center; justify-content:center;
     width:26px; height:26px; padding:0; border:0; border-radius:8px; cursor:pointer;
     background:transparent; color:var(--v2-txt3); opacity:.45;
     transition:opacity .12s ease, color .12s ease, background .12s ease}
-  .facet h2:hover .fcoeur{opacity:1}
-  .facet .fcoeur:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .facet .fcoeur:focus-visible{opacity:1; outline:2px solid var(--v2-acc1); outline-offset:2px}
-  .facet .fcoeur.on{opacity:1; color:var(--v2-acc1)}
+  .facet h2:hover .fcoeur,
+  .fl:hover .fcoeur{opacity:1}
+  .facet .fcoeur:hover,
+  .fl .fcoeur:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  .facet .fcoeur:focus-visible,
+  .fl .fcoeur:focus-visible{opacity:1; outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .facet .fcoeur.on,
+  .fl .fcoeur.on{opacity:1; color:var(--v2-acc1)}
   .facetgrid{overflow:visible; padding:0}
   /* #1419 — la liste d'une facette défile avec la page, comme sa grille. */
   .rows.facetrows{overflow:visible; padding:0; flex:none}

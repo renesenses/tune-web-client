@@ -109,7 +109,14 @@ export interface GestesNavigationService {
    * service porte l'identifiant de son artiste chez le service). Sans, la
    * coquille résout le nom par une recherche, avec repli explicite.
    */
-  ouvrirArtiste: (cible: { service: string; nom: string; id?: string | null }) => void;
+  /**
+   * `depuis` : l'écran d'où part le clic, pour que le Retour de la fiche
+   * artiste y ramène — même contrat que `ouvrirArtisteDepuis` (#3824). La
+   * coquille le posait sur `'nowplaying'` EN DUR, ce qui était juste pour son
+   * premier appelant et faux pour l'éditorial d'un service (#1486). Facultatif :
+   * un émetteur qui ne le dit pas garde l'ancien comportement.
+   */
+  ouvrirArtiste: (cible: { service: string; nom: string; id?: string | null; depuis?: View | null }) => void;
 }
 export const gestesNavigationService = writable<GestesNavigationService | null>(null);
 export function requestListReset() {
@@ -206,6 +213,14 @@ export const pendingLibraryAlbum = writable<number | null>(null);
  * dès qu'une piste porte « M » quand la table porte « -M- ». Une piste de la
  * bibliothèque porte `artist_id` (mesuré sur le .18 : `artist_id: 125` pour
  * « M »), et c'est cet identifiant que la table des artistes emploie.
+ *
+ * 🔴 RETIRÉ DU SERVICE — #1501. La fiche d'artiste de la Bibliothèque n'existe
+ * plus : tout clic sur un artiste ouvre la PAGE COMMUNE par
+ * `ouvrirArtisteDepuis` (#1494), et `LibraryV2` ne lit plus ce magasin. Il
+ * reste déclaré parce qu'une douzaine de témoins vérifient qu'il reste VIDE —
+ * c'est la trace d'une bifurcation recopiée — et la garde
+ * `vueArtisteUnique1494.test.ts` interdit de le poser. Ne le rebrancher nulle
+ * part : un écran qui l'écrirait changerait de vue sans rien ouvrir.
  */
 export const pendingLibraryArtist = writable<number | null>(null);
 
