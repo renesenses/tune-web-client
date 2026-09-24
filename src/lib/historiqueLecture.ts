@@ -32,6 +32,31 @@ import { radioFavListenKey } from './radioFavListenAt';
 /** Nombre d'entrées rendues par la fusion — au-delà, la liste n'est plus lue. */
 const PLAFOND = 200;
 
+/**
+ * L'album CHEZ LE SERVICE d'une écoute de service lancée depuis cet album.
+ *
+ * 🔴 Fil forum 1906 (FabienM, v0.9.163) : le menu « … » d'un titre Qobuz de
+ * l'Historique n'offrait pas « Aller à l'album ». La ligne de
+ * `/library/history` n'a pas de quoi : son `album_id` est un `i64` de la table
+ * `albums`, `null` pour toute piste de service. Mais quand l'écoute a été
+ * lancée DEPUIS un album, `context_type = 'album'` et `context_id` est
+ * l'identifiant de cet album dans le référentiel de sa source — c'est la
+ * première règle du serveur lui-même pour l'album en cours
+ * (`zones.rs`, `album_en_cours`, « 1. Le geste »).
+ *
+ * Rien n'est déduit ailleurs : sans contexte d'album, l'album reste inconnu et
+ * l'entrée absente. Une piste locale ou une radio n'en reçoit jamais, et un
+ * `context_source` servi qui contredit la source de la piste non plus.
+ */
+function albumDeServiceDuContexte(e: any): string | null {
+  const source = e?.source;
+  if (!source || source === 'local' || source === 'radio') return null;
+  if (e?.context_type !== 'album' || e?.context_id == null) return null;
+  if (e?.context_source != null && e.context_source !== source) return null;
+  const id = String(e.context_id).trim();
+  return id ? id : null;
+}
+
 /** Traduit les lignes de `/library/history` dans la forme du store local. */
 export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
   return (items ?? []).map((e: any) => ({
@@ -44,6 +69,7 @@ export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
       source: e.source,
       source_id: e.source_id,
       album_id: e.album_id ?? null,
+      album_id_service: albumDeServiceDuContexte(e),
       cover_path: e.cover_url ?? null,
     } as Track,
     playedAt: e.listened_at,
@@ -51,7 +77,9 @@ export function entreesDepuisServeur(items: readonly any[]): HistoryEntry[] {
     zoneName: `Zone ${e.zone_id ?? '?'}`,
     // #904 — les trois champs que le serveur sert depuis la v0.9.131 et que
     // ce mapping jetait. `context_id` n'est jamais interprété ici : il peut
-    // être un entier, un identifiant de service, ou une URL entière.
+    // être un entier, un identifiant de service, ou une URL entière. (Seule
+    // exception, bornée au type `album` d'une piste de service :
+    // `albumDeServiceDuContexte`, plus haut — fil forum 1906.)
     contexte: {
       type: e.context_type ?? null,
       id: e.context_id ?? null,

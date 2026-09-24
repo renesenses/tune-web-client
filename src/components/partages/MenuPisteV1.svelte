@@ -41,7 +41,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
-  import { destinationAlbum } from '../../lib/routageAlbum';
+  import { albumDeServiceDe } from '../../lib/routageAlbum';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
   import TrackContextMenu from './TrackContextMenu.svelte';
@@ -97,17 +97,13 @@
    * `null` dès que la coquille ne sait pas les ouvrir : l'entrée est alors
    * ABSENTE plutôt qu'ouvrant sur rien.
    */
-  const albumDeService = $derived.by(() => {
-    if (local || !$gestesNavigationService) return null;
-    const d = destinationAlbum({
-      source: piste.source ?? null,
-      album_id: (piste as any).album_id,
-      album_title: piste.album_title ?? null,
-    });
-    return d?.type === 'album-service'
-      ? { service: d.service, albumId: d.albumId, titre: d.titre }
-      : null;
-  });
+  //
+  // 🔴 Fil forum 1906 (FabienM) — la copie « mot pour mot » avait divergé
+  // quand même : elle ne portait ni la pochette (#1342) ni l'artiste (#1361
+  // bis). La règle ne vit plus que dans `routageAlbum` (`albumDeServiceDe`).
+  const albumDeService = $derived(
+    local || !$gestesNavigationService ? null : albumDeServiceDe(piste as any),
+  );
   // 🔴 #956 — `destinationArtiste` tranche : une piste de service porte un
   // `artist_id` de SERVICE, qui n'est pas une clé de bibliothèque.
   const destination = $derived(destinationArtiste({

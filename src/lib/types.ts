@@ -163,6 +163,18 @@ export interface Track {
   id: number | null;
   title: string;
   album_id?: number | null;
+  /**
+   * L'identifiant de l'album CHEZ LE SERVICE, quand l'appelant l'a appris
+   * ailleurs que sur la piste — champ CLIENT, jamais servi tel quel.
+   *
+   * Fil forum 1906 (FabienM) : une écoute Qobuz de l'Historique n'a pas
+   * d'album chez son service — `listen_history.album_id` est un entier de la
+   * table `albums`. Quand l'écoute a été lancée DEPUIS l'album, le contexte
+   * d'écoute le donne (`entreesDepuisServeur`). Séparé de `album_id` à
+   * dessein : y glisser une chaîne partirait vers la pochette locale et vers
+   * le rejeu par `album_id`. Lu par `routageAlbum.albumDeServiceDe`.
+   */
+  album_id_service?: string | null;
   album_title?: string | null;
   artist_id?: number | null;
   artist_name?: string | null;
