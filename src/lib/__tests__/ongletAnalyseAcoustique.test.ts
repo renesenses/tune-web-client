@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { V2_SETTINGS, tabLabel } from '../v2Settings';
-import * as LOCALES from '../locales';
+import * as LOCALES from './lesOnzeLangues';
 
 /**
  * #2104 — l'onglet de l'analyse acoustique porte le nom de sa FONCTION.

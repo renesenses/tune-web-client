@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { indisponibiliteCrossfeed, cleIndisponibiliteCrossfeed } from '../crossfeed';
 import type { CrossfeedStatus } from '../api';
-import * as LOCALES from '../locales';
+import * as LOCALES from './lesOnzeLangues';
 
 /**
  * #2742 — le crossfeed n'a AUCUN chemin sur une zone réseau, et l'écran le dit.

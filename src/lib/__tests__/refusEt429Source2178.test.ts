@@ -21,7 +21,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { messageErreurSupport, statutHttp, delaiAvantNouvelleTentative } from '../supportErrors';
 import { estRefusPremium } from '../premiumRefus';
-import { fr as frBrut } from '../locales';
+import { fr as frBrut } from './onzeDictionnaires';
 
 const fr = frBrut as Record<string, string>;
 
