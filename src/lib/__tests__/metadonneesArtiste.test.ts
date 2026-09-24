@@ -30,7 +30,9 @@ describe('bioDans / bilanEnrichissement', () => {
 });
 
 describe('fiche artiste v2 : enrichissement, similaires, membres, crédits', () => {
-  const A = readFileSync('src/components/v2/ArtistesV2.svelte', 'utf8');
+  // #1501 : la fiche artiste est la PAGE COMMUNE, qui porte ces blocs depuis
+  // #1485 (`ficheElueBlocsLocaux1232.test.ts` les monte).
+  const A = readFileSync('src/components/v2/ArtisteServiceV2.svelte', 'utf8');
   it('l’enrichissement est offert, passe par la route et dit son bilan', () => {
     expect(A).toContain('onclick={enrichir}');
     const i = A.indexOf('async function enrichir(');

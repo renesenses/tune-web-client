@@ -32,7 +32,9 @@ import { mount, unmount, flushSync } from 'svelte';
 import { get } from 'svelte/store';
 import ShellV2 from '../../components/v2/ShellV2.svelte';
 import ArtistesV2 from '../../components/v2/ArtistesV2.svelte';
+import ArtisteServiceV2 from '../../components/v2/ArtisteServiceV2.svelte';
 import { activeView, pendingLibraryAlbum, vueDeRetour } from '../stores/navigation';
+import { ficheArtisteService, streamingServices } from '../stores/streaming';
 import { brancherHistoriqueCoquille, detailOuvert } from '../historiqueCoquille';
 import { reculer } from './reculer';
 
@@ -48,7 +50,12 @@ const COLLECTIONS =
 function corpsPour(url: string) {
   // L'ORDRE compte : `/library/artists/7/albums` matcherait aussi COLLECTIONS.
   if (/\/library\/artists\/\d+\/albums/.test(url)) return [];
+  if (/\/library\/artists\/\d+\/(bio|metadata)/.test(url)) return {};
+  if (/\/library\/artists\/\d+\/credits/.test(url)) return [];
+  // #1501 — la page commune demande l'artiste par son IDENTIFIANT.
+  if (/\/library\/artists\/7(\?|$)/.test(url)) return ARTISTES[0];
   if (/\/library\/artists(\?|$)/.test(url)) return ARTISTES;
+  if (/\/streaming\/services/.test(url)) return {};
   if (/\/library\/albums\/\d+(\?|$)/.test(url)) return {};
   return COLLECTIONS.test(url) ? [] : {};
 }
@@ -85,9 +92,10 @@ const attendre = (ms = 60) => new Promise((r) => setTimeout(r, ms));
  * peut pas tenir — épuiserait ses trente trames avant de la poser quand même.
  * On donne donc au document une hauteur, comme un navigateur le ferait.
  *
- * ⚠️ Sur `Element.prototype`, pas sur un nœud : `{#if ouvert}` DÉTRUIT la
- * grille et la reconstruit au retour. Un nœud instrumenté ne serait plus là au
- * moment qui compte, et le témoin mesurerait un élément neuf, toujours à zéro.
+ * ⚠️ Sur `Element.prototype`, pas sur un nœud : le changement de VUE (#1501)
+ * DÉTRUIT la grille et la reconstruit au retour. Un nœud instrumenté ne serait
+ * plus là au moment qui compte, et le témoin mesurerait un élément neuf,
+ * toujours à zéro.
  */
 function donnerUneMiseEnPage(): () => void {
   const avant = {
@@ -113,10 +121,16 @@ beforeEach(() => {
   vi.stubGlobal('WebSocket', class {
     close() {} addEventListener() {} removeEventListener() {} send() {}
   } as unknown as typeof WebSocket);
+  // `ClampedText` (la biographie de la page commune) observe son nœud.
+  vi.stubGlobal('ResizeObserver', class {
+    observe() {} unobserve() {} disconnect() {}
+  } as unknown as typeof ResizeObserver);
   activeView.set('home');
   pendingLibraryAlbum.set(null);
   vueDeRetour.set(null);
   detailOuvert.set(null);
+  ficheArtisteService.set(null);
+  streamingServices.set({} as any);
   // Chaque cas repart d'une pile propre : les entrées d'un cas précédent
   // feraient reculer le suivant sur un écran qu'il n'a jamais ouvert.
   history.replaceState(null, '', '/');
@@ -129,6 +143,7 @@ afterEach(() => {
   hote = null;
   if (rendreLaMiseEnPage) rendreLaMiseEnPage();
   rendreLaMiseEnPage = null;
+  ficheArtisteService.set(null);
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -256,8 +271,35 @@ describe('#864 — le retour repose OÙ L’ON ÉTAIT, pas en haut de la liste',
     expect(el.querySelectorAll('.grille.artistes .carte').length).toBe(ARTISTES.length);
   });
 
-  it('🔴 le bouton « Retour » de la fiche restitue la position de la liste', async () => {
+  /**
+   * #1501 — la fiche d'artiste est la PAGE COMMUNE, une VUE : `ShellV2`
+   * démonte la Bibliothèque quand on y va, et la remonte au retour. Ce que
+   * `ShellV2` fait, ce témoin le fait à la main : démonter la grille, monter
+   * la page, puis l'inverse.
+   */
+  async function ouvrirLaPageCommune(el: HTMLDivElement): Promise<void> {
+    expect(get(activeView), 'le clic n’a pas ouvert la page commune').toBe('streamingartist');
+    unmount(monte!);
+    monte = mount(ArtisteServiceV2, { target: el, props: {} });
+    flushSync();
+    await attendre();
+    flushSync();
+    expect(el.querySelector('header.tete'), 'la page commune ne s’est pas montée').not.toBeNull();
+    expect(grille(el), 'la grille est encore là : la vue n’a pas changé').toBeNull();
+  }
+  async function remonterLaGrille(el: HTMLDivElement): Promise<void> {
+    expect(get(activeView), 'on n’est pas revenu à la Bibliothèque').toBe('library');
+    unmount(monte!);
+    monte = mount(ArtistesV2, { target: el, props: { q: '' } });
+    flushSync();
+    await attendre();
+    flushSync();
+    expect(grille(el), 'la grille n’est pas revenue').not.toBeNull();
+  }
+
+  it('🔴 le bouton « Retour » de la page commune restitue la position de la liste', async () => {
     rendreLaMiseEnPage = donnerUneMiseEnPage();
+    activeView.set('library');
     const el = poser(ArtistesV2, { q: '' });
     await attendre();
     flushSync();
@@ -268,30 +310,27 @@ describe('#864 — le retour repose OÙ L’ON ÉTAIT, pas en haut de la liste',
     // LA NAVIGATION AGIT : on clique une carte de la grille.
     el.querySelectorAll<HTMLButtonElement>('.grille.artistes .carte button.meta')[0].click();
     flushSync();
-    await attendre();
-    flushSync();
-    // #1356 : l'en-tête de fiche est désormais `EnTeteArtiste`, partagé avec
-    // la fiche de service — `header.tete`. Même nœud, même bouton Retour.
-    const retour = el.querySelector<HTMLButtonElement>('header.tete button.retour');
-    expect(retour, 'la fiche artiste ne s’est pas ouverte').not.toBeNull();
-    expect(grille(el), 'la grille est encore là : le calque ne l’a pas remplacée').toBeNull();
+    await ouvrirLaPageCommune(el);
 
+    // #1356 : l'en-tête est `EnTeteArtiste` — `header.tete`, bouton `.retour`.
+    const retour = el.querySelector<HTMLButtonElement>('header.tete button.retour');
+    expect(retour, 'la page commune n’a pas de bouton Retour').not.toBeNull();
     retour!.click();
     flushSync();
-    await attendre();
-    flushSync();
+    await remonterLaGrille(el);
 
-    expect(grille(el), 'la grille n’est pas revenue').not.toBeNull();
     expect(
       grille(el)!.scrollTop,
       'le retour repose EN HAUT de la liste des artistes — c’est le défaut #864',
     ).toBe(POSITION);
   });
 
-  it('🔴 le Précédent du navigateur referme la fiche ET restitue la position', async () => {
+  it('🔴 le Précédent du navigateur referme la page ET restitue la position', async () => {
     rendreLaMiseEnPage = donnerUneMiseEnPage();
     const debrancher = brancherHistoriqueCoquille();
     try {
+      activeView.set('library');
+      flushSync();
       const el = poser(ArtistesV2, { q: '' });
       await attendre();
       flushSync();
@@ -299,22 +338,16 @@ describe('#864 — le retour repose OÙ L’ON ÉTAIT, pas en haut de la liste',
 
       el.querySelectorAll<HTMLButtonElement>('.grille.artistes .carte button.meta')[0].click();
       flushSync();
-      await attendre();
-      flushSync();
-      expect(el.querySelector('header.tete'), 'la fiche ne s’est pas ouverte').not.toBeNull();
-      expect(history.state, 'ouvrir une fiche n’écrit rien dans l’historique').toMatchObject({
-        detail: `artiste:${ARTISTES[0].id}`,
+      // UNE entrée, celle de la VUE — plus de clé composée `artiste:7` (#1501).
+      expect(history.state, 'ouvrir la page n’écrit rien dans l’historique').toMatchObject({
+        vue: 'streamingartist', detail: null,
       });
+      await ouvrirLaPageCommune(el);
 
       await reculer();
       flushSync();
-      await attendre();
-      flushSync();
+      await remonterLaGrille(el);
 
-      expect(
-        el.querySelector('header.tete'),
-        'le Précédent du navigateur laisse la fiche ouverte',
-      ).toBeNull();
       expect(
         grille(el)!.scrollTop,
         'le Précédent du navigateur repose en haut de la liste',

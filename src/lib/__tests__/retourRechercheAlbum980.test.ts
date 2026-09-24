@@ -102,10 +102,11 @@ describe('#980 — la Recherche empile et dépile son calque', () => {
     expect(src).toMatch(/import \{[^}]*detailOuvert[^}]*\} from '\.\.\/\.\.\/lib\/historiqueCoquille'/);
   });
 
-  it('la Recherche suit le même contrat que la fiche artiste', () => {
-    const artistes = lire('src/components/v2/ArtistesV2.svelte');
+  it('la Recherche tient le contrat des calques par les aides partagées', () => {
+    // #1501 : `ArtistesV2` n'a plus de calque et ne sert plus de référence ;
+    // la règle tenue ici est celle de `historiqueCoquille`, et la garde de
+    // `calquesAlbumEmpilent980.test.ts` la balaie sur tous les écrans.
     for (const aide of ['ouvrirDetail', 'fermerDetailEnReculant']) {
-      expect(artistes, `${aide} a disparu d’ArtistesV2`).toContain(aide);
       expect(ecran(), `${aide} manque à SearchV2`).toContain(aide);
     }
   });

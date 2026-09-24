@@ -25,6 +25,7 @@
   import PochetteActions from './PochetteActions.svelte';
   import { PODCAST_GENRES, sousCategories } from '../../lib/podcast-genres';
   import { t } from '../../lib/i18n';
+  import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { dateCourte } from '../../lib/dates';
   import '../../styles/tune-v2.css';
 
@@ -796,7 +797,10 @@
         {:else}
           <!-- Les DIX premiers en bandeau, numérotés. Un classement dont on ne
                voit pas le rang n'est plus un classement. -->
-          <div class="tete">
+          <!-- #1137 — le bandeau répond à la molette, à Maj+molette et aux
+               flèches ← →, au lieu d'exiger qu'on attrape sa barre. -->
+          <div class="tete" use:defilementHorizontal
+               role="group" aria-label={titrePalmares}>
             {#each tete as p, i (feedOf(p) ?? `t${i}`)}
               <div class="rangee">
                 <span class="rang">#{i + 1}</span>
