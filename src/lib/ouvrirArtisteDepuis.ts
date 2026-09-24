@@ -200,6 +200,53 @@ export function artisteDePiste(p: any): any | null {
   return nom ? { name: nom } : null;
 }
 
+/**
+ * L'artiste d'une VIGNETTE d'album ou de piste de service, prêt pour
+ * [`ouvrirArtisteDeServiceParNom`] — ou `null`.
+ *
+ * 🔴 #956, POINT 1 DE SANDRO (fil 1769, 12/09/2026), le volet resté dehors
+ * quand la .159 a corrigé le reste du ticket :
+ *
+ *   « Je cherche un artiste (ex: "Leprous") sur Qobuz. L'interface affiche une
+ *     grille d'albums. À ce stade, le nom de l'artiste sous les pochettes
+ *     n'est PAS cliquable. »
+ *
+ * Le triage du 20/09 le nommait déjà « un second défaut, distinct, et rien
+ * dans la .159 ne le touche ». Il ne l'a pas été davantage par #1359 ni par
+ * #1489, qui corrigent le lien de la FICHE d'album — pas la deuxième ligne de
+ * la vignette, restée un `<span>` inerte (`StreamingV2`, gabarit `tile`).
+ *
+ * Trois gardes, et c'est pour cela que la forme est calculée ici plutôt qu'au
+ * gabarit :
+ *
+ * - **seuls un ALBUM et une PISTE portent un nom d'artiste.** La deuxième
+ *   ligne d'une PLAYLIST est un NOMBRE de pistes (`pSub`, « 12 titres ») :
+ *   la rendre cliquable ouvrirait une recherche sur « 12 titres ».
+ * - **pas de nom, pas de bouton** — un lien mort est pire que pas de lien,
+ *   même règle que `artisteDePiste` et `artisteDeService` au-dessus.
+ * - **pas de service, pas de bouton** : cet écran n'affiche que du service,
+ *   et `ouvrirArtisteDeServiceParNom` renonce sans clé serveur.
+ *
+ * `id` est rendu tel quel quand le service l'a servi — l'album Qobuz porte
+ * `artist_id` (`StreamAlbum`, `traits.rs:75`), et la résolution ouvre alors la
+ * fiche SANS interroger la recherche fédérée. Absent (un article Bandcamp n'en
+ * a pas), c'est le nom qui est résolu, avec le repli qui PARLE de #956.
+ */
+export function artisteDeVignetteService(
+  p: any,
+  type: string | null | undefined,
+  service: string | null | undefined,
+): { service: string; nom: string; id: string | null } | null {
+  if (type !== 'album' && type !== 'track') return null;
+  const brutNom = p?.artist_name ?? p?.artist ?? p?.artiste;
+  const nom = typeof brutNom === 'string' ? brutNom.trim() : '';
+  if (!nom) return null;
+  const brutSrc = p?.source ?? service;
+  const svc = typeof brutSrc === 'string' && brutSrc.trim() ? brutSrc.trim() : null;
+  if (!svc) return null;
+  return { service: svc, nom, id: identifiantDeService(p?.artist_id) };
+}
+
 /** Un identifiant de service utilisable, ou `null` — voir la garde de #1178. */
 function identifiantDeService(v: unknown): string | null {
   if (typeof v === 'number') return Number.isFinite(v) ? String(v) : null;
