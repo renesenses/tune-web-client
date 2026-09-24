@@ -261,9 +261,10 @@ export interface Preferences {
   /**
    * L'ordre du panneau « Autres versions » — tune-server-rust#4368.
    *
-   * `pertinence` (défaut) : l'ordre rendu par le serveur, son barème de #2372.
-   * `source` : regroupé par source, Qobuz / Tidal / YouTube, Bandcamp en
-   * dernier — la demande de FabienM (fil 1829, point 11).
+   * `source` (défaut depuis le 23/09/2026) : regroupé par source, Qobuz /
+   * Tidal / YouTube, Bandcamp en dernier — la demande de FabienM (fil 1829,
+   * point 11). `pertinence` : l'ordre rendu par le serveur, son barème de
+   * #2372 — c'était le défaut de la 0.9.161.
    *
    * Rangée ici, donc dans `ui_preferences` synchronisé serveur, comme les
    * autres préférences d'écran : le choix suit le profil d'un navigateur à
@@ -308,9 +309,13 @@ const defaults: Preferences = {
   settingsLevel: 'expert',
   avatarImage: '',
   avatarCompte: '',
-  // #4368 : le classement par pertinence du serveur reste le défaut. Il est
-  // un arbitrage (#2372), pas un accident — on l'offre en choix, on ne le
-  // remplace pas.
+  // #4368 : le GROUPEMENT PAR SOURCE est le défaut depuis le 23/09/2026. Le
+  // classement par pertinence du serveur (#2372) reste offert par le
+  // sélecteur — il est un arbitrage, pas un accident.
+  //
+  // 🔴 Ce défaut ne s'applique qu'aux blobs qui ne portent PAS la clé : la
+  // fusion `{ ...defaults, ...raw }` de `loadPrefs` donne toujours le dernier
+  // mot à la valeur enregistrée. Un utilisateur qui a choisi garde son choix.
   ordreAutresVersions: ORDRE_VERSIONS_DEFAUT,
 };
 
