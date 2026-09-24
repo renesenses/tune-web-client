@@ -312,6 +312,37 @@ export function demarrerTransportV2(): () => void {
       return;
     }
 
+    /**
+     * 🔴 #4559 — `zone.updated` a DEUX formes, et une seule était traitée.
+     *
+     * La branche ci-dessus attend `data.zones`, un tableau de zones entières.
+     * Cette forme-là n'existe QUE côté client : `websocket.ts` la fabrique
+     * lui-même quand il retombe sur le sondage HTTP faute de WebSocket.
+     *
+     * Le SERVEUR, lui, n'émet jamais que l'annonce nue
+     * `{"zone_id": N}` — sept sites dans `tune-server-rust`, dont
+     * `poller/tick.rs` qui annonce le contrat de signal dès que la sortie
+     * locale Windows ouvre son bras exclusif (#4568, livré en 0.9.159). Cette
+     * annonce était écrite pour la branche de repli `zone.*` d'`App.svelte`,
+     * supprimée le 19/09/2026 avec l'ancienne interface (#1257) : elle
+     * tombait donc dans le vide, et le panneau « Chemin du signal » gardait
+     * son « WASAPI (shared — Windows mixer) » et ses étapes orange jusqu'à ce
+     * qu'un `playback.*` — un geste, ou un évènement d'une AUTRE zone —
+     * provoque enfin la relecture. C'est mot pour mot ce que décrit Jean
+     * Valjean : « dès qu'il y a un changement sur la sortie Marantz,
+     * Bit-Perfect sur la sortie locale redevient vert ».
+     *
+     * L'annonce ne porte pas la zone : la relire est le seul moyen d'en
+     * connaître le nouvel état. Sa cadence est celle d'un CHANGEMENT (une
+     * fois par piste au plus pour le contrat de signal), jamais celle d'un
+     * relevé — et `cadence.rs` exclut explicitement `zone.updated` de tout
+     * lissage pour cette raison.
+     */
+    if (type === 'zone.updated') {
+      void rechargerZones();
+      return;
+    }
+
     // 🔴 Les NIVEAUX audio arrivent en continu — plusieurs trames par seconde.
     //
     // Ils tombaient dans la branche générique `playback.*`, qui recharge
