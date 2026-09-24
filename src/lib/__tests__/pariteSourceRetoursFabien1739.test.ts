@@ -138,15 +138,33 @@ describe('point 2 — le menu « … » d’un titre d’historique', () => {
     // une playlist DE SON SERVICE lui est ouverte
     // (`POST /streaming/{service}/playlists/{id}/tracks`). L'intention est
     // gardée plus bas, en appelant la règle.
+    //
+    // 🔄 Réécrit le 23/09/2026 : « Autres versions » sort à son tour. Sa limite
+    // ne tenait qu'à la route par `i64` ; Bertrand tranche que l'entrée
+    // apparaît AUSSI sur une piste de service, par rapprochement titre +
+    // artiste côté client (`lib/versionsParTitre`, recherche fédérée). Comme
+    // pour les deux précédentes, l'intention est gardée plus bas en appelant
+    // la règle : jamais sur une piste qui ne se nomme pas.
     const menu = sansCommentaires(lire('src/lib/menuPiste.ts'));
-    for (const cle of [
-      'library.playSimilar',
-      'library.otherVersions',
-    ]) {
+    for (const cle of ['library.playSimilar']) {
       expect(menu, `${cle} n’est plus réservée à la bibliothèque`).toMatch(
         new RegExp(`pousser\\(deLaBibliotheque, '${cle.replace('.', '\\.')}'`),
       );
     }
+  });
+
+  it('« Autres versions » : ouverte à une piste de service NOMMÉE (titre + artiste), fermée sinon (23/09/2026)', () => {
+    const noop = () => {};
+    const service = { jouable: true, idBibliotheque: null, artistId: null, albumId: null };
+    const cles = (c: Parameters<typeof entreesMenuPiste>[0]) =>
+      entreesMenuPiste(c, { autresVersions: noop }).map((e) => e.cle);
+    expect(cles({ ...service, versionsParTitre: true }), 'une piste de service nommée n’a pas l’entrée')
+      .toContain('library.otherVersions');
+    // Pas de geste mort : sans titre ni artiste (l'appelant le dit par
+    // `cibleParTitre`), pas d'entrée.
+    expect(cles({ ...service, versionsParTitre: false })).not.toContain('library.otherVersions');
+    expect(cles(service), 'sans avis de l’appelant, seule la bibliothèque a ses versions').not.toContain('library.otherVersions');
+    expect(cles({ ...service, idBibliotheque: 12 })).toContain('library.otherVersions');
   });
 
   it('« Étiquettes » : ouverte à une piste de service désignable, fermée sinon (#1238)', () => {

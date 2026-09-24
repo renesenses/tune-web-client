@@ -90,6 +90,7 @@
   import { serviceDePlaylist } from '../../lib/playlistService';
   import type { Track } from '../../lib/types';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { cibleParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
 
   interface Props {
     piste: Track;
@@ -123,6 +124,12 @@
    *  champs, que la plupart des lignes n'ouvriront jamais. */
   let tiroirChamps = $state(false);
   let panneauVersions = $state(false);
+  /**
+   * La cible titre + artiste des « Autres versions » d'une piste SANS
+   * identifiant de bibliothèque (23/09/2026). `null` pour une piste locale —
+   * elle passe par `trackId` — et pour une piste qui ne se nomme pas.
+   */
+  const cibleVersions: CibleParTitre | null = $derived(cibleParTitre(piste));
   /** L'ancre du menu « … » : sa position ÉCRAN, relevée au clic. */
   let ancreMenu = $state<DOMRect | null>(null);
 
@@ -366,6 +373,11 @@
         etiquetable: cibleEtiquettes != null,
         playlistDeService: serviceDePlaylist(piste),
         bannie,
+        // 23/09/2026 — « Autres versions » sur une piste de SERVICE, par
+        // rapprochement titre + artiste. `cibleParTitre` refuse une piste de
+        // la bibliothèque (la route par `i64` fait mieux) et une piste sans
+        // titre ou sans artiste. Même décision dans `MenuPisteV1`.
+        versionsParTitre: cibleVersions != null,
       },
       {
         lire: () => void lire(new MouseEvent('click')),
@@ -527,9 +539,19 @@
   <MenuPisteV2 ancre={ancreMenu} {entrees} onClose={() => (ancreMenu = null)} />
 {/if}
 
-{#if panneauVersions && piste.id != null}
+<!-- Le MÊME panneau dans les deux modes : par `trackId` pour la bibliothèque,
+     par `parTitre` pour une piste de service (23/09/2026). La bifurcation
+     suit celle du menu — `local && id` d'un côté, `cibleVersions` de l'autre —
+     pour qu'un identifiant qui n'est pas de bibliothèque ne parte jamais dans
+     la route par `i64`. -->
+{#if panneauVersions && local && piste.id != null}
   {#await import('./VersionsPistePanneau.svelte') then m}
     <m.default trackId={piste.id} titre={piste.title}
+      onClose={() => (panneauVersions = false)} />
+  {/await}
+{:else if panneauVersions && cibleVersions}
+  {#await import('./VersionsPistePanneau.svelte') then m}
+    <m.default parTitre={cibleVersions} titre={piste.title}
       onClose={() => (panneauVersions = false)} />
   {/await}
 {/if}

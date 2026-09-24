@@ -33,8 +33,10 @@
  * ## Ce qui ne s'applique pas est ABSENT, pas grisé
  *
  * La règle déjà tenue par la barre d'icônes. Une piste de service n'a pas
- * d'identifiant de bibliothèque : ni voisins acoustiques, ni autres versions,
- * ni étiquettes — les trois routes prennent un `i64`.
+ * d'identifiant de bibliothèque : ni voisins acoustiques, ni champs du
+ * fichier — ces routes prennent un `i64`. Les étiquettes passent par la paire
+ * `source` + `source_id` (#1238) et, depuis le 23/09/2026, « Autres versions »
+ * par le TITRE et l'ARTISTE (`versionsParTitre`).
  */
 export interface EntreeMenuPiste {
   /** Clé i18n du libellé. Jamais un texte : voir `check-i18n`. */
@@ -106,6 +108,14 @@ export interface CapacitesPiste {
    * Bertrand 23/09/2026).
    */
   bannie?: boolean;
+  /**
+   * La piste n'a pas d'identifiant de bibliothèque mais porte un TITRE et un
+   * ARTISTE : « Autres versions » se rapproche alors par titre + artiste
+   * (`lib/versionsParTitre`, décision de Bertrand du 23/09/2026 — « résultats
+   * approximatifs acceptés »). Absent = jamais (comportement d'origine : les
+   * versions ne s'ouvraient que par un `i64`).
+   */
+  versionsParTitre?: boolean;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -151,7 +161,19 @@ export function entreesMenuPiste(
   pousser(c.jouable, 'v2.pa.next', ICONES.next, g.ensuite);
   pousser(c.jouable, 'queue.addToQueue', ICONES.queue, g.aLaFile);
   pousser(deLaBibliotheque, 'library.playSimilar', ICONES.similar, g.plusCommeCa);
-  pousser(deLaBibliotheque, 'library.otherVersions', ICONES.versions, g.autresVersions);
+  /**
+   * « Autres versions » — par `i64` pour la bibliothèque, par TITRE + ARTISTE
+   * pour tout le reste (Bertrand, 23/09/2026). Même libellé, même icône : ce
+   * qui change est la façon dont le panneau rapproche, et il le dit dans son
+   * en-tête. C'est l'appelant qui pose `versionsParTitre`, par
+   * `cibleParTitre(piste)` : une piste sans titre ou sans artiste ne l'a pas.
+   */
+  pousser(
+    deLaBibliotheque || !!c.versionsParTitre,
+    'library.otherVersions',
+    ICONES.versions,
+    g.autresVersions,
+  );
   /**
    * 🔴 « Ajouter à une liste de lecture » : réservé à la BIBLIOTHÈQUE.
    *

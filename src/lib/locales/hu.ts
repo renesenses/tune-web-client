@@ -1224,6 +1224,7 @@ export default {
   "library.goToAlbum": "Ugrás az albumhoz",
   "library.otherVersions": "Más változatok",
   "library.noOtherVersions": "Nem található másik változat",
+  "library.otherVersionsByTitle": "Cím és előadó alapján párosítva – hozzávetőleges találatok",
   "library.editArtist": "Előadó szerkesztése",
   "library.reEnrich": "Újragazdagítás",
   "library.enrichBio": "Életrajz gazdagítása",

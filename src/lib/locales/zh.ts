@@ -1156,6 +1156,7 @@ export default {
   "library.goToAlbum": "前往专辑",
   "library.otherVersions": "其他版本",
   "library.noOtherVersions": "未找到其他版本",
+  "library.otherVersionsByTitle": "按标题和艺人匹配 — 近似结果",
   "library.editArtist": "编辑艺术家",
   "library.reEnrich": "重新补全",
   "library.enrichBio": "补全简介",

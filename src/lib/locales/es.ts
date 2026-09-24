@@ -1156,6 +1156,7 @@ export default {
   "library.goToAlbum": "Ir al álbum",
   "library.otherVersions": "Otras versiones",
   "library.noOtherVersions": "No se encontró otra versión",
+  "library.otherVersionsByTitle": "Emparejado por título y artista — resultados aproximados",
   "library.editArtist": "Editar artista",
   "library.reEnrich": "Volver a enriquecer",
   "library.enrichBio": "Enriquecer biografía",

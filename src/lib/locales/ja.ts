@@ -1156,6 +1156,7 @@ export default {
   "library.goToAlbum": "アルバムへ移動",
   "library.otherVersions": "他のバージョン",
   "library.noOtherVersions": "他のバージョンは見つかりません",
+  "library.otherVersionsByTitle": "タイトルとアーティストで照合 — おおよその結果",
   "library.editArtist": "アーティストを編集",
   "library.reEnrich": "再補完",
   "library.enrichBio": "バイオグラフィーを補完",

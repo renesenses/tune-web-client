@@ -1162,6 +1162,7 @@ export default {
   "library.goToAlbum": "Mergi la album",
   "library.otherVersions": "Alte versiuni",
   "library.noOtherVersions": "Nicio altă versiune găsită",
+  "library.otherVersionsByTitle": "Potrivit după titlu și artist — rezultate aproximative",
   "library.editArtist": "Editează artistul",
   "library.reEnrich": "Reîmbogățește",
   "library.enrichBio": "Îmbogățește biografia",
