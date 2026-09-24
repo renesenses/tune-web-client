@@ -2049,6 +2049,7 @@ export default {
   "trackTags.groupAudio": "Audio",
   "trackTags.groupSystem": "Système",
   "trackTags.groupOther": "Autres champs",
+  "trackTags.serviceReadOnly": "Titre de service : les champs que Tune connaît, en lecture seule.",
   "trackTags.trackCredits": "Crédits piste",
   "trackTags.audioInfoFromFile": "Audio info (depuis le fichier)",
   "trackTags.rawFileTags": "Tags bruts du fichier",

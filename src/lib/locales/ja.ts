@@ -1508,6 +1508,7 @@ export default {
   "trackTags.groupAudio": "オーディオ",
   "trackTags.groupSystem": "システム",
   "trackTags.groupOther": "その他の項目",
+  "trackTags.serviceReadOnly": "ストリーミングの曲：Tune が把握している項目（読み取り専用）。",
   "trackTags.trackCredits": "トラッククレジット",
   "trackTags.audioInfoFromFile": "オーディオ情報（ファイルから）",
   "trackTags.rawFileTags": "生のファイルタグ",

@@ -1594,6 +1594,7 @@ export default {
   "trackTags.groupAudio": "Hang",
   "trackTags.groupSystem": "Rendszer",
   "trackTags.groupOther": "Egyéb mezők",
+  "trackTags.serviceReadOnly": "Streaming szám: a Tune által ismert mezők, csak olvasható.",
   "trackTags.trackCredits": "A szám közreműködői",
   "trackTags.audioInfoFromFile": "Hanginformáció (a fájlból)",
   "trackTags.rawFileTags": "Nyers fájlcímkék",

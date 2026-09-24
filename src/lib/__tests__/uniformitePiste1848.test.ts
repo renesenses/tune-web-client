@@ -168,15 +168,15 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     expect(rendus).not.toContain(fr['nowplaying.addToPlaylist']);
     // Les routes de bibliothèque prennent un `i64` : gestes morts, donc absents.
     expect(rendus).not.toContain(fr['library.playSimilar']);
-    expect(rendus).not.toContain(fr['trackTags.title']);
     // « Autres versions », SI : depuis le 23/09/2026 elle se rapproche par
     // titre + artiste pour une piste de service (`lib/versionsParTitre`).
     expect(rendus).toContain(fr['library.otherVersions']);
     // Ce qu'elle sait faire, elle le propose — c'est ce qui manquait. Les
     // étiquettes, oui : la paire `source` + `source_id` suffit (#1238).
+    // Fil forum 1906 (FabienM, point 3) : ses champs aussi, en lecture seule.
     expect(rendus).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
-      fr['library.otherVersions'], fr['v2.cover.tags'],
+      fr['library.otherVersions'], fr['v2.cover.tags'], fr['trackTags.title'],
     ]);
   });
   /**
@@ -194,6 +194,8 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       // même place que pour une piste de la bibliothèque.
       fr['library.otherVersions'],
       fr['nowplaying.addToPlaylist'], fr['v2.cover.tags'],
+      // Fil forum 1906 — « Tous les champs piste », en lecture seule.
+      fr['trackTags.title'],
     ]);
   });
   it('une piste de la BIBLIOTHÈQUE ouvre les onze gestes', () => {

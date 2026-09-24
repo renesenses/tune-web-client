@@ -116,6 +116,14 @@ export interface CapacitesPiste {
    * versions ne s'ouvraient que par un `i64`).
    */
   versionsParTitre?: boolean;
+  /**
+   * La piste de SERVICE sait montrer ses champs — fil forum 1906 (FabienM,
+   * point 3). Vrai quand elle se désigne par `source` + `source_id` chez un
+   * service (radio exclue) : voir `lib/champsPisteService`. Le tiroir « Tous
+   * les champs piste » les montre alors en lecture seule, sans jamais appeler
+   * la route des tags du fichier (`/library/tracks/{id}/all-tags`, un `i64`).
+   */
+  champsDeService?: boolean;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -160,6 +168,33 @@ export function entreesMenuPiste(
   pousser(c.jouable, 'common.play', ICONES.play, g.lire, true);
   pousser(c.jouable, 'v2.pa.next', ICONES.next, g.ensuite);
   pousser(c.jouable, 'queue.addToQueue', ICONES.queue, g.aLaFile);
+  /**
+   * « Plus comme ça » — RESTE réservé à la bibliothèque. Fil forum 1906
+   * (FabienM, point 3), vérifié le 24/09/2026 sur la tête de
+   * `renesenses/tune-server-rust` (v0.9.163, `b4c1244`).
+   *
+   * Le geste de bibliothèque lit `GET /library/tracks/{id}/similar` puis lance
+   * la file par `track_ids`. Pour une piste désignée par `source` +
+   * `source_id`, AUCUNE route ne rend de titres voisins, pour AUCUN service :
+   *
+   *   - `tune-streaming-http` n'expose, par titre, que `/{service}/tracks/{id}`
+   *     (le détail) et `/{service}/tracks/{id}/url` — ni `radio`, ni
+   *     `similar`, ni `recommendations` ;
+   *   - `get_similar_artists` (Qobuz seul l'implémente) n'a pas de route : il
+   *     ne sert que la reprise automatique en fin de file
+   *     (`poller/radio.rs`, `autoplay_streaming_radio`), qu'on ne déclenche
+   *     pas sur demande ;
+   *   - `/radio/auto?seed_track=`, `/ai/smart-radio` (Premium) et
+   *     `/smart-ai/similar-to` prennent tous un `i64` de `tracks` ou puisent
+   *     dans la seule bibliothèque.
+   *
+   * L'entrée est donc ABSENTE d'un titre Qobuz, Tidal, Deezer, Spotify,
+   * YouTube, Amazon ou Bandcamp — pas grisée, pas muette. Il manque côté
+   * serveur une route du genre `GET /streaming/{service}/tracks/{id}/similar`
+   * (Qobuz : `get_similar_artists` + `get_artist_top_tracks` existent déjà,
+   * c'est l'enchaînement de la reprise automatique ; les autres services
+   * n'ont même pas la similarité d'artiste).
+   */
   pousser(deLaBibliotheque, 'library.playSimilar', ICONES.similar, g.plusCommeCa);
   /**
    * « Autres versions » — par `i64` pour la bibliothèque, par TITRE + ARTISTE
@@ -262,8 +297,18 @@ export function entreesMenuPiste(
    * nouvelle interface que par pochette → Modifier l'album → cliquer une
    * piste, trois gestes que rien ne signale. Il prend un `i64` de `tracks` :
    * réservé à la bibliothèque, comme ses trois voisines de la famille A.
+   *
+   * 🔴 Fil forum 1906 (FabienM, point 3) : plus seulement. Une piste de
+   * SERVICE a des champs aussi — ceux que le client tient déjà, complétés par
+   * `GET /streaming/{service}/tracks/{id}` quand le service sait répondre.
+   * Même tiroir, en lecture seule, sans la route du fichier.
    */
-  pousser(deLaBibliotheque, 'trackTags.title', ICONES.champs, g.champsDuFichier);
+  pousser(
+    deLaBibliotheque || !!c.champsDeService,
+    'trackTags.title',
+    ICONES.champs,
+    g.champsDuFichier,
+  );
   /**
    * « Bannir ce titre » / « Débannir » — `renesenses/tune-server-rust#4806`.
    *

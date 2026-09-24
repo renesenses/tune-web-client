@@ -81,6 +81,8 @@
      * menu-ci ne la connaissait pas, et une piste de la bibliothèque perdait
      * l'entrée dès qu'elle s'affichait dans le tiroir de file du NowPlaying
      * (réunion du 23/09/2026 : « toutes les pistes ont le menu complet »).
+     * Fil forum 1906 : posé par `MenuPisteV1`, qui tient le tiroir —
+     * bibliothèque ET service.
      */
     onChampsDuFichier?: () => void;
     /** Ce que la PISTE permet. Par défaut : tout, le geste seul décide. */
