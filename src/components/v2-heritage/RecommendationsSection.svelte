@@ -18,6 +18,7 @@
   import * as api from '../../lib/api';
   import { t } from '../../lib/i18n';
   import { ouvrirAlbum } from '../../lib/libraryNavigation';
+  import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import AlbumArt from '../partages/AlbumArt.svelte';
 
   let recommendations: any[] = $state([]);
@@ -42,7 +43,15 @@
 {#if recsLoaded && recommendations.length > 0}
   <div class="top-section">
     <h2 class="section-title">{$t('home.recommendations')}</h2>
-    <div class="recs-carousel">
+    <!-- #1137 — molette, Maj+molette et flèches ← →, plutôt que d'attraper la
+         barre. Ici il n'y avait même pas de barre à attraper : la règle
+         `.recs-carousel` masque l'ascenseur (`scrollbar-width:none` et
+         `::-webkit-scrollbar{display:none}`). À la souris, cette rangée était
+         donc inatteignable au-delà de ce qui tenait à l'écran.
+         L'action ne prend l'événement que si la rangée peut réellement
+         avancer, et laisse la molette verticale à la page (#1327). -->
+    <div class="recs-carousel" use:defilementHorizontal
+         role="group" aria-label={$t('home.recommendations')}>
       {#each recommendations as rec}
         <button
           class="rec-card"
