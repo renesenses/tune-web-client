@@ -165,6 +165,122 @@ describe('n’interroger que ce qu’on affiche', () => {
   });
 });
 
+/*
+ * ── LOCAL ET RÉSEAU (Bertrand, 24/09/2026) ───────────────────────────────
+ *
+ * « Les chiffres de la bibliothèque mélangent les fichiers locaux et les
+ * serveurs du réseau. Je veux pouvoir les distinguer. »
+ *
+ * Les deux charges de ce banc sont MESURÉES le 24/09/2026, pas inventées :
+ *
+ *   .18 (0.9.162, SQLite)    96 519 titres = 47 079 locaux + 49 440 réseau
+ *                             9 430 albums =  3 938 locaux +  5 492 réseau
+ *   .15 (0.9.162, Postgres)  50 772 titres, TOUS locaux — et la clé `upnp`
+ *                            n'y est pas à zéro : elle n'existe pas.
+ */
+const LE_18_VENTILE: SourcesChiffres = {
+  bibliotheque: {
+    albums: 9430, artists: 2626, tracks: 96519,
+    albums_by_source: { local: 3938, upnp: 5492 },
+    tracks_by_source: { local: 47079, upnp: 49440 },
+    total_duration_ms: 25_621_576_732, total_size_bytes: 3_917_133_799_137,
+  },
+};
+
+/** Le .15 : une bibliothèque sans AUCUN serveur multimédia. */
+const LE_15_SANS_RESEAU: SourcesChiffres = {
+  bibliotheque: {
+    albums: 5092, artists: 1766, tracks: 50772,
+    albums_by_source: { local: 5092 },
+    tracks_by_source: { local: 50772 },
+    total_duration_ms: 13_508_414_988, total_size_bytes: 2_111_386_661_625,
+  },
+};
+
+const PAR_SOURCE = ['titres-locaux', 'titres-reseau', 'albums-locaux', 'albums-reseau'];
+
+describe('distinguer le local du réseau', () => {
+  it('la ventilation s’affiche quand le serveur la porte', () => {
+    const v = cartes(['titres', ...PAR_SOURCE], LE_18_VENTILE, 'fr');
+    expect(v.map((c) => c.texte)).toEqual([
+      '96 519',  // le total, inchangé
+      '47 079',  // titres locaux
+      '49 440',  // titres sur le réseau
+      '3 938',   // albums locaux
+      '5 492',   // albums sur le réseau
+    ]);
+  });
+
+  it('🔴 les deux parts font bien le total que la ligne affichait seul', () => {
+    const b = LE_18_VENTILE.bibliotheque as any;
+    expect(b.tracks_by_source.local + b.tracks_by_source.upnp).toBe(b.tracks);
+    expect(b.albums_by_source.local + b.albums_by_source.upnp).toBe(b.albums);
+  });
+
+  it('🔴 un serveur SANS ventilation n’affiche aucune carte — et surtout pas « 0 »', () => {
+    // `LE_18` est la charge d'un serveur plus ancien : ni `tracks_by_source`
+    // ni `albums_by_source`. « 0 titre local » affirmerait que la
+    // bibliothèque n'a pas un seul fichier. On n'affiche rien.
+    const v = cartes(['titres', ...PAR_SOURCE], LE_18, 'fr');
+    expect(v.map((c) => c.id)).toEqual(['titres']);
+    expect(v.map((c) => c.texte)).not.toContain('0');
+  });
+
+  it('🔴 sans serveur multimédia, la carte RÉSEAU s’efface ; la locale reste', () => {
+    // Le .15 rend `{"local": 50772}` : la clé `upnp` est ABSENTE, pas à zéro.
+    // « 0 titre sur le réseau » encombrerait la ligne de presque tout le monde.
+    const v = cartes(PAR_SOURCE, LE_15_SANS_RESEAU, 'fr');
+    expect(v.map((c) => c.id)).toEqual(['titres-locaux', 'albums-locaux']);
+    expect(v.map((c) => c.texte)).toEqual(['50 772', '5 092']);
+  });
+
+  it('une ventilation qui n’est pas un dictionnaire ne fait pas tomber la ligne', () => {
+    const tordu: SourcesChiffres = {
+      bibliotheque: { tracks: 10, tracks_by_source: 47079 },
+    };
+    expect(cartes(['titres-locaux', 'titres'], tordu, 'fr').map((c) => c.id)).toEqual(['titres']);
+  });
+
+  it('les nouvelles cartes portent icône, destination et clé de traduction', () => {
+    for (const id of PAR_SOURCE) {
+      const c = chiffreParId(id)!;
+      expect(c, id).not.toBeNull();
+      expect(c.famille, id).toBe('bibliotheque');
+      expect(c.icone, id).toBeTruthy();
+      expect(c.vue, id).toBe('library');
+    }
+  });
+
+  it('elles réclament /library/stats, et pas /library/genres', () => {
+    expect(sourcesNecessaires(PAR_SOURCE)).toEqual({
+      bibliotheque: true, ecoute: false, genres: false,
+    });
+  });
+
+  it('🔴 la taille et la durée n’ont AUCUNE ventilation : on n’en invente pas', () => {
+    // `/library/stats` ne porte ni `total_size_bytes_by_source` ni
+    // `total_duration_ms_by_source`. Aucune carte ne prétend le contraire.
+    const inventees = CHIFFRES.filter(
+      (c) => /locaux|reseau/.test(c.id) && (c.format === 'octets' || c.format === 'heures'),
+    );
+    expect(inventees.map((c) => c.id)).toEqual([]);
+  });
+
+  it('🔴 AUCUN choix déjà enregistré n’est réécrit : le catalogue s’allonge, voilà tout', () => {
+    // Le point qui décide du dessin retenu. Ajouter au catalogue ne touche
+    // pas l'accueil de ceux qui ont déjà composé leur ligne.
+    const enregistre = ['albums', 'artistes', 'lectures', 'heures-ecoutees', 'taille'];
+    expect(choixAEnregistrer(enregistre, enregistre)).toEqual(enregistre);
+    expect(cartes(enregistre, LE_18_VENTILE, 'fr').map((c) => c.id)).toEqual([
+      'albums', 'artistes', 'taille',
+    ]);
+  });
+
+  it('🔴 et le choix PAR DÉFAUT reste ce qu’il était : rien n’arrive tout seul', () => {
+    for (const id of PAR_SOURCE) expect(CHOIX_DEFAUT).not.toContain(id);
+  });
+});
+
 describe('composer sa ligne', () => {
   it('cocher ajoute à la FIN, décocher retire', () => {
     expect(basculer(['albums'], 'taille')).toEqual(['albums', 'taille']);
