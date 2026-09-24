@@ -2960,7 +2960,32 @@
   .rows::-webkit-scrollbar{width:9px}.rows::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .lrow{display:grid; grid-template-columns:var(--lcols, 44px minmax(0,2fr) minmax(0,1.4fr) 52px 46px 150px); align-items:center;
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
-    color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s}
+    color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s;
+    /*
+      🔴 Fil 1919, ticket support 165 — jfpaquet, 6 704 albums, 0.9.163 :
+      « using the little button to change between the 3 albums views does not
+      work well : hesitating and slow […] I fear that will be a problem with
+      40.000+ ».
+
+      Les trois vues sont trois branches `{#if}` SŒURS : basculer détruit
+      toutes les vignettes de l'une et construit toutes celles de l'autre.
+      `.card` (grille) et `.ccard` (carrousel) amortissent déjà ce prix avec
+      `content-visibility` — hors du cadre, une vignette ne coûte ni style,
+      ni disposition, ni peinture. La LISTE, elle, ne l'avait pas : c'est la
+      seule des trois à payer plein tarif, et donc la transition la plus
+      lente des six possibles. Elle rejoint ses deux sœurs ici.
+
+      ⚠️ Ce n'est PAS la guérison : les nœuds sont toujours créés et détruits
+      par milliers, et seule une vue unique — ou une fenêtre de rendu —
+      supprimerait ce coût. Voir la PR pour le chantier.
+
+      Le mot-clé `auto` fait retenir au navigateur la taille RÉELLE une fois
+      la ligne rendue, comme pour `.card` : sans lui, l'estimation fixe
+      fausserait la hauteur totale et le saut au « M » du rail A–Z
+      atterrirait à côté. 56 px = la pochette de 44 px et ses deux fois
+      6 px de marge intérieure.
+    */
+    content-visibility:auto; contain-intrinsic-size:auto 56px}
   .lrow:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}
   .lrow .lt{display:flex; align-items:center; gap:7px; min-width:0;
