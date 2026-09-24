@@ -3316,6 +3316,8 @@ export default {
   "v2.fas.albums": "专辑",
   "v2.fas.empty": "该艺术家暂无可显示的内容。",
   "v2.fas.topTracksFailed": "无法加载热门曲目——“Best of”和“电台”需要它们。",
+  "v2.fas.artistNotFound": "在 {service} 上找不到该艺人。",
+  "v2.fas.artistUnavailable": "{service} 暂时无法提供该艺人的页面。",
   "v2.fas.bestOf": "播放精选",
   "v2.fas.radio": "艺人电台",
   "v2.rech.tracks": "曲目",

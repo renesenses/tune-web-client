@@ -3274,6 +3274,8 @@ export default {
   "v2.fas.albums": "Albumok",
   "v2.fas.empty": "Ehhez az előadóhoz nincs megjeleníthető tartalom.",
   "v2.fas.topTracksFailed": "A népszerű számokat nem sikerült betölteni – a „Best of” és a „Rádió” ezekre épül.",
+  "v2.fas.artistNotFound": "Ez az előadó nem található a(z) {service} szolgáltatásban.",
+  "v2.fas.artistUnavailable": "A(z) {service} most nem tudta betölteni az előadó adatlapját.",
   "v2.fas.bestOf": "A legjobbak lejátszása",
   "v2.fas.radio": "Előadórádió",
   "v2.rech.tracks": "Számok",

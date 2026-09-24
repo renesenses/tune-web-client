@@ -3316,6 +3316,8 @@ export default {
   "v2.fas.albums": "アルバム",
   "v2.fas.empty": "このアーティストに表示できるものはありません。",
   "v2.fas.topTracksFailed": "人気曲を読み込めませんでした。「Best of」と「ラジオ」にはこれが必要です。",
+  "v2.fas.artistNotFound": "このアーティストは {service} に見つかりません。",
+  "v2.fas.artistUnavailable": "{service} は現在このアーティストのページを提供できません。",
   "v2.fas.bestOf": "ベスト盤を再生",
   "v2.fas.radio": "アーティストラジオ",
   "v2.rech.tracks": "曲",

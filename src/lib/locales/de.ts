@@ -3316,6 +3316,8 @@ export default {
   "v2.fas.albums": "Alben",
   "v2.fas.empty": "Für diesen Künstler gibt es nichts anzuzeigen.",
   "v2.fas.topTracksFailed": "Die Top-Titel konnten nicht geladen werden – „Best of“ und „Radio“ brauchen sie.",
+  "v2.fas.artistNotFound": "Dieser Künstler ist bei {service} nicht zu finden.",
+  "v2.fas.artistUnavailable": "{service} konnte die Seite dieses Künstlers gerade nicht liefern.",
   "v2.fas.bestOf": "Best of abspielen",
   "v2.fas.radio": "Künstlerradio",
   "v2.rech.tracks": "Titel",

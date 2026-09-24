@@ -237,6 +237,12 @@ const SOURCE_LABELS: Record<string, string> = {
   bandcamp: 'Bandcamp',
 };
 
+/** Le nom d'affichage d'une source (`qobuz` → « Qobuz »), la clé brute à défaut. */
+export function libelleDeSource(source: string | null | undefined): string {
+  const s = String(source ?? '').trim();
+  return SOURCE_LABELS[s.toLowerCase()] ?? s;
+}
+
 /** Le débit annoncé pour une source qui n'en sert qu'un seul, ou `null`.
  *
  *  `NowPlaying` ne porte pas de champ « débit » : le chemin du signal se
