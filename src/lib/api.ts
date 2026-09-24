@@ -5700,6 +5700,84 @@ export function cancelAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zon
 export function quickFavTrack(trackId: number) { return fetchJSON<any>(`${BASE}/library/tracks/${trackId}/quick-fav`, { method: 'POST' }); }
 export function quickFavAlbum(albumId: number) { return fetchJSON<any>(`${BASE}/library/albums/${albumId}/quick-fav`, { method: 'POST' }); }
 
+// --- Rayons de collections (tune-server-rust#4853) ---
+//
+// Un RAYON range des collections des DEUX sortes et des sous-rayons (arbre,
+// profondeur 3). Le mot « dossier » est pris deux fois dans l'interface — les
+// dossiers de musique du disque, et le nom que les testeurs donnent déjà aux
+// collections simples (#1153, #3060) — d'où « rayon », comme chez un disquaire.
+//
+// Routes ADDITIVES : `/library/collections` et `/library/smart-collections`
+// gardent leur forme. Un serveur antérieur répond 404 sur l'arbre ; l'écran
+// retombe alors sur ses listes plates (`lib/rayonsCollections`).
+//
+// 🔴 Passent par `apiFetch` / `apiPost` / `apiPatch` / `apiDelete` : ils
+// construisent l'erreur par `erreurDepuisReponse`, qui GARDE le motif du
+// refus serveur (« profondeur maximale atteinte… ») et porte `status`.
+// `fetchJSON` le rangerait dans `.code` et l'écran ne lirait que « 409 ».
+
+/** Sorte d'une collection rangée : les deux espaces d'ids se recouvrent. */
+export type SorteCollectionRangee = 'collection' | 'smart';
+
+export interface CollectionRangee {
+  kind: SorteCollectionRangee;
+  id: number;
+  name: string | null;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  folder_id: number | null;
+  /** `null` = jamais rangée (à la racine, après les rangées). */
+  position: number | null;
+}
+
+export interface RayonCollections {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  position: number;
+  depth: number;
+  folders: RayonCollections[];
+  collections: CollectionRangee[];
+}
+
+export interface ArbreCollections {
+  max_depth: number;
+  folders: RayonCollections[];
+  /** Toutes les collections qui ne sont dans aucun rayon. */
+  collections: CollectionRangee[];
+}
+
+export function getCollectionFolders(): Promise<ArbreCollections> {
+  return apiFetch('/library/collection-folders');
+}
+export function createCollectionFolder(name: string, parentId: number | null = null) {
+  return apiPost('/library/collection-folders', { name, parent_id: parentId });
+}
+export function renameCollectionFolder(id: number, name: string) {
+  return apiPatch(`/library/collection-folders/${id}`, { name });
+}
+/** `parentId` `null` = la racine ; `position` absente = à la fin. */
+export function moveCollectionFolder(id: number, parentId: number | null, position?: number) {
+  return apiPost(`/library/collection-folders/${id}/move`, { parent_id: parentId, position });
+}
+/** Le contenu du rayon remonte à son parent ; aucune collection n'est supprimée. */
+export function deleteCollectionFolder(id: number) {
+  return apiDelete(`/library/collection-folders/${id}`);
+}
+/** Range (ou déplace, ou réordonne) une collection ; `folderId` `null` = racine. */
+export function placeCollectionInFolder(
+  kind: SorteCollectionRangee,
+  id: number,
+  folderId: number | null,
+  position?: number,
+) {
+  return apiPost(`/library/collection-folders/items/${kind}/${id}`, { folder_id: folderId, position });
+}
+export function removeCollectionFromFolder(kind: SorteCollectionRangee, id: number) {
+  return apiDelete(`/library/collection-folders/items/${kind}/${id}`);
+}
+
 // --- Collections ---
 export function getCollections() { return fetchJSON<any[]>(`${BASE}/library/collections`); }
 export function createCollection(name: string, description?: string, icon?: string, color?: string) {

@@ -45,6 +45,8 @@
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import RenommerModale from './RenommerModale.svelte';
+  import ArbreRayons from './ArbreRayons.svelte';
+  import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { trierAlbums } from '../../lib/trierAlbums';
   import { fold } from '../../lib/utils';
@@ -135,8 +137,18 @@
     return [];
   }
 
-  type Onglet = 'smart' | 'manuelle';
+  // `rayons` : l'arbre de rangement (tune-server-rust#4853). L'onglet n'existe
+  // que si le serveur sert l'arbre ; sinon l'écran reste ses deux listes plates.
+  type Onglet = 'smart' | 'manuelle' | 'rayons';
   let onglet = $state<Onglet>('smart');
+  let rayons = $state<EtatRayons>({ mode: 'plat' });
+  async function chargerLesRayons() {
+    rayons = await rafraichirRayons(api.getCollectionFolders);
+    if (rayons.mode === 'plat' && onglet === 'rayons') onglet = 'smart';
+  }
+  /** Une collection de l'arbre, retrouvée par sa SORTE et son id. */
+  const entreeRangee = (kind: 'collection' | 'smart', id: number) =>
+    entrees.find((x) => x.id === id && (x.sorte === 'smart') === (kind === 'smart'));
   let entrees = $state<Entree[]>([]);
   /** Ce que l'onglet courant montre. Le chargement, lui, reste COMMUN : les
    *  deux listes partent ensemble, sinon changer d'onglet relancerait tout. */
@@ -663,6 +675,7 @@
 
   async function charger() {
     chargement = true;
+    void chargerLesRayons();
     const [n, s] = await Promise.allSettled([
       api.getCollections(),
       api.listSmartCollections(),
@@ -1019,7 +1032,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           {$t('v2.col.create' as any)}
         </button>
-      {:else}
+      {:else if onglet === 'smart'}
         <button class="v2-btn primaire" onclick={() => (editeurSmart = { id: null })}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
           {$t('v2.smart.newTitle' as any)}
@@ -1033,6 +1046,10 @@
         aria-selected={onglet === 'smart'} onclick={() => (onglet = 'smart')}>{$t('v2.col.tabSmart' as any)}</button>
       <button class="tab" class:active={onglet === 'manuelle'} role="tab"
         aria-selected={onglet === 'manuelle'} onclick={() => (onglet = 'manuelle')}>{$t('v2.col.tabManual' as any)}</button>
+      {#if rayons.mode === 'arbre'}
+        <button class="tab" class:active={onglet === 'rayons'} role="tab"
+          aria-selected={onglet === 'rayons'} onclick={() => (onglet = 'rayons')}>{$t('v2.rayons.tab' as any)}</button>
+      {/if}
       <!-- Le total de l'onglet COURANT. Absent tant qu'une collection n'a pas
            rendu son compte : une somme partielle serait pire que rien. -->
       {#if totalAlbums != null}
@@ -1054,7 +1071,12 @@
     <!-- #855 : seule la liste défile ; l'en-tête et les onglets restent à l'écran,
          comme dans la Bibliothèque. -->
     <div class="defil">
-    {#if chargement}
+    {#if onglet === 'rayons' && rayons.mode === 'arbre'}
+      <ArbreRayons arbre={rayons.arbre}
+        libelle={(c) => { const e = entreeRangee(c.kind, c.id); return e ? libelleTradu(e) : (c.name ?? ''); }}
+        onOuvrir={(kind, id) => { const e = entreeRangee(kind, id); if (e) void ouvrir(e); }}
+        onChange={chargerLesRayons} />
+    {:else if chargement}
       <div class="state">{$t('common.loading' as any)}</div>
     {:else if !visibles.length}
       <!-- Vide de CET onglet : l'autre peut fort bien être plein, la phrase ne
