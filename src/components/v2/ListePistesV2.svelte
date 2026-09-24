@@ -9,7 +9,8 @@
    * largeur-ci — pas avec une copie (#1149).
    *
    * 238 px = HUIT boutons de 28 px + sept gouttières de 2 px, la barre pleine
-   * de `PisteActions`. Le chiffre a déjà changé deux fois (178 → 208 le
+   * de `PisteActions`. Depuis le fil forum 1906 (FabienM), la barre a TOUJOURS
+   * ses huit cases : un geste absent laisse une case vide de même largeur. Le chiffre a déjà changé deux fois (178 → 208 le
    * 16/09/2026, quand le menu « … » a porté la barre à sept ; 208 → 238 le
    * 20/09/2026, quand « Lire à partir d'ici » a cessé d'être optionnel) : un
    * témoin le recalcule en comptant les boutons,
