@@ -59,20 +59,15 @@ function ecransAvecCalque(): string[] {
  * (`historiqueAlbumBibliotheque1121.test.ts`) clique une vignette puis appuie
  * sur le Précédent du navigateur. Cette garde-ci reprend donc l’écran.
  */
+/**
+ * 🟢 `ArtistesV2` A QUITTÉ CETTE LISTE — #1501. Son exception (« deux calques
+ * imbriqués — `detailOuvert` ne porte qu'une clé ») tenait à sa fiche
+ * d'artiste, sous laquelle un album s'ouvrait sans rien empiler. La fiche est
+ * retirée : le clic sur un artiste ouvre la PAGE COMMUNE (une vue), et c'est
+ * elle qui monte `AlbumDetailV2` — branchée, et balayée ici comme les autres.
+ */
 const EXCEPTIONS: Record<string, string> = {
   'ShellV2.svelte': 'la fiche y est une VUE (streamingalbum), déjà empilée',
-  /**
-   * 🔴 `ArtistesV2` empile déjà — mais pour sa fiche ARTISTE (#828, #3843), pas
-   * pour l'album qui s'ouvre PAR-DESSUS elle. Deux calques imbriqués, et
-   * `detailOuvert` est un magasin UNIQUE qui ne porte qu'une clé : brancher le
-   * second écraserait le premier, et le Précédent refermerait les deux d'un
-   * coup.
-   *
-   * Le brancher demande une PILE dans `historiqueCoquille`, pas trois lignes
-   * ici. C'est un chantier à part, et le laisser sans exception nommée
-   * reviendrait à cacher la dette.
-   */
-  'ArtistesV2.svelte': 'deux calques imbriqués — `detailOuvert` ne porte qu’une clé',
 };
 
 describe('#980 — les calques album empilent une entrée', () => {
@@ -141,14 +136,10 @@ describe('#980 — les calques album empilent une entrée', () => {
     // qui rougissent — on vérifie ici qu’elle est bien DANS le champ balayé.
     expect(tous, 'LibraryV2 ne monte plus de calque album').toContain('LibraryV2.svelte');
     expect(Object.keys(EXCEPTIONS), 'LibraryV2 est redevenue une exception').not.toContain('LibraryV2.svelte');
-    // ArtistesV2 : l'exception ne vaut que TANT QUE les deux calques coexistent.
-    const art = lire('ArtistesV2.svelte');
-    // 🔴 La clé ne s'écrit plus en toutes lettres ici — #1142. Elle vient de
-    // `cleDetailArtiste`, partagée avec l'écran qui ENVOIE vers la fiche : deux
-    // littéraux dans deux fichiers auraient fini par diverger, et l'entrée
-    // composée aurait été doublée par celle de l'écran d'arrivée.
-    expect(art, 'ArtistesV2 n’a plus de calque artiste').toMatch(/ouvrirDetail\(cle\)/);
-    expect(art, 'ArtistesV2 n’emploie plus la clé partagée').toContain('cleDetailArtiste(a.id)');
-    expect(art, 'ArtistesV2 n’a plus de calque album').toMatch(/<AlbumDetailV2\b/);
+    // ArtistesV2 (#1501) : plus de fiche, donc plus de calque album — ni
+    // d'exception. S'il remonte `AlbumDetailV2` un jour, il entre dans le
+    // champ balayé comme n'importe quel écran.
+    expect(tous, 'ArtistesV2 monte de nouveau un calque album').not.toContain('ArtistesV2.svelte');
+    expect(lire('ArtistesV2.svelte'), 'ArtistesV2 tient de nouveau une clé de détail').not.toContain('ouvrirDetail(');
   });
 });

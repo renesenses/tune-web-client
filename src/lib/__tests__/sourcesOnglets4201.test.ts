@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
+import { get } from 'svelte/store';
 import Library from '../../components/v2/LibraryV2.svelte';
+import ArtisteServiceV2 from '../../components/v2/ArtisteServiceV2.svelte';
 import { albums, libraryFolderScope } from '../stores/library';
 import { activeView } from '../stores/navigation';
+import { ficheArtisteService } from '../stores/streaming';
 import { currentZoneId } from '../stores/zones';
 import type { Album, Track } from '../types';
 
@@ -55,6 +58,9 @@ beforeEach(async () => {
     }
     else if (/\/artists\/10\/albums/.test(path)) data = catalogue.slice(0, 3);
     else if (/\/artists\/10\/tracks/.test(path)) data = morceaux.slice(0, 3);
+    else if (/\/artists\/10\/credits/.test(path)) data = [];
+    // #1501 — la page commune demande l'artiste par son IDENTIFIANT.
+    else if (/\/library\/artists\/10(\?|$)/.test(path)) data = { id: 10, name: 'Artiste partagé' };
     else if (path.includes('/library/artists')) data = [{ id: 10, name: 'Artiste partagé' }, { id: 20, name: 'Divers' }, { id: 30, name: 'Soliste invité' }, { id: 40, name: 'Sans album' }];
     else if (path.includes('/library/tracks')) data = pistes;
     else if (path.includes('/library/stats')) data = { tracks: pistes.length };
@@ -66,7 +72,7 @@ beforeEach(async () => {
   target = document.createElement('div'); document.body.appendChild(target);
   instance = mount(Library, { target }); await flush();
 });
-afterEach(async () => { await unmount(instance); target.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); libraryFolderScope.set(null); });
+afterEach(async () => { await unmount(instance); target.remove(); vi.useRealTimers(); vi.unstubAllGlobals(); libraryFolderScope.set(null); ficheArtisteService.set(null); activeView.set('home'); });
 
 it('garde Source en passant aux pistes, filtre avant la limite de 500 et compte des pistes', async () => {
   pistes = [...Array.from({ length: 501 }, (_, i) => ({ ...morceaux[0], id: 100 + i })), morceaux[1]];
@@ -112,8 +118,16 @@ it('la recherche d’artistes compte les noms d’artistes et la sélection surv
 it('la fiche artiste et sa lecture restent dans la source choisie', async () => {
   await source('Sonos'); await tab('Artistes');
   await click('.body button', 'Artiste partagé');
-  expect(corps()).toContain('Disque Sonos'); expect(corps()).not.toContain('Disque local'); expect(corps()).not.toContain('Disque Asset');
-  await click('.body button.fab', 'Toutes les pistes');
+  // #1501 — la fiche d'artiste est la PAGE COMMUNE, une vue à part : le clic
+  // y envoie avec la source choisie, et `ShellV2` démonte la Bibliothèque pour
+  // la monter. On fait ici ce que fait `ShellV2`.
+  expect(get(activeView)).toBe('streamingartist');
+  expect(get(ficheArtisteService)).toEqual(expect.objectContaining({ service: null, id: '10', nom: 'Artiste partagé', provenance: expect.stringMatching(/sonos/) }));
+  await unmount(instance);
+  instance = mount(ArtisteServiceV2, { target }); await flush(); await flush();
+  const page = () => target.textContent!;
+  expect(page()).toContain('Disque Sonos'); expect(page()).not.toContain('Disque local'); expect(page()).not.toContain('Disque Asset');
+  await click('header.tete .gestes button', 'Toutes les pistes');
   expect(lectures).toEqual([expect.objectContaining({ track_ids: [3], context_type: 'artist' })]);
 });
 

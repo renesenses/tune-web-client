@@ -275,20 +275,15 @@ describe('#1494 — la bifurcation local / service ne vit que dans `ouvrirArtist
    * Ce qui est TOLÉRÉ, nommément, et pourquoi — jamais plus que le compte
    * d'aujourd'hui, pour qu'une copie de plus rougisse quand même.
    *
-   * - `AlbumDetailV2` : sa branche locale passe par `ouvrirArtisteDepuis` dans
-   *   #1489 (ouverte au même moment) ; on ne réécrit pas ses lignes ici pour
-   *   ne pas entrer en conflit avec elle. À retirer de cette liste une fois
-   *   #1489 fusionnée.
-   * - `ShellV2` : la résolution par NOM d'un artiste de service — pas une
-   *   bifurcation, un artiste de service seulement. #1489 la déplace dans
-   *   `ouvrirArtisteDepuis` ; à retirer aussi.
    * - `ArtisteServiceV2` : la page elle-même, qui se RECIBLE sur un artiste
    *   similaire local sans changer de vue. Elle est la destination, pas un
    *   point d'entrée.
+   *
+   * `AlbumDetailV2` et `ShellV2` en sont sortis avec #1489 (fusionnée le
+   * 23/09/2026) ; `ArtistesV2` — le dernier écran à ouvrir SA fiche — avec
+   * #1501. Il ne reste qu'une tolérance, et elle n'est pas un point d'entrée.
    */
   const TOLERANCES: Record<string, Record<string, number>> = {
-    'src/components/v2/AlbumDetailV2.svelte': { 'pendingLibraryArtist.set(<cible>)': 1 },
-    'src/components/v2/ShellV2.svelte': { 'ficheArtisteService.set({…})': 2, "activeView.set('streamingartist')": 2 },
     'src/components/v2/ArtisteServiceV2.svelte': { 'ficheArtisteService.set({…})': 1 },
   };
 
@@ -341,9 +336,13 @@ describe('#1494 — la bifurcation local / service ne vit que dans `ouvrirArtist
     ).toEqual([]);
   });
 
-  it('les cinq écrans du relevé passent par le chemin de référence', () => {
+  it('les écrans du relevé passent par le chemin de référence', () => {
     for (const f of [
       'src/components/v2/SearchV2.svelte',
+      // #1501 — la grille de la Bibliothèque, dernier point d'entrée converti.
+      'src/components/v2/ArtistesV2.svelte',
+      // #1489 — la fiche d'album.
+      'src/components/v2/AlbumDetailV2.svelte',
       'src/components/v2/PisteActions.svelte',
       'src/components/partages/MenuPisteV1.svelte',
       'src/components/partages/NowPlaying.svelte',

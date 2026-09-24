@@ -213,6 +213,14 @@ export const pendingLibraryAlbum = writable<number | null>(null);
  * dès qu'une piste porte « M » quand la table porte « -M- ». Une piste de la
  * bibliothèque porte `artist_id` (mesuré sur le .18 : `artist_id: 125` pour
  * « M »), et c'est cet identifiant que la table des artistes emploie.
+ *
+ * 🔴 RETIRÉ DU SERVICE — #1501. La fiche d'artiste de la Bibliothèque n'existe
+ * plus : tout clic sur un artiste ouvre la PAGE COMMUNE par
+ * `ouvrirArtisteDepuis` (#1494), et `LibraryV2` ne lit plus ce magasin. Il
+ * reste déclaré parce qu'une douzaine de témoins vérifient qu'il reste VIDE —
+ * c'est la trace d'une bifurcation recopiée — et la garde
+ * `vueArtisteUnique1494.test.ts` interdit de le poser. Ne le rebrancher nulle
+ * part : un écran qui l'écrirait changerait de vue sans rien ouvrir.
  */
 export const pendingLibraryArtist = writable<number | null>(null);
 

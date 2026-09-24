@@ -64,8 +64,14 @@ describe('🔴 L’appel lui-même', () => {
   });
 
   it('l’écran passe par le composeur, pas par un champ inventé', () => {
-    expect(ecran).toContain('texteDePartage(carte, location.origin)');
+    // #1521 a déplacé la composition dans `partagerEcoute()`, qui appelle
+    // `texteDePartage(carte, origine)` — l'écran lui passe `location.origin`.
+    // Le garde de #533 reste le même : aucun champ `text` inventé.
+    expect(ecran).toContain('partagerEcoute({');
+    expect(ecran).toContain('origine: location.origin');
     expect(ecran).not.toContain('card.text');
+    const lib = readFileSync('src/lib/partageEcoute.ts', 'utf8');
+    expect(lib).toContain('texteDePartage(carte, origine)');
   });
 
   it('🔴 un échec se DIT, il ne meurt plus dans la console', () => {

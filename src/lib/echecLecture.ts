@@ -34,8 +34,7 @@
  */
 import { get } from 'svelte/store';
 import { t } from './i18n';
-import { offreDeRearmement } from './rearmementAsio';
-import { rearmerParLaRouteAnnoncee } from './api';
+import { proposerLeRearmement } from './api';
 import { notifications } from './stores/notifications';
 import { messageRefusBitperfect } from './bitperfectStrict';
 
@@ -217,30 +216,9 @@ export function signalerErreurServeur(data: {
   // Le témoin est un fichier, donc redémarrer n'y change rien — seul un
   // réarmement l'efface, et il était enterré dans l'écran Diagnostics.
   //
-  // Le bouton se pose donc là où le défaut se manifeste. `offreDeRearmement`
-  // tranche seule, et rend la route QUE LE SERVEUR ANNONCE.
-  const offre = offreDeRearmement(data);
-  if (!offre) {
-    annoncerSansEmpiler(texte);
-    return;
-  }
-  notifications.withAction(texte, get(t)('asio.rearmAction' as any), () => {
-    void rearmer(offre.route, texte);
-  });
-}
-
-/** Le geste du bouton, sorti pour rester lisible — et testable. */
-async function rearmer(route: string, texteDuRefus: string): Promise<void> {
-  try {
-    await rearmerParLaRouteAnnoncee(route);
-    // ⚠️ Le serveur n'ouvre AUCUN pilote dans le processus courant : le
-    // réarmement ne prend effet qu'au PROCHAIN DÉMARRAGE. Le taire ferait
-    // croire à une réparation immédiate, et l'utilisateur rappuierait sur
-    // Lire pour rien.
-    notifications.success(get(t)('asio.rearmDone' as any), 10000);
-  } catch {
-    // Route ADMIN : un 401/403 est un refus normal ici. On retombe sur la
-    // phrase du serveur plutôt que d'inventer une explication.
-    notifications.error(texteDuRefus, 10000);
-  }
+  // Le bouton se pose donc là où le défaut se manifeste. Le geste vit dans
+  // `api.ts` — avec la route qu'il poste —, partagé avec le 409 du
+  // `POST /play`, qui l'ignorait jusque-là : DEUX chemins mènent au même
+  // refus, et ils doivent offrir la même issue.
+  if (!proposerLeRearmement(texte, data)) annoncerSansEmpiler(texte);
 }

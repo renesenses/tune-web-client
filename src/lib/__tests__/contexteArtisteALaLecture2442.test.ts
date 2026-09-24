@@ -22,11 +22,19 @@
 //
 // 🔴 CE TÉMOIN APPELLE, IL NE LIT PAS. On monte la vraie fiche d'artiste, on
 // clique « Tout lire », et on regarde le CORPS que `fetch` a reçu.
+//
+// #1501 — la fiche d'artiste est la PAGE COMMUNE (`ArtisteServiceV2`), ouverte
+// sur un artiste LOCAL comme la grille de la Bibliothèque l'ouvre ; « Toutes
+// les pistes » y est porté avec le même appel (#1356).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import ArtistesV2 from '../../components/v2/ArtistesV2.svelte';
+import { get } from 'svelte/store';
+import ArtisteServiceV2 from '../../components/v2/ArtisteServiceV2.svelte';
 import { currentZoneId, zones } from '../stores/zones';
 import { libraryTab, selectedArtist, artistAlbums } from '../stores/library';
+import { ficheArtisteService, streamingServices } from '../stores/streaming';
+import { activeView } from '../stores/navigation';
+import { t } from '../i18n';
 
 const ARTISTE = { id: 3, name: 'Miles Davis', album_count: 1 };
 const ALBUMS = [{ id: 7, title: 'Kind of Blue', artist_name: 'Miles Davis', year: 1959 }];
@@ -42,6 +50,11 @@ function corpsPour(url: string): unknown {
   if (/\/library\/artists\?/.test(url) || /\/library\/artists$/.test(url)) return [ARTISTE];
   if (/\/library\/artists\/3\/albums/.test(url)) return ALBUMS;
   if (/\/library\/artists\/3\/tracks/.test(url)) return PISTES;
+  if (/\/library\/artists\/3\/(bio|metadata)/.test(url)) return {};
+  if (/\/library\/artists\/3\/credits/.test(url)) return [];
+  if (/\/library\/artists\/3(\?|$)/.test(url)) return ARTISTE;
+  // Aucun service : la page ne cherche rien au-delà de la bibliothèque.
+  if (/\/streaming\/services/.test(url)) return {};
   if (/\/library\/albums\/7\/tracks/.test(url)) return PISTES;
   if (/\/zones\/1\/play$/.test(url)) return { id: 1, name: 'Salon', state: 'playing' };
   if (/\/zones\/1$/.test(url)) return { id: 1, name: 'Salon', state: 'playing' };
@@ -57,21 +70,26 @@ const respirer = () => new Promise((r) => setTimeout(r, 0));
 async function poserFiche(): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
-  // `ouvrirId` ouvre la fiche dès que la liste est là — le même chemin que le
-  // clic sur une vignette, sans avoir à traverser la grille.
-  monte = mount(ArtistesV2, { target: hote, props: { q: '', ouvrirId: 3 } });
-  for (let i = 0; i < 6; i++) await respirer();
+  // La cible que pose `ouvrirArtisteDepuis` depuis la grille (#1501) : un
+  // artiste de la BIBLIOTHÈQUE, `service: null`.
+  ficheArtisteService.set({ service: null, id: '3', nom: ARTISTE.name });
+  activeView.set('streamingartist');
+  monte = mount(ArtisteServiceV2, { target: hote });
+  for (let i = 0; i < 8; i++) await respirer();
   flushSync();
   return hote;
 }
 
-/** « Tout lire » — le premier `.fab`, le second étant l'aléatoire (`.creux`). */
+/** « Tout lire » — le bouton de la rangée d'actions qui porte ce libellé. */
 function boutonToutLire(el: HTMLElement): HTMLButtonElement {
   // #1356 : la rangée d'actions de la fiche s'appelle `.gestes` — c'est celle
-  // de l'en-tête partagé avec la fiche de service. Même bouton, même place.
-  const b = el.querySelector('.gestes .fab:not(.creux)') as HTMLButtonElement;
+  // de l'en-tête partagé. Le bouton est reconnu à son LIBELLÉ traduit, pas à
+  // sa classe.
+  const libelle = get(t)('library.playAllArtist' as any);
+  const b = [...el.querySelectorAll<HTMLButtonElement>('.gestes button')]
+    .find((x) => x.textContent?.trim() === libelle) ?? null;
   expect(b, 'le bouton « Tout lire » a disparu de la fiche artiste').not.toBeNull();
-  return b;
+  return b!;
 }
 
 const corpsDuPlay = () => {
@@ -86,6 +104,11 @@ const corpsDuPlay = () => {
 beforeEach(() => {
   appels = [];
   currentZoneId.set(1);
+  streamingServices.set({} as any);
+  ficheArtisteService.set(null);
+  vi.stubGlobal('ResizeObserver', class {
+    observe() {} unobserve() {} disconnect() {}
+  } as unknown as typeof ResizeObserver);
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
@@ -116,6 +139,8 @@ afterEach(() => {
   if (hote) hote.remove();
   hote = null;
   currentZoneId.set(null);
+  ficheArtisteService.set(null);
+  activeView.set('home');
   vi.unstubAllGlobals();
 });
 

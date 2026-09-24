@@ -22,7 +22,8 @@
     fractionDe, suivreLaCrete, suivrePpm, surcharge, zoneIec,
     type EtatPpm, type StyleCreteMetre,
   } from '../../lib/peakMetre';
-  import { retombeAuRepos, tempsDeDessiner } from '../../lib/cadenceCreteMetre';
+  import { retombeAuRepos } from '../../lib/cadenceCreteMetre';
+  import { boucleImages } from '../../lib/boucleImages';
 
   interface Props {
     style: StyleCreteMetre;
@@ -150,40 +151,36 @@
 
   // #1256 — la boucle dessine à ~30 i/s (et non à chaque image de l'écran,
   // jusqu'à 120 Hz), et s'ARRÊTE hors lecture une fois tout retombé au
-  // plancher. L'effet lit `joue` : la reprise de la lecture la relance. Les
-  // deux règles vivent dans `lib/cadenceCreteMetre.ts`, où le test les appelle.
+  // plancher. L'effet lit `joue` : la reprise de la lecture la relance.
+  //
+  // Ticket 150 — la cadence, la garde d'onglet caché et l'annulation au
+  // démontage vivent désormais dans `lib/boucleImages.ts`, partagé avec les
+  // deux autres boucles de « Lecture en cours ». Le seuil de repos reste ici,
+  // dans `lib/cadenceCreteMetre.ts`, où le test l'appelle.
   $effect(() => {
     const c = toile;
     const enLecture = joue;
     if (!c || style === 'off') return;
     const ctx = c.getContext('2d');
     if (!ctx) return;
-    let raf = 0;
-    let dernier = -Infinity;
-    const battre = (maintenant: number) => {
-      if (tempsDeDessiner(maintenant, dernier)) {
-        dernier = maintenant;
-        const dpr = Math.min(2, globalThis.devicePixelRatio || 1);
-        const l = largeur || c.clientWidth || 120;
-        if (c.width !== Math.round(l * dpr) || c.height !== Math.round(hauteur * dpr)) {
-          c.width = Math.round(l * dpr);
-          c.height = Math.round(hauteur * dpr);
-        }
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        if (retombeAuRepos(enLecture, barres, ppm)) {
-          // Dernière image, au plancher exact, puis plus rien : un cadran
-          // vide n'a pas à être redessiné trente fois par seconde.
-          barres = [PLANCHER_DB, PLANCHER_DB];
-          dessiner(ctx, l, hauteur);
-          raf = 0;
-          return;
-        }
-        dessiner(ctx, l, hauteur);
+    return boucleImages(() => {
+      const dpr = Math.min(2, globalThis.devicePixelRatio || 1);
+      const l = largeur || c.clientWidth || 120;
+      if (c.width !== Math.round(l * dpr) || c.height !== Math.round(hauteur * dpr)) {
+        c.width = Math.round(l * dpr);
+        c.height = Math.round(hauteur * dpr);
       }
-      raf = requestAnimationFrame(battre);
-    };
-    raf = requestAnimationFrame(battre);
-    return () => { if (raf) cancelAnimationFrame(raf); };
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (retombeAuRepos(enLecture, barres, ppm)) {
+        // Dernière image, au plancher exact, puis plus rien : un cadran
+        // vide n'a pas à être redessiné trente fois par seconde.
+        barres = [PLANCHER_DB, PLANCHER_DB];
+        dessiner(ctx, l, hauteur);
+        return false;
+      }
+      dessiner(ctx, l, hauteur);
+      return true;
+    });
   });
 </script>
 
