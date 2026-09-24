@@ -1891,6 +1891,7 @@ export default {
   "zoneConfig.channelsUnavailableNonLocal": "Den här zonen använder inget lokalt ljudkort: renderaren förhandlar sitt eget format.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Enheten anger färre kanaler än den valda uppställningen.",
   "zoneConfig.channelsUnavailable": "Den här inställningen har ingen effekt på den här zonen.",
+  "zoneConfig.channelsEffective": "Verklig utgång: {layout}",
   "zoneConfig.channels_mono": "Mono",
   "zoneConfig.channels_stereo": "Stereo",
   "zoneConfig.channels_surround51": "5.1",

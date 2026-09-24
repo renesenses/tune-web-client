@@ -1925,6 +1925,7 @@ export default {
   "zoneConfig.channelsUnavailableNonLocal": "Această zonă nu folosește o placă de sunet locală: renderer-ul își negociază propriul format.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Dispozitivul anunță mai puține canale decât configurația aleasă.",
   "zoneConfig.channelsUnavailable": "Această setare nu are efect asupra acestei zone.",
+  "zoneConfig.channelsEffective": "Ieșire reală: {layout}",
   "zoneConfig.channels_mono": "Mono",
   "zoneConfig.channels_stereo": "Stereo",
   "zoneConfig.channels_surround51": "5.1",

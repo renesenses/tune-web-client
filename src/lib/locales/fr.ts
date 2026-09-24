@@ -2450,6 +2450,7 @@ export default {
   "zoneConfig.channelsUnavailableNonLocal": "Cette zone ne sort pas par une carte son locale : le renderer négocie lui-même son format.",
   "zoneConfig.channelsUnavailableBeyondDevice": "L'appareil annonce moins de canaux que la disposition choisie.",
   "zoneConfig.channelsUnavailable": "Ce réglage n'a pas d'effet sur cette zone.",
+  "zoneConfig.channelsEffective": "Sortie réelle : {layout}",
   "zoneConfig.channels_mono": "Mono",
   "zoneConfig.channels_stereo": "Stéréo",
   "zoneConfig.channels_surround51": "5.1",
