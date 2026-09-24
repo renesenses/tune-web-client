@@ -101,6 +101,14 @@ export interface Artist {
 
 export interface Album {
   added_at?: number | null;
+  /**
+   * #4767 (crédits) — sur un album des sections « Collaborations » et
+   * « Reprises » de la page artiste seulement : les pistes où l'artiste de la
+   * page est crédité (le focus de la fiche), et ce qu'il y fait (`guitar`,
+   * `vocals`, `composer`, `writer`…). Absents partout ailleurs.
+   */
+  focus_track_ids?: number[];
+  credit_roles?: string[];
   id: number | null;
   title: string;
   artist_id?: number | null;

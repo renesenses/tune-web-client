@@ -3845,6 +3845,15 @@ export default {
   "settings.releaseTypesStarted": "Tipi di pubblicazione: ricerca avviata per {n} album (una richiesta al secondo).",
   "settings.releaseTypesNoCandidate": "Tipi di pubblicazione: nessun album da elaborare. Solo gli album già identificati su MusicBrainz possono ricevere un tipo.",
   "settings.releaseTypesQuota": "Quota giornaliera di arricchimento raggiunta (versione gratuita). Riprova domani.",
+  "settings.credits": "Completa i crediti",
+  "settings.creditsHint": "Cerca su MusicBrainz chi suona, canta e scrive in ogni pubblicazione identificata, per riempire le sezioni «Collaborazioni» e «Cover» della pagina di un artista. Lento: una richiesta per pubblicazione, una al secondo.",
+  "settings.creditsStarted": "Crediti: ricerca avviata per {n} pubblicazioni (una richiesta al secondo).",
+  "settings.creditsNoCandidate": "Crediti: nessuna pubblicazione da elaborare. Solo gli album già identificati su MusicBrainz possono ricevere i crediti.",
+  "settings.creditsAlreadyRunning": "La ricerca dei crediti è già in corso.",
+  "v2.disco.collaborations": "Collaborazioni",
+  "v2.disco.withArtist": "Con {artist}",
+  "v2.disco.covers": "Cover",
+  "v2.album.creditedOnly": "Brani in cui {artist} è accreditato",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

@@ -3845,6 +3845,15 @@ export default {
   "settings.releaseTypesStarted": "リリースタイプ：{n} 件のアルバムの検索を開始しました（1 秒に 1 リクエスト）。",
   "settings.releaseTypesNoCandidate": "リリースタイプ：処理するアルバムがありません。MusicBrainz で識別済みのアルバムだけがタイプを取得できます。",
   "settings.releaseTypesQuota": "本日の補完の上限に達しました（無料版）。明日もう一度お試しください。",
+  "settings.credits": "クレジットを補完",
+  "settings.creditsHint": "識別済みの各リリースで誰が演奏・歌唱・作詞作曲しているかを MusicBrainz で調べ、アーティストページの「コラボレーション」と「カバー」を埋めます。時間がかかります：1 リリースにつき 1 リクエスト、毎秒 1 件。",
+  "settings.creditsStarted": "クレジット：{n} 件のリリースの検索を開始しました（毎秒 1 リクエスト）。",
+  "settings.creditsNoCandidate": "クレジット：処理するリリースがありません。MusicBrainz で識別済みのアルバムのみクレジットを取得できます。",
+  "settings.creditsAlreadyRunning": "クレジットはすでに検索中です。",
+  "v2.disco.collaborations": "コラボレーション",
+  "v2.disco.withArtist": "{artist} と共演",
+  "v2.disco.covers": "カバー",
+  "v2.album.creditedOnly": "{artist} がクレジットされている曲",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

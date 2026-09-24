@@ -3845,6 +3845,15 @@ export default {
   "settings.releaseTypesStarted": "Tipuri de lansare: căutare pornită pentru {n} albume (o cerere pe secundă).",
   "settings.releaseTypesNoCandidate": "Tipuri de lansare: niciun album de procesat. Doar albumele deja identificate pe MusicBrainz pot primi un tip.",
   "settings.releaseTypesQuota": "Cota zilnică de îmbogățire a fost atinsă (versiunea gratuită). Încercați din nou mâine.",
+  "settings.credits": "Completează creditele",
+  "settings.creditsHint": "Caută pe MusicBrainz cine cântă, interpretează și compune pe fiecare ediție identificată, pentru a umple secțiunile „Colaborări” și „Preluări” ale paginii unui artist. Lent: o cerere pe ediție, una pe secundă.",
+  "settings.creditsStarted": "Credite: căutare pornită pentru {n} ediții (o cerere pe secundă).",
+  "settings.creditsNoCandidate": "Credite: nicio ediție de procesat. Doar albumele deja identificate pe MusicBrainz își pot primi creditele.",
+  "settings.creditsAlreadyRunning": "Creditele sunt deja în curs de căutare.",
+  "v2.disco.collaborations": "Colaborări",
+  "v2.disco.withArtist": "Cu {artist}",
+  "v2.disco.covers": "Preluări",
+  "v2.album.creditedOnly": "Piese în care {artist} este creditat",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

@@ -18,6 +18,7 @@
    */
   import type { Album } from '../../lib/types';
   import type { AlbumsDeService } from '../../lib/albumsArtisteStreaming';
+  import type { GroupeCollaborations } from '../../lib/api';
   import { partagerDiscographie } from '../../lib/discographieConnexes';
   import {
     BIBLIOTHEQUE, compterFocus, comptesProvenanceFiche, dansProvenance, filtrerFocus, fusionnerDiscographie,
@@ -57,6 +58,14 @@
      */
     compilations?: Album[];
     apparitions?: Album[];
+    /**
+     * #4767 (crédits, tune-server-rust#4862) — les disques d'autrui où
+     * l'artiste est crédité comme musicien, groupés par artiste principal, et
+     * ceux où il l'est comme auteur. Lus dans `track_credits` ; absents devant
+     * un serveur qui ne les sert pas, et la section n'est alors pas rendue.
+     */
+    collaborations?: GroupeCollaborations[];
+    reprises?: Album[];
     /** Le filtre « Source » de la Bibliothèque, appliqué AVANT le Focus. */
     provenance?: string | null;
     /** Les comptes de ce filtre, pour que le menu parle de CETTE discographie. */
@@ -68,7 +77,7 @@
      */
     nomArtiste?: string | null;
   }
-  let { locaux = [], services = [], servicesEnCharge = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [] }: Props = $props();
+  let { locaux = [], services = [], servicesEnCharge = false, onOuvrir, onLire, provenance = null, onComptesProvenance, nomArtiste = null, compilations = [], apparitions = [], collaborations = [], reprises = [] }: Props = $props();
 
   /**
    * #4651 — Qobuz range sous un artiste des reprises et des albums d'autres
@@ -153,6 +162,24 @@
    */
   const compilationsTriees = $derived(trier(fusionnerDiscographie(compilations, []), triAlbums, sensAlbums));
   const apparitionsTriees = $derived(trier(fusionnerDiscographie(apparitions, []), triAlbums, sensAlbums));
+
+  /**
+   * #4767 (crédits) — « Collaborations », une sous-section « Avec {artiste} »
+   * par artiste principal, dans l'ordre où le serveur range les groupes (par
+   * nom) ; « Reprises » d'un bloc. Même fusion séparée et même tri que les
+   * deux sections d'au-dessus. Un groupe vide ne se rend pas.
+   */
+  const collaborationsTriees = $derived(
+    (collaborations ?? [])
+      .map((g, i) => ({
+        cle: `${g?.artist_id ?? ''}|${g?.artist_name ?? ''}|${i}`,
+        nom: g?.artist_name ?? '',
+        entrees: trier(fusionnerDiscographie(g?.albums ?? [], []), triAlbums, sensAlbums),
+      }))
+      .filter((g) => g.entrees.length > 0),
+  );
+  const collaborationsCompte = $derived(collaborationsTriees.reduce((n, g) => n + g.entrees.length, 0));
+  const reprisesTriees = $derived(trier(fusionnerDiscographie(reprises, []), triAlbums, sensAlbums));
 
   /** L'exemplaire local d'une vignette, s'il y en a un — il porte le cœur. */
   const local = (e: EntreeDiscographie) => e.exemplaires.find((x) => x.source === BIBLIOTHEQUE)?.album ?? null;
@@ -254,6 +281,36 @@
       </div>
     </section>
   {/if}
+
+  <!-- #4767 (crédits) — mêmes règles : rendues seulement quand elles portent
+       quelque chose. Ouvrir une de ces vignettes focalise la fiche d'album sur
+       les pistes où l'artiste est CRÉDITÉ (`focus_track_ids`). -->
+  {#if collaborationsCompte}
+    <section class="connexes" data-section="collaborations">
+      <h3 class="titre-connexes">{$t('v2.disco.collaborations' as any)} <span class="cpt">{collaborationsCompte}</span></h3>
+      {#each collaborationsTriees as g (g.cle)}
+        <div class="groupe" data-groupe={g.nom}>
+          <h4 class="titre-groupe">{$t('v2.disco.withArtist' as any).replace('{artist}', g.nom)}</h4>
+          <div class="gr">
+            {#each g.entrees as e (e.cle)}
+              {@render carte(e, 'collaborations')}
+            {/each}
+          </div>
+        </div>
+      {/each}
+    </section>
+  {/if}
+
+  {#if reprisesTriees.length}
+    <section class="connexes" data-section="reprises">
+      <h3 class="titre-connexes">{$t('v2.disco.covers' as any)} <span class="cpt">{reprisesTriees.length}</span></h3>
+      <div class="gr">
+        {#each reprisesTriees as e (e.cle)}
+          {@render carte(e, 'reprises')}
+        {/each}
+      </div>
+    </section>
+  {/if}
 </div>
 
 {#snippet carte(e: EntreeDiscographie, origine: OrigineSection = null)}
@@ -289,6 +346,12 @@
     <button class="meta" onclick={() => onOuvrir(e.principal, origine)}>
       <span class="ct" title={al.title}>{al.title}</span>
       <span class="ca">{al.year ?? e.exemplaires.find((x) => x.album.year)?.album.year ?? ''}</span>
+      {#if origine && al.credit_roles?.length}
+        <!-- Ce que l'artiste fait sur ce disque, tel que MusicBrainz le nomme
+             (`guitar`, `vocals`, `composer`…) — comme le tiroir des crédits
+             de piste, qui les montre aussi bruts. -->
+        <span class="roles" title={al.credit_roles.join(', ')}>{al.credit_roles.join(' · ')}</span>
+      {/if}
     </button>
   </div>
 {/snippet}
@@ -358,6 +421,13 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .connexes { margin-top: 28px; }
+  .roles {
+    display: block; margin-top: 2px;
+    font: 10.5px var(--v2-sans); color: var(--v2-txt3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .groupe + .groupe { margin-top: 20px; }
+  .titre-groupe { margin: 0 0 12px; font: 500 12.5px var(--v2-sans); color: var(--v2-txt3); }
   .titre-connexes {
     display: flex; align-items: baseline; gap: 8px; margin: 0 0 14px;
     font: 600 13px var(--v2-sans); color: var(--v2-txt2);

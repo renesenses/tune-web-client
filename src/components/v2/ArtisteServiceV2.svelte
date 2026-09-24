@@ -87,7 +87,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { cibleRaccourciArtiste } from '../../lib/raccourciArtiste';
-  import type { FocusArtiste, OrigineSection } from '../../lib/focusArtiste';
+  import { focusDeSection, type FocusArtiste, type OrigineSection } from '../../lib/focusArtiste';
   import { dansSource } from '../../lib/provenanceBibliotheque';
   import { melangee } from '../../lib/shuffle';
 
@@ -146,6 +146,9 @@
    */
   let compilations = $state<Album[]>([]);
   let apparitions = $state<Album[]>([]);
+  /** #4767 (crédits, #4862) — mêmes règles, lues dans `track_credits`. */
+  let collaborations = $state<api.GroupeCollaborations[]>([]);
+  let reprises = $state<Album[]>([]);
   /** L'artiste sur lequel la fiche d'album ouverte est focalisée (#4767). */
   let artisteFocus = $state<FocusArtiste | null>(null);
   /**
@@ -329,6 +332,8 @@
     bio = null;
     compilations = [];
     apparitions = [];
+    collaborations = [];
+    reprises = [];
     // #1232, étape 2 — les blocs locaux ne suivent pas d'une fiche à l'autre :
     // sans cette remise à zéro, « À propos » de l'artiste précédent resterait
     // affiché sous celui-ci.
@@ -408,6 +413,8 @@
     locaux = [];
     compilations = [];
     apparitions = [];
+    collaborations = [];
+    reprises = [];
     artisteLocal = null;
     autresServices = [];
     comptesFiche = null;
@@ -435,6 +442,8 @@
       // vide, et `?? []` dit ici la même chose que lui.
       compilations = (d.value?.compilations ?? []) as Album[];
       apparitions = (d.value?.appearances ?? []) as Album[];
+      collaborations = d.value?.collaborations ?? [];
+      reprises = (d.value?.covers ?? []) as Album[];
     }
     chargement = false;
     void chargerBioLocale(mien, id, artiste?.bio ?? null);
@@ -524,10 +533,11 @@
     // focus n'a de sens que pour un album de la BIBLIOTHÈQUE, ouvert depuis un
     // artiste de la bibliothèque — l'artiste de piste vient de la base, pas
     // d'un service.
+    //
+    // Venu de « Collaborations » ou de « Reprises », le focus porte les pistes
+    // CRÉDITÉES de l'album (`focus_track_ids`) : `focusDeSection` le dit.
     artisteFocus =
-      origine && ex.source === BIBLIOTHEQUE && estLocal && artisteLocal?.id != null
-        ? { id: artisteLocal.id, nom: artisteLocal.name }
-        : null;
+      ex.source === BIBLIOTHEQUE && estLocal ? focusDeSection(origine, ex.album, artisteLocal) : null;
     albumOuvert = ex.album;
   }
   function lireExemplaire(ex: Exemplaire) {
@@ -849,7 +859,7 @@
       <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge}
         nomArtiste={artiste?.name || cible?.nom || null} {provenance}
         onComptesProvenance={(c) => (comptesFiche = c)}
-        {compilations} {apparitions}
+        {compilations} {apparitions} {collaborations} {reprises}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   {/if}

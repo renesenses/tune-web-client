@@ -3867,6 +3867,15 @@ export default {
   "settings.releaseTypesStarted": "Types de sortie : recherche lancée pour {n} albums (une requête par seconde).",
   "settings.releaseTypesNoCandidate": "Types de sortie : aucun album à traiter. Seuls les albums déjà identifiés sur MusicBrainz peuvent recevoir un type.",
   "settings.releaseTypesQuota": "Quota d'enrichissement du jour atteint (version gratuite). Réessayez demain.",
+  "settings.credits": "Remplir les crédits",
+  "settings.creditsHint": "Retrouve sur MusicBrainz qui joue, chante et écrit sur chaque disque identifié, pour garnir les sections « Collaborations » et « Reprises » de la page d'un artiste. Long : une requête par disque et par seconde.",
+  "settings.creditsStarted": "Crédits : recherche lancée pour {n} disques (une requête par seconde).",
+  "settings.creditsNoCandidate": "Crédits : aucun disque à traiter. Seuls les albums déjà identifiés sur MusicBrainz peuvent recevoir leurs crédits.",
+  "settings.creditsAlreadyRunning": "Les crédits sont déjà en cours de recherche.",
+  "v2.disco.collaborations": "Collaborations",
+  "v2.disco.withArtist": "Avec {artist}",
+  "v2.disco.covers": "Reprises",
+  "v2.album.creditedOnly": "Morceaux où {artist} est crédité",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
