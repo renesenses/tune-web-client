@@ -4,6 +4,12 @@ import { mount } from 'svelte';
 import { get } from 'svelte/store';
 import { preferences } from './lib/stores/preferences';
 import { preparerLocale } from './lib/i18n';
+import { installerRechargementApresMiseAJour } from './lib/rechargementApresMiseAJour';
+
+// Avant le montage : un onglet ouvert sur l'ancienne version doit pouvoir
+// se rattraper dès le premier morceau introuvable (tune-server-rust#4847).
+installerRechargementApresMiseAJour();
+
 // Une seule interface. L'ancienne coquille — `App.svelte` et les 51
 // composants qu'elle seule montait (dont 28 écrans), le paramètre `?v2` et la
 // clé `tune-interface` — a été retirée le 19/09/2026 : phase 5 de la bascule

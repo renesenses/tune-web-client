@@ -29,6 +29,13 @@ export const TRACES: Readonly<Record<string, string>> = {
     '<path d="M22 12H2"/>' +
     '<path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z"/>' +
     '<path d="M6 16h.01"/><path d="M10 16h.01"/>',
+  // Le tracé `server` de Lucide — celui des chiffres venus des SERVEURS
+  // MULTIMÉDIA du réseau, pour que la carte porte la même image que l'écran
+  // qui les gère (`nav.mediaservers`).
+  server:
+    '<rect x="2" y="2" width="20" height="8" rx="2"/>' +
+    '<rect x="2" y="14" width="20" height="8" rx="2"/>' +
+    '<path d="M6 6h.01"/><path d="M6 18h.01"/>',
   play: '<path d="M6 3l14 9-14 9Z"/>',
   headphones:
     '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
