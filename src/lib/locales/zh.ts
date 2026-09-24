@@ -1929,6 +1929,7 @@ export default {
   "zoneConfig.channels_immersive32": "32 canaux",
   "zoneConfig.firTitle": "房间校正 (FIR)",
   "zoneConfig.firDesc": "加载由 REW、ARTA 或 Dirac 生成的脉冲文件 (WAV) 以校正房间声学。",
+  "zoneConfig.firFormats": "单声道 WAV 会把同一个滤波器应用到两个声道；立体声 WAV 则分别校正每个声道。请按正在播放的流的采样率导出滤波器：Tune 不会对其重采样。",
   "zoneConfig.firActive": "FIR 已启用",
   "zoneConfig.replace": "替换",
   "zoneConfig.disable": "禁用",

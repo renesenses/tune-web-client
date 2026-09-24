@@ -1927,6 +1927,7 @@ export default {
   "zoneConfig.channels_immersive32": "32 canaux",
   "zoneConfig.firTitle": "ルーム補正 (FIR)",
   "zoneConfig.firDesc": "REW、ARTA、Dirac で生成したインパルスファイル (WAV) を読み込んで、部屋の音響を補正します。",
+  "zoneConfig.firFormats": "モノラルの WAV は同じフィルターを両チャンネルに適用し、ステレオの WAV は各チャンネルを個別に補正します。フィルターは再生中のストリームと同じサンプリング周波数で書き出してください。Tune は変換しません。",
   "zoneConfig.firActive": "FIR 有効",
   "zoneConfig.replace": "置き換え",
   "zoneConfig.disable": "無効化",

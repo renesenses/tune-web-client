@@ -1901,6 +1901,7 @@ export default {
   "zoneConfig.channels_immersive32": "32 canaux",
   "zoneConfig.firTitle": "Rumskorrigering (FIR)",
   "zoneConfig.firDesc": "Ladda en impulsfil (WAV) genererad av REW, ARTA eller Dirac för att korrigera rumsakustiken.",
+  "zoneConfig.firFormats": "En mono-WAV lägger samma filter på båda kanalerna; en stereo-WAV korrigerar varje kanal för sig. Exportera filtret med samma samplingsfrekvens som strömmen som spelas: Tune samplar inte om det.",
   "zoneConfig.firActive": "FIR aktiv",
   "zoneConfig.replace": "Ersätt",
   "zoneConfig.disable": "Inaktivera",
