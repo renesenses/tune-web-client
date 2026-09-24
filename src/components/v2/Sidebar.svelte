@@ -33,6 +33,8 @@
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
+  import ArbreRayons from './ArbreRayons.svelte';
+  import { etatRayons, rafraichirRayons, cleCibleCollection } from '../../lib/rayonsCollections';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -383,6 +385,21 @@
     try { localStorage.setItem('tune_v2_sidebar_collapsed', veut ? '1' : '0'); } catch { /* ignore */ }
   }
 
+  /**
+   * RAYONS de collections sous l'entrée « Collections » — tune-server-rust#4853.
+   * Un serveur antérieur ne sert pas l'arbre : rien ne s'affiche, sans erreur.
+   * Une collection s'ouvre par le chemin des raccourcis (même écoute côté
+   * écran), jamais par un second mécanisme.
+   */
+  $effect(() => { void rafraichirRayons(api.getCollectionFolders); });
+  function ouvrirCollectionRangee(kind: 'collection' | 'smart', id: number) {
+    tiroirOuvert.set(false);
+    navigateToShortcut({
+      id: 0, name: '', icon: '', view: 'collections',
+      state: { target: { key: cleCibleCollection(kind, id), restore: { id } } },
+    } as any);
+  }
+
   function fermerTiroir() { tiroirOuvert.set(false); }
   function auClavier(e: KeyboardEvent) {
     if (e.key === 'Escape' && $tiroirOuvert) { e.stopPropagation(); fermerTiroir(); }
@@ -524,6 +541,9 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
           <span>{$t(it.labelKey as any)}</span>
         </button>
+        {#if it.view === 'collections' && !enIcones && $etatRayons.mode === 'arbre' && $etatRayons.arbre.folders.length}
+          <ArbreRayons compact arbre={$etatRayons.arbre} onOuvrir={ouvrirCollectionRangee} />
+        {/if}
       {/each}
     </nav>
 
