@@ -6,6 +6,13 @@
   import { freqLabel, spectrumGravesTicks, spectrumIsoTicks, type AnnonceSpectre } from '../../lib/spectrumScale';
   import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../../lib/axeSpectre';
   import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../../lib/waveformHistory';
+  // #1256 — la cadence de dessin est un RÉGLAGE depuis le 23/09/2026. Le cran
+  // par défaut (`fluide`) rend la règle que `boucleImages` applique déjà par
+  // défaut (ticket 150, `cadenceCreteMetre.tempsDeDessiner`) : rien ne bouge
+  // pour qui n'a rien demandé.
+  import { cranOuDefaut } from '../../lib/cadenceAnimations';
+  import { tempsDeDessiner } from '../../lib/cadenceCreteMetre';
+  import { preferences } from '../../lib/stores/preferences';
 
   interface Props {
     playing: boolean;
@@ -116,6 +123,18 @@
   const waveHistory = new WaveformHistory();
   let lastTargetUpdate = 0;
   const TARGET_INTERVAL = 120; // ms between new random targets (~8 Hz)
+  /**
+   * #1256 — le cran de cadence choisi dans les Réglages.
+   *
+   * 🔴 `$derived`, et non une constante : le réglage change sans rechargement,
+   * et la règle de rythme passée à `boucleImages` relit la valeur à chaque
+   * réveil. C'est l'UNIQUE cadenceur de cette boucle depuis le ticket 150 :
+   * `draw` ne filtre plus rien lui-même.
+   *
+   * 🔴 Affichage seulement. Cette boucle LIT `audio_levels` et le dessine :
+   * ralentir le dessin ne touche à aucun échantillon audio.
+   */
+  const cran = $derived(cranOuDefaut($preferences.cadenceAnimations));
 
   /**
    * 🔴 Ticket 150 — PAS de `$state`.
@@ -659,7 +678,7 @@
       // la reprise de la lecture ne redessinerait plus rien.
       if (!continuer) arreterBoucle = null;
       return continuer;
-    });
+    }, { rythme: (maintenant, dernier) => tempsDeDessiner(maintenant, dernier, cran) });
   }
 
   function stopAnimation() {

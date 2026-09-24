@@ -11,6 +11,9 @@ import { estDataUrlImage } from '../avatarLocal';
 import {
   estOrdreVersions, ORDRE_VERSIONS_DEFAUT, type OrdreVersions,
 } from '../versionsPiste';
+import {
+  CRAN_CADENCE_DEFAUT, estCranCadence, type CranCadence,
+} from '../cadenceAnimations';
 /**
  * 🔴 `profileHeader()`, et non la couche `api.ts`.
  *
@@ -271,6 +274,24 @@ export interface Preferences {
    * l'autre au lieu d'être à refaire à chaque poste.
    */
   ordreAutresVersions: OrdreVersions;
+  /**
+   * La cadence des animations de « Lecture en cours » — #1256.
+   *
+   * Trois crans : `fluide` (30 i/s, le comportement livré), `econome` (20 i/s,
+   * −28 % de processeur mesurés) et `minimal` (15 i/s, −43 %). Le levier est
+   * linéaire et sans palier ; les deux autres pistes explorées — minuterie par
+   * boucle, horloge partagée — ne rapportent rien ou coûtent plus cher
+   * (`docs/mesures/1256-cout-des-boucles-de-dessin.md`, PR #1480 et #1499).
+   *
+   * 🔴 Le défaut est la moitié de la décision : `fluide`, donc rien ne bouge —
+   * ni pour une installation neuve, ni pour une installation existante dont le
+   * blob enregistré ne connaît pas encore la clé. `{ ...defaults, ...raw }` s'en
+   * charge, et un test le mesure (`cadenceAnimations1256.test.ts`).
+   *
+   * 🔴 Affichage seulement : ces boucles LISENT `audio_levels` et le dessinent.
+   * Ralentir le dessin ne touche à aucun échantillon.
+   */
+  cadenceAnimations: CranCadence;
 }
 
 const STORAGE_KEY = 'tune-preferences';
@@ -317,6 +338,10 @@ const defaults: Preferences = {
   // fusion `{ ...defaults, ...raw }` de `loadPrefs` donne toujours le dernier
   // mot à la valeur enregistrée. Un utilisateur qui a choisi garde son choix.
   ordreAutresVersions: ORDRE_VERSIONS_DEFAUT,
+  // #1256 : 30 images par seconde, la cadence d'aujourd'hui. L'économie est
+  // réelle et mesurée, mais elle SE VOIT — elle se propose, elle ne s'impose
+  // pas. Personne ne doit voir son affichage changer sans l'avoir demandé.
+  cadenceAnimations: CRAN_CADENCE_DEFAUT,
 };
 
 /** Migration one-shot du toggle « Afficher les réglages avancés » (#1617) :
@@ -460,6 +485,12 @@ function loadPrefs(): Preferences {
       if (!estOrdreVersions((raw as { ordreAutresVersions?: unknown })?.ordreAutresVersions)) {
         p.ordreAutresVersions = ORDRE_VERSIONS_DEFAUT;
       }
+      // #1256 — même règle, même raison : ce blob vient aussi du SERVEUR. Un
+      // cran inconnu (version ultérieure, blob abîmé) retombe sur la cadence
+      // d'aujourd'hui, jamais sur une cadence qui n'existe pas.
+      if (!estCranCadence((raw as { cadenceAnimations?: unknown })?.cadenceAnimations)) {
+        p.cadenceAnimations = CRAN_CADENCE_DEFAUT;
+      }
       return p;
     }
   } catch { /* ignore */ }
@@ -514,6 +545,12 @@ export async function syncPreferencesFromServer() {
       // bulle — précisément celui qu'on prétend garder.
       if (!estDataUrlImage(server.avatarImage)) delete server.avatarImage;
       if (typeof server.avatarCompte !== 'string') delete server.avatarCompte;
+      // #1256 — idem : un cran inconnu venu du serveur est SUPPRIMÉ, pas
+      // adopté. Supprimé et non corrigé, parce que la branche « pas de
+      // préférences locales » fait `{ ...defaults, ...server }` : c'est
+      // `defaults` qui doit reprendre la main, sinon un blob abîmé figerait
+      // les animations sur une cadence qui n'existe pas.
+      if (!estCranCadence(server.cadenceAnimations)) delete server.cadenceAnimations;
       if (hadLocalPrefs) {
         preferences.update((local) => ({ ...defaults, ...server, ...local }));
       } else {

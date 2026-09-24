@@ -96,6 +96,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
+  import {
+    CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
+  } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
@@ -2996,6 +2999,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     if (estOrdreVersions(v)) preferences.update((pr) => ({ ...pr, ordreAutresVersions: v })); }}>
                   <option value="pertinence">{$t('settings.versionsOrderRelevance' as any)}</option>
                   <option value="source">{$t('settings.versionsOrderSource' as any)}</option>
+                </select>
+              </div>
+
+              <!-- #1256 — Levente Toth (fil 1848, 19/09/2026) : « high CPU/GPU
+                   usage when I open the now playing ». Deux relevés (PR #1480
+                   et #1499) ont cherché une économie invisible et trouvé le
+                   contraire : la minuterie par boucle coûte PLUS cher,
+                   l'horloge partagée ne rapporte RIEN. Le seul levier qui
+                   rapporte est la cadence elle-même — et il SE VOIT. Bertrand
+                   tranche le 23/09/2026 : trois crans, défaut inchangé.
+                   Le libellé de chaque cran porte son gain : un cran qui ne dit
+                   pas ce qu'il rapporte ne se choisit pas. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.animationRate' as any)}</span>
+                  <span class="hint">{$t('settings.animationRateHint' as any)}</span>
+                </div>
+                <select class="sel" value={cranOuDefaut($preferences.cadenceAnimations)}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estCranCadence(v)) preferences.update((pr) => ({ ...pr, cadenceAnimations: v })); }}>
+                  {#each CRANS_CADENCE as cran (cran)}
+                    <option value={cran}>{$t(CLE_I18N_CRAN[cran] as any)}</option>
+                  {/each}
                 </select>
               </div>
 
