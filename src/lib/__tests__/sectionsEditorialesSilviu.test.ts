@@ -85,10 +85,17 @@ describe('sections éditoriales — capture Silviu (roumain, v0.9.161)', () => {
   it('le catalogue ne porte plus le nom ANGLAIS du serveur pour ces six-là', async () => {
     const w = await catalogueService('qobuz');
     const sections = w.filter((x) => x.id.startsWith('qobuz-sec-'));
-    expect(sections).toHaveLength(7);
+    // SIX et non sept : « Nouveautes » n'est plus une section editoriale.
+    // La bande en dur `qobuz-nouveautes` rend deja la meme route Qobuz, et le
+    // testeur voyait donc les MEMES huit albums deux fois (#1429, fil 1883).
+    // C'est la section qui part ; la bande reste, avec son titre traduit.
+    expect(sections).toHaveLength(6);
+    expect(sections.map((x) => x.id)).not.toContain('qobuz-sec-new-releases');
+
+    const bande = w.find((x) => x.id === 'qobuz-nouveautes');
+    expect(bande?.cleTitre).toBe('v2.svc.wNew');
 
     const parId = new Map(sections.map((x) => [x.id, x.cleTitre]));
-    expect(parId.get('qobuz-sec-new-releases')).toBe('v2.svc.sec.newReleases');
     expect(parId.get('qobuz-sec-best-sellers')).toBe('v2.svc.sec.bestSellers');
     expect(parId.get('qobuz-sec-press-awards')).toBe('v2.svc.sec.pressAwards');
     expect(parId.get('qobuz-sec-editor-picks')).toBe('v2.svc.sec.editorPicks');
@@ -110,9 +117,14 @@ describe('sections éditoriales — capture Silviu (roumain, v0.9.161)', () => {
       .map((x) => tr(x.cleTitre));
 
     expect(rendus).toEqual([
-      'Noutăți', 'Cele mai vândute', 'Premii ale presei',
+      'Cele mai vândute', 'Premii ale presei',
       'Alegerile redacției', 'Cele mai ascultate', 'Discoteca ideală',
     ]);
+
+    // « Noutati » n'a pas disparu de l'ecran : elle est rendue par la bande,
+    // qui porte sa propre cle et la traduit elle aussi.
+    const bande = w.find((x) => x.id === 'qobuz-nouveautes');
+    expect(tr(bande!.cleTitre)).toBe('Noutăți');
     locale.set('fr');
   });
 
