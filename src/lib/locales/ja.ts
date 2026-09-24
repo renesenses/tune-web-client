@@ -3687,6 +3687,8 @@ export default {
   "v2.set.svcActive": "有効",
   "v2.set.svcActiveHint": "無効にしたサービスは、検索にもストリーミング画面にも表示されなくなります。",
   "nowplaying.shareError": "再生中の曲を共有できませんでした。",
+  "nowplaying.shareNothing": "共有するものがありません。再生中の曲がありません。",
+  "nowplaying.shareCopyRefused": "共有は作成されましたが、ブラウザーがコピーを拒否しました。リンク: {lien}",
   "v2.lbl.autoAnalysis": "自動解析",
   "v2.lbl.quickAnalysis": "クイック解析",
   "v2.lbl.assistance": "サポート",

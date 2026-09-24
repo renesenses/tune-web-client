@@ -3687,6 +3687,8 @@ export default {
   "v2.set.svcActive": "Activo",
   "v2.set.svcActiveHint": "Un servicio desactivado ya no aparece en la búsqueda ni en las pantallas de streaming.",
   "nowplaying.shareError": "No se ha podido compartir lo que suena.",
+  "nowplaying.shareNothing": "No hay nada que compartir: no suena ninguna pista.",
+  "nowplaying.shareCopyRefused": "Se ha creado la comparticion, pero el navegador ha rechazado la copia. Enlace: {lien}",
   "v2.lbl.autoAnalysis": "Análisis automático",
   "v2.lbl.quickAnalysis": "Análisis rápido",
   "v2.lbl.assistance": "Asistencia",
