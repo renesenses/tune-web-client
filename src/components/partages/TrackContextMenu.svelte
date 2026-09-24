@@ -75,6 +75,14 @@
     onBan?: () => void;
     /** « Débannir » — montré à la place de « Bannir » quand `capacites.bannie`. */
     onUnban?: () => void;
+    /**
+     * Omit to hide « Tous les champs piste » — #851, les CHAMPS du fichier,
+     * pas les étiquettes. `MenuPisteV2` la rend depuis le 10/09/2026 ; ce
+     * menu-ci ne la connaissait pas, et une piste de la bibliothèque perdait
+     * l'entrée dès qu'elle s'affichait dans le tiroir de file du NowPlaying
+     * (réunion du 23/09/2026 : « toutes les pistes ont le menu complet »).
+     */
+    onChampsDuFichier?: () => void;
     /** Ce que la PISTE permet. Par défaut : tout, le geste seul décide. */
     capacites?: CapacitesPiste;
   }
@@ -92,6 +100,7 @@
     onTag,
     onBan,
     onUnban,
+    onChampsDuFichier,
     capacites = { jouable: true, idBibliotheque: 1, artistId: 1, albumId: 1 },
   }: Props = $props();
   const entrees = $derived(
@@ -107,6 +116,7 @@
       etiqueter: onTag,
       bannir: onBan,
       debannir: onUnban,
+      champsDuFichier: onChampsDuFichier,
     }),
   );
   /**
