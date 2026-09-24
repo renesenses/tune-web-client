@@ -1514,6 +1514,7 @@ export default {
   "trackTags.groupAudio": "Audio",
   "trackTags.groupSystem": "Sistem",
   "trackTags.groupOther": "Alte câmpuri",
+  "trackTags.serviceReadOnly": "Piesă de streaming: câmpurile cunoscute de Tune, doar citire.",
   "trackTags.trackCredits": "Credite piesă",
   "trackTags.audioInfoFromFile": "Info audio (din fișier)",
   "trackTags.rawFileTags": "Etichete brute din fișier",

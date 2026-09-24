@@ -1492,6 +1492,7 @@ export default {
   "trackTags.groupAudio": "오디오",
   "trackTags.groupSystem": "시스템",
   "trackTags.groupOther": "기타 필드",
+  "trackTags.serviceReadOnly": "스트리밍 트랙: Tune이 알고 있는 필드(읽기 전용).",
   "trackTags.trackCredits": "트랙 크레딧",
   "trackTags.audioInfoFromFile": "오디오 정보 (파일에서)",
   "trackTags.rawFileTags": "원본 파일 태그",

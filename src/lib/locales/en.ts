@@ -2011,6 +2011,7 @@ export default {
   "trackTags.groupAudio": "Audio",
   "trackTags.groupSystem": "System",
   "trackTags.groupOther": "Other fields",
+  "trackTags.serviceReadOnly": "Streaming track: the fields Tune knows, read-only.",
   "trackTags.trackCredits": "Track credits",
   "trackTags.audioInfoFromFile": "Audio info (from file)",
   "trackTags.rawFileTags": "Raw file tags",

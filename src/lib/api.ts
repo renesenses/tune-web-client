@@ -4063,6 +4063,22 @@ export function getStreamingAlbumTracks(service: string, albumId: string) {
     .then((t) => mapStreamingTracks(t, service));
 }
 
+/**
+ * Le détail d'UN titre chez son service — `GET /streaming/{service}/tracks/{id}`
+ * (`get_track`, un `StreamTrack`). Fil forum 1906 (FabienM, point 3) : il
+ * complète « Tous les champs piste » d'un titre de service.
+ *
+ * `sansBandeau` : le tiroir montre DÉJÀ les champs que la piste porte, et un
+ * service qui ne sait pas répondre n'est pas une panne de Tune — voir
+ * `fetchJSON`. L'appelant se tait lui aussi.
+ */
+export function getStreamingTrack(service: string, trackId: string) {
+  return fetchJSON<Track>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(trackId)}`,
+    undefined, undefined, true,
+  ).then((t) => mapStreamingTracks([t], service)[0]);
+}
+
 export function getStreamingArtist(service: string, artistId: string) {
   return fetchJSON<Artist>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`);
 }

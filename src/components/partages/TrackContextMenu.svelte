@@ -71,6 +71,11 @@
     onGoToAlbum?: () => void;
     /** Omit to hide the "tags" item — les étiquettes de l'utilisateur. */
     onTag?: () => void;
+    /**
+     * Omit to hide « Tous les champs piste » (#851). Fil forum 1906 : posé par
+     * `MenuPisteV1`, qui tient le tiroir — bibliothèque ET service.
+     */
+    onShowFields?: () => void;
     /** Ce que la PISTE permet. Par défaut : tout, le geste seul décide. */
     capacites?: CapacitesPiste;
   }
@@ -86,6 +91,7 @@
     onGoToArtist,
     onGoToAlbum,
     onTag,
+    onShowFields,
     capacites = { jouable: true, idBibliotheque: 1, artistId: 1, albumId: 1 },
   }: Props = $props();
   const entrees = $derived(
@@ -99,6 +105,7 @@
       allerArtiste: onGoToArtist,
       allerAlbum: onGoToAlbum,
       etiqueter: onTag,
+      champsDuFichier: onShowFields,
     }),
   );
   /**

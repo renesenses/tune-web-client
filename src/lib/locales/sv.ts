@@ -1480,6 +1480,7 @@ export default {
   "trackTags.groupAudio": "Ljud",
   "trackTags.groupSystem": "System",
   "trackTags.groupOther": "Övriga fält",
+  "trackTags.serviceReadOnly": "Strömmat spår: fälten som Tune känner till, skrivskyddade.",
   "trackTags.trackCredits": "Spårmedverkande",
   "trackTags.audioInfoFromFile": "Ljudinfo (från fil)",
   "trackTags.rawFileTags": "Råa filtaggar",

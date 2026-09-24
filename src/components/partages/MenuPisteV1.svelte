@@ -42,6 +42,7 @@
   import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { albumDeServiceDe } from '../../lib/routageAlbum';
+  import { pisteDeServiceDe } from '../../lib/champsPisteService';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
   import TrackContextMenu from './TrackContextMenu.svelte';
@@ -72,6 +73,9 @@
   let panneauVersions = $state(false);
   let panneauEtiquettes = $state(false);
   let modalePlaylist = $state(false);
+  /** Le tiroir « Tous les champs piste » — #851, et fil forum 1906 pour une
+   *  piste de service. Chargé à la demande, comme dans `PisteActions`. */
+  let tiroirChamps = $state(false);
   const local = $derived(estPisteLocale(piste));
   /**
    * Les trois routes de bibliothèque — voisins acoustiques, autres versions,
@@ -145,9 +149,15 @@
         ? () => { $gestesNavigationService?.ouvrirAlbum(albumDeService!); }
         : undefined),
   );
+  /**
+   * Fil forum 1906 (FabienM, point 3) — « Tous les champs piste » d'une piste
+   * de SERVICE, par la même règle que la barre v2 (`lib/champsPisteService`).
+   */
+  const pisteService = $derived(local ? null : pisteDeServiceDe(piste));
   const capacites = $derived({
     jouable,
     idBibliotheque,
+    champsDeService: pisteService != null,
     // Une capacité qui ne tient que si quelqu'un sait la faire : voir plus haut.
     artistId: allerArtiste ? 1 : null,
     albumId: allerAlbum ? 1 : null,
@@ -223,6 +233,7 @@
       onGoToArtist={allerArtiste}
       onGoToAlbum={allerAlbum}
       onTag={() => (panneauEtiquettes = true)}
+      onShowFields={() => (tiroirChamps = true)}
     />
   {/if}
 </div>
@@ -236,6 +247,12 @@
   {#await import('../v2/EtiquettesPanneau.svelte') then m}
     <m.default itemType="track" itemId={idBibliotheque} nom={piste.title}
       onClose={() => (panneauEtiquettes = false)} />
+  {/await}
+{/if}
+{#if tiroirChamps && (idBibliotheque != null || pisteService)}
+  {#await import('./TrackTagsDrawer.svelte') then m}
+    <m.default trackId={idBibliotheque} pisteService={idBibliotheque != null ? null : (piste as any)}
+      onClose={() => (tiroirChamps = false)} />
   {/await}
 {/if}
 {#if modalePlaylist}

@@ -81,6 +81,7 @@
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { albumDeServiceDe } from '../../lib/routageAlbum';
+  import { pisteDeServiceDe } from '../../lib/champsPisteService';
   import { t } from '../../lib/i18n';
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste } from '../../lib/menuPiste';
@@ -341,6 +342,12 @@
    * garde restait verte quand on préfixait une entrée d'un `if (false)`
    * (contre-épreuve n° 1, 07/09/2026). Le module, lui, s'appelle.
    */
+  /**
+   * Fil forum 1906 (FabienM, point 3) — une piste de SERVICE a aussi ses
+   * « Tous les champs piste », en lecture seule. La règle vit dans
+   * `lib/champsPisteService`, une fois pour les deux menus.
+   */
+  const pisteService = $derived(local ? null : pisteDeServiceDe(piste));
   const entrees = $derived(
     entreesMenuPiste(
       {
@@ -355,6 +362,7 @@
         artisteDeService,
         etiquetable: cibleEtiquettes != null,
         playlistDeService: serviceDePlaylist(piste),
+        champsDeService: pisteService != null,
       },
       {
         lire: () => lire(new MouseEvent('click')),
@@ -529,9 +537,12 @@
 <!-- #851 — le tiroir des champs du fichier, jusqu'ici atteignable seulement
      par pochette → Modifier l'album → cliquer une piste. Il vit hors de `v2/` :
      c'est le MÊME que le client actuel, pas une copie. -->
-{#if tiroirChamps && piste.id != null}
+{#if tiroirChamps && ((local && piste.id != null) || pisteService)}
   {#await import('../partages/TrackTagsDrawer.svelte') then m}
-    <m.default trackId={piste.id} onClose={() => (tiroirChamps = false)} />
+    <!-- Fil forum 1906 : une piste de service ouvre le MÊME tiroir, en
+         lecture seule, sans passer par la route des tags du fichier. -->
+    <m.default trackId={local ? piste.id : null} pisteService={local ? null : (piste as any)}
+      onClose={() => (tiroirChamps = false)} />
   {/await}
 {/if}
 

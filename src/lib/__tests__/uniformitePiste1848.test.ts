@@ -162,14 +162,19 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     expect(rendus).not.toContain(fr['library.otherVersions']);
     expect(rendus).not.toContain(fr['v2.cover.tags']);
     // Ce qu'elle sait faire, elle le propose — c'est ce qui manquait.
-    expect(rendus).toEqual([fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue']]);
+    // Fil forum 1906 (FabienM, point 3) : ses champs aussi, en lecture seule.
+    expect(rendus).toEqual([
+      fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'], fr['trackTags.title'],
+    ]);
   });
-  it('une piste de la BIBLIOTHÈQUE ouvre les neuf gestes', () => {
+  it('une piste de la BIBLIOTHÈQUE ouvre les dix gestes', () => {
+    // Fil forum 1906 : « Tous les champs piste » (#851) rejoint le menu du
+    // client actuel, qui n'en avait pas la porte.
     expect(libelles(ouvrir(LOCALE))).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
       fr['library.playSimilar'], fr['library.otherVersions'],
       fr['nowplaying.addToPlaylist'], fr['library.goToArtist'],
-      fr['library.goToAlbum'], fr['v2.cover.tags'],
+      fr['library.goToAlbum'], fr['v2.cover.tags'], fr['trackTags.title'],
     ]);
   });
   it('« Aller à l’artiste » apparaît sur une piste de service SI l’écran sait le faire', () => {
