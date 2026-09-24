@@ -163,9 +163,14 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
    * `streaming_tracks` : serde l'écartait, la route répondait 201, et le modal
    * annonçait « ajoutée » sur une liste restée vide.
    */
-  it('une piste de SERVICE sans écriture n’ouvre pas « Ajouter à une liste de lecture »', () => {
+  //
+  // 🔄 #4889 (24/09/2026) : le serveur ENREGISTRE désormais un titre de
+  // service dans une playlist Tune (`streaming_tracks` lu et stocké). Une piste
+  // YouTube — service sans playlists à lui — ouvre donc « Ajouter à une
+  // playlist », vers les playlists TUNE.
+  it('une piste de SERVICE sans écriture ouvre « Ajouter à une playlist » vers Tune (#4889)', () => {
     const rendus = libelles(ouvrir(SERVICE_SANS_ECRITURE));
-    expect(rendus).not.toContain(fr['nowplaying.addToPlaylist']);
+    expect(rendus).toContain(fr['nowplaying.addToPlaylist']);
     // « Plus comme ça » : un titre QOBUZ seulement (fil forum 1906,
     // `/streaming/{service}/tracks/{id}/similar`) — YouTube n'a pas de
     // similarité d'artiste, l'entrée reste absente.
@@ -178,7 +183,8 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     // Fil forum 1906 (FabienM, point 3) : ses champs aussi, en lecture seule.
     expect(rendus).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
-      fr['library.otherVersions'], fr['v2.cover.tags'], fr['trackTags.title'],
+      fr['library.otherVersions'], fr['nowplaying.addToPlaylist'],
+      fr['v2.cover.tags'], fr['trackTags.title'],
     ]);
   });
   /**
@@ -235,13 +241,19 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     expect(document.querySelectorAll('.track-menu-item')).toHaveLength(0);
   });
 });
-describe('#1848 — une piste de service n’entre pas dans une liste locale', () => {
+// 🔄 #4889 renverse #1848 : une playlist Tune porte un titre de service
+// désignable (`source` + `source_id`), et seulement lui.
+describe('#4889 — une piste de service entre dans une playlist Tune si elle est désignable', () => {
   it('`rangeableEnPlaylist` tranche sur la piste, pas sur l’écran', () => {
     expect(rangeableEnPlaylist(LOCALE)).toBe(true);
-    expect(rangeableEnPlaylist(SERVICE)).toBe(false);
+    expect(rangeableEnPlaylist(SERVICE)).toBe(true);
+    expect(rangeableEnPlaylist(SERVICE_SANS_ECRITURE)).toBe(true);
     // Une piste locale porteuse d'un identifiant de service reste locale.
     expect(rangeableEnPlaylist({ id: 4, source: 'local' })).toBe(true);
+    // Sans `source_id`, le serveur l'écarterait (`skipped_streaming`).
     expect(rangeableEnPlaylist({ id: 4, source: 'qobuz' })).toBe(false);
+    expect(rangeableEnPlaylist({ id: null, source: 'bandcamp', source_id: '' })).toBe(false);
+    expect(rangeableEnPlaylist({ id: null, source: null, source_id: 'x' } as any)).toBe(false);
   });
 });
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');

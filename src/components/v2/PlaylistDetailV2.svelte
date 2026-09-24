@@ -28,6 +28,8 @@
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { rangsApresDeplacement } from '../../lib/playlistService';
+  import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
 
   type Item =
     | { kind: 'local'; pl: Playlist }
@@ -143,6 +145,8 @@
   }
   $effect(() => { load(); });
 
+  /** La liste mêle-t-elle des provenances ? (#4889 : Tune + services.) */
+  const mixte = $derived(new Set(tracks.map((t) => (estPisteLocale(t) ? 'local' : String(t.source ?? '')))).size > 1);
   const totalMs = $derived(tracks.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
 
   /**
@@ -216,8 +220,11 @@
   function addQueue() {
     const zid = zoneRequise();
     if (zid == null) return;
-    const ids = tracks.map((t) => t.id).filter((x): x is number => x != null);
-    if (ids.length) api.addToQueue(zid, { track_ids: ids }).catch(() => {});
+    // #4889 — une playlist Tune peut porter des titres de SERVICE (id nul) :
+    // filtrer les `id` les laissait hors de la file. Le corps partagé désigne
+    // chaque ligne, par son id ou par sa paire service + identifiant.
+    const corps = corpsDeFileListe(tracks);
+    if (corps) api.addToQueue(zid, corps).catch(() => {});
   }
   function commitRename() {
     if (item.kind !== 'local' || item.pl.id == null) { renaming = false; return; }
@@ -261,14 +268,14 @@
     const vers = de + (versLeBas ? 1 : -1);
     if (vers < 0 || vers >= tracks.length) return;
     const avant = tracks;
-    const suite = [...tracks];
-    const [piste] = suite.splice(de, 1);
-    suite.splice(vers, 0, piste);
-    tracks = suite;
+    // #4889 — le nouvel ordre en RANGS ACTUELS, pas en identifiants : une
+    // ligne de SERVICE (id nul) se déplace aussi, et une piste présente deux
+    // fois reste deux lignes distinctes. Réassigné, jamais muté en place.
+    const positions = rangsApresDeplacement(avant.length, de, vers);
+    tracks = positions.map((k) => avant[k]);
     deplacement = true;
     try {
-      const rangs = suite.map((t) => t.id).filter((id): id is number => typeof id === 'number');
-      await api.reorderPlaylistTracks(item.pl.id, rangs);
+      await api.reorderPlaylistTracks(item.pl.id, positions);
       onChanged?.();
     } catch (e) {
       tracks = avant;
@@ -404,7 +411,13 @@
           </button>
         </label>
       </div>
-      <ListePistesV2 pistes={pistesVues} pochetteEnTableau onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <!-- #4889 — le RANG pour clé : une playlist Tune mêle désormais des
+           lignes de service (id nul) et de bibliothèque. La clé par défaut
+           (`id ?? rang`) pouvait faire coïncider l'id 3 d'une piste locale et
+           le rang 3 d'un titre Bandcamp — `each_key_duplicate`. Même règle que
+           `PlaylistManagerView`. `sourceEnTableau` : la liste est MIXTE, on
+           dit d'où vient chaque ligne (#1113). -->
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
              compilé ici : ses styles le suivent.

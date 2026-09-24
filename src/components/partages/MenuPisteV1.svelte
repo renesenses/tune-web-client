@@ -35,7 +35,7 @@
    */
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
-  import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
+  import { corpsDeFile, corpsDeLecture, estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import { queuePosition } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
@@ -204,6 +204,9 @@
     // #1268 — une piste Qobuz/Tidal/Deezer/Spotify rejoint une playlist DE SON
     // SERVICE ; `AddToPlaylistModal` bifurque sur la piste, pas sur l'écran.
     playlistDeService: serviceDePlaylist(piste),
+    // #4889 — et dans une playlist TUNE, tout titre de service désignable
+    // (Bandcamp, YouTube compris). Même décision que `v2/PisteActions.svelte`.
+    rangeableEnPlaylist: rangeableEnPlaylist(piste),
     // 23/09/2026 — « Autres versions » sur une piste de SERVICE, par titre +
     // artiste. Même décision que `v2/PisteActions.svelte` (`cibleParTitre`) :
     // la parité des deux menus se joue ici (`uniformitePiste1848`).

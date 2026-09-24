@@ -66,7 +66,7 @@
    */
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
-  import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
+  import { corpsDeFile, corpsDeLecture, estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import {
     bannir, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
@@ -401,6 +401,8 @@
         artisteDeService,
         etiquetable: cibleEtiquettes != null,
         playlistDeService: serviceDePlaylist(piste),
+        // #4889 — une playlist TUNE porte désormais un titre de service.
+        rangeableEnPlaylist: rangeableEnPlaylist(piste),
         bannie,
         // 23/09/2026 — « Autres versions » sur une piste de SERVICE, par
         // rapprochement titre + artiste. `cibleParTitre` refuse une piste de
@@ -501,10 +503,13 @@
     <span class="pa vide" aria-hidden="true"></span>
     <span class="pa vide" aria-hidden="true"></span>
   {/if}
-  <!-- #1268 : une piste de SERVICE ne va que dans une playlist de SON service
-       (`playlistService.ts`). Pour un service qui ne sait pas écrire, le bouton
-       ouvrait les playlists Tune et l'ajout s'y perdait en silence. -->
-  {#if jouable && (local || serviceDePlaylist(piste))}
+  <!-- #1268 : une piste de SERVICE n'allait que dans une playlist de SON
+       service (`playlistService.ts`) : pour un service qui ne sait pas écrire,
+       le bouton ouvrait les playlists Tune et l'ajout s'y perdait en silence.
+       🔄 #4889 : le serveur ENREGISTRE désormais un titre de service dans une
+       playlist Tune. La case vaut donc pour tout titre désignable
+       (`rangeableEnPlaylist`) — Bandcamp et YouTube ne l'ont plus vide. -->
+  {#if jouable && rangeableEnPlaylist(piste)}
     <button class="pa" onclick={(e) => { stop(e); modalePlaylist = true; }}
             title={$t('v2.pa.playlist' as any)} aria-label={$t('v2.pa.playlist' as any)}>
       <!-- 🔴 Le glyphe des PLAYLISTS, celui de la barre laterale — pas une

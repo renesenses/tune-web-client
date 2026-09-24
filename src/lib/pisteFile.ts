@@ -111,23 +111,25 @@ export function corpsDeFileListe(liste: Track[], position?: number): AddToQueueR
   };
 }
 /**
- * Cette piste peut-elle entrer dans une liste de lecture LOCALE ?
+ * Cette piste peut-elle entrer dans une playlist TUNE ?
  *
- * 🔴 `renesenses/tune-server-rust#1848`. La reponse est NON pour une piste de
- * service, et le serveur ne peut pas en decider autrement :
- * `tune-server/src/routes/playlists.rs` declare, sur la tete de
- * `renesenses/tune-server-rust` au 07/09/2026,
+ * 🔄 tune-server-rust#4889 (24/09/2026) renverse #1848. Une playlist Tune
+ * porte désormais les titres de service : `POST /playlists/{id}/tracks` avec
+ * `{ track_ids: [], streaming_tracks: [..] }` les ENREGISTRE (source,
+ * source_id, titre, artiste, album, durée, pochette), `GET` les rend dans
+ * l'ordre (`id: null`, `source`, `source_id`), et la lecture les résout.
  *
- *     struct AddTracks { track_ids: Vec<i64>, position: Option<i64> }
+ * La règle serveur, recopiée : un titre de service doit porter `source`
+ * (≠ `local`) et `source_id` — le titre, `buildAddArgs` l'envoie toujours.
+ * Sans `source_id`, le serveur l'écarterait (`skipped_streaming`) : on ne
+ * propose donc pas le geste.
  *
- * et `add_tracks` ne lit que `body.track_ids`. Le client envoie pourtant
- * `streaming_tracks` (`api.addPlaylistTracks`) : serde l'ecarte en silence, la
- * route repond **201 Created**, et le modal annonce « ajoutee » sur une liste
- * restee vide. Ce n'est pas non plus reparable en stockant la piste —
- * `playlist_tracks.track_id` est `NOT NULL REFERENCES tracks(id)`.
- *
- * Le geste est donc ABSENT, pas grise : c'est ce que #1848 tranche.
+ * Une piste de la BIBLIOTHÈQUE (UPnP intégrée comprise, `estPisteLocale`)
+ * y entre par son `id`, comme avant.
  */
-export function rangeableEnPlaylist(t: Pick<Track, 'id' | 'source'>): boolean {
-  return estPisteLocale(t);
+export function rangeableEnPlaylist(t: Pick<Track, 'id' | 'source' | 'source_id'>): boolean {
+  if (estPisteLocale(t)) return true;
+  const s = String(t.source ?? '').trim().toLowerCase();
+  if (s === '' || s === 'local') return false;
+  return t.source_id != null && String(t.source_id).trim() !== '';
 }

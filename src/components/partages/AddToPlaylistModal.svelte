@@ -4,7 +4,7 @@
   import type { Track, StreamingTrackInfo } from '../../lib/types';
   import { t } from '../../lib/i18n';
   import { serviceDePlaylist } from '../../lib/playlistService';
-  import { estPisteLocale } from '../../lib/pisteFile';
+  import { estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
 
   interface Props {
     track: Track;
@@ -13,42 +13,70 @@
   let { track, onClose }: Props = $props();
 
   /**
-   * #1268 — une piste de SERVICE va dans une playlist DE SON SERVICE.
+   * OÙ PEUT ALLER CETTE PISTE — #1268, puis #4889.
    *
-   * Pour une piste Qobuz, la fenêtre liste les playlists du compte Qobuz
-   * (`GET /streaming/qobuz/playlists`) et y écrit
-   * (`POST /streaming/qobuz/playlists/{id}/tracks`). Jamais les playlists
-   * Tune : une playlist Tune ne peut pas porter une piste de service
-   * (tune-server-rust#1848), et l'ajout y était perdu en silence (201 sur une
-   * liste restée vide). Pour une piste de la bibliothèque, rien ne change.
+   * #1268 (19/09/2026) : une piste de SERVICE n'allait que dans une playlist
+   * DE SON SERVICE, parce qu'une playlist Tune ne pouvait pas la porter
+   * (tune-server-rust#1848).
+   *
+   * 🔄 #4889 (24/09/2026) : le serveur ENREGISTRE désormais un titre de
+   * service dans une playlist Tune (`POST /playlists/{id}/tracks` avec
+   * `streaming_tracks`). La fenêtre propose donc DEUX groupes, titrés :
+   *
+   *   - « Playlists Tune » — pour toute piste désignable
+   *     (`rangeableEnPlaylist`), Bandcamp et YouTube compris ;
+   *   - « Vos playlists <Service> » — en plus, quand le service sait écrire
+   *     ses playlists (`serviceDePlaylist` : Qobuz, Tidal, Deezer, Spotify).
+   *
+   * Pour une piste de la bibliothèque, rien ne change : les playlists Tune,
+   * sans titre de groupe.
    */
   const service = $derived(serviceDePlaylist(track));
+  const deService = $derived(!estPisteLocale(track));
+  const versTune = $derived(rangeableEnPlaylist(track));
+  const nomService = $derived(service ? service.charAt(0).toUpperCase() + service.slice(1) : '');
 
-  /** Une destination, de Tune ou du service : la liste n'a pas à savoir laquelle. */
-  interface Cible { cle: string; nom: string; n: number }
+  /** Une destination : chez Tune (`cle` = id numérique) ou chez le service (`cle` = son `source_id`). */
+  type Ou = 'tune' | 'service';
+  interface Cible { ou: Ou; cle: string; nom: string; n: number }
 
-  let cibles = $state<Cible[]>([]);
+  let ciblesTune = $state<Cible[]>([]);
+  let ciblesService = $state<Cible[]>([]);
   let loading = $state(true);
+  /** `${ou}:${cle}` de la destination en cours d'écriture. */
   let adding = $state<string | null>(null);
   let showCreate = $state(false);
   let newName = $state('');
+  /** Où créer une nouvelle playlist : chez Tune par défaut. */
+  let ouCreer = $state<Ou>('tune');
   let success = $state<string | null>(null);
-  /** Un échec d'écriture se DIT : le service peut refuser (playlist suivie, pas possédée). */
-  let echec = $state(false);
+  /** Un échec d'écriture se DIT, et dit OÙ : le service peut refuser (playlist
+   *  suivie, pas possédée) ; Tune peut refuser un titre incomplet (422). */
+  let echec = $state<Ou | null>(null);
 
+  const cleDe = (c: Cible) => `${c.ou}:${c.cle}`;
+
+  /**
+   * Les deux listes se chargent INDÉPENDAMMENT : un service qui ne répond pas
+   * ne doit pas cacher les playlists Tune, ni l'inverse.
+   */
   async function loadPlaylists() {
     loading = true;
-    try {
-      if (service) {
-        const l = await api.getStreamingPlaylists(service);
-        cibles = (l ?? []).map((p) => ({ cle: String(p.source_id), nom: p.name, n: p.track_count ?? 0 }));
-      } else {
-        const l = await api.getPlaylists();
-        cibles = (l ?? []).filter((p) => p.id != null).map((p) => ({ cle: String(p.id), nom: p.name, n: p.track_count ?? 0 }));
-      }
-    } catch (e) {
-      console.error('Load playlists error:', e);
-    }
+    const [tune, svc] = await Promise.all([
+      versTune
+        ? api.getPlaylists()
+            .then((l) => (l ?? []).filter((p) => p.id != null)
+              .map((p): Cible => ({ ou: 'tune', cle: String(p.id), nom: p.name, n: p.track_count ?? 0 })))
+            .catch((e) => { console.error('Load playlists error:', e); return [] as Cible[]; })
+        : Promise.resolve([] as Cible[]),
+      service
+        ? api.getStreamingPlaylists(service)
+            .then((l) => (l ?? []).map((p): Cible => ({ ou: 'service', cle: String(p.source_id), nom: p.name, n: p.track_count ?? 0 })))
+            .catch((e) => { console.error('Load service playlists error:', e); return [] as Cible[]; })
+        : Promise.resolve([] as Cible[]),
+    ]);
+    ciblesTune = tune;
+    ciblesService = svc;
     loading = false;
   }
 
@@ -87,13 +115,17 @@
       bit_depth: track.bit_depth,
       channels: track.channels,
       cover_path: track.cover_path,
+      // #4889 — l'album CHEZ LE SERVICE, pour rouvrir l'album depuis la
+      // playlist. Une piste de service porte son id d'album dans `album_id`
+      // (chaîne à l'exécution) ou dans `album_id_service` (Historique).
+      album_id: track.album_id_service ?? (track.album_id != null ? String(track.album_id) : null),
     };
     return { trackIds: [], streamingTracks: [st] };
   }
 
-  /** Écrit la piste dans la destination `cle` — chez le service, ou chez Tune. */
-  async function ecrire(cle: string) {
-    if (service) {
+  /** Écrit la piste dans la destination — chez le service, ou chez Tune. */
+  async function ecrire(ou: Ou, cle: string) {
+    if (ou === 'service' && service) {
       await api.addStreamingPlaylistTracks(service, cle, [String(track.source_id)]);
     } else {
       const { trackIds, streamingTracks } = buildAddArgs();
@@ -102,35 +134,36 @@
   }
 
   async function addToPlaylist(c: Cible) {
-    adding = c.cle;
-    echec = false;
+    adding = cleDe(c);
+    echec = null;
     try {
-      await ecrire(c.cle);
+      await ecrire(c.ou, c.cle);
       success = c.nom;
       setTimeout(() => onClose(), 800);
     } catch (e) {
       console.error('Add to playlist error:', e);
       adding = null;
-      echec = true;
+      echec = c.ou;
     }
   }
 
   async function createAndAdd() {
     if (!newName.trim()) return;
-    echec = false;
+    const ou: Ou = ouCreer === 'service' && service ? 'service' : 'tune';
+    echec = null;
     try {
       const nom = newName.trim();
-      const cle = service
-        ? (await api.createStreamingPlaylist(service, nom)).id
+      const cle = ou === 'service'
+        ? (await api.createStreamingPlaylist(service!, nom)).id
         : (await api.createPlaylist(nom)).id;
       if (cle != null && String(cle) !== '') {
-        await ecrire(String(cle));
+        await ecrire(ou, String(cle));
         success = nom;
         setTimeout(() => onClose(), 800);
       }
     } catch (e) {
       console.error('Create playlist error:', e);
-      echec = true;
+      echec = ou;
     }
   }
 
@@ -158,7 +191,6 @@
     {:else}
       <div class="modal-header">
         <h3>{$t('playlist.addToPlaylist')}</h3>
-        {#if service}<p class="pl-service">{$t('playlist.servicePlaylistsOf').replace('{service}', service.charAt(0).toUpperCase() + service.slice(1))}</p>{/if}
         <button class="close-btn" onclick={onClose} use:tip={'common.close'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
@@ -168,38 +200,71 @@
         {#if loading}
           <div class="loading"><div class="spinner"></div></div>
         {:else}
+          <!-- #4889 — deux groupes pour une piste de SERVICE : Tune, puis son
+               service s'il sait écrire. Une piste de la bibliothèque n'a que
+               le premier, sans titre : rien ne change pour elle. -->
           <div class="playlist-list">
-            {#each cibles as pl (pl.cle)}
-              <button
-                class="playlist-option"
-                disabled={adding !== null}
-                onclick={() => addToPlaylist(pl)}
-              >
-                <div class="pl-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
-                </div>
-                <div class="pl-info">
-                  <span class="pl-name">{pl.nom}</span>
-                  <span class="pl-count">{pl.n} {$t('common.tracks')}</span>
-                </div>
-                {#if adding === pl.cle}
-                  <div class="spinner small"></div>
-                {/if}
-              </button>
-            {/each}
+            {#if versTune}
+              {#if deService}<h4 class="pl-groupe" data-groupe="tune">{$t('playlist.groupTune')}</h4>{/if}
+              {#each ciblesTune as pl (cleDe(pl))}
+                {@render option(pl)}
+              {/each}
+              {#if ciblesTune.length === 0}
+                <p class="empty-hint">{$t('playlist.noExisting')}</p>
+              {/if}
+            {/if}
+            {#if service}
+              <h4 class="pl-groupe" data-groupe="service">{$t('playlist.servicePlaylistsOf').replace('{service}', nomService)}</h4>
+              {#each ciblesService as pl (cleDe(pl))}
+                {@render option(pl)}
+              {/each}
+              {#if ciblesService.length === 0}
+                <p class="empty-hint">{$t('playlist.noExisting')}</p>
+              {/if}
+            {/if}
           </div>
 
-          {#if cibles.length === 0}
-            <p class="empty-hint">{$t('playlist.noExisting')}</p>
-          {/if}
-          {#if echec}
+          {#if echec === 'service'}
             <p class="empty-hint echec" role="alert">{$t('playlist.addFailed')}</p>
+          {:else if echec === 'tune'}
+            <p class="empty-hint echec" role="alert">{$t('v2.ms.addFailed' as any)}</p>
           {/if}
         {/if}
       </div>
 
+      {#snippet option(pl: Cible)}
+        <button
+          class="playlist-option"
+          data-ou={pl.ou}
+          disabled={adding !== null}
+          onclick={() => addToPlaylist(pl)}
+        >
+          <div class="pl-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M9 18V5l12-2v13M9 18c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" /></svg>
+          </div>
+          <div class="pl-info">
+            <span class="pl-name">{pl.nom}</span>
+            <span class="pl-count">{pl.n} {$t('common.tracks')}</span>
+          </div>
+          {#if adding === cleDe(pl)}
+            <div class="spinner small"></div>
+          {/if}
+        </button>
+      {/snippet}
+
       <div class="modal-footer">
         {#if showCreate}
+          <!-- #4889 — créer OÙ : chez Tune par défaut, chez le service s'il
+               sait écrire. Sans service, pas de choix à faire. -->
+          {#if service && versTune}
+            <div class="create-ou" role="radiogroup" aria-label={$t('playlist.createIn')}>
+              <span>{$t('playlist.createIn')}</span>
+              <button type="button" role="radio" aria-checked={ouCreer === 'tune'} class:on={ouCreer === 'tune'}
+                onclick={() => (ouCreer = 'tune')}>Tune</button>
+              <button type="button" role="radio" aria-checked={ouCreer === 'service'} class:on={ouCreer === 'service'}
+                onclick={() => (ouCreer = 'service')}>{nomService}</button>
+            </div>
+          {/if}
           <div class="create-row">
             <input
               type="text"
@@ -363,11 +428,41 @@
     color: var(--tune-error, #e5484d);
     padding-top: 0;
   }
-  .pl-service {
-    margin: 0 auto 0 10px;
+  .pl-groupe {
+    margin: 8px 20px 4px;
     color: var(--tune-text-muted);
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .pl-groupe + .empty-hint {
+    padding: 4px 20px 8px;
+    text-align: left;
+  }
+  .create-ou {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
     font-family: var(--font-body);
     font-size: 12px;
+    color: var(--tune-text-muted);
+  }
+  .create-ou button {
+    padding: 3px 10px;
+    background: none;
+    border: 1px solid var(--tune-border);
+    border-radius: var(--radius-sm);
+    color: var(--tune-text-secondary);
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 12px;
+  }
+  .create-ou button.on {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
   }
 
   .modal-footer {

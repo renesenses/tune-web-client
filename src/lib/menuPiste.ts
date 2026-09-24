@@ -102,6 +102,13 @@ export interface CapacitesPiste {
    */
   playlistDeService?: string | null;
   /**
+   * La piste de SERVICE peut-elle entrer dans une playlist TUNE ? — #4889.
+   * Vrai dès qu'elle porte `source` + `source_id` (Bandcamp, YouTube
+   * compris) : c'est `rangeableEnPlaylist` (`lib/pisteFile.ts`) qui le dit,
+   * l'appelant le pose. Absent = non (comportement d'avant #4889).
+   */
+  rangeableEnPlaylist?: boolean;
+  /**
    * La piste est BANNIE (#4806) : l'entrée devient « Débannir ». Absent =
    * pas bannie. N'a de sens que pour une piste de BIBLIOTHÈQUE — une piste de
    * service n'a ni l'une ni l'autre des deux entrées (tranche locale seule,
@@ -235,8 +242,14 @@ export function entreesMenuPiste(
   // Qobuz du compte — `POST /streaming/{service}/playlists/{id}/tracks`. Le
   // même geste ouvre alors la liste des playlists du service, jamais celles
   // de Tune (`AddToPlaylistModal`).
+  //
+  // 🔄 #4889 (24/09/2026) : #1848 est levé côté serveur — une playlist Tune
+  // ENREGISTRE désormais un titre de service. L'entrée vaut donc pour toute
+  // piste de service désignable (`rangeableEnPlaylist`), Bandcamp et YouTube
+  // compris ; la fenêtre propose les playlists Tune, plus celles du service
+  // quand il sait les écrire.
   pousser(
-    deLaBibliotheque || !!c.playlistDeService,
+    deLaBibliotheque || !!c.rangeableEnPlaylist || !!c.playlistDeService,
     'nowplaying.addToPlaylist',
     ICONES.playlist,
     g.ajouterAPlaylist,

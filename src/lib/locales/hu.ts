@@ -419,6 +419,8 @@ export default {
   "playlist.addedTo": "Hozzáadva ehhez: <strong>{name}</strong>",
   "playlist.addFailed": "A hozzáadás nem sikerült: a szolgáltatás elutasította ezt a lejátszási listát.",
   "playlist.servicePlaylistsOf": "{service}-lejátszási listáid",
+  "playlist.groupTune": "Tune lejátszási listák",
+  "playlist.createIn": "Létrehozás itt",
   "playlist.noExisting": "Nincs meglévő lejátszási lista",
   "playlist.newPlaylist": "Új lejátszási lista",
   "playlist.searchPlaceholder": "Keresés a lejátszási listákban...",

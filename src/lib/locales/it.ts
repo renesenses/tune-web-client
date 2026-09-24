@@ -351,6 +351,8 @@ export default {
   'playlist.noExisting': 'Nessuna playlist esistente',
   'playlist.addFailed': 'Aggiunta non riuscita: il servizio ha rifiutato questa playlist.',
   'playlist.servicePlaylistsOf': 'Le tue playlist {service}',
+  'playlist.groupTune': 'Playlist di Tune',
+  'playlist.createIn': 'Crea in',
   'playlist.newPlaylist': 'Nuova playlist',
   'playlist.searchPlaceholder': 'Cerca playlist...',
   'playlist.localPlaylists': 'Le mie playlist',

@@ -438,6 +438,8 @@ export default {
   'playlist.noExisting': 'Aucune playlist existante',
   'playlist.addFailed': 'L’ajout a échoué : le service a refusé cette playlist.',
   'playlist.servicePlaylistsOf': 'Vos playlists {service}',
+  'playlist.groupTune': 'Playlists Tune',
+  'playlist.createIn': 'Créer dans',
   'playlist.newPlaylist': 'Nouvelle playlist',
   'playlist.searchPlaceholder': 'Rechercher une playlist...',
   'playlist.localPlaylists': 'Mes playlists',

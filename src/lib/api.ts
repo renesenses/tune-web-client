@@ -3349,12 +3349,25 @@ export function removePlaylistTrackAt(playlistId: number, position: number) {
   });
 }
 
-export function reorderPlaylistTracks(playlistId: number, trackIds: number[]) {
+/**
+ * Réordonne une playlist Tune — #4889.
+ *
+ * `positions` = le NOUVEL ORDRE exprimé en RANGS ACTUELS (indices de la liste
+ * rendue par `getPlaylistTracks`) : `[2, 0, 1]` met la 3ᵉ ligne en tête. Le
+ * serveur exige une permutation exacte de `0..n-1` (sinon 422, rien n'est
+ * écrit) et répond 204.
+ *
+ * 🔴 L'ancienne forme `{ track_ids }` ne savait pas déplacer une ligne de
+ * SERVICE (id nul) : elle gardait son rang, et l'appelant la filtrait. Les
+ * rangs désignent les deux sortes de lignes — et une piste présente deux fois.
+ */
+export function reorderPlaylistTracks(playlistId: number, positions: number[]) {
   return fetchJSON(`${BASE}/playlists/${playlistId}/tracks`, {
     method: 'PUT',
-    body: JSON.stringify({ track_ids: trackIds }),
+    body: JSON.stringify({ positions }),
   });
 }
+
 
 // --- Streaming quality mapping ---
 

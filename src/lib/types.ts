@@ -1281,6 +1281,8 @@ export interface StreamingTrackInfo {
   bit_depth?: number | null;
   channels?: number;
   cover_path?: string | null;
+  /** L'album CHEZ LE SERVICE — #4889 : la playlist Tune le garde pour rouvrir l'album. */
+  album_id?: string | null;
 }
 
 export interface PlaylistImportResponse {

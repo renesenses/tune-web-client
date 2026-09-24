@@ -357,6 +357,8 @@ export default {
   'playlist.noExisting': 'Niciun playlist existent',
   'playlist.addFailed': 'Adăugarea a eșuat: serviciul a refuzat acest playlist.',
   'playlist.servicePlaylistsOf': 'Playlisturile tale {service}',
+  'playlist.groupTune': 'Playlisturi Tune',
+  'playlist.createIn': 'Creează în',
   'playlist.newPlaylist': 'Playlist nou',
   'playlist.searchPlaceholder': 'Caută playlisturi...',
   'playlist.localPlaylists': 'Playlisturile mele',
