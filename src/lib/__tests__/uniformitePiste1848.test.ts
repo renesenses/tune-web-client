@@ -166,7 +166,9 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
   it('une piste de SERVICE sans écriture n’ouvre pas « Ajouter à une liste de lecture »', () => {
     const rendus = libelles(ouvrir(SERVICE_SANS_ECRITURE));
     expect(rendus).not.toContain(fr['nowplaying.addToPlaylist']);
-    // Les routes de bibliothèque prennent un `i64` : gestes morts, donc absents.
+    // « Plus comme ça » : un titre QOBUZ seulement (fil forum 1906,
+    // `/streaming/{service}/tracks/{id}/similar`) — YouTube n'a pas de
+    // similarité d'artiste, l'entrée reste absente.
     expect(rendus).not.toContain(fr['library.playSimilar']);
     // « Autres versions », SI : depuis le 23/09/2026 elle se rapproche par
     // titre + artiste pour une piste de service (`lib/versionsParTitre`).
@@ -190,6 +192,8 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     const rendus = libelles(ouvrir(SERVICE));
     expect(rendus).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
+      // Fil forum 1906 — « Plus comme ça » sur un titre Qobuz.
+      fr['library.playSimilar'],
       // 23/09/2026 — « Autres versions » par titre + artiste, même libellé,
       // même place que pour une piste de la bibliothèque.
       fr['library.otherVersions'],

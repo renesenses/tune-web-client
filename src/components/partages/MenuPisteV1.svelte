@@ -43,6 +43,8 @@
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { albumDeServiceDe } from '../../lib/routageAlbum';
   import { pisteDeServiceDe } from '../../lib/champsPisteService';
+  import { lirePlusCommeCaDeService, plusCommeCaDeServiceDe } from '../../lib/plusCommeCaService';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
   import {
@@ -182,10 +184,13 @@
    * de SERVICE, par la même règle que la barre v2 (`lib/champsPisteService`).
    */
   const pisteService = $derived(local ? null : pisteDeServiceDe(piste));
+  /** Fil forum 1906 — « Plus comme ça » d'un titre Qobuz (`lib/plusCommeCaService`). */
+  const pisteSimilaires = $derived(local ? null : plusCommeCaDeServiceDe(piste));
   const capacites = $derived({
     jouable,
     idBibliotheque,
     champsDeService: pisteService != null,
+    similairesDeService: pisteSimilaires != null,
     // Une capacité qui ne tient que si quelqu'un sait la faire : voir plus haut.
     artistId: allerArtiste ? 1 : null,
     albumId: allerAlbum ? 1 : null,
@@ -233,10 +238,26 @@
    * « Plus comme ça » — le rapprochement est le SERVEUR qui le fait
    * (`/library/tracks/{id}/similar`). Sans empreinte audio calculée la réponse
    * est VIDE : on le dit, plutôt que de ne rien faire en silence.
+   *
+   * Titre Qobuz — fil forum 1906 (FabienM, point 3) : les voisins selon Qobuz,
+   * par le même module que la barre v2 (`lib/plusCommeCaService`), mêmes
+   * notifications, même remplacement de file.
    */
   async function plusCommeCa() {
     const zid = get(currentZoneId);
-    if (zid == null || idBibliotheque == null) return;
+    if (zid == null) return;
+    if (pisteSimilaires) {
+      try {
+        const n = await lirePlusCommeCaDeService(pisteSimilaires, gestesDeZone(zid));
+        // « acoustiquement similaire » et la Smart Radio ne concernent que la
+        // bibliothèque : un titre de service a son propre message.
+        if (n === 0) notifications.info($tr('library.noSimilarService' as any));
+      } catch {
+        notifications.error($tr('library.similarError' as any));
+      }
+      return;
+    }
+    if (idBibliotheque == null) return;
     try {
       const res = await api.getSimilarTracks(idBibliotheque, 50);
       const ids = (res.items ?? [])

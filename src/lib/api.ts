@@ -4201,6 +4201,23 @@ export function getStreamingTrack(service: string, trackId: string) {
   ).then((t) => mapStreamingTracks([t], service)[0]);
 }
 
+/**
+ * « Plus comme ça » sur un titre de SERVICE — fil forum 1906 (FabienM,
+ * point 3). `GET /streaming/{service}/tracks/{id}/similar` : l'algorithme de
+ * la reprise automatique de fin de file côté serveur (artiste du titre →
+ * artistes similaires → un titre phare par voisin), le titre source exclu.
+ *
+ * Rend des pistes au format des autres routes streaming, la `source` reposée
+ * par `mapStreamingTracks` : elles se lisent et s'enfilent comme d'habitude.
+ * Seul Qobuz sait répondre ; les autres services reçoivent un 501 — le menu ne
+ * leur propose donc pas l'entrée (`plusCommeCaService`).
+ */
+export function similairesDeService(service: string, trackId: string, limit = 20) {
+  return fetchJSON<Track[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(trackId)}/similar?limit=${limit}`,
+  ).then((t) => mapStreamingTracks(t, service));
+}
+
 export function getStreamingArtist(service: string, artistId: string) {
   return fetchJSON<Artist>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`);
 }

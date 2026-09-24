@@ -145,10 +145,19 @@ describe('point 2 — le menu « … » d’un titre d’historique', () => {
     // artiste côté client (`lib/versionsParTitre`, recherche fédérée). Comme
     // pour les deux précédentes, l'intention est gardée plus bas en appelant
     // la règle : jamais sur une piste qui ne se nomme pas.
+    //
+    // 🔄 Réécrit le 24/09/2026 (fil forum 1906, FabienM, point 3) : « Plus
+    // comme ça » sort à son tour, pour un titre QOBUZ seulement
+    // (`GET /streaming/{service}/tracks/{id}/similar`). L'intention est
+    // gardée plus bas, en appelant la règle : sans `similairesDeService`, une
+    // piste de service ne l'a toujours pas.
+    //
+    // Reste réservé à la bibliothèque : « Bannir » / « Débannir » (#4806),
+    // `POST /library/tracks/{id}/ban` prenant un `i64` — tranche locale seule.
     const menu = sansCommentaires(lire('src/lib/menuPiste.ts'));
-    for (const cle of ['library.playSimilar']) {
+    for (const cle of ['ban.ban', 'ban.unban']) {
       expect(menu, `${cle} n’est plus réservée à la bibliothèque`).toMatch(
-        new RegExp(`pousser\\(deLaBibliotheque, '${cle.replace('.', '\\.')}'`),
+        new RegExp(`pousser\\(deLaBibliotheque && [^,]+, '${cle.replace('.', '\\.')}'`),
       );
     }
   });
@@ -165,6 +174,17 @@ describe('point 2 — le menu « … » d’un titre d’historique', () => {
     expect(cles({ ...service, versionsParTitre: false })).not.toContain('library.otherVersions');
     expect(cles(service), 'sans avis de l’appelant, seule la bibliothèque a ses versions').not.toContain('library.otherVersions');
     expect(cles({ ...service, idBibliotheque: 12 })).toContain('library.otherVersions');
+  });
+
+  it('« Plus comme ça » : un titre de service seulement s’il a des voisins (fil 1906)', () => {
+    const noop = () => {};
+    const service = { jouable: true, idBibliotheque: null, artistId: null, albumId: null };
+    const cles = (c: Parameters<typeof entreesMenuPiste>[0]) =>
+      entreesMenuPiste(c, { plusCommeCa: noop }).map((e) => e.cle);
+    expect(cles(service), 'sans voisins de service, l’entrée reste absente').not.toContain('library.playSimilar');
+    expect(cles({ ...service, similairesDeService: false })).not.toContain('library.playSimilar');
+    expect(cles({ ...service, similairesDeService: true })).toContain('library.playSimilar');
+    expect(cles({ ...service, idBibliotheque: 12 })).toContain('library.playSimilar');
   });
 
   it('« Étiquettes » : ouverte à une piste de service désignable, fermée sinon (#1238)', () => {

@@ -124,6 +124,13 @@ export interface CapacitesPiste {
    * la route des tags du fichier (`/library/tracks/{id}/all-tags`, un `i64`).
    */
   champsDeService?: boolean;
+  /**
+   * La piste de SERVICE a des titres voisins côté serveur — fil forum 1906
+   * (FabienM, point 3). Vrai pour un titre QOBUZ seulement :
+   * `GET /streaming/{service}/tracks/{id}/similar` répond 501 aux autres.
+   * Voir `lib/plusCommeCaService`.
+   */
+  similairesDeService?: boolean;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -169,33 +176,28 @@ export function entreesMenuPiste(
   pousser(c.jouable, 'v2.pa.next', ICONES.next, g.ensuite);
   pousser(c.jouable, 'queue.addToQueue', ICONES.queue, g.aLaFile);
   /**
-   * « Plus comme ça » — RESTE réservé à la bibliothèque. Fil forum 1906
-   * (FabienM, point 3), vérifié le 24/09/2026 sur la tête de
-   * `renesenses/tune-server-rust` (v0.9.163, `b4c1244`).
+   * « Plus comme ça » — la bibliothèque, et depuis le 24/09/2026 un titre
+   * QOBUZ. Fil forum 1906 (FabienM, point 3).
    *
-   * Le geste de bibliothèque lit `GET /library/tracks/{id}/similar` puis lance
-   * la file par `track_ids`. Pour une piste désignée par `source` +
-   * `source_id`, AUCUNE route ne rend de titres voisins, pour AUCUN service :
+   * Le geste de bibliothèque lit `GET /library/tracks/{id}/similar` (voisins
+   * acoustiques, un `i64`) puis lance la file par `track_ids`. Un titre de
+   * service se désigne par `source` + `source_id` : il passe par
+   * `GET /streaming/{service}/tracks/{id}/similar`, la logique de la reprise
+   * automatique de fin de file sortie en route (`poller/radio.rs` →
+   * `auto_dj::pistes_similaires_du_service`) — artiste du titre, artistes
+   * similaires SELON LE SERVICE, un titre phare par voisin.
    *
-   *   - `tune-streaming-http` n'expose, par titre, que `/{service}/tracks/{id}`
-   *     (le détail) et `/{service}/tracks/{id}/url` — ni `radio`, ni
-   *     `similar`, ni `recommendations` ;
-   *   - `get_similar_artists` (Qobuz seul l'implémente) n'a pas de route : il
-   *     ne sert que la reprise automatique en fin de file
-   *     (`poller/radio.rs`, `autoplay_streaming_radio`), qu'on ne déclenche
-   *     pas sur demande ;
-   *   - `/radio/auto?seed_track=`, `/ai/smart-radio` (Premium) et
-   *     `/smart-ai/similar-to` prennent tous un `i64` de `tracks` ou puisent
-   *     dans la seule bibliothèque.
-   *
-   * L'entrée est donc ABSENTE d'un titre Qobuz, Tidal, Deezer, Spotify,
-   * YouTube, Amazon ou Bandcamp — pas grisée, pas muette. Il manque côté
-   * serveur une route du genre `GET /streaming/{service}/tracks/{id}/similar`
-   * (Qobuz : `get_similar_artists` + `get_artist_top_tracks` existent déjà,
-   * c'est l'enchaînement de la reprise automatique ; les autres services
-   * n'ont même pas la similarité d'artiste).
+   * Seul Qobuz implémente `get_similar_artists` : Tidal, Deezer, Spotify,
+   * YouTube, Amazon et Bandcamp n'ont pas de similarité d'artiste, la route
+   * leur répond 501, et l'entrée leur reste ABSENTE — pas grisée, pas muette.
+   * La règle vit dans `lib/plusCommeCaService` (`plusCommeCaDeServiceDe`).
    */
-  pousser(deLaBibliotheque, 'library.playSimilar', ICONES.similar, g.plusCommeCa);
+  pousser(
+    deLaBibliotheque || !!c.similairesDeService,
+    'library.playSimilar',
+    ICONES.similar,
+    g.plusCommeCa,
+  );
   /**
    * « Autres versions » — par `i64` pour la bibliothèque, par TITRE + ARTISTE
    * pour tout le reste (Bertrand, 23/09/2026). Même libellé, même icône : ce
@@ -246,7 +248,8 @@ export function entreesMenuPiste(
    * absences, TROIS familles, et les confondre serait l'erreur :
    *
    *   A. Plus comme ça, Autres versions, Étiquettes — les trois routes prennent
-   *      (Étiquettes : plus depuis #1238, voir `etiquetable`.)
+   *      (Étiquettes : plus depuis #1238, voir `etiquetable` ; Plus comme ça :
+   *      plus pour un titre Qobuz depuis le fil 1906, voir `similairesDeService`.)
    *      un `i64` de `tracks`. Une piste de service n'en a pas.
    *   B. Ajouter à une playlist — tranché par #1848 : `playlist_tracks.track_id`
    *      est `NOT NULL REFERENCES tracks(id)`. Évolution de schéma, pas

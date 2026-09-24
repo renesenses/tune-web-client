@@ -85,6 +85,9 @@
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { albumDeServiceDe } from '../../lib/routageAlbum';
   import { pisteDeServiceDe } from '../../lib/champsPisteService';
+  import { lirePlusCommeCaDeService, plusCommeCaDeServiceDe } from '../../lib/plusCommeCaService';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { t } from '../../lib/i18n';
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste } from '../../lib/menuPiste';
@@ -270,16 +273,33 @@
    * ------------------------------------------------------------------ */
 
   /**
-   * « Plus comme ça » — une file de titres acoustiquement voisins.
+   * « Plus comme ça » — une file de titres voisins, qui REMPLACE la file.
    *
-   * Le rapprochement est le SERVEUR qui le fait (`/library/tracks/{id}/similar`,
-   * mesuré sur le .18 : 5 voisins rendus pour la piste 2450). Sans empreinte
-   * audio calculée, la réponse est VIDE : on le dit, plutôt que de ne rien
-   * faire en silence — c'est déjà la règle du client actuel.
+   * Bibliothèque : le rapprochement acoustique du SERVEUR
+   * (`/library/tracks/{id}/similar`, mesuré sur le .18 : 5 voisins rendus
+   * pour la piste 2450). Sans empreinte audio calculée, la réponse est VIDE :
+   * on le dit, plutôt que de ne rien faire en silence — c'est déjà la règle
+   * du client actuel.
+   *
+   * Titre Qobuz — fil forum 1906 (FabienM, point 3) : les voisins selon Qobuz
+   * (`lib/plusCommeCaService`), mêmes notifications, même remplacement de file.
    */
   async function plusCommeCa() {
-    const zid = $currentZoneId;
-    if (zid == null || piste.id == null) return;
+    // Sans zone, on le DIT (#1233) : un geste muet est pire qu'absent.
+    const zid = zoneRequise();
+    if (zid == null) return;
+    if (pisteSimilaires) {
+      try {
+        const n = await lirePlusCommeCaDeService(pisteSimilaires, gestesDeZone(zid));
+        // « acoustiquement similaire » et la Smart Radio ne concernent que la
+        // bibliothèque : un titre de service a son propre message.
+        if (n === 0) notifications.info($t('library.noSimilarService' as any));
+      } catch {
+        notifications.error($t('library.similarError' as any));
+      }
+      return;
+    }
+    if (piste.id == null) return;
     try {
       const res = await api.getSimilarTracks(piste.id, 50);
       const ids = (res.items ?? [])
@@ -365,6 +385,8 @@
    * `lib/champsPisteService`, une fois pour les deux menus.
    */
   const pisteService = $derived(local ? null : pisteDeServiceDe(piste));
+  /** Fil forum 1906 — « Plus comme ça » d'un titre Qobuz (`lib/plusCommeCaService`). */
+  const pisteSimilaires = $derived(local ? null : plusCommeCaDeServiceDe(piste));
   const entrees = $derived(
     entreesMenuPiste(
       {
@@ -386,6 +408,7 @@
         // titre ou sans artiste. Même décision dans `MenuPisteV1`.
         versionsParTitre: cibleVersions != null,
         champsDeService: pisteService != null,
+        similairesDeService: pisteSimilaires != null,
       },
       {
         lire: () => void lire(new MouseEvent('click')),
