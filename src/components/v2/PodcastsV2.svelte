@@ -25,6 +25,7 @@
   import PochetteActions from './PochetteActions.svelte';
   import { PODCAST_GENRES, sousCategories } from '../../lib/podcast-genres';
   import { t } from '../../lib/i18n';
+  import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { dateCourte } from '../../lib/dates';
   import '../../styles/tune-v2.css';
 
@@ -61,7 +62,7 @@
   $effect(() => {
     api.getPodcastSubscriptions()
       .then((r) => { subs = r ?? []; })
-      .catch(() => { error = 'Abonnements indisponibles.'; })
+      .catch(() => { error = $t('v2.pod.subsUnavailable' as any); })
       .finally(() => { subsLoading = false; });
   });
 
@@ -508,7 +509,7 @@
         duration_ms: ep.duration_ms,
       });
     } catch {
-      error = 'Lecture impossible.';
+      error = $t('v2.stream.playFailed' as any);
     } finally {
       setTimeout(() => { playingUrl = null; }, 2000);
     }
@@ -796,7 +797,10 @@
         {:else}
           <!-- Les DIX premiers en bandeau, numérotés. Un classement dont on ne
                voit pas le rang n'est plus un classement. -->
-          <div class="tete">
+          <!-- #1137 — le bandeau répond à la molette, à Maj+molette et aux
+               flèches ← →, au lieu d'exiger qu'on attrape sa barre. -->
+          <div class="tete" use:defilementHorizontal
+               role="group" aria-label={titrePalmares}>
             {#each tete as p, i (feedOf(p) ?? `t${i}`)}
               <div class="rangee">
                 <span class="rang">#{i + 1}</span>
@@ -829,7 +833,7 @@
       -->
       {#snippet failed(erreur: unknown, reessayer: () => void)}
         <div class="state err-inline">
-          <span>Cet écran a échoué : {(erreur as Error)?.message ?? String(erreur)}</span>
+          <span>{$t('v2.pod.screenFailed' as any).replace('{msg}', (erreur as Error)?.message ?? String(erreur))}</span>
           <button class="relancer" onclick={reessayer}>{$t('v2.pod.retry' as any)}</button>
         </div>
       {/snippet}

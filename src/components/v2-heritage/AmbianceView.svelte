@@ -429,7 +429,7 @@
 
   {#if !loading && searched && !error && !premiumBlocked && tracks.length === 0}
     <div class="empty-state">
-      <p>Aucun titre trouvé pour « {lastQuery} ».</p>
+      <p>{$t('v2.ambiance.noTrackFor' as any).replace('{q}', lastQuery)}</p>
       <span>{$t('ambiance.notAnalysed')}</span>
     </div>
   {/if}
@@ -441,7 +441,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
           {lastQuery}
         </h3>
-        <span class="track-count">{tracks.length} titres</span>
+        <span class="track-count">{$t((tracks.length > 1 ? 'v2.common.trackCountMany' : 'v2.common.trackCountOne') as any).replace('{n}', String(tracks.length))}</span>
         <div class="results-actions">
           <button class="action-btn play-all-btn" onclick={() => playAll(false)}>
             <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><polygon points="5,3 19,12 5,21" /></svg>

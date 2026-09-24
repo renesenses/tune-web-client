@@ -31,6 +31,11 @@
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
+  import { tuneWS } from '../../lib/websocket';
+  import {
+    avancementAnalyse, pourcentAnalyse, aDesChiffres,
+    abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
+  } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
@@ -53,6 +58,11 @@
   import { notifications } from '../../lib/stores/notifications';
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
+  import {
+    bornesFileAleatoire, bornerFileAleatoire, lireFileAleatoire, versPatchFileAleatoire,
+    FILE_ALEATOIRE_DEFAUT, FILE_ALEATOIRE_MIN_REPLI, FILE_ALEATOIRE_MAX_REPLI,
+    type BornesFileAleatoire,
+  } from '../../lib/fileAleatoire';
   import { etiquetteCaracteristiques } from '../../lib/caracteristiquesPeripherique';
   import type { BackupInfo, LocalAudioDevice } from '../../lib/types';
   import { devices } from '../../lib/stores/devices';
@@ -281,6 +291,46 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try { await api.updateConfig({ zone_auto_create: v }); }
     catch { autoCreate = before; }   // pas d'etat menteur si le serveur refuse
     finally { autoCreateBusy = false; }
+  }
+
+  // « Titres tirés en lecture aléatoire » — config serveur `shuffle_max_tracks`
+  // (tune-server-rust#2901). Les BORNES viennent du serveur, jamais d'ici :
+  // `bornesFileAleatoire` ne retombe sur 1 / 5 000 que pour un serveur qui ne
+  // les publie pas encore.
+  let fileAleatoire = $state<number | null>(null);
+  let fileAleatoireSaisie = $state<string>('');
+  let fileAleatoireBornes = $state<BornesFileAleatoire>({
+    min: FILE_ALEATOIRE_MIN_REPLI, max: FILE_ALEATOIRE_MAX_REPLI,
+  });
+  let fileAleatoireBusy = $state(false);
+  $effect(() => {
+    api.getConfig()
+      .then((c: any) => {
+        fileAleatoireBornes = bornesFileAleatoire(c);
+        fileAleatoire = lireFileAleatoire(c, fileAleatoireBornes);
+        fileAleatoireSaisie = String(fileAleatoire);
+      })
+      .catch(() => { fileAleatoire = null; });
+  });
+  /** Enregistre la limite, bornée AVANT l'envoi — une saisie vide ou hors
+   *  bornes ne part jamais telle quelle, et le champ montre ce qui a été
+   *  réellement écrit. */
+  async function setFileAleatoire(brut: string) {
+    if (fileAleatoire === null) return;
+    const valeur = bornerFileAleatoire(brut.trim(), fileAleatoireBornes);
+    fileAleatoireSaisie = String(valeur);
+    if (valeur === fileAleatoire) return;
+    const avant = fileAleatoire;
+    fileAleatoire = valeur;
+    fileAleatoireBusy = true;
+    try { await api.updateConfig(versPatchFileAleatoire(brut.trim(), fileAleatoireBornes)); }
+    catch {
+      // pas d'etat menteur si le serveur refuse
+      fileAleatoire = avant;
+      fileAleatoireSaisie = String(avant);
+      notifications.error(get(t)('renderer.saveError' as any));
+    }
+    finally { fileAleatoireBusy = false; }
   }
 
   // « Sorties audio locales » — plusieurs reglages serveur + la liste des
@@ -1497,11 +1547,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       try {
         const s = await api.getScanStatus();
         scanning = !!s?.scanning;
-        if (!scanning) { scanReport = await api.getScanReport().catch(() => null); await refreshLibrary(); }
+        if (!scanning) {
+          terminerAvancement();
+          scanReport = await api.getScanReport().catch(() => null);
+          await refreshLibrary();
+        }
       } catch { /* ignore */ }
     }, 2500);
     return () => clearInterval(h);
   });
+  /**
+   * #1518 — l'avancement vient de l'EVENEMENT, jamais du sondage.
+   *
+   * `GET /scan/status` ne porte qu'un booleen : on pouvait le sonder
+   * indefiniment sans jamais en tirer un chiffre. Le serveur emet
+   * `library.scan.progress` des le debut du scan ; tout le client n'y avait
+   * qu'un seul abonne, l'assistant de premiere installation. L'abonnement est
+   * permanent : une analyse peut avoir ete lancee ailleurs (planification,
+   * autre client), et l'ecran doit alors montrer les chiffres sans avoir
+   * declenche quoi que ce soit.
+   */
+  $effect(() => abonnerAvancementAnalyse((h) => tuneWS.onEvent(h)));
+  // Un avancement qui arrive alors que l'ecran se croit au repos veut dire
+  // qu'une analyse tourne : le badge doit le dire.
+  $effect(() => { if (aDesChiffres($avancementAnalyse)) scanning = true; });
 
   async function addDir() {
     const path = newDir.trim();
@@ -1525,12 +1594,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch { libErr = get(t)('settings.errRemoveFailed'); }
     dirBusy = false;
   }
-  async function scan(full: boolean) {
-    try { await api.triggerScan(undefined, full); scanning = true; scanReport = null; }
-    catch { libErr = get(t)('settings.errScanStartFailed'); }
+  /**
+   * #1517 — `chemin` vise UN dossier au lieu de toute la bibliotheque.
+   *
+   * Le serveur accepte `?path=` (`ScanQuery::path`, « only this sub-directory
+   * is walked »), et limite la purge des pistes disparues a ce sous-arbre. Le
+   * client, lui, envoyait toujours `undefined` : trois morceaux ajoutes dans
+   * un dossier d'un NAS re-parcouraient tout le partage reseau.
+   */
+  async function scan(full: boolean, chemin: string | null = null) {
+    const r = await lancerAnalyse((p, f) => api.triggerScan(p, f), { chemin, complete: full });
+    if (!r.ok) { libErr = get(t)('settings.errScanStartFailed'); return; }
+    scanning = true; scanReport = null; libErr = null;
   }
   async function stopScan() {
-    try { await api.cancelScan(); scanning = false; } catch { /* deja finie */ }
+    try { await api.cancelScan(); } catch { /* deja finie */ }
+    scanning = false; terminerAvancement();
   }
 
   /**
@@ -2617,7 +2696,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       {#if tab}
         <div class="panehead">
           {#if hiddenCount > 0}
-            <span class="masked">{hiddenCount} section{hiddenCount > 1 ? 's' : ''} de plus à un niveau supérieur</span>
+            <span class="masked">{$t((hiddenCount > 1 ? 'v2.set.hiddenSectionsMany' : 'v2.set.hiddenSectionsOne') as any).replace('{n}', String(hiddenCount))}</span>
           {/if}
           {#if !atLeast(level, 'expert')}
             <span class="masked">{$t('settings.levelsOpenMoreTabs' as any)}</span>
@@ -2665,6 +2744,31 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   <span class="slider"></span>
                 </label>
               </div>
+
+              <!-- Limite de la file d'attente en lecture aléatoire (#2901).
+                   `min` / `max` sortent des bornes PUBLIÉES par le serveur :
+                   les recopier ici figerait le champ le jour où il élargit sa
+                   plage. -->
+              {#if fileAleatoire !== null}
+                <div class="row">
+                  <div class="lbl">
+                    <span>{$t('settings.shuffleMaxTracks' as any)}</span>
+                    <span class="hint">{$t('settings.shuffleMaxTracksHint' as any)}</span>
+                    <span class="hint">
+                      {$t('settings.defaultValueColon' as any)} {$formatNombre(FILE_ALEATOIRE_DEFAUT)}
+                      — {$t('settings.shuffleMaxTracksRange' as any)
+                        .replace('{min}', $formatNombre(fileAleatoireBornes.min))
+                        .replace('{max}', $formatNombre(fileAleatoireBornes.max))}
+                    </span>
+                  </div>
+                  <input class="txt num" type="number"
+                    min={fileAleatoireBornes.min} max={fileAleatoireBornes.max} step="1"
+                    disabled={fileAleatoireBusy}
+                    aria-label={$t('settings.shuffleMaxTracks' as any)}
+                    bind:value={fileAleatoireSaisie}
+                    onchange={(e) => setFileAleatoire((e.currentTarget as HTMLInputElement).value)} />
+                </div>
+              {/if}
 
             {:else if s.id === 'voice'}
               <div class="row">
@@ -2951,14 +3055,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
               {#if enrichRunning && enrichTotal > 0}
                 <div class="bar2"><span style="width:{Math.min(100, Math.round((enrichDone / enrichTotal) * 100))}%"></span></div>
-                <div class="hint">{$formatNombre(enrichDone)} sur {$formatNombre(enrichTotal)}</div>
+                <div class="hint">{$t('v2.set.progressOf' as any).replace('{n}', $formatNombre(enrichDone)).replace('{total}', $formatNombre(enrichTotal))}</div>
               {/if}
 
               <div class="row">
                 <div class="lbl">
                   <span>{$t('v2.lbl.artistPortraits' as any)}</span>
                   <span class="hint">
-                    {#if coversMissing != null}{$formatNombre(coversMissing)} artistes sans portrait.{:else}Recherche les portraits manquants.{/if}
+                    {#if coversMissing != null}{$t('v2.set.artistsWithoutPortrait' as any).replace('{n}', $formatNombre(coversMissing))}{:else}{$t('v2.set.searchingPortraits' as any)}{/if}
                   </span>
                 </div>
                 <div class="inline">
@@ -3433,7 +3537,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
             {:else if s.id === 'spotify'}
               {#if spc && spc.available === false}
                 <p class="hint">
-                  Le récepteur Spotify Connect n'est pas disponible sur ce serveur.
+                  {$t('v2.set.spotifyUnavailable' as any)}
                   {#if spc.reason}<br />{spc.reason}{/if}
                 </p>
               {:else}
@@ -3443,7 +3547,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="row">
                   <div class="lbl">
                     <span>{$t('settings.enableReceiver' as any)}</span>
-                    {#if spc?.active}<span class="hint">Actif{#if spc.device_name} sous le nom « {spc.device_name} »{/if}.</span>{/if}
+                    {#if spc?.active}<span class="hint">{#if spc.device_name}{$t('v2.set.receiverActiveAs' as any).replace('{nom}', spc.device_name)}{:else}{$t('v2.set.receiverActive' as any)}{/if}</span>{/if}
                   </div>
                   <label class="sw">
                     <input type="checkbox" checked={!!spc?.enabled} disabled={spcBusy}
@@ -3820,13 +3924,50 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
               </div>
+              <!--
+                #1518 — l'avancement, enfin montré.
+
+                Sur un partage réseau, le parcours des dossiers dure des
+                minutes sans qu'une seule ligne bouge : « Analyse en cours »
+                tout seul est indiscernable d'un blocage. Pendant la phase
+                d'indexation le serveur ne connaît PAS le total — il envoie
+                `total: 0` — donc pas de jauge : on montre le compte brut, qui
+                avance, et le dossier en cours. La barre n'apparaît qu'avec un
+                vrai total.
+              -->
+              {#if scanning && aDesChiffres($avancementAnalyse)}
+                {@const pct = pourcentAnalyse($avancementAnalyse)}
+                <div class="scan-avance">
+                  {#if pct !== null}
+                    <div class="jauge"><div class="rempli" style="width:{pct}%"></div></div>
+                    <p class="hint">{$t('v2.scan.progress' as any)
+                      .replace('{f}', $formatNombre($avancementAnalyse?.scanned ?? 0))
+                      .replace('{t}', $formatNombre($avancementAnalyse?.total ?? 0))
+                      .replace('{p}', String(pct))}</p>
+                  {:else}
+                    <p class="hint">{$t('v2.scan.indexing' as any)
+                      .replace('{f}', $formatNombre($avancementAnalyse?.scanned ?? 0))}</p>
+                  {/if}
+                  {#if $avancementAnalyse?.cible}
+                    <p class="hint">{$t('v2.scan.progressFolder' as any)
+                      .replace('{d}', $avancementAnalyse.cible)}</p>
+                  {:else if $avancementAnalyse?.dossier}
+                    <p class="hint dp" title={$avancementAnalyse.dossier}>{$avancementAnalyse.dossier}</p>
+                  {/if}
+                  <p class="hint">{$t('v2.scan.progressCounts' as any)
+                    .replace('{a}', $formatNombre($avancementAnalyse?.inserted ?? 0))
+                    .replace('{m}', $formatNombre($avancementAnalyse?.updated ?? 0))
+                    .replace('{i}', $formatNombre($avancementAnalyse?.skipped ?? 0))}</p>
+                </div>
+              {/if}
               {#if scanReport}
                 <div class="okbox">
-                  Dernière passe — {$formatNombre(scanReport.inserted ?? 0)} ajoutés,
-                  {$formatNombre(scanReport.updated ?? 0)} mis à jour,
-                  {$formatNombre(scanReport.skipped ?? 0)} ignorés.
+                  {$t('v2.set.scanReport' as any)
+                    .replace('{a}', $formatNombre(scanReport.inserted ?? 0))
+                    .replace('{m}', $formatNombre(scanReport.updated ?? 0))
+                    .replace('{i}', $formatNombre(scanReport.skipped ?? 0))}
                   {#if scanReport.failed_paths?.length}
-                    <b>{scanReport.failed_paths.length} chemin(s) en échec.</b>
+                    <b>{$t('v2.set.scanFailedPaths' as any).replace('{n}', String(scanReport.failed_paths.length))}</b>
                   {/if}
                 </div>
                 <!--
@@ -3881,7 +4022,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <div class="dir">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                       <span class="dp">{d}</span>
-                      <button class="del" disabled={dirBusy} onclick={() => removeDir(d)} aria-label="Retirer ce dossier">
+                      <!--
+                        #1517 — analyser CE dossier, et lui seul.
+
+                        Chaque ligne n'offrait qu'une croix « Retirer » ; les
+                        deux boutons d'analyse portaient toujours sur la
+                        bibliothèque entière. Le seul geste ciblé restant
+                        vivait dans l'explorateur, classé « Avancé », donc
+                        invisible au niveau Essentiel — là où les dossiers
+                        sont justement listés.
+                      -->
+                      <button class="lnk scan-dir" disabled={dirBusy || scanning}
+                        onclick={() => scan(false, d)}
+                        title={$t('v2.scan.folderHint' as any)}>{$t('v2.scan.folderAction' as any)}</button>
+                      <button class="del" disabled={dirBusy} onclick={() => removeDir(d)} aria-label={$t('settings.removeFolderAria' as any)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                       </button>
                     </div>
@@ -3976,9 +4130,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <!-- Le client web est embarque dans la release du serveur :
                      deux numeros differents = un vieux client est servi. -->
                 <div class="warnbox">
-                  Le client affiché ({CLIENT_VERSION}) ne correspond pas au serveur ({serverVersion}).
-                  Un ancien client est servi : videz le cache du navigateur, et vérifiez que la
-                  release a bien reconstruit le client web.
+                  {$t('v2.set.versionMismatch' as any)
+                    .replace('{client}', String(CLIENT_VERSION))
+                    .replace('{serveur}', String(serverVersion ?? ''))}
                 </div>
               {/if}
               {#if updateInfo?.update_available}
@@ -4718,8 +4872,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   </div>
                 {:else}
                   <p class="hint">
-                    {#if !netLoaded}Recherche des appareils…
-                    {:else if netError}Liste indisponible — serveur injoignable.
+                    {#if !netLoaded}{$t('v2.set.searchingDevices' as any)}
+                    {:else if netError}{$t('v2.set.devicesUnavailable' as any)}
                     {:else}{$t('settings.noNetworkDevices' as any)}{/if}
                   </p>
                 {/each}
@@ -5051,7 +5205,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .txt.wide{width:320px}
   .txt.time{width:130px; font-family:var(--v2-mono)}
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
-  .dir{display:grid; grid-template-columns:20px 1fr auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
+  .dir{display:grid; grid-template-columns:20px 1fr auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
+  /* #1517 — le geste par dossier reste discret jusqu au survol de la ligne. */
+  .scan-dir{white-space:nowrap; opacity:.6}
+  .dir:hover .scan-dir{opacity:1}
+  /* #1518 — la jauge d analyse. */
+  .scan-avance{margin-top:12px; display:flex; flex-direction:column; gap:6px}
+  .scan-avance .jauge{height:6px; border-radius:var(--v2-r-pill); background:var(--v2-line2); overflow:hidden}
+  .scan-avance .rempli{height:100%; background:var(--v2-acc1); transition:width .3s ease}
   .dir:hover{background:var(--v2-hover)}
   .dir svg{width:16px; height:16px; color:var(--v2-txt3)}
   .dp{font:12.5px var(--v2-mono); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}

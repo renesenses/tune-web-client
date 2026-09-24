@@ -240,7 +240,7 @@
     if (busy) return;
     busy = true;
     try { await fn(); await reload(); }
-    catch { error = 'Action impossible.'; }
+    catch { error = $tr('settings.errActionFailed' as any); }
     busy = false;
   }
   const jump = (i: number) => act(() => api.jumpInQueue($currentZoneId!, i));

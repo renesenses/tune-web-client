@@ -15,6 +15,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { balisageDe, noeudsDeTexte, ENTITES_HTML } from './lib/balisage.mjs';
 
 const VISIBLE = />([^<>{}]*[a-zà-ÿ][^<>{}]*)<|(?:title|placeholder|aria-label|label)="([^"{}]+)"/g;
 
@@ -60,10 +61,17 @@ function* svelteFiles(dir) {
   }
 }
 
+/**
+ * La racine balayée. `src` en production ; une AUTRE en test, pour que la
+ * contre-épreuve puisse pointer la garde sur ses fixtures sans écrire dans
+ * l'arbre du client (`src/lib/__tests__/gardesTexteColle.test.ts`).
+ */
+const RACINE = process.env.I18N_RACINE || 'src';
+
 const offences = [];
-for (const file of svelteFiles('src')) {
-  const lines = readFileSync(file, 'utf8').split('\n');
-  lines.forEach((line, idx) => {
+for (const file of svelteFiles(RACINE)) {
+  const source = readFileSync(file, 'utf8');
+  source.split('\n').forEach((line, idx) => {
     const trimmed = line.trim();
     if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('<!--')) return;
 
@@ -99,6 +107,47 @@ for (const file of svelteFiles('src')) {
       }
     }
   });
+
+  /**
+   * 🔴 Quatrième forme : le texte COLLÉ À UNE ACCOLADE.
+   *
+   * Silviu (testeur roumain, v0.9.161) a photographié une file d'attente en
+   * français. Les correctifs sont partis (#1451, #1452, #1453, #1467) ;
+   * restait la vraie question — pourquoi ce contrôle-ci n'avait rien vu ?
+   *
+   * Parce que `VISIBLE` exige un texte borné par `>` et `<` SANS accolade.
+   * Elle ne pouvait donc pas lire :
+   *
+   *     <span>{upNext.length} à suivre</span>
+   *     <h2>À suivre{#if !upNext.length}&nbsp;— rien{/if}</h2>
+   *
+   * Dans le premier cas le `>` est suivi d'un `{` ; dans le second `À suivre`
+   * est suivi d'un `{` et non d'un `<`. Les deux échouent dès le premier
+   * caractère. « à suivre », « restantes » et « À suivre » sont ainsi restés
+   * en français dans les onze langues, sur un écran que tout le monde ouvre.
+   *
+   * On ne rafistole pas la forme : `noeudsDeTexte` PARCOURT le balisage et
+   * rend les vrais nœuds de texte, quelle que soit leur bordure. La règle,
+   * elle, ne bouge pas — mêmes marqueurs français, même seuil de quatre
+   * caractères. C'est la LECTURE qui était aveugle, pas le jugement.
+   *
+   * Mesuré à l'ajout (23/09/2026) sur `main` : 21 chaînes, toutes de vraies
+   * fuites, toutes corrigées dans la même PR. Aucun faux positif.
+   */
+  const vue = balisageDe(source);
+  if (vue) {
+    const { balisage, decalage } = vue;
+    // Ce que `VISIBLE` lit déjà : on ne signale pas deux fois.
+    const deja = new Set([...balisage.matchAll(/>([^<>{}]+)</g)].map((m) => m.index + 1));
+    for (const { index, texte: brut } of noeudsDeTexte(balisage)) {
+      if (deja.has(index)) continue;
+      const text = brut.replace(ENTITES_HTML, ' ').trim();
+      if (text.length < 4) continue;
+      if (!FRENCH.test(text)) continue;
+      const ligne = source.slice(0, decalage + index).split('\n').length;
+      offences.push(`${file}:${ligne}  ${text.replace(/\s+/g, ' ').slice(0, 90)}`);
+    }
+  }
 }
 
 if (offences.length > 0) {

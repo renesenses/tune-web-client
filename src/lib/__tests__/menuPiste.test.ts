@@ -154,13 +154,15 @@ describe('« je veux à minima le contenu de la v0 »', () => {
     // « Autres versions » : le panneau.
     expect(src.includes("import('./VersionsPistePanneau.svelte')"),
       '« Autres versions » n’ouvre plus de panneau').toBe(true);
-    // « Aller à l'artiste » : le dépôt ET la vue. Depuis #956 la cible vient
-    // de `destinationArtiste` — une piste Qobuz porte un `artist_id` de
-    // SERVICE, et `piste.artist_id` posé tel quel envoyait dans la Bibliothèque.
-    expect(/pendingLibraryArtist\.set\(destination\.artistId\)/.test(src),
-      '« Aller à l’artiste » ne pose plus la cible').toBe(true);
-    expect(/allerArtiste[\s\S]{0,220}activeView\.set\('library'\)/.test(src),
-      '« Aller à l’artiste » ne change plus de vue').toBe(true);
+    // « Aller à l'artiste » : depuis #956 la cible vient de `destinationArtiste`
+    // — une piste Qobuz porte un `artist_id` de SERVICE, et `piste.artist_id`
+    // posé tel quel envoyait dans la Bibliothèque. Depuis #1494 le geste passe
+    // par `ouvrirArtisteDepuis`, le chemin de référence, qui ouvre la page
+    // COMMUNE ; la bifurcation local / service ne se recopie plus ici.
+    expect(/function allerArtiste\(\) \{[\s\S]{0,600}ouvrirArtisteDepuis\(\{ id: destination\.artistId/.test(src),
+      '« Aller à l’artiste » ne passe plus par le chemin de référence').toBe(true);
+    expect(/pendingLibraryArtist\.set\(/.test(src),
+      '« Aller à l’artiste » recopie la bifurcation au lieu de passer par `ouvrirArtisteDepuis`').toBe(false);
   });
 
   /**
@@ -170,32 +172,23 @@ describe('« je veux à minima le contenu de la v0 »', () => {
    * change d'écran sans rien ouvrir. C'est mot pour mot le treizième cas,
    * signalé par Fabien sur les liens de la lecture en cours.
    */
-  it('le dépôt de l’artiste est CONSOMMÉ, et la fiche s’ouvre', () => {
+  it('le geste a UN consommateur, et un seul : la page commune', () => {
+    // #1501 — le dépôt `pendingLibraryArtist` n'a plus de lecteur : la fiche
+    // d'artiste de la Bibliothèque est retirée, et « Aller à l'artiste » pose
+    // `ficheArtisteService` + `streamingartist` par `ouvrirArtisteDepuis`, que
+    // `ShellV2` monte sous cette vue. Le chemin est ÉPROUVÉ EN CLIQUANT par
+    // `vueArtisteUnique1494.test.ts` et `artistesGrillePageCommune1501.test.ts` ;
+    // ici on tient seulement que la moitié retirée ne revient pas.
+    // Le CODE, pas les commentaires qui racontent l'histoire du dépôt.
     const bib = lire('src/components/v2/LibraryV2.svelte');
-    expect(/get\(pendingLibraryArtist\)/.test(bib),
-      'la Bibliothèque ne lit plus le dépôt : le clic changerait d’écran sans rien ouvrir').toBe(true);
-    expect(/pendingLibraryArtist\.set\(null\)/.test(bib),
-      'le dépôt n’est plus vidé : la fiche se rouvrirait à chaque retour').toBe(true);
-    // ⚠️ `tabChoisi`, et non `tab` : depuis #1372 l'onglet RETENU et l'onglet
-    // MONTRÉ sont deux choses. `tab` est un dérivé — « Ajouts récents » n'est
-    // pas offert sur un dépôt distant, faute de route chez lui — et seul
-    // `tabChoisi` s'écrit. Le contrat gardé ici est inchangé : ce geste doit
-    // poser l'onglet des artistes.
-    expect(/tabChoisi = 'artists'/.test(bib),
-      'l’onglet des artistes n’est plus ouvert : la vue ne serait même pas montée').toBe(true);
-    // Basculer d'onglet est la MOITIÉ du geste ; encore faut-il ouvrir la fiche.
-    // ⚠️ Le motif exigeait `<ArtistesV2 {q} ouvrirId=` — donc l'ORDRE des
-    // attributs, pas le contrat. #3101 a inséré la portée de répertoire entre
-    // les deux et faisait rougir cette ligne sans qu'aucun identifiant se
-    // perde. On exige désormais ce qui compte : la balise porte `ouvrirId`.
-    expect(/<ArtistesV2[\s\S]*?ouvrirId=\{artisteADemande\}/.test(bib),
-      'l’identifiant n’est plus transmis à la vue des artistes').toBe(true);
-
+    expect(/\$pendingLibraryArtist|pendingLibraryArtist\.set\(|import \{[^}]*pendingLibraryArtist/.test(bib),
+      'la Bibliothèque relit le dépôt de l’ancienne fiche : deux écrans se disputeraient le clic').toBe(false);
     const vue = lire('src/components/v2/ArtistesV2.svelte');
-    expect(/artistes\.find\(\(a\) => a\.id === id\)/.test(vue),
-      'la vue ne cherche plus l’artiste demandé').toBe(true);
-    expect(/artistes\.length === 0\) return/.test(vue),
-      'la vue cherche avant que la liste soit chargée : elle ne trouverait rien').toBe(true);
+    expect(/ouvrirId/.test(vue),
+      'la vue des artistes rouvre une fiche qu’elle n’a plus').toBe(false);
+    const coquille = lire('src/components/v2/ShellV2.svelte');
+    expect(/\$activeView === 'streamingartist'/.test(coquille),
+      'la coquille ne monte plus la page commune : le clic changerait de vue sans rien ouvrir').toBe(true);
   });
 });
 

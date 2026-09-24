@@ -81,7 +81,7 @@
       if (res?.restart_required) restartNeeded = true;
       await reload();
     } catch (e: any) {
-      error = e?.message ?? 'Action impossible.';
+      error = e?.message ?? $t('settings.errActionFailed' as any);
     }
     busy = null;
   }
@@ -147,7 +147,7 @@
               {#if p.author}<div class="pa">{p.author}</div>{/if}
               {#if !p.compatible && (p.min_tune_version || p.max_tune_version)}
                 <div class="why">
-                  Requiert Tune {p.min_tune_version ? `≥ ${p.min_tune_version}` : ''}{p.min_tune_version && p.max_tune_version ? ' et ' : ''}{p.max_tune_version ? `≤ ${p.max_tune_version}` : ''}.
+                  {$t('v2.plug.requiresTune' as any).replace('{plage}', [p.min_tune_version ? `≥ ${p.min_tune_version}` : '', p.max_tune_version ? `≤ ${p.max_tune_version}` : ''].filter(Boolean).join(` ${$t('v2.common.and' as any)} `))}
                 </div>
               {/if}
               {#if p.status === 'error' && p.error_message}

@@ -17,9 +17,11 @@
   import { activeView } from '../../lib/stores/navigation';
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { playFromHere } from '../../lib/playback';
+  import { estSourceDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import { } from '../../lib/utils';
   import { t } from '../../lib/i18n';
   import * as api from '../../lib/api';
+  import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import type { Track, Source, TopTrack, TopArtist } from '../../lib/types';
@@ -114,9 +116,12 @@
   async function playTopTrack(track: TopTrack) {
     if (!zone?.id) return;
     try {
-      if (track.track_id && (!track.source || track.source === 'local')) {
+      // 🔴 `estSourceDeBibliotheque` et non `source === 'local'` : une piste
+      // UPnP de la bibliothèque (#4201) a un `track_id`, et `searchStreaming`
+      // n'a pas de service « upnp » à interroger.
+      if (track.track_id && estSourceDeBibliotheque(track.source)) {
         await playAndSync(zone.id, { track_id: track.track_id });
-      } else if (track.source && track.source !== 'local') {
+      } else if (track.source && !estSourceDeBibliotheque(track.source)) {
         const results = await api.searchStreaming(track.source as Source, `${track.title} ${track.artist_name ?? ''}`, 5);
         const match = results.tracks?.find((t: any) => t.title === track.title);
         if (match?.source_id) {
@@ -175,7 +180,11 @@
   {#if topArtistsLoaded && topArtists.length > 0}
     <div class="top-section">
       <h2 class="section-title">{$t('home.topArtists')}</h2>
-      <div class="top-artists-row">
+      <!-- #1137 — molette, Maj+molette et flèches ← →. Les trois rangées de cet
+           écran masquent leur ascenseur (`scrollbar-width:none`) : il n'y avait
+           même pas de barre à attraper. -->
+      <div class="top-artists-row" use:defilementHorizontal
+           role="group" aria-label={$t('home.topArtists')}>
         {#each topArtists as artist, i}
           <button class="artist-card" onclick={() => artist.artist_id ? navigateToArtist(artist.artist_id) : navigateArtistByName(artist.name)}>
             <span class="artist-rank">#{i + 1}</span>
@@ -226,7 +235,8 @@
   {#if topMixesLoaded && topMixes.length > 0}
     <div class="top-section">
       <h2 class="section-title">{$t('home.mixByGenre')}</h2>
-      <div class="mixes-row">
+      <div class="mixes-row" use:defilementHorizontal
+           role="group" aria-label={$t('home.mixByGenre')}>
         {#each topMixes as mix}
           <button class="mix-card" onclick={() => playMix(mix)}>
             <div class="mix-cover" style="background: linear-gradient(135deg, {mix.color ?? 'var(--tune-accent)'}, {mix.color_end ?? 'rgba(99, 102, 241, 0.4)'})">
@@ -245,7 +255,8 @@
   {#if radioPicksLoaded && radioPicks.length > 0}
     <div class="top-section">
       <h2 class="section-title">{$t('home.favoriteRadios')}</h2>
-      <div class="recs-carousel">
+      <div class="recs-carousel" use:defilementHorizontal
+           role="group" aria-label={$t('home.favoriteRadios')}>
         {#each radioPicks as radio}
           <button class="rec-card radio-card" onclick={() => playRadioEntry(radio)}>
             {#if radio.logo_url || radio.cover_url}

@@ -70,7 +70,7 @@ import { vueDepuisHash } from './routeAuChargement';
 export interface EtatCoquille {
   tune: 'v2';
   vue: string;
-  /** Le niveau ouvert DANS la vue (`artiste:12`), ou `null` à la racine. */
+  /** Le niveau ouvert DANS la vue (`album:12`), ou `null` à la racine. */
   detail: string | null;
 }
 
@@ -96,7 +96,7 @@ export function estEtatCoquille(etat: unknown): etat is EtatCoquille {
 }
 
 /**
- * L'adresse affichée pour un état. `#library`, `#library/artiste:12`.
+ * L'adresse affichée pour un état. `#library`, `#library/album:12`.
  *
  * Il est là pour que la barre d'adresse dise où l'on est, et pour que
  * « précédent / suivant » soient sans ambiguïté dans le menu déroulant du
@@ -218,9 +218,15 @@ function leverIntention(cle: string, programmerFilet: (cb: () => void, ms: numbe
  * Aller à un détail d'une autre vue en UNE entrée d'historique.
  *
  * `cle` est la clé que l'écran d'arrivée posera lui-même dans `detailOuvert`
- * (`artiste:42`) : elle doit être la MÊME, sans quoi l'écran empilerait sa
+ * (`album:42`) : elle doit être la MÊME, sans quoi l'écran empilerait sa
  * propre entrée par-dessus. C'est pourquoi elle se construit par une fonction
- * partagée (`cleDetailArtiste`, `cleDetailAlbum`) et jamais à la main.
+ * partagée (`cleDetailAlbum`) et jamais à la main.
+ *
+ * ⚠️ #1501 — plus AUCUN écran n'y passe aujourd'hui : l'entrée composée
+ * `#library/artiste:42` (#1142) a disparu avec la fiche d'artiste de la
+ * Bibliothèque, la page commune étant une VUE et non un détail dans une vue.
+ * Le mécanisme reste, éprouvé par ses témoins, pour le prochain détail qu'un
+ * écran voudra viser d'un coup depuis un autre.
  */
 export function allerAuDetail(
   vue: View,
@@ -410,7 +416,7 @@ export function brancherHistoriqueCoquille(options: OptionsBranchement = {}): ()
 /**
  * ⚠️ CE QUE CE MODULE NE FAIT PAS, ET QUI SE VERRAIT.
  *
- * Revenir sur une entrée qui portait un détail (`#library/artiste:12`) repose
+ * Revenir sur une entrée qui portait un détail (`#library/album:12`) repose
  * la VUE et la clé, mais ne ROUVRE pas la fiche : il faudrait recharger
  * l'artiste par l'API, comme `rechercherFicheDepuisHistorique` le fait dans
  * l'ancienne coquille. Concrètement, « suivant » après un retour rend la

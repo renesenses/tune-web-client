@@ -43,9 +43,15 @@
   import PochetteActions from './PochetteActions.svelte';
   import { cibleDeService } from '../../lib/cibleEtiquette';
   import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
-  import { ouvrirArtisteDepuis, artisteDeService } from '../../lib/ouvrirArtisteDepuis';
+  import {
+    ouvrirArtisteDepuis,
+    artisteDeService,
+    artisteDeVignetteService,
+    ouvrirArtisteDeServiceParNom,
+  } from '../../lib/ouvrirArtisteDepuis';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import { favoriExterneService, refFavoriDeVignette } from '../../lib/streamingFavorites';
+  import HeartButton from '../partages/HeartButton.svelte';
   import { molettePortee } from '../../lib/molettePortee';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
@@ -419,7 +425,7 @@
       api.bandcampTags(),
     ]).then(([svc, bc]) => {
       if (svc.status === 'fulfilled') services = svc.value ?? {};
-      else error = 'Services indisponibles.';
+      else error = $t('v2.stream.servicesUnavailable' as any);
       if (bc.status === 'fulfilled') {
         bandcampLive = true;
         const v: any = bc.value ?? {};
@@ -872,15 +878,25 @@
    * écran. La recherche rend des artistes ; cet écran les jetait, et la seule
    * sortie était la page Bandcamp elle-même.
    */
-  let bcArtiste = $state<{ nom: string; disco: api.BandcampDiscographie | null; erreur: string | null } | null>(null);
+  /*
+   * 🔴 `url` a rejoint cet état le 23/09/2026 — `tune-server-rust#4577`.
+   *
+   * L'adresse de la page de l'artiste EST son identité chez Bandcamp, et c'est
+   * elle que le cœur de l'en-tête met en favori. Elle n'était nulle part :
+   * `ouvrirArtisteBc` la recevait, s'en servait pour l'appel, puis la jetait.
+   * `disco.url` la rend bien, mais seulement une fois la réponse arrivée —
+   * la garder ici permet au cœur d'exister pendant le chargement ET après une
+   * erreur, et évite de faire dépendre un favori du succès d'un autre appel.
+   */
+  let bcArtiste = $state<{ nom: string; url: string; disco: api.BandcampDiscographie | null; erreur: string | null } | null>(null);
   async function ouvrirArtisteBc(url: string, nom: string) {
     if (!url) return;
-    bcArtiste = { nom, disco: null, erreur: null };
+    bcArtiste = { nom, url, disco: null, erreur: null };
     try {
       const disco = await api.bandcampArtist(url);
-      if (bcArtiste?.nom === nom) bcArtiste = { nom, disco, erreur: null };
+      if (bcArtiste?.nom === nom) bcArtiste = { nom, url, disco, erreur: null };
     } catch (e) {
-      if (bcArtiste?.nom === nom) bcArtiste = { nom, disco: null, erreur: (e as Error)?.message || $t('bandcamp.artistFailed' as any) };
+      if (bcArtiste?.nom === nom) bcArtiste = { nom, url, disco: null, erreur: (e as Error)?.message || $t('bandcamp.artistFailed' as any) };
     }
   }
 
@@ -961,6 +977,21 @@
     ?? (p?.track_count != null
         ? $t('v2.lib.trackCount' as any).replace('{count}', String(p.track_count))
         : '');
+
+  /**
+   * 🔴 #956, point 1 de Sandro — « À ce stade, le nom de l'artiste sous les
+   * pochettes n'est pas cliquable ». Le geste part de la MÊME résolution que
+   * le lien de la fiche d'album (#1359, #1489) : identifiant de service en
+   * main, la fiche s'ouvre sans rien interroger ; sinon le nom est résolu chez
+   * le service, et le repli PARLE au lieu de ramener muettement à la grille.
+   *
+   * `depuis: 'streaming'` — le Retour de la fiche artiste ramène ICI, et pas
+   * à « Lecture en cours » (#3824).
+   */
+  function ouvrirArtisteDeVignette(p: any, type: string | null) {
+    const cible = artisteDeVignetteService(p, type, active);
+    if (cible) void ouvrirArtisteDeServiceParNom(cible, 'streaming');
+  }
 </script>
 
 <section class="v2-str tune-v2">
@@ -1024,7 +1055,30 @@
       {#if bcSearch}
         {#if bcArtiste}
           <section class="sec">
-            <h2>{bcArtiste.nom} <button class="lnk" onclick={() => (bcArtiste = null)}>{$t('common.close' as any)}</button></h2>
+            <!--
+              🔴 Le cœur de l'ARTISTE Bandcamp — `tune-server-rust#4577`.
+
+              FabienM, fil 1862 : « on ne peut pas mettre un artiste ou un
+              album issus de Bandcamp en favori ». #1400 a traité l'album ;
+              l'artiste n'avait de cœur NULLE PART — ni ici, ni sur la puce de
+              résultat, qui n'est qu'un raccourci vers cette section.
+
+              La référence n'est pas composée ici : `refFavoriDeVignette`
+              traduit la clé d'onglet `__bandcamp__` en `bandcamp` et replie
+              l'identifiant absent sur l'URL de la page. La composer à la main
+              recommencerait exactement la faute que #1400 a corrigée.
+            -->
+            <h2>{bcArtiste.nom}
+              <span class="bc-art-fav">
+                <HeartButton
+                  streaming={{
+                    ...refFavoriDeVignette('artist', { url: bcArtiste.url }, BANDCAMP_EXT),
+                    title: bcArtiste.nom,
+                  }}
+                  size={18}
+                />
+              </span>
+              <button class="lnk" onclick={() => (bcArtiste = null)}>{$t('common.close' as any)}</button></h2>
             {#if bcArtiste.erreur}
               <div class="state">{bcArtiste.erreur}</div>
             {:else if !bcArtiste.disco}
@@ -1501,7 +1555,22 @@
          Faute d'une fiche a ouvrir — une piste —, le titre lance la lecture
          plutot que de ne rien faire du tout. -->
     <button class="ct" title={pTitle(p)} onclick={ouvre ?? onPlay}>{pTitle(p)}</button>
-    {#if pSub(p)}<span class="ca" title={pSub(p)}>{pSub(p)}</span>{/if}
+    <!-- 🔴 #956 — LA DEUXIÈME LIGNE EST UN LIEN quand c'est un nom d'artiste.
+         Sandro, fil 1769, point 1 : « À ce stade, le nom de l'artiste sous les
+         pochettes n'est pas cliquable » — il ne restait que la fiche d'album
+         pour l'atteindre, et c'est de là que son geste repartait en boucle.
+         `artisteDeVignetteService` tranche : une PLAYLIST, dont cette ligne
+         est un nombre de titres, et un article sans nom d'artiste gardent leur
+         texte inerte plutôt qu'un lien mort. -->
+    {#if pSub(p)}
+      {@const cibleArtiste = artisteDeVignetteService(p, type, active)}
+      {#if cibleArtiste}
+        <button class="ca cabtn" title={pSub(p)}
+          onclick={(e) => { e.stopPropagation(); ouvrirArtisteDeVignette(p, type); }}>{pSub(p)}</button>
+      {:else}
+        <span class="ca" title={pSub(p)}>{pSub(p)}</span>
+      {/if}
+    {/if}
     {#if aParaitre}
       {@const d = dateDeParution(p)}
       <span class="cp">{d ? $t('v2.str.comingOn' as any).replace('{d}', d) : $t('v2.str.coming' as any)}</span>
@@ -1629,6 +1698,10 @@
   .sommaire .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
   .sommaire .chip .n{font:11px var(--v2-mono); color:var(--v2-txt3)}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
+  /* Le cœur de l'artiste Bandcamp (#4577) s'aligne sur le nom sans le
+     décaler : `HeartButton` porte déjà sa taille, on ne lui donne qu'une
+     ligne de base et un peu d'air. */
+  .bc-art-fav{display:inline-flex; align-items:center; vertical-align:middle; margin:0 8px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .achat{display:flex; flex-direction:column; min-width:0}
   .flac{margin-top:6px; align-self:flex-start; height:26px; padding:0 10px; border-radius:var(--v2-r-pill);
@@ -1660,6 +1733,10 @@
   .ct:hover{color:var(--v2-acc-tint)}
   .ct:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:2px; border-radius:4px}
   .ca{margin-top:2px; font:11px var(--v2-sans); color:var(--v2-txt2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* #956 — le nom de l'artiste devient un bouton : il doit rester la MÊME
+     ligne à l'œil, et rester atteignable au clavier. */
+  .cabtn{display:block; width:100%; background:none; border:0; padding:0; text-align:left; cursor:pointer}
+  .cabtn:hover{color:var(--v2-txt); text-decoration:underline}
 
   /* 🔴 #1382 — LA RANGÉE VA À LA LIGNE, et sa barre se voit.
      Fil 1863, 20/09/2026, 0.9.158 Linux : « Page Qobuz > favoris > artistes:

@@ -2,6 +2,9 @@ import { writable, get } from 'svelte/store';
 import * as api from '../api';
 import type { StreamingItemType } from '../streamingFavorites';
 import { cleJumelage } from '../cleJumelage';
+// `stores/streaming` ne dépend que de `../types` : ranger la réponse ici
+// n'introduit aucun cycle avec `streamingFavorites`, qui lit ce même magasin.
+import { streamingServices } from './streaming';
 
 export interface Profile {
   id: number;
@@ -89,6 +92,14 @@ export const favoritePlaylistIds = writable<Set<number>>(new Set());
  */
 export const favoriteCollectionIds = writable<Set<number>>(new Set());
 export const favoriteSmartCollectionIds = writable<Set<number>>(new Set());
+/**
+ * Playlists INTELLIGENTES en favori — son propre ensemble, pour la même raison
+ * que les collections (#4798) : `playlists.id` et `smart_playlists.id` se
+ * recouvrent, l'id 1 existe dans les deux tables. Rangées avec
+ * `favoritePlaylistIds`, mettre une playlist intelligente en favori allumerait
+ * le cœur d'une playlist ordinaire du même numéro.
+ */
+export const favoriteSmartPlaylistIds = writable<Set<number>>(new Set());
 
 // Favoris de FACETTE — le label d'abord (#2442). Des CHAÎNES, pas des ids : un
 // label n'a pas d'identifiant côté serveur, il est désigné par sa valeur telle
@@ -163,6 +174,7 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoritePlaylistIds.set(new Set());
     favoriteCollectionIds.set(new Set());
     favoriteSmartCollectionIds.set(new Set());
+    favoriteSmartPlaylistIds.set(new Set());
     favoriteFacetKeys.set(new Set());
     favoriteStreamingKeys.set(new Set());
     favoriteStreamingTrackKeys.set(new Set());
@@ -176,6 +188,7 @@ export async function loadFavoriteIds(profileId: number | null): Promise<void> {
     favoritePlaylistIds.set(new Set((favs.playlists ?? []).map((p: any) => p.id)));
     favoriteCollectionIds.set(new Set(favs.collectionIds ?? []));
     favoriteSmartCollectionIds.set(new Set(favs.smartCollectionIds ?? []));
+    favoriteSmartPlaylistIds.set(new Set(favs.smartPlaylistIds ?? []));
   } catch (e) {
     console.error('Load favorite ids error:', e);
   }
@@ -238,6 +251,16 @@ async function reprendreFavorisDesServices(): Promise<void> {
   } catch {
     return;
   }
+  // 🔴 #4577 — cette réponse porte `favoris_ecrivables`, que
+  // `favorisRecopiablesVers` lit dans le MAGASIN au moment d'un clic sur un
+  // cœur. Elle était jusqu'ici consommée puis jetée : on la RANGE, comme
+  // `statutsStreaming` le fait déjà pour les écrans (#4330, où l'absence de
+  // remplissage avait rendu la fiche artiste aveugle aux services).
+  //
+  // ⚠️ Ne range que ce qui n'est pas vide : `apply` compare au précédent pour
+  // détecter une session expirée, et écrire `{}` ferait du prochain chargement
+  // un « premier », donc muet sur une expiration réelle.
+  if (Object.keys(services).length) streamingServices.set(services);
   const connectes = Object.entries(services)
     .filter(([, st]: [string, any]) => st?.authenticated)
     .map(([nom]) => nom);
