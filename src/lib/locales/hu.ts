@@ -2025,6 +2025,7 @@ export default {
   "zoneConfig.channels_immersive32": "32 canaux",
   "zoneConfig.firTitle": "Szobakorrekció (FIR)",
   "zoneConfig.firDesc": "Tölts be egy REW-vel, ARTA-val vagy Dirackal készített impulzusfájlt (WAV) a szoba akusztikájának korrigálásához.",
+  "zoneConfig.firFormats": "A monó WAV ugyanazt a szűrőt alkalmazza mindkét csatornára; a sztereó WAV csatornánként, egymástól függetlenül korrigál. A szűrőt a lejátszott adatfolyam mintavételi frekvenciáján exportáld: a Tune nem mintavételezi újra.",
   "zoneConfig.firActive": "FIR aktív",
   "zoneConfig.replace": "Csere",
   "zoneConfig.disable": "Kikapcsolás",

@@ -1929,6 +1929,7 @@ export default {
   "zoneConfig.channels_immersive32": "32 canaux",
   "zoneConfig.firTitle": "Corrección de sala (FIR)",
   "zoneConfig.firDesc": "Carga un archivo de impulso (WAV) generado por REW, ARTA o Dirac para corregir la acústica de la sala.",
+  "zoneConfig.firFormats": "Un WAV mono aplica el mismo filtro a ambos canales; un WAV estéreo corrige cada canal de forma independiente. Exporta el filtro a la frecuencia de muestreo del flujo reproducido: Tune no lo reconvierte.",
   "zoneConfig.firActive": "FIR activo",
   "zoneConfig.replace": "Reemplazar",
   "zoneConfig.disable": "Desactivar",
