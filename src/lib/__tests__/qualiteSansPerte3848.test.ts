@@ -92,4 +92,12 @@ describe('#3848 — les codecs avec perte le restent', () => {
     expect(estSansPerte(null)).toBe(false);
     expect(estAvecPerte(undefined)).toBe(false);
   });
+
+  it('un format avec perte reste lossy meme avec bit_depth >= 24', () => {
+    expect(getQualityTier({ format: 'mp3', bit_depth: 24, sample_rate: 44100 })).toBe('lossy');
+    expect(getQualityTier({ format: 'aac', bit_depth: 24, sample_rate: 48000 })).toBe('lossy');
+    expect(getQualityTier({ format: 'ogg', bit_depth: 24, sample_rate: 96000 })).toBe('lossy');
+    expect(getQualityTier({ format: 'opus', bit_depth: 32, sample_rate: 48000 })).toBe('lossy');
+    expect(getQualityTier({ format: 'wma', bit_depth: 24, sample_rate: 44100 })).toBe('lossy');
+  });
 });

@@ -178,6 +178,8 @@ export function getQualityTier(
   // sur les 49 de la bibliothèque de Bertrand, classés « CD » faute de mieux.
   if (estDuDSD(fmt)) return 'dsd';
 
+  if (LOSSY_FORMATS.has(fmt)) return 'lossy';
+
   // A track is lossless when its declared format says so, OR when its specs /
   // source make it unambiguous: no lossy codec (MP3/AAC/OGG/Opus/WMA) can exceed
   // 48 kHz or carry a bit depth, and Qobuz only ever streams FLAC. Without this,
