@@ -1784,6 +1784,54 @@ export async function getAllAlbums(pageSize = 2000, sort: string | null = 'title
   return (await getAllAlbumsSeeded(pageSize, sort, order, page, perPage, dr)).albums;
 }
 
+/**
+ * UNE page d'albums, telle que le serveur la borne — renesenses/tune-server-rust#4800.
+ *
+ * `GET /library/albums` accepte `limit`/`offset`, un tri (`title`, `artist`,
+ * `added`, `dr`, `random`…), son sens, et une graine pour l'aléatoire ; il rend
+ * la page ET `total`, l'effectif de la bibliothèque visible (calculé en une
+ * seule passe depuis la PR serveur #4815). C'est le contrat sur lequel le
+ * magasin paginé (`stores/albumsPagines`) s'appuie : il ne demande jamais
+ * plus qu'une page.
+ *
+ * ⚠️ `total` est celui de la bibliothèque VISIBLE entière, jamais celui d'une
+ * facette : le serveur ne sait pas compter un filtre. Aucun filtre n'est donc
+ * envoyé ici — ceux de la Bibliothèque restent appliqués sur place, sur la
+ * liste entière chargée à la demande.
+ */
+export interface DemandePageAlbums {
+  limit: number;
+  offset?: number;
+  sort?: string | null;
+  order?: string | null;
+  seed?: number | null;
+}
+export interface PageAlbums {
+  items: Album[];
+  /** `null` : un serveur ancien qui rend un tableau nu, sans total. */
+  total: number | null;
+  /** Renseignée en tri aléatoire seulement (#3074). */
+  seed?: number;
+}
+export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums> {
+  const p = new URLSearchParams();
+  p.set('limit', String(d.limit));
+  p.set('offset', String(d.offset ?? 0));
+  // Pas de `sort` = pas de paramètre du tout : voir `getAllAlbumsSeeded`.
+  if (d.sort) {
+    p.set('sort', d.sort);
+    if (d.order) p.set('order', d.order);
+  }
+  if (d.seed != null) p.set('seed', String(d.seed));
+  const raw = await fetchJSON<any>(`${BASE}/library/albums?${p.toString()}`);
+  if (Array.isArray(raw)) return { items: raw, total: null };
+  return {
+    items: Array.isArray(raw?.items) ? raw.items : [],
+    total: typeof raw?.total === 'number' ? raw.total : null,
+    seed: typeof raw?.seed === 'number' ? raw.seed : undefined,
+  };
+}
+
 /** Les valeurs de Dynamic Range RÉELLEMENT présentes dans la bibliothèque,
  *  décroissantes. Vide sur une bibliothèque non taguée — et le client ne doit
  *  alors dessiner AUCUNE commande, plutôt qu'une commande sans effet. */

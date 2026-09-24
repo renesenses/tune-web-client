@@ -873,18 +873,28 @@ export const WIDGETS: Widget[] = [
     id: 'hasard',
     cleTitre: 'v2.home.wRandom',
     forme: 'bande',
-    // AUCUN appel : la bibliothèque est déjà chargée par la coquille. Une route
-    // « au hasard » ferait payer un aller-retour pour un tirage qu'on peut faire
-    // sur place.
+    // 🔴 renesenses/tune-server-rust#4800 — UNE requête de cinquante albums,
+    // tirés PAR LE SERVEUR (`sort=random`, #3074 : sans graine, il en tire une
+    // et mélange en SQL, sans remise). Ce widget tirait sur place dans
+    // `ctx.albums`, « déjà chargée par la coquille » — c'est précisément ce
+    // chargement de 3,5 Mo au démarrage qui est retiré : la coquille ne
+    // charge plus rien, et un tirage sur une liste vide ne rendait plus
+    // rien. Cinquante albums pèsent ~18 Ko.
     charger: async (ctx) => {
+      // La liste entière, si un autre écran l'a déjà demandée : le tirage se
+      // fait alors sur place, sans requête, comme avant.
       const src = [...(ctx.albums ?? [])];
-      const tire: any[] = [];
-      // Tirage sans remise : `sort(() => Math.random() - .5)` n'est pas un
-      // mélange — il biaise selon l'algorithme de tri du moteur.
-      for (let n = 0; n < LIMITE && src.length; n++) {
-        tire.push(src.splice(Math.floor(Math.random() * src.length), 1)[0]);
+      if (src.length) {
+        const tire: any[] = [];
+        // Tirage sans remise : `sort(() => Math.random() - .5)` n'est pas un
+        // mélange — il biaise selon l'algorithme de tri du moteur.
+        for (let n = 0; n < LIMITE && src.length; n++) {
+          tire.push(src.splice(Math.floor(Math.random() * src.length), 1)[0]);
+        }
+        return utiles(tire.map((o, i) => versElement(o, i, 'alb')));
       }
-      return utiles(tire.map((o, i) => versElement(o, i, 'alb')));
+      const page = await api.getAlbumsPagines({ limit: LIMITE, offset: 0, sort: 'random' });
+      return utiles(page.items.map((o, i) => versElement(o, i, 'alb')));
     },
   },
   {
