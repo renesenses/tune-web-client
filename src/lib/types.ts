@@ -784,6 +784,22 @@ export interface StreamingServiceStatus {
   /** Account name. The server sends it even once a session has expired. */
   username?: string | null;
   subscription?: string | null;
+  /**
+   * Le service accepte-t-il qu'on ÉCRIVE ses favoris ?
+   * — `renesenses/tune-server-rust#4577`.
+   *
+   * Publié par `tune-core/src/streaming/registry.rs` (`status_all`) depuis la
+   * v0.9.159, et rendu `false` par Bandcamp
+   * (`plugins/tune-bandcamp/src/service.rs`) : « ajouter un favori demande une
+   * session d'achat, que Tune n'a pas ».
+   *
+   * 🔴 **`undefined` n'est pas `false`.** Un serveur d'avant la v0.9.159 ne
+   * dit rien, et se taire n'est pas refuser : l'absence doit garder le
+   * comportement d'avant, sans quoi une mise à jour du seul client couperait
+   * la recopie chez Qobuz et Tidal. C'est `favorisRecopiablesVers`, dans
+   * `lib/streamingFavorites`, qui porte cette lecture — une seule fois.
+   */
+  favoris_ecrivables?: boolean;
 }
 
 export interface StreamingAuthResponse {
