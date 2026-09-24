@@ -22,6 +22,8 @@
   import { formatNombre } from '../../lib/formats';
   import { activeView } from '../../lib/stores/navigation';
   import { errText } from '../../lib/utils';
+  import { tuneWS } from '../../lib/websocket';
+  import { avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse } from '../../lib/analyseBibliotheque';
   // #4144 — ce que la carte ReplayGain a le droit d'afficher, y compris face à
   // un serveur qui ne connaît pas la route.
   import { jaugeReplayGain } from '../../lib/santeReplayGain';
@@ -210,15 +212,32 @@
       if (r?.updated != null) bits.push(n('v2.health.updated', r.updated));
       if (r?.skipped != null) bits.push(n('v2.health.skipped', r.skipped));
       const failures = (r?.failed_paths?.length ?? 0) + (r?.error_dirs?.length ?? 0);
+      // #1518 — le commentaire d'origine disait « le serveur signale "en
+      // cours", pas un pourcentage ». C'est faux : `library.scan.progress`
+      // porte `scanned` et `total` dès la phase « files ». Seule la phase
+      // d'indexation est sans total (le serveur ne l'a pas encore), et là
+      // seulement la carte reste sans jauge.
+      const av = $avancementAnalyse;
+      const pctScan = scanning ? pourcentAnalyse(av) : null;
       out.push({
         id: 'scan', titre: $t('v2.health.cardScan' as any),
         sous: $t('v2.health.cardScanSub' as any),
         etat: scanning ? 'running' : 'idle',
-        ligne: scanning ? $t('v2.health.scanning' as any)
+        ligne: scanning
+          ? (pctScan !== null
+              ? $t('v2.scan.progress' as any)
+                  .replace('{f}', $formatNombre(av?.scanned ?? 0))
+                  .replace('{t}', $formatNombre(av?.total ?? 0))
+                  .replace('{p}', String(pctScan))
+              : (av && av.scanned > 0
+                  ? $t('v2.scan.indexing' as any).replace('{f}', $formatNombre(av.scanned))
+                  : $t('v2.health.scanning' as any)))
           : (bits.length ? $t('v2.health.lastPass' as any).replace('{d}', bits.join(', '))
              : $t('v2.health.noScan' as any)),
+        fait: pctScan !== null ? (av?.scanned ?? 0) : undefined,
+        total: pctScan !== null ? (av?.total ?? 0) : undefined,
         detail: failures ? $t('v2.health.pathsFailed' as any).replace('{n}', String(failures)) : undefined,
-        sansJauge: true,   // le serveur signale « en cours », pas un pourcentage
+        sansJauge: pctScan === null,
       });
     } else {
       out.push({ id: 'scan', titre: $t('v2.health.cardScan' as any), sous: $t('v2.health.cardScanSub' as any),
@@ -438,6 +457,11 @@
   }
 
   $effect(() => { collect(); });
+
+  // #1518 — les chiffres de l'analyse arrivent par `library.scan.progress`.
+  // Sans cet abonnement la carte resterait muette : `GET /scan/status`, seul,
+  // ne porte qu'un booléen.
+  $effect(() => abonnerAvancementAnalyse((h) => tuneWS.onEvent(h)));
 
   // Sondage UNIQUEMENT tant qu'un traitement tourne : un écran de santé qui
   // interroge le serveur en boucle alors que rien ne bouge est lui-même un
