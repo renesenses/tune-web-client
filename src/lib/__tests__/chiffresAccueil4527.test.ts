@@ -84,11 +84,14 @@ describe('les formats', () => {
 });
 
 describe('les cartes rendues, sur les chiffres du .18', () => {
-  it('le choix par défaut donne cinq cartes justes', () => {
+  it('le choix par défaut donne six cartes justes', () => {
+    // #1519, 24/09/2026 : les titres entrent dans le défaut, auprès des albums
+    // et des artistes — les trois chiffres de ce qu'on possède.
     const v = cartes(CHOIX_DEFAUT, LE_18, 'fr');
     expect(v.map((c) => c.texte)).toEqual([
       '4 389',   // albums
       '1 638',   // artistes
+      '47 118',  // titres
       '1 110',   // lectures
       '83',           // heures écoutées : 300 011 800 ms
       '1,9 To',       // taille
