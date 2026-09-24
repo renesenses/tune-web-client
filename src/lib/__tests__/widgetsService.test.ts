@@ -40,7 +40,9 @@ describe('Catalogue d’un service', () => {
     serveur({ sections: SECTIONS_QOBUZ, genres: [{ id: '112', name: 'Pop/Rock' }] });
     const c = await catalogueService('qobuz');
     const ids = c.map((w) => w.id);
-    expect(ids).toContain('qobuz-sec-new-releases');
+    // #1429 — `new-releases` est déjà la bande `qobuz-nouveautes` : pas de doublon.
+    expect(ids).not.toContain('qobuz-sec-new-releases');
+    expect(ids).toContain('qobuz-nouveautes');
     expect(ids).toContain('qobuz-sec-qobuzissims');
     // Le libellé vient de la charge utile : aucune clé de traduction ne peut
     // nommer une section qu'on ne connaît qu'à l'exécution.

@@ -9,7 +9,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../meilleureQualite';
  * renommer / supprimer une étiquette, proposition « meilleure qualité ».
  */
 const ALBUM = readFileSync('src/components/v2/AlbumDetailV2.svelte', 'utf8');
-const ARTISTE = readFileSync('src/components/v2/ArtistesV2.svelte', 'utf8');
+// #1501 : la fiche d'artiste de la Bibliothèque est la PAGE COMMUNE, qui porte
+// ces gestes depuis #1485 (conditionnés à `estLocal`).
+const ARTISTE = readFileSync('src/components/v2/ArtisteServiceV2.svelte', 'utf8');
 const TAGS = readFileSync('src/components/v2/EtiquettesV2.svelte', 'utf8');
 const corps = (src: string, nom: string) => {
   const i = src.indexOf(`async function ${nom}(`);
@@ -52,7 +54,7 @@ describe('fiche album v2', () => {
 
 describe('fiche artiste v2', () => {
   it('l’éditeur complet (image comprise) s’ouvre depuis la fiche', () => {
-    expect(ARTISTE).toContain('onclick={() => (editionComplete = artiste)}');
+    expect(ARTISTE).toContain('onclick={() => (editionComplete = local)}');
     expect(ARTISTE).toMatch(/\{#if editionComplete\}\s*<ArtistEditModal/);
   });
   it('image et bio se signalent', () => {

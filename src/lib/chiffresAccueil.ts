@@ -27,6 +27,46 @@
  * pas à zéro : « 0 genre écouté » serait un mensonge tant que le serveur ne
  * sait pas les compter (#4527 n'est pas promu, et `main` du client part en
  * continu sur le .18). Une carte muette vaut mieux qu'une carte fausse.
+ *
+ * ## LOCAL ET RÉSEAU — Bertrand, 24/09/2026
+ *
+ * « Les chiffres de la bibliothèque mélangent les fichiers locaux et les
+ * serveurs du réseau. Je veux pouvoir les distinguer. »
+ *
+ * Mesuré sur son .18 (0.9.162) le 24/09/2026 :
+ *
+ * ```text
+ * titres   96 519  =  47 079 locaux  +  49 440 sur le réseau
+ * albums    9 430  =   3 938 locaux  +   5 492 sur le réseau
+ * ```
+ *
+ * Plus de la MOITIÉ de ses titres vient de serveurs multimédia, et la ligne
+ * d'accueil n'en disait rien. `/library/stats` portait déjà la ventilation —
+ * `tracks_by_source`, `albums_by_source` — que personne ne lisait.
+ *
+ * 🔴 **Deux dessins possibles, un seul retenu.**
+ *
+ * On aurait pu faire PARLER les cartes existantes — « 96 519 (47 079
+ * locaux) », une seconde ligne, une infobulle. On ne l'a pas fait, pour deux
+ * raisons :
+ *
+ * * changer ce qu'une carte AFFICHE change l'accueil de tout le monde, y
+ *   compris de ceux qui n'ont jamais ouvert le panneau de choix. Ajouter au
+ *   catalogue ne touche personne : les choix déjà enregistrés restent
+ *   exactement ce qu'ils étaient ;
+ * * la plupart des installations n'ont AUCUN serveur multimédia. Le .15,
+ *   mesuré le même jour, rend `{"local": 50772}` et rien d'autre. Une carte
+ *   « dont 0 en réseau » chez eux serait du bruit permanent au service d'une
+ *   information qu'eux seuls n'ont pas.
+ *
+ * Donc : quatre chiffres DE PLUS au catalogue — titres locaux, titres sur le
+ * réseau, albums locaux, albums sur le réseau. La ligne est déjà composée par
+ * profil ; celui que la distinction intéresse la met dans sa ligne, les
+ * autres ne voient rien changer.
+ *
+ * 🔴 `total_size_bytes` et `total_duration_ms` n'ont AUCUNE ventilation dans
+ * la réponse. On n'en invente pas : pas de carte « taille locale », pas de
+ * carte « heures sur le réseau », tant que le serveur ne les compte pas.
  */
 
 /** Ce que les trois sources rapportent, chacune pouvant manquer. */
@@ -64,6 +104,37 @@ const nb = (o: Record<string, unknown> | null | undefined, cle: string): number 
 };
 
 /**
+ * Un nombre pris dans une VENTILATION PAR SOURCE — `tracks_by_source`,
+ * `albums_by_source`, que `/library/stats` porte ainsi :
+ *
+ * ```json
+ * "tracks_by_source": { "local": 47079, "upnp": 49440 }
+ * ```
+ *
+ * 🔴 Deux absences, un seul résultat : `null`.
+ *
+ * * un serveur ANCIEN ne rend pas du tout `tracks_by_source` — le
+ *   dictionnaire manque ;
+ * * une bibliothèque SANS aucun serveur multimédia rend
+ *   `{"local": 50772}` — mesuré sur le .15 le 24/09/2026 : la clé `upnp`
+ *   n'est pas à zéro, elle n'existe pas.
+ *
+ * Dans les deux cas la carte est écartée, jamais écrite à « 0 ». Un « 0 titre
+ * local » sur un serveur qui ne sait pas ventiler serait un mensonge, et
+ * « 0 titre sur le réseau » encombrerait la ligne de tous ceux qui n'ont
+ * aucune source réseau — c'est-à-dire presque tout le monde.
+ */
+const nbVentile = (
+  o: Record<string, unknown> | null | undefined,
+  cle: string,
+  source: string,
+): number | null => {
+  const v = o?.[cle];
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
+  return nb(v as Record<string, unknown>, source);
+};
+
+/**
  * LE catalogue. L'ordre ici est celui de la liste de choix, pas celui de
  * l'affichage : la ligne suit l'ordre choisi par l'utilisateur.
  */
@@ -71,10 +142,24 @@ export const CHIFFRES: readonly Chiffre[] = [
   // ── Bibliothèque ──────────────────────────────────────────────────────
   { id: 'albums', famille: 'bibliotheque', cleLibelle: 'v2.home.sAlbums', icone: 'disc-3',
     vue: 'library', valeur: (s) => nb(s.bibliotheque, 'albums'), format: 'nombre' },
+  // ── Ce que le total d'albums MÊLE (voir l'en-tête du fichier) ──────────
+  { id: 'albums-locaux', famille: 'bibliotheque', cleLibelle: 'v2.home.sAlbumsLocal',
+    icone: 'hard-drive', vue: 'library',
+    valeur: (s) => nbVentile(s.bibliotheque, 'albums_by_source', 'local'), format: 'nombre' },
+  { id: 'albums-reseau', famille: 'bibliotheque', cleLibelle: 'v2.home.sAlbumsNetwork',
+    icone: 'server', vue: 'library',
+    valeur: (s) => nbVentile(s.bibliotheque, 'albums_by_source', 'upnp'), format: 'nombre' },
   { id: 'artistes', famille: 'bibliotheque', cleLibelle: 'v2.home.sArtists', icone: 'mic-2',
     vue: 'artists', valeur: (s) => nb(s.bibliotheque, 'artists'), format: 'nombre' },
   { id: 'titres', famille: 'bibliotheque', cleLibelle: 'v2.home.sTracks', icone: 'music-2',
     vue: 'library', valeur: (s) => nb(s.bibliotheque, 'tracks'), format: 'nombre' },
+  // ── Ce que le total de titres MÊLE ────────────────────────────────────
+  { id: 'titres-locaux', famille: 'bibliotheque', cleLibelle: 'v2.home.sTracksLocal',
+    icone: 'hard-drive', vue: 'library',
+    valeur: (s) => nbVentile(s.bibliotheque, 'tracks_by_source', 'local'), format: 'nombre' },
+  { id: 'titres-reseau', famille: 'bibliotheque', cleLibelle: 'v2.home.sTracksNetwork',
+    icone: 'server', vue: 'library',
+    valeur: (s) => nbVentile(s.bibliotheque, 'tracks_by_source', 'upnp'), format: 'nombre' },
   { id: 'genres', famille: 'bibliotheque', cleLibelle: 'v2.home.sGenres', icone: 'shapes',
     vue: 'genres', valeur: (s) => (typeof s.genres === 'number' ? s.genres : null), format: 'nombre' },
   { id: 'duree', famille: 'bibliotheque', cleLibelle: 'v2.home.sHours', icone: 'hourglass',
@@ -97,10 +182,28 @@ export const CHIFFRES: readonly Chiffre[] = [
     vue: 'history', valeur: (s) => nb(s.ecoute, 'unique_genres'), format: 'nombre' },
 ];
 
-/** Ce que la ligne montre quand personne n'a encore choisi : un mélange des
- *  deux familles, pour que la ligne dise à la fois ce qu'on a et ce qu'on écoute. */
+/**
+ * Ce que la ligne montre quand personne n'a encore choisi : un mélange des
+ * deux familles, pour que la ligne dise à la fois ce qu'on a et ce qu'on écoute.
+ *
+ * 🔴 #1519 — le nombre de TITRES y entre le 24/09/2026, sur arbitrage de
+ * Bertrand. jfpaquet (fil 1900, 0.9.162) : « Sur page d'accueil je ne vois plus
+ * le nombre de morceaux ». La carte existait au catalogue depuis le premier
+ * jour ; elle n'était simplement pas retenue par le défaut du 19/09. C'est le
+ * premier chiffre d'une bibliothèque : 79 940 pistes, et la ligne n'en disait
+ * rien.
+ *
+ * Il est placé auprès des albums et des artistes, les trois chiffres de ce
+ * qu'on possède, et non à la fin entre les heures écoutées et la taille.
+ *
+ * 🔴 Ce défaut ne s'applique qu'aux profils qui n'ont RIEN enregistré. Un choix
+ * déjà rangé sous `home_stats` l'emporte tel quel — voir `choixAuChargement`.
+ * Six cartes, c'est aussi le maximum de `basculer` : un profil neuf part donc
+ * plein, et devra en décocher une pour en essayer une autre. C'est voulu : la
+ * ligne dit l'essentiel, pas tout.
+ */
 export const CHOIX_DEFAUT: readonly string[] = [
-  'albums', 'artistes', 'lectures', 'heures-ecoutees', 'taille',
+  'albums', 'artistes', 'titres', 'lectures', 'heures-ecoutees', 'taille',
 ];
 
 export function chiffreParId(id: string): Chiffre | null {
@@ -220,6 +323,35 @@ export function cartes(
     });
   }
   return vues;
+}
+
+/**
+ * Ce que la ligne affiche À L'OUVERTURE d'un profil, et ce qu'il faudra
+ * réenregistrer avec.
+ *
+ * 🔴 #1519 — LE CHOIX ENREGISTRÉ L'EMPORTE, TEL QUEL. Ajouter une carte au
+ * défaut n'en ajoute AUCUNE chez qui a déjà composé sa ligne : ce serait
+ * réécrire en silence ce que quelqu'un a choisi. Qui veut la nouvelle carte la
+ * coche dans « Modifier » ; le défaut ne sert qu'aux profils encore muets.
+ *
+ * Une liste VIDE est un choix légitime (« aucune carte ») : le test porte sur
+ * le TYPE, jamais sur la longueur. C'est pour cela que la valeur brute des
+ * préférences est passée ici sans être filtrée en amont.
+ *
+ * Et ce qui n'est pas enregistré est un défaut FRAIS, pas ce que le profil
+ * précédent regardait : changer de profil ne traîne pas sa ligne derrière lui.
+ */
+export function choixAuChargement(enregistre: unknown): {
+  /** Ce que la ligne montre. */
+  choix: string[];
+  /** Ce qui était rangé côté serveur, `null` si ce profil n'a rien rangé. */
+  enregistres: string[] | null;
+} {
+  if (Array.isArray(enregistre)) {
+    const lu = enregistre.map(String);
+    return { choix: [...lu], enregistres: lu };
+  }
+  return { choix: [...CHOIX_DEFAUT], enregistres: null };
 }
 
 /**

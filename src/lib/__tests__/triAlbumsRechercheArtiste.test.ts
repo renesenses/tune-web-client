@@ -79,7 +79,8 @@ describe('les deux écrans', () => {
   it('la fiche artiste trie par le même module, année par défaut, sans « Artiste » ni « Pertinence »', () => {
     // #4330 : la grille de la fiche est `DiscographieCommune`, qui a repris le
     // tri avec ses clés et sa mémoire.
-    expect(lire('src/components/v2/ArtistesV2.svelte')).toContain('<DiscographieCommune');
+    // #1501 : la fiche artiste est la PAGE COMMUNE.
+    expect(lire('src/components/v2/ArtisteServiceV2.svelte')).toContain('<DiscographieCommune');
     const s = lire('src/components/v2/DiscographieCommune.svelte');
     expect(s).toMatch(/CLES_FICHE: readonly CleTriAlbums\[\] = \['year', 'title', 'release_date', 'added_at'\]/);
     expect(s).toMatch(/lireChoix<CleTriAlbums>\('v2\.art\.albums\.tri', CLES_FICHE, 'year'\)/);
