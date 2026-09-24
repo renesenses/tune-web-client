@@ -39,12 +39,13 @@ const bande = (id: string, categorie?: Widget['categorie']): Widget => ({
   id, cleTitre: id, forme: 'bande', charger: async () => [], ...(categorie ? { categorie } : {}),
 });
 
-/** Le catalogue Qobuz, dans son ordre réel et avec ses comptes réels. */
+/** Le catalogue Qobuz, dans son ordre réel et avec ses comptes réels. #1429 :
+ *  sans la section `new-releases`, que la bande `qobuz-nouveautes` rend déjà. */
 const TAGS = ['hi-res', 'new', 'focus', 'mood', 'artist', 'danslecasque', 'label',
   'qobuzdigs', 'event', 'auditoriums', 'speakers', 'ideal-discography', 'popular'];
 const QOBUZ: Widget[] = [
   bande('qobuz-nouveautes'),
-  ...['new-releases', 'best-sellers', 'press-awards', 'editor-picks', 'most-streamed',
+  ...['best-sellers', 'press-awards', 'editor-picks', 'most-streamed',
       'ideal-discography', 'qobuzissims'].map((s) => bande(`qobuz-sec-${s}`)),
   bande('qobuz-playlists-editoriales'),
   ...TAGS.map((t) => bande(`qobuz-tag-${t}`, 'playlists-editoriales')),
@@ -63,8 +64,8 @@ describe('l’écran éditorial Qobuz montre les playlists sans qu’on les dema
   it('les quatre bandes d’albums restent en TÊTE', () => {
     const d = dispositionDefautService(QOBUZ);
     expect(d.slice(0, 4)).toEqual([
-      'qobuz-nouveautes', 'qobuz-sec-new-releases',
-      'qobuz-sec-best-sellers', 'qobuz-sec-press-awards',
+      'qobuz-nouveautes', 'qobuz-sec-best-sellers',
+      'qobuz-sec-press-awards', 'qobuz-sec-editor-picks',
     ]);
     // 4 bandes d'albums + 13 catégories.
     expect(d).toHaveLength(17);

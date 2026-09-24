@@ -35,6 +35,7 @@
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
+  import { remplacerAliasWidgets } from '../../lib/widgetsService';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { molettePortee } from '../../lib/molettePortee';
   import { t, locale } from '../../lib/i18n';
@@ -340,6 +341,10 @@
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
       if (Array.isArray(d) && d.length) {
         dispositionEnregistree = d.filter((id: any) => typeof id === 'string');
+        // #1429 — un identifiant retiré au profit d'un autre est remplacé,
+        // pas perdu (`qobuz-sec-new-releases` → `qobuz-nouveautes`). Les
+        // identifiants simplement inconnus, eux, restent tels quels (#987).
+        dispositionEnregistree = remplacerAliasWidgets(dispositionEnregistree);
         disposition = dispositionEnregistree.filter((id) => parId(id));
       }
     } catch {

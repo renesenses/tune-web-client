@@ -225,6 +225,39 @@ export const SECTIONS_TRADUITES: readonly string[] = Object.keys(CLES_SECTIONS);
  * requête qui échoue ne rend rien plutôt que de faire échouer tout l'écran —
  * un service peut très bien servir ses nouveautés et pas ses genres.
  */
+/**
+ * 🔴 #1429 — les sections éditoriales que la bande « Nouveautés » rend déjà.
+ *
+ * GgB, fil 1883, 0.9.161 : « Nouveautés » puis « New Releases », les mêmes
+ * albums dans le même ordre. La bande en dur appelle
+ * `/streaming/{service}/new-releases`, la section `new-releases`
+ * `/streaming/{service}/featured/new-releases` — et côté serveur les deux
+ * finissent sur `/album/getFeatured?type=new-releases` (`qobuz.rs`). La bande
+ * en dur reste : elle existe pour les deux services (Tidal ne rend aucune
+ * section) et porte un titre traduit.
+ */
+const SECTIONS_DEJA_EN_BANDE: ReadonlySet<string> = new Set(['new-releases']);
+
+/**
+ * Les identifiants de widget qui n'existent plus, et celui qui les remplace —
+ * #1429. Une disposition ENREGISTRÉE qui ne gardait que « New Releases »
+ * garde ses nouveautés au lieu de perdre la bande en silence ; celle qui
+ * gardait les deux (la disposition par défaut d'avant) n'en garde qu'une.
+ */
+const ALIAS_WIDGETS: Readonly<Record<string, string>> = {
+  'qobuz-sec-new-releases': 'qobuz-nouveautes',
+  'tidal-sec-new-releases': 'tidal-nouveautes',
+};
+
+export function remplacerAliasWidgets(ids: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const id of ids) {
+    const cible = ALIAS_WIDGETS[id] ?? id;
+    if (!out.includes(cible)) out.push(cible);
+  }
+  return out;
+}
+
 export async function catalogueService(service: string): Promise<Widget[]> {
   const [sections, genres, groupesPlaylists] = await Promise.all([
     api.getStreamingFeaturedSections(service).catch(() => []),
@@ -257,6 +290,8 @@ export async function catalogueService(service: string): Promise<Widget[]> {
   for (const s of liste(sections)) {
     const sid = texte(s, 'id');
     if (!sid) continue;
+    // 🔴 #1429 — une section que la bande en dur ci-dessus rend DÉJÀ.
+    if (SECTIONS_DEJA_EN_BANDE.has(sid)) continue;
     w.push({
       id: `${service}-sec-${sid}`,
       cleTitre: cleSectionEditoriale(sid) ?? texte(s, 'name') ?? sid,
