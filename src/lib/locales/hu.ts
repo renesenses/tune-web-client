@@ -2565,6 +2565,8 @@ export default {
   "v2.rayons.error": "A rendezés nem sikerült",
   "v2.col.title": "Gyűjtemények",
   "v2.col.addTo": "Hozzáadás a(z) „{name}” gyűjteményhez",
+  "v2.album.addToCollection": "Hozzáadás gyűjteményhez",
+  "v2.album.noCollection": "Még nincs gyűjtemény – hozzon létre egyet a „Gyűjtemények” alatt.",
   "v2.col.alreadyIn": "Már szerepel a(z) „{name}” gyűjteményben",
   "v2.col.removeAlbum": "Eltávolítás ebből a gyűjteményből",
   "v2.col.removeAlbumFailed": "Az albumot nem sikerült eltávolítani.",

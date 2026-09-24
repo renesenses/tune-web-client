@@ -1604,6 +1604,8 @@ export default {
   "v2.rayons.error": "Rangement impossible",
   "v2.col.title": "Collections",
   "v2.col.addTo": "Ajouter à « {name} »",
+  "v2.album.addToCollection": "Ajouter à une collection",
+  "v2.album.noCollection": "Aucune collection pour l’instant — créez-en une dans « Collections ».",
   "v2.col.alreadyIn": "Déjà dans « {name} »",
   "v2.col.removeAlbum": "Retirer de cette collection",
   "v2.col.removeAlbumFailed": "Impossible de retirer l'album.",

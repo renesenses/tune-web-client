@@ -2607,6 +2607,8 @@ export default {
   "v2.rayons.error": "정리하지 못했습니다",
   "v2.col.title": "컬렉션",
   "v2.col.addTo": "‘{name}’에 추가",
+  "v2.album.addToCollection": "컬렉션에 추가",
+  "v2.album.noCollection": "컬렉션이 없습니다. ‘컬렉션’에서 만들어 주세요.",
   "v2.col.alreadyIn": "이미 ‘{name}’에 있음",
   "v2.col.removeAlbum": "이 컬렉션에서 제거",
   "v2.col.removeAlbumFailed": "앨범을 제거하지 못했습니다.",

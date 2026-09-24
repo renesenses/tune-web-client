@@ -1601,6 +1601,8 @@ export default {
   "v2.rayons.error": "Could not reorganise",
   "v2.col.title": "Collections",
   "v2.col.addTo": "Add to “{name}”",
+  "v2.album.addToCollection": "Add to a collection",
+  "v2.album.noCollection": "No collection yet — create one in “Collections”.",
   "v2.col.alreadyIn": "Already in “{name}”",
   "v2.col.removeAlbum": "Remove from this collection",
   "v2.col.removeAlbumFailed": "Could not remove the album.",

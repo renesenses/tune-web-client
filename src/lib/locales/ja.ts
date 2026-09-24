@@ -2607,6 +2607,8 @@ export default {
   "v2.rayons.error": "整理できませんでした",
   "v2.col.title": "コレクション",
   "v2.col.addTo": "「{name}」に追加",
+  "v2.album.addToCollection": "コレクションに追加",
+  "v2.album.noCollection": "コレクションがありません。「コレクション」で作成してください。",
   "v2.col.alreadyIn": "「{name}」に追加済み",
   "v2.col.removeAlbum": "このコレクションから削除",
   "v2.col.removeAlbumFailed": "アルバムを削除できませんでした。",

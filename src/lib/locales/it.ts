@@ -2607,6 +2607,8 @@ export default {
   "v2.rayons.error": "Riordino non riuscito",
   "v2.col.title": "Raccolte",
   "v2.col.addTo": "Aggiungi a «{name}»",
+  "v2.album.addToCollection": "Aggiungi a una raccolta",
+  "v2.album.noCollection": "Nessuna raccolta: creane una in «Raccolte».",
   "v2.col.alreadyIn": "Già in «{name}»",
   "v2.col.removeAlbum": "Rimuovi da questa raccolta",
   "v2.col.removeAlbumFailed": "Impossibile rimuovere l'album.",

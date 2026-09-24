@@ -76,11 +76,15 @@ describe('#1222 — quelles collections proposer', () => {
 
 describe('#1222 — l\'ajout, depuis la Bibliothèque', () => {
   const vue = readFileSync('src/components/v2/LibraryV2.svelte', 'utf8');
+  // Depuis le 23/09/2026 le geste vit dans `lib/albumVersCollection`, partagé
+  // avec la fiche album : voir `ajouterAlbumACollectionFiche.test.ts`.
+  const geste = readFileSync('src/lib/albumVersCollection.ts', 'utf8');
 
   it('la vignette porte le menu, et il appelle la route', () => {
     expect(vue).toContain('menu={depot ? [] : entreesCollection(a)}');
-    expect(vue).toContain('api.addAlbumToCollection(cible.id, a.id)');
-    expect(vue).toContain('v2.col.addTo');
+    expect(vue).toContain("from '../../lib/albumVersCollection'");
+    expect(geste).toContain('api.addAlbumToCollection(cible.id, albumId)');
+    expect(geste).toContain('v2.col.addTo');
   });
 
   it('🔴 un album de DÉPÔT n\'a pas d\'entrée', () => {
@@ -93,8 +97,9 @@ describe('#1222 — l\'ajout, depuis la Bibliothèque', () => {
   it('la liste est RELUE après l\'ajout', () => {
     // Sans cela, la deuxième ouverture du menu dirait encore « ajouter »
     // pour une collection qui le contient désormais.
-    const i = vue.indexOf('async function ajouterACollection(');
-    const bloc = vue.slice(i, vue.indexOf('\n  }', i));
+    const i = geste.indexOf('export async function ajouterAlbumACollection(');
+    expect(i).toBeGreaterThan(-1);
+    const bloc = geste.slice(i, geste.indexOf('\n}', i));
     expect(bloc).toContain('await api.getCollections()');
   });
 });

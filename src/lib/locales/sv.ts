@@ -2606,6 +2606,8 @@ export default {
   "v2.rayons.error": "Kunde inte ordna",
   "v2.col.title": "Samlingar",
   "v2.col.addTo": "Lägg till i ”{name}”",
+  "v2.album.addToCollection": "Lägg till i en samling",
+  "v2.album.noCollection": "Ingen samling ännu – skapa en under ”Samlingar”.",
   "v2.col.alreadyIn": "Finns redan i ”{name}”",
   "v2.col.removeAlbum": "Ta bort från den här samlingen",
   "v2.col.removeAlbumFailed": "Albumet kunde inte tas bort.",

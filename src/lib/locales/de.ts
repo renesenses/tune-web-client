@@ -2607,6 +2607,8 @@ export default {
   "v2.rayons.error": "Ordnen nicht möglich",
   "v2.col.title": "Sammlungen",
   "v2.col.addTo": "Zu „{name}“ hinzufügen",
+  "v2.album.addToCollection": "Zu einer Sammlung hinzufügen",
+  "v2.album.noCollection": "Noch keine Sammlung – legen Sie eine unter „Sammlungen“ an.",
   "v2.col.alreadyIn": "Bereits in „{name}“",
   "v2.col.removeAlbum": "Aus dieser Sammlung entfernen",
   "v2.col.removeAlbumFailed": "Das Album konnte nicht entfernt werden.",
