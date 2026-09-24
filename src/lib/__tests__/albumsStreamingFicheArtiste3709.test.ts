@@ -25,7 +25,8 @@
 //     réellement demandées et le DOM réellement rendu.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import ArtistesV2 from '../../components/v2/ArtistesV2.svelte';
+// #1501 — la fiche d'artiste est la PAGE COMMUNE (voir `poserFiche`).
+import ArtisteServiceV2 from '../../components/v2/ArtisteServiceV2.svelte';
 import {
   albumsDeStreamingPourArtiste,
   apparierArtiste,
@@ -33,7 +34,8 @@ import {
   statutsStreaming,
   type PasserellesStreaming,
 } from '../albumsArtisteStreaming';
-import { streamingServices } from '../stores/streaming';
+import { ficheArtisteService, streamingServices } from '../stores/streaming';
+import { activeView } from '../stores/navigation';
 import { currentZoneId } from '../stores/zones';
 import type { Album } from '../types';
 
@@ -214,6 +216,10 @@ function corpsPour(url: string): unknown {
     return { artist: 'Alain Souchon', bio: 'Chanteur français né en 1944.' };
   }
   if (/\/library\/artists\/3\/albums/.test(url)) return LOCAUX;
+  if (/\/library\/artists\/3\/metadata/.test(url)) return {};
+  if (/\/library\/artists\/3\/credits/.test(url)) return [];
+  // La page commune demande l'artiste par son IDENTIFIANT.
+  if (/\/library\/artists\/3(\?|$)/.test(url)) return ARTISTE;
   if (/\/library\/artists/.test(url)) return [ARTISTE];
   return {};
 }
@@ -258,15 +264,23 @@ afterEach(() => {
   hote = null;
   streamingServices.set({});
   currentZoneId.set(null);
+  ficheArtisteService.set(null);
+  activeView.set('home');
   vi.unstubAllGlobals();
 });
 
-/** `ouvrirId` ouvre la fiche dès que la liste est là — le même chemin que le
- *  clic sur une vignette, sans traverser la grille. */
-async function poserFiche(extra: Record<string, unknown> = {}): Promise<HTMLDivElement> {
+/**
+ * #1501 — la fiche d'artiste est la PAGE COMMUNE, ouverte sur un artiste
+ * LOCAL comme la grille de la Bibliothèque l'ouvre (`service: null`,
+ * l'identifiant en texte). Elle va chercher les albums des services par le
+ * même module (`albumsDeStreamingPourArtiste`) que l'ancienne fiche.
+ */
+async function poserFiche(): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
-  monte = mount(ArtistesV2, { target: hote, props: { q: '', ouvrirId: 3, ...extra } });
+  ficheArtisteService.set({ service: null, id: '3', nom: ARTISTE.name });
+  activeView.set('streamingartist');
+  monte = mount(ArtisteServiceV2, { target: hote });
   for (let i = 0; i < 12; i++) await respirer();
   flushSync();
   return hote;
@@ -332,22 +346,20 @@ describe('#3709 — la fiche artiste montre AUSSI les albums des services', () =
     expect(appels.filter((u) => /tidal/.test(u)), 'Tidal est déconnecté').toEqual([]);
   });
 
-  it('#4330 — le menu « Source » reçoit les comptes de la FICHE, services compris', async () => {
+  it('#4330 — le compte de l’en-tête est celui de la DISCOGRAPHIE COMMUNE, services compris', async () => {
     // Bertrand, .18, 17/09/2026 : « Source affiche des chiffres faux et pas les
-    // services de streaming ».
-    const recus: unknown[] = [];
-    await poserFiche({ onComptesFiche: (c: unknown) => recus.push(c) });
-    const dernier = recus.filter(Boolean).at(-1) as { total: number; comptes: Map<string, number> } | undefined;
-    expect(dernier, 'aucun compte de fiche remonté au menu').toBeTruthy();
-    expect(dernier!.total).toBe(3);
-    expect(Object.fromEntries(dernier!.comptes)).toEqual({ local: 1, qobuz: 2 });
-  });
-
-  it('#4330 — « Source · QOBUZ » garde les albums Qobuz au lieu de tout cacher', async () => {
-    const el = await poserFiche({ provenance: 'qobuz' });
-    const vus = titres(el);
-    expect(vus, `titres rendus : ${JSON.stringify(vus)}`).toContain('Ultra Moderne Solitude');
-    expect(vus).not.toContain('Au Ras Des Paquerettes');
+    // services de streaming ». #1501 : le menu « Source » de la Bibliothèque
+    // ne voit plus de fiche ; le compte vit dans l'en-tête de la page commune,
+    // et il porte bien 1 local + 2 Qobuz.
+    const el = await poserFiche();
+    const compte = el.querySelector<HTMLElement>('header.tete .cpt');
+    expect(compte, 'aucun compte dans l’en-tête').not.toBeNull();
+    expect(compte!.textContent).toMatch(/\b3\b/);
+    // Et chaque vignette dit sa source : c'est la pastille qui remplace le
+    // filtre « Source » du menu de la Bibliothèque sur cette page.
+    const sources = Array.from(el.querySelectorAll<HTMLElement>('.carte[data-sources]')).map((c) => c.dataset.sources);
+    expect(sources.filter((s) => s === 'qobuz')).toHaveLength(2);
+    expect(sources.filter((s) => s === 'local')).toHaveLength(1);
   });
 
   it('#4330 étape 2 — la fiche montre la biographie et les titres phares du service', async () => {

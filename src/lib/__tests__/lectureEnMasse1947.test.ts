@@ -169,12 +169,14 @@ const sansCommentaires = (s: string) =>
  */
 describe('#1947 — les surfaces qui n’avaient pas ces boutons les ont', () => {
   it('la fiche d’artiste du nouveau client a les deux boutons', () => {
-    const src = sansCommentaires(lireSrc('src/components/v2/ArtistesV2.svelte'));
-    expect(src).toContain('lireToutArtiste');
+    // #1501 : la fiche d'artiste est la PAGE COMMUNE, qui a repris les deux
+    // gestes de la fiche de bibliothèque (#1356) avec les mêmes appels.
+    const src = sansCommentaires(lireSrc('src/components/v2/ArtisteServiceV2.svelte'));
+    expect(src).toContain('lireDiscographieLocale');
     expect(src).toContain('api.getArtistTracks(a.id)');
     expect(src).toContain("api.shuffleAll(zid, { artist_id: a.id })");
-    expect(src).toContain("$t('library.playAllArtist' as any)");
-    expect(src).toContain("$t('library.shuffleArtist' as any)");
+    expect(src).toContain("$tr('library.playAllArtist' as any)");
+    expect(src).toContain("$tr('library.shuffleArtist' as any)");
   });
   it('la fiche de liste de lecture a une « lecture aléatoire »', () => {
     const src = sansCommentaires(lireSrc('src/components/v2/PlaylistDetailV2.svelte'));
@@ -208,6 +210,7 @@ describe('#1947 — les surfaces qui n’avaient pas ces boutons les ont', () =>
   });
   it('aucune de ces surfaces n’arme le drapeau de la zone', () => {
     for (const f of [
+      'src/components/v2/ArtisteServiceV2.svelte',
       'src/components/v2/ArtistesV2.svelte',
       'src/components/v2/PlaylistDetailV2.svelte',
       'src/components/v2/CollectionsV2.svelte',

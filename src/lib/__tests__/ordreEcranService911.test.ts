@@ -42,10 +42,11 @@ const bande = (id: string, categorie?: Widget['categorie']): Widget => ({
   ...(categorie ? { categorie } : {}),
 });
 
-/** Le catalogue Qobuz, dans son ordre réel. */
+/** Le catalogue Qobuz, dans son ordre réel. #1429 : la section `new-releases`
+ *  n'y est plus — la bande `qobuz-nouveautes` rend déjà les mêmes albums. */
 const QOBUZ: Widget[] = [
   bande('qobuz-nouveautes'),
-  ...['new-releases', 'best-sellers', 'press-awards', 'editor-picks'].map((s) => bande(`qobuz-sec-${s}`)),
+  ...['best-sellers', 'press-awards', 'editor-picks'].map((s) => bande(`qobuz-sec-${s}`)),
   bande('qobuz-playlists-editoriales'),
   ...['hi-res', 'mood', 'focus'].map((t) => bande(`qobuz-tag-${t}`, 'playlists-editoriales')),
   bande('qobuz-albums-favoris', 'a-moi'),
@@ -64,8 +65,8 @@ describe('#911 — ce qui est À MOI passe devant', () => {
   it('les bandes de service gardent leur ordre derrière', () => {
     const d = dispositionDefautService(QOBUZ);
     expect(d.slice(2, 6)).toEqual([
-      'qobuz-nouveautes', 'qobuz-sec-new-releases',
-      'qobuz-sec-best-sellers', 'qobuz-sec-press-awards',
+      'qobuz-nouveautes', 'qobuz-sec-best-sellers',
+      'qobuz-sec-press-awards', 'qobuz-sec-editor-picks',
     ]);
   });
 

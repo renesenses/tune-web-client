@@ -120,13 +120,13 @@ describe('#3822 — Accueil : le widget « Sélection Qobuz »', () => {
 describe('#3822 — le chemin album reste intact', () => {
   it('un album éditorial garde sa fiche, son ouverture, et aucun `favoriDistant`', async () => {
     vi.spyOn(api, 'getStreamingFeaturedSections').mockResolvedValue(
-      [{ id: 'new-releases', name: 'New Releases' }] as any,
+      [{ id: 'best-sellers', name: 'Best Sellers' }] as any,
     );
     vi.spyOn(api, 'getStreamingGenres').mockResolvedValue([] as any);
     vi.spyOn(api, 'getStreamingFeatured').mockResolvedValue(
       [{ source_id: 'kxend2k5wdg06', title: 'Kind of Blue', artist_name: 'Miles Davis' }] as any,
     );
-    const w = (await catalogueService('qobuz')).find((x) => x.id === 'qobuz-sec-new-releases');
+    const w = (await catalogueService('qobuz')).find((x) => x.id === 'qobuz-sec-best-sellers');
     const els = await w!.charger(ctx);
     expect(els[0].fiche?.source_id).toBe('kxend2k5wdg06');
     expect(els[0].ouvrir).toBe('album');

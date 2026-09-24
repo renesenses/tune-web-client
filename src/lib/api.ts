@@ -90,6 +90,7 @@ import type {
 
 import { baseApi, entetesRelais } from './bridge';
 import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
+import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
 
@@ -590,7 +591,19 @@ export async function fetchJSON<T>(
         // 🔴 La phrase du SERVEUR, telle quelle — voir
         // `MESSAGES_RENDUS_PAR_LE_SERVEUR`. 10 s comme le refus bit-perfect :
         // elle est longue, et elle demande à être lue jusqu'au bout.
-        notifications.error(err.message, 10000);
+        //
+        // #4556 — et quand ce refus-là porte de quoi AGIR (`reason`,
+        // `can_rearm`, `rearm_endpoint`), le bouton part avec la phrase. Sans
+        // cette ligne, c'est justement le chemin de l'utilisateur qui appuie
+        // sur Lire qui restait sans issue : `dejaAnnonce` ci-dessous fait
+        // sortir tous les `signalerEchecLecture` avant qu'ils regardent.
+        if (
+          !proposerLeRearmement(err.message, {
+            ...((err.corps as Record<string, unknown> | undefined) ?? {}),
+          })
+        ) {
+          notifications.error(err.message, 10000);
+        }
         err.dejaAnnonce = true;
       } else if (key) {
         notifications.error(get(t)(key as any));
@@ -5080,6 +5093,75 @@ export async function checkFavorite(profileId: number, params: FavoriteRef) {
 
 // --- Artwork ---
 
+/**
+ * 🔴 LE CONDENSAT D'UNE POCHETTE DÉJÀ SERVIE PAR NOTRE PROPRE SERVEUR — #1360.
+ *
+ * Rend le dernier segment de `…/api/v1/library/artwork/<condensat>` quand
+ * l'adresse absolue désigne une pochette de Tune, et `null` sinon.
+ *
+ * ## Pourquoi cette fonction existe
+ *
+ * FabienM, fil 1859, 20/09/2026, 0.9.158 : « Il manque des vignettes à mon
+ * historique ». Des lignes sans vignette, d'autres avec — un MÉLANGE, et
+ * c'est le mélange qui désigne la cause.
+ *
+ * Jusqu'à la v0.9.157, l'avance sans blanc du serveur remplaçait le condensat
+ * de pochette par une adresse ABSOLUE de réseau local,
+ * `http://<ip-lan>:8888/api/v1/library/artwork/<condensat>`
+ * (`resolve_cover_url`, `tune-core/src/orchestrator/commun.rs`). Cette valeur
+ * est exactement celle qui part en base dans `listen_history.cover_url`.
+ *
+ * Le serveur a corrigé l'ÉCRITURE (`f0d63c49`, « l'avance gapless garde le
+ * condensat de pochette au lieu d'une URL LAN absolue », srv#4446, entré en
+ * v0.9.157) — mais rien ne répare les lignes DÉJÀ enregistrées : la route
+ * `/library/history` rend `h.cover_url` tel quel, et aucune migration n'y
+ * touche. L'historique de Fabien porte donc, pour toujours, un mélange de
+ * condensats (récents, bons) et d'adresses LAN (anciens).
+ *
+ * Et une adresse LAN, le client l'envoyait au RELAIS, parce qu'elle commence
+ * par `http://` : `…/library/artwork/proxy?url=http%3A%2F%2F192.168…`. Or le
+ * relais refuse les adresses privées — c'est sa raison d'être
+ * (`adresse_interdite`, `tune-core/src/library/artwork_proxy.rs`) — et répond
+ * **403**. L'exception « pochette de bibliothèque » du relais ne sauve que les
+ * URL présentes dans `albums.cover_path` ; une ligne d'historique n'y est pas.
+ * `AlbumArt` reçoit l'erreur, bascule sur son `onerror`, et dessine sa boîte
+ * grise. Une vignette qui manque.
+ *
+ * ## La réparation se fait ICI, à la LECTURE
+ *
+ * L'adresse porte déjà le condensat : il suffit de le lire et de demander la
+ * pochette à NOTRE origine, comme pour n'importe quel condensat. Aucun
+ * aller-retour par le relais, aucune adresse privée soumise à une garde qui
+ * existe pour les refuser, et toutes les lignes anciennes réparées d'un coup —
+ * ce qu'une correction d'écriture ne pouvait pas faire.
+ *
+ * On ne garde PAS l'hôte enregistré : c'était l'adresse du serveur le jour de
+ * l'écoute. Un bail DHCP renouvelé, un accès depuis l'extérieur, et elle ne
+ * mène nulle part. Le condensat, lui, ne bouge pas, et le client parle déjà au
+ * bon serveur.
+ *
+ * ⚠️ `proxy` n'est pas un condensat : `…/library/artwork/proxy?url=…` est la
+ * route du relais elle-même. La renvoyer à la branche « condensat »
+ * demanderait une pochette nommée « proxy ».
+ */
+function condensatDePochetteInterne(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const m = /\/api\/v1\/library\/artwork\/([^/]+)$/.exec(u.pathname);
+  if (!m) return null;
+  let condensat: string;
+  try {
+    condensat = decodeURIComponent(m[1]);
+  } catch {
+    condensat = m[1];
+  }
+  return condensat && condensat !== 'proxy' ? condensat : null;
+}
+
 export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
   // Server already returns usable relative URLs for cover_path
@@ -5089,7 +5171,13 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
     return coverPath;
   }
   if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
-    return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
+    // #1360 — une pochette de NOTRE serveur enregistrée en adresse absolue se
+    // redemande par son condensat, jamais par le relais, qui la refuserait.
+    const condensat = condensatDePochetteInterne(coverPath);
+    if (condensat == null) {
+      return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
+    }
+    coverPath = condensat;
   }
   const filename = coverPath.split('/').pop() ?? coverPath;
   const sizeParam = size ? `?size=${size}` : '';
@@ -6053,6 +6141,56 @@ export function rearmerParLaRouteAnnoncee(route: string) {
     retry: 'next_restart';
     message: string;
   }>(route.startsWith('/api/') ? route : `${BASE}${route}`, { method: 'POST' });
+}
+
+/**
+ * 🔴 #4556 — LE REFUS QUI ACCUSE LE MATÉRIEL, ET LE BOUTON QUI LE LÈVE.
+ *
+ * Après un plantage de pilote ASIO, le serveur pose un témoin **sur disque** et
+ * n'énumère plus ASIO au démarrage suivant : il refuse la zone EN SACHANT
+ * qu'il n'a pas regardé. Le témoin étant un fichier, redémarrer n'y change
+ * rien — seul un réarmement l'efface, et il était enterré dans l'écran
+ * Diagnostics, qu'un auditeur n'ouvre jamais de lui-même.
+ *
+ * Le bouton se pose donc **là où le défaut se manifeste**, et par les deux
+ * chemins qu'un refus emprunte :
+ *
+ *   - l'événement `zone.playback_error` (WebSocket) → `signalerErreurServeur` ;
+ *   - le **409 du `POST /play`**, traité ici même par `fetchJSON` — c'est le
+ *     chemin qu'emprunte l'utilisateur qui appuie sur Lire, et il n'avait pas
+ *     le bouton.
+ *
+ * Rend `true` quand l'offre a été posée, `false` quand l'appelant doit faire
+ * son toast ordinaire. `offreDeRearmement` tranche seule, et la route vient
+ * **du serveur**, jamais d'une constante du client.
+ *
+ * Vit dans `api.ts` — et non dans `echecLecture.ts`, où l'autre appelant
+ * habite — parce que `rearmerParLaRouteAnnoncee` est ici : l'inverse ferait un
+ * cycle d'imports.
+ */
+export function proposerLeRearmement(
+  texte: string,
+  donnees: DonneesEchecLecture | null | undefined,
+): boolean {
+  const offre = offreDeRearmement(donnees);
+  if (!offre) return false;
+  notifications.withAction(texte, get(t)('asio.rearmAction' as any), () => {
+    void (async () => {
+      try {
+        await rearmerParLaRouteAnnoncee(offre.route);
+        // ⚠️ Le serveur n'ouvre AUCUN pilote dans le processus courant : le
+        // réarmement ne prend effet qu'au PROCHAIN DÉMARRAGE. Le taire ferait
+        // croire à une réparation immédiate, et l'utilisateur rappuierait sur
+        // Lire pour rien.
+        notifications.success(get(t)('asio.rearmDone' as any), 10000);
+      } catch {
+        // Route ADMIN : un 401/403 est un refus normal ici. On retombe sur la
+        // phrase du serveur plutôt que d'inventer une explication.
+        notifications.error(texte, 10000);
+      }
+    })();
+  });
+  return true;
 }
 
 export function rearmAsioWarmScan() {

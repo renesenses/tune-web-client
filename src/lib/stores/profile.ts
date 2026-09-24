@@ -2,6 +2,9 @@ import { writable, get } from 'svelte/store';
 import * as api from '../api';
 import type { StreamingItemType } from '../streamingFavorites';
 import { cleJumelage } from '../cleJumelage';
+// `stores/streaming` ne dépend que de `../types` : ranger la réponse ici
+// n'introduit aucun cycle avec `streamingFavorites`, qui lit ce même magasin.
+import { streamingServices } from './streaming';
 
 export interface Profile {
   id: number;
@@ -248,6 +251,16 @@ async function reprendreFavorisDesServices(): Promise<void> {
   } catch {
     return;
   }
+  // 🔴 #4577 — cette réponse porte `favoris_ecrivables`, que
+  // `favorisRecopiablesVers` lit dans le MAGASIN au moment d'un clic sur un
+  // cœur. Elle était jusqu'ici consommée puis jetée : on la RANGE, comme
+  // `statutsStreaming` le fait déjà pour les écrans (#4330, où l'absence de
+  // remplissage avait rendu la fiche artiste aveugle aux services).
+  //
+  // ⚠️ Ne range que ce qui n'est pas vide : `apply` compare au précédent pour
+  // détecter une session expirée, et écrire `{}` ferait du prochain chargement
+  // un « premier », donc muet sur une expiration réelle.
+  if (Object.keys(services).length) streamingServices.set(services);
   const connectes = Object.entries(services)
     .filter(([, st]: [string, any]) => st?.authenticated)
     .map(([nom]) => nom);

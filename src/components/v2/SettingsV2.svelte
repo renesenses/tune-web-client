@@ -31,6 +31,11 @@
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
+  import { tuneWS } from '../../lib/websocket';
+  import {
+    avancementAnalyse, pourcentAnalyse, aDesChiffres,
+    abonnerAvancementAnalyse, lancerAnalyse, terminerAvancement,
+  } from '../../lib/analyseBibliotheque';
   import { formeDesIdentifiants, corpsDAuthentification, identifiantsComplets } from '../../lib/identifiantsService';
   import { normaliserVerificationMaj } from '../../lib/miseAJour';
   import { attendreRetourEtRecharger } from '../../lib/retourDuServeur';
@@ -1542,11 +1547,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       try {
         const s = await api.getScanStatus();
         scanning = !!s?.scanning;
-        if (!scanning) { scanReport = await api.getScanReport().catch(() => null); await refreshLibrary(); }
+        if (!scanning) {
+          terminerAvancement();
+          scanReport = await api.getScanReport().catch(() => null);
+          await refreshLibrary();
+        }
       } catch { /* ignore */ }
     }, 2500);
     return () => clearInterval(h);
   });
+  /**
+   * #1518 — l'avancement vient de l'EVENEMENT, jamais du sondage.
+   *
+   * `GET /scan/status` ne porte qu'un booleen : on pouvait le sonder
+   * indefiniment sans jamais en tirer un chiffre. Le serveur emet
+   * `library.scan.progress` des le debut du scan ; tout le client n'y avait
+   * qu'un seul abonne, l'assistant de premiere installation. L'abonnement est
+   * permanent : une analyse peut avoir ete lancee ailleurs (planification,
+   * autre client), et l'ecran doit alors montrer les chiffres sans avoir
+   * declenche quoi que ce soit.
+   */
+  $effect(() => abonnerAvancementAnalyse((h) => tuneWS.onEvent(h)));
+  // Un avancement qui arrive alors que l'ecran se croit au repos veut dire
+  // qu'une analyse tourne : le badge doit le dire.
+  $effect(() => { if (aDesChiffres($avancementAnalyse)) scanning = true; });
 
   async function addDir() {
     const path = newDir.trim();
@@ -1570,12 +1594,22 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch { libErr = get(t)('settings.errRemoveFailed'); }
     dirBusy = false;
   }
-  async function scan(full: boolean) {
-    try { await api.triggerScan(undefined, full); scanning = true; scanReport = null; }
-    catch { libErr = get(t)('settings.errScanStartFailed'); }
+  /**
+   * #1517 — `chemin` vise UN dossier au lieu de toute la bibliotheque.
+   *
+   * Le serveur accepte `?path=` (`ScanQuery::path`, « only this sub-directory
+   * is walked »), et limite la purge des pistes disparues a ce sous-arbre. Le
+   * client, lui, envoyait toujours `undefined` : trois morceaux ajoutes dans
+   * un dossier d'un NAS re-parcouraient tout le partage reseau.
+   */
+  async function scan(full: boolean, chemin: string | null = null) {
+    const r = await lancerAnalyse((p, f) => api.triggerScan(p, f), { chemin, complete: full });
+    if (!r.ok) { libErr = get(t)('settings.errScanStartFailed'); return; }
+    scanning = true; scanReport = null; libErr = null;
   }
   async function stopScan() {
-    try { await api.cancelScan(); scanning = false; } catch { /* deja finie */ }
+    try { await api.cancelScan(); } catch { /* deja finie */ }
+    scanning = false; terminerAvancement();
   }
 
   /**
@@ -3890,6 +3924,42 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {/if}
                 </div>
               </div>
+              <!--
+                #1518 — l'avancement, enfin montré.
+
+                Sur un partage réseau, le parcours des dossiers dure des
+                minutes sans qu'une seule ligne bouge : « Analyse en cours »
+                tout seul est indiscernable d'un blocage. Pendant la phase
+                d'indexation le serveur ne connaît PAS le total — il envoie
+                `total: 0` — donc pas de jauge : on montre le compte brut, qui
+                avance, et le dossier en cours. La barre n'apparaît qu'avec un
+                vrai total.
+              -->
+              {#if scanning && aDesChiffres($avancementAnalyse)}
+                {@const pct = pourcentAnalyse($avancementAnalyse)}
+                <div class="scan-avance">
+                  {#if pct !== null}
+                    <div class="jauge"><div class="rempli" style="width:{pct}%"></div></div>
+                    <p class="hint">{$t('v2.scan.progress' as any)
+                      .replace('{f}', $formatNombre($avancementAnalyse?.scanned ?? 0))
+                      .replace('{t}', $formatNombre($avancementAnalyse?.total ?? 0))
+                      .replace('{p}', String(pct))}</p>
+                  {:else}
+                    <p class="hint">{$t('v2.scan.indexing' as any)
+                      .replace('{f}', $formatNombre($avancementAnalyse?.scanned ?? 0))}</p>
+                  {/if}
+                  {#if $avancementAnalyse?.cible}
+                    <p class="hint">{$t('v2.scan.progressFolder' as any)
+                      .replace('{d}', $avancementAnalyse.cible)}</p>
+                  {:else if $avancementAnalyse?.dossier}
+                    <p class="hint dp" title={$avancementAnalyse.dossier}>{$avancementAnalyse.dossier}</p>
+                  {/if}
+                  <p class="hint">{$t('v2.scan.progressCounts' as any)
+                    .replace('{a}', $formatNombre($avancementAnalyse?.inserted ?? 0))
+                    .replace('{m}', $formatNombre($avancementAnalyse?.updated ?? 0))
+                    .replace('{i}', $formatNombre($avancementAnalyse?.skipped ?? 0))}</p>
+                </div>
+              {/if}
               {#if scanReport}
                 <div class="okbox">
                   {$t('v2.set.scanReport' as any)
@@ -3952,7 +4022,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     <div class="dir">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
                       <span class="dp">{d}</span>
-                      <button class="del" disabled={dirBusy} onclick={() => removeDir(d)} aria-label="Retirer ce dossier">
+                      <!--
+                        #1517 — analyser CE dossier, et lui seul.
+
+                        Chaque ligne n'offrait qu'une croix « Retirer » ; les
+                        deux boutons d'analyse portaient toujours sur la
+                        bibliothèque entière. Le seul geste ciblé restant
+                        vivait dans l'explorateur, classé « Avancé », donc
+                        invisible au niveau Essentiel — là où les dossiers
+                        sont justement listés.
+                      -->
+                      <button class="lnk scan-dir" disabled={dirBusy || scanning}
+                        onclick={() => scan(false, d)}
+                        title={$t('v2.scan.folderHint' as any)}>{$t('v2.scan.folderAction' as any)}</button>
+                      <button class="del" disabled={dirBusy} onclick={() => removeDir(d)} aria-label={$t('settings.removeFolderAria' as any)}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                       </button>
                     </div>
@@ -5122,7 +5205,14 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   .txt.wide{width:320px}
   .txt.time{width:130px; font-family:var(--v2-mono)}
   .dirs{display:flex; flex-direction:column; gap:1px; margin-top:12px}
-  .dir{display:grid; grid-template-columns:20px 1fr auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
+  .dir{display:grid; grid-template-columns:20px 1fr auto auto; align-items:center; gap:12px; padding:8px 10px; border-radius:8px}
+  /* #1517 — le geste par dossier reste discret jusqu au survol de la ligne. */
+  .scan-dir{white-space:nowrap; opacity:.6}
+  .dir:hover .scan-dir{opacity:1}
+  /* #1518 — la jauge d analyse. */
+  .scan-avance{margin-top:12px; display:flex; flex-direction:column; gap:6px}
+  .scan-avance .jauge{height:6px; border-radius:var(--v2-r-pill); background:var(--v2-line2); overflow:hidden}
+  .scan-avance .rempli{height:100%; background:var(--v2-acc1); transition:width .3s ease}
   .dir:hover{background:var(--v2-hover)}
   .dir svg{width:16px; height:16px; color:var(--v2-txt3)}
   .dp{font:12.5px var(--v2-mono); color:var(--v2-txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}

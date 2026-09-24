@@ -74,7 +74,15 @@ describe('🔴 Le câblage — la règle ne sert à rien si personne ne l’appe
   it('la boucle d’animation se coupe au démontage', () => {
     // Un rAF laissé courir sur un écran fermé tourne pour rien, à soixante
     // battements par seconde.
-    const bloc = NP.slice(NP.indexOf('let positionRadio'), NP.indexOf('let positionRadio') + 900);
-    expect(bloc).toContain('cancelAnimationFrame(raf)');
+    //
+    // Ticket 150 : l'annulation ne s'écrit plus à la main ici. La boucle vient
+    // de `lib/boucleImages`, qui rend son annulateur — l'effet le RETOURNE, et
+    // Svelte l'appelle au démontage. Ce que garantit cet annulateur (image en
+    // vol coupée, écouteur de visibilité retiré, identifiant zéro compris) est
+    // vérifié en exécution par `boucleImages150.test.ts`.
+    const debut = NP.indexOf('let positionRadio');
+    expect(debut, 'la boucle karaoké radio a disparu de NowPlaying').toBeGreaterThan(-1);
+    const bloc = NP.slice(debut, debut + 1400);
+    expect(bloc).toContain('return boucleImages(');
   });
 });
