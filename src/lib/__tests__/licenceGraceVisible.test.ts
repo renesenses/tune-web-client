@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { get } from 'svelte/store';
 import { licenseState, offlineGrace } from '../stores/license';
-import * as locales from '../locales';
+import * as locales from './lesOnzeLangues';
 
 /**
  * #1999 — la grâce hors ligne doit se VOIR.

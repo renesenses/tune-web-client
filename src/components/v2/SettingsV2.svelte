@@ -56,6 +56,8 @@
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
+  import { tachesDeFond } from '../../lib/stores/tachesDeFond';
+  import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import {
@@ -94,6 +96,9 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import CreteMetre from '../partages/CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { ORDRE_VERSIONS_DEFAUT, estOrdreVersions } from '../../lib/versionsPiste';
+  import {
+    CLE_I18N_CRAN, CRANS_CADENCE, cranOuDefaut, estCranCadence,
+  } from '../../lib/cadenceAnimations';
   import SauvegardeReglagesV2 from './SauvegardeReglagesV2.svelte';
   /**
    * Badge « Tune tested » (chantier du 08/09/2026, objectif 3).
@@ -2644,6 +2649,101 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch { enrichErr = get(t)('settings.errStartFailed'); }
     finally { albumCoversBusy = false; }
   }
+  /**
+   * Type de sortie des albums — album / EP / single depuis MusicBrainz (#4767).
+   * Sans lui, la page d'un artiste ne peut pas séparer ses albums de ses EP et
+   * singles (FabienM, fil forum 1906).
+   *
+   * Occupé tant que le POST est en vol, PUIS tant que le serveur garde la
+   * tâche `types_de_sortie` inscrite à son registre : la passe dure (une
+   * requête par seconde) et un second clic en lancerait une seconde. Le
+   * serveur ne publie pas d'avancement chiffré — la barre latérale montre la
+   * tâche, on ne promet pas de barre ici.
+   */
+  let releaseTypesEnVol = $state(false);
+  const releaseTypesOccupe = $derived(
+    releaseTypesEnVol || $tachesDeFond.some((tache) => tache.id === TACHE_TYPES_DE_SORTIE),
+  );
+  async function remplirTypesDeSortie() {
+    if (releaseTypesOccupe) return;
+    enrichErr = null;
+    releaseTypesEnVol = true;
+    const tr = get(t);
+    try {
+      const r = await api.enrichReleaseTypes();
+      const n = r?.candidats;
+      if (n === 0) notifications.info(tr('settings.releaseTypesNoCandidate' as any));
+      else notifications.info(tr('settings.releaseTypesStarted' as any).replace('{n}', get(formatNombre)(n ?? 0)));
+    } catch (e) {
+      // 429 = quota gratuit du jour épuisé (`gate_enrichment`) : le corps ne
+      // porte qu'un code anglais, on dit la cause dans la langue de l'écran.
+      const statut = (e as api.ApiError | null)?.status;
+      enrichErr = statut === 429
+        ? tr('settings.releaseTypesQuota' as any)
+        : errText(e) ?? tr('settings.errStartFailed');
+    } finally {
+      releaseTypesEnVol = false;
+    }
+  }
+  /**
+   * Crédits MusicBrainz par disque (#4767, tune-server-rust#4862). Sans eux,
+   * « Collaborations » et « Reprises » de la page artiste n'ont rien à lire :
+   * `track_credits` est vide en pratique.
+   *
+   * Même idiome que les types de sortie, avec un avancement CHIFFRÉ en plus :
+   * `GET /system/enrich-credits` rend `processed` / `total`. Occupé tant que
+   * le POST est en vol, que la tâche `credits_releases` est au registre ou que
+   * ce GET dit `running`. Un serveur qui ne connaît pas la route (v0.9.163)
+   * répond 404 au GET : on se tait, le bouton reste offert et son POST dira
+   * l'échec.
+   */
+  let creditsEnVol = $state(false);
+  let creditsEtat = $state<api.EtatEnrichCredits | null>(null);
+  const creditsTache = $derived($tachesDeFond.find((tache) => tache.id === TACHE_CREDITS) ?? null);
+  const creditsOccupe = $derived(
+    creditsEnVol || creditsTache != null || creditsEtat?.status === 'running',
+  );
+  /** L'avancement à montrer : celui du GET, sinon celui que publie le registre. */
+  const creditsAvancement = $derived.by((): { n: number; total: number } | null => {
+    if (!creditsOccupe) return null;
+    const total = creditsEtat?.status === 'running' ? creditsEtat.total ?? 0 : creditsTache?.progress?.total ?? 0;
+    const n = creditsEtat?.status === 'running' ? creditsEtat.processed ?? 0 : creditsTache?.progress?.processed ?? 0;
+    return total > 0 ? { n: Math.min(n, total), total } : null;
+  });
+  async function relireCredits() {
+    try { creditsEtat = await api.getEnrichCreditsStatus(); }
+    catch { /* route absente (serveur antérieur) : rien à montrer */ }
+  }
+  $effect(() => { void relireCredits(); });
+  $effect(() => {
+    if (!creditsOccupe) return;
+    const h = setInterval(relireCredits, 3000);
+    return () => clearInterval(h);
+  });
+  async function remplirCredits() {
+    if (creditsOccupe) return;
+    enrichErr = null;
+    creditsEnVol = true;
+    const tr = get(t);
+    try {
+      const r = await api.enrichCredits();
+      const n = r?.candidats;
+      if (n === 0) notifications.info(tr('settings.creditsNoCandidate' as any));
+      else notifications.info(tr('settings.creditsStarted' as any).replace('{n}', get(formatNombre)(n ?? 0)));
+    } catch (e) {
+      // 409 = une passe tourne déjà ; 429 = quota gratuit du jour épuisé
+      // (`gate_enrichment`). Les corps ne portent qu'un code anglais.
+      const statut = (e as api.ApiError | null)?.status;
+      enrichErr = statut === 429
+        ? tr('settings.releaseTypesQuota' as any)
+        : statut === 409
+          ? tr('settings.creditsAlreadyRunning' as any)
+          : errText(e) ?? tr('settings.errStartFailed');
+    } finally {
+      creditsEnVol = false;
+    }
+    await relireCredits();
+  }
 
   // ── Rangement des fichiers importes ───────────────────────────────────
   let ingest = $state<any | null>(null);
@@ -2884,7 +2984,11 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                    doivent être avant Bandcamp ». L'entrelacement qu'il voit
                    est le barème de PERTINENCE du serveur (#2372), un
                    arbitrage, pas un défaut : Bertrand (20/09/2026) tranche en
-                   OFFRANT le choix, sans déplacer le défaut. -->
+                   OFFRANT le choix, sans déplacer le défaut.
+                   Le 23/09/2026 il déplace le DÉFAUT sur « par source » ; le
+                   sélecteur, lui, ne change pas, et un choix déjà enregistré
+                   reste intact (fusion `{ ...defaults, ...raw }` de
+                   `loadPrefs`, gardée par ordreAutresVersions4368.test.ts). -->
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.versionsOrder' as any)}</span>
@@ -2895,6 +2999,29 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                     if (estOrdreVersions(v)) preferences.update((pr) => ({ ...pr, ordreAutresVersions: v })); }}>
                   <option value="pertinence">{$t('settings.versionsOrderRelevance' as any)}</option>
                   <option value="source">{$t('settings.versionsOrderSource' as any)}</option>
+                </select>
+              </div>
+
+              <!-- #1256 — Levente Toth (fil 1848, 19/09/2026) : « high CPU/GPU
+                   usage when I open the now playing ». Deux relevés (PR #1480
+                   et #1499) ont cherché une économie invisible et trouvé le
+                   contraire : la minuterie par boucle coûte PLUS cher,
+                   l'horloge partagée ne rapporte RIEN. Le seul levier qui
+                   rapporte est la cadence elle-même — et il SE VOIT. Bertrand
+                   tranche le 23/09/2026 : trois crans, défaut inchangé.
+                   Le libellé de chaque cran porte son gain : un cran qui ne dit
+                   pas ce qu'il rapporte ne se choisit pas. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.animationRate' as any)}</span>
+                  <span class="hint">{$t('settings.animationRateHint' as any)}</span>
+                </div>
+                <select class="sel" value={cranOuDefaut($preferences.cadenceAnimations)}
+                  onchange={(e) => { const v = (e.currentTarget as HTMLSelectElement).value;
+                    if (estCranCadence(v)) preferences.update((pr) => ({ ...pr, cadenceAnimations: v })); }}>
+                  {#each CRANS_CADENCE as cran (cran)}
+                    <option value={cran}>{$t(CLE_I18N_CRAN[cran] as any)}</option>
+                  {/each}
                 </select>
               </div>
 
@@ -3077,6 +3204,30 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span></div>
                 <button class="lnk" disabled={albumCoversBusy} onclick={rescanAlbumCovers}>{$t('v2.set.start' as any)}</button>
               </div>
+              <!-- Passes MusicBrainz ciblées (#4767) : types de sortie, puis
+                   crédits par disque (`POST /system/enrich-credits`, #4862). -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.releaseTypes' as any)}</span>
+                  <span class="hint">{$t('settings.releaseTypesHint' as any)}</span>
+                </div>
+                <button class="lnk" disabled={releaseTypesOccupe} onclick={remplirTypesDeSortie}>
+                  {$t((releaseTypesOccupe ? 'v2.set.running' : 'v2.set.start') as any)}
+                </button>
+              </div>
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.credits' as any)}</span>
+                  <span class="hint">{$t('settings.creditsHint' as any)}</span>
+                </div>
+                <button class="lnk" disabled={creditsOccupe} onclick={remplirCredits}>
+                  {$t((creditsOccupe ? 'v2.set.running' : 'v2.set.start') as any)}
+                </button>
+              </div>
+              {#if creditsAvancement}
+                <div class="bar2"><span style="width:{Math.min(100, Math.round((creditsAvancement.n / creditsAvancement.total) * 100))}%"></span></div>
+                <div class="hint" data-avancement="credits">{$t('v2.set.progressOf' as any).replace('{n}', $formatNombre(creditsAvancement.n)).replace('{total}', $formatNombre(creditsAvancement.total))}</div>
+              {/if}
               <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
 
@@ -3403,6 +3554,12 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
 
             {:else if s.id === 'config'}
               <p class="hint">{#each emphaseParts($t('settings.configBackupHint' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
+              <!-- #902 — Cette sauvegarde-ci ne porte ni les zones, ni les
+                   jetons de services. Celle qui les porte existe
+                   (les routes `system/config-backup`, instantané complet) et
+                   elle est adossée à la licence : le dire ICI, où l'utilisateur vient
+                   chercher ses zones, plutôt que de le laisser deviner. -->
+              <p class="hint">{#each emphaseParts($t('settings.configBackupPremium' as any)) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               <div class="inline" style="margin-top:12px">
                 <button class="lnk" disabled={cfgBusy} onclick={doExportConfig}>
                   {cfgBusy ? $t('common.loading' as any) : $t('settings.exportConfig' as any)}
@@ -3597,6 +3754,20 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {@const j = jumelleDeProtocole(z, $zones)!}
                         <p class="hint jumelle">{$t('v2.set.sameDeviceOtherProtocol' as any).replace('{name}', j.nom).replace('{protocol}', j.proto)}</p>
                       {/if}
+                      <!--
+                        NIVEAU ESSENTIEL — Bertrand, 23/09/2026 : le choix de la
+                        disposition multicanal doit être VISIBLE en mode
+                        Essentiel. La section « Réglages par zone » descend donc
+                        à `beginner` (voir `lib/v2Settings`), mais PAS tout ce
+                        qu'elle contient : DSD, débit maximal, gain, FIR,
+                        éditeur d'appareil sont rangés `expert` ou
+                        `intermediate` par l'écran actuel (`lib/settingLevels`)
+                        et le restent ici. Deux gardes de niveau encadrent le
+                        bloc CANAUX, qui reste à sa place — avec ce qui traite
+                        le son — plutôt que d'être copié dans une section à
+                        part : un réglage à deux endroits finit par diverger.
+                      -->
+                      {#if atLeast(level, 'intermediate')}
                       <div class="zr">
                         <label class="zf">
                           <span>DSD</span>
@@ -3724,6 +3895,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                           <p class="monote">{$t('bitperfect.strictHelp' as any)}</p>
                         </div>
                       {/if}
+                      {/if}
 
                       <!--
                         CANAUX — chantier « multicanal », Bertrand 19/09/2026 :
@@ -3765,8 +3937,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if z.channel_layout_status?.unavailable}
                           <p class="monote">{$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)}</p>
                         {/if}
+                        <!-- Ce que la zone SORT vraiment (`effective`), quand
+                             ça ne coïncide pas avec ce qui est choisi : un
+                             5.1 demandé que l'appareil ramène en stéréo, ou
+                             « Suivre l'appareil » qui a tranché pour lui.
+                             Jamais affiché quand c'est identique — la ligne
+                             ne répéterait que le sélecteur. Le libellé passe
+                             par les clés `zoneConfig.channels_<id>` du
+                             sélecteur ; un id inconnu — serveur plus récent —
+                             retombe sur l'id brut plutôt que sur la clé. -->
+                        {#if z.channel_layout_status?.effective && z.channel_layout_status.effective !== (z.channel_layout || null)}
+                          {@const eff = z.channel_layout_status.effective}
+                          {@const cle = 'zoneConfig.channels_' + eff}
+                          <p class="monote canaux-effectif">{$t('zoneConfig.channelsEffective' as any).replace('{layout}', $t(cle as any) === cle ? eff : $t(cle as any))}</p>
+                        {/if}
                       {/if}
 
+                      {#if atLeast(level, 'intermediate')}
                       <div class="trim">
                         <span class="tl">{$t('devices.gainTrim' as any)}</span>
                         <input type="range" min="-12" max="12" step="0.5" value={trimDe(z)}
@@ -3863,6 +4050,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                             <button class="lnk" onclick={() => { fvAsk = null; fvTyped = ''; }}>{$t('common.cancel' as any)}</button>
                           </div>
                         </div>
+                      {/if}
                       {/if}
                     </div>
                   {/each}

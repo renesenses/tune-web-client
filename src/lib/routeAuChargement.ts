@@ -88,6 +88,7 @@ const VUES: Record<View, boolean> = {
   bandcamp: true,
   concerts: true,
   pontroon: true,
+  bannedtracks: true,
 
   // ─── Les six que l'adresse NE repose PAS, et pourquoi ────────────────────
   //

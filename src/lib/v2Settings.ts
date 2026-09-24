@@ -143,11 +143,27 @@ export const V2_SETTINGS: V2SettingsTab[] = [
     ],
   },
   {
-    id: 'devices', labelKey: 'settings.tabDevices', min: 'intermediate',
+    /**
+     * MULTICANAL EN ESSENTIEL — Bertrand, 23/09/2026 : le choix de la
+     * disposition de canaux doit être VISIBLE en mode Essentiel. Il vit dans
+     * « Réglages par zone », qui vivait derrière un onglet `intermediate` :
+     * en Essentiel, l'onglet Appareils entier n'existait pas.
+     *
+     * L'onglet et la section descendent à `beginner`, comme « Repartir à
+     * zéro » (#3585) — mais pas leur contenu en bloc : l'écran actuel range
+     * DSD et débit maximal en `expert`, décalage des paroles et volume fixe
+     * en `intermediate` (`lib/settingLevels`), et rien ne justifie de les
+     * offrir à un débutant. `SettingsV2` garde donc ces contrôles derrière
+     * `atLeast(level, 'intermediate')` À L'INTÉRIEUR de la carte ; en
+     * Essentiel, la carte d'une zone montre son nom, sa sortie et ses canaux.
+     * Les deux autres sections de l'onglet restent `intermediate`, et le
+     * compteur « masqué à ce niveau » le dit.
+     */
+    id: 'devices', labelKey: 'settings.tabDevices', min: 'beginner',
     icon: 'M4 2h16v20H4zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6',
     sections: [
       { id: 'devices',    titleKey: 'settings.tabDevices',       from: 'devices',  min: 'intermediate' },
-      { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'intermediate', keywords: ['par zone', 'gapless', 'volume fixe'] },
+      { id: 'perZone',    titleKey: 'settings.perZoneSettings',  from: 'services', min: 'beginner', keywords: ['par zone', 'gapless', 'volume fixe', 'canaux', 'multicanal', '5.1', 'stéréo'] },
       /**
        * Sauvegarde et récupération des réglages d'appareil — Bertrand,
        * 08/09/2026 : « Et je veux un bouton sur l'UI de Tune sauvegarder mes

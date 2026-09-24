@@ -48,6 +48,16 @@ export interface AudioLevels {
    * troncature du serveur pour le deviner.
    */
   spectrum_resolved: boolean[];
+  /**
+   * 🔴 Fil 1908 — la fréquence d'échantillonnage RÉELLEMENT analysée par le
+   * serveur (« celle du décodage, pas celle du tag », `orchestrator.rs`),
+   * émise depuis #2081 et jetée ici jusqu'au 24/09/2026.
+   *
+   * L'axe de l'analyseur la tirait des métadonnées de la piste, absentes sur
+   * certaines pistes Qobuz : plus aucun repère sous les barres. `null` =
+   * serveur qui ne l'annonce pas.
+   */
+  sample_rate: number | null;
 }
 
 const defaultLevels: AudioLevels = {
@@ -65,6 +75,7 @@ const defaultLevels: AudioLevels = {
   spectrum_fft_size: null,
   spectrum_resolution_hz: null,
   spectrum_resolved: [],
+  sample_rate: null,
 };
 
 /// Niveaux les plus récents de CHAQUE zone.
@@ -113,6 +124,8 @@ export function handleAudioLevelsEvent(data: any) {
     spectrum_resolution_hz:
       typeof data.spectrum_resolution_hz === 'number' ? data.spectrum_resolution_hz : null,
     spectrum_resolved: Array.isArray(data.spectrum_resolved) ? data.spectrum_resolved : [],
+    sample_rate:
+      typeof data.sample_rate === 'number' && data.sample_rate > 0 ? data.sample_rate : null,
   };
   levelsByZone.update((m) => ({ ...m, [zoneId]: levels }));
 }

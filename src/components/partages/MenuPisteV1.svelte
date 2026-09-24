@@ -41,9 +41,18 @@
   import { notifications } from '../../lib/stores/notifications';
   import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
-  import { destinationAlbum } from '../../lib/routageAlbum';
+  import { albumDeServiceDe } from '../../lib/routageAlbum';
+  import { pisteDeServiceDe } from '../../lib/champsPisteService';
+  import { lirePlusCommeCaDeService, plusCommeCaDeServiceDe } from '../../lib/plusCommeCaService';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
+  import {
+    bannir, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
+  } from '../../lib/titreBanni';
+  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { serviceDePlaylist } from '../../lib/playlistService';
+  import { cibleParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
   import TrackContextMenu from './TrackContextMenu.svelte';
   import type { Track } from '../../lib/types';
   interface Props {
@@ -72,14 +81,37 @@
   let panneauVersions = $state(false);
   let panneauEtiquettes = $state(false);
   let modalePlaylist = $state(false);
+  /** Le tiroir « Tous les champs piste » — #851, et fil forum 1906 pour une
+   *  piste de service. Chargé à la demande, comme dans `PisteActions`. */
+  let tiroirChamps = $state(false);
   const local = $derived(estPisteLocale(piste));
   /**
-   * Les trois routes de bibliothèque — voisins acoustiques, autres versions,
-   * étiquettes — prennent un `i64`. Une piste de service n'en a pas : les
-   * entrées correspondantes sont ABSENTES, pas grisées.
+   * Les routes de bibliothèque — voisins acoustiques, autres versions, champs
+   * du fichier — prennent un `i64`. Une piste de service n'en a pas : les
+   * entrées correspondantes sont ABSENTES, pas grisées. (Les étiquettes, si :
+   * `cibleEtiquettes` ci-dessous, #1238.)
    */
   const idBibliotheque = $derived(local && piste.id != null ? piste.id : null);
   const jouable = $derived(corpsDeLecture(piste) != null);
+  /** Bannie ? (#4806) — même lecture que `PisteActions`, même module. */
+  const bannie = $derived(estBannie(piste, $surchargesBannissement));
+  /**
+   * #1238 — ce que « Étiquettes » désigne : la piste de la bibliothèque par
+   * son entier, une piste de service par sa paire `source` + `source_id`
+   * (`POST /tags/{id}/streaming-items`). `null` = aucune entrée.
+   *
+   * 🔴 Réunion du 23/09/2026 : « s'assurer que toutes les pistes ont le menu
+   * complet ». Ce menu passait `idBibliotheque` seul, et une piste Qobuz
+   * perdait ici l'entrée que `v2/PisteActions.svelte` lui offre depuis #1238 —
+   * dans le tiroir de file du NowPlaying, le même titre n'avait pas les mêmes
+   * gestes que dans la file V2. Même décision, même module (`cibleDeService`),
+   * pas de copie : c'est le reproche d'origine de #1848.
+   */
+  const cibleEtiquettes: CibleEtiquette | null = $derived(
+    local && piste.id != null
+      ? { itemType: 'track', itemId: piste.id }
+      : cibleDeService('track', piste),
+  );
   /**
    * L'album et l'artiste de la piste CHEZ SON SERVICE — #869, famille C.
    *
@@ -97,17 +129,13 @@
    * `null` dès que la coquille ne sait pas les ouvrir : l'entrée est alors
    * ABSENTE plutôt qu'ouvrant sur rien.
    */
-  const albumDeService = $derived.by(() => {
-    if (local || !$gestesNavigationService) return null;
-    const d = destinationAlbum({
-      source: piste.source ?? null,
-      album_id: (piste as any).album_id,
-      album_title: piste.album_title ?? null,
-    });
-    return d?.type === 'album-service'
-      ? { service: d.service, albumId: d.albumId, titre: d.titre }
-      : null;
-  });
+  //
+  // 🔴 Fil forum 1906 (FabienM) — la copie « mot pour mot » avait divergé
+  // quand même : elle ne portait ni la pochette (#1342) ni l'artiste (#1361
+  // bis). La règle ne vit plus que dans `routageAlbum` (`albumDeServiceDe`).
+  const albumDeService = $derived(
+    local || !$gestesNavigationService ? null : albumDeServiceDe(piste as any),
+  );
   // 🔴 #956 — `destinationArtiste` tranche : une piste de service porte un
   // `artist_id` de SERVICE, qui n'est pas une clé de bibliothèque.
   const destination = $derived(destinationArtiste({
@@ -149,19 +177,44 @@
         ? () => { $gestesNavigationService?.ouvrirAlbum(albumDeService!); }
         : undefined),
   );
+  /** La cible titre + artiste d'une piste sans identifiant de bibliothèque. */
+  const cibleVersions: CibleParTitre | null = $derived(cibleParTitre(piste));
+  /**
+   * Fil forum 1906 (FabienM, point 3) — « Tous les champs piste » d'une piste
+   * de SERVICE, par la même règle que la barre v2 (`lib/champsPisteService`).
+   */
+  const pisteService = $derived(local ? null : pisteDeServiceDe(piste));
+  /** Fil forum 1906 — « Plus comme ça » d'un titre Qobuz (`lib/plusCommeCaService`). */
+  const pisteSimilaires = $derived(local ? null : plusCommeCaDeServiceDe(piste));
   const capacites = $derived({
     jouable,
     idBibliotheque,
+    champsDeService: pisteService != null,
+    similairesDeService: pisteSimilaires != null,
     // Une capacité qui ne tient que si quelqu'un sait la faire : voir plus haut.
     artistId: allerArtiste ? 1 : null,
     albumId: allerAlbum ? 1 : null,
     albumDeService,
     artisteDeService,
+    bannie,
+    // 🔴 Les DEUX capacités que `v2/PisteActions.svelte:371-372` passe et que
+    // ce menu oubliait — la parité des deux menus se joue ici, et le témoin
+    // `uniformitePiste1848` les compare montés.
+    etiquetable: cibleEtiquettes != null,
+    // #1268 — une piste Qobuz/Tidal/Deezer/Spotify rejoint une playlist DE SON
+    // SERVICE ; `AddToPlaylistModal` bifurque sur la piste, pas sur l'écran.
+    playlistDeService: serviceDePlaylist(piste),
+    // 23/09/2026 — « Autres versions » sur une piste de SERVICE, par titre +
+    // artiste. Même décision que `v2/PisteActions.svelte` (`cibleParTitre`) :
+    // la parité des deux menus se joue ici (`uniformitePiste1848`).
+    versionsParTitre: cibleVersions != null,
   });
-  function lire() {
+  async function lire() {
     const zid = get(currentZoneId);
     const corps = corpsDeLecture(piste);
     if (zid == null || !corps) return;
+    // #4806 — un titre banni se joue d'un clic DÉLIBÉRÉ, après confirmation.
+    if (!(await confirmerLectureBannie(piste))) return;
     playAndSync(zid, corps as any).catch(() => notifications.error($tr('v2.pa.playError' as any)));
   }
   /**
@@ -185,10 +238,26 @@
    * « Plus comme ça » — le rapprochement est le SERVEUR qui le fait
    * (`/library/tracks/{id}/similar`). Sans empreinte audio calculée la réponse
    * est VIDE : on le dit, plutôt que de ne rien faire en silence.
+   *
+   * Titre Qobuz — fil forum 1906 (FabienM, point 3) : les voisins selon Qobuz,
+   * par le même module que la barre v2 (`lib/plusCommeCaService`), mêmes
+   * notifications, même remplacement de file.
    */
   async function plusCommeCa() {
     const zid = get(currentZoneId);
-    if (zid == null || idBibliotheque == null) return;
+    if (zid == null) return;
+    if (pisteSimilaires) {
+      try {
+        const n = await lirePlusCommeCaDeService(pisteSimilaires, gestesDeZone(zid));
+        // « acoustiquement similaire » et la Smart Radio ne concernent que la
+        // bibliothèque : un titre de service a son propre message.
+        if (n === 0) notifications.info($tr('library.noSimilarService' as any));
+      } catch {
+        notifications.error($tr('library.similarError' as any));
+      }
+      return;
+    }
+    if (idBibliotheque == null) return;
     try {
       const res = await api.getSimilarTracks(idBibliotheque, 50);
       const ids = (res.items ?? [])
@@ -218,7 +287,9 @@
       {ancre}
       {capacites}
       onClose={() => (ouvert = false)}
-      onPlay={lire}
+      onPlay={() => void lire()}
+      onBan={() => void bannir(piste)}
+      onUnban={() => void debannir(piste)}
       onPlayNext={() => void enfiler(get(queuePosition) + 1, 'v2.pa.queuedNext')}
       onAddToQueue={() => void enfiler(undefined, 'v2.pa.queued')}
       onPlaySimilar={() => void plusCommeCa()}
@@ -227,19 +298,36 @@
       onGoToArtist={allerArtiste}
       onGoToAlbum={allerAlbum}
       onTag={() => (panneauEtiquettes = true)}
+      onChampsDuFichier={() => (tiroirChamps = true)}
     />
   {/if}
 </div>
+<!-- Le MÊME panneau dans les deux modes, comme `PisteActions` : par `trackId`
+     pour la bibliothèque, par `parTitre` pour une piste de service (23/09/2026). -->
 {#if panneauVersions && idBibliotheque != null}
   {#await import('../v2/VersionsPistePanneau.svelte') then m}
     <m.default trackId={idBibliotheque} titre={piste.title}
       onClose={() => (panneauVersions = false)} />
   {/await}
+{:else if panneauVersions && cibleVersions}
+  {#await import('../v2/VersionsPistePanneau.svelte') then m}
+    <m.default parTitre={cibleVersions} titre={piste.title}
+      onClose={() => (panneauVersions = false)} />
+  {/await}
 {/if}
-{#if panneauEtiquettes && idBibliotheque != null}
+<!-- #1238 — la CIBLE, et non plus `itemType` + `itemId` : une piste de service
+     passe par `source` + `source_id`, c'est `lib/cibleEtiquette` qui choisit la
+     route. Même montage que `PisteActions`. -->
+{#if panneauEtiquettes && cibleEtiquettes}
   {#await import('../v2/EtiquettesPanneau.svelte') then m}
-    <m.default itemType="track" itemId={idBibliotheque} nom={piste.title}
+    <m.default cible={cibleEtiquettes} nom={piste.title}
       onClose={() => (panneauEtiquettes = false)} />
+  {/await}
+{/if}
+{#if tiroirChamps && (idBibliotheque != null || pisteService)}
+  {#await import('./TrackTagsDrawer.svelte') then m}
+    <m.default trackId={idBibliotheque} pisteService={idBibliotheque != null ? null : (piste as any)}
+      onClose={() => (tiroirChamps = false)} />
   {/await}
 {/if}
 {#if modalePlaylist}

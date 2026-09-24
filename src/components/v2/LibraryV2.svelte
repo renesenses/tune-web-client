@@ -43,6 +43,16 @@
    * un serveur UPnP tiers.
    */
   import { albums, libraryLoading, libraryFolderScope } from '../../lib/stores/library';
+  // 🔴 renesenses/tune-server-rust#4800 — la grille se sert PAR PAGES. La
+  // coquille ne charge plus la bibliothèque entière au démarrage ; cet écran
+  // demande ses pages au défilement et au saut A–Z, et ne demande la liste
+  // ENTIÈRE (`demanderBibliothequeEntiere`) que quand un geste l'exige :
+  // recherche, facette, frise, onglet de regroupement, portée. Voir
+  // `lib/stores/albumsPagines` pour ce que le serveur sait et ne sait pas.
+  import {
+    albumsPagines, albumsCharges, casesDeLaListe, demanderPage, demanderBibliothequeEntiere,
+    mettreAJourAlbum, offsetDeLettre, TAILLE_PAGE, type ClefDeListe,
+  } from '../../lib/stores/albumsPagines';
   // 🔴 `pendingLibraryFolder` n'existe PLUS : `main` l'a remplacé par le
   // magasin `libraryFolderScope` (voir `lib/porteeBibliotheque`) parce qu'un
   // dépôt consommé UNE fois dans l'initialiseur d'un `$state` n'était jamais
@@ -77,7 +87,7 @@
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
   import { gestesDeZone } from '../../lib/gestesDeZone';
-  import { ciblesPourAlbum, libelleCible, type CollectionCible, type EntreeCible } from '../../lib/collectionsCibles';
+  import { chargerCollectionsCibles, entreesAjoutCollection, type CollectionCible } from '../../lib/albumVersCollection';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
   // #929 — le carrousel emprunte le geste des rangées éditoriales, il ne le
   // réécrit pas. C'est l'action de #1137, corrigée par #1327 : molette,
@@ -189,15 +199,24 @@
   }
 
   /** LA source d'albums de l'ecran. Tout le reste lit `src`, jamais `$albums`
-   *  ni `albumsD` : c'est ce qui rend la vue identique des deux cotes. */
-  const src = $derived<Album[]>(
+   *  ni `albumsD` : c'est ce qui rend la vue identique des deux cotes.
+   *
+   *  🔴 #4800 — en mode PAGINÉ (`nu`, défini plus bas avec ses raisons), `src`
+   *  n'est que ce qui est ARRIVÉ : les pages demandées, dans l'ordre du
+   *  serveur. C'est assez pour ce qui se lit sur un échantillon (« y a-t-il
+   *  une date d'ajout, un DR ? ») ; tout ce qui exige la liste entière fait
+   *  sortir du mode paginé, et `src` redevient la bibliothèque complète. */
+  const src: Album[] = $derived.by(() =>
     depot ? albumsD
+      : nu ? albumsCharges($albumsPagines)
       : !porteeActive ? $albums
       : idsPortee == null ? []
       : $albums.filter((a) => a.id != null && idsPortee!.has(a.id)),
   );
-  const enCharge = $derived(
-    depot ? chargementD : (porteeActive && idsPortee == null) || $libraryLoading,
+  const enCharge: boolean = $derived.by(() =>
+    depot ? chargementD
+      : nu ? ($albumsPagines.total == null && $albumsPagines.erreur == null)
+      : (porteeActive && idsPortee == null) || $libraryLoading || (sortirDesPages && !bibliothequeEntiere),
   );
 
   const level = $derived($preferences.settingsLevel);
@@ -377,7 +396,15 @@
   //    n'existe ni au clavier ni au toucher : sur tablette, aucun de ces
   //    filtres n'était atteignable, quelle que soit la géométrie.
   let ddOpen = $state<string | null>(null);
-  function ddToggle(id: string) { ddOpen = ddOpen === id ? null : id; }
+  /**
+   * #4800 — les COMPTES des menus de facettes se calculent sur la bibliothèque
+   * entière, que le mode paginé n'a pas. Approcher un menu (survol ou clic)
+   * la demande ; d'ici là, les menus affichent « … ». Collant : une fois
+   * voulue, la liste reste jusqu'à la prochaine invalidation.
+   */
+  let facettesVoulues = $state(false);
+  function voirLesFacettes() { facettesVoulues = true; }
+  function ddToggle(id: string) { voirLesFacettes(); ddOpen = ddOpen === id ? null : id; }
   function ddClose() { ddOpen = null; }
   // Un menu ouvert au clic doit se refermer au clic AILLEURS, sinon il reste
   // planté par-dessus la grille. `.drop` couvre le chip ET son menu.
@@ -482,7 +509,8 @@
    *  seule source pour la grille, la liste, le rail A–Z et le compteur — sinon
    *  ils divergent et le rail propose des lettres qui ne mènent nulle part. */
   const affiches = $derived(sorted.filter(matches));
-  const matchCount = $derived(affiches.length);
+  // `matchCount` est défini plus bas, avec le mode paginé : en pages, le
+  // compte est le `total` du serveur, pas la longueur de ce qui est arrivé.
 
   // Rail A–Z : première lettre d'un album (non-alpha → « # »).
   // ── Frise chronologique (direction Levente, brouillon v3 du 26/08) ────
@@ -897,7 +925,9 @@
    */
   const intertitres = $derived(sortKey === 'year' ? intertitresAnnee(affiches, albumYear) : null);
 
-  const present = $derived(railUtile ? new Set(affiches.map(firstLetter)) : new Set<string>());
+  // `present` (les lettres que le rail allume) est défini plus bas, avec le
+  // mode paginé : en pages, on ne connaît pas les initiales de ce qui n'est
+  // pas arrivé.
   let gridEl: HTMLDivElement | undefined = $state();
   /**
    * 🔴 #1487 — LE SAUT SE VÉRIFIE, IL NE SE CALCULE PLUS UNE BONNE FOIS.
@@ -919,7 +949,20 @@
    * aussi lui qui abrite les ancres.
    */
   function jump(L: string) {
-    sauterVersAncre(gridEl, `[data-letter="${L}"]`);
+    if (!nu) { sauterVersAncre(gridEl, `[data-letter="${L}"]`); return; }
+    // #4800 — en pages, la lettre est un OFFSET dans la liste du serveur :
+    // trouvé par dichotomie (`offsetDeLettre`), sa page est demandée, puis
+    // on vise la CASE — `data-i` — qui existe, vide ou pleine, dès que le
+    // total est connu. `sauterVersAncre` vérifie le saut comme d'habitude.
+    const c = clef;
+    if (!c) return;
+    void offsetDeLettre(c, L, firstLetter).then(async (offset) => {
+      // Le tri a changé pendant la recherche : l'offset ne désigne plus rien.
+      if (offset == null || clef !== c) return;
+      await demanderPage(c, Math.floor(offset / TAILLE_PAGE));
+      await tick();
+      sauterVersAncre(gridEl, `[data-i="${offset}"]`);
+    });
   }
 
   /**
@@ -935,39 +978,23 @@
    * de leurs règles, pas d'une liste d'identifiants. Y « ajouter » un album
    * n'aurait aucun sens. `GET /library/collections` ne rend que les
    * manuelles — les intelligentes ont leur propre route.
+   *
+   * Le geste lui-même (route, notifications, relecture) vit dans
+   * `lib/albumVersCollection` depuis le 23/09/2026 : la fiche album l'appelle
+   * aussi, et une seule implémentation vaut mieux que deux copies.
    */
   let collectionsCibles = $state<CollectionCible[]>([]);
   $effect(() => {
     let vivant = true;
-    api.getCollections()
-      .then((cs) => { if (vivant) collectionsCibles = cs ?? []; })
-      .catch(() => { /* pas de collections, pas d'entrées : rien à dire */ });
+    chargerCollectionsCibles().then((cs) => { if (vivant) collectionsCibles = cs; });
     return () => { vivant = false; };
   });
 
-  async function ajouterACollection(a: Album, cible: EntreeCible) {
-    if (a.id == null) return;
-    try {
-      await api.addAlbumToCollection(cible.id, a.id);
-      notifications.success($tr('library.albumAddedToCollection' as any));
-      // Relire : c'est `album_ids` qui dit « il y est déjà » au prochain clic.
-      collectionsCibles = (await api.getCollections()) ?? collectionsCibles;
-    } catch {
-      notifications.error($tr('library.collectionAddError' as any));
-    }
-  }
-
   /** Une entrée par collection. Celles qui contiennent déjà l'album restent
    *  proposées, mais le disent : les retirer se lirait comme « cette
-   *  collection n'existe pas ». */
+   *  collection n'existe pas ». La liste est RELUE après l'ajout (`apres`). */
   function entreesCollection(a: Album) {
-    if (a.id == null) return [];
-    return ciblesPourAlbum(collectionsCibles, a.id).map((c) => ({
-      libelle: c.deja
-        ? libelleCible(c, (k) => $tr(k as any))
-        : $tr('v2.col.addTo' as any).replace('{name}', c.nom),
-      faire: () => void ajouterACollection(a, c),
-    }));
+    return entreesAjoutCollection(collectionsCibles, a.id, (k) => $tr(k as any), (relues) => (collectionsCibles = relues));
   }
 
   function tech(a: Album): string {
@@ -1135,6 +1162,144 @@
    *  plus bas) : un rail alphabétique sur un classement chronologique
    *  promettrait un saut qui atterrirait au hasard. */
   const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && tab !== 'recent');
+
+  // ── #4800 — LA BIBLIOTHÈQUE PAR PAGES ──────────────────────────────────────
+  //
+  // Mesuré sur le .18 (9 427 albums) : la coquille chargeait TOUT à chaque
+  // ouverture — quatre requêtes en série, 3,5 Mo — et le refaisait à chaque
+  // fin de scan. La grille se sert désormais par pages de `TAILLE_PAGE`,
+  // demandées quand leurs cases entrent dans le cadre ou au saut A–Z, avec le
+  // tri envoyé au SERVEUR. C'est le mode « nu » : la bibliothèque locale, sans
+  // dépôt distant, sans portée, sans filtre, sans recherche, sur l'onglet
+  // Albums, avec un tri que le serveur sait rendre dans le même ordre.
+  //
+  // Tout ce qui exige la liste ENTIÈRE en fait sortir, et la demande — une
+  // fois, à ce moment-là, jamais au démarrage :
+  //  - les facettes et leurs comptes (chaque facette se compte sans elle-même,
+  //    sur toute la bibliothèque : le serveur ne compte aucune facette et ne
+  //    filtre ni la fréquence, ni la profondeur, ni la source, ni l'année) ;
+  //  - la recherche locale `q` (titre + artiste, pliés) ;
+  //  - la frise des années (histogramme sur toute la collection) et le filtre
+  //    d'année, survolé ou figé ;
+  //  - les onglets Genres / Années / Labels (regroupements) et Artistes /
+  //    Titres (appartenances par source, album d'une piste) ;
+  //  - la portée de répertoire (identifiants à croiser) ;
+  //  - le tri par ANNÉE : il descend sous l'année (`comparerAlbumsParAnnee`,
+  //    mode origine/édition, intertitres) — le serveur ne trie que `a.year`.
+  //
+  // Routes serveur qui manquent pour aller plus loin (rapportées dans la PR) :
+  // bornes par lettre, comptes de facettes croisés, filtres fréquence /
+  // profondeur / source / année / texte sur `/library/albums`, `total` filtré.
+
+  /** Le tri de l'écran, tel que le serveur le nomme. `null` = il ne sait pas. */
+  const clef: ClefDeListe | null = $derived.by(() => {
+    switch (sortKey) {
+      case 'title': return { sort: 'title', order: 'asc' };
+      case 'artist': return { sort: 'artist', order: 'asc' };
+      case 'added': return { sort: 'added', order: 'desc' };
+      case 'dr': return { sort: 'dr', order: 'desc' };
+      // La graine de l'écran EST la graine du serveur (#3074) : « re-tirer »
+      // change la clef, et donc la liste.
+      case 'random': return { sort: 'random', order: 'asc', seed: graineTirage };
+      default: return null;
+    }
+  });
+
+  /** La liste ENTIÈRE est-elle là ? `albums` reste `[]` tant que personne ne l'a demandée. */
+  const bibliothequeEntiere = $derived($albums.length > 0);
+
+  const filtreActif = $derived(
+    fQuality.length > 0 || fRate.length > 0 || fFormat.length > 0 || fDepth.length > 0
+      || fDrMin != null || fDrMax != null || fCompilation != null || fProvenance != null,
+  );
+
+  /**
+   * Un geste qui exige toute la bibliothèque À L'ÉCRAN — voir la liste
+   * ci-dessus. « Ajouts récents » n'en fait pas partie : cet onglet a sa
+   * propre route.
+   */
+  const sortirDesPages = $derived(
+    !depot && (
+      porteeActive || (tab !== 'albums' && tab !== 'recent') || q !== '' || filtreActif
+      || fYear != null || hoverYear != null || (showTimeline && navMode === 'years')
+      || clef == null
+    ),
+  );
+  /**
+   * Ce qui DEMANDE la liste entière : les gestes ci-dessus, plus l'approche
+   * d'un menu de facettes — qui, elle, ne change rien à la grille : les pages
+   * restent à l'écran pendant que la liste arrive, et les comptes s'écrivent
+   * quand ils sont calculables.
+   */
+  const besoinDeTout = $derived(sortirDesPages || (!depot && facettesVoulues));
+
+  /** Le mode paginé. */
+  const nu = $derived(!depot && !bibliothequeEntiere && !sortirDesPages);
+
+  // La liste entière, quand un geste l'exige et qu'elle n'est pas là. Après
+  // une invalidation (`albums` vidé), l'effet se rejoue : un écran monté qui
+  // en a toujours besoin la redemande, un écran qui n'en a plus besoin ne
+  // coûte rien.
+  $effect(() => {
+    if (depot || !besoinDeTout || bibliothequeEntiere) return;
+    void demanderBibliothequeEntiere().catch(() => {
+      /* dit par `libraryLoading` retombé et une grille vide ; le bandeau
+         d'`api` a déjà parlé */
+    });
+  });
+
+  // La première page, dès qu'on est en pages — et à chaque changement de
+  // liste (tri, graine) ou de génération (fin de scan). Les pages suivantes
+  // viennent des cases qui entrent dans le cadre (`observerCase`).
+  $effect(() => {
+    if (!nu || !clef) return;
+    void $albumsPagines.generation;
+    void demanderPage(clef, 0);
+  });
+
+  /** Les cases de la grille en pages : une par album du total, vide ou pleine. */
+  const cases: (Album | null)[] = $derived.by(() => (nu ? casesDeLaListe($albumsPagines) : []));
+
+  /**
+   * Une case VIDE qui entre dans le cadre demande sa page. Un observateur par
+   * conteneur défilant (grille, liste ou carrousel — ils se remplacent) ;
+   * `rootMargin` à une moitié de cadre pour que la page soit là avant qu'on
+   * la voie. Sans `IntersectionObserver` (témoins), on demande tout de suite.
+   */
+  let observateur: IntersectionObserver | null = null;
+  let racineObservee: Element | null = null;
+  function demanderCase(i: number) {
+    const c = clef;
+    if (!nu || !c || !Number.isFinite(i)) return;
+    void demanderPage(c, Math.floor(i / TAILLE_PAGE));
+  }
+  function observerCase(el: HTMLElement, i: number) {
+    if (typeof IntersectionObserver === 'undefined') { demanderCase(i); return; }
+    const racine = el.parentElement;
+    if (!observateur || racineObservee !== racine) {
+      observateur?.disconnect();
+      racineObservee = racine;
+      observateur = new IntersectionObserver((entrees) => {
+        for (const e of entrees) {
+          if (e.isIntersecting) demanderCase(Number((e.target as HTMLElement).dataset.i));
+        }
+      }, { root: racine, rootMargin: '50%' });
+    }
+    observateur.observe(el);
+    return { destroy() { observateur?.unobserve(el); } };
+  }
+  $effect(() => () => { observateur?.disconnect(); observateur = null; racineObservee = null; });
+
+  /** Le compte affiché sur « Tout » : en pages, le total du serveur. */
+  const matchCount: number = $derived.by(() => (nu ? ($albumsPagines.total ?? 0) : affiches.length));
+  /** Les comptes des menus ne valent que sur la liste entière. */
+  const comptesPrets = $derived(!!depot || bibliothequeEntiere);
+  /**
+   * Les lettres que le rail allume. En pages, on ne connaît pas les initiales
+   * de ce qui n'est pas arrivé : toutes sont offertes, et un clic sur une
+   * lettre absente atterrit sur la suivante — c'est ce que la dichotomie rend.
+   */
+  const present = $derived(railUtile ? (nu ? new Set(ALPHA) : new Set(affiches.map(firstLetter))) : new Set<string>());
 
 
   /** Facette d'un album pour l'onglet courant. `null` = non renseigne, et on
@@ -1824,14 +1989,16 @@
         ouvrait et se cochait sans que rien ne bouge.
       -->
       {#if showSearch}
-        <div class="drop" class:open={ddOpen === 'provenance'}>
+        <!-- #4800 — `onpointerenter` : le menu s'ouvre AUSSI au survol
+             (`.drop:hover .menu`), et ses comptes veulent la liste entière. -->
+        <div class="drop" class:open={ddOpen === 'provenance'} onpointerenter={voirLesFacettes}>
           <button class="chip" class:active={fProvenance !== null} aria-haspopup="menu" aria-expanded={ddOpen === 'provenance'} onclick={() => ddToggle('provenance')}>{$tr('v2.lib.source' as any)}{#if fProvenance}&nbsp;· {libelleProvenance(fProvenance)}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             <!-- « Toutes les sources » EST l'absence de filtre, et elle est
                  écrite : la retirer obligerait à passer par « Tout », qui
                  efface aussi la qualité, le format et la recherche. -->
-            <button class:on={fProvenance === null} onclick={() => { fProvenance = null; ddClose(); }}>{$tr('v2.lib.sourceAll' as any)} <em>{comptesSourcesEnCharge ? "…" : matchCountToutesSources}</em></button>
+            <button class:on={fProvenance === null} onclick={() => { fProvenance = null; ddClose(); }}>{$tr('v2.lib.sourceAll' as any)} <em>{comptesSourcesEnCharge || !comptesPrets ? "…" : matchCountToutesSources}</em></button>
             {#if tab === 'albums' && !sourcesIntegrees.length && src.every(a => provenanceDe(a) === 'local')}
               <p>{$tr('upnp.sync.localOnly' as any)}</p>
             {/if}
@@ -1839,13 +2006,13 @@
                  n'est pas une navigation (Bertrand, 17/09/2026 : « Cette
                  mention ne sert à rien »). -->
             {#each provenances as [cle, n] (cle)}
-              <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{comptesSourcesEnCharge ? "…" : n}</em></button>
+              <button class:on={fProvenance === cle} onclick={() => { fProvenance = fProvenance === cle ? null : cle; ddClose(); }}>{libelleProvenance(cle)} <em>{comptesSourcesEnCharge || !comptesPrets ? "…" : n}</em></button>
             {/each}
           </div>
         </div>
       {/if}
     {#if showFilters}
-      <div class="drop" class:open={ddOpen === 'quality'}>
+      <div class="drop" class:open={ddOpen === 'quality'} onpointerenter={voirLesFacettes}>
         <button class="chip" class:active={fQuality.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'quality'} onclick={() => ddToggle('quality')}>{$tr('v2.tcol.quality' as any)}{#if fQuality.length}&nbsp;· {fQuality.map((k) => { const it = QUALITIES.find(x => x.key === k); return it ? (it.cle ? $tr(it.cle as any) : it.label) : k; }).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
@@ -1854,19 +2021,19 @@
                pose. Le compte dit pourquoi elle ne repond pas. -->
           {#each QUALITIES as it (it.key)}
             {@const n = nQualite.get(it.key) ?? 0}
-            <button class:on={fQuality.includes(it.key)} aria-pressed={fQuality.includes(it.key)} disabled={n === 0 && !fQuality.includes(it.key)}
-              onclick={() => (fQuality = basculeFacette(fQuality, it.key as string))}>{it.cle ? $tr(it.cle as any) : it.label} <em>{n}</em></button>
+            <button class:on={fQuality.includes(it.key)} aria-pressed={fQuality.includes(it.key)} disabled={comptesPrets && n === 0 && !fQuality.includes(it.key)}
+              onclick={() => (fQuality = basculeFacette(fQuality, it.key as string))}>{it.cle ? $tr(it.cle as any) : it.label} <em>{comptesPrets ? n : '…'}</em></button>
           {/each}
         </div>
       </div>
-      <div class="drop" class:open={ddOpen === 'rate'}>
+      <div class="drop" class:open={ddOpen === 'rate'} onpointerenter={voirLesFacettes}>
         <button class="chip" class:active={fRate.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'rate'} onclick={() => ddToggle('rate')}>{$tr('v2.tcol.sampleRate' as any)}{#if fRate.length}&nbsp;· {fRate.map((v) => RATES.find(r => r.v === v)?.l ?? v).join(', ')}{/if}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
         <div class="menu">
           {#each RATES as r (r.v)}
             {@const n = nFrequence.get(r.v) ?? 0}
-            <button class:on={fRate.includes(r.v)} aria-pressed={fRate.includes(r.v)} disabled={n === 0 && !fRate.includes(r.v)}
-              onclick={() => (fRate = basculeFacette(fRate, r.v))}>{r.l} <em>{n}</em></button>
+            <button class:on={fRate.includes(r.v)} aria-pressed={fRate.includes(r.v)} disabled={comptesPrets && n === 0 && !fRate.includes(r.v)}
+              onclick={() => (fRate = basculeFacette(fRate, r.v))}>{r.l} <em>{comptesPrets ? n : '…'}</em></button>
           {/each}
         </div>
       </div>
@@ -1892,13 +2059,13 @@
         </span>
       {/if}
       {#if formats.length > 1}
-        <div class="drop" class:open={ddOpen === 'format'}>
+        <div class="drop" class:open={ddOpen === 'format'} onpointerenter={voirLesFacettes}>
           <button class="chip" class:active={fFormat.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'format'} onclick={() => ddToggle('format')}>{$tr('v2.tcol.format' as any)}{#if fFormat.length}&nbsp;· {fFormat.join(', ')}{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each formats as [f, n] (f)}
               <button class:on={fFormat.includes(f)} aria-pressed={fFormat.includes(f)}
-                onclick={() => (fFormat = basculeFacette(fFormat, f))}>{f} <em>{n}</em></button>
+                onclick={() => (fFormat = basculeFacette(fFormat, f))}>{f} <em>{comptesPrets ? n : '…'}</em></button>
             {/each}
           </div>
         </div>
@@ -1913,17 +2080,18 @@
         <button class="chip" class:active={fCompilation != null}
           aria-pressed={fCompilation != null}
           title={$tr('v2.lib.compilationsHint' as any)}
+          onpointerenter={voirLesFacettes}
           onclick={() => (fCompilation = fCompilation == null ? true : null)}
-        >{$tr('v2.lib.compilations' as any)} <em>{$formatNombre(nCompilations)}</em></button>
+        >{$tr('v2.lib.compilations' as any)} <em>{comptesPrets ? $formatNombre(nCompilations) : '…'}</em></button>
       {/if}
       {#if showExpert && depths.length > 1}
-        <div class="drop" class:open={ddOpen === 'depth'}>
+        <div class="drop" class:open={ddOpen === 'depth'} onpointerenter={voirLesFacettes}>
           <button class="chip" class:active={fDepth.length > 0} aria-haspopup="menu" aria-expanded={ddOpen === 'depth'} onclick={() => ddToggle('depth')}>{$tr('v2.tcol.bitDepth' as any)}{#if fDepth.length}&nbsp;· {fDepth.join(', ')}-bit{/if}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg></button>
           <div class="menu">
             {#each depths as [d, n] (d)}
               <button class:on={fDepth.includes(d)} aria-pressed={fDepth.includes(d)}
-                onclick={() => (fDepth = basculeFacette(fDepth, d))}>{d}-bit <em>{n}</em></button>
+                onclick={() => (fDepth = basculeFacette(fDepth, d))}>{d}-bit <em>{comptesPrets ? n : '…'}</em></button>
             {/each}
           </div>
         </div>
@@ -2146,7 +2314,15 @@
         sourcesEnCharge={tracksLoading} erreurSources={tracksError} onComptesSources={(c) => (comptesArtistes = c)} />
     {:else if tab !== 'tracks' && enCharge && sorted.length === 0}
       <div class="state">{$tr('v2.lib.loading' as any)}</div>
-    {:else if tab !== 'tracks' && sorted.length === 0}
+    {:else if tab !== 'tracks' && nu && sorted.length === 0 && $albumsPagines.erreur}
+      <!-- #4800 — la première page n'est pas venue : on le DIT, plutôt que
+           d'annoncer une bibliothèque vide qui ne l'est peut-être pas. -->
+      <div class="state">{$albumsPagines.erreur}</div>
+    {:else if tab !== 'tracks' && (nu ? $albumsPagines.total === 0 : sorted.length === 0)}
+      <!-- En pages, « vide » se lit sur le TOTAL du serveur, pas sur ce qui est
+           arrivé : après une fin de scan les pages tombent mais le total
+           reste, et la grille garde ses cases le temps que la première page
+           revienne — sans passer par « bibliothèque vide ». -->
       <!-- « Votre » serait faux sur la bibliotheque d'une autre machine : on
            nomme le serveur, sinon un catalogue distant vide se lirait comme
            un defaut de la sienne. Mesure : 192.168.1.16 rend `[]`. -->
@@ -2316,6 +2492,34 @@
         </div>
         {/if}
 
+      {:else if nu}
+        <!-- #4800 — LA GRILLE EN PAGES. Une case par album du total ; celles
+             dont la page n'est pas là sont vides et la demandent en entrant
+             dans le cadre. Pas d'intertitre d'année : le tri par année sort
+             du mode paginé. Les trois dessins sont ceux des snippets. -->
+        {#if display === 'list'}
+          <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
+            {#each cases as c, i (c ? c.id : `s${i}`)}
+              {#if c}{@render ligne(c, i)}{:else}<div class="lrow sq" data-i={i} use:observerCase={i} aria-hidden="true"><span class="lcv"></span><span class="lt">&nbsp;</span></div>{/if}
+            {/each}
+          </div>
+        {:else if display === 'carousel'}
+          <div class="carrou" use:defilementHorizontal bind:this={gridEl}
+               use:centrageCarrousel={{ nombre: cases.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
+               style="--ccw:{geoCarrou.cote}px; --cch:{geoCarrou.hauteurCarte}px; --ccg:{geoCarrou.gouttiere}px; --ccp:{geoCarrou.margeBord}px; --cce:{geoCarrou.echelle}"
+               role="group" aria-label={$tr('v2.lib.viewCarousel' as any)}>
+            {#each cases as c, i (c ? c.id : `s${i}`)}
+              {#if c}{@render carteCarrou(c, i)}{:else}<div class="ccard sq" class:centre={i === iCentre} data-i={i} use:observerCase={i} aria-hidden="true"><div class="cover"></div><div class="meta"><div class="ct sq">&nbsp;</div><div class="ca sq">&nbsp;</div></div></div>{/if}
+            {/each}
+          </div>
+        {:else}
+          <div class="grid" class:expert={showExpert} bind:this={gridEl}>
+            {#each cases as c, i (c ? c.id : `s${i}`)}
+              {#if c}{@render carte(c, i)}{:else}{@render caseVide(i)}{/if}
+            {/each}
+          </div>
+        {/if}
+
       {:else if display === 'list'}
         {#if !affiches.length}
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
@@ -2328,27 +2532,7 @@
                 <span>{it.annee ?? $tr('v2.lib.unknownYear' as any)}</span><span class="yn">{it.n}</span>
               </h3>
             {/if}
-            <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
-              <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
-              <!-- La pastille reste DANS la cellule du titre : une septieme
-                   colonne decalerait toutes les autres, et seule une poignee de
-                   lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
-              <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
-              <span class="la">{a.artist_name ?? ''}</span>
-              <span class="ly">{albumYear(a) ?? ''}</span>
-              <!--
-                🔴 Ces deux cellules sont TOUJOURS présentes quand leur mode
-                est actif, vides s'il n'y a rien à y mettre.
-
-                Elles étaient posées sous `{#if}` : une ligne sans badge n'avait
-                que cinq cellules, et sa fiche technique tombait donc dans la
-                colonne du badge. C'est la moitié du désalignement que Bertrand
-                a photographié le 05/09/2026 ; l'autre moitié est que chaque
-                ligne était sa PROPRE grille (voir `--lcols` plus bas).
-              -->
-              {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
-              {#if showTech}<span class="lq">{tech(a)}</span>{/if}
-            </button>
+            {@render ligne(a, i)}
           {/each}
         </div>
         {/if}
@@ -2385,28 +2569,7 @@
              style="--ccw:{geoCarrou.cote}px; --cch:{geoCarrou.hauteurCarte}px; --ccg:{geoCarrou.gouttiere}px; --ccp:{geoCarrou.margeBord}px; --cce:{geoCarrou.echelle}"
              role="group" aria-label={$tr('v2.lib.viewCarousel' as any)}>
           {#each affiches as a, i (a.id)}
-            <div class="ccard" class:centre={i === iCentre} data-letter={firstLetter(a)}>
-              <div class="cover">
-                <PochetteActions
-                  favori={depot || a.id == null ? null : { albumId: a.id }}
-                  etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
-                  onEditer={depot ? null : () => (enEdition = a)}
-                  onLire={() => lireAlbum(a)}
-                  onOuvrir={() => ouvrirCalqueAlbum(a)}
-                  menu={depot ? [] : entreesCollection(a)}
-                  nom={a.title}
-                >
-                  <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
-                </PochetteActions>
-                {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
-              </div>
-              <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
-                <div class="ct" title={a.title}>{a.title}</div>
-                <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
-                <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
-                {#if showTech}<div class="cq">{tech(a)}</div>{/if}
-              </button>
-            </div>
+            {@render carteCarrou(a, i)}
           {/each}
         </div>
         {/if}
@@ -2423,33 +2586,111 @@
                 <span>{it.annee ?? $tr('v2.lib.unknownYear' as any)}</span><span class="yn">{it.n}</span>
               </h3>
             {/if}
-            <div class="card" data-letter={firstLetter(a)}>
-              <div class="cover">
-                <PochetteActions
-                  favori={depot || a.id == null ? null : { albumId: a.id }}
-                  etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
-                  onEditer={depot ? null : () => (enEdition = a)}
-                  onLire={() => lireAlbum(a)}
-                  onOuvrir={() => ouvrirCalqueAlbum(a)}
-                  nom={a.title}
-                >
-                  <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
-                </PochetteActions>
-                {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
-              </div>
-              <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
-                <div class="ct" title={a.title}>{a.title}</div>
-                <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
-                <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
-                {#if showTech}<div class="cq">{tech(a)}</div>{/if}
-              </button>
-            </div>
+            {@render carte(a, i)}
           {/each}
         </div>
         {/if}
       {/if}
     {/if}
   </div>
+
+  <!--
+    #4800 — LES TROIS DESSINS D'UN ALBUM, UNE SEULE FOIS.
+
+    La grille en pages (`nu`, ci-dessus) et la grille entière itèrent des
+    listes différentes — des CASES qui peuvent être vides, ou des albums — mais
+    dessinent la même vignette, la même ligne, la même carte de carrousel.
+    Les snippets évitent de les écrire deux fois. `data-i` : la position dans
+    la liste, cible du saut A–Z en pages ; `data-letter` : l'initiale, cible
+    du saut sur la liste entière (#1487).
+  -->
+  {#snippet carte(a: Album, i: number)}
+    <div class="card" data-letter={firstLetter(a)} data-i={i}>
+      <div class="cover">
+        <!-- 🔴 La grille PAR DÉFAUT n'avait pas le menu de collections
+             que la grille de facette et le carrousel portaient déjà
+             (#1222) : c'est pourtant elle que voit tout le monde. -->
+        <PochetteActions
+          favori={depot || a.id == null ? null : { albumId: a.id }}
+          etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+          onEditer={depot ? null : () => (enEdition = a)}
+          onLire={() => lireAlbum(a)}
+          onOuvrir={() => ouvrirCalqueAlbum(a)}
+          menu={depot ? [] : entreesCollection(a)}
+          nom={a.title}
+        >
+          <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+        </PochetteActions>
+        {#if showBadges}{#key badge(a)}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/key}{/if}
+      </div>
+      <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
+        <div class="ct" title={a.title}>{a.title}</div>
+        <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+        <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
+        {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+      </button>
+    </div>
+  {/snippet}
+
+  {#snippet ligne(a: Album, i: number)}
+    <button class="lrow" data-letter={firstLetter(a)} data-i={i} onclick={() => ouvrirCalqueAlbum(a)}>
+      <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
+      <!-- La pastille reste DANS la cellule du titre : une septieme
+           colonne decalerait toutes les autres, et seule une poignee de
+           lignes la porte (#1957, et la lecon d'alignement du 05/09). -->
+      <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
+      <span class="la">{a.artist_name ?? ''}</span>
+      <span class="ly">{albumYear(a) ?? ''}</span>
+      <!--
+        🔴 Ces deux cellules sont TOUJOURS présentes quand leur mode
+        est actif, vides s'il n'y a rien à y mettre.
+
+        Elles étaient posées sous `{#if}` : une ligne sans badge n'avait
+        que cinq cellules, et sa fiche technique tombait donc dans la
+        colonne du badge. C'est la moitié du désalignement que Bertrand
+        a photographié le 05/09/2026 ; l'autre moitié est que chaque
+        ligne était sa PROPRE grille (voir `--lcols` plus bas).
+      -->
+      {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
+      {#if showTech}<span class="lq">{tech(a)}</span>{/if}
+    </button>
+  {/snippet}
+
+  {#snippet carteCarrou(a: Album, i: number)}
+    <div class="ccard" class:centre={i === iCentre} data-letter={firstLetter(a)} data-i={i}>
+      <div class="cover">
+        <PochetteActions
+          favori={depot || a.id == null ? null : { albumId: a.id }}
+          etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+          onEditer={depot ? null : () => (enEdition = a)}
+          onLire={() => lireAlbum(a)}
+          onOuvrir={() => ouvrirCalqueAlbum(a)}
+          menu={depot ? [] : entreesCollection(a)}
+          nom={a.title}
+        >
+          <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
+        </PochetteActions>
+        {#if showBadges}{#if badge(a)}<span class="bdg">{badge(a)}</span>{/if}{/if}
+      </div>
+      <button class="meta" onclick={() => ouvrirCalqueAlbum(a)}>
+        <div class="ct" title={a.title}>{a.title}</div>
+        <div class="ca" title={a.artist_name ?? ''}>{a.artist_name ?? ''}</div>
+        <span class="cbot"><QualiteAlbum objet={a} /><PastilleCompilation compilation={a.is_compilation} compact /></span>
+        {#if showTech}<div class="cq">{tech(a)}</div>{/if}
+      </button>
+    </div>
+  {/snippet}
+
+  <!-- Une case dont la page n'est pas arrivée : même encombrement que la
+       vignette qu'elle attend, pour que la hauteur de la liste — et donc le
+       saut A–Z et l'ascenseur — soient ceux de la bibliothèque entière. Sa
+       mise en vue demande sa page (`observerCase`). -->
+  {#snippet caseVide(i: number)}
+    <div class="card sq" data-i={i} use:observerCase={i} aria-hidden="true">
+      <div class="cover"></div>
+      <div class="meta"><div class="ct sq">&nbsp;</div><div class="ca sq">&nbsp;</div><span class="cbot">&nbsp;</span>{#if showTech}<div class="cq">&nbsp;</div>{/if}</div>
+    </div>
+  {/snippet}
 
   {#if opened}
     <AlbumDetailV2 album={opened} {depot} onClose={retourCalqueAlbum} />
@@ -2463,8 +2704,9 @@
         // Report dans le MAGASIN, d'où la grille tire ses albums : sans lui,
         // le titre corrigé ne réapparaîtrait qu'au prochain chargement de
         // l'écran. Édition impossible sur un dépôt distant, donc `albums` est
-        // bien la source ici.
-        albums.update((liste) => liste.map((x) => (x.id === maj.id ? { ...x, ...maj } : x)));
+        // bien la source ici. #4800 : dans les PAGES aussi, si elles portent
+        // l'album — c'est ce que la grille montre en mode paginé.
+        mettreAJourAlbum(maj);
         enEdition = null;
       }}
     />
@@ -2869,4 +3111,14 @@
   .cq{margin-top:4px; font:9.5px var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .chip.dr{display:inline-flex; align-items:center; gap:5px}
   .chip.dr select{border:0; background:transparent; color:inherit; font:inherit; cursor:pointer}
+
+  /* #4800 — la CASE VIDE d'une page pas encore arrivée : même gabarit que la
+     vignette (pochette carrée + deux lignes), en aplat discret ; inerte au
+     pointeur. Une case de liste tient la hauteur d'une ligne (pochette 44 px). */
+  .sq{pointer-events:none}
+  .sq .cover{background:var(--v2-surface); box-shadow:none}
+  .sq .ct, .sq .ca, .sq .cbot, .sq .cq{background:var(--v2-surface); border-radius:4px; width:70%; color:transparent}
+  .sq .ca{width:50%}
+  .lrow.sq{min-height:44px; cursor:default}
+  .lrow.sq .lcv{background:var(--v2-surface)}
 </style>

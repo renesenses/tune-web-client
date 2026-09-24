@@ -32,12 +32,13 @@
 //   3. une piste de la BIBLIOTHÈQUE l'ouvre, avec les gestes de bibliothèque ;
 //   4. chaque entrée déclenche SON geste, et lui seul ;
 //   5. les six surfaces qui n'avaient aucun menu en montent un.
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { flushSync, mount, unmount } from 'svelte';
 import TrackContextMenu from '../../components/partages/TrackContextMenu.svelte';
 import MenuPisteV1 from '../../components/partages/MenuPisteV1.svelte';
+import PisteActions from '../../components/v2/PisteActions.svelte';
 import { entreesMenuPiste, type CapacitesPiste, type GestesPiste } from '../menuPiste';
 import { rangeableEnPlaylist } from '../pisteFile';
 import lFr from '../locales/fr';
@@ -77,10 +78,18 @@ const LOCALE: Track = {
   id: 2450, title: 'La fleur', artist_id: 125, artist_name: 'M',
   album_id: 259, album_title: 'Je dis aime', source: 'local',
 };
-/** Une piste de SERVICE : aucun identifiant de bibliothèque. */
+/** Une piste de SERVICE : aucun identifiant de bibliothèque. Qobuz sait
+ *  écrire ses playlists (#1268) et la paire `source` + `source_id` suffit aux
+ *  étiquettes (#1238). */
 const SERVICE: Track = {
   id: null, title: 'Alone Again', artist_name: 'Gilbert O’Sullivan',
   album_title: 'Back to Front', source: 'qobuz', source_id: '9876543',
+};
+/** Une piste de service dont le service n'ÉCRIT pas de playlist
+ *  (`SERVICES_PLAYLIST_ECRITURE`) : étiquetable, mais sans liste. */
+const SERVICE_SANS_ECRITURE: Track = {
+  id: null, title: 'Alone Again', artist_name: 'Gilbert O’Sullivan',
+  album_title: 'Back to Front', source: 'youtube', source_id: 'dQw4w9WgXcQ',
 };
 describe('#1848 — le menu du client actuel ne décide plus de son contenu', () => {
   /**
@@ -154,22 +163,56 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
    * `streaming_tracks` : serde l'écartait, la route répondait 201, et le modal
    * annonçait « ajoutée » sur une liste restée vide.
    */
-  it('une piste de SERVICE n’ouvre pas « Ajouter à une liste de lecture »', () => {
-    const rendus = libelles(ouvrir(SERVICE));
+  it('une piste de SERVICE sans écriture n’ouvre pas « Ajouter à une liste de lecture »', () => {
+    const rendus = libelles(ouvrir(SERVICE_SANS_ECRITURE));
     expect(rendus).not.toContain(fr['nowplaying.addToPlaylist']);
-    // Les trois routes de bibliothèque prennent un `i64` : trois gestes morts.
+    // « Plus comme ça » : un titre QOBUZ seulement (fil forum 1906,
+    // `/streaming/{service}/tracks/{id}/similar`) — YouTube n'a pas de
+    // similarité d'artiste, l'entrée reste absente.
     expect(rendus).not.toContain(fr['library.playSimilar']);
-    expect(rendus).not.toContain(fr['library.otherVersions']);
-    expect(rendus).not.toContain(fr['v2.cover.tags']);
-    // Ce qu'elle sait faire, elle le propose — c'est ce qui manquait.
-    expect(rendus).toEqual([fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue']]);
+    // « Autres versions », SI : depuis le 23/09/2026 elle se rapproche par
+    // titre + artiste pour une piste de service (`lib/versionsParTitre`).
+    expect(rendus).toContain(fr['library.otherVersions']);
+    // Ce qu'elle sait faire, elle le propose — c'est ce qui manquait. Les
+    // étiquettes, oui : la paire `source` + `source_id` suffit (#1238).
+    // Fil forum 1906 (FabienM, point 3) : ses champs aussi, en lecture seule.
+    expect(rendus).toEqual([
+      fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
+      fr['library.otherVersions'], fr['v2.cover.tags'], fr['trackTags.title'],
+    ]);
   });
-  it('une piste de la BIBLIOTHÈQUE ouvre les neuf gestes', () => {
+  /**
+   * 🔴 #1268 + #1238, réunion du 23/09/2026 (« toutes les pistes ont le menu
+   * complet ») : une piste Qobuz rejoint une playlist DE SON SERVICE, et se
+   * laisse étiqueter par sa paire `source` + `source_id`. `PisteActions` le
+   * savait ; ce menu passait `idBibliotheque` seul et les deux entrées
+   * manquaient dans le tiroir de file du NowPlaying.
+   */
+  it('une piste Qobuz ouvre la playlist de SON service et les étiquettes — jamais une liste locale', () => {
+    const rendus = libelles(ouvrir(SERVICE));
+    expect(rendus).toEqual([
+      fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
+      // Fil forum 1906 — « Plus comme ça » sur un titre Qobuz.
+      fr['library.playSimilar'],
+      // 23/09/2026 — « Autres versions » par titre + artiste, même libellé,
+      // même place que pour une piste de la bibliothèque.
+      fr['library.otherVersions'],
+      fr['nowplaying.addToPlaylist'], fr['v2.cover.tags'],
+      // Fil forum 1906 — « Tous les champs piste », en lecture seule.
+      fr['trackTags.title'],
+    ]);
+  });
+  it('une piste de la BIBLIOTHÈQUE ouvre les onze gestes', () => {
     expect(libelles(ouvrir(LOCALE))).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
       fr['library.playSimilar'], fr['library.otherVersions'],
       fr['nowplaying.addToPlaylist'], fr['library.goToArtist'],
       fr['library.goToAlbum'], fr['v2.cover.tags'],
+      // #851 — « Tous les champs piste », que seul `MenuPisteV2` rendait.
+      fr['trackTags.title'],
+      // #4806 — « Bannir ce titre », bibliothèque seule ; le témoin de
+      // service juste au-dessus prouve qu'il n'y est pas.
+      fr['ban.ban'],
     ]);
   });
   it('« Aller à l’artiste » apparaît sur une piste de service SI l’écran sait le faire', () => {
@@ -235,4 +278,125 @@ describe('#1848 — les surfaces qui n’avaient aucun menu en montent un', () =
       expect(src).toContain('rangeableEnPlaylist');
     });
   }
+  /**
+   * 🔴 #1430 — le tiroir de file du NowPlaying itérait `$queueTracks` BRUT.
+   * `id` d'une ligne de file est `queue_items.id`, la piste est `track_id` :
+   * « Autres versions », « Plus comme ça », « Étiquettes » et le bouton
+   * playlist visaient une AUTRE piste (mesuré sur le .18 : `{ id: 26070,
+   * track_id: 32764 }`). `QueueV2` passait déjà par `pisteDeFile` ; la
+   * balise doit recevoir la ligne REMPLACÉE, pas la ligne de file.
+   */
+  it('partages/NowPlaying donne au menu la piste de la ligne de file, pas la ligne (#1430)', () => {
+    const src = sansCommentaires(lire('src/components/partages/NowPlaying.svelte'));
+    expect(src).toMatch(/import \{ pisteDeFile \} from '\.\.\/\.\.\/lib\/pisteDeFile'/);
+    const boucle = src.indexOf('{#each $queueTracks as ligneDeFile, index}');
+    const remplacement = src.indexOf('{@const queueTrack = pisteDeFile(ligneDeFile)}');
+    const menu = src.indexOf('<MenuPisteV1 piste={queueTrack} />');
+    // 🔴 Chacun doit EXISTER avant qu'un ordre ait un sens : `-1 < n` passe.
+    expect(boucle, 'la boucle itère encore la ligne de file sous le nom de la piste').toBeGreaterThan(-1);
+    expect(remplacement, 'aucun `pisteDeFile` dans la boucle').toBeGreaterThan(-1);
+    expect(menu).toBeGreaterThan(-1);
+    expect(boucle).toBeLessThan(remplacement);
+    expect(remplacement).toBeLessThan(menu);
+    expect(src, 'la boucle itère encore `$queueTracks` brut').not.toContain('{#each $queueTracks as queueTrack');
+  });
+  /**
+   * Les surfaces de la NOUVELLE interface qui rendent une piste. Chacune passe
+   * par `PisteActions` — directement, ou par `ListePistesV2` qui le monte sur
+   * chaque ligne. `PlaylistManagerView` (ancienne interface) y est entré avec
+   * la liste commune (#1524, 23/09/2026) : il monte `ListePistesV2` depuis
+   * `../v2/`. `YouTubeDecouverteV2`, `MediaServersV2` et `PageWidgets` sont
+   * hors liste : décision produit en attente (23/09/2026).
+   */
+  const SURFACES_V2: [string, RegExp][] = [
+    ['v2/ListePistesV2', /<PisteActions /],
+    ['v2/LignePisteV2', /<PisteActions /],
+    ['v2/QueueV2', /<PisteActions /],
+    ['v2/SearchV2', /<ListePistesV2 /],
+    ['v2/StreamingV2', /<ListePistesV2 /],
+    ['v2/HistoriqueV2', /<ListePistesV2\b/],
+    ['v2/FavoritesV2', /<ListePistesV2 /],
+    ['v2/PlaylistDetailV2', /<ListePistesV2 /],
+    ['v2/EtiquettesV2', /<ListePistesV2 /],
+    ['v2/BioEtTitresPhares', /<ListePistesV2 /],
+    ['v2-heritage/PlaylistManagerView', /<ListePistesV2 /],
+  ];
+  for (const [ecran, balise] of SURFACES_V2) {
+    it(`${ecran} rend ses pistes par PisteActions ou ListePistesV2`, () => {
+      const src = sansCommentaires(lire(`src/components/${ecran}.svelte`));
+      expect(src, `${ecran} n’importe ni PisteActions ni ListePistesV2`)
+        .toMatch(/import (PisteActions|ListePistesV2)(, \{[^}]*\})? from '(\.\/|\.\.\/v2\/)(PisteActions|ListePistesV2)\.svelte'/);
+      expect(src, `${ecran} importe la brique sans la monter`).toMatch(balise);
+      // Aucune de ces surfaces ne porte son propre menu de piste.
+      expect(src).not.toMatch(/<(TrackContextMenu|MenuPisteV1|MenuPisteV2) /);
+    });
+  }
+});
+/**
+ * 🔴 PARITÉ DES DEUX MENUS, MONTÉS — réunion du 23/09/2026.
+ *
+ * « S'assurer que toutes les pistes ont le menu complet » et « Autres
+ * versions absente du menu ». `MenuPisteV1` (tiroir de file du NowPlaying) et
+ * `PisteActions` → `MenuPisteV2` (toute la nouvelle interface) lisent le même
+ * module, mais chacun lui passe SES capacités : le premier oubliait
+ * `etiquetable`, `playlistDeService` et le geste `champsDuFichier`. Sur la tête
+ * de `main` au 23/09 :
+ *
+ *     piste locale  — V1 : 9 entrées, V2 : 10 (« Tous les champs piste »)
+ *     piste Qobuz   — V1 : 3 entrées, V2 : 5 (playlist du service, étiquettes)
+ *
+ * Ici on MONTE les deux, on ouvre leur « … » et on compare les libellés rendus.
+ * Un module partagé ne suffit pas : c'est l'appelant qui décide, donc c'est
+ * l'appelant qu'on compare.
+ */
+describe('parité des menus — MenuPisteV1 et PisteActions rendent la même liste', () => {
+  class ObservateurInerte { observe() {} unobserve() {} disconnect() {} }
+  beforeEach(() => {
+    vi.stubGlobal('ResizeObserver', ObservateurInerte);
+    vi.stubGlobal('IntersectionObserver', ObservateurInerte);
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true, status: 200,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      text: async () => '{}', json: async () => ({}),
+    }) as unknown as Response));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.querySelectorAll('.fond, .track-menu-backdrop').forEach((e) => e.remove());
+  });
+  /** Ouvre le « … » du composant monté et lit les libellés de son menu. */
+  function menuDe(composant: any, piste: Track): string[] {
+    const racine = poser(composant, { piste });
+    // `poser` a démonté le précédent ; un panneau porté à la racine qui aurait
+    // survécu compterait ses entrées avec les nôtres. On nettoie AVANT le clic.
+    document.querySelectorAll('.fond, .track-menu-backdrop').forEach((e) => e.remove());
+    const bouton = racine.querySelector('button[aria-haspopup="menu"]') as HTMLElement | null;
+    expect(bouton, 'aucun bouton « … » rendu').toBeTruthy();
+    bouton!.click();
+    flushSync();
+    return [...document.querySelectorAll('[role="menuitem"]')]
+      .map((b) => (b.textContent ?? '').trim());
+  }
+  for (const [nom, piste] of [
+    ['une piste de la bibliothèque', LOCALE],
+    ['une piste Qobuz', SERVICE],
+    ['une piste de service sans playlist', SERVICE_SANS_ECRITURE],
+  ] as [string, Track][]) {
+    it(`${nom} : même liste d’entrées dans les deux menus`, () => {
+      const v1 = menuDe(MenuPisteV1, piste);
+      const v2 = menuDe(PisteActions, piste);
+      expect(v1.length, 'le menu V1 est vide').toBeGreaterThan(0);
+      expect(v1, `V1 ${JSON.stringify(v1)} ≠ V2 ${JSON.stringify(v2)}`).toEqual(v2);
+    });
+  }
+  it('la piste de la bibliothèque a ses onze gestes dans les deux menus, « Autres versions » compris', () => {
+    for (const composant of [MenuPisteV1, PisteActions]) {
+      const rendus = menuDe(composant, LOCALE);
+      expect(rendus).toContain(fr['library.otherVersions']);
+      expect(rendus).toContain(fr['trackTags.title']);
+      // #4806 — « Bannir ce titre », bibliothèque seule, dans les DEUX menus.
+      expect(rendus).toContain(fr['ban.ban']);
+      expect(rendus).toHaveLength(11);
+    }
+  });
 });

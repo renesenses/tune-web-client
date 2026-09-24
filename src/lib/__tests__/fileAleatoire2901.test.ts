@@ -10,7 +10,7 @@ import {
   lireFileAleatoire,
   versPatchFileAleatoire,
 } from '../fileAleatoire';
-import * as LOCALES from '../locales';
+import * as LOCALES from './lesOnzeLangues';
 
 /**
  * tune-server-rust#2901 — « Limite à 500 de la file d'attente en paramètre »

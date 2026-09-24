@@ -49,6 +49,10 @@
    * passe par les favoris de service, et si elle ne porte ni identifiant ni
    * paire source + identifiant, elle n'a tout simplement aucun bouton.
    *
+   * 🔴 Absent ne veut plus dire « sans place » (fil forum 1906, FabienM) :
+   * chaque geste manquant laisse une case VIDE de même largeur, pour que les
+   * icônes restent en colonne d'une ligne à l'autre. Voir le balisage.
+   *
    * ## Pourquoi le survol
    *
    * Cinq icônes en permanence sur chaque ligne d'une liste de 800 titres
@@ -64,6 +68,9 @@
   import * as api from '../../lib/api';
   import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import {
+    bannir, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
+  } from '../../lib/titreBanni';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { queuePosition } from '../../lib/stores/queue';
   import {
@@ -76,13 +83,18 @@
   import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { destinationArtiste } from '../../lib/routageArtiste';
-  import { destinationAlbum } from '../../lib/routageAlbum';
+  import { albumDeServiceDe } from '../../lib/routageAlbum';
+  import { pisteDeServiceDe } from '../../lib/champsPisteService';
+  import { lirePlusCommeCaDeService, plusCommeCaDeServiceDe } from '../../lib/plusCommeCaService';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { zoneRequise } from '../../lib/zoneRequise';
   import { t } from '../../lib/i18n';
   import MenuPisteV2 from './MenuPisteV2.svelte';
   import { entreesMenuPiste } from '../../lib/menuPiste';
   import { serviceDePlaylist } from '../../lib/playlistService';
   import type { Track } from '../../lib/types';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { cibleParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
 
   interface Props {
     piste: Track;
@@ -99,7 +111,8 @@
      * son ordre d'affichage, ses filtres, sa source par défaut. Une barre qui
      * inventerait la suite se tromperait sur les listes triées.
      *
-     * Absent, la barre est exactement celle d'avant : sept boutons.
+     * Absent, le bouton l'est aussi — mais sa CASE reste, vide (fil forum
+     * 1906) : les colonnes d'une ligne à l'autre ne doivent pas en dépendre.
      */
     onLireDepuis?: (() => void) | null;
   }
@@ -115,6 +128,12 @@
    *  champs, que la plupart des lignes n'ouvriront jamais. */
   let tiroirChamps = $state(false);
   let panneauVersions = $state(false);
+  /**
+   * La cible titre + artiste des « Autres versions » d'une piste SANS
+   * identifiant de bibliothèque (23/09/2026). `null` pour une piste locale —
+   * elle passe par `trackId` — et pour une piste qui ne se nomme pas.
+   */
+  const cibleVersions: CibleParTitre | null = $derived(cibleParTitre(piste));
   /** L'ancre du menu « … » : sa position ÉCRAN, relevée au clic. */
   let ancreMenu = $state<DOMRect | null>(null);
 
@@ -174,11 +193,18 @@
 
   function stop(e: MouseEvent) { e.stopPropagation(); e.preventDefault(); }
 
-  function lire(e: MouseEvent) {
+  /**
+   * Bannie ? (#4806) — la surcharge locale d'abord (ce qu'on vient de cliquer
+   * dans ce menu), puis le drapeau `banned` que le serveur pose sur la ligne.
+   */
+  const bannie = $derived(estBannie(piste, $surchargesBannissement));
+  async function lire(e: MouseEvent) {
     stop(e);
     const zid = $currentZoneId;
     const corps = corpsDeLecture(piste);
     if (zid == null || !corps) return;
+    // #4806 — un titre banni se joue d'un clic DÉLIBÉRÉ, après confirmation.
+    if (!(await confirmerLectureBannie(piste))) return;
     // Un toast, donc le chemin commun : `signalerEchecLecture` journalise,
     // accole le message du serveur au lieu du seul « Impossible de lire ce
     // titre », et n'empile pas deux bandeaux identiques (#3732).
@@ -247,16 +273,33 @@
    * ------------------------------------------------------------------ */
 
   /**
-   * « Plus comme ça » — une file de titres acoustiquement voisins.
+   * « Plus comme ça » — une file de titres voisins, qui REMPLACE la file.
    *
-   * Le rapprochement est le SERVEUR qui le fait (`/library/tracks/{id}/similar`,
-   * mesuré sur le .18 : 5 voisins rendus pour la piste 2450). Sans empreinte
-   * audio calculée, la réponse est VIDE : on le dit, plutôt que de ne rien
-   * faire en silence — c'est déjà la règle du client actuel.
+   * Bibliothèque : le rapprochement acoustique du SERVEUR
+   * (`/library/tracks/{id}/similar`, mesuré sur le .18 : 5 voisins rendus
+   * pour la piste 2450). Sans empreinte audio calculée, la réponse est VIDE :
+   * on le dit, plutôt que de ne rien faire en silence — c'est déjà la règle
+   * du client actuel.
+   *
+   * Titre Qobuz — fil forum 1906 (FabienM, point 3) : les voisins selon Qobuz
+   * (`lib/plusCommeCaService`), mêmes notifications, même remplacement de file.
    */
   async function plusCommeCa() {
-    const zid = $currentZoneId;
-    if (zid == null || piste.id == null) return;
+    // Sans zone, on le DIT (#1233) : un geste muet est pire qu'absent.
+    const zid = zoneRequise();
+    if (zid == null) return;
+    if (pisteSimilaires) {
+      try {
+        const n = await lirePlusCommeCaDeService(pisteSimilaires, gestesDeZone(zid));
+        // « acoustiquement similaire » et la Smart Radio ne concernent que la
+        // bibliothèque : un titre de service a son propre message.
+        if (n === 0) notifications.info($t('library.noSimilarService' as any));
+      } catch {
+        notifications.error($t('library.similarError' as any));
+      }
+      return;
+    }
+    if (piste.id == null) return;
     try {
       const res = await api.getSimilarTracks(piste.id, 50);
       const ids = (res.items ?? [])
@@ -282,32 +325,12 @@
    * grisé. La coquille ACTUELLE arme désormais ces gestes elle aussi (#888),
    * vers `StreamingView` ; la garde reste, pour tout montage qui n'arme rien.
    */
-  const albumDeService = $derived.by(() => {
-    if (local || !$gestesNavigationService) return null;
-    const d = destinationAlbum({
-      source: piste.source ?? null,
-      album_id: (piste as any).album_id,
-      album_title: piste.album_title ?? null,
-    });
-    return d?.type === 'album-service'
-      ? {
-          service: d.service, albumId: d.albumId, titre: d.titre,
-          // 🔴 #1342 — LA POCHETTE, elle aussi. `StreamTrack.cover_path` EST
-          // celle de l'album : `map_track` la remplit par `Self::pochette(album)`
-          // (`qobuz.rs:1256`), et la mesure du 20/09/2026 le confirme —
-          // `/streaming/qobuz/albums/atua1kxxk4tis/tracks` rend
-          // `cover_path: ".../atua1kxxk4tis_600.jpg"` sur la piste.
-          // Le champ existait dans le contrat depuis #1114 ; cet appelant-ci
-          // ne l'a jamais rempli, d'où le carré gris à l'initiale de FabienM.
-          pochette: piste.cover_path ?? null,
-          // #1361 bis — la piste porte le nom de son artiste ET, pour un
-          // service, son identifiant chez lui (`map_track`, #1361). Les
-          // laisser ici, c'était ouvrir une fiche d'album sans artiste.
-          artiste: piste.artist_name ?? null,
-          artisteId: (piste as any).artist_id != null ? String((piste as any).artist_id) : null,
-        }
-      : null;
-  });
+  // 🔴 Fil forum 1906 (FabienM) — la règle vit dans `routageAlbum`
+  // (`albumDeServiceDe`), UNE fois pour les deux menus : recopiée ici et dans
+  // `MenuPisteV1`, elle avait divergé (pochette #1342, artiste #1361 bis).
+  const albumDeService = $derived(
+    local || !$gestesNavigationService ? null : albumDeServiceDe(piste as any),
+  );
   // 🔴 #956 — `destinationArtiste` tranche : une piste Qobuz porte un
   // `artist_id` de SERVICE (chaîne), qui n'a rien à faire dans la Bibliothèque.
   const destination = $derived(destinationArtiste({
@@ -356,6 +379,14 @@
    * garde restait verte quand on préfixait une entrée d'un `if (false)`
    * (contre-épreuve n° 1, 07/09/2026). Le module, lui, s'appelle.
    */
+  /**
+   * Fil forum 1906 (FabienM, point 3) — une piste de SERVICE a aussi ses
+   * « Tous les champs piste », en lecture seule. La règle vit dans
+   * `lib/champsPisteService`, une fois pour les deux menus.
+   */
+  const pisteService = $derived(local ? null : pisteDeServiceDe(piste));
+  /** Fil forum 1906 — « Plus comme ça » d'un titre Qobuz (`lib/plusCommeCaService`). */
+  const pisteSimilaires = $derived(local ? null : plusCommeCaDeServiceDe(piste));
   const entrees = $derived(
     entreesMenuPiste(
       {
@@ -370,9 +401,17 @@
         artisteDeService,
         etiquetable: cibleEtiquettes != null,
         playlistDeService: serviceDePlaylist(piste),
+        bannie,
+        // 23/09/2026 — « Autres versions » sur une piste de SERVICE, par
+        // rapprochement titre + artiste. `cibleParTitre` refuse une piste de
+        // la bibliothèque (la route par `i64` fait mieux) et une piste sans
+        // titre ou sans artiste. Même décision dans `MenuPisteV1`.
+        versionsParTitre: cibleVersions != null,
+        champsDeService: pisteService != null,
+        similairesDeService: pisteSimilaires != null,
       },
       {
-        lire: () => lire(new MouseEvent('click')),
+        lire: () => void lire(new MouseEvent('click')),
         ensuite: () => void ensuite(new MouseEvent('click')),
         aLaFile: () => void aLaFile(new MouseEvent('click')),
         plusCommeCa: () => void plusCommeCa(),
@@ -382,6 +421,10 @@
         allerAlbum,
         etiqueter: () => (panneauEtiquettes = true),
         champsDuFichier: () => (tiroirChamps = true),
+        // #4806 — le module tient l'appel, la surcharge et le toast : le menu
+        // du client actuel (`MenuPisteV1`) appelle exactement les mêmes.
+        bannir: () => void bannir(piste),
+        debannir: () => void debannir(piste),
       },
     ),
   );
@@ -393,6 +436,17 @@
 </script>
 
 <span class="pactions" class:a-favori={favori}>
+  <!-- 🔴 CHAQUE BOUTON GARDE SA CASE — fil forum 1906 (FabienM, v0.9.163).
+
+       Un geste qui n'a pas lieu d'être était ABSENT, et tout ce qui le suivait
+       glissait d'une case : dans l'Historique, une ligne Bandcamp (pas de
+       playlist de service en écriture, `playlistService.ts`) portait ses
+       étiquettes, son cœur et son « … » une colonne à gauche de ceux de la
+       ligne Qobuz du dessus. La règle « absent, pas grisé » tient toujours —
+       rien n'est proposé qui ne soit possible —, mais l'absence occupe
+       désormais sa place : une case VIDE de même largeur, ni focusable, ni
+       annoncée, ni cliquable. La barre a donc toujours huit cases, et
+       `LARGEUR_ACTIONS` (`ListePistesV2`) les compte. -->
   {#if jouable}
     <button class="pa" onclick={lire} title={$t('v2.pa.play' as any)} aria-label={$t('v2.pa.play' as any)}>
       <!-- lucide `play` — tracé officiel, sans retouche. -->
@@ -400,20 +454,26 @@
         <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>
       </svg>
     </button>
-    {#if onLireDepuis}
-      <button class="pa" data-depuis onclick={(e) => { stop(e); onLireDepuis?.(); }}
-              title={$t('common.playFromHere' as any)} aria-label={$t('common.playFromHere' as any)}>
-        <!-- lucide `step-forward` — le dessin de la maquette : la barre, puis
-             le triangle. C'est la deuxième icône de la ligne de piste dans la
-             Figma « Claude » (page 1, cadre « Track list »), juste après
-             `play`, et c'est Bertrand qui l'y a posée le 20/09/2026.
-             Distincte du triangle seul, qui ne lit que la ligne. -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/>
-          <path d="M3 4v16"/>
-        </svg>
-      </button>
-    {/if}
+  {:else}
+    <span class="pa vide" aria-hidden="true"></span>
+  {/if}
+  {#if jouable && onLireDepuis}
+    <button class="pa" data-depuis onclick={(e) => { stop(e); onLireDepuis?.(); }}
+            title={$t('common.playFromHere' as any)} aria-label={$t('common.playFromHere' as any)}>
+      <!-- lucide `step-forward` — le dessin de la maquette : la barre, puis
+           le triangle. C'est la deuxième icône de la ligne de piste dans la
+           Figma « Claude » (page 1, cadre « Track list »), juste après
+           `play`, et c'est Bertrand qui l'y a posée le 20/09/2026.
+           Distincte du triangle seul, qui ne lit que la ligne. -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/>
+        <path d="M3 4v16"/>
+      </svg>
+    </button>
+  {:else}
+    <span class="pa vide" aria-hidden="true"></span>
+  {/if}
+  {#if jouable}
     <!-- Une LISTE dont la lecture entre en TETE : lucide `list-start`, tracé
          officiel. L'icone d'avant etait un dessin maison — une liste plus un
          triangle — qui se confondait avec celle de « lire a partir d'ici » une
@@ -437,6 +497,9 @@
         <path d="M18 9v6"/><path d="M21 12h-6"/>
       </svg>
     </button>
+  {:else}
+    <span class="pa vide" aria-hidden="true"></span>
+    <span class="pa vide" aria-hidden="true"></span>
   {/if}
   <!-- #1268 : une piste de SERVICE ne va que dans une playlist de SON service
        (`playlistService.ts`). Pour un service qui ne sait pas écrire, le bouton
@@ -455,6 +518,8 @@
         <path d="M21 16V5"/><circle cx="18" cy="16" r="3"/>
       </svg>
     </button>
+  {:else}
+    <span class="pa vide" aria-hidden="true"></span>
   {/if}
   {#if cibleEtiquettes}
     <button class="pa" class:on={panneauEtiquettes} aria-expanded={panneauEtiquettes}
@@ -466,6 +531,8 @@
         <circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>
       </svg>
     </button>
+  {:else}
+    <span class="pa vide" aria-hidden="true"></span>
   {/if}
   {#if coeurPossible}
     <button class="pa coeur" class:on={favori} onclick={basculerCoeur} disabled={occupe}
@@ -478,6 +545,8 @@
         <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>
       </svg>
   </button>
+  {:else}
+    <span class="pa vide" aria-hidden="true"></span>
   {/if}
   <!-- 🔴 Le « … », dernier de la barre, comme dans le client actuel. Il NOMME
        ce que les icônes font sans le dire, et il porte les gestes qu'aucune
@@ -492,6 +561,8 @@
         <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
       </svg>
     </button>
+  {:else}
+    <span class="pa vide" aria-hidden="true"></span>
   {/if}
 </span>
 
@@ -499,9 +570,19 @@
   <MenuPisteV2 ancre={ancreMenu} {entrees} onClose={() => (ancreMenu = null)} />
 {/if}
 
-{#if panneauVersions && piste.id != null}
+<!-- Le MÊME panneau dans les deux modes : par `trackId` pour la bibliothèque,
+     par `parTitre` pour une piste de service (23/09/2026). La bifurcation
+     suit celle du menu — `local && id` d'un côté, `cibleVersions` de l'autre —
+     pour qu'un identifiant qui n'est pas de bibliothèque ne parte jamais dans
+     la route par `i64`. -->
+{#if panneauVersions && local && piste.id != null}
   {#await import('./VersionsPistePanneau.svelte') then m}
     <m.default trackId={piste.id} titre={piste.title}
+      onClose={() => (panneauVersions = false)} />
+  {/await}
+{:else if panneauVersions && cibleVersions}
+  {#await import('./VersionsPistePanneau.svelte') then m}
+    <m.default parTitre={cibleVersions} titre={piste.title}
       onClose={() => (panneauVersions = false)} />
   {/await}
 {/if}
@@ -516,9 +597,12 @@
 <!-- #851 — le tiroir des champs du fichier, jusqu'ici atteignable seulement
      par pochette → Modifier l'album → cliquer une piste. Il vit hors de `v2/` :
      c'est le MÊME que le client actuel, pas une copie. -->
-{#if tiroirChamps && piste.id != null}
+{#if tiroirChamps && ((local && piste.id != null) || pisteService)}
   {#await import('../partages/TrackTagsDrawer.svelte') then m}
-    <m.default trackId={piste.id} onClose={() => (tiroirChamps = false)} />
+    <!-- Fil forum 1906 : une piste de service ouvre le MÊME tiroir, en
+         lecture seule, sans passer par la route des tags du fichier. -->
+    <m.default trackId={local ? piste.id : null} pisteService={local ? null : (piste as any)}
+      onClose={() => (tiroirChamps = false)} />
   {/await}
 {/if}
 
@@ -560,6 +644,9 @@
     background:var(--v2-acc-soft, var(--tune-surface-hover, transparent))}
   .pa:disabled{opacity:.4; cursor:default}
   .pa svg{width:14px; height:14px}
+  /* Fil forum 1906 — la case d'un geste absent : même boîte que ses voisines
+     (elle hérite de `.pa`), mais rien à viser ni à survoler. */
+  .pa.vide{cursor:default; pointer-events:none}
 
   /* Le coeur ACTIF garde le rouge : c'est un ETAT, pas une action. Aux
      couleurs du theme il ne se distinguerait plus des quatre autres, et on ne

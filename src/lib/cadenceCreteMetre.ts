@@ -20,17 +20,37 @@
  *   reprend (le composant relance son effet sur `joue`).
  */
 import { PLANCHER_DB, type EtatPpm } from './peakMetre';
+import {
+  CADENCE_HZ, CRAN_CADENCE_DEFAUT, intervalleCreteMs, tempsDeDessinerA,
+  type CranCadence,
+} from './cadenceAnimations';
 
-/** Cadence de dessin, alignée sur celle d'`AudioVisualizer`. */
-export const CADENCE_CRETE_HZ = 30;
-export const INTERVALLE_CRETE_MS = 1000 / CADENCE_CRETE_HZ;
+/**
+ * Cadence de dessin, alignée sur celle d'`AudioVisualizer`.
+ *
+ * 🔴 Elle n'est plus écrite ici : depuis le 23/09/2026 (#1256) elle est le cran
+ * PAR DÉFAUT du réglage utilisateur, et ces deux constantes sont dérivées de lui
+ * — une seconde copie du 30 divergerait le jour où le défaut bougerait. La
+ * valeur, elle, n'a pas bougé d'un tiers de milliseconde : `cadenceAnimations`
+ * porte le test qui le mesure.
+ */
+export const CADENCE_CRETE_HZ = CADENCE_HZ[CRAN_CADENCE_DEFAUT];
+export const INTERVALLE_CRETE_MS = intervalleCreteMs(CRAN_CADENCE_DEFAUT);
 
 /**
  * Tolérance d'une milliseconde : à 60 Hz, deux images font 33,3 ms — sans
  * elle, l'arrondi des horodatages ferait sauter une image sur deux de trop.
+ *
+ * Le cran est OPTIONNEL et retombe sur le défaut : les appelants qui ne
+ * connaissent pas le réglage (et le témoin de #1269) gardent le comportement
+ * livré, au bit près.
  */
-export function tempsDeDessiner(maintenant: number, dernier: number): boolean {
-  return maintenant - dernier >= INTERVALLE_CRETE_MS - 1;
+export function tempsDeDessiner(
+  maintenant: number,
+  dernier: number,
+  cran: CranCadence = CRAN_CADENCE_DEFAUT,
+): boolean {
+  return tempsDeDessinerA(maintenant, dernier, cran);
 }
 
 /**

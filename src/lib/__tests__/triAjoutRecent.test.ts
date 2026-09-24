@@ -14,12 +14,17 @@ describe("Tri « Ajout récent » (forum, 05/09/2026)", () => {
    * les rend tous. La coquille demandait `sort=title` au démarrage : la donnée
    * n'arrivait donc jamais, et l'option restait invisible.
    */
-  it('la coquille ne demande AUCUN tri au serveur', () => {
-    const boot = sansCommentaires(lire('src/lib/v2Bootstrap.ts'));
-    expect(boot).toContain('api.getAllAlbums(100, null, null, 1, 100)');
-    expect(boot).toContain('api.getAllAlbums(2000, null, null)');
+  it('le chargement de la liste entière ne demande AUCUN tri au serveur', () => {
+    // renesenses/tune-server-rust#4800 : ce chargement a quitté la coquille
+    // (`v2Bootstrap`) pour `stores/albumsPagines.demanderBibliothequeEntiere`,
+    // à la demande. La règle « sans tri, les écrans trient eux-mêmes » y
+    // reste ; la coquille, elle, ne charge plus d'albums du tout.
+    const magasin = sansCommentaires(lire('src/lib/stores/albumsPagines.ts'));
+    expect(magasin).toContain('api.getAllAlbums(2000, null, null)');
     // Le tri par titre était CE QUI PERDAIT la date d'ajout.
-    expect(boot).not.toContain("'title', 'asc'");
+    expect(magasin).not.toContain("'title', 'asc'");
+    const boot = sansCommentaires(lire('src/lib/v2Bootstrap.ts'));
+    expect(boot).not.toContain('getAllAlbums(');
   });
 
   it("`null` OMET le paramètre au lieu de l'écrire", () => {

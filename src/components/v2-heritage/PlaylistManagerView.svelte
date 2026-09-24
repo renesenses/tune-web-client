@@ -2,21 +2,21 @@
   import { bulleTexte } from '../../lib/infobulleTexte';
   import { get } from 'svelte/store';
   import { currentZone, zones, playAndSync } from '../../lib/stores/zones';
-  import { currentTrack, currentTrackId, estLaPisteEnLecture } from '../../lib/stores/nowPlaying';
   import { dialogs } from '../../lib/stores/dialogs';
   import { isPremium } from '../../lib/stores/license';
   import { playlists as playlistsStore, pendingPlaylistId } from '../../lib/stores/playlists';
   import { streamingServices } from '../../lib/stores/streaming';
   import * as api from '../../lib/api';
   import { shareLink } from '../../lib/playlistShare';
-  import { formatTime, formatAudioBadge, errText } from '../../lib/utils';
+  import { formatTime, errText } from '../../lib/utils';
   import type { Playlist, Track, StreamingPlaylist, PlaylistTransferResponse, PlaylistDiffResponse, PlaylistRecoverResponse, TransferTrackResult, TransferAlternative } from '../../lib/types';
   import { t as tr } from '../../lib/i18n';
   import { pisteAppliquee, resumeApplication } from '../../lib/recuperationPlaylist';
-  import { estPisteLocale } from '../../lib/pisteFile';
   import { notifications } from '../../lib/stores/notifications';
+  import { lireListeAleatoire } from '../../lib/lectureEnMasse';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
   import AlbumArt from '../partages/AlbumArt.svelte';
-  import { pisteIndisponible } from '../../lib/albumAParaitre';
+  import ListePistesV2 from '../v2/ListePistesV2.svelte';
   import ClampedText from '../partages/ClampedText.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
@@ -44,6 +44,12 @@
   }
 
   interface Props {
+    /**
+     * Sans emploi depuis le 23/09/2026 : « ajouter à une playlist » est un
+     * bouton de `PisteActions`, que la liste commune rend sur chaque piste.
+     * La prop reste déclarée pour ne pas changer la signature de l'écran
+     * (`ShellV2` ne la passe pas ; les témoins la passent vide).
+     */
     onAddToPlaylist?: (track: Track) => void;
   }
   let { onAddToPlaylist }: Props = $props();
@@ -64,11 +70,6 @@
   let selectedStreamingPl = $state<StreamingPlaylist | null>(null);
   let selectedService = $state('');
   let detailTracks = $state<Track[]>([]);
-  // Drag-to-reorder (local playlists only). JP Borderies: "on ne peut pas
-  // reclasser les morceaux d'une playlist". The server already supports it via
-  // reorderPlaylistTracks; this wires the drag UI.
-  let dragIndex = $state<number | null>(null);
-  let dragOverIndex = $state<number | null>(null);
   let detailLoading = $state(false);
 
   // Clicking the Playlists nav entry (even while viewing a playlist) returns to
@@ -1219,6 +1220,27 @@
     }
   }
 
+  /**
+   * « Lecture aléatoire » de la playlist ouverte — web#1520 (JPierre, fil 1903).
+   *
+   * #1947 l'avait posée dans `PlaylistDetailV2`, pas ici — or c'est CET écran
+   * que monte l'entrée « Playlists » de la barre latérale. Même geste, même
+   * module : `lireListeAleatoire` mélange la liste chargée (`lib/shuffle`) et
+   * l'envoie ; le drapeau `shuffle` de la zone n'est PAS touché (#2055).
+   */
+  let melangeEnCours = $state(false);
+  async function lireAleatoire() {
+    if (!zone?.id) return;
+    melangeEnCours = true;
+    try {
+      const n = await lireListeAleatoire(detailTracks, gestesDeZone(zone.id));
+      if (!n) notifications.error($tr('library.noTracks'));
+    } catch (e) {
+      notifications.error(errText(e) ?? $tr('common.error'));
+    }
+    melangeEnCours = false;
+  }
+
   async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number) {
     if (!zone?.id) return;
     const source = pl.source || selectedService;
@@ -1243,33 +1265,6 @@
       }
     } catch (e) {
       console.error('Play from here error:', e);
-    }
-  }
-
-  async function addTrackToQueue(t: Track) {
-    if (!zone?.id) return;
-    try {
-      const source = t.source || selectedService;
-      // 🔴 Une piste UPnP de la bibliothèque (#4201) a un `id` ET un
-      // `source_id` : sans le prédicat partagé, elle partait comme un objet de
-      // service. La bibliothèque passe donc EN PREMIER.
-      if (estPisteLocale(t)) {
-        await api.addToQueue(zone.id, { track_id: t.id! });
-      } else if (source && source !== 'local' && t.source_id) {
-        await api.addToQueue(zone.id, {
-          source: source as any,
-          source_id: t.source_id,
-          title: t.title || undefined,
-          artist_name: t.artist_name || undefined,
-          album_title: t.album_title || undefined,
-          cover_path: t.cover_path || undefined,
-          duration_ms: t.duration_ms || undefined,
-        });
-      } else if (t.id) {
-        await api.addToQueue(zone.id, { track_id: t.id });
-      }
-    } catch (e) {
-      console.error('Add to queue error:', e);
     }
   }
 
@@ -1311,17 +1306,23 @@
     }
   }
 
-  // Reorder a local playlist by moving the dragged row to the drop position.
-  // Optimistic: reorder locally, then persist the full new order (track ids).
-  // On failure, reload from the server so the UI never lies.
-  async function reorderTracks(targetIndex: number) {
-    const from = dragIndex;
-    dragIndex = null;
-    dragOverIndex = null;
-    if (from === null || from === targetIndex || !selectedPlaylist?.id) return;
+  /**
+   * Réordonne une playlist LOCALE : la piste au rang `de` va au rang `vers`.
+   *
+   * Appelé par la liste commune (`onReordonner`), au glisser comme au clavier.
+   * Optimiste : la liste bouge tout de suite, puis l'ordre COMPLET (les
+   * identifiants de piste) part au serveur. En cas d'échec on recharge, pour
+   * que l'écran ne mente pas.
+   *
+   * 🔴 `detailTracks` est RÉASSIGNÉ, jamais muté en place : la liste commune
+   * tient ses rangs, pas des références, et un proxy `$state` muté sous un
+   * `{#each}` à clé ne repeint pas ce qu'on croit.
+   */
+  async function reorderTracks(de: number, vers: number) {
+    if (de === vers || !selectedPlaylist?.id) return;
     const next = [...detailTracks];
-    const [moved] = next.splice(from, 1);
-    next.splice(targetIndex, 0, moved);
+    const [moved] = next.splice(de, 1);
+    next.splice(vers, 0, moved);
     detailTracks = next;
     const trackIds = next.map((t) => t.id).filter((id): id is number => typeof id === 'number');
     try {
@@ -1740,6 +1741,11 @@
           <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
           {$tr('common.play')}
         </button>
+        <button class="shuffle-btn" onclick={lireAleatoire}
+          disabled={melangeEnCours || detailTracks.length === 0}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5" /><path d="M4 20 21 3" /><path d="M21 16v5h-5" /><path d="M15 15l6 6" /><path d="M4 4l5 5" /></svg>
+          {$tr('library.shuffle')}
+        </button>
       </div>
     </div>
 
@@ -1752,87 +1758,43 @@
     {#if detailLoading}
       <div class="loading"><div class="spinner"></div><span>{loadingStatus || $tr('common.loading')}</span></div>
     {:else}
-      <div class="track-list">
-        {#each detailTracks as t, index}
-          <!--
-            Une piste que le SERVICE dit indisponible est grisée, étiquetée, et
-            ne se lance pas : la lancer rendrait « no url ». Demandé par
-            Bertrand le 21/09/2026 sur « tttroys playlist » — 186 de ses 1 454
-            pistes sont dans ce cas, dont la PREMIÈRE, qui s'affichait comme
-            les autres.
+      <!--
+        🔴 LA LISTE COMMUNE, pas un troisième rendu de piste.
 
-            🔴 Le mécanisme existait déjà (`pisteIndisponible`, point 10 du
-            17/09) dans `ListePistesV2` et `LignePisteV2` — mais cet écran-ci a
-            sa propre liste de pistes et n'en profitait pas. Troisième liste,
-            troisième oubli : c'est le prix d'avoir trois rendus de piste.
-          -->
-          {@const indispo = pisteIndisponible(t)}
-          <div
-            class="track-item"
-            class:indispo
-            class:playing={estLaPisteEnLecture(t, $currentTrackId, $currentTrack)}
-            aria-current={estLaPisteEnLecture(t, $currentTrackId, $currentTrack) ? 'true' : undefined}
-            class:drag-over={dragOverIndex === index}
-            class:dragging={dragIndex === index}
-            draggable={!!selectedPlaylist}
-            ondragstart={() => (dragIndex = index)}
-            ondragover={(e) => { if (selectedPlaylist) { e.preventDefault(); dragOverIndex = index; } }}
-            ondragleave={() => { if (dragOverIndex === index) dragOverIndex = null; }}
-            ondrop={(e) => { e.preventDefault(); reorderTracks(index); }}
-            ondragend={() => { dragIndex = null; dragOverIndex = null; }}
-          >
-            <!-- Clic de ligne = toute la playlist en file à partir de cette piste,
-                 sinon la file ne contient qu'une piste et rien ne s'enchaîne
-                 (« l'enchaînement ne marche pas », Bertrand, Qobuz sur .18). -->
-            <button class="track-play" onclick={() => { if (!indispo) playFromIndex(index); }} disabled={indispo}>
-              <span class="track-num"><span class="num-text">{index + 1}</span><span class="num-play">&#9654;</span></span>
-              <span class="track-thumb">
-                <AlbumArt coverPath={t.cover_path} albumId={t.album_id} size={36} alt={t.album_title ?? t.title ?? ''} />
-              </span>
-              <div class="track-info">
-                <span class="track-title truncate" use:bulleTexte>{t.title}</span>
-                {#if t.artist_name}
-                  <span class="track-artist truncate" use:bulleTexte>{t.artist_name}</span>
-                {/if}
-              </div>
-              {#if indispo}<span class="track-indispo">{$tr('playlist.unavailable')}</span>{/if}
-              {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
-              <span class="track-duration">{formatTime(t.duration_ms)}</span>
-            </button>
-            <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromIndex(index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6"/><line x1="3" y1="12" x2="14" y2="12"/><line x1="3" y1="18" x2="10" y2="18"/><path d="M16 8v8l6-4z" fill="currentColor" stroke="none"/></svg>
-            </button>
-            <button class="add-queue-btn" onclick={() => addTrackToQueue(t)} title={$tr('queue.addToQueue')}>+</button>
-            <span class="track-heart" onclick={(e) => e.stopPropagation()}>
-              {#if (t.source ?? selectedStreamingPl?.source) && (t.source ?? selectedStreamingPl?.source) !== 'local' && t.source_id}
-                <HeartButton
-                  streaming={{
-                    itemType: 'track',
-                    service: (t.source ?? selectedStreamingPl?.source)!,
-                    serviceId: String(t.source_id),
-                    title: t.title,
-                    artist: t.artist_name ?? undefined,
-                    album: t.album_title ?? undefined,
-                    coverUrl: (t as any).cover_url ?? undefined,
-                  }}
-                  size={15}
-                />
-              {:else if t.id}
-                <HeartButton trackId={t.id} size={15} />
-              {/if}
-            </span>
-            {#if onAddToPlaylist && (t.id || t.source_id)}
-              <button class="add-playlist-btn" onclick={(e) => { e.stopPropagation(); onAddToPlaylist!(t); }} title={$tr('nowplaying.addToPlaylist')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 12H3m13 0h-2m0 0V8m0 4v4m6-8v8a2 2 0 01-2 2H5" /><line x1="3" y1="16" x2="11" y2="16" /><line x1="3" y1="8" x2="8" y2="8" /></svg>
-              </button>
-            {/if}
-            {#if selectedPlaylist}
-              <button class="remove-btn" onclick={() => removeTrack(index)} title={$tr('playlist.remove')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
-            {/if}
-          </div>
-        {/each}
+        Bertrand, 23/09/2026 : cet écran rendait sa propre liste — lire,
+        lire-à-partir-d'ici, file, cœur, retirer — sans les étiquettes ni le
+        menu « … » que `PisteActions` porte partout ailleurs. Chaque geste
+        ajouté à la barre commune y manquait, et chaque correction de ligne
+        (indisponibilité, piste en lecture…) devait y être refaite à la main :
+        « troisième liste, troisième oubli ».
+
+        La seule chose que la liste commune ne savait pas faire, c'était le
+        glisser-déposer de réordonnancement : elle le sait désormais
+        (`reordonnable` + `onReordonner`), et cet écran s'y branche comme
+        `PlaylistDetailV2`, avec un suffixe qui porte son geste propre : retirer.
+
+        `.track-list` reste : c'est le conteneur qui défile, et la garde des
+        infobulles (#2411) y cherche la fiche ouverte.
+      -->
+      <div class="track-list">
+        <ListePistesV2 pistes={detailTracks} pochetteEnTableau
+          onLire={(_p, i) => playFromIndex(i)} onLireDepuis={(_p, i) => playFromIndex(i)}
+          clef={(_p, i) => i}
+          reordonnable={!!selectedPlaylist} onReordonner={reorderTracks}
+          apres={selectedPlaylist ? retirer : undefined} largeurApres="36px"
+          etiquetteIndispo="playlist.unavailable" />
+        <!-- Le rang pour clé : une playlist peut contenir DEUX fois la même
+             piste, et deux clés identiques arrêtent Svelte
+             (`each_key_duplicate`). La liste refocalise la poignée par son
+             rang après un déplacement au clavier, précisément pour ce cas. -->
+        {#snippet retirer(_t: Track, index: number)}
+          <!-- « Retirer de la playlist » : le seul geste que la barre commune
+               n'a pas, parce qu'il n'a de sens que dans une playlist locale. -->
+          <button class="remove-btn" onclick={() => removeTrack(index)}
+            title={$tr('playlist.remove')} aria-label={$tr('playlist.remove')}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        {/snippet}
       </div>
     {/if}
 
@@ -3491,7 +3453,7 @@
     color: var(--tune-accent);
   }
 
-  /* Track list */
+  /* Le conteneur de la liste commune : c'est lui qui défile. */
   .track-list {
     display: flex;
     flex-direction: column;
@@ -3500,202 +3462,28 @@
     overflow-y: auto;
   }
 
-  .track-item {
-    display: flex;
-    align-items: center;
-    gap: 0;
-  }
-
-  /* Drag-to-reorder feedback (local playlists) */
-  .track-item.dragging {
-    opacity: 0.45;
-  }
-  .track-item.drag-over {
-    box-shadow: inset 0 2px 0 0 var(--tune-accent, #7c5cff);
-  }
-
-  /* La piste en cours. Meme parti pris qu'en bibliotheque : pas de fond
-     colore, le numero cede la place au chevron, le titre prend l'accent. */
-  .track-item .num-play { display: none; }
-  .track-item.playing .num-text { display: none; }
-  .track-item.playing .num-play { display: inline; }
-  .track-item.playing .track-title { color: var(--tune-accent); font-weight: 600; }
-
-  .track-play {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: var(--space-md);
-    padding: 8px 28px;
-    background: none;
-    border: none;
-    color: var(--tune-text);
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.12s ease-out;
-  }
-
-  .track-play:hover {
-    background: var(--tune-surface-hover);
-  }
-
-  .track-num {
-    width: 28px;
-    text-align: center;
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: var(--tune-text-muted);
-    font-variant-numeric: tabular-nums;
-    flex-shrink: 0;
-  }
-
-  .track-thumb {
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-
-  .track-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .track-thumb-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--tune-surface);
-    color: var(--tune-text-muted);
-    border-radius: var(--radius-sm);
-  }
-
-  .track-info {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .track-title {
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 700;
-  }
-
-  .track-artist {
-    font-family: var(--font-body);
-    font-size: 13px;
-    color: var(--tune-text-secondary);
-  }
-
-  .track-duration {
-    font-family: var(--font-body);
-    font-size: 12px;
-    color: var(--tune-text-muted);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .audio-format {
-    font-family: var(--font-label);
-    font-size: 11px;
-    color: var(--tune-text-muted);
-    letter-spacing: 0.3px;
-    flex-shrink: 0;
-  }
-
+  /* « Retirer de la playlist » — le suffixe de la liste commune, compilé ici.
+     Discret au repos, visible au survol de la ligne ou au focus. */
   .remove-btn {
     background: none;
     border: none;
     color: var(--tune-text-muted);
     cursor: pointer;
-    padding: 8px;
+    padding: 6px;
     border-radius: var(--radius-sm);
     opacity: 0;
     transition: all 0.12s ease-out;
+    display: flex;
+    align-items: center;
   }
-
-  .track-item:hover .remove-btn {
+  :global(.track-list .trow:hover) .remove-btn,
+  :global(.track-list .avecSuffixe:hover) .remove-btn,
+  .remove-btn:focus-visible {
     opacity: 1;
   }
-
   .remove-btn:hover {
     color: var(--tune-warning);
   }
-
-  .play-from-here-btn {
-    background: none;
-    border: 1px solid var(--tune-border);
-    color: var(--tune-text-secondary);
-    cursor: pointer;
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.12s ease-out;
-    opacity: 0;
-  }
-  .track-item:hover .play-from-here-btn { opacity: 1; }
-  .play-from-here-btn:hover { border-color: var(--tune-accent); color: var(--tune-accent); }
-
-  .add-queue-btn {
-    background: none;
-    border: 1px solid var(--tune-border);
-    color: var(--tune-text-muted);
-    cursor: pointer;
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-sm);
-    font-size: 16px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: all 0.12s ease-out;
-    margin-right: 8px;
-  }
-
-  .track-item:hover .add-queue-btn {
-    opacity: 1;
-  }
-
-  .add-queue-btn:hover {
-    color: var(--tune-accent);
-    border-color: var(--tune-accent);
-  }
-
-  .add-playlist-btn {
-    width: 28px;
-    height: 28px;
-    border: 1px solid var(--tune-border);
-    border-radius: var(--radius-sm);
-    background: none;
-    color: var(--tune-text-secondary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.12s ease-out;
-    opacity: 0;
-  }
-
-  .track-item:hover .add-playlist-btn {
-    opacity: 1;
-  }
-
-  .add-playlist-btn:hover {
-    border-color: var(--tune-accent);
-    color: var(--tune-accent);
-  }
-
   /* Modal */
   .modal-overlay {
     position: fixed;
@@ -3865,6 +3653,7 @@
 
   /* Transfer & Compare buttons */
   .transfer-btn,
+  .shuffle-btn,
   .compare-btn {
     display: flex;
     align-items: center;
@@ -3883,6 +3672,16 @@
   .transfer-btn:hover {
     border-color: #1DB954;
     color: #1DB954;
+  }
+
+  .shuffle-btn:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .shuffle-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 
   .compare-btn:hover {
@@ -4854,14 +4653,6 @@
   .pl-coin-hd:focus-visible, .pl-coin-bd:focus-visible{opacity:1}
   .pl-coin-hg:focus-within{opacity:1}
   .pl-coin-hd:hover, .pl-coin-bd:hover{color:var(--tune-text)}
-
-  /* Piste indisponible chez le service : grisée, étiquetée, inerte. Même
-     traitement que `LignePisteV2` — une seule apparence pour un seul fait. */
-  .track-item.indispo{opacity:.5}
-  .track-item.indispo .track-play{cursor:default}
-  .track-indispo{font-size:10px; letter-spacing:.04em; text-transform:uppercase;
-    color:var(--tune-text-muted); border:1px solid var(--tune-border);
-    border-radius:4px; padding:1px 6px; white-space:nowrap}
 
   /* Le message de coupure premium d'un onglet. */
   .pm-premium{margin:0; padding:22px; text-align:center; color:var(--tune-text-secondary);

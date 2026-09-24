@@ -33,8 +33,10 @@
  * ## Ce qui ne s'applique pas est ABSENT, pas grisé
  *
  * La règle déjà tenue par la barre d'icônes. Une piste de service n'a pas
- * d'identifiant de bibliothèque : ni voisins acoustiques, ni autres versions,
- * ni étiquettes — les trois routes prennent un `i64`.
+ * d'identifiant de bibliothèque : ni voisins acoustiques, ni champs du
+ * fichier — ces routes prennent un `i64`. Les étiquettes passent par la paire
+ * `source` + `source_id` (#1238) et, depuis le 23/09/2026, « Autres versions »
+ * par le TITRE et l'ARTISTE (`versionsParTitre`).
  */
 export interface EntreeMenuPiste {
   /** Clé i18n du libellé. Jamais un texte : voir `check-i18n`. */
@@ -58,6 +60,10 @@ export const ICONES = {
   tag: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42z',
   /** Une fiche de champs — le tiroir « Tous les champs piste » (#851). */
   champs: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5',
+  /** Un cercle barré — « Bannir ce titre » (#4806). */
+  ban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M5.6 5.6l12.8 12.8',
+  /** Le même cercle, rouvert — « Débannir ». */
+  unban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M8 12l3 3 5-6',
 } as const;
 /** Ce que la piste permet, décidé par l'appelant qui seul connaît le contexte. */
 export interface CapacitesPiste {
@@ -95,6 +101,36 @@ export interface CapacitesPiste {
    * service sans écriture). Voir `lib/playlistService.ts`.
    */
   playlistDeService?: string | null;
+  /**
+   * La piste est BANNIE (#4806) : l'entrée devient « Débannir ». Absent =
+   * pas bannie. N'a de sens que pour une piste de BIBLIOTHÈQUE — une piste de
+   * service n'a ni l'une ni l'autre des deux entrées (tranche locale seule,
+   * Bertrand 23/09/2026).
+   */
+  bannie?: boolean;
+  /**
+   * La piste n'a pas d'identifiant de bibliothèque mais porte un TITRE et un
+   * ARTISTE : « Autres versions » se rapproche alors par titre + artiste
+   * (`lib/versionsParTitre`, décision de Bertrand du 23/09/2026 — « résultats
+   * approximatifs acceptés »). Absent = jamais (comportement d'origine : les
+   * versions ne s'ouvraient que par un `i64`).
+   */
+  versionsParTitre?: boolean;
+  /**
+   * La piste de SERVICE sait montrer ses champs — fil forum 1906 (FabienM,
+   * point 3). Vrai quand elle se désigne par `source` + `source_id` chez un
+   * service (radio exclue) : voir `lib/champsPisteService`. Le tiroir « Tous
+   * les champs piste » les montre alors en lecture seule, sans jamais appeler
+   * la route des tags du fichier (`/library/tracks/{id}/all-tags`, un `i64`).
+   */
+  champsDeService?: boolean;
+  /**
+   * La piste de SERVICE a des titres voisins côté serveur — fil forum 1906
+   * (FabienM, point 3). Vrai pour un titre QOBUZ seulement :
+   * `GET /streaming/{service}/tracks/{id}/similar` répond 501 aux autres.
+   * Voir `lib/plusCommeCaService`.
+   */
+  similairesDeService?: boolean;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -115,6 +151,10 @@ export interface GestesPiste {
   etiqueter?: () => void;
   /** Ouvre le tiroir « Tous les champs piste » — #851, lecture des tags. */
   champsDuFichier?: () => void;
+  /** « Bannir ce titre » (#4806) — plus jamais joué automatiquement. */
+  bannir?: () => void;
+  /** « Débannir » — l'inverse, sur une piste déjà bannie. */
+  debannir?: () => void;
 }
 export function entreesMenuPiste(
   c: CapacitesPiste,
@@ -135,8 +175,42 @@ export function entreesMenuPiste(
   pousser(c.jouable, 'common.play', ICONES.play, g.lire, true);
   pousser(c.jouable, 'v2.pa.next', ICONES.next, g.ensuite);
   pousser(c.jouable, 'queue.addToQueue', ICONES.queue, g.aLaFile);
-  pousser(deLaBibliotheque, 'library.playSimilar', ICONES.similar, g.plusCommeCa);
-  pousser(deLaBibliotheque, 'library.otherVersions', ICONES.versions, g.autresVersions);
+  /**
+   * « Plus comme ça » — la bibliothèque, et depuis le 24/09/2026 un titre
+   * QOBUZ. Fil forum 1906 (FabienM, point 3).
+   *
+   * Le geste de bibliothèque lit `GET /library/tracks/{id}/similar` (voisins
+   * acoustiques, un `i64`) puis lance la file par `track_ids`. Un titre de
+   * service se désigne par `source` + `source_id` : il passe par
+   * `GET /streaming/{service}/tracks/{id}/similar`, la logique de la reprise
+   * automatique de fin de file sortie en route (`poller/radio.rs` →
+   * `auto_dj::pistes_similaires_du_service`) — artiste du titre, artistes
+   * similaires SELON LE SERVICE, un titre phare par voisin.
+   *
+   * Seul Qobuz implémente `get_similar_artists` : Tidal, Deezer, Spotify,
+   * YouTube, Amazon et Bandcamp n'ont pas de similarité d'artiste, la route
+   * leur répond 501, et l'entrée leur reste ABSENTE — pas grisée, pas muette.
+   * La règle vit dans `lib/plusCommeCaService` (`plusCommeCaDeServiceDe`).
+   */
+  pousser(
+    deLaBibliotheque || !!c.similairesDeService,
+    'library.playSimilar',
+    ICONES.similar,
+    g.plusCommeCa,
+  );
+  /**
+   * « Autres versions » — par `i64` pour la bibliothèque, par TITRE + ARTISTE
+   * pour tout le reste (Bertrand, 23/09/2026). Même libellé, même icône : ce
+   * qui change est la façon dont le panneau rapproche, et il le dit dans son
+   * en-tête. C'est l'appelant qui pose `versionsParTitre`, par
+   * `cibleParTitre(piste)` : une piste sans titre ou sans artiste ne l'a pas.
+   */
+  pousser(
+    deLaBibliotheque || !!c.versionsParTitre,
+    'library.otherVersions',
+    ICONES.versions,
+    g.autresVersions,
+  );
   /**
    * 🔴 « Ajouter à une liste de lecture » : réservé à la BIBLIOTHÈQUE.
    *
@@ -174,7 +248,8 @@ export function entreesMenuPiste(
    * absences, TROIS familles, et les confondre serait l'erreur :
    *
    *   A. Plus comme ça, Autres versions, Étiquettes — les trois routes prennent
-   *      (Étiquettes : plus depuis #1238, voir `etiquetable`.)
+   *      (Étiquettes : plus depuis #1238, voir `etiquetable` ; Plus comme ça :
+   *      plus pour un titre Qobuz depuis le fil 1906, voir `similairesDeService`.)
    *      un `i64` de `tracks`. Une piste de service n'en a pas.
    *   B. Ajouter à une playlist — tranché par #1848 : `playlist_tracks.track_id`
    *      est `NOT NULL REFERENCES tracks(id)`. Évolution de schéma, pas
@@ -225,7 +300,31 @@ export function entreesMenuPiste(
    * nouvelle interface que par pochette → Modifier l'album → cliquer une
    * piste, trois gestes que rien ne signale. Il prend un `i64` de `tracks` :
    * réservé à la bibliothèque, comme ses trois voisines de la famille A.
+   *
+   * 🔴 Fil forum 1906 (FabienM, point 3) : plus seulement. Une piste de
+   * SERVICE a des champs aussi — ceux que le client tient déjà, complétés par
+   * `GET /streaming/{service}/tracks/{id}` quand le service sait répondre.
+   * Même tiroir, en lecture seule, sans la route du fichier.
    */
-  pousser(deLaBibliotheque, 'trackTags.title', ICONES.champs, g.champsDuFichier);
+  pousser(
+    deLaBibliotheque || !!c.champsDeService,
+    'trackTags.title',
+    ICONES.champs,
+    g.champsDuFichier,
+  );
+  /**
+   * « Bannir ce titre » / « Débannir » — `renesenses/tune-server-rust#4806`.
+   *
+   * Bertrand, 23/09/2026 : un titre banni n'est plus jamais joué par une
+   * sélection automatique, reste visible mais grisé dans son album, et se
+   * débannit depuis le même menu ou depuis l'écran « Titres bannis ».
+   *
+   * Bibliothèque SEULE pour cette tranche : `POST /library/tracks/{id}/ban`
+   * prend un `i64`. Une piste de service n'a AUCUNE des deux entrées —
+   * absente, pas grisée, comme ses voisines de la famille A. Et jamais les
+   * deux à la fois : la piste est bannie ou ne l'est pas.
+   */
+  pousser(deLaBibliotheque && !c.bannie, 'ban.ban', ICONES.ban, g.bannir);
+  pousser(deLaBibliotheque && c.bannie === true, 'ban.unban', ICONES.unban, g.debannir);
   return e;
 }

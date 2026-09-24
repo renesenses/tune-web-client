@@ -1784,6 +1784,54 @@ export async function getAllAlbums(pageSize = 2000, sort: string | null = 'title
   return (await getAllAlbumsSeeded(pageSize, sort, order, page, perPage, dr)).albums;
 }
 
+/**
+ * UNE page d'albums, telle que le serveur la borne — renesenses/tune-server-rust#4800.
+ *
+ * `GET /library/albums` accepte `limit`/`offset`, un tri (`title`, `artist`,
+ * `added`, `dr`, `random`…), son sens, et une graine pour l'aléatoire ; il rend
+ * la page ET `total`, l'effectif de la bibliothèque visible (calculé en une
+ * seule passe depuis la PR serveur #4815). C'est le contrat sur lequel le
+ * magasin paginé (`stores/albumsPagines`) s'appuie : il ne demande jamais
+ * plus qu'une page.
+ *
+ * ⚠️ `total` est celui de la bibliothèque VISIBLE entière, jamais celui d'une
+ * facette : le serveur ne sait pas compter un filtre. Aucun filtre n'est donc
+ * envoyé ici — ceux de la Bibliothèque restent appliqués sur place, sur la
+ * liste entière chargée à la demande.
+ */
+export interface DemandePageAlbums {
+  limit: number;
+  offset?: number;
+  sort?: string | null;
+  order?: string | null;
+  seed?: number | null;
+}
+export interface PageAlbums {
+  items: Album[];
+  /** `null` : un serveur ancien qui rend un tableau nu, sans total. */
+  total: number | null;
+  /** Renseignée en tri aléatoire seulement (#3074). */
+  seed?: number;
+}
+export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums> {
+  const p = new URLSearchParams();
+  p.set('limit', String(d.limit));
+  p.set('offset', String(d.offset ?? 0));
+  // Pas de `sort` = pas de paramètre du tout : voir `getAllAlbumsSeeded`.
+  if (d.sort) {
+    p.set('sort', d.sort);
+    if (d.order) p.set('order', d.order);
+  }
+  if (d.seed != null) p.set('seed', String(d.seed));
+  const raw = await fetchJSON<any>(`${BASE}/library/albums?${p.toString()}`);
+  if (Array.isArray(raw)) return { items: raw, total: null };
+  return {
+    items: Array.isArray(raw?.items) ? raw.items : [],
+    total: typeof raw?.total === 'number' ? raw.total : null,
+    seed: typeof raw?.seed === 'number' ? raw.seed : undefined,
+  };
+}
+
 /** Les valeurs de Dynamic Range RÉELLEMENT présentes dans la bibliothèque,
  *  décroissantes. Vide sur une bibliothèque non taguée — et le client ne doit
  *  alors dessiner AUCUNE commande, plutôt qu'une commande sans effet. */
@@ -1910,6 +1958,23 @@ export interface AlbumsArtisteSections {
   compilations?: Album[];
   /** Albums d'un AUTRE artiste portant au moins une piste de celui-ci. */
   appearances?: Album[];
+  /**
+   * #4767 (crédits, tune-server-rust#4862) — les disques d'autrui où
+   * l'artiste est crédité comme MUSICIEN, groupés par artiste principal
+   * (groupes par nom, albums par année). Lus dans `track_credits`, que remplit
+   * `POST /system/enrich-credits` ; absents devant un serveur qui ne le
+   * connaît pas (v0.9.163).
+   */
+  collaborations?: GroupeCollaborations[];
+  /** Les disques d'autrui où il est crédité comme AUTEUR (par année). */
+  covers?: Album[];
+}
+
+/** Une sous-section « Avec {artiste} » des Collaborations. */
+export interface GroupeCollaborations {
+  artist_id: number | null;
+  artist_name: string;
+  albums: Album[];
 }
 
 /**
@@ -1924,7 +1989,13 @@ export interface AlbumsArtisteSections {
 export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
   if (Array.isArray(brut)) return { albums: brut as Album[] };
   const o = (brut ?? {}) as AlbumsArtisteSections;
-  return { albums: o.albums ?? [], compilations: o.compilations, appearances: o.appearances };
+  return {
+    albums: o.albums ?? [],
+    compilations: o.compilations,
+    appearances: o.appearances,
+    collaborations: o.collaborations,
+    covers: o.covers,
+  };
 }
 
 /**
@@ -2901,6 +2972,44 @@ export function getSimilarAlbums(albumId: number, limit = 10) {
 export function getSimilarTracks(trackId: number, limit = 50) {
   return fetchJSON<{ seed_track_id: number; count: number; items: import('./types').Track[] }>(
     `${BASE}/library/tracks/${trackId}/similar?limit=${limit}`,
+  );
+}
+
+/* ------------------------------------------------------------------------ *
+ * Titres bannis — `renesenses/tune-server-rust#4806` (serveur : PR #4818).
+ *
+ * Bibliothèque LOCALE seulement : les trois routes prennent un `i64` de
+ * `tracks`. Le drapeau `banned` des listes de pistes, lui, arrive avec chaque
+ * ligne (`Track.banned`) — voir `lib/titreBanni.ts`.
+ * ------------------------------------------------------------------------ */
+
+/** Une ligne de `GET /library/tracks/banned` (`hidden_repo.rs::BannedTrack`). */
+export interface BannedTrack {
+  track_id: number;
+  /** Titre vivant si la piste existe encore, sinon l'instantané figé au bannissement. */
+  title: string;
+  artist: string | null;
+  album_id: number | null;
+  album_title: string | null;
+  banned_at: string | null;
+  /** `false` = marqueur orphelin : l'id ne désigne plus de piste vivante. */
+  resolved: boolean;
+}
+
+/** `POST /library/tracks/{id}/ban` — 404 si l'id ne désigne aucune piste. */
+export function banTrack(trackId: number) {
+  return apiPost(`/library/tracks/${trackId}/ban`) as Promise<{ track_id: number; banned: boolean }>;
+}
+
+/** `DELETE /library/tracks/{id}/ban` — idempotent. */
+export function unbanTrack(trackId: number) {
+  return apiDelete(`/library/tracks/${trackId}/ban`) as Promise<{ track_id: number; banned: boolean } | null>;
+}
+
+/** `GET /library/tracks/banned` — l'écran « Titres bannis » du profil. */
+export function listBannedTracks() {
+  return fetchJSON<{ profile_id?: number; total: number; items: BannedTrack[] }>(
+    `${BASE}/library/tracks/banned`,
   );
 }
 
@@ -4074,6 +4183,39 @@ export function getStreamingAlbum(service: string, albumId: string) {
 export function getStreamingAlbumTracks(service: string, albumId: string) {
   return fetchJSON<Track[]>(`${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumId)}/tracks`)
     .then((t) => mapStreamingTracks(t, service));
+}
+
+/**
+ * Le détail d'UN titre chez son service — `GET /streaming/{service}/tracks/{id}`
+ * (`get_track`, un `StreamTrack`). Fil forum 1906 (FabienM, point 3) : il
+ * complète « Tous les champs piste » d'un titre de service.
+ *
+ * `sansBandeau` : le tiroir montre DÉJÀ les champs que la piste porte, et un
+ * service qui ne sait pas répondre n'est pas une panne de Tune — voir
+ * `fetchJSON`. L'appelant se tait lui aussi.
+ */
+export function getStreamingTrack(service: string, trackId: string) {
+  return fetchJSON<Track>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(trackId)}`,
+    undefined, undefined, true,
+  ).then((t) => mapStreamingTracks([t], service)[0]);
+}
+
+/**
+ * « Plus comme ça » sur un titre de SERVICE — fil forum 1906 (FabienM,
+ * point 3). `GET /streaming/{service}/tracks/{id}/similar` : l'algorithme de
+ * la reprise automatique de fin de file côté serveur (artiste du titre →
+ * artistes similaires → un titre phare par voisin), le titre source exclu.
+ *
+ * Rend des pistes au format des autres routes streaming, la `source` reposée
+ * par `mapStreamingTracks` : elles se lisent et s'enfilent comme d'habitude.
+ * Seul Qobuz sait répondre ; les autres services reçoivent un 501 — le menu ne
+ * leur propose donc pas l'entrée (`plusCommeCaService`).
+ */
+export function similairesDeService(service: string, trackId: string, limit = 20) {
+  return fetchJSON<Track[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(trackId)}/similar?limit=${limit}`,
+  ).then((t) => mapStreamingTracks(t, service));
 }
 
 export function getStreamingArtist(service: string, artistId: string) {
@@ -5591,6 +5733,84 @@ export function cancelAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zon
 export function quickFavTrack(trackId: number) { return fetchJSON<any>(`${BASE}/library/tracks/${trackId}/quick-fav`, { method: 'POST' }); }
 export function quickFavAlbum(albumId: number) { return fetchJSON<any>(`${BASE}/library/albums/${albumId}/quick-fav`, { method: 'POST' }); }
 
+// --- Rayons de collections (tune-server-rust#4853) ---
+//
+// Un RAYON range des collections des DEUX sortes et des sous-rayons (arbre,
+// profondeur 3). Le mot « dossier » est pris deux fois dans l'interface — les
+// dossiers de musique du disque, et le nom que les testeurs donnent déjà aux
+// collections simples (#1153, #3060) — d'où « rayon », comme chez un disquaire.
+//
+// Routes ADDITIVES : `/library/collections` et `/library/smart-collections`
+// gardent leur forme. Un serveur antérieur répond 404 sur l'arbre ; l'écran
+// retombe alors sur ses listes plates (`lib/rayonsCollections`).
+//
+// 🔴 Passent par `apiFetch` / `apiPost` / `apiPatch` / `apiDelete` : ils
+// construisent l'erreur par `erreurDepuisReponse`, qui GARDE le motif du
+// refus serveur (« profondeur maximale atteinte… ») et porte `status`.
+// `fetchJSON` le rangerait dans `.code` et l'écran ne lirait que « 409 ».
+
+/** Sorte d'une collection rangée : les deux espaces d'ids se recouvrent. */
+export type SorteCollectionRangee = 'collection' | 'smart';
+
+export interface CollectionRangee {
+  kind: SorteCollectionRangee;
+  id: number;
+  name: string | null;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  folder_id: number | null;
+  /** `null` = jamais rangée (à la racine, après les rangées). */
+  position: number | null;
+}
+
+export interface RayonCollections {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  position: number;
+  depth: number;
+  folders: RayonCollections[];
+  collections: CollectionRangee[];
+}
+
+export interface ArbreCollections {
+  max_depth: number;
+  folders: RayonCollections[];
+  /** Toutes les collections qui ne sont dans aucun rayon. */
+  collections: CollectionRangee[];
+}
+
+export function getCollectionFolders(): Promise<ArbreCollections> {
+  return apiFetch('/library/collection-folders');
+}
+export function createCollectionFolder(name: string, parentId: number | null = null) {
+  return apiPost('/library/collection-folders', { name, parent_id: parentId });
+}
+export function renameCollectionFolder(id: number, name: string) {
+  return apiPatch(`/library/collection-folders/${id}`, { name });
+}
+/** `parentId` `null` = la racine ; `position` absente = à la fin. */
+export function moveCollectionFolder(id: number, parentId: number | null, position?: number) {
+  return apiPost(`/library/collection-folders/${id}/move`, { parent_id: parentId, position });
+}
+/** Le contenu du rayon remonte à son parent ; aucune collection n'est supprimée. */
+export function deleteCollectionFolder(id: number) {
+  return apiDelete(`/library/collection-folders/${id}`);
+}
+/** Range (ou déplace, ou réordonne) une collection ; `folderId` `null` = racine. */
+export function placeCollectionInFolder(
+  kind: SorteCollectionRangee,
+  id: number,
+  folderId: number | null,
+  position?: number,
+) {
+  return apiPost(`/library/collection-folders/items/${kind}/${id}`, { folder_id: folderId, position });
+}
+export function removeCollectionFromFolder(kind: SorteCollectionRangee, id: number) {
+  return apiDelete(`/library/collection-folders/items/${kind}/${id}`);
+}
+
 // --- Collections ---
 export function getCollections() { return fetchJSON<any[]>(`${BASE}/library/collections`); }
 export function createCollection(name: string, description?: string, icon?: string, color?: string) {
@@ -5972,6 +6192,70 @@ export function getBatchEnrichStatus() {
   return fetchJSON<{ status: 'running' | 'done' | 'idle'; enriched: number; errors?: number; total: number }>(
     `${BASE}/library/enrich-all/status`
   );
+}
+/**
+ * Type de sortie des albums (album / EP / single) — `POST /system/enrich-release-types`
+ * (`tune-server/src/routes/system/enrich.rs`, `enrich_release_types`, #4767,
+ * livré en v0.9.163). Pas de corps.
+ *
+ * Rend **202** tout de suite et travaille en tâche de fond, inscrite au
+ * registre sous l'identifiant `types_de_sortie` (`GET /system/background-tasks`
+ * et l'événement `system.background_tasks`) — sans avancement chiffré : le
+ * serveur ne publie que sa présence. Une requête MusicBrainz par seconde.
+ *
+ * `candidats` est MESURÉ avant la passe : les albums qui ont un
+ * `musicbrainz_release_group_id` et pas encore de type. Les autres restent de
+ * type inconnu — le serveur ne devine pas.
+ *
+ * Refus possible : **429** `{code: "daily_quota_exhausted", …}` quand le quota
+ * gratuit d'enrichissement du jour est épuisé (`gate_enrichment`).
+ */
+export function enrichReleaseTypes() {
+  return fetchJSON<{ status: string; candidats?: number; premium?: boolean }>(
+    `${BASE}/system/enrich-release-types`,
+    { method: 'POST' },
+  );
+}
+
+/**
+ * Crédits MusicBrainz PAR DISQUE — `POST /system/enrich-credits`
+ * (`tune-server/src/routes/system/enrich.rs`, `enrich_credits_releases`,
+ * tune-server-rust#4862, #4767). Remplit `track_credits`, que lisent les
+ * sections « Collaborations » et « Reprises » de la page artiste. Pas de
+ * corps : l'option `force` du serveur n'est pas offerte ici.
+ *
+ * Rend **202** et travaille en tâche de fond, inscrite au registre sous
+ * `credits_releases`. `candidats` = disques à interroger = nombre de
+ * requêtes, à une par seconde.
+ *
+ * Refus possibles : **409** `already_running` (une passe tourne déjà),
+ * **429** `daily_quota_exhausted` (quota gratuit du jour, `gate_enrichment`).
+ */
+export function enrichCredits() {
+  return fetchJSON<{
+    status: string; task_id?: string; candidats?: number; albums_avec_mbid?: number;
+    force?: boolean; premium?: boolean;
+  }>(`${BASE}/system/enrich-credits`, { method: 'POST' });
+}
+
+/** État de la passe des crédits — même forme au repos comme en cours. */
+export interface EtatEnrichCredits {
+  status: 'idle' | 'running' | 'done' | 'interrupted' | string;
+  task_id?: string;
+  total?: number;
+  processed?: number;
+  enriched?: number;
+  tracks_credited?: number;
+  unmatched?: number;
+  unknown?: number;
+  errors?: number;
+  candidats?: number;
+  albums_avec_mbid?: number;
+}
+
+/** `GET /system/enrich-credits` — avancement chiffré de la passe (#4862). */
+export function getEnrichCreditsStatus() {
+  return fetchJSON<EtatEnrichCredits>(`${BASE}/system/enrich-credits`);
 }
 
 /**

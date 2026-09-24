@@ -20,12 +20,26 @@
  *    dossier sain porterait un « 0 manquant », c'est-à-dire du bruit.
  * 3. Les trois textes existent dans les ONZE dictionnaires du client.
  *
+ * ## Ce que la seconde moitié ajoute (23/09, décision de Bertrand)
+ *
+ * Lulu redemande la LISTE (fil 1891) et donne le geste : « un clic sur le
+ * nombre des manquants ». Le serveur publie désormais `orphan_album_ids` en
+ * LISTE, le compte sous `orphan_album_count`, et `orphan_albums` nommé —
+ * parce qu'il conserve le titre AU RANGEMENT. L'écran n'a donc plus le droit
+ * de s'arrêter au nombre.
+ *
+ * 4. Le compte se lit dans `orphan_album_count`, et l'ANCIENNE forme (un
+ *    nombre dans `orphan_album_ids`) reste comprise : un client à jour devant
+ *    un serveur plus vieux garde sa mention.
+ * 5. La mention est CLIQUABLE et ouvre la liste — c'est le geste demandé.
+ * 6. La liste nomme les albums quand le nom a pu être conservé, et n'invente
+ *    rien quand il ne l'a pas été.
+ *
  * ## Ce qu'elle ne tient PAS
  *
- * Le TITRE des albums manquants. Ils ne sont plus en base : leur nom n'est
- * lisible nulle part, ni côté client ni côté serveur. Le dire demanderait de
- * conserver le titre au moment du rangement — un travail serveur, hors de
- * portée d'ici.
+ * Que le titre SOIT là. Un album disparu avant que le serveur n'apprenne à
+ * garder son nom n'a plus de nom nulle part : la liste le désigne alors par
+ * son seul identifiant, et c'est tout ce qui existe.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -46,13 +60,22 @@ function sansCommentaires(src: string): string {
     .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, '$1');
 }
 
-describe('#901 — les albums manquants d’un dossier sont dits', () => {
-  it('le compte vient de `orphan_album_ids`, servi par le serveur', () => {
+describe('#901 — les albums manquants d’un dossier sont dits, puis NOMMÉS', () => {
+  it('le compte vient du serveur, jamais d’un calcul local', () => {
     expect(
       ecran(),
       'le seul endroit où le nombre d’albums disparus existe est la réponse du ' +
         'serveur : `album_ids` est déjà réduit aux vivants.'
-    ).toContain('orphan_album_ids');
+    ).toContain('orphan_album_count');
+  });
+
+  it('l’ANCIENNE forme reste comprise — un serveur d’avant #901 dit le nombre dans `orphan_album_ids`', () => {
+    const src = ecran();
+    expect(src).toContain('orphan_album_ids');
+    expect(
+      /typeof\s+c\??\.orphan_album_ids\s*===\s*'number'/.test(src),
+      'sans ce repli, un client à jour devant un serveur plus ancien perdrait la mention'
+    ).toBe(true);
   });
 
   it('il n’est PAS recalculé ici par une soustraction', () => {
@@ -66,6 +89,25 @@ describe('#901 — les albums manquants d’un dossier sont dits', () => {
     expect(src).toMatch(/\{#if e\.manquants\}/);
   });
 
+  it('🔴 elle est CLIQUABLE et ouvre la liste — le geste demandé par Lulu', () => {
+    const src = ecran();
+    const mention = src.slice(src.indexOf('{#if e.manquants}'));
+    expect(
+      /<button[^>]*class="mq"/.test(mention),
+      'un `title=` ne suffit pas : il n’existe pas au tactile, et Lulu a demandé un clic'
+    ).toBe(true);
+    expect(/manquantsOuverts\s*=\s*e/.test(mention)).toBe(true);
+  });
+
+  it('🔴 la liste nomme les albums, et n’invente rien quand le nom n’a pas été conservé', () => {
+    const src = ecran();
+    expect(src).toContain('orphan_albums');
+    expect(src).toContain('manquantsDetail');
+    expect(src).toContain('collections.missingUnknown');
+    expect(src).toContain('collections.missingNoList');
+    expect(src).toContain('collections.missingListTitle');
+  });
+
   it('elle accorde le singulier et le pluriel, et porte une explication', () => {
     const src = ecran();
     expect(src).toContain('collections.missingOne');
@@ -76,7 +118,14 @@ describe('#901 — les albums manquants d’un dossier sont dits', () => {
   it('les trois textes existent dans les onze dictionnaires', () => {
     for (const langue of LANGUES) {
       const dictionnaire = lire(`src/lib/locales/${langue}.ts`);
-      for (const cle of ['collections.missingOne', 'collections.missingMany', 'collections.missingHint']) {
+      for (const cle of [
+        'collections.missingOne',
+        'collections.missingMany',
+        'collections.missingHint',
+        'collections.missingListTitle',
+        'collections.missingUnknown',
+        'collections.missingNoList',
+      ]) {
         expect(dictionnaire.includes(`"${cle}"`), `${cle} manque dans ${langue}.ts`).toBe(true);
       }
     }
@@ -87,5 +136,13 @@ describe('#901 — les albums manquants d’un dossier sont dits', () => {
     const ligne = (cle: string) => fr.split('\n').find((l) => l.includes(`"${cle}"`)) ?? '';
     expect(ligne('collections.missingMany')).toContain('{count}');
     expect(ligne('collections.missingOne')).not.toContain('{count}');
+  });
+
+  it('l’album sans nom est désigné par son identifiant, dans les onze langues', () => {
+    for (const langue of LANGUES) {
+      const dictionnaire = lire(`src/lib/locales/${langue}.ts`);
+      const ligne = dictionnaire.split('\n').find((l) => l.includes('"collections.missingUnknown"')) ?? '';
+      expect(ligne, `collections.missingUnknown doit porter {id} dans ${langue}.ts`).toContain('{id}');
+    }
   });
 });
