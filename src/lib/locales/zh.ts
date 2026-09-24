@@ -3881,6 +3881,15 @@ export default {
   "settings.releaseTypesStarted": "发行类型：已开始查询 {n} 张专辑（每秒一次请求）。",
   "settings.releaseTypesNoCandidate": "发行类型：没有需要处理的专辑。只有已在 MusicBrainz 上识别的专辑才能获得类型。",
   "settings.releaseTypesQuota": "今日补全配额已用完（免费版）。请明天再试。",
+  "settings.credits": "补全演职人员",
+  "settings.creditsHint": "在 MusicBrainz 上查找每张已识别发行版的演奏、演唱和词曲作者，用于填充艺人页面的“合作”和“翻唱”栏目。较慢：每张发行版一个请求，每秒一个。",
+  "settings.creditsStarted": "演职人员：已开始查找 {n} 张发行版（每秒一个请求）。",
+  "settings.creditsNoCandidate": "演职人员：没有需要处理的发行版。只有已在 MusicBrainz 上识别的专辑才能获得演职人员信息。",
+  "settings.creditsAlreadyRunning": "演职人员已在查找中。",
+  "v2.disco.collaborations": "合作",
+  "v2.disco.withArtist": "与 {artist} 合作",
+  "v2.disco.covers": "翻唱",
+  "v2.album.creditedOnly": "署名 {artist} 的曲目",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

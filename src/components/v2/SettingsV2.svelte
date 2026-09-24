@@ -57,7 +57,7 @@
   import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
-  import { TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
+  import { TACHE_CREDITS, TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import {
@@ -2682,6 +2682,65 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       releaseTypesEnVol = false;
     }
   }
+  /**
+   * Crédits MusicBrainz par disque (#4767, tune-server-rust#4862). Sans eux,
+   * « Collaborations » et « Reprises » de la page artiste n'ont rien à lire :
+   * `track_credits` est vide en pratique.
+   *
+   * Même idiome que les types de sortie, avec un avancement CHIFFRÉ en plus :
+   * `GET /system/enrich-credits` rend `processed` / `total`. Occupé tant que
+   * le POST est en vol, que la tâche `credits_releases` est au registre ou que
+   * ce GET dit `running`. Un serveur qui ne connaît pas la route (v0.9.163)
+   * répond 404 au GET : on se tait, le bouton reste offert et son POST dira
+   * l'échec.
+   */
+  let creditsEnVol = $state(false);
+  let creditsEtat = $state<api.EtatEnrichCredits | null>(null);
+  const creditsTache = $derived($tachesDeFond.find((tache) => tache.id === TACHE_CREDITS) ?? null);
+  const creditsOccupe = $derived(
+    creditsEnVol || creditsTache != null || creditsEtat?.status === 'running',
+  );
+  /** L'avancement à montrer : celui du GET, sinon celui que publie le registre. */
+  const creditsAvancement = $derived.by((): { n: number; total: number } | null => {
+    if (!creditsOccupe) return null;
+    const total = creditsEtat?.status === 'running' ? creditsEtat.total ?? 0 : creditsTache?.progress?.total ?? 0;
+    const n = creditsEtat?.status === 'running' ? creditsEtat.processed ?? 0 : creditsTache?.progress?.processed ?? 0;
+    return total > 0 ? { n: Math.min(n, total), total } : null;
+  });
+  async function relireCredits() {
+    try { creditsEtat = await api.getEnrichCreditsStatus(); }
+    catch { /* route absente (serveur antérieur) : rien à montrer */ }
+  }
+  $effect(() => { void relireCredits(); });
+  $effect(() => {
+    if (!creditsOccupe) return;
+    const h = setInterval(relireCredits, 3000);
+    return () => clearInterval(h);
+  });
+  async function remplirCredits() {
+    if (creditsOccupe) return;
+    enrichErr = null;
+    creditsEnVol = true;
+    const tr = get(t);
+    try {
+      const r = await api.enrichCredits();
+      const n = r?.candidats;
+      if (n === 0) notifications.info(tr('settings.creditsNoCandidate' as any));
+      else notifications.info(tr('settings.creditsStarted' as any).replace('{n}', get(formatNombre)(n ?? 0)));
+    } catch (e) {
+      // 409 = une passe tourne déjà ; 429 = quota gratuit du jour épuisé
+      // (`gate_enrichment`). Les corps ne portent qu'un code anglais.
+      const statut = (e as api.ApiError | null)?.status;
+      enrichErr = statut === 429
+        ? tr('settings.releaseTypesQuota' as any)
+        : statut === 409
+          ? tr('settings.creditsAlreadyRunning' as any)
+          : errText(e) ?? tr('settings.errStartFailed');
+    } finally {
+      creditsEnVol = false;
+    }
+    await relireCredits();
+  }
 
   // ── Rangement des fichiers importes ───────────────────────────────────
   let ingest = $state<any | null>(null);
@@ -3119,9 +3178,8 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span></div>
                 <button class="lnk" disabled={albumCoversBusy} onclick={rescanAlbumCovers}>{$t('v2.set.start' as any)}</button>
               </div>
-              <!-- Passes MusicBrainz ciblées (#4767). « Remplir les crédits »
-                   (`POST /system/enrich-credits`) viendra se ranger ici, sur
-                   le même modèle que la rangée ci-dessous. -->
+              <!-- Passes MusicBrainz ciblées (#4767) : types de sortie, puis
+                   crédits par disque (`POST /system/enrich-credits`, #4862). -->
               <div class="row">
                 <div class="lbl">
                   <span>{$t('settings.releaseTypes' as any)}</span>
@@ -3131,6 +3189,19 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                   {$t((releaseTypesOccupe ? 'v2.set.running' : 'v2.set.start') as any)}
                 </button>
               </div>
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.credits' as any)}</span>
+                  <span class="hint">{$t('settings.creditsHint' as any)}</span>
+                </div>
+                <button class="lnk" disabled={creditsOccupe} onclick={remplirCredits}>
+                  {$t((creditsOccupe ? 'v2.set.running' : 'v2.set.start') as any)}
+                </button>
+              </div>
+              {#if creditsAvancement}
+                <div class="bar2"><span style="width:{Math.min(100, Math.round((creditsAvancement.n / creditsAvancement.total) * 100))}%"></span></div>
+                <div class="hint" data-avancement="credits">{$t('v2.set.progressOf' as any).replace('{n}', $formatNombre(creditsAvancement.n)).replace('{total}', $formatNombre(creditsAvancement.total))}</div>
+              {/if}
               <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}
 

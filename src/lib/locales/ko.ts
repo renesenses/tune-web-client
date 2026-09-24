@@ -3881,6 +3881,15 @@ export default {
   "settings.releaseTypesStarted": "발매 유형: 앨범 {n}개에 대한 검색을 시작했습니다(초당 요청 1회).",
   "settings.releaseTypesNoCandidate": "발매 유형: 처리할 앨범이 없습니다. MusicBrainz에서 이미 식별된 앨범만 유형을 받을 수 있습니다.",
   "settings.releaseTypesQuota": "오늘의 보강 한도에 도달했습니다(무료 버전). 내일 다시 시도하세요.",
+  "settings.credits": "크레딧 채우기",
+  "settings.creditsHint": "식별된 각 릴리스에서 누가 연주하고 노래하고 작곡했는지 MusicBrainz에서 찾아 아티스트 페이지의 «협업»과 «커버» 섹션을 채웁니다. 느림: 릴리스당 요청 1회, 초당 1회.",
+  "settings.creditsStarted": "크레딧: {n}개 릴리스 검색을 시작했습니다(초당 요청 1회).",
+  "settings.creditsNoCandidate": "크레딧: 처리할 릴리스가 없습니다. MusicBrainz에서 이미 식별된 앨범만 크레딧을 받을 수 있습니다.",
+  "settings.creditsAlreadyRunning": "크레딧을 이미 검색하고 있습니다.",
+  "v2.disco.collaborations": "협업",
+  "v2.disco.withArtist": "{artist}와(과) 함께",
+  "v2.disco.covers": "커버",
+  "v2.album.creditedOnly": "{artist}이(가) 크레딧된 곡",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

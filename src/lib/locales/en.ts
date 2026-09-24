@@ -3901,6 +3901,15 @@ export default {
   "settings.releaseTypesStarted": "Release types: lookup started for {n} albums (one request per second).",
   "settings.releaseTypesNoCandidate": "Release types: no album to process. Only albums already identified on MusicBrainz can get a type.",
   "settings.releaseTypesQuota": "Today's enrichment quota is used up (free version). Try again tomorrow.",
+  "settings.credits": "Fill in credits",
+  "settings.creditsHint": "Looks up on MusicBrainz who plays, sings and writes on each identified release, to fill the “Collaborations” and “Covers” sections of an artist's page. Slow: one request per release, one per second.",
+  "settings.creditsStarted": "Credits: lookup started for {n} releases (one request per second).",
+  "settings.creditsNoCandidate": "Credits: no release to process. Only albums already identified on MusicBrainz can get their credits.",
+  "settings.creditsAlreadyRunning": "Credits are already being looked up.",
+  "v2.disco.collaborations": "Collaborations",
+  "v2.disco.withArtist": "With {artist}",
+  "v2.disco.covers": "Covers",
+  "v2.album.creditedOnly": "Tracks crediting {artist}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

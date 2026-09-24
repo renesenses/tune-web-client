@@ -3880,4 +3880,13 @@ export default {
   "settings.releaseTypesStarted": "Utgivningstyper: sökning startad för {n} album (en förfrågan per sekund).",
   "settings.releaseTypesNoCandidate": "Utgivningstyper: inget album att bearbeta. Endast album som redan identifierats på MusicBrainz kan få en typ.",
   "settings.releaseTypesQuota": "Dagens berikningskvot är förbrukad (gratisversion). Försök igen i morgon.",
+  "settings.credits": "Fyll i medverkande",
+  "settings.creditsHint": "Söker på MusicBrainz vem som spelar, sjunger och skriver på varje identifierad utgåva, för att fylla avsnitten ”Samarbeten” och ”Covers” på en artists sida. Långsamt: en förfrågan per utgåva och sekund.",
+  "settings.creditsStarted": "Medverkande: sökning startad för {n} utgåvor (en förfrågan per sekund).",
+  "settings.creditsNoCandidate": "Medverkande: ingen utgåva att bearbeta. Bara album som redan identifierats på MusicBrainz kan få sina medverkande.",
+  "settings.creditsAlreadyRunning": "Medverkande söks redan.",
+  "v2.disco.collaborations": "Samarbeten",
+  "v2.disco.withArtist": "Med {artist}",
+  "v2.disco.covers": "Covers",
+  "v2.album.creditedOnly": "Spår där {artist} medverkar",
 } as const;

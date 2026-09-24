@@ -1958,6 +1958,23 @@ export interface AlbumsArtisteSections {
   compilations?: Album[];
   /** Albums d'un AUTRE artiste portant au moins une piste de celui-ci. */
   appearances?: Album[];
+  /**
+   * #4767 (crédits, tune-server-rust#4862) — les disques d'autrui où
+   * l'artiste est crédité comme MUSICIEN, groupés par artiste principal
+   * (groupes par nom, albums par année). Lus dans `track_credits`, que remplit
+   * `POST /system/enrich-credits` ; absents devant un serveur qui ne le
+   * connaît pas (v0.9.163).
+   */
+  collaborations?: GroupeCollaborations[];
+  /** Les disques d'autrui où il est crédité comme AUTEUR (par année). */
+  covers?: Album[];
+}
+
+/** Une sous-section « Avec {artiste} » des Collaborations. */
+export interface GroupeCollaborations {
+  artist_id: number | null;
+  artist_name: string;
+  albums: Album[];
 }
 
 /**
@@ -1972,7 +1989,13 @@ export interface AlbumsArtisteSections {
 export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
   if (Array.isArray(brut)) return { albums: brut as Album[] };
   const o = (brut ?? {}) as AlbumsArtisteSections;
-  return { albums: o.albums ?? [], compilations: o.compilations, appearances: o.appearances };
+  return {
+    albums: o.albums ?? [],
+    compilations: o.compilations,
+    appearances: o.appearances,
+    collaborations: o.collaborations,
+    covers: o.covers,
+  };
 }
 
 /**
@@ -6081,6 +6104,47 @@ export function enrichReleaseTypes() {
     `${BASE}/system/enrich-release-types`,
     { method: 'POST' },
   );
+}
+
+/**
+ * Crédits MusicBrainz PAR DISQUE — `POST /system/enrich-credits`
+ * (`tune-server/src/routes/system/enrich.rs`, `enrich_credits_releases`,
+ * tune-server-rust#4862, #4767). Remplit `track_credits`, que lisent les
+ * sections « Collaborations » et « Reprises » de la page artiste. Pas de
+ * corps : l'option `force` du serveur n'est pas offerte ici.
+ *
+ * Rend **202** et travaille en tâche de fond, inscrite au registre sous
+ * `credits_releases`. `candidats` = disques à interroger = nombre de
+ * requêtes, à une par seconde.
+ *
+ * Refus possibles : **409** `already_running` (une passe tourne déjà),
+ * **429** `daily_quota_exhausted` (quota gratuit du jour, `gate_enrichment`).
+ */
+export function enrichCredits() {
+  return fetchJSON<{
+    status: string; task_id?: string; candidats?: number; albums_avec_mbid?: number;
+    force?: boolean; premium?: boolean;
+  }>(`${BASE}/system/enrich-credits`, { method: 'POST' });
+}
+
+/** État de la passe des crédits — même forme au repos comme en cours. */
+export interface EtatEnrichCredits {
+  status: 'idle' | 'running' | 'done' | 'interrupted' | string;
+  task_id?: string;
+  total?: number;
+  processed?: number;
+  enriched?: number;
+  tracks_credited?: number;
+  unmatched?: number;
+  unknown?: number;
+  errors?: number;
+  candidats?: number;
+  albums_avec_mbid?: number;
+}
+
+/** `GET /system/enrich-credits` — avancement chiffré de la passe (#4862). */
+export function getEnrichCreditsStatus() {
+  return fetchJSON<EtatEnrichCredits>(`${BASE}/system/enrich-credits`);
 }
 
 /**

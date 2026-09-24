@@ -3839,6 +3839,15 @@ export default {
   "settings.releaseTypesStarted": "Kiadástípusok: a keresés elindult {n} albumra (másodpercenként egy kérés).",
   "settings.releaseTypesNoCandidate": "Kiadástípusok: nincs feldolgozandó album. Csak a MusicBrainzen már azonosított albumok kaphatnak típust.",
   "settings.releaseTypesQuota": "Elérte a mai gazdagítási keretet (ingyenes verzió). Próbálja újra holnap.",
+  "settings.credits": "Közreműködők kitöltése",
+  "settings.creditsHint": "Megkeresi a MusicBrainzen, ki játszik, énekel és szerez az egyes azonosított kiadásokon, hogy kitöltse az előadó oldalának „Együttműködések” és „Feldolgozások” szakaszát. Lassú: kiadásonként egy kérés, másodpercenként egy.",
+  "settings.creditsStarted": "Közreműködők: a keresés elindult {n} kiadásra (másodpercenként egy kérés).",
+  "settings.creditsNoCandidate": "Közreműködők: nincs feldolgozandó kiadás. Csak a MusicBrainzen már azonosított albumok kaphatnak közreműködőket.",
+  "settings.creditsAlreadyRunning": "A közreműködők keresése már folyamatban van.",
+  "v2.disco.collaborations": "Együttműködések",
+  "v2.disco.withArtist": "{artist} közreműködésével",
+  "v2.disco.covers": "Feldolgozások",
+  "v2.album.creditedOnly": "Számok, amelyekben {artist} közreműködőként szerepel",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

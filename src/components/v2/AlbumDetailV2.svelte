@@ -22,7 +22,7 @@
   import { qualiteEnTeteAlbum } from '../../lib/qualiteEnTeteAlbum';
   import { pochettesDePisteDistinctes } from '../../lib/pochetteDePisteDistincte';
   import {
-    focusRestreint, pistesAuxRangs, rangDansLAlbum, rangsDeLArtiste, type FocusArtiste,
+    focusRestreint, pistesAuxRangs, rangDansLAlbum, rangsDuFocus, type FocusArtiste,
   } from '../../lib/focusArtiste';
   import type { Album, Track } from '../../lib/types';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
@@ -215,13 +215,16 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   /** La pastille a été refermée : l'album entier, jusqu'à la prochaine fiche. */
   let focusReferme = $state(false);
   // Une autre fiche s'ouvre (ou un autre focus arrive) : la pastille revient.
-  $effect(() => { void album?.id; void artisteFocus?.id; focusReferme = false; });
-  const rangsDuFocus = $derived(rangsDeLArtiste(tracks, artisteFocus?.id ?? null));
+  $effect(() => { void album?.id; void artisteFocus?.id; void artisteFocus?.pistes; focusReferme = false; });
+  // #4767 (crédits) — venu de « Collaborations » ou de « Reprises », le focus
+  // porte les pistes CRÉDITÉES (`focus_track_ids`) : `tracks.artist_id` y
+  // désigne l'artiste principal, pas celui de la page.
+  const rangsDuFocusIci = $derived(rangsDuFocus(tracks, artisteFocus));
   const focusActif = $derived(
-    artisteFocus != null && !focusReferme && focusRestreint(tracks, rangsDuFocus),
+    artisteFocus != null && !focusReferme && focusRestreint(tracks, rangsDuFocusIci),
   );
   /** Les rangs AFFICHÉS, dans l'album entier — l'identité hors focus. */
-  const rangsVisibles = $derived(focusActif ? rangsDuFocus : tracks.map((_, i) => i));
+  const rangsVisibles = $derived(focusActif ? rangsDuFocusIci : tracks.map((_, i) => i));
   const pistesVisibles = $derived(pistesAuxRangs(tracks, rangsVisibles));
 
   /**
@@ -1095,7 +1098,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
         <div class="focus-artiste">
           <span class="fchip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>
-            {$tr('v2.album.artistOnly' as any).replace('{artist}', artisteFocus.nom)}
+            {$tr((artisteFocus.pistes?.length ? 'v2.album.creditedOnly' : 'v2.album.artistOnly') as any).replace('{artist}', artisteFocus.nom)}
             <button onclick={() => (focusReferme = true)} aria-label={$tr('v2.album.artistOnlyClear' as any)}
               title={$tr('v2.album.artistOnlyClear' as any)}>×</button>
           </span>
