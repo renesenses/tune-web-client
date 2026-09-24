@@ -3694,6 +3694,8 @@ export default {
   "v2.set.svcActive": "Activ",
   "v2.set.svcActiveHint": "Un serviciu dezactivat nu mai apare în căutare și nici în ecranele de streaming.",
   "nowplaying.shareError": "Nu s-a putut partaja ce se ascultă.",
+  "nowplaying.shareNothing": "Nimic de partajat: nu se redă nicio piesă.",
+  "nowplaying.shareCopyRefused": "Partajarea a fost creată, dar browserul a refuzat copierea. Link: {lien}",
   "v2.lbl.autoAnalysis": "Analiză automată",
   "v2.lbl.quickAnalysis": "Analiză rapidă",
   "v2.lbl.assistance": "Asistență",

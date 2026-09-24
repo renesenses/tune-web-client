@@ -10,7 +10,7 @@
   import { upNextTracks, queueTracks, queuePosition, queueLength, upNextCount, upNextMs, nextQueueSheetState } from '../../lib/stores/queue';
   import type { QueueSheetState } from '../../lib/stores/queue';
   import { currentZoneId } from '../../lib/stores/zones';
-  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality } from '../../lib/utils';
+  import { formatTime, formatDuration, getQualityTier, getQualityTierLabel, getQualityTierColor, formatQualityTooltip, formatCompactQuality, copyText } from '../../lib/utils';
   import { isMiddlePressWheel, isInnerScrollerWheel } from '../../lib/npWheelGesture';
   import { largeurReserveeFileAttente } from '../../lib/fileAttenteReserve';
   import * as api from '../../lib/api';
@@ -18,7 +18,7 @@
   import CreteMetre from './CreteMetre.svelte';
   import { STYLE_CRETE_DEFAUT, estStyleCrete } from '../../lib/peakMetre';
   import { preferences } from '../../lib/stores/preferences';
-  import { texteDePartage, partageUtilisable } from '../../lib/partageEcoute';
+  import { partagerEcoute } from '../../lib/partageEcoute';
   import { rememberRadioFavListenAt, forgetRadioFavListenAt, isoFromMetadataChangedAt } from '../../lib/radioFavListenAt';
   import {
     CF_PRESETS, presetActif, reglagesCrossfeed, bornesCrossfeed, niveauEnPourcent,
@@ -432,21 +432,39 @@
 
   async function handleShare() {
     if (zone?.id == null) return;
-    try {
-      const carte = await api.shareNowPlaying(zone.id);
-      // #533 : le serveur ne rend PAS de champ `text` — c'est `undefined` qui
-      // partait au presse-papiers. Le texte se compose ici.
-      if (!partageUtilisable(carte)) {
+    const zoneId = zone.id;
+    // #1521 — `navigator.clipboard` n'existe QU'EN contexte sécurisé, et les
+    // testeurs atteignent Tune en HTTP clair sur une IP de réseau local :
+    // l'appel jetait, et le `catch` accusait le partage alors que le partage
+    // avait réussi. `copyText()` (lib/utils.ts) retombe sur
+    // `execCommand('copy')` et DIT s'il a écrit ou non ; `partagerEcoute`
+    // sépare les trois causes qui partageaient un seul message.
+    const issue = await partagerEcoute({
+      demanderCarte: () => api.shareNowPlaying(zoneId),
+      copier: copyText,
+      origine: location.origin,
+    });
+    switch (issue.etat) {
+      case 'copie':
+        notifications.success($t('nowplaying.copiedToClipboard'));
+        break;
+      case 'sansPiste':
+        notifications.error($t('nowplaying.shareNothing' as any));
+        break;
+      case 'copieRefusee':
+        // Le partage EXISTE : on donne le lien à recopier à la main plutôt que
+        // d'annoncer un échec qui n'a pas eu lieu. Il reste affiché plus
+        // longtemps — on ne lit pas une adresse en cinq secondes.
+        notifications.error(
+          $t('nowplaying.shareCopyRefused' as any).replace('{lien}', issue.lien),
+          15000,
+        );
+        break;
+      default:
+        // L'échec ne meurt plus dans la console : le bouton disait « rien »
+        // depuis que la route est passée en POST.
+        console.error('Share error:', issue.erreur);
         notifications.error($t('nowplaying.shareError' as any));
-        return;
-      }
-      await navigator.clipboard.writeText(texteDePartage(carte, location.origin));
-      notifications.success($t('nowplaying.copiedToClipboard'));
-    } catch (e) {
-      // L'échec ne meurt plus dans la console : le bouton disait « rien »
-      // depuis que la route est passée en POST.
-      console.error('Share error:', e);
-      notifications.error($t('nowplaying.shareError' as any));
     }
   }
 

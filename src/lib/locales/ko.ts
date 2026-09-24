@@ -3694,6 +3694,8 @@ export default {
   "v2.set.svcActive": "사용",
   "v2.set.svcActiveHint": "사용 안 함으로 설정한 서비스는 검색에도 스트리밍 화면에도 나타나지 않습니다.",
   "nowplaying.shareError": "재생 중인 곡을 공유할 수 없습니다.",
+  "nowplaying.shareNothing": "공유할 항목이 없습니다. 재생 중인 곡이 없습니다.",
+  "nowplaying.shareCopyRefused": "공유는 만들어졌지만 브라우저가 복사를 거부했습니다. 링크: {lien}",
   "v2.lbl.autoAnalysis": "자동 분석",
   "v2.lbl.quickAnalysis": "빠른 분석",
   "v2.lbl.assistance": "지원",
