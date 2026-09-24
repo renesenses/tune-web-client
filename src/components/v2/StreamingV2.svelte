@@ -51,6 +51,7 @@
   } from '../../lib/ouvrirArtisteDepuis';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import { favoriExterneService, refFavoriDeVignette } from '../../lib/streamingFavorites';
+  import HeartButton from '../partages/HeartButton.svelte';
   import { molettePortee } from '../../lib/molettePortee';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import PageWidgets from './PageWidgets.svelte';
@@ -877,15 +878,25 @@
    * écran. La recherche rend des artistes ; cet écran les jetait, et la seule
    * sortie était la page Bandcamp elle-même.
    */
-  let bcArtiste = $state<{ nom: string; disco: api.BandcampDiscographie | null; erreur: string | null } | null>(null);
+  /*
+   * 🔴 `url` a rejoint cet état le 23/09/2026 — `tune-server-rust#4577`.
+   *
+   * L'adresse de la page de l'artiste EST son identité chez Bandcamp, et c'est
+   * elle que le cœur de l'en-tête met en favori. Elle n'était nulle part :
+   * `ouvrirArtisteBc` la recevait, s'en servait pour l'appel, puis la jetait.
+   * `disco.url` la rend bien, mais seulement une fois la réponse arrivée —
+   * la garder ici permet au cœur d'exister pendant le chargement ET après une
+   * erreur, et évite de faire dépendre un favori du succès d'un autre appel.
+   */
+  let bcArtiste = $state<{ nom: string; url: string; disco: api.BandcampDiscographie | null; erreur: string | null } | null>(null);
   async function ouvrirArtisteBc(url: string, nom: string) {
     if (!url) return;
-    bcArtiste = { nom, disco: null, erreur: null };
+    bcArtiste = { nom, url, disco: null, erreur: null };
     try {
       const disco = await api.bandcampArtist(url);
-      if (bcArtiste?.nom === nom) bcArtiste = { nom, disco, erreur: null };
+      if (bcArtiste?.nom === nom) bcArtiste = { nom, url, disco, erreur: null };
     } catch (e) {
-      if (bcArtiste?.nom === nom) bcArtiste = { nom, disco: null, erreur: (e as Error)?.message || $t('bandcamp.artistFailed' as any) };
+      if (bcArtiste?.nom === nom) bcArtiste = { nom, url, disco: null, erreur: (e as Error)?.message || $t('bandcamp.artistFailed' as any) };
     }
   }
 
@@ -1044,7 +1055,30 @@
       {#if bcSearch}
         {#if bcArtiste}
           <section class="sec">
-            <h2>{bcArtiste.nom} <button class="lnk" onclick={() => (bcArtiste = null)}>{$t('common.close' as any)}</button></h2>
+            <!--
+              🔴 Le cœur de l'ARTISTE Bandcamp — `tune-server-rust#4577`.
+
+              FabienM, fil 1862 : « on ne peut pas mettre un artiste ou un
+              album issus de Bandcamp en favori ». #1400 a traité l'album ;
+              l'artiste n'avait de cœur NULLE PART — ni ici, ni sur la puce de
+              résultat, qui n'est qu'un raccourci vers cette section.
+
+              La référence n'est pas composée ici : `refFavoriDeVignette`
+              traduit la clé d'onglet `__bandcamp__` en `bandcamp` et replie
+              l'identifiant absent sur l'URL de la page. La composer à la main
+              recommencerait exactement la faute que #1400 a corrigée.
+            -->
+            <h2>{bcArtiste.nom}
+              <span class="bc-art-fav">
+                <HeartButton
+                  streaming={{
+                    ...refFavoriDeVignette('artist', { url: bcArtiste.url }, BANDCAMP_EXT),
+                    title: bcArtiste.nom,
+                  }}
+                  size={18}
+                />
+              </span>
+              <button class="lnk" onclick={() => (bcArtiste = null)}>{$t('common.close' as any)}</button></h2>
             {#if bcArtiste.erreur}
               <div class="state">{bcArtiste.erreur}</div>
             {:else if !bcArtiste.disco}
@@ -1664,6 +1698,10 @@
   .sommaire .chip:hover{color:var(--v2-txt); border-color:var(--v2-acc1)}
   .sommaire .chip .n{font:11px var(--v2-mono); color:var(--v2-txt3)}
   .sec h2{font-size:17px; font-weight:700; padding-bottom:14px}
+  /* Le cœur de l'artiste Bandcamp (#4577) s'aligne sur le nom sans le
+     décaler : `HeartButton` porte déjà sa taille, on ne lui donne qu'une
+     ligne de base et un peu d'air. */
+  .bc-art-fav{display:inline-flex; align-items:center; vertical-align:middle; margin:0 8px}
   .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:20px}
   .achat{display:flex; flex-direction:column; min-width:0}
   .flac{margin-top:6px; align-self:flex-start; height:26px; padding:0 10px; border-radius:var(--v2-r-pill);
