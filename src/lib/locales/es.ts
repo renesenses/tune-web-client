@@ -1509,6 +1509,7 @@ export default {
   "trackTags.groupSystem": "Sistema",
   "trackTags.groupOther": "Otros campos",
   "trackTags.serviceReadOnly": "Pista de streaming: los campos que Tune conoce, solo lectura.",
+  "library.noSimilarService": "El servicio no propone ninguna pista similar para esta.",
   "trackTags.trackCredits": "Créditos de la pista",
   "trackTags.audioInfoFromFile": "Información de audio (del archivo)",
   "trackTags.rawFileTags": "Etiquetas sin procesar del archivo",

@@ -157,14 +157,16 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
   it('une piste de SERVICE n’ouvre pas « Ajouter à une liste de lecture »', () => {
     const rendus = libelles(ouvrir(SERVICE));
     expect(rendus).not.toContain(fr['nowplaying.addToPlaylist']);
-    // Les trois routes de bibliothèque prennent un `i64` : trois gestes morts.
-    expect(rendus).not.toContain(fr['library.playSimilar']);
+    // Deux routes de bibliothèque prennent un `i64` : deux gestes morts.
+    // (« Plus comme ça », lui, est ouvert à un titre QOBUZ depuis le fil forum
+    // 1906 : `/streaming/{service}/tracks/{id}/similar`.)
     expect(rendus).not.toContain(fr['library.otherVersions']);
     expect(rendus).not.toContain(fr['v2.cover.tags']);
     // Ce qu'elle sait faire, elle le propose — c'est ce qui manquait.
     // Fil forum 1906 (FabienM, point 3) : ses champs aussi, en lecture seule.
     expect(rendus).toEqual([
-      fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'], fr['trackTags.title'],
+      fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
+      fr['library.playSimilar'], fr['trackTags.title'],
     ]);
   });
   it('une piste de la BIBLIOTHÈQUE ouvre les dix gestes', () => {

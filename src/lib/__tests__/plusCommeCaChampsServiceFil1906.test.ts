@@ -11,10 +11,11 @@
 // `GET /streaming/{service}/tracks/{id}` — sans jamais appeler la route du
 // fichier.
 //
-// « Plus comme ça » : vérifié sur la tête du serveur (v0.9.163), AUCUNE route
-// ne rend de titres voisins d'une piste désignée par `source` + `source_id`,
-// pour aucun service (voir le commentaire de `menuPiste.ts`). L'entrée reste
-// donc ABSENTE d'un titre de service — jamais un geste muet.
+// « Plus comme ça » : sur la tête du serveur v0.9.163, aucune route ne rendait
+// de titres voisins d'une piste de service. Depuis la route
+// `/streaming/{service}/tracks/{id}/similar` (Qobuz seul), un titre QOBUZ a
+// l'entrée ; les autres services restent SANS — voir
+// `plusCommeCaQobuzFil1906.test.ts`, qui tient le geste.
 //
 // Cette garde MONTE les deux surfaces (barre v2 et menu du client actuel) et
 // ouvre leur menu : une règle écrite mais pas branchée y serait rouge.
@@ -157,7 +158,7 @@ describe('fil 1906 — `entreesMenuPiste`', () => {
   const tout = {
     lire: () => {}, plusCommeCa: () => {}, champsDuFichier: () => {},
   };
-  it('service : « Tous les champs » avec la capacité, jamais « Plus comme ça »', () => {
+  it('service : « Tous les champs » avec la capacité ; « Plus comme ça » sans la sienne, jamais', () => {
     const cles = entreesMenuPiste(
       { jouable: true, idBibliotheque: null, artistId: null, albumId: null, champsDeService: true },
       tout,
@@ -168,14 +169,14 @@ describe('fil 1906 — `entreesMenuPiste`', () => {
 });
 
 describe('🔴 fil 1906 — barre v2 (`PisteActions`)', () => {
-  it('titre Qobuz : « Tous les champs piste » présent, « Plus comme ça » absent (aucune route)', () => {
+  it('titre Qobuz : « Tous les champs piste » et « Plus comme ça » présents', () => {
     const items = menuV2(QOBUZ);
     expect(aLibelle(items, CHAMPS), libelles(items).join(' | ')).toBe(true);
-    expect(aLibelle(items, PLUS_COMME_CA)).toBe(false);
+    expect(aLibelle(items, PLUS_COMME_CA)).toBe(true);
   });
 
   for (const s of ['tidal', 'deezer', 'spotify', 'youtube', 'amazon', 'bandcamp']) {
-    it(`titre ${s} : « Plus comme ça » absent — pas de route serveur`, () => {
+    it(`titre ${s} : « Plus comme ça » absent — pas de similarité d'artiste chez ce service`, () => {
       const items = menuV2(service(s));
       expect(aLibelle(items, PLUS_COMME_CA)).toBe(false);
       expect(aLibelle(items, CHAMPS)).toBe(true);
@@ -216,10 +217,10 @@ describe('🔴 fil 1906 — barre v2 (`PisteActions`)', () => {
 });
 
 describe('🔴 fil 1906 — menu du client actuel (`MenuPisteV1`)', () => {
-  it('titre Qobuz : « Tous les champs piste » présent, « Plus comme ça » absent', () => {
+  it('titre Qobuz : « Tous les champs piste » et « Plus comme ça » présents', () => {
     const items = menuV1(QOBUZ);
     expect(aLibelle(items, CHAMPS), libelles(items).join(' | ')).toBe(true);
-    expect(aLibelle(items, PLUS_COMME_CA)).toBe(false);
+    expect(aLibelle(items, PLUS_COMME_CA)).toBe(true);
   });
 
   it('radio : pas de « Tous les champs piste »', () => {

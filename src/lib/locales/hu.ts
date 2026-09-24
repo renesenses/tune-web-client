@@ -1593,6 +1593,7 @@ export default {
   "trackTags.groupSystem": "Rendszer",
   "trackTags.groupOther": "Egyéb mezők",
   "trackTags.serviceReadOnly": "Streaming szám: a Tune által ismert mezők, csak olvasható.",
+  "library.noSimilarService": "A szolgáltatás nem kínál hasonló számot ehhez a számhoz.",
   "trackTags.trackCredits": "A szám közreműködői",
   "trackTags.audioInfoFromFile": "Hanginformáció (a fájlból)",
   "trackTags.rawFileTags": "Nyers fájlcímkék",

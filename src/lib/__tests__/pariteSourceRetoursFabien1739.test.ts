@@ -138,15 +138,31 @@ describe('point 2 — le menu « … » d’un titre d’historique', () => {
     // une playlist DE SON SERVICE lui est ouverte
     // (`POST /streaming/{service}/playlists/{id}/tracks`). L'intention est
     // gardée plus bas, en appelant la règle.
+    //
+    // 🔄 Réécrit le 24/09/2026 (fil forum 1906, FabienM, point 3) : « Plus
+    // comme ça » sort à son tour, pour un titre QOBUZ seulement
+    // (`GET /streaming/{service}/tracks/{id}/similar`). L'intention est
+    // gardée plus bas, en appelant la règle : sans `similairesDeService`, une
+    // piste de service ne l'a toujours pas.
     const menu = sansCommentaires(lire('src/lib/menuPiste.ts'));
     for (const cle of [
-      'library.playSimilar',
       'library.otherVersions',
     ]) {
       expect(menu, `${cle} n’est plus réservée à la bibliothèque`).toMatch(
         new RegExp(`pousser\\(deLaBibliotheque, '${cle.replace('.', '\\.')}'`),
       );
     }
+  });
+
+  it('« Plus comme ça » : un titre de service seulement s’il a des voisins (fil 1906)', () => {
+    const noop = () => {};
+    const service = { jouable: true, idBibliotheque: null, artistId: null, albumId: null };
+    const cles = (c: Parameters<typeof entreesMenuPiste>[0]) =>
+      entreesMenuPiste(c, { plusCommeCa: noop }).map((e) => e.cle);
+    expect(cles(service), 'sans voisins de service, l’entrée reste absente').not.toContain('library.playSimilar');
+    expect(cles({ ...service, similairesDeService: false })).not.toContain('library.playSimilar');
+    expect(cles({ ...service, similairesDeService: true })).toContain('library.playSimilar');
+    expect(cles({ ...service, idBibliotheque: 12 })).toContain('library.playSimilar');
   });
 
   it('« Étiquettes » : ouverte à une piste de service désignable, fermée sinon (#1238)', () => {

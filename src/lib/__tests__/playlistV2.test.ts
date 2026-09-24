@@ -77,8 +77,9 @@ describe("Pistes de service : la source, sans laquelle rien n'est désignable", 
     // incomplète.
     expect(api).toContain('function mapStreamingTracks(tracks: any[], service?: string)');
     expect(api).toContain('if (service && !(p as any).source) (p as any).source = service');
-    // Les trois routes qui connaissent le service le passent.
-    expect((api.match(/mapStreamingTracks\(t, service\)/g) ?? []).length).toBe(2);
+    // Les quatre routes qui connaissent le service le passent (fil 1906 :
+    // `similairesDeService` en plus).
+    expect((api.match(/mapStreamingTracks\(t, service\)/g) ?? []).length).toBe(3);
     expect(api).toContain('mapStreamingTracks(data.tracks, service)');
   });
 
