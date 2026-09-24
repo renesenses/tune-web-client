@@ -39,7 +39,7 @@
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { molettePortee } from '../../lib/molettePortee';
   import { t, locale } from '../../lib/i18n';
-  import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer, choixAuChargement } from '../../lib/chiffresAccueil';
+  import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer, migrationLigneChiffres } from '../../lib/chiffresAccueil';
   import { trace } from '../../lib/iconesChiffres';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
@@ -104,6 +104,14 @@
     cle?: string;
     /** #4527 — la clé sous laquelle les chiffres choisis sont rangés. */
     cleChiffres?: string;
+    /**
+     * #1519 — la clé du MARQUEUR de migration de la ligne de chiffres.
+     *
+     * Elle suit `cleChiffres` : une clé de chiffres par page, un marqueur par
+     * clé de chiffres. Sans cela, migrer l'accueil déclarerait migré ce qui ne
+     * l'a pas été.
+     */
+    cleChiffresMigre?: string;
     cleEyebrow?: string;
     cleTitre?: string;
     /**
@@ -121,6 +129,8 @@
     cle: CLE = 'home_widgets',
     /** #4527 — les chiffres choisis pour la ligne, une clé par page. */
     cleChiffres: CLE_CHIFFRES = 'home_stats',
+    /** #1519 — le marqueur de migration, à côté de la ligne qu'il protège. */
+    cleChiffresMigre: CLE_CHIFFRES_MIGRE = 'home_stats_migre',
     cleEyebrow = 'v2.home.eyebrow',
     cleTitre = 'v2.home.title',
     salut = false,
@@ -318,6 +328,8 @@
   let lance = false;
 
   async function charger() {
+    /** #1519 — la lecture des préférences a-t-elle désigné une ligne figée ? */
+    let migrationAFaire = false;
     const pid = $currentProfileId;
     if (pid == null) {
       // On rend la page malgré tout — un cadre vide vaut mieux qu'un écran
@@ -331,11 +343,14 @@
       // #4527 — le choix de chiffres vit sous SA clé, à côté de la
       // disposition. Une liste vide est un choix légitime (« aucune carte »),
       // d'où le test sur le type et non sur la longueur.
-      // #1519 — et un choix DÉJÀ enregistré l'emporte tel quel : ajouter une
-      // carte au défaut (les titres, 24/09) n'en ajoute aucune ici.
-      const lu = choixAuChargement(prefs?.[CLE_CHIFFRES]);
+      // #1519 — et un choix DÉJÀ enregistré l'emporte tel quel, à UNE
+      // exception près : la ligne qui n'est que le défaut du 19/09 figé par un
+      // déplacement de widget n'a jamais été choisie, et se réécrit une fois.
+      // Tout le raisonnement est dans `migrationLigneChiffres`.
+      const lu = migrationLigneChiffres(prefs?.[CLE_CHIFFRES], prefs?.[CLE_CHIFFRES_MIGRE]);
       chiffres = lu.choix;
       chiffresEnregistres = lu.enregistres;
+      migrationAFaire = lu.aMigrer;
       const d = prefs?.[CLE];
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
@@ -354,6 +369,40 @@
     charge = true;
     lance = true;
     chargerTout();
+    // 🔴 APRÈS le rendu, et sans le retenir : la migration est une écriture de
+    // confort, elle ne doit pas retarder d'une milliseconde l'affichage de la
+    // page. Ce que la ligne montre est déjà décidé ci-dessus.
+    if (migrationAFaire) void migrerLigneDeChiffres(pid, [...chiffres]);
+  }
+
+  /**
+   * #1519 — L'ÉCRITURE DE LA MIGRATION, une fois par profil.
+   *
+   * Ce garde-ci n'est PAS un `$state` — même raison que `demandes` : il est lu
+   * et écrit hors du cycle réactif. Il couvre la course d'un `charger()`
+   * rappelé avant que l'écriture ait atteint le serveur ; l'idempotence de
+   * fond, elle, vient du marqueur relu dans les préférences.
+   */
+  const migres = new Set<number>();
+
+  async function migrerLigneDeChiffres(pid: number, ligne: string[]) {
+    if (migres.has(pid)) return;
+    migres.add(pid);
+    try {
+      // 🔴 SEULEMENT la ligne de chiffres et son marqueur. La disposition des
+      // widgets n'est PAS écrite : un profil qui n'en a rangé aucune doit
+      // continuer à suivre le défaut, et ne pas le voir figé par une migration
+      // qui ne parle pas d'elle. C'est exactement le piège qui a créé #1519.
+      await api.setProfilePreferences(pid, {
+        [CLE_CHIFFRES]: ligne,
+        [CLE_CHIFFRES_MIGRE]: true,
+      });
+    } catch {
+      // Silencieux : aucun geste de l'utilisateur n'est en jeu, une alerte
+      // serait du bruit. Le marqueur n'est pas posé côté serveur, donc le
+      // prochain chargement réessaiera — et la page suivante de cette session
+      // n'y reviendra pas, `migres` la retient.
+    }
   }
 
   async function enregistrer() {

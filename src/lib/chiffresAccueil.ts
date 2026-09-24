@@ -206,6 +206,19 @@ export const CHOIX_DEFAUT: readonly string[] = [
   'albums', 'artistes', 'titres', 'lectures', 'heures-ecoutees', 'taille',
 ];
 
+/**
+ * LE DÉFAUT DU 19/09/2026 — celui qui a été FIGÉ dans les profils sans que
+ * personne ne le choisisse. Voir `migrationLigneChiffres` juste en dessous.
+ *
+ * On le garde écrit ici, en toutes lettres, plutôt que déduit de
+ * `CHOIX_DEFAUT` : c'est une valeur HISTORIQUE, et elle ne doit plus jamais
+ * bouger quand le défaut courant bouge. Le jour où une septième carte entrera
+ * au défaut, cette liste-ci devra rester exactement ce qu'elle est.
+ */
+export const CHOIX_DEFAUT_19_09: readonly string[] = [
+  'albums', 'artistes', 'lectures', 'heures-ecoutees', 'taille',
+];
+
 export function chiffreParId(id: string): Chiffre | null {
   return CHIFFRES.find((c) => c.id === id) ?? null;
 }
@@ -352,6 +365,99 @@ export function choixAuChargement(enregistre: unknown): {
     return { choix: [...lu], enregistres: lu };
   }
   return { choix: [...CHOIX_DEFAUT], enregistres: null };
+}
+
+/* ------------------------------------------------------------------ */
+/* La migration des lignes FIGÉES — #1519, arbitrage de Bertrand      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * La ligne enregistrée est-elle EXACTEMENT le défaut du 19/09 ?
+ *
+ * 🔴 L'ORDRE COMPTE, et c'est délibéré. Le test est l'égalité de tableau, pas
+ * l'égalité d'ensemble.
+ *
+ * Une ligne jamais choisie ne peut être que l'ordre du défaut, à l'identique :
+ * elle est née de `[...CHOIX_DEFAUT]` recopié tel quel par `PageWidgets`, puis
+ * réécrit par `choixAEnregistrer` qui n'en change pas l'ordre. Les mêmes cinq
+ * identifiants dans un AUTRE ordre ne peuvent venir que de `basculer`, qui
+ * range dans l'ordre où l'on coche : quelqu'un a décoché et recoché, carte par
+ * carte, jusqu'à retomber sur ces cinq-là. C'est un geste, donc une
+ * composition, donc on n'y touche pas.
+ *
+ * Être strict est le choix conservateur : on réécrit STRICTEMENT MOINS de
+ * données qu'on ne le pourrait. Le faux négatif — quelqu'un qui aurait
+ * recomposé les cinq mêmes dans un autre ordre garde cinq cartes — se répare
+ * d'un clic dans « Modifier » ; le faux positif, lui, efface un choix réel.
+ */
+export function estLaLigneFigeeDu1909(enregistre: unknown): boolean {
+  if (!Array.isArray(enregistre)) return false;
+  if (enregistre.length !== CHOIX_DEFAUT_19_09.length) return false;
+  return enregistre.every((id, i) => id === CHOIX_DEFAUT_19_09[i]);
+}
+
+export interface LigneAuChargement {
+  /** Ce que la ligne montre. */
+  choix: string[];
+  /** Ce que le serveur porte APRÈS migration, `null` si ce profil n'a rien rangé. */
+  enregistres: string[] | null;
+  /** Faut-il écrire ? `true` une seule fois dans la vie d'un profil. */
+  aMigrer: boolean;
+}
+
+/**
+ * RÉÉCRIRE LES LIGNES QUI N'ONT JAMAIS ÉTÉ CHOISIES — #1519, décision de
+ * Bertrand du 24/09/2026.
+ *
+ * ## Le piège qui a créé le problème
+ *
+ * `enregistrer()` dans `PageWidgets` écrit les DEUX clés d'un coup,
+ * `home_widgets` et `home_stats`. Déplacer un widget — un geste qui ne parle
+ * pas des chiffres — figeait donc le défaut du 19/09 dans le profil, sans que
+ * personne ne l'ait jamais composé. Mesuré sur le serveur de Bertrand le
+ * 24/09 : son propre profil portait exactement ces cinq identifiants.
+ *
+ * `choixAuChargement` rend le tableau enregistré tel quel — c'est sa règle, et
+ * elle est bonne. Conséquence : la carte « titres » ajoutée au défaut ce matin
+ * (#1541) n'atteignait PERSONNE, sauf les profils encore muets.
+ *
+ * ## Ce que cette fonction fait, et ce qu'elle refuse de faire
+ *
+ * * ligne EXACTEMENT égale au défaut du 19/09 → jamais un choix : elle passe
+ *   au `CHOIX_DEFAUT` courant, et on l'écrit ;
+ * * ligne qui diffère d'un identifiant, d'un ordre, d'une longueur → une
+ *   composition : on n'y touche pas, et on n'écrit RIEN ;
+ * * ligne VIDE → « je ne veux aucun chiffre » : on n'y touche pas ;
+ * * rien d'enregistré → rien à migrer : le profil voit déjà le défaut courant,
+ *   et ouvrir l'accueil ne doit toujours rien écrire chez lui.
+ *
+ * ## L'IDEMPOTENCE, et pourquoi le marqueur est indispensable
+ *
+ * 🔴 Sans marqueur, la migration se REJOUERAIT contre l'utilisateur. Qui
+ * décoche « titres » après coup retombe sur exactement les cinq du 19/09 : le
+ * prédicat serait de nouveau vrai, et le chargement suivant lui remettrait la
+ * carte. Une carte qu'on ne peut plus enlever serait un défaut pire que celui
+ * qu'on corrige.
+ *
+ * Le marqueur — `home_stats_migre`, écrit dans le MÊME appel que la ligne —
+ * ferme la porte : une fois posé, cette fonction ne migre plus jamais ce
+ * profil, quoi qu'il range ensuite.
+ *
+ * ⚠️ Il n'est écrit QUE lors d'une migration réelle. On ne marque pas les
+ * profils qu'on ne touche pas : une ligne composée ne doit donner lieu à
+ * AUCUNE écriture, et un profil muet non plus. Le reliquat assumé : quelqu'un
+ * qui n'a jamais été migré et qui composerait un jour ces cinq cartes dans cet
+ * ordre exact serait migré une fois — une seule, puisque l'écriture pose le
+ * marqueur, après quoi il décoche ce qu'il veut.
+ */
+export function migrationLigneChiffres(
+  enregistre: unknown,
+  marqueur: unknown,
+): LigneAuChargement {
+  const lu = choixAuChargement(enregistre);
+  if (marqueur === true) return { ...lu, aMigrer: false };
+  if (!estLaLigneFigeeDu1909(enregistre)) return { ...lu, aMigrer: false };
+  return { choix: [...CHOIX_DEFAUT], enregistres: [...CHOIX_DEFAUT], aMigrer: true };
 }
 
 /**

@@ -69,10 +69,17 @@ describe('#1426 — le remplacement du tableau de bord est visible sans rien dem
     expect(src).toContain('if (Array.isArray(d) && d.length) {');
     expect(src).toContain('dispositionEnregistree = d.filter((id: any) => typeof id === \'string\');');
     expect(src).toContain('disposition = dispositionEnregistree.filter((id) => parId(id));');
-    // Et le défaut n'est JAMAIS réécrit dans les préférences au chargement :
-    // `enregistrer()` ne part que d'un geste de l'utilisateur.
-    const charger = src.slice(src.indexOf('async function charger()'), src.indexOf('async function enregistrer()'));
+    // Et la DISPOSITION n'est JAMAIS réécrite dans les préférences au
+    // chargement : `enregistrer()` ne part que d'un geste de l'utilisateur.
+    //
+    // ⚠️ 24/09/2026 (#1519) — le chargement écrit désormais une chose, et une
+    // seule : la ligne de CHIFFRES figée au défaut du 19/09, migrée une fois
+    // par `migrerLigneDeChiffres`. La borne s'arrête donc à cette fonction, et
+    // un second témoin vérifie qu'elle ne touche pas `CLE`.
+    const charger = src.slice(src.indexOf('async function charger()'), src.indexOf('async function migrerLigneDeChiffres('));
     expect(charger.includes('setProfilePreferences'), 'le chargement écrit les préférences').toBe(false);
+    const migration = src.slice(src.indexOf('async function migrerLigneDeChiffres('), src.indexOf('async function enregistrer()'));
+    expect(migration.includes('[CLE]:'), 'la migration de la ligne réécrit la disposition').toBe(false);
   });
 });
 
