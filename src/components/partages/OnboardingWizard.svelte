@@ -22,8 +22,30 @@
    * me le propose ».
    *
    * L'offre est à l'ACCUEIL, avant l'étape des dossiers : une restauration
-   * apporte dossiers, zones et réglages audio, la proposer après que
+   * apporte les dossiers et les réglages audio, la proposer après que
    * l'utilisateur les a saisis à la main effacerait son travail.
+   *
+   * 🔴 CE QUE CET ÉCRAN PROMET DOIT ÊTRE CE QUE LA ROUTE EMPORTE. Le seul
+   * mécanisme câblé ici est `api.importConfig` → `POST
+   * /system/config/import`, dont l'export symétrique est un dump PLAT de la
+   * table `settings` moins les clés dont le NOM désigne un secret
+   * (`tune-server/src/routes/system/config.rs`, `export_config`). Il s'ensuit,
+   * et `repriseConfigVerite902.test.ts` le tient dans les onze langues :
+   *   - les ZONES ne suivent pas (table à part, `FROM zones` — lu seulement
+   *     par `/system/config-backup/export`, que ce client n'appelle nulle
+   *     part) ; l'écran les promettait ;
+   *   - le jeton DISCOGS ne suit pas (`discogs_token` porte le fragment
+   *     `token`, donc `retirer_les_secrets` l'ôte) ; personne ne le disait,
+   *     alors que le testeur le nomme mot pour mot ;
+   *   - les profils d'ÉGALISEUR, eux, suivent (clé de réglage `eq_presets`) ;
+   *     l'écran les donnait pour perdus et faisait refaire à la main un
+   *     travail déjà revenu.
+   *
+   * ⚠️ Faire vraiment voyager zones et jeton demanderait de brancher
+   * `/system/config-backup/*`, qui est réservé à l'administrateur ET adossé à
+   * `Feature::CloudConfigBackup` — c'est-à-dire PREMIUM. Ce serait un
+   * arbitrage produit (« reprendre sa machine » devient payant), pas un
+   * correctif : il n'est pas pris ici.
    *
    * 🔴 Deux gestes, pas un. La restauration ÉCRASE et rien ne la défait ; on
    * lit et on analyse le fichier d'abord, on ne l'applique qu'ensuite. Pas le

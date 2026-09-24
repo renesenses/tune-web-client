@@ -11,18 +11,22 @@
  * ## Où l'offre doit être, et pourquoi
  *
  * À l'ACCUEIL de l'assistant, avant l'étape des dossiers. Une restauration
- * apporte des dossiers de musique, des zones et des réglages audio ; la
- * proposer APRÈS que l'utilisateur a ajouté ses dossiers à la main, ce serait
- * écraser ce qu'il vient de faire.
+ * apporte des dossiers de musique et des réglages audio ; la proposer APRÈS
+ * que l'utilisateur a ajouté ses dossiers à la main, ce serait écraser ce
+ * qu'il vient de faire.
  *
  * ## Ce que cette garde tient
  *
  * 1. L'offre existe dans l'assistant, et elle est à l'accueil.
  * 2. Le fichier choisi n'est pas appliqué dans la foulée : la restauration
  *    écrase, et rien ne la défait — un second geste la confirme.
- * 3. La limite est DITE : les comptes de services, les profils d'égaliseur et
- *    les favoris de radios ne sont pas repris. Livrer une reprise partielle en
- *    laissant croire le contraire serait pire que ne rien proposer.
+ * 3. La limite est DITE. ⚠️ La liste de familles a été CORRIGÉE : elle
+ *    nommait les profils d'égaliseur, qui suivent en réalité (clé de réglage
+ *    `eq_presets`), et taisait les zones et le jeton Discogs, qui ne suivent
+ *    pas. Cette garde figeait donc une phrase fausse — le détail du relevé et
+ *    la garde multilingue vivent dans `repriseConfigVerite902.test.ts`.
+ *    Livrer une reprise partielle en laissant croire le contraire serait pire
+ *    que ne rien proposer.
  * 4. Les textes existent dans les onze dictionnaires.
  *
  * ## Ce qu'elle ne tient PAS
@@ -76,7 +80,7 @@ describe('#902 — l’assistant propose de reprendre une installation', () => {
     const corpsDuChoix = src.slice(choix, confirme);
     expect(
       corpsDuChoix.includes('api.importConfig'),
-      'choisir un fichier ne doit pas le RESTAURER : la restauration écrase dossiers, zones et réglages audio.'
+      'choisir un fichier ne doit pas le RESTAURER : la restauration écrase dossiers et réglages audio.'
     ).toBe(false);
   });
 
@@ -97,12 +101,17 @@ describe('#902 — l’assistant propose de reprendre une installation', () => {
     }
   });
 
-  it('la phrase des limites nomme les trois familles non reprises', () => {
+  it('la phrase des limites nomme les familles non reprises', () => {
+    // ⚠️ `galiseur` a été RETIRÉ de cette liste : les préréglages
+    // d'égaliseur sont rangés sous la clé de réglage `eq_presets`, donc le
+    // dump plat de `settings` les emporte. Les zones et le jeton Discogs, eux,
+    // n'en sortent pas — voir `repriseConfigVerite902.test.ts`, qui tient la
+    // règle dans les onze langues.
     const fr = lire('src/lib/locales/fr.ts');
     const ligne =
       fr.split('\n').find((l) => /['"]onboarding\.restoreLimits['"]/.test(l)) ?? '';
     expect(ligne, 'la phrase des limites a disparu du dictionnaire français').not.toBe('');
-    for (const mot of ['streaming', 'galiseur', 'radio']) {
+    for (const mot of ['zone', 'Discogs', 'streaming', 'radio']) {
       expect(ligne.toLowerCase()).toContain(mot.toLowerCase());
     }
   });
