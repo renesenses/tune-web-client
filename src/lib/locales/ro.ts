@@ -3840,6 +3840,11 @@ export default {
   "v2.set.progressOf": "{n} din {total}",
   "v2.sup.openedOn": "deschis la {date}",
   "v2.plug.requiresTune": "Necesită Tune {plage}.",
+  "settings.releaseTypes": "Completează tipurile de lansare",
+  "settings.releaseTypesHint": "Caută pe MusicBrainz dacă fiecare album este un album, un EP sau un single, pentru ca pagina unui artist să fie împărțită în albume, EP-uri și single-uri. Durează: o cerere pe secundă.",
+  "settings.releaseTypesStarted": "Tipuri de lansare: căutare pornită pentru {n} albume (o cerere pe secundă).",
+  "settings.releaseTypesNoCandidate": "Tipuri de lansare: niciun album de procesat. Doar albumele deja identificate pe MusicBrainz pot primi un tip.",
+  "settings.releaseTypesQuota": "Cota zilnică de îmbogățire a fost atinsă (versiunea gratuită). Încercați din nou mâine.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

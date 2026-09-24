@@ -3839,4 +3839,9 @@ export default {
   "v2.set.progressOf": "{n} av {total}",
   "v2.sup.openedOn": "öppnad {date}",
   "v2.plug.requiresTune": "Kräver Tune {plage}.",
+  "settings.releaseTypes": "Fyll i utgivningstyper",
+  "settings.releaseTypesHint": "Slår upp på MusicBrainz om varje album är ett album, en EP eller en singel, så att en artistsida kan delas upp i album, EP och singlar. Tar tid: en förfrågan per sekund.",
+  "settings.releaseTypesStarted": "Utgivningstyper: sökning startad för {n} album (en förfrågan per sekund).",
+  "settings.releaseTypesNoCandidate": "Utgivningstyper: inget album att bearbeta. Endast album som redan identifierats på MusicBrainz kan få en typ.",
+  "settings.releaseTypesQuota": "Dagens berikningskvot är förbrukad (gratisversion). Försök igen i morgon.",
 } as const;

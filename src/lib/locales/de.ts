@@ -3840,6 +3840,11 @@ export default {
   "v2.set.progressOf": "{n} von {total}",
   "v2.sup.openedOn": "eröffnet am {date}",
   "v2.plug.requiresTune": "Erfordert Tune {plage}.",
+  "settings.releaseTypes": "Veröffentlichungstypen ergänzen",
+  "settings.releaseTypesHint": "Ermittelt bei MusicBrainz, ob jedes Album ein Album, eine EP oder eine Single ist, damit die Künstlerseite in Alben, EPs und Singles gegliedert werden kann. Dauert: eine Anfrage pro Sekunde.",
+  "settings.releaseTypesStarted": "Veröffentlichungstypen: Suche für {n} Alben gestartet (eine Anfrage pro Sekunde).",
+  "settings.releaseTypesNoCandidate": "Veröffentlichungstypen: kein Album zu bearbeiten. Nur bereits bei MusicBrainz identifizierte Alben können einen Typ erhalten.",
+  "settings.releaseTypesQuota": "Tageskontingent für die Anreicherung erreicht (kostenlose Version). Versuchen Sie es morgen erneut.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

@@ -51,6 +51,8 @@
   import { SETTINGS_LEVELS, type SettingsLevel } from '../../lib/settingLevels';
   import { COLONNES, MODES_BRANCHES, offerteAu, type CleColonne } from '../../lib/colonnesPistes';
   import { notifications } from '../../lib/stores/notifications';
+  import { tachesDeFond } from '../../lib/stores/tachesDeFond';
+  import { TACHE_TYPES_DE_SORTIE } from '../../lib/tachesDeFond';
   import { telechargerJournaux } from '../../lib/journaux';
 import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../lib/annonceSlimproto';
   import {
@@ -2610,6 +2612,42 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     } catch { enrichErr = get(t)('settings.errStartFailed'); }
     finally { albumCoversBusy = false; }
   }
+  /**
+   * Type de sortie des albums — album / EP / single depuis MusicBrainz (#4767).
+   * Sans lui, la page d'un artiste ne peut pas séparer ses albums de ses EP et
+   * singles (FabienM, fil forum 1906).
+   *
+   * Occupé tant que le POST est en vol, PUIS tant que le serveur garde la
+   * tâche `types_de_sortie` inscrite à son registre : la passe dure (une
+   * requête par seconde) et un second clic en lancerait une seconde. Le
+   * serveur ne publie pas d'avancement chiffré — la barre latérale montre la
+   * tâche, on ne promet pas de barre ici.
+   */
+  let releaseTypesEnVol = $state(false);
+  const releaseTypesOccupe = $derived(
+    releaseTypesEnVol || $tachesDeFond.some((tache) => tache.id === TACHE_TYPES_DE_SORTIE),
+  );
+  async function remplirTypesDeSortie() {
+    if (releaseTypesOccupe) return;
+    enrichErr = null;
+    releaseTypesEnVol = true;
+    const tr = get(t);
+    try {
+      const r = await api.enrichReleaseTypes();
+      const n = r?.candidats;
+      if (n === 0) notifications.info(tr('settings.releaseTypesNoCandidate' as any));
+      else notifications.info(tr('settings.releaseTypesStarted' as any).replace('{n}', get(formatNombre)(n ?? 0)));
+    } catch (e) {
+      // 429 = quota gratuit du jour épuisé (`gate_enrichment`) : le corps ne
+      // porte qu'un code anglais, on dit la cause dans la langue de l'écran.
+      const statut = (e as api.ApiError | null)?.status;
+      enrichErr = statut === 429
+        ? tr('settings.releaseTypesQuota' as any)
+        : errText(e) ?? tr('settings.errStartFailed');
+    } finally {
+      releaseTypesEnVol = false;
+    }
+  }
 
   // ── Rangement des fichiers importes ───────────────────────────────────
   let ingest = $state<any | null>(null);
@@ -3042,6 +3080,18 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               <div class="row">
                 <div class="lbl"><span>{$t('settings.searchMissingCovers' as any)}</span></div>
                 <button class="lnk" disabled={albumCoversBusy} onclick={rescanAlbumCovers}>{$t('v2.set.start' as any)}</button>
+              </div>
+              <!-- Passes MusicBrainz ciblées (#4767). « Remplir les crédits »
+                   (`POST /system/enrich-credits`) viendra se ranger ici, sur
+                   le même modèle que la rangée ci-dessous. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.releaseTypes' as any)}</span>
+                  <span class="hint">{$t('settings.releaseTypesHint' as any)}</span>
+                </div>
+                <button class="lnk" disabled={releaseTypesOccupe} onclick={remplirTypesDeSortie}>
+                  {$t((releaseTypesOccupe ? 'v2.set.running' : 'v2.set.start') as any)}
+                </button>
               </div>
               <p class="hint">{#each emphaseParts($t('settings.acousticPassesHint' as any).replace('{tab}', $t('v2.nav.processing' as any))) as _p}{#if _p.fort}<b>{_p.texte}</b>{:else}{_p.texte}{/if}{/each}</p>
               {#if enrichErr}<div class="errline">{enrichErr}</div>{/if}

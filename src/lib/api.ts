@@ -5960,6 +5960,29 @@ export function getBatchEnrichStatus() {
     `${BASE}/library/enrich-all/status`
   );
 }
+/**
+ * Type de sortie des albums (album / EP / single) — `POST /system/enrich-release-types`
+ * (`tune-server/src/routes/system/enrich.rs`, `enrich_release_types`, #4767,
+ * livré en v0.9.163). Pas de corps.
+ *
+ * Rend **202** tout de suite et travaille en tâche de fond, inscrite au
+ * registre sous l'identifiant `types_de_sortie` (`GET /system/background-tasks`
+ * et l'événement `system.background_tasks`) — sans avancement chiffré : le
+ * serveur ne publie que sa présence. Une requête MusicBrainz par seconde.
+ *
+ * `candidats` est MESURÉ avant la passe : les albums qui ont un
+ * `musicbrainz_release_group_id` et pas encore de type. Les autres restent de
+ * type inconnu — le serveur ne devine pas.
+ *
+ * Refus possible : **429** `{code: "daily_quota_exhausted", …}` quand le quota
+ * gratuit d'enrichissement du jour est épuisé (`gate_enrichment`).
+ */
+export function enrichReleaseTypes() {
+  return fetchJSON<{ status: string; candidats?: number; premium?: boolean }>(
+    `${BASE}/system/enrich-release-types`,
+    { method: 'POST' },
+  );
+}
 
 /**
  * Pochettes d'ALBUMS manquantes — `POST /library/artwork/enrich` (Cover Art

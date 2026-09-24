@@ -3840,6 +3840,11 @@ export default {
   "v2.set.progressOf": "{total} 件中 {n} 件",
   "v2.sup.openedOn": "{date} に作成",
   "v2.plug.requiresTune": "Tune {plage} が必要です。",
+  "settings.releaseTypes": "リリースタイプを補完",
+  "settings.releaseTypesHint": "各アルバムがアルバム・EP・シングルのどれかを MusicBrainz で調べ、アーティストページをアルバム、EP、シングルに分けられるようにします。時間がかかります（1 秒に 1 リクエスト）。",
+  "settings.releaseTypesStarted": "リリースタイプ：{n} 件のアルバムの検索を開始しました（1 秒に 1 リクエスト）。",
+  "settings.releaseTypesNoCandidate": "リリースタイプ：処理するアルバムがありません。MusicBrainz で識別済みのアルバムだけがタイプを取得できます。",
+  "settings.releaseTypesQuota": "本日の補完の上限に達しました（無料版）。明日もう一度お試しください。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

@@ -3860,6 +3860,11 @@ export default {
   "v2.set.progressOf": "{n} of {total}",
   "v2.sup.openedOn": "opened on {date}",
   "v2.plug.requiresTune": "Requires Tune {plage}.",
+  "settings.releaseTypes": "Fill in release types",
+  "settings.releaseTypesHint": "Looks up on MusicBrainz whether each album is an album, an EP or a single, so an artist's page can be split into albums, EPs and singles. Slow: one request per second.",
+  "settings.releaseTypesStarted": "Release types: lookup started for {n} albums (one request per second).",
+  "settings.releaseTypesNoCandidate": "Release types: no album to process. Only albums already identified on MusicBrainz can get a type.",
+  "settings.releaseTypesQuota": "Today's enrichment quota is used up (free version). Try again tomorrow.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];
