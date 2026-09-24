@@ -131,8 +131,9 @@ const VUES: Record<View, boolean> = {
 const FICHES: Record<string, View> = {
   album: 'library',
   artist: 'library',
-  // La coquille v2 écrit `#library/artiste:12` : le `/` est coupé par
-  // `nomDeRoute`, et `library` suffit. Rien à ajouter ici pour elle.
+  // La coquille v2 écrit `#library/album:12` — et a écrit `#library/artiste:12`
+  // jusqu'à #1501, une adresse qui peut survivre dans un signet : le `/` est
+  // coupé par `nomDeRoute`, et `library` suffit. Rien à ajouter ici pour elle.
 };
 
 /** Vrai si ce nom est une vue de l'application — restaurable ou non. */
@@ -148,8 +149,8 @@ export function vuesRestaurables(): View[] {
 /**
  * Le NOM de route porté par un fragment, sans rien décider.
  *
- * `#library` → `library`. `#library/artiste:12` → `library` : le niveau de
- * détail est coupé, parce que le rouvrir demanderait de recharger l'artiste par
+ * `#library` → `library`. `#library/album:12` → `library` : le niveau de
+ * détail est coupé, parce que le rouvrir demanderait de recharger l'album par
  * l'API — ce que ce lot ne fait pas (même limite que `historiqueCoquille`, qui
  * repose la clé sans rouvrir la fiche). `#tv&zone=12` → `tv`, pour que la table
  * ci-dessus puisse dire « pas moi ».

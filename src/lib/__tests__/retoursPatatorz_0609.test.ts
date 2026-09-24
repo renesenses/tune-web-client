@@ -139,7 +139,19 @@ describe('fil 1637 + Bertrand — un répertoire ouvert dans la Bibliothèque', 
   it('elle filtre par IDENTIFIANTS, sans toucher au magasin partagé', () => {
     // L'ancien client refait les albums depuis 5 000 pistes et ÉCRASE
     // `albums` : la portée survivait à l'écran qui l'avait posée.
-    expect(v2).toContain('api.getAlbumsDetailed({ folder: dossierPortee }');
+    // 🔴 Fil 1880 — et l'appel est PAGINÉ. Il valait `…({ folder }, 5000, 0)`,
+    // en un seul coup : la route borne ce qu'elle rend à 2 000
+    // (`clamp(1, 2000)`, albums_detailed.rs:80) sans le dire autrement que par
+    // son `total`, et l'écran prenait ces 2 000 pour la portée ENTIÈRE. Comme
+    // la route ordonne par artiste de carte, la coupe emportait d'abord les
+    // compilations — « les albums "VA-xxx" ont disparu » (jfpaquet, fil 1880).
+    // Le comportement lui-même est gardé par porteeDossierAlbums.test.ts.
+    expect(v2).toMatch(
+      /idsAlbumsDeLaPortee\(\(limite, rang\) => api\.getAlbumsDetailed\(\{ folder: d \}, limite, rang\)\)/,
+    );
+    expect(v2, "l'appel unique borné par la route est le défaut du fil 1880").not.toMatch(
+      /getAlbumsDetailed\([^)]*\b5000\b/,
+    );
     expect(v2).toMatch(/\$albums\.filter\(\(a\) => a\.id != null && idsPortee!\.has\(a\.id\)\)/);
     const i = v2.indexOf('const src = $derived<Album[]>');
     expect(v2.slice(i, i + 400), 'le magasin ne doit jamais être réécrit').not.toMatch(/albums\.set\(/);

@@ -5093,6 +5093,75 @@ export async function checkFavorite(profileId: number, params: FavoriteRef) {
 
 // --- Artwork ---
 
+/**
+ * 🔴 LE CONDENSAT D'UNE POCHETTE DÉJÀ SERVIE PAR NOTRE PROPRE SERVEUR — #1360.
+ *
+ * Rend le dernier segment de `…/api/v1/library/artwork/<condensat>` quand
+ * l'adresse absolue désigne une pochette de Tune, et `null` sinon.
+ *
+ * ## Pourquoi cette fonction existe
+ *
+ * FabienM, fil 1859, 20/09/2026, 0.9.158 : « Il manque des vignettes à mon
+ * historique ». Des lignes sans vignette, d'autres avec — un MÉLANGE, et
+ * c'est le mélange qui désigne la cause.
+ *
+ * Jusqu'à la v0.9.157, l'avance sans blanc du serveur remplaçait le condensat
+ * de pochette par une adresse ABSOLUE de réseau local,
+ * `http://<ip-lan>:8888/api/v1/library/artwork/<condensat>`
+ * (`resolve_cover_url`, `tune-core/src/orchestrator/commun.rs`). Cette valeur
+ * est exactement celle qui part en base dans `listen_history.cover_url`.
+ *
+ * Le serveur a corrigé l'ÉCRITURE (`f0d63c49`, « l'avance gapless garde le
+ * condensat de pochette au lieu d'une URL LAN absolue », srv#4446, entré en
+ * v0.9.157) — mais rien ne répare les lignes DÉJÀ enregistrées : la route
+ * `/library/history` rend `h.cover_url` tel quel, et aucune migration n'y
+ * touche. L'historique de Fabien porte donc, pour toujours, un mélange de
+ * condensats (récents, bons) et d'adresses LAN (anciens).
+ *
+ * Et une adresse LAN, le client l'envoyait au RELAIS, parce qu'elle commence
+ * par `http://` : `…/library/artwork/proxy?url=http%3A%2F%2F192.168…`. Or le
+ * relais refuse les adresses privées — c'est sa raison d'être
+ * (`adresse_interdite`, `tune-core/src/library/artwork_proxy.rs`) — et répond
+ * **403**. L'exception « pochette de bibliothèque » du relais ne sauve que les
+ * URL présentes dans `albums.cover_path` ; une ligne d'historique n'y est pas.
+ * `AlbumArt` reçoit l'erreur, bascule sur son `onerror`, et dessine sa boîte
+ * grise. Une vignette qui manque.
+ *
+ * ## La réparation se fait ICI, à la LECTURE
+ *
+ * L'adresse porte déjà le condensat : il suffit de le lire et de demander la
+ * pochette à NOTRE origine, comme pour n'importe quel condensat. Aucun
+ * aller-retour par le relais, aucune adresse privée soumise à une garde qui
+ * existe pour les refuser, et toutes les lignes anciennes réparées d'un coup —
+ * ce qu'une correction d'écriture ne pouvait pas faire.
+ *
+ * On ne garde PAS l'hôte enregistré : c'était l'adresse du serveur le jour de
+ * l'écoute. Un bail DHCP renouvelé, un accès depuis l'extérieur, et elle ne
+ * mène nulle part. Le condensat, lui, ne bouge pas, et le client parle déjà au
+ * bon serveur.
+ *
+ * ⚠️ `proxy` n'est pas un condensat : `…/library/artwork/proxy?url=…` est la
+ * route du relais elle-même. La renvoyer à la branche « condensat »
+ * demanderait une pochette nommée « proxy ».
+ */
+function condensatDePochetteInterne(url: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    return null;
+  }
+  const m = /\/api\/v1\/library\/artwork\/([^/]+)$/.exec(u.pathname);
+  if (!m) return null;
+  let condensat: string;
+  try {
+    condensat = decodeURIComponent(m[1]);
+  } catch {
+    condensat = m[1];
+  }
+  return condensat && condensat !== 'proxy' ? condensat : null;
+}
+
 export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
   // Server already returns usable relative URLs for cover_path
@@ -5102,7 +5171,13 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
     return coverPath;
   }
   if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
-    return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
+    // #1360 — une pochette de NOTRE serveur enregistrée en adresse absolue se
+    // redemande par son condensat, jamais par le relais, qui la refuserait.
+    const condensat = condensatDePochetteInterne(coverPath);
+    if (condensat == null) {
+      return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
+    }
+    coverPath = condensat;
   }
   const filename = coverPath.split('/').pop() ?? coverPath;
   const sizeParam = size ? `?size=${size}` : '';

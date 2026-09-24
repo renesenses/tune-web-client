@@ -78,3 +78,78 @@ export function texteDePartage(carte: CartePartage | null | undefined, origine =
 export function partageUtilisable(carte: CartePartage | null | undefined): boolean {
   return texteDePartage(carte).trim() !== '';
 }
+
+/**
+ * Le LIEN seul, sans la ligne « Titre — Artiste (Album) ».
+ *
+ * Il sert quand la copie échoue : on ne peut pas mettre le texte dans le
+ * presse-papiers, mais on peut au moins montrer à l'utilisateur ce qu'il a à
+ * recopier — et un lien tient dans un bandeau, pas une carte entière.
+ */
+export function lienDePartage(carte: CartePartage | null | undefined, origine = ''): string {
+  const absolu = propre(carte?.url_absolue);
+  const chemin = propre(carte?.url);
+  return absolu || (chemin && origine ? `${origine.replace(/\/$/, '')}${chemin}` : chemin);
+}
+
+/**
+ * Ce qu'il est advenu d'un « Partager » — #1521.
+ *
+ * TROIS causes distinctes se partageaient un seul message, « Impossible de
+ * partager cette écoute » :
+ *
+ *  1. la route a refusé (serveur injoignable, 4xx/5xx) ;
+ *  2. la route a répondu, mais il n'y a rien à coller (aucune piste) ;
+ *  3. tout a marché **et c'est la copie** que le navigateur a refusée.
+ *
+ * Le troisième cas est celui de Bertrand : `navigator.clipboard` n'existe
+ * qu'en contexte sécurisé, et les testeurs atteignent Tune en HTTP clair sur
+ * une IP de réseau local. L'appel jetait, le `catch` annonçait « impossible de
+ * partager » — alors que le partage, lui, existait bel et bien côté serveur.
+ * On ne peut rien faire d'un message qui accuse la mauvaise étape.
+ */
+export type IssueDePartage =
+  /** Copié : le presse-papiers porte vraiment le texte. */
+  | { etat: 'copie'; texte: string }
+  /** La route a refusé — rien n'a été créé. */
+  | { etat: 'routeRefusee'; erreur: unknown }
+  /** Réponse reçue, mais vide : aucune piste à partager. */
+  | { etat: 'sansPiste' }
+  /** Le partage existe ; c'est la copie qui a été refusée. */
+  | { etat: 'copieRefusee'; texte: string; lien: string };
+
+/**
+ * Demander le partage, puis le copier — en distinguant les trois échecs.
+ *
+ * `copier` DOIT rendre `false` quand le presse-papiers n'a pas été écrit :
+ * c'est le contrat de `copyText()` (`lib/utils.ts`), qui retombe sur
+ * `execCommand('copy')` hors contexte sécurisé. On n'annonce « copié » que sur
+ * un `true` — un bouton qui fanfaronne en laissant le presse-papiers vide est
+ * exactement le défaut que `copyText` a été écrit pour éviter.
+ */
+export async function partagerEcoute(opts: {
+  demanderCarte: () => Promise<CartePartage | null | undefined>;
+  copier: (texte: string) => Promise<boolean>;
+  origine?: string;
+}): Promise<IssueDePartage> {
+  const origine = opts.origine ?? '';
+  let carte: CartePartage | null | undefined;
+  try {
+    carte = await opts.demanderCarte();
+  } catch (erreur) {
+    return { etat: 'routeRefusee', erreur };
+  }
+  if (!partageUtilisable(carte)) return { etat: 'sansPiste' };
+
+  const texte = texteDePartage(carte, origine);
+  let copie = false;
+  try {
+    copie = await opts.copier(texte);
+  } catch {
+    // Une exception de copie reste un refus de COPIE, pas un échec de partage.
+    copie = false;
+  }
+  return copie
+    ? { etat: 'copie', texte }
+    : { etat: 'copieRefusee', texte, lien: lienDePartage(carte, origine) };
+}

@@ -22,9 +22,48 @@
   let resolvedCoverPath = $state<string | null>(null);
   let prevCoverPath = $state<string | null | undefined>(undefined);
   let prevAlbumId = $state<number | null | undefined>(undefined);
+  /* 🔴 #4530 — la ceinture ne se boucle qu'UNE fois par couple de props.
+     Sans ce drapeau, un repli qui échoue à son tour redemanderait l'album
+     indéfiniment : une requête par `onerror`, en boucle. */
+  let repliAlbumTente = $state(false);
 
+  /**
+   * 🔴 #4530 — une `coverPath` NON VIDE qui échoue laissait le placeholder,
+   * alors que l'album sait quoi montrer.
+   *
+   * Le repli par `albumId` n'existait que pour une `coverPath` absente. Dès
+   * qu'elle était fournie mais illisible, `hasError` passait à vrai et
+   * l'affaire était close — c'est exactement la grande pochette de « Lecture
+   * en cours » chez Didier et Jean Valjean, pendant que la vignette « À
+   * suivre » du MÊME album, servie par la file avec le condensat brut, rendait
+   * correctement.
+   *
+   * Les producteurs d'une `coverPath` illisible sont plusieurs et vivent dans
+   * l'autre dépôt : une URL absolue `http://<ip-lan>:8888/…` que `artworkUrl`
+   * fait passer par le relais, dont la garde d'adresse (#4260) refuse le LAN
+   * (`artwork_proxy_hote_refuse`) ; une file reprise d'une version antérieure
+   * qui porte encore une adresse périmée ; un condensat qui rend 404. Les
+   * corriger un par un côté serveur est juste et se fait (#4446/#4485) ; ça
+   * n'empêche pas l'écran de savoir se rattraper, et c'est la ceinture qui
+   * manquait.
+   */
   function handleError(e: Event) {
     console.warn('AlbumArt load error:', coverPath, 'src:', src);
+    if (albumId && !repliAlbumTente) {
+      repliAlbumTente = true;
+      const repliPour = albumId;
+      const echoue = resolvedCoverPath;
+      getAlbumCoverPath(repliPour).then((path) => {
+        // L'album a pu changer pendant la requête, et un repli qui rend la
+        // MÊME valeur que celle qui vient d'échouer ne ferait que reboucler.
+        if (prevAlbumId !== repliPour || !path || path === echoue) {
+          hasError = true;
+          return;
+        }
+        resolvedCoverPath = path;
+      });
+      return;
+    }
     hasError = true;
   }
 
@@ -35,6 +74,7 @@
     prevCoverPath = coverPath;
     prevAlbumId = albumId;
     hasError = false;
+    repliAlbumTente = false;
     if (coverPath) {
       resolvedCoverPath = coverPath;
     } else if (albumId) {

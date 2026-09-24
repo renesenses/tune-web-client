@@ -503,9 +503,17 @@ describe('Artistes — la vue est celle des artistes, pas des albums', () => {
     //    image de service est carrée (un cercle en jette 21 %) et le cadre de
     //    `PochetteActions` est carré. L'en-tête, lui, n'a pas de
     //    `PochetteActions` autour.
+    //
+    //    #1501 : la grille n'a PLUS d'en-tête du tout — la fiche est la page
+    //    commune, seule à monter `EnTeteArtiste`. Une seule convention, ronde,
+    //    et un seul porteur.
     expect(
       src.includes('<EnTeteArtiste'),
-      'la fiche n’emploie plus l’en-tête partagé : la forme du portrait peut rediverger',
+      'la grille des artistes monte de nouveau un en-tête de fiche : deux conventions possibles',
+    ).toBe(false);
+    expect(
+      lire('../../components/v2/ArtisteServiceV2.svelte').includes('<EnTeteArtiste'),
+      'la page commune n’emploie plus l’en-tête partagé : la forme du portrait peut rediverger',
     ).toBe(true);
     const entete = lire('../../components/v2/EnTeteArtiste.svelte');
     expect(
