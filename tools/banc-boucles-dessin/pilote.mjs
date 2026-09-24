@@ -49,6 +49,7 @@
 import { createServer } from 'node:http';
 import { spawn, execSync } from 'node:child_process';
 import { readFile, writeFile, mkdtemp, rm, access } from 'node:fs/promises';
+import { readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, extname } from 'node:path';
 
@@ -132,8 +133,41 @@ const serveur = createServer(async (req, res) => {
 await new Promise((r) => serveur.listen(0, '127.0.0.1', r));
 const PORT = serveur.address().port;
 
+/**
+ * 🔴 Sous Linux, `ps -o time` ne rend que des SECONDES ENTIÈRES (`hh:mm:ss`),
+ * là où le `ps` de macOS descend au centième. Sur une fenêtre de 20 s, ça fait
+ * un pas de 0,05 CPU s/s — et sur la fenêtre de 8 s du rodage, un pas de 0,125,
+ * c'est-à-dire l'ordre de grandeur de ce qu'on cherche à mesurer. Les valeurs
+ * tombent alors toutes sur les mêmes multiples et deux configurations
+ * différentes rendent le même chiffre : un faux « aucun écart ».
+ *
+ * On lit donc `/proc/<pid>/stat` : `utime` + `stime` en tics d'horloge
+ * (100 Hz), soit un pas de 10 ms — 1/100ᵉ de ce que `ps` donne ici.
+ */
+const TICS_PAR_SECONDE = Number(
+  execSync('getconf CLK_TCK', { encoding: 'utf8' }).trim()) || 100;
+
+function cpuDuNavigateurLinux(marqueur) {
+  let total = 0;
+  for (const entree of readdirSync('/proc')) {
+    if (!/^\d+$/.test(entree)) continue;
+    let cmdline;
+    try { cmdline = readFileSync(`/proc/${entree}/cmdline`, 'utf8'); } catch { continue; }
+    if (!cmdline.includes(marqueur)) continue;
+    let stat;
+    try { stat = readFileSync(`/proc/${entree}/stat`, 'utf8'); } catch { continue; }
+    // Le nom du programme est entre parenthèses et peut contenir des espaces :
+    // on repart de la DERNIÈRE parenthèse fermante, jamais d'un split naïf.
+    const champs = stat.slice(stat.lastIndexOf(')') + 2).split(' ');
+    // champs[0] = state (champ 3) ⇒ utime = champ 14 = champs[11], stime = champs[12].
+    total += (Number(champs[11]) + Number(champs[12])) / TICS_PAR_SECONDE;
+  }
+  return total;
+}
+
 /** Temps CPU cumulé de TOUS les processus du navigateur, en secondes. */
 function cpuDuNavigateur(marqueur) {
+  if (process.platform === 'linux') return cpuDuNavigateurLinux(marqueur);
   const sortie = execSync(`ps -Ao pid,time,args`, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   let total = 0;
   for (const ligne of sortie.split('\n')) {
@@ -144,6 +178,24 @@ function cpuDuNavigateur(marqueur) {
     total += (+(j || 0)) * 86400 + (+(h || 0)) * 3600 + (+mn) * 60 + parseFloat(sec);
   }
   return total;
+}
+
+/**
+ * 🔴 La charge de la machine est relevée à CHAQUE tour, et publiée.
+ *
+ * Le relevé précédent (#1480) a une ligne entière inexploitable parce qu'il a
+ * été pris sur un Mac dont la charge oscillait entre 50 et 130, et que rien
+ * dans le tableau ne permettait de le voir après coup. Un chiffre de banc sans
+ * la charge au moment où il a été pris n'est pas une mesure, c'est une
+ * anecdote. Voir memory feedback_faux_rouge_binaire_tue_sous_saturation.
+ */
+function chargeMachine() {
+  try {
+    if (process.platform === 'linux') {
+      return +readFileSync('/proc/loadavg', 'utf8').split(' ')[0];
+    }
+    return +execSync('sysctl -n vm.loadavg', { encoding: 'utf8' }).split(' ')[1];
+  } catch { return NaN; }
 }
 
 async function mesurer(config) {
@@ -168,16 +220,26 @@ async function mesurer(config) {
   ]);
   try {
     await borne(debut, `${config} n'a jamais démarré`);
+    const chargeDebut = chargeMachine();
     const cpu0 = cpuDuNavigateur(profil);
     const releve = await borne(attente, `${config} n'a jamais rendu son relevé`);
     const cpu1 = cpuDuNavigateur(profil);
     const cpu = cpu1 - cpu0;
-    return { ...releve, cpuProcessusS: +cpu.toFixed(2),
-             cpuParSeconde: +(cpu / releve.secondes).toFixed(3) };
+    return { ...releve, cpuProcessusS: +cpu.toFixed(3),
+             cpuParSeconde: +(cpu / releve.secondes).toFixed(4),
+             charge: +((chargeDebut + chargeMachine()) / 2).toFixed(2) };
   } finally {
     p.kill('SIGKILL');
     await new Promise((r) => p.on('exit', r));
-    await rm(profil, { recursive: true, force: true });
+    // 🔴 Le processus parent est mort, ses enfants (GPU, rendu, réseau) écrivent
+    // encore dans le profil pendant quelques centaines de ms. Un `rm` immédiat
+    // rend ENOTEMPTY et tue le banc au milieu du tableau (vécu le 23/09 sur
+    // Shrek). On réessaie, et un profil temporaire qui survit n'est pas une
+    // raison d'interrompre une mesure.
+    for (let essai = 0; essai < 20; essai++) {
+      try { await rm(profil, { recursive: true, force: true }); break; }
+      catch { await new Promise((r) => setTimeout(r, 300)); }
+    }
   }
 }
 
@@ -192,7 +254,15 @@ const CONFIGS = [
   ['np-onde',                 'la même toile en forme d\'onde (variante du mode)'],
   ['les-quatre,fond',         'LECTURE EN COURS : les 4 boucles + le fond flouté'],
   ['les-quatre,fond,arret',   'idem, lecture ARRÊTÉE'],
-  ['les-quatre,fond,cadence30', 'CONTRE-ÉPREUVE : les 4 boucles réveillées à 30 Hz'],
+  ['les-quatre,fond,cadence30', 'CONTRE-ÉPREUVE #1480 : une minuterie PAR boucle, 30 Hz (hors chaîne rAF)'],
+  ['les-quatre,fond,horloge', 'HORLOGE A : un seul rAF pour les 4, appelés à chaque image'],
+  ['les-quatre,fond,horloge-saut', 'HORLOGE B : un seul rAF toujours armé, dessinateurs à 30 Hz'],
+  ['les-quatre,fond,horloge30', 'HORLOGE C : un seul rAF armé à 30 Hz seulement (minuterie UNIQUE)'],
+  ['les-quatre,fond,horloge25', 'HORLOGE D : C, mais la minuterie vise 25 ms pour tenir 30 dessins/s'],
+  ['les-quatre,fond,horloge-net', 'HORLOGE E : horloge unique SEUL cadenceur — 30 Hz et 120 dessins/s'],
+  ['les-quatre,fond,horloge-net20', 'ARBITRAGE : horloge unique, 20 dessins/s au lieu de 30'],
+  ['les-quatre,fond,horloge-net15', 'ARBITRAGE : horloge unique, 15 dessins/s au lieu de 30'],
+  ['les-quatre,fond,horloge30-brut', 'TÉMOIN de C : une minuterie UNIQUE, mais hors de la chaîne rAF'],
 ];
 
 
@@ -228,9 +298,16 @@ for (const [config, libelle] of RETENUES) {
   const r = {
     config, libelle,
     rappelsParSeconde: med((x) => x.rappelsParSeconde),
+    ticsParSeconde: med((x) => x.ticsParSeconde ?? x.rappelsParSeconde),
+    dessinsParSeconde: med((x) => x.dessinsParSeconde ?? 0),
     msJsParSeconde: med((x) => x.msJsParSeconde),
     cpuParSeconde: med((x) => x.cpuParSeconde),
     tours: t.map((x) => x.cpuParSeconde),
+    charges: t.map((x) => x.charge),
+    ecartRelatif: (() => {
+      const v = t.map((x) => x.cpuParSeconde);
+      return +((Math.max(...v) - Math.min(...v)) / med((x) => x.cpuParSeconde)).toFixed(3);
+    })(),
   };
   resultats.push(r);
   console.log(JSON.stringify(r));
@@ -238,15 +315,25 @@ for (const [config, libelle] of RETENUES) {
 
 const plancher = resultats[0];
 console.log('\n=== BANC #1256 — Chromium headless, dpr=2, %d s par tour, médiane de %d tours ===', SECONDES, REPETITIONS);
-console.log('config                | rAF/s | ms JS /s | CPU s/s | net du plancher | libellé');
+console.log('config                | rAF/s | tics/s | dessins/s | ms JS /s | CPU s/s | net du plancher | libellé');
 for (const r of resultats) {
-  console.log('%s | %s | %s | %s | %s | %s',
+  console.log('%s | %s | %s | %s | %s | %s | %s | %s',
     r.config.padEnd(21),
     String(r.rappelsParSeconde).padStart(5),
+    String(r.ticsParSeconde).padStart(6),
+    String(r.dessinsParSeconde).padStart(9),
     String(r.msJsParSeconde).padStart(8),
     String(r.cpuParSeconde).padStart(7),
-    String(+(r.cpuParSeconde - plancher.cpuParSeconde).toFixed(3)).padStart(15),
+    String(+(r.cpuParSeconde - plancher.cpuParSeconde).toFixed(4)).padStart(15),
     r.libelle);
+}
+console.log('\n--- dispersion entre tours (CPU s/s) et charge de la machine à chaque tour ---');
+for (const r of resultats) {
+  console.log('%s | tours %s | écart %s %% | charges %s',
+    r.config.padEnd(21),
+    r.tours.join(' / '),
+    String(Math.round(r.ecartRelatif * 100)).padStart(3),
+    r.charges.join(' / '));
 }
 serveur.close();
 process.exit(0);
