@@ -1554,6 +1554,7 @@ export default {
   "v2.home.sHoursHeard": "heures écoutées",
   "v2.home.sGenresHeard": "genres écoutés",
   "v2.home.statOpen": "Ouvrir",
+  "v2.home.statsFull": "Cette ligne est pleine : {n} chiffres au maximum. Décochez-en un pour en choisir un autre.",
   "v2.home.statsPick": "Choisissez les chiffres de cette ligne (six au plus).",
   "v2.sc.eyebrow": "Vos accès rapides",
   "v2.sc.hint": "La barre latérale en montre cinq, les épinglés d’abord. C’est ici qu’on choisit lesquels.",
