@@ -3581,6 +3581,12 @@ export default {
   "v2.sup.team": "Tune 团队",
   "v2.sup.you": "您",
   "v2.plug.unavailable": "此服务器不提供扩展。",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "部分 Premium 扩展未安装：{names}。",
+  "v2.plug.reinstall": "重新安装",
+  "v2.plug.reinstallIgnore": "忽略",
+  "v2.plug.reinstallFailed": "重新安装失败，请重试。",
+  "v2.plug.reinstallDismissFailed": "无法保存你的选择，请重试。",
   "v2.plug.emptyInstalled": "没有已安装的扩展。",
   "v2.plug.empty": "没有扩展。",
   "v2.radio.loadFailed": "无法加载电台。",

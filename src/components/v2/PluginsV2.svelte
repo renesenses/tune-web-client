@@ -20,6 +20,7 @@
   import { fold } from '../../lib/utils';
   import { ajouterLaBoutique } from '../../lib/catalogueGreffons';
   import { activeView } from '../../lib/stores/navigation';
+  import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import '../../styles/tune-v2.css';
 
   let plugins = $state<MergedPlugin[]>([]);
@@ -122,6 +123,8 @@
   {#if restartNeeded}
     <div class="restart">{$t('v2.plug.restartNeeded' as any)}</div>
   {/if}
+  <!-- tune-server-rust#4861 : greffons payants absents d'un compte Premium. -->
+  <BandeauReinstallerGreffons onReinstalle={(r) => { if (r) restartNeeded = true; reload(); }} />
   {#if docsUrl}
     <p class="docs"><a href={docsUrl} target="_blank" rel="noopener noreferrer">{$t('v2.plug.docs' as any)} ↗</a></p>
   {/if}

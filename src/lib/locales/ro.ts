@@ -3581,6 +3581,12 @@ export default {
   "v2.sup.team": "Echipa Tune",
   "v2.sup.you": "Tu",
   "v2.plug.unavailable": "Extensii indisponibile pe acest server.",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "Unele dintre extensiile tale Premium nu sunt instalate: {names}.",
+  "v2.plug.reinstall": "Reinstalează",
+  "v2.plug.reinstallIgnore": "Ignoră",
+  "v2.plug.reinstallFailed": "Reinstalarea a eșuat. Încearcă din nou.",
+  "v2.plug.reinstallDismissFailed": "Alegerea ta nu a putut fi salvată. Încearcă din nou.",
   "v2.plug.emptyInstalled": "Nicio extensie instalată.",
   "v2.plug.empty": "Nicio extensie.",
   "v2.radio.loadFailed": "Nu s-au putut încărca posturile.",

@@ -3539,6 +3539,12 @@ export default {
   "v2.sup.team": "Tune csapat",
   "v2.sup.you": "Ön",
   "v2.plug.unavailable": "A bővítmények nem érhetők el ezen a kiszolgálón.",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "Néhány Premium-bővítményed nincs telepítve: {names}.",
+  "v2.plug.reinstall": "Újratelepítés",
+  "v2.plug.reinstallIgnore": "Elvetés",
+  "v2.plug.reinstallFailed": "Az újratelepítés nem sikerült. Próbáld újra.",
+  "v2.plug.reinstallDismissFailed": "A választásodat nem sikerült menteni. Próbáld újra.",
   "v2.plug.emptyInstalled": "Nincs telepített bővítmény.",
   "v2.plug.empty": "Nincs bővítmény.",
   "v2.radio.loadFailed": "Az állomások nem tölthetők be.",
