@@ -9,6 +9,7 @@
    * à une, sans jamais casser la navigation.
    */
   import { activeView, vueDeRetour, focusMode, type View } from '../../lib/stores/navigation';
+  import { entrerEnModeGrandEcran } from '../../lib/modeGrandEcran';
   import { formatEcran, tiroirOuvert } from '../../lib/largeurEcran';
   import Sidebar from './Sidebar.svelte';
   import LibraryV2 from './LibraryV2.svelte';
@@ -439,13 +440,12 @@
     activeView.set(ou ?? 'nowplaying');
   }
 
+  /**
+   * #1141 — le geste est partagé avec l'entrée de la barre latérale, qui mène
+   * désormais au même écran. Deux copies divergeraient au premier correctif.
+   */
   function modeTv() {
-    try {
-      document.documentElement.requestFullscreen?.()?.catch(() => {});
-    } catch {
-      /* le plein écran peut être refusé : la vue s'ouvre quand même */
-    }
-    activeView.set('tv');
+    entrerEnModeGrandEcran((vue) => activeView.set(vue));
   }
 
   /** Pose d'un raccourci sur la vue COURANTE, depuis n'importe quel écran. */
@@ -519,10 +519,33 @@
       Ici, les trois sont sur la même ligne, à la même taille, espacés par la
       même règle.
     -->
+    <!--
+      🔴 #1141 — ET IL PORTE SON NOM, écrit.
+
+      Bilou, fil 1770, 13/09/2026 : « Plus d'affichage avec les vu-mètres ?? »,
+      puis, deux lignes plus bas dans le même message, « comment passer au mode
+      grand écran en nouvelle version V1 ??? ». Les deux phrases n'en font
+      qu'une : les vu-mètres à aiguille n'existent QUE dans cet écran
+      (`vuMeter` n'est lu que par `TvView`), et `activeView.set('tv')` n'avait
+      qu'un appelant dans tout le dépôt — ce bouton-ci, dont le nom ne vivait
+      que dans son `title` et son `aria-label`. Un pictogramme muet dans une
+      grappe de quatre ronds identiques.
+
+      Le libellé s'efface au palier `tiroir` (≤ 760 px) et LÀ SEULEMENT : cinq
+      ronds y occupent déjà la moitié d'une fenêtre de 390 px. Le bouton y
+      reprend sa forme ronde — 32 px, la même cible de clic qu'avant, jamais
+      moins.
+
+      La largeur de la grappe est MESURÉE et écrite dans `--v2-grappe-w`
+      (`gouttiereGrappe`), que les vingt-cinq écrans réservent : l'élargir ne
+      demande de corriger aucun nombre, nulle part. C'est très exactement ce
+      que cette mécanique a été écrite pour absorber.
+    -->
     {#if $activeView === 'nowplaying'}
-      <button class="raccourci" onclick={modeTv}
+      <button class="raccourci tv" class:nomme={$formatEcran !== 'tiroir'} onclick={modeTv}
         aria-label={$t('nowplaying.tvMode' as any)} title={$t('nowplaying.tvMode' as any)}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        {#if $formatEcran !== 'tiroir'}<span class="tv-nom">{$t('nowplaying.tvMode' as any)}</span>{/if}
       </button>
     {/if}
     <!--
@@ -791,6 +814,17 @@
     color:var(--v2-txt3); display:grid; place-items:center; cursor:pointer; transition:.15s}
   .raccourci:hover{color:var(--v2-acc1); background:var(--v2-hover)}
   .raccourci svg{width:16px; height:16px}
+  /* #1141 — le bouton NOMMÉ. Il quitte la grille centrée des ronds pour une
+     ligne pictogramme + texte, et s'étire à son contenu : les onze langues
+     n'ont pas la même longueur (« 大屏模式 » contre « Modalità grande
+     schermo »), et un nombre écrit à la main en couperait une.
+     `flex:0 0 auto` : la grappe ne doit pas le comprimer, sinon le libellé
+     reviendrait illisible — ce qu'on corrige.
+     La HAUTEUR ne bouge pas (32 px) : il reste aligné sur ses voisins, et
+     `reserveHauteDeLaGrappe` n'a rien à recalculer. */
+  .raccourci.tv.nomme{width:auto; flex:0 0 auto; border-radius:16px; padding:0 13px 0 11px;
+    display:inline-flex; gap:7px; font:600 12px var(--v2-sans); white-space:nowrap}
+  .tv-nom{line-height:1}
   /* La loupe reprise du client actuel se dessine en 36 px sur fond
      transparent. Dans la grappe elle voisinerait deux ronds pleins de 32 px :
      on l'aligne sur eux plutôt que de la laisser dépasser. */
