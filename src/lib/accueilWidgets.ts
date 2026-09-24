@@ -30,6 +30,7 @@ import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
 import { estAParaitre } from './albumAParaitre';
 import { CHOIX_DEFAUT, cartes, sourcesNecessaires } from './chiffresAccueil';
+import { chargerFavorisFusionnes } from './favorisFusionnes';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -706,6 +707,37 @@ function gestePisteTop(t: api.DashboardData['top_tracks'][number]): Element['jou
   return svc && sid ? (z: number) => api.play(z, { source: svc as any, source_id: sid }) : undefined;
 }
 
+/**
+ * LES REPLIS DU WIDGET « VOS FAVORIS » — #1509.
+ *
+ * Un artiste ou une piste favori, tels que `chargerFavorisFusionnes` les
+ * rend : un objet de BIBLIOTHÈQUE porte son `id` ; un objet de SERVICE porte
+ * `id: null` et la paire `source` / `source_id`.
+ *
+ *  - un ARTISTE s'ouvre par son nom (`ouvrirArtisteParNom`), comme les tops ;
+ *    `genre: 'aucun'` parce que son `id` n'est pas celui d'un album ;
+ *  - une PISTE se joue : `track_id` local d'abord, sinon la paire service +
+ *    identifiant de piste. Jamais par `versElement` seul, qui prendrait son
+ *    `id` de bibliothèque pour un album et son `source_id` pour un
+ *    `streaming_album_id` — les deux pièges déjà documentés plus haut.
+ */
+function elementArtisteFavori(o: any, i: number): Element {
+  return { ...versElement(o, i, 'art', { genre: 'aucun' }), ...gesteArtisteTop(champ(o, 'name')) };
+}
+function elementPisteFavorite(o: any, i: number): Element {
+  const el = versElement(o, i, 'trk', { genre: 'aucun' });
+  const local = idLocalValide(o?.id);
+  const svc = serviceDistant(champ(o, 'source') ?? null);
+  const sid = champ(o, 'source_id');
+  const jouer: Element['jouer'] =
+    local != null
+      ? (z: number) => api.play(z, { track_id: local })
+      : svc && sid
+        ? (z: number) => api.play(z, { source: svc as any, source_id: sid })
+        : undefined;
+  return { ...el, jouer };
+}
+
 export const WIDGETS: Widget[] = [
   {
     id: 'zones',
@@ -935,10 +967,29 @@ export const WIDGETS: Widget[] = [
     id: 'favoris',
     cleTitre: 'v2.home.wFavorites',
     forme: 'bande',
+    /**
+     * 🔴 #1509 — FabienM (fil 1896, 23/09/2026) : « Widget Favoris vide dans
+     * le menu accueil (alors que j'ai bien des favoris) », avec 2 albums,
+     * 113 pistes et 12 artistes sur l'écran Favoris.
+     *
+     * Le widget lisait `getFavorites` seul — les favoris de la BIBLIOTHÈQUE —
+     * et son seul seau `albums`. Les cœurs posés chez Qobuz ou Tidal partent
+     * dans `streaming_favorites`, une autre route, que l'écran Favoris
+     * additionne depuis le 03/09 et que le widget ignorait. Deux albums de
+     * service : l'onglet dit 2, le widget 0. On passe par le MÊME chargeur
+     * que l'écran (`chargerFavorisFusionnes`), pas par un second.
+     *
+     * Et un profil sans album favori n'est pas un profil sans favori : à
+     * défaut d'albums, la bande montre les ARTISTES, puis les PISTES.
+     */
     charger: async (ctx) => {
       if (ctx.profileId == null) return [];
-      const f = await api.getFavorites(ctx.profileId);
-      return utiles((f?.albums ?? []).slice(0, LIMITE).map((o: any, i: number) => versElement(o, i, 'alb')));
+      const f = await chargerFavorisFusionnes(ctx.profileId);
+      const albums = utiles(f.albums.slice(0, LIMITE).map((o: any, i: number) => versElement(o, i, 'alb')));
+      if (albums.length) return albums;
+      const artistes = utiles(f.artists.slice(0, LIMITE).map((o: any, i: number) => elementArtisteFavori(o, i)));
+      if (artistes.length) return artistes;
+      return utiles(f.tracks.slice(0, LIMITE).map((o: any, i: number) => elementPisteFavorite(o, i)));
     },
   },
   {

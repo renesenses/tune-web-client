@@ -27,6 +27,7 @@
     favoriteFacetKeys, facetFavKey,
   } from '../../lib/stores/profile';
   import { favoriExterneService, fusionnerPlaylistsFavorites } from '../../lib/streamingFavorites';
+  import { chargerFavorisFusionnes } from '../../lib/favorisFusionnes';
   import {
     trierEtFiltrer, sourcesPresentes, SOURCE_BIBLIOTHEQUE, type TriFavoris,
   } from '../../lib/favorisTriFiltre';
@@ -129,45 +130,13 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   let artisteEnEdition = $state<Artist | null>(null);
 
   /**
-   * Un favori de SERVICE, dans la forme que rendent déjà les trois onglets.
-   *
-   * Bertrand, 03/09/2026 : « Sidebar Favoris et ceux des services de
-   * streaming ?? ». L'écran n'appelait que `getFavorites`, c'est-à-dire les
-   * favoris de la BIBLIOTHÈQUE. Les cœurs posés sur une pochette Qobuz ou
-   * Tidal partent, eux, dans `streaming_favorites` — une autre table, un autre
-   * appel. Ils s'enregistraient donc bien et ne réapparaissaient nulle part :
-   * mesure sur le .18 le 03/09/2026, deux favoris de service rangés (un Qobuz,
-   * un Tidal) et zéro affiché ici.
-   *
-   * Pas de deuxième grille ni de quatrième onglet : un album aimé est un album
-   * aimé. On le convertit dans la forme locale, `id` à `null` et `source` /
-   * `source_id` renseignés — c'est ce couple que la lecture et la fiche
-   * savent déjà suivre, et la pastille du service se dessine toute seule.
+   * Les favoris de SERVICE rejoignent les trois onglets dans la forme locale
+   * (`versAlbum` / `versPiste` / `versArtiste`), et le chargement des deux
+   * sources vit dans `favorisFusionnes` — le SEUL chargeur, partagé avec le
+   * widget « Vos favoris » de l'Accueil depuis #1509. Le widget avait gardé
+   * la lecture d'origine (`getFavorites` seul, seau `albums` seul) et rendait
+   * vide un profil qui comptait ici 2 albums, 113 pistes et 12 artistes.
    */
-  // Les DEUX dates sont REPORTEES, et l'ordre compte : `first_seen_at` est
-  // celle que Tune pose lui-meme a la premiere vue du favori, `created_at`
-  // celle du service — que le service REFAIT (#1060 : 21 favoris Qobuz,
-  // 21 dates distinctes sur 16 secondes, l'instant d'une recopie). `dateDe`
-  // prefere la premiere et retombe sur la seconde.
-  //
-  // ⚠️ Ces trois fonctions RECOPIENT champ par champ : tout champ oublie ici
-  // est silencieusement perdu avant d'atteindre le tri. C'est ainsi que la
-  // date d'ajout avait deja disparu une fois (#2715).
-  const versAlbum = (f: api.StreamingFavorite) => ({
-    id: null, title: f.title ?? '', artist_name: f.artist ?? '',
-    cover_path: f.cover_url ?? null, source: f.service, source_id: f.service_id,
-    created_at: f.created_at ?? null, first_seen_at: f.first_seen_at ?? null,
-  }) as unknown as Album;
-  const versPiste = (f: api.StreamingFavorite) => ({
-    id: null, title: f.title ?? '', artist_name: f.artist ?? '', album_title: f.album ?? '',
-    cover_path: f.cover_url ?? null, source: f.service, source_id: f.service_id, duration_ms: 0,
-    created_at: f.created_at ?? null, first_seen_at: f.first_seen_at ?? null,
-  }) as unknown as Track;
-  const versArtiste = (f: api.StreamingFavorite) => ({
-    id: null, name: f.title ?? f.artist ?? '', image_path: f.cover_url ?? null,
-    source: f.service, source_id: f.service_id, created_at: f.created_at ?? null,
-    first_seen_at: f.first_seen_at ?? null,
-  }) as unknown as Artist;
 
   /** Clé de liste : `id` est NUL sur tout objet de service, et deux `null` se
    *  disputeraient la même clé — Svelte s'arrête sur `each_key_duplicate` et
@@ -193,19 +162,16 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     if (pid == null) { loading = false; return; }
     loading = true;
     try {
-      // Les deux sources en PARALLÈLE, et celle des services au mieux : un
-      // serveur plus ancien ne sert pas la route, et cela ne doit pas vider
-      // les favoris de la bibliothèque.
-      const [f, s] = await Promise.all([
-        api.getFavorites(pid),
-        api.getProfileStreamingFavorites(pid).catch(() => [] as api.StreamingFavorite[]),
-      ]);
+      // Bibliothèque ET services, par le chargeur partagé (#1509).
+      const fusion = await chargerFavorisFusionnes(pid);
+      const f = fusion.locaux;
+      const s = fusion.services;
       // Au mieux, comme les services : un serveur plus ancien ne sert pas la
       // route, et cela ne doit pas vider le reste de l'ecran.
       facettes = await api.getFacetFavorites(pid).catch(() => [] as api.FacetFavorite[]);
-      albums = [...(f.albums ?? []), ...s.filter((x) => x.item_type === 'album').map(versAlbum)];
-      tracks = [...(f.tracks ?? []), ...s.filter((x) => x.item_type === 'track').map(versPiste)];
-      artists = [...(f.artists ?? []), ...s.filter((x) => x.item_type === 'artist').map(versArtiste)];
+      albums = fusion.albums;
+      tracks = fusion.tracks;
+      artists = fusion.artists;
       /*
        * 🔴 LE QUATRIÈME SEAU — #3822, moitié « lecture ».
        *
