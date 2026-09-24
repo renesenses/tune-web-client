@@ -530,6 +530,49 @@
   }
 
   /**
+   * 🔴 Fil 1918, ticket support 164 — RECOMPOSER une ligne de chiffres, sur
+   * un widget QUI VA BIEN.
+   *
+   * jfpaquet, fil 1918, 0.9.163 Windows : « I have edited twice the "My
+   * Library" widget… Each time it says "reloading" but nothing happens for at
+   * least a minute. It works only when I close Tune and restart it. »
+   *
+   * La case à cocher du sélecteur appelait `relancerWidget`. Or celle-ci est
+   * écrite pour le chemin d'ÉCHEC, et son contrat le dit : « rien n'est retiré
+   * du registre ici, c'est le `.catch` qui rend la demande ». Sur un widget
+   * TOMBÉ, c'est juste — le `.catch` a déjà rendu l'identifiant. Sur un widget
+   * SERVI, c'est un aller sans retour :
+   *
+   *   1. `etats` perd son entrée ;
+   *   2. `chargerWidget` est refusé par `demandes.has(id)` — aucune promesse
+   *      n'est même créée ;
+   *   3. la carte retombe sur la branche `!et` du balisage, qui rend
+   *      « Chargement… » — et plus rien ne l'en sort.
+   *
+   * Ce n'est donc pas « lent » : c'est DÉFINITIF. Le chien de garde des 8 s
+   * (`avecDelai`) ne se déclenche pas non plus, faute de promesse, et le
+   * bouton « Réessayer » vit dans la branche `echec`, jamais atteinte. Seul un
+   * rechargement complet de la page — fermer et rouvrir Tune — repart avec un
+   * registre neuf. Le choix, lui, était bel et bien enregistré : c'est
+   * pourquoi il réapparaissait au redémarrage.
+   *
+   * ⚠️ Le geste ne peut pas passer par `rechargerWidget` : celle-ci ignore
+   * `forme === 'chiffres'`, appelle `w.charger` (qui rend `[]` pour ce
+   * widget-ci) et écrit `elements` au lieu de `chiffres` — elle viderait la
+   * ligne au lieu de la recomposer.
+   *
+   * Cocher une case est un GESTE de l'utilisateur, au même titre qu'ajouter un
+   * widget — et `retirer()` rend déjà l'identifiant au registre pour la même
+   * raison. On le rend donc ici aussi : le garde des « chargements x4 » ne
+   * protège que les chargements AUTOMATIQUES, pas ceux qu'on demande.
+   */
+  function recomposerLigne(id: string) {
+    etats = etats.filter((e) => e.id !== id);
+    demandes.delete(id);
+    chargerWidget(id);
+  }
+
+  /**
    * 🔴 AUCUN `$effect` pour lancer les chargements.
    *
    * Il y en avait un — `for (const id of disposition) chargerWidget(id)` — et
@@ -1009,7 +1052,7 @@
                     {#each CHIFFRES as ch (ch.id)}
                       <label class="opt" class:on={chiffres.includes(ch.id)}>
                         <input type="checkbox" checked={chiffres.includes(ch.id)}
-                               onchange={() => { chiffres = basculer(chiffres, ch.id); void enregistrer(); relancerWidget(w.id); }} />
+                               onchange={() => { chiffres = basculer(chiffres, ch.id); void enregistrer(); recomposerLigne(w.id); }} />
                         <span>{$t(ch.cleLibelle as any)}</span>
                       </label>
                     {/each}
