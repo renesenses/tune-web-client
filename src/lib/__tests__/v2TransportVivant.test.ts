@@ -65,7 +65,7 @@ describe('Nouveau client — le transport est alimenté', () => {
     ).toBe(true);
   });
 
-  it('répétition et aléatoire suivent le `snapshot`, seule source', () => {
+  it('répétition et aléatoire suivent le `snapshot` (et les zones, #1549)', () => {
     const src = live();
     expect(src.includes("type === 'snapshot'"), 'le snapshot n’est plus écouté').toBe(true);
     expect(src.includes('repeatMode.set('), 'la répétition n’est plus reportée').toBe(true);
