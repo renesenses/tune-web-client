@@ -1917,7 +1917,7 @@ export default {
   "zoneConfig.monoLocalOnly": "このゾーンはローカル出力を使っていません。設定は保存されますが、ここでは何も変わりません。加算はサーバーのオーディオ経路で行われ、それはサーバーに接続されたサウンドカードまたは DAC にしか存在しません。",
   "zoneConfig.channelsTitle": "チャンネル",
   "zoneConfig.channelsFollow": "デバイスに従う",
-  "zoneConfig.channelsUnavailableNonLocal": "このゾーンはローカルのサウンドカードを使いません。レンダラーが自身でフォーマットを決めます。",
+  "zoneConfig.channelsUnavailableNonLocal": "ネットワーク出力：Tune はチャンネル数を自ら設定しません。機器がフォーマットをネゴシエートし、ストリームをデコードします。このロックは機器の能力とは無関係です。マルチチャンネルのアンプはマルチチャンネルのままです。",
   "zoneConfig.channelsUnavailableBeyondDevice": "選択した構成より少ないチャンネル数を機器が報告しています。",
   "zoneConfig.channelsUnavailable": "この設定はこのゾーンには影響しません。",
   "zoneConfig.channelsEffective": "実際の出力：{layout}",

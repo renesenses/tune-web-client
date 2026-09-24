@@ -2015,7 +2015,7 @@ export default {
   "zoneConfig.monoLocalOnly": "Ez a zóna nem helyi kimenetet használ: a beállítás mentésre kerül, de itt semmit sem változtat. Az összegzés a kiszolgáló hangláncában történik, amely csak a kiszolgálóhoz csatlakoztatott hangkártya vagy DAC esetén létezik.",
   "zoneConfig.channelsTitle": "Csatornák",
   "zoneConfig.channelsFollow": "Az eszköz követése",
-  "zoneConfig.channelsUnavailableNonLocal": "Ez a zóna nem helyi hangkártyát használ: a renderelő maga egyezteti a formátumot.",
+  "zoneConfig.channelsUnavailableNonLocal": "Hálózati kimenet: a Tune nem maga állítja be a csatornák számát – az eszköz egyezteti a formátumot és dekódolja a folyamot. Ez a zárolás semmit sem mond az eszköz képességeiről: egy többcsatornás erősítő az is marad.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Az eszköz kevesebb csatornát jelez, mint a választott elrendezés.",
   "zoneConfig.channelsUnavailable": "Ennek a beállításnak nincs hatása erre a zónára.",
   "zoneConfig.channelsEffective": "Tényleges kimenet: {layout}",

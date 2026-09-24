@@ -1919,7 +1919,7 @@ export default {
   "zoneConfig.monoLocalOnly": "此区域未使用本地输出：设置会被保存，但在这里不会有任何变化。相加发生在服务器的音频链路中，而它只存在于连接到服务器的声卡或 DAC。",
   "zoneConfig.channelsTitle": "声道",
   "zoneConfig.channelsFollow": "跟随设备",
-  "zoneConfig.channelsUnavailableNonLocal": "此区域不使用本地声卡：渲染器自行协商格式。",
+  "zoneConfig.channelsUnavailableNonLocal": "网络输出：Tune 不自行设定声道数，由设备协商格式并解码音频流。此锁定与设备能力无关：多声道功放仍然是多声道的。",
   "zoneConfig.channelsUnavailableBeyondDevice": "设备报告的声道数少于所选布局。",
   "zoneConfig.channelsUnavailable": "此设置对该区域无效。",
   "zoneConfig.channelsEffective": "实际输出：{layout}",

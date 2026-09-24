@@ -1925,7 +1925,7 @@ export default {
   "zoneConfig.monoLocalOnly": "Această zonă nu folosește o ieșire locală: setarea este salvată, dar aici nu va schimba nimic. Însumarea are loc în lanțul audio al serverului, care există doar pentru o placă de sunet sau un DAC conectat la server.",
   "zoneConfig.channelsTitle": "Canale",
   "zoneConfig.channelsFollow": "Urmează dispozitivul",
-  "zoneConfig.channelsUnavailableNonLocal": "Această zonă nu folosește o placă de sunet locală: renderer-ul își negociază propriul format.",
+  "zoneConfig.channelsUnavailableNonLocal": "Ieșire de rețea: Tune nu stabilește singur numărul de canale — aparatul își negociază formatul și decodează fluxul. Această blocare nu spune nimic despre capacitățile aparatului: un amplificator multicanal rămâne multicanal.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Dispozitivul anunță mai puține canale decât configurația aleasă.",
   "zoneConfig.channelsUnavailable": "Această setare nu are efect asupra acestei zone.",
   "zoneConfig.channelsEffective": "Ieșire reală: {layout}",

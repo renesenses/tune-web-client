@@ -1891,7 +1891,7 @@ export default {
   "zoneConfig.monoLocalOnly": "Den här zonen använder ingen lokal utgång: inställningen sparas, men den ändrar ingenting här. Summeringen sker i serverns ljudkedja, som bara finns för ett ljudkort eller en DAC ansluten till servern.",
   "zoneConfig.channelsTitle": "Kanaler",
   "zoneConfig.channelsFollow": "Följ enheten",
-  "zoneConfig.channelsUnavailableNonLocal": "Den här zonen använder inget lokalt ljudkort: renderaren förhandlar sitt eget format.",
+  "zoneConfig.channelsUnavailableNonLocal": "Nätverksutgång: Tune bestämmer inte själv antalet kanaler – enheten förhandlar sitt format och avkodar strömmen. Låset säger inget om vad din enhet klarar: en flerkanalsförstärkare förblir flerkanalig.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Enheten anger färre kanaler än den valda uppställningen.",
   "zoneConfig.channelsUnavailable": "Den här inställningen har ingen effekt på den här zonen.",
   "zoneConfig.channelsEffective": "Verklig utgång: {layout}",

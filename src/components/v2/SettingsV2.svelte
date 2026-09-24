@@ -17,7 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { appareilDeLaZone, cleContrainteCanaux } from '../../lib/vueZones';
+  import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
   import { tick } from 'svelte';
@@ -3918,7 +3918,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <div class="canaux">
                           <span class="tl">{$t('zoneConfig.channelsTitle' as any)}</span>
                           <select class="sel"
-                            disabled={z.id == null || z.channel_layout_status?.unavailable}
+                            disabled={z.id == null || canauxVerrouilles(z.channel_layout_status)}
                             value={z.channel_layout ?? ''}
                             onchange={(e) => setZoneField(z, () => api.updateZoneChannelLayout(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
                             <option value="">{$t('zoneConfig.channelsFollow' as any)}</option>

@@ -1903,7 +1903,7 @@ export default {
   "zoneConfig.monoLocalOnly": "이 존은 로컬 출력을 사용하지 않습니다. 설정은 저장되지만 여기서는 아무것도 바뀌지 않습니다. 합산은 서버의 오디오 경로에서 이루어지며, 그것은 서버에 연결된 사운드 카드나 DAC에만 존재합니다.",
   "zoneConfig.channelsTitle": "채널",
   "zoneConfig.channelsFollow": "장치를 따름",
-  "zoneConfig.channelsUnavailableNonLocal": "이 존은 로컬 사운드 카드를 쓰지 않습니다. 렌더러가 자체적으로 포맷을 협상합니다.",
+  "zoneConfig.channelsUnavailableNonLocal": "네트워크 출력: Tune은 채널 수를 직접 정하지 않습니다. 기기가 포맷을 협상하고 스트림을 디코딩합니다. 이 잠금은 기기의 성능과 무관합니다. 멀티채널 앰프는 그대로 멀티채널입니다.",
   "zoneConfig.channelsUnavailableBeyondDevice": "선택한 구성보다 적은 채널을 기기가 보고합니다.",
   "zoneConfig.channelsUnavailable": "이 설정은 이 존에 영향을 주지 않습니다.",
   "zoneConfig.channelsEffective": "실제 출력: {layout}",

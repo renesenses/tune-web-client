@@ -1919,7 +1919,7 @@ export default {
   "zoneConfig.monoLocalOnly": "Diese Zone nutzt keinen lokalen Ausgang: Die Einstellung wird gespeichert, ändert hier aber nichts. Die Summierung erfolgt in der Audiokette des Servers, die es nur für eine Soundkarte oder einen am Server angeschlossenen DAC gibt.",
   "zoneConfig.channelsTitle": "Kanäle",
   "zoneConfig.channelsFollow": "Dem Gerät folgen",
-  "zoneConfig.channelsUnavailableNonLocal": "Diese Zone nutzt keine lokale Soundkarte: Der Renderer handelt sein Format selbst aus.",
+  "zoneConfig.channelsUnavailableNonLocal": "Netzwerkausgang: Tune legt die Kanalzahl nicht selbst fest – das Gerät handelt sein Format aus und dekodiert den Stream. Diese Sperre sagt nichts über die Fähigkeiten Ihres Geräts aus: Ein Mehrkanal-Verstärker bleibt mehrkanalig.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Das Gerät meldet weniger Kanäle als die gewählte Anordnung.",
   "zoneConfig.channelsUnavailable": "Diese Einstellung hat auf diese Zone keine Wirkung.",
   "zoneConfig.channelsEffective": "Tatsächliche Ausgabe: {layout}",

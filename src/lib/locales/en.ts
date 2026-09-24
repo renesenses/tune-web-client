@@ -2468,7 +2468,7 @@ export default {
   "zoneConfig.monoLocalOnly": "This zone does not use a local output: the setting is saved, but it will change nothing here. The summing happens in the server's audio chain, which only exists for a sound card or a DAC wired to the server.",
   "zoneConfig.channelsTitle": "Channels",
   "zoneConfig.channelsFollow": "Follow the device",
-  "zoneConfig.channelsUnavailableNonLocal": "This zone does not use a local sound card: the renderer negotiates its own format.",
+  "zoneConfig.channelsUnavailableNonLocal": "Network output: Tune does not set the channel count itself — the device negotiates its format and decodes the stream. This lock says nothing about what your device can play: a multichannel amplifier stays multichannel.",
   "zoneConfig.channelsUnavailableBeyondDevice": "The device reports fewer channels than the layout you picked.",
   "zoneConfig.channelsUnavailable": "This setting has no effect on this zone.",
   "zoneConfig.channelsEffective": "Actual output: {layout}",
