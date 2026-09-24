@@ -1905,6 +1905,7 @@ export default {
   "zoneConfig.channelsFollow": "장치를 따름",
   "zoneConfig.channelsUnavailableNonLocal": "네트워크 출력: Tune은 채널 수를 직접 정하지 않습니다. 기기가 포맷을 협상하고 스트림을 디코딩합니다. 이 잠금은 기기의 성능과 무관합니다. 멀티채널 앰프는 그대로 멀티채널입니다.",
   "zoneConfig.channelsUnavailableBeyondDevice": "선택한 구성보다 적은 채널을 기기가 보고합니다.",
+  "zoneConfig.channelsNetworkCeiling": "네트워크 출력: 이 선택은 Tune이 스트림을 디코딩할 때 적용되며, 라이브러리의 멀티채널 트랙은 선택한 채널 수로 줄어듭니다. Tune은 채널을 추가하지 않으며, 그대로 보내는 DSD 스트림은 건드리지 않습니다. 기기가 더 적은 채널을 알리면 기기가 우선합니다.",
   "zoneConfig.channelsUnavailable": "이 설정은 이 존에 영향을 주지 않습니다.",
   "zoneConfig.channelsEffective": "실제 출력: {layout}",
   "zoneConfig.channels_mono": "모노",

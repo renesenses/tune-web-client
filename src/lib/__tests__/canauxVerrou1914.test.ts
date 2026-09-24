@@ -19,9 +19,16 @@
 //    serveur « ne bloque pas la saisie » ; l'écran, lui, grisait — et
 //    enfermait l'utilisateur hors de « Suivre l'appareil ».
 //
-// CONTRE-ÉPREUVE : remettre `disabled={… || z.channel_layout_status?.unavailable}`
+// DÉCISION DE BERTRAND (24/09) : la case doit être CHOISISSABLE aussi sur
+// une sortie réseau. Le serveur (lot `batch/canaux-reseau-20260924`) fait de
+// la disposition déclarée un PLAFOND du repli réseau de #4573 : un renderer
+// que Tune décode n'est plus `unavailable`, il publie
+// `portee: 'plafond_reseau'`, et l'écran dit ce que le choix fait vraiment.
+//
+// CONTRE-ÉPREUVES : remettre `disabled={… || z.channel_layout_status?.unavailable}`
 // dans SettingsV2 fait rougir « au-delà de l'appareil : le sélecteur reste
-// libre ».
+// libre » ; retirer la note `plafond_reseau` fait rougir « 🔴 renderer
+// réseau : le choix est ouvert, et l'écran dit ce qu'il fait ».
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 
@@ -69,6 +76,15 @@ describe('fils 1914/1913 — l’explication ne juge plus l’appareil', () => {
     const t = d['zoneConfig.channelsUnavailableNonLocal'];
     expect(t, `${l} : clé absente`).toBeTruthy();
     expect(t).not.toContain('renderer négocie lui-même son format');
+  });
+  it.each(ONZE_LANGUES)('%s : la note « plafond réseau » existe', (l) => {
+    expect(dictionnaire(l)['zoneConfig.channelsNetworkCeiling'], `${l} : clé absente`).toBeTruthy();
+  });
+  it('fr : la note dit la réduction, l’absence d’ajout, et le dernier mot de l’appareil', () => {
+    const t = fr['zoneConfig.channelsNetworkCeiling'];
+    expect(t).toContain('réduite au nombre de canaux choisi');
+    expect(t).toContain("n'ajoute jamais de canal");
+    expect(t).toContain("c'est lui qui l'emporte");
   });
   it('fr : le verrou est dit tenir à la sortie, pas à l’appareil', () => {
     expect(fr['zoneConfig.channelsUnavailableNonLocal']).toContain('ne dit rien des capacités de votre appareil');
@@ -148,9 +164,28 @@ describe('fils 1914/1913 — Réglages › Appareils', () => {
     expect(h.querySelector('#zc-21')!.textContent).toContain(fr['zoneConfig.channelsUnavailableBeyondDevice']);
   });
 
-  it('sortie réseau : verrouillé, avec l’explication visible', { timeout: 60_000 }, async () => {
+  it('🔴 renderer réseau : le choix est ouvert, et l’écran dit ce qu’il fait', { timeout: 60_000 }, async () => {
+    // Le cas de Reivax66 : un Denon en DLNA, que Tune décode.
     const h = await poser(zone({
       output_type: 'dlna',
+      channel_layouts_offered: [{ id: 'stereo', canaux: 2 }, { id: 'surround71', canaux: 8 }],
+      channel_layout_status: statut({ portee: 'plafond_reseau' }),
+    }));
+    expect(selecteur(h)!.disabled, 'grisé alors que le serveur ouvre le choix').toBe(false);
+    const note = h.querySelector('#zc-21 .canaux-reseau');
+    expect(note, 'la note « plafond réseau » manque').not.toBeNull();
+    expect(note!.textContent).toBe(fr['zoneConfig.channelsNetworkCeiling']);
+  });
+
+  it('contre-témoin : une carte locale ne porte pas la note réseau', { timeout: 60_000 }, async () => {
+    const h = await poser(zone());
+    expect(selecteur(h)!.disabled).toBe(false);
+    expect(h.querySelector('#zc-21 .canaux-reseau')).toBeNull();
+  });
+
+  it('sortie sans chemin (AirPlay, ou serveur antérieur) : verrouillé, avec l’explication visible', { timeout: 60_000 }, async () => {
+    const h = await poser(zone({
+      output_type: 'airplay',
       channel_layouts_offered: [{ id: 'stereo', canaux: 2 }, { id: 'surround71', canaux: 8 }],
       channel_layout_status: statut({ unavailable: true, reason: 'sortie_non_locale' }),
     }));

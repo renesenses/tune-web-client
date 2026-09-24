@@ -1921,6 +1921,7 @@ export default {
   "zoneConfig.channelsFollow": "Dem Gerät folgen",
   "zoneConfig.channelsUnavailableNonLocal": "Netzwerkausgang: Tune legt die Kanalzahl nicht selbst fest – das Gerät handelt sein Format aus und dekodiert den Stream. Diese Sperre sagt nichts über die Fähigkeiten Ihres Geräts aus: Ein Mehrkanal-Verstärker bleibt mehrkanalig.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Das Gerät meldet weniger Kanäle als die gewählte Anordnung.",
+  "zoneConfig.channelsNetworkCeiling": "Netzwerkausgang: Die Auswahl greift, wenn Tune den Stream dekodiert – ein Mehrkanal-Titel Ihrer Bibliothek wird auf die gewählte Kanalzahl reduziert. Tune fügt nie Kanäle hinzu, ein unverändert gesendeter DSD-Stream bleibt unberührt, und meldet das Gerät weniger Kanäle, hat das Gerät Vorrang.",
   "zoneConfig.channelsUnavailable": "Diese Einstellung hat auf diese Zone keine Wirkung.",
   "zoneConfig.channelsEffective": "Tatsächliche Ausgabe: {layout}",
   "zoneConfig.channels_mono": "Mono",

@@ -1921,6 +1921,7 @@ export default {
   "zoneConfig.channelsFollow": "Seguir el dispositivo",
   "zoneConfig.channelsUnavailableNonLocal": "Salida de red: Tune no fija por sí mismo el número de canales; el aparato negocia su formato y decodifica el flujo. Este bloqueo no dice nada de lo que su aparato puede reproducir: un amplificador multicanal sigue siéndolo.",
   "zoneConfig.channelsUnavailableBeyondDevice": "El dispositivo declara menos canales que la disposición elegida.",
+  "zoneConfig.channelsNetworkCeiling": "Salida de red: la elección se aplica cuando Tune decodifica el flujo: una pista multicanal de su biblioteca se reduce al número de canales elegido. Tune nunca añade canales, un flujo DSD enviado tal cual no se toca y, si el aparato anuncia menos canales, prevalece el aparato.",
   "zoneConfig.channelsUnavailable": "Este ajuste no tiene efecto en esta zona.",
   "zoneConfig.channelsEffective": "Salida real: {layout}",
   "zoneConfig.channels_mono": "Mono",

@@ -153,11 +153,13 @@ export function cleEtatLecture(e: EtatLecture): string {
  * motif. Or le serveur publie DEUX motifs de nature opposée
  * (`tune-core/src/audio/canaux_declares.rs`) :
  *
- *  - `sortie_non_locale` — la zone sort par un renderer réseau (DLNA, AirPlay,
- *    Chromecast…). La disposition déclarée n'a AUCUN chemin jusqu'à lui : il
- *    négocie son format lui-même. Choisir ne changerait rien au son — le
- *    réglage mentirait (#3254). Là, on SAIT : on verrouille, et le texte dit
- *    que le verrou tient à la sortie, pas à l'appareil.
+ *  - `sortie_non_locale` — la déclaration n'a AUCUN chemin jusqu'à la sortie
+ *    (AirPlay, OAAT, zone sans appareil — et, sur un serveur antérieur au lot
+ *    `batch/canaux-reseau-20260924`, tout renderer réseau). Choisir ne
+ *    changerait rien au son — le réglage mentirait (#3254). Là, on SAIT : on
+ *    verrouille, et le texte dit que le verrou tient à la sortie, pas à
+ *    l'appareil. Un renderer DLNA que Tune décode n'arrive plus ici : le
+ *    serveur l'ouvre et publie `portee: 'plafond_reseau'`.
  *  - `au_dela_de_l_appareil` — le pilote annonce moins de canaux que le
  *    choix. Le serveur l'écrit en toutes lettres : « On ne bloque pas la
  *    saisie — un pilote ment parfois, et l'utilisateur en sait plus que

@@ -2473,6 +2473,7 @@ export default {
   "zoneConfig.channelsFollow": "Suivre l'appareil",
   "zoneConfig.channelsUnavailableNonLocal": "Sortie réseau : Tune ne fixe pas lui-même le nombre de canaux, c'est l'appareil qui négocie son format et décode le flux. Ce verrou ne dit rien des capacités de votre appareil — un ampli multicanal le reste.",
   "zoneConfig.channelsUnavailableBeyondDevice": "L'appareil annonce moins de canaux que la disposition choisie.",
+  "zoneConfig.channelsNetworkCeiling": "Sortie réseau : le choix s'applique quand Tune décode le flux — une piste multicanale de votre bibliothèque est réduite au nombre de canaux choisi. Tune n'ajoute jamais de canal, un flux DSD servi tel quel n'est pas touché, et si l'appareil annonce moins de canaux, c'est lui qui l'emporte.",
   "zoneConfig.channelsUnavailable": "Ce réglage n'a pas d'effet sur cette zone.",
   "zoneConfig.channelsEffective": "Sortie réelle : {layout}",
   "zoneConfig.channels_mono": "Mono",

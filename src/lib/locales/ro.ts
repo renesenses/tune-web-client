@@ -1927,6 +1927,7 @@ export default {
   "zoneConfig.channelsFollow": "Urmează dispozitivul",
   "zoneConfig.channelsUnavailableNonLocal": "Ieșire de rețea: Tune nu stabilește singur numărul de canale — aparatul își negociază formatul și decodează fluxul. Această blocare nu spune nimic despre capacitățile aparatului: un amplificator multicanal rămâne multicanal.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Dispozitivul anunță mai puține canale decât configurația aleasă.",
+  "zoneConfig.channelsNetworkCeiling": "Ieșire de rețea: alegerea se aplică atunci când Tune decodează fluxul — o piesă multicanal din bibliotecă este redusă la numărul de canale ales. Tune nu adaugă niciodată canale, un flux DSD trimis ca atare nu este atins, iar dacă aparatul anunță mai puține canale, aparatul are ultimul cuvânt.",
   "zoneConfig.channelsUnavailable": "Această setare nu are efect asupra acestei zone.",
   "zoneConfig.channelsEffective": "Ieșire reală: {layout}",
   "zoneConfig.channels_mono": "Mono",

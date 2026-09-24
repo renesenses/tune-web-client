@@ -1893,6 +1893,7 @@ export default {
   "zoneConfig.channelsFollow": "Följ enheten",
   "zoneConfig.channelsUnavailableNonLocal": "Nätverksutgång: Tune bestämmer inte själv antalet kanaler – enheten förhandlar sitt format och avkodar strömmen. Låset säger inget om vad din enhet klarar: en flerkanalsförstärkare förblir flerkanalig.",
   "zoneConfig.channelsUnavailableBeyondDevice": "Enheten anger färre kanaler än den valda uppställningen.",
+  "zoneConfig.channelsNetworkCeiling": "Nätverksutgång: valet gäller när Tune avkodar strömmen – ett flerkanalsspår i ditt bibliotek reduceras till valt antal kanaler. Tune lägger aldrig till kanaler, en DSD-ström som skickas oförändrad rörs inte, och om enheten anger färre kanaler är det enheten som gäller.",
   "zoneConfig.channelsUnavailable": "Den här inställningen har ingen effekt på den här zonen.",
   "zoneConfig.channelsEffective": "Verklig utgång: {layout}",
   "zoneConfig.channels_mono": "Mono",

@@ -1919,6 +1919,7 @@ export default {
   "zoneConfig.channelsFollow": "デバイスに従う",
   "zoneConfig.channelsUnavailableNonLocal": "ネットワーク出力：Tune はチャンネル数を自ら設定しません。機器がフォーマットをネゴシエートし、ストリームをデコードします。このロックは機器の能力とは無関係です。マルチチャンネルのアンプはマルチチャンネルのままです。",
   "zoneConfig.channelsUnavailableBeyondDevice": "選択した構成より少ないチャンネル数を機器が報告しています。",
+  "zoneConfig.channelsNetworkCeiling": "ネットワーク出力：この選択は Tune がストリームをデコードするときに適用され、ライブラリのマルチチャンネル曲は選んだチャンネル数に削減されます。Tune がチャンネルを追加することはなく、そのまま送る DSD ストリームには手を加えません。機器が通知するチャンネル数の方が少ない場合は機器が優先されます。",
   "zoneConfig.channelsUnavailable": "この設定はこのゾーンには影響しません。",
   "zoneConfig.channelsEffective": "実際の出力：{layout}",
   "zoneConfig.channels_mono": "モノラル",

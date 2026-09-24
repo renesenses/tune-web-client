@@ -2470,6 +2470,7 @@ export default {
   "zoneConfig.channelsFollow": "Follow the device",
   "zoneConfig.channelsUnavailableNonLocal": "Network output: Tune does not set the channel count itself — the device negotiates its format and decodes the stream. This lock says nothing about what your device can play: a multichannel amplifier stays multichannel.",
   "zoneConfig.channelsUnavailableBeyondDevice": "The device reports fewer channels than the layout you picked.",
+  "zoneConfig.channelsNetworkCeiling": "Network output: the choice applies when Tune decodes the stream — a multichannel track from your library is reduced to the chosen channel count. Tune never adds channels, a DSD stream served as-is is left untouched, and if the device announces fewer channels, the device wins.",
   "zoneConfig.channelsUnavailable": "This setting has no effect on this zone.",
   "zoneConfig.channelsEffective": "Actual output: {layout}",
   "zoneConfig.channels_mono": "Mono",

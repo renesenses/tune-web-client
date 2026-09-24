@@ -1921,6 +1921,7 @@ export default {
   "zoneConfig.channelsFollow": "跟随设备",
   "zoneConfig.channelsUnavailableNonLocal": "网络输出：Tune 不自行设定声道数，由设备协商格式并解码音频流。此锁定与设备能力无关：多声道功放仍然是多声道的。",
   "zoneConfig.channelsUnavailableBeyondDevice": "设备报告的声道数少于所选布局。",
+  "zoneConfig.channelsNetworkCeiling": "网络输出：此选择在 Tune 解码音频流时生效——媒体库中的多声道曲目会被缩减为所选声道数。Tune 从不增加声道，原样传送的 DSD 流不受影响；若设备声明的声道更少，则以设备为准。",
   "zoneConfig.channelsUnavailable": "此设置对该区域无效。",
   "zoneConfig.channelsEffective": "实际输出：{layout}",
   "zoneConfig.channels_mono": "单声道",

@@ -3937,6 +3937,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         {#if z.channel_layout_status?.unavailable}
                           <p class="monote">{$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)}</p>
                         {/if}
+                        <!-- Fils 1914/1913 — sur un renderer réseau, le choix est
+                             OUVERT mais n'agit pas comme sur une carte locale :
+                             Tune réduit une piste multicanale au nombre choisi,
+                             n'ajoute jamais de canal, et l'appareil garde le
+                             dernier mot s'il annonce moins. On le dit, sinon
+                             « 7.1 » passerait pour une promesse. Le serveur
+                             décide (`portee`), l'écran ne redérive rien. -->
+                        {#if z.channel_layout_status?.portee === 'plafond_reseau'}
+                          <p class="monote canaux-reseau">{$t('zoneConfig.channelsNetworkCeiling' as any)}</p>
+                        {/if}
                         <!-- Ce que la zone SORT vraiment (`effective`), quand
                              ça ne coïncide pas avec ce qui est choisi : un
                              5.1 demandé que l'appareil ramène en stéréo, ou
