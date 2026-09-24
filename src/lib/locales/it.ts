@@ -3175,6 +3175,7 @@ export default {
   "v2.queue.upNextNone": "niente",
   "v2.queue.playTrack": "Riproduci {t}",
   "v2.queue.moveUp": "Sposta su",
+  "v2.liste.poignee": "Riordina: trascina o frecce su/giù",
   "v2.queue.moveDown": "Sposta giù",
   "v2.radio.searchPlaceholder": "Cerca una stazione",
   "v2.radio.loading": "Caricamento delle stazioni…",

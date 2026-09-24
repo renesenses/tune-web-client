@@ -291,8 +291,10 @@ describe('#1848 — les surfaces qui n’avaient aucun menu en montent un', () =
   /**
    * Les surfaces de la NOUVELLE interface qui rendent une piste. Chacune passe
    * par `PisteActions` — directement, ou par `ListePistesV2` qui le monte sur
-   * chaque ligne. `PlaylistManagerView`, `YouTubeDecouverteV2`, `MediaServersV2`
-   * et `PageWidgets` sont hors liste : décision produit en attente (23/09/2026).
+   * chaque ligne. `PlaylistManagerView` (ancienne interface) y est entré avec
+   * la liste commune (#1524, 23/09/2026) : il monte `ListePistesV2` depuis
+   * `../v2/`. `YouTubeDecouverteV2`, `MediaServersV2` et `PageWidgets` sont
+   * hors liste : décision produit en attente (23/09/2026).
    */
   const SURFACES_V2: [string, RegExp][] = [
     ['v2/ListePistesV2', /<PisteActions /],
@@ -305,12 +307,13 @@ describe('#1848 — les surfaces qui n’avaient aucun menu en montent un', () =
     ['v2/PlaylistDetailV2', /<ListePistesV2 /],
     ['v2/EtiquettesV2', /<ListePistesV2 /],
     ['v2/BioEtTitresPhares', /<ListePistesV2 /],
+    ['v2-heritage/PlaylistManagerView', /<ListePistesV2 /],
   ];
   for (const [ecran, balise] of SURFACES_V2) {
     it(`${ecran} rend ses pistes par PisteActions ou ListePistesV2`, () => {
       const src = sansCommentaires(lire(`src/components/${ecran}.svelte`));
       expect(src, `${ecran} n’importe ni PisteActions ni ListePistesV2`)
-        .toMatch(/import (PisteActions|ListePistesV2)(, \{[^}]*\})? from '\.\/(PisteActions|ListePistesV2)\.svelte'/);
+        .toMatch(/import (PisteActions|ListePistesV2)(, \{[^}]*\})? from '(\.\/|\.\.\/v2\/)(PisteActions|ListePistesV2)\.svelte'/);
       expect(src, `${ecran} importe la brique sans la monter`).toMatch(balise);
       // Aucune de ces surfaces ne porte son propre menu de piste.
       expect(src).not.toMatch(/<(TrackContextMenu|MenuPisteV1|MenuPisteV2) /);

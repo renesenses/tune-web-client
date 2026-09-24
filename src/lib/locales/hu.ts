@@ -3133,6 +3133,7 @@ export default {
   "v2.queue.upNextNone": "semmi",
   "v2.queue.playTrack": "{t} lejátszása",
   "v2.queue.moveUp": "Feljebb",
+  "v2.liste.poignee": "Átrendezés: húzás vagy fel/le nyilak",
   "v2.queue.moveDown": "Lejjebb",
   "v2.radio.searchPlaceholder": "Adó keresése",
   "v2.radio.loading": "Adók betöltése…",

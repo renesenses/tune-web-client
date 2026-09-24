@@ -3197,6 +3197,7 @@ export default {
   "v2.queue.upNextNone": "rien",
   "v2.queue.playTrack": "Lire {t}",
   "v2.queue.moveUp": "Monter",
+  "v2.liste.poignee": "Réordonner : glisser, ou flèches haut et bas",
   "v2.queue.moveDown": "Descendre",
   "v2.radio.searchPlaceholder": "Rechercher une station",
   "v2.radio.loading": "Chargement des stations…",

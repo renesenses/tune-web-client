@@ -3175,6 +3175,7 @@ export default {
   "v2.queue.upNextNone": "nimic",
   "v2.queue.playTrack": "Redă {t}",
   "v2.queue.moveUp": "Mută mai sus",
+  "v2.liste.poignee": "Reordonează: trage sau săgeți sus/jos",
   "v2.queue.moveDown": "Mută mai jos",
   "v2.radio.searchPlaceholder": "Căutați un post",
   "v2.radio.loading": "Se încarcă posturile…",
