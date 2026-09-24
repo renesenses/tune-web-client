@@ -121,7 +121,11 @@ function boutonImporter(el: HTMLElement): HTMLButtonElement {
 
 async function choisirFichier(el: HTMLElement, f: File) {
   const input = el.querySelector('input[type="file"]') as HTMLInputElement | null;
-  expect(input, 'le sélecteur de fichier est absent').not.toBeNull();
+  // Le motif affiché par l'écran à la place du sélecteur : sans lui, un
+  // rouge ne dit pas POURQUOI (#1555 — sous Node 26, `getToken()` levait et
+  // l'écran disait « indisponible » ; le rouge accusait l'attente).
+  const affiche = el.querySelector('.err')?.textContent?.trim();
+  expect(input, `le sélecteur de fichier est absent${affiche ? ` — l'écran affiche : ${affiche}` : ''}`).not.toBeNull();
   Object.defineProperty(input!, 'files', { value: [f], configurable: true });
   input!.dispatchEvent(new Event('change', { bubbles: true }));
   await laisserFaire();
