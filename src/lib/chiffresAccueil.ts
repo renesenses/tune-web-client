@@ -182,10 +182,28 @@ export const CHIFFRES: readonly Chiffre[] = [
     vue: 'history', valeur: (s) => nb(s.ecoute, 'unique_genres'), format: 'nombre' },
 ];
 
-/** Ce que la ligne montre quand personne n'a encore choisi : un mélange des
- *  deux familles, pour que la ligne dise à la fois ce qu'on a et ce qu'on écoute. */
+/**
+ * Ce que la ligne montre quand personne n'a encore choisi : un mélange des
+ * deux familles, pour que la ligne dise à la fois ce qu'on a et ce qu'on écoute.
+ *
+ * 🔴 #1519 — le nombre de TITRES y entre le 24/09/2026, sur arbitrage de
+ * Bertrand. jfpaquet (fil 1900, 0.9.162) : « Sur page d'accueil je ne vois plus
+ * le nombre de morceaux ». La carte existait au catalogue depuis le premier
+ * jour ; elle n'était simplement pas retenue par le défaut du 19/09. C'est le
+ * premier chiffre d'une bibliothèque : 79 940 pistes, et la ligne n'en disait
+ * rien.
+ *
+ * Il est placé auprès des albums et des artistes, les trois chiffres de ce
+ * qu'on possède, et non à la fin entre les heures écoutées et la taille.
+ *
+ * 🔴 Ce défaut ne s'applique qu'aux profils qui n'ont RIEN enregistré. Un choix
+ * déjà rangé sous `home_stats` l'emporte tel quel — voir `choixAuChargement`.
+ * Six cartes, c'est aussi le maximum de `basculer` : un profil neuf part donc
+ * plein, et devra en décocher une pour en essayer une autre. C'est voulu : la
+ * ligne dit l'essentiel, pas tout.
+ */
 export const CHOIX_DEFAUT: readonly string[] = [
-  'albums', 'artistes', 'lectures', 'heures-ecoutees', 'taille',
+  'albums', 'artistes', 'titres', 'lectures', 'heures-ecoutees', 'taille',
 ];
 
 export function chiffreParId(id: string): Chiffre | null {
@@ -305,6 +323,35 @@ export function cartes(
     });
   }
   return vues;
+}
+
+/**
+ * Ce que la ligne affiche À L'OUVERTURE d'un profil, et ce qu'il faudra
+ * réenregistrer avec.
+ *
+ * 🔴 #1519 — LE CHOIX ENREGISTRÉ L'EMPORTE, TEL QUEL. Ajouter une carte au
+ * défaut n'en ajoute AUCUNE chez qui a déjà composé sa ligne : ce serait
+ * réécrire en silence ce que quelqu'un a choisi. Qui veut la nouvelle carte la
+ * coche dans « Modifier » ; le défaut ne sert qu'aux profils encore muets.
+ *
+ * Une liste VIDE est un choix légitime (« aucune carte ») : le test porte sur
+ * le TYPE, jamais sur la longueur. C'est pour cela que la valeur brute des
+ * préférences est passée ici sans être filtrée en amont.
+ *
+ * Et ce qui n'est pas enregistré est un défaut FRAIS, pas ce que le profil
+ * précédent regardait : changer de profil ne traîne pas sa ligne derrière lui.
+ */
+export function choixAuChargement(enregistre: unknown): {
+  /** Ce que la ligne montre. */
+  choix: string[];
+  /** Ce qui était rangé côté serveur, `null` si ce profil n'a rien rangé. */
+  enregistres: string[] | null;
+} {
+  if (Array.isArray(enregistre)) {
+    const lu = enregistre.map(String);
+    return { choix: [...lu], enregistres: lu };
+  }
+  return { choix: [...CHOIX_DEFAUT], enregistres: null };
 }
 
 /**

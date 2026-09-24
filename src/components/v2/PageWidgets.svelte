@@ -38,7 +38,7 @@
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { molettePortee } from '../../lib/molettePortee';
   import { t, locale } from '../../lib/i18n';
-  import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer } from '../../lib/chiffresAccueil';
+  import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer, choixAuChargement } from '../../lib/chiffresAccueil';
   import { trace } from '../../lib/iconesChiffres';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
@@ -330,11 +330,11 @@
       // #4527 — le choix de chiffres vit sous SA clé, à côté de la
       // disposition. Une liste vide est un choix légitime (« aucune carte »),
       // d'où le test sur le type et non sur la longueur.
-      const c = prefs?.[CLE_CHIFFRES];
-      if (Array.isArray(c)) {
-        chiffresEnregistres = c.map(String);
-        chiffres = [...chiffresEnregistres];
-      }
+      // #1519 — et un choix DÉJÀ enregistré l'emporte tel quel : ajouter une
+      // carte au défaut (les titres, 24/09) n'en ajoute aucune ici.
+      const lu = choixAuChargement(prefs?.[CLE_CHIFFRES]);
+      chiffres = lu.choix;
+      chiffresEnregistres = lu.enregistres;
       const d = prefs?.[CLE];
       // On ne garde que les identifiants CONNUS : un widget retiré du registre
       // laisserait sinon un trou muet dans la page de qui l'avait choisi.
