@@ -39,6 +39,7 @@
   import PontRoonV2 from './PontRoonV2.svelte';
   import CollectionsV2 from './CollectionsV2.svelte';
   import HistoriqueV2 from './HistoriqueV2.svelte';
+  import TitresBannisV2 from './TitresBannisV2.svelte';
   import MetadataV2 from './MetadataV2.svelte';
   import SupportV2 from './SupportV2.svelte';
   // Barre de transport : celle du client actuel, telle quelle. On ne la FORKE
@@ -254,6 +255,7 @@
     search: 'nav.search', podcasts: 'v2.nav.podcasts', streaming: 'v2.nav.streaming',
     queue: 'nav.queue', favorites: 'v2.nav.favorites', zonemanager: 'nav.zonemanager',
     mediaservers: 'nav.mediaservers', history: 'nav.history', oxygen: 'v2.nav.oxygen',
+    bannedtracks: 'ban.title',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
     crossfeed: 'v2.nav.crossfeed', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
     alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', diagnostics: 'v2.nav.processing',
@@ -693,6 +695,9 @@
         <SupportV2 />
       {:else if $activeView === 'history'}
         <HistoriqueV2 />
+      {:else if $activeView === 'bannedtracks'}
+        <!-- #4806 — « Titres bannis » : tout revoir, débannir. -->
+        <TitresBannisV2 />
       {:else if $activeView === 'oxygen'}
         <OxygenView />
       {:else if $activeView === 'ambiance'}

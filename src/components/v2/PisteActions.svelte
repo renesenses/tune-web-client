@@ -64,6 +64,9 @@
   import * as api from '../../lib/api';
   import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
+  import {
+    bannir, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
+  } from '../../lib/titreBanni';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { queuePosition } from '../../lib/stores/queue';
   import {
@@ -174,11 +177,18 @@
 
   function stop(e: MouseEvent) { e.stopPropagation(); e.preventDefault(); }
 
-  function lire(e: MouseEvent) {
+  /**
+   * Bannie ? (#4806) — la surcharge locale d'abord (ce qu'on vient de cliquer
+   * dans ce menu), puis le drapeau `banned` que le serveur pose sur la ligne.
+   */
+  const bannie = $derived(estBannie(piste, $surchargesBannissement));
+  async function lire(e: MouseEvent) {
     stop(e);
     const zid = $currentZoneId;
     const corps = corpsDeLecture(piste);
     if (zid == null || !corps) return;
+    // #4806 — un titre banni se joue d'un clic DÉLIBÉRÉ, après confirmation.
+    if (!(await confirmerLectureBannie(piste))) return;
     // Un toast, donc le chemin commun : `signalerEchecLecture` journalise,
     // accole le message du serveur au lieu du seul « Impossible de lire ce
     // titre », et n'empile pas deux bandeaux identiques (#3732).
@@ -370,9 +380,10 @@
         artisteDeService,
         etiquetable: cibleEtiquettes != null,
         playlistDeService: serviceDePlaylist(piste),
+        bannie,
       },
       {
-        lire: () => lire(new MouseEvent('click')),
+        lire: () => void lire(new MouseEvent('click')),
         ensuite: () => void ensuite(new MouseEvent('click')),
         aLaFile: () => void aLaFile(new MouseEvent('click')),
         plusCommeCa: () => void plusCommeCa(),
@@ -382,6 +393,10 @@
         allerAlbum,
         etiqueter: () => (panneauEtiquettes = true),
         champsDuFichier: () => (tiroirChamps = true),
+        // #4806 — le module tient l'appel, la surcharge et le toast : le menu
+        // du client actuel (`MenuPisteV1`) appelle exactement les mêmes.
+        bannir: () => void bannir(piste),
+        debannir: () => void debannir(piste),
       },
     ),
   );

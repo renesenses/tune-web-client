@@ -3859,6 +3859,22 @@ export default {
   "v2.set.progressOf": "{n} su {total}",
   "v2.sup.openedOn": "aperto il {date}",
   "v2.plug.requiresTune": "Richiede Tune {plage}.",
+  // Titres bannis — renesenses/tune-server-rust#4806
+  "ban.ban": "Bandisci questo brano",
+  "ban.unban": "Riammetti",
+  "ban.badge": "Bandito",
+  "ban.playConfirm": "«{title}» è bandito. Riprodurlo comunque?",
+  "ban.banned": "«{title}» è bandito: non verrà più riprodotto automaticamente.",
+  "ban.unbanned": "«{title}» non è più bandito.",
+  "ban.error": "Impossibile modificare il bando di questo brano.",
+  "ban.title": "Brani banditi",
+  "ban.eyebrow": "Ciò che hai messo da parte",
+  "ban.intro": "Un brano bandito resta visibile nel suo album, in grigio, ma non viene più riprodotto automaticamente: né in casuale, né da una smart playlist, né in concatenamento. Un clic deliberato lo riproduce, dopo conferma.",
+  "ban.empty": "Nessun brano bandito.",
+  "ban.loadError": "Impossibile caricare i brani banditi.",
+  "ban.retry": "Riprova",
+  "ban.count": "{n} brano/i bandito/i",
+  "ban.orphan": "Traccia assente dalla libreria",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

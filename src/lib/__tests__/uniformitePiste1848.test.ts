@@ -164,12 +164,15 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
     // Ce qu'elle sait faire, elle le propose — c'est ce qui manquait.
     expect(rendus).toEqual([fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue']]);
   });
-  it('une piste de la BIBLIOTHÈQUE ouvre les neuf gestes', () => {
+  it('une piste de la BIBLIOTHÈQUE ouvre les dix gestes', () => {
     expect(libelles(ouvrir(LOCALE))).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
       fr['library.playSimilar'], fr['library.otherVersions'],
       fr['nowplaying.addToPlaylist'], fr['library.goToArtist'],
       fr['library.goToAlbum'], fr['v2.cover.tags'],
+      // #4806 — « Bannir ce titre », bibliothèque seule ; le témoin de
+      // service juste au-dessus prouve qu'il n'y est pas.
+      fr['ban.ban'],
     ]);
   });
   it('« Aller à l’artiste » apparaît sur une piste de service SI l’écran sait le faire', () => {

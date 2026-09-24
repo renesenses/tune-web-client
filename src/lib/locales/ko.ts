@@ -3859,6 +3859,22 @@ export default {
   "v2.set.progressOf": "{total}개 중 {n}개",
   "v2.sup.openedOn": "{date}에 열림",
   "v2.plug.requiresTune": "Tune {plage} 필요.",
+  // Titres bannis — renesenses/tune-server-rust#4806
+  "ban.ban": "이 곡 차단",
+  "ban.unban": "차단 해제",
+  "ban.badge": "차단됨",
+  "ban.playConfirm": "“{title}”은(는) 차단된 곡입니다. 그래도 재생할까요?",
+  "ban.banned": "“{title}”을(를) 차단했습니다. 더 이상 자동으로 재생되지 않습니다.",
+  "ban.unbanned": "“{title}” 차단을 해제했습니다.",
+  "ban.error": "이 곡의 차단 상태를 변경할 수 없습니다.",
+  "ban.title": "차단된 곡",
+  "ban.eyebrow": "제외한 항목",
+  "ban.intro": "차단된 곡은 앨범에 흐리게 표시된 채 남아 있지만, 셔플·스마트 재생목록·자동 이어듣기 등 자동 재생에서는 다시 재생되지 않습니다. 직접 클릭하면 확인 후 재생됩니다.",
+  "ban.empty": "차단된 곡이 없습니다.",
+  "ban.loadError": "차단된 곡을 불러올 수 없습니다.",
+  "ban.retry": "다시 시도",
+  "ban.count": "차단된 곡 {n}개",
+  "ban.orphan": "라이브러리에 없는 곡",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

@@ -44,7 +44,11 @@ describe('pistes indisponibles', () => {
     const g = lire(ECRANS.gestionnaire);
     expect(g).toContain('if (!indispo) playFromIndex(index)');
     expect(g).toContain('disabled={indispo}');
-    expect(lire(ECRANS.ligne)).toContain('if (!indispo) onLire()');
+    // #4806 — le clic passe par `lireDelibere` (confirmation d'un titre
+    // banni) ; la garde d'indisponibilité y est la première ligne.
+    const l = lire(ECRANS.ligne);
+    expect(l).toContain('if (indispo) return;');
+    expect(l).toContain('disabled={indispo}');
   });
 
   it('le gestionnaire la NOMME, et avec le bon mot', () => {

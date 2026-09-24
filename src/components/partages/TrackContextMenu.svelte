@@ -71,6 +71,10 @@
     onGoToAlbum?: () => void;
     /** Omit to hide the "tags" item — les étiquettes de l'utilisateur. */
     onTag?: () => void;
+    /** « Bannir ce titre » (#4806). Omis : l'entrée est absente. */
+    onBan?: () => void;
+    /** « Débannir » — montré à la place de « Bannir » quand `capacites.bannie`. */
+    onUnban?: () => void;
     /** Ce que la PISTE permet. Par défaut : tout, le geste seul décide. */
     capacites?: CapacitesPiste;
   }
@@ -86,6 +90,8 @@
     onGoToArtist,
     onGoToAlbum,
     onTag,
+    onBan,
+    onUnban,
     capacites = { jouable: true, idBibliotheque: 1, artistId: 1, albumId: 1 },
   }: Props = $props();
   const entrees = $derived(
@@ -99,6 +105,8 @@
       allerArtiste: onGoToArtist,
       allerAlbum: onGoToAlbum,
       etiqueter: onTag,
+      bannir: onBan,
+      debannir: onUnban,
     }),
   );
   /**

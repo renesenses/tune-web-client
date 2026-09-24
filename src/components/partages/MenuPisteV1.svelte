@@ -44,6 +44,9 @@
   import { destinationAlbum } from '../../lib/routageAlbum';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
+  import {
+    bannir, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
+  } from '../../lib/titreBanni';
   import TrackContextMenu from './TrackContextMenu.svelte';
   import type { Track } from '../../lib/types';
   interface Props {
@@ -80,6 +83,8 @@
    */
   const idBibliotheque = $derived(local && piste.id != null ? piste.id : null);
   const jouable = $derived(corpsDeLecture(piste) != null);
+  /** Bannie ? (#4806) — même lecture que `PisteActions`, même module. */
+  const bannie = $derived(estBannie(piste, $surchargesBannissement));
   /**
    * L'album et l'artiste de la piste CHEZ SON SERVICE — #869, famille C.
    *
@@ -157,11 +162,14 @@
     albumId: allerAlbum ? 1 : null,
     albumDeService,
     artisteDeService,
+    bannie,
   });
-  function lire() {
+  async function lire() {
     const zid = get(currentZoneId);
     const corps = corpsDeLecture(piste);
     if (zid == null || !corps) return;
+    // #4806 — un titre banni se joue d'un clic DÉLIBÉRÉ, après confirmation.
+    if (!(await confirmerLectureBannie(piste))) return;
     playAndSync(zid, corps as any).catch(() => notifications.error($tr('v2.pa.playError' as any)));
   }
   /**
@@ -218,7 +226,9 @@
       {ancre}
       {capacites}
       onClose={() => (ouvert = false)}
-      onPlay={lire}
+      onPlay={() => void lire()}
+      onBan={() => void bannir(piste)}
+      onUnban={() => void debannir(piste)}
       onPlayNext={() => void enfiler(get(queuePosition) + 1, 'v2.pa.queuedNext')}
       onAddToQueue={() => void enfiler(undefined, 'v2.pa.queued')}
       onPlaySimilar={() => void plusCommeCa()}

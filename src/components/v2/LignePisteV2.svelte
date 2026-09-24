@@ -33,6 +33,7 @@
    */
   import { t } from '../../lib/i18n';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
+  import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import MetadataChips from '../partages/MetadataChips.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
@@ -107,6 +108,18 @@
   /** Point 10 (17/09/2026) — le service ne sert pas encore cette piste : la
    *  ligne est grisée et ne se lance pas. */
   const indispo = $derived(pisteIndisponible(piste));
+  /**
+   * #4806 — un titre BANNI reste dans la liste, grisé et BARRÉ ; un clic
+   * délibéré le joue après confirmation. Jamais caché : « visible mais
+   * grisé » (Bertrand, 23/09/2026). La surcharge locale dit ce que le menu
+   * vient de décider, sans recharger la liste.
+   */
+  const bannie = $derived(estBannie(piste, $surchargesBannissement));
+  async function lireDelibere() {
+    if (indispo) return;
+    if (!(await confirmerLectureBannie(piste))) return;
+    onLire();
+  }
   const sousTitre = $derived(
     [piste.artist_name, avecAlbum ? piste.album_title : null].filter(Boolean).join(' · '),
   );
@@ -138,7 +151,7 @@
 
 <!-- `aria-current` : un lecteur d'écran annonce « élément courant » sur cette
      ligne. La couleur, elle, ne lui dit rien du tout. -->
-<div class="trk" class:np={enLecture} class:indispo aria-current={enLecture ? 'true' : undefined}
+<div class="trk" class:np={enLecture} class:indispo class:bannie aria-current={enLecture ? 'true' : undefined}
   style="--tcols:{colonnes}">
   {#if numero != null}<span class="n">{numero}</span>{/if}
   {#if pochette}
@@ -162,7 +175,7 @@
       </span>
     {/if}
   {/if}
-  <button class="tclick" onclick={() => { if (!indispo) onLire(); }} disabled={indispo}>
+  <button class="tclick" onclick={() => void lireDelibere()} disabled={indispo}>
     <span class="ti">
       <!-- `title` : ces deux lignes s'elident. Sans lui, un titre long est
            illisible et rien ne permet d'en lire la fin (Bilou, forum). -->
@@ -170,6 +183,7 @@
         <IndicateurLecture etat={etatLigne} />
         <span class="tt" title={piste.title}>{piste.title}</span>
         {#if indispo}<span class="indispo-etiq">{$t('v2.str.coming' as any)}</span>{/if}
+        {#if bannie}<span class="bannie-etiq">{$t('ban.badge' as any)}</span>{/if}
       </span>
       {#if piste.source === 'upnp'}<DisponibiliteUpnp sourceId={piste.source_id} />{/if}
       {#if sousTitre}<em title={sousTitre}>{sousTitre}</em>{/if}
@@ -190,6 +204,12 @@
   .trk.indispo{opacity:0.5}
   .trk.indispo .tclick{cursor:default}
   .indispo-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-acc2);
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
+  /* #4806 — le titre banni : grisé ET barré, visible, jouable d'un clic
+     délibéré. Le badge dit pourquoi la ligne est éteinte. */
+  .trk.bannie{opacity:0.45}
+  .trk.bannie .tt{text-decoration:line-through}
+  .bannie-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-txt3);
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
 
   .trk{display:grid; grid-template-columns:var(--tcols, minmax(0,1fr) auto auto auto);

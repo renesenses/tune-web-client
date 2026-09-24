@@ -3859,6 +3859,22 @@ export default {
   "v2.set.progressOf": "{n} von {total}",
   "v2.sup.openedOn": "eröffnet am {date}",
   "v2.plug.requiresTune": "Erfordert Tune {plage}.",
+  // Titres bannis — renesenses/tune-server-rust#4806
+  "ban.ban": "Diesen Titel verbannen",
+  "ban.unban": "Verbannung aufheben",
+  "ban.badge": "Verbannt",
+  "ban.playConfirm": "„{title}“ ist verbannt. Trotzdem abspielen?",
+  "ban.banned": "„{title}“ ist verbannt: Er wird nie mehr automatisch abgespielt.",
+  "ban.unbanned": "„{title}“ ist nicht mehr verbannt.",
+  "ban.error": "Die Verbannung dieses Titels konnte nicht geändert werden.",
+  "ban.title": "Verbannte Titel",
+  "ban.eyebrow": "Was Sie beiseitegelegt haben",
+  "ban.intro": "Ein verbannter Titel bleibt in seinem Album sichtbar, ausgegraut, wird aber nie mehr automatisch abgespielt: weder per Zufall, noch durch eine Smart-Playlist, noch beim automatischen Weiterspielen. Ein bewusster Klick spielt ihn nach Bestätigung ab.",
+  "ban.empty": "Keine verbannten Titel.",
+  "ban.loadError": "Die verbannten Titel konnten nicht geladen werden.",
+  "ban.retry": "Erneut versuchen",
+  "ban.count": "{n} verbannte(r) Titel",
+  "ban.orphan": "Titel nicht mehr in der Bibliothek",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

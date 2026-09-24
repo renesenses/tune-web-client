@@ -3859,6 +3859,22 @@ export default {
   "v2.set.progressOf": "{n} din {total}",
   "v2.sup.openedOn": "deschis la {date}",
   "v2.plug.requiresTune": "Necesită Tune {plage}.",
+  // Titres bannis — renesenses/tune-server-rust#4806
+  "ban.ban": "Interzice această piesă",
+  "ban.unban": "Anulează interdicția",
+  "ban.badge": "Interzisă",
+  "ban.playConfirm": "„{title}” este interzisă. O redați oricum?",
+  "ban.banned": "„{title}” este interzisă: nu va mai fi redată automat.",
+  "ban.unbanned": "„{title}” nu mai este interzisă.",
+  "ban.error": "Interdicția acestei piese nu a putut fi modificată.",
+  "ban.title": "Piese interzise",
+  "ban.eyebrow": "Ce ați dat deoparte",
+  "ban.intro": "O piesă interzisă rămâne vizibilă în albumul ei, estompată, dar nu mai este redată niciodată automat: nici aleatoriu, nici printr-o listă inteligentă, nici la redarea continuă. Un clic deliberat o redă, după confirmare.",
+  "ban.empty": "Nicio piesă interzisă.",
+  "ban.loadError": "Piesele interzise nu au putut fi încărcate.",
+  "ban.retry": "Reîncearcă",
+  "ban.count": "{n} piesă/piese interzisă/e",
+  "ban.orphan": "Piesă absentă din bibliotecă",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
