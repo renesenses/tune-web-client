@@ -34,9 +34,12 @@
 // page pleine sans l'album, page 2 avec, page 3 courte.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
-import ArtistesV2 from '../../components/v2/ArtistesV2.svelte';
+// #1501 — la fiche d'artiste est la PAGE COMMUNE, ouverte sur un artiste local
+// comme la grille de la Bibliothèque l'ouvre.
+import ArtisteServiceV2 from '../../components/v2/ArtisteServiceV2.svelte';
 import * as api from '../api';
-import { streamingServices } from '../stores/streaming';
+import { ficheArtisteService, streamingServices } from '../stores/streaming';
+import { activeView } from '../stores/navigation';
 import { currentZoneId } from '../stores/zones';
 import type { Album } from '../types';
 
@@ -105,6 +108,10 @@ function corpsPour(url: string): unknown {
   if (new RegExp(`/streaming/qobuz/artists/${QID}/top-tracks`).test(url)) return [];
   if (/\/library\/artists\/3\/bio/.test(url)) return { artist: 'Neil Young', bio: '' };
   if (/\/library\/artists\/3\/albums/.test(url)) return LOCAUX;
+  if (/\/library\/artists\/3\/metadata/.test(url)) return {};
+  if (/\/library\/artists\/3\/credits/.test(url)) return [];
+  // La page commune demande l'artiste par son IDENTIFIANT.
+  if (/\/library\/artists\/3(\?|$)/.test(url)) return ARTISTE;
   if (/\/library\/artists/.test(url)) return [ARTISTE];
   return {};
 }
@@ -144,13 +151,18 @@ afterEach(() => {
   hote = null;
   streamingServices.set({});
   currentZoneId.set(null);
+  ficheArtisteService.set(null);
+  activeView.set('home');
   vi.unstubAllGlobals();
 });
 
 async function poserFiche(): Promise<HTMLDivElement> {
   hote = document.createElement('div');
   document.body.appendChild(hote);
-  monte = mount(ArtistesV2, { target: hote, props: { q: '', ouvrirId: 3 } });
+  // La cible que pose `ouvrirArtisteDepuis` depuis la grille (#1501).
+  ficheArtisteService.set({ service: null, id: '3', nom: ARTISTE.name });
+  activeView.set('streamingartist');
+  monte = mount(ArtisteServiceV2, { target: hote });
   for (let i = 0; i < 16; i++) await respirer();
   flushSync();
   return hote;

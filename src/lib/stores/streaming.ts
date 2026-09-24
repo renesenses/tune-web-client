@@ -87,12 +87,18 @@ export const pendingStreamingArtist = writable<Artist | null>(null);
  * l'identifiant de `/library/artists` rendu en texte — le champ ne change pas
  * de type, seuls les routes interrogées et les gestes offerts changent.
  *
- * ⚠️ Personne ne pose encore cette forme : la convergence du routage est
- * l'étape 3, volontairement laissée de côté tant que la fiche élue ne sait pas
- * tout montrer. Router avant ferait PERDRE des fonctions au testeur.
+ * Cette forme est posée par `ouvrirFicheArtisteLocale` (#1494), et par elle
+ * seule — depuis #1501, la grille de la Bibliothèque y passe aussi et la fiche
+ * d'artiste de la Bibliothèque n'existe plus.
+ *
+ * `provenance` — #1501, tenu de #4201 : la SOURCE de bibliothèque choisie dans
+ * le menu « Source » (`local`, `upnp:Sonos`…) quand le geste part de la grille
+ * des artistes. La page ne montre et ne joue alors que ce qui en vient, comme
+ * la fiche retirée le faisait. Absente pour tout autre point d'entrée, et sans
+ * objet pour un artiste de service.
  */
 export const ficheArtisteService =
-  writable<{ service: Source | null; id: string; nom: string } | null>(null);
+  writable<{ service: Source | null; id: string; nom: string; provenance?: string | null } | null>(null);
 
 /**
  * La cible de la FICHE ALBUM DE SERVICE de la coquille v2 — #1361, #3626.
