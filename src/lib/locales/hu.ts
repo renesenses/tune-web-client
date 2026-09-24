@@ -3834,6 +3834,11 @@ export default {
   "ban.retry": "Újra",
   "ban.count": "{n} kitiltott szám",
   "ban.orphan": "A szám már nincs a könyvtárban",
+  "settings.releaseTypes": "Kiadástípusok kitöltése",
+  "settings.releaseTypesHint": "A MusicBrainzen megkeresi, hogy minden album album, EP vagy kislemez-e, hogy az előadó oldala albumokra, EP-kre és kislemezekre bontható legyen. Lassú: másodpercenként egy kérés.",
+  "settings.releaseTypesStarted": "Kiadástípusok: a keresés elindult {n} albumra (másodpercenként egy kérés).",
+  "settings.releaseTypesNoCandidate": "Kiadástípusok: nincs feldolgozandó album. Csak a MusicBrainzen már azonosított albumok kaphatnak típust.",
+  "settings.releaseTypesQuota": "Elérte a mai gazdagítási keretet (ingyenes verzió). Próbálja újra holnap.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

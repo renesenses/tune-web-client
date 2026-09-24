@@ -3876,6 +3876,11 @@ export default {
   "ban.retry": "다시 시도",
   "ban.count": "차단된 곡 {n}개",
   "ban.orphan": "라이브러리에 없는 곡",
+  "settings.releaseTypes": "발매 유형 채우기",
+  "settings.releaseTypesHint": "각 앨범이 정규 앨범, EP, 싱글 중 무엇인지 MusicBrainz에서 찾아 아티스트 페이지를 앨범, EP, 싱글로 나눌 수 있게 합니다. 오래 걸립니다(초당 요청 1회).",
+  "settings.releaseTypesStarted": "발매 유형: 앨범 {n}개에 대한 검색을 시작했습니다(초당 요청 1회).",
+  "settings.releaseTypesNoCandidate": "발매 유형: 처리할 앨범이 없습니다. MusicBrainz에서 이미 식별된 앨범만 유형을 받을 수 있습니다.",
+  "settings.releaseTypesQuota": "오늘의 보강 한도에 도달했습니다(무료 버전). 내일 다시 시도하세요.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];

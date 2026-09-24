@@ -3876,6 +3876,11 @@ export default {
   "ban.retry": "Reintentar",
   "ban.count": "{n} tema(s) vetado(s)",
   "ban.orphan": "Pista ausente de la biblioteca",
+  "settings.releaseTypes": "Completar los tipos de lanzamiento",
+  "settings.releaseTypesHint": "Busca en MusicBrainz si cada álbum es un álbum, un EP o un single, para dividir la página de un artista en álbumes, EP y singles. Lento: una petición por segundo.",
+  "settings.releaseTypesStarted": "Tipos de lanzamiento: búsqueda iniciada para {n} álbumes (una petición por segundo).",
+  "settings.releaseTypesNoCandidate": "Tipos de lanzamiento: ningún álbum que procesar. Solo los álbumes ya identificados en MusicBrainz pueden recibir un tipo.",
+  "settings.releaseTypesQuota": "Se ha alcanzado la cuota de enriquecimiento del día (versión gratuita). Vuelva a intentarlo mañana.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];

@@ -3896,6 +3896,11 @@ export default {
   "ban.retry": "Retry",
   "ban.count": "{n} banned track(s)",
   "ban.orphan": "Track no longer in the library",
+  "settings.releaseTypes": "Fill in release types",
+  "settings.releaseTypesHint": "Looks up on MusicBrainz whether each album is an album, an EP or a single, so an artist's page can be split into albums, EPs and singles. Slow: one request per second.",
+  "settings.releaseTypesStarted": "Release types: lookup started for {n} albums (one request per second).",
+  "settings.releaseTypesNoCandidate": "Release types: no album to process. Only albums already identified on MusicBrainz can get a type.",
+  "settings.releaseTypesQuota": "Today's enrichment quota is used up (free version). Try again tomorrow.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

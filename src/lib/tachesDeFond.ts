@@ -39,6 +39,10 @@ export type TacheDeFond = {
 /** Identifiant de la tâche d'enrichissement des images d'artistes, tel que le
  *  serveur l'enregistre (`background_tasks.begin("artist_artwork", …)`). */
 export const TACHE_IMAGES_ARTISTES = 'artist_artwork';
+/** Identifiant de la passe du type de sortie des albums (album / EP / single),
+ *  telle que le serveur l'enregistre (`background_tasks.begin("types_de_sortie", …)`,
+ *  `routes/system/enrich.rs`, #4767). Elle ne publie pas d'avancement chiffré. */
+export const TACHE_TYPES_DE_SORTIE = 'types_de_sortie';
 
 /**
  * Un traitement de fond SUSPENDABLE, tel que le serveur le publie depuis

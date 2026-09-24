@@ -3876,6 +3876,11 @@ export default {
   "ban.retry": "重试",
   "ban.count": "{n} 首已屏蔽的曲目",
   "ban.orphan": "曲目已不在资料库中",
+  "settings.releaseTypes": "补全发行类型",
+  "settings.releaseTypesHint": "在 MusicBrainz 上查询每张专辑是专辑、EP 还是单曲，以便将艺人页面分为专辑、EP 和单曲。耗时较长：每秒一次请求。",
+  "settings.releaseTypesStarted": "发行类型：已开始查询 {n} 张专辑（每秒一次请求）。",
+  "settings.releaseTypesNoCandidate": "发行类型：没有需要处理的专辑。只有已在 MusicBrainz 上识别的专辑才能获得类型。",
+  "settings.releaseTypesQuota": "今日补全配额已用完（免费版）。请明天再试。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
