@@ -3687,6 +3687,8 @@ export default {
   "v2.set.svcActive": "启用",
   "v2.set.svcActiveHint": "已停用的服务不会再出现在搜索和流媒体界面中。",
   "nowplaying.shareError": "无法分享正在播放的内容。",
+  "nowplaying.shareNothing": "没有可分享的内容：当前没有播放曲目。",
+  "nowplaying.shareCopyRefused": "已创建分享，但浏览器拒绝了复制。链接：{lien}",
   "v2.lbl.autoAnalysis": "自动分析",
   "v2.lbl.quickAnalysis": "快速分析",
   "v2.lbl.assistance": "支持",
