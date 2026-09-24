@@ -13,6 +13,8 @@
   import { t as tr } from '../../lib/i18n';
   import { pisteAppliquee, resumeApplication } from '../../lib/recuperationPlaylist';
   import { notifications } from '../../lib/stores/notifications';
+  import { lireListeAleatoire } from '../../lib/lectureEnMasse';
+  import { gestesDeZone } from '../../lib/gestesDeZone';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from '../v2/ListePistesV2.svelte';
   import ClampedText from '../partages/ClampedText.svelte';
@@ -1218,6 +1220,27 @@
     }
   }
 
+  /**
+   * « Lecture aléatoire » de la playlist ouverte — web#1520 (JPierre, fil 1903).
+   *
+   * #1947 l'avait posée dans `PlaylistDetailV2`, pas ici — or c'est CET écran
+   * que monte l'entrée « Playlists » de la barre latérale. Même geste, même
+   * module : `lireListeAleatoire` mélange la liste chargée (`lib/shuffle`) et
+   * l'envoie ; le drapeau `shuffle` de la zone n'est PAS touché (#2055).
+   */
+  let melangeEnCours = $state(false);
+  async function lireAleatoire() {
+    if (!zone?.id) return;
+    melangeEnCours = true;
+    try {
+      const n = await lireListeAleatoire(detailTracks, gestesDeZone(zone.id));
+      if (!n) notifications.error($tr('library.noTracks'));
+    } catch (e) {
+      notifications.error(errText(e) ?? $tr('common.error'));
+    }
+    melangeEnCours = false;
+  }
+
   async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number) {
     if (!zone?.id) return;
     const source = pl.source || selectedService;
@@ -1717,6 +1740,11 @@
         }}>
           <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M8 5v14l11-7z" /></svg>
           {$tr('common.play')}
+        </button>
+        <button class="shuffle-btn" onclick={lireAleatoire}
+          disabled={melangeEnCours || detailTracks.length === 0}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5" /><path d="M4 20 21 3" /><path d="M21 16v5h-5" /><path d="M15 15l6 6" /><path d="M4 4l5 5" /></svg>
+          {$tr('library.shuffle')}
         </button>
       </div>
     </div>
@@ -3625,6 +3653,7 @@
 
   /* Transfer & Compare buttons */
   .transfer-btn,
+  .shuffle-btn,
   .compare-btn {
     display: flex;
     align-items: center;
@@ -3643,6 +3672,16 @@
   .transfer-btn:hover {
     border-color: #1DB954;
     color: #1DB954;
+  }
+
+  .shuffle-btn:hover:not(:disabled) {
+    border-color: var(--tune-accent);
+    color: var(--tune-accent);
+  }
+
+  .shuffle-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 
   .compare-btn:hover {
