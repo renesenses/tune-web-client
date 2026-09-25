@@ -1,0 +1,876 @@
+{
+ "services": {
+  "bandcamp": {
+   "authenticated": true,
+   "enabled": true,
+   "favoris_ecrivables": false,
+   "name": "bandcamp",
+   "subscription": null,
+   "username": "anonyme"
+  },
+  "deezer": {
+   "authenticated": false,
+   "enabled": true,
+   "favoris_ecrivables": true,
+   "name": "deezer",
+   "subscription": null,
+   "username": null
+  },
+  "qobuz": {
+   "authenticated": true,
+   "enabled": true,
+   "favoris_ecrivables": true,
+   "name": "qobuz",
+   "subscription": "streaming-studio",
+   "username": "anonyme"
+  },
+  "spotify": {
+   "authenticated": false,
+   "enabled": false,
+   "favoris_ecrivables": true,
+   "name": "spotify",
+   "subscription": null,
+   "username": null
+  },
+  "tidal": {
+   "authenticated": true,
+   "enabled": true,
+   "favoris_ecrivables": true,
+   "name": "tidal",
+   "subscription": "PREMIUM",
+   "username": null
+  },
+  "youtube": {
+   "authenticated": true,
+   "enabled": true,
+   "favoris_ecrivables": true,
+   "name": "youtube",
+   "subscription": "YouTube Music",
+   "username": null
+  }
+ },
+ "newReleases": [
+  {
+   "artist_id": "64935",
+   "artist_name": "Emile Parisien",
+   "cover_path": "https://static.qobuz.com/images/covers/ya/59/pg9d0aq8j59ya_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 88200
+   },
+   "released_at": 1790287200,
+   "source_id": "pg9d0aq8j59ya",
+   "title": "Floating",
+   "track_count": 11,
+   "year": 2026
+  },
+  {
+   "artist_id": "14410851",
+   "artist_name": "Blondshell",
+   "cover_path": "https://static.qobuz.com/images/covers/h9/hv/q5vzihx7khvh9_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 96000
+   },
+   "released_at": 1790287200,
+   "source_id": "q5vzihx7khvh9",
+   "title": "Violins",
+   "track_count": 11,
+   "year": 2026
+  },
+  {
+   "artist_id": "2467595",
+   "artist_name": "Julia Jacklin",
+   "cover_path": "https://static.qobuz.com/images/covers/tz/dk/k9yjk4excdktz_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 96000
+   },
+   "released_at": 1790287200,
+   "source_id": "k9yjk4excdktz",
+   "title": "The Gem",
+   "track_count": 10,
+   "year": 2026
+  }
+ ],
+ "featuredNewReleases": [
+  {
+   "artist_id": "64935",
+   "artist_name": "Emile Parisien",
+   "cover_path": "https://static.qobuz.com/images/covers/ya/59/pg9d0aq8j59ya_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 88200
+   },
+   "released_at": 1790287200,
+   "source_id": "pg9d0aq8j59ya",
+   "title": "Floating",
+   "track_count": 11,
+   "year": 2026
+  },
+  {
+   "artist_id": "14410851",
+   "artist_name": "Blondshell",
+   "cover_path": "https://static.qobuz.com/images/covers/h9/hv/q5vzihx7khvh9_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 96000
+   },
+   "released_at": 1790287200,
+   "source_id": "q5vzihx7khvh9",
+   "title": "Violins",
+   "track_count": 11,
+   "year": 2026
+  },
+  {
+   "artist_id": "2467595",
+   "artist_name": "Julia Jacklin",
+   "cover_path": "https://static.qobuz.com/images/covers/tz/dk/k9yjk4excdktz_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 96000
+   },
+   "released_at": 1790287200,
+   "source_id": "k9yjk4excdktz",
+   "title": "The Gem",
+   "track_count": 10,
+   "year": 2026
+  }
+ ],
+ "featuredEditorPicks": [
+  {
+   "artist_id": "33935494",
+   "artist_name": "Justus Eichhorn",
+   "cover_path": "https://static.qobuz.com/images/covers/yy/bk/jj5cqqifdbkyy_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 96000
+   },
+   "released_at": 1789077600,
+   "source_id": "jj5cqqifdbkyy",
+   "title": "The Source",
+   "track_count": 26,
+   "year": 2026
+  },
+  {
+   "artist_id": "50195",
+   "artist_name": "Michael Jackson",
+   "cover_path": "https://static.qobuz.com/images/covers/jb/rl/b0cksdkfprljb_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 44100
+   },
+   "released_at": 1202425200,
+   "source_id": "b0cksdkfprljb",
+   "title": "Thriller 25 (Super Deluxe Edition)",
+   "track_count": 31,
+   "year": 2008
+  },
+  {
+   "artist_id": "2020906",
+   "artist_name": "Little Simz",
+   "cover_path": "https://static.qobuz.com/images/covers/0b/2y/yl5z274se2y0b_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 44100
+   },
+   "released_at": 1630620000,
+   "source_id": "yl5z274se2y0b",
+   "title": "Sometimes I Might Be Introvert",
+   "track_count": 19,
+   "year": 2021
+  }
+ ],
+ "favAlbums": {
+  "albums": [
+   {
+    "artist_id": "3179",
+    "artist_name": "Angelo Badalamenti",
+    "cover_path": "https://static.qobuz.com/images/covers/ra/q6/xhpv607rwq6ra_600.jpg",
+    "created_at": "2026-09-06T12:12:58Z",
+    "quality": {
+     "bit_depth": 16,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 44100
+    },
+    "released_at": 1788472800,
+    "source_id": "xhpv607rwq6ra",
+    "title": "Blue Velvet",
+    "track_count": 48,
+    "year": 2026
+   },
+   {
+    "artist_id": "616086",
+    "artist_name": "Eric Sardinas",
+    "cover_path": "https://static.qobuz.com/images/covers/gc/y2/dd22d41cjy2gc_600.jpg",
+    "created_at": "2026-08-24T15:08:44Z",
+    "quality": {
+     "bit_depth": 24,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 44100
+    },
+    "released_at": 1697148000,
+    "source_id": "dd22d41cjy2gc",
+    "title": "Midnight Junction",
+    "track_count": 13,
+    "year": 2023
+   },
+   {
+    "artist_id": "6760",
+    "artist_name": "Miles Davis",
+    "cover_path": "https://static.qobuz.com/images/covers/83/60/0603497936083_600.jpg",
+    "created_at": "2026-07-06T09:19:53Z",
+    "quality": {
+     "bit_depth": 24,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 192000
+    },
+    "released_at": 1321311600,
+    "source_id": "0603497936083",
+    "title": "Doo-Bop",
+    "track_count": 9,
+    "year": 2011
+   }
+  ]
+ },
+ "favPlaylists": {
+  "playlists": [
+   {
+    "cover_path": "https://static.qobuz.com/images/covers/jb/oo/iv7090f3foojb_300.jpg",
+    "covers": [
+     "https://static.qobuz.com/images/covers/jb/oo/iv7090f3foojb_300.jpg"
+    ],
+    "description": "Merged by Tune",
+    "name": "2026_02_11 favoris radio + 1",
+    "owner": null,
+    "source_id": "70608857",
+    "track_count": 6
+   },
+   {
+    "cover_path": "https://static.qobuz.com/images/covers/xc/c8/uqkc50vwqc8xc_300.jpg",
+    "covers": [
+     "https://static.qobuz.com/images/covers/xc/c8/uqkc50vwqc8xc_300.jpg"
+    ],
+    "description": "Merged by Tune",
+    "name": "Mes favoris radio 2026-Trim-1",
+    "owner": null,
+    "source_id": "70559259",
+    "track_count": 7
+   },
+   {
+    "cover_path": "https://static.qobuz.com/images/covers/7b/fb/eig7i2vckfb7b_300.jpg",
+    "covers": [
+     "https://static.qobuz.com/images/covers/7b/fb/eig7i2vckfb7b_300.jpg"
+    ],
+    "description": "",
+    "name": "tttroys playlist",
+    "owner": null,
+    "source_id": "70304708",
+    "track_count": 1454
+   }
+  ]
+ },
+ "favTracks": {
+  "tracks": [
+   {
+    "album_id": "0724384775858",
+    "album_title": "5",
+    "artist_id": "38318",
+    "artist_name": "Lenny Kravitz",
+    "composer": "Lenny Kravitz",
+    "cover_path": "https://static.qobuz.com/images/covers/58/58/0724384775858_600.jpg",
+    "created_at": "2026-09-20T09:38:52Z",
+    "disc_number": 1,
+    "disponible": true,
+    "duration_ms": 257000,
+    "explicit": false,
+    "isrc": "USVI29800116",
+    "quality": {
+     "bit_depth": 16,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 44100
+    },
+    "source_id": "1067234",
+    "title": "I Belong To You",
+    "track_number": 3
+   },
+   {
+    "album_id": "fsq6cutyb62na",
+    "album_title": "Sign O' The Times ",
+    "artist_id": "42267",
+    "artist_name": "Prince",
+    "composer": null,
+    "cover_path": "https://static.qobuz.com/images/covers/na/62/fsq6cutyb62na_600.jpg",
+    "created_at": "2026-09-20T09:38:44Z",
+    "disc_number": 2,
+    "disponible": true,
+    "duration_ms": 388000,
+    "explicit": false,
+    "isrc": "USRH12000013",
+    "quality": {
+     "bit_depth": 24,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 44100
+    },
+    "source_id": "96521853",
+    "title": "I Could Never Take The Place Of Your Man ",
+    "track_number": 4
+   },
+   {
+    "album_id": "spm1c3b31ghob",
+    "album_title": "Sleeping With Ghosts",
+    "artist_id": "43837",
+    "artist_name": "Placebo",
+    "composer": null,
+    "cover_path": "https://static.qobuz.com/images/covers/ob/gh/spm1c3b31ghob_600.jpg",
+    "created_at": "2026-09-20T09:32:53Z",
+    "disc_number": 1,
+    "disponible": true,
+    "duration_ms": 190000,
+    "explicit": false,
+    "isrc": "GBAAA0201199",
+    "quality": {
+     "bit_depth": 16,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 44100
+    },
+    "source_id": "172107193",
+    "title": "The Bitter End",
+    "track_number": 5
+   }
+  ]
+ },
+ "favArtists": {
+  "artists": []
+ },
+ "playlists": [
+  {
+   "cover_path": "https://static.qobuz.com/images/covers/jb/oo/iv7090f3foojb_300.jpg",
+   "covers": [
+    "https://static.qobuz.com/images/covers/jb/oo/iv7090f3foojb_300.jpg"
+   ],
+   "description": "Merged by Tune",
+   "name": "2026_02_11 favoris radio + 1",
+   "owner": null,
+   "source_id": "70608857",
+   "track_count": 6
+  },
+  {
+   "cover_path": "https://static.qobuz.com/images/covers/xc/c8/uqkc50vwqc8xc_300.jpg",
+   "covers": [
+    "https://static.qobuz.com/images/covers/xc/c8/uqkc50vwqc8xc_300.jpg"
+   ],
+   "description": "Merged by Tune",
+   "name": "Mes favoris radio 2026-Trim-1",
+   "owner": null,
+   "source_id": "70559259",
+   "track_count": 7
+  },
+  {
+   "cover_path": "https://static.qobuz.com/images/covers/7b/fb/eig7i2vckfb7b_300.jpg",
+   "covers": [
+    "https://static.qobuz.com/images/covers/7b/fb/eig7i2vckfb7b_300.jpg"
+   ],
+   "description": "",
+   "name": "tttroys playlist",
+   "owner": null,
+   "source_id": "70304708",
+   "track_count": 1454
+  }
+ ],
+ "search": {
+  "albums": [
+   {
+    "artist_id": "265617",
+    "artist_name": "Vincent Peirani",
+    "cover_path": "https://static.qobuz.com/images/covers/9a/gv/bq8xpttybgv9a_600.jpg",
+    "quality": {
+     "bit_depth": 24,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 88200
+    },
+    "released_at": 1758837600,
+    "source_id": "bq8xpttybgv9a",
+    "title": "Living Being IV (Time Reflections)",
+    "track_count": 9,
+    "year": 2025
+   },
+   {
+    "artist_id": "46441",
+    "artist_name": "Ballaké Sissoko",
+    "cover_path": "https://static.qobuz.com/images/covers/2b/ro/o7f57by3gro2b_600.jpg",
+    "quality": {
+     "bit_depth": 24,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 88200
+    },
+    "released_at": 1680213600,
+    "source_id": "o7f57by3gro2b",
+    "title": "Les Égarés",
+    "track_count": 10,
+    "year": 2023
+   },
+   {
+    "artist_id": "46441",
+    "artist_name": "Ballaké Sissoko",
+    "cover_path": "https://static.qobuz.com/images/covers/aa/tv/ua2owe5zrtvaa_600.jpg",
+    "quality": {
+     "bit_depth": 24,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 48000
+    },
+    "released_at": 1751580000,
+    "source_id": "ua2owe5zrtvaa",
+    "title": "Sou Kora",
+    "track_count": 5,
+    "year": 2025
+   }
+  ],
+  "artists": [
+   {
+    "id": "64935",
+    "image_path": "https://static.qobuz.com/images/artists/covers/large/ed9c0077a0f0af32b3bf69e9a7a95cea.jpg",
+    "name": "Emile Parisien"
+   },
+   {
+    "id": "1748410",
+    "image_path": null,
+    "name": "Peirani & Parisien Duo Art"
+   },
+   {
+    "id": "148263",
+    "image_path": null,
+    "name": "Les Parisiennes"
+   }
+  ],
+  "has_more": true,
+  "offset": 0,
+  "playlists": [
+   {
+    "cover_path": "https://static.qobuz.com/images/playlists/20045965_0d3a06b12692d59344fb02b12f94087d_rectangle.jpg",
+    "description": "Les accidents ne durent que quelques secondes ; parfois quelques minutes. Celui-ci dure depuis 20 ans. Deux décennies que le quartet d’Emile Parisien prolonge cette jam session improvisée dans un club, à l’issue de laquelle les quatre musiciens se sont regardés, comme médusés par ce coup de foudre collectif instantané, conscients d’avoir donné naissance à…quelque chose.  Le terreau était viscéralement jazz, pas les graines plantées. Musique classique ou contemporaine, rock, électronique, chanson, tout passait dans les oreilles de ces quatre-là. Mingus ou Schoenberg, même combat ! Ça n’a pas changé : arracher les étiquettes, dézinguer les cloisons, chahuter les codes, leur feuille de route est comme gravée dans le marbre. Comme cette obsession pour la narration. « L’axe central du quartet depuis toujours, c’est de raconter des histoires », insiste le saxophoniste.\r\n\r\nPhoto © Dirk Kirszenbaum / Bio © ACT Music",
+    "name": "Emile Parisien Quartet",
+    "owner": "Qobuz France",
+    "source_id": "20045965",
+    "track_count": 36
+   },
+   {
+    "cover_path": "https://static.qobuz.com/images/playlists/2144922_fbd049e8130358883b012e1c55872f8c_rectangle.jpg",
+    "description": "Depuis 2010, vin et jazz vont de pair à Château Palmer. Les millésimes se goûtent autant qu’ils s’écoutent, se révélant sous les notes de grands jazzmen.  Après Jacky Terrasson, Michel Portal, Daniel Humair ou encore Archie Shepp, c’est au tour du talentueux saxophoniste Émile Parisien de se prêter à l’exercice. Déjà venu en 2014 à la propriété, il sera non seulement parrain du millésime 2018 mais aussi directeur artistique de cette 10e édition de l’événement HEAR PALMER. Les 29, 30 et 31 mars prochains, le millésime 2018 donnera donc lieu à trois concerts dans 3 lieux symboliques de la région bordelaise : Château Palmer, le Rocher de Palmer et La Cité du Vin.",
+    "name": "Hear Palmer : Émile Parisien invite ses amis",
+    "owner": "Qobuz France",
+    "source_id": "2144922",
+    "track_count": 25
+   },
+   {
+    "cover_path": "https://static.qobuz.com/images/playlists/1799132_796cfb9f52908a97444ce5e9eeca17fa_rectangle.jpg",
+    "description": "Dernière mise à jour le 25 septembre 2026. Avec Emile Parisien, Julia Jacklin, Blondshell, Lucas Santtana, Gaspar Claus, Pierre de Maere, Florent Marchet, Girls In Hawaii, Hermanos Gutierrez, Leon Bridges, Tom Morello, U2, M83, Kiefer, Mark Guiliana, Leon Phal, Jean-Michel Blais, Protomartyr, Gurriers, Nothing But Thieves, Lizz Wright, Tinashe, Agnes Obel, Neil Young, Beck, Actress, Camille, Lucas Debargue, Rhiannon Giddens, Branford Marsalis, aron!, Orville Peck, The Mary Wallopers, beabadoobee, Boy Harsher, Babehoven, Kareen Lomax, Kaoru Watanabe, Davie Jones & The Lower Third, Anthrax, Chaka Khan, Bachar Mar-Khalifé, Echo And The Bunnymen, Kristin Hersh, Justus Eichhorn, Ezra Collective, Sylvan Esso, Bonobo, FKJ, Ibibio Sound Machine, Haruomi Hosono, Jack Wyllie, Gretel, This is Lorelei...",
+    "name": "Nouveautés",
+    "owner": "Qobuz France",
+    "source_id": "1799132",
+    "track_count": 80
+   }
+  ],
+  "totals": {
+   "albums": 1000,
+   "artists": 181,
+   "playlists": 641,
+   "tracks": 1000
+  },
+  "tracks": [
+   {
+    "album_id": "0614427962522",
+    "album_title": "Belle Époque",
+    "artist_id": "64935",
+    "artist_name": "Emile Parisien",
+    "composer": "Sidney Bechet",
+    "cover_path": "https://static.qobuz.com/images/covers/22/25/0614427962522_600.jpg",
+    "disc_number": 1,
+    "disponible": true,
+    "duration_ms": 288000,
+    "explicit": false,
+    "isrc": "DEA891400210",
+    "quality": {
+     "bit_depth": 24,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 96000
+    },
+    "source_id": "15966224",
+    "title": "Egyptian Fantasy",
+    "track_number": 1
+   },
+   {
+    "album_id": "uot5og9mw32gb",
+    "album_title": "Louise",
+    "artist_id": "64935",
+    "artist_name": "Emile Parisien",
+    "composer": "Emile Parisien",
+    "cover_path": "https://static.qobuz.com/images/covers/gb/32/uot5og9mw32gb_600.jpg",
+    "disc_number": 1,
+    "disponible": true,
+    "duration_ms": 347000,
+    "explicit": false,
+    "isrc": "DEA892200060",
+    "quality": {
+     "bit_depth": 24,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 96000
+    },
+    "source_id": "139415880",
+    "title": "Louise",
+    "track_number": 1
+   },
+   {
+    "album_id": "z10a2m2y4ckoa",
+    "album_title": "Let Them Cook",
+    "artist_id": "64935",
+    "artist_name": "Emile Parisien",
+    "composer": "Emile Parisien",
+    "cover_path": "https://static.qobuz.com/images/covers/oa/ck/z10a2m2y4ckoa_600.jpg",
+    "disc_number": 1,
+    "disponible": true,
+    "duration_ms": 447000,
+    "explicit": false,
+    "isrc": "DEA892400037",
+    "quality": {
+     "bit_depth": 24,
+     "bitrate": null,
+     "channels": 2,
+     "codec": "FLAC",
+     "sample_rate": 88200
+    },
+    "source_id": "244381724",
+    "title": "Tiktik",
+    "track_number": 8
+   }
+  ],
+  "truncated": true
+ },
+ "artist": {
+  "bio": "(bio)",
+  "id": "64935",
+  "image_path": "https://static.qobuz.com/images/artists/covers/large/ed9c0077a0f0af32b3bf69e9a7a95cea.jpg",
+  "name": "Emile Parisien"
+ },
+ "artistAlbums": [
+  {
+   "artist_id": "265617",
+   "artist_name": "Vincent Peirani",
+   "cover_path": "https://static.qobuz.com/images/covers/9a/gv/bq8xpttybgv9a_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 88200
+   },
+   "released_at": 1758837600,
+   "source_id": "bq8xpttybgv9a",
+   "title": "Living Being IV (Time Reflections)",
+   "track_count": 9,
+   "year": 2025
+  },
+  {
+   "artist_id": "46441",
+   "artist_name": "Ballaké Sissoko",
+   "cover_path": "https://static.qobuz.com/images/covers/aa/tv/ua2owe5zrtvaa_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 48000
+   },
+   "released_at": 1751580000,
+   "source_id": "ua2owe5zrtvaa",
+   "title": "Sou Kora",
+   "track_count": 5,
+   "year": 2025
+  },
+  {
+   "artist_id": "46441",
+   "artist_name": "Ballaké Sissoko",
+   "cover_path": "https://static.qobuz.com/images/covers/2b/ro/o7f57by3gro2b_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 88200
+   },
+   "released_at": 1680213600,
+   "source_id": "o7f57by3gro2b",
+   "title": "Les Égarés",
+   "track_count": 10,
+   "year": 2023
+  }
+ ],
+ "genres": [
+  {
+   "has_children": false,
+   "id": "112",
+   "image_url": null,
+   "name": "Pop/Rock"
+  },
+  {
+   "has_children": false,
+   "id": "80",
+   "image_url": null,
+   "name": "Jazz"
+  },
+  {
+   "has_children": false,
+   "id": "10",
+   "image_url": null,
+   "name": "Classique"
+  }
+ ],
+ "genreAlbums": [
+  {
+   "artist_id": "64935",
+   "artist_name": "Emile Parisien",
+   "cover_path": "https://static.qobuz.com/images/covers/ya/59/pg9d0aq8j59ya_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 88200
+   },
+   "released_at": 1790287200,
+   "source_id": "pg9d0aq8j59ya",
+   "title": "Floating",
+   "track_count": 11,
+   "year": 2026
+  },
+  {
+   "artist_id": "36437",
+   "artist_name": "Lizz Wright",
+   "cover_path": "https://static.qobuz.com/images/covers/rd/w3/s354b5qm3w3rd_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 96000
+   },
+   "released_at": 1790287200,
+   "source_id": "s354b5qm3w3rd",
+   "title": "Nearness",
+   "track_count": 11,
+   "year": 2026
+  },
+  {
+   "artist_id": "217761",
+   "artist_name": "Kiefer",
+   "cover_path": "https://static.qobuz.com/images/covers/c5/fn/k6xq6uh3kfnc5_600.jpg",
+   "quality": {
+    "bit_depth": 24,
+    "bitrate": null,
+    "channels": 2,
+    "codec": "FLAC",
+    "sample_rate": 96000
+   },
+   "released_at": 1790287200,
+   "source_id": "k6xq6uh3kfnc5",
+   "title": "Memory Bomb",
+   "track_count": 13,
+   "year": 2026
+  }
+ ],
+ "featured": [
+  {
+   "cover_path": "https://static.qobuz.com/images/playlists/1799132_796cfb9f52908a97444ce5e9eeca17fa_rectangle.jpg",
+   "description": "Dernière mise à jour le 25 septembre 2026. Avec Emile Parisi",
+   "name": "Nouveautés",
+   "owner": "Qobuz France",
+   "source_id": "1799132",
+   "track_count": 80
+  },
+  {
+   "cover_path": "https://static.qobuz.com/images/playlists/2641872_5385622ba48aa407ce15ffbd800a52bf_rectangle.jpg",
+   "description": "Fureteur, avant-gardiste, visionnaire, Warp a donné ses lett",
+   "name": "Warp Records",
+   "owner": "Qobuz France",
+   "source_id": "2641872",
+   "track_count": 75
+  },
+  {
+   "cover_path": "https://static.qobuz.com/images/playlists/21709435_02344d8cd9a51844d3cc213155b53ebc_rectangle.jpg",
+   "description": "Julia Jacklin est australienne, mais sa musique évoque le me",
+   "name": "Julia Jacklin",
+   "owner": "Qobuz France",
+   "source_id": "21709435",
+   "track_count": 45
+  }
+ ],
+ "playlistDetail": {
+  "cover_path": "https://static.qobuz.com/images/covers/jb/oo/iv7090f3foojb_300.jpg",
+  "covers": [
+   "https://static.qobuz.com/images/covers/jb/oo/iv7090f3foojb_300.jpg",
+   "https://static.qobuz.com/images/covers/23/50/0828766435023_300.jpg",
+   "https://static.qobuz.com/images/covers/ma/py/gkwtsxxxtpyma_300.jpg"
+  ],
+  "description": "Merged by Tune",
+  "name": "2026_02_11 favoris radio + 1",
+  "owner": "anonyme",
+  "source_id": "70608857",
+  "track_count": 6
+ },
+ "profilFavorisStreaming": [
+  {
+   "album": null,
+   "artist": "Angelo Badalamenti",
+   "cover_url": "https://static.qobuz.com/images/covers/ra/q6/xhpv607rwq6ra_600.jpg",
+   "created_at": "2026-09-06T12:12:58Z",
+   "first_seen_at": "2026-09-06T12:12:58Z",
+   "id": 105,
+   "item_type": "album",
+   "profile_id": 1,
+   "service": "qobuz",
+   "service_id": "xhpv607rwq6ra",
+   "title": "Blue Velvet"
+  },
+  {
+   "album": null,
+   "artist": "Eric Sardinas",
+   "cover_url": "https://static.qobuz.com/images/covers/gc/y2/dd22d41cjy2gc_600.jpg",
+   "created_at": "2026-08-24T15:08:44Z",
+   "first_seen_at": "2026-08-24T15:08:44Z",
+   "id": 3,
+   "item_type": "album",
+   "profile_id": 1,
+   "service": "qobuz",
+   "service_id": "dd22d41cjy2gc",
+   "title": "Midnight Junction"
+  },
+  {
+   "album": null,
+   "artist": "Jaga Jazzist",
+   "cover_url": "https://resources.tidal.com/images/de72f31c/f604/4d4f/a925/31c87d115166/640x640.jpg",
+   "created_at": "2026-09-03T21:59:50Z",
+   "first_seen_at": "2026-09-03T21:59:50Z",
+   "id": 5,
+   "item_type": "album",
+   "profile_id": 1,
+   "service": "tidal",
+   "service_id": "548865705",
+   "title": "Live with the Norwegian Radio Orchestra"
+  }
+ ],
+ "artistReleases": [
+  {
+   "artist_name": "Prince",
+   "is_favorite": false,
+   "key": "prince",
+   "library_albums": 49,
+   "releases": [
+    {
+     "cover_path": "https://static.qobuz.com/images/covers/eh/7o/i8wv4f8to7oeh_600.jpg",
+     "service": "qobuz",
+     "source_id": "i8wv4f8to7oeh",
+     "title": "Timeless",
+     "year": 2026
+    }
+   ]
+  },
+  {
+   "artist_name": "King Gizzard & The Lizard Wizard",
+   "is_favorite": false,
+   "key": "king gizzard the lizard wizard",
+   "library_albums": 41,
+   "releases": [
+    {
+     "cover_path": "https://static.qobuz.com/images/covers/1c/cd/ezfgf3e4qcd1c_600.jpg",
+     "service": "qobuz",
+     "source_id": "ezfgf3e4qcd1c",
+     "title": "Alien Metal",
+     "year": 2026
+    }
+   ]
+  },
+  {
+   "artist_name": "The Alan Parsons Project",
+   "is_favorite": false,
+   "key": "alan parsons project",
+   "library_albums": 38,
+   "releases": [
+    {
+     "cover_path": "https://static.qobuz.com/images/covers/ad/5p/rgo0zkvxd5pad_600.jpg",
+     "service": "qobuz",
+     "source_id": "rgo0zkvxd5pad",
+     "title": "Gaudi (Sessions)",
+     "year": 1987
+    }
+   ]
+  }
+ ],
+ "tidalPlaylists": [
+  {
+   "cover_path": "https://resources.tidal.com/images/53adc881/cf21/428e/99fe/3c55b8d7cbd4/640x640.jpg",
+   "description": null,
+   "name": "11_mai_2012",
+   "owner": null,
+   "source_id": "2d8f8555-1f7d-4f69-89bf-db5dd208dc0a",
+   "track_count": 24
+  },
+  {
+   "cover_path": "https://resources.tidal.com/images/655bb851/b5a6/4ee6/84c0/72a661a7aa6d/640x640.jpg",
+   "description": null,
+   "name": "11 octobre 2012",
+   "owner": null,
+   "source_id": "6ea3ac4b-132f-4577-91da-4201f58b636b",
+   "track_count": 87
+  }
+ ],
+ "_provenance": "Réponses réelles du .18 (v0.9.165), relevées le 25/09/2026 : GET /api/v1/streaming/qobuz/… et /streaming/tidal/playlists, /profiles/1/favorites/streaming, /home/artist-releases. Listes tronquées à 3, noms de compte anonymisés."
+}

@@ -30,6 +30,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
@@ -699,11 +700,14 @@
         <div class="grid">
           {#each liste as pl (pl.source_id)}
             <!-- La surcouche commune, comme les playlists locales de cet ecran
-                 (Bertrand, 03/09/2026). Ni coeur ni etiquettes : une playlist
-                 de service n'a pas de ligne dans la bibliotheque. -->
+                 (Bertrand, 03/09/2026). Pas de coeur ici. Les ETIQUETTES, si :
+                 elles se posent par la paire `source` + `source_id`
+                 (`cibleEtiquettePlaylist`, Bertrand 25/09/2026 : « toujours
+                 absent des albums et playlists de streaming »). -->
             <div class="card">
               <span class="cv img">
                 <PochetteActions
+                  etiquettes={cibleEtiquettePlaylist(pl, source)}
                   onLire={() => playStreaming(source, pl)}
                   onOuvrir={() => ouvrirPl({ kind: 'streaming', service: source, pl })}
                   nom={pl.name}
