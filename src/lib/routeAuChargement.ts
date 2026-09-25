@@ -100,7 +100,7 @@ const VUES: Record<View, boolean> = {
   circle: true,
   bannedtracks: true,
 
-  // ─── Les six que l'adresse NE repose PAS, et pourquoi ────────────────────
+  // ─── Celles que l'adresse NE repose PAS, et pourquoi ────────────────────
   //
   // `tv` a déjà son chemin de démarrage, à part : `App.svelte` lit `#tv`,
   // `#tv&zone=12` et `#tv?zone=12`, force la zone puis entre en Grand écran.
@@ -125,6 +125,9 @@ const VUES: Record<View, boolean> = {
   // sur son repli « À venir ». Reposer la vue seule promettrait un écran vide.
   streamingalbum: false,
   streamingartist: false,
+  // tune-server-rust#5065 — la page d'UNE source : son identifiant vit dans
+  // `sourceCourante`, que l'adresse ne porte pas. Recharger n'a rien à rouvrir.
+  source: false,
 };
 
 /**
