@@ -76,7 +76,7 @@ export default {
   "lyrics.source.tag": "Forrás: fájlcímke",
   "lyrics.source.lrclib": "Forrás: LRCLIB (online)",
   "lyrics.empty.none": "Nem található dalszöveg ehhez a számhoz.",
-  "lyrics.empty.onlineOff": "Az online keresés ki van kapcsolva: Beállítások › Könyvtár › Online dalszövegek (LRCLIB).",
+  "lyrics.empty.onlineOff": "Az online keresés ki van kapcsolva: Beállítások › Könyvtár › Metaadatok › Online dalszövegek (LRCLIB).",
   "lyrics.empty.error": "A dalszöveget nem sikerült lekérni.",
   // MI-csevegés (Tune MI-asszisztens)
   // Oxygen (haladó gyűjteménynézet)
@@ -1469,6 +1469,8 @@ export default {
   "settings.dlnaNativeFlacHint": "FLAC küldése ennek a renderelőnek akkor is, ha nem jelzi a FLAC-támogatást (olyan renderelőkhöz, amelyek dekódolják a FLAC-ot, de üres képességlistát adnak vissza).",
   "settings.maxSampleRate": "Maximális frekvencia",
   "settings.lyricsOffset": "Dalszöveg késleltetése",
+  "settings.lyricsLrclib": "Online dalszövegek (LRCLIB)",
+  "settings.lyricsLrclibHelp": "Lekéri a hiányzó dalszövegeket az LRCLIB-ről, egy online közösségi adatbázisból. Alapból kikapcsolva.",
   "settings.fixedVolume": "Állandó rögzített hangerő ezen az eszközön (bit-perfect)",
   "settings.alacPassthrough": "ALAC közvetlenül",
   "settings.aacPassthrough": "AAC közvetlenül",

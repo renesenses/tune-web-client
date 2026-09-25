@@ -107,7 +107,16 @@ export const V2_SETTINGS: V2SettingsTab[] = [
       { id: 'searchExact', titleKey: 'settings.searchExact', from: 'library', min: 'beginner',
         keywords: ['recherche', 'exacte', 'guillemets', 'artiste', 'album', 'titre'] },
       { id: 'scanSched',  titleKey: 'settings.scanSchedule', from: 'library', min: 'intermediate', keywords: ['planification', 'automatique'] },
-      { id: 'metadata',   titleKey: 'metadata.title',        from: 'library', min: 'intermediate', keywords: ['métadonnées', 'tags'] },
+      /**
+       * `min: 'beginner'` — renesenses/tune-server-rust#4051. La carte porte
+       * la case « Paroles en ligne (LRCLIB) », que l'arbitrage #2859 range au
+       * niveau débutant (`lib/settingLevels`) : c'est la seule source de
+       * paroles qu'on obtienne sans poser soi-même un `.lrc`. Le renvoi vers
+       * l'écran Métadonnées du Studio, lui, reste réservé au niveau Avancé à
+       * l'intérieur de la carte, comme avant.
+       */
+      { id: 'metadata',   titleKey: 'metadata.title',        from: 'library', min: 'beginner',
+        keywords: ['métadonnées', 'tags', 'paroles', 'lyrics', 'lrclib', 'en ligne'] },
       { id: 'enrichment', titleKey: 'settings.enrichment',   from: 'library', min: 'expert',   keywords: ['enrichissement', 'musicbrainz'] },
       { id: 'ingest',     titleKey: 'settings.ingest',       from: 'library', min: 'expert',   keywords: ['import', 'rangement'] },
       { id: 'oxygen',     titleKey: 'oxygen.settingsTitle',  from: 'library', min: 'expert' },

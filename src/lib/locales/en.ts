@@ -76,7 +76,7 @@ export default {
   'lyrics.source.tag': 'Source: file tag',
   'lyrics.source.lrclib': 'Source: LRCLIB (online)',
   'lyrics.empty.none': 'No lyrics found for this track.',
-  'lyrics.empty.onlineOff': 'Online lookup is off: Settings › Library › Online lyrics (LRCLIB).',
+  "lyrics.empty.onlineOff": "Online lookup is off: Settings › Library › Metadata › Online lyrics (LRCLIB).",
   'lyrics.empty.error': 'Could not fetch the lyrics.',
   // AI chat (Tune AI assistant)
   // Oxygen (advanced library view)
@@ -1932,6 +1932,8 @@ export default {
   "settings.dlnaNativeFlacHint": "Send FLAC to this renderer even if it doesn\u2019t advertise FLAC support (for renderers that decode FLAC but report an empty capability list).",
   "settings.maxSampleRate": "Max rate",
   "settings.lyricsOffset": "Lyrics delay",
+  "settings.lyricsLrclib": "Online lyrics (LRCLIB)",
+  "settings.lyricsLrclibHelp": "Fetches missing lyrics from LRCLIB, an online community database. Disabled by default.",
   "settings.fixedVolume": "Permanent fixed volume on this device (bit-perfect)",
   "settings.alacPassthrough": "ALAC direct",
   "settings.aacPassthrough": "AAC direct",

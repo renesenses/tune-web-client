@@ -76,7 +76,7 @@ export default {
   'lyrics.source.tag': 'Source : étiquette du fichier',
   'lyrics.source.lrclib': 'Source : LRCLIB (en ligne)',
   'lyrics.empty.none': 'Aucune parole trouvée pour ce titre.',
-  'lyrics.empty.onlineOff': 'La recherche en ligne est désactivée : Paramètres › Bibliothèque › Paroles en ligne (LRCLIB).',
+  "lyrics.empty.onlineOff": "La recherche en ligne est désactivée : Réglages › Bibliothèque › Métadonnées › Paroles en ligne (LRCLIB).",
   'lyrics.empty.error': 'Impossible de récupérer les paroles.',
   // AI chat (assistant Tune AI)
   // Oxygen (vue bibliothèque avancée)
@@ -1935,6 +1935,8 @@ export default {
   "settings.dlnaNativeFlacHint": "Envoyer le FLAC \u00e0 ce lecteur m\u00eame s\u2019il n\u2019annonce pas le support FLAC (pour les lecteurs qui d\u00e9codent le FLAC mais renvoient une liste de capacit\u00e9s vide).",
   "settings.maxSampleRate": "Fr\u00e9quence max",
   "settings.lyricsOffset": "Décalage paroles",
+  "settings.lyricsLrclib": "Paroles en ligne (LRCLIB)",
+  "settings.lyricsLrclibHelp": "Récupère les paroles manquantes depuis LRCLIB, une base communautaire en ligne. Désactivé par défaut.",
   "settings.fixedVolume": "Volume fixe permanent sur cet appareil (bit-perfect)",
   "settings.alacPassthrough": "ALAC direct",
   "settings.aacPassthrough": "AAC direct",
