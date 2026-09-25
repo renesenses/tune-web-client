@@ -1602,6 +1602,8 @@ export default {
   "v2.rayons.dropHint": "Glissez ici une collection ou un rayon pour le ranger à la racine.",
   "v2.rayons.expand": "Déplier",
   "v2.rayons.collapse": "Replier",
+  "v2.rayons.hideTree": "Masquer les rayons",
+  "v2.rayons.showTree": "Afficher les rayons",
   "v2.rayons.actions": "Actions du rayon",
   "v2.rayons.error": "Rangement impossible",
   "v2.col.title": "Collections",

@@ -2607,6 +2607,8 @@ export default {
   "v2.rayons.dropHint": "컬렉션이나 선반을 여기에 놓으면 최상위로 이동합니다.",
   "v2.rayons.expand": "펼치기",
   "v2.rayons.collapse": "접기",
+  "v2.rayons.hideTree": "선반 숨기기",
+  "v2.rayons.showTree": "선반 표시",
   "v2.rayons.actions": "선반 작업",
   "v2.rayons.error": "정리하지 못했습니다",
   "v2.col.title": "컬렉션",

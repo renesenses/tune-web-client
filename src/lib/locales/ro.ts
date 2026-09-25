@@ -2607,6 +2607,8 @@ export default {
   "v2.rayons.dropHint": "Plasați aici o colecție sau un raft pentru a-l muta la nivelul de sus.",
   "v2.rayons.expand": "Extinde",
   "v2.rayons.collapse": "Restrânge",
+  "v2.rayons.hideTree": "Ascunde rafturile",
+  "v2.rayons.showTree": "Afișează rafturile",
   "v2.rayons.actions": "Acțiuni raft",
   "v2.rayons.error": "Reorganizare imposibilă",
   "v2.col.title": "Colecții",

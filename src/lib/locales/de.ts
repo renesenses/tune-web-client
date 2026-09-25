@@ -2607,6 +2607,8 @@ export default {
   "v2.rayons.dropHint": "Sammlung oder Regal hier ablegen, um es auf die oberste Ebene zu verschieben.",
   "v2.rayons.expand": "Aufklappen",
   "v2.rayons.collapse": "Zuklappen",
+  "v2.rayons.hideTree": "Regale ausblenden",
+  "v2.rayons.showTree": "Regale anzeigen",
   "v2.rayons.actions": "Regalaktionen",
   "v2.rayons.error": "Ordnen nicht möglich",
   "v2.col.title": "Sammlungen",

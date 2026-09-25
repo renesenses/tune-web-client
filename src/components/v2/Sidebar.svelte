@@ -34,7 +34,9 @@
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
   import ArbreRayons from './ArbreRayons.svelte';
-  import { etatRayons, rafraichirRayons, cleCibleCollection } from '../../lib/rayonsCollections';
+  import {
+    etatRayons, rafraichirRayons, cleCibleCollection, lireArbreBarreReplie, ecrireArbreBarreReplie,
+  } from '../../lib/rayonsCollections';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -397,6 +399,19 @@
    * écran), jamais par un second mécanisme.
    */
   $effect(() => { void rafraichirRayons(api.getCollectionFolders); });
+  /**
+   * #1580 (Didier, fil 1907) : « il n'est pas possible de réduire complètement
+   * le menu Collections ». Un chevron sur l'entrée replie l'arbre ENTIER, et
+   * s'en souvient ; les replis rayon par rayon restent ceux d'`ArbreRayons`.
+   */
+  let arbreBarreReplie = $state(lireArbreBarreReplie());
+  function basculerArbreBarre() {
+    arbreBarreReplie = !arbreBarreReplie;
+    ecrireArbreBarreReplie(arbreBarreReplie);
+  }
+  const arbreBarreDisponible = $derived(
+    !enIcones && $etatRayons.mode === 'arbre' && $etatRayons.arbre.folders.length > 0,
+  );
   function ouvrirCollectionRangee(kind: 'collection' | 'smart', id: number) {
     tiroirOuvert.set(false);
     navigateToShortcut({
@@ -542,12 +557,29 @@
     <nav class="grp">
       <div class="grp-label">{$t('v2.nav.selections' as any)}</div>
       {#each SELECTIONS as it (it.view)}
-        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
-        </button>
-        {#if it.view === 'collections' && !enIcones && $etatRayons.mode === 'arbre' && $etatRayons.arbre.folders.length}
-          <ArbreRayons compact arbre={$etatRayons.arbre} onOuvrir={ouvrirCollectionRangee} />
+        {#if it.view === 'collections' && arbreBarreDisponible}
+          <!-- #1580 : l'entrée garde son geste (ouvrir l'écran) ; le chevron,
+               bouton frère et non enfant, replie l'arbre entier. -->
+          <div class="nav-pli">
+            <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
+              <span>{$t(it.labelKey as any)}</span>
+            </button>
+            <button class="pli-arbre" aria-expanded={!arbreBarreReplie}
+              aria-label={arbreBarreReplie ? $t('v2.rayons.showTree' as any) : $t('v2.rayons.hideTree' as any)}
+              title={arbreBarreReplie ? $t('v2.rayons.showTree' as any) : $t('v2.rayons.hideTree' as any)}
+              onclick={basculerArbreBarre}>
+              <svg viewBox="0 0 24 24" class:ferme={arbreBarreReplie}><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+            </button>
+          </div>
+          {#if !arbreBarreReplie}
+            <ArbreRayons compact arbre={$etatRayons.arbre} onOuvrir={ouvrirCollectionRangee} />
+          {/if}
+        {:else}
+          <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
+            <span>{$t(it.labelKey as any)}</span>
+          </button>
         {/if}
       {/each}
     </nav>
@@ -724,6 +756,15 @@
      repliée — à 72 px de large, décaler une icône la sortirait de sa colonne
      et la rangée d'icônes cesserait d'être alignée. */
   .nav.svc{padding-left:30px; font-size:13px}
+  /* #1580 : chevron du repli de l'arbre entier, posé sur l'entrée Collections. */
+  .nav-pli{position:relative}
+  .nav-pli .nav{padding-right:36px}
+  .pli-arbre{position:absolute; right:8px; top:50%; transform:translateY(-50%); width:24px; height:24px;
+    display:grid; place-items:center; padding:0; border:0; border-radius:6px; background:none;
+    color:var(--v2-txt3, currentColor); cursor:pointer}
+  .pli-arbre:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .pli-arbre svg{width:14px; height:14px; transition:transform .12s}
+  .pli-arbre svg.ferme{transform:rotate(-90deg)}
   .v2-sidebar.collapsed .nav.svc{padding-left:0}
   .support{margin-top:6px}
   .sante{display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%;

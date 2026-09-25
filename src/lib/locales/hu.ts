@@ -2565,6 +2565,8 @@ export default {
   "v2.rayons.dropHint": "Húzzon ide egy gyűjteményt vagy polcot, hogy a legfelső szintre kerüljön.",
   "v2.rayons.expand": "Kibontás",
   "v2.rayons.collapse": "Összecsukás",
+  "v2.rayons.hideTree": "Polcok elrejtése",
+  "v2.rayons.showTree": "Polcok megjelenítése",
   "v2.rayons.actions": "Polcműveletek",
   "v2.rayons.error": "A rendezés nem sikerült",
   "v2.col.title": "Gyűjtemények",
