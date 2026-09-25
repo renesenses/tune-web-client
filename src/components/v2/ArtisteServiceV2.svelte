@@ -63,7 +63,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
   import { activeView, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
-  import { ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
+  import { ficheAlbumDeRetour, ficheAlbumService, ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
   import type { ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
@@ -272,6 +272,8 @@
     } catch {
       /* repli sur la recherche */
     }
+    // web#1602 — l'album de départ était celui de l'artiste QU'ON QUITTE.
+    ficheAlbumDeRetour.set(null);
     if (id != null) {
       ficheArtisteService.set({ service: null, id: String(id), nom: nomVoisin });
       return;
@@ -607,9 +609,21 @@
     // rendrait toujours faux — le repli d'un artiste local retomberait sur la
     // Recherche, un écran d'où il ne vient pas (#1232, étape 1).
     const local = estLocal;
+    // 🔴 web#1602 — on est venu d'une FICHE ALBUM : c'est elle que le Retour
+    // rouvre, dans la vue `streamingalbum` de la coquille, et c'est son propre
+    // Retour qui ramènera ensuite à l'écran d'en dessous (`depuis`). Sans ce
+    // cran, la fiche refermée avant de router (#1486) était sautée.
+    const fiche = $ficheAlbumDeRetour;
+    ficheAlbumDeRetour.set(null);
     albumOuvert = null;
     artisteFocus = null;
     ficheArtisteService.set(null);
+    if (fiche) {
+      vueDeRetour.set(fiche.depuis);
+      ficheAlbumService.set(fiche.fiche);
+      activeView.set('streamingalbum');
+      return;
+    }
     vueDeRetour.set(null);
     activeView.set(ou ?? (local ? 'library' : 'search'));
   }

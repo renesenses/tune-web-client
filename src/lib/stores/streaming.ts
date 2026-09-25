@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import type { Album, Artist, Source, StreamingPlaylist, StreamingServiceStatus } from '../types';
+import type { View } from './navigation';
 
 export const activeStreamingService = writable<string | null>(null);
 
@@ -111,15 +112,32 @@ export const ficheArtisteService =
  * distant que sur la PAIRE, et l'ouvrir sans son service le laisserait sur
  * « Chargement… » pour toujours.
  */
-export const ficheAlbumService =
-  writable<{
-    service: Source; id: string; titre: string; pochette?: string | null;
-    /** #1361 bis — l'artiste de l'album, pour l'AFFICHER et le rendre cliquable. */
-    artiste?: string | null;
-    /** Son identifiant CHEZ LE SERVICE (#956) : avec lui, sa fiche s'ouvre
-     *  sans passer par une recherche fédérée qui peut échouer. */
-    artisteId?: string | null;
-  } | null>(null);
+export interface CibleFicheAlbumService {
+  service: Source; id: string; titre: string; pochette?: string | null;
+  /** #1361 bis — l'artiste de l'album, pour l'AFFICHER et le rendre cliquable. */
+  artiste?: string | null;
+  /** Son identifiant CHEZ LE SERVICE (#956) : avec lui, sa fiche s'ouvre
+   *  sans passer par une recherche fédérée qui peut échouer. */
+  artisteId?: string | null;
+}
+export const ficheAlbumService = writable<CibleFicheAlbumService | null>(null);
+
+/**
+ * LA FICHE ALBUM D'OÙ L'ON EST PARTI VERS LA PAGE ARTISTE — web#1602.
+ *
+ * Reivax66, fil 1941 (0.9.164) : fiche d'un album Qobuz → clic sur l'artiste
+ * → « < » de la page artiste → l'accueil Streaming, pas la fiche. La fiche
+ * est refermée AVANT de router (#1486), et `vueDeRetour` ne porte qu'une VUE :
+ * l'écran sous la fiche. Rien ne se souvenait de l'album.
+ *
+ * Ce dépôt est le second cran de la pile : la fiche à rouvrir (dans la vue
+ * `streamingalbum` de la coquille) et la vue où son propre Retour mène. Il
+ * est posé AU MÊME ENDROIT que `vueDeRetour` par `ouvrirArtisteDeServiceParNom`
+ * — et remis à `null` par tout autre chemin qui ouvre la page artiste, pour
+ * qu'un Retour ultérieur ne rouvre jamais un album quitté entre-temps.
+ * Consommé une fois par le Retour de `ArtisteServiceV2`.
+ */
+export const ficheAlbumDeRetour = writable<{ fiche: CibleFicheAlbumService; depuis: View } | null>(null);
 
 /// Playlist de service à rouvrir en arrivant sur StreamingView (#2370).
 ///
