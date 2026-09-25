@@ -166,6 +166,9 @@
                 {#if p.name === 'pont-roon' && isActive(p)}
                   <button class="lnk" onclick={() => activeView.set('pontroon')}>{$t('common.open' as any)}</button>
                 {/if}
+                {#if p.name === 'cd' && isActive(p)}
+                  <button class="lnk ouvrir-cd" onclick={() => activeView.set('lecturecd')}>{$t('common.open' as any)}</button>
+                {/if}
                 <label class="sw" title={isActive(p) ? $t('settings.disable' as any) : $t('plugins.enable' as any)}>
                   <input type="checkbox" checked={isActive(p)} disabled={busy === key(p)} onchange={() => toggle(p)} />
                   <span class="slider"></span>

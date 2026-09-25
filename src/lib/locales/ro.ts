@@ -3339,6 +3339,8 @@ export default {
   "v2.fas.albums": "Albume",
   "v2.fas.empty": "Nimic de afișat pentru acest artist.",
   "v2.fas.topTracksFailed": "Piesele de top nu au putut fi încărcate — „Best of” și „Radio” au nevoie de ele.",
+  "v2.fas.artistNotFound": "Acest artist nu a fost găsit pe {service}.",
+  "v2.fas.artistUnavailable": "{service} nu a putut furniza pagina acestui artist deocamdată.",
   "v2.fas.bestOf": "Ascultă cele mai bune",
   "v2.fas.radio": "Radio artist",
   "v2.rech.tracks": "Piese",
@@ -4064,6 +4066,23 @@ export default {
   "plconv.journal.compte": "{ajoutees} adăugate, {introuvables} negăsite",
   "plconv.journal.vide": "Nicio sincronizare deocamdată.",
   "plconv.journal.echecs": "{n} eșec(uri):",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "Redare CD",
+  "v2.cd.notInstalled": "Extensia Redare CD nu este activă. Instaleaz-o din Extensii, apoi repornește Tune.",
+  "v2.cd.unsupportedPlatform": "Unitate neacceptată pe această platformă: redarea CD-urilor funcționează deocamdată doar pe Linux.",
+  "v2.cd.noDrive": "Nicio unitate CD pe mașina pe care rulează Tune.",
+  "v2.cd.noDisc": "Unitatea este goală. Introdu un CD audio.",
+  "v2.cd.reading": "Se citește discul…",
+  "v2.cd.unreadable": "Discul nu a putut fi citit. Curăță-l sau reintrodu-l.",
+  "v2.cd.unknownTrack": "Această piesă nu există pe acest disc.",
+  "v2.cd.playFailed": "Redarea nu a putut porni în această zonă.",
+  "v2.cd.unavailable": "Unitatea CD nu răspunde. Nouă încercare în câteva secunde.",
+  "v2.cd.unknownAlbum": "CD audio",
+  "v2.cd.noMetadata": "Disc nerecunoscut: titluri indisponibile.",
+  "v2.cd.playDisc": "Redă discul",
+  "v2.cd.playTrack": "Redă această piesă",
+  "v2.cd.trackN": "Piesa {n}",
+  "v2.cd.toZone": "Către {zone}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];
