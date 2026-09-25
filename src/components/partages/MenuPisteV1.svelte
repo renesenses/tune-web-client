@@ -37,7 +37,7 @@
   import * as api from '../../lib/api';
   import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
-  import { queuePosition } from '../../lib/stores/queue';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
   import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
@@ -84,6 +84,8 @@
   /** Le tiroir « Tous les champs piste » — #851, et fil forum 1906 pour une
    *  piste de service. Chargé à la demande, comme dans `PisteActions`. */
   let tiroirChamps = $state(false);
+  /** La fiche « Crédits » du titre — #1572. Bibliothèque seule. */
+  let tiroirCredits = $state(false);
   const local = $derived(estPisteLocale(piste));
   /**
    * Les routes de bibliothèque — voisins acoustiques, autres versions, champs
@@ -290,7 +292,7 @@
       onPlay={() => void lire()}
       onBan={() => void bannir(piste)}
       onUnban={() => void debannir(piste)}
-      onPlayNext={() => void enfiler(get(queuePosition) + 1, 'v2.pa.queuedNext')}
+      onPlayNext={() => void enfiler(rangLireEnsuite(), 'v2.pa.queuedNext')}
       onAddToQueue={() => void enfiler(undefined, 'v2.pa.queued')}
       onPlaySimilar={() => void plusCommeCa()}
       onOtherVersions={() => (panneauVersions = true)}
@@ -299,6 +301,7 @@
       onGoToAlbum={allerAlbum}
       onTag={() => (panneauEtiquettes = true)}
       onChampsDuFichier={() => (tiroirChamps = true)}
+      onVoirCredits={() => (tiroirCredits = true)}
     />
   {/if}
 </div>
@@ -328,6 +331,14 @@
   {#await import('./TrackTagsDrawer.svelte') then m}
     <m.default trackId={idBibliotheque} pisteService={idBibliotheque != null ? null : (piste as any)}
       onClose={() => (tiroirChamps = false)} />
+  {/await}
+{/if}
+<!-- #1572 — la MÊME fiche que `PisteActions`, sur l'`i64` de bibliothèque. -->
+{#if tiroirCredits && idBibliotheque != null}
+  {#await import('./CreditsTiroir.svelte') then m}
+    <m.default
+      cible={{ type: 'piste', trackId: idBibliotheque, titre: piste.title, artiste: piste.artist_name ?? null, album: piste.album_title ?? null }}
+      onClose={() => (tiroirCredits = false)} />
   {/await}
 {/if}
 {#if modalePlaylist}

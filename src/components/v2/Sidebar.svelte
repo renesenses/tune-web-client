@@ -4,6 +4,11 @@
   import { niveauDeLaSonde } from '../../lib/santeServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { libelleBanniereEnrichissement } from '../../lib/tachesDeFond';
+  import {
+    avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse, demarrerAvancement, terminerAvancement,
+  } from '../../lib/analyseBibliotheque';
+  import { tuneWS } from '../../lib/websocket';
+  import { formatNombre } from '../../lib/formats';
   /**
    * Barre latérale du nouveau client (direction Levente).
    *
@@ -184,6 +189,8 @@
    * cinquième raccourci ajouté chasserait un raccourci épinglé de la barre.
    */
   const RACCOURCIS_BARRE = 5;
+  /** Cadence du contrôle de fin d'analyse (#1577). */
+  const CONTROLE_ANALYSE_MS = 10_000;
   const raccourcisVisibles = $derived(
     [...$shortcuts]
       .sort((a, b) => Number(b.pinned !== false) - Number(a.pinned !== false))
@@ -221,6 +228,59 @@
     api.getBackgroundTasks().then((r) => tachesDeFond.set(r?.tasks ?? [])).catch(() => {});
   });
   const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning')));
+  /**
+   * #1577 — Didier (fil 1904) : « un indicateur toujours visible de mise à
+   * jour en cours de la base ». L'avancement d'une analyse n'était lu que par
+   * les Réglages et Tune Health : une analyse PLANIFIÉE à 22 h passait
+   * inaperçue, sauf à ouvrir l'un des deux écrans pendant qu'elle tournait.
+   *
+   * Pas de seconde source de vérité : la barre lit le MÊME état
+   * (`lib/analyseBibliotheque`, nourri par `library.scan.progress` et vidé
+   * par `library.scan.completed`), comme les Réglages. Elle s'abonne
+   * elle-même, puisqu'elle est montée partout — les abonnements multiples
+   * sont sans effet, la fusion est idempotente.
+   *
+   * Deux compléments, pris à `GET /system/scan/status`, le seul booléen dont
+   * le serveur fasse foi (les Réglages le sondent déjà) :
+   *  - à l'ouverture, une analyse DÉJÀ lancée se signale sans attendre son
+   *    prochain événement ;
+   *  - tant que l'indicateur est levé, un contrôle toutes les 10 s le baisse
+   *    si le serveur ne scanne plus — un `completed` perdu pendant une
+   *    coupure du flux ne doit pas le laisser affiché pour toujours.
+   */
+  $effect(() => abonnerAvancementAnalyse((h) => tuneWS.onEvent(h)));
+  $effect(() => {
+    api.getScanStatus()
+      .then((r) => { if (r?.scanning && !get(avancementAnalyse)) demarrerAvancement(); })
+      .catch(() => {});
+  });
+  const analyseEnCours = $derived($avancementAnalyse !== null);
+  $effect(() => {
+    if (!analyseEnCours) return;
+    const minuterie = setInterval(() => {
+      api.getScanStatus()
+        .then((r) => { if (r && r.scanning === false) terminerAvancement(); })
+        .catch(() => {});
+    }, CONTROLE_ANALYSE_MS);
+    return () => clearInterval(minuterie);
+  });
+  /** Le libellé : pourcentage quand le total est connu, compte brut pendant
+   *  le parcours des dossiers (le serveur envoie alors `total: 0`), rien de
+   *  chiffré tant qu'aucun événement n'est arrivé. */
+  const libelleAnalyse = $derived.by(() => {
+    const a = $avancementAnalyse;
+    if (!a) return null;
+    const p = pourcentAnalyse(a);
+    if (p !== null) return $t('v2.nav.scanRunningPct' as any).replace('{p}', String(p));
+    if (a.scanned > 0) return $t('v2.nav.scanRunningFiles' as any).replace('{f}', $formatNombre(a.scanned));
+    return $t('v2.nav.scanRunning' as any);
+  });
+  /** Même destination que la carte qui détaille l'analyse : Réglages ›
+   *  Bibliothèque. */
+  function ouvrirAnalyse() {
+    v2SettingsTarget.set({ tab: 'library', section: 'library' });
+    go('settings');
+  }
 
   // 🔴 Naviguer REFERME le tiroir. Sans cela, au palier « tiroir » la barre
   // reste par-dessus l'écran qu'on vient de demander : on choisit une vue et
@@ -456,6 +516,12 @@
         title="{$t('sidebar.serverStatus')} : {$healthStatus}" aria-label="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>{/if}</div>
       <div class="sub">MOZAIKLABS</div>
       {#if enrichissementEnCours}<div class="taches" aria-live="polite">{enrichissementEnCours}</div>{/if}
+      {#if libelleAnalyse}
+        <button class="analyse" onclick={ouvrirAnalyse} aria-live="polite"
+          title={$t('v2.nav.scanRunningHint' as any)}>
+          <span class="pt"></span>{libelleAnalyse}
+        </button>
+      {/if}
       {#if $updateAvailable}
         <button class="maj-lien" onclick={ouvrirMaj}
           title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}>
@@ -465,6 +531,11 @@
         <div class="ver">v{versionCourante}</div>
       {/if}
     </div>
+    {#if enIcones && libelleAnalyse}
+      <!-- Repliée, `.txt` est masqué : le point garde l'analyse visible. -->
+      <button class="analyse-point" onclick={ouvrirAnalyse}
+        aria-label={libelleAnalyse} title={libelleAnalyse}></button>
+    {/if}
     {#if enIcones && $updateAvailable}
       <!-- Repliée, `.txt` est masqué : sans ce point, l'annonce disparaîtrait
            entièrement dès qu'on replie la barre. -->
@@ -726,6 +797,21 @@
     border-radius:50%; border:2px solid var(--v2-bg); cursor:pointer;
     background:var(--v2-acc1)}
   .maj-point:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  /* #1577 — l'analyse de la bibliothèque, tant qu'elle tourne. Discret, sous
+     « MOZAIKLABS », et cliquable vers Réglages › Bibliothèque. */
+  .analyse{display:flex; align-items:center; gap:5px; max-width:100%; margin-top:4px; padding:0;
+    border:0; background:transparent; cursor:pointer; font:9.5px var(--v2-mono); color:var(--v2-acc-tint);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left}
+  .analyse:hover{color:var(--v2-txt)}
+  .analyse:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .analyse .pt{width:6px; height:6px; border-radius:50%; background:var(--v2-acc-tint); flex:none;
+    animation:analyse-pouls 1.6s ease-in-out infinite}
+  .analyse-point{position:absolute; top:0; left:6px; width:9px; height:9px; padding:0;
+    border-radius:50%; border:2px solid var(--v2-bg); cursor:pointer; background:var(--v2-acc-tint);
+    animation:analyse-pouls 1.6s ease-in-out infinite}
+  .analyse-point:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  @keyframes analyse-pouls{50%{opacity:.35}}
+  @media (prefers-reduced-motion: reduce){.analyse .pt, .analyse-point{animation:none}}
 
   .navscroll{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px}
   .navscroll::-webkit-scrollbar{width:6px}
