@@ -39,7 +39,7 @@
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { molettePortee } from '../../lib/molettePortee';
   import { t, locale } from '../../lib/i18n';
-  import { CHIFFRES, CHOIX_DEFAUT, MAXIMUM_CHIFFRES, ajoutRefuse, basculer, choixAEnregistrer, ligneComplete, migrationLigneChiffres } from '../../lib/chiffresAccueil';
+  import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer, migrationLigneChiffres } from '../../lib/chiffresAccueil';
   import { trace } from '../../lib/iconesChiffres';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
@@ -50,7 +50,6 @@
   import { togglePlayPause } from '../../lib/playback-controls';
   import { formatTime } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
-  import { ouvrirArtisteParNom } from '../../lib/libraryNavigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { ouvrirCollection, ouvrirParRaccourci, ouvrirSmartPlaylist } from '../../lib/ouvrirParRaccourci';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
@@ -768,13 +767,29 @@
    * sans cela on ouvrirait l'ecran sur une AUTRE zone que celle cliquee.
    */
   function ouvrirElement(e: Element) {
-    // Les classements (« Vos tops », « Artistes les plus écoutés ») n'ont
-    // qu'un NOM d'artiste : le même rapprochement que le Tableau de bord.
-    // Un artiste FAVORI porte l'objet entier : la page artiste commune ou la
-    // fiche du service, sans rapprochement par le nom.
+    /**
+     * Les classements (« Vos tops », « Artistes les plus écoutés ») n'ont
+     * qu'un NOM d'artiste : le rapprochement exact, puis la FICHE.
+     *
+     * 🔴 Bertrand, 23/09/2026 : « Homepage, widget "Vos tops" : click sur un
+     * artiste doit afficher sa page artiste ! ». Le clic partait dans
+     * `libraryNavigation.ouvrirArtisteParNom`, la navigation de l'ANCIENNE
+     * coquille : elle pose `selectedArtist` + `libraryTab`, que plus aucun
+     * écran de ce client ne lit (l'ancienne coquille est partie le 19/09,
+     * #1257). Il ne restait que son `activeView.set('library')` — on quittait
+     * l'accueil pour la grille de la Bibliothèque, sans fiche. Exactement le
+     * point 9 d'Yves Corbat sur les Favoris (17/09), d'où `ouvrirArtisteDepuis`.
+     *
+     * On passe donc par CE module, le seul chemin vivant : la PAGE COMMUNE
+     * (`streamingartist`, #1494) pour un artiste de la bibliothèque comme pour
+     * un artiste de service, et `vueDeRetour` pour que le Retour de la fiche ramène ICI —
+     * `$activeView` et non `'home'` en dur : les écrans éditoriaux Qobuz et
+     * Tidal montent la même page de widgets.
+     */
     if (e.ouvrir === 'artiste') {
-      if (e.artisteObjet) void ouvrirArtisteDepuis(e.artisteObjet, 'home');
-      else if (e.artiste) void ouvrirArtisteParNom(e.artiste);
+      // Un artiste FAVORI porte l'objet entier ; un classement n'a que son NOM.
+      if (e.artisteObjet) void ouvrirArtisteDepuis(e.artisteObjet, $activeView);
+      else if (e.artiste) void ouvrirArtisteDepuis({ name: e.artiste }, $activeView);
       return;
     }
     // Widgets de favoris par type (25/09/2026) : une piste se JOUE, et une
@@ -1110,35 +1125,14 @@
                      verrait. -->
                 <div class="choix-chiffres">
                   <p class="aide">{$t('v2.home.statsPick' as any)}</p>
-                  <!-- #1519 — DIRE LE PLAFOND, AU LIEU DE LE LAISSER DÉCOUVRIR.
-                       `basculer` refuse le septième chiffre et rend la liste
-                       telle quelle : la case cochée revenait toute seule, sans
-                       un mot. Depuis #1541 le défaut en compte six — un profil
-                       neuf arrive donc PLEIN — et #1542 a mis quatre cartes de
-                       plus au catalogue : plus de choix que jamais, et aucune
-                       place.
-
-                       🔴 CETTE RÉGION VIT TOUT LE TEMPS, VIDE QUAND IL N'Y A
-                       RIEN À DIRE. Un `role="status"` que l'on monte et démonte
-                       n'annonce rien chez la plupart des lecteurs d'écran :
-                       ils ne surveillent que les régions DÉJÀ présentes. Le
-                       `<p>` reste donc là, et c'est son texte qui apparaît —
-                       `:empty` le fait disparaître de l'œil, pas du DOM. -->
-                  <p class="plein" class:vide={!ligneComplete(chiffres)} id="chiffres-plein-{w.id}" role="status">{#if ligneComplete(chiffres)}{$t('v2.home.statsFull' as any).replace('{n}', String(MAXIMUM_CHIFFRES))}{/if}</p>
+                  <!-- #1561 — AUCUN PLAFOND (Bertrand, 25/09/2026 : « Don't
+                       put any limit on the widget ! »). Toutes les cases se
+                       cochent ; le message « ligne pleine » et les cases
+                       grisées de #1519 ont disparu avec la limite. -->
                   <div class="opts">
                     {#each CHIFFRES as ch (ch.id)}
-                      {@const refuse = ajoutRefuse(chiffres, ch.id)}
-                      <!-- 🔴 `aria-describedby` est posé sur TOUTES les cases
-                           tant que la ligne est pleine, y compris les cochées.
-                           Une case `disabled` sort du parcours du clavier :
-                           seule reste atteignable la poignée de cases cochées,
-                           et c'est par elles que le motif doit se lire. Sans
-                           cela, qui navigue au clavier n'aurait que le grisé —
-                           une couleur, et rien à entendre. -->
-                      <label class="opt" class:on={chiffres.includes(ch.id)} class:sourd={refuse}>
+                      <label class="opt" class:on={chiffres.includes(ch.id)}>
                         <input type="checkbox" checked={chiffres.includes(ch.id)}
-                               disabled={refuse}
-                               aria-describedby={ligneComplete(chiffres) ? `chiffres-plein-${w.id}` : undefined}
                                onchange={() => { chiffres = basculer(chiffres, ch.id); void enregistrer(); recomposerLigne(w.id); }} />
                         <span>{$t(ch.cleLibelle as any)}</span>
                       </label>
@@ -1597,6 +1591,12 @@
      dans Figma le 19/09/2026. Ses cotes y sont à l'échelle 1,372 (21,96 px
      pour 16, 27,45 pour 20, 32,94 pour 24…) : on reprend l'échelle 1. */
   .chiffres{display:flex; flex-wrap:wrap; gap:20px; padding:0 30px 12px}
+  /* #1561 — sans plafond, la ligne peut porter tout le catalogue : les
+     pilules passent à la ligne, et aucune ne peut dépasser la largeur
+     disponible (360 px compris). `min-width:0` lève le minimum intrinsèque
+     d'un élément flex ; le libellé se replie plutôt que de déborder. */
+  .chiffres > .stat{max-width:100%; min-width:0}
+  .stat .l{overflow-wrap:anywhere}
   /* #1561 — la ligne d'avant, le temps que la nouvelle arrive. */
   .chiffres[aria-busy='true']{opacity:.55; transition:opacity .15s}
   .stat{display:flex; align-items:center; gap:10px; padding:6px 14px; min-height:36px;
@@ -1621,27 +1621,6 @@
     padding:5px 11px; border-radius:var(--v2-r-pill); font:13px var(--v2-sans);
     border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .choix-chiffres .opt.on{border-color:var(--v2-acc2); color:var(--v2-txt)}
-
-  /* #1519 — LA LIGNE EST PLEINE, ET ÇA SE VOIT.
-     `.plein:empty` : la région d'annonce reste dans le DOM en permanence
-     (voir le balisage), elle ne prend simplement aucune place tant qu'elle
-     n'a rien à dire. */
-  .choix-chiffres .plein{margin:0 0 8px; font:12px var(--v2-sans);
-    color:var(--v2-txt); padding:6px 10px; border-radius:var(--v2-r-md);
-    border:1px solid var(--v2-line2);
-    background:color-mix(in srgb, var(--v2-acc1) 10%, transparent)}
-  /* Deux verrous pour une seule disparition : `.vide` est explicite, `:empty`
-     tient même si la classe était un jour oubliée. Aucun des deux ne retire
-     l'élément du DOM — c'est tout l'intérêt. */
-  .choix-chiffres .plein.vide, .choix-chiffres .plein:empty{display:none}
-
-  /* La pilule grisée : elle reste LISIBLE — on doit pouvoir lire ce qu'on ne
-     peut pas encore choisir — mais elle perd son contour, sa main et son
-     contraste. Et `cursor:not-allowed` répond au survol, là où une case
-     `disabled` ne répond plus au clic. */
-  .choix-chiffres .opt.sourd{opacity:.45; cursor:not-allowed;
-    border-style:dashed; border-color:var(--v2-line)}
-  .choix-chiffres .opt.sourd input{cursor:not-allowed}
 
   /* Sur un écran étroit, les pilules passent à la ligne plutôt que de
      déborder : la ligne de la maquette fait 1600 px de large. */
