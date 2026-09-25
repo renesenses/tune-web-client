@@ -3598,6 +3598,8 @@ export default {
   "v2.ms.discoveryUnavail": "네트워크 검색을 사용할 수 없습니다.",
   "v2.ms.folderNoAnswer": "이 폴더가 응답하지 않았습니다.",
   "v2.ms.folderEmpty": "이 폴더는 비어 있습니다.",
+  "v2.ms.searchFailed": "이 서버에서 검색하지 못했습니다.",
+  "v2.ms.listIncomplete": "불완전한 목록: {total}개 중 {n}개",
   "v2.pod.episodesUnavail": "에피소드를 사용할 수 없습니다.",
   "v2.sup.unavailable": "티켓을 사용할 수 없습니다 — 지원 서비스에 연결할 수 없습니다.",
   "v2.sup.stAnswered": "답변됨",

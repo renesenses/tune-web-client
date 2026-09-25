@@ -3597,6 +3597,8 @@ export default {
   "v2.ms.discoveryUnavail": "Nätverksupptäckt är inte tillgänglig.",
   "v2.ms.folderNoAnswer": "Den här mappen svarade inte.",
   "v2.ms.folderEmpty": "Den här mappen är tom.",
+  "v2.ms.searchFailed": "Sökningen på den här servern misslyckades.",
+  "v2.ms.listIncomplete": "Ofullständig lista: {n} av {total}",
   "v2.pod.episodesUnavail": "Avsnitt är inte tillgängliga.",
   "v2.sup.unavailable": "Ärenden är inte tillgängliga — supporttjänsten går inte att nå.",
   "v2.sup.stAnswered": "besvarad",
