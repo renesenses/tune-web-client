@@ -3,9 +3,10 @@
   import { t } from '../../lib/i18n';
   import { notifications } from '../../lib/stores/notifications';
   import * as api from '../../lib/api';
-  import { estRefusPremium } from '../../lib/premiumRefus';
+  import { refusConcerts, type RefusConcerts } from '../../lib/concertsRefus';
   import { concertsCharge, concertsAttendRedemarrage } from '../../lib/stores/concerts';
   import { activeView } from '../../lib/stores/navigation';
+  import { v2SettingsTarget } from '../../lib/stores/v2SettingsNav';
 
   // L'écran répond à une question, une seule : « les artistes que j'écoute
   // jouent-ils près de chez moi ? » — demande de FabienM et Didier, fil 1540.
@@ -17,7 +18,12 @@
   // rien », pas « le filtre est trop serré ».
 
   let chargement = $state(false);
-  let refusePremium = $state(false);
+  /** Refus d'offre : `premium` (module non possédé, 402) ou `compte` (compte
+   *  Mozaiklabs non relié). Voir `lib/concertsRefus.ts`. */
+  let refus = $state<RefusConcerts>(null);
+  /** Le serveur ne connaît pas `/ext/concerts/location` (≤ v0.9.165) : la
+   *  liste reste lisible, mais la commune et le périmètre ne se règlent pas. */
+  let serveurTropAncien = $state(false);
   let anomalie = $state('');
   let concerts = $state<api.Concert[]>([]);
 
@@ -51,8 +57,34 @@
     // garde, l'écran tire sur `/api/v1/ext/concerts/…` et récolte le 404 nu
     // d'axum, que l'utilisateur voit tel quel (leçon de Bandcamp, #1768).
     if (!$concertsCharge) return;
-    charger();
+    void ouvrir();
   });
+
+  async function ouvrir() {
+    await charger();
+    // Un refus vaut pour toutes les routes du greffon : inutile de le récolter
+    // une seconde fois (et un second bandeau).
+    if (!refus) await lireLocalisation();
+  }
+
+  /** Pré-remplir la commune, le code postal et le périmètre enregistrés. */
+  async function lireLocalisation() {
+    try {
+      const l = await api.getLocalisationConcerts();
+      if (!l) return;
+      if (l.scope) perimetre = l.scope;
+      if (l.radius_km) rayon = l.radius_km;
+      if (l.city && l.city !== '—') commune = l.city;
+      if (l.postal_code) codePostal = l.postal_code;
+      if (l.country) pays = l.country;
+      if (typeof l.located === 'boolean') localisee = l.located;
+    } catch (e) {
+      const r = refusConcerts(e);
+      if (r) refus = r;
+      else if ((e as api.ApiError)?.status === 404) serveurTropAncien = true;
+      // Toute autre erreur : on garde les valeurs de `upcoming`, rien à dire.
+    }
+  }
 
   async function charger() {
     chargement = true;
@@ -60,7 +92,7 @@
     try {
       const reponse = await api.getConcertsAVenir();
       concerts = reponse.concerts ?? [];
-      refusePremium = false;
+      refus = null;
       if (reponse.scope) perimetre = reponse.scope;
       if (reponse.radius_km) rayon = reponse.radius_km;
       if (reponse.city) commune = reponse.city;
@@ -70,8 +102,9 @@
     } catch (e) {
       // Un refus d'offre n'est pas une panne : l'écran se verrouille et dit ce
       // qu'il refuse, au lieu d'afficher une erreur rouge incompréhensible.
-      if (estRefusPremium(e)) {
-        refusePremium = true;
+      const r = refusConcerts(e);
+      if (r) {
+        refus = r;
         concerts = [];
         return;
       }
@@ -82,6 +115,7 @@
   }
 
   async function enregistrerLocalisation(nouveauPerimetre?: api.PerimetreConcerts) {
+    if (serveurTropAncien) return;
     const vise = nouveauPerimetre ?? perimetre;
     // Le rayon est le seul cran qui exige une commune : « pays » et « partout »
     // n'ont besoin d'aucun géocodage, et restent donc disponibles même si le
@@ -101,17 +135,31 @@
       });
       perimetre = reponse.scope;
       localisee = reponse.located ?? null;
-      refusePremium = false;
+      refus = null;
       await charger();
     } catch (e) {
-      if (estRefusPremium(e)) {
-        refusePremium = true;
+      const r = refusConcerts(e);
+      if (r) {
+        refus = r;
+        concerts = [];
+        return;
+      }
+      // Serveur antérieur à la route : on le dit une fois, à l'écran, au lieu
+      // d'un « échec d'enregistrement » qui ferait réessayer en vain.
+      if ((e as api.ApiError)?.status === 404) {
+        serveurTropAncien = true;
         return;
       }
       notifications.error($t('concerts.enregistrementEchoue'));
     } finally {
       enregistrement = false;
     }
+  }
+
+  /** Réglages ▸ Système ▸ Cloud, où vit le bouton de connexion du compte. */
+  function ouvrirCompte() {
+    v2SettingsTarget.set({ tab: 'system', section: 'cloud' });
+    activeView.set('settings');
   }
 
   function dateLisible(iso: string): string {
@@ -139,14 +187,24 @@
         </button>
       {/if}
     </div>
-  {:else if refusePremium}
-    <div class="cc-encart">
+  {:else if refus}
+    <!-- Décision du 25/09/2026 : pas de version réduite. Un refus clair, et
+         aucune liste — ni vide, ni partielle. -->
+    <div class="cc-encart cc-refus" data-refus={refus}>
       <p>{$t('concerts.premiumRequis')}</p>
-      <a class="cc-principal" href="https://mozaiklabs.fr/pricing" target="_blank" rel="noopener">
-        {$t('concerts.decouvrirPremium')}
-      </a>
+      {#if refus === 'compte'}
+        <p class="cc-note">{$t('concerts.compteNonRelie')}</p>
+        <button class="cc-principal" onclick={ouvrirCompte}>{$t('concerts.relierCompte')}</button>
+      {:else}
+        <a class="cc-principal" href="https://mozaiklabs.fr/pricing" target="_blank" rel="noopener">
+          {$t('concerts.decouvrirPremium')}
+        </a>
+      {/if}
     </div>
   {:else}
+    {#if serveurTropAncien}
+      <p class="cc-note cc-attention cc-trop-ancien">{$t('concerts.serveurTropAncien')}</p>
+    {:else}
     <section class="cc-perimetre">
       <div class="cc-crans">
         <button class:actif={perimetre === 'radius'} onclick={() => enregistrerLocalisation('radius')}>
@@ -193,6 +251,7 @@
         {/if}
       {/if}
     </section>
+    {/if}
 
     {#if chargement}
       <p class="cc-muet">{$t('concerts.chargement')}</p>
@@ -205,7 +264,7 @@
         <p>{$t('concerts.aucun')}</p>
         <!-- Le geste utile quand la liste est vide n'est pas de recharger,
              c'est d'élargir. -->
-        {#if cranPlusLarge}
+        {#if cranPlusLarge && !serveurTropAncien}
           <button
             class="cc-principal"
             onclick={() => enregistrerLocalisation(cranPlusLarge ?? undefined)}

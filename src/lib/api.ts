@@ -125,6 +125,11 @@ async function refusPremiumDe(response: Response): Promise<ApiError | null> {
   const err = new Error(messageRefusPremium(corps)) as ApiError;
   err.status = 402;
   err.code = corps?.code === 'free_zone_cap_reached' ? corps.code : 'premium_required';
+  // Le corps voyage avec le refus : `ModuleRefusal` (#2392) distingue un
+  // compte non relié d'un module non possédé par son `code`, que la ligne
+  // ci-dessus ramène à `premium_required`. Sans lui, l'écran Concerts ne
+  // pourrait pas dire « reliez votre compte » à quelqu'un qui a déjà payé.
+  if (corps && typeof corps === 'object') err.corps = corps;
   return err;
 }
 
@@ -509,7 +514,9 @@ export async function fetchJSON<T>(
       notifications.error(refus!.message);
       // La sentinelle garde son message : les appelants historiques comparent
       // `premium_required` (`motifEchecEq`, `stores/profile`, #2178).
-      throw erreurSentinelle('premium_required', 402, refus!.code);
+      const sentinelle = erreurSentinelle('premium_required', 402, refus!.code);
+      if (refus!.corps !== undefined) sentinelle.corps = refus!.corps;
+      throw sentinelle;
     }
     const err = await apiError(response);
     /**
@@ -6828,6 +6835,9 @@ export interface MergedPlugin {
    */
   install_proposed?: boolean;
   existing_configuration?: boolean;
+  /** Greffon réservé à Tune Premium (`premium_plugins::requires_premium`,
+   *  rendu par `GET /plugins` pour les greffons natifs). Absent = inconnu. */
+  premium?: boolean;
 }
 
 export function getInstalledPlugins(): Promise<InstalledPlugin[]> {
@@ -8573,6 +8583,8 @@ export interface LocalisationConcerts {
    *  trouvée : la lecture retombe alors sur le pays. Sans ce drapeau,
    *  l'utilisateur croit filtrer à 50 km alors qu'il voit tout son pays. */
   located?: boolean;
+  /** Rendu par `GET /location` : le code postal saisi, pour pré-remplir. */
+  postal_code?: string | null;
   code?: string;
 }
 
@@ -8585,6 +8597,14 @@ export function getConcertsAVenir() {
  *  Jamais déduite : le serveur connaît pourtant des coordonnées tirées de
  *  l'adresse IP, et il ne faut pas s'en servir — derrière un VPN elles
  *  désignent un autre pays. */
+/** La commune et le périmètre enregistrés, pour pré-remplir l'écran.
+ *
+ *  ⚠️ Route postérieure à v0.9.165 (lot serveur `batch/concerts-greffon-20260925`) :
+ *  un serveur plus ancien répond 404, et l'écran le dit au lieu d'échouer. */
+export function getLocalisationConcerts() {
+  return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`);
+}
+
 export function setLocalisationConcerts(demande: {
   city: string;
   postal_code?: string | null;

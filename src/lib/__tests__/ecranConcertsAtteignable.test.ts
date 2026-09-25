@@ -71,7 +71,7 @@ describe('écran Concerts — ce qu il refuse et ce qu il propose', () => {
   it("traite le refus d'offre comme un refus, pas comme une panne", () => {
     // Sans cela, un compte gratuit voit une erreur rouge incompréhensible au
     // lieu d'apprendre que la fonction existe et ce qu'elle coûte.
-    expect(ECRAN).toContain('estRefusPremium');
+    expect(ECRAN).toContain('refusConcerts');
     expect(ECRAN).toContain("$t('concerts.premiumRequis')");
   });
 
