@@ -105,7 +105,7 @@ const ancre = (top: number, bottom: number, right: number) => ({ top, bottom, ri
 describe('#872 — où le panneau se pose, une fois libre', () => {
   it('sous le bouton, aligné à droite sur lui', () => {
     const s = styleMenuAncre(ancre(300, 326, 1000), 7, FENETRE);
-    expect(s).toBe(`left:${1000 - LARGEUR_MENU}px;top:330px;`);
+    expect(s).toBe(`left:${1000 - LARGEUR_MENU}px;top:330px;max-height:${900 - 326 - 4 - 8}px;`);
   });
 
   it('au-dessus, quand le bas de la fenêtre est trop proche', () => {
@@ -114,7 +114,7 @@ describe('#872 — où le panneau se pose, une fois libre', () => {
     // Depuis la dernière ligne de la liste, il naîtrait hors de l'écran.
     const bas = styleMenuAncre(ancre(840, 866, 1000), 7, FENETRE);
     expect(bas, 'le panneau naîtrait sous le bord bas').toContain('bottom:');
-    expect(bas).toBe(`left:${1000 - LARGEUR_MENU}px;bottom:${900 - 840 + 4}px;`);
+    expect(bas).toBe(`left:${1000 - LARGEUR_MENU}px;bottom:${900 - 840 + 4}px;max-height:${840 - 4 - 8}px;`);
   });
 
   it('borné aux deux bords : un bouton au ras du cadre ne le pousse pas dehors', () => {
@@ -128,8 +128,8 @@ describe('#872 — où le panneau se pose, une fois libre', () => {
     // remettre le panneau à gauche du bouton, comme le ferait un oubli du
     // retrait de la largeur.
     const sabote = (a: { top: number; bottom: number; right: number }) =>
-      `left:${a.right}px;top:${a.bottom + 4}px;`;
-    const attendu = `left:${1000 - LARGEUR_MENU}px;top:330px;`;
+      `left:${a.right}px;top:${a.bottom + 4}px;max-height:562px;`;
+    const attendu = `left:${1000 - LARGEUR_MENU}px;top:330px;max-height:562px;`;
     expect(styleMenuAncre(ancre(300, 326, 1000), 7, FENETRE)).toBe(attendu);
     expect(
       sabote(ancre(300, 326, 1000)),

@@ -41,7 +41,7 @@
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import { cibleDeService } from '../../lib/cibleEtiquette';
+  import { cibleEtiquetteAlbum, cibleDeService } from '../../lib/cibleEtiquette';
   import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
   import {
     ouvrirArtisteDepuis,
@@ -1525,7 +1525,9 @@
         onLire={onPlay}
         onOuvrir={ouvre ?? onPlay}
         nom={pTitle(p)}
-        etiquettes={type === 'album' || type === 'track'
+        etiquettes={type === 'album'
+          ? cibleEtiquetteAlbum({ ...p, title: pTitle(p), cover_path: pCover(p) }, active)
+          : type === 'track'
           ? cibleDeService(type, { ...p, source: p?.source ?? active, title: pTitle(p), cover_path: pCover(p) })
           : null}
         favoriExterne={type

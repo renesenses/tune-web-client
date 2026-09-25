@@ -192,7 +192,27 @@
   let trouve = $state<any | null>(null);
   let cherche = $state(false);
   let repliLocal = $state(false);
+  /** La recherche a été REFUSÉE par le serveur (502 `media_server_search_failed`,
+   *  #4943). Le repli local reste, mais l'annonce « ne sait pas chercher »
+   *  serait fausse : le serveur sait chercher, il a échoué, et le bandeau le dit. */
+  let echecRecherche = $state(false);
   let seq = 0;
+
+  /** La phrase de l'écran, suivie du MOTIF écrit par le serveur (#4895).
+   *
+   *  `fetchJSON` passe par `apiError`, dont le message EST le champ `error`
+   *  du corps — « Freebox Server a rendu une page vide au Browse après 0 des
+   *  12 éléments annoncés ». Une coupure réseau, elle, n'a pas de statut HTTP :
+   *  son message (« Failed to fetch ») n'apprendrait rien, on garde la phrase. */
+  function avecMotif(phrase: string, e: unknown): string {
+    const err = e as { status?: unknown; message?: unknown } | null;
+    const motif = typeof err?.status === 'number' ? String(err.message ?? '').trim() : '';
+    return motif ? `${phrase} ${motif}` : phrase;
+  }
+  /** Hors de l'effet de recherche : son `const t = setTimeout(…)` masque `$t`. */
+  function rechercheEchouee(e: unknown): string {
+    return avecMotif($t('v2.ms.searchFailed' as any), e);
+  }
 
   const VIDE: MediaServerBrowseResult = {
     object_id: '0', containers: [], items: [], total_matches: 0, number_returned: 0,
@@ -217,6 +237,20 @@
 
   /** Une grille de pochettes plutôt qu'une liste : dès qu'un conteneur en a
    *  une, c'est un rayon d'albums, pas une liste de dossiers. */
+  /** Une liste coupée en cours de pagination le DIT (#4914, #4943) : le serveur
+   *  sert ce qu'il a lu, avec `complet: false` et la raison. Un serveur
+   *  antérieur ne rend pas le champ : `undefined` n'est PAS `false`, rien ne
+   *  s'affiche. */
+  const incompletude = $derived.by(() => {
+    const src: MediaServerBrowseResult | null = q.trim() && trouve && !repliLocal ? trouve : browse;
+    if (!src || src.complet !== false) return null;
+    return {
+      n: (src.containers?.length ?? 0) + (src.items?.length ?? 0),
+      total: src.total_matches ?? 0,
+      raison: String(src.incomplet ?? '').trim(),
+    };
+  });
+
   const enGrille = $derived(vue.containers.some((c) => !!c.album_art_uri));
 
   const fil = $derived.by(() => {
@@ -258,6 +292,7 @@
     if (!srv || besoin.length < 2) { trouve = null; repliLocal = false; cherche = false; return; }
     const mien = ++seq;
     cherche = true;
+    echecRecherche = false;
     const t = setTimeout(() => {
       api.searchMediaServer(srv.id, besoin, portee ? '0' : ici)
         .then((r: any) => {
@@ -267,13 +302,21 @@
           // filtre ce qui est a l'ecran et on l'annonce.
           repliLocal = !r?.supported;
         })
-        .catch(() => { if (mien === seq) { trouve = null; repliLocal = true; } })
+        .catch((e) => {
+          if (mien !== seq) return;
+          trouve = null; repliLocal = true;
+          // Un refus DIT par le serveur n'est pas un serveur sans index.
+          if (typeof (e as { status?: unknown })?.status === 'number') {
+            echecRecherche = true;
+            error = rechercheEchouee(e);
+          }
+        })
         .finally(() => { if (mien === seq) cherche = false; });
     }, 300);
     return () => clearTimeout(t);
   });
 
-  function viderRecherche() { q = ''; trouve = null; repliLocal = false; }
+  function viderRecherche() { q = ''; trouve = null; repliLocal = false; echecRecherche = false; }
 
   async function allerA(objectId: string, titre?: string, remplacer = false) {
     if (!open) return;
@@ -286,7 +329,7 @@
         const t = decoderEntitesXml(titre);
         pile = remplacer ? [{ objectId, titre: t }] : [...pile, { objectId, titre: t }];
       }
-    } catch { error = $t('v2.ms.folderNoAnswer' as any); }
+    } catch (e) { error = avecMotif($t('v2.ms.folderNoAnswer' as any), e); }
     busy = false;
   }
 
@@ -395,7 +438,7 @@
     try {
       const r = await api.browseMediaServer(open.id, c.id);
       await enchainer(r.items ?? [], c.id);
-    } catch { error = $t('v2.ms.folderNoAnswer' as any); }
+    } catch (e) { error = avecMotif($t('v2.ms.folderNoAnswer' as any), e); }
     action = null;
   }
 
@@ -575,7 +618,7 @@
       {/if}
 
     {:else}
-      {#if q.trim() && repliLocal}
+      {#if q.trim() && repliLocal && !echecRecherche}
         <!-- Dire la verite sur la portee : sans cela, une absence de resultat
              se lirait comme « ce titre n'est pas sur le serveur ». -->
         <div class="warn">
@@ -589,9 +632,22 @@
         </div>
       {/if}
 
+      {#if incompletude}
+        <div class="warn">
+          {$t('v2.ms.listIncomplete' as any).replace('{n}', String(incompletude.n)).replace('{total}', String(incompletude.total))}
+          {#if incompletude.raison}<span class="raison">— {incompletude.raison}</span>{/if}
+        </div>
+      {/if}
+
       {#if busy && !vue.containers.length && !vue.items.length}
-        <div class="state">{$t('v2.tool.loading' as any)}</div>
+        <div class="state" role="status">{$t('v2.tool.loading' as any)}</div>
       {:else}
+        {#if busy}
+          <!-- #4895 : sur un dossier DÉJÀ rempli, le clic sur un sous-dossier ne
+               montrait rien — l'écran restait figé sur l'ancien contenu, et un
+               Browse lent se lisait « navigation bloquée ». -->
+          <div class="recharge" role="status"><span class="spin" aria-hidden="true"></span>{$t('v2.tool.loading' as any)}</div>
+        {/if}
         {#if vue.containers.length}
           {#if enGrille}
             <div class="grid">
@@ -758,6 +814,9 @@
   .scroll{flex:1; overflow-y:auto; padding:4px 30px 40px}
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .state{padding:26px 2px; color:var(--v2-txt3); font-size:14px}
+  .recharge{display:flex; align-items:center; gap:8px; margin:0 0 12px; color:var(--v2-txt3); font-size:13px}
+  .recharge .spin{position:static}
+  .raison{color:var(--v2-txt3)}
   .notice{display:flex; flex-direction:column; gap:8px; padding:34px 2px; max-width:560px}
   .notice p{color:var(--v2-txt2); font-size:15px}
   .notice .sub{color:var(--v2-txt3); font-size:13px; line-height:1.6}

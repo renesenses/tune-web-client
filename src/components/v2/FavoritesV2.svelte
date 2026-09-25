@@ -38,7 +38,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import { cibleDeService } from '../../lib/cibleEtiquette';
+  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
@@ -789,7 +789,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                 <PochetteActions
                   favori={a.id != null ? { albumId: a.id } : null}
                   favoriExterne={coeurService(a, 'album')}
-                  etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : cibleDeService('album', a)}
+                  etiquettes={cibleEtiquetteAlbum(a)}
                   onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                   onLire={() => playAlbum(a)}
                   onOuvrir={() => { ouvrirCalqueAlbum(a); opened = a; }}

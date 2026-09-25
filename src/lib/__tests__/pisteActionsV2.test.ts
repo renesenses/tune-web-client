@@ -79,7 +79,7 @@ describe('Actions sur une piste, au survol (Bertrand, 05/09/2026)', () => {
   });
 
   it("« lire ensuite » insère APRÈS la piste en cours, pas à la fin", () => {
-    expect(src).toContain('get(queuePosition) + 1');
+    expect(src).toContain('enfiler(rangLireEnsuite(), ');
     // Et « ajouter à la file » n'a pas de rang : c'est ce qui les distingue.
     expect(src).toContain("await enfiler(undefined, 'v2.pa.queued')");
   });

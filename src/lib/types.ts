@@ -541,6 +541,13 @@ export interface Zone {
     unavailable: boolean;
     reason: string | null;
     detail: string | null;
+    /**
+     * Fils 1914/1913 — comment la déclaration agit quand ce n'est pas sur une
+     * carte locale. `plafond_reseau` : renderer réseau dont Tune décode le
+     * flux, la déclaration y PLAFONNE les canaux servis. Absent d'un serveur
+     * antérieur, et partout ailleurs.
+     */
+    portee?: string | null;
   };
   /** Ce qu'il faut PROPOSER : les neuf dispositions quand l'appareil se tait. */
   channel_layouts_offered?: { id: string; canaux: number }[];
@@ -1173,6 +1180,11 @@ export interface MediaServerBrowseResult {
   items: MediaServerItem[];
   total_matches: number;
   number_returned: number;
+  /** `false` : la pagination s'est arrêtée en route (#4914, #4943), la liste
+   *  servie est partielle et `incomplet` dit pourquoi. ABSENT sur un serveur
+   *  antérieur : ne rien en conclure. */
+  complet?: boolean;
+  incomplet?: string | null;
 }
 
 /** Ce que rend `/network/media-servers/{id}/search`.

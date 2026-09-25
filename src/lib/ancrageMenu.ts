@@ -57,6 +57,25 @@ const MARGE_BORD = 8;
  * ligne d'une liste, il naîtrait hors de l'écran. Il est par ailleurs borné
  * aux deux bords latéraux : un bouton collé au bord droit ne doit pas pousser
  * le panneau hors du cadre.
+ *
+ * ## Et borné en HAUTEUR (`renesenses/tune-web-client#1575`)
+ *
+ * Retourné vers le haut, le panneau était ancré par `bottom:` sans rien qui
+ * le retienne par le haut : avec une quinzaine de collections, le menu
+ * « Ajouter à une collection » de la fiche album passait au-dessus de la
+ * fenêtre, et les premières entrées étaient hors d'atteinte (Lulu, fil 1928,
+ * fenêtre 1366 × 768).
+ *
+ * Désormais :
+ *  - il descend si la place SOUS le bouton suffit ;
+ *  - sinon il monte, mais seulement s'il y a PLUS de place au-dessus — un
+ *    panneau trop haut des deux côtés prend le plus grand ;
+ *  - et il porte toujours un `max-height` égal à la place du côté choisi,
+ *    marge au bord comprise. La hauteur est une ESTIMATION (34 px l'entrée) :
+ *    le plafond, lui, est exact, et tient même si le rendu diffère.
+ *
+ * Le défilement interne (`overflow-y: auto`) reste à la feuille de style du
+ * panneau : c'est elle qui sait si ses libellés débordent en largeur.
  */
 export function styleMenuAncre(
   ancre: AncreMenu,
@@ -65,7 +84,9 @@ export function styleMenuAncre(
   largeur: number = LARGEUR_MENU,
 ): string {
   const hauteurEstimee = nbEntrees * HAUTEUR_ENTREE + MARGE_BORD;
-  const versLeHaut = ancre.bottom + hauteurEstimee + MARGE_BORD > fenetre.innerHeight;
+  const placeDessous = fenetre.innerHeight - ancre.bottom - JEU - MARGE_BORD;
+  const placeDessus = ancre.top - JEU - MARGE_BORD;
+  const versLeHaut = hauteurEstimee > placeDessous && placeDessus > placeDessous;
   const gauche = Math.max(
     MARGE_BORD,
     Math.min(ancre.right - largeur, fenetre.innerWidth - largeur - MARGE_BORD),
@@ -73,5 +94,6 @@ export function styleMenuAncre(
   const vertical = versLeHaut
     ? `bottom:${fenetre.innerHeight - ancre.top + JEU}px;`
     : `top:${ancre.bottom + JEU}px;`;
-  return `left:${gauche}px;` + vertical;
+  const plafond = Math.max(0, Math.floor(versLeHaut ? placeDessus : placeDessous));
+  return `left:${gauche}px;` + vertical + `max-height:${plafond}px;`;
 }

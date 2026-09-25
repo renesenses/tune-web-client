@@ -1,3 +1,5 @@
+import { estSourceDeBibliotheque } from './provenanceBibliotheque';
+
 /**
  * Où mène le nom d'artiste de la LECTURE EN COURS.
  *
@@ -76,10 +78,20 @@ export interface PisteEcoutee {
   artist_name?: string | null;
 }
 
-/** La source est-elle un SERVICE — ni la bibliothèque, ni une radio, ni inconnue ? */
+/**
+ * La source est-elle un SERVICE — ni la bibliothèque, ni une radio, ni inconnue ?
+ *
+ * 🔴 #992 — la BIBLIOTHÈQUE, ce n'est pas que `local`. Une piste d'un serveur
+ * UPnP rangée en bibliothèque (#4201) porte `source: 'upnp'` (ou
+ * `upnp:<udn>`) et un identifiant de BIBLIOTHÈQUE. Tenue pour un service,
+ * elle partait vers `/streaming/upnp/…` — « unknown service: upnp », mesuré
+ * sur la .18 le 24/09/2026 — ou vers une recherche fédérée restreinte à un
+ * « service » upnp qui n'existe pas. `estSourceDeBibliotheque` est le
+ * prédicat partagé du client ; on le reprend au lieu d'en recopier la liste.
+ */
 export function estUnService(source: string | null | undefined): boolean {
   const s = (source ?? '').toLowerCase();
-  return s !== '' && s !== LOCAL && s !== RADIO;
+  return s !== '' && !estSourceDeBibliotheque(s) && s !== RADIO;
 }
 
 /**
@@ -112,7 +124,7 @@ export function destinationArtiste(piste: PisteEcoutee | null | undefined): Dest
   if (typeof id === 'number' && Number.isFinite(id) && !estUnService(source)) {
     return { type: 'artiste', artistId: id };
   }
-  if (source === LOCAL && nom) return { type: 'artiste-par-nom', nom };
+  if (source && estSourceDeBibliotheque(source) && nom) return { type: 'artiste-par-nom', nom };
 
   // Sans nom, il n'y a rien à chercher : aucun geste plutôt qu'un geste mort.
   if (!nom) return null;

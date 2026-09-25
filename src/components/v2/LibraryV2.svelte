@@ -63,7 +63,8 @@
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { melangee, rangAleatoire, graineAleatoire } from '../../lib/shuffle';
-  import { optionsAleatoire } from '../../lib/porteeAleatoire';
+  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection } from '../../lib/porteeAleatoire';
+  import { lireFileAleatoire, FILE_ALEATOIRE_DEFAUT } from '../../lib/fileAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -72,6 +73,7 @@
   import { anneeDOuverture, ecrireAnneeRepere, lireAnneeRepere } from '../../lib/anneeDOuverture';
   import { intertitresAnnee } from '../../lib/intertitresAnnee';
   import { sauterVersAncre } from '../../lib/sautAlphabetique';
+  import { cale, elargir, fenetreNeuve, plafondDe, type Fenetre } from '../../lib/fenetreDeRendu';
   import { anneeAlbum, couvertureAnnees, albumsQuiChangent, comparerAnnees, comparerAlbumsParAnnee, type ModeAnnee } from '../../lib/anneeAlbum';
   import {
     comptesQualite, comptesFrequence, comptesFormat, comptesProfondeur,
@@ -102,6 +104,7 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix, lireNombre } from '../../lib/preferencesEcran';
   import QualiteAlbum from './QualiteAlbum.svelte';
@@ -949,7 +952,15 @@
    * aussi lui qui abrite les ancres.
    */
   function jump(L: string) {
-    if (!nu) { sauterVersAncre(gridEl, `[data-letter="${L}"]`); return; }
+    // #1562 — la cible peut être au-delà de la fenêtre de rendu : on la monte
+    // d'abord, on saute ensuite.
+    if (!nu) {
+      const i = affiches.findIndex((a) => firstLetter(a) === L);
+      if (i < 0) return;
+      if (i < plafond) { sauterVersAncre(gridEl, `[data-letter="${L}"]`); return; }
+      void monterJusqua(i).then(() => sauterVersAncre(gridEl, `[data-letter="${L}"]`));
+      return;
+    }
     // #4800 — en pages, la lettre est un OFFSET dans la liste du serveur :
     // trouvé par dichotomie (`offsetDeLettre`), sa page est demandée, puis
     // on vise la CASE — `data-i` — qui existe, vide ou pleine, dès que le
@@ -960,6 +971,7 @@
       // Le tri a changé pendant la recherche : l'offset ne désigne plus rien.
       if (offset == null || clef !== c) return;
       await demanderPage(c, Math.floor(offset / TAILLE_PAGE));
+      await monterJusqua(offset);
       await tick();
       sauterVersAncre(gridEl, `[data-i="${offset}"]`);
     });
@@ -1289,6 +1301,35 @@
     return { destroy() { observateur?.unobserve(el); } };
   }
   $effect(() => () => { observateur?.disconnect(); observateur = null; racineObservee = null; });
+
+  /**
+   * 🔴 #1562 — LA FENÊTRE DE RENDU (jfpaquet, fil 1919 : la bascule entre les
+   * trois vues « hesitating and slow » à 6 704 albums).
+   *
+   * Les trois vues sont des branches `{#if}` sœurs : une bascule démontait et
+   * remontait TOUTE la collection — 6 704 vignettes pleines, 228 000 nœuds,
+   * mesurés sous jsdom. Chaque vue ne monte plus que sa fenêtre, suivie d'une
+   * cale qui tient la place du reste et élargit la fenêtre à l'approche du
+   * cadre. Tout le détail est dans `lib/fenetreDeRendu`.
+   *
+   * La clef change avec la vue, le mode paginé et l'onglet : une bascule
+   * repart d'une fenêtre neuve DANS LE MÊME RENDU (`plafondDe`), sans effet de
+   * remise à zéro qui passerait après — la bascule aurait d'abord remonté
+   * l'ancienne largeur, qui peut être toute la collection.
+   */
+  let fenetre = $state<Fenetre>(fenetreNeuve());
+  const clefFenetre = $derived(`${display}|${nu ? 'pages' : 'entiere'}|${tab}`);
+  const plafond: number = $derived(plafondDe(fenetre, clefFenetre, nu ? cases.length : affiches.length));
+  const casesVisibles: (Album | null)[] = $derived.by(() => cases.slice(0, plafond));
+  const affichesVisibles: Album[] = $derived.by(() => affiches.slice(0, plafond));
+  /** La cale a vu le cadre : monter au moins `besoin` éléments. */
+  const etendreFenetre = (besoin: number) => { fenetre = elargir(fenetre, clefFenetre, besoin); };
+  /** Le rail vise l'élément `i` : il doit être monté AVANT le saut. */
+  async function monterJusqua(i: number) {
+    if (i < plafond) return;
+    fenetre = elargir(fenetre, clefFenetre, i + 1);
+    await tick();
+  }
 
   /** Le compte affiché sur « Tout » : en pages, le total du serveur. */
   const matchCount: number = $derived.by(() => (nu ? ($albumsPagines.total ?? 0) : affiches.length));
@@ -1830,12 +1871,48 @@
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
   // aléatoire DANS ce qu'il regarde, pas dans les 20 000 titres.
   let shuffling = $state(false);
+  /**
+   * 🔴 Fil 1917 (Sevy Tabroc, v0.9.163) — les albums que l'aléatoire doit
+   * couvrir quand la sélection n'a pas de nom côté serveur : filtres d'album
+   * posés, ou groupe ouvert d'un onglet de facette. `null` : la portée du
+   * serveur suffit. Seulement sur les onglets qui montrent des ALBUMS : sur
+   * Titres et Artistes, ces filtres ne s'affichent pas et n'agissent pas.
+   * Voir `albumsDeLaSelection`.
+   */
+  const albumsAleatoire = $derived(
+    depot || !(tab === 'albums' || tab === 'genres' || tab === 'years' || tab === 'labels')
+      ? null
+      : albumsDeLaSelection({
+          filtresAlbum: filtreActif || anneeEffective != null,
+          groupe: groupeOuvert?.albums ?? null,
+          affiches,
+        }),
+  );
+  /** Le plafond de la file aléatoire, lu au serveur (#2901) ; son défaut s'il
+   *  ne répond pas. */
+  async function plafondAleatoire(): Promise<number> {
+    try { return lireFileAleatoire(await api.getConfig() as Record<string, unknown>); }
+    catch { return FILE_ALEATOIRE_DEFAUT; }
+  }
   async function shuffleAll() {
     const zid = zoneRequise();
     if (zid == null) return;
+    // La sélection se lit sur la liste ENTIÈRE : tant qu'elle arrive, tirer
+    // maintenant tirerait dans une grille partielle.
+    if (albumsAleatoire != null && enCharge) return;
     shuffling = true;
     try {
       if (depot) await aleatoireDistant(zid);
+      else if (albumsAleatoire != null) {
+        // Figée AVANT les attentes : un filtre touché pendant le chargement
+        // des pistes ne change pas ce qu'on a demandé.
+        const albumsVoulus = albumsAleatoire;
+        const provenance = fProvenance;
+        const [liste, plafond] = await Promise.all([api.getAllTracks(), plafondAleatoire()]);
+        const ids = pistesDeLaSelection(liste, albumsVoulus, plafond, (p) => dansSource(p, provenance));
+        if (ids.length) await playAndSync(zid, { track_ids: ids });
+        else notifications.error($tr('library.noTracks'));
+      }
       else if (fProvenance != null) {
         const liste = dossierPortee
           ? (await api.getFilteredTracks({ folder: dossierPortee, limit: 5000 })).items ?? []
@@ -1902,7 +1979,7 @@
       {#if depot}<span class="dist">{depot.hote}</span>{/if}
     </div>
     <div class="v2-actions">
-    <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null}
+    <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null || (albumsAleatoire != null && enCharge)}
       title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
         : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)
         : $tr('v2.lib.shuffleAll' as any)}>
@@ -2467,7 +2544,7 @@
                     <div class="cover">
                       <PochetteActions
                         favori={depot || a.id == null ? null : { albumId: a.id }}
-                        etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+                        etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
                         onEditer={depot ? null : () => (enEdition = a)}
                         onLire={() => lireAlbum(a)}
                         onOuvrir={() => ouvrirCalqueAlbum(a)}
@@ -2499,24 +2576,27 @@
              du mode paginé. Les trois dessins sont ceux des snippets. -->
         {#if display === 'list'}
           <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
-            {#each cases as c, i (c ? c.id : `s${i}`)}
+            {#each casesVisibles as c, i (c ? c.id : `s${i}`)}
               {#if c}{@render ligne(c, i)}{:else}<div class="lrow sq" data-i={i} use:observerCase={i} aria-hidden="true"><span class="lcv"></span><span class="lt">&nbsp;</span></div>{/if}
             {/each}
+            {@render caleDeFin(cases.length, false, 57)}
           </div>
         {:else if display === 'carousel'}
           <div class="carrou" use:defilementHorizontal bind:this={gridEl}
                use:centrageCarrousel={{ nombre: cases.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
                style="--ccw:{geoCarrou.cote}px; --cch:{geoCarrou.hauteurCarte}px; --ccg:{geoCarrou.gouttiere}px; --ccp:{geoCarrou.margeBord}px; --cce:{geoCarrou.echelle}"
                role="group" aria-label={$tr('v2.lib.viewCarousel' as any)}>
-            {#each cases as c, i (c ? c.id : `s${i}`)}
+            {#each casesVisibles as c, i (c ? c.id : `s${i}`)}
               {#if c}{@render carteCarrou(c, i)}{:else}<div class="ccard sq" class:centre={i === iCentre} data-i={i} use:observerCase={i} aria-hidden="true"><div class="cover"></div><div class="meta"><div class="ct sq">&nbsp;</div><div class="ca sq">&nbsp;</div></div></div>{/if}
             {/each}
+            {@render caleDeFin(cases.length, true, geoCarrou.cote + geoCarrou.gouttiere)}
           </div>
         {:else}
           <div class="grid" class:expert={showExpert} bind:this={gridEl}>
-            {#each cases as c, i (c ? c.id : `s${i}`)}
+            {#each casesVisibles as c, i (c ? c.id : `s${i}`)}
               {#if c}{@render carte(c, i)}{:else}{@render caseVide(i)}{/if}
             {/each}
+            {@render caleDeFin(cases.length, false, 35)}
           </div>
         {/if}
 
@@ -2525,7 +2605,7 @@
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
         {:else}
         <div class="rows" style="--lcols:{colonnesListe}" bind:this={gridEl}>
-          {#each affiches as a, i (a.id)}
+          {#each affichesVisibles as a, i (a.id)}
             {@const it = intertitres?.get(i)}
             {#if it}
               <h3 class="yinter" data-annee={it.annee ?? ''}>
@@ -2534,6 +2614,7 @@
             {/if}
             {@render ligne(a, i)}
           {/each}
+          {@render caleDeFin(affiches.length, false, 57)}
         </div>
         {/if}
 
@@ -2546,6 +2627,9 @@
           premiers » : le nombre d'albums affichés ne change pas quand on
           change de mode, et les filtres et le tri de l'écran continuent de
           décider. C'est le deuxième témoin du ticket.
+          #1562 — la fenêtre de rendu (`affichesVisibles`) n'y déroge pas :
+          elle ne retire rien, elle DIFFÈRE le montage de ce qui est loin du
+          cadre, et la cale tient la place — `nombre` reste le total.
 
           🔴 Il n'existe QUE dans cette branche. Monter une seconde liste en
           permanence sous la grille est le sujet de #1256, et on n'y ajoute
@@ -2568,9 +2652,10 @@
              use:centrageCarrousel={{ nombre: affiches.length, sur: marquerCentre, surGeometrie: poserGeometrie }}
              style="--ccw:{geoCarrou.cote}px; --cch:{geoCarrou.hauteurCarte}px; --ccg:{geoCarrou.gouttiere}px; --ccp:{geoCarrou.margeBord}px; --cce:{geoCarrou.echelle}"
              role="group" aria-label={$tr('v2.lib.viewCarousel' as any)}>
-          {#each affiches as a, i (a.id)}
+          {#each affichesVisibles as a, i (a.id)}
             {@render carteCarrou(a, i)}
           {/each}
+          {@render caleDeFin(affiches.length, true, geoCarrou.cote + geoCarrou.gouttiere)}
         </div>
         {/if}
 
@@ -2579,7 +2664,7 @@
           <div class="state">{$tr('library.noAlbumMatchesFilters' as any)}</div>
         {:else}
         <div class="grid" class:expert={showExpert} bind:this={gridEl}>
-          {#each affiches as a, i (a.id)}
+          {#each affichesVisibles as a, i (a.id)}
             {@const it = intertitres?.get(i)}
             {#if it}
               <h3 class="yinter" data-annee={it.annee ?? ''}>
@@ -2588,6 +2673,7 @@
             {/if}
             {@render carte(a, i)}
           {/each}
+          {@render caleDeFin(affiches.length, false, 35)}
         </div>
         {/if}
       {/if}
@@ -2612,7 +2698,7 @@
              (#1222) : c'est pourtant elle que voit tout le monde. -->
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}
-          etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+          etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}
@@ -2661,7 +2747,7 @@
       <div class="cover">
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}
-          etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+          etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}
@@ -2685,6 +2771,16 @@
        vignette qu'elle attend, pour que la hauteur de la liste — et donc le
        saut A–Z et l'ascenseur — soient ceux de la bibliothèque entière. Sa
        mise en vue demande sa page (`observerCase`). -->
+  <!-- #1562 — la cale de fin de vue : tout ce que la fenêtre n'a pas encore
+       monté, en UN élément de la bonne taille. Elle élargit la fenêtre quand
+       elle approche du cadre (`lib/fenetreDeRendu`). `repli` : la taille d'un
+       élément quand rien n'est mesurable. -->
+  {#snippet caleDeFin(total: number, horizontal: boolean, repli: number)}
+    {#if total > plafond}
+      <div class="cale" aria-hidden="true"
+           use:cale={{ restant: total - plafond, rendus: plafond, horizontal, repli, surVue: etendreFenetre }}></div>
+    {/if}
+  {/snippet}
   {#snippet caseVide(i: number)}
     <div class="card sq" data-i={i} use:observerCase={i} aria-hidden="true">
       <div class="cover"></div>
@@ -2960,7 +3056,32 @@
   .rows::-webkit-scrollbar{width:9px}.rows::-webkit-scrollbar-thumb{background:var(--v2-line2); border-radius:6px}
   .lrow{display:grid; grid-template-columns:var(--lcols, 44px minmax(0,2fr) minmax(0,1.4fr) 52px 46px 150px); align-items:center;
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
-    color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s}
+    color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s;
+    /*
+      🔴 Fil 1919, ticket support 165 — jfpaquet, 6 704 albums, 0.9.163 :
+      « using the little button to change between the 3 albums views does not
+      work well : hesitating and slow […] I fear that will be a problem with
+      40.000+ ».
+
+      Les trois vues sont trois branches `{#if}` SŒURS : basculer détruit
+      toutes les vignettes de l'une et construit toutes celles de l'autre.
+      `.card` (grille) et `.ccard` (carrousel) amortissent déjà ce prix avec
+      `content-visibility` — hors du cadre, une vignette ne coûte ni style,
+      ni disposition, ni peinture. La LISTE, elle, ne l'avait pas : c'est la
+      seule des trois à payer plein tarif, et donc la transition la plus
+      lente des six possibles. Elle rejoint ses deux sœurs ici.
+
+      ⚠️ Ce n'est PAS la guérison : les nœuds sont toujours créés et détruits
+      par milliers, et seule une vue unique — ou une fenêtre de rendu —
+      supprimerait ce coût. Voir la PR pour le chantier.
+
+      Le mot-clé `auto` fait retenir au navigateur la taille RÉELLE une fois
+      la ligne rendue, comme pour `.card` : sans lui, l'estimation fixe
+      fausserait la hauteur totale et le saut au « M » du rail A–Z
+      atterrirait à côté. 56 px = la pochette de 44 px et ses deux fois
+      6 px de marge intérieure.
+    */
+    content-visibility:auto; contain-intrinsic-size:auto 56px}
   .lrow:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}
   .lrow .lt{display:flex; align-items:center; gap:7px; min-width:0;
@@ -3120,5 +3241,7 @@
   .sq .ct, .sq .ca, .sq .cbot, .sq .cq{background:var(--v2-surface); border-radius:4px; width:70%; color:transparent}
   .sq .ca{width:50%}
   .lrow.sq{min-height:44px; cursor:default}
+  /* #1562 — la cale ne se rétrécit pas (flex) et occupe une rangée entière (grille). */
+  .cale{flex:none; grid-column:1 / -1; min-width:1px; min-height:1px; pointer-events:none}
   .lrow.sq .lcv{background:var(--v2-surface)}
 </style>

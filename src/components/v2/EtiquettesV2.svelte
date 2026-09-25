@@ -65,7 +65,7 @@
   import type { Album, Artist, Track, UserTag } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import { cibleDeService, cleLigneEtiquetee, corpsLectureAlbumEtiquete } from '../../lib/cibleEtiquette';
+  import { cibleEtiquetteAlbum, cleLigneEtiquetee, corpsLectureAlbumEtiquete } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
@@ -319,7 +319,7 @@
                 <div class="cv">
                   <PochetteActions
                     favori={a.id != null ? { albumId: a.id } : null}
-                    etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : cibleDeService('album', a)}
+                    etiquettes={cibleEtiquetteAlbum(a)}
                     onLire={() => lireAlbum(a)}
                     onOuvrir={() => { ouvrirCalqueAlbum(a); albumOuvert = a; }}
                     nom={a.title}

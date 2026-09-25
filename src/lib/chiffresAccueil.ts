@@ -479,15 +479,73 @@ export function choixAEnregistrer(
   return [...choix, ...inconnus];
 }
 
+/* ------------------------------------------------------------------ */
+/* LE PLAFOND — et comment on le DIT                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Combien de chiffres une ligne porte au plus.
+ *
+ * 🔴 Il vit ici, et nulle part ailleurs. Il était écrit en dur dans la
+ * signature de `basculer`, et le sélecteur n'avait aucun moyen de le
+ * connaître : la seule façon de savoir que la ligne était pleine était de
+ * cocher et de regarder si quelque chose avait changé. C'est très exactement
+ * ce que l'utilisateur faisait.
+ */
+export const MAXIMUM_CHIFFRES = 6;
+
+/**
+ * La ligne est-elle PLEINE ? C'est ce qui fait apparaître le message, et
+ * c'est le même nombre que celui qu'on lui passe.
+ */
+export function ligneComplete(ids: readonly string[], maximum = MAXIMUM_CHIFFRES): boolean {
+  return ids.length >= maximum;
+}
+
+/**
+ * Cocher ce chiffre-là serait-il REFUSÉ ?
+ *
+ * 🔴 C'est le prédicat que `basculer` applique, exposé pour que le sélecteur
+ * grise EXACTEMENT ce que `basculer` refuse — pas un chiffre de plus, pas un
+ * de moins. Le recalculer dans le composant (`ids.length >= 6`) marcherait
+ * aujourd'hui et dériverait au premier changement de règle : une case grisée
+ * que `basculer` accepterait, ou une case vive qui ne fait rien. Ce dernier
+ * cas est précisément le défaut qu'on corrige ici.
+ *
+ * Décocher n'est JAMAIS refusé, plafond ou pas : un chiffre déjà dans la
+ * ligne en sort toujours. C'est la porte de sortie, et c'est ce que le
+ * message dit de faire.
+ */
+export function ajoutRefuse(
+  ids: readonly string[],
+  id: string,
+  maximum = MAXIMUM_CHIFFRES,
+): boolean {
+  if (ids.includes(id)) return false;
+  return ligneComplete(ids, maximum);
+}
+
 /**
  * Basculer un chiffre dans le choix, en gardant l'ORDRE de sélection.
  *
  * L'ordre du catalogue n'est pas celui de la ligne : on affiche dans l'ordre
  * où l'utilisateur a coché, pour qu'il retrouve ce qu'il a composé.
+ *
+ * 🔴 #1519 — LE PLAFOND NE BOUGE PAS. Cette fonction refuse toujours le
+ * septième chiffre, et rend la liste inchangée. Ce qui change, c'est qu'on ne
+ * laisse plus l'utilisateur le découvrir en cochant : `ajoutRefuse` le dit
+ * AVANT, et le sélecteur grise la case en l'expliquant. Arbitrage de
+ * Bertrand, 24/09/2026 : dire le plafond, pas le lever — et surtout pas
+ * « remplacer le plus ancien », qui ferait disparaître un chiffre choisi sans
+ * qu'on l'ait demandé.
  */
-export function basculer(ids: readonly string[], id: string, maximum = 6): string[] {
+export function basculer(
+  ids: readonly string[],
+  id: string,
+  maximum = MAXIMUM_CHIFFRES,
+): string[] {
   if (!chiffreParId(id)) return [...ids];
   if (ids.includes(id)) return ids.filter((x) => x !== id);
-  if (ids.length >= maximum) return [...ids];
+  if (ajoutRefuse(ids, id, maximum)) return [...ids];
   return [...ids, id];
 }

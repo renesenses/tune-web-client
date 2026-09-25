@@ -15,7 +15,7 @@
  */
 import * as api from './api';
 import { estSourceDeBibliotheque } from './provenanceBibliotheque';
-import { cleServeur } from './ongletsStreaming';
+import { BANDCAMP_SVC, cleServeur } from './ongletsStreaming';
 import type { UserTag } from './types';
 
 /** Un objet de la bibliothèque : un identifiant entier. */
@@ -88,6 +88,37 @@ export function cibleDeService(itemType: string, o: any): CibleService | null {
     album: o.album_title ?? null,
     pochette: o.cover_path ?? o.cover_url ?? o.image_path ?? null,
   };
+}
+
+/**
+ * La cible d'étiquettes d'un ALBUM, quelle que soit la vignette qui le montre.
+ *
+ * Bertrand, 25/09/2026 : « Tags sur album de streaming : il manque un CTA sur
+ * les covers Qobuz ! » La fiche d'un album de service avait son bouton
+ * « Étiquettes » (#1238), ses VIGNETTES non : les bandes éditoriales et
+ * l'accueil (`PageWidgets`), la page artiste (`DiscographieCommune`) et
+ * l'écran Streaming ne passaient que l'identifiant de bibliothèque, ou une
+ * paire sans le repli Bandcamp — chacune avec sa propre ligne. La règle vit
+ * donc ICI, une fois, et la fiche (`AlbumDetailV2`) passe par elle aussi :
+ *
+ *  - un identifiant ENTIER strictement positif → l'album de la bibliothèque ;
+ *  - sinon la paire `source` + `source_id` (`cibleDeService`), la source
+ *    retombant sur `ongletActif` quand l'objet ne la porte pas (vignettes de
+ *    l'écran Streaming, exemplaire d'une discographie), et l'identifiant d'un
+ *    album BANDCAMP sur l'adresse de sa page (`url`) — celle que sa fiche
+ *    emploie déjà comme `source_id` ;
+ *  - rien d'exploitable → `null` : pas de bouton, plutôt qu'un geste muet.
+ */
+export function cibleEtiquetteAlbum(a: any, ongletActif: string | null = null): CibleEtiquette | null {
+  if (!a) return null;
+  if (Number.isInteger(a.id) && a.id > 0) return { itemType: 'album', itemId: a.id };
+  const source = a.source ?? ongletActif ?? null;
+  const bandcamp = source != null && cleServeur(String(source).trim()) === BANDCAMP_SVC;
+  return cibleDeService('album', {
+    ...a,
+    source,
+    source_id: a.source_id ?? (bandcamp ? (a.url ?? null) : null),
+  });
 }
 
 /** Les étiquettes déjà posées sur la cible. */

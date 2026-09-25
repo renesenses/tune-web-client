@@ -37,4 +37,44 @@ describe('les appareils proposés à la création d’une zone', () => {
     })], [], 'nav');
     expect(c[1].deviceId).toBe('uuid:ancien');
   });
+
+  // Fil 1927 (FabienM, 0.9.164) : « le bouton associer n'est pas proposé pour
+  // ma zone Parents » — une Beosound Stage en zone DLNA, qui parle aussi Cast.
+  // Le serveur replie le Cast dans `capabilities.alternatives` de la ligne
+  // DLNA ; une zone sur la tête DLNA faisait disparaître le Cast avec elle.
+  const beosound = (o: any = {}) => dev({
+    id: 'uuid:beosound-dlna', name: 'Beosound Stage', type: 'dlna',
+    capabilities: { alternatives: [
+      { id: 'uuid:beosound-dlna-2', name: 'Beosound Stage', device_type: 'dlna' },
+      { id: 'cast:beosound', name: 'Beosound Stage', device_type: 'chromecast' },
+    ] },
+    ...o,
+  });
+  const parents = { id: 7, name: 'Parents', output_device_id: 'uuid:beosound-dlna' } as any;
+
+  it('fil 1927 — la zone DLNA tient l’appareil : son Cast reste proposé pour une seconde zone', () => {
+    const c = candidatsNouvelleZone([], [beosound()], [parents], 'nav');
+    expect(c.filter((x) => x.groupe === 'reseau').map((x) => [x.outputType, x.deviceId, x.nom])).toEqual([
+      ['chromecast', 'cast:beosound', 'Beosound Stage'],
+    ]);
+  });
+
+  it('fil 1927 — contre-épreuve : un Cast déjà tenu par une zone n’est pas reproposé', () => {
+    const cast = { id: 8, name: 'Parents Cast', output_device_id: 'cast:beosound' } as any;
+    const c = candidatsNouvelleZone([], [beosound()], [parents, cast], 'nav');
+    expect(c.filter((x) => x.groupe === 'reseau')).toEqual([]);
+  });
+
+  it('fil 1927 — appareil libre : la tête et chaque AUTRE protocole, jamais deux fois le même', () => {
+    const c = candidatsNouvelleZone([], [beosound()], [], 'nav');
+    expect(c.filter((x) => x.groupe === 'reseau').map((x) => [x.outputType, x.deviceId])).toEqual([
+      ['dlna', 'uuid:beosound-dlna'],
+      ['chromecast', 'cast:beosound'],
+    ]);
+  });
+
+  it('fil 1927 — une zone masquée garde son seul chemin de restauration', () => {
+    const c = candidatsNouvelleZone([], [beosound({ zone_hidden: true, hidden_zone_device_id: 'uuid:beosound-dlna' })], [], 'nav');
+    expect(c.filter((x) => x.groupe === 'reseau').map((x) => x.deviceId)).toEqual(['uuid:beosound-dlna']);
+  });
 });

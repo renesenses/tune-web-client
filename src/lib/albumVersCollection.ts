@@ -30,6 +30,8 @@ import * as api from './api';
 import { t } from './i18n';
 import { notifications } from './stores/notifications';
 import { ciblesPourAlbum, libelleCible, type CollectionCible, type EntreeCible } from './collectionsCibles';
+import type { CollectionRangee, RayonCollections } from './api';
+import type { EtatRayons } from './rayonsCollections';
 
 export type { CollectionCible, EntreeCible };
 
@@ -121,4 +123,76 @@ export function entreesAjoutCollection(
       });
     },
   }));
+}
+
+/**
+ * Une ligne du menu, rangée selon les RAYONS (tune-server-rust#4853) : un
+ * intitulé de rayon, ou une collection, chacun à sa profondeur.
+ */
+export type LigneMenuCollection =
+  | { sorte: 'rayon'; cle: string; nom: string; profondeur: number }
+  | { sorte: 'collection'; cle: string; entree: EntreeMenuCollection; profondeur: number };
+
+/**
+ * Les entrées du menu, présentées dans l'arbre des rayons — Lulu, fil 1928 :
+ * avec des collections rangées dans des rayons, une liste plate de quinze
+ * noms ne dit plus où chacune vit.
+ *
+ * L'arbre est celui de l'écran Collections et de la barre latérale
+ * (`lib/rayonsCollections`, `rafraichirRayons`) : une seule source.
+ *
+ * Garanties :
+ *  - TOUTES les entrées sont rendues, une fois chacune : une collection
+ *    manuelle que l'arbre ne connaît pas (arbre plus vieux que la liste,
+ *    serveur antérieur à #4853 → `plat`) est posée à la racine, jamais
+ *    perdue ;
+ *  - l'arbre ne sert qu'à ORDONNER : seules les collections de sorte
+ *    `collection` y sont cherchées, par leur id MANUEL — une intelligente
+ *    porte un id de l'autre espace (l'id 1 est « favorites » ET
+ *    « Audiophile ») et n'accepte pas d'ajout manuel ;
+ *  - un rayon qui ne mène à aucune entrée (vide, ou seulement des
+ *    intelligentes) n'a pas d'intitulé : il ne proposerait rien ;
+ *  - l'ordre est celui d'`ArbreRayons` : rayons (sous-rayons d'abord, puis
+ *    collections), puis les collections hors rayon, sous « Hors rayon »
+ *    quand au moins un rayon est montré.
+ */
+export function lignesMenuEnRayons(
+  entrees: readonly EntreeMenuCollection[],
+  etat: EtatRayons | null | undefined,
+  hors: string,
+): LigneMenuCollection[] {
+  const aPlat = (liste: readonly EntreeMenuCollection[]): LigneMenuCollection[] =>
+    liste.map((e) => ({ sorte: 'collection', cle: `c:${e.id}`, entree: e, profondeur: 0 }));
+  if (!etat || etat.mode !== 'arbre') return aPlat(entrees);
+
+  const parId = new Map<number, EntreeMenuCollection>();
+  for (const e of entrees) parId.set(e.id, e);
+  const posees = new Set<number>();
+  const prendre = (cs: readonly CollectionRangee[] | undefined, profondeur: number): LigneMenuCollection[] => {
+    const sortie: LigneMenuCollection[] = [];
+    for (const c of cs ?? []) {
+      if (c?.kind !== 'collection') continue;
+      const e = parId.get(Number(c.id));
+      if (!e || posees.has(e.id)) continue;
+      posees.add(e.id);
+      sortie.push({ sorte: 'collection', cle: `c:${e.id}`, entree: e, profondeur });
+    }
+    return sortie;
+  };
+  const visiter = (f: RayonCollections, profondeur: number): LigneMenuCollection[] => {
+    const dedans: LigneMenuCollection[] = [];
+    for (const s of f.folders ?? []) dedans.push(...visiter(s, profondeur + 1));
+    dedans.push(...prendre(f.collections, profondeur + 1));
+    if (!dedans.length) return [];
+    return [{ sorte: 'rayon', cle: `r:${f.id}`, nom: (f.name ?? '').trim(), profondeur }, ...dedans];
+  };
+
+  const rayons: LigneMenuCollection[] = [];
+  for (const f of etat.arbre.folders ?? []) rayons.push(...visiter(f, 0));
+  const racine = prendre(etat.arbre.collections, 0);
+  const oubliees = aPlat(entrees.filter((e) => !posees.has(e.id)));
+  const horsRayon = [...racine, ...oubliees];
+  if (!rayons.length) return horsRayon;
+  if (!horsRayon.length) return rayons;
+  return [...rayons, { sorte: 'rayon', cle: 'r:hors', nom: hors, profondeur: 0 }, ...horsRayon.map((l) => ({ ...l, profondeur: 1 }))];
 }

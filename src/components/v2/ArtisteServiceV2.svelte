@@ -83,6 +83,7 @@
   import EnTeteArtiste from './EnTeteArtiste.svelte';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { messageEchecFiche, motifEchecFiche, type MotifEchecFiche } from '../../lib/echecFicheArtiste';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
@@ -119,6 +120,13 @@
    *  service n'en rend aucun ». Sans ce témoin, les deux états sont le même
    *  `titres.length === 0`. */
   let titresEnEchec = $state(false);
+  /**
+   * #992 — la FICHE de l'artiste (`/artists/{id}`) n'a pas pu être chargée,
+   * et pourquoi. Le bandeau global « Server error: » est éteint sur ces routes
+   * (`api.getStreamingArtist`) : c'est la page qui le dit, en clair, et une
+   * seule fois.
+   */
+  let ficheEnEchec = $state<MotifEchecFiche | null>(null);
   let albums = $state<Album[]>([]);
   let chargement = $state(true);
   /**
@@ -326,6 +334,7 @@
     const mien = ++jeton;
     chargement = true;
     artiste = null;
+    ficheEnEchec = null;
     titres = [];
     titresEnEchec = false;
     albums = [];
@@ -351,6 +360,7 @@
     ]);
     if (mien !== jeton) return;
     if (a.status === 'fulfilled') artiste = a.value;
+    else ficheEnEchec = motifEchecFiche(a.reason);
     // 🔴 ESTAMPILLER LA SOURCE, UNE FOIS, ICI. La charge de `top-tracks` ne
     // porte pas de champ `source` — le service est dans l'URL. Sans lui
     // `corpsDeLecture` ne sait désigner aucune de ces pistes : `planDeLecture`
@@ -406,6 +416,7 @@
     const mien = ++jeton;
     chargement = true;
     artiste = null;
+    ficheEnEchec = null;
     titres = [];
     titresEnEchec = false;
     albums = [];
@@ -812,11 +823,29 @@
     {/snippet}
   </EnTeteArtiste>
 
+  {#if !chargement && ficheEnEchec}
+    <!-- #992 — jamais le « 502 » ni le texte brut du service : ce qui s'est
+         passé, dans la langue de l'interface, et de quoi réessayer quand
+         réessayer a un sens. -->
+    <p class="echec" role="status" data-echec-fiche={ficheEnEchec}>
+      {messageEchecFiche(ficheEnEchec, cible?.service, $tr)}
+      {#if ficheEnEchec === 'indisponible'}
+        <button class="v2-btn ghost" onclick={() => cible && charger(cible.service as Source, cible.id)}>
+          {$tr('zone.retry' as any)}
+        </button>
+      {/if}
+    </p>
+  {/if}
+
   {#if chargement}
     <div class="etat">{$tr('v2.common.loading' as any)}</div>
   {:else if !titres.length && !albums.length && !locaux.length && !autresServices.length && !complementsEnCharge}
-    <!-- #910 — « rien trouvé » et « rien chargé » ne se disent pas pareil. -->
-    <div class="etat">{$tr(titresEnEchec ? 'v2.fas.topTracksFailed' as any : 'v2.fas.empty' as any)}</div>
+    <!-- #910 — « rien trouvé » et « rien chargé » ne se disent pas pareil.
+         #992 — et quand la fiche elle-même a échoué, c'est déjà dit au-dessus :
+         pas une seconde phrase pour la même panne. -->
+    {#if !ficheEnEchec}
+      <div class="etat">{$tr(titresEnEchec ? 'v2.fas.topTracksFailed' as any : 'v2.fas.empty' as any)}</div>
+    {/if}
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
@@ -852,7 +881,13 @@
       </section>
     {/if}
 
-    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length}
+    <!-- L'enveloppe doit citer TOUTES les sections que `DiscographieCommune`
+         sait rendre, sinon une section chargée reste invisible faute d'en-tête.
+         `collaborations` et `reprises` (#4767) y manquaient : un artiste sans
+         disque à lui — musicien de séance, compositeur, ingénieur — n'a que
+         celles-là, et c'est précisément le profil que la passe des crédits
+         fait apparaître. -->
+    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length || collaborations.length || reprises.length}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
       <!-- Le filtre « Source » s'applique DANS la grille commune (#4330, #4201) :
            le poser sur la seule bibliothèque cachait tous les services. -->

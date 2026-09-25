@@ -33,6 +33,7 @@
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import TriAlbums from '../partages/TriAlbums.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
 
   interface Props {
     /** Les albums de la bibliothèque — vide pour un artiste qu'elle ne connaît pas. */
@@ -320,7 +321,7 @@
     <div class="cv">
       <PochetteActions
         favori={loc?.id != null ? { albumId: loc.id } : null}
-        etiquettes={loc?.id != null ? { itemType: 'album', itemId: loc.id } : null}
+        etiquettes={cibleEtiquetteAlbum(loc ?? al, e.principal.source)}
         onLire={() => onLire(e.principal)}
         onOuvrir={() => onOuvrir(e.principal, origine)}
         nom={al.title}

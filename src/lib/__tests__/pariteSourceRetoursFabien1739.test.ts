@@ -35,7 +35,7 @@ import { describe, expect, it } from 'vitest';
 import { corpsDeLecture, estPisteLocale } from '../pisteFile';
 import { entreesDepuisServeur } from '../historiqueLecture';
 import { entreesMenuPiste } from '../menuPiste';
-import { cibleDeService, estCibleService } from '../cibleEtiquette';
+import { cibleDeService, cibleEtiquetteAlbum, estCibleService } from '../cibleEtiquette';
 
 const lire = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf-8');
 function sansCommentaires(src: string): string {
@@ -256,9 +256,11 @@ describe('points 3 et 5 — un album de SERVICE s’ouvre et se met en favori', 
     // L'intention demeure : pas d'icône morte. L'album local garde son entier,
     // l'album de service passe par `cibleDeService`, qui rend `null` — donc pas
     // d'icône — quand la paire manque.
-    expect(src()).toContain(
-      "etiquettes={local_ ? { itemType: 'album', itemId: a.id! } : cibleDeService('album', a)}",
-    );
+    // 25/09/2026 : la règle vit dans `cibleEtiquetteAlbum`, la même pour
+    // toutes les vignettes d'album et pour la fiche.
+    expect(src()).toContain('etiquettes={cibleEtiquetteAlbum(a)}');
+    expect(cibleEtiquetteAlbum({ id: 12, source: 'local' })).toEqual({ itemType: 'album', itemId: 12 });
+    expect(cibleEtiquetteAlbum({ id: null, source: 'qobuz', source_id: null })).toBeNull();
     const qobuz = cibleDeService('album', { source: 'qobuz', source_id: 'kxend2k5wdg06' });
     expect(qobuz && estCibleService(qobuz)).toBe(true);
     expect(cibleDeService('album', { source: 'qobuz', source_id: null })).toBeNull();

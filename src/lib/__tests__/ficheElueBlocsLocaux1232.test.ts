@@ -106,9 +106,14 @@ function laFiche(hote: HTMLElement): HTMLElement {
   if (!f) throw new Error('la fiche artiste n’est pas montée');
   return f as HTMLElement;
 }
+/**
+ * Un geste de la FICHE, pas d'une vignette de sa discographie : depuis le
+ * 25/09/2026 (« il manque un CTA sur les covers Qobuz ! »), chaque pochette
+ * d'album de service porte son propre coin « Étiquettes » (`.carte`).
+ */
 function boutonPar(hote: HTMLElement, titre: string): HTMLButtonElement | null {
   return [...laFiche(hote).querySelectorAll('button')]
-    .find((b) => (b.getAttribute('title') ?? '') === titre) as HTMLButtonElement | undefined ?? null;
+    .find((b) => !b.closest('.carte') && (b.getAttribute('title') ?? '') === titre) as HTMLButtonElement | undefined ?? null;
 }
 
 async function ouvrir(cible: { service: string | null; id: string; nom: string }) {

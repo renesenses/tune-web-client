@@ -186,3 +186,27 @@ export function ecrireReplis(ids: Set<number>): void {
     /* stockage indisponible : le repli vaut pour la session */
   }
 }
+
+/**
+ * L'arbre ENTIER de la barre latérale replié ou non (#1580), mémorisé par
+ * navigateur. Distinct des replis rayon par rayon : replier chaque rayon laisse
+ * tous les rayons racine affichés, un par ligne — avec des dizaines de rayons,
+ * la barre ne se lit plus. Déplié par défaut : c'est ce qui a été livré.
+ */
+const CLE_ARBRE_BARRE = 'tune_v2_rayons_barre_replie';
+
+export function lireArbreBarreReplie(): boolean {
+  try {
+    return localStorage.getItem(CLE_ARBRE_BARRE) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function ecrireArbreBarreReplie(replie: boolean): void {
+  try {
+    localStorage.setItem(CLE_ARBRE_BARRE, replie ? '1' : '0');
+  } catch {
+    /* stockage indisponible : le repli vaut pour la session */
+  }
+}
