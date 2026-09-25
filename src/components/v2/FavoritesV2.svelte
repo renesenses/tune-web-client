@@ -26,8 +26,13 @@
     favoriteStreamingTrackKeys, clePisteJumelee, streamingFavKey,
     favoriteFacetKeys, facetFavKey,
   } from '../../lib/stores/profile';
-  import { favoriExterneService, fusionnerPlaylistsFavorites } from '../../lib/streamingFavorites';
-  import { chargerFavorisFusionnes } from '../../lib/favorisFusionnes';
+  import { favoriExterneService } from '../../lib/streamingFavorites';
+  import {
+    chargerFavorisFusionnes,
+    collectionsFavorites,
+    playlistsFavorites,
+    smartPlaylistsFavorites,
+  } from '../../lib/favorisFusionnes';
   import {
     trierEtFiltrer, sourcesPresentes, SOURCE_BIBLIOTHEQUE, type TriFavoris,
   } from '../../lib/favorisTriFiltre';
@@ -164,8 +169,6 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     try {
       // Bibliothèque ET services, par le chargeur partagé (#1509).
       const fusion = await chargerFavorisFusionnes(pid);
-      const f = fusion.locaux;
-      const s = fusion.services;
       // Au mieux, comme les services : un serveur plus ancien ne sert pas la
       // route, et cela ne doit pas vider le reste de l'ecran.
       facettes = await api.getFacetFavorites(pid).catch(() => [] as api.FacetFavorite[]);
@@ -187,41 +190,16 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
        * l'ANCIENNE interface l'appelle depuis toujours
        * (`FavoritesView.svelte:429`). Elle n'avait simplement aucun appelant
        * dans `components/v2/` — « écrit, pas branché », une fois de plus.
-       * L'appeler ici fait hériter cet écran de ses gardes.
+       * L'appeler fait hériter cet écran de ses gardes.
+       *
+       * Depuis les widgets de l'Accueil (25/09/2026), l'appel vit dans
+       * `favorisFusionnes` (`playlistsFavorites`), avec les playlists
+       * intelligentes (#4798) et les deux familles de collections : l'écran
+       * et les widgets lisent chaque seau par le MÊME chargeur.
        */
-      playlists = fusionnerPlaylistsFavorites(
-        (f.playlists ?? []) as any,
-        s.filter((x) => x.item_type === 'playlist') as any,
-      ) as any;
-      // Les playlists INTELLIGENTES en favori (#4798) rejoignent le même
-      // onglet, marquées `smart` : leurs identifiants recouvrent ceux des
-      // playlists, on ne les rapproche donc JAMAIS par le numéro seul. Une
-      // seule requête pour les noms, au mieux — un serveur qui ne les sert
-      // pas ne doit pas vider l'onglet.
-      const idsSmartPl = new Set(f.smartPlaylistIds ?? []);
-      if (idsSmartPl.size) {
-        const sps = await api.getSmartPlaylists().catch(() => [] as any[]);
-        playlists = [
-          ...playlists,
-          ...(sps ?? []).filter((sp: any) => idsSmartPl.has(sp.id)).map((sp: any) => ({ ...sp, smart: true })),
-        ];
-      }
-      // Les deux familles de collections au mieux : une seule qui manque ne
-      // doit pas vider l'onglet de l'autre.
-      const ids = new Set(f.collectionIds ?? []);
-      const idsSmart = new Set(f.smartCollectionIds ?? []);
-      if (ids.size || idsSmart.size) {
-        const [cs, ss2] = await Promise.all([
-          ids.size ? api.getCollections().catch(() => [] as any[]) : Promise.resolve([] as any[]),
-          idsSmart.size ? api.listSmartCollections().catch(() => [] as any[]) : Promise.resolve([] as any[]),
-        ]);
-        collections = [
-          ...(cs ?? []).filter((c: any) => ids.has(c.id)).map((c: any) => ({ ...c, smart: false })),
-          ...(ss2 ?? []).filter((c: any) => idsSmart.has(c.id)).map((c: any) => ({ ...c, smart: true })),
-        ];
-      } else {
-        collections = [];
-      }
+      playlists = [...playlistsFavorites(fusion), ...(await smartPlaylistsFavorites(fusion))] as any;
+      const cols = await collectionsFavorites(fusion);
+      collections = [...cols.collections, ...cols.smartCollections];
       error = null;
       // Les jumelages APRÈS coup, sans bloquer l'affichage (#1081).
       void resoudreJumelages(tracks);

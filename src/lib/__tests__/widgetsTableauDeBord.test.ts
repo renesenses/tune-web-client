@@ -60,16 +60,41 @@ describe('widgets extraits du tableau de bord', () => {
     expect(els[0].jouer).toBeUndefined();
   });
 
-  it('🔴 ne demande QUE ce qu’il affiche, et sur sept jours', async () => {
-    // La route coûte ~300 ms PAR ENTRÉE et ne met rien en cache : mesuré le
-    // 20/09/2026 sur le .18 — 50 entrées = 15,8 s, pour un budget de 8 s.
-    // Demander 50 lignes pour en montrer 12 a fait échouer les trois widgets
-    // en plein écran d'accueil. Et sur 30 jours, même 5 entrées dépassent.
+  it('🔴 cinquante par classement, sur sept jours — une seule requête', async () => {
+    // Le 20/09/2026, la route coûtait ~300 ms PAR ENTRÉE (50 = 15,8 s pour un
+    // budget de 8 s) et la garde plafonnait à 12. Remesuré le 25/09/2026 sur
+    // le .18 en v0.9.165 : `top_n=50` répond en 0,2 s sur 7 et 30 jours.
+    // Bertrand demande alors 50, comme `LIMITE` (25/09/2026).
     const dash = vi.spyOn(api, 'getDashboard').mockResolvedValue(reponse());
     await widgetParId('tops')!.charger(ctx);
     expect(dash).toHaveBeenCalledTimes(1);
     expect(dash.mock.calls[0][0]).toBe('7d');
-    expect(dash.mock.calls[0][1]?.topN).toBeLessThanOrEqual(12);
+    expect(dash.mock.calls[0][1]?.topN).toBe(50);
+  });
+
+  it('🔴 le gros widget montre CINQUANTE rangs par colonne, plus cinq', async () => {
+    const n = 60;
+    const artistes = Array.from({ length: n }, (_, i) => ({ artist_name: `A${i}`, plays: n - i, listening_ms: 1, cover_path: null }));
+    const albums = Array.from({ length: n }, (_, i) => ({ album_title: `B${i}`, artist_name: 'x', album_id: i + 1, plays: 1, listening_ms: 1, cover_path: null }));
+    const titres = Array.from({ length: n }, (_, i) => ({ title: `T${i}`, artist_name: 'x', track_id: i + 1, plays: 1, listening_ms: 1, cover_path: null }));
+    vi.spyOn(api, 'getDashboard').mockResolvedValue(
+      reponse({ top_artists: artistes, top_albums: albums, top_tracks: titres }),
+    );
+    const els = await widgetParId('tops')!.charger(ctx);
+    for (const col of ['artistes', 'albums', 'titres'] as const) {
+      expect(els.filter((e) => e.colonne === col).length, col).toBe(50);
+    }
+    const bande = await widgetParId('top-artistes')!.charger(ctx);
+    expect(bande.length, '« Artistes les plus écoutés » : cinquante vignettes').toBe(50);
+  });
+
+  it('les colonnes des tops DÉFILENT dans leur hauteur au lieu d’allonger la page', () => {
+    const src = readFileSync(resolve(process.cwd(), 'src/components/v2/PageWidgets.svelte'), 'utf-8');
+    const regle = src.match(/\.topcol ol\{[^}]*\}/)?.[0] ?? '';
+    expect(regle, 'la liste d’une colonne').toContain('overflow-y:auto');
+    expect(regle).toMatch(/max-height:/);
+    // Les bandes, elles, défilent déjà à l’horizontale.
+    expect(src).toMatch(/\.bande\{[^}]*overflow-x:auto/);
   });
 
   it('« Votre semaine » interroge la période 7d et formate ses chiffres', async () => {

@@ -51,6 +51,7 @@
   import { formatTime } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
+  import { ouvrirCollection, ouvrirParRaccourci, ouvrirSmartPlaylist } from '../../lib/ouvrirParRaccourci';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
   import { salutation } from '../../lib/salutation';
   import { notifications } from '../../lib/stores/notifications';
@@ -76,6 +77,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import MosaiqueDifferee from './MosaiqueDifferee.svelte';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
@@ -785,7 +787,23 @@
      * Tidal montent la même page de widgets.
      */
     if (e.ouvrir === 'artiste') {
-      if (e.artiste) void ouvrirArtisteDepuis({ name: e.artiste }, $activeView);
+      // Un artiste FAVORI porte l'objet entier ; un classement n'a que son NOM.
+      if (e.artisteObjet) void ouvrirArtisteDepuis(e.artisteObjet, $activeView);
+      else if (e.artiste) void ouvrirArtisteDepuis({ name: e.artiste }, $activeView);
+      return;
+    }
+    // Widgets de favoris par type (25/09/2026) : une piste se JOUE, et une
+    // playlist, une playlist intelligente ou une collection s'ouvre dans SON
+    // écran, sous la clé de raccourci qui porte sa SORTE.
+    if (e.ouvrir === 'lire') {
+      jouer(e);
+      return;
+    }
+    if (e.ouvrir === 'cible' && e.cible) {
+      const c = e.cible;
+      if (c.sorte === 'playlist') void ouvrirParRaccourci('playlists', `playlists:${c.id}`, c.id, c.nom);
+      else if (c.sorte === 'smart_playlist') ouvrirSmartPlaylist({ id: c.id, name: c.nom });
+      else ouvrirCollection({ id: c.id, name: c.nom, smart: c.sorte === 'smart_collection' });
       return;
     }
     if (e.ouvrir === 'zone') {
@@ -1315,7 +1333,7 @@
                   <div class="carte">
                     <div class="pochette">
                       <PochetteActions
-                        favori={idLocal != null ? { albumId: idLocal } : null}
+                        favori={el.favoriLocal ?? (idLocal != null ? { albumId: idLocal } : null)}
                         favoriExterne={sidDistant
                           ? favoriExterneService($favoriteStreamingKeys, {
                               itemType: typeFavori,
@@ -1326,7 +1344,9 @@
                               coverUrl: el.cover ?? undefined,
                             })
                           : null}
-                        etiquettes={el.ouvrir === 'playlist'
+                        etiquettes={el.etiquette !== undefined
+                          ? el.etiquette
+                          : el.ouvrir === 'playlist'
                           ? cibleEtiquettePlaylist(el.playlist, el.source)
                           : cibleEtiquetteAlbum(el.fiche, el.source)}
                         onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
@@ -1334,8 +1354,15 @@
                         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
                         nom={el.titre}
                       >
-                        <AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre}
-                          source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
+                        {#if el.pochettes || el.mosaique}
+                          <!-- Playlist ou collection : la MOSAÏQUE de son
+                               écran (`MosaiquePochettes`), pas une pochette. -->
+                          <MosaiqueDifferee pochettes={el.pochettes ?? []} charger={el.mosaique ?? null}
+                            initiales={el.titre?.slice(0, 1)} alt={el.titre} />
+                        {:else}
+                          <AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre}
+                            source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
+                        {/if}
                       </PochetteActions>
                     </div>
                     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
@@ -1606,7 +1633,11 @@
   .tops{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px}
   .topcol h4{margin:0 0 10px; font:700 11px var(--v2-sans); letter-spacing:.1em;
     text-transform:uppercase; color:var(--v2-txt3)}
-  .topcol ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
+  /* Cinquante rangs par colonne depuis le 25/09/2026 : la colonne DÉFILE
+     dans la hauteur de cinq lignes (50 px de ligne + 6 px d'écart) au lieu
+     d'allonger la page de 2 800 px. */
+  .topcol ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;
+    max-height:calc(5 * 56px); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin}
   .topcol li{display:flex; align-items:center; gap:6px; min-width:0; border-radius:9px}
   .topcol li:hover{background:var(--v2-hover)}
   .topcol .toprang{flex:1 1 auto; display:flex; align-items:center; gap:11px; min-width:0;
@@ -1620,7 +1651,7 @@
     cursor:pointer; opacity:0}
   .topcol li:hover .toplire, .topcol .toplire:focus-visible{opacity:1}
   .topcol .toplire:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .topcol .rang{flex:0 0 auto; width:16px; text-align:right; font:600 12px var(--v2-mono);
+  .topcol .rang{flex:0 0 auto; width:20px; text-align:right; font:600 12px var(--v2-mono);
     color:var(--v2-txt3)}
   .topcol .vign{flex:0 0 auto; width:40px; height:40px; border-radius:7px; overflow:hidden}
   .topcol .txt{display:flex; flex-direction:column; gap:2px; min-width:0}
