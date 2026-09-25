@@ -3401,6 +3401,8 @@ export default {
   "v2.sup.bugViewThread": "스레드 보기",
   "v2.sup.bugAnother": "다른 버그 신고",
   "v2.sup.bugSendError": "전송에 실패했습니다. 다시 시도하거나 보고서를 포럼에 복사하세요.",
+  "v2.sup.bugRateLimited": "전송 한도에 도달했습니다. 포럼은 시간당 제한된 수의 보고서만 받습니다. 늦어도 1시간 후에 다시 시도하거나 보고서를 포럼에 복사하세요.",
+  "v2.sup.bugRateLimitedRetry": "전송 한도에 도달했습니다. 포럼은 시간당 제한된 수의 보고서만 받습니다. {delay} 다시 시도하거나 보고서를 포럼에 복사하세요.",
   "v2.sup.bugImages": "스크린샷(선택)",
   "v2.sup.bugImagesHint": "이미지는 최대 3장(PNG, JPEG, GIF 또는 WebP), 각 4 MB까지. 포럼 글에 첨부됩니다.",
   "v2.sup.bugImagesTooMany": "스크린샷이 너무 많습니다. 최대 {max}장입니다.",

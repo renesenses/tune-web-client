@@ -3400,6 +3400,8 @@ export default {
   "v2.sup.bugViewThread": "Visa tråden",
   "v2.sup.bugAnother": "Rapportera ett annat fel",
   "v2.sup.bugSendError": "Sändningen misslyckades. Försök igen, eller kopiera rapporten till forumet.",
+  "v2.sup.bugRateLimited": "Sändningsgränsen är nådd: forumet tar bara emot ett begränsat antal rapporter per timme. Försök igen inom högst en timme, eller kopiera rapporten till forumet.",
+  "v2.sup.bugRateLimitedRetry": "Sändningsgränsen är nådd: forumet tar bara emot ett begränsat antal rapporter per timme. Försök igen {delay}, eller kopiera rapporten till forumet.",
   "v2.sup.bugImages": "Skärmbilder (valfritt)",
   "v2.sup.bugImagesHint": "Upp till 3 bilder (PNG, JPEG, GIF eller WebP), 4 MB vardera. De läggs till i forumtråden.",
   "v2.sup.bugImagesTooMany": "För många skärmbilder: högst {max} bilder.",

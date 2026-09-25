@@ -3359,6 +3359,8 @@ export default {
   "v2.sup.bugViewThread": "A szál megtekintése",
   "v2.sup.bugAnother": "Másik hiba jelentése",
   "v2.sup.bugSendError": "A küldés sikertelen. Próbálja újra, vagy másolja a jelentést a fórumba.",
+  "v2.sup.bugRateLimited": "Elérte a küldési korlátot: a fórum óránként csak korlátozott számú jelentést fogad. Próbálja újra legfeljebb egy óra múlva, vagy másolja a jelentést a fórumba.",
+  "v2.sup.bugRateLimitedRetry": "Elérte a küldési korlátot: a fórum óránként csak korlátozott számú jelentést fogad. Próbálja újra {delay}, vagy másolja a jelentést a fórumba.",
   "v2.sup.bugImages": "Képernyőképek (nem kötelező)",
   "v2.sup.bugImagesHint": "Legfeljebb 3 kép (PNG, JPEG, GIF vagy WebP), egyenként 4 MB. A fórumtémához kerülnek.",
   "v2.sup.bugImagesTooMany": "Túl sok képernyőkép: legfeljebb {max} kép.",

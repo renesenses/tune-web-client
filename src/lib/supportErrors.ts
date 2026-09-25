@@ -123,3 +123,31 @@ export function messageErreurSupport(e: unknown, tr: Traduire, locale: string): 
 
   return status ? `${tr('support.errorGeneric')} (${status})` : tr('support.errorGeneric');
 }
+
+/**
+ * #5068 — la limite d'envoi des rapports de bogue au forum, ou `null`.
+ *
+ * Le site limite `POST /api/v1/community/bug-report` à quelques envois par
+ * heure et par adresse. L'écran affichait « Échec de l'envoi… (cloud rejected
+ * the report) » : rien ne disait qu'il suffisait d'attendre, ni combien.
+ *
+ * Deux formes à reconnaître, parce que le serveur .165 et antérieurs n'auront
+ * pas la nouvelle :
+ *  - serveur corrigé : statut 429, `error`/`code` = `rate_limited`, délai
+ *    éventuel sous `retry_after` (déjà lu par `lib/api.ts` dans `retryAfter`) ;
+ *  - serveur antérieur : statut 502, corps `{ error: "cloud rejected the
+ *    report", status: 429 }` — aucun délai connu.
+ *
+ * Sans délai, la phrase dit « dans une heure au plus » : la fenêtre du site est
+ * d'une heure, c'est une borne vraie, pas un délai deviné.
+ */
+export function messageLimiteRapportBogue(e: unknown, tr: Traduire, locale: string): string | null {
+  const err = commeErreurApi(e) as ErreurApi & { code?: unknown; corps?: unknown };
+  const statutDuSite = (err.corps as { status?: unknown } | null | undefined)?.status;
+  const limite = err.code === 'rate_limited' || statutHttp(e) === 429 || statutDuSite === 429;
+  if (!limite) return null;
+  const secondes = delaiAvantNouvelleTentative(e);
+  return secondes === undefined
+    ? tr('v2.sup.bugRateLimited')
+    : tr('v2.sup.bugRateLimitedRetry', { delay: delaiLisible(secondes, locale) });
+}

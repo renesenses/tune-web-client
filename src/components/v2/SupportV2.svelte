@@ -20,7 +20,7 @@
   import { licenseState } from '../../lib/stores/license';
   import { currentZone } from '../../lib/stores/zones';
   import { t, locale } from '../../lib/i18n';
-  import { messageErreurSupport } from '../../lib/supportErrors';
+  import { messageErreurSupport, messageLimiteRapportBogue } from '../../lib/supportErrors';
   import { cumulerFichiers, retirerFichier } from '../../lib/piecesJointes';
   import { get } from 'svelte/store';
   import { dateEtHeure } from '../../lib/dates';
@@ -207,6 +207,14 @@
       bogueEnvoye = true;
     } catch (e: any) {
       console.error('Support: envoi du rapport de bogue', e);
+      // #5068 — la limite d'envoi du forum n'est pas un échec : on dit
+      // d'attendre, et combien, dans la langue de l'interface.
+      const limite = messageLimiteRapportBogue(e, tr1, get(locale));
+      if (limite) {
+        bogueErreur = limite;
+        bogueEnvoi = false;
+        return;
+      }
       // Le motif du serveur (« cloud rejected the report »…) reste lisible :
       // sans lui, le testeur n'a rien de plus à nous dire que « échec ».
       const motif = typeof e?.message === 'string' && e.message ? ` (${e.message})` : '';

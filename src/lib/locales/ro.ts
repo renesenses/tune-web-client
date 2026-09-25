@@ -3401,6 +3401,8 @@ export default {
   "v2.sup.bugViewThread": "Vezi firul",
   "v2.sup.bugAnother": "Raportează altă eroare",
   "v2.sup.bugSendError": "Trimiterea a eșuat. Reîncercați sau copiați raportul pe forum.",
+  "v2.sup.bugRateLimited": "Limita de trimitere a fost atinsă: forumul acceptă doar un număr limitat de rapoarte pe oră. Reîncercați în cel mult o oră sau copiați raportul pe forum.",
+  "v2.sup.bugRateLimitedRetry": "Limita de trimitere a fost atinsă: forumul acceptă doar un număr limitat de rapoarte pe oră. Reîncercați {delay} sau copiați raportul pe forum.",
   "v2.sup.bugImages": "Capturi de ecran (opțional)",
   "v2.sup.bugImagesHint": "Cel mult 3 imagini (PNG, JPEG, GIF sau WebP), 4 MB fiecare. Sunt adăugate în discuția de pe forum.",
   "v2.sup.bugImagesTooMany": "Prea multe capturi: cel mult {max} imagini.",
