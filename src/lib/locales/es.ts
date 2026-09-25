@@ -3407,6 +3407,8 @@ export default {
   "v2.sup.bugViewThread": "Ver el hilo",
   "v2.sup.bugAnother": "Informar de otro error",
   "v2.sup.bugSendError": "Error al enviar. Inténtelo de nuevo o copie el informe en el foro.",
+  "v2.sup.bugRateLimited": "Límite de envíos alcanzado: el foro solo acepta un número limitado de informes por hora. Inténtelo de nuevo en una hora como máximo, o copie el informe en el foro.",
+  "v2.sup.bugRateLimitedRetry": "Límite de envíos alcanzado: el foro solo acepta un número limitado de informes por hora. Inténtelo de nuevo {delay}, o copie el informe en el foro.",
   "v2.sup.bugImages": "Capturas de pantalla (opcional)",
   "v2.sup.bugImagesHint": "Hasta 3 imágenes (PNG, JPEG, GIF o WebP), 4 MB cada una. Se añaden al hilo del foro.",
   "v2.sup.bugImagesTooMany": "Demasiadas capturas: {max} imágenes como máximo.",

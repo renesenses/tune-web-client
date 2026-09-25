@@ -3407,6 +3407,8 @@ export default {
   "v2.sup.bugViewThread": "スレッドを見る",
   "v2.sup.bugAnother": "別の不具合を報告",
   "v2.sup.bugSendError": "送信に失敗しました。もう一度試すか、レポートをフォーラムにコピーしてください。",
+  "v2.sup.bugRateLimited": "送信上限に達しました。フォーラムが1時間に受け付けるレポートの数には上限があります。遅くとも1時間後にもう一度試すか、レポートをフォーラムにコピーしてください。",
+  "v2.sup.bugRateLimitedRetry": "送信上限に達しました。フォーラムが1時間に受け付けるレポートの数には上限があります。{delay}にもう一度試すか、レポートをフォーラムにコピーしてください。",
   "v2.sup.bugImages": "スクリーンショット（任意）",
   "v2.sup.bugImagesHint": "画像は最大 3 枚（PNG、JPEG、GIF、WebP）、各 4 MB まで。フォーラムのスレッドに添付されます。",
   "v2.sup.bugImagesTooMany": "スクリーンショットが多すぎます。最大 {max} 枚です。",
