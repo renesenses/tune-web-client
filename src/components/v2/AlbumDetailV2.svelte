@@ -52,7 +52,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
-  import { chargerCollectionsCibles, entreesAjoutCollection, type CollectionCible } from '../../lib/albumVersCollection';
+  import { chargerCollectionsCibles, entreesAjoutCollection, lignesMenuEnRayons, type CollectionCible } from '../../lib/albumVersCollection';
+  import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { portail } from '../../lib/portail';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -230,12 +231,25 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       ? []
       : entreesAjoutCollection(collectionsCibles, album.id, (k) => $tr(k as any), (relues) => (collectionsCibles = relues)),
   );
+  /** L'arbre des rayons (#4853), relu par le chargeur de l'écran Collections
+   *  et de la barre latérale — `rafraichirRayons`, une seule source. Serveur
+   *  antérieur ou panne : `plat`, et le menu reste la liste d'avant. */
+  let rayonsCollection = $state<EtatRayons>({ mode: 'plat' });
+  /** Fil 1928 (Lulu) : les collections rangées sous leurs rayons, indentées. */
+  const lignesCollection = $derived(
+    lignesMenuEnRayons(entreesCollection, rayonsCollection, $tr('v2.rayons.unfiled' as any)),
+  );
   async function basculerMenuCollection(e: MouseEvent) {
     e.stopPropagation();
     if (menuCollectionOuvert) { menuCollectionOuvert = false; return; }
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     ancreCollection = { top: r.top, bottom: r.bottom, right: r.right };
-    collectionsCibles = await chargerCollectionsCibles();
+    const [cibles, rayons] = await Promise.all([
+      chargerCollectionsCibles(),
+      rafraichirRayons(api.getCollectionFolders),
+    ]);
+    collectionsCibles = cibles;
+    rayonsCollection = rayons;
     menuCollectionOuvert = true;
   }
   function fermerMenuCollection() { menuCollectionOuvert = false; }
@@ -1238,11 +1252,17 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 {#if menuCollectionOuvert && ancreCollection}
   <div class="coll-menu tune-v2" role="menu" tabindex="-1" use:portail
     aria-label={$tr('v2.album.addToCollection' as any)}
-    style={styleMenuAncre(ancreCollection, Math.max(2, entreesCollection.length), window, LARGEUR_MENU_COLLECTION)}>
+    style={styleMenuAncre(ancreCollection, Math.max(2, lignesCollection.length), window, LARGEUR_MENU_COLLECTION)}>
     {#if entreesCollection.length}
-      {#each entreesCollection as e (e.id)}
+      {#each lignesCollection as l (l.cle)}
+        {#if l.sorte === 'rayon'}
+          <p class="coll-rayon" role="presentation" style:padding-left="{10 + l.profondeur * 14}px">{l.nom}</p>
+        {:else}
+        {@const e = l.entree}
         <button type="button" role="menuitem" class="coll-item" class:deja={e.deja}
+          style:padding-left="{10 + l.profondeur * 14}px"
           onclick={(ev) => choisirCollection(ev, e.faire)}>{e.libelle}</button>
+        {/if}
       {/each}
     {:else}
       <p class="coll-vide">{$tr('v2.album.noCollection' as any)}</p>
@@ -1268,6 +1288,11 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   .coll-item:hover{background:var(--v2-surface2)}
   .coll-item:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-2px}
   .coll-item.deja{color:var(--v2-txt3)}
+  /* Intitulé d'un rayon (fil 1928) : il range, il ne se clique pas. */
+  .coll-rayon{flex:0 0 auto; margin:6px 0 0; padding:4px 10px 2px; font-size:11px; font-weight:600;
+    letter-spacing:.04em; text-transform:uppercase; color:var(--v2-txt3);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .coll-rayon:first-child{margin-top:0}
   .coll-lien{color:var(--v2-acc-tint)}
   .coll-vide{flex:0 0 auto; margin:0; padding:7px 10px; font-size:12px; line-height:1.4; color:var(--v2-txt3); white-space:normal}
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
