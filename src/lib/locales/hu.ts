@@ -3567,6 +3567,12 @@ export default {
   "v2.sup.team": "Tune csapat",
   "v2.sup.you": "Ön",
   "v2.plug.unavailable": "A bővítmények nem érhetők el ezen a kiszolgálón.",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "Néhány Premium-bővítményed nincs telepítve: {names}.",
+  "v2.plug.reinstall": "Újratelepítés",
+  "v2.plug.reinstallIgnore": "Elvetés",
+  "v2.plug.reinstallFailed": "Az újratelepítés nem sikerült. Próbáld újra.",
+  "v2.plug.reinstallDismissFailed": "A választásodat nem sikerült menteni. Próbáld újra.",
   "v2.plug.emptyInstalled": "Nincs telepített bővítmény.",
   "v2.plug.empty": "Nincs bővítmény.",
   "v2.radio.loadFailed": "Az állomások nem tölthetők be.",
@@ -4018,6 +4024,23 @@ export default {
   "plconv.journal.compte": "{ajoutees} hozzáadva, {introuvables} nem található",
   "plconv.journal.vide": "Még nem volt szinkronizálás.",
   "plconv.journal.echecs": "{n} hiba:",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "CD-lejátszás",
+  "v2.cd.notInstalled": "A CD-lejátszás bővítmény nem aktív. Telepítsd a Bővítmények között, majd indítsd újra a Tune-t.",
+  "v2.cd.unsupportedPlatform": "A meghajtó ezen a platformon nem támogatott: a CD-lejátszás egyelőre csak Linuxon működik.",
+  "v2.cd.noDrive": "Nincs CD-meghajtó a Tune-t futtató gépen.",
+  "v2.cd.noDisc": "A meghajtó üres. Helyezz be egy audio CD-t.",
+  "v2.cd.reading": "A lemez olvasása…",
+  "v2.cd.unreadable": "A lemezt nem sikerült beolvasni. Tisztítsd meg, vagy helyezd be újra.",
+  "v2.cd.unknownTrack": "Ez a szám nem szerepel ezen a lemezen.",
+  "v2.cd.playFailed": "A lejátszás nem indult el ebben a zónában.",
+  "v2.cd.unavailable": "A CD-meghajtó nem válaszol. Újrapróbálás néhány másodperc múlva.",
+  "v2.cd.unknownAlbum": "Audio CD",
+  "v2.cd.noMetadata": "Ismeretlen lemez: a címek nem érhetők el.",
+  "v2.cd.playDisc": "Lemez lejátszása",
+  "v2.cd.playTrack": "Szám lejátszása",
+  "v2.cd.trackN": "{n}. szám",
+  "v2.cd.toZone": "Ide: {zone}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

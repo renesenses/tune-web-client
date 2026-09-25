@@ -3609,6 +3609,12 @@ export default {
   "v2.sup.team": "Tune チーム",
   "v2.sup.you": "あなた",
   "v2.plug.unavailable": "このサーバーでは拡張機能を利用できません。",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "一部の Premium 拡張機能がインストールされていません: {names}。",
+  "v2.plug.reinstall": "再インストール",
+  "v2.plug.reinstallIgnore": "無視",
+  "v2.plug.reinstallFailed": "再インストールに失敗しました。もう一度お試しください。",
+  "v2.plug.reinstallDismissFailed": "選択を保存できませんでした。もう一度お試しください。",
   "v2.plug.emptyInstalled": "インストール済みの拡張機能はありません。",
   "v2.plug.empty": "拡張機能はありません。",
   "v2.radio.loadFailed": "放送局を読み込めませんでした。",
@@ -4060,6 +4066,23 @@ export default {
   "plconv.journal.compte": "追加 {ajoutees}、見つからない {introuvables}",
   "plconv.journal.vide": "同期はまだありません。",
   "plconv.journal.echecs": "失敗 {n} 件：",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "CD 再生",
+  "v2.cd.notInstalled": "「CD 再生」拡張機能が有効になっていません。「拡張機能」からインストールし、Tune を再起動してください。",
+  "v2.cd.unsupportedPlatform": "このプラットフォームではドライブに対応していません。CD 再生は現在 Linux のみで動作します。",
+  "v2.cd.noDrive": "Tune を実行しているマシンに CD ドライブがありません。",
+  "v2.cd.noDisc": "ドライブは空です。オーディオ CD を入れてください。",
+  "v2.cd.reading": "ディスクを読み込み中…",
+  "v2.cd.unreadable": "ディスクを読み込めませんでした。クリーニングするか、入れ直してください。",
+  "v2.cd.unknownTrack": "このトラックはこのディスクにありません。",
+  "v2.cd.playFailed": "このゾーンで再生を開始できませんでした。",
+  "v2.cd.unavailable": "CD ドライブが応答しません。数秒後に再試行します。",
+  "v2.cd.unknownAlbum": "オーディオ CD",
+  "v2.cd.noMetadata": "ディスクを認識できません：曲名はありません。",
+  "v2.cd.playDisc": "ディスクを再生",
+  "v2.cd.playTrack": "このトラックを再生",
+  "v2.cd.trackN": "トラック {n}",
+  "v2.cd.toZone": "{zone} へ",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ja')['default'];

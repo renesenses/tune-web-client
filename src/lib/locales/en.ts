@@ -3629,6 +3629,12 @@ export default {
   "v2.sup.team": "Tune team",
   "v2.sup.you": "You",
   "v2.plug.unavailable": "Extensions unavailable on this server.",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "Some of your Premium extensions are not installed: {names}.",
+  "v2.plug.reinstall": "Reinstall",
+  "v2.plug.reinstallIgnore": "Ignore",
+  "v2.plug.reinstallFailed": "Reinstallation failed. Please try again.",
+  "v2.plug.reinstallDismissFailed": "Your choice could not be saved. Please try again.",
   "v2.plug.emptyInstalled": "No extension installed.",
   "v2.plug.empty": "No extension.",
   "v2.radio.loadFailed": "Could not load the stations.",
@@ -4080,6 +4086,23 @@ export default {
   "plconv.journal.compte": "{ajoutees} added, {introuvables} not found",
   "plconv.journal.vide": "No syncs yet.",
   "plconv.journal.echecs": "{n} failure(s):",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "CD Player",
+  "v2.cd.notInstalled": "The CD Player extension is not active. Install it from Extensions, then restart Tune.",
+  "v2.cd.unsupportedPlatform": "Drive not supported on this platform: CD playback currently works on Linux only.",
+  "v2.cd.noDrive": "No CD drive on the machine running Tune.",
+  "v2.cd.noDisc": "The drive is empty. Insert an audio CD.",
+  "v2.cd.reading": "Reading the disc…",
+  "v2.cd.unreadable": "The disc could not be read. Clean it or reinsert it.",
+  "v2.cd.unknownTrack": "This track does not exist on this disc.",
+  "v2.cd.playFailed": "Playback could not start on this zone.",
+  "v2.cd.unavailable": "The CD drive is not responding. Retrying in a few seconds.",
+  "v2.cd.unknownAlbum": "Audio CD",
+  "v2.cd.noMetadata": "Disc not recognised: titles unavailable.",
+  "v2.cd.playDisc": "Play disc",
+  "v2.cd.playTrack": "Play this track",
+  "v2.cd.trackN": "Track {n}",
+  "v2.cd.toZone": "To {zone}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./en')['default'];

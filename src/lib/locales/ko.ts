@@ -3609,6 +3609,12 @@ export default {
   "v2.sup.team": "Tune 팀",
   "v2.sup.you": "나",
   "v2.plug.unavailable": "이 서버에서는 확장을 사용할 수 없습니다.",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "일부 Premium 확장이 설치되어 있지 않습니다: {names}.",
+  "v2.plug.reinstall": "다시 설치",
+  "v2.plug.reinstallIgnore": "무시",
+  "v2.plug.reinstallFailed": "다시 설치하지 못했습니다. 다시 시도하세요.",
+  "v2.plug.reinstallDismissFailed": "선택을 저장하지 못했습니다. 다시 시도하세요.",
   "v2.plug.emptyInstalled": "설치된 확장이 없습니다.",
   "v2.plug.empty": "확장이 없습니다.",
   "v2.radio.loadFailed": "방송국을 불러올 수 없습니다.",
@@ -4060,6 +4066,23 @@ export default {
   "plconv.journal.compte": "추가 {ajoutees}개, 찾을 수 없음 {introuvables}개",
   "plconv.journal.vide": "아직 동기화가 없습니다.",
   "plconv.journal.echecs": "실패 {n}건:",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "CD 재생",
+  "v2.cd.notInstalled": "CD 재생 확장 기능이 활성화되어 있지 않습니다. 확장 기능에서 설치한 뒤 Tune을 다시 시작하세요.",
+  "v2.cd.unsupportedPlatform": "이 플랫폼에서는 드라이브를 지원하지 않습니다. CD 재생은 현재 Linux에서만 작동합니다.",
+  "v2.cd.noDrive": "Tune을 실행하는 컴퓨터에 CD 드라이브가 없습니다.",
+  "v2.cd.noDisc": "드라이브가 비어 있습니다. 오디오 CD를 넣으세요.",
+  "v2.cd.reading": "디스크를 읽는 중…",
+  "v2.cd.unreadable": "디스크를 읽을 수 없습니다. 디스크를 닦거나 다시 넣으세요.",
+  "v2.cd.unknownTrack": "이 디스크에 없는 트랙입니다.",
+  "v2.cd.playFailed": "이 존에서 재생을 시작할 수 없습니다.",
+  "v2.cd.unavailable": "CD 드라이브가 응답하지 않습니다. 몇 초 후 다시 시도합니다.",
+  "v2.cd.unknownAlbum": "오디오 CD",
+  "v2.cd.noMetadata": "인식되지 않은 디스크: 곡 정보가 없습니다.",
+  "v2.cd.playDisc": "디스크 재생",
+  "v2.cd.playTrack": "이 트랙 재생",
+  "v2.cd.trackN": "트랙 {n}",
+  "v2.cd.toZone": "{zone}(으)로",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ko')['default'];
