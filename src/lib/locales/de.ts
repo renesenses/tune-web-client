@@ -3339,6 +3339,8 @@ export default {
   "v2.fas.albums": "Alben",
   "v2.fas.empty": "Für diesen Künstler gibt es nichts anzuzeigen.",
   "v2.fas.topTracksFailed": "Die Top-Titel konnten nicht geladen werden – „Best of“ und „Radio“ brauchen sie.",
+  "v2.fas.artistNotFound": "Dieser Künstler ist bei {service} nicht zu finden.",
+  "v2.fas.artistUnavailable": "{service} konnte die Seite dieses Künstlers gerade nicht liefern.",
   "v2.fas.bestOf": "Best of abspielen",
   "v2.fas.radio": "Künstlerradio",
   "v2.rech.tracks": "Titel",
@@ -4058,6 +4060,23 @@ export default {
   "plconv.journal.compte": "{ajoutees} hinzugefügt, {introuvables} nicht gefunden",
   "plconv.journal.vide": "Noch keine Synchronisierung.",
   "plconv.journal.echecs": "{n} Fehler:",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "CD-Wiedergabe",
+  "v2.cd.notInstalled": "Die Erweiterung CD-Wiedergabe ist nicht aktiv. Installiere sie unter Erweiterungen und starte Tune neu.",
+  "v2.cd.unsupportedPlatform": "Laufwerk auf dieser Plattform nicht unterstützt: Die CD-Wiedergabe funktioniert derzeit nur unter Linux.",
+  "v2.cd.noDrive": "Kein CD-Laufwerk auf dem Rechner, auf dem Tune läuft.",
+  "v2.cd.noDisc": "Das Laufwerk ist leer. Lege eine Audio-CD ein.",
+  "v2.cd.reading": "Disc wird gelesen…",
+  "v2.cd.unreadable": "Die Disc konnte nicht gelesen werden. Reinige sie oder lege sie erneut ein.",
+  "v2.cd.unknownTrack": "Dieser Titel existiert auf dieser Disc nicht.",
+  "v2.cd.playFailed": "Die Wiedergabe konnte in dieser Zone nicht starten.",
+  "v2.cd.unavailable": "Das CD-Laufwerk antwortet nicht. Neuer Versuch in einigen Sekunden.",
+  "v2.cd.unknownAlbum": "Audio-CD",
+  "v2.cd.noMetadata": "Disc nicht erkannt: keine Titel verfügbar.",
+  "v2.cd.playDisc": "Disc abspielen",
+  "v2.cd.playTrack": "Diesen Titel abspielen",
+  "v2.cd.trackN": "Titel {n}",
+  "v2.cd.toZone": "An {zone}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

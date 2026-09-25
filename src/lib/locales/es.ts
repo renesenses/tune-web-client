@@ -3339,6 +3339,8 @@ export default {
   "v2.fas.albums": "Álbumes",
   "v2.fas.empty": "No hay nada que mostrar para este artista.",
   "v2.fas.topTracksFailed": "No se han podido cargar las canciones destacadas: «Best of» y «Radio» las necesitan.",
+  "v2.fas.artistNotFound": "No se encuentra a este artista en {service}.",
+  "v2.fas.artistUnavailable": "{service} no ha podido proporcionar la ficha de este artista por ahora.",
   "v2.fas.bestOf": "Escuchar lo mejor",
   "v2.fas.radio": "Radio del artista",
   "v2.rech.tracks": "Pistas",
@@ -4058,6 +4060,23 @@ export default {
   "plconv.journal.compte": "{ajoutees} añadida(s), {introuvables} no encontrada(s)",
   "plconv.journal.vide": "Todavía no hay sincronizaciones.",
   "plconv.journal.echecs": "{n} fallo(s):",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "Lector de CD",
+  "v2.cd.notInstalled": "La extensión Lector de CD no está activa. Instálala desde Extensiones y reinicia Tune.",
+  "v2.cd.unsupportedPlatform": "Lector no compatible con esta plataforma: por ahora la reproducción de CD solo funciona en Linux.",
+  "v2.cd.noDrive": "No hay lector de CD en el equipo donde se ejecuta Tune.",
+  "v2.cd.noDisc": "El lector está vacío. Inserta un CD de audio.",
+  "v2.cd.reading": "Leyendo el disco…",
+  "v2.cd.unreadable": "No se ha podido leer el disco. Límpialo o vuelve a insertarlo.",
+  "v2.cd.unknownTrack": "Esta pista no existe en este disco.",
+  "v2.cd.playFailed": "No se ha podido iniciar la reproducción en esta zona.",
+  "v2.cd.unavailable": "El lector de CD no responde. Nuevo intento en unos segundos.",
+  "v2.cd.unknownAlbum": "CD de audio",
+  "v2.cd.noMetadata": "Disco no reconocido: títulos no disponibles.",
+  "v2.cd.playDisc": "Reproducir el disco",
+  "v2.cd.playTrack": "Reproducir esta pista",
+  "v2.cd.trackN": "Pista {n}",
+  "v2.cd.toZone": "En {zone}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./es')['default'];
