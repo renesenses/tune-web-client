@@ -3609,6 +3609,12 @@ export default {
   "v2.sup.team": "Team Tune",
   "v2.sup.you": "Tu",
   "v2.plug.unavailable": "Estensioni non disponibili su questo server.",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "Alcune delle tue estensioni Premium non sono installate: {names}.",
+  "v2.plug.reinstall": "Reinstalla",
+  "v2.plug.reinstallIgnore": "Ignora",
+  "v2.plug.reinstallFailed": "Reinstallazione non riuscita. Riprova.",
+  "v2.plug.reinstallDismissFailed": "Impossibile salvare la tua scelta. Riprova.",
   "v2.plug.emptyInstalled": "Nessuna estensione installata.",
   "v2.plug.empty": "Nessuna estensione.",
   "v2.radio.loadFailed": "Impossibile caricare le stazioni.",

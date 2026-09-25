@@ -3609,6 +3609,12 @@ export default {
   "v2.sup.team": "Tune チーム",
   "v2.sup.you": "あなた",
   "v2.plug.unavailable": "このサーバーでは拡張機能を利用できません。",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "一部の Premium 拡張機能がインストールされていません: {names}。",
+  "v2.plug.reinstall": "再インストール",
+  "v2.plug.reinstallIgnore": "無視",
+  "v2.plug.reinstallFailed": "再インストールに失敗しました。もう一度お試しください。",
+  "v2.plug.reinstallDismissFailed": "選択を保存できませんでした。もう一度お試しください。",
   "v2.plug.emptyInstalled": "インストール済みの拡張機能はありません。",
   "v2.plug.empty": "拡張機能はありません。",
   "v2.radio.loadFailed": "放送局を読み込めませんでした。",

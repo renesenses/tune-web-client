@@ -3609,6 +3609,12 @@ export default {
   "v2.sup.team": "Tune 팀",
   "v2.sup.you": "나",
   "v2.plug.unavailable": "이 서버에서는 확장을 사용할 수 없습니다.",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "일부 Premium 확장이 설치되어 있지 않습니다: {names}.",
+  "v2.plug.reinstall": "다시 설치",
+  "v2.plug.reinstallIgnore": "무시",
+  "v2.plug.reinstallFailed": "다시 설치하지 못했습니다. 다시 시도하세요.",
+  "v2.plug.reinstallDismissFailed": "선택을 저장하지 못했습니다. 다시 시도하세요.",
   "v2.plug.emptyInstalled": "설치된 확장이 없습니다.",
   "v2.plug.empty": "확장이 없습니다.",
   "v2.radio.loadFailed": "방송국을 불러올 수 없습니다.",

@@ -6961,6 +6961,30 @@ export function uninstallPlugin(slug: string): Promise<{ success: boolean; messa
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}`, { method: 'DELETE' });
 }
 
+/**
+ * Bandeau « Réinstaller » des greffons payants (tune-server-rust#4861).
+ *
+ * `ids` : crossfeed, convertisseur, Dé-ploc absents, pour un compte qui a le
+ * droit de les installer, et que l'utilisateur n'a pas refusés. Le serveur
+ * rend une liste VIDE pour un compte Free, jamais autre chose. « Réinstaller »
+ * passe par `installPlugin` (route d'installation existante).
+ */
+export interface SuggestionReinstallationGreffons {
+  ids: string[];
+}
+
+export function getSuggestionReinstallationGreffons(): Promise<SuggestionReinstallationGreffons> {
+  return fetchJSON<SuggestionReinstallationGreffons>(`${BASE}/plugins/premium-audio/reinstall-suggestion`);
+}
+
+/** « Ignorer » : le refus est mémorisé côté serveur ; la réponse est la suggestion relue. */
+export function ignorerSuggestionReinstallationGreffons(ids: string[]): Promise<SuggestionReinstallationGreffons> {
+  return fetchJSON<SuggestionReinstallationGreffons>(`${BASE}/plugins/premium-audio/reinstall-suggestion/dismiss`, {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
+}
+
 /** Update a plugin to the latest version via the server (pip install --upgrade). */
 export function updatePlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}/update`, { method: 'POST' });

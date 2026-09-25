@@ -3608,6 +3608,12 @@ export default {
   "v2.sup.team": "Tune-teamet",
   "v2.sup.you": "Du",
   "v2.plug.unavailable": "Tillägg är inte tillgängliga på den här servern.",
+  // tune-server-rust#4861 — bandeau « Réinstaller » des greffons payants
+  "v2.plug.reinstallPrompt": "Några av dina Premium-tillägg är inte installerade: {names}.",
+  "v2.plug.reinstall": "Installera om",
+  "v2.plug.reinstallIgnore": "Ignorera",
+  "v2.plug.reinstallFailed": "Ominstallationen misslyckades. Försök igen.",
+  "v2.plug.reinstallDismissFailed": "Ditt val kunde inte sparas. Försök igen.",
   "v2.plug.emptyInstalled": "Inga tillägg installerade.",
   "v2.plug.empty": "Inga tillägg.",
   "v2.radio.loadFailed": "Kunde inte läsa in stationerna.",
