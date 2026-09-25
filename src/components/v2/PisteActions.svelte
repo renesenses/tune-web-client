@@ -127,6 +127,8 @@
    *  les deux panneaux voisins : il tire `getTrackAllTags` et sa grille de
    *  champs, que la plupart des lignes n'ouvriront jamais. */
   let tiroirChamps = $state(false);
+  /** La fiche « Crédits » du titre — #1572. Bibliothèque seule. */
+  let tiroirCredits = $state(false);
   let panneauVersions = $state(false);
   /**
    * La cible titre + artiste des « Autres versions » d'une piste SANS
@@ -421,6 +423,7 @@
         allerAlbum,
         etiqueter: () => (panneauEtiquettes = true),
         champsDuFichier: () => (tiroirChamps = true),
+        voirCredits: () => (tiroirCredits = true),
         // #4806 — le module tient l'appel, la surcharge et le toast : le menu
         // du client actuel (`MenuPisteV1`) appelle exactement les mêmes.
         bannir: () => void bannir(piste),
@@ -606,6 +609,14 @@
   {/await}
 {/if}
 
+<!-- #1572 — « Voir les crédits » : la fiche partagée avec `MenuPisteV1`. -->
+{#if tiroirCredits && local && piste.id != null}
+  {#await import('../partages/CreditsTiroir.svelte') then m}
+    <m.default
+      cible={{ type: 'piste', trackId: piste.id, titre: piste.title, artiste: piste.artist_name ?? null, album: piste.album_title ?? null }}
+      onClose={() => (tiroirCredits = false)} />
+  {/await}
+{/if}
 {#if modalePlaylist}
   {#await import('../partages/AddToPlaylistModal.svelte') then m}
     <m.default track={piste} onClose={() => (modalePlaylist = false)} />

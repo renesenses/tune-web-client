@@ -202,7 +202,7 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       fr['trackTags.title'],
     ]);
   });
-  it('une piste de la BIBLIOTHÈQUE ouvre les onze gestes', () => {
+  it('une piste de la BIBLIOTHÈQUE ouvre les douze gestes', () => {
     expect(libelles(ouvrir(LOCALE))).toEqual([
       fr['common.play'], fr['v2.pa.next'], fr['queue.addToQueue'],
       fr['library.playSimilar'], fr['library.otherVersions'],
@@ -210,6 +210,9 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       fr['library.goToAlbum'], fr['v2.cover.tags'],
       // #851 — « Tous les champs piste », que seul `MenuPisteV2` rendait.
       fr['trackTags.title'],
+      // #1572 — « Voir les crédits » (fil 1921), bibliothèque seule : les
+      // deux témoins de service au-dessus prouvent qu'il n'y est pas.
+      fr['credits.see'],
       // #4806 — « Bannir ce titre », bibliothèque seule ; le témoin de
       // service juste au-dessus prouve qu'il n'y est pas.
       fr['ban.ban'],
@@ -389,14 +392,16 @@ describe('parité des menus — MenuPisteV1 et PisteActions rendent la même lis
       expect(v1, `V1 ${JSON.stringify(v1)} ≠ V2 ${JSON.stringify(v2)}`).toEqual(v2);
     });
   }
-  it('la piste de la bibliothèque a ses onze gestes dans les deux menus, « Autres versions » compris', () => {
+  it('la piste de la bibliothèque a ses douze gestes dans les deux menus, « Autres versions » compris', () => {
     for (const composant of [MenuPisteV1, PisteActions]) {
       const rendus = menuDe(composant, LOCALE);
       expect(rendus).toContain(fr['library.otherVersions']);
       expect(rendus).toContain(fr['trackTags.title']);
       // #4806 — « Bannir ce titre », bibliothèque seule, dans les DEUX menus.
       expect(rendus).toContain(fr['ban.ban']);
-      expect(rendus).toHaveLength(11);
+      // #1572 — « Voir les crédits », dans les DEUX menus.
+      expect(rendus).toContain(fr['credits.see']);
+      expect(rendus).toHaveLength(12);
     }
   });
 });
