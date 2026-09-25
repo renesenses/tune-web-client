@@ -195,6 +195,15 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
   let etiquettesOuvertes = $state(false);
 
+  /**
+   * « Crédits » — #1572 (FabienM, fil forum 1921 : « ajouter un bouton pour
+   * consulter les crédits d'un album »). Les crédits sont ceux des pistes de
+   * la BIBLIOTHÈQUE (`track_credits`) : ni dépôt distant — son `id` est celui
+   * d'un autre serveur —, ni album de service.
+   */
+  const creditsPossibles = $derived(album.id != null && !depot && !service && !bandcamp);
+  let creditsOuverts = $state(false);
+
   /* ══════════════════════════════════════════════════════════════════════
      « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
 
@@ -1094,6 +1103,14 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.album.addToCollection' as any)}
           </button>
         {/if}
+        {#if creditsPossibles}
+          <button class="ghost" data-credits-album onclick={() => (creditsOuverts = true)}
+            aria-haspopup="dialog" aria-expanded={creditsOuverts}
+            title={$tr('artist.credits' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            {$tr('artist.credits' as any)}
+          </button>
+        {/if}
       </div>
       <!-- Album LOCAL seulement : ces trois gestes travaillent sur la fiche de
            la bibliothèque. -->
@@ -1190,6 +1207,17 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   {#await import('./EtiquettesPanneau.svelte') then m}
     <m.default cible={cibleEtiquettes} nom={album.title}
       onClose={() => (etiquettesOuvertes = false)} />
+  {/await}
+{/if}
+<!-- #1572 — la fiche « Crédits » de l'album : la même que celle d'un titre,
+     agrégée sur le disque. Un nom crédité referme la fiche avant d'ouvrir la
+     page de l'artiste (`quitterLaFiche`, comme `allerArtiste`). -->
+{#if creditsOuverts && creditsPossibles && album.id != null}
+  {#await import('../partages/CreditsTiroir.svelte') then m}
+    <m.default
+      cible={{ type: 'album', albumId: album.id, titre: album.title, artiste: nomArtiste, pistes: tracks }}
+      avantDeNaviguer={quitterLaFiche}
+      onClose={() => (creditsOuverts = false)} />
   {/await}
 {/if}
 <!-- Le menu « Ajouter à une collection » : une entrée par collection
