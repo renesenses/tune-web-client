@@ -91,8 +91,14 @@ export function libelleRole(role: string, traduire: (cle: string) => string): st
   return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
-/** Une ligne de crédit, et la piste qu'elle concerne quand la route la donne. */
-export interface CreditAvecPiste extends TrackCredit {
+/**
+ * Une ligne de crédit, et la piste qu'elle concerne quand la route la donne.
+ *
+ * `track_id` : l'`i64` de `tracks` pour la bibliothèque, la CHAÎNE du service
+ * pour un titre de service (#4993 — `GET /streaming/{service}/…/credits`).
+ */
+export interface CreditAvecPiste extends Omit<TrackCredit, 'track_id'> {
+  track_id: number | string | null;
   track_title?: string | null;
   track_number?: number | null;
   disc_number?: number | null;
@@ -114,7 +120,8 @@ export function familleDuRole(role: string): FamilleCredits {
 }
 
 export interface PisteCitee {
-  track_id: number;
+  /** Nombre (bibliothèque) ou chaîne (service, #4993). */
+  track_id: number | string;
   numero: number | null;
   disque: number | null;
   titre: string | null;

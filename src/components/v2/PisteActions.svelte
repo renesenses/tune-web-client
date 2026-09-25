@@ -84,8 +84,9 @@
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { albumDeServiceDe } from '../../lib/routageAlbum';
-  import { pisteDeServiceDe } from '../../lib/champsPisteService';
+  import { pisteDeServiceDe, type PisteDeService } from '../../lib/champsPisteService';
   import { lirePlusCommeCaDeService, plusCommeCaDeServiceDe } from '../../lib/plusCommeCaService';
+  import { creditsDeServiceDe, servicesCreditsRefuses } from '../../lib/creditsService';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { t } from '../../lib/i18n';
@@ -129,6 +130,12 @@
   let tiroirChamps = $state(false);
   /** La fiche « Crédits » du titre — #1572. Bibliothèque seule. */
   let tiroirCredits = $state(false);
+  /**
+   * #4993 — le titre de service relevé AU CLIC. Pas `pisteCredits` en direct :
+   * un refus (501/404) retire l'entrée, et le tiroir se refermerait avant
+   * d'avoir pu dire pourquoi.
+   */
+  let creditsDuService = $state.raw<PisteDeService | null>(null);
   let panneauVersions = $state(false);
   /**
    * La cible titre + artiste des « Autres versions » d'une piste SANS
@@ -389,6 +396,8 @@
   const pisteService = $derived(local ? null : pisteDeServiceDe(piste));
   /** Fil forum 1906 — « Plus comme ça » d'un titre Qobuz (`lib/plusCommeCaService`). */
   const pisteSimilaires = $derived(local ? null : plusCommeCaDeServiceDe(piste));
+  /** #4993 — « Voir les crédits » d'un titre de service (`lib/creditsService`). */
+  const pisteCredits = $derived(local ? null : creditsDeServiceDe(piste, $servicesCreditsRefuses));
   const entrees = $derived(
     entreesMenuPiste(
       {
@@ -413,6 +422,7 @@
         versionsParTitre: cibleVersions != null,
         champsDeService: pisteService != null,
         similairesDeService: pisteSimilaires != null,
+        creditsDeService: pisteCredits != null,
       },
       {
         lire: () => void lire(new MouseEvent('click')),
@@ -425,7 +435,7 @@
         allerAlbum,
         etiqueter: () => (panneauEtiquettes = true),
         champsDuFichier: () => (tiroirChamps = true),
-        voirCredits: () => (tiroirCredits = true),
+        voirCredits: () => { creditsDuService = pisteCredits; tiroirCredits = true; },
         // #4806 — le module tient l'appel, la surcharge et le toast : le menu
         // du client actuel (`MenuPisteV1`) appelle exactement les mêmes.
         bannir: () => void bannir(piste),
@@ -615,10 +625,10 @@
 {/if}
 
 <!-- #1572 — « Voir les crédits » : la fiche partagée avec `MenuPisteV1`. -->
-{#if tiroirCredits && local && piste.id != null}
+{#if tiroirCredits && ((local && piste.id != null) || creditsDuService)}
   {#await import('../partages/CreditsTiroir.svelte') then m}
     <m.default
-      cible={{ type: 'piste', trackId: piste.id, titre: piste.title, artiste: piste.artist_name ?? null, album: piste.album_title ?? null }}
+      cible={{ type: 'piste', trackId: local ? piste.id : null, service: local ? null : creditsDuService, titre: piste.title, artiste: piste.artist_name ?? null, album: piste.album_title ?? null }}
       onClose={() => (tiroirCredits = false)} />
   {/await}
 {/if}

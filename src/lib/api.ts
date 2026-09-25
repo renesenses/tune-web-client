@@ -2065,6 +2065,31 @@ export function getAlbumCredits(albumId: number) {
   );
 }
 
+/**
+ * Crédits d'un titre de SERVICE — tune-server-rust#4993 (srv#5041). Même
+ * forme que `getTrackCredits`, `id` et `artist_id` nuls, `track_id` en
+ * chaîne. Sans bandeau : un 501 (service sans crédits) ou un 404 (serveur
+ * antérieur) est dit par le tiroir, et retenu (`lib/creditsService`).
+ */
+export function getStreamingTrackCredits(service: string, sourceId: string) {
+  return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(sourceId)}/credits`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
+/** Crédits d'un album de SERVICE, chaque ligne portant sa piste — #4993. */
+export function getStreamingAlbumCredits(service: string, albumSourceId: string) {
+  return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumSourceId)}/credits`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
 /** Enrichit depuis MusicBrainz les crédits des pistes d'un album (#1572). */
 export function enrichAlbumCredits(albumId: number) {
   return fetchJSON(`${BASE}/library/albums/${albumId}/credits/enrich`, { method: 'POST' });

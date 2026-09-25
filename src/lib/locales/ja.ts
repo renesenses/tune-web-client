@@ -762,6 +762,8 @@ export default {
   "credits.block.autres": "その他のクレジット",
   "credits.noneTrack": "このトラックのクレジットはまだありません。MusicBrainz による補完で追加できます。",
   "credits.noneAlbum": "このアルバムのクレジットはまだありません。MusicBrainz による補完で追加できます。",
+  "credits.noneService": "このサービスはこの曲またはアルバムのクレジットを提供していません。",
+  "credits.serviceUnavailable": "このサービスはクレジットを提供していないか、Tune サーバーが古すぎて読み取れません。",
   "credits.onTracks": "トラック {liste}",
   "credits.writer": "作詞",
   "credits.vocal": "ボーカル",

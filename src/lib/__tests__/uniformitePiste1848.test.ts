@@ -206,6 +206,8 @@ describe('#1848 — le menu posable partout, monté sur une vraie piste', () => 
       fr['nowplaying.addToPlaylist'], fr['v2.cover.tags'],
       // Fil forum 1906 — « Tous les champs piste », en lecture seule.
       fr['trackTags.title'],
+      // tune-server-rust#4993 — les crédits d'un titre Qobuz.
+      fr['credits.see'],
     ]);
   });
   it('une piste de la BIBLIOTHÈQUE ouvre les douze gestes', () => {

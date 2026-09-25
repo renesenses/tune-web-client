@@ -833,6 +833,8 @@ export default {
   "credits.block.autres": "További közreműködők",
   "credits.noneTrack": "Ehhez a számhoz nincs ismert közreműködő — a MusicBrainz-bővítés hozzáadhat.",
   "credits.noneAlbum": "Ehhez az albumhoz nincs ismert közreműködő — a MusicBrainz-bővítés hozzáadhat.",
+  "credits.noneService": "A szolgáltatás nem ad közreműködőket ehhez a számhoz vagy albumhoz.",
+  "credits.serviceUnavailable": "Ez a szolgáltatás nem ad közreműködőket, vagy a Tune-szerver túl régi az olvasásukhoz.",
   "credits.onTracks": "számok: {liste}",
   "credits.writer": "Szövegíró",
   "credits.vocal": "Ének",
