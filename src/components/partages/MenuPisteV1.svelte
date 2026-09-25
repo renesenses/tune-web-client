@@ -37,7 +37,7 @@
   import * as api from '../../lib/api';
   import { corpsDeFile, corpsDeLecture, estPisteLocale } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
-  import { queuePosition } from '../../lib/stores/queue';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
   import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
@@ -290,7 +290,7 @@
       onPlay={() => void lire()}
       onBan={() => void bannir(piste)}
       onUnban={() => void debannir(piste)}
-      onPlayNext={() => void enfiler(get(queuePosition) + 1, 'v2.pa.queuedNext')}
+      onPlayNext={() => void enfiler(rangLireEnsuite(), 'v2.pa.queuedNext')}
       onAddToQueue={() => void enfiler(undefined, 'v2.pa.queued')}
       onPlaySimilar={() => void plusCommeCa()}
       onOtherVersions={() => (panneauVersions = true)}

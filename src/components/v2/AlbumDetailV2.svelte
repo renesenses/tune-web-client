@@ -34,7 +34,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
-  import { queuePosition } from '../../lib/stores/queue';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
   import { favoriteAlbumIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
@@ -743,7 +743,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   const addQueue = () => enfiler(undefined, 'v2.album.queued');
   /** « Lire ensuite » insère au rang SUIVANT celui qui joue. Sans rang, la
    *  route ajoute à la fin — ce serait le bouton d'à côté. */
-  const lireEnsuite = () => enfiler(get(queuePosition) + 1, 'v2.album.queuedNext');
+  const lireEnsuite = () => enfiler(rangLireEnsuite(), 'v2.album.queuedNext');
   /**
    * PRÉSENTATION DE L'ALBUM — renesenses/tune-server-rust#3586, FabienM,
    * fil forum 1697 : « Les artistes ont leur biographie, il serait également
