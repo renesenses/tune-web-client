@@ -852,7 +852,13 @@
       </section>
     {/if}
 
-    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length}
+    <!-- L'enveloppe doit citer TOUTES les sections que `DiscographieCommune`
+         sait rendre, sinon une section chargée reste invisible faute d'en-tête.
+         `collaborations` et `reprises` (#4767) y manquaient : un artiste sans
+         disque à lui — musicien de séance, compositeur, ingénieur — n'a que
+         celles-là, et c'est précisément le profil que la passe des crédits
+         fait apparaître. -->
+    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length || collaborations.length || reprises.length}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
       <!-- Le filtre « Source » s'applique DANS la grille commune (#4330, #4201) :
            le poser sur la seule bibliothèque cachait tous les services. -->
