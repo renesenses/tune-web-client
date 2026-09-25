@@ -21,6 +21,8 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireListe } from '../../lib/lectureEnMasse';
+  import { corpsDeFileListe } from '../../lib/pisteFile';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { CLES_TRI_PISTES, LIBELLES_TRI_PISTES, trierPistes, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
   import { favoritePlaylistIds, favoriteStreamingKeys, streamingFavKey } from '../../lib/stores/profile';
@@ -213,12 +215,39 @@
       playAndSync(zid, { streaming_playlist_id: item.pl.source_id, source: item.service as any, start_index: startIndex }).catch(signalerEchecLecture);
     }
   }
-  function addQueue() {
+  /**
+   * Les deux boutons de file — « Lire ensuite » (#1574, FabienM, fil 1924) et
+   * « Ajouter à la file » —, le même geste que la fiche album : UNE requête,
+   * la liste entière, avec ou sans rang.
+   *
+   * 🔴 `corpsDeFileListe`, pas `track_ids` seuls. « Ajouter à la file »
+   * n'envoyait que les pistes portant un `id` local : sur une playlist de
+   * SERVICE (Qobuz, Tidal…), dont les pistes n'en ont pas, il n'envoyait rien,
+   * et sans un mot. Les pistes locales partent en `track_ids`, celles de
+   * service en `tracks[]` (paire `source` + `source_id`), dans le même
+   * `insert_at` côté serveur — une playlist mixte garde son ordre.
+   *
+   * L'ordre envoyé est celui AFFICHÉ (`pistesVues`), comme « Lire » sur une
+   * liste triée.
+   */
+  let fileOccupee = $state(false);
+  async function enfiler(position: number | undefined, cle: string) {
     const zid = zoneRequise();
-    if (zid == null) return;
-    const ids = tracks.map((t) => t.id).filter((x): x is number => x != null);
-    if (ids.length) api.addToQueue(zid, { track_ids: ids }).catch(() => {});
+    if (zid == null || fileOccupee) return;
+    const corps = corpsDeFileListe(pistesVues, position);
+    if (!corps) { notifications.error($tr('library.noTracks')); return; }
+    fileOccupee = true;
+    try {
+      await api.addToQueue(zid, corps);
+      notifications.success($tr(cle as any).replace('{title}', title ?? ''));
+    } catch {
+      notifications.error($tr('v2.pa.queueError' as any));
+    }
+    fileOccupee = false;
   }
+  const addQueue = () => enfiler(undefined, 'v2.album.queued');
+  /** « Lire ensuite » : toute la playlist, juste après le titre en cours. */
+  const lireEnsuite = () => enfiler(rangLireEnsuite(), 'v2.album.queuedNext');
   function commitRename() {
     if (item.kind !== 'local' || item.pl.id == null) { renaming = false; return; }
     const name = draft.trim();
@@ -317,7 +346,12 @@
           title={$tr('library.shuffle')}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>{$tr('library.shuffle')}
         </button>
-        <button class="ghost" onclick={addQueue}>
+        <!-- « Lire ensuite » — #1574 : le geste de la fiche album, même icône,
+             même libellé, même rang (`rangLireEnsuite`). -->
+        <button class="ghost lire-ensuite" onclick={lireEnsuite} disabled={fileOccupee}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h9M4 12h9M4 18h5"/><path d="M15 8l5 4-5 4z" fill="currentColor" stroke="none"/></svg>{$tr('v2.album.playNext' as any)}
+        </button>
+        <button class="ghost" onclick={addQueue} disabled={fileOccupee}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h13M4 11h13M4 16h8M18 15l3 2-3 2z"/></svg>{$tr('v2.ms.addToQueue' as any)}
         </button>
         <!-- Le CŒUR d'abord : il vaut pour les deux sortes de playlist, la
