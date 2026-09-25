@@ -266,7 +266,7 @@
         <div class="ghead">
           <button class="ghtitle" onclick={() => toggle(f)}>
             <svg class="chev" class:closed={!isOpen(f)} viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
-            {$t('oxygen.facet.' + f)}
+            <span class="ghlabel">{$t('oxygen.facet.' + f)}</span>
           </button>
           <span class="gn">{folderChildren.length}</span>
         </div>
@@ -284,7 +284,7 @@
           <button class="ghtitle" onclick={() => toggle(f)}
                   title={f === 'dr' ? $t('oxygen.facet.drHelp') : undefined}>
             <svg class="chev" class:closed={!isOpen(f)} viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg>
-            {$t('oxygen.facet.' + f)}
+            <span class="ghlabel">{$t('oxygen.facet.' + f)}</span>
           </button>
           <!-- Le bouton annonce l'ACTION, pas l'état courant : « # » au-dessus
                d'une colonne de nombres se lisait comme un en-tête de colonne, et
@@ -362,6 +362,10 @@
   .group { margin-bottom: 4px; }
   .ghead { display: flex; align-items: center; gap: 6px; width: 100%; padding: 9px 8px 5px; }
   .ghtitle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; background: none; border: 0; color: var(--tune-text); font: inherit; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; padding: 0; cursor: pointer; text-align: left; }
+  /* #5075 : le libellé dans son propre élément, qui rétrécit et s'élide. Nu
+     dans le bouton, c'était un élément flex anonyme large d'un mot entier :
+     quand « Tout afficher » s'ajoutait, « COMPOSITEURS » débordait sur « A→Z ». */
+  .ghlabel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sortbtn { background: none; border: 0; color: var(--tune-text-muted); font: inherit; font-size: 10px; font-weight: 700; letter-spacing: .02em; padding: 1px 5px; border-radius: 5px; cursor: pointer; flex: none; }
   .sortbtn:hover { color: var(--tune-accent); background: var(--tune-surface-hover); }
   /* Nombre de valeurs cochées + « tout décocher ». Discret tant qu'on ne le

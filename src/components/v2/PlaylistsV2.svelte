@@ -30,7 +30,7 @@
   import { notifications } from '../../lib/stores/notifications';
   import { dialogs } from '../../lib/stores/dialogs';
   import PochetteActions from './PochetteActions.svelte';
-  import { cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
+  import { cibleEtiquettePlaylist, cibleSmartPlaylist } from '../../lib/cibleEtiquette';
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
@@ -751,11 +751,15 @@
               {@const mos = sp.id != null ? smartMosaiques[sp.id] : undefined}
               <div class="card local">
                 <span class="cv" class:img={!!mos}>
-                  <!-- Ni favori ni étiquette : une playlist intelligente est
-                       une RÈGLE, elle n'a pas d'identité dans `favorites` ni
-                       dans `item_tags`. Un cœur qui ne s'allume pas serait
-                       pire que pas de cœur. -->
+                  <!-- Le cœur et les étiquettes, sous leur type DISTINCT
+                       (`smartPlaylistId`, `smart_playlist`) : le serveur les
+                       tient depuis #4798, et l'écran des playlists
+                       intelligentes les posait déjà. Cet onglet les omettait
+                       encore — or le widget « Smart playlists favorites » de
+                       l'Accueil (25/09/2026) se remplit de ce cœur-là. -->
                   <PochetteActions onLire={() => lireSmart(sp)} nom={sp.name}
+                    favori={sp.id != null ? { smartPlaylistId: sp.id } : null}
+                    etiquettes={sp.id != null ? cibleSmartPlaylist(sp.id) : null}
                     onEditer={sp.id != null ? () => (editeurSmart = { id: sp.id }) : null}
                     menu={[{ libelle: $t('library.shuffle' as any), faire: () => lireSmart(sp, true) },
                            { libelle: $t('common.delete'), danger: true, faire: () => void supprimerSmart(sp) }]}>

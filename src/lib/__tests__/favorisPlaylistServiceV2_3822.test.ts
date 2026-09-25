@@ -82,8 +82,12 @@ describe('#3822 — une playlist de service réapparaît dans les Favoris', () =
     const { resolve } = await import('node:path');
     const src = readFileSync(resolve(process.cwd(), 'src/components/v2/FavoritesV2.svelte'), 'utf-8');
     // La fonction existe depuis #2370 et porte 17 assertions : la dupliquer
-    // aurait créé deux vérités sur la même fusion.
-    expect(src).toContain('fusionnerPlaylistsFavorites(');
+    // aurait créé deux vérités sur la même fusion. Depuis les widgets de
+    // l'Accueil (25/09/2026), l'appel vit dans `favorisFusionnes`, que
+    // l'écran appelle — comme les widgets.
+    const lib = readFileSync(resolve(process.cwd(), 'src/lib/favorisFusionnes.ts'), 'utf-8');
+    expect(lib).toContain('fusionnerPlaylistsFavorites(');
+    expect(src).toContain('playlistsFavorites(fusion)');
     expect(src, 'la ligne qui ne lisait que la bibliothèque est revenue')
       .not.toContain('playlists = f.playlists ?? [];');
   });

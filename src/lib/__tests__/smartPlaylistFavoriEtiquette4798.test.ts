@@ -80,8 +80,12 @@ describe('Écrans Favoris et Étiquettes — une playlist intelligente cliquable
   const etiquettes = lire('components/v2/EtiquettesV2.svelte');
 
   it('les Favoris lisent les identifiants et les apparient par la SORTE', () => {
-    expect(favoris).toContain('f.smartPlaylistIds');
-    expect(favoris).toContain('api.getSmartPlaylists()');
+    // Le chargement vit dans `favorisFusionnes` depuis les widgets de
+    // l'Accueil (25/09/2026) : l'écran l'appelle, les widgets aussi.
+    const lib = lire('lib/favorisFusionnes.ts');
+    expect(lib).toContain('f?.smartPlaylistIds');
+    expect(lib).toContain('api.getSmartPlaylists()');
+    expect(favoris).toContain('smartPlaylistsFavorites(fusion)');
     expect(favoris).toContain('$favoriteSmartPlaylistIds.has(p.id)');
   });
 

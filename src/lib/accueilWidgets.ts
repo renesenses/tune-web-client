@@ -24,13 +24,27 @@
  * forme : « album_title » ici, « name » là, « cover_url » ailleurs. Normaliser
  * dans le chargeur laisse au rendu un seul cas à traiter.
  */
+import type { Component } from 'svelte';
 import * as api from './api';
 import { estSourceDeBibliotheque } from './provenanceBibliotheque';
 import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
 import { estAParaitre } from './albumAParaitre';
 import { CHOIX_DEFAUT, cartes, sourcesNecessaires } from './chiffresAccueil';
-import { chargerFavorisFusionnes } from './favorisFusionnes';
+import {
+  chargerFavorisFusionnes,
+  collectionsFavorites,
+  playlistsFavorites,
+  smartPlaylistsFavorites,
+  type FavorisFusionnes,
+} from './favorisFusionnes';
+import { get } from 'svelte/store';
+import { t } from './i18n';
+import { collectionNomAffiche } from './collectionsLibelles';
+import { quatreDistinctes } from './mosaique';
+import { lireListe } from './lectureEnMasse';
+import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
+import type { RefLocale } from './favorisLocaux';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -59,7 +73,7 @@ export interface Element {
    * streaming », et « quand je clique sur la zone d'écoute active cela
    * m'ouvre l'écran Now playing ».
    */
-  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | null;
+  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | 'cible' | 'lire' | null;
   /**
    * Nom de l'artiste à ouvrir, quand `ouvrir` vaut `artiste`. Un NOM et pas un
    * identifiant : les classements viennent de l'historique, qui n'en porte
@@ -108,6 +122,42 @@ export interface Element {
    * cartes de zones : le registre reste plat, la forme range.
    */
   colonne?: 'artistes' | 'albums' | 'titres';
+  /**
+   * L'ARTISTE entier, quand on l'a — widget « Artistes favoris ».
+   *
+   * Un classement n'a qu'un nom (`artiste`) ; un favori porte son `id` de
+   * bibliothèque, ou la paire `source` / `source_id` d'un service. Avec
+   * l'objet, `ouvrirArtisteDepuis` mène à la PAGE ARTISTE COMMUNE (#1494) ou
+   * à la fiche du service, sans rapprochement par le nom.
+   */
+  artisteObjet?: any;
+  /**
+   * Un objet d'un AUTRE écran à rouvrir précisément, quand `ouvrir` vaut
+   * `cible` — playlist locale, playlist intelligente, collection, collection
+   * intelligente. La SORTE voyage avec le numéro : les espaces d'identifiants
+   * se recouvrent deux à deux (#4798, collections).
+   */
+  cible?: {
+    sorte: 'playlist' | 'smart_playlist' | 'collection' | 'smart_collection';
+    id: number;
+    nom: string;
+  };
+  /** Le cœur d'un objet de la BIBLIOTHÈQUE qui n'est pas un album. */
+  favoriLocal?: RefLocale | null;
+  /** Les étiquettes d'un objet qui n'est pas un album. `undefined` = la règle
+   *  des albums et des playlists de service s'applique. */
+  etiquette?: CibleEtiquette | null;
+  /**
+   * Les pochettes d'une MOSAÏQUE (playlist, collection), quand elles sont
+   * connues d'avance — `covers` des collections sur un serveur qui les rend.
+   */
+  pochettes?: string[];
+  /**
+   * Sinon, où les chercher. Appelé par la vignette APRÈS l'affichage, comme
+   * les écrans Playlists et Collections : la bande n'attend pas une requête
+   * par playlist.
+   */
+  mosaique?: () => Promise<string[]>;
   /** Zone suivie par la vignette — bande « Zones d'écoute actives ». */
   zoneId?: number | null;
   /** Cette zone joue-t-elle ? Pilote le mini-analyseur sous la vignette. */
@@ -118,8 +168,74 @@ export interface Element {
  * `zones-cartes` : une CARTE large par zone, deux fois la largeur d'une
  * vignette de bande. C'est la troisième forme, ajoutée le 06/09/2026 —
  * « Créé un deuxième widget ! » (Bertrand), après la maquette Figma.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * `bloc` : la forme qui rend SON PROPRE BALISAGE — arbitrage de Bertrand du
+ * 25/09/2026, pour le nouvel écran Tableau de bord.
+ *
+ * Les quatre formes ci-dessus rendent toutes des `Element[]` — vignette,
+ * pilule, carte, rang. Un histogramme horaire n'est aucune des quatre : son
+ * information est portée par l'OPACITÉ de vingt-quatre cases, et une carte
+ * jour × heure par une grille de 7 × 24. Les couler dans une bande les
+ * détruirait.
+ *
+ * 🔴 CE QUE `bloc` NE CHANGE PAS — et c'est le point de l'arbitrage.
+ *
+ * La règle « tous horizontaux » écrite en tête de ce fichier reste INTACTE
+ * sur l'Accueil, Qobuz et Tidal. Elle protégeait CES écrans-là : une grille
+ * pour certains et une bande pour d'autres y donnerait « l'air d'un
+ * assemblage de morceaux », et la hauteur y deviendrait imprévisible. Elle
+ * ne protégeait pas un écran qui n'existait pas encore.
+ *
+ * Aucun `forme: 'bloc'` n'a donc le droit d'entrer dans `WIDGETS` ni dans les
+ * catalogues éditoriaux de `widgetsService`. Ce n'est pas une consigne de
+ * commentaire : `__tests__/blocsHorsAccueilQobuzTidal.test.ts` le mesure sur
+ * les trois catalogues réels. Sans cette garde, la règle de Bertrand se
+ * serait érodée à la première commodité.
  */
-export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops';
+export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops' | 'bloc';
+
+/**
+ * CE QUE PORTE UN WIDGET `forme: 'bloc'`, en plus de son identité.
+ *
+ * Trois champs, et chacun ferme un trou :
+ *
+ *  - `composant` — le balisage est À LUI. `PageWidgets` ne sait rien de ce
+ *    qu'il dessine ; il lui remet `donnees` et n'en lit rien. C'est ce qui
+ *    permet de sortir les sections du Tableau de bord sans les redessiner :
+ *    leur balisage et leur CSS existent et sont éprouvés depuis un an.
+ *
+ *  - `hauteur` — la forme DÉCLARE la place qu'elle prend, en pixels. C'est la
+ *    contrepartie exacte de ce que la règle « tous horizontaux » garantissait
+ *    gratuitement : une bande a la hauteur d'une vignette, toujours la même.
+ *    Un bloc n'a pas de hauteur naturelle, donc il l'annonce, et la page la
+ *    réserve AVANT que la matière arrive — sinon l'écran saute sous le doigt
+ *    au fil des onze chargements parallèles.
+ *
+ *  - `donnees` — le chargeur du bloc. À part de `charger`, pour la même raison
+ *    qui avait fait naître `chiffres` : `charger` promet des `Element[]`, et
+ *    la matière d'un bloc n'en est pas une. Élargir son type à `unknown` aurait
+ *    rendu les quatre autres formes non typées.
+ *
+ * ⚠️ `D` est le type de la matière. Le paramètre existe pour que chaque bloc
+ * relie son chargeur à son composant sans `any` au milieu.
+ */
+export interface Bloc<D = any> {
+  /** Le composant Svelte qui DESSINE le bloc. Il reçoit `{ donnees }`. */
+  composant: Component<{ donnees: D | null }>;
+  /**
+   * La hauteur RÉSERVÉE, en pixels. Strictement positive — une garde le
+   * vérifie sur tout le catalogue.
+   *
+   * C'est un plancher (`min-height`), pas un couperet : un bloc qui déborde
+   * s'affiche en entier plutôt que d'être coupé. Ce qu'elle garantit est que
+   * la page ne se réorganise pas sous les yeux pendant le chargement.
+   */
+  hauteur: number;
+  /** La matière du bloc. Peut lever : `PageWidgets` l'attrape, comme ailleurs. */
+  donnees: (ctx: Contexte) => Promise<D>;
+}
 
 export interface Widget {
   id: string;
@@ -160,6 +276,15 @@ export interface Widget {
    * renommage d'identifiant sans qu'aucun test ne le voie.
    */
   categorie?: 'playlists-editoriales' | 'a-moi';
+  /**
+   * Le rendu propre d'un widget `forme: 'bloc'` — 25/09/2026.
+   *
+   * Facultatif au même titre que `chiffres`, et pour la même raison : les
+   * dix-neuf widgets écrits avant cette date restent valides sans y toucher.
+   * `PageWidgets` ne lit ce champ QUE sur `forme === 'bloc'`, et un bloc qui
+   * l'oublierait retombe sur « (vide) » plutôt que de casser la page.
+   */
+  bloc?: Bloc;
 }
 
 /**
@@ -569,8 +694,14 @@ const liste = (r: any): any[] =>
  */
 const utiles = (els: Element[]): Element[] => els.filter((e) => e.titre !== '—' || e.cover);
 
-/** Combien de rangs par colonne du gros widget des tops. */
-const RANG_TOPS = 5;
+/**
+ * Combien de rangs par colonne du gros widget des tops.
+ *
+ * Bertrand, 25/09/2026 : cinquante, comme `LIMITE`. Les colonnes défilent
+ * dans leur propre hauteur (`PageWidgets`, `.topcol ol`) : cinquante lignes
+ * n'allongent pas la page.
+ */
+const RANG_TOPS = 50;
 
 /**
  * Ce qu'on DEMANDE au tableau de bord, et sur quelle période.
@@ -603,7 +734,14 @@ const RANG_TOPS = 5;
  * à la merci d'une machine chargée. Le vrai correctif est là-bas.
  */
 const PERIODE_TOPS = '7d' as const;
-const TOPS_DEMANDES = 12;
+/**
+ * 🔴 CINQUANTE depuis le 25/09/2026 (Bertrand) — MESURÉ d'abord sur le .18 en
+ * v0.9.165 : `top_n=50` rend 50 artistes, 50 albums et 50 titres en 0,2 s
+ * sur 7 jours comme sur 30. Le coût de ~300 ms par entrée décrit plus haut
+ * n'existe plus. La route n'a pas de plafond (`LIMIT {top_n}`, défaut 10) :
+ * cinquante passe tel quel.
+ */
+const TOPS_DEMANDES = 50;
 
 /** Les quatre chiffres de la semaine, dans l'ordre d'affichage. */
 const CHIFFRES_SEMAINE = ['lectures', 'heures-ecoutees', 'titres-ecoutes', 'artistes-ecoutes'] as const;
@@ -620,9 +758,17 @@ const CHIFFRES_SEMAINE = ['lectures', 'heures-ecoutees', 'titres-ecoutes', 'arti
  * juste après une écoute lui aurait resservi les anciens chiffres, sans
  * qu'il comprenne pourquoi. Dédoublonner ce qui est simultané, oui ; mettre
  * en cache, non — ce n'est pas la même chose.
+ *
+ * 🔴 EXPORTÉ le 25/09/2026 pour le nouvel écran Tableau de bord, dont les
+ * ONZE blocs vivent tous de cette même réponse. Sans le partage, ouvrir
+ * l'écran lancerait onze fois la requête AU MÊME INSTANT — `PageWidgets`
+ * charge ses widgets en parallèle — sur une route qui coûte déjà ~300 ms par
+ * entrée de classement. Avec lui, l'écran entier tient en UNE requête, et
+ * elle est même partagée avec les extraits de l'Accueil quand la période
+ * coïncide.
  */
 const EN_VOL = new Map<string, Promise<api.DashboardData>>();
-function tableauDeBord(periode: api.DashboardPeriod): Promise<api.DashboardData> {
+export function tableauDeBord(periode: api.DashboardPeriod): Promise<api.DashboardData> {
   const deja = EN_VOL.get(periode);
   if (deja) return deja;
   const promesse = api
@@ -737,6 +883,188 @@ function elementPisteFavorite(o: any, i: number): Element {
         ? (z: number) => api.play(z, { source: svc as any, source_id: sid })
         : undefined;
   return { ...el, jouer };
+}
+
+/**
+ * ── LES SIX WIDGETS DE FAVORIS PAR TYPE (Bertrand, 25/09/2026) ─────────────
+ *
+ * « Artistes favoris, Pistes favorites, Playlists favorites, Smart playlists
+ * favorites, Collections favorites, Smart collections favorites. »
+ *
+ * « Vos favoris » reste tel quel : une bande d'albums, repliée sur artistes
+ * puis pistes (#1509). Ces six-là montrent CHACUN un seau, et le lisent par le
+ * MÊME chargeur que l'écran Favoris (`favorisFusionnes`) — bibliothèque ET
+ * services pour les artistes, les pistes et les playlists.
+ *
+ * Tous les types sont favorisables côté serveur : `favorites.item_type` est
+ * libre (`smart_playlist`, `collection`, `smart_collection` — prouvé par
+ * `smart_playlist_favori_etiquette_4798.rs`), et `streaming_favorites` prend
+ * `artist`, `track` et `playlist`.
+ */
+
+/**
+ * Au plus TROIS mosaïques en vol à la fois. Cinquante playlists favorites,
+ * c'est cinquante lectures de pistes — une par playlist, le serveur ne rend
+ * aucune pochette avec la liste. Les lâcher d'un coup encombrerait le serveur
+ * au moment précis où l'accueil charge ses autres widgets.
+ */
+const EN_VOL_MOSAIQUES = 3;
+let mosaiquesEnVol = 0;
+const mosaiquesEnAttente: Array<() => void> = [];
+function enFileMosaique<T>(faire: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resoudre, rejeter) => {
+    const lancer = () => {
+      mosaiquesEnVol++;
+      faire()
+        .then(resoudre, rejeter)
+        .finally(() => {
+          mosaiquesEnVol--;
+          mosaiquesEnAttente.shift()?.();
+        });
+    };
+    if (mosaiquesEnVol < EN_VOL_MOSAIQUES) lancer();
+    else mosaiquesEnAttente.push(lancer);
+  });
+}
+
+/** Un chargeur de favoris par seau : sans profil, rien — et aucun appel. */
+function parSeau(extraire: (f: FavorisFusionnes) => Promise<Element[]> | Element[]) {
+  return async (ctx: Contexte): Promise<Element[]> => {
+    if (ctx.profileId == null) return [];
+    return extraire(await chargerFavorisFusionnes(ctx.profileId));
+  };
+}
+
+/**
+ * Un ARTISTE favori. Il s'ouvre par l'OBJET (`artisteObjet`) : la page
+ * artiste commune pour un artiste de la bibliothèque, la fiche du service
+ * pour un artiste de service — le chemin de l'écran Favoris
+ * (`ouvrirArtisteDepuis`).
+ */
+function elementArtisteDuSeau(o: any, i: number): Element {
+  const local = idLocalValide(o?.id);
+  const svc = local == null ? serviceDistant(champ(o, 'source') ?? null) : null;
+  const sid = champ(o, 'source_id');
+  return {
+    ...versElement(o, i, 'fart', { genre: 'aucun' }),
+    ouvrir: 'artiste',
+    artiste: champ(o, 'name'),
+    artisteObjet: o,
+    favoriLocal: local != null ? { artistId: local } : null,
+    favoriDistant: svc && sid ? { itemType: 'artist', serviceId: sid } : null,
+    etiquette: local != null ? { itemType: 'artist', itemId: local } : null,
+  };
+}
+
+/** Une PISTE favorite : un clic la JOUE (`ouvrir: 'lire'`). */
+function elementPisteDuSeau(o: any, i: number): Element {
+  const el = elementPisteFavorite(o, i);
+  const local = idLocalValide(o?.id);
+  const svc = local == null ? serviceDistant(champ(o, 'source') ?? null) : null;
+  const sid = champ(o, 'source_id');
+  return {
+    ...el,
+    id: `ftrk${i}-${champ(o, 'id', 'source_id') ?? ''}`,
+    ouvrir: el.jouer ? 'lire' : null,
+    favoriLocal: local != null ? { trackId: local } : null,
+    favoriDistant: svc && sid ? { itemType: 'track', serviceId: sid } : null,
+    etiquette: null,
+  };
+}
+
+/**
+ * Une PLAYLIST favorite, de la bibliothèque ou d'un service.
+ *
+ *  - de SERVICE (`id` nul) : `versElement` en genre `playlist` — la fiche de
+ *    service (#1108), la lecture par `streaming_playlist_id`, le cœur de
+ *    `streaming_favorites` ; la pochette vient du service ;
+ *  - de la BIBLIOTHÈQUE : son écran Playlists, rouvert sur ELLE ; la lecture
+ *    par `playlist_id` ; une MOSAÏQUE tirée de ses pistes, comme sa vignette
+ *    de l'écran Playlists (le serveur ne rend aucune pochette avec la liste).
+ */
+function elementPlaylistDuSeau(pl: any, i: number): Element {
+  const local = idLocalValide(pl?.id);
+  if (local == null) return versElement(pl, i, 'fpl', { genre: 'playlist' });
+  const nom = champ(pl, 'name') ?? '—';
+  return {
+    id: `fpl${i}-${local}`,
+    titre: nom,
+    cover: null,
+    source: null,
+    jouer: (z: number) => api.play(z, { playlist_id: local }),
+    ouvrir: 'cible',
+    cible: { sorte: 'playlist', id: local, nom },
+    favoriLocal: { playlistId: local },
+    etiquette: { itemType: 'playlist', itemId: local },
+    mosaique: () =>
+      enFileMosaique(async () => quatreDistinctes(((await api.getPlaylistTracks(local)) ?? []) as any[])),
+  };
+}
+
+/**
+ * Une playlist INTELLIGENTE favorite. Pas de route « lire la règle » : on lit
+ * ses pistes et on les enfile, comme son onglet (`lireListe`, 500 au plus).
+ * La mosaïque ne lit que le DÉBUT des pistes — une règle peut en viser des
+ * milliers.
+ */
+function elementSmartPlaylistDuSeau(sp: any, i: number): Element {
+  const id = sp.id as number;
+  const nom = champ(sp, 'name') ?? '—';
+  return {
+    id: `fspl${i}-${id}`,
+    titre: nom,
+    cover: null,
+    source: null,
+    jouer: async (z: number) => {
+      const pistes = ((await api.getSmartPlaylistTracks(id)) ?? []).slice(0, 500);
+      if (!pistes.length) return;
+      return lireListe(pistes as any, {
+        lire: (c: any) => api.play(z, c),
+        enfiler: (c: any) => api.addToQueue(z, c),
+      });
+    },
+    ouvrir: 'cible',
+    cible: { sorte: 'smart_playlist', id, nom },
+    favoriLocal: { smartPlaylistId: id },
+    etiquette: cibleSmartPlaylist(id),
+    mosaique: () =>
+      enFileMosaique(async () =>
+        quatreDistinctes((((await api.getSmartPlaylistTracks(id)) ?? []) as any[]).slice(0, 60)),
+      ),
+  };
+}
+
+/**
+ * Une COLLECTION favorite, dossier ou intelligente — la sorte vient du seau,
+ * jamais du numéro. Son nom passe par `collectionNomAffiche` : « favorites »
+ * s'affiche traduit, comme sur l'écran Collections. La mosaïque prend
+ * `covers` quand le serveur le rend, sinon lit ses albums APRÈS l'affichage
+ * (le repli de `CollectionsV2`). Un clic ouvre la collection ; la lecture,
+ * elle, reste à son écran.
+ */
+function elementCollectionDuSeau(c: any, i: number, smart: boolean): Element {
+  const id = c.id as number;
+  const nom = collectionNomAffiche(c ?? {}, (k) => get(t)(k as any)) || '—';
+  const covers: string[] = Array.isArray(c?.covers) ? c.covers.filter(Boolean) : [];
+  return {
+    id: `${smart ? 'fscol' : 'fcol'}${i}-${id}`,
+    titre: nom,
+    cover: null,
+    source: null,
+    ouvrir: 'cible',
+    cible: { sorte: smart ? 'smart_collection' : 'collection', id, nom },
+    favoriLocal: smart ? { smartCollectionId: id } : { collectionId: id },
+    etiquette: { itemType: smart ? 'smart_collection' : 'collection', itemId: id },
+    pochettes: covers,
+    mosaique: covers.length
+      ? undefined
+      : () =>
+          enFileMosaique(async () =>
+            quatreDistinctes(
+              ((smart ? await api.getSmartCollectionAlbums(id) : await api.getCollectionAlbums(id)) ?? []) as any[],
+            ),
+          ),
+  };
 }
 
 export const WIDGETS: Widget[] = [
@@ -1002,6 +1330,63 @@ export const WIDGETS: Widget[] = [
       if (artistes.length) return artistes;
       return utiles(f.tracks.slice(0, LIMITE).map((o: any, i: number) => elementPisteFavorite(o, i)));
     },
+  },
+  {
+    id: 'favoris-artistes',
+    cleTitre: 'v2.home.wFavArtists',
+    forme: 'bande',
+    charger: parSeau((f) =>
+      utiles(f.artists.slice(0, LIMITE).map((o: any, i: number) => elementArtisteDuSeau(o, i))),
+    ),
+  },
+  {
+    id: 'favoris-pistes',
+    cleTitre: 'v2.home.wFavTracks',
+    forme: 'bande',
+    charger: parSeau((f) =>
+      utiles(f.tracks.slice(0, LIMITE).map((o: any, i: number) => elementPisteDuSeau(o, i))),
+    ),
+  },
+  {
+    id: 'favoris-playlists',
+    cleTitre: 'v2.home.wFavPlaylists',
+    forme: 'bande',
+    charger: parSeau((f) =>
+      utiles(playlistsFavorites(f).slice(0, LIMITE).map((o: any, i: number) => elementPlaylistDuSeau(o, i))),
+    ),
+  },
+  {
+    id: 'favoris-smart-playlists',
+    cleTitre: 'v2.home.wFavSmartPlaylists',
+    forme: 'bande',
+    charger: parSeau(async (f) =>
+      (await smartPlaylistsFavorites(f))
+        .filter((sp: any) => idLocalValide(sp?.id) != null)
+        .slice(0, LIMITE)
+        .map((sp: any, i: number) => elementSmartPlaylistDuSeau(sp, i)),
+    ),
+  },
+  {
+    id: 'favoris-collections',
+    cleTitre: 'v2.home.wFavCollections',
+    forme: 'bande',
+    charger: parSeau(async (f) =>
+      (await collectionsFavorites(f)).collections
+        .filter((c: any) => idLocalValide(c?.id) != null)
+        .slice(0, LIMITE)
+        .map((c: any, i: number) => elementCollectionDuSeau(c, i, false)),
+    ),
+  },
+  {
+    id: 'favoris-smart-collections',
+    cleTitre: 'v2.home.wFavSmartCollections',
+    forme: 'bande',
+    charger: parSeau(async (f) =>
+      (await collectionsFavorites(f)).smartCollections
+        .filter((c: any) => idLocalValide(c?.id) != null)
+        .slice(0, LIMITE)
+        .map((c: any, i: number) => elementCollectionDuSeau(c, i, true)),
+    ),
   },
   {
     id: 'recommandations',
