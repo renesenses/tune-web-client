@@ -211,7 +211,8 @@ describe('« Vos tops » — les lignes sont des gestes', () => {
     const recherche = appels.find((a) => a.url.includes('/library/search'));
     expect(recherche, 'le clic sur l’artiste n’a rien cherché').toBeTruthy();
     expect(decodeURIComponent(recherche!.url)).toContain('q=Dionne Warwick');
-    // Pas de correspondance exacte : l'onglet Artistes de la bibliothèque.
+    // Pas de correspondance exacte : la Bibliothèque, sans fiche ouverte —
+    // le rapprochement et la fiche sont gardés par `accueilTopsPageArtiste`.
     expect(get(activeView)).toBe('library');
   });
 
