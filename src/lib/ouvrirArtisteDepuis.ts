@@ -22,7 +22,7 @@ import {
   vueDeRetour,
   type View,
 } from './stores/navigation';
-import { ficheArtisteService } from './stores/streaming';
+import { ficheAlbumDeRetour, ficheArtisteService, type CibleFicheAlbumService } from './stores/streaming';
 import { trouverArtisteExact } from './libraryNavigation';
 import { estDeBibliotheque } from './provenanceBibliotheque';
 import { cleServeur } from './ongletsStreaming';
@@ -56,6 +56,7 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
   }
   if (a.source && a.source_id) {
     vueDeRetour.set(depuis);
+    ficheAlbumDeRetour.set(null);
     ficheArtisteService.set({ service: a.source as Source, id: String(a.source_id), nom: a.name ?? '' });
     activeView.set('streamingartist');
     return;
@@ -72,6 +73,7 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
     return;
   }
   vueDeRetour.set(depuis);
+  ficheAlbumDeRetour.set(null);
   activeView.set('library');
 }
 
@@ -124,8 +126,14 @@ export async function ouvrirArtisteDepuis(a: any, depuis: View, options: Options
 export async function ouvrirArtisteDeServiceParNom(
   cible: { service: string; nom: string; id?: string | null },
   depuis: View,
-  options: { chercher?: ChercherArtistes } = {},
+  options: { chercher?: ChercherArtistes; ficheDeRetour?: CibleFicheAlbumService | null } = {},
 ): Promise<void> {
+  // web#1602 — la fiche album à rouvrir au Retour, posée avec `vueDeRetour`
+  // et seulement quand la page artiste s'ouvre vraiment.
+  const poserRetour = () => {
+    vueDeRetour.set(depuis);
+    ficheAlbumDeRetour.set(options.ficheDeRetour ? { fiche: options.ficheDeRetour, depuis } : null);
+  };
   // La clé du SERVEUR, jamais celle de l'onglet — voir l'en-tête.
   const service = cleServeur(cible?.service);
   if (!service) return;
@@ -134,7 +142,7 @@ export async function ouvrirArtisteDeServiceParNom(
   // #956 — l'identifiant du service est déjà là (album ou piste servis par le
   // service) : on ouvre la fiche sans rien deviner.
   if (cible?.id != null && String(cible.id).trim() !== '') {
-    vueDeRetour.set(depuis);
+    poserRetour();
     ficheArtisteService.set({ service: service as Source, id: String(cible.id).trim(), nom: c.nom });
     activeView.set('streamingartist');
     return;
@@ -165,10 +173,11 @@ export async function ouvrirArtisteDeServiceParNom(
     notifications.info(messageRepli(issue.raison, c, get(t)));
     setSearchCriteria({ q: c.nom, source: service });
     pendingSearchQuery.set(c.nom);
+    ficheAlbumDeRetour.set(null);
     activeView.set('search');
     return;
   }
-  vueDeRetour.set(depuis);
+  poserRetour();
   ficheArtisteService.set({ service: service as Source, id: issue.id, nom: c.nom });
   activeView.set('streamingartist');
 }
@@ -331,6 +340,7 @@ export function ouvrirFicheArtisteLocale(
   provenance?: string | null,
 ): void {
   vueDeRetour.set(depuis);
+  ficheAlbumDeRetour.set(null);
   ficheArtisteService.set({
     service: null,
     id: String(id),
