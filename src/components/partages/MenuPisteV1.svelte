@@ -42,8 +42,9 @@
   import { activeView, gestesNavigationService, pendingLibraryAlbum } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { albumDeServiceDe } from '../../lib/routageAlbum';
-  import { pisteDeServiceDe } from '../../lib/champsPisteService';
+  import { pisteDeServiceDe, type PisteDeService } from '../../lib/champsPisteService';
   import { lirePlusCommeCaDeService, plusCommeCaDeServiceDe } from '../../lib/plusCommeCaService';
+  import { creditsDeServiceDe, servicesCreditsRefuses } from '../../lib/creditsService';
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
@@ -86,6 +87,12 @@
   let tiroirChamps = $state(false);
   /** La fiche « Crédits » du titre — #1572. Bibliothèque seule. */
   let tiroirCredits = $state(false);
+  /**
+   * #4993 — le titre de service relevé AU CLIC. Pas `pisteCredits` en direct :
+   * un refus (501/404) retire l'entrée, et le tiroir se refermerait avant
+   * d'avoir pu dire pourquoi.
+   */
+  let creditsDuService = $state.raw<PisteDeService | null>(null);
   const local = $derived(estPisteLocale(piste));
   /**
    * Les routes de bibliothèque — voisins acoustiques, autres versions, champs
@@ -188,11 +195,14 @@
   const pisteService = $derived(local ? null : pisteDeServiceDe(piste));
   /** Fil forum 1906 — « Plus comme ça » d'un titre Qobuz (`lib/plusCommeCaService`). */
   const pisteSimilaires = $derived(local ? null : plusCommeCaDeServiceDe(piste));
+  /** #4993 — « Voir les crédits » d'un titre de service (`lib/creditsService`). */
+  const pisteCredits = $derived(local ? null : creditsDeServiceDe(piste, $servicesCreditsRefuses));
   const capacites = $derived({
     jouable,
     idBibliotheque,
     champsDeService: pisteService != null,
     similairesDeService: pisteSimilaires != null,
+    creditsDeService: pisteCredits != null,
     // Une capacité qui ne tient que si quelqu'un sait la faire : voir plus haut.
     artistId: allerArtiste ? 1 : null,
     albumId: allerAlbum ? 1 : null,
@@ -304,7 +314,7 @@
       onGoToAlbum={allerAlbum}
       onTag={() => (panneauEtiquettes = true)}
       onChampsDuFichier={() => (tiroirChamps = true)}
-      onVoirCredits={() => (tiroirCredits = true)}
+      onVoirCredits={() => { creditsDuService = pisteCredits; tiroirCredits = true; }}
     />
   {/if}
 </div>
@@ -337,10 +347,10 @@
   {/await}
 {/if}
 <!-- #1572 — la MÊME fiche que `PisteActions`, sur l'`i64` de bibliothèque. -->
-{#if tiroirCredits && idBibliotheque != null}
+{#if tiroirCredits && (idBibliotheque != null || creditsDuService)}
   {#await import('./CreditsTiroir.svelte') then m}
     <m.default
-      cible={{ type: 'piste', trackId: idBibliotheque, titre: piste.title, artiste: piste.artist_name ?? null, album: piste.album_title ?? null }}
+      cible={{ type: 'piste', trackId: idBibliotheque, service: idBibliotheque != null ? null : creditsDuService, titre: piste.title, artiste: piste.artist_name ?? null, album: piste.album_title ?? null }}
       onClose={() => (tiroirCredits = false)} />
   {/await}
 {/if}

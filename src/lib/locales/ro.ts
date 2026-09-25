@@ -764,6 +764,8 @@ export default {
   "credits.block.autres": "Alte credite",
   "credits.noneTrack": "Niciun credit cunoscut pentru această piesă — îmbogățirea MusicBrainz poate adăuga.",
   "credits.noneAlbum": "Niciun credit cunoscut pentru acest album — îmbogățirea MusicBrainz poate adăuga.",
+  "credits.noneService": "Serviciul nu oferă credite pentru această piesă sau acest album.",
+  "credits.serviceUnavailable": "Acest serviciu nu oferă credite sau serverul Tune este prea vechi pentru a le citi.",
   "credits.onTracks": "piesele {liste}",
   "credits.writer": "Textier",
   "credits.vocal": "Voce",

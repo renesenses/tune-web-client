@@ -758,6 +758,8 @@ export default {
   "credits.block.autres": "其他制作人员",
   "credits.noneTrack": "此曲目暂无制作人员信息——MusicBrainz 补全可以添加。",
   "credits.noneAlbum": "此专辑暂无制作人员信息——MusicBrainz 补全可以添加。",
+  "credits.noneService": "该服务未提供此曲目或专辑的制作人员信息。",
+  "credits.serviceUnavailable": "该服务不提供制作人员信息，或 Tune 服务器版本过旧，无法读取。",
   "credits.onTracks": "曲目 {liste}",
   "credits.writer": "作词",
   "credits.vocal": "人声",

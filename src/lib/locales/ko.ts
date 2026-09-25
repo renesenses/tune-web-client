@@ -758,6 +758,8 @@ export default {
   "credits.block.autres": "기타 크레딧",
   "credits.noneTrack": "이 트랙의 크레딧 정보가 없습니다. MusicBrainz 보강으로 추가할 수 있습니다.",
   "credits.noneAlbum": "이 앨범의 크레딧 정보가 없습니다. MusicBrainz 보강으로 추가할 수 있습니다.",
+  "credits.noneService": "서비스가 이 트랙 또는 앨범의 크레딧을 제공하지 않습니다.",
+  "credits.serviceUnavailable": "이 서비스는 크레딧을 제공하지 않거나, Tune 서버가 너무 오래되어 읽을 수 없습니다.",
   "credits.onTracks": "트랙 {liste}",
   "credits.writer": "작사",
   "credits.vocal": "보컬",

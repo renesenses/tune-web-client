@@ -864,6 +864,8 @@ export default {
   "credits.block.autres": "Autres crédits",
   "credits.noneTrack": "Aucun crédit connu pour ce titre — l’enrichissement MusicBrainz peut en ajouter.",
   "credits.noneAlbum": "Aucun crédit connu pour cet album — l’enrichissement MusicBrainz peut en ajouter.",
+  "credits.noneService": "Le service ne donne aucun crédit pour ce titre ou cet album.",
+  "credits.serviceUnavailable": "Ce service ne fournit pas de crédits, ou le serveur Tune est trop ancien pour les lire.",
   "credits.onTracks": "pistes {liste}",
   "credits.writer": "Parolier",
   "credits.vocal": "Voix",

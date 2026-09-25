@@ -758,6 +758,8 @@ export default {
   "credits.block.autres": "Otros créditos",
   "credits.noneTrack": "No hay créditos conocidos para esta pista: el enriquecimiento con MusicBrainz puede añadirlos.",
   "credits.noneAlbum": "No hay créditos conocidos para este álbum: el enriquecimiento con MusicBrainz puede añadirlos.",
+  "credits.noneService": "El servicio no ofrece créditos para esta pista o este álbum.",
+  "credits.serviceUnavailable": "Este servicio no ofrece créditos, o el servidor Tune es demasiado antiguo para leerlos.",
   "credits.onTracks": "pistas {liste}",
   "credits.writer": "Letrista",
   "credits.vocal": "Voz",

@@ -737,6 +737,8 @@ export default {
   "credits.block.autres": "Övriga medverkande",
   "credits.noneTrack": "Inga kända medverkande för det här spåret — MusicBrainz-berikningen kan lägga till några.",
   "credits.noneAlbum": "Inga kända medverkande för det här albumet — MusicBrainz-berikningen kan lägga till några.",
+  "credits.noneService": "Tjänsten anger inga medverkande för det här spåret eller albumet.",
+  "credits.serviceUnavailable": "Den här tjänsten anger inga medverkande, eller så är Tune-servern för gammal för att läsa dem.",
   "credits.onTracks": "spår {liste}",
   "credits.writer": "Textförfattare",
   "credits.vocal": "Sång",

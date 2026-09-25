@@ -56,6 +56,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { portail } from '../../lib/portail';
+  import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
   // par lui, sans quoi on jouerait un tout autre morceau du meme numero.
@@ -199,9 +200,19 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    * consulter les crédits d'un album »). Les crédits sont ceux des pistes de
    * la BIBLIOTHÈQUE (`track_credits`) : ni dépôt distant — son `id` est celui
    * d'un autre serveur —, ni album de service.
+   *
+   * #4993 — un album de SERVICE aussi, quand son service rend des crédits
+   * (`GET /streaming/{service}/albums/{id}/credits`, Qobuz seul). La règle vit
+   * dans `lib/creditsService` : les services qui répondent 501 (Tidal,
+   * Deezer…) n'ont pas le bouton, Bandcamp et le dépôt distant non plus.
    */
   const creditsPossibles = $derived(album.id != null && !depot && !service && !bandcamp);
+  const creditsDeService = $derived(
+    depot || bandcamp ? null : creditsAlbumDeServiceDe(service, sidDistant, $servicesCreditsRefuses),
+  );
   let creditsOuverts = $state(false);
+  /** Relevé AU CLIC : un refus (501/404) retire le bouton, pas le tiroir ouvert. */
+  let creditsServiceOuvert = $state.raw<AlbumDeServiceCredits | null>(null);
 
   /* ══════════════════════════════════════════════════════════════════════
      « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
@@ -1125,8 +1136,9 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.album.addToCollection' as any)}
           </button>
         {/if}
-        {#if creditsPossibles}
-          <button class="ghost" data-credits-album onclick={() => (creditsOuverts = true)}
+        {#if creditsPossibles || creditsDeService}
+          <button class="ghost" data-credits-album
+            onclick={() => { creditsServiceOuvert = creditsPossibles ? null : creditsDeService; creditsOuverts = true; }}
             aria-haspopup="dialog" aria-expanded={creditsOuverts}
             title={$tr('artist.credits' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -1234,10 +1246,10 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 <!-- #1572 — la fiche « Crédits » de l'album : la même que celle d'un titre,
      agrégée sur le disque. Un nom crédité referme la fiche avant d'ouvrir la
      page de l'artiste (`quitterLaFiche`, comme `allerArtiste`). -->
-{#if creditsOuverts && creditsPossibles && album.id != null}
+{#if creditsOuverts && ((creditsPossibles && album.id != null) || creditsServiceOuvert)}
   {#await import('../partages/CreditsTiroir.svelte') then m}
     <m.default
-      cible={{ type: 'album', albumId: album.id, titre: album.title, artiste: nomArtiste, pistes: tracks }}
+      cible={{ type: 'album', albumId: creditsServiceOuvert ? null : album.id, service: creditsServiceOuvert, titre: album.title, artiste: nomArtiste, pistes: tracks }}
       avantDeNaviguer={quitterLaFiche}
       onClose={() => (creditsOuverts = false)} />
   {/await}
