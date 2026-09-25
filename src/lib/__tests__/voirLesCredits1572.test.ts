@@ -34,10 +34,12 @@ const BIBLIO = {
   id: 2450, source: 'local', title: 'The Meaning of Flowers', artist_name: 'Agnes Obel',
   artist_id: 125, album_id: 259, album_title: 'Myopia', duration_ms: 234000,
 };
-const QOBUZ = {
-  id: null, source: 'qobuz', source_id: '441078583', title: 'Second Song',
+// #4993 : Qobuz a désormais ses crédits de service (`creditsService4993`).
+// Un service qui répond 501 — Tidal — garde l'entrée ABSENTE.
+const TIDAL = {
+  id: null, source: 'tidal', source_id: '441078583', title: 'Second Song',
   artist_name: 'Neil Young', artist_id: '35865', album_title: 'Second Song',
-  album_id: 'atua1kxxk4tis', duration_ms: 360000,
+  album_id: '441078580', duration_ms: 360000,
 };
 
 /** Ce que rend `GET /library/tracks/2450/credits` — la capture de Roon. */
@@ -143,13 +145,13 @@ describe('#1572 — « Voir les crédits » dans le menu d’un titre', () => {
     expect(entreeVoir(menuV2(BIBLIO))).toBeTruthy();
   });
   it('barre v2 : ABSENTE pour un titre de service', () => {
-    expect(entreeVoir(menuV2(QOBUZ))).toBeUndefined();
+    expect(entreeVoir(menuV2(TIDAL))).toBeUndefined();
   });
   it('client actuel : présente pour un titre de la bibliothèque', () => {
     expect(entreeVoir(menuV1(BIBLIO))).toBeTruthy();
   });
   it('client actuel : ABSENTE pour un titre de service', () => {
-    expect(entreeVoir(menuV1(QOBUZ))).toBeUndefined();
+    expect(entreeVoir(menuV1(TIDAL))).toBeUndefined();
   });
 
   it('🔴 le clic ouvre la fiche, groupée par rôle comme chez Roon', async () => {
@@ -248,9 +250,9 @@ describe('#1572 — la fiche, montée seule', () => {
 
 describe('#1572 — le bouton « Crédits » de la fiche album', () => {
   const ALBUM_LOCAL = { id: 259, title: 'Myopia', artist_name: 'Agnes Obel', year: 2020 } as Album;
-  const ALBUM_QOBUZ = {
+  const ALBUM_TIDAL = {
     id: null, title: 'Myopia', artist_name: 'Agnes Obel',
-    source: 'qobuz', source_id: 'kxend2k5wdg06',
+    source: 'tidal', source_id: '139012345',
   } as unknown as Album;
   const boutonCredits = () =>
     [...hote!.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === BOUTON_ALBUM);
@@ -267,8 +269,8 @@ describe('#1572 — le bouton « Crédits » de la fiche album', () => {
     expect(requetes.some((r) => r.url.includes('/library/albums/259/credits'))).toBe(true);
   });
 
-  it('album de service : pas de bouton', async () => {
-    poser(AlbumDetailV2, { album: ALBUM_QOBUZ, service: 'qobuz', onClose: () => {} });
+  it('album d’un service sans crédits (Tidal, 501) : pas de bouton', async () => {
+    poser(AlbumDetailV2, { album: ALBUM_TIDAL, service: 'tidal', onClose: () => {} });
     for (let i = 0; i < 10; i++) { await respirer(); flushSync(); }
     expect(boutonCredits()).toBeUndefined();
   });

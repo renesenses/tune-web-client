@@ -762,6 +762,8 @@ export default {
   "credits.block.autres": "Weitere Mitwirkende",
   "credits.noneTrack": "Keine bekannten Mitwirkenden für diesen Titel — die MusicBrainz-Anreicherung kann welche ergänzen.",
   "credits.noneAlbum": "Keine bekannten Mitwirkenden für dieses Album — die MusicBrainz-Anreicherung kann welche ergänzen.",
+  "credits.noneService": "Der Dienst liefert keine Mitwirkenden für diesen Titel oder dieses Album.",
+  "credits.serviceUnavailable": "Dieser Dienst liefert keine Mitwirkenden, oder der Tune-Server ist zu alt, um sie zu lesen.",
   "credits.onTracks": "Titel {liste}",
   "credits.writer": "Texter",
   "credits.vocal": "Gesang",

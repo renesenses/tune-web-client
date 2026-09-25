@@ -15,6 +15,16 @@
    * Un nom qui porte une fiche d'artiste (`artist_id`) l'ouvre par le chemin
    * de référence (`ouvrirArtisteDepuis`, #1494) ; un nom sans fiche reste du
    * texte — pas de lien qui n'ouvrirait rien.
+   *
+   * #4993 — un titre ou un album de SERVICE (`service` posé dans la cible) :
+   * la route `GET /streaming/{service}/…/credits`, même forme. Ses noms n'ont
+   * jamais d'`artist_id` : ils restent du TEXTE. Pas de lien vers la page
+   * artiste du service par le nom : un musicien de séance crédité n'y a le
+   * plus souvent aucune fiche, et une recherche par nom ouvrirait un
+   * homonyme. Pas d'enrichissement MusicBrainz non plus : il écrit dans
+   * `track_credits`, que seule la bibliothèque lit. Un refus (501 : le service
+   * n'a pas de crédits ; 404 : serveur antérieur) est dit en clair et retenu
+   * (`lib/creditsService`) : l'entrée disparaît ensuite pour ce service.
    */
   import { onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
@@ -31,10 +41,19 @@
   } from '../../lib/library/credits';
   import { chargerCreditsAlbum, type PisteDeLAlbum } from '../../lib/library/chargerCredits';
   import TiroirLateral from './TiroirLateral.svelte';
+  import { estRefusDeCredits, retenirRefusDeCredits } from '../../lib/creditsService';
 
   type Cible =
-    | { type: 'piste'; trackId: number; titre?: string | null; artiste?: string | null; album?: string | null }
-    | { type: 'album'; albumId: number; titre?: string | null; artiste?: string | null; pistes: PisteDeLAlbum[] };
+    | {
+        type: 'piste'; trackId: number | null; titre?: string | null; artiste?: string | null; album?: string | null;
+        /** #4993 — le titre chez son service ; `trackId` est alors nul. */
+        service?: { service: string; sourceId: string } | null;
+      }
+    | {
+        type: 'album'; albumId: number | null; titre?: string | null; artiste?: string | null; pistes: PisteDeLAlbum[];
+        /** #4993 — l'album chez son service ; `albumId` est alors nul. */
+        service?: { service: string; albumId: string } | null;
+      };
 
   interface Props {
     cible: Cible;
@@ -51,31 +70,50 @@
   // Relevée une fois : le tiroir s'ouvre pour UN titre ou UN album.
   const c = untrack(() => cible);
 
-  let etat = $state<'chargement' | 'pret' | 'erreur'>('chargement');
+  /** Le service de la cible, quand elle en vient (#4993). */
+  const service = c.service?.service ?? null;
+
+  let etat = $state<'chargement' | 'pret' | 'erreur' | 'indisponible'>('chargement');
   let credits = $state<CreditAvecPiste[]>([]);
   let enrichissement = $state(false);
 
   const blocs = $derived(blocsDeCredits(credits));
   const plusieursDisques = $derived(credits.some((x) => (x.disc_number ?? 1) > 1));
 
+  async function lire(): Promise<CreditAvecPiste[]> {
+    if (c.type === 'piste') {
+      if (c.service) return api.getStreamingTrackCredits(c.service.service, c.service.sourceId);
+      if (c.trackId == null) return [];
+      return api.getTrackCredits(c.trackId);
+    }
+    if (c.service) return api.getStreamingAlbumCredits(c.service.service, c.service.albumId);
+    if (c.albumId == null) return [];
+    return chargerCreditsAlbum(c.albumId, c.pistes);
+  }
+
   async function charger() {
     try {
-      credits = c.type === 'piste'
-        ? await api.getTrackCredits(c.trackId)
-        : await chargerCreditsAlbum(c.albumId, c.pistes);
+      const lignes = await lire();
+      credits = Array.isArray(lignes) ? lignes : [];
       etat = 'pret';
     } catch (e) {
+      if (service && estRefusDeCredits(e)) {
+        retenirRefusDeCredits(service);
+        etat = 'indisponible';
+        return;
+      }
       console.warn('[crédits] lecture impossible :', e);
       etat = 'erreur';
     }
   }
 
   async function enrichir() {
-    if (enrichissement) return;
+    if (enrichissement || service) return;
+    if ((c.type === 'piste' && c.trackId == null) || (c.type === 'album' && c.albumId == null)) return;
     enrichissement = true;
     try {
-      if (c.type === 'piste') await api.enrichTrackCredits(c.trackId);
-      else await api.enrichAlbumCredits(c.albumId);
+      if (c.type === 'piste') await api.enrichTrackCredits(c.trackId!);
+      else await api.enrichAlbumCredits(c.albumId!);
       await charger();
       if (credits.length === 0) notifications.info($t('credits.enrich.failed'));
     } catch {
@@ -111,12 +149,18 @@
       <p class="etat">{$t('v2.common.loading')}</p>
     {:else if etat === 'erreur'}
       <p class="etat err">{$t('common.error')}</p>
+    {:else if etat === 'indisponible'}
+      <p class="etat" data-credits-indisponible>{$t('credits.serviceUnavailable')}</p>
     {:else if blocs.length === 0}
       <div class="vide" data-credits-vide>
-        <p>{$t(c.type === 'piste' ? 'credits.noneTrack' : 'credits.noneAlbum')}</p>
-        <button class="enrichir" onclick={enrichir} disabled={enrichissement}>
-          {enrichissement ? $t('credits.enrich.in_progress') : $t('credits.empty.cta_enrich')}
-        </button>
+        {#if service}
+          <p>{$t('credits.noneService')}</p>
+        {:else}
+          <p>{$t(c.type === 'piste' ? 'credits.noneTrack' : 'credits.noneAlbum')}</p>
+          <button class="enrichir" onclick={enrichir} disabled={enrichissement}>
+            {enrichissement ? $t('credits.enrich.in_progress') : $t('credits.empty.cta_enrich')}
+          </button>
+        {/if}
       </div>
     {:else}
       {#each blocs as bloc (bloc.famille)}

@@ -140,6 +140,13 @@ export interface CapacitesPiste {
    * Voir `lib/plusCommeCaService`.
    */
   similairesDeService?: boolean;
+  /**
+   * La piste de SERVICE a des crédits côté serveur — #4993 (fil forum 1921,
+   * FabienM). Vrai pour un titre QOBUZ seulement (tant qu'aucun refus n'a été
+   * constaté) : `GET /streaming/{service}/tracks/{id}/credits` répond 501 aux
+   * autres. Voir `lib/creditsService`.
+   */
+  creditsDeService?: boolean;
 }
 /**
  * Les gestes, fournis par le composant : le module ne sait pas les faire.
@@ -332,11 +339,14 @@ export function entreesMenuPiste(
   /**
    * « Voir les crédits » — #1572 (FabienM, fil forum 1921, « à l'instar de
    * Roon »). Les crédits vivent dans `track_credits`, indexés par l'`i64` de
-   * `tracks` (`GET /library/tracks/{id}/credits`) : BIBLIOTHÈQUE seule. Une
-   * piste de service n'a pas l'entrée — absente, pas grisée, comme ses
-   * voisines de la famille A.
+   * `tracks` (`GET /library/tracks/{id}/credits`).
+   *
+   * #4993 : un titre de SERVICE aussi, quand son service rend des crédits
+   * (`GET /streaming/{service}/tracks/{id}/credits`, Qobuz seul — les autres
+   * répondent 501 et n'ont pas l'entrée : absente, pas grisée). La règle vit
+   * dans `lib/creditsService` (`creditsDeServiceDe`).
    */
-  pousser(deLaBibliotheque, 'credits.see', ICONES.credits, g.voirCredits);
+  pousser(deLaBibliotheque || !!c.creditsDeService, 'credits.see', ICONES.credits, g.voirCredits);
   /**
    * « Bannir ce titre » / « Débannir » — `renesenses/tune-server-rust#4806`.
    *
