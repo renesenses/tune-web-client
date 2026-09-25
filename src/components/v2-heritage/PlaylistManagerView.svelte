@@ -15,6 +15,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { corpsDeFileListe } from '../../lib/pisteFile';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from '../v2/ListePistesV2.svelte';
   import ClampedText from '../partages/ClampedText.svelte';
@@ -1264,6 +1266,30 @@
     melangeEnCours = false;
   }
 
+  /**
+   * « Lire ensuite » de la playlist ouverte — #1574 (FabienM, fil 1924).
+   *
+   * Même geste que la fiche album et `PlaylistDetailV2` : la liste entière en
+   * UNE requête, au rang `rangLireEnsuite()` (juste après le titre en cours).
+   * `corpsDeFileListe` désigne les pistes locales par `track_ids` et celles de
+   * service par `tracks[]` : une playlist Qobuz/Tidal s'enfile aussi.
+   */
+  let fileOccupee = $state(false);
+  async function lireEnsuite() {
+    if (!zone?.id || fileOccupee) return;
+    const corps = corpsDeFileListe(detailTracks, rangLireEnsuite());
+    if (!corps) { notifications.error($tr('library.noTracks')); return; }
+    fileOccupee = true;
+    try {
+      await api.addToQueue(zone.id, corps);
+      const nom = selectedPlaylist?.name ?? selectedStreamingPl?.name ?? '';
+      notifications.success($tr('v2.album.queuedNext' as any).replace('{title}', nom));
+    } catch {
+      notifications.error($tr('v2.pa.queueError' as any));
+    }
+    fileOccupee = false;
+  }
+
   async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number) {
     if (!zone?.id) return;
     const source = pl.source || selectedService;
@@ -1768,6 +1794,13 @@
           disabled={melangeEnCours || detailTracks.length === 0}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5" /><path d="M4 20 21 3" /><path d="M21 16v5h-5" /><path d="M15 15l6 6" /><path d="M4 4l5 5" /></svg>
           {$tr('library.shuffle')}
+        </button>
+        <!-- « Lire ensuite » — #1574. Même style que « Lecture aléatoire »,
+             même icône et même libellé que la fiche album. -->
+        <button class="shuffle-btn lire-ensuite-btn" onclick={lireEnsuite}
+          disabled={fileOccupee || detailTracks.length === 0}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 6h9M4 12h9M4 18h5"/><path d="M15 8l5 4-5 4z" fill="currentColor" stroke="none"/></svg>
+          {$tr('v2.album.playNext' as any)}
         </button>
       </div>
     </div>

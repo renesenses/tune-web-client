@@ -99,7 +99,7 @@ describe('les cinq actions de la fiche album', () => {
 
   it('« Lire ensuite » insère au rang SUIVANT celui qui joue', () => {
     // Sans rang, la route ajoute en fin de file — ce serait le bouton d'à côté.
-    expect(src).toMatch(/lireEnsuite = \(\) => enfiler\(get\(queuePosition\) \+ 1,/);
+    expect(src).toMatch(/lireEnsuite = \(\) => enfiler\(rangLireEnsuite\(\),/);
     expect(src).toMatch(/addQueue = \(\) => enfiler\(undefined,/);
   });
 

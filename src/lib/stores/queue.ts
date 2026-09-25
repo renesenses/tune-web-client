@@ -5,6 +5,23 @@ export const queueTracks = writable<Track[]>([]);
 export const queuePosition = writable<number>(0);
 export const queueLength = writable<number>(0);
 
+/**
+ * Le rang où « Lire ensuite » insère : juste APRÈS le titre en cours.
+ *
+ * Une seule règle pour toutes les surfaces qui portent ce geste — la piste
+ * (`PisteActions`, `MenuPisteV1`), la fiche album et, depuis #1574 (FabienM,
+ * fil 1924), la fiche playlist et le gestionnaire de playlists. Chacune
+ * recopiait `get(queuePosition) + 1` à la main.
+ *
+ * File vide : `queuePosition` vaut 0, le rang rendu est 1 — exactement ce
+ * qu'envoyait déjà la fiche album ; aucune surface ne le traite à part.
+ * Sans rang, la route ajoute à la FIN : ce serait « Ajouter à la file », le
+ * bouton d'à côté.
+ */
+export function rangLireEnsuite(): number {
+  return get(queuePosition) + 1;
+}
+
 /** Les trois positions du panneau de file. */
 export type QueueSheetState = 'collapsed' | 'peek' | 'expanded';
 
