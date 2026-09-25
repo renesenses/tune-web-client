@@ -28,7 +28,7 @@
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
-  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { cibleEtiquettePlaylist, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { rangsApresDeplacement } from '../../lib/playlistService';
   import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
 
@@ -127,11 +127,7 @@
       ? item.pl.id != null
         ? { itemType: 'playlist', itemId: item.pl.id }
         : null
-      : cibleDeService('playlist', {
-          ...(item.pl as any),
-          source: item.pl.source ?? item.service,
-          source_id: item.pl.source_id,
-        }),
+      : cibleEtiquettePlaylist(item.pl, item.service),
   );
   let etiquettesOuvertes = $state(false);
 
