@@ -76,6 +76,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
@@ -1293,12 +1294,14 @@
                     `favoriDistant` quand l'element en porte un, et reste
                     `album` partout ailleurs.
 
-                    Les ETIQUETTES, elles, restent absentes des vignettes de
-                    service, et ce n'est pas un oubli : la route serveur prend
-                    `item_id: i64` et la table SQLite un `INTEGER`, quand un
-                    album Qobuz s'identifie « kxend2k5wdg06 » (mesure sur le
-                    .18, 03/09/2026). Les brancher demande une evolution du
-                    SERVEUR. Mieux vaut une icone absente qu'une icone morte.
+                    Les ETIQUETTES valent aussi pour un album de service
+                    depuis que le serveur les tient par la paire `source` +
+                    `source_id` (`POST /tags/{id}/streaming-items`,
+                    tune-server-rust#3699). Bertrand, 25/09/2026 : « il manque
+                    un CTA sur les covers Qobuz ! ». La cible vient de
+                    `cibleEtiquetteAlbum`, la regle unique des vignettes et de
+                    la fiche ; sans paire exploitable elle rend `null`, et le
+                    bouton reste absent.
                   -->
                   {@const idLocal = el.fiche?.id ?? null}
                   {@const sidDistant =
@@ -1323,7 +1326,7 @@
                               coverUrl: el.cover ?? undefined,
                             })
                           : null}
-                        etiquettes={idLocal != null ? { itemType: 'album', itemId: idLocal } : null}
+                        etiquettes={cibleEtiquetteAlbum(el.fiche)}
                         onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
                         onLire={el.jouer ? () => jouer(el) : null}
                         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
