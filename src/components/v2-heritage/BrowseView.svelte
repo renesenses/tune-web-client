@@ -337,7 +337,7 @@
               </div>
               {#if t.format}<span class="audio-format">{formatAudioBadge(t)}</span>{/if}
               <span class="track-duration">{formatTime(t.duration_ms)}</span>
-              <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); playFromHere(browseResult.tracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
+              <button class="play-from-here-btn" onclick={(e) => { e.stopPropagation(); if (browseResult) playFromHere(browseResult.tracks, index); }} title={$tr('common.playFromHere')} aria-label={$tr('common.playFromHere')}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="3" y1="6" x2="14" y2="6" /><line x1="3" y1="12" x2="14" y2="12" /><line x1="3" y1="18" x2="10" y2="18" /><path d="M16 8v8l6-4z" fill="currentColor" stroke="none" /></svg>
               </button>
               <button class="add-queue-btn" onclick={(e) => { e.stopPropagation(); addTrackToQueue(t); }} title={$tr('queue.addToQueue')}>+</button>

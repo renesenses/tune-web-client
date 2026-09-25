@@ -626,6 +626,12 @@
   let qtFilter = $state<string>('all');
   let qtExpandedAlternatives = $state<Set<number>>(new Set());
 
+  let authenticatedServices = $derived(
+    Object.entries($streamingServices)
+      .filter(([, status]) => status.authenticated)
+      .map(([name]) => name)
+  );
+
   let qtAvailableServices = $derived([
     'local',
     ...authenticatedServices,
@@ -917,12 +923,6 @@
   }
 
   // Available filter chips
-  let authenticatedServices = $derived(
-    Object.entries($streamingServices)
-      .filter(([, status]) => status.authenticated)
-      .map(([name]) => name)
-  );
-
   let filterChips = $derived([
     'all',
     'local',
@@ -2549,7 +2549,7 @@
                 {/if}
               {/if}
               {#if item.type === 'local' && item.local?.id}
-                <button onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title={$tr('playlistManager.share')} aria-label={$tr('playlistManager.share')}>
+                <button onclick={(e) => { e.stopPropagation(); item.local?.id && handleSharePlaylist(item.local.id); }} title={$tr('playlistManager.share')} aria-label={$tr('playlistManager.share')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                 </button>
                 <button class="danger" onclick={(e) => { e.stopPropagation(); item.local?.id && deletePlaylist(item.local.id); }} title={$tr('common.delete')} aria-label={$tr('common.delete')}>
