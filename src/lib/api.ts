@@ -6344,7 +6344,9 @@ export function getNetworkDiagnostics() {
 // --- Scan Schedule ---
 
 export function getScanSchedule() {
-  return fetchJSON<{ enabled: boolean; time: string | null }>(`${BASE}/system/scan/schedule`);
+  // `last_run` : jour ISO de la dernière occurrence honorée (tune-server-rust#2469).
+  // ABSENT sur un serveur antérieur, `null` si jamais observée (#1578).
+  return fetchJSON<{ enabled: boolean; time: string | null; last_run?: string | null }>(`${BASE}/system/scan/schedule`);
 }
 
 export function setScanSchedule(time: string, enabled: boolean) {

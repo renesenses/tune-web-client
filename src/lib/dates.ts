@@ -52,3 +52,18 @@ export const dateSimple = derived(locale, ($l) => (v: string | number | Date | n
   const d = versDate(v);
   return d ? d.toLocaleDateString($l) : '';
 });
+
+/**
+ * Un JOUR calendaire `AAAA-MM-JJ` lu comme un jour LOCAL (#1578).
+ *
+ * `new Date('2026-09-24')` est minuit UTC : à l'ouest de Greenwich, la date
+ * affichée serait la veille. Le serveur rend ici une date sans heure (la
+ * dernière occurrence du scan programmé) ; on la construit donc à midi local.
+ * `null` si la valeur est absente ou n'a pas cette forme.
+ */
+export function jourIsoLocal(v: string | null | undefined): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((v ?? '').trim());
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12);
+  return d.getMonth() === Number(m[2]) - 1 ? d : null;
+}
