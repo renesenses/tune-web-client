@@ -1,5 +1,6 @@
 <script lang="ts">
   import AjoutsRecentsV2 from './AjoutsRecentsV2.svelte';
+  import CoffretsV2 from './CoffretsV2.svelte';
   // Alias `tr` : `t` est déjà pris comme variable de boucle plus bas
   // ({#each TABS as t}, {#each visibleTracks as t}), et il masquerait le store.
   import { tick, untrack } from 'svelte';
@@ -1055,7 +1056,7 @@
   // ne peut pas diverger de la grille.
   //
   // Artistes et Pistes partagent le chargement des pistes pour résoudre leurs sources.
-  type Tab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels' | 'recent';
+  type Tab = 'albums' | 'artists' | 'tracks' | 'genres' | 'years' | 'labels' | 'recent' | 'coffrets';
   // Mêmes clés que les onglets des Favoris : ce sont les mêmes familles, et
   // les traduire deux fois les ferait diverger.
   const TABS: { id: Tab; label: string; adv?: boolean }[] = [
@@ -1067,6 +1068,9 @@
     { id: 'labels', label: 'v2.lib.tabLabels', adv: true },
     // #3039 — porté de l'ancienne Bibliothèque, seule à l'offrir.
     { id: 'recent', label: 'library.recentlyAdded' },
+    // GO de Bertrand du 25/09/2026 — les coffrets réunis (automatiques et
+    // manuels). Même libellé que l'onglet Coffrets de Métadonnées.
+    { id: 'coffrets', label: 'v2.meta.tabCoffret' },
   ];
   // L'ONGLET aussi : revenir à la Bibliothèque après avoir consulté les Titres
   // pour retomber sur les Albums est le même agacement, d'un cran plus haut.
@@ -1101,7 +1105,9 @@
    * cet onglet — la route locale repartirait, avec un onglet invisible en
    * prime. On lit donc partout `tab`, jamais `tabChoisi`.
    */
-  const ONGLETS = $derived(TABS.filter((t2) => !depot || t2.id !== 'recent'));
+  // `coffrets` suit `recent` : sa route (`/library/coffrets`) est locale, sans
+  // paramètre d'hôte.
+  const ONGLETS = $derived(TABS.filter((t2) => !depot || (t2.id !== 'recent' && t2.id !== 'coffrets')));
   const tab = $derived<Tab>(ONGLETS.some((t2) => t2.id === tabChoisi) ? tabChoisi : 'albums');
   /**
    * 🔴 Le carrousel n'est proposé QUE là où il rend quelque chose.
@@ -1169,11 +1175,18 @@
    * de cocher ajouts récents bloque tout, la seule partie qui se met à jour »
    * (Jean Valjean, fil 1856, 20/09/2026 11 h 25, 0.9.158, Windows/Firefox).
    */
-  const showFilters = $derived(tab !== 'artists' && tab !== 'tracks' && tab !== 'recent');
+  /**
+   * Les onglets à SOURCE PROPRE — « Ajouts récents » (#3039) et « Coffrets »
+   * (25/09/2026) : un composant qui a sa route, et ne reçoit ni `q`, ni les
+   * filtres, ni le tri, ni l'année. Toute commande qui ne vaut pas pour
+   * `recent` ne vaut pas pour `coffrets`, pour la même raison (#1367).
+   */
+  const sourcePropre = $derived(tab === 'recent' || tab === 'coffrets');
+  const showFilters = $derived(tab !== 'artists' && tab !== 'tracks' && !sourcePropre);
 
   /** Recherche et Source : elles filtrent les albums et les artistes, pas la
    *  fenêtre des Ajouts récents, qui vient d'une autre route. */
-  const showSearch = $derived(tab !== 'recent');
+  const showSearch = $derived(!sourcePropre);
 
   /** Tri et bascule grille/liste : outils de confort, pas de recherche. */
   /** Tri et bascule grille/liste : outils de confort, pas de recherche.
@@ -1193,7 +1206,7 @@
    *  édition »). Le rail A–Z, lui, n'a jamais été rendu ici (`tab === 'albums'`
    *  plus bas) : un rail alphabétique sur un classement chronologique
    *  promettrait un saut qui atterrirait au hasard. */
-  const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && tab !== 'recent');
+  const showTimeline = $derived(atLeast(level, 'intermediate') && tab !== 'artists' && tab !== 'tracks' && !sourcePropre);
 
   // ── #4800 — LA BIBLIOTHÈQUE PAR PAGES ──────────────────────────────────────
   //
@@ -1252,7 +1265,7 @@
    */
   const sortirDesPages = $derived(
     !depot && (
-      porteeActive || (tab !== 'albums' && tab !== 'recent') || q !== '' || filtreActif
+      porteeActive || (tab !== 'albums' && !sourcePropre) || q !== '' || filtreActif
       || fYear != null || hoverYear != null || (showTimeline && navMode === 'years')
       || clef == null
     ),
@@ -1479,7 +1492,8 @@
     // `artists` n'en fait plus partie : cet onglet a sa propre vue, qui lit la
     // table des artistes. Le laisser ici calculerait un regroupement que plus
     // personne n'affiche, sur chaque frappe de la recherche.
-    if (tab === 'albums' || tab === 'tracks' || tab === 'artists')
+    // Ni les onglets à source propre, qui n'affichent aucun regroupement.
+    if (tab === 'albums' || tab === 'tracks' || tab === 'artists' || sourcePropre)
       return [] as { key: string; albums: Album[]; reel: boolean }[];
     const m = new Map<string, Album[]>();
     // 🔴 Une valeur RENSEIGNEE et le libelle de remplacement (« Sans genre »)
@@ -2254,7 +2268,7 @@
          explicitement. Elle lui est donc CÂBLÉE (prop `vue`) au lieu d'être
          retirée. -->
     {#if showTools && tab !== 'tracks'}
-      {#if tab !== 'recent'}
+      {#if !sourcePropre}
       <div class="drop right">
         <button class="chip plain">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M4 12h7M4 18h4M17 5v14M14 16l3 3 3-3"/></svg>
@@ -2331,7 +2345,7 @@
        témoin qui décrit une grille d'albums qu'on ne regarde pas. Sur les
        Ajouts récents elle annoncerait un filtre qui n'y agit pas, et son clic
        n'aurait aucun effet visible. Elle revient dès qu'on quitte l'onglet. -->
-  {#if tab !== 'recent' && (showTimeline || fYear != null)}
+  {#if !sourcePropre && (showTimeline || fYear != null)}
     <div class="navmode">
       {#if showTimeline}
         <button class:on={navMode === 'alpha'} onclick={() => { navMode = 'alpha'; fYear = null; }}>A–Z</button>
@@ -2442,6 +2456,10 @@
            pas de frise. -->
       {@render railAZ()}
       <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
+    {:else if tab === 'coffrets'}
+      <!-- Le clic ouvre la fiche d'album habituelle : celle qui, depuis la
+           v0.9.162, affiche un en-tête par disque. -->
+      <CoffretsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
     {:else if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
            déduction depuis les albums chargés. Ils ne passent donc pas par les
