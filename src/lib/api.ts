@@ -562,7 +562,7 @@ export async function fetchJSON<T>(
        * vraies pannes.
        */
       if (sansBandeau) {
-        console.warn('[api] rangée éditoriale en échec, sans bandeau :', url, response.status, err.message);
+        console.warn('[api] échec porté par l’écran appelant, sans bandeau :', url, response.status, err.message);
       } else {
         notifications.error(`Server error: ${err.message}`);
       }
@@ -4238,8 +4238,23 @@ export function similairesDeService(service: string, trackId: string, limit = 20
   ).then((t) => mapStreamingTracks(t, service));
 }
 
+/**
+ * La fiche d'un artiste chez son service.
+ *
+ * `sansBandeau` — renesenses/tune-web-client#992 (FabienM, fil 1774, point
+ * 14 : « Menu lecture en cours : quand je clique sur l'artiste, erreur
+ * 502 »). Les trois routes de la fiche artiste n'ont qu'un appelant, la PAGE
+ * COMMUNE (`ArtisteServiceV2`), qui charge en `allSettled` et dit elle-même,
+ * dans la page, que la fiche n'a pas pu être chargée ou que l'artiste est
+ * introuvable. Le bandeau global disait en plus « Server error: qobuz
+ * /artist/get: 404 {"status":"error",…} » — le texte brut du service, par-dessus
+ * une page qui fonctionnait.
+ */
 export function getStreamingArtist(service: string, artistId: string) {
-  return fetchJSON<Artist>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`);
+  return fetchJSON<Artist>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`,
+    undefined, undefined, true,
+  );
 }
 
 /**
@@ -4308,15 +4323,21 @@ export function getZoneCurrentAlbum(zoneId: number) {
   return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`);
 }
 
+/** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
 export function getStreamingArtistTopTracks(service: string, artistId: string) {
   return fetchJSON<Track[]>(
     `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/top-tracks`,
+    undefined, undefined, true,
   );
 }
 
+/** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
 export function getStreamingArtistAlbums(service: string, artistId: string, offset = 0) {
   const p = offset > 0 ? `?offset=${offset}` : '';
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums${p}`);
+  return fetchJSON<Album[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums${p}`,
+    undefined, undefined, true,
+  );
 }
 
 /**
