@@ -3546,6 +3546,7 @@ export default {
   "v2.lib.noActiveZone": "Aucune zone active",
   "v2.lib.shuffleAll": "Lire toute la bibliothèque au hasard",
   "v2.lib.shuffleDepot": "Lire un album au hasard de {nom}",
+  "v2.lib.playInOrder": "Lire la sélection dans l’ordre affiché",
   "v2.lib.emptyLibrary": "Votre bibliothèque est vide.",
   "v2.lib.emptyDepot": "{nom} ({hote}) n’expose aucun album.",
   "v2.lib.viewList": "Affichage liste",
