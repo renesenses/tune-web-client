@@ -38,6 +38,7 @@
   import PluginsV2 from './PluginsV2.svelte';
   import PontRoonV2 from './PontRoonV2.svelte';
   import LectureCdV2 from './LectureCdV2.svelte';
+  import CircleV2 from './CircleV2.svelte';
   import PageSourceV2 from './PageSourceV2.svelte';
   import CollectionsV2 from './CollectionsV2.svelte';
   import HistoriqueV2 from './HistoriqueV2.svelte';
@@ -260,7 +261,7 @@
     bannedtracks: 'ban.title',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
     crossfeed: 'v2.nav.crossfeed', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
-    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
+    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
     smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager',
   };
@@ -697,6 +698,9 @@
       {:else if $activeView === 'lecturecd'}
         <!-- Lecture CD (tune-server-rust#4863), ouverte depuis sa carte. -->
         <LectureCdV2 />
+      {:else if $activeView === 'circle'}
+        <!-- Tune Circle (tune-server-rust#5018), ouvert depuis sa carte. -->
+        <CircleV2 />
       {:else if $activeView === 'source'}
         <!-- Page d'une source de la rubrique « Sources » (tune-server-rust#5065). -->
         <PageSourceV2 />
