@@ -3482,6 +3482,7 @@ export default {
   "v2.lib.noActiveZone": "Nincs aktív zóna",
   "v2.lib.shuffleAll": "A teljes könyvtár véletlenszerű lejátszása",
   "v2.lib.shuffleDepot": "Véletlen album lejátszása innen: {nom}",
+  "v2.lib.playInOrder": "A kijelölés lejátszása a megjelenített sorrendben",
   "v2.lib.emptyLibrary": "A könyvtárad üres.",
   "v2.lib.emptyDepot": "A(z) {nom} ({hote}) egyetlen albumot sem kínál.",
   "v2.lib.viewList": "Lista nézet",

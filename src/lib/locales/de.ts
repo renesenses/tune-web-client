@@ -3524,6 +3524,7 @@ export default {
   "v2.lib.noActiveZone": "Keine aktive Zone",
   "v2.lib.shuffleAll": "Ganze Bibliothek zufällig abspielen",
   "v2.lib.shuffleDepot": "Zufälliges Album von {nom} abspielen",
+  "v2.lib.playInOrder": "Auswahl in der angezeigten Reihenfolge abspielen",
   "v2.lib.emptyLibrary": "Ihre Bibliothek ist leer.",
   "v2.lib.emptyDepot": "{nom} ({hote}) stellt kein Album bereit.",
   "v2.lib.viewList": "Listenansicht",

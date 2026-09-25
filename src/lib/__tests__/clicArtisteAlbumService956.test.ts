@@ -53,7 +53,8 @@ describe('#956 — les trois gestes « Aller à l’artiste » passent par le ro
     expect(fn).toContain('cible?.id != null');
     expect(fn).toContain("ficheArtisteService.set({ service: service as Source, id: String(cible.id).trim(), nom: c.nom })");
     expect(fn).toContain("activeView.set('streamingartist')");
-    expect(lire('src/lib/stores/navigation.ts')).toContain('ouvrirArtiste: (cible: { service: string; nom: string; id?: string | null; depuis?: View | null }) => void;');
+    // web#1602 — le contrat a gagné `ficheDeRetour` : la forme `id` + `depuis` reste.
+    expect(lire('src/lib/stores/navigation.ts')).toContain('service: string; nom: string; id?: string | null; depuis?: View | null;\n    ficheDeRetour?: CibleFicheAlbumService | null;\n  }) => void;');
   });
   it('la lecture en cours traite aussi le nouveau cas', () => {
     const src = sansCommentaires(lire('src/components/partages/NowPlaying.svelte'));
