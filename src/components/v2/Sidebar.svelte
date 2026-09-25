@@ -104,12 +104,31 @@
    * atteignable que par son adresse `/dashboard`, que `routeAuChargement`
    * continue de reposer.
    *
-   * ⚠️ RECTIFICATIF, 25/09/2026. Le paragraphe ci-dessus reste vrai de
-   * L'ANCIEN écran (`v2-heritage/DashboardView`), devenu le réservoir : il est
-   * toujours hors de la barre, toujours servi par `#dashboard`. Ce qui a
-   * changé est qu'un SECOND écran existe — `tableaudebord`, la page de blocs —
-   * et c'est LUI qui porte désormais l'entrée « Tableau de bord », en
-   * « Avancé ». Les deux écrans coexistent, avec deux adresses distinctes.
+   * ⚠️ PRÉCISION, 25/09/2026 — ET UNE DÉCISION QUI APPARTIENT À BERTRAND.
+   *
+   * Le paragraphe ci-dessus reste vrai de l'ANCIEN écran
+   * (`v2-heritage/DashboardView`), devenu le réservoir : hors de la barre,
+   * servi par son adresse. Ce qui a changé est qu'un SECOND écran existe —
+   * `tableaudebord`, la page de onze widgets `bloc` — atteignable par
+   * `#tableaudebord`, et LUI NON PLUS n'a d'entrée ici.
+   *
+   * 🔴 Ce n'est pas un oubli. Y ajouter une ligne fait ROUGIR
+   * `__tests__/ordreBarreLaterale.test.ts`, qui fige par `toEqual` l'ordre
+   * que Bertrand a donné à la main le 20/09/2026, étage par étage : toute
+   * ADDITION le casse par construction, où qu'elle se place. Cette garde
+   * existe précisément pour qu'un remaniement ultérieur ne réécrive pas sa
+   * liste en silence — la modifier pour se faire de la place reviendrait à
+   * éroder l'arbitrage qu'elle protège.
+   *
+   * L'entrée se pose donc en DEUX gestes, et c'est à Bertrand de les
+   * demander : la ligne ci-dessous dans `ADVANCED`, et le même identifiant
+   * ajouté aux deux listes attendues du témoin.
+   *
+   *     { view: 'tableaudebord', labelKey: 'nav.dashboard',
+   *       icon: 'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z' },
+   *
+   * (`nav.dashboard` existe déjà dans les onze langues, et l'ancien écran ne
+   * porte plus d'entrée : les deux ne se disputent aucun libellé.)
    */
   const CORE: Item[] = [
     { view: 'home', labelKey: 'nav.home', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
@@ -128,20 +147,6 @@
     { view: 'mediaservers', labelKey: 'nav.mediaservers', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
     { view: 'zonemanager', labelKey: 'nav.zonemanager', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
     { view: 'search', labelKey: 'nav.search', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
-    // TABLEAU DE BORD — le NOUVEL écran à widgets (25/09/2026), pas l'ancien.
-    //
-    // 🔴 Il entre en « Avancé », et pas dans le noyau. L'ordre du noyau est
-    // celui que Bertrand a donné en liste le 20/09, entrée par entrée : y
-    // glisser une douzième ligne contredirait un arbitrage écrit. C'est un
-    // écran d'ANALYSE, il est à sa place au milieu des outils — et l'accès
-    // perdu que décrivait #1426 est déjà rendu par les widgets du tableau de
-    // bord portés sur l'accueil. Un mot de Bertrand suffit à le monter d'un
-    // étage : c'est cette ligne-ci, et rien d'autre.
-    //
-    // `nav.dashboard` est réemployée telle quelle — elle existe déjà dans les
-    // onze langues. L'ancien écran, lui, ne porte plus d'entrée depuis la
-    // 0.9.161 : les deux ne se disputent donc aucun libellé.
-    { view: 'tableaudebord', labelKey: 'nav.dashboard', icon: 'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z' },
     { view: 'concerts', labelKey: 'nav.concerts', icon: 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6' },
   ] as unknown as Item[];
   /**
