@@ -12,6 +12,7 @@ import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
+import { estDepotTuneDistant } from './depotsTuneDistants';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -5304,6 +5305,22 @@ function condensatDePochetteInterne(url: string): string | null {
   return condensat && condensat !== 'proxy' ? condensat : null;
 }
 
+/**
+ * Vrai quand l'adresse désigne un serveur Tune DISTANT parcouru par ce client
+ * (tune-server-rust#4954), et pas notre propre origine. Un hôte inconnu reste
+ * « le nôtre » : c'est l'ancienne adresse LAN d'une ligne d'historique (#1360).
+ */
+function pochetteDUnAutreServeurTune(url: string): boolean {
+  let hote: string;
+  try {
+    hote = new URL(url).host;
+  } catch {
+    return false;
+  }
+  if (typeof window !== 'undefined' && hote === window.location.host) return false;
+  return estDepotTuneDistant(hote);
+}
+
 export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
   // Server already returns usable relative URLs for cover_path
@@ -5316,7 +5333,9 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
     // #1360 — une pochette de NOTRE serveur enregistrée en adresse absolue se
     // redemande par son condensat, jamais par le relais, qui la refuserait.
     const condensat = condensatDePochetteInterne(coverPath);
-    if (condensat == null) {
+    // tune-server-rust#4954 — sauf si elle vient d'un AUTRE serveur Tune : sa
+    // pochette n'existe pas chez nous (404), elle passe donc par le relais.
+    if (condensat == null || pochetteDUnAutreServeurTune(coverPath)) {
       return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
     }
     coverPath = condensat;
