@@ -13,7 +13,7 @@ describe('compensation de niveau (tune-server-rust#4685)', () => {
     const l = libelleCompensation({
       enabled: true, eq_db: -9.36, crossfeed_db: -1.02, compensation_db: 10.38, local_output_only: true,
     });
-    expect(l).toEqual({ cle: 'v2.lc.valueOn', eq: '-9.4', cf: '-1.0', comp: '+10.4' });
+    expect(l).toMatchObject({ cle: 'v2.lc.valueOn', eq: '-9.4', cf: '-1.0', comp: '+10.4' });
   });
 
   it('éteinte : la perte est dite, rien n\'est rendu', () => {

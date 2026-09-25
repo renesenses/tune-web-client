@@ -2890,6 +2890,8 @@ export default {
   "v2.lc.valueOn": "イコライザー {eq} dB · クロスフィード {cf} dB → 音量で {comp} dB 補正",
   "v2.lc.valueOff": "イコライザー {eq} dB · クロスフィード {cf} dB、補正なし",
   "v2.lc.valueNone": "このゾーンでは、イコライザーもクロスフィードも平均レベルを変えません。",
+  "v2.lc.valueAtMax": "イコライザー {eq} dB · クロスフィード {cf} dB → 補正すべき量 {comp} dB、補正済み 0.0 dB：Tune の音量はすでに最大です。Tune の音量を下げ、アンプの音量を上げてください。",
+  "v2.lc.valuePartial": "イコライザー {eq} dB · クロスフィード {cf} dB → 補正すべき量 {comp} dB、音量で補正済み {rendu} dB、未補正 {perdu} dB：Tune の音量が高すぎます。Tune の音量を下げ、アンプの音量を上げてください。",
   "v2.lc.errSave": "レベル補正を保存できませんでした。",
   "v2.cf.delayAria": "クロスフィードの遅延",
   "v2.cf.errUnavailable": "このサーバーでは設定を利用できません。",

@@ -2848,6 +2848,8 @@ export default {
   "v2.lc.valueOn": "Hangszínszabályzó {eq} dB · crossfeed {cf} dB → {comp} dB visszaadva a hangerővel",
   "v2.lc.valueOff": "Hangszínszabályzó {eq} dB · crossfeed {cf} dB, kiegyenlítés nélkül",
   "v2.lc.valueNone": "Sem a hangszínszabályzó, sem a crossfeed nem változtatja az átlagszintet ebben a zónában.",
+  "v2.lc.valueAtMax": "Hangszínszabályzó {eq} dB · crossfeed {cf} dB → {comp} dB visszaadandó, 0.0 dB visszaadva: a Tune hangereje már a maximumon van. Vegye lejjebb a Tune hangerejét, és növelje az erősítőét.",
+  "v2.lc.valuePartial": "Hangszínszabályzó {eq} dB · crossfeed {cf} dB → {comp} dB visszaadandó, {rendu} dB visszaadva a hangerővel, {perdu} dB nincs visszaadva: a Tune hangereje túl magas. Vegye lejjebb a Tune hangerejét, és növelje az erősítőét.",
   "v2.lc.errSave": "A szintkiegyenlítés mentése nem sikerült.",
   "v2.cf.delayAria": "Crossfeed késleltetése",
   "v2.cf.errUnavailable": "A beállítás nem érhető el ezen a kiszolgálón.",

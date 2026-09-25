@@ -2903,6 +2903,8 @@ export default {
   "v2.lc.valueOn": "Equalizer {eq} dB · crossfeed {cf} dB → {comp} dB given back by the volume",
   "v2.lc.valueOff": "Equalizer {eq} dB · crossfeed {cf} dB, not compensated",
   "v2.lc.valueNone": "Neither the equalizer nor the crossfeed changes the average level on this zone.",
+  "v2.lc.valueAtMax": "Equalizer {eq} dB · crossfeed {cf} dB → {comp} dB to give back, 0.0 dB given back: Tune's volume is already at maximum. Lower Tune's volume and raise your amplifier's.",
+  "v2.lc.valuePartial": "Equalizer {eq} dB · crossfeed {cf} dB → {comp} dB to give back, {rendu} dB given back by the volume, {perdu} dB not given back: Tune's volume is too high. Lower Tune's volume and raise your amplifier's.",
   "v2.lc.errSave": "Could not save level compensation.",
   "v2.cf.delayAria": "Crossfeed delay",
   "v2.cf.errUnavailable": "Setting unavailable on this server.",

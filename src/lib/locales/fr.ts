@@ -2905,6 +2905,8 @@ export default {
   "v2.lc.valueOn": "Égaliseur {eq} dB · crossfeed {cf} dB → {comp} dB rendus par le volume",
   "v2.lc.valueOff": "Égaliseur {eq} dB · crossfeed {cf} dB, non compensés",
   "v2.lc.valueNone": "Ni l'égaliseur ni le crossfeed ne changent le niveau moyen sur cette zone.",
+  "v2.lc.valueAtMax": "Égaliseur {eq} dB · crossfeed {cf} dB → {comp} dB à rendre, 0.0 dB rendus : le volume de Tune est déjà au maximum. Baissez le volume de Tune et montez celui de l'ampli.",
+  "v2.lc.valuePartial": "Égaliseur {eq} dB · crossfeed {cf} dB → {comp} dB à rendre, {rendu} dB rendus par le volume, {perdu} dB non rendus : le volume de Tune est trop haut. Baissez le volume de Tune et montez celui de l'ampli.",
   "v2.lc.errSave": "Impossible d'enregistrer la compensation de niveau.",
   "v2.cf.delayAria": "Retard du crossfeed",
   "v2.cf.errUnavailable": "Réglage indisponible sur ce serveur.",

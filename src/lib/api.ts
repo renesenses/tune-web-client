@@ -3262,6 +3262,14 @@ export interface LevelCompensation {
   compensation_db: number;
   /** La compensation passe par le volume de la sortie LOCALE. */
   local_output_only: boolean;
+  /** tune-server-rust#5069 — ce que le volume COURANT de la zone rend
+   *  réellement de `compensation_db`, et ce que le rabot à l'unité mange.
+   *  Absents d'un serveur antérieur (≤ 0.9.165) : l'écran retombe alors sur
+   *  l'ancienne phrase. */
+  rendered_db?: number;
+  unrendered_db?: number;
+  /** Volume linéaire (0..1) sur lequel ce partage est calculé. */
+  volume?: number;
 }
 
 export interface DspSettings {

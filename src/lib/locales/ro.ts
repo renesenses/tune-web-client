@@ -2890,6 +2890,8 @@ export default {
   "v2.lc.valueOn": "Egalizator {eq} dB · crossfeed {cf} dB → {comp} dB redați prin volum",
   "v2.lc.valueOff": "Egalizator {eq} dB · crossfeed {cf} dB, necompensați",
   "v2.lc.valueNone": "Nici egalizatorul, nici crossfeed-ul nu schimbă nivelul mediu în această zonă.",
+  "v2.lc.valueAtMax": "Egalizator {eq} dB · crossfeed {cf} dB → {comp} dB de redat, 0.0 dB redați: volumul Tune este deja la maxim. Micșorați volumul Tune și măriți-l pe cel al amplificatorului.",
+  "v2.lc.valuePartial": "Egalizator {eq} dB · crossfeed {cf} dB → {comp} dB de redat, {rendu} dB redați prin volum, {perdu} dB neredați: volumul Tune este prea mare. Micșorați volumul Tune și măriți-l pe cel al amplificatorului.",
   "v2.lc.errSave": "Compensarea de nivel nu a putut fi salvată.",
   "v2.cf.delayAria": "Întârzierea crossfeed-ului",
   "v2.cf.errUnavailable": "Setare indisponibilă pe acest server.",
