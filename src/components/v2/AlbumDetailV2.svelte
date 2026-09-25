@@ -5,6 +5,7 @@
    * technique (fréquence/profondeur) à l'Expert, comme partout ailleurs.
    */
   import { get } from 'svelte/store';
+  import { untrack } from 'svelte';
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
@@ -32,6 +33,8 @@ import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import EditionAlbumV2 from './EditionAlbumV2.svelte';
+  import { estReponseEdition, type EditionReponse } from '../../lib/editionAlbum';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -57,6 +60,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { portail } from '../../lib/portail';
   import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
   // par lui, sans quoi on jouerait un tout autre morceau du meme numero.
@@ -374,6 +379,48 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    * dossier qui n'est pas celui-là.
    */
   const dossier = $derived(depot ? null : dossierDeLAlbum(tracks));
+
+  /**
+   * « Défaire le coffret » — GO de Bertrand du 25/09/2026. Seulement sur un
+   * coffret AUTOMATIQUE d'un album LOCAL : l'origine se lit dans le magasin
+   * clé-valeur de l'album (`coffret`, voir `lib/coffretAuto.ts`). Un coffret
+   * manuel n'a pas de bouton — sa route répond 409.
+   */
+  let origineCoffret = $state<OrigineCoffret | null>(null);
+  let defaireEnCours = $state(false);
+  $effect(() => {
+    const id = album.id;
+    origineCoffret = null;
+    if (id == null || depot || service || bandcamp || (album.source && album.source !== 'local')) return;
+    api.getAlbumExtendedMetadata(id)
+      .then((m) => { if (album.id === id) origineCoffret = origineDuCoffret(m?.coffret); })
+      .catch(() => { /* pas de bouton : rien n'est promis */ });
+  });
+  async function defaireCoffret() {
+    const id = album.id;
+    if (id == null || defaireEnCours || origineCoffret !== 'auto') return;
+    const ok = await dialogs.confirm($tr('v2.album.boxUndoConfirm' as any), { danger: true });
+    if (!ok) return;
+    defaireEnCours = true;
+    let reussi = false;
+    try {
+      await api.defaireCoffret(id);
+      reussi = true;
+    } catch {
+      reussi = false;
+    }
+    defaireEnCours = false;
+    if (!reussi) {
+      notifications.error($tr('v2.album.boxUndoError' as any));
+      return;
+    }
+    notifications.success($tr('v2.album.boxUndone' as any));
+    // La liste des Coffrets, si elle est ouverte dessous, se recharge.
+    window.dispatchEvent(new CustomEvent(EVT_COFFRET_DEFAIT, { detail: { id } }));
+    // Retour là d'où l'on venait : la liste des coffrets, ou la bibliothèque.
+    // Cette fiche décrit un album qui n'est plus ce qu'elle montre.
+    onClose();
+  }
   function localiser() {
     if (!dossier) return;
     /**
@@ -428,6 +475,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    */
   $effect(() => {
     const id = album.id, d = depot, svc = service, sid = sidDistant, bc = bandcamp;
+    // Le mode « Modifier » vient d'enregistrer : relire la liste.
+    void rechargement;
     // 🔴 AVANT la garde : une fiche qu'on ne sait pas charger ne doit pas
     // garder à l'écran la liste de la précédente.
     tracks = [];
@@ -490,12 +539,62 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   let fiche = $state<Album | null>(null);
   $effect(() => {
     const id = album.id, d = depot, svc = service, bc = bandcamp;
+    void rechargement;
     fiche = null;
     if (id == null || d || svc || bc) return;
     let vivant = true;
     api.getAlbum(id).then((a) => { if (vivant) fiche = a; }).catch(() => {});
     return () => { vivant = false; };
   });
+
+  /* ══════════════════════════════════════════════════════════════════════
+     LE MODE « MODIFIER » — GO de Bertrand, 25/09/2026.
+
+     Éditer l'album, ses disques et ses pistes SUR PLACE : voir
+     `EditionAlbumV2` et `lib/editionAlbum`. Un album de la BIBLIOTHÈQUE
+     seulement — ni dépôt distant (son `id` est celui d'un autre serveur), ni
+     service, ni Bandcamp.
+
+     🔴 LA SONDE DÉCIDE DU BOUTON. `GET /library/albums/{id}/edition` n'existe
+     que sur un serveur qui a le lot `edition-coffrets` : un serveur antérieur
+     répond 404, et « Modifier » n'apparaît pas. Un bouton qui échouerait au
+     clic promettrait ce que le serveur ne sait pas faire.
+
+     `rechargement` avance après un enregistrement, un détachement ou un
+     ajout de disque : les pistes, la fiche et la sonde se relisent.
+     ══════════════════════════════════════════════════════════════════════ */
+  let rechargement = $state(0);
+  let edition = $state.raw<EditionReponse | null>(null);
+  let enEdition = $state(false);
+  const editionPossible = $derived(album.id != null && !depot && !service && !bandcamp);
+  $effect(() => {
+    const id = album.id, possible = editionPossible;
+    void rechargement;
+    // Une RELECTURE du même album garde la fiche d'édition en place : le
+    // mode ouvert ne se démonte pas le temps de la requête.
+    if (untrack(() => edition)?.album.id !== id) edition = null;
+    if (!possible || id == null) { edition = null; enEdition = false; return; }
+    let vivant = true;
+    api.getAlbumEdition(id)
+      .then((r) => { if (vivant) edition = estReponseEdition(r) ? r : null; })
+      .catch(() => { /* serveur sans la route : pas de bouton */ });
+    return () => { vivant = false; };
+  });
+  // Une autre fiche s'ouvre : on ne reste pas en édition sur l'album d'avant.
+  $effect(() => { void album?.id; enEdition = false; });
+
+  async function apresEnregistrement() {
+    const id = album.id;
+    enEdition = false;
+    rechargement += 1;
+    if (id == null) return;
+    // L'en-tête (titre, artiste, année) se relit comme après une
+    // ré-identification.
+    try {
+      const a = await api.getAlbum(id);
+      if (album.id === id && a) album = a;
+    } catch { /* l'en-tête garde l'ancien texte ; les pistes, elles, sont relues */ }
+  }
 
   /** Le badge DR, et ce qu'il doit dire de sa provenance. */
   const dr = $derived(afficherDynamicRange(fiche));
@@ -1105,6 +1204,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.album.locate' as any)}
           </button>
         {/if}
+        {#if origineCoffret === 'auto'}
+          <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
+            title={$tr('v2.album.boxUndoTip' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+            {$tr('v2.album.boxUndo' as any)}
+          </button>
+        {/if}
         {#if album.id != null || refService}
           <button class="ghost coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
             aria-pressed={enFavori}
@@ -1158,6 +1264,15 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             <ReportButton entity="cover" entityId={album.id}
               reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} />
           {/if}
+          <!-- Le mode « Modifier » : seulement si le serveur sert la fiche
+               d'édition (voir `edition`). -->
+          {#if edition && !enEdition}
+            <button class="ghost" data-modifier-album onclick={() => (enEdition = true)}
+              aria-expanded={enEdition} title={$tr('v2.edition.modifyTip' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              {$tr('v2.edition.modify' as any)}
+            </button>
+          {/if}
         </div>
       {/if}
     </div>
@@ -1188,7 +1303,12 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   {/if}
 
   <div class="tracks">
-    {#if loading}
+    {#if enEdition && edition && album.id != null}
+      <EditionAlbumV2 albumId={album.id} donnees={edition}
+        onFermer={() => (enEdition = false)}
+        onEnregistre={apresEnregistrement}
+        onRecharger={() => (rechargement += 1)} />
+    {:else if loading}
       <div class="state">{$tr('v2.common.loadingTracks' as any)}</div>
     {:else if error}
       <div class="state err">{error}</div>
