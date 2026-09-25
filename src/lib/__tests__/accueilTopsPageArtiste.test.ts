@@ -23,6 +23,7 @@ import PageWidgets from '../../components/v2/PageWidgets.svelte';
 import { currentProfileId } from '../stores/profile';
 import { currentZoneId } from '../stores/zones';
 import { activeView, pendingLibraryArtist, vueDeRetour } from '../stores/navigation';
+import { ficheArtisteService } from '../stores/streaming';
 
 /** `GET /library/history/dashboard` — un seul artiste suffit ici. */
 const TABLEAU = {
@@ -104,6 +105,7 @@ describe('« Vos tops » — un artiste ouvre SA PAGE, pas la grille', () => {
     currentZoneId.set(1);
     activeView.set('home' as any);
     pendingLibraryArtist.set(null);
+    ficheArtisteService.set(null);
     vueDeRetour.set(null);
     artistesTrouves = [{ id: 51, name: 'Dionne Warwick' }];
   });
@@ -115,13 +117,19 @@ describe('« Vos tops » — un artiste ouvre SA PAGE, pas la grille', () => {
     vi.restoreAllMocks();
   });
 
-  it('🔴 le clic POSE l’artiste que la Bibliothèque consomme (`pendingLibraryArtist`)', async () => {
+  it('🔴 le clic ouvre la PAGE COMMUNE de l’artiste de la bibliothèque (#1494)', async () => {
     const page = await poserLaPage();
     await cliquer(premierArtiste(page));
-    // Le magasin de l'ancienne coquille ne prouvait rien : c'est celui-ci que
-    // `LibraryV2` lit pour ouvrir la fiche.
-    expect(get(pendingLibraryArtist), 'la fiche de l’artiste ne s’ouvre pas').toBe(51);
-    expect(get(activeView)).toBe('library');
+    // Le magasin de l'ancienne coquille ne prouvait rien. Depuis #1494 (web
+    // #1498), un artiste LOCAL s'ouvre sur la page artiste commune
+    // (`ArtisteServiceV2`, `service: null`) : c'est elle que ce clic doit
+    // montrer, et non plus la fiche de la Bibliothèque (`pendingLibraryArtist`).
+    expect(get(ficheArtisteService), 'la fiche de l’artiste ne s’ouvre pas').toEqual({
+      service: null,
+      id: '51',
+      nom: 'Dionne Warwick',
+    });
+    expect(get(activeView)).toBe('streamingartist');
   });
 
   it('le Retour de la fiche ramène à l’accueil, pas à la Bibliothèque', async () => {
@@ -134,6 +142,7 @@ describe('« Vos tops » — un artiste ouvre SA PAGE, pas la grille', () => {
     artistesTrouves = [{ id: 99, name: 'Dionne' }];
     const page = await poserLaPage();
     await cliquer(premierArtiste(page));
+    expect(get(ficheArtisteService), 'un artiste au hasard a été ouvert').toBeNull();
     expect(get(pendingLibraryArtist), 'un artiste au hasard a été ouvert').toBeNull();
     expect(get(activeView)).toBe('library');
   });

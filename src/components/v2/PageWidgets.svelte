@@ -778,9 +778,9 @@
      * l'accueil pour la grille de la Bibliothèque, sans fiche. Exactement le
      * point 9 d'Yves Corbat sur les Favoris (17/09), d'où `ouvrirArtisteDepuis`.
      *
-     * On passe donc par CE module, le seul chemin vivant : `pendingLibraryArtist`
-     * pour un artiste de la bibliothèque, `streamingartist` pour un artiste de
-     * service, et `vueDeRetour` pour que le Retour de la fiche ramène ICI —
+     * On passe donc par CE module, le seul chemin vivant : la PAGE COMMUNE
+     * (`streamingartist`, #1494) pour un artiste de la bibliothèque comme pour
+     * un artiste de service, et `vueDeRetour` pour que le Retour de la fiche ramène ICI —
      * `$activeView` et non `'home'` en dur : les écrans éditoriaux Qobuz et
      * Tidal montent la même page de widgets.
      */
