@@ -3339,6 +3339,8 @@ export default {
   "v2.fas.albums": "Albume",
   "v2.fas.empty": "Nimic de afișat pentru acest artist.",
   "v2.fas.topTracksFailed": "Piesele de top nu au putut fi încărcate — „Best of” și „Radio” au nevoie de ele.",
+  "v2.fas.artistNotFound": "Acest artist nu a fost găsit pe {service}.",
+  "v2.fas.artistUnavailable": "{service} nu a putut furniza pagina acestui artist deocamdată.",
   "v2.fas.bestOf": "Ascultă cele mai bune",
   "v2.fas.radio": "Radio artist",
   "v2.rech.tracks": "Piese",
