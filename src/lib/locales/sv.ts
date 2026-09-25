@@ -3338,6 +3338,8 @@ export default {
   "v2.fas.albums": "Album",
   "v2.fas.empty": "Inget att visa för den här artisten.",
   "v2.fas.topTracksFailed": "Toppspåren kunde inte hämtas – ”Best of” och ”Radio” behöver dem.",
+  "v2.fas.artistNotFound": "Den här artisten hittades inte på {service}.",
+  "v2.fas.artistUnavailable": "{service} kunde inte leverera artistens sida just nu.",
   "v2.fas.bestOf": "Spela det bästa",
   "v2.fas.radio": "Artistradio",
   "v2.rech.tracks": "Låtar",

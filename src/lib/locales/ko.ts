@@ -3339,6 +3339,8 @@ export default {
   "v2.fas.albums": "앨범",
   "v2.fas.empty": "이 아티스트에 대해 표시할 내용이 없습니다.",
   "v2.fas.topTracksFailed": "인기 트랙을 불러오지 못했습니다 — ‘Best of’와 ‘라디오’에 필요합니다.",
+  "v2.fas.artistNotFound": "{service}에서 이 아티스트를 찾을 수 없습니다.",
+  "v2.fas.artistUnavailable": "{service}에서 지금은 이 아티스트 페이지를 가져올 수 없습니다.",
   "v2.fas.bestOf": "베스트 재생",
   "v2.fas.radio": "아티스트 라디오",
   "v2.rech.tracks": "트랙",
