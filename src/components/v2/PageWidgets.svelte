@@ -193,6 +193,15 @@
     phase: 'attente' | 'charge' | 'echec' | 'non-propose';
     elements: Element[];
     chiffres: ChiffreAffiche[];
+    /**
+     * La matière d'un widget `forme: 'bloc'` — 25/09/2026.
+     *
+     * Un troisième champ à côté d'`elements` et de `chiffres`, et non un
+     * détournement de l'un des deux : `elements` est typé `Element[]` et la
+     * matière d'un bloc n'en est pas une. C'est la même séparation qui existe
+     * déjà entre les deux autres.
+     */
+    donnees?: unknown;
     raison?: string;
     /** #1561 — une recomposition est en vol : la ligne d'avant reste affichée. */
     recompose?: boolean;
@@ -494,14 +503,26 @@
     creneau(() => {
       const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones),
                     chiffresChoisis: chiffres, langue: get(locale) };
-      const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
+      // Trois chargeurs, un par nature de matière. `bloc` (25/09/2026) a le
+      // sien pour la même raison que `chiffres` : `charger` promet des
+      // `Element[]`, et la matière d'un bloc n'en est pas une.
+      const p = w.forme === 'chiffres' && w.chiffres
+        ? w.chiffres(ctx)
+        : w.forme === 'bloc' && w.bloc
+          ? w.bloc.donnees(ctx)
+          : w.charger(ctx);
       return avecDelai(Promise.resolve(p));
     })
       .then((r: any) => {
         if (perime()) return;
         majEtat(id, w.forme === 'chiffres'
           ? { phase: 'charge', chiffres: r ?? [], recompose: false }
-          : { phase: 'charge', elements: r ?? [], recompose: false });
+          : w.forme === 'bloc'
+            // 🔴 `?? null` et non `?? []` : un bloc dont le chargeur rend
+            // `undefined` doit rendre un bloc VIDE, pas un tableau que son
+            // composant n'attend pas. C'est lui qui sait dire « rien ».
+            ? { phase: 'charge', donnees: r ?? null, recompose: false }
+            : { phase: 'charge', elements: r ?? [], recompose: false });
       })
       .catch((err: any) => {
         // #1561 — un échec PÉRIMÉ ne dit rien et ne rend rien : la demande
@@ -1140,6 +1161,26 @@
                   </div>
                 </div>
               {/if}
+            {:else if w.forme === 'bloc' && w.bloc}
+              <!-- LE BLOC — il rend SON PROPRE BALISAGE (25/09/2026).
+
+                   🔴 Cette branche est AVANT le repli « (vide) » juste en
+                   dessous, et ce n'est pas un détail d'ordre : ce repli teste
+                   `et.elements`, qu'un bloc ne remplit jamais. Placée après,
+                   elle n'aurait jamais été atteinte et les onze blocs du
+                   Tableau de bord auraient tous affiché « (vide) ». C'est
+                   exactement la place qu'occupe déjà la branche `chiffres`,
+                   et pour la même raison.
+
+                   `PageWidgets` ne lit RIEN de `donnees` : il réserve la
+                   hauteur déclarée et passe la main. C'est ce qui permet de
+                   sortir les sections de l'ancien Tableau de bord sans les
+                   redessiner. -->
+              {@const Dessin = w.bloc.composant}
+              <div class="blocpropre" style:min-height="{w.bloc.hauteur}px">
+                <Dessin donnees={et.donnees ?? null} />
+              </div>
+
             {:else if !et.elements.length}
               <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>
 
@@ -1628,6 +1669,23 @@
     .chiffres{gap:10px; padding:0 16px 12px}
     .stat .v, .stat .l{font-size:14px}
   }
+
+  /* ── LE BLOC : la seconde forme (25/09/2026) ──────────────────────────
+     Une COLONNE flexible, et c'est tout ce que la page impose. Les blocs dont
+     le dessin doit remplir la hauteur déclarée — les barres de la tendance —
+     s'y étirent par `flex:1` ; les autres se posent en haut.
+
+     🔴 La hauteur elle-même n'est PAS ici : elle est posée en ligne par le
+     widget (`style:min-height`), parce qu'elle lui appartient. C'est le
+     contrat `Bloc.hauteur`, et une valeur écrite dans cette feuille-ci
+     vaudrait pour tous les blocs — soit exactement la hauteur unique dont on
+     cherche à sortir.
+
+     `min-height` et non `height` : le bloc RÉSERVE sa place pour que la page
+     ne se réorganise pas sous les yeux pendant les onze chargements
+     parallèles, mais un bloc qui déborde s'affiche en entier plutôt que
+     d'être coupé. */
+  .blocpropre{display:flex; flex-direction:column; padding-bottom:8px}
 
   /* ── Le gros widget des tops (20/09/2026) ────────────────────────────── */
   .tops{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px}

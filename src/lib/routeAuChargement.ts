@@ -72,7 +72,15 @@ const VUES: Record<View, boolean> = {
   diagnostics: true,
   collections: true,
   smartcollections: true,
+  // `dashboard` reste l'ANCIEN écran (`v2-heritage/DashboardView`), devenu le
+  // réservoir le 25/09/2026 : hors du menu depuis la 0.9.161, mais toujours
+  // atteignable par son adresse — il garde le sélecteur de période et l'export
+  // CSV que le nouvel écran n'a pas.
   dashboard: true,
+  // `tableaudebord` est le NOUVEL écran à widgets (25/09/2026). Deux noms pour
+  // deux écrans bien réels : reposer le neuf sur l'adresse de l'ancien aurait
+  // rendu le réservoir inatteignable, ce que l'arbitrage interdit.
+  tableaudebord: true,
   services: true,
   genretree: true,
   equalizer: true,
