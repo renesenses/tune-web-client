@@ -93,6 +93,8 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   concerts: 'destination',
   pontroon: 'destination',
   lecturecd: 'destination',
+  // tune-server-rust#5065 — la page d'une source de la rubrique « Sources ».
+  source: 'destination',
   // #4806 — l'écran « Titres bannis », voisin des sélections de l'utilisateur.
   bannedtracks: 'destination',
 

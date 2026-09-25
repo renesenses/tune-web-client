@@ -42,6 +42,10 @@
   import {
     etatRayons, rafraichirRayons, cleCibleCollection, lireArbreBarreReplie, ecrireArbreBarreReplie,
   } from '../../lib/rayonsCollections';
+  import {
+    sources, sourceCourante, rubriqueSourcesVisible, rafraichirSources, abonnerSources,
+    partagerSources, nomSource, ICONES_SOURCE, type Source,
+  } from '../../lib/sources';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -483,6 +487,36 @@
     } as any);
   }
 
+  /**
+   * RUBRIQUE « SOURCES » — tune-server-rust#5065, étape 2.
+   *
+   * Les sources physiques et locales de la machine du serveur (CD, entrée
+   * USB, entrées virtuelles, HDMI), sélectionnables comme sur un amplificateur.
+   * Chargée par `GET /sources`, tenue à jour par `sources.changed` (la liste
+   * complète) ; une reconnexion du flux relit la route. Elle n'existe que s'il
+   * y a au moins une source — un serveur antérieur, sans la route, n'en montre
+   * donc aucune, sans erreur.
+   *
+   * Un CD mène à l'écran `lecturecd` (#4863), le même que la carte `cd` des
+   * Extensions : une seule page par source.
+   */
+  $effect(() => { void rafraichirSources(); });
+  $effect(() => abonnerSources((h) => tuneWS.onEvent(h)));
+  const sourcesBarre = $derived(partagerSources($sources ?? []));
+  /** Les entrées virtuelles sont REPLIÉES par défaut : elles sont rarement
+   *  celles qu'on cherche, et un pilote en déclare parfois plusieurs. */
+  let virtuellesDepliees = $state(false);
+  function ouvrirSource(s: Source) {
+    sourceCourante.set(s.id);
+    go(s.type === 'cd' ? 'lecturecd' : 'source');
+  }
+  function sourceActive(s: Source, vue: View, courante: string | null): boolean {
+    return s.type === 'cd' ? vue === 'lecturecd' : vue === 'source' && courante === s.id;
+  }
+  const libelleVirtuelles = $derived(
+    virtuellesDepliees ? $t('v2.sources.hideVirtual' as any) : $t('v2.sources.showVirtual' as any),
+  );
+
   function fermerTiroir() { tiroirOuvert.set(false); }
   function auClavier(e: KeyboardEvent) {
     if (e.key === 'Escape' && $tiroirOuvert) { e.stopPropagation(); fermerTiroir(); }
@@ -597,6 +631,38 @@
         </button>
       {/each}
     </nav>
+
+    {#if $rubriqueSourcesVisible}
+      <nav class="grp sources-barre" aria-label={$t('v2.sources.title' as any)}>
+        <div class="grp-label">{$t('v2.sources.title' as any)}</div>
+        {#snippet entreeSource(s: Source, sous: boolean)}
+          <button class="nav src" class:sous class:active={sourceActive(s, $activeView, $sourceCourante)}
+            data-source={s.id} onclick={() => ouvrirSource(s)} title={enIcones ? nomSource(s) : undefined}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_SOURCE[s.type]} /></svg>
+            <span class="src-nom">{nomSource(s)}</span>
+            <i class="pastille-src e-{s.etat}" role="img"
+              aria-label={$t(`v2.sources.etat.${s.etat}` as any)} title={$t(`v2.sources.etat.${s.etat}` as any)}></i>
+          </button>
+        {/snippet}
+        {#each sourcesBarre.principales as s (s.id)}
+          {@render entreeSource(s, false)}
+        {/each}
+        {#if sourcesBarre.virtuelles.length}
+          <button class="nav pli-virtuelles" aria-expanded={virtuellesDepliees}
+            aria-label={libelleVirtuelles} title={libelleVirtuelles}
+            onclick={() => (virtuellesDepliees = !virtuellesDepliees)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={ICONES_SOURCE.virtuelle} /></svg>
+            <span>{$t('v2.sources.virtualGroup' as any)} ({sourcesBarre.virtuelles.length})</span>
+            <svg class="chev" class:ferme={!virtuellesDepliees} viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+          </button>
+          {#if virtuellesDepliees}
+            {#each sourcesBarre.virtuelles as s (s.id)}
+              {@render entreeSource(s, true)}
+            {/each}
+          {/if}
+        {/if}
+      </nav>
+    {/if}
 
     <nav class="grp">
       <!--
@@ -854,6 +920,24 @@
   .pli-arbre svg{width:14px; height:14px; transition:transform .12s}
   .pli-arbre svg.ferme{transform:rotate(-90deg)}
   .v2-sidebar.collapsed .nav.svc{padding-left:0}
+  /* #5065 — rubrique « Sources » : la pastille d'état au bout de la ligne,
+     posée sur l'icône quand la barre est repliée. */
+  .nav.src{position:relative}
+  .nav.src.sous{padding-left:30px; font-size:13px}
+  .v2-sidebar.collapsed .nav.src.sous{padding-left:0}
+  .src-nom{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .pastille-src{width:7px; height:7px; border-radius:50%; flex:none; background:var(--v2-txt3)}
+  .v2-sidebar.collapsed .pastille-src{position:absolute; top:5px; right:14px}
+  .pastille-src.e-signal{background:var(--v2-ok, #3ecf8e)}
+  .pastille-src.e-disque{background:var(--v2-acc1)}
+  .pastille-src.e-silence{background:var(--v2-txt3)}
+  .pastille-src.e-vide{background:transparent; box-shadow:inset 0 0 0 1.5px var(--v2-txt3)}
+  .pastille-src.e-autorisation_refusee{background:var(--v2-danger)}
+  .pastille-src.e-non_pris_en_charge,.pastille-src.e-indisponible{background:var(--v2-line2)}
+  .pli-virtuelles span{flex:1}
+  .pli-virtuelles .chev{width:14px; height:14px; transition:transform .12s}
+  .pli-virtuelles .chev.ferme{transform:rotate(-90deg)}
+  .v2-sidebar.collapsed .pli-virtuelles .chev{display:none}
   .support{margin-top:6px}
   .sante{display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%;
     background:var(--v2-acc2); vertical-align:middle}
