@@ -1551,6 +1551,7 @@ export default {
   "v2.home.sHoursHeard": "hours heard",
   "v2.home.sGenresHeard": "genres heard",
   "v2.home.statOpen": "Open",
+  "v2.home.statsFull": "This row is full: {n} figures at most. Uncheck one to choose another.",
   "v2.home.statsPick": "Choose the figures for this row (six at most).",
   "v2.sc.eyebrow": "Your quick access",
   "v2.sc.hint": "The sidebar shows five, pinned first. This is where you choose which.",

@@ -2560,6 +2560,7 @@ export default {
   "v2.home.sHoursHeard": "聴いた時間",
   "v2.home.sGenresHeard": "聴いたジャンル",
   "v2.home.statOpen": "開く",
+  "v2.home.statsFull": "この行はいっぱいです。数字は最大 {n} 個までです。別のものを選ぶには、どれか一つのチェックを外してください。",
   "v2.home.statsPick": "この行に表示する数字を選びます（最大6つ）。",
   "v2.sc.eyebrow": "クイックアクセス",
   "v2.sc.hint": "サイドバーには 5 件、ピン留めしたものが先に表示されます。ここでどれを表示するか選びます。",

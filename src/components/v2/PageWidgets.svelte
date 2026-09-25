@@ -32,14 +32,14 @@
    * la carte entière : rendre toute la bande déplaçable empêcherait de la faire
    * défiler à la souris, qui est son geste principal.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { remplacerAliasWidgets } from '../../lib/widgetsService';
   import { defilementHorizontal } from '../../lib/defilementHorizontal';
   import { molettePortee } from '../../lib/molettePortee';
   import { t, locale } from '../../lib/i18n';
-  import { CHIFFRES, CHOIX_DEFAUT, basculer, choixAEnregistrer, migrationLigneChiffres } from '../../lib/chiffresAccueil';
+  import { CHIFFRES, CHOIX_DEFAUT, MAXIMUM_CHIFFRES, ajoutRefuse, basculer, choixAEnregistrer, ligneComplete, migrationLigneChiffres } from '../../lib/chiffresAccueil';
   import { trace } from '../../lib/iconesChiffres';
   import { albums } from '../../lib/stores/library';
   import { currentZoneId, zones, switchZone } from '../../lib/stores/zones';
@@ -191,6 +191,8 @@
     elements: Element[];
     chiffres: ChiffreAffiche[];
     raison?: string;
+    /** #1561 — une recomposition est en vol : la ligne d'avant reste affichée. */
+    recompose?: boolean;
   }
   let etats = $state<Etat[]>([]);
   const etatDe = (id: string) => etats.find((e) => e.id === id);
@@ -422,8 +424,32 @@
     }
   }
 
-  /** Charge un widget, une seule fois, et sans retenir les autres. */
+  /**
+   * 🔴 #1561 — LE DERNIER CHARGEMENT DEMANDÉ EST LE SEUL QUI ÉCRIVE.
+   *
+   * Un numéro de tour par widget, avancé à chaque départ. Une réponse dont le
+   * tour n'est plus le dernier est ignorée — succès comme échec. Sans lui, deux
+   * recompositions rapprochées de la ligne de chiffres (cocher, puis décocher
+   * aussitôt) laissaient la PREMIÈRE réponse arrivée après la seconde réécrire
+   * l'ancienne ligne, et un échec périmé rendre au registre une demande qui ne
+   * lui appartenait plus.
+   *
+   * ⚠️ Pas un `$state`, pour la même raison que `demandes`.
+   */
+  const tours = new Map<string, number>();
+  /**
+   * #1561 — les widgets dont l'entrée à l'écran doit RESTER affichée pendant
+   * le prochain chargement : une ligne de chiffres qu'on recompose garde ses
+   * cartes et son sélecteur au lieu de retomber sur « Chargement… ». Posé par
+   * `recomposerLigne`, consommé par `chargerWidget`. Pas un `$state`.
+   */
+  const aGarder = new Set<string>();
+
+  /**
+   * Charge un widget, une seule fois, et sans retenir les autres.
+   */
   function chargerWidget(id: string) {
+    const garder = aGarder.delete(id);
     if (demandes.has(id)) return;
     demandes.add(id);
     const w = parId(id);
@@ -431,6 +457,9 @@
     // une demande servie. La garder condamnerait l'identifiant pour la vie de
     // la page si le catalogue venait à l'apprendre plus tard.
     if (!w) { demandes.delete(id); return; }
+    const tour = (tours.get(id) ?? 0) + 1;
+    tours.set(id, tour);
+    const perime = () => tours.get(id) !== tour;
     /**
      * 🔴 On ne garde PAS la référence qu'on vient de pousser.
      *
@@ -443,7 +472,8 @@
      * après trois correctifs qui visaient ailleurs. On passe donc par `majEtat`,
      * qui retrouve l'entrée DANS le tableau à chaque écriture.
      */
-    etats.push({ id, phase: 'attente', elements: [], chiffres: [] });
+    if (garder && untrack(() => etats.some((e) => e.id === id))) majEtat(id, { recompose: true });
+    else etats.push({ id, phase: 'attente', elements: [], chiffres: [] });
 
     /**
      * 🔴 #1152 — LE CONTEXTE SE LIT AU DÉPART, PAS À LA MISE EN FILE.
@@ -465,11 +495,15 @@
       return avecDelai(Promise.resolve(p));
     })
       .then((r: any) => {
+        if (perime()) return;
         majEtat(id, w.forme === 'chiffres'
-          ? { phase: 'charge', chiffres: r ?? [] }
-          : { phase: 'charge', elements: r ?? [] });
+          ? { phase: 'charge', chiffres: r ?? [], recompose: false }
+          : { phase: 'charge', elements: r ?? [], recompose: false });
       })
       .catch((err: any) => {
+        // #1561 — un échec PÉRIMÉ ne dit rien et ne rend rien : la demande
+        // du registre appartient au chargement qui l'a remplacé.
+        if (perime()) return;
         // #859 — un 501 n'est PAS une panne : le service ne propose pas cette
         // rubrique (Bandcamp n'a pas de playlists de compte, et le dit par un
         // 501 depuis la .147). FabienM lisait « 502 Bad Gateway », puis
@@ -481,6 +515,7 @@
         // « rien à montrer », et on cherche alors un défaut de bibliothèque.
         majEtat(id, {
           phase: 'echec',
+          recompose: false,
           raison: err?.message === 'delai' ? 'delai' : (err?.message ?? 'erreur'),
         });
         /**
@@ -526,6 +561,55 @@
    */
   function relancerWidget(id: string) {
     etats = etats.filter((e) => e.id !== id);
+    chargerWidget(id);
+  }
+
+  /**
+   * 🔴 Fil 1918, ticket support 164 — RECOMPOSER une ligne de chiffres, sur
+   * un widget QUI VA BIEN.
+   *
+   * jfpaquet, fil 1918, 0.9.163 Windows : « I have edited twice the "My
+   * Library" widget… Each time it says "reloading" but nothing happens for at
+   * least a minute. It works only when I close Tune and restart it. »
+   *
+   * La case à cocher du sélecteur appelait `relancerWidget`. Or celle-ci est
+   * écrite pour le chemin d'ÉCHEC, et son contrat le dit : « rien n'est retiré
+   * du registre ici, c'est le `.catch` qui rend la demande ». Sur un widget
+   * TOMBÉ, c'est juste — le `.catch` a déjà rendu l'identifiant. Sur un widget
+   * SERVI, c'est un aller sans retour :
+   *
+   *   1. `etats` perd son entrée ;
+   *   2. `chargerWidget` est refusé par `demandes.has(id)` — aucune promesse
+   *      n'est même créée ;
+   *   3. la carte retombe sur la branche `!et` du balisage, qui rend
+   *      « Chargement… » — et plus rien ne l'en sort.
+   *
+   * Ce n'est donc pas « lent » : c'est DÉFINITIF. Le chien de garde des 8 s
+   * (`avecDelai`) ne se déclenche pas non plus, faute de promesse, et le
+   * bouton « Réessayer » vit dans la branche `echec`, jamais atteinte. Seul un
+   * rechargement complet de la page — fermer et rouvrir Tune — repart avec un
+   * registre neuf. Le choix, lui, était bel et bien enregistré : c'est
+   * pourquoi il réapparaissait au redémarrage.
+   *
+   * ⚠️ Le geste ne peut pas passer par `rechargerWidget` : celle-ci ignore
+   * `forme === 'chiffres'`, appelle `w.charger` (qui rend `[]` pour ce
+   * widget-ci) et écrit `elements` au lieu de `chiffres` — elle viderait la
+   * ligne au lieu de la recomposer.
+   *
+   * Cocher une case est un GESTE de l'utilisateur, au même titre qu'ajouter un
+   * widget — et `retirer()` rend déjà l'identifiant au registre pour la même
+   * raison. On le rend donc ici aussi : le garde des « chargements x4 » ne
+   * protège que les chargements AUTOMATIQUES, pas ceux qu'on demande.
+   */
+  function recomposerLigne(id: string) {
+    // #1561 — la ligne d'avant RESTE à l'écran, avec son sélecteur, jusqu'à ce
+    // que la nouvelle arrive. Vider `etats` ici la faisait retomber sur
+    // « Chargement… » à chaque case cochée, et le sélecteur disparaissait avec
+    // elle : sur un serveur lent (PostgreSQL, 80 000 pistes, scan en cours),
+    // c'est le « reloading… nothing happens » du fil 1918. Et c'est
+    // `chargerWidget` qui ne laisse écrire que le DERNIER chargement.
+    demandes.delete(id);
+    aGarder.add(id);
     chargerWidget(id);
   }
 
@@ -970,7 +1054,7 @@
                    Les cotes de Figma sont à l'échelle 1,372 ; elles sont
                    reprises ici à l'échelle 1, où elles tombent juste :
                    hauteur 36, rayon 20, texte 16, cercle 24. -->
-              <div class="chiffres">
+              <div class="chiffres" aria-busy={et.recompose ? 'true' : undefined}>
                 {#each et.chiffres as c (c.id ?? c.cle)}
                   {#if c.vue}
                     <button class="stat" onclick={() => activeView.set(c.vue as any)}
@@ -1005,11 +1089,36 @@
                      verrait. -->
                 <div class="choix-chiffres">
                   <p class="aide">{$t('v2.home.statsPick' as any)}</p>
+                  <!-- #1519 — DIRE LE PLAFOND, AU LIEU DE LE LAISSER DÉCOUVRIR.
+                       `basculer` refuse le septième chiffre et rend la liste
+                       telle quelle : la case cochée revenait toute seule, sans
+                       un mot. Depuis #1541 le défaut en compte six — un profil
+                       neuf arrive donc PLEIN — et #1542 a mis quatre cartes de
+                       plus au catalogue : plus de choix que jamais, et aucune
+                       place.
+
+                       🔴 CETTE RÉGION VIT TOUT LE TEMPS, VIDE QUAND IL N'Y A
+                       RIEN À DIRE. Un `role="status"` que l'on monte et démonte
+                       n'annonce rien chez la plupart des lecteurs d'écran :
+                       ils ne surveillent que les régions DÉJÀ présentes. Le
+                       `<p>` reste donc là, et c'est son texte qui apparaît —
+                       `:empty` le fait disparaître de l'œil, pas du DOM. -->
+                  <p class="plein" class:vide={!ligneComplete(chiffres)} id="chiffres-plein-{w.id}" role="status">{#if ligneComplete(chiffres)}{$t('v2.home.statsFull' as any).replace('{n}', String(MAXIMUM_CHIFFRES))}{/if}</p>
                   <div class="opts">
                     {#each CHIFFRES as ch (ch.id)}
-                      <label class="opt" class:on={chiffres.includes(ch.id)}>
+                      {@const refuse = ajoutRefuse(chiffres, ch.id)}
+                      <!-- 🔴 `aria-describedby` est posé sur TOUTES les cases
+                           tant que la ligne est pleine, y compris les cochées.
+                           Une case `disabled` sort du parcours du clavier :
+                           seule reste atteignable la poignée de cases cochées,
+                           et c'est par elles que le motif doit se lire. Sans
+                           cela, qui navigue au clavier n'aurait que le grisé —
+                           une couleur, et rien à entendre. -->
+                      <label class="opt" class:on={chiffres.includes(ch.id)} class:sourd={refuse}>
                         <input type="checkbox" checked={chiffres.includes(ch.id)}
-                               onchange={() => { chiffres = basculer(chiffres, ch.id); void enregistrer(); relancerWidget(w.id); }} />
+                               disabled={refuse}
+                               aria-describedby={ligneComplete(chiffres) ? `chiffres-plein-${w.id}` : undefined}
+                               onchange={() => { chiffres = basculer(chiffres, ch.id); void enregistrer(); recomposerLigne(w.id); }} />
                         <span>{$t(ch.cleLibelle as any)}</span>
                       </label>
                     {/each}
@@ -1450,6 +1559,8 @@
      dans Figma le 19/09/2026. Ses cotes y sont à l'échelle 1,372 (21,96 px
      pour 16, 27,45 pour 20, 32,94 pour 24…) : on reprend l'échelle 1. */
   .chiffres{display:flex; flex-wrap:wrap; gap:20px; padding:0 30px 12px}
+  /* #1561 — la ligne d'avant, le temps que la nouvelle arrive. */
+  .chiffres[aria-busy='true']{opacity:.55; transition:opacity .15s}
   .stat{display:flex; align-items:center; gap:10px; padding:6px 14px; min-height:36px;
     border-radius:20px; border:1px solid color-mix(in srgb, var(--v2-acc1) 15%, transparent);
     background:color-mix(in srgb, var(--v2-surface2) 75%, transparent);
@@ -1472,6 +1583,27 @@
     padding:5px 11px; border-radius:var(--v2-r-pill); font:13px var(--v2-sans);
     border:1px solid var(--v2-line2); color:var(--v2-txt2)}
   .choix-chiffres .opt.on{border-color:var(--v2-acc2); color:var(--v2-txt)}
+
+  /* #1519 — LA LIGNE EST PLEINE, ET ÇA SE VOIT.
+     `.plein:empty` : la région d'annonce reste dans le DOM en permanence
+     (voir le balisage), elle ne prend simplement aucune place tant qu'elle
+     n'a rien à dire. */
+  .choix-chiffres .plein{margin:0 0 8px; font:12px var(--v2-sans);
+    color:var(--v2-txt); padding:6px 10px; border-radius:var(--v2-r-md);
+    border:1px solid var(--v2-line2);
+    background:color-mix(in srgb, var(--v2-acc1) 10%, transparent)}
+  /* Deux verrous pour une seule disparition : `.vide` est explicite, `:empty`
+     tient même si la classe était un jour oubliée. Aucun des deux ne retire
+     l'élément du DOM — c'est tout l'intérêt. */
+  .choix-chiffres .plein.vide, .choix-chiffres .plein:empty{display:none}
+
+  /* La pilule grisée : elle reste LISIBLE — on doit pouvoir lire ce qu'on ne
+     peut pas encore choisir — mais elle perd son contour, sa main et son
+     contraste. Et `cursor:not-allowed` répond au survol, là où une case
+     `disabled` ne répond plus au clic. */
+  .choix-chiffres .opt.sourd{opacity:.45; cursor:not-allowed;
+    border-style:dashed; border-color:var(--v2-line)}
+  .choix-chiffres .opt.sourd input{cursor:not-allowed}
 
   /* Sur un écran étroit, les pilules passent à la ligne plutôt que de
      déborder : la ligne de la maquette fait 1600 px de large. */

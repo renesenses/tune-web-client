@@ -2518,6 +2518,7 @@ export default {
   "v2.home.sHoursHeard": "hallgatott órák",
   "v2.home.sGenresHeard": "hallgatott műfajok",
   "v2.home.statOpen": "Megnyitás",
+  "v2.home.statsFull": "Ez a sor megtelt: legfeljebb {n} szám. Vegye ki a pipát az egyikből, ha másikat szeretne választani.",
   "v2.home.statsPick": "Válassza ki a sor számait (legfeljebb hatot).",
   "v2.sc.eyebrow": "Az Ön gyors elérései",
   "v2.sc.hint": "Az oldalsáv ötöt mutat, előbb a rögzítetteket. Itt választja ki, melyeket.",

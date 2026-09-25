@@ -2559,6 +2559,7 @@ export default {
   "v2.home.sHoursHeard": "lyssnade timmar",
   "v2.home.sGenresHeard": "lyssnade genrer",
   "v2.home.statOpen": "Öppna",
+  "v2.home.statsFull": "Den här raden är full: högst {n} siffror. Avmarkera en för att kunna välja en annan.",
   "v2.home.statsPick": "Välj siffrorna i den här raden (högst sex).",
   "v2.sc.eyebrow": "Dina snabbval",
   "v2.sc.hint": "Sidofältet visar fem, fästa först. Här väljer du vilka.",

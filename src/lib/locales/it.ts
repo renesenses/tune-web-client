@@ -2560,6 +2560,7 @@ export default {
   "v2.home.sHoursHeard": "ore ascoltate",
   "v2.home.sGenresHeard": "generi ascoltati",
   "v2.home.statOpen": "Apri",
+  "v2.home.statsFull": "Questa riga è piena: al massimo {n} numeri. Deseleziona un numero per sceglierne un altro.",
   "v2.home.statsPick": "Scegli i numeri di questa riga (al massimo sei).",
   "v2.sc.eyebrow": "I tuoi accessi rapidi",
   "v2.sc.hint": "La barra laterale ne mostra cinque, prima quelli fissati. Qui scegli quali.",

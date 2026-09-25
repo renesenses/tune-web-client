@@ -2560,6 +2560,7 @@ export default {
   "v2.home.sHoursHeard": "horas escuchadas",
   "v2.home.sGenresHeard": "géneros escuchados",
   "v2.home.statOpen": "Abrir",
+  "v2.home.statsFull": "Esta fila está llena: {n} cifras como máximo. Desmarque una para elegir otra.",
   "v2.home.statsPick": "Elija las cifras de esta fila (seis como máximo).",
   "v2.sc.eyebrow": "Sus accesos rápidos",
   "v2.sc.hint": "La barra lateral muestra cinco, los fijados primero. Aquí se eligen cuáles.",

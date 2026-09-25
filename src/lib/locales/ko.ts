@@ -2560,6 +2560,7 @@ export default {
   "v2.home.sHoursHeard": "들은 시간",
   "v2.home.sGenresHeard": "들은 장르",
   "v2.home.statOpen": "열기",
+  "v2.home.statsFull": "이 줄이 가득 찼습니다. 수치는 최대 {n}개입니다. 다른 항목을 고르려면 하나를 해제하세요.",
   "v2.home.statsPick": "이 줄에 표시할 수치를 고르세요 (최대 6개).",
   "v2.sc.eyebrow": "빠른 접근",
   "v2.sc.hint": "사이드바에는 다섯 개가, 고정한 것부터 표시됩니다. 여기서 어느 것을 표시할지 고릅니다.",

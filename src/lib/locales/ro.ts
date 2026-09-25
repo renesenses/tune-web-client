@@ -2560,6 +2560,7 @@ export default {
   "v2.home.sHoursHeard": "ore ascultate",
   "v2.home.sGenresHeard": "genuri ascultate",
   "v2.home.statOpen": "Deschide",
+  "v2.home.statsFull": "Acest rând este plin: cel mult {n} cifre. Debifați una pentru a alege alta.",
   "v2.home.statsPick": "Alegeți cifrele acestui rând (cel mult șase).",
   "v2.sc.eyebrow": "Accesele dumneavoastră rapide",
   "v2.sc.hint": "Bara laterală arată cinci, cele fixate mai întâi. Aici alegeți care.",
