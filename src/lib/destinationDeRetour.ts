@@ -93,6 +93,7 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   concerts: 'destination',
   pontroon: 'destination',
   lecturecd: 'destination',
+  circle: 'destination',
   // #4806 — l'écran « Titres bannis », voisin des sélections de l'utilisateur.
   bannedtracks: 'destination',
 
