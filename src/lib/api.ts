@@ -12,6 +12,7 @@ import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
+import { estDepotTuneDistant } from './depotsTuneDistants';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -2013,6 +2014,25 @@ export function getTrackCredits(trackId: number) {
 
 export function enrichTrackCredits(trackId: number) {
   return fetchJSON(`${BASE}/library/tracks/${trackId}/credits/enrich`, { method: 'POST' });
+}
+
+/**
+ * Crédits d'un album, chaque ligne portant sa piste — #1572. Sans bandeau :
+ * un serveur antérieur à la route répond 404, et `chargerCreditsAlbum`
+ * retombe alors sur un appel par piste. Ce n'est pas une panne à annoncer.
+ */
+export function getAlbumCredits(albumId: number) {
+  return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
+    `${BASE}/library/albums/${albumId}/credits`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
+/** Enrichit depuis MusicBrainz les crédits des pistes d'un album (#1572). */
+export function enrichAlbumCredits(albumId: number) {
+  return fetchJSON(`${BASE}/library/albums/${albumId}/credits/enrich`, { method: 'POST' });
 }
 
 // v0.8.0 multi-room — Snapcast control plane.
@@ -5325,6 +5345,22 @@ function condensatDePochetteInterne(url: string): string | null {
   return condensat && condensat !== 'proxy' ? condensat : null;
 }
 
+/**
+ * Vrai quand l'adresse désigne un serveur Tune DISTANT parcouru par ce client
+ * (tune-server-rust#4954), et pas notre propre origine. Un hôte inconnu reste
+ * « le nôtre » : c'est l'ancienne adresse LAN d'une ligne d'historique (#1360).
+ */
+function pochetteDUnAutreServeurTune(url: string): boolean {
+  let hote: string;
+  try {
+    hote = new URL(url).host;
+  } catch {
+    return false;
+  }
+  if (typeof window !== 'undefined' && hote === window.location.host) return false;
+  return estDepotTuneDistant(hote);
+}
+
 export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
   // Server already returns usable relative URLs for cover_path
@@ -5337,7 +5373,9 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
     // #1360 — une pochette de NOTRE serveur enregistrée en adresse absolue se
     // redemande par son condensat, jamais par le relais, qui la refuserait.
     const condensat = condensatDePochetteInterne(coverPath);
-    if (condensat == null) {
+    // tune-server-rust#4954 — sauf si elle vient d'un AUTRE serveur Tune : sa
+    // pochette n'existe pas chez nous (404), elle passe donc par le relais.
+    if (condensat == null || pochetteDUnAutreServeurTune(coverPath)) {
       return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
     }
     coverPath = condensat;
@@ -6365,7 +6403,9 @@ export function getNetworkDiagnostics() {
 // --- Scan Schedule ---
 
 export function getScanSchedule() {
-  return fetchJSON<{ enabled: boolean; time: string | null }>(`${BASE}/system/scan/schedule`);
+  // `last_run` : jour ISO de la dernière occurrence honorée (tune-server-rust#2469).
+  // ABSENT sur un serveur antérieur, `null` si jamais observée (#1578).
+  return fetchJSON<{ enabled: boolean; time: string | null; last_run?: string | null }>(`${BASE}/system/scan/schedule`);
 }
 
 export function setScanSchedule(time: string, enabled: boolean) {
@@ -8417,4 +8457,350 @@ export function setLocalisationConcerts(demande: {
     method: 'POST',
     body: JSON.stringify(demande),
   });
+}
+
+// --- Greffon « Playlists converter » (tune-server-rust#4715) ---
+//
+// Greffon WASM PAYANT et FACULTATIF : il n'est pas embarqué, il s'installe
+// depuis le gestionnaire de greffons. L'hôte monte TOUTES ses routes sous
+// `/api/v1/plugins/playlists-converter/…` (`routes/plugins.rs`,
+// `wasm_dispatch`) et pose la garde premium AVANT le greffon : un refus de
+// licence est donc le 402 ordinaire, que `fetchJSON` traduit déjà.
+//
+// Le contrat est celui des corps de tune-server-rust#4740 (transfert),
+// #4903 (snapshots) et #4904 (liens auto-sync), vérifié contre
+// `plugins/tune-playlists-converter/src/dispatch.rs`. Une erreur du greffon
+// est `{error: "<code> : <phrase>"}` : `apiError` range cette chaîne dans
+// `code`, et `codeConvertisseur` (lib/convertisseurPlaylists.ts) en tire le
+// code (`apercu_requis`, `accord_requis`…).
+//
+// ⚠️ L'hôte n'a AUCUNE capacité de suppression chez un service : aucune des
+// fonctions ci-dessous n'en demande une, et il n'y en aura pas.
+
+/** L'identifiant du greffon, tel que `GET /plugins` le rend dans `name`. */
+export const GREFFON_CONVERTISSEUR = 'playlists-converter';
+const CONVERTISSEUR = `${BASE}/plugins/${GREFFON_CONVERTISSEUR}`;
+
+/** Pourquoi un titre n'est pas repris (`appariement.rs`, `Raison`). */
+export interface RaisonConvertisseur {
+  code: string;
+  candidat_titre?: string;
+  candidat_artiste?: string;
+  score?: number;
+  ecart_ms?: number;
+  duree_source_ms?: number;
+  duree_candidat_ms?: number;
+  message?: string;
+}
+export interface ApparieeConvertisseur {
+  source_titre: string;
+  source_artiste: string;
+  source_duree_ms: number;
+  cible_id: string;
+  cible_titre: string;
+  cible_artiste: string;
+  cible_duree_ms: number;
+  score: number;
+}
+export interface IntrouvableConvertisseur {
+  source_titre: string;
+  source_artiste: string;
+  source_duree_ms: number;
+  raison: RaisonConvertisseur;
+}
+export interface PlaylistDuLotConvertisseur {
+  rang: number;
+  source_playlist_id: string;
+  source_nom: string;
+  cible_nom: string;
+  total: number;
+  appariees: ApparieeConvertisseur[];
+  introuvables: IntrouvableConvertisseur[];
+  cible_playlist_id?: string | null;
+  /** Le snapshot pris AVANT le premier titre versé (#4718). */
+  snapshot_avant?: string | null;
+  versees: string[];
+  /** `apercu`, `en_cours`, `termine`, `interrompu`, `rien_a_transferer`. */
+  etat: string;
+  erreur?: string | null;
+}
+export interface LotConvertisseur {
+  lot_id: string;
+  source_service: string;
+  cible_service: string;
+  etat: string;
+  playlists: PlaylistDuLotConvertisseur[];
+}
+export interface ResumeLotConvertisseur {
+  lot_id: string;
+  etat: string;
+  playlists: number;
+  titres: number;
+  appariees: number;
+  introuvables: number;
+  versees: number;
+}
+export interface ReponseLotConvertisseur {
+  resume: ResumeLotConvertisseur;
+  lot: LotConvertisseur;
+}
+export interface EnTeteLotConvertisseur {
+  lot_id: string;
+  source_service: string;
+  cible_service: string;
+  etat: string;
+  rangs: number[];
+}
+/** `POST /apercu` — RIEN n'est écrit chez le service. Plusieurs playlists = le mode par lot. */
+export function convertisseurApercu(demande: {
+  source_service: string;
+  cible_service: string;
+  playlists: string[];
+  suffixe_nom?: string;
+}): Promise<ReponseLotConvertisseur> {
+  return fetchJSON(`${CONVERTISSEUR}/apercu`, { method: 'POST', body: JSON.stringify(demande) });
+}
+/**
+ * `POST /transfert` — n'existe qu'APRÈS un aperçu : il faut le `lot_id` que
+ * l'aperçu a produit, et l'accord explicite de l'utilisateur. Le greffon
+ * répond 409 `accord_requis` sans lui ; l'écran ne l'appelle de toute façon
+ * qu'une fois la case cochée.
+ */
+export function convertisseurTransferer(lotId: string): Promise<ReponseLotConvertisseur> {
+  return fetchJSON(`${CONVERTISSEUR}/transfert`, {
+    method: 'POST',
+    body: JSON.stringify({ lot_id: lotId, accord: true }),
+  });
+}
+/** `POST /reprise` — reprend un lot interrompu sans rien recréer ni reverser. */
+export function convertisseurReprendre(lotId: string): Promise<ReponseLotConvertisseur> {
+  return fetchJSON(`${CONVERTISSEUR}/reprise`, { method: 'POST', body: JSON.stringify({ lot_id: lotId }) });
+}
+export function convertisseurLots(): Promise<{ count: number; lots: EnTeteLotConvertisseur[] }> {
+  return fetchJSON(`${CONVERTISSEUR}/lots`);
+}
+
+/** Une piste gardée dans un snapshot (#4718). */
+export interface PisteSnapshotConvertisseur {
+  id: string;
+  titre: string;
+  artiste: string;
+  duree_ms: number;
+  isrc: string;
+}
+export interface EnTeteSnapshotConvertisseur {
+  snapshot_id: string;
+  service: string;
+  playlist_id: string;
+  nom: string;
+  pris_le_ms: number;
+  /** `manuel`, `avant_transfert:lot-N`, `avant_restauration:plan-N`, `avant_synchro:lien-N`. */
+  motif: string;
+  total: number;
+  pages: number;
+  empreinte: string;
+}
+export interface SnapshotConvertisseur extends EnTeteSnapshotConvertisseur {
+  pistes: PisteSnapshotConvertisseur[];
+}
+export interface PlaylistSnapshotsConvertisseur {
+  service: string;
+  playlist_id: string;
+  nom: string;
+  snapshots: number;
+  dernier_le_ms: number;
+}
+export type ModeRestauration = 'completer' | 'recreer';
+export interface PlanRestaurationConvertisseur {
+  plan_id: string;
+  snapshot_id: string;
+  mode: ModeRestauration;
+  service: string;
+  playlist_id: string;
+  nom: string;
+  calcule_le_ms: number;
+  etat: 'apercu' | 'termine' | 'interrompu' | string;
+  a_rajouter_ids: string[];
+  a_retirer_par_vous_ids: string[];
+  deja_presentes: number;
+  rajoutees: string[];
+  playlist_recreee_id?: string | null;
+  snapshot_avant_restauration?: string | null;
+  erreur?: string | null;
+  /** La phrase du greffon qui dit ce que Tune NE supprime PAS : à afficher telle quelle. */
+  avertissement: string;
+}
+/** `POST /snapshot` — lecture seule chez le service. `service: "local"` pour la bibliothèque. */
+export function convertisseurPrendreSnapshot(
+  service: string,
+  playlistId: string,
+  nom?: string,
+): Promise<{ snapshot: EnTeteSnapshotConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshot`, {
+    method: 'POST',
+    body: JSON.stringify({ service, playlist_id: playlistId, ...(nom ? { nom } : {}) }),
+  });
+}
+/** `GET /snapshots` — les playlists qui ont au moins un snapshot. */
+export function convertisseurPlaylistsGardees(): Promise<{
+  count: number;
+  playlists: PlaylistSnapshotsConvertisseur[];
+  retention_par_playlist: number;
+}> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshots`);
+}
+/** `GET /snapshots?service=&playlist_id=` — du plus récent au plus ancien. Identifiants ENCODÉS. */
+export function convertisseurSnapshots(
+  service: string,
+  playlistId: string,
+): Promise<{ count: number; snapshots: EnTeteSnapshotConvertisseur[]; retention_par_playlist: number }> {
+  return fetchJSON(
+    `${CONVERTISSEUR}/snapshots?service=${encodeURIComponent(service)}&playlist_id=${encodeURIComponent(playlistId)}`,
+  );
+}
+export function convertisseurSnapshot(id: string): Promise<{ snapshot: SnapshotConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshot?id=${encodeURIComponent(id)}`);
+}
+/** `POST /snapshot/restauration/apercu` — RIEN n'est écrit. */
+export function convertisseurApercuRestauration(
+  snapshotId: string,
+  mode: ModeRestauration,
+): Promise<{
+  plan: PlanRestaurationConvertisseur;
+  a_rajouter: PisteSnapshotConvertisseur[];
+  a_retirer_par_vous: PisteSnapshotConvertisseur[];
+}> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshot/restauration/apercu`, {
+    method: 'POST',
+    body: JSON.stringify({ snapshot_id: snapshotId, mode }),
+  });
+}
+/** `POST /snapshot/restauration` — n'écrit jamais plus que l'aperçu accepté. */
+export function convertisseurRestaurer(planId: string): Promise<{
+  plan: PlanRestaurationConvertisseur;
+  a_retirer_par_vous: PisteSnapshotConvertisseur[];
+}> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshot/restauration`, {
+    method: 'POST',
+    body: JSON.stringify({ plan_id: planId, accord: true }),
+  });
+}
+
+/** Une extrémité de lien (#4719). `service: "local"` = la bibliothèque, identifiant entier en texte. */
+export interface ExtremiteLienConvertisseur {
+  service: string;
+  playlist_id: string;
+  nom?: string;
+}
+export type SensLien = 'a_vers_b' | 'deux_sens';
+export interface LienConvertisseur {
+  lien_id: string;
+  a: ExtremiteLienConvertisseur;
+  b: ExtremiteLienConvertisseur;
+  sens: SensLien;
+  /** `0` = à la demande ; sinon 15 à 10 080 minutes. */
+  cadence_minutes: number;
+  etat: 'attente_premier_apercu' | 'actif' | 'en_pause' | string;
+  premiere_synchro_faite: boolean;
+  cree_le_ms: number;
+  derniere_synchro_ms?: number | null;
+  prochaine_synchro_ms?: number | null;
+  derniere_erreur?: string | null;
+  journal_compteur: number;
+}
+export interface AjoutLienConvertisseur {
+  de: 'a' | 'b';
+  vers: 'a' | 'b';
+  source_id: string;
+  titre: string;
+  artiste: string;
+  cible_id: string;
+}
+export interface IntrouvableLienConvertisseur {
+  de: 'a' | 'b';
+  vers: 'a' | 'b';
+  source_id: string;
+  titre: string;
+  artiste: string;
+  raison: RaisonConvertisseur;
+}
+/** Une piste disparue d'un côté : SIGNALÉE, jamais retirée de l'autre. */
+export interface DisparueLienConvertisseur {
+  disparue_de: 'a' | 'b';
+  id_disparu: string;
+  toujours_dans: 'a' | 'b';
+  id_restant: string;
+  titre: string;
+  artiste: string;
+}
+export interface PlanLienConvertisseur {
+  lien_id: string;
+  calcule_le_ms: number;
+  ajouts: AjoutLienConvertisseur[];
+  introuvables: IntrouvableLienConvertisseur[];
+  disparues: DisparueLienConvertisseur[];
+  deja_presentes: number;
+  introuvables_connues: number;
+}
+export interface EntreeJournalLienConvertisseur {
+  numero: number;
+  quand_ms: number;
+  declencheur: 'premiere' | 'demande' | 'minuteur' | string;
+  statut: 'ok' | 'rien_a_faire' | 'partiel' | 'echec' | string;
+  ajoutees: number;
+  ajouts: AjoutLienConvertisseur[];
+  introuvables: number;
+  introuvables_detail: IntrouvableLienConvertisseur[];
+  disparues_signalees: DisparueLienConvertisseur[];
+  echecs: string[];
+  snapshots: string[];
+}
+export function convertisseurCreerLien(demande: {
+  a: ExtremiteLienConvertisseur;
+  b: ExtremiteLienConvertisseur;
+  sens: SensLien;
+  cadence_minutes: number;
+}): Promise<{ lien: LienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/liens`, { method: 'POST', body: JSON.stringify(demande) });
+}
+export function convertisseurLiens(): Promise<{ count: number; liens: LienConvertisseur[] }> {
+  return fetchJSON(`${CONVERTISSEUR}/liens`);
+}
+export function convertisseurJournalLien(
+  lienId: string,
+): Promise<{ count: number; entrees: EntreeJournalLienConvertisseur[] }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/journal?id=${encodeURIComponent(lienId)}`);
+}
+/** `POST /lien/apercu` — RIEN n'est écrit. */
+export function convertisseurApercuLien(lienId: string): Promise<{ plan: PlanLienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/apercu`, { method: 'POST', body: JSON.stringify({ lien_id: lienId }) });
+}
+/**
+ * `POST /lien/synchroniser`. La PREMIÈRE synchro d'un lien exige un aperçu
+ * puis `accord: true` : sans eux, 409 `apercu_requis` / `accord_requis` —
+ * l'écran ouvre alors l'aperçu.
+ */
+export function convertisseurSynchroniserLien(
+  lienId: string,
+  accord = false,
+): Promise<{ lien: LienConvertisseur; entree: EntreeJournalLienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/synchroniser`, {
+    method: 'POST',
+    body: JSON.stringify(accord ? { lien_id: lienId, accord: true } : { lien_id: lienId }),
+  });
+}
+export function convertisseurPauseLien(lienId: string, pause: boolean): Promise<{ lien: LienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/pause`, { method: 'POST', body: JSON.stringify({ lien_id: lienId, pause }) });
+}
+export function convertisseurReglerLien(lienId: string, cadenceMinutes: number): Promise<{ lien: LienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/reglages`, {
+    method: 'POST',
+    body: JSON.stringify({ lien_id: lienId, cadence_minutes: cadenceMinutes }),
+  });
+}
+/** `POST /lien/supprimer` — retire le LIEN seulement ; aucune des deux playlists n'est touchée. */
+export function convertisseurSupprimerLien(
+  lienId: string,
+): Promise<{ lien_id: string; supprime: boolean; playlists_touchees: boolean }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/supprimer`, { method: 'POST', body: JSON.stringify({ lien_id: lienId }) });
 }
