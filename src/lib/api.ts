@@ -8115,6 +8115,25 @@ export function regrouperCoffret(cible: number) {
 }
 
 /**
+ * Un coffret RÉUNI, tel que le liste `GET /library/coffrets` : l'album
+ * (`GET /library/albums/{id}`) plus `disc_count` — compté sur les pistes — et
+ * `coffret`, qui dit qui l'a composé (`null` : coffret sans marqueur, rangé
+ * disque par disque et réuni avant le marqueur, ou par le scan).
+ */
+export type CoffretReuni = Album & {
+  disc_count: number;
+  coffret: 'auto' | 'manuel' | null;
+};
+/**
+ * Les coffrets de la bibliothèque — l'onglet « Coffrets » (GO de Bertrand du
+ * 25/09/2026). Route servie par le serveur à partir du lot
+ * `batch/coffrets-auto-20260925` : un serveur plus ancien rend 404, que
+ * l'onglet traduit en « serveur trop ancien », jamais en bibliothèque vide.
+ */
+export function getCoffrets() {
+  return fetchJSON<{ count: number; items: CoffretReuni[] }>(`${BASE}/library/coffrets`);
+}
+/**
  * Composer un coffret À LA MAIN — Bertrand, 20/09/2026.
  *
  * 🔴 `albumIds` est ORDONNÉ, et l'ordre EST celui des disques : le premier

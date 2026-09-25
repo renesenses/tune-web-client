@@ -262,7 +262,8 @@ describe('Ajouts récents — « bloque tout / la seule partie qui se met à jou
   it('🟢 CONTRE-ÉPREUVE : la navigation par onglets, elle, reste entière', async () => {
     const el = await poserEcran();
     await cliquerOnglet(el, 'Ajouts récents');
-    expect(el.querySelectorAll('nav.tabs button.tab').length).toBe(7);
+    // 8 depuis l'onglet « Coffrets » (GO du 25/09/2026), qui suit les Ajouts récents.
+    expect(el.querySelectorAll('nav.tabs button.tab').length).toBe(8);
     const actif = el.querySelector('nav.tabs button.tab.active');
     expect((actif?.textContent ?? '').trim()).toBe('Ajouts récents');
   });
