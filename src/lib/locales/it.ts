@@ -4054,6 +4054,23 @@ export default {
   "plconv.journal.compte": "{ajoutees} aggiunti, {introuvables} non trovati",
   "plconv.journal.vide": "Nessuna sincronizzazione per ora.",
   "plconv.journal.echecs": "{n} errore/i:",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "Lettore CD",
+  "v2.cd.notInstalled": "L'estensione Lettore CD non è attiva. Installala da Estensioni, poi riavvia Tune.",
+  "v2.cd.unsupportedPlatform": "Lettore non supportato su questa piattaforma: per ora la riproduzione dei CD funziona solo su Linux.",
+  "v2.cd.noDrive": "Nessun lettore CD sulla macchina su cui gira Tune.",
+  "v2.cd.noDisc": "Il lettore è vuoto. Inserisci un CD audio.",
+  "v2.cd.reading": "Lettura del disco…",
+  "v2.cd.unreadable": "Impossibile leggere il disco. Puliscilo o reinseriscilo.",
+  "v2.cd.unknownTrack": "Questa traccia non esiste su questo disco.",
+  "v2.cd.playFailed": "Impossibile avviare la riproduzione in questa zona.",
+  "v2.cd.unavailable": "Il lettore CD non risponde. Nuovo tentativo tra qualche secondo.",
+  "v2.cd.unknownAlbum": "CD audio",
+  "v2.cd.noMetadata": "Disco non riconosciuto: titoli non disponibili.",
+  "v2.cd.playDisc": "Riproduci il disco",
+  "v2.cd.playTrack": "Riproduci questa traccia",
+  "v2.cd.trackN": "Traccia {n}",
+  "v2.cd.toZone": "Su {zone}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

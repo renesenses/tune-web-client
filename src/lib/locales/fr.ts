@@ -4076,6 +4076,23 @@ export default {
   "plconv.journal.compte": "{ajoutees} ajoutée(s), {introuvables} introuvable(s)",
   "plconv.journal.vide": "Aucune synchronisation pour l’instant.",
   "plconv.journal.echecs": "{n} échec(s) :",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "Lecture CD",
+  "v2.cd.notInstalled": "L'extension Lecture CD n'est pas active. Installez-la depuis les Extensions, puis redémarrez Tune.",
+  "v2.cd.unsupportedPlatform": "Lecteur non pris en charge sur cette plateforme : la lecture de CD fonctionne pour l'instant sous Linux.",
+  "v2.cd.noDrive": "Aucun lecteur de CD sur la machine qui fait tourner Tune.",
+  "v2.cd.noDisc": "Le lecteur est vide. Insérez un CD audio.",
+  "v2.cd.reading": "Lecture du disque…",
+  "v2.cd.unreadable": "Le disque n'a pas pu être lu. Nettoyez-le ou réinsérez-le.",
+  "v2.cd.unknownTrack": "Cette piste n'existe pas sur ce disque.",
+  "v2.cd.playFailed": "La lecture n'a pas pu démarrer sur cette zone.",
+  "v2.cd.unavailable": "Le lecteur de CD ne répond pas. Nouvel essai dans quelques secondes.",
+  "v2.cd.unknownAlbum": "CD audio",
+  "v2.cd.noMetadata": "Disque non reconnu : titres indisponibles.",
+  "v2.cd.playDisc": "Lire le disque",
+  "v2.cd.playTrack": "Lire cette piste",
+  "v2.cd.trackN": "Piste {n}",
+  "v2.cd.toZone": "Vers {zone}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./fr')['default'];
