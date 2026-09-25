@@ -458,7 +458,12 @@
     <div class="v2-actions">
     {#if tier && tier !== 'free'}<span class="tier">{tier}</span>{/if}
     {#if licenseKey && !redaction}
-      <button class="v2-btn primaire" onclick={() => (redaction = true)}>
+      <!--
+        #1571 : le formulaire est une branche SŒUR des volets Diagnostic et
+        Mon système. Poser `redaction` seul masquait le bouton sans rien ouvrir
+        depuis ces deux volets ; le geste mène donc AUSSI au volet Tickets.
+      -->
+      <button class="v2-btn primaire" onclick={() => { volet = 'tickets'; redaction = true; }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         {$t('v2.sup.newTicket' as any)}
       </button>
