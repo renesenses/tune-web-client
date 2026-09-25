@@ -541,6 +541,13 @@ export interface Zone {
     unavailable: boolean;
     reason: string | null;
     detail: string | null;
+    /**
+     * Fils 1914/1913 — comment la déclaration agit quand ce n'est pas sur une
+     * carte locale. `plafond_reseau` : renderer réseau dont Tune décode le
+     * flux, la déclaration y PLAFONNE les canaux servis. Absent d'un serveur
+     * antérieur, et partout ailleurs.
+     */
+    portee?: string | null;
   };
   /** Ce qu'il faut PROPOSER : les neuf dispositions quand l'appareil se tait. */
   channel_layouts_offered?: { id: string; canaux: number }[];

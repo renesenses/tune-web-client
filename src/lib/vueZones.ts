@@ -143,6 +143,39 @@ export function cleEtatLecture(e: EtatLecture): string {
  * ajouté par un serveur plus récent — retombe sur la phrase générique plutôt
  * que d'afficher son code brut.
  */
+/**
+ * Le sélecteur de canaux est-il VERROUILLÉ ? — fils 1914/1913.
+ *
+ * Reivax66, v0.9.163 : « la case canaux suivre l'appareil reste grisée pour
+ * l'ampli DENON AVR X1600-H qui est pourtant un ampli 7.1 ».
+ *
+ * L'écran verrouillait dès que `unavailable` était vrai, quel qu'en soit le
+ * motif. Or le serveur publie DEUX motifs de nature opposée
+ * (`tune-core/src/audio/canaux_declares.rs`) :
+ *
+ *  - `sortie_non_locale` — la déclaration n'a AUCUN chemin jusqu'à la sortie
+ *    (AirPlay, OAAT, zone sans appareil — et, sur un serveur antérieur au lot
+ *    `batch/canaux-reseau-20260924`, tout renderer réseau). Choisir ne
+ *    changerait rien au son — le réglage mentirait (#3254). Là, on SAIT : on
+ *    verrouille, et le texte dit que le verrou tient à la sortie, pas à
+ *    l'appareil. Un renderer DLNA que Tune décode n'arrive plus ici : le
+ *    serveur l'ouvre et publie `portee: 'plafond_reseau'`.
+ *  - `au_dela_de_l_appareil` — le pilote annonce moins de canaux que le
+ *    choix. Le serveur l'écrit en toutes lettres : « On ne bloque pas la
+ *    saisie — un pilote ment parfois, et l'utilisateur en sait plus que
+ *    lui ». Le verrou de l'écran contredisait cette règle ET enfermait
+ *    l'utilisateur : impossible de revenir à « Suivre l'appareil ».
+ *
+ * Un motif INCONNU (serveur plus récent) verrouille : on ne sait pas s'il
+ * s'agit d'un avertissement, et un réglage sans effet est pire qu'un
+ * réglage indisponible.
+ */
+export function canauxVerrouilles(
+  statut: { unavailable?: boolean | null; reason?: string | null } | null | undefined,
+): boolean {
+  if (!statut?.unavailable) return false;
+  return statut.reason !== 'au_dela_de_l_appareil';
+}
 export function cleContrainteCanaux(motif: string | null | undefined): string {
   switch (motif) {
     case 'sortie_non_locale':

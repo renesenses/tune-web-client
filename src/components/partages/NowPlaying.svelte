@@ -482,51 +482,12 @@
     }
   }
 
-  // Stable display order — composer/lyricist top, performer bulk in the
-  // middle, engineering credits last. Anything else falls through to the
-  // raw role string.
-  const ROLE_ORDER = [
-    'composer', 'lyricist', 'arranger', 'conductor',
-    'performer', 'producer', 'mixer', 'engineer',
-  ];
-
+  // L'ordre des rôles, le dédoublonnage et le libellé vivent dans
+  // `lib/library/credits` depuis #1572 : la fiche « Voir les crédits » d'un
+  // titre ou d'un album les partage avec ce panneau.
   function formatRole(role: string): string {
-    const key = `credits.${role}`;
-    const localized = $t(key);
-    // Fall back to title-cased raw role when the locale dict doesn't have
-    // a translation (we get back the key verbatim from $t in that case).
-    if (localized && localized !== key) return localized;
-    return role.charAt(0).toUpperCase() + role.slice(1);
+    return libelleRole(role, $t);
   }
-
-  // De-dup credits by (artist_id || artist_name, role, instrument) — MB
-  // enrichment can return the same triple twice when a track has two
-  // identifying tags pointing at the same artist relation.
-  function dedupCredits(credits: TrackCredit[]): TrackCredit[] {
-    const seen = new Set<string>();
-    const out: TrackCredit[] = [];
-    for (const c of credits) {
-      const key = `${c.artist_id ?? c.artist_name}|${c.role}|${c.instrument ?? ''}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(c);
-    }
-    return out;
-  }
-
-  // Sort role groups by ROLE_ORDER, unknown roles trail alphabetically.
-  function sortedRoleEntries(credits: TrackCredit[]) {
-    const groups = Object.groupBy(dedupCredits(credits), c => c.role);
-    return Object.entries(groups).sort(([a], [b]) => {
-      const ai = ROLE_ORDER.indexOf(a);
-      const bi = ROLE_ORDER.indexOf(b);
-      if (ai !== -1 && bi !== -1) return ai - bi;
-      if (ai !== -1) return -1;
-      if (bi !== -1) return 1;
-      return a.localeCompare(b);
-    });
-  }
-
   /**
    * Ouvrir la PAGE COMMUNE d'un artiste de la bibliothèque — #1494.
    *
@@ -992,6 +953,7 @@
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../../lib/stores/ytPlayer';
   import { onDestroy, onMount } from 'svelte';
   import { egaliseurReglable, rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
+  import { dedupCredits, libelleRole, sortedRoleEntries } from '../../lib/library/credits';
   import { get } from 'svelte/store';
   import { currentProfileId, favoriteTrackIds, loadProfiles } from '../../lib/stores/profile';
 
