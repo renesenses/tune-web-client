@@ -573,15 +573,20 @@ describe('Playlists — l’écran simplifié', () => {
     expect(src.includes('api.getSmartPlaylists()'), 'les playlists intelligentes ne sont plus lues').toBe(true);
   });
 
-  it('une playlist intelligente n’a ni cœur ni étiquette', () => {
-    // C'est une RÈGLE : elle n'a d'identité ni dans `favorites` ni dans
-    // `item_tags`. Un cœur qui ne s'allume pas serait pire que pas de cœur.
+  it('une playlist intelligente porte cœur et étiquettes, sous SON type (#4798)', () => {
+    // 🔴 RÉORIENTÉE le 25/09/2026. Cette garde interdisait le cœur tant que
+    // le serveur ne connaissait pas la règle comme favori ; il la tient depuis
+    // tune-server-rust#4798 (`smart_playlist`), et l'écran des playlists
+    // intelligentes la posait déjà. Le widget « Smart playlists favorites »
+    // de l'Accueil se remplit de ce cœur-là. Ce qu'elle protège reste : le
+    // type DISTINCT — jamais `playlistId` avec le numéro d'une règle.
     const src = ecran();
     const i = src.indexOf('onLire={() => lireSmart(sp)}');
     expect(i, 'la carte des intelligentes a disparu').toBeGreaterThan(-1);
-    const bloc = src.slice(Math.max(0, i - 400), i + 200);
-    expect(bloc.includes('favori='), 'un favori est proposé sur une règle').toBe(false);
-    expect(bloc.includes('etiquettes='), 'des étiquettes sont proposées sur une règle').toBe(false);
+    const bloc = src.slice(i, i + 400);
+    expect(bloc).toContain('favori={sp.id != null ? { smartPlaylistId: sp.id } : null}');
+    expect(bloc).toContain('cibleSmartPlaylist(sp.id)');
+    expect(bloc.includes('playlistId: sp.id }'), 'une règle en favori sous le type `playlist`').toBe(false);
   });
 
   it('les quatre écartés ne sont PAS dans l’écran v2', () => {

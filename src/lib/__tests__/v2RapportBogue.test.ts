@@ -109,4 +109,34 @@ describe('Support v2 — signaler un bogue au forum (porté de DiagnosticsView)'
     expect(err!.textContent).toContain('cloud rejected the report');
     expect(hote!.textContent).not.toContain(fr['v2.sup.bugSent']);
   });
+
+  // #5068 — le site limite l'envoi (throttle:5,60). L'écran disait « Échec de
+  // l'envoi… (cloud rejected the report) » : ni qu'il fallait attendre, ni
+  // combien.
+  it('#5068 — limite atteinte (serveur corrigé) : dit d’attendre, et combien', async () => {
+    envoi = { status: 429, corps: { error: 'rate_limited', code: 'rate_limited', status: 429, retry_after: 1740 } };
+    await monterEtEnvoyer('Bogue');
+
+    const err = hote!.querySelector('.bogue-err');
+    expect(err, 'aucune erreur affichée après la limite').toBeTruthy();
+    const attendu = fr['v2.sup.bugRateLimitedRetry'].replace('{delay}', 'dans 29 minutes');
+    expect(
+      err!.textContent,
+      '#5068 : un 429 `rate_limited` doit dire que la limite d’envoi est atteinte et quand réessayer, pas « échec de l’envoi »',
+    ).toBe(attendu);
+    expect(err!.textContent).not.toContain('rate_limited');
+    expect(err!.textContent).not.toContain(fr['v2.sup.bugSendError']);
+  });
+
+  it('#5068 — limite atteinte (serveur .165, ancienne forme 502/status 429) : « dans une heure au plus »', async () => {
+    envoi = { status: 502, corps: { error: 'cloud rejected the report', status: 429 } };
+    await monterEtEnvoyer('Bogue');
+
+    const err = hote!.querySelector('.bogue-err');
+    expect(err, 'aucune erreur affichée après la limite').toBeTruthy();
+    expect(
+      err!.textContent,
+      '#5068 : l’ancienne forme d’un 429 du site doit aussi se lire comme la limite d’envoi, sans délai inventé',
+    ).toBe(fr['v2.sup.bugRateLimited']);
+  });
 });

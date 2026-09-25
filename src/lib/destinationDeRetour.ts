@@ -77,6 +77,10 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   collections: 'destination',
   smartcollections: 'destination',
   dashboard: 'destination',
+  // Le NOUVEL écran Tableau de bord (25/09/2026), à côté de l'ancien, qui
+  // reste servi sous `dashboard`. Une destination comme lui : on y navigue
+  // depuis la barre, on le quitte, on doit pouvoir y revenir.
+  tableaudebord: 'destination',
   services: 'destination',
   genretree: 'destination',
   equalizer: 'destination',

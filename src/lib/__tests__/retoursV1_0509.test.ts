@@ -83,9 +83,13 @@ describe('Favoris — les onglets manquants', () => {
   });
 
   it('les deux familles de collections sont lues', () => {
-    expect(src).toContain('f.collectionIds');
-    expect(src).toContain('f.smartCollectionIds');
-    expect(src).toContain('api.listSmartCollections()');
+    // Par `favorisFusionnes` depuis les widgets de l'Accueil (25/09/2026) :
+    // l'écran et les widgets lisent le même chargeur.
+    const lib = sansCommentaires(lire('src/lib/favorisFusionnes.ts'));
+    expect(lib).toContain('f?.collectionIds');
+    expect(lib).toContain('f?.smartCollectionIds');
+    expect(lib).toContain('api.listSmartCollections()');
+    expect(src).toContain('collectionsFavorites(fusion)');
   });
 
   it('ouvrir mène à l OBJET, pas à sa liste', () => {

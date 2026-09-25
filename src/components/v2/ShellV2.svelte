@@ -160,6 +160,7 @@
   // l'allure reste celle d'origine, comme pour les autres vues héritées.
   import ConcertsView from '../v2-heritage/ConcertsView.svelte';
   import DashboardView from '../v2-heritage/DashboardView.svelte';
+  import TableauDeBordV2 from './TableauDeBordV2.svelte';
   import RecommendationsSection from '../v2-heritage/RecommendationsSection.svelte';
   import BrowseView from '../v2-heritage/BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
@@ -738,6 +739,15 @@
           <DashboardView />
           <RecommendationsSection />
         </div>
+      {:else if $activeView === 'tableaudebord'}
+        <!-- LE NOUVEAU TABLEAU DE BORD (25/09/2026) — onze widgets `bloc`.
+
+             Monté NU, sans le conteneur `.dash` de son voisin du dessus :
+             `PageWidgets` porte déjà son propre ascenseur (`.scroll`) et sa
+             propre gouttière de grappe, comme sur l'Accueil et sur les écrans
+             éditoriaux. L'envelopper ajouterait un second conteneur de
+             défilement — exactement le défaut de #1344, pris par l'autre bout. -->
+        <TableauDeBordV2 />
       {:else if $activeView === 'smartplaylists'}
         <SmartPlaylistsView />
       {:else if $activeView === 'playlistmanager'}
