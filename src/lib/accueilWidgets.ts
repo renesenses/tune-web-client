@@ -30,7 +30,20 @@ import type { StreamingItemType } from './streamingFavorites';
 import { reprisesUtiles, sousTitreReprise } from './reprendreEcoute';
 import { estAParaitre } from './albumAParaitre';
 import { CHOIX_DEFAUT, cartes, sourcesNecessaires } from './chiffresAccueil';
-import { chargerFavorisFusionnes } from './favorisFusionnes';
+import {
+  chargerFavorisFusionnes,
+  collectionsFavorites,
+  playlistsFavorites,
+  smartPlaylistsFavorites,
+  type FavorisFusionnes,
+} from './favorisFusionnes';
+import { get } from 'svelte/store';
+import { t } from './i18n';
+import { collectionNomAffiche } from './collectionsLibelles';
+import { quatreDistinctes } from './mosaique';
+import { lireListe } from './lectureEnMasse';
+import { cibleSmartPlaylist, type CibleEtiquette } from './cibleEtiquette';
+import type { RefLocale } from './favorisLocaux';
 
 /** Un élément affichable dans une bande, quelle qu'en soit la source. */
 export interface Element {
@@ -59,7 +72,7 @@ export interface Element {
    * streaming », et « quand je clique sur la zone d'écoute active cela
    * m'ouvre l'écran Now playing ».
    */
-  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | null;
+  ouvrir?: 'album' | 'zone' | 'playlist' | 'artiste' | 'cible' | 'lire' | null;
   /**
    * Nom de l'artiste à ouvrir, quand `ouvrir` vaut `artiste`. Un NOM et pas un
    * identifiant : les classements viennent de l'historique, qui n'en porte
@@ -107,6 +120,42 @@ export interface Element {
    * cartes de zones : le registre reste plat, la forme range.
    */
   colonne?: 'artistes' | 'albums' | 'titres';
+  /**
+   * L'ARTISTE entier, quand on l'a — widget « Artistes favoris ».
+   *
+   * Un classement n'a qu'un nom (`artiste`) ; un favori porte son `id` de
+   * bibliothèque, ou la paire `source` / `source_id` d'un service. Avec
+   * l'objet, `ouvrirArtisteDepuis` mène à la PAGE ARTISTE COMMUNE (#1494) ou
+   * à la fiche du service, sans rapprochement par le nom.
+   */
+  artisteObjet?: any;
+  /**
+   * Un objet d'un AUTRE écran à rouvrir précisément, quand `ouvrir` vaut
+   * `cible` — playlist locale, playlist intelligente, collection, collection
+   * intelligente. La SORTE voyage avec le numéro : les espaces d'identifiants
+   * se recouvrent deux à deux (#4798, collections).
+   */
+  cible?: {
+    sorte: 'playlist' | 'smart_playlist' | 'collection' | 'smart_collection';
+    id: number;
+    nom: string;
+  };
+  /** Le cœur d'un objet de la BIBLIOTHÈQUE qui n'est pas un album. */
+  favoriLocal?: RefLocale | null;
+  /** Les étiquettes d'un objet qui n'est pas un album. `undefined` = la règle
+   *  des albums et des playlists de service s'applique. */
+  etiquette?: CibleEtiquette | null;
+  /**
+   * Les pochettes d'une MOSAÏQUE (playlist, collection), quand elles sont
+   * connues d'avance — `covers` des collections sur un serveur qui les rend.
+   */
+  pochettes?: string[];
+  /**
+   * Sinon, où les chercher. Appelé par la vignette APRÈS l'affichage, comme
+   * les écrans Playlists et Collections : la bande n'attend pas une requête
+   * par playlist.
+   */
+  mosaique?: () => Promise<string[]>;
   /** Zone suivie par la vignette — bande « Zones d'écoute actives ». */
   zoneId?: number | null;
   /** Cette zone joue-t-elle ? Pilote le mini-analyseur sous la vignette. */
@@ -568,8 +617,14 @@ const liste = (r: any): any[] =>
  */
 const utiles = (els: Element[]): Element[] => els.filter((e) => e.titre !== '—' || e.cover);
 
-/** Combien de rangs par colonne du gros widget des tops. */
-const RANG_TOPS = 5;
+/**
+ * Combien de rangs par colonne du gros widget des tops.
+ *
+ * Bertrand, 25/09/2026 : cinquante, comme `LIMITE`. Les colonnes défilent
+ * dans leur propre hauteur (`PageWidgets`, `.topcol ol`) : cinquante lignes
+ * n'allongent pas la page.
+ */
+const RANG_TOPS = 50;
 
 /**
  * Ce qu'on DEMANDE au tableau de bord, et sur quelle période.
@@ -602,7 +657,14 @@ const RANG_TOPS = 5;
  * à la merci d'une machine chargée. Le vrai correctif est là-bas.
  */
 const PERIODE_TOPS = '7d' as const;
-const TOPS_DEMANDES = 12;
+/**
+ * 🔴 CINQUANTE depuis le 25/09/2026 (Bertrand) — MESURÉ d'abord sur le .18 en
+ * v0.9.165 : `top_n=50` rend 50 artistes, 50 albums et 50 titres en 0,2 s
+ * sur 7 jours comme sur 30. Le coût de ~300 ms par entrée décrit plus haut
+ * n'existe plus. La route n'a pas de plafond (`LIMIT {top_n}`, défaut 10) :
+ * cinquante passe tel quel.
+ */
+const TOPS_DEMANDES = 50;
 
 /** Les quatre chiffres de la semaine, dans l'ordre d'affichage. */
 const CHIFFRES_SEMAINE = ['lectures', 'heures-ecoutees', 'titres-ecoutes', 'artistes-ecoutes'] as const;
@@ -736,6 +798,188 @@ function elementPisteFavorite(o: any, i: number): Element {
         ? (z: number) => api.play(z, { source: svc as any, source_id: sid })
         : undefined;
   return { ...el, jouer };
+}
+
+/**
+ * ── LES SIX WIDGETS DE FAVORIS PAR TYPE (Bertrand, 25/09/2026) ─────────────
+ *
+ * « Artistes favoris, Pistes favorites, Playlists favorites, Smart playlists
+ * favorites, Collections favorites, Smart collections favorites. »
+ *
+ * « Vos favoris » reste tel quel : une bande d'albums, repliée sur artistes
+ * puis pistes (#1509). Ces six-là montrent CHACUN un seau, et le lisent par le
+ * MÊME chargeur que l'écran Favoris (`favorisFusionnes`) — bibliothèque ET
+ * services pour les artistes, les pistes et les playlists.
+ *
+ * Tous les types sont favorisables côté serveur : `favorites.item_type` est
+ * libre (`smart_playlist`, `collection`, `smart_collection` — prouvé par
+ * `smart_playlist_favori_etiquette_4798.rs`), et `streaming_favorites` prend
+ * `artist`, `track` et `playlist`.
+ */
+
+/**
+ * Au plus TROIS mosaïques en vol à la fois. Cinquante playlists favorites,
+ * c'est cinquante lectures de pistes — une par playlist, le serveur ne rend
+ * aucune pochette avec la liste. Les lâcher d'un coup encombrerait le serveur
+ * au moment précis où l'accueil charge ses autres widgets.
+ */
+const EN_VOL_MOSAIQUES = 3;
+let mosaiquesEnVol = 0;
+const mosaiquesEnAttente: Array<() => void> = [];
+function enFileMosaique<T>(faire: () => Promise<T>): Promise<T> {
+  return new Promise<T>((resoudre, rejeter) => {
+    const lancer = () => {
+      mosaiquesEnVol++;
+      faire()
+        .then(resoudre, rejeter)
+        .finally(() => {
+          mosaiquesEnVol--;
+          mosaiquesEnAttente.shift()?.();
+        });
+    };
+    if (mosaiquesEnVol < EN_VOL_MOSAIQUES) lancer();
+    else mosaiquesEnAttente.push(lancer);
+  });
+}
+
+/** Un chargeur de favoris par seau : sans profil, rien — et aucun appel. */
+function parSeau(extraire: (f: FavorisFusionnes) => Promise<Element[]> | Element[]) {
+  return async (ctx: Contexte): Promise<Element[]> => {
+    if (ctx.profileId == null) return [];
+    return extraire(await chargerFavorisFusionnes(ctx.profileId));
+  };
+}
+
+/**
+ * Un ARTISTE favori. Il s'ouvre par l'OBJET (`artisteObjet`) : la page
+ * artiste commune pour un artiste de la bibliothèque, la fiche du service
+ * pour un artiste de service — le chemin de l'écran Favoris
+ * (`ouvrirArtisteDepuis`).
+ */
+function elementArtisteDuSeau(o: any, i: number): Element {
+  const local = idLocalValide(o?.id);
+  const svc = local == null ? serviceDistant(champ(o, 'source') ?? null) : null;
+  const sid = champ(o, 'source_id');
+  return {
+    ...versElement(o, i, 'fart', { genre: 'aucun' }),
+    ouvrir: 'artiste',
+    artiste: champ(o, 'name'),
+    artisteObjet: o,
+    favoriLocal: local != null ? { artistId: local } : null,
+    favoriDistant: svc && sid ? { itemType: 'artist', serviceId: sid } : null,
+    etiquette: local != null ? { itemType: 'artist', itemId: local } : null,
+  };
+}
+
+/** Une PISTE favorite : un clic la JOUE (`ouvrir: 'lire'`). */
+function elementPisteDuSeau(o: any, i: number): Element {
+  const el = elementPisteFavorite(o, i);
+  const local = idLocalValide(o?.id);
+  const svc = local == null ? serviceDistant(champ(o, 'source') ?? null) : null;
+  const sid = champ(o, 'source_id');
+  return {
+    ...el,
+    id: `ftrk${i}-${champ(o, 'id', 'source_id') ?? ''}`,
+    ouvrir: el.jouer ? 'lire' : null,
+    favoriLocal: local != null ? { trackId: local } : null,
+    favoriDistant: svc && sid ? { itemType: 'track', serviceId: sid } : null,
+    etiquette: null,
+  };
+}
+
+/**
+ * Une PLAYLIST favorite, de la bibliothèque ou d'un service.
+ *
+ *  - de SERVICE (`id` nul) : `versElement` en genre `playlist` — la fiche de
+ *    service (#1108), la lecture par `streaming_playlist_id`, le cœur de
+ *    `streaming_favorites` ; la pochette vient du service ;
+ *  - de la BIBLIOTHÈQUE : son écran Playlists, rouvert sur ELLE ; la lecture
+ *    par `playlist_id` ; une MOSAÏQUE tirée de ses pistes, comme sa vignette
+ *    de l'écran Playlists (le serveur ne rend aucune pochette avec la liste).
+ */
+function elementPlaylistDuSeau(pl: any, i: number): Element {
+  const local = idLocalValide(pl?.id);
+  if (local == null) return versElement(pl, i, 'fpl', { genre: 'playlist' });
+  const nom = champ(pl, 'name') ?? '—';
+  return {
+    id: `fpl${i}-${local}`,
+    titre: nom,
+    cover: null,
+    source: null,
+    jouer: (z: number) => api.play(z, { playlist_id: local }),
+    ouvrir: 'cible',
+    cible: { sorte: 'playlist', id: local, nom },
+    favoriLocal: { playlistId: local },
+    etiquette: { itemType: 'playlist', itemId: local },
+    mosaique: () =>
+      enFileMosaique(async () => quatreDistinctes(((await api.getPlaylistTracks(local)) ?? []) as any[])),
+  };
+}
+
+/**
+ * Une playlist INTELLIGENTE favorite. Pas de route « lire la règle » : on lit
+ * ses pistes et on les enfile, comme son onglet (`lireListe`, 500 au plus).
+ * La mosaïque ne lit que le DÉBUT des pistes — une règle peut en viser des
+ * milliers.
+ */
+function elementSmartPlaylistDuSeau(sp: any, i: number): Element {
+  const id = sp.id as number;
+  const nom = champ(sp, 'name') ?? '—';
+  return {
+    id: `fspl${i}-${id}`,
+    titre: nom,
+    cover: null,
+    source: null,
+    jouer: async (z: number) => {
+      const pistes = ((await api.getSmartPlaylistTracks(id)) ?? []).slice(0, 500);
+      if (!pistes.length) return;
+      return lireListe(pistes as any, {
+        lire: (c: any) => api.play(z, c),
+        enfiler: (c: any) => api.addToQueue(z, c),
+      });
+    },
+    ouvrir: 'cible',
+    cible: { sorte: 'smart_playlist', id, nom },
+    favoriLocal: { smartPlaylistId: id },
+    etiquette: cibleSmartPlaylist(id),
+    mosaique: () =>
+      enFileMosaique(async () =>
+        quatreDistinctes((((await api.getSmartPlaylistTracks(id)) ?? []) as any[]).slice(0, 60)),
+      ),
+  };
+}
+
+/**
+ * Une COLLECTION favorite, dossier ou intelligente — la sorte vient du seau,
+ * jamais du numéro. Son nom passe par `collectionNomAffiche` : « favorites »
+ * s'affiche traduit, comme sur l'écran Collections. La mosaïque prend
+ * `covers` quand le serveur le rend, sinon lit ses albums APRÈS l'affichage
+ * (le repli de `CollectionsV2`). Un clic ouvre la collection ; la lecture,
+ * elle, reste à son écran.
+ */
+function elementCollectionDuSeau(c: any, i: number, smart: boolean): Element {
+  const id = c.id as number;
+  const nom = collectionNomAffiche(c ?? {}, (k) => get(t)(k as any)) || '—';
+  const covers: string[] = Array.isArray(c?.covers) ? c.covers.filter(Boolean) : [];
+  return {
+    id: `${smart ? 'fscol' : 'fcol'}${i}-${id}`,
+    titre: nom,
+    cover: null,
+    source: null,
+    ouvrir: 'cible',
+    cible: { sorte: smart ? 'smart_collection' : 'collection', id, nom },
+    favoriLocal: smart ? { smartCollectionId: id } : { collectionId: id },
+    etiquette: { itemType: smart ? 'smart_collection' : 'collection', itemId: id },
+    pochettes: covers,
+    mosaique: covers.length
+      ? undefined
+      : () =>
+          enFileMosaique(async () =>
+            quatreDistinctes(
+              ((smart ? await api.getSmartCollectionAlbums(id) : await api.getCollectionAlbums(id)) ?? []) as any[],
+            ),
+          ),
+  };
 }
 
 export const WIDGETS: Widget[] = [
@@ -1001,6 +1245,63 @@ export const WIDGETS: Widget[] = [
       if (artistes.length) return artistes;
       return utiles(f.tracks.slice(0, LIMITE).map((o: any, i: number) => elementPisteFavorite(o, i)));
     },
+  },
+  {
+    id: 'favoris-artistes',
+    cleTitre: 'v2.home.wFavArtists',
+    forme: 'bande',
+    charger: parSeau((f) =>
+      utiles(f.artists.slice(0, LIMITE).map((o: any, i: number) => elementArtisteDuSeau(o, i))),
+    ),
+  },
+  {
+    id: 'favoris-pistes',
+    cleTitre: 'v2.home.wFavTracks',
+    forme: 'bande',
+    charger: parSeau((f) =>
+      utiles(f.tracks.slice(0, LIMITE).map((o: any, i: number) => elementPisteDuSeau(o, i))),
+    ),
+  },
+  {
+    id: 'favoris-playlists',
+    cleTitre: 'v2.home.wFavPlaylists',
+    forme: 'bande',
+    charger: parSeau((f) =>
+      utiles(playlistsFavorites(f).slice(0, LIMITE).map((o: any, i: number) => elementPlaylistDuSeau(o, i))),
+    ),
+  },
+  {
+    id: 'favoris-smart-playlists',
+    cleTitre: 'v2.home.wFavSmartPlaylists',
+    forme: 'bande',
+    charger: parSeau(async (f) =>
+      (await smartPlaylistsFavorites(f))
+        .filter((sp: any) => idLocalValide(sp?.id) != null)
+        .slice(0, LIMITE)
+        .map((sp: any, i: number) => elementSmartPlaylistDuSeau(sp, i)),
+    ),
+  },
+  {
+    id: 'favoris-collections',
+    cleTitre: 'v2.home.wFavCollections',
+    forme: 'bande',
+    charger: parSeau(async (f) =>
+      (await collectionsFavorites(f)).collections
+        .filter((c: any) => idLocalValide(c?.id) != null)
+        .slice(0, LIMITE)
+        .map((c: any, i: number) => elementCollectionDuSeau(c, i, false)),
+    ),
+  },
+  {
+    id: 'favoris-smart-collections',
+    cleTitre: 'v2.home.wFavSmartCollections',
+    forme: 'bande',
+    charger: parSeau(async (f) =>
+      (await collectionsFavorites(f)).smartCollections
+        .filter((c: any) => idLocalValide(c?.id) != null)
+        .slice(0, LIMITE)
+        .map((c: any, i: number) => elementCollectionDuSeau(c, i, true)),
+    ),
   },
   {
     id: 'recommandations',
