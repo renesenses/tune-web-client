@@ -42,12 +42,15 @@ describe('le rail A–Z suit le tri', () => {
     );
   });
 
-  it('🔴 il DISPARAÎT sur un tri chronologique', () => {
+  it('🔴 sur un tri chronologique, il RESTE et repasse au tri Titre (Bertrand, 25/09/2026)', () => {
     // Trié par année ou par ajout, aucune lettre ne correspond à une
-    // position : les initiales sont dispersées dans toute la liste. Un rail
-    // qui promet un saut et atterrit au hasard est pire qu'un rail absent.
+    // position : le rail était RETIRÉ. Bertrand, sur le .18 : « Click sur
+    // derniers ajouts, la barre A-Z disparaît ! » Décision : il reste, et une
+    // lettre y repasse au tri Titre avant de sauter — on ne saute toujours
+    // pas au hasard. Le comportement est tenu par `railRetourTitre.test.ts`.
     expect(src()).toMatch(/const railUtile = \$derived\(sortKey === 'title' \|\| sortKey === 'artist'\)/);
-    expect(src()).toMatch(/\{#if navMode === 'alpha' && tab === 'albums' && railUtile\}/);
+    expect(src()).toMatch(/const railRamene = \$derived\(tab === 'recent' \|\| !railUtile\)/);
+    expect(src()).toMatch(/\{#if navMode === 'alpha' && tab === 'albums'\}/);
   });
 
   it('les lettres proposées restent celles de ce qui est AFFICHÉ', () => {

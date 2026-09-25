@@ -56,7 +56,8 @@ describe("Tri « Ajout récent » (forum, 05/09/2026)", () => {
       / l: '[A-ZÀ-Ü]/.test(lib),
       'un libellé en clair est revenu dans SORTS : il ne se traduira pas',
     ).toBe(false);
-    expect(lib).toContain("const hasAddedAt = $derived(src.some((a) => (a.added_at ?? 0) > 0))");
+    // Collant pendant un rechargement (liste vide) : voir `railRetourTitre.test.ts`.
+    expect(lib).toContain("datesDAjoutConnues = src.some((a) => (a.added_at ?? 0) > 0)");
     expect(lib).toContain("(b.added_at ?? 0) - (a.added_at ?? 0)");
   });
 });
