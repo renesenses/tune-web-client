@@ -3379,6 +3379,12 @@
   .cq{margin-top:4px; font:9.5px var(--v2-mono); color:var(--v2-acc2); letter-spacing:.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .chip.dr{display:inline-flex; align-items:center; gap:5px}
   .chip.dr select{border:0; background:transparent; color:inherit; font:inherit; cursor:pointer}
+  /* #5074 : la liste déroulée d'un <select> natif est dessinée par le système,
+     qui reprend le fond du <select> (ici transparent, donc blanc sous Windows)
+     et sa couleur (héritée de la pastille : `--v2-txt2`, gris clair dans les
+     thèmes sombres). Gris clair sur blanc. Les <option> portent donc le fond
+     et le texte du thème, comme les autres <select> des écrans v2. */
+  .chip.dr option{background:var(--v2-surface2); color:var(--v2-txt)}
 
   /* #4800 — la CASE VIDE d'une page pas encore arrivée : même gabarit que la
      vignette (pochette carrée + deux lignes), en aplat discret ; inerte au
