@@ -6,6 +6,13 @@
   import { freqLabel, spectrumGravesTicks, spectrumIsoTicks, type AnnonceSpectre } from '../../lib/spectrumScale';
   import { cleFormat, capaciteMaintenue, CAPACITE_VIDE, type CapaciteSpectre } from '../../lib/axeSpectre';
   import { WAVE_HISTORY_SLOTS, WaveformHistory } from '../../lib/waveformHistory';
+  // #1256 — la cadence de dessin est un RÉGLAGE depuis le 23/09/2026. Le cran
+  // par défaut (`fluide`) rend la règle que `boucleImages` applique déjà par
+  // défaut (ticket 150, `cadenceCreteMetre.tempsDeDessiner`) : rien ne bouge
+  // pour qui n'a rien demandé.
+  import { cranOuDefaut } from '../../lib/cadenceAnimations';
+  import { tempsDeDessiner } from '../../lib/cadenceCreteMetre';
+  import { preferences } from '../../lib/stores/preferences';
 
   interface Props {
     playing: boolean;
@@ -74,6 +81,28 @@
    */
   let annonceSpectre: AnnonceSpectre | null = null;
   /**
+   * 🔴 Fil 1908 (Didier, 24/09/2026) — la fréquence d'échantillonnage que le
+   * serveur a RÉELLEMENT analysée, lue sur la trame (`sample_rate` de
+   * `playback.audio_levels`, « celle du décodage, pas celle du tag »).
+   *
+   * L'axe la prenait dans la prop `sampleRate`, c'est-à-dire dans les
+   * MÉTADONNÉES de la piste. Or une piste Qobuz de la file peut n'en porter
+   * aucune — sur sa capture, ni format, ni fréquence, ni badge de qualité
+   * sous le titre — et `spectrumIsoTicks` rend, sans débit, `[]` : les barres
+   * s'animaient, l'échelle avait disparu, « aléatoirement sur un album
+   * Qobuz ». Et quand elles existent, elles décrivent le fichier, pas
+   * l'analyse. Retenue de la dernière trame qui la porte, effacée à l'arrêt
+   * comme `serverBandCount`.
+   */
+  let tauxAnalyse: number | null = null;
+  /**
+   * Hauteur sous laquelle on ne gradue pas : la vignette de zone (26 px) n'a
+   * jamais eu d'échelle — faute de prop `sampleRate`, pas par choix écrit —
+   * et 12 px d'étiquettes y écraseraient les barres. Le fil 1908 ne doit pas
+   * l'y faire apparaître.
+   */
+  const HAUTEUR_MIN_AXE = 40;
+  /**
    * La capacité de l'analyseur pour le format courant — Bertrand, 13/09/2026.
    *
    * 🔴 `spectrum_frames` VARIE d'une trame à l'autre (mesuré sur la .18 :
@@ -94,6 +123,18 @@
   const waveHistory = new WaveformHistory();
   let lastTargetUpdate = 0;
   const TARGET_INTERVAL = 120; // ms between new random targets (~8 Hz)
+  /**
+   * #1256 — le cran de cadence choisi dans les Réglages.
+   *
+   * 🔴 `$derived`, et non une constante : le réglage change sans rechargement,
+   * et la règle de rythme passée à `boucleImages` relit la valeur à chaque
+   * réveil. C'est l'UNIQUE cadenceur de cette boucle depuis le ticket 150 :
+   * `draw` ne filtre plus rien lui-même.
+   *
+   * 🔴 Affichage seulement. Cette boucle LIT `audio_levels` et le dessine :
+   * ralentir le dessin ne touche à aucun échantillon audio.
+   */
+  const cran = $derived(cranOuDefaut($preferences.cadenceAnimations));
 
   /**
    * 🔴 Ticket 150 — PAS de `$state`.
@@ -213,6 +254,9 @@
       ? { fftSize: levels.spectrum_fft_size, resolus: levels.spectrum_resolved }
       : null;
     if (!levels) return 0;
+    // Fil 1908 — ce que le serveur a analysé, pas ce que dit le tag. N'entre
+    // que dans l'axe (voir `drawSpectrum`), jamais dans la hauteur des barres.
+    if (levels.sample_rate != null && levels.sample_rate > 0) tauxAnalyse = levels.sample_rate;
 
     // Préféré quand le serveur le fournit : niveau absolu par bande.
     if (levels.spectrum_db && levels.spectrum_db.length > 0) {
@@ -266,6 +310,7 @@
     if (!playing) {
       for (let i = 0; i < barCount; i++) barTargets[i] = 0;
       serverBandCount = 0;
+      tauxAnalyse = null;
       return;
     }
     const useReal = realLevels && (performance.now() - lastRealUpdate < 500);
@@ -417,21 +462,25 @@
      * nourrit l'axe — sans quoi la troncature rejouée par `spectrumIsoTicks`
      * ferait clignoter les repères par un second chemin, à table identique.
      */
+    // 🔴 Fil 1908 — le débit ANALYSÉ, annoncé par la trame, d'abord ; le tag
+    // de la piste seulement pour un serveur qui ne l'annonce pas. Voir
+    // `tauxAnalyse`.
+    const tauxAxe = tauxAnalyse ?? sampleRate;
     capacite = capaciteMaintenue(
       capacite,
-      cleFormat(sampleRate, annonceSpectre?.resolus?.length ?? 0),
+      cleFormat(tauxAxe, annonceSpectre?.resolus?.length ?? 0),
       annonceSpectre?.resolus,
       annonceSpectre?.fftSize,
     );
-    const iso = mini
+    const iso = mini || height < HAUTEUR_MIN_AXE
       ? []
-      : spectrumIsoTicks(sampleRate, serverBandCount, {
+      : spectrumIsoTicks(tauxAxe, serverBandCount, {
           fftSize: capacite.fftSize,
           resolus: capacite.resolus,
         });
     // 20, 31, 63 Hz sous le premier repère résolu — voir `spectrumGravesTicks`.
     // Seulement quand l'axe existe déjà : pas de graduation sans spectre reçu.
-    const ticks = iso.length > 0 ? [...spectrumGravesTicks(sampleRate, iso[0].hz), ...iso] : iso;
+    const ticks = iso.length > 0 ? [...spectrumGravesTicks(tauxAxe, iso[0].hz), ...iso] : iso;
     const axisH = ticks.length > 0 ? AXIS_H * dpr : 0;
     // Les barres ne descendent plus jusqu'au bas du canevas quand l'échelle
     // est là : elles s'arrêtent au-dessus, sinon les libellés se poseraient
@@ -629,7 +678,7 @@
       // la reprise de la lecture ne redessinerait plus rien.
       if (!continuer) arreterBoucle = null;
       return continuer;
-    });
+    }, { rythme: (maintenant, dernier) => tempsDeDessiner(maintenant, dernier, cran) });
   }
 
   function stopAnimation() {

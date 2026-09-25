@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import * as locales from '../locales';
+import * as locales from './lesOnzeLangues';
 
 /**
  * #1360 — « Smart AI » ne fait appel à AUCUNE IA.

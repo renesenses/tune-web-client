@@ -92,18 +92,67 @@ export function concerneLEcoute(
 }
 
 /**
+ * La piste que l'ÉVÉNEMENT porte lui-même, ou `null` s'il n'en porte pas.
+ *
+ * 🔴 #1010 — « l'historique n'a conservé que les 3 premiers titres » (Fabien,
+ * Ambiance lancée en « Tout lire », 0.9.148).
+ *
+ * L'écoute était notée d'après `zone.current_track`, c'est-à-dire d'après un
+ * `GET /zones` lancé séparément par `v2Live` — `void rechargerZones().then(…)`,
+ * une requête par événement, jamais sérialisée, et dont la réponse décrit
+ * l'état du serveur à l'instant où elle arrive, pas à celui de l'événement.
+ * Rien n'apparie une réponse à l'événement qui l'a demandée. Un instantané en
+ * retard d'un cran n'écrit alors pas une mauvaise ligne : `playbackHistory.add`
+ * refuse toute piste égale à la précédente, donc il n'en écrit AUCUNE, en
+ * silence. Une file de N titres ne laisse que quelques lignes.
+ *
+ * Or le serveur porte déjà la réponse : `now_playing_event_data`
+ * (tune-server-rust, `playback/mod.rs`) sérialise le `NowPlaying` COMPLET dans
+ * `playback.started` et `playback.track_changed` — titre, `track_id`, format,
+ * `queue_position` — et le fait exprès depuis #1096, pour que le client cesse
+ * d'aller redemander par le réseau ce qu'il tient déjà.
+ *
+ * ⚠️ Le repli reste indispensable : quand la zone a disparu entre l'événement
+ * et sa mise en forme, le serveur émet une charge VIDE
+ * (`unwrap_or_else(|| json!({}))`). Une charge qui n'identifie aucune piste ne
+ * doit pas écraser `current_track`, sinon on noterait une écoute sans piste.
+ */
+export function pisteDeLEvenement(donnees: unknown): unknown | null {
+  if (donnees == null || typeof donnees !== 'object') return null;
+  const d = donnees as Record<string, unknown>;
+  const titre = typeof d.title === 'string' ? d.title.trim() : '';
+  const id = d.track_id;
+  if (titre === '' && (id == null || id === '')) return null;
+  /**
+   * Le transport voyage AVEC la piste, il n'en fait pas partie : `ws.rs` pose
+   * `zone_id`, `now_playing_event_data` pose `queue_position`,
+   * `queue_length` et `track_generation`. Les retirer rend exactement la forme
+   * de `zone.current_track` — sans quoi l'historique garderait, dans
+   * `localStorage` et pour deux cents lignes, l'index de file d'un instant.
+   */
+  const { zone_id: _z, queue_position: _p, queue_length: _l, track_generation: _g, ...piste } = d;
+  return piste;
+}
+
+/**
  * Noter l'écoute. Rend `true` si elle a été notée.
  *
  * `convertir` est `nowPlayingToTrack` : la zone porte un `NowPlaying`, dont
  * l'identifiant s'appelle `track_id`. Injecté, comme le carnet.
+ *
+ * `pisteEvenement` : la charge de l'événement, préférée à l'instantané de zone
+ * dès qu'elle identifie une piste — voir `pisteDeLEvenement`. Le NOM de la
+ * zone, lui, vient toujours de la zone : l'événement ne le porte pas.
  */
 export function noterEcoute(
   zone: ZoneEcoutee | null | undefined,
   convertir: (np: any) => Track,
   ajouter: (piste: Track, nomDeZone: string) => void,
+  pisteEvenement?: unknown,
 ): boolean {
-  if (!zone?.current_track) return false;
-  ajouter(convertir(zone.current_track), zone.name ?? '');
+  const np = pisteDeLEvenement(pisteEvenement) ?? zone?.current_track;
+  if (!np) return false;
+  ajouter(convertir(np), zone?.name ?? '');
   return true;
 }
 
@@ -125,8 +174,10 @@ export function noterSiDebutDEcoute(
    */
   convertir: (np: any) => Track,
   ajouter: (piste: Track, nomDeZone: string) => void,
+  /** La charge de l'événement — #1010. Voir `pisteDeLEvenement`. */
+  pisteEvenement?: unknown,
 ): boolean {
   if (!estDebutDEcoute(type)) return false;
   if (!concerneLEcoute(zoneEvenement, courante, zoneDeLEvenement)) return false;
-  return noterEcoute(courante, convertir, ajouter);
+  return noterEcoute(courante, convertir, ajouter, pisteEvenement);
 }

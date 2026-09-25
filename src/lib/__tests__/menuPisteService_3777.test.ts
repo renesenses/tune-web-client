@@ -63,8 +63,12 @@ describe('#3777 — la famille C rejoint le menu, A et B restent dehors', () => 
     expect(k).not.toContain('v2.cover.tags');
   });
 
-  it('🔴 la playlist reste ABSENTE — #1848, et la route répond 201 sur du vide', () => {
+  // 🔄 #4889 (24/09/2026) lève #1848 : le serveur enregistre un titre de
+  // service dans une playlist Tune. L'entrée vient quand l'appelant dit la
+  // piste désignable (`rangeableEnPlaylist`) — sans lui, toujours absente.
+  it('la playlist : absente sans `rangeableEnPlaylist`, présente avec (#4889)', () => {
     expect(cles(SERVICE)).not.toContain('nowplaying.addToPlaylist');
+    expect(cles({ ...SERVICE, rangeableEnPlaylist: true })).toContain('nowplaying.addToPlaylist');
   });
 
   it("sans gestes armés par la coquille, rien n'apparaît : absent, pas mort", () => {

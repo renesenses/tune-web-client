@@ -124,3 +124,60 @@ export function destinationAlbum(
   // périmètre sur la source, là où l'utilisateur écoutait.
   return titre ? { type: 'recherche', requete: titre, source } : null;
 }
+
+/**
+ * La cible « Aller à l'album » d'une piste DE SERVICE — ou `null`.
+ *
+ * 🔴 Fil forum 1906 (FabienM, v0.9.163) : le menu « … » d'un titre Qobuz de
+ * l'Historique offrait « Aller à l'artiste » mais pas « Aller à l'album ». La
+ * règle vivait RECOPIÉE dans deux composants (`v2/PisteActions.svelte` et
+ * `partages/MenuPisteV1.svelte`), et les deux copies avaient déjà divergé :
+ * la seconde ne portait ni la pochette (#1342) ni l'artiste (#1361 bis). Elle
+ * ne vit plus qu'ici ; les appelants gardent seulement leur garde propre
+ * (piste locale, coquille qui n'a pas armé `gestesNavigationService`).
+ *
+ * L'identifiant d'album se lit, dans l'ordre :
+ *  1. `album_id_service` — posé par un appelant qui l'a appris AILLEURS que
+ *     sur la piste (l'Historique, par le contexte d'écoute : voir
+ *     `entreesDepuisServeur`). Il prime, parce que `album_id` y est alors la
+ *     colonne ENTIÈRE de `listen_history`, qui ne désigne rien chez le service ;
+ *  2. `album_id` — la forme `StreamTrack` (recherche, streaming, playlists de
+ *     service, fiche d'album), une chaîne chez le service.
+ */
+export interface CibleAlbumDeService {
+  service: string;
+  albumId: string;
+  titre: string;
+  pochette: string | null;
+  artiste: string | null;
+  artisteId: string | null;
+}
+
+export interface PisteAlbumDeService extends PisteEcouteeAlbum {
+  album_id_service?: string | null;
+  cover_path?: string | null;
+  artist_name?: string | null;
+  artist_id?: unknown;
+}
+
+export function albumDeServiceDe(
+  piste: PisteAlbumDeService | null | undefined,
+): CibleAlbumDeService | null {
+  if (!piste) return null;
+  const d = destinationAlbum({
+    source: piste.source ?? null,
+    album_id: piste.album_id_service ?? piste.album_id,
+    album_title: piste.album_title ?? null,
+  });
+  if (d?.type !== 'album-service') return null;
+  return {
+    service: d.service, albumId: d.albumId, titre: d.titre,
+    // 🔴 #1342 — `StreamTrack.cover_path` EST la pochette de l'album :
+    // `map_track` la remplit par `Self::pochette(album)` (`qobuz.rs:1256`).
+    pochette: piste.cover_path ?? null,
+    // #1361 bis — le nom de l'artiste ET, pour un service, son identifiant
+    // chez lui : sans eux la fiche d'album s'ouvre sans artiste.
+    artiste: piste.artist_name ?? null,
+    artisteId: piste.artist_id != null ? String(piste.artist_id) : null,
+  };
+}

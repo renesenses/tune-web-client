@@ -345,7 +345,10 @@ describe('Mode TV — dans la grappe, et routé', () => {
 
   it('le bouton vit dans la grappe, pas décalé au pixel', () => {
     const src = coquille();
-    expect(src.includes("$activeView === 'nowplaying'}\n      <button class=\"raccourci\" onclick={modeTv}"), 'le bouton a quitté la grappe').toBe(true);
+    // #1141 — la classe a gagné `tv` et `class:nomme` : le bouton porte
+    // désormais son LIBELLÉ. Ce qui est gardé ici n'a pas changé — il est
+    // toujours le premier enfant de la garde de vue, DANS la grappe.
+    expect(src.includes("$activeView === 'nowplaying'}\n      <button class=\"raccourci tv\" class:nomme="), 'le bouton a quitté la grappe').toBe(true);
     expect(
       /right:\s*108px/.test(src),
       'le décalage au pixel est revenu : il ne s’aligne sur rien et casse au premier bouton ajouté.',

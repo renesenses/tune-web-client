@@ -31,7 +31,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { estRefusPremium } from '../premiumRefus';
-import * as locales from '../locales';
+import * as locales from './lesOnzeLangues';
 
 vi.mock('../stores/notifications', () => ({
   notifications: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
@@ -86,6 +86,13 @@ beforeEach(async () => {
   vi.resetModules();
   api = await import('../api');
   i18n = await import('../i18n');
+  // Module VIERGE après `resetModules` : les onze dictionnaires posés par
+  // `setupLocales.ts` vivaient dans l'instance précédente. Sans eux,
+  // `$t` rend la clé nue (tune-server-rust#4800, cause 4 : i18n.ts ne les
+  // importe plus en statique).
+  for (const [code, dict] of Object.entries(locales)) {
+    i18n.enregistrerDictionnaire(code as import('../i18n').Locale, dict as Record<string, string>);
+  }
   notifications = (await import('../stores/notifications')).notifications as never;
   notifications.error.mockClear();
 }, 60_000);

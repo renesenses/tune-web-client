@@ -21,13 +21,59 @@
 export interface FocusArtiste {
   id: number;
   nom: string;
+  /**
+   * #4767 (crédits) — les pistes à montrer, par IDENTIFIANT de piste.
+   *
+   * « Collaborations » et « Reprises » sortent de `track_credits` : sur ces
+   * disques, `tracks.artist_id` désigne l'artiste PRINCIPAL, jamais celui de
+   * la page (le guitariste invité, l'auteur repris). Le serveur rend donc la
+   * liste des pistes créditées (`focus_track_ids`) et c'est sur elle que le
+   * focus filtre. Absente : focus par `tracks.artist_id`, comme avant.
+   */
+  pistes?: readonly number[] | null;
 }
 
 /**
  * La section de la page artiste d'où sort une vignette — `null` pour la
  * discographie, qui n'ouvre jamais de fiche focalisée.
  */
-export type OrigineSection = 'compilations' | 'apparitions' | null;
+export type OrigineSection = 'compilations' | 'apparitions' | 'collaborations' | 'reprises' | null;
+
+/** Les sections dont le focus vient des CRÉDITS (`focus_track_ids`). */
+const SECTIONS_DE_CREDITS: readonly OrigineSection[] = ['collaborations', 'reprises'];
+
+/**
+ * Les identifiants de pistes créditées que porte un album de « Collaborations »
+ * ou de « Reprises » (`focus_track_ids`), nettoyés — ou `null` si l'album n'en
+ * porte pas (serveur antérieur, autre section).
+ */
+export function idsDuFocus(album: unknown): number[] | null {
+  const brut = (album as { focus_track_ids?: unknown } | null | undefined)?.focus_track_ids;
+  if (!Array.isArray(brut)) return null;
+  const ids = brut.map((v) => Number(v)).filter((n) => Number.isFinite(n));
+  return ids.length ? ids : null;
+}
+
+/**
+ * Le focus d'une fiche d'album ouverte depuis une section de la page artiste.
+ *
+ * Discographie (`origine` nulle) : aucun. « Compilations » / « Apparitions » :
+ * l'artiste de la page, par `tracks.artist_id`. « Collaborations » /
+ * « Reprises » : l'artiste de la page, par les pistes CRÉDITÉES de l'album —
+ * et sans elles, pas de focus du tout : filtrer ces disques sur
+ * `tracks.artist_id` ne garderait rien.
+ */
+export function focusDeSection(
+  origine: OrigineSection,
+  album: unknown,
+  artiste: { id?: number | null; name?: string | null } | null | undefined,
+): FocusArtiste | null {
+  if (!origine || artiste?.id == null) return null;
+  const nom = artiste.name ?? '';
+  if (!SECTIONS_DE_CREDITS.includes(origine)) return { id: artiste.id, nom };
+  const pistes = idsDuFocus(album);
+  return pistes ? { id: artiste.id, nom, pistes } : null;
+}
 
 /**
  * L'identifiant d'artiste d'une piste, ou `null`.
@@ -58,6 +104,29 @@ export function rangsDeLArtiste(pistes: readonly unknown[], focus: number | null
   if (focus == null) return tous;
   const gardes = tous.filter((i) => idArtisteDePiste(pistes[i]) === focus);
   return gardes.length ? gardes : tous;
+}
+
+/**
+ * Les rangs, dans l'album entier, des pistes dont l'IDENTIFIANT est dans
+ * `ids` — le focus des sections de crédits. Mêmes garanties que
+ * [`rangsDeLArtiste`] : rien ne correspond, l'album entier revient.
+ */
+export function rangsDesPistes(pistes: readonly unknown[], ids: readonly number[] | null | undefined): number[] {
+  const tous = pistes.map((_, i) => i);
+  if (!ids?.length) return tous;
+  const voulus = new Set(ids.map(Number));
+  const gardes = tous.filter((i) => {
+    const brut = (pistes[i] as { id?: unknown } | null | undefined)?.id;
+    return brut != null && voulus.has(Number(brut));
+  });
+  return gardes.length ? gardes : tous;
+}
+
+/** Les rangs que retient un focus : par pistes créditées s'il en porte, sinon
+ *  par artiste de piste. */
+export function rangsDuFocus(pistes: readonly unknown[], focus: FocusArtiste | null | undefined): number[] {
+  if (focus?.pistes?.length) return rangsDesPistes(pistes, focus.pistes);
+  return rangsDeLArtiste(pistes, focus?.id ?? null);
 }
 
 /** Les pistes désignées par ces rangs, dans l'ordre de l'album. */

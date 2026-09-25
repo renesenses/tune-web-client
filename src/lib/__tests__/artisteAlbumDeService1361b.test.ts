@@ -206,7 +206,13 @@ describe('les trois fabriques portent l’artiste', () => {
 
   it('la barre d’actions et « Lecture en cours » les fournissent', () => {
     const barre = sansCommentaires(lire('src/components/v2/PisteActions.svelte'));
-    expect(barre).toContain('artiste: piste.artist_name ?? null,');
+    // Fil forum 1906 — la charge utile n'est plus RECOPIÉE dans la barre (ni
+    // dans `MenuPisteV1`) : les deux appellent `routageAlbum.albumDeServiceDe`,
+    // qui la porte. `allerALAlbumServiceFil1906.test.ts` monte les deux menus
+    // et lit la charge réellement émise.
+    expect(barre).toContain('albumDeServiceDe(piste');
+    const regle = sansCommentaires(lire('src/lib/routageAlbum.ts'));
+    expect(regle).toContain('artiste: piste.artist_name ?? null,');
     const np = sansCommentaires(lire('src/components/partages/NowPlaying.svelte'));
     expect(np).toContain('artiste: displayTrack?.artist_name ?? null,');
   });

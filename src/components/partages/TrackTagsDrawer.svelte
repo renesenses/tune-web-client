@@ -1,20 +1,63 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import * as api from '../../lib/api';
   import type { TrackAllTags } from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
+  import TiroirLateral from './TiroirLateral.svelte';
   import {
     CHAMPS_MODIFIABLES,
     champModifiable,
     grouperChampsPiste,
   } from '../../lib/champsPiste';
 
+  import {
+    champsConnusDePisteService,
+    completerChampsService,
+    pisteDeServiceDe,
+  } from '../../lib/champsPisteService';
+
   interface Props {
-    trackId: number;
+    /** Piste de la BIBLIOTHÈQUE : ses champs de base et de fichier (#851). */
+    trackId?: number | null;
+    /**
+     * Piste de SERVICE — fil forum 1906 (FabienM, point 3). Le tiroir montre
+     * alors, en LECTURE SEULE, les champs que la piste porte, complétés par
+     * `GET /streaming/{service}/tracks/{id}`. Il n'appelle jamais la route des
+     * tags du fichier : elle prend un `i64` de `tracks`, que la piste n'a pas.
+     */
+    pisteService?: Record<string, unknown> | null;
     onClose: () => void;
   }
-  let { trackId, onClose }: Props = $props();
+  let { trackId = null, pisteService = null, onClose }: Props = $props();
+
+  // Relevé une fois, au montage : le tiroir s'ouvre pour UNE piste.
+  const designation = untrack(() => pisteDeServiceDe(pisteService));
+  const modeService = designation != null;
+  /** Les champs d'une piste de service — posés tout de suite, complétés ensuite. */
+  let champsService = $state<Record<string, unknown>>(
+    untrack(() => (modeService ? champsConnusDePisteService(pisteService) : {})),
+  );
+  let groupesService = $derived(grouperChampsPiste(champsService));
+
+  /**
+   * Le complément du service. Silencieux quand il échoue : les champs connus
+   * sont déjà à l'écran, et un service sans route de détail (Bandcamp…) n'est
+   * pas une panne. Pas de `$t()` ici — rien à traduire, rien à annoncer.
+   */
+  async function completerDepuisLeService() {
+    if (!designation) return;
+    try {
+      const detail = await api.withTimeout(
+        api.getStreamingTrack(designation.service, designation.sourceId),
+        12000,
+        'streaming-track',
+      );
+      if (detail) champsService = completerChampsService(champsService, detail);
+    } catch (e) {
+      console.warn('[champs piste] détail de service indisponible :', designation.service, e);
+    }
+  }
 
   let data = $state<TrackAllTags | null>(null);
   let loading = $state(true);
@@ -29,7 +72,7 @@
     try {
       // Bound: a hung lofty read of a NAS file used to leave this drawer on
       // "Chargement…" until F5 (same family as TrackEditModal #1079).
-      data = await api.withTimeout(api.getTrackAllTags(trackId), 12000, 'track-all-tags');
+      data = await api.withTimeout(api.getTrackAllTags(trackId!), 12000, 'track-all-tags');
       originalDb = { ...(data.db_fields ?? {}) };
       dbEdits = { ...originalDb };
     } catch (e: any) {
@@ -59,7 +102,7 @@
     if (Object.keys(dirtyFields).length === 0) return;
     saving = true;
     try {
-      await api.updateTrackMetadata(trackId, dirtyFields);
+      await api.updateTrackMetadata(trackId!, dirtyFields);
       notifications.success($t('trackTags.trackUpdated').replace('{count}', String(Object.keys(dirtyFields).length)));
       // Refresh
       await load();
@@ -72,7 +115,7 @@
   async function writeTagsToFile() {
     saving = true;
     try {
-      const r = await api.writeTrackTags(trackId);
+      const r = await api.writeTrackTags(trackId!);
       notifications.success(`${$t('trackTags.tagsWritten')}${r?.message ? ' : ' + r.message : ''}.`);
     } catch (e: any) {
       notifications.error(`${$t('trackTags.writeError')} : ${e?.message || e}`);
@@ -80,19 +123,13 @@
     saving = false;
   }
 
-  function handleBackdropClick(e: MouseEvent) {
-    if (e.target === e.currentTarget) onClose();
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') onClose();
-  }
-
   // Use onMount (not $effect+untrack). That empty-dependency pattern can
   // re-trigger on Svelte 5 batch flushes and freeze the UI until F5
   // (DiagnosticsView / Sidebar / MetadataView).
   onMount(() => {
-    void load();
+    if (modeService) void completerDepuisLeService();
+    else if (trackId != null) void load();
+    else loading = false;
   });
 
   function formatTagVals(vals: unknown): string {
@@ -117,17 +154,33 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
-  <div class="drawer">
-    <div class="drawer-header">
-      <h3>{$t('trackTags.title')}</h3>
-      <button class="close-btn" onclick={onClose} title={$t('common.close')}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-      </button>
-    </div>
+<!-- Le cadre (fond, panneau, en-tête, fermeture) est partagé avec la fiche
+     « Crédits » (#1572) : `TiroirLateral`. -->
+<TiroirLateral titre={$t('trackTags.title')} {onClose}>
 
-    {#if loading}
+    {#if modeService}
+      <!-- Fil forum 1906 — une piste de service : les MÊMES groupes, en
+           lecture seule, et aucun bouton d'écriture (ni base, ni fichier). -->
+      <div class="drawer-body" data-champs-service>
+        <div class="state-small">{$t('trackTags.serviceReadOnly' as any)}</div>
+        {#each groupesService as groupe (groupe.nom)}
+          <div class="group">
+            <h4>{$t(groupe.cleI18n as any)}</h4>
+            <div class="kv">
+              {#each groupe.champs as field}
+                <div class="row">
+                  <span class="key">{field}</span>
+                  <span class="val val-readonly">{formatTagVals(champsService[field])}</span>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/each}
+      </div>
+      <div class="drawer-footer">
+        <button class="btn-cancel" onclick={onClose}>{$t('common.close')}</button>
+      </div>
+    {:else if loading}
       <div class="state">{$t('trackTags.loading')}</div>
     {:else if !data}
       <div class="state err">{$t('trackTags.loadFailed')}</div>
@@ -213,41 +266,9 @@
         </button>
       </div>
     {/if}
-  </div>
-</div>
+</TiroirLateral>
 
 <style>
-  .modal-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex; justify-content: flex-end;
-    z-index: 220;
-    animation: fade 0.15s ease-out;
-  }
-  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-
-  .drawer {
-    background: var(--tune-surface);
-    border-left: 1px solid var(--tune-border);
-    width: 480px; max-width: 96vw; height: 100vh;
-    display: flex; flex-direction: column;
-    animation: slideR 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
-    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.25);
-  }
-  @keyframes slideR { from { transform: translateX(100%); } to { transform: translateX(0); } }
-
-  .drawer-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid var(--tune-border);
-  }
-  .drawer-header h3 { font-size: 16px; font-weight: 600; margin: 0; }
-  .close-btn {
-    background: none; border: none; color: var(--tune-text-muted);
-    cursor: pointer; padding: 4px; display: inline-flex;
-  }
-  .close-btn:hover { color: var(--tune-text); }
-
   .drawer-body {
     flex: 1; overflow-y: auto; padding: 12px 20px 16px;
     display: flex; flex-direction: column; gap: 18px;

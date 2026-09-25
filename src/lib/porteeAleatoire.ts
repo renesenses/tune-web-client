@@ -33,6 +33,8 @@
  * diverger — c'est précisément ce qui est arrivé. La règle est ici, les deux
  * l'appellent, et un test la tient.
  */
+import { melangee } from './shuffle';
+import type { Album, Track } from './types';
 
 export interface PorteeAleatoire {
   /** La pastille de répertoire, quand elle est posée. */
@@ -74,4 +76,117 @@ export function optionsAleatoire(p: PorteeAleatoire): OptionsAleatoire | undefin
   else if (genre && !dossier) o.genre = genre;
 
   return Object.keys(o).length ? o : undefined;
+}
+
+/**
+ * ## 🔴 Fil 1917 — « La lecture aléatoire ne se limite pas à la sélection »
+ *
+ * Sevy Tabroc, v0.9.163, 58 359 pistes : filtres posés dans la Bibliothèque,
+ * « Aléatoire » tirait dans TOUTE la bibliothèque.
+ *
+ * `optionsAleatoire` ne sait transmettre que ce que `POST /playback/shuffle-all`
+ * sait tirer : répertoire, recherche, genre. Les filtres de la Bibliothèque V2
+ * — qualité, fréquence, format, profondeur, Dynamic Range, compilation,
+ * provenance, année de la frise — et le groupe ouvert d'un onglet de facette
+ * (un genre, une année, un label) portent sur les ALBUMS, sont appliqués sur
+ * place (`matches`), et n'ont aucun nom côté serveur. Ils n'arrivaient donc
+ * nulle part : le serveur recevait `undefined`, et tirait dans tout.
+ *
+ * La sélection est pourtant là, ENTIÈRE : un filtre posé fait sortir la grille
+ * du mode paginé (#4800, `sortirDesPages`) — ce qu'on voit est la liste
+ * complète des albums retenus, pas une page. On tire donc dans leurs pistes.
+ */
+export interface SelectionAlbums {
+  /** Un filtre d'ALBUM est posé (qualité, fréquence, format, profondeur, DR,
+   *  compilation, provenance, année). */
+  filtresAlbum: boolean;
+  /** Le groupe ouvert d'un onglet de facette, s'il y en a un — ses albums sont
+   *  déjà ceux qui passent les filtres. */
+  groupe: readonly Album[] | null;
+  /** Les albums que la grille affiche, filtres appliqués. */
+  affiches: readonly Album[];
+}
+
+/**
+ * Les albums sur lesquels l'aléatoire doit porter, ou `null` quand la portée
+ * du serveur suffit (aucun filtre d'album, aucun groupe ouvert) — on garde
+ * alors `optionsAleatoire`, et le tirage du serveur.
+ *
+ * Un ensemble VIDE est une réponse : la sélection ne contient rien, et il ne
+ * faut surtout pas retomber sur la bibliothèque entière.
+ */
+export function albumsDeLaSelection(s: SelectionAlbums): Set<number> | null {
+  const source = s.groupe ?? (s.filtresAlbum ? s.affiches : null);
+  if (source == null) return null;
+  const ids = new Set<number>();
+  for (const a of source) if (a.id != null) ids.add(a.id);
+  return ids;
+}
+
+/**
+ * Les identifiants à lancer : les pistes des albums retenus, mélangées, bornées
+ * au plafond de la file aléatoire (`shuffle_max_tracks`, #2901 — le même que
+ * le serveur applique à son propre tirage, pour la même raison : une file de
+ * 20 000 titres gèle l'interface, #2228).
+ *
+ * `garder` affine à la piste — la provenance se lit aussi sur la piste.
+ */
+export function pistesDeLaSelection(
+  pistes: readonly Track[],
+  albums: ReadonlySet<number>,
+  plafond: number,
+  garder: (t: Track) => boolean = () => true,
+): number[] {
+  const retenues = pistesRetenues(pistes, albums, garder).map((t) => t.id as number);
+  return bornee(melangee(retenues), plafond);
+}
+
+/** Les pistes des albums retenus qui passent `garder` — la règle de portée,
+ *  commune à « Aléatoire » et à « Lire ». */
+function pistesRetenues(
+  pistes: readonly Track[],
+  albums: ReadonlySet<number>,
+  garder: (t: Track) => boolean,
+): Track[] {
+  const retenues: Track[] = [];
+  for (const t of pistes) {
+    if (t.id == null || t.album_id == null || !albums.has(t.album_id)) continue;
+    if (!garder(t)) continue;
+    retenues.push(t);
+  }
+  return retenues;
+}
+
+/** Le plafond de la file (`shuffle_max_tracks`, #2901), jamais sous 1. */
+export function bornee<T>(ids: readonly T[], plafond: number): T[] {
+  return ids.slice(0, Math.max(1, Math.trunc(plafond)));
+}
+
+/**
+ * ## Fil 1946 — FabienM, v0.9.165 : « Lire » à côté de « Aléatoire »
+ *
+ * La MÊME portée que l'aléatoire — les mêmes albums, le même filtre à la
+ * piste, le même plafond — mais DANS L'ORDRE AFFICHÉ : album après album,
+ * dans l'ordre où la grille (ou la liste des groupes) les montre, et dans
+ * chaque album les pistes par disque puis par numéro.
+ *
+ * `albumsOrdonnes` porte l'ordre : c'est la liste que l'écran affiche, pas un
+ * ensemble. Une piste sans numéro passe après les numérotées de son disque ;
+ * à égalité, l'ordre d'arrivée du serveur tient (tri stable).
+ */
+export function pistesDansLOrdre(
+  pistes: readonly Track[],
+  albumsOrdonnes: readonly number[],
+  plafond: number,
+  garder: (t: Track) => boolean = () => true,
+): number[] {
+  const rang = new Map<number, number>();
+  albumsOrdonnes.forEach((id, i) => { if (!rang.has(id)) rang.set(id, i); });
+  const retenues = pistesRetenues(pistes, new Set(rang.keys()), garder);
+  const num = (n: number | null | undefined) => (n == null || n <= 0 ? Number.MAX_SAFE_INTEGER : n);
+  retenues.sort((a, b) =>
+    rang.get(a.album_id as number)! - rang.get(b.album_id as number)!
+    || (a.disc_number ?? 1) - (b.disc_number ?? 1)
+    || num(a.track_number) - num(b.track_number));
+  return bornee(retenues.map((t) => t.id as number), plafond);
 }

@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { nomASaluer, cleSalutation, salutation } from '../salutation';
-import { fr, en } from '../locales';
+import { fr, en } from './onzeDictionnaires';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 

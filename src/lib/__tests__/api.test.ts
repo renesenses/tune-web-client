@@ -38,8 +38,9 @@ const localStorageMock = {
 };
 vi.stubGlobal('localStorage', localStorageMock);
 
-// window.location mock (clearToken uses it)
-vi.stubGlobal('window', { location: { hash: '' }, ...globalThis.window });
+// window.location mock (clearToken uses it). Le mock vient APRÈS l'étalement :
+// placé avant, un `window` réel (jsdom) l'écrasait et le mock ne servait à rien.
+vi.stubGlobal('window', { ...globalThis.window, location: { hash: '' } });
 
 // Capture every fetch call for assertions
 let fetchCalls: Array<{ url: string; init?: RequestInit }> = [];

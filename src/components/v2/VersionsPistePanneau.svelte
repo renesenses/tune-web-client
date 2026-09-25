@@ -37,14 +37,33 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ServiceBadge from '../partages/ServiceBadge.svelte';
 
+  /**
+   * ## Deux façons de rapprocher, UN seul rendu
+   *
+   * Par `trackId` — la route par `i64`, le rapprochement du serveur. Ou par
+   * `parTitre` — une piste de SERVICE, sans identifiant de bibliothèque :
+   * `lib/versionsParTitre` compose la recherche fédérée et ne garde que ce qui
+   * se rapproche du titre ET de l'artiste (Bertrand, 23/09/2026, « résultats
+   * approximatifs acceptés »). Les deux chargeurs rendent la MÊME forme
+   * (`OtherVersionGroup`) : les tuiles, l'ordre (#4368) et le cas vide sont
+   * les mêmes ; seul l'en-tête dit, en mode approximatif, comment la liste a
+   * été obtenue. La piste d'origine en est exclue par le chargeur.
+   */
+  import { chargerVersionsParTitre, type CibleParTitre } from '../../lib/versionsParTitre';
+
   interface Props {
-    trackId: number;
+    /** La piste de la BIBLIOTHÈQUE. `null` : voir `parTitre`. */
+    trackId?: number | null;
+    /** La cible titre + artiste, quand la piste n'a pas d'identifiant. */
+    parTitre?: CibleParTitre | null;
     titre?: string;
     onClose: () => void;
   }
-  let { trackId, titre = '', onClose }: Props = $props();
+  let { trackId = null, parTitre = null, titre = '', onClose }: Props = $props();
 
-  let groupe = $state<api.TrackVersions | null>(null);
+  let groupe = $state<api.OtherVersionGroup | null>(null);
+  /** Le mode approximatif : l'en-tête le dit. */
+  const approximatif = $derived(trackId == null && parTitre != null);
   let chargement = $state(true);
   let erreur = $state(false);
 
@@ -65,9 +84,16 @@
 
   $effect(() => {
     const id = trackId;
+    const cible = parTitre;
     let vivant = true;
     chargement = true; erreur = false;
-    api.getTrackVersions(id)
+    // Le chargeur suit le mode ; ce qui suit ne le connaît pas.
+    const charger: Promise<api.OtherVersionGroup> = id != null
+      ? api.getTrackVersions(id)
+      : cible != null
+        ? chargerVersionsParTitre(cible)
+        : Promise.reject(new Error('VersionsPistePanneau: ni trackId ni parTitre'));
+    charger
       .then((g) => { if (vivant) groupe = g; })
       .catch(() => { if (vivant) { erreur = true; groupe = null; } })
       .finally(() => { if (vivant) chargement = false; });
@@ -131,6 +157,9 @@
     <header>
       <h2>{$t('library.otherVersions' as any)}</h2>
       {#if titre}<p class="src">{titre}</p>{/if}
+      <!-- Le mode approximatif se DIT : la liste vient d'un rapprochement par
+           titre et artiste, pas du barème ISRC/durées du serveur. -->
+      {#if approximatif}<p class="src approx">{$t('library.otherVersionsByTitle' as any)}</p>{/if}
       <button class="x" onclick={onClose} aria-label={$t('v2.common.close' as any)}>×</button>
     </header>
 
@@ -194,6 +223,7 @@
   header{position:relative; padding-right:32px; margin-bottom:14px}
   h2{font:700 16px var(--v2-sans, inherit); color:var(--v2-txt, var(--tune-text, inherit))}
   .src{margin-top:3px; font:12.5px var(--v2-sans, inherit); color:var(--v2-txt3, var(--tune-text-secondary, inherit))}
+  .approx{font-style:italic}
   .x{position:absolute; top:-4px; right:-6px; width:28px; height:28px; border:0; background:transparent;
     color:var(--v2-txt3, inherit); font-size:20px; line-height:1; cursor:pointer; border-radius:6px}
   .x:hover{background:var(--v2-hover, rgba(255,255,255,.06)); color:var(--v2-txt, inherit)}

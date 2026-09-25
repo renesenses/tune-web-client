@@ -49,33 +49,42 @@ describe('la bibliothèque se recharge quand le serveur le dit', () => {
    * COMPORTEMENT, jamais une vitesse, et le plafond n'est là que pour empêcher
    * un blocage réel de durer.
    */
-  it('les deux événements sont écoutés', { timeout: 60_000 }, async () => {
+  it('les deux événements sont écoutés — et INVALIDENT, sans recharger (#4800)', { timeout: 60_000 }, async () => {
     let recu: ((e: any) => void) | null = null;
     const desabonner = vi.fn();
     vi.resetModules();
     vi.doMock('../websocket', () => ({
       tuneWS: { onEvent: (cb: any) => { recu = cb; return desabonner; } },
     }));
-    const rechargements: unknown[] = [];
+    // renesenses/tune-server-rust#4800 : recharger 3,5 Mo à chaque fin de
+    // scan était la moitié de la cause 3. L'événement ne doit plus produire
+    // AUCUNE requête : il invalide, et les écrans montés redemandent ce
+    // qu'ils montrent.
+    const requetes: unknown[] = [];
     vi.doMock('../api', () => ({
-      getAllAlbums: vi.fn(async () => { rechargements.push(1); return []; }),
+      getAllAlbums: vi.fn(async () => { requetes.push(1); return []; }),
+      getAlbumsPagines: vi.fn(async () => { requetes.push(1); return { items: [], total: 0 }; }),
     }));
     const m = await import('../v2Bootstrap');
+    const pagines = await import('../stores/albumsPagines');
+    const { get } = await import('svelte/store');
+    const avant = get(pagines.generationBibliotheque);
     const stop = m.suivreLaBibliotheque();
     expect(recu, "aucun abonnement n'a été posé").toBeTypeOf('function');
 
     recu!({ type: 'library.scan.completed' });
     recu!({ type: 'library.updated' });
     await new Promise((r) => setTimeout(r, 0));
-    expect(rechargements.length, 'les deux événements doivent recharger').toBe(2);
+    expect(get(pagines.generationBibliotheque) - avant, 'les deux événements doivent invalider').toBe(2);
+    expect(requetes.length, "une invalidation ne recharge RIEN d'elle-même").toBe(0);
 
-    // Un événement SANS rapport ne doit pas relancer un chargement complet de
-    // la bibliothèque : sur 46 877 pistes, ce serait une seconde perdue à
-    // chaque battement de transport.
+    // Un événement SANS rapport ne doit rien invalider : sur 46 877 pistes,
+    // les écrans montés rechargeraient à chaque battement de transport.
     recu!({ type: 'zone.state.changed' });
     recu!({});
     await new Promise((r) => setTimeout(r, 0));
-    expect(rechargements.length).toBe(2);
+    expect(get(pagines.generationBibliotheque) - avant).toBe(2);
+    expect(requetes.length).toBe(0);
 
     stop();
     expect(desabonner, "l'abonnement doit se couper au démontage").toHaveBeenCalled();

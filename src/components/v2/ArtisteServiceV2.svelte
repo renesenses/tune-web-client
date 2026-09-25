@@ -63,7 +63,7 @@
   import { zoneRequise } from '../../lib/zoneRequise';
   import type { Album, Artist, ArtistMetadata, Source, Track, TrackCredit } from '../../lib/types';
   import { activeView, pendingSearchQuery, vueDeRetour } from '../../lib/stores/navigation';
-  import { ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
+  import { ficheAlbumDeRetour, ficheAlbumService, ficheArtisteService, streamingServices } from '../../lib/stores/streaming';
   import { albumsDeStreamingPourArtiste, servicesInterrogeables, statutsStreaming, type AlbumsDeService } from '../../lib/albumsArtisteStreaming';
   import { BIBLIOTHEQUE, cleEdition, type Exemplaire } from '../../lib/discographieCommune';
   import type { ComptesArtistesSources } from '../../lib/provenanceBibliotheque';
@@ -83,11 +83,12 @@
   import EnTeteArtiste from './EnTeteArtiste.svelte';
   import { notifications } from '../../lib/stores/notifications';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
+  import { messageEchecFiche, motifEchecFiche, type MotifEchecFiche } from '../../lib/echecFicheArtiste';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
   import { cibleRaccourciArtiste } from '../../lib/raccourciArtiste';
-  import type { FocusArtiste, OrigineSection } from '../../lib/focusArtiste';
+  import { focusDeSection, type FocusArtiste, type OrigineSection } from '../../lib/focusArtiste';
   import { dansSource } from '../../lib/provenanceBibliotheque';
   import { melangee } from '../../lib/shuffle';
 
@@ -119,6 +120,13 @@
    *  service n'en rend aucun ». Sans ce témoin, les deux états sont le même
    *  `titres.length === 0`. */
   let titresEnEchec = $state(false);
+  /**
+   * #992 — la FICHE de l'artiste (`/artists/{id}`) n'a pas pu être chargée,
+   * et pourquoi. Le bandeau global « Server error: » est éteint sur ces routes
+   * (`api.getStreamingArtist`) : c'est la page qui le dit, en clair, et une
+   * seule fois.
+   */
+  let ficheEnEchec = $state<MotifEchecFiche | null>(null);
   let albums = $state<Album[]>([]);
   let chargement = $state(true);
   /**
@@ -146,6 +154,9 @@
    */
   let compilations = $state<Album[]>([]);
   let apparitions = $state<Album[]>([]);
+  /** #4767 (crédits, #4862) — mêmes règles, lues dans `track_credits`. */
+  let collaborations = $state<api.GroupeCollaborations[]>([]);
+  let reprises = $state<Album[]>([]);
   /** L'artiste sur lequel la fiche d'album ouverte est focalisée (#4767). */
   let artisteFocus = $state<FocusArtiste | null>(null);
   /**
@@ -261,6 +272,8 @@
     } catch {
       /* repli sur la recherche */
     }
+    // web#1602 — l'album de départ était celui de l'artiste QU'ON QUITTE.
+    ficheAlbumDeRetour.set(null);
     if (id != null) {
       ficheArtisteService.set({ service: null, id: String(id), nom: nomVoisin });
       return;
@@ -323,12 +336,15 @@
     const mien = ++jeton;
     chargement = true;
     artiste = null;
+    ficheEnEchec = null;
     titres = [];
     titresEnEchec = false;
     albums = [];
     bio = null;
     compilations = [];
     apparitions = [];
+    collaborations = [];
+    reprises = [];
     // #1232, étape 2 — les blocs locaux ne suivent pas d'une fiche à l'autre :
     // sans cette remise à zéro, « À propos » de l'artiste précédent resterait
     // affiché sous celui-ci.
@@ -346,6 +362,7 @@
     ]);
     if (mien !== jeton) return;
     if (a.status === 'fulfilled') artiste = a.value;
+    else ficheEnEchec = motifEchecFiche(a.reason);
     // 🔴 ESTAMPILLER LA SOURCE, UNE FOIS, ICI. La charge de `top-tracks` ne
     // porte pas de champ `source` — le service est dans l'URL. Sans lui
     // `corpsDeLecture` ne sait désigner aucune de ces pistes : `planDeLecture`
@@ -401,6 +418,7 @@
     const mien = ++jeton;
     chargement = true;
     artiste = null;
+    ficheEnEchec = null;
     titres = [];
     titresEnEchec = false;
     albums = [];
@@ -408,6 +426,8 @@
     locaux = [];
     compilations = [];
     apparitions = [];
+    collaborations = [];
+    reprises = [];
     artisteLocal = null;
     autresServices = [];
     comptesFiche = null;
@@ -435,6 +455,8 @@
       // vide, et `?? []` dit ici la même chose que lui.
       compilations = (d.value?.compilations ?? []) as Album[];
       apparitions = (d.value?.appearances ?? []) as Album[];
+      collaborations = d.value?.collaborations ?? [];
+      reprises = (d.value?.covers ?? []) as Album[];
     }
     chargement = false;
     void chargerBioLocale(mien, id, artiste?.bio ?? null);
@@ -524,10 +546,11 @@
     // focus n'a de sens que pour un album de la BIBLIOTHÈQUE, ouvert depuis un
     // artiste de la bibliothèque — l'artiste de piste vient de la base, pas
     // d'un service.
+    //
+    // Venu de « Collaborations » ou de « Reprises », le focus porte les pistes
+    // CRÉDITÉES de l'album (`focus_track_ids`) : `focusDeSection` le dit.
     artisteFocus =
-      origine && ex.source === BIBLIOTHEQUE && estLocal && artisteLocal?.id != null
-        ? { id: artisteLocal.id, nom: artisteLocal.name }
-        : null;
+      ex.source === BIBLIOTHEQUE && estLocal ? focusDeSection(origine, ex.album, artisteLocal) : null;
     albumOuvert = ex.album;
   }
   function lireExemplaire(ex: Exemplaire) {
@@ -586,9 +609,21 @@
     // rendrait toujours faux — le repli d'un artiste local retomberait sur la
     // Recherche, un écran d'où il ne vient pas (#1232, étape 1).
     const local = estLocal;
+    // 🔴 web#1602 — on est venu d'une FICHE ALBUM : c'est elle que le Retour
+    // rouvre, dans la vue `streamingalbum` de la coquille, et c'est son propre
+    // Retour qui ramènera ensuite à l'écran d'en dessous (`depuis`). Sans ce
+    // cran, la fiche refermée avant de router (#1486) était sautée.
+    const fiche = $ficheAlbumDeRetour;
+    ficheAlbumDeRetour.set(null);
     albumOuvert = null;
     artisteFocus = null;
     ficheArtisteService.set(null);
+    if (fiche) {
+      vueDeRetour.set(fiche.depuis);
+      ficheAlbumService.set(fiche.fiche);
+      activeView.set('streamingalbum');
+      return;
+    }
     vueDeRetour.set(null);
     activeView.set(ou ?? (local ? 'library' : 'search'));
   }
@@ -802,11 +837,29 @@
     {/snippet}
   </EnTeteArtiste>
 
+  {#if !chargement && ficheEnEchec}
+    <!-- #992 — jamais le « 502 » ni le texte brut du service : ce qui s'est
+         passé, dans la langue de l'interface, et de quoi réessayer quand
+         réessayer a un sens. -->
+    <p class="echec" role="status" data-echec-fiche={ficheEnEchec}>
+      {messageEchecFiche(ficheEnEchec, cible?.service, $tr)}
+      {#if ficheEnEchec === 'indisponible'}
+        <button class="v2-btn ghost" onclick={() => cible && charger(cible.service as Source, cible.id)}>
+          {$tr('zone.retry' as any)}
+        </button>
+      {/if}
+    </p>
+  {/if}
+
   {#if chargement}
     <div class="etat">{$tr('v2.common.loading' as any)}</div>
   {:else if !titres.length && !albums.length && !locaux.length && !autresServices.length && !complementsEnCharge}
-    <!-- #910 — « rien trouvé » et « rien chargé » ne se disent pas pareil. -->
-    <div class="etat">{$tr(titresEnEchec ? 'v2.fas.topTracksFailed' as any : 'v2.fas.empty' as any)}</div>
+    <!-- #910 — « rien trouvé » et « rien chargé » ne se disent pas pareil.
+         #992 — et quand la fiche elle-même a échoué, c'est déjà dit au-dessus :
+         pas une seconde phrase pour la même panne. -->
+    {#if !ficheEnEchec}
+      <div class="etat">{$tr(titresEnEchec ? 'v2.fas.topTracksFailed' as any : 'v2.fas.empty' as any)}</div>
+    {/if}
   {:else}
     <!-- Biographie (Qobuz la publie) et titres phares : le MÊME bloc que la
          fiche d'un artiste de la bibliothèque (#4330, étape 2). -->
@@ -842,14 +895,20 @@
       </section>
     {/if}
 
-    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length}
+    <!-- L'enveloppe doit citer TOUTES les sections que `DiscographieCommune`
+         sait rendre, sinon une section chargée reste invisible faute d'en-tête.
+         `collaborations` et `reprises` (#4767) y manquaient : un artiste sans
+         disque à lui — musicien de séance, compositeur, ingénieur — n'a que
+         celles-là, et c'est précisément le profil que la passe des crédits
+         fait apparaître. -->
+    {#if albums.length || locaux.length || autresServices.length || complementsEnCharge || compilations.length || apparitions.length || collaborations.length || reprises.length}
       <h2>{$tr('v2.fas.albums' as any)}</h2>
       <!-- Le filtre « Source » s'applique DANS la grille commune (#4330, #4201) :
            le poser sur la seule bibliothèque cachait tous les services. -->
       <DiscographieCommune {locaux} services={sectionsServices} servicesEnCharge={complementsEnCharge}
         nomArtiste={artiste?.name || cible?.nom || null} {provenance}
         onComptesProvenance={(c) => (comptesFiche = c)}
-        {compilations} {apparitions}
+        {compilations} {apparitions} {collaborations} {reprises}
         onOuvrir={ouvrirExemplaire} onLire={lireExemplaire} />
     {/if}
   {/if}

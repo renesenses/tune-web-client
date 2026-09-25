@@ -1,6 +1,7 @@
 import { writable, get } from 'svelte/store';
+import { ficheAlbumDeRetour, type CibleFicheAlbumService } from './streaming';
 
-export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'crossfeed' | 'plugins' | 'onboarding' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'tags' | 'oxygen' | 'support' | 'tv' | 'bandcamp' | 'concerts' | 'pontroon' | 'streamingartist' | 'streamingalbum';
+export type View = 'home' | 'nowplaying' | 'library' | 'queue' | 'playlists' | 'playlistmanager' | 'smartplaylists' | 'smart-ai' | 'ambiance' | 'browse' | 'search' | 'settings' | 'history' | 'streaming' | 'metadata' | 'radios' | 'radiofavorites' | 'genres' | 'mediaservers' | 'favorites' | 'podcasts' | 'zonemanager' | 'diagnostics' | 'collections' | 'smartcollections' | 'dashboard' | 'services' | 'genretree' | 'equalizer' | 'crossfeed' | 'plugins' | 'onboarding' | 'alarms' | 'login' | 'converter' | 'declick' | 'shortcuts' | 'tags' | 'oxygen' | 'support' | 'tv' | 'bandcamp' | 'concerts' | 'pontroon' | 'lecturecd' | 'streamingartist' | 'streamingalbum' | 'bannedtracks';
 export const activeView = writable<View>('home');
 export const previousView = writable<View | null>(null);
 
@@ -115,14 +116,21 @@ export interface GestesNavigationService {
    * coquille le posait sur `'nowplaying'` EN DUR, ce qui était juste pour son
    * premier appelant et faux pour l'éditorial d'un service (#1486). Facultatif :
    * un émetteur qui ne le dit pas garde l'ancien comportement.
+   *
+   * `ficheDeRetour` (web#1602) : la fiche album d'où part le clic, que le
+   * Retour de la page artiste rouvre avant de rendre `depuis`.
    */
-  ouvrirArtiste: (cible: { service: string; nom: string; id?: string | null; depuis?: View | null }) => void;
+  ouvrirArtiste: (cible: {
+    service: string; nom: string; id?: string | null; depuis?: View | null;
+    ficheDeRetour?: CibleFicheAlbumService | null;
+  }) => void;
 }
 export const gestesNavigationService = writable<GestesNavigationService | null>(null);
 export function requestListReset() {
   listResetNonce.update(n => n + 1);
   viewStateStash.clear();
   vueDeRetour.set(null);
+  ficheAlbumDeRetour.set(null);
 }
 
 // One-shot stash of a view's intra-drill state (open collection, …) so that

@@ -28,9 +28,10 @@
  *     lecture figés (`zone.updated`).
  *  2. **Le minuteur de progression** ne tournait pas → la barre n'avançait
  *     jamais, même en lecture.
- *  3. **Répétition et aléatoire** n'arrivent QUE par l'événement `snapshot` —
- *     ni `/zones` ni `/zones/{id}` ne les portent. Sans lui, ces deux boutons
- *     affichent éternellement leur valeur par défaut.
+ *  3. **Répétition et aléatoire** n'étaient lus QUE dans l'événement
+ *     `snapshot`. Sans lui, ces deux boutons affichaient éternellement leur
+ *     valeur par défaut. Depuis #1549, ils sont aussi lus dans le magasin
+ *     `zones` — voir `suivreTransportDesZones`.
  *
  * ## Ce que ce module n'est PAS
  *
@@ -111,8 +112,40 @@ function transportDepuisZone(zone: unknown): void {
   const fusion = mergeTransport(transportParZone.get(z.id), zone);
   transportParZone.set(z.id, fusion);
   if (z.id !== get(currentZoneId)) return;
-  if (fusion.repeat) repeatMode.set(fusion.repeat);
-  if (typeof fusion.shuffle === 'boolean') shuffleEnabled.set(fusion.shuffle);
+  appliquerTransport(fusion);
+}
+
+/** Pose répétition et aléatoire connus d'une zone dans les magasins de l'écran. */
+function appliquerTransport(etat: TransportState | undefined): void {
+  if (etat?.repeat) repeatMode.set(etat.repeat);
+  if (typeof etat?.shuffle === 'boolean') shuffleEnabled.set(etat.shuffle);
+}
+
+/**
+ * 🔴 #1549 (Didier, fil 1910) — L'ALÉATOIRE ÉTEINT APRÈS RECHARGEMENT.
+ *
+ * « Je rafraîchis la page du navigateur, l'icône lecture aléatoire n'est plus
+ * illuminée par contre le mode aléatoire reste actif. »
+ *
+ * Le serveur envoie bien `shuffle` et `repeat` dans `GET /zones` et
+ * `GET /zones/{id}` depuis tune-server-rust#2153 (`176aaa15`,
+ * `routes/zones/lecture.rs:276-277` et `:457-458`). Mais cette coquille ne
+ * les lisait que dans l'instantané WebSocket : ni l'amorçage
+ * (`v2Bootstrap.ts`, `zones.set`) ni `rechargerZones()` ne passaient par
+ * `transportDepuisZone`. Et l'instantané, s'il arrivait AVANT que la zone
+ * courante soit posée, rangeait l'état sans l'appliquer — rien ne le
+ * ré-appliquait ensuite. `shuffleEnabled` restait à sa valeur de naissance,
+ * `false`, quelle que soit la zone.
+ *
+ * Une seule source désormais : l'état serveur de la zone, lu dans le magasin
+ * `zones` À CHAQUE écriture, d'où qu'elle vienne (amorçage, relecture après un
+ * `playback.*` — dont `playback.shuffle` —, `zone.updated`, sondage de
+ * repli). La répétition avait exactement le même défaut ; elle suit le même
+ * chemin.
+ */
+function suivreTransportDesZones(liste: unknown): void {
+  if (!Array.isArray(liste)) return;
+  for (const z of liste) transportDepuisZone(z);
 }
 
 /**
@@ -272,7 +305,15 @@ export function demarrerTransportV2(): () => void {
     // cents caractères du `subscribe`. Une première version l'avait poussé
     // dehors — le comportement n'avait pas bougé, la garde ne le voyait plus.
     suiviDeZone(id);
+    // #1549 — l'état rangé pendant que la zone n'était pas encore la courante
+    // (instantané arrivé avant la pose de la sélection) s'applique maintenant.
+    if (id != null) appliquerTransport(transportParZone.get(id));
   });
+
+  // #1549 — répétition et aléatoire suivent l'état serveur des zones, quel que
+  // soit le chemin qui a écrit le magasin. Posé APRÈS l'abonnement à la zone
+  // courante : la valeur initiale des zones s'applique ainsi à la bonne zone.
+  const desabonnerTransport = zones.subscribe(suivreTransportDesZones);
 
   const desabonnerEvents = tuneWS.onEvent((event: any) => {
     const type = event?.type as string | undefined;
@@ -296,7 +337,8 @@ export function demarrerTransportV2(): () => void {
       return;
     }
 
-    // Répétition et aléatoire : le `snapshot` en est la SEULE source.
+    // Répétition et aléatoire de l’instantané : ses zones ne passent pas par le
+    // magasin `zones`, on les lit donc ici (les autres chemins : #1549).
     if (type === 'snapshot' && Array.isArray(event.data?.zones)) {
       for (const z of event.data.zones) transportDepuisZone(z);
       return;
@@ -306,9 +348,39 @@ export function demarrerTransportV2(): () => void {
     if (type === 'zone.updated' && Array.isArray(event.data?.zones)) {
       const liste = event.data.zones as any[];
       aplatirQualite(liste);
-      zones.set(liste);
-      for (const z of liste) transportDepuisZone(z);
+      zones.set(liste); // répétition et aléatoire : via `suivreTransportDesZones` (#1549)
       suivreProgression(liste);
+      return;
+    }
+
+    /**
+     * 🔴 #4559 — `zone.updated` a DEUX formes, et une seule était traitée.
+     *
+     * La branche ci-dessus attend `data.zones`, un tableau de zones entières.
+     * Cette forme-là n'existe QUE côté client : `websocket.ts` la fabrique
+     * lui-même quand il retombe sur le sondage HTTP faute de WebSocket.
+     *
+     * Le SERVEUR, lui, n'émet jamais que l'annonce nue
+     * `{"zone_id": N}` — sept sites dans `tune-server-rust`, dont
+     * `poller/tick.rs` qui annonce le contrat de signal dès que la sortie
+     * locale Windows ouvre son bras exclusif (#4568, livré en 0.9.159). Cette
+     * annonce était écrite pour la branche de repli `zone.*` d'`App.svelte`,
+     * supprimée le 19/09/2026 avec l'ancienne interface (#1257) : elle
+     * tombait donc dans le vide, et le panneau « Chemin du signal » gardait
+     * son « WASAPI (shared — Windows mixer) » et ses étapes orange jusqu'à ce
+     * qu'un `playback.*` — un geste, ou un évènement d'une AUTRE zone —
+     * provoque enfin la relecture. C'est mot pour mot ce que décrit Jean
+     * Valjean : « dès qu'il y a un changement sur la sortie Marantz,
+     * Bit-Perfect sur la sortie locale redevient vert ».
+     *
+     * L'annonce ne porte pas la zone : la relire est le seul moyen d'en
+     * connaître le nouvel état. Sa cadence est celle d'un CHANGEMENT (une
+     * fois par piste au plus pour le contrat de signal), jamais celle d'un
+     * relevé — et `cadence.rs` exclut explicitement `zone.updated` de tout
+     * lissage pour cette raison.
+     */
+    if (type === 'zone.updated') {
+      void rechargerZones();
       return;
     }
 
@@ -486,10 +558,30 @@ export function demarrerTransportV2(): () => void {
           },
         );
 
+        /**
+         * 🔴 #1010 — LA PISTE VIENT DE L'ÉVÉNEMENT, PAS DE L'INSTANTANÉ.
+         *
+         * Fabien, 0.9.148, point 2 : une Ambiance lancée en « Tout lire » ne
+         * laisse que les trois premiers titres.
+         *
+         * `rechargerZones()` ci-dessus est une requête AUTONOME : une par
+         * événement, jamais sérialisée, et sa réponse décrit l'état du serveur
+         * à l'instant où elle arrive. Rien ne l'apparie à l'événement qui l'a
+         * demandée — sur un enchaînement sans blanc, `courante.current_track`
+         * peut encore porter la piste d'avant. Et un doublon ne produit pas
+         * une mauvaise ligne : `playbackHistory.add` le refuse, donc il n'en
+         * produit AUCUNE, en silence.
+         *
+         * Le serveur porte pourtant le `NowPlaying` complet dans la charge
+         * (`now_playing_event_data`, exprès depuis #1096). On le prend.
+         * L'instantané reste le repli, pour la charge vide que le serveur émet
+         * quand la zone a disparu entre-temps.
+         */
         noterSiDebutDEcoute(
           type, zid, courante, emettrice,
           nowPlayingToTrack,
           (piste, nom) => playbackHistory.add(piste, nom),
+          event?.data,
         );
       });
 
@@ -529,6 +621,7 @@ export function demarrerTransportV2(): () => void {
   return () => {
     desabonnerEvents?.();
     desabonnerZone?.();
+    desabonnerTransport?.();
     stopSeekTimer();
     // Le souvenir de la piste suivie meurt avec le branchement : une coquille
     // remontée comparerait sinon à la piste d'une session d'avant, et refuserait

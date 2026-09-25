@@ -216,29 +216,31 @@ describe('#2411 — Gestionnaire de playlists', () => {
     return el;
   }
 
+  // 🔴 Depuis le 23/09/2026 (Bertrand), la fiche rend la LISTE COMMUNE
+  // (`ListePistesV2`), plus sa propre liste. Le tableau partagé porte la
+  // donnée dans l'attribut `title` natif de chaque cellule — la forme que les
+  // gardes des lots 0 à 2 (`infobullesTronquees.ts`) tiennent sur les autres
+  // écrans v2. Ce que ce fichier vérifie ici, EN MONTANT : que la donnée y
+  // arrive vraiment, titre et artiste, et que le titre la porte sur la cible
+  // FOCALISABLE de la ligne — le bouton de lecture —, pas sur un span inerte.
   it('🔴 la piste de la fiche porte titre ET artiste en infobulle', async () => {
     const el = await monterGestionnaire();
 
     expect(appels.some((u) => u.includes('/playlists/42/tracks'))).toBe(true);
-    const titre = el.querySelector('.track-list .track-title') as HTMLElement;
+    const titre = el.querySelector('.track-list button.titre') as HTMLButtonElement;
     expect(titre, 'aucune piste peinte dans la fiche').not.toBeNull();
     expect(titre.getAttribute('title')).toBe(TITRE_LONG);
 
-    const artiste = el.querySelector('.track-list .track-artist') as HTMLElement;
-    expect(artiste.getAttribute('title')).toBe(ARTISTE_LONG);
+    const artiste = el.querySelector(`.track-list [title="${ARTISTE_LONG}"]`) as HTMLElement;
+    expect(artiste, 'l’artiste n’a pas d’infobulle').not.toBeNull();
   });
 
-  it('🔴 le focus clavier sur la ligne ouvre la bulle', async () => {
+  it('🔴 la cible focalisable de la ligne est celle qui porte le titre', async () => {
     const el = await monterGestionnaire();
 
-    const ligne = el.querySelector('.track-list button.track-play') as HTMLButtonElement;
+    const ligne = el.querySelector('.track-list button.titre') as HTMLButtonElement;
     expect(ligne, 'la ligne de piste focalisable a disparu').not.toBeNull();
-    focaliserAuClavier(ligne);
-
-    expect(bulles().length, 'aucune bulle au focus clavier').toBe(1);
-    // Une ligne, UNE bulle : elle dit le titre ET l'artiste, sinon le second chasserait
-    // le premier et le titre — celui qu'on cherchait à lire — resterait invisible.
-    expect(bulles()[0].textContent).toContain(TITRE_LONG);
-    expect(bulles()[0].textContent).toContain(ARTISTE_LONG);
+    expect(ligne.disabled).toBe(false);
+    expect(ligne.title).toBe(TITRE_LONG);
   });
 });

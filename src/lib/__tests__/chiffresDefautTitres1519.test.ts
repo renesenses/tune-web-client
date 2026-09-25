@@ -129,9 +129,13 @@ describe('#1519 — cas 2 : un choix ENREGISTRÉ n’est pas réécrit', () => {
     expect(lu.enregistres).toEqual(['taille', 'albums']);
   });
 
-  it('🔴 le défaut du 19/09 FIGÉ dans un profil reste à cinq cartes', () => {
+  it('🔴 `choixAuChargement` rend le défaut du 19/09 FIGÉ tel quel, à cinq cartes', () => {
     // C'est le cas de la plupart des testeurs : la ligne est configurable
     // depuis le 19/09, et tout geste sur l'accueil enregistre les deux clés.
+    //
+    // ⚠️ 24/09 — cette primitive-ci ne migre toujours RIEN, et c'est sa règle.
+    // C'est `migrationLigneChiffres` qui décide au-dessus d'elle que cette
+    // ligne-là n'a jamais été choisie : voir `migrationLigneFigee1519`.
     const lu = choixAuChargement([...DEFAUT_DU_19_09]);
     expect(lu.choix).toEqual(DEFAUT_DU_19_09);
     expect(lu.choix).toHaveLength(5);
@@ -163,7 +167,7 @@ describe('#1519 — cas 2 : un choix ENREGISTRÉ n’est pas réécrit', () => {
     expect(lu.enregistres).not.toBe(sien);
   });
 
-  it('🔴 et à l’écran, sa ligne ne gagne aucune carte de titres', async () => {
+  it('🔴 et à l’écran, une ligne lue par `choixAuChargement` ne gagne aucune carte', async () => {
     vi.spyOn(api, 'getLibraryStats').mockResolvedValue(JFPAQUET.bibliotheque as any);
     vi.spyOn(api, 'getDashboardStats').mockResolvedValue(JFPAQUET.ecoute as any);
     vi.spyOn(api, 'getGenres').mockResolvedValue([] as any);
@@ -178,30 +182,42 @@ describe('#1519 — cas 2 : un choix ENREGISTRÉ n’est pas réécrit', () => {
   });
 });
 
-describe('#1519 — la décision est BRANCHÉE, et le chargement n’écrit rien', () => {
-  it('🔴 l’accueil passe bien par `choixAuChargement`', () => {
+describe('#1519 — la décision est BRANCHÉE au chargement', () => {
+  it('🔴 l’accueil lit la ligne par `migrationLigneChiffres`', () => {
     // Sans ce contrôle, la fonction pourrait être juste et n'être appelée par
     // personne : le défaut resterait invisible.
     const src = sansCommentaires(lire('src/components/v2/PageWidgets.svelte'));
     const charger = src.slice(
       src.indexOf('async function charger()'),
-      src.indexOf('async function enregistrer()'),
+      src.indexOf('async function migrerLigneDeChiffres('),
     );
-    expect(charger).toContain('choixAuChargement(prefs?.[CLE_CHIFFRES])');
+    expect(charger).toContain('migrationLigneChiffres(prefs?.[CLE_CHIFFRES], prefs?.[CLE_CHIFFRES_MIGRE])');
     expect(charger).toContain('chiffres = lu.choix;');
     expect(charger).toContain('chiffresEnregistres = lu.enregistres;');
   });
 
-  it('🔴 ouvrir l’accueil n’enregistre RIEN', () => {
-    // Un défaut écrit au chargement deviendrait le choix de l'utilisateur sans
-    // qu'il ait rien demandé — et le prochain ajout de carte ne l'atteindrait
-    // plus jamais.
+  it('🔴 ouvrir l’accueil n’écrit QUE sous le verdict de la migration', () => {
+    // 🔴 Ce témoin disait « le chargement n'enregistre RIEN » jusqu'au
+    // 24/09/2026. Bertrand a arbitré l'inverse ce jour-là : les lignes qui ne
+    // sont que le défaut du 19/09 figé se réécrivent une fois. Ce qui reste
+    // vrai, et qui est mesuré ici, c'est qu'AUCUNE autre écriture n'a lieu au
+    // chargement — en particulier jamais la disposition des widgets, dont un
+    // défaut écrit deviendrait un choix que personne n'a fait.
     const src = sansCommentaires(lire('src/components/v2/PageWidgets.svelte'));
     const charger = src.slice(
       src.indexOf('async function charger()'),
-      src.indexOf('async function enregistrer()'),
+      src.indexOf('async function migrerLigneDeChiffres('),
     );
     expect(charger.includes('setProfilePreferences')).toBe(false);
+    expect(charger).toContain('if (migrationAFaire) void migrerLigneDeChiffres(pid, [...chiffres]);');
+    // Et l'écriture de la migration ne touche que les deux clés de la ligne.
+    const migration = src.slice(
+      src.indexOf('async function migrerLigneDeChiffres('),
+      src.indexOf('async function enregistrer()'),
+    );
+    expect(migration).toContain('[CLE_CHIFFRES]: ligne,');
+    expect(migration).toContain('[CLE_CHIFFRES_MIGRE]: true,');
+    expect(migration.includes('[CLE]:'), 'la migration écrit la disposition des widgets').toBe(false);
   });
 });
 

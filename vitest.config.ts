@@ -21,5 +21,12 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     include: ['src/**/*.test.ts'],
+    // Les onze dictionnaires, enregistrés avant chaque banc : i18n.ts ne les
+    // importe plus en statique (tune-server-rust#4800, cause 4).
+    //
+    // Le stockage d'abord (#1555) : sous Node ≥ 25, le `localStorage` natif de
+    // Node masque celui de jsdom et vaut `undefined` — `getToken()` levait,
+    // et pontRoonImport4349 tombait à 10 rouges sur 10 sous Node 26.
+    setupFiles: ['src/lib/__tests__/setupStockageWeb.ts', 'src/lib/__tests__/setupLocales.ts'],
   },
 });

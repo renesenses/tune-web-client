@@ -101,6 +101,14 @@ export interface Artist {
 
 export interface Album {
   added_at?: number | null;
+  /**
+   * #4767 (crédits) — sur un album des sections « Collaborations » et
+   * « Reprises » de la page artiste seulement : les pistes où l'artiste de la
+   * page est crédité (le focus de la fiche), et ce qu'il y fait (`guitar`,
+   * `vocals`, `composer`, `writer`…). Absents partout ailleurs.
+   */
+  focus_track_ids?: number[];
+  credit_roles?: string[];
   id: number | null;
   title: string;
   artist_id?: number | null;
@@ -163,6 +171,18 @@ export interface Track {
   id: number | null;
   title: string;
   album_id?: number | null;
+  /**
+   * L'identifiant de l'album CHEZ LE SERVICE, quand l'appelant l'a appris
+   * ailleurs que sur la piste — champ CLIENT, jamais servi tel quel.
+   *
+   * Fil forum 1906 (FabienM) : une écoute Qobuz de l'Historique n'a pas
+   * d'album chez son service — `listen_history.album_id` est un entier de la
+   * table `albums`. Quand l'écoute a été lancée DEPUIS l'album, le contexte
+   * d'écoute le donne (`entreesDepuisServeur`). Séparé de `album_id` à
+   * dessein : y glisser une chaîne partirait vers la pochette locale et vers
+   * le rejeu par `album_id`. Lu par `routageAlbum.albumDeServiceDe`.
+   */
+  album_id_service?: string | null;
   album_title?: string | null;
   artist_id?: number | null;
   artist_name?: string | null;
@@ -223,6 +243,16 @@ export interface Track {
   /** Dernière écoute, horodatage ISO — `null` pour une piste jamais jouée
    *  (#3518). Va toujours de pair avec `play_count`. */
   last_played_at?: string | null;
+  /**
+   * Titre BANNI par le profil qui regarde (serveur #4806, `attacher_banni`).
+   *
+   * Même contrat que `play_count` : toujours posé quand la lecture a réussi,
+   * `false` par défaut — et jamais un filtre. La piste reste dans la liste,
+   * c'est l'écran qui la grise et la barre ; un clic délibéré la joue après
+   * confirmation. Absent chez un serveur d'avant #4806 : rien n'est grisé.
+   * Passer par `lib/titreBanni.ts` (`estBannie`) plutôt que lire la clé.
+   */
+  banned?: boolean;
 }
 
 export interface Playlist {
@@ -511,6 +541,13 @@ export interface Zone {
     unavailable: boolean;
     reason: string | null;
     detail: string | null;
+    /**
+     * Fils 1914/1913 — comment la déclaration agit quand ce n'est pas sur une
+     * carte locale. `plafond_reseau` : renderer réseau dont Tune décode le
+     * flux, la déclaration y PLAFONNE les canaux servis. Absent d'un serveur
+     * antérieur, et partout ailleurs.
+     */
+    portee?: string | null;
   };
   /** Ce qu'il faut PROPOSER : les neuf dispositions quand l'appareil se tait. */
   channel_layouts_offered?: { id: string; canaux: number }[];
@@ -1143,6 +1180,11 @@ export interface MediaServerBrowseResult {
   items: MediaServerItem[];
   total_matches: number;
   number_returned: number;
+  /** `false` : la pagination s'est arrêtée en route (#4914, #4943), la liste
+   *  servie est partielle et `incomplet` dit pourquoi. ABSENT sur un serveur
+   *  antérieur : ne rien en conclure. */
+  complet?: boolean;
+  incomplet?: string | null;
 }
 
 /** Ce que rend `/network/media-servers/{id}/search`.
@@ -1251,6 +1293,8 @@ export interface StreamingTrackInfo {
   bit_depth?: number | null;
   channels?: number;
   cover_path?: string | null;
+  /** L'album CHEZ LE SERVICE — #4889 : la playlist Tune le garde pour rouvrir l'album. */
+  album_id?: string | null;
 }
 
 export interface PlaylistImportResponse {

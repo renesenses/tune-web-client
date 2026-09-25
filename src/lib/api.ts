@@ -12,6 +12,8 @@ import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
+import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
+import { estDepotTuneDistant } from './depotsTuneDistants';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -90,6 +92,7 @@ import type {
 
 import { baseApi, entetesRelais } from './bridge';
 import { messageRefusPremium, type CorpsRefusPremium } from './premiumRefus';
+import { offreDeRearmement, type DonneesEchecLecture } from './rearmementAsio';
 import { messageRefusBitperfect } from './bitperfectStrict';
 import { routeDeBascule, type ReponseTelemetrie } from './etatTelemetrie';
 
@@ -560,7 +563,7 @@ export async function fetchJSON<T>(
        * vraies pannes.
        */
       if (sansBandeau) {
-        console.warn('[api] rangée éditoriale en échec, sans bandeau :', url, response.status, err.message);
+        console.warn('[api] échec porté par l’écran appelant, sans bandeau :', url, response.status, err.message);
       } else {
         notifications.error(`Server error: ${err.message}`);
       }
@@ -590,7 +593,19 @@ export async function fetchJSON<T>(
         // 🔴 La phrase du SERVEUR, telle quelle — voir
         // `MESSAGES_RENDUS_PAR_LE_SERVEUR`. 10 s comme le refus bit-perfect :
         // elle est longue, et elle demande à être lue jusqu'au bout.
-        notifications.error(err.message, 10000);
+        //
+        // #4556 — et quand ce refus-là porte de quoi AGIR (`reason`,
+        // `can_rearm`, `rearm_endpoint`), le bouton part avec la phrase. Sans
+        // cette ligne, c'est justement le chemin de l'utilisateur qui appuie
+        // sur Lire qui restait sans issue : `dejaAnnonce` ci-dessous fait
+        // sortir tous les `signalerEchecLecture` avant qu'ils regardent.
+        if (
+          !proposerLeRearmement(err.message, {
+            ...((err.corps as Record<string, unknown> | undefined) ?? {}),
+          })
+        ) {
+          notifications.error(err.message, 10000);
+        }
         err.dejaAnnonce = true;
       } else if (key) {
         notifications.error(get(t)(key as any));
@@ -1771,6 +1786,54 @@ export async function getAllAlbums(pageSize = 2000, sort: string | null = 'title
   return (await getAllAlbumsSeeded(pageSize, sort, order, page, perPage, dr)).albums;
 }
 
+/**
+ * UNE page d'albums, telle que le serveur la borne — renesenses/tune-server-rust#4800.
+ *
+ * `GET /library/albums` accepte `limit`/`offset`, un tri (`title`, `artist`,
+ * `added`, `dr`, `random`…), son sens, et une graine pour l'aléatoire ; il rend
+ * la page ET `total`, l'effectif de la bibliothèque visible (calculé en une
+ * seule passe depuis la PR serveur #4815). C'est le contrat sur lequel le
+ * magasin paginé (`stores/albumsPagines`) s'appuie : il ne demande jamais
+ * plus qu'une page.
+ *
+ * ⚠️ `total` est celui de la bibliothèque VISIBLE entière, jamais celui d'une
+ * facette : le serveur ne sait pas compter un filtre. Aucun filtre n'est donc
+ * envoyé ici — ceux de la Bibliothèque restent appliqués sur place, sur la
+ * liste entière chargée à la demande.
+ */
+export interface DemandePageAlbums {
+  limit: number;
+  offset?: number;
+  sort?: string | null;
+  order?: string | null;
+  seed?: number | null;
+}
+export interface PageAlbums {
+  items: Album[];
+  /** `null` : un serveur ancien qui rend un tableau nu, sans total. */
+  total: number | null;
+  /** Renseignée en tri aléatoire seulement (#3074). */
+  seed?: number;
+}
+export async function getAlbumsPagines(d: DemandePageAlbums): Promise<PageAlbums> {
+  const p = new URLSearchParams();
+  p.set('limit', String(d.limit));
+  p.set('offset', String(d.offset ?? 0));
+  // Pas de `sort` = pas de paramètre du tout : voir `getAllAlbumsSeeded`.
+  if (d.sort) {
+    p.set('sort', d.sort);
+    if (d.order) p.set('order', d.order);
+  }
+  if (d.seed != null) p.set('seed', String(d.seed));
+  const raw = await fetchJSON<any>(`${BASE}/library/albums?${p.toString()}`);
+  if (Array.isArray(raw)) return { items: raw, total: null };
+  return {
+    items: Array.isArray(raw?.items) ? raw.items : [],
+    total: typeof raw?.total === 'number' ? raw.total : null,
+    seed: typeof raw?.seed === 'number' ? raw.seed : undefined,
+  };
+}
+
 /** Les valeurs de Dynamic Range RÉELLEMENT présentes dans la bibliothèque,
  *  décroissantes. Vide sur une bibliothèque non taguée — et le client ne doit
  *  alors dessiner AUCUNE commande, plutôt qu'une commande sans effet. */
@@ -1820,6 +1883,52 @@ export function getAlbumTracks(id: number, quality?: string | null, format?: str
   if (format) p.set('format', format);
   const qs = p.toString();
   return fetchJSON<Track[]>(`${BASE}/library/albums/${id}/tracks${qs ? `?${qs}` : ''}`);
+}
+
+/*
+ * LE MODE « MODIFIER » DE LA FICHE ALBUM (25/09/2026) — contrat du lot serveur
+ * `batch/edition-coffrets-20260925`. Formes et règles : `lib/editionAlbum`.
+ *
+ * La lecture est la SONDE du bouton : un serveur antérieur répond 404, et le
+ * bouton n'apparaît pas. `sansBandeau` : un 5xx sur cette sonde ne doit pas
+ * crier « Server error » à chaque ouverture de fiche — l'absence du bouton
+ * suffit à le dire.
+ */
+export function getAlbumEdition(id: number) {
+  return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, undefined, undefined, true);
+}
+
+/** Un seul PUT avec tout ce qui a changé ; 422 si `discs` n'est pas complet. */
+export function putAlbumEdition(id: number, corps: CorpsEdition) {
+  return fetchJSON<EditionReponse>(`${BASE}/library/albums/${id}/edition`, {
+    method: 'PUT',
+    body: JSON.stringify(corps),
+  });
+}
+
+/** Absorber l'album `albumId` comme disque de l'album `id`. */
+export function attachAlbumDisc(id: number, albumId: number) {
+  return fetchJSON<unknown>(`${BASE}/library/albums/${id}/discs/attach`, {
+    method: 'POST',
+    body: JSON.stringify({ album_id: albumId }),
+  });
+}
+
+/** Le disque `numero` de l'album `id` redevient un album à part entière. */
+export function detachAlbumDisc(id: number, numero: number) {
+  return fetchJSON<unknown>(`${BASE}/library/albums/${id}/discs/${numero}/detach`, { method: 'POST' });
+}
+
+/**
+ * « Écrire dans les fichiers » (tranche 4) : reporte l'édition enregistrée dans
+ * les BALISES des fichiers locaux de l'album. `dryRun` rend le plan (fichier,
+ * champ, avant → après) sans rien écrire. Forme : `RapportBalises`.
+ */
+export function ecrireBalisesAlbum(id: number, dryRun: boolean) {
+  return fetchJSON<RapportBalises>(`${BASE}/library/albums/${id}/edition/write-tags`, {
+    method: 'POST',
+    body: JSON.stringify({ dry_run: dryRun }),
+  });
 }
 
 /** Fetch the tracks of many albums with bounded concurrency and one retry per
@@ -1897,6 +2006,23 @@ export interface AlbumsArtisteSections {
   compilations?: Album[];
   /** Albums d'un AUTRE artiste portant au moins une piste de celui-ci. */
   appearances?: Album[];
+  /**
+   * #4767 (crédits, tune-server-rust#4862) — les disques d'autrui où
+   * l'artiste est crédité comme MUSICIEN, groupés par artiste principal
+   * (groupes par nom, albums par année). Lus dans `track_credits`, que remplit
+   * `POST /system/enrich-credits` ; absents devant un serveur qui ne le
+   * connaît pas (v0.9.163).
+   */
+  collaborations?: GroupeCollaborations[];
+  /** Les disques d'autrui où il est crédité comme AUTEUR (par année). */
+  covers?: Album[];
+}
+
+/** Une sous-section « Avec {artiste} » des Collaborations. */
+export interface GroupeCollaborations {
+  artist_id: number | null;
+  artist_name: string;
+  albums: Album[];
 }
 
 /**
@@ -1911,7 +2037,13 @@ export interface AlbumsArtisteSections {
 export function sectionsDepuisReponse(brut: unknown): AlbumsArtisteSections {
   if (Array.isArray(brut)) return { albums: brut as Album[] };
   const o = (brut ?? {}) as AlbumsArtisteSections;
-  return { albums: o.albums ?? [], compilations: o.compilations, appearances: o.appearances };
+  return {
+    albums: o.albums ?? [],
+    compilations: o.compilations,
+    appearances: o.appearances,
+    collaborations: o.collaborations,
+    covers: o.covers,
+  };
 }
 
 /**
@@ -1929,6 +2061,50 @@ export function getTrackCredits(trackId: number) {
 
 export function enrichTrackCredits(trackId: number) {
   return fetchJSON(`${BASE}/library/tracks/${trackId}/credits/enrich`, { method: 'POST' });
+}
+
+/**
+ * Crédits d'un album, chaque ligne portant sa piste — #1572. Sans bandeau :
+ * un serveur antérieur à la route répond 404, et `chargerCreditsAlbum`
+ * retombe alors sur un appel par piste. Ce n'est pas une panne à annoncer.
+ */
+export function getAlbumCredits(albumId: number) {
+  return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
+    `${BASE}/library/albums/${albumId}/credits`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
+/**
+ * Crédits d'un titre de SERVICE — tune-server-rust#4993 (srv#5041). Même
+ * forme que `getTrackCredits`, `id` et `artist_id` nuls, `track_id` en
+ * chaîne. Sans bandeau : un 501 (service sans crédits) ou un 404 (serveur
+ * antérieur) est dit par le tiroir, et retenu (`lib/creditsService`).
+ */
+export function getStreamingTrackCredits(service: string, sourceId: string) {
+  return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(sourceId)}/credits`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
+/** Crédits d'un album de SERVICE, chaque ligne portant sa piste — #4993. */
+export function getStreamingAlbumCredits(service: string, albumSourceId: string) {
+  return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/albums/${encodeURIComponent(albumSourceId)}/credits`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
+/** Enrichit depuis MusicBrainz les crédits des pistes d'un album (#1572). */
+export function enrichAlbumCredits(albumId: number) {
+  return fetchJSON(`${BASE}/library/albums/${albumId}/credits/enrich`, { method: 'POST' });
 }
 
 // v0.8.0 multi-room — Snapcast control plane.
@@ -2891,6 +3067,44 @@ export function getSimilarTracks(trackId: number, limit = 50) {
   );
 }
 
+/* ------------------------------------------------------------------------ *
+ * Titres bannis — `renesenses/tune-server-rust#4806` (serveur : PR #4818).
+ *
+ * Bibliothèque LOCALE seulement : les trois routes prennent un `i64` de
+ * `tracks`. Le drapeau `banned` des listes de pistes, lui, arrive avec chaque
+ * ligne (`Track.banned`) — voir `lib/titreBanni.ts`.
+ * ------------------------------------------------------------------------ */
+
+/** Une ligne de `GET /library/tracks/banned` (`hidden_repo.rs::BannedTrack`). */
+export interface BannedTrack {
+  track_id: number;
+  /** Titre vivant si la piste existe encore, sinon l'instantané figé au bannissement. */
+  title: string;
+  artist: string | null;
+  album_id: number | null;
+  album_title: string | null;
+  banned_at: string | null;
+  /** `false` = marqueur orphelin : l'id ne désigne plus de piste vivante. */
+  resolved: boolean;
+}
+
+/** `POST /library/tracks/{id}/ban` — 404 si l'id ne désigne aucune piste. */
+export function banTrack(trackId: number) {
+  return apiPost(`/library/tracks/${trackId}/ban`) as Promise<{ track_id: number; banned: boolean }>;
+}
+
+/** `DELETE /library/tracks/{id}/ban` — idempotent. */
+export function unbanTrack(trackId: number) {
+  return apiDelete(`/library/tracks/${trackId}/ban`) as Promise<{ track_id: number; banned: boolean } | null>;
+}
+
+/** `GET /library/tracks/banned` — l'écran « Titres bannis » du profil. */
+export function listBannedTracks() {
+  return fetchJSON<{ profile_id?: number; total: number; items: BannedTrack[] }>(
+    `${BASE}/library/tracks/banned`,
+  );
+}
+
 // `setEqualizer(zoneId, preset)` — écrire l'égaliseur en n'envoyant QU'UN NOM
 // — a été retirée (#532). Elle ne pouvait pas tenir sa promesse : avant
 // `eq_presets.rs`, `set_eq` recopiait `body.preset` dans sa réponse sans
@@ -3227,12 +3441,25 @@ export function removePlaylistTrackAt(playlistId: number, position: number) {
   });
 }
 
-export function reorderPlaylistTracks(playlistId: number, trackIds: number[]) {
+/**
+ * Réordonne une playlist Tune — #4889.
+ *
+ * `positions` = le NOUVEL ORDRE exprimé en RANGS ACTUELS (indices de la liste
+ * rendue par `getPlaylistTracks`) : `[2, 0, 1]` met la 3ᵉ ligne en tête. Le
+ * serveur exige une permutation exacte de `0..n-1` (sinon 422, rien n'est
+ * écrit) et répond 204.
+ *
+ * 🔴 L'ancienne forme `{ track_ids }` ne savait pas déplacer une ligne de
+ * SERVICE (id nul) : elle gardait son rang, et l'appelant la filtrait. Les
+ * rangs désignent les deux sortes de lignes — et une piste présente deux fois.
+ */
+export function reorderPlaylistTracks(playlistId: number, positions: number[]) {
   return fetchJSON(`${BASE}/playlists/${playlistId}/tracks`, {
     method: 'PUT',
-    body: JSON.stringify({ track_ids: trackIds }),
+    body: JSON.stringify({ positions }),
   });
 }
+
 
 // --- Streaming quality mapping ---
 
@@ -4063,8 +4290,56 @@ export function getStreamingAlbumTracks(service: string, albumId: string) {
     .then((t) => mapStreamingTracks(t, service));
 }
 
+/**
+ * Le détail d'UN titre chez son service — `GET /streaming/{service}/tracks/{id}`
+ * (`get_track`, un `StreamTrack`). Fil forum 1906 (FabienM, point 3) : il
+ * complète « Tous les champs piste » d'un titre de service.
+ *
+ * `sansBandeau` : le tiroir montre DÉJÀ les champs que la piste porte, et un
+ * service qui ne sait pas répondre n'est pas une panne de Tune — voir
+ * `fetchJSON`. L'appelant se tait lui aussi.
+ */
+export function getStreamingTrack(service: string, trackId: string) {
+  return fetchJSON<Track>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(trackId)}`,
+    undefined, undefined, true,
+  ).then((t) => mapStreamingTracks([t], service)[0]);
+}
+
+/**
+ * « Plus comme ça » sur un titre de SERVICE — fil forum 1906 (FabienM,
+ * point 3). `GET /streaming/{service}/tracks/{id}/similar` : l'algorithme de
+ * la reprise automatique de fin de file côté serveur (artiste du titre →
+ * artistes similaires → un titre phare par voisin), le titre source exclu.
+ *
+ * Rend des pistes au format des autres routes streaming, la `source` reposée
+ * par `mapStreamingTracks` : elles se lisent et s'enfilent comme d'habitude.
+ * Seul Qobuz sait répondre ; les autres services reçoivent un 501 — le menu ne
+ * leur propose donc pas l'entrée (`plusCommeCaService`).
+ */
+export function similairesDeService(service: string, trackId: string, limit = 20) {
+  return fetchJSON<Track[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/tracks/${encodeURIComponent(trackId)}/similar?limit=${limit}`,
+  ).then((t) => mapStreamingTracks(t, service));
+}
+
+/**
+ * La fiche d'un artiste chez son service.
+ *
+ * `sansBandeau` — renesenses/tune-web-client#992 (FabienM, fil 1774, point
+ * 14 : « Menu lecture en cours : quand je clique sur l'artiste, erreur
+ * 502 »). Les trois routes de la fiche artiste n'ont qu'un appelant, la PAGE
+ * COMMUNE (`ArtisteServiceV2`), qui charge en `allSettled` et dit elle-même,
+ * dans la page, que la fiche n'a pas pu être chargée ou que l'artiste est
+ * introuvable. Le bandeau global disait en plus « Server error: qobuz
+ * /artist/get: 404 {"status":"error",…} » — le texte brut du service, par-dessus
+ * une page qui fonctionnait.
+ */
 export function getStreamingArtist(service: string, artistId: string) {
-  return fetchJSON<Artist>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`);
+  return fetchJSON<Artist>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`,
+    undefined, undefined, true,
+  );
 }
 
 /**
@@ -4133,15 +4408,21 @@ export function getZoneCurrentAlbum(zoneId: number) {
   return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`);
 }
 
+/** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
 export function getStreamingArtistTopTracks(service: string, artistId: string) {
   return fetchJSON<Track[]>(
     `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/top-tracks`,
+    undefined, undefined, true,
   );
 }
 
+/** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
 export function getStreamingArtistAlbums(service: string, artistId: string, offset = 0) {
   const p = offset > 0 ? `?offset=${offset}` : '';
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums${p}`);
+  return fetchJSON<Album[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums${p}`,
+    undefined, undefined, true,
+  );
 }
 
 /**
@@ -5149,6 +5430,22 @@ function condensatDePochetteInterne(url: string): string | null {
   return condensat && condensat !== 'proxy' ? condensat : null;
 }
 
+/**
+ * Vrai quand l'adresse désigne un serveur Tune DISTANT parcouru par ce client
+ * (tune-server-rust#4954), et pas notre propre origine. Un hôte inconnu reste
+ * « le nôtre » : c'est l'ancienne adresse LAN d'une ligne d'historique (#1360).
+ */
+function pochetteDUnAutreServeurTune(url: string): boolean {
+  let hote: string;
+  try {
+    hote = new URL(url).host;
+  } catch {
+    return false;
+  }
+  if (typeof window !== 'undefined' && hote === window.location.host) return false;
+  return estDepotTuneDistant(hote);
+}
+
 export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
   // Server already returns usable relative URLs for cover_path
@@ -5161,7 +5458,9 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
     // #1360 — une pochette de NOTRE serveur enregistrée en adresse absolue se
     // redemande par son condensat, jamais par le relais, qui la refuserait.
     const condensat = condensatDePochetteInterne(coverPath);
-    if (condensat == null) {
+    // tune-server-rust#4954 — sauf si elle vient d'un AUTRE serveur Tune : sa
+    // pochette n'existe pas chez nous (404), elle passe donc par le relais.
+    if (condensat == null || pochetteDUnAutreServeurTune(coverPath)) {
       return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
     }
     coverPath = condensat;
@@ -5578,6 +5877,84 @@ export function cancelAlarm(zoneId: number) { return fetchJSON<any>(`${BASE}/zon
 export function quickFavTrack(trackId: number) { return fetchJSON<any>(`${BASE}/library/tracks/${trackId}/quick-fav`, { method: 'POST' }); }
 export function quickFavAlbum(albumId: number) { return fetchJSON<any>(`${BASE}/library/albums/${albumId}/quick-fav`, { method: 'POST' }); }
 
+// --- Rayons de collections (tune-server-rust#4853) ---
+//
+// Un RAYON range des collections des DEUX sortes et des sous-rayons (arbre,
+// profondeur 3). Le mot « dossier » est pris deux fois dans l'interface — les
+// dossiers de musique du disque, et le nom que les testeurs donnent déjà aux
+// collections simples (#1153, #3060) — d'où « rayon », comme chez un disquaire.
+//
+// Routes ADDITIVES : `/library/collections` et `/library/smart-collections`
+// gardent leur forme. Un serveur antérieur répond 404 sur l'arbre ; l'écran
+// retombe alors sur ses listes plates (`lib/rayonsCollections`).
+//
+// 🔴 Passent par `apiFetch` / `apiPost` / `apiPatch` / `apiDelete` : ils
+// construisent l'erreur par `erreurDepuisReponse`, qui GARDE le motif du
+// refus serveur (« profondeur maximale atteinte… ») et porte `status`.
+// `fetchJSON` le rangerait dans `.code` et l'écran ne lirait que « 409 ».
+
+/** Sorte d'une collection rangée : les deux espaces d'ids se recouvrent. */
+export type SorteCollectionRangee = 'collection' | 'smart';
+
+export interface CollectionRangee {
+  kind: SorteCollectionRangee;
+  id: number;
+  name: string | null;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  folder_id: number | null;
+  /** `null` = jamais rangée (à la racine, après les rangées). */
+  position: number | null;
+}
+
+export interface RayonCollections {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  position: number;
+  depth: number;
+  folders: RayonCollections[];
+  collections: CollectionRangee[];
+}
+
+export interface ArbreCollections {
+  max_depth: number;
+  folders: RayonCollections[];
+  /** Toutes les collections qui ne sont dans aucun rayon. */
+  collections: CollectionRangee[];
+}
+
+export function getCollectionFolders(): Promise<ArbreCollections> {
+  return apiFetch('/library/collection-folders');
+}
+export function createCollectionFolder(name: string, parentId: number | null = null) {
+  return apiPost('/library/collection-folders', { name, parent_id: parentId });
+}
+export function renameCollectionFolder(id: number, name: string) {
+  return apiPatch(`/library/collection-folders/${id}`, { name });
+}
+/** `parentId` `null` = la racine ; `position` absente = à la fin. */
+export function moveCollectionFolder(id: number, parentId: number | null, position?: number) {
+  return apiPost(`/library/collection-folders/${id}/move`, { parent_id: parentId, position });
+}
+/** Le contenu du rayon remonte à son parent ; aucune collection n'est supprimée. */
+export function deleteCollectionFolder(id: number) {
+  return apiDelete(`/library/collection-folders/${id}`);
+}
+/** Range (ou déplace, ou réordonne) une collection ; `folderId` `null` = racine. */
+export function placeCollectionInFolder(
+  kind: SorteCollectionRangee,
+  id: number,
+  folderId: number | null,
+  position?: number,
+) {
+  return apiPost(`/library/collection-folders/items/${kind}/${id}`, { folder_id: folderId, position });
+}
+export function removeCollectionFromFolder(kind: SorteCollectionRangee, id: number) {
+  return apiDelete(`/library/collection-folders/items/${kind}/${id}`);
+}
+
 // --- Collections ---
 export function getCollections() { return fetchJSON<any[]>(`${BASE}/library/collections`); }
 export function createCollection(name: string, description?: string, icon?: string, color?: string) {
@@ -5960,6 +6337,70 @@ export function getBatchEnrichStatus() {
     `${BASE}/library/enrich-all/status`
   );
 }
+/**
+ * Type de sortie des albums (album / EP / single) — `POST /system/enrich-release-types`
+ * (`tune-server/src/routes/system/enrich.rs`, `enrich_release_types`, #4767,
+ * livré en v0.9.163). Pas de corps.
+ *
+ * Rend **202** tout de suite et travaille en tâche de fond, inscrite au
+ * registre sous l'identifiant `types_de_sortie` (`GET /system/background-tasks`
+ * et l'événement `system.background_tasks`) — sans avancement chiffré : le
+ * serveur ne publie que sa présence. Une requête MusicBrainz par seconde.
+ *
+ * `candidats` est MESURÉ avant la passe : les albums qui ont un
+ * `musicbrainz_release_group_id` et pas encore de type. Les autres restent de
+ * type inconnu — le serveur ne devine pas.
+ *
+ * Refus possible : **429** `{code: "daily_quota_exhausted", …}` quand le quota
+ * gratuit d'enrichissement du jour est épuisé (`gate_enrichment`).
+ */
+export function enrichReleaseTypes() {
+  return fetchJSON<{ status: string; candidats?: number; premium?: boolean }>(
+    `${BASE}/system/enrich-release-types`,
+    { method: 'POST' },
+  );
+}
+
+/**
+ * Crédits MusicBrainz PAR DISQUE — `POST /system/enrich-credits`
+ * (`tune-server/src/routes/system/enrich.rs`, `enrich_credits_releases`,
+ * tune-server-rust#4862, #4767). Remplit `track_credits`, que lisent les
+ * sections « Collaborations » et « Reprises » de la page artiste. Pas de
+ * corps : l'option `force` du serveur n'est pas offerte ici.
+ *
+ * Rend **202** et travaille en tâche de fond, inscrite au registre sous
+ * `credits_releases`. `candidats` = disques à interroger = nombre de
+ * requêtes, à une par seconde.
+ *
+ * Refus possibles : **409** `already_running` (une passe tourne déjà),
+ * **429** `daily_quota_exhausted` (quota gratuit du jour, `gate_enrichment`).
+ */
+export function enrichCredits() {
+  return fetchJSON<{
+    status: string; task_id?: string; candidats?: number; albums_avec_mbid?: number;
+    force?: boolean; premium?: boolean;
+  }>(`${BASE}/system/enrich-credits`, { method: 'POST' });
+}
+
+/** État de la passe des crédits — même forme au repos comme en cours. */
+export interface EtatEnrichCredits {
+  status: 'idle' | 'running' | 'done' | 'interrupted' | string;
+  task_id?: string;
+  total?: number;
+  processed?: number;
+  enriched?: number;
+  tracks_credited?: number;
+  unmatched?: number;
+  unknown?: number;
+  errors?: number;
+  candidats?: number;
+  albums_avec_mbid?: number;
+}
+
+/** `GET /system/enrich-credits` — avancement chiffré de la passe (#4862). */
+export function getEnrichCreditsStatus() {
+  return fetchJSON<EtatEnrichCredits>(`${BASE}/system/enrich-credits`);
+}
 
 /**
  * Pochettes d'ALBUMS manquantes — `POST /library/artwork/enrich` (Cover Art
@@ -6047,7 +6488,9 @@ export function getNetworkDiagnostics() {
 // --- Scan Schedule ---
 
 export function getScanSchedule() {
-  return fetchJSON<{ enabled: boolean; time: string | null }>(`${BASE}/system/scan/schedule`);
+  // `last_run` : jour ISO de la dernière occurrence honorée (tune-server-rust#2469).
+  // ABSENT sur un serveur antérieur, `null` si jamais observée (#1578).
+  return fetchJSON<{ enabled: boolean; time: string | null; last_run?: string | null }>(`${BASE}/system/scan/schedule`);
 }
 
 export function setScanSchedule(time: string, enabled: boolean) {
@@ -6128,6 +6571,56 @@ export function rearmerParLaRouteAnnoncee(route: string) {
     retry: 'next_restart';
     message: string;
   }>(route.startsWith('/api/') ? route : `${BASE}${route}`, { method: 'POST' });
+}
+
+/**
+ * 🔴 #4556 — LE REFUS QUI ACCUSE LE MATÉRIEL, ET LE BOUTON QUI LE LÈVE.
+ *
+ * Après un plantage de pilote ASIO, le serveur pose un témoin **sur disque** et
+ * n'énumère plus ASIO au démarrage suivant : il refuse la zone EN SACHANT
+ * qu'il n'a pas regardé. Le témoin étant un fichier, redémarrer n'y change
+ * rien — seul un réarmement l'efface, et il était enterré dans l'écran
+ * Diagnostics, qu'un auditeur n'ouvre jamais de lui-même.
+ *
+ * Le bouton se pose donc **là où le défaut se manifeste**, et par les deux
+ * chemins qu'un refus emprunte :
+ *
+ *   - l'événement `zone.playback_error` (WebSocket) → `signalerErreurServeur` ;
+ *   - le **409 du `POST /play`**, traité ici même par `fetchJSON` — c'est le
+ *     chemin qu'emprunte l'utilisateur qui appuie sur Lire, et il n'avait pas
+ *     le bouton.
+ *
+ * Rend `true` quand l'offre a été posée, `false` quand l'appelant doit faire
+ * son toast ordinaire. `offreDeRearmement` tranche seule, et la route vient
+ * **du serveur**, jamais d'une constante du client.
+ *
+ * Vit dans `api.ts` — et non dans `echecLecture.ts`, où l'autre appelant
+ * habite — parce que `rearmerParLaRouteAnnoncee` est ici : l'inverse ferait un
+ * cycle d'imports.
+ */
+export function proposerLeRearmement(
+  texte: string,
+  donnees: DonneesEchecLecture | null | undefined,
+): boolean {
+  const offre = offreDeRearmement(donnees);
+  if (!offre) return false;
+  notifications.withAction(texte, get(t)('asio.rearmAction' as any), () => {
+    void (async () => {
+      try {
+        await rearmerParLaRouteAnnoncee(offre.route);
+        // ⚠️ Le serveur n'ouvre AUCUN pilote dans le processus courant : le
+        // réarmement ne prend effet qu'au PROCHAIN DÉMARRAGE. Le taire ferait
+        // croire à une réparation immédiate, et l'utilisateur rappuierait sur
+        // Lire pour rien.
+        notifications.success(get(t)('asio.rearmDone' as any), 10000);
+      } catch {
+        // Route ADMIN : un 401/403 est un refus normal ici. On retombe sur la
+        // phrase du serveur plutôt que d'inventer une explication.
+        notifications.error(texte, 10000);
+      }
+    })();
+  });
+  return true;
 }
 
 export function rearmAsioWarmScan() {
@@ -6551,6 +7044,30 @@ export function installPlugin(slug: string): Promise<{ success: boolean; message
 /** Uninstall a plugin via the server (pip uninstall). */
 export function uninstallPlugin(slug: string): Promise<{ success: boolean; message: string; restart_required: boolean }> {
   return fetchJSON(`${BASE}/plugins/${encodeURIComponent(slug)}`, { method: 'DELETE' });
+}
+
+/**
+ * Bandeau « Réinstaller » des greffons payants (tune-server-rust#4861).
+ *
+ * `ids` : crossfeed, convertisseur, Dé-ploc absents, pour un compte qui a le
+ * droit de les installer, et que l'utilisateur n'a pas refusés. Le serveur
+ * rend une liste VIDE pour un compte Free, jamais autre chose. « Réinstaller »
+ * passe par `installPlugin` (route d'installation existante).
+ */
+export interface SuggestionReinstallationGreffons {
+  ids: string[];
+}
+
+export function getSuggestionReinstallationGreffons(): Promise<SuggestionReinstallationGreffons> {
+  return fetchJSON<SuggestionReinstallationGreffons>(`${BASE}/plugins/premium-audio/reinstall-suggestion`);
+}
+
+/** « Ignorer » : le refus est mémorisé côté serveur ; la réponse est la suggestion relue. */
+export function ignorerSuggestionReinstallationGreffons(ids: string[]): Promise<SuggestionReinstallationGreffons> {
+  return fetchJSON<SuggestionReinstallationGreffons>(`${BASE}/plugins/premium-audio/reinstall-suggestion/dismiss`, {
+    method: 'POST',
+    body: JSON.stringify({ ids }),
+  });
 }
 
 /** Update a plugin to the latest version via the server (pip install --upgrade). */
@@ -7670,6 +8187,36 @@ export function regrouperCoffret(cible: number) {
 }
 
 /**
+ * Un coffret RÉUNI, tel que le liste `GET /library/coffrets` : l'album
+ * (`GET /library/albums/{id}`) plus `disc_count` — compté sur les pistes — et
+ * `coffret`, qui dit qui l'a composé (`null` : coffret sans marqueur, rangé
+ * disque par disque et réuni avant le marqueur, ou par le scan).
+ */
+export type CoffretReuni = Album & {
+  disc_count: number;
+  coffret: 'auto' | 'manuel' | null;
+};
+/**
+ * Les coffrets de la bibliothèque — l'onglet « Coffrets » (GO de Bertrand du
+ * 25/09/2026). Route servie par le serveur à partir du lot
+ * `batch/coffrets-auto-20260925` : un serveur plus ancien rend 404, que
+ * l'onglet traduit en « serveur trop ancien », jamais en bibliothèque vide.
+ */
+export function getCoffrets() {
+  return fetchJSON<{ count: number; items: CoffretReuni[] }>(`${BASE}/library/coffrets`);
+}
+/**
+ * DÉFAIT un coffret AUTOMATIQUE : chaque disque redevient un album, sous son
+ * titre d'origine, et le serveur retient le refus — la passe automatique ne
+ * le reformera plus. 409 `pas_un_coffret_auto` sur un coffret manuel.
+ */
+export function defaireCoffret(id: number) {
+  return fetchJSON<{ cible: number; albums_recrees: number[] }>(
+    `${BASE}/library/coffrets/${id}/defaire`,
+    { method: 'POST' },
+  );
+}
+/**
  * Composer un coffret À LA MAIN — Bertrand, 20/09/2026.
  *
  * 🔴 `albumIds` est ORDONNÉ, et l'ordre EST celui des disques : le premier
@@ -8049,4 +8596,350 @@ export function setLocalisationConcerts(demande: {
     method: 'POST',
     body: JSON.stringify(demande),
   });
+}
+
+// --- Greffon « Playlists converter » (tune-server-rust#4715) ---
+//
+// Greffon WASM PAYANT et FACULTATIF : il n'est pas embarqué, il s'installe
+// depuis le gestionnaire de greffons. L'hôte monte TOUTES ses routes sous
+// `/api/v1/plugins/playlists-converter/…` (`routes/plugins.rs`,
+// `wasm_dispatch`) et pose la garde premium AVANT le greffon : un refus de
+// licence est donc le 402 ordinaire, que `fetchJSON` traduit déjà.
+//
+// Le contrat est celui des corps de tune-server-rust#4740 (transfert),
+// #4903 (snapshots) et #4904 (liens auto-sync), vérifié contre
+// `plugins/tune-playlists-converter/src/dispatch.rs`. Une erreur du greffon
+// est `{error: "<code> : <phrase>"}` : `apiError` range cette chaîne dans
+// `code`, et `codeConvertisseur` (lib/convertisseurPlaylists.ts) en tire le
+// code (`apercu_requis`, `accord_requis`…).
+//
+// ⚠️ L'hôte n'a AUCUNE capacité de suppression chez un service : aucune des
+// fonctions ci-dessous n'en demande une, et il n'y en aura pas.
+
+/** L'identifiant du greffon, tel que `GET /plugins` le rend dans `name`. */
+export const GREFFON_CONVERTISSEUR = 'playlists-converter';
+const CONVERTISSEUR = `${BASE}/plugins/${GREFFON_CONVERTISSEUR}`;
+
+/** Pourquoi un titre n'est pas repris (`appariement.rs`, `Raison`). */
+export interface RaisonConvertisseur {
+  code: string;
+  candidat_titre?: string;
+  candidat_artiste?: string;
+  score?: number;
+  ecart_ms?: number;
+  duree_source_ms?: number;
+  duree_candidat_ms?: number;
+  message?: string;
+}
+export interface ApparieeConvertisseur {
+  source_titre: string;
+  source_artiste: string;
+  source_duree_ms: number;
+  cible_id: string;
+  cible_titre: string;
+  cible_artiste: string;
+  cible_duree_ms: number;
+  score: number;
+}
+export interface IntrouvableConvertisseur {
+  source_titre: string;
+  source_artiste: string;
+  source_duree_ms: number;
+  raison: RaisonConvertisseur;
+}
+export interface PlaylistDuLotConvertisseur {
+  rang: number;
+  source_playlist_id: string;
+  source_nom: string;
+  cible_nom: string;
+  total: number;
+  appariees: ApparieeConvertisseur[];
+  introuvables: IntrouvableConvertisseur[];
+  cible_playlist_id?: string | null;
+  /** Le snapshot pris AVANT le premier titre versé (#4718). */
+  snapshot_avant?: string | null;
+  versees: string[];
+  /** `apercu`, `en_cours`, `termine`, `interrompu`, `rien_a_transferer`. */
+  etat: string;
+  erreur?: string | null;
+}
+export interface LotConvertisseur {
+  lot_id: string;
+  source_service: string;
+  cible_service: string;
+  etat: string;
+  playlists: PlaylistDuLotConvertisseur[];
+}
+export interface ResumeLotConvertisseur {
+  lot_id: string;
+  etat: string;
+  playlists: number;
+  titres: number;
+  appariees: number;
+  introuvables: number;
+  versees: number;
+}
+export interface ReponseLotConvertisseur {
+  resume: ResumeLotConvertisseur;
+  lot: LotConvertisseur;
+}
+export interface EnTeteLotConvertisseur {
+  lot_id: string;
+  source_service: string;
+  cible_service: string;
+  etat: string;
+  rangs: number[];
+}
+/** `POST /apercu` — RIEN n'est écrit chez le service. Plusieurs playlists = le mode par lot. */
+export function convertisseurApercu(demande: {
+  source_service: string;
+  cible_service: string;
+  playlists: string[];
+  suffixe_nom?: string;
+}): Promise<ReponseLotConvertisseur> {
+  return fetchJSON(`${CONVERTISSEUR}/apercu`, { method: 'POST', body: JSON.stringify(demande) });
+}
+/**
+ * `POST /transfert` — n'existe qu'APRÈS un aperçu : il faut le `lot_id` que
+ * l'aperçu a produit, et l'accord explicite de l'utilisateur. Le greffon
+ * répond 409 `accord_requis` sans lui ; l'écran ne l'appelle de toute façon
+ * qu'une fois la case cochée.
+ */
+export function convertisseurTransferer(lotId: string): Promise<ReponseLotConvertisseur> {
+  return fetchJSON(`${CONVERTISSEUR}/transfert`, {
+    method: 'POST',
+    body: JSON.stringify({ lot_id: lotId, accord: true }),
+  });
+}
+/** `POST /reprise` — reprend un lot interrompu sans rien recréer ni reverser. */
+export function convertisseurReprendre(lotId: string): Promise<ReponseLotConvertisseur> {
+  return fetchJSON(`${CONVERTISSEUR}/reprise`, { method: 'POST', body: JSON.stringify({ lot_id: lotId }) });
+}
+export function convertisseurLots(): Promise<{ count: number; lots: EnTeteLotConvertisseur[] }> {
+  return fetchJSON(`${CONVERTISSEUR}/lots`);
+}
+
+/** Une piste gardée dans un snapshot (#4718). */
+export interface PisteSnapshotConvertisseur {
+  id: string;
+  titre: string;
+  artiste: string;
+  duree_ms: number;
+  isrc: string;
+}
+export interface EnTeteSnapshotConvertisseur {
+  snapshot_id: string;
+  service: string;
+  playlist_id: string;
+  nom: string;
+  pris_le_ms: number;
+  /** `manuel`, `avant_transfert:lot-N`, `avant_restauration:plan-N`, `avant_synchro:lien-N`. */
+  motif: string;
+  total: number;
+  pages: number;
+  empreinte: string;
+}
+export interface SnapshotConvertisseur extends EnTeteSnapshotConvertisseur {
+  pistes: PisteSnapshotConvertisseur[];
+}
+export interface PlaylistSnapshotsConvertisseur {
+  service: string;
+  playlist_id: string;
+  nom: string;
+  snapshots: number;
+  dernier_le_ms: number;
+}
+export type ModeRestauration = 'completer' | 'recreer';
+export interface PlanRestaurationConvertisseur {
+  plan_id: string;
+  snapshot_id: string;
+  mode: ModeRestauration;
+  service: string;
+  playlist_id: string;
+  nom: string;
+  calcule_le_ms: number;
+  etat: 'apercu' | 'termine' | 'interrompu' | string;
+  a_rajouter_ids: string[];
+  a_retirer_par_vous_ids: string[];
+  deja_presentes: number;
+  rajoutees: string[];
+  playlist_recreee_id?: string | null;
+  snapshot_avant_restauration?: string | null;
+  erreur?: string | null;
+  /** La phrase du greffon qui dit ce que Tune NE supprime PAS : à afficher telle quelle. */
+  avertissement: string;
+}
+/** `POST /snapshot` — lecture seule chez le service. `service: "local"` pour la bibliothèque. */
+export function convertisseurPrendreSnapshot(
+  service: string,
+  playlistId: string,
+  nom?: string,
+): Promise<{ snapshot: EnTeteSnapshotConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshot`, {
+    method: 'POST',
+    body: JSON.stringify({ service, playlist_id: playlistId, ...(nom ? { nom } : {}) }),
+  });
+}
+/** `GET /snapshots` — les playlists qui ont au moins un snapshot. */
+export function convertisseurPlaylistsGardees(): Promise<{
+  count: number;
+  playlists: PlaylistSnapshotsConvertisseur[];
+  retention_par_playlist: number;
+}> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshots`);
+}
+/** `GET /snapshots?service=&playlist_id=` — du plus récent au plus ancien. Identifiants ENCODÉS. */
+export function convertisseurSnapshots(
+  service: string,
+  playlistId: string,
+): Promise<{ count: number; snapshots: EnTeteSnapshotConvertisseur[]; retention_par_playlist: number }> {
+  return fetchJSON(
+    `${CONVERTISSEUR}/snapshots?service=${encodeURIComponent(service)}&playlist_id=${encodeURIComponent(playlistId)}`,
+  );
+}
+export function convertisseurSnapshot(id: string): Promise<{ snapshot: SnapshotConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshot?id=${encodeURIComponent(id)}`);
+}
+/** `POST /snapshot/restauration/apercu` — RIEN n'est écrit. */
+export function convertisseurApercuRestauration(
+  snapshotId: string,
+  mode: ModeRestauration,
+): Promise<{
+  plan: PlanRestaurationConvertisseur;
+  a_rajouter: PisteSnapshotConvertisseur[];
+  a_retirer_par_vous: PisteSnapshotConvertisseur[];
+}> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshot/restauration/apercu`, {
+    method: 'POST',
+    body: JSON.stringify({ snapshot_id: snapshotId, mode }),
+  });
+}
+/** `POST /snapshot/restauration` — n'écrit jamais plus que l'aperçu accepté. */
+export function convertisseurRestaurer(planId: string): Promise<{
+  plan: PlanRestaurationConvertisseur;
+  a_retirer_par_vous: PisteSnapshotConvertisseur[];
+}> {
+  return fetchJSON(`${CONVERTISSEUR}/snapshot/restauration`, {
+    method: 'POST',
+    body: JSON.stringify({ plan_id: planId, accord: true }),
+  });
+}
+
+/** Une extrémité de lien (#4719). `service: "local"` = la bibliothèque, identifiant entier en texte. */
+export interface ExtremiteLienConvertisseur {
+  service: string;
+  playlist_id: string;
+  nom?: string;
+}
+export type SensLien = 'a_vers_b' | 'deux_sens';
+export interface LienConvertisseur {
+  lien_id: string;
+  a: ExtremiteLienConvertisseur;
+  b: ExtremiteLienConvertisseur;
+  sens: SensLien;
+  /** `0` = à la demande ; sinon 15 à 10 080 minutes. */
+  cadence_minutes: number;
+  etat: 'attente_premier_apercu' | 'actif' | 'en_pause' | string;
+  premiere_synchro_faite: boolean;
+  cree_le_ms: number;
+  derniere_synchro_ms?: number | null;
+  prochaine_synchro_ms?: number | null;
+  derniere_erreur?: string | null;
+  journal_compteur: number;
+}
+export interface AjoutLienConvertisseur {
+  de: 'a' | 'b';
+  vers: 'a' | 'b';
+  source_id: string;
+  titre: string;
+  artiste: string;
+  cible_id: string;
+}
+export interface IntrouvableLienConvertisseur {
+  de: 'a' | 'b';
+  vers: 'a' | 'b';
+  source_id: string;
+  titre: string;
+  artiste: string;
+  raison: RaisonConvertisseur;
+}
+/** Une piste disparue d'un côté : SIGNALÉE, jamais retirée de l'autre. */
+export interface DisparueLienConvertisseur {
+  disparue_de: 'a' | 'b';
+  id_disparu: string;
+  toujours_dans: 'a' | 'b';
+  id_restant: string;
+  titre: string;
+  artiste: string;
+}
+export interface PlanLienConvertisseur {
+  lien_id: string;
+  calcule_le_ms: number;
+  ajouts: AjoutLienConvertisseur[];
+  introuvables: IntrouvableLienConvertisseur[];
+  disparues: DisparueLienConvertisseur[];
+  deja_presentes: number;
+  introuvables_connues: number;
+}
+export interface EntreeJournalLienConvertisseur {
+  numero: number;
+  quand_ms: number;
+  declencheur: 'premiere' | 'demande' | 'minuteur' | string;
+  statut: 'ok' | 'rien_a_faire' | 'partiel' | 'echec' | string;
+  ajoutees: number;
+  ajouts: AjoutLienConvertisseur[];
+  introuvables: number;
+  introuvables_detail: IntrouvableLienConvertisseur[];
+  disparues_signalees: DisparueLienConvertisseur[];
+  echecs: string[];
+  snapshots: string[];
+}
+export function convertisseurCreerLien(demande: {
+  a: ExtremiteLienConvertisseur;
+  b: ExtremiteLienConvertisseur;
+  sens: SensLien;
+  cadence_minutes: number;
+}): Promise<{ lien: LienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/liens`, { method: 'POST', body: JSON.stringify(demande) });
+}
+export function convertisseurLiens(): Promise<{ count: number; liens: LienConvertisseur[] }> {
+  return fetchJSON(`${CONVERTISSEUR}/liens`);
+}
+export function convertisseurJournalLien(
+  lienId: string,
+): Promise<{ count: number; entrees: EntreeJournalLienConvertisseur[] }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/journal?id=${encodeURIComponent(lienId)}`);
+}
+/** `POST /lien/apercu` — RIEN n'est écrit. */
+export function convertisseurApercuLien(lienId: string): Promise<{ plan: PlanLienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/apercu`, { method: 'POST', body: JSON.stringify({ lien_id: lienId }) });
+}
+/**
+ * `POST /lien/synchroniser`. La PREMIÈRE synchro d'un lien exige un aperçu
+ * puis `accord: true` : sans eux, 409 `apercu_requis` / `accord_requis` —
+ * l'écran ouvre alors l'aperçu.
+ */
+export function convertisseurSynchroniserLien(
+  lienId: string,
+  accord = false,
+): Promise<{ lien: LienConvertisseur; entree: EntreeJournalLienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/synchroniser`, {
+    method: 'POST',
+    body: JSON.stringify(accord ? { lien_id: lienId, accord: true } : { lien_id: lienId }),
+  });
+}
+export function convertisseurPauseLien(lienId: string, pause: boolean): Promise<{ lien: LienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/pause`, { method: 'POST', body: JSON.stringify({ lien_id: lienId, pause }) });
+}
+export function convertisseurReglerLien(lienId: string, cadenceMinutes: number): Promise<{ lien: LienConvertisseur }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/reglages`, {
+    method: 'POST',
+    body: JSON.stringify({ lien_id: lienId, cadence_minutes: cadenceMinutes }),
+  });
+}
+/** `POST /lien/supprimer` — retire le LIEN seulement ; aucune des deux playlists n'est touchée. */
+export function convertisseurSupprimerLien(
+  lienId: string,
+): Promise<{ lien_id: string; supprime: boolean; playlists_touchees: boolean }> {
+  return fetchJSON(`${CONVERTISSEUR}/lien/supprimer`, { method: 'POST', body: JSON.stringify({ lien_id: lienId }) });
 }

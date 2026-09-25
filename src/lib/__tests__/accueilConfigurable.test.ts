@@ -100,15 +100,20 @@ describe('Accueil — le registre', () => {
     }
   });
 
-  it('« au hasard » ne fait AUCUN appel réseau', () => {
-    // La bibliothèque est déjà chargée par la coquille : une route « au
-    // hasard » ferait payer un aller-retour pour un tirage local.
+  it('« au hasard » : UNE requête de cinquante albums tirés par le serveur, jamais la bibliothèque entière', () => {
+    // renesenses/tune-server-rust#4800 — la coquille ne charge plus la
+    // bibliothèque au démarrage (3,5 Mo). Le widget demande donc UNE page
+    // `sort=random` (le serveur tire et mélange en SQL, #3074) ; et si un
+    // autre écran a déjà demandé la liste entière, il tire sur place, sans
+    // requête, comme avant.
     const src = lire('../accueilWidgets.ts');
     const i = src.indexOf("id: 'hasard'");
     const bloc = src.slice(i, src.indexOf('},\n  {', i));
-    expect(/api\.\w+\(/.test(bloc), '« au hasard » appelle le serveur').toBe(false);
-    // Et c'est un vrai tirage sans remise : `sort(() => Math.random() - .5)`
-    // n'est pas un mélange, il biaise selon l'algorithme de tri du moteur.
+    expect(bloc.includes("api.getAlbumsPagines({ limit: LIMITE, offset: 0, sort: 'random' })"), '« au hasard » ne demande plus une page aléatoire au serveur').toBe(true);
+    expect(/getAllAlbums|demanderBibliothequeEntiere/.test(bloc), '« au hasard » charge la bibliothèque entière').toBe(false);
+    // Et le tirage local reste un vrai tirage sans remise : `sort(() =>
+    // Math.random() - .5)` n'est pas un mélange, il biaise selon l'algorithme
+    // de tri du moteur.
     expect(bloc.includes('splice(Math.floor(Math.random()'), 'le tirage a changé de méthode').toBe(true);
   });
 });

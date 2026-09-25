@@ -56,6 +56,7 @@
     type TypeChamp,
   } from '../../lib/smartRegles';
   import SmartFolderPicker from '../partages/SmartFolderPicker.svelte';
+  import { comptesDesEtiquettes, libelleEtiquette } from '../../lib/compteEtiquetteCollection';
   import type { SmartRule } from '../../lib/types';
   import '../../styles/tune-v2.css';
 
@@ -165,6 +166,26 @@
   let description = $state('');
   let mode = $state<'all' | 'any'>('all');
   let regles = $state<SmartRule[]>([{ field: 'artist_name', op: 'contains', value: '' }]);
+  /**
+   * Le nombre d'albums que CHAQUE étiquette ferait entrer dans la collection
+   * (tune-server-rust#5026). Pas le `count` de `/tags`, qui compte aussi les
+   * pistes et les objets de streaming que la règle ne lit pas : « Sept Oct
+   * 2026 (1) » au-dessus de « 0 albums correspondent ». Voir
+   * `lib/compteEtiquetteCollection`.
+   *
+   * Demandé une seule fois, et seulement quand une règle « Étiquette » est
+   * affichée : un éditeur sans elle n'a rien à payer.
+   */
+  let comptesEtiquettes = $state<Map<number, number>>(new Map());
+  let comptesDemandes = false;
+  const regleEtiquetteAffichee = $derived(regles.some((r) => typeDuChamp(r.field) === 'tag_ref'));
+  $effect(() => {
+    if (comptesDemandes || !regleEtiquetteAffichee || !etiquettes.length) return;
+    comptesDemandes = true;
+    const ids = etiquettes.map((x) => x.id).filter((x): x is number => x != null);
+    void comptesDesEtiquettes(ids, api.previewSmartCollection)
+      .then((m) => { comptesEtiquettes = m; });
+  });
 
   /** Les règles arrivent en JSON encodé — c'est la forme que le serveur stocke. */
   function lireRegles(): SmartRule[] {
@@ -387,7 +408,7 @@
             <select class="sel" value={String(r.value ?? '')} onchange={(e) => changerValeur(i, e.currentTarget.value)}>
               <option value="" disabled>{$t('smartCollection.refPick')}</option>
               {#each etiquettes as e (e.id)}
-                <option value={String(e.id)}>{e.name}{e.count != null ? ` (${e.count})` : ''}</option>
+                <option value={String(e.id)}>{libelleEtiquette(e, comptesEtiquettes)}</option>
               {/each}
             </select>
           {:else if type === 'favorite'}

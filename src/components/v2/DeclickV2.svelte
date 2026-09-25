@@ -14,6 +14,7 @@
   import { formatNombre } from '../../lib/formats';
   import type { DeclickOptions } from '../../lib/api';
   import { albums } from '../../lib/stores/library';
+  import { demanderBibliothequeEntiere } from '../../lib/stores/albumsPagines';
   import { fold } from '../../lib/utils';
   import { t } from '../../lib/i18n';
   import AlbumArt from '../partages/AlbumArt.svelte';
@@ -37,6 +38,13 @@
   let job = $state<Awaited<ReturnType<typeof api.getDeclickStatus>> | null>(null);
   let downloadUrl = $state<string | null>(null);
 
+  // #4800 — la coquille ne charge plus la bibliothèque au démarrage : cet
+  // écran, qui choisit parmi TOUS les albums, la demande lui-même à son
+  // montage, et la redemande si un scan l'a vidée (`$albums` retombe à `[]`).
+  $effect(() => {
+    if ($albums.length) return;
+    void demanderBibliothequeEntiere().catch(() => { /* le bandeau d'`api` a parlé */ });
+  });
   const shown = $derived(
     $albums.filter((a) => !q || fold(a.title).includes(fold(q)) || fold(a.artist_name).includes(fold(q))).slice(0, 200)
   );

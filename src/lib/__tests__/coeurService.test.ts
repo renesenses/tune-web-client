@@ -28,6 +28,9 @@ const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.met
 const streaming = () => lire('../../components/v2/StreamingV2.svelte');
 const accueil = () => lire('../../components/v2/PageWidgets.svelte');
 const favoris = () => lire('../../components/v2/FavoritesV2.svelte');
+/** Le chargeur PARTAGÉ des favoris (#1509) : l'écran et le widget de
+ *  l'Accueil y lisent les deux sources. */
+const chargeurFavoris = () => lire('../favorisFusionnes.ts');
 
 describe('Cœur d’un objet de service', () => {
   it('un objet sans identifiant distant n’a PAS de cœur', () => {
@@ -162,8 +165,23 @@ describe('L’écran Favoris montre AUSSI les favoris de service', () => {
    * n'apparaissaient nulle part. Mesure sur le .18 le 03/09/2026 : deux
    * favoris de service rangés, zéro affiché.
    */
+  // 🔴 RÉORIENTÉES le 23/09/2026 (#1509). Le chargement des deux sources est
+  // sorti de l'écran vers `favorisFusionnes.ts`, pour que le widget « Vos
+  // favoris » de l'Accueil lise LA MÊME chose. L'écran doit passer par ce
+  // chargeur ; le chargeur, lui, doit garder les deux appels et la tolérance.
+  it('l’écran passe par le chargeur partagé', () => {
+    expect(
+      /chargerFavorisFusionnes\(pid\)/.test(favoris()),
+      'l’écran Favoris ne lit plus les favoris par le chargeur partagé (#1509)',
+    ).toBe(true);
+    expect(
+      favoris().includes('api.getProfileStreamingFavorites('),
+      'l’écran a retrouvé son propre appel de service : un second chargeur, qui divergera',
+    ).toBe(false);
+  });
+
   it('les deux sources sont lues', () => {
-    const src = favoris();
+    const src = chargeurFavoris();
     expect(src.includes('api.getFavorites('), 'les favoris de la bibliothèque ont disparu').toBe(true);
     expect(
       src.includes('api.getProfileStreamingFavorites('),
@@ -173,13 +191,13 @@ describe('L’écran Favoris montre AUSSI les favoris de service', () => {
 
   it('un service muet ne vide pas les favoris de la bibliothèque', () => {
     expect(
-      /getProfileStreamingFavorites\(pid\)\.catch\(/.test(favoris()),
+      /getProfileStreamingFavorites\(pid\)\.catch\(/.test(chargeurFavoris()),
       'une route absente sur un serveur ancien ferait tomber TOUT l’écran',
     ).toBe(true);
   });
 
   it('les trois onglets accueillent les deux origines', () => {
-    const src = favoris();
+    const src = chargeurFavoris();
     for (const [nom, conv] of [
       ['albums', 'versAlbum'],
       ['titres', 'versPiste'],

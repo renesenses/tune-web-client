@@ -153,7 +153,32 @@
 -->
 <div class="fir">
   <h3 class="fir-tl">{$t('zoneConfig.firTitle')}</h3>
-  <p class="fir-desc">{$t('zoneConfig.firDesc')}</p>
+  <!--
+    🔴 #1481 — CE QUE L'ÉCRAN ACCEPTE, écrit sur l'écran.
+
+    GgB, fil 1895, 23/09/2026 : « Concernant les fichiers FIR, que prend en
+    compte Tune ? Fichier unique G/D ? ou fichier stéréo avec correction
+    independante de chaque canal ? » La question porte exactement sur ce que
+    ce bloc ne disait pas : `firDesc` nommait trois logiciels de mesure et
+    l'extension, rien d'autre.
+
+    Les deux réponses sont dans `ConvolverConfig::build_for`
+    (`tune-core/src/audio/convolver.rs`) :
+
+      - une IR à UN canal est dupliquée sur tous les canaux du flux ;
+      - une IR au NOMBRE de canaux du flux est appliquée canal par canal ;
+      - tout autre compte est refusé.
+
+    Et la cadence ne pardonne pas : « Aucun rééchantillonnage silencieux »
+    y est écrit noir sur blanc — `self.sample_rate != target_sample_rate`
+    rend une erreur, jamais un filtre approché. Sur une zone LOCALE le refus
+    remonte au dépôt ; sur une zone réseau il n'apparaît qu'à la lecture,
+    donc l'écran doit le dire AVANT.
+
+    Une seule phrase de plus, dans le même paragraphe : deux paragraphes
+    auraient fait un pavé au-dessus du bouton.
+  -->
+  <p class="fir-desc">{$t('zoneConfig.firDesc')} {$t('zoneConfig.firFormats')}</p>
   {#if irLoading}
     <div class="ir-status">{$t('common.loading')}</div>
   {:else if irActive}

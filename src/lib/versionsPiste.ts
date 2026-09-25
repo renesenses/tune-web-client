@@ -124,6 +124,27 @@ export function libellesVersionLocale(
  * pas ce classement, on laisse l'utilisateur CHOISIR. « Par pertinence » reste
  * le défaut ; « par source » regroupe, dans l'ordre demandé.
  *
+ * 🔴 Bertrand, 23/09/2026 : le DÉFAUT bascule sur « par source ». Le barème de
+ * pertinence n'est pas retiré — il reste un choix du sélecteur, et il reste ce
+ * que le serveur calcule — mais ce n'est plus lui qu'on ouvre sans rien
+ * demander. Ce qui change tient en une constante : `ORDRE_VERSIONS_DEFAUT`.
+ *
+ * ## Ce que la bascule fait à quelqu'un qui a DÉJÀ choisi : rien
+ *
+ * Le choix vit dans `preferences.ordreAutresVersions`, et `loadPrefs()` fusionne
+ * `{ ...defaults, ...blobEnregistré }` : la valeur enregistrée écrase le défaut,
+ * jamais l'inverse. Changer ce défaut ne peut donc pas déplacer un réglage
+ * enregistré — c'est vérifié, pas supposé, par le témoin
+ * `ordreAutresVersions4368.test.ts`, qui recharge le magasin sur un
+ * `localStorage` préparé.
+ *
+ * ⚠️ Le revers, mesuré par le même témoin : le magasin ÉCRIT le blob complet dès
+ * le premier chargement. Toute installation qui a ouvert une 0.9.161 ou 0.9.162
+ * porte donc déjà `"pertinence"` — qu'elle l'ait choisi ou non, les deux cas
+ * étant indiscernables dans le blob. Le nouveau défaut ne s'applique qu'aux
+ * installations NEUVES et à celles restées en 0.9.160 ou avant. Aligner les
+ * autres demanderait d'écraser des choix explicites : ce n'est pas fait ici.
+ *
  * ## Pourquoi côté CLIENT, et pourquoi l'ordre reste STABLE
  *
  * Le regroupement ne fabrique aucun ordre : il PARTITIONNE. Un passage unique
@@ -144,8 +165,9 @@ export function libellesVersionLocale(
  */
 export type OrdreVersions = 'pertinence' | 'source';
 
-/** Le comportement d'avant : le barème du serveur, intact. */
-export const ORDRE_VERSIONS_DEFAUT: OrdreVersions = 'pertinence';
+/** Le groupement par source — décision de Bertrand du 23/09/2026 (#4368).
+ *  L'ancien défaut, `'pertinence'`, reste offert par le sélecteur. */
+export const ORDRE_VERSIONS_DEFAUT: OrdreVersions = 'source';
 
 export function estOrdreVersions(v: unknown): v is OrdreVersions {
   return v === 'pertinence' || v === 'source';
@@ -185,6 +207,13 @@ function rangSource(service: string | null | undefined): number {
 }
 
 /**
+ * 🔴 Une valeur INCONNUE retombe sur `ORDRE_VERSIONS_DEFAUT`, et il a fallu
+ * l'écrire : `syncPreferencesFromServer` adopte le blob distant sans filtrer ce
+ * champ (seuls l'avatar et son propriétaire le sont), donc un réglage écrit par
+ * une version ultérieure atteint bel et bien cette fonction. Tant que le défaut
+ * valait « pertinence », le `!== 'source'` d'origine y retombait par accident ;
+ * depuis la bascule du 23/09/2026 il ferait exactement l'INVERSE du défaut.
+ *
  * @param versions Les versions de SERVICE, dans l'ordre rendu par le serveur.
  * @param ordre    Le choix de l'utilisateur (`preferences.ordreAutresVersions`).
  * @returns En mode « pertinence », le tableau REÇU — sans copie ni
@@ -195,7 +224,8 @@ export function ordonnerVersionsService<T extends { service: string }>(
   versions: T[],
   ordre: OrdreVersions,
 ): T[] {
-  if (ordre !== 'source') return versions;
+  const effectif = estOrdreVersions(ordre) ? ordre : ORDRE_VERSIONS_DEFAUT;
+  if (effectif !== 'source') return versions;
   const paniers: T[][] = Array.from({ length: NB_PANIERS }, () => []);
   for (const v of versions) paniers[rangSource(v.service)].push(v);
   return paniers.flat();

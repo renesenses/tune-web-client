@@ -5,6 +5,7 @@
    * technique (fréquence/profondeur) à l'Expert, comme partout ailleurs.
    */
   import { get } from 'svelte/store';
+  import { untrack } from 'svelte';
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
   import { mentionAussiSur, type AussiSur } from '../../lib/aussiSur';
@@ -22,9 +23,10 @@
   import { qualiteEnTeteAlbum } from '../../lib/qualiteEnTeteAlbum';
   import { pochettesDePisteDistinctes } from '../../lib/pochetteDePisteDistincte';
   import {
-    focusRestreint, pistesAuxRangs, rangDansLAlbum, rangsDeLArtiste, type FocusArtiste,
+    focusRestreint, pistesAuxRangs, rangDansLAlbum, rangsDuFocus, type FocusArtiste,
   } from '../../lib/focusArtiste';
-  import type { Album, Track } from '../../lib/types';
+  import type { Album, Source, Track } from '../../lib/types';
+  import type { CibleFicheAlbumService } from '../../lib/stores/streaming';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
 import AlbumRating from '../partages/AlbumRating.svelte';
@@ -32,15 +34,17 @@ import ReportButton from '../partages/ReportButton.svelte';
 import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import ClampedText from '../partages/ClampedText.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
+  import EditionAlbumV2 from './EditionAlbumV2.svelte';
+  import { estReponseEdition, type EditionReponse } from '../../lib/editionAlbum';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
-  import { queuePosition } from '../../lib/stores/queue';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
   import { favoriteAlbumIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favKeyOf, refFavoriDeFiche, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
-  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { cibleEtiquetteAlbum, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
@@ -52,6 +56,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
+  import { chargerCollectionsCibles, entreesAjoutCollection, lignesMenuEnRayons, type CollectionCible } from '../../lib/albumVersCollection';
+  import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
+  import { styleMenuAncre } from '../../lib/ancrageMenu';
+  import { portail } from '../../lib/portail';
+  import { creditsAlbumDeServiceDe, servicesCreditsRefuses, type AlbumDeServiceCredits } from '../../lib/creditsService';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
   // par lui, sans quoi on jouerait un tout autre morceau du meme numero.
@@ -181,9 +192,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   const cibleEtiquettes = $derived<CibleEtiquette | null>(
     depot
       ? null
-      : album.id != null
-      ? { itemType: 'album', itemId: album.id }
-      : cibleDeService('album', {
+      : cibleEtiquetteAlbum({
           ...(album as any),
           source: (album as any).source ?? service ?? (bandcamp ? 'bandcamp' : null),
           source_id: (album as any).source_id ?? bandcamp ?? null,
@@ -191,6 +200,100 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   );
   /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
   let etiquettesOuvertes = $state(false);
+
+  /**
+   * « Crédits » — #1572 (FabienM, fil forum 1921 : « ajouter un bouton pour
+   * consulter les crédits d'un album »). Les crédits sont ceux des pistes de
+   * la BIBLIOTHÈQUE (`track_credits`) : ni dépôt distant — son `id` est celui
+   * d'un autre serveur —, ni album de service.
+   *
+   * #4993 — un album de SERVICE aussi, quand son service rend des crédits
+   * (`GET /streaming/{service}/albums/{id}/credits`, Qobuz seul). La règle vit
+   * dans `lib/creditsService` : les services qui répondent 501 (Tidal,
+   * Deezer…) n'ont pas le bouton, Bandcamp et le dépôt distant non plus.
+   */
+  const creditsPossibles = $derived(album.id != null && !depot && !service && !bandcamp);
+  const creditsDeService = $derived(
+    depot || bandcamp ? null : creditsAlbumDeServiceDe(service, sidDistant, $servicesCreditsRefuses),
+  );
+  let creditsOuverts = $state(false);
+  /** Relevé AU CLIC : un refus (501/404) retire le bouton, pas le tiroir ouvert. */
+  let creditsServiceOuvert = $state.raw<AlbumDeServiceCredits | null>(null);
+
+  /* ══════════════════════════════════════════════════════════════════════
+     « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
+
+     La fiche avait sept boutons et aucun pour ranger l'album dans un dossier
+     de « Collections » : le geste n'existait que sur la VIGNETTE de la
+     Bibliothèque (#1222), par le menu du coin bas-gauche. Le geste est le
+     même — `lib/albumVersCollection`, une seule implémentation — et la garde
+     aussi : un album de la BIBLIOTHÈQUE (`album.id != null && !depot`),
+     comme le bloc local ci-dessous. Un dépôt distant porte le numéro d'un
+     AUTRE serveur ; un album de service n'en a pas.
+
+     Les collections sont RELUES à chaque ouverture du menu : une collection
+     créée entre-temps doit apparaître, et `album_ids` dire « il y est déjà ».
+     Le panneau est `position:fixed` et porté à la racine (`use:portail`),
+     posé par `styleMenuAncre` : la fiche défile, un panneau `absolute` y
+     serait rogné — voir `lib/ancrageMenu`.
+     ══════════════════════════════════════════════════════════════════════ */
+  const LARGEUR_MENU_COLLECTION = 240;
+  let collectionsCibles = $state<CollectionCible[]>([]);
+  let menuCollectionOuvert = $state(false);
+  let ancreCollection = $state<{ top: number; bottom: number; right: number } | null>(null);
+  const entreesCollection = $derived(
+    depot || album.id == null
+      ? []
+      : entreesAjoutCollection(collectionsCibles, album.id, (k) => $tr(k as any), (relues) => (collectionsCibles = relues)),
+  );
+  /** L'arbre des rayons (#4853), relu par le chargeur de l'écran Collections
+   *  et de la barre latérale — `rafraichirRayons`, une seule source. Serveur
+   *  antérieur ou panne : `plat`, et le menu reste la liste d'avant. */
+  let rayonsCollection = $state<EtatRayons>({ mode: 'plat' });
+  /** Fil 1928 (Lulu) : les collections rangées sous leurs rayons, indentées. */
+  const lignesCollection = $derived(
+    lignesMenuEnRayons(entreesCollection, rayonsCollection, $tr('v2.rayons.unfiled' as any)),
+  );
+  async function basculerMenuCollection(e: MouseEvent) {
+    e.stopPropagation();
+    if (menuCollectionOuvert) { menuCollectionOuvert = false; return; }
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    ancreCollection = { top: r.top, bottom: r.bottom, right: r.right };
+    const [cibles, rayons] = await Promise.all([
+      chargerCollectionsCibles(),
+      rafraichirRayons(api.getCollectionFolders),
+    ]);
+    collectionsCibles = cibles;
+    rayonsCollection = rayons;
+    menuCollectionOuvert = true;
+  }
+  function fermerMenuCollection() { menuCollectionOuvert = false; }
+  /** Un défilement de la PAGE ferme le menu : posé en `fixed` aux coordonnées
+   *  du bouton, il resterait figé loin de lui. Mais le menu défile lui-même
+   *  depuis #1575 (hauteur bornée à la fenêtre) : ce défilement-là est le
+   *  seul moyen d'atteindre les dernières collections, il ne doit pas le
+   *  fermer. */
+  function auDefilementCollection(e: Event) {
+    const cible = e.target as Element | null;
+    if (cible && typeof cible.closest === 'function' && cible.closest('.coll-menu')) return;
+    menuCollectionOuvert = false;
+  }
+  function auClavierCollection(e: KeyboardEvent) {
+    if (e.key === 'Escape') menuCollectionOuvert = false;
+  }
+  function choisirCollection(e: MouseEvent, faire: () => void) {
+    e.stopPropagation();
+    menuCollectionOuvert = false;
+    faire();
+  }
+  /** Aucune collection : on mène à l'écran qui sait en créer. La fiche se
+   *  referme AVANT de router, comme `allerArtiste`. */
+  function allerCollections(e: MouseEvent) {
+    e.stopPropagation();
+    menuCollectionOuvert = false;
+    quitterLaFiche();
+    activeView.set('collections');
+  }
 
   let tracks = $state<Track[]>([]);
   /** #862 — au moins une piste est découpée depuis une image + feuille CUE. */
@@ -215,13 +318,16 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   /** La pastille a été refermée : l'album entier, jusqu'à la prochaine fiche. */
   let focusReferme = $state(false);
   // Une autre fiche s'ouvre (ou un autre focus arrive) : la pastille revient.
-  $effect(() => { void album?.id; void artisteFocus?.id; focusReferme = false; });
-  const rangsDuFocus = $derived(rangsDeLArtiste(tracks, artisteFocus?.id ?? null));
+  $effect(() => { void album?.id; void artisteFocus?.id; void artisteFocus?.pistes; focusReferme = false; });
+  // #4767 (crédits) — venu de « Collaborations » ou de « Reprises », le focus
+  // porte les pistes CRÉDITÉES (`focus_track_ids`) : `tracks.artist_id` y
+  // désigne l'artiste principal, pas celui de la page.
+  const rangsDuFocusIci = $derived(rangsDuFocus(tracks, artisteFocus));
   const focusActif = $derived(
-    artisteFocus != null && !focusReferme && focusRestreint(tracks, rangsDuFocus),
+    artisteFocus != null && !focusReferme && focusRestreint(tracks, rangsDuFocusIci),
   );
   /** Les rangs AFFICHÉS, dans l'album entier — l'identité hors focus. */
-  const rangsVisibles = $derived(focusActif ? rangsDuFocus : tracks.map((_, i) => i));
+  const rangsVisibles = $derived(focusActif ? rangsDuFocusIci : tracks.map((_, i) => i));
   const pistesVisibles = $derived(pistesAuxRangs(tracks, rangsVisibles));
 
   /**
@@ -274,6 +380,48 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    * dossier qui n'est pas celui-là.
    */
   const dossier = $derived(depot ? null : dossierDeLAlbum(tracks));
+
+  /**
+   * « Défaire le coffret » — GO de Bertrand du 25/09/2026. Seulement sur un
+   * coffret AUTOMATIQUE d'un album LOCAL : l'origine se lit dans le magasin
+   * clé-valeur de l'album (`coffret`, voir `lib/coffretAuto.ts`). Un coffret
+   * manuel n'a pas de bouton — sa route répond 409.
+   */
+  let origineCoffret = $state<OrigineCoffret | null>(null);
+  let defaireEnCours = $state(false);
+  $effect(() => {
+    const id = album.id;
+    origineCoffret = null;
+    if (id == null || depot || service || bandcamp || (album.source && album.source !== 'local')) return;
+    api.getAlbumExtendedMetadata(id)
+      .then((m) => { if (album.id === id) origineCoffret = origineDuCoffret(m?.coffret); })
+      .catch(() => { /* pas de bouton : rien n'est promis */ });
+  });
+  async function defaireCoffret() {
+    const id = album.id;
+    if (id == null || defaireEnCours || origineCoffret !== 'auto') return;
+    const ok = await dialogs.confirm($tr('v2.album.boxUndoConfirm' as any), { danger: true });
+    if (!ok) return;
+    defaireEnCours = true;
+    let reussi = false;
+    try {
+      await api.defaireCoffret(id);
+      reussi = true;
+    } catch {
+      reussi = false;
+    }
+    defaireEnCours = false;
+    if (!reussi) {
+      notifications.error($tr('v2.album.boxUndoError' as any));
+      return;
+    }
+    notifications.success($tr('v2.album.boxUndone' as any));
+    // La liste des Coffrets, si elle est ouverte dessous, se recharge.
+    window.dispatchEvent(new CustomEvent(EVT_COFFRET_DEFAIT, { detail: { id } }));
+    // Retour là d'où l'on venait : la liste des coffrets, ou la bibliothèque.
+    // Cette fiche décrit un album qui n'est plus ce qu'elle montre.
+    onClose();
+  }
   function localiser() {
     if (!dossier) return;
     /**
@@ -328,6 +476,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    */
   $effect(() => {
     const id = album.id, d = depot, svc = service, sid = sidDistant, bc = bandcamp;
+    // Le mode « Modifier » vient d'enregistrer : relire la liste.
+    void rechargement;
     // 🔴 AVANT la garde : une fiche qu'on ne sait pas charger ne doit pas
     // garder à l'écran la liste de la précédente.
     tracks = [];
@@ -390,12 +540,62 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   let fiche = $state<Album | null>(null);
   $effect(() => {
     const id = album.id, d = depot, svc = service, bc = bandcamp;
+    void rechargement;
     fiche = null;
     if (id == null || d || svc || bc) return;
     let vivant = true;
     api.getAlbum(id).then((a) => { if (vivant) fiche = a; }).catch(() => {});
     return () => { vivant = false; };
   });
+
+  /* ══════════════════════════════════════════════════════════════════════
+     LE MODE « MODIFIER » — GO de Bertrand, 25/09/2026.
+
+     Éditer l'album, ses disques et ses pistes SUR PLACE : voir
+     `EditionAlbumV2` et `lib/editionAlbum`. Un album de la BIBLIOTHÈQUE
+     seulement — ni dépôt distant (son `id` est celui d'un autre serveur), ni
+     service, ni Bandcamp.
+
+     🔴 LA SONDE DÉCIDE DU BOUTON. `GET /library/albums/{id}/edition` n'existe
+     que sur un serveur qui a le lot `edition-coffrets` : un serveur antérieur
+     répond 404, et « Modifier » n'apparaît pas. Un bouton qui échouerait au
+     clic promettrait ce que le serveur ne sait pas faire.
+
+     `rechargement` avance après un enregistrement, un détachement ou un
+     ajout de disque : les pistes, la fiche et la sonde se relisent.
+     ══════════════════════════════════════════════════════════════════════ */
+  let rechargement = $state(0);
+  let edition = $state.raw<EditionReponse | null>(null);
+  let enEdition = $state(false);
+  const editionPossible = $derived(album.id != null && !depot && !service && !bandcamp);
+  $effect(() => {
+    const id = album.id, possible = editionPossible;
+    void rechargement;
+    // Une RELECTURE du même album garde la fiche d'édition en place : le
+    // mode ouvert ne se démonte pas le temps de la requête.
+    if (untrack(() => edition)?.album.id !== id) edition = null;
+    if (!possible || id == null) { edition = null; enEdition = false; return; }
+    let vivant = true;
+    api.getAlbumEdition(id)
+      .then((r) => { if (vivant) edition = estReponseEdition(r) ? r : null; })
+      .catch(() => { /* serveur sans la route : pas de bouton */ });
+    return () => { vivant = false; };
+  });
+  // Une autre fiche s'ouvre : on ne reste pas en édition sur l'album d'avant.
+  $effect(() => { void album?.id; enEdition = false; });
+
+  async function apresEnregistrement() {
+    const id = album.id;
+    enEdition = false;
+    rechargement += 1;
+    if (id == null) return;
+    // L'en-tête (titre, artiste, année) se relit comme après une
+    // ré-identification.
+    try {
+      const a = await api.getAlbum(id);
+      if (album.id === id && a) album = a;
+    } catch { /* l'en-tête garde l'ancien texte ; les pistes, elles, sont relues */ }
+  }
 
   /** Le badge DR, et ce qu'il doit dire de sa provenance. */
   const dr = $derived(afficherDynamicRange(fiche));
@@ -685,7 +885,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   const addQueue = () => enfiler(undefined, 'v2.album.queued');
   /** « Lire ensuite » insère au rang SUIVANT celui qui joue. Sans rang, la
    *  route ajoute à la fin — ce serait le bouton d'à côté. */
-  const lireEnsuite = () => enfiler(get(queuePosition) + 1, 'v2.album.queuedNext');
+  const lireEnsuite = () => enfiler(rangLireEnsuite(), 'v2.album.queuedNext');
   /**
    * PRÉSENTATION DE L'ALBUM — renesenses/tune-server-rust#3586, FabienM,
    * fil forum 1697 : « Les artistes ont leur biographie, il serait également
@@ -908,12 +1108,49 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       return;
     }
     if (artisteDeService) {
+      // Lus AVANT la fermeture : l'album affiché est celui qu'on quitte, et
+      // la vue `streamingalbum` vide `ficheAlbumService` en se refermant —
+      // relu après, `artisteDeService` se recalculait sur une cible nulle et
+      // levait (web#1602, mesuré en montant la coquille).
+      const artiste = artisteDeService;
+      const fiche = ficheDeCetAlbum();
       quitterLaFiche();
       // `depuis` se lit APRÈS la fermeture : la vue `streamingalbum` de la
       // coquille, elle, referme EN changeant de vue — c'est cette vue-là, et
       // pas la fiche qu'on vient de quitter, qui est le point de retour.
-      $gestesNavigationService?.ouvrirArtiste({ ...artisteDeService, depuis: get(activeView) });
+      const depuis = get(activeView);
+      // 🔴 web#1602 — et la fiche elle-même voyage avec le geste : le Retour
+      // de la page artiste la rouvre, puis le sien ramène à `depuis`. Sans
+      // elle, le Retour sautait la fiche (Reivax66, fil 1941). Pas depuis une
+      // page artiste (album ouvert DANS la page) : son Retour ne sait pas
+      // rouvrir la page d'avant, on n'y empile pas un cran de plus.
+      $gestesNavigationService?.ouvrirArtiste({
+        ...artiste,
+        depuis,
+        ficheDeRetour: depuis === 'streamingartist' ? null : fiche,
+      });
     }
+  }
+
+  /**
+   * Cet album sous la forme que rouvre la vue `streamingalbum` — web#1602.
+   * `null` quand elle ne sait pas le rouvrir : un album de la bibliothèque,
+   * d'un autre serveur (`depot`), de Bandcamp (désigné par une URL, sans
+   * `source_id` de service), ou sans identifiant chez son service.
+   */
+  function ficheDeCetAlbum(): CibleFicheAlbumService | null {
+    if (!service || depot || bandcamp) return null;
+    const a: any = albumAffiche;
+    const id = a?.source_id == null ? '' : String(a.source_id).trim();
+    if (!id) return null;
+    return {
+      service: service as Source,
+      id,
+      titre: String(a.title ?? ''),
+      pochette: a.cover_path ?? null,
+      artiste: a.artist_name ?? null,
+      artisteId: a.artist_id == null ? null : String(a.artist_id),
+    };
   }
 
   function trackTech(t: Track): string {
@@ -1005,6 +1242,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.album.locate' as any)}
           </button>
         {/if}
+        {#if origineCoffret === 'auto'}
+          <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
+            title={$tr('v2.album.boxUndoTip' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+            {$tr('v2.album.boxUndo' as any)}
+          </button>
+        {/if}
         {#if album.id != null || refService}
           <button class="ghost coeur" class:on={enFavori} onclick={basculerFavori} disabled={bascule}
             aria-pressed={enFavori}
@@ -1026,6 +1270,25 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.cover.tags' as any)}
           </button>
         {/if}
+        <!-- AJOUTER À UNE COLLECTION — même garde que le bloc local : un
+             album de la BIBLIOTHÈQUE. Voir l'en-tête du `<script>`. -->
+        {#if album.id != null && !depot}
+          <button class="ghost" onclick={basculerMenuCollection}
+            aria-haspopup="menu" aria-expanded={menuCollectionOuvert}
+            title={$tr('v2.album.addToCollection' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zM12 10v6M9 13h6"/></svg>
+            {$tr('v2.album.addToCollection' as any)}
+          </button>
+        {/if}
+        {#if creditsPossibles || creditsDeService}
+          <button class="ghost" data-credits-album
+            onclick={() => { creditsServiceOuvert = creditsPossibles ? null : creditsDeService; creditsOuverts = true; }}
+            aria-haspopup="dialog" aria-expanded={creditsOuverts}
+            title={$tr('artist.credits' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            {$tr('artist.credits' as any)}
+          </button>
+        {/if}
       </div>
       <!-- Album LOCAL seulement : ces trois gestes travaillent sur la fiche de
            la bibliothèque. -->
@@ -1038,6 +1301,15 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
           {#if album.cover_path}
             <ReportButton entity="cover" entityId={album.id}
               reasons={['wrong_entity', 'incorrect', 'poor_quality', 'offensive']} />
+          {/if}
+          <!-- Le mode « Modifier » : seulement si le serveur sert la fiche
+               d'édition (voir `edition`). -->
+          {#if edition && !enEdition}
+            <button class="ghost" data-modifier-album onclick={() => (enEdition = true)}
+              aria-expanded={enEdition} title={$tr('v2.edition.modifyTip' as any)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+              {$tr('v2.edition.modify' as any)}
+            </button>
           {/if}
         </div>
       {/if}
@@ -1069,7 +1341,12 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   {/if}
 
   <div class="tracks">
-    {#if loading}
+    {#if enEdition && edition && album.id != null}
+      <EditionAlbumV2 albumId={album.id} donnees={edition}
+        onFermer={() => (enEdition = false)}
+        onEnregistre={apresEnregistrement}
+        onRecharger={() => (rechargement += 1)} />
+    {:else if loading}
       <div class="state">{$tr('v2.common.loadingTracks' as any)}</div>
     {:else if error}
       <div class="state err">{error}</div>
@@ -1095,7 +1372,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
         <div class="focus-artiste">
           <span class="fchip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg>
-            {$tr('v2.album.artistOnly' as any).replace('{artist}', artisteFocus.nom)}
+            {$tr((artisteFocus.pistes?.length ? 'v2.album.creditedOnly' : 'v2.album.artistOnly') as any).replace('{artist}', artisteFocus.nom)}
             <button onclick={() => (focusReferme = true)} aria-label={$tr('v2.album.artistOnlyClear' as any)}
               title={$tr('v2.album.artistOnlyClear' as any)}>×</button>
           </span>
@@ -1124,8 +1401,68 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       onClose={() => (etiquettesOuvertes = false)} />
   {/await}
 {/if}
+<!-- #1572 — la fiche « Crédits » de l'album : la même que celle d'un titre,
+     agrégée sur le disque. Un nom crédité referme la fiche avant d'ouvrir la
+     page de l'artiste (`quitterLaFiche`, comme `allerArtiste`). -->
+{#if creditsOuverts && ((creditsPossibles && album.id != null) || creditsServiceOuvert)}
+  {#await import('../partages/CreditsTiroir.svelte') then m}
+    <m.default
+      cible={{ type: 'album', albumId: creditsServiceOuvert ? null : album.id, service: creditsServiceOuvert, titre: album.title, artiste: nomArtiste, pistes: tracks }}
+      avantDeNaviguer={quitterLaFiche}
+      onClose={() => (creditsOuverts = false)} />
+  {/await}
+{/if}
+<!-- Le menu « Ajouter à une collection » : une entrée par collection
+     MANUELLE, ou l'état vide qui mène à l'écran Collections. Porté à la
+     racine et posé en `fixed` : la fiche défile. -->
+<svelte:window onclick={fermerMenuCollection} onkeydown={auClavierCollection}
+  onresize={fermerMenuCollection} onscrollcapture={auDefilementCollection} />
+{#if menuCollectionOuvert && ancreCollection}
+  <div class="coll-menu tune-v2" role="menu" tabindex="-1" use:portail
+    aria-label={$tr('v2.album.addToCollection' as any)}
+    style={styleMenuAncre(ancreCollection, Math.max(2, lignesCollection.length), window, LARGEUR_MENU_COLLECTION)}>
+    {#if entreesCollection.length}
+      {#each lignesCollection as l (l.cle)}
+        {#if l.sorte === 'rayon'}
+          <p class="coll-rayon" role="presentation" style:padding-left="{10 + l.profondeur * 14}px">{l.nom}</p>
+        {:else}
+        {@const e = l.entree}
+        <button type="button" role="menuitem" class="coll-item" class:deja={e.deja}
+          style:padding-left="{10 + l.profondeur * 14}px"
+          onclick={(ev) => choisirCollection(ev, e.faire)}>{e.libelle}</button>
+        {/if}
+      {/each}
+    {:else}
+      <p class="coll-vide">{$tr('v2.album.noCollection' as any)}</p>
+      <button type="button" role="menuitem" class="coll-item coll-lien" onclick={allerCollections}>
+        {$tr('v2.nav.collections' as any)}
+      </button>
+    {/if}
+  </div>
+{/if}
 
 <style>
+  /* Le menu des collections. `fixed` + `use:portail` : voir l'en-tête du
+     `<script>`. Même gabarit que le panneau de `MenuZone`. Sa hauteur est
+     bornée à la fenêtre par `styleMenuAncre` (`max-height`, #1575) : au-delà,
+     il défile en lui-même, sans entraîner la page. */
+  .coll-menu{position:fixed; z-index:60; width:240px; padding:6px; display:flex; flex-direction:column; gap:1px;
+    overflow-y:auto; overscroll-behavior:contain;
+    border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);
+    color:var(--v2-txt); font-family:var(--v2-sans); box-shadow:0 18px 40px rgba(0,0,0,.5)}
+  .coll-item{display:block; flex:0 0 auto; width:100%; min-height:34px; padding:7px 10px; border:0; border-radius:8px;
+    background:transparent; color:var(--v2-txt); font:13px var(--v2-sans); text-align:left; cursor:pointer;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .coll-item:hover{background:var(--v2-surface2)}
+  .coll-item:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-2px}
+  .coll-item.deja{color:var(--v2-txt3)}
+  /* Intitulé d'un rayon (fil 1928) : il range, il ne se clique pas. */
+  .coll-rayon{flex:0 0 auto; margin:6px 0 0; padding:4px 10px 2px; font-size:11px; font-weight:600;
+    letter-spacing:.04em; text-transform:uppercase; color:var(--v2-txt3);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .coll-rayon:first-child{margin-top:0}
+  .coll-lien{color:var(--v2-acc-tint)}
+  .coll-vide{flex:0 0 auto; margin:0; padding:7px 10px; font-size:12px; line-height:1.4; color:var(--v2-txt3); white-space:normal}
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
   .close{position:sticky; top:0; margin-bottom:8px; width:40px; height:40px; border-radius:12px; cursor:pointer;

@@ -55,7 +55,7 @@
   // de pastille : celui-là existe, il sait déjà nommer la bibliothèque.
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import { cibleDeService } from '../../lib/cibleEtiquette';
+  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { estDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import QualiteAlbum from './QualiteAlbum.svelte';
@@ -1083,7 +1083,7 @@
                 <span class="cv">
                   <PochetteActions
                     favori={a.id != null ? { albumId: a.id } : null}
-                    etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                    etiquettes={cibleEtiquetteAlbum(a)}
                     onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                     onLire={a.id != null ? () => lireAlbum(a.id!) : null}
                     onOuvrir={() => ouvrirFiche(a)}
@@ -1316,7 +1316,7 @@
                           coverUrl: a.cover_path ?? undefined,
                         })
                       : null}
-                    etiquettes={local_ ? { itemType: 'album', itemId: a.id! } : cibleDeService('album', a)}
+                    etiquettes={cibleEtiquetteAlbum(a)}
                     onEditer={local_ ? () => (albumEnEdition = a) : null}
                     onLire={local_ || (a.source && a.source_id) ? () => ouvrirOuLire(a) : null}
                     onOuvrir={local_ || (a.source && a.source_id) ? () => ouvrirFiche(a) : null}

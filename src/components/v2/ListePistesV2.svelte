@@ -9,7 +9,8 @@
    * largeur-ci — pas avec une copie (#1149).
    *
    * 238 px = HUIT boutons de 28 px + sept gouttières de 2 px, la barre pleine
-   * de `PisteActions`. Le chiffre a déjà changé deux fois (178 → 208 le
+   * de `PisteActions`. Depuis le fil forum 1906 (FabienM), la barre a TOUJOURS
+   * ses huit cases : un geste absent laisse une case vide de même largeur. Le chiffre a déjà changé deux fois (178 → 208 le
    * 16/09/2026, quand le menu « … » a porté la barre à sept ; 208 → 238 le
    * 20/09/2026, quand « Lire à partir d'ici » a cessé d'être optionnel) : un
    * témoin le recalcule en comptant les boutons,
@@ -26,6 +27,11 @@
   export const LARGEUR_ACTIONS = '238px';
   /** La même largeur en NOMBRE, pour le calcul du plancher (#853). */
   export const LARGEUR_ACTIONS_PX = 238;
+  /** La colonne de la POIGNÉE de réordonnancement : un bouton de 28 px. */
+  export const LARGEUR_POIGNEE_PX = 28;
+  /** Numérote les instances : la poignée à refocaliser après un déplacement
+   *  au clavier se cherche dans le document, et deux listes peuvent y vivre. */
+  let compteurListes = 0;
 </script>
 
 <script lang="ts">
@@ -57,7 +63,7 @@
    * (certaines réservées aux pistes locales). On le pose tel quel plutôt que
    * de réécrire une barre d'actions qui divergerait de l'autre.
    */
-  import type { Snippet } from 'svelte';
+  import { tick, type Snippet } from 'svelte';
   import { t } from '../../lib/i18n';
   import { preferences } from '../../lib/stores/preferences';
   import { currentTrack, currentTrackId, playbackState, etatDeLaLigne }
@@ -73,6 +79,7 @@
   import PisteActions from './PisteActions.svelte';
   import QualityBadge from '../partages/QualityBadge.svelte';
   import { pisteIndisponible } from '../../lib/albumAParaitre';
+  import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import { ouvrirArtisteDepuis, artisteDePiste } from '../../lib/ouvrirArtisteDepuis';
   import { activeView } from '../../lib/stores/navigation';
   import { gestesDeZone } from '../../lib/gestesDeZone';
@@ -241,6 +248,37 @@
      * sous-titre : aucun en-tête, la règle d'Oxygen.
      */
     enTetesDisque?: boolean;
+    /**
+     * 🔴 Le RÉORDONNANCEMENT, par glisser-déposer et au clavier — OPT-IN.
+     *
+     * Bertrand, 23/09/2026 : l'écran « Gestion des playlists » rendait sa
+     * propre liste de pistes — le TROISIÈME rendu de piste du client, sans
+     * étiquettes ni menu « … » — pour une seule raison : il savait réordonner
+     * en glissant, et cette liste-ci ne le savait pas. Le geste vient donc
+     * ici, et l'écran se branche sur la liste commune comme les autres.
+     *
+     * Ce que ça pose, quand la prop est vraie :
+     *   · une POIGNÉE en tête de ligne (colonne de 28 px, en tableau comme en
+     *     lignes), focalisable : ↑ et ↓ déplacent la piste d'un rang — les
+     *     flèches de la file (`QueueV2`), pour que le geste se lise partout
+     *     pareil, et pour que le réordonnancement soit atteignable au clavier
+     *     et au lecteur d'écran, ce que le glisser seul n'est pas ;
+     *   · la LIGNE entière se saisit à la souris (HTML5 `draggable`), comme
+     *     dans l'écran hérité ; la ligne survolée se souligne, la ligne
+     *     saisie s'estompe.
+     *
+     * Quand la prop est absente, RIEN ne change : ni colonne, ni attribut,
+     * ni gestionnaire. Une garde monte la liste sans la prop et le vérifie.
+     *
+     * La liste ne réordonne rien elle-même : elle DIT `onReordonner(de, vers)`
+     * avec les deux rangs dans `pistes`, et l'écran — seul à connaître son
+     * serveur — déplace, enregistre, et recharge s'il échoue.
+     */
+    reordonnable?: boolean;
+    onReordonner?: ((de: number, vers: number) => void | Promise<void>) | null;
+    /** La clé i18n de l'étiquette d'une piste indisponible — voir
+     *  `LignePisteV2`. Une playlist dit « Indisponible », pas « À paraître ». */
+    etiquetteIndispo?: string;
   }
   let {
     pistes, onLire, onLireDepuis = null, numerotation = 'rang',
@@ -249,7 +287,68 @@
     ouvertureAlbum = null, apres,
     clef = (p, i) => p.id ?? i, largeurApres = '96px',
     enTetesDisque = false,
+    reordonnable = false, onReordonner = null,
+    etiquetteIndispo = 'v2.str.coming',
   }: Props = $props();
+  /**
+   * Le glisser-déposer : deux rangs, et rien d'autre.
+   *
+   * `saisi` est la ligne qu'on tient, `survolee` celle au-dessus de laquelle
+   * on passe. Les deux sont des RANGS dans `pistes`, jamais des références de
+   * piste : après un déplacement l'écran réassigne sa liste, et une référence
+   * gardée d'un proxy `$state` serait détachée.
+   */
+  let saisi = $state<number | null>(null);
+  let survolee = $state<number | null>(null);
+  const idListe = ++compteurListes;
+  function saisir(e: DragEvent, i: number): void {
+    saisi = i;
+    // Firefox n'entame aucun glisser sans donnée ; `dataTransfer` manque
+    // dans jsdom, d'où la garde.
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(i));
+    }
+  }
+  function survoler(e: DragEvent, i: number): void {
+    if (saisi == null) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    survolee = i;
+  }
+  function quitter(i: number): void {
+    if (survolee === i) survolee = null;
+  }
+  function relacher(): void {
+    saisi = null;
+    survolee = null;
+  }
+  function deposer(e: DragEvent, i: number): void {
+    e.preventDefault();
+    const de = saisi;
+    relacher();
+    if (de == null || de === i) return;
+    void onReordonner?.(de, i);
+  }
+  /**
+   * ↑ / ↓ sur la poignée : un rang, et le focus SUIT la piste.
+   *
+   * La liste est à clé : Svelte déplace le nœud plutôt que de le recréer, et
+   * le focus le suivrait de lui-même — sauf quand l'écran donne le RANG pour
+   * clé, ce que fait une playlist, où la même piste peut figurer deux fois.
+   * On refocalise donc explicitement, une fois le rendu passé.
+   */
+  async function deplacerAuClavier(e: KeyboardEvent, i: number): Promise<void> {
+    const vers = e.key === 'ArrowUp' ? i - 1 : e.key === 'ArrowDown' ? i + 1 : null;
+    if (vers == null || vers < 0 || vers >= pistes.length) return;
+    e.preventDefault();
+    e.stopPropagation();
+    await onReordonner?.(i, vers);
+    await tick();
+    Array.from(document.querySelectorAll<HTMLElement>('.poignee'))
+      .find((b) => b.dataset.liste === String(idListe) && b.dataset.rang === String(vers))
+      ?.focus();
+  }
 
   // #1431 — pour chaque rang, l'en-tête à poser AVANT la ligne, ou `null`.
   const enTetes = $derived(enTetesDisque ? calculerEnTetes(pistes) : []);
@@ -330,8 +429,11 @@
   // il y est sur TOUTES les lignes depuis le 20/09/2026, donc une seule valeur.
   const largeurDesActions = LARGEUR_ACTIONS;
   const largeurDesActionsPx = LARGEUR_ACTIONS_PX;
+  // La poignée est une COLONNE de la grille, en tête, présente dans l'en-tête
+  // comme dans les lignes : la même règle que le suffixe, pour la même raison.
+  const colonnePoignee = $derived(reordonnable ? `${LARGEUR_POIGNEE_PX}px ` : '');
   const gabarit = $derived(
-    `${gabaritGrille(colonnes)} ${largeurDesActions}${apres ? ` ${largeurApres}` : ''}`,
+    `${colonnePoignee}${gabaritGrille(colonnes)} ${largeurDesActions}${apres ? ` ${largeurApres}` : ''}`,
   );
 
   /**
@@ -344,7 +446,8 @@
    * DÉBORDER : sinon elle les ignore et comprime quand même.
    */
   const minGrille = $derived(
-    largeurMinimale(colonnes, largeurDesActionsPx + (apres ? largeurApresPx : 0)),
+    largeurMinimale(colonnes, largeurDesActionsPx + (apres ? largeurApresPx : 0)
+      + (reordonnable ? LARGEUR_POIGNEE_PX : 0)),
   );
 
   /**
@@ -359,6 +462,19 @@
   const npPiste = $derived($currentTrack);
   const npEtat = $derived($playbackState);
   const etatDe = (p: Track) => etatDeLaLigne(p, npId, npPiste, npEtat);
+  /**
+   * #4806 — en mode TABLEAU, le titre banni est grisé et barré ICI (le mode
+   * lignes le fait dans `LignePisteV2`) ; un clic délibéré le joue après
+   * confirmation. Le magasin est lu UNE fois, pour la même raison que les
+   * trois du dessus.
+   */
+  const surcharges = $derived($surchargesBannissement);
+  const bannieDe = (p: Track) => estBannie(p, surcharges);
+  async function lireDelibere(p: Track, i: number) {
+    if (pisteIndisponible(p)) return;
+    if (!(await confirmerLectureBannie(p))) return;
+    onLire(p, i);
+  }
 
   function numero(p: Track, i: number): string | null {
     if (numerotation === 'aucune') return null;
@@ -383,6 +499,20 @@
   {/if}
 {/snippet}
 
+{#snippet poignee(i: number)}
+  <!-- La poignée : un bouton, pour que le clavier l'atteigne. `aria-label`
+       dit les deux gestes. `data-liste`/`data-rang` servent à la retrouver
+       après un déplacement au clavier, pour que le focus suive la piste. -->
+  <button class="poignee" type="button" data-liste={idListe} data-rang={i}
+    title={$t('v2.liste.poignee' as any)} aria-label={$t('v2.liste.poignee' as any)}
+    onkeydown={(e) => deplacerAuClavier(e, i)} onclick={(e) => e.stopPropagation()}>
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/>
+      <circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/>
+      <circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/>
+    </svg>
+  </button>
+{/snippet}
 {#if !enTableau}
   <!-- Les modes HORS tableau — Avancé seul depuis le 09/09/2026, Expert étant
        passé au tableau. Ce rendu est inchangé à la virgule près : le suffixe
@@ -391,8 +521,21 @@
   {#each pistes as p, i (clef(p, i))}
     {@const ouvrir = ouvertureAlbum?.(p, i) ?? null}
     {@render enTeteDisque(i)}
-    {#if apres}
-      <div class="avecSuffixe">
+    {#if apres || reordonnable}
+      <!-- L'enveloppe sert au suffixe ET à la poignée : sans l'un ni l'autre,
+           la ligne est rendue nue, exactement comme avant. -->
+      <!-- Le glisser à la souris est un raccourci : le geste ACCESSIBLE est
+           la poignée, un bouton focalisable qui répond aux flèches. -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="avecSuffixe" class:avecPoignee={reordonnable} class:sansSuffixe={!apres}
+        class:saisie={saisi === i} class:survolee={survolee === i}
+        draggable={reordonnable || undefined}
+        ondragstart={reordonnable ? (e) => saisir(e, i) : undefined}
+        ondragover={reordonnable ? (e) => survoler(e, i) : undefined}
+        ondragleave={reordonnable ? () => quitter(i) : undefined}
+        ondrop={reordonnable ? (e) => deposer(e, i) : undefined}
+        ondragend={reordonnable ? relacher : undefined}>
+        {#if reordonnable}{@render poignee(i)}{/if}
         <LignePisteV2
           piste={p}
           numero={numerotation === 'aucune' ? null : Number(numero(p, i))}
@@ -401,25 +544,23 @@
           {avecAlbum}
           {pochette}
           onOuvrirAlbum={ouvrir}
+          {etiquetteIndispo}
         />
         <!--
           🔴 Le suffixe est enveloppé, et ce n'est pas cosmétique.
-
           `.avecSuffixe` est une grille à DEUX colonnes. Un extrait qui rend
           plusieurs éléments racine — l'Historique en rend deux, l'heure et le
           cœur radio — en posait donc TROIS dans deux colonnes : le troisième
           passait à une seconde ligne IMPLICITE, sous la piste.
-
           Le cœur radio est en `opacity:0` hors survol : la ligne supplémentaire
           était invisible, et coûtait pourtant 28 px de hauteur plus les 8 px de
           gouttière. Bertrand, 09/09/2026 : « Historique : diminue l'espace
           entre les pistes ». Ce n'était pas un réglage d'espacement, c'était
           une ligne de grille en trop, à chaque piste.
-
           Une enveloppe, et le nombre de colonnes cesse de dépendre de ce que
           l'appelant a écrit dans son extrait.
         -->
-        <span class="suffixe">{@render apres(p, i)}</span>
+        {#if apres}<span class="suffixe">{@render apres(p, i)}</span>{/if}
       </div>
     {:else}
       <LignePisteV2
@@ -430,6 +571,7 @@
         {avecAlbum}
         {pochette}
         onOuvrirAlbum={ouvrir}
+        {etiquetteIndispo}
       />
     {/if}
   {/each}
@@ -437,8 +579,11 @@
   <!-- 🔴 #853 — `--tmin` est la largeur en deçà de laquelle le tableau DÉFILE
        au lieu de comprimer. Sans elle, les planchers des colonnes de texte
        seraient simplement ignorés par la grille, qui redescendrait sous eux. -->
-  <div class="tbl" style="--tcols:{gabarit}; --tmin:{minGrille}px" role="table">
+  <div class="tbl" class:reordonnable style="--tcols:{gabarit}; --tmin:{minGrille}px" role="table">
     <div class="thead" role="row">
+      <!-- La colonne de la poignée : dans l'en-tête aussi, sinon tout dérive
+           d'une colonne vers la droite. -->
+      {#if reordonnable}<span class="th" role="columnheader"></span>{/if}
       {#each colonnes as c (c.cle)}
         <span class="th" class:d={c.align === 'droite'} class:c={c.align === 'centre'}
           role="columnheader">{$t(c.cleI18n as any)}</span>
@@ -455,8 +600,22 @@
       <!-- Point 10 (17/09/2026) — une piste que le service dit indisponible
            est grisée et ne se lance pas : le lancer rendrait « no url ». -->
       {@const indispo = pisteIndisponible(p)}
-      <div class="trow" class:np={etat != null} class:indispo aria-current={etat ? 'true' : undefined}
+      {@const bannie = bannieDe(p)}
+      <!-- Les attributs du glisser ne sont posés QUE si la liste est
+           réordonnable : sans la prop, la ligne est celle d'avant. -->
+      <!-- Même règle qu'en mode lignes : la ligne se saisit à la souris, la
+           poignée (un bouton) porte le geste au clavier. -->
+      <!-- svelte-ignore a11y_interactive_supports_focus -->
+      <div class="trow" class:np={etat != null} class:indispo class:bannie aria-current={etat ? 'true' : undefined}
+        class:saisie={saisi === i} class:survolee={survolee === i}
+        draggable={reordonnable || undefined}
+        ondragstart={reordonnable ? (e) => saisir(e, i) : undefined}
+        ondragover={reordonnable ? (e) => survoler(e, i) : undefined}
+        ondragleave={reordonnable ? () => quitter(i) : undefined}
+        ondrop={reordonnable ? (e) => deposer(e, i) : undefined}
+        ondragend={reordonnable ? relacher : undefined}
         role="row">
+        {#if reordonnable}<span class="td act" role="cell">{@render poignee(i)}</span>{/if}
         {#each colonnes as c (c.cle)}
           {#if c.cle === 'quality'}
             <span class="td" role="cell">
@@ -466,8 +625,8 @@
           {:else if c.verrouillee}
             <!-- Le TITRE porte le clic de lecture : c'est la cible la plus
                  large et la plus évidente de la ligne. -->
-            <button class="td titre" onclick={() => { if (!indispo) onLire(p, i); }}
-              disabled={indispo} title={indispo ? $t('v2.str.coming' as any) : p.title}>
+            <button class="td titre" onclick={() => void lireDelibere(p, i)}
+              disabled={indispo} title={indispo ? $t(etiquetteIndispo as any) : p.title}>
               <!-- L'indicateur est DANS la cellule du titre : une colonne de plus
                    décalerait l'en-tête, et la règle de ce composant est qu'un
                    seul gabarit vaut pour l'en-tête et pour les lignes.
@@ -487,7 +646,8 @@
                    absente ne rend aucune pastille, jamais un « LOCAL » faux. -->
               {#if sourceEnTableau}<ServiceBadge source={p.source} compact />{/if}
               {#if p.source === 'upnp'}<DisponibiliteUpnp sourceId={p.source_id} />{/if}
-              {#if indispo}<span class="indispo-etiq">{$t('v2.str.coming' as any)}</span>{/if}
+              {#if indispo}<span class="indispo-etiq">{$t(etiquetteIndispo as any)}</span>{/if}
+              {#if bannie}<span class="bannie-etiq">{$t('ban.badge' as any)}</span>{/if}
             </button>
           {:else}
             {@const v = cellule(p, i, c.cle)}
@@ -558,6 +718,11 @@
   .lien-artiste:hover{text-decoration:underline; color:var(--v2-txt)}
 
   .trow.indispo{opacity:0.5}
+  /* #4806 — le titre banni : grisé et barré, visible, jouable d'un clic délibéré. */
+  .trow.bannie{opacity:0.45}
+  .trow.bannie .ttxt{text-decoration:line-through}
+  .bannie-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-txt3);
+    border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
   .trow.indispo .titre{cursor:default}
   .indispo-etiq{margin-left:8px; font:600 10px var(--v2-sans); color:var(--v2-acc2);
     border:1px solid var(--v2-line2); border-radius:var(--v2-r-pill); padding:1px 6px; white-space:nowrap}
@@ -593,6 +758,23 @@
      eux (`1fr auto`), pour que rien ne bouge à leurs yeux. */
   .avecSuffixe{display:grid; grid-template-columns:minmax(0,1fr) auto;
     align-items:center; gap:8px}
+  /* Avec la poignée, une colonne de plus EN TÊTE — et sans suffixe, la
+     dernière disparaît : la ligne reste `1fr`, jamais plus étroite. */
+  .avecSuffixe.avecPoignee{grid-template-columns:auto minmax(0,1fr) auto}
+  .avecSuffixe.avecPoignee.sansSuffixe{grid-template-columns:auto minmax(0,1fr)}
+  /* La poignée de réordonnancement : la taille d'un bouton de `PisteActions`
+     (28 px), discrète au repos, franche au survol ou au focus. `grab` dit le
+     geste à la souris ; le clavier a son `aria-label`. */
+  .poignee{width:28px; height:28px; padding:6px; border:0; border-radius:6px;
+    background:transparent; color:var(--v2-txt3); cursor:grab; display:flex;
+    align-items:center; justify-content:center; flex:0 0 auto}
+  .poignee svg{width:16px; height:16px}
+  .poignee:hover, .poignee:focus-visible{color:var(--v2-txt); background:var(--v2-hover)}
+  .poignee:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:1px}
+  /* Le retour du glisser : la ligne saisie s'estompe, la ligne survolée
+     porte un trait d'accent au-dessus — la place où la piste tombera. */
+  .trow.saisie, .avecSuffixe.saisie{opacity:.45}
+  .trow.survolee, .avecSuffixe.survolee{box-shadow:inset 0 2px 0 0 var(--v2-acc1)}
   /* L'enveloppe du suffixe : quel que soit le nombre d'éléments que l'extrait
      rend, ils tiennent sur UNE ligne et dans UNE colonne. */
   .suffixe{display:flex; align-items:center; gap:8px; justify-content:flex-end}
@@ -602,6 +784,8 @@
   @media (max-width: 720px){
     .thead{display:none}
     .trow{grid-template-columns:minmax(0,1fr) auto}
+    /* La poignée est une cellule `.act` : elle reste, et prend sa colonne. */
+    .tbl.reordonnable .trow{grid-template-columns:auto minmax(0,1fr) auto}
     .trow .td:not(.act):not(.titre){display:none}
   }
 </style>

@@ -1,7 +1,10 @@
 <script lang="ts">
   import { atteintLeSon } from '../../lib/porteeReglage';
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
+  import { pisteDeFile } from '../../lib/pisteDeFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
+import { bannir, debannir, bannissable, estBannie, surchargesBannissement } from '../../lib/titreBanni';
+import { ICONES } from '../../lib/menuPiste';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
   import { currentZone } from '../../lib/stores/zones';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -481,51 +484,12 @@
     }
   }
 
-  // Stable display order — composer/lyricist top, performer bulk in the
-  // middle, engineering credits last. Anything else falls through to the
-  // raw role string.
-  const ROLE_ORDER = [
-    'composer', 'lyricist', 'arranger', 'conductor',
-    'performer', 'producer', 'mixer', 'engineer',
-  ];
-
+  // L'ordre des rôles, le dédoublonnage et le libellé vivent dans
+  // `lib/library/credits` depuis #1572 : la fiche « Voir les crédits » d'un
+  // titre ou d'un album les partage avec ce panneau.
   function formatRole(role: string): string {
-    const key = `credits.${role}`;
-    const localized = $t(key);
-    // Fall back to title-cased raw role when the locale dict doesn't have
-    // a translation (we get back the key verbatim from $t in that case).
-    if (localized && localized !== key) return localized;
-    return role.charAt(0).toUpperCase() + role.slice(1);
+    return libelleRole(role, $t);
   }
-
-  // De-dup credits by (artist_id || artist_name, role, instrument) — MB
-  // enrichment can return the same triple twice when a track has two
-  // identifying tags pointing at the same artist relation.
-  function dedupCredits(credits: TrackCredit[]): TrackCredit[] {
-    const seen = new Set<string>();
-    const out: TrackCredit[] = [];
-    for (const c of credits) {
-      const key = `${c.artist_id ?? c.artist_name}|${c.role}|${c.instrument ?? ''}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(c);
-    }
-    return out;
-  }
-
-  // Sort role groups by ROLE_ORDER, unknown roles trail alphabetically.
-  function sortedRoleEntries(credits: TrackCredit[]) {
-    const groups = Object.groupBy(dedupCredits(credits), c => c.role);
-    return Object.entries(groups).sort(([a], [b]) => {
-      const ai = ROLE_ORDER.indexOf(a);
-      const bi = ROLE_ORDER.indexOf(b);
-      if (ai !== -1 && bi !== -1) return ai - bi;
-      if (ai !== -1) return -1;
-      if (bi !== -1) return 1;
-      return a.localeCompare(b);
-    });
-  }
-
   /**
    * Ouvrir la PAGE COMMUNE d'un artiste de la bibliothèque — #1494.
    *
@@ -991,6 +955,7 @@
   import { ytPlayerState, ytVideoRect, showYTVideo, hideYTVideo } from '../../lib/stores/ytPlayer';
   import { onDestroy, onMount } from 'svelte';
   import { egaliseurReglable, rafraichirGreffonEgaliseur } from '../../lib/stores/egaliseur';
+  import { dedupCredits, libelleRole, sortedRoleEntries } from '../../lib/library/credits';
   import { get } from 'svelte/store';
   import { currentProfileId, favoriteTrackIds, loadProfiles } from '../../lib/stores/profile';
 
@@ -1089,6 +1054,39 @@
   // Piste normalisée (id rétabli depuis track_id) : à utiliser dès qu'on a
   // besoin d'un vrai `Track`, garde d'affichage comprise.
   let normalizedTrack = $derived(displayTrack ? nowPlayingToTrack(displayTrack) : null);
+
+  // Fil 1946 (FabienM, v0.9.165) — « on se rend compte qu'on n'aime pas un
+  // titre quand on l'écoute » : « Bannir ce titre » dans la rangée d'En écoute,
+  // à côté de Paroles, Sleep, Réveil. Le MÊME geste que le menu de piste
+  // (`titreBanni.bannir` / `debannir` : même route, même message, même
+  // surcharge locale) et la même règle : bibliothèque LOCALE seulement
+  // (Bertrand, 23/09) — sur une piste de service, pas de bouton. Le serveur
+  // enchaîne lui-même le titre suivant quand on bannit ce qui joue (#4818).
+  //
+  // Déjà banni : la surcharge de l'écran d'abord, puis le drapeau `banned` —
+  // celui de la piste, ou à défaut celui de sa ligne de file (`get_queue` le
+  // pose sur chaque ligne ; le now-playing de la zone ne le porte pas).
+  let pisteBannissable = $derived(
+    !isRadio && normalizedTrack != null && bannissable(normalizedTrack) ? normalizedTrack : null,
+  );
+  let pisteEnCoursBannie = $derived.by(() => {
+    const p = pisteBannissable;
+    if (p == null) return false;
+    const drapeau = p.banned ?? $queueTracks.find((l) => l.id === p.id)?.banned;
+    return estBannie({ ...p, banned: drapeau }, $surchargesBannissement);
+  });
+  let bannissementEnCours = $state(false);
+  async function basculerBannissement() {
+    const p = pisteBannissable;
+    if (p == null || bannissementEnCours) return;
+    bannissementEnCours = true;
+    try {
+      if (pisteEnCoursBannie) await debannir(p);
+      else await bannir(p);
+    } finally {
+      bannissementEnCours = false;
+    }
+  }
 
   const albumIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'album_id' in t ? (t.album_id ?? null) : null;
@@ -1921,6 +1919,18 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
               {$t('nowplaying.alarm')}
             </button>
+            {#if pisteBannissable}
+              <button
+                class="np-credits-btn"
+                data-bannir-en-cours
+                class:active={pisteEnCoursBannie}
+                disabled={bannissementEnCours}
+                onclick={basculerBannissement}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d={pisteEnCoursBannie ? ICONES.unban : ICONES.ban} /></svg>
+                {pisteEnCoursBannie ? $t('ban.unban' as any) : $t('ban.ban' as any)}
+              </button>
+            {/if}
           </div>
           <!-- 🔴 LE PANNEAU DES CRÉDITS VIT HORS DE LA RANGÉE — #975.
 
@@ -2473,7 +2483,14 @@
 
       <!-- Track list -->
       <div class="qs-track-list">
-        {#each $queueTracks as queueTrack, index}
+        <!-- 🔴 #1430 — `id` d'une ligne de file est `queue_items.id`, la piste
+             est `track_id`. Le menu « … » (« Autres versions », « Plus comme
+             ça », « Étiquettes », « Tous les champs piste »), `rangeableEnPlaylist`
+             et le bouton playlist visaient donc une AUTRE piste. `QueueV2`
+             applique déjà `pisteDeFile` ; les gestes de file (lire à ce rang,
+             glisser, retirer) travaillent à l'`index` et ne changent pas. -->
+        {#each $queueTracks as ligneDeFile, index}
+          {@const queueTrack = pisteDeFile(ligneDeFile)}
           <div
             class="qs-item"
             class:qs-current={qsIsCurrent(index)}

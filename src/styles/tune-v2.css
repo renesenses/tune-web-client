@@ -65,7 +65,6 @@
   --v2-danger:#FF8080; --v2-danger-soft:rgba(255,128,128,.12); --v2-danger-bd:#FF6B6B;
   --v2-sh-card:0 6px 16px rgba(0,0,0,.35); --v2-sh-lg:0 16px 40px rgba(0,0,0,.5); --v2-sh-menu:0 20px 50px rgba(0,0,0,.55);
   --v2-glow:rgba(0,188,212,.22); --v2-glow-strong:rgba(0,188,212,.28); --v2-acc-soft:rgba(46,125,246,.10); --v2-focus:rgba(46,125,246,.16); --v2-scrim:rgba(6,17,26,.8); --v2-sh-sm:rgba(0,0,0,.4);
-  --v2-glow:rgba(0,212,170,.22); --v2-glow-strong:rgba(0,212,170,.28); --v2-acc-soft:rgba(0,188,212,.10); --v2-focus:rgba(0,188,212,.14); --v2-scrim:rgba(7,20,24,.8); --v2-sh-sm:rgba(0,0,0,.4);
 }
 
 /* ── 3. Minuit / Orange ─────────────────────────────────────────────────── */

@@ -167,7 +167,8 @@ describe("Les albums d'une collection ouverte", () => {
     const grille = col.slice(col.indexOf('{#each albumsVus as a'), col.indexOf('{/each}', col.indexOf('{#each albumsVus as a')));
     expect(grille).toContain('<PochetteActions');
     expect(grille).toContain('favori={a.id != null ? { albumId: a.id } : null}');
-    expect(grille).toContain("etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}");
+    // 25/09/2026 : la cible d'un album passe par la règle unique des vignettes.
+    expect(grille).toContain('etiquettes={cibleEtiquetteAlbum(a)}');
     expect(grille).toContain('onLire={() => lireAlbum(a)}');
     // Le geste OUVRE la fiche. Depuis #980 il empile aussi une entrée
     // d'historique, donc la ligne n'est plus une affectation nue — l'intention

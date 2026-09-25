@@ -11,7 +11,7 @@ import {
   motifDEchec,
   phraseEchec,
 } from '../motifEchecEq';
-import * as locales from '../locales';
+import * as locales from './lesOnzeLangues';
 
 /**
  * L'égaliseur ne doit plus avaler une seule erreur — #513.

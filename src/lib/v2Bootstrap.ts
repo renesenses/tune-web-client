@@ -1,9 +1,8 @@
 /**
  * Amorçage des données du nouveau client.
  *
- * POURQUOI CE FICHIER EXISTE. Les stores partagés (`zones`, `albums`,
- * `devices`) sont de simples `writable([])` : ils ne se remplissent pas
- * seuls. Ce sont `App.svelte`, `LibraryView.svelte` et consorts qui les
+ * POURQUOI CE FICHIER EXISTE. Les stores partagés (`zones`, `devices`) sont
+ * de simples `writable([])` : ils ne se remplissent pas seuls. Ce sont `App.svelte`, `LibraryView.svelte` et consorts qui les
  * alimentent — or le mode `?v2` monte `ShellV2` À LA PLACE de `App`, et ne
  * monte aucun de ces composants.
  *
@@ -19,7 +18,7 @@
 import { get } from 'svelte/store';
 import * as api from './api';
 import { zones, currentZoneId } from './stores/zones';
-import { albums, libraryLoading } from './stores/library';
+import { invaliderBibliotheque } from './stores/albumsPagines';
 import { tuneWS } from './websocket';
 import { devices } from './stores/devices';
 import { loadProfiles, loadFavoriteIds, currentProfileId } from './stores/profile';
@@ -75,46 +74,19 @@ async function loadZones(): Promise<void> {
 }
 
 /**
- * Albums, en deux temps comme la vue historique : une première page rendue
- * tout de suite, puis le reste. Sur une grosse bibliothèque, l'utilisateur
- * voit la grille se remplir au lieu d'attendre devant un écran vide.
+ * 🔴 PLUS DE CHARGEMENT DES ALBUMS ICI — renesenses/tune-server-rust#4800.
+ *
+ * `loadAlbums` vivait là : des requêtes en série (100, puis des lots de
+ * 2 000), 3,5 Mo de JSON sur 9 427 albums, à CHAQUE ouverture, relancées à chaque
+ * `library.scan.completed`. Pendant ~158 s de connexion de lecture occupée,
+ * une requête sur trois attendait derrière (cause 2 de l'épique) — d'où les
+ * widgets en « Chargement… » puis « délai ».
+ *
+ * La Bibliothèque se sert désormais PAR PAGES (`stores/albumsPagines`), et les
+ * écrans qui ont besoin de la liste entière la demandent eux-mêmes, quand ils
+ * en ont besoin (`demanderBibliothequeEntiere`). Le magasin `albums` reste
+ * `[]` tant que personne ne l'a demandé.
  */
-async function loadAlbums(): Promise<void> {
-  libraryLoading.set(true);
-  try {
-    // 🔴 AUCUN tri demandé au serveur — et ce n'est pas un oubli.
-    //
-    // Signalé sur le forum le 05/09/2026 : « je n'ai pas vu de possibilité de
-    // tri des albums par date d'ajout dans la nouvelle interface ». L'option
-    // « Ajout récent » existe pourtant dans la Bibliothèque ; elle ne s'affiche
-    // que si la donnée est là, et elle ne l'était jamais.
-    //
-    // Mesuré sur le .18, même bibliothèque, même limite :
-    //
-    //     GET /library/albums?limit=50&offset=0                  -> 50/50 avec added_at
-    //     GET /library/albums?limit=50&offset=0&sort=title&…      ->  0/50
-    //     …&sort=artist / &sort=year / &sort=added               ->  0/50
-    //
-    // Le serveur a deux chemins, et le chemin TRIÉ perd `added_at` — quelle
-    // que soit la clé demandée, y compris `added` lui-même. Issue serveur
-    // ouverte.
-    //
-    // Ne rien demander suffit ici : tous les écrans du nouveau client trient
-    // eux-mêmes ce qu'ils affichent, l'ordre du serveur ne sert à personne.
-    // Vérifié que la pagination non triée reste stable sur cette base — deux
-    // lectures des pages 0 et 1 rendent la même chose, sans recouvrement,
-    // 200 identifiants distincts pour 200 attendus.
-    const first = await api.getAllAlbums(100, null, null, 1, 100);
-    albums.set(first);
-    libraryLoading.set(false);
-    if (first.length >= 100) {
-      const rest = await api.getAllAlbums(2000, null, null);
-      albums.set(rest);
-    }
-  } finally {
-    libraryLoading.set(false);
-  }
-}
 
 async function loadDevices(): Promise<void> {
   devices.set((await api.getDevices()) ?? []);
@@ -138,7 +110,7 @@ async function loadProfile(): Promise<void> {
  *  chargement échoue isolément, pour qu'une panne de découverte réseau ne
  *  vide pas la bibliothèque. */
 /**
- * 🔴 RECHARGER la bibliothèque quand le serveur dit qu'elle a changé.
+ * 🔴 INVALIDER la bibliothèque quand le serveur dit qu'elle a changé.
  *
  * DOUZIÈME « écrit mais pas branché » de ce client. Les événements existent et
  * sont émis depuis longtemps ; `library.scan.completed` et `library.updated`
@@ -156,18 +128,16 @@ async function loadProfile(): Promise<void> {
  *  - « il faut rafraîchir le navigateur pour les voir » (Patatorz, forum 1680,
  *    à propos des répertoires — même famille).
  *
- * `LibraryView` porte d'ailleurs le commentaire qui nomme le premier : « il
- * fallait changer d'onglet puis revenir pour voir arriver les albums qu'on
- * venait de déposer (Patatorz, fil #1517) ». Corrigé là-bas, jamais porté ici.
- *
- * On recharge la LISTE seulement : les écrans dérivent tout de `albums`, et
- * `libraryLoading` fait le reste. Rendre l'abonnement permet de le couper au
+ * 🔴 #4800 — on n'y RECHARGE plus rien : on INVALIDE. Recharger 3,5 Mo à
+ * chaque fin de scan était la moitié de la cause 3. Les pages tombent et
+ * chaque écran monté redemande ce qu'il montre ; un écran qui ne montre pas
+ * la bibliothèque ne coûte rien. Rendre l'abonnement permet de le couper au
  * démontage de la coquille.
  */
 export function suivreLaBibliotheque(): () => void {
   return tuneWS.onEvent((event: { type?: string }) => {
     if (event?.type === 'library.scan.completed' || event?.type === 'library.updated') {
-      void loadAlbums();
+      invaliderBibliotheque();
     }
   });
 }
@@ -204,7 +174,6 @@ export async function bootstrapV2(): Promise<void> {
 
   await Promise.allSettled([
     loadZones(),
-    loadAlbums(),
     loadDevices(),
     loadProfile(),
     loadLicense(),

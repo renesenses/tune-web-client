@@ -18,6 +18,7 @@
   import * as api from '../../lib/api';
   import { formatNombre } from '../../lib/formats';
   import { albums } from '../../lib/stores/library';
+  import { demanderBibliothequeEntiere } from '../../lib/stores/albumsPagines';
   import { preferences } from '../../lib/stores/preferences';
   import { fold } from '../../lib/utils';
   import { t } from '../../lib/i18n';
@@ -58,6 +59,14 @@
       .finally(() => { if (alive) loading = false; });
   });
 
+  // #4800 — la coquille ne charge plus la bibliothèque au démarrage : cet
+  // écran, qui choisit parmi TOUS les albums (recherche locale, deux cents
+  // vignettes), la demande lui-même, à son montage — et la redemande si un
+  // scan l'a vidée entre-temps (`$albums` retombe à `[]`).
+  $effect(() => {
+    if ($albums.length) return;
+    void demanderBibliothequeEntiere().catch(() => { /* le bandeau d'`api` a parlé */ });
+  });
   const shown = $derived(
     $albums.filter((a) => !q || fold(a.title).includes(fold(q)) || fold(a.artist_name).includes(fold(q))).slice(0, 200)
   );

@@ -22,8 +22,13 @@
     fractionDe, suivreLaCrete, suivrePpm, surcharge, zoneIec,
     type EtatPpm, type StyleCreteMetre,
   } from '../../lib/peakMetre';
-  import { retombeAuRepos } from '../../lib/cadenceCreteMetre';
+  import { retombeAuRepos, tempsDeDessiner } from '../../lib/cadenceCreteMetre';
   import { boucleImages } from '../../lib/boucleImages';
+  // #1256 — la cadence est un RÉGLAGE depuis le 23/09/2026. Le cran par défaut
+  // (`fluide`) rend exactement les 30 i/s livrés : rien ne bouge pour qui n'a
+  // rien demandé.
+  import { cranOuDefaut } from '../../lib/cadenceAnimations';
+  import { preferences } from '../../lib/stores/preferences';
 
   interface Props {
     style: StyleCreteMetre;
@@ -157,9 +162,17 @@
   // démontage vivent désormais dans `lib/boucleImages.ts`, partagé avec les
   // deux autres boucles de « Lecture en cours ». Le seuil de repos reste ici,
   // dans `lib/cadenceCreteMetre.ts`, où le test l'appelle.
+  //
+  // #1256 (23/09) — la cadence vient des Réglages. `cran` est LU DANS l'effet :
+  // changer le réglage démonte la boucle et la remonte à la nouvelle cadence,
+  // sans rechargement. Il est passé à `boucleImages` comme SA règle de rythme
+  // (`rythme`) : c'est le seul cadenceur de cette boucle, et il n'y en aura
+  // pas deux — deux cadenceurs en série qui ne tombent pas d'accord font
+  // disparaître une image sur deux (variante C de #1499).
   $effect(() => {
     const c = toile;
     const enLecture = joue;
+    const cran = cranOuDefaut($preferences.cadenceAnimations);
     if (!c || style === 'off') return;
     const ctx = c.getContext('2d');
     if (!ctx) return;
@@ -180,7 +193,7 @@
       }
       dessiner(ctx, l, hauteur);
       return true;
-    });
+    }, { rythme: (maintenant, dernier) => tempsDeDessiner(maintenant, dernier, cran) });
   });
 </script>
 

@@ -52,9 +52,57 @@ export function candidatsNouvelleZone(
   }
   for (const d of decouverts ?? []) {
     if (!d?.id || d.available === false || d.type === 'local' || d.type === 'browser') continue;
-    if (deviceHasBoundZone(d, liees)) continue;
-    const id = deviceZoneTargetId(d);
-    out.push({ cle: `${d.type}|${id}`, groupe: 'reseau', nom: d.name, outputType: d.type, deviceId: id });
+    if (!deviceHasBoundZone(d, liees)) {
+      const id = deviceZoneTargetId(d);
+      out.push({ cle: `${d.type}|${id}`, groupe: 'reseau', nom: d.name, outputType: d.type, deviceId: id });
+    }
+    out.push(...autresProtocolesLibres(d, liees));
+  }
+  return out;
+}
+
+/**
+ * Les AUTRES protocoles d'un même appareil, chacun proposable pour sa zone —
+ * fil 1927 (FabienM, 0.9.164).
+ *
+ * Le serveur replie les annonces d'un même appareil (même hôte, même nom) en
+ * une seule ligne de `GET /devices` : le protocole prioritaire en tête, les
+ * autres dans `capabilities.alternatives` (`dedup_devices`, tune-server-rust).
+ * Une Beosound Stage parle DLNA ET Cast : sa ligne est « dlna », le Cast est
+ * une alternative.
+ *
+ * Or dès qu'une zone tenait l'identité DLNA, `deviceHasBoundZone` écartait la
+ * ligne ENTIÈRE, Cast compris : « impossible de tester ma zone dans un autre
+ * protocole que DLNA ». Le serveur, lui, accepte une zone Cast sur le même
+ * appareil (`POST /zones` ne dédoublonne par hôte que le DLNA/OpenHome).
+ *
+ * Règle : une alternative d'un protocole que NI la tête NI aucune identité
+ * déjà tenue par une zone ne parle est proposée pour elle-même, une par
+ * protocole. Les doublons d'un même protocole (deux UUID SSDP, deux annonces
+ * RAOP) restent repliés, et une identité déjà tenue n'est jamais reproposée.
+ * La restauration d'une zone masquée garde son seul chemin, la tête.
+ */
+function autresProtocolesLibres(d: DiscoveredDevice, liees: ReadonlySet<string>): CandidatZone[] {
+  if (d.zone_hidden) return [];
+  const alternatives: unknown[] = Array.isArray(d.capabilities?.alternatives)
+    ? d.capabilities!.alternatives
+    : [];
+  const membres: Array<{ id: string; nom: string; type: OutputType }> = [];
+  for (const a of alternatives) {
+    if (!a || typeof a !== 'object') continue;
+    const { id, name, device_type } = a as { id?: unknown; name?: unknown; device_type?: unknown };
+    if (typeof id !== 'string' || !id || typeof device_type !== 'string') continue;
+    membres.push({ id, nom: typeof name === 'string' && name.trim() ? name : d.name, type: device_type as OutputType });
+  }
+  const tenus = new Set<string>();
+  if (liees.has(d.id)) tenus.add(d.type);
+  for (const m of membres) if (liees.has(m.id)) tenus.add(m.type);
+  const vus = new Set<string>([d.type, ...tenus]);
+  const out: CandidatZone[] = [];
+  for (const m of membres) {
+    if (vus.has(m.type) || m.type === 'local' || m.type === 'browser') continue;
+    vus.add(m.type);
+    out.push({ cle: `${m.type}|${m.id}`, groupe: 'reseau', nom: m.nom, outputType: m.type, deviceId: m.id });
   }
   return out;
 }

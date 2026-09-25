@@ -25,7 +25,7 @@ import {
   libelleBackend,
   modeWasapiPertinent,
 } from '../audioBackends';
-import { en as enBrut, fr as frBrut } from '../locales';
+import { en as enBrut, fr as frBrut } from './onzeDictionnaires';
 
 const fr = frBrut as Record<string, string>;
 const en = enBrut as Record<string, string>;

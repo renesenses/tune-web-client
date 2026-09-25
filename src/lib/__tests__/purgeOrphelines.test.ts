@@ -21,7 +21,7 @@ import {
   verdictDeRefus,
   type RetraitDossier,
 } from '../purgeOrphelines';
-import { en as enBrut, fr as frBrut } from '../locales';
+import { en as enBrut, fr as frBrut } from './onzeDictionnaires';
 
 const fr = frBrut as Record<string, string>;
 const en = enBrut as Record<string, string>;

@@ -8,10 +8,20 @@
 // hasard, sans qu'une ligne de son sujet ait changé.
 //
 // Un import STATIQUE est résolu pendant la collecte du fichier, que vitest
-// ne chronomètre pas : c'est déjà ainsi que tout banc qui monte un écran
-// charge les onze langues (via `i18n.ts`), et aucun d'eux n'a jamais expiré.
-// Le corps du test ne fait plus qu'une recherche dans un objet en mémoire.
-import { fr, en, de, es, it, zh, ja, ko, ro, sv, hu } from '../locales';
+// ne chronomètre pas. Le corps du test ne fait plus qu'une recherche dans un
+// objet en mémoire.
+//
+// 🔴 Depuis tune-server-rust#4800 (cause 4), `locales/index.ts` n'exporte
+// PLUS les dictionnaires : il ne porte que des `import()` — un chunk par
+// langue, pour que le bundle ne charge que la langue active. Les onze ne
+// sont plus importés en statique qu'ici — via `lesOnzeLangues.ts`, l'espace
+// de noms qui ne compte QUE les onze — et c'est ce fichier que les bancs
+// importent (`import { fr, dictionnaire } from './onzeDictionnaires'`).
+// `setupLocales.ts` les enregistre dans `i18n.ts` avant chaque banc, pour
+// que `$t` reste synchrone sous test comme il l'était.
+import { fr, en, de, es, it, zh, ja, ko, ro, sv, hu } from './lesOnzeLangues';
+
+export { fr, en, de, es, it, zh, ja, ko, ro, sv, hu };
 
 export const ONZE_LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'] as const;
 

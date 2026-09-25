@@ -4,6 +4,11 @@
   import { niveauDeLaSonde } from '../../lib/santeServeur';
   import { tachesDeFond } from '../../lib/stores/tachesDeFond';
   import { libelleBanniereEnrichissement } from '../../lib/tachesDeFond';
+  import {
+    avancementAnalyse, pourcentAnalyse, abonnerAvancementAnalyse, demarrerAvancement, terminerAvancement,
+  } from '../../lib/analyseBibliotheque';
+  import { tuneWS } from '../../lib/websocket';
+  import { formatNombre } from '../../lib/formats';
   /**
    * Barre latérale du nouveau client (direction Levente).
    *
@@ -33,6 +38,10 @@
   import { get } from 'svelte/store';
   import glyph from '../../assets/tune-glyph.png';
   import '../../styles/tune-v2.css';
+  import ArbreRayons from './ArbreRayons.svelte';
+  import {
+    etatRayons, rafraichirRayons, cleCibleCollection, lireArbreBarreReplie, ecrireArbreBarreReplie,
+  } from '../../lib/rayonsCollections';
 
   /**
    * 🔴 `labelKey`, PAS `label`.
@@ -147,6 +156,11 @@
       icon: 'M4 7h11M4 12h11M4 17h7M18 15V8l3 .6' },
     { view: 'tags', labelKey: 'v2.nav.tags', icon: 'M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l8.58-8.58a1 1 0 0 0 0-1.42zM6.5 6.5h.01' },
     { view: 'favorites', labelKey: 'v2.nav.favorites', icon: 'M12 20s-6.5-4-9-8C1 9 3 5.5 6.2 5.5c1.8 0 3 1 3.8 2 .8-1 2-2 3.8-2C17 5.5 19 9 17 12c-2.5 4-9 8-9 8z' },
+    // #4806 — « Titres bannis » : ce que l'utilisateur a ÉCARTÉ lui-même,
+    // l'envers des favoris. Le client web n'a pas d'écran d'albums masqués
+    // (`/albums/hidden` n'y est pas branché) : l'entrée vit ici, avec les
+    // autres sélections, pour tout revoir et débannir.
+    { view: 'bannedtracks', labelKey: 'ban.title', icon: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M5.6 5.6l12.8 12.8' },
   ];
 
   const STUDIO: Item[] = [
@@ -175,6 +189,8 @@
    * cinquième raccourci ajouté chasserait un raccourci épinglé de la barre.
    */
   const RACCOURCIS_BARRE = 5;
+  /** Cadence du contrôle de fin d'analyse (#1577). */
+  const CONTROLE_ANALYSE_MS = 10_000;
   const raccourcisVisibles = $derived(
     [...$shortcuts]
       .sort((a, b) => Number(b.pinned !== false) - Number(a.pinned !== false))
@@ -212,6 +228,59 @@
     api.getBackgroundTasks().then((r) => tachesDeFond.set(r?.tasks ?? [])).catch(() => {});
   });
   const enrichissementEnCours = $derived(libelleBanniereEnrichissement($tachesDeFond, $t('app.enrichmentRunning')));
+  /**
+   * #1577 — Didier (fil 1904) : « un indicateur toujours visible de mise à
+   * jour en cours de la base ». L'avancement d'une analyse n'était lu que par
+   * les Réglages et Tune Health : une analyse PLANIFIÉE à 22 h passait
+   * inaperçue, sauf à ouvrir l'un des deux écrans pendant qu'elle tournait.
+   *
+   * Pas de seconde source de vérité : la barre lit le MÊME état
+   * (`lib/analyseBibliotheque`, nourri par `library.scan.progress` et vidé
+   * par `library.scan.completed`), comme les Réglages. Elle s'abonne
+   * elle-même, puisqu'elle est montée partout — les abonnements multiples
+   * sont sans effet, la fusion est idempotente.
+   *
+   * Deux compléments, pris à `GET /system/scan/status`, le seul booléen dont
+   * le serveur fasse foi (les Réglages le sondent déjà) :
+   *  - à l'ouverture, une analyse DÉJÀ lancée se signale sans attendre son
+   *    prochain événement ;
+   *  - tant que l'indicateur est levé, un contrôle toutes les 10 s le baisse
+   *    si le serveur ne scanne plus — un `completed` perdu pendant une
+   *    coupure du flux ne doit pas le laisser affiché pour toujours.
+   */
+  $effect(() => abonnerAvancementAnalyse((h) => tuneWS.onEvent(h)));
+  $effect(() => {
+    api.getScanStatus()
+      .then((r) => { if (r?.scanning && !get(avancementAnalyse)) demarrerAvancement(); })
+      .catch(() => {});
+  });
+  const analyseEnCours = $derived($avancementAnalyse !== null);
+  $effect(() => {
+    if (!analyseEnCours) return;
+    const minuterie = setInterval(() => {
+      api.getScanStatus()
+        .then((r) => { if (r && r.scanning === false) terminerAvancement(); })
+        .catch(() => {});
+    }, CONTROLE_ANALYSE_MS);
+    return () => clearInterval(minuterie);
+  });
+  /** Le libellé : pourcentage quand le total est connu, compte brut pendant
+   *  le parcours des dossiers (le serveur envoie alors `total: 0`), rien de
+   *  chiffré tant qu'aucun événement n'est arrivé. */
+  const libelleAnalyse = $derived.by(() => {
+    const a = $avancementAnalyse;
+    if (!a) return null;
+    const p = pourcentAnalyse(a);
+    if (p !== null) return $t('v2.nav.scanRunningPct' as any).replace('{p}', String(p));
+    if (a.scanned > 0) return $t('v2.nav.scanRunningFiles' as any).replace('{f}', $formatNombre(a.scanned));
+    return $t('v2.nav.scanRunning' as any);
+  });
+  /** Même destination que la carte qui détaille l'analyse : Réglages ›
+   *  Bibliothèque. */
+  function ouvrirAnalyse() {
+    v2SettingsTarget.set({ tab: 'library', section: 'library' });
+    go('settings');
+  }
 
   // 🔴 Naviguer REFERME le tiroir. Sans cela, au palier « tiroir » la barre
   // reste par-dessus l'écran qu'on vient de demander : on choisit une vue et
@@ -383,6 +452,37 @@
     try { localStorage.setItem('tune_v2_sidebar_collapsed', veut ? '1' : '0'); } catch { /* ignore */ }
   }
 
+  /**
+   * RAYONS de collections sous l'entrée « Collections » — tune-server-rust#4853.
+   * Un serveur antérieur ne sert pas l'arbre : rien ne s'affiche, sans erreur.
+   * Une collection s'ouvre par le chemin des raccourcis (même écoute côté
+   * écran), jamais par un second mécanisme.
+   */
+  $effect(() => { void rafraichirRayons(api.getCollectionFolders); });
+  /**
+   * #1580 (Didier, fil 1907) : « il n'est pas possible de réduire complètement
+   * le menu Collections ». Un chevron sur l'entrée replie l'arbre ENTIER, et
+   * s'en souvient ; les replis rayon par rayon restent ceux d'`ArbreRayons`.
+   */
+  let arbreBarreReplie = $state(lireArbreBarreReplie());
+  function basculerArbreBarre() {
+    arbreBarreReplie = !arbreBarreReplie;
+    ecrireArbreBarreReplie(arbreBarreReplie);
+  }
+  const libellePliArbre = $derived(
+    arbreBarreReplie ? $t('v2.rayons.showTree' as any) : $t('v2.rayons.hideTree' as any),
+  );
+  const arbreBarreDisponible = $derived(
+    !enIcones && $etatRayons.mode === 'arbre' && $etatRayons.arbre.folders.length > 0,
+  );
+  function ouvrirCollectionRangee(kind: 'collection' | 'smart', id: number) {
+    tiroirOuvert.set(false);
+    navigateToShortcut({
+      id: 0, name: '', icon: '', view: 'collections',
+      state: { target: { key: cleCibleCollection(kind, id), restore: { id } } },
+    } as any);
+  }
+
   function fermerTiroir() { tiroirOuvert.set(false); }
   function auClavier(e: KeyboardEvent) {
     if (e.key === 'Escape' && $tiroirOuvert) { e.stopPropagation(); fermerTiroir(); }
@@ -416,6 +516,12 @@
         title="{$t('sidebar.serverStatus')} : {$healthStatus}" aria-label="{$t('sidebar.serverStatus')} : {$healthStatus}"></span>{/if}</div>
       <div class="sub">MOZAIKLABS</div>
       {#if enrichissementEnCours}<div class="taches" aria-live="polite">{enrichissementEnCours}</div>{/if}
+      {#if libelleAnalyse}
+        <button class="analyse" onclick={ouvrirAnalyse} aria-live="polite"
+          title={$t('v2.nav.scanRunningHint' as any)}>
+          <span class="pt"></span>{libelleAnalyse}
+        </button>
+      {/if}
       {#if $updateAvailable}
         <button class="maj-lien" onclick={ouvrirMaj}
           title={$t('v2.nav.updateTo' as any).replace('{v}', $latestVersion ?? '')}>
@@ -425,6 +531,11 @@
         <div class="ver">v{versionCourante}</div>
       {/if}
     </div>
+    {#if enIcones && libelleAnalyse}
+      <!-- Repliée, `.txt` est masqué : le point garde l'analyse visible. -->
+      <button class="analyse-point" onclick={ouvrirAnalyse}
+        aria-label={libelleAnalyse} title={libelleAnalyse}></button>
+    {/if}
     {#if enIcones && $updateAvailable}
       <!-- Repliée, `.txt` est masqué : sans ce point, l'annonce disparaîtrait
            entièrement dès qu'on replie la barre. -->
@@ -520,10 +631,29 @@
     <nav class="grp">
       <div class="grp-label">{$t('v2.nav.selections' as any)}</div>
       {#each SELECTIONS as it (it.view)}
-        <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
-          <span>{$t(it.labelKey as any)}</span>
-        </button>
+        {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
+          <!-- #1580 : l'entrée garde son geste (ouvrir l'écran) ; le chevron,
+               bouton frère et non enfant, replie l'arbre entier. -->
+          <div class="nav-pli">
+            <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
+              <span>{$t(it.labelKey as any)}</span>
+            </button>
+            <button class="pli-arbre" aria-expanded={!arbreBarreReplie}
+              aria-label={libellePliArbre} title={libellePliArbre}
+              onclick={basculerArbreBarre}>
+              <svg viewBox="0 0 24 24" class:ferme={arbreBarreReplie}><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+            </button>
+          </div>
+          {#if !arbreBarreReplie}
+            <ArbreRayons compact arbre={$etatRayons.arbre} onOuvrir={ouvrirCollectionRangee} />
+          {/if}
+        {:else}
+          <button class="nav" class:active={estActif(it, $activeView)} onclick={() => go(it.view)} title={enIcones ? $t(it.labelKey as any) : undefined}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d={it.icon} /></svg>
+            <span>{$t(it.labelKey as any)}</span>
+          </button>
+        {/if}
       {/each}
     </nav>
 
@@ -667,6 +797,21 @@
     border-radius:50%; border:2px solid var(--v2-bg); cursor:pointer;
     background:var(--v2-acc1)}
   .maj-point:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  /* #1577 — l'analyse de la bibliothèque, tant qu'elle tourne. Discret, sous
+     « MOZAIKLABS », et cliquable vers Réglages › Bibliothèque. */
+  .analyse{display:flex; align-items:center; gap:5px; max-width:100%; margin-top:4px; padding:0;
+    border:0; background:transparent; cursor:pointer; font:9.5px var(--v2-mono); color:var(--v2-acc-tint);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:left}
+  .analyse:hover{color:var(--v2-txt)}
+  .analyse:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  .analyse .pt{width:6px; height:6px; border-radius:50%; background:var(--v2-acc-tint); flex:none;
+    animation:analyse-pouls 1.6s ease-in-out infinite}
+  .analyse-point{position:absolute; top:0; left:6px; width:9px; height:9px; padding:0;
+    border-radius:50%; border:2px solid var(--v2-bg); cursor:pointer; background:var(--v2-acc-tint);
+    animation:analyse-pouls 1.6s ease-in-out infinite}
+  .analyse-point:focus-visible{outline:2px solid var(--v2-acc1); outline-offset:2px}
+  @keyframes analyse-pouls{50%{opacity:.35}}
+  @media (prefers-reduced-motion: reduce){.analyse .pt, .analyse-point{animation:none}}
 
   .navscroll{flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px}
   .navscroll::-webkit-scrollbar{width:6px}
@@ -699,6 +844,15 @@
      repliée — à 72 px de large, décaler une icône la sortirait de sa colonne
      et la rangée d'icônes cesserait d'être alignée. */
   .nav.svc{padding-left:30px; font-size:13px}
+  /* #1580 : chevron du repli de l'arbre entier, posé sur l'entrée Collections. */
+  .nav-pli{position:relative}
+  .nav-pli .nav{padding-right:36px}
+  .pli-arbre{position:absolute; right:8px; top:50%; transform:translateY(-50%); width:24px; height:24px;
+    display:grid; place-items:center; padding:0; border:0; border-radius:6px; background:none;
+    color:var(--v2-txt3, currentColor); cursor:pointer}
+  .pli-arbre:hover{color:var(--v2-txt); background:var(--v2-hover)}
+  .pli-arbre svg{width:14px; height:14px; transition:transform .12s}
+  .pli-arbre svg.ferme{transform:rotate(-90deg)}
   .v2-sidebar.collapsed .nav.svc{padding-left:0}
   .support{margin-top:6px}
   .sante{display:inline-block; width:7px; height:7px; margin-left:6px; border-radius:50%;

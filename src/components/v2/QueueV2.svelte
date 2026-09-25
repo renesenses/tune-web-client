@@ -30,6 +30,7 @@
   import IndicateurLecture from './IndicateurLecture.svelte';
   import { queueTracks, queuePosition } from '../../lib/stores/queue';
   import PisteActions from './PisteActions.svelte';
+  import { confirmerLectureBannie, estBannie, surchargesBannissement } from '../../lib/titreBanni';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
   import { formatDuration, formatTime, getQualityTier } from '../../lib/utils';
@@ -244,6 +245,17 @@
     busy = false;
   }
   const jump = (i: number) => act(() => api.jumpInQueue($currentZoneId!, i));
+  /**
+   * #4806 — la file n'est PAS purgée d'un titre banni : la ligne reste,
+   * grisée et barrée (`banned` sur chaque ligne de `GET /zones/{id}/queue`),
+   * et le serveur la SAUTE quand la lecture y arrive. Y sauter à la main est
+   * un clic délibéré : il se confirme, puis passe par `jump`.
+   */
+  const bannieDe = (p: Track) => estBannie(p, $surchargesBannissement);
+  async function sauterDelibere(p: Track, i: number) {
+    if (!(await confirmerLectureBannie(p))) return;
+    await jump(i);
+  }
   const remove = (i: number) => act(() => api.removeFromQueue($currentZoneId!, i));
   const move = (from: number, to: number) => act(() => api.moveInQueue($currentZoneId!, from, to));
   /**
@@ -351,8 +363,8 @@
           {#each visibles as t, k (String(t.id ?? '') + '@' + (pos + 1 + fenetre.debut + k))}
             {@const i = fenetre.debut + k}
             {@const idx = pos + 1 + i}
-            <div class="row" class:np={t.id != null && t.id === $currentTrackId}>
-              <button class="play" onclick={() => jump(idx)} disabled={busy} aria-label={$tr('v2.queue.playTrack' as any).replace('{t}', t.title ?? '')}>
+            <div class="row" class:np={t.id != null && t.id === $currentTrackId} class:bannie={bannieDe(t)}>
+              <button class="play" onclick={() => void sauterDelibere(t, idx)} disabled={busy} aria-label={$tr('v2.queue.playTrack' as any).replace('{t}', t.title ?? '')}>
                 <span class="n">{i + 1}</span>
                 <span class="cv"><AlbumArt coverPath={t.cover_path} albumId={t.album_id ?? null} size={0} alt={t.title} source={t.source} fallbackInitials={t.title?.slice(0,1)} /></span>
                 <span class="ti">{t.title}<em>{t.artist_name ?? ''}{t.album_title ? ' · ' + t.album_title : ''}</em></span>
@@ -427,6 +439,10 @@
     padding:0 8px; border-radius:9px; color:var(--v2-txt2)}
   .row:hover{background:var(--v2-hover); color:var(--v2-txt)}
   .row.np{color:var(--v2-acc1)}
+  /* #4806 — la ligne bannie reste dans la file, grisée et barrée : le serveur
+     la sautera, l'écran le montre. */
+  .row.bannie{opacity:0.45}
+  .row.bannie .ti{text-decoration:line-through}
   .play{display:grid; grid-template-columns:26px 40px 1fr; align-items:center; gap:12px; min-width:0;
     border:0; background:transparent; color:inherit; cursor:pointer; text-align:left; padding:7px 0; font-family:inherit}
   .play:disabled{cursor:default}
