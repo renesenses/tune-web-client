@@ -2623,6 +2623,8 @@ export default {
   "v2.rayons.dropHint": "Släpp en samling eller hylla här för att flytta den till översta nivån.",
   "v2.rayons.expand": "Fäll ut",
   "v2.rayons.collapse": "Fäll ihop",
+  "v2.rayons.hideTree": "Dölj hyllor",
+  "v2.rayons.showTree": "Visa hyllor",
   "v2.rayons.actions": "Hyllåtgärder",
   "v2.rayons.error": "Kunde inte ordna",
   "v2.col.title": "Samlingar",

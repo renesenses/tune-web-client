@@ -1615,6 +1615,8 @@ export default {
   "v2.rayons.dropHint": "Drop a collection or a shelf here to move it to the top level.",
   "v2.rayons.expand": "Expand",
   "v2.rayons.collapse": "Collapse",
+  "v2.rayons.hideTree": "Hide shelves",
+  "v2.rayons.showTree": "Show shelves",
   "v2.rayons.actions": "Shelf actions",
   "v2.rayons.error": "Could not reorganise",
   "v2.col.title": "Collections",

@@ -2624,6 +2624,8 @@ export default {
   "v2.rayons.dropHint": "将收藏集或书架拖放到这里即可移到顶层。",
   "v2.rayons.expand": "展开",
   "v2.rayons.collapse": "折叠",
+  "v2.rayons.hideTree": "隐藏书架",
+  "v2.rayons.showTree": "显示书架",
   "v2.rayons.actions": "书架操作",
   "v2.rayons.error": "无法整理",
   "v2.col.title": "收藏集",

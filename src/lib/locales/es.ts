@@ -2624,6 +2624,8 @@ export default {
   "v2.rayons.dropHint": "Suelte aquí una colección o un estante para llevarlo al nivel superior.",
   "v2.rayons.expand": "Desplegar",
   "v2.rayons.collapse": "Plegar",
+  "v2.rayons.hideTree": "Ocultar los estantes",
+  "v2.rayons.showTree": "Mostrar los estantes",
   "v2.rayons.actions": "Acciones del estante",
   "v2.rayons.error": "No se pudo ordenar",
   "v2.col.title": "Colecciones",

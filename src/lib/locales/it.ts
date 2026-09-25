@@ -2624,6 +2624,8 @@ export default {
   "v2.rayons.dropHint": "Rilascia qui una raccolta o uno scaffale per portarlo al livello principale.",
   "v2.rayons.expand": "Espandi",
   "v2.rayons.collapse": "Comprimi",
+  "v2.rayons.hideTree": "Nascondi gli scaffali",
+  "v2.rayons.showTree": "Mostra gli scaffali",
   "v2.rayons.actions": "Azioni dello scaffale",
   "v2.rayons.error": "Riordino non riuscito",
   "v2.col.title": "Raccolte",

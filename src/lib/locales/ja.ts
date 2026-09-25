@@ -2624,6 +2624,8 @@ export default {
   "v2.rayons.dropHint": "コレクションや棚をここにドロップすると最上位に移動します。",
   "v2.rayons.expand": "展開",
   "v2.rayons.collapse": "折りたたむ",
+  "v2.rayons.hideTree": "棚を隠す",
+  "v2.rayons.showTree": "棚を表示",
   "v2.rayons.actions": "棚の操作",
   "v2.rayons.error": "整理できませんでした",
   "v2.col.title": "コレクション",
