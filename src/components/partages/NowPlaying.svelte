@@ -3,6 +3,8 @@
   import { rangeableEnPlaylist } from '../../lib/pisteFile';
   import { pisteDeFile } from '../../lib/pisteDeFile';
   import MenuPisteV1 from './MenuPisteV1.svelte';
+import { bannir, debannir, bannissable, estBannie, surchargesBannissement } from '../../lib/titreBanni';
+import { ICONES } from '../../lib/menuPiste';
   import { doitReinitialiserLesParoles } from '../../lib/nowPlayingLyricsReset';
   import { currentZone } from '../../lib/stores/zones';
   import { dialogs } from '../../lib/stores/dialogs';
@@ -1053,6 +1055,39 @@
   // besoin d'un vrai `Track`, garde d'affichage comprise.
   let normalizedTrack = $derived(displayTrack ? nowPlayingToTrack(displayTrack) : null);
 
+  // Fil 1946 (FabienM, v0.9.165) — « on se rend compte qu'on n'aime pas un
+  // titre quand on l'écoute » : « Bannir ce titre » dans la rangée d'En écoute,
+  // à côté de Paroles, Sleep, Réveil. Le MÊME geste que le menu de piste
+  // (`titreBanni.bannir` / `debannir` : même route, même message, même
+  // surcharge locale) et la même règle : bibliothèque LOCALE seulement
+  // (Bertrand, 23/09) — sur une piste de service, pas de bouton. Le serveur
+  // enchaîne lui-même le titre suivant quand on bannit ce qui joue (#4818).
+  //
+  // Déjà banni : la surcharge de l'écran d'abord, puis le drapeau `banned` —
+  // celui de la piste, ou à défaut celui de sa ligne de file (`get_queue` le
+  // pose sur chaque ligne ; le now-playing de la zone ne le porte pas).
+  let pisteBannissable = $derived(
+    !isRadio && normalizedTrack != null && bannissable(normalizedTrack) ? normalizedTrack : null,
+  );
+  let pisteEnCoursBannie = $derived.by(() => {
+    const p = pisteBannissable;
+    if (p == null) return false;
+    const drapeau = p.banned ?? $queueTracks.find((l) => l.id === p.id)?.banned;
+    return estBannie({ ...p, banned: drapeau }, $surchargesBannissement);
+  });
+  let bannissementEnCours = $state(false);
+  async function basculerBannissement() {
+    const p = pisteBannissable;
+    if (p == null || bannissementEnCours) return;
+    bannissementEnCours = true;
+    try {
+      if (pisteEnCoursBannie) await debannir(p);
+      else await bannir(p);
+    } finally {
+      bannissementEnCours = false;
+    }
+  }
+
   const albumIdOf = (t: Track | NowPlaying | null | undefined) =>
     t && 'album_id' in t ? (t.album_id ?? null) : null;
   const artistIdOf = (t: Track | NowPlaying | null | undefined) =>
@@ -1884,6 +1919,18 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3L2 6"/><path d="M22 6l-3-3"/></svg>
               {$t('nowplaying.alarm')}
             </button>
+            {#if pisteBannissable}
+              <button
+                class="np-credits-btn"
+                data-bannir-en-cours
+                class:active={pisteEnCoursBannie}
+                disabled={bannissementEnCours}
+                onclick={basculerBannissement}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d={pisteEnCoursBannie ? ICONES.unban : ICONES.ban} /></svg>
+                {pisteEnCoursBannie ? $t('ban.unban' as any) : $t('ban.ban' as any)}
+              </button>
+            {/if}
           </div>
           <!-- 🔴 LE PANNEAU DES CRÉDITS VIT HORS DE LA RANGÉE — #975.
 
