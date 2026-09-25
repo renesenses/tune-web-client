@@ -46,8 +46,15 @@ function pochettes(source: string): string[] {
   });
 }
 
-/** Cible d'étiquettes déclarée par cette pochette, s'il y en a une. */
+/**
+ * Cible d'étiquettes déclarée par cette pochette, s'il y en a une.
+ *
+ * Un ALBUM passe désormais par `cibleEtiquetteAlbum` (règle unique des
+ * vignettes et de la fiche, 25/09/2026) : sans le reconnaître, ce balayage ne
+ * verrait plus aucune pochette d'album et resterait vert pour rien.
+ */
 function cibleEtiquettes(bloc: string): string | null {
+  if (/etiquettes=\{[^}]*cibleEtiquetteAlbum\(/.test(bloc)) return 'album';
   return /etiquettes=\{[^}]*itemType: '(album|artist)'/.exec(bloc)?.[1] ?? null;
 }
 

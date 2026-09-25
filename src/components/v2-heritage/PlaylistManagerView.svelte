@@ -15,6 +15,8 @@
   import { notifications } from '../../lib/stores/notifications';
   import { lireListeAleatoire } from '../../lib/lectureEnMasse';
   import { gestesDeZone } from '../../lib/gestesDeZone';
+  import { corpsDeFileListe } from '../../lib/pisteFile';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from '../v2/ListePistesV2.svelte';
   import ClampedText from '../partages/ClampedText.svelte';
@@ -24,6 +26,10 @@
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
   import { listResetNonce } from '../../lib/stores/navigation';
+  import { convertisseurCharge, rafraichirConvertisseur } from '../../lib/stores/convertisseurPlaylists';
+  import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
+  import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
+  import LiensConvertisseur from './convertisseur/LiensConvertisseur.svelte';
 
   let viewTab = $state<'manual' | 'smart' | 'smart-ai'>('manual');
 
@@ -439,7 +445,25 @@
    */
   const ONGLETS_AVANCES = false;
 
-  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab'>('playlists');
+  /**
+   * Les onglets du greffon « Playlists converter » (tune-server-rust#4715) —
+   * Transferts, Snapshots, Synchro. Ils ne dépendent PAS de `ONGLETS_AVANCES`
+   * : ils parlent au greffon (`/plugins/playlists-converter/…`), pas aux
+   * anciennes routes `/playlist-manager/*`. Ils ne s'affichent que si le
+   * greffon est installé, activé et CHARGÉ (`convertisseurCharge`) ; sinon la
+   * rangée reste réduite à Playlists, comme depuis le 22/09/2026.
+   *
+   * Sauvegarde et Collaboratives ne reviennent pas : elles ne relèvent pas de
+   * ce greffon (Tune Circle pour les secondes).
+   */
+  type OngletConvertisseur = 'conv-transferts' | 'conv-snapshots' | 'conv-synchro';
+  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab' | OngletConvertisseur>('playlists');
+
+  // Le greffon peut disparaître (désactivé, désinstallé) pendant qu'un de ses
+  // onglets est ouvert : on ne reste pas sur un onglet sans bouton.
+  $effect(() => {
+    if (!$convertisseurCharge && managerTab.startsWith('conv-')) managerTab = 'playlists';
+  });
 
   // Transfer history
   let transferHistory = $state<any[]>([]);
@@ -964,6 +988,7 @@
 
   // Load on mount
   loadAll();
+  void rafraichirConvertisseur();
 
   function serviceName(s: string): string {
     const labels: Record<string, string> = {
@@ -1239,6 +1264,30 @@
       notifications.error(errText(e) ?? $tr('common.error'));
     }
     melangeEnCours = false;
+  }
+
+  /**
+   * « Lire ensuite » de la playlist ouverte — #1574 (FabienM, fil 1924).
+   *
+   * Même geste que la fiche album et `PlaylistDetailV2` : la liste entière en
+   * UNE requête, au rang `rangLireEnsuite()` (juste après le titre en cours).
+   * `corpsDeFileListe` désigne les pistes locales par `track_ids` et celles de
+   * service par `tracks[]` : une playlist Qobuz/Tidal s'enfile aussi.
+   */
+  let fileOccupee = $state(false);
+  async function lireEnsuite() {
+    if (!zone?.id || fileOccupee) return;
+    const corps = corpsDeFileListe(detailTracks, rangLireEnsuite());
+    if (!corps) { notifications.error($tr('library.noTracks')); return; }
+    fileOccupee = true;
+    try {
+      await api.addToQueue(zone.id, corps);
+      const nom = selectedPlaylist?.name ?? selectedStreamingPl?.name ?? '';
+      notifications.success($tr('v2.album.queuedNext' as any).replace('{title}', nom));
+    } catch {
+      notifications.error($tr('v2.pa.queueError' as any));
+    }
+    fileOccupee = false;
   }
 
   async function playStreamingPlaylist(pl: StreamingPlaylist, startIndex?: number) {
@@ -1746,6 +1795,13 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M16 3h5v5" /><path d="M4 20 21 3" /><path d="M21 16v5h-5" /><path d="M15 15l6 6" /><path d="M4 4l5 5" /></svg>
           {$tr('library.shuffle')}
         </button>
+        <!-- « Lire ensuite » — #1574. Même style que « Lecture aléatoire »,
+             même icône et même libellé que la fiche album. -->
+        <button class="shuffle-btn lire-ensuite-btn" onclick={lireEnsuite}
+          disabled={fileOccupee || detailTracks.length === 0}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 6h9M4 12h9M4 18h5"/><path d="M15 8l5 4-5 4z" fill="currentColor" stroke="none"/></svg>
+          {$tr('v2.album.playNext' as any)}
+        </button>
       </div>
     </div>
 
@@ -1809,6 +1865,11 @@
           <button class="pm-tab" class:active={managerTab === 'sync'} onclick={() => { managerTab = 'sync'; loadManagerData(); }}>{$tr('playlistManager.tabSync')}</button>
           <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>{$tr('playlistManager.tabBackup')}</button>
           <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
+        {/if}
+        {#if $convertisseurCharge}
+          <button class="pm-tab" data-onglet="conv-transferts" class:active={managerTab === 'conv-transferts'} onclick={() => managerTab = 'conv-transferts'}>{$tr('plconv.ongletTransferts')}</button>
+          <button class="pm-tab" data-onglet="conv-snapshots" class:active={managerTab === 'conv-snapshots'} onclick={() => managerTab = 'conv-snapshots'}>{$tr('plconv.ongletSnapshots')}</button>
+          <button class="pm-tab" data-onglet="conv-synchro" class:active={managerTab === 'conv-synchro'} onclick={() => managerTab = 'conv-synchro'}>{$tr('plconv.ongletSynchro')}</button>
         {/if}
       </div>
       <div class="pm-header-right">
@@ -2214,6 +2275,19 @@
             </div>
           {/if}
         {/if}
+      </div>
+
+    {:else if managerTab === 'conv-transferts' && $convertisseurCharge}
+      <div class="pm-tab-content">
+        <TransfertsConvertisseur {localPlaylists} {streamingPlaylists} />
+      </div>
+    {:else if managerTab === 'conv-snapshots' && $convertisseurCharge}
+      <div class="pm-tab-content">
+        <SnapshotsConvertisseur {localPlaylists} {streamingPlaylists} />
+      </div>
+    {:else if managerTab === 'conv-synchro' && $convertisseurCharge}
+      <div class="pm-tab-content">
+        <LiensConvertisseur {localPlaylists} {streamingPlaylists} />
       </div>
 
     {:else}

@@ -31,6 +31,7 @@
  * on ne peut pas leur inventer des métadonnées qu'ils n'émettent pas.
  */
 import type { Album, MediaServer, Track } from './types';
+import { retenirDepotTuneDistant } from './depotsTuneDistants';
 
 export interface DepotDistant {
   /** Racine de l'API du serveur distant, sans barre finale. */
@@ -40,6 +41,9 @@ export interface DepotDistant {
 }
 
 export function depotDistant(s: MediaServer): DepotDistant {
+  // #4954 — ses pochettes absolues doivent passer par le relais, pas par le
+  // condensat local de #1360 : `artworkUrl` le sait par ce registre.
+  retenirDepotTuneDistant(`${s.host}:${s.port}`);
   return {
     base: `http://${s.host}:${s.port}/api/v1`,
     nom: s.name,
