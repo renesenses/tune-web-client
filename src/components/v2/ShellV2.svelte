@@ -15,7 +15,7 @@
   import LibraryV2 from './LibraryV2.svelte';
   import HomeV2 from './HomeV2.svelte';
   import SearchV2 from './SearchV2.svelte';
-  import { ficheAlbumService } from '../../lib/stores/streaming';
+  import { ficheAlbumService, type CibleFicheAlbumService } from '../../lib/stores/streaming';
   import { ouvrirArtisteDeServiceParNom } from '../../lib/ouvrirArtisteDepuis';
   import { gestesNavigationService } from '../../lib/stores/navigation';
   import ArtisteServiceV2 from './ArtisteServiceV2.svelte';
@@ -419,8 +419,11 @@
    * premier appelant et faux pour tous les autres. Les émetteurs qui ne le
    * disent pas gardent l'ancien comportement.
    */
-  function ouvrirArtisteServiceParNom(c: { service: string; nom: string; id?: string | null; depuis?: View | null }) {
-    void ouvrirArtisteDeServiceParNom(c, c.depuis ?? 'nowplaying');
+  function ouvrirArtisteServiceParNom(c: {
+    service: string; nom: string; id?: string | null; depuis?: View | null;
+    ficheDeRetour?: CibleFicheAlbumService | null;
+  }) {
+    void ouvrirArtisteDeServiceParNom(c, c.depuis ?? 'nowplaying', { ficheDeRetour: c.ficheDeRetour ?? null });
   }
 
   /**
