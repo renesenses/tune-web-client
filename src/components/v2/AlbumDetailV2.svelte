@@ -56,6 +56,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { portail } from '../../lib/portail';
+  import { dialogs } from '../../lib/stores/dialogs';
+  import { origineDuCoffret, EVT_COFFRET_DEFAIT, type OrigineCoffret } from '../../lib/coffretAuto';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
   // identifiants n'y sont pas les notres — pistes et lecture doivent passer
   // par lui, sans quoi on jouerait un tout autre morceau du meme numero.
@@ -363,6 +365,48 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
    * dossier qui n'est pas celui-là.
    */
   const dossier = $derived(depot ? null : dossierDeLAlbum(tracks));
+
+  /**
+   * « Défaire le coffret » — GO de Bertrand du 25/09/2026. Seulement sur un
+   * coffret AUTOMATIQUE d'un album LOCAL : l'origine se lit dans le magasin
+   * clé-valeur de l'album (`coffret`, voir `lib/coffretAuto.ts`). Un coffret
+   * manuel n'a pas de bouton — sa route répond 409.
+   */
+  let origineCoffret = $state<OrigineCoffret | null>(null);
+  let defaireEnCours = $state(false);
+  $effect(() => {
+    const id = album.id;
+    origineCoffret = null;
+    if (id == null || depot || service || bandcamp || (album.source && album.source !== 'local')) return;
+    api.getAlbumExtendedMetadata(id)
+      .then((m) => { if (album.id === id) origineCoffret = origineDuCoffret(m?.coffret); })
+      .catch(() => { /* pas de bouton : rien n'est promis */ });
+  });
+  async function defaireCoffret() {
+    const id = album.id;
+    if (id == null || defaireEnCours || origineCoffret !== 'auto') return;
+    const ok = await dialogs.confirm($tr('v2.album.boxUndoConfirm' as any), { danger: true });
+    if (!ok) return;
+    defaireEnCours = true;
+    let reussi = false;
+    try {
+      await api.defaireCoffret(id);
+      reussi = true;
+    } catch {
+      reussi = false;
+    }
+    defaireEnCours = false;
+    if (!reussi) {
+      notifications.error($tr('v2.album.boxUndoError' as any));
+      return;
+    }
+    notifications.success($tr('v2.album.boxUndone' as any));
+    // La liste des Coffrets, si elle est ouverte dessous, se recharge.
+    window.dispatchEvent(new CustomEvent(EVT_COFFRET_DEFAIT, { detail: { id } }));
+    // Retour là d'où l'on venait : la liste des coffrets, ou la bibliothèque.
+    // Cette fiche décrit un album qui n'est plus ce qu'elle montre.
+    onClose();
+  }
   function localiser() {
     if (!dossier) return;
     /**
@@ -1092,6 +1136,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             title={$tr('v2.album.locate' as any)} aria-label={$tr('v2.album.locate' as any)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             {$tr('v2.album.locate' as any)}
+          </button>
+        {/if}
+        {#if origineCoffret === 'auto'}
+          <button class="ghost defaire-coffret" onclick={defaireCoffret} disabled={defaireEnCours}
+            title={$tr('v2.album.boxUndoTip' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M7 12h10M10 17h4"/></svg>
+            {$tr('v2.album.boxUndo' as any)}
           </button>
         {/if}
         {#if album.id != null || refService}

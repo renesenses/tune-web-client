@@ -17,6 +17,7 @@
   import { t as tr } from '../../lib/i18n';
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
+  import { EVT_COFFRET_DEFAIT } from '../../lib/coffretAuto';
 
   let { onOuvrir, vue = 'grid' }: { onOuvrir: (a: Album) => void; vue?: 'grid' | 'list' } = $props();
 
@@ -37,6 +38,13 @@
     }
   }
   $effect(() => { void charger(); });
+  // Un coffret défait depuis sa fiche (ouverte PAR-DESSUS cette liste) n'en
+  // fait plus partie : on recharge.
+  $effect(() => {
+    const recharger = () => { void charger(); };
+    window.addEventListener(EVT_COFFRET_DEFAIT, recharger);
+    return () => window.removeEventListener(EVT_COFFRET_DEFAIT, recharger);
+  });
 
   function disques(c: api.CoffretReuni): string {
     return $tr('ingest.nDiscs' as any).replace('{n}', String(c.disc_count));

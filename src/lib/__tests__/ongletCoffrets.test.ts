@@ -168,6 +168,18 @@ describe('Bibliothèque — l’onglet « Coffrets »', () => {
     expect(texte).not.toContain('Aucun coffret');
   });
 
+  it('🔴 un coffret défait depuis sa fiche : la liste se recharge', async () => {
+    const el = await poserEcran();
+    await cliquerOnglet(el, 'Coffrets');
+    const avant = appels.filter((u) => /\/library\/coffrets(\?|$)/.test(u)).length;
+    reponseCoffrets = { count: 1, items: [COFFRETS.items[1]] };
+    window.dispatchEvent(new CustomEvent('tune:coffret-defait', { detail: { id: 11049 } }));
+    for (let i = 0; i < 14; i++) await respirer();
+    flushSync();
+    expect(appels.filter((u) => /\/library\/coffrets(\?|$)/.test(u)).length).toBe(avant + 1);
+    expect([...el.querySelectorAll<HTMLElement>('.body .coffrets .carte')].map((c) => c.dataset.coffret)).toEqual(['7001']);
+  });
+
   it('🟢 une bibliothèque sans coffret le dit', async () => {
     reponseCoffrets = { count: 0, items: [] };
     const el = await poserEcran();
