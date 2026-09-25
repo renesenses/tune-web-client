@@ -2884,6 +2884,8 @@ export default {
   "v2.lc.valueOn": "이퀄라이저 {eq} dB · 크로스피드 {cf} dB → 볼륨으로 {comp} dB 보정",
   "v2.lc.valueOff": "이퀄라이저 {eq} dB · 크로스피드 {cf} dB, 보정 안 함",
   "v2.lc.valueNone": "이 존에서는 이퀄라이저와 크로스피드 모두 평균 레벨을 바꾸지 않습니다.",
+  "v2.lc.valueAtMax": "이퀄라이저 {eq} dB · 크로스피드 {cf} dB → 보정할 양 {comp} dB, 보정됨 0.0 dB: Tune 볼륨이 이미 최대입니다. Tune 볼륨을 낮추고 앰프 볼륨을 올리세요.",
+  "v2.lc.valuePartial": "이퀄라이저 {eq} dB · 크로스피드 {cf} dB → 보정할 양 {comp} dB, 볼륨으로 보정됨 {rendu} dB, 보정되지 않음 {perdu} dB: Tune 볼륨이 너무 높습니다. Tune 볼륨을 낮추고 앰프 볼륨을 올리세요.",
   "v2.lc.errSave": "레벨 보정을 저장할 수 없습니다.",
   "v2.cf.delayAria": "크로스피드 지연",
   "v2.cf.errUnavailable": "이 서버에서는 설정을 사용할 수 없습니다.",

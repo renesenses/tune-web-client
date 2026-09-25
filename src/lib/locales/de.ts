@@ -2884,6 +2884,8 @@ export default {
   "v2.lc.valueOn": "Equalizer {eq} dB · Crossfeed {cf} dB → {comp} dB über die Lautstärke zurückgegeben",
   "v2.lc.valueOff": "Equalizer {eq} dB · Crossfeed {cf} dB, nicht ausgeglichen",
   "v2.lc.valueNone": "Weder Equalizer noch Crossfeed ändern den mittleren Pegel dieser Zone.",
+  "v2.lc.valueAtMax": "Equalizer {eq} dB · Crossfeed {cf} dB → {comp} dB auszugleichen, 0.0 dB ausgeglichen: Die Lautstärke von Tune steht bereits auf Maximum. Senken Sie die Lautstärke von Tune und erhöhen Sie die des Verstärkers.",
+  "v2.lc.valuePartial": "Equalizer {eq} dB · Crossfeed {cf} dB → {comp} dB auszugleichen, {rendu} dB über die Lautstärke ausgeglichen, {perdu} dB nicht ausgeglichen: Die Lautstärke von Tune ist zu hoch. Senken Sie die Lautstärke von Tune und erhöhen Sie die des Verstärkers.",
   "v2.lc.errSave": "Pegelausgleich konnte nicht gespeichert werden.",
   "v2.cf.delayAria": "Crossfeed-Verzögerung",
   "v2.cf.errUnavailable": "Einstellung auf diesem Server nicht verfügbar.",

@@ -2883,6 +2883,8 @@ export default {
   "v2.lc.valueOn": "Equalizer {eq} dB · crossfeed {cf} dB → {comp} dB tillbaka via volymen",
   "v2.lc.valueOff": "Equalizer {eq} dB · crossfeed {cf} dB, inte kompenserat",
   "v2.lc.valueNone": "Varken equalizern eller crossfeed ändrar medelnivån i den här zonen.",
+  "v2.lc.valueAtMax": "Equalizer {eq} dB · crossfeed {cf} dB → {comp} dB att ge tillbaka, 0.0 dB tillbaka: Tunes volym är redan på max. Sänk Tunes volym och höj förstärkarens.",
+  "v2.lc.valuePartial": "Equalizer {eq} dB · crossfeed {cf} dB → {comp} dB att ge tillbaka, {rendu} dB tillbaka via volymen, {perdu} dB inte tillbaka: Tunes volym är för hög. Sänk Tunes volym och höj förstärkarens.",
   "v2.lc.errSave": "Det gick inte att spara nivåkompenseringen.",
   "v2.cf.delayAria": "Crossfeed-fördröjning",
   "v2.cf.errUnavailable": "Inställningen är inte tillgänglig på den här servern.",

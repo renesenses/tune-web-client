@@ -2884,6 +2884,8 @@ export default {
   "v2.lc.valueOn": "均衡器 {eq} dB · crossfeed {cf} dB → 通过音量补回 {comp} dB",
   "v2.lc.valueOff": "均衡器 {eq} dB · crossfeed {cf} dB，未补偿",
   "v2.lc.valueNone": "在此区域，均衡器和 crossfeed 都不会改变平均电平。",
+  "v2.lc.valueAtMax": "均衡器 {eq} dB · crossfeed {cf} dB → 需补回 {comp} dB，已补回 0.0 dB：Tune 的音量已在最大值。请调低 Tune 的音量，并调高功放的音量。",
+  "v2.lc.valuePartial": "均衡器 {eq} dB · crossfeed {cf} dB → 需补回 {comp} dB，通过音量补回 {rendu} dB，未补回 {perdu} dB：Tune 的音量过高。请调低 Tune 的音量，并调高功放的音量。",
   "v2.lc.errSave": "无法保存电平补偿。",
   "v2.cf.delayAria": "Crossfeed 延迟",
   "v2.cf.errUnavailable": "此服务器上无法使用该设置。",
