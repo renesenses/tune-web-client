@@ -287,12 +287,12 @@ describe('composer sa ligne', () => {
     expect(basculer(['albums', 'taille'], 'albums')).toEqual(['taille']);
   });
 
-  it('🔴 le maximum ne s’ajoute pas en silence au-delà', () => {
+  it('🔴 #1561 — aucun plafond : un septième chiffre s’ajoute à la fin', () => {
     const six = ['albums', 'artistes', 'titres', 'genres', 'duree', 'taille'];
-    expect(basculer(six, 'lectures')).toEqual(six);
+    expect(basculer(six, 'lectures')).toEqual([...six, 'lectures']);
   });
 
-  it('mais décocher reste toujours possible au maximum', () => {
+  it('et décocher reste toujours possible', () => {
     const six = ['albums', 'artistes', 'titres', 'genres', 'duree', 'taille'];
     expect(basculer(six, 'genres')).toHaveLength(5);
   });
