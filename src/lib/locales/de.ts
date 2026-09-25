@@ -3409,6 +3409,8 @@ export default {
   "v2.sup.bugViewThread": "Thread ansehen",
   "v2.sup.bugAnother": "Weiteren Fehler melden",
   "v2.sup.bugSendError": "Senden fehlgeschlagen. Versuchen Sie es erneut oder kopieren Sie den Bericht ins Forum.",
+  "v2.sup.bugRateLimited": "Sendelimit erreicht: Das Forum nimmt nur eine begrenzte Anzahl von Berichten pro Stunde an. Versuchen Sie es spätestens in einer Stunde erneut oder kopieren Sie den Bericht ins Forum.",
+  "v2.sup.bugRateLimitedRetry": "Sendelimit erreicht: Das Forum nimmt nur eine begrenzte Anzahl von Berichten pro Stunde an. Versuchen Sie es {delay} erneut oder kopieren Sie den Bericht ins Forum.",
   "v2.sup.bugImages": "Bildschirmfotos (optional)",
   "v2.sup.bugImagesHint": "Bis zu 3 Bilder (PNG, JPEG, GIF oder WebP), je 4 MB. Sie werden dem Forumsbeitrag hinzugefügt.",
   "v2.sup.bugImagesTooMany": "Zu viele Bildschirmfotos: höchstens {max} Bilder.",

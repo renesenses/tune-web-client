@@ -3429,6 +3429,8 @@ export default {
   "v2.sup.bugViewThread": "View the thread",
   "v2.sup.bugAnother": "Report another bug",
   "v2.sup.bugSendError": "Sending failed. Try again, or copy the report into the forum.",
+  "v2.sup.bugRateLimited": "Sending limit reached: the forum only accepts a limited number of reports per hour. Try again within an hour at most, or copy the report into the forum.",
+  "v2.sup.bugRateLimitedRetry": "Sending limit reached: the forum only accepts a limited number of reports per hour. Try again {delay}, or copy the report into the forum.",
   "v2.sup.bugImages": "Screenshots (optional)",
   "v2.sup.bugImagesHint": "Up to 3 images (PNG, JPEG, GIF or WebP), 4 MB each. They are added to the forum thread.",
   "v2.sup.bugImagesTooMany": "Too many screenshots: {max} images at most.",

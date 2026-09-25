@@ -3409,6 +3409,8 @@ export default {
   "v2.sup.bugViewThread": "Vedi la discussione",
   "v2.sup.bugAnother": "Segnala un altro bug",
   "v2.sup.bugSendError": "Invio non riuscito. Riprova, oppure copia il rapporto nel forum.",
+  "v2.sup.bugRateLimited": "Limite di invio raggiunto: il forum accetta solo un numero limitato di rapporti all’ora. Riprova entro un’ora al massimo, oppure copia il rapporto nel forum.",
+  "v2.sup.bugRateLimitedRetry": "Limite di invio raggiunto: il forum accetta solo un numero limitato di rapporti all’ora. Riprova {delay}, oppure copia il rapporto nel forum.",
   "v2.sup.bugImages": "Schermate (facoltativo)",
   "v2.sup.bugImagesHint": "Fino a 3 immagini (PNG, JPEG, GIF o WebP), 4 MB ciascuna. Vengono aggiunte alla discussione del forum.",
   "v2.sup.bugImagesTooMany": "Troppe schermate: al massimo {max} immagini.",
