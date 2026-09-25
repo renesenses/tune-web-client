@@ -28,11 +28,17 @@ describe('barre latérale — l’ordre du 20/09/2026', () => {
     ]);
   });
 
-  it('l’avancé suit la liste, la recherche en dernier', () => {
+  it('l’avancé suit la liste, le tableau de bord avant la recherche', () => {
     // `concerts` ferme la marche : elle n'est rendue que si le greffon est là
     // (`$concertsUtilisable`), donc elle ne déplace rien pour qui ne l'a pas.
+    //
+    // 🔴 `tableaudebord` s'intercale entre les Zones et la Recherche —
+    // arbitrage de Bertrand du 25/09/2026, sur le NOUVEL écran à widgets.
+    // La liste est COMPLÉTÉE à cette place précise, pas assouplie : ce témoin
+    // EST l'arbitrage du 20/09, et une addition sans mandat explicite doit
+    // continuer de le faire rougir.
     expect(vuesDe('ADVANCED')).toEqual([
-      'ambiance', 'browse', 'mediaservers', 'zonemanager', 'search', 'concerts',
+      'ambiance', 'browse', 'mediaservers', 'zonemanager', 'tableaudebord', 'search', 'concerts',
     ]);
   });
 
@@ -40,7 +46,8 @@ describe('barre latérale — l’ordre du 20/09/2026', () => {
     const affiche = [...vuesDe('CORE'), ...vuesDe('ADVANCED')].filter((v) => v !== 'concerts');
     expect(affiche).toEqual([
       'home', 'nowplaying', 'queue', 'history', 'library', 'oxygen', 'streaming',
-      'radios', 'podcasts', 'ambiance', 'browse', 'mediaservers', 'zonemanager', 'search',
+      'radios', 'podcasts', 'ambiance', 'browse', 'mediaservers', 'zonemanager',
+      'tableaudebord', 'search',
     ]);
   });
 
