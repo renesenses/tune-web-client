@@ -44,7 +44,10 @@ describe('multicanal — l\'écran', () => {
     expect(vue).toContain('z.channel_layout_status?.unavailable');
     const i = vue.indexOf('api.updateZoneChannelLayout');
     const garde = vue.lastIndexOf('disabled=', i);
-    expect(vue.slice(garde, i)).toContain('channel_layout_status?.unavailable');
+    // Fils 1914/1913 : le verrou passe par `canauxVerrouilles`, qui lit le
+    // MÊME statut serveur (`unavailable` + `reason`) — un avertissement
+    // (`au_dela_de_l_appareil`) n'y verrouille plus. Voir `vueZones.ts`.
+    expect(vue.slice(garde, i)).toContain('canauxVerrouilles(z.channel_layout_status)');
     // Contre-épreuve : on ne refait PAS le test de localité pour ce contrôle.
     const j = vue.indexOf('{#if (z.channel_layouts_offered ?? []).length}');
     const k = vue.indexOf('</select>', j);
