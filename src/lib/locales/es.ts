@@ -3576,6 +3576,8 @@ export default {
   "v2.ms.discoveryUnavail": "Detección de red no disponible.",
   "v2.ms.folderNoAnswer": "Esta carpeta no ha respondido.",
   "v2.ms.folderEmpty": "Esta carpeta está vacía.",
+  "v2.ms.searchFailed": "La búsqueda en este servidor ha fallado.",
+  "v2.ms.listIncomplete": "Lista incompleta: {n} de {total}",
   "v2.pod.episodesUnavail": "Episodios no disponibles.",
   "v2.sup.unavailable": "Tickets no disponibles: el servicio de soporte no responde.",
   "v2.sup.stAnswered": "respondido",

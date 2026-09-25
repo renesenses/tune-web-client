@@ -3576,6 +3576,8 @@ export default {
   "v2.ms.discoveryUnavail": "网络发现不可用。",
   "v2.ms.folderNoAnswer": "此文件夹没有响应。",
   "v2.ms.folderEmpty": "此文件夹为空。",
+  "v2.ms.searchFailed": "在此服务器上搜索失败。",
+  "v2.ms.listIncomplete": "列表不完整：{n} / {total}",
   "v2.pod.episodesUnavail": "无法获取剧集。",
   "v2.sup.unavailable": "无法获取工单 — 支持服务不可达。",
   "v2.sup.stAnswered": "已回复",

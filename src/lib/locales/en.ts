@@ -3596,6 +3596,8 @@ export default {
   "v2.ms.discoveryUnavail": "Network discovery unavailable.",
   "v2.ms.folderNoAnswer": "This folder did not answer.",
   "v2.ms.folderEmpty": "This folder is empty.",
+  "v2.ms.searchFailed": "Search on this server failed.",
+  "v2.ms.listIncomplete": "Incomplete list: {n} of {total}",
   "v2.pod.episodesUnavail": "Episodes unavailable.",
   "v2.sup.unavailable": "Tickets unavailable — the support service is unreachable.",
   "v2.sup.stAnswered": "answered",

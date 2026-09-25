@@ -3576,6 +3576,8 @@ export default {
   "v2.ms.discoveryUnavail": "ネットワーク検出を利用できません。",
   "v2.ms.folderNoAnswer": "このフォルダーは応答しませんでした。",
   "v2.ms.folderEmpty": "このフォルダーは空です。",
+  "v2.ms.searchFailed": "このサーバーでの検索に失敗しました。",
+  "v2.ms.listIncomplete": "不完全なリスト：{total} 件中 {n} 件",
   "v2.pod.episodesUnavail": "エピソードを取得できません。",
   "v2.sup.unavailable": "チケットを取得できません — サポートサービスに接続できません。",
   "v2.sup.stAnswered": "返信あり",

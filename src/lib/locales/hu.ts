@@ -3534,6 +3534,8 @@ export default {
   "v2.ms.discoveryUnavail": "A hálózati felderítés nem érhető el.",
   "v2.ms.folderNoAnswer": "Ez a mappa nem válaszolt.",
   "v2.ms.folderEmpty": "Ez a mappa üres.",
+  "v2.ms.searchFailed": "A keresés ezen a szerveren nem sikerült.",
+  "v2.ms.listIncomplete": "Hiányos lista: {total} elemből {n}",
   "v2.pod.episodesUnavail": "Az epizódok nem érhetők el.",
   "v2.sup.unavailable": "A jegyek nem érhetők el — a támogatási szolgáltatás nem elérhető.",
   "v2.sup.stAnswered": "megválaszolva",
