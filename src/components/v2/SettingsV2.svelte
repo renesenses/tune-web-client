@@ -17,7 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { appareilDeLaZone, cleContrainteCanaux } from '../../lib/vueZones';
+  import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
   import { tick } from 'svelte';
@@ -85,7 +85,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   import { licenseState, loadLicense } from '../../lib/stores/license';
   import { verdictValidationLicence } from '../../lib/licenceValidation';
   import { locale, localeNames, type Locale } from '../../lib/i18n';
-  import { dateSimple } from '../../lib/dates';
+  import { dateSimple, dateCourte, jourIsoLocal } from '../../lib/dates';
   import { V2_THEMES, type V2Theme } from '../../lib/v2Theme';
   import type { StartupView, VolumeDisplay } from '../../lib/stores/preferences';
   import { activeView } from '../../lib/stores/navigation';
@@ -1369,6 +1369,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let qualitySplit = $state(true);
   let schedOn = $state(false);
   let schedTime = $state('03:00');
+  // #1578 : date (jour local) de la dernière occurrence honorée du scan
+  // programmé. `undefined` = serveur antérieur à tune-server-rust#2469, qui ne
+  // rend pas le champ : on n'affiche alors rien. `null` = jamais observé.
+  let schedLastRun = $state<string | null | undefined>(undefined);
   let schedBusy = $state(false);
   let libErr = $state<string | null>(null);
 
@@ -1538,6 +1542,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     try {
       const sch: any = await api.getScanSchedule();
       schedOn = !!sch?.enabled; schedTime = sch?.time ?? '03:00';
+      schedLastRun = sch && typeof sch === 'object' && 'last_run' in sch ? (sch.last_run ?? null) : undefined;
     } catch { /* route absente sur un serveur anterieur */ }
   }
   $effect(() => { refreshLibrary(); });
@@ -3918,7 +3923,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <div class="canaux">
                           <span class="tl">{$t('zoneConfig.channelsTitle' as any)}</span>
                           <select class="sel"
-                            disabled={z.id == null || z.channel_layout_status?.unavailable}
+                            disabled={z.id == null || canauxVerrouilles(z.channel_layout_status)}
                             value={z.channel_layout ?? ''}
                             onchange={(e) => setZoneField(z, () => api.updateZoneChannelLayout(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
                             <option value="">{$t('zoneConfig.channelsFollow' as any)}</option>
@@ -3936,6 +3941,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                              machine ; le client les traduit ». -->
                         {#if z.channel_layout_status?.unavailable}
                           <p class="monote">{$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)}</p>
+                        {/if}
+                        <!-- Fils 1914/1913 — sur un renderer réseau, le choix est
+                             OUVERT mais n'agit pas comme sur une carte locale :
+                             Tune réduit une piste multicanale au nombre choisi,
+                             n'ajoute jamais de canal, et l'appareil garde le
+                             dernier mot s'il annonce moins. On le dit, sinon
+                             « 7.1 » passerait pour une promesse. Le serveur
+                             décide (`portee`), l'écran ne redérive rien. -->
+                        {#if z.channel_layout_status?.portee === 'plafond_reseau'}
+                          <p class="monote canaux-reseau">{$t('zoneConfig.channelsNetworkCeiling' as any)}</p>
                         {/if}
                         <!-- Ce que la zone SORT vraiment (`effective`), quand
                              ça ne coïncide pas avec ce qui est choisi : un
@@ -4307,6 +4322,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                 <p class="hint">{$t('v2.lbl.nextAnalysisAt' as any)} <b>{schedTime}</b>.</p>
               {:else}
                 <p class="hint">{$t('settings.noScanScheduled' as any)}</p>
+              {/if}
+              <!--
+                #1578 : savoir si l'analyse programmée a eu lieu. `last_run` est
+                la dernière occurrence HONORÉE — analyse lancée, ou déjà faite par
+                le scan de démarrage, ou point de départ posé à l'activation —
+                d'où l'aide au survol. Un jour, sans heure : c'est l'unité de
+                l'ordonnanceur. Champ absent (ancien serveur) : rien.
+              -->
+              {#if schedLastRun !== undefined}
+                {@const jour = jourIsoLocal(schedLastRun)}
+                <p class="hint last-run" title={$t('v2.hint.lastScheduledRun' as any)}>
+                  {#if jour}
+                    {$t('v2.lbl.lastScheduledRun' as any)} <b>{$dateCourte(jour)}</b>.
+                  {:else}
+                    {$t('v2.lbl.noScheduledRunYet' as any)}
+                  {/if}
+                </p>
               {/if}
 
             {:else if s.id === 'about'}

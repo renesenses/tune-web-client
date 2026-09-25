@@ -32,7 +32,7 @@
    * la carte entière : rendre toute la bande déplaçable empêcherait de la faire
    * défiler à la souris, qui est son geste principal.
    */
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { get } from 'svelte/store';
   import * as api from '../../lib/api';
   import { remplacerAliasWidgets } from '../../lib/widgetsService';
@@ -76,6 +76,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
@@ -191,6 +192,8 @@
     elements: Element[];
     chiffres: ChiffreAffiche[];
     raison?: string;
+    /** #1561 — une recomposition est en vol : la ligne d'avant reste affichée. */
+    recompose?: boolean;
   }
   let etats = $state<Etat[]>([]);
   const etatDe = (id: string) => etats.find((e) => e.id === id);
@@ -422,8 +425,32 @@
     }
   }
 
-  /** Charge un widget, une seule fois, et sans retenir les autres. */
+  /**
+   * 🔴 #1561 — LE DERNIER CHARGEMENT DEMANDÉ EST LE SEUL QUI ÉCRIVE.
+   *
+   * Un numéro de tour par widget, avancé à chaque départ. Une réponse dont le
+   * tour n'est plus le dernier est ignorée — succès comme échec. Sans lui, deux
+   * recompositions rapprochées de la ligne de chiffres (cocher, puis décocher
+   * aussitôt) laissaient la PREMIÈRE réponse arrivée après la seconde réécrire
+   * l'ancienne ligne, et un échec périmé rendre au registre une demande qui ne
+   * lui appartenait plus.
+   *
+   * ⚠️ Pas un `$state`, pour la même raison que `demandes`.
+   */
+  const tours = new Map<string, number>();
+  /**
+   * #1561 — les widgets dont l'entrée à l'écran doit RESTER affichée pendant
+   * le prochain chargement : une ligne de chiffres qu'on recompose garde ses
+   * cartes et son sélecteur au lieu de retomber sur « Chargement… ». Posé par
+   * `recomposerLigne`, consommé par `chargerWidget`. Pas un `$state`.
+   */
+  const aGarder = new Set<string>();
+
+  /**
+   * Charge un widget, une seule fois, et sans retenir les autres.
+   */
   function chargerWidget(id: string) {
+    const garder = aGarder.delete(id);
     if (demandes.has(id)) return;
     demandes.add(id);
     const w = parId(id);
@@ -431,6 +458,9 @@
     // une demande servie. La garder condamnerait l'identifiant pour la vie de
     // la page si le catalogue venait à l'apprendre plus tard.
     if (!w) { demandes.delete(id); return; }
+    const tour = (tours.get(id) ?? 0) + 1;
+    tours.set(id, tour);
+    const perime = () => tours.get(id) !== tour;
     /**
      * 🔴 On ne garde PAS la référence qu'on vient de pousser.
      *
@@ -443,7 +473,8 @@
      * après trois correctifs qui visaient ailleurs. On passe donc par `majEtat`,
      * qui retrouve l'entrée DANS le tableau à chaque écriture.
      */
-    etats.push({ id, phase: 'attente', elements: [], chiffres: [] });
+    if (garder && untrack(() => etats.some((e) => e.id === id))) majEtat(id, { recompose: true });
+    else etats.push({ id, phase: 'attente', elements: [], chiffres: [] });
 
     /**
      * 🔴 #1152 — LE CONTEXTE SE LIT AU DÉPART, PAS À LA MISE EN FILE.
@@ -465,11 +496,15 @@
       return avecDelai(Promise.resolve(p));
     })
       .then((r: any) => {
+        if (perime()) return;
         majEtat(id, w.forme === 'chiffres'
-          ? { phase: 'charge', chiffres: r ?? [] }
-          : { phase: 'charge', elements: r ?? [] });
+          ? { phase: 'charge', chiffres: r ?? [], recompose: false }
+          : { phase: 'charge', elements: r ?? [], recompose: false });
       })
       .catch((err: any) => {
+        // #1561 — un échec PÉRIMÉ ne dit rien et ne rend rien : la demande
+        // du registre appartient au chargement qui l'a remplacé.
+        if (perime()) return;
         // #859 — un 501 n'est PAS une panne : le service ne propose pas cette
         // rubrique (Bandcamp n'a pas de playlists de compte, et le dit par un
         // 501 depuis la .147). FabienM lisait « 502 Bad Gateway », puis
@@ -481,6 +516,7 @@
         // « rien à montrer », et on cherche alors un défaut de bibliothèque.
         majEtat(id, {
           phase: 'echec',
+          recompose: false,
           raison: err?.message === 'delai' ? 'delai' : (err?.message ?? 'erreur'),
         });
         /**
@@ -567,8 +603,14 @@
    * protège que les chargements AUTOMATIQUES, pas ceux qu'on demande.
    */
   function recomposerLigne(id: string) {
-    etats = etats.filter((e) => e.id !== id);
+    // #1561 — la ligne d'avant RESTE à l'écran, avec son sélecteur, jusqu'à ce
+    // que la nouvelle arrive. Vider `etats` ici la faisait retomber sur
+    // « Chargement… » à chaque case cochée, et le sélecteur disparaissait avec
+    // elle : sur un serveur lent (PostgreSQL, 80 000 pistes, scan en cours),
+    // c'est le « reloading… nothing happens » du fil 1918. Et c'est
+    // `chargerWidget` qui ne laisse écrire que le DERNIER chargement.
     demandes.delete(id);
+    aGarder.add(id);
     chargerWidget(id);
   }
 
@@ -1013,7 +1055,7 @@
                    Les cotes de Figma sont à l'échelle 1,372 ; elles sont
                    reprises ici à l'échelle 1, où elles tombent juste :
                    hauteur 36, rayon 20, texte 16, cercle 24. -->
-              <div class="chiffres">
+              <div class="chiffres" aria-busy={et.recompose ? 'true' : undefined}>
                 {#each et.chiffres as c (c.id ?? c.cle)}
                   {#if c.vue}
                     <button class="stat" onclick={() => activeView.set(c.vue as any)}
@@ -1252,12 +1294,14 @@
                     `favoriDistant` quand l'element en porte un, et reste
                     `album` partout ailleurs.
 
-                    Les ETIQUETTES, elles, restent absentes des vignettes de
-                    service, et ce n'est pas un oubli : la route serveur prend
-                    `item_id: i64` et la table SQLite un `INTEGER`, quand un
-                    album Qobuz s'identifie « kxend2k5wdg06 » (mesure sur le
-                    .18, 03/09/2026). Les brancher demande une evolution du
-                    SERVEUR. Mieux vaut une icone absente qu'une icone morte.
+                    Les ETIQUETTES valent aussi pour un album de service
+                    depuis que le serveur les tient par la paire `source` +
+                    `source_id` (`POST /tags/{id}/streaming-items`,
+                    tune-server-rust#3699). Bertrand, 25/09/2026 : « il manque
+                    un CTA sur les covers Qobuz ! ». La cible vient de
+                    `cibleEtiquetteAlbum`, la regle unique des vignettes et de
+                    la fiche ; sans paire exploitable elle rend `null`, et le
+                    bouton reste absent.
                   -->
                   {@const idLocal = el.fiche?.id ?? null}
                   {@const sidDistant =
@@ -1282,7 +1326,7 @@
                               coverUrl: el.cover ?? undefined,
                             })
                           : null}
-                        etiquettes={idLocal != null ? { itemType: 'album', itemId: idLocal } : null}
+                        etiquettes={cibleEtiquetteAlbum(el.fiche)}
                         onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
                         onLire={el.jouer ? () => jouer(el) : null}
                         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
@@ -1518,6 +1562,8 @@
      dans Figma le 19/09/2026. Ses cotes y sont à l'échelle 1,372 (21,96 px
      pour 16, 27,45 pour 20, 32,94 pour 24…) : on reprend l'échelle 1. */
   .chiffres{display:flex; flex-wrap:wrap; gap:20px; padding:0 30px 12px}
+  /* #1561 — la ligne d'avant, le temps que la nouvelle arrive. */
+  .chiffres[aria-busy='true']{opacity:.55; transition:opacity .15s}
   .stat{display:flex; align-items:center; gap:10px; padding:6px 14px; min-height:36px;
     border-radius:20px; border:1px solid color-mix(in srgb, var(--v2-acc1) 15%, transparent);
     background:color-mix(in srgb, var(--v2-surface2) 75%, transparent);

@@ -175,4 +175,39 @@ describe('#4767 — les écrans sont branchés', () => {
       for (const c of CLES) expect(src, `${l} : ${c}`).toContain(`"${c}"`);
     }
   });
+
+  /**
+   * L'enveloppe de la discographie — le défaut dormant du 25/09/2026.
+   *
+   * `collaborations` et `reprises` étaient bien CHARGÉES et bien TRANSMISES à
+   * `DiscographieCommune`, mais absentes du `{#if}` qui décide d'afficher tout
+   * le bloc. Un artiste sans disque à son nom — musicien de séance,
+   * compositeur, ingénieur — n'a QUE ces deux sections : elles restaient
+   * invisibles. Zéro cas sur le .18 au moment du constat (2 626 artistes
+   * sondés) parce que `track_credits` n'y couvrait que 191 albums ; c'est la
+   * passe des crédits qui fait naître ce profil.
+   *
+   * La garde ne cite pas une liste écrite à la main : elle RELIT les sections
+   * réellement transmises à la grille et exige que chacune figure dans la
+   * condition. Une section ajoutée demain sans son terme la fait rougir.
+   */
+  it('l’enveloppe cite toutes les sections transmises à la grille', () => {
+    const art = lire('src/components/v2/ArtisteServiceV2.svelte');
+
+    // Les sections passées en props, lues sur la ligne de l'appel.
+    const props = art.match(/\{compilations\}[^\n]*\{reprises\}/);
+    expect(props, 'les sections ne sont plus transmises sous cette forme').not.toBeNull();
+    const sections = [...props![0].matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+    expect(sections).toEqual(['compilations', 'apparitions', 'collaborations', 'reprises']);
+
+    // La condition qui enveloppe le titre ET la grille.
+    const enveloppe = art
+      .split('\n')
+      .find((l) => l.includes('{#if albums.length'));
+    expect(enveloppe, 'l’enveloppe de la discographie a changé de forme').toBeDefined();
+    for (const s of sections) {
+      expect(enveloppe, `${s} manque à l’enveloppe : sa section serait chargée mais jamais affichée`)
+        .toContain(`${s}.length`);
+    }
+  });
 });

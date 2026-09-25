@@ -63,7 +63,8 @@
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { melangee, rangAleatoire, graineAleatoire } from '../../lib/shuffle';
-  import { optionsAleatoire } from '../../lib/porteeAleatoire';
+  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection } from '../../lib/porteeAleatoire';
+  import { lireFileAleatoire, FILE_ALEATOIRE_DEFAUT } from '../../lib/fileAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
   import { atLeast } from '../../lib/uiLevel';
@@ -103,6 +104,7 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix, lireNombre } from '../../lib/preferencesEcran';
   import QualiteAlbum from './QualiteAlbum.svelte';
@@ -1869,12 +1871,48 @@
   // le filtre texte courant : si l'utilisateur a tapé « jazz », il attend un
   // aléatoire DANS ce qu'il regarde, pas dans les 20 000 titres.
   let shuffling = $state(false);
+  /**
+   * 🔴 Fil 1917 (Sevy Tabroc, v0.9.163) — les albums que l'aléatoire doit
+   * couvrir quand la sélection n'a pas de nom côté serveur : filtres d'album
+   * posés, ou groupe ouvert d'un onglet de facette. `null` : la portée du
+   * serveur suffit. Seulement sur les onglets qui montrent des ALBUMS : sur
+   * Titres et Artistes, ces filtres ne s'affichent pas et n'agissent pas.
+   * Voir `albumsDeLaSelection`.
+   */
+  const albumsAleatoire = $derived(
+    depot || !(tab === 'albums' || tab === 'genres' || tab === 'years' || tab === 'labels')
+      ? null
+      : albumsDeLaSelection({
+          filtresAlbum: filtreActif || anneeEffective != null,
+          groupe: groupeOuvert?.albums ?? null,
+          affiches,
+        }),
+  );
+  /** Le plafond de la file aléatoire, lu au serveur (#2901) ; son défaut s'il
+   *  ne répond pas. */
+  async function plafondAleatoire(): Promise<number> {
+    try { return lireFileAleatoire(await api.getConfig() as Record<string, unknown>); }
+    catch { return FILE_ALEATOIRE_DEFAUT; }
+  }
   async function shuffleAll() {
     const zid = zoneRequise();
     if (zid == null) return;
+    // La sélection se lit sur la liste ENTIÈRE : tant qu'elle arrive, tirer
+    // maintenant tirerait dans une grille partielle.
+    if (albumsAleatoire != null && enCharge) return;
     shuffling = true;
     try {
       if (depot) await aleatoireDistant(zid);
+      else if (albumsAleatoire != null) {
+        // Figée AVANT les attentes : un filtre touché pendant le chargement
+        // des pistes ne change pas ce qu'on a demandé.
+        const albumsVoulus = albumsAleatoire;
+        const provenance = fProvenance;
+        const [liste, plafond] = await Promise.all([api.getAllTracks(), plafondAleatoire()]);
+        const ids = pistesDeLaSelection(liste, albumsVoulus, plafond, (p) => dansSource(p, provenance));
+        if (ids.length) await playAndSync(zid, { track_ids: ids });
+        else notifications.error($tr('library.noTracks'));
+      }
       else if (fProvenance != null) {
         const liste = dossierPortee
           ? (await api.getFilteredTracks({ folder: dossierPortee, limit: 5000 })).items ?? []
@@ -1941,7 +1979,7 @@
       {#if depot}<span class="dist">{depot.hote}</span>{/if}
     </div>
     <div class="v2-actions">
-    <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null}
+    <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null || (albumsAleatoire != null && enCharge)}
       title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
         : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)
         : $tr('v2.lib.shuffleAll' as any)}>
@@ -2506,7 +2544,7 @@
                     <div class="cover">
                       <PochetteActions
                         favori={depot || a.id == null ? null : { albumId: a.id }}
-                        etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+                        etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
                         onEditer={depot ? null : () => (enEdition = a)}
                         onLire={() => lireAlbum(a)}
                         onOuvrir={() => ouvrirCalqueAlbum(a)}
@@ -2660,7 +2698,7 @@
              (#1222) : c'est pourtant elle que voit tout le monde. -->
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}
-          etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+          etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}
@@ -2709,7 +2747,7 @@
       <div class="cover">
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}
-          etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+          etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}

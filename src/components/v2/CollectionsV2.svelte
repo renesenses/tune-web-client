@@ -40,6 +40,7 @@
   import { quatreDistinctes } from '../../lib/mosaique';
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
@@ -995,7 +996,7 @@
             <span class="cv">
               <PochetteActions
                 favori={a.id != null ? { albumId: a.id } : null}
-                etiquettes={a.id != null ? { itemType: 'album', itemId: a.id } : null}
+                etiquettes={cibleEtiquetteAlbum(a)}
                 onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                 onLire={() => lireAlbum(a)}
                 onOuvrir={() => { ouvrirCalqueAlbum(a); fiche = a; }}

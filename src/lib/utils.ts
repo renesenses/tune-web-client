@@ -97,11 +97,13 @@ const LOSSLESS_FORMATS = new Set([
  * décidait par une liste de quatre formats sans perte écrite à la main. Une
  * seule liste, sinon la prochaine correction n'en répare qu'un tiers.
  *
- * Miroir de `Album::quality()` côté serveur — `mp3|ogg|opus|wma|aac`. `m4a`
+ * Miroir de `Album::quality()` côté serveur — `mp3|ogg|opus|wma|aac` —, plus
+ * `vorbis` (le codec d'un `.ogg`) et `mpeg` (ce que laisse `audio/mpeg` une
+ * fois le préfixe MIME retiré par `getQualityTier`). `m4a`
  * n'y est PAS : le serveur le résout en `alac` ou `aac` selon la présence
  * d'une profondeur de bits, et c'est cette valeur résolue qui est stockée.
  */
-export const LOSSY_FORMATS = new Set(['mp3', 'aac', 'ogg', 'opus', 'wma']);
+export const LOSSY_FORMATS = new Set(['mp3', 'aac', 'ogg', 'opus', 'wma', 'vorbis', 'mpeg']);
 
 /** Le format déclaré est-il un codec avec perte ? Casse et vide tolérés. */
 export function estAvecPerte(format: string | null | undefined): boolean {
@@ -177,6 +179,12 @@ export function getQualityTier(
   // `estDuDSD` : elle ne testait que « dsd » et laissait passer 47 albums `dsf`
   // sur les 49 de la bibliothèque de Bertrand, classés « CD » faute de mieux.
   if (estDuDSD(fmt)) return 'dsd';
+  // Un codec AVEC PERTE déclaré l'emporte sur toute spécification (#1553).
+  // `bit_depth` décrit alors le PCM APRÈS décodage — un MP3 rendu en 24 bits
+  // reste un MP3 — et le serveur ne dit jamais autre chose que « lossy » pour
+  // mp3|ogg|opus|wma|aac. Sans cette garde, `bd >= 24` plus bas le rangeait
+  // en Hi-Res, et `source === 'qobuz'` faisait d'un MP3 16 bits un « CD ».
+  if (LOSSY_FORMATS.has(fmt)) return 'lossy';
 
   // A track is lossless when its declared format says so, OR when its specs /
   // source make it unambiguous: no lossy codec (MP3/AAC/OGG/Opus/WMA) can exceed
@@ -236,6 +244,12 @@ const SOURCE_LABELS: Record<string, string> = {
   radio: 'Radio',
   bandcamp: 'Bandcamp',
 };
+
+/** Le nom d'affichage d'une source (`qobuz` → « Qobuz »), la clé brute à défaut. */
+export function libelleDeSource(source: string | null | undefined): string {
+  const s = String(source ?? '').trim();
+  return SOURCE_LABELS[s.toLowerCase()] ?? s;
+}
 
 /** Le débit annoncé pour une source qui n'en sert qu'un seul, ou `null`.
  *
