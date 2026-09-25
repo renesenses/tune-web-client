@@ -25,7 +25,8 @@
   import {
     focusRestreint, pistesAuxRangs, rangDansLAlbum, rangsDuFocus, type FocusArtiste,
   } from '../../lib/focusArtiste';
-  import type { Album, Track } from '../../lib/types';
+  import type { Album, Source, Track } from '../../lib/types';
+  import type { CibleFicheAlbumService } from '../../lib/stores/streaming';
   import DisponibiliteUpnp from './DisponibiliteUpnp.svelte';
   import AlbumArt from '../partages/AlbumArt.svelte';
 import AlbumRating from '../partages/AlbumRating.svelte';
@@ -1107,12 +1108,49 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       return;
     }
     if (artisteDeService) {
+      // Lus AVANT la fermeture : l'album affiché est celui qu'on quitte, et
+      // la vue `streamingalbum` vide `ficheAlbumService` en se refermant —
+      // relu après, `artisteDeService` se recalculait sur une cible nulle et
+      // levait (web#1602, mesuré en montant la coquille).
+      const artiste = artisteDeService;
+      const fiche = ficheDeCetAlbum();
       quitterLaFiche();
       // `depuis` se lit APRÈS la fermeture : la vue `streamingalbum` de la
       // coquille, elle, referme EN changeant de vue — c'est cette vue-là, et
       // pas la fiche qu'on vient de quitter, qui est le point de retour.
-      $gestesNavigationService?.ouvrirArtiste({ ...artisteDeService, depuis: get(activeView) });
+      const depuis = get(activeView);
+      // 🔴 web#1602 — et la fiche elle-même voyage avec le geste : le Retour
+      // de la page artiste la rouvre, puis le sien ramène à `depuis`. Sans
+      // elle, le Retour sautait la fiche (Reivax66, fil 1941). Pas depuis une
+      // page artiste (album ouvert DANS la page) : son Retour ne sait pas
+      // rouvrir la page d'avant, on n'y empile pas un cran de plus.
+      $gestesNavigationService?.ouvrirArtiste({
+        ...artiste,
+        depuis,
+        ficheDeRetour: depuis === 'streamingartist' ? null : fiche,
+      });
     }
+  }
+
+  /**
+   * Cet album sous la forme que rouvre la vue `streamingalbum` — web#1602.
+   * `null` quand elle ne sait pas le rouvrir : un album de la bibliothèque,
+   * d'un autre serveur (`depot`), de Bandcamp (désigné par une URL, sans
+   * `source_id` de service), ou sans identifiant chez son service.
+   */
+  function ficheDeCetAlbum(): CibleFicheAlbumService | null {
+    if (!service || depot || bandcamp) return null;
+    const a: any = albumAffiche;
+    const id = a?.source_id == null ? '' : String(a.source_id).trim();
+    if (!id) return null;
+    return {
+      service: service as Source,
+      id,
+      titre: String(a.title ?? ''),
+      pochette: a.cover_path ?? null,
+      artiste: a.artist_name ?? null,
+      artisteId: a.artist_id == null ? null : String(a.artist_id),
+    };
   }
 
   function trackTech(t: Track): string {

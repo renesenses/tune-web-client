@@ -41,7 +41,7 @@
   import type { StreamingServiceStatus, StreamingPlaylist, StreamingSearchResult, FeaturedSection } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import { cibleEtiquetteAlbum, cibleDeService } from '../../lib/cibleEtiquette';
+  import { cibleEtiquetteAlbum, cibleEtiquettePlaylist, cibleDeService } from '../../lib/cibleEtiquette';
   import { estAParaitre, dateDeParution } from '../../lib/albumAParaitre';
   import {
     ouvrirArtisteDepuis,
@@ -1504,10 +1504,12 @@
   autres (#3822). `ouvrirFiche` rend `null` hors `album` : le type n'ajoute
   que le coeur, il ne change aucun geste.
 
-  Les etiquettes d'un album ou d'un titre passent par la paire `source` +
-  `source_id` (`POST /tags/{id}/streaming-items`, serveur v0.9.144) — #1238.
-  Les artistes et playlists de service n'en portent pas encore : la demande
-  (Patatorz, fil 1846) nomme les albums et les titres.
+  Les etiquettes d'un album, d'un titre ou d'une PLAYLIST passent par la paire
+  `source` + `source_id` (`POST /tags/{id}/streaming-items`, serveur v0.9.144)
+  — #1238. La playlist passait `null` (Bertrand, 25/09/2026 : « Le CTA tag est
+  toujours absent des albums et playlists de streaming !! ») alors que le
+  serveur la tient : `cibleEtiquettePlaylist`. Les artistes de service n'en
+  portent pas encore.
 
   `onOuvrir` LIT, comme avant — cliquer la pochette lancait deja la lecture, et
   cet ecran n'a pas de fiche distante a ouvrir.
@@ -1529,6 +1531,8 @@
           ? cibleEtiquetteAlbum({ ...p, title: pTitle(p), cover_path: pCover(p) }, active)
           : type === 'track'
           ? cibleDeService(type, { ...p, source: p?.source ?? active, title: pTitle(p), cover_path: pCover(p) })
+          : type === 'playlist'
+          ? cibleEtiquettePlaylist({ ...p, name: pTitle(p), cover_path: pCover(p) }, active)
           : null}
         favoriExterne={type
           ? favoriExterneService($favoriteStreamingKeys, {

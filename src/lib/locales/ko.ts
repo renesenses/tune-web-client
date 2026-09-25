@@ -3523,6 +3523,7 @@ export default {
   "v2.lib.noActiveZone": "활성 구역 없음",
   "v2.lib.shuffleAll": "라이브러리 전체 무작위 재생",
   "v2.lib.shuffleDepot": "{nom}에서 무작위 앨범 재생",
+  "v2.lib.playInOrder": "표시된 순서대로 선택 항목 재생",
   "v2.lib.emptyLibrary": "라이브러리가 비어 있습니다.",
   "v2.lib.emptyDepot": "{nom}({hote})에 앨범이 없습니다.",
   "v2.lib.viewList": "목록 보기",

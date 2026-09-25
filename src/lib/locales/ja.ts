@@ -3523,6 +3523,7 @@ export default {
   "v2.lib.noActiveZone": "アクティブなゾーンがありません",
   "v2.lib.shuffleAll": "ライブラリ全体をシャッフル再生",
   "v2.lib.shuffleDepot": "{nom} からランダムなアルバムを再生",
+  "v2.lib.playInOrder": "表示順に選択範囲を再生",
   "v2.lib.emptyLibrary": "ライブラリは空です。",
   "v2.lib.emptyDepot": "{nom}（{hote}）はアルバムを公開していません。",
   "v2.lib.viewList": "リスト表示",

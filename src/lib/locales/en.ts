@@ -3543,6 +3543,7 @@ export default {
   "v2.lib.noActiveZone": "No active zone",
   "v2.lib.shuffleAll": "Shuffle the whole library",
   "v2.lib.shuffleDepot": "Play a random album from {nom}",
+  "v2.lib.playInOrder": "Play the selection in the displayed order",
   "v2.lib.emptyLibrary": "Your library is empty.",
   "v2.lib.emptyDepot": "{nom} ({hote}) exposes no album.",
   "v2.lib.viewList": "List view",

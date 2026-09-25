@@ -3522,6 +3522,7 @@ export default {
   "v2.lib.noActiveZone": "Ingen aktiv zon",
   "v2.lib.shuffleAll": "Spela hela biblioteket slumpvis",
   "v2.lib.shuffleDepot": "Spela ett slumpmässigt album från {nom}",
+  "v2.lib.playInOrder": "Spela urvalet i den visade ordningen",
   "v2.lib.emptyLibrary": "Ditt bibliotek är tomt.",
   "v2.lib.emptyDepot": "{nom} ({hote}) visar inga album.",
   "v2.lib.viewList": "Listvy",

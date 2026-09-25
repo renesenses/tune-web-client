@@ -3523,6 +3523,7 @@ export default {
   "v2.lib.noActiveZone": "Nessuna zona attiva",
   "v2.lib.shuffleAll": "Riproduci tutta la libreria a caso",
   "v2.lib.shuffleDepot": "Riproduci un album a caso da {nom}",
+  "v2.lib.playInOrder": "Riproduci la selezione nell’ordine visualizzato",
   "v2.lib.emptyLibrary": "La tua libreria è vuota.",
   "v2.lib.emptyDepot": "{nom} ({hote}) non espone alcun album.",
   "v2.lib.viewList": "Vista elenco",

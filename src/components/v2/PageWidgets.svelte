@@ -76,7 +76,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
-  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
+  import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
@@ -1280,7 +1280,11 @@
                     un CTA sur les covers Qobuz ! ». La cible vient de
                     `cibleEtiquetteAlbum`, la regle unique des vignettes et de
                     la fiche ; sans paire exploitable elle rend `null`, et le
-                    bouton reste absent.
+                    bouton reste absent. Une PLAYLIST de service passe par
+                    `cibleEtiquettePlaylist` (Bertrand, 25/09/2026 : « toujours
+                    absent des albums et playlists de streaming ») : ses
+                    bandes n'avaient aucun coin. La source retombe sur celle
+                    de l'element, comme pour le coeur.
                   -->
                   {@const idLocal = el.fiche?.id ?? null}
                   {@const sidDistant =
@@ -1305,7 +1309,9 @@
                               coverUrl: el.cover ?? undefined,
                             })
                           : null}
-                        etiquettes={cibleEtiquetteAlbum(el.fiche)}
+                        etiquettes={el.ouvrir === 'playlist'
+                          ? cibleEtiquettePlaylist(el.playlist, el.source)
+                          : cibleEtiquetteAlbum(el.fiche, el.source)}
                         onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
                         onLire={el.jouer ? () => jouer(el) : null}
                         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}

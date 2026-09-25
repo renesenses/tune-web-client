@@ -3523,6 +3523,7 @@ export default {
   "v2.lib.noActiveZone": "没有活动区域",
   "v2.lib.shuffleAll": "随机播放整个音乐库",
   "v2.lib.shuffleDepot": "从 {nom} 随机播放一张专辑",
+  "v2.lib.playInOrder": "按显示顺序播放所选内容",
   "v2.lib.emptyLibrary": "您的音乐库是空的。",
   "v2.lib.emptyDepot": "{nom}（{hote}）未提供任何专辑。",
   "v2.lib.viewList": "列表视图",
