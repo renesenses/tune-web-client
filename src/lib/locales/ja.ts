@@ -351,6 +351,8 @@ export default {
   'playlist.noExisting': '既存のプレイリストがありません',
   'playlist.addFailed': '追加できませんでした：サービスがこのプレイリストを拒否しました。',
   'playlist.servicePlaylistsOf': '{service} のプレイリスト',
+  'playlist.groupTune': 'Tune のプレイリスト',
+  'playlist.createIn': '作成先',
   'playlist.newPlaylist': '新しいプレイリスト',
   'playlist.searchPlaceholder': 'プレイリストを検索...',
   'playlist.localPlaylists': 'マイプレイリスト',

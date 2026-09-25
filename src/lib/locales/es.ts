@@ -351,6 +351,8 @@ export default {
   'playlist.noExisting': 'Sin listas de reproducción existentes',
   'playlist.addFailed': 'No se pudo añadir: el servicio rechazó esta lista.',
   'playlist.servicePlaylistsOf': 'Tus listas de {service}',
+  'playlist.groupTune': 'Listas de Tune',
+  'playlist.createIn': 'Crear en',
   'playlist.newPlaylist': 'Nueva lista de reproducción',
   'playlist.searchPlaceholder': 'Buscar listas...',
   'playlist.localPlaylists': 'Mis listas de reproducción',

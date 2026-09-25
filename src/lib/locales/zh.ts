@@ -351,6 +351,8 @@ export default {
   'playlist.noExisting': '无现有播放列表',
   'playlist.addFailed': '添加失败：该服务拒绝了此播放列表。',
   'playlist.servicePlaylistsOf': '您的 {service} 播放列表',
+  'playlist.groupTune': 'Tune 播放列表',
+  'playlist.createIn': '创建于',
   'playlist.newPlaylist': '新建播放列表',
   'playlist.searchPlaceholder': '搜索播放列表...',
   'playlist.localPlaylists': '我的播放列表',

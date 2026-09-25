@@ -351,6 +351,8 @@ export default {
   'playlist.noExisting': 'Keine vorhandenen Playlists',
   'playlist.addFailed': 'Hinzufügen fehlgeschlagen: Der Dienst hat diese Playlist abgelehnt.',
   'playlist.servicePlaylistsOf': 'Ihre {service}-Playlists',
+  'playlist.groupTune': 'Tune-Playlists',
+  'playlist.createIn': 'Erstellen in',
   'playlist.newPlaylist': 'Neue Playlist',
   'playlist.searchPlaceholder': 'Playlists durchsuchen...',
   'playlist.localPlaylists': 'Meine Playlists',

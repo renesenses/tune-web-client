@@ -21,7 +21,6 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireListe } from '../../lib/lectureEnMasse';
-  import { corpsDeFileListe } from '../../lib/pisteFile';
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import { lireChoix, ecrireChoix } from '../../lib/preferencesEcran';
   import { CLES_TRI_PISTES, LIBELLES_TRI_PISTES, trierPistes, type CleTriPistes, type SensTriPistes } from '../../lib/trierPistes';
@@ -30,6 +29,8 @@
   import { toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { notifications } from '../../lib/stores/notifications';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { rangsApresDeplacement } from '../../lib/playlistService';
+  import { corpsDeFileListe, estPisteLocale } from '../../lib/pisteFile';
 
   type Item =
     | { kind: 'local'; pl: Playlist }
@@ -145,6 +146,8 @@
   }
   $effect(() => { load(); });
 
+  /** La liste mêle-t-elle des provenances ? (#4889 : Tune + services.) */
+  const mixte = $derived(new Set(tracks.map((t) => (estPisteLocale(t) ? 'local' : String(t.source ?? '')))).size > 1);
   const totalMs = $derived(tracks.reduce((s, t) => s + (t.duration_ms ?? 0), 0));
 
   /**
@@ -290,14 +293,14 @@
     const vers = de + (versLeBas ? 1 : -1);
     if (vers < 0 || vers >= tracks.length) return;
     const avant = tracks;
-    const suite = [...tracks];
-    const [piste] = suite.splice(de, 1);
-    suite.splice(vers, 0, piste);
-    tracks = suite;
+    // #4889 — le nouvel ordre en RANGS ACTUELS, pas en identifiants : une
+    // ligne de SERVICE (id nul) se déplace aussi, et une piste présente deux
+    // fois reste deux lignes distinctes. Réassigné, jamais muté en place.
+    const positions = rangsApresDeplacement(avant.length, de, vers);
+    tracks = positions.map((k) => avant[k]);
     deplacement = true;
     try {
-      const rangs = suite.map((t) => t.id).filter((id): id is number => typeof id === 'number');
-      await api.reorderPlaylistTracks(item.pl.id, rangs);
+      await api.reorderPlaylistTracks(item.pl.id, positions);
       onChanged?.();
     } catch (e) {
       tracks = avant;
@@ -438,7 +441,13 @@
           </button>
         </label>
       </div>
-      <ListePistesV2 pistes={pistesVues} pochetteEnTableau onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
+      <!-- #4889 — le RANG pour clé : une playlist Tune mêle désormais des
+           lignes de service (id nul) et de bibliothèque. La clé par défaut
+           (`id ?? rang`) pouvait faire coïncider l'id 3 d'une piste locale et
+           le rang 3 d'un titre Bandcamp — `each_key_duplicate`. Même règle que
+           `PlaylistManagerView`. `sourceEnTableau` : la liste est MIXTE, on
+           dit d'où vient chaque ligne (#1113). -->
+      <ListePistesV2 pistes={pistesVues} pochetteEnTableau clef={(_p, i) => i} sourceEnTableau={mixte} onLire={(_p, i) => playFrom(i)} onLireDepuis={(_p, i) => playFrom(i)} apres={suffixe} largeurApres="100px" />
       {#snippet suffixe(_t: any, i: number)}
         <!-- Les boutons deviennent une COLONNE de la ligne. Le fragment est
              compilé ici : ses styles le suivent.

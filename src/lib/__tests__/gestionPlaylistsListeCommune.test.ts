@@ -175,7 +175,8 @@ describe('Gestion des playlists — la liste commune', () => {
     await souffler();
     const appel = dernierAppel(/^PUT .*\/playlists\/42\/tracks$/);
     expect(appel, 'aucun appel de réordonnancement').toBeDefined();
-    expect(appel!.body).toEqual({ track_ids: [102, 103, 101] });
+    // #4889 — le nouvel ordre en RANGS actuels : (101, 102, 103) → (102, 103, 101).
+    expect(appel!.body).toEqual({ positions: [1, 2, 0] });
     // L'écran a bougé aussi, sans attendre le serveur.
     expect(lignes(el).map((l) => l.querySelector('.ttxt')?.textContent)).toEqual(['Deuxième', 'Troisième', 'Première']);
   });
@@ -189,7 +190,8 @@ describe('Gestion des playlists — la liste commune', () => {
     await souffler();
     const appel = dernierAppel(/^PUT .*\/playlists\/42\/tracks$/);
     expect(appel, 'aucun appel de réordonnancement au clavier').toBeDefined();
-    expect(appel!.body).toEqual({ track_ids: [102, 101, 103] });
+    // #4889 — en RANGS actuels : (101, 102, 103) → (102, 101, 103).
+    expect(appel!.body).toEqual({ positions: [1, 0, 2] });
     // Le focus SUIT la piste déplacée : la poignée du rang 1 est active.
     expect((document.activeElement as HTMLElement | null)?.getAttribute('data-rang')).toBe('1');
     // ↑ sur la première ligne : rien ne part, il n'y a pas de rang au-dessus.
@@ -259,7 +261,8 @@ describe('garde de source', () => {
     expect(src).toContain('reordonnable={!!selectedPlaylist}');
     expect(src).toContain('onReordonner={reorderTracks}');
     expect(src).toMatch(/apres=\{selectedPlaylist \? retirer : undefined\}/);
-    expect(src).toContain('api.reorderPlaylistTracks(selectedPlaylist.id, trackIds)');
+    // #4889 — l'ordre part en RANGS actuels (`positions`), plus en identifiants.
+    expect(src).toContain('api.reorderPlaylistTracks(selectedPlaylist.id, positions)');
     expect(src).toContain('api.removePlaylistTrackAt(selectedPlaylist.id, position)');
   });
 

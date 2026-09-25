@@ -19,6 +19,8 @@
   import { rangLireEnsuite } from '../../lib/stores/queue';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import ListePistesV2 from '../v2/ListePistesV2.svelte';
+  import { rangsApresDeplacement } from '../../lib/playlistService';
+  import { estPisteLocale } from '../../lib/pisteFile';
   import ClampedText from '../partages/ClampedText.svelte';
   import HeartButton from '../partages/HeartButton.svelte';
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
@@ -76,6 +78,9 @@
   let selectedStreamingPl = $state<StreamingPlaylist | null>(null);
   let selectedService = $state('');
   let detailTracks = $state<Track[]>([]);
+  /** #4889 — une playlist Tune mêle désormais bibliothèque et services :
+   *  quand la liste est MIXTE, chaque ligne dit d'où elle vient (#1113). */
+  const detailMixte = $derived(new Set(detailTracks.map((t) => (estPisteLocale(t) ? 'local' : String(t.source ?? '')))).size > 1);
   let detailLoading = $state(false);
 
   // Clicking the Playlists nav entry (even while viewing a playlist) returns to
@@ -628,6 +633,12 @@
   let qtFilter = $state<string>('all');
   let qtExpandedAlternatives = $state<Set<number>>(new Set());
 
+  let authenticatedServices = $derived(
+    Object.entries($streamingServices)
+      .filter(([, status]) => status.authenticated)
+      .map(([name]) => name)
+  );
+
   let qtAvailableServices = $derived([
     'local',
     ...authenticatedServices,
@@ -919,12 +930,6 @@
   }
 
   // Available filter chips
-  let authenticatedServices = $derived(
-    Object.entries($streamingServices)
-      .filter(([, status]) => status.authenticated)
-      .map(([name]) => name)
-  );
-
   let filterChips = $derived([
     'all',
     'local',
@@ -1359,8 +1364,8 @@
    * Réordonne une playlist LOCALE : la piste au rang `de` va au rang `vers`.
    *
    * Appelé par la liste commune (`onReordonner`), au glisser comme au clavier.
-   * Optimiste : la liste bouge tout de suite, puis l'ordre COMPLET (les
-   * identifiants de piste) part au serveur. En cas d'échec on recharge, pour
+   * Optimiste : la liste bouge tout de suite, puis l'ordre COMPLET (en rangs
+   * actuels, #4889) part au serveur. En cas d'échec on recharge, pour
    * que l'écran ne mente pas.
    *
    * 🔴 `detailTracks` est RÉASSIGNÉ, jamais muté en place : la liste commune
@@ -1369,13 +1374,15 @@
    */
   async function reorderTracks(de: number, vers: number) {
     if (de === vers || !selectedPlaylist?.id) return;
-    const next = [...detailTracks];
-    const [moved] = next.splice(de, 1);
-    next.splice(vers, 0, moved);
-    detailTracks = next;
-    const trackIds = next.map((t) => t.id).filter((id): id is number => typeof id === 'number');
+    // #4889 — le nouvel ordre part en RANGS ACTUELS (`positions`) : les
+    // identifiants ne désignaient pas une ligne de SERVICE (id nul), qui
+    // restait clouée à son rang côté serveur pendant que l'écran la montrait
+    // déplacée.
+    const avant = detailTracks;
+    const positions = rangsApresDeplacement(avant.length, de, vers);
+    detailTracks = positions.map((k) => avant[k]);
     try {
-      await api.reorderPlaylistTracks(selectedPlaylist.id, trackIds);
+      await api.reorderPlaylistTracks(selectedPlaylist.id, positions);
     } catch (e) {
       console.error('Reorder playlist error:', e);
       try {
@@ -1833,7 +1840,7 @@
         infobulles (#2411) y cherche la fiche ouverte.
       -->
       <div class="track-list">
-        <ListePistesV2 pistes={detailTracks} pochetteEnTableau
+        <ListePistesV2 pistes={detailTracks} pochetteEnTableau sourceEnTableau={detailMixte}
           onLire={(_p, i) => playFromIndex(i)} onLireDepuis={(_p, i) => playFromIndex(i)}
           clef={(_p, i) => i}
           reordonnable={!!selectedPlaylist} onReordonner={reorderTracks}
@@ -2582,7 +2589,7 @@
                 {/if}
               {/if}
               {#if item.type === 'local' && item.local?.id}
-                <button onclick={(e) => { e.stopPropagation(); handleSharePlaylist(item.local!.id); }} title={$tr('playlistManager.share')} aria-label={$tr('playlistManager.share')}>
+                <button onclick={(e) => { e.stopPropagation(); item.local?.id && handleSharePlaylist(item.local.id); }} title={$tr('playlistManager.share')} aria-label={$tr('playlistManager.share')}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" /></svg>
                 </button>
                 <button class="danger" onclick={(e) => { e.stopPropagation(); item.local?.id && deletePlaylist(item.local.id); }} title={$tr('common.delete')} aria-label={$tr('common.delete')}>

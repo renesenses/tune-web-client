@@ -321,6 +321,8 @@ export default {
   'playlist.noExisting': 'Inga befintliga spellistor',
   'playlist.addFailed': 'Det gick inte att lägga till: tjänsten avvisade den här spellistan.',
   'playlist.servicePlaylistsOf': 'Dina {service}-spellistor',
+  'playlist.groupTune': 'Tune-spellistor',
+  'playlist.createIn': 'Skapa i',
   'playlist.newPlaylist': 'Ny spellista',
   'playlist.searchPlaceholder': 'Sök spellistor...',
   'playlist.localPlaylists': 'Mina spellistor',
