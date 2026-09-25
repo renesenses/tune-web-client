@@ -18,6 +18,11 @@
    * « Annuler » n'appelle rien. Seuls « Détacher » et « Ajouter un disque »
    * écrivent tout de suite — ce sont des opérations du serveur, pas des
    * champs — et ils attendent donc qu'il n'y ait rien d'autre en suspens.
+   *
+   * « Écrire dans les fichiers » (tranche 4) suit la même règle : il reporte
+   * dans les balises ce qui est ENREGISTRÉ, donc il est grisé tant que
+   * quelque chose ne l'est pas. Plan d'abord (`dry_run`, confirmation), puis
+   * écriture et résultat.
    */
   import { tick, untrack } from 'svelte';
   import * as api from '../../lib/api';
@@ -28,6 +33,8 @@
   import {
     brouillonDepuis, corpsEdition, deplacer, deplacerPiste, validerBrouillon,
     TYPES_DE_SORTIE, type Brouillon, type EditionReponse, type ModeCompilation,
+    champsDuPlan, ecritureBalisesAnnoncee, estRapportBalises, nomDeFichier, raisonsIgnorees,
+    RAISONS_IGNORE, type RapportBalises,
   } from '../../lib/editionAlbum';
 
   let { albumId, donnees, onFermer, onEnregistre, onRecharger }: {
@@ -94,6 +101,7 @@
     const r = await api.getAlbumEdition(albumId);
     source = r;
     b = brouillonDepuis(r);
+    balisesPossibles = ecritureBalisesAnnoncee(r);
     onRecharger?.();
   }
 
@@ -225,6 +233,66 @@
     sel.value = '';
     if (!Number.isInteger(cible) || cible < 0 || cible === d) return;
     b.disques = deplacerPiste($state.snapshot(b.disques) as Brouillon['disques'], { disque: d, rang: j }, { disque: cible });
+  }
+
+  /* ── « Écrire dans les fichiers » (tranche 4) ──────────────────────────
+     Reporte dans les BALISES ce que la base tient DÉJÀ : grisé tant qu'il
+     reste des modifications non enregistrées. D'abord le plan (`dry_run`),
+     dit dans une confirmation ; puis l'écriture, et son résultat.
+     Sonde : `ecriture_balises` dans la fiche d'édition ; un 404/405 au clic
+     retire aussi le bouton. */
+  let balisesPossibles = $state(untrack(() => ecritureBalisesAnnoncee(donnees)));
+  let balisesEnCours = $state(false);
+  let rapportBalises = $state.raw<RapportBalises | null>(null);
+
+  const libelleRaison = (raison: string): string =>
+    (RAISONS_IGNORE as readonly string[]).includes(raison)
+      ? $tr(`v2.edition.tagsSkip.${raison}` as any)
+      : raison;
+
+  /** Un échec de la route, en clé traduite au rendu. */
+  function echecBalises(e: unknown) {
+    const x = e as { status?: number; message?: string } | null;
+    if (x?.status === 404 || x?.status === 405) {
+      balisesPossibles = false;
+      erreur = { cle: 'v2.edition.errWriteTagsServer' };
+      return;
+    }
+    erreur = { cle: 'v2.edition.errWriteTags', detail: x?.message || undefined };
+  }
+
+  async function ecrireBalises() {
+    if (modifie || enCours || balisesEnCours) return;
+    balisesEnCours = true;
+    erreur = null;
+    rapportBalises = null;
+    try {
+      const plan = await api.ecrireBalisesAlbum(albumId, true);
+      if (!estRapportBalises(plan)) throw { status: 404 };
+      if (plan.a_ecrire === 0) {
+        rapportBalises = plan;
+        return;
+      }
+      let question = $tr('v2.edition.writeTagsAsk' as any)
+        .replace('{n}', String(plan.a_ecrire))
+        .replace('{champs}', champsDuPlan(plan).join(', '));
+      if (plan.ignores.length) {
+        question += ' ' + $tr('v2.edition.writeTagsAskSkipped' as any)
+          .replace('{n}', String(plan.ignores.length))
+          .replace('{raisons}', raisonsIgnorees(plan)
+            .map(({ raison, n }) => `${libelleRaison(raison)} (${n})`).join(', '));
+      }
+      if (!(await dialogs.confirm(question))) return;
+      const fait = await api.ecrireBalisesAlbum(albumId, false);
+      if (!estRapportBalises(fait)) throw { status: 404 };
+      rapportBalises = fait;
+      // Les fichiers relus ont pu changer la ligne des pistes (taille, date).
+      if (fait.ecrits > 0) onRecharger?.();
+    } catch (e) {
+      echecBalises(e);
+    } finally {
+      balisesEnCours = false;
+    }
   }
 
   const MODES: { v: ModeCompilation; cle: string }[] = [
@@ -419,7 +487,42 @@
     <button type="button" class="ed-enregistrer" data-enregistrer disabled={!modifie || enCours}
       onclick={enregistrer}>{$tr((enCours ? 'v2.edition.saving' : 'v2.edition.save') as any)}</button>
     <button type="button" class="ed-annuler" data-annuler onclick={onFermer}>{$tr('v2.edition.cancel' as any)}</button>
+    {#if balisesPossibles}
+      <button type="button" class="ed-lien ed-balises" data-ecrire-balises
+        disabled={modifie || enCours || balisesEnCours}
+        title={modifie ? $tr('v2.edition.saveFirst' as any) : $tr('v2.edition.writeTagsTip' as any)}
+        onclick={ecrireBalises}>{$tr((balisesEnCours ? 'v2.edition.writeTagsBusy' : 'v2.edition.writeTags') as any)}</button>
+    {/if}
   </div>
+
+  {#if rapportBalises}
+    <div class="ed-rapport" role="status" data-rapport-balises>
+      {#if rapportBalises.dry_run}
+        <p data-rien-a-ecrire>{$tr('v2.edition.writeTagsNothing' as any)}</p>
+      {:else}
+        <p data-resultat-balises>{$tr('v2.edition.writeTagsResult' as any)
+          .replace('{ecrits}', String(rapportBalises.ecrits))
+          .replace('{ignores}', String(rapportBalises.ignores.length))
+          .replace('{erreurs}', String(rapportBalises.erreurs.length))}</p>
+      {/if}
+      {#if rapportBalises.ignores.length}
+        <p class="ed-rapport-titre">{$tr('v2.edition.writeTagsSkippedList' as any)}</p>
+        <ul>
+          {#each rapportBalises.ignores as i (i.track_id)}
+            <li data-ignore={i.raison}>{nomDeFichier(i.path) || '—'} <span class="ed-detail">{libelleRaison(i.raison)}</span></li>
+          {/each}
+        </ul>
+      {/if}
+      {#if rapportBalises.erreurs.length}
+        <p class="ed-rapport-titre ed-rapport-err">{$tr('v2.edition.writeTagsErrorsList' as any)}</p>
+        <ul>
+          {#each rapportBalises.erreurs as x (x.track_id)}
+            <li data-erreur-balise={x.track_id}>{nomDeFichier(x.path)} <span class="ed-detail">{x.message}</span></li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  {/if}
 </section>
 
 <style>
@@ -478,6 +581,12 @@
     font:700 14px var(--v2-sans)}
   .ed-enregistrer{border:0; color:var(--v2-on-acc); background:linear-gradient(135deg,var(--v2-acc1),var(--v2-acc2))}
   .ed-annuler{border:1px solid var(--v2-line2); background:transparent; color:var(--v2-txt)}
+  .ed-actions .ed-balises{height:44px; margin-left:auto}
+  .ed-rapport{padding:10px 12px; border:1px solid var(--v2-line2); border-radius:var(--v2-r-md); font-size:13px}
+  .ed-rapport p{margin:0 0 6px}
+  .ed-rapport ul{margin:0 0 8px; padding-left:18px}
+  .ed-rapport-titre{font-weight:600; color:var(--v2-txt2)}
+  .ed-rapport-err{color:var(--v2-danger)}
   @media (max-width: 640px){
     .ed-piste{grid-template-columns:28px 20px 1fr; }
     .ed-artiste, .ed-vers{grid-column:3}
