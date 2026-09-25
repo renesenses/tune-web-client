@@ -3429,6 +3429,7 @@ export default {
   "v2.sup.sysFallback": "Fallback diagram: the Mermaid renderer could not be loaded.",
   "v2.lib.recent": "Recently added",
   "v2.lib.recentHint": "Sort by date added, newest first",
+  "v2.lib.railVersTitre": "{lettre} — sort by title and go to this letter",
   "v2.rech.where": "Where",
   "v2.rech.srcLocal": "Library",
   "v2.rech.allSources": "Everywhere",

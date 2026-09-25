@@ -3409,6 +3409,7 @@ export default {
   "v2.sup.sysFallback": "대체 도식입니다. Mermaid 렌더러를 불러오지 못했습니다.",
   "v2.lib.recent": "최근 추가됨",
   "v2.lib.recentHint": "추가된 날짜순으로 최신부터 정렬",
+  "v2.lib.railVersTitre": "{lettre} — 제목순으로 정렬하고 이 글자로 이동",
   "v2.rech.where": "범위",
   "v2.rech.srcLocal": "라이브러리",
   "v2.rech.allSources": "전체",

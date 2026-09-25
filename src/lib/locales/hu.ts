@@ -3367,6 +3367,7 @@ export default {
   "v2.sup.sysFallback": "Tartalék ábra: a Mermaid megjelenítőt nem sikerült betölteni.",
   "v2.lib.recent": "Nemrég hozzáadva",
   "v2.lib.recentHint": "Rendezés a hozzáadás dátuma szerint, a legújabbtól",
+  "v2.lib.railVersTitre": "{lettre} — rendezés cím szerint, és ugrás erre a betűre",
   "v2.rech.where": "Hol",
   "v2.rech.srcLocal": "Könyvtár",
   "v2.rech.allSources": "Mindenhol",

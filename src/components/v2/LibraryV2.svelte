@@ -730,7 +730,27 @@
    * distingue, plutôt que sur un 0 commun.
    */
   const cleTirage = (a: Album) => a.id ?? a.title ?? '';
-  const hasAddedAt = $derived(src.some((a) => (a.added_at ?? 0) > 0));
+  /**
+   * 🔴 LA DATE D'AJOUT SE RETIENT PENDANT UN RECHARGEMENT.
+   *
+   * En pages (#4800), `src` est ce qui est ARRIVÉ. Passer sur « Derniers
+   * ajouts » change la liste demandée au serveur : les pages tombent, `src` est
+   * vide le temps que la première revienne, et `hasAddedAt` retombait à faux.
+   * Le bouton « Derniers ajouts » — derrière `{#if hasAddedAt}` — disparaissait
+   * donc sous le doigt au moment même du clic, puis revenait : un clignotement,
+   * et un bouton remonté (nouvel élément, focus perdu).
+   *
+   * Même règle que l'effet de #899 plus bas : une liste VIDE ne décide de rien.
+   * On garde la dernière réponse connue tant que rien n'est arrivé. Une
+   * bibliothèque chargée où aucun album ne porte la date la remet à faux.
+   * Pas un `$state` : une simple mémoire du dernier calcul.
+   */
+  let datesDAjoutConnues = false;
+  const hasAddedAt: boolean = $derived.by(() => {
+    if (!src.length) return datesDAjoutConnues;
+    datesDAjoutConnues = src.some((a) => (a.added_at ?? 0) > 0);
+    return datesDAjoutConnues;
+  });
   /**
    * Le DR d'un album, en nombre — `null` quand il n'est pas tagué.
    *
@@ -1301,7 +1321,44 @@
    * de ce qui n'est pas arrivé : toutes sont offertes, et un clic sur une
    * lettre absente atterrit sur la suivante — c'est ce que la dichotomie rend.
    */
-  const present = $derived(railUtile ? (nu ? new Set(ALPHA) : new Set(affiches.map(firstLetter))) : new Set<string>());
+  /**
+   * 🔴 LE RAIL RESTE SUR TOUS LES TRIS — décision de Bertrand, 25/09/2026.
+   *
+   * « Click sur derniers ajouts, la barre A-Z disparaît ! » Elle était retirée
+   * exprès sur un tri chronologique (Derniers ajouts, Année, Aléatoire, DR) et
+   * sur l'onglet « Ajouts récents » : une lettre n'y désigne aucune position.
+   * Elle reste désormais, et une lettre y REPASSE au tri Titre avant de sauter
+   * (`choisirLettre`). Le libellé de chaque lettre le dit.
+   *
+   * Les lettres allumées sont alors celles des TITRES — le tri où l'on va :
+   * exactes sur la liste entière (le tri ne change pas les albums affichés,
+   * seulement leur ordre), toutes offertes en pages, comme sur le tri Titre.
+   */
+  const railRamene = $derived(tab === 'recent' || !railUtile);
+  const initialeDuTitre = (a: Album): string => {
+    const c = fold(a.title ?? '').charAt(0).toUpperCase();
+    return c >= 'A' && c <= 'Z' ? c : '#';
+  };
+  const present = $derived(
+    railRamene
+      ? (tab === 'albums' && !nu ? new Set(affiches.map(initialeDuTitre)) : new Set(ALPHA))
+      : (nu ? new Set(ALPHA) : new Set(affiches.map(firstLetter))),
+  );
+  /**
+   * Un clic sur une lettre du rail. Sur un tri alphabétique : le saut, tel
+   * quel. Sinon : l'onglet Albums, le tri Titre, le rail A–Z (pas la frise),
+   * PUIS le saut — une fois l'écran rendu dans ce tri, pour que les ancres
+   * (`data-letter`, ou la liste paginée par titre) soient celles du Titre.
+   */
+  async function choisirLettre(L: string) {
+    if (railRamene) {
+      tabChoisi = 'albums';
+      sortKey = 'title';
+      navMode = 'alpha';
+      await tick();
+    }
+    jump(L);
+  }
 
 
   /** Facette d'un album pour l'onglet courant. `null` = non renseigne, et on
@@ -2341,6 +2398,10 @@
       <!-- #929 — le carrousel est le mode de parcours de la vue ALBUMS. Les
            ajouts récents n'en connaissent que deux ; ils retombent donc sur la
            grille plutôt que de recevoir un mode qu'ils ne savent pas rendre. -->
+      <!-- Le rail est là aussi : une lettre ramène sur l'onglet Albums, trié
+           par titre, à cette lettre. Pas de `navMode` ici : cet onglet n'a
+           pas de frise. -->
+      {@render railAZ()}
       <AjoutsRecentsV2 onOuvrir={ouvrirCalqueAlbum} vue={display === 'carousel' ? 'grid' : display} />
     {:else if tab === 'artists'}
       <!-- Les artistes ont leur PROPRE source, `/library/artists`, et non une
@@ -2368,15 +2429,12 @@
           ? $tr('v2.lib.emptyDepot' as any).replace('{nom}', depot.nom).replace('{hote}', depot.hote)
           : $tr('v2.lib.emptyLibrary' as any)}</div>
     {:else}
-      <!-- `railUtile` : sur un tri chronologique, le rail est RETIRÉ plutôt
-           que laissé à promettre un saut qui atterrirait au hasard. La frise
-           des années reste le repère de ces deux tris. -->
-      {#if navMode === 'alpha' && tab === 'albums' && railUtile}
-        <div class="rail" class:couche={enCarrousel}>
-          {#each ALPHA as L (L)}
-            <button class="rl" class:hot={present.has(L)} disabled={!present.has(L)} onclick={() => jump(L)}>{L}</button>
-          {/each}
-        </div>
+      <!-- Le rail reste sur TOUS les tris (Bertrand, 25/09/2026) : sur un tri
+           qui n'est pas alphabétique, une lettre repasse au tri Titre puis
+           saute (`choisirLettre`). La frise des années le remplace toujours
+           quand on la choisit (`navMode`). -->
+      {#if navMode === 'alpha' && tab === 'albums'}
+        {@render railAZ()}
       {/if}
       {#if tab === 'tracks'}
         <div class="tracklist">
@@ -2727,6 +2785,18 @@
     <div class="card sq" data-i={i} use:observerCase={i} aria-hidden="true">
       <div class="cover"></div>
       <div class="meta"><div class="ct sq">&nbsp;</div><div class="ca sq">&nbsp;</div><span class="cbot">&nbsp;</span>{#if showTech}<div class="cq">&nbsp;</div>{/if}</div>
+    </div>
+  {/snippet}
+  <!-- LE RAIL A–Z. Sur un tri non alphabétique, chaque lettre ANNONCE qu'elle
+       repasse au tri Titre : un lecteur d'écran l'entend avant d'appuyer, et
+       la souris le lit dans l'infobulle. -->
+  {#snippet railAZ()}
+    <div class="rail" class:couche={enCarrousel}>
+      {#each ALPHA as L (L)}
+        {@const libelle = railRamene ? $tr('v2.lib.railVersTitre' as any).replace('{lettre}', L) : undefined}
+        <button class="rl" class:hot={present.has(L)} disabled={!present.has(L)}
+                aria-label={libelle} title={libelle} onclick={() => choisirLettre(L)}>{L}</button>
+      {/each}
     </div>
   {/snippet}
 

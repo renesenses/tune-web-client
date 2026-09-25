@@ -199,10 +199,15 @@ describe('#4558 — le tri « Aléatoire » des albums est de retour dans la v2'
     expect(grille(el2)).toEqual(tire);
   });
 
-  it('le rail A–Z est retiré sur un tirage : il promettrait un saut qui atterrit au hasard', async () => {
+  it('sur un tirage, le rail A–Z reste mais chaque lettre repasse au tri Titre (Bertrand, 25/09/2026)', async () => {
+    // Il était retiré : un saut sur un ordre tiré au sort atterrirait au
+    // hasard. Il reste désormais, et chaque lettre ANNONCE qu'elle repasse au
+    // tri Titre avant de sauter — elle ne saute donc jamais dans le tirage.
     const el = await poserEcran();
     await choisirTri(el, 'Aléatoire');
-    expect(el.querySelectorAll('.body .rail').length).toBe(0);
+    const lettres = [...el.querySelectorAll<HTMLButtonElement>('.body .rail .rl')];
+    expect(lettres.length).toBeGreaterThan(0);
+    expect(lettres.every((b) => (b.getAttribute('aria-label') ?? '').includes('titre'))).toBe(true);
   });
 });
 

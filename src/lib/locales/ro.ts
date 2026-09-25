@@ -3409,6 +3409,7 @@ export default {
   "v2.sup.sysFallback": "Schemă de rezervă: randarea Mermaid nu a putut fi încărcată.",
   "v2.lib.recent": "Adăugate recent",
   "v2.lib.recentHint": "Sortează după data adăugării, de la cele mai noi",
+  "v2.lib.railVersTitre": "{lettre} — sortează după titlu și mergi la această literă",
   "v2.rech.where": "Unde",
   "v2.rech.srcLocal": "Bibliotecă",
   "v2.rech.allSources": "Peste tot",

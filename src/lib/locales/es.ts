@@ -3409,6 +3409,7 @@ export default {
   "v2.sup.sysFallback": "Esquema de reserva: no se pudo cargar el renderizador Mermaid.",
   "v2.lib.recent": "Añadidos recientemente",
   "v2.lib.recentHint": "Ordenar por fecha de incorporación, del más reciente al más antiguo",
+  "v2.lib.railVersTitre": "{lettre} — ordenar por título e ir a esta letra",
   "v2.rech.where": "Dónde",
   "v2.rech.srcLocal": "Biblioteca",
   "v2.rech.allSources": "En todas partes",

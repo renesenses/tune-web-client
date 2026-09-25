@@ -3409,6 +3409,7 @@ export default {
   "v2.sup.sysFallback": "Ersatzdiagramm: Der Mermaid-Renderer konnte nicht geladen werden.",
   "v2.lib.recent": "Zuletzt hinzugefügt",
   "v2.lib.recentHint": "Nach Hinzufügedatum sortieren, neueste zuerst",
+  "v2.lib.railVersTitre": "{lettre} — nach Titel sortieren und zu diesem Buchstaben springen",
   "v2.rech.where": "Wo",
   "v2.rech.srcLocal": "Bibliothek",
   "v2.rech.allSources": "Überall",
