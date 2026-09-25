@@ -409,6 +409,9 @@
     arbreBarreReplie = !arbreBarreReplie;
     ecrireArbreBarreReplie(arbreBarreReplie);
   }
+  const libellePliArbre = $derived(
+    arbreBarreReplie ? $t('v2.rayons.showTree' as any) : $t('v2.rayons.hideTree' as any),
+  );
   const arbreBarreDisponible = $derived(
     !enIcones && $etatRayons.mode === 'arbre' && $etatRayons.arbre.folders.length > 0,
   );
@@ -557,7 +560,7 @@
     <nav class="grp">
       <div class="grp-label">{$t('v2.nav.selections' as any)}</div>
       {#each SELECTIONS as it (it.view)}
-        {#if it.view === 'collections' && arbreBarreDisponible}
+        {#if it.view === 'collections' && arbreBarreDisponible && $etatRayons.mode === 'arbre'}
           <!-- #1580 : l'entrée garde son geste (ouvrir l'écran) ; le chevron,
                bouton frère et non enfant, replie l'arbre entier. -->
           <div class="nav-pli">
@@ -566,8 +569,7 @@
               <span>{$t(it.labelKey as any)}</span>
             </button>
             <button class="pli-arbre" aria-expanded={!arbreBarreReplie}
-              aria-label={arbreBarreReplie ? $t('v2.rayons.showTree' as any) : $t('v2.rayons.hideTree' as any)}
-              title={arbreBarreReplie ? $t('v2.rayons.showTree' as any) : $t('v2.rayons.hideTree' as any)}
+              aria-label={libellePliArbre} title={libellePliArbre}
               onclick={basculerArbreBarre}>
               <svg viewBox="0 0 24 24" class:ferme={arbreBarreReplie}><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" /></svg>
             </button>
