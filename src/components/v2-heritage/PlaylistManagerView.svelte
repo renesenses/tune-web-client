@@ -24,6 +24,10 @@
   import SmartPlaylistsView from './SmartPlaylistsView.svelte';
   import SmartAIView from './SmartAIView.svelte';
   import { listResetNonce } from '../../lib/stores/navigation';
+  import { convertisseurCharge, rafraichirConvertisseur } from '../../lib/stores/convertisseurPlaylists';
+  import TransfertsConvertisseur from './convertisseur/TransfertsConvertisseur.svelte';
+  import SnapshotsConvertisseur from './convertisseur/SnapshotsConvertisseur.svelte';
+  import LiensConvertisseur from './convertisseur/LiensConvertisseur.svelte';
 
   let viewTab = $state<'manual' | 'smart' | 'smart-ai'>('manual');
 
@@ -439,7 +443,25 @@
    */
   const ONGLETS_AVANCES = false;
 
-  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab'>('playlists');
+  /**
+   * Les onglets du greffon « Playlists converter » (tune-server-rust#4715) —
+   * Transferts, Snapshots, Synchro. Ils ne dépendent PAS de `ONGLETS_AVANCES`
+   * : ils parlent au greffon (`/plugins/playlists-converter/…`), pas aux
+   * anciennes routes `/playlist-manager/*`. Ils ne s'affichent que si le
+   * greffon est installé, activé et CHARGÉ (`convertisseurCharge`) ; sinon la
+   * rangée reste réduite à Playlists, comme depuis le 22/09/2026.
+   *
+   * Sauvegarde et Collaboratives ne reviennent pas : elles ne relèvent pas de
+   * ce greffon (Tune Circle pour les secondes).
+   */
+  type OngletConvertisseur = 'conv-transferts' | 'conv-snapshots' | 'conv-synchro';
+  let managerTab = $state<'playlists' | 'transfers' | 'sync' | 'backup' | 'collab' | OngletConvertisseur>('playlists');
+
+  // Le greffon peut disparaître (désactivé, désinstallé) pendant qu'un de ses
+  // onglets est ouvert : on ne reste pas sur un onglet sans bouton.
+  $effect(() => {
+    if (!$convertisseurCharge && managerTab.startsWith('conv-')) managerTab = 'playlists';
+  });
 
   // Transfer history
   let transferHistory = $state<any[]>([]);
@@ -964,6 +986,7 @@
 
   // Load on mount
   loadAll();
+  void rafraichirConvertisseur();
 
   function serviceName(s: string): string {
     const labels: Record<string, string> = {
@@ -1810,6 +1833,11 @@
           <button class="pm-tab" class:active={managerTab === 'backup'} onclick={() => managerTab = 'backup'}>{$tr('playlistManager.tabBackup')}</button>
           <button class="pm-tab" class:active={managerTab === 'collab'} onclick={() => { managerTab = 'collab'; loadManagerData(); }}>{$tr('playlistManager.tabCollab')}</button>
         {/if}
+        {#if $convertisseurCharge}
+          <button class="pm-tab" data-onglet="conv-transferts" class:active={managerTab === 'conv-transferts'} onclick={() => managerTab = 'conv-transferts'}>{$tr('plconv.ongletTransferts')}</button>
+          <button class="pm-tab" data-onglet="conv-snapshots" class:active={managerTab === 'conv-snapshots'} onclick={() => managerTab = 'conv-snapshots'}>{$tr('plconv.ongletSnapshots')}</button>
+          <button class="pm-tab" data-onglet="conv-synchro" class:active={managerTab === 'conv-synchro'} onclick={() => managerTab = 'conv-synchro'}>{$tr('plconv.ongletSynchro')}</button>
+        {/if}
       </div>
       <div class="pm-header-right">
         <div class="search-box">
@@ -2214,6 +2242,19 @@
             </div>
           {/if}
         {/if}
+      </div>
+
+    {:else if managerTab === 'conv-transferts' && $convertisseurCharge}
+      <div class="pm-tab-content">
+        <TransfertsConvertisseur {localPlaylists} {streamingPlaylists} />
+      </div>
+    {:else if managerTab === 'conv-snapshots' && $convertisseurCharge}
+      <div class="pm-tab-content">
+        <SnapshotsConvertisseur {localPlaylists} {streamingPlaylists} />
+      </div>
+    {:else if managerTab === 'conv-synchro' && $convertisseurCharge}
+      <div class="pm-tab-content">
+        <LiensConvertisseur {localPlaylists} {streamingPlaylists} />
       </div>
 
     {:else}
