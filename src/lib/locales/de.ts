@@ -3598,6 +3598,8 @@ export default {
   "v2.ms.discoveryUnavail": "Netzwerksuche nicht verfügbar.",
   "v2.ms.folderNoAnswer": "Dieser Ordner hat nicht geantwortet.",
   "v2.ms.folderEmpty": "Dieser Ordner ist leer.",
+  "v2.ms.searchFailed": "Die Suche auf diesem Server ist fehlgeschlagen.",
+  "v2.ms.listIncomplete": "Unvollständige Liste: {n} von {total}",
   "v2.pod.episodesUnavail": "Folgen nicht verfügbar.",
   "v2.sup.unavailable": "Tickets nicht verfügbar — der Support-Dienst ist nicht erreichbar.",
   "v2.sup.stAnswered": "beantwortet",

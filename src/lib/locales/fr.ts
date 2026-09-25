@@ -3620,6 +3620,8 @@ export default {
   "v2.ms.discoveryUnavail": "Découverte réseau indisponible.",
   "v2.ms.folderNoAnswer": "Ce dossier n’a pas répondu.",
   "v2.ms.folderEmpty": "Ce dossier est vide.",
+  "v2.ms.searchFailed": "La recherche sur ce serveur a échoué.",
+  "v2.ms.listIncomplete": "Liste incomplète : {n} sur {total}",
   "v2.pod.episodesUnavail": "Épisodes indisponibles.",
   "v2.sup.unavailable": "Tickets indisponibles — le service de support est injoignable.",
   "v2.sup.stAnswered": "réponse reçue",

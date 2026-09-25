@@ -3598,6 +3598,8 @@ export default {
   "v2.ms.discoveryUnavail": "Descoperirea în rețea este indisponibilă.",
   "v2.ms.folderNoAnswer": "Acest dosar nu a răspuns.",
   "v2.ms.folderEmpty": "Acest dosar este gol.",
+  "v2.ms.searchFailed": "Căutarea pe acest server a eșuat.",
+  "v2.ms.listIncomplete": "Listă incompletă: {n} din {total}",
   "v2.pod.episodesUnavail": "Episoade indisponibile.",
   "v2.sup.unavailable": "Tichete indisponibile — serviciul de asistență nu răspunde.",
   "v2.sup.stAnswered": "cu răspuns",
