@@ -12,7 +12,7 @@ import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
-import type { CorpsEdition, EditionReponse } from './editionAlbum';
+import type { CorpsEdition, EditionReponse, RapportBalises } from './editionAlbum';
 import { estDepotTuneDistant } from './depotsTuneDistants';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
@@ -1917,6 +1917,18 @@ export function attachAlbumDisc(id: number, albumId: number) {
 /** Le disque `numero` de l'album `id` redevient un album à part entière. */
 export function detachAlbumDisc(id: number, numero: number) {
   return fetchJSON<unknown>(`${BASE}/library/albums/${id}/discs/${numero}/detach`, { method: 'POST' });
+}
+
+/**
+ * « Écrire dans les fichiers » (tranche 4) : reporte l'édition enregistrée dans
+ * les BALISES des fichiers locaux de l'album. `dryRun` rend le plan (fichier,
+ * champ, avant → après) sans rien écrire. Forme : `RapportBalises`.
+ */
+export function ecrireBalisesAlbum(id: number, dryRun: boolean) {
+  return fetchJSON<RapportBalises>(`${BASE}/library/albums/${id}/edition/write-tags`, {
+    method: 'POST',
+    body: JSON.stringify({ dry_run: dryRun }),
+  });
 }
 
 /** Fetch the tracks of many albums with bounded concurrency and one retry per

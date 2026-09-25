@@ -61,6 +61,8 @@ export interface EditionReponse {
   album: EditionAlbumChamps;
   discs: EditionDisque[];
   tracks: EditionPiste[];
+  /** Tranche 4 : le serveur sait écrire dans les fichiers (voir plus bas). */
+  ecriture_balises?: boolean;
 }
 
 export interface CorpsEdition {
@@ -253,3 +255,79 @@ export function corpsEdition(r: EditionReponse, b: Brouillon): CorpsEdition {
 
 /** Les types de sortie que le client connaît : ceux de MusicBrainz (#4767). */
 export const TYPES_DE_SORTIE = ['album', 'ep', 'single'] as const;
+
+/* ══════════════════════════════════════════════════════════════════════
+   « ÉCRIRE DANS LES FICHIERS » — tranche 4 (GO de Bertrand, 25/09/2026).
+
+   POST /library/albums/{id}/edition/write-tags   ← { dry_run }
+     → { dry_run, ecrits, a_ecrire, inchanges, plan, ignores, erreurs }
+
+   Reporte dans les BALISES des fichiers ce que le mode « Modifier » a
+   enregistré en base. La SONDE du bouton est `ecriture_balises: true` dans la
+   réponse de `GET …/edition` : un serveur qui n'a que les tranches 1 à 3 ne
+   l'envoie pas, et le bouton n'apparaît pas. Au clic, un 404/405 le retire
+   aussi (un relais qui servirait une fiche d'édition sans la route).
+   ══════════════════════════════════════════════════════════════════════ */
+
+export interface ChangementBalise {
+  /** Nom de la balise, au sens Vorbis : ALBUM, TITLE, DISCNUMBER… */
+  champ: string;
+  avant: string | null;
+  /** `null` : la balise est retirée. */
+  apres: string | null;
+}
+
+export interface RapportBalises {
+  dry_run: boolean;
+  ecrits: number;
+  a_ecrire: number;
+  inchanges: number;
+  plan: { track_id: number; path: string; changements: ChangementBalise[] }[];
+  ignores: { track_id: number; path: string; raison: string }[];
+  erreurs: { track_id: number; path: string; message: string }[];
+}
+
+/** Les raisons de ne pas écrire que le serveur donne — une clé i18n chacune. */
+export const RAISONS_IGNORE = [
+  'piste_de_service', 'piste_cue', 'sans_fichier', 'fichier_introuvable', 'format_non_gere',
+  'hors_racines', 'liens_multiples', 'lecture_seule', 'dossier_en_lecture_seule', 'en_lecture',
+] as const;
+
+/** Le serveur annonce-t-il « Écrire dans les fichiers » ? */
+export function ecritureBalisesAnnoncee(r: EditionReponse | null | undefined): boolean {
+  return (r as { ecriture_balises?: unknown } | null | undefined)?.ecriture_balises === true;
+}
+
+/** La réponse a-t-elle la forme du rapport ? Sinon, ce n'est pas la route. */
+export function estRapportBalises(r: unknown): r is RapportBalises {
+  if (!r || typeof r !== 'object' || Array.isArray(r)) return false;
+  const o = r as Record<string, unknown>;
+  return typeof o.a_ecrire === 'number' && typeof o.ecrits === 'number'
+    && Array.isArray(o.plan) && Array.isArray(o.ignores) && Array.isArray(o.erreurs);
+}
+
+/** Les champs que le plan change, sans doublon, dans l'ordre d'apparition. */
+export function champsDuPlan(r: RapportBalises): string[] {
+  const vus: string[] = [];
+  for (const f of r.plan) for (const c of f.changements) if (!vus.includes(c.champ)) vus.push(c.champ);
+  return vus;
+}
+
+/** Les fichiers sautés, regroupés par raison (ordre de `RAISONS_IGNORE`). */
+export function raisonsIgnorees(r: RapportBalises): { raison: string; n: number }[] {
+  const compte = new Map<string, number>();
+  for (const i of r.ignores) compte.set(i.raison, (compte.get(i.raison) ?? 0) + 1);
+  const rang = (x: string) => {
+    const k = (RAISONS_IGNORE as readonly string[]).indexOf(x);
+    return k < 0 ? RAISONS_IGNORE.length : k;
+  };
+  return [...compte.entries()]
+    .map(([raison, n]) => ({ raison, n }))
+    .sort((a, b) => rang(a.raison) - rang(b.raison) || a.raison.localeCompare(b.raison));
+}
+
+/** Le nom de fichier seul, pour une liste lisible. */
+export function nomDeFichier(chemin: string): string {
+  const i = Math.max(chemin.lastIndexOf('/'), chemin.lastIndexOf('\\'));
+  return i < 0 ? chemin : chemin.slice(i + 1);
+}
