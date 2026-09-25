@@ -195,6 +195,15 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
   let etiquettesOuvertes = $state(false);
 
+  /**
+   * « Crédits » — #1572 (FabienM, fil forum 1921 : « ajouter un bouton pour
+   * consulter les crédits d'un album »). Les crédits sont ceux des pistes de
+   * la BIBLIOTHÈQUE (`track_credits`) : ni dépôt distant — son `id` est celui
+   * d'un autre serveur —, ni album de service.
+   */
+  const creditsPossibles = $derived(album.id != null && !depot && !service && !bandcamp);
+  let creditsOuverts = $state(false);
+
   /* ══════════════════════════════════════════════════════════════════════
      « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
 
@@ -230,6 +239,16 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     menuCollectionOuvert = true;
   }
   function fermerMenuCollection() { menuCollectionOuvert = false; }
+  /** Un défilement de la PAGE ferme le menu : posé en `fixed` aux coordonnées
+   *  du bouton, il resterait figé loin de lui. Mais le menu défile lui-même
+   *  depuis #1575 (hauteur bornée à la fenêtre) : ce défilement-là est le
+   *  seul moyen d'atteindre les dernières collections, il ne doit pas le
+   *  fermer. */
+  function auDefilementCollection(e: Event) {
+    const cible = e.target as Element | null;
+    if (cible && typeof cible.closest === 'function' && cible.closest('.coll-menu')) return;
+    menuCollectionOuvert = false;
+  }
   function auClavierCollection(e: KeyboardEvent) {
     if (e.key === 'Escape') menuCollectionOuvert = false;
   }
@@ -1094,6 +1113,14 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.album.addToCollection' as any)}
           </button>
         {/if}
+        {#if creditsPossibles}
+          <button class="ghost" data-credits-album onclick={() => (creditsOuverts = true)}
+            aria-haspopup="dialog" aria-expanded={creditsOuverts}
+            title={$tr('artist.credits' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            {$tr('artist.credits' as any)}
+          </button>
+        {/if}
       </div>
       <!-- Album LOCAL seulement : ces trois gestes travaillent sur la fiche de
            la bibliothèque. -->
@@ -1192,11 +1219,22 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       onClose={() => (etiquettesOuvertes = false)} />
   {/await}
 {/if}
+<!-- #1572 — la fiche « Crédits » de l'album : la même que celle d'un titre,
+     agrégée sur le disque. Un nom crédité referme la fiche avant d'ouvrir la
+     page de l'artiste (`quitterLaFiche`, comme `allerArtiste`). -->
+{#if creditsOuverts && creditsPossibles && album.id != null}
+  {#await import('../partages/CreditsTiroir.svelte') then m}
+    <m.default
+      cible={{ type: 'album', albumId: album.id, titre: album.title, artiste: nomArtiste, pistes: tracks }}
+      avantDeNaviguer={quitterLaFiche}
+      onClose={() => (creditsOuverts = false)} />
+  {/await}
+{/if}
 <!-- Le menu « Ajouter à une collection » : une entrée par collection
      MANUELLE, ou l'état vide qui mène à l'écran Collections. Porté à la
      racine et posé en `fixed` : la fiche défile. -->
 <svelte:window onclick={fermerMenuCollection} onkeydown={auClavierCollection}
-  onresize={fermerMenuCollection} onscrollcapture={fermerMenuCollection} />
+  onresize={fermerMenuCollection} onscrollcapture={auDefilementCollection} />
 {#if menuCollectionOuvert && ancreCollection}
   <div class="coll-menu tune-v2" role="menu" tabindex="-1" use:portail
     aria-label={$tr('v2.album.addToCollection' as any)}
@@ -1217,18 +1255,21 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
 <style>
   /* Le menu des collections. `fixed` + `use:portail` : voir l'en-tête du
-     `<script>`. Même gabarit que le panneau de `MenuZone`. */
+     `<script>`. Même gabarit que le panneau de `MenuZone`. Sa hauteur est
+     bornée à la fenêtre par `styleMenuAncre` (`max-height`, #1575) : au-delà,
+     il défile en lui-même, sans entraîner la page. */
   .coll-menu{position:fixed; z-index:60; width:240px; padding:6px; display:flex; flex-direction:column; gap:1px;
+    overflow-y:auto; overscroll-behavior:contain;
     border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);
     color:var(--v2-txt); font-family:var(--v2-sans); box-shadow:0 18px 40px rgba(0,0,0,.5)}
-  .coll-item{display:block; width:100%; min-height:34px; padding:7px 10px; border:0; border-radius:8px;
+  .coll-item{display:block; flex:0 0 auto; width:100%; min-height:34px; padding:7px 10px; border:0; border-radius:8px;
     background:transparent; color:var(--v2-txt); font:13px var(--v2-sans); text-align:left; cursor:pointer;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .coll-item:hover{background:var(--v2-surface2)}
   .coll-item:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-2px}
   .coll-item.deja{color:var(--v2-txt3)}
   .coll-lien{color:var(--v2-acc-tint)}
-  .coll-vide{margin:0; padding:7px 10px; font-size:12px; line-height:1.4; color:var(--v2-txt3); white-space:normal}
+  .coll-vide{flex:0 0 auto; margin:0; padding:7px 10px; font-size:12px; line-height:1.4; color:var(--v2-txt3); white-space:normal}
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
   .close{position:sticky; top:0; margin-bottom:8px; width:40px; height:40px; border-radius:12px; cursor:pointer;
