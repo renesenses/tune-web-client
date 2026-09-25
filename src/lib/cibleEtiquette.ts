@@ -121,6 +121,37 @@ export function cibleEtiquetteAlbum(a: any, ongletActif: string | null = null): 
   });
 }
 
+/**
+ * La cible d'étiquettes d'une PLAYLIST, quelle que soit la vignette qui la
+ * montre — et sa fiche (`PlaylistDetailV2`).
+ *
+ * Bertrand, 25/09/2026, sur le .18 en v0.9.165 : « Le CTA tag est toujours
+ * absent des albums et playlists de streaming !! ». Les vignettes d'une
+ * playlist de SERVICE passaient `null` partout — l'onglet Playlists de l'écran
+ * Streaming, les bandes « Playlists » de l'éditorial et de l'accueil
+ * (`PageWidgets`), l'onglet d'un service de l'écran Playlists — au motif que
+ * « la demande nomme les albums et les titres ». Le serveur les tient pourtant
+ * depuis #3699 : `playlist` est dans `TAGGABLE_ITEM_TYPES`,
+ * `POST /tags/{id}/streaming-items` l'accepte, `GET /tags/for-streaming` la
+ * relit (200 sur le .18) et `GET /tags/{id}/playlists` rend leur moitié
+ * streaming. La fiche, elle, savait déjà la désigner.
+ *
+ *  - source de BIBLIOTHÈQUE (absente, `local`) → l'identifiant entier, s'il
+ *    est strictement positif ;
+ *  - sinon la paire `source` + `source_id` (`cibleDeService`), la source
+ *    retombant sur `service` quand l'objet ne la porte pas — ce que rend
+ *    `/streaming/qobuz/playlists` : `{name, source_id: '70608857', …}`, sans
+ *    `source` (mesuré sur le .18 le 25/09/2026).
+ */
+export function cibleEtiquettePlaylist(pl: any, service: string | null = null): CibleEtiquette | null {
+  if (!pl) return null;
+  const source = pl.source ?? service ?? null;
+  if (estSourceDeBibliotheque(source == null ? null : String(source))) {
+    return Number.isInteger(pl.id) && pl.id > 0 ? { itemType: 'playlist', itemId: pl.id } : null;
+  }
+  return cibleDeService('playlist', { ...pl, source });
+}
+
 /** Les étiquettes déjà posées sur la cible. */
 export function etiquettesPosees(c: CibleEtiquette): Promise<UserTag[]> {
   return estCibleService(c)
