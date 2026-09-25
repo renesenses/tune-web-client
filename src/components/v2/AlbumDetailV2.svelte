@@ -40,7 +40,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favKeyOf, refFavoriDeFiche, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
-  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { cibleEtiquetteAlbum, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
@@ -185,9 +185,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   const cibleEtiquettes = $derived<CibleEtiquette | null>(
     depot
       ? null
-      : album.id != null
-      ? { itemType: 'album', itemId: album.id }
-      : cibleDeService('album', {
+      : cibleEtiquetteAlbum({
           ...(album as any),
           source: (album as any).source ?? service ?? (bandcamp ? 'bandcamp' : null),
           source_id: (album as any).source_id ?? bandcamp ?? null,
