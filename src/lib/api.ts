@@ -3262,6 +3262,14 @@ export interface LevelCompensation {
   compensation_db: number;
   /** La compensation passe par le volume de la sortie LOCALE. */
   local_output_only: boolean;
+  /** tune-server-rust#5069 — ce que le volume COURANT de la zone rend
+   *  réellement de `compensation_db`, et ce que le rabot à l'unité mange.
+   *  Absents d'un serveur antérieur (≤ 0.9.165) : l'écran retombe alors sur
+   *  l'ancienne phrase. */
+  rendered_db?: number;
+  unrendered_db?: number;
+  /** Volume linéaire (0..1) sur lequel ce partage est calculé. */
+  volume?: number;
 }
 
 export interface DspSettings {
@@ -7790,12 +7798,22 @@ export async function submitBugReport(
     // préfère `error` : elle montrerait `image_type` au testeur. On lit donc
     // `message` en premier ici, là où l'on connaît le contrat.
     let detail = `${resp.status}`;
+    let corps: unknown = null;
     try {
       const j = await resp.json();
+      corps = j;
       detail = j?.message ?? j?.error ?? detail;
     } catch { /* corps illisible : le statut reste */ }
     const err = new Error(String(detail)) as ApiError;
     err.status = resp.status;
+    // #5068 — la limite d'envoi du forum (`rate_limited`, délai sous
+    // `retry_after`) doit arriver à l'écran par ce chemin aussi : c'est celui
+    // des rapports AVEC capture. Mêmes champs que `apiError`.
+    const code = (corps as { code?: unknown; error?: unknown } | null)?.code
+      ?? (corps as { error?: unknown } | null)?.error;
+    if (typeof code === 'string') err.code = code;
+    if (corps && typeof corps === 'object') err.corps = corps;
+    err.retryAfter = retryAfterDe(resp, corps);
     throw err;
   }
   return resp.json();

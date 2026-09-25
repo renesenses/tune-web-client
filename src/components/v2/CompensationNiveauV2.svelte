@@ -19,9 +19,9 @@
    */
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
-  import { currentZoneId } from '../../lib/stores/zones';
+  import { currentZone, currentZoneId } from '../../lib/stores/zones';
   import { t } from '../../lib/i18n';
-  import { estCompensation, libelleCompensation } from '../../lib/compensationNiveau';
+  import { estCompensation, libelleCompensation, remplirLibelle } from '../../lib/compensationNiveau';
 
   /** À incrémenter par l'écran parent après chaque réglage enregistré : la
    *  compensation dépend de la courbe et du dosage, elle doit se relire. */
@@ -40,6 +40,24 @@
         etat = estCompensation(lc) ? lc : null;
       })
       .catch(() => { etat = null; });
+  });
+
+  // tune-server-rust#5069 — ce que la compensation rend dépend du VOLUME de
+  // la zone : on se relit quand il bouge, sinon la carte garderait le chiffre
+  // du volume d'ouverture. Différé d'une demi-seconde : un curseur qu'on fait
+  // glisser ne doit pas lancer une lecture par cran.
+  let volumeVu: number | undefined;
+  $effect(() => {
+    const vol = $currentZone?.volume;
+    const zid = $currentZoneId;
+    if (volumeVu === undefined || vol === volumeVu || zid == null) { volumeVu = vol; return; }
+    volumeVu = vol;
+    const h = setTimeout(() => {
+      api.getDsp(zid)
+        .then((d) => { const lc = d?.level_compensation; if (estCompensation(lc)) etat = lc; })
+        .catch(() => { /* on garde la dernière lecture */ });
+    }, 500);
+    return () => clearTimeout(h);
   });
 
   const libelle = $derived(etat ? libelleCompensation(etat) : null);
@@ -68,10 +86,7 @@
       <span>{$t('v2.lc.title' as any)}</span>
       <span class="hint">{$t('v2.lc.hint' as any)}</span>
       <span class="val">
-        {$t(libelle.cle as any)
-          .replace('{eq}', libelle.eq)
-          .replace('{cf}', libelle.cf)
-          .replace('{comp}', libelle.comp)}
+        {remplirLibelle($t(libelle.cle as any), libelle)}
       </span>
       {#if erreur}<span class="err">{$t('v2.lc.errSave' as any)}</span>{/if}
     </div>
