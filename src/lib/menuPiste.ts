@@ -64,6 +64,8 @@ export const ICONES = {
   ban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M5.6 5.6l12.8 12.8',
   /** Le même cercle, rouvert — « Débannir ». */
   unban: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18M8 12l3 3 5-6',
+  /** Des personnes — « Voir les crédits » (#1572). */
+  credits: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
 } as const;
 /** Ce que la piste permet, décidé par l'appelant qui seul connaît le contexte. */
 export interface CapacitesPiste {
@@ -151,6 +153,8 @@ export interface GestesPiste {
   etiqueter?: () => void;
   /** Ouvre le tiroir « Tous les champs piste » — #851, lecture des tags. */
   champsDuFichier?: () => void;
+  /** Ouvre la fiche « Crédits » du titre — #1572. */
+  voirCredits?: () => void;
   /** « Bannir ce titre » (#4806) — plus jamais joué automatiquement. */
   bannir?: () => void;
   /** « Débannir » — l'inverse, sur une piste déjà bannie. */
@@ -312,6 +316,14 @@ export function entreesMenuPiste(
     ICONES.champs,
     g.champsDuFichier,
   );
+  /**
+   * « Voir les crédits » — #1572 (FabienM, fil forum 1921, « à l'instar de
+   * Roon »). Les crédits vivent dans `track_credits`, indexés par l'`i64` de
+   * `tracks` (`GET /library/tracks/{id}/credits`) : BIBLIOTHÈQUE seule. Une
+   * piste de service n'a pas l'entrée — absente, pas grisée, comme ses
+   * voisines de la famille A.
+   */
+  pousser(deLaBibliotheque, 'credits.see', ICONES.credits, g.voirCredits);
   /**
    * « Bannir ce titre » / « Débannir » — `renesenses/tune-server-rust#4806`.
    *

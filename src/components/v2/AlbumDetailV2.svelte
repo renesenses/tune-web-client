@@ -34,13 +34,13 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PastilleCompilation from './PastilleCompilation.svelte';
   import { corpsDeLecture, corpsDeFileListe } from '../../lib/pisteFile';
-  import { queuePosition } from '../../lib/stores/queue';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import { notifications } from '../../lib/stores/notifications';
   import { favoriteAlbumIds, favoriteStreamingKeys } from '../../lib/stores/profile';
   import { basculerFavoriLocal } from '../../lib/favorisLocaux';
   import { favKeyOf, refFavoriDeFiche, toggleStreamingFavorite } from '../../lib/streamingFavorites';
   import { corpsLecture, pistesAlbumDistant, type DepotDistant } from '../../lib/tuneRemote';
-  import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
+  import { cibleEtiquetteAlbum, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
@@ -52,7 +52,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
   import { dossierDeLAlbum } from '../../lib/dossierAlbum';
   import { ouvrirLeRepertoire } from '../../lib/stores/repertoireCible';
-  import { chargerCollectionsCibles, entreesAjoutCollection, type CollectionCible } from '../../lib/albumVersCollection';
+  import { chargerCollectionsCibles, entreesAjoutCollection, lignesMenuEnRayons, type CollectionCible } from '../../lib/albumVersCollection';
+  import { rafraichirRayons, type EtatRayons } from '../../lib/rayonsCollections';
   import { styleMenuAncre } from '../../lib/ancrageMenu';
   import { portail } from '../../lib/portail';
   // `depot` : la fiche d'un album vivant sur un AUTRE serveur Tune. Les
@@ -184,9 +185,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   const cibleEtiquettes = $derived<CibleEtiquette | null>(
     depot
       ? null
-      : album.id != null
-      ? { itemType: 'album', itemId: album.id }
-      : cibleDeService('album', {
+      : cibleEtiquetteAlbum({
           ...(album as any),
           source: (album as any).source ?? service ?? (bandcamp ? 'bandcamp' : null),
           source_id: (album as any).source_id ?? bandcamp ?? null,
@@ -194,6 +193,15 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   );
   /** Le panneau partagé — celui des vignettes, pas une seconde copie. */
   let etiquettesOuvertes = $state(false);
+
+  /**
+   * « Crédits » — #1572 (FabienM, fil forum 1921 : « ajouter un bouton pour
+   * consulter les crédits d'un album »). Les crédits sont ceux des pistes de
+   * la BIBLIOTHÈQUE (`track_credits`) : ni dépôt distant — son `id` est celui
+   * d'un autre serveur —, ni album de service.
+   */
+  const creditsPossibles = $derived(album.id != null && !depot && !service && !bandcamp);
+  let creditsOuverts = $state(false);
 
   /* ══════════════════════════════════════════════════════════════════════
      « AJOUTER À UNE COLLECTION » — réunion du 23/09/2026.
@@ -221,12 +229,25 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       ? []
       : entreesAjoutCollection(collectionsCibles, album.id, (k) => $tr(k as any), (relues) => (collectionsCibles = relues)),
   );
+  /** L'arbre des rayons (#4853), relu par le chargeur de l'écran Collections
+   *  et de la barre latérale — `rafraichirRayons`, une seule source. Serveur
+   *  antérieur ou panne : `plat`, et le menu reste la liste d'avant. */
+  let rayonsCollection = $state<EtatRayons>({ mode: 'plat' });
+  /** Fil 1928 (Lulu) : les collections rangées sous leurs rayons, indentées. */
+  const lignesCollection = $derived(
+    lignesMenuEnRayons(entreesCollection, rayonsCollection, $tr('v2.rayons.unfiled' as any)),
+  );
   async function basculerMenuCollection(e: MouseEvent) {
     e.stopPropagation();
     if (menuCollectionOuvert) { menuCollectionOuvert = false; return; }
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     ancreCollection = { top: r.top, bottom: r.bottom, right: r.right };
-    collectionsCibles = await chargerCollectionsCibles();
+    const [cibles, rayons] = await Promise.all([
+      chargerCollectionsCibles(),
+      rafraichirRayons(api.getCollectionFolders),
+    ]);
+    collectionsCibles = cibles;
+    rayonsCollection = rayons;
     menuCollectionOuvert = true;
   }
   function fermerMenuCollection() { menuCollectionOuvert = false; }
@@ -753,7 +774,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   const addQueue = () => enfiler(undefined, 'v2.album.queued');
   /** « Lire ensuite » insère au rang SUIVANT celui qui joue. Sans rang, la
    *  route ajoute à la fin — ce serait le bouton d'à côté. */
-  const lireEnsuite = () => enfiler(get(queuePosition) + 1, 'v2.album.queuedNext');
+  const lireEnsuite = () => enfiler(rangLireEnsuite(), 'v2.album.queuedNext');
   /**
    * PRÉSENTATION DE L'ALBUM — renesenses/tune-server-rust#3586, FabienM,
    * fil forum 1697 : « Les artistes ont leur biographie, il serait également
@@ -1104,6 +1125,14 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
             {$tr('v2.album.addToCollection' as any)}
           </button>
         {/if}
+        {#if creditsPossibles}
+          <button class="ghost" data-credits-album onclick={() => (creditsOuverts = true)}
+            aria-haspopup="dialog" aria-expanded={creditsOuverts}
+            title={$tr('artist.credits' as any)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            {$tr('artist.credits' as any)}
+          </button>
+        {/if}
       </div>
       <!-- Album LOCAL seulement : ces trois gestes travaillent sur la fiche de
            la bibliothèque. -->
@@ -1202,6 +1231,17 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
       onClose={() => (etiquettesOuvertes = false)} />
   {/await}
 {/if}
+<!-- #1572 — la fiche « Crédits » de l'album : la même que celle d'un titre,
+     agrégée sur le disque. Un nom crédité referme la fiche avant d'ouvrir la
+     page de l'artiste (`quitterLaFiche`, comme `allerArtiste`). -->
+{#if creditsOuverts && creditsPossibles && album.id != null}
+  {#await import('../partages/CreditsTiroir.svelte') then m}
+    <m.default
+      cible={{ type: 'album', albumId: album.id, titre: album.title, artiste: nomArtiste, pistes: tracks }}
+      avantDeNaviguer={quitterLaFiche}
+      onClose={() => (creditsOuverts = false)} />
+  {/await}
+{/if}
 <!-- Le menu « Ajouter à une collection » : une entrée par collection
      MANUELLE, ou l'état vide qui mène à l'écran Collections. Porté à la
      racine et posé en `fixed` : la fiche défile. -->
@@ -1210,11 +1250,17 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 {#if menuCollectionOuvert && ancreCollection}
   <div class="coll-menu tune-v2" role="menu" tabindex="-1" use:portail
     aria-label={$tr('v2.album.addToCollection' as any)}
-    style={styleMenuAncre(ancreCollection, Math.max(2, entreesCollection.length), window, LARGEUR_MENU_COLLECTION)}>
+    style={styleMenuAncre(ancreCollection, Math.max(2, lignesCollection.length), window, LARGEUR_MENU_COLLECTION)}>
     {#if entreesCollection.length}
-      {#each entreesCollection as e (e.id)}
+      {#each lignesCollection as l (l.cle)}
+        {#if l.sorte === 'rayon'}
+          <p class="coll-rayon" role="presentation" style:padding-left="{10 + l.profondeur * 14}px">{l.nom}</p>
+        {:else}
+        {@const e = l.entree}
         <button type="button" role="menuitem" class="coll-item" class:deja={e.deja}
+          style:padding-left="{10 + l.profondeur * 14}px"
           onclick={(ev) => choisirCollection(ev, e.faire)}>{e.libelle}</button>
+        {/if}
       {/each}
     {:else}
       <p class="coll-vide">{$tr('v2.album.noCollection' as any)}</p>
@@ -1240,6 +1286,11 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   .coll-item:hover{background:var(--v2-surface2)}
   .coll-item:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-2px}
   .coll-item.deja{color:var(--v2-txt3)}
+  /* Intitulé d'un rayon (fil 1928) : il range, il ne se clique pas. */
+  .coll-rayon{flex:0 0 auto; margin:6px 0 0; padding:4px 10px 2px; font-size:11px; font-weight:600;
+    letter-spacing:.04em; text-transform:uppercase; color:var(--v2-txt3);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .coll-rayon:first-child{margin-top:0}
   .coll-lien{color:var(--v2-acc-tint)}
   .coll-vide{flex:0 0 auto; margin:0; padding:7px 10px; font-size:12px; line-height:1.4; color:var(--v2-txt3); white-space:normal}
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);

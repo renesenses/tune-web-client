@@ -103,6 +103,7 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix, lireNombre } from '../../lib/preferencesEcran';
   import QualiteAlbum from './QualiteAlbum.svelte';
@@ -2504,7 +2505,7 @@
                     <div class="cover">
                       <PochetteActions
                         favori={depot || a.id == null ? null : { albumId: a.id }}
-                        etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+                        etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
                         onEditer={depot ? null : () => (enEdition = a)}
                         onLire={() => lireAlbum(a)}
                         onOuvrir={() => ouvrirCalqueAlbum(a)}
@@ -2649,7 +2650,7 @@
              (#1222) : c'est pourtant elle que voit tout le monde. -->
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}
-          etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+          etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}
@@ -2698,7 +2699,7 @@
       <div class="cover">
         <PochetteActions
           favori={depot || a.id == null ? null : { albumId: a.id }}
-          etiquettes={depot || a.id == null ? null : { itemType: 'album', itemId: a.id }}
+          etiquettes={depot ? null : cibleEtiquetteAlbum(a)}
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}
