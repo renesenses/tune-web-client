@@ -137,11 +137,56 @@ export function pistesDeLaSelection(
   plafond: number,
   garder: (t: Track) => boolean = () => true,
 ): number[] {
-  const retenues: number[] = [];
+  const retenues = pistesRetenues(pistes, albums, garder).map((t) => t.id as number);
+  return bornee(melangee(retenues), plafond);
+}
+
+/** Les pistes des albums retenus qui passent `garder` — la règle de portée,
+ *  commune à « Aléatoire » et à « Lire ». */
+function pistesRetenues(
+  pistes: readonly Track[],
+  albums: ReadonlySet<number>,
+  garder: (t: Track) => boolean,
+): Track[] {
+  const retenues: Track[] = [];
   for (const t of pistes) {
     if (t.id == null || t.album_id == null || !albums.has(t.album_id)) continue;
     if (!garder(t)) continue;
-    retenues.push(t.id);
+    retenues.push(t);
   }
-  return melangee(retenues).slice(0, Math.max(1, Math.trunc(plafond)));
+  return retenues;
+}
+
+/** Le plafond de la file (`shuffle_max_tracks`, #2901), jamais sous 1. */
+export function bornee<T>(ids: readonly T[], plafond: number): T[] {
+  return ids.slice(0, Math.max(1, Math.trunc(plafond)));
+}
+
+/**
+ * ## Fil 1946 — FabienM, v0.9.165 : « Lire » à côté de « Aléatoire »
+ *
+ * La MÊME portée que l'aléatoire — les mêmes albums, le même filtre à la
+ * piste, le même plafond — mais DANS L'ORDRE AFFICHÉ : album après album,
+ * dans l'ordre où la grille (ou la liste des groupes) les montre, et dans
+ * chaque album les pistes par disque puis par numéro.
+ *
+ * `albumsOrdonnes` porte l'ordre : c'est la liste que l'écran affiche, pas un
+ * ensemble. Une piste sans numéro passe après les numérotées de son disque ;
+ * à égalité, l'ordre d'arrivée du serveur tient (tri stable).
+ */
+export function pistesDansLOrdre(
+  pistes: readonly Track[],
+  albumsOrdonnes: readonly number[],
+  plafond: number,
+  garder: (t: Track) => boolean = () => true,
+): number[] {
+  const rang = new Map<number, number>();
+  albumsOrdonnes.forEach((id, i) => { if (!rang.has(id)) rang.set(id, i); });
+  const retenues = pistesRetenues(pistes, new Set(rang.keys()), garder);
+  const num = (n: number | null | undefined) => (n == null || n <= 0 ? Number.MAX_SAFE_INTEGER : n);
+  retenues.sort((a, b) =>
+    rang.get(a.album_id as number)! - rang.get(b.album_id as number)!
+    || (a.disc_number ?? 1) - (b.disc_number ?? 1)
+    || num(a.track_number) - num(b.track_number));
+  return bornee(retenues.map((t) => t.id as number), plafond);
 }
