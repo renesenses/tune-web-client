@@ -12,6 +12,7 @@ import type { ServiceFavType, StreamingItemType } from './streamingFavorites';
 import type { RetraitDossier } from './purgeOrphelines';
 import type { AppareilIgnore } from './appareilsIgnores';
 import type { LibelleServi } from './libellesFrequence';
+import { estDepotTuneDistant } from './depotsTuneDistants';
 
 /** Server error codes worth turning into a user toast. Play/next/resume callers
  *  don't await the promise, so without this these failures are silent — the
@@ -561,7 +562,7 @@ export async function fetchJSON<T>(
        * vraies pannes.
        */
       if (sansBandeau) {
-        console.warn('[api] rangée éditoriale en échec, sans bandeau :', url, response.status, err.message);
+        console.warn('[api] échec porté par l’écran appelant, sans bandeau :', url, response.status, err.message);
       } else {
         notifications.error(`Server error: ${err.message}`);
       }
@@ -4237,8 +4238,23 @@ export function similairesDeService(service: string, trackId: string, limit = 20
   ).then((t) => mapStreamingTracks(t, service));
 }
 
+/**
+ * La fiche d'un artiste chez son service.
+ *
+ * `sansBandeau` — renesenses/tune-web-client#992 (FabienM, fil 1774, point
+ * 14 : « Menu lecture en cours : quand je clique sur l'artiste, erreur
+ * 502 »). Les trois routes de la fiche artiste n'ont qu'un appelant, la PAGE
+ * COMMUNE (`ArtisteServiceV2`), qui charge en `allSettled` et dit elle-même,
+ * dans la page, que la fiche n'a pas pu être chargée ou que l'artiste est
+ * introuvable. Le bandeau global disait en plus « Server error: qobuz
+ * /artist/get: 404 {"status":"error",…} » — le texte brut du service, par-dessus
+ * une page qui fonctionnait.
+ */
 export function getStreamingArtist(service: string, artistId: string) {
-  return fetchJSON<Artist>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`);
+  return fetchJSON<Artist>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}`,
+    undefined, undefined, true,
+  );
 }
 
 /**
@@ -4307,15 +4323,21 @@ export function getZoneCurrentAlbum(zoneId: number) {
   return fetchJSON<AlbumEnCours>(`${BASE}/zones/${zoneId}/album-en-cours`);
 }
 
+/** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
 export function getStreamingArtistTopTracks(service: string, artistId: string) {
   return fetchJSON<Track[]>(
     `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/top-tracks`,
+    undefined, undefined, true,
   );
 }
 
+/** `sansBandeau` : voir [`getStreamingArtist`] (#992). */
 export function getStreamingArtistAlbums(service: string, artistId: string, offset = 0) {
   const p = offset > 0 ? `?offset=${offset}` : '';
-  return fetchJSON<Album[]>(`${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums${p}`);
+  return fetchJSON<Album[]>(
+    `${BASE}/streaming/${encodeURIComponent(service)}/artists/${encodeURIComponent(artistId)}/albums${p}`,
+    undefined, undefined, true,
+  );
 }
 
 /**
@@ -5323,6 +5345,22 @@ function condensatDePochetteInterne(url: string): string | null {
   return condensat && condensat !== 'proxy' ? condensat : null;
 }
 
+/**
+ * Vrai quand l'adresse désigne un serveur Tune DISTANT parcouru par ce client
+ * (tune-server-rust#4954), et pas notre propre origine. Un hôte inconnu reste
+ * « le nôtre » : c'est l'ancienne adresse LAN d'une ligne d'historique (#1360).
+ */
+function pochetteDUnAutreServeurTune(url: string): boolean {
+  let hote: string;
+  try {
+    hote = new URL(url).host;
+  } catch {
+    return false;
+  }
+  if (typeof window !== 'undefined' && hote === window.location.host) return false;
+  return estDepotTuneDistant(hote);
+}
+
 export function artworkUrl(coverPath: string | null | undefined, size?: number): string {
   if (!coverPath) return '';
   // Server already returns usable relative URLs for cover_path
@@ -5335,7 +5373,9 @@ export function artworkUrl(coverPath: string | null | undefined, size?: number):
     // #1360 — une pochette de NOTRE serveur enregistrée en adresse absolue se
     // redemande par son condensat, jamais par le relais, qui la refuserait.
     const condensat = condensatDePochetteInterne(coverPath);
-    if (condensat == null) {
+    // tune-server-rust#4954 — sauf si elle vient d'un AUTRE serveur Tune : sa
+    // pochette n'existe pas chez nous (404), elle passe donc par le relais.
+    if (condensat == null || pochetteDUnAutreServeurTune(coverPath)) {
       return `${BASE}/library/artwork/proxy?url=${encodeURIComponent(coverPath)}`;
     }
     coverPath = condensat;
