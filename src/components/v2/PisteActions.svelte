@@ -72,7 +72,7 @@
     bannir, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
   } from '../../lib/titreBanni';
   import { signalerEchecLecture } from '../../lib/echecLecture';
-  import { queuePosition } from '../../lib/stores/queue';
+  import { rangLireEnsuite } from '../../lib/stores/queue';
   import {
     favoriteTrackIds, favoriteStreamingKeys,
     favoriteStreamingTrackKeys, clePisteJumelee,
@@ -219,7 +219,7 @@
    */
   async function ensuite(e: MouseEvent) {
     stop(e);
-    await enfiler(get(queuePosition) + 1, 'v2.pa.queuedNext');
+    await enfiler(rangLireEnsuite(), 'v2.pa.queuedNext');
   }
 
   async function aLaFile(e: MouseEvent) {

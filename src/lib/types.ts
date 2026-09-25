@@ -1180,6 +1180,11 @@ export interface MediaServerBrowseResult {
   items: MediaServerItem[];
   total_matches: number;
   number_returned: number;
+  /** `false` : la pagination s'est arrêtée en route (#4914, #4943), la liste
+   *  servie est partielle et `incomplet` dit pourquoi. ABSENT sur un serveur
+   *  antérieur : ne rien en conclure. */
+  complet?: boolean;
+  incomplet?: string | null;
 }
 
 /** Ce que rend `/network/media-servers/{id}/search`.
