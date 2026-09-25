@@ -2015,6 +2015,25 @@ export function enrichTrackCredits(trackId: number) {
   return fetchJSON(`${BASE}/library/tracks/${trackId}/credits/enrich`, { method: 'POST' });
 }
 
+/**
+ * Crédits d'un album, chaque ligne portant sa piste — #1572. Sans bandeau :
+ * un serveur antérieur à la route répond 404, et `chargerCreditsAlbum`
+ * retombe alors sur un appel par piste. Ce n'est pas une panne à annoncer.
+ */
+export function getAlbumCredits(albumId: number) {
+  return fetchJSON<import('./library/credits').CreditAvecPiste[]>(
+    `${BASE}/library/albums/${albumId}/credits`,
+    undefined,
+    undefined,
+    true,
+  );
+}
+
+/** Enrichit depuis MusicBrainz les crédits des pistes d'un album (#1572). */
+export function enrichAlbumCredits(albumId: number) {
+  return fetchJSON(`${BASE}/library/albums/${albumId}/credits/enrich`, { method: 'POST' });
+}
+
 // v0.8.0 multi-room — Snapcast control plane.
 export function getSnapcastStatus() {
   return fetchJSON<{enabled: boolean; reason?: string; binary?: string; stream_count?: number}>(

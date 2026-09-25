@@ -4,6 +4,7 @@
   import type { TrackAllTags } from '../../lib/api';
   import { notifications } from '../../lib/stores/notifications';
   import { t } from '../../lib/i18n';
+  import TiroirLateral from './TiroirLateral.svelte';
   import {
     CHAMPS_MODIFIABLES,
     champModifiable,
@@ -122,14 +123,6 @@
     saving = false;
   }
 
-  function handleBackdropClick(e: MouseEvent) {
-    if (e.target === e.currentTarget) onClose();
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') onClose();
-  }
-
   // Use onMount (not $effect+untrack). That empty-dependency pattern can
   // re-trigger on Svelte 5 batch flushes and freeze the UI until F5
   // (DiagnosticsView / Sidebar / MetadataView).
@@ -161,15 +154,9 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
-  <div class="drawer">
-    <div class="drawer-header">
-      <h3>{$t('trackTags.title')}</h3>
-      <button class="close-btn" onclick={onClose} title={$t('common.close')}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-      </button>
-    </div>
+<!-- Le cadre (fond, panneau, en-tête, fermeture) est partagé avec la fiche
+     « Crédits » (#1572) : `TiroirLateral`. -->
+<TiroirLateral titre={$t('trackTags.title')} {onClose}>
 
     {#if modeService}
       <!-- Fil forum 1906 — une piste de service : les MÊMES groupes, en
@@ -279,41 +266,9 @@
         </button>
       </div>
     {/if}
-  </div>
-</div>
+</TiroirLateral>
 
 <style>
-  .modal-backdrop {
-    position: fixed; inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    display: flex; justify-content: flex-end;
-    z-index: 220;
-    animation: fade 0.15s ease-out;
-  }
-  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
-
-  .drawer {
-    background: var(--tune-surface);
-    border-left: 1px solid var(--tune-border);
-    width: 480px; max-width: 96vw; height: 100vh;
-    display: flex; flex-direction: column;
-    animation: slideR 0.22s cubic-bezier(0.2, 0.7, 0.2, 1);
-    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.25);
-  }
-  @keyframes slideR { from { transform: translateX(100%); } to { transform: translateX(0); } }
-
-  .drawer-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid var(--tune-border);
-  }
-  .drawer-header h3 { font-size: 16px; font-weight: 600; margin: 0; }
-  .close-btn {
-    background: none; border: none; color: var(--tune-text-muted);
-    cursor: pointer; padding: 4px; display: inline-flex;
-  }
-  .close-btn:hover { color: var(--tune-text); }
-
   .drawer-body {
     flex: 1; overflow-y: auto; padding: 12px 20px 16px;
     display: flex; flex-direction: column; gap: 18px;

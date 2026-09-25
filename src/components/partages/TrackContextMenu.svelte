@@ -85,6 +85,8 @@
      * bibliothèque ET service.
      */
     onChampsDuFichier?: () => void;
+    /** « Voir les crédits » (#1572). Omis : l'entrée est absente. */
+    onVoirCredits?: () => void;
     /** Ce que la PISTE permet. Par défaut : tout, le geste seul décide. */
     capacites?: CapacitesPiste;
   }
@@ -103,6 +105,7 @@
     onBan,
     onUnban,
     onChampsDuFichier,
+    onVoirCredits,
     capacites = { jouable: true, idBibliotheque: 1, artistId: 1, albumId: 1 },
   }: Props = $props();
   const entrees = $derived(
@@ -119,6 +122,7 @@
       bannir: onBan,
       debannir: onUnban,
       champsDuFichier: onChampsDuFichier,
+      voirCredits: onVoirCredits,
     }),
   );
   /**
