@@ -24,6 +24,7 @@
  * forme : « album_title » ici, « name » là, « cover_url » ailleurs. Normaliser
  * dans le chargeur laisse au rendu un seul cas à traiter.
  */
+import type { Component } from 'svelte';
 import * as api from './api';
 import { estSourceDeBibliotheque } from './provenanceBibliotheque';
 import type { StreamingItemType } from './streamingFavorites';
@@ -167,8 +168,74 @@ export interface Element {
  * `zones-cartes` : une CARTE large par zone, deux fois la largeur d'une
  * vignette de bande. C'est la troisième forme, ajoutée le 06/09/2026 —
  * « Créé un deuxième widget ! » (Bertrand), après la maquette Figma.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * `bloc` : la forme qui rend SON PROPRE BALISAGE — arbitrage de Bertrand du
+ * 25/09/2026, pour le nouvel écran Tableau de bord.
+ *
+ * Les quatre formes ci-dessus rendent toutes des `Element[]` — vignette,
+ * pilule, carte, rang. Un histogramme horaire n'est aucune des quatre : son
+ * information est portée par l'OPACITÉ de vingt-quatre cases, et une carte
+ * jour × heure par une grille de 7 × 24. Les couler dans une bande les
+ * détruirait.
+ *
+ * 🔴 CE QUE `bloc` NE CHANGE PAS — et c'est le point de l'arbitrage.
+ *
+ * La règle « tous horizontaux » écrite en tête de ce fichier reste INTACTE
+ * sur l'Accueil, Qobuz et Tidal. Elle protégeait CES écrans-là : une grille
+ * pour certains et une bande pour d'autres y donnerait « l'air d'un
+ * assemblage de morceaux », et la hauteur y deviendrait imprévisible. Elle
+ * ne protégeait pas un écran qui n'existait pas encore.
+ *
+ * Aucun `forme: 'bloc'` n'a donc le droit d'entrer dans `WIDGETS` ni dans les
+ * catalogues éditoriaux de `widgetsService`. Ce n'est pas une consigne de
+ * commentaire : `__tests__/blocsHorsAccueilQobuzTidal.test.ts` le mesure sur
+ * les trois catalogues réels. Sans cette garde, la règle de Bertrand se
+ * serait érodée à la première commodité.
  */
-export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops';
+export type Forme = 'bande' | 'chiffres' | 'zones-cartes' | 'tops' | 'bloc';
+
+/**
+ * CE QUE PORTE UN WIDGET `forme: 'bloc'`, en plus de son identité.
+ *
+ * Trois champs, et chacun ferme un trou :
+ *
+ *  - `composant` — le balisage est À LUI. `PageWidgets` ne sait rien de ce
+ *    qu'il dessine ; il lui remet `donnees` et n'en lit rien. C'est ce qui
+ *    permet de sortir les sections du Tableau de bord sans les redessiner :
+ *    leur balisage et leur CSS existent et sont éprouvés depuis un an.
+ *
+ *  - `hauteur` — la forme DÉCLARE la place qu'elle prend, en pixels. C'est la
+ *    contrepartie exacte de ce que la règle « tous horizontaux » garantissait
+ *    gratuitement : une bande a la hauteur d'une vignette, toujours la même.
+ *    Un bloc n'a pas de hauteur naturelle, donc il l'annonce, et la page la
+ *    réserve AVANT que la matière arrive — sinon l'écran saute sous le doigt
+ *    au fil des onze chargements parallèles.
+ *
+ *  - `donnees` — le chargeur du bloc. À part de `charger`, pour la même raison
+ *    qui avait fait naître `chiffres` : `charger` promet des `Element[]`, et
+ *    la matière d'un bloc n'en est pas une. Élargir son type à `unknown` aurait
+ *    rendu les quatre autres formes non typées.
+ *
+ * ⚠️ `D` est le type de la matière. Le paramètre existe pour que chaque bloc
+ * relie son chargeur à son composant sans `any` au milieu.
+ */
+export interface Bloc<D = any> {
+  /** Le composant Svelte qui DESSINE le bloc. Il reçoit `{ donnees }`. */
+  composant: Component<{ donnees: D | null }>;
+  /**
+   * La hauteur RÉSERVÉE, en pixels. Strictement positive — une garde le
+   * vérifie sur tout le catalogue.
+   *
+   * C'est un plancher (`min-height`), pas un couperet : un bloc qui déborde
+   * s'affiche en entier plutôt que d'être coupé. Ce qu'elle garantit est que
+   * la page ne se réorganise pas sous les yeux pendant le chargement.
+   */
+  hauteur: number;
+  /** La matière du bloc. Peut lever : `PageWidgets` l'attrape, comme ailleurs. */
+  donnees: (ctx: Contexte) => Promise<D>;
+}
 
 export interface Widget {
   id: string;
@@ -209,6 +276,15 @@ export interface Widget {
    * renommage d'identifiant sans qu'aucun test ne le voie.
    */
   categorie?: 'playlists-editoriales' | 'a-moi';
+  /**
+   * Le rendu propre d'un widget `forme: 'bloc'` — 25/09/2026.
+   *
+   * Facultatif au même titre que `chiffres`, et pour la même raison : les
+   * dix-neuf widgets écrits avant cette date restent valides sans y toucher.
+   * `PageWidgets` ne lit ce champ QUE sur `forme === 'bloc'`, et un bloc qui
+   * l'oublierait retombe sur « (vide) » plutôt que de casser la page.
+   */
+  bloc?: Bloc;
 }
 
 /**
@@ -682,9 +758,17 @@ const CHIFFRES_SEMAINE = ['lectures', 'heures-ecoutees', 'titres-ecoutes', 'arti
  * juste après une écoute lui aurait resservi les anciens chiffres, sans
  * qu'il comprenne pourquoi. Dédoublonner ce qui est simultané, oui ; mettre
  * en cache, non — ce n'est pas la même chose.
+ *
+ * 🔴 EXPORTÉ le 25/09/2026 pour le nouvel écran Tableau de bord, dont les
+ * ONZE blocs vivent tous de cette même réponse. Sans le partage, ouvrir
+ * l'écran lancerait onze fois la requête AU MÊME INSTANT — `PageWidgets`
+ * charge ses widgets en parallèle — sur une route qui coûte déjà ~300 ms par
+ * entrée de classement. Avec lui, l'écran entier tient en UNE requête, et
+ * elle est même partagée avec les extraits de l'Accueil quand la période
+ * coïncide.
  */
 const EN_VOL = new Map<string, Promise<api.DashboardData>>();
-function tableauDeBord(periode: api.DashboardPeriod): Promise<api.DashboardData> {
+export function tableauDeBord(periode: api.DashboardPeriod): Promise<api.DashboardData> {
   const deja = EN_VOL.get(periode);
   if (deja) return deja;
   const promesse = api
