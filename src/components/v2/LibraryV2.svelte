@@ -64,7 +64,7 @@
   import { nomDeDossier } from '../../lib/porteeBibliotheque';
   import { idsAlbumsDeLaPortee } from '../../lib/porteeDossierAlbums';
   import { melangee, rangAleatoire, graineAleatoire } from '../../lib/shuffle';
-  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection } from '../../lib/porteeAleatoire';
+  import { optionsAleatoire, albumsDeLaSelection, pistesDeLaSelection, pistesDansLOrdre, bornee } from '../../lib/porteeAleatoire';
   import { lireFileAleatoire, FILE_ALEATOIRE_DEFAUT } from '../../lib/fileAleatoire';
   import { notifications } from '../../lib/stores/notifications';
   import { preferences } from '../../lib/stores/preferences';
@@ -2008,6 +2008,58 @@
   }
 
   /**
+   * Fil 1946 (FabienM, v0.9.165) — « Lire », à côté de « Aléatoire » : la
+   * MÊME portée (répertoire, recherche, filtres d'album, provenance, groupe
+   * ouvert), jouée DANS L'ORDRE AFFICHÉ, bornée au même plafond
+   * (`shuffle_max_tracks`). `POST /playback/shuffle-all` n'a pas de pendant
+   * ordonné côté serveur : on charge donc la sélection, comme l'aléatoire
+   * filtré. Pas sur un dépôt distant : son aléatoire joue UN album, et
+   * empiler une discothèque distante piste par piste n'a pas de sens.
+   *
+   * - Titres : les pistes listées, dans l'ordre de la liste.
+   * - Onglets de facette : le groupe ouvert, sinon les groupes dans l'ordre
+   *   où ils s'affichent.
+   * - Ailleurs : les albums de la grille, dans l'ordre du tri courant.
+   */
+  let lectureEnOrdre = $state(false);
+  const albumsDansLOrdre: Album[] = $derived(
+    groupeOuvert ? groupeOuvert.albums
+      : groups.length ? groups.flatMap((g) => g.albums)
+      : affiches,
+  );
+  /** Rien à lire : bouton grisé. Pendant un chargement, on ne conclut pas. */
+  const selectionVide = $derived(
+    tab === 'tracks' ? !tracksLoading && pistesFiltrees.length === 0
+      : !enCharge && albumsDansLOrdre.length === 0,
+  );
+  const lireEnCharge = $derived(tab === 'tracks' ? tracksLoading : enCharge);
+  async function lireDansLOrdre() {
+    const zid = zoneRequise();
+    if (zid == null || depot || lireEnCharge || selectionVide) return;
+    lectureEnOrdre = true;
+    try {
+      let ids: number[];
+      if (tab === 'tracks') {
+        // Figée AVANT l'attente : la liste qu'on voit, pas celle d'après.
+        const listees = pistesFiltrees.flatMap((p) => (p.id == null ? [] : [p.id]));
+        ids = bornee(listees, await plafondAleatoire());
+      } else {
+        // En mode paginé, la grille n'est qu'une page : on demande la liste
+        // entière avant d'en lire l'ordre.
+        if (nu) await demanderBibliothequeEntiere();
+        const ordre = albumsDansLOrdre.flatMap((a) => (a.id == null ? [] : [a.id]));
+        const provenance = fProvenance;
+        const [liste, plafond] = await Promise.all([api.getAllTracks(), plafondAleatoire()]);
+        ids = pistesDansLOrdre(liste, ordre, plafond, (p) => dansSource(p, provenance));
+      }
+      if (ids.length) await playAndSync(zid, { track_ids: ids });
+      else notifications.error($tr('library.noTracks'));
+    }
+    catch (e) { signalerEchecLecture(e); }
+    lectureEnOrdre = false;
+  }
+
+  /**
    * L'aléatoire d'un serveur distant : un ALBUM au hasard, joué en entier.
    *
    * `api.shuffleAll` est une opération du serveur LOCAL sur SA base — elle n'a
@@ -2050,6 +2102,13 @@
       {#if depot}<span class="dist">{depot.hote}</span>{/if}
     </div>
     <div class="v2-actions">
+    {#if !depot}
+      <button class="v2-btn" data-lire-selection onclick={lireDansLOrdre}
+        disabled={lectureEnOrdre || $currentZoneId == null || lireEnCharge || selectionVide}
+        title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any) : $tr('v2.lib.playInOrder' as any)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4l14 8-14 8z"/></svg>{lectureEnOrdre ? $tr('v2.lib.starting' as any) : $tr('v2.album.play' as any)}
+      </button>
+    {/if}
     <button class="v2-btn" onclick={shuffleAll} disabled={shuffling || $currentZoneId == null || (albumsAleatoire != null && enCharge)}
       title={$currentZoneId == null ? $tr('v2.lib.noActiveZone' as any)
         : depot ? $tr('v2.lib.shuffleDepot' as any).replace('{nom}', depot.nom)

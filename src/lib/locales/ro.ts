@@ -3524,6 +3524,7 @@ export default {
   "v2.lib.noActiveZone": "Nicio zonă activă",
   "v2.lib.shuffleAll": "Redă aleatoriu toată biblioteca",
   "v2.lib.shuffleDepot": "Redă un album aleatoriu din {nom}",
+  "v2.lib.playInOrder": "Redă selecția în ordinea afișată",
   "v2.lib.emptyLibrary": "Biblioteca ta este goală.",
   "v2.lib.emptyDepot": "{nom} ({hote}) nu expune niciun album.",
   "v2.lib.viewList": "Vizualizare listă",
