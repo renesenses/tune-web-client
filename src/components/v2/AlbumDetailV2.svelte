@@ -230,6 +230,16 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     menuCollectionOuvert = true;
   }
   function fermerMenuCollection() { menuCollectionOuvert = false; }
+  /** Un défilement de la PAGE ferme le menu : posé en `fixed` aux coordonnées
+   *  du bouton, il resterait figé loin de lui. Mais le menu défile lui-même
+   *  depuis #1575 (hauteur bornée à la fenêtre) : ce défilement-là est le
+   *  seul moyen d'atteindre les dernières collections, il ne doit pas le
+   *  fermer. */
+  function auDefilementCollection(e: Event) {
+    const cible = e.target as Element | null;
+    if (cible && typeof cible.closest === 'function' && cible.closest('.coll-menu')) return;
+    menuCollectionOuvert = false;
+  }
   function auClavierCollection(e: KeyboardEvent) {
     if (e.key === 'Escape') menuCollectionOuvert = false;
   }
@@ -1196,7 +1206,7 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
      MANUELLE, ou l'état vide qui mène à l'écran Collections. Porté à la
      racine et posé en `fixed` : la fiche défile. -->
 <svelte:window onclick={fermerMenuCollection} onkeydown={auClavierCollection}
-  onresize={fermerMenuCollection} onscrollcapture={fermerMenuCollection} />
+  onresize={fermerMenuCollection} onscrollcapture={auDefilementCollection} />
 {#if menuCollectionOuvert && ancreCollection}
   <div class="coll-menu tune-v2" role="menu" tabindex="-1" use:portail
     aria-label={$tr('v2.album.addToCollection' as any)}
@@ -1217,18 +1227,21 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
 
 <style>
   /* Le menu des collections. `fixed` + `use:portail` : voir l'en-tête du
-     `<script>`. Même gabarit que le panneau de `MenuZone`. */
+     `<script>`. Même gabarit que le panneau de `MenuZone`. Sa hauteur est
+     bornée à la fenêtre par `styleMenuAncre` (`max-height`, #1575) : au-delà,
+     il défile en lui-même, sans entraîner la page. */
   .coll-menu{position:fixed; z-index:60; width:240px; padding:6px; display:flex; flex-direction:column; gap:1px;
+    overflow-y:auto; overscroll-behavior:contain;
     border-radius:var(--v2-r-md); border:1px solid var(--v2-line2); background:var(--v2-surface);
     color:var(--v2-txt); font-family:var(--v2-sans); box-shadow:0 18px 40px rgba(0,0,0,.5)}
-  .coll-item{display:block; width:100%; min-height:34px; padding:7px 10px; border:0; border-radius:8px;
+  .coll-item{display:block; flex:0 0 auto; width:100%; min-height:34px; padding:7px 10px; border:0; border-radius:8px;
     background:transparent; color:var(--v2-txt); font:13px var(--v2-sans); text-align:left; cursor:pointer;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .coll-item:hover{background:var(--v2-surface2)}
   .coll-item:focus-visible{outline:2px solid var(--v2-acc2); outline-offset:-2px}
   .coll-item.deja{color:var(--v2-txt3)}
   .coll-lien{color:var(--v2-acc-tint)}
-  .coll-vide{margin:0; padding:7px 10px; font-size:12px; line-height:1.4; color:var(--v2-txt3); white-space:normal}
+  .coll-vide{flex:0 0 auto; margin:0; padding:7px 10px; font-size:12px; line-height:1.4; color:var(--v2-txt3); white-space:normal}
   .v2-detail{position:absolute; inset:0; z-index:30; background:var(--v2-bg); color:var(--v2-txt);
     font-family:var(--v2-sans); overflow-y:auto; padding:26px 34px 40px}
   .close{position:sticky; top:0; margin-bottom:8px; width:40px; height:40px; border-radius:12px; cursor:pointer;
