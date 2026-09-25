@@ -4060,6 +4060,23 @@ export default {
   "plconv.journal.compte": "已添加 {ajoutees}，未找到 {introuvables}",
   "plconv.journal.vide": "暂无同步记录。",
   "plconv.journal.echecs": "{n} 次失败：",
+  // tune-server-rust#4863 — écran Lecture CD
+  "v2.cd.title": "CD 播放",
+  "v2.cd.notInstalled": "“CD 播放”扩展未启用。请在“扩展”中安装，然后重启 Tune。",
+  "v2.cd.unsupportedPlatform": "此平台不支持光驱：CD 播放目前仅支持 Linux。",
+  "v2.cd.noDrive": "运行 Tune 的机器上没有 CD 光驱。",
+  "v2.cd.noDisc": "光驱为空。请放入音频 CD。",
+  "v2.cd.reading": "正在读取光盘…",
+  "v2.cd.unreadable": "无法读取光盘。请清洁或重新放入光盘。",
+  "v2.cd.unknownTrack": "此光盘上没有这条音轨。",
+  "v2.cd.playFailed": "无法在此区域开始播放。",
+  "v2.cd.unavailable": "CD 光驱没有响应。几秒后重试。",
+  "v2.cd.unknownAlbum": "音频 CD",
+  "v2.cd.noMetadata": "未识别的光盘：没有曲目信息。",
+  "v2.cd.playDisc": "播放光盘",
+  "v2.cd.playTrack": "播放此音轨",
+  "v2.cd.trackN": "音轨 {n}",
+  "v2.cd.toZone": "到 {zone}",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];
