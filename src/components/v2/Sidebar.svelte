@@ -103,6 +103,26 @@
    * d'accueil. ⚠️ Aucun autre chemin ne menait à cet écran — il n'est plus
    * atteignable que par son adresse `/dashboard`, que `routeAuChargement`
    * continue de reposer.
+   *
+   * ⚠️ PRÉCISION, 25/09/2026 — DEUX ÉCRANS, ET UN SEUL AU MENU.
+   *
+   * Le paragraphe ci-dessus reste vrai de l'ANCIEN écran
+   * (`v2-heritage/DashboardView`), devenu le réservoir : hors de la barre,
+   * servi par son adresse, et il y reste. Ce qui a changé est qu'un SECOND
+   * écran existe — `tableaudebord`, la page de onze widgets `bloc` — et c'est
+   * LUI qui porte désormais l'entrée « Tableau de bord ».
+   *
+   * Arbitrage de Bertrand du 25/09 : au menu, en « Avancé », et AVANT
+   * « Recherche ». L'ordre de l'étage devient donc :
+   *
+   *   Ambiance · Répertoires · Serveurs multimédia · Zones ·
+   *   TABLEAU DE BORD · Recherche · Concerts
+   *
+   * 🔴 `__tests__/ordreBarreLaterale.test.ts` fige cet ordre par `toEqual`,
+   * étage par étage : il EST l'arbitrage, pas une garde trop stricte. Ses
+   * deux listes attendues ont été COMPLÉTÉES avec cette entrée, à cette
+   * place — jamais assouplies. Toute addition future exige le même mandat
+   * explicite, faute de quoi la liste dériverait en silence.
    */
   const CORE: Item[] = [
     { view: 'home', labelKey: 'nav.home', icon: 'M3 11l9-8 9 8M5 10v10h14V10' },
@@ -120,6 +140,15 @@
     { view: 'browse', labelKey: 'nav.browse', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
     { view: 'mediaservers', labelKey: 'nav.mediaservers', icon: 'M4 5h16v5H4zM4 14h16v5H4zM7.5 7.5h.01M7.5 16.5h.01' },
     { view: 'zonemanager', labelKey: 'nav.zonemanager', icon: 'M6 3h12v18H6zM12 14a3 3 0 1 0 0-6 3 3 0 0 0 0 6M12 7h.01' },
+    // TABLEAU DE BORD — le NOUVEL écran à widgets, arbitrage de Bertrand du
+    // 25/09/2026 : au menu, et AVANT « Recherche ». Sa place est donc ici,
+    // entre les Zones et la Recherche, et nulle part ailleurs.
+    //
+    // ⚠️ `nav.dashboard` est réemployée telle quelle — elle existe déjà dans
+    // les onze langues. L'ANCIEN écran, lui, ne porte plus d'entrée depuis la
+    // 0.9.161 : les deux ne se disputent aucun libellé, et le retrait décidé
+    // le 20/09 reste acquis (`ordreBarreLaterale` le garde encore).
+    { view: 'tableaudebord', labelKey: 'nav.dashboard', icon: 'M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z' },
     { view: 'search', labelKey: 'nav.search', icon: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M21 21l-4-4' },
     { view: 'concerts', labelKey: 'nav.concerts', icon: 'M9 18V5l12-2v13M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6' },
   ] as unknown as Item[];

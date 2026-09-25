@@ -24,6 +24,7 @@
  * fiche savent déjà suivre, et la pastille du service se dessine toute seule.
  */
 import * as api from './api';
+import { fusionnerPlaylistsFavorites, type PlaylistFavorite } from './streamingFavorites';
 import type { Album, Artist, Track } from './types';
 
 // Les DEUX dates sont REPORTÉES, et l'ordre compte : `first_seen_at` est
@@ -99,5 +100,68 @@ export async function chargerFavorisFusionnes(pid: number): Promise<FavorisFusio
     albums: [...(f?.albums ?? []), ...services.filter((x) => x.item_type === 'album').map(versAlbum)],
     tracks: [...(f?.tracks ?? []), ...services.filter((x) => x.item_type === 'track').map(versPiste)],
     artists: [...(f?.artists ?? []), ...services.filter((x) => x.item_type === 'artist').map(versArtiste)],
+  };
+}
+
+/**
+ * LES QUATRE AUTRES SEAUX — playlists, playlists intelligentes, collections,
+ * collections intelligentes (widgets de l'Accueil, 25/09/2026).
+ *
+ * Ils vivaient dans le corps de `FavoritesV2` (#3822, #4798, 05/09). Les
+ * widgets « Playlists favorites », « Smart playlists favorites »,
+ * « Collections favorites » et « Smart collections favorites » de l'Accueil
+ * en ont besoin à leur tour : on les sort ICI, et l'écran comme les widgets
+ * les appellent. La leçon de #1509 — un second chargeur diverge au premier
+ * changement — vaut pour ces quatre-là comme pour les trois premiers.
+ */
+
+/**
+ * Les playlists en favori, bibliothèque ET services, par le fusionneur de
+ * #2370 (jamais un second). Les playlists INTELLIGENTES n'y sont pas : elles
+ * ont leur propre espace d'identifiants (#4798).
+ */
+export function playlistsFavorites(fusion: FavorisFusionnes): PlaylistFavorite[] {
+  return fusionnerPlaylistsFavorites(
+    (fusion.locaux?.playlists ?? []) as any,
+    fusion.services.filter((x) => x.item_type === 'playlist') as any,
+  );
+}
+
+/**
+ * Les playlists INTELLIGENTES en favori (#4798), marquées `smart`.
+ *
+ * Le serveur n'en rend que les IDENTIFIANTS ; on les apparie avec
+ * `getSmartPlaylists()`, une seule requête, au mieux — un serveur qui ne les
+ * sert pas ne doit rien vider. Jamais rapprochées d'une playlist ordinaire
+ * par le numéro seul : l'id 1 existe dans les deux tables.
+ */
+export async function smartPlaylistsFavorites(fusion: FavorisFusionnes): Promise<any[]> {
+  const f = fusion.locaux;
+  const idsSmartPl = new Set(f?.smartPlaylistIds ?? []);
+  if (!idsSmartPl.size) return [];
+  const sps = await api.getSmartPlaylists().catch(() => [] as any[]);
+  return (sps ?? []).filter((sp: any) => idsSmartPl.has(sp.id)).map((sp: any) => ({ ...sp, smart: true }));
+}
+
+/**
+ * Les collections en favori, les deux familles À PART : leurs espaces
+ * d'identifiants se recouvrent (l'id 1 est à la fois « favorites » et
+ * « Audiophile »). Chacune au mieux : une famille qui manque ne vide pas
+ * l'autre.
+ */
+export async function collectionsFavorites(
+  fusion: FavorisFusionnes,
+): Promise<{ collections: any[]; smartCollections: any[] }> {
+  const f = fusion.locaux;
+  const ids = new Set(f?.collectionIds ?? []);
+  const idsSmart = new Set(f?.smartCollectionIds ?? []);
+  if (!ids.size && !idsSmart.size) return { collections: [], smartCollections: [] };
+  const [cs, ss2] = await Promise.all([
+    ids.size ? api.getCollections().catch(() => [] as any[]) : Promise.resolve([] as any[]),
+    idsSmart.size ? api.listSmartCollections().catch(() => [] as any[]) : Promise.resolve([] as any[]),
+  ]);
+  return {
+    collections: (cs ?? []).filter((c: any) => ids.has(c.id)).map((c: any) => ({ ...c, smart: false })),
+    smartCollections: (ss2 ?? []).filter((c: any) => idsSmart.has(c.id)).map((c: any) => ({ ...c, smart: true })),
   };
 }

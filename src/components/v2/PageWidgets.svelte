@@ -51,6 +51,7 @@
   import { formatTime } from '../../lib/utils';
   import { activeView } from '../../lib/stores/navigation';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
+  import { ouvrirCollection, ouvrirParRaccourci, ouvrirSmartPlaylist } from '../../lib/ouvrirParRaccourci';
   import { currentProfileId, profiles } from '../../lib/stores/profile';
   import { salutation } from '../../lib/salutation';
   import { notifications } from '../../lib/stores/notifications';
@@ -76,6 +77,7 @@
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
   import AlbumEditModal from '../partages/AlbumEditModal.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import MosaiqueDifferee from './MosaiqueDifferee.svelte';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
@@ -191,6 +193,15 @@
     phase: 'attente' | 'charge' | 'echec' | 'non-propose';
     elements: Element[];
     chiffres: ChiffreAffiche[];
+    /**
+     * La matière d'un widget `forme: 'bloc'` — 25/09/2026.
+     *
+     * Un troisième champ à côté d'`elements` et de `chiffres`, et non un
+     * détournement de l'un des deux : `elements` est typé `Element[]` et la
+     * matière d'un bloc n'en est pas une. C'est la même séparation qui existe
+     * déjà entre les deux autres.
+     */
+    donnees?: unknown;
     raison?: string;
     /** #1561 — une recomposition est en vol : la ligne d'avant reste affichée. */
     recompose?: boolean;
@@ -492,14 +503,26 @@
     creneau(() => {
       const ctx = { profileId: get(currentProfileId), albums: get(albums), zones: get(zones),
                     chiffresChoisis: chiffres, langue: get(locale) };
-      const p = w.forme === 'chiffres' && w.chiffres ? w.chiffres(ctx) : w.charger(ctx);
+      // Trois chargeurs, un par nature de matière. `bloc` (25/09/2026) a le
+      // sien pour la même raison que `chiffres` : `charger` promet des
+      // `Element[]`, et la matière d'un bloc n'en est pas une.
+      const p = w.forme === 'chiffres' && w.chiffres
+        ? w.chiffres(ctx)
+        : w.forme === 'bloc' && w.bloc
+          ? w.bloc.donnees(ctx)
+          : w.charger(ctx);
       return avecDelai(Promise.resolve(p));
     })
       .then((r: any) => {
         if (perime()) return;
         majEtat(id, w.forme === 'chiffres'
           ? { phase: 'charge', chiffres: r ?? [], recompose: false }
-          : { phase: 'charge', elements: r ?? [], recompose: false });
+          : w.forme === 'bloc'
+            // 🔴 `?? null` et non `?? []` : un bloc dont le chargeur rend
+            // `undefined` doit rendre un bloc VIDE, pas un tableau que son
+            // composant n'attend pas. C'est lui qui sait dire « rien ».
+            ? { phase: 'charge', donnees: r ?? null, recompose: false }
+            : { phase: 'charge', elements: r ?? [], recompose: false });
       })
       .catch((err: any) => {
         // #1561 — un échec PÉRIMÉ ne dit rien et ne rend rien : la demande
@@ -785,7 +808,23 @@
      * Tidal montent la même page de widgets.
      */
     if (e.ouvrir === 'artiste') {
-      if (e.artiste) void ouvrirArtisteDepuis({ name: e.artiste }, $activeView);
+      // Un artiste FAVORI porte l'objet entier ; un classement n'a que son NOM.
+      if (e.artisteObjet) void ouvrirArtisteDepuis(e.artisteObjet, $activeView);
+      else if (e.artiste) void ouvrirArtisteDepuis({ name: e.artiste }, $activeView);
+      return;
+    }
+    // Widgets de favoris par type (25/09/2026) : une piste se JOUE, et une
+    // playlist, une playlist intelligente ou une collection s'ouvre dans SON
+    // écran, sous la clé de raccourci qui porte sa SORTE.
+    if (e.ouvrir === 'lire') {
+      jouer(e);
+      return;
+    }
+    if (e.ouvrir === 'cible' && e.cible) {
+      const c = e.cible;
+      if (c.sorte === 'playlist') void ouvrirParRaccourci('playlists', `playlists:${c.id}`, c.id, c.nom);
+      else if (c.sorte === 'smart_playlist') ouvrirSmartPlaylist({ id: c.id, name: c.nom });
+      else ouvrirCollection({ id: c.id, name: c.nom, smart: c.sorte === 'smart_collection' });
       return;
     }
     if (e.ouvrir === 'zone') {
@@ -1122,6 +1161,26 @@
                   </div>
                 </div>
               {/if}
+            {:else if w.forme === 'bloc' && w.bloc}
+              <!-- LE BLOC — il rend SON PROPRE BALISAGE (25/09/2026).
+
+                   🔴 Cette branche est AVANT le repli « (vide) » juste en
+                   dessous, et ce n'est pas un détail d'ordre : ce repli teste
+                   `et.elements`, qu'un bloc ne remplit jamais. Placée après,
+                   elle n'aurait jamais été atteinte et les onze blocs du
+                   Tableau de bord auraient tous affiché « (vide) ». C'est
+                   exactement la place qu'occupe déjà la branche `chiffres`,
+                   et pour la même raison.
+
+                   `PageWidgets` ne lit RIEN de `donnees` : il réserve la
+                   hauteur déclarée et passe la main. C'est ce qui permet de
+                   sortir les sections de l'ancien Tableau de bord sans les
+                   redessiner. -->
+              {@const Dessin = w.bloc.composant}
+              <div class="blocpropre" style:min-height="{w.bloc.hauteur}px">
+                <Dessin donnees={et.donnees ?? null} />
+              </div>
+
             {:else if !et.elements.length}
               <div class="state mince">{$t('v2.home.widgetEmpty' as any)}</div>
 
@@ -1315,7 +1374,7 @@
                   <div class="carte">
                     <div class="pochette">
                       <PochetteActions
-                        favori={idLocal != null ? { albumId: idLocal } : null}
+                        favori={el.favoriLocal ?? (idLocal != null ? { albumId: idLocal } : null)}
                         favoriExterne={sidDistant
                           ? favoriExterneService($favoriteStreamingKeys, {
                               itemType: typeFavori,
@@ -1326,7 +1385,9 @@
                               coverUrl: el.cover ?? undefined,
                             })
                           : null}
-                        etiquettes={el.ouvrir === 'playlist'
+                        etiquettes={el.etiquette !== undefined
+                          ? el.etiquette
+                          : el.ouvrir === 'playlist'
                           ? cibleEtiquettePlaylist(el.playlist, el.source)
                           : cibleEtiquetteAlbum(el.fiche, el.source)}
                         onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
@@ -1334,8 +1395,15 @@
                         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
                         nom={el.titre}
                       >
-                        <AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre}
-                          source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
+                        {#if el.pochettes || el.mosaique}
+                          <!-- Playlist ou collection : la MOSAÏQUE de son
+                               écran (`MosaiquePochettes`), pas une pochette. -->
+                          <MosaiqueDifferee pochettes={el.pochettes ?? []} charger={el.mosaique ?? null}
+                            initiales={el.titre?.slice(0, 1)} alt={el.titre} />
+                        {:else}
+                          <AlbumArt coverPath={el.cover} albumId={null} size={0} alt={el.titre}
+                            source={el.source} fallbackInitials={el.titre?.slice(0, 1)} />
+                        {/if}
                       </PochetteActions>
                     </div>
                     <button class="meta" onclick={() => ouvrirElement(el)} disabled={!el.ouvrir}>
@@ -1602,11 +1670,32 @@
     .stat .v, .stat .l{font-size:14px}
   }
 
+  /* ── LE BLOC : la seconde forme (25/09/2026) ──────────────────────────
+     Une COLONNE flexible, et c'est tout ce que la page impose. Les blocs dont
+     le dessin doit remplir la hauteur déclarée — les barres de la tendance —
+     s'y étirent par `flex:1` ; les autres se posent en haut.
+
+     🔴 La hauteur elle-même n'est PAS ici : elle est posée en ligne par le
+     widget (`style:min-height`), parce qu'elle lui appartient. C'est le
+     contrat `Bloc.hauteur`, et une valeur écrite dans cette feuille-ci
+     vaudrait pour tous les blocs — soit exactement la hauteur unique dont on
+     cherche à sortir.
+
+     `min-height` et non `height` : le bloc RÉSERVE sa place pour que la page
+     ne se réorganise pas sous les yeux pendant les onze chargements
+     parallèles, mais un bloc qui déborde s'affiche en entier plutôt que
+     d'être coupé. */
+  .blocpropre{display:flex; flex-direction:column; padding-bottom:8px}
+
   /* ── Le gros widget des tops (20/09/2026) ────────────────────────────── */
   .tops{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px}
   .topcol h4{margin:0 0 10px; font:700 11px var(--v2-sans); letter-spacing:.1em;
     text-transform:uppercase; color:var(--v2-txt3)}
-  .topcol ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px}
+  /* Cinquante rangs par colonne depuis le 25/09/2026 : la colonne DÉFILE
+     dans la hauteur de cinq lignes (50 px de ligne + 6 px d'écart) au lieu
+     d'allonger la page de 2 800 px. */
+  .topcol ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px;
+    max-height:calc(5 * 56px); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin}
   .topcol li{display:flex; align-items:center; gap:6px; min-width:0; border-radius:9px}
   .topcol li:hover{background:var(--v2-hover)}
   .topcol .toprang{flex:1 1 auto; display:flex; align-items:center; gap:11px; min-width:0;
@@ -1620,7 +1709,7 @@
     cursor:pointer; opacity:0}
   .topcol li:hover .toplire, .topcol .toplire:focus-visible{opacity:1}
   .topcol .toplire:hover{background:var(--v2-hover); color:var(--v2-txt)}
-  .topcol .rang{flex:0 0 auto; width:16px; text-align:right; font:600 12px var(--v2-mono);
+  .topcol .rang{flex:0 0 auto; width:20px; text-align:right; font:600 12px var(--v2-mono);
     color:var(--v2-txt3)}
   .topcol .vign{flex:0 0 auto; width:40px; height:40px; border-radius:7px; overflow:hidden}
   .topcol .txt{display:flex; flex-direction:column; gap:2px; min-width:0}
