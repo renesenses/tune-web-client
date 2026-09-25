@@ -2559,6 +2559,7 @@ export default {
   "v2.home.sHoursHeard": "听过的时长",
   "v2.home.sGenresHeard": "听过的流派",
   "v2.home.statOpen": "打开",
+  "v2.home.statsFull": "这一行已满：最多 {n} 个数字。取消勾选一个，才能选择另一个。",
   "v2.home.statsPick": "选择这一行显示的数字（最多六个）。",
   "v2.sc.eyebrow": "您的快速入口",
   "v2.sc.hint": "侧边栏显示五个，已固定的优先。在这里选择显示哪些。",

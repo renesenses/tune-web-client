@@ -2559,6 +2559,7 @@ export default {
   "v2.home.sHoursHeard": "gehörte Stunden",
   "v2.home.sGenresHeard": "gehörte Genres",
   "v2.home.statOpen": "Öffnen",
+  "v2.home.statsFull": "Diese Zeile ist voll: höchstens {n} Zahlen. Entfernen Sie das Häkchen bei einer, um eine andere zu wählen.",
   "v2.home.statsPick": "Wählen Sie die Zahlen dieser Zeile (höchstens sechs).",
   "v2.sc.eyebrow": "Ihre Schnellzugriffe",
   "v2.sc.hint": "Die Seitenleiste zeigt fünf, angeheftete zuerst. Hier wählen Sie welche.",
