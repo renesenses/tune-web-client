@@ -139,13 +139,17 @@ async function ouvrirAjout(piste: Track): Promise<boolean> {
 }
 const nomsProposes = () =>
   [...document.querySelectorAll('.playlist-option .pl-name')].map((e) => (e.textContent ?? '').trim());
+const nomsProposesDe = (ou: 'tune' | 'service') =>
+  [...document.querySelectorAll(`.playlist-option[data-ou="${ou}"] .pl-name`)].map((e) => (e.textContent ?? '').trim());
 
 describe('#1268 — un titre Qobuz va dans une playlist Qobuz du compte', () => {
-  it('🔴 le menu propose l’entrée, et la fenêtre liste les playlists QOBUZ, pas celles de Tune', async () => {
+  // 🔄 #4889 (24/09/2026) : une playlist TUNE porte désormais un titre de
+  // service. La fenêtre liste les playlists QOBUZ du compte — le besoin de
+  // Cyrille — ET, dans un groupe à part, celles de Tune.
+  it('🔴 le menu propose l’entrée, et la fenêtre liste les playlists QOBUZ (et, depuis #4889, celles de Tune)', async () => {
     expect(await ouvrirAjout(PISTE_QOBUZ), '« Ajouter à une playlist » absent pour un titre Qobuz').toBe(true);
-    expect(nomsProposes()).toEqual(['Soirées jazz', 'Route']);
-    expect(requetes.some((r) => r.method === 'GET' && /\/api\/v1\/playlists$/.test(r.url)),
-      'la fenêtre a interrogé les playlists Tune pour un titre Qobuz').toBe(false);
+    expect(nomsProposesDe('service')).toEqual(['Soirées jazz', 'Route']);
+    expect(nomsProposesDe('tune')).toEqual(['Liste Tune']);
   });
 
   it('🔴 choisir une playlist écrit CHEZ QOBUZ, avec l’identifiant Qobuz de la piste', async () => {
@@ -173,14 +177,16 @@ describe('#1268 — un titre Qobuz va dans une playlist Qobuz du compte', () => 
       'la fenêtre ouverte par le bouton « playlist » de la barre',
     );
     await souffler();
-    expect(nomsProposes()).toEqual(['Soirées jazz', 'Route']);
+    expect(nomsProposesDe('service')).toEqual(['Soirées jazz', 'Route']);
   });
 
-  it('un service qui ne sait pas écrire n’a pas de bouton playlist', async () => {
+  // 🔄 #4889 : un service sans playlists à lui (YouTube, Bandcamp) a le
+  // bouton, qui mène aux playlists TUNE.
+  it('un service qui ne sait pas écrire a le bouton playlist, vers Tune (#4889)', async () => {
     const yt = { ...PISTE_QOBUZ, source: 'youtube', source_id: 'abc' } as unknown as Track;
     monte = mount(PisteActions, { target: hote!, props: { piste: yt } });
     await souffler();
-    expect(hote!.querySelector(`button.pa[aria-label="${fr['v2.pa.playlist']}"]`)).toBeNull();
+    expect(hote!.querySelector(`button.pa[aria-label="${fr['v2.pa.playlist']}"]`)).toBeTruthy();
   });
 
   it('une piste de la bibliothèque garde les playlists Tune', async () => {
@@ -198,11 +204,13 @@ describe('serviceDePlaylist et le menu — la règle, appelée', () => {
     expect(serviceDePlaylist({ id: null, source: 'qobuz', source_id: null } as any)).toBeNull();
     expect(serviceDePlaylist({ id: 3, source: 'local', source_id: null } as any)).toBeNull();
   });
-  it('sans playlist de service, une piste de service n’a toujours pas l’entrée (#1848)', () => {
+  it('ni playlist de service ni playlist Tune possible : pas d’entrée', () => {
     const base = { jouable: true, idBibliotheque: null, artistId: null, albumId: null };
     const f = () => {};
     const cles = (c: object) => entreesMenuPiste({ ...base, ...c }, { ajouterAPlaylist: f }).map((e) => e.cle);
     expect(cles({})).not.toContain('nowplaying.addToPlaylist');
     expect(cles({ playlistDeService: 'qobuz' })).toContain('nowplaying.addToPlaylist');
+    // #4889 — une playlist Tune suffit.
+    expect(cles({ rangeableEnPlaylist: true })).toContain('nowplaying.addToPlaylist');
   });
 });

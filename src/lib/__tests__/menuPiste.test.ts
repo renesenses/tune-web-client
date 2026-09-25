@@ -130,6 +130,11 @@ describe('« je veux à minima le contenu de la v0 »', () => {
      * `playlist_tracks.track_id` est `NOT NULL REFERENCES tracks(id)`.
      *
      * #1848 tranche : ABSENTE, pas grisée.
+     *
+     * 🔄 #4889 (24/09/2026) lève cette limite côté serveur : l'entrée revient
+     * pour une piste de service quand l'appelant pose `rangeableEnPlaylist`
+     * (voir `menuPisteService_3777` et `playlistsTitresDeService4889`). Sans
+     * ce drapeau, elle reste absente — c'est ce que ce cas tient.
      */
     expect(rendues, 'une piste de service ne peut pas entrer dans une liste locale')
       .not.toContain('nowplaying.addToPlaylist');

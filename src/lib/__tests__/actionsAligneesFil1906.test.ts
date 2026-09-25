@@ -5,9 +5,10 @@
 //
 // Capture de l'Historique : une ligne Qobuz porte lire, lire à partir d'ici,
 // lire ensuite, file, PLAYLIST, étiquettes, cœur, « … ». La ligne Bandcamp
-// juste en dessous n'a pas de playlist — Bandcamp n'écrit pas de playlist de
-// service (`playlistService.ts`, `SERVICES_PLAYLIST_ECRITURE`) — et ses
-// étiquettes, son cœur et son « … » tombaient une colonne à gauche.
+// juste en dessous n'avait pas de playlist — Bandcamp n'écrit pas de playlist
+// de service (`playlistService.ts`, `SERVICES_PLAYLIST_ECRITURE`) — et ses
+// étiquettes, son cœur et son « … » tombaient une colonne à gauche. (Depuis
+// #4889, Bandcamp va dans les playlists TUNE : sa case playlist est pleine.)
 //
 // LE MÉCANISME : `PisteActions` rendait RIEN pour un geste impossible. Chaque
 // absence décalait tout ce qui suivait. La correction garde la règle « absent,
@@ -71,20 +72,23 @@ describe('🔴 fil 1906 — chaque geste garde SA case dans la barre d’une pis
     expect(rangDe(b, estMenu), 'le « … » Bandcamp n’est pas en face du « … » Qobuz').toBe(rangDe(q, estMenu));
   });
 
-  it('la case de la playlist Bandcamp est VIDE : aucun ajout impossible n’est offert', () => {
+  // 🔄 #4889 (24/09/2026) : une playlist TUNE enregistre désormais un titre
+  // de service. La case playlist d'une ligne Bandcamp n'est plus vide : c'est
+  // le MÊME bouton, au MÊME rang que celui de la ligne Qobuz.
+  it('la case de la playlist Bandcamp porte le bouton, au rang de celui de Qobuz (#4889)', () => {
     const q = barre(QOBUZ);
     const b = barre(BANDCAMP);
     const playlist = get(t)('v2.pa.playlist' as any);
     const rang = cases(q).findIndex((el) => el.getAttribute('aria-label') === playlist);
-    expect(rang, 'Qobuz n’offre plus la playlist de son service').toBeGreaterThan(-1);
-    expect(b.querySelector(`[aria-label="${playlist}"]`),
-      'Bandcamp propose un bouton playlist qu’il ne peut pas tenir').toBeNull();
-    expect(cases(b)[rang].tagName).toBe('SPAN');
-    expect(cases(b)[rang].classList.contains('vide')).toBe(true);
+    expect(rang, 'Qobuz n’offre plus la playlist').toBeGreaterThan(-1);
+    expect(cases(b)[rang].tagName, 'la case playlist Bandcamp est restée vide').toBe('BUTTON');
+    expect(cases(b)[rang].getAttribute('aria-label')).toBe(playlist);
   });
 
   it('une case vide ne se vise pas : ni bouton, ni focus, ni annonce', () => {
-    const b = barre(BANDCAMP);
+    // #4889 : la case playlist d'une ligne Bandcamp est pleine désormais. Sans
+    // « lire à partir d'ici », sa case, elle, reste vide — c'est elle qu'on vise.
+    const b = barre(BANDCAMP, { onLireDepuis: undefined });
     const vides = cases(b).filter((el) => el.classList.contains('vide'));
     expect(vides.length).toBeGreaterThan(0);
     for (const v of vides) {

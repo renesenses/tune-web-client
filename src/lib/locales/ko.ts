@@ -351,6 +351,8 @@ export default {
   'playlist.noExisting': '기존 재생목록 없음',
   'playlist.addFailed': '추가하지 못했습니다: 서비스가 이 재생목록을 거부했습니다.',
   'playlist.servicePlaylistsOf': '내 {service} 재생목록',
+  'playlist.groupTune': 'Tune 재생목록',
+  'playlist.createIn': '만들 위치',
   'playlist.newPlaylist': '새 재생목록',
   'playlist.searchPlaceholder': '재생목록 검색...',
   'playlist.localPlaylists': '내 재생목록',
