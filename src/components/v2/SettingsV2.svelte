@@ -17,7 +17,7 @@
    */
   import { t } from '../../lib/i18n';
   import { zoneTypeLabel } from '../../lib/zoneIdentity';
-  import { appareilDeLaZone, cleContrainteCanaux } from '../../lib/vueZones';
+  import { appareilDeLaZone, cleContrainteCanaux, canauxVerrouilles } from '../../lib/vueZones';
   import { etatWifi, MESSAGE_ETAT_WIFI } from '../../lib/etatWifiAppliance';
   import { formatNombre } from '../../lib/formats';
   import { tick } from 'svelte';
@@ -3923,7 +3923,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                         <div class="canaux">
                           <span class="tl">{$t('zoneConfig.channelsTitle' as any)}</span>
                           <select class="sel"
-                            disabled={z.id == null || z.channel_layout_status?.unavailable}
+                            disabled={z.id == null || canauxVerrouilles(z.channel_layout_status)}
                             value={z.channel_layout ?? ''}
                             onchange={(e) => setZoneField(z, () => api.updateZoneChannelLayout(z.id as number, (e.currentTarget as HTMLSelectElement).value))}>
                             <option value="">{$t('zoneConfig.channelsFollow' as any)}</option>
@@ -3941,6 +3941,16 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
                              machine ; le client les traduit ». -->
                         {#if z.channel_layout_status?.unavailable}
                           <p class="monote">{$t(cleContrainteCanaux(z.channel_layout_status?.reason) as any)}</p>
+                        {/if}
+                        <!-- Fils 1914/1913 — sur un renderer réseau, le choix est
+                             OUVERT mais n'agit pas comme sur une carte locale :
+                             Tune réduit une piste multicanale au nombre choisi,
+                             n'ajoute jamais de canal, et l'appareil garde le
+                             dernier mot s'il annonce moins. On le dit, sinon
+                             « 7.1 » passerait pour une promesse. Le serveur
+                             décide (`portee`), l'écran ne redérive rien. -->
+                        {#if z.channel_layout_status?.portee === 'plafond_reseau'}
+                          <p class="monote canaux-reseau">{$t('zoneConfig.channelsNetworkCeiling' as any)}</p>
                         {/if}
                         <!-- Ce que la zone SORT vraiment (`effective`), quand
                              ça ne coïncide pas avec ce qui est choisi : un
