@@ -3185,7 +3185,18 @@ export interface EqBand {
 export interface EqSettings {
   bands: EqBand[];
   enabled: boolean;
+  /**
+   * La réserve anti-saturation (tune-server-rust#5171) : `safe` (norme L1,
+   * aucune saturation possible) ou `realistic` (maximum réel de la courbe,
+   * plus un limiteur de sécurité). ABSENT quand le serveur est antérieur au
+   * réglage : l'écran cache alors le contrôle au lieu d'en montrer un qui
+   * n'agirait sur rien.
+   */
+  headroom_mode?: HeadroomMode;
 }
+
+/** tune-server-rust#5171 — la réserve de l'égaliseur. */
+export type HeadroomMode = 'safe' | 'realistic';
 
 /** Reponse de `POST /zones/{id}/eq`. */
 export interface EqSetResult extends EqSettings {
@@ -3214,6 +3225,17 @@ export function setEq(zoneId: number, settings: EqSettings) {
   return fetchJSON<EqSetResult>(`${BASE}/zones/${zoneId}/eq`, {
     method: 'POST',
     body: JSON.stringify(settings),
+  });
+}
+
+/**
+ * tune-server-rust#5171 — change la SEULE réserve : le serveur fusionne le
+ * corps dans le profil enregistré, courbe et interrupteur restent tels quels.
+ */
+export function setEqHeadroomMode(zoneId: number, mode: HeadroomMode) {
+  return fetchJSON<EqSetResult>(`${BASE}/zones/${zoneId}/eq`, {
+    method: 'POST',
+    body: JSON.stringify({ headroom_mode: mode }),
   });
 }
 
