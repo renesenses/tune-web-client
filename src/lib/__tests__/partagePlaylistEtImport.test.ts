@@ -134,7 +134,9 @@ describe('shareLink', () => {
   });
 
   it('est bien celui que les DEUX écrans appellent', () => {
-    for (const ecran of ['../../components/v2-heritage/PlaylistManagerView.svelte', '../../components/v2/PlaylistsV2.svelte']) {
+    // Depuis les menus d'objets (26/09/2026), le partage de `PlaylistsV2` est
+    // l'entrée du menu « … », tenue par `lib/gestesObjet` pour tous les écrans.
+    for (const ecran of ['../../components/v2-heritage/PlaylistManagerView.svelte', '../gestesObjet.ts']) {
       const source = sansCommentaires(lire(ecran));
       expect(source, `${ecran} ne passe plus par shareLink`).toMatch(/shareLink\(/);
       // Les deux replis qui fabriquaient un faux succès ne doivent pas revenir.

@@ -210,6 +210,16 @@ export const pendingOxygenFolder = writable<string | null>(null);
 export const pendingLibraryAlbum = writable<number | null>(null);
 
 /**
+ * L'album dont la fiche doit s'ouvrir en mode « Modifier » (web#1599).
+ *
+ * Posé par l'entrée « Modifier » du menu « … » d'un album (`lib/gestesObjet`)
+ * juste avant d'ouvrir la fiche ; `AlbumDetailV2` le consomme UNE fois, quand
+ * la sonde d'édition de CET album est revenue — sans elle, le mode n'existe
+ * pas encore, et le poser plus tôt ne donnerait rien.
+ */
+export const pendingModeModifier = writable<number | null>(null);
+
+/**
  * L'ARTISTE à ouvrir en arrivant sur la Bibliothèque du nouveau client.
  *
  * Même contrat que `pendingLibraryAlbum` juste au-dessus, pour le geste

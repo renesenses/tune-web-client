@@ -90,9 +90,7 @@
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
   // manquant — n'atteignait jamais l'écran.
   import { gestesDeZone } from '../../lib/gestesDeZone';
-  import { chargerCollectionsCibles, entreesAjoutCollection, type CollectionCible } from '../../lib/albumVersCollection';
-  import { entreesPochette } from '../../lib/actionsPochette';
-  import { enfilerAlbum } from '../../lib/enfilerAlbum';
+  import { objetAlbum, objetLabel, type ObjetMenu } from '../../lib/gestesObjet';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
   // #929 — le carrousel emprunte le geste des rangées éditoriales, il ne le
   // réécrit pas. C'est l'action de #1137, corrigée par #1327 : molette,
@@ -107,6 +105,7 @@
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
+  import MenuObjetV2 from './MenuObjetV2.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { lireChoix, ecrireChoix, lireNombre } from '../../lib/preferencesEcran';
@@ -1004,55 +1003,21 @@
    * 🔴 #1222 — FAIRE ENTRER UN ALBUM DANS UN DOSSIER DE « COLLECTIONS ».
    *
    * Lulu (JLuc), fil 1844 : « un bouton permettant le transfert des albums de
-   * la "Bibliothèque" vers les répertoires de "Collections" ». Treizième
-   * « écrit mais pas branché » de ce client : `api.addAlbumToCollection`
-   * existe, le serveur expose la route, et son SEUL appelant vivait dans
-   * l'ancienne interface (`LibraryView.svelte:144`).
+   * la "Bibliothèque" vers les répertoires de "Collections" ». Le geste vit
+   * dans `lib/albumVersCollection`, partagé avec la fiche album ; depuis les
+   * menus d'objets (26/09/2026), le menu « … » l'offre en SOUS-MENU rangé par
+   * rayons (`lib/gestesObjet.sousMenuCollections`), relu au clic — cet écran ne
+   * précharge plus la liste des collections.
    *
-   * Les collections INTELLIGENTES ne sont pas proposées : leur contenu vient
-   * de leurs règles, pas d'une liste d'identifiants. Y « ajouter » un album
-   * n'aurait aucun sens. `GET /library/collections` ne rend que les
-   * manuelles — les intelligentes ont leur propre route.
+   * Le menu de la pochette et de la ligne — `lib/actionsPochette` en décide le
+   * contenu, `lib/gestesObjet` les gestes : cet écran ne donne que l'OBJET.
    *
-   * Le geste lui-même (route, notifications, relecture) vit dans
-   * `lib/albumVersCollection` depuis le 23/09/2026 : la fiche album l'appelle
-   * aussi, et une seule implémentation vaut mieux que deux copies.
+   * Un album de DÉPÔT distant n'a pas d'identifiant chez nous : son objet n'en
+   * porte pas (`idBibliotheque` nul), et toutes les entrées qui prennent un
+   * `i64` disparaissent — il ne lui reste que « Ouvrir ».
    */
-  let collectionsCibles = $state<CollectionCible[]>([]);
-  $effect(() => {
-    let vivant = true;
-    chargerCollectionsCibles().then((cs) => { if (vivant) collectionsCibles = cs; });
-    return () => { vivant = false; };
-  });
-
-  /** Une entrée par collection. Celles qui contiennent déjà l'album restent
-   *  proposées, mais le disent : les retirer se lirait comme « cette
-   *  collection n'existe pas ». La liste est RELUE après l'ajout (`apres`). */
-  function entreesCollection(a: Album) {
-    return entreesAjoutCollection(collectionsCibles, a.id, (k) => $tr(k as any), (relues) => (collectionsCibles = relues));
-  }
-
-  /**
-   * Le menu de la pochette — `lib/actionsPochette` en décide le contenu.
-   *
-   * Cet écran composait son tableau lui-même, et n'y mettait QUE les cibles de
-   * collection : « Ajouter à la file » existait sur la même vignette d'album
-   * dans `FavoritesV2`, et pas ici. Le catalogue referme cet écart ; les trois
-   * emplacements de cet écran (facette, grille, carrousel) l'appellent.
-   *
-   * Un album de DÉPÔT distant n'a pas d'identifiant chez nous : il perd donc
-   * ses deux gestes, et son bouton avec — exactement ce que faisait le
-   * `depot ? []` d'avant.
-   */
-  function menuAlbum(a: Album) {
-    return entreesPochette(
-      { type: 'album', idBibliotheque: depot ? null : a.id },
-      {
-        enfiler: () => void enfilerAlbum(a.id, a.title),
-        ciblesCollection: () => entreesCollection(a),
-      },
-      (k) => $tr(k as any),
-    );
+  function objetMenuAlbum(a: Album): ObjetMenu {
+    return depot ? { type: 'album', nom: a.title ?? null } : objetAlbum(a);
   }
 
   function tech(a: Album): string {
@@ -2634,6 +2599,12 @@
                     <span class="fk">{g.key}</span>
                     <span class="fc">{g.albums.length}</span>
                   </button>
+                  <!-- Le menu « … » d'un LABEL (menus d'objets, 26/09/2026) :
+                       une valeur RÉELLE de la bibliothèque, jamais « Sans
+                       label » ni le catalogue d'un dépôt distant. -->
+                  {#if tab === 'labels' && !depot && g.reel}
+                    <MenuObjetV2 objet={objetLabel(g.key)} gestes={{ ouvrir: () => (facetteOuverte = g.key) }} nom={g.key} />
+                  {/if}
                   {#if facetteCourante && g.reel}
                     <button class="fcoeur" class:on={fav} aria-pressed={fav}
                       title={fav ? $tr('favorites.removeTrack' as any) : $tr('favorites.addTrack' as any)}
@@ -2661,6 +2632,9 @@
             <section class="facet" data-facette={g.key}>
               <h2>
                 <span class="fk">{g.key}</span><span class="fc">{g.albums.length}</span>
+                {#if tab === 'labels' && !depot && g.reel}
+                  <MenuObjetV2 objet={objetLabel(g.key)} nom={g.key} />
+                {/if}
                 <!--
                   Le coeur de FACETTE. Il n'existait que dans l'ancien client, et
                   seulement sur les labels (#2442) : mettre un genre ou une annee
@@ -2699,6 +2673,8 @@
               {#if display === 'list'}
               <div class="rows facetrows" style="--lcols:{colonnesListe}">
                 {#each g.albums as a (a.id)}
+                  <div class="lhote">
+                  <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
                   <button class="lrow" data-letter={firstLetter(a)} onclick={() => ouvrirCalqueAlbum(a)}>
                     <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
                     <span class="lt"><span class="ltt">{a.title}</span><PastilleCompilation compilation={a.is_compilation} compact /></span>
@@ -2707,6 +2683,7 @@
                     {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
                     {#if showTech}<span class="lq">{tech(a)}</span>{/if}
                   </button>
+                  </div>
                 {/each}
               </div>
               {:else}
@@ -2720,7 +2697,7 @@
                         onEditer={depot ? null : () => (enEdition = a)}
                         onLire={() => lireAlbum(a)}
                         onOuvrir={() => ouvrirCalqueAlbum(a)}
-                        menu={menuAlbum(a)}
+                        objet={objetMenuAlbum(a)}
                         nom={a.title}
                       >
                         <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
@@ -2874,7 +2851,7 @@
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}
-          menu={menuAlbum(a)}
+          objet={objetMenuAlbum(a)}
           nom={a.title}
         >
           <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
@@ -2891,7 +2868,13 @@
   {/snippet}
 
   {#snippet ligne(a: Album, i: number)}
-    <button class="lrow" data-letter={firstLetter(a)} data-i={i} onclick={() => ouvrirCalqueAlbum(a)}>
+    <!-- Le menu « … » de la ligne est POSÉ à côté du bouton de ligne, pas
+         dedans : un bouton dans un bouton est du HTML invalide. `data-i` et
+         `data-letter` passent sur l'HÔTE : c'est lui l'enfant direct de
+         `.rows`, que la fenêtre de rendu compte et que le rail vise. -->
+    <div class="lhote" data-letter={firstLetter(a)} data-i={i}>
+    <span class="lmenu"><MenuObjetV2 objet={objetMenuAlbum(a)} gestes={{ ouvrir: () => ouvrirCalqueAlbum(a) }} nom={a.title ?? ''} /></span>
+    <button class="lrow" onclick={() => ouvrirCalqueAlbum(a)}>
       <span class="lcv"><AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} /></span>
       <!-- La pastille reste DANS la cellule du titre : une septieme
            colonne decalerait toutes les autres, et seule une poignee de
@@ -2912,6 +2895,7 @@
       {#if showBadges}<span class="lb">{#if badge(a)}<span class="bdg flat">{badge(a)}</span>{/if}</span>{/if}
       {#if showTech}<span class="lq">{tech(a)}</span>{/if}
     </button>
+    </div>
   {/snippet}
 
   {#snippet carteCarrou(a: Album, i: number)}
@@ -2923,7 +2907,7 @@
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}
-          menu={menuAlbum(a)}
+          objet={objetMenuAlbum(a)}
           nom={a.title}
         >
           <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
@@ -3267,6 +3251,12 @@
     */
     content-visibility:auto; contain-intrinsic-size:auto 56px}
   .lrow:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  /* Menus d'objets : la ligne et son « … », côte à côte dans un hôte. Le
+     bouton de ligne garde toute la largeur ; le menu se pose au bout, par-
+     dessus la marge qu'on lui réserve. */
+  .lhote{position:relative; display:block}
+  .lhote > .lrow{padding-right:44px}
+  .lmenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   .lcv{width:44px; height:44px; border-radius:6px; overflow:hidden}
   .lrow .lt{display:flex; align-items:center; gap:7px; min-width:0;
     font-size:13.5px; font-weight:600; color:var(--v2-txt)}

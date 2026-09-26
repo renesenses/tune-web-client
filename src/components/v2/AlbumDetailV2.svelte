@@ -48,7 +48,8 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   import { tip } from '../../lib/tooltip';
   import { afficherDynamicRange } from '../../lib/dynamicRange';
   import { corpsDeLectureBandcamp } from '../../lib/bandcampLecture';
-  import { activeView, pendingLibraryAlbum, vueDeRetour, gestesNavigationService } from '../../lib/stores/navigation';
+  import { activeView, pendingLibraryAlbum, pendingModeModifier, vueDeRetour, gestesNavigationService } from '../../lib/stores/navigation';
+  import { reidentifierAlbum } from '../../lib/gestesObjet';
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { ouvrirArtisteDepuis } from '../../lib/ouvrirArtisteDepuis';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
@@ -584,6 +585,19 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
   // Une autre fiche s'ouvre : on ne reste pas en édition sur l'album d'avant.
   $effect(() => { void album?.id; enEdition = false; });
 
+  /**
+   * « Modifier » depuis le menu « … » d'un album (`lib/gestesObjet`) : la fiche
+   * s'ouvre, et passe en mode Modifier dès que la sonde de CET album est
+   * revenue. La demande est consommée une fois — remise à `null`, elle ne
+   * relance rien.
+   */
+  $effect(() => {
+    const demande = $pendingModeModifier;
+    if (demande == null || demande !== album.id || !edition) return;
+    pendingModeModifier.set(null);
+    enEdition = true;
+  });
+
   async function apresEnregistrement() {
     const id = album.id;
     enEdition = false;
@@ -693,32 +707,14 @@ import { libelleQualite, autreAlbumMeilleur } from '../../lib/meilleureQualite';
     if (album.id == null) return;
     const id = album.id;
     reidentification = true;
-    const tid = notifications.info($tr('library.reidentifying'), 0);
     try {
-      const r = await api.reidentifyAlbum(id);
-      notifications.dismiss(tid);
-      // Le verdict est rendu tel quel, y compris décevant : « même pressage »
-      // et « rien trouvé » sont des réponses (fil forum #1455).
-      if (r.verdict === 'no_tracks') { notifications.error($tr('library.reidentifyNoTracks')); return; }
-      if (r.verdict === 'not_found') {
-        notifications.error($tr('library.reidentifyNotFound').replace('{title}', r.searched_title ?? ''));
-        return;
-      }
-      if (r.verdict === 'unchanged') { notifications.info($tr('library.reidentifyUnchanged'), 9000); return; }
-      let msg = $tr('library.reidentifySuccess')
-        .replace('{title}', r.release_title ?? '')
-        .replace('{matched}', String(r.tracks_matched ?? 0))
-        .replace('{total}', String(r.tracks_total ?? 0));
-      if (r.fields_left_as_is?.length) {
-        msg += ` — ${$tr('library.reidentifyKept').replace('{fields}', r.fields_left_as_is.join(', '))}`;
-      }
-      notifications.success(msg, 9000);
+      // Le geste et ses verdicts ('no_tracks', 'not_found', 'unchanged')
+      // vivent dans `lib/gestesObjet.reidentifierAlbum` : le menu « … » d'un
+      // album offre la même entrée, et les deux doivent dire la même chose.
       // Relire la fiche pour montrer ce qui vient d'être écrit.
-      album = await api.getAlbum(id);
-    } catch (e: any) {
-      notifications.dismiss(tid);
-      notifications.error(`${$tr('library.reidentifyFailed')} : ${e?.message || e}`);
-    } finally {
+      if (await reidentifierAlbum(id)) album = await api.getAlbum(id);
+    } catch { /* relecture manquée : l'en-tête garde l'ancien texte */ }
+    finally {
       reidentification = false;
     }
   }

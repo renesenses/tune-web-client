@@ -11,7 +11,6 @@
    */
   import * as api from '../../lib/api';
   import { zoneRequise } from '../../lib/zoneRequise';
-  import { shareLink } from '../../lib/playlistShare';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   // Un échec de lecture DOIT se voir : ces appels finissaient tous par un
   // `.catch(() => {})` (#3732). Le message du serveur — qui nomme l'appareil
@@ -31,7 +30,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquettePlaylist, cibleSmartPlaylist } from '../../lib/cibleEtiquette';
-  import { entreesPochette } from '../../lib/actionsPochette';
+  import { objetPlaylist, objetPlaylistIntelligente } from '../../lib/gestesObjet';
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import { untrack } from 'svelte';
@@ -291,23 +290,9 @@
     playAndSync(zid, { playlist_id: pl.id }).catch(signalerEchecLecture);
   }
 
-  /**
-   * « Lecture aléatoire » depuis la VIGNETTE — Bertrand, 17/09/2026 (point 4 :
-   * « Playlists ou Smart playlists, ajouter bouton lecture aléatoire »). La
-   * fiche d'une playlist l'avait déjà ; la grille, non. Mélange côté client
-   * (`lireListeAleatoire`), comme la fiche et les collections : la zone garde
-   * son propre mode aléatoire.
-   */
-  async function lireLocalAleatoire(pl: Playlist) {
-    const zid = $currentZoneId;
-    if (zid == null || pl.id == null) return;
-    try {
-      const pistes = (await api.getPlaylistTracks(pl.id)) ?? [];
-      await lireListeAleatoire(pistes, gestesDeLecture(zid));
-    } catch (e) {
-      signalerEchecLecture(e);
-    }
-  }
+  // « Lecture aléatoire » de la vignette (Bertrand, 17/09/2026, point 4) :
+  // depuis les menus d'objets (26/09/2026), c'est l'entrée « Lire en
+  // aléatoire » du menu « … », tenue par `lib/gestesObjet` pour tous les écrans.
   const gestesDeLecture = (zid: number) => ({
     lire: (c: any) => playAndSync(zid, c),
     enfiler: (c: any) => api.addToQueue(zid, c),
@@ -428,75 +413,13 @@
   let editeurSmart = $state<{ id: number | null } | null>(null);
 
   /**
-   * Supprime une playlist intelligente.
-   *
-   * ⚠️ `sp.id` vit dans l'espace d'identifiants des playlists INTELLIGENTES,
-   * pas dans celui des playlists classiques : les deux tables numérotent
-   * chacune de son côté, et la 7 de l'une n'est pas la 7 de l'autre. D'où
-   * `deleteSmartPlaylist`, jamais `deletePlaylist`.
-   *
-   * Confirmation obligatoire, et en `danger` : une règle qu'on efface ne se
-   * reconstitue pas. Par le socle `dialogs` — la boîte native ne s'ouvre pas
-   * dans un webview, le clic n'y produit RIEN (#166).
+   * Les menus « … » de cet écran — `lib/actionsPochette` décide des entrées,
+   * `lib/gestesObjet` les fait (menus d'objets, 26/09/2026). La suppression
+   * d'une playlist intelligente (`deleteSmartPlaylist`, jamais
+   * `deletePlaylist` : les deux tables numérotent chacune de son côté), sa
+   * confirmation `dialogs` et le partage d'une playlist locale y vivent ; cet
+   * écran ne donne que l'OBJET, et de quoi se relire.
    */
-  async function supprimerSmart(sp: any) {
-    if (sp?.id == null) return;
-    const ok = await dialogs.confirm(
-      $t('v2.spl.deleteAsk' as any).replace('{name}', String(sp.name ?? '')),
-      { danger: true },
-    );
-    if (!ok) return;
-    try {
-      await api.deleteSmartPlaylist(sp.id);
-      notifications.success($t('smartPlaylists.deleted').replace('{name}', String(sp.name ?? '')));
-      rechargerSmart();
-    } catch (e: any) {
-      notifications.error(errText(e) ?? $t('common.error' as any));
-    }
-  }
-
-  /**
-   * Les menus de pochette de cet écran — `lib/actionsPochette` les décide.
-   *
-   * Les deux tableaux étaient écrits en dur dans le balisage. Leur CONTENU ne
-   * change pas ; ce qui change est qu'il vient d'un seul endroit, avec l'ordre
-   * et les clés. C'est ce qui a permis de voir que `SmartPlaylistsView` montrait
-   * la MÊME playlist intelligente sans « Lire en aléatoire ».
-   *
-   * La playlist de SERVICE (troisième emplacement de cet écran) n'a aucun geste
-   * disponible : ni aléatoire — ses pistes vivent chez le service — ni partage,
-   * ni suppression. Son bouton est donc ABSENT, et elle n'appelle rien ici.
-   */
-  function menuSmart(sp: any) {
-    return entreesPochette(
-      { type: 'playlistIntelligente', idBibliotheque: sp?.id ?? null },
-      {
-        lireAleatoire: () => lireSmart(sp, true),
-        supprimer: () => void supprimerSmart(sp),
-      },
-      (k) => $t(k as any),
-    );
-  }
-  /**
-   * 🔴 Pas de « Supprimer » ici, et ce n'est pas un oubli.
-   *
-   * `api.deletePlaylist` existe et la FICHE l'offre (`PlaylistDetailV2`, bouton
-   * `common.delete`), mais cet écran n'a pas le geste : il lui faudrait une
-   * fonction de confirmation et de relecture qui n'existe pas, et une clé de
-   * confirmation qui n'existe dans aucune des onze langues. Le catalogue dit que
-   * la CAPACITÉ est là ; tant que la SURFACE ne fournit pas le geste, l'entrée
-   * reste absente — c'est exactement la distinction qu'il porte.
-   */
-  function menuLocale(pl: Playlist) {
-    return entreesPochette(
-      { type: 'playlist', idBibliotheque: pl?.id ?? null },
-      {
-        lireAleatoire: () => void lireLocalAleatoire(pl),
-        partager: () => partager(pl),
-      },
-      (k) => $t(k as any),
-    );
-  }
 
   /** Relit la liste depuis le serveur plutôt que de la corriger à la main. */
   function rechargerSmart() {
@@ -611,31 +534,6 @@
       notifications.error(e?.message ?? $t('common.error' as any));
     } finally {
       importEnCours = false;
-    }
-  }
-
-  /**
-   * Partage d'une playlist — première entrée du menu d'actions.
-   *
-   * `POST /playlists/{id}/share` pose un jeton PUBLIC et rend son URL. Le
-   * jeton n'est pas devinable — UUID v4, après un correctif d'audit : l'ancien
-   * dérivait de l'horloge et de l'identifiant, donc se retrouvait par force
-   * brute. Mais quiconque a l'URL lit la playlist, sans compte.
-   *
-   * On le DIT dans la notification plutôt que de copier un lien en silence.
-   */
-  async function partager(pl: Playlist) {
-    if (pl.id == null) return;
-    try {
-      const r = await api.sharePlaylist(pl.id);
-      // Le repli d'avant ne vérifiait pas que `token` existe : une réponse sans
-      // partage donnait un lien finissant par `undefined`, copié en annonçant
-      // une réussite. `shareLink` lève, et l'écran dit son erreur.
-      const url = shareLink(r, window.location.origin);
-      await navigator.clipboard.writeText(url);
-      notifications.success($t('v2.pl.shared' as any));
-    } catch (e: any) {
-      notifications.error(e?.message ?? $t('common.error' as any));
     }
   }
 
@@ -804,6 +702,7 @@
                   etiquettes={cibleEtiquettePlaylist(pl, source)}
                   onLire={() => playStreaming(source, pl)}
                   onOuvrir={() => ouvrirPl({ kind: 'streaming', service: source, pl })}
+                  objet={objetPlaylist(pl, source)}
                   nom={pl.name}
                 >
                   <AlbumArt coverPath={pl.cover_path} albumId={null} size={0} alt={pl.name} source={source} fallbackInitials={pl.name?.slice(0,1)} />
@@ -855,7 +754,7 @@
                     favori={sp.id != null ? { smartPlaylistId: sp.id } : null}
                     etiquettes={sp.id != null ? cibleSmartPlaylist(sp.id) : null}
                     onEditer={sp.id != null ? () => (editeurSmart = { id: sp.id }) : null}
-                    menu={menuSmart(sp)}>
+                    objet={objetPlaylistIntelligente(sp)} rafraichir={rechargerSmart}>
                     {#if mos}
                       <MosaiquePochettes pochettes={mos} initiales={sp.name?.slice(0, 1)} alt={sp.name} />
                     {:else}
@@ -894,7 +793,7 @@
                     onEditer={pl.id != null ? () => (enEdition = pl) : null}
                     onLire={() => playLocal(pl)}
                     onOuvrir={() => ouvrirPl({ kind: 'local', pl })}
-                    menu={menuLocale(pl)}
+                    objet={objetPlaylist(pl)} rafraichir={load}
                     nom={pl.name}
                   >
                     {#if mos}

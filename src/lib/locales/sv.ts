@@ -4291,4 +4291,12 @@ export default {
   "v2.sources.etat.autorisation_refusee": "Behörighet nekad",
   "v2.sources.etat.non_pris_en_charge": "Stöds inte",
   "v2.sources.etat.indisponible": "Inte tillgänglig",
+  // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
+  "menuObjet.duplicate": "Duplicera",
+  "menuObjet.duplicated": "”{name}” skapad",
+  "menuObjet.copyName": "{name} (kopia)",
+  "menuObjet.transfer": "Överför till en tjänst",
+  "menuObjet.editRules": "Redigera reglerna",
+  "menuObjet.deletePlaylistAsk": "Ta bort spellistan ”{name}”? Spåren finns kvar i biblioteket.",
+  "menuObjet.noFolder": "Ingen mapp på disken för det här albumet.",
 } as const;

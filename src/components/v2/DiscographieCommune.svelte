@@ -34,8 +34,7 @@
   import TriAlbums from '../partages/TriAlbums.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
-  import { entreesPochette } from '../../lib/actionsPochette';
-  import { enfilerAlbum } from '../../lib/enfilerAlbum';
+  import { objetAlbum } from '../../lib/gestesObjet';
 
   interface Props {
     /** Les albums de la bibliothèque — vide pour un artiste qu'elle ne connaît pas. */
@@ -187,29 +186,11 @@
   /** L'exemplaire local d'une vignette, s'il y en a un — il porte le cœur. */
   const local = (e: EntreeDiscographie) => e.exemplaires.find((x) => x.source === BIBLIOTHEQUE)?.album ?? null;
 
-  /**
-   * Le menu de la vignette — `lib/actionsPochette` en décide le contenu.
-   *
-   * Cette grille n'en avait aucun : bouton présent et grisé. C'est pourtant la
-   * page ARTISTE, l'un des chemins les plus fréquents vers un album de la
-   * bibliothèque — et le même album, atteint par `LibraryV2`, avait son menu.
-   *
-   * La capacité se lit sur l'EXEMPLAIRE LOCAL, jamais sur l'album affiché : une
-   * vignette peut ne montrer qu'un exemplaire de service, et la route de la
-   * file prend un `album_id`. C'est le même `loc` qui porte déjà le cœur.
-   *
-   * 🔴 Le geste n'a pas eu besoin d'une propriété de plus : `lib/enfilerAlbum`
-   * lit la zone active lui-même (`zoneRequise`). Passer par `onLire`/`onOuvrir`,
-   * qui sont des propriétés, aurait fait dépendre ce menu du bon vouloir de
-   * chaque parent — et cette grille n'a qu'un appelant aujourd'hui.
+  /*
+   * Le menu « … » des vignettes de cet écran vient de `lib/actionsPochette` et
+   * `lib/gestesObjet` (menus d'objets, 26/09/2026) : cet écran ne donne que
+   * l'OBJET, et le même album y a le même menu qu'ailleurs.
    */
-  function menuAlbum(loc: Album | null) {
-    return entreesPochette(
-      { type: 'album', idBibliotheque: loc?.id ?? null },
-      { enfiler: () => void enfilerAlbum(loc?.id, loc?.title) },
-      (k) => $t(k as any),
-    );
-  }
 
   const libelleQualite = (q: Qualite) =>
     q === 'hires' ? $t('v2.disco.hires' as any) : q === 'cd' ? $t('v2.disco.cd' as any) : $t('v2.disco.lossy' as any);
@@ -350,7 +331,7 @@
         etiquettes={cibleEtiquetteAlbum(loc ?? al, e.principal.source)}
         onLire={() => onLire(e.principal)}
         onOuvrir={() => onOuvrir(e.principal, origine)}
-        menu={menuAlbum(loc)}
+        objet={loc ? objetAlbum(loc) : objetAlbum(al, e.principal.source ?? null)}
         nom={al.title}
       >
         <!-- `source` n'est PAS passé à `AlbumArt` : il y poserait sa

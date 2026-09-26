@@ -82,30 +82,33 @@ describe('#1222 — l\'ajout, depuis la Bibliothèque', () => {
   const geste = readFileSync('src/lib/albumVersCollection.ts', 'utf8');
 
   /**
-   * ⚠️ 26/09/2026 — la vignette ne passe plus `entreesCollection` directement :
-   * elle la FOURNIT au catalogue `lib/actionsPochette` (geste
-   * `ciblesCollection`), qui décide de la condition et de la place. Le geste
-   * lui-même, sa route et son libellé n'ont pas bougé d'une ligne.
+   * ⚠️ 26/09/2026, menus d'objets — la vignette passe l'OBJET
+   * (`objetMenuAlbum(a)`) ; « Ajouter à une collection » est un SOUS-MENU que
+   * `lib/gestesObjet.sousMenuCollections` compose avec CE module
+   * (`entreesAjoutCollection`), rangé par rayons. Le geste lui-même, sa route
+   * et son libellé n'ont pas bougé d'une ligne.
    */
   it('la vignette porte le menu, et il appelle la route', () => {
-    expect(vue).toContain('menu={menuAlbum(a)}');
-    expect(vue).toContain('ciblesCollection: () => entreesCollection(a)');
-    expect(vue).toContain("from '../../lib/albumVersCollection'");
+    expect(vue).toContain('objet={objetMenuAlbum(a)}');
+    const gestes = readFileSync('src/lib/gestesObjet.ts', 'utf8');
+    expect(gestes).toContain('entreesAjoutCollection(cibles, albumId');
     expect(geste).toContain('api.addAlbumToCollection(cible.id, albumId)');
     expect(geste).toContain('v2.col.addTo');
   });
 
   it('🔴 un album de DÉPÔT n\'a pas d\'entrée', () => {
     // `depot` est une source distante : il n'a pas d'identifiant de
-    // bibliothèque à mettre dans une collection. C'est désormais une CAPACITÉ —
-    // `idBibliotheque: null` — et le catalogue en tire l'absence de toutes les
-    // entrées, donc l'absence du bouton.
-    const i = vue.indexOf('idBibliotheque: depot ? null : a.id');
-    expect(i, 'un album de dépôt distant retrouverait un menu').toBeGreaterThan(0);
-    // Et la garde fonctionnelle : le catalogue ne rend RIEN sans identifiant.
-    expect(
-      entreesPochette({ type: 'album', idBibliotheque: null }, { ciblesCollection: () => [{ libelle: 'X', faire: () => {} }] }, (k) => k),
-    ).toEqual([]);
+    // bibliothèque à mettre dans une collection. Son objet n'en porte donc pas,
+    // et le catalogue en tire l'absence de l'entrée.
+    const i = vue.indexOf("depot ? { type: 'album', nom: a.title ?? null } : objetAlbum(a)");
+    expect(i, 'un album de dépôt distant retrouverait un menu de collection').toBeGreaterThan(0);
+    // Et la garde fonctionnelle : le catalogue ne propose pas l'entrée sans
+    // identifiant, même quand le geste est fourni.
+    const sous = async () => [{ cle: 'x', libelle: 'X', faire: () => {} }];
+    const cles = (id: number | null) =>
+      entreesPochette({ type: 'album', idBibliotheque: id }, { ajouterACollection: sous }, (k) => k).map((e) => e.cle);
+    expect(cles(null)).not.toContain('v2.album.addToCollection');
+    expect(cles(7)).toContain('v2.album.addToCollection');
   });
 
   it('la liste est RELUE après l\'ajout', () => {
@@ -130,10 +133,13 @@ describe('#1222 — le retrait, depuis la collection ouverte', () => {
    * ici, c'est que cet écran branche bien le geste et sa condition.
    */
   it('la carte d\'album porte l\'entrée, en danger', () => {
-    expect(vue).toContain('menu={menuAlbum(a)}');
+    // Menus d'objets (26/09/2026) : l'OBJET, la capacité, et le geste propre à
+    // CET écran — les trois passés à `PochetteActions`.
+    expect(vue).toContain('objet={objetAlbum(a)}');
+    expect(vue).toContain('gestesMenu={gestesAlbum(a)}');
     expect(vue).toContain('api.removeAlbumFromCollection(e.id, a.id)');
-    const i = vue.indexOf('function menuAlbum(');
-    expect(i, 'la carte d’album n’appelle plus le catalogue').toBeGreaterThan(-1);
+    const i = vue.indexOf('function gestesAlbum(');
+    expect(i, 'la carte d’album ne fournit plus le retrait').toBeGreaterThan(-1);
     const bloc = vue.slice(i, vue.indexOf('\n  }', i));
     expect(bloc).toContain('retirerDeCollection: () => void retirerDeLaCollection(a)');
   });
@@ -149,7 +155,7 @@ describe('#1222 — le retrait, depuis la collection ouverte', () => {
       expect(i, `${fn} a disparu`).toBeGreaterThan(-1);
       return vue.slice(i, vue.indexOf('\n  }', i));
     };
-    expect(bloc('function menuAlbum(')).toContain("ouverte.sorte !== 'smart'");
+    expect(vue).toContain("dansCollectionManuelle={!!ouverte && ouverte.sorte !== 'smart'}");
     expect(bloc('async function retirerDeLaCollection(')).toContain("e.sorte === 'smart'");
   });
 

@@ -44,8 +44,15 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
-  import { entreesPochette } from '../../lib/actionsPochette';
-  import { enfilerAlbum } from '../../lib/enfilerAlbum';
+  import {
+    objetAlbum,
+    objetArtiste,
+    objetCollection,
+    objetLabel,
+    objetPlaylist,
+    objetPlaylistIntelligente,
+  } from '../../lib/gestesObjet';
+  import MenuObjetV2 from './MenuObjetV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
@@ -671,25 +678,13 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     if (!corps) return;
     playAndSync(zid, corps).catch((e) => { error = messageEchecLecture(e, 'library.playbackError'); });
   }
-  /**
-   * Le menu de la vignette d'ALBUM — `lib/actionsPochette` en décide le contenu.
-   *
-   * 🔴 `queueAlbum` a disparu d'ici. Cet écran portait sa propre mise en file
-   * (`api.addToQueue(zid, { album_id })`, échec dans un bandeau local
-   * `v2.fav.queueFailed`, aucun message de succès) alors que la fiche album en
-   * portait une autre, nommant l'album. Deux implémentations du même geste : la
-   * seule reste `lib/enfilerAlbum`, que les sept emplacements d'album appellent.
-   *
-   * Un album de SERVICE n'a pas d'`album_id` : la route de la file ne
-   * s'applique pas, il n'a donc aucune entrée, donc pas de bouton.
+  /*
+   * Les menus « … » de cet écran — vignettes d'albums et d'artistes, lignes de
+   * playlists, de collections et de labels — viennent de `lib/actionsPochette`
+   * et `lib/gestesObjet` (menus d'objets, 26/09/2026) : cet écran ne donne que
+   * l'OBJET. La mise en file y vit aussi (`lib/gestesObjet.enfiler`) ; la
+   * copie qu'il portait (`queueAlbum`) était déjà partie le 26/09/2026.
    */
-  function menuAlbum(a: any) {
-    return entreesPochette(
-      { type: 'album', idBibliotheque: a?.id ?? null },
-      { enfiler: () => void enfilerAlbum(a?.id, a?.title) },
-      (k) => $t(k as any),
-    );
-  }
 
   /*
    * `unfav` a été retirée le 26/09/2026 : plus aucun appelant.
@@ -801,7 +796,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                   onLire={() => playAlbum(a)}
                   onOuvrir={() => { ouvrirCalqueAlbum(a); opened = a; }}
-                  menu={menuAlbum(a)}
+                  objet={objetAlbum(a)}
                   nom={a.title}
                 >
                   <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
@@ -861,6 +856,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   etiquettes={a.id != null ? { itemType: 'artist', itemId: a.id } : null}
                   onEditer={a.id != null ? () => (artisteEnEdition = a) : null}
                   onOuvrir={() => ouvrirArtisteFavori(a)}
+                  objet={objetArtiste(a)}
                   nom={a.name}
                 >
                   <AlbumArt coverPath={a.image_path ?? null} albumId={null} size={0} alt={a.name}
@@ -898,6 +894,12 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                  cassé en deux par l'analyseur HTML. -->
             {@const deService = !locale && !!pl.source && !!pl.source_id}
             {@const ouvrir = () => (locale ? ouvrirPlaylist(pl) : ouvrirPlaylistDeService(pl))}
+            <!-- Le menu « … » de la ligne, POSÉ à côté d'elle (un bouton dans
+                 un bouton est cassé en deux par l'analyseur HTML). -->
+            <div class="shote">
+            <span class="smenu"><MenuObjetV2
+              objet={pl.smart ? objetPlaylistIntelligente(pl) : objetPlaylist(pl)}
+              gestes={locale || deService ? { ouvrir } : {}} rafraichir={reload} nom={pl.name ?? ''} /></span>
             <svelte:element this={locale ? 'button' : 'div'} class="simple" class:inerte={!locale && !deService}
                             role={deService ? 'button' : undefined}
                             tabindex={deService ? 0 : undefined}
@@ -941,6 +943,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                 </button>
               {/if}
             </svelte:element>
+            </div>
           {/each}
         </div>
       {/if}
@@ -951,6 +954,10 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       {:else}
         <div class="simples">
           {#each vFacettes as f (facetFavKey(f.facet, f.value))}
+            <div class="shote">
+            {#if f.facet === 'label'}
+              <span class="smenu"><MenuObjetV2 objet={objetLabel(f.value)} gestes={{ ouvrir: () => void ouvrirFacette(f) }} nom={f.value} /></span>
+            {/if}
             <button class="simple" onclick={() => ouvrirFacette(f)} disabled={!ONGLET_FACETTE[f.facet]}>
               <span class="si" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
@@ -962,6 +969,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
               <span class="sn" title={f.value}>{f.value}</span>
               <span class="sc">{NOM_FACETTE[f.facet] ?? f.facet}</span>
             </button>
+            </div>
           {/each}
         </div>
       {/if}
@@ -972,6 +980,9 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
       {:else}
         <div class="simples">
           {#each vCollections as c (`${c.smart ? 's' : 'c'}-${c.id}`)}
+            <div class="shote">
+            <span class="smenu"><MenuObjetV2 objet={objetCollection(c, !!c.smart)}
+              gestes={{ ouvrir: () => ouvrirCollection(c) }} rafraichir={reload} nom={libelleCol(c)} /></span>
             <button class="simple" onclick={() => ouvrirCollection(c)}>
               <span class="si" aria-hidden="true">
                 {#if c.smart}
@@ -991,6 +1002,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
               <span class="sn" title={libelleCol(c)}>{libelleCol(c)}</span>
               {#if c.album_count != null}<span class="sc">{c.album_count}</span>{/if}
             </button>
+            </div>
           {/each}
         </div>
       {/if}
@@ -1198,6 +1210,11 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
      playlist n'a pas d'image, et une grille de cartes vides mentirait sur la
      richesse de ce qu'elle contient. */
   .simples{display:flex; flex-direction:column; gap:2px}
+  /* Menus d'objets : la ligne et son « … » côte à côte, le menu posé au bout
+     de la ligne, dans la marge qu'on lui réserve. */
+  .shote{position:relative}
+  .shote > .simple{padding-right:48px}
+  .smenu{position:absolute; right:8px; top:50%; transform:translateY(-50%); z-index:1}
   /* Une playlist sans destination (ni id local, ni identifiant de service) :
      présente, retirable — le curseur ne promet pas un clic qui ne mène nulle
      part. */

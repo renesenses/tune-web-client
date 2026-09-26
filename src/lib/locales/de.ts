@@ -4292,6 +4292,14 @@ export default {
   "v2.sources.etat.autorisation_refusee": "Berechtigung verweigert",
   "v2.sources.etat.non_pris_en_charge": "Nicht unterstützt",
   "v2.sources.etat.indisponible": "Nicht verfügbar",
+  // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
+  "menuObjet.duplicate": "Duplizieren",
+  "menuObjet.duplicated": "„{name}“ erstellt",
+  "menuObjet.copyName": "{name} (Kopie)",
+  "menuObjet.transfer": "An einen Dienst übertragen",
+  "menuObjet.editRules": "Regeln bearbeiten",
+  "menuObjet.deletePlaylistAsk": "Playlist „{name}“ löschen? Ihre Titel bleiben in der Bibliothek.",
+  "menuObjet.noFolder": "Kein Ordner auf der Festplatte für dieses Album.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./de')['default'];

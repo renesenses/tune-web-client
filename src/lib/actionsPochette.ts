@@ -1,8 +1,14 @@
 /**
- * Le contenu du menu d'actions d'une POCHETTE — pour les treize écrans.
+ * Le contenu du menu « … » d'un OBJET — album, artiste, playlist, playlist
+ * intelligente, collection, collection intelligente, label. Une seule règle,
+ * pour les vignettes ET pour les lignes, sur tous les écrans.
  *
  * Bertrand, 26/09/2026 : « Un catalogue d'actions PARTAGÉ, par type d'objet.
  * Les treize écrans y puisent au lieu de construire chacun son tableau. »
+ * Puis, le même jour : « Il doit y avoir un menu contextuel pour : artistes,
+ * playlists, collections, labels » — sur le modèle du menu « … » des PISTES
+ * (`lib/menuPiste`) — et pour les ALBUMS, avec la même règle et le même
+ * composant.
  *
  * ## Pourquoi un module, et pas un tableau dans chaque écran
  *
@@ -13,88 +19,96 @@
  * garde APPELLE la fonction et regarde ce qui en sort.
  *
  * Et la raison propre à ce chantier : `PochetteActions` habille **vingt-trois
- * emplacements** répartis sur treize écrans. Treize écrans qui composent chacun
- * son tableau, ce sont treize vérités. Mesuré sur `main` le 26/09/2026, avant
- * ce module :
- *
- *  - une PLAYLIST INTELLIGENTE offrait « Lire en aléatoire » + « Supprimer »
- *    dans `PlaylistsV2`, et « Supprimer » seul dans `SmartPlaylistsView`. Le
- *    même objet, deux chemins, pas les mêmes gestes ;
- *  - un ALBUM de la bibliothèque offrait « Ajouter à une collection » dans
- *    `LibraryV2`, « Ajouter à la file » dans `FavoritesV2`, « Retirer de cette
- *    collection » dans `CollectionsV2`, et RIEN dans `SearchV2`,
- *    `EtiquettesV2`, `DiscographieCommune` et `PageWidgets` — quatre écrans qui
- *    montrent le même album.
- *
- * C'est exactement le défaut que Dominique Comet avait relevé sur le menu de
- * piste (`renesenses/tune-server-rust#1848`, 07/09/2026) : « deux chemins
- * d'accès à la même chose n'offrent pas les mêmes gestes ». L'ordre, les
- * libellés et les conditions ne vivent plus qu'ici.
+ * emplacements** répartis sur treize écrans. Mesuré sur `main` le 26/09/2026,
+ * avant ce module : une PLAYLIST INTELLIGENTE offrait « Lire en aléatoire » +
+ * « Supprimer » dans `PlaylistsV2`, et « Supprimer » seul dans
+ * `SmartPlaylistsView` ; un ALBUM offrait « Ajouter à une collection » dans
+ * `LibraryV2`, « Ajouter à la file » dans `FavoritesV2`, RIEN dans quatre
+ * autres écrans. C'est le défaut que Dominique Comet avait relevé sur le menu
+ * de piste (`renesenses/tune-server-rust#1848`) : « deux chemins d'accès à la
+ * même chose n'offrent pas les mêmes gestes ».
  *
  * ## Capacités et gestes : deux questions différentes
  *
  * Les **CAPACITÉS** disent ce que l'OBJET permet — porte-t-il un identifiant de
- * bibliothèque ? vient-il d'un service ? est-il montré dans une collection
- * manuelle dont on peut le retirer ? Les **GESTES** disent ce que la SURFACE
- * sait faire : `EtiquettesV2` ne sait pas retirer un album d'une collection, et
- * y brancher l'entrée donnerait un geste MUET, « pire qu'une entrée absente »
- * (garde #2574). Une entrée n'apparaît donc que si sa capacité tient ET que
- * l'appelant a fourni le geste.
+ * bibliothèque ? vient-il d'un service ? est-il une règle (intelligente) ? le
+ * greffon qu'il faudrait est-il chargé ? Les **GESTES** disent comment on le
+ * fait. Une entrée n'apparaît que si sa capacité tient ET qu'un geste est
+ * fourni : un geste muet est « pire qu'une entrée absente » (garde #2574).
+ *
+ * 🔴 Depuis les menus d'objets (26/09/2026), les gestes COMMUNS ne sont plus
+ * fournis écran par écran : `lib/gestesObjet` les construit une fois pour tous,
+ * à partir de l'objet seul. C'est ce qui fait la parité — le même album montre
+ * les mêmes entrées dans la Bibliothèque, l'Accueil, la Recherche et les
+ * Favoris, parce qu'aucun de ces écrans ne compose plus sa liste. Un écran ne
+ * fournit que ce qui n'existe QUE chez lui (« Retirer de cette collection »,
+ * dans la collection ouverte).
  *
  * ## Ce qui ne s'applique pas est ABSENT, pas grisé
  *
- * La règle que Bertrand a posée dans `PochetteActions` le 02/09/2026. Le menu
- * en était la seule exception : présent et grisé, libellé « Autres actions —
- * bientôt », sur les huit écrans qui ne lui passaient rien. L'exception avait
- * été accordée « en attendant la modale de Levente » et a duré 24 jours.
- * Depuis le 26/09/2026 : **aucune entrée, aucun bouton.**
+ * La règle que Bertrand a posée dans `PochetteActions` le 02/09/2026. Un objet
+ * de service n'a ni « Renommer » ni « Supprimer » ; une collection
+ * intelligente n'a pas « Retirer de cette collection » ; « Concerts » n'existe
+ * que si le greffon Concerts est là.
  *
- * Un type sans geste disponible n'a donc plus de bouton du tout — le PODCAST,
- * la RADIO, l'ARTISTE, tout objet d'un SERVICE. Ce n'est pas un échec du
- * catalogue, c'est son résultat : aucune de ces natures d'objet n'a aujourd'hui
- * de geste que l'application sache déjà faire et qu'un autre bouton de la
- * pochette n'offre pas déjà.
+ * ## Ce qui manque côté SERVEUR n'est pas inventé ici
  *
- * ## 🔴 AUCUN GESTE NOUVEAU
+ * Trois entrées demandées n'ont aucune route pour les tenir, et n'ont donc pas
+ * de place dans ce catalogue (voir la PR des menus d'objets) :
  *
- * Le catalogue ne contient que des gestes que l'application savait DÉJÀ faire,
- * et chacun est daté ci-dessous par l'endroit qui l'offrait. Une fonction
- * nouvelle serait une feature, et une feature demande l'accord de Bertrand.
+ *  - « Radio / Plus comme ça » d'un ARTISTE : `/tracks/{id}/similar` prend une
+ *    piste, rien ne prend un artiste ;
+ *  - « Autres versions » d'un ALBUM : `/library/other-versions` est un
+ *    classement global de l'Accueil, sans paramètre d'album ;
+ *  - « Importer / Ajouter à la bibliothèque » d'un album de SERVICE : aucune
+ *    route n'enregistre un album de service dans la bibliothèque.
  */
+
+/** Une ligne d'un SOUS-MENU — « Ajouter à une collection », « Déplacer vers ». */
+export interface SousEntreePochette {
+  /** Clé stable de la ligne (boucle, gardes). */
+  cle: string;
+  libelle: string;
+  /** Retrait visuel : la profondeur du rayon qui la contient (web#1591). */
+  profondeur?: number;
+  /** Absent = un INTERTITRE (un rayon), qui se lit et ne se clique pas. */
+  faire?: () => void;
+}
 
 /** Une entrée du menu, prête à peindre. */
 export interface EntreePochette {
   /**
-   * La clé i18n du geste — son IDENTITÉ, la même depuis les treize écrans.
+   * La clé i18n du geste — son IDENTITÉ, la même depuis tous les écrans.
    *
    * C'est ce que les gardes comparent : « le même geste porte-t-il le même
    * libellé depuis deux écrans différents ? » se lit sur cette clé, pas sur un
    * texte traduit qui changerait avec la langue.
    */
   cle: string;
-  /**
-   * Le texte à peindre. Égal à `traduire(cle)`, SAUF pour les cibles de
-   * collection, dont le libellé porte le nom de la collection — c'est
-   * `lib/albumVersCollection` qui le compose, et il le compose déjà.
-   */
+  /** Le texte à peindre : `traduire(cle)`. */
   libelle: string;
   /** Teinte l'entrée : partager pose un jeton PUBLIC, supprimer ne revient pas. */
   danger?: boolean;
   faire: () => void;
+  /**
+   * L'entrée ouvre un SOUS-MENU au lieu d'agir : les lignes sont lues AU CLIC
+   * (les collections, les rayons), jamais au survol d'une vignette — une grille
+   * de 800 albums ne doit pas partir en 800 requêtes.
+   */
+  sous?: () => Promise<SousEntreePochette[]>;
 }
 
 /**
- * Les natures d'objet qu'une pochette habille.
+ * Les natures d'objet qu'un menu habille.
  *
  * Pas « album de service » et « album local » : c'est la MÊME nature, et ce
- * qui les distingue est une capacité (`idBibliotheque`), pas un type. Les
- * confondre en deux types aurait obligé chaque écran à choisir — et
- * `SearchV2` montre les deux dans la même grille.
+ * qui les distingue est une capacité (`idBibliotheque`, `service`), pas un
+ * type. `SearchV2` montre les deux dans la même grille.
  *
  * 🔴 Les deux sortes de COLLECTION, en revanche, sont bien deux types. Leurs
  * espaces d'identifiants se RECOUVRENT (l'id 1 est à la fois la collection
  * « favorites » et l'intelligente « 💎 Audiophile », mesuré le 02/09/2026) et
- * leurs routes de suppression diffèrent. Même raison pour les playlists.
+ * leurs routes diffèrent. Même raison pour les playlists.
  */
 export type TypePochette =
   | 'album'
@@ -103,158 +117,106 @@ export type TypePochette =
   | 'playlistIntelligente'
   | 'collection'
   | 'collectionIntelligente'
+  | 'label'
   | 'radio'
   | 'podcast';
 
-/** Ce que l'OBJET permet — décidé par l'appelant, seul à connaître le contexte. */
+/** Ce que l'OBJET permet — `lib/gestesObjet.capacitesObjet` le calcule. */
 export interface CapacitesPochette {
   type: TypePochette;
   /**
    * L'identifiant de l'objet dans NOTRE bibliothèque, ou `null`.
    *
-   * `null` couvre trois cas que rien ne distingue du point de vue des gestes :
-   * l'objet vient d'un SERVICE (Qobuz, Tidal, Bandcamp…), il vient d'un DÉPÔT
-   * Tune distant, ou il n'est pas encore enregistré. Dans les trois cas les
-   * routes qui prennent un `i64` ne s'appliquent pas.
+   * `null` couvre : l'objet vient d'un SERVICE, d'un DÉPÔT Tune distant, ou
+   * c'est un LABEL (une valeur, pas une ligne de table). Les routes qui
+   * prennent un `i64` ne s'appliquent pas.
    */
   idBibliotheque?: number | null;
+  /** Le service d'où vient l'objet (album, artiste, playlist de service). */
+  service?: string | null;
+  /**
+   * L'objet se désigne-t-il pour la LECTURE ? Absent = il le fait s'il porte
+   * un identifiant de bibliothèque ou un service ; un label le fait par sa
+   * valeur (`/library/tracks?label=`).
+   */
+  jouable?: boolean;
+  /**
+   * L'objet est-il en favori ? Absent (`undefined`/`null`) = il ne se met pas
+   * en favori — c'est une capacité, pas seulement un état.
+   */
+  favori?: boolean | null;
+  /** L'objet peut-il porter une étiquette (`lib/cibleEtiquette`) ? */
+  etiquetable?: boolean;
+  /** Album de service dont le service rend des crédits (#4993, Qobuz). */
+  creditsDeService?: boolean;
+  /** Album : l'artiste se désigne (identifiant local, ou nom chez le service). */
+  artisteConnu?: boolean;
+  /** Le greffon Concerts est chargé (`concertsCharge`). */
+  greffonConcerts?: boolean;
+  /** Le greffon Playlists converter est chargé (`convertisseurCharge`). */
+  greffonConvertisseur?: boolean;
   /**
    * L'objet est montré DANS une collection MANUELLE ouverte, d'où on peut le
    * retirer — la grille de `CollectionsV2`, et elle seule.
-   *
-   * Absent ailleurs, et absent pour une collection INTELLIGENTE : son contenu
-   * est une règle, on n'en retire pas un album à la main.
    */
   dansCollectionManuelle?: boolean;
 }
 
 /**
- * Les gestes, fournis par la surface : le catalogue ne sait pas les faire.
+ * Les gestes. Tous FACULTATIFS : pas de geste, pas d'entrée.
  *
- * Tous FACULTATIFS. Voir « Capacités et gestes » plus haut : une surface qui ne
- * sait pas tenir un geste ne le fournit pas, et l'entrée disparaît — au lieu
- * d'ouvrir sur rien.
+ * `lib/gestesObjet` fournit les gestes communs ; une surface peut en AJOUTER
+ * (retirer de la collection ouverte) ou en remplacer le CHEMIN (ouvrir la fiche
+ * dans son propre calque) — jamais changer la liste.
  */
 export interface GestesPochette {
-  /**
-   * « Lire en aléatoire » — `library.shuffle`.
-   *
-   * Existait sur la vignette de playlist (locale : `lireLocalAleatoire`,
-   * `PlaylistsV2`) et de playlist intelligente (`lireSmart(sp, true)`), et sur
-   * le bouton d'en-tête de `SmartPlaylistsView` (`playShuffle`) — mais PAS sur
-   * sa vignette : c'est la divergence que ce module referme.
-   */
+  lire?: () => void;
   lireAleatoire?: () => void;
-  /**
-   * « Ajouter à la file » — `queue.addToQueue`.
-   *
-   * Existait sur la vignette d'album de `FavoritesV2` (`queueAlbum`) et sur la
-   * fiche album (`AlbumDetailV2.addQueue`). Nulle part ailleurs, alors que sept
-   * emplacements montrent un album de la bibliothèque. Voir
-   * `lib/enfilerAlbum`, qui porte le geste pour tous.
-   */
+  /** « Lire ensuite » — au rang suivant celui qui joue (`rangLireEnsuite`). */
+  ensuite?: () => void;
+  /** « Ajouter à la file » — à la fin. */
   enfiler?: () => void;
-  /**
-   * « Ajouter à une collection » — une entrée PAR collection manuelle.
-   *
-   * Le seul geste dont le nombre d'entrées dépend des données : c'est
-   * `lib/albumVersCollection.entreesAjoutCollection` qui les compose, avec leur
-   * libellé (« Ajouter à X », ou « Déjà dans X »). Le catalogue n'en décide que
-   * la CONDITION et la PLACE ; les recomposer ici aurait été la seconde copie
-   * que ce module-là existe précisément pour éviter.
-   *
-   * La surface ne le fournit que si elle tient la liste des collections
-   * manuelles AVEC leur contenu (`album_ids`, qui dit « il y est déjà ») :
-   * `LibraryV2` la charge par `chargerCollectionsCibles`, les six autres
-   * emplacements d'album non. `CollectionsV2` lit bien
-   * `GET /library/collections`, mais n'en garde que de quoi peindre ses
-   * vignettes. Leur faire déclencher une requête pour peupler un menu au survol
-   * d'une vignette, dans une grille de 800 albums, serait un défaut — pas une
-   * fonctionnalité.
-   */
-  ciblesCollection?: () => readonly { libelle: string; faire: () => void }[];
-  /**
-   * « Partager (lien public) » — `v2.pl.share`, teinté DANGER.
-   *
-   * Existait sur la vignette de playlist locale de `PlaylistsV2` (`partager`
-   * → `api.sharePlaylist` + presse-papier). `danger` n'est pas décoratif :
-   * le geste pose un jeton PUBLIC.
-   */
+  ouvrir?: () => void;
+  allerArtiste?: () => void;
+  basculerFavori?: () => void;
+  /** Ouvre le panneau d'étiquettes — fourni par le COMPOSANT qui le montre. */
+  etiqueter?: () => void;
+  /** Sous-menu des collections manuelles, rangées par rayons (web#1591). */
+  ajouterACollection?: () => Promise<SousEntreePochette[]>;
+  /** Ouvre le tiroir des crédits — fourni par le composant. */
+  credits?: () => void;
+  /** Le mode « Modifier » de la fiche album (web#1599). */
+  modifier?: () => void;
+  reidentifier?: () => void;
+  localiser?: () => void;
+  concerts?: () => void;
+  renommer?: () => void;
+  dupliquer?: () => void;
+  exporter?: () => void;
   partager?: () => void;
-  /**
-   * « Retirer de cette collection » — `v2.col.removeAlbum`, teinté DANGER.
-   *
-   * Existait sur la grille d'une collection ouverte (`CollectionsV2`,
-   * `retirerDeLaCollection` → `api.removeAlbumFromCollection`).
-   */
+  transferer?: () => void;
+  /** Ouvre l'éditeur de règles — fourni par le composant. */
+  modifierRegles?: () => void;
+  /** Sous-menu des rayons (#4853). */
+  deplacerVersRayon?: () => Promise<SousEntreePochette[]>;
   retirerDeCollection?: () => void;
-  /**
-   * « Supprimer » — `common.delete`, teinté DANGER.
-   *
-   * Existait sur la vignette de collection et de collection intelligente
-   * (`CollectionsV2.supprimerCollection`) et de playlist intelligente
-   * (`PlaylistsV2.supprimerSmart`, `SmartPlaylistsView.handleDelete`). Pour une
-   * playlist LOCALE, il existait sur sa FICHE (`PlaylistDetailV2`, bouton
-   * `common.delete` → `api.deletePlaylist`) et pas sur sa vignette : même
-   * divergence que l'aléatoire des intelligentes, même correction.
-   *
-   * Le libellé est `common.delete` PARTOUT depuis le 26/09/2026. La fiche
-   * portait une seconde clé, `v2.pl.delete`, qui disait « Supprimer » dans les
-   * onze langues — exactement la même chose que `common.delete`. Deux clés pour
-   * un mot identique ne se voient pas à l'écran et dérivent au premier
-   * traducteur qui n'en touche qu'une : `v2.pl.delete` a été retirée des onze
-   * fichiers, la fiche emploie la clé commune.
-   */
   supprimer?: () => void;
 }
 
-/**
- * Les natures d'objet qu'on sait lire DANS LE DÉSORDRE.
- *
- * 🔴 L'ALBUM n'en fait pas partie, et ce n'est pas un oubli. Une playlist, une
- * collection et une règle sont des SÉLECTIONS : leur ordre est arbitraire, et
- * `lireListeAleatoire` leur est offert depuis leurs vignettes et leurs en-têtes.
- * Un album est un DISQUE : son ordre est celui de l'œuvre, et l'application ne
- * l'a jamais proposé en aléatoire nulle part — seule la bibliothèque ENTIÈRE
- * l'est (`LibraryV2.shuffleAll`), ce qui est un autre geste sur un autre objet.
- * L'y déclarer aurait ouvert la porte à une entrée que personne n'a demandée.
- */
-function seLitEnAleatoire(type: TypePochette): boolean {
-  return (
-    type === 'playlist' ||
-    type === 'playlistIntelligente' ||
-    type === 'collection' ||
-    type === 'collectionIntelligente'
-  );
-}
-
-/**
- * Les natures d'objet que l'API sait SUPPRIMER par leur identifiant.
- *
- * `api.deletePlaylist`, `api.deleteSmartPlaylist`, `api.deleteCollection`,
- * `api.deleteSmartCollection` — quatre routes, quatre types. Un ALBUM ne se
- * supprime pas (il vient d'un scan), un ARTISTE non plus, et la suppression
- * d'une RADIO vit dans sa modale d'édition, que le crayon de la pochette ouvre
- * déjà : lui ajouter un raccourci destructeur serait un geste NOUVEAU.
- */
-function seSupprime(type: TypePochette): boolean {
-  return (
-    type === 'playlist' ||
-    type === 'playlistIntelligente' ||
-    type === 'collection' ||
-    type === 'collectionIntelligente'
-  );
-}
+const LISTES: readonly TypePochette[] = [
+  'playlist',
+  'playlistIntelligente',
+  'collection',
+  'collectionIntelligente',
+];
 
 /**
  * Les entrées du menu, dans leur ordre définitif.
  *
- * L'ordre est le même pour tous les types, et il n'est pas arbitraire : ce
- * qu'on fait souvent d'abord, ce qui ne revient pas à la fin. Il reprend celui
- * des cinq menus qui existaient — « Lire en aléatoire » avant « Partager »
- * (`PlaylistsV2`), « Lire en aléatoire » avant « Supprimer » (playlists
- * intelligentes) — de sorte qu'aucun utilisateur ne voie ses entrées changer de
- * place.
+ * L'ordre est le même pour tous les types, et c'est celui du menu de piste :
+ * la lecture d'abord (Lire, Aléatoire, Lire ensuite, Ajouter à la file), puis
+ * aller quelque part, puis ranger (favori, étiquettes, collection), puis
+ * consulter et corriger, puis organiser, et ce qui ne revient pas à la fin.
  *
  * `traduire` reçoit la clé et rend le texte : le module ne dépend pas de
  * l'abonnement `$t` d'un composant, et une garde peut lui passer l'identité
@@ -267,6 +229,10 @@ export function entreesPochette(
 ): EntreePochette[] {
   const sortie: EntreePochette[] = [];
   const deLaBibliotheque = c.idBibliotheque != null;
+  const deService = !deLaBibliotheque && !!c.service;
+  const jouable = c.jouable ?? (deLaBibliotheque || deService);
+  const album = c.type === 'album';
+  const albumLocal = album && deLaBibliotheque;
   const pousser = (
     possible: boolean,
     cle: string,
@@ -278,36 +244,91 @@ export function entreesPochette(
     if (danger) e.danger = true;
     sortie.push(e);
   };
+  const sousMenu = (
+    possible: boolean,
+    cle: string,
+    sous: (() => Promise<SousEntreePochette[]>) | undefined,
+  ) => {
+    if (!possible || !sous) return;
+    sortie.push({ cle, libelle: traduire(cle), faire: () => {}, sous });
+  };
+  const liste = LISTES.includes(c.type);
+  // La radio et le podcast gardent leurs propres boutons (lecture au centre,
+  // abonnement à part, suppression dans la modale d'édition) : ce catalogue
+  // ne leur donne rien, comme avant — et leur bouton reste absent.
+  if (c.type === 'radio' || c.type === 'podcast') return sortie;
 
-  pousser(seLitEnAleatoire(c.type) && deLaBibliotheque, 'library.shuffle', g.lireAleatoire);
+  // ── Lire ────────────────────────────────────────────────────────────────
+  const lisible = jouable;
+  pousser(lisible, 'common.play', g.lire);
   /**
-   * 🔴 « Ajouter à la file » et « Ajouter à une collection » : l'ALBUM seul,
-   * et seulement s'il porte un identifiant de bibliothèque.
+   * « Lire en aléatoire » — y compris sur un ALBUM depuis le 26/09/2026.
    *
-   * `POST /playback/{zone}/queue` accepte `{ album_id }` — un `i64` de
-   * `albums`. Un album de SERVICE n'en a pas : sa mise en file passe par la
-   * liste de ses pistes (`corpsDeFileListe`), que la vignette n'a pas chargées
-   * et n'a aucune raison de charger au survol. `AlbumDetailV2` le fait, parce
-   * qu'elle les tient déjà.
-   *
-   * `POST /library/collections/{id}/albums` prend le même `i64`
-   * (garde de #1222).
+   * Le catalogue l'en écartait (« un album est un disque, son ordre est celui
+   * de l'œuvre »), mais la fiche album a son bouton « Aléatoire » depuis
+   * toujours (`AlbumDetailV2.shuffle`), et Bertrand l'a demandé pour le menu
+   * de l'album. Même geste, même objet : même entrée.
    */
-  pousser(c.type === 'album' && deLaBibliotheque, 'queue.addToQueue', g.enfiler);
-  if (c.type === 'album' && deLaBibliotheque && g.ciblesCollection) {
-    for (const cible of g.ciblesCollection()) {
-      // Le libellé est DÉJÀ composé (il porte le nom de la collection) : on ne
-      // le retraduit pas. La clé reste celle de la famille, pour les gardes.
-      sortie.push({ cle: 'v2.col.addTo', libelle: cible.libelle, faire: cible.faire });
-    }
+  pousser(lisible, 'library.shuffle', g.lireAleatoire);
+  pousser(lisible, 'v2.pa.next', g.ensuite);
+  pousser(lisible, 'queue.addToQueue', g.enfiler);
+
+  // ── Aller ───────────────────────────────────────────────────────────────
+  pousser(true, 'common.open', g.ouvrir);
+  pousser(album && !!c.artisteConnu, 'library.goToArtist', g.allerArtiste);
+
+  // ── Ranger ──────────────────────────────────────────────────────────────
+  if (c.favori != null) {
+    pousser(true, c.favori ? 'v2.cover.unfavorite' : 'v2.cover.favorite', g.basculerFavori);
   }
-  pousser(c.type === 'playlist' && deLaBibliotheque, 'v2.pl.share', g.partager, true);
+  pousser(!!c.etiquetable, 'v2.cover.tags', g.etiqueter);
+  /**
+   * « Ajouter à une collection » — un album de la BIBLIOTHÈQUE seulement :
+   * `POST /library/collections/{id}/albums` prend son `i64` (garde de #1222).
+   * Un SOUS-MENU, rangé par rayons comme celui de la fiche (web#1591) — et
+   * non plus une entrée par collection dans le menu lui-même, que seule la
+   * Bibliothèque savait composer.
+   */
+  sousMenu(albumLocal, 'v2.album.addToCollection', g.ajouterACollection);
+
+  // ── Consulter, corriger (album) ─────────────────────────────────────────
+  pousser(albumLocal || (album && !!c.creditsDeService), 'credits.see', g.credits);
+  pousser(albumLocal, 'v2.cover.edit', g.modifier);
+  pousser(albumLocal, 'library.reidentify', g.reidentifier);
+  pousser(albumLocal, 'v2.album.locate', g.localiser);
+
+  // ── Artiste ─────────────────────────────────────────────────────────────
+  pousser(c.type === 'artiste' && !!c.greffonConcerts, 'nav.concerts', g.concerts);
+
+  // ── Organiser (playlists, collections) ──────────────────────────────────
+  const playlistLocale = c.type === 'playlist' && deLaBibliotheque;
+  const collectionLocale = c.type === 'collection' && deLaBibliotheque;
+  const intelligente =
+    (c.type === 'playlistIntelligente' || c.type === 'collectionIntelligente') && deLaBibliotheque;
+  /**
+   * Renommer : une playlist locale et une collection MANUELLE. Le nom d'une
+   * intelligente vit dans son éditeur de règles, avec elles — « Modifier les
+   * règles » l'ouvre.
+   */
+  pousser(playlistLocale || collectionLocale, 'v2.pl.rename', g.renommer);
+  pousser(playlistLocale, 'menuObjet.duplicate', g.dupliquer);
+  pousser(playlistLocale, 'v2.pl.export', g.exporter);
+  pousser(intelligente, 'menuObjet.editRules', g.modifierRegles);
+  sousMenu(
+    (c.type === 'collection' || c.type === 'collectionIntelligente') && deLaBibliotheque,
+    'v2.rayons.move',
+    g.deplacerVersRayon,
+  );
+  pousser(playlistLocale && !!c.greffonConvertisseur, 'menuObjet.transfer', g.transferer);
+  pousser(playlistLocale, 'v2.pl.share', g.partager, true);
+
+  // ── Ce qui ne revient pas ───────────────────────────────────────────────
   pousser(
-    c.type === 'album' && deLaBibliotheque && c.dansCollectionManuelle === true,
+    albumLocal && c.dansCollectionManuelle === true,
     'v2.col.removeAlbum',
     g.retirerDeCollection,
     true,
   );
-  pousser(seSupprime(c.type) && deLaBibliotheque, 'common.delete', g.supprimer, true);
+  pousser(liste && deLaBibliotheque, 'common.delete', g.supprimer, true);
   return sortie;
 }

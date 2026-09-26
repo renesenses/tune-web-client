@@ -4292,6 +4292,14 @@ export default {
   "v2.sources.etat.autorisation_refusee": "权限被拒绝",
   "v2.sources.etat.non_pris_en_charge": "不支持",
   "v2.sources.etat.indisponible": "不可用",
+  // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
+  "menuObjet.duplicate": "复制",
+  "menuObjet.duplicated": "已创建“{name}”",
+  "menuObjet.copyName": "{name}（副本）",
+  "menuObjet.transfer": "转移到服务",
+  "menuObjet.editRules": "编辑规则",
+  "menuObjet.deletePlaylistAsk": "删除播放列表“{name}”？其曲目仍保留在音乐库中。",
+  "menuObjet.noFolder": "此专辑在磁盘上没有文件夹。",
 } as const;
 
 export type TranslationKey = keyof typeof import('./zh')['default'];

@@ -4292,6 +4292,14 @@ export default {
   "v2.sources.etat.autorisation_refusee": "Autorizzazione negata",
   "v2.sources.etat.non_pris_en_charge": "Non supportato",
   "v2.sources.etat.indisponible": "Non disponibile",
+  // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
+  "menuObjet.duplicate": "Duplica",
+  "menuObjet.duplicated": "«{name}» creata",
+  "menuObjet.copyName": "{name} (copia)",
+  "menuObjet.transfer": "Trasferisci a un servizio",
+  "menuObjet.editRules": "Modifica le regole",
+  "menuObjet.deletePlaylistAsk": "Eliminare la playlist «{name}»? I brani restano nella libreria.",
+  "menuObjet.noFolder": "Nessuna cartella su disco per questo album.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./it')['default'];

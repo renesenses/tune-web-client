@@ -4292,6 +4292,14 @@ export default {
   "v2.sources.etat.autorisation_refusee": "Permisiune refuzată",
   "v2.sources.etat.non_pris_en_charge": "Nesuportată",
   "v2.sources.etat.indisponible": "Indisponibilă",
+  // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
+  "menuObjet.duplicate": "Duplică",
+  "menuObjet.duplicated": "„{name}” creată",
+  "menuObjet.copyName": "{name} (copie)",
+  "menuObjet.transfer": "Transferă către un serviciu",
+  "menuObjet.editRules": "Editează regulile",
+  "menuObjet.deletePlaylistAsk": "Ștergi playlistul „{name}”? Piesele rămân în bibliotecă.",
+  "menuObjet.noFolder": "Niciun dosar pe disc pentru acest album.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./ro')['default'];

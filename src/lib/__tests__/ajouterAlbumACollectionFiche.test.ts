@@ -136,16 +136,18 @@ describe('le branchement — une seule implémentation, deux écrans', () => {
   });
 
   it('🔴 la grille PAR DÉFAUT passe le menu, comme les deux autres rendus', () => {
-    // ⚠️ 26/09/2026 — le tableau vient du catalogue `lib/actionsPochette`, que
-    // `menuAlbum` appelle en lui fournissant `ciblesCollection`. Ce que ce cas
-    // tient n'a pas changé : les TROIS rendus de cet écran (facette, grille par
-    // défaut, carrousel) offrent le même menu, aucun n'est oublié.
+    // ⚠️ 26/09/2026, menus d'objets — l'écran ne passe plus de tableau : il
+    // passe l'OBJET (`objetMenuAlbum(a)`), et « Ajouter à une collection » est
+    // un sous-menu tenu par `lib/gestesObjet.sousMenuCollections`, qui appelle
+    // ce même module. Ce que ce cas tient n'a pas changé : les TROIS rendus de
+    // cet écran (facette, grille par défaut, carrousel) offrent le même menu.
     const rendus = grille.match(/<PochetteActions\b/g)?.length ?? 0;
-    const menus = grille.match(/menu=\{menuAlbum\(a\)\}/g)?.length ?? 0;
+    const menus = grille.match(/objet=\{objetMenuAlbum\(a\)\}/g)?.length ?? 0;
     expect(rendus).toBeGreaterThanOrEqual(3);
-    expect(menus, 'un rendu de PochetteActions sans menu de collections').toBe(rendus);
-    expect(grille).toContain('ciblesCollection: () => entreesCollection(a)');
-    expect(grille).toContain("from '../../lib/albumVersCollection'");
+    expect(menus, 'un rendu de PochetteActions sans menu d’album').toBeGreaterThanOrEqual(rendus);
+    const gestes = readFileSync('src/lib/gestesObjet.ts', 'utf8');
+    expect(gestes).toContain("from './albumVersCollection'");
+    expect(gestes).toContain('g.ajouterACollection = () => sousMenuCollections(id)');
   });
 
   it('🔴 aucune copie du geste : la route n’est appelée QUE par le module', () => {

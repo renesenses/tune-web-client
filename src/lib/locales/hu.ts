@@ -4250,6 +4250,14 @@ export default {
   "v2.sources.etat.autorisation_refusee": "Engedély megtagadva",
   "v2.sources.etat.non_pris_en_charge": "Nem támogatott",
   "v2.sources.etat.indisponible": "Nem érhető el",
+  // Menus « … » des objets (album, artiste, playlist, collection, label) — 26/09/2026
+  "menuObjet.duplicate": "Duplikálás",
+  "menuObjet.duplicated": "„{name}” létrehozva",
+  "menuObjet.copyName": "{name} (másolat)",
+  "menuObjet.transfer": "Átvitel egy szolgáltatásba",
+  "menuObjet.editRules": "Szabályok szerkesztése",
+  "menuObjet.deletePlaylistAsk": "Törlöd a(z) „{name}” lejátszási listát? A számok a könyvtárban maradnak.",
+  "menuObjet.noFolder": "Ehhez az albumhoz nincs mappa a lemezen.",
 } as const;
 
 export type TranslationKey = keyof typeof import('./hu')['default'];

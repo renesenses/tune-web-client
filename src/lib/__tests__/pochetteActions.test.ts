@@ -19,6 +19,9 @@ import { fileURLToPath } from 'node:url';
 
 const lire = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const actions = () => lire('../../components/v2/PochetteActions.svelte');
+/** Le menu lui-même, depuis les menus d'objets (26/09/2026) : le même pour la
+ *  pochette et pour les lignes. */
+const menuObjet = () => lire('../../components/v2/MenuObjetV2.svelte');
 const biblio = () => lire('../../components/v2/LibraryV2.svelte');
 const coeur = () => lire('../../components/partages/HeartButton.svelte');
 
@@ -60,20 +63,24 @@ describe('Pochette — les cinq emplacements de la maquette', () => {
      * seulement le fait que le grisé ne peut pas revenir par distraction.
      */
     const src = actions();
-    expect(src.includes('disabled={!menu.length}'), 'le bouton grisé est de retour').toBe(false);
+    expect(src.includes('disabled={!menu'), 'le bouton grisé est de retour').toBe(false);
     expect(src.includes('v2.cover.moreSoon'), 'la promesse « bientôt » est de retour').toBe(false);
-    expect(src.includes('{#if menu.length}'), 'le bouton n’est plus conditionné aux entrées').toBe(true);
+    // Menus d'objets (26/09/2026) : conditionné à l'OBJET, et à ce qu'il ait au
+    // moins une entrée (`objetAUnMenu`).
+    expect(src.includes('{#if menuPresent}'), 'le bouton n’est plus conditionné aux entrées').toBe(true);
+    expect(src.includes('objetAUnMenu(objet, gestesDuMenu)'), 'la présence ne dépend plus des entrées').toBe(true);
   });
 
   it('le menu se referme : choix, clic ailleurs, Échap, mouvement de la page', () => {
     // Sans cela il resterait posé sur la grille pendant qu'on fait autre chose —
     // et, PORTÉ à la racine depuis le 26/09/2026, il ne suivrait plus son bouton
     // au défilement : il faut donc aussi le fermer quand la page bouge.
-    const src = actions();
-    expect(src.includes('fermerMenu();\n    e.faire();'), 'le menu ne se referme plus après un choix').toBe(true);
-    expect(src.includes("e.key === 'Escape'"), 'Échap ne referme plus').toBe(true);
-    expect(src.includes('onwheel={fermerMenu}'), 'le défilement ne referme plus').toBe(true);
-    expect(src.includes('onresize={fermerMenu}'), 'le redimensionnement ne referme plus').toBe(true);
+    // Le menu vit dans `MenuObjetV2` depuis les menus d'objets (26/09/2026).
+    const src = menuObjet();
+    expect(src.includes('fermer();\n    e.faire();'), 'le menu ne se referme plus après un choix').toBe(true);
+    expect(src.includes("ev.key === 'Escape'"), 'Échap ne referme plus').toBe(true);
+    expect(src.includes('onwheel={surRoulette}'), 'le défilement ne referme plus').toBe(true);
+    expect(src.includes("window.addEventListener('resize', taille)"), 'le redimensionnement ne referme plus').toBe(true);
   });
 
   it('le menu SORT du cadre de la pochette — porté à la RACINE', () => {
@@ -90,7 +97,8 @@ describe('Pochette — les cinq emplacements de la maquette', () => {
      * `styleMenuAncre`) vit dans `catalogueActionsPochette.svelte.test.ts`. Ici
      * on tient la non-régression des deux dépendances partagées.
      */
-    const src = actions();
+    const src = menuObjet();
+    expect(actions().includes('<MenuObjetV2'), 'la pochette ne passe plus par le menu commun').toBe(true);
     expect(src.includes('use:portail'), 'le menu n’est plus porté à la racine').toBe(true);
     expect(src.includes('styleMenuAncre'), 'le menu ne suit plus les coordonnées écran du bouton').toBe(true);
     expect(/\.fond\s*\{[^}]*position:\s*fixed/.test(src), 'la surcouche n’est plus fixe').toBe(true);
@@ -652,7 +660,8 @@ describe('Playlists — l’écran simplifié', () => {
     const i = api.indexOf('export function sharePlaylist');
     expect(api.slice(i, i + 400).includes("method: 'POST'"), 'le partage repasse en GET : 405').toBe(true);
     // Et l'utilisateur doit savoir ce qu'il publie.
-    expect(ecran().includes('v2.pl.shared'), 'le partage ne dit plus qu’il est public').toBe(true);
+    // Le geste vit dans `lib/gestesObjet` depuis les menus d'objets (26/09/2026).
+    expect(lire('../gestesObjet.ts').includes('v2.pl.shared'), 'le partage ne dit plus qu’il est public').toBe(true);
   });
 });
 

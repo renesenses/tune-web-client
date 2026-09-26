@@ -18,6 +18,8 @@
   import type { Album } from '../../lib/types';
   import AlbumArt from '../partages/AlbumArt.svelte';
   import { EVT_COFFRET_DEFAIT } from '../../lib/coffretAuto';
+  import { objetAlbum } from '../../lib/gestesObjet';
+  import MenuObjetV2 from './MenuObjetV2.svelte';
 
   let { onOuvrir, vue = 'grid' }: { onOuvrir: (a: Album) => void; vue?: 'grid' | 'list' } = $props();
 
@@ -70,23 +72,31 @@
   {:else if vue === 'list'}
     <div class="liste">
       {#each coffrets as c (c.id)}
-        <button class="ligne" data-coffret={c.id} onclick={() => onOuvrir(c)}>
-          <span class="vign"><AlbumArt coverPath={c.cover_path ?? null} albumId={c.id ?? null} size={0} alt={c.title ?? ''} /></span>
-          <span class="ltitre">{c.title ?? ''}</span>
-          <span class="lartiste">{c.artist_name ?? ''}</span>
-          <span class="ldisques">{disques(c)}</span>
-        </button>
+        <!-- Le menu « … » d'un coffret est celui d'un ALBUM (menus d'objets,
+             26/09/2026), posé à côté du bouton de ligne, jamais dedans. -->
+        <div class="hote">
+          <button class="ligne" data-coffret={c.id} onclick={() => onOuvrir(c)}>
+            <span class="vign"><AlbumArt coverPath={c.cover_path ?? null} albumId={c.id ?? null} size={0} alt={c.title ?? ''} /></span>
+            <span class="ltitre">{c.title ?? ''}</span>
+            <span class="lartiste">{c.artist_name ?? ''}</span>
+            <span class="ldisques">{disques(c)}</span>
+          </button>
+          <span class="menu-ligne"><MenuObjetV2 objet={objetAlbum(c)} gestes={{ ouvrir: () => onOuvrir(c) }} nom={c.title ?? ''} /></span>
+        </div>
       {/each}
     </div>
   {:else}
     <div class="grille">
       {#each coffrets as c (c.id)}
-        <button class="carte" data-coffret={c.id} onclick={() => onOuvrir(c)}>
-          <AlbumArt coverPath={c.cover_path ?? null} albumId={c.id ?? null} size={0} alt={c.title ?? ''} />
-          <span class="titre">{c.title ?? ''}</span>
-          {#if c.artist_name}<span class="artiste">{c.artist_name}</span>{/if}
-          <span class="disques">{disques(c)}</span>
-        </button>
+        <div class="hote">
+          <button class="carte" data-coffret={c.id} onclick={() => onOuvrir(c)}>
+            <AlbumArt coverPath={c.cover_path ?? null} albumId={c.id ?? null} size={0} alt={c.title ?? ''} />
+            <span class="titre">{c.title ?? ''}</span>
+            {#if c.artist_name}<span class="artiste">{c.artist_name}</span>{/if}
+            <span class="disques">{disques(c)}</span>
+          </button>
+          <span class="menu-carte"><MenuObjetV2 objet={objetAlbum(c)} gestes={{ ouvrir: () => onOuvrir(c) }} nom={c.title ?? ''} /></span>
+        </div>
       {/each}
     </div>
   {/if}
@@ -109,6 +119,12 @@
     gap:14px; width:100%; padding:6px 10px; border:0; border-radius:9px; background:transparent;
     color:var(--v2-txt2); cursor:pointer; text-align:left; transition:.12s}
   .ligne:hover{background:var(--v2-hover); color:var(--v2-txt)}
+  /* Menus d'objets : le « … » posé au bout de la ligne, ou sous la pochette à
+     droite de la carte — à côté du bouton, jamais dedans. */
+  .hote{position:relative}
+  .hote > .ligne{padding-right:48px}
+  .menu-ligne{position:absolute; right:8px; top:50%; transform:translateY(-50%)}
+  .menu-carte{position:absolute; right:0; bottom:0}
   .vign{width:44px; height:44px; border-radius:6px; overflow:hidden}
   .ltitre{min-width:0; font-size:13.5px; font-weight:600; color:var(--v2-txt);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
