@@ -711,6 +711,7 @@ export default {
   'signal.outputDeviceMismatch': 'このゾーンに設定されたデバイスから音が出ていません。',
   'signal.lossless': 'ロスレス',
   'signal.lossy': 'ロッシー',
+  'signal.unknownFormat': '不明なフォーマット',
   'signal.bitPerfect': 'Bit-Perfect',
   'signal.transcoded': 'トランスコード済み',
   'signal.source': 'ソース',

@@ -814,6 +814,7 @@ export default {
   'signal.outputDeviceMismatch': 'Audio is not playing through the device configured for this zone.',
   'signal.lossless': 'Lossless',
   'signal.lossy': 'Lossy',
+  'signal.unknownFormat': 'Unknown format',
   'signal.bitPerfect': 'Bit-Perfect',
   'signal.transcoded': 'Transcoded',
   'signal.source': 'Source',

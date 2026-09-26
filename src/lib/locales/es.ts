@@ -711,6 +711,7 @@ export default {
   'signal.outputDeviceMismatch': 'El sonido no sale por el dispositivo configurado para esta zona.',
   'signal.lossless': 'Sin pérdida',
   'signal.lossy': 'Con pérdida',
+  'signal.unknownFormat': 'Formato desconocido',
   'signal.bitPerfect': 'Bit-Perfect',
   'signal.transcoded': 'Transcodificado',
   'signal.source': 'Fuente',
