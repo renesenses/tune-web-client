@@ -56,6 +56,8 @@
   import ServiceBadge from '../partages/ServiceBadge.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
+  import { entreesPochette } from '../../lib/actionsPochette';
+  import { enfilerAlbum } from '../../lib/enfilerAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
   import { estDeBibliotheque } from '../../lib/provenanceBibliotheque';
   import QualiteAlbum from './QualiteAlbum.svelte';
@@ -334,11 +336,11 @@
     }
     // `get` et non `$store` : l'abonnement automatique n'existe qu'au premier
     // niveau du composant, et cette fonction n'y est pas.
-    const services = get(streamingServices);
+    // #5103 — la même règle que la moitié streaming de la recherche : activé
+    // ET connecté. Un service désactivé ne prête plus ses playlists.
     await Promise.all(
-      Object.entries(services)
-        .filter(([, st]: [string, any]) => st?.authenticated)
-        .map(([svc]) =>
+      servicesInterrogeables(get(streamingServices))
+        .map((svc) =>
           api.getStreamingPlaylists(svc)
             .then((pls: StreamingPlaylist[]) => {
               for (const pl of pls) {
@@ -416,6 +418,25 @@
     const zid = zoneRequise();
     if (zid == null) return;
     playAndSync(zid, { album_id: id }).catch(signalerEchecLecture);
+  }
+
+  /**
+   * Le menu de la vignette d'ALBUM — `lib/actionsPochette` en décide le contenu.
+   *
+   * Cet écran n'en avait AUCUN : son bouton était présent et grisé, libellé
+   * « Autres actions — bientôt ». Il montre pourtant le même album que
+   * `FavoritesV2`, où « Ajouter à la file » existait déjà. Deux chemins vers la
+   * même chose, deux offres différentes.
+   *
+   * Un album de SERVICE n'a pas d'`album_id` : la route de la file ne
+   * s'applique pas, il n'a donc aucune entrée, donc plus de bouton du tout.
+   */
+  function menuAlbum(a: any) {
+    return entreesPochette(
+      { type: 'album', idBibliotheque: estLocal(a) ? a?.id ?? null : null },
+      { enfiler: () => void enfilerAlbum(a?.id, a?.title) },
+      (k) => $t(k as any),
+    );
   }
 
   /**
@@ -1087,6 +1108,7 @@
                     onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                     onLire={a.id != null ? () => lireAlbum(a.id!) : null}
                     onOuvrir={() => ouvrirFiche(a)}
+                    menu={menuAlbum(a)}
                     nom={a.title}
                   >
                     <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
@@ -1320,6 +1342,7 @@
                     onEditer={local_ ? () => (albumEnEdition = a) : null}
                     onLire={local_ || (a.source && a.source_id) ? () => ouvrirOuLire(a) : null}
                     onOuvrir={local_ || (a.source && a.source_id) ? () => ouvrirFiche(a) : null}
+                    menu={menuAlbum(a)}
                     nom={a.title}
                   >
                     <AlbumArt coverPath={a.cover_path} albumId={local_ ? a.id : null} size={0} alt={a.title} source={a.source as any} fallbackInitials={a.title?.slice(0,1)} />

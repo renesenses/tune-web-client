@@ -3266,6 +3266,12 @@ export interface CrossfeedSettings {
   enabled: boolean;
   amount: number;   // 0.0 .. 0.5
   delay_ms: number; // 0.0 .. 5.0
+  /** tune-server-rust#5081 — ombre de la tête sur le terme croisé. Absents
+   *  d'un serveur antérieur ; le serveur garde la valeur enregistrée quand
+   *  un client ne les envoie pas. */
+  head_shadow_enabled?: boolean;
+  cutoff_hz?: number;           // 200 .. 20 000 Hz
+  slope_db_per_octave?: number; // 3 .. 6 dB/octave
 }
 
 /** Ce que le crossfeed VAUT sur CETTE zone, publié par `GET` et `PUT
@@ -3341,6 +3347,12 @@ export interface DspSettings {
 export interface CrossfeedLimits {
   amount_max: number;
   delay_ms_max: number;
+  /** tune-server-rust#5081 — présents seulement sur un serveur qui connaît
+   *  l'ombre de la tête : leur absence cache les contrôles. */
+  cutoff_hz_min?: number;
+  cutoff_hz_max?: number;
+  slope_db_per_octave_min?: number;
+  slope_db_per_octave_max?: number;
 }
 
 // Préréglages NOMMÉS du crossfeed — CRUD serveur (tune-server-rust#4684,
@@ -3354,6 +3366,11 @@ export interface CrossfeedPresetServeur {
   name: string;
   amount: number;
   delay_ms: number;
+  /** tune-server-rust#5081 — complétés par le serveur (éteint pour un
+   *  préréglage d'avant) ; absents d'un serveur antérieur. */
+  head_shadow_enabled?: boolean;
+  cutoff_hz?: number;
+  slope_db_per_octave?: number;
   created_at?: number;
 }
 
@@ -3366,6 +3383,9 @@ export function saveCrossfeedPreset(body: {
   name: string;
   amount: number;
   delay_ms: number;
+  head_shadow_enabled?: boolean;
+  cutoff_hz?: number;
+  slope_db_per_octave?: number;
 }): Promise<CrossfeedPresetServeur> {
   return fetchJSON<CrossfeedPresetServeur>(`${BASE}/crossfeed/presets`, {
     method: 'POST',

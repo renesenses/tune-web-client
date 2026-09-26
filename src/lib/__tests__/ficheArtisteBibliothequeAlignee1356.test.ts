@@ -64,7 +64,9 @@ const COLLECTIONS =
  * ni les deux gestes portés de la fiche de service.
  */
 function corpsPour(url: string) {
-  if (/\/streaming\/services(\?|$)/.test(url)) return { qobuz: { authenticated: true } };
+  // `enabled` comme le serveur le publie toujours (`status_all`) : un service
+  // connecté mais DÉSACTIVÉ n'est plus interrogé (tune-server-rust#5103).
+  if (/\/streaming\/services(\?|$)/.test(url)) return { qobuz: { enabled: true, authenticated: true } };
   if (/\/streaming\/qobuz\/artists\/q-1\/top-tracks/.test(url)) return TOP;
   if (/\/streaming\/qobuz\/artists\/q-1\/albums/.test(url)) return ALBUMS_SERVICE;
   // L'artiste tel que le service le rend, biographie comprise (Qobuz la publie) :

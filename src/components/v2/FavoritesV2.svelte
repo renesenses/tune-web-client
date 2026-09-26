@@ -44,6 +44,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
+  import { entreesPochette } from '../../lib/actionsPochette';
+  import { enfilerAlbum } from '../../lib/enfilerAlbum';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
@@ -520,15 +522,43 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    * L'écran Étiquettes porte la même mécanique dans `lib/ouvrirParRaccourci` ;
    * celle-ci reste ici parce que ses gardes en lisent le texte.
    */
-  async function ouvrirAilleurs(vue: 'playlists' | 'smartplaylists' | 'collections', cle: string, id: number, nom: string) {
+  async function ouvrirAilleurs(
+    vue: 'playlists' | 'smartplaylists' | 'collections',
+    cle: string,
+    id: number | null,
+    nom: string,
+    restore: unknown = { id, name: nom },
+  ) {
     activeView.set(vue as any);
     await tick();
     window.dispatchEvent(
       new CustomEvent('tune:shortcut-restore', {
-        detail: { target: { key: cle, restore: { id, name: nom }, label: nom } },
+        detail: { target: { key: cle, restore, label: nom } },
       }),
     );
   }
+  /**
+   * #1620 (FabienM, fil 1956) — une playlist favorite de SERVICE s'ouvre par
+   * le MÊME chemin que dans l'écran Playlists : sa clé est celle que
+   * `PlaylistsV2` publie pour elle (`clePl` :
+   * `streamingplaylists:<service>:<source_id>`), et `restore` porte l'élément
+   * complet que son écouteur rouvre tel quel dans `PlaylistDetailV2` —
+   * `{ kind: 'streaming', service, pl }`.
+   */
+  const ouvrirPlaylistDeService = (pl: any) =>
+    !!pl?.source && !!pl?.source_id &&
+    ouvrirAilleurs('playlists', `streamingplaylists:${pl.source}:${pl.source_id}`, null, pl.name, {
+      kind: 'streaming',
+      service: pl.source,
+      pl: {
+        source_id: String(pl.source_id),
+        name: pl.name,
+        track_count: pl.track_count ?? 0,
+        duration_ms: pl.duration_ms ?? 0,
+        cover_path: pl.cover_path ?? null,
+        source: pl.source,
+      },
+    });
   // Une playlist INTELLIGENTE part vers SON onglet, sous SA clé (#4798) :
   // `smartplaylists:` et jamais `playlists:` — les deux tables partagent leurs
   // identifiants, et `SmartPlaylistsView` n'écoute que son propre préfixe.
@@ -642,22 +672,24 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     if (!corps) return;
     playAndSync(zid, corps).catch((e) => { error = messageEchecLecture(e, 'library.playbackError'); });
   }
-  // `e` optionnel : appelee depuis la carte historique (qui propage) ET depuis
-  // le menu de `PochetteActions`, qui a deja arrete le geste.
-  function queueAlbum(id: number | null | undefined, e?: MouseEvent) {
-    e?.stopPropagation();
-    const zid = $currentZoneId;
-    if (zid == null || id == null) return;
-    // 🔴 `get(t)(…)` et non `$t(…)` : on est dans un `.catch(…)`, donc dans une
-    // fonction imbriquée, où Svelte 5 refuse de souscrire à un magasin
-    // (« Cannot subscribe to stores that are not declared at the top level »).
-    // esbuild transpile sans résoudre — la faute ne casse pas le build et
-    // n'apparaît QUE chez l'utilisateur. Même défaut que celui corrigé sur les
-    // deux lectures ci-dessus, sur le chemin de la file.
-    api.addToQueue(zid, { album_id: id }).catch((err) => {
-      console.error('Queue error:', err);
-      error = get(t)('v2.fav.queueFailed');
-    });
+  /**
+   * Le menu de la vignette d'ALBUM — `lib/actionsPochette` en décide le contenu.
+   *
+   * 🔴 `queueAlbum` a disparu d'ici. Cet écran portait sa propre mise en file
+   * (`api.addToQueue(zid, { album_id })`, échec dans un bandeau local
+   * `v2.fav.queueFailed`, aucun message de succès) alors que la fiche album en
+   * portait une autre, nommant l'album. Deux implémentations du même geste : la
+   * seule reste `lib/enfilerAlbum`, que les sept emplacements d'album appellent.
+   *
+   * Un album de SERVICE n'a pas d'`album_id` : la route de la file ne
+   * s'applique pas, il n'a donc aucune entrée, donc pas de bouton.
+   */
+  function menuAlbum(a: any) {
+    return entreesPochette(
+      { type: 'album', idBibliotheque: a?.id ?? null },
+      { enfiler: () => void enfilerAlbum(a?.id, a?.title) },
+      (k) => $t(k as any),
+    );
   }
 
   /** Retrait d'un favori. On recharge aussi les ENSEMBLES d'identifiants du
@@ -771,7 +803,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                   onLire={() => playAlbum(a)}
                   onOuvrir={() => { ouvrirCalqueAlbum(a); opened = a; }}
-                  menu={a.id != null ? [{ libelle: $t('queue.addToQueue' as any), faire: () => queueAlbum(a.id) }] : []}
+                  menu={menuAlbum(a)}
                   nom={a.title}
                 >
                   <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
@@ -858,12 +890,28 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           {#each vPlaylists as pl, i (pl.smart ? `s-${pl.id}` : clef(pl, i))}
             {@const locale = pl.id != null}
             {@const coeur = locale ? null : coeurService(pl, 'playlist')}
-            <!-- Une playlist de SERVICE n'a pas encore d'écran qui l'accueille :
-                 on l'affiche, on laisse retirer son cœur, et on ne la rend PAS
-                 cliquable. Un lien mort serait pire que pas de lien — la règle
-                 déjà tenue par le nom d'artiste d'un album de service. -->
-            <svelte:element this={locale ? 'button' : 'div'} class="simple" class:inerte={!locale}
-                            onclick={locale ? () => ouvrirPlaylist(pl) : undefined}>
+            <!-- #1620 — une playlist de SERVICE s'ouvre aussi : l'écran
+                 Playlists l'accueille désormais (`PlaylistDetailV2`, depuis
+                 le 13/09/2026), et on y va par son propre chemin de
+                 restauration. Seule une ligne SANS identifiant de service
+                 reste inerte : un lien mort serait pire que pas de lien.
+                 🔴 La ligne de service reste un `div` (rôle bouton) : elle
+                 porte le cœur, un `<button>`, et un bouton dans un bouton est
+                 cassé en deux par l'analyseur HTML. -->
+            {@const deService = !locale && !!pl.source && !!pl.source_id}
+            {@const ouvrir = () => (locale ? ouvrirPlaylist(pl) : ouvrirPlaylistDeService(pl))}
+            <svelte:element this={locale ? 'button' : 'div'} class="simple" class:inerte={!locale && !deService}
+                            role={deService ? 'button' : undefined}
+                            tabindex={deService ? 0 : undefined}
+                            onclick={locale || deService ? ouvrir : undefined}
+                            onkeydown={deService
+                              ? (e: KeyboardEvent) => {
+                                  // Le cœur est DANS la ligne : sa touche Entrée
+                                  // ne doit pas ouvrir la playlist.
+                                  if (e.target !== e.currentTarget) return;
+                                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ouvrir(); }
+                                }
+                              : undefined}>
               <span class="si" aria-hidden="true" title={pl.smart ? $t('v2.pl.tabSmart' as any) : undefined}>
                 {#if pl.smart}
                   <!-- La playlist INTELLIGENTE se distingue à l'œil, comme la
@@ -1152,8 +1200,9 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
      playlist n'a pas d'image, et une grille de cartes vides mentirait sur la
      richesse de ce qu'elle contient. */
   .simples{display:flex; flex-direction:column; gap:2px}
-  /* Une playlist de service : présente, retirable, sans destination — le
-     curseur ne promet pas un clic qui ne mène nulle part. */
+  /* Une playlist sans destination (ni id local, ni identifiant de service) :
+     présente, retirable — le curseur ne promet pas un clic qui ne mène nulle
+     part. */
   .simple.inerte{cursor:default}
   .sfav{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; flex:none}

@@ -67,17 +67,21 @@ export interface PasserellesStreaming {
 }
 
 /**
- * Les services qu'on peut interroger : ceux dont la session est ouverte.
+ * Les services qu'on peut interroger : ceux qui sont ACTIVÉS ET CONNECTÉS.
  *
  * `enabled` ne suffit pas — un service activé mais déconnecté rendrait un 401
- * par artiste ouvert. C'est déjà la règle de `loadStreamingArtistAlbums`
- * (`if (!status.authenticated) continue`).
+ * par artiste ouvert. `authenticated` ne suffit pas non plus : la case
+ * « Actif » des Réglages ne ferme pas la session, et un YouTube « Connecté,
+ * mais désactivé » répondait encore à la recherche, badge YT compris
+ * (renesenses/tune-server-rust#5103, FabienM, fil 1957). C'est la règle du
+ * serveur (`StreamingService::utilisable`) et celle de la barre latérale
+ * (`servicesConnectes`).
  */
 export function servicesInterrogeables(
   statuts: Record<string, StreamingServiceStatus> | null | undefined,
 ): string[] {
   return Object.entries(statuts ?? {})
-    .filter(([, s]) => s?.authenticated)
+    .filter(([, s]) => !!s?.enabled && !!s?.authenticated)
     .map(([nom]) => nom);
 }
 

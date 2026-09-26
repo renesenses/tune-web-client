@@ -216,7 +216,11 @@ describe('#1143 — supprimer une collection, là où Fabien l’a cherché', ()
     expect(menu, 'le bouton de menu est inerte : aucune action sur la vignette').toBeDefined();
     menu!.click();
     flushSync();
-    const suppr = Array.from(c.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'))
+    // ⚠️ 26/09/2026 — le panneau du menu est PORTÉ à la racine du document
+    // (`lib/portail`) : ancré dans la vignette, il se faisait rogner par
+    // `overflow: hidden` et par le `contain` de la carte. Le bouton reste dans
+    // la carte, les ENTRÉES se cherchent désormais dans le document.
+    const suppr = Array.from(document.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'))
       .find((b) => (b.textContent ?? '').trim() === fr['common.delete']);
     expect(suppr, 'pas d’entrée « Supprimer » dans le menu de la vignette').toBeDefined();
     suppr!.click();
@@ -231,7 +235,8 @@ describe('#1143 — supprimer une collection, là où Fabien l’a cherché', ()
     const c = carte(h, 'test');
     parAria(c, fr['v2.cover.more'])!.click();
     flushSync();
-    Array.from(c.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'))
+    // Même raison qu'au cas précédent : le panneau vit à la racine.
+    Array.from(document.querySelectorAll<HTMLButtonElement>('button[role="menuitem"]'))
       .find((b) => (b.textContent ?? '').trim() === fr['common.delete'])!.click();
     await attendre(2);
     repondre(false);

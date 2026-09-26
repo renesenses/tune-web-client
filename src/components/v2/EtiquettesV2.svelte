@@ -66,6 +66,8 @@
   import AlbumArt from '../partages/AlbumArt.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum, cleLigneEtiquetee, corpsLectureAlbumEtiquete } from '../../lib/cibleEtiquette';
+  import { entreesPochette } from '../../lib/actionsPochette';
+  import { enfilerAlbum } from '../../lib/enfilerAlbum';
   import ListePistesV2 from './ListePistesV2.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
@@ -275,6 +277,28 @@
     playAndSync(zid, corps as any).catch(signalerEchecLecture);
   }
 
+  /**
+   * Le menu de la vignette d'ALBUM — `lib/actionsPochette` en décide le contenu.
+   *
+   * Cet écran n'en avait aucun : bouton présent et grisé. Il montre pourtant le
+   * même album que `FavoritesV2`, où « Ajouter à la file » existait déjà.
+   *
+   * 🔴 Un album ÉTIQUETÉ peut venir d'un service : les étiquettes se posent
+   * aussi par `source` + `source_id` (#1238). Celui-là n'a pas d'`album_id`, la
+   * route de la file ne s'applique pas, et son bouton disparaît. C'est pourquoi
+   * la capacité se lit sur `a.id` et pas sur la simple présence de l'album.
+   *
+   * La vignette d'ARTISTE de cet écran, elle, n'a aucun geste disponible — elle
+   * n'a même ni lecture ni ouverture — et n'appelle donc rien ici.
+   */
+  function menuAlbum(a: Album) {
+    return entreesPochette(
+      { type: 'album', idBibliotheque: a?.id ?? null },
+      { enfiler: () => void enfilerAlbum(a?.id, a?.title) },
+      (k) => $t(k as any),
+    );
+  }
+
   onMount(() => {
     void charger();
   });
@@ -322,6 +346,7 @@
                     etiquettes={cibleEtiquetteAlbum(a)}
                     onLire={() => lireAlbum(a)}
                     onOuvrir={() => { ouvrirCalqueAlbum(a); albumOuvert = a; }}
+                    menu={menuAlbum(a)}
                     nom={a.title}
                   >
                     <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title}
