@@ -3477,7 +3477,6 @@ export default {
   "v2.pl.edit": "Éditer",
   "v2.pl.editDone": "Terminer",
   "v2.pl.rename": "Renommer",
-  "v2.pl.delete": "Supprimer",
   "v2.pl.remoteHint": "Cette playlist vit chez {service} : elle ne peut être ni renommée ni modifiée depuis Tune.",
   "v2.pl.export": "Exporter",
   "v2.pl.exported": "{file} exporté",

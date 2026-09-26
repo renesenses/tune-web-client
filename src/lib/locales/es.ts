@@ -3455,7 +3455,6 @@ export default {
   "v2.pl.edit": "Editar",
   "v2.pl.editDone": "Listo",
   "v2.pl.rename": "Renombrar",
-  "v2.pl.delete": "Eliminar",
   "v2.pl.remoteHint": "Esta lista está en {service}: no se puede renombrar ni editar desde Tune.",
   "v2.pl.export": "Exportar",
   "v2.pl.exported": "{file} exportado",

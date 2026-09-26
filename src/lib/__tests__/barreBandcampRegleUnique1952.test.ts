@@ -3,30 +3,23 @@
 // Fil forum 1952 — Didier, Windows 11, v0.9.165 :
 //
 //   « Dans la barre de gauche, zone Streaming, le choix Bandcamp n'apparaît
-//     pas alors que la connexion Bandcamp est active. Mise à jour de la page
-//     et redémarrage du serveur : rien n'y fait. »
+//     pas alors que la connexion Bandcamp est active. »
 //
-// Sa capture : l'écran Streaming porte les onglets « Qobuz » et « Bandcamp
-// didierv », la barre latérale la seule entrée « Qobuz ».
+// Son serveur : Bandcamp LIÉ (`authenticated: true`) mais case « Actif »
+// décochée — le service naissait décoché et la liaison ne le cochait pas.
 //
-// ## La cause
+// ## La règle, décidée le 26/09 par Bertrand
 //
-// Deux règles pour une seule liste. L'écran range ses onglets par
-// `ongletsStreaming(services, bandcampLive)` : l'onglet de l'extension entre
-// dès que `/ext/bandcamp/tags` répond. La barre ne prenait que
-// `servicesConnectes` — `enabled && authenticated`.
+// Une seule règle pour tous les services : la barre latérale liste les
+// services ACTIVÉS ET CONNECTÉS (`servicesConnectes`, `utilisable()` côté
+// serveur depuis #5130). C'est le SERVEUR qui a été corrigé : lier son compte
+// Bandcamp coche la case, et un compte déjà lié dont personne n'a touché la
+// case est actif (tune-server-rust, lot
+// `batch/bandcamp-actif-connexion-20260926`).
 //
-// Or le service Bandcamp du serveur naît `enabled: false`
-// (`plugins/tune-bandcamp/src/service.rs`, `BandcampService::new`, opt-in) et
-// ce drapeau ne garde aucune de ses routes. Lier son pseudo rend
-// `authenticated: true, username: "didierv"` sans l'activer : c'est l'état
-// que la capture trahit (le pseudo s'affiche, donc le compte est lié).
-//
-// ## La mesure
-//
-// La vraie barre est montée, puis le vrai écran, sur la même réponse du
-// serveur. L'entrée doit exister, et cliquer dessus doit ouvrir l'écran SUR
-// Bandcamp — une entrée qui ouvrirait Qobuz ne vaudrait rien.
+// web#1624 avait fait l'inverse : Bandcamp entrait dans la barre par la sonde
+// de l'extension (`/ext/bandcamp/tags`), même décoché, et même sans compte
+// lié. Ces épreuves ferment cette exception.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import { get } from 'svelte/store';
@@ -37,11 +30,17 @@ import Sidebar from '../../components/v2/Sidebar.svelte';
 
 vi.setConfig({ testTimeout: 60_000 });
 
-/** Le cas de Didier : Qobuz connecté, Bandcamp LIÉ mais jamais activé. */
-const SERVICES_DIDIER = {
+/** Le cas de Didier sur un serveur 0.9.165 : Bandcamp LIÉ mais décoché. */
+const SERVICES_DIDIER_165 = {
   qobuz: { enabled: true, authenticated: true, username: 'Virlogeux Didier' },
   bandcamp: { enabled: false, authenticated: true, username: 'didierv' },
   deezer: { enabled: true, authenticated: false, username: null },
+} as any;
+
+/** Le même compte sur un serveur corrigé : la liaison a coché la case. */
+const SERVICES_DIDIER = {
+  ...SERVICES_DIDIER_165,
+  bandcamp: { enabled: true, authenticated: true, username: 'didierv' },
 } as any;
 
 let services: any = SERVICES_DIDIER;
@@ -148,21 +147,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('fil 1952 — la barre latérale liste les mêmes services que l’écran Streaming', () => {
-  it('🔴 l’écran montre Bandcamp : la barre aussi, sous « Streaming »', async () => {
-    // D'abord l'écran : c'est ce que Didier voit, et ce que la barre doit suivre.
-    await monterEcran();
-    expect(ongletsRendus().some((o) => /bandcamp/i.test(o)), `[${ongletsRendus().join(' | ')}]`).toBe(true);
-    demonter();
-    streamingServices.set({});
+describe('fil 1952 — la barre latérale suit la règle unique : activé ET connecté', () => {
+  it('Bandcamp activé et lié : une entrée dans la barre, et une seule', async () => {
     await monterBarre();
     expect(
-      entrees().some((l) => /^bandcamp$/i.test(l)),
+      entrees().filter((l) => /bandcamp/i.test(l)),
       `entrées rendues : [${entrees().join(' | ')}]`,
-    ).toBe(true);
+    ).toHaveLength(1);
   });
 
-  it('🔴 cliquer « Bandcamp » ouvre l’écran Streaming SUR Bandcamp', async () => {
+  it('cliquer « Bandcamp » ouvre l’écran Streaming SUR Bandcamp', async () => {
     await monterBarre();
     const b = Array.from(hote!.querySelectorAll('button.nav')).find((x) =>
       /^bandcamp$/i.test((x.textContent ?? '').trim()),
@@ -176,22 +170,36 @@ describe('fil 1952 — la barre latérale liste les mêmes services que l’écr
     expect(ongletAllume(), `rangée : [${ongletsRendus().join(' | ')}]`).toMatch(/bandcamp/i);
   });
 
+  it('🔴 Bandcamp décoché (serveur 0.9.165) : absent de la barre, comme tout service décoché', async () => {
+    // L'extension répond : c'est précisément le cas où web#1624 le faisait
+    // entrer malgré la case.
+    services = SERVICES_DIDIER_165;
+    await monterBarre();
+    expect(
+      entrees().some((l) => /bandcamp/i.test(l)),
+      `un service décoché ne doit pas avoir d'entrée : [${entrees().join(' | ')}]`,
+    ).toBe(false);
+  });
+
+  it('🔴 Bandcamp activé mais sans compte lié : absent, même si l’extension répond', async () => {
+    services = { ...SERVICES_DIDIER, bandcamp: { enabled: true, authenticated: false, username: null } };
+    await monterBarre();
+    expect(
+      entrees().some((l) => /bandcamp/i.test(l)),
+      `un service non connecté ne doit pas avoir d'entrée : [${entrees().join(' | ')}]`,
+    ).toBe(false);
+  });
+
+  it('TÉMOIN — la barre ne dépend pas de la sonde de l’extension', async () => {
+    extensionChargee = false;
+    await monterBarre();
+    expect(entrees().filter((l) => /bandcamp/i.test(l)), `[${entrees().join(' | ')}]`).toHaveLength(1);
+  });
+
   it('TÉMOIN — Qobuz reste là, Deezer non connecté n’y est pas', async () => {
     await monterBarre();
     const rendues = entrees();
     expect(rendues.some((l) => /^qobuz$/i.test(l)), `[${rendues.join(' | ')}]`).toBe(true);
     expect(rendues.some((l) => /deezer/i.test(l)), `[${rendues.join(' | ')}]`).toBe(false);
-  });
-
-  it('TÉMOIN — extension absente et service non activé : ni l’écran ni la barre ne montrent Bandcamp', async () => {
-    extensionChargee = false;
-    await monterBarre();
-    expect(entrees().some((l) => /bandcamp/i.test(l)), `[${entrees().join(' | ')}]`).toBe(false);
-  });
-
-  it('TÉMOIN — une seule entrée Bandcamp quand le service est aussi activé', async () => {
-    services = { ...SERVICES_DIDIER, bandcamp: { enabled: true, authenticated: true, username: 'didierv' } };
-    await monterBarre();
-    expect(entrees().filter((l) => /bandcamp/i.test(l)), `[${entrees().join(' | ')}]`).toHaveLength(1);
   });
 });
