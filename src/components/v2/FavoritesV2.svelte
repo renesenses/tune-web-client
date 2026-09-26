@@ -44,6 +44,8 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
   import ListePistesV2 from './ListePistesV2.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
+  import { entreesPochette } from '../../lib/actionsPochette';
+  import { enfilerAlbum } from '../../lib/enfilerAlbum';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
   import { cleDetailAlbum } from '../../lib/cleDetailAlbum';
@@ -670,22 +672,24 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
     if (!corps) return;
     playAndSync(zid, corps).catch((e) => { error = messageEchecLecture(e, 'library.playbackError'); });
   }
-  // `e` optionnel : appelee depuis la carte historique (qui propage) ET depuis
-  // le menu de `PochetteActions`, qui a deja arrete le geste.
-  function queueAlbum(id: number | null | undefined, e?: MouseEvent) {
-    e?.stopPropagation();
-    const zid = $currentZoneId;
-    if (zid == null || id == null) return;
-    // 🔴 `get(t)(…)` et non `$t(…)` : on est dans un `.catch(…)`, donc dans une
-    // fonction imbriquée, où Svelte 5 refuse de souscrire à un magasin
-    // (« Cannot subscribe to stores that are not declared at the top level »).
-    // esbuild transpile sans résoudre — la faute ne casse pas le build et
-    // n'apparaît QUE chez l'utilisateur. Même défaut que celui corrigé sur les
-    // deux lectures ci-dessus, sur le chemin de la file.
-    api.addToQueue(zid, { album_id: id }).catch((err) => {
-      console.error('Queue error:', err);
-      error = get(t)('v2.fav.queueFailed');
-    });
+  /**
+   * Le menu de la vignette d'ALBUM — `lib/actionsPochette` en décide le contenu.
+   *
+   * 🔴 `queueAlbum` a disparu d'ici. Cet écran portait sa propre mise en file
+   * (`api.addToQueue(zid, { album_id })`, échec dans un bandeau local
+   * `v2.fav.queueFailed`, aucun message de succès) alors que la fiche album en
+   * portait une autre, nommant l'album. Deux implémentations du même geste : la
+   * seule reste `lib/enfilerAlbum`, que les sept emplacements d'album appellent.
+   *
+   * Un album de SERVICE n'a pas d'`album_id` : la route de la file ne
+   * s'applique pas, il n'a donc aucune entrée, donc pas de bouton.
+   */
+  function menuAlbum(a: any) {
+    return entreesPochette(
+      { type: 'album', idBibliotheque: a?.id ?? null },
+      { enfiler: () => void enfilerAlbum(a?.id, a?.title) },
+      (k) => $t(k as any),
+    );
   }
 
   /** Retrait d'un favori. On recharge aussi les ENSEMBLES d'identifiants du
@@ -799,7 +803,7 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
                   onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                   onLire={() => playAlbum(a)}
                   onOuvrir={() => { ouvrirCalqueAlbum(a); opened = a; }}
-                  menu={a.id != null ? [{ libelle: $t('queue.addToQueue' as any), faire: () => queueAlbum(a.id) }] : []}
+                  menu={menuAlbum(a)}
                   nom={a.title}
                 >
                   <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />

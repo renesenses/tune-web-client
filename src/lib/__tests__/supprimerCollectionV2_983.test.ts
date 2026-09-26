@@ -114,12 +114,22 @@ describe('#983 — supprimer une collection dans la nouvelle interface', () => {
 
   /** La place du geste : dans le menu, pas sur la vignette. */
   it('le geste vit dans le menu d’actions, teinté `danger`', () => {
+    /**
+     * ⚠️ 26/09/2026 — le tableau n'est plus écrit dans le balisage : les treize
+     * écrans puisent dans `lib/actionsPochette`, qui décide de l'ordre, des clés
+     * et de la teinte. La teinte `danger` de `common.delete` est donc tenue par
+     * le catalogue lui-même, et prouvée en l'APPELANT
+     * (`catalogueActionsPochette.svelte.test.ts`).
+     *
+     * Ce qui reste à tenir ici : la place du geste (dans le menu, pas sur la
+     * vignette) et le fait que cet écran fournisse bien `supprimer`.
+     */
     const src = ecran();
-    const i = src.indexOf('menu={[');
-    expect(i, 'la carte n’offre aucun menu').toBeGreaterThan(-1);
-    const bloc = src.slice(i, src.indexOf(']}', i));
-    expect(bloc).toContain('danger: true');
-    expect(bloc).toContain('supprimerCollection(e)');
+    const i = src.indexOf('function menuCollection(');
+    expect(i, 'la carte n’offre plus aucun menu').toBeGreaterThan(-1);
+    const bloc = src.slice(i, i + 500);
+    expect(bloc).toContain('supprimer: () => void supprimerCollection(e)');
+    expect(src).toContain('menu={menuCollection(e)}');
   });
 
   it('aucune corbeille posée sur la vignette elle-même', () => {

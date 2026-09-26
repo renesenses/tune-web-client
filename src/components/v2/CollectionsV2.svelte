@@ -41,6 +41,8 @@
   import MosaiquePochettes from './MosaiquePochettes.svelte';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquetteAlbum } from '../../lib/cibleEtiquette';
+  import { entreesPochette } from '../../lib/actionsPochette';
+  import { enfilerAlbum } from '../../lib/enfilerAlbum';
   import QualiteAlbum from './QualiteAlbum.svelte';
   import AlbumDetailV2 from './AlbumDetailV2.svelte';
   import { detailOuvert, ouvrirDetail, fermerDetailEnReculant } from '../../lib/historiqueCoquille';
@@ -611,13 +613,45 @@
     }
   }
 
-  function entreesAlbum(a: any) {
-    if (!ouverte || ouverte.sorte === 'smart' || a?.id == null) return [];
-    return [{
-      libelle: $t('v2.col.removeAlbum' as any),
-      danger: true,
-      faire: () => void retirerDeLaCollection(a),
-    }];
+  /**
+   * Le menu de la vignette d'ALBUM — `lib/actionsPochette` en décide le contenu.
+   *
+   * Cet écran composait son tableau lui-même, et n'y mettait que « Retirer de
+   * cette collection ». Le catalogue y ajoute « Ajouter à la file », que la même
+   * vignette d'album offrait déjà dans `FavoritesV2` et nulle part ailleurs.
+   *
+   * `dansCollectionManuelle` est la CAPACITÉ qui porte le retrait : il n'a de
+   * sens que dans une collection ouverte, et jamais dans une INTELLIGENTE —
+   * son contenu est une règle, on n'en retire pas un album à la main.
+   */
+  function menuAlbum(a: any) {
+    return entreesPochette(
+      {
+        type: 'album',
+        idBibliotheque: a?.id ?? null,
+        dansCollectionManuelle: !!ouverte && ouverte.sorte !== 'smart',
+      },
+      {
+        enfiler: () => void enfilerAlbum(a?.id, a?.title),
+        retirerDeCollection: () => void retirerDeLaCollection(a),
+      },
+      (k) => $t(k as any),
+    );
+  }
+
+  /**
+   * Le menu de la vignette de COLLECTION — les deux sortes.
+   *
+   * `common.delete` était déjà là ; ce qui change est qu'il vient du catalogue,
+   * avec sa clé et sa teinte, comme dans les deux écrans de playlists
+   * intelligentes. `supprimerCollection` sait déjà distinguer les deux routes.
+   */
+  function menuCollection(e: Entree) {
+    return entreesPochette(
+      { type: e.sorte === 'smart' ? 'collectionIntelligente' : 'collection', idBibliotheque: e.id },
+      { supprimer: () => void supprimerCollection(e) },
+      (k) => $t(k as any),
+    );
   }
 
   function initiale(texte: string | null | undefined): string {
@@ -1000,7 +1034,7 @@
                 onEditer={a.id != null ? () => (albumEnEdition = a) : null}
                 onLire={() => lireAlbum(a)}
                 onOuvrir={() => { ouvrirCalqueAlbum(a); fiche = a; }}
-                menu={entreesAlbum(a)}
+                menu={menuAlbum(a)}
                 nom={a.title}
               >
                 <AlbumArt coverPath={a.cover_path} albumId={a.id} size={0} alt={a.title} fallbackInitials={a.title?.slice(0, 1)} />
@@ -1123,11 +1157,7 @@
                 onEditer={() => editerCollection(e)}
                 onLire={() => lireCollection(e)}
                 onOuvrir={() => ouvrir(e)}
-                menu={[{
-                  libelle: $t('common.delete' as any),
-                  danger: true,
-                  faire: () => void supprimerCollection(e),
-                }]}
+                menu={menuCollection(e)}
                 nom={libelleTradu(e)}
               >
                 <!-- Mosaïque ou pochette UNIQUE, au choix (Réglages →

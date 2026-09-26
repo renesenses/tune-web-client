@@ -9,13 +9,20 @@
    * |---|---|
    * | haut gauche | favori (bascule) |
    * | haut droite | édition |
-   * | bas gauche | menu d'actions — **inerte**, la modale reste à définir |
+   * | bas gauche | menu d'actions — `lib/actionsPochette` en dit le contenu |
    * | bas droite | étiquettes : voir, ajouter, retirer |
    * | centre | lecture |
    *
    * Les positions viennent de la MAQUETTE, pas de l'énoncé : les deux
    * divergeaient sur l'emplacement de l'édition et des étiquettes, et Bertrand
    * a tranché pour la maquette (« je modifierai si nécessaire »).
+   *
+   * 🔴 CE COMMENTAIRE A MENTI PENDANT 24 JOURS. Il annonçait un menu
+   * « **inerte**, la modale reste à définir » alors que le mécanisme existait et
+   * marchait depuis le 02/09/2026 : la propriété `menu`, l'état `menuOuvert`, la
+   * fermeture au clic ailleurs et à Échap, `aria-haspopup`. Une session l'a lu
+   * le 26/09/2026 et en a conclu qu'il n'y avait rien à brancher. Corrigé le
+   * même jour, en même temps que le catalogue.
    *
    * ## Une enveloppe, pas une vignette
    *
@@ -28,8 +35,36 @@
    *
    * Une collection ne se met pas en favori : l'API n'existe pas. Un bouton
    * grisé promettrait une action à venir ; un bouton absent ne promet rien.
-   * Seul le menu d'actions fait exception — il est présent et inerte, parce que
-   * Bertrand l'a demandé ainsi en attendant la modale de Levente.
+   *
+   * 🔴 SANS EXCEPTION depuis le 26/09/2026. Le menu d'actions en était une : il
+   * restait présent et grisé, avec le libellé « Autres actions — bientôt », sur
+   * les huit écrans qui ne lui passaient rien. L'exception avait été accordée
+   * « en attendant la modale de Levente » et a duré 24 jours — un bouton grisé
+   * qui promet depuis 24 jours ne promet plus, il ment. Bertrand, 26/09/2026 :
+   * le bouton DISPARAÎT là où le catalogue ne rend rien.
+   *
+   * ## Le contenu du menu ne vit PAS ici
+   *
+   * Il vient de `lib/actionsPochette`, un module que les treize écrans
+   * appellent. La raison est celle de `lib/menuPiste` : une garde écrite contre
+   * ce composant ne peut que lire son TEXTE, et un texte présent ne prouve pas
+   * qu'il s'exécute. La liste sortie dans un module, la garde l'appelle et
+   * regarde ce qui en sort. Et treize écrans qui construisent chacun son
+   * tableau, ce sont treize vérités — le défaut que Dominique Comet avait relevé
+   * sur le menu de piste (deux chemins vers la même chose, pas les mêmes
+   * gestes).
+   *
+   * ## Le menu est PORTÉ à la racine du document
+   *
+   * Comme `MenuPisteV2`, et pour la même raison : `.pa` porte `overflow:
+   * hidden` (c'est lui qui arrondit la pochette), la carte de la Bibliothèque
+   * porte `content-visibility: auto` — qui implique `contain: layout style
+   * paint` — et la grille défile. Ancré dans la pochette, le menu se faisait
+   * rogner ; dans une grille de 800 albums, c'est une certitude, pas un risque.
+   * On porte donc le nœud à la racine (`lib/portail`) et on le place aux
+   * coordonnées ÉCRAN du bouton (`lib/ancrageMenu`). Il se referme dès que la
+   * page bouge sous lui : des coordonnées figées suivraient le bouton de très
+   * loin.
    *
    * ## Pourquoi les boutons n'apparaissent qu'au survol
    *
@@ -53,8 +88,11 @@
     favoriteSmartPlaylistIds,
   } from '../../lib/stores/profile';
   import { basculerFavoriLocal, estFavoriLocal, type RefLocale } from '../../lib/favorisLocaux';
+  import { portail } from '../../lib/portail';
+  import { styleMenuAncre, LARGEUR_MENU } from '../../lib/ancrageMenu';
   import type { Snippet } from 'svelte';
   import type { CibleEtiquette } from '../../lib/cibleEtiquette';
+  import type { EntreePochette } from '../../lib/actionsPochette';
 
   interface Props {
     /** La pochette : `AlbumArt`, `MosaiquePochettes`, ce que l'appelant veut. */
@@ -93,15 +131,15 @@
      */
     onOuvrir?: (() => void) | null;
     /**
-     * Entrées du menu d'actions (coin bas-gauche).
+     * Entrées du menu d'actions (coin bas-gauche) — `entreesPochette()` les
+     * rend, l'appelant ne les compose pas à la main.
      *
-     * VIDE, le bouton reste inerte — c'était son état d'origine, en attendant
-     * la modale de Levente. Dès qu'une entrée existe, il ouvre un menu.
+     * VIDE, le bouton est ABSENT. Pas grisé : voir la règle plus haut.
      *
      * `danger` teinte l'entrée : partager pose un jeton PUBLIC, ce n'est pas
      * un geste anodin qu'on veut au milieu des autres sans le dire.
      */
-    menu?: { libelle: string; danger?: boolean; faire: () => void }[];
+    menu?: EntreePochette[];
     /** Nom de l'objet, pour les libellés d'accessibilité. */
     nom?: string;
   }
@@ -158,20 +196,40 @@
 
   /** Panneau d'étiquettes, ouvert au clic sur le bouton du bas-droit. */
   let panneauOuvert = $state(false);
-  /** Menu d'actions, ouvert au clic sur le bouton du bas-gauche. */
-  let menuOuvert = $state(false);
+  /**
+   * Menu d'actions : la boîte ÉCRAN du bouton qui l'a ouvert, ou `null` quand
+   * il est fermé.
+   *
+   * Ce n'est pas un booléen : le menu vit à la racine du document, il ne sait
+   * donc plus où était son bouton. `lib/ancrageMenu` a besoin de ces
+   * coordonnées.
+   */
+  let ancre = $state<DOMRect | null>(null);
+  const style = $derived(ancre ? styleMenuAncre(ancre, menu.length, window) : '');
 
-  /** Un clic ailleurs, ou Échap, referme le menu — sinon il reste posé sur la
-   *  grille pendant qu'on fait autre chose. */
-  function fermerAilleurs(e: MouseEvent) {
-    if (!(e.target as HTMLElement)?.closest?.('.menu-actions')) menuOuvert = false;
+  function ouvrirMenu(ev: MouseEvent) {
+    ev.stopPropagation();
+    ev.preventDefault();
+    const b = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    ancre = ancre ? null : b;
+  }
+  /** Le menu se referme : choix, clic ailleurs, Échap, et tout mouvement de la
+   *  page — ancré à des coordonnées figées, il suivrait le bouton de loin. */
+  function fermerMenu() {
+    ancre = null;
   }
   function fermerEchap(e: KeyboardEvent) {
-    if (e.key === 'Escape') menuOuvert = false;
+    if (e.key === 'Escape') fermerMenu();
+  }
+  function choisir(ev: MouseEvent, e: EntreePochette) {
+    ev.stopPropagation();
+    ev.preventDefault();
+    fermerMenu();
+    e.faire();
   }
 </script>
 
-<svelte:window onclick={fermerAilleurs} onkeydown={fermerEchap} />
+<svelte:window onkeydown={fermerEchap} onresize={fermerMenu} />
 
 <div class="pa">
   {@render children()}
@@ -211,31 +269,21 @@
     </button>
   {/if}
 
-  <!-- Menu d'actions. Sans entrée il reste INERTE — son état d'origine, en
-       attendant la modale de Levente : `disabled` plutôt qu'un clic sans
-       effet, un bouton qui ne répond pas se lit comme une panne. -->
-  <div class="menu-actions">
+  <!-- Menu d'actions. AUCUNE entrée, AUCUN bouton : « ce qui ne s'applique pas
+       est absent, pas grisé ». Il était grisé sur huit écrans sur treize. -->
+  {#if menu.length}
     <button
       class="coin bl"
-      class:ouvert={menuOuvert}
-      disabled={!menu.length}
-      aria-haspopup={menu.length ? 'menu' : undefined}
-      aria-expanded={menu.length ? menuOuvert : undefined}
-      aria-label={menu.length ? $t('v2.cover.more' as any) : $t('v2.cover.moreSoon' as any)}
-      title={menu.length ? $t('v2.cover.more' as any) : $t('v2.cover.moreSoon' as any)}
-      onclick={menu.length ? (e) => seul(e, () => (menuOuvert = !menuOuvert)) : undefined}
+      class:ouvert={!!ancre}
+      aria-haspopup="menu"
+      aria-expanded={!!ancre}
+      aria-label={$t('v2.cover.more' as any)}
+      title={$t('v2.cover.more' as any)}
+      onclick={ouvrirMenu}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M15 3h4a2 2 0 0 1 2 2v4"/><path d="M21 15v4a2 2 0 0 1-2 2h-4"/><path d="M3 15v4a2 2 0 0 0 2 2h4"/></svg>
     </button>
-    {#if menuOuvert && menu.length}
-      <div class="menu" role="menu">
-        {#each menu as e (e.libelle)}
-          <button role="menuitem" class:danger={e.danger}
-            onclick={(ev) => seul(ev, () => { menuOuvert = false; e.faire(); })}>{e.libelle}</button>
-        {/each}
-      </div>
-    {/if}
-  </div>
+  {/if}
 
   {#if etiquettes}
     <button
@@ -261,6 +309,22 @@
     </button>
   {/if}
 </div>
+
+<!-- Le menu, PORTÉ à la racine du document. Le fond ferme au clic ET consomme
+     l'événement : la vignette qu'il recouvre ouvre le détail au clic, refermer
+     le menu ne doit pas l'ouvrir. -->
+{#if ancre && menu.length}
+  <div class="fond tune-v2" role="presentation" use:portail
+    onclick={(e) => { e.stopPropagation(); e.preventDefault(); fermerMenu(); }}
+    onwheel={fermerMenu}>
+    <div class="menu" role="menu" style={style}>
+      {#each menu as e, i (i)}
+        <button role="menuitem" class:danger={e.danger} title={e.libelle}
+          onclick={(ev) => choisir(ev, e)}>{e.libelle}</button>
+      {/each}
+    </div>
+  </div>
+{/if}
 
 {#if panneauOuvert && etiquettes}
   {#await import('./EtiquettesPanneau.svelte') then m}
@@ -428,17 +492,29 @@
     opacity: 1;
   }
 
-  /* Le menu sort du cadre de la pochette : `.pa` porte `overflow: hidden`, il
-     s'ancre donc au conteneur du bouton, hors du flux de la vignette. */
-  .menu-actions { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-  .menu-actions > .coin { pointer-events: auto; }
+  /*
+    Le menu est PORTÉ à la racine du document (`use:portail`), comme celui de
+    `MenuPisteV2`. Ancré dans la pochette, il se faisait rogner : `.pa` porte
+    `overflow: hidden` (c'est lui qui arrondit la pochette) et la carte de la
+    Bibliothèque porte `content-visibility: auto`, donc `contain: layout style
+    paint`, qui capture même un `position: fixed`.
+
+    🔴 `position: fixed` est INDISPENSABLE ici : `styleMenuAncre` ne rend que
+    `left`, `top`/`bottom` et `max-height`. En `absolute`, ces coordonnées se
+    liraient contre le bloc conteneur et le panneau atterrirait n'importe où.
+  */
+  .fond { position: fixed; inset: 0; z-index: 900; }
   .menu {
-    position: absolute;
-    bottom: 42px;
-    left: 8px;
-    z-index: 3;
-    pointer-events: auto;
-    min-width: 148px;
+    position: fixed;
+    /* = LARGEUR_MENU de lib/ancrageMenu : ce module calcule `left` en retirant
+       cette largeur du bord droit du bouton. Une autre valeur ici décalerait le
+       panneau de la différence. */
+    width: 208px;
+    z-index: 901;
+    /* `styleMenuAncre` pose un `max-height` égal à la place du côté choisi :
+       sans défilement interne, une quinzaine de collections serait tronquée
+       (`renesenses/tune-web-client#1575`, Lulu, fil 1928). */
+    overflow-y: auto;
     padding: 5px;
     border-radius: 10px;
     background: var(--v2-surface);
@@ -457,16 +533,14 @@
     padding: 7px 10px;
     border-radius: 7px;
     text-align: left;
+    /* Le panneau a une largeur FIXE : un nom de collection long doit se couper,
+       pas déborder. */
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .menu button:hover { background: var(--v2-hover); }
   .menu button.danger { color: var(--v2-danger); }
-
-  /* Inerte : visible, mais il ne prétend rien. */
-  .coin:disabled {
-    cursor: default;
-    color: rgba(255, 255, 255, 0.42);
-  }
 
   /*
     Sans survol possible — tactile —, on ne peut rien garder en réserve : tout
