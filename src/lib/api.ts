@@ -4223,6 +4223,20 @@ export function resumeAllBackgroundTasks() {
   >;
 }
 
+/**
+ * La place de la plage dynamique parmi les passes qui décodent (serveur
+ * tune-server-rust#5169) : `last` (défaut, l'ordre historique),
+ * `before_fingerprints` (avant les empreintes et le CLAP) ou `first` (avant
+ * tout, ReplayGain compris). Rend l'instantané complet, comme les routes de
+ * pause. Un serveur qui ne connaît pas le réglage n'envoie pas
+ * `dynamic_range_priority` : l'écran ne propose alors rien.
+ */
+export function setDynamicRangePriority(priority: string) {
+  return apiPost('/system/background-tasks/dynamic-range-priority', { priority }) as Promise<
+    import('./tachesDeFond').InstantaneTachesDeFond
+  >;
+}
+
 export function getBackups() {
   return fetchJSON<import('./types').BackupInfo[]>(`${BASE}/system/backups`);
 }
