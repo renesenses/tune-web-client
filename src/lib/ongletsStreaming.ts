@@ -165,6 +165,32 @@ export function cleServeur(onglet: string | null | undefined): string | null {
   if (!onglet) return null;
   return onglet === BANDCAMP_EXT ? BANDCAMP_SVC : onglet;
 }
+/**
+ * Les entrées de service de la BARRE LATÉRALE, sous « Streaming » — fil 1952.
+ *
+ * Didier, Windows 11, v0.9.165 : « Dans la barre de gauche, zone Streaming,
+ * le choix Bandcamp n'apparaît pas alors que la connexion Bandcamp est
+ * active. » Sa capture montre l'onglet « Bandcamp didierv » sur l'écran, et
+ * la seule entrée « Qobuz » dans la barre.
+ *
+ * La barre prenait `servicesConnectes` — `enabled && authenticated` — alors
+ * que la rangée d'onglets de l'écran est `ongletsStreaming`, qui ajoute
+ * l'onglet de l'extension dès que `/ext/bandcamp/tags` répond. Or le service
+ * Bandcamp naît `enabled: false` côté serveur (`BandcampService::new`,
+ * opt-in) et ce drapeau ne garde AUCUNE de ses routes : lier son pseudo rend
+ * `authenticated: true` sans jamais l'activer. L'écran montrait donc Bandcamp,
+ * la barre non — deux règles pour une seule liste.
+ *
+ * On dérive la barre de la rangée RÉELLEMENT affichée, traduite en clés du
+ * serveur (`cleServeur`) : c'est ce que la barre pose dans
+ * `activeStreamingService`, et ce que l'écran sait rouvrir (`ongletApresDemande`).
+ */
+export function servicesDeLaBarre(
+  services: Record<string, EtatService> | null | undefined,
+  bandcampLive: boolean,
+): string[] {
+  return ongletsStreaming(services, bandcampLive).map((o) => cleServeur(o) ?? o);
+}
 
 /**
  * L'onglet à ouvrir quand on ARRIVE en demandant un service — #1138.
