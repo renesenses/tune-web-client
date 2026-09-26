@@ -522,15 +522,43 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
    * L'écran Étiquettes porte la même mécanique dans `lib/ouvrirParRaccourci` ;
    * celle-ci reste ici parce que ses gardes en lisent le texte.
    */
-  async function ouvrirAilleurs(vue: 'playlists' | 'smartplaylists' | 'collections', cle: string, id: number, nom: string) {
+  async function ouvrirAilleurs(
+    vue: 'playlists' | 'smartplaylists' | 'collections',
+    cle: string,
+    id: number | null,
+    nom: string,
+    restore: unknown = { id, name: nom },
+  ) {
     activeView.set(vue as any);
     await tick();
     window.dispatchEvent(
       new CustomEvent('tune:shortcut-restore', {
-        detail: { target: { key: cle, restore: { id, name: nom }, label: nom } },
+        detail: { target: { key: cle, restore, label: nom } },
       }),
     );
   }
+  /**
+   * #1620 (FabienM, fil 1956) — une playlist favorite de SERVICE s'ouvre par
+   * le MÊME chemin que dans l'écran Playlists : sa clé est celle que
+   * `PlaylistsV2` publie pour elle (`clePl` :
+   * `streamingplaylists:<service>:<source_id>`), et `restore` porte l'élément
+   * complet que son écouteur rouvre tel quel dans `PlaylistDetailV2` —
+   * `{ kind: 'streaming', service, pl }`.
+   */
+  const ouvrirPlaylistDeService = (pl: any) =>
+    !!pl?.source && !!pl?.source_id &&
+    ouvrirAilleurs('playlists', `streamingplaylists:${pl.source}:${pl.source_id}`, null, pl.name, {
+      kind: 'streaming',
+      service: pl.source,
+      pl: {
+        source_id: String(pl.source_id),
+        name: pl.name,
+        track_count: pl.track_count ?? 0,
+        duration_ms: pl.duration_ms ?? 0,
+        cover_path: pl.cover_path ?? null,
+        source: pl.source,
+      },
+    });
   // Une playlist INTELLIGENTE part vers SON onglet, sous SA clé (#4798) :
   // `smartplaylists:` et jamais `playlists:` — les deux tables partagent leurs
   // identifiants, et `SmartPlaylistsView` n'écoute que son propre préfixe.
@@ -862,12 +890,28 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
           {#each vPlaylists as pl, i (pl.smart ? `s-${pl.id}` : clef(pl, i))}
             {@const locale = pl.id != null}
             {@const coeur = locale ? null : coeurService(pl, 'playlist')}
-            <!-- Une playlist de SERVICE n'a pas encore d'écran qui l'accueille :
-                 on l'affiche, on laisse retirer son cœur, et on ne la rend PAS
-                 cliquable. Un lien mort serait pire que pas de lien — la règle
-                 déjà tenue par le nom d'artiste d'un album de service. -->
-            <svelte:element this={locale ? 'button' : 'div'} class="simple" class:inerte={!locale}
-                            onclick={locale ? () => ouvrirPlaylist(pl) : undefined}>
+            <!-- #1620 — une playlist de SERVICE s'ouvre aussi : l'écran
+                 Playlists l'accueille désormais (`PlaylistDetailV2`, depuis
+                 le 13/09/2026), et on y va par son propre chemin de
+                 restauration. Seule une ligne SANS identifiant de service
+                 reste inerte : un lien mort serait pire que pas de lien.
+                 🔴 La ligne de service reste un `div` (rôle bouton) : elle
+                 porte le cœur, un `<button>`, et un bouton dans un bouton est
+                 cassé en deux par l'analyseur HTML. -->
+            {@const deService = !locale && !!pl.source && !!pl.source_id}
+            {@const ouvrir = () => (locale ? ouvrirPlaylist(pl) : ouvrirPlaylistDeService(pl))}
+            <svelte:element this={locale ? 'button' : 'div'} class="simple" class:inerte={!locale && !deService}
+                            role={deService ? 'button' : undefined}
+                            tabindex={deService ? 0 : undefined}
+                            onclick={locale || deService ? ouvrir : undefined}
+                            onkeydown={deService
+                              ? (e: KeyboardEvent) => {
+                                  // Le cœur est DANS la ligne : sa touche Entrée
+                                  // ne doit pas ouvrir la playlist.
+                                  if (e.target !== e.currentTarget) return;
+                                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ouvrir(); }
+                                }
+                              : undefined}>
               <span class="si" aria-hidden="true" title={pl.smart ? $t('v2.pl.tabSmart' as any) : undefined}>
                 {#if pl.smart}
                   <!-- La playlist INTELLIGENTE se distingue à l'œil, comme la
@@ -1156,8 +1200,9 @@ import { collectionNomAffiche } from '../../lib/collectionsLibelles';
      playlist n'a pas d'image, et une grille de cartes vides mentirait sur la
      richesse de ce qu'elle contient. */
   .simples{display:flex; flex-direction:column; gap:2px}
-  /* Une playlist de service : présente, retirable, sans destination — le
-     curseur ne promet pas un clic qui ne mène nulle part. */
+  /* Une playlist sans destination (ni id local, ni identifiant de service) :
+     présente, retirable — le curseur ne promet pas un clic qui ne mène nulle
+     part. */
   .simple.inerte{cursor:default}
   .sfav{width:28px; height:28px; border-radius:8px; border:1px solid transparent; background:transparent;
     color:var(--v2-txt3); cursor:pointer; display:grid; place-items:center; flex:none}
