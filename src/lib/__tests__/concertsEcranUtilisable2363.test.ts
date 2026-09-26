@@ -49,6 +49,8 @@ let refus: { status: number; corps: unknown } | null = null;
 let localisation: { status: number; corps: unknown } = { status: 200, corps: {} };
 /** Le périmètre que le « serveur » a enregistré : `upcoming` le renvoie. */
 let perimetreServeur = 'radius';
+/** La commune que `upcoming` renvoie ('' = rien d'enregistré). */
+let villeServeur = 'Nantes';
 /** Échec imposé au seul `POST /location`, ou à la seule lecture `upcoming`. */
 let echecPost: { status: number; corps: unknown } | null = null;
 let echecUpcoming: { status: number; corps: unknown } | null = null;
@@ -73,6 +75,7 @@ beforeEach(() => {
   appels = [];
   refus = null;
   perimetreServeur = 'radius';
+  villeServeur = 'Nantes';
   echecPost = null;
   echecUpcoming = null;
   retenuPost = null;
@@ -95,7 +98,7 @@ beforeEach(() => {
         if (refus) return reponse(refus.status, refus.corps);
         if (u.includes('/ext/concerts/upcoming')) {
           if (echecUpcoming) return reponse(echecUpcoming.status, echecUpcoming.corps);
-          return reponse(200, { concerts: CONCERTS, scope: perimetreServeur, radius_km: 50, city: 'Nantes', country: 'FR' });
+          return reponse(200, { concerts: CONCERTS, scope: perimetreServeur, radius_km: 50, city: villeServeur, country: 'FR' });
         }
         if (u.includes('/ext/concerts/location')) {
           if (method === 'POST') {
@@ -327,6 +330,44 @@ describe('Concerts — contrat réel du lot serveur (srv#5102)', () => {
     expect(el.querySelector('.cc-commune')).toBeNull();
     expect(el.querySelector('.cc-introuvable')).toBeNull();
     expect(el.querySelectorAll('.cc-liste > li')).toHaveLength(2);
+  });
+
+  it('🔴 « Autour de moi » avec une commune vide : ouvre la saisie sans rien enregistrer', async () => {
+    perimetreServeur = 'world';
+    villeServeur = '';
+    localisation = {
+      status: 200,
+      corps: { scope: 'world', city: '', postal_code: null, country: '', radius_km: 100, code: 'concerts.no_location' },
+    };
+    const el = await poser(ConcertsView);
+    expect(el.querySelector('.cc-commune')).toBeNull();
+    bouton(el, fr['concerts.autourDeMoi'])!.click();
+    await laisserFaire();
+    // Les champs sont là : c'est le seul endroit où saisir la commune.
+    const [communeInput, cpInput] = [...el.querySelectorAll('.cc-commune input')] as HTMLInputElement[];
+    expect(communeInput).toBeDefined();
+    expect(cpInput).toBeDefined();
+    expect(el.querySelector('.cc-commune select')).not.toBeNull();
+    expect(bouton(el, fr['concerts.autourDeMoi'])!.classList.contains('actif')).toBe(true);
+    // Rien d'enregistré, aucune erreur « commune requise » au simple clic.
+    expect(appelsConcerts().filter((a) => a.method === 'POST')).toHaveLength(0);
+    expect(get(notifications).map((n) => n.message)).not.toContain(fr['concerts.communeRequise']);
+
+    // « Appliquer » sans commune : l'erreur, et toujours aucun POST.
+    bouton(el, fr['concerts.appliquer'])!.click();
+    await laisserFaire();
+    expect(get(notifications).map((n) => n.message)).toContain(fr['concerts.communeRequise']);
+    expect(appelsConcerts().filter((a) => a.method === 'POST')).toHaveLength(0);
+
+    // Commune saisie puis « Appliquer » : le POST part avec le rayon.
+    communeInput.value = 'Rezé';
+    communeInput.dispatchEvent(new Event('input', { bubbles: true }));
+    flushSync();
+    bouton(el, fr['concerts.appliquer'])!.click();
+    await laisserFaire();
+    const posts = appelsConcerts().filter((a) => a.method === 'POST');
+    expect(posts).toHaveLength(1);
+    expect(posts[0].body).toMatchObject({ city: 'Rezé', scope: 'radius' });
   });
 
   it('🔴 `located: false` : le nuage retombe sur le pays, et l’avertissement RESTE visible', async () => {

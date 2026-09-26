@@ -117,6 +117,15 @@
     }
   }
 
+  /** « Autour de moi » ne fait qu'ouvrir la saisie : c'est « Appliquer » qui
+   *  enregistre. Passer par `enregistrerLocalisation('radius')` refusait le
+   *  clic tant que la commune était vide — et la commune ne se saisit que
+   *  dans le bloc rayon, qui ne s'ouvrait donc jamais. */
+  function choisirRayon() {
+    if (serveurTropAncien) return;
+    perimetre = 'radius';
+  }
+
   async function enregistrerLocalisation(nouveauPerimetre?: api.PerimetreConcerts) {
     if (serveurTropAncien) return;
     const vise = nouveauPerimetre ?? perimetre;
@@ -230,7 +239,7 @@
     {:else}
     <section class="cc-perimetre">
       <div class="cc-crans">
-        <button class:actif={perimetre === 'radius'} onclick={() => enregistrerLocalisation('radius')}>
+        <button class:actif={perimetre === 'radius'} onclick={choisirRayon}>
           {$t('concerts.autourDeMoi')}
         </button>
         <button class:actif={perimetre === 'country'} onclick={() => enregistrerLocalisation('country')}>
