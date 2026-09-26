@@ -221,8 +221,12 @@ export function fusionnerHistorique(
   if (serveur.length === 0) combine = [...local];
   else if (local.length === 0) combine = [...serveur];
   else {
-    const vus = new Set(local.map((e) => e.track.title + e.playedAt));
-    combine = [...local, ...serveur.filter((e) => !vus.has(e.track.title + e.playedAt))];
+    // 🔴 Fil 1953 (FabienM, v0.9.165) — une écoute locale SANS contexte que le
+    // serveur connaît AVEC son album ou sa playlist est la même écoute : elle
+    // s'efface devant la ligne du serveur, qui la range dans son groupe.
+    const locales = local.filter((e) => !absorbeeParLeServeur(e, serveur));
+    const vus = new Set(locales.map((e) => e.track.title + e.playedAt));
+    combine = [...locales, ...serveur.filter((e) => !vus.has(e.track.title + e.playedAt))];
   }
 
   // 🔴 #1146 — la ligne retenue est la plus RÉCENTE, pas la première vue.
@@ -246,6 +250,53 @@ export function fusionnerHistorique(
   return rendu.slice(0, PLAFOND);
 }
 
+/**
+ * L'écart toléré entre l'horloge du navigateur et celle du serveur pour une
+ * même écoute — au-delà de la durée du titre lui-même.
+ */
+const ECART_MEME_ECOUTE_MS = 5 * 60_000;
+/**
+ * Une écoute LOCALE est-elle la même que l'une des écoutes du SERVEUR rangées
+ * dans un album, une playlist… ? — fil forum 1953.
+ *
+ * FabienM, v0.9.165 : « Quand je lis un album ou une playlist, l'album ou la
+ * playlist apparaît bien dans l'historique […] mais je vois également le titre
+ * en cours en 1re ligne, au-dessus de l'album : il ne devrait pas apparaître. »
+ *
+ * Le magasin local note l'écoute au `playback.started` (#1010, v0.9.164) sans
+ * aucun contexte : `stores/history` n'en porte jamais. Le serveur, lui, note la
+ * MÊME écoute avec `context_type = 'album'`. Leurs clés de ligne
+ * (`cleDeLigne`) diffèrent — `piste@` contre `piste@album` — et les horloges
+ * aussi, si bien que ni la déduplication par titre + instant ni celle par clé
+ * ne les rapprochait : le titre en cours sortait en ligne plate, au-dessus du
+ * groupe qui le contient déjà.
+ *
+ * On ne l'efface que si tout concorde : la piste (identifiant, ou source +
+ * identifiant de source, ou source + titre + artiste), une ligne de serveur
+ * REGROUPABLE, et deux instants distants de moins que la durée du titre plus
+ * une marge d'horloge. Une écoute locale sans équivalent serveur — radio,
+ * titre que le serveur n'a pas su rattacher — reste intacte.
+ */
+function absorbeeParLeServeur(e: HistoryEntry, serveur: readonly HistoryEntry[]): boolean {
+  if (estRegroupable(e.contexte)) return false;
+  const t = instant(e);
+  if (!Number.isFinite(t)) return false;
+  const marge = ECART_MEME_ECOUTE_MS + Math.max(0, Number(e.track.duration_ms) || 0);
+  return serveur.some((s) => {
+    if (!estRegroupable(s.contexte) || !memePiste(e.track, s.track)) return false;
+    const ts = instant(s);
+    return Number.isFinite(ts) && Math.abs(ts - t) <= marge;
+  });
+}
+/** Deux pistes désignent-elles le même titre ? Voir `absorbeeParLeServeur`. */
+function memePiste(a: Track, b: Track): boolean {
+  if (a.id != null && b.id != null) return String(a.id) === String(b.id);
+  const sa = a.source ?? null;
+  if (!sa || sa !== (b.source ?? null)) return false;
+  if (a.source_id != null && b.source_id != null) return String(a.source_id) === String(b.source_id);
+  const norm = (s?: string | null) => (s ?? '').trim().toLowerCase();
+  return !!norm(a.title) && norm(a.title) === norm(b.title) && norm(a.artist_name) === norm(b.artist_name);
+}
 /**
  * Clé de déduplication d'une LIGNE.
  *
