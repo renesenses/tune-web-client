@@ -996,6 +996,10 @@ export interface CompletenessStats {
   dynamic_range_from_analysis?: number;
   /** Lue telle quelle dans les tags du fichier — vaut ce que vaut le tagueur. */
   dynamic_range_from_tag?: number;
+  /** Lue dans un rapport `foo_dr.txt` voisin (DR Meter de foobar2000) —
+   *  serveur ≥ 0.9.152 (#4186), rattrapée sans rescan depuis
+   *  tune-server-rust#5168. */
+  dynamic_range_from_sidecar_file?: number;
   /** Pistes que la passe a essayées et écartées pour de bon. */
   dynamic_range_unavailable?: number;
   /** Pistes que la passe REPORTE (fichier qui ne répond pas, #1865) — ni

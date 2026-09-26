@@ -78,7 +78,56 @@ export type InstantaneTachesDeFond = {
   pausable?: TraitementSuspendable[];
   all_paused?: boolean;
   scan_pausable?: boolean;
+  /** Serveur tune-server-rust#5169 : la place de la plage dynamique parmi les
+   *  passes qui décodent — `last` | `before_fingerprints` | `first`. Absent
+   *  d'un serveur plus ancien (≤ 0.9.166). */
+  dynamic_range_priority?: string;
+  dynamic_range_priority_choices?: string[];
+  /** Serveur tune-server-rust#5168 : le rattrapage des `foo_dr.txt`. */
+  dynamic_range_sidecar?: RattrapageRapportsDr;
 };
+
+/** Le relevé du rattrapage des rapports `foo_dr.txt` (#5168). */
+export type RattrapageRapportsDr = {
+  running?: boolean;
+  last?: {
+    tracks_without_dr?: number;
+    folders?: number;
+    folders_read?: number;
+    reports_found?: number;
+    tracks_written?: number;
+    interrupted?: boolean;
+    duration_ms?: number;
+  } | null;
+  last_finished_epoch_s?: number | null;
+};
+
+/** Les positions de la plage dynamique que ce client sait NOMMER. */
+export const PRIORITES_DR = ['last', 'before_fingerprints', 'first'] as const;
+export type PrioriteDr = (typeof PRIORITES_DR)[number];
+
+/**
+ * Le choix de priorité de la plage dynamique à proposer, ou `null`.
+ *
+ * `null` quand le serveur ne connaît pas le réglage (≤ 0.9.166 : pas de
+ * `dynamic_range_priority`) — l'écran n'affiche alors AUCUN sélecteur, plutôt
+ * qu'un choix qui rendrait 404. Les choix proposés sont ceux que le serveur
+ * annonce ET que ce client sait nommer : un mot inconnu d'un serveur plus
+ * récent n'apparaît pas sans libellé.
+ */
+export function choixPrioriteDr(
+  instantane: InstantaneTachesDeFond | null | undefined,
+): { courante: PrioriteDr; choix: PrioriteDr[] } | null {
+  const courante = instantane?.dynamic_range_priority;
+  if (typeof courante !== 'string') return null;
+  const connus = (m: unknown): m is PrioriteDr =>
+    typeof m === 'string' && (PRIORITES_DR as readonly string[]).includes(m);
+  if (!connus(courante)) return null;
+  const annonces = instantane?.dynamic_range_priority_choices;
+  const choix = Array.isArray(annonces) ? annonces.filter(connus) : [...PRIORITES_DR];
+  if (!choix.includes(courante)) return null;
+  return { courante, choix };
+}
 
 /**
  * Quels traitements sont suspendus, par identifiant.
