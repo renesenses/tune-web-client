@@ -14,7 +14,7 @@
   import { currentZone, playAndSync } from '../../lib/stores/zones';
   import { currentTrackId } from '../../lib/stores/nowPlaying';
   import { notifications } from '../../lib/stores/notifications';
-  import { fold } from '../../lib/utils';
+  import { pisteRepondAuTexteLibre } from '../../lib/texteLibreOxygen';
   import { t } from '../../lib/i18n';
   import type { Track } from '../../lib/types';
 
@@ -223,10 +223,8 @@
   let visible = $derived.by(() => {
     let list = tracks; // already server-filtered by the active facet
     if (albumFilter != null) list = list.filter(t => (t.album_id ?? `t:${t.album_title}`) === albumFilter);
-    const q = fold(query.trim());
-    if (q) list = list.filter(t =>
-      fold(t.title).includes(q) || fold(t.artist_name ?? '').includes(q) ||
-      fold(t.album_title ?? '').includes(q) || fold(t.label ?? '').includes(q));
+    // #5192 — les MÊMES champs que le serveur, termes de chemin compris.
+    if (query.trim()) list = list.filter(t => pisteRepondAuTexteLibre(t, query));
     return list;
   });
 
@@ -480,10 +478,26 @@
     return groups;
   });
 
+  // #5192 — le texte libre part AUSSI au serveur, qui filtre la bibliothèque
+  // ENTIÈRE : la fenêtre ne tient que LOAD_LIMIT pistes, et un dossier au-delà
+  // n'y serait jamais trouvé. Le filtre local ci-dessus répond à la frappe ;
+  // la requête part 300 ms après la dernière. Mêmes champs des deux côtés
+  // (`texteLibreOxygen.ts`) : le second filtre ne retire rien au premier.
+  let texteServeur = $state('');
+  $effect(() => {
+    const saisie = query.trim();
+    const minuterie = setTimeout(() => { texteServeur = saisie; }, 300);
+    return () => clearTimeout(minuterie);
+  });
+  /** Le paramètre `q`, absent quand la saisie est vide. */
+  function texteLibreParam(): { q?: string } {
+    return texteServeur ? { q: texteServeur } : {};
+  }
+
   async function loadTracks() {
     loading = true; error = null;
     try {
-      const res = await getFilteredTracks({ ...facetParam(facetSels), limit: LOAD_LIMIT });
+      const res = await getFilteredTracks({ ...facetParam(facetSels), ...texteLibreParam(), limit: LOAD_LIMIT });
       tracks = res.items;
       total = res.total;
       selected = null;
@@ -501,7 +515,7 @@
     if (loadingMore || tracks.length >= total) return;
     loadingMore = true;
     try {
-      const res = await getFilteredTracks({ ...facetParam(facetSels), limit: LOAD_LIMIT, offset: tracks.length });
+      const res = await getFilteredTracks({ ...facetParam(facetSels), ...texteLibreParam(), limit: LOAD_LIMIT, offset: tracks.length });
       const known = new Set(tracks.map(t => t.id));
       tracks = [...tracks, ...res.items.filter(t => !known.has(t.id))];
       total = res.total;
@@ -625,7 +639,7 @@
   });
 
   // Server-driven: (re)fetch the filtered tracks whenever the selection changes.
-  $effect(() => { void JSON.stringify(facetSels); loadTracks(); });
+  $effect(() => { void JSON.stringify(facetSels); void texteServeur; loadTracks(); });
   // Ne charge que dans son mode : l'agrégat coûte un GROUP BY sur toute la
   // sélection, inutile tant que la vue n'est pas à l'écran.
   $effect(() => { void JSON.stringify(facetSels); if (mode === 'cards') loadCards(); });

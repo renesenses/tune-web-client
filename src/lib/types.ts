@@ -200,6 +200,10 @@ export interface Track {
   cue_media_path?: string | null;
   cue_start_ms?: number | null;
   cue_end_ms?: number | null;
+  /** tune-server-rust#5192 — nom du dernier dossier et du fichier sans
+   *  extension, calculés par le serveur (`/library/tracks`), que compare le
+   *  texte libre d'Oxygen. Voir `texteLibreOxygen.ts`. */
+  path_terms?: string;
   format?: AudioFormat | null;
   sample_rate?: number | null;
   bit_depth?: number | null;
