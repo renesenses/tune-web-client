@@ -106,7 +106,12 @@ describe('#3822 — une playlist de service réapparaît dans les Favoris', () =
     ).toContain('Jazz du dimanche');
   });
 
-  it('🔴 elle n’est PAS cliquable — aucun écran n’accueille encore une playlist de service', async () => {
+  // #1620 — ce cas disait « PAS cliquable, aucun écran n'accueille encore une
+  // playlist de service ». L'écran Playlists l'accueille depuis le 13/09 : la
+  // ligne s'ouvre désormais, voir `favorisPlaylistServiceOuvrable1620.test.ts`.
+  // Reste vrai et gardé ici : la ligne est un `div` — elle porte le cœur, et
+  // un bouton dans un bouton serait coupé en deux par l'analyseur HTML.
+  it('la ligne reste un `div` (rôle bouton), jamais un bouton qui contiendrait le cœur', async () => {
     const h = poser();
     await respirer();
     flushSync();
@@ -116,9 +121,8 @@ describe('#3822 — une playlist de service réapparaît dans les Favoris', () =
     const ligne = Array.from(h.querySelectorAll('.simple'))
       .find((e) => (e.textContent ?? '').includes('Jazz du dimanche'));
     expect(ligne, 'la ligne n’est pas rendue — témoin sans objet').toBeTruthy();
-    // Un lien mort serait pire que pas de lien : la ligne est un `div`, pas un
-    // bouton, tant qu'il n'y a pas de destination.
     expect(ligne!.tagName.toLowerCase()).toBe('div');
-    expect(ligne!.classList.contains('inerte')).toBe(true);
+    expect(ligne!.getAttribute('role')).toBe('button');
+    expect(ligne!.classList.contains('inerte')).toBe(false);
   });
 });
