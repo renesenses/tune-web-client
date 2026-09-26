@@ -37,13 +37,17 @@ describe('barre latérale — l’ordre du 20/09/2026', () => {
     // La liste est COMPLÉTÉE à cette place précise, pas assouplie : ce témoin
     // EST l'arbitrage du 20/09, et une addition sans mandat explicite doit
     // continuer de le faire rougir.
+    //
+    // `circle` suit `concerts` — demande de Bertrand du 26/09/2026 : l'entrée
+    // Tune Circle à côté des autres greffons, rendue seulement si le greffon
+    // tourne (`$circleCharge`).
     expect(vuesDe('ADVANCED')).toEqual([
-      'ambiance', 'browse', 'mediaservers', 'zonemanager', 'tableaudebord', 'search', 'concerts',
+      'ambiance', 'browse', 'mediaservers', 'zonemanager', 'tableaudebord', 'search', 'concerts', 'circle',
     ]);
   });
 
   it('🔴 l’ordre AFFICHÉ, étages concaténés, est exactement celui demandé', () => {
-    const affiche = [...vuesDe('CORE'), ...vuesDe('ADVANCED')].filter((v) => v !== 'concerts');
+    const affiche = [...vuesDe('CORE'), ...vuesDe('ADVANCED')].filter((v) => v !== 'concerts' && v !== 'circle');
     expect(affiche).toEqual([
       'home', 'nowplaying', 'queue', 'history', 'library', 'oxygen', 'streaming',
       'radios', 'podcasts', 'ambiance', 'browse', 'mediaservers', 'zonemanager',
