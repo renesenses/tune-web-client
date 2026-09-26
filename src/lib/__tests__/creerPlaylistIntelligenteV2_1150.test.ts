@@ -335,13 +335,17 @@ describe('#1150 — MODIFIER depuis le nouveau client', () => {
 describe('#1150 — SUPPRIMER depuis le nouveau client', () => {
   /** Ouvre le menu de la vignette et clique l'entrée en `danger`. */
   async function demanderSuppression(el: HTMLElement) {
-    const menu = el.querySelector<HTMLButtonElement>('.grid .card .menu-actions button.coin.bl');
+    // ⚠️ 26/09/2026 — le conteneur `.menu-actions` a disparu et le panneau est
+    // PORTÉ à la racine du document (`lib/portail`) : ancré dans la vignette, il
+    // se faisait rogner par `overflow: hidden` et par le `contain` de la carte.
+    // Le bouton reste dans la carte, le panneau se cherche dans le document.
+    const menu = el.querySelector<HTMLButtonElement>('.grid .card button.coin.bl');
     expect(menu, 'la vignette n’a pas de menu d’actions').not.toBeNull();
     menu!.click();
     flushSync();
     await attendre();
     flushSync();
-    const entrees = [...el.querySelectorAll<HTMLButtonElement>('.grid .card .menu button[role="menuitem"]')];
+    const entrees = [...document.querySelectorAll<HTMLButtonElement>('.menu button[role="menuitem"]')];
     const supprimer = entrees.find((b) => b.classList.contains('danger'));
     expect(
       supprimer,

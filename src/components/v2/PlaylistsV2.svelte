@@ -31,6 +31,7 @@
   import { dialogs } from '../../lib/stores/dialogs';
   import PochetteActions from './PochetteActions.svelte';
   import { cibleEtiquettePlaylist, cibleSmartPlaylist } from '../../lib/cibleEtiquette';
+  import { entreesPochette } from '../../lib/actionsPochette';
   import RenommerModale from './RenommerModale.svelte';
   import PlaylistDetailV2 from './PlaylistDetailV2.svelte';
   import { setShortcutTarget, clearShortcutTarget } from '../../lib/stores/shortcuts';
@@ -404,6 +405,49 @@
     }
   }
 
+  /**
+   * Les menus de pochette de cet écran — `lib/actionsPochette` les décide.
+   *
+   * Les deux tableaux étaient écrits en dur dans le balisage. Leur CONTENU ne
+   * change pas ; ce qui change est qu'il vient d'un seul endroit, avec l'ordre
+   * et les clés. C'est ce qui a permis de voir que `SmartPlaylistsView` montrait
+   * la MÊME playlist intelligente sans « Lire en aléatoire ».
+   *
+   * La playlist de SERVICE (troisième emplacement de cet écran) n'a aucun geste
+   * disponible : ni aléatoire — ses pistes vivent chez le service — ni partage,
+   * ni suppression. Son bouton est donc ABSENT, et elle n'appelle rien ici.
+   */
+  function menuSmart(sp: any) {
+    return entreesPochette(
+      { type: 'playlistIntelligente', idBibliotheque: sp?.id ?? null },
+      {
+        lireAleatoire: () => lireSmart(sp, true),
+        supprimer: () => void supprimerSmart(sp),
+      },
+      (k) => $t(k as any),
+    );
+  }
+  /**
+   * 🔴 Pas de « Supprimer » ici, et ce n'est pas un oubli.
+   *
+   * `api.deletePlaylist` existe et la FICHE l'offre (`PlaylistDetailV2`, bouton
+   * `v2.pl.delete`), mais cet écran n'a pas le geste : il lui faudrait une
+   * fonction de confirmation et de relecture qui n'existe pas, et une clé de
+   * confirmation qui n'existe dans aucune des onze langues. Le catalogue dit que
+   * la CAPACITÉ est là ; tant que la SURFACE ne fournit pas le geste, l'entrée
+   * reste absente — c'est exactement la distinction qu'il porte.
+   */
+  function menuLocale(pl: Playlist) {
+    return entreesPochette(
+      { type: 'playlist', idBibliotheque: pl?.id ?? null },
+      {
+        lireAleatoire: () => void lireLocalAleatoire(pl),
+        partager: () => partager(pl),
+      },
+      (k) => $t(k as any),
+    );
+  }
+
   /** Relit la liste depuis le serveur plutôt que de la corriger à la main. */
   function rechargerSmart() {
     smartCharge = false;
@@ -761,8 +805,7 @@
                     favori={sp.id != null ? { smartPlaylistId: sp.id } : null}
                     etiquettes={sp.id != null ? cibleSmartPlaylist(sp.id) : null}
                     onEditer={sp.id != null ? () => (editeurSmart = { id: sp.id }) : null}
-                    menu={[{ libelle: $t('library.shuffle' as any), faire: () => lireSmart(sp, true) },
-                           { libelle: $t('common.delete'), danger: true, faire: () => void supprimerSmart(sp) }]}>
+                    menu={menuSmart(sp)}>
                     {#if mos}
                       <MosaiquePochettes pochettes={mos} initiales={sp.name?.slice(0, 1)} alt={sp.name} />
                     {:else}
@@ -801,12 +844,7 @@
                     onEditer={pl.id != null ? () => (enEdition = pl) : null}
                     onLire={() => playLocal(pl)}
                     onOuvrir={() => ouvrirPl({ kind: 'local', pl })}
-                    menu={pl.id != null
-                      ? [
-                          { libelle: $t('library.shuffle' as any), faire: () => void lireLocalAleatoire(pl) },
-                          { libelle: $t('v2.pl.share' as any), danger: true, faire: () => partager(pl) },
-                        ]
-                      : []}
+                    menu={menuLocale(pl)}
                     nom={pl.name}
                   >
                     {#if mos}

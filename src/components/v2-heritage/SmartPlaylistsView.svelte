@@ -11,6 +11,7 @@
   import MosaiquePochettes from '../v2/MosaiquePochettes.svelte';
   import PochetteActions from '../v2/PochetteActions.svelte';
   import { cibleSmartPlaylist } from '../../lib/cibleEtiquette';
+  import { entreesPochette } from '../../lib/actionsPochette';
   import { quatreDistinctes } from '../../lib/mosaique';
   import { dialogs } from '../../lib/stores/dialogs';
   import { preferences } from '../../lib/stores/preferences';
@@ -332,19 +333,45 @@
    * enchaînement que « Tout lire » de la fiche (`lireListe` : la tête part, le
    * reste s'enfile), la liste pouvant être mixte depuis #4299.
    */
-  async function lireSmartPlaylist(sp: SmartPlaylist) {
+  async function lireSmartPlaylist(sp: SmartPlaylist, aleatoire = false) {
     const zid = zone?.id;
     if (zid == null) return;
     try {
       const pistes = await api.getSmartPlaylistTracks(sp.id);
       if (!pistes?.length) return;
-      await lireListe(pistes, {
+      const gestes = {
         lire: (c: any) => playAndSync(zid, c),
         enfiler: (c: any) => api.addToQueue(zid, c),
-      });
+      };
+      await (aleatoire ? lireListeAleatoire(pistes, gestes) : lireListe(pistes, gestes));
     } catch (e) {
       signalerEchecLecture(e);
     }
+  }
+
+  /**
+   * Le menu de la vignette — `lib/actionsPochette` en décide le contenu.
+   *
+   * 🔴 C'EST ICI QUE LA DIVERGENCE SE VOYAIT. Cet écran n'offrait que
+   * « Supprimer » ; `PlaylistsV2` offrait « Lire en aléatoire » PUIS
+   * « Supprimer », sur la MÊME playlist intelligente. Deux chemins d'accès à la
+   * même chose, pas les mêmes gestes — le reproche de Dominique Comet sur le
+   * menu de piste, rejoué sur les pochettes.
+   *
+   * Le geste existait pourtant déjà ici, deux fois : `playShuffle` sur la fiche
+   * ouverte, et `lireListeAleatoire` importé depuis `lectureEnMasse`. Il
+   * manquait la VIGNETTE. `lireSmartPlaylist(sp, true)` est le même
+   * enchaînement que `lireSmart(sp, true)` de `PlaylistsV2`.
+   */
+  function menuSmart(sp: SmartPlaylist) {
+    return entreesPochette(
+      { type: 'playlistIntelligente', idBibliotheque: sp?.id ?? null },
+      {
+        lireAleatoire: () => void lireSmartPlaylist(sp, true),
+        supprimer: () => void handleDelete(sp),
+      },
+      (k) => $tr(k as any),
+    );
   }
 
   // A shortcut created on a specific smart playlist must reopen THAT one, not
@@ -847,11 +874,7 @@
                 onEditer={() => startEdit(sp)}
                 onLire={() => lireSmartPlaylist(sp)}
                 onOuvrir={() => selectSp(sp)}
-                menu={[{
-                  libelle: $tr('common.delete'),
-                  danger: true,
-                  faire: () => void handleDelete(sp),
-                }]}
+                menu={menuSmart(sp)}
                 nom={sp.name}
               >
                 <!-- Mosaïque ou pochette UNIQUE, au choix (Réglages →

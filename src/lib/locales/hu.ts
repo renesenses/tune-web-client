@@ -2581,7 +2581,6 @@ export default {
   "v2.cover.edit": "Szerkesztés",
   "v2.cover.tags": "Címkék",
   "v2.cover.more": "További műveletek",
-  "v2.cover.moreSoon": "További műveletek — hamarosan",
   "v2.tags.onThis": "Elhelyezve",
   "v2.tags.none": "Még nincs címke.",
   "v2.tags.add": "Hozzáadás",

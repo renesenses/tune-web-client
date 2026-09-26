@@ -74,7 +74,12 @@ describe('Smart playlists : la carte est celle des smart collections', () => {
     expect(liste).toContain('onEditer={() => startEdit(sp)}');
     expect(liste).toContain('onLire={() => lireSmartPlaylist(sp)}');
     expect(liste).toContain('onOuvrir={() => selectSp(sp)}');
-    expect(liste).toContain('faire: () => void handleDelete(sp),');
+    // ⚠️ 26/09/2026 — le menu vient du catalogue `lib/actionsPochette` :
+    // `menuSmart` lui FOURNIT le geste, il décide de la clé et de la teinte.
+    // La vignette y a gagné « Lire en aléatoire », que `PlaylistsV2` offrait sur
+    // le même objet et que cet écran n'offrait pas.
+    expect(liste).toContain('menu={menuSmart(sp)}');
+    expect(vue).toContain('supprimer: () => void handleDelete(sp)');
     // 🔄 RENVERSÉE le 23/09/2026 (#4798). Cette garde exigeait l'ABSENCE du
     // cœur et des étiquettes : le serveur ne connaissait pas ce type d'objet,
     // et un bouton qui mène à un refus vaut moins qu'un bouton absent. Depuis

@@ -91,6 +91,8 @@
   // manquant — n'atteignait jamais l'écran.
   import { gestesDeZone } from '../../lib/gestesDeZone';
   import { chargerCollectionsCibles, entreesAjoutCollection, type CollectionCible } from '../../lib/albumVersCollection';
+  import { entreesPochette } from '../../lib/actionsPochette';
+  import { enfilerAlbum } from '../../lib/enfilerAlbum';
   import { lireListeDepuis } from '../../lib/lectureEnMasse';
   // #929 — le carrousel emprunte le geste des rangées éditoriales, il ne le
   // réécrit pas. C'est l'action de #1137, corrigée par #1327 : molette,
@@ -1028,6 +1030,29 @@
    *  collection n'existe pas ». La liste est RELUE après l'ajout (`apres`). */
   function entreesCollection(a: Album) {
     return entreesAjoutCollection(collectionsCibles, a.id, (k) => $tr(k as any), (relues) => (collectionsCibles = relues));
+  }
+
+  /**
+   * Le menu de la pochette — `lib/actionsPochette` en décide le contenu.
+   *
+   * Cet écran composait son tableau lui-même, et n'y mettait QUE les cibles de
+   * collection : « Ajouter à la file » existait sur la même vignette d'album
+   * dans `FavoritesV2`, et pas ici. Le catalogue referme cet écart ; les trois
+   * emplacements de cet écran (facette, grille, carrousel) l'appellent.
+   *
+   * Un album de DÉPÔT distant n'a pas d'identifiant chez nous : il perd donc
+   * ses deux gestes, et son bouton avec — exactement ce que faisait le
+   * `depot ? []` d'avant.
+   */
+  function menuAlbum(a: Album) {
+    return entreesPochette(
+      { type: 'album', idBibliotheque: depot ? null : a.id },
+      {
+        enfiler: () => void enfilerAlbum(a.id, a.title),
+        ciblesCollection: () => entreesCollection(a),
+      },
+      (k) => $tr(k as any),
+    );
   }
 
   function tech(a: Album): string {
@@ -2683,7 +2708,7 @@
                         onEditer={depot ? null : () => (enEdition = a)}
                         onLire={() => lireAlbum(a)}
                         onOuvrir={() => ouvrirCalqueAlbum(a)}
-                        menu={depot ? [] : entreesCollection(a)}
+                        menu={menuAlbum(a)}
                         nom={a.title}
                       >
                         <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
@@ -2837,7 +2862,7 @@
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}
-          menu={depot ? [] : entreesCollection(a)}
+          menu={menuAlbum(a)}
           nom={a.title}
         >
           <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
@@ -2886,7 +2911,7 @@
           onEditer={depot ? null : () => (enEdition = a)}
           onLire={() => lireAlbum(a)}
           onOuvrir={() => ouvrirCalqueAlbum(a)}
-          menu={depot ? [] : entreesCollection(a)}
+          menu={menuAlbum(a)}
           nom={a.title}
         >
           <AlbumArt coverPath={a.cover_path} albumId={depot ? null : a.id} size={0} alt={a.title} source={a.source} fallbackInitials={a.title?.slice(0,1)} />
