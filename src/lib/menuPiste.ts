@@ -112,11 +112,17 @@ export interface CapacitesPiste {
   rangeableEnPlaylist?: boolean;
   /**
    * La piste est BANNIE (#4806) : l'entrée devient « Débannir ». Absent =
-   * pas bannie. N'a de sens que pour une piste de BIBLIOTHÈQUE — une piste de
-   * service n'a ni l'une ni l'autre des deux entrées (tranche locale seule,
-   * Bertrand 23/09/2026).
+   * pas bannie. Vaut pour une piste de BIBLIOTHÈQUE, et pour un titre de
+   * SERVICE quand `bannissableDeService` le dit.
    */
   bannie?: boolean;
+  /**
+   * Le titre de SERVICE (Qobuz, Tidal, Bandcamp…) peut-il être banni ? —
+   * #4806 suite, FabienM fil 1946 réponse 6820. Vrai dès qu'il porte la
+   * paire `source` + `source_id` (`bannissableDeService`, `lib/titreBanni`),
+   * l'appelant le pose. Absent = non (comportement de la tranche locale).
+   */
+  bannissableDeService?: boolean;
   /**
    * La piste n'a pas d'identifiant de bibliothèque mais porte un TITRE et un
    * ARTISTE : « Autres versions » se rapproche alors par titre + artiste
@@ -354,12 +360,14 @@ export function entreesMenuPiste(
    * sélection automatique, reste visible mais grisé dans son album, et se
    * débannit depuis le même menu ou depuis l'écran « Titres bannis ».
    *
-   * Bibliothèque SEULE pour cette tranche : `POST /library/tracks/{id}/ban`
-   * prend un `i64`. Une piste de service n'a AUCUNE des deux entrées —
-   * absente, pas grisée, comme ses voisines de la famille A. Et jamais les
+   * Une piste de la bibliothèque par son `i64` (`/library/tracks/{id}/ban`),
+   * un titre de SERVICE par sa paire (`/library/tracks/streaming/ban`,
+   * FabienM fil 1946 réponse 6820). Une piste qui n'est ni l'une ni l'autre
+   * (radio) n'a AUCUNE des deux entrées — absente, pas grisée. Et jamais les
    * deux à la fois : la piste est bannie ou ne l'est pas.
    */
-  pousser(deLaBibliotheque && !c.bannie, 'ban.ban', ICONES.ban, g.bannir);
-  pousser(deLaBibliotheque && c.bannie === true, 'ban.unban', ICONES.unban, g.debannir);
+  const bannissable = deLaBibliotheque || !!c.bannissableDeService;
+  pousser(bannissable && !c.bannie, 'ban.ban', ICONES.ban, g.bannir);
+  pousser(bannissable && c.bannie === true, 'ban.unban', ICONES.unban, g.debannir);
   return e;
 }

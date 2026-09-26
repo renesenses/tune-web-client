@@ -3932,7 +3932,7 @@ export default {
   "ban.error": "A szám tiltását nem sikerült módosítani.",
   "ban.title": "Kitiltott számok",
   "ban.eyebrow": "Amit félretett",
-  "ban.intro": "A kitiltott szám látható marad az albumában, kiszürkítve, de soha többé nem játszódik le automatikusan: sem véletlenszerű lejátszásban, sem okos lejátszási listából, sem folytatásként. Egy szándékos kattintás megerősítés után lejátssza.",
+  "ban.intro": "A kitiltott szám – akár a könyvtáradból, akár egy szolgáltatásból, például a Qobuzról vagy a Tidalról – látható marad az albumában, kiszürkítve, de soha többé nem játszódik le automatikusan: sem véletlenszerű lejátszásban, sem okos lejátszási listából, sem rádióból, sem folytatásként. Egy szándékos kattintás megerősítés után lejátssza.",
   "ban.empty": "Nincs kitiltott szám.",
   "ban.loadError": "A kitiltott számokat nem sikerült betölteni.",
   "ban.retry": "Újra",

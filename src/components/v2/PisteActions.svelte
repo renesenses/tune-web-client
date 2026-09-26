@@ -69,7 +69,7 @@
   import { corpsDeFile, corpsDeLecture, estPisteLocale, rangeableEnPlaylist } from '../../lib/pisteFile';
   import { currentZoneId, playAndSync } from '../../lib/stores/zones';
   import {
-    bannir, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
+    bannir, bannissableDeService, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
   } from '../../lib/titreBanni';
   import { signalerEchecLecture } from '../../lib/echecLecture';
   import { rangLireEnsuite } from '../../lib/stores/queue';
@@ -415,6 +415,8 @@
         // #4889 — une playlist TUNE porte désormais un titre de service.
         rangeableEnPlaylist: rangeableEnPlaylist(piste),
         bannie,
+        // #4806 suite — un titre de SERVICE se bannit aussi (fil 1946, 6820).
+        bannissableDeService: bannissableDeService(piste),
         // 23/09/2026 — « Autres versions » sur une piste de SERVICE, par
         // rapprochement titre + artiste. `cibleParTitre` refuse une piste de
         // la bibliothèque (la route par `i64` fait mieux) et une piste sans

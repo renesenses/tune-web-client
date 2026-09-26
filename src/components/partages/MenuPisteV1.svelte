@@ -49,7 +49,7 @@
   import { destinationArtiste } from '../../lib/routageArtiste';
   import { t as tr } from '../../lib/i18n';
   import {
-    bannir, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
+    bannir, bannissableDeService, confirmerLectureBannie, debannir, estBannie, surchargesBannissement,
   } from '../../lib/titreBanni';
   import { cibleDeService, type CibleEtiquette } from '../../lib/cibleEtiquette';
   import { serviceDePlaylist } from '../../lib/playlistService';
@@ -209,6 +209,8 @@
     albumDeService,
     artisteDeService,
     bannie,
+    // #4806 suite — un titre de SERVICE se bannit aussi (fil 1946, 6820).
+    bannissableDeService: bannissableDeService(piste),
     // 🔴 Les DEUX capacités que `v2/PisteActions.svelte:371-372` passe et que
     // ce menu oubliait — la parité des deux menus se joue ici, et le témoin
     // `uniformitePiste1848` les compare montés.

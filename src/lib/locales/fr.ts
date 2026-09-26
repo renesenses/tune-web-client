@@ -3996,7 +3996,7 @@ export default {
   "ban.error": "Impossible de modifier le bannissement de ce titre.",
   "ban.title": "Titres bannis",
   "ban.eyebrow": "Ce que vous avez écarté",
-  "ban.intro": "Un titre banni reste visible dans son album, grisé, mais n’est plus jamais joué automatiquement : ni en aléatoire, ni par une smart playlist, ni en enchaînement. Un clic délibéré le joue, après confirmation.",
+  "ban.intro": "Un titre banni — de votre bibliothèque ou d’un service comme Qobuz ou Tidal — reste visible dans son album, grisé, mais n’est plus jamais joué automatiquement : ni en aléatoire, ni par une smart playlist, ni par la radio, ni en enchaînement. Un clic délibéré le joue, après confirmation.",
   "ban.empty": "Aucun titre banni.",
   "ban.loadError": "Impossible de charger les titres bannis.",
   "ban.retry": "Réessayer",
