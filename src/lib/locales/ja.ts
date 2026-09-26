@@ -2623,7 +2623,6 @@ export default {
   "v2.cover.edit": "編集",
   "v2.cover.tags": "タグ",
   "v2.cover.more": "その他の操作",
-  "v2.cover.moreSoon": "その他の操作 — 近日公開",
   "v2.tags.onThis": "付与済み",
   "v2.tags.none": "まだタグがありません。",
   "v2.tags.add": "追加",

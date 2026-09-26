@@ -79,6 +79,8 @@
   import PochetteActions from './PochetteActions.svelte';
   import MosaiqueDifferee from './MosaiqueDifferee.svelte';
   import { cibleEtiquetteAlbum, cibleEtiquettePlaylist } from '../../lib/cibleEtiquette';
+  import { entreesPochette } from '../../lib/actionsPochette';
+  import { enfilerAlbum } from '../../lib/enfilerAlbum';
   import { favoriExterneService } from '../../lib/streamingFavorites';
   import { favoriteStreamingKeys } from '../../lib/stores/profile';
   import { dateDeParution } from '../../lib/albumAParaitre';
@@ -787,6 +789,31 @@
    * Une zone mène à « Lecture en cours », après y avoir bascule la selection :
    * sans cela on ouvrirait l'ecran sur une AUTRE zone que celle cliquee.
    */
+  /**
+   * Le menu de la vignette d'un élément de widget — `lib/actionsPochette` le dit.
+   *
+   * Cet écran n'en avait aucun : bouton présent et grisé sur chaque bande de
+   * l'Accueil. Les bandes montrent pourtant, entre autres, des albums de la
+   * BIBLIOTHÈQUE — les mêmes que `LibraryV2` et `FavoritesV2`.
+   *
+   * 🔴 La capacité se lit sur `idLocal`, exactement comme le crayon juste
+   * au-dessus (`onEditer`), qui ouvre `AlbumEditModal` : dans cet écran, un
+   * élément qui porte un identifiant local EST un album de la bibliothèque. Le
+   * reste — playlist, collection, artiste, zone, album de service — n'a aucun
+   * geste disponible ici et n'a donc plus de bouton.
+   *
+   * La garde sur `ouvrir !== 'playlist'` est une ceinture : une playlist ne doit
+   * jamais partir en `{ album_id }`, et l'erreur serait SILENCIEUSE côté serveur.
+   */
+  function menuElement(e: Element, idLocal: number | null) {
+    const album = e?.ouvrir !== 'playlist' ? idLocal : null;
+    return entreesPochette(
+      { type: 'album', idBibliotheque: album },
+      { enfiler: () => void enfilerAlbum(album, e?.titre) },
+      (k) => $t(k as any),
+    );
+  }
+
   function ouvrirElement(e: Element) {
     /**
      * Les classements (« Vos tops », « Artistes les plus écoutés ») n'ont
@@ -1393,6 +1420,7 @@
                         onEditer={idLocal != null ? () => (enEdition = el.fiche) : null}
                         onLire={el.jouer ? () => jouer(el) : null}
                         onOuvrir={el.ouvrir ? () => ouvrirElement(el) : null}
+                        menu={menuElement(el, idLocal)}
                         nom={el.titre}
                       >
                         {#if el.pochettes || el.mosaique}

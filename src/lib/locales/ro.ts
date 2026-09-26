@@ -2623,7 +2623,6 @@ export default {
   "v2.cover.edit": "Modifică",
   "v2.cover.tags": "Etichete",
   "v2.cover.more": "Alte acțiuni",
-  "v2.cover.moreSoon": "Alte acțiuni — în curând",
   "v2.tags.onThis": "Puse",
   "v2.tags.none": "Încă nicio etichetă.",
   "v2.tags.add": "Adaugă",

@@ -2623,7 +2623,6 @@ export default {
   "v2.cover.edit": "Modifica",
   "v2.cover.tags": "Etichette",
   "v2.cover.more": "Altre azioni",
-  "v2.cover.moreSoon": "Altre azioni — a breve",
   "v2.tags.onThis": "Applicate",
   "v2.tags.none": "Ancora nessuna etichetta.",
   "v2.tags.add": "Aggiungi",

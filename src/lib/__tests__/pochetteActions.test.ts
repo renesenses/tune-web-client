@@ -39,38 +39,62 @@ describe('Pochette — les cinq emplacements de la maquette', () => {
         `le coin .${classe} ne porte plus « ${marqueur} » : les actions ont changé de place.`,
       ).toBe(true);
     }
-    expect(/class="coin bl"[\s\S]{0,400}?disabled/.test(src), 'le coin bas-gauche a disparu').toBe(true);
+    // 🔴 Le coin bas-gauche ne porte plus `disabled` : depuis le 26/09/2026 il
+    // est ABSENT quand le catalogue ne rend rien, pas grisé. Ce qu'il porte,
+    // c'est l'ouverture du menu.
+    expect(/class="coin bl"[\s\S]{0,400}?ouvrirMenu/.test(src), 'le coin bas-gauche a disparu').toBe(true);
     expect(/class="centre"[\s\S]{0,400}?onLire/.test(src), 'la lecture n’est plus au centre').toBe(true);
   });
 
-  it('le menu d’actions reste inerte tant qu’il n’a rien à offrir', () => {
-    // État d'origine : le bouton existe, la modale de Levente reste à définir.
-    // `disabled` plutôt qu'un clic sans effet — un bouton qui ne répond pas se
-    // lit comme une panne.
-    //
-    // Bertrand y a fait entrer le PARTAGE le 02/09/2026 : le menu s'ouvre dès
-    // qu'une entrée existe, et reste inerte sinon. Les deux états comptent.
+  it('le menu d’actions DISPARAÎT quand il n’a rien à offrir', () => {
+    /**
+     * 🔴 CE CAS DISAIT LE CONTRAIRE JUSQU'AU 26/09/2026.
+     *
+     * Il gardait l'état d'origine : le bouton présent et `disabled`, « en
+     * attendant la modale de Levente ». L'exception a duré 24 jours, sur huit
+     * écrans sur treize, avec le libellé « Autres actions — bientôt ». Bertrand
+     * l'a levée : « le bouton DISPARAÎT là où rien ne s'applique ».
+     *
+     * Le cas fonctionnel — monter la pochette et constater l'ABSENCE du bouton —
+     * vit dans `catalogueActionsPochette.svelte.test.ts`. Ici on tient
+     * seulement le fait que le grisé ne peut pas revenir par distraction.
+     */
     const src = actions();
-    expect(src.includes('disabled={!menu.length}'), 'le bouton ne redevient plus inerte sans entrée').toBe(true);
-    expect(
-      src.includes('onclick={menu.length ? (e) => seul(e, () => (menuOuvert = !menuOuvert)) : undefined}'),
-      'le menu ne s’ouvre plus, ou s’ouvre même vide.',
-    ).toBe(true);
+    expect(src.includes('disabled={!menu.length}'), 'le bouton grisé est de retour').toBe(false);
+    expect(src.includes('v2.cover.moreSoon'), 'la promesse « bientôt » est de retour').toBe(false);
+    expect(src.includes('{#if menu.length}'), 'le bouton n’est plus conditionné aux entrées').toBe(true);
   });
 
-  it('le menu se referme : choix, clic ailleurs, Échap', () => {
-    // Sans cela il resterait posé sur la grille pendant qu'on fait autre chose.
+  it('le menu se referme : choix, clic ailleurs, Échap, mouvement de la page', () => {
+    // Sans cela il resterait posé sur la grille pendant qu'on fait autre chose —
+    // et, PORTÉ à la racine depuis le 26/09/2026, il ne suivrait plus son bouton
+    // au défilement : il faut donc aussi le fermer quand la page bouge.
     const src = actions();
-    expect(src.includes('menuOuvert = false; e.faire();'), 'le menu ne se referme plus après un choix').toBe(true);
-    expect(src.includes("closest?.('.menu-actions')"), 'le clic ailleurs ne referme plus').toBe(true);
+    expect(src.includes('fermerMenu();\n    e.faire();'), 'le menu ne se referme plus après un choix').toBe(true);
     expect(src.includes("e.key === 'Escape'"), 'Échap ne referme plus').toBe(true);
+    expect(src.includes('onwheel={fermerMenu}'), 'le défilement ne referme plus').toBe(true);
+    expect(src.includes('onresize={fermerMenu}'), 'le redimensionnement ne referme plus').toBe(true);
   });
 
-  it('le menu SORT du cadre de la pochette', () => {
-    // `.pa` porte `overflow: hidden` : ancré dedans, le menu serait rogné.
+  it('le menu SORT du cadre de la pochette — porté à la RACINE', () => {
+    /**
+     * `.pa` porte `overflow: hidden` : ancré dedans, le menu serait rogné. Il
+     * l'était par un simple `position: absolute` dans un conteneur de la
+     * vignette, ce qui suffisait tant que rien au-dessus ne rognait — or la
+     * carte de la Bibliothèque porte `content-visibility: auto`, donc
+     * `contain: layout style paint`, qui capture même un `position: fixed`.
+     * C'est ce qui avait rogné le panneau d'étiquettes aux trois quarts le
+     * 02/09/2026.
+     *
+     * La preuve fonctionnelle (le nœud est enfant de `<body>`, placé par
+     * `styleMenuAncre`) vit dans `catalogueActionsPochette.svelte.test.ts`. Ici
+     * on tient la non-régression des deux dépendances partagées.
+     */
     const src = actions();
-    expect(/\.menu-actions\s*\{[^}]*position:\s*absolute/.test(src), 'l’ancrage du menu a disparu').toBe(true);
-    expect(/\.menu\s*\{[^}]*z-index:\s*3/.test(src), 'le menu passerait sous les icônes').toBe(true);
+    expect(src.includes('use:portail'), 'le menu n’est plus porté à la racine').toBe(true);
+    expect(src.includes('styleMenuAncre'), 'le menu ne suit plus les coordonnées écran du bouton').toBe(true);
+    expect(/\.fond\s*\{[^}]*position:\s*fixed/.test(src), 'la surcouche n’est plus fixe').toBe(true);
+    expect(/\.menu\s*\{[^}]*position:\s*fixed/.test(src), 'le panneau est redevenu positionné dans la vignette').toBe(true);
   });
 });
 
