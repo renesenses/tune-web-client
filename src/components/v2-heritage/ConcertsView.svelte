@@ -108,7 +108,10 @@
         concerts = [];
         return;
       }
-      anomalie = 'concerts.unavailable';
+      // 429 du nuage : `concerts.rate_limited`, qui se dit autrement qu'une panne.
+      anomalie = (e as api.ApiError)?.code === 'concerts.rate_limited'
+        ? 'concerts.rate_limited'
+        : 'concerts.unavailable';
     } finally {
       chargement = false;
     }
@@ -150,9 +153,29 @@
         serveurTropAncien = true;
         return;
       }
-      notifications.error($t('concerts.enregistrementEchoue'));
+      notifications.error($t(cleEchecLocalisation(e as api.ApiError)));
     } finally {
       enregistrement = false;
+    }
+  }
+
+  /** La phrase d'un échec de `POST /location`, par le code du serveur (lot
+   *  `batch/concerts-greffon-20260925`) : 422 `concerts.invalid_location`
+   *  (+ `field`), 409 `concerts.no_instance_id`, 429 `concerts.rate_limited`,
+   *  502 `concerts.unavailable`. Jamais la phrase du serveur. */
+  function cleEchecLocalisation(err: api.ApiError | undefined) {
+    const corps = (err?.corps ?? null) as { field?: unknown } | null;
+    switch (err?.code) {
+      case 'concerts.invalid_location':
+        return corps?.field === 'city' ? 'concerts.communeInvalide' : 'concerts.localisationInvalide';
+      case 'concerts.no_instance_id':
+        return 'concerts.pasDInstance';
+      case 'concerts.rate_limited':
+        return 'concerts.tropDeDemandes';
+      case 'concerts.unavailable':
+        return 'concerts.indisponible';
+      default:
+        return 'concerts.enregistrementEchoue';
     }
   }
 
@@ -246,15 +269,20 @@
              coordonnées tirées de l'adresse IP, qui derrière un VPN désignent
              un autre pays. -->
         <p class="cc-note">{$t('concerts.communeSaisieNote')}</p>
-        {#if localisee === false}
-          <p class="cc-note cc-attention">{$t('concerts.communeIntrouvable')}</p>
-        {/if}
+      {/if}
+      <!-- HORS du bloc « rayon » : quand la commune est introuvable, le nuage
+           retombe sur le pays et renvoie `scope: country` — l'avertissement
+           disparaissait avec le bloc, au moment précis où il fallait le lire. -->
+      {#if localisee === false}
+        <p class="cc-note cc-attention cc-introuvable">{$t('concerts.communeIntrouvable')}</p>
       {/if}
     </section>
     {/if}
 
     {#if chargement}
       <p class="cc-muet">{$t('concerts.chargement')}</p>
+    {:else if anomalie === 'concerts.rate_limited'}
+      <p class="cc-muet cc-trop">{$t('concerts.tropDeDemandes')}</p>
     {:else if anomalie === 'concerts.no_instance_id'}
       <p class="cc-muet">{$t('concerts.pasDInstance')}</p>
     {:else if anomalie}

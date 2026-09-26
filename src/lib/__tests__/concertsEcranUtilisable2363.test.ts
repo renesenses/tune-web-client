@@ -11,6 +11,10 @@ import { preparerLocale } from '../i18n';
 import { activeView } from '../stores/navigation';
 import { v2SettingsTarget } from '../stores/v2SettingsNav';
 import { concertsPlugin, concertsUtilisable } from '../stores/concerts';
+import { notifications } from '../stores/notifications';
+import { nomFonctionnalite } from '../nomFonctionnaliteLicence';
+import { t } from '../i18n';
+import { readFileSync } from 'node:fs';
 import fr from '../locales/fr';
 
 /**
@@ -45,6 +49,11 @@ let refus: { status: number; corps: unknown } | null = null;
 let localisation: { status: number; corps: unknown } = { status: 200, corps: {} };
 /** Le périmètre que le « serveur » a enregistré : `upcoming` le renvoie. */
 let perimetreServeur = 'radius';
+/** Échec imposé au seul `POST /location`, ou à la seule lecture `upcoming`. */
+let echecPost: { status: number; corps: unknown } | null = null;
+let echecUpcoming: { status: number; corps: unknown } | null = null;
+/** Ce que le nuage retient à la place de la demande (commune introuvable). */
+let retenuPost: Record<string, unknown> | null = null;
 
 function reponse(status: number, corps: unknown): Response {
   return {
@@ -64,6 +73,10 @@ beforeEach(() => {
   appels = [];
   refus = null;
   perimetreServeur = 'radius';
+  echecPost = null;
+  echecUpcoming = null;
+  retenuPost = null;
+  for (const n of get(notifications)) notifications.dismiss(n.id);
   localisation = {
     status: 200,
     corps: { scope: 'radius', city: 'Nantes', postal_code: '44000', country: 'FR', radius_km: 50, located: true },
@@ -81,14 +94,17 @@ beforeEach(() => {
       if (u.includes('/ext/concerts/')) {
         if (refus) return reponse(refus.status, refus.corps);
         if (u.includes('/ext/concerts/upcoming')) {
+          if (echecUpcoming) return reponse(echecUpcoming.status, echecUpcoming.corps);
           return reponse(200, { concerts: CONCERTS, scope: perimetreServeur, radius_km: 50, city: 'Nantes', country: 'FR' });
         }
         if (u.includes('/ext/concerts/location')) {
           if (method === 'POST') {
             if (localisation.status !== 200) return reponse(localisation.status, localisation.corps);
+            if (echecPost) return reponse(echecPost.status, echecPost.corps);
             const b = JSON.parse(String(init?.body));
-            perimetreServeur = b.scope;
-            return reponse(200, { scope: b.scope, city: b.city, country: b.country, radius_km: b.radius_km, located: true });
+            const rendu = { scope: b.scope, city: b.city, country: b.country, radius_km: b.radius_km, located: true, ...(retenuPost ?? {}) };
+            perimetreServeur = rendu.scope;
+            return reponse(200, rendu);
           }
           return reponse(localisation.status, localisation.corps);
         }
@@ -295,5 +311,96 @@ describe('Concerts — tuile Extensions', () => {
     const bandeau = el.querySelector('div.err');
     expect(bandeau?.textContent).toContain(fr['premium.required']);
     expect(bandeau?.textContent).not.toContain('premium_required');
+  });
+});
+
+const toasts = () => get(notifications).map((n) => n.message);
+
+describe('Concerts — contrat réel du lot serveur (srv#5102)', () => {
+  it('rien d’enregistré (`concerts.no_location`) : « partout », commune vide, aucun avertissement', async () => {
+    localisation = {
+      status: 200,
+      corps: { scope: 'world', city: '', postal_code: null, country: '', radius_km: 100, code: 'concerts.no_location' },
+    };
+    const el = await poser(ConcertsView);
+    expect(bouton(el, fr['concerts.partout'])!.classList.contains('actif')).toBe(true);
+    expect(el.querySelector('.cc-commune')).toBeNull();
+    expect(el.querySelector('.cc-introuvable')).toBeNull();
+    expect(el.querySelectorAll('.cc-liste > li')).toHaveLength(2);
+  });
+
+  it('🔴 `located: false` : le nuage retombe sur le pays, et l’avertissement RESTE visible', async () => {
+    retenuPost = { scope: 'country', located: false };
+    const el = await poser(ConcertsView);
+    bouton(el, fr['concerts.appliquer'])!.click();
+    await laisserFaire();
+    expect(bouton(el, fr['concerts.dansMonPays'])!.classList.contains('actif')).toBe(true);
+    expect(el.querySelector('.cc-introuvable')?.textContent).toBe(fr['concerts.communeIntrouvable']);
+  });
+
+  it('422 `concerts.invalid_location` sur la commune : phrase traduite, jamais le code', async () => {
+    echecPost = { status: 422, corps: { code: 'concerts.invalid_location', field: 'city' } };
+    const el = await poser(ConcertsView);
+    bouton(el, fr['concerts.appliquer'])!.click();
+    await laisserFaire();
+    expect(toasts()).toContain(fr['concerts.communeInvalide']);
+    expect(toasts().join(' ')).not.toContain('invalid_location');
+  });
+
+  it('422 sur un autre champ : phrase générique de localisation refusée', async () => {
+    echecPost = { status: 422, corps: { code: 'concerts.invalid_location', field: 'radius_km' } };
+    const el = await poser(ConcertsView);
+    bouton(el, fr['concerts.appliquer'])!.click();
+    await laisserFaire();
+    expect(toasts()).toContain(fr['concerts.localisationInvalide']);
+  });
+
+  it('409 `concerts.no_instance_id`, 429 et 502 : chacun sa phrase, sans « Server error »', async () => {
+    const cas: [number, string, string][] = [
+      [409, 'concerts.no_instance_id', 'concerts.pasDInstance'],
+      [429, 'concerts.rate_limited', 'concerts.tropDeDemandes'],
+      [502, 'concerts.unavailable', 'concerts.indisponible'],
+    ];
+    for (const [status, code, cle] of cas) {
+      for (const n of get(notifications)) notifications.dismiss(n.id);
+      echecPost = { status, corps: { code } };
+      const el = await poser(ConcertsView);
+      bouton(el, fr['concerts.appliquer'])!.click();
+      await laisserFaire();
+      expect(toasts(), `${status}`).toEqual([fr[cle as keyof typeof fr]]);
+      unmount(monte!); monte = null; hote?.remove();
+    }
+  });
+
+  it('429 sur la lecture : « trop de demandes », pas « service indisponible »', async () => {
+    echecUpcoming = { status: 429, corps: { concerts: [], code: 'concerts.rate_limited', retry_after: 60 } };
+    const el = await poser(ConcertsView);
+    expect(texte(el)).toContain(fr['concerts.tropDeDemandes']);
+    expect(texte(el)).not.toContain(fr['concerts.indisponible']);
+  });
+
+  it('le refus porte `feature: concerts` en 402 : toujours reconnu', async () => {
+    refus = {
+      status: 402,
+      corps: { error: 'module_required', code: 'module_not_owned', module: 'concerts', feature: 'concerts', action: 'purchase_module', upgrade_url: 'https://mozaiklabs.fr/pricing' },
+    };
+    const el = await poser(ConcertsView);
+    expect(texte(el)).toContain(fr['concerts.premiumRequis']);
+    expect(el.querySelector('.cc-liste')).toBeNull();
+  });
+});
+
+describe('Concerts — tuile de la grille des modules Premium (`Feature::Concerts`)', () => {
+  const LANGUES = ['de', 'en', 'es', 'fr', 'hu', 'it', 'ja', 'ko', 'ro', 'sv', 'zh'];
+
+  it('le code `concerts` a son nom dans les ONZE langues', () => {
+    const manquantes = LANGUES.filter(
+      (l) => !readFileSync(`src/lib/locales/${l}.ts`, 'utf8').includes('"licenseFeature.concerts"'),
+    );
+    expect(manquantes).toEqual([]);
+  });
+
+  it('la grille affiche le nom traduit, pas le code ni le nom anglais du serveur', () => {
+    expect(nomFonctionnalite('concerts', 'Concerts', get(t) as (c: string) => string)).toBe(fr['licenseFeature.concerts']);
   });
 });

@@ -8606,8 +8606,12 @@ export interface LocalisationConcerts {
   code?: string;
 }
 
+// Les trois appels du greffon passent `sansBandeau` : l'écran Concerts porte
+// lui-même chaque échec, par un code traduit (`concerts.unavailable`,
+// `concerts.rate_limited`…). Sans lui, un 502 du nuage affichait en plus
+// « Server error: 502 Bad Gateway ».
 export function getConcertsAVenir() {
-  return fetchJSON<ConcertsAVenir>(`${BASE}/ext/concerts/upcoming`);
+  return fetchJSON<ConcertsAVenir>(`${BASE}/ext/concerts/upcoming`, undefined, undefined, true);
 }
 
 /** Enregistre la commune SAISIE par l'utilisateur et le périmètre voulu.
@@ -8620,7 +8624,7 @@ export function getConcertsAVenir() {
  *  ⚠️ Route postérieure à v0.9.165 (lot serveur `batch/concerts-greffon-20260925`) :
  *  un serveur plus ancien répond 404, et l'écran le dit au lieu d'échouer. */
 export function getLocalisationConcerts() {
-  return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`);
+  return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`, undefined, undefined, true);
 }
 
 export function setLocalisationConcerts(demande: {
@@ -8633,7 +8637,7 @@ export function setLocalisationConcerts(demande: {
   return fetchJSON<LocalisationConcerts>(`${BASE}/ext/concerts/location`, {
     method: 'POST',
     body: JSON.stringify(demande),
-  });
+  }, undefined, true);
 }
 
 // --- Greffon « Playlists converter » (tune-server-rust#4715) ---
