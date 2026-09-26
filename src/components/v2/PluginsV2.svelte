@@ -20,6 +20,8 @@
   import { fold } from '../../lib/utils';
   import { ajouterLaBoutique } from '../../lib/catalogueGreffons';
   import { activeView } from '../../lib/stores/navigation';
+  import { refreshConcertsPlugin } from '../../lib/stores/concerts';
+  import { estRefusPremium } from '../../lib/premiumRefus';
   import BandeauReinstallerGreffons from './BandeauReinstallerGreffons.svelte';
   import '../../styles/tune-v2.css';
 
@@ -41,6 +43,9 @@
       ]);
       plugins = ajouterLaBoutique(locaux ?? [], (boutique as any)?.plugins ?? []);
       publierGreffons(plugins); error = null;
+      // L'entrée « Concerts » de la barre latérale suit l'installation sans
+      // attendre un rechargement de la page (tune-server-rust#2363).
+      void refreshConcertsPlugin();
     }
     catch { error = $t('v2.plug.unavailable' as any); }
     loading = false;
@@ -82,7 +87,9 @@
       if (res?.restart_required) restartNeeded = true;
       await reload();
     } catch (e: any) {
-      error = e?.message ?? $t('settings.errActionFailed' as any);
+      // Un refus d'offre porte la sentinelle `premium_required` comme message :
+      // on dit la phrase traduite, jamais le code.
+      error = estRefusPremium(e) ? $t('premium.required' as any) : (e?.message ?? $t('settings.errActionFailed' as any));
     }
     busy = null;
   }
@@ -140,13 +147,16 @@
           <article class="pl" class:err={p.status === 'error'}>
             <div class="pi">
               <div class="ph">
-                <h2>{p.display_name || p.name}</h2>
+                <h2>{p.name === 'concerts' ? $t('concerts.greffonNom' as any) : (p.display_name || p.name)}</h2>
                 <span class="ver">v{p.installed_version ?? p.version}</span>
                 {#if p.category}<span class="cat">{p.category}</span>{/if}
                 {#if p.update_available}<span class="upd">{$t('v2.plug.updateAvailable' as any)}</span>{/if}
+                {#if p.premium}<span class="prem">{$t('v2.plug.premium' as any)}</span>{/if}
                 {#if !p.compatible}<span class="ko">{$t('v2.lbl.incompatible' as any)}</span>{/if}
               </div>
-              <p class="pd">{p.description}</p>
+              <!-- Le serveur ne rend que le nom technique et une phrase anglaise
+                   pour les greffons natifs : Concerts porte les siens, traduits. -->
+              <p class="pd">{p.name === 'concerts' ? $t('concerts.greffonDescription' as any) : p.description}</p>
               {#if p.author}<div class="pa">{p.author}</div>{/if}
               {#if !p.compatible && (p.min_tune_version || p.max_tune_version)}
                 <div class="why">
@@ -168,6 +178,9 @@
                 {/if}
                 {#if p.name === 'cd' && isActive(p)}
                   <button class="lnk ouvrir-cd" onclick={() => activeView.set('lecturecd')}>{$t('common.open' as any)}</button>
+                {/if}
+                {#if p.name === 'concerts' && isActive(p)}
+                  <button class="lnk ouvrir-concerts" onclick={() => activeView.set('concerts')}>{$t('common.open' as any)}</button>
                 {/if}
                 {#if p.name === 'circle' && isActive(p)}
                   <button class="lnk ouvrir-circle" onclick={() => activeView.set('circle')}>{$t('common.open' as any)}</button>
@@ -223,10 +236,11 @@
   .ph{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
   .ph h2{font-size:15px; font-weight:700}
   .ver{font:10px var(--v2-mono); color:var(--v2-txt3)}
-  .cat,.upd,.ko{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px}
+  .cat,.upd,.ko,.prem{font:9.5px var(--v2-mono); letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px}
   .cat{color:var(--v2-txt3); border:1px solid var(--v2-line2)}
   .upd{color:var(--v2-acc-tint); border:1px solid var(--v2-acc2)}
   .ko{color:var(--v2-danger); border:1px solid var(--v2-danger-bd)}
+  .prem{color:var(--v2-acc-tint); background:var(--v2-acc-soft)}
   .pd{margin-top:7px; font-size:12.5px; line-height:1.55; color:var(--v2-txt2); max-width:74ch}
   .pa{margin-top:5px; font:10.5px var(--v2-mono); color:var(--v2-txt3)}
   .why{margin-top:8px; font-size:11.5px; color:var(--v2-txt3)}
