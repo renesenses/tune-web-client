@@ -145,6 +145,12 @@ describe('gardes i18n — le texte collé à une accolade (capture Silviu, v0.9.
     expect(r.stderr).toContain("File d'attente indisponible.");
   });
 
+  // Délai explicite, pour la même raison que le test suivant : sur une fixture
+  // PROPRE, `check-i18n` ne s'arrête pas au premier contrôle — il enchaîne sur
+  // les clés appelées, la parité des onze langues et les clés orphelines, et
+  // ces trois-là lisent tout `src`, quelle que soit la racine du premier. Les
+  // cinq secondes par défaut ne suffisent pas, et un dépassement de délai ici
+  // ressemble à une garde cassée alors qu'elle est seulement lente.
   it('les deux gardes RESTENT VERTES sur du code légitime', () => {
     // Une garde qui rougit sur `{$t('clé')}`, sur un commentaire français ou
     // sur « 128 MB » ne survit pas à sa première semaine.
@@ -155,7 +161,7 @@ describe('gardes i18n — le texte collé à une accolade (capture Silviu, v0.9.
     const fr2 = lancer('check-francais-v2.mjs', { FRANCAIS_V2_PORTEE: join(portee, 'propre') });
     expect(fr2.stderr).toBe('');
     expect(fr2.status).toBe(0);
-  });
+  }, 60_000);
 
   // Sur tout `src` les deux gardes lisent ~700 composants et onze catalogues
   // de traduction : compter ~7 s, au-dela du delai par defaut de vitest.

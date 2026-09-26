@@ -16,6 +16,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { balisageDe, noeudsDeTexte, ENTITES_HTML } from './lib/balisage.mjs';
+import { prefixesDynamiques, clesLitterales } from './lib/prefixesDynamiques.mjs';
 
 const VISIBLE = />([^<>{}]*[a-zà-ÿ][^<>{}]*)<|(?:title|placeholder|aria-label|label)="([^"{}]+)"/g;
 
@@ -340,4 +341,63 @@ sans quoi la langue concernée retombe sur le français, en silence.
 }
 console.log(
   `i18n check: ${LOCALES.length + 1} langues à 100 % (${surDisque.join(', ')}), aucune dérive.`
+);
+
+/* -------------------------------------------------------------------------
+ * Quatrième contrôle : une clé déclarée doit être APPELÉE.
+ *
+ * Le deuxième contrôle attrape la référence sans clé. Il ne voit jamais
+ * l'inverse — la clé sans référence — et celles-là ne se signalent par rien :
+ * un libellé que personne n'affiche ne casse aucun écran, n'échoue à aucun
+ * test, et les dix traducteurs le traduisent quand même.
+ *
+ * Elles s'accumulaient donc. Origine mesurée : la phase 5 a retiré l'ancienne
+ * interface — 64 vues, 508 tests (`docs/garanties-sans-temoin-phase5.md`) — et
+ * leurs libellés sont restés derrière. 274 clés, dans les onze langues, soit
+ * 3 014 lignes que chaque relecture de traduction traversait pour rien.
+ *
+ * 🔴 CE QUE CE CONTRÔLE NE DOIT PAS FAIRE. Une clé peut être appelée sans
+ * jamais être ÉCRITE : `$t('oxygen.facet.' + f)`,
+ * `` $t(`zoneConfig.channels_${d}`) ``. Accuser celles-là mènerait à une purge
+ * qui casse un écran EN SILENCE — la clé brute s'affiche telle quelle, et rien
+ * ne l'attrape, ni ce contrôle ni un test. Les préfixes composés sont donc
+ * DÉRIVÉS DU CODE (`lib/prefixesDynamiques.mjs`), à chaque exécution, jamais
+ * tenus à la main.
+ *
+ * Le plafond est à ZÉRO : une clé orpheline ajoutée demain fait rougir la
+ * porte, le jour même, pendant que son auteur est encore là.
+ * ---------------------------------------------------------------------- */
+
+const PLAFOND_ORPHELINES = 0;
+
+const { prefixes, enumerees } = prefixesDynamiques('src', fr);
+const litterales = clesLitterales('src');
+const couvertePar = (cle) =>
+  [...prefixes.keys()].find((p) => cle.startsWith(p) && cle.length > p.length);
+
+const clesOrphelines = [...fr]
+  .filter((cle) => !litterales.has(cle) && !enumerees.has(cle) && !couvertePar(cle))
+  .sort();
+
+if (clesOrphelines.length > PLAFOND_ORPHELINES) {
+  console.error(
+    `\n${clesOrphelines.length} clé(s) déclarée(s) et jamais appelée(s) ` +
+      `(plafond : ${PLAFOND_ORPHELINES}) :\n`
+  );
+  for (const cle of clesOrphelines) console.error(`  ${cle}`);
+  console.error(`
+Une clé que personne n'appelle est du poids mort : les onze langues la
+traduisent, chaque relecture la traverse, et aucun écran ne l'affiche.
+Retirez-la des ${surDisque.length} fichiers de src/lib/locales/.
+
+Si elle EST appelée, c'est que la composition qui la produit n'est pas lue par
+scripts/lib/prefixesDynamiques.mjs — ajoutez-y la forme, ne rallongez pas une
+liste. ${prefixes.size} préfixe(s) dynamique(s) y sont dérivés du code aujourd'hui.
+`);
+  process.exit(1);
+}
+const exemptees = [...fr].filter((cle) => !litterales.has(cle) && couvertePar(cle)).length;
+console.log(
+  `i18n check: aucune clé orpheline (${prefixes.size} préfixes dynamiques dérivés du code, ` +
+    `${exemptees} clés exemptées, ${enumerees.size} énumérées).`
 );

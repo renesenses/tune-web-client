@@ -27,7 +27,10 @@ describe('Support v2 : diagnostic et « Mon système » (Bertrand, 05/09/2026)',
     for (const s of ['getDatabaseStatus', 'getScanStatus', 'getAdminHealth', 'getHealth']) {
       expect(sup).toContain(s);
     }
-    expect((sup.match(/\.catch\(\(\) => null\)/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    // #5086 : chaque sonde passe par `sonder`, qui ne rejette jamais et NOMME
+    // son échec (délai, statut HTTP, injoignable) au lieu du `.catch(() => null)`
+    // qui les confondait tous.
+    expect((sup.match(/\bsonder\(api\./g) ?? []).length).toBeGreaterThanOrEqual(4);
   });
 
   it('le schéma est rendu par MERMAID, charge en import differe', () => {
