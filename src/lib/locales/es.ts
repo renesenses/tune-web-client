@@ -3410,6 +3410,8 @@ export default {
   "v2.sup.diagDisk": "Espacio libre en disco",
   "v2.sup.diagOk": "responde",
   "v2.sup.diagUnreachable": "inaccesible",
+  "v2.sup.diagTimeout": "sin respuesta a tiempo",
+  "v2.sup.diagHttpError": "error {status}",
   "v2.sup.diagScanning": "en curso",
   "v2.sup.diagIdle": "en reposo",
   "v2.sup.diagChecking": "Comprobando…",
