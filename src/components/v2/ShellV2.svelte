@@ -39,6 +39,7 @@
   import PontRoonV2 from './PontRoonV2.svelte';
   import LectureCdV2 from './LectureCdV2.svelte';
   import CircleV2 from './CircleV2.svelte';
+  import PageSourceV2 from './PageSourceV2.svelte';
   import CollectionsV2 from './CollectionsV2.svelte';
   import HistoriqueV2 from './HistoriqueV2.svelte';
   import TitresBannisV2 from './TitresBannisV2.svelte';
@@ -159,6 +160,7 @@
   // l'allure reste celle d'origine, comme pour les autres vues héritées.
   import ConcertsView from '../v2-heritage/ConcertsView.svelte';
   import DashboardView from '../v2-heritage/DashboardView.svelte';
+  import TableauDeBordV2 from './TableauDeBordV2.svelte';
   import RecommendationsSection from '../v2-heritage/RecommendationsSection.svelte';
   import BrowseView from '../v2-heritage/BrowseView.svelte';
   import { mobileNowPlayingOpen } from '../../lib/stores/navigation';
@@ -260,7 +262,7 @@
     bannedtracks: 'ban.title',
     ambiance: 'nav.ambiance', browse: 'nav.browse', equalizer: 'nav.equalizer',
     crossfeed: 'v2.nav.crossfeed', converter: 'v2.nav.converter', declick: 'v2.nav.declick',
-    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', diagnostics: 'v2.nav.processing',
+    alarms: 'alarms.title',     metadata: 'metadata.title', plugins: 'v2.nav.plugins', pontroon: 'v2.pontRoon.title', lecturecd: 'v2.cd.title', circle: 'v2.circle.title', source: 'v2.sources.title', diagnostics: 'v2.nav.processing',
     settings: 'v2.nav.settings', support: 'v2.nav.support', genres: 'nav.genres',
     smartplaylists: 'v2.pl.tabSmart', playlistmanager: 'playlist.manager',
   };
@@ -700,6 +702,9 @@
       {:else if $activeView === 'circle'}
         <!-- Tune Circle (tune-server-rust#5018), ouvert depuis sa carte. -->
         <CircleV2 />
+      {:else if $activeView === 'source'}
+        <!-- Page d'une source de la rubrique « Sources » (tune-server-rust#5065). -->
+        <PageSourceV2 />
       {:else if $activeView === 'metadata'}
         <MetadataV2 />
       {:else if $activeView === 'support'}
@@ -734,6 +739,15 @@
           <DashboardView />
           <RecommendationsSection />
         </div>
+      {:else if $activeView === 'tableaudebord'}
+        <!-- LE NOUVEAU TABLEAU DE BORD (25/09/2026) — onze widgets `bloc`.
+
+             Monté NU, sans le conteneur `.dash` de son voisin du dessus :
+             `PageWidgets` porte déjà son propre ascenseur (`.scroll`) et sa
+             propre gouttière de grappe, comme sur l'Accueil et sur les écrans
+             éditoriaux. L'envelopper ajouterait un second conteneur de
+             défilement — exactement le défaut de #1344, pris par l'autre bout. -->
+        <TableauDeBordV2 />
       {:else if $activeView === 'smartplaylists'}
         <SmartPlaylistsView />
       {:else if $activeView === 'playlistmanager'}

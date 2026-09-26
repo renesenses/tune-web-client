@@ -72,7 +72,15 @@ const VUES: Record<View, boolean> = {
   diagnostics: true,
   collections: true,
   smartcollections: true,
+  // `dashboard` reste l'ANCIEN écran (`v2-heritage/DashboardView`), devenu le
+  // réservoir le 25/09/2026 : hors du menu depuis la 0.9.161, mais toujours
+  // atteignable par son adresse — il garde le sélecteur de période et l'export
+  // CSV que le nouvel écran n'a pas.
   dashboard: true,
+  // `tableaudebord` est le NOUVEL écran à widgets (25/09/2026). Deux noms pour
+  // deux écrans bien réels : reposer le neuf sur l'adresse de l'ancien aurait
+  // rendu le réservoir inatteignable, ce que l'arbitrage interdit.
+  tableaudebord: true,
   services: true,
   genretree: true,
   equalizer: true,
@@ -92,7 +100,7 @@ const VUES: Record<View, boolean> = {
   circle: true,
   bannedtracks: true,
 
-  // ─── Les six que l'adresse NE repose PAS, et pourquoi ────────────────────
+  // ─── Celles que l'adresse NE repose PAS, et pourquoi ────────────────────
   //
   // `tv` a déjà son chemin de démarrage, à part : `App.svelte` lit `#tv`,
   // `#tv&zone=12` et `#tv?zone=12`, force la zone puis entre en Grand écran.
@@ -117,6 +125,9 @@ const VUES: Record<View, boolean> = {
   // sur son repli « À venir ». Reposer la vue seule promettrait un écran vide.
   streamingalbum: false,
   streamingartist: false,
+  // tune-server-rust#5065 — la page d'UNE source : son identifiant vit dans
+  // `sourceCourante`, que l'adresse ne porte pas. Recharger n'a rien à rouvrir.
+  source: false,
 };
 
 /**

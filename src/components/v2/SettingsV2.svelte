@@ -30,6 +30,7 @@
   import { isPushEnabled, setPushEnabled } from '../../lib/notifications-push';
   import { followMe, zones, currentZoneId } from '../../lib/stores/zones';
   import * as api from '../../lib/api';
+  import { parolesEnLigneActives, parolesEnLigneDepuisConfig } from '../../lib/lyricsOnline';
   import { aDesEcarts, groupesEcartes, motifsDesFeuilles, listeTronquee } from '../../lib/rapportEcartes';
   import { tuneWS } from '../../lib/websocket';
   import {
@@ -1367,6 +1368,10 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
   let scanning = $state(false);
   let scanReport = $state<any | null>(null);
   let qualitySplit = $state(true);
+  /** #4051 — « Paroles en ligne (LRCLIB) ». Absente de `/system/config` =
+   *  éteinte : le serveur n'interroge LRCLIB que sur la chaîne "true". */
+  let lrclibOn = $state(false);
+  let lrclibErr = $state<string | null>(null);
   let schedOn = $state(false);
   let schedTime = $state('03:00');
   // #1578 : date (jour local) de la dernière occurrence honorée du scan
@@ -1538,6 +1543,7 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
       // chaine ('false') aussi bien qu'en booleen.
       qualitySplit = !(c?.quality_split === false || c?.quality_split === 'false'
         || c?.quality_split === 0 || c?.quality_split === '0');
+      lrclibOn = parolesEnLigneDepuisConfig(c?.lyrics_lrclib_enabled);
     } catch { libErr = get(t)('settings.errConfigUnavailable'); }
     try {
       const sch: any = await api.getScanSchedule();
@@ -1672,6 +1678,27 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
     const before = qualitySplit; qualitySplit = v;
     try { await api.updateConfig({ quality_split: v }); notifications.success(get(t)('settings.savedNeedsFullScan')); }
     catch { qualitySplit = before; libErr = get(t)('settings.errSaveFailed'); }
+  }
+  /**
+   * #4051 — l'interrupteur que l'ancien écran portait, et que la v2 avait
+   * perdu. Même patron que `setQualitySplit` : l'état local d'abord, et un
+   * refus du serveur le REMET en place et le dit — l'ancien `onchange` n'avait
+   * ni l'un ni l'autre, et une case restée cochée sur un réglage non écrit a
+   * coûté trois heures d'enquête à un testeur (fil 1776).
+   *
+   * Le témoin partagé `parolesEnLigneActives` suit : le panneau des paroles
+   * le lit pour dire « recherche en ligne désactivée », et il ne doit pas
+   * continuer à le dire une fois la case allumée.
+   */
+  async function setLrclib(v: boolean) {
+    const before = lrclibOn; lrclibOn = v; lrclibErr = null;
+    try {
+      await api.updateConfig({ lyrics_lrclib_enabled: v });
+      parolesEnLigneActives.set(v);
+    } catch {
+      lrclibOn = before;
+      lrclibErr = get(t)('settings.errSaveFailed');
+    }
   }
   async function saveSchedule() {
     schedBusy = true;
@@ -3173,7 +3200,23 @@ import { annonceSlimprotoDepuisConfig, basculerAnnonceSlimproto } from '../../li
               </div>
 
             {:else if s.id === 'metadata'}
-              <p class="hint">{$t('v2.set.metadataHint' as any).replace('{e}', $t('metadata.title' as any))}</p>
+              <!-- #4051 : la carte descend au niveau débutant pour cette case
+                   (#2859) ; le renvoi vers le Studio reste Avancé. -->
+              <div class="row">
+                <div class="lbl">
+                  <span>{$t('settings.lyricsLrclib' as any)}</span>
+                  <span class="hint">{$t('settings.lyricsLrclibHelp' as any)}</span>
+                </div>
+                <label class="sw">
+                  <input type="checkbox" data-cle="lyrics_lrclib_enabled" checked={lrclibOn}
+                    onchange={(e) => setLrclib((e.currentTarget as HTMLInputElement).checked)} />
+                  <span class="slider"></span>
+                </label>
+              </div>
+              {#if lrclibErr}<div class="errline">{lrclibErr}</div>{/if}
+              {#if atLeast(level, 'intermediate')}
+                <p class="hint">{$t('v2.set.metadataHint' as any).replace('{e}', $t('metadata.title' as any))}</p>
+              {/if}
 
             {:else if s.id === 'enrichment'}
               <div class="row">

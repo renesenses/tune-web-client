@@ -77,6 +77,10 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   collections: 'destination',
   smartcollections: 'destination',
   dashboard: 'destination',
+  // Le NOUVEL écran Tableau de bord (25/09/2026), à côté de l'ancien, qui
+  // reste servi sous `dashboard`. Une destination comme lui : on y navigue
+  // depuis la barre, on le quitte, on doit pouvoir y revenir.
+  tableaudebord: 'destination',
   services: 'destination',
   genretree: 'destination',
   equalizer: 'destination',
@@ -94,6 +98,8 @@ export const APTITUDES: Record<View, AptitudeRetour> = {
   pontroon: 'destination',
   lecturecd: 'destination',
   circle: 'destination',
+  // tune-server-rust#5065 — la page d'une source de la rubrique « Sources ».
+  source: 'destination',
   // #4806 — l'écran « Titres bannis », voisin des sélections de l'utilisateur.
   bannedtracks: 'destination',
 

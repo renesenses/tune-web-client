@@ -294,8 +294,10 @@ export interface SignalPath {
    * lossless source transcoded to another lossless container (DSD→FLAC,
    * ALAC→FLAC for a DLNA renderer). Falls back to bit_perfect on older servers
    * that don't send it. Used for the "Lossless/Lossy" loss label (#96).
+   * `null` (#4346) : codec de la source INCONNU (radio pas encore sondée) —
+   * ni « sans perte » ni « avec perte ». Lu par `etatSansPerte`.
    */
-  lossless?: boolean;
+  lossless?: boolean | null;
   steps: SignalPathStep[];
   summary: string;
   decisions?: string[];
